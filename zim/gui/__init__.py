@@ -2294,6 +2294,7 @@ class MainWindow(Window):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'fullscreen-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'init-uistate': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
 	def __init__(self, ui, preferences=None, fullscreen=False, geometry=None):
@@ -2885,6 +2886,9 @@ class MainWindow(Window):
 		self.ui.connect_after('readonly-changed', self.do_update_statusbar)
 		self.pageview.connect('modified-changed', self.do_update_statusbar)
 		self.ui.notebook.connect_after('stored-page', self.do_update_statusbar)
+
+		# Notify plugins
+		self.emit('init-uistate')
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets

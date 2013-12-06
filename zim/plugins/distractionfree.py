@@ -53,11 +53,14 @@ class MainWindowExtension(WindowExtension):
 		self._show_panes = True
 		self.preferences = plugin.preferences
 
-		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		self.connectto(window, 'init-uistate', self.on_init_uistate)
 
 		self.connectto(window, 'fullscreen-changed')
 		self.connectto(window.pageview.view, 'size-allocate')
+
+	def on_init_uistate(self, window):
+		self.on_preferences_changed(self.plugin.preferences)
 
 	def on_preferences_changed(self, preferences):
 		# Set show menubar & Update margins

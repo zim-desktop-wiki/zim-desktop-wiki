@@ -12,7 +12,19 @@ import copy
 import zim.history
 from zim.history import History, HistoryPath, RecentPath
 from zim.notebook import Path
-from zim.config import SectionedConfigDict
+from zim.config import INIConfigFile
+
+
+class VirtualFile(object):
+	### TODO - proper class for this in zim.fs
+	###        unify with code in config manager
+
+	def __init__(self, lines):
+		self.lines = lines
+
+	def readlines(self):
+		return self.lines
+
 
 
 class TestHistory(tests.TestCase):
@@ -246,7 +258,7 @@ class TestHistory(tests.TestCase):
 
 	def testSerialize(self):
 		'''Test parsing the history from the state file'''
-		uistate = SectionedConfigDict()
+		uistate = INIConfigFile(VirtualFile([]))
 		history = History(self.notebook, uistate)
 
 		for page in self.pages:
@@ -268,8 +280,10 @@ class TestHistory(tests.TestCase):
 
 		# clone uistate by text
 		lines = uistate.dump()
-		newuistate = SectionedConfigDict()
-		newuistate.parse(lines)
+		newuistate = INIConfigFile(VirtualFile(lines))
+		newuistate['History'].setdefault('list', [])
+		newuistate['History'].setdefault('recent', [])
+		newuistate['History'].setdefault('current', 0)
 
 		# check new state
 		self.assertHistoryEquals(history, [Path(t[0]) for t in newuistate['History']['list']])
@@ -283,8 +297,8 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(newhistory.get_current(), history.get_current())
 
 		# Check recent is initialized if needed
-		newuistate = SectionedConfigDict()
-		newuistate.parse(lines)
+		newuistate = INIConfigFile(VirtualFile(lines))
+		newuistate['History'].setdefault('recent', [])
 		newuistate['History'].pop('recent')
 		newhistory = History(self.notebook, newuistate)
 
@@ -295,10 +309,12 @@ class TestHistory(tests.TestCase):
 
 	def testRobustness(self):
 		'''Test history can deal with garbage data'''
-		uistate = SectionedConfigDict()
-		uistate['History']['list'] = 'FOOOO'
-		uistate['History']['recent'] = [["BARRRR", 0]]
-		uistate['History']['cursor'] = 'Not an integer'
+		uistate = INIConfigFile(VirtualFile([]))
+		uistate['History'].input({
+			'list': 'FOOOO',
+			'recent': [["BARRRR", 0]],
+			'cursor': 'Not an integer',
+		})
 
 		with tests.LoggingFilter(
 			logger='zim.config',

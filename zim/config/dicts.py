@@ -22,10 +22,13 @@ import sys
 import re
 import logging
 import types
+import collections
+import ast
+
 
 if sys.version_info >= (2, 6):
 	import json # in standard lib since 2.6
-else:
+else: #pragma: no cover
 	import simplejson as json # extra dependency
 
 
@@ -40,63 +43,6 @@ from .basedirs import XDG_CONFIG_HOME
 logger = logging.getLogger('zim.config')
 
 
-def check_class_allow_empty(value, default):
-	'''Check function for L{ConfigDict.setdefault()} which ensures the
-	value is of the same class as the default if it is set, but also
-	allows it to be empty (empty string or C{None}). This is
-	the same as the default behavior when "C{allow_empty}" is C{True}.
-	It will convert C{list} type to C{tuple} automatically if the
-	default is a tuple.
-
-	This function can be used in cases where the check is provided
-	inderictly and C{allow_empty} can not be passed along, e.g.
-	in the definition of plugin preferences.
-
-	@param value: the value in the dict
-	@param default: the default that is set
-	@returns: the new value to set
-	@raises AssertionError: when the value if of the wrong class
-	(which will result in C{setdefault()} setting the default value)
-	'''
-	klass = default.__class__
-	if issubclass(klass, basestring):
-		klass = basestring
-
-	if value in ('', None) or isinstance(value, klass):
-		return value
-	elif klass is tuple and isinstance(value, list):
-		# Special case because json does not know difference list or tuple
-		return tuple(value)
-	else:
-		raise AssertionError, 'should be of type: %s' % klass
-
-
-def value_is_coord(value, default):
-	'''Check function for L{ConfigDict.setdefault()} which will check
-	whether the value is a coordinate (a tuple of two integers). This
-	is e.g. used to store for window coordinates. If the value is a
-	list of two integers, it will automatically be converted to a tuple.
-
-	@param value: the value in the dict
-	@param default: the default that is set
-	@returns: the new value to set
-	@raises AssertionError: when the value is not a coordinate tuple
-	(which will result in C{setdefault()} setting the default value)
-	'''
-	if isinstance(value, list):
-		value = tuple(value)
-
-	if (
-		isinstance(value, tuple)
-		and len(value) == 2
-		and isinstance(value[0], int)
-		and isinstance(value[1], int)
-	):
-		return value
-	else:
-		raise AssertionError, 'should be coordinate (tuple of int)'
-
-
 class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 	'''Sub-class of C{OrderedDict} that also tracks modified state.
 	This modified state is recursive for nested C{ControlledDict}s.
@@ -108,6 +54,8 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 	def __init__(self, E=None, **F):
 		OrderedDict.__init__(self, E, **F)
 		self._modified = False
+
+	# Note that OrderedDict optimizes __getitem__, cannot overload it
 
 	def __setitem__(self, k, v):
 		OrderedDict.__setitem__(self, k, v)
@@ -151,8 +99,342 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 					v.set_modified(False)
 
 
+class ConfigDefinition(object):
+	'''Definition for a key in a L{ConfigDict}'''
+
+	__slots__ = ('default', 'allow_empty')
+
+	def __init__(self, default, allow_empty=False):
+		self.default = default
+		if default is None:
+			allow_empty = True
+		self.allow_empty = allow_empty
+
+		self.check(default) # ensure that default follows check
+
+	def __eq__(self, other):
+		return self.__class__ == other.__class__ \
+			and self.allow_empty == other.allow_empty
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
+	def _check_allow_empty(self, value):
+		if value in ('', None, 'None', 'null'):
+			if self.allow_empty:
+				return True
+			else:
+				raise ValueError, 'Value not allowed to be empty'
+		else:
+			return False
+
+	def _eval_string(self, value):
+		if not value:
+			return value
+		elif value[0] in ('{', '['):
+			# Backward compatibility
+			try:
+				value = json.loads(value)
+			except:
+				pass
+		else:
+			try:
+				value = ast.literal_eval(value)
+			except:
+				pass
+
+		return value
+
+	def check(self, value):
+		'''Check C{value} to be a valid value for this key
+		@raises ValueError: if value is invalid and can not
+		be converted
+		@returns: (converted) value if valid
+		'''
+		raise NotImplementedError
+
+	def tostring(self, value):
+		return str(value)
+
+
+class ConfigDefinitionByClass(ConfigDefinition):
+	'''Definition that enforces the value has to have a certain class
+
+	Classes that have a C{new_from_zim_config()} method can convert
+	values to the desired class.
+	'''
+	# TODO fully get rid of this class and replace by specialized classes
+
+	__slots__= ('klass',)
+
+	def __init__(self, default, klass=None, allow_empty=False):
+		if klass is None:
+			klass = default.__class__
+
+		if issubclass(klass, basestring):
+			self.klass = basestring
+		else:
+			self.klass = klass
+
+		ConfigDefinition.__init__(self, default, allow_empty)
+
+	def __eq__(self, other):
+		return ConfigDefinition.__eq__(self, other) \
+			and self.klass == other.klass
+
+	def check(self, value):
+		if self._check_allow_empty(value):
+			return None
+		elif isinstance(value, basestring) \
+		and not self.klass is basestring:
+			value = self._eval_string(value)
+
+		if isinstance(value, self.klass):
+			return value
+		elif self.klass is tuple and isinstance(value, list):
+			# Special case because json does not know difference list or tuple
+			return tuple(value)
+		elif hasattr(self.klass, 'new_from_zim_config'):
+			# Class has special contructor (which can also raise ValueError)
+			try:
+				return self.klass.new_from_zim_config(value)
+			except:
+				logger.debug('Error while converting %s to %s', value, self.klass, exc_info=1)
+				raise ValueError, 'Can not convert %s to %s' % (value, self.klass)
+		else:
+			raise ValueError, 'Value should be of type: %s' % self.klass.__name__
+
+	def tostring(self, value):
+		if hasattr(value, 'serialize_zim_config'):
+			return value.serialize_zim_config()
+		else:
+			return json.dumps(value, separators=(',',':'))
+				# specify separators for compact encoding
+
+
+class ConfigDefinitionByClassAllowEmpty(ConfigDefinitionByClass):
+
+	def __init__(self, default, klass=None, allow_empty=True):
+		ConfigDefinitionByClass.__init__(self, default, klass, allow_empty=True)
+
+check_class_allow_empty = ConfigDefinitionByClassAllowEmpty # XXX for backward compatibility
+
+
+class Boolean(ConfigDefinition):
+
+	def check(self, value):
+		if isinstance(value, bool):
+			return value
+		elif value in ('True', 'true', 'False', 'false'):
+			return value in ('True', 'true')
+		else:
+			raise ValueError, 'Must be True or False'
+
+
+class String(ConfigDefinition):
+
+	# TODO support esacpe codes \s \t \n \r (see desktop / json spec)
+
+	def __init__(self, default, allow_empty=False):
+		if default == '':
+			default = None
+		ConfigDefinition.__init__(self, default, allow_empty)
+
+	def check(self, value):
+		if self._check_allow_empty(value):
+			return None
+		elif isinstance(value, basestring):
+			return value
+		elif hasattr(value, 'serialize_zim_config'):
+			return value.serialize_zim_config()
+		else:
+			raise ValueError, 'Must be string'
+
+	def tostring(self, value):
+		if value is None:
+			return ''
+		else:
+			return value
+
+
+class Integer(ConfigDefinition):
+
+	def check(self, value):
+		if self._check_allow_empty(value):
+			return None
+		elif isinstance(value, int):
+			return value
+		else:
+			try:
+				return int(value)
+			except:
+				raise ValueError, 'Must be integer'
+
+
+class Float(ConfigDefinition):
+
+	def check(self, value):
+		if self._check_allow_empty(value):
+			return None
+		elif isinstance(value, float):
+			return value
+		else:
+			try:
+				return float(value)
+			except:
+				raise ValueError, 'Must be integer'
+
+
+class Choice(ConfigDefinition):
+	'''Definition that allows selection a value from a given set
+	Will be presented in the gui as a dropdown with a list of choices
+	'''
+
+	__slots__ = ('choices',)
+
+	# TODO - this class needs a type for the choices
+	#        could be simply commen type of list items, but we get
+	#        bitten because we allow tuples as needed for preferences
+	#        with label --> make that a dedicated feature
+
+	def __init__(self, default, choices, allow_empty=False):
+		self.choices = choices
+		ConfigDefinition.__init__(self, default, allow_empty)
+
+	def __eq__(self, other):
+		return ConfigDefinition.__eq__(self, other) \
+			and self.choices == other.choices
+
+	def check(self, value):
+		if self._check_allow_empty(value):
+			return None
+		else:
+			if isinstance(value, basestring) \
+			and not all(isinstance(t, basestring) for t in self.choices):
+				value = self._eval_string(value)
+
+			# HACK to allow for preferences with "choice" item that has
+			# a list of tuples as argumnet
+			if all(isinstance(t, tuple) for t in self.choices):
+				choices = list(self.choices) + [t[0] for t in self.choices]
+			else:
+				choices = self.choices
+
+			# convert json list to tuple
+			if all(isinstance(t, tuple) for t in self.choices) \
+			and isinstance(value, list):
+				value = tuple(value)
+
+			if value in choices:
+				return value
+			else:
+				raise ValueError, 'Value should be one of %s' % unicode(choices)
+
+
+class Range(Integer):
+	'''Definition that defines an integer value in a certain range'''
+
+	__slots__ = ('min', 'max')
+
+	def __init__(self, default, min, max):
+		self.min = min
+		self.max = max
+		ConfigDefinition.__init__(self, default)
+
+
+	def __eq__(self, other):
+		return ConfigDefinition.__eq__(self, other) \
+			and (self.min, self.max) == (other.min, other.max)
+
+
+	def check(self, value):
+		value = Integer.check(self, value)
+		if self._check_allow_empty(value):
+			return None
+		elif self.min <= value <= self.max:
+			return value
+		else:
+			raise ValueError, 'Value should be between %i and %i' % (self.min, self.max)
+
+
+class Coordinate(ConfigDefinition):
+	'''Class defining a config value that is a coordinate
+	(i.e. a tuple of two integers). This is e.g. used to store for
+	window coordinates. If the value is a list of two integers,
+	it will automatically be converted to a tuple.
+	'''
+
+	def __init__(self, default, allow_empty=False):
+		if default == (None, None):
+			allow_empty=True
+		ConfigDefinition.__init__(self, default, allow_empty)
+
+	def check(self, value):
+		if isinstance(value, basestring):
+			value = self._eval_string(value)
+
+		if self._check_allow_empty(value) \
+		or value == (None, None) and self.allow_empty:
+			return None
+		else:
+			if isinstance(value, list):
+				value = tuple(value)
+
+			if (
+				isinstance(value, tuple)
+				and len(value) == 2
+				and isinstance(value[0], int)
+				and isinstance(value[1], int)
+			):
+				return value
+			else:
+				raise ValueError, 'Value should be a coordinate (tuple of 2 integers)'
+
+value_is_coord = Coordinate # XXX for backward compatibility
+
+
+_definition_classes = {
+	str: String,
+	unicode: String,
+	basestring: String,
+	int: Integer,
+	float: Float,
+	bool: Boolean,
+}
+
+
+def build_config_definition(default=None, check=None, allow_empty=False):
+	'''Convenience method to construct a L{ConfigDefinition} object
+	based on a default value an/or a check.
+	'''
+	if default is None and check is None:
+		raise AssertionError, 'At least provide either a default or a check'
+	elif check is None:
+		check = default.__class__
+
+	if isinstance(check, (type, types.ClassType)): # is a class
+		if issubclass(check, ConfigDefinition):
+			return check(default, allow_empty=allow_empty)
+		elif check in _definition_classes:
+			return _definition_classes[check](default, allow_empty)
+		else:
+			return ConfigDefinitionByClass(default, check, allow_empty)
+	elif isinstance(check, (set, list)) \
+	or (isinstance(check, tuple) and not isinstance(default, int)):
+		return Choice(default, check, allow_empty)
+	elif isinstance(check, tuple) and isinstance(default, int):
+		assert len(check) == 2 \
+			and isinstance(check[0], int) \
+			and isinstance(check[1], int)
+		return Range(default, check[0], check[1])
+	else:
+		raise ValueError, 'Unrecognized check type'
+
+
+
 class ConfigDict(ControlledDict):
-	'''Class that behaves like a dict but keeps items in same order.
+	'''
+	Class that behaves like a dict but keeps items in same order.
 	This is the base class for all dicts holding config items in zim.
 	Most importantly it is used for each section in the L{INIConfigFile}.
 	Because it remembers the order of the items in the dict, the order
@@ -162,7 +444,21 @@ class ConfigDict(ControlledDict):
 
 	@ivar modified: C{True} when the values were modified, used to e.g.
 	track when a config needs to be written back to file
+
+
+	Both getting and setting a value will raise a C{KeyError} when the
+	key has not been defined. An C{ValueError} is raised when the
+	value does not conform to the definition.
 	'''
+
+	def __init__(self, E=None, **F):
+		assert not (E and F)
+		ControlledDict.__init__(self)
+		self.definitions = OrderedDict()
+		if E:
+			self._input = dict(E)
+		else:
+			self._input = F
 
 	def copy(self):
 		'''Shallow copy of the items
@@ -170,7 +466,89 @@ class ConfigDict(ControlledDict):
 		'''
 		new = self.__class__()
 		new.update(self)
+		new._input.update(self._input)
 		return new
+
+	def update(self, E=None, **F):
+		if E and isinstance(E, ConfigDict):
+			self.define(
+				(k, E.definitions[k]) for k in E if not k in self
+			)
+		ControlledDict.update(self, E, **F)
+
+	# Note that OrderedDict optimizes __getitem__, cannot overload it
+
+	def __setitem__(self, k, v):
+		if k in self.definitions:
+			try:
+				v = self.definitions[k].check(v)
+			except ValueError, error:
+				raise ValueError, 'Invalid config value for %s: "%s" - %s' % (k, v, error.args[0])
+			else:
+				ControlledDict.__setitem__(self, k, v)
+		else:
+			raise KeyError('Config key "%s" has not been defined' % k)
+
+	def input(self, E=None, **F):
+		'''Like C{update()} but won't raise on failures.
+		Values for undefined keys are stored and validated once the
+		key is defined. Invalid values only cause a logged error
+		message but do not cause errors to be raised.
+		'''
+		assert not (E and F)
+		update = E or F
+		if isinstance(update, collections.Mapping):
+			items = update.items()
+		else:
+			items = update
+
+		for key, value in items:
+			if key in self.definitions:
+				self._set_input(key, value)
+			else:
+				self._input[key] = value # validated later
+
+	def define(self, E=None, **F):
+		'''Set one or more defintions for this config dict
+		Can cause error log when values prior given to C{input()} do
+		not match the definition.
+		'''
+		assert not (E and F)
+		update = E or F
+		if isinstance(update, collections.Mapping):
+			items = update.items()
+		else:
+			items = update
+
+		for key, definition in items:
+			if key in self.definitions:
+				if definition != self.definitions[key]:
+					raise AssertionError, \
+						'Key is already defined with different definition: %s\n%s != %s' \
+						% (key, definition, self.definitions[key])
+				else:
+					continue
+
+			self.definitions[key] = definition
+			if key in self._input:
+				value = self._input.pop(key)
+				self._set_input(key, value)
+			else:
+				with self.blocked_signals('changed'):
+					OrderedDict.__setitem__(self, key, definition.default)
+
+	def _set_input(self, key, value):
+		try:
+			value = self.definitions[key].check(value)
+		except ValueError, error:
+			logger.warn(
+				'Invalid config value for %s: "%s" - %s',
+					key, value, error.args[0]
+			)
+			value = self.definitions[key].default
+
+		with self.blocked_signals('changed'):
+			OrderedDict.__setitem__(self, key, value)
 
 	def setdefault(self, key, default, check=None, allow_empty=False):
 		'''Set the default value for a configuration item.
@@ -235,120 +613,37 @@ class ConfigDict(ControlledDict):
 		not set to overwrite an empty value, but only for a mal-formed
 		value or for a value that doesn't exist yet in the dict.
 		'''
-		with self.blocked_signals('changed'):
-			return self._setdefault(key, default, check, allow_empty)
-
-	def _setdefault(self, key, default, check=None, allow_empty=False):
-		assert not (default is None and check is None), \
-			'Bad practice to set default to None without check'
-
-		if not key in self:
-			self.__setitem__(key, default)
-			return self[key]
-
-		if check is None:
-			klass = default.__class__
-			if issubclass(klass, basestring):
-				klass = basestring
-			check = klass
-
-		if default in ('', None):
-			allow_empty = True
-
-		if allow_empty and self[key] in ('', None):
-			return self[key]
-
-		if isinstance(check, (type, types.ClassType)): # is a class
-			klass = check
-			if not (allow_empty and default in ('', None)):
-				assert isinstance(default, klass), 'Default does not have correct class'
-
-			if not isinstance(self[key], klass):
-				if klass is tuple and isinstance(self[key], list):
-					# Special case because json does not know difference list or tuple
-					modified = self.modified
-					self.__setitem__(key, tuple(self[key]))
-					self.set_modified(modified) # don't change modified state
-				elif hasattr(klass, 'new_from_zim_config'):
-					# Class has special contructor
-					modified = self.modified
-					try:
-						self.__setitem__(key, klass.new_from_zim_config(self[key]))
-					except:
-						logger.exception(
-							'Invalid config value for %s: "%s"',
-							key, self[key])
-					self.set_modified(modified) # don't change modified state
-				else:
-					logger.warn(
-						'Invalid config value for %s: "%s" - should be of type %s',
-						key, self[key], klass)
-					self.__setitem__(key, default)
-			elif self[key] == '':
-					# Special case for empty string
-					logger.warn(
-						'Invalid config value for %s: "%s" - not allowed to be empty',
-						key, self[key])
-					self.__setitem__(key, default)
-			else:
-				pass # value is OK
-		elif isinstance(check, (set, list)) \
-		or (isinstance(check, tuple) and not isinstance(default, int)):
-			if not (allow_empty and default in ('', None)):
-				# HACK to allow for preferences with "choice" item that has
-				# a list of tuples as argumnet
-				if all(isinstance(t, tuple) for t in check):
-					check = list(check) # copy
-					check += [t[0] for t in check]
-				assert default in check, 'Default is not within allowed set'
-
-			# HACK to allow the value to be a tuple...
-			if all(isinstance(t, tuple) for t in check) \
-			and isinstance(self[key], list):
-				modified = self.modified
-				self.__setitem__(key, tuple(self[key]))
-				self.set_modified(modified)
-
-			if not self[key] in check:
-				logger.warn(
-						'Invalid config value for %s: "%s" - should be one of %s',
-						key, self[key], unicode(check))
-				self.__setitem__(key, default)
-			else:
-				pass # value is OK
-		elif isinstance(check, tuple) and isinstance(default, int):
-			assert len(check) == 2 \
-				and isinstance(check[0], int) \
-				and isinstance(check[1], int)
-			if not isinstance(self[key], int):
-				logger.warn(
-					'Invalid config value for %s: "%s" - should be integer',
-					key, self[key])
-				self.__setitem__(key, default)
-			elif not check[0] <= self[key] <= check[1]:
-				logger.warn(
-					'Invalid config value for %s: "%s" - should be between %i and %i',
-					key, self[key], check[0], check[1])
-				self.__setitem__(key, default)
-			else:
-				pass # value is OK
-		else: # assume callable
-			modified = self.modified
-			try:
-				v = check(self[key], default)
-				self.__setitem__(key, v)
-				self.set_modified(modified)
-			except AssertionError, error:
-				logger.warn(
-					'Invalid config value for %s: "%s" - %s',
-					key, self[key], error.args[0])
-				self.__setitem__(key, default)
-
-		return self[key]
-
+		if key in self.definitions \
+		and check is None \
+		and allow_empty is False:
+			# Real setdefault
+			return ControlledDict.setdefault(self, key, default)
+		else:
+			# Define
+			definition = build_config_definition(default, check, allow_empty)
+			self.define({key: definition})
+			return self.__getitem__(key)
 
 
 class SectionedConfigDict(ControlledDict):
+	'''Dict with multiple sections of config values
+	Sections are auto-vivicated when a non-existing item is retrieved.
+	'''
+
+	def __setitem__(self, k, v):
+		assert isinstance(v, (ControlledDict, list)) # FIXME shouldn't we get rid of the list option here ?
+		ControlledDict.__setitem__(self, k, v)
+
+	def __getitem__(self, k):
+		try:
+			return ControlledDict.__getitem__(self, k)
+		except KeyError:
+			with self.blocked_signals('changed'):
+				ControlledDict.__setitem__(self, k, ConfigDict())
+			return ControlledDict.__getitem__(self, k)
+
+
+class INIConfigFile(SectionedConfigDict):
 	'''Dict to represent a configuration file in "ini-style". Since the
 	ini-file is devided in section this is represented as a dict of
 	dicts. This class represents the top-level with a key for each
@@ -365,11 +660,7 @@ class SectionedConfigDict(ControlledDict):
 	  enabled=True
 	  data={'foo': 1, 'bar': 2}
 
-	values can either be simple string, number, or one of "True",
-	"False" and "None", or a complex data structure encoded with the
-	C{json} module.
-
-	Sections are auto-vivicated when a non-existing item is retrieved.
+	(The values are parsed by the L{ConfigDefinition} for each key)
 
 	By default when parsing sections of the same name they will be
 	merged and values that appear under the same section name later in
@@ -383,127 +674,16 @@ class SectionedConfigDict(ControlledDict):
 	instances.
 	'''
 
-	def __setitem__(self, k, v):
-		assert isinstance(v, (ControlledDict, list)) # FIXME shouldn't we get rid of the list option here ?
-		ControlledDict.__setitem__(self, k, v)
+	# TODO get rid of the read() and write() methods here
+	#      separate the dict object from the file object
+	#      let parse() and dump() take a file-like object
 
-	def __getitem__(self, k):
-		try:
-			return ControlledDict.__getitem__(self, k)
-		except KeyError:
-			with self.blocked_signals('changed'):
-				ControlledDict.__setitem__(self, k, ConfigDict())
-			return ControlledDict.__getitem__(self, k)
-
-	def parse(self, text):
-		'''Parse an "ini-style" configuration. Fills the dictionary
-		with values from this text, wil merge with existing sections and
-		overwrite existing values.
-		@param text: a string or a list of lines
-		'''
-		# Note that we explicitly do _not_ support comments on the end
-		# of a line. This is because "#" could be a valid character in
-		# a config value.
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
-		section = None
-		for line in text:
-			line = line.strip()
-			if not line or line.startswith('#'):
-				continue
-			elif line.startswith('[') and line.endswith(']'):
-				name = line[1:-1].strip()
-				section = self[name]
-				if isinstance(section, list):
-					section.append(ConfigDict())
-					section = section[-1]
-			elif '=' in line:
-				parameter, rawvalue = line.split('=', 1)
-				parameter = str(parameter.rstrip()) # no unicode
-				rawvalue = rawvalue.lstrip()
-				try:
-					value = self._decode_value(parameter, rawvalue)
-					section[parameter] = value
-				except:
-					logger.warn('Failed to parse value for key "%s": %s', parameter, rawvalue)
-			else:
-				logger.warn('Could not parse line: %s', line)
-
-	# Separated out as this will be slightly different for .desktop files
-	# we ignore the key - but DesktopEntryDict uses them
-	def _decode_value(self, key, value):
-		if len(value) == 0:
-			return ''
-		if value == 'True': return True
-		elif value == 'False': return False
-		elif value == 'None': return None
-		elif value[0] in ('{', '['):
-			return json.loads(value)
-		else:
-			try:
-				value = int(value)
-				return value
-			except: pass
-
-			try:
-				value = float(value)
-				return value
-			except: pass
-
-			return json.loads('"%s"' % value.replace('"', r'\"')) # force string
-
-	def dump(self):
-		'''Serialize the config to a "ini-style" config file.
-		@returns: a list of lines with text in "ini-style" formatting
-		'''
-		lines = []
-		def dump_section(name, parameters):
-			try:
-				lines.append('[%s]\n' % section)
-				for param, value in parameters.items():
-					if not param.startswith('_'):
-						lines.append('%s=%s\n' % (param, self._encode_value(value)))
-				lines.append('\n')
-			except:
-				logger.exception('Dumping section [%s] failed:\n%r', name, parameters)
-
-		for section, parameters in self.items():
-			if parameters and not section.startswith('_'):
-				if isinstance(parameters, list):
-					for param in parameters:
-						dump_section(section, param)
-				else:
-					dump_section(section, parameters)
-
-		return lines
-
-	def _encode_value(self, value):
-		if isinstance(value, basestring):
-			return json.dumps(value)[1:-1] # get rid of quotes
-		elif value is True: return 'True'
-		elif value is False: return 'False'
-		elif value is None: return 'None'
-		elif hasattr(value, 'serialize_zim_config'):
-			return value.serialize_zim_config()
-		else:
-			return json.dumps(value, separators=(',',':'))
-				# specify separators for compact encoding
-
-
-class ConfigFileMixin(object):
-	'''Mixin class for reading and writing config to file, can be used
-	with any parent class that has a C{parse()}, a C{dump()}, and a
-	C{set_modified()} method.
-	'''
-
-	def __init__(self, file, *args, **kwargs):
+	def __init__(self, file):
 		'''Constructor
 		@param file: a L{File} or L{ConfigFile} object for reading and
 		writing the config.
-		@param args: passed on to super class
-		@param kwargs: passed on to super class
 		'''
-		super(ConfigFileMixin, self).__init__(self, *args, **kwargs)
+		SectionedConfigDict.__init__(self)
 		self.file = file
 		try:
 			with self.blocked_signals('changed'):
@@ -519,6 +699,44 @@ class ConfigFileMixin(object):
 		self.parse(self.file.readlines())
 		# Will fail with FileNotFoundError if file does not exist
 
+	def parse(self, text):
+		'''Parse an "ini-style" configuration. Fills the dictionary
+		with values from this text, wil merge with existing sections and
+		overwrite existing values.
+		@param text: a string or a list of lines
+		'''
+		# Note that we explicitly do _not_ support comments on the end
+		# of a line. This is because "#" could be a valid character in
+		# a config value.
+		if isinstance(text, basestring):
+			text = text.splitlines(True)
+
+		section = None
+		values = []
+
+		for line in text:
+			line = line.strip()
+			if not line or line.startswith('#'):
+				continue
+			elif line.startswith('[') and line.endswith(']'):
+				if values:
+					section.input(values)
+					values = []
+
+				name = line[1:-1].strip()
+				section = self[name]
+			elif '=' in line:
+				if section is None:
+					logger.warn('Parameter outside section: %s', line)
+				else:
+					key, string = line.split('=', 1)
+					values.append((str(key.rstrip()), string.lstrip())) # key is not unicode
+			else:
+				logger.warn('Could not parse line: %s', line)
+		else:
+			if values:
+				section.input(values)
+
 	def write(self):
 		'''Write data and set C{modified} to C{False}'''
 		self.file.writelines(self.dump())
@@ -533,14 +751,30 @@ class ConfigFileMixin(object):
 		self.set_modified(False)
 		return operation
 
+	def dump(self):
+		'''Serialize the config to a "ini-style" config file.
+		@returns: a list of lines with text in "ini-style" formatting
+		'''
+		lines = []
+		def dump_section(name, section):
+			try:
+				lines.append('[%s]\n' % name)
+				for key, value in section.items():
+					if not key.startswith('_'):
+						lines.append('%s=%s\n' % (key, section.definitions[key].tostring(value)))
+				lines.append('\n')
+			except:
+				logger.exception('Dumping section [%s] failed:\n%r', name, section)
 
-class INIConfigFile(ConfigFileMixin, SectionedConfigDict):
+		for name, section in self.items():
+			if section and not name.startswith('_'):
+				if isinstance(section, list):
+					for s in section:
+						dump_section(name, s)
+				else:
+					dump_section(name, section)
 
-	# TODO: we could argue that the parse / dump methods in the
-	#       SectionedConfigDict belong in this class, since they
-	#       relate to the file representation and not the dict content.
-
-	pass
+		return lines
 
 
 class HeaderParsingError(Error):

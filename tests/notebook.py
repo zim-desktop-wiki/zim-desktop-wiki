@@ -58,6 +58,7 @@ class TestNotebookInfoList(tests.TestCase):
 		self.assertEqual(info.name, 'foo')
 
 		newlist = get_notebook_list() # just to be sure re-laoding works..
+		self.assertTrue(len(list) == 1)
 		info = newlist.get_by_name('foo')
 		self.assertEqual(info.uri, dir.uri)
 		self.assertEqual(info.name, 'foo')
@@ -69,6 +70,7 @@ class TestNotebookInfoList(tests.TestCase):
 			uri1 = 'file:///foo/bar'
 
 		list = get_notebook_list()
+		self.assertTrue(len(list) == 1)
 		list.append(NotebookInfo(uri1, interwiki='foobar'))
 			# on purpose do not set name, should default to basename
 		list.write()

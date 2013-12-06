@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains utilities to work with external applications
 it is based on the Freedesktop.org (XDG) Desktop Entry specification
@@ -27,7 +27,7 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-	data_dirs, SectionedConfigDict, ConfigFileMixin, json, ConfigManager
+	data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
@@ -79,9 +79,8 @@ def _create_application(dir, Name, Exec, klass=None, NoDisplay=True, **param):
 	if klass is None:
 		klass = DesktopEntryFile
 	entry = klass(file)
-	type = param.pop('Type', 'Application')
 	entry.update(
-		Type=type,
+		Type=param.pop('Type', 'Application'),
 		Version=1.0,
 		NoDisplay=NoDisplay,
 		Name=Name,
@@ -348,6 +347,33 @@ class ApplicationManager(object):
 		return entries
 
 
+from zim.config import String as BaseString
+from zim.config import Boolean as BaseBoolean
+from zim.config import Float as Numeric
+
+class String(BaseString):
+
+	def check(self, value):
+		# Only ascii chars allowed in these keys
+		value = BaseString.check(self, value)
+		if isinstance(value, unicode) \
+		and value.encode('utf-8') != value:
+			raise ValueError, 'ASCII string required'
+		return value
+
+
+class LocaleString(BaseString):
+	pass # utf8 already supported by default
+
+
+class Boolean(BaseBoolean):
+
+	def tostring(self, value):
+		# Desktop entry specs "true" and "false"
+		return str(value).lower()
+
+
+
 class DesktopEntryDict(SectionedConfigDict, Application):
 	'''Base class for L{DesktopEntryFile}, defines most of the logic.
 
@@ -377,6 +403,26 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 	'''
 
 	__repr__ = Application.__repr__
+
+	_definitions = (
+		# Data types for all keys are defined in spec - see freedesktop.org
+		# Don't define all keys in the spec, just define the ones that we might use
+		('Type',		String('Application')),
+		('Version',		Numeric(1.0)),
+		('GenericName',	LocaleString(None)),
+		('Name',		LocaleString(None)),
+		('Comment',		LocaleString(None)),
+		('Exec',		String(None)),
+		('TryExec',		String(None)),
+		('Icon',		LocaleString(None)),
+		('MimeType',	String(None)),
+		('Terminal',	Boolean(False)),
+		('NoDisplay',	Boolean(False)),
+	)
+
+	def __init__(self):
+		SectionedConfigDict.__init__(self)
+		self['Desktop Entry'].define(self._definitions)
 
 	@property
 	def key(self):
@@ -494,7 +540,8 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 			cmd.extend(map(unicode, args))
 
 		if '%i' in cmd:
-			if 'Icon' in self['Desktop Entry']:
+			if 'Icon' in self['Desktop Entry'] \
+			and self['Desktop Entry']['Icon']:
 				i = cmd.index('%i')
 				cmd[i] = self['Desktop Entry']['Icon']
 				cmd.insert(i, '--icon')
@@ -520,61 +567,15 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		'''Same as C{dict.update()}'''
 		self['Desktop Entry'].update(E, **F)
 
-	# Data types for all keys are defined in spec - see freedesktop.org
-	_key_types = {
-		'Version': 'numeric',
-		'NoDisplay': 'boolean',
-		'Hidden': 'boolean',
-		'Terminal': 'boolean',
-		'StartupNotify': 'boolean',
-		# All other keys are either string or localestring
-	}
 
-	def _decode_value(self, key, value):
-		type = self._key_types.get(key)
-		if not type and key.startswith('X-'):
-			# Try to guess it
-			if value == 'true': return True
-			elif value == 'false': return False
-			else:
-				try:
-					value = float(value)
-					return value
-				except:
-					return json.loads('"%s"' % value.replace('"', r'\"')) # force string
-		else:
-			# Strict typing
-			if not type or type == 'string':
-				return json.loads('"%s"' % value.replace('"', r'\"')) # force string
-			elif type == 'boolean':
-				if value == 'true': return True
-				else: return False # 'false' or invalid value
-			elif type == 'numeric':
-				try:
-					value = float(value)
-					return value
-				except:
-					return 0 # invalid value
-			else:
-				assert False, 'BUG: unknown key type: %s' % type
-
-	def _encode_value(self, value):
-		if value is None: return ''
-		elif value is True: return 'true'
-		elif value is False: return 'false'
-		elif isinstance(value, int) or isinstance(value, float):
-			return value.__str__()
-		elif isinstance(value, File):
-			return value.path # Icon can be file
-		else:
-			assert isinstance(value, basestring), 'Desktop files can not store complex data'
-			return json.dumps(value)[1:-1].replace('\\"', '"') # get rid of quotes
-
-
-class DesktopEntryFile(ConfigFileMixin, DesktopEntryDict):
+class DesktopEntryFile(DesktopEntryDict, INIConfigFile):
 	'''Class implementing a single desktop entry file with the
 	definition of an external application.
 	'''
+
+	def __init__(self, file):
+		DesktopEntryDict.__init__(self)
+		INIConfigFile.__init__(self, file)
 
 	@property
 	def key(self):
@@ -937,6 +938,9 @@ class CustomToolManager(object):
 		self._write_list()
 
 
+
+from zim.config import Choice
+
 class CustomToolDict(DesktopEntryDict):
 	'''This is a specialized desktop entry type that is used for
 	custom tools for the "Tools" menu in zim. It uses a non-standard
@@ -960,12 +964,12 @@ class CustomToolDict(DesktopEntryDict):
 	page & pageview.
 	'''
 
-	_key_types = {
-		'X-Zim-ExecTool': 'string',
-		'X-Zim-ReadOnly': 'boolean',
-		'X-Zim-ShowInToolBar': 'boolean',
-	}
-	_key_types.update(DesktopEntryDict._key_types)
+	_definitions = DesktopEntryDict._definitions + (
+			('X-Zim-ExecTool',			String(None)),
+			('X-Zim-ReadOnly',			Boolean(True)),
+			('X-Zim-ShowInToolBar',		Boolean(False)),
+			('X-Zim-ShowInContextMenu',	Choice(None, ('Text', 'Page'))),
+	)
 
 	def isvalid(self):
 		'''Check if all required fields are set.
@@ -1085,8 +1089,16 @@ class CustomToolDict(DesktopEntryDict):
 			self['Desktop Entry']['X-Zim-ShowInContextMenu'] = context
 
 
-class CustomTool(CustomToolDict, DesktopEntryFile):
+class CustomTool(CustomToolDict, INIConfigFile):
 	'''Class representing a file defining a custom tool, see
 	L{CustomToolDict} for the API documentation.
 	'''
-	pass
+
+	def __init__(self, file):
+		CustomToolDict.__init__(self)
+		INIConfigFile.__init__(self, file)
+
+	@property
+	def key(self):
+		return self.file.basename[:-8] # len('.desktop') is 8
+

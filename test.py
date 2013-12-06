@@ -81,7 +81,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 	loader = unittest.TestLoader()
 	if args:
 		suite = unittest.TestSuite()
-		for module in [ 'tests.'+name for name in args ]:
+		for name in args:
+			module = name if name.startswith('tests.') else 'tests.' + name
 			test = loader.loadTestsFromName(module)
 			suite.addTest(test)
 	else:

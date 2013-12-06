@@ -136,6 +136,7 @@ class InputPage(AssistantPage):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
 		self.uistate.setdefault('selection', 'all')
 		#~ self.uistate.setdefault('selection_recursive', False)
+		self.uistate.setdefault('selected_page', self.form['page'])
 		self.form['selection'] = self.uistate['selection']
 
 	def save_uistate(self):
@@ -206,7 +207,7 @@ class FormatPage(AssistantPage):
 			for widget in self.form.widgets:
 				if widget.startswith('document_root:'):
 					self.form.widgets[widget].set_sensitive(False)
-			self.uistate['document_root_url'] = ''
+			self.uistate.input(document_root_url='')
 
 	def init_uistate(self):
 		self.uistate.setdefault('format', 'HTML')
@@ -261,9 +262,9 @@ class OutputPage(AssistantPage):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
-		self.uistate.setdefault('output_folder', '', Dir)
+		self.uistate.setdefault('output_folder', None, Dir)
 		self.uistate.setdefault('index_page', '')
-		self.uistate.setdefault('output_file', '', File)
+		self.uistate.setdefault('output_file', None, File)
 
 		show_file = self.uistate.get('selection') == 'page'
 		if show_file:

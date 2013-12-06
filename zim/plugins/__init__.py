@@ -419,9 +419,11 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	def set_extension_class(self, name, klass):
 		if name in self.extension_classes:
 			oldklass = self.extension_classes.pop(name)
-			self.remove_extension_class(oldklass)
-
-		self.add_extension_class(name, klass)
+			if oldklass != klass:
+				self.remove_extension_class(oldklass)
+				self.add_extension_class(name, klass)
+		else:
+			self.add_extension_class(name, klass)
 
 	def add_extension_class(self, name, klass):
 		if name in self.extension_classes:

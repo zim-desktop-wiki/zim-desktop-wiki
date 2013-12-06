@@ -2348,6 +2348,47 @@ class WindowSidePaneWidget(object):
 		return False
 
 
+
+from zim.config import ConfigDefinition, ConfigDefinitionByClass
+
+class ConfigDefinitionPaneToggle(ConfigDefinition):
+
+	def __init__(self, default, window):
+		ConfigDefinition.__init__(self, default)
+		self.window = window
+
+	def check(self, value):
+		# Must be list of valid pane names
+		if isinstance(value, basestring):
+			value = self._eval_string(value)
+
+		if isinstance(value, (tuple, list)) \
+		and all(e in self.window._zim_window_sidepanes for e in value):
+			return value
+		else:
+			raise ValueError, 'Unknown pane names in: %s' % value
+
+
+class ConfigDefinitionPaneState(ConfigDefinitionByClass):
+	# Check value is state as used by set_pane_state() and
+	# get_pane_state(), so 3 elements: boolean, integer and
+	# a label or None
+
+	def __init__(self, default):
+		ConfigDefinitionByClass.__init__(self, default, klass=tuple)
+
+	def check(self, value):
+		value = ConfigDefinitionByClass.check(self, value)
+		if isinstance(value, (tuple, list)) \
+		and len(value) == 3 \
+		and isinstance(value[0], bool) \
+		and isinstance(value[1], int) \
+		and (value[2] is None or isinstance(value[2], basestring)):
+			return value
+		else:
+			raise ValueError, 'Value is not a valid pane state'
+
+
 class Window(gtkwindowclass):
 	'''Sub-class of C{gtk.Window} that will take care of hooking
 	the window into the application framework and adds entry points
@@ -2532,34 +2573,15 @@ class Window(gtkwindowclass):
 
 	def init_uistate(self):
 		assert self.uistate
-
-		def check_toggle(value, default):
-			# Must be list of valid pane names
-			if isinstance(default, (tuple, list)) \
-			and all(e in self._zim_window_sidepanes for e in value):
-				return value
-			else:
-				raise AssertionError
-
-		self.uistate.setdefault('toggle_panes', [], check_toggle)
-
-
-		def check(value, default):
-			# Check value is state as used by set_pane_state() and
-			# get_pane_state(), so 3 elements: boolean, integer and
-			# a label or None
-			if isinstance(value, (tuple, list)) \
-			and len(value) == 3 \
-			and isinstance(value[0], bool) \
-			and isinstance(value[1], int) \
-			and (value[2] is None or isinstance(value[2], basestring)):
-				return value
-			else:
-				raise AssertionError
+		self.uistate.define((
+			('toggle_panes', ConfigDefinitionPaneToggle([], self)),
+		))
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			default = self.get_pane_state(key)
-			self.uistate.setdefault(key, default, check)
+			self.uistate.define((
+				(key, ConfigDefinitionPaneState(default)),
+			))
 			self.set_pane_state(key, *self.uistate[key])
 
 	def save_uistate(self):
@@ -2720,7 +2742,7 @@ class Window(gtkwindowclass):
 		if not self._registered:
 			register_window(self)
 			self._registered = True
-		if hasattr(self, 'uistate') and self.uistate:
+		if hasattr(self, 'uistate'):
 			self.init_uistate()
 		gtkwindowclass.show_all(self)
 

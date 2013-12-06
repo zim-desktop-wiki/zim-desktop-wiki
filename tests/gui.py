@@ -11,7 +11,7 @@ import gtk
 
 from zim.errors import Error
 from zim.config import ConfigManager, VirtualConfigManager
-from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
+from zim.notebook import get_notebook_list, Path, Page, NotebookInfo, NotebookConfig
 from zim.formats import ParseTree
 from zim.fs import File, Dir
 from zim.gui.clipboard import Clipboard
@@ -280,36 +280,38 @@ class TestDialogs(tests.TestCase):
 		from zim.config import INIConfigFile
 		notebook = self.ui.notebook
 		file = notebook.dir.file('notebook.zim')
-		notebook.config = INIConfigFile(file)
+		notebook.config = NotebookConfig(file)
 		self.ui.readonly = False
 
 		config1 = {
 			'name': 'Notebook Foo',
-			'interwiki': '',
-			'home': 'Home',
+			'interwiki': None,
+			'home': Path('Home'),
 			'icon': './icon.png',
 			'document_root': File('/foo').path, # win32 save test
 			'shared': False,
-			'profile': '',
+			'profile': None,
 		}
 		config2 = {
 			'name': 'Notebook Bar',
 			'interwiki': 'FooBar',
-			'home': 'HomeSweetHome',
+			'home': Path('HomeSweetHome'),
 			'icon': './picture.png',
 			'document_root': File('/bar').path, # win32 save test
 			'shared': True,
 			'profile': 'foo',
 		}
 		notebook.save_properties(**config1)
-		self.assertEqual(notebook.config['Notebook'], config1)
+		for key in config1:
+			self.assertEqual(notebook.config['Notebook'][key], config1[key])
 
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
 
-		self.assertEqual(notebook.config['Notebook'], config1)
+		for key in config1:
+			self.assertEqual(notebook.config['Notebook'][key], config1[key])
 		self.assertEqual(notebook.name, config1['name'])
-		self.assertEqual(notebook.get_home_page(), Path(config1['home']))
+		self.assertEqual(notebook.get_home_page(), config1['home'])
 		self.assertEqual(notebook.icon, notebook.dir.file(config1['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config1['document_root']))
 
@@ -317,9 +319,10 @@ class TestDialogs(tests.TestCase):
 		dialog.form.update(config2)
 		dialog.assert_response_ok()
 
-		self.assertEqual(notebook.config['Notebook'], config2)
+		for key in config1:
+			self.assertEqual(notebook.config['Notebook'][key], config2[key])
 		self.assertEqual(notebook.name, config2['name'])
-		self.assertEqual(notebook.get_home_page(), Path(config2['home']))
+		self.assertEqual(notebook.get_home_page(), config2['home'])
 		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
 

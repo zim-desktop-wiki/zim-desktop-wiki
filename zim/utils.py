@@ -183,16 +183,25 @@ class OrderedDict(collections.MutableMapping):
 	# optimized on it's own
 
 	def __init__(self, E=None, **F):
-		self._keys = []
-		self._values = {}
-		self.__getitem__ = self._values.__getitem__ # optimization
+		if not hasattr(self, '_keys') \
+		and not hasattr(self, '_values'):
+			# Some classes have double inheritance from this class
+			self._keys = []
+			self._values = {}
+
+		if self.__class__.__getitem__ == OrderedDict.__getitem__:
+			# optimization by just using the real dict.__getitem__
+			# but skip if subclass overloaded the method
+			self.__getitem__ = self._values.__getitem__
+
 		if E or F:
-			self.update(E or (), **F)
+			assert not (E and F)
+			self.update(E or F)
 
 	def __repr__(self):
-		return '<%s: %s>' % (
+		return '<%s:\n%s\n>' % (
 			self.__class__.__name__,
-			', '.join('%r: %r' % (k, v) for k, v in self.items())
+			',\n'.join('  %r: %r' % (k, v) for k, v in self.items())
 		)
 
 	def __getitem__(self, k):

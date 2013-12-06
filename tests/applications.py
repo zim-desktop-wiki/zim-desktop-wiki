@@ -282,7 +282,7 @@ class TestCustomTools(tests.TestCase):
 		tool = CustomToolDict()
 		tool.update( {
 			'Name': 'Test',
-			'Description': 'Test 1 2 3',
+			'Comment': 'Test 1 2 3',
 			'X-Zim-ExecTool': 'foo',
 		} )
 		for cmd, wanted in (
@@ -396,3 +396,9 @@ class StubPageView(object):
 			return '**FooBar**'
 		else:
 			return 'FooBar'
+
+
+if __name__ == '__main__':
+	import unittest
+	unittest.main()
+

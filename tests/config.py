@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -219,25 +219,235 @@ class TestControlledDict(tests.TestCase):
 		self.assertRaises(KeyError, mydict.__getitem__, v)
 
 
+class TestConfigDefinitions(tests.TestCase):
+
+	def testBuildDefinition(self):
+		self.assertRaises(AssertionError, build_config_definition)
+
+		for default, check, klass in (
+			('foo', None, String),
+			('foo', basestring, String),
+			(True, None, Boolean),
+			(10, None, Integer),
+			(1.0, None, Float),
+			('foo', ('foo', 'bar', 'baz'), Choice),
+			(10, (1, 100), Range),
+			((10, 20), value_is_coord, Coordinate),
+			('foo', check_class_allow_empty, ConfigDefinitionByClassAllowEmpty),
+		):
+			definition = build_config_definition(default, check)
+			self.assertIsInstance(definition, klass)
+
+	def testConfigDefinitionByClass(self):
+		for value, klass in (
+			([1,2,3], list),
+			(Path('foo'), Path),
+		):
+			definition = build_config_definition(value)
+			self.assertIsInstance(definition, ConfigDefinitionByClass)
+			self.assertEqual(definition.klass, klass)
+
+		# Test input by json struct
+		definition = ConfigDefinitionByClass([1,2,3])
+		self.assertEqual(definition.check('[true,200,null]'), [True,200,None])
+
+		# Test converting to tuple
+		definition = ConfigDefinitionByClass((1,2,3))
+		self.assertEqual(definition.check([5,6,7]), (5,6,7))
+
+		# Test new_from_zim_config
+		definition = ConfigDefinitionByClass(Path('foo'))
+		self.assertEqual(definition.check('bar'), Path('bar'))
+		self.assertEqual(definition.check(':foo::bar'), Path('foo:bar'))
+		self.assertRaises(ValueError, definition.check, ":::")
+
+	def testBoolean(self):
+		definition = Boolean(True)
+		self.assertEqual(definition.check(False), False)
+		self.assertEqual(definition.check('True'), True)
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+	def testString(self):
+		definition = String('foo')
+		self.assertEqual(definition.check('foo'), 'foo')
+		self.assertRaises(ValueError, definition.check, 10)
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+		definition = String('foo', allow_empty=True)
+		self.assertEqual(definition.check('foo'), 'foo')
+		self.assertEqual(definition.check(''), None)
+		self.assertEqual(definition.check(None), None)
+		self.assertRaises(ValueError, definition.check, 10)
+
+		definition = String(None)
+		self.assertTrue(definition.allow_empty)
+
+	def testInteger(self):
+		definition = Integer(10)
+		self.assertEqual(definition.check(20), 20)
+		self.assertEqual(definition.check('20'), 20)
+		self.assertEqual(definition.check('-20'), -20)
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+	def testFloat(self):
+		definition = Float(10)
+		self.assertEqual(definition.check(20), 20)
+		self.assertEqual(definition.check('2.0'), 2.0)
+		self.assertEqual(definition.check('-2.0'), -2.0)
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+	def testChoice(self):
+		definition = Choice('xxx', ('xxx', 'foo', 'bar'))
+		self.assertEqual(definition.check('foo'), 'foo')
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+		definition = Choice('xxx', ('xxx', 'foo', 'bar'), allow_empty=True)
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertEqual(definition.check('foo'), 'foo')
+		self.assertEqual(definition.check(''), None)
+		self.assertEqual(definition.check(None), None)
+
+		# test list conversion
+		definition = Choice((1,2), ((1,2), (3,4), (5,6)))
+		self.assertEqual(definition.check([3,4]), (3,4))
+
+		# test hack for preferences with label
+		pref = [
+			('xxx', 'XXX'),
+			('foo', 'Foo'),
+			('bar', 'Bar'),
+		]
+		definition = Choice('xxx', pref)
+		self.assertEqual(definition.check('foo'), 'foo')
+
+	def testRange(self):
+		definition = Range(10, 1, 100)
+		self.assertEqual(definition.check(20), 20)
+		self.assertEqual(definition.check('20'), 20)
+		self.assertRaises(ValueError, definition.check, -10)
+		self.assertRaises(ValueError, definition.check, 200)
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+	def testCoordinate(self):
+		definition = Coordinate((1,2))
+		self.assertEqual(definition.check((2,3)), (2,3))
+		self.assertEqual(definition.check([2,3]), (2,3))
+		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, (1,2,3))
+		self.assertRaises(ValueError, definition.check, (1,'XXX'))
+		self.assertRaises(ValueError, definition.check, ('XXX', 2))
+		self.assertRaises(ValueError, definition.check, '')
+		self.assertRaises(ValueError, definition.check, None)
+
+		definition = Coordinate((1,2), allow_empty=True)
+		self.assertEqual(definition.check(''), None)
+		self.assertEqual(definition.check(None), None)
+
+
 class TestConfigDict(tests.TestCase):
 
 	def runTest(self):
-		'''Test ConfigDict class'''
-		keys = ['foo', 'bar', 'baz']
-		mydict = ConfigDict()
-		for k in keys:
-			mydict[k] = 'dusss'
+		mydict = ConfigDict({
+			'a': 'AAA',
+			'b': 'BBB',
+			'c': 'CCC',
+		})
 
-		val = mydict.setdefault('dus', 'ja')
-		self.assertEqual(val, 'ja')
-		val = mydict.setdefault('dus', 'hmm')
-		self.assertEqual(val, 'ja')
-		keys.append('dus')
-		# TODO much more validation of the setdefault logic !
+		self.assertEqual(mydict.__getitem__, mydict._values.__getitem__)
+			# optimization still in place..
 
-		newdict = mydict.copy()
-		self.assertTrue(isinstance(newdict, ConfigDict))
-		self.assertEquals(newdict.items(), mydict.items())
+		self.assertFalse(mydict.modified)
+		self.assertEqual(len(mydict), 0)
+		self.assertEqual(mydict.keys(), [])
+		self.assertEqual(mydict.values(), [])
+		self.assertEqual(mydict.items(), [])
+
+		self.assertRaises(KeyError, mydict.__getitem__, 'a')
+		self.assertRaises(KeyError, mydict.__setitem__, 'a', 'XXX')
+
+		# Set simple string value - use value as is
+		self.assertEqual(mydict.setdefault('a', 'foo'), 'AAA')
+		self.assertEqual(len(mydict), 1)
+		self.assertEqual(mydict.keys(), ['a'])
+		self.assertEqual(mydict['a'], 'AAA')
+		self.assertFalse(mydict.modified)
+
+		mydict['a'] = 'FOO'
+		self.assertEqual(mydict['a'], 'FOO')
+		self.assertTrue(mydict.modified)
+
+		mydict.set_modified(False)
+		self.assertRaises(ValueError, mydict.__setitem__, 'a', 10)
+		self.assertFalse(mydict.modified)
+
+		# Set Path object - convert value
+		self.assertEqual(mydict.setdefault('b', Path('foo')), Path('BBB'))
+		self.assertEqual(len(mydict), 2)
+		self.assertEqual(mydict.keys(), ['a', 'b'])
+		self.assertEqual(mydict['b'], Path('BBB'))
+		self.assertFalse(mydict.modified)
+
+		mydict['b'] = 'FOO'
+		self.assertEqual(mydict['b'], Path('FOO'))
+		self.assertTrue(mydict.modified)
+
+		mydict.set_modified(False)
+		self.assertRaises(ValueError, mydict.__setitem__, 'b', '::')
+		self.assertFalse(mydict.modified)
+
+		# Set a choice - reject value, use default
+		with FilterInvalidConfigWarning():
+			self.assertEqual(
+				mydict.setdefault('c', 'xxx', ('xxx', 'yyy', 'zzz')),
+				'xxx'
+			)
+		self.assertEqual(len(mydict), 3)
+		self.assertEqual(mydict.keys(), ['a', 'b', 'c'])
+		self.assertEqual(mydict['c'], 'xxx')
+		self.assertFalse(mydict.modified)
+
+		# Define a new key - test default and input
+		self.assertEqual(mydict.setdefault('d', 'foo'), 'foo')
+		self.assertEqual(len(mydict), 4)
+		self.assertEqual(mydict.keys(), ['a', 'b', 'c', 'd'])
+		self.assertEqual(mydict['d'], 'foo')
+		self.assertFalse(mydict.modified)
+
+		with FilterInvalidConfigWarning():
+			mydict.input(d=10)
+		self.assertEqual(mydict['d'], 'foo')
+		mydict.input(d='bar')
+		self.assertEqual(mydict['d'], 'bar')
+		self.assertFalse(mydict.modified)
+
+		# Test copying
+		values = {
+			'a': 'AAA',
+			'b': 'BBB',
+			'c': 'CCC',
+		}
+		mydict = ConfigDict(values)
+		mydict.define(
+			a=String(None),
+			b=String(None),
+			c=String(None),
+		)
+		self.assertEqual(dict(mydict), values)
+
+		mycopy = mydict.copy()
+		self.assertEqual(dict(mycopy), values)
+		self.assertEqual(mycopy, mydict)
 
 
 class TestINIConfigFile(tests.TestCase):
@@ -249,14 +459,14 @@ class TestINIConfigFile(tests.TestCase):
 			file.remove()
 		assert not file.exists()
 		conf = INIConfigFile(file)
-		conf['Foo']['xyz'] = 'foooooo'
-		conf['Foo']['foobar'] = 0
-		conf['Foo']['test'] = True
-		conf['Foo']['tja'] = (3, 4)
-		conf['Bar']['hmmm'] = 'tja'
-		conf['Bar']['check'] = 1.333
-		conf['Bar']['empty'] = ''
-		conf['Bar']['none'] = None
+		conf['Foo'].setdefault('xyz', 'foooooo')
+		conf['Foo'].setdefault('foobar', 0)
+		conf['Foo'].setdefault('test', True)
+		conf['Foo'].setdefault('tja', (3, 4))
+		conf['Bar'].setdefault('hmmm', 'tja')
+		conf['Bar'].setdefault('check', 1.333)
+		conf['Bar'].setdefault('empty', '', basestring, allow_empty=True)
+		conf['Bar'].setdefault('none', None, basestring, allow_empty=True)
 		conf.write()
 		text = u'''\
 [Foo]
@@ -269,7 +479,7 @@ tja=[3,4]
 hmmm=tja
 check=1.333
 empty=
-none=None
+none=
 
 '''
 		self.assertEqual(file.read(), text)
@@ -277,73 +487,29 @@ none=None
 		del conf
 		conf = INIConfigFile(file)
 		self.assertFalse(conf.modified)
-		self.assertEqual(conf, {
-			'Foo': {
-				'xyz': 'foooooo',
-				'foobar': 0,
-				'test': True,
-				'tja': [3, 4],
-			},
-			'Bar': {
-				'hmmm': 'tja',
-				'check': 1.333,
-				'empty': '',
-				'none': None
-			}
+		self.assertEqual(conf['Foo']._input, {
+			'xyz': 'foooooo',
+			'foobar': '0',
+			'test': 'True',
+			'tja': '[3,4]',
 		})
+		self.assertEqual(conf['Bar']._input, {
+			'hmmm': 'tja',
+			'check': '1.333',
+			'empty': '',
+			'none': '',
+		})
+
+		conf['Foo'].setdefault('tja', (3, 4))
+		self.assertFalse(conf.modified)
+
 		conf['Foo']['tja'] = (33, 44)
 		self.assertTrue(conf.modified)
 
-		# Check enforcing default type
+		# Get a non-exiting section (__getitem__ not overloaded)
 		conf.set_modified(False)
-		self.assertEqual(conf['Foo'].setdefault('foobar', 5), 0)
-		self.assertEqual(conf['Bar'].setdefault('check', 3.14), 1.333)
-		self.assertEqual(conf['Bar'].setdefault('check', None, float), 1.333)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), value_is_coord), (33,44))
-		self.assertEqual(conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'tja'))), 'tja')
-		self.assertFalse(conf.modified)
-
-		conf['Foo']['tja'] = [33, 44]
-		conf.set_modified(False)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4)), (33,44))
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), tuple), (33,44))
-		self.assertFalse(conf.modified)
-
-		conf['Foo']['tja'] = [33, 44]
-		conf.set_modified(False)
-		self.assertEqual(conf['Foo'].setdefault('tja', (3,4), allow_empty=True), (33,44))
-		self.assertFalse(conf.modified)
-
-		with FilterInvalidConfigWarning():
-			self.assertEqual(
-			conf['Bar'].setdefault('hmmm', 'foo', set(('foo', 'bar'))),
-			'foo')
-		self.assertFalse(conf.modified)
-
-		with FilterInvalidConfigWarning():
-			self.assertEqual(conf['Bar'].setdefault('check', 10, int), 10)
-		self.assertFalse(conf.modified)
-
-		conf['Bar']['string'] = ''
-		conf.set_modified(False)
-		with FilterInvalidConfigWarning():
-			self.assertEqual(conf['Bar'].setdefault('string', 'foo'), 'foo')
-		self.assertFalse(conf.modified)
-
-		conf['Bar']['string'] = ''
-		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('string', 'foo', allow_empty=True), '')
-		self.assertFalse(conf.modified)
-
-		conf['Bar']['string'] = ''
-		conf.set_modified(False)
-		self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), '')
-		self.assertFalse(conf.modified)
-
-		conf['Bar']['string'] = 3
-		conf.set_modified(False)
-		with FilterInvalidConfigWarning():
-			self.assertEqual(conf['Bar'].setdefault('string', 'foo', check_class_allow_empty), 'foo')
+		section = conf['NewSection']
+		self.assertEqual(section, ConfigDict())
 		self.assertFalse(conf.modified)
 
 
@@ -609,13 +775,15 @@ bar=test123
 
 		dict = manager.get_config_dict('dict.conf')
 		self.assertIsInstance(dict, INIConfigFile)
+		dict['FOO'].setdefault('foo', 'xxx')
 		self.assertEqual(dict['FOO']['foo'], 'test')
 
 		newdict = manager.get_config_dict('dict.conf')
 		self.assertEqual(id(dict), id(newdict))
 
+		dict['FOO'].setdefault('bar', 'yyy')
+		dict['FOO'].setdefault('newkey', 'ja')
 		dict['FOO']['foo'] = 'dus'
-		dict['FOO']['newkey'] = 'ja'
 		text = manager.get_config_file('dict.conf').read()
 			# We implicitly test that updates are stored already automatically
 		self.assertEquals(text, '''\

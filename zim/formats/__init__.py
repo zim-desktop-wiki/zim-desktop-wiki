@@ -85,7 +85,7 @@ except:
 try:
 	import xml.etree.cElementTree as ElementTreeModule
 	from xml.etree.cElementTree import Element, SubElement
-except:  # pragma: no cover
+except:  #pragma: no cover
 	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
 	from xml.etree.ElementTree import Element, SubElement

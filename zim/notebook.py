@@ -165,13 +165,13 @@ class NotebookInfo(object):
 		dir = Dir(self.uri)
 		file = dir.file('notebook.zim')
 		if file.exists() and file.mtime() != self.mtime:
-			config = INIConfigFile(file)
+			config = NotebookConfig(file)
+			section = config['Notebook']
 
-			self.name = config['Notebook'].get('name') or dir.basename
-			self.interwiki = config['Notebook'].get('interwiki')
-
-			self.icon_path = config['Notebook'].get('icon')
-			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
+			self.name = section['name']
+			self.interwiki = section['interwiki']
+			self.icon_path = section['icon']
+			icon, document_root = _resolve_relative_config(dir, section)
 			if icon:
 				self.icon = icon.uri
 			else:
@@ -181,6 +181,17 @@ class NotebookInfo(object):
 			return True
 		else:
 			return False
+
+
+class VirtualFile(object):
+	### TODO - proper class for this in zim.fs
+	###        unify with code in config manager
+
+	def __init__(self, lines):
+		self.lines = lines
+
+	def readlines(self):
+		return self.lines
 
 
 class NotebookInfoList(list):
@@ -219,12 +230,12 @@ class NotebookInfoList(list):
 
 		Format is::
 
-		  [Notebooklist]
+		  [NotebookList]
 		  Default=uri1
-		  uri1
-		  uri2
+		  1=uri1
+		  2=uri2
 
-		  [Notebook]
+		  [Notebook 1]
 		  name=Foo
 		  uri=uri1
 
@@ -232,49 +243,68 @@ class NotebookInfoList(list):
 
 		@param text: a string or a list of lines
 		'''
+		# Format <= 0.60 was:
+		#
+		#  [NotebookList]
+		#  Default=uri1
+		#  uri1
+		#  uri2
+		#
+		#  [Notebook]
+		#  name=Foo
+		#  uri=uri1
+
+
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
 		assert text[0].strip() == '[NotebookList]'
-		text.pop(0)
 
-		# Parse key for default
-		if text and text[0].startswith('Default='):
-			k, v = text.pop(0).strip().split('=', 1)
-			default = v
-		else:
-			default = None
-
-		# Parse rest of list
-		uris = []
-		i = 0 # (needs to be set in case list is empty)
+		# Backward compatibility, make valid INI file:
+		# - make redundant [Notebook] sections numbered
+		# - prefix lines without a key with a number
+		n = 0
+		l = 0
 		for i, line in enumerate(text):
-			if not line or line.isspace():
-				break
-			elif line.startswith('#'):
+			if line.strip() == '[Notebook]':
+				n += 1
+				text[i] = '[Notebook %i]\n' % n
+			elif line and not line.isspace()  \
+			and not line.lstrip().startswith('[') \
+			and not line.lstrip().startswith('#') \
+			and not '=' in line:
+				l += 1
+				text[i] = ('%i=' % l) + line
+		###
+
+		from zim.config import String
+		config = INIConfigFile(VirtualFile(text))
+
+		mylist = config['NotebookList']
+		mylist.define(Default=String(None))
+		mylist.define((k, String(None)) for k in mylist._input.keys()) # XXX
+
+		for key, uri in config['NotebookList'].items():
+			if key == 'Default':
 				continue
 
-			# assumed to be urls, but we check to be sure
-			uri = File(line.strip()).uri
-			uris.append(uri)
-
-		# Parse rest of the file with cache
-		cache = {}
-		config = SectionedConfigDict()
-		config['Notebook'] = []
-		config.parse(text[i+1:])
-		for section in config['Notebook']:
-			uri = section['uri']
-			cache[uri] = dict(section)
-
-		# Populate ourselves
-		for uri in uris:
-			section = cache.get(uri, {'uri': uri})
-			info = NotebookInfo(**section)
+			section = config['Notebook %s' % key]
+			section.define(
+				uri=String(None),
+				name=String(None),
+				icon=String(None),
+				mtime=String(None),
+				interwiki=String(None)
+			)
+			if section['uri'] == uri:
+				info = NotebookInfo(**section)
+			else:
+				info = NotebookInfo(uri)
 			self.append(info)
 
-		if default:
-			self.set_default(default)
+		if 'Default' in config['NotebookList'] \
+		and config['NotebookList']['Default']:
+			self.set_default(config['NotebookList']['Default'])
 
 	def parse_old_format(self, text):
 		'''Parses the config and cache and populates the list
@@ -335,13 +365,18 @@ class NotebookInfoList(list):
 			'[NotebookList]\n',
 			'Default=%s\n' % (default or '')
 		]
-		lines.extend((info.user_path or info.uri) + '\n' for info in self)
+		for i, info in enumerate(self):
+			n = i+1
+			uri = info.user_path or info.uri
+			lines.append('%i=%s\n' % (n, uri))
 
-		for info in self:
+		for i, info in enumerate(self):
+			n = i+1
+			uri = info.user_path or info.uri
 			lines.extend([
 				'\n',
-				'[Notebook]\n',
-				'uri=%s\n' % (info.user_path or info.uri),
+				'[Notebook %i]\n' % n,
+				'uri=%s\n' % uri,
 				'name=%s\n' % info.name,
 				'interwiki=%s\n' % info.interwiki,
 				'icon=%s\n' % info.icon_path,
@@ -526,36 +561,36 @@ def build_notebook(location, notebookclass=None):
 
 
 def mount_notebook(filepath):
-	config = ConfigManager() # XXX should be passed in
-	for dir, handler in _load_mountpoints(config.get_config_dict('automount.conf')):
-		if filepath.path == dir.path or filepath.ischild(dir):
-			if handler(filepath):
-				break
+	from zim.config import String
 
-def _load_mountpoints(configdict):
+	config = ConfigManager() # XXX should be passed in
+	configdict = config.get_config_dict('automount.conf')
+
 	groups = [k for k in configdict.keys() if k.startswith('Path')]
 	groups.sort() # make order predictable for nested paths
 	for group in groups:
 		path = group[4:].strip() # len('Path') = 4
 		dir = Dir(path)
-		handler = ApplicationMountPointHandler(dir, **configdict[group])
-		yield dir, handler
+		if filepath.path == dir.path or filepath.ischild(dir):
+			configdict[group].define(mount=String(None))
+			handler = ApplicationMountPointHandler(dir, **configdict[group])
+			if handler(filepath):
+				break
 
 
 class ApplicationMountPointHandler(object):
+	# TODO add password prompt logic, provide to cmd as argument, stdin
 
-	def __init__(self, dir, **opts):
+	def __init__(self, dir, mount, **a):
 		self.dir = dir
-		self.opts = opts
+		self.mount = mount
 
 	def __call__(self, path):
 		if path.path == self.dir.path or path.ischild(self.dir) \
 		and not self.dir.exists() \
-		and 'mount' in self.opts:
+		and self.mount:
 			from zim.applications import Application
-			#~ if 'passwd' in config:
-				#~ passwd = self.prompt
-			Application(self.opts['mount']).run()
+			Application(self.mount).run()
 			return path.exists()
 		else:
 			return False
@@ -565,13 +600,8 @@ def init_notebook(path, name=None):
 	'''Initialize a new notebook in a directory'''
 	assert isinstance(path, Dir)
 	path.touch()
-	config = INIConfigFile(path.file('notebook.zim'))
+	config = NotebookConfig(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
-	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
-	if os.name == 'nt': endofline = 'dos'
-	else: endofline = 'unix'
-	config['Notebook']['endofline'] = endofline
-	config['Notebook']['profile'] = None
 	config.write()
 
 
@@ -687,6 +717,32 @@ class PageReadOnlyError(Error):
 
 
 _first_char_re = re.compile(r'^\W', re.UNICODE)
+
+
+from zim.config import String, ConfigDefinitionByClass, Boolean, Choice
+
+
+class NotebookConfig(INIConfigFile):
+	'''Wrapper for the X{notebook.zim} file'''
+
+	# TODO - unify this call with NotebookInfo ?
+
+	def __init__(self, file):
+		INIConfigFile.__init__(self, file)
+		if os.name == 'nt': endofline = 'dos'
+		else: endofline = 'unix'
+		self['Notebook'].define((
+			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
+			('name', String(file.dir.basename)),
+			('interwiki', String(None)),
+			('home', ConfigDefinitionByClass(Path('Home'))),
+			('icon', String(None)), # XXX should be file, but resolves relative
+			('document_root', String(None)), # XXX should be dir, but resolves relative
+			('shared', Boolean(False)),
+			('endofline', Choice(endofline, set(('dos', 'unix')))),
+			('disable_trash', Boolean(False)),
+			('profile', String(None)),
+		))
 
 
 class Notebook(Object):
@@ -807,7 +863,7 @@ class Notebook(Object):
 				self.readonly = False
 
 			if self.config is None:
-				self.config = INIConfigFile(dir.file('notebook.zim'))
+				self.config = NotebookConfig(dir.file('notebook.zim'))
 
 			self.cache_dir = dir.subdir('.zim')
 			if self.readonly or self.config['Notebook'].get('shared') \
@@ -843,22 +899,17 @@ class Notebook(Object):
 		self.index.connect('page-updated', on_page_updated)
 
 		if self.config is None:
-			self.config = SectionedConfigDict()
-			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+			from zim.config import VirtualConfigBackend
+			### XXX - Big HACK here - Get better classes for this - XXX ###
+			dir = VirtualConfigBackend()
+			file = dir.file('notebook.zim')
+			file.dir = dir
+			file.dir.basename = 'Unnamed Notebook'
+			###
+			self.config = NotebookConfig(file)
 		else:
 			if self.needs_upgrade:
 				logger.warn('This notebook needs to be upgraded to the latest data format')
-
-		self.config['Notebook'].setdefault('name', None, check=basestring)
-		self.config['Notebook'].setdefault('home', ':Home', check=basestring)
-		self.config['Notebook'].setdefault('icon', None, check=basestring)
-		self.config['Notebook'].setdefault('document_root', None, check=basestring)
-		self.config['Notebook'].setdefault('shared', False)
-		if os.name == 'nt': endofline = 'dos'
-		else: endofline = 'unix'
-		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
-		self.config['Notebook'].setdefault('disable_trash', False)
-		self.config['Notebook'].setdefault('profile', '', check=basestring)
 
 		self.do_properties_changed()
 
@@ -951,20 +1002,9 @@ class Notebook(Object):
 			self.config.write()
 
 	def do_properties_changed(self):
-		#~ import pprint
-		#~ pprint.pprint(self.config)
 		config = self.config['Notebook']
 
-		# Set a name for ourselves
-		if config['name']: 	self.name = config['name']
-		elif self.dir: self.name = self.dir.basename
-		elif self.file: self.name = self.file.basename
-		else: self.name = 'Unnamed Notebook'
-
-		# We should always have a home
-		config.setdefault('home', ':Home')
-
-		# Resolve icon and document root, can be relative
+		self.name = config['name']
 		icon, document_root = _resolve_relative_config(self.dir, config)
 		if icon:
 			self.icon = icon.path # FIXME rewrite to use File object
@@ -1336,8 +1376,7 @@ class Notebook(Object):
 
 	def get_home_page(self):
 		'''Returns a L{Page} object for the home page'''
-		path = self.resolve_path(self.config['Notebook']['home'])
-		return self.get_page(path)
+		return self.get_page(self.config['Notebook']['home'])
 
 	def get_pagelist(self, path):
 		'''List pages in a specific namespace
@@ -2157,6 +2196,7 @@ class Path(object):
 		'''Returns a new object based on the string representation for
 		that path
 		'''
+		string = Notebook.cleanup_pathname(string)
 		return klass(string)
 
 	def serialize_zim_config(self):

@@ -1825,11 +1825,14 @@ class MockUI(tests.MockObject):
 		self.preferences = SectionedConfigDict()
 		self.page = Path('Test')
 
-	def register_preferences(self, section, list):
-		for p in list:
-			key = p[0]
-			default = p[4]
-			self.preferences[section][key] = default
+	def register_preferences(self, section, preferences):
+		for p in preferences:
+			if len(p) == 5:
+				key, type, category, label, default = p
+				self.preferences[section].setdefault(key, default)
+			else:
+				key, type, category, label, default, check = p
+				self.preferences[section].setdefault(key, default, check=check)
 
 
 class MockBuffer(tests.MockObject):
