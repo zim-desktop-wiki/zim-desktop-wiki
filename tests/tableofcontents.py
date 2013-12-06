@@ -17,7 +17,7 @@ class TestTableOfContents(tests.TestCase):
 	def runTest(self):
 		'''Test Tabel Of Contents plugin'''
 
-		widget = ToCWidget(self.ui)
+		widget = ToCWidget(self.ui, ellipsis=False)
 
 		def count():
 			# Count number of rows in TreeModel
@@ -30,9 +30,9 @@ class TestTableOfContents(tests.TestCase):
 
 		page = self.ui.notebook.get_page(Path('Test:wiki'))
 		widget.on_open_page(self.ui, page, page)
-		self.assertTrue(count() > 2)
+		self.assertTrue(count() == 2)
 		widget.on_stored_page(self.ui.notebook, page)
-		self.assertTrue(count() > 2)
+		self.assertTrue(count() == 2)
 
 		emptypage = tests.MockObject()
 		widget.on_open_page(self.ui, emptypage, emptypage)

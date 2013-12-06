@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+##### TODO TODO - connect the "show h1" preference !
 
 from __future__ import with_statement
 
@@ -78,7 +80,9 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
-		('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), False),
+		('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), True),
+			# T: option for plugin preferences
+		#~ ('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
 			# T: option for plugin preferences
 	)
 	# TODO disable pane setting if not embedded
@@ -109,7 +113,7 @@ This is a core plugin shipping with zim.
 
 	def connect_sidepane(self):
 		if not self.sidepane_widget:
-			self.sidepane_widget = ToCWidget(self.ui)
+			self.sidepane_widget = SidePaneToC(self.ui)
 		else:
 			self.ui.mainwindow.remove(self.sidepane_widget)
 
@@ -128,62 +132,70 @@ This is a core plugin shipping with zim.
 	def connect_floating(self):
 		if not self.floating_widget:
 			textview = self.ui.mainwindow.pageview.view
-			self.floating_widget = FloatingToC(self.ui)
-			self.floating_widget.attach(textview)
+			self.floating_widget = FloatingToC(self.ui, textview)
 
 	def disconnect_floating(self):
 		if self.floating_widget:
-			self.floating_widget.widget.disconnect_all()
+			self.floating_widget.disconnect_all()
 			self.floating_widget.destroy()
 			self.floating_widget = None
 
+
 TEXT_COL = 0
 
-class FloatingToC(gtk.Frame):
 
-	# TODO make dragble - see gtk tutorial
-	# TODO connect to window resize and line-out at fixed distance from right edge
+class ToCTreeView(BrowserTreeView):
 
-	def __init__(self, ui):
-		gtk.Frame.__init__(self)
-		self.set_shadow_type(gtk.SHADOW_OUT)
-		self.set_size_request(250, -1) # Fixed width
+	def __init__(self, ellipsis):
+		BrowserTreeView.__init__(self, ToCTreeModel())
+		self.set_headers_visible(False)
+		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+			# Allow select multiple
 
-		self.widget = ToCWidget(ui)
+		cell_renderer = gtk.CellRendererText()
+		if ellipsis:
+			cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
+		column = gtk.TreeViewColumn('_heading_', cell_renderer, text=TEXT_COL)
+		column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+			# Without this sizing, column width only grows and never shrinks
+		self.append_column(column)
 
-		exp = gtk.Expander(_('ToC'))
-		# TODO add mnemonic
-		self.add(exp)
-		exp.add(self.widget)
 
-	def attach(self, textview):
-		# Need to wrap in event box to make widget visible - not sure why
-		event_box = gtk.EventBox()
-		#~ event_box.add_events(gtk.gdk.BUTTON_PRESS_MASK |
-			#~ gtk.gdk.BUTTON_RELEASE_MASK |
-			#~ gtk.gdk.POINTER_MOTION_MASK |
-			#~ gtk.gdk.POINTER_MOTION_HINT_MASK)
+class ToCTreeModel(gtk.TreeStore):
 
-		#~ color = TestText.colormap.alloc_color(0xffff, 0, 0)
-		#~ event_box.modify_bg(gtk.STATE_NORMAL, color)
-		event_box.add(self)
-		event_box.show_all()
+	def __init__(self):
+		gtk.TreeStore.__init__(self, str) # TEXT_COL
 
-		textview.add_child_in_window(event_box, gtk.TEXT_WINDOW_WIDGET, 300, 10)
+	def populate(self, parsetree):
+		self.clear()
+		headings = []
+		for el in parsetree.findall('h'):
+			headings.append( (int(el.attrib['level']), el.text) )
+
+		if headings \
+		and headings[0][0] == 1 \
+		and all(h[0] > 1 for h in headings[1:]):
+			headings.pop(0) # do not show first heading
+
+		stack = [(-1, None)]
+		for level, text in headings:
+			assert level > -1 # just to be sure
+			while stack[-1][0] >= level:
+				stack.pop()
+			parent = stack[-1][1]
+			iter = self.append(parent, (text,))
+			stack.append((level, iter))
 
 
 class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
-	def __init__(self, ui):
+	def __init__(self, ui, ellipsis):
 		gtk.ScrolledWindow.__init__(self)
-		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		self.set_shadow_type(gtk.SHADOW_IN)
-		self.set_size_request(-1, 200) # Fixed Height
 
 		self.ui = ui
 		self.page = None
 
-		self.treeview = ToCTreeView()
+		self.treeview = ToCTreeView(ellipsis)
 		self.add(self.treeview)
 
 		self.treeview.connect('row-activated', self.on_heading_activated)
@@ -354,37 +366,219 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			self.ui.mainwindow.pageview.toggle_format('h' + str(level))
 
 
-class ToCTreeView(BrowserTreeView):
+class SidePaneToC(ToCWidget):
+
+	def __init__(self, ui):
+		ToCWidget.__init__(self, ui, ellipsis=True)
+		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+		self.set_shadow_type(gtk.SHADOW_IN)
+		self.set_size_request(-1, 200) # Fixed Height
+
+
+class BoxWidget(gtk.VBox):
+
+	# Tried to implement somthing like this from scratch,
+	# but found that I need to inherit from a concrete gtk.Container
+	# implementation because I couldn't figure out how to override
+	# / implement the forall() method from python
+
+	BORDER = 0
+	LINE = 1
 
 	def __init__(self):
-		BrowserTreeView.__init__(self, ToCTreeModel())
-		self.set_headers_visible(False)
-		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-			# Allow select multiple
+		gtk.VBox.__init__(self)
+		self.set_border_width(self.BORDER + self.LINE)
+		self.set_spacing(2 * self.BORDER + self.LINE)
+		self.set_redraw_on_allocate(True)
 
-		cell_renderer = gtk.CellRendererText()
-		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('_heading_', cell_renderer, text=TEXT_COL)
-		self.append_column(column)
+	def do_expose_event(self, event):
+		self.foreach(self._expose_child, event)
+		return True
+
+	def _expose_child(self, child, event):
+		# Draw box around child, then draw child
+		# Widget must ensure there is space arount the child
+
+		line = self.LINE
+		border = self.BORDER
+
+		if child.is_drawable():
+			self.style.paint_flat_box(
+				event.window, gtk.STATE_ACTIVE, gtk.SHADOW_NONE, None, self, None,
+				child.allocation.x - border - line,
+				child.allocation.y - border - line,
+				child.allocation.width + 2*border + 2*line,
+				child.allocation.height + 2*border + 2*line,
+			)
+			self.style.paint_flat_box(
+				event.window, gtk.STATE_NORMAL, gtk.SHADOW_NONE, None, self, None,
+				child.allocation.x - border,
+				child.allocation.y - border,
+				child.allocation.width + 2*border,
+				child.allocation.height + 2*border,
+			)
+		gtk.Container.propagate_expose(self, child, event)
 
 
+# Need to register classes defining gobject signals
+gobject.type_register(BoxWidget)
 
-class ToCTreeModel(gtk.TreeStore):
 
-	def __init__(self):
-		gtk.TreeStore.__init__(self, str) # TEXT_COL
+import collections
 
-	def populate(self, parsetree):
-		self.clear()
-		headings = []
-		for el in parsetree.findall('h'):
-			headings.append( (int(el.attrib['level']), el.text) )
+class FloatingToC(BoxWidget, ConnectorMixin):
 
-		stack = [(-1, None)]
-		for level, text in headings:
-			assert level > -1 # just to be sure
-			while stack[-1][0] >= level:
-				stack.pop()
-			parent = stack[-1][1]
-			iter = self.append(parent, (text,))
-			stack.append((level, iter))
+	# This class does all the work to keep the floating window in
+	# the right place, and with the right size
+	# Depends on BoxWidget to draw nice line border around it
+
+	TEXTVIEW_OFFSET = 5
+
+	def __init__(self, ui, textview):
+		BoxWidget.__init__(self)
+
+		hscroll = gtk.HScrollbar(gtk.Adjustment())
+		self._hscroll_height = hscroll.size_request()[1]
+
+		self.head = gtk.Label(_('ToC'))
+		self.head.set_padding(5, 1)
+
+		self.widget = ToCWidget(ui, ellipsis=False)
+		self.widget.set_shadow_type(gtk.SHADOW_NONE)
+		self.widget.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+			# Setting horizontal scroll automatic as well
+			# makes the scrollbars visible at all times once they are shown once
+			# custom control implemented below
+
+		self._head_event_box = gtk.EventBox()
+		self._head_event_box.add(self.head)
+		self._head_event_box.connect('button-release-event', self.on_toggle)
+
+		self.pack_start(self._head_event_box, False)
+		self.pack_start(self.widget)
+
+		## Add self to textview
+		# Need to wrap in event box to make widget visible
+		# probably because Containers normally don't have their own
+		# gdk window. So would paint directly on background window.
+		self.textview = textview
+		self._text_view_allocation = (textview.allocation.width, textview.allocation.height)
+		self._event_box = gtk.EventBox()
+		self._event_box.add(self)
+
+		textview.add_child_in_window(self._event_box, gtk.TEXT_WINDOW_WIDGET, 0, 0)
+		self.connectto(textview,
+			'size-allocate',
+			handler=self.on_size_allocate_textview,
+		)
+		self.connectto(self,
+			'size-allocate',
+			handler=self.update_position,
+		)
+
+		self._event_box.show_all()
+
+	def disconnect_all(self):
+		self.widget.disconnect_all()
+		ConnectorMixin.disconnect_all(self)
+
+	def destroy(self):
+		self._event_box.destroy()
+		BoxWidget.destroy(self)
+
+	def on_toggle(self, *a):
+		self.widget.set_visible(
+			not self.widget.get_visible()
+		)
+		self.queue_draw()
+
+	def do_size_request(self, requisition):
+		# Base size request on the actual treeview, not on the
+		# scrolled window. If we limit the size, assume the scrolled
+		# window to take care of it
+
+		text_window = self.textview.get_window(gtk.TEXT_WINDOW_WIDGET)
+		if text_window is None:
+			# Textview not yet initialized (?)
+			return BoxWidget.do_size_request(self, requisition)
+
+		text_x, text_y, text_w, text_h, text_z = text_window.get_geometry()
+
+		head_w, head_h = self.head.size_request()
+		border = self.get_border_width()
+		spacing = self.get_spacing()
+
+		if self.widget.get_visible():
+			tree_w, tree_h = self.widget.treeview.size_request()
+			tree_h = max(tree_h, head_h) # always show empty space if no content
+			tree_w += 1 # Allow minimal frame for scrolledwindow
+			tree_h += 1
+			total_w = max(head_w, tree_w) + 2 * border
+			total_h = head_h + tree_h + 2 * border + spacing
+		else:
+			total_w = head_w + 2 * border
+			total_h = head_h + 2 * border
+
+		max_w = 0.5 * text_w - self.TEXTVIEW_OFFSET
+		max_h = 0.7 * text_h - self.TEXTVIEW_OFFSET
+
+		if total_w > max_w:
+			# We are going to show a srollbar at the bottom
+			# the +3 is a hack to give enough space so vscroll is
+			# not triggered unnecessary
+			total_h += self._hscroll_height + 3
+
+		requisition.width = min(max_w, total_w)
+		requisition.height = min(max_h, total_h)
+
+	def do_size_allocate(self, allocation):
+		# Need to overload this one as well, to make sure we get what
+		# we wanted
+		self.allocation=allocation
+
+		border = self.get_border_width()
+		spacing = self.get_spacing()
+		head_height = self.head.get_child_requisition()[1]
+		tree_w, tree_h = self.widget.treeview.get_child_requisition()
+
+		self._head_event_box.size_allocate(gtk.gdk.Rectangle(
+			x=allocation.x + border,
+			y=allocation.y + border,
+			width=allocation.width - 2*border,
+			height=head_height
+		))
+
+		if self.widget.get_visible():
+			body_w = allocation.width - 2*border
+			body_h = allocation.height - 2*border - spacing - head_height
+
+			h_policy = gtk.POLICY_ALWAYS if tree_w > body_w else gtk.POLICY_NEVER
+			self.widget.set_policy(h_policy, gtk.POLICY_AUTOMATIC)
+
+			self.widget.size_allocate(gtk.gdk.Rectangle(
+				x=allocation.x + border,
+				y=allocation.y + border + head_height + spacing,
+				width=body_w,
+				height=body_h
+			))
+
+
+	def on_size_allocate_textview(self, textview, a):
+		new_allocation = (a.width, a.height)
+		if new_allocation != self._text_view_allocation:
+			self.queue_resize()
+			# resize results in size_allocate, which results in update_position
+		self._text_view_allocation = new_allocation
+
+	def update_position(self, *a):
+		text_window = self.textview.get_window(gtk.TEXT_WINDOW_WIDGET)
+		if text_window is not None:
+			text_x, text_y, text_w, text_h, text_z = text_window.get_geometry()
+			x = text_w - self.allocation.width - self.TEXTVIEW_OFFSET
+			y = self.TEXTVIEW_OFFSET
+			self.textview.move_child(self._event_box, x, y)
+		else:
+			pass # Textview not yet initialized (?)
+
+# Need to register classes defining gobject signals
+gobject.type_register(FloatingToC)
