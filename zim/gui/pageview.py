@@ -350,6 +350,12 @@ class ConfigDefinitionConstant(String):
 		else:
 			return value
 
+	def tostring(self, value):
+		if hasattr(value, 'value_name'):
+			return value.value_name
+		else:
+			return str(value)
+
 
 class PangoConstant(ConfigDefinitionConstant):
 
@@ -4608,7 +4614,9 @@ class PageView(gtk.VBox):
 		testbuffer = gtk.TextBuffer()
 		for key in [k for k in self.text_style.keys() if k.startswith('Tag ')]:
 			section = self.text_style[key]
-			section.define(TextBuffer.tag_attributes)
+			defs = [(k, TextBuffer.tag_attributes[k])
+				for k in section._input if k in TextBuffer.tag_attributes]
+			section.define(defs)
 			tag = key[4:]
 
 			try:
