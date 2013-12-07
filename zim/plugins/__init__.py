@@ -418,9 +418,10 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
 	def set_extension_class(self, name, klass):
 		if name in self.extension_classes:
-			oldklass = self.extension_classes.pop(name)
-			if oldklass != klass:
-				self.remove_extension_class(oldklass)
+			if self.extension_classes[name] == klass:
+				pass
+			else:
+				self.remove_extension_class(name)
 				self.add_extension_class(name, klass)
 		else:
 			self.add_extension_class(name, klass)
@@ -431,7 +432,8 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		self.extension_classes[name] = klass
 		self.emit('extension-point-changed', name)
 
-	def remove_extension_class(self, klass):
+	def remove_extension_class(self, name):
+		klass = self.extension_classes.pop(name)
 		for obj in self.get_extensions(klass):
 			obj.destroy()
 

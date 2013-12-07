@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -29,6 +29,7 @@ import zim.formats
 
 from zim.fs import File, Dir, normalize_file_uris
 from zim.errors import Error
+from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
@@ -314,6 +315,54 @@ def increase_list_bullet(bullet):
 		return None
 
 
+class AsciiString(String):
+
+	# pango doesn't like unicode attributes
+
+	def check(self, value):
+		value = String.check(self, value)
+		if isinstance(value, basestring):
+			return str(value)
+		else:
+			return value
+
+
+class ConfigDefinitionConstant(String):
+
+	def __init__(self, default, prefix=None):
+		String.__init__(self, default=default)
+		self.prefix = prefix
+
+	def check(self, value):
+		value = String.check(self, value)
+		if isinstance(value, basestring):
+			value = value.upper()
+			if value.startswith(self._module_prefix):
+				value = value[len(self._module_prefix):] # e.g. PANGO_WEIGHT_BOLD --> WEIGHT_BOLD
+
+			if self.prefix and not value.startswith(self.prefix):
+				value = self.prefix + value # e.g. ITALIC --> STYLE_ITALIC
+
+			if hasattr(self._module, value):
+				return getattr(self._module, value)
+			else:
+				raise ValueError, 'No such constant: PANGO_%s' % value
+		else:
+			return value
+
+
+class PangoConstant(ConfigDefinitionConstant):
+
+	_module = pango
+	_module_prefix = 'PANGO_'
+
+
+class GtkConstant(ConfigDefinitionConstant):
+
+	_module = gtk
+	_module_prefix = 'GTK_'
+
+
 class UserActionContext(object):
 	'''Context manager to wrap actions in proper user-action signals
 
@@ -492,14 +541,14 @@ class TextBuffer(gtk.TextBuffer):
 		'h2': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
 		'h3': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
 		'h4': {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-		'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
+		'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': pango.STYLE_ITALIC},
 		'h6': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
-		'emphasis': {'style': 'italic'},
+		'emphasis': {'style': pango.STYLE_ITALIC},
 		'strong': {'weight': pango.WEIGHT_BOLD},
 		'mark': {'background': 'yellow'},
-		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
+		'strike': {'strikethrough': True, 'foreground': 'grey'},
 		'code': {'family': 'monospace'},
-		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'pre': {'family': 'monospace', 'wrap-mode': gtk.WRAP_NONE},
 		'sub': {'rise': -3500, 'scale':0.7},
 		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
@@ -521,10 +570,19 @@ class TextBuffer(gtk.TextBuffer):
 		'sub', 'sup'
 	)
 
-	tag_attributes = set( (
-		'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
-		'family', 'wrap-mode', 'indent', 'underline', 'linespacing',
-	) ) #: Valid properties for a style in tag_styles
+	tag_attributes = {
+		'weight': PangoConstant(None, prefix='WEIGHT_'),
+		'scale': Float(None),
+		'style': PangoConstant(None, prefix='STYLE_'),
+		'background': AsciiString(None),
+		'foreground': AsciiString(None),
+		'strikethrough': Boolean(None),
+		'family': AsciiString(None),
+		'wrap-mode': GtkConstant(None, prefix='WRAP_'),
+		'indent': Integer(None),
+		'underline': PangoConstant(None, prefix='UNDERLINE_'),
+		'linespacing': Integer(None),
+	} #: Valid properties for a style in tag_styles
 
 	def __init__(self, notebook=None, page=None):
 		'''Constructor
@@ -4548,24 +4606,23 @@ class PageView(gtk.VBox):
 
 		# Load TextTags
 		testbuffer = gtk.TextBuffer()
-		for tag in [k[4:] for k in self.text_style.keys() if k.startswith('Tag ')]:
+		for key in [k for k in self.text_style.keys() if k.startswith('Tag ')]:
+			section = self.text_style[key]
+			section.define(TextBuffer.tag_attributes)
+			tag = key[4:]
+
 			try:
-				assert tag in TextBuffer.tag_styles, 'No such tag: %s' % tag
-				attrib = self.text_style['Tag '+tag].copy()
-				for a in attrib.keys():
-					assert a in TextBuffer.tag_attributes, 'No such tag attribute: %s' % a
-					if isinstance(attrib[a], basestring):
-						if attrib[a].startswith('PANGO_'):
-							const = attrib[a][6:]
-							assert hasattr(pango, const), 'No such constant: pango.%s' % const
-							attrib[a] = getattr(pango, const)
-						else:
-							attrib[a] = str(attrib[a]) # pango doesn't like unicode attributes
+				if not tag in TextBuffer.tag_styles:
+					raise AssertionError, 'No such tag: %s' % tag
+
+				attrib = dict(i for i in section.items() if i[1] is not None)
 				if 'linespacing' in attrib:
-					attrib['pixels-below-lines'] = attrib['linespacing']
-					del attrib['linespacing']
+					attrib['pixels-below-lines'] = attrib.pop('linespacing')
+
 				#~ print 'TAG', tag, attrib
-				assert testbuffer.create_tag('style-'+tag, **attrib)
+				testtag = testbuffer.create_tag('style-'+tag, **attrib)
+				if not testtag:
+					raise AssertionError, 'Could not create tag: %s' % tag
 			except:
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:

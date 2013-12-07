@@ -223,7 +223,9 @@ check_class_allow_empty = ConfigDefinitionByClassAllowEmpty # XXX for backward c
 class Boolean(ConfigDefinition):
 
 	def check(self, value):
-		if isinstance(value, bool):
+		if self._check_allow_empty(value):
+			return None
+		elif isinstance(value, bool):
 			return value
 		elif value in ('True', 'true', 'False', 'false'):
 			return value in ('True', 'true')
