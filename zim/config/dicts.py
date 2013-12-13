@@ -212,14 +212,6 @@ class ConfigDefinitionByClass(ConfigDefinition):
 				# specify separators for compact encoding
 
 
-class ConfigDefinitionByClassAllowEmpty(ConfigDefinitionByClass):
-
-	def __init__(self, default, klass=None, allow_empty=True):
-		ConfigDefinitionByClass.__init__(self, default, klass, allow_empty=True)
-
-check_class_allow_empty = ConfigDefinitionByClassAllowEmpty # XXX for backward compatibility
-
-
 class Boolean(ConfigDefinition):
 
 	def check(self, value):
@@ -257,6 +249,13 @@ class String(ConfigDefinition):
 			return ''
 		else:
 			return value
+
+
+class StringAllowEmpty(String):
+	# XXX needed by TaskList - remove when prefs are ported to use defs directly
+
+	def __init__(self, default, allow_empty=True):
+		String.__init__(self, default, allow_empty=True)
 
 
 class Integer(ConfigDefinition):

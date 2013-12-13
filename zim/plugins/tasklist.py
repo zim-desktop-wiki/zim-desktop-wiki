@@ -23,7 +23,7 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
 from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
-from zim.config import check_class_allow_empty
+from zim.config import StringAllowEmpty
 
 from zim.plugins.calendar import daterange_from_path
 
@@ -98,15 +98,15 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), True),
 			# T: label for plugin preferences dialog
-		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
+		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
-		('next_label', 'string', _('Label for next task'), 'Next:', check_class_allow_empty),
+		('next_label', 'string', _('Label for next task'), 'Next:', StringAllowEmpty),
 			# T: label for plugin preferences dialog - label is by default "Next"
-		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', check_class_allow_empty),
+		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', StringAllowEmpty),
 			# T: label for plugin preferences dialog
-		('included_subtrees', 'string', _('Subtree(s) to index'), '', check_class_allow_empty),
+		('included_subtrees', 'string', _('Subtree(s) to index'), '', StringAllowEmpty),
 			# T: subtree to search for tasks - default is the whole tree (empty string means everything)
-		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', check_class_allow_empty),
+		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', StringAllowEmpty),
 			# T: subtrees of the included subtrees to *not* search for tasks - default is none
 	)
 	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page', 'nonactionable_tags',

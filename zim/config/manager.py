@@ -60,7 +60,7 @@ class ConfigManager(object):
 			else:
 				defaults = None
 		else:
-			file = basedirs.XDG_CONFIG_HOME.file(path)
+			file = basedirs.XDG_CONFIG_HOME.file('zim/' + path)
 			defaults = XDGConfigFileIter(path)
 
 		## TODO: special case backward compat preferences & styles -- insert in defaults

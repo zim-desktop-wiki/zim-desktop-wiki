@@ -503,8 +503,8 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		BoxWidget.destroy(self)
 
 	def on_toggle(self, *a):
-		self.widget.set_visible(
-			not self.widget.get_visible()
+		self.widget.set_property('visible',
+			not self.widget.get_property('visible')
 		)
 		self.queue_draw()
 
@@ -524,7 +524,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		border = self.get_border_width()
 		spacing = self.get_spacing()
 
-		if self.widget.get_visible():
+		if self.widget.get_property('visible'):
 			tree_w, tree_h = self.widget.treeview.size_request()
 			tree_h = max(tree_h, head_h) # always show empty space if no content
 			tree_w += 1 # Allow minimal frame for scrolledwindow
@@ -564,7 +564,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 			height=head_height
 		))
 
-		if self.widget.get_visible():
+		if self.widget.get_property('visible'):
 			body_w = allocation.width - 2*border
 			body_h = allocation.height - 2*border - spacing - head_height
 

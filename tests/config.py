@@ -233,7 +233,6 @@ class TestConfigDefinitions(tests.TestCase):
 			('foo', ('foo', 'bar', 'baz'), Choice),
 			(10, (1, 100), Range),
 			((10, 20), value_is_coord, Coordinate),
-			('foo', check_class_allow_empty, ConfigDefinitionByClassAllowEmpty),
 		):
 			definition = build_config_definition(default, check)
 			self.assertIsInstance(definition, klass)
