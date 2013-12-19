@@ -325,6 +325,9 @@ class BoundQuickNoteDialog(Dialog):
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
+		# Change "[]" at start of line into "[ ]" so checkboxes get inserted correctly
+		text = re.sub(r'^(\s*)\[\](\s)', r'\1[ ]\2', text, flags=re.M)
+
 		if self.form['new_page']:
 			if not self.form.widgets['namespace'].get_input_valid() \
 			or not self.form['basename']:
