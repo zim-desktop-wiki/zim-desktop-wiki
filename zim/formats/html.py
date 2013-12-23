@@ -120,6 +120,14 @@ class Dumper(DumperClass):
 
 		if tag in ('ul', 'ol'):
 			end = '</' + tag + '>\n'
+
+			if strings:
+				# close last <li> element
+				strings.append('</li>\n')
+
+			if self._context[-1][0] in ('ul', 'ol'):
+				# Nested list
+				start = '\n' + start
 		else:
 			end = '\n</' + tag + '>\n'
 
@@ -156,9 +164,14 @@ class Dumper(DumperClass):
 			start = '<li style="list-style-image: url(%s)">' % icon
 		else:
 			start = '<li>'
-		end = '</li>\n'
+		#~ end = '</li>\n'
 		strings.insert(0, start)
-		strings.append(end)
+		#~ strings.append(end)
+
+		if self._context[-1][2]:
+			# we are not the first <li> element, close previous
+			strings.insert(0, '</li>\n')
+
 		return strings
 
 	def dump_link(self, tag, attrib, strings=None):
