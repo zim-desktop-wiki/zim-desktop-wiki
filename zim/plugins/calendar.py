@@ -149,7 +149,7 @@ Also adds a calendar widget to access these pages.
 
 	def finalize_notebook(self, notebook):
 		self.do_preferences_changed()
-		self.connectto(notebook, 'suggest_link', self.suggest_link)
+		self.connectto(notebook, 'suggest-link', self.suggest_link)
 
 	def destroy(self):
 		if self._set_template:
@@ -260,7 +260,7 @@ Also adds a calendar widget to access these pages.
 				'days': DateRangeTemplateFunction(start, end),
 			}
 
-	def suggest_link(self, source, text):
+	def suggest_link(self, notebook, source, text):
 		#~ if date_path_re.match(path.text):
 		#~ 	return Path(text)
 		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
