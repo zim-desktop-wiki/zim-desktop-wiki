@@ -154,13 +154,13 @@ class Dumper(TextDumper):
 	def dump_li(self, tag, attrib, strings):
 		# Always return "\item" for numbered lists
 
-		if self._context[-1][0] == BULLETLIST:
+		if self.context[-1].tag == BULLETLIST:
 			if 'bullet' in attrib \
 			and attrib['bullet'] in self.BULLETS:
 				bullet = self.BULLETS[attrib['bullet']]
 			else:
 				bullet = self.BULLETS[BULLET]
-		elif self._context[-1][0] == NUMBEREDLIST:
+		elif self.context[-1].tag == NUMBEREDLIST:
 			bullet = self.BULLETS[BULLET]
 		else:
 			assert False, 'Unnested li element'

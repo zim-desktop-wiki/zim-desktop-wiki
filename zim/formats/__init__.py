@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Package with source formats for pages.
 
@@ -689,7 +689,7 @@ class Visitor(object):
 	def end(self, tag):
 		'''End formatted region
 		@param tag: the tag name
-		@raises XXX: when tag does not match current state
+		@raises AssertionError: when tag does not match current state
 		@implementation: optional for subclasses
 		'''
 		pass
@@ -1041,60 +1041,97 @@ class ParserClass(object):
 			return {'src': url}
 
 
+
+import collections
+
+DumperContextElement = collections.namedtuple('DumperContextElement', ('tag', 'attrib', 'text'))
+	# FIXME unify this class with a generic Element class (?)
+
+
 class DumperClass(Visitor):
-	'''Base class for dumper classes.
+	'''Base class for dumper classes. Dumper classes serialize the content
+	of a parse tree back to a text representation of the page content.
+	Therefore this class implements the visitor API, so it can be
+	used with any parse tree implementation or parser object that supports
+	this API.
 
-	Each format that can be used natively should define a class
-	'Dumper' which inherits from this base class.
+	To implement a dumper class, you need to define handlers for all
+	tags that can appear in a page. Tags that are represented by a simple
+	prefix and postfix string can be defined in the dictionary C{TAGS}.
+	For example to define the italic tag in html output the dictionary
+	should contain a definition like: C{EMPHASIS: ('<i>', '</i>')}.
 
-	FIXME FIXME - update docs on how to write a new style dumper using the
-	visitor structure - FIXME FIXME
+	For tags that require more complex logic you can define a method to
+	format the tag. Typical usage is to format link attributes in such
+	a method. The method name should be C{dump_} + the name of the tag,
+	e.g. C{dump_link()} for links (see the constants with tag names for
+	the other tags). Such a sump method will get 3 arguments: the tag
+	name itself, a dictionary with the tag attributes and a list of
+	strings that form the tag content. The method should return a list
+	of strings that represents the formatted text.
+
+	This base class takes care of a stack of nested formatting tags and
+	when a tag is closed either picks the appropriate prefix and postfix
+	from C{TAGS} or calls the corresponding C{dump_} method. As a result
+	tags are serialized depth-first.
+
+	@ivar linker: the (optional) L{Linker} object, used to resolve links
+	@ivar template_options: a dict with options that may be set in a
+	template (so inherently not safe !) to control the output style
+	@ivar context: the stack of open tags maintained by this class. Can
+	be used in C{dump_} methods to inspect the parent scope of the
+	format. Elements on this stack have "tag", "attrib" and "text"
+	attributes. Keep in mind that the parent scope is not yet complete
+	when a tag is serialized.
 	'''
 
-	TAGS = {} #: dict with formatting tags start and end sequence
+	TAGS = {} #: dict mapping formatting tags to 2-tuples of a prefix and a postfix string
 
 	def __init__(self, linker=None, template_options=None):
 		self.linker = linker
 		self.template_options = template_options or {}
+		self.context = []
 		self._text = []
-		self._context = []
 
 	def dump(self, tree):
-		'''ABSTRACT METHOD needs to be overloaded by sub-classes.
-
-		This method takes a ParseTree object and returns a list of
-		lines of text.
+		'''Convenience methods to dump a given tree.
+		@param tree: a parse tree object that supports a C{visit()} method
 		'''
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []
-		self._context = [(None, None, self._text)]
+		self.context = [DumperContextElement(None, None, self._text)]
 		tree.visit(self)
-		assert len(self._context) == 1, 'Unclosed tags on tree'
+		if len(self.context) != 1:
+			raise AssertionError, 'Unclosed tags on tree: %s' % self.context[-1].tag
 		#~ import pprint; pprint.pprint(self._text)
 		return self.get_lines() # FIXME - maybe just return text ?
 
 	def get_lines(self):
+		'''Return the dumped content as a list of lines
+		Should only be called after closing the top level element
+		'''
 		return u''.join(self._text).splitlines(1)
 
 	def start(self, tag, attrib=None):
 		if attrib:
 			attrib = attrib.copy() # Ensure dumping does not change tree
-		self._context.append((tag, attrib, []))
+		self.context.append(DumperContextElement(tag, attrib, []))
 
 	def text(self, text):
 		assert not text is None
 		text = self.encode_text(text)
-		self._context[-1][-1].append(text)
+		self.context[-1].text.append(text)
 
 	def end(self, tag):
-		assert tag and self._context[-1][0] == tag, 'Unmatched tag: %s' % tag
-		_, attrib, strings = self._context.pop()
+		if not tag or tag != self.context[-1].tag:
+			raise AssertionError, 'Unexpected tag closed: %s' % tag
+		_, attrib, strings = self.context.pop()
 		if tag in self.TAGS:
 			assert strings, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
 			strings.insert(0, start)
 			strings.append(end)
-		elif tag == FORMATTEDTEXT:
+		elif tag in FORMATTEDTEXT:
 			pass
 		else:
 			try:
@@ -1109,7 +1146,7 @@ class DumperClass(Visitor):
 				#~ print "BUG: %s returned %s" % ('dump_'+tag, strings)
 
 		if strings is not None:
-			self._context[-1][-1].extend(strings)
+			self.context[-1].text.extend(strings)
 
 	def append(self, tag, attrib=None, text=None):
 		strings = None
@@ -1136,10 +1173,15 @@ class DumperClass(Visitor):
 				strings = method(tag, attrib, [self.encode_text(text)])
 
 		if strings is not None:
-			self._context[-1][-1].extend(strings)
+			self.context[-1].text.extend(strings)
 
 	def encode_text(self, text):
 		'''Optional method to encode text elements in the output
+
+		@note: Do not apply text encoding in the C{dump_} methods, the
+		list of strings given there may contain prefix and postfix
+		formatting of nested tags.
+
 		@param text: text to be encoded
 		@returns: encoded text
 		@implementation: optional, default just returns unmodified input
@@ -1171,6 +1213,10 @@ class DumperClass(Visitor):
 		# See img
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
+		'''Method to serialize objects that do not have their own
+		handler for this format.
+		@implementation: must be implemented in sub-classes
+		'''
 		raise NotImplementedError
 
 	def isrtl(self, text):

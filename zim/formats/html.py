@@ -78,14 +78,14 @@ class Dumper(DumperClass):
 		return text
 
 	def text(self, text):
-		if self._context[-1][0] == FORMATTEDTEXT \
+		if self.context[-1].tag == FORMATTEDTEXT \
 		and	text.isspace():
 			# Reduce top level empty lines
 			l = text.count('\n') - 1
 			if l > 0:
-				self._context[-1][-1].append('\n' + ('<br>\n' * l) + '\n')
+				self.context[-1].text.append('\n' + ('<br>\n' * l) + '\n')
 			elif l == 0:
-				self._context[-1][-1].append('\n')
+				self.context[-1].text.append('\n')
 		else:
 			DumperClass.text(self, text)
 
@@ -125,7 +125,7 @@ class Dumper(DumperClass):
 				# close last <li> element
 				strings.append('</li>\n')
 
-			if self._context[-1][0] in ('ul', 'ol'):
+			if self.context[-1].tag in ('ul', 'ol'):
 				# Nested list
 				start = '\n' + start
 		else:
@@ -159,7 +159,7 @@ class Dumper(DumperClass):
 
 	def dump_li(self, tag, attrib, strings):
 		bullet = attrib.get('bullet', BULLET)
-		if self._context[-1][0] == BULLETLIST and bullet != BULLET:
+		if self.context[-1].tag == BULLETLIST and bullet != BULLET:
 			icon = self.linker.icon(bullet)
 			start = '<li style="list-style-image: url(%s)">' % icon
 		else:
@@ -168,7 +168,7 @@ class Dumper(DumperClass):
 		strings.insert(0, start)
 		#~ strings.append(end)
 
-		if self._context[-1][2]:
+		if self.context[-1].text:
 			# we are not the first <li> element, close previous
 			strings.insert(0, '</li>\n')
 
