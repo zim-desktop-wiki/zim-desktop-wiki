@@ -6,15 +6,101 @@
 import weakref
 import logging
 import gobject
+import os
 
 
 logger = logging.getLogger('zim')
+
+
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+else:
+	TEST_MODE = False
 
 
 # Constants for signal order
 SIGNAL_NORMAL = 1
 SIGNAL_AFTER = 2
 SIGNAL_OBJECT = 4
+
+
+class SignalHandler(object):
+	'''Wrapper for a signal handler method that allows blocking the
+	handler for incoming signals. To be used as function decorator.
+
+	The method will be replaced by a L{BoundSignalHandler} object that
+	supports a C{blocked()} method which returns a context manager
+	to temporarily block a callback.
+
+	Intended to be used as::
+
+		class Foo():
+
+			@SignalHandler
+			def on_changed(self):
+				...
+
+			def update(self):
+				with self.on_changed.blocked():
+					... # do something that results in a "changed" signal
+
+	'''
+
+	def __init__(self, func):
+		self._func = func
+
+	def __get__(self, instance, klass):
+		if instance is None:
+			# class access
+			return self
+		else:
+			# instance acces, return bound version
+			name = '_bound_' + self._func.__name__
+			if not hasattr(instance, name) \
+			or getattr(instance, name) is None:
+				bound_obj = BoundSignalHandler(instance, self._func)
+				setattr(instance, name, bound_obj)
+
+			return getattr(instance, name)
+
+
+class BoundSignalHandler(object):
+
+	def __init__(self, instance, func):
+		self._instance = instance
+		self._func = func
+		self._blocked = 0
+
+	def __call__(self, *args, **kwargs):
+		if self._blocked == 0:
+			return self._func(self._instance, *args, **kwargs)
+
+	def _block(self):
+		self._blocked += 1
+
+	def _unblock(self):
+		if self._blocked > 0:
+			self._blocked -= 1
+
+	def blocked(self):
+		'''Returns a context manager that can be used to temporarily
+		block a callback.
+		'''
+		return SignalHandlerBlockContextManager(self)
+
+
+class SignalHandlerBlockContextManager(object):
+
+	def __init__(self, handler):
+		self.handler = handler
+
+	def __enter__(self):
+		self.handler._block()
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.handler._unblock()
+
+
 
 
 class ConnectorMixin(object):
@@ -157,8 +243,9 @@ def call_handlers(obj, signal, handlers, args):
 			else:
 				r = callback(obj, *myargs)
 		except:
-			# TODO in case of test mode, re-raise the error
 			logger.exception('Exception in signal handler for %s on %s', signal, obj)
+			if TEST_MODE:
+				raise
 		else:
 			yield r
 

@@ -25,6 +25,11 @@ class VirtualFile(object):
 	def readlines(self):
 		return self.lines
 
+	def connect(self, handler, *a):
+		pass
+
+	def disconnect(self, handler):
+		pass
 
 
 class TestHistory(tests.TestCase):

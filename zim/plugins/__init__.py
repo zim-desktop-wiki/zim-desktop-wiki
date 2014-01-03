@@ -158,19 +158,24 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 	keys and plugin objects as value
 	'''
 
+	# Note that changes to "config['plugins']" do not trigger the
+	# changed signal on the dict. If this changes in the future, we
+	# need to block the callback when modifying this list.
+
 	def __init__(self, config=None):
 		self.config = config or VirtualConfigManager()
-		self.general_preferences = \
-			self.config.get_config_dict('<profile>/preferences.conf')['General']
+		self._preferences = \
+			self.config.get_config_dict('<profile>/preferences.conf')
+		self.general_preferences = self._preferences['General']
 		self.general_preferences.setdefault('plugins', [])
 
 		self._plugins = {}
 		self._extendables = WeakSet()
 
-		#~ self.preferences.connectto(self.preferences, 'changed',
-			#~ lambda o: self.reload_plugins())
-
 		self._load_plugins()
+
+		self.connectto(self._preferences, 'changed',
+			self.on_preferences_changed)
 
 	def __getitem__(self, name):
 		return self._plugins[name]
@@ -184,13 +189,29 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 
 	def _load_plugins(self):
 		'''Load plugins based on config'''
-		plugins = self.general_preferences['plugins']
-		for name in sorted(plugins):
+		for name in sorted(self.general_preferences['plugins']):
 			try:
 				self.load_plugin(name)
 			except:
 				logger.exception('Exception while loading plugin: %s', name)
-				plugins.remove(name)
+				self.general_preferences['plugins'].remove(name)
+
+	def on_preferences_changed(self, o):
+		current = set(self._plugins.keys())
+		new = set(self.general_preferences['plugins'])
+
+		for name in current - new:
+			try:
+				self.remove_plugin(name)
+			except:
+				logger.exception('Exception while loading plugin: %s', name)
+
+		for name in new - current:
+			try:
+				self.load_plugin(name)
+			except:
+				logger.exception('Exception while loading plugin: %s', name)
+				self.general_preferences['plugins'].remove(name)
 
 	def load_plugin(self, name):
 		'''Load a single plugin by name
@@ -232,17 +253,18 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		Fails silently if the plugin is not loaded.
 		@param name: the plugin module name
 		'''
+		if name in self.general_preferences['plugins']:
+			# Do this first regardless of exceptions etc.
+			self.general_preferences['plugins'].remove(name)
+
 		try:
 			plugin = self._plugins.pop(name)
 			self.disconnect_from(plugin)
 		except KeyError:
-			return
-
-		if name in self.general_preferences['plugins']:
-			self.general_preferences['plugins'].remove(name)
-
-		logger.debug('Unloading plugin %s', name)
-		plugin.destroy()
+			pass
+		else:
+			logger.debug('Unloading plugin %s', name)
+			plugin.destroy()
 
 	def _foreach(self, func):
 		# sort to make operation predictable - easier debugging
@@ -551,7 +573,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 class WindowExtension(ObjectExtension):
 
 	def __init__(self, plugin, window):
-		self.plugin = plugin
+		ObjectExtension.__init__(self, plugin, window)
 		self.window = window
 
 		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate') and window.ui.uistate: # XXX

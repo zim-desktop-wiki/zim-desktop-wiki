@@ -4573,6 +4573,10 @@ class PageView(gtk.VBox):
 		'''(Re-)intializes properties for TextView, TextBuffer and
 		TextTags based on the properties in the style config.
 		'''
+
+		# TODO: reload buffer on style changed to make change visible
+		#       now it is only visible on next page load
+
 		self.text_style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
 		self.text_style['TextView'].setdefault('tabs', None, int)
 			# Don't set a default for 'tabs' as not to break pages that

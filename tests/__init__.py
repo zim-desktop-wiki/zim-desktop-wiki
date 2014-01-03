@@ -492,6 +492,7 @@ class Counter(object):
 		self.count += 1
 		return self.value
 
+
 class MockObjectBase(object):
 	'''Base class for mock objects.
 
@@ -527,7 +528,10 @@ class MockObject(MockObjectBase):
 
 	def __getattr__(self, name):
 		'''Automatically mock methods'''
-		return self.mock_method(name, None)
+		if name == '__zim_extension_objects__':
+			raise AttributeError
+		else:
+			return self.mock_method(name, None)
 
 
 def gtk_process_events(*a):

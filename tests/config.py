@@ -759,12 +759,24 @@ class ConfigManagerTests(object):
 [FOO]
 foo=test
 bar=test123
-'''
+''',
+
+		'profiles/myprofile/dict.conf': '''\
+[FOO]
+foo=myprofile
+''',
+
+		'profiles/oldprofile.conf': '',
+		'styles/oldprofile.conf': '',
 	}
+
+	def assertMatchPath(self, file, path):
+		assert file.path.endswith(path), '"%s" does not match "%s"' % (file.path, path)
 
 	def runTest(self):
 		manager = self.manager
 
+		## Test basic file
 		file = manager.get_config_file('foo.conf')
 		self.assertIsInstance(file, ConfigFile)
 		self.assertEquals(file.read(), 'FOO!\n')
@@ -772,12 +784,13 @@ bar=test123
 		newfile = manager.get_config_file('foo.conf')
 		self.assertEqual(id(file), id(newfile))
 
-		dict = manager.get_config_dict('dict.conf')
+		## Test basic dict
+		dict = manager.get_config_dict('<profile>/dict.conf')
 		self.assertIsInstance(dict, INIConfigFile)
 		dict['FOO'].setdefault('foo', 'xxx')
 		self.assertEqual(dict['FOO']['foo'], 'test')
 
-		newdict = manager.get_config_dict('dict.conf')
+		newdict = manager.get_config_dict('<profile>/dict.conf')
 		self.assertEqual(id(dict), id(newdict))
 
 		dict['FOO'].setdefault('bar', 'yyy')
@@ -794,50 +807,58 @@ newkey=ja
 ''')
 
 
+		## Test profile switch
+		changed_counter = tests.Counter()
+		dict['FOO'].connect('changed', changed_counter)
+
+		manager.set_profile('myprofile')
+		self.assertEqual(changed_counter.count, 1)
+
+		newfile = manager.get_config_file('foo.conf')
+		self.assertEqual(newfile.file, file.file)
+		self.assertFalse('myprofile' in newfile.file.path)
+
+		newfile = manager.get_config_file('<profile>/dict.conf')
+		self.assertMatchPath(newfile.file, self.prefix+'/profiles/myprofile/dict.conf')
+
+		newdict = manager.get_config_dict('<profile>/dict.conf')
+		self.assertEqual(id(newdict), id(dict))
+		self.assertEqual(newdict.file, newfile)
+
+		self.assertEqual(dict['FOO']['foo'], 'myprofile')
+		self.assertEqual(dict['FOO']['bar'], 'test123')
+
+
+		## Test profile backward compatibility
+		manager.set_profile('oldprofile')
+		self.assertEqual(changed_counter.count, 2)
+
+		conffile = manager.get_config_file('<profile>/preferences.conf')
+		file, defaults  = conffile.file, list(conffile.defaults)
+		self.assertMatchPath(file, self.prefix+'/profiles/oldprofile/preferences.conf')
+		self.assertMatchPath(defaults[0], self.prefix+'/profiles/oldprofile.conf')
+
+		conffile = manager.get_config_file('<profile>/style.conf')
+		file, defaults  = conffile.file, list(conffile.defaults)
+		self.assertMatchPath(file, self.prefix+'/profiles/oldprofile/style.conf')
+		self.assertMatchPath(defaults[0], self.prefix+'/styles/oldprofile.conf')
+
+
 class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):
 
 	def setUp(self):
 		self.manager = VirtualConfigManager(**self.FILES)
+		self.prefix = ''
 
 
-#~ @tests.slowTest
-#~ class TestConfigManager(tests.TestCase, ConfigManagerTests):
+@tests.slowTest
+class TestConfigManager(tests.TestCase, ConfigManagerTests):
 
-	#~ def setUp(self):
-		#~ self.manager = ...
+	def setUp(self):
+		for basename, content in self.FILES.items():
+			XDG_CONFIG_HOME.file('zim/' + basename).write(content)
 
-		#~ def testLookup(self):
-		#~ '''Test lookup of config files'''
-		#~ home = XDG_CONFIG_HOME.file('zim/preferences.conf')
-		#~ default =  XDG_CONFIG_DIRS[0].file('zim/preferences.conf')
-		#~ self.assertFalse(home.exists())
-		#~ self.assertFalse(default.exists())
-#~
-		#~ default.write('[TestData]\nfile=default\n')
-		#~ self.assertTrue(default.exists())
-#~
-		#~ file = config_file('preferences.conf')
-		#~ defaults = list(file.default_files())
-		#~ self.assertTrue(isinstance(file, ConfigFile))
-		#~ self.assertEqual(file.file, home)
-		#~ self.assertEqual(defaults[0], default)
-#~
-		#~ dict = get_config('preferences.conf')
-		#~ self.assertTrue(isinstance(dict, INIConfigFile))
-		#~ self.assertEqual(dict.file, file)
-		#~ self.assertEqual(dict['TestData']['file'], 'default')
-#~
-		#~ home.write('[TestData]\nfile=home\n')
-		#~ self.assertTrue(home.exists())
-#~
-		#~ dict = get_config('preferences.conf')
-		#~ self.assertTrue(isinstance(dict, INIConfigFile))
-		#~ self.assertEqual(dict['TestData']['file'], 'home')
-#~
-		#~ file = config_file('notebooks.list')
-		#~ self.assertTrue(isinstance(file, ConfigFile))
-		#~ file = config_file('accelarators')
-		#~ self.assertTrue(isinstance(file, ConfigFile))
-
+		self.manager = ConfigManager()
+		self.prefix = 'zim'
 
 

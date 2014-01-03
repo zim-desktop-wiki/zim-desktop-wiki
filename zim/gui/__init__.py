@@ -401,7 +401,7 @@ class GtkInterface(gobject.GObject):
 		logger.debug('Opening notebook: %s', notebook)
 		self.notebook = notebook
 
-		self.config = config or ConfigManager()
+		self.config = config or ConfigManager(profile=notebook.profile)
 		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
 		self.preferences['General'].setdefault('plugins',
 			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
@@ -536,6 +536,8 @@ class GtkInterface(gobject.GObject):
 		self.set_readonly(notebook.readonly)
 
 	def on_notebook_properties_changed(self, notebook):
+		self.config.set_profile(notebook.profile)
+
 		has_doc_root = not notebook.document_root is None
 		for action in ('open_document_root', 'open_document_folder'):
 			action = self.actiongroup.get_action(action)

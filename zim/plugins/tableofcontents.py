@@ -87,8 +87,8 @@ This is a core plugin shipping with zim.
 
 	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
-		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed(self.preferences)
+		self.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
 		if preferences['floating']:
@@ -108,6 +108,9 @@ class MainWindowExtensionEmbedded(WindowExtension):
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
+		if self.widget is None:
+			return
+
 		try:
 			self.window.remove(self.widget)
 		except ValueError:
@@ -123,6 +126,7 @@ class MainWindowExtensionEmbedded(WindowExtension):
 	def teardown(self):
 		self.window.remove(self.widget)
 		self.widget.disconnect_all()
+		self.widget = None
 
 
 @extends('MainWindow', autoload=False)

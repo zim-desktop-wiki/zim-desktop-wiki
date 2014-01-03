@@ -193,6 +193,12 @@ class VirtualFile(object):
 	def readlines(self):
 		return self.lines
 
+	def connect(self, handler, *a):
+		pass
+
+	def disconnect(self, handler):
+		pass
+
 
 class NotebookInfoList(list):
 	'''This class keeps a list of L{NotebookInfo} objects

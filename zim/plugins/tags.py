@@ -60,17 +60,20 @@ class MainWindowExtension(WindowExtension):
 		self.widget.connect('notify::position', update_uistate)
 
 	def on_preferences_changed(self, preferences):
-		pane = preferences['pane']
+		if self.widget is None:
+			return
+
 		try:
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(_('Tags'), self.widget, pane)
+		self.window.add_tab(_('Tags'), self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	def teardown(self):
 		self.window.remove(self.widget)
 		self.widget.disconnect_all()
+		self.widget = None
 
 
 class TagsPluginWidget(ConnectorMixin, gtk.VPaned):

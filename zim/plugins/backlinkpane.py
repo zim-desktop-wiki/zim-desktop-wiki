@@ -40,35 +40,39 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.sidepane_widget = None
+
+		opener = self.window.get_resource_opener()
+		self.widget = BackLinksWidget(opener)
+		if self.window.ui.page: # XXX
+			ui = self.window.ui # XXX
+			page = self.window.ui.page # XXX
+			self.on_open_page(ui, page, page)
+		self.connectto(self.window.ui, 'open-page') # XXX
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
-		if not self.sidepane_widget:
-			opener = self.window.get_resource_opener()
-			self.sidepane_widget = BackLinksWidget(opener)
-			if self.window.ui.page: # XXX
-				self.sidepane_widget.set_page(
-					self.window.ui.notebook, self.window.ui.page) # XXX
-			self.connectto(self.window.ui, 'open-page') # XXX
-		else:
-			self.window.remove(self.sidepane_widget)
+		if self.widget is None:
+			return
 
-		self.window.add_tab(
-			_('BackLinks'), self.sidepane_widget, preferences['pane'])
+		try:
+			self.window.remove(self.widget)
+		except ValueError:
+			pass
+
+		self.window.add_tab(_('BackLinks'), self.widget, preferences['pane'])
 			# T: widget label
-		self.sidepane_widget.show_all()
+		self.widget.show_all()
+		self.widget.show_all()
 
 	def on_open_page(self, ui, page, path):
-		self.sidepane_widget.set_page(self.window.ui.notebook, page) # XXX
+		self.widget.set_page(self.window.ui.notebook, page) # XXX
 
 	def teardown(self):
-		if self.sidepane_widget:
-			self.window.remove(self.sidepane_widget)
-			self.sidepane_widget.destroy()
-			self.sidepane_widget = None
+		self.window.remove(self.widget)
+		self.widget.destroy()
+		self.widget = None
 
 
 PAGE_COL = 0

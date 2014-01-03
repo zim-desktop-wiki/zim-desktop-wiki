@@ -14,12 +14,9 @@ import zim.errors
 import zim.config
 import zim.config.basedirs
 
-from zim.fs import FS, File, Dir
 from zim.errors import Error
-from zim.environ import environ
 from zim.command import Command, UsageError, GetoptError
-from zim.config import ConfigManager, XDGConfigDirsIter
-from zim.notebook import Notebook, Path, NotebookInfo, \
+from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
 
 

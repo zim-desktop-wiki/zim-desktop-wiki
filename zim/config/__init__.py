@@ -17,6 +17,9 @@ from .manager import *
 # config manager. E.g. keep function for loading resources (icons,
 # images, templates, ..) but load all config files through the manager
 
+# TODO: resources like icons etc can be managed by a Singleton ResourceManager
+
+
 
 def data_dirs(path=None):
 	'''Generator listing paths that contain zim data files in the order

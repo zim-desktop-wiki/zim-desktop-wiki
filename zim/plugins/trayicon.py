@@ -26,7 +26,6 @@ def main(*args):
 
 	config = ConfigManager()
 	preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
-	print ">>>", preferences
 	preferences.setdefault('classic', False)
 
 	#~ if appindicator and not preferences['classic']:

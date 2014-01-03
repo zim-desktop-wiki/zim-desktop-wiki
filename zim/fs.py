@@ -112,6 +112,7 @@ moved or deleted. This is stored in L{zim.fs.FS}.
 # TODO - we could support weakref for directories to allow locking via
 # the dir object
 
+
 from __future__ import with_statement
 
 import os
@@ -411,7 +412,9 @@ def format_file_size(bytes):
 def _md5(content):
 	import hashlib
 	m = hashlib.md5()
-	if isinstance(content, basestring):
+	if  isinstance(content, unicode):
+		m.update(content.encode('utf-8'))
+	elif isinstance(content, basestring):
 		m.update(content)
 	else:
 		for l in content:
@@ -677,7 +680,31 @@ class UnixPath(SignalEmitter):
 			logger.exception('Error while tearing down file monitor')
 
 	def _do_changed(self, filemonitor, file, other_file, event_type):
-		self.emit('changed', None, None) # TODO translate otherfile and eventtype
+		# 'FILE_MONITOR_EVENT_CHANGED' is always followed by
+		# a 'FILE_MONITOR_EVENT_CHANGES_DONE_HINT' when the filehandle
+		# is closed (or after timeout). Idem for "created", assuming it
+		# is not created empty.
+		#
+		# TODO: do not emit changed on CREATED - separate signal that
+		#       can be used when monitoring a file list, but reserve
+		#       changed for changes-done-hint so that we ensure the
+		#       content is complete.
+		#       + emit on write and block redundant signals here
+		#
+		# Also note that in many cases "moved" will not be used, but a
+		# sequence of deleted, created will be signaled
+		#
+		# For Dir objects, the event will refer to files contained in
+		# the dir.
+
+		#~ print 'MONITOR:', self, event_type
+		if event_type in (
+			gio.FILE_MONITOR_EVENT_CREATED,
+			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
+			gio.FILE_MONITOR_EVENT_DELETED,
+			gio.FILE_MONITOR_EVENT_MOVED,
+		):
+			self.emit('changed', None, None) # TODO translate otherfile and eventtype
 
 	def exists(self):
 		'''Check if a file or folder exists.
@@ -1324,6 +1351,7 @@ class UnixFile(FilePath):
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
+		self._md5 = None
 		self._lock = FS.get_async_lock(self)
 
 	def __getstate__(self):
@@ -1650,7 +1678,7 @@ class UnixFile(FilePath):
 		# Set properties needed by assertoverwrite for the in-memory object
 		if self.checkoverwrite:
 			self._mtime = self.mtime()
-			self._content = content
+			self._md5 = _md5(content)
 
 	def _assertoverwrite(self):
 		# When we read a file and than write it, this method asserts the file
@@ -1662,11 +1690,11 @@ class UnixFile(FilePath):
 		#
 		# This function should not prohibit writing without reading first.
 		# Also we just write the file if it went missing in between
-		if self._mtime:
+		if self._mtime and self._md5:
 			try:
 				mtime = self.mtime()
 			except OSError:
-				if not  os.path.isfile(self.encodedpath):
+				if not os.path.isfile(self.encodedpath):
 					logger.critical('File missing: %s', self.path)
 					return
 				else:
@@ -1674,10 +1702,27 @@ class UnixFile(FilePath):
 
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
-				if _md5(self._content) != _md5(self.open('r').read()):
+				if self._md5 != _md5(self.open('r').read()):
 					raise FileWriteError, _('File changed on disk: %s') % self.path
 						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
+
+	def check_has_changed_on_disk(self):
+		'''Returns C{True} when this file has changed on disk'''
+		if not (self._mtime and self._md5):
+			if os.path.isfile(self.encodedpath):
+				return True # may well been just created
+			else:
+				return False # ??
+		elif not os.path.isfile(self.encodedpath):
+			return True
+		else:
+			try:
+				self._assertoverwrite()
+			except FileWriteError:
+				return True
+			else:
+				return False
 
 	def touch(self):
 		'''Create this file and any parent folders if it does not yet

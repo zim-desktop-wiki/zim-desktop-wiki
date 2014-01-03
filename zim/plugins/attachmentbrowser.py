@@ -308,6 +308,9 @@ class MainWindowExtension(WindowExtension):
 		self.connectto(self.window, 'pane-state-changed')
 
 	def on_preferences_changed(self, preferences):
+		if self.widget is None:
+			return
+
 		try:
 			self.window.remove(self.widget)
 		except ValueError:
@@ -399,7 +402,7 @@ class MainWindowExtension(WindowExtension):
 		self.window.remove(self.widget)
 		if self.statusbar_frame:
 			self.window.statusbar.remove(self.statusbar_frame)
-
+		self.widget = None
 
 
 class uistate_property(object):

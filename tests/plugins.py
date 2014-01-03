@@ -112,8 +112,18 @@ class TestPluginManager(tests.TestCase):
 		manager = PluginManager()
 		self.assertRaises(ImportError, manager.load_plugin, 'nonexistingplugin')
 
-	#~ def testReloadPlugins(self):
-		#~ manager.reload_plugins() # TODO
+	def testProfileSwitch(self):
+		# Two lists of plugins without dependencies - with some overlap
+		list_a = ['attachmentbrowser', 'backlinkpane', 'calendar', 'distractionfree', 'insertsymbol']
+		list_b = ['calendar', 'distractionfree', 'insertsymbol', 'printtobrowser', 'quicknote']
+
+		manager = PluginManager()
+		for name in list_a:
+			manager.load_plugin(name)
+		self.assertEqual(manager.general_preferences['plugins'], list_a)
+
+		manager.general_preferences['plugins'] = list_b
+		self.assertEqual(sorted(manager._plugins), list_b)
 
 
 class TestPlugins(tests.TestCase):

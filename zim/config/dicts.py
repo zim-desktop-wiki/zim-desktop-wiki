@@ -679,10 +679,13 @@ class INIConfigFile(SectionedConfigDict):
 	#      separate the dict object from the file object
 	#      let parse() and dump() take a file-like object
 
-	def __init__(self, file):
+	def __init__(self, file, monitor=False):
 		'''Constructor
 		@param file: a L{File} or L{ConfigFile} object for reading and
 		writing the config.
+		@param monitor: if C{True} will listen to the C{changed} signal
+		of the file object and update the dict accordingly. Leave
+		C{False} for objects with a short life span.
 		'''
 		SectionedConfigDict.__init__(self)
 		self.file = file
@@ -692,6 +695,24 @@ class INIConfigFile(SectionedConfigDict):
 			self.set_modified(False)
 		except FileNotFoundError:
 			pass
+
+		if monitor:
+			self.connectto(self.file, 'changed', self.on_file_changed)
+
+	def on_file_changed(self, *a):
+		if self.file.check_has_changed_on_disk():
+			try:
+				with self.blocked_signals('changed'):
+					self.read()
+			except FileNotFoundError:
+				pass
+			else:
+				# First emit top level to allow general changes
+				self.emit('changed')
+				with self.blocked_signals('changed'):
+					for section in self.values():
+						section.emit('changed')
+				self.set_modified(False)
 
 	def read(self):
 		'''Read data from file'''
