@@ -38,12 +38,12 @@ def setupGtkInterface(test, klass=None, notebook=None):
 	if notebook is None:
 		dirpath = test.get_tmp_name()
 		notebook = tests.new_notebook(fakedir=dirpath)
-	path = Path('Test:foo:bar')
 
 	config = VirtualConfigManager()
-	ui = klass(config=config, notebook=notebook, page=path)
+	ui = klass(config=config, notebook=notebook)
 
 	ui.mainwindow.init_uistate()
+	ui.open_page(Path('Test:foo:bar'))
 
 	return ui
 
@@ -617,9 +617,6 @@ class TestClickLink(tests.TestCase):
 					self.mock_method(method, None)
 
 		self.ui = setupGtkInterface(self, klass=MyMock)
-
-	def tearDown(self):
-		self.ui.close()
 
 	def runTest(self):
 		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')

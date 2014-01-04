@@ -30,7 +30,7 @@ import urllib
 from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, IndexPage, PageNameError
 from zim.fs import File, Dir, FileNotFoundError
-from zim.formats import ParseTree, TreeBuilder, BaseLinker
+from zim.formats import BaseLinker
 from zim.config import data_file, ConfigManager
 from zim.plugins import PluginManager
 from zim.stores import encode_filename

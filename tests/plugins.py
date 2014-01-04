@@ -169,6 +169,7 @@ class TestPlugins(tests.TestCase):
 
 
 		for name in manager:
+			#~ print "REMOVE:", name
 			self.assertIsInstance(manager[name], PluginClass)
 			manager.remove_plugin(name)
 			self.assertNotIn(name, manager)

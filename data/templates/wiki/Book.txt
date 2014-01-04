@@ -1,0 +1,15 @@
+======= [% page.basename %] =======
+
+{{{card: type=Book
+:Title: [% page.basename %]
+:Author(p):
+:Year:
+:Publisher:
+}}}
+
+
+====== Summary ======
+...
+
+====== Comments ======
+...

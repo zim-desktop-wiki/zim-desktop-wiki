@@ -33,7 +33,7 @@ from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
-	ParseTree, TreeBuilder, ParseTreeBuilder, \
+	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -43,6 +43,7 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
+from zim.objectmanager import ObjectManager, CustomObjectClass
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -516,6 +517,8 @@ class TextBuffer(gtk.TextBuffer):
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
+	@signal: C{insert-object (object_element)}: request inserting of
+	custom object
 
 	@todo: document tag styles that are supported
 	'''
@@ -536,6 +539,7 @@ class TextBuffer(gtk.TextBuffer):
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -724,7 +728,7 @@ class TextBuffer(gtk.TextBuffer):
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 
 		# Check tree
-		root = tree.getroot()
+		root = tree._etree.getroot() # HACK - switch to new interface !
 		assert root.tag == 'zim-tree'
 		raw = root.attrib.get('raw')
 		if isinstance(raw, basestring):
@@ -871,7 +875,7 @@ class TextBuffer(gtk.TextBuffer):
 				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
-				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+				self.insert_image_at_cursor(file, **element.attrib)
 			elif element.tag == 'pre':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -879,6 +883,11 @@ class TextBuffer(gtk.TextBuffer):
 				if element.text:
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
+				set_indent(None)
+			elif element.tag == 'object':
+				if 'indent' in element.attrib:
+					set_indent(int(element.attrib['indent']))
+				self.emit('insert-object', element)
 				set_indent(None)
 			else:
 				# Text styles
@@ -892,6 +901,8 @@ class TextBuffer(gtk.TextBuffer):
 					# raw tree from undo can contain these
 					self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
 				else:
+					logger.debug("Unknown tag : %s, %s, %s", element.tag,
+								element.attrib, element.text)
 					assert False, 'Unknown tag: %s' % element.tag
 
 				if element.text:
@@ -1887,6 +1898,24 @@ class TextBuffer(gtk.TextBuffer):
 		for tag in self._editmode_tags:
 			self.apply_tag(tag, start, iter)
 
+	def insert_child_anchor(self, iter, anchor):
+		# Make sure we always apply the correct tags when inserting an object
+		if iter.equal(self.get_iter_at_mark(self.get_insert())):
+			gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
+		else:
+			with self.tmp_cursor(iter):
+				gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
+
+	def do_insert_child_anchor(self, iter, anchor):
+		# Like do_insert_pixbuf()
+		gtk.TextBuffer.do_insert_child_anchor(self, iter, anchor)
+
+		start = iter.copy()
+		start.backward_char()
+		self.remove_all_tags(start, iter)
+		for tag in filter(_is_indent_tag, self._editmode_tags):
+			self.apply_tag(tag, start, iter)
+
 	def insert_pixbuf(self, iter, pixbuf):
 		# Make sure we always apply the correct tags when inserting a pixbuf
 		if iter.equal(self.get_iter_at_mark(self.get_insert())):
@@ -2083,11 +2112,11 @@ class TextBuffer(gtk.TextBuffer):
 			attrib = {'partial': True}
 
 		if raw:
-			builder = TreeBuilder()
+			builder = ElementTreeModule.TreeBuilder()
 			attrib['raw'] = True
 			builder.start('zim-tree', attrib)
 		else:
-			builder = ParseTreeBuilder()
+			builder = OldParseTreeBuilder()
 			builder.start('zim-tree', attrib)
 
 		open_tags = []
@@ -2183,6 +2212,7 @@ class TextBuffer(gtk.TextBuffer):
 		set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
+			anchor = iter.get_child_anchor()
 			if pixbuf:
 				if pixbuf.zim_type == 'icon':
 					# Reset all tags - and let set_tags parse the bullet
@@ -2202,19 +2232,29 @@ class TextBuffer(gtk.TextBuffer):
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					if 'alt' in attrib:
-						text = attrib.pop('alt') or ''
-						builder.start('img', attrib)
-						builder.data(text)
-						builder.end('img')
-					else:
-						builder.start('img', attrib)
-						builder.end('img')
+					builder.start('img', attrib)
+					builder.end('img')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
 
 				iter.forward_char()
-			# FUTURE: elif embedded widget
+
+			# embedded widget
+			elif anchor:
+				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				anchor = iter.get_child_anchor() # iter may have moved
+
+				if anchor is None:
+					continue
+				if hasattr(anchor, 'manager'):
+					attrib = anchor.manager.get_attrib()
+					data = anchor.manager.get_data()
+					logger.debug("Anchor with CustomObject: %s", anchor.manager)
+					builder.start('object', attrib)
+					builder.data(data)
+					builder.end('object')
+					anchor.manager.set_modified(False)
+				iter.forward_char()
 			else:
 				# Set tags
 				copy = iter.copy()
@@ -2243,8 +2283,8 @@ class TextBuffer(gtk.TextBuffer):
 						bound = end.copy() # just to be sure..
 						break
 
-				# But limit slice to first pixbuf
-				# FUTURE: also limit slice to any embedded widget
+				# But limit slice to first pixbuf or any embeddded widget
+
 				text = iter.get_slice(bound)
 				if text.startswith(PIXBUF_CHR):
 					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
@@ -2284,6 +2324,18 @@ class TextBuffer(gtk.TextBuffer):
 		tree = ParseTree(builder.close())
 		tree.encode_urls()
 		#~ print tree.tostring()
+
+		if not raw:
+			# Reparsing the parsetree in order to find raw wiki codes
+			# and get rid of oddities in our generated parsetree.
+			#~ print ">>> Parsetree original:", tree.tostring()
+			from zim.formats import get_format
+			format = get_format("wiki") # FIXME should the format used here depend on the store ?
+			dumper = format.Dumper()
+			parser = format.Parser()
+			tree = parser.parse(dumper.dump(tree), partial=tree.ispartial)
+			#~ print ">>> Parsetree recreated:", tree.tostring()
+
 		return tree
 
 	def select_line(self):
@@ -2592,6 +2644,7 @@ class TextBuffer(gtk.TextBuffer):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			tree = self.get_parsetree(bounds)
+			#~ print ">>>> SET", tree.tostring()
 			clipboard.set_parsetree(self.notebook, self.page, tree, format)
 
 	def cut_clipboard(self, clipboard, default_editable):
@@ -3387,6 +3440,33 @@ class TextView(gtk.TextView):
 		# Update the cursor type when the window visibility changed
 		self.update_cursor()
 		return False # continue emit
+
+	def do_move_cursor(self, step_size, count, extend_selection):
+		# Overloaded signal handler for cursor movements which will
+		# move cursor into any object that accept a cursor focus
+
+		if step_size in (gtk.MOVEMENT_LOGICAL_POSITIONS, gtk.MOVEMENT_VISUAL_POSITIONS) \
+		and count in (1, -1) and not extend_selection:
+			# logic below only supports 1 char forward or 1 char backward movements
+
+			buffer = self.get_buffer()
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			if count == -1:
+				iter.backward_char()
+				position = POSITION_END # enter end of object
+			else:
+				position = POSITION_BEGIN
+
+			anchor = iter.get_child_anchor()
+			if iter.get_child_anchor():
+				widgets = anchor.get_widgets()
+				assert len(widgets) == 1, 'TODO: support multiple views of same buffer'
+				widget = widgets[0]
+				if widget.has_cursor():
+					widget.grab_cursor(position)
+					return None
+
+		return gtk.TextView.do_move_cursor(self, step_size, count, extend_selection)
 
 	def do_button_press_event(self, event):
 		# Handle middle click for pasting and right click for context menu
@@ -4700,6 +4780,12 @@ class PageView(gtk.VBox):
 		self._prev_buffer = self.view.get_buffer()
 		finderstate = self._prev_buffer.finder.get_state()
 
+		for child in self.view.get_children():
+			if isinstance(child, CustomObjectBin):
+				self.view.remove(child)
+				if hasattr(child, "_zim_objmanager"):
+					del child._zim_objmanager
+
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = ()
@@ -4709,6 +4795,7 @@ class PageView(gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
+			buffer.connect('insert-object', self.insert_object)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5691,6 +5778,40 @@ class PageView(gtk.VBox):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
+	def insert_object(self, buffer, obj, interactive=False):
+		'''Inserts custom object to TextView & Textbuffer.
+		`obj` can be Element or CustomObjectClass instance.'''
+		logger.debug("Insert object(%s, %s)", buffer, obj)
+		if not isinstance(obj, CustomObjectClass):
+			# assume obj is a parsetree element
+			element = obj
+			if not 'type' in element.attrib:
+				return None
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text, self.ui)
+
+		def on_modified_changed(obj):
+			if obj.get_modified() and not buffer.get_modified():
+				buffer.set_modified(True)
+
+		obj.connect('modified-changed', on_modified_changed)
+		iter = buffer.get_insert_iter()
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.view.grab_focus()
+
+		anchor = ObjectAnchor(obj)
+		buffer.insert_child_anchor(iter, anchor)
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectBin)
+		widget.connect('release-cursor', on_release_cursor, anchor)
+		self.view.add_child_at_anchor(widget, anchor)
+
+		widget.show_all()
+
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
 		self._zoom_increase_decrease_font_size( +1 )
@@ -5739,8 +5860,71 @@ class PageView(gtk.VBox):
 
 		self.text_style.write()
 
+
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
+
+
+class ObjectAnchor(gtk.TextChildAnchor):
+	def __init__(self, manager):
+		self.manager = manager
+		gtk.TextChildAnchor.__init__(self)
+
+gobject.type_register(ObjectAnchor)
+
+
+# Constants for grab-focus-cursor and release-focus-cursor
+POSITION_BEGIN = 1
+POSITION_END = 2
+
+class CustomObjectBin(gtk.EventBox):
+	'''CustomObjectBin adds border and set arrow as mouse cursor
+
+	Defines two signals:
+	  * grab-cursor (position): emitted when embedded widget
+	    should grab focus, position can be either POSITION_BEGIN or
+	    POSITION_END
+	  * release-cursor (position): emitted when the embedded
+	    widget wants to give back focus to the embedding TextView
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+	}
+
+	def __init__(self):
+		gtk.EventBox.__init__(self)
+		self.set_border_width(5)
+		self._has_cursor = False
+
+	def do_realize(self):
+		gtk.EventBox.do_realize(self)
+		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+
+	def	has_cursor(self):
+		'''Returns True if this object has an internal cursor. Will be
+		used by the TextView to determine if the cursor should go
+		"into" the object or just jump from the position before to the
+		position after the object. If True the embedded widget is
+		expected to support grab_cursor() and use release_cursor().
+		'''
+		return self._has_cursor
+
+	def	set_has_cursor(self, has_cursor):
+		'''See has_cursor()'''
+		self._has_cursor = has_cursor
+
+	def grab_cursor(self, position):
+		'''Emits the grab-cursor signal'''
+		self.emit('grab-cursor', position)
+
+	def release_cursor(self, position):
+		'''Emits the release-cursor signal'''
+		self.emit('release-cursor', position)
+
+gobject.type_register(CustomObjectBin)
 
 
 class InsertDateDialog(Dialog):

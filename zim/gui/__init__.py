@@ -482,14 +482,10 @@ class GtkInterface(gobject.GObject):
 		self.do_preferences_changed()
 
 		self._init_notebook(self.notebook)
-		if page:
-			if isinstance(page, basestring): # IPC call
-				page = self.notebook.resolve_path(page)
-				if not page is None:
-					self.open_page(page)
-			else:
-				assert isinstance(page, Path)
-				self.open_page(page)
+		if page and isinstance(page, basestring): # IPC call
+			page = self.notebook.resolve_path(page)
+
+		self._first_page = page # XXX HACK - if we call open_page here, plugins are not yet initialized
 
 	def _init_notebook(self, notebook):
 		if notebook.cache_dir:
@@ -555,12 +551,8 @@ class GtkInterface(gobject.GObject):
 			os.chdir(self.notebook.dir.path)
 			environ['PWD'] = self.notebook.dir.path
 
-		if self.page is None:
-			path = self.history.get_current()
-			if path:
-				self.open_page(path)
-			else:
-				self.open_page_home()
+		if self._first_page is None:
+			self._first_page = self.history.get_current()
 
 		# We schedule the autosave on idle to try to make it impact
 		# the performance of the application less. Of course using the
@@ -647,6 +639,15 @@ class GtkInterface(gobject.GObject):
 
 		# And here we go!
 		self.mainwindow.show_all()
+
+		# HACK: Delay opening first page till after show_all() -- else plugins are not initialized
+		#       FIXME need to do extension & initialization of uistate earlier
+		if self._first_page:
+			self.open_page(self._first_page)
+			del self._first_page
+		else:
+			self.open_page_home()
+
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()
 
@@ -3178,15 +3179,12 @@ class NewPageDialog(Dialog):
 			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
-
 		self.form['template'] = default
-		self.form.widgets['template'].set_no_show_all(True) # TEMP: hide feature
-		self.form.widgets['template'].set_property('visible', False) # TEMP: hide feature
+		# TODO: reset default when page input changed -
+		# especially if namespace has other template
 
 		if subpage:
 			self.form.widgets['page'].subpaths_only = True
-
-		# TODO: reset default when page input changed
 
 	def do_response_ok(self):
 		path = self.form['page']

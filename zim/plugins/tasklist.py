@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -22,7 +22,10 @@ from zim.gui.widgets import ui_environment, \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
-from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
+from zim.formats import get_format, \
+	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET, \
+	PARAGRAPH, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
+	Visitor, VisitorSkip
 from zim.config import StringAllowEmpty
 
 from zim.plugins.calendar import daterange_from_path
@@ -31,7 +34,7 @@ logger = logging.getLogger('zim.plugins.tasklist')
 
 
 SQL_FORMAT_VERSION = (0, 6)
-
+SQL_FORMAT_VERSION_STRING = "0.6"
 
 SQL_CREATE_TABLES = '''
 create table if not exists tasklist (
@@ -172,7 +175,7 @@ class IndexExtension(ObjectExtension):
 		new_preferences = self._serialize_rebuild_on_preferences()
 		if new_preferences != self._current_preferences:
 			self._drop_table()
-		self._set_preferences()
+		self._set_preferences()  # Sets _current_preferences
 
 	def _set_preferences(self):
 		self._current_preferences = self._serialize_rebuild_on_preferences()
@@ -193,14 +196,17 @@ class IndexExtension(ObjectExtension):
 			self.next_label_re = None
 
 		if self.preferences['nonactionable_tags']:
-			self.nonactionble_tags = [
-				t.strip().strip('@').lower()
-					for t in self.preferences['nonactionable_tags'].split(',')]
+			self.nonactionable_tags = [
+				t.strip('@').lower()
+					for t in self.preferences['nonactionable_tags'].replace(',', ' ').strip().split()]
 		else:
-			self.nonactionble_tags = []
+			self.nonactionable_tags = []
 
-		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
-		self.task_label_re = re.compile(regex)
+		if self.task_labels:
+			regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
+			self.task_label_re = re.compile(regex)
+		else:
+			self.task_label_re = None
 
 		if self.preferences['included_subtrees']:
 			included = [i.strip().strip(':') for i in self.preferences['included_subtrees'].split(',')]
@@ -281,25 +287,13 @@ class IndexExtension(ObjectExtension):
 		if not parsetree:
 			return
 
-		if page._ui_object:
-			# FIXME - HACK - dump and parse as wiki first to work
-			# around glitches in pageview parsetree dumper
-			# make sure we get paragraphs and bullets are nested properly
-			# Same hack in gui clipboard code
-			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-			parser = get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-
 		#~ print '!! Checking for tasks in', path
 		dates = daterange_from_path(path)
 		if dates and self.preferences['deadline_by_page']:
 			deadline = dates[2]
 		else:
 			deadline = None
-
 		tasks = self._extract_tasks(parsetree, deadline)
-		#~ print 'TASKS', tasks
 
 		if tasks:
 			# Do insert with a single commit
@@ -313,6 +307,7 @@ class IndexExtension(ObjectExtension):
 		# Helper function to insert tasks in table
 		c = self.index.db.cursor()
 		for task, grandchildren in children:
+			task[4] = ','.join(sorted(task[4])) # set to text
 			c.execute(
 				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
 				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -326,199 +321,18 @@ class IndexExtension(ObjectExtension):
 		@param parsetree: a L{zim.formats.ParseTree} object
 		@param defaultdate: default due date for the whole page (e.g. for calendar pages) as string
 		@returns: nested list of tasks, each task is given as a 2-tuple, 1st item is a tuple
-		with following properties: C{(open, actionable, prio, due, tags, description)}, 2nd item
+		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
 		is a list of child tasks (if any).
 		'''
-		# Stack tuple indexes
-		LEVEL = 0
-		TASK = 1
-		CHILDREN = 2
-
-		# Task tuple indexes
-		OPEN = 0
-		ACT = 1
-		PRIO = 2
-		DATE = 3
-		TAGS = 4
-
-		tasks = []
-
-		for node in parsetree.findall('p'):
-			lines = self._flatten_para(node)
-			# Check first line for task list header
-			istasklist = False
-			globaltags = []
-			globalactionable = True
-			globalprio = None
-			globaldate = defaultdate
-			if len(lines) >= 2 \
-			and isinstance(lines[0], basestring) \
-			and isinstance(lines[1], tuple) \
-			and self.task_labels and self.task_label_re.match(lines[0]):
-				# Parse the task list header as if it was a task and use it's
-				# attributes as defaults for the rest of the tasks in this block.
-				defaults = self._parse_task(lines[0])
-				defaults[TAGS] = defaults[TAGS].split(',')
-				globalactionable = defaults[ACT]
-				globalprio = defaults[PRIO]
-				globaltags.extend(defaults[TAGS])
-				globaldate = defaults[DATE]
-				lines.pop(0)
-				istasklist = True
-
-			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
-
-			# Check line by line
-			for item in lines:
-				if isinstance(item, tuple):
-					# checkbox or bullet
-					bullet, list_level, text = item
-					while stack and stack[-1][LEVEL] >= list_level:
-						stack.pop()
-
-					if (
-						bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
-						and (istasklist or self.preferences['all_checkboxes'])
-					) or (
-						self.task_labels and self.task_label_re.match(text)
-					):
-						# task item
-						if stack: # Inherit date and prio if not set explicitly on children
-							mydefaultdate = stack[-1][TASK][DATE]
-							if mydefaultdate == _NO_DATE:
-								mydefaultdate = defaultdate
-							mydefaultprio = stack[-1][TASK][PRIO]
-							mydefaultactionable = stack[-1][TASK][ACT]
-							inherited_tags = stack[-1][TASK][TAGS].split(',')
-						else:
-							mydefaultdate = globaldate
-							mydefaultprio = globalprio
-							mydefaultactionable = globalactionable
-							inherited_tags = globaltags
-
-						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
-						if stack:
-							mytasks = stack[-1][CHILDREN]
-						else:
-							mytasks = tasks
-						task = self._parse_task(text, open=open,
-								tags=inherited_tags,
-								actionable=mydefaultactionable,
-								defaultdate=mydefaultdate,
-								defaultprio=mydefaultprio,
-								tasks=mytasks)
-						children = []
-						if stack:
-							stack[-1][CHILDREN].append((task, children))
-							if task[OPEN]:
-								for parent in stack:
-									# child is open, so parent should be as well
-									parent[TASK][OPEN] = True
-						else:
-							tasks.append((task, children))
-
-						stack.append([list_level, task, children])
-					else:
-						# not a task - we already popped stack, now ignore text
-						pass
-				else:
-					# normal line, outside list
-					stack = []
-					if self.task_labels and self.task_label_re.match(item):
-						task = self._parse_task(item, tags=globaltags, defaultdate=defaultdate, tasks=tasks)
-						tasks.append((task, []))
-
-		return tasks
-
-	def _flatten_para(self, para):
-		# Returns a list which is a mix of normal lines of text and
-		# tuples for checkbox items. Checkbox item tuples consist of
-		# the checkbox type, the indenting level and the text.
-		items = []
-
-		text = para.text or ''
-		for child in para.getchildren():
-			if child.tag == 'strike':
-				# ignore content of child element
-				text += child.tail or ''
-			elif child.tag in ('ul', 'ol'):
-				if text:
-					items += text.splitlines()
-				items += self._flatten_list(child)
-				text = child.tail or ''
-			else:
-				text += self._flatten(child)
-				text += child.tail or ''
-
-		if text:
-			items += text.splitlines()
-
-		return items
-
-	def _flatten_list(self, list, list_level=0):
-		# Handle bullet lists
-		items = []
-		for node in list.getchildren():
-			if node.tag == 'ul':
-				items += self._flatten_list(node, list_level+1) # recurs
-			elif node.tag == 'li':
-				bullet = node.get('bullet')
-				text = self._flatten(node)
-				items.append((bullet, list_level, text))
-			else:
-				pass # should not occur - ignore silently
-		return items
-
-	def _flatten(self, node):
-		# Just flatten everything to text - but ignore strike out
-		text = node.text or ''
-		for child in node.getchildren():
-			if child.tag == 'strike':
-				text += child.tail or ''
-			else:
-				text += self._flatten(child) # recurs
-				text += child.tail or ''
-		return text
-
-	def _parse_task(self, text, open=True, tags=None, actionable=True, defaultdate=None, defaultprio=None, tasks=None):
-		## Note: do not modify text here, keep it as is, any cleanup is done by the widget
-
-		prio = text.count('!')
-		if defaultprio and prio == 0:
-			prio = defaultprio
-
-		if not tags:
-			tags = []
-		else:
-			# ensure we don't mutate the parent's tags list
-			tags = list(tags)
-		tags += _tag_re.findall(text)
-
-		datematch = _date_re.search(text) # first match
-		if datematch:
-			mydate = parse_date(datematch.group(0))
-			if mydate:
-				date = '%04i-%02i-%02i' % mydate # (y, m, d)
-			else:
-				date = _NO_DATE
-		else:
-			date = _NO_DATE
-
-		if defaultdate and date == _NO_DATE:
-			date = defaultdate
-
-		if actionable:
-			if any(t.lower().strip('@') in self.nonactionble_tags for t in tags):
-				actionable = False
-			elif self.next_label_re.match(text):
-				if tasks and tasks[-1][0][0]: # previous task still open
-					actionable = False
-		# else parent was non-actionable already, so stay non-actionable
-
-		tags = ','.join(t.strip('@') for t in tags)
-		return [open, actionable, prio, date, tags, text]
-			# (open, actionable, prio, due, tags, description)
-
+		parser = TasksParser(
+			self.task_label_re,
+			self.next_label_re,
+			self.nonactionable_tags,
+			self.preferences['all_checkboxes'],
+			defaultdate
+		)
+		parser.parse(parsetree)
+		return parser.get_tasks()
 
 	def remove_page(self, index, path, _emit=True):
 		if not self.db_initialized: return
@@ -610,6 +424,205 @@ class MainWindowExtension(WindowExtension):
 
 		dialog = TaskListDialog.unique(self, self.window, self.index_ext, self.plugin.preferences)
 		dialog.present()
+
+
+class TasksParser(Visitor):
+	'''Parse tasks from a parsetree'''
+
+	def __init__(self, task_label_re, next_label_re, nonactionable_tags, all_checkboxes, defaultdate):
+		self.task_label_re = task_label_re
+		self.next_label_re = next_label_re
+		self.nonactionable_tags = nonactionable_tags
+		self.all_checkboxes = all_checkboxes
+
+		defaults = (True, True, 0, defaultdate or _NO_DATE, set(), None)
+			# (open, actionable, prio, due, tags, description)
+		self._tasks = []
+		self._stack = [(-1, defaults, self._tasks)]
+			# Stack for parsed tasks with tuples like (level, task, children)
+			# We need to include the list level in the stack because we can
+			# have mixed bullet lists with checkboxes, so task nesting is
+			# not the same as list nesting
+
+		# Parsing state
+		self._text = [] # buffer with pieces of text
+		self._depth = 0 # nesting depth for list items
+		self._last_node = (None, None) # (tag, attrib) of last item seen by start()
+		self._intasklist = False # True if we are in a tasklist with a header
+		self._tasklist_tags = None # global tags from the tasklist header
+
+	def parse(self, parsetree):
+		#~ filter = TreeFilter(
+			#~ TextCollectorFilter(self),
+			#~ tags=['p', 'ul', 'ol', 'li'],
+			#~ exclude=['strike']
+		#~ )
+		parsetree.visit(self)
+
+	def get_tasks(self):
+		'''Get the tasks that were collected by visiting the tree
+		@returns: nested list of tasks, each task is given as a 2-tuple,
+		1st item is a tuple with following properties:
+		C{(open, actionable, prio, due, description)},
+		2nd item is a list of child tasks (if any).
+		'''
+		return self._tasks
+
+	def start(self, tag, attrib):
+		if tag == STRIKE:
+			raise VisitorSkip # skip this node
+		elif tag in (PARAGRAPH, NUMBEREDLIST, BULLETLIST, LISTITEM):
+			if tag == PARAGRAPH:
+				self._intasklist = False
+
+			# Parse previous chuck of text (para level text)
+			if self._text:
+				if tag in (NUMBEREDLIST, BULLETLIST) \
+				and self._last_node[0] == PARAGRAPH \
+				and self._check_para_start(self._text):
+					pass
+				else:
+					self._parse_para_text(self._text)
+
+				self._text = [] # flush
+
+			# Update parser state
+			if tag in (NUMBEREDLIST, BULLETLIST):
+				self._depth += 1
+			elif tag == LISTITEM:
+				self._pop_stack() # see comment in end()
+			self._last_node = (tag, attrib)
+		else:
+			pass # do nothing for other tags (we still get the text)
+
+	def text(self, text):
+		self._text.append(text)
+
+	def end(self, tag):
+		if tag == PARAGRAPH:
+			if self._text:
+				self._parse_para_text(self._text)
+				self._text = [] # flush
+			self._depth = 0
+			self._pop_stack()
+		elif tag in (NUMBEREDLIST, BULLETLIST):
+			self._depth -= 1
+			self._pop_stack()
+		elif tag == LISTITEM:
+			if self._text:
+				attrib = self._last_node[1]
+				self._parse_list_item(attrib, self._text)
+				self._text = [] # flush
+			# Don't pop here, next item may be child
+			# Instead pop when next item opens
+		else:
+			pass # do nothing for other tags
+
+	def _pop_stack(self):
+		# Drop stack to current level
+		assert self._depth >= 0, 'BUG: stack count corrupted'
+		level = self._depth
+		if level > 0:
+			level -= 1 # first list level should be same as level of line items in para
+		while self._stack[-1][0] >= level:
+			self._stack.pop()
+
+	def _check_para_start(self, strings):
+		# Check first line for task list header
+		# SHould look like "TODO @foo @bar:"
+		# FIXME shouldn't we depend on tag elements in the tree ??
+		line = u''.join(strings).strip()
+
+		if not '\n' in line \
+		and self._matches_label(line):
+			words = line.strip(':').split()
+			words.pop(0) # label
+			if all(w.startswith('@') for w in words):
+				self._intasklist = True
+				self._tasklist_tags = set(w.strip('@') for w in words)
+			else:
+				self._intasklist = False
+		else:
+			self._intasklist = False
+
+		return self._intasklist
+
+	def _parse_para_text(self, strings):
+		# Paragraph text to be parsed - just look for lines with label
+		for line in u''.join(strings).splitlines():
+			if self._matches_label(line):
+				self._parse_task(line)
+
+	def _parse_list_item(self, attrib, text):
+		# List item to parse - check bullet, then match label
+		bullet = attrib.get('bullet')
+		line = u''.join(text)
+		if (
+			bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+			and (self._intasklist or self.all_checkboxes)
+		):
+			open = (bullet == UNCHECKED_BOX)
+			self._parse_task(line, open=open)
+		elif self._matches_label(line):
+			self._parse_task(line)
+
+	def _matches_label(self, line):
+		return self.task_label_re and self.task_label_re.match(line)
+
+	def _matches_next_label(self, line):
+		return self.next_label_re and self.next_label_re.match(line)
+
+	def _parse_task(self, text, open=True):
+		level = self._depth
+		if level > 0:
+			level -= 1 # first list level should be same as level of line items in para
+
+		parent_level, parent, parent_children = self._stack[-1]
+
+		# Get prio
+		prio = text.count('!')
+		if prio == 0:
+			prio = parent[2] # default to parent prio
+
+		# Get due date
+		due = _NO_DATE
+		datematch = _date_re.search(text) # first match
+		if datematch:
+			date = parse_date(datematch.group(0))
+			if date:
+ 				due = '%04i-%02i-%02i' % date # (y, m, d)
+
+		if due == _NO_DATE:
+			due = parent[3] # default to parent date (or default for root)
+
+		# Find tags
+		tags = set(_tag_re.findall(text))
+		if self._intasklist and self._tasklist_tags:
+			tags |= self._tasklist_tags
+		tags |= parent[4] # add parent tags
+
+		# Check actionable
+		if not parent[1]: # default parent not actionable
+			actionable = False
+		elif any(t.lower() in self.nonactionable_tags for t in tags):
+			actionable = False
+		elif self._matches_next_label(text) and parent_children:
+			previous = parent_children[-1]
+			actionable = not previous[0] # previous task not open
+		else:
+			actionable = True
+
+		# Parents are not closed if it has open child items
+		if self._depth > 0 and open:
+			for l, t, c in self._stack[1:]:
+				t[0] = True
+
+		# And finally add to stack
+		task = [open, actionable, prio, due, tags, text]
+		children = []
+		parent_children.append((task, children))
+		if self._depth > 0: # (don't add paragraph level items to the stack)
+			self._stack.append((level, task, children))
 
 
 class TaskListDialog(Dialog):
@@ -754,7 +767,7 @@ class TagListTreeView(SingleClickTreeView):
 		tags = []
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
-				tags.append(row[0])
+				tags.append(row[0].decode('utf-8'))
 			elif row[2] == self._type_untagged:
 				tags.append(_NO_TAGS)
 		return tags or None
@@ -764,7 +777,7 @@ class TagListTreeView(SingleClickTreeView):
 		labels = []
 		for row in self._get_selected():
 			if row[2] == self._type_label:
-				labels.append(row[0])
+				labels.append(row[0].decode('utf-8'))
 		return labels or None
 
 	def _get_selected(self):
@@ -1006,9 +1019,9 @@ class TaskListTreeView(BrowserTreeView):
 
 			# Format description
 			task = _date_re.sub('', row['description'], count=1)
-			task = encode_markup_text(task)
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
 			task = self.index_ext.next_label_re.sub('', task) # get rid of "next" label in description
+			task = encode_markup_text(task)
 			if row['actionable']:
 				task = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
 				task = self.index_ext.task_label_re.sub(r'<b>\1</b>', task) # highlight labels

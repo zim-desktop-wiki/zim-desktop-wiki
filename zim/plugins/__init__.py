@@ -19,6 +19,8 @@ when loading the plugin. This means you can also not import classes of
 other plugins directly into the module.
 '''
 
+from __future__ import with_statement
+
 
 import gobject
 import types
@@ -31,7 +33,7 @@ import collections
 import zim.fs
 from zim.fs import Dir
 
-from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER
+from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
 from zim.actions import action, toggle_action, get_gtk_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
@@ -158,10 +160,6 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 	keys and plugin objects as value
 	'''
 
-	# Note that changes to "config['plugins']" do not trigger the
-	# changed signal on the dict. If this changes in the future, we
-	# need to block the callback when modifying this list.
-
 	def __init__(self, config=None):
 		self.config = config or VirtualConfigManager()
 		self._preferences = \
@@ -196,6 +194,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 				logger.exception('Exception while loading plugin: %s', name)
 				self.general_preferences['plugins'].remove(name)
 
+	@SignalHandler
 	def on_preferences_changed(self, o):
 		current = set(self._plugins.keys())
 		new = set(self.general_preferences['plugins'])
@@ -244,7 +243,9 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 				logger.exception('Exception in plugin: %s', name)
 
 		if not name in self.general_preferences['plugins']:
-			self.general_preferences['plugins'].append(name)
+			with self.on_preferences_changed.blocked():
+				self.general_preferences['plugins'].append(name)
+				self.general_preferences.changed()
 
 		return plugin
 
@@ -255,7 +256,9 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		'''
 		if name in self.general_preferences['plugins']:
 			# Do this first regardless of exceptions etc.
-			self.general_preferences['plugins'].remove(name)
+			with self.on_preferences_changed.blocked():
+				self.general_preferences['plugins'].remove(name)
+				self.general_preferences.changed()
 
 		try:
 			plugin = self._plugins.pop(name)
@@ -281,8 +284,9 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		C{obj} on their construction
 		@param obj: arbitrary object that can be extended by plugins
 		'''
-		self._foreach(lambda p: p.extend(obj))
-		self._extendables.add(obj)
+		if not obj in self._extendables:
+			self._foreach(lambda p: p.extend(obj))
+			self._extendables.add(obj)
 
 	def on_extension_point_changed(self, plugin, name):
 		for obj in self._extendables:

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+# Copyright 2012 Yao-Po Wang <blue119@gmail.com>
+# Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+
 '''This module handles dumping reStructuredText with sphinx extensions'''
 
 from zim.formats import *
-from zim.parsing import TextBuffer
+from zim.formats.plain import Dumper as TextDumper
 
 info = {
 	'name': 'reST',
@@ -16,135 +20,76 @@ info = {
 	'export': True,
 }
 
-level_tag = ['=', '-', '^', '"']
 
-TABSTOP = 4
-bullet_re = u'[\\*\u2022]|\\[[ \\*x]\\]'
-	# bullets can be '*' or 0x2022 for normal items
-	# and '[ ]', '[*]' or '[x]' for checkbox items
+class Dumper(TextDumper):
 
-bullets = {
-	u'* \u2610': UNCHECKED_BOX,
-	u'* \u2612': XCHECKED_BOX,
-	u'* \u2611': CHECKED_BOX,
-	'-': BULLET,
-}
+	BULLETS = {
+		UNCHECKED_BOX:	u'- \u2610',
+		XCHECKED_BOX:	u'- \u2612',
+		CHECKED_BOX:	u'- \u2611',
+		BULLET:		u'-',
+	}
 
-# reverse dict
-bullet_types = {}
-for bullet in bullets:
-	bullet_types[bullets[bullet]] = bullet
+	TAGS = {
+		EMPHASIS:	('*', '*'),
+		STRONG:		('**', '**'),
+		MARK:		('', ''), # TODO, no directly way to do this in rst
+		STRIKE:		('', ''), # TODO, no directly way to do this in rst
+		VERBATIM:	("``", "``"),
+		TAG:		('', ''), # No additional annotation (apart from the visible @)
+		SUBSCRIPT:	('\\ :sub:`', '`\\ '),
+		SUPERSCRIPT:	('\\ :sup:`', '`\\ '),
+	}
+	# TODO tags other than :sub: and :sup: may also need surrounding whitespace, deal with this in post process (join) action ?
+	# IDEM for blocks like images and objects, how to enforce empty lines and how to deal with inline images..
 
-dumper_tags = {
-	'emphasis': '*',
-	'strong':   '**',
-	'mark':     '', # TODO, no directly way to do this in rst
-	'strike':   '', # TODO, no directly way to do this in rst
-	'code':     '``',
-	'sub':      ':sub:',
-	'sup':      ':sup:',
-	'tag':      '', # No additional annotation (apart from the visible @)
-}
-
-class Dumper(DumperClass):
+	HEADING_UNDERLINE = ['=', '-', '^', '"']
 
 	def dump(self, tree):
-		assert isinstance(tree, ParseTree)
 		assert self.linker, 'rst dumper needs a linker object'
 		self.linker.set_usebase(True)
-		output = TextBuffer()
-		self.dump_children(tree.getroot(), output)
-		return output.get_lines(end_with_newline=not tree.ispartial)
+		return TextDumper.dump(self, tree)
 
-	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
-		if list.text:
-			output.append(list.text)
+	def dump_h(self, tag, attrib, strings):
+		# Underlined headings
+		level = int(attrib['level'])
+		if level < 1:   level = 1
+		elif level > 4: level = 4
+		char = self.HEADING_UNDERLINE[level-1]
+		heading = u''.join(strings)
+		underline = char * len(heading)
+		return [heading + '\n', underline]
 
-		for element in list.getchildren():
-			if element.tag in ('p', 'div'):
-				#~ print element.tag
-				#~ print element.text
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput) # recurs
-				output.extend('\t'*indent)
-				output.extend(myoutput)
+	def dump_pre(self, tag, attrib, strings):
+		# prefix last line with "::\n\n"
+		# indent with \t to get preformatted
+		strings = self.prefix_lines('\t', strings)
+		strings.insert(0, '::\n\n')
+		return strings
 
-			elif element.tag == 'h':
-				level = int(element.attrib['level'])
-				if level < 1:   level = 1
-				elif level > 4: level = 4
-				char = level_tag[level-1]
-				heading = element.text
-				line = char * len(heading)
-				output.append(heading + '\n')
-				output.append(line)
+	def dump_link(self, tag, attrib, strings=None):
+		# Use inline url form, putting links at the end is more difficult
+		assert 'href' in attrib, \
+			'BUG: link misses href: %s "%s"' % (attrib, strings)
+		href = self.linker.link(attrib['href'])
+		text = u''.join(strings) or href
+		return '`%s <%s>`_' % (text, href)
 
-			elif element.tag in ('ul', 'ol'):
-				indent = int(element.attrib.get('indent', 0))
-				start = element.attrib.get('start')
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
-				if list_level == -1:
-					output.extend(myoutput)
-				else:
-					output.extend(myoutput)
+	def dump_img(self, tag, attrib, strings=None):
+		src = self.linker.img(attrib['src'])
+		text = '.. image:: %s\n' % src
 
-			elif element.tag == 'li':
-				if 'indent' in element.attrib:
-					# HACK for raw trees from pageview
-					list_level = int(element.attrib['indent'])
+		items = attrib.items()
+		items.sort() # unit tests don't like random output
+		for k, v in items:
+			if k == 'src' or k.startswith('_'):
+				continue
+			elif v: # skip None, "" and 0
+				text += '   :%s: %s\n' % (k, v)
 
-				if list_type == 'ol':
-					bullet = str(list_iter) + '.'
-					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
-				else:
-					bullet = bullet_types[element.attrib.get('bullet', BULLET)]
-				output.append('\t'*list_level+bullet+' ')
-				self.dump_children(element, output, list_level=list_level) # recurs
-				output.append('\n')
+		return text + '\n'
 
-			elif element.tag == 'pre':
-				myoutput = TextBuffer()
-				myoutput.append("::\n\n")
-				text = [ '\t' + t for t in element.text.split('\n')]
-				myoutput.append('\n'.join(text))
-				output.extend(myoutput)
+		# TODO use text for caption (with full recursion)
+		# can be done using "figure" directive
 
-			elif element.tag == 'link':
-				assert 'href' in element.attrib, \
-					'BUG: link %s "%s"' % (element.attrib, element.text)
-				href = self.linker.link(element.attrib['href'])
-				text = element.text
-				output.append('`%s <%s>`_' % (text, href))
-
-			elif element.tag in ('sub', 'sup'):
-				if element.text:
-					tag = dumper_tags[element.tag]
-					output.append("%s`%s`\ " % (tag, element.text))
-
-			elif element.tag in ('mark', 'strike'):
-				if element.text: output.append(element.text)
-
-			elif element.tag in ('strong', 'emphasis'):
-				if element.text:
-					tag = dumper_tags[element.tag]
-					msg = tag + element.text + tag + ' '
-					if output: msg = ' ' + msg
-					output.append(msg)
-
-			elif element.tag == 'img':
-				src = self.linker.img(element.attrib['src'])
-				output.append('.. image:: %s' % src)
-
-			elif element.tag in dumper_tags:
-				if element.text:
-					tag = dumper_tags[element.tag]
-					output.append(' ' + tag + element.text + tag + ' ')
-			else:
-				assert False, 'Unknown node type: %s' % element
-
-			if element.tail:
-				output.append(element.tail)
+	dump_object_fallback = dump_pre

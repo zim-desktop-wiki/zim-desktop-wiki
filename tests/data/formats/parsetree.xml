@@ -48,9 +48,9 @@ and also <strike>strike through</strike>
 
 <p><img src="./foobar.png" />
 <img height="50" src="./foobar.png" />
-<img src="../my-image.png" width="600">Foo Bar</img>
+<img alt="Foo Bar" src="../my-image.png" width="600" />
 <img href="Foo" src="my-image.png" />
-<img href=":foo:bar" src="../my-image.png" width="600">Foo Bar</img>
+<img alt="Foo Bar" href=":foo:bar" src="../my-image.png" width="600" />
 </p>
 <p><img src="./equation001.png" type="equation" /> This equation has a source .tex file
 <img src="./equation002.png" type="equation" /> for this one it is missing
@@ -112,6 +112,20 @@ A line in English, should be left aligned.
 </p>
 <p>aaa
 </p>
+
+<h level="2">Some Objects</h>
+
+<object lang="python" linenumbers="true" type="code">def dump():
+	for i in range(1, 5):
+		print i
+</object>
+
+<object foo="bar" type="nonexistingobjecttype">Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+</object>
+
 <p>====
 This is not a header
 </p>

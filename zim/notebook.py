@@ -92,6 +92,7 @@ from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
 from zim.async import AsyncLock
+import zim.formats
 import zim.stores
 
 
@@ -1612,12 +1613,12 @@ class Notebook(Object):
 				yield child
 
 	@staticmethod
-	def _update_link_tag(tag, newhref):
+	def _update_link_tag(elt, newhref):
 		newhref = str(newhref)
-		haschildren = bool(list(tag.getchildren()))
-		if not haschildren and tag.text == tag.attrib['href']:
-			tag.text = newhref
-		tag.attrib['href'] = newhref
+		if elt.gettext() == elt.get('href'):
+			elt[:] = [newhref]
+		elt.set('href', newhref)
+		return elt
 
 	def _update_links_from(self, page, oldpath, parent, oldparent):
 		logger.debug('Updating links in %s (was %s)', page, oldpath)
@@ -1625,37 +1626,37 @@ class Notebook(Object):
 		if not tree:
 			return
 
-		for tag in tree.getiterator('link'):
-			try:
-				href = tag.attrib['href']
-				type = link_type(href)
-				if type == 'page':
-					hrefpath = self.resolve_path(href, source=page)
-					oldhrefpath = self.resolve_path(href, source=oldpath)
-					#~ print 'LINK', oldhrefpath, '->', hrefpath
-					if hrefpath != oldhrefpath:
-						if (hrefpath == page or hrefpath.ischild(page)) \
-						and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
-							#~ print '\t.. Ignore'
-							pass
-						else:
-							newhref = self.relative_link(page, oldhrefpath)
-							#~ print '\t->', newhref
-							self._update_link_tag(tag, newhref)
-					elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
-						# Special case where we e.g. link to our own children using
-						# a common parent between old and new path as an anchor for resolving
-						newhrefpath = parent
-						if hrefpath.ischild(oldparent):
-							newhrefpath = parent + hrefpath.relname(oldparent)
-						newhref = self.relative_link(page, newhrefpath)
-						#~ print '\t->', newhref
-						self._update_link_tag(tag, newhref)
-					else:
-						pass
-			except:
-				logger.exception('Error while updating link "%s"', href)
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
 
+			hrefpath = self.resolve_path(href, source=page)
+			oldhrefpath = self.resolve_path(href, source=oldpath)
+			#~ print 'LINK', oldhrefpath, '->', hrefpath
+			if hrefpath != oldhrefpath:
+				if (hrefpath == page or hrefpath.ischild(page)) \
+				and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
+					#~ print '\t.. Ignore'
+					raise zim.formats.VisitorSkip
+				else:
+					newhref = self.relative_link(page, oldhrefpath)
+					#~ print '\t->', newhref
+					return self._update_link_tag(elt, newhref)
+			elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
+				# Special case where we e.g. link to our own children using
+				# a common parent between old and new path as an anchor for resolving
+				newhrefpath = parent
+				if hrefpath.ischild(oldparent):
+					newhrefpath = parent + hrefpath.relname(oldparent)
+				newhref = self.relative_link(page, newhrefpath)
+				#~ print '\t->', newhref
+				return self._update_link_tag(elt, newhref)
+			else:
+				raise zim.formats.VisitorSkip
+
+		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 
 	def _update_links_in_page(self, page, oldpath, newpath):
@@ -1669,28 +1670,28 @@ class Notebook(Object):
 			logger.warn('Page turned out to be empty: %s', page)
 			return
 
-		for tag in tree.getiterator('link'):
-			try:
-				href = tag.attrib['href']
-				type = link_type(href)
-				if type == 'page':
-					hrefpath = self.resolve_path(href, source=page)
-					#~ print 'LINK', hrefpath
-					if hrefpath == oldpath:
-						newhrefpath = newpath
-						#~ print '\t==', oldpath, '->', newhrefpath
-					elif hrefpath.ischild(oldpath):
-						rel = hrefpath.relname(oldpath)
-						newhrefpath = newpath + rel
-						#~ print '\t>', oldpath, '->', newhrefpath
-					else:
-						continue
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
 
-					newhref = self.relative_link(page, newhrefpath)
-					self._update_link_tag(tag, newhref)
-			except:
-				logger.exception('Error while updating link "%s"', href)
+			hrefpath = self.resolve_path(href, source=page)
+			#~ print 'LINK', hrefpath
+			if hrefpath == oldpath:
+				newhrefpath = newpath
+				#~ print '\t==', oldpath, '->', newhrefpath
+			elif hrefpath.ischild(oldpath):
+				rel = hrefpath.relname(oldpath)
+				newhrefpath = newpath + rel
+				#~ print '\t>', oldpath, '->', newhrefpath
+			else:
+				raise zim.formats.VisitorSkip
 
+			newhref = self.relative_link(page, newhrefpath)
+			return self._update_link_tag(elt, newhref)
+
+		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 
 	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
@@ -1828,42 +1829,24 @@ class Notebook(Object):
 		logger.debug('Removing links in %s to %s', page, path)
 		tree = page.get_parsetree()
 		if not tree:
-			logger.warn('Page turned out to be empty: %s', page)
 			return
 
-		def walk_links(parent):
-			# Yields parent element, previous element and link element.
-			# we actually yield links in reverse order, so removal
-			# algorithm works for consecutive links as well.
-			children = parent.getchildren()
-			for i in range(len(children)-1, -1, -1):
-				if children[i].tag == 'link':
-					if i > 0: yield parent, children[i-1], children[i]
-					else: yield parent, None, children[i]
-				for items in walk_links(children[i]): # recurs
-					yield items
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
 
-		for parent, prev, element in walk_links(tree.getroot()):
-			try:
-				href = element.attrib['href']
-				type = link_type(href)
-				if type == 'page':
-					hrefpath = self.resolve_path(href, source=page)
-					#~ print 'LINK', hrefpath
-					if hrefpath == path \
-					or hrefpath.ischild(path):
-						# Remove the link
-						text = (element.text or '') + (element.tail or '')
-						if not prev is None:
-							prev.tail = (prev.tail or '') + text
-						else:
-							parent.text = (parent.text or '') + text
-						parent.remove(element)
-					else:
-						continue
-			except:
-				logger.exception('Error while removing link "%s"', href)
+			hrefpath = self.resolve_path(href, source=page)
+			#~ print 'LINK', hrefpath
+			if hrefpath == path \
+			or hrefpath.ischild(path):
+				# Replace the link by it's text
+				return zim.formats.DocumentFragment(*elt)
+			else:
+				raise zim.formats.VisitorSkip
 
+		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 
 	def resolve_file(self, filename, path=None):
@@ -2561,19 +2544,21 @@ class Page(Path):
 		  - C{href} is the link itself
 		  - C{attrib} is a dict with link properties
 		'''
+		# FIXME optimize with a ParseTree.get_links that does not
+		#       use Node
 		tree = self.get_parsetree()
 		if tree:
-			for tag in tree.getiterator('link'):
-				attrib = tag.attrib.copy()
-				href = attrib.pop('href')
+			for elt in tree.findall(zim.formats.LINK):
+				href = elt.attrib.pop('href')
 				type = link_type(href)
-				yield type, href, attrib
-			for tag in tree.getiterator('img'):
-				if 'href' in tag.attrib:
-					attrib = tag.attrib.copy()
-					href = attrib.pop('href')
-					type = link_type(href)
-					yield type, href, attrib
+				yield type, href, elt.attrib
+
+			for elt in tree.findall(zim.formats.IMAGE):
+				if not 'href' in elt.attrib:
+					continue
+				href = elt.attrib.pop('href')
+				type = link_type(href)
+				yield type, href, elt.attrib
 
 	def get_tags(self):
 		'''Generator for tags in the page content
@@ -2581,13 +2566,16 @@ class Page(Path):
 		@returns: yields an unordered list of unique 2-tuples
 		C{(name, attrib)} for tags in the parsetree.
 		'''
+		# FIXME optimize with a ParseTree.get_links that does not
+		#       use Node
 		tree = self.get_parsetree()
 		if tree:
-			tags = {}
-			for tag in tree.getiterator('tag'):
-				tags[tag.text.strip()] = tag.attrib.copy()
-			for tag, attrib in tags.iteritems():
-				yield tag, attrib
+			seen = set()
+			for elt in tree.findall(zim.formats.TAG):
+				name = elt.gettext()
+				if not name in seen:
+					seen.add(name)
+					yield name, elt.attrib
 
 	def heading_matches_pagename(self):
 		'''Returns whether the heading matches the page name.
@@ -2624,29 +2612,28 @@ class IndexPage(Page):
 
 	def _generate_parsetree(self):
 		import zim.formats
-		builder = zim.formats.TreeBuilder()
+		builder = zim.formats.ParseTreeBuilder()
 
 		def add_namespace(path):
 			pagelist = self.notebook.index.list_pages(path)
-			builder.start('ul')
+			builder.start(zim.formats.BULLETLIST)
 			for page in pagelist:
-				builder.start('li')
-				builder.start('link', {'type': 'page', 'href': page.name})
-				builder.data(page.basename)
-				builder.end('link')
-				builder.end('li')
+				builder.start(zim.formats.LISTITEM)
+				builder.append(zim.formats.LINK,
+					{'type': 'page', 'href': page.name},
+					page.basename)
+				builder.end(zim.formats.LISTITEM)
 				if page.haschildren and self.index_recurs:
 					add_namespace(page) # recurs
-			builder.end('ul')
+			builder.end(zim.formats.BULLETLIST)
 
-		builder.start('page')
-		builder.start('h', {'level':1})
-		builder.data('Index of %s' % self.name)
-		builder.end('h')
+		builder.start(zim.formats.FORMATTEDTEXT)
+		builder.append(zim.formats.HEADING, {'level':1},
+			'Index of %s\n' % self.name)
 		add_namespace(self)
-		builder.end('page')
+		builder.end(zim.formats.FORMATTEDTEXT)
 
-		tree = zim.formats.ParseTree(builder.close())
+		tree = builder.get_parsetree()
 		#~ print "!!!", tree.tostring()
 		return tree
 

@@ -38,18 +38,23 @@ FAST_TEST = False #: determines whether we skip slow tests or not
 # This list also determines the order in which tests will executed
 __all__ = [
 	'package', 'translations',
-	'utils', 'errors', 'signals', 'environ',
-	'fs', 'config', 'applications', 'async',
-	'parsing', 'formats', 'templates',
+	'utils', 'errors', 'signals', 'async',
+	'environ', 'fs',
+	'config', 'applications',
+	'parsing', 'formats', 'templates', 'objectmanager',
 	'stores', 'index', 'notebook', 'history',
 	'export', 'www', 'search',
 	'widgets', 'gui', 'pageview', 'clipboard',
 	'main', 'plugins',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
-	'quicknote', 'attachmentbrowser', 'insertsymbol',
+	'quicknote', 'attachmentbrowser', 'insertsymbol', 'cardsplugin',
 	'ipc'
 ]
+
+
+mydir = os.path.dirname(__file__)
+
 
 # when a test is missing from the list that should be detected
 for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
@@ -57,9 +62,11 @@ for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
 	if name != '__init__' and not name in __all__:
 		raise AssertionError, 'Test missing in __all__: %s' % name
 
+# get our own data dir
+DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
 
 # get our own tmpdir
-TMPDIR = os.path.abspath('./tests/tmp')
+TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# Wanted to use tempfile.get_tempdir here to put everything in
 	# e.g. /tmp/zim but since /tmp is often mounted as special file
 	# system this conflicts with thrash support. For writing in source
@@ -164,16 +171,12 @@ class TestCase(unittest.TestCase):
 	maxDiff = None
 
 	def assertEqual(self, first, second, msg=None):
-		## HACK to work around bug in unittest - it does not consider
+		## HACK to work around "feature" in unittest - it does not consider
 		## string and unicode to be of the same type and thus does not
-		## show diffs
-		## TODO file bug report for this
+		## show diffs if the textual content differs
 		if type(first) in (str, unicode) \
 		and type(second) in (str, unicode):
-			self.assertMultiLineEqual(second, first, msg)
-			## HACK switch arguments here, otherwise order of
-			## diff is wrong (assuming first is what we got and second
-			## is the reference)
+			self.assertMultiLineEqual(first, second, msg)
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
 

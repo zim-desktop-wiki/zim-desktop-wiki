@@ -369,9 +369,20 @@ Duss
 <page name="Parent:Daughter:SomeOne:Foo">For page.menu template variable test</page>
 <page name="Parent:Daughter:SomeOne:Bar">For page.menu template variable test</page>
 <page name="Parent:Child:Grandchild">For page.menu template variable test</page>
-
 <page name="Movers">Subpages will be moved</page>
 <page name="Movers:Stator">Non-mover</page>
 <page name="Movers:Stator:Mover">Move me</page>
+<page name="Books:H2G2">
+======= H2G2 ======
 
+{{{card: type=Book
+:Title: The Hitchikers Guide to the Galaxy
+:Author: ?
+:Publisher: THe Intergalactic publishing house
+:Year: 2042
+}}}
+
+====== Comment ======
+Please note the lettering on the front.
+</page>
 </pagelist>

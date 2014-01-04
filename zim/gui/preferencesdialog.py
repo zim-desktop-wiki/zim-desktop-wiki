@@ -27,11 +27,10 @@ class PreferencesDialog(Dialog):
 	registered using GtkInterface.register_preferences().
 	'''
 
-	def __init__(self, ui):
+	def __init__(self, ui, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
-
 		# saves a list of loaded plugins to be used later
 		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
 
@@ -39,7 +38,11 @@ class PreferencesDialog(Dialog):
 		self.forms = {}
 		for category, preferences in ui.preferences_register.items():
 			vbox = gtk.VBox()
-			gtknotebook.append_page(vbox, gtk.Label(_(category)))
+			index = gtknotebook.append_page(vbox, gtk.Label(_(category)))
+			# From GTK Doc: Note that due to historical reasons, GtkNotebook refuses
+			# to switch to a page unless the child widget is visible.
+			vbox.show()
+			if category == default_tab: gtknotebook.set_current_page(index)
 
 			fields = []
 			values = {}
@@ -70,8 +73,14 @@ class PreferencesDialog(Dialog):
 		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
 
 		# Plugins tab
-		gtknotebook.append_page(PluginsTab(self, self.ui.plugins), gtk.Label(_('Plugins')))
+		plugins_tab = PluginsTab(self, self.ui.plugins)
+		plugins_tab_index = gtknotebook.append_page(plugins_tab, gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
+		plugins_tab.show()
+		#~ print default_tab, index
+		if default_tab == "Plugins":
+			gtknotebook.set_current_page(plugins_tab_index)
+			if not select_plugin is None: plugins_tab.select_plugin(select_plugin)
 
 	def _add_font_selection(self, table):
 		# need to hardcode this, cannot register it as a preference
@@ -167,9 +176,9 @@ class PluginsTab(gtk.HBox):
 
 		#~ logger.debug('Plugins that are loaded: %s' % list(plugins))
 
-		treeview = PluginsTreeView(self.plugins)
-		treeview.connect('row-activated', self.do_row_activated)
-		swindow = ScrolledWindow(treeview, hpolicy=gtk.POLICY_NEVER)
+		self.treeview = PluginsTreeView(self.plugins)
+		self.treeview.connect('row-activated', self.do_row_activated)
+		swindow = ScrolledWindow(self.treeview, hpolicy=gtk.POLICY_NEVER)
 		self.pack_start(swindow, False)
 
 		vbox = gtk.VBox()
@@ -196,7 +205,7 @@ class PluginsTab(gtk.HBox):
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
 		hbox.pack_start(self.configure_button, False)
 
-		self.do_row_activated(treeview, (0,), 0)
+		self.do_row_activated(self.treeview, (0,), 0)
 
 	def do_row_activated(self, treeview, path, col):
 		key, active, activatable, name, klass = treeview.get_model()[path]
@@ -253,6 +262,16 @@ class PluginsTab(gtk.HBox):
 		plugin = self.plugins[self._current_plugin]
 		PluginConfigureDialog(self.dialog, plugin).run()
 
+	def select_plugin(self, name):
+		model = self.treeview.get_model()
+		def find(model, path, iter):
+			if model[iter][2] == name:
+				self.treeview.scroll_to_cell(path)
+				self.treeview.set_cursor(path)
+				self.do_row_activated(self.treeview, path, 0)
+				return True;
+			return False # keep the foreach going
+		model.foreach(find)
 
 class PluginsTreeModel(gtk.ListStore):
 

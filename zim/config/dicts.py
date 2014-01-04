@@ -75,6 +75,9 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 			OrderedDict.update(self, E, **F)
 		self.emit('changed')
 
+	def changed(self):
+		self.emit('changed')
+
 	def on_child_changed(self, v):
 		self.emit('changed')
 

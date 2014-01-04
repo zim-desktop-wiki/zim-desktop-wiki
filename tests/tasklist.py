@@ -35,6 +35,15 @@ class TestTaskList(tests.TestCase):
 			path = index_ext.get_path(task)
 			self.assertTrue(not path is None)
 
+	def testParsing(self):
+		klass = zim.plugins.get_plugin_class('tasklist')
+		plugin = klass()
+
+		notebook = tests.new_notebook()
+		plugin.extend(notebook.index)
+		index_ext = plugin.get_extension(IndexExtension)
+		self.assertIsNotNone(index_ext)
+
 		# Test correctnest of parsing
 		NO_DATE = '9999'
 
@@ -45,6 +54,7 @@ class TestTaskList(tests.TestCase):
 			parser = zim.formats.get_format('wiki').Parser()
 			tree = parser.parse(text)
 			origtree = tree.tostring()
+			#~ print 'TREE', origtree
 
 			tasks = index_ext._extract_tasks(tree)
 			self.assertEqual(tree.tostring(), origtree)
@@ -54,7 +64,11 @@ class TestTaskList(tests.TestCase):
 		def t(label, open=True, due=NO_DATE, prio=0, tags='', actionable=True):
 			# Generate a task tuple
 			# (open, actionable, prio, due, tags, description)
-			return [open, actionable, prio, due, unicode(tags) or '', unicode(label)]
+			if tags:
+				tags = set(unicode(tags).split(','))
+			else:
+				tags = set()
+			return [open, actionable, prio, due, tags, unicode(label)]
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync
@@ -186,7 +200,7 @@ TODO: @someday
 		]
 
 		plugin.preferences['nonactionable_tags'] = '@someday, @maybe'
-		plugin.emit('preferences-changed')
+		index_ext._set_preferences()
 		tasks = extract_tasks(text)
 		self.assertEqual(tasks, wanted)
 

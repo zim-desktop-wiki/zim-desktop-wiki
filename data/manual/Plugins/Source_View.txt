@@ -1,0 +1,23 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
+====== Source View ======
+
+This plugin allows inserting 'Code Blocks' in the page. These will be shown as emdedded widgets with syntax highlighting, line numbers etc.
+
+**Dependencies:** This plugin depends on the ''gtksourceview'' pakage. On Ubuntu this dependency can be satisfied by installing the ''python-gtksourceview2'' package.
+
+===== Options =====
+This plugin has the following options:
+
+If **Auto indenting** is enabled the widget will try to automatically set proper indenting while typing code.
+
+If **Smart Home key** is enabled the ''Home'' key will go to the start of the line taking into account indenting.
+
+If **Highlight current line** is enbabled the current line in the widget is highlighted.
+
+If **Show right margin** is enabled, there is a margin drawn on the right to guide maximum lenght of a line. Typically the margin is set at e.g. 72 or 80 characters.
+
+**Right margin position** gives the position of the right margin in characters.
+
+**Tab width** gives the width of a tab in spaces.
