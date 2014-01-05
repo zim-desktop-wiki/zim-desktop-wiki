@@ -62,10 +62,11 @@ class ConfigManager(object):
 			# "changed" signals on various objects
 
 	def _get_file(self, filename):
+		basepath = filename.replace('<profile>/', '')
 		if self.profile:
 			path = filename.replace('<profile>/', 'profiles/%s/' % self.profile)
 		else:
-			path = filename.replace('<profile>/', '')
+			path = basepath
 
 		if self._dir:
 			file = self._dir.file(path)
@@ -79,7 +80,7 @@ class ConfigManager(object):
 				defaults.extra.insert(0, self._dir.file(mypath))
 		else:
 			file = basedirs.XDG_CONFIG_HOME.file('zim/' + path)
-			defaults = XDGConfigFileIter(path)
+			defaults = XDGConfigFileIter(basepath)
 
 		## Backward compatibility for profiles
 		if self.profile \

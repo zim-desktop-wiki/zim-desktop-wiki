@@ -318,6 +318,7 @@ class SignalEmitter(object):
 	def _connect(self, order, signal, callback, userdata):
 		#if self._get_signal(signal) is None:
 		#	raise ValueError, 'No such signal: %s' % signal
+		assert not '_' in signal, 'Signal names use "-"'
 
 		if not hasattr(self, '_signal_handlers'):
 			self._signal_handlers = {}

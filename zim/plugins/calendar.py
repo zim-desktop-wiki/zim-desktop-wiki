@@ -187,9 +187,9 @@ class NotebookExtension(ObjectExtension):
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-		self.connectto(notebook, 'suggest_link')
+		self.connectto(notebook, 'suggest-link')
 
-	def on_suggest_link(self, source, text):
+	def on_suggest_link(self, notebook, source, text):
 		#~ if date_path_re.match(path.text):
 		#~ 	return Path(text)
 		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
@@ -223,8 +223,8 @@ class MainWindowExtension(WindowExtension):
 	@action(_('To_day'), accelerator='<Alt>D') # T: menu item
 	def go_page_today(self):
 		today = datetime.date.today()
-		path = self.path_from_date(today)
-		self.ui.open_page(path)
+		path = self.plugin.path_from_date(today)
+		self.window.ui.open_page(path) # XXX
 
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this

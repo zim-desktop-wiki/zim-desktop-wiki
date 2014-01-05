@@ -6008,6 +6008,10 @@ class InsertDateDialog(Dialog):
 			except:
 				logger.exception('Could not parse date: %s', line)
 
+		if len(model) == 0:
+			# file not found ?
+			model.append(("%c", "%c"))
+
 		if not lastused is None:
 			path = model.get_path(lastused)
 			self.view.get_selection().select_path(path)
