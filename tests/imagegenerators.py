@@ -10,26 +10,38 @@ import gtk
 
 from zim.fs import Dir
 
-from zim.plugins.base.imagegenerator import ImageGeneratorDialog
+from zim.plugins.base.imagegenerator import \
+	ImageGeneratorClass, ImageGeneratorDialog, MainWindowExtensionBase
 
 from zim.plugins.equationeditor import InsertEquationPlugin, EquationGenerator
 from zim.plugins.diagrameditor import InsertDiagramPlugin, DiagramGenerator
 from zim.plugins.gnu_r_ploteditor import InsertGNURPlotPlugin, GNURPlotGenerator
 from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin, GnuplotGenerator
-
 from zim.plugins.gnuplot_ploteditor import MainWindowExtension as GnuplotMainWindowExtension
+from zim.plugins.scoreeditor import InsertScorePlugin, ScoreGenerator
+from zim.plugins.ditaaeditor import InsertDitaaPlugin, DitaaGenerator
 
 
 @tests.slowTest
 class TestGenerator(tests.TestCase):
 
+	pluginklass = None
+	generatorklass = None
 	dialogklass = ImageGeneratorDialog
 
 	def _test_generator(self):
-		plugin = tests.MockObject()
+		plugin = self.pluginklass()
+
+		extensionklass = plugin.extension_classes['MainWindow']
+		self.assertTrue(issubclass(extensionklass, MainWindowExtensionBase))
+
+		dir = Dir(self.get_tmp_name())
+		extension = extensionklass(plugin, MockWindow(dir))
+
+		generator = extension.build_generator()
+		self.assertIsInstance(generator, ImageGeneratorClass)
 
 		# Check properties
-		generator = self.generatorklass(plugin)
 		self.assertIsNotNone(generator.object_type)
 		self.assertIsNotNone(generator.scriptname)
 		self.assertIsNotNone(generator.imagename)
@@ -51,13 +63,14 @@ class TestGenerator(tests.TestCase):
 			self.assertFalse(logfile.exists())
 
 		# Input NOK
-		generator = self.generatorklass(plugin)
-		imagefile, logfile = generator.generate_image(self.invalidinput)
-		self.assertIsNone(imagefile)
-		if generator.uses_log_file:
-			self.assertTrue(logfile.exists())
-		else:
-			self.assertIsNone(logfile)
+		if self.invalidinput is not None:
+			generator = self.generatorklass(plugin)
+			imagefile, logfile = generator.generate_image(self.invalidinput)
+			self.assertIsNone(imagefile)
+			if generator.uses_log_file:
+				self.assertTrue(logfile.exists())
+			else:
+				self.assertIsNone(logfile)
 
 		# Dialog OK
 		attachment_dir = Dir(self.create_tmp_dir())
@@ -66,14 +79,15 @@ class TestGenerator(tests.TestCase):
 		dialog.assert_response_ok()
 
 		# Dialog NOK
-		def ok_store(dialog):
-			# Click OK in the "Store Anyway" question dialog
-			dialog.do_response(gtk.RESPONSE_YES)
+		if self.invalidinput is not None:
+			def ok_store(dialog):
+				# Click OK in the "Store Anyway" question dialog
+				dialog.do_response(gtk.RESPONSE_YES)
 
-		with tests.DialogContext(ok_store):
-			dialog = self.dialogklass(MockUI(attachment_dir), '<title>', generator)
-			dialog.set_text(self.invalidinput)
-			dialog.assert_response_ok()
+			with tests.DialogContext(ok_store):
+				dialog = self.dialogklass(MockUI(attachment_dir), '<title>', generator)
+				dialog.set_text(self.invalidinput)
+				dialog.assert_response_ok()
 
 		# Check menu
 		#~ plugin = self.pluginklass(MockUI())
@@ -84,9 +98,10 @@ class TestGenerator(tests.TestCase):
 @tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestEquationEditor(TestGenerator):
 
-	def setUp(self):
-		self.generatorklass = EquationGenerator
-		self.validinput = r'''
+	pluginklass = InsertEquationPlugin
+	generatorklass = EquationGenerator
+
+	validinput = r'''
 c = \sqrt{ a^2 + b^2 }
 
 \int_{-\infty}^{\infty} \frac{1}{x} \, dx
@@ -97,7 +112,7 @@ x_{1,2}=\frac{-b\pm\sqrt{\color{Red}b^2-4ac}}{2a}
 
 \hat a  \bar b  \vec c  x'  \dot{x}  \ddot{x}
 '''
-		self.invalidinput = r'\int_{'
+	invalidinput = r'\int_{'
 
 	def runTest(self):
 		'Test Equation Editor plugin'
@@ -107,16 +122,17 @@ x_{1,2}=\frac{-b\pm\sqrt{\color{Red}b^2-4ac}}{2a}
 @tests.skipUnless(InsertDiagramPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestDiagramEditor(TestGenerator):
 
-	def setUp(self):
-		self.generatorklass = DiagramGenerator
-		self.validinput = r'''
+	pluginklass = InsertDiagramPlugin
+	generatorklass = DiagramGenerator
+
+	validinput = r'''
 digraph G {
 	foo -> bar
 	bar -> baz
 	baz -> foo
 }
 '''
-		self.invalidinput = r'sdf sdfsdf sdf'
+	invalidinput = r'sdf sdfsdf sdf'
 
 	def runTest(self):
 		'Test Diagram Editor plugin'
@@ -126,14 +142,15 @@ digraph G {
 @tests.skipUnless(InsertGNURPlotPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestGNURPlotEditor(TestGenerator):
 
-	def setUp(self):
-		self.generatorklass = GNURPlotGenerator
-		self.validinput = r'''
+	pluginklass = InsertGNURPlotPlugin
+	generatorklass = GNURPlotGenerator
+
+	validinput = r'''
 x = seq(-4,4,by=0.01)
 y = sin(x) + 1
 plot(x,y,type='l')
 '''
-		self.invalidinput = r'sdf sdfsdf sdf'
+	invalidinput = r'sdf sdfsdf sdf'
 
 	def runTest(self):
 		'Test GNU R Plot Editor plugin'
@@ -143,29 +160,65 @@ plot(x,y,type='l')
 @tests.skipUnless(InsertGnuplotPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestGnuplotEditor(TestGenerator):
 
-	def setUp(self):
-		attachment_dir = Dir(self.create_tmp_dir())
-		self.generatorklass = lambda p: GnuplotGenerator(p, attachment_dir)
-		self.validinput = r'plot sin(x), cos(x)'
-		self.invalidinput = r'sdf sdfsdf sdf'
+	pluginklass = InsertGnuplotPlugin
+	generatorklass = GnuplotGenerator
+
+	validinput = r'plot sin(x), cos(x)'
+	invalidinput = r'sdf sdfsdf sdf'
 
 	def testGenerator(self):
 		'Test Gnuplot Plot Editor plugin'
 		TestGenerator._test_generator(self)
 
-	def testExtensionClass(self):
-		'Test magic created MainWindowExtension inherits from our base class'
-		plugin = InsertGnuplotPlugin()
-		extensionclass = plugin.extension_classes['MainWindow']
-		self.assertTrue(issubclass(extensionclass, GnuplotMainWindowExtension))
 
-		plugin = tests.MockObject()
-		attachment_dir = Dir(self.create_tmp_dir())
-		mockwindow = MockWindow(attachment_dir)
+@tests.skipUnless(InsertScorePlugin.check_dependencies_ok(), 'Missing dependencies')
+class TestScoreEditor(TestGenerator):
 
-		extension = extensionclass(plugin, mockwindow)
-		generator = extension.build_generator()
-		self.assertEqual(generator.attachment_folder, attachment_dir)
+	pluginklass = InsertScorePlugin
+	generatorklass = ScoreGenerator
+
+	validinput = r'''
+\relative c {
+        \clef bass
+        \key d \major
+        \time 4/4
+
+        d4 a b fis
+        g4 d g a
+}
+'''
+	invalidinput = r'sdf sdfsdf sdf'
+
+	def runTest(self):
+		'Test Score Editor plugin'
+		TestGenerator._test_generator(self)
+
+
+
+@tests.skipUnless(InsertDitaaPlugin.check_dependencies_ok(), 'Missing dependencies')
+class TestDitaaEditor(TestGenerator):
+
+	pluginklass = InsertDitaaPlugin
+	generatorklass = DitaaGenerator
+
+	def setUp(self):
+		self.validinput = r'''
++--------+   +-------+    +-------+
+|        | --+ ditaa +--> |       |
+|  Text  |   +-------+    |diagram|
+|Document|   |!magic!|    |       |
+|     {d}|   |       |    |       |
++---+----+   +-------+    +-------+
+    :                         ^
+    |       Lots of work      |
+    +-------------------------+
+'''
+		self.invalidinput = None # ditaa seems to render anything ...
+
+	def runTest(self):
+		'Test Ditaa Editor plugin'
+		TestGenerator._test_generator(self)
+
 
 
 class MockWindow(tests.MockObject):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -381,6 +381,15 @@ class TestDialogs(tests.TestCase):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		dialog = TemplateEditorDialog(self.ui)
 		# TODO what to test here ??
+		dialog.assert_response_ok()
+
+	def testRecentChangesDialog(self):
+		from zim.gui.recentchangesdialog import RecentChangesDialog
+
+		self.clear_tmp_dir()
+		ui = setupGtkInterface(self)
+
+		dialog = RecentChangesDialog(ui)
 		dialog.assert_response_ok()
 
 	# Test for ExportDialog can be found in test/export.py

@@ -89,7 +89,6 @@ ui_actions = (
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
 	('open_document_folder', 'gtk-open', _('Open _Document Folder'), '', '', True), # T: Menu item
 	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file'), False), # T: Menu item
-	('show_clean_notebook', None, _('_Cleanup Attachments'), '', '', False), # T: Menu item
 	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
 	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
 	('reload_index', None, _('Update Index'), '', '', False), # T: Menu item
@@ -1797,11 +1796,6 @@ class GtkInterface(gobject.GObject):
 
 		file.copyto(dest)
 		return dest
-
-	def show_clean_notebook(self):
-		'''Menu action to show the L{CleanNotebookDialog}'''
-		from zim.gui.cleannotebookdialog import CleanNotebookDialog
-		CleanNotebookDialog(self).run()
 
 	def open_dir(self, dir):
 		'''Open a L{Dir} object and prompt to create it if it doesn't
