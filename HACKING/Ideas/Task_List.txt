@@ -60,7 +60,7 @@ inserted in a new task
   -> depends on commandline arguments for GTG
 
 Too merge the programs apply all of the above and run from a single
-process, or at least connect both processes with the same deamon.
+process, or at least connect both processes with the same daemon.
 
 For zim Task List plugin:
 The "create task" item would be real nice, this allows selecting a

@@ -38,7 +38,7 @@ emitted when it is likely the notebook list changed
 '''
 
 # NOTE: DO NOT move this module to zim.gui.ipc, doing so would result
-# in python loading zim.gui and thus gtk for each deamon instance.
+# in python loading zim.gui and thus gtk for each daemon instance.
 
 # Re-using multiprocessing infrastructure here, even though it
 # was not really intended for this. Main advantage is that it
@@ -321,7 +321,7 @@ def servermain():
 		dir = tempfile.gettempdir()
 		if not os.path.isdir(dir):
 			os.makedirs(dir)
-		err_stream = open(os.path.join(dir, "zim-deamon.log"), "w")
+		err_stream = open(os.path.join(dir, "zim-daemon.log"), "w")
 
 		# First try to dup handles for anyone who still has a reference
 		# if that fails, just set them
