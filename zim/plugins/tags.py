@@ -206,6 +206,7 @@ class DuplicatePageTreeStore(PageTreeStore):
 	'''
 
 	def select_page(self, path):
+		'''Since there may be duplicates of each page, highlight all of them'''
 		oldpath = self.selected_page
 		self.selected_page = path
 
@@ -787,6 +788,57 @@ class TagsPageTreeView(PageTreeView):
 		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
 		data = pack_urilist((link,))
 		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+
+	def select_page(self, path, vivificate=False):
+		'''Select a page in the treeview if the page is not already selected
+
+		@param path: a notebook L{Path} object for the page
+		@keyword vivificate: when C{True} the path is created
+		temporarily when it did not yet exist
+
+		@returns: a gtk TreePath (tuple of intergers) or C{None}
+		'''
+		#~ print '!! SELECT', path
+		model = self.get_model()
+		if model is None:
+			return None # index not yet initialized ...
+
+		# change selection only if necessary
+		selected_path = self.get_selected_path()
+		if path == selected_path:
+			_, iter = self.get_selection().get_selected()
+			treepath = model.get_path(iter)
+			logger.debug('Already selected: "%s"', treepath)
+		else:
+			treepath = model.get_treepath(path)
+			if treepath:
+				# path existed, now select it
+				self.select_treepath(treepath)
+			elif vivificate:
+				# path does not exist, but we can create it
+				path = model.index.touch(path)
+				treepath = model.get_treepath(path)
+				assert treepath, 'BUG: failed to touch placeholder'
+				self.select_treepath(treepath)
+			else:
+				# path does not exist and we are not going to create it
+				return None
+
+		rowreference = gtk.TreeRowReference(model, treepath)
+			# make reference before cleanup - path may change
+
+		if self._cleanup and self._cleanup.valid():
+			mytreepath = self._cleanup.get_path()
+			if mytreepath != treepath:
+				indexpath = model.get_indexpath( model.get_iter(mytreepath) )
+				#~ print '!! CLEANUP', indexpath
+				model.index.cleanup(indexpath)
+
+		self._cleanup = rowreference
+
+		model.select_page(path) # highlight in model
+
+		return treepath
 
 # Need to register classes defining gobject signals
 gobject.type_register(TagsPageTreeView)
