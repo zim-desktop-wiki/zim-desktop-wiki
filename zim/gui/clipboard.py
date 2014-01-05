@@ -12,7 +12,7 @@ straight forward API.
 import gtk
 import logging
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, FS
 from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
@@ -166,6 +166,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
 		pixbuf.save(file.path, format)
+		FS.emit('path-created', file) # notify version control
 
 		links = [file.uri]
 		return _link_tree(links, notebook, path)
