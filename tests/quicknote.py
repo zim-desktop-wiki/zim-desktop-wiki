@@ -19,6 +19,11 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard
 class TestQuickNotePlugin(tests.TestCase):
 
 	def testMain(self):
+		def main(*args):
+			cmd = QuickNotePluginCommand('quicknote')
+			cmd.parse_options(*args)
+			cmd.run()
+
 		def has_text(text):
 			# create the actual check function
 			def my_has_text(dialog):
@@ -34,6 +39,17 @@ class TestQuickNotePlugin(tests.TestCase):
 		with tests.DialogContext(has_text(text)):
 			main('text=' + text)
 
+		with tests.DialogContext(has_text(text)):
+			main('--text', text)
+
+		encoded = 'Zm9vIGJhciBiYXoKZHVzIDEyMwo='
+		with tests.DialogContext(has_text(text)):
+			main('--text', encoded, '--encoding', 'base64')
+
+		encoded = 'foo%20bar%20baz%0Adus%20123'
+		with tests.DialogContext(has_text(text)):
+			main('--text', encoded, '--encoding', 'url')
+
 		# Clipboard input
 		text = 'foo bar baz\ndus 123'
 		SelectionClipboard.clipboard.clear() # just to be sure
@@ -41,11 +57,25 @@ class TestQuickNotePlugin(tests.TestCase):
 		with tests.DialogContext(has_text(text)):
 			main('input=clipboard')
 
+		with tests.DialogContext(has_text(text)):
+			main('--input', 'clipboard')
+
 		text = 'foo bar baz\ndus 456'
 		SelectionClipboard.set_text(text)
 		with tests.DialogContext(has_text(text)):
 			main('input=clipboard')
 
+		with tests.DialogContext(has_text(text)):
+			main('--input', 'clipboard')
+
+		# Template options
+		cmd = QuickNotePluginCommand('quicknote')
+		cmd.parse_options('option:url=foo')
+		self.assertEqual(cmd.template_options, {'url': 'foo'})
+
+		cmd = QuickNotePluginCommand('quicknote')
+		cmd.parse_options('--option', 'url=foo')
+		self.assertEqual(cmd.template_options, {'url': 'foo'})
 
 	# TODO: other commandline args
 	# TODO: widget interaction - autcomplete etc.

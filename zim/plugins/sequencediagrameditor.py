@@ -23,7 +23,7 @@ class InsertSequenceDiagramPlugin(ImageGeneratorPlugin):
 This plugin provides a sequence diagram editor for zim based on seqdiag.
 It allows easy editing of sequence diagrams.
 '''), # T: plugin description
-		'help': ':Plugins:Sequence Diagram Editor',
+		'help': 'Plugins:Sequence Diagram Editor',
 		'author': 'Greg Warner',
 	}
 

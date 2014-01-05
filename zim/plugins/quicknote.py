@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2010-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 
@@ -8,6 +8,7 @@ import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass, WindowExtension, extends
+from zim.command import Command
 from zim.actions import action
 from zim.config import data_file, ConfigManager
 from zim.notebook import Notebook, PageNameError, NotebookInfo, \
@@ -29,92 +30,117 @@ usagehelp = '''\
 usage: zim --plugin quicknote [OPTIONS]
 
 Options:
-  notebook=URI         Select the notebook in the dialog
-  page=STRING          Fill in full page name
-  namespace=STRING     Fill in the namespace in the dialog
-  basename=STRING      Fill in the page name in the dialog
-  append=[true|false]  Set whether to append or create new page
-  text=TEXT            Provide the text directly
-  input=stdin          Provide the text on stdin
-  input=clipboard      Take the text from the clipboard
-  encoding=base64      Text is encoded in base64
-  encoding=url         Text is url encoded
-                       (In both cases expects UTF-8 after decoding)
-  attachments=FOLDER   Import all files in FOLDER as attachments,
-                       wiki input can refer these files relatively
-  option:url=STRING    Set template parameter
+  --help, -h             Print this help text and exit
+  --notebook URI         Select the notebook in the dialog
+  --page STRING          Fill in full page name
+  --namespace STRING     Fill in the namespace in the dialog
+  --basename STRING      Fill in the page name in the dialog
+  --append [true|false]  Set whether to append or create new page
+  --text TEXT            Provide the text directly
+  --input stdin          Provide the text on stdin
+  --input clipboard      Take the text from the clipboard
+  --encoding base64      Text is encoded in base64
+  --encoding url         Text is url encoded
+                         (In both cases expects UTF-8 after decoding)
+  --attachments FOLDER   Import all files in FOLDER as attachments,
+                         wiki input can refer these files relatively
+  --option url=STRING    Set template parameter
 '''
 
 
-def main(*args):
-	options = {}
-	template_options = {}
-	for arg in args:
-		if arg.startswith('option:'):
-			arg = arg[7:]
-			dict = template_options
-		else:
-			dict = options
+class QuickNotePluginCommand(Command):
 
-		if '=' in arg:
-			key, value = arg.split('=', 1)
-			dict[key] = value
-		else:
-			dict[arg] = True
-	#~ print 'OPTIONS:', options, template_options
-
-	if 'help' in options:
-		print usagehelp
-		return
-
-	if 'notebook' in options:
-		notebook, page = resolve_notebook(options['notebook'])
-	else:
-		notebook = None
-
-	if 'append' in options:
-		if options['append'].lower() == 'true':
-			options['append'] = True
-		else:
-			options['append'] = False
-
-	if 'input' in options:
-		if options['input'] == 'stdin':
-			import sys
-			text = sys.stdin.read()
-		elif options['input'] == 'clipboard':
-			text = \
-				SelectionClipboard.get_text() \
-				or Clipboard.get_text()
-	else:
-		text = options.get('text')
-
-	if text and options.get('encoding'):
-		if options['encoding'] == 'base64':
-			import base64
-			text = base64.b64decode(text)
-		elif options['encoding'] == 'url':
-			from zim.parsing import url_decode, URL_ENCODE_DATA
-			text = url_decode(text, mode=URL_ENCODE_DATA)
-		else:
-			raise AssertionError, 'Unknown encoding: %s' % options['encoding']
-
-	if text and not isinstance(text, unicode):
-		text = text.decode('utf-8')
-
-	icon = data_file('zim.png').path
-	gtk_window_set_default_icon()
-
-	dialog = QuickNoteDialog(None,
-		notebook=notebook,
-		namespace=options.get('namespace'),
-		basename=options.get('basename'),
-		append=options.get('append'),
-		text=text,
-		template_options=template_options,
-		attachments=options.get('attachments')
+	options = (
+		('help', 'h', 'Print this help text and exit'),
+		('notebook=', '', 'Select the notebook in the dialog'),
+		('page=', '', 'Fill in full page name'),
+		('namespace=', '', 'Fill in the namespace in the dialog'),
+		('basename=', '', 'Fill in the page name in the dialog'),
+		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
+		('text=', '', 'Provide the text directly'),
+		('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
+		('encoding=', '', 'Text encoding ("base64" or "url")'),
+		('attachments=', '', 'Import all files in FOLDER as attachments, wiki input can refer these files relatively'),
+		('option=', '', 'Set template parameter, e.g. "url=URL"'),
 	)
-	dialog.run()
+
+	def parse_options(self, *args):
+		self.opts['option'] = [] # allow list
+
+		if all(not a.startswith('-') for a in args):
+			# Backward compartibility for options not prefixed by "--"
+			# used "=" as separator for values
+			# template options came as "option:KEY=VALUE"
+			for arg in args:
+				if arg.startswith('option:'):
+					self.opts['option'].append(arg[7:])
+				elif arg == 'help':
+					self.opts['help'] = True
+				else:
+					key, value = arg.split('=', 1)
+					self.opts[key] = value
+		else:
+			Command.parse_options(self, *args)
+
+		self.template_options = {}
+		for arg in self.opts['option']:
+			key, value = arg.split('=', 1)
+			self.template_options[key] = value
+
+		if 'append' in self.opts:
+			self.opts['append'] = \
+				self.opts['append'].lower() == 'true'
+
+	def get_text(self):
+		if 'input' in self.opts:
+			if self.opts['input'] == 'stdin':
+				import sys
+				text = sys.stdin.read()
+			elif self.opts['input'] == 'clipboard':
+				text = \
+					SelectionClipboard.get_text() \
+					or Clipboard.get_text()
+			else:
+				raise AssertionError, 'Unknown input type: %s' % self.opts['input']
+		else:
+			text = self.opts.get('text')
+
+		if text and 'encoding' in self.opts:
+			if self.opts['encoding'] == 'base64':
+				import base64
+				text = base64.b64decode(text)
+			elif self.opts['encoding'] == 'url':
+				from zim.parsing import url_decode, URL_ENCODE_DATA
+				text = url_decode(text, mode=URL_ENCODE_DATA)
+			else:
+				raise AssertionError, 'Unknown encoding: %s' % self.opts['encoding']
+
+		if text and not isinstance(text, unicode):
+			text = text.decode('utf-8')
+
+		return text
+
+	def run(self):
+		if self.opts.get('help'):
+			print usagehelp # TODO handle this in Command base class
+		else:
+			gtk_window_set_default_icon()
+
+			if 'notebook' in self.opts:
+				notebook = resolve_notebook(self.opts['notebook'])
+			else:
+				notebook = None
+
+			dialog = QuickNoteDialog(None,
+				notebook=notebook,
+				namespace=self.opts.get('namespace'),
+				basename=self.opts.get('basename'),
+				append=self.opts.get('append'),
+				text=self.get_text(),
+				template_options=self.template_options,
+				attachments=self.opts.get('attachments')
+			)
+			dialog.run()
 
 
 class QuickNotePlugin(PluginClass):

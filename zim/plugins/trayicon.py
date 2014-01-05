@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gobject
 import gtk
@@ -9,6 +9,7 @@ import logging
 
 from zim.plugins import PluginClass, WindowExtension
 from zim.config import data_file, ConfigManager
+from zim.command import Command
 from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 from zim.gui.widgets import gtk_window_set_default_icon
@@ -21,21 +22,25 @@ except ImportError:
 	appindicator = None
 
 
-def main(*args):
-	start_server_if_not_running()
+class TrayIconPluginCommand(Command):
+	'''Class to handle "zim --plugin trayicon" '''
 
-	config = ConfigManager()
-	preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
-	preferences.setdefault('classic', False)
+	def run(self):
+		start_server_if_not_running()
 
-	#~ if appindicator and not preferences['classic']:
-		#~ obj = RemoteObject('zim.plugins.trayicon.AppIndicatorTrayIcon')
-	#~ else:
-	obj = RemoteObject('zim.plugins.trayicon.DaemonTrayIcon')
+		config = ConfigManager()
+		preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
+		preferences.setdefault('classic', False)
 
-	server = ServerProxy()
-	if not server.has_object(obj):
-		server.init_object(obj)
+		if appindicator and not preferences['classic']:
+			obj = RemoteObject('zim.plugins.trayicon.AppIndicatorTrayIcon')
+		else:
+			obj = RemoteObject('zim.plugins.trayicon.DaemonTrayIcon')
+
+		server = ServerProxy()
+		if not server.has_object(obj):
+			server.init_object(obj)
+
 
 
 class TrayIconPlugin(PluginClass):

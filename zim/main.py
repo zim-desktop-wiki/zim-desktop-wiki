@@ -14,6 +14,7 @@ import zim.errors
 import zim.config
 import zim.config.basedirs
 
+from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
 from zim.command import Command, UsageError, GetoptError
 from zim.notebook import Notebook, Path, \
@@ -361,34 +362,7 @@ def main(*argv):
 	@returns: exit code (if error handled, else just raises)
 	'''
 	argv = list(argv)
-
 	exe = argv.pop(0)
-
-	if argv and argv[0] == '--plugin':
-		# XXX - port to command objects as well
-		if '-D' in argv:
-			argv.remove('-D')
-			level = logging.DEBUG
-		elif '-V' in argv:
-			argv.remove('-V')
-			level = logging.INFO
-		else:
-			level = logging.WARN
-
-		root = logging.getLogger()
-		root.setLevel(level)
-
-		logger.info('This is zim %s', zim.__version__)
-
-		import zim.plugins
-		try:
-			pluginname = argv[1]
-		except IndexError:
-			raise UsageError, 'Missing plugin name'
-		module = zim.plugins.get_module('zim.plugins.' + pluginname)
-
-		module.main(*argv[2:])
-		return
 
 	obj = build_command(argv)
 	import zim.errors # !???
@@ -415,28 +389,37 @@ def build_command(argv):
 	'''
 	argv = list(argv)
 
-	if argv and argv[0].startswith('--') and argv[0][2:] in commands:
-		cmd = argv.pop(0)[2:]
-	elif argv and argv[0] == '-v':
+	if argv and argv[0] == '--plugin':
 		argv.pop(0)
-		cmd = 'version'
-	elif argv and argv[0] == '-h':
-		argv.pop(0)
-		cmd = 'help'
-	# elif --plugin
-	# TODO call a "build_command" in plugin module
-	#      allow plugins to define multiple commands
+		try:
+			cmd = argv.pop(0)
+		except IndexError:
+			raise UsageError, 'Missing plugin name'
+
+		try:
+			mod = get_module('zim.plugins.' + cmd)
+			klass = lookup_subclass(mod, Command)
+		except:
+			raise UsageError, 'Could not load commandline command for plugin "%s"' % cmd
 	else:
-		cmd = 'gui' # default
+		if argv and argv[0].startswith('--') and argv[0][2:] in commands:
+			cmd = argv.pop(0)[2:]
+			if cmd == 'server' and '--gui' in argv:
+				argv.remove('--gui')
+				cmd = 'servergui'
+		elif argv and argv[0] == '-v':
+			argv.pop(0)
+			cmd = 'version'
+		elif argv and argv[0] == '-h':
+			argv.pop(0)
+			cmd = 'help'
+		else:
+			cmd = 'gui' # default
 
-	if cmd == 'server' and '--gui' in argv:
-		argv.remove('--gui')
-		cmd = 'servergui'
+		klass = commands[cmd]
 
-	klass = commands[cmd]
 	obj = klass(cmd)
 	obj.parse_options(*argv)
-
 	return obj
 
 

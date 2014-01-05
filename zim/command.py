@@ -25,6 +25,8 @@ class Command(object):
 
 	options = () #: Define options by 3-tuple of long, short & description
 		# e.g. ("foo=", "f", "set parameter for foo")
+		# For options that can appear multiple times,
+		# assign a list "[]" in "self.opts" before parse_options is called
 
 	default_options	 = (
 		('verbose', 'V', 'Verbose output'),
@@ -65,6 +67,8 @@ class Command(object):
 			key = options_map.get(key, key)
 			if a == '':
 				self.opts[key] = True
+			elif key in self.opts and isinstance(self.opts[key], list):
+				self.opts[key].append(a)
 			else:
 				self.opts[key] = a
 
