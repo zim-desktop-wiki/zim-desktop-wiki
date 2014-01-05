@@ -2,6 +2,8 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
 import gobject
 import gtk
 
@@ -11,13 +13,13 @@ import logging
 
 from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
 from zim.actions import action
+from zim.signals import SignalHandler
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.templates import TemplateManager, TemplateFunction
-
 
 logger = logging.getLogger('zim.plugins.calendar')
 
@@ -301,12 +303,14 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		self.window.add_widget(self.widget, preferences['pane'])
 		self.widget.show_all()
 
+	@SignalHandler
 	def on_open_page(self, ui, page, path):
 		self.widget.set_page(path)
 
 	def on_date_activated(self, widget, date):
 		path = self.plugin.path_from_date(date)
-		self.opener.open_page(path)
+		with self.on_open_page.blocked():
+			self.opener.open_page(path)
 
 	def teardown(self):
 		self.window.remove(self.widget)
@@ -423,9 +427,14 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 
 	def set_page(self, page):
 		dates = daterange_from_path(page)
-		if dates and dates[0] != 'year':
-			# Calendar is per month, so do not switch view for year page
-			self.calendar.select_month(dates[1].month-1, dates[1].year)
+		if dates:
+			if dates[0] == 'year':
+				# Calendar is per month, so do not switch view for year page
+				pass
+			else:
+				self.calendar.select_date(dates[1])
+		else:
+			self.calendar.select_day(0)
 
 	def select_date(self, date):
 		self.calendar.select_date(date)
@@ -473,8 +482,10 @@ class CalendarDialog(Dialog):
 
 	def on_date_activated(self, widget, date):
 		path = self.plugin.path_from_date(date)
-		self.opener.open_page(path)
+		with self.on_open_page.blocked():
+			self.opener.open_page(path)
 
+	@SignalHandler
 	def on_open_page(self, ui, page, path):
 		self.calendar_widget.set_page(page)
 
