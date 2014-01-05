@@ -937,7 +937,11 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 	def _update(self, *a):
 		'''Update the cloud to show only tags that share a set of pages
 		with the selected tags.'''
-		selected = [b.indextag for b in self.get_children() if b.get_active()]
+		selected = [b.indextag for b in self.get_children()
+			if b.get_active() and
+			self.index.lookup_tag(b.indextag.name)]
+			# Need the lookup here in case the tag went missing in the
+			# mean time e.g. due to editing of the page
 		self._clear()
 
 		buffer = self.get_buffer()
