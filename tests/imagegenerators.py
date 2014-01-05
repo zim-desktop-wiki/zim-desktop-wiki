@@ -20,6 +20,7 @@ from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin, GnuplotGenerator
 from zim.plugins.gnuplot_ploteditor import MainWindowExtension as GnuplotMainWindowExtension
 from zim.plugins.scoreeditor import InsertScorePlugin, ScoreGenerator
 from zim.plugins.ditaaeditor import InsertDitaaPlugin, DitaaGenerator
+from zim.plugins.sequencediagrameditor import InsertSequenceDiagramPlugin, SequenceDiagramGenerator
 
 
 @tests.slowTest
@@ -218,6 +219,31 @@ class TestDitaaEditor(TestGenerator):
 	def runTest(self):
 		'Test Ditaa Editor plugin'
 		TestGenerator._test_generator(self)
+
+
+@tests.skipUnless(InsertSequenceDiagramPlugin.check_dependencies_ok(), 'Missing dependencies')
+class TestSequenceDiagramEditor(TestGenerator):
+
+	pluginklass = InsertSequenceDiagramPlugin
+	generatorklass = SequenceDiagramGenerator
+
+	def setUp(self):
+		self.validinput = r'''
+seqdiag {
+  browser  -> webserver [label = "GET /index.html"];
+  browser <-- webserver;
+  browser  -> webserver [label = "POST /blog/comment"];
+              webserver  -> database [label = "INSERT comment"];
+              webserver <-- database;
+  browser <-- webserver;
+}
+'''
+		self.invalidinput = 'sdfsdf sdfsdf'
+
+	def runTest(self):
+		'Test Sequence Diagram Editor plugin'
+		TestGenerator._test_generator(self)
+
 
 
 
