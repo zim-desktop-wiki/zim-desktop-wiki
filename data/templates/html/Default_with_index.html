@@ -63,7 +63,7 @@
 				[% IF page.has_backlinks -%]
 					<b>Backlinks:</b>
 					[%- FOREACH link = page.backlinks -%]
-						<a href='[% url(link) %]'>[% link.name %]</a></li>
+						<a href='[% url(link) %]'>[% link.name %]</a>
 					[%- END -%]
 				[%- ELSE -%]
 					<i>No backlinks to this page.</i>
