@@ -65,7 +65,14 @@ class DiagramGenerator(ImageGeneratorClass):
 		except ApplicationError:
 			return None, None # Sorry, no log
 		else:
-			return self.pngfile, None
+			if self.pngfile.exists():
+				return self.pngfile, None
+			else:
+				# When supplying a dot file with a syntax error, the dot command
+				# doesn't return an error code (so we don't raise
+				# ApplicationError), but we still don't have a png file to
+				# return, so return None.
+				return None, None
 
 	def cleanup(self):
 		self.dotfile.remove()
