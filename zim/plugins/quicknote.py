@@ -331,6 +331,9 @@ class BoundQuickNoteDialog(Dialog):
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
+		# HACK: change "[]" at start of line into "[ ]" so checkboxes get inserted correctly
+		text = re.sub(r'^(\s*)\[\](\s)', r'\1[ ]\2', text, flags=re.M)
+
 		ui = self._get_ui()
 		if ui is None:
 			return False
