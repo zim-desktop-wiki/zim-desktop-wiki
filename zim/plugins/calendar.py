@@ -296,6 +296,9 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		self.connectto(self.window.ui, 'open-page') # XXX
 
 	def on_preferences_changed(self, preferences):
+		if self.widget is None:
+			return
+
 		try:
 			self.window.remove(self.widget)
 		except ValueError:

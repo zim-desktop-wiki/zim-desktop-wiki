@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+
+from __future__ import with_statement
 
 import tests
+
+import warnings
 
 import zim.datetimetz as datetime
 
@@ -12,6 +16,14 @@ class TestDateTimeZ(tests.TestCase):
 
 	# FIXME would be better to test correctness of results
 	#       but first check functions do not give errors
+
+	def setUp(self):
+		with warnings.catch_warnings():
+			warnings.simplefilter("ignore")
+			try:
+				import babel
+			except ImportError:
+				pass
 
 	def runTest(self):
 		# now()

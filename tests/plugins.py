@@ -144,8 +144,6 @@ class TestPlugins(tests.TestCase):
 
 		self.assertTrue(len(manager) > 3)
 
-		# TODO test extending some objects
-
 		for i, name in enumerate(manager):
 			manager[name].preferences.emit('changed')
 				# Checking for exceptions and infinite recursion
@@ -167,6 +165,9 @@ class TestPlugins(tests.TestCase):
 		):
 			manager.extend(obj)
 
+		for i, name in enumerate(manager):
+			manager[name].preferences.emit('changed')
+				# Checking for exceptions and infinite recursion
 
 		for name in manager:
 			#~ print "REMOVE:", name

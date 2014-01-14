@@ -3012,7 +3012,11 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 	def present(self):
 		self.show_all()
-		gtk.Dialog.present(self)
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			gtk.Dialog.present(self)
 
 	def show(self):
 		self.show_all()

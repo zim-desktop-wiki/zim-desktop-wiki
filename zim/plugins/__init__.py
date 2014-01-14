@@ -603,7 +603,8 @@ class WindowExtension(ObjectExtension):
 			self.window.ui.uimanager.remove_ui(self._uimanager_id)
 			self._uimanager_id = None
 
-		if hasattr(self, 'actiongroup'):
+		if hasattr(self, 'actiongroup') \
+		and self.actiongroup is not None:
 			self.window.ui.uimanager.remove_action_group(self.actiongroup)
 
 

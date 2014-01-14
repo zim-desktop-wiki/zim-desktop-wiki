@@ -280,8 +280,9 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			end = find_heading(buffer, endtext)
 		else:
 			end = buffer.get_end_iter()
+
 		if start and end:
-			buffer.select_range(startiter, enditer)
+			buffer.select_range(start, end)
 
 	def on_populate_popup(self, treeview, menu):
 		model, paths = treeview.get_selection().get_selected_rows()
@@ -322,11 +323,14 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			for i in self._walk(model, iter):
 				p = model.get_path(i)
 				if not p in seen:
-					newlevel = len(p) - 1
+					if self.show_h1:
+						newlevel = len(p) - 1
+					else:
+						newlevel = len(p)
 					self._format(p, newlevel)
 				seen.add(p)
 
-		self.load_page(self.page)
+		self.load_page(self.pageview.page)
 		return True
 
 	def can_demote(self, paths):
@@ -361,11 +365,15 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			for i in self._walk(model, iter):
 				p = model.get_path(i)
 				if not p in seen:
-					newlevel = len(p) + 1
+					if self.show_h1:
+						newlevel = len(p) + 1
+					else:
+						newlevel = len(p) + 2
+
 					self._format(p, newlevel)
 				seen.add(p)
 
-		self.load_page(self.page)
+		self.load_page(self.pageview.page)
 		return True
 
 
@@ -376,7 +384,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		while child:
 			for i in self._walk(model, child):
 				yield i
-			child = model.iter_next(iter)
+			child = model.iter_next(child)
 
 	def _format(self, path, level):
 		assert level > 0 and level < 7

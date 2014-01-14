@@ -14,6 +14,12 @@ import xml.etree.cElementTree as etree
 import types
 import glob
 
+try:
+	import gtk
+except ImportError:
+	gtk = None
+
+
 if sys.version_info < (2, 7, 0):
 	try:
 		import unittest2 as unittest
@@ -169,6 +175,11 @@ class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
 
 	maxDiff = None
+
+	@classmethod
+	def tearDownClass(cls):
+		if gtk is not None:
+			gtk_process_events() # flush any pending events / warnings
 
 	def assertEqual(self, first, second, msg=None):
 		## HACK to work around "feature" in unittest - it does not consider
@@ -539,7 +550,7 @@ class MockObject(MockObjectBase):
 
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
-	import gtk
+	assert gtk is not None
 	while gtk.events_pending():
 		gtk.main_iteration(block=False)
 	return True # continue

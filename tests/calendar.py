@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+from __future__ import with_statement
 
 import tests
 
@@ -12,6 +14,12 @@ import zim.datetimetz
 import zim.plugins
 from zim.notebook import Path
 from zim.templates import get_template
+
+from zim.plugins.calendar import NotebookExtension, \
+	MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
+	CalendarDialog
+
+from tests.gui import setupGtkInterface
 
 
 class TestCalendarFunctions(tests.TestCase):
@@ -102,6 +110,65 @@ class TestCalendarFunctions(tests.TestCase):
 
 @tests.slowTest
 class TestCalendarPlugin(tests.TestCase):
+
+	def testMainWindowExtensions(self):
+		pluginklass = zim.plugins.get_plugin_class('calendar')
+		plugin = pluginklass()
+
+		notebook = tests.new_notebook(self.get_tmp_name())
+		ui = setupGtkInterface(self, notebook=notebook)
+
+		plugin.preferences['embedded'] = True
+		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
+		plugin.extend(ui.mainwindow)
+
+		ext = list(plugin.extensions)
+		self.assertEqual(len(ext), 1)
+		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
+
+		plugin.preferences.changed() # make sure no errors are triggered
+
+		ext[0].go_page_today()
+		self.assertTrue(ui.page.name.startswith('Journal:'))
+
+		plugin.preferences['embedded'] = False
+		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)
+		plugin.extend(ui.mainwindow) # plugin does not remember objects, manager does that
+
+		ext = list(plugin.extensions)
+		self.assertEqual(len(ext), 1)
+		self.assertIsInstance(ext[0], MainWindowExtensionDialog)
+
+		plugin.preferences.changed() # make sure no errors are triggered
+
+		def test_dialog(dialog):
+			self.assertIsInstance(dialog, CalendarDialog)
+			dialog.do_today('xxx')
+			ui.open_page(Path('foo'))
+
+		with tests.DialogContext(test_dialog):
+			ext[0].show_calendar()
+
+
+		plugin.preferences['embedded'] = True # switch back
+
+	def testNotebookExtension(self):
+		pluginklass = zim.plugins.get_plugin_class('calendar')
+		plugin = pluginklass()
+
+		notebook = tests.new_notebook(self.get_tmp_name())
+		plugin.extend(notebook)
+
+		ext = list(plugin.extensions)
+		self.assertEqual(len(ext), 1)
+		self.assertIsInstance(ext[0], NotebookExtension)
+
+		page = Path('Foo')
+		link = notebook.suggest_link(page, '2014-01-06')
+		self.assertEqual(link.name, 'Journal:2014:01:06')
+
+		link = notebook.suggest_link(page, 'foo')
+		self.assertIsNone(link)
 
 	def testNamespace(self):
 		pluginklass = zim.plugins.get_plugin_class('calendar')
