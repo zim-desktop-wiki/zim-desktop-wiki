@@ -2310,7 +2310,7 @@ class MainWindow(Window):
 		self.isfullscreen = False
 		self.ui = ui
 
-		self.preferences = preferences
+		self.preferences = preferences # XXX should be just prefernces dict - use "config" otherwise
 		self.preferences.connect('changed', self.do_preferences_changed)
 
 		ui.connect('open-page', self.on_open_page)
@@ -2730,18 +2730,10 @@ class MainWindow(Window):
 			- C{TOOLBAR_ICONS_ONLY}
 			- C{TOOLBAR_TEXT_ONLY}
 		'''
-		if not style:
-			# ignore, trust system default
-			# TODO: is there some way to reset to system default here ?
-			return
-		else:
-			assert style in ('icons_and_text', 'icons_only', 'text_only'), style
-			if not self.uistate['toolbar_style'] and style == 'icons_and_text':
-				# Exception since this is the default action that is active
-				# when we just follow system default
-				self.do_set_toolbar_style(style)
-			else:
-				self.actiongroup.get_action('set_toolbar_'+style).activate()
+		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
+		self.actiongroup.get_action('set_toolbar_'+style).activate()
+		self.do_set_toolbar_style(style)
+			# if no configuration set, active may not represent actual case - force activation
 
 	def do_set_toolbar_style(self, name):
 		if name.startswith('set_toolbar_'):
@@ -2758,7 +2750,7 @@ class MainWindow(Window):
 		else:
 			assert False, 'BUG: Unkown toolbar style: %s' % style
 
-		self.uistate['toolbar_style'] = style
+		self.preferences['GtkInterface']['toolbar_style'] = style
 
 	def set_toolbar_size(self, size):
 		'''Set the toolbar style
@@ -2767,18 +2759,10 @@ class MainWindow(Window):
 			- C{TOOLBAR_ICONS_SMALL}
 			- C{TOOLBAR_ICONS_TINY}
 		'''
-		if not size:
-			# ignore, trust system default
-			# TODO: is there some way to reset to system default here ?
-			return
-		else:
-			assert size in ('large', 'small', 'tiny'), size
-			if not self.uistate['toolbar_size'] and size == 'large':
-				# Exception since this is the default action that is active
-				# when we just follow system default
-				self.do_set_toolbar_size(size)
-			else:
-				self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
+		assert size in ('large', 'small', 'tiny'), size
+		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
+		self.do_set_toolbar_size(size)
+			# if no configuration set, active may not represent actual case - force activation
 
 	def do_set_toolbar_size(self, name):
 		if name.startswith('set_toolbar_icons_'):
@@ -2795,7 +2779,7 @@ class MainWindow(Window):
 		else:
 			assert False, 'BUG: Unkown toolbar size: %s' % size
 
-		self.uistate['toolbar_size'] = size
+		self.preferences['GtkInterface']['toolbar_size'] = size
 
 	def toggle_readonly(self, readonly=None):
 		'''Menu action to toggle the read-only state of the application
@@ -2857,15 +2841,23 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
 		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE, PATHBAR_TYPES)
-		self.uistate.setdefault('toolbar_style', None, check=basestring)
-		self.uistate.setdefault('toolbar_size', None, check=basestring)
+
+		# For these two "None" means system default, but we don't know what that default is :(
+		self.preferences['GtkInterface'].setdefault('toolbar_style', None,
+			(TOOLBAR_ICONS_ONLY, TOOLBAR_ICONS_AND_TEXT, TOOLBAR_TEXT_ONLY))
+		self.preferences['GtkInterface'].setdefault('toolbar_size', None,
+			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
+
 
 		self._set_widgets_visable()
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
 
-		self.set_toolbar_style(self.uistate['toolbar_style'])
-		self.set_toolbar_size(self.uistate['toolbar_size'])
+		if self.preferences['GtkInterface']['toolbar_style'] is not None:
+			self.set_toolbar_style(self.preferences['GtkInterface']['toolbar_style'])
+
+		if self.preferences['GtkInterface']['toolbar_size'] is not None:
+			self.set_toolbar_size(self.preferences['GtkInterface']['toolbar_size'])
 
 		self.toggle_fullscreen(show=self._set_fullscreen)
 

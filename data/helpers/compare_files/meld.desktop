@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Meld
+Exec=meld %F
+Terminal=false
+Type=Application
+Icon=meld
+MimeType=application/x-meld-comparison;
+StartupNotify=true
+Categories=GTK;Development;

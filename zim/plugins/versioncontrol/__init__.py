@@ -10,14 +10,15 @@ import gtk
 import os
 import logging
 
-from zim.fs import FS, File
+from zim.fs import FS, File, TmpFile
 from zim.plugins import PluginClass, extends, WindowExtension, ObjectExtension
 from zim.actions import action
 from zim.signals import ConnectorMixin
 from zim.errors import Error
 from zim.applications import Application
+from zim.gui.applications import DesktopEntryFile
 from zim.async import AsyncOperation
-from zim.config import value_is_coord
+from zim.config import value_is_coord, data_dirs
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
 	ScrolledWindow, ScrolledTextView, VPaned
@@ -813,6 +814,18 @@ class VCSApplicationBase(object):
 		raise NotImplementedError
 
 
+def get_side_by_side_app():
+	for dir in data_dirs('helpers/compare_files/'):
+		for name in dir.list(): # XXX need object list
+			file = dir.file(name)
+			if name.endswith('.desktop') and file.exists():
+				app = DesktopEntryFile(file)
+				if app.tryexec():
+					return app
+	else:
+		return None
+
+
 class VersionControlInitDialog(QuestionDialog):
 
 	def __init__(self):
@@ -892,6 +905,7 @@ class VersionsDialog(Dialog):
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
 		self.notebook = notebook
 		self.vcs = vcs
+		self._side_by_side_app = get_side_by_side_app()
 
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		self.uistate.setdefault('vpanepos', 300)
@@ -944,6 +958,13 @@ state. Or select multiple versions to see changes between those versions.
 		self.versionlist.load_versions(vcs.list_versions())
 		scrolled = ScrolledWindow(self.versionlist)
 		vbox.add(scrolled)
+
+		col = self.uistate.setdefault('sortcol', self.versionlist.REV_SORT_COL)
+		order = self.uistate.setdefault('sortorder', gtk.SORT_DESCENDING)
+		try:
+			self.versionlist.get_model().set_sort_column_id(col, order)
+		except:
+			logger.exception('Invalid sort column: %s %s', col, order)
 
 		# -----
 		vbox = gtk.VBox(spacing=5)
@@ -1008,11 +1029,11 @@ state. Or select multiple versions to see changes between those versions.
 			elif len(rows) == 1:
 				revert_button.set_sensitive(usepage)
 				diff_button.set_sensitive(True)
-				comp_button.set_sensitive(usepage)
+				comp_button.set_sensitive(bool(usepage and self._side_by_side_app))
 			else:
 				revert_button.set_sensitive(False)
 				diff_button.set_sensitive(True)
-				comp_button.set_sensitive(usepage)
+				comp_button.set_sensitive(bool(usepage and self._side_by_side_app))
 
 		def on_page_change(o):
 			pagesource = self._get_file()
@@ -1036,6 +1057,10 @@ state. Or select multiple versions to see changes between those versions.
 
 	def save_uistate(self):
 		self.uistate['vpanepos'] = self.vpaned.get_position()
+
+		col, order = self.versionlist.get_model().get_sort_column_id()
+		self.uistate['sortcol'] = col
+		self.uistate['sortorder'] = order
 
 	def _get_file(self):
 		if self.notebook_radio.get_active():
@@ -1089,7 +1114,26 @@ state. Or select multiple versions to see changes between those versions.
 			# T: dialog title
 
 	def show_side_by_side(self):
-		print 'TODO - need config for an application like meld'
+		file = self._get_file()
+		versions = self.versionlist.get_versions()
+		if not (file and versions):
+			raise AssertionError
+
+		files = map(lambda v: self._get_tmp_file(file, v), versions)
+		if len(files) == 1:
+			tmp = TmpFile(file.basename + '--CURRENT', persistent=True)
+				# need to be persistent, else it is cleaned up before application spawned
+			tmp.writelines(file.readlines())
+			files.insert(0, tmp)
+
+		self._side_by_side_app.spawn(files)
+
+	def _get_tmp_file(self, file, version):
+		text = self.vcs.get_version(file, version)
+		tmp = TmpFile(file.basename + '--REV%s' % version, persistent=True)
+			# need to be persistent, else it is cleaned up before application spawned
+		tmp.writelines(text)
+		return tmp
 
 
 class TextDialog(Dialog):
@@ -1097,6 +1141,7 @@ class TextDialog(Dialog):
 	def __init__(self, ui, title, lines):
 		Dialog.__init__(self, ui, title, buttons=gtk.BUTTONS_CLOSE)
 		self.set_default_size(600, 300)
+		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		window, textview = ScrolledTextView(''.join(lines), monospace=True)
 		self.vbox.add(window)
 

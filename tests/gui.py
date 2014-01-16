@@ -497,7 +497,7 @@ class TestGtkInterface(tests.TestCase):
 			zim.gui.TOOLBAR_TEXT_ONLY,
 		):
 			window.set_toolbar_style(style)
-			self.assertEqual(window.uistate['toolbar_style'], style)
+			self.assertEqual(window.preferences['GtkInterface']['toolbar_style'], style)
 
 		# note: no default style here - system default unknown
 		for size in (
@@ -506,7 +506,7 @@ class TestGtkInterface(tests.TestCase):
 			zim.gui.TOOLBAR_ICONS_TINY,
 		):
 			window.set_toolbar_size(size)
-			self.assertEqual(window.uistate['toolbar_size'], size)
+			self.assertEqual(window.preferences['GtkInterface']['toolbar_size'], size)
 
 		# FIXME: test fails because "readonly" not active because notebook was already readonly, so action never activatable
 		#~ self.assertTrue(ui.readonly)

@@ -17,7 +17,7 @@ import logging
 from zim.index import IndexPath
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
-	populate_popup_add_separator, \
+	populate_popup_add_separator, encode_markup_text, \
 	ErrorDialog
 from zim.gui.clipboard import \
 	Clipboard, \
@@ -36,6 +36,7 @@ STYLE_COL = 3 #: Column to specify style (based on empty or not)
 FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
 WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
 N_CHILD_COL = 6 #: Column with the number of child pages
+TIP_COL = 7 #: Column with the name to be used in the tooltip
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -132,6 +133,7 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		gobject.TYPE_STRING, # FGCOLOR_COL
 		int, # WEIGHT_COL
 		gobject.TYPE_STRING, # N_CHILD_COL
+		gobject.TYPE_STRING, # TIP_COL
 	)
 
 
@@ -229,6 +231,8 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		path = iter.indexpath
 		if column == NAME_COL:
 			return path.basename
+		elif column == TIP_COL:
+			return encode_markup_text(path.basename)
 		elif column == PATH_COL:
 			return path
 		elif column == EMPTY_COL:
@@ -488,7 +492,7 @@ class PageTreeView(BrowserTreeView):
 		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
 		if gtk.gtk_version >= (2, 12, 0):
-			self.set_tooltip_column(NAME_COL)
+			self.set_tooltip_column(TIP_COL)
 
 		self.set_headers_visible(False)
 

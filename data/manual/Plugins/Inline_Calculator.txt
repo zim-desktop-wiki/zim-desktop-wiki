@@ -41,6 +41,7 @@ ord
 chr
 hex
 oct
+int
 '''
 
 From math and cmath modules in standard python library:

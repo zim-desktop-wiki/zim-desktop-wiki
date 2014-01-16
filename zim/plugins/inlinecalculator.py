@@ -139,6 +139,7 @@ GLOBALS = {
 	'chr': unichr,
 	'hex': hex,
 	'oct': oct,
+	'int': int,
 	# direct imports
 	'e': math.e,
 	'pi': math.pi,

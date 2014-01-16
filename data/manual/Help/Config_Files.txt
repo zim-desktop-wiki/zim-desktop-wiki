@@ -27,9 +27,9 @@ On Windows the default paths are:
 
 '''
 XDG_CONFIG_HOME = APPDATA/zim/config/
-XDG_DATA_HOME   = 
+XDG_DATA_HOME   = APPDATA/zim/data/
 '''
-''APPDATA/zim/data/''
+
 
 Where ''APPDATA'' is the default Windows path to store application data, typically a path like "''USERPROFILE\Application Data''".
 
