@@ -15,9 +15,18 @@ from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
 
-# FIXME move tests for opening default notebook to main.py
-#~ from zim import _get_default_or_only_notebook
-	# private, but want to check it anyway
+
+class TestNotebookInfo(tests.TestCase):
+
+	def runTest(self):
+		for location, uri in (
+			(File('file:///foo/bar'), 'file:///foo/bar'),
+			('file:///foo/bar', 'file:///foo/bar'),
+			('zim+file:///foo?bar', 'zim+file:///foo?bar'),
+				# specifically ensure the "?" does not get url encoded
+		):
+			info = NotebookInfo(location)
+			self.assertEqual(info.uri, uri)
 
 
 @tests.slowTest

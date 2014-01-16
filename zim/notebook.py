@@ -136,10 +136,16 @@ class NotebookInfo(object):
 		@param a: any additional arguments will be discarded
 		'''
 		# **a is added to be future proof of unknown values in the cache
-		f = File(uri)
-		self.uri = f.uri
-		self.user_path = f.user_path # set to None when uri is not a file uri
-		self.name = name or f.basename
+		if isinstance(uri, basestring) \
+		and is_url_re.match(uri) and not uri.startswith('file://'):
+			self.uri = uri
+			self.user_path = None
+			self.name = name
+		else:
+			f = File(uri)
+			self.uri = f.uri
+			self.user_path = f.user_path # set to None when uri is not a file uri
+			self.name = name or f.basename
 		self.icon_path = icon
 		self.icon = File(icon).uri
 		self.mtime = mtime
@@ -518,13 +524,12 @@ def build_notebook(location, notebookclass=None):
 	page = None
 
 	# Decipher zim+file:// uris
-	#~ if uri.startswith('zim+'):
-		#~ uri = uri[4:]
-		#~ assert uri.startswith('file://')
-		#~ if '?' in uri:
-			#~ uri, page = uri.split('?', 1)
-			#~ page = url_decode(page)
-			#~ page = Path(page)
+	if uri.startswith('zim+file://'):
+		uri = uri[4:]
+		if '?' in uri:
+			uri, page = uri.split('?', 1)
+			page = url_decode(page)
+			page = Path(page)
 
 	# Automount if needed
 	filepath = FilePath(uri)
@@ -617,7 +622,6 @@ def interwiki_link(link):
 	assert isinstance(link, basestring) and '?' in link
 	key, page = link.split('?', 1)
 	lkey = key.lower()
- 	url = None
 
 	# First check known notebooks
 	list = get_notebook_list()
@@ -626,7 +630,8 @@ def interwiki_link(link):
 		url = 'zim+' + info.uri + '?{NAME}'
 
 	# Then search all "urls.list" in config and data dirs
-	if not url:
+	else:
+		url = None
 		files = XDGConfigFileIter('urls.list') # FIXME, shouldn't this be passed in ?
 		for file in files:
 			for line in file.readlines():
@@ -639,17 +644,17 @@ def interwiki_link(link):
 				if mykey.lower() == lkey:
 					url = myurl.strip()
 					break
-			else:
-				url = None
+
+			if url is not None:
+				break
 
 	# Format URL
-	if url and is_url_re.match(url):
+	if url:
 		if not ('{NAME}' in url or '{URL}' in url):
 			url += '{URL}'
 
 		url = url.replace('{NAME}', page)
 		url = url.replace('{URL}', url_encode(page))
-
 		return url
 	else:
 		return None

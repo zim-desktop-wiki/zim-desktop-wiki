@@ -1181,7 +1181,10 @@ class GtkInterface(gobject.GObject):
 				notebook = zim.ipc.ServerProxy().get_notebook(notebook)
 				notebook.present(page=pagename)
 			else:
-				get_zim_application('--gui', notebook).spawn()
+				if hasattr(notebook, 'uri'):
+					get_zim_application('--gui', notebook.uri).spawn()
+				else:
+					get_zim_application('--gui', notebook).spawn()
 
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for

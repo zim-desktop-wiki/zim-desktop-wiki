@@ -248,7 +248,7 @@ class FileStorePage(Page):
 		if not isinstance(other, FileStorePage):
 			return False
 
-		if self == other: 
+		if self == other:
 			# If object equal by definition they are the equal
 			return True
 
@@ -260,12 +260,12 @@ class FileStorePage(Page):
 		ok = False
 		if self.source and self.source.exists():
 			ok = (
-				other.source 
+				other.source
 				and self.source.isequal(other.source)
 			)
 			if not ok:
 				return False
-			
+
 
 		if self.folder and self.folder.exists():
 			ok = (
@@ -274,7 +274,7 @@ class FileStorePage(Page):
 			)
 
 		return ok
-		
+
 	def _source_hascontent(self):
 		return self.source.exists()
 
