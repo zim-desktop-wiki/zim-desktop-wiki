@@ -756,6 +756,15 @@ class TextBuffer(gtk.TextBuffer):
 			if root.text:
 				self.insert_at_cursor(root.text)
 			self._insert_element_children(root, raw=raw)
+
+			# Fix partial tree inserts
+			startiter = self.get_iter_at_offset(startoffset)
+			if not startiter.starts_line():
+				self._do_lines_merged(startiter)
+
+			enditer = self.get_iter_at_mark(self.get_insert())
+			if not enditer.ends_line():
+				self._do_lines_merged(enditer)
 		except:
 			# Try to recover buffer state before raising
 			self.update_editmode()
