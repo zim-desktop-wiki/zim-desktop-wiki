@@ -33,7 +33,7 @@ else: #pragma: no cover
 
 
 from zim.signals import SignalEmitter, ConnectorMixin
-from zim.utils import OrderedDict
+from zim.utils import OrderedDict, FunctionThread
 from zim.fs import File, FileNotFoundError
 from zim.errors import Error
 
@@ -769,12 +769,15 @@ class INIConfigFile(SectionedConfigDict):
 
 	def write_async(self):
 		'''Write data asynchronously and set C{modified} to C{False}
-		@returns: an L{AsyncOperation} object
+		@returns: an L{FunctionThread} object
 		'''
-		operation = self.file.writelines_async(self.dump())
-		# TODO do we need async error handling here ?
+		func = FunctionThread(
+			self.file,
+			self.file.writelines,
+			self.dump())
+		func.start()
 		self.set_modified(False)
-		return operation
+		return func
 
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.

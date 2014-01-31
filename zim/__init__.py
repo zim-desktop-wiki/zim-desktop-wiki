@@ -79,9 +79,6 @@ found in L{zim.fs}. For all functionality related to config files
 see L{zim.config}. For executing external applications see
 L{zim.applications} or L{zim.gui.applications}.
 
-For asynchronous actions see L{zim.async}.
-
-
 
 @newfield signal: Signal, Signals
 @newfield emits: Emits, Emits

@@ -71,3 +71,62 @@ class TestOrderedDict(tests.TestCase):
 		self.assertEqual(mydict.items(), items)
 		self.assertEqual(list(mydict), [i[0] for i in items])
 		self.assertEqual(mydict.keys(), [i[0] for i in items])
+
+
+import threading
+
+class TestFunctionThread(tests.TestCase):
+
+	def runTest(self):
+
+		def foo(*args):
+			return 'FOO: ' + ', '.join(args)
+
+		# Function OK, no lock
+		func = FunctionThread(foo, ('a', 'b', 'c'))
+		self.assertFalse(func.done)
+		func.start()
+
+		func.join()
+		self.assertTrue(func.done)
+		self.assertFalse(func.error)
+		self.assertEqual(func.result, 'FOO: a, b, c')
+
+		# Function OK, with lock
+		lock = threading.Lock()
+
+		func = FunctionThread(foo, ('a', 'b', 'c'), lock=lock)
+		self.assertFalse(func.done)
+		func.start()
+
+		lock.acquire()
+		self.assertTrue(func.done)
+		self.assertFalse(func.error)
+		self.assertEqual(func.result, 'FOO: a, b, c')
+
+		###
+
+		def error(*args):
+			raise AssertionError, 'FOO'
+
+		# Function raises, no lock
+		func = FunctionThread(error, ('a', 'b', 'c'))
+		self.assertFalse(func.done)
+		func.start()
+
+		func.join()
+		self.assertTrue(func.done)
+		self.assertTrue(func.error)
+		self.assertEqual(func.exc_info[0], AssertionError)
+
+		# Function raises, with lock
+		#~ lock = threading.Lock()
+
+		#~ func = FunctionThread(error, ('a', 'b', 'c'))
+		#~ self.assertFalse(func.done)
+		#~ func.start()
+
+		#~ lock.acquire()
+		#~ self.assertTrue(func.done)
+		#~ self.assertTrue(func.error)
+		#~ self.assertEqual(func.exc_info[0], AssertionError)

@@ -709,15 +709,6 @@ class TaskListDialog(Dialog):
 			# now it is at least on idle
 		self.connectto(index_ext, 'tasklist-changed', callback)
 
-		# Async solution fall because sqlite not multi-threading
-		# (see also todo item for async in DelayedSignal class)
-
-		#~ def async_call(o):
-			#~ from zim.async import AsyncOperation
-			#~ op = AsyncOperation(on_tasklist_changed, args=(o,))
-			#~ op.start()
-		#~ self.connectto(plugin, 'tasklist-changed', async_call)
-
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
 		self.uistate['only_show_act'] = self.act_toggle.get_active()

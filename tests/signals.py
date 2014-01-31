@@ -7,6 +7,8 @@ from __future__ import with_statement
 
 import tests
 
+import time
+
 from zim.signals import *
 
 
@@ -62,3 +64,24 @@ class ClassWithHandler(object):
 	@SignalHandler
 	def add_one(self):
 		self.count += 1
+
+
+
+
+@tests.slowTest
+class TestDelayedCallback(tests.TestCase):
+
+	def runTest(self):
+		counter = tests.Counter()
+
+		callback = DelayedCallback(500, lambda o: counter())
+		for i in range(3):
+			callback('foo')
+
+		for i in range(10):
+			time.sleep(1)
+			tests.gtk_process_events()
+			if callback.timer_id is None:
+				break
+
+		self.assertEqual(counter.count, 1)

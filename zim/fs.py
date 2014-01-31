@@ -122,10 +122,11 @@ import shutil
 import errno
 import codecs
 import logging
+import threading
+
 
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode
-from zim.async import AsyncOperation, AsyncLock
 from zim.signals import SignalEmitter, SIGNAL_AFTER
 
 
@@ -487,12 +488,12 @@ class FSSingletonClass(SignalEmitter):
 	}
 
 	def __init__(self):
-		self._lock = AsyncLock()
+		self._lock = threading.Lock()
 
 	def get_async_lock(self, path):
-		'''Get an L{AsyncLock} for filesytem operations on a path
+		'''Get an C{threading.Lock} for filesytem operations on a path
 		@param path: a L{FilePath} object
-		@returns: an L{AsyncLock} object
+		@returns: an C{threading.Lock} object
 		'''
 		# FUTURE: we may actually use path to allow parallel async
 		# operations for files & folders that do not belong to the
@@ -1306,12 +1307,6 @@ class UnixFile(FilePath):
 	check only works when using L{read()}, L{readlines()}, L{write()}
 	or L{writelines()}, but not when calling L{open()} directly.
 	Also this logic is not atomic, so your mileage may vary.
-
-	The C{*_async()} functions can be used to read or write files in a
-	separate thread. See L{zim.async} for details. An L{AsyncLock} is
-	used to ensure reading and writing is done sequentially between
-	several threads. However, this does not work when using L{open()}
-	directly.
 	'''
 
 	# For atomic write we first write a tmp file which has the extension
@@ -1496,39 +1491,20 @@ class UnixFile(FilePath):
 		@raises FileNotFoundError: when the file does not exist.
 		'''
 		with self._lock:
-			text = self._read()
+			try:
+				file = self.open('r')
+				content = file.read()
+				self._checkoverwrite(content)
+				return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
+					# Strip unicode byte order mark
+					# Internally we use Unix line ends - so strip out \r
+					# And remove any NULL byte since they screw up parsing
+			except IOError:
+				raise FileNotFoundError(self)
+			except UnicodeDecodeError, error:
+				raise FileUnicodeError(self, error)
+
 		return text
-
-	def read_async(self, callback=None, data=None):
-		'''Get the file contents asynchronously
-		Like L{read()} but as asynchronous operation. The result will
-		be stored in the async operation as C{operation.result}.
-
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		'''
-		if not self.exists():
-			raise FileNotFoundError(self)
-		operation = AsyncOperation(
-			self._read, lock=self._lock, callback=callback, data=data)
-		operation.start()
-		return operation
-
-	def _read(self):
-		try:
-			file = self.open('r')
-			content = file.read()
-			self._checkoverwrite(content)
-			return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
-				# Strip unicode byte order mark
-				# Internally we use Unix line ends - so strip out \r
-				# And remove any NULL byte since they screw up parsing
-		except IOError:
-			raise FileNotFoundError(self)
-		except UnicodeDecodeError, error:
-			raise FileUnicodeError(self, error)
 
 	def readlines(self):
 		'''Get the file contents as a list of lines. Takes case of
@@ -1538,39 +1514,20 @@ class UnixFile(FilePath):
 		@raises FileNotFoundError: when the file does not exist.
 		'''
 		with self._lock:
-			lines = self._readlines()
+			try:
+				file = self.open('r')
+				lines = file.readlines()
+				self._checkoverwrite(lines)
+				return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
+					# Strip unicode byte order mark
+					# Internally we use Unix line ends - so strip out \r
+					# And remove any NULL byte since they screw up parsing
+			except IOError:
+				raise FileNotFoundError(self)
+			except UnicodeDecodeError, error:
+				raise FileUnicodeError(self, error)
+
 		return lines
-
-	def readlines_async(self, callback=None, data=None):
-		'''Get the file contents asynchronously
-		Like L{readlines()} but as asynchronous operation. The result will
-		be stored in the async operation as C{operation.result}.
-
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		'''
-		if not self.exists():
-			raise FileNotFoundError(self)
-		operation = AsyncOperation(
-			self._readlines, lock=self._lock, callback=callback, data=data)
-		operation.start()
-		return operation
-
-	def _readlines(self):
-		try:
-			file = self.open('r')
-			lines = file.readlines()
-			self._checkoverwrite(lines)
-			return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
-				# Strip unicode byte order mark
-				# Internally we use Unix line ends - so strip out \r
-				# And remove any NULL byte since they screw up parsing
-		except IOError:
-			raise FileNotFoundError(self)
-		except UnicodeDecodeError, error:
-			raise FileUnicodeError(self, error)
 
 	def write(self, text):
 		'''Write file contents from string. This overwrites the current
@@ -1582,43 +1539,18 @@ class UnixFile(FilePath):
 		@emits: path-created if the file did not yet exist
 		'''
 		with self._lock:
-			self._write(text)
+			self._assertoverwrite()
+			self._isnew = not os.path.isfile(self.encodedpath)
+				# Put this check here because here we are sure to have a lock
+			endofline = self.get_endofline()
+			if endofline != '\n':
+				text = text.replace('\n', endofline)
+			file = self.open('w')
+			file.write(text)
+			file.close()
+			self._checkoverwrite(text)
+
 		self._check_isnew()
-
-	def write_async(self, text, callback=None, data=None):
-		'''Write file content from string asynchronously.
-		Like L{write()} but returns immediately without waiting for the
-		action to be completed.
-
-		@param text: new content as (unicode) string
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		@emits: path-created if the file did not yet exist, after the
-		action is completed
-		'''
-		#~ print '!! ASYNC WRITE'
-		def mycallback(result, error, *args):
-			if error is None: self._check_isnew()
-			if callback: callback(result, error, *args)
-
-		operation = AsyncOperation(
-			self._write, (text,), lock=self._lock, callback=mycallback, data=data)
-		operation.start()
-		return operation
-
-	def _write(self, text):
-		self._assertoverwrite()
-		self._isnew = not os.path.isfile(self.encodedpath)
-			# Put this check here because here we are sure to have a lock
-		endofline = self.get_endofline()
-		if endofline != '\n':
-			text = text.replace('\n', endofline)
-		file = self.open('w')
-		file.write(text)
-		file.close()
-		self._checkoverwrite(text)
 
 	def _check_isnew(self):
 		# Make sure the 'path-created' signal is emitted in the main
@@ -1636,43 +1568,18 @@ class UnixFile(FilePath):
 		@emits: path-created if the file did not yet exist
 		'''
 		with self._lock:
-			self._writelines(lines)
+			self._assertoverwrite()
+			self._isnew = not os.path.isfile(self.encodedpath)
+				# Put this check here because here we are sure to have a lock
+			endofline = self.get_endofline()
+			if endofline != '\n':
+				lines = [line.replace('\n', endofline) for line in lines]
+			file = self.open('w')
+			file.writelines(lines)
+			file.close()
+			self._checkoverwrite(lines)
+
 		self._check_isnew()
-
-	def writelines_async(self, lines, callback=None, data=None):
-		'''Write file content from a list of lines asynchronously.
-		Like L{writelines()} but returns immediately without waiting for
-		the action to be completed.
-
-		@param lines: new content as list of lines
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		@emits: path-created if the file did not yet exist, after the
-		action is completed
-		'''
-		#~ print '!! ASYNC WRITE'
-		def mycallback(result, error, *args):
-			if error is None: self._check_isnew()
-			if callback: callback(result, error, *args)
-
-		operation = AsyncOperation(
-			self._writelines, (lines,), lock=self._lock, callback=mycallback, data=data)
-		operation.start()
-		return operation
-
-	def _writelines(self, lines):
-		self._assertoverwrite()
-		self._isnew = not os.path.isfile(self.encodedpath)
-			# Put this check here because here we are sure to have a lock
-		endofline = self.get_endofline()
-		if endofline != '\n':
-			lines = [line.replace('\n', endofline) for line in lines]
-		file = self.open('w')
-		file.writelines(lines)
-		file.close()
-		self._checkoverwrite(lines)
 
 	def _checkoverwrite(self, content):
 		# Set properties needed by assertoverwrite for the in-memory object
@@ -1970,3 +1877,4 @@ class FileHandle(file):
 		file.close(self)
 		if not self.on_close is None:
 			self.on_close()
+

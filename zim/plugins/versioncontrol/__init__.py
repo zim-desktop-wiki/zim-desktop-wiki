@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
 from __future__ import with_statement
 
+import gobject
 import gtk
 
 import os
@@ -17,12 +18,11 @@ from zim.signals import ConnectorMixin
 from zim.errors import Error
 from zim.applications import Application
 from zim.gui.applications import DesktopEntryFile
-from zim.async import AsyncOperation
 from zim.config import value_is_coord, data_dirs
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
 	ScrolledWindow, ScrolledTextView, VPaned
-from zim.utils import natural_sort_key
+from zim.utils import natural_sort_key, FunctionThread
 
 
 if os.environ.get('ZIM_TEST_RUNNING'):
@@ -123,16 +123,18 @@ class NotebookExtension(ObjectExtension):
 			self.vcs.disconnect_all()
 
 
-def async_commit_with_error(ui, vcs, msg, skip_no_changes=False):
-	'''Convenience method to wrap vcs.commit_async'''
-	def callback(ok, error, exc_info, data):
-		if error:
-			if isinstance(error, NoChangesError) and skip_no_changes:
-				logger.debug('No autosave version needed - no changes')
-			else:
-				logger.error('Error during async commit', exc_info=exc_info)
-				ErrorDialog(ui, error, exc_info).run()
-	vcs.commit_async(msg, callback=callback)
+def _monitor_thread(thread):
+	if thread.done:
+		if thread.error:
+			error = thread.exc_info[1]
+			logger.error('Error during async commit', exc_info=thread.exc_info)
+			ErrorDialog(None, error, thread.exc_info).run() # XXX None should be window
+		return False # stop signal
+	else:
+		return True # keep handler
+
+def monitor_thread(thread):
+	gobject.idle_add(_monitor_thread, thread)
 
 
 @extends('MainWindow')
@@ -160,30 +162,39 @@ class MainWindowExtension(WindowExtension):
 			gaction.set_sensitive(False)
 		else:
 			if self.plugin.preferences['autosave']:
-				self.autosave()
+				self.do_save_version_async()
 
 		def on_quit(o):
 			if self.plugin.preferences['autosave']:
-				self.autosave()
+				self.do_save_version()
 
 		self.window.ui.connect('quit', on_quit) # XXX
 
-	def autosave(self):
-		if not self.notebook_ext.vcs \
-		or not self.window.ui.save_page_if_modified(): # XXX
+	def do_save_version_async(self, msg=None):
+		if not self.notebook_ext.vcs:
 			return
 
-		logger.info('Automatically saving version')
-		with self.notebook_ext.notebook.lock:
-			async_commit_with_error(self.window, self.notebook_ext.vcs,
-				_('Automatically saved version from zim'),
-				skip_no_changes=True )
+		func = FunctionThread(self.do_save_version, (msg,))
+		func.start()
+		monitor_thread(func)
+
+	def do_save_version(self, msg=None):
+		if not self.notebook_ext.vcs:
+			return
+
+		if not msg:
+			msg = _('Automatically saved version from zim')
 				# T: default version comment for auto-saved versions
+
+		self.window.ui.assert_save_page_if_modified() # XXX
+		try:
+			self.notebook_ext.vcs.commit(msg)
+		except NoChangesError:
+			logger.debug('No autosave version needed - no changes')
 
 	@action(_('S_ave Version...'), 'gtk-save-as', '<ctrl><shift>S', readonly=False) # T: menu item
 	def save_version(self):
-		if not self.window.ui.save_page_if_modified(): # XXX
-			return
+		self.window.ui.assert_save_page_if_modified() # XXX
 
 		if not self.notebook_ext.vcs:
 			vcs = VersionControlInitDialog().run()
@@ -196,12 +207,11 @@ class MainWindowExtension(WindowExtension):
 				gaction.set_sensitive(True)
 
 		with self.notebook_ext.notebook.lock:
-			SaveVersionDialog(self.window, self.notebook_ext.vcs).run()
+			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
 	@action(_('_Versions...')) # T: menu item
 	def show_versions(self):
-		if not self.window.ui.save_page_if_modified(): # XXX
-			return
+		self.window.ui.assert_save_page_if_modified() # XXX
 
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
@@ -408,9 +418,7 @@ class VCSBackend(ConnectorMixin):
 		@returns: nothing
 		"""
 		if path.ischild(self.root) and not self._ignored(path):
-			def wrapper():
-				self.vcs.add(path)
-			AsyncOperation(wrapper, lock=self.lock).start()
+			FunctionThread(self.vcs.add, (path,), lock=self._lock).start()
 
 
 	def on_path_moved(self, fs, oldpath, newpath):
@@ -423,13 +431,11 @@ class VCSBackend(ConnectorMixin):
 		@returns: nothing
 		"""
 		if newpath.ischild(self.root) and not self._ignored(newpath):
-			def wrapper():
-				if oldpath.ischild(self.root):
-					# Parent of newpath needs to be versioned in order to make mv succeed
-					self.vcs.move(oldpath, newpath)
-				else:
-					self.vcs.add(newpath)
-			AsyncOperation(wrapper, lock=self.lock).start()
+			if oldpath.ischild(self.root):
+				# Parent of newpath needs to be versioned in order to make mv succeed
+				FunctionThread(self.vcs.move, (oldpath, newpath), lock=self._lock).start()
+			else:
+				FunctionThread(self.vcs.add, (newpath,), lock=self._lock).start()
 		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
 			self.on_path_deleted(self, fs, oldpath)
 
@@ -440,10 +446,7 @@ class VCSBackend(ConnectorMixin):
 		@param path: the L{UnixFile} object representing the path of the file or folder to delete
 		@returns: nothing
 		"""
-		def wrapper():
-			self.vcs.remove(path)
-		AsyncOperation(wrapper, lock=self.lock).start()
-
+		FunctionThread(self.vcs.remove, (path,), lock=self._lock).start()
 
 	@property
 	def modified(self):
@@ -499,14 +502,6 @@ class VCSBackend(ConnectorMixin):
 		else:
 			self.vcs.add()
 			self.vcs.commit(None, msg)
-
-	def commit_async(self, msg, callback=None, data=None):
-		# TODO in generic baseclass have this default to using
-		# commit() + the wrapper call the callback
-		#~ print '!! ASYNC COMMIT'
-		operation = AsyncOperation(self._commit, (msg,),
-			lock=self._lock, callback=callback, data=data)
-		operation.start()
 
 	def revert(self, version=None, file=None):
 		with self.lock:
@@ -857,9 +852,10 @@ class VersionControlInitDialog(QuestionDialog):
 
 class SaveVersionDialog(Dialog):
 
-	def __init__(self, ui, vcs):
+	def __init__(self, ui, window_ext, vcs):
 		Dialog.__init__(self, ui, _('Save Version'), # T: dialog title
 			button=(None, 'gtk-save'), help='Plugins:Version Control')
+		self.window_ext = window_ext
 		self.vcs = vcs
 
 		self.vbox.pack_start(
@@ -892,7 +888,7 @@ class SaveVersionDialog(Dialog):
 		start, end = buffer.get_bounds()
 		msg = buffer.get_text(start, end, False).strip()
 		if msg:
-			async_commit_with_error(self.ui, self.vcs, msg)
+			self.window_ext.commit_async(msg)
 			return True
 		else:
 			return False

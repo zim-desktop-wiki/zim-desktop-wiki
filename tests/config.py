@@ -646,18 +646,6 @@ class TestVirtualConfigBackend(tests.TestCase):
 		self.assertEqual(file.read(), 'bar\nbaz\n')
 		self.assertEqual(file.readlines(), ['bar\n', 'baz\n'])
 
-		file.write_async('foo\nbar\n')
-		file = dir.file('foo.conf') # test persistence
-		self.assertTrue(file.exists())
-		self.assertEqual(file.read(), 'foo\nbar\n')
-		self.assertEqual(file.readlines(), ['foo\n', 'bar\n'])
-
-		file.writelines_async(['bar\n', 'baz\n'])
-		file = dir.file('foo.conf') # test persistence
-		self.assertTrue(file.exists())
-		self.assertEqual(file.read(), 'bar\nbaz\n')
-		self.assertEqual(file.readlines(), ['bar\n', 'baz\n'])
-
 
 class TestXDGConfigDirsIter(tests.TestCase):
 

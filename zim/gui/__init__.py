@@ -19,12 +19,14 @@ import re
 import logging
 import gobject
 import gtk
+import threading
+
 
 from zim.main import get_zim_application
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
-from zim.signals import DelayedCallback
+from zim.signals import DelayedCallback, SignalHandler
 from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
@@ -266,34 +268,11 @@ class ApplicationLookupError(Error):
 	pass
 
 
-class RLock(object):
-	'''Re-entrant lock that keeps a stack count
+class PageHasUnSavedChangesError(Error):
+	'''Exception raised when page could not be saved'''
 
-	The lock will increase a counter each time L{increment()} is called
-	and decrease the counter each time L{decrement()} is called. When
-	the counter is non-zero the object will evaluate C{True}. This is
-	used to e.g. handle recursive calls to the same handler while
-	waiting for user input. Because of the counter the lock only is
-	freed when the outer most wrapper calls L{decrement()}.
-	'''
-
-	__slots__ = ('count',)
-
-	def __init__(self):
-		self.count = 0
-
-	def __nonzero__(self):
-		return self.count > 0
-
-	def increment(self):
-		'''Increase counter'''
-		self.count += 1
-
-	def decrement(self):
-		'''Decrease counter'''
-		if self.count == 0:
-			raise AssertionError, 'BUG: RLock count can not go below zero'
-		self.count -= 1
+	msg = _('Page has un-saved changes')
+		# T: Error description
 
 
 class WindowManager(object):
@@ -413,13 +392,11 @@ class GtkInterface(gobject.GObject):
 		self.page = None
 		self._path_context = None
 		self.history = None
-		self._autosave_lock = RLock()
-			# used to prevent autosave triggering while we are
-			# doing a (async) save, or when we have an error during
-			# saving.
 		self.readonly = False
 		self.hideonclose = False
 		self.url_handlers = {}
+
+		self._autosave_thread = None
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
@@ -510,9 +487,7 @@ class GtkInterface(gobject.GObject):
 				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
 
-		def autosave(o, p, *a):
-			# Here we explicitly do not save async
-			# and also explicitly no need for _autosave_lock
+		def save_page(o, p, *a):
 			page = self.mainwindow.pageview.get_page()
 			if p == page and page.modified:
 				self.save_page(page)
@@ -520,10 +495,10 @@ class GtkInterface(gobject.GObject):
 		self.history = History(notebook, self.uistate)
 		self.on_notebook_properties_changed(notebook)
 		notebook.connect('properties-changed', self.on_notebook_properties_changed)
-		notebook.connect('delete-page', autosave) # before action
-		notebook.connect('move-page', autosave) # before action
-		notebook.connect('deleted-page', move_away)
-		notebook.connect('moved-page', follow)
+		notebook.connect('delete-page', save_page) # before action
+		notebook.connect('deleted-page', move_away) # after action
+		notebook.connect('move-page', save_page) # before action
+		notebook.connect('moved-page', follow) # after action
 
 		# Start a lightweight background check of the index
 		self.notebook.index.update_async()
@@ -558,20 +533,15 @@ class GtkInterface(gobject.GObject):
 		# async interface also helps, but we need to account for cases
 		# where asynchronous actions are not supported.
 
-		def autosave():
-			page = self.mainwindow.pageview.get_page()
-			if page.modified and not self._autosave_lock:
-					self.save_page_async(page)
-
 		def schedule_autosave():
-			schedule_on_idle(autosave)
+			schedule_on_idle(self.do_autosave)
 			return True # keep ticking
 
 		# older gobject version doesn't know about seconds
 		self.preferences['GtkInterface'].setdefault('autosave_timeout', 10)
 		timeout = self.preferences['GtkInterface']['autosave_timeout'] * 1000 # s -> ms
 		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
-			# FIXME make this more intelligent
+
 
 		# Check notebook
 		self.check_notebook_needs_upgrade()
@@ -737,9 +707,12 @@ class GtkInterface(gobject.GObject):
 			# Do not quit if page not saved
 			return False
 
+		self.notebook.index.stop_updating() # XXX - avoid long wait
+		self.mainwindow.hide() # look more responsive
+		while gtk.events_pending():
+			gtk.main_iteration(block=False)
+
 		self.emit('quit')
-		if self.mainwindow.get_property('visible'):
-			self.mainwindow.destroy()
 
 		if gtk.main_level() > 0:
 			gtk.main_quit()
@@ -1046,11 +1019,9 @@ class GtkInterface(gobject.GObject):
 
 		@emits: readonly-changed
 		'''
-		if not self.readonly:
+		if not self.readonly and self.page:
 			# Save any modification now - will not be allowed after switch
-			page = self.mainwindow.pageview.get_page()
-			if page and page.modified:
-				self.save_page(page)
+			self.assert_save_page_if_modified()
 
 		for group in self.uimanager.get_action_groups():
 			for action in group.list_actions():
@@ -1265,8 +1236,7 @@ class GtkInterface(gobject.GObject):
 		return not page.modified
 
 	def do_close_page(self, page, final):
-		if page.modified:
-			self.save_page(page) # No async here -- for now
+		self.assert_save_page_if_modified()
 
 		current = self.history.get_current()
 		if current == page:
@@ -1480,29 +1450,80 @@ class GtkInterface(gobject.GObject):
 			page = self._get_path_context()
 		PageWindow(self, page).show_all()
 
-	def save_page_if_modified(self, page=None):
-		if page is None:
+	@SignalHandler
+	def do_autosave(self):
+		if self._check_autosave_done():
 			page = self.mainwindow.pageview.get_page()
-			assert page is not None
+			if page.modified \
+			and self._save_page_check_page(page):
+				try:
+					self._autosave_thread = self.notebook.store_page_async(page)
+				except:
+					# probably means backend does not support async store
+					# AND failed storing - re-try immediatly
+					logger.exception('Error during autosave - re-try')
+					self.save_page()
+			else:
+				self._autosave_thread = None
+		else:
+			pass # still busy
+
+	def _check_autosave_done(self):
+		## Returning True here does not mean previous save was OK, just that it finished!
+		if not self._autosave_thread:
+			return True
+		elif not self._autosave_thread.done:
+			return False
+		elif self._autosave_thread.error:
+			# FIXME - should we force page.modified = True here ?
+			logger.error('Error during autosave - re-try',
+					exc_info=self._autosave_thread.exc_info)
+			self._save_page(self.mainwindow.pageview.get_page()) # force normal save
+			return True
+		else:
+			return True # Done and no error ..
+
+	def assert_save_page_if_modified(self):
+		'''Like C{save_page()} but only saves when needed.
+		@raises PageHasUnSavedChangesError: when page was not saved
+		'''
+		page = self.mainwindow.pageview.get_page()
+		if page is None:
+			return
+
+		if self._autosave_thread \
+		and not self._autosave_thread.done:
+			self._autosave_thread.join() # wait to finish
+
+		self._check_autosave_done() # handle errors if any
 
 		if page.modified:
-			return self.save_page(page)
+			return self._save_page(page)
 		else:
 			return True
 
-	def save_page(self, page=None):
-		'''Menu action to save a page.
+	def save_page(self):
+		'''Menu action to save the current page.
 
 		Can result in a L{SavePageErrorDialog} when there is an error
 		while saving a page.
 
-		@param page: a L{Page} object, when C{None} the current page is
-		saved
 		@returns: C{True} when successful, C{False} when the page still
 		has unsaved changes
 		'''
-		page = self._save_page_check_page(page)
-		if page is None:
+		page = self.mainwindow.pageview.get_page()
+		assert page is not None
+
+		if self._autosave_thread \
+		and not self._autosave_thread.done:
+			self._autosave_thread.join() # wait to finish
+
+		# No error handling here for autosave, we save anyway
+
+		return self._save_page(page)
+
+	def _save_page(self, page):
+		if not self._save_page_check_page(page):
 			return
 
 		## HACK - otherwise we get a bug when saving a new page immediatly
@@ -1518,64 +1539,26 @@ class GtkInterface(gobject.GObject):
 			self.notebook.store_page(page)
 		except Exception, error:
 			logger.exception('Failed to save page: %s', page.name)
-			self._autosave_lock.increment()
-				# We need this flag to prevent autosave trigger while we
-				# are showing the SavePageErrorDialog
-			SavePageErrorDialog(self, error, page).run()
-			self._autosave_lock.decrement()
+			with self.do_autosave.blocked():
+				# Avoid new autosave (on idle) while dialog is seen
+				SavePageErrorDialog(self, error, page).run()
 
 		return not page.modified
 
-	def save_page_async(self, page=None):
-		'''Save a page asynchronously
-
-		Like L{save_page()} but asynchronously, used e.g. when auto
-		saving.
-
-		@param page: a L{Page} object, when C{None} the current page is
-		saved
-		'''
-		page = self._save_page_check_page(page)
-		if page is None:
-			return
-
-		logger.debug('Saving page (async): %s', page)
-
-		def callback(ok, error, exc_info, name):
-			# This callback is called back here in the main thread.
-			# We fetch the page again just to be sure in case of strange
-			# edge cases. The SavePageErrorDialog will just take the
-			# current state of the page, not the state that it had in
-			# the async thread. This is done on purpose, current state
-			# is what the user is concerned with anyway.
-			#~ print '!!', ok, exc_info, name
-			if exc_info:
-				page = self.notebook.get_page(Path(name))
-				logger.error('Failed to save page: %s', page.name, exc_info=exc_info)
-				SavePageErrorDialog(self, error, page).run()
-			self._autosave_lock.decrement()
-
-		self._autosave_lock.increment()
-			# Prevent any new auto save to be scheduled while we are
-			# still busy with this call.
-		self.notebook.store_page_async(page, callback=callback, data=page.name)
-
 	def _save_page_check_page(self, page):
-		# Code shared between save_page() and save_page_async()
-		if page is None:
-			page = self.mainwindow.pageview.get_page()
+		# Ensure that the page can be saved in the first place
 		try:
 			if self.readonly:
 				raise AssertionError, 'BUG: can not save page when read-only'
-			elif not page:
-				raise AssertionError, 'BUG: no page loaded'
 			elif page.readonly:
 				raise AssertionError, 'BUG: can not save read-only page'
 		except Exception, error:
-			SavePageErrorDialog(self, error, page).run()
-			return None
+			with self.do_autosave.blocked():
+				# Avoid new autosave (on idle) while dialog is seen
+				SavePageErrorDialog(self, error, page).run()
+			return False
 		else:
-			return page
+			return True
 
 	def save_copy(self):
 		'''Menu action to show a L{SaveCopyDialog}'''
@@ -1616,11 +1599,7 @@ class GtkInterface(gobject.GObject):
 		notebook.move_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
-		if path == self.page and self.page.modified \
-		and not self.save_page(self.page):
-			raise AssertionError, 'Could not save page'
-			# assert statement could be optimized away
-			# FIXME - is this raise needed ?
+		self.assert_save_page_if_modified()
 
 		return self._wrap_move_page(
 			lambda update_links, callback: self.notebook.move_page(
@@ -1642,11 +1621,7 @@ class GtkInterface(gobject.GObject):
 		notebook.rename_page but wrapping with all the proper exception
 		dialogs. Returns boolean for success.
 		'''
-		if path == self.page and self.page.modified \
-		and not self.save_page(self.page):
-			raise AssertionError, 'Could not save page'
-			# assert statement could be optimized away
-			# FIXME - is this raise needed ?
+		self.assert_save_page_if_modified()
 
 		return self._wrap_move_page(
 			lambda update_links, callback: self.notebook.rename_page(
@@ -1764,10 +1739,7 @@ class GtkInterface(gobject.GObject):
 		'''Menu action to reload the current page. Will first try
 		to save any unsaved changes, then reload the page from disk.
 		'''
-		if self.page.modified \
-		and not self.save_page(self.page):
-			raise AssertionError, 'Could not save page'
-			# assert statement could be optimized away
+		self.assert_save_page_if_modified()
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
 
@@ -1997,11 +1969,7 @@ class GtkInterface(gobject.GObject):
 			ErrorDialog(self, 'This page does not have a source file').run()
 			return
 
-		if page.modified:
-			ok = self.save_page(page)
-			if not ok:
-				ErrorDialog(self, 'Page has unsaved changes')
-				return
+		self.assert_save_page_if_modified()
 
 		self.edit_file(self.page.source, istextfile=True)
 		if page == self.page:
@@ -3253,11 +3221,7 @@ class MovePageDialog(Dialog):
 		Dialog.__init__(self, ui, _('Move Page')) # T: Dialog title
 		self.path = path
 
-		if isinstance(self.path, Page) \
-		and self.path.modified \
-		and not self.ui.save_page(self.path):
-			raise AssertionError, 'Could not save page'
-			# assert statement could be optimized away
+		self.ui.assert_save_page_if_modified()
 
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name

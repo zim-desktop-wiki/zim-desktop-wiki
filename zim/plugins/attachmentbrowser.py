@@ -23,6 +23,7 @@
 # 2010-06-29 1st working version
 #
 # TODO:
+# [ ] Better management of queue - how to avoid flooding it ?
 # [ ] Action for deleting files in context menu
 # [ ] Copy / cut files in context menu
 # [ ] Button to clean up the folder - only show when the folder is empty
@@ -42,6 +43,8 @@ import re
 import hashlib # for thumbfilenames
 import datetime
 import logging
+import Queue
+import threading
 
 import gobject
 import gtk
@@ -61,7 +64,6 @@ from zim.actions import toggle_action
 from zim.fs import File, Dir, format_file_size
 from zim.errors import Error
 from zim.applications import Application
-from zim.async import AsyncOperation
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
@@ -830,7 +832,8 @@ class ThumbnailManager(gobject.GObject):
 		gobject.GObject.__init__(self)
 
 		self.preferences = preferences
-		self.async_queue = []
+		self.async_thread = None
+		self.async_queue = Queue.Queue()
 
 		for dir in (
 			LOCAL_THUMB_STORAGE_NORMAL,
@@ -843,7 +846,11 @@ class ThumbnailManager(gobject.GObject):
 				pass
 
 	def clear_async_queue(self):
-		self.async_queue = []
+		if self.async_thread:
+			self.async_thread.stop()
+
+		self.async_thread = None
+		self.async_queue = Queue.Queue()
 
 	def get_thumbnail(self, file, size):
 		'''Get a C{Pixbuf} with the thumbnail for a given file
@@ -924,30 +931,18 @@ class ThumbnailManager(gobject.GObject):
 		if pixbuf:
 			return pixbuf
 		else:
-			self.async_queue.append( (file, thumbfile, size) )
-			if len(self.async_queue) == 1: # was empty
-				self._start_async_operation()
+			self.async_queue.put( (file, thumbfile, size) )
 
-			# TODO - allow multiple async threads at once, but have max
-			# use queue to deal with surplus requests ?
+			if not self.async_thread \
+			or not self.async_thread.is_alive():
+				self.async_thread = WorkerThread(self.async_queue, self._create_thumbnail_async)
+				self.async_thread.start()
 
-	def _start_async_operation(self):
-		args = self.async_queue[0]
-		operation = AsyncOperation(
-			self._create_thumbnail, args=args, callback=self._async_callback, data=self.async_queue[0])
-		operation.start()
-
-	def _async_callback(self, pixbuf, error, exc_info, data):
-			# Callback is called from main tread, in idle event
-			# so it is allowed to kick off new async operations
-			if error:
-				logger.error('Error while creating thumbnail', exc_info=exc_info)
-
-			if self.async_queue:
-				self.async_queue.pop(0)
-
-			if self.async_queue:
-				self._start_async_operation()
+	def _create_thumbnail_async(self, file, thumbfile, size):
+		try:
+			self._create_thumbnail(file, thumbfile, size)
+		except:
+			logger.exception('Error while creating thumbnail')
 
 	def get_thumbnail_file(self, file, size):
 		'''Get L{File} object for thumbnail
@@ -985,6 +980,26 @@ class ThumbnailManager(gobject.GObject):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ThumbnailManager)
+
+
+class WorkerThread(threading.Thread):
+
+	daemon = True
+
+	def __init__(self, queue, func):
+		threading.Thread.__init__(self)
+		self.queue = queue
+		self.func = func
+		self._stop = False
+
+	def stop(self):
+		self._stop = True
+
+	def run(self):
+		while not self._stop:
+			args = self.queue.get()
+			self.func(*args)
+			self.queue.task_done()
 
 
 class Thumbnailer(object):

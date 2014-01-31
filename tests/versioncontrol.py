@@ -137,7 +137,7 @@ added:
 		self.assertEqual(vcs.get_diff(), ['=== No Changes\n'])
 
 		file.write('foo\nbaz\n')
-		vcs.commit_async('test 2')
+		vcs.commit('test 2')
 		diff = vcs.get_diff(versions=(1, 2))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
@@ -312,7 +312,7 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 ) )
 
 		file.write('second\nbaz\n')
-		vcs.commit_async('test 3')
+		vcs.commit('test 3')
 		diff = vcs.get_diff(versions=('HEAD', 'HEAD^'))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
@@ -456,7 +456,7 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 
 
 		file.write('foo\nbaz\n')
-		vcs.commit_async('test 2')
+		vcs.commit('test 2')
 		diff = vcs.get_diff(versions=(0, 1))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\

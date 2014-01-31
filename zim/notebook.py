@@ -78,6 +78,7 @@ import os
 import re
 import weakref
 import logging
+import threading
 
 import gobject
 
@@ -91,7 +92,6 @@ from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
 	data_dir, ConfigManager, XDGConfigFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
-from zim.async import AsyncLock
 import zim.formats
 import zim.stores
 
@@ -791,7 +791,7 @@ class Notebook(Object):
 	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
 	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
-	@ivar lock: An L{AsyncLock} for async notebook operations
+	@ivar lock: An C{threading.Lock} for async notebook operations
 	@ivar profile: The name of the profile used by the notebook or C{None}
 
 	In general this lock is not needed when only reading data from
@@ -850,7 +850,7 @@ class Notebook(Object):
 		self.icon = None
 		self.document_root = None
 		self.config = config
-		self.lock = AsyncLock()
+		self.lock = threading.Lock()
 			# We don't use FS.get_async_lock() at this level. A store
 			# backend will automatically trigger this when it calls any
 			# async file operations. This one is more abstract for the
@@ -1424,7 +1424,7 @@ class Notebook(Object):
 		store.store_page(page)
 		self.emit('stored-page', page)
 
-	def store_page_async(self, page, callback=None, data=None):
+	def store_page_async(self, page):
 		'''Save the data from a page in the storage backend
 		asynchronously
 
@@ -1434,51 +1434,24 @@ class Notebook(Object):
 		operations.
 
 		@param page: a L{Page} object
-
-		@param callback: a callback function to be called after the
-		page was stored (in the main thread). Callback is called like::
-
-			callback(ok, exc_info, data)
-
-		With the following arguments:
-			- C{ok} is C{True} when the action was successful
-			- C{error} is an C{Exception} object or C{None}
-			- C{exc_info} is a 3 tuple of C{sys.exc_info()} or C{None}
-			- C{data} is the optional C{data} argument
-
-		The callback should be used to do proper error handling if you
-		want to use this interface e.g. from the UI.
-
-		@param data: optional data to pass to the callback function
-
+		@returns: A L{FunctionThread} for the background job or C{None}
+		if save was performed in the foreground
 		@emits: store-page before storing the page
 		@emits: stored-page on success
 		'''
-		# TODO: make consistent with store-page signal
-
-		# Note that we do not assume here that async function is always
-		# performed by zim.async. Different backends could have their
-		# native support for asynchronous actions. So we do not return
-		# an AsyncOperation object to prevent lock in.
-		# This assumption may change in the future.
 		assert page.valid, 'BUG: page object no longer valid'
 		self.emit('store-page', page)
-
-		# FIXME can signal framework help to make this code bit more compact ?
-		def mycallback(ok, error, exc_info, data):
-			if callback:
-				try:
-					if data:
-						callback(ok, error, exc_info, data)
-					else:
-						callback(ok, error, exc_info)
-				except:
-					logger.exception('Exception in callback after store-async:')
-			if ok:
-				self.emit('stored-page', page)
-
 		store = self.get_store(page)
-		store.store_page_async(page, self.lock, mycallback, data)
+		func = store.store_page_async(page)
+		try:
+			print "emit"
+			self.emit('stored-page', page)
+				# FIXME - stored-page is emitted early, but emitting from
+				# the thread is also not perfect, since the page may have
+				# changed already in the gui
+				# (we tried this and it broke autosave for some users!)
+		finally:
+			return func
 
 	def revert_page(self, page):
 		'''Reload the page from the storage backend, discarding all

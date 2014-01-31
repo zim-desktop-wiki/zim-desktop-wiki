@@ -466,3 +466,19 @@ class TestTrash(tests.TestCase):
 		self.assertFalse(dir.trash())
 
 		# How can we cause gio to give an error and test that case ??
+
+
+from utils import FunctionThread
+
+@tests.slowTest
+class TestIOFunctionThread(tests.TestCase):
+
+	def runTest(self):
+		dir = Dir(self.create_tmp_dir())
+		file = dir.file('test.txt')
+		func = FunctionThread(file.write, ('fooo\n',))
+		func.start()
+		func.join()
+		self.assertTrue(func.done)
+		self.assertFalse(func.error)
+		self.assertEqual(file.read(), 'fooo\n')

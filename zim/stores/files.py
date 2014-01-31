@@ -20,7 +20,7 @@ import logging
 import zim.fs
 import zim.datetimetz as datetime
 from zim.fs import File, Dir, FilteredDir, FileNotFoundError
-from zim.async import AsyncOperation
+from zim.utils import FunctionThread
 from zim.formats import get_format
 from zim.notebook import Path, Page, LookupError, PageExistsError
 from zim.stores import StoreClass, encode_filename, decode_filename
@@ -103,8 +103,8 @@ class FilesStore(StoreClass):
 		# FIXME assert page is ours and page is FilePage
 		page._store()
 
-	def store_page_async(self, page, lock, callback, data):
-		page._store_async(lock, callback, data)
+	def store_page_async(self, page):
+		return page._store_async()
 
 	def revert_page(self, page):
 		# FIXME assert page is ours and page is FilePage
@@ -305,23 +305,16 @@ class FileStorePage(Page):
 		self._store_lines(lines)
 		self.modified = False
 
-	def _store_async(self, lock, callback, data):
+	def _store_async(self):
 		# Get lines before forking a new thread, otherwise the parsetree
 		# could change in a non-atomic way in the GUI in the mean time
-		try:
-			lines = self._dump()
-		except Exception, error:
-			if callback:
-				exc_info = sys.exc_info()
-				callback(False, error, exc_info, data)
-			return
-		else:
-			self.modified = False
+		lines = self._dump()
+		self.modified = False
 
 		#~ print '!! STORE PAGE ASYNC in files'
-		operation = AsyncOperation(
-			self._store_lines, (lines,), lock=lock, callback=callback, data=data)
-		operation.start()
+		func = FunctionThread(self._store_lines, (lines,))
+		func.start()
+		return func
 
 	def _store_lines(self, lines):
 		## Enable these lines to test error handling in the UI

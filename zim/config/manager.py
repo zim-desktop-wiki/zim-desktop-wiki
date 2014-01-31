@@ -301,8 +301,6 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 				else:
 					return []
 
-	# Not implemented: read_async and readlines_async
-
 	def write(self, text):
 		'''Write base file, see L{File.write()}'''
 		self.file.write(text)
@@ -310,14 +308,6 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	def writelines(self, lines):
 		'''Write base file, see L{File.writelines()}'''
 		self.file.writelines(lines)
-
-	def write_async(self, text, callback=None, data=None):
-		'''Write base file async, see L{File.write_async()}'''
-		return self.file.write_async(text, callback=callback, data=data)
-
-	def writelines_async(self, lines, callback=None, data=None):
-		'''Write base file async, see L{File.writelines_async()}'''
-		return self.file.writelines_async(lines, callback=callback, data=data)
 
 	def remove(self):
 		'''Remove user file, leaves default files in place'''
@@ -390,12 +380,6 @@ class VirtualConfigBackendFile(object):
 
 	def writelines(self, lines):
 		self._data[self._key] = ''.join(lines) or ''
-
-	def write_async(self, text, callback=None, data=None):
-		self.write(text)
-
-	def writelines_async(self, lines, callback=None, data=None):
-		self.writelines(lines)
 
 	def remove(self):
 		del self._data[self._key]
