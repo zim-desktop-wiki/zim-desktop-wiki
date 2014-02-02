@@ -285,6 +285,25 @@ class UriItem(ClipboardItem):
 				selectiondata.set_text(self.uri)
 
 
+class InterWikiLinkItem(UriItem):
+	'''Like L{UriItem} but with special case for zim parsetree'''
+
+	targets = (PARSETREE_TARGET,) + UriItem.targets
+
+	def __init__(self, href, url):
+		UriItem.__init__(self, url)
+		self.interwiki_href = href
+
+	def _get(self, clipboard, selectiondata, id, *a):
+		logger.debug("Clipboard requests data as '%s', we have an interwiki link", selectiondata.target)
+		if id == PARSETREE_TARGET_ID:
+			tree = _link_tree((self.interwiki_href,), None, None)
+			xml = tree.tostring().encode('utf-8')
+			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
+		else:
+			UriItem._get(self, clipboard, selectiondata, id, *a)
+
+
 class ParseTreeItem(ClipboardItem):
 	'''Clipboard wrapper for a L{ParseTree}.'''
 
@@ -490,6 +509,15 @@ class ClipboardManager(object):
 		@param path: a L{Path} object
 		'''
 		item = PageLinkItem(notebook, path)
+		self.set(item)
+
+	def set_interwikilink(self, href, url):
+		'''Copy an interwiki link to the clipboard
+		@param href: the link as shown in zim, e.g. "wp?foobar"
+		@param url: the expanded url for this interwiki link, e.g.
+		"http://en.wikipedia.org/wiki/foobar"
+		'''
+		item = InterWikiLinkItem(href, url)
 		self.set(item)
 
 	def set_uri(self, uri):

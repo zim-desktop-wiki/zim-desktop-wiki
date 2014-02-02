@@ -3007,21 +3007,16 @@ class SavePageErrorDialog(ErrorDialog):
 	'''
 
 	def __init__(self, ui, error, page):
-		title = _('Could not save page: %s') % page.name
+		msg = _('Could not save page: %s') % page.name
 			# T: Heading of error dialog
-		explanation = _('''\
+		desc = unicode(error).encode('utf-8').strip() \
+				+ '\n\n' \
+				+ _('''\
 To continue you can save a copy of this page or discard
 any changes. If you save a copy changes will be also
 discarded, but you can restore the copy later.''')
 			# T: text in error dialog when saving page failed
-		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
-			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_NONE,
-			message_format=title
-		)
-		#~ self.set_default_size(450, -1)
-		self.format_secondary_text(
-			unicode(error).encode('utf-8').strip()+'\n\n'+explanation)
+		ErrorDialog.__init__(self, ui, (msg, desc), buttons=gtk.BUTTONS_NONE)
 
 		self.page = page
 		self.error = error

@@ -3156,7 +3156,9 @@ class ErrorDialog(gtk.MessageDialog):
 	care of that.
 	'''
 
-	def __init__(self, ui, error, exc_info=None, do_logging=True):
+	def __init__(self, ui, error, exc_info=None, do_logging=True,
+				buttons=gtk.BUTTONS_CLOSE
+	):
 		'''Constructor
 
 		@param ui: either a parent window or dialog or the main
@@ -3191,7 +3193,7 @@ class ErrorDialog(gtk.MessageDialog):
 
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
-			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
+			type=gtk.MESSAGE_ERROR, buttons=buttons,
 			message_format=msg
 		)
 

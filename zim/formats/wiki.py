@@ -7,7 +7,7 @@
 import re
 
 from zim.parser import *
-from zim.parsing import url_re
+from zim.parsing import url_re, url_encode, URL_ENCODE_DATA
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
@@ -399,7 +399,8 @@ class Dumper(TextDumper):
 			if k in ('src', 'alt') or k.startswith('_'):
 				continue
 			elif v: # skip None, "" and 0
-				opts.append('%s=%s' % (k, v))
+				data = url_encode(unicode(v), mode=URL_ENCODE_DATA)
+				opts.append('%s=%s' % (k, data))
 		if opts:
 			src += '?%s' % '&'.join(opts)
 

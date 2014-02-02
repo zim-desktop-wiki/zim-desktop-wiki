@@ -5278,6 +5278,11 @@ class PageView(gtk.VBox):
 			Clipboard.set_pagelink(self.ui.notebook, path)
 			SelectionClipboard.set_pagelink(self.ui.notebook, path)
 
+		def set_interwikilink(o, data):
+			href, url = data
+			Clipboard.set_interwikilink(href, url)
+			SelectionClipboard.set_interwikilink(href, url)
+
 		def set_uri(o, uri):
 			Clipboard.set_uri(uri)
 			SelectionClipboard.set_uri(uri)
@@ -5286,6 +5291,10 @@ class PageView(gtk.VBox):
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
 			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
 			item.connect('activate', set_pagelink, path)
+		elif type == 'interwiki':
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			url = interwiki_link(link['href'])
+			item.connect('activate', set_interwikilink, (link['href'], url))
 		elif type == 'mailto':
 			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])

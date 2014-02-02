@@ -66,7 +66,7 @@ import types
 
 from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
-	url_encode, url_decode, URL_ENCODE_READABLE
+	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
 from zim.config import data_file
 from zim.objectmanager import ObjectManager
@@ -1030,10 +1030,11 @@ class ParserClass(object):
 					logger.warn('Mal-formed options in "%s"' , url)
 					break
 
-				k, v = option.split('=')
+				k, v = option.split('=', 1)
 				if k in ('width', 'height', 'type', 'href'):
 					if len(v) > 0:
-						attrib[str(k)] = v # str to avoid unicode key
+						value = url_decode(v, mode=URL_ENCODE_DATA)
+						attrib[str(k)] = value # str to avoid unicode key
 				else:
 					logger.warn('Unknown attribute "%s" in "%s"', k, url)
 			return attrib

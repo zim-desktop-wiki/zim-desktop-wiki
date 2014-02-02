@@ -1599,6 +1599,14 @@ foo
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Bar">Bar</link></zim-tree>')
 
+		page = tests.new_page_from_text('[[wp?foobar]]')
+		pageview.set_page(page)
+		click(_('Copy _Link'))
+		self.assertEqual(Clipboard.get_text(), 'http://en.wikipedia.org/wiki/foobar')
+		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		self.assertEqual(tree.tostring(),
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="wp?foobar">wp?foobar</link></zim-tree>')
+
 		page = tests.new_page_from_text('[[~//bar.txt]]')
 			# Extra '/' is in there to verify path gets parsed as File object
 		pageview.set_page(page)
