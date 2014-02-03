@@ -3371,6 +3371,7 @@ class TextView(gtk.TextView):
 		'''
 		gtk.TextView.__init__(self, TextBuffer(None, None))
 		self.set_name('zim-pageview')
+		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
 		self._cursor_link = None
 		self.gtkspell = None
