@@ -126,7 +126,7 @@ import threading
 
 
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
-from zim.parsing import url_encode, url_decode
+from zim.parsing import url_encode, url_decode, URL_ENCODE_READABLE
 from zim.signals import SignalEmitter, SIGNAL_AFTER
 
 
@@ -307,13 +307,28 @@ def get_tmpdir():
 	Used as base folder by L{TmpFile}.
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
+	# We encode the user name using urlencoding to remove any non-ascii
+	# characters. This is because sockets are not always unicode safe.
+
 	import tempfile
 	from zim.environ import environ
 	root = tempfile.gettempdir()
-	dir = Dir((root, 'zim-%s' % environ['USER']))
-	dir.touch(mode=0700) # Limit to single user
-	os.chmod(dir.path, 0700) # Limit to single user when dir already existed
-	return dir
+	user = url_encode(environ['USER'], URL_ENCODE_READABLE)
+	dir = Dir((root, 'zim-%s' % user))
+
+	try:
+		dir.touch(mode=0700) # Limit to single user
+		os.chmod(dir.path, 0700) # Limit to single user when dir already existed
+			# Raises OSError if not allowed to chmod
+		os.listdir(dir.path)
+			# Raises OSError if we do not have access anymore
+	except OSError:
+		raise AssertionError, \
+			'Either you are not the owner of "%s" or the permissions are un-safe.\n' \
+			'If you can not resolve this, try setting $TMP to a different location.' % dir.path
+	else:
+		# All OK, so we must be owner of a safe folder now ...
+		return dir
 
 
 def normalize_file_uris(path):

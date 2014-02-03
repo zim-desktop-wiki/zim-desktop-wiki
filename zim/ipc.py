@@ -317,11 +317,8 @@ def servermain():
 		pass
 	else:
 		# Redirect output to file
-		import tempfile
-		dir = tempfile.gettempdir()
-		if not os.path.isdir(dir):
-			os.makedirs(dir)
-		err_stream = open(os.path.join(dir, "zim-daemon.log"), "w")
+		dir = zim.fs.get_tmpdir()
+		err_stream = open(os.path.join(dir.path, "zim-daemon.log"), "w")
 
 		# First try to dup handles for anyone who still has a reference
 		# if that fails, just set them
@@ -360,7 +357,8 @@ def servermain():
 if sys.platform == 'win32':
 	# Windows named pipe
 	from zim.environ import environ
-	SERVER_ADDRESS = '\\\\.\\pipe\\zimServer-%s' % environ['USER']
+	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
+	SERVER_ADDRESS = '\\\\.\\pipe\\%s-server' % userstring
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket
