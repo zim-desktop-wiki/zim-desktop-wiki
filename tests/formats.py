@@ -378,7 +378,7 @@ A list
 	def testLink(self):
 		'''Test iterator function for link'''
 		# + check for bugs in link encoding
-		text = '[[FooBar]] [[Foo|]] [[|Foo]]'
+		text = '[[FooBar]] [[Foo|]] [[|Foo]] [[||]]'
 		tree = self.format.Parser().parse(text)
 		#~ print tree.tostring()
 		found = 0

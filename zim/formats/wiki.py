@@ -282,13 +282,17 @@ class WikiParser(object):
 
 	@staticmethod
 	def parse_link(builder, text):
-		text = text.strip('|') # old bug producing "[[|link]]", or [[link|]]
+		text = text.strip('|') # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
 		if '|' in text:
 			href, text = text.split('|', 1)
+			text = text.strip('|') # stuff like "[[foo||bar]]"
 		else:
 			href = text
 
-		builder.append(LINK, {'href': href}, text)
+		if href and not href.isspace():
+			builder.append(LINK, {'href': href}, text)
+		else:
+			pass
 
 	@staticmethod
 	def parse_image(builder, text):
