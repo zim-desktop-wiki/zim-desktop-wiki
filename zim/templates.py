@@ -70,7 +70,7 @@ import zim
 import zim.formats
 import zim.datetimetz as datetime
 from zim.errors import Error
-from zim.fs import File, Dir, format_file_size
+from zim.fs import File, Dir, format_file_size, isdir
 from zim.config import data_dirs
 from zim.parsing import Re, TextBuffer, \
 	split_quoted_strings, unescape_quoted_string, is_path_re
@@ -983,13 +983,19 @@ class PageProxy(object):
 
 	@property
 	def has_attachments(self):
-		return len(list(self._notebook.get_attachments_dir(self._page).list())) > 0
+		dir = self._notebook.get_attachments_dir(self._page)
+		return len(list(self._attachments(dir))) > 0
 
 	@property
 	def attachments(self):
 		dir = self._notebook.get_attachments_dir(self._page)
-		for basename in dir.list():
-			yield FilePathProxy(dir.file(basename), "./"+basename)
+		for name in self._attachments(dir):
+			yield FilePathProxy(dir.file(name), "./"+name)
+
+	def _attachments(self, dir):
+		for name in dir.list():
+			if not isdir(dir.path + '/' + name):
+				yield name
 
 
 class ParseTreeProxy(object):
