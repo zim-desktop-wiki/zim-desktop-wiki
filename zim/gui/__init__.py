@@ -500,6 +500,20 @@ class GtkInterface(gobject.GObject):
 		notebook.connect('move-page', save_page) # before action
 		notebook.connect('moved-page', follow) # after action
 
+		def new_child(index, indexpath):
+			if self.page and indexpath.ischild(self.page):
+				child = self.actiongroup.get_action('open_page_child')
+				child.set_sensitive(True)
+
+		def child_deleted(index, indexpath):
+			if self.page and indexpath.ischild(self.page):
+				ourpath = index.lookup_path(self.page)
+				child = self.actiongroup.get_action('open_page_child')
+				child.set_sensitive(ourpath.haschildren)
+
+		notebook.index.connect('page-inserted', new_child)
+		notebook.index.connect('page-deleted', child_deleted)
+
 		# Start a lightweight background check of the index
 		self.notebook.index.update_async()
 
@@ -1212,7 +1226,11 @@ class GtkInterface(gobject.GObject):
 			forward.set_sensitive(False)
 
 		parent.set_sensitive(len(page.namespace) > 0)
-		child.set_sensitive(page.haschildren)
+
+		indexpath = self.notebook.index.lookup_path(page)
+		child.set_sensitive(indexpath.haschildren)
+			# FIXME: Need index path here, page.haschildren is also True
+			#        when the page just has a attachment folder
 
 	def close_page(self, page=None, final=False):
 		'''Close the page and try to save any changes in the page.
@@ -1306,7 +1324,8 @@ class GtkInterface(gobject.GObject):
 			self.open_page(record)
 		else:
 			pages = list(self.notebook.index.list_pages(self.page))
-			self.open_page(pages[0])
+			if pages:
+				self.open_page(pages[0])
 		return True
 
 	def open_page_previous(self):
