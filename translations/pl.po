@@ -2420,7 +2420,7 @@ msgstr "Użyj osobnej strony dla każdego"
 #. strftime format for current date label
 #: zim/plugins/calendar.py:393
 msgid "%A %d %B %Y"
-msgstr "%A, %e %B %Y"
+msgstr "%A, %d %B %Y"
 
 #. dialog title
 #: zim/plugins/calendar.py:433

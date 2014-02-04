@@ -1302,6 +1302,8 @@ class InputForm(gtk.Table):
 			elif isinstance(widget, gtk.ComboBox):
 				if hasattr(widget, 'zim_key_mapping'):
 					label = widget.get_active_text()
+					if label:
+						label = label.decode('utf-8')
 					return widget.zim_key_mapping.get(label) or label
 				else:
 					return widget.get_active_text()
