@@ -881,7 +881,7 @@ class GtkInterface(gobject.GObject):
 		try:
 			method(*arg)
 		except Exception, error:
-			ErrorDialog(None, error).run()
+			ErrorDialog(self.mainwindow, error).run()
 			# error dialog also does logging automatically
 
 	def _radio_action_handler(self, object, action, method):

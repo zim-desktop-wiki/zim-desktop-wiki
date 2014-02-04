@@ -33,6 +33,7 @@ import os
 import re
 import weakref
 import unicodedata
+import locale
 
 try:
 	import gtksourceview2
@@ -43,6 +44,7 @@ import zim
 
 import zim.errors
 import zim.config
+import zim.fs
 
 from zim.fs import File, Dir
 from zim.config import value_is_coord
@@ -3242,10 +3244,13 @@ class ErrorDialog(gtk.MessageDialog):
 			tb = None
 
 		text = 'This is zim %s\n' % zim.__version__ + \
-			'Python version is %s\n' % str(sys.version_info) + \
-			'Gtk version is %s\n' % str(gtk.gtk_version) + \
-			'Pygtk version is %s\n' % str(gtk.pygtk_version) + \
-			'Platform is %s\n' % os.name
+			'Platform: %s\n' % os.name + \
+			'Locale: %s %s\n' % locale.getdefaultlocale() + \
+			'FS encoding: %s\n' % zim.fs.ENCODING + \
+			'Python: %s\n' % str(tuple(sys.version_info)) + \
+			'Gtk: %s\n' % str(gtk.gtk_version) + \
+			'Pygtk: %s\n' % str(gtk.pygtk_version)
+
 
 		text += zim.get_zim_revision() + '\n'
 
