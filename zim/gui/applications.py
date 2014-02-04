@@ -816,6 +816,12 @@ class AddApplicationDialog(Dialog):
 			# Default implies NoDisplay, this to keep the list
 			# more or less clean.
 
+		if not application.tryexec():
+			ErrorDialog(self, _('Could not find executable "%s"') % application.cmd[0]).run()
+				# T: Error message for new commands in "open with" dialog
+			application.file.remove()
+			return False
+
 		if default:
 			manager.set_default_application(self.mimetype, application)
 

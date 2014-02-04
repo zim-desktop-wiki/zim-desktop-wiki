@@ -11,6 +11,7 @@ import logging
 import zim.plugins
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
+from zim.gui.applications import CustomizeOpenWithDialog
 
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
@@ -67,10 +68,10 @@ class PreferencesDialog(Dialog):
 				self._add_font_selection(form)
 
 		# Styles tab
-		#~ gtknotebook.append_page(StylesTab(self), gtk.Label('Styles'))
+		#~ gtknotebook.append_page(StylesTab(self), gtk.Label(_('Styles')))
 
 		# Keybindings tab
-		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label('Key bindings'))
+		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label(_('Key bindings')))
 
 		# Plugins tab
 		plugins_tab = PluginsTab(self, self.ui.plugins)
@@ -80,7 +81,13 @@ class PreferencesDialog(Dialog):
 		#~ print default_tab, index
 		if default_tab == "Plugins":
 			gtknotebook.set_current_page(plugins_tab_index)
-			if not select_plugin is None: plugins_tab.select_plugin(select_plugin)
+			if not select_plugin is None:
+					plugins_tab.select_plugin(select_plugin)
+
+		# Applications tab
+		gtknotebook.append_page(ApplicationsTab(self), gtk.Label(_('Applications')))
+			# T: Heading in preferences dialog
+
 
 	def _add_font_selection(self, table):
 		# need to hardcode this, cannot register it as a preference
@@ -369,6 +376,23 @@ class PluginConfigureDialog(Dialog):
 		# The plugin could do some conversion on the fly (e.g. Path to string)
 		self.plugin.preferences.update(self.form)
 		return True
+
+
+class ApplicationsTab(gtk.VBox):
+
+	def __init__(self, dialog):
+		gtk.VBox.__init__(self)
+		self.set_border_width(5)
+		self.dialog = dialog
+
+		button = gtk.Button(_('Set default text editor'))
+			# T: button in preferences dialog to change default text editor
+		button.connect('clicked', self.on_set_texteditor)
+
+		self.pack_start(button, False)
+
+	def on_set_texteditor(self, o):
+		CustomizeOpenWithDialog(self.dialog, 'text/plain').run()
 
 
 class StylesTab(gtk.VBox):
