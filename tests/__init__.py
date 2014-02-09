@@ -84,6 +84,9 @@ if os.name == 'nt':
 else:
 	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
 
+# also get the default tmpdir and put a copy in the env
+REAL_TMPDIR = tempfile.gettempdir()
+
 
 def load_tests(loader, tests, pattern):
 	'''Load all test cases and return a unittest.TestSuite object.
@@ -105,6 +108,7 @@ def _setUpEnvironment():
 		'ZIM_TEST_RUNNING': 'True',
 		'ZIM_TEST_ROOT': os.getcwd(),
 		'TMP': TMPDIR,
+		'REAL_TMP': REAL_TMPDIR,
 		'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
 		'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
 		'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),

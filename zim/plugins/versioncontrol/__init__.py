@@ -156,6 +156,7 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window, notebook_ext):
 		WindowExtension.__init__(self, plugin, window)
 		self.notebook_ext = notebook_ext
+		self._autosave_thread = None
 
 		if self.notebook_ext.vcs is None:
 			gaction = self.actiongroup.get_action('show_versions')
@@ -165,6 +166,9 @@ class MainWindowExtension(WindowExtension):
 				self.do_save_version_async()
 
 		def on_quit(o):
+			if self._autosave_thread and not self._autosave_thread.done:
+				self._autosave_thread.join()
+
 			if self.plugin.preferences['autosave']:
 				self.do_save_version()
 
@@ -174,9 +178,12 @@ class MainWindowExtension(WindowExtension):
 		if not self.notebook_ext.vcs:
 			return
 
-		func = FunctionThread(self.do_save_version, (msg,))
-		func.start()
-		monitor_thread(func)
+		if self._autosave_thread and not self._autosave_thread.done:
+			self._autosave_thread.join()
+
+		self._autosave_thread = FunctionThread(self.do_save_version, (msg,))
+		self._autosave_thread.start()
+		monitor_thread(self._autosave_thread)
 
 	def do_save_version(self, msg=None):
 		if not self.notebook_ext.vcs:
@@ -888,7 +895,7 @@ class SaveVersionDialog(Dialog):
 		start, end = buffer.get_bounds()
 		msg = buffer.get_text(start, end, False).strip()
 		if msg:
-			self.window_ext.commit_async(msg)
+			self.window_ext.do_save_version_async(msg)
 			return True
 		else:
 			return False

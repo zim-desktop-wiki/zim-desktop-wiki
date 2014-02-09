@@ -245,7 +245,7 @@ IMAGE: {{../my-image.png?width=600|Foo Bar}}
 LINKS: [[:foo:bar]] [[./file.png]] file:///etc/passwd
 LINKS: [[Foo]][[Bar]]
 IMAGELINK: {{my-image.png?href=Foo}}
-IMAGELINK: {{../my-image.png?href=:foo:bar&amp;width=600|Foo Bar}}
+IMAGELINK: {{../my-image.png?href=%3Afoo%3Abar&amp;width=600|Foo Bar}}
 TAGS: @foo @bar
 
 	Some indented
