@@ -2,7 +2,10 @@
 
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''TODO some docs here'''
+'''This module defines the L{main()} function for executing the zim
+application. It also defines a number of command classes that implement
+specific commandline commands.
+'''
 
 import sys
 import logging
@@ -22,6 +25,7 @@ from zim.notebook import Notebook, Path, \
 
 
 class HelpCommand(Command):
+	'''Class implementing the C{--help} command'''
 
 	usagehelp = '''\
 usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
@@ -84,6 +88,7 @@ Try 'zim --manual' for more help.
 
 
 class VersionCommand(Command):
+	'''Class implementing the C{--version} command'''
 
 	def run(self):
 		print 'zim %s\n' % zim.__version__
@@ -99,9 +104,10 @@ class NotebookLookupError(Error):
 
 
 class NotebookCommand(Command):
+	'''Base class for commands that act on a notebook'''
 
 	def get_default_or_only_notebook(self):
-		# Helper used below to decide a good default to open
+		'''Helper to get a default notebook'''
 		notebooks = get_notebook_list()
 		if notebooks.default:
 			return notebooks.default.uri
@@ -163,6 +169,7 @@ class NotebookCommand(Command):
 
 
 class GuiCommand(NotebookCommand):
+	'''Class implementing the C{--gui} command and run the gtk interface'''
 
 	arguments = ('[NOTEBOOK]', '[PAGE]')
 	options = (
@@ -229,6 +236,9 @@ class ManualCommand(GuiCommand):
 
 
 class ServerCommand(NotebookCommand):
+	'''Class implementing the C{--server} command and running the web
+	server.
+	'''
 
 	arguments = ('NOTEBOOK',)
 	options = (
@@ -249,6 +259,9 @@ class ServerCommand(NotebookCommand):
 
 
 class ServerGuiCommand(NotebookCommand):
+	'''Like L{ServerCommand} but uses the graphical interface for the
+	server defined in L{zim.gui.server}.
+	'''
 
 	arguments = ('[NOTEBOOK]',)
 	options = (
@@ -269,6 +282,7 @@ class ServerGuiCommand(NotebookCommand):
 
 
 class ExportCommand(NotebookCommand):
+	'''Class implementing the C{--export} command'''
 
 	arguments = ('NOTEBOOK', '[PAGE]')
 	options = (
@@ -309,6 +323,7 @@ class ExportCommand(NotebookCommand):
 
 
 class SearchCommand(NotebookCommand):
+	'''Class implementing the C{--search} command'''
 
 	arguments = ('NOTEBOOK', 'QUERY')
 
@@ -331,6 +346,7 @@ class SearchCommand(NotebookCommand):
 
 
 class IndexCommand(NotebookCommand):
+	'''Class implementing the C{--index} command'''
 
 	arguments = ('NOTEBOOK',)
 
@@ -424,6 +440,7 @@ def build_command(argv):
 
 
 ########################################################################
+# Not sure where this function belongs
 
 def get_zim_application(command, *args):
 	'''Constructor to get a L{Application} object for zim itself

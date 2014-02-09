@@ -3,7 +3,14 @@
 # Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
+'''Module with assorted useful classes and functions used in the zim code'''
+
+
 class classproperty(object):
+	'''Like C{property()} but for klass properties
+	Typically used as decorator
+	'''
+
 	def __init__(self, func):
 		self.func = func
 
@@ -137,7 +144,11 @@ def natural_sort_key(string, numeric_padding=5):
 # all modules with this implementation
 
 import weakref
+
 class WeakSet(object):
+	'''Class that behaves like a set, but keeps weak references to
+	memebers of the set.
+	'''
 
 	def __init__(self):
 		self._refs = []

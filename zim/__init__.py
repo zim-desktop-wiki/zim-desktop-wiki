@@ -13,8 +13,7 @@
 # GNU General Public License for more details.
 
 '''
-This module contains the base class for the zim application and the main
-function. The rest of the implementation is divided over it's sub-modules.
+This is the development documentation of zim.
 
 B{NOTE:} There is also some generic development documentation in the
 "HACKING" folder in the source distribution. Please also have a look
@@ -29,56 +28,65 @@ a signal but should never be called directly by other objects.
 Overview
 ========
 
-The script C{zim.py} is a thin wrapper around the L{main()} function
-defined here. THe main function validates commandline options and if
-all is well it either calls the background process to connect to some
-running instance of zim, or it instantiates a L{NotebookInterface}
-object, or an object of a subclass like L{GtkInterface} (for the
-graphic user interface) or L{WWWInterface} (for the webinterface).
+The script C{zim.py} is a thin wrapper around the C{main()} function
+defined in L{zim.main}. This main function constructs a C{Command}
+object that implements a specific commandline command. The C{Command}
+object then either connects to a running instance of zim, or executes
+the application.
 
-The L{NotebookInterface} class takes care of connecting to a L{Notebook}
-object and help with e.g. loading plugins and config files. It's
-subclasses build on top of this to implement specific user interfaces.
+To execute the application, the command typically constructs a
+C{Notebook} object, a C{PluginManager} and a C{ConfigManager}. Then
+depending on the command the graphical interface is constructed, a
+webserver is started or some other action is executed on the notebook.
+
+
+The C{Notebook} object is found in L{zim.notebook} and implements the
+API for accessing and storing pages, attachments and other data in
+the notebook folder.
+
+The notebook works together with an C{Index} object which keeps a
+SQLite database of all the pages to speed up notebook access and allows
+to e.g. show a list of pages in the side pane of the user interface.
+
+Another aspect of the notebook is the parsing of the wiki text in the
+pages such that it can be shown in the interface or exported to another
+format. See L{zim.formats} for implementations of different parsers.
+
+All classes related to configuration are located in L{zim.config}.
+The C{ConfigManager} handles looking up config files and provides them
+for all components.
+
+Plugins are defined as sub-modules of L{zim.plugins}. The
+C{PluginManager} manages the plugins that are loaded and objects that
+can be extended by plugins.
+
 The graphical user interface is implemented in the L{zim.gui} module
 and it's sub-modules. The webinterface is implemented in L{zim.www}.
 
 The graphical interface uses a background process to coordinate
-between instances, this is implemented in L{zim.ipc}.
+between running instances, this is implemented in L{zim.ipc}.
 
-Regardsless of the interface choosen there is a L{Notebook} object
-which implements a generic API for accessing and storing pages and
-other data in the notebook. The notebook object is agnostic about the
-actual source of the data (files, database, etc.), this is implemented
-by "store" objects which handle a specific storage model. Storage models
-live below the L{zim.stores} module; e.g. the default mapping of a
-notebook to a folder with one file per page is implemented in the module
-L{zim.stores.files}.
+Functionality for exporting content is implemented in L{zim.exporter}.
+And search functionality can be found in L{zim.search}.
 
-The notebook works together with an L{Index} object which keeps a
-database of all the pages to speed up notebook access and allows us
-to e.g. show a list of pages in the side pane of the user interface.
-
-Another aspect of the notebook is the parsing of the wiki text in the
-pages and contruct a tree model of the formatting that can be shown
-in the interface or exported to another format like HTML. There are
-several parsers which live below L{zim.formats}. The exporting is done
-by L{zim.exporter} and L{zim.templates} implements the template
-engine.
 
 Many classes in zim have signals which allow other objects to connect
 to a listen for specific events. This allows for an event driven chain
-of control, which is mainly used in the graphical interface. If you are
-not familiar with event driven programs please refer to a Gtk manual.
+of control, which is mainly used in the graphical interface, but is
+also used elsewhere. If you are not familiar with event driven programs
+please refer to a Gtk manual.
 
 
 Infrastructure classes
-======================
+----------------------
 
 All functions and objects to interact with the file system can be
-found in L{zim.fs}. For all functionality related to config files
-see L{zim.config}. For executing external applications see
-L{zim.applications} or L{zim.gui.applications}.
+found in L{zim.fs}.
 
+For executing external applications see L{zim.applications} or
+L{zim.gui.applications}.
+
+Some generic base classes and functions can be found in L{zim.utils}
 
 @newfield signal: Signal, Signals
 @newfield emits: Emits, Emits

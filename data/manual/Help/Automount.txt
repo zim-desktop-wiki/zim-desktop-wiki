@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2011-12-11T19:15:27+01:00
+
+====== Automount ======
+
+As a special feature notebooks can be "mounted" automatically when opened. This can e.g. be used to connect with remote drives or unlock an encrypted drive when zim is trying to open a specific notebook.
+
+===== Config file =====
+The paths to be automounted and the commands to mount them are configured in a config file "''~/.config/zim/automount.conf''" (see [[Config Files]] for alternative locations).
+
+The config file has a group for each path, followed with options. Currently the only supported option is a "mount" command. For example if you have an Ubuntu setup to encrypt the "''~/Documents''" folder, you can create a config file with the following two lines:
+
+'''
+[Path ~/Documents]
+mount=xterm -e /usr/bin/ecryptfs-mount-private
+'''
+
+The result will be that whenever zim tries to access an notebook stored under the Documents folder while that folder is not decrypted, it will prompt a terminal window to ask for the password and then mount the folder. If it fails, you still get a "notebook not found" error.
+
+Similarly you can configure various scripts of your own design.

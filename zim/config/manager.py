@@ -16,8 +16,11 @@ from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler
 
 
 class ConfigManager(object):
-	'''Object to manager a set of config files, and allowing to
-	switch configuration profiles.
+	'''This class defines an object that manages a set of config files.
+
+	The config manager abstracts the lookup of files using the XDG
+	search paths and ensures that there is only a single instance used
+	for each config file.
 
 	The config manager can switch the config file based on the config
 	X{profile} that is used. The profile is determined by the notebook

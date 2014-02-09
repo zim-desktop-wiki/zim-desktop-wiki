@@ -19,23 +19,37 @@ class UsageError(Error):
 
 
 class Command(object):
-	'''Base class for commandline commands'''
+	'''Base class for commandline commands, used by zim to abstract
+	part of the C{main()} functionality and allow better testability
+	of commandline arguments.
+
+	Sub-classes can define the options and arguments that they require.
+	Then only the C{run()} method needs to be defined to implement the
+	actual command. In the C{run()} method C{self.opts} and C{self.args}
+	can be accessed to get the commandline options (dict) and the
+	commandline arguments (list) respectively.
+	'''
 
 	arguments = () #: Define arguments, e.g ('NOTEBOOK', '[PAGE]')
 
-	options = () #: Define options by 3-tuple of long, short & description
-		# e.g. ("foo=", "f", "set parameter for foo")
-		# For options that can appear multiple times,
-		# assign a list "[]" in "self.opts" before parse_options is called
+	options = () #: Define options by 3-tuple of long, short & description.
+		#: E.g. ("foo=", "f", "set parameter for foo")
+		#: For options that can appear multiple times,
+		#: assign a list "[]" in "self.opts" before parse_options is called
 
 	default_options	 = (
 		('verbose', 'V', 'Verbose output'),
 		('debug', 'D', 'Debug output'),
 	)
 
-	use_gtk = False
+	use_gtk = False #: Flag whether this command uses a graphical interface
 
 	def __init__(self, command, *args, **opts):
+		'''Constructor
+		@param command: the command switch (first commandline argument)
+		@param args: positional commandline arguments
+		@param opts: command options
+		'''
 		self.command = command
 		self.args = list(args)
 		self.opts = opts
@@ -73,6 +87,9 @@ class Command(object):
 				self.opts[key] = a
 
 	def get_options(self, *names):
+		'''Retrieve a dict with a sub-set of the command options
+		@param names: that options in the subset
+		'''
 		return dict((k, self.opts.get(k)) for k in names)
 
 	def get_arguments(self):

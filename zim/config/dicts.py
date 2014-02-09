@@ -2,17 +2,23 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''This module contains base classes to map config files.
+'''This module contains base classes to map config files to dicts
 
-Main class for storing config items is the L{SectionedConfigDict}, which
-stores configuration that is organized in sub-dicts. The
-L{INIConfigFile} is an implementation that stores these dicts in
-"INI-file" file format. This is used for most configuration files in zim.
-The L{ConfigDict} class stores the actual configuration items and
-represents a single section in the L{INIConfigFile}. The L{ConfigDict}
-also takes care of ensuring that the config items are valid and marshals
-the object type if needed.
-The L{ControlledDict} is a base class used by both to track changes.
+The main classes are L{ConfigDict} and L{INIConfigFile}. The
+L{ConfigDict} defines a dictionary of config keys. To add a key in this
+dictionary it must first be defined using one of the sub-classes of
+L{ConfigDefinition}. This definition takes care of validating the
+value of the config keys and (de-)serializing the values from and to
+text representation used in the config files. The L{INIConfigFile} maps
+to a INI-style config file that defines multiple sections with config
+keys. It is represented as a dictionary where each key maps a to a
+L{ConfigDict}.
+
+Both derive from L{ControlledDict} which defines the C{changed} signal
+which can be used to track changes in the configuration.
+
+Typically these classes are not instantiated directly, but by the
+L{ConfigManager} defined in Lzim.config.manager}.
 '''
 
 from __future__ import with_statement
@@ -44,11 +50,14 @@ logger = logging.getLogger('zim.config')
 
 
 class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
-	'''Sub-class of C{OrderedDict} that also tracks modified state.
+	'''Sub-class of C{OrderedDict} that tracks modified state.
 	This modified state is recursive for nested C{ControlledDict}s.
 
+	Used as base class for L{SectionedConfigDict}, L{ConfigDict}
+	and L{HeadersDict}.
+
 	@signal: C{changed ()}: emitted when content of this dict changed,
-	or a nested C{OrderedDict} changed
+	or a nested C{ControlledDict} changed
 	'''
 
 	def __init__(self, E=None, **F):
@@ -59,7 +68,7 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 
 	def __setitem__(self, k, v):
 		OrderedDict.__setitem__(self, k, v)
-		if isinstance(v, OrderedDict):
+		if isinstance(v, ControlledDict):
 			self.connectto(v, 'changed', self.on_child_changed)
 		self.emit('changed')
 
@@ -86,6 +95,9 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 
 	@property
 	def modified(self):
+		'''C{True} when the values were modified, used to e.g.
+		track when a config needs to be written back to file
+		'''
 		return self._modified
 
 	def set_modified(self, modified):
@@ -216,6 +228,7 @@ class ConfigDefinitionByClass(ConfigDefinition):
 
 
 class Boolean(ConfigDefinition):
+	'''This class defines a config key that maps to a boolean'''
 
 	def check(self, value):
 		if self._check_allow_empty(value):
@@ -229,6 +242,7 @@ class Boolean(ConfigDefinition):
 
 
 class String(ConfigDefinition):
+	'''This class defines a config key that maps to a string'''
 
 	# TODO support esacpe codes \s \t \n \r (see desktop / json spec)
 
@@ -255,6 +269,8 @@ class String(ConfigDefinition):
 
 
 class StringAllowEmpty(String):
+	'''Like C{String} but defaults to C{allow_empty=True}'''
+
 	# XXX needed by TaskList - remove when prefs are ported to use defs directly
 
 	def __init__(self, default, allow_empty=True):
@@ -262,6 +278,7 @@ class StringAllowEmpty(String):
 
 
 class Integer(ConfigDefinition):
+	'''This class defines a config key that maps to an integer value'''
 
 	def check(self, value):
 		if self._check_allow_empty(value):
@@ -276,6 +293,7 @@ class Integer(ConfigDefinition):
 
 
 class Float(ConfigDefinition):
+	'''This class defines a config key that maps to a float'''
 
 	def check(self, value):
 		if self._check_allow_empty(value):
@@ -437,22 +455,22 @@ def build_config_definition(default=None, check=None, allow_empty=False):
 
 
 class ConfigDict(ControlledDict):
-	'''
-	Class that behaves like a dict but keeps items in same order.
-	This is the base class for all dicts holding config items in zim.
-	Most importantly it is used for each section in the L{INIConfigFile}.
-	Because it remembers the order of the items in the dict, the order
-	in which they will be written to a config file is predictable.
-	Another important function is to check the config values have
-	proper values, this is enforced by L{setdefault()}.
+	'''The class defines a dictionary of config keys.
 
-	@ivar modified: C{True} when the values were modified, used to e.g.
-	track when a config needs to be written back to file
-
+	To add a key in this dictionary it must first be defined using one
+	of the sub-classes of L{ConfigDefinition}. This definition takes
+	care of validating the value of the config keys and
+	(de-)serializing the values from and to text representation used
+	in the config files.
 
 	Both getting and setting a value will raise a C{KeyError} when the
-	key has not been defined. An C{ValueError} is raised when the
+	key has not been defined first. An C{ValueError} is raised when the
 	value does not conform to the definition.
+
+	THis class derives from L{ControlledDict} which in turn derives
+	from L{OrderedDict} so changes to the config can be tracked by the
+	C{changed} signal, and values are kept in the same order so the order
+	in which items are written to the config file is predictable.
 	'''
 
 	def __init__(self, E=None, **F):
@@ -474,6 +492,12 @@ class ConfigDict(ControlledDict):
 		return new
 
 	def update(self, E=None, **F):
+		'''Like C{dict.update()}, copying values from C{E} or C{F}.
+		However if C{E} is also a C{ConfigDict}, also the definitions
+		are copied along.
+		Do use C{update()} when setting multiple values at once since it
+		results in emitting C{changed} only once.
+		'''
 		if E and isinstance(E, ConfigDict):
 			self.define(
 				(k, E.definitions[k]) for k in E if not k in self
@@ -556,6 +580,9 @@ class ConfigDict(ControlledDict):
 
 	def setdefault(self, key, default, check=None, allow_empty=False):
 		'''Set the default value for a configuration item.
+
+		@note: Usage of this method with keyword arguments is
+		depreciated, use L{define()} instead.
 
 		Compatible with C{dict.setdefault()} but extended with
 		functionality to check the value that is in the dict, and use

@@ -2,22 +2,15 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''This module contains functions to locate config files
-
-The search path for zim config files follows the freedesktop.org (XDG)
-Base Dir specification. The functions L{config_file()} and L{data_file()}
-are used to locate config and data files, while the functions
-L{config_dirs()}, L{data_dir()}, and L{data_dirs()} give access to the
-actual search path.
+'''This module defines the search path for zim config files following
+the freedesktop.org (XDG) Base Dir specification.
 '''
 
 import os
 import logging
 
-from zim.fs import isfile, File, Dir, FileNotFoundError
+from zim.fs import File, Dir
 from zim.environ import environ
-from zim.errors import Error
-from zim.parsing import TextBuffer, split_quoted_strings
 
 
 logger = logging.getLogger('zim.config')
