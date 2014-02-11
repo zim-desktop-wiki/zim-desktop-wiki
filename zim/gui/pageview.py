@@ -765,6 +765,18 @@ class TextBuffer(gtk.TextBuffer):
 			enditer = self.get_iter_at_mark(self.get_insert())
 			if not enditer.ends_line():
 				self._do_lines_merged(enditer)
+
+			# Fix text direction of indent tags
+			for line in range(startiter.get_line(), enditer.get_line()+1):
+				iter = self.get_iter_at_line(line)
+				tags = filter(_is_indent_tag, iter.get_tags())
+				if tags:
+					dir = self._find_base_dir(line)
+					if dir == 'RTL':
+						bullet = self.get_bullet(line)
+						level = self.get_indent(line)
+						self._set_indent(line, level, bullet, dir=dir)
+					# else pass, LTR is the default
 		except:
 			# Try to recover buffer state before raising
 			self.update_editmode()
@@ -816,6 +828,9 @@ class TextBuffer(gtk.TextBuffer):
 					return # Re-use tag
 
 			tag = self._get_indent_tag(level, bullet)
+				# We don't set the LTR / RTL direction here
+				# instead we update all indent tags after the full
+				# insert is done.
 			self._editmode_tags += (tag,)
 
 		def force_line_start():
@@ -1214,7 +1229,8 @@ class TextBuffer(gtk.TextBuffer):
 				# the icon as a bullet item. This will mess up
 				# undo stack. If 'raw' we assume indent tag is set
 				# already.
-				tag = self._get_indent_tag(0, bullet)
+				dir = self._find_base_dir(insert.get_line())
+				tag = self._get_indent_tag(0, bullet, dir=dir)
 				self._editmode_tags = self._editmode_tags + (tag,)
 
 		with self.user_action:
@@ -1676,8 +1692,8 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return 0
 
-	def _get_indent_tag(self, level, bullet=None):
-		name = 'indent-%i' % level
+	def _get_indent_tag(self, level, bullet=None, dir='LTR'):
+		name = 'indent-%s-%i' % (dir, level)
 		if bullet:
 			name += '-' + bullet
 		tag = self.get_tag_table().lookup(name)
@@ -1691,18 +1707,53 @@ class TextBuffer(gtk.TextBuffer):
 				else: raise AssertionError, 'BUG: Unkown bullet type'
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
-				tag = self.create_tag(name, left_margin=margin, indent=indent, **self.tag_styles[stylename])
+				if dir == 'LTR':
+					tag = self.create_tag(name,
+						left_margin=margin, indent=indent,
+						**self.tag_styles[stylename])
+				else: # RTL
+					tag = self.create_tag(name,
+						right_margin=margin, indent=indent,
+						**self.tag_styles[stylename])
 			else:
 				margin = 12 + self.pixels_indent * level
-				tag = self.create_tag(name, left_margin=margin, **self.tag_styles['indent'])
 				# Note: I would think the + 12 is not needed here, but
 				# the effect in the view is different than expected,
 				# putting text all the way to the left against the
 				# window border
+				if dir == 'LTR':
+					tag = self.create_tag(name,
+						left_margin=margin,
+						**self.tag_styles['indent'])
+				else: # RTL
+					tag = self.create_tag(name,
+						right_margin=margin,
+						**self.tag_styles['indent'])
+
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
 			tag.zim_attrib = {'indent': level}
 		return tag
+
+	def _find_base_dir(self, line):
+		# Look for basedir of current line, else previous line
+		# till start of paragraph
+		# FIXME: anyway to actually find out what the TextView will render ??
+		while line >= 0:
+			start, end = self.get_line_bounds(line)
+			text = self.get_slice(start, end)
+			if not text or text.isspace():
+				break
+
+			dir = pango.find_base_dir(text, len(text))
+			if dir == pango.DIRECTION_LTR:
+				return 'LTR'
+			elif dir == pango.DIRECTION_RTL:
+				return 'RTL'
+			else:
+				line -= 1
+		else:
+			return 'LTR' # default
 
 	def set_indent(self, line, level, interactive=False):
 		'''Set the indenting for a specific line.
@@ -1760,7 +1811,7 @@ class TextBuffer(gtk.TextBuffer):
 		level = self.get_indent(line)
 		self._set_indent(line, level, bullet)
 
-	def _set_indent(self, line, level, bullet):
+	def _set_indent(self, line, level, bullet, dir=None):
 		# Common code between set_indent() and update_indent_tag()
 		start, end = self.get_line_bounds(line)
 
@@ -1774,7 +1825,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		if level > 0 or bullet:
 			# For bullets there is a 0-level tag, otherwise 0 means None
-			tag = self._get_indent_tag(level, bullet)
+			if dir is None:
+				dir = self._find_base_dir(line)
+			tag = self._get_indent_tag(level, bullet, dir=dir)
 			self.apply_tag(tag, start, end)
 
 		self.update_editmode() # also updates indent tag
