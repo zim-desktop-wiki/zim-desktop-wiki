@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -3182,6 +3182,13 @@ class ErrorDialog(gtk.MessageDialog):
 
 		@param do_logging: if C{True} also log the error, if C{False}
 		assume someone else already did
+
+		@param buttons: a constant controlling what kind of buttons the
+		dialog will have. One of:
+			- C{None} or C{gtk.BUTTONS_NONE}: for dialogs taking care
+			  of constructing the buttons themselves
+			- C{gtk.BUTTONS_OK_CANCEL}: Render Ok and Cancel
+			- C{gtk.BUTTONS_CLOSE}: Only set a Close button
 		'''
 		if not isinstance(error, Exception):
 			if isinstance(error, tuple):

@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# This script is a wrapper around zim.main.main() for running zim as
+# an application.
+
+
 import sys
 import logging
 import os

@@ -2,15 +2,22 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
+
 import tests
+
+from tests.gui import setupGtkInterface
 
 import os
 import tempfile
+import gtk
 
 from zim.fs import File, Dir
-from zim.plugins.versioncontrol import VersionControlPlugin, NoChangesError
+from zim.applications import Application
+from zim.notebook import Path
 
-from zim.plugins.versioncontrol import VCS
+from zim.plugins.versioncontrol import *
 
 import zim.plugins.versioncontrol.bzr
 import zim.plugins.versioncontrol.hg
@@ -21,10 +28,11 @@ import zim.plugins.versioncontrol.git
 # because sources are probably under change control already - want to
 # avoid mixing up the files
 def get_tmp_dir(name):
-	testtmp = os.environ['TMP']
-	del os.environ['TMP']
-	dir = Dir(tempfile.gettempdir())
-	os.environ['TMP'] = testtmp
+	if 'REAL_TMP' in os.environ: # Set in tests/__init__.py
+		dir = Dir(os.environ['REAL_TMP'])
+	else:
+		dir = Dir(tempfile.gettempdir())
+	#~ print "TMPDIR:", dir
 
 	dir = dir.subdir('test_versioncontrol').subdir(name)
 	if dir.exists():
@@ -58,6 +66,93 @@ class TestVCS(tests.TestCase):
 		subdir = subroot.subdir('Foo/Bar')
 		subdir.touch()
 		self.assertEqual(VCS._detect_in_folder(subdir), ('git', subroot))
+
+
+@tests.slowTest
+@tests.skipUnless(
+	any(
+		map(VCS.check_dependencies, (VCS.BZR, VCS.GIT, VCS.HG))
+	), 'Missing dependencies')
+class TestMainWindowExtension(tests.TestCase):
+
+	def runTest(self):
+		plugin = VersionControlPlugin()
+
+		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
+		notebook = tests.new_files_notebook(dir)
+		ui = setupGtkInterface(self, notebook=notebook)
+		plugin.extend(notebook)
+		plugin.extend(ui.mainwindow)
+
+		notebook_ext = plugin.get_extension(NotebookExtension)
+		self.assertIsInstance(notebook_ext, NotebookExtension)
+
+		window_ext = plugin.get_extension(MainWindowExtension)
+		self.assertIsInstance(window_ext, MainWindowExtension)
+
+		## init & save version
+		self.assertIsNone(notebook_ext.vcs)
+
+		def init(dialog):
+			self.assertIsInstance(dialog, VersionControlInitDialog)
+			choice = dialog.combobox.get_active_text()
+			self.assertTrue(choice and not choice.isspace())
+			dialog.emit('response', gtk.RESPONSE_YES)
+
+		with tests.DialogContext(init, SaveVersionDialog):
+			window_ext.save_version()
+
+		self.assertIsNotNone(notebook_ext.vcs)
+
+		window_ext._autosave_thread.join()
+		self.assertFalse(notebook_ext.vcs.modified)
+
+		## save version again
+		page = notebook.get_page(Path('Foo'))
+		page.parse('wiki', 'foo!')
+		notebook.store_page(page)
+
+		self.assertTrue(notebook_ext.vcs.modified)
+
+		with tests.DialogContext(SaveVersionDialog):
+			window_ext.save_version()
+
+		window_ext._autosave_thread.join()
+
+		self.assertFalse(notebook_ext.vcs.modified)
+
+		## show versions
+		with tests.DialogContext(VersionsDialog):
+			window_ext.show_versions()
+
+		## auto-save
+		plugin.preferences['autosave'] = True
+
+		page = notebook.get_page(Path('Fooooo'))
+		page.parse('wiki', 'foo!')
+		notebook.store_page(page)
+
+		self.assertTrue(notebook_ext.vcs.modified)
+		ui.emit('quit')
+		self.assertFalse(notebook_ext.vcs.modified)
+
+
+@tests.slowTest
+class TestVersionsDialog(tests.TestCase):
+
+	def testSideBySide(self):
+		app = get_side_by_side_app()
+		if Application('meld').tryexec():
+			self.assertIsNotNone(app)
+
+		if app is None:
+			print '\nCould not find an application for side-by-side comparison'
+		else:
+			self.assertTrue(app.tryexec)
+
+	def testDialog(self):
+		pass # TODO test other dialog functions
+
 
 
 #####################################################

@@ -13,7 +13,7 @@ for plugins.
 Also see the HACKING notebook in the source distribution for some
 notes on writing new plugins.
 
-@note: sub-modules T should contain one and exactly one subclass of
+@note: sub-modules should contain one and exactly one subclass of
 L{PluginClass}. This is because this class is detected automatically
 when loading the plugin. This means you can also not import classes of
 other plugins directly into the module.

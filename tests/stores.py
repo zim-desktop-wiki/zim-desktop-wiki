@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for basic stores modules.'''
 

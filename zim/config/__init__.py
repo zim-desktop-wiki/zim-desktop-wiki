@@ -7,15 +7,28 @@ from .dicts import *
 from .manager import *
 
 
+'''This module defines all functions and objects related to the
+application config.
+
+The sub module L{zim.config.manager} contains that L{ConfigManager}
+object, which is the main object to access configuration files. In
+L{zim.config.dicts} a number of classes are defined that represent
+configuration files as dictionaries. And classes to define the config
+options that are used and how to validate those.
+
+The file system paths where to search for config files are defined
+in L{zim.config.basedirs}.
+'''
 
 
 # FIXME - when XDG variables in basedirs.py change, they don't change
 # in this module ...
 # should they move to their own module ?
 
-# TODO - decide which of these functions should be handled by the
-# config manager. E.g. keep function for loading resources (icons,
-# images, templates, ..) but load all config files through the manager
+# TODO: Define a ResourceManager for loading resources (icons,
+# images, templates, ..)
+# Singleton class
+# Avoid using basedirs directly elsewhere in the code
 
 # TODO: resources like icons etc can be managed by a Singleton ResourceManager
 
