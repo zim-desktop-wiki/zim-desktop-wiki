@@ -255,3 +255,149 @@ class TestExportDialog(tests.TestCase):
 		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_file'], File)
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well
+
+
+########################################################################
+
+########################################################################
+
+########################################################################
+
+
+from zim.templates import ExpressionParameter
+
+
+class TestFactory(tests.TestCase):
+
+	def runTest(self):
+		def myfunc(*args, **kwargs):
+			return args, kwargs
+
+		factory = Factory(myfunc, '123', foo='bar')
+
+		self.assertEqual(factory(), (
+			('123',),
+			{'foo': 'bar'},
+		))
+
+		self.assertEqual(factory('456', foo='baz', x='y'), (
+			('123', '456'),
+			{'foo': 'baz', 'x': 'y'},
+		))
+
+		# Check default not changed
+		self.assertEqual(factory(), (
+			('123',),
+			{'foo': 'bar'},
+		))
+
+
+class TestExportTemplateContext(tests.TestCase):
+
+	def setUp(self):
+		tmpdir = self.get_tmp_name()
+		notebook = tests.new_notebook(tmpdir + '/notebook')
+		layout = MultiFileLayout(Dir(tmpdir + '/export'), 'html')
+		linker_factory = Factory(ExportLinker,
+			notebook=notebook,
+			layout=layout,
+			output=layout.page_file('test'),
+			usebase=True
+		)
+		dumper_factory = get_format('html').Dumper
+
+		title = 'Test Export'
+		self.content = [notebook.get_page(Path('Test:foo'))]
+		self.context = ExportTemplateContext(
+			notebook, linker_factory, dumper_factory,
+			title, self.content, special=None,
+			home=None, up=None, prevpage=None, nextpage=None,
+			links=None,
+		)
+
+	def runTest(self):
+		def get(name):
+			param = ExpressionParameter(name)
+			return param(self.context)
+
+		# Test context setup
+		self.assertIsInstance(get('generator.name'), basestring)
+		self.assertTrue(get('generator.name').startswith('Zim'))
+		self.assertIsInstance(get('generator.user'), basestring)
+
+		self.assertEqual(get('title'), 'Test Export')
+
+		pages = list(get('pages'))
+		self.assertEqual(len(pages), 1)
+		self.assertTrue(all(isinstance(o, PageProxy) for o in pages))
+		self.assertEqual(pages[0]._page, self.content[0])
+		## TODO
+		# pages
+		#   content
+		#   special
+		#
+		# navigation	- links to other export pages (if not included here)
+		#	home
+		#	up
+		# 	prev			-- prev export file or None
+		# 	next			-- next export file or None
+		#
+		# links			-- links to other export pages (index & plugins / ...) - sorted dict to have Index, Home first followed by plugins
+		#
+		#	link
+		#		.name
+		#		.basename
+
+
+		# Test PageProxy
+		self.context['mypage'] = pages[0]
+		self.assertEqual(get('mypage.title'), 'Foo')
+		self.assertEqual(get('mypage.name'), 'Test:foo')
+		self.assertEqual(get('mypage.namespace'), 'Test')
+		self.assertEqual(get('mypage.basename'), 'foo')
+
+		self.assertEqual(get('mypage.heading'), 'Foo')
+		self.assertIsInstance(get('mypage.content'), basestring)
+		self.assertIsInstance(get('mypage.body'), basestring)
+		self.assertIsInstance(get('mypage.properties'), dict)
+
+
+		#			.links
+		#			.backlinks
+		#			.attachments
+		#
+
+		# Test FileProxy
+		#				file
+		#					.basename
+		#					.mtime
+		#					.size
+		#
+
+		## TODO
+		# options		-- dict with template options (for format)
+		#
+		# toc([page])			-- iter of headings in this page or all of pages
+		# index([namespace])	-- index of full export job, not just in this page
+		# uri(link|file)
+		# resource(file)
+		# anchor(page|section)
+		#
+		# From template:
+		# range() / len() / sorted() / reversed()
+		# strftime()
+		# strfcal()
+		#
+		# test single page by "IF loop.first and loop.last"
+
+
+		## TODO test all of the attributes / items accesible through the
+		##      context dict are string, expressionfunction, or proxy defined in this module
+
+		## TODO test modification of options by template ends up in context
+		##      test setting other local paramters in template does NOT affect context object
+		##      test setting page properties is NOT allowed
+
+		## TODO list simple template with processor to test looping through pages
+
+## TODO tests for linker, layouts, exporters

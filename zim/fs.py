@@ -129,7 +129,6 @@ from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode, URL_ENCODE_READABLE
 from zim.signals import SignalEmitter, SIGNAL_AFTER
 
-
 logger = logging.getLogger('zim.fs')
 
 #: gobject and gio libraries are imported for optional features, like trash
@@ -295,10 +294,24 @@ def expanduser(path):
 			# assume it is compatible
 			parts[0] = os.path.expanduser(parts[0])
 
-		return '/'.join(parts)
+		path = '/'.join(parts)
 	else:
 		# Let encode() handle the unicode encoding
-		return decode(os.path.expanduser(encode(path)))
+		path = decode(os.path.expanduser(encode(path)))
+
+	if path.startswith('~'):
+		# expansion failed - do a simple fallback
+		from zim.environ import environ
+
+		home = environ['HOME']
+		parts = path.replace('\\', '/').strip('/').split('/')
+		if parts[0] == '~':
+			path = '/'.join([home] + parts[1:])
+		else: # ~user
+			dir = os.path.basename(home) # /home or similar ?
+			path = '/'.join([dir, parts[0][1:]] + parts[1:])
+
+	return path
 
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -576,8 +589,6 @@ class UnixPath(SignalEmitter):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
 			path = expanduser(path)
-			if path.startswith('~'):
-				raise AssertionError, 'Could not expand path "%s" this could mean $HOME is not set' % path
 
 		self._set_path(path) # overloaded in WindowsPath
 

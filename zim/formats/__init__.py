@@ -301,7 +301,11 @@ class ParseTree(object):
 	def copy(self):
 		# By using serialization we are absolutely sure all refs are new
 		xml = self.tostring()
-		return ParseTree().fromstring(xml)
+		try:
+			return ParseTree().fromstring(xml)
+		except:
+			print ">>>", xml, "<<<"
+			raise
 
 	def _get_heading_element(self, level=1):
 		root = self._etree.getroot()
@@ -362,6 +366,8 @@ class ParseTree(object):
 					return None, None
 			else:
 				return None, None
+		else:
+			return None, None
 
 	def cleanup_headings(self, offset=0, max=6):
 		'''Change the heading levels throughout the tree. This makes sure that
