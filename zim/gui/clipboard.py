@@ -12,10 +12,11 @@ straight forward API.
 import gtk
 import logging
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, FS
 from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
-from zim.formats import get_format, ParseTree, TreeBuilder
+from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
+	FORMATTEDTEXT, IMAGE, LINK
 from zim.exporter import StaticLinker
 
 
@@ -141,7 +142,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		# try to catch this situation by a check here
 		text = selectiondata.get_text()
 		if text:
-			return get_format('plain').Parser().parse(text.decode('utf-8'))
+			return get_format('plain').Parser().parse(text.decode('utf-8'), partial=True)
 		else:
 			return None
 	elif targetname in IMAGE_TARGET_NAMES:
@@ -165,6 +166,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
 		pixbuf.save(file.path, format)
+		FS.emit('path-created', file) # notify version control
 
 		links = [file.uri]
 		return _link_tree(links, notebook, path)
@@ -176,11 +178,11 @@ def _link_tree(links, notebook, path):
 	# Convert a list of links (of any type) into a parsetree
 	#~ print 'LINKS: ', links
 	#~ print 'NOTEBOOK and PATH:', notebook, path
-	builder = TreeBuilder()
-	builder.start('zim-tree')
+	builder = ParseTreeBuilder()
+	builder.start(FORMATTEDTEXT)
 	for i in range(len(links)):
 		if i > 0:
-			builder.data(' ')
+			builder.text(' ')
 
 		link = links[i]
 		type = link_type(link)
@@ -196,13 +198,10 @@ def _link_tree(links, notebook, path):
 
 		if isimage:
 			src = notebook.relative_filepath(file, path) or file.uri
-			builder.start('img', {'src': src})
-			builder.end('img')
+			builder.append(IMAGE, {'src': src})
 		elif link.startswith('@'):
 			# FIXME - is this ever used ??
-			builder.start('tag', {'name': links[i][1:]})
-			builder.data(links[i])
-			builder.end('tag')
+			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
 			if type == 'page':
 				href = Path(notebook.cleanup_pathname(link)) # Assume links are always absolute
@@ -211,12 +210,10 @@ def _link_tree(links, notebook, path):
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
-			builder.start('link', {'href': link})
-			builder.data(link)
-			builder.end('link')
+			builder.append(LINK, {'href': link}, link)
 
-	builder.end('zim-tree')
-	tree = ParseTree(builder.close())
+	builder.end(FORMATTEDTEXT)
+	tree = builder.get_parsetree()
 	tree.resolve_images(notebook, path)
 	tree.decode_urls()
 	return tree
@@ -288,6 +285,25 @@ class UriItem(ClipboardItem):
 				selectiondata.set_text(self.uri)
 
 
+class InterWikiLinkItem(UriItem):
+	'''Like L{UriItem} but with special case for zim parsetree'''
+
+	targets = (PARSETREE_TARGET,) + UriItem.targets
+
+	def __init__(self, href, url):
+		UriItem.__init__(self, url)
+		self.interwiki_href = href
+
+	def _get(self, clipboard, selectiondata, id, *a):
+		logger.debug("Clipboard requests data as '%s', we have an interwiki link", selectiondata.target)
+		if id == PARSETREE_TARGET_ID:
+			tree = _link_tree((self.interwiki_href,), None, None)
+			xml = tree.tostring().encode('utf-8')
+			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
+		else:
+			UriItem._get(self, clipboard, selectiondata, id, *a)
+
+
 class ParseTreeItem(ClipboardItem):
 	'''Clipboard wrapper for a L{ParseTree}.'''
 
@@ -333,20 +349,6 @@ class ParseTreeItem(ClipboardItem):
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
 			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
-			if self.format != 'wiki':
-				# FIXME - HACK - dump and parse as wiki first to work
-				# around glitches in pageview parsetree dumper
-				# main visibility when copy pasting bullet lists
-				# Same hack in print to browser plugin
-				dumper = get_format('wiki').Dumper()
-				text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
-				parser = get_format('wiki').Parser()
-				parsetree = parser.parse(text)
-				if self.parsetree.ispartial:
-					parsetree.getroot().attrib['partial'] = True
-				#--
-			else:
-				parsetree = self.parsetree
 			#~ print ">>>>", self.format, parsetree.tostring()
 
 			if self.format in ('wiki', 'plain'):
@@ -355,7 +357,7 @@ class ParseTreeItem(ClipboardItem):
 				dumper = get_format(self.format).Dumper(
 					linker=StaticLinker(self.format, self.notebook, self.path) )
 
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id
@@ -507,6 +509,15 @@ class ClipboardManager(object):
 		@param path: a L{Path} object
 		'''
 		item = PageLinkItem(notebook, path)
+		self.set(item)
+
+	def set_interwikilink(self, href, url):
+		'''Copy an interwiki link to the clipboard
+		@param href: the link as shown in zim, e.g. "wp?foobar"
+		@param url: the expanded url for this interwiki link, e.g.
+		"http://en.wikipedia.org/wiki/foobar"
+		'''
+		item = InterWikiLinkItem(href, url)
 		self.set(item)
 
 	def set_uri(self, uri):

@@ -2,11 +2,12 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from tests import TestCase
+import tests
 
 from zim.parsing import *
+from zim.parser import *
 
-class TestParsing(TestCase):
+class TestParsing(tests.TestCase):
 
 	def testSplitWords(self):
 		'''Test parsing quoted strings'''
@@ -130,3 +131,84 @@ class TestParsing(TestCase):
 		):
 			#~ print '>>', href
 			self.assertEqual(link_type(href), type)
+
+
+class TestSimpleTreeBuilder(tests.TestCase):
+
+	def runTest(self):
+		builder = SimpleTreeBuilder(merge_text=False)
+
+		builder.start('root', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.append('dus', {}, 'ja')
+		builder.text('foo')
+		builder.text('bar')
+		builder.append('br', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.end('root')
+
+		root = builder.get_root()
+		self.assertEqual(root, [
+			('root', {}, [
+					'foo', 'bar',
+					('dus', {}, ['ja']),
+					'foo', 'bar',
+					('br', {}, []),
+					'foo', 'bar',
+				]
+			)
+		])
+
+
+		builder = SimpleTreeBuilder()
+
+		builder.start('root', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.append('dus', {}, 'ja')
+		builder.text('foo')
+		builder.text('bar')
+		builder.append('br', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.end('root')
+
+		root = builder.get_root()
+		self.assertEqual(root, [
+			('root', {}, [
+					'foobar',
+					('dus', {}, ['ja']),
+					'foobar',
+					('br', {}, []),
+					'foobar',
+				]
+			)
+		])
+
+
+class TestParser(tests.TestCase):
+
+	def testFunctions(self):
+		# Helper functions
+		for input, wanted in (
+			('foo', 'foo\n'),
+			('foo\nbar', 'foo\nbar\n'),
+			('    foo\n\t     bar', '\tfoo\n\t\t bar\n'),
+		):
+			output = prepare_text(input)
+			self.assertEqual(output, wanted)
+
+		text = 'foo\nbar\nbaz\n'
+		for offset, wanted in (
+			(0, (1, 0)),
+			(3, (1, 3)),
+			(4, (2, 0)),
+			(8, (3, 0)),
+			(9, (3, 1)),
+		):
+			line = get_line_count(text, offset)
+			self.assertEqual(line, wanted)
+
+	## TODO -- Parser test cases ##

@@ -10,25 +10,39 @@ import zim.config
 import zim.formats
 
 from zim.parsing import parse_date
+from zim.plugins.tasklist import *
 
 
 class TestTaskList(tests.TestCase):
 
 	def testIndexing(self):
 		'''Check indexing of tasklist plugin'''
-		klass = zim.plugins.get_plugin('tasklist')
-		ui = MockUI()
-		plugin = klass(ui)
+		klass = zim.plugins.get_plugin_class('tasklist')
+		plugin = klass()
+
+		notebook = tests.new_notebook()
+		plugin.extend(notebook.index)
+		index_ext = plugin.get_extension(IndexExtension)
+		self.assertIsNotNone(index_ext)
 
 		# Test indexing based on index signals
-		ui.notebook.index.flush()
-		ui.notebook.index.update()
-		self.assertTrue(plugin.db_initialized)
-		tasks = list(plugin.list_tasks())
+		notebook.index.flush()
+		notebook.index.update()
+		self.assertTrue(index_ext.db_initialized)
+		tasks = list(index_ext.list_tasks())
 		self.assertTrue(len(tasks) > 5)
 		for task in tasks:
-			path = plugin.get_path(task)
+			path = index_ext.get_path(task)
 			self.assertTrue(not path is None)
+
+	def testParsing(self):
+		klass = zim.plugins.get_plugin_class('tasklist')
+		plugin = klass()
+
+		notebook = tests.new_notebook()
+		plugin.extend(notebook.index)
+		index_ext = plugin.get_extension(IndexExtension)
+		self.assertIsNotNone(index_ext)
 
 		# Test correctnest of parsing
 		NO_DATE = '9999'
@@ -40,8 +54,9 @@ class TestTaskList(tests.TestCase):
 			parser = zim.formats.get_format('wiki').Parser()
 			tree = parser.parse(text)
 			origtree = tree.tostring()
+			#~ print 'TREE', origtree
 
-			tasks = plugin._extract_tasks(tree)
+			tasks = index_ext._extract_tasks(tree)
 			self.assertEqual(tree.tostring(), origtree)
 				# extract should not modify the tree
 			return tasks
@@ -49,7 +64,11 @@ class TestTaskList(tests.TestCase):
 		def t(label, open=True, due=NO_DATE, prio=0, tags='', actionable=True):
 			# Generate a task tuple
 			# (open, actionable, prio, due, tags, description)
-			return [open, actionable, prio, due, tags, label]
+			if tags:
+				tags = set(unicode(tags).split(','))
+			else:
+				tags = set()
+			return [open, actionable, prio, due, tags, unicode(label)]
 
 		# Note that this same text is in the test notebook
 		# so it gets run through the index as well - keep in sync
@@ -181,7 +200,7 @@ TODO: @someday
 		]
 
 		plugin.preferences['nonactionable_tags'] = '@someday, @maybe'
-		plugin.do_preferences_changed()
+		index_ext._set_preferences()
 		tasks = extract_tasks(text)
 		self.assertEqual(tasks, wanted)
 
@@ -216,23 +235,24 @@ TODO: @someday
 
 	#~ def testDialog(self):
 		#~ '''Check tasklist plugin dialog'''
-		#~ klass = zim.plugins.get_plugin('tasklist')
-		#~ ui = MockUI()
-		#~ plugin = klass(ui)
-		#~ ui.notebook.index.flush()
-		#~ ui.notebook.index.update()
 		#
 		# TODO
 
 	def testTaskListTreeView(self):
-		klass = zim.plugins.get_plugin('tasklist')
-		ui = MockUI()
-		plugin = klass(ui)
-		ui.notebook.index.flush()
-		ui.notebook.index.update()
+		klass = zim.plugins.get_plugin_class('tasklist')
+		plugin = klass()
+
+		notebook = tests.new_notebook()
+		plugin.extend(notebook.index)
+		index_ext = plugin.get_extension(IndexExtension)
+		self.assertIsNotNone(index_ext)
+
+		notebook.index.flush()
+		notebook.index.update()
 
 		from zim.plugins.tasklist import TaskListTreeView
-		treeview = TaskListTreeView(ui, plugin, filter_actionable=False)
+		opener = tests.MockObject()
+		treeview = TaskListTreeView(index_ext, opener)
 
 		menu = treeview.get_popup()
 
@@ -251,11 +271,3 @@ TODO: @someday
 
 		# TODO test filtering for tags, labels, string - all case insensitive
 
-
-class MockUI(tests.MockObject):
-
-	def __init__(self):
-		tests.MockObject.__init__(self)
-		self.preferences = zim.config.ConfigDict()
-		self.uistate = zim.config.ConfigDict()
-		self.notebook = tests.new_notebook()

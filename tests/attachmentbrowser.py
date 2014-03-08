@@ -7,10 +7,20 @@ import tests
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 from zim.plugins.attachmentbrowser import *
 
+class TestMimeData(tests.TestCase):
+
+	def runTest(self):
+		dir = Dir('./data/pixmaps')
+		for filename in dir.list():
+			file = dir.file(filename)
+			icon = get_mime_icon(file, THUMB_SIZE_NORMAL)
+			desc = get_mime_description(file.get_mimetype())
+			# TODO assert something on icon and text ?
+
 
 class ThumbnailManagerTest(tests.TestCase):
 
-	def runTest(self):
+	def testCreateThumbnail(self):
 		manager = ThumbnailManager(preferences={})
 		dir = Dir('./data/pixmaps')
 
@@ -50,23 +60,26 @@ class ThumbnailManagerTest(tests.TestCase):
 			# TODO test detection of invalid thumbs
 			# TODO test with utf-8 char in image name
 
-			# Remove again and assert thumbnail does not exist
-			#~ manager.remove_thumbnails(file)
-			#~ for size in (THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE):
-				#~ thumbfile = manager.get_thumbnail_file(file, size)
-				#~ self.assertFalse(thumbfile.exists(), msg="File exists: %s" % thumbfile)
 
-		# Test ASync mode
-		#~ wanted = set()
-		#~ seen = {}
-		#~ def callback(file, size, thumbnail):
-		#~	seen[file] = thumbnail
+	def testAsyncCreateThumbnail(self):
+		manager = ThumbnailManager(preferences={})
+		dir = Dir('./data/pixmaps')
 
-		#~ for file in dir.list_objects():
-		#~	manager.get_thumbnail_async(file, THUMB_SIZE_NORMAL, callback)
+		seen = set()
+		def on_thumbnail_ready(o, file, size, pixbuf):
+			seen.add(file)
+		manager.connect('thumbnail-ready', on_thumbnail_ready)
 
-		#while queue:
-		#	wait
+		# Test API and functions
+		#~ for file in dir.list_objects(): # TODO
+		for filename in dir.list():
+			file = dir.file(filename)
 
-		#~ for file in wanted:
-		#~	assert file in seen
+			# Remove and assert thumbnail does not exist
+			manager.remove_thumbnails(file)
+			for size in (THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE):
+				manager.get_thumbnail_async(file, size)
+
+		manager.async_queue.join()
+		self.assertTrue(len(seen) > 3)
+

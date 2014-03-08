@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+from __future__ import with_statement
+
 
 import tests
 
@@ -9,7 +12,24 @@ import copy
 import zim.history
 from zim.history import History, HistoryPath, RecentPath
 from zim.notebook import Path
-from zim.config import ConfigDict
+from zim.config import INIConfigFile
+
+
+class VirtualFile(object):
+	### TODO - proper class for this in zim.fs
+	###        unify with code in config manager
+
+	def __init__(self, lines):
+		self.lines = lines
+
+	def readlines(self):
+		return self.lines
+
+	def connect(self, handler, *a):
+		pass
+
+	def disconnect(self, handler):
+		pass
 
 
 class TestHistory(tests.TestCase):
@@ -243,7 +263,7 @@ class TestHistory(tests.TestCase):
 
 	def testSerialize(self):
 		'''Test parsing the history from the state file'''
-		uistate = ConfigDict()
+		uistate = INIConfigFile(VirtualFile([]))
 		history = History(self.notebook, uistate)
 
 		for page in self.pages:
@@ -265,8 +285,10 @@ class TestHistory(tests.TestCase):
 
 		# clone uistate by text
 		lines = uistate.dump()
-		newuistate = ConfigDict()
-		newuistate.parse(lines)
+		newuistate = INIConfigFile(VirtualFile(lines))
+		newuistate['History'].setdefault('list', [])
+		newuistate['History'].setdefault('recent', [])
+		newuistate['History'].setdefault('current', 0)
 
 		# check new state
 		self.assertHistoryEquals(history, [Path(t[0]) for t in newuistate['History']['list']])
@@ -280,8 +302,8 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(newhistory.get_current(), history.get_current())
 
 		# Check recent is initialized if needed
-		newuistate = ConfigDict()
-		newuistate.parse(lines)
+		newuistate = INIConfigFile(VirtualFile(lines))
+		newuistate['History'].setdefault('recent', [])
 		newuistate['History'].pop('recent')
 		newhistory = History(self.notebook, newuistate)
 
@@ -292,11 +314,22 @@ class TestHistory(tests.TestCase):
 
 	def testRobustness(self):
 		'''Test history can deal with garbage data'''
-		uistate = ConfigDict()
-		uistate['list'] = 'FOOOO'
-		uistate['recent'] = [["BARRRR", 0]]
-		uistate['cursor'] = 'Not an integer'
-		history = History(self.notebook, uistate)
+		uistate = INIConfigFile(VirtualFile([]))
+		uistate['History'].input({
+			'list': 'FOOOO',
+			'recent': [["BARRRR", 0]],
+			'cursor': 'Not an integer',
+		})
+
+		with tests.LoggingFilter(
+			logger='zim.config',
+			message='Invalid config'
+		):
+			with tests.LoggingFilter(
+				logger='zim.history',
+				message='Could not parse'
+			):
+				history = History(self.notebook, uistate)
 		self.assertEqual(list(history.get_history()), [])
 		self.assertEqual(list(history.get_recent()), [])
 		self.assertIsNone(history.get_current())

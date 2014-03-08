@@ -15,6 +15,7 @@ import wsgiref.handlers
 
 from zim.fs import File
 from zim.www import WWWInterface
+from zim.config import VirtualConfigManager
 
 # TODO how to test fetching from a socket while mainloop is running ?
 
@@ -53,15 +54,16 @@ class TestWWWInterface(tests.TestCase):
 		return header, body
 
 	def setUp(self):
-		self.template = None
+		self.template = 'Default'
 		self.file_not_found_paths = ['/Test', '/nonexistingpage.html', '/nonexisting/']
 		self.file_found_paths = ['/favicon.ico', '/+resources/checked-box.png']
 
 	def runTest(self):
 		'Test WWW interface'
-		notebook = tests.new_notebook()
+		config = VirtualConfigManager()
+		notebook = tests.new_notebook(fakedir=self.get_tmp_name())
 		notebook.index.update()
-		interface = WWWInterface(notebook, template=self.template)
+		interface = WWWInterface(notebook, config=config, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
 		def call(command, path):
@@ -97,7 +99,7 @@ class TestWWWInterface(tests.TestCase):
 			response = call('GET', path)
 			#~ print '>'*80, '\n', response, '<'*80
 			self.assertResponseOK(response)
-			self.assertTrue('<li><a href="/Test/foo.html" title="foo" class="page">foo</a></li>' in response)
+			self.assertTrue('<li><a href="/Test/foo.html" title="foo" class="page">foo</a>' in response)
 
 		# page
 		response = call('GET', '/Test/foo.html')

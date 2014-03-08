@@ -1,7 +1,83 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+
+'''Module with assorted useful classes and functions used in the zim code'''
+
+
+class classproperty(object):
+	'''Like C{property()} but for klass properties
+	Typically used as decorator
+	'''
+
+	def __init__(self, func):
+		self.func = func
+
+	def __get__(self, obj, owner):
+		return self.func(owner)
+
+
+## Functions for dynamic loading of modules and klasses
+import inspect
+
+
+def get_module(name):
+	'''Import a module
+
+	@param name: the module name
+	@returns: module object
+	@raises ImportError: if the given name does not exist
+
+	@note: don't actually use this method to get plugin modules, see
+	L{get_plugin_module()} instead.
+	'''
+	# __import__ has some quirks, see the reference manual
+	mod = __import__(name)
+	for part in name.split('.')[1:]:
+		mod = getattr(mod, part)
+	return mod
+
+
+def lookup_subclass(module, klass):
+	'''Look for a subclass of klass in the module
+
+	This function is used in several places in zim to get extension
+	classes. Typically L{get_module()} is used first to get the module
+	object, then this lookup function is used to locate a class that
+	derives of a base class (e.g. PluginClass).
+
+	@param module: module object
+	@param klass: base class
+
+	@note: don't actually use this method to get plugin classes, see
+	L{get_plugin_class()} instead.
+	'''
+	subclasses = lookup_subclasses(module, klass)
+	if len(subclasses) > 1:
+		raise AssertionError, 'BUG: Multiple subclasses found of type: %s' % klass
+	elif subclasses:
+		return subclasses[0]
+	else:
+		return None
+
+
+def lookup_subclasses(module, klass):
+	'''Look for all subclasses of klass in the module
+
+	@param module: module object
+	@param klass: base class
+	'''
+	subclasses = []
+	for name, obj in inspect.getmembers(module, inspect.isclass):
+		if issubclass(obj, klass) \
+		and obj.__module__.startswith(module.__name__):
+			subclasses.append(obj)
+
+	return subclasses
+
+
+#### sorting functions
 import locale
 import re
 import unicodedata
@@ -59,3 +135,155 @@ def natural_sort_key(string, numeric_padding=5):
 		# may be done by strxfrm as well, but want to be sure
 	string = locale.strxfrm(string.lower())
 	return string.decode('utf-8') # not really utf-8, but 8bit bytes
+
+
+####
+
+# Python 2.7 has a weakref.WeakSet, but using this one for compatibility with 2.6 ..
+# Did not switch implementations per version to make sure we test
+# all modules with this implementation
+
+import weakref
+
+class WeakSet(object):
+	'''Class that behaves like a set, but keeps weak references to
+	memebers of the set.
+	'''
+
+	def __init__(self):
+		self._refs = []
+
+	def __iter__(self):
+		return (
+			obj for obj in
+					[ref() for ref in self._refs]
+							if obj is not None
+		)
+
+	def add(self, obj):
+		ref = weakref.ref(obj, self._del)
+		self._refs.append(ref)
+
+	def _del(self, ref):
+		try:
+			self._refs.remove(ref)
+		except ValueError:
+			pass
+
+	def discard(self, obj):
+		for ref in self._refs:
+			if ref() == obj:
+				self._refs.remove(ref)
+
+
+# Python 2.7 has a collections.OrderedDict, but using this one for compatibility
+# Did not switch implementations per version to make sure we test
+# all modules with this implementation
+
+import collections
+
+class OrderedDict(collections.MutableMapping):
+	'''Class that behaves like a dict but keeps items in same order.
+	Updating an items keeps it at the current position, removing and
+	re-inserting an item puts it at the end of the sequence.
+	'''
+
+	# By using collections.MutableMapping we ensure all dict API calls
+	# are proxied by the methods below. When inheriting from dict
+	# directly e.g. "pop()" does not use "__delitem__()" but is
+	# optimized on it's own
+
+	def __init__(self, E=None, **F):
+		if not hasattr(self, '_keys') \
+		and not hasattr(self, '_values'):
+			# Some classes have double inheritance from this class
+			self._keys = []
+			self._values = {}
+
+		if self.__class__.__getitem__ == OrderedDict.__getitem__:
+			# optimization by just using the real dict.__getitem__
+			# but skip if subclass overloaded the method
+			self.__getitem__ = self._values.__getitem__
+
+		if E or F:
+			assert not (E and F)
+			self.update(E or F)
+
+	def __repr__(self):
+		return '<%s:\n%s\n>' % (
+			self.__class__.__name__,
+			',\n'.join('  %r: %r' % (k, v) for k, v in self.items())
+		)
+
+	def __getitem__(self, k):
+		return self._values[k]
+		# Overloaded in __init__ for optimization
+
+	def __setitem__(self, k, v):
+		self._values[k] = v
+		if not k in self._keys:
+			self._keys.append(k)
+
+	def __delitem__(self, k):
+		del self._values[k]
+		self._keys.remove(k)
+
+	def __iter__(self):
+		return iter(self._keys)
+
+	def __len__(self):
+		return len(self._keys)
+
+
+
+## Wrapper for using threads for e.g. async IO
+import threading
+import sys
+
+
+class FunctionThread(threading.Thread):
+	'''Subclass of C{threading.Thread} that runs a single function and
+	keeps the result and any exceptions raised.
+
+	@ivar done: C{True} is the function is done running
+	@ivar result: the return value of C{func}
+	@ivar error: C{True} if done and an exception was raised
+	@ivar exc_info: 3-tuple with exc_info
+	'''
+
+	def __init__(self, func, args=(), kwargs={}, lock=None):
+		'''Constructor
+		@param func: the function to run in the thread
+		@param args: arguments for C{func}
+		@param kwargs: keyword arguments for C{func}
+		@param lock: optional lock, will be acquired in main thread
+		before running and released once done in background
+		'''
+		threading.Thread.__init__(self)
+
+		self.func = func
+		self.args = args
+		self.kwargs = kwargs
+
+		self.lock = lock
+
+		self.done = False
+		self.result = None
+		self.error = False
+		self.exc_info = (None, None, None)
+
+	def start(self):
+		if self.lock:
+			self.lock.acquire()
+		threading.Thread.start(self)
+
+	def run(self):
+		try:
+			self.result = self.func(*self.args, **self.kwargs)
+		except:
+			self.error = True
+			self.exc_info = sys.exc_info()
+		finally:
+			self.done = True
+			if self.lock:
+				self.lock.release()

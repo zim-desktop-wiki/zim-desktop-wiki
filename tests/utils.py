@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
 
 import tests
 
@@ -33,3 +37,96 @@ class TestNaturalSorting(tests.TestCase):
 		result = natural_sorted(input, key=lambda t: t[1])
 		self.assertEqual(result, wanted)
 		self.assertTrue(id(result) != id(input))
+
+
+class TestOrderedDict(tests.TestCase):
+
+	def runTest(self):
+		items = [('foo', 1), ('bar', 2), ('baz', 3)]
+		mydict = OrderedDict(items)
+
+		self.assertIsInstance(repr(mydict), str)
+
+		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict), [i[0] for i in items])
+		self.assertEqual(mydict.keys(), [i[0] for i in items])
+
+		mydict['bar'] = 'X'
+		mydict.setdefault('foo', 'dus')
+		items = [('foo', 1), ('bar', 'X'), ('baz', 3)]
+		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict), [i[0] for i in items])
+		self.assertEqual(mydict.keys(), [i[0] for i in items])
+
+		del mydict['bar']
+		mydict['bar'] = 'Y'
+		items = [('foo', 1), ('baz', 3), ('bar', 'Y')]
+		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict), [i[0] for i in items])
+		self.assertEqual(mydict.keys(), [i[0] for i in items])
+
+		mydict.pop('foo')
+		mydict.setdefault('foo', 'dus')
+		items = [('baz', 3), ('bar', 'Y'), ('foo', 'dus')]
+		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict), [i[0] for i in items])
+		self.assertEqual(mydict.keys(), [i[0] for i in items])
+
+
+import threading
+
+class TestFunctionThread(tests.TestCase):
+
+	def runTest(self):
+
+		def foo(*args):
+			return 'FOO: ' + ', '.join(args)
+
+		# Function OK, no lock
+		func = FunctionThread(foo, ('a', 'b', 'c'))
+		self.assertFalse(func.done)
+		func.start()
+
+		func.join()
+		self.assertTrue(func.done)
+		self.assertFalse(func.error)
+		self.assertEqual(func.result, 'FOO: a, b, c')
+
+		# Function OK, with lock
+		lock = threading.Lock()
+
+		func = FunctionThread(foo, ('a', 'b', 'c'), lock=lock)
+		self.assertFalse(func.done)
+		func.start()
+
+		lock.acquire()
+		self.assertTrue(func.done)
+		self.assertFalse(func.error)
+		self.assertEqual(func.result, 'FOO: a, b, c')
+
+		###
+
+		def error(*args):
+			raise AssertionError, 'FOO'
+
+		# Function raises, no lock
+		func = FunctionThread(error, ('a', 'b', 'c'))
+		self.assertFalse(func.done)
+		func.start()
+
+		func.join()
+		self.assertTrue(func.done)
+		self.assertTrue(func.error)
+		self.assertEqual(func.exc_info[0], AssertionError)
+
+		# Function raises, with lock
+		#~ lock = threading.Lock()
+
+		#~ func = FunctionThread(error, ('a', 'b', 'c'))
+		#~ self.assertFalse(func.done)
+		#~ func.start()
+
+		#~ lock.acquire()
+		#~ self.assertTrue(func.done)
+		#~ self.assertTrue(func.error)
+		#~ self.assertEqual(func.exc_info[0], AssertionError)

@@ -14,29 +14,12 @@ import re
 import math
 import cmath
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, WindowExtension
+from zim.actions import action
 from zim.errors import Error
 
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
-
-
-ui_xml = '''
-<ui>
-<menubar name='menubar'>
-	<menu action='tools_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='eval_math'/>
-		</placeholder>
-	</menu>
-</menubar>
-</ui>
-'''
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('eval_math', None, _('Evaluate _Math'), '', '', False), # T: menu item
-)
 
 
 # helper functions
@@ -156,6 +139,7 @@ GLOBALS = {
 	'chr': unichr,
 	'hex': hex,
 	'oct': oct,
+	'int': int,
 	# direct imports
 	'e': math.e,
 	'pi': math.pi,
@@ -209,6 +193,10 @@ class ExpressionError(Error):
 		# T: error description
 
 
+_multiline_re = re.compile('--+\s+[+-]')
+	# for multiline summation with "--- +" and similar
+
+
 class InlineCalculatorPlugin(PluginClass):
 
 	plugin_info = {
@@ -227,59 +215,6 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 	#~ )
 
-
-	_multiline_re = re.compile('--+\s+[+-]')
-		# for multiline summation with "--- +" and similar
-
-	def initialize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-
-	def eval_math(self):
-		'''Action called by the menu item or key binding,
-		will look at the cursor for an expression to evaluate.
-		'''
-		buffer = self.ui.mainwindow.pageview.view.get_buffer()
-			# FIXME - way to long chain of objects here
-
-		# FIXME: what do we do for selections ?
-
-		cursor = buffer.get_iter_at_mark(buffer.get_insert())
-		start, end = buffer.get_line_bounds(cursor.get_line())
-		line = buffer.get_text(start, end)
-
-		if not line or line.isspace():
-			# Empty line, look at previous line
-			if cursor.get_line() > 1:
-				start, end = buffer.get_line_bounds(cursor.get_line() - 1)
-				cursor = end.copy()
-				cursor.backward_char()
-				line = buffer.get_text(start, end)
-			else:
-				return # silent fail
-
-		if self._multiline_re.match(line):
-			# Search for start of block - iterate back to empty line
-			lineno = cursor.get_line()
-			while lineno > 1:
-				mystart, myend = buffer.get_line_bounds(lineno)
-				myline = buffer.get_text(mystart, myend)
-				if not myline or myline.isspace():
-					break
-				else:
-					start = mystart
-					lineno -= 1
-		else:
-			# One line expression, just pass it on
-			# FIXME skip forward past next word if any if last char is '='
-			end = cursor
-
-		orig = buffer.get_text(start, end)
-		new = self.process_text(orig)
-		with buffer.user_action:
-			buffer.delete(start, end)
-			buffer.insert_at_cursor(new)
 
 	def process_text(self, text):
 		'''Takes a piece of text and parses it for expressions
@@ -328,7 +263,7 @@ This is a core plugin shipping with zim.
 	def _process_multiline(self, text):
 		lines = text.splitlines()
 		for i, line in enumerate(lines):
-			if self._multiline_re.match(line):
+			if _multiline_re.match(line):
 				operator = line.strip()[-1]
 				break
 		else:
@@ -350,4 +285,67 @@ This is a core plugin shipping with zim.
 		except Exception, error:
 			msg = '%s: %s' % (error.__class__.__name__, error)
 			raise ExpressionError, msg
+
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+		<ui>
+		<menubar name='menubar'>
+			<menu action='tools_menu'>
+				<placeholder name='plugin_items'>
+					<menuitem action='eval_math'/>
+				</placeholder>
+			</menu>
+		</menubar>
+		</ui>
+	'''
+
+	@action(_('Evaluate _Math')) # T: menu item
+	def eval_math(self):
+		'''Action called by the menu item or key binding,
+		will look at the cursor for an expression to evaluate.
+		'''
+		buffer = self.window.pageview.view.get_buffer()
+			# XXX- way to long chain of objects here
+
+		# FIXME: what do we do for selections ?
+
+		cursor = buffer.get_iter_at_mark(buffer.get_insert())
+		start, end = buffer.get_line_bounds(cursor.get_line())
+		line = buffer.get_text(start, end)
+
+		if not line or line.isspace():
+			# Empty line, look at previous line
+			if cursor.get_line() > 1:
+				start, end = buffer.get_line_bounds(cursor.get_line() - 1)
+				cursor = end.copy()
+				cursor.backward_char()
+				line = buffer.get_text(start, end)
+			else:
+				return # silent fail
+
+		if _multiline_re.match(line):
+			# Search for start of block - iterate back to empty line
+			lineno = cursor.get_line()
+			while lineno > 1:
+				mystart, myend = buffer.get_line_bounds(lineno)
+				myline = buffer.get_text(mystart, myend)
+				if not myline or myline.isspace():
+					break
+				else:
+					start = mystart
+					lineno -= 1
+		else:
+			# One line expression, just pass it on
+			# FIXME skip forward past next word if any if last char is '='
+			end = cursor
+
+		orig = buffer.get_text(start, end)
+		new = self.plugin.process_text(orig)
+		with buffer.user_action:
+			buffer.delete(start, end)
+			buffer.insert_at_cursor(new)
+
 

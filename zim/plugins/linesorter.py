@@ -7,7 +7,8 @@ from __future__ import with_statement
 
 import gtk
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, WindowExtension
+from zim.actions import action
 from zim.gui.widgets import ui_environment, MessageDialog
 
 #from zim.gui.clipboard import parsetree_from_selectiondata
@@ -15,25 +16,6 @@ from zim.gui.widgets import ui_environment, MessageDialog
 import logging
 
 logger = logging.getLogger('zim.plugins.linesorter')
-
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='edit_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='sort_selected_lines'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
-# in oder to provide dynamic key binding assignment the initiation is made in the plugin class
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('sort_selected_lines', 'gtk-sort-ascending', _('_Sort lines'), '', '', False),
-		# T: menu item for insert clipboard plugin
-)
 
 
 class LineSorterPlugin(PluginClass):
@@ -50,16 +32,25 @@ If the list is already sorted the order will be reversed
 		'help': 'Plugins:Line Sorter',
 	}
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
 
-	def initialize_ui(self, ui):
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
 
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='edit_menu'>
+				<placeholder name='plugin_items'>
+					<menuitem action='sort_selected_lines'/>
+				</placeholder>
+			</menu>
+		</menubar>
+	</ui>
+	'''
+
+	@action(_('_Sort lines'), stock='gtk-sort-ascending')
 	def sort_selected_lines(self):
-		buffer = self.ui.mainwindow.pageview.view.get_buffer()
+		buffer = self.window.pageview.view.get_buffer()
 		try:
 			sel_start, sel_end = buffer.get_selection_bounds()
 		except ValueError:

@@ -112,9 +112,8 @@ moved or deleted. This is stored in L{zim.fs.FS}.
 # TODO - we could support weakref for directories to allow locking via
 # the dir object
 
-from __future__ import with_statement
 
-import gobject
+from __future__ import with_statement
 
 import os
 import re
@@ -123,18 +122,21 @@ import shutil
 import errno
 import codecs
 import logging
+import threading
+
 
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
-from zim.parsing import url_encode, url_decode
-from zim.async import AsyncOperation, AsyncLock
-from zim.signals import SignalEmitter
+from zim.parsing import url_encode, url_decode, URL_ENCODE_READABLE
+from zim.signals import SignalEmitter, SIGNAL_AFTER
 
 
 logger = logging.getLogger('zim.fs')
 
-#: 'gio' library is imported for optional features, like trash
+#: gobject and gio libraries are imported for optional features, like trash
+gobject = None
 gio = None
 try:
+	import gobject
 	import gio
 	if not gio.File.trash:
 		gio = None
@@ -305,13 +307,28 @@ def get_tmpdir():
 	Used as base folder by L{TmpFile}.
 	@returns: a L{Dir} object for the zim specific tmp folder
 	'''
+	# We encode the user name using urlencoding to remove any non-ascii
+	# characters. This is because sockets are not always unicode safe.
+
 	import tempfile
-	from zim.config import get_environ
+	from zim.environ import environ
 	root = tempfile.gettempdir()
-	dir = Dir((root, 'zim-%s' % get_environ('USER')))
-	dir.touch(mode=0700) # Limit to single user
-	os.chmod(dir.path, 0700) # Limit to single user when dir already existed
-	return dir
+	user = url_encode(environ['USER'], URL_ENCODE_READABLE)
+	dir = Dir((root, 'zim-%s' % user))
+
+	try:
+		dir.touch(mode=0700) # Limit to single user
+		os.chmod(dir.path, 0700) # Limit to single user when dir already existed
+			# Raises OSError if not allowed to chmod
+		os.listdir(dir.path)
+			# Raises OSError if we do not have access anymore
+	except OSError:
+		raise AssertionError, \
+			'Either you are not the owner of "%s" or the permissions are un-safe.\n' \
+			'If you can not resolve this, try setting $TMP to a different location.' % dir.path
+	else:
+		# All OK, so we must be owner of a safe folder now ...
+		return dir
 
 
 def normalize_file_uris(path):
@@ -411,7 +428,9 @@ def format_file_size(bytes):
 def _md5(content):
 	import hashlib
 	m = hashlib.md5()
-	if isinstance(content, basestring):
+	if  isinstance(content, unicode):
+		m.update(content.encode('utf-8'))
+	elif isinstance(content, basestring):
 		m.update(content)
 	else:
 		for l in content:
@@ -463,7 +482,7 @@ class FileUnicodeError(Error):
 
 # TODO actually hook the signal for deleting files and folders
 
-class FSSingletonClass(gobject.GObject):
+class FSSingletonClass(SignalEmitter):
 	'''Class used for the singleton 'zim.fs.FS' instance
 
 	@signal: C{path-created (L{FilePath})}: Emitted when a new file or
@@ -478,19 +497,18 @@ class FSSingletonClass(gobject.GObject):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'path-created': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'path-moved': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'path-deleted': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'path-created': (SIGNAL_AFTER, None, (object,)),
+		'path-moved': (SIGNAL_AFTER, None, (object, object)),
+		'path-deleted': (SIGNAL_AFTER, None, (object,)),
 	}
 
 	def __init__(self):
-		gobject.GObject.__init__(self)
-		self._lock = AsyncLock()
+		self._lock = threading.Lock()
 
 	def get_async_lock(self, path):
-		'''Get an L{AsyncLock} for filesytem operations on a path
+		'''Get an C{threading.Lock} for filesytem operations on a path
 		@param path: a L{FilePath} object
-		@returns: an L{AsyncLock} object
+		@returns: an C{threading.Lock} object
 		'''
 		# FUTURE: we may actually use path to allow parallel async
 		# operations for files & folders that do not belong to the
@@ -502,10 +520,6 @@ class FSSingletonClass(gobject.GObject):
 		# But for now we keep things simple.
 		assert isinstance(path, FilePath)
 		return self._lock
-
-# Need to register classes defining gobject signals
-gobject.type_register(FSSingletonClass)
-
 
 #: Singleton object for the system filesystem - see L{FSSingletonClass}
 FS = FSSingletonClass()
@@ -682,14 +696,39 @@ class UnixPath(SignalEmitter):
 			logger.exception('Error while tearing down file monitor')
 
 	def _do_changed(self, filemonitor, file, other_file, event_type):
-		self.emit('changed', None, None) # TODO translate otherfile and eventtype
+		# 'FILE_MONITOR_EVENT_CHANGED' is always followed by
+		# a 'FILE_MONITOR_EVENT_CHANGES_DONE_HINT' when the filehandle
+		# is closed (or after timeout). Idem for "created", assuming it
+		# is not created empty.
+		#
+		# TODO: do not emit changed on CREATED - separate signal that
+		#       can be used when monitoring a file list, but reserve
+		#       changed for changes-done-hint so that we ensure the
+		#       content is complete.
+		#       + emit on write and block redundant signals here
+		#
+		# Also note that in many cases "moved" will not be used, but a
+		# sequence of deleted, created will be signaled
+		#
+		# For Dir objects, the event will refer to files contained in
+		# the dir.
+
+		#~ print 'MONITOR:', self, event_type
+		if event_type in (
+			gio.FILE_MONITOR_EVENT_CREATED,
+			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
+			gio.FILE_MONITOR_EVENT_DELETED,
+			gio.FILE_MONITOR_EVENT_MOVED,
+		):
+			self.emit('changed', None, None) # TODO translate otherfile and eventtype
 
 	def exists(self):
 		'''Check if a file or folder exists.
 		@returns: C{True} if the file or folder exists
-		@implementation: must be implemented by sub classes
+		@implementation: must be implemented by sub classes in order
+		that they enforce the type of the resource as well
 		'''
-		raise NotImplementedError
+		return os.path.exists(self.encodedpath)
 
 	def iswritable(self):
 		'''Check if a file or folder is writable. Uses permissions of
@@ -1283,12 +1322,6 @@ class UnixFile(FilePath):
 	check only works when using L{read()}, L{readlines()}, L{write()}
 	or L{writelines()}, but not when calling L{open()} directly.
 	Also this logic is not atomic, so your mileage may vary.
-
-	The C{*_async()} functions can be used to read or write files in a
-	separate thread. See L{zim.async} for details. An L{AsyncLock} is
-	used to ensure reading and writing is done sequentially between
-	several threads. However, this does not work when using L{open()}
-	directly.
 	'''
 
 	# For atomic write we first write a tmp file which has the extension
@@ -1328,6 +1361,7 @@ class UnixFile(FilePath):
 		self.checkoverwrite = checkoverwrite
 		self.endofline = endofline
 		self._mtime = None
+		self._md5 = None
 		self._lock = FS.get_async_lock(self)
 
 	def __getstate__(self):
@@ -1472,39 +1506,20 @@ class UnixFile(FilePath):
 		@raises FileNotFoundError: when the file does not exist.
 		'''
 		with self._lock:
-			text = self._read()
+			try:
+				file = self.open('r')
+				content = file.read()
+				self._checkoverwrite(content)
+				return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
+					# Strip unicode byte order mark
+					# Internally we use Unix line ends - so strip out \r
+					# And remove any NULL byte since they screw up parsing
+			except IOError:
+				raise FileNotFoundError(self)
+			except UnicodeDecodeError, error:
+				raise FileUnicodeError(self, error)
+
 		return text
-
-	def read_async(self, callback=None, data=None):
-		'''Get the file contents asynchronously
-		Like L{read()} but as asynchronous operation. The result will
-		be stored in the async operation as C{operation.result}.
-
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		'''
-		if not self.exists():
-			raise FileNotFoundError(self)
-		operation = AsyncOperation(
-			self._read, lock=self._lock, callback=callback, data=data)
-		operation.start()
-		return operation
-
-	def _read(self):
-		try:
-			file = self.open('r')
-			content = file.read()
-			self._checkoverwrite(content)
-			return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
-				# Strip unicode byte order mark
-				# Internally we use Unix line ends - so strip out \r
-				# And remove any NULL byte since they screw up parsing
-		except IOError:
-			raise FileNotFoundError(self)
-		except UnicodeDecodeError, error:
-			raise FileUnicodeError(self, error)
 
 	def readlines(self):
 		'''Get the file contents as a list of lines. Takes case of
@@ -1514,39 +1529,20 @@ class UnixFile(FilePath):
 		@raises FileNotFoundError: when the file does not exist.
 		'''
 		with self._lock:
-			lines = self._readlines()
+			try:
+				file = self.open('r')
+				lines = file.readlines()
+				self._checkoverwrite(lines)
+				return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
+					# Strip unicode byte order mark
+					# Internally we use Unix line ends - so strip out \r
+					# And remove any NULL byte since they screw up parsing
+			except IOError:
+				raise FileNotFoundError(self)
+			except UnicodeDecodeError, error:
+				raise FileUnicodeError(self, error)
+
 		return lines
-
-	def readlines_async(self, callback=None, data=None):
-		'''Get the file contents asynchronously
-		Like L{readlines()} but as asynchronous operation. The result will
-		be stored in the async operation as C{operation.result}.
-
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		'''
-		if not self.exists():
-			raise FileNotFoundError(self)
-		operation = AsyncOperation(
-			self._readlines, lock=self._lock, callback=callback, data=data)
-		operation.start()
-		return operation
-
-	def _readlines(self):
-		try:
-			file = self.open('r')
-			lines = file.readlines()
-			self._checkoverwrite(lines)
-			return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
-				# Strip unicode byte order mark
-				# Internally we use Unix line ends - so strip out \r
-				# And remove any NULL byte since they screw up parsing
-		except IOError:
-			raise FileNotFoundError(self)
-		except UnicodeDecodeError, error:
-			raise FileUnicodeError(self, error)
 
 	def write(self, text):
 		'''Write file contents from string. This overwrites the current
@@ -1558,43 +1554,18 @@ class UnixFile(FilePath):
 		@emits: path-created if the file did not yet exist
 		'''
 		with self._lock:
-			self._write(text)
+			self._assertoverwrite()
+			self._isnew = not os.path.isfile(self.encodedpath)
+				# Put this check here because here we are sure to have a lock
+			endofline = self.get_endofline()
+			if endofline != '\n':
+				text = text.replace('\n', endofline)
+			file = self.open('w')
+			file.write(text)
+			file.close()
+			self._checkoverwrite(text)
+
 		self._check_isnew()
-
-	def write_async(self, text, callback=None, data=None):
-		'''Write file content from string asynchronously.
-		Like L{write()} but returns immediately without waiting for the
-		action to be completed.
-
-		@param text: new content as (unicode) string
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		@emits: path-created if the file did not yet exist, after the
-		action is completed
-		'''
-		#~ print '!! ASYNC WRITE'
-		def mycallback(result, error, *args):
-			if error is None: self._check_isnew()
-			if callback: callback(result, error, *args)
-
-		operation = AsyncOperation(
-			self._write, (text,), lock=self._lock, callback=mycallback, data=data)
-		operation.start()
-		return operation
-
-	def _write(self, text):
-		self._assertoverwrite()
-		self._isnew = not os.path.isfile(self.encodedpath)
-			# Put this check here because here we are sure to have a lock
-		endofline = self.get_endofline()
-		if endofline != '\n':
-			text = text.replace('\n', endofline)
-		file = self.open('w')
-		file.write(text)
-		file.close()
-		self._checkoverwrite(text)
 
 	def _check_isnew(self):
 		# Make sure the 'path-created' signal is emitted in the main
@@ -1612,49 +1583,24 @@ class UnixFile(FilePath):
 		@emits: path-created if the file did not yet exist
 		'''
 		with self._lock:
-			self._writelines(lines)
+			self._assertoverwrite()
+			self._isnew = not os.path.isfile(self.encodedpath)
+				# Put this check here because here we are sure to have a lock
+			endofline = self.get_endofline()
+			if endofline != '\n':
+				lines = [line.replace('\n', endofline) for line in lines]
+			file = self.open('w')
+			file.writelines(lines)
+			file.close()
+			self._checkoverwrite(lines)
+
 		self._check_isnew()
-
-	def writelines_async(self, lines, callback=None, data=None):
-		'''Write file content from a list of lines asynchronously.
-		Like L{writelines()} but returns immediately without waiting for
-		the action to be completed.
-
-		@param lines: new content as list of lines
-		@param callback: a callback function for the async operation
-		@param data: data argument for the callback
-
-		@returns: an L{AsyncOperation} object
-		@emits: path-created if the file did not yet exist, after the
-		action is completed
-		'''
-		#~ print '!! ASYNC WRITE'
-		def mycallback(result, error, *args):
-			if error is None: self._check_isnew()
-			if callback: callback(result, error, *args)
-
-		operation = AsyncOperation(
-			self._writelines, (lines,), lock=self._lock, callback=mycallback, data=data)
-		operation.start()
-		return operation
-
-	def _writelines(self, lines):
-		self._assertoverwrite()
-		self._isnew = not os.path.isfile(self.encodedpath)
-			# Put this check here because here we are sure to have a lock
-		endofline = self.get_endofline()
-		if endofline != '\n':
-			lines = [line.replace('\n', endofline) for line in lines]
-		file = self.open('w')
-		file.writelines(lines)
-		file.close()
-		self._checkoverwrite(lines)
 
 	def _checkoverwrite(self, content):
 		# Set properties needed by assertoverwrite for the in-memory object
 		if self.checkoverwrite:
 			self._mtime = self.mtime()
-			self._content = content
+			self._md5 = _md5(content)
 
 	def _assertoverwrite(self):
 		# When we read a file and than write it, this method asserts the file
@@ -1666,11 +1612,11 @@ class UnixFile(FilePath):
 		#
 		# This function should not prohibit writing without reading first.
 		# Also we just write the file if it went missing in between
-		if self._mtime:
+		if self._mtime and self._md5:
 			try:
 				mtime = self.mtime()
 			except OSError:
-				if not  os.path.isfile(self.encodedpath):
+				if not os.path.isfile(self.encodedpath):
 					logger.critical('File missing: %s', self.path)
 					return
 				else:
@@ -1678,10 +1624,27 @@ class UnixFile(FilePath):
 
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
-				if _md5(self._content) != _md5(self.open('r').read()):
+				if self._md5 != _md5(self.open('r').read()):
 					raise FileWriteError, _('File changed on disk: %s') % self.path
 						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
+
+	def check_has_changed_on_disk(self):
+		'''Returns C{True} when this file has changed on disk'''
+		if not (self._mtime and self._md5):
+			if os.path.isfile(self.encodedpath):
+				return True # may well been just created
+			else:
+				return False # ??
+		elif not os.path.isfile(self.encodedpath):
+			return True
+		else:
+			try:
+				self._assertoverwrite()
+			except FileWriteError:
+				return True
+			else:
+				return False
 
 	def touch(self):
 		'''Create this file and any parent folders if it does not yet
@@ -1929,3 +1892,4 @@ class FileHandle(file):
 		file.close(self)
 		if not self.on_close is None:
 			self.on_close()
+

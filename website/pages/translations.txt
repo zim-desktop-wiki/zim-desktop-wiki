@@ -20,6 +20,11 @@ This will compile .mo files for all translations and put them in the directory "
 Now run zim from the source directory using:
 
 '''
-$ LANG=language_COUNTRY ./zim.py
+$ LANGUAGE=language_COUNTRY ./zim.py
 '''
 
+or:
+
+'''
+$ LANG=language_COUNTRY ./zim.py
+'''

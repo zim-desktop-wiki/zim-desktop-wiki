@@ -27,9 +27,9 @@ On Windows the default paths are:
 
 '''
 XDG_CONFIG_HOME = APPDATA/zim/config/
-XDG_DATA_HOME   = 
+XDG_DATA_HOME   = APPDATA/zim/data/
 '''
-''APPDATA/zim/data/''
+
 
 Where ''APPDATA'' is the default Windows path to store application data, typically a path like "''USERPROFILE\Application Data''".
 
@@ -59,6 +59,9 @@ Note that if you want interwiki page to include url syntax like a "#" to link to
 The file ''XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the XDG_DATA path is used. 
 
 See [[http://docs.python.org/library/time.html%23time.strftime|this link]] for documentation of the strftime formatting.
+
+==== Automount config file ====
+The config file ''XDG_CONFIG_HOME/zim/automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
 
 ==== GUI style config file ====
 Zim has certain defaults on how to display styles. For example it displays links as blue text without underline. To change this style copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit it. Each style has it's own section which starts with the style name between square brackets and contains key value pairs for the various display properties.

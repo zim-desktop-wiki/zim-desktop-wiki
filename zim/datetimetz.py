@@ -250,7 +250,7 @@ def strftime(format, date):
 	return date.strftime(format)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': #pragma: no cover
 	import gettext
 	gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
 	init_first_day_of_week()
@@ -259,5 +259,5 @@ if __name__ == '__main__':
 		print 'First day of week: Sunday'
 	else:
 		print 'First day of week: Monday'
-	print 'Now:', now().isoformat()
+	print 'Now:', now().isoformat(), strftime("%z, %Z", now())
 	print 'Calendar:', strfcal('day %w of week %W %Y', now())

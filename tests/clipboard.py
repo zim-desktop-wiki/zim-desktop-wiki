@@ -99,7 +99,7 @@ class TestClipboard(tests.TestCase):
 </head>
 <body>
 <p>
-some <strong>bold</strong> text<br>
+some <b>bold</b> text
 </p>
 
 </body>
@@ -110,16 +110,16 @@ some <strong>bold</strong> text<br>
 		wanted = '''\
 Version:1.0\r
 StartHTML:000000185\r
-EndHTML:000000527\r
+EndHTML:000000513\r
 StartFragment:000000450\r
-EndFragment:000000495\r
+EndFragment:000000481\r
 StartSelection:000000450\r
-EndSelection:000000495\r
+EndSelection:000000481\r
 SourceURL:zim://copy-pase-buffer\r
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"><HTML><HEAD><meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <meta name="Description" content="Copy-Paste Buffer">
 <meta name="Generator" content="Zim"></HEAD><BODY><!--StartFragment--><p>
-some <strong>bold</strong> text<br>
+some <b>bold</b> text
 </p>
 <!--EndFragment--></BODY></HTML>'''
 		self.assertEqual(get_clipboard_contents('HTML Format'), wanted)
@@ -131,7 +131,7 @@ some <strong>bold</strong> text<br>
 
 	def testCopyPasteToParseTree(self):
 		# text -> tree
-		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>some string</zim-tree>'''
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some string</zim-tree>'''
 		Clipboard.set_text('some string')
 		newtree = Clipboard.get_parsetree(self.notebook)
 		self.assertEqual(newtree.tostring(), wanted)

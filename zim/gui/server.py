@@ -26,6 +26,7 @@ import logging
 
 from zim.www import make_server
 
+from zim.notebook import build_notebook, NotebookInfo
 from zim.config import data_file
 from zim.gui.widgets import IconButton, gtk_window_set_default_icon, ErrorDialog, input_table_factory
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
@@ -36,9 +37,9 @@ logger = logging.getLogger('zim.gui.server')
 
 class ServerWindow(gtk.Window):
 
-	def __init__(self, notebook=None, port=8080, public=True, **opts):
+	def __init__(self, notebookinfo=None, port=8080, public=True, **opts):
 		'''Constructor
-		@param notebook: the notebook location
+		@param notebookinfo: the notebook location
 		@param port: the http port to serve on
 		@param public: allow connections to the server from other
 		computers - if C{False} can only connect from localhost
@@ -69,7 +70,7 @@ class ServerWindow(gtk.Window):
 		else:
 			self.link_button = None
 
-		self.notebookcombobox = NotebookComboBox(current=notebook)
+		self.notebookcombobox = NotebookComboBox(current=notebookinfo)
 		self.open_button = IconButton('gtk-index')
 		self.open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
 
@@ -119,9 +120,14 @@ class ServerWindow(gtk.Window):
 	def start(self):
 		# Start server
 		try:
-			notebook = self.notebookcombobox.get_notebook()
-			if not notebook:
+			uri = self.notebookcombobox.get_notebook()
+			if uri:
+				notebook, x = build_notebook(NotebookInfo(uri))
+				if not notebook:
+					return
+			else:
 				return
+
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
 			self.httpd = make_server(notebook, port, public, **self.interface_opts)
@@ -204,13 +210,8 @@ class ServerWindow(gtk.Window):
 		self.start_button.set_sensitive(True)
 
 
-def main(notebook=None, port=8080, public=True, **opts):
-	import zim.notebook
-	if notebook:
-		notebook, path = zim.notebook.resolve_notebook(notebook)
-
+def main(notebookinfo=None, port=8080, public=True, **opts):
 	gtk_window_set_default_icon()
-
-	window = ServerWindow(notebook, port, public, **opts)
+	window = ServerWindow(notebookinfo, port, public, **opts)
 	window.show_all()
 	gtk.main()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -10,16 +10,16 @@ import os
 import gtk
 
 from zim.errors import Error
-from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
+from zim.config import ConfigManager, VirtualConfigManager
+from zim.notebook import get_notebook_list, Path, Page, NotebookInfo, NotebookConfig
 from zim.formats import ParseTree
 from zim.fs import File, Dir
-from zim.config import config_file
 from zim.gui.clipboard import Clipboard
 
 import zim.gui
 
 
-def setupGtkInterface(test, klass=None):
+def setupGtkInterface(test, klass=None, notebook=None):
 	'''Setup a new GtkInterface object for testing.
 	Will have test notebook, and default preferences.
 	@param test: the test that wants to use this ui object
@@ -33,21 +33,17 @@ def setupGtkInterface(test, klass=None):
 	filter = FilterNoSuchImageWarning()
 	filter.wrap_test(test)
 
-	# flush preferences
-	preferences = config_file('preferences.conf')
-	preferences.file.remove()
 
 	# create interface object with new notebook
-	dirpath = test.get_tmp_name()
-	notebook = tests.new_notebook(fakedir=dirpath)
-	path = Path('Test:foo:bar')
-	ui = klass(notebook=notebook, page=path)
+	if notebook is None:
+		dirpath = test.get_tmp_name()
+		notebook = tests.new_notebook(fakedir=dirpath)
 
-	# finalize plugins
-	for plugin in ui.plugins:
-		plugin.finalize_ui(ui)
+	config = VirtualConfigManager()
+	ui = klass(config=config, notebook=notebook)
 
 	ui.mainwindow.init_uistate()
+	ui.open_page(Path('Test:foo:bar'))
 
 	return ui
 
@@ -194,7 +190,7 @@ class TestDialogs(tests.TestCase):
 		tree.set_heading("different")
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path("Test:foo:bar"))
 		self.assertFalse(dialog.form['head'])
-	
+
 	def testDeletePageDialog(self):
 		'''Test DeletePageDialog'''
 		# just check inputs are OK - skip output
@@ -281,39 +277,41 @@ class TestDialogs(tests.TestCase):
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
 
-		from zim.config import ConfigDictFile
+		from zim.config import INIConfigFile
 		notebook = self.ui.notebook
 		file = notebook.dir.file('notebook.zim')
-		notebook.config = ConfigDictFile(file)
+		notebook.config = NotebookConfig(file)
 		self.ui.readonly = False
 
 		config1 = {
 			'name': 'Notebook Foo',
-			'interwiki': '',
-			'home': 'Home',
+			'interwiki': None,
+			'home': Path('Home'),
 			'icon': './icon.png',
 			'document_root': File('/foo').path, # win32 save test
 			'shared': False,
-			'profile': '',
+			'profile': None,
 		}
 		config2 = {
 			'name': 'Notebook Bar',
 			'interwiki': 'FooBar',
-			'home': 'HomeSweetHome',
+			'home': Path('HomeSweetHome'),
 			'icon': './picture.png',
 			'document_root': File('/bar').path, # win32 save test
 			'shared': True,
 			'profile': 'foo',
 		}
 		notebook.save_properties(**config1)
-		self.assertEqual(notebook.config['Notebook'], config1)
+		for key in config1:
+			self.assertEqual(notebook.config['Notebook'][key], config1[key])
 
 		dialog = PropertiesDialog(self.ui)
 		dialog.assert_response_ok()
 
-		self.assertEqual(notebook.config['Notebook'], config1)
+		for key in config1:
+			self.assertEqual(notebook.config['Notebook'][key], config1[key])
 		self.assertEqual(notebook.name, config1['name'])
-		self.assertEqual(notebook.get_home_page(), Path(config1['home']))
+		self.assertEqual(notebook.get_home_page(), config1['home'])
 		self.assertEqual(notebook.icon, notebook.dir.file(config1['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config1['document_root']))
 
@@ -321,9 +319,10 @@ class TestDialogs(tests.TestCase):
 		dialog.form.update(config2)
 		dialog.assert_response_ok()
 
-		self.assertEqual(notebook.config['Notebook'], config2)
+		for key in config1:
+			self.assertEqual(notebook.config['Notebook'][key], config2[key])
 		self.assertEqual(notebook.name, config2['name'])
-		self.assertEqual(notebook.get_home_page(), Path(config2['home']))
+		self.assertEqual(notebook.get_home_page(), config2['home'])
 		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
 
@@ -331,17 +330,16 @@ class TestDialogs(tests.TestCase):
 	def testPreferencesDialog(self):
 		'''Test PreferencesDialog'''
 		from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
-		import zim.gui.pageview
 
-		gui = zim.gui.GtkInterface()
+		self.clear_tmp_dir()
+
+		gui = setupGtkInterface(self)
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
-		with FilterFailedToLoadPlugin():
-			# may miss dependencies for e.g. versioncontrol
-			gui.load_plugins()
 		self.ui.preferences_register = gui.preferences_register
 		self.ui.preferences = gui.preferences
 		self.ui.plugins = gui.plugins
+		self.ui.config = gui.config
 
 		## Test get/set simple value
 		self.assertEquals(self.ui.preferences['GtkInterface']['toggle_on_ctrlspace'], False)
@@ -356,32 +354,42 @@ class TestDialogs(tests.TestCase):
 		self.assertEquals(self.ui.preferences['GtkInterface']['toggle_on_ctrlspace'], True)
 
 		## Test font button
-		zim.gui.pageview.PageView.style['TextView']['font'] = 'Sans 12'
+		text_style = gui.config.get_config_dict('<profile>/style.conf')
+		text_style['TextView']['font'] = 'Sans 12'
 		dialog = PreferencesDialog(self.ui)
 		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.assert_response_ok()
-		self.assertEqual(zim.gui.pageview.PageView.style['TextView']['font'], 'Sans 12')
+		self.assertEqual(text_style['TextView']['font'], 'Sans 12')
 		self.assertFalse(any(['use_custom_font' in d for d in self.ui.preferences.values()]))
 
-		zim.gui.pageview.PageView.style['TextView']['font'] = 'Sans 12'
+		text_style['TextView']['font'] = 'Sans 12'
 		dialog = PreferencesDialog(self.ui)
 		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.forms['Interface']['use_custom_font'] = False
 		dialog.assert_response_ok()
-		self.assertEqual(zim.gui.pageview.PageView.style['TextView']['font'], None)
+		self.assertEqual(text_style['TextView']['font'], None)
 		self.assertFalse(any(['use_custom_font' in d for d in self.ui.preferences.values()]))
 
 		## Plugin Config dialog
-		from zim.plugins import get_plugin
-		klass = get_plugin('calendar')
+		from zim.plugins.calendar import CalendarPlugin
+		plugin = CalendarPlugin()
 		pref_dialog = PreferencesDialog(self.ui)
-		dialog = PluginConfigureDialog(pref_dialog, klass)
+		dialog = PluginConfigureDialog(pref_dialog, plugin)
 		dialog.assert_response_ok()
 
 	def testTemplateEditorDialog(self):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		dialog = TemplateEditorDialog(self.ui)
 		# TODO what to test here ??
+		dialog.assert_response_ok()
+
+	def testRecentChangesDialog(self):
+		from zim.gui.recentchangesdialog import RecentChangesDialog
+
+		self.clear_tmp_dir()
+		ui = setupGtkInterface(self)
+
+		dialog = RecentChangesDialog(ui)
 		dialog.assert_response_ok()
 
 	# Test for ExportDialog can be found in test/export.py
@@ -395,19 +403,11 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	message = 'No such image:'
 
 
-class FilterFailedToLoadPlugin(tests.LoggingFilter):
-
-	logger = 'zim'
-	message = 'Failed to load plugin'
-
-
 @tests.slowTest
 class TestGtkInterface(tests.TestCase):
 
 	def setUp(self):
-		with FilterFailedToLoadPlugin():
-			# may miss dependencies for e.g. versioncontrol
-			self.ui = setupGtkInterface(self)
+		self.ui = setupGtkInterface(self)
 
 	def tearDown(self):
 		self.ui.close()
@@ -415,50 +415,30 @@ class TestGtkInterface(tests.TestCase):
 	def testInitialization(self):
 		'''Test Gtk interface initialization'''
 
-		# start without notebook should not complain
-		ui = zim.gui.GtkInterface()
-
-		# now take ui with notebook
-		ui = self.ui
-
 		# test read only (starts readonly because notebook has no dir or file)
-		self.assertTrue(ui.readonly)
-		ui.set_readonly(False)
-		self.assertFalse(ui.readonly)
-		ui.set_readonly(True)
-		self.assertTrue(ui.readonly)
+		self.assertTrue(self.ui.readonly)
+		self.ui.set_readonly(False)
+		self.assertFalse(self.ui.readonly)
+		self.ui.set_readonly(True)
+		self.assertTrue(self.ui.readonly)
 
 		# TODO more tests for readonly pages etc.
 
 		# test populating menus
 		menu = gtk.Menu()
-		ui.populate_popup('page_popup', menu)
+		self.ui.populate_popup('page_popup', menu)
 		items = menu.get_children()
 		self.assertGreater(len(items), 3)
 
-		# open notebook (so the default plugins are loaded)
-		nb = ui.notebook
-		ui.notebook = None
-		ui.open_notebook(nb)
-
-		# remove plugins
-		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
-		plugins = [p.plugin_key for p in ui.plugins]
-		for name in plugins:
-			ui.unload_plugin(name)
-		self.assertEqual(len(ui.plugins), 0)
-
-		# and add them again
-		for name in plugins:
-			ui.load_plugin(name)
-		self.assertGreaterEqual(len(ui.plugins), 3) # default plugins without dependencies
-
 		# check registering an URL handler
 		func = tests.Counter(True)
-		ui.register_url_handler('foo', func)
-		ui.open_url('foo://bar')
+		self.ui.register_url_handler('foo', func)
+		self.ui.open_url('foo://bar')
 		self.assertTrue(func.count == 1)
-		ui.unregister_url_handler(func)
+		self.ui.unregister_url_handler(func)
+
+		# check default plugins are loaded
+		self.assertGreaterEqual(len(self.ui.plugins), 3)
 
 	def testMainWindow(self):
 		'''Test main window'''
@@ -517,7 +497,7 @@ class TestGtkInterface(tests.TestCase):
 			zim.gui.TOOLBAR_TEXT_ONLY,
 		):
 			window.set_toolbar_style(style)
-			self.assertEqual(window.uistate['toolbar_style'], style)
+			self.assertEqual(window.preferences['GtkInterface']['toolbar_style'], style)
 
 		# note: no default style here - system default unknown
 		for size in (
@@ -526,7 +506,7 @@ class TestGtkInterface(tests.TestCase):
 			zim.gui.TOOLBAR_ICONS_TINY,
 		):
 			window.set_toolbar_size(size)
-			self.assertEqual(window.uistate['toolbar_size'], size)
+			self.assertEqual(window.preferences['GtkInterface']['toolbar_size'], size)
 
 		# FIXME: test fails because "readonly" not active because notebook was already readonly, so action never activatable
 		#~ self.assertTrue(ui.readonly)
@@ -645,12 +625,7 @@ class TestClickLink(tests.TestCase):
 				):
 					self.mock_method(method, None)
 
-		with FilterFailedToLoadPlugin():
-			# may miss dependencies for e.g. versioncontrol
-			self.ui = setupGtkInterface(self, klass=MyMock)
-
-	def tearDown(self):
-		self.ui.close()
+		self.ui = setupGtkInterface(self, klass=MyMock)
 
 	def runTest(self):
 		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')
@@ -721,7 +696,8 @@ class TestClickLink(tests.TestCase):
 class TestNotebookDialog(tests.TestCase):
 
 	def setUp(self):
-		list = config_file('notebooks.list')
+		config = ConfigManager()
+		list = config.get_config_file('notebooks.list')
 		file = list.file
 		if file.exists():
 			file.remove()
@@ -742,7 +718,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(doAddNotebook):
-			self.assertEqual(prompt_notebook(), dir1.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir1.uri)
 
 		# Second time we get the list
 		def testNotebookDialog(dialog):
@@ -752,7 +730,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(testNotebookDialog):
-			self.assertEqual(prompt_notebook(), dir1.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir1.uri)
 
 		# Third time we add a notebook and set the default
 		def doAddNotebook(dialog):
@@ -774,7 +754,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(testAddNotebook):
-			self.assertEqual(prompt_notebook(), dir2.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir2.uri)
 
 		# Check the notebook exists and the notebook list looks like it should
 		for dir in (dir1, dir2):
@@ -796,7 +778,9 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(unsetDefault):
-			self.assertEqual(prompt_notebook(), dir2.uri)
+			info = prompt_notebook()
+			self.assertIsNotNone(info)
+			self.assertEqual(info.uri, dir2.uri)
 
 		list = get_notebook_list()
 		self.assertTrue(len(list) == 2)

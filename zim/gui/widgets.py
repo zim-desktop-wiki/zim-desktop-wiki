@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -33,6 +33,7 @@ import os
 import re
 import weakref
 import unicodedata
+import locale
 
 try:
 	import gtksourceview2
@@ -43,6 +44,7 @@ import zim
 
 import zim.errors
 import zim.config
+import zim.fs
 
 from zim.fs import File, Dir
 from zim.config import value_is_coord
@@ -171,17 +173,18 @@ def gtk_window_set_default_icon():
 
 
 
-def ScrolledWindow(widget, hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_AUTOMATIC):
+def ScrolledWindow(widget, hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_AUTOMATIC, shadow=gtk.SHADOW_IN):
 	'''Wrap C{widget} in a C{gtk.ScrolledWindow} and return the resulting
 	widget
 	@param widget: any Gtk widget
 	@param hpolicy: the horizontal scrollbar policy
 	@param vpolicy: the vertical scrollbar policy
+	@param shadow: the shadow type
 	@returns: a C{gtk.ScrolledWindow}
 	'''
 	window = gtk.ScrolledWindow()
 	window.set_policy(hpolicy, vpolicy)
-	window.set_shadow_type(gtk.SHADOW_IN)
+	window.set_shadow_type(shadow)
 	window.add(widget)
 
 	if hpolicy == gtk.POLICY_NEVER:
@@ -418,8 +421,8 @@ def input_table_factory(inputs, table=None):
 	input form. For standard forms see the L{InputForm} class.
 
 	@param inputs: a list of inputs. These inputs should be either
-	a tuple of a string and one or more widgets, a single widget, or
-	C{None}.
+	a tuple of a string and one or more widgets, a single widget, a
+	string, or C{None}.
 
 	For a tuple the lable will be lined out in the first column followed
 	by all the widgets. If a tuple is given and the first item is
@@ -429,7 +432,10 @@ def input_table_factory(inputs, table=None):
 	meant for e.g. checkboxes that have the label behind the checkbox
 	as part of the widget).
 
-	A input that has a C{None} value will result in an empty row in the
+	A string will be put as a label on it's own row. Use of markup is
+	assumed.
+
+	An input that has a C{None} value will result in an empty row in the
 	table, separating field above and below.
 
 	@param table: options C{gtk.Table}, if given inputs will be appended
@@ -448,6 +454,11 @@ def input_table_factory(inputs, table=None):
 		if input is None:
 			table.attach(gtk.Label(' '), 0,1, i,i+1, xoptions=gtk.FILL)
 			# HACK: force empty row to have height of label
+		elif isinstance(input, basestring):
+			label = gtk.Label()
+			label.set_markup(input)
+			table.attach(label, 0,4, i,i+1)
+				# see column below about col span for single widget case
 		elif isinstance(input, tuple):
 			text = input[0]
 			if text:
@@ -1032,8 +1043,11 @@ class InputForm(gtk.Table):
 		extra argument which gives the reference L{Path} for resolving
 		relative paths. This also requires the notebook to be set.
 
-		A L{None} value in the input list will result in additional row
-		spacing in the form.
+		A string in the input list will result in a label in the form,
+		using markup.
+
+		A C{None} or C{''} value in the input list will result in
+		additional row spacing in the form.
 		'''
 
 		# For options we use rsplit to split group and option name.
@@ -1045,8 +1059,11 @@ class InputForm(gtk.Table):
 		widgets = []
 
 		for input in inputs:
-			if input is None:
+			if not input:
 				widgets.append(None)
+				continue
+			elif isinstance(input, basestring):
+				widgets.append(input)
 				continue
 
 			if len(input) == 4:
@@ -1154,8 +1171,6 @@ class InputForm(gtk.Table):
 			# Connect activate signal
 			if isinstance(widget, gtk.Entry):
 				widget.connect('activate', self.on_activate_widget)
-			elif isinstance(widget, gtk.ComboBox):
-				widget.connect('changed', self.on_activate_widget)
 			else:
 				pass
 
@@ -1289,6 +1304,8 @@ class InputForm(gtk.Table):
 			elif isinstance(widget, gtk.ComboBox):
 				if hasattr(widget, 'zim_key_mapping'):
 					label = widget.get_active_text()
+					if label:
+						label = label.decode('utf-8')
 					return widget.zim_key_mapping.get(label) or label
 				else:
 					return widget.get_active_text()
@@ -2127,8 +2144,7 @@ def register_window(window):
 	so already.
 	'''
 	if  hasattr(window, 'ui') \
-	and hasattr(window.ui, 'register_new_window') \
-	and not window in window.ui.windows:
+	and hasattr(window.ui, 'register_new_window'):
 		window.ui.register_new_window(window)
 
 
@@ -2349,6 +2365,47 @@ class WindowSidePaneWidget(object):
 		return False
 
 
+
+from zim.config import ConfigDefinition, ConfigDefinitionByClass
+
+class ConfigDefinitionPaneToggle(ConfigDefinition):
+
+	def __init__(self, default, window):
+		ConfigDefinition.__init__(self, default)
+		self.window = window
+
+	def check(self, value):
+		# Must be list of valid pane names
+		if isinstance(value, basestring):
+			value = self._eval_string(value)
+
+		if isinstance(value, (tuple, list)) \
+		and all(e in self.window._zim_window_sidepanes for e in value):
+			return value
+		else:
+			raise ValueError, 'Unknown pane names in: %s' % value
+
+
+class ConfigDefinitionPaneState(ConfigDefinitionByClass):
+	# Check value is state as used by set_pane_state() and
+	# get_pane_state(), so 3 elements: boolean, integer and
+	# a label or None
+
+	def __init__(self, default):
+		ConfigDefinitionByClass.__init__(self, default, klass=tuple)
+
+	def check(self, value):
+		value = ConfigDefinitionByClass.check(self, value)
+		if isinstance(value, (tuple, list)) \
+		and len(value) == 3 \
+		and isinstance(value[0], bool) \
+		and isinstance(value[1], int) \
+		and (value[2] is None or isinstance(value[2], basestring)):
+			return value
+		else:
+			raise ValueError, 'Value is not a valid pane state'
+
+
 class Window(gtkwindowclass):
 	'''Sub-class of C{gtk.Window} that will take care of hooking
 	the window into the application framework and adds entry points
@@ -2392,6 +2449,7 @@ class Window(gtkwindowclass):
 
 	def __init__(self):
 		gtkwindowclass.__init__(self)
+		self._registered = False
 		self._last_sidepane_focus = None
 
 		self._zim_window_main = gtk.VBox()
@@ -2532,34 +2590,15 @@ class Window(gtkwindowclass):
 
 	def init_uistate(self):
 		assert self.uistate
-
-		def check_toggle(value, default):
-			# Must be list of valid pane names
-			if isinstance(default, (tuple, list)) \
-			and all(e in self._zim_window_sidepanes for e in value):
-				return value
-			else:
-				raise AssertionError
-
-		self.uistate.setdefault('toggle_panes', [], check_toggle)
-
-
-		def check(value, default):
-			# Check value is state as used by set_pane_state() and
-			# get_pane_state(), so 3 elements: boolean, integer and
-			# a label or None
-			if isinstance(value, (tuple, list)) \
-			and len(value) == 3 \
-			and isinstance(value[0], bool) \
-			and isinstance(value[1], int) \
-			and (value[2] is None or isinstance(value[2], basestring)):
-				return value
-			else:
-				raise AssertionError
+		self.uistate.define((
+			('toggle_panes', ConfigDefinitionPaneToggle([], self)),
+		))
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			default = self.get_pane_state(key)
-			self.uistate.setdefault(key, default, check)
+			self.uistate.define((
+				(key, ConfigDefinitionPaneState(default)),
+			))
 			self.set_pane_state(key, *self.uistate[key])
 
 	def save_uistate(self):
@@ -2717,8 +2756,10 @@ class Window(gtkwindowclass):
 		# First register, than init uistate - this ensures plugins
 		# are enabled before we finalize the presentation of the window.
 		# This is important for state of e.g. panes to work correctly
-		register_window(self)
-		if hasattr(self, 'uistate') and self.uistate:
+		if not self._registered:
+			register_window(self)
+			self._registered = True
+		if hasattr(self, 'uistate'):
 			self.init_uistate()
 		gtkwindowclass.show_all(self)
 
@@ -2746,7 +2787,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	@ivar ui: parent C{gtk.Window} or C{GtkInterface}
 	@ivar vbox: C{gtk.VBox} for main widgets of the dialog
 	@ivar form: L{InputForm} added by C{add_form()}
-	@ivar uistate: L{ListDict} to store state of the dialog, persistent
+	@ivar uistate: L{ConfigDict} to store state of the dialog, persistent
 	per notebook. The size and position of the dialog are stored as
 	automatically in this dict already.
 	@ivar result: result to be returned by L{run()}
@@ -2814,25 +2855,29 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@note: some sub-classes expect C{self.ui} to always be a
 		L{GtkInterface}
 		'''
-		self.ui = ui
-		self.result = None
 		gtk.Dialog.__init__(
-			self, parent=get_window(self.ui),
+			self, parent=get_window(ui),
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
+		if hasattr(ui, 'ui') and hasattr(ui.ui, 'uistate'):
+				ui = ui.ui # HACK - we get other window instead.. - avoid triggering Mock objects in test ...
+
+		self.ui = ui
+		self.result = None
+		self._registered = False
 		if not ui_environment['smallscreen']:
 			self.set_border_width(10)
 			self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
-			assert isinstance(self.uistate, zim.config.ListDict) # just to be sure
+			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
 		elif hasattr(ui, 'uistate') \
-		and isinstance(ui.uistate, zim.config.ConfigDict):
+		and isinstance(ui.uistate, zim.config.SectionedConfigDict):
 			key = self.__class__.__name__
 			self.uistate = ui.uistate[key]
 		else:
-			self.uistate = zim.config.ListDict()
+			self.uistate = zim.config.ConfigDict()
 
 		# note: _windowpos is defined with a leading "_" so it is not
 		# persistent across instances, this is intentional to avoid
@@ -2971,14 +3016,20 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 	def present(self):
 		self.show_all()
-		gtk.Dialog.present(self)
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			gtk.Dialog.present(self)
 
 	def show(self):
 		self.show_all()
 
 	def show_all(self):
 		logger.debug('Opening dialog "%s"', self.title)
-		register_window(self)
+		if not self._registered:
+			register_window(self)
+			self._registered = True
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
@@ -3109,7 +3160,9 @@ class ErrorDialog(gtk.MessageDialog):
 	care of that.
 	'''
 
-	def __init__(self, ui, error, exc_info=None):
+	def __init__(self, ui, error, exc_info=None, do_logging=True,
+				buttons=gtk.BUTTONS_CLOSE
+	):
 		'''Constructor
 
 		@param ui: either a parent window or dialog or the main
@@ -3126,46 +3179,56 @@ class ErrorDialog(gtk.MessageDialog):
 		most cases where the dialog is run while the exception is still
 		in scope. One reason to pass it on explicitly is the handling
 		of errors from an async operation in the main tread.
+
+		@param do_logging: if C{True} also log the error, if C{False}
+		assume someone else already did
+
+		@param buttons: a constant controlling what kind of buttons the
+		dialog will have. One of:
+			- C{None} or C{gtk.BUTTONS_NONE}: for dialogs taking care
+			  of constructing the buttons themselves
+			- C{gtk.BUTTONS_OK_CANCEL}: Render Ok and Cancel
+			- C{gtk.BUTTONS_CLOSE}: Only set a Close button
 		'''
+		if not isinstance(error, Exception):
+			if isinstance(error, tuple):
+				msg, description = error
+				error = zim.errors.Error(msg, description)
+			else:
+				msg = unicode(error)
+				error = zim.errors.Error(msg)
+
 		self.error = error
-		show_trace = False
-		if isinstance(error, zim.errors.Error):
-			msg = error.msg
-			description = error.description
-		elif isinstance(error, EnvironmentError): # e.g. OSError or IOError
-			msg = error.strerror
-			if hasattr(error, 'filename') and error.filename:
-				msg += ': ' + error.filename
-			description = None
-		elif isinstance(error, Exception):
-			msg = _('Looks like you found a bug') # T: generic error dialog
-			# TODO point to bug tracker
-			description = error.__class__.__name__ + ': ' + unicode(error)
-			description += '\n\n' + _('When reporting this bug please include\nthe information from the text box below') # T: generic error dialog text
-			show_trace = True
-		elif isinstance(error, tuple):
-			msg, description = error
-		else:
-			# other object or string
-			msg = unicode(error)
-			description = None
+		self.do_logging = do_logging
+		msg, show_trace = zim.errors.get_error_msg(error)
 
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
-			type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE,
+			type=gtk.MESSAGE_ERROR, buttons=buttons,
 			message_format=msg
 		)
-		if description:
-			self.format_secondary_text(description)
 
-		# Add widget with debug info
-		if show_trace:
+		if isinstance(error, zim.errors.Error):
+			self.showing_trace = False # used in test
+			self.format_secondary_text(error.description)
+		elif show_trace:
+			self.showing_trace = True # used in test
+			self.format_secondary_text(
+				_('When reporting this bug please include\n'
+				  'the information from the text box below')
+				) # T: generic error dialog text
+				# TODO add link to bug tracker
+
+			# Add widget with debug info
 			text = self.get_debug_text(exc_info)
 			window, textview = ScrolledTextView(text, monospace=True)
 			window.set_size_request(350, 200)
 			self.vbox.add(window)
 			self.vbox.show_all()
 			# TODO use an expander here ?
+		else:
+			self.showing_trace = False # used in test
+			pass
 
 
 	def get_debug_text(self, exc_info=None):
@@ -3188,10 +3251,13 @@ class ErrorDialog(gtk.MessageDialog):
 			tb = None
 
 		text = 'This is zim %s\n' % zim.__version__ + \
-			'Python version is %s\n' % str(sys.version_info) + \
-			'Gtk version is %s\n' % str(gtk.gtk_version) + \
-			'Pygtk version is %s\n' % str(gtk.pygtk_version) + \
-			'Platform is %s\n' % os.name
+			'Platform: %s\n' % os.name + \
+			'Locale: %s %s\n' % locale.getdefaultlocale() + \
+			'FS encoding: %s\n' % zim.fs.ENCODING + \
+			'Python: %s\n' % str(tuple(sys.version_info)) + \
+			'Gtk: %s\n' % str(gtk.gtk_version) + \
+			'Pygtk: %s\n' % str(gtk.pygtk_version)
+
 
 		text += zim.get_zim_revision() + '\n'
 
@@ -3206,19 +3272,23 @@ class ErrorDialog(gtk.MessageDialog):
 
 		text += self.error.__class__.__name__ + ': ' + unicode(self.error)
 
+		del exc_info # recommended by manual
+
 		return text
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''
 		logger.debug('Running %s', self.__class__.__name__)
 
-		exc_info = sys.exc_info() # Check if we are in an exception handler
-		if exc_info[0] is None:
-			exc_info = None
-		logger.error(self.error, exc_info=exc_info)
-		del exc_info # Recommended in pydoc sys
-		sys.exc_clear() # Avoid showing same message again later
+		if self.do_logging:
+			zim.errors.log_error(self.error)
 
+		if TEST_MODE and TEST_MODE_RUN_CB:
+			TEST_MODE_RUN_CB(self)
+		else:
+			self._run()
+
+	def _run(self):
 		while True:
 			response = gtk.MessageDialog.run(self)
 			if response == gtk.RESPONSE_OK and not self.do_response_ok():

@@ -30,25 +30,11 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Print to Browser'
 	}
 
-	def print_to_file(self, page):
-		# FIXME - HACK - dump and parse as wiki first to work
-		# around glitches in pageview parsetree dumper
-		# main visibility when copy pasting bullet lists
-		# Same hack in gui clipboard code
-		from zim.notebook import Path, Page
-		from zim.formats import get_format
-		parsetree = page.get_parsetree()
-		dumper = get_format('wiki').Dumper()
-		text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-		parser = get_format('wiki').Parser()
-		parsetree = parser.parse(text)
-		page = Page(Path(page.name), parsetree=parsetree)
-		#--
-
+	def print_to_file(self, notebook, page):
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		template = zim.templates.get_template('html', 'Print')
-		template.set_linker(StaticLinker('html', self.ui.notebook, page))
-		html = template.process(self.ui.notebook, page)
+		template.set_linker(StaticLinker('html', notebook, page))
+		html = template.process(notebook, page)
 		file.writelines(html)
 		return file
 
@@ -70,9 +56,10 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('_Print to Browser'), 'gtk-print', '<ctrl>P') # T: menu item
 	def print_to_browser(self, page=None):
+		notebook = self.window.ui.notebook # XXX
 		if page is None:
 			page = self.window.ui.page # XXX
-		file = self.plugin.print_to_file(page)
+		file = self.plugin.print_to_file(notebook, page)
 		self.window.ui.open_url('file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results

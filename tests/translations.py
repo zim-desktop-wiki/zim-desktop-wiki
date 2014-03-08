@@ -69,8 +69,11 @@ class TranslationMessage(object):
 	def check_format_strings(self):
 		'''Check format strings in msgid_plural and msgstr'''
 		if 'strftime' in self.comment:
-			return True # strftime format string
+			return self._check_strftime_string()
+		else:
+			return self._check_format_strings()
 
+	def _check_format_strings(self):
 		wanted = sorted( self._format_string_re.findall(self.msgid) )
 		if not wanted:
 			return True # no string format used
@@ -80,6 +83,18 @@ class TranslationMessage(object):
 				got = sorted( self._format_string_re.findall(msg) )
 				if not got == wanted:
 					return False
+		else:
+			return True
+
+	def _check_strftime_string(self):
+		for msg in self.msgstr:
+			if msg and not msg == '""':
+				for c in re.findall('\%(.)', msg):
+					if c not in 'aAwdbBmyYHIpMSfzZjUWcxX%':
+						# valid charaters based on doc for datetime module
+						# other characters may be valid depending on platform
+						# but not robust
+						return False
 		else:
 			return True
 
@@ -153,6 +168,7 @@ class TranslationFile(object):
 			if not message.check_format_strings():
 				raise AssertionError, \
 				'Error with format strings in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid
+
 
 
 if __name__ == '__main__':

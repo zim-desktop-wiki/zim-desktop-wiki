@@ -10,7 +10,7 @@ import pango
 import os
 
 from zim.fs import Dir
-from zim.notebook import init_notebook, get_notebook, Notebook, Path, Link
+from zim.notebook import init_notebook, Notebook, Path, Link
 from zim.index import *
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
@@ -251,7 +251,7 @@ class TestPageTreeStore(tests.TestCase):
 		treeview = PageTreeView(ui)
 		treestore = PageTreeStore(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 7)
+		self.assertEqual(treestore.get_n_columns(), 8)
 		treeview.set_model(treestore)
 
 		self.index.update(callback=tests.gtk_process_events)
@@ -436,7 +436,7 @@ class TestSynchronization(tests.TestCase):
 		dir = Dir(self.create_tmp_dir())
 
 		init_notebook(dir, name='foo')
-		notebook = get_notebook(dir)
+		notebook = Notebook(dir=dir)
 		index = notebook.index
 		index.update()
 

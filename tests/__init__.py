@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
 
@@ -13,6 +13,12 @@ import gettext
 import xml.etree.cElementTree as etree
 import types
 import glob
+
+try:
+	import gtk
+except ImportError:
+	gtk = None
+
 
 if sys.version_info < (2, 7, 0):
 	try:
@@ -38,18 +44,23 @@ FAST_TEST = False #: determines whether we skip slow tests or not
 # This list also determines the order in which tests will executed
 __all__ = [
 	'package', 'translations',
-	'utils', 'errors', 'signals',
-	'fs', 'config', 'applications', 'async',
-	'parsing', 'formats', 'templates',
+	'datetimetz', 'utils', 'errors', 'signals',
+	'environ', 'fs',
+	'config', 'applications',
+	'parsing', 'formats', 'templates', 'objectmanager',
 	'stores', 'index', 'notebook', 'history',
-	'main', 'plugins',
 	'export', 'www', 'search',
 	'widgets', 'gui', 'pageview', 'clipboard',
+	'main', 'plugins',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'ipc'
 ]
+
+
+mydir = os.path.dirname(__file__)
+
 
 # when a test is missing from the list that should be detected
 for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
@@ -57,9 +68,11 @@ for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
 	if name != '__init__' and not name in __all__:
 		raise AssertionError, 'Test missing in __all__: %s' % name
 
+# get our own data dir
+DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
 
 # get our own tmpdir
-TMPDIR = os.path.abspath('./tests/tmp')
+TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# Wanted to use tempfile.get_tempdir here to put everything in
 	# e.g. /tmp/zim but since /tmp is often mounted as special file
 	# system this conflicts with thrash support. For writing in source
@@ -70,6 +83,9 @@ if os.name == 'nt':
 	TMPDIR = unicode(TMPDIR)
 else:
 	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
+
+# also get the default tmpdir and put a copy in the env
+REAL_TMPDIR = tempfile.gettempdir()
 
 
 def load_tests(loader, tests, pattern):
@@ -92,6 +108,7 @@ def _setUpEnvironment():
 		'ZIM_TEST_RUNNING': 'True',
 		'ZIM_TEST_ROOT': os.getcwd(),
 		'TMP': TMPDIR,
+		'REAL_TMP': REAL_TMPDIR,
 		'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
 		'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
 		'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),
@@ -163,17 +180,18 @@ class TestCase(unittest.TestCase):
 
 	maxDiff = None
 
+	@classmethod
+	def tearDownClass(cls):
+		if gtk is not None:
+			gtk_process_events() # flush any pending events / warnings
+
 	def assertEqual(self, first, second, msg=None):
-		## HACK to work around bug in unittest - it does not consider
+		## HACK to work around "feature" in unittest - it does not consider
 		## string and unicode to be of the same type and thus does not
-		## show diffs
-		## TODO file bug report for this
+		## show diffs if the textual content differs
 		if type(first) in (str, unicode) \
 		and type(second) in (str, unicode):
-			self.assertMultiLineEqual(second, first, msg)
-			## HACK switch arguments here, otherwise order of
-			## diff is wrong (assuming first is what we got and second
-			## is the reference)
+			self.assertMultiLineEqual(first, second, msg)
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
@@ -182,10 +200,8 @@ class TestCase(unittest.TestCase):
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
+		self.clear_tmp_dir(name)
 		path = self._get_tmp_name(name)
-		if os.path.exists(path):
-			shutil.rmtree(path)
-		assert not os.path.exists(path) # make real sure
 		os.makedirs(path)
 		assert os.path.exists(path) # make real sure
 		return path
@@ -198,6 +214,13 @@ class TestCase(unittest.TestCase):
 		path = self._get_tmp_name(name)
 		assert not os.path.exists(path), 'This path should not exist: %s' % path
 		return path
+
+	def clear_tmp_dir(self, name=None):
+		'''Clears the tmp dir for this test'''
+		path = self._get_tmp_name(name)
+		if os.path.exists(path):
+			shutil.rmtree(path)
+		assert not os.path.exists(path) # make real sure
 
 	def _get_tmp_name(self, name):
 		if name:
@@ -219,16 +242,23 @@ class LoggingFilter(object):
 	using the "with" keyword. To subclass it you only need to set the
 	logger to be used and (the begin of) the message to filter.
 
+	The message can be a string, or a list or tuple of strings. Any
+	messages that start with this string or any of these strings are
+	surpressed.
+
 	Alternatively you can call L{wrap_test()} from test C{setUp}.
-	This will start the filter and make sure it is cleanep up again.
+	This will start the filter and make sure it is cleaned up again.
 	'''
 
-	logger = None
+	logger = 'zim'
 	message = None
 
 	def __init__(self, logger=None, message=None):
-		if logger: self.logger = logger
-		if message: self.message = message
+		if logger:
+			self.logger = logger
+
+		if message:
+			self.message = message
 
 		self.loggerobj = logging.getLogger(self.logger)
 
@@ -240,6 +270,7 @@ class LoggingFilter(object):
 
 	def filter(self, record):
 		msg = record.getMessage()
+
 		if isinstance(self.message, tuple):
 			return not any(msg.startswith(m) for m in self.message)
 		else:
@@ -479,6 +510,7 @@ class Counter(object):
 		self.count += 1
 		return self.value
 
+
 class MockObjectBase(object):
 	'''Base class for mock objects.
 
@@ -514,12 +546,15 @@ class MockObject(MockObjectBase):
 
 	def __getattr__(self, name):
 		'''Automatically mock methods'''
-		return self.mock_method(name, None)
+		if name == '__zim_extension_objects__':
+			raise AttributeError
+		else:
+			return self.mock_method(name, None)
 
 
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
-	import gtk
+	assert gtk is not None
 	while gtk.events_pending():
 		gtk.main_iteration(block=False)
 	return True # continue

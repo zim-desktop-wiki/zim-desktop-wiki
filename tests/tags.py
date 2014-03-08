@@ -12,7 +12,7 @@ from zim.notebook import Path
 from zim.gui.pageindex import FGCOLOR_COL, \
 	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
 	# Explicitly don't import * from pageindex, make clear what we re-use
-from zim.config import ListDict
+from zim.config import ConfigDict
 from zim.plugins.tags import *
 
 
@@ -40,7 +40,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		treestore = self.storeclass(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 7)
+		self.assertEqual(treestore.get_n_columns(), 8)
 		treeview = self.viewclass(ui, treestore)
 		model = treeview.get_model()
 		if isinstance(model, gtk.TreeModelFilter):
@@ -48,7 +48,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.assertEqual(model, treestore)
 
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 7)
+		self.assertEqual(treestore.get_n_columns(), 8)
 
 		self.index.update(callback=tests.gtk_process_events)
 		tests.gtk_process_events()
@@ -246,12 +246,8 @@ class TestTagPluginWidget(tests.TestCase):
 	def runTest(self):
 		ui = MockUI()
 		ui.notebook = tests.new_notebook()
-
-		plugin = tests.MockObject()
-		plugin.ui = ui
-		plugin.uistate = ListDict()
-
-		widget = TagsPluginWidget(plugin)
+		uistate = ConfigDict()
+		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
 
 		# Excersize all model switches and check we still have a sane state
 		widget.toggle_treeview()
@@ -310,7 +306,7 @@ class TestTagPluginWidget(tests.TestCase):
 				yield iter
 				iter = model.iter_next(iter)
 
-		self.assertEqual(plugin.uistate['treeview'], 'tagged')
+		self.assertEqual(uistate['treeview'], 'tagged')
 		filteredmodel = widget.treeview.get_model()
 		for iter in toplevel(filteredmodel):
 			path = filteredmodel.get_indexpath(iter)
@@ -323,7 +319,7 @@ class TestTagPluginWidget(tests.TestCase):
 			self.assertTrue(filteredmodel.get_path(iter) in treepaths)
 
 		widget.toggle_treeview()
-		self.assertEqual(plugin.uistate['treeview'], 'tags')
+		self.assertEqual(uistate['treeview'], 'tags')
 		filteredmodel = widget.treeview.get_model()
 		for iter in toplevel(filteredmodel):
 			self.assertEqual(filteredmodel.get_indexpath(iter), None)

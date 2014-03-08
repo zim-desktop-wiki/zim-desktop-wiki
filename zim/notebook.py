@@ -78,6 +78,7 @@ import os
 import re
 import weakref
 import logging
+import threading
 
 import gobject
 
@@ -85,13 +86,13 @@ import gobject
 from .base import Object
 
 import zim.fs
-from zim.fs import File, Dir
+from zim.fs import File, Dir, FS, FilePath, FileNotFoundError
 from zim.errors import Error, TrashNotSupportedError
-from zim.config import ConfigDict, ConfigDictFile, HierarchicDict, \
-	config_file, data_dir, user_dirs, config_dirs, list_profiles
+from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
+	data_dir, ConfigManager, XDGConfigFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
-from zim.async import AsyncLock
+import zim.formats
 import zim.stores
 
 
@@ -135,10 +136,16 @@ class NotebookInfo(object):
 		@param a: any additional arguments will be discarded
 		'''
 		# **a is added to be future proof of unknown values in the cache
-		f = File(uri)
-		self.uri = f.uri
-		self.user_path = f.user_path # set to None when uri is not a file uri
-		self.name = name or f.basename
+		if isinstance(uri, basestring) \
+		and is_url_re.match(uri) and not uri.startswith('file://'):
+			self.uri = uri
+			self.user_path = None
+			self.name = name
+		else:
+			f = File(uri)
+			self.uri = f.uri
+			self.user_path = f.user_path # set to None when uri is not a file uri
+			self.name = name or f.basename
 		self.icon_path = icon
 		self.icon = File(icon).uri
 		self.mtime = mtime
@@ -165,13 +172,13 @@ class NotebookInfo(object):
 		dir = Dir(self.uri)
 		file = dir.file('notebook.zim')
 		if file.exists() and file.mtime() != self.mtime:
-			config = ConfigDictFile(file)
+			config = NotebookConfig(file)
+			section = config['Notebook']
 
-			self.name = config['Notebook'].get('name') or dir.basename
-			self.interwiki = config['Notebook'].get('interwiki')
-
-			self.icon_path = config['Notebook'].get('icon')
-			icon, document_root = _resolve_relative_config(dir, config['Notebook'])
+			self.name = section['name']
+			self.interwiki = section['interwiki']
+			self.icon_path = section['icon']
+			icon, document_root = _resolve_relative_config(dir, section)
 			if icon:
 				self.icon = icon.uri
 			else:
@@ -181,6 +188,23 @@ class NotebookInfo(object):
 			return True
 		else:
 			return False
+
+
+class VirtualFile(object):
+	### TODO - proper class for this in zim.fs
+	###        unify with code in config manager
+
+	def __init__(self, lines):
+		self.lines = lines
+
+	def readlines(self):
+		return self.lines
+
+	def connect(self, handler, *a):
+		pass
+
+	def disconnect(self, handler):
+		pass
 
 
 class NotebookInfoList(list):
@@ -219,12 +243,12 @@ class NotebookInfoList(list):
 
 		Format is::
 
-		  [Notebooklist]
+		  [NotebookList]
 		  Default=uri1
-		  uri1
-		  uri2
+		  1=uri1
+		  2=uri2
 
-		  [Notebook]
+		  [Notebook 1]
 		  name=Foo
 		  uri=uri1
 
@@ -232,49 +256,68 @@ class NotebookInfoList(list):
 
 		@param text: a string or a list of lines
 		'''
+		# Format <= 0.60 was:
+		#
+		#  [NotebookList]
+		#  Default=uri1
+		#  uri1
+		#  uri2
+		#
+		#  [Notebook]
+		#  name=Foo
+		#  uri=uri1
+
+
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
 		assert text[0].strip() == '[NotebookList]'
-		text.pop(0)
 
-		# Parse key for default
-		if text and text[0].startswith('Default='):
-			k, v = text.pop(0).strip().split('=', 1)
-			default = v
-		else:
-			default = None
-
-		# Parse rest of list
-		uris = []
-		i = 0 # (needs to be set in case list is empty)
+		# Backward compatibility, make valid INI file:
+		# - make redundant [Notebook] sections numbered
+		# - prefix lines without a key with a number
+		n = 0
+		l = 0
 		for i, line in enumerate(text):
-			if not line or line.isspace():
-				break
-			elif line.startswith('#'):
+			if line.strip() == '[Notebook]':
+				n += 1
+				text[i] = '[Notebook %i]\n' % n
+			elif line and not line.isspace()  \
+			and not line.lstrip().startswith('[') \
+			and not line.lstrip().startswith('#') \
+			and not '=' in line:
+				l += 1
+				text[i] = ('%i=' % l) + line
+		###
+
+		from zim.config import String
+		config = INIConfigFile(VirtualFile(text))
+
+		mylist = config['NotebookList']
+		mylist.define(Default=String(None))
+		mylist.define((k, String(None)) for k in mylist._input.keys()) # XXX
+
+		for key, uri in config['NotebookList'].items():
+			if key == 'Default':
 				continue
 
-			# assumed to be urls, but we check to be sure
-			uri = File(line.strip()).uri
-			uris.append(uri)
-
-		# Parse rest of the file with cache
-		cache = {}
-		config = ConfigDict()
-		config['Notebook'] = []
-		config.parse(text[i+1:])
-		for section in config['Notebook']:
-			uri = section['uri']
-			cache[uri] = dict(section)
-
-		# Populate ourselves
-		for uri in uris:
-			section = cache.get(uri, {'uri': uri})
-			info = NotebookInfo(**section)
+			section = config['Notebook %s' % key]
+			section.define(
+				uri=String(None),
+				name=String(None),
+				icon=String(None),
+				mtime=String(None),
+				interwiki=String(None)
+			)
+			if section['uri'] == uri:
+				info = NotebookInfo(**section)
+			else:
+				info = NotebookInfo(uri)
 			self.append(info)
 
-		if default:
-			self.set_default(default)
+		if 'Default' in config['NotebookList'] \
+		and config['NotebookList']['Default']:
+			self.set_default(config['NotebookList']['Default'])
 
 	def parse_old_format(self, text):
 		'''Parses the config and cache and populates the list
@@ -335,13 +378,18 @@ class NotebookInfoList(list):
 			'[NotebookList]\n',
 			'Default=%s\n' % (default or '')
 		]
-		lines.extend((info.user_path or info.uri) + '\n' for info in self)
+		for i, info in enumerate(self):
+			n = i+1
+			uri = info.user_path or info.uri
+			lines.append('%i=%s\n' % (n, uri))
 
-		for info in self:
+		for i, info in enumerate(self):
+			n = i+1
+			uri = info.user_path or info.uri
 			lines.extend([
 				'\n',
-				'[Notebook]\n',
-				'uri=%s\n' % (info.user_path or info.uri),
+				'[Notebook %i]\n' % n,
+				'uri=%s\n' % uri,
 				'name=%s\n' % info.name,
 				'interwiki=%s\n' % info.interwiki,
 				'icon=%s\n' % info.icon_path,
@@ -412,65 +460,29 @@ def get_notebook_list():
 
 	This will load the list from the default X{notebooks.list} file
 	'''
-	# TODO use weakref here
-	file = config_file('notebooks.list')
+	config = ConfigManager() # XXX should be passed in
+	file = config.get_config_file('notebooks.list')
 	return NotebookInfoList(file)
 
 
 def resolve_notebook(string):
 	'''Takes either a notebook name or a file or dir path. For a name
 	it resolves the path by looking for a notebook of that name in the
-	notebook list. For a path it checks if this path points to a
-	notebook or to a file in a notebook.
-
-	It returns two values, a path to the notebook directory and an
-	optional page path for a file inside a notebook. If the notebook
-	was not found both values are None.
+	notebook list.
+	Note that the L{NotebookInfo} for an file path is not using any
+	actual info from the notebook, it just passes on the uri. Use
+	L{build_notebook()} to split the URI in a notebook location and
+	an optional page path.
+	@returns: a L{NotebookInfo} or C{None}
 	'''
 	assert isinstance(string, basestring)
 
-	page = None
-	if is_url_re.match(string):
-		if string.startswith('zim+'): string = string[4:]
-		assert string.startswith('file://')
-		if '?' in string:
-			filepath, page = string.split('?', 1)
-			page = url_decode(page)
-			page = Path(page)
-		else:
-			filepath = string
-	elif os.path.sep in string:
-		filepath = string
+	if '/' in string or os.path.sep in string:
+		# FIXME do we need a isfilepath() function in fs.py ?
+		return NotebookInfo(string)
 	else:
 		nblist = get_notebook_list()
-		info = nblist.get_by_name(string)
-		if info is None:
-			if os.path.exists(string):
-				filepath = string # fall back to file path
-			else:
-				return None, None # not found
-		else:
-			filepath = info.uri
-
-	file = File(filepath) # FIXME need generic FS Path object here
-	if filepath.endswith('notebook.zim'):
-		return file.dir, page
-	elif not page and file.exists(): # file exists and really is a file
-		parents = list(file)
-		parents.reverse()
-		for parent in parents:
-			if File((parent, 'notebook.zim')).exists():
-				page = file.relpath(parent)
-				if '.' in page:
-					page, _ = page.rsplit('.', 1) # remove extension
-				page = Path(page.replace('/', ':'))
-				return Dir(parent), page
-		else:
-			return None, None
-	else:
-		return Dir(file.path), page
-
-	return notebook, path
+		return nblist.get_by_name(string)
 
 
 def _get_path_object(path):
@@ -483,6 +495,7 @@ def _get_path_object(path):
 	else:
 		assert isinstance(path, (File, Dir))
 	return path
+
 
 def get_notebook_info(path):
 	'''Look up the notebook info for either a uri,
@@ -498,35 +511,109 @@ def get_notebook_info(path):
 	else:
 		return None
 
-def get_notebook(path):
-	'''Convenience method that constructs a notebook from either a
-	uri, or a File or a Dir object.
-	@param path: path as string, L{File} or L{Dir} object
-	@returns: a L{Notebook} object, or C{None} if the path does not
-	exist
-	'''
-	path = _get_path_object(path)
 
-	if path.exists():
-		if isinstance(path, File):
-			return Notebook(file=path)
-		else:
-			return Notebook(dir=path)
+def build_notebook(location, notebookclass=None):
+	'''Create a L{Notebook} object for a file location
+	Tries to automount file locations first if needed
+	@param location: a L{FilePath} or a L{NotebookInfo}
+	@param notebookclass: class to instantiate, used for testing
+	@returns: a L{Notebook} object and a L{Path} object or C{None}
+	@raises FileNotFoundError: if file location does not exist and could not be mounted
+	'''
+	uri = location.uri
+	page = None
+
+	# Decipher zim+file:// uris
+	if uri.startswith('zim+file://'):
+		uri = uri[4:]
+		if '?' in uri:
+			uri, page = uri.split('?', 1)
+			page = url_decode(page)
+			page = Path(page)
+
+	# Automount if needed
+	filepath = FilePath(uri)
+	if not filepath.exists():
+		mount_notebook(filepath)
+		if not filepath.exists():
+			raise FileNotFoundError(filepath)
+
+	# Figure out the notebook dir
+	if filepath.isdir():
+		dir = Dir(uri)
+		file = None
 	else:
-		return None
+		file = File(uri)
+		dir = file.dir
+
+	if file and file.basename == 'notebook.zim':
+		file = None
+	else:
+		parents = list(dir)
+		parents.reverse()
+		for parent in parents:
+			if parent.file('notebook.zim').exists():
+				dir = parent
+				break
+
+	# Resolve the page for a file
+	if file:
+		path = file.relpath(dir)
+		if '.' in path:
+			path, _ = path.rsplit('.', 1) # remove extension
+		path = path.replace('/', ':')
+		page = Path(path)
+
+	# And finally create the notebook
+	if notebookclass is None:
+		notebookclass = Notebook
+	notebook = notebookclass(dir=dir)
+
+	return notebook, page
+
+
+def mount_notebook(filepath):
+	from zim.config import String
+
+	config = ConfigManager() # XXX should be passed in
+	configdict = config.get_config_dict('automount.conf')
+
+	groups = [k for k in configdict.keys() if k.startswith('Path')]
+	groups.sort() # make order predictable for nested paths
+	for group in groups:
+		path = group[4:].strip() # len('Path') = 4
+		dir = Dir(path)
+		if filepath.path == dir.path or filepath.ischild(dir):
+			configdict[group].define(mount=String(None))
+			handler = ApplicationMountPointHandler(dir, **configdict[group])
+			if handler(filepath):
+				break
+
+
+class ApplicationMountPointHandler(object):
+	# TODO add password prompt logic, provide to cmd as argument, stdin
+
+	def __init__(self, dir, mount, **a):
+		self.dir = dir
+		self.mount = mount
+
+	def __call__(self, path):
+		if path.path == self.dir.path or path.ischild(self.dir) \
+		and not self.dir.exists() \
+		and self.mount:
+			from zim.applications import Application
+			Application(self.mount).run()
+			return path.exists()
+		else:
+			return False
 
 
 def init_notebook(path, name=None):
 	'''Initialize a new notebook in a directory'''
 	assert isinstance(path, Dir)
 	path.touch()
-	config = ConfigDictFile(path.file('notebook.zim'))
+	config = NotebookConfig(path.file('notebook.zim'))
 	config['Notebook']['name'] = name or path.basename
-	config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
-	if os.name == 'nt': endofline = 'dos'
-	else: endofline = 'unix'
-	config['Notebook']['endofline'] = endofline
-	config['Notebook']['profile'] = None
 	config.write()
 
 
@@ -535,7 +622,6 @@ def interwiki_link(link):
 	assert isinstance(link, basestring) and '?' in link
 	key, page = link.split('?', 1)
 	lkey = key.lower()
- 	url = None
 
 	# First check known notebooks
 	list = get_notebook_list()
@@ -543,39 +629,32 @@ def interwiki_link(link):
 	if info:
 		url = 'zim+' + info.uri + '?{NAME}'
 
-
 	# Then search all "urls.list" in config and data dirs
-	def check_dir(dir):
-		file = dir.file('urls.list')
-		if not file.exists():
-			return None
+	else:
+		url = None
+		files = XDGConfigFileIter('urls.list') # FIXME, shouldn't this be passed in ?
+		for file in files:
+			for line in file.readlines():
+				if line.startswith('#') or line.isspace():
+					continue
+				try:
+					mykey, myurl = line.split(None, 1)
+				except ValueError:
+					continue
+				if mykey.lower() == lkey:
+					url = myurl.strip()
+					break
 
-		for line in file.readlines():
-			if line.startswith('#') or line.isspace():
-				continue
-			try:
-				mykey, myurl = line.split(None, 1)
-			except ValueError:
-				continue
-			if mykey.lower() == lkey:
-				return myurl.strip()
-		else:
-			return None
-
- 	if not url:
-		for dir in config_dirs():
-			url = check_dir(dir)
-			if url:
+			if url is not None:
 				break
 
 	# Format URL
-	if url and is_url_re.match(url):
+	if url:
 		if not ('{NAME}' in url or '{URL}' in url):
 			url += '{URL}'
 
 		url = url.replace('{NAME}', page)
 		url = url.replace('{URL}', url_encode(page))
-
 		return url
 	else:
 		return None
@@ -652,6 +731,32 @@ class PageReadOnlyError(Error):
 _first_char_re = re.compile(r'^\W', re.UNICODE)
 
 
+from zim.config import String, ConfigDefinitionByClass, Boolean, Choice
+
+
+class NotebookConfig(INIConfigFile):
+	'''Wrapper for the X{notebook.zim} file'''
+
+	# TODO - unify this call with NotebookInfo ?
+
+	def __init__(self, file):
+		INIConfigFile.__init__(self, file)
+		if os.name == 'nt': endofline = 'dos'
+		else: endofline = 'unix'
+		self['Notebook'].define((
+			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
+			('name', String(file.dir.basename)),
+			('interwiki', String(None)),
+			('home', ConfigDefinitionByClass(Path('Home'))),
+			('icon', String(None)), # XXX should be file, but resolves relative
+			('document_root', String(None)), # XXX should be dir, but resolves relative
+			('shared', Boolean(False)),
+			('endofline', Choice(endofline, set(('dos', 'unix')))),
+			('disable_trash', Boolean(False)),
+			('profile', String(None)),
+		))
+
+
 class Notebook(Object):
 	'''Main class to access a notebook
 
@@ -667,7 +772,6 @@ class Notebook(Object):
 	moving the page
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
-	@signal: C{profile-changed ()}: emitted when the profile is changed,
 	means that the preferences need to be loaded again as well
 	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
@@ -685,9 +789,9 @@ class Notebook(Object):
 	@ivar dir: Optional L{Dir} object for the X{notebook folder}
 	@ivar file: Optional L{File} object for the X{notebook file}
 	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
-	@ivar config: A L{ConfigDict} for the notebook config
+	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
-	@ivar lock: An L{AsyncLock} for async notebook operations
+	@ivar lock: An C{threading.Lock} for async notebook operations
 	@ivar profile: The name of the profile used by the notebook or C{None}
 
 	In general this lock is not needed when only reading data from
@@ -715,7 +819,6 @@ class Notebook(Object):
 		'moved-page': (gobject.SIGNAL_RUN_LAST, None, (object, object, bool)),
 		'delete-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'profile-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'suggest-link': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 	}
@@ -747,7 +850,7 @@ class Notebook(Object):
 		self.icon = None
 		self.document_root = None
 		self.config = config
-		self.lock = AsyncLock()
+		self.lock = threading.Lock()
 			# We don't use FS.get_async_lock() at this level. A store
 			# backend will automatically trigger this when it calls any
 			# async file operations. This one is more abstract for the
@@ -772,7 +875,7 @@ class Notebook(Object):
 				self.readonly = False
 
 			if self.config is None:
-				self.config = ConfigDictFile(dir.file('notebook.zim'))
+				self.config = NotebookConfig(dir.file('notebook.zim'))
 
 			self.cache_dir = dir.subdir('.zim')
 			if self.readonly or self.config['Notebook'].get('shared') \
@@ -808,22 +911,17 @@ class Notebook(Object):
 		self.index.connect('page-updated', on_page_updated)
 
 		if self.config is None:
-			self.config = ConfigDict()
-			self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
+			from zim.config import VirtualConfigBackend
+			### XXX - Big HACK here - Get better classes for this - XXX ###
+			dir = VirtualConfigBackend()
+			file = dir.file('notebook.zim')
+			file.dir = dir
+			file.dir.basename = 'Unnamed Notebook'
+			###
+			self.config = NotebookConfig(file)
 		else:
 			if self.needs_upgrade:
 				logger.warn('This notebook needs to be upgraded to the latest data format')
-
-		self.config['Notebook'].setdefault('name', None, check=basestring)
-		self.config['Notebook'].setdefault('home', ':Home', check=basestring)
-		self.config['Notebook'].setdefault('icon', None, check=basestring)
-		self.config['Notebook'].setdefault('document_root', None, check=basestring)
-		self.config['Notebook'].setdefault('shared', False)
-		if os.name == 'nt': endofline = 'dos'
-		else: endofline = 'unix'
-		self.config['Notebook'].setdefault('endofline', endofline, check=set(('dos', 'unix')))
-		self.config['Notebook'].setdefault('disable_trash', False)
-		self.config['Notebook'].setdefault('profile', '', check=basestring)
 
 		self.do_properties_changed()
 
@@ -906,35 +1004,19 @@ class Notebook(Object):
 		if 'home' in properties and isinstance(properties['home'], Path):
 			properties['home'] = properties['home'].name
 
-		# Check for a new profile
-		profile_changed = properties.get('profile') != self.profile
-
 		# Actual update and signals
 		# ( write is the last action - in case update triggers a crash
 		#   we don't want to get stuck with a bad config )
 		self.config['Notebook'].update(properties)
 		self.emit('properties-changed')
-		if profile_changed:
-			self.emit('profile-changed')
 
 		if hasattr(self.config, 'write'): # Check needed for tests
 			self.config.write()
 
 	def do_properties_changed(self):
-		#~ import pprint
-		#~ pprint.pprint(self.config)
 		config = self.config['Notebook']
 
-		# Set a name for ourselves
-		if config['name']: 	self.name = config['name']
-		elif self.dir: self.name = self.dir.basename
-		elif self.file: self.name = self.file.basename
-		else: self.name = 'Unnamed Notebook'
-
-		# We should always have a home
-		config.setdefault('home', ':Home')
-
-		# Resolve icon and document root, can be relative
+		self.name = config['name']
 		icon, document_root = _resolve_relative_config(self.dir, config)
 		if icon:
 			self.icon = icon.path # FIXME rewrite to use File object
@@ -1306,8 +1388,7 @@ class Notebook(Object):
 
 	def get_home_page(self):
 		'''Returns a L{Page} object for the home page'''
-		path = self.resolve_path(self.config['Notebook']['home'])
-		return self.get_page(path)
+		return self.get_page(self.config['Notebook']['home'])
 
 	def get_pagelist(self, path):
 		'''List pages in a specific namespace
@@ -1343,7 +1424,7 @@ class Notebook(Object):
 		store.store_page(page)
 		self.emit('stored-page', page)
 
-	def store_page_async(self, page, callback=None, data=None):
+	def store_page_async(self, page):
 		'''Save the data from a page in the storage backend
 		asynchronously
 
@@ -1353,51 +1434,24 @@ class Notebook(Object):
 		operations.
 
 		@param page: a L{Page} object
-
-		@param callback: a callback function to be called after the
-		page was stored (in the main thread). Callback is called like::
-
-			callback(ok, exc_info, data)
-
-		With the following arguments:
-			- C{ok} is C{True} when the action was successful
-			- C{error} is an C{Exception} object or C{None}
-			- C{exc_info} is a 3 tuple of C{sys.exc_info()} or C{None}
-			- C{data} is the optional C{data} argument
-
-		The callback should be used to do proper error handling if you
-		want to use this interface e.g. from the UI.
-
-		@param data: optional data to pass to the callback function
-
+		@returns: A L{FunctionThread} for the background job or C{None}
+		if save was performed in the foreground
 		@emits: store-page before storing the page
 		@emits: stored-page on success
 		'''
-		# TODO: make consistent with store-page signal
-
-		# Note that we do not assume here that async function is always
-		# performed by zim.async. Different backends could have their
-		# native support for asynchronous actions. So we do not return
-		# an AsyncOperation object to prevent lock in.
-		# This assumption may change in the future.
 		assert page.valid, 'BUG: page object no longer valid'
 		self.emit('store-page', page)
-
-		# FIXME can signal framework help to make this code bit more compact ?
-		def mycallback(ok, error, exc_info, data):
-			if callback:
-				try:
-					if data:
-						callback(ok, error, exc_info, data)
-					else:
-						callback(ok, error, exc_info)
-				except:
-					logger.exception('Exception in callback after store-async:')
-			if ok:
-				self.emit('stored-page', page)
-
 		store = self.get_store(page)
-		store.store_page_async(page, self.lock, mycallback, data)
+		func = store.store_page_async(page)
+		try:
+			print "emit"
+			self.emit('stored-page', page)
+				# FIXME - stored-page is emitted early, but emitting from
+				# the thread is also not perfect, since the page may have
+				# changed already in the gui
+				# (we tried this and it broke autosave for some users!)
+		finally:
+			return func
 
 	def revert_page(self, page):
 		'''Reload the page from the storage backend, discarding all
@@ -1537,12 +1591,12 @@ class Notebook(Object):
 				yield child
 
 	@staticmethod
-	def _update_link_tag(tag, newhref):
+	def _update_link_tag(elt, newhref):
 		newhref = str(newhref)
-		haschildren = bool(list(tag.getchildren()))
-		if not haschildren and tag.text == tag.attrib['href']:
-			tag.text = newhref
-		tag.attrib['href'] = newhref
+		if elt.gettext() == elt.get('href'):
+			elt[:] = [newhref]
+		elt.set('href', newhref)
+		return elt
 
 	def _update_links_from(self, page, oldpath, parent, oldparent):
 		logger.debug('Updating links in %s (was %s)', page, oldpath)
@@ -1550,37 +1604,37 @@ class Notebook(Object):
 		if not tree:
 			return
 
-		for tag in tree.getiterator('link'):
-			try:
-				href = tag.attrib['href']
-				type = link_type(href)
-				if type == 'page':
-					hrefpath = self.resolve_path(href, source=page)
-					oldhrefpath = self.resolve_path(href, source=oldpath)
-					#~ print 'LINK', oldhrefpath, '->', hrefpath
-					if hrefpath != oldhrefpath:
-						if (hrefpath == page or hrefpath.ischild(page)) \
-						and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
-							#~ print '\t.. Ignore'
-							pass
-						else:
-							newhref = self.relative_link(page, oldhrefpath)
-							#~ print '\t->', newhref
-							self._update_link_tag(tag, newhref)
-					elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
-						# Special case where we e.g. link to our own children using
-						# a common parent between old and new path as an anchor for resolving
-						newhrefpath = parent
-						if hrefpath.ischild(oldparent):
-							newhrefpath = parent + hrefpath.relname(oldparent)
-						newhref = self.relative_link(page, newhrefpath)
-						#~ print '\t->', newhref
-						self._update_link_tag(tag, newhref)
-					else:
-						pass
-			except:
-				logger.exception('Error while updating link "%s"', href)
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
 
+			hrefpath = self.resolve_path(href, source=page)
+			oldhrefpath = self.resolve_path(href, source=oldpath)
+			#~ print 'LINK', oldhrefpath, '->', hrefpath
+			if hrefpath != oldhrefpath:
+				if (hrefpath == page or hrefpath.ischild(page)) \
+				and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
+					#~ print '\t.. Ignore'
+					raise zim.formats.VisitorSkip
+				else:
+					newhref = self.relative_link(page, oldhrefpath)
+					#~ print '\t->', newhref
+					return self._update_link_tag(elt, newhref)
+			elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
+				# Special case where we e.g. link to our own children using
+				# a common parent between old and new path as an anchor for resolving
+				newhrefpath = parent
+				if hrefpath.ischild(oldparent):
+					newhrefpath = parent + hrefpath.relname(oldparent)
+				newhref = self.relative_link(page, newhrefpath)
+				#~ print '\t->', newhref
+				return self._update_link_tag(elt, newhref)
+			else:
+				raise zim.formats.VisitorSkip
+
+		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 
 	def _update_links_in_page(self, page, oldpath, newpath):
@@ -1594,28 +1648,28 @@ class Notebook(Object):
 			logger.warn('Page turned out to be empty: %s', page)
 			return
 
-		for tag in tree.getiterator('link'):
-			try:
-				href = tag.attrib['href']
-				type = link_type(href)
-				if type == 'page':
-					hrefpath = self.resolve_path(href, source=page)
-					#~ print 'LINK', hrefpath
-					if hrefpath == oldpath:
-						newhrefpath = newpath
-						#~ print '\t==', oldpath, '->', newhrefpath
-					elif hrefpath.ischild(oldpath):
-						rel = hrefpath.relname(oldpath)
-						newhrefpath = newpath + rel
-						#~ print '\t>', oldpath, '->', newhrefpath
-					else:
-						continue
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
 
-					newhref = self.relative_link(page, newhrefpath)
-					self._update_link_tag(tag, newhref)
-			except:
-				logger.exception('Error while updating link "%s"', href)
+			hrefpath = self.resolve_path(href, source=page)
+			#~ print 'LINK', hrefpath
+			if hrefpath == oldpath:
+				newhrefpath = newpath
+				#~ print '\t==', oldpath, '->', newhrefpath
+			elif hrefpath.ischild(oldpath):
+				rel = hrefpath.relname(oldpath)
+				newhrefpath = newpath + rel
+				#~ print '\t>', oldpath, '->', newhrefpath
+			else:
+				raise zim.formats.VisitorSkip
 
+			newhref = self.relative_link(page, newhrefpath)
+			return self._update_link_tag(elt, newhref)
+
+		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 
 	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
@@ -1753,42 +1807,24 @@ class Notebook(Object):
 		logger.debug('Removing links in %s to %s', page, path)
 		tree = page.get_parsetree()
 		if not tree:
-			logger.warn('Page turned out to be empty: %s', page)
 			return
 
-		def walk_links(parent):
-			# Yields parent element, previous element and link element.
-			# we actually yield links in reverse order, so removal
-			# algorithm works for consecutive links as well.
-			children = parent.getchildren()
-			for i in range(len(children)-1, -1, -1):
-				if children[i].tag == 'link':
-					if i > 0: yield parent, children[i-1], children[i]
-					else: yield parent, None, children[i]
-				for items in walk_links(children[i]): # recurs
-					yield items
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
 
-		for parent, prev, element in walk_links(tree.getroot()):
-			try:
-				href = element.attrib['href']
-				type = link_type(href)
-				if type == 'page':
-					hrefpath = self.resolve_path(href, source=page)
-					#~ print 'LINK', hrefpath
-					if hrefpath == path \
-					or hrefpath.ischild(path):
-						# Remove the link
-						text = (element.text or '') + (element.tail or '')
-						if not prev is None:
-							prev.tail = (prev.tail or '') + text
-						else:
-							parent.text = (parent.text or '') + text
-						parent.remove(element)
-					else:
-						continue
-			except:
-				logger.exception('Error while removing link "%s"', href)
+			hrefpath = self.resolve_path(href, source=page)
+			#~ print 'LINK', hrefpath
+			if hrefpath == path \
+			or hrefpath.ischild(path):
+				# Replace the link by it's text
+				return zim.formats.DocumentFragment(*elt)
+			else:
+				raise zim.formats.VisitorSkip
 
+		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 
 	def resolve_file(self, filename, path=None):
@@ -2121,6 +2157,14 @@ class Path(object):
 			self.name = unicode(self.name)
 		except UnicodeDecodeError:
 			raise Error, 'BUG: invalid input, page names should be in ascii, or given as unicode'
+
+	@classmethod
+	def new_from_zim_config(klass, string):
+		'''Returns a new object based on the string representation for
+		that path
+		'''
+		string = Notebook.cleanup_pathname(string)
+		return klass(string)
 
 	def serialize_zim_config(self):
 		'''Returns the name for serializing this path'''
@@ -2478,19 +2522,21 @@ class Page(Path):
 		  - C{href} is the link itself
 		  - C{attrib} is a dict with link properties
 		'''
+		# FIXME optimize with a ParseTree.get_links that does not
+		#       use Node
 		tree = self.get_parsetree()
 		if tree:
-			for tag in tree.getiterator('link'):
-				attrib = tag.attrib.copy()
-				href = attrib.pop('href')
+			for elt in tree.findall(zim.formats.LINK):
+				href = elt.attrib.pop('href')
 				type = link_type(href)
-				yield type, href, attrib
-			for tag in tree.getiterator('img'):
-				if 'href' in tag.attrib:
-					attrib = tag.attrib.copy()
-					href = attrib.pop('href')
-					type = link_type(href)
-					yield type, href, attrib
+				yield type, href, elt.attrib
+
+			for elt in tree.findall(zim.formats.IMAGE):
+				if not 'href' in elt.attrib:
+					continue
+				href = elt.attrib.pop('href')
+				type = link_type(href)
+				yield type, href, elt.attrib
 
 	def get_tags(self):
 		'''Generator for tags in the page content
@@ -2498,13 +2544,16 @@ class Page(Path):
 		@returns: yields an unordered list of unique 2-tuples
 		C{(name, attrib)} for tags in the parsetree.
 		'''
+		# FIXME optimize with a ParseTree.get_links that does not
+		#       use Node
 		tree = self.get_parsetree()
 		if tree:
-			tags = {}
-			for tag in tree.getiterator('tag'):
-				tags[tag.text.strip()] = tag.attrib.copy()
-			for tag, attrib in tags.iteritems():
-				yield tag, attrib
+			seen = set()
+			for elt in tree.findall(zim.formats.TAG):
+				name = elt.gettext()
+				if not name in seen:
+					seen.add(name)
+					yield name, elt.attrib
 
 	def heading_matches_pagename(self):
 		'''Returns whether the heading matches the page name.
@@ -2541,29 +2590,28 @@ class IndexPage(Page):
 
 	def _generate_parsetree(self):
 		import zim.formats
-		builder = zim.formats.TreeBuilder()
+		builder = zim.formats.ParseTreeBuilder()
 
 		def add_namespace(path):
 			pagelist = self.notebook.index.list_pages(path)
-			builder.start('ul')
+			builder.start(zim.formats.BULLETLIST)
 			for page in pagelist:
-				builder.start('li')
-				builder.start('link', {'type': 'page', 'href': page.name})
-				builder.data(page.basename)
-				builder.end('link')
-				builder.end('li')
+				builder.start(zim.formats.LISTITEM)
+				builder.append(zim.formats.LINK,
+					{'type': 'page', 'href': page.name},
+					page.basename)
+				builder.end(zim.formats.LISTITEM)
 				if page.haschildren and self.index_recurs:
 					add_namespace(page) # recurs
-			builder.end('ul')
+			builder.end(zim.formats.BULLETLIST)
 
-		builder.start('page')
-		builder.start('h', {'level':1})
-		builder.data('Index of %s' % self.name)
-		builder.end('h')
+		builder.start(zim.formats.FORMATTEDTEXT)
+		builder.append(zim.formats.HEADING, {'level':1},
+			'Index of %s\n' % self.name)
 		add_namespace(self)
-		builder.end('page')
+		builder.end(zim.formats.FORMATTEDTEXT)
 
-		tree = zim.formats.ParseTree(builder.close())
+		tree = builder.get_parsetree()
 		#~ print "!!!", tree.tostring()
 		return tree
 

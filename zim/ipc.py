@@ -38,7 +38,7 @@ emitted when it is likely the notebook list changed
 '''
 
 # NOTE: DO NOT move this module to zim.gui.ipc, doing so would result
-# in python loading zim.gui and thus gtk for each deamon instance.
+# in python loading zim.gui and thus gtk for each daemon instance.
 
 # Re-using multiprocessing infrastructure here, even though it
 # was not really intended for this. Main advantage is that it
@@ -80,8 +80,10 @@ from multiprocessing.connection import Listener, Client
 import threading
 from Queue import Queue
 
-import zim
-from zim.fs import get_tmpdir
+
+import zim.main
+import zim.errors
+import zim.fs
 
 
 logger = logging.getLogger('zim.ipc')
@@ -110,16 +112,19 @@ def handle_argv():
 		# also does not return if arguments are handled
 
 	if len(sys.argv) > 1 and sys.argv[1] == '--ipc-server-main':
-		if len(sys.argv) > 2:
-			global SERVER_ADDRESS
-			SERVER_ADDRESS = sys.argv[2] # for testing
+		assert len(sys.argv) == 4, 'Invalid ipc args: %s' % sys.argv
 
-		if len(sys.argv) > 3:
-			loglevel = sys.argv[3]
-			logging.getLogger().setLevel(int(loglevel))
+		global SERVER_ADDRESS
+		SERVER_ADDRESS = sys.argv[2] # for testing
+
+		loglevel = sys.argv[3]
+		logging.getLogger().setLevel(int(loglevel))
 
 		servermain()
 		sys.exit()
+
+	else:
+		pass
 
 
 class RemoteObject(object):
@@ -254,10 +259,10 @@ def start_server_if_not_running():
 
 	# Call new process that has not loaded gtk to do the work for us
 	logger.debug('Starting server by spawning new process')
-	from zim import ZimCmd
-	app = ZimCmd()
 	loglevel = logging.getLogger().getEffectiveLevel()
-	app.spawn(('--ipc-server-main', SERVER_ADDRESS, loglevel))
+	zim.main.get_zim_application(
+		'--ipc-server-main', SERVER_ADDRESS, str(loglevel),
+	).spawn()
 
 	# Ensure server is running, but allow bit of timeout since
 	# process has to start
@@ -289,7 +294,12 @@ def stop_server_if_running():
 
 
 def servermain():
-	'''Main function for the servr process'''
+	'''Main function for the server process'''
+	# Make absolutely sure no gtk loaded in server, will cause all kind
+	# of vague issues in child processes when it is loaded already..
+	if 'gtk' in sys.modules:
+		raise AssertionError, 'Cannot start server after importing gtk in same process'
+
 	# Decouple from parent environment
 	# and redirect standard file descriptors
 	os.chdir("/")
@@ -307,11 +317,8 @@ def servermain():
 		pass
 	else:
 		# Redirect output to file
-		import tempfile
-		dir = tempfile.gettempdir()
-		if not os.path.isdir(dir):
-			os.makedirs(dir)
-		err_stream = open(os.path.join(dir, "zim-deamon.log"), "w")
+		dir = zim.fs.get_tmpdir()
+		err_stream = open(os.path.join(dir.path, "zim-daemon.log"), "w")
 
 		# First try to dup handles for anyone who still has a reference
 		# if that fails, just set them
@@ -349,17 +356,18 @@ def servermain():
 
 if sys.platform == 'win32':
 	# Windows named pipe
-	from zim.config import get_environ
-	SERVER_ADDRESS = '\\\\.\\pipe\\zimServer-%s' % get_environ('USER')
+	from zim.environ import environ
+	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
+	SERVER_ADDRESS = '\\\\.\\pipe\\%s-server' % userstring
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket
-	SERVER_ADDRESS = str(get_tmpdir().file('zim-server-socket').path)
+	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('zim-server-socket').path)
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
 
-AUTHKEY_FILE = get_tmpdir().file('zim-server-authkey')
+AUTHKEY_FILE = zim.fs.get_tmpdir().file('zim-server-authkey')
 	# Zim always initializes the tmpdir with mode 700, so should be private
 
 
@@ -464,7 +472,7 @@ class Server(object):
 		conn1, conn2 = Pipe()
 		p = Process(
 			target=childmain,
-			args=(conn2, remoteobject, zim.ZIM_EXECUTABLE, loglevel, self.logqueue, args, kwargs)
+			args=(conn2, remoteobject, loglevel, self.logqueue, args, kwargs)
 		)
 		p.daemon = True # child process exit with parent
 		p.start()
@@ -592,16 +600,15 @@ class ConnectionWorker(threading.Thread):
 		logger.debug('Server thread for process %i quit', self.process.pid)
 
 
-def childmain(conn, remoteobject, zim_exe, loglevel, logqueue, arg, kwarg):
+def childmain(conn, remoteobject, loglevel, logqueue, arg, kwarg):
 	'''Main function for child processes'''
-	#~ print '>>> START CHILD MAIN'
 	global SERVER_CONTEXT
 	global _recursive_conn_lock
 	_recursive_conn_lock = True
 
-	zim.ZIM_EXECUTABLE = zim_exe
-
 	setup_child_logging(loglevel, logqueue)
+	zim.errors.set_use_gtk(True)
+		# Assume any child process to be a gui process
 
 	try:
 		klassname, id = remoteobject.klassname, remoteobject.id

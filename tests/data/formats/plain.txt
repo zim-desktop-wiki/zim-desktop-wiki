@@ -48,13 +48,13 @@ External links like http://nongnu.org and foo@bar.org are also supported
 
 
 ./foobar.png
-./foobar.png?height=50
+./foobar.png
 Foo Bar
-my-image.png?href=Foo
+my-image.png
 Foo Bar
 
-./equation001.png?type=equation This equation has a source .tex file
-./equation002.png?type=equation for this one it is missing
+./equation001.png This equation has a source .tex file
+./equation002.png for this one it is missing
 
 {./Not/an/image.png}
 
@@ -140,6 +140,21 @@ A line in English, should be left aligned.
 דינמיקה
 
 aaa
+
+
+Some Objects
+------------
+
+def dump():
+	for i in range(1, 5):
+		print i
+
+
+Sing, O goddess, the rage of
+Achilles son of Peleus, that
+brought countless ills upon
+the Achaeans.
+
 
 ====
 This is not a header

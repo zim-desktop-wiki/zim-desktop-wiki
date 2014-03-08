@@ -85,20 +85,6 @@ class ExportDialog(Assistant):
 					return False
 
 			page = self.ui.notebook.get_page(self.uistate['selected_page'])
-
-			# FIXME - HACK - dump and parse as wiki first to work
-			# around glitches in pageview parsetree dumper
-			# main visibility when copy pasting bullet lists
-			# Same hack in gui clipboard code
-			from zim.notebook import Path, Page
-			from zim.formats import get_format
-			parsetree = page.get_parsetree()
-			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-			parser = get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-			page = Page(Path(page.name), parsetree=parsetree)
-
 			exporter.export_page(file.dir, page, filename=file.basename)
 
 		return True
@@ -136,6 +122,7 @@ class InputPage(AssistantPage):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
 		self.uistate.setdefault('selection', 'all')
 		#~ self.uistate.setdefault('selection_recursive', False)
+		self.uistate.setdefault('selected_page', self.form['page'])
 		self.form['selection'] = self.uistate['selection']
 
 	def save_uistate(self):
@@ -206,7 +193,7 @@ class FormatPage(AssistantPage):
 			for widget in self.form.widgets:
 				if widget.startswith('document_root:'):
 					self.form.widgets[widget].set_sensitive(False)
-			self.uistate['document_root_url'] = ''
+			self.uistate.input(document_root_url='')
 
 	def init_uistate(self):
 		self.uistate.setdefault('format', 'HTML')
@@ -261,9 +248,9 @@ class OutputPage(AssistantPage):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
-		self.uistate.setdefault('output_folder', '', Dir)
+		self.uistate.setdefault('output_folder', None, Dir)
 		self.uistate.setdefault('index_page', '')
-		self.uistate.setdefault('output_file', '', File)
+		self.uistate.setdefault('output_file', None, File)
 
 		show_file = self.uistate.get('selection') == 'page'
 		if show_file:

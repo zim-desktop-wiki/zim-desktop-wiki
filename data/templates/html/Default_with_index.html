@@ -20,6 +20,10 @@
 			h3         { color: #4e9a06             }
 			h4         { color: #4e9a06             }
 			h5         { color: #4e9a06             }
+			div.zim-object {
+				border-style:solid;
+				border-width:1px;
+			}
 			span.insen { color: grey                }
 			.page { max-width: 1000px;}
 			.menu{
@@ -59,7 +63,7 @@
 				[% IF page.has_backlinks -%]
 					<b>Backlinks:</b>
 					[%- FOREACH link = page.backlinks -%]
-						<a href='[% url(link) %]'>[% link.name %]</a></li>
+						<a href='[% url(link) %]'>[% link.name %]</a>
 					[%- END -%]
 				[%- ELSE -%]
 					<i>No backlinks to this page.</i>

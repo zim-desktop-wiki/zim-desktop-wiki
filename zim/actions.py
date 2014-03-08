@@ -19,24 +19,19 @@ import inspect
 import weakref
 import logging
 
+import zim.errors
+
 logger = logging.getLogger('zim')
-
-
-try:
-	import gtk
-except ImportError:
-	gtk = None
-
 
 class Action(object):
 	'''Action, used by the L{action} decorator'''
 
-	def __init__(self, func, label, stock=None, accelerator='', tooltip='', readonly=True):
+	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True):
 		assert self._assert_args(func), '%s() has incompatible argspec' % func.__name__
 		if not tooltip:
 			tooltip = label.replace('_', '')
 
-		self.name = func.__name__
+		self.name = name
 		self.readonly = readonly
 		self.func = func
 		self._attr = (self.name, label, tooltip, stock)
@@ -58,15 +53,9 @@ class Action(object):
 			logger.debug('Action: %s', self.name)
 			try:
 				self.func(instance, *arg, **kwarg)
-			except Exception, error:
-				if gtk is not None:
-					# TODO better way to do this --> global error handler ?
-					# also now we pop dialog without parent window ..
-					from zim.gui.widgets import ErrorDialog
-					ErrorDialog(None, error).run()
-					# error dialog also does logging automatically
-				else:
-					logger.exception('Exception during action: %s', self.name)
+			except:
+				zim.errors.exception_handler(
+					'Exception during action: %s' % self.name)
 
 		return func
 
@@ -87,10 +76,10 @@ class Action(object):
 class ToggleAction(Action):
 	'''Toggle action, used by the L{toggle_action} decorator'''
 
-	def __init__(self, func, label, stock=None, accelerator='', tooltip='', readonly=True, default=False):
+	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True, default=False):
 		# Default is a class attribute
 		# Using weakkeydict to store instance attributes
-		Action.__init__(self, func, label, stock, accelerator, tooltip, readonly)
+		Action.__init__(self, name, func, label, stock, accelerator, tooltip, readonly)
 		self._default = default
 		self._state = weakref.WeakKeyDictionary()
 		self._proxies = weakref.WeakKeyDictionary()
@@ -117,14 +106,8 @@ class ToggleAction(Action):
 			try:
 				self.func(instance, active)
 			except Exception, error:
-				if gtk is not None:
-					# TODO better way to do this --> global error handler ?
-					# also now we pop dialog without parent window ..
-					from zim.gui.widgets import ErrorDialog
-					ErrorDialog(None, error).run()
-					# error dialog also does logging automatically
-				else:
-					logger.exception('Exception during action: %s(%s)', self.name, active)
+				zim.errors.exception_handler(
+					'Exception during toggle action: %s(%s)' % (self.name, active))
 			else:
 				# Update state and notify actionables
 				self._state[instance] = active
@@ -166,7 +149,7 @@ def action(label, stock=None, accelerator='', tooltip='', readonly=True):
 	'''
 	# TODO see where "readonly" should go
 	def _action(function):
-		return Action(function, label, stock, accelerator, tooltip, readonly)
+		return Action(function.__name__, function, label, stock, accelerator, tooltip, readonly)
 
 	return _action
 
@@ -184,12 +167,12 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True):
 	'''
 	# TODO see where "readonly" should go
 	def _toggle_action(function):
-		return ToggleAction(function, label, stock, accelerator, tooltip, readonly)
+		return ToggleAction(function.__name__, function, label, stock, accelerator, tooltip, readonly)
 
 	return _toggle_action
 
 
-def get_actiongroup(obj):
+def get_gtk_actiongroup(obj):
 	'''Return a C{gtk.ActionGroup} for an object using L{Action}
 	objects as attributes.
 
@@ -197,7 +180,7 @@ def get_actiongroup(obj):
 
 	This method can only be used when gtk is available
 	'''
-	assert gtk is not None
+	import gtk
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:

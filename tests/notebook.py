@@ -9,21 +9,32 @@ import tests
 import os
 
 from zim.fs import File, Dir
-from zim.config import config_file
+from zim.config import ConfigManager, XDG_CONFIG_HOME
 from zim.notebook import *
 from zim.index import *
 import zim.errors
 from zim.formats import ParseTree
 
-from zim import _get_default_or_only_notebook
-	# private, but want to check it anyway
+
+class TestNotebookInfo(tests.TestCase):
+
+	def runTest(self):
+		for location, uri in (
+			(File('file:///foo/bar'), 'file:///foo/bar'),
+			('file:///foo/bar', 'file:///foo/bar'),
+			('zim+file:///foo?bar', 'zim+file:///foo?bar'),
+				# specifically ensure the "?" does not get url encoded
+		):
+			info = NotebookInfo(location)
+			self.assertEqual(info.uri, uri)
 
 
 @tests.slowTest
-class TestGetNotebook(tests.TestCase):
+class TestNotebookInfoList(tests.TestCase):
 
 	def setUp(self):
-		list = config_file('notebooks.list')
+		config = ConfigManager()
+		list = config.get_config_file('notebooks.list')
 		file = list.file
 		if file.exists():
 			file.remove()
@@ -36,28 +47,12 @@ class TestGetNotebook(tests.TestCase):
 		self.assertTrue(isinstance(list, NotebookInfoList))
 		self.assertTrue(len(list) == 0)
 
-		nb, page = resolve_notebook('foo')
-		self.assertTrue(nb is None)
-		nb = _get_default_or_only_notebook()
-		self.assertTrue(nb is None)
-
-		# Non-existing dir
-		dir = root.subdir('/notebook')
-		nb, page = resolve_notebook(dir.path)
-		self.assertEqual(nb, dir)
+		info = list.get_by_name('foo')
+		self.assertIsNone(info)
 
 		# Now create it
+		dir = root.subdir('/notebook')
 		init_notebook(dir, name='foo')
-		file = dir.file('notebook.zim')
-		nb, page = resolve_notebook(dir.path)
-		self.assertEqual(nb, dir)
-		nb, page = resolve_notebook(file.uri)
-		self.assertEqual(nb, dir)
-		file = dir.file('foo/bar/baz.txt')
-		file.touch()
-		nb, page = resolve_notebook(file.path)
-		self.assertEqual(nb, dir)
-		self.assertEqual(page, Path('foo:bar:baz'))
 
 		# And put it in the list and resolve it by name
 		list = get_notebook_list()
@@ -72,62 +67,49 @@ class TestGetNotebook(tests.TestCase):
 		self.assertEqual(info.name, 'foo')
 
 		newlist = get_notebook_list() # just to be sure re-laoding works..
+		self.assertTrue(len(list) == 1)
 		info = newlist.get_by_name('foo')
 		self.assertEqual(info.uri, dir.uri)
 		self.assertEqual(info.name, 'foo')
 
-		nb, page = resolve_notebook('foo')
-		self.assertEqual(nb, dir)
-
-		# Single notebook is automatically the default
-		nb = _get_default_or_only_notebook()
-		self.assertEqual(nb, dir.uri)
-
-		# But not anymore after adding second notebook
+		# Add a second entry
 		if os.name == 'nt':
 			uri1 = 'file:///C:/foo/bar'
 		else:
 			uri1 = 'file:///foo/bar'
 
 		list = get_notebook_list()
+		self.assertTrue(len(list) == 1)
 		list.append(NotebookInfo(uri1, interwiki='foobar'))
 			# on purpose do not set name, should default to basename
 		list.write()
+
 		self.assertTrue(len(list) == 2)
-		self.assertEqual(list[:],
-			[NotebookInfo(dir.uri), NotebookInfo(uri1)])
+		self.assertEqual(list[:], [NotebookInfo(dir.uri), NotebookInfo(uri1)])
 
-		nb, page = resolve_notebook('foo')
-		self.assertEqual(nb, dir)
-		self.assertTrue(isinstance(get_notebook(nb), Notebook))
+		# And check all works OK
+		info = list.get_by_name('foo')
+		self.assertEqual(info.uri, dir.uri)
+		nb, path = build_notebook(info)
+		self.assertIsInstance(nb, Notebook)
+		self.assertIsNone(path)
 
-		nb, page = resolve_notebook('bar')
-			# Check name defaults to dir basename
-		self.assertEqual(nb, Dir(uri1))
-		self.assertIs(get_notebook(nb), None) # path should not exist
+		for name in ('bar', 'Bar'):
+			info = list.get_by_name(name)
+			self.assertEqual(info.uri, uri1)
+			self.assertRaises(FileNotFoundError, build_notebook, info)
+				# path should not exist
 
-		nb, page = resolve_notebook('Bar')
-		self.assertEqual(nb, Dir(uri1))
-
-		nb = _get_default_or_only_notebook()
-		self.assertTrue(nb is None)
-
-		list = get_notebook_list()
+		# Test default
 		list.set_default(uri1)
 		list.write()
-		nb = _get_default_or_only_notebook()
-		self.assertEqual(nb, uri1)
-		nb, p = resolve_notebook(nb)
-		self.assertEqual(nb, Dir(uri1))
-		self.assertEqual(get_notebook(nb), None)
+		list = get_notebook_list()
+		self.assertIsNotNone(list.default)
+		self.assertEqual(list.default.uri, uri1)
 
-		# Check interwiki parsing
+		# Check interwiki parsing - included here since it interacts with the notebook list
 		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
 		self.assertEqual(interwiki_link('foo?Foo'), 'zim+' + dir.uri + '?Foo')
-		nb, page = resolve_notebook(dir.uri + '?Foo')
-		self.assertEqual(nb, dir)
-		self.assertEqual(page, Path('Foo'))
-
 		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
 		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
 		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo') # name
@@ -142,6 +124,97 @@ class TestGetNotebook(tests.TestCase):
 		])
 		self.assertEqual(list.default,
 			NotebookInfo(Dir('/home/user/code/zim.debug').uri) )
+
+
+@tests.slowTest
+class TestResolveNotebook(tests.TestCase):
+
+	def setUp(self):
+		config = ConfigManager()
+		list = config.get_config_file('notebooks.list')
+		file = list.file
+		if file.exists():
+			file.remove()
+
+	def runTest(self):
+		# First test some paths
+		for input, uri in (
+			('file:///foo/bar', 'file:///foo/bar'),
+			('~/bar', Dir('~/bar').uri),
+		):
+			info = resolve_notebook(input)
+			self.assertEqual(info.uri, uri)
+
+		# Then test with (empty) notebook list
+		info = resolve_notebook('foobar')
+		self.assertIsNone(info)
+
+		# add an entry and show we get it
+		dir = Dir(self.create_tmp_dir()).subdir('foo')
+		init_notebook(dir, name='foo')
+
+		list = get_notebook_list()
+		list.append(NotebookInfo(dir.uri, name='foo'))
+		list.write()
+
+		info = resolve_notebook('foo')
+		self.assertIsNotNone(info)
+		self.assertEqual(info.uri, dir.uri)
+
+
+@tests.slowTest
+class TestBuildNotebook(tests.TestCase):
+	# Test including automount !
+
+	def setUp(self):
+		self.tmpdir = Dir(self.get_tmp_name())
+		self.notebookdir = self.tmpdir.subdir('notebook')
+
+		script = self.tmpdir.file('mount.py')
+		script.write('''\
+import os
+import sys
+notebook = sys.argv[1]
+os.mkdir(notebook)
+os.mkdir(notebook + '/foo')
+for path in (
+	notebook + "/notebook.zim",
+	notebook + "/foo/bar.txt"
+):
+	fh = open(path, 'w')
+	fh.write("")
+	fh.close()
+''')
+
+		automount = XDG_CONFIG_HOME.file('zim/automount.conf')
+		assert not automount.exists()
+		automount.write('''\
+[Path %s]
+mount=%s %s
+''' % (self.notebookdir.path, script.path, self.notebookdir.path))
+
+	#~ def tearDown(self):
+		#~ automount = XDG_CONFIG_HOME.file('zim/automount.conf')
+		#~ automount.remove()
+
+	def runTest(self):
+		def mockconstructor(dir):
+			return dir
+
+		for uri, path in (
+			(self.notebookdir.uri, None),
+			(self.notebookdir.file('notebook.zim').uri, None),
+			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
+			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
+		):
+			#~ print ">>", uri
+			info = NotebookInfo(uri)
+			nb, p = build_notebook(info, notebookclass=mockconstructor)
+			self.assertEqual(nb, self.notebookdir)
+			self.assertEqual(p, path)
+
+		info = NotebookInfo(self.notebookdir.file('nonexistingfile.txt'))
+		self.assertRaises(FileNotFoundError, build_notebook, info)
 
 
 class TestNotebook(tests.TestCase):

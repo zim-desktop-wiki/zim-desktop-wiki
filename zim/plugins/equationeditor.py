@@ -2,41 +2,20 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
 import glob
 
+from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
 from zim.fs import File, TmpFile
-from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.templates import GenericTemplate
 from zim.applications import Application, ApplicationError
-from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
-from zim.gui.widgets import populate_popup_add_separator
+
 
 # TODO put these commands in preferences
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
 dvipngcmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
 
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_equation'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('insert_equation', None, _('E_quation...'), '', _('Insert equation'), False),
-		# T: menu item for insert equation plugin
-)
-
-
-class InsertEquationPlugin(PluginClass):
+class InsertEquationPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
 		'name': _('Insert Equation'), # T: plugin name
@@ -49,6 +28,12 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 	}
 
+	object_type = 'equation'
+	short_label = _('E_quation')
+	insert_label = _('Insert Equation')
+	edit_label = _('_Edit Equation')
+	syntax = 'latex'
+
 	@classmethod
 	def check_dependencies(klass):
 		has_latex = Application(latexcmd).tryexec()
@@ -56,46 +41,15 @@ This is a core plugin shipping with zim.
 		return (has_latex and has_dvipng), \
 				[('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-			self.register_image_generator_plugin('equation')
-
-	def insert_equation(self):
-		dialog = InsertEquationDialog.unique(self, self.ui)
-		dialog.run()
-
-	def edit_object(self, buffer, iter, image):
-		dialog = InsertEquationDialog(self.ui, image=image)
-		dialog.run()
-
-	def do_populate_popup(self, menu, buffer, iter, image):
-		populate_popup_add_separator(menu, prepend=True)
-
-		item = gtk.MenuItem(_('_Edit Equation')) # T: menu item in context menu
-		item.connect('activate',
-			lambda o: self.edit_object(buffer, iter, image))
-		menu.prepend(item)
-
-
-
-class InsertEquationDialog(ImageGeneratorDialog):
-
-	def __init__(self, ui, image=None):
-		generator = EquationGenerator()
-		ImageGeneratorDialog.__init__(self, ui, _('Insert Equation'), # T: dialog title
-			generator, image, help=':Plugins:Equation Editor', syntax="latex" )
-
 
 class EquationGenerator(ImageGeneratorClass):
 
-	type = 'equation'
+	object_type = 'equation'
 	scriptname = 'equation.tex'
 	imagename = 'equation.png'
 
-	def __init__(self):
+	def __init__(self, plugin):
+		ImageGeneratorClass.__init__(self, plugin)
 		file = data_file('templates/plugins/equationeditor.tex')
 		assert file, 'BUG: could not find templates/plugins/equationeditor.tex'
 		self.template = GenericTemplate(file.readlines(), name=file)

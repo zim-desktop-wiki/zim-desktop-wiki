@@ -370,15 +370,18 @@ class TestFileOverwrite(tests.TestCase):
 		# Check edge case where file goes missing after read or write
 		os.remove(file.encodedpath)
 		self.assertFalse(file.exists())
+		self.assertTrue(file.check_has_changed_on_disk())
 		with FilterFileMissingWarning():
 			file.write('bar')
 		self.assertEquals(file.read(), 'bar')
+		self.assertFalse(file.check_has_changed_on_disk())
 
 		# Check overwrite error when content changed
 		self.modify(lambda p: open(p, 'w').write('XXX'))
 			# modify mtime and content
 		with FilterOverWriteWarning():
 			self.assertRaises(FileWriteError, file.write, 'foo')
+			self.assertTrue(file.check_has_changed_on_disk())
 		self.assertEquals(file.read(), 'XXX')
 
 		# Check md5 check passes
@@ -463,3 +466,19 @@ class TestTrash(tests.TestCase):
 		self.assertFalse(dir.trash())
 
 		# How can we cause gio to give an error and test that case ??
+
+
+from utils import FunctionThread
+
+@tests.slowTest
+class TestIOFunctionThread(tests.TestCase):
+
+	def runTest(self):
+		dir = Dir(self.create_tmp_dir())
+		file = dir.file('test.txt')
+		func = FunctionThread(file.write, ('fooo\n',))
+		func.start()
+		func.join()
+		self.assertTrue(func.done)
+		self.assertFalse(func.error)
+		self.assertEqual(file.read(), 'fooo\n')

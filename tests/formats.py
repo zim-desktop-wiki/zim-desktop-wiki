@@ -19,9 +19,6 @@ from zim.templates import Template
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print 'WARNING: using ElementTree instead of cElementTree'
 
-wikitext = tests.WikiTestData.get('roundtrip')
-
-
 
 class TestFormatMixin(object):
 	'''Mixin for testing formats, uses data in C{tests/data/formats/}'''
@@ -83,6 +80,9 @@ class TestFormatMixin(object):
 		self.assertMultiLineEqual(result, wanted)
 		self.assertNoTextMissing(result, reftree)
 
+		# Check that dumper did not modify the tree
+		self.assertMultiLineEqual(reftree.tostring(), self.reference_xml)
+
 		# partial dumper
 		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
 		result = ''.join(dumper.dump(parttree))
@@ -115,7 +115,7 @@ class TestFormatMixin(object):
 		# TODO how to handle objects ??
 		assert isinstance(text, basestring)
 		offset = 0
-		for elt in tree.iter():
+		for elt in tree._etree.iter():
 			if elt.tag == 'img':
 				elttext = (elt.tail) # img text is optional
 			else:
@@ -179,8 +179,6 @@ class TestParseTree(tests.TestCase):
 		tree = ParseTree()
 		r = tree.fromstring(self.xml)
 		self.assertEqual(id(r), id(tree)) # check return value
-		e = tree.getroot()
-		self.assertEqual(e.tag, 'zim-tree') # check content
 		text = tree.tostring()
 		self.assertEqual(text, self.xml)
 
@@ -256,7 +254,6 @@ class TestParseTree(tests.TestCase):
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
-
 	def testGetEndsWithNewline(self):
 		for xml, newline in (
 			('<zim-tree partial="True">foo</zim-tree>', False),
@@ -270,6 +267,65 @@ class TestParseTree(tests.TestCase):
 		):
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
+
+	def testGetObjects(self):
+		xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
+		tree = tests.new_parsetree_from_xml(xml)
+		objects = list(tree.get_objects())
+		self.assertTrue(len(objects) >= 2)
+
+	def testFindall(self):
+		tree = ParseTree().fromstring(self.xml)
+		wanted = [
+			(1, 'Head 1'),
+			(2, 'Head 2'),
+			(3, 'Head 3'),
+			(2, 'Head 4'),
+			(5, 'Head 5'),
+			(4, 'Head 6'),
+			(5, 'Head 7'),
+			(6, 'Head 8'),
+		]
+		found = []
+		for elt in tree.findall(HEADING):
+			found.append((int(elt.get('level')), elt.gettext()))
+		self.assertEqual(found, wanted)
+
+	def testReplace(self):
+		def replace(elt):
+			# level 2 becomes 3
+			# level 3 is replaced by text
+			# level 4 is removed
+			# level 5 is skipped
+			# level 1 and 6 stay as is
+			level = int(elt.get('level'))
+			if level == 2:
+				elt.attrib['level'] = 3
+				return elt
+			elif level == 3:
+				return DocumentFragment(*elt)
+			elif level == 4:
+				return None
+			elif level == 5:
+				raise VisitorSkip
+			else:
+				return elt
+		tree = ParseTree().fromstring(self.xml)
+		wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<h level="1">Head 1</h>
+<h level="3">Head 2</h>
+Head 3
+<h level="3">Head 4</h>
+<h level="5">Head 5</h>
+
+<h level="5">Head 7</h>
+<h level="6">Head 8</h>
+</zim-tree>'''
+		tree.replace(HEADING, replace)
+		text = tree.tostring()
+		self.assertEqual(text, wanted)
 
 
 class TestTextFormat(tests.TestCase, TestFormatMixin):
@@ -315,21 +371,24 @@ A list
 	* baz
 '''
 		tree = self.format.Parser().parse(input)
+		#~ print tree.tostring()
 		output = self.format.Dumper().dump(tree)
-		self.assertEqual(output, text.splitlines(True))
+		self.assertEqual(''.join(output), text)
 
 	def testLink(self):
 		'''Test iterator function for link'''
 		# + check for bugs in link encoding
-		text = '[[FooBar]] [[Foo|]] [[|Foo]]'
+		text = '[[FooBar]] [[Foo|]] [[|Foo]] [[||]]'
 		tree = self.format.Parser().parse(text)
-		for i, tag in enumerate(tree.getiterator('link')):
-			self.assertTrue(tag.text)
-			self.assertTrue(tag.attrib.get('href'))
-			link = Link(self.page, **tag.attrib)
-			self.assertEqual(tag.attrib['href'], link.href)
-			done = True
-		self.assertEqual(i, 2)
+		#~ print tree.tostring()
+		found = 0
+		for elt in tree.findall(LINK):
+			self.assertTrue(elt.gettext())
+			self.assertTrue(elt.get('href'))
+			link = Link(self.page, **elt.attrib)
+			self.assertEqual(elt.attrib['href'], link.href)
+			found += 1
+		self.assertEqual(found, 3)
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''
@@ -550,13 +609,13 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 
 	def testEncoding(self):
 		'''Test HTML encoding'''
-		page = Element('zim-tree')
-		para = SubElement(page, 'p')
-		para.text = '<foo>"foo" & "bar"</foo>'
-		tree = ParseTree(page)
+		builder = ParseTreeBuilder()
+		builder.start(FORMATTEDTEXT)
+		builder.append(PARAGRAPH, None, '<foo>"foo" & "bar"</foo>\n')
+		tree = builder.get_parsetree()
 		html = self.format.Dumper(linker=StubLinker()).dump(tree)
-		self.assertEqual(html,
-			['<p>\n', '&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;</p>\n'] )
+		self.assertEqual(''.join(html),
+			'<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;\n</p>\n')
 
 	# TODO add test using http://validator.w3.org
 
@@ -602,7 +661,7 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 
 		input = r'\foo $ % ^ \% bar < >'
 		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless{} \textgreater{}'
-		self.assertEqual(format.tex_encode(input), wanted)
+		self.assertEqual(format.Dumper.encode_text(input), wanted)
 
 	def testExport(self):
 		'''test the export of a wiki page to latex'''
@@ -658,10 +717,10 @@ duss
 		self.assertEqual(''.join(result), wanted)
 
 
-class TestParseTreeBuilder(tests.TestCase):
+class TestOldParseTreeBuilder(tests.TestCase):
 
 	def runTest(self):
-		'''Test ParseTreeBuilder class'''
+		'''Test OldParseTreeBuilder class'''
 		# - Test \n before and after h / p / pre
 		# - Test break line into lines
 		input = '''\
@@ -713,7 +772,7 @@ grrr
 
 		# For some reason this does not work with cElementTree.XMLBuilder ...
 		from xml.etree.ElementTree import XMLTreeBuilder
-		builder = XMLTreeBuilder(target=ParseTreeBuilder())
+		builder = XMLTreeBuilder(target=OldParseTreeBuilder())
 		builder.feed(input)
 		root = builder.close()
 		tree = ParseTree(root)

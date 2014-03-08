@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -29,11 +29,11 @@ import zim.formats
 
 from zim.fs import File, Dir, normalize_file_uris
 from zim.errors import Error
+from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
-from zim.config import config_file, get_config
 from zim.formats import get_format, increase_list_iter, \
-	ParseTree, TreeBuilder, ParseTreeBuilder, \
+	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -43,6 +43,7 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
+from zim.objectmanager import ObjectManager, CustomObjectClass
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -315,6 +316,60 @@ def increase_list_bullet(bullet):
 		return None
 
 
+class AsciiString(String):
+
+	# pango doesn't like unicode attributes
+
+	def check(self, value):
+		value = String.check(self, value)
+		if isinstance(value, basestring):
+			return str(value)
+		else:
+			return value
+
+
+class ConfigDefinitionConstant(String):
+
+	def __init__(self, default, prefix=None):
+		String.__init__(self, default=default)
+		self.prefix = prefix
+
+	def check(self, value):
+		value = String.check(self, value)
+		if isinstance(value, basestring):
+			value = value.upper()
+			if value.startswith(self._module_prefix):
+				value = value[len(self._module_prefix):] # e.g. PANGO_WEIGHT_BOLD --> WEIGHT_BOLD
+
+			if self.prefix and not value.startswith(self.prefix):
+				value = self.prefix + value # e.g. ITALIC --> STYLE_ITALIC
+
+			if hasattr(self._module, value):
+				return getattr(self._module, value)
+			else:
+				raise ValueError, 'No such constant: PANGO_%s' % value
+		else:
+			return value
+
+	def tostring(self, value):
+		if hasattr(value, 'value_name'):
+			return value.value_name
+		else:
+			return str(value)
+
+
+class PangoConstant(ConfigDefinitionConstant):
+
+	_module = pango
+	_module_prefix = 'PANGO_'
+
+
+class GtkConstant(ConfigDefinitionConstant):
+
+	_module = gtk
+	_module_prefix = 'GTK_'
+
+
 class UserActionContext(object):
 	'''Context manager to wrap actions in proper user-action signals
 
@@ -462,6 +517,8 @@ class TextBuffer(gtk.TextBuffer):
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
+	@signal: C{insert-object (object_element)}: request inserting of
+	custom object
 
 	@todo: document tag styles that are supported
 	'''
@@ -482,6 +539,7 @@ class TextBuffer(gtk.TextBuffer):
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -493,14 +551,14 @@ class TextBuffer(gtk.TextBuffer):
 		'h2': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
 		'h3': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
 		'h4': {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-		'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': 'italic'},
+		'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': pango.STYLE_ITALIC},
 		'h6': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
-		'emphasis': {'style': 'italic'},
+		'emphasis': {'style': pango.STYLE_ITALIC},
 		'strong': {'weight': pango.WEIGHT_BOLD},
 		'mark': {'background': 'yellow'},
-		'strike': {'strikethrough': 'true', 'foreground': 'grey'},
+		'strike': {'strikethrough': True, 'foreground': 'grey'},
 		'code': {'family': 'monospace'},
-		'pre': {'family': 'monospace', 'wrap-mode': 'none'},
+		'pre': {'family': 'monospace', 'wrap-mode': gtk.WRAP_NONE},
 		'sub': {'rise': -3500, 'scale':0.7},
 		'sup': {'rise': 7500, 'scale':0.7},
 		'link': {'foreground': 'blue'},
@@ -522,10 +580,19 @@ class TextBuffer(gtk.TextBuffer):
 		'sub', 'sup'
 	)
 
-	tag_attributes = set( (
-		'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
-		'family', 'wrap-mode', 'indent', 'underline', 'linespacing',
-	) ) #: Valid properties for a style in tag_styles
+	tag_attributes = {
+		'weight': PangoConstant(None, prefix='WEIGHT_'),
+		'scale': Float(None),
+		'style': PangoConstant(None, prefix='STYLE_'),
+		'background': AsciiString(None),
+		'foreground': AsciiString(None),
+		'strikethrough': Boolean(None),
+		'family': AsciiString(None),
+		'wrap-mode': GtkConstant(None, prefix='WRAP_'),
+		'indent': Integer(None),
+		'underline': PangoConstant(None, prefix='UNDERLINE_'),
+		'linespacing': Integer(None),
+	} #: Valid properties for a style in tag_styles
 
 	def __init__(self, notebook=None, page=None):
 		'''Constructor
@@ -661,7 +728,7 @@ class TextBuffer(gtk.TextBuffer):
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 
 		# Check tree
-		root = tree.getroot()
+		root = tree._etree.getroot() # HACK - switch to new interface !
 		assert root.tag == 'zim-tree'
 		raw = root.attrib.get('raw')
 		if isinstance(raw, basestring):
@@ -689,6 +756,27 @@ class TextBuffer(gtk.TextBuffer):
 			if root.text:
 				self.insert_at_cursor(root.text)
 			self._insert_element_children(root, raw=raw)
+
+			# Fix partial tree inserts
+			startiter = self.get_iter_at_offset(startoffset)
+			if not startiter.starts_line():
+				self._do_lines_merged(startiter)
+
+			enditer = self.get_iter_at_mark(self.get_insert())
+			if not enditer.ends_line():
+				self._do_lines_merged(enditer)
+
+			# Fix text direction of indent tags
+			for line in range(startiter.get_line(), enditer.get_line()+1):
+				iter = self.get_iter_at_line(line)
+				tags = filter(_is_indent_tag, iter.get_tags())
+				if tags:
+					dir = self._find_base_dir(line)
+					if dir == 'RTL':
+						bullet = self.get_bullet(line)
+						level = self.get_indent(line)
+						self._set_indent(line, level, bullet, dir=dir)
+					# else pass, LTR is the default
 		except:
 			# Try to recover buffer state before raising
 			self.update_editmode()
@@ -740,6 +828,9 @@ class TextBuffer(gtk.TextBuffer):
 					return # Re-use tag
 
 			tag = self._get_indent_tag(level, bullet)
+				# We don't set the LTR / RTL direction here
+				# instead we update all indent tags after the full
+				# insert is done.
 			self._editmode_tags += (tag,)
 
 		def force_line_start():
@@ -808,7 +899,7 @@ class TextBuffer(gtk.TextBuffer):
 				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
-				self.insert_image_at_cursor(file, alt=element.text, **element.attrib)
+				self.insert_image_at_cursor(file, **element.attrib)
 			elif element.tag == 'pre':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -816,6 +907,11 @@ class TextBuffer(gtk.TextBuffer):
 				if element.text:
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
+				set_indent(None)
+			elif element.tag == 'object':
+				if 'indent' in element.attrib:
+					set_indent(int(element.attrib['indent']))
+				self.emit('insert-object', element)
 				set_indent(None)
 			else:
 				# Text styles
@@ -829,6 +925,8 @@ class TextBuffer(gtk.TextBuffer):
 					# raw tree from undo can contain these
 					self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
 				else:
+					logger.debug("Unknown tag : %s, %s, %s", element.tag,
+								element.attrib, element.text)
 					assert False, 'Unknown tag: %s' % element.tag
 
 				if element.text:
@@ -1131,7 +1229,8 @@ class TextBuffer(gtk.TextBuffer):
 				# the icon as a bullet item. This will mess up
 				# undo stack. If 'raw' we assume indent tag is set
 				# already.
-				tag = self._get_indent_tag(0, bullet)
+				dir = self._find_base_dir(insert.get_line())
+				tag = self._get_indent_tag(0, bullet, dir=dir)
 				self._editmode_tags = self._editmode_tags + (tag,)
 
 		with self.user_action:
@@ -1593,8 +1692,8 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return 0
 
-	def _get_indent_tag(self, level, bullet=None):
-		name = 'indent-%i' % level
+	def _get_indent_tag(self, level, bullet=None, dir='LTR'):
+		name = 'indent-%s-%i' % (dir, level)
 		if bullet:
 			name += '-' + bullet
 		tag = self.get_tag_table().lookup(name)
@@ -1608,18 +1707,53 @@ class TextBuffer(gtk.TextBuffer):
 				else: raise AssertionError, 'BUG: Unkown bullet type'
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
-				tag = self.create_tag(name, left_margin=margin, indent=indent, **self.tag_styles[stylename])
+				if dir == 'LTR':
+					tag = self.create_tag(name,
+						left_margin=margin, indent=indent,
+						**self.tag_styles[stylename])
+				else: # RTL
+					tag = self.create_tag(name,
+						right_margin=margin, indent=indent,
+						**self.tag_styles[stylename])
 			else:
 				margin = 12 + self.pixels_indent * level
-				tag = self.create_tag(name, left_margin=margin, **self.tag_styles['indent'])
 				# Note: I would think the + 12 is not needed here, but
 				# the effect in the view is different than expected,
 				# putting text all the way to the left against the
 				# window border
+				if dir == 'LTR':
+					tag = self.create_tag(name,
+						left_margin=margin,
+						**self.tag_styles['indent'])
+				else: # RTL
+					tag = self.create_tag(name,
+						right_margin=margin,
+						**self.tag_styles['indent'])
+
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
 			tag.zim_attrib = {'indent': level}
 		return tag
+
+	def _find_base_dir(self, line):
+		# Look for basedir of current line, else previous line
+		# till start of paragraph
+		# FIXME: anyway to actually find out what the TextView will render ??
+		while line >= 0:
+			start, end = self.get_line_bounds(line)
+			text = self.get_slice(start, end)
+			if not text or text.isspace():
+				break
+
+			dir = pango.find_base_dir(text, len(text))
+			if dir == pango.DIRECTION_LTR:
+				return 'LTR'
+			elif dir == pango.DIRECTION_RTL:
+				return 'RTL'
+			else:
+				line -= 1
+		else:
+			return 'LTR' # default
 
 	def set_indent(self, line, level, interactive=False):
 		'''Set the indenting for a specific line.
@@ -1677,7 +1811,7 @@ class TextBuffer(gtk.TextBuffer):
 		level = self.get_indent(line)
 		self._set_indent(line, level, bullet)
 
-	def _set_indent(self, line, level, bullet):
+	def _set_indent(self, line, level, bullet, dir=None):
 		# Common code between set_indent() and update_indent_tag()
 		start, end = self.get_line_bounds(line)
 
@@ -1691,7 +1825,9 @@ class TextBuffer(gtk.TextBuffer):
 
 		if level > 0 or bullet:
 			# For bullets there is a 0-level tag, otherwise 0 means None
-			tag = self._get_indent_tag(level, bullet)
+			if dir is None:
+				dir = self._find_base_dir(line)
+			tag = self._get_indent_tag(level, bullet, dir=dir)
 			self.apply_tag(tag, start, end)
 
 		self.update_editmode() # also updates indent tag
@@ -1822,6 +1958,24 @@ class TextBuffer(gtk.TextBuffer):
 		start.backward_chars(length)
 		self.remove_all_tags(start, iter)
 		for tag in self._editmode_tags:
+			self.apply_tag(tag, start, iter)
+
+	def insert_child_anchor(self, iter, anchor):
+		# Make sure we always apply the correct tags when inserting an object
+		if iter.equal(self.get_iter_at_mark(self.get_insert())):
+			gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
+		else:
+			with self.tmp_cursor(iter):
+				gtk.TextBuffer.insert_child_anchor(self, iter, anchor)
+
+	def do_insert_child_anchor(self, iter, anchor):
+		# Like do_insert_pixbuf()
+		gtk.TextBuffer.do_insert_child_anchor(self, iter, anchor)
+
+		start = iter.copy()
+		start.backward_char()
+		self.remove_all_tags(start, iter)
+		for tag in filter(_is_indent_tag, self._editmode_tags):
 			self.apply_tag(tag, start, iter)
 
 	def insert_pixbuf(self, iter, pixbuf):
@@ -2020,11 +2174,11 @@ class TextBuffer(gtk.TextBuffer):
 			attrib = {'partial': True}
 
 		if raw:
-			builder = TreeBuilder()
+			builder = ElementTreeModule.TreeBuilder()
 			attrib['raw'] = True
 			builder.start('zim-tree', attrib)
 		else:
-			builder = ParseTreeBuilder()
+			builder = OldParseTreeBuilder()
 			builder.start('zim-tree', attrib)
 
 		open_tags = []
@@ -2120,6 +2274,7 @@ class TextBuffer(gtk.TextBuffer):
 		set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
+			anchor = iter.get_child_anchor()
 			if pixbuf:
 				if pixbuf.zim_type == 'icon':
 					# Reset all tags - and let set_tags parse the bullet
@@ -2139,19 +2294,29 @@ class TextBuffer(gtk.TextBuffer):
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
-					if 'alt' in attrib:
-						text = attrib.pop('alt') or ''
-						builder.start('img', attrib)
-						builder.data(text)
-						builder.end('img')
-					else:
-						builder.start('img', attrib)
-						builder.end('img')
+					builder.start('img', attrib)
+					builder.end('img')
 				else:
 					assert False, 'BUG: unknown pixbuf type'
 
 				iter.forward_char()
-			# FUTURE: elif embedded widget
+
+			# embedded widget
+			elif anchor:
+				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				anchor = iter.get_child_anchor() # iter may have moved
+
+				if anchor is None:
+					continue
+				if hasattr(anchor, 'manager'):
+					attrib = anchor.manager.get_attrib()
+					data = anchor.manager.get_data()
+					logger.debug("Anchor with CustomObject: %s", anchor.manager)
+					builder.start('object', attrib)
+					builder.data(data)
+					builder.end('object')
+					anchor.manager.set_modified(False)
+				iter.forward_char()
 			else:
 				# Set tags
 				copy = iter.copy()
@@ -2180,8 +2345,8 @@ class TextBuffer(gtk.TextBuffer):
 						bound = end.copy() # just to be sure..
 						break
 
-				# But limit slice to first pixbuf
-				# FUTURE: also limit slice to any embedded widget
+				# But limit slice to first pixbuf or any embeddded widget
+
 				text = iter.get_slice(bound)
 				if text.startswith(PIXBUF_CHR):
 					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
@@ -2221,6 +2386,18 @@ class TextBuffer(gtk.TextBuffer):
 		tree = ParseTree(builder.close())
 		tree.encode_urls()
 		#~ print tree.tostring()
+
+		if not raw:
+			# Reparsing the parsetree in order to find raw wiki codes
+			# and get rid of oddities in our generated parsetree.
+			#~ print ">>> Parsetree original:", tree.tostring()
+			from zim.formats import get_format
+			format = get_format("wiki") # FIXME should the format used here depend on the store ?
+			dumper = format.Dumper()
+			parser = format.Parser()
+			tree = parser.parse(dumper.dump(tree), partial=tree.ispartial)
+			#~ print ">>> Parsetree recreated:", tree.tostring()
+
 		return tree
 
 	def select_line(self):
@@ -2529,6 +2706,7 @@ class TextBuffer(gtk.TextBuffer):
 		bounds = self.get_selection_bounds()
 		if bounds:
 			tree = self.get_parsetree(bounds)
+			#~ print ">>>> SET", tree.tostring()
 			clipboard.set_parsetree(self.notebook, self.page, tree, format)
 
 	def cut_clipboard(self, clipboard, default_editable):
@@ -3246,6 +3424,7 @@ class TextView(gtk.TextView):
 		'''
 		gtk.TextView.__init__(self, TextBuffer(None, None))
 		self.set_name('zim-pageview')
+		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
 		self._cursor_link = None
 		self.gtkspell = None
@@ -3324,6 +3503,33 @@ class TextView(gtk.TextView):
 		# Update the cursor type when the window visibility changed
 		self.update_cursor()
 		return False # continue emit
+
+	def do_move_cursor(self, step_size, count, extend_selection):
+		# Overloaded signal handler for cursor movements which will
+		# move cursor into any object that accept a cursor focus
+
+		if step_size in (gtk.MOVEMENT_LOGICAL_POSITIONS, gtk.MOVEMENT_VISUAL_POSITIONS) \
+		and count in (1, -1) and not extend_selection:
+			# logic below only supports 1 char forward or 1 char backward movements
+
+			buffer = self.get_buffer()
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			if count == -1:
+				iter.backward_char()
+				position = POSITION_END # enter end of object
+			else:
+				position = POSITION_BEGIN
+
+			anchor = iter.get_child_anchor()
+			if iter.get_child_anchor():
+				widgets = anchor.get_widgets()
+				assert len(widgets) == 1, 'TODO: support multiple views of same buffer'
+				widget = widgets[0]
+				if widget.has_cursor():
+					widget.grab_cursor(position)
+					return None
+
+		return gtk.TextView.do_move_cursor(self, step_size, count, extend_selection)
 
 	def do_button_press_event(self, event):
 		# Handle middle click for pasting and right click for context menu
@@ -4382,7 +4588,7 @@ class PageView(gtk.VBox):
 	a L{FindBar}. Also adds menu items and in general integrates
 	the TextView with the rest of the application.
 
-	@cvar style: a L{ListDict} with style properties. Although this
+	@ivar text_style: a L{ConfigSectionsDict} with style properties. Although this
 	is a class attribute loading the data from the config file is
 	delayed till the first object is constructed
 
@@ -4400,7 +4606,7 @@ class PageView(gtk.VBox):
 	C{do_populate_popup(menu, buffer, iter, image_data)}.
 	@ivar view: the L{TextView} child object
 	@ivar find_bar: the L{FindBar} child widget
-	@ivar preferences: a L{ListDict} with preferences
+	@ivar preferences: a L{ConfigDict} with preferences
 
 	@signal: C{modified-changed ()}: emitted when the page is edited
 
@@ -4417,8 +4623,6 @@ class PageView(gtk.VBox):
 		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	style = None # set below when constructing first instance
-
 	def __init__(self, ui, secondary=False):
 		'''Constructor
 
@@ -4428,6 +4632,7 @@ class PageView(gtk.VBox):
 		'''
 		gtk.VBox.__init__(self)
 		self.ui = ui
+
 		self._buffer_signals = ()
 		self.page = None
 		self.readonly = True
@@ -4486,13 +4691,13 @@ class PageView(gtk.VBox):
 			#~ action.connect('activate', lambda o, *a: logger.warn(o.get_name()))
 			action.connect('activate', self.do_toggle_format_action)
 
-		if self.style is None:
-			# Initialize class attribute - first object instance only
-			PageView.style = get_config('style.conf')
-			PageView.style.profile = None
-			# this can be reset later when the profile changes
-		self.on_preferences_changed(self.ui) # also initializes the style
-		self.ui.connect('preferences-changed', self.on_preferences_changed)
+		self.preferences.connect('changed', self.on_preferences_changed)
+		self.on_preferences_changed()
+
+		self.text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
+		self.on_text_style_changed()
+
 		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
 		if self.ui.notebook:
@@ -4503,72 +4708,76 @@ class PageView(gtk.VBox):
 	def grab_focus(self):
 		self.view.grab_focus()
 
-	def on_preferences_changed(self, ui):
-		self._reload_style() # Needed because font is taken from preferences
+	def on_preferences_changed(self, *a):
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
-	def _reload_style(self):
+	def on_text_style_changed(self, *a):
 		'''(Re-)intializes properties for TextView, TextBuffer and
 		TextTags based on the properties in the style config.
 		'''
-		self.style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
-		self.style['TextView'].setdefault('tabs', None, int)
+
+		# TODO: reload buffer on style changed to make change visible
+		#       now it is only visible on next page load
+
+		self.text_style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
+		self.text_style['TextView'].setdefault('tabs', None, int)
 			# Don't set a default for 'tabs' as not to break pages that
 			# were created before this setting was introduced.
-		self.style['TextView'].setdefault('linespacing', 3)
-		self.style['TextView'].setdefault('font', None, basestring)
-		self.style['TextView'].setdefault('justify', None, basestring)
-		#~ print self.style['TextView']
+		self.text_style['TextView'].setdefault('linespacing', 3)
+		self.text_style['TextView'].setdefault('font', None, basestring)
+		self.text_style['TextView'].setdefault('justify', None, basestring)
+		#~ print self.text_style['TextView']
 
 		# Set properties for TextVIew
-		if self.style['TextView']['tabs']:
+		if self.text_style['TextView']['tabs']:
 			tabarray = pango.TabArray(1, True) # Initial size, position in pixels
-			tabarray.set_tab(0, pango.TAB_LEFT, self.style['TextView']['tabs'])
+			tabarray.set_tab(0, pango.TAB_LEFT, self.text_style['TextView']['tabs'])
 				# We just set the size for one tab, apparently this gets
 				# copied automaticlly when a new tab is created by the textbuffer
 			self.view.set_tabs(tabarray)
 
-		if self.style['TextView']['linespacing']:
-			self.view.set_pixels_below_lines(self.style['TextView']['linespacing'])
+		if self.text_style['TextView']['linespacing']:
+			self.view.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
 
-		if self.style['TextView']['font']:
-			font = pango.FontDescription(self.style['TextView']['font'])
+		if self.text_style['TextView']['font']:
+			font = pango.FontDescription(self.text_style['TextView']['font'])
 			self.view.modify_font(font)
 		else:
 			self.view.modify_font(None)
 
-		if self.style['TextView']['justify']:
+		if self.text_style['TextView']['justify']:
 			try:
-				const = self.style['TextView']['justify']
+				const = self.text_style['TextView']['justify']
 				assert hasattr(gtk, const), 'No such constant: gtk.%s' % const
 				self.view.set_justification(getattr(gtk, const))
 			except:
 				logger.exception('Exception while setting justification:')
 
 		# Set properties for TextBuffer
-		TextBuffer.pixels_indent = self.style['TextView']['indent']
+		TextBuffer.pixels_indent = self.text_style['TextView']['indent']
 
 		# Load TextTags
 		testbuffer = gtk.TextBuffer()
-		for tag in [k[4:] for k in self.style.keys() if k.startswith('Tag ')]:
+		for key in [k for k in self.text_style.keys() if k.startswith('Tag ')]:
+			section = self.text_style[key]
+			defs = [(k, TextBuffer.tag_attributes[k])
+				for k in section._input if k in TextBuffer.tag_attributes]
+			section.define(defs)
+			tag = key[4:]
+
 			try:
-				assert tag in TextBuffer.tag_styles, 'No such tag: %s' % tag
-				attrib = self.style['Tag '+tag].copy()
-				for a in attrib.keys():
-					assert a in TextBuffer.tag_attributes, 'No such tag attribute: %s' % a
-					if isinstance(attrib[a], basestring):
-						if attrib[a].startswith('PANGO_'):
-							const = attrib[a][6:]
-							assert hasattr(pango, const), 'No such constant: pango.%s' % const
-							attrib[a] = getattr(pango, const)
-						else:
-							attrib[a] = str(attrib[a]) # pango doesn't like unicode attributes
+				if not tag in TextBuffer.tag_styles:
+					raise AssertionError, 'No such tag: %s' % tag
+
+				attrib = dict(i for i in section.items() if i[1] is not None)
 				if 'linespacing' in attrib:
-					attrib['pixels-below-lines'] = attrib['linespacing']
-					del attrib['linespacing']
+					attrib['pixels-below-lines'] = attrib.pop('linespacing')
+
 				#~ print 'TAG', tag, attrib
-				assert testbuffer.create_tag('style-'+tag, **attrib)
+				testtag = testbuffer.create_tag('style-'+tag, **attrib)
+				if not testtag:
+					raise AssertionError, 'Could not create tag: %s' % tag
 			except:
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:
@@ -4598,24 +4807,6 @@ class PageView(gtk.VBox):
 
 		for s in ('stored-page', 'deleted-page', 'moved-page'):
 			notebook.connect(s, assert_not_modified)
-
-		self.on_profile_changed(notebook)
-		notebook.connect('profile-changed', self.on_profile_changed)
-
-	def on_profile_changed(self, notebook):
-		# Keep in mind that style is a class attribute - maybe multiple
-		# pageview objects in existence when this signal fires
-		if self.style.profile != notebook.profile:
-			if notebook.profile is None:
-				PageView.style = get_config('style.conf')
-				PageView.style.profile = None
-			else:
-				# FIXME should we also check default file here ?
-				file = config_file(('styles', notebook.profile + '.conf'))
-				PageView.style.change_file(file)
-				PageView.style.profile = notebook.profile
-
-			self._reload_style()
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
@@ -4652,6 +4843,12 @@ class PageView(gtk.VBox):
 		self._prev_buffer = self.view.get_buffer()
 		finderstate = self._prev_buffer.finder.get_state()
 
+		for child in self.view.get_children():
+			if isinstance(child, CustomObjectBin):
+				self.view.remove(child)
+				if hasattr(child, "_zim_objmanager"):
+					del child._zim_objmanager
+
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = ()
@@ -4661,6 +4858,7 @@ class PageView(gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
+			buffer.connect('insert-object', self.insert_object)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -4903,7 +5101,7 @@ class PageView(gtk.VBox):
 		@param plugin: the plugin object
 		@param type: the object type handled by this plugin, e.g. "equation"
 		'''
-		assert not 'type' in self.image_generator_plugins, \
+		assert not type in self.image_generator_plugins, \
 			'Already have plugin for image type "%s"' % type
 		self.image_generator_plugins[type] = plugin
 		logger.debug('Registered plugin %s for image type "%s"', plugin, type)
@@ -5134,6 +5332,11 @@ class PageView(gtk.VBox):
 			Clipboard.set_pagelink(self.ui.notebook, path)
 			SelectionClipboard.set_pagelink(self.ui.notebook, path)
 
+		def set_interwikilink(o, data):
+			href, url = data
+			Clipboard.set_interwikilink(href, url)
+			SelectionClipboard.set_interwikilink(href, url)
+
 		def set_uri(o, uri):
 			Clipboard.set_uri(uri)
 			SelectionClipboard.set_uri(uri)
@@ -5142,6 +5345,10 @@ class PageView(gtk.VBox):
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
 			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
 			item.connect('activate', set_pagelink, path)
+		elif type == 'interwiki':
+			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			url = interwiki_link(link['href'])
+			item.connect('activate', set_interwikilink, (link['href'], url))
 		elif type == 'mailto':
 			item = gtk.MenuItem(_('Copy Email Address')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])
@@ -5643,6 +5850,40 @@ class PageView(gtk.VBox):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
+	def insert_object(self, buffer, obj, interactive=False):
+		'''Inserts custom object to TextView & Textbuffer.
+		`obj` can be Element or CustomObjectClass instance.'''
+		logger.debug("Insert object(%s, %s)", buffer, obj)
+		if not isinstance(obj, CustomObjectClass):
+			# assume obj is a parsetree element
+			element = obj
+			if not 'type' in element.attrib:
+				return None
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text, self.ui)
+
+		def on_modified_changed(obj):
+			if obj.get_modified() and not buffer.get_modified():
+				buffer.set_modified(True)
+
+		obj.connect('modified-changed', on_modified_changed)
+		iter = buffer.get_insert_iter()
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.view.grab_focus()
+
+		anchor = ObjectAnchor(obj)
+		buffer.insert_child_anchor(iter, anchor)
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectBin)
+		widget.connect('release-cursor', on_release_cursor, anchor)
+		self.view.add_child_at_anchor(widget, anchor)
+
+		widget.show_all()
+
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
 		self._zoom_increase_decrease_font_size( +1 )
@@ -5652,13 +5893,13 @@ class PageView(gtk.VBox):
 		self._zoom_increase_decrease_font_size( -1 )
 
 	def _zoom_increase_decrease_font_size(self,plus_or_minus):
-		style = self.style
-		if self.style['TextView']['font']:
-			font = pango.FontDescription(self.style['TextView']['font'])
+		style = self.text_style
+		if self.text_style['TextView']['font']:
+			font = pango.FontDescription(self.text_style['TextView']['font'])
 		else:
 			logger.debug( 'Switching to custom font implicitly because of zoom action' )
 			font = self.view.style.font_desc
-			self.style['TextView']['font'] = font.to_string()
+			self.text_style['TextView']['font'] = font.to_string()
 
 		font_size = font.get_size()
 		if font_size <= 1*1024 and plus_or_minus < 0:
@@ -5666,33 +5907,96 @@ class PageView(gtk.VBox):
 		else:
 			font_size_new = font_size + plus_or_minus * 1024
 			font.set_size( font_size_new )
-		self.style['TextView']['font'] = font.to_string()
+		self.text_style['TextView']['font'] = font.to_string()
 		self.view.modify_font(font)
 
-		self.style.write()
+		self.text_style.write()
 
 	def zoom_reset(self):
 		'''Menu action to reset the font size'''
-		if not self.style['TextView']['font']:
+		if not self.text_style['TextView']['font']:
 			return
 
 		widget = TextView({}) # Get new widget
 		default_font = widget.style.font_desc
 
-		font = pango.FontDescription(self.style['TextView']['font'])
+		font = pango.FontDescription(self.text_style['TextView']['font'])
 		font.set_size( default_font.get_size() )
 
 		if font.to_string() == default_font.to_string():
-			self.style['TextView']['font'] = None
+			self.text_style['TextView']['font'] = None
 			self.view.modify_font(None)
 		else:
-			self.style['TextView']['font'] = font.to_string()
+			self.text_style['TextView']['font'] = font.to_string()
 			self.view.modify_font(font)
 
-		self.style.write()
+		self.text_style.write()
+
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageView)
+
+
+class ObjectAnchor(gtk.TextChildAnchor):
+	def __init__(self, manager):
+		self.manager = manager
+		gtk.TextChildAnchor.__init__(self)
+
+gobject.type_register(ObjectAnchor)
+
+
+# Constants for grab-focus-cursor and release-focus-cursor
+POSITION_BEGIN = 1
+POSITION_END = 2
+
+class CustomObjectBin(gtk.EventBox):
+	'''CustomObjectBin adds border and set arrow as mouse cursor
+
+	Defines two signals:
+	  * grab-cursor (position): emitted when embedded widget
+	    should grab focus, position can be either POSITION_BEGIN or
+	    POSITION_END
+	  * release-cursor (position): emitted when the embedded
+	    widget wants to give back focus to the embedding TextView
+	'''
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+	}
+
+	def __init__(self):
+		gtk.EventBox.__init__(self)
+		self.set_border_width(5)
+		self._has_cursor = False
+
+	def do_realize(self):
+		gtk.EventBox.do_realize(self)
+		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+
+	def	has_cursor(self):
+		'''Returns True if this object has an internal cursor. Will be
+		used by the TextView to determine if the cursor should go
+		"into" the object or just jump from the position before to the
+		position after the object. If True the embedded widget is
+		expected to support grab_cursor() and use release_cursor().
+		'''
+		return self._has_cursor
+
+	def	set_has_cursor(self, has_cursor):
+		'''See has_cursor()'''
+		self._has_cursor = has_cursor
+
+	def grab_cursor(self, position):
+		'''Emits the grab-cursor signal'''
+		self.emit('grab-cursor', position)
+
+	def release_cursor(self, position):
+		'''Emits the release-cursor signal'''
+		self.emit('release-cursor', position)
+
+gobject.type_register(CustomObjectBin)
 
 
 class InsertDateDialog(Dialog):
@@ -5763,7 +6067,7 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		file = config_file('dates.list')
+		file = self.ui.config.get_config_file('<profile>/dates.list') # XXX
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -5775,6 +6079,10 @@ class InsertDateDialog(Dialog):
 					lastused = iter
 			except:
 				logger.exception('Could not parse date: %s', line)
+
+		if len(model) == 0:
+			# file not found ?
+			model.append(("%c", "%c"))
 
 		if not lastused is None:
 			path = model.get_path(lastused)
@@ -5811,7 +6119,7 @@ class InsertDateDialog(Dialog):
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
-		file = config_file('dates.list')
+		file = self.ui.config.get_config_file('<profile>/dates.list') # XXX
 		if self.ui.edit_config_file(file):
 			self.load_file()
 

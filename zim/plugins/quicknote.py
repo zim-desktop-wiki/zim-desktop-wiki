@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2010-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import gtk
 
 import re
 from datetime import date as dateclass
 
-from zim.plugins import PluginClass
-from zim.config import get_config, data_file
-from zim.notebook import resolve_notebook, get_notebook, Notebook, PageNameError
+from zim.plugins import PluginClass, WindowExtension, extends
+from zim.command import Command
+from zim.actions import action
+from zim.config import data_file, ConfigManager
+from zim.notebook import Notebook, PageNameError, NotebookInfo, \
+	resolve_notebook, build_notebook
 from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, gtk_window_set_default_icon, QuestionDialog
@@ -27,109 +30,117 @@ usagehelp = '''\
 usage: zim --plugin quicknote [OPTIONS]
 
 Options:
-  notebook=URI         Select the notebook in the dialog
-  page=STRING          Fill in full page name
-  namespace=STRING     Fill in the namespace in the dialog
-  basename=STRING      Fill in the page name in the dialog
-  append=[true|false]  Set whether to append or create new page
-  text=TEXT            Provide the text directly
-  input=stdin          Provide the text on stdin
-  input=clipboard      Take the text from the clipboard
-  encoding=base64      Text is encoded in base64
-  encoding=url         Text is url encoded
-                       (In both cases expects UTF-8 after decoding)
-  attachments=FOLDER   Import all files in FOLDER as attachments,
-                       wiki input can refer these files relatively
-  option:url=STRING    Set template parameter
+  --help, -h             Print this help text and exit
+  --notebook URI         Select the notebook in the dialog
+  --page STRING          Fill in full page name
+  --namespace STRING     Fill in the namespace in the dialog
+  --basename STRING      Fill in the page name in the dialog
+  --append [true|false]  Set whether to append or create new page
+  --text TEXT            Provide the text directly
+  --input stdin          Provide the text on stdin
+  --input clipboard      Take the text from the clipboard
+  --encoding base64      Text is encoded in base64
+  --encoding url         Text is url encoded
+                         (In both cases expects UTF-8 after decoding)
+  --attachments FOLDER   Import all files in FOLDER as attachments,
+                         wiki input can refer these files relatively
+  --option url=STRING    Set template parameter
 '''
 
 
-def main(*args):
-	options = {}
-	template_options = {}
-	for arg in args:
-		if arg.startswith('option:'):
-			arg = arg[7:]
-			dict = template_options
-		else:
-			dict = options
+class QuickNotePluginCommand(Command):
 
-		if '=' in arg:
-			key, value = arg.split('=', 1)
-			dict[key] = value
-		else:
-			dict[arg] = True
-	#~ print 'OPTIONS:', options, template_options
-
-	if 'help' in options:
-		print usagehelp
-		return
-
-	if 'notebook' in options:
-		notebook, page = resolve_notebook(options['notebook'])
-	else:
-		notebook = None
-
-	if 'append' in options:
-		if options['append'].lower() == 'true':
-			options['append'] = True
-		else:
-			options['append'] = False
-
-	if 'input' in options:
-		if options['input'] == 'stdin':
-			import sys
-			text = sys.stdin.read()
-		elif options['input'] == 'clipboard':
-			text = \
-				SelectionClipboard.get_text() \
-				or Clipboard.get_text()
-	else:
-		text = options.get('text')
-
-	if text and options.get('encoding'):
-		if options['encoding'] == 'base64':
-			import base64
-			text = base64.b64decode(text)
-		elif options['encoding'] == 'url':
-			from zim.parsing import url_decode, URL_ENCODE_DATA
-			text = url_decode(text, mode=URL_ENCODE_DATA)
-		else:
-			raise AssertionError, 'Unknown encoding: %s' % options['encoding']
-
-	if text and not isinstance(text, unicode):
-		text = text.decode('utf-8')
-
-	icon = data_file('zim.png').path
-	gtk_window_set_default_icon()
-
-	dialog = QuickNoteDialog(None,
-		notebook,
-		options.get('namespace'), options.get('basename'),
-		options.get('append'),
-		text,
-		template_options,
-		options.get('attachments')
+	options = (
+		('help', 'h', 'Print this help text and exit'),
+		('notebook=', '', 'Select the notebook in the dialog'),
+		('page=', '', 'Fill in full page name'),
+		('namespace=', '', 'Fill in the namespace in the dialog'),
+		('basename=', '', 'Fill in the page name in the dialog'),
+		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
+		('text=', '', 'Provide the text directly'),
+		('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
+		('encoding=', '', 'Text encoding ("base64" or "url")'),
+		('attachments=', '', 'Import all files in FOLDER as attachments, wiki input can refer these files relatively'),
+		('option=', '', 'Set template parameter, e.g. "url=URL"'),
 	)
-	dialog.run()
 
+	def parse_options(self, *args):
+		self.opts['option'] = [] # allow list
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('show_quick_note', 'gtk-new', _('Quick Note...'), '', '', False), # T: menu item
-)
+		if all(not a.startswith('-') for a in args):
+			# Backward compartibility for options not prefixed by "--"
+			# used "=" as separator for values
+			# template options came as "option:KEY=VALUE"
+			for arg in args:
+				if arg.startswith('option:'):
+					self.opts['option'].append(arg[7:])
+				elif arg == 'help':
+					self.opts['help'] = True
+				else:
+					key, value = arg.split('=', 1)
+					self.opts[key] = value
+		else:
+			Command.parse_options(self, *args)
 
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='file_menu'>
-			<placeholder name="open_items">
-				<menuitem action="show_quick_note" />
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
+		self.template_options = {}
+		for arg in self.opts['option']:
+			key, value = arg.split('=', 1)
+			self.template_options[key] = value
+
+		if 'append' in self.opts:
+			self.opts['append'] = \
+				self.opts['append'].lower() == 'true'
+
+	def get_text(self):
+		if 'input' in self.opts:
+			if self.opts['input'] == 'stdin':
+				import sys
+				text = sys.stdin.read()
+			elif self.opts['input'] == 'clipboard':
+				text = \
+					SelectionClipboard.get_text() \
+					or Clipboard.get_text()
+			else:
+				raise AssertionError, 'Unknown input type: %s' % self.opts['input']
+		else:
+			text = self.opts.get('text')
+
+		if text and 'encoding' in self.opts:
+			if self.opts['encoding'] == 'base64':
+				import base64
+				text = base64.b64decode(text)
+			elif self.opts['encoding'] == 'url':
+				from zim.parsing import url_decode, URL_ENCODE_DATA
+				text = url_decode(text, mode=URL_ENCODE_DATA)
+			else:
+				raise AssertionError, 'Unknown encoding: %s' % self.opts['encoding']
+
+		if text and not isinstance(text, unicode):
+			text = text.decode('utf-8')
+
+		return text
+
+	def run(self):
+		if self.opts.get('help'):
+			print usagehelp # TODO handle this in Command base class
+		else:
+			gtk_window_set_default_icon()
+
+			if 'notebook' in self.opts:
+				notebook = resolve_notebook(self.opts['notebook'])
+			else:
+				notebook = None
+
+			dialog = QuickNoteDialog(None,
+				notebook=notebook,
+				namespace=self.opts.get('namespace'),
+				basename=self.opts.get('basename'),
+				append=self.opts.get('append'),
+				text=self.get_text(),
+				template_options=self.template_options,
+				attachments=self.opts.get('attachments')
+			)
+			dialog.run()
 
 
 class QuickNotePlugin(PluginClass):
@@ -150,21 +161,39 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 	#~ )
 
-	def initialize_ui(self, ui):
-		if ui.ui_type == 'gtk':
-			ui.add_actions(ui_actions, self)
-			ui.add_ui(ui_xml, self)
 
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+	<ui>
+		<menubar name='menubar'>
+			<menu action='file_menu'>
+				<placeholder name="open_items">
+					<menuitem action="show_quick_note" />
+				</placeholder>
+			</menu>
+		</menubar>
+	</ui>
+	'''
+
+	@action(_('Quick Note...'), stock='gtk-new')
 	def show_quick_note(self):
-		dialog = BoundQuickNoteDialog.unique(self, self.ui, {})
+		ui = self.window.ui # XXX
+		notebook = self.window.ui.notebook # XXX
+		dialog = BoundQuickNoteDialog.unique(self, self.window, notebook, ui)
 		dialog.show()
 
 
 class BoundQuickNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, ui, page=None, namespace=None, basename=None, append=None, text=None, template_options=None, attachments=None):
-		Dialog.__init__(self, ui, _('Quick Note'))
+	def __init__(self, window, notebook, ui,
+		page=None, namespace=None, basename=None,
+		append=None, text=None, template_options=None, attachments=None
+	):
+		Dialog.__init__(self, window, _('Quick Note'))
+		self._ui = ui
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
@@ -172,7 +201,7 @@ class BoundQuickNoteDialog(Dialog):
 		self.uistate.setdefault('namespace', None, basestring)
 		namespace = namespace or self.uistate['namespace']
 
-		self.form = InputForm(notebook=self.ui.notebook)
+		self.form = InputForm(notebook=notebook)
 		self.vbox.pack_start(self.form, False)
 		self._init_inputs(namespace, basename, append, text, template_options)
 
@@ -316,7 +345,10 @@ class BoundQuickNoteDialog(Dialog):
 				pass
 			self._updating_title = False
 
-	def do_response_ok(self, get_ui=None):
+	def _get_ui(self):
+		return self._ui
+
+	def do_response_ok(self):
 		# NOTE: Keep in mind that this method should also work using
 		# a proxy object for the ui. This is why we have the get_ui()
 		# argument to construct a proxy.
@@ -325,17 +357,19 @@ class BoundQuickNoteDialog(Dialog):
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
 
+		# HACK: change "[]" at start of line into "[ ]" so checkboxes get inserted correctly
+		text = re.sub(r'^(\s*)\[\](\s)', r'\1[ ]\2', text, flags=re.M)
+
+		ui = self._get_ui()
+		if ui is None:
+			return False
+
 		if self.form['new_page']:
 			if not self.form.widgets['namespace'].get_input_valid() \
 			or not self.form['basename']:
 				if not self.form['basename']:
 					entry = self.form.widgets['basename']
 					entry.set_input_valid(False, show_empty_invalid=True)
-				return False
-
-			if get_ui: ui = get_ui()
-			else: ui = self.ui
-			if ui is None:
 				return False
 
 			path = self.form['namespace'].name + ':' + self.form['basename']
@@ -346,11 +380,6 @@ class BoundQuickNoteDialog(Dialog):
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
-				return False
-
-			if get_ui: ui = get_ui()
-			else: ui = self.ui
-			if ui is None:
 				return False
 
 			path = self.form['page'].name
@@ -366,11 +395,16 @@ class BoundQuickNoteDialog(Dialog):
 class QuickNoteDialog(BoundQuickNoteDialog):
 	'''Dialog which includes a notebook chooser'''
 
-	def __init__(self, ui, notebook=None, namespace=None, basename=None, append=None, text=None, template_options=None, attachments=None):
-		self.config = get_config('quicknote.conf')
+	def __init__(self, window, notebook=None,
+		page=None, namespace=None, basename=None,
+		append=None, text=None, template_options=None, attachments=None
+	):
+		assert page is None, 'TODO'
+		manager = ConfigManager() # FIXME should be passed in
+		self.config = manager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
-		Dialog.__init__(self, ui, _('Quick Note'))
+		Dialog.__init__(self, window, _('Quick Note'))
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
@@ -428,23 +462,21 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 
 	def _set_autocomplete(self, notebook):
 		if notebook:
-			obj = get_notebook(notebook)
+			if isinstance(notebook, basestring):
+				notebook = NotebookInfo(notebook)
+			obj, x = build_notebook(notebook)
 			self.form.widgets['namespace'].notebook = obj
 			self.form.widgets['page'].notebook = obj
-			# Could still be None, e.g. if the notebook folder is not mounted
 			logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
 		else:
 			self.form.widgets['namespace'].notebook = None
 			self.form.widgets['page'].notebook = None
 			logger.debug('Notebook for autocomplete unset')
 
-	def do_response_ok(self):
-		def get_ui():
-			start_server_if_not_running()
-			notebook = self.notebookcombobox.get_notebook()
-			if notebook:
-				return ServerProxy().get_notebook(notebook)
-			else:
-				return None
-
-		return BoundQuickNoteDialog.do_response_ok(self, get_ui)
+	def _get_ui(self):
+		start_server_if_not_running()
+		notebook = self.notebookcombobox.get_notebook()
+		if notebook:
+			return ServerProxy().get_notebook(notebook)
+		else:
+			return None

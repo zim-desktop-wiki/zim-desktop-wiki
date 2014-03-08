@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for basic stores modules.'''
 
@@ -145,6 +145,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 		self.assertFalse(page.modified)
 		wikitext = tests.WikiTestData.get('roundtrip')
 		page.parse('wiki', wikitext)
+		self.assertEqual(''.join(page.dump('wiki')), wikitext)
 		self.assertTrue(page.modified)
 		self.store.store_page(page)
 		self.assertFalse(page.modified)

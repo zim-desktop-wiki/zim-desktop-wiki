@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
-import gobject
 import gtk
 import pango
 import logging
@@ -13,7 +12,8 @@ import re
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 from zim.parsing import parse_date
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
+from zim.actions import action
 from zim.notebook import Path
 from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
@@ -22,38 +22,19 @@ from zim.gui.widgets import ui_environment, \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
-from zim.formats import get_format, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX
-from zim.config import check_class_allow_empty
+from zim.formats import get_format, \
+	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET, \
+	PARAGRAPH, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
+	Visitor, VisitorSkip
+from zim.config import StringAllowEmpty
 
 from zim.plugins.calendar import daterange_from_path
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('show_task_list', 'zim-task-list', _('Task List'), '', _('Task List'), True), # T: menu item
-)
-
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='view_menu'>
-			<placeholder name="plugin_items">
-				<menuitem action="show_task_list" />
-			</placeholder>
-		</menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='show_task_list'/>
-		</placeholder>
-	</toolbar>
-</ui>
-'''
-
 SQL_FORMAT_VERSION = (0, 6)
-
+SQL_FORMAT_VERSION_STRING = "0.6"
 
 SQL_CREATE_TABLES = '''
 create table if not exists tasklist (
@@ -88,12 +69,14 @@ _NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be
 #       - no @waiting ?? -> use defer date for this use case
 
 
-class TaskListPlugin(PluginClass):
+# TODO
+# commandline option
+# - open dialog
+# - output to stdout with configurable format
+# - force update, intialization
 
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'tasklist-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-	}
+
+class TaskListPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Task List'), # T: plugin name
@@ -118,15 +101,15 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), True),
 			# T: label for plugin preferences dialog
-		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', check_class_allow_empty),
+		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
-		('next_label', 'string', _('Label for next task'), 'Next:', check_class_allow_empty),
+		('next_label', 'string', _('Label for next task'), 'Next:', StringAllowEmpty),
 			# T: label for plugin preferences dialog - label is by default "Next"
-		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', check_class_allow_empty),
+		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', StringAllowEmpty),
 			# T: label for plugin preferences dialog
-		('included_subtrees', 'string', _('Subtree(s) to index'), '', check_class_allow_empty),
+		('included_subtrees', 'string', _('Subtree(s) to index'), '', StringAllowEmpty),
 			# T: subtree to search for tasks - default is the whole tree (empty string means everything)
-		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', check_class_allow_empty),
+		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', StringAllowEmpty),
 			# T: subtrees of the included subtrees to *not* search for tasks - default is none
 	)
 	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page', 'nonactionable_tags',
@@ -134,8 +117,32 @@ This is a core plugin shipping with zim.
 		# Rebuild database table if any of these preferences changed.
 		# But leave it alone if others change.
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
+	def extend(self, obj):
+		name = obj.__class__.__name__
+		if name == 'MainWindow':
+			index = obj.ui.notebook.index # XXX
+			i_ext = self.get_extension(IndexExtension, index=index)
+			mw_ext = MainWindowExtension(self, obj, i_ext)
+			self.extensions.add(mw_ext)
+		else:
+			PluginClass.extend(self, obj)
+
+
+@extends('Index')
+class IndexExtension(ObjectExtension):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__signals__ = {
+		'tasklist-changed': (None, None, ()),
+	}
+
+	def __init__(self, plugin, index):
+		ObjectExtension.__init__(self, plugin, index)
+		self.plugin = plugin
+		self.index = index
+
+		self.preferences = plugin.preferences
+
 		self.task_labels = None
 		self.task_label_re = None
 		self.next_label = None
@@ -146,14 +153,13 @@ This is a core plugin shipping with zim.
 		self.db_initialized = False
 		self._current_preferences = None
 
-	def initialize_ui(self, ui):
-		if ui.ui_type == 'gtk':
-			ui.add_actions(ui_actions, self)
-			ui.add_ui(ui_xml, self)
+		db_version = self.index.properties['plugin_tasklist_format']
+		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
+			self.db_initialized = True
 
-	def finalize_notebook(self, notebook):
-		# This is done regardsless of the ui type of the application
-		self.index = notebook.index
+		self._set_preferences()
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
 		self.connectto_all(self.index, (
 			('initialize-db', self.initialize_db, None, SIGNAL_AFTER),
 			('page-indexed', self.index_page),
@@ -161,19 +167,7 @@ This is a core plugin shipping with zim.
 		))
 		# We don't care about pages that are moved
 
-		db_version = self.index.properties['plugin_tasklist_format']
-		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
-			self.db_initialized = True
-
-		self._set_preferences()
-
-	def initialize_db(self, index):
-		with index.db_commit:
-			index.db.executescript(SQL_CREATE_TABLES)
-		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
-		self.db_initialized = True
-
-	def do_preferences_changed(self):
+	def on_preferences_changed(self, preferences):
 		if self._current_preferences is None \
 		or not self.db_initialized:
 			return
@@ -181,7 +175,7 @@ This is a core plugin shipping with zim.
 		new_preferences = self._serialize_rebuild_on_preferences()
 		if new_preferences != self._current_preferences:
 			self._drop_table()
-		self._set_preferences()
+		self._set_preferences()  # Sets _current_preferences
 
 	def _set_preferences(self):
 		self._current_preferences = self._serialize_rebuild_on_preferences()
@@ -202,14 +196,17 @@ This is a core plugin shipping with zim.
 			self.next_label_re = None
 
 		if self.preferences['nonactionable_tags']:
-			self.nonactionble_tags = [
-				t.strip().strip('@').lower()
-					for t in self.preferences['nonactionable_tags'].split(',')]
+			self.nonactionable_tags = [
+				t.strip('@').lower()
+					for t in self.preferences['nonactionable_tags'].replace(',', ' ').strip().split()]
 		else:
-			self.nonactionble_tags = []
+			self.nonactionable_tags = []
 
-		regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
-		self.task_label_re = re.compile(regex)
+		if self.task_labels:
+			regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
+			self.task_label_re = re.compile(regex)
+		else:
+			self.task_label_re = None
 
 		if self.preferences['included_subtrees']:
 			included = [i.strip().strip(':') for i in self.preferences['included_subtrees'].split(',')]
@@ -229,32 +226,32 @@ This is a core plugin shipping with zim.
 		else:
 			self.excluded_re = None
 
-
 	def _serialize_rebuild_on_preferences(self):
 		# string mapping settings that influence building the table
 		string = ''
-		for pref in self._rebuild_on_preferences:
+		for pref in self.plugin._rebuild_on_preferences:
 			string += str(self.preferences[pref])
 		return string
 
-	def destroy(self):
+	def initialize_db(self, index):
+		with index.db_commit:
+			index.db.executescript(SQL_CREATE_TABLES)
+		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
+		self.db_initialized = True
+
+	def teardown(self):
 		self._drop_table()
-		PluginClass.destroy(self)
 
 	def _drop_table(self):
 		self.index.properties['plugin_tasklist_format'] = 0
-		if self.db_initialized:
-			try:
-				self.index.db.execute('DROP TABLE "tasklist"')
-			except:
+
+		try:
+			self.index.db.execute('DROP TABLE "tasklist"')
+		except:
+			if self.db_initialized:
 				logger.exception('Could not drop table:')
-			else:
-				self.db_initialized = False
-		else:
-			try:
-				self.index.db.execute('DROP TABLE "tasklist"')
-			except:
-				pass
+
+		self.db_initialized = False
 
 	def _excluded(self, path):
 		if self.included_re and self.excluded_re:
@@ -290,25 +287,13 @@ This is a core plugin shipping with zim.
 		if not parsetree:
 			return
 
-		if page._ui_object:
-			# FIXME - HACK - dump and parse as wiki first to work
-			# around glitches in pageview parsetree dumper
-			# make sure we get paragraphs and bullets are nested properly
-			# Same hack in gui clipboard code
-			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
-			parser = get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-
 		#~ print '!! Checking for tasks in', path
 		dates = daterange_from_path(path)
 		if dates and self.preferences['deadline_by_page']:
 			deadline = dates[2]
 		else:
 			deadline = None
-
 		tasks = self._extract_tasks(parsetree, deadline)
-		#~ print 'TASKS', tasks
 
 		if tasks:
 			# Do insert with a single commit
@@ -322,6 +307,7 @@ This is a core plugin shipping with zim.
 		# Helper function to insert tasks in table
 		c = self.index.db.cursor()
 		for task, grandchildren in children:
+			task[4] = ','.join(sorted(task[4])) # set to text
 			c.execute(
 				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
 				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -335,199 +321,18 @@ This is a core plugin shipping with zim.
 		@param parsetree: a L{zim.formats.ParseTree} object
 		@param defaultdate: default due date for the whole page (e.g. for calendar pages) as string
 		@returns: nested list of tasks, each task is given as a 2-tuple, 1st item is a tuple
-		with following properties: C{(open, actionable, prio, due, tags, description)}, 2nd item
+		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
 		is a list of child tasks (if any).
 		'''
-		# Stack tuple indexes
-		LEVEL = 0
-		TASK = 1
-		CHILDREN = 2
-
-		# Task tuple indexes
-		OPEN = 0
-		ACT = 1
-		PRIO = 2
-		DATE = 3
-		TAGS = 4
-
-		tasks = []
-
-		for node in parsetree.findall('p'):
-			lines = self._flatten_para(node)
-			# Check first line for task list header
-			istasklist = False
-			globaltags = []
-			globalactionable = True
-			globalprio = None
-			globaldate = defaultdate
-			if len(lines) >= 2 \
-			and isinstance(lines[0], basestring) \
-			and isinstance(lines[1], tuple) \
-			and self.task_labels and self.task_label_re.match(lines[0]):
-				# Parse the task list header as if it was a task and use it's
-				# attributes as defaults for the rest of the tasks in this block.
-				defaults = self._parse_task(lines[0])
-				defaults[TAGS] = defaults[TAGS].split(',')
-				globalactionable = defaults[ACT]
-				globalprio = defaults[PRIO]
-				globaltags.extend(defaults[TAGS])
-				globaldate = defaults[DATE]
-				lines.pop(0)
-				istasklist = True
-
-			stack = [] # stack of 3-tuples, (LEVEL, TASK, CHILDREN)
-
-			# Check line by line
-			for item in lines:
-				if isinstance(item, tuple):
-					# checkbox or bullet
-					bullet, list_level, text = item
-					while stack and stack[-1][LEVEL] >= list_level:
-						stack.pop()
-
-					if (
-						bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
-						and (istasklist or self.preferences['all_checkboxes'])
-					) or (
-						self.task_labels and self.task_label_re.match(text)
-					):
-						# task item
-						if stack: # Inherit date and prio if not set explicitly on children
-							mydefaultdate = stack[-1][TASK][DATE]
-							if mydefaultdate == _NO_DATE:
-								mydefaultdate = defaultdate
-							mydefaultprio = stack[-1][TASK][PRIO]
-							mydefaultactionable = stack[-1][TASK][ACT]
-							inherited_tags = stack[-1][TASK][TAGS].split(',')
-						else:
-							mydefaultdate = globaldate
-							mydefaultprio = globalprio
-							mydefaultactionable = globalactionable
-							inherited_tags = globaltags
-
-						open = (bullet not in (CHECKED_BOX, XCHECKED_BOX))
-						if stack:
-							mytasks = stack[-1][CHILDREN]
-						else:
-							mytasks = tasks
-						task = self._parse_task(text, open=open,
-								tags=inherited_tags,
-								actionable=mydefaultactionable,
-								defaultdate=mydefaultdate,
-								defaultprio=mydefaultprio,
-								tasks=mytasks)
-						children = []
-						if stack:
-							stack[-1][CHILDREN].append((task, children))
-							if task[OPEN]:
-								for parent in stack:
-									# child is open, so parent should be as well
-									parent[TASK][OPEN] = True
-						else:
-							tasks.append((task, children))
-
-						stack.append([list_level, task, children])
-					else:
-						# not a task - we already popped stack, now ignore text
-						pass
-				else:
-					# normal line, outside list
-					stack = []
-					if self.task_labels and self.task_label_re.match(item):
-						task = self._parse_task(item, tags=globaltags, defaultdate=defaultdate, tasks=tasks)
-						tasks.append((task, []))
-
-		return tasks
-
-	def _flatten_para(self, para):
-		# Returns a list which is a mix of normal lines of text and
-		# tuples for checkbox items. Checkbox item tuples consist of
-		# the checkbox type, the indenting level and the text.
-		items = []
-
-		text = para.text or ''
-		for child in para.getchildren():
-			if child.tag == 'strike':
-				# ignore content of child element
-				text += child.tail or ''
-			elif child.tag in ('ul', 'ol'):
-				if text:
-					items += text.splitlines()
-				items += self._flatten_list(child)
-				text = child.tail or ''
-			else:
-				text += self._flatten(child)
-				text += child.tail or ''
-
-		if text:
-			items += text.splitlines()
-
-		return items
-
-	def _flatten_list(self, list, list_level=0):
-		# Handle bullet lists
-		items = []
-		for node in list.getchildren():
-			if node.tag == 'ul':
-				items += self._flatten_list(node, list_level+1) # recurs
-			elif node.tag == 'li':
-				bullet = node.get('bullet')
-				text = self._flatten(node)
-				items.append((bullet, list_level, text))
-			else:
-				pass # should not occur - ignore silently
-		return items
-
-	def _flatten(self, node):
-		# Just flatten everything to text - but ignore strike out
-		text = node.text or ''
-		for child in node.getchildren():
-			if child.tag == 'strike':
-				text += child.tail or ''
-			else:
-				text += self._flatten(child) # recurs
-				text += child.tail or ''
-		return text
-
-	def _parse_task(self, text, open=True, tags=None, actionable=True, defaultdate=None, defaultprio=None, tasks=None):
-		## Note: do not modify text here, keep it as is, any cleanup is done by the widget
-
-		prio = text.count('!')
-		if defaultprio and prio == 0:
-			prio = defaultprio
-
-		if not tags:
-			tags = []
-		else:
-			# ensure we don't mutate the parent's tags list
-			tags = list(tags)
-		tags += _tag_re.findall(text)
-
-		datematch = _date_re.search(text) # first match
-		if datematch:
-			mydate = parse_date(datematch.group(0))
-			if mydate:
-				date = '%04i-%02i-%02i' % mydate # (y, m, d)
-			else:
-				date = _NO_DATE
-		else:
-			date = _NO_DATE
-
-		if defaultdate and date == _NO_DATE:
-			date = defaultdate
-
-		if actionable:
-			if any(t.lower().strip('@') in self.nonactionble_tags for t in tags):
-				actionable = False
-			elif self.next_label_re.match(text):
-				if tasks and tasks[-1][0][0]: # previous task still open
-					actionable = False
-		# else parent was non-actionable already, so stay non-actionable
-
-		tags = ','.join(t.strip('@') for t in tags)
-		return [open, actionable, prio, date, tags, text]
-			# (open, actionable, prio, due, tags, description)
-
+		parser = TasksParser(
+			self.task_label_re,
+			self.next_label_re,
+			self.nonactionable_tags,
+			self.preferences['all_checkboxes'],
+			defaultdate
+		)
+		parser.parse(parsetree)
+		return parser.get_tasks()
 
 	def remove_page(self, index, path, _emit=True):
 		if not self.db_initialized: return
@@ -572,9 +377,35 @@ This is a core plugin shipping with zim.
 		'''
 		return self.index.lookup_id(task['source'])
 
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+		<ui>
+			<menubar name='menubar'>
+				<menu action='view_menu'>
+					<placeholder name="plugin_items">
+						<menuitem action="show_task_list" />
+					</placeholder>
+				</menu>
+			</menubar>
+			<toolbar name='toolbar'>
+				<placeholder name='tools'>
+					<toolitem action='show_task_list'/>
+				</placeholder>
+			</toolbar>
+		</ui>
+	'''
+
+	def __init__(self, plugin, window, index_ext):
+		WindowExtension.__init__(self, plugin, window)
+		self.index_ext = index_ext
+
+	@action(_('Task List'), stock='zim-task-list', readonly=True) # T: menu item
 	def show_task_list(self):
-		if not self.db_initialized:
-			MessageDialog(self.ui, (
+		if not self.index_ext.db_initialized:
+			MessageDialog(self.window, (
 				_('Need to index the notebook'),
 				# T: Short message text on first time use of task list plugin
 				_('This is the first time the task list is opened.\n'
@@ -585,35 +416,224 @@ This is a core plugin shipping with zim.
 				# T: Long message text on first time use of task list plugin
 			) ).run()
 			logger.info('Tasklist not initialized, need to rebuild index')
-			finished = self.ui.reload_index(flush=True)
+			finished = self.window.ui.reload_index(flush=True) # XXX
 			# Flush + Reload will also initialize task list
 			if not finished:
-				self.db_initialized = False
+				self.index_ext.db_initialized = False
 				return
 
-		dialog = TaskListDialog.unique(self, plugin=self)
+		dialog = TaskListDialog.unique(self, self.window, self.index_ext, self.plugin.preferences)
 		dialog.present()
 
-# Need to register classes defining gobject signals
-gobject.type_register(TaskListPlugin)
+
+class TasksParser(Visitor):
+	'''Parse tasks from a parsetree'''
+
+	def __init__(self, task_label_re, next_label_re, nonactionable_tags, all_checkboxes, defaultdate):
+		self.task_label_re = task_label_re
+		self.next_label_re = next_label_re
+		self.nonactionable_tags = nonactionable_tags
+		self.all_checkboxes = all_checkboxes
+
+		defaults = (True, True, 0, defaultdate or _NO_DATE, set(), None)
+			# (open, actionable, prio, due, tags, description)
+		self._tasks = []
+		self._stack = [(-1, defaults, self._tasks)]
+			# Stack for parsed tasks with tuples like (level, task, children)
+			# We need to include the list level in the stack because we can
+			# have mixed bullet lists with checkboxes, so task nesting is
+			# not the same as list nesting
+
+		# Parsing state
+		self._text = [] # buffer with pieces of text
+		self._depth = 0 # nesting depth for list items
+		self._last_node = (None, None) # (tag, attrib) of last item seen by start()
+		self._intasklist = False # True if we are in a tasklist with a header
+		self._tasklist_tags = None # global tags from the tasklist header
+
+	def parse(self, parsetree):
+		#~ filter = TreeFilter(
+			#~ TextCollectorFilter(self),
+			#~ tags=['p', 'ul', 'ol', 'li'],
+			#~ exclude=['strike']
+		#~ )
+		parsetree.visit(self)
+
+	def get_tasks(self):
+		'''Get the tasks that were collected by visiting the tree
+		@returns: nested list of tasks, each task is given as a 2-tuple,
+		1st item is a tuple with following properties:
+		C{(open, actionable, prio, due, description)},
+		2nd item is a list of child tasks (if any).
+		'''
+		return self._tasks
+
+	def start(self, tag, attrib):
+		if tag == STRIKE:
+			raise VisitorSkip # skip this node
+		elif tag in (PARAGRAPH, NUMBEREDLIST, BULLETLIST, LISTITEM):
+			if tag == PARAGRAPH:
+				self._intasklist = False
+
+			# Parse previous chuck of text (para level text)
+			if self._text:
+				if tag in (NUMBEREDLIST, BULLETLIST) \
+				and self._last_node[0] == PARAGRAPH \
+				and self._check_para_start(self._text):
+					pass
+				else:
+					self._parse_para_text(self._text)
+
+				self._text = [] # flush
+
+			# Update parser state
+			if tag in (NUMBEREDLIST, BULLETLIST):
+				self._depth += 1
+			elif tag == LISTITEM:
+				self._pop_stack() # see comment in end()
+			self._last_node = (tag, attrib)
+		else:
+			pass # do nothing for other tags (we still get the text)
+
+	def text(self, text):
+		self._text.append(text)
+
+	def end(self, tag):
+		if tag == PARAGRAPH:
+			if self._text:
+				self._parse_para_text(self._text)
+				self._text = [] # flush
+			self._depth = 0
+			self._pop_stack()
+		elif tag in (NUMBEREDLIST, BULLETLIST):
+			self._depth -= 1
+			self._pop_stack()
+		elif tag == LISTITEM:
+			if self._text:
+				attrib = self._last_node[1]
+				self._parse_list_item(attrib, self._text)
+				self._text = [] # flush
+			# Don't pop here, next item may be child
+			# Instead pop when next item opens
+		else:
+			pass # do nothing for other tags
+
+	def _pop_stack(self):
+		# Drop stack to current level
+		assert self._depth >= 0, 'BUG: stack count corrupted'
+		level = self._depth
+		if level > 0:
+			level -= 1 # first list level should be same as level of line items in para
+		while self._stack[-1][0] >= level:
+			self._stack.pop()
+
+	def _check_para_start(self, strings):
+		# Check first line for task list header
+		# SHould look like "TODO @foo @bar:"
+		# FIXME shouldn't we depend on tag elements in the tree ??
+		line = u''.join(strings).strip()
+
+		if not '\n' in line \
+		and self._matches_label(line):
+			words = line.strip(':').split()
+			words.pop(0) # label
+			if all(w.startswith('@') for w in words):
+				self._intasklist = True
+				self._tasklist_tags = set(w.strip('@') for w in words)
+			else:
+				self._intasklist = False
+		else:
+			self._intasklist = False
+
+		return self._intasklist
+
+	def _parse_para_text(self, strings):
+		# Paragraph text to be parsed - just look for lines with label
+		for line in u''.join(strings).splitlines():
+			if self._matches_label(line):
+				self._parse_task(line)
+
+	def _parse_list_item(self, attrib, text):
+		# List item to parse - check bullet, then match label
+		bullet = attrib.get('bullet')
+		line = u''.join(text)
+		if (
+			bullet in (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+			and (self._intasklist or self.all_checkboxes)
+		):
+			open = (bullet == UNCHECKED_BOX)
+			self._parse_task(line, open=open)
+		elif self._matches_label(line):
+			self._parse_task(line)
+
+	def _matches_label(self, line):
+		return self.task_label_re and self.task_label_re.match(line)
+
+	def _matches_next_label(self, line):
+		return self.next_label_re and self.next_label_re.match(line)
+
+	def _parse_task(self, text, open=True):
+		level = self._depth
+		if level > 0:
+			level -= 1 # first list level should be same as level of line items in para
+
+		parent_level, parent, parent_children = self._stack[-1]
+
+		# Get prio
+		prio = text.count('!')
+		if prio == 0:
+			prio = parent[2] # default to parent prio
+
+		# Get due date
+		due = _NO_DATE
+		datematch = _date_re.search(text) # first match
+		if datematch:
+			date = parse_date(datematch.group(0))
+			if date:
+ 				due = '%04i-%02i-%02i' % date # (y, m, d)
+
+		if due == _NO_DATE:
+			due = parent[3] # default to parent date (or default for root)
+
+		# Find tags
+		tags = set(_tag_re.findall(text))
+		if self._intasklist and self._tasklist_tags:
+			tags |= self._tasklist_tags
+		tags |= parent[4] # add parent tags
+
+		# Check actionable
+		if not parent[1]: # default parent not actionable
+			actionable = False
+		elif any(t.lower() in self.nonactionable_tags for t in tags):
+			actionable = False
+		elif self._matches_next_label(text) and parent_children:
+			previous = parent_children[-1]
+			actionable = not previous[0] # previous task not open
+		else:
+			actionable = True
+
+		# Parents are not closed if it has open child items
+		if self._depth > 0 and open:
+			for l, t, c in self._stack[1:]:
+				t[0] = True
+
+		# And finally add to stack
+		task = [open, actionable, prio, due, tags, text]
+		children = []
+		parent_children.append((task, children))
+		if self._depth > 0: # (don't add paragraph level items to the stack)
+			self._stack.append((level, task, children))
 
 
 class TaskListDialog(Dialog):
 
-	def __init__(self, plugin):
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (800, 480)
-		else:
-			defaultsize = (550, 400)
-
-		Dialog.__init__(self, plugin.ui, _('Task List'), # T: dialog title
+	def __init__(self, window, index_ext, preferences):
+		Dialog.__init__(self, window, _('Task List'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
-			defaultwindowsize=defaultsize )
-		self.plugin = plugin
-		if ui_environment['platform'] == 'maemo':
-			self.resize(800,480)
-			# Force maximum dialog size under maemo, otherwise
-			# we'll end with a too small dialog and no way to resize it
+			defaultwindowsize=(550, 400) )
+		self.preferences = preferences
+		self.index_ext = index_ext
+
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = HPaned()
@@ -623,12 +643,18 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.uistate.setdefault('only_show_act', False)
-		self.task_list = TaskListTreeView(self.ui, plugin, filter_actionable=self.uistate['only_show_act'])
+		opener = window.get_resource_opener()
+		self.task_list = TaskListTreeView(
+			self.index_ext, opener,
+			filter_actionable=self.uistate['only_show_act'],
+			tag_by_page=preferences['tag_by_page'],
+			use_workweek=preferences['use_workweek']
+		)
 		self.task_list.set_headers_visible(True) # Fix for maemo
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
-		self.tag_list = TagListTreeView(self.task_list)
+		self.tag_list = TagListTreeView(self.index_ext, self.task_list)
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
@@ -681,16 +707,7 @@ class TaskListDialog(Dialog):
 			# Don't really care about the delay, but want to
 			# make it less blocking - should be async preferably
 			# now it is at least on idle
-		self.connectto(plugin, 'tasklist-changed', callback)
-
-		# Async solution fall because sqlite not multi-threading
-		# (see also todo item for async in DelayedSignal class)
-
-		#~ def async_call(o):
-			#~ from zim.async import AsyncOperation
-			#~ op = AsyncOperation(on_tasklist_changed, args=(o,))
-			#~ op.start()
-		#~ self.connectto(plugin, 'tasklist-changed', async_call)
+		self.connectto(index_ext, 'tasklist-changed', callback)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -709,10 +726,11 @@ class TagListTreeView(SingleClickTreeView):
 	_type_tag = 2
 	_type_untagged = 3
 
-	def __init__(self, task_list):
+	def __init__(self, index_ext, task_list):
 		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+		self.index_ext = index_ext
 		self.task_list = task_list
 
 		column = gtk.TreeViewColumn(_('Tags'))
@@ -740,7 +758,7 @@ class TagListTreeView(SingleClickTreeView):
 		tags = []
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
-				tags.append(row[0])
+				tags.append(row[0].decode('utf-8'))
 			elif row[2] == self._type_untagged:
 				tags.append(_NO_TAGS)
 		return tags or None
@@ -750,7 +768,7 @@ class TagListTreeView(SingleClickTreeView):
 		labels = []
 		for row in self._get_selected():
 			if row[2] == self._type_label:
-				labels.append(row[0])
+				labels.append(row[0].decode('utf-8'))
 		return labels or None
 
 	def _get_selected(self):
@@ -776,11 +794,11 @@ class TagListTreeView(SingleClickTreeView):
 		n_all = self.task_list.get_n_tasks()
 		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
 
-		labels = self.task_list.get_labels()
-		plugin = self.task_list.plugin
-		for label in plugin.task_labels: # explicitly keep sorting from preferences
-			if label in labels and label != plugin.next_label:
-				model.append((label, labels[label], self._type_label, pango.WEIGHT_BOLD))
+		used_labels = self.task_list.get_labels()
+		for label in self.index_ext.task_labels: # explicitly keep sorting from preferences
+			if label in used_labels \
+			and label != self.index_ext.next_label:
+				model.append((label, used_labels[label], self._type_label, pango.WEIGHT_BOLD))
 
 		tags = self.task_list.get_tags()
 		if _NO_TAGS in tags:
@@ -829,7 +847,7 @@ class TaskListTreeView(BrowserTreeView):
 	TASKID_COL = 7
 	TAGS_COL = 8
 
-	def __init__(self, ui, plugin, filter_actionable):
+	def __init__(self, index_ext, opener, filter_actionable=False, tag_by_page=False, use_workweek=False):
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int, object)
 			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 		model = self.real_model.filter_new()
@@ -837,12 +855,14 @@ class TaskListTreeView(BrowserTreeView):
 		model = gtk.TreeModelSort(model)
 		model.set_sort_column_id(self.PRIO_COL, gtk.SORT_DESCENDING)
 		BrowserTreeView.__init__(self, model)
-		self.ui = ui
-		self.plugin = plugin
+
+		self.index_ext = index_ext
+		self.opener = opener
 		self.filter = None
 		self.tag_filter = None
 		self.label_filter = None
 		self.filter_actionable = filter_actionable
+		self.tag_by_page = tag_by_page
 		self._tags = {}
 		self._labels = {}
 
@@ -883,7 +903,6 @@ class TaskListTreeView(BrowserTreeView):
 			self.set_tooltip_column(self.TASK_COL)
 
 		# Rendering of the Date column
-		use_workweek = plugin.preferences['use_workweek']
 		day_of_week = datetime.date.today().isoweekday()
 		if use_workweek and day_of_week == 4:
 			# Today is Thursday - 2nd day ahead is after the weekend
@@ -959,12 +978,12 @@ class TaskListTreeView(BrowserTreeView):
 		self._labels = {}
 
 	def _append_tasks(self, task, iter, path_cache):
-		for row in self.plugin.list_tasks(task):
+		for row in self.index_ext.list_tasks(task):
 			if not row['open']:
 				continue # Only include open items for now
-			
+
 			if row['source'] not in path_cache:
-				path = self.plugin.get_path(row)
+				path = self.index_ext.get_path(row)
 				if path is None:
 					# Be robust for glitches - filter these out
 					continue
@@ -974,12 +993,12 @@ class TaskListTreeView(BrowserTreeView):
 			path = path_cache[row['source']]
 
 			# Update labels
-			for label in self.plugin.task_label_re.findall(row['description']):
+			for label in self.index_ext.task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
 			# Update tag count
 			tags = row['tags'].split(',')
-			if self.plugin.preferences['tag_by_page']:
+			if self.tag_by_page:
 				tags = tags + path.parts
 
 			if tags:
@@ -991,12 +1010,12 @@ class TaskListTreeView(BrowserTreeView):
 
 			# Format description
 			task = _date_re.sub('', row['description'], count=1)
-			task = encode_markup_text(task)
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
-			task = self.plugin.next_label_re.sub('', task) # get rid of "next" label in description
+			task = self.index_ext.next_label_re.sub('', task) # get rid of "next" label in description
+			task = encode_markup_text(task)
 			if row['actionable']:
 				task = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
-				task = self.plugin.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
+				task = self.index_ext.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
 
@@ -1148,12 +1167,13 @@ class TaskListTreeView(BrowserTreeView):
 		model = self.get_model()
 		page = Path( model[path][self.PAGE_COL] )
 		text = self._get_raw_text(model[path])
-		self.ui.open_page(page)
-		self.ui.mainwindow.pageview.find(text)
+
+		pageview = self.opener.open_page(page)
+		pageview.find(text)
 
 	def _get_raw_text(self, task):
 		id = task[self.TASKID_COL]
-		row = self.plugin.get_task(id)
+		row = self.index_ext.get_task(id)
 		return row['description']
 
 	def do_initialize_popup(self, menu):

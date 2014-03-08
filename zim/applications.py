@@ -19,10 +19,15 @@ import zim.fs
 import zim.errors
 
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
-from zim.config import get_environ_list
+from zim.environ import environ
 
 
 logger = logging.getLogger('zim.applications')
+
+
+def _main_is_frozen():
+	# Detect whether we are running py2exe compiled version
+	return hasattr(sys, 'frozen') and sys.frozen
 
 
 class ApplicationError(zim.errors.Error):
@@ -101,8 +106,8 @@ class Application(object):
 				return None
 		elif os.name == 'nt':
 			# Check executable extensions from windows environment
-			extensions = get_environ_list('PATHEXT', '.com;.exe;.bat;.cmd')
-			for dir in get_environ_list('PATH'):
+			extensions = environ.get_list('PATHEXT', '.com;.exe;.bat;.cmd')
+			for dir in environ.get_list('PATH'):
 				for ext in extensions:
 					file = os.sep.join((dir, cmd + ext))
 					if zim.fs.isfile(file) and os.access(file, os.X_OK):
@@ -111,7 +116,7 @@ class Application(object):
 				return None
 		else:
 			# On POSIX no extension is needed to make scripts executable
-			for dir in get_environ_list('PATH'):
+			for dir in environ.get_list('PATH'):
 				file = os.sep.join((dir, cmd))
 				if zim.fs.isfile(file) and os.access(file, os.X_OK):
 					return file
@@ -140,9 +145,10 @@ class Application(object):
 		argv = self._cmd(args)
 
 		# if it is a python script, insert interpreter as the executable
-		if argv[0].endswith('.py') and sys.executable:
+		if argv[0].endswith('.py') and not _main_is_frozen():
 			argv = list(argv)
 			argv.insert(0, sys.executable)
+		# TODO: consider an additional commandline arg to re-use compiled python interpreter
 
 		argv = [a.encode(zim.fs.ENCODING) for a in argv]
 		if cwd:

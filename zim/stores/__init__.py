@@ -218,34 +218,18 @@ class StoreClass():
 		'''
 		raise NotImplementedError
 
-	def store_page_async(self, page, lock, callback, data):
+	def store_page_async(self, page):
 		'''Store a page asynchronously
 
 		Like L{store_page()} but with asynchronous operation.
 
 		@param page: a L{Page} object
-		@param lock: the L{zim.async.AsyncLock} object to use
-		(typically the notebook lock)
-		@param callback: a calback function to be called when the
-		operation completed, see
-		L{Notebook.store_page_async()<zim.notebook.Notebook.store_page_async()>}
-		for the signature.
-		@param data: user data for the callback
 
 		@implementation: optional, can be implemented in subclasses.
 		If not implemented in the subclass it will fall back to just
 		calling L{store_page()} and then call the callback function.
 		'''
-		try:
-			with lock:
-				self.store_page(page)
-		except Exception, error:
-			if callback:
-				exc_info = sys.exc_info()
-				callback(False, error, exc_info, data)
-		else:
-			if callback:
-				callback(True, None, None, data)
+		self.store_page(page)
 
 	def revert_page(self, page):
 		'''Revert the state of an un-stored page object

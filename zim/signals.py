@@ -6,15 +6,101 @@
 import weakref
 import logging
 import gobject
+import os
 
 
 logger = logging.getLogger('zim')
+
+
+if os.environ.get('ZIM_TEST_RUNNING'):
+	TEST_MODE = True
+else:
+	TEST_MODE = False
 
 
 # Constants for signal order
 SIGNAL_NORMAL = 1
 SIGNAL_AFTER = 2
 SIGNAL_OBJECT = 4
+
+
+class SignalHandler(object):
+	'''Wrapper for a signal handler method that allows blocking the
+	handler for incoming signals. To be used as function decorator.
+
+	The method will be replaced by a L{BoundSignalHandler} object that
+	supports a C{blocked()} method which returns a context manager
+	to temporarily block a callback.
+
+	Intended to be used as::
+
+		class Foo():
+
+			@SignalHandler
+			def on_changed(self):
+				...
+
+			def update(self):
+				with self.on_changed.blocked():
+					... # do something that results in a "changed" signal
+
+	'''
+
+	def __init__(self, func):
+		self._func = func
+
+	def __get__(self, instance, klass):
+		if instance is None:
+			# class access
+			return self
+		else:
+			# instance acces, return bound version
+			name = '_bound_' + self._func.__name__
+			if not hasattr(instance, name) \
+			or getattr(instance, name) is None:
+				bound_obj = BoundSignalHandler(instance, self._func)
+				setattr(instance, name, bound_obj)
+
+			return getattr(instance, name)
+
+
+class BoundSignalHandler(object):
+
+	def __init__(self, instance, func):
+		self._instance = instance
+		self._func = func
+		self._blocked = 0
+
+	def __call__(self, *args, **kwargs):
+		if self._blocked == 0:
+			return self._func(self._instance, *args, **kwargs)
+
+	def _block(self):
+		self._blocked += 1
+
+	def _unblock(self):
+		if self._blocked > 0:
+			self._blocked -= 1
+
+	def blocked(self):
+		'''Returns a context manager that can be used to temporarily
+		block a callback.
+		'''
+		return SignalHandlerBlockContextManager(self)
+
+
+class SignalHandlerBlockContextManager(object):
+
+	def __init__(self, handler):
+		self.handler = handler
+
+	def __enter__(self):
+		self.handler._block()
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.handler._unblock()
+
+
 
 
 class ConnectorMixin(object):
@@ -135,7 +221,9 @@ def call_default(obj, signal, args):
 	name = 'do_' + signal.replace('-', '_')
 	if hasattr(obj, name):
 		method = getattr(obj, name)
-		method(*args)
+		return method(*args)
+	else:
+		return None
 
 
 def call_handlers(obj, signal, handlers, args):
@@ -155,10 +243,26 @@ def call_handlers(obj, signal, handlers, args):
 			else:
 				r = callback(obj, *myargs)
 		except:
-			# TODO in case of test mode, re-raise the error
 			logger.exception('Exception in signal handler for %s on %s', signal, obj)
+			if TEST_MODE:
+				raise
 		else:
 			yield r
+
+
+class BlockSignalsContextManager(object):
+
+	def __init__(self, obj, signals):
+		self.obj = obj
+		self.signals = signals
+
+	def __enter__(self):
+		for signal in self.signals:
+			self.obj.block_signal(signal)
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		for signal in self.signals:
+			self.obj.unblock_signal(signal)
 
 
 class SignalEmitter(object):
@@ -214,6 +318,7 @@ class SignalEmitter(object):
 	def _connect(self, order, signal, callback, userdata):
 		#if self._get_signal(signal) is None:
 		#	raise ValueError, 'No such signal: %s' % signal
+		assert not '_' in signal, 'Signal names use "-"'
 
 		if not hasattr(self, '_signal_handlers'):
 			self._signal_handlers = {}
@@ -262,9 +367,13 @@ class SignalEmitter(object):
 
 		return_first = signal in self.__hooks__ # XXX
 
+		if hasattr(self, '_blocked_signals') \
+		and self._blocked_signals.get(signal):
+			return # ignore emit
+
 		if not hasattr(self, '_signal_handlers') \
 		or not signal in self._signal_handlers:
-			call_default(self, signal, args)
+			return call_default(self, signal, args)
 		else:
 			before = [h for h in self._signal_handlers[signal] if h[0] & SIGNAL_NORMAL]
 			for r in call_handlers(self, signal, before, args):
@@ -275,10 +384,39 @@ class SignalEmitter(object):
 			if return_first and r is not None:
 					return r
 
+			if not signal in self._signal_handlers:
+				return None # Yes I have seen a case where default resulted in all handlers disconnected here ...
+
 			after = [h for h in self._signal_handlers[signal] if h[0] & SIGNAL_AFTER]
 			for r in call_handlers(self, signal, after, args):
 				if return_first and r is not None:
 					return r
+
+	def blocked_signals(self, *signals):
+		'''Returns a context manager for blocking one or more signals'''
+		return BlockSignalsContextManager(self, signals)
+
+	def block_signal(self, signal):
+		'''Block signal emition by signal name'''
+		assert signal not in self.__hooks__, 'Cannot block a hook'
+		#if self._get_signal(signal) is None:
+		#	raise ValueError, 'No such signal: %s' % signal
+
+		if not hasattr(self, '_blocked_signals'):
+			self._blocked_signals = {}
+
+		self._blocked_signals.setdefault(signal, 0)
+		self._blocked_signals[signal] += 1
+
+	def unblock_signal(self, signal):
+		'''Unblock signal emition by signal name'''
+		#if self._get_signal(signal) is None:
+		#	raise ValueError, 'No such signal: %s' % signal
+
+		if hasattr(self, '_blocked_signals') \
+		and signal in self._blocked_signals \
+		and self._blocked_signals[signal] > 0:
+			self._blocked_signals[signal] -= 1
 
 
 class DelayedCallback(object):

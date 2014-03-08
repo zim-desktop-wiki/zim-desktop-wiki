@@ -8,7 +8,7 @@ import tests
 
 from tests.pageview import setUpPageView, press, UndoStackManager
 
-from zim.config import ConfigDict
+from zim.config import SectionedConfigDict, ConfigManager
 
 from zim.plugins.insertsymbol import *
 
@@ -22,14 +22,20 @@ EGRAVE = unichr(200)
 class TestInsertSymbolPlugin(tests.TestCase):
 
 	def runTest(self):
-		ui = MockUI()
-		plugin = InsertSymbolPlugin(ui)
-		plugin.finalize_ui(ui)
+		plugin = InsertSymbolPlugin(ConfigManager())
 
-		pageview = ui.mainwindow.pageview
+		pageview = setUpPageView()
 		textview = pageview.view
 		buffer = textview.get_buffer()
 		pageview.undostack = UndoStackManager(buffer)
+
+		mainwindow = tests.MockObject()
+		mainwindow.pageview = pageview
+		mainwindow.ui = tests.MockObject() # XXX
+		mainwindow.ui.uimanager = tests.MockObject() # XXX
+		mainwindow.ui.uistate = SectionedConfigDict()
+
+		plugin.extend(mainwindow, 'MainWindow')
 
 		print '\n!! Two GtkWarnings expected here for gdk display !!'
 		# Need a window to get the widget realized
@@ -73,20 +79,8 @@ class TestInsertSymbolPlugin(tests.TestCase):
 			dialog.assert_response_ok()
 
 		buffer.clear()
+		mainwindow_ext = plugin.get_extension(MainWindowExtension)
 		with tests.DialogContext(check_dialog):
-			plugin.insert_symbol()
+			mainwindow_ext.insert_symbol()
 		text = buffer.get_text(*buffer.get_bounds())
 		self.assertEqual(text, EACUTE + ECIRC + EGRAVE)
-
-
-class MockUI(tests.MockObject):
-
-	ui_type = 'gtk'
-
-	def __init__(self):
-		tests.MockObject.__init__(self)
-		self.preferences = ConfigDict()
-		self.uistate = ConfigDict()
-		self.mainwindow = tests.MockObject()
-		self.mainwindow.pageview = setUpPageView()
-		self.windows = []

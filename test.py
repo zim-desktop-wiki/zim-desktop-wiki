@@ -81,7 +81,8 @@ On Ubuntu or Debian install package 'python-coverage'.
 	loader = unittest.TestLoader()
 	if args:
 		suite = unittest.TestSuite()
-		for module in [ 'tests.'+name for name in args ]:
+		for name in args:
+			module = name if name.startswith('tests.') else 'tests.' + name
 			test = loader.loadTestsFromName(module)
 			suite.addTest(test)
 	else:
@@ -195,6 +196,7 @@ def coverage_report(coverage, pyfiles, directory):
 	html.write('''\
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Test Coverage Index</title>
 <style>
 	.good    { background-color: #9f9; text-align: right }
@@ -264,6 +266,7 @@ def write_coverage_html(sourcefile, htmlfile, missing, excluded, statements):
 	html.write('''\
 <html>
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Coverage report for %s</title>
 <style>
 	.code { white-space: pre; font-family: monospace }

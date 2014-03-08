@@ -12,6 +12,8 @@ import gobject
 import zim.ipc
 from zim.ipc import *
 
+import zim
+
 from zim.fs import File, get_tmpdir
 from zim.notebook import NotebookInfo, Path, Page
 from zim.stores.files import FileStorePage
@@ -31,6 +33,7 @@ class TestIPC(tests.TestCase):
 		stop_server_if_running()
 		zim.ipc.SERVER_ADDRESS = self.OLD_SERVER_ADDRESS
 		zim.ipc.AUTHKEY_FILE = self.OLD_AUTHKEY_FILE
+		zim.ZIM_EXECUTABLE = None
 
 	def runTest(self):
 		# Test setting up the server

@@ -127,8 +127,9 @@ class TestTemplateSet(tests.TestCase):
 			files.sort()
 			self.assertTrue(len(files) > 0)
 			templates = list_templates(format)
-			self.assertEqual([t[1] for t in templates], files)
 			for file in files:
+				self.assertIn(file, [t[1] for t in templates])
+
 				file = os.path.join(dir, file)
 				input = open(file).readlines()
 				if format == 'plugins':
@@ -180,7 +181,7 @@ Created TODAY
 <h1>Unnamed Notebook: FooBar</h1>
 <h2>Page Heading</h2>
 <p>
-<strong>foo bar !</strong><br>
+<b>foo bar !</b>
 </p>
 Option: bar
 ''' % zim.__version__
@@ -202,7 +203,8 @@ Option: bar
 		page = notebook.get_page(Path('Some New None existing page'))
 		template = notebook.get_template(page)
 		tree = template.process_to_parsetree(notebook, page) # No linker !
-		self.assertEqual(tree.find('h').text, u'Some New None existing page')
+		head = tree.find('h').gettext()
+		self.assertEqual(head, u'Some New None existing page')
 
 class TestTemplatePageIndexFuntion(tests.TestCase):
 
@@ -214,12 +216,13 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 ('Parent:Daughter', u"[% pageindex('Parent') %]", '''\
 <ul>
 <li><a href="page://:Parent:Child" title="Child" class="page">Child</a></li>
-<li><strong class="activepage">Daughter</strong></li>
+<li><b>Daughter</b>
 <ul>
 <li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
 <li><a href="page://:Parent:Daughter:Grandson" title="Grandson" class="page">Grandson</a></li>
 <li><a href="page://:Parent:Daughter:SomeOne" title="SomeOne" class="page">SomeOne</a></li>
 </ul>
+</li>
 <li><a href="page://:Parent:Son" title="Son" class="page">Son</a></li>
 </ul>
 '''),
@@ -227,41 +230,47 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 ('Parent:Daughter:SomeOne', u"[% pageindex('Parent') %]", '''\
 <ul>
 <li><a href="page://:Parent:Child" title="Child" class="page">Child</a></li>
-<li><a href="page://:Parent:Daughter" title="Daughter" class="page">Daughter</a></li>
+<li><a href="page://:Parent:Daughter" title="Daughter" class="page">Daughter</a>
 <ul>
 <li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
 <li><a href="page://:Parent:Daughter:Grandson" title="Grandson" class="page">Grandson</a></li>
-<li><strong class="activepage">SomeOne</strong></li>
+<li><b>SomeOne</b>
 <ul>
 <li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar" class="page">Bar</a></li>
 <li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo" class="page">Foo</a></li>
 </ul>
+</li>
 </ul>
+</li>
 <li><a href="page://:Parent:Son" title="Son" class="page">Son</a></li>
 </ul>
 '''),
 
 ('Parent:Daughter:SomeOne', u"[% pageindex('Parent', FALSE, FALSE) %]", '''\
 <ul>
-<li><a href="page://:Parent:Child" title="Child" class="page">Child</a></li>
+<li><a href="page://:Parent:Child" title="Child" class="page">Child</a>
 <ul>
 <li><a href="page://:Parent:Child:Grandchild" title="Grandchild" class="page">Grandchild</a></li>
 </ul>
-<li><a href="page://:Parent:Daughter" title="Daughter" class="page">Daughter</a></li>
+</li>
+<li><a href="page://:Parent:Daughter" title="Daughter" class="page">Daughter</a>
 <ul>
 <li><a href="page://:Parent:Daughter:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
 <li><a href="page://:Parent:Daughter:Grandson" title="Grandson" class="page">Grandson</a></li>
-<li><strong class="activepage">SomeOne</strong></li>
+<li><b>SomeOne</b>
 <ul>
 <li><a href="page://:Parent:Daughter:SomeOne:Bar" title="Bar" class="page">Bar</a></li>
 <li><a href="page://:Parent:Daughter:SomeOne:Foo" title="Foo" class="page">Foo</a></li>
 </ul>
+</li>
 </ul>
-<li><a href="page://:Parent:Son" title="Son" class="page">Son</a></li>
+</li>
+<li><a href="page://:Parent:Son" title="Son" class="page">Son</a>
 <ul>
 <li><a href="page://:Parent:Son:Granddaughter" title="Granddaughter" class="page">Granddaughter</a></li>
 <li><a href="page://:Parent:Son:Grandson" title="Grandson" class="page">Grandson</a></li>
 </ul>
+</li>
 </ul>
 '''),
 		)
@@ -270,7 +279,7 @@ class TestTemplatePageIndexFuntion(tests.TestCase):
 		for path, input, wantedresult in data:
 			page = notebook.get_page(Path(path))
 			result = Template(input, 'html', linker=StubLinker()).process(notebook, page)
-			self.assertEqual(result, wantedresult.splitlines(True))
+			self.assertEqual(''.join(result), wantedresult)
 
 
 class StubLinker(object):

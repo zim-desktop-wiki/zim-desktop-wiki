@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module implements the history for navigating pages in the
 notebook.
@@ -130,7 +130,7 @@ class History(gobject.GObject):
 	def __init__(self, notebook, uistate=None):
 		'''Constructor
 		@param notebook: a L{Notebook} object
-		@param uistate: L{ConfigDict} to store the history (history
+		@param uistate: L{SectionedConfigDict} to store the history (history
 		will use the 'History' section in ConfigDict)
 		'''
 		gobject.GObject.__init__(self)
@@ -229,7 +229,7 @@ class History(gobject.GObject):
 			historypath = HistoryPath(path.name)
 			self._history.append(historypath)
 			self._current = len(self._history) - 1
-			# this assignment always triggers "modified" on the ListDict
+			# this assignment always triggers "modified" on the ControlledDict
 
 			if not isinstance(path, RecentPath):
 				self._update_recent(historypath)

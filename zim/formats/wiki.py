@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
 
 import re
 
+from zim.parser import *
+from zim.parsing import url_re, url_encode, URL_ENCODE_DATA
 from zim.formats import *
-from zim.parsing import Re, TextBuffer, url_re
+from zim.formats.plain import Dumper as TextDumper
 
 
 WIKI_FORMAT_VERSION = 'zim 0.4'
@@ -23,450 +25,410 @@ info = {
 	'export': True,
 }
 
-TABSTOP = 4
-bullet_re = u'[\\*\u2022]|\\[[ \\*x]\\]|\d+\.|\w\.'
+
+bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\]|\\d+\\.|\\w\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]' or '[x]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
-bullets = {
-	'[ ]': UNCHECKED_BOX,
-	'[x]': XCHECKED_BOX,
-	'[*]': CHECKED_BOX,
-	'*': BULLET,
-}
-# reverse dict
-bullet_types = {}
-for bullet in bullets:
-	bullet_types[bullets[bullet]] = bullet
+bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
+	# matches list item: prefix, bullet, text
 
-_number_bullet_re = re.compile('^(\d+|\w)\.$')
-def _check_number_bullet(bullet):
-	# if bullet is a numbered bullet this returns the number or letter,
-	# None otherwise
-	m = _number_bullet_re.match(bullet)
+number_bullet_re = re.compile('^(\d+|\w)\.$')
+def check_number_bullet(bullet):
+	'''If bullet is a numbered bullet this returns the number or letter,
+	C{None} otherwise
+	'''
+	m = number_bullet_re.match(bullet)
 	if m:
 		return m.group(1)
 	else:
 		return None
 
+param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
+	# matches parameter list for objects
+	# allow name="foo bar" and name=Foo
 
-parser_re = {
-	'blockstart': re.compile("^(\t*''')\s*?\n", re.M),
-	'pre':        re.compile("^(?P<escape>\t*''')\s*?(?P<content>^.*?)^(?P=escape)\s*\n", re.M | re.S),
-	'splithead':  re.compile('^(==+[ \t]+\S.*?\n)', re.M),
-	'heading':    re.compile("\A((==+)[ \t]+(.*?)([ \t]+==+)?[ \t]*\n?)\Z"),
-	'splitlist':  re.compile("((?:^[ \t]*(?:%s)[ \t]+.*\n?)+)" % bullet_re, re.M),
-	'listitem':   re.compile("^([ \t]*)(%s)[ \t]+(.*\n?)" % bullet_re),
-	'unindented_line': re.compile('^\S', re.M),
-	'indent':     re.compile('^(\t+)'),
+empty_lines_re = re.compile(r'((?:^[\ \t]*\n)+)', re.M | re.U)
+	# match multiple empty lines
 
-    # Tags are identified by a leading @ sign
-	'tag':        Re(r'(?<!\S)@(?P<name>\w+)\b', re.U),
+unindented_line_re = re.compile('^\S', re.M)
+	# match any unindented line
 
-	# All the experssions below will match the inner pair of
-	# delimiters if there are more then two characters in a row.
-	'link':     Re('\[\[(?!\[)(.+?)\]\]'),
-	'img':      Re('\{\{(?!\{)(.+?)\}\}'),
-	'emphasis': Re('//(?!/)(.+?)//'),
-	'strong':   Re('\*\*(?!\*)(.+?)\*\*'),
-	'mark':     Re('__(?!_)(.+?)__'),
-	'sub':	    Re('_\{(?!~)(.+?)\}'),
-	'sup':	    Re('\^\{(?!~)(.+?)\}'),
-	'strike':   Re('~~(?!~)(.+?)~~'),
-	'code':     Re("''(?!')(.+?)''"),
-}
 
-dumper_tags = {
-	'emphasis': '//',
-	'strong':   '**',
-	'mark':     '__',
-	'strike':   '~~',
-	'code':     "''",
-	'tag':      '', # No additional annotation (apart from the visible @)
-}
+class WikiParser(object):
+	# This parser uses 3 levels of rules. The top level splits up
+	# paragraphs, verbatim paragraphs, images and objects.
+	# The second level further splits paragraphs in lists and indented
+	# blocks. The third level does the inline formatting for all
+	# text.
 
-class Parser(ParserClass):
+	BULLETS = {
+		'[ ]': UNCHECKED_BOX,
+		'[x]': XCHECKED_BOX,
+		'[*]': CHECKED_BOX,
+		'*': BULLET,
+	}
 
-	def __init__(self, version=WIKI_FORMAT_VERSION):
-		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
+	def __init__(self):
+		self.inline_parser = self._init_inline_parse()
+		self.list_and_indent_parser = self._init_intermediate_parser()
+		self.block_parser = self._init_block_parser()
 
-	def parse(self, input):
-		# Read the file and divide into paragraphs on the fly.
-		# Blocks of empty lines are also treated as paragraphs for now.
-		# We also check for blockquotes here and avoid splitting them up.
-		if isinstance(input, basestring):
-			input = input.splitlines(True)
+	def __call__(self, builder, text):
+		builder.start(FORMATTEDTEXT)
+		self.block_parser(builder, text)
+		builder.end(FORMATTEDTEXT)
 
-		paras = ['']
-		def para_start():
-			# This function is called when we suspect the start of a new paragraph.
-			# Returns boolean for success
-			if len(paras[-1]) == 0:
-				return False
-			blockmatch = parser_re['blockstart'].search(paras[-1])
-			if blockmatch:
-				quote = blockmatch.group()
-				blockend = re.search('\n'+quote+'\s*\Z', paras[-1])
-				if not blockend:
-					# We are in a block that is not closed yet
-					return False
-			# Else append empty paragraph to start new para
-			paras.append('')
-			return True
+	def _init_inline_parse(self):
+		# Rules for inline formatting, links and tags
+		return (
+			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
+			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
+			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
+			| Rule(EMPHASIS, r'//(?!/)(.*?)//')
+			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*')
+			| Rule(MARK, r'__(?!_)(.*?)__')
+			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}')
+			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}')
+			| Rule(STRIKE, r'~~(?!~)(.+?)~~')
+			| Rule(VERBATIM, r"''(?!')(.+?)''")
+		)
 
-		def blocks_closed():
-			# This function checks if there are unfinished blocks in the last
-			# paragraph.
-			if len(paras[-1]) == 0:
-				return True
-			# Eliminate closed blocks
-			nonblock = parser_re['pre'].split(paras[-1])
-			#  Blocks are closed if none is opened at the end
-			return parser_re['blockstart'].search(nonblock[-1]) == None
+	def _init_intermediate_parser(self):
+		# Intermediate level, breaks up lists and indented blocks
+		# TODO: deprecate this by taking lists out of the para
+		#       and make a new para for each indented block
+		p = Parser(
+			Rule(
+				'X-Bullet-List',
+				r'(^%s.*\n(?:^\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
+				process=self.parse_list
+			),
+			Rule(
+				'X-Indented-Bullet-List',
+				r'(^(?P<list_indent>\t+)%s.*\n(?:^(?P=list_indent)\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
+				process=self.parse_list
+			),
+			Rule(
+				'X-Indented-Block',
+				r'(^(?P<block_indent>\t+).*\n(?:^(?P=block_indent)(?!\t).*\n)*)',
+				process=self.parse_indent
+			),
+		)
+		p.process_unmatched = self.inline_parser
+		return p
 
-		para_isspace = False
-		for line in input:
-			# Try start new para when switching between text and empty lines or back
-			if line.isspace() != para_isspace and blocks_closed():
-				if para_start():
-					para_isspace = line.isspace() # decide type of new para
-			paras[-1] += line
+	def _init_block_parser(self):
+		# Top level parser, to break up block level items
+		p = Parser(
+			Rule(VERBATIM_BLOCK, r'''
+				^(?P<pre_indent>\t*) \'\'\' \s*?				# 3 "'"
+				( (?:^.*\n)*? )									# multi-line text
+				^(?P=pre_indent) \'\'\' \s*? \n					# another 3 "'" with matching indent
+				''',
+				process=self.parse_pre
+			),
+			Rule(OBJECT, r'''
+				^(?P<obj_indent>\t*) \{\{\{ \s*? (\S+:.*\n)		# "{{{ object_type: attrib=..."
+				( (?:^.*\n)*? ) 								# multi-line body
+				^(?P=obj_indent) \}\}\} \s*? \n					# "}}}" with matching indent
+				''',
+				process=self.parse_object
+			),
+			Rule(HEADING,
+				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
+				process=self.parse_heading
+			),
+		)
+		p.process_unmatched = self.parse_para
+		return p
 
-		# Now all text is read, start wrapping it into a document tree.
-		# Headings can still be in the middle of a para, so get them out.
-		builder = TreeBuilder()
-		builder.start('zim-tree')
-		for para in paras:
-			# HACK this char is recognized as line end by splitlines()
-			# but not matched by \n in a regex. Hope there are no other
-			# exceptions like it (crosses fingers)
-			para = para.replace(u'\u2028', '\n')
+	@staticmethod
+	def parse_heading(builder, text):
+		'''Parse heading and determine it's level'''
+		assert text.startswith('=')
+		for i, c in enumerate(text):
+			if c != '=':
+				break
 
-			if self.backward and not para.isspace() \
-			and not parser_re['unindented_line'].search(para):
-				self._parse_block(builder, para)
-			else:
-				block_parts = parser_re['pre'].split(para)
-				for i, b in enumerate(block_parts):
-					if i % 3 == 0:
-						# Text paragraph
-						parts = parser_re['splithead'].split(b)
-						for j, p in enumerate(parts):
-							if j % 2:
-								# odd elements in the list are headings after split
-								self._parse_head(builder, p)
-							elif len(p) > 0:
-								self._parse_para(builder, p)
-					elif i % 3 == 1:
-						# Block
-						self._parse_block(builder, b + '\n' + block_parts[i+1] + b + '\n')
+		level = 7 - min(6, i)
+			# == is level 5
+			# === is level 4
+			# ...
+			# ======= is level 1
 
-		builder.end('zim-tree')
-		return ParseTree(builder.close())
+		text = text[i:].lstrip() + '\n'
+		builder.append(HEADING, {'level': level}, text)
 
-	def _parse_block(self, builder, block):
-		'''Parse a block, like a verbatim paragraph'''
-		if not self.backward:
-			m = parser_re['pre'].match(block)
-			if not m:
-				logger.warn('Block does not match pre >>>\n%s<<<', block)
-				builder.data(block)
-			else:
-				indent = self._determine_indent(block)
-				block = m.group('content')
-				if indent > 0:
-					builder.start('pre', {'indent': indent})
-					block = ''.join(
-						map(lambda line: line[indent:], block.splitlines(True)))
+	@staticmethod
+	def parse_pre(builder, indent, text):
+		'''Verbatim block with indenting'''
+		if indent:
+			text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+			attrib = {'indent': len(indent)}
+		else:
+			attrib = None
+
+		builder.append(VERBATIM_BLOCK, attrib, text)
+
+	@staticmethod
+	def parse_object(builder, indent, header, body):
+		'''Custom object'''
+		type, param = header.split(':', 1)
+		type = type.strip().lower()
+
+		attrib = {}
+		for match in param_re.finditer(param):
+			key = match.group(1).lower()
+			value = match.group(2)
+			if value.startswith('"') and len(value) > 1: # Quoted string
+				value = value[1:-1].replace('""', '"')
+			attrib[key] = value
+
+		# Defined after parsing head, so these attrib can not be overruled
+		# accidentally
+		### FIXME FIXME FIXME - need to separate two types of attrib ###
+		attrib['type'] = type
+		if indent:
+			body = re.sub('^'+indent, '', body, flags=re.M) # remove indent
+			attrib['indent'] = len(indent)
+
+		builder.append(OBJECT, attrib, body)
+
+	def parse_para(self, builder, text):
+		'''Split a text into paragraphs and empty lines'''
+		if text.isspace():
+			builder.text(text)
+		else:
+			for block in empty_lines_re.split(text):
+				if not block: # empty string due to split
+					pass
+				elif block.isspace():
+					builder.text(block)
+				elif self.backward \
+				and not unindented_line_re.search(block):
+					# Before zim 0.29 all indented paragraphs were
+					# verbatim.
+					builder.append(VERBATIM_BLOCK, None, block)
 				else:
-					builder.start('pre')
-				builder.data(block)
-				builder.end('pre')
+					builder.start(PARAGRAPH)
+					self.list_and_indent_parser(builder, block)
+					builder.end(PARAGRAPH)
+
+	def parse_list(self, builder, text, indent=None):
+		'''Parse lists into items and recurse to get inline formatting
+		per list item
+		'''
+		if indent:
+			text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+			attrib = {'indent': len(indent)}
 		else:
-			builder.start('pre')
-			builder.data(block)
-			builder.end('pre')
+			attrib = None
 
+		lines = text.splitlines(True)
+		self.parse_list_lines(builder, lines, 0, attrib)
 
-	def _parse_head(self, builder, head):
-		'''Parse a heading'''
-		m = parser_re['heading'].match(head)
-		assert m, 'Line does not match a heading: %s' % head
-		level = 7 - min(6, len(m.group(2)))
-		builder.start('h', {'level': level})
-		builder.data(m.group(3))
-		builder.end('h')
-		builder.data('\n')
-
-	def _parse_para(self, builder, para):
-		'''Parse a normal paragraph'''
-		if para.isspace():
-			builder.data(para)
-			return
-
-		builder.start('p')
-
-		parts = parser_re['splitlist'].split(para)
-		for i, p in enumerate(parts):
-			if i % 2:
-				# odd elements in the list are lists after split
-				self._parse_list(builder, p)
-			elif len(p) > 0:
-				# non-list part of the paragraph
-				indent = 0
-				for line in p.splitlines(True):
-					# parse indenting per line...
-
-					m = parser_re['indent'].match(line)
-					if m: myindent = len(m.group(1))
-					else: myindent = 0
-
-					if myindent != indent:
-						if indent > 0:
-							builder.end('div')
-						if myindent > 0:
-							builder.start('div', {'indent': myindent})
-						indent = myindent
-
-					self._parse_text(builder, line[indent:])
-
-				if indent > 0:
-					builder.end('div')
-
-		builder.end('p')
-
-	def _determine_indent(self, text):
-		lvl = 999 # arbitrary large value
-		for line in text.splitlines():
-			m = parser_re['indent'].match(line)
-			if m:
-				lvl = min(lvl, len(m.group(1)))
-			else:
-				return 0
-		return lvl
-
-	def _parse_list(self, builder, list):
-		'''Parse a bullet list'''
-
-		indent = self._determine_indent(list)
-		lines = list.splitlines()
-		if indent > 0:
-			lines = [line[indent:] for line in lines]
-			self._parse_sublist(builder, lines, 0, attrib={'indent': indent})
-		else:
-			self._parse_sublist(builder, lines, 0)
-
-	def _parse_sublist(self, builder, lines, level, attrib=None):
+	def parse_list_lines(self, builder, lines, level, attrib=None):
 		listtype = None
 		first = True
 		while lines:
 			line = lines[0]
-			m = parser_re['listitem'].match(line)
+			m = bullet_line_re.match(line)
 			assert m, 'Line does not match a list item: >>%s<<' % line
 			prefix, bullet, text = m.groups()
+			bullet = bullet.rstrip()
 
 			if first:
-				number = _check_number_bullet(bullet)
+				number = check_number_bullet(bullet)
 				if number:
-					listtype = 'ol'
+					listtype = NUMBEREDLIST
 					if not attrib:
 						attrib = {}
 					attrib['start'] = number
 				else:
-					listtype = 'ul'
+					listtype = BULLETLIST
 				builder.start(listtype, attrib)
 				first = False
 
-			mylevel = prefix.replace(' '*TABSTOP, '\t').count('\t')
+			mylevel = len(prefix)
 			if mylevel > level:
-				self._parse_sublist(builder, lines, level+1) # recurs
+				self.parse_list_lines(builder, lines, level+1) # recurs
 			elif mylevel < level:
 				builder.end(listtype)
 				return
 			else:
-				if listtype == 'ol':
+				if listtype == NUMBEREDLIST:
 					attrib = None
-				elif bullet in bullets: # ul
-					attrib = {'bullet': bullets[bullet]}
-				else: # ul
-					attrib = {'bullet': '*'}
-				builder.start('li', attrib)
-				self._parse_text(builder, text)
-				builder.end('li')
+				elif bullet in self.BULLETS: # BULLETLIST
+					attrib = {'bullet': self.BULLETS[bullet]}
+				else: # BULLETLIST
+					attrib = {'bullet': BULLET}
+				builder.start(LISTITEM, attrib)
+				self.inline_parser(builder, text)
+				builder.end(LISTITEM)
 
 				lines.pop(0)
 
 		builder.end(listtype)
 
-	def _parse_text(self, builder, text):
-		'''Parse a piece of rich text, handles all inline formatting'''
-		list = [text]
-		list = parser_re['code'].sublist(
-				lambda match: ('code', {}, match[1]), list)
+	def parse_indent(self, builder, text, indent):
+		'''Parse indented blocks and turn them into 'div' elements'''
+		text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+		builder.start(BLOCK, {'indent': len(indent)})
+		self.inline_parser(builder, text)
+		builder.end(BLOCK)
 
-		def parse_link(match):
-			parts = match[1].strip('|').split('|', 2)
-				# strip "|" to check against bugs like [[|foo]] and [[foo|]]
-			link = parts[0]
-			if len(parts) > 1:
-				mytext = parts[1]
+	@staticmethod
+	def parse_link(builder, text):
+		text = text.strip('|') # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
+		if '|' in text:
+			href, text = text.split('|', 1)
+			text = text.strip('|') # stuff like "[[foo||bar]]"
+		else:
+			href = text
+
+		if href and not href.isspace():
+			builder.append(LINK, {'href': href}, text)
+		else:
+			pass
+
+	@staticmethod
+	def parse_image(builder, text):
+		if '|' in text:
+			url, text = text.split('|', 1)
+		else:
+			url, text = text, None
+
+		attrib = ParserClass.parse_image_url(url)
+		if text:
+			attrib['alt'] = text
+
+		builder.append(IMAGE, attrib)
+
+	@staticmethod
+	def parse_url(builder, text):
+		builder.append(LINK, {'href': text}, text)
+
+	@staticmethod
+	def parse_tag(builder, text):
+		builder.append(TAG, {'name': text[1:]}, text)
+
+
+
+
+wikiparser = WikiParser() #: singleton instance
+
+
+# FIXME FIXME we are redefining Parser here !
+class Parser(ParserClass):
+
+	def __init__(self, version=WIKI_FORMAT_VERSION):
+		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
+
+	def parse(self, input, partial=False):
+		if not isinstance(input, basestring):
+			input = ''.join(input)
+
+		lineend = input and input[-1] == '\n'
+		input = prepare_text(input)
+		if partial and input.endswith('\n') and not lineend:
+			# reverse extension done by prepare_text()
+			input = input[:-1]
+
+		builder = ParseTreeBuilder(partial=partial)
+		wikiparser.backward = self.backward # HACK
+		wikiparser(builder, input)
+		return builder.get_parsetree()
+
+
+class Dumper(TextDumper):
+
+	BULLETS = {
+		UNCHECKED_BOX:	u'[ ]',
+		XCHECKED_BOX:	u'[x]',
+		CHECKED_BOX:	u'[*]',
+		BULLET:			u'*',
+	}
+
+	TAGS = {
+		EMPHASIS:		('//', '//'),
+		STRONG:			('**', '**'),
+		MARK:			('__', '__'),
+		STRIKE:			('~~', '~~'),
+		VERBATIM:		("''", "''"),
+		TAG:			('', ''), # No additional annotation (apart from the visible @)
+		SUBSCRIPT:		('_{', '}'),
+		SUPERSCRIPT:	('^{', '}'),
+	}
+
+	def dump_pre(self, tag, attrib, strings):
+		# Indent and wrap with "'''" lines
+		strings.insert(0, "'''\n")
+		strings.append("'''\n")
+		strings = self.dump_indent(tag, attrib, strings)
+		return strings
+
+	def dump_h(self, tag, attrib, strings):
+		# Wrap line with number of "=="
+		level = int(attrib['level'])
+		if level < 1:   level = 1
+		elif level > 5: level = 5
+		tag = '='*(7 - level)
+		strings.insert(0, tag + ' ')
+		strings.append(' ' + tag)
+		return strings
+
+	def dump_link(self, tag, attrib, strings=None):
+		assert 'href' in attrib, \
+			'BUG: link misses href: %s "%s"' % (attrib, strings)
+		href = attrib['href']
+
+		if not strings or href == u''.join(strings):
+			if url_re.match(href):
+				return (href,) # no markup needed
 			else:
-				mytext = link
-			return ('link', {'href':link}, mytext)
+				return ('[[', href, ']]')
+		else:
+			return ('[[', href, '|') + tuple(strings) + (']]',)
 
-		list = parser_re['link'].sublist(parse_link, list)
+	def dump_img(self, tag, attrib, strings=None):
+		src = attrib['src']
+		alt = attrib.get('alt')
+		opts = []
+		items = attrib.items()
+		items.sort() # unit tests don't like random output
+		for k, v in items:
+			if k in ('src', 'alt') or k.startswith('_'):
+				continue
+			elif v: # skip None, "" and 0
+				data = url_encode(unicode(v), mode=URL_ENCODE_DATA)
+				opts.append('%s=%s' % (k, data))
+		if opts:
+			src += '?%s' % '&'.join(opts)
 
-		def parse_image(match):
-			parts = match[1].split('|', 2)
-			src = parts[0]
-			if len(parts) > 1: mytext = parts[1]
-			else: mytext = None
-			attrib = self.parse_image_url(src)
-			return ('img', attrib, mytext)
+		if alt:
+			return ('{{', src, '|', alt, '}}')
+		else:
+			return('{{', src, '}}')
 
-		list = parser_re['img'].sublist(parse_image, list)
+		# TODO use text for caption (with full recursion)
 
+	def dump_object(self, tag, attrib, strings=None):
+		logger.debug("Dumping object: %s, %s", attrib, strings)
+		assert "type" in attrib, "Undefined type of object"
 
-		# Put URLs here because urls can appear in links or image tags, but other markup
-		# can appear in links, like '//' or '__'
-		list = url_re.sublist(
-				lambda match: ('link', {'href':match[1]}, match[1]) , list)
+		opts = []
+		for key, value in attrib.items():
+			if key in ('type', 'indent') or not value:
+				continue
+			# double quotes are escaped by doubling them
+			opts.append(' %s="%s"' % (key, str(value).replace('"', '""')))
 
-		for style in 'strong', 'mark', 'strike','sub', 'sup':
-			list = parser_re[style].sublist(
-					lambda match: (style, {}, match[1]) , list)
+		if not strings:
+			strings = []
+		return ['{{{', attrib['type'], ':'] + opts + ['\n'] + strings + ['}}}\n']
 
-		for style in 'emphasis',:
-			list = parser_re[style].sublist(
-					lambda match: (style, {}, match[1]) , list)
-
-		def parse_tag(re_):
-			groups = re_.m.groupdict()
-			return ('tag', groups, "@%s" % groups["name"])
-
-		list = parser_re['tag'].sublist(parse_tag, list)
-
-		for item in list:
-			if isinstance(item, tuple):
-				tag, attrib, text = item
-				builder.start(tag, attrib)
-				if text:
-					builder.data(text)
-				builder.end(tag)
-			else:
-				builder.data(item)
-
-
-class Dumper(DumperClass):
-
-	# TODO check commonality with dumper in plain.py
-
-	def dump(self, tree):
-		#~ print 'DUMP WIKI', tree.tostring()
-		assert isinstance(tree, ParseTree)
-		output = TextBuffer()
-		self.dump_children(tree.getroot(), output)
-		return output.get_lines(end_with_newline=not tree.ispartial)
-
-	def dump_children(self, list, output, list_level=-1, list_type=None, list_iter='0'):
-		if list.text:
-			output.append(list.text)
-
-		for element in list.getchildren():
-			if element.tag in ('p', 'div'):
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput) # recurs
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
-			elif element.tag == 'h':
-				level = int(element.attrib['level'])
-				if level < 1:   level = 1
-				elif level > 5: level = 5
-				tag = '='*(7 - level)
-				output.append(tag+' '+element.text+' '+tag)
-			elif element.tag in ('ul', 'ol'):
-				indent = int(element.attrib.get('indent', 0))
-				start = element.attrib.get('start')
-				myoutput = TextBuffer()
-				self.dump_children(element, myoutput, list_level=list_level+1, list_type=element.tag, list_iter=start) # recurs
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
-			elif element.tag == 'li':
-				if 'indent' in element.attrib:
-					# HACK for raw trees from pageview
-					list_level = int(element.attrib['indent'])
-				if list_type == 'ol':
-					bullet = str(list_iter) + '.'
-					list_iter = increase_list_iter(list_iter) or '1' # fallback if iter not valid
-				elif 'bullet' in element.attrib: # ul OR raw tree from pageview...
-					if element.attrib['bullet'] in bullet_types:
-						bullet = bullet_types[element.attrib['bullet']]
-					else:
-						bullet = element.attrib['bullet'] # Assume it is numbered..
-				else: # ul
-					bullet = '*'
-				output.append('\t'*list_level+bullet+' ')
-				self.dump_children(element, output, list_level=list_level) # recurs
-				output.append('\n')
-			elif element.tag == 'pre':
-				indent = 0
-				if 'indent' in element.attrib:
-					indent = int(element.attrib['indent'])
-				myoutput = TextBuffer()
-				myoutput.append("'''\n"+element.text+"'''\n")
-				if indent:
-					myoutput.prefix_lines('\t'*indent)
-				output.extend(myoutput)
-			elif element.tag == 'img':
-				src = element.attrib['src']
-				opts = []
-				items = element.attrib.items()
-				# we sort params only because unit tests don't like random output
-				items.sort()
-				for k, v in items:
-					if k == 'src' or k.startswith('_'):
-						continue
-					elif v: # skip None, "" and 0
-						opts.append('%s=%s' % (k, v))
-				if opts:
-					src += '?%s' % '&'.join(opts)
-
-				if element.text:
-					output.append('{{'+src+'|'+element.text+'}}')
-				else:
-					output.append('{{'+src+'}}')
-
-			elif element.tag == 'sub':
-				output.append("_{%s}" % element.text)
-			elif element.tag == 'sup':
-				output.append("^{%s}" % element.text)
-			elif element.tag == 'link':
-				assert 'href' in element.attrib, \
-					'BUG: link %s "%s"' % (element.attrib, element.text)
-				href = element.attrib['href']
-				if href == element.text:
-					if url_re.match(href):
-						output.append(href)
-					else:
-						output.append('[['+href+']]')
-				else:
-					if element.text:
-						output.append('[['+href+'|'+element.text+']]')
-					else:
-						output.append('[['+href+']]')
-
-			elif element.tag in dumper_tags:
-				if element.text:
-					tag = dumper_tags[element.tag]
-					output.append(tag+element.text+tag)
-			else:
-				assert False, 'Unknown node type: %s' % element
-
-			if element.tail:
-				output.append(element.tail)
+		# TODO put content in attrib, use text for caption (with full recursion)
+		# See img

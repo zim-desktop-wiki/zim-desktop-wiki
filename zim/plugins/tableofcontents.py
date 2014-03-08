@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
-##### TODO TODO - connect the "show h1" preference !
+# Copyright 2012, 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -13,8 +11,9 @@ import pango
 import re
 import datetime
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, WindowExtension, extends
 from zim.notebook import Path
+from zim.formats import HEADING
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 from zim.signals import ConnectorMixin
@@ -82,63 +81,72 @@ This is a core plugin shipping with zim.
 			# T: option for plugin preferences
 		('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), True),
 			# T: option for plugin preferences
-		#~ ('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
+		('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
 			# T: option for plugin preferences
 	)
 	# TODO disable pane setting if not embedded
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		self.floating_widget = None
-		self.sidepane_widget = None
+	def __init__(self, config=None):
+		PluginClass.__init__(self, config)
+		self.on_preferences_changed(self.preferences)
+		self.preferences.connect('changed', self.on_preferences_changed)
 
-	def finalize_notebook(self, ui):
-		self.do_preferences_changed()
+	def on_preferences_changed(self, preferences):
+		if preferences['floating']:
+			self.set_extension_class('MainWindow', MainWindowExtensionFloating)
+		else:
+			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
 
-	def destroy(self):
-		self.disconnect_sidepane()
-		self.disconnect_floating()
-		PluginClass.destroy(self)
 
-	def do_preferences_changed(self):
-		if self.ui.ui_type != 'gtk':
+@extends('MainWindow', autoload=False)
+class MainWindowExtensionEmbedded(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.widget = SidePaneToC(self.window.ui, self.window.pageview) # XXX
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
+		if self.widget is None:
 			return
 
-		if self.preferences['floating']:
-			self.disconnect_sidepane()
-			self.connect_floating()
-		else:
-			self.disconnect_floating()
-			self.connect_sidepane()
+		try:
+			self.window.remove(self.widget)
+		except ValueError:
+			pass
 
-	def connect_sidepane(self):
-		if not self.sidepane_widget:
-			self.sidepane_widget = SidePaneToC(self.ui)
-		else:
-			self.ui.mainwindow.remove(self.sidepane_widget)
-
-		self.ui.mainwindow.add_tab(
-			_('ToC'), self.sidepane_widget, self.preferences['pane'])
+		self.window.add_tab(
+			_('ToC'), self.widget, preferences['pane'])
 			# T: widget label
-		self.sidepane_widget.show_all()
+		self.widget.show_all()
 
-	def disconnect_sidepane(self):
-		if self.sidepane_widget:
-			self.ui.mainwindow.remove(self.sidepane_widget)
-			self.sidepane_widget.disconnect_all()
-			self.sidepane_widget.destroy()
-			self.sidepane_widget = None
+		self.widget.set_show_h1(preferences['show_h1'])
 
-	def connect_floating(self):
-		if not self.floating_widget:
-			textview = self.ui.mainwindow.pageview.view
-			self.floating_widget = FloatingToC(self.ui, textview)
+	def teardown(self):
+		self.window.remove(self.widget)
+		self.widget.disconnect_all()
+		self.widget = None
 
-	def disconnect_floating(self):
-		if self.floating_widget:
-			self.floating_widget.disconnect_all()
-			self.floating_widget.destroy()
-			self.floating_widget = None
+
+@extends('MainWindow', autoload=False)
+class MainWindowExtensionFloating(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.widget = FloatingToC(self.window.ui, self.window.pageview) # XXX
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
+		self.widget.set_show_h1(preferences['show_h1'])
+
+	def teardown(self):
+		self.widget.disconnect_all()
+		self.widget.destroy()
+
 
 
 TEXT_COL = 0
@@ -161,18 +169,21 @@ class ToCTreeView(BrowserTreeView):
 		self.append_column(column)
 
 
+
 class ToCTreeModel(gtk.TreeStore):
 
 	def __init__(self):
 		gtk.TreeStore.__init__(self, str) # TEXT_COL
 
-	def populate(self, parsetree):
+	def populate(self, parsetree, show_h1):
 		self.clear()
 		headings = []
-		for el in parsetree.findall('h'):
-			headings.append( (int(el.attrib['level']), el.text) )
+		for heading in parsetree.findall(HEADING):
+			headings.append( (int(heading.attrib['level']), heading.gettext()) )
 
-		if headings \
+
+		if not show_h1 \
+		and headings \
 		and headings[0][0] == 1 \
 		and all(h[0] > 1 for h in headings[1:]):
 			headings.pop(0) # do not show first heading
@@ -187,40 +198,47 @@ class ToCTreeModel(gtk.TreeStore):
 			stack.append((level, iter))
 
 
+
+
 class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
-	def __init__(self, ui, ellipsis):
+	def __init__(self, ui, pageview, ellipsis, show_h1=False):
 		gtk.ScrolledWindow.__init__(self)
-
-		self.ui = ui
-		self.page = None
+		self.show_h1 = show_h1
 
 		self.treeview = ToCTreeView(ellipsis)
-		self.add(self.treeview)
-
 		self.treeview.connect('row-activated', self.on_heading_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
+		self.add(self.treeview)
 
+		# XXX remove ui - use signals from pageview for this
 		self.connectto(ui, 'open-page')
 		self.connectto(ui.notebook, 'stored-page')
-		if ui.page:
-			self.on_open_page(ui, ui.page, Path(ui.page.name))
+
+		self.pageview = pageview
+		if self.pageview.page:
+			self.load_page(self.pageview.page)
+
+	def set_show_h1(self, show_h1):
+		if show_h1 != self.show_h1:
+			self.show_h1 = show_h1
+			if self.pageview.page:
+				self.load_page(self.pageview.page)
 
 	def on_open_page(self, ui, page, path):
-		self.page = page
-		self._load_page(page)
+		self.load_page(page)
 
 	def on_stored_page(self, notebook, page):
-		if page == self.page:
-			self._load_page(page)
+		if page == self.pageview.page:
+			self.load_page(page)
 
-	def _load_page(self, page):
+	def load_page(self, page):
 		model = self.treeview.get_model()
 		tree = page.get_parsetree()
 		if tree is None:
 			model.clear()
 		else:
-			model.populate(tree)
+			model.populate(tree, self.show_h1)
 		self.treeview.expand_all()
 
 	def on_heading_activated(self, treeview, path, column):
@@ -233,7 +251,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		text = model[path][TEXT_COL].decode('utf-8')
 
-		textview = self.ui.mainwindow.pageview.view # FIXME nicer interface for this
+		textview = self.pageview.view
 		buffer = textview.get_buffer()
 		if select_heading(buffer, text):
 			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
@@ -255,15 +273,16 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		else:
 			endtext = None
 
-		textview = self.ui.mainwindow.pageview.view # FIXME nicer interface for this
+		textview = self.pageview.view
 		buffer = textview.get_buffer()
 		start = find_heading(buffer, starttext)
 		if endtext:
 			end = find_heading(buffer, endtext)
 		else:
 			end = buffer.get_end_iter()
+
 		if start and end:
-			buffer.select_range(startiter, enditer)
+			buffer.select_range(start, end)
 
 	def on_populate_popup(self, treeview, menu):
 		model, paths = treeview.get_selection().get_selected_rows()
@@ -304,11 +323,14 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			for i in self._walk(model, iter):
 				p = model.get_path(i)
 				if not p in seen:
-					newlevel = len(p) - 1
+					if self.show_h1:
+						newlevel = len(p) - 1
+					else:
+						newlevel = len(p)
 					self._format(p, newlevel)
 				seen.add(p)
 
-		self._load_page(self.page)
+		self.load_page(self.pageview.page)
 		return True
 
 	def can_demote(self, paths):
@@ -343,11 +365,15 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			for i in self._walk(model, iter):
 				p = model.get_path(i)
 				if not p in seen:
-					newlevel = len(p) + 1
+					if self.show_h1:
+						newlevel = len(p) + 1
+					else:
+						newlevel = len(p) + 2
+
 					self._format(p, newlevel)
 				seen.add(p)
 
-		self._load_page(self.page)
+		self.load_page(self.pageview.page)
 		return True
 
 
@@ -358,18 +384,18 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		while child:
 			for i in self._walk(model, child):
 				yield i
-			child = model.iter_next(iter)
+			child = model.iter_next(child)
 
 	def _format(self, path, level):
 		assert level > 0 and level < 7
 		if self.select_heading(path):
-			self.ui.mainwindow.pageview.toggle_format('h' + str(level))
+			self.pageview.toggle_format('h' + str(level))
 
 
 class SidePaneToC(ToCWidget):
 
-	def __init__(self, ui):
-		ToCWidget.__init__(self, ui, ellipsis=True)
+	def __init__(self, ui, pageview):
+		ToCWidget.__init__(self, ui, pageview, ellipsis=True)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 		self.set_size_request(-1, 200) # Fixed Height
@@ -424,8 +450,6 @@ class BoxWidget(gtk.VBox):
 gobject.type_register(BoxWidget)
 
 
-import collections
-
 class FloatingToC(BoxWidget, ConnectorMixin):
 
 	# This class does all the work to keep the floating window in
@@ -434,7 +458,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 
 	TEXTVIEW_OFFSET = 5
 
-	def __init__(self, ui, textview):
+	def __init__(self, ui, pageview):
 		BoxWidget.__init__(self)
 
 		hscroll = gtk.HScrollbar(gtk.Adjustment())
@@ -443,7 +467,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		self.head = gtk.Label(_('ToC'))
 		self.head.set_padding(5, 1)
 
-		self.widget = ToCWidget(ui, ellipsis=False)
+		self.widget = ToCWidget(ui, pageview, ellipsis=False)
 		self.widget.set_shadow_type(gtk.SHADOW_NONE)
 		self.widget.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 			# Setting horizontal scroll automatic as well
@@ -461,13 +485,16 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		# Need to wrap in event box to make widget visible
 		# probably because Containers normally don't have their own
 		# gdk window. So would paint directly on background window.
-		self.textview = textview
-		self._text_view_allocation = (textview.allocation.width, textview.allocation.height)
+		self.textview = pageview.view
+		self._text_view_allocation = (
+			self.textview.allocation.width,
+			self.textview.allocation.height
+		)
 		self._event_box = gtk.EventBox()
 		self._event_box.add(self)
 
-		textview.add_child_in_window(self._event_box, gtk.TEXT_WINDOW_WIDGET, 0, 0)
-		self.connectto(textview,
+		self.textview.add_child_in_window(self._event_box, gtk.TEXT_WINDOW_WIDGET, 0, 0)
+		self.connectto(self.textview,
 			'size-allocate',
 			handler=self.on_size_allocate_textview,
 		)
@@ -478,6 +505,9 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 
 		self._event_box.show_all()
 
+	def set_show_h1(self, show_h1):
+		self.widget.set_show_h1(show_h1)
+
 	def disconnect_all(self):
 		self.widget.disconnect_all()
 		ConnectorMixin.disconnect_all(self)
@@ -487,8 +517,8 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		BoxWidget.destroy(self)
 
 	def on_toggle(self, *a):
-		self.widget.set_visible(
-			not self.widget.get_visible()
+		self.widget.set_property('visible',
+			not self.widget.get_property('visible')
 		)
 		self.queue_draw()
 
@@ -508,7 +538,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		border = self.get_border_width()
 		spacing = self.get_spacing()
 
-		if self.widget.get_visible():
+		if self.widget.get_property('visible'):
 			tree_w, tree_h = self.widget.treeview.size_request()
 			tree_h = max(tree_h, head_h) # always show empty space if no content
 			tree_w += 1 # Allow minimal frame for scrolledwindow
@@ -548,7 +578,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 			height=head_height
 		))
 
-		if self.widget.get_visible():
+		if self.widget.get_property('visible'):
 			body_w = allocation.width - 2*border
 			body_h = allocation.height - 2*border - spacing - head_height
 
@@ -561,7 +591,6 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 				width=body_w,
 				height=body_h
 			))
-
 
 	def on_size_allocate_textview(self, textview, a):
 		new_allocation = (a.width, a.height)

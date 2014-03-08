@@ -12,38 +12,17 @@
 #
 #
 
-import gtk
-
+from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
 from zim.fs import File, TmpFile
-from zim.plugins import PluginClass
 from zim.config import data_file
 from zim.applications import Application, ApplicationError
-from zim.gui.imagegeneratordialog import ImageGeneratorClass, ImageGeneratorDialog
-from zim.gui.widgets import populate_popup_add_separator
+
 
 # TODO put these commands in preferences
 dotcmd = ('ditaa')
 
-ui_xml = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_ditaa'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, read only
-	('insert_ditaa', None, _('Ditaa...'), '', _('Insert ditaa'), False),
-		# T: menu item for insert diagram plugin
-)
-
-
-class InsertDitaaPlugin(PluginClass):
+class InsertDitaaPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
 		'name': _('Insert Ditaa'), # T: plugin name
@@ -56,53 +35,28 @@ This is a core plugin shipping with zim.
 		'author': 'Yao-Po Wang',
 	}
 
+	object_type = 'ditaa'
+	short_label = _('Ditaa')
+	insert_label = _('Insert Ditaa')
+	edit_label = _('_Edit Ditaa')
+	syntax = None
+
 	@classmethod
 	def check_dependencies(klass):
 		has_dotcmd = Application(dotcmd).tryexec()
 		return has_dotcmd, [("Ditaa", has_dotcmd, True)]
-
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
-		if self.ui.ui_type == 'gtk':
-			self.ui.add_actions(ui_actions, self)
-			self.ui.add_ui(ui_xml, self)
-			self.register_image_generator_plugin('ditaa')
-
-	def insert_ditaa(self):
-		dialog = InsertDitaaDialog.unique(self, self.ui)
-		dialog.run()
-
-	def edit_object(self, buffer, iter, image):
-		dialog = InsertDitaaDialog(self.ui, image=image)
-		dialog.run()
-
-	def do_populate_popup(self, menu, buffer, iter, image):
-		populate_popup_add_separator(menu, prepend=True)
-
-		item = gtk.MenuItem(_('_Edit Ditaa')) # T: menu item in context menu
-		item.connect('activate',
-			lambda o: self.edit_object(buffer, iter, image))
-		menu.prepend(item)
-
-
-
-class InsertDitaaDialog(ImageGeneratorDialog):
-
-	def __init__(self, ui, image=None):
-		generator = DitaaGenerator()
-		ImageGeneratorDialog.__init__(self, ui, _('Insert Ditaa'), # T: dialog title
-            generator, image, help=':Plugins:Ditaa Editor' )
 
 
 class DitaaGenerator(ImageGeneratorClass):
 
 	uses_log_file = False
 
-	type = 'ditaa'
+	object_type = 'ditaa'
 	scriptname = 'ditaa.dia'
 	imagename = 'ditaa.png'
 
-	def __init__(self):
+	def __init__(self, plugin):
+		ImageGeneratorClass.__init__(self, plugin)
 		self.dotfile = TmpFile(self.scriptname)
 		self.dotfile.touch()
 		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4

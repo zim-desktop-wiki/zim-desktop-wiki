@@ -30,6 +30,7 @@ Configuration
 * [[+Preferences|Preferences]]
 * [[+Properties|Properties]]
 * [[+Templates|Templates]]
+* [[+Automount|Automount]]
 * [[+Config Files|Config Files]]
 * [[+Default Applications|Default Applications]]
 
