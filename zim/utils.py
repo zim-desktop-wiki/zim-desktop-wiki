@@ -235,6 +235,51 @@ class OrderedDict(collections.MutableMapping):
 		return len(self._keys)
 
 
+## Special iterator class
+class MovingWindowIter(object):
+	'''Iterator yields a 3-tuple of the previous item, the current item
+	and the next item while iterating a give iterator.
+	Previous or next item will be C{None} if not available.
+	Use as:
+
+		for prev, current, next in MovingWindowIter(mylist):
+			....
+
+	@ivar items: current 3-tuple
+	@ivar last: C{True} if we are at the last item
+	'''
+
+	def __init__(self, iterable):
+		self._iter = iter(iterable)
+		try:
+			first = self._iter.next()
+		except StopIteration:
+			# empty list
+			self.last = True
+			self.last = (None, None, None)
+		else:
+			self.last = False
+			self.items = (None, None, first)
+
+	def __iter__(self):
+		return self
+
+	def next(self):
+		if self.last:
+			raise StopIteration
+
+		discard, prev, current = self.items
+		try:
+			next = self._iter.next()
+		except StopIteration:
+			self.last = True
+			self.items = (prev, current, None)
+		else:
+			self.items = (prev, current, next)
+
+		return self.items
+
+
 
 ## Wrapper for using threads for e.g. async IO
 import threading

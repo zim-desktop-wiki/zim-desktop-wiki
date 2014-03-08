@@ -86,7 +86,9 @@ from zim.environ import environ
 from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 from zim.notebook import Path
 
-from zim.templates import ExpressionFunction, TemplateContextDict
+
+from zim.templates import TemplateContextDict
+from zim.templates.functions import ExpressionFunction
 
 
 class ExportTemplateContext(dict):

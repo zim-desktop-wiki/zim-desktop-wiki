@@ -136,31 +136,7 @@ class TestParsing(tests.TestCase):
 class TestSimpleTreeBuilder(tests.TestCase):
 
 	def runTest(self):
-		builder = SimpleTreeBuilder(merge_text=False)
-
-		builder.start('root', {})
-		builder.text('foo')
-		builder.text('bar')
-		builder.append('dus', {}, 'ja')
-		builder.text('foo')
-		builder.text('bar')
-		builder.append('br', {})
-		builder.text('foo')
-		builder.text('bar')
-		builder.end('root')
-
-		root = builder.get_root()
-		self.assertEqual(root, [
-			('root', {}, [
-					'foo', 'bar',
-					('dus', {}, ['ja']),
-					'foo', 'bar',
-					('br', {}, []),
-					'foo', 'bar',
-				]
-			)
-		])
-
+		E = SimpleTreeElement
 
 		builder = SimpleTreeBuilder()
 
@@ -177,11 +153,38 @@ class TestSimpleTreeBuilder(tests.TestCase):
 
 		root = builder.get_root()
 		self.assertEqual(root, [
-			('root', {}, [
+			E('root', {}, [
+					'foo', 'bar',
+					E('dus', {}, ['ja']),
+					'foo', 'bar',
+					E('br', {}, []),
+					'foo', 'bar',
+				]
+			)
+		])
+
+
+		realbuilder = SimpleTreeBuilder()
+		builder = BuilderTextBuffer(realbuilder)
+
+		builder.start('root', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.append('dus', {}, 'ja')
+		builder.text('foo')
+		builder.text('bar')
+		builder.append('br', {})
+		builder.text('foo')
+		builder.text('bar')
+		builder.end('root')
+
+		root = realbuilder.get_root()
+		self.assertEqual(root, [
+			E('root', {}, [
 					'foobar',
-					('dus', {}, ['ja']),
+					E('dus', {}, ['ja']),
 					'foobar',
-					('br', {}, []),
+					E('br', {}, []),
 					'foobar',
 				]
 			)
