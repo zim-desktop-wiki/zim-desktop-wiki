@@ -567,10 +567,10 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
 		self.assertEqual(versions[0][0], str(0))
-		self.assertEqual(versions[0][3], u'test 1\n')
+		self.assertEqual(versions[0][3], u'test 1')
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][0], str(1))
-		self.assertEqual(versions[1][3], u'test 2\n')
+		self.assertEqual(versions[1][3], u'test 2')
 
 
 		lines = vcs.get_version(file, version=0)

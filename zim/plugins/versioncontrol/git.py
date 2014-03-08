@@ -23,7 +23,7 @@ class GITApplicationBackend(VCSApplicationBase):
 
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('git',))
+		return Application(('git',), encoding='utf-8')
 
 	def build_revision_arguments(self, versions, is_for_diff=False):
 		"""Build a list including required string/int for running an VCS command

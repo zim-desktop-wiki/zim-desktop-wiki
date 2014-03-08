@@ -67,7 +67,7 @@ class Application(object):
 
 	STATUS_OK = 0 #: return code when the command executed succesfully
 
-	def __init__(self, cmd, tryexeccmd=None):
+	def __init__(self, cmd, tryexeccmd=None, encoding=None):
 		'''Constructor
 
 		@param cmd: the command for the external application, either a
@@ -75,6 +75,8 @@ class Application(object):
 		and arguments
 		@param tryexeccmd: command to check in L{tryexec()} as string.
 		If C{None} will default to C{cmd} or the first item of C{cmd}.
+		@param encoding: the encoding to use for commandline args
+		if known, else falls back to system default
 		'''
 		if isinstance(cmd, basestring):
 			cmd = split_quoted_strings(cmd)
@@ -83,6 +85,9 @@ class Application(object):
 		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)
 		self.cmd = tuple(cmd)
 		self.tryexeccmd = tryexeccmd
+		self.encoding = encoding or zim.fs.ENCODING
+		if self.encoding == 'mbcs':
+			self.encoding = 'utf-8'
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
@@ -150,7 +155,7 @@ class Application(object):
 			argv.insert(0, sys.executable)
 		# TODO: consider an additional commandline arg to re-use compiled python interpreter
 
-		argv = [a.encode(zim.fs.ENCODING) for a in argv]
+		argv = [a.encode(self.encoding) for a in argv]
 		if cwd:
 			cwd = unicode(cwd).encode(zim.fs.ENCODING)
 		return cwd, argv
@@ -218,7 +223,7 @@ class Application(object):
 			logger.warn(stderr)
 			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
-		return map(unicode, [line + '\n' for line in stdout.splitlines()])
+		return [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
 			# Explicit newline conversion, e.g. on windows \r\n -> \n
 			# FIXME Assume local encoding is respected (!?)
 

@@ -8,20 +8,15 @@ from __future__ import with_statement
 import os
 import logging
 
+import xml.etree.ElementTree # needed to compile with cElementTree
+import xml.etree.cElementTree as ET
+
+
 from zim.plugins.versioncontrol import VCSApplicationBase
 from zim.applications import Application
 
 
 logger = logging.getLogger('zim.vcs.hg')
-
-
-class HgApplication(Application):
-
-	def run(self, args, pwd):
-		args = ('--noninteractive',) + tuple(args)
-			# force hg to run in non-interactive mode
-			# which will force user name to be auto-setup
-		Application.run(self, args, pwd)
 
 
 class HGApplicationBackend(VCSApplicationBase):
@@ -31,7 +26,9 @@ class HGApplicationBackend(VCSApplicationBase):
 
 	@classmethod
 	def build_bin_application_instance(cls):
-		return HgApplication(('hg',))
+		return Application(('hg', '--noninteractive', '--encoding', 'utf8'), encoding='utf-8')
+			# force hg to run in non-interactive mode
+			# which will force user name to be auto-setup
 
 	def get_mandatory_params(self):
 		return ['--noninteractive'] # force hg to run in non-interactive mode
@@ -168,62 +165,28 @@ class HGApplicationBackend(VCSApplicationBase):
 
 	def log(self, path=None):
 		"""
-		Runs: hg log -r : --verbose {{PATH}}
-		the "-r :" option allows to reverse order
-		--verbose allows to get the entire commit message
+		Runs: hg log --style xml {{PATH}}
 		"""
 		if path:
-			return self.pipe(['log', '-r', ':', '--verbose', path])
+			return self.pipe(['log', '--style', 'xml', path])
 		else:
-			return self.pipe(['log', '-r', ':', '--verbose'])
+			return self.pipe(['log', '--style', 'xml'])
 
 	def log_to_revision_list(self, log_op_output):
+		# returns a list of tuple (revision-id, date, user, commit-message)
 		versions = []
-		(rev, date, user, msg) = (None, None, None, None)
-		seenmsg = False
-		# seenmsg allow to get the complete commit message which is presented like this:
-		#
-		# [...]
-		# description:
-		# here is the
-		# commit message
-		# the end of it may be detected
-		# because of the apparition of a line
-		# starting by "changeset:"
-		#
-		# FIXME: there is a bug which will stop parsing if a blank line is included
-		# in the commit message
-		for line in log_op_output:
-			if len(line.strip())==0:
-				if not rev is None:
-					versions.append((rev, date, user, msg))
-				(rev, date, user, msg) = (None, None, None, None)
-				seenmsg = False
-			elif line.startswith('changeset: '):
-				value = line[13:].strip()
-				# In case of mercurial, the revision number line
-				# is something like this:
-				# changeset:   6:1d4a428e22d9
-				#
-				# instead of (for bzr) like that:
-				# e.g. "revno: 48 [merge]\n"
-				rev = value.split(":")[0]
-
-			elif line.startswith('user: '):
-				user = line[13:].strip()
-			elif line.startswith('date: '):
-				date = line[13:].strip()
-			elif line.startswith('description:'):
-				seenmsg = True
-				msg = u''
-			elif seenmsg:
-				msg += line
-
-		if not rev is None:
+		xml = ET.fromstring(''.join(log_op_output))
+		if not (xml and xml.tag == 'log'):
+			raise AssertionError, 'Could not parse log'
+		for entry in xml:
+			rev = entry.attrib['revision']
+			date = entry.findtext('date')
+			user = entry.findtext('author')
+			msg = entry.findtext('msg')
 			versions.append((rev, date, user, msg))
 
+		versions.sort()
 		return versions
-
 
 	def move(self, oldpath, newpath):
 		"""
