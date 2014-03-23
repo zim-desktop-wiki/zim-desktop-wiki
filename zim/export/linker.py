@@ -16,7 +16,9 @@ from zim.formats import BaseLinker
 
 from zim.fs import File
 from zim.notebook import PageNameError, interwiki_link
-from zim.parsing import link_type, is_win32_path_re
+from zim.stores import encode_filename
+from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
+
 
 
 class ExportLinker(object): # TODO should inherit from BaseLinker
@@ -29,7 +31,9 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 	@TODO: info on formats to know how to set "usebase"
 	'''
 
-	def __init__(self, notebook, layout, source=None, output=None, usebase=False):
+	def __init__(self, notebook, layout, source=None, output=None,
+						usebase=False, document_root_url=None
+	):
 		'''Contructor
 		@param notebook: the source L{Notebook} for resolving links
 		@oaram layout: the L{ExportLayout} for resolving target files
@@ -48,6 +52,8 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 			self.base = None
 
 		self.usebase = usebase
+
+		self.document_root_url = document_root_url
 
 		self._icons = {} # memorize them because the occur often in one page
 
@@ -69,7 +75,7 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 			href = getattr(self, methodname)(link)
 		else:
 			href = link
-		#~ print "Linker:", link, '-->', href
+		#~ print "Linker:", link, '-->', href, '(%s)' % type
 		return href
 
 	def img(self, src):
@@ -89,8 +95,7 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 		file = dir.file(path)
 		return self.file_object(file)
 
-	# TODO rename to resolve_source_file() ?
-	def resolve_file(self, link):
+	def resolve_source_file(self, link):
 		'''Find the source file for an attachment
 		Used e.g. by the latex format to find files for equations to
 		be inlined. Do not use this method to resolve links, the file
@@ -116,7 +121,15 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 		'''Turn a L{File} object in a relative link or URI'''
 		if self.base and self.usebase \
 		and file.ischild(self.layout.relative_root):
-			return file.relpath(self.base, allowupward=True)
+			relpath = file.relpath(self.base, allowupward=True)
+			if not relpath.startswith('.'):
+				relpath = './' + relpath
+			return relpath
+		elif self.notebook.document_root \
+		and self.document_root_url \
+		and file.ischild(self.notebook.document_root):
+			relpath = file.relpath(self.notebook.document_root)
+			return self.document_root_url + relpath
 		else:
 			return file.uri
 
@@ -145,8 +158,7 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 			file = File(filename)
 		elif filename.startswith('/'):
 			if self.notebook.document_root:
-				dir = self.layout.resources_dir()
-				file = dir.file(filename)
+				file = self.notebook.document_root.file(filename)
 			else:
 				file = File(filename)
 		elif is_win32_path_re.match(filename):
@@ -180,8 +192,18 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 			return None
 
 	def _link_notebook(self, link):
-		pass # TODO resolve file uri for notebook
+		if link.startswith('zim+'):
+			link = link[4:]
 
+		if '?' in link:
+			link, path = link.split('?')
+			# FIXME: code below is not robust because we don't know the
+			# storage mode of linked notebook...
+			path = url_decode(path) # was already encoded by interwiki_link()
+			path = encode_filename(path).replace(' ', '_')
+			return link + '/' + url_encode(path) + '.txt'
+		else:
+			return link
 
 
 #~ class StaticExportLinker(ExportLinker):

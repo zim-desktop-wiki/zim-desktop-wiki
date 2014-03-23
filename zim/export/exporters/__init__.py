@@ -9,6 +9,11 @@ different export style.
 
 # TODO collect errors / warnings and write a log that can be shown to the user after exporting
 
+import logging
+
+logger = logging.getLogger('zim.export')
+
+
 class Exporter(object):
 	'''Base class that defines the public API for exporter objects'''
 
@@ -17,7 +22,7 @@ class Exporter(object):
 		@param pages: a L{PageSelection} object
 		'''
 		for p in self.export_iter(pages):
-			continue
+			logger.info('Exporting %s', p.name)
 
 	def export_iter(self, pages):
 		'''Export pages while yielding page objects that are exported

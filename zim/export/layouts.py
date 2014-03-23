@@ -84,7 +84,7 @@ class MultiFileLayout(DirLayoutBase):
 	def __init__(self, dir, ext, namespace=None):
 		'''Constructor
 		@param dir: a L{Dir} object
-		@param ext: the file extension to be used
+		@param ext: the file extension to be used, e.g. 'html'
 		@param namespace: optional namespace prefix to strip from
 		page names
 		'''
@@ -94,7 +94,9 @@ class MultiFileLayout(DirLayoutBase):
 		self.relative_root = self.dir
 
 	def page_file(self, page):
-		if self.namespace:
+		if page.isroot:
+			raise PathLookupError('Can not export: %s', page)
+		elif self.namespace:
 			if page.ischild(self.namespace):
 				name = page.relname(self.namespace)
 			else:
@@ -134,42 +136,40 @@ class FileLayout(DirLayoutBase):
 	The root for relative links is "page_files/"
 	'''
 
-	def __init__(self, file, ext, namespace=None):
+	def __init__(self, file, page, ext):
 		'''Constructor
 		@param file: a L{File} object
-		@param ext: the file extension to be used
-		@param namespace: optional namespace prefix to strip from
-		page names
+		@param page: a L{Path} object for the top level page
+		@param ext: the file extension to be used for sub-pages, e.g. 'html'
 		'''
-		if not file.basename.endswith('.'+ext):
-			raise AssertionError(
-				'File "%s" does not have extension "%s"' % (file.basename, ext)
-			)
 		self.file = file
+		self.namespace = page
 		self.ext = ext
-		self.dir = Dir(file.path[:-len('.'+ext)] + '_files')
-		self.namespace = namespace
+
+		basename = file.basename
+		if '.' in basename:
+			basename, x = basename.rsplit('.')
+		self.dir = file.dir.subdir(basename + '_files')
 		self.relative_root = self.dir
 
 	def page_file(self, page):
-		if self.namespace:
-			if page == self.namespace:
-				return self.file
-			elif page.ischild(self.namespace):
-				name = page.relname(self.namespace)
-			else:
-				raise PathLookupError(
-					'%s not a child of %s' % (page, self.namespace)
-				)
+		if page == self.namespace:
+			return self.file
+		elif page.ischild(self.namespace):
+			name = page.relname(self.namespace)
 		else:
-			name = page.name
+			raise PathLookupError(
+				'%s not a child of %s' % (page, self.namespace)
+			)
 		return self.dir.file(encode_filename(name) + '.' + self.ext)
 
 
 
-class SingleFileLayout(FileLayout):
+class SingleFileLayout(DirLayoutBase):
 	'''Like FileLayout, except all pages are stored in a single file
-	while attachments still follow folder structure per page
+	while attachments still follow folder structure per page.
+	Can be used to export a page with sub-pages, but also for a
+	complete notebook.
 
 	Layout::
 
@@ -182,13 +182,18 @@ class SingleFileLayout(FileLayout):
 	The root for relative links is "page_files/"
 	'''
 
+	def __init__(self, file):
+		'''Constructor
+		@param file: a L{File} object
+		'''
+		self.file = file
+
+		basename = file.basename
+		if '.' in basename:
+			basename, x = basename.rsplit('.')
+		self.dir = file.dir.subdir(basename + '_files')
+		self.relative_root = self.dir
+
 	def page_file(self, page):
-		if self.namespace \
-		and not (page == self.namespace
-			or page.ischild(self.namespace)
-		):
-			raise PathLookupError(
-					'%s not a child of %s' % (page, self.namespace)
-				)
 		return self.file
 

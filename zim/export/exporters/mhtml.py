@@ -30,9 +30,10 @@ class MHTMLExporter(Exporter):
 	# Also note that due to all the base64 encoding, size is going
 	# to blow up even more ...
 
-	def __init__(self, file, template):
+	def __init__(self, file, template, document_root_url=None):
 		self.file = file
 		self.template = template
+		self.document_root_url = document_root_url
 
 	def export_iter(self, pages):
 		basename = encode_filename(pages.name)
@@ -40,7 +41,7 @@ class MHTMLExporter(Exporter):
 			r'C:\Users\jkarssen\Documents\Notebooks\tmp\%s.html'
 			% basename) # XXX
 		layout = SingleFileLayout(file, 'html', pages.prefix)
-		exporter = SingleFileExporter(layout, self.template, 'html')
+		exporter = SingleFileExporter(layout, self.template, 'html', document_root_url=self.document_root_url)
 
 		for p in exporter.export_iter(pages):
 			yield p

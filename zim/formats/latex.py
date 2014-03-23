@@ -178,7 +178,7 @@ class Dumper(TextDumper):
 			try:
 				# Try to find the source, otherwise fall back to image
 				src = attrib['src'][:-4] + '.tex'
-				file = self.linker.resolve_file(src)
+				file = self.linker.resolve_source_file(src)
 				if file is not None:
 					equation = file.read().strip()
 				else:

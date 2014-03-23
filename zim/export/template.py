@@ -72,7 +72,7 @@ Test in a template for single page export use: "IF loop.first and loop.last"
 
 import logging
 
-logger = logging.getLogger('zim.exporter')
+logger = logging.getLogger('zim.export')
 
 
 from zim import __version__ as ZIM_VERSION

@@ -17,7 +17,7 @@
 
 
 from zim.fs import Dir, File
-from zim.templates import Template
+from zim.templates import get_template
 from zim.formats import get_format
 
 
@@ -28,7 +28,7 @@ def build_notebook_exporter(dir, format, template, **opts):
 	from zim.export.layouts import MultiFileLayout
 	from zim.export.exporters.files import MultiFileExporter
 
-	template = Template(File(template)) # XXX
+	template = get_template(format, template)
 	ext = get_format(format).info['extension']
 	layout = MultiFileLayout(dir, ext)
 	return MultiFileExporter(layout, template, format, **opts)
@@ -41,9 +41,9 @@ def build_page_exporter(file, format, template, page, **opts):
 	from zim.export.layouts import FileLayout
 	from zim.export.exporters.files import MultiFileExporter
 
-	template = Template(File(template)) # XXX
+	template = get_template(format, template)
 	ext = get_format(format).info['extension']
-	layout = FileLayout(file, ext, namespace=page)
+	layout = FileLayout(file, page, ext)
 	return MultiFileExporter(layout, template, format, **opts)
 
 
@@ -54,20 +54,20 @@ def build_single_file_exporter(file, format, template, namespace=None, **opts):
 	from zim.export.layouts import SingleFileLayout
 	from zim.export.exporters.files import SingleFileExporter
 
-	template = Template(File(template)) # XXX
+	template = get_template(format, template)
 	ext = get_format(format).info['extension']
-	layout = SingleFileLayout(file, ext, namespace=namespace)
+	layout = SingleFileLayout(file)
 	return SingleFileExporter(layout, template, format, **opts)
 
 
-def build_mhtml_file_exporter(file, template):
+def build_mhtml_file_exporter(file, template, **opts):
 	'''Returns an L{Exporter} that is suitable for exporting a set of
 	pages to a single mhtml file
 	'''
 	from zim.export.exporters.mhtml import MHTMLExporter
 
-	template = Template(File(template)) # XXX
-	return MHTMLExporter(file, template)
+	template = get_template('html', template)
+	return MHTMLExporter(file, template, **opts)
 
 
 

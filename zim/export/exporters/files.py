@@ -21,7 +21,7 @@ from zim.export.template import ExportTemplateContext
 class FilesExporterBase(Exporter):
 	'''Base class for exporters that export to files'''
 
-	def __init__(self, layout, template, format):
+	def __init__(self, layout, template, format, document_root_url=None):
 		'''Constructor
 		@param layout: a L{ExportLayout} to map pages to files
 		@param template: a L{Template} object
@@ -30,6 +30,7 @@ class FilesExporterBase(Exporter):
 		self.layout = layout
 		self.template = template
 		self.format = get_format(format) # XXX
+		self.document_root_url = document_root_url
 
 	def export_attachments(self, notebook, page):
 		# XXX FIXME remove need for notebook here
@@ -59,14 +60,14 @@ class FilesExporterBase(Exporter):
 class MultiFileExporter(FilesExporterBase):
 	'''Exporter that exports each page to a single file'''
 
-	def __init__(self, layout, template, format, index_page=None):
+	def __init__(self, layout, template, format, index_page=None, document_root_url=None):
 		'''Constructor
 		@param layout: a L{ExportLayout} to map pages to files
 		@param template: a L{Template} object
 		@param format: the format for the file content
 		@param index_page: a page to output the index or C{None}
 		'''
-		FilesExporterBase.__init__(self, layout, template, format)
+		FilesExporterBase.__init__(self, layout, template, format, document_root_url)
 		self.index_page = index_page # TODO make generic special page in output selection
 
 	def export_iter(self, pages):
@@ -103,7 +104,8 @@ class MultiFileExporter(FilesExporterBase):
 			notebook=notebook,
 			layout=self.layout,
 			output=file,
-			usebase=True # XXX TODO base on format
+			usebase=True, # XXX TODO base on format
+			document_root_url=self.document_root_url
 		)
 		dumper_factory = self.format.Dumper # XXX
 
@@ -152,7 +154,8 @@ class SingleFileExporter(FilesExporterBase):
 			notebook=notebook,
 			layout=self.layout,
 			output=self.layout.file,
-			usebase=True # XXX TODO base on format
+			usebase=True, # XXX TODO base on format
+			document_root_url=self.document_root_url
 		)
 		dumper_factory = self.format.Dumper # XXX
 
