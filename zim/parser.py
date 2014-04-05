@@ -60,13 +60,14 @@ def prepare_text(text, tabstop=4):
 
 	# Fix tabs
 	spaces = ' ' * tabstop
-	pattern = '^(\t*)((?:%s)+)' % spaces
+	pattern = '(?m)^(\t*)((?:%s)+)' % spaces
 	text = re.sub(
 		pattern,
 		lambda m: m.group(1) + '\t' * (len(m.group(2)) / tabstop),
-		text,
-		flags=re.M
+		text
 	)
+	# Specify "(?m)" instead of re.M since "flags" keyword is not
+	# supported in python 2.6
 
 	return text
 

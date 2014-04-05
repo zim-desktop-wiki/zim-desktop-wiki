@@ -56,6 +56,12 @@ unindented_line_re = re.compile('^\S', re.M)
 	# match any unindented line
 
 
+def _remove_indent(text, indent):
+	return re.sub('(?m)^'+indent, '', text)
+		# Specify "(?m)" instead of re.M since "flags" keyword is not
+		# supported in python 2.6
+
+
 class WikiParser(object):
 	# This parser uses 3 levels of rules. The top level splits up
 	# paragraphs, verbatim paragraphs, images and objects.
@@ -166,7 +172,7 @@ class WikiParser(object):
 	def parse_pre(builder, indent, text):
 		'''Verbatim block with indenting'''
 		if indent:
-			text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+			text = _remove_indent(text, indent)
 			attrib = {'indent': len(indent)}
 		else:
 			attrib = None
@@ -192,7 +198,7 @@ class WikiParser(object):
 		### FIXME FIXME FIXME - need to separate two types of attrib ###
 		attrib['type'] = type
 		if indent:
-			body = re.sub('^'+indent, '', body, flags=re.M) # remove indent
+			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
 
 		builder.append(OBJECT, attrib, body)
@@ -222,7 +228,7 @@ class WikiParser(object):
 		per list item
 		'''
 		if indent:
-			text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+			text = _remove_indent(text, indent)
 			attrib = {'indent': len(indent)}
 		else:
 			attrib = None
@@ -275,7 +281,7 @@ class WikiParser(object):
 
 	def parse_indent(self, builder, text, indent):
 		'''Parse indented blocks and turn them into 'div' elements'''
-		text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+		text = _remove_indent(text, indent)
 		builder.start(BLOCK, {'indent': len(indent)})
 		self.inline_parser(builder, text)
 		builder.end(BLOCK)
