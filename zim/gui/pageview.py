@@ -1693,6 +1693,8 @@ class TextBuffer(gtk.TextBuffer):
 			return 0
 
 	def _get_indent_tag(self, level, bullet=None, dir='LTR'):
+		if dir is None:
+			dir = 'LTR' # Assume western default direction - FIXME need system default
 		name = 'indent-%s-%i' % (dir, level)
 		if bullet:
 			name += '-' + bullet
