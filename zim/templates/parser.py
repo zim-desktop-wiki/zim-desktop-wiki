@@ -191,7 +191,7 @@ class TemplateParser(object):
 				r'\<\!--\[%(-?\s.*?\s-?)%\]--\>',
 				process=self._process_token )
 			| Rule('X-Inline-Text-Token',
-				r'\[%(-?\s.*?\s-?)%\]?',
+				r'\[%(-?\s.*?\s-?)%\]',
 				process=self._process_token )
 		)
 		return text_parser

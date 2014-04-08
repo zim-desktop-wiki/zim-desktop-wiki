@@ -130,7 +130,7 @@ class TestSingleFileLayout(tests.TestCase):
 		dir = tdir.subdir('page_files')
 		rdir = dir.subdir('_resources')
 
-		layout = SingleFileLayout(topfile, Path('Test'))
+		layout = SingleFileLayout(topfile, page=Path('Test'))
 		self.assertEqual(layout.relative_root, dir)
 		self.assertEqual(layout.resources_dir(), rdir)
 
@@ -307,13 +307,113 @@ class TestExportTemplateContext(tests.TestCase):
 
 
 
-## TODO Test selections
+class TestPageSelections(tests.TestCase):
+
+	def _test_iface(self, selection):
+		self.assertIsNotNone(selection.name)
+		self.assertIsNotNone(selection.title)
+		self.assertIsNotNone(selection.notebook)
+		for p in selection:
+			self.assertIsInstance(p, Page)
+
+	# TODO add alternative method to walk names for ToC
+	# TODO add __len__ that gives total pages for progress
+	# TODO Use collections subclass to make interface complete ?
+
+	def testAllPages(self):
+		selection = AllPages(tests.new_notebook())
+		self._test_iface(selection)
+
+	def testSinglePage(self):
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('Test'))
+		selection = SinglePage(notebook, page)
+		self._test_iface(selection)
+		self.assertIsNotNone(selection.prefix)
+
+	def testSubPages(self):
+		notebook = tests.new_notebook()
+		page = notebook.get_page(Path('Test'))
+		selection = SinglePage(notebook, page)
+		self._test_iface(selection)
+		self.assertIsNotNone(selection.prefix)
+
+
+class TestMultiFileExporter(tests.TestCase):
+
+	format = 'html'
+	template = 'Default'
+
+	def runTest(self):
+		dir =  Dir(self.create_tmp_dir())
+		#~ dir =  VirtualDir('/test')
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
+
+		exporter = build_notebook_exporter(dir, self.format, self.template)
+		self.assertIsInstance(exporter, MultiFileExporter)
+		exporter.export(pages)
+
+		file = exporter.layout.page_file(Path('roundtrip'))
+		text =  file.read()
+		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
 
+class TestSingleFileExporter(tests.TestCase):
 
-## TODO Test exporters (with fake file obejcts)
+	def runTest(self):
+		dir =  Dir(self.create_tmp_dir())
+		#~ dir =  VirtualDir('/test')
+		file = dir.file('export.html')
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
 
+		exporter = build_single_file_exporter(file, 'html', 'Default')
+		self.assertIsInstance(exporter, SingleFileExporter)
+		exporter.export(pages)
+
+		text =  file.read()
+		self.assertIn('Lorem ipsum dolor sit amet', text)
+
+
+@tests.slowTest # Slow because it uses a tmp file internally
+class TestMHTMLExporter(tests.TestCase):
+
+	def runTest(self):
+		dir =  Dir(self.create_tmp_dir())
+		#~ dir =  VirtualDir('/test')
+		file = dir.file('export.mht')
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
+
+		exporter = build_mhtml_file_exporter(file, 'Default')
+		self.assertIsInstance(exporter, MHTMLExporter)
+		exporter.export(pages)
+
+		text =  file.read()
+		self.assertIn('Lorem ipsum dolor sit amet', text)
+
+
+
+class TestExportFormatLatex(TestMultiFileExporter):
+
+	format = 'latex'
+	template = 'Article'
+
+
+class TestExportFormatMarkDown(TestMultiFileExporter):
+
+	format = 'markdown'
+
+
+class TestExportFormatRst(TestMultiFileExporter):
+
+	format = 'rst'
+
+
+
+## TODO test all exports templates
 
 
 #~ @tests.slowTest
@@ -366,6 +466,7 @@ class TestExportTemplateContext(tests.TestCase):
 		#~ self.assertEqual(template.file, datahome.file('html/Default.html').path)
 		#~ self.assertEqual(template.resources_dir, datahome.subdir('html/Default'))
 		#~ self.assertTrue(template.resources_dir.exists())
+
 
 
 class TestExportCommand(tests.TestCase):
@@ -565,3 +666,53 @@ class TestExportDialog(tests.TestCase):
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well
 
 
+
+class VirtualDir(object):
+
+	def __init__(self, path):
+		self.path = path
+		if '/' in path:
+			x, self.basename = path.rsplit('/', 1)
+		else:
+			self.basename = path
+		self._contents = {}
+
+	def file(self, path):
+		# TODO normalize path
+		if path in self._contents:
+			assert isinstance(self._contents[path], VirtualFile)
+		else:
+			self._contents[path] = VirtualFile(self, self.path + '/' + path)
+		return self._contents[path]
+
+	def subdir(self, path):
+		# TODO normalize path
+		if path in self._contents:
+			assert isinstance(self._contents[path], VirtualDir)
+		else:
+			self._contents[path] = VirtualDir(self.path + '/' + path)
+		return self._contents[path]
+
+
+class VirtualFile(object):
+
+	def __init__(self, dir, path):
+		self.path = path
+		if '/' in path:
+			x, self.basename = path.rsplit('/', 1)
+		else:
+			self.basename = path
+		self.dir = dir
+		self._contents = []
+
+	def write(self, text):
+		self._contents.append(text)
+
+	def writelines(self, lines):
+		self._contents.extend(lines)
+
+	def read(self):
+		return ''.join(self._contents)
+
+	def readlines(self):
+		return ''.join(self._contents).splitlines(True)

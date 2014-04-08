@@ -8,11 +8,14 @@ import email.mime.nonmultipart
 
 import base64
 
+from zim.fs import get_tmpdir
+
 from zim.stores import encode_filename
 
 from zim.export.exporters import Exporter
 from zim.export.exporters.files import SingleFileExporter
 from zim.export.layouts import SingleFileLayout
+from zim.export.linker import ExportLinker
 
 
 class MHTMLExporter(Exporter):
@@ -37,10 +40,10 @@ class MHTMLExporter(Exporter):
 
 	def export_iter(self, pages):
 		basename = encode_filename(pages.name)
-		file = File(
-			r'C:\Users\jkarssen\Documents\Notebooks\tmp\%s.html'
-			% basename) # XXX
-		layout = SingleFileLayout(file, 'html', pages.prefix)
+		dir = get_tmpdir().subdir('mhtml_export_tmp_dir')
+		dir.remove_children()
+		file = dir.file(basename + '.html')
+		layout = SingleFileLayout(file, pages.prefix)
 		exporter = SingleFileExporter(layout, self.template, 'html', document_root_url=self.document_root_url)
 
 		for p in exporter.export_iter(pages):

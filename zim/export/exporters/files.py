@@ -151,7 +151,7 @@ class SingleFileExporter(FilesExporterBase):
 		self.export_resources()
 
 		linker_factory = partial(ExportLinker,
-			notebook=notebook,
+			notebook=pages.notebook,
 			layout=self.layout,
 			output=self.layout.file,
 			usebase=True, # XXX TODO base on format

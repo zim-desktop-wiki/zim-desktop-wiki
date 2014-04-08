@@ -69,7 +69,7 @@ class TemplateProcessor(object):
 			else:
 				raise AssertionError, 'Can not assign: %s' % var.name
 
-		if namespace \
+		if namespace is not None \
 		and isinstance(namespace, TemplateContextDict):
 			namespace[var.key] = value
 		else:

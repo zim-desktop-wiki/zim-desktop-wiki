@@ -89,7 +89,6 @@ class Dumper(TextDumper):
 	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
 		assert self.linker, 'LaTeX dumper needs a linker object'
-		self.linker.set_usebase(False)
 
 		self.document_type = self.template_options.get('document_type')
 			# Option set in template - potentially tainted value

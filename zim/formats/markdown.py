@@ -56,7 +56,6 @@ class Dumper(TextDumper):
 
 	def dump(self, tree):
 		assert self.linker, 'Markdown dumper needs a linker object'
-		self.linker.set_usebase(True)
 		return TextDumper.dump(self, tree)
 
 	def dump_indent(self, tag, attrib, strings):

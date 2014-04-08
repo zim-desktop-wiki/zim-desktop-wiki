@@ -229,12 +229,12 @@ class ExpressionFunctionCall(Expression):
 				and isinstance(getattr(wrapper, name), ExpressionFunction):
 					function = getattr(wrapper, name)
 				else:
-					raise AssertionError, 'parameter is not a valid function: %s' % self.param.name
+					raise AssertionError, 'Not a valid function: %s' % self.param.name
 
 		## Execute function
 		if not isinstance(function, ExpressionFunction):
 			# Just being paranoid here, but leave it in to block any mistakes in above lookup
-			raise AssertionError, 'parameter is not a valid function: %s' % self.param.name
+			raise AssertionError, 'Not a valid function: %s' % self.param.name
 
 		args = self.args(context)
 		return function(*args)

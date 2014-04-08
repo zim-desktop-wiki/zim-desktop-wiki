@@ -198,7 +198,6 @@ class Template(object):
 		'''
 		context = TemplateContextDict(dict(context)) # COPY to keep changes local
 		context.update(self.template_functions) # set builtins
-		#~ import pprint; pprint.pprint(context)
 		processor = TemplateProcessor(self.parts)
 		processor.process(output, context)
 

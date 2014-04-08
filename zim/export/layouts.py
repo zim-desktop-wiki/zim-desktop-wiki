@@ -182,9 +182,10 @@ class SingleFileLayout(DirLayoutBase):
 	The root for relative links is "page_files/"
 	'''
 
-	def __init__(self, file):
+	def __init__(self, file, page=None):
 		'''Constructor
 		@param file: a L{File} object
+		@param page: an optional L{Path} object for the top level page
 		'''
 		self.file = file
 
@@ -194,6 +195,17 @@ class SingleFileLayout(DirLayoutBase):
 		self.dir = file.dir.subdir(basename + '_files')
 		self.relative_root = self.dir
 
+		self.namespace = page
+
 	def page_file(self, page):
-		return self.file
+		if page.isroot:
+			raise PathLookupError('Can not export: %s', page)
+		elif self.namespace \
+		and not page == self.namespace \
+		and not page.ischild(self.namespace):
+			raise PathLookupError(
+				'%s not a child of %s' % (page, self.namespace)
+			)
+		else:
+			return self.file
 
