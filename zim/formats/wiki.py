@@ -109,17 +109,32 @@ class WikiParser(object):
 		p = Parser(
 			Rule(
 				'X-Bullet-List',
-				r'(^%s.*\n(?:^\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
+				r'''(
+					^ %s .* \n								# Line starting with bullet
+					(?:
+						^ \t* %s .* \n						# Line with same or more indent and bullet
+					)*										# .. repeat
+				)''' % (bullet_pattern, bullet_pattern),
 				process=self.parse_list
 			),
 			Rule(
 				'X-Indented-Bullet-List',
-				r'(^(?P<list_indent>\t+)%s.*\n(?:^(?P=list_indent)\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
+				r'''(
+					^(?P<list_indent>\t+) %s .* \n			# Line with indent and bullet
+					(?:
+						^(?P=list_indent) \t* %s .* \n		# Line with same or more indent and bullet
+					)*										# .. repeat
+				)''' % (bullet_pattern, bullet_pattern),
 				process=self.parse_list
 			),
 			Rule(
 				'X-Indented-Block',
-				r'(^(?P<block_indent>\t+).*\n(?:^(?P=block_indent)(?!\t).*\n)*)',
+				r'''(
+					^(?P<block_indent>\t+) .* \n			# Line with indent
+					(?:
+						^(?P=block_indent) (?!\t|%s) .* \n	# Line with _same_ indent, no bullet
+					)*										# .. repeat
+				)''' % bullet_pattern,
 				process=self.parse_indent
 			),
 		)

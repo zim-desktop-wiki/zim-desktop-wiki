@@ -423,6 +423,9 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 	def __init__(self):
 		SectionedConfigDict.__init__(self)
 		self['Desktop Entry'].define(self._definitions)
+		self.encoding = zim.fs.ENCODING
+		if self.encoding == 'mbcs':
+			self.encoding = 'utf-8'
 
 	@property
 	def key(self):
