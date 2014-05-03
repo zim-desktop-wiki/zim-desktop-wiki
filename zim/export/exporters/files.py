@@ -112,7 +112,7 @@ class MultiFileExporter(FilesExporterBase):
 		context = ExportTemplateContext(
 			notebook,
 			linker_factory, dumper_factory,
-			title=page.name, # XXX implement page.title (use heading)
+			title=page.get_title(),
 			content=[page],
 			home=None, up=None, prevpage=None, nextpage=None, # TODO
 			links=None, # TODO

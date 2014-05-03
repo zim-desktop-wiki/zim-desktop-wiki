@@ -104,7 +104,7 @@ class TestWWWInterface(tests.TestCase):
 		# page
 		response = call('GET', '/Test/foo.html')
 		self.assertResponseOK(response)
-		self.assertTrue('<h1>Foo</h1>' in response)
+		self.assertTrue('<h1>Foo <a name=\'#Test:foo\'></a></h1>' in response)
 
 		# page not found
 		with Filter404():

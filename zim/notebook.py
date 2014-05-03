@@ -2570,6 +2570,13 @@ class Page(Path):
 					seen.add(name)
 					yield name, elt.attrib
 
+	def get_title(self):
+		tree = self.get_parsetree()
+		if tree:
+			return tree.get_heading() or self.basename
+		else:
+			return self.basename
+
 	def heading_matches_pagename(self):
 		'''Returns whether the heading matches the page name.
 		Used to determine whether the page should have its heading
