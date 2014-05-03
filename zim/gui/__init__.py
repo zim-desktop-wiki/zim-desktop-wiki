@@ -1407,9 +1407,8 @@ class GtkInterface(gobject.GObject):
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		if use_template:
-			template = self.notebook.get_template(page)
-			tree = template.process_to_parsetree(self.notebook, page)
-			page.set_parsetree(tree)
+			parsetree = self.notebook.get_template(page)
+			page.set_parsetree(parsetree)
 			page.parse('wiki', text, append=True) # FIXME format hard coded
 		else:
 			page.parse('wiki', text) # FIXME format hard coded

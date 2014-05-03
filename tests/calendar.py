@@ -14,6 +14,7 @@ import zim.datetimetz
 import zim.plugins
 from zim.notebook import Path
 from zim.templates import get_template
+from zim.formats import get_dumper
 
 from zim.plugins.calendar import NotebookExtension, \
 	MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
@@ -205,25 +206,25 @@ class TestCalendarPlugin(tests.TestCase):
 	def testTemplate(self):
 		pluginklass = zim.plugins.get_plugin_class('calendar')
 		plugin = pluginklass()
-
-		notebook = tests.new_notebook()
-
-		template = get_template('wiki', 'Journal')
-		zim.datetimetz.FIRST_DAY_OF_WEEK = \
-			zim.datetimetz.MONDAY
 		plugin.preferences['namespace'] = Path('Calendar')
 
+		notebook = tests.new_notebook()
+		plugin.extend(notebook)
+
+		dumper = get_dumper('wiki')
+
+		zim.datetimetz.FIRST_DAY_OF_WEEK = \
+			zim.datetimetz.MONDAY
 		for path in (
-			'Calendar:2012',
-			'Calendar:2012:04:27',
-			'Calendar:2012:Week 17',
-			'Calendar:2012:04',
+			Path('Calendar:2012'),
+			Path('Calendar:2012:04:27'),
+			Path('Calendar:2012:Week 17'),
+			Path('Calendar:2012:04'),
 		):
-			page = notebook.get_page(Path(path))
-			lines = template.process(notebook, page)
-			text = ''.join(lines)
-			#~ print text
-			self.assertTrue(not 'Created' in text) # No fall back
-			if 'Week' in path:
+			tree = notebook.get_template(path)
+			lines = dumper.dump(tree)
+			#~ print lines
+			self.assertTrue(not 'Created' in ''.join(lines)) # No fall back
+			if 'Week' in path.name:
 				days = [l for l in lines if l.startswith('=== ')]
 				self.assertEqual(len(days), 7)

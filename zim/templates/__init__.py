@@ -2,15 +2,6 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# TODO merge classes include here back into parser.py
-
-# TODO Split out in sub modules
-#	templates/__init__.py		# Template & build_template()
-#	templates/parser.py			# TemplateParser and TemplateTreeBuilder
-#	templates/expressionparser.py
-#	templates/expression.py		# TemplateExpression, param dict etc.
-#	templates/functions.py		# strftime etc.
-
 # TODO for properties dict, translate keys into valid param names (replace('-', '_'))
 #      need PageProxy for those kind of things
 
@@ -22,8 +13,6 @@
 
 # TODO add "DEFAULT" and "CALL" directives
 
-# TODO add "and" and "or" keywords for expression
-#      allow e.g. "IF loop.first and loop.last" to detect single page
 
 # Supported sytax
 #   [% .. %] and <!--[% .. %]-->
@@ -68,7 +57,7 @@
 #	loop.prev		previous item or None
 #	loop.next		next item or None
 
-# Document:
+# TODO Document:
 # * all of the above
 # * that we follow template toolkit syntax, but not full implementation
 #   and especially not perl style implicite behavior
@@ -86,6 +75,7 @@ logger = logging.getLogger('zim.templates')
 from zim.fs import File, Dir, PathLookupError
 from zim.config import data_dirs
 from zim.parsing import is_path_re
+from zim.signals import SignalEmitter
 
 
 from zim.templates.parser import TemplateParser
@@ -163,7 +153,7 @@ def get_template(category, template):
 	return Template(file)
 
 
-class Template(object):
+class Template(SignalEmitter):
 	'''This class defines the main interface for templates
 	It takes care of parsing a template file and allows evaluating
 	the template with a given set of template parameters.
@@ -198,6 +188,9 @@ class Template(object):
 		'''
 		context = TemplateContextDict(dict(context)) # COPY to keep changes local
 		context.update(self.template_functions) # set builtins
+		self.emit('process', output, context)
+
+	def do_process(self, output, context):
 		processor = TemplateProcessor(self.parts)
 		processor.process(output, context)
 

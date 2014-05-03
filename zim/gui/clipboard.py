@@ -17,7 +17,7 @@ from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
 	FORMATTEDTEXT, IMAGE, LINK
-from zim.exporter import StaticLinker
+#~ from zim.exporter import StaticLinker
 
 
 logger = logging.getLogger('zim.gui.clipboard')

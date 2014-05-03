@@ -10,7 +10,7 @@ from zim.fs import TmpFile
 from zim.plugins import PluginClass, WindowExtension, DialogExtension, extends
 from zim.actions import action
 import zim.templates
-from zim.exporter import StaticLinker
+#~ from zim.exporter import StaticLinker
 
 
 class PrintToBrowserPlugin(PluginClass):

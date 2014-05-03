@@ -92,6 +92,7 @@ from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
 	data_dir, ConfigManager, XDGConfigFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 	is_interwiki_keyword_re, link_type, url_encode, url_decode
+import zim.templates
 import zim.formats
 import zim.stores
 
@@ -776,6 +777,9 @@ class Notebook(Object):
 	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
 	to resolve links
+	@signal: C{new-page-template(path, template)}: emitted before
+	evaluating a template for a new page, intended for plugins that want
+	to extend page templates
 
 	@note: For store_async() the 'page-stored' signal is emitted
 	after scheduling the store, but potentially before it was really
@@ -821,6 +825,7 @@ class Notebook(Object):
 		'deleted-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'properties-changed': (gobject.SIGNAL_RUN_FIRST, None, ()),
 		'suggest-link': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'new-page-template': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 	}
 	__hooks__ = ('suggest-link',)
 
@@ -1959,20 +1964,30 @@ class Notebook(Object):
 		store = self.get_store(path)
 		return store.get_attachments_dir(path)
 
-	def get_template(self, path):
+	def get_template(self, path, plugins=None):
 		'''Get a template for the intial text on new pages
-
 		@param path: a L{Path} object
-
-		This parameter is needed because the template can differ per
-		namespace.
-
-		@returns: a L{Template} object
+		@returns: a L{ParseTree} object
 		'''
-		from zim.templates import get_template
+		# FIXME hardcoded that template must be wiki format
+
 		template = self.namespace_properties[path]['template']
 		logger.debug('Found template \'%s\' for %s', template, path)
-		return get_template('wiki', template)
+		template = zim.templates.get_template('wiki', template)
+
+		lines = []
+		context = {
+			'page': {
+				'name': path.name,
+				'basename': path.basename,
+				'namespace': path.namespace,
+			}
+		}
+		self.emit('new-page-template', path, template) # plugin hook
+		template.process(lines, context)
+
+		parser = zim.formats.get_parser('wiki')
+		return parser.parse(lines)
 
 	def walk(self, path=None):
 		'''Generator function which iterates through all pages, depth first.

@@ -19,7 +19,7 @@ from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
-from zim.templates import TemplateManager, TemplateFunction
+from zim.templates.expression import ExpressionFunction
 
 logger = logging.getLogger('zim.plugins.calendar')
 
@@ -104,8 +104,6 @@ Also adds a calendar widget to access these pages.
 
 	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
-		self.connectto(TemplateManager, 'process-page', self.on_process_page_template)
-
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed(self.preferences)
 
@@ -114,22 +112,6 @@ Also adds a calendar widget to access these pages.
 			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
 		else:
 			self.set_extension_class('MainWindow', MainWindowExtensionDialog)
-
-	def on_process_page_template(self, manager, template, page, dict):
-		'''Callback called when parsing a template, e.g. when exporting
-		a page or when a new page is created.
-		Sets parameters in the template dict to be used in the template.
-		'''
-		daterange = daterange_from_path(page)
-		if daterange:
-			type, start, end = daterange
-			dict['calendar_plugin'] = {
-				'page_type': type,
-				'date': start,
-				'start_date': start,
-				'end_date': end,
-				'days': DateRangeTemplateFunction(start, end),
-			}
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
@@ -158,20 +140,19 @@ Also adds a calendar widget to access these pages.
 			return None
 
 
-class DateRangeTemplateFunction(TemplateFunction):
-	'''Function to be used in templates to iterate a range of dates'''
+def dateRangeTemplateFunction(start, end):
+	'''Returns a function to be used in templates to iterate a range of dates'''
 
-	def __init__(self, start, end):
-		self.start = start
-		self.end = end
-
-	def __call__(self, dict):
+	@ExpressionFunction
+	def date_range_function():
 		oneday = datetime.timedelta(days=1)
-		yield self.start
-		next = self.start + oneday
-		while next <= self.end:
+		yield start
+		next = start + oneday
+		while next <= end:
 			yield next
 			next += oneday
+
+	return date_range_function
 
 
 @extends('Notebook')
@@ -190,6 +171,7 @@ class NotebookExtension(ObjectExtension):
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 		self.connectto(notebook, 'suggest-link')
+		self.connectto(notebook, 'new-page-template')
 
 	def on_suggest_link(self, notebook, source, text):
 		#~ if date_path_re.match(path.text):
@@ -202,6 +184,28 @@ class NotebookExtension(ObjectExtension):
 		# TODO other formats
 		else:
 			return None
+
+	def on_new_page_template(self, notebook, path, template):
+		daterange = daterange_from_path(path)
+		if daterange:
+			self.connectto(template, 'process',
+				self.on_process_new_page_template,
+				userdata=daterange
+			)
+
+	def on_process_new_page_template(self, template, output, context, daterange):
+		'''Callback called when parsing a template, e.g. when exporting
+		a page or when a new page is created.
+		Sets parameters in the template dict to be used in the template.
+		'''
+		type, start, end = daterange
+		context['calendar_plugin'] = {
+			'page_type': type,
+			'date': start,
+			'start_date': start,
+			'end_date': end,
+			'days': dateRangeTemplateFunction(start, end),
+		}
 
 	def on_preferences_changed(self, preferences):
 		self.teardown()
