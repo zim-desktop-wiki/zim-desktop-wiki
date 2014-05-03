@@ -11,17 +11,21 @@ import logging
 
 logger = logging.getLogger('zim.exporter')
 
+import base64
+
+from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
 from zim.fs import File
+from zim.config import data_file
 from zim.notebook import PageNameError, interwiki_link
 from zim.stores import encode_filename
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
+from zim.formats import BaseLinker
 
 
-
-class ExportLinker(object): # TODO should inherit from BaseLinker
+class ExportLinker(BaseLinker):
 	'''This object translate links in zim pages to (relative) URLs.
 	This is used when exporting data to resolve links.
 	Relative URLs start with "./" or "../" and should be interpreted
@@ -206,9 +210,62 @@ class ExportLinker(object): # TODO should inherit from BaseLinker
 			return link
 
 
-#~ class StaticExportLinker(ExportLinker):
-	#~ pass
+class StubLayout(ExportLayout):
+	'''Stub implementation of L{ExportLayout} that is used by
+	L{StaticExportLinker}
+	'''
 
-	# Resolve icons to data_dir()
-	# Link by absolute path to attachments and documents in original location
+	def __init__(self, notebook, resources_dir):
+		self.notebook = notebook
+		self.resources_dir = resources_dir
+
+	def page_file(self, page):
+		page = self.notebook.get_page(page)
+		if hasattr(page, 'source') and isinstance(page.source, File):
+			return page.source
+		else:
+			return None
+
+	def attachments_dir(self, page):
+		return self.notebook.get_attachments_dir(page)
+
+	def resources_dir(self):
+		return self.resources_dir
+
+
+def data_uri(file):
+	if file.name.endswith('.png'):
+		mime = 'image/png'
+	else:
+		mime = file.get_mimetype()
+	data64 = u''.join(base64.encodestring(file.raw()).splitlines())
+	return u'data:%s;base64,%s' % (mime, data64)
+
+
+class StaticExportLinker(ExportLinker):
+	'''This linker can be used when exporting a page to e.g. html
+	without a file to write the html to. All links are resolved
+	statically to the source files.
+	'''
+
+	def __init__(self, notebook, resources_dir=None, source=None):
+		layout = StubLayout(notebook, resources_dir)
+		ExportLinker.__init__(self, notebook, layout, source=source)
+
+	def icon(self, name):
+		if not name in self._icons:
+			path = 'icons/%s.png' % name
+			if self.layout.resources_dir:
+				file = self.layout.resources_dir.file(path)
+				if file.exists():
+					self._icons[name] = data_uri(file)
+
+			if not name in self._icons:
+				file = data_file('pixmaps/%s.png' % name)
+				if file.exists():
+					self._icons[name] = data_uri(file)
+				else:
+					self._icons[name] = file.uri
+
+		return self._icons[name]
 
