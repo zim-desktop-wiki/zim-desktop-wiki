@@ -17,7 +17,7 @@ import glob
 from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
 from zim.fs import File, TmpFile
 from zim.config import data_file
-from zim.templates import GenericTemplate
+from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
 
@@ -77,9 +77,7 @@ class ScoreGenerator(ImageGeneratorClass):
 
 	def __init__(self, plugin):
 		ImageGeneratorClass.__init__(self, plugin)
-		file = data_file('templates/plugins/scoreeditor.ly')
-		assert file, 'BUG: could not find templates/plugins/scoreeditor.ly'
-		self.template = GenericTemplate(file.readlines(), name=file)
+		self.template = get_template('plugins', 'scoreeditor.ly')
 		self.scorefile = TmpFile(self.scriptname)
 		self.cur_lilypond_version = _get_lilypond_version()
 		self.include_header = plugin.preferences['include_header']
@@ -117,11 +115,14 @@ class ScoreGenerator(ImageGeneratorClass):
 
 		# Write to tmp file using the template for the header / footer
 		scorefile = self.scorefile
-		scorefile.writelines(
-			self.template.process({'score': text,
-				'version': version,
-				'include_header': self.include_header,
-				'include_footer': self.include_footer}) )
+		lines = []
+		self.template.process(lines, {
+			'score': text,
+			'version': version or '',
+			'include_header': self.include_header or '',
+			'include_footer': self.include_footer or '',
+		} )
+		scorefile.writelines(lines)
 		#~ print '>>>%s<<<' % scorefile.read()
 
 		# Call convert-ly to convert document of current version of

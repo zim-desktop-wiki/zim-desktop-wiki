@@ -117,7 +117,7 @@ class ExportTemplateContext(dict):
 		("single file"), 'C{content}' is a list of all notebook pages a
 		nd 'C{special}' a list.
 
-		@param format: the export format
+		@param notebook: L{Notebook} object
 		@param linker_factory: function producing L{ExportLinker} objects
 		@param dumper_factory: function producing L{DumperClass} objects
 		@param title: the export page title

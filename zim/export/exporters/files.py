@@ -26,6 +26,7 @@ class FilesExporterBase(Exporter):
 		@param layout: a L{ExportLayout} to map pages to files
 		@param template: a L{Template} object
 		@param format: the format for the file content
+		@param document_root_url: optional URL for the document root
 		'''
 		self.layout = layout
 		self.template = template
@@ -66,6 +67,7 @@ class MultiFileExporter(FilesExporterBase):
 		@param template: a L{Template} object
 		@param format: the format for the file content
 		@param index_page: a page to output the index or C{None}
+		@param document_root_url: optional URL for the document root
 		'''
 		FilesExporterBase.__init__(self, layout, template, format, document_root_url)
 		self.index_page = index_page # TODO make generic special page in output selection
@@ -104,7 +106,7 @@ class MultiFileExporter(FilesExporterBase):
 			notebook=notebook,
 			layout=self.layout,
 			output=file,
-			usebase=True, # XXX TODO base on format
+			usebase=self.format.info['usebase'],
 			document_root_url=self.document_root_url
 		)
 		dumper_factory = self.format.Dumper # XXX
@@ -154,7 +156,7 @@ class SingleFileExporter(FilesExporterBase):
 			notebook=pages.notebook,
 			layout=self.layout,
 			output=self.layout.file,
-			usebase=True, # XXX TODO base on format
+			usebase=self.format.info['usebase'],
 			document_root_url=self.document_root_url
 		)
 		dumper_factory = self.format.Dumper # XXX

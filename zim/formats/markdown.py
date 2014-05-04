@@ -28,6 +28,7 @@ info = {
 	'native': False,
 	'import': False,
 	'export': True,
+	'usebase': True,
 }
 
 

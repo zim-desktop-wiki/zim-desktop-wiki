@@ -1964,7 +1964,7 @@ class Notebook(Object):
 		store = self.get_store(path)
 		return store.get_attachments_dir(path)
 
-	def get_template(self, path, plugins=None):
+	def get_template(self, path):
 		'''Get a template for the intial text on new pages
 		@param path: a L{Path} object
 		@returns: a L{ParseTree} object
@@ -1974,7 +1974,9 @@ class Notebook(Object):
 		template = self.namespace_properties[path]['template']
 		logger.debug('Found template \'%s\' for %s', template, path)
 		template = zim.templates.get_template('wiki', template)
+		return self.eval_new_page_template(path, template)
 
+	def eval_new_page_template(self, path, template):
 		lines = []
 		context = {
 			'page': {

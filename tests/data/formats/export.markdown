@@ -40,7 +40,7 @@ And some empty space here:
 [Foo](Foo)[Bar](Bar)
 
 <mailto:foo@bar.org>
-[wp?Test](http://en.wikipedia.org/wiki/Test)
+[wp?Test](interwiki:wp?Test)
 
 External links like <http://nongnu.org> and [foo@bar.org](mailto:foo@bar.org) are also supported
 

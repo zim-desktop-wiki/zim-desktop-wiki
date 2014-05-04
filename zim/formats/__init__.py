@@ -1315,6 +1315,9 @@ class StubLinker(BaseLinker):
 	parsed. DO NOT USE outside of testing.
 	'''
 
+	def __init__(self, source_dir=None):
+		self.source_dir = source_dir
+
 	def link(self, link):
 		type = link_type(link)
 		if type == 'mailto' and not link.startswith('mailto:'):
@@ -1334,7 +1337,10 @@ class StubLinker(BaseLinker):
 		return path
 
 	def resolve_source_file(self, link):
-		return None
+		if self.source_dir:
+			return self.source_dir.file(link)
+		else:
+			return None
 
 	def page_object(self, path):
 		return path.name

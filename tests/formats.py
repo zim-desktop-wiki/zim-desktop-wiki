@@ -72,8 +72,7 @@ class TestFormatMixin(object):
 		# Dumper
 		wanted = self.getReferenceData()
 		reftree = tests.new_parsetree_from_xml(self.reference_xml)
-		linker = StubLinker()
-		linker.set_base(Dir('tests/data/formats'))
+		linker = StubLinker(Dir('tests/data/formats'))
 		dumper = self.format.Dumper(linker=linker)
 		result = ''.join(dumper.dump(reftree))
 		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
@@ -663,58 +662,15 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless{} \textgreater{}'
 		self.assertEqual(format.Dumper.encode_text(input), wanted)
 
-	def testExport(self):
-		'''test the export of a wiki page to latex'''
-		with LatexLoggingFilter():
-			format = get_format('LaTeX')
-			testpage = tests.WikiTestData.get('Test:wiki')
-			tree = get_format('wiki').Parser().parse(testpage)
-			output = format.Dumper(linker=StubLinker()).dump(tree)
-			#~ print '>>>\n' + ''.join(output) + '<<<'
-			self.assertTrue('\chapter{Foo Bar}\n' in output)
 
-		# Test template_options.document_type
-		input = r'''
-[% options.document_type = 'book' -%]
-\title{[% page.basename %]}
+class StubFile(object):
 
-\begin{document}
-\maketitle
-\tableofcontents
-[% page.body %]
-\end{document}
-'''
-		wanted = r'''
-\title{FooBar}
+	def __init__(self, path, text):
+		self.path = path
+		self.text = text
 
-\begin{document}
-\maketitle
-\tableofcontents
-\textbf{foo bar !}
-
-
-
-\chapter{Heading 2}
-
-duss
-
-
-\end{document}
-'''
-
-		notebook = tests.new_notebook()
-		page = notebook.get_page(Path('FooBar'))
-		page.parse('wiki', '''\
-====== Page Heading ======
-**foo bar !**
-
-===== Heading 2 =====
-duss
-''')
-
-		template = Template(input, 'latex', linker=StubLinker())
-		result = template.process(notebook, page)
-		self.assertEqual(''.join(result), wanted)
+	def read(self):
+		return self.text
 
 
 class TestOldParseTreeBuilder(tests.TestCase):

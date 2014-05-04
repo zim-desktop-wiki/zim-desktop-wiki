@@ -3167,7 +3167,7 @@ class NewPageDialog(Dialog):
 				# T: Error when creating new page
 
 		template = get_template('wiki', self.form['template'])
-		tree = template.process_to_parsetree(self.ui.notebook, page)
+		tree = self.ui.notebook.eval_new_page_template(page, template)
 		page.set_parsetree(tree)
 		self.ui.open_page(page)
 		self.ui.mainwindow.pageview.set_cursor_pos(-1) # HACK set position to end of template

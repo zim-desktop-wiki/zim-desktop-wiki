@@ -132,7 +132,7 @@ def get_template(category, template):
 		for dir in path:
 			for basename in dir.list():
 				name = basename.rsplit('.')[0] # robust if no '.' in basename
-				if name == template:
+				if basename == template or name == template:
 					file = dir.file(basename)
 					if file.exists(): # is a file
 						break

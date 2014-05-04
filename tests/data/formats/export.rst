@@ -41,7 +41,7 @@ head 3
 `Foo <Foo>`_`Bar <Bar>`_
 
 `mailto:foo@bar.org <mailto:foo@bar.org>`_
-`wp?Test <http://en.wikipedia.org/wiki/Test>`_
+`wp?Test <interwiki:wp?Test>`_
 
 External links like `http://nongnu.org <http://nongnu.org>`_ and `foo@bar.org <mailto:foo@bar.org>`_ are also supported
 

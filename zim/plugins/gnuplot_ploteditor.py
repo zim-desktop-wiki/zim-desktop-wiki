@@ -17,7 +17,7 @@ from zim.plugins.base.imagegenerator import \
 	ImageGeneratorPlugin, ImageGeneratorClass, MainWindowExtensionBase
 from zim.fs import File, TmpFile
 from zim.config import data_file
-from zim.templates import GenericTemplate
+from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
 
@@ -68,9 +68,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 
 	def __init__(self, plugin, attachment_folder=None):
 		ImageGeneratorClass.__init__(self, plugin)
-		file = data_file('templates/plugins/gnuploteditor.gnu')
-		assert file, 'BUG: could not find templates/plugins/gnuploteditor.gnu'
-		self.template = GenericTemplate(file.readlines(), name=file)
+		self.template = get_template('plugins', 'gnuploteditor.gnu')
 		self.attachment_folder = attachment_folder
 		self.plotscriptfile = TmpFile(self.scriptname)
 
@@ -89,11 +87,13 @@ class GnuplotGenerator(ImageGeneratorClass):
 		}
 		if self.attachment_folder and self.attachment_folder.exists():
 			template_vars['attachment_folder'] = self.attachment_folder.path
+		else:
+			template_vars['attachment_folder'] = ''
 
 		# Write to tmp file using the template for the header / footer
-		plotscriptfile.writelines(
-			self.template.process(template_vars)
-		)
+		lines = []
+		self.template.process(lines, template_vars)
+		plotscriptfile.writelines(lines)
 		#~ print '>>>\n%s<<<' % plotscriptfile.read()
 
 		# Call Gnuplot

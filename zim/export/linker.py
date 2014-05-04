@@ -32,7 +32,7 @@ class ExportLinker(BaseLinker):
 	in the same way as in HTML. Both URLs and relative URLs are
 	already URL encoded
 
-	@TODO: info on formats to know how to set "usebase"
+	@todo: info on formats to know how to set "usebase"
 	'''
 
 	def __init__(self, notebook, layout, source=None, output=None,
@@ -40,10 +40,11 @@ class ExportLinker(BaseLinker):
 	):
 		'''Contructor
 		@param notebook: the source L{Notebook} for resolving links
-		@oaram layout: the L{ExportLayout} for resolving target files
+		@param layout: the L{ExportLayout} for resolving target files
 		@param source: is the L{Path} of the source page being exported
 		@param output: is a L{File} object for the destination file
 		@param usebase: if C{True} the format allows returning relative paths
+		@param document_root_url: optional URL for the document root
 		'''
 		self.notebook = notebook
 		self.layout = layout
