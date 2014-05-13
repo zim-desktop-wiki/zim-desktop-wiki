@@ -68,7 +68,8 @@ def set_basedirs():
 			cache_dir = str(wreg.QueryValueEx(wreg_key, "Cache")[0].replace(u'%USERPROFILE%', environ['USERPROFILE']))
 			wreg.CloseKey(wreg_key)
 		except:
-			cache_dir = environ['TEMP']
+			cache_dir = APPDATA + r'\zim\cache'
+			# Not using TMP here because it is cleaned too often
 
 		XDG_CACHE_HOME = Dir(
 			environ.get('XDG_CACHE_HOME', cache_dir + r'\zim'))
