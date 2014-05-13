@@ -8,10 +8,12 @@ import zim.formats
 import zim.templates
 
 from zim.fs import File, Dir
-from zim.exporter import Exporter
 from zim.stores import encode_filename
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressBarDialog, ErrorDialog, QuestionDialog
+
+from zim.export import *
+from zim.export.selections import *
 
 
 class ExportDialog(Assistant):
@@ -25,9 +27,33 @@ class ExportDialog(Assistant):
 		self.append_page(OutputPage(self))
 
 	def do_response_ok(self):
+		exporter, selection = self.get_exporter_selection()
+		if exporter is None:
+			return False # canceled
+
+		# Check index up to date
+		index = self.ui.notebook.index
+		if index.updating:
+			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
+				index.ensure_update(callback=lambda p: dialog.pulse(p.name))
+				if dialog.cancelled:
+					return False
+
+		# Run export
+		with ProgressBarDialog(self, _('Exporting notebook')) as dialog:
+				# T: Title for progressbar window
+				for p in exporter.export_iter(selection):
+					if not dialog.pulse(p.name):
+						return False # canceled
+
+		return True
+
+	def get_exporter_selection(self):
 		#~ import pprint
 		#~ pprint.pprint(self.uistate)
 		#~ return True
+
+		# Prepare options
 		options = {}
 		for k in ('format', 'template', 'index_page'):
 			if self.uistate[k] and not self.uistate[k].isspace():
@@ -39,21 +65,8 @@ class ExportDialog(Assistant):
 		if options['template'] == '__file__':
 			options['template'] = self.uistate['template_file']
 
-		if self.uistate['document_root_url'] == 'url':
+		if self.uistate['document_root'] == 'url':
 			options['document_root_url'] = self.uistate['document_root_url']
-
-		try:
-			exporter = Exporter(self.ui.notebook, **options)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			return False
-
-		index = self.ui.notebook.index
-		if index.updating:
-			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
-				index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-				if dialog.cancelled:
-					return False
 
 		if self.uistate['selection'] == 'all':
 			dir = Dir(self.uistate['output_folder'])
@@ -66,13 +79,15 @@ class ExportDialog(Assistant):
 					  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
 				) ).run()
 				if not ok:
-					return False
+					return None, None
 
-			with ProgressBarDialog(self, _('Exporting notebook')) as dialog: # T: Title for progressbar window
-				exporter.export_all(dir, callback=lambda p: dialog.pulse(p.name))
+			exporter = build_notebook_exporter(dir, **options)
+			selection = AllPages(self.ui.notebook)
+			return exporter, selection
 
-		elif self.uistate['selection'] == 'selection':
-			pass # TODO
+		#~ elif self.uistate['selection'] == 'selection':
+			#~ pass # TODO
+
 		elif self.uistate['selection'] == 'page':
 			file = File(self.uistate['output_file'])
 			if file.exists():
@@ -82,12 +97,21 @@ class ExportDialog(Assistant):
 					  'Do you want to overwrite it?' ) # T: detailed message, answers are Yes and No
 				) ).run()
 				if not ok:
-					return False
+					return None, None
 
-			page = self.ui.notebook.get_page(self.uistate['selected_page'])
-			exporter.export_page(file.dir, page, filename=file.basename)
+			options.pop('index_page', None)
 
-		return True
+			path = self.uistate['selected_page']
+			exporter = build_page_exporter(file, page=path, **options)
+			if self.uistate['selection_recursive']:
+				selection = SubPages(self.ui.notebook, path)
+			else:
+				selection = SinglePage(self.ui.notebook, path)
+			return exporter, selection
+
+		else:
+			raise AssertionError, 'Unexpected selection: %s' % self.uistate['selection']
+
 
 
 class InputPage(AssistantPage):
@@ -108,26 +132,28 @@ class InputPage(AssistantPage):
 				# T: Option in export dialog to export selection
 			None,
 			('page', 'page', _('Page')), # T: Input field in export dialog
-			#~ ('recursive', 'bool', _('Recursive')),
+			('recursive', 'bool', _('Include subpages')), # T: Input field in export dialog
 		), {
 			'page': assistant.ui.page,
+			'recursive': True,
 		},
 		depends={
 			'page': 'selection:page',
-			#~ 'recursive': 'selection:page',
+			'recursive': 'selection:page',
 		} )
 		self.form.widgets['page'].existing_only = True
 
 	def init_uistate(self):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
 		self.uistate.setdefault('selection', 'all')
-		#~ self.uistate.setdefault('selection_recursive', False)
+		self.uistate.setdefault('selection_recursive', True)
 		self.uistate.setdefault('selected_page', self.form['page'])
 		self.form['selection'] = self.uistate['selection']
 
 	def save_uistate(self):
 		self.uistate['selection'] = self.form['selection']
 		self.uistate['selected_page'] = self.form['page']
+		self.uistate['selection_recursive'] = self.form['recursive']
 
 
 class FormatPage(AssistantPage):

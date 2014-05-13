@@ -93,7 +93,7 @@ class MultiFileExporter(FilesExporterBase):
 				index_page = self.index_page
 				if isinstance(index_page, basestring):
 					index_page = pages.notebook.cleanup_pathname(index_page) # XXX
-				yield index_page
+				yield Path(index_page)
 				self.export_index(index_page, pages)
 			except:
 				logger.exception('Error while exporting index')

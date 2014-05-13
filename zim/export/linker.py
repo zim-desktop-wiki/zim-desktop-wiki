@@ -17,7 +17,7 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.fs import File
+from zim.fs import File, PathLookupError
 from zim.config import data_file
 from zim.notebook import PageNameError, interwiki_link
 from zim.stores import encode_filename
@@ -235,7 +235,7 @@ class StubLayout(ExportLayout):
 
 
 def data_uri(file):
-	if file.name.endswith('.png'):
+	if file.basename.endswith('.png'):
 		mime = 'image/png'
 	else:
 		mime = file.get_mimetype()

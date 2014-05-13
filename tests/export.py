@@ -8,7 +8,7 @@ import os
 
 from zim.fs import _md5, File, Dir
 
-#~ from zim.config import data_file, SectionedConfigDict
+from zim.config import data_file, SectionedConfigDict
 from zim.notebook import Path, Notebook, init_notebook, \
 	interwiki_link, get_notebook_list, NotebookInfo
 #~ from zim.exporter import Exporter, StaticLinker
