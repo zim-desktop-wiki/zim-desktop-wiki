@@ -27,8 +27,9 @@ class ExportDialog(Assistant):
 		self.append_page(OutputPage(self))
 
 	def do_response_ok(self):
-		exporter, selection = self.get_exporter_selection()
-		if exporter is None:
+		exporter = self.get_exporter()
+		selection = self.get_selection()
+		if exporter is None or selection is None:
 			return False # canceled
 
 		# Check index up to date
@@ -48,12 +49,21 @@ class ExportDialog(Assistant):
 
 		return True
 
-	def get_exporter_selection(self):
+	def get_selection(self):
+		if self.uistate['selection'] == 'all':
+			return AllPages(self.ui.notebook)
+		else:
+			path = self.uistate['selected_page']
+			if self.uistate['selection_recursive']:
+				return SubPages(self.ui.notebook, path)
+			else:
+				return SinglePage(self.ui.notebook, path)
+
+	def get_exporter(self):
 		#~ import pprint
 		#~ pprint.pprint(self.uistate)
 		#~ return True
 
-		# Prepare options
 		options = {}
 		for k in ('format', 'template', 'index_page'):
 			if self.uistate[k] and not self.uistate[k].isspace():
@@ -68,50 +78,57 @@ class ExportDialog(Assistant):
 		if self.uistate['document_root'] == 'url':
 			options['document_root_url'] = self.uistate['document_root_url']
 
-		if self.uistate['selection'] == 'all':
-			dir = Dir(self.uistate['output_folder'])
-			if dir.exists() and len(dir.list()) > 0:
-				ok = QuestionDialog(self, (
-					_('Folder exists: %s') % dir.path, # T: message heading
-					_('Folder already exists and has content, '
-					  'exporting to this folder may overwrite '
-					  'existing files. '
-					  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
-				) ).run()
-				if not ok:
-					return None, None
-
-			exporter = build_notebook_exporter(dir, **options)
-			selection = AllPages(self.ui.notebook)
-			return exporter, selection
-
-		#~ elif self.uistate['selection'] == 'selection':
-			#~ pass # TODO
-
-		elif self.uistate['selection'] == 'page':
-			file = File(self.uistate['output_file'])
-			if file.exists():
-				ok = QuestionDialog(self, (
-					_('File exists'), # T: message heading
-					_('This file already exists.\n'
-					  'Do you want to overwrite it?' ) # T: detailed message, answers are Yes and No
-				) ).run()
-				if not ok:
-					return None, None
-
+		if options['format'] == 'mhtml':
+			# Export MHTML file
+			options.pop('format', None)
 			options.pop('index_page', None)
-
-			path = self.uistate['selected_page']
-			exporter = build_page_exporter(file, page=path, **options)
-			if self.uistate['selection_recursive']:
-				selection = SubPages(self.ui.notebook, path)
+			file = self.get_file()
+			if file:
+				return build_mhtml_file_exporter(file, **options)
 			else:
-				selection = SinglePage(self.ui.notebook, path)
-			return exporter, selection
-
+				return None
+		elif self.uistate['selection'] == 'all':
+			# Export full notebook to dir
+			dir = self.get_folder()
+			if dir:
+				return build_notebook_exporter(dir, **options)
+			else:
+				return None
 		else:
-			raise AssertionError, 'Unexpected selection: %s' % self.uistate['selection']
+			# Export page to file
+			options.pop('index_page', None)
+			file = self.get_file()
+			if file:
+				path = self.uistate['selected_page']
+				return build_page_exporter(file, page=path, **options)
+			else:
+				return None
 
+	def get_folder(self):
+		dir = Dir(self.uistate['output_folder'])
+		if dir.exists() and len(dir.list()) > 0:
+			ok = QuestionDialog(self, (
+				_('Folder exists: %s') % dir.path, # T: message heading
+				_('Folder already exists and has content, '
+				  'exporting to this folder may overwrite '
+				  'existing files. '
+				  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
+			) ).run()
+			if not ok:
+				return None
+		return dir
+
+	def get_file(self):
+		file = File(self.uistate['output_file'])
+		if file.exists():
+			ok = QuestionDialog(self, (
+				_('File exists'), # T: message heading
+				_('This file already exists.\n'
+				  'Do you want to overwrite it?' ) # T: detailed message, answers are Yes and No
+			) ).run()
+			if not ok:
+				return None
+		return file
 
 
 class InputPage(AssistantPage):
@@ -170,6 +187,7 @@ class FormatPage(AssistantPage):
 	def __init__(self, assistant):
 		AssistantPage.__init__(self, assistant)
 		self.export_formats = zim.formats.list_formats(zim.formats.EXPORT_FORMAT)
+		self.export_formats.insert(1, 'MHTML (Web Page Archive)') # TODO translatable
 
 		self.add_form((
 			('format', 'choice', _('Format'), self.export_formats), # T: Input label in the export dialog
@@ -187,6 +205,8 @@ class FormatPage(AssistantPage):
 		def set_templates(self):
 			format = self.form['format']
 			format = zim.formats.canonical_name(format)
+			if format == 'mhtml':
+				format = 'html'
 			combobox = self.form.widgets['template']
 			combobox.get_model().clear()
 
@@ -279,6 +299,9 @@ class OutputPage(AssistantPage):
 		self.uistate.setdefault('output_file', None, File)
 
 		show_file = self.uistate.get('selection') == 'page'
+		if self.uistate.get('format', '').startswith('MHTML'):
+			show_file = True # XXX make this a format property to be queried
+
 		if show_file:
 			self.form.widgets['folder'].set_sensitive(False)
 			self.form.widgets['folder'].hide()
@@ -292,7 +315,11 @@ class OutputPage(AssistantPage):
 
 		if show_file:
 			basename = self.uistate['selected_page'].basename
-			ext = zim.formats.get_format(self.uistate['format']).info['extension']
+			format = self.uistate['format']
+			if format.startswith('MHTML'):
+				ext = 'mht'
+			else:
+				ext = zim.formats.get_format(format).info['extension']
 
 			if self.uistate['output_file'] \
 			and isinstance(self.uistate['output_file'], File):
