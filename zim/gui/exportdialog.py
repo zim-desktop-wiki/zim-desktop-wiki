@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+from __future__ import with_statement
 
 import gtk
+
+import logging
 
 import zim.formats
 import zim.templates
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, TmpFile
 from zim.stores import encode_filename
 from zim.gui.widgets import Assistant, AssistantPage, \
-	ProgressBarDialog, ErrorDialog, QuestionDialog
+	ProgressBarDialog, ErrorDialog, QuestionDialog, \
+	MessageDialog, LogFileDialog, Button
 
 from zim.export import *
 from zim.export.selections import *
@@ -27,7 +32,7 @@ class ExportDialog(Assistant):
 		self.append_page(OutputPage(self))
 
 	def do_response_ok(self):
-		exporter = self.get_exporter()
+		output, exporter = self.get_exporter()
 		selection = self.get_selection()
 		if exporter is None or selection is None:
 			return False # canceled
@@ -41,11 +46,21 @@ class ExportDialog(Assistant):
 					return False
 
 		# Run export
-		with ProgressBarDialog(self, _('Exporting notebook')) as dialog:
+		logging_context = LogContext()
+		with logging_context:
+			with ProgressBarDialog(self, _('Exporting notebook')) as dialog:
 				# T: Title for progressbar window
 				for p in exporter.export_iter(selection):
 					if not dialog.pulse(p.name):
 						return False # canceled
+
+		#~ print '>>> %s E: %i, W: %i' % (
+			#~ logging_context.file.path,
+			#~ logging_context.handler.n_error, logging_context.handler.n_warning)
+		#~ print logging_context.file.read()
+		#~ print '---'
+
+		ExportDoneDialog(self, logging_context, output).run()
 
 		return True
 
@@ -84,25 +99,25 @@ class ExportDialog(Assistant):
 			options.pop('index_page', None)
 			file = self.get_file()
 			if file:
-				return build_mhtml_file_exporter(file, **options)
+				return file, build_mhtml_file_exporter(file, **options)
 			else:
-				return None
+				return None, None
 		elif self.uistate['selection'] == 'all':
 			# Export full notebook to dir
 			dir = self.get_folder()
 			if dir:
-				return build_notebook_exporter(dir, **options)
+				return dir, build_notebook_exporter(dir, **options)
 			else:
-				return None
+				return None, None
 		else:
 			# Export page to file
 			options.pop('index_page', None)
 			file = self.get_file()
 			if file:
 				path = self.uistate['selected_page']
-				return build_page_exporter(file, page=path, **options)
+				return file, build_page_exporter(file, page=path, **options)
 			else:
-				return None
+				return None, None
 
 	def get_folder(self):
 		dir = Dir(self.uistate['output_folder'])
@@ -336,3 +351,103 @@ class OutputPage(AssistantPage):
 		self.uistate['output_file'] = self.form['file']
 		self.uistate['output_folder'] = self.form['folder']
 		self.uistate['index_page'] = self.form['index']
+
+
+class ExportDoneDialog(MessageDialog):
+
+	def __init__(self, parent, logging_context, output):
+		self.logging_context = logging_context
+		self.output = output
+
+		n_error = logging_context.handler.n_error
+		n_warning = logging_context.handler.n_warning
+		if n_error and n_warning:
+			text = _('%i errors and %i warnings occurred, see log') % (n_error, n_warning)
+				# T: label in export dialog
+		elif n_error:
+			text = _('%i errors occurred, see log') % n_error
+				# T: label in export dialog
+		elif n_warning:
+			text = _('%i warnings occurred, see log') % n_warning
+				# T: label in export dialog
+		else:
+			text = None
+
+		MessageDialog.__init__(self, parent, (_('Export completed'), text))
+			# T: label in export dialog
+
+		log_button = Button(_('View _Log'), stock='gtk-file')
+			# T: button in export dialog
+		log_button.set_sensitive(logging_context.file.exists())
+		log_button.connect_object(
+			'clicked', self.__class__.on_show_log, self)
+
+		#~ open_button =
+
+		#~ self.add_extra_button(open_button)
+		self.add_extra_button(log_button)
+
+	def on_show_log(self):
+		LogFileDialog(self, self.logging_context.file).run()
+
+	def on_open_file(self):
+		self.ui.open_file(self.output) # XXX
+
+
+class LogContext(object):
+	'''Context to log errors and warnings to a log file'''
+
+	def __init__(self):
+		names = ['zim.export', 'zim.templates', 'zim.formats']
+		level = logging.INFO
+
+		self.logger = logging.getLogger('zim')
+		self.level = level
+		self.file = TmpFile(basename='export-log.txt', unique=False, persistent=True)
+		self.handler = LogHandler(self.file.path)
+		self.handler.setLevel(self.level)
+		self.handler.addFilter(LogFilter(names))
+		self.handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s') )
+
+	def __enter__(self):
+		#~ self._old_level = self.logger.getEffectiveLevel()
+		#~ if self._old_level > self.level:
+			#~ self.logger.setLevel(self.level)
+		self.logger.addHandler(self.handler)
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		self.logger.removeHandler(self.handler)
+		#~ self.logger.setLevel(self._old_level)
+		self.handler.close()
+		return True # re-raises error
+
+
+class LogFilter(logging.Filter):
+
+	def __init__(self, names):
+		self.names = names
+
+	def filter(self, record):
+		if any(record.name.startswith(n) for n in self.names):
+			return 1
+		else:
+			return 0
+
+
+class LogHandler(logging.FileHandler):
+
+	def __init__(self, filename, mode='w', encoding='UTF-8', delay=True):
+		logging.FileHandler.__init__(self, filename, mode, encoding, delay)
+		self.n_warning = 0
+		self.n_error = 0
+
+	def emit(self, record):
+		# more detailed logging has lower number, so WARN > INFO > DEBUG
+		# log to file unless output is a terminal and logging <= INFO
+		if record.levelno >= logging.ERROR:
+			self.n_error += 1
+		elif record.levelno >= logging.WARNING:
+			self.n_warning += 1
+
+		logging.FileHandler.emit(self, record)
+

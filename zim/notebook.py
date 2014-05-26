@@ -777,7 +777,7 @@ class Notebook(Object):
 	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
 	to resolve links
-	@signal: C{new-page-template(path, template)}: emitted before
+	@signal: C{new-page-template (path, template)}: emitted before
 	evaluating a template for a new page, intended for plugins that want
 	to extend page templates
 

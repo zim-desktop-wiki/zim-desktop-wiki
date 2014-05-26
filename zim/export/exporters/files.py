@@ -6,7 +6,7 @@ from functools import partial
 
 import logging
 
-logger = logging.getLogger('zim.exporter')
+logger = logging.getLogger('zim.export')
 
 
 from zim.config import data_file
@@ -79,6 +79,7 @@ class MultiFileExporter(FilesExporterBase):
 		self.export_resources()
 
 		for page in pages:
+			logger.info('Exporting page: %s', page.name)
 			yield page
 			try:
 				self.export_page(pages.notebook, page)
@@ -93,6 +94,8 @@ class MultiFileExporter(FilesExporterBase):
 				index_page = self.index_page
 				if isinstance(index_page, basestring):
 					index_page = pages.notebook.cleanup_pathname(index_page) # XXX
+
+				logger.info('Export index: %s', index_page)
 				yield Path(index_page)
 				self.export_index(index_page, pages)
 			except:

@@ -2,6 +2,8 @@
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
 import tests
 
 import os
@@ -594,9 +596,9 @@ class TestExportCommand(tests.TestCase):
 @tests.slowTest
 class TestExportDialog(tests.TestCase):
 
-	def runTest(self):
+	def testDialog(self):
 		'''Test ExportDialog'''
-		from zim.gui.exportdialog import ExportDialog
+		from zim.gui.exportdialog import ExportDialog, ExportDoneDialog
 
 		dir = Dir(self.create_tmp_dir())
 
@@ -624,7 +626,8 @@ class TestExportDialog(tests.TestCase):
 		page = dialog.get_page()
 		page.form['folder'] = dir
 		page.form['index'] = 'INDEX_PAGE'
-		dialog.assert_response_ok()
+		with tests.DialogContext(ExportDoneDialog):
+			dialog.assert_response_ok()
 
 		file = dir.file('Test/foo.html')
 		self.assertTrue(file.exists())
@@ -652,7 +655,8 @@ class TestExportDialog(tests.TestCase):
 
 		page = dialog.get_page()
 		page.form['file'] = dir.file('SINGLE_FILE_EXPORT.html').path
-		dialog.assert_response_ok()
+		with tests.DialogContext(ExportDoneDialog):
+			dialog.assert_response_ok()
 
 		file = dir.file('SINGLE_FILE_EXPORT.html')
 		self.assertTrue(file.exists())
@@ -665,6 +669,24 @@ class TestExportDialog(tests.TestCase):
 		self.assertIsInstance(dialog.uistate['output_file'], File)
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well
 
+	def testLogging(self):
+		from zim.gui.exportdialog import LogContext
+
+		mylogger = logging.getLogger('zim.export')
+		foologger = logging.getLogger('zim.foo')
+		log_context = LogContext()
+
+		with tests.LoggingFilter('zim.export'):
+			with log_context:
+				mylogger.warn('Test export warning')
+				mylogger.debug('Test export debug')
+				foologger.warn('Test foo')
+
+		file = log_context.file
+		self.assertTrue(file.exists())
+		self.assertTrue('Test export warning' in file.read())
+		self.assertFalse('Test export debug' in file.read())
+		self.assertFalse('Test foo' in file.read())
 
 
 class VirtualDir(object):
