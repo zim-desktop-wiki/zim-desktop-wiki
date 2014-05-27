@@ -2,18 +2,6 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# TODO for properties dict, translate keys into valid param names (replace('-', '_'))
-#      need PageProxy for those kind of things
-
-# TODO for "days" property in calendar plugin, add arguments to set
-# first and last day -- allow selecting work week only etc.
-
-# TODO specific exception classes for errors in template parsing
-#      and execution + report line & char in errors
-
-# TODO add "DEFAULT" and "CALL" directives
-
-
 # Supported sytax
 #   [% .. %] and <!--[% .. %]-->
 #

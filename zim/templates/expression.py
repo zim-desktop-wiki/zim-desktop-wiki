@@ -2,36 +2,39 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''
+Module that contains the logic for evaluating expressions in the
+template.
 
+Expression evaluation is done without using a real python eval to
+keep it safe from arbitrary code execution
 
-# Expression evaluation is done without using a real python eval to
-# keep it safe from arbitrary code execution
-#
-# Both parameter values and functions are stored in a dict that is
-# passed to the Expression object when it is executed. The expressions
-# should not allow access to anything outside this dict, and only
-# sane access to objects reachable from this dict.
-#
-# Parameter lookup gets list and dict items as well as object attributes.
-# It does not allow accessing private attributes (starting with "_")
-# or or code objects (object method of function) - callable objects on
-# the other hand can be accessed.
-#
-# We control execution by only executing functions that are specifically
-# whitelisted as being an ExpressionFunction (can be used as decorator).
-# The expression classes have builtin support for some builtin methods
-# on strings, lists and dicts (see L{ExpressionString},
-# L{ExpressionDict} and L{ExpressionList} respectively), other functions
-# can be supplied in the context dict or as object attributes.
-#
-# The biggest risks would be to put objects in the dict that allow
-# access to dangerous methods or private data. Or to have functions
-# that e.g. eval one of their arguments or take a callable argument
-#
-# The idea is that objects in the expression dict are proxies that
-# expose a sub set of the full object API and template friendly methods.
-# These restrictions hsould help to minimize risk of arbitrary code
-# execution in expressions.
+Both parameter values and functions are stored in a dict that is
+passed to the Expression object when it is executed. The expressions
+should not allow access to anything outside this dict, and only
+sane access to objects reachable from this dict.
+
+Parameter lookup gets list and dict items as well as object attributes.
+It does not allow accessing private attributes (starting with "_")
+or or code objects (object method of function) - callable objects on
+the other hand can be accessed.
+
+We control execution by only executing functions that are specifically
+whitelisted as being an ExpressionFunction (can be used as decorator).
+The expression classes have builtin support for some builtin methods
+on strings, lists and dicts (see L{ExpressionString},
+L{ExpressionDict} and L{ExpressionList} respectively), other functions
+can be supplied in the context dict or as object attributes.
+
+The biggest risks would be to put objects in the dict that allow
+access to dangerous methods or private data. Or to have functions
+that e.g. eval one of their arguments or take a callable argument
+
+The idea is that objects in the expression dict are proxies that
+expose a sub set of the full object API and template friendly methods.
+These restrictions hsould help to minimize risk of arbitrary code
+execution in expressions.
+'''
 
 
 import collections
@@ -39,10 +42,14 @@ import inspect
 
 
 class Expression(object):
+	'''Base class for all expressions'''
 
 	__slots__ = ()
 
 	def __call__(self, dict):
+		'''Evaluate the expression
+		@param dict: the context with parameter values
+		'''
 		raise NotImplementedError
 
 	def __repr__(self):
@@ -52,14 +59,19 @@ class Expression(object):
 		return self.pprint()
 
 	def pprint(self):
+		'''Print the expression hierarchy'''
 		raise NotImplemented
 
 
 class ExpressionLiteral(Expression):
+	'''Expression with a literal value'''
 
 	__slots__ = ('value',)
 
 	def __init__(self, value):
+		'''Constructor
+		@param value: the expression value (string, int, float, ...)
+		'''
 		self.value = value
 
 	def __eq__(self, other):
@@ -73,10 +85,14 @@ class ExpressionLiteral(Expression):
 
 
 class ExpressionParameter(Expression):
+	'''Expression with a parameter name, evaluates the parameter value'''
 
 	__slots__ = ('name', 'parts', 'key')
 
 	def __init__(self, name):
+		'''Constructor
+		@param name: the parameter name
+		'''
 		self.name = name
 		self.parts = name.split('.')
 		if any(n.startswith('_') for n in self.parts):
@@ -129,10 +145,16 @@ class ExpressionParameter(Expression):
 
 
 class ExpressionList(Expression):
+	'''Expression for a list of expressions, recurses over all items
+	when evaluated
+	'''
 
 	__slots__ = ('items',)
 
 	def __init__(self, items=None):
+		'''Constructor
+		@param items: iterable with L{Expression} objects
+		'''
 		if items:
 			self.items = list(items)
 			assert all(isinstance(item, Expression) for item in self.items)
@@ -154,10 +176,18 @@ class ExpressionList(Expression):
 
 
 class ExpressionOperator(Expression):
+	'''Expression for an operator statement (e.g. "AND", "OR", "<"),
+	recurses for left and right side of the expression.
+	'''
 
 	__slots__ = ('operator', 'lexpr', 'rexpr')
 
 	def __init__(self, operator, lexpr, rexpr):
+		'''Constructor
+		@param operator: an operator function
+		@param lexpr: left hand L{Expression} object
+		@param rexpr: right hand L{Expression} object
+		'''
 		assert isinstance(lexpr, Expression)
 		assert isinstance(rexpr, Expression)
 		self.operator = operator
@@ -177,10 +207,17 @@ class ExpressionOperator(Expression):
 
 
 class ExpressionUnaryOperator(Expression):
+	'''Expression with a unary operator (e.g. "NOT") that recurses
+	for the right hand side of the statement.
+	'''
 
 	__slots__ = ('operator', 'rexpr')
 
 	def __init__(self, operator, rexpr):
+		'''Constructor
+		@param operator: an operator function
+		@param rexpr: right hand L{Expression} object
+		'''
 		assert isinstance(rexpr, Expression)
 		self.operator = operator
 		self.rexpr = rexpr
@@ -197,10 +234,17 @@ class ExpressionUnaryOperator(Expression):
 
 
 class ExpressionFunctionCall(Expression):
+	'''Expression with a function name and arguments, recurses for
+	the arguments and evaluates the function.
+	'''
 
 	__slots__ = ('param', 'args')
 
 	def __init__(self, param, args):
+		'''Constuctor
+		@param param: an L{ExpressionParameter} that refers the function
+		@param args: an L{ExpressionList} with arguments
+		'''
 		assert isinstance(param, ExpressionParameter)
 		assert isinstance(args, ExpressionList)
 		self.param = param
@@ -259,9 +303,14 @@ class ExpressionFunctionCall(Expression):
 class ExpressionFunction(object):
 	'''Wrapper for methods and functions that whitelists
 	functions to be called from expressions
+
+	Can be used as a decorator.
 	'''
 
 	def __init__(self, func):
+		'''Constructor
+		@param func: the actual function
+		'''
 		self._func = func
 
 	def __get__(self, instance, owner):
@@ -284,6 +333,9 @@ class ExpressionFunction(object):
 
 
 class BoundExpressionFunction(ExpressionFunction):
+	'''Wrapper used by L{ExpressionFunction} when used as a decorator
+	for object methods.
+	'''
 
 	def __init__(self, obj, func):
 		self._obj = obj
@@ -294,6 +346,12 @@ class BoundExpressionFunction(ExpressionFunction):
 
 
 class ExpressionObjectBase(object):
+	'''Base method for wrapper objects that are used to determine the
+	safe functions to call on objects in the parameter dict.
+
+	The attribute C{_fmethods()} lists methods that can be called
+	safely on the wrapped objects.
+	'''
 
 	_fmethods = ()
 

@@ -2,6 +2,12 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''This module defines the main parser for template text.
+
+See also the L{expressionparser} sub-module for the parser for
+expressions in the template.
+'''
+
 
 import re
 
@@ -61,6 +67,10 @@ class TemplateBuilderTextBuffer(BuilderTextBuffer):
 
 
 class TemplateTreeBuilder(SimpleTreeBuilder):
+	'''Sub-class of L{SimpleTreeBuilder}.
+	This class implements a special case for the "BLOCK" element and
+	always places it in the top level of the parse tree
+	'''
 
 	def __init__(self):
 		SimpleTreeBuilder.__init__(self)
@@ -83,6 +93,9 @@ class TemplateTreeBuilder(SimpleTreeBuilder):
 
 
 class TemplateParser(object):
+	'''The parser to parse template files into a hierarchic tree of
+	instructions.
+	'''
 
 	# Build parse tree like:
 	#  - text
@@ -141,6 +154,11 @@ class TemplateParser(object):
 		self._stack = []
 
 	def parse(self, text):
+		'''Parse template text
+		@param text: the template text
+		@returns: a list of L{SimpleTreeElements} for the main template
+		structure and any blocks defined in the template
+		'''
 		builder = TemplateTreeBuilder()
 		self.__call__(builder, text)
 		return builder.get_root()

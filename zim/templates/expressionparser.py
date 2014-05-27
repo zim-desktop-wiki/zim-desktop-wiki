@@ -2,6 +2,10 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''This module contains the parser to parse expressions in templates
+and returns an L{Expression} object.
+'''
+
 
 import re
 import operator
@@ -20,6 +24,7 @@ class ExpressionSyntaxError(Exception):
 
 
 class ExpressionParser(object):
+	'''Parser for expressions'''
 
 	# This parser does not use the Parser / Builder architecture
 	# as the expression format is not really suited for this kind
@@ -64,6 +69,10 @@ class ExpressionParser(object):
 		)
 
 	def parse(self, string):
+		'''Parse an expression
+		@param string: the expression text
+		@returns: an L{Expression} object
+		'''
 		tokens = self._tokenize(string)
 		expr = self._parse(tokens)
 		if tokens: # trailing stuff remaining

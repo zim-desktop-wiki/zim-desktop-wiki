@@ -4,6 +4,8 @@
 
 '''Test cases for the zim.templates module.'''
 
+from __future__ import with_statement
+
 import tests
 
 

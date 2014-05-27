@@ -2,7 +2,8 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# TODO internal functions: html_encode / url_encode / ...
+'''This module contains template functions'''
+
 
 import locale
 

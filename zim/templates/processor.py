@@ -2,6 +2,14 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+'''This module contains the main object to "execute" a template and
+fill in the parameters, call functions etc. The L{TemplateProcessor}
+defined here takes care of the template control flow ('IF', 'FOR', etc.).
+
+Also see the L{expression} sub module that contains logic for executing
+expressions in the template.
+'''
+
 
 import collections
 
@@ -25,6 +33,9 @@ class TemplateContextDict(ExpressionDictObject):
 
 
 class TemplateProcessor(object):
+	'''The template processor takes a parsed template and "executes" it
+	one or more times.
+	'''
 
 	# See Expression for remarks on safe eval of expressions.
 	#
@@ -41,6 +52,10 @@ class TemplateProcessor(object):
 	# 	'INCLUDE',
 
 	def __init__(self, parts):
+		'''Constructor
+		@param parts: A list of L{SimplerTreeElements} as produced by
+		L{TemplateParser.parse()}
+		'''
 		self.main = None
 		self.blocks = {}
 		for item in parts:
@@ -55,6 +70,13 @@ class TemplateProcessor(object):
 			raise AssertionError, 'Missing main part of template'
 
 	def process(self, output, context):
+		'''Execute the template once
+		@param output: an object to recieve the template output, can be
+		a C{list} and should support at least an C{append()} method to
+		recieve string content
+		@param context: a L{TemplateContextDict} object with the
+		template parameters
+		'''
 		assert isinstance(context, TemplateContextDict)
 		self.__call__(output, self.main, context)
 
@@ -153,6 +175,7 @@ class TemplateProcessor(object):
 
 
 class TemplateLoopState(object):
+	'''Object used for the "loop" parameter in a FOR loop'''
 
 	def __init__(self, size=None, outer=None):
 		if size is None:
