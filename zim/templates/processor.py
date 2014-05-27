@@ -8,7 +8,7 @@ import collections
 from zim.utils import MovingWindowIter
 from zim.parser import SimpleTreeElement
 
-from zim.templates.expression import ExpressionDictObject
+from zim.templates.expression import ExpressionDictObject, ExpressionParameter
 
 
 class TemplateContextDict(ExpressionDictObject):

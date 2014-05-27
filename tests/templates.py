@@ -13,7 +13,11 @@ from zim.templates.parser import *
 from zim.templates.expression import *
 from zim.templates.expressionparser import *
 
+from zim.templates.processor import *
+
 from zim.parser import SimpleTreeElement, SimpleTreeBuilder, BuilderTextBuffer
+
+E = SimpleTreeElement
 
 
 class TestExpressionParser(tests.TestCase):
@@ -308,7 +312,6 @@ class TestTemplateBuilderTextBuffer(tests.TestCase):
 		result = builder.get_root()
 		#~ print result
 
-		E = SimpleTreeElement
 		self.assertEqual(result, [
 			E('FOO', None, [
 				u'foo',
@@ -363,7 +366,6 @@ Switch:	[% IF foo %]AAA[% ELSE %]BBB[% END %]
 <!--[% END %]-->
 '''
 
-	E = SimpleTreeElement
 	WANTED = [
 		E('TEMPLATE', None, [
 			E('GET', {'expr': ExpressionParameter('foo')}, []),
@@ -454,12 +456,183 @@ class TestTemplateContextDict(tests.TestCase):
 		self.assertEqual(context.pop('d'), 'DDD')
 
 
-class TestTemplateProcessor(tests.TestCase):
-	pass
+class TestTemplateLoopState(tests.TestCase):
 
-	# TODO excersize all instruction types, show loop iterations and if / elsif branches work
-	# TODO use loop state parameter
-	# TODO test that we really can't set / pop / insert in dicts and lists other than context
+	def runTest(self):
+		items = ['aaa', 'bbb', 'ccc']
+
+		loop = TemplateLoopState(len(items), None)
+
+		myiter = MovingWindowIter(items)
+		for i, stateitems in enumerate(myiter):
+			loop._update(i, myiter)
+
+			self.assertEqual(loop.size, 3)
+			self.assertEqual(loop.max, 2)
+			self.assertEqual(loop.prev, None if i == 0 else items[i-1])
+			self.assertEqual(loop.current, items[i])
+			self.assertEqual(loop.next, None if i == 2 else items[i+1])
+			self.assertEqual(loop.index, i)
+			self.assertEqual(loop.count, i+1)
+			self.assertEqual(loop.first, True if i == 0 else False)
+			self.assertEqual(loop.last, True if i == 2 else False)
+			self.assertEqual(loop.parity, 'odd' if i % 2 else 'even')
+			self.assertEqual(loop.even, False if i % 2 else True)
+			self.assertEqual(loop.odd, True if i % 2 else False)
+
+		self.assertEqual(i, 2)
+
+
+class TestTemplateProcessor(tests.TestCase):
+
+	def testGetSet(self):
+		# test 'GET',  'SET'
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('SET', {
+					'var': ExpressionParameter('aaa.bbb'),
+					'expr': ExpressionLiteral('foo')
+				}),
+				E('GET', {'expr': ExpressionParameter('aaa.bbb')}),
+			])
+		])
+
+		output = []
+		context = TemplateContextDict({'aaa': TemplateContextDict({})})
+		processor.process(output, context)
+		self.assertEqual(output, ['foo'])
+
+		output = []
+		context = TemplateContextDict({'aaa': {}})
+		with self.assertRaises(AssertionError):
+			processor.process(output, context)
+
+
+	def testIfElifElse(self):
+		# test 'IF', 'ELIF', 'ELSE',
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('IF', {'expr': ExpressionParameter('a')}, ['A']),
+				E('ELIF', {'expr': ExpressionParameter('b')}, ['B']),
+				E('ELIF', {'expr': ExpressionParameter('c')}, ['C']),
+				E('ELSE', {}, ['D']),
+			])
+		])
+
+		for context, wanted in (
+			({'a': True}, ['A']),
+			({'a': False, 'b': True}, ['B']),
+			({'a': False, 'b': False, 'c': True}, ['C']),
+			({'a': False, 'b': False, 'c': False}, ['D']),
+		):
+			lines = []
+			processor.process(lines, TemplateContextDict(context))
+			self.assertEqual(lines, wanted)
+
+	def testFor(self):
+		# test 'FOR'
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('FOR', {
+					'var': ExpressionParameter('iter'),
+					'expr': ExpressionParameter('items'),
+				}, [
+					E('GET', {'expr': ExpressionParameter('loop.count')}),
+					': ',
+					E('GET', {'expr': ExpressionParameter('iter')}),
+					'\n',
+				])
+			])
+		])
+
+		context = {'items': ['aaa', 'bbb', 'ccc']}
+
+		lines = []
+		processor.process(lines, TemplateContextDict(context))
+		self.assertEqual(''.join(lines), '1: aaa\n2: bbb\n3: ccc\n')
+
+	def testInclude(self):
+		# test 'INCLUDE',
+		processor = TemplateProcessor([
+			E('TEMPLATE', None, [
+				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+				E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+			]),
+			E('BLOCK', {'name': 'foo'}, 'FOO\n'),
+		])
+
+		lines = []
+		processor.process(lines, TemplateContextDict({'foo': 'foo'}))
+		self.assertEqual(''.join(lines), 'FOO\nFOO\nFOO\n')
+
+
+
+class TestTemplateList(tests.TestCase):
+
+	def runTest(self):
+		categories = list_template_categories()
+		self.assertIn('html', categories)
+		self.assertIn('wiki', categories)
+
+		for cat in categories:
+			templates = list_templates(cat)
+			#~ print '>>', cat, templates
+			self.assertGreater(len(templates), 0)
+			for name, filename in templates:
+				template = get_template(cat, name)
+				self.assertIsInstance(template, Template)
+
+
+class TestTemplateFunctions(tests.TestCase):
+
+	def testFuncLen(self):
+		func = build_template_functions()['len']
+		self.assertEqual(
+			func([1, 2, 3]),
+			3
+		)
+
+	def testFuncSorted(self):
+		func = build_template_functions()['sorted']
+		self.assertEqual(
+			func(['bbb', 'aaa', 'ccc']),
+			['aaa', 'bbb', 'ccc']
+		)
+
+	def testFuncReversed(self):
+		func = build_template_functions()['reversed']
+		self.assertEqual(
+			func(['bbb', 'aaa', 'ccc']),
+			['ccc', 'aaa', 'bbb']
+		)
+
+	def testFuncRange(self):
+		func = build_template_functions()['range']
+		self.assertEqual(
+			func(1, 10),
+			[1, 2, 3, 4, 5, 6, 7, 8, 9]
+		)
+
+	def testFuncStrftime(self):
+		from datetime import date
+
+		func = build_template_functions()['strftime']
+		self.assertTrue(func('%Y %m %d'))
+		self.assertEqual(
+			func('%Y %m %d', date(2014, 05, 26)),
+			'2014 05 26'
+		)
+
+	def testFuncStrfcal(self):
+		from datetime import date
+
+		func = build_template_functions()['strfcal']
+		self.assertTrue(func('%Y %W'))
+		self.assertEqual(
+			func('%Y %W', date(2014, 05, 26)),
+			'2014 22'
+		)
 
 
 class TestTemplate(tests.TestCase):
