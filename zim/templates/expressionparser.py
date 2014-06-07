@@ -12,6 +12,8 @@ import operator
 import ast
 
 
+from zim.parser import ParserError
+
 from zim.templates.expression import \
 	ExpressionOperator, ExpressionUnaryOperator, \
 	ExpressionLiteral, ExpressionParameter, \
@@ -19,7 +21,7 @@ from zim.templates.expression import \
 
 
 
-class ExpressionSyntaxError(Exception):
+class ExpressionSyntaxError(ParserError):
 	pass
 
 

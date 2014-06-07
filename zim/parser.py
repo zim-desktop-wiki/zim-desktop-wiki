@@ -41,6 +41,9 @@ import re
 import xml.etree.cElementTree as ElementTree
 
 
+from zim.errors import Error
+
+
 def prepare_text(text, tabstop=4):
 	'''Ensures text is properly formatted.
 	  - Fixes missing line end
@@ -232,7 +235,7 @@ class SimpleTreeBuilder(Builder):
 
 	def get_root(self):
 		if not len(self.stack) == 1:
-			raise AssertionError('Did not finish processing')
+			raise AssertionError, 'Did not finish processing'
 		return self.root
 
 	# Builder interface
@@ -245,7 +248,7 @@ class SimpleTreeBuilder(Builder):
 	def end(self, tag):
 		element = self.stack.pop()
 		if element.tag != tag:
-			raise AssertionError, 'Expected %s got %s' % (element.tag, tag)
+			raise AssertionError, 'Unmatched %s at end of %s' % (element.tag, tag)
 
 	def text(self, text):
 		self.stack[-1].append(text)
@@ -257,9 +260,27 @@ class SimpleTreeBuilder(Builder):
 		self.stack[-1].append(element)
 
 
+class ParserError(Error):
+
+	def __init__(self, msg):
+		Error.__init__(self, msg)
+
+		self.parser_file = _('<Unknown>') # T: placeholder for unknown file name
+		self.parser_text = ''
+		self.parser_line_offset = (0, 0)
+
+	@property
+	def description(self):
+		return _('Error in %(file)s at line %(line)i near "%(snippet)s"') % {
+			'file': self.parser_file,
+			'line': self.parser_line_offset[0],
+			'snippet': self.parser_text.strip(),
+		}
+			# T: Extended error message while parsing a file, gives file name, line number and words where error occurred
+
 
 class Rule(object):
-	'''Class that defines a single parser rule. Typically used
+	'''Class that defines a sigle parser rule. Typically used
 	to define a regex pattern for one specific wiki format string
 	and the processing to be done when this formatting is encountered
 	in the text.
@@ -416,6 +437,10 @@ class Parser(object):
 	def _raise_exception(error, text, start, end, builder, rule=None):
 		# Add parser state, line count etc. to error, then re-raise
 		# rule=None means error while processing unmatched text
+		if isinstance(error, AssertionError):
+			error = ParserError(error.message)
+			# Assume any assertion is a parser check
+
 		if hasattr(error, 'parser_offset'):
 			offset = start + error.parser_offset
 		else:
@@ -427,7 +452,10 @@ class Parser(object):
 		error.parser_offset = offset
 		error.parser_line_offset = get_line_count(text, offset)
 
-		raise
+		if isinstance(error, ParserError):
+			raise error
+		else:
+			raise  # original error, do not change stack trace
 
 
 def get_line_count(text, offset):

@@ -404,6 +404,7 @@ class LogContext(object):
 		self.logger = logging.getLogger('zim')
 		self.level = level
 		self.file = TmpFile(basename='export-log.txt', unique=False, persistent=True)
+		self.file.remove() # clean up previous run
 		self.handler = LogHandler(self.file.path)
 		self.handler.setLevel(self.level)
 		self.handler.addFilter(LogFilter(names))
@@ -428,10 +429,7 @@ class LogFilter(logging.Filter):
 		self.names = names
 
 	def filter(self, record):
-		if any(record.name.startswith(n) for n in self.names):
-			return 1
-		else:
-			return 0
+		return any(record.name.startswith(n) for n in self.names)
 
 
 class LogHandler(logging.FileHandler):

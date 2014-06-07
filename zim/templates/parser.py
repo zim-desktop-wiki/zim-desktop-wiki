@@ -15,6 +15,7 @@ from zim.parser import Parser, Rule, SimpleTreeBuilder, BuilderTextBuffer
 
 from zim.templates.expressionparser import ExpressionParser, ExpressionParameter
 
+
 class TemplateBuilderTextBuffer(BuilderTextBuffer):
 	'''Sub class of L{BuilderTextBuffer} that is used to strip text
 	around template instructions.
@@ -76,19 +77,12 @@ class TemplateTreeBuilder(SimpleTreeBuilder):
 		SimpleTreeBuilder.__init__(self)
 
 	def start(self, tag, attrib=None):
-		# Special case for blocks - put them outside hierarchy
+		# Special case for blocks - put them outside tree
 		if tag == 'BLOCK':
 			element = self.elementfactory(tag, attrib, [])
 			self.root.append(element)
 			self.stack.append(element)
 		else:
-			# Check IF / ELIF / ELSE occur in right sequence
-			if tag in ('ELIF', 'ELSE'):
-				prev = self.stack[-1][-1]
-				if not hasattr(prev, 'tag') \
-				and prev.tag in ('IF', 'ELIF'):
-					raise '%s block out of place' % tag
-
 			SimpleTreeBuilder.start(self, tag, attrib)
 
 
@@ -223,8 +217,7 @@ class TemplateParser(object):
 		if m and m.group(1) in self._tokens_with_expr:
 			token = m.group(1)
 			expr = m.group(2).strip()
-			if not expr:
-				raise AssertionError # TODO better error
+			assert expr, 'Missing expression' # Should never occur if regexp is strict
 		elif text in self._tokens_without_expr:
 			token = text
 			expr = None
@@ -263,7 +256,7 @@ class TemplateParser(object):
 			e = self.expr_parser.parse(m.group(2))
 			b.append(t, {'var': v, 'expr': e})
 		else:
-			raise AssertionError # TODO better error
+			raise AssertionError, 'Invalid syntax for SET, expected assignment'
 
 	def _process_token_if(self, b, t, e):
 		e = self.expr_parser.parse(e)
@@ -271,7 +264,9 @@ class TemplateParser(object):
 		self._stack.append('IF')
 
 	def _process_token_elif(self, b, t, e):
-		b.end(self._stack.pop()) # raises if unmatched - TODO explicit error
+		if not (self._stack and self._stack[-1] in ('IF', 'ELIF')):
+			raise AssertionError, 'Expected IF statement instead of ELIF'
+		b.end(self._stack.pop()) # raises if unmatched
 		e = self.expr_parser.parse(e)
 		b.start('ELIF', {'expr': e})
 		self._stack.append('ELIF')
@@ -279,7 +274,9 @@ class TemplateParser(object):
 	_process_token_elsif = _process_token_elif
 
 	def _process_token_else(self, b, t, e):
-		b.end(self._stack.pop()) # raises if unmatched - TODO explicit error
+		if not (self._stack and self._stack[-1] in ('IF', 'ELIF')):
+			raise AssertionError, 'Unexpected ELSE statement'
+		b.end(self._stack.pop()) # raises if unmatched
 		b.start('ELSE')
 		self._stack.append('ELSE')
 
@@ -294,16 +291,20 @@ class TemplateParser(object):
 			b.start('FOR', {'var': v, 'expr': e})
 			self._stack.append('FOR')
 		else:
-			raise AssertionError, '>> %s, expected "=" or "IN"' % e # TODO better error
+			if t == 'FOR':
+				raise AssertionError, 'Invalid syntax in FOR, expected "IN"'
+			else:
+				raise AssertionError, 'Invalid syntax in FOREACH, expected "IN" or "="'
 
 	_process_token_foreach = _process_token_for
 
 	def _process_token_block(self, b, t, e):
 		if not self._block_token_re.match(e):
-			raise AssertionError # TODO better error
+			raise AssertionError, 'Invalid syntax in BLOCK, expected name'
 		b.start('BLOCK', {'name': e})
 		self._stack.append('BLOCK')
 
 	def _process_token_end(self, b, t, e):
-		b.end(self._stack.pop()) # raises if unmatched - TODO explicit error
-
+		if not self._stack:
+			raise AssertionError, 'Unexpected END statement'
+		b.end(self._stack.pop()) # raises if unmatched

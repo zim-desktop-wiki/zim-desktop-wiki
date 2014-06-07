@@ -159,7 +159,12 @@ class Template(SignalEmitter):
 		@param file: a L{File} object for the template file
 		'''
 		self.filename = file.path
-		self.parts = TemplateParser().parse(file.read())
+		try:
+			self.parts = TemplateParser().parse(file.read())
+		except Exception, error:
+			error.parser_file = file
+			raise
+
 		rdir = file.dir.subdir(file.basename[:-5]) # XXX strip extension, .html here
 		if rdir.exists():
 			self.resources_dir = rdir

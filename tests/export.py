@@ -676,7 +676,7 @@ class TestExportDialog(tests.TestCase):
 		foologger = logging.getLogger('zim.foo')
 		log_context = LogContext()
 
-		with tests.LoggingFilter('zim.export'):
+		with tests.LoggingFilter(message='Test'):
 			with log_context:
 				mylogger.warn('Test export warning')
 				mylogger.debug('Test export debug')
@@ -684,6 +684,7 @@ class TestExportDialog(tests.TestCase):
 
 		file = log_context.file
 		self.assertTrue(file.exists())
+		#~ print ">>>\n", file.read(), "\n<<<"
 		self.assertTrue('Test export warning' in file.read())
 		self.assertFalse('Test export debug' in file.read())
 		self.assertFalse('Test foo' in file.read())

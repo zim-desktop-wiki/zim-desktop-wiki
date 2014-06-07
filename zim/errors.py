@@ -132,7 +132,9 @@ class Error(Exception):
 
 	def __init__(self, msg, description=None):
 		self.msg = msg
-		self.description = description or ''
+		if description:
+			self.description = description
+			# else use class attribute
 
 	def __str__(self):
 		msg = self.__unicode__()

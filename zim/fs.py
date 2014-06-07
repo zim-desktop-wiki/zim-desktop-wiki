@@ -1674,7 +1674,7 @@ class UnixFile(FilePath):
 	def remove(self):
 		'''Remove (delete) this file and cleanup any related temporary
 		files we created. This action can not be un-done.
-		Ignores silently if the page did not exist in the first place.
+		Ignores silently if the file did not exist in the first place.
 		'''
 		logger.info('Remove file: %s', self)
 		with self._lock:
