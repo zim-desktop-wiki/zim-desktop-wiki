@@ -62,6 +62,9 @@ class TestApplications(tests.TestCase):
 			result = entry.parse_exec(args)
 			self.assertEqual(result, wanted)
 
+			cwd, argv = entry._checkargs(None, args)
+			self.assertEqual(tuple(a.decode(zim.fs.ENCODING) for a in argv), wanted)
+
 		entry['Desktop Entry']['Icon'] = 'xxx'
 		entry.file = File('/foo.desktop')
 		for app, args, wanted in (

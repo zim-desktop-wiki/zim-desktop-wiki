@@ -57,6 +57,12 @@ unindented_line_re = re.compile('^\S', re.M)
 	# match any unindented line
 
 
+def _remove_indent(text, indent):
+	return re.sub('(?m)^'+indent, '', text)
+		# Specify "(?m)" instead of re.M since "flags" keyword is not
+		# supported in python 2.6
+
+
 class WikiParser(object):
 	# This parser uses 3 levels of rules. The top level splits up
 	# paragraphs, verbatim paragraphs, images and objects.
@@ -104,17 +110,32 @@ class WikiParser(object):
 		p = Parser(
 			Rule(
 				'X-Bullet-List',
-				r'(^%s.*\n(?:^\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
+				r'''(
+					^ %s .* \n								# Line starting with bullet
+					(?:
+						^ \t* %s .* \n						# Line with same or more indent and bullet
+					)*										# .. repeat
+				)''' % (bullet_pattern, bullet_pattern),
 				process=self.parse_list
 			),
 			Rule(
 				'X-Indented-Bullet-List',
-				r'(^(?P<list_indent>\t+)%s.*\n(?:^(?P=list_indent)\t*%s.*\n)*)' % (bullet_pattern, bullet_pattern),
+				r'''(
+					^(?P<list_indent>\t+) %s .* \n			# Line with indent and bullet
+					(?:
+						^(?P=list_indent) \t* %s .* \n		# Line with same or more indent and bullet
+					)*										# .. repeat
+				)''' % (bullet_pattern, bullet_pattern),
 				process=self.parse_list
 			),
 			Rule(
 				'X-Indented-Block',
-				r'(^(?P<block_indent>\t+).*\n(?:^(?P=block_indent)(?!\t).*\n)*)',
+				r'''(
+					^(?P<block_indent>\t+) .* \n			# Line with indent
+					(?:
+						^(?P=block_indent) (?!\t|%s) .* \n	# Line with _same_ indent, no bullet
+					)*										# .. repeat
+				)''' % bullet_pattern,
 				process=self.parse_indent
 			),
 		)
@@ -167,7 +188,7 @@ class WikiParser(object):
 	def parse_pre(builder, indent, text):
 		'''Verbatim block with indenting'''
 		if indent:
-			text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+			text = _remove_indent(text, indent)
 			attrib = {'indent': len(indent)}
 		else:
 			attrib = None
@@ -193,7 +214,7 @@ class WikiParser(object):
 		### FIXME FIXME FIXME - need to separate two types of attrib ###
 		attrib['type'] = type
 		if indent:
-			body = re.sub('^'+indent, '', body, flags=re.M) # remove indent
+			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
 
 		builder.append(OBJECT, attrib, body)
@@ -223,7 +244,7 @@ class WikiParser(object):
 		per list item
 		'''
 		if indent:
-			text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+			text = _remove_indent(text, indent)
 			attrib = {'indent': len(indent)}
 		else:
 			attrib = None
@@ -276,7 +297,7 @@ class WikiParser(object):
 
 	def parse_indent(self, builder, text, indent):
 		'''Parse indented blocks and turn them into 'div' elements'''
-		text = re.sub('^'+indent, '', text, flags=re.M) # remove indent
+		text = _remove_indent(text, indent)
 		builder.start(BLOCK, {'indent': len(indent)})
 		self.inline_parser(builder, text)
 		builder.end(BLOCK)

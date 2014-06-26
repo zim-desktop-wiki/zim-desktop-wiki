@@ -144,12 +144,14 @@ class EditCustomToolDialog(Dialog):
 			execcmd = tool.execcmd
 			readonly = tool.isreadonly
 			toolbar = tool.showintoolbar
+			replaceselection = tool.replaceselection
 		else:
 			name = ''
 			comment = ''
 			execcmd = ''
 			readonly = False
 			toolbar = False
+			replaceselection = False
 
 		self.add_form((
 			('Name', 'string', _('Name')), # T: Input in "Edit Custom Tool" dialog
@@ -178,10 +180,12 @@ class EditCustomToolDialog(Dialog):
 
 		self.form.add_inputs((
 			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ReplaceSelection', 'bool', _('Output should replace current selection')), # T: Input in "Edit Custom Tool" dialog
 			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
 		))
 		self.form.update({
 			'X-Zim-ReadOnly': readonly,
+			'X-Zim-ReplaceSelection': replaceselection,
 			'X-Zim-ShowInToolBar': toolbar,
 		})
 

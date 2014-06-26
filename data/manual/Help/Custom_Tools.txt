@@ -3,12 +3,12 @@ Wiki-Format: zim 0.4
 
 ====== Custom Tools ======
 
-Zim allows you to define custom tools to extend the basic functionality with simple functions that can be handled by an external program or script. The custom tool manager allows you to quickly extend functionality in zim by shell scripts or other external programs. It is also useful to prototype plugin functionality without having to learn the full API for plugins. 
+Zim allows you to define custom tools to extend the basic functionality with simple functions that can be handled by an external program or script. The custom tool manager allows you to quickly extend functionality in zim by shell scripts or other external programs. It is also useful to prototype plugin functionality without having to learn the full API for plugins.
 
 ===== Add a custom tool =====
 To add a custom tool, open up the custom tool manager dialog using the menu item //Tools// -> //Custom Tools//. Now press the "Add" icon button and zim will prompt for the properties of a new tool.
 
-The **Name** is used in the tools menu for this tool and is mandatory. 
+The **Name** is used in the tools menu for this tool and is mandatory.
 
 The **Description** should be a slightly more verbose description of this tool. It is used for example as the tooltip for toolbar items.
 
@@ -21,13 +21,15 @@ When defining a command, you can use the following parameters to supply the exte
 **%s**	for the real page source file (if any)
 **%n**	for the notebook location (file or folder)
 **%D**	for the document root (if any)
-**%t** 	for the selected text or word under cursor	
+**%t** 	for the selected text or word under cursor
 
 The optional **Icon** is used for toolbar items and for menu items depending on your Gtk appearance settings.
 
 Then there is the checkbox **Command does not modify data**. Enable this option if your tool only read data but does not modify it. In that case zim will execute the application in the background and keep running. Otherwise, if your tool does modify data, zim has to wait for it to finish and reload the current page.
 
-The chcekbox **Show in the toolbar** determines if this tool will be added to the toolbar or not.
+If the option **Output should replace current selection** is enabled (and the above checkbox is not enabled) the output of the command is used to replace the current selection in the editor window. This can be used for custom commands that modify a single word or sentence.
+
+The option **Show in the toolbar** determines if this tool will be added to the toolbar or not.
 
 Tools are always visible in the "Tools" menu in the main window. Depending on the parameters they take, they may also be shown in the context menus for pages or for selected text in the editor.
 

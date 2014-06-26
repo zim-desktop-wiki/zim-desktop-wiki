@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains helper classes for running external applications.
 
@@ -18,6 +18,7 @@ import gobject
 import zim.fs
 import zim.errors
 
+from zim.fs import File
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
 from zim.environ import environ
 
@@ -149,6 +150,12 @@ class Application(object):
 		assert args is None or isinstance(args, (tuple, list))
 		argv = self._cmd(args)
 
+		# Expand home dir
+		if argv[0].startswith('~'):
+			cmd = File(argv[0]).path
+			argv = list(argv)
+			argv[0] = cmd
+
 		# if it is a python script, insert interpreter as the executable
 		if argv[0].endswith('.py') and not _main_is_frozen():
 			argv = list(argv)
@@ -223,9 +230,12 @@ class Application(object):
 			logger.warn(stderr)
 			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
-		return [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
-			# Explicit newline conversion, e.g. on windows \r\n -> \n
-			# FIXME Assume local encoding is respected (!?)
+		# Explicit newline conversion, e.g. on windows \r\n -> \n
+		# FIXME Assume local encoding is respected (!?)
+		text = [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
+		if text and text[-1].endswith('\n') and not stdout.endswith('\n'):
+			text[-1] = text[-1][:-1] # strip additional \n
+		return text
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
 		'''Start the application in the background and return immediately.
