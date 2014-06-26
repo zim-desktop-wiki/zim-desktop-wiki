@@ -2182,6 +2182,18 @@ class GtkInterface(gobject.GObject):
 		try:
 			if tool.isreadonly:
 				tool.spawn(args)
+			elif tool.replaceselection:
+				output = tool.pipe(args)
+				logger.debug('Replace output with %s', output)
+				pageview = self.mainwindow.pageview # XXX
+				buffer = pageview.view.get_buffer() # XXX
+				if buffer.get_has_selection():
+					start, end = buffer.get_selection_bounds()
+					with buffer.user_action:
+						buffer.delete(start, end)
+						buffer.insert_at_cursor(''.join(output))
+				else:
+					pass # error here ??
 			else:
 				tool.run(args)
 				self.reload_page()

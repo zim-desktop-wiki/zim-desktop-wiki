@@ -456,7 +456,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 	@property
 	def comment(self):
 		# TODO: localisation of application name
-		return self['Desktop Entry']['Comment']
+		return self['Desktop Entry']['Comment'] or ''
 
 	@property
 	def nodisplay(self):
@@ -978,6 +978,7 @@ class CustomToolDict(DesktopEntryDict):
 			('X-Zim-ReadOnly',			Boolean(True)),
 			('X-Zim-ShowInToolBar',		Boolean(False)),
 			('X-Zim-ShowInContextMenu',	Choice(None, ('Text', 'Page'))),
+			('X-Zim-ReplaceSelection',	Boolean(False)),
 	)
 
 	def isvalid(self):
@@ -1024,6 +1025,10 @@ class CustomToolDict(DesktopEntryDict):
 	@property
 	def showincontextmenu(self):
 		return self['Desktop Entry']['X-Zim-ShowInContextMenu']
+
+	@property
+	def replaceselection(self):
+		return self['Desktop Entry']['X-Zim-ReplaceSelection']
 
 	def parse_exec(self, args=None):
 		if not (isinstance(args, tuple) and len(args) == 3):
