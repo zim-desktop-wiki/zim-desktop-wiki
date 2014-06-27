@@ -102,6 +102,16 @@ class ExportDialog(Assistant):
 				return file, build_mhtml_file_exporter(file, **options)
 			else:
 				return None, None
+		elif self.uistate['output'] == 'single_file':
+			options.pop('index_page', None)
+			if self.uistate['selection'] == 'page':
+				options['namespace'] = self.uistate['selected_page']
+
+			file = self.get_file()
+			if file:
+				return file, build_single_file_exporter(file, **options)
+			else:
+				return None, None
 		elif self.uistate['selection'] == 'all':
 			# Export full notebook to dir
 			dir = self.get_folder()
@@ -291,6 +301,9 @@ class OutputPage(AssistantPage):
 		AssistantPage.__init__(self, assistant)
 
 		self.add_form((
+			('output:multi_file', 'option', _('Export each page to a separate file')),
+			('output:single_file', 'option', _('Export all pages to a single file')),
+			None,
 			('folder', 'dir', _('Output folder')),
 				# T: Label for folder selection in export dialog
 			('index', 'string', _('Index page')),
@@ -305,18 +318,59 @@ class OutputPage(AssistantPage):
 		for widget in self.form.widgets:
 			self.form.widgets[widget].set_no_show_all(True)
 
+		self.form.widgets['output:single_file'].connect('toggled', self.on_output_changed)
+
 	def init_uistate(self):
 		# Switch between folder selection or file selection based
 		# on whether we selected full notebook or single page in the
 		# first page
+		self.uistate.setdefault('output', 'multi_file')
 		self.uistate.setdefault('output_folder', None, Dir)
 		self.uistate.setdefault('index_page', '')
 		self.uistate.setdefault('output_file', None, File)
 
-		show_file = self.uistate.get('selection') == 'page'
 		if self.uistate.get('format', '').startswith('MHTML'):
-			show_file = True # XXX make this a format property to be queried
+			# XXX make this a format property to be queried
+			self.form.widgets['output:multi_file'].set_sensitive(False)
+			self.form.widgets['output:single_file'].set_sensitive(False)
+			self.form.widgets['output:single_file'].set_active(True)
+		else:
+			self.form.widgets['output:multi_file'].set_sensitive(True)
+			self.form.widgets['output:single_file'].set_sensitive(True)
 
+		self.form.widgets['output:multi_file'].show()
+		self.form.widgets['output:single_file'].show()
+
+		self.form['output'] = self.uistate['output']
+
+		self.on_output_changed(None)
+
+		# Set file name
+		basename = self.uistate['selected_page'].basename
+		format = self.uistate['format']
+		if format.startswith('MHTML'):
+			ext = 'mht'
+		else:
+			ext = zim.formats.get_format(format).info['extension']
+
+		if self.uistate['output_file'] \
+		and isinstance(self.uistate['output_file'], File):
+			dir = self.uistate['output_file'].dir
+			file = dir.file(encode_filename(basename  + '.' + ext))
+		else:
+			file = File('~/' + encode_filename(basename  + '.' + ext))
+		self.uistate['output_file'] = file
+
+		self.form['file'] = self.uistate['output_file']
+		self.form['folder'] = self.uistate['output_folder']
+
+	def on_output_changed(self, o):
+		if self.uistate.get('selection') == 'page':
+			self.set_show_file(True)
+		else:
+			self.set_show_file(self.form['output'] == 'single_file')
+
+	def set_show_file(self, show_file):
 		if show_file:
 			self.form.widgets['folder'].set_sensitive(False)
 			self.form.widgets['folder'].hide()
@@ -328,29 +382,11 @@ class OutputPage(AssistantPage):
 			self.form.widgets['file'].set_sensitive(False)
 			self.form.widgets['file'].hide()
 
-		if show_file:
-			basename = self.uistate['selected_page'].basename
-			format = self.uistate['format']
-			if format.startswith('MHTML'):
-				ext = 'mht'
-			else:
-				ext = zim.formats.get_format(format).info['extension']
-
-			if self.uistate['output_file'] \
-			and isinstance(self.uistate['output_file'], File):
-				dir = self.uistate['output_file'].dir
-				file = dir.file(encode_filename(basename  + '.' + ext))
-			else:
-				file = File('~/' + encode_filename(basename  + '.' + ext))
-			self.uistate['output_file'] = file
-
-		self.form['file'] = self.uistate['output_file']
-		self.form['folder'] = self.uistate['output_folder']
-
 	def save_uistate(self):
 		self.uistate['output_file'] = self.form['file']
 		self.uistate['output_folder'] = self.form['folder']
 		self.uistate['index_page'] = self.form['index']
+		self.uistate['output'] = self.form['output']
 
 
 class ExportDoneDialog(MessageDialog):
