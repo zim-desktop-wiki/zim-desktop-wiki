@@ -302,7 +302,9 @@ class OutputPage(AssistantPage):
 
 		self.add_form((
 			('output:multi_file', 'option', _('Export each page to a separate file')),
+				# T: Label for option in export dialog
 			('output:single_file', 'option', _('Export all pages to a single file')),
+				# T: Label for option in export dialog
 			None,
 			('folder', 'dir', _('Output folder')),
 				# T: Label for folder selection in export dialog
@@ -398,7 +400,7 @@ class ExportDoneDialog(MessageDialog):
 		n_error = logging_context.handler.n_error
 		n_warning = logging_context.handler.n_warning
 		if n_error and n_warning:
-			text = _('%i errors and %i warnings occurred, see log') % (n_error, n_warning)
+			text = _('%(n_errors)i errors and %(n_warnings)i warnings occurred, see log') % {'n_error': n_error, 'n_warnings': n_warning}
 				# T: label in export dialog
 		elif n_error:
 			text = _('%i errors occurred, see log') % n_error

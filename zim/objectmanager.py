@@ -209,10 +209,11 @@ class FallbackObject(CustomObjectClass):
 				hbox = gtk.HBox(False, 5)
 				box.pack_start(hbox)
 				label = gtk.Label(_("Plugin %s is required to display this object.") % name)
+					# T: Label for object manager
 				hbox.pack_start(label)
 				if activatable: # and False:
 					# Plugin can be enabled
-					button = gtk.Button(_("Enable plugin"))
+					button = gtk.Button(_("Enable plugin")) # T: Label for object manager
 					def load_plugin(button):
 						self.ui.plugins.load_plugin(key)
 						self.ui.reload_page()
@@ -224,11 +225,11 @@ class FallbackObject(CustomObjectClass):
 						dialog = PreferencesDialog(self.ui, "Plugins", select_plugin=name)
 						dialog.run()
 						self.ui.reload_page()
-					button = gtk.Button(_("Show plugin details"))
+					button = gtk.Button(_("Show plugin details")) # T: Label for object manager
 					button.connect("clicked", plugin_info)
 				hbox.pack_start(button)
 			else:
-				label = gtk.Label(_("No plugin is available to display this object."))
+				label = gtk.Label(_("No plugin is available to display this object.")) # T: Label for object manager
 				box.pack_start(label)
 
 			win, self.view = ScrolledTextView(self._data, monospace=True)

@@ -113,7 +113,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Show Link Map'), stock='zim-linkmap')
+	@action(_('Show Link Map'), stock='zim-linkmap') # T: menu item
 	def show_linkmap(self):
 		linkmap = LinkMap(self.window.ui.notebook, self.window.ui.page) # XXX
 		dialog = LinkMapDialog(self.window, linkmap, self.window.get_resource_opener())

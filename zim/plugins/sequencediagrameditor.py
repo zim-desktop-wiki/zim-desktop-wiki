@@ -28,9 +28,9 @@ It allows easy editing of sequence diagrams.
 	}
 
 	object_type = 'seqdiagram'
-	short_label = _('Sequence Diagram')
-	insert_label = _('Insert Sequence Diagram')
-	edit_label = _('_Edit Sequence Diagram')
+	short_label = _('Sequence Diagram') # T: menu item
+	insert_label = _('Insert Sequence Diagram') # T: menu item
+	edit_label = _('_Edit Sequence Diagram') # T: menu item
 	syntax = None
 
 	@classmethod

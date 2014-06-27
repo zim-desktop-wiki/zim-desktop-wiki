@@ -84,7 +84,7 @@ class MainWindowExtension(WindowExtension):
 		if not plugin.symbols:
 			plugin.load_file()
 
-	@action(_('Sy_mbol...'))
+	@action(_('Sy_mbol...')) # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
 		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()

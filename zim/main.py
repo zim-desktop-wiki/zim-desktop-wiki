@@ -144,6 +144,7 @@ class NotebookCommand(Command):
 		notebookinfo = resolve_notebook(notebook)
 		if not notebookinfo:
 			raise NotebookLookupError, _('Could not find notebook: %s') % notebook
+				# T: error message
 
 		if len(self.arguments) > 1 \
 		and self.arguments[1] in ('PAGE', '[PAGE]') \

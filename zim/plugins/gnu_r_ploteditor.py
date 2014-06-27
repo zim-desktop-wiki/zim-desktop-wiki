@@ -38,9 +38,9 @@ This plugin provides a plot editor for zim based on GNU R.
 	}
 
 	object_type = 'gnu_r_plot'
-	short_label = _('GNU _R Plot')
-	insert_label = _('Insert GNU R Plot')
-	edit_label = _('_Edit GNU R Plot')
+	short_label = _('GNU _R Plot') # T: menu item
+	insert_label = _('Insert GNU R Plot') # T: menu item
+	edit_label = _('_Edit GNU R Plot') # T: menu item
 	syntax = 'r'
 
 	@classmethod

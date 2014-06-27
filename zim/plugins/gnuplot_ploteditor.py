@@ -37,9 +37,9 @@ This plugin provides a plot editor for zim based on Gnuplot.
 	}
 
 	object_type = 'gnuplot'
-	short_label = _('Gnuplot')
-	insert_label = _('Insert Gnuplot')
-	edit_label = _('_Edit Gnuplot')
+	short_label = _('Gnuplot') # T: menu item
+	insert_label = _('Insert Gnuplot') # T: menu item
+	edit_label = _('_Edit Gnuplot') # T: menu item
 	syntax = None
 
 	@classmethod

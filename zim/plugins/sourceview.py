@@ -44,11 +44,17 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 	plugin_preferences = (
 		# key, type, label, default
 		('auto_indent', 'bool', _('Auto indenting'), True),
+			# T: preference option for sourceview plugin
 		('smart_home_end', 'bool', _('Smart Home key'), True),
+			# T: preference option for sourceview plugin
 		('highlight_current_line', 'bool', _('Highlight current line'), True),
+			# T: preference option for sourceview plugin
 		('show_right_margin', 'bool', _('Show right margin'), True),
+			# T: preference option for sourceview plugin
 		('right_margin_position', 'int', _('Right margin position'), 80, (1, 1000)),
+			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
+			# T: preference option for sourceview plugin
 	)
 
 	@classmethod
@@ -331,6 +337,7 @@ class SourceViewObject(CustomObjectClass):
 			self.show_line_numbers(item.get_active())
 
 		item = gtk.CheckMenuItem(_('Show Line Numbers'))
+			# T: preference option for sourceview plugin
 		item.set_active(self._attrib['linenumbers'] == 'true') # FIXME - make this attrib boolean
 		item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)

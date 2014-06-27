@@ -177,7 +177,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Quick Note...'), stock='gtk-new')
+	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
 	def show_quick_note(self):
 		ui = self.window.ui # XXX
 		notebook = self.window.ui.notebook # XXX

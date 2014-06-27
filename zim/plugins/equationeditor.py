@@ -29,9 +29,9 @@ This is a core plugin shipping with zim.
 	}
 
 	object_type = 'equation'
-	short_label = _('E_quation')
-	insert_label = _('Insert Equation')
-	edit_label = _('_Edit Equation')
+	short_label = _('E_quation') # T: menu item
+	insert_label = _('Insert Equation') # T: menu item
+	edit_label = _('_Edit Equation') # T: menu item
 	syntax = 'latex'
 
 	@classmethod

@@ -57,9 +57,9 @@ This is a core plugin shipping with zim.
 	]
 
 	object_type = 'score'
-	short_label = _('S_core')
-	insert_label = _('Insert Score')
-	edit_label = _('_Edit Score')
+	short_label = _('S_core') # T: menu item
+	insert_label = _('Insert Score') # T: menu item
+	edit_label = _('_Edit Score') # T: menu item
 	syntax = None
 
 	@classmethod

@@ -48,7 +48,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('_Sort lines'), stock='gtk-sort-ascending')
+	@action(_('_Sort lines'), stock='gtk-sort-ascending') # T: menu item
 	def sort_selected_lines(self):
 		buffer = self.window.pageview.view.get_buffer()
 		try:
