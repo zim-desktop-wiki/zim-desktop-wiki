@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a web interface for zim. This is an alternative
 to the GUI application.
@@ -283,8 +283,11 @@ class WWWInterface(object):
 			self.dumper_factory,
 			title=page.get_title(),
 			content=[page],
-			home=None, up=None, prevpage=None, nextpage=None, # TODO
-			links=None, # TODO
+			home=self.notebook.get_home_page(),
+			up=page.parent if page.parent and not page.parent.isroot else None,
+			prevpage=self.notebook.index.get_previous(page),
+			nextpage=self.notebook.index.get_next(page),
+			links={'index': '/'}
 		)
 		self.template.process(lines, context)
 		return lines

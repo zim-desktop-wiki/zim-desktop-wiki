@@ -139,7 +139,9 @@ class ExportTemplateContext(dict):
 		self.linker = linker_factory()
 
 		def _link(l):
-			if isinstance(l, Path):
+			if isinstance(l, basestring):
+				return UriProxy(l)
+			elif isinstance(l, Path):
 				return NotebookPathProxy(l)
 			else:
 				assert l is None or isinstance(l, (NotebookPathProxy, FileProxy))
@@ -183,7 +185,7 @@ class ExportTemplateContext(dict):
 		})
 
 		if links:
-			for k, l in links:
+			for k, l in links.items():
 				l = _link(l)
 				self['links'][k] = l
 
@@ -206,7 +208,9 @@ class ExportTemplateContext(dict):
 
 	@ExpressionFunction
 	def uri_function(self, link):
-		if isinstance(link, NotebookPathProxy):
+		if isinstance(link, UriProxy):
+			return link.uri
+		elif isinstance(link, NotebookPathProxy):
 			return self.linker.page_object(link._path)
 		elif isinstance(link, FilePathProxy):
 			return self.linker.file_object(link._file)
@@ -366,4 +370,13 @@ class NotebookPathProxy(object):
 		self.name = path.name
 		self.basename = path.basename
 		self.namespace = path.namespace
+
+
+class UriProxy(object):
+
+	def __init__(self, uri):
+		self.uri = uri
+
+	def __str__(self):
+		return self.uri
 
