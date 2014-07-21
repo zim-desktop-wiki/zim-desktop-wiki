@@ -39,6 +39,9 @@ execution in expressions.
 
 import collections
 import inspect
+import logging
+
+logger = logging.getLogger('zim.templates')
 
 
 class Expression(object):
@@ -121,7 +124,8 @@ class ExpressionParameter(Expression):
 					value = getattr(value, p)
 			except (IndexError, KeyError, AttributeError):
 				# We got right type, but data is not there
-				raise AssertionError, 'No such parameter: %s' % '.'.join(map(str, self.parts[:i+1]))
+				logger.warning('No such parameter: %s', '.'.join(map(str, self.parts[:i+1])))
+				return None
 
 			if inspect.ismethod(value) \
 			or inspect.isfunction(value) \
