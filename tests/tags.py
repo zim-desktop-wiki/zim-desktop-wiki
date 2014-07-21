@@ -161,7 +161,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.assertTrue(path in treestore.get_treepaths(indexpath))
 
 		page = self.notebook.get_page(indexpath)
-		self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename)
+		self.assertIn(treestore.get_value(iter, NAME_COL), (page.basename, page.name))
 		self.assertEqual(treestore.get_value(iter, PATH_COL), page)
 		if page.hascontent or page.haschildren:
 			self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
