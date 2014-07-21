@@ -333,7 +333,7 @@ class ParseTreeItem(ClipboardItem):
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
 		elif id == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
-				linker=StaticExportLinker(self.notebook, self.path) )
+				linker=StaticExportLinker(self.notebook, source=self.path) )
 			html = ''.join( dumper.dump(self.parsetree) )
 			html = wrap_html(html, target=selectiondata.target)
 			#~ print 'PASTING: >>>%s<<<' % html
@@ -346,7 +346,7 @@ class ParseTreeItem(ClipboardItem):
 				dumper = get_format(self.format).Dumper()
 			else:
 				dumper = get_format(self.format).Dumper(
-					linker=StaticExportLinker(self.notebook, self.path) )
+					linker=StaticExportLinker(self.notebook, source=self.path) )
 
 			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)

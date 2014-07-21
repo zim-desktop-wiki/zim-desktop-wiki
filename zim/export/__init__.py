@@ -2,7 +2,27 @@
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# TODO update docs - see google drive for draft
+'''This module contains the framework for exporting data from zim.
+
+The main API for exporting from the application is the L{Exporter}
+object. There are subclasses of Exporter to export to multiple files,
+to a single file or to a MHTML file.
+
+To configure the exporter object an additional L{ExportLayout} object
+is used. This layout defines the exact mapping of pages to files to
+be used.
+
+To specific the pages to export a subclass of the L{PageSelection} class
+is used. There are selection classes to export the whole notebook or
+to export a single page.
+
+The L{ExportTemplateContext} object defines specific template parameters
+for exporting. See also L{zim.templates} for template parsing and
+processing classes.
+
+See the module functions for convenient standard configurations.
+'''
+
 
 # TODO test with fake file / dir objects ! Speedy test of all combos
 
@@ -10,10 +30,6 @@
 #        links within a SingleFile output relative to that prefix
 #        --> do not leak info on parent namespace names
 
-# TODO - add property that gives N stages of exporting (X pages + X times copy attachments + copy resources)
-#	e.g. define [(stage, n, label), (stage, n, label)]
-#		yield (stage, data) where data is e.g. the page
-#               set label above dialog, put data below
 
 
 from zim.fs import Dir, File
