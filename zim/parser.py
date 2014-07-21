@@ -41,6 +41,9 @@ import re
 import xml.etree.cElementTree as ElementTree
 
 
+from zim.errors import Error
+
+
 def prepare_text(text, tabstop=4):
 	'''Ensures text is properly formatted.
 	  - Fixes missing line end
@@ -118,63 +121,167 @@ class Builder(object):
 		self.end(tag)
 
 
-class SimpleTreeBuilder(Builder):
-	'''This class will build a tree out of tuple like::
-
-		("tag", {}, [
-				"text",
-				("child", {}, ["text"]),
-				...
-			]
-		)
-
-	So each element is either a 3-tuple of tag name, attrib and children
-	or a string.
+class BuilderTextBuffer(Builder):
+	'''Wrapper that buffers text going to a L{Builder} object
+	such that the last piece of text remains accessible for inspection
+	and can be modified.
 	'''
 
-	def __init__(self, merge_text=True):
+	def __init__(self, builder):
+		self.builder = builder
+		self.buffer = []
+
+	# Interface to handle text buffer
+
+	def get_text(self):
+		return u''.join(self.buffer)
+
+	def set_text(self, text):
+		self.buffer = [text]
+
+	def clear_text(self):
+		self.buffer = []
+
+	def flush(self):
+		text = u''.join(self.buffer)
+		if text:
+			self.builder.text(text)
+		self.buffer = []
+
+	# Builder interface
+
+	def start(self, tag, attrib=None):
+		if self.buffer:
+			self.flush()
+		self.builder.start(tag, attrib)
+
+	def end(self, tag):
+		if self.buffer:
+			self.flush()
+		self.builder.end(tag)
+
+	def text(self, text):
+		self.buffer.append(text)
+
+	def append(self, tag, attrib=None, text=None):
+		if self.buffer:
+			self.flush()
+		self.builder.append(tag, attrib, text)
+
+
+class SimpleTreeElement(list):
+
+	# Not unlike the Element class of xml.etree, but without the
+	# "text" and "tail" attributes - text is just part of the list.
+	# This makes processing so much easier...
+
+	__slots__ = ('tag', 'attrib')
+
+	def __init__(self, tag, attrib=None, children=None):
+		self.tag = tag
+		self.attrib = attrib
+		if children:
+			self.extend(children)
+
+	def get(self, attr, default=None):
+		if self.attrib:
+			return self.attrib.get(attr, default)
+		else:
+			return None
+
+	def __eq__(self, other):
+		if self.tag == other.tag \
+		and self.attrib == other.attrib \
+		and len(self) == len(other):
+			return all(s == o for s, o in zip(self, other))
+		else:
+			return False
+
+	def __repr__(self):
+		if len(self) > 0:
+			return '<%s:\n%s>' % (self.__class__.__name__, self.pprint(level=1))
+		else:
+			return '<%s: %s>' % (self.__class__.__name__, self.pprint(level=0).strip())
+
+	def __str__(self):
+		return self.__repr__()
+
+	def pprint(self, level=0):
+		'''Returns pretty-printed text representation'''
+		prefix = '  ' * level
+		if len(self) > 0:
+			lines = [prefix + '%s %r [\n' % (self.tag, self.attrib)]
+			for item in self:
+				if isinstance(item, SimpleTreeElement):
+					lines.append(item.pprint(level=level+1))
+				elif isinstance(item, basestring):
+					for line in item.splitlines(True):
+						lines.append(prefix + '  %r\n' % line)
+				else:
+					lines.append(prefix + '  %r\n' % item)
+			lines.append(prefix + ']\n')
+			return ''.join(lines)
+		else:
+			return prefix + '%s %r []\n' % (self.tag, self.attrib)
+
+
+class SimpleTreeBuilder(Builder):
+	'''Builder class that builds a tree of L{SimpleTreeElement}s'''
+
+	def __init__(self, elementfactory=SimpleTreeElement):
+		self.elementfactory = elementfactory
 		self.root = []
-		self.stack = [(None, None, self.root)]
-		self.merge_text = merge_text
+		self.stack = [self.root]
+		self.merge_text = False
 
 	def get_root(self):
-		'''Get the elements constructed by the builder
-		@returns: a list of top level elements and text
-		'''
-		self._merge_text(self.root)
+		if not len(self.stack) == 1:
+			raise AssertionError, 'Did not finish processing'
 		return self.root
 
-	def start(self, tag, attrib):
-		element = (tag, attrib, [])
-		self.stack[-1][-1].append(element)
+	# Builder interface
+
+	def start(self, tag, attrib=None):
+		element = self.elementfactory(tag, attrib)
+		self.stack[-1].append(element)
 		self.stack.append(element)
 
 	def end(self, tag):
-		assert self.stack[-1][0] == tag, 'Mismatch, expected %s got %s' % (self.stack[-1][0], tag)
-		self._merge_text(self.stack[-1][-1])
-		self.stack.pop()
+		element = self.stack.pop()
+		if element.tag != tag:
+			raise AssertionError, 'Unmatched %s at end of %s' % (element.tag, tag)
 
 	def text(self, text):
-		self.stack[-1][-1].append(text)
+		self.stack[-1].append(text)
 
-	def _merge_text(self, list):
-		# Merge text items in the child list
-		if not self.merge_text or not list:
-			return
+	def append(self, tag, attrib=None, text=None):
+		element = self.elementfactory(tag, attrib)
+		if text:
+			element.append(text)
+		self.stack[-1].append(element)
 
-		children = [list[0]]
-		for piece in list[1:]:
-			if isinstance(piece, basestring) \
-			and isinstance(children[-1], basestring):
-				children[-1] += piece
-			else:
-				children.append(piece)
 
-		list[:] = children # replace in-line
+class ParserError(Error):
+
+	def __init__(self, msg):
+		Error.__init__(self, msg)
+
+		self.parser_file = _('<Unknown>') # T: placeholder for unknown file name
+		self.parser_text = ''
+		self.parser_line_offset = (0, 0)
+
+	@property
+	def description(self):
+		return _('Error in %(file)s at line %(line)i near "%(snippet)s"') % {
+			'file': self.parser_file,
+			'line': self.parser_line_offset[0],
+			'snippet': self.parser_text.strip(),
+		}
+			# T: Extended error message while parsing a file, gives file name, line number and words where error occurred
 
 
 class Rule(object):
-	'''Class that defines a single parser rule. Typically used
+	'''Class that defines a sigle parser rule. Typically used
 	to define a regex pattern for one specific wiki format string
 	and the processing to be done when this formatting is encountered
 	in the text.
@@ -331,6 +438,10 @@ class Parser(object):
 	def _raise_exception(error, text, start, end, builder, rule=None):
 		# Add parser state, line count etc. to error, then re-raise
 		# rule=None means error while processing unmatched text
+		if isinstance(error, AssertionError):
+			error = ParserError(error.message)
+			# Assume any assertion is a parser check
+
 		if hasattr(error, 'parser_offset'):
 			offset = start + error.parser_offset
 		else:
@@ -342,7 +453,10 @@ class Parser(object):
 		error.parser_offset = offset
 		error.parser_line_offset = get_line_count(text, offset)
 
-		raise
+		if isinstance(error, ParserError):
+			raise error
+		else:
+			raise  # original error, do not change stack trace
 
 
 def get_line_count(text, offset):

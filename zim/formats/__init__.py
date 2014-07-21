@@ -301,7 +301,11 @@ class ParseTree(object):
 	def copy(self):
 		# By using serialization we are absolutely sure all refs are new
 		xml = self.tostring()
-		return ParseTree().fromstring(xml)
+		try:
+			return ParseTree().fromstring(xml)
+		except:
+			print ">>>", xml, "<<<"
+			raise
 
 	def _get_heading_element(self, level=1):
 		root = self._etree.getroot()
@@ -362,6 +366,8 @@ class ParseTree(object):
 					return None, None
 			else:
 				return None, None
+		else:
+			return None, None
 
 	def cleanup_headings(self, offset=0, max=6):
 		'''Change the heading levels throughout the tree. This makes sure that
@@ -1253,117 +1259,55 @@ class BaseLinker(object):
 	already URL encoded.
 	'''
 
-	def __init__(self):
-		self._icons = {}
-		self._links = {}
-		self.path = None
-		self.usebase = False
-		self.base = None
+	def link(self, link):
+		'''Returns an url for a link in a zim page
+		This method is used to translate links of any type.
 
-	def set_path(self, path):
-		'''Set the page path for resolving links'''
-		self.path = path
-		self._links = {}
+		@param link: link to be translated
+		@returns: url, uri, or relative path
+		context of this linker
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
 
-	def set_base(self, dir):
-		'''Set a path to use a base for linking files'''
-		assert isinstance(dir, Dir)
-		self.base = dir
+	def img(self, src):
+		'''Returns an url for image file 'src'
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
 
-	def set_usebase(self, usebase):
-		'''Set whether the format supports relative files links or not'''
-		self.usebase = usebase
+	def icon(self, name):
+		'''Returns an url for an icon
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
 
-	def resolve_file(self, link):
+	def resource(self, path):
+		'''Return an url for template resources
+		@implementation: must be implemented by child classes
+		'''
+		raise NotImplementedError
+
+	def resolve_source_file(self, link):
 		'''Find the source file for an attachment
 		Used e.g. by the latex format to find files for equations to
 		be inlined. Do not use this method to resolve links, the file
 		given here might be temporary and is not guaranteed to be
-		available after the export. Use L{link()} or C{link_file()}
-		to resolve links to files.
+		available after the export.
 		@returns: a L{File} object or C{None} if no file was found
 		@implementation: must be implemented by child classes
 		'''
 		raise NotImplementedError
 
-	def link(self, link):
-		'''Returns an url for a link in a zim page
-		This method is used to translate links of any type. It determined
-		the link type and dispatches to L{link_page()}, L{link_file()},
-		or other C{link_*} methods.
-
-		Results of this method are cached, so only calls dispatch method
-		once for repeated occurences. Setting a new path with L{set_path()}
-		will clear the cache.
-
-		@param link: link to be translated
-		@type link: string
-
-		@returns: url, uri or whatever link notation is relevant in the
-		context of this linker
-		@rtype: string
-		'''
-		assert not self.path is None
-		if not link in self._links:
-			type = link_type(link)
-			if type == 'page':    href = self.link_page(link)
-			elif type == 'file':  href = self.link_file(link)
-			elif type == 'mailto':
-				if link.startswith('mailto:'):
-					href = self.link_mailto(link)
-				else:
-					href = self.link_mailto('mailto:' + link)
-			elif type == 'interwiki':
-				href = zim.notebook.interwiki_link(link)
-				if href and href != link:
-					href = self.link(href) # recurs
-				else:
-					logger.warn('No URL found for interwiki link "%s"', link)
-					link = href
-			elif type == 'notebook':
-				href = self.link_notebook(link)
-			else: # I dunno, some url ?
-				method = 'link_' + type
-				if hasattr(self, method):
-					href = getattr(self, method)(link)
-				else:
-					href = link
-			self._links[link] = href
-		return self._links[link]
-
-	def img(self, src):
-		'''Returns an url for image file 'src' '''
-		return self.link_file(src)
-
-	def icon(self, name):
-		'''Returns an url for an icon'''
-		if not name in self._icons:
-			self._icons[name] = data_file('pixmaps/%s.png' % name).uri
-		return self._icons[name]
-
-	def resource(self, path):
-		'''To be overloaded, return an url for template resources'''
+	def page_object(self, path):
+		'''Turn a L{Path} object in a relative link or URI'''
 		raise NotImplementedError
 
-	def link_page(self, link):
-		'''To be overloaded, return an url for a page link
+	def file_object(self, file):
+		'''Turn a L{File} object in a relative link or URI
 		@implementation: must be implemented by child classes
 		'''
 		raise NotImplementedError
-
-	def link_file(self, path):
-		'''To be overloaded, return an url for a file link
-		@implementation: must be implemented by child classes
-		'''
-		raise NotImplementedError
-
-	def link_mailto(self, uri):
-		'''Optional method, default just returns uri'''
-		return uri
-
-	def link_notebook(self, url):
-		'''Optional method, default just returns url'''
-		return url
 
 
 class StubLinker(BaseLinker):
@@ -1371,14 +1315,20 @@ class StubLinker(BaseLinker):
 	parsed. DO NOT USE outside of testing.
 	'''
 
-	def __init__(self):
-		BaseLinker.__init__(self)
-		self.path = '<PATH>'
-		self.base = Dir('<NOBASE>')
+	def __init__(self, source_dir=None):
+		self.source_dir = source_dir
 
-	def resolve_file(self, link):
-		return self.base.file(link)
-			# Very simple stub, allows finding files be rel path for testing
+	def link(self, link):
+		type = link_type(link)
+		if type == 'mailto' and not link.startswith('mailto:'):
+			return 'mailto:' + link
+		elif type == 'interwiki':
+			return 'interwiki:' + link
+		else:
+			return link
+
+	def img(self, src):
+		return src
 
 	def icon(self, name):
 		return 'icon:' + name
@@ -1386,11 +1336,18 @@ class StubLinker(BaseLinker):
 	def resource(self, path):
 		return path
 
-	def link_page(self, link):
-		return link
+	def resolve_source_file(self, link):
+		if self.source_dir:
+			return self.source_dir.file(link)
+		else:
+			return None
 
-	def link_file(self, path):
-		return path
+	def page_object(self, path):
+		return path.name
+
+	def file_object(self, file):
+		return file.name
+
 
 
 class Node(list):

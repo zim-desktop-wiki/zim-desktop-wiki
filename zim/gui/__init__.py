@@ -1407,9 +1407,8 @@ class GtkInterface(gobject.GObject):
 		path = self.notebook.resolve_path(name)
 		page = self.notebook.get_new_page(path)
 		if use_template:
-			template = self.notebook.get_template(page)
-			tree = template.process_to_parsetree(self.notebook, page)
-			page.set_parsetree(tree)
+			parsetree = self.notebook.get_template(page)
+			page.set_parsetree(parsetree)
 			page.parse('wiki', text, append=True) # FIXME format hard coded
 		else:
 			page.parse('wiki', text) # FIXME format hard coded
@@ -3180,7 +3179,7 @@ class NewPageDialog(Dialog):
 				# T: Error when creating new page
 
 		template = get_template('wiki', self.form['template'])
-		tree = template.process_to_parsetree(self.ui.notebook, page)
+		tree = self.ui.notebook.eval_new_page_template(page, template)
 		page.set_parsetree(tree)
 		self.ui.open_page(page)
 		self.ui.mainwindow.pageview.set_cursor_pos(-1) # HACK set position to end of template

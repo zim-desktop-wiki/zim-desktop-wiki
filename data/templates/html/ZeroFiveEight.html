@@ -5,7 +5,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
 	<title>[% title %]</title>
-	<meta name="generator" content="Zim [% zim.version %]">
+	<meta name="generator" content="[% generator.name %]">
 	<meta name="viewport" content="width=device-width">
 	<!-- <link href='http://fonts.googleapis.com/css?family=Open+Sans:300&subset=latin,greek,latin-ext' rel='stylesheet' type='text/css'> -->
 	<![if !IE]>
@@ -116,28 +116,27 @@
 </head>
 <body>
 	<div class="wrapper">
-		<div id="navigation"> [% pageindex() %] </div>
+		<div id="navigation"> [% index() %] </div>
 		<div id="content">
-			[% IF page.properties.type=='namespace-index' -%]
-			<h1>Document Index</h1>
-			[%- ELSE -%]
-			<h1>[% page.heading %]</h1>
-			[%- END %]
+		<!--[% FOR page IN pages %]-->
+			<h1>[% page.heading %] <a name='[% anchor(page) %]'></a></h1>
 
 			[% page.body %]
 
 			<br>
-			<hr class='footnotes'>
 			<span class="backlinks">
-				Backlinks:
-				[% IF page.backlinks -%]
-				[%- FOREACH link=page.backlinks -%]
-				<a href='[% url(link) %]'>[% link.name %]</a>
-				[%- END -%]
-				[%- ELSE -%]
-				none
-				[%- END %]
+			<!--[% FOR link IN page.backlinks %]-->
+				[% IF loop.first %]
+				<hr class='footnotes'>
+				<b>Backlinks:</b>
+				[% END %]
+				<a href='[% uri(link) %]'>[% link.name %]</a>
+				[% IF loop.last %]<br /><br />[% END %]
+			<!--[% END %]-->
 			</span>
+
+			[% IF not loop.last %]<hr class='pageseparator'/>[% END %]
+		<!--[% END %]-->
 		</div>
 	</div>
 </body>

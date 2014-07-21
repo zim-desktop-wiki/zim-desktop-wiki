@@ -26,9 +26,9 @@ This is a core plugin shipping with zim.
 	}
 
 	object_type = 'diagram'
-	short_label = _('Dia_gram...')
-	insert_label = _('Insert diagram')
-	edit_label = _('_Edit diagram')
+	short_label = _('Dia_gram...') # T: menu item
+	insert_label = _('Insert diagram') # T: menu item
+	edit_label = _('_Edit diagram') # T: menu item
 	syntax = 'dot'
 
 	@classmethod

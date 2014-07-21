@@ -73,6 +73,31 @@ class TestOrderedDict(tests.TestCase):
 		self.assertEqual(mydict.keys(), [i[0] for i in items])
 
 
+class TestMovingWindowIterBuffer(tests.TestCase):
+
+	def runTest(self):
+		mylist = ['a', 'b', 'c', 'd']
+		myiter = MovingWindowIter(mylist)
+
+		self.assertEqual(iter(myiter), myiter, 'MovingWindowIter should be an iter, not an iterable')
+
+		seen = []
+		n = len(mylist)
+		for i, t in enumerate(myiter):
+			seen.append(t[1])
+			if i == 0:
+				self.assertEqual(t, (None, mylist[0], mylist[1]))
+				self.assertFalse(myiter.last)
+			elif i == n-1:
+				self.assertEqual(t, (mylist[-2], mylist[-1], None))
+				self.assertTrue(myiter.last)
+			else:
+				self.assertEqual(t, (mylist[i-1], mylist[i], mylist[i+1]))
+				self.assertFalse(myiter.last)
+
+		self.assertEqual(seen, mylist)
+
+
 import threading
 
 class TestFunctionThread(tests.TestCase):

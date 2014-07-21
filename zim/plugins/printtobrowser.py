@@ -6,11 +6,18 @@
 
 import gtk
 
+from functools import partial
+
+
 from zim.fs import TmpFile
 from zim.plugins import PluginClass, WindowExtension, DialogExtension, extends
 from zim.actions import action
+
 import zim.templates
-from zim.exporter import StaticLinker
+import zim.formats
+
+from zim.export.template import ExportTemplateContext
+from zim.export.linker import StaticExportLinker
 
 
 class PrintToBrowserPlugin(PluginClass):
@@ -33,9 +40,17 @@ This is a core plugin shipping with zim.
 	def print_to_file(self, notebook, page):
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		template = zim.templates.get_template('html', 'Print')
-		template.set_linker(StaticLinker('html', notebook, page))
-		html = template.process(notebook, page)
-		file.writelines(html)
+
+		linker_factory = partial(StaticExportLinker, notebook, template.resources_dir)
+		dumper_factory = zim.formats.get_format('html').Dumper # XXX
+		context = ExportTemplateContext(
+			notebook, linker_factory, dumper_factory,
+			page.basename, [page]
+		)
+
+		lines = []
+		template.process(lines, context)
+		file.writelines(lines)
 		return file
 
 

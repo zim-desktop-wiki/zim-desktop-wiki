@@ -19,7 +19,7 @@ import glob
 from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
 from zim.fs import File, TmpFile
 from zim.config import data_file
-from zim.templates import GenericTemplate
+from zim.templates import get_template
 from zim.applications import Application
 
 # TODO put these commands in preferences
@@ -38,9 +38,9 @@ This plugin provides a plot editor for zim based on GNU R.
 	}
 
 	object_type = 'gnu_r_plot'
-	short_label = _('GNU _R Plot')
-	insert_label = _('Insert GNU R Plot')
-	edit_label = _('_Edit GNU R Plot')
+	short_label = _('GNU _R Plot') # T: menu item
+	insert_label = _('Insert GNU R Plot') # T: menu item
+	edit_label = _('_Edit GNU R Plot') # T: menu item
 	syntax = 'r'
 
 	@classmethod
@@ -59,9 +59,7 @@ class GNURPlotGenerator(ImageGeneratorClass):
 
 	def __init__(self, plugin):
 		ImageGeneratorClass.__init__(self, plugin)
-		file = data_file('templates/plugins/gnu_r_editor.r')
-		assert file, 'BUG: could not find templates/plugins/gnu_r_editor.r'
-		self.template = GenericTemplate(file.readlines(), name=file)
+		self.template = get_template('plugins', 'gnu_r_editor.r')
 		self.plotscriptfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
@@ -80,9 +78,9 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		}
 
 		# Write to tmp file usign the template for the header / footer
-		plotscriptfile.writelines(
-			self.template.process(template_vars)
-		)
+		lines = []
+		self.template.process(lines, template_vars)
+		plotscriptfile.writelines(lines)
 		#print '>>>%s<<<' % plotscriptfile.read()
 
 		# Call GNU R

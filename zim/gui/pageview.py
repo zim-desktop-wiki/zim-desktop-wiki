@@ -4866,16 +4866,16 @@ class PageView(gtk.VBox):
 
 			if tree is None:
 				# TODO check read-only
-				template = self.ui.notebook.get_template(page)
-				tree = template.process_to_parsetree(self.ui.notebook, page)
+				template = True
+				tree = self.ui.notebook.get_template(page)
 				if cursor is None:
 					cursor = -1
 			else:
-				template = None
+				template = False
 				if cursor is None:
 					cursor = 0
 
-			self.set_parsetree(tree, bool(template))
+			self.set_parsetree(tree, template)
 			if not self.secondary:
 				page.set_ui_object(self) # only after successful set tree in buffer
 		except Exception, error:

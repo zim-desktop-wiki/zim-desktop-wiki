@@ -18,7 +18,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import Action
 from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
-	Dialog, ImageView, Button, QuestionDialog, \
+	Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
 	ScrolledTextView, ScrolledSourceView, VPaned, \
 	populate_popup_add_separator
 
@@ -398,12 +398,3 @@ class ImageGeneratorDialog(Dialog):
 		Dialog.destroy(self)
 
 
-class LogFileDialog(Dialog):
-	'''Simple dialog to show the log file'''
-
-	def __init__(self, ui, file):
-		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
-			# T: dialog title for log view dialog - e.g. for Equation Editor
-		self.set_default_size(600, 300)
-		window, textview = ScrolledTextView(file.read(), monospace=True)
-		self.vbox.add(window)

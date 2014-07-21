@@ -21,6 +21,7 @@ info = {
 	'native': False,
 	'import': False,
 	'export': True,
+	'usebase': True,
 }
 
 
@@ -161,12 +162,17 @@ class Dumper(DumperClass):
 		bullet = attrib.get('bullet', BULLET)
 		if self.context[-1].tag == BULLETLIST and bullet != BULLET:
 			icon = self.linker.icon(bullet)
-			start = '<li style="list-style-image: url(%s)">' % icon
+			start = '<li style="list-style-image: url(%s)"' % icon
 		else:
-			start = '<li>'
-		#~ end = '</li>\n'
+			start = '<li'
+
+		if self._isrtl:
+			start += ' dir=\'rtl\'>'
+		else:
+			start += '>'
+		self._isrtl = None # reset
+
 		strings.insert(0, start)
-		#~ strings.append(end)
 
 		if self.context[-1].text:
 			# we are not the first <li> element, close previous

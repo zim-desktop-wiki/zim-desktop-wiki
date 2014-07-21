@@ -3393,11 +3393,31 @@ class MessageDialog(gtk.MessageDialog):
 		if text:
 			self.format_secondary_text(text)
 
+	def add_extra_button(self, button, pack_start=True):
+		'''Add a button to the action area at the bottom of the dialog.
+		Packs the button in the list of primary buttons (by default
+		these are in the lower right of the dialog)
+		@param button: the C{gtk.Button} (or other widget)
+		@param pack_start: if C{True} pack to the left (towards the
+		middle of the dialog), if C{False} pack to the right.
+		'''
+		self.action_area.pack_start(button, False)
+		if pack_start:
+			self.action_area.reorder_child(button, 0)
+
 	def run(self):
 		'''Runs the dialog and destroys it directly.'''
 		logger.debug('Running MessageDialog')
-		gtk.MessageDialog.run(self)
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			self.show_all()
+			gtk.MessageDialog.run(self)
 		self.destroy()
+
+	def assert_response_ok(self):
+		return True # message dialogs are always OK
 
 
 class FileDialog(Dialog):
@@ -3732,6 +3752,18 @@ class ProgressBarDialog(gtk.Dialog):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ProgressBarDialog)
+
+
+class LogFileDialog(Dialog):
+	'''Simple dialog to show a log file'''
+
+	def __init__(self, ui, file):
+		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
+			# T: dialog title for log view dialog - e.g. for Equation Editor
+		self.set_default_size(600, 300)
+		window, textview = ScrolledTextView(file.read(), monospace=True)
+		self.vbox.add(window)
+
 
 
 class Assistant(Dialog):

@@ -17,7 +17,7 @@ from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
 	FORMATTEDTEXT, IMAGE, LINK
-from zim.exporter import StaticLinker
+from zim.export.linker import StaticExportLinker
 
 
 logger = logging.getLogger('zim.gui.clipboard')
@@ -332,18 +332,9 @@ class ParseTreeItem(ClipboardItem):
 			xml = self.parsetree.tostring().encode('utf-8')
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
 		elif id == HTML_TARGET_ID:
-			# FIXME - HACK - dump and parse as wiki first to work
-			# around glitches in pageview parsetree dumper
-			# main visibility when copy pasting bullet lists
-			# Same hack in print to browser plugin
-			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
-			parser = get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-			#--
 			dumper = get_format('html').Dumper(
-				linker=StaticLinker('html', self.notebook, self.path) )
-			html = ''.join( dumper.dump(parsetree) )
+				linker=StaticExportLinker(self.notebook, source=self.path) )
+			html = ''.join( dumper.dump(self.parsetree) )
 			html = wrap_html(html, target=selectiondata.target)
 			#~ print 'PASTING: >>>%s<<<' % html
 			selectiondata.set(selectiondata.target, 8, html)
@@ -355,7 +346,7 @@ class ParseTreeItem(ClipboardItem):
 				dumper = get_format(self.format).Dumper()
 			else:
 				dumper = get_format(self.format).Dumper(
-					linker=StaticLinker(self.format, self.notebook, self.path) )
+					linker=StaticExportLinker(self.notebook, source=self.path) )
 
 			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
 			selectiondata.set_text(text)

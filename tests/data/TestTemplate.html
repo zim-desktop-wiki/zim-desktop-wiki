@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>[% title %]</title>
+		<meta name='Generator' content='[% generator.name %]'>
+		<style type='text/css'>
+			a          { text-decoration: none      }
+			a:hover    { text-decoration: underline }
+			a:active   { text-decoration: underline }
+			strike     { color: grey                }
+			u          { text-decoration: none;
+			             background-color: yellow   }
+			tt         { color: #2e3436;            }
+			pre        { color: #2e3436;
+			             margin-left: 20px          }
+			h1         { text-decoration: underline;
+			             color: #4e9a06             }
+			h2         { color: #4e9a06             }
+			h3         { color: #4e9a06             }
+			h4         { color: #4e9a06             }
+			h5         { color: #4e9a06             }
+			span.zim-tag { color: orange }
+			span.insen { color: grey                }
+		</style>
+	</head>
+	<body>
+
+<!-- Header -->
+
+[% IF navigation.prev %]
+	[ <a href='[% uri(navigation.prev) %]'>Prev</a> ]
+[% ELSE %]
+	[ <span class='insen'>Prev</span> ]
+[% END %]
+
+[% IF links.get("index") %]
+	[ <a href='[% uri(links.get("index")) %]'>Index</a> ]
+[% ELSE %]
+	[ <a href='/'>Index</a> ]
+[% END %]
+
+[% IF navigation.next %]
+	[ <a href='[% uri(navigation.next) %]'>Next</a> ]
+[% ELSE %]
+	[ <span class='insen'>Next</span> ]
+[% END %]
+
+<!-- End Header -->
+
+	<hr />
+
+<!-- Wiki content -->
+
+<!--[% FOR page IN pages %]-->
+	<h1>[% page.heading %] <a name='[% anchor(page) %]'>&para;</a></h1>
+	[% page.body %]
+
+	<br />
+	<!--[% FOR link IN page.backlinks %]-->
+		[% IF loop.first %]<b>Backlinks:</b>[% END %]
+
+		<a href='[% uri(link) %]'>[% link.name %]</a>
+
+		[% IF loop.last %]<br /><br />[% END %]
+	<!--[% END %]-->
+
+	[% FOREACH file=page.attachments -%]
+		[% IF loop.first %]
+			<b>Attachments:</b>
+			<table>
+		[% END %]
+
+			<tr><td><a href='[% uri(file) %]'>[% file.basename %]</a></td><td>&nbsp;</td><td>[% file.size %]</td></tr>
+
+		[% IF loop.last %]
+			</table>
+		[% END %]
+	[% END %]
+
+	[% IF not loop.last %]<hr />[% END %]
+
+<!--[% END %]-->
+
+
+<!-- End wiki content -->
+
+	</body>
+
+</html>

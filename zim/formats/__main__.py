@@ -26,7 +26,7 @@ from zim.formats import *
 
 if __name__ == '__main__':
 	if len(sys.argv) not in (2, 3, 4):
-			print 'Usage: python -m zim.formats format [format] [basedir]'
+			print 'Usage: python -m zim.formats format [format] [source_dir]'
 			print '\tWill read from stdin and output to stdout'
 			sys.exit(1)
 
@@ -36,13 +36,13 @@ if __name__ == '__main__':
 	inputformat = sys.argv[1]
 	if len(sys.argv) == 4:
 		outputformat = sys.argv[2]
-		basedir = sys.argv[3]
+		source_dir = Dir(sys.argv[3])
 	elif len(sys.argv) == 3:
 		outputformat = sys.argv[2]
-		basedir = None
+		source_dir = None
 	else:
 		outputformat = '__XML__'
-		basedir = None
+		source_dir = None
 
 	input = sys.stdin.read()
 
@@ -52,9 +52,7 @@ if __name__ == '__main__':
 	if outputformat == '__XML__':
 		sys.stdout.write(tree.tostring())
 	else:
-		linker = StubLinker()
-		if basedir:
-			linker.set_base(Dir(basedir))
+		linker = StubLinker(source_dir=source_dir)
 		dumper = get_dumper(outputformat, linker=linker)
 		lines = dumper.dump(tree)
 		sys.stdout.write(''.join(lines).encode('utf-8'))

@@ -25,6 +25,7 @@ info = {
 	'native': False,
 	'import': False,
 	'export': True,
+	'usebase': False,
 }
 
 
@@ -89,7 +90,6 @@ class Dumper(TextDumper):
 	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
 		assert self.linker, 'LaTeX dumper needs a linker object'
-		self.linker.set_usebase(False)
 
 		self.document_type = self.template_options.get('document_type')
 			# Option set in template - potentially tainted value
@@ -178,7 +178,7 @@ class Dumper(TextDumper):
 			try:
 				# Try to find the source, otherwise fall back to image
 				src = attrib['src'][:-4] + '.tex'
-				file = self.linker.resolve_file(src)
+				file = self.linker.resolve_source_file(src)
 				if file is not None:
 					equation = file.read().strip()
 				else:

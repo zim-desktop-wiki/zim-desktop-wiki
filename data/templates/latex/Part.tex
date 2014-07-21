@@ -1,4 +1,7 @@
 [% options.document_type = 'report' %]
-\part{[% page.basename %]}
 
-[% page.body %]
+\part{[% title %]}
+
+[% FOR page IN pages %]
+[% page.content %]
+[% END %]

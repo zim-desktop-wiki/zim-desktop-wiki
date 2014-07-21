@@ -39,36 +39,39 @@ usage: zim [OPTIONS] [NOTEBOOK [PAGE]]
 '''
 	optionhelp = '''\
 General Options:
-  --gui           run the editor (this is the default)
-  --server        run the web server
-  --export        export to a different format
-  --search        run a search query on a notebook
-  --index         build an index for a notebook
-  --plugin        call a specific plugin function
-  --manual        open the user manual
-  -V, --verbose   print information to terminal
-  -D, --debug     print debug messages
-  -v, --version   print version and exit
-  -h, --help      print this text
+  --gui            run the editor (this is the default)
+  --server         run the web server
+  --export         export to a different format
+  --search         run a search query on a notebook
+  --index          build an index for a notebook
+  --plugin         call a specific plugin function
+  --manual         open the user manual
+  -V, --verbose    print information to terminal
+  -D, --debug      print debug messages
+  -v, --version    print version and exit
+  -h, --help       print this text
 
 GUI Options:
-  --list          show the list with notebooks instead of
-                  opening the default notebook
-  --geometry      window size and position as WxH+X+Y
-  --fullscreen    start in fullscreen mode
+  --list           show the list with notebooks instead of
+                   opening the default notebook
+  --geometry       window size and position as WxH+X+Y
+  --fullscreen     start in fullscreen mode
   --standalone     start a single instance, no background process
 
 Server Options:
-  --port          port to use (defaults to 8080)
-  --template      name of the template to use
-  --gui           run the gui wrapper for the server
+  --port           port to use (defaults to 8080)
+  --template       name of the template to use
+  --gui            run the gui wrapper for the server
 
 Export Options:
-  --format        format to use (defaults to 'html')
-  --template      name of the template to use
-  -o, --output    output directory
-  --root-url      url to use for the document root
-  --index-page    index page name
+  -o, --output     output directory (mandatory option)
+  --format         format to use (defaults to 'html')
+  --template       name of the template to use
+  --root-url       url to use for the document root
+  --index-page     index page name
+  -r, --recursive  when exporting a page, also export sub-pages
+  -s, --singlefile export all pages to a single output file
+  -O, --overwrite  force overwriting existing file(s)
 
   You can use the export option to print a single page to stdout.
   When exporting a whole notebook you need to provide a directory.
@@ -141,6 +144,7 @@ class NotebookCommand(Command):
 		notebookinfo = resolve_notebook(notebook)
 		if not notebookinfo:
 			raise NotebookLookupError, _('Could not find notebook: %s') % notebook
+				# T: error message
 
 		if len(self.arguments) > 1 \
 		and self.arguments[1] in ('PAGE', '[PAGE]') \
@@ -165,7 +169,7 @@ class NotebookCommand(Command):
 		if not notebookinfo:
 			raise NotebookLookupError, _('Please specify a notebook')
 		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
-		return notebook, uripage or page
+		return notebook, page or uripage
 
 
 class GuiCommand(NotebookCommand):
@@ -288,38 +292,93 @@ class ExportCommand(NotebookCommand):
 	options = (
 		('format=', '', 'format to use (defaults to \'html\')'),
 		('template=', '', 'name or path of the template to use'),
-		('output=', 'o', 'output directory'),
+		('output=', 'o', 'output folder, or output file name'),
 		('root-url=', '', 'url to use for the document root'),
 		('index-page=', '', 'index page name'),
+		('recursive', 'r', 'when exporting a page, also export sub-pages'),
+		('singlefile', 's', 'export all pages to a single output file'),
+		('overwrite', 'O', 'overwrite existing file(s)'),
 	)
 
+	def get_exporter(self, page):
+		from zim.fs import File, Dir
+		from zim.export import \
+			build_mhtml_file_exporter, \
+			build_single_file_exporter, \
+			build_page_exporter, \
+			build_notebook_exporter
+
+		format = self.opts.get('format', 'html')
+		if not 'output' in self.opts:
+			raise UsageError, _('Output location needed for export') # T: error in export command
+		output = Dir(self.opts['output'])
+		if not output.isdir():
+			output = File(self.opts.get('output'))
+		template = self.opts.get('template', 'Default')
+
+		if output.exists() and not self.opts.get('overwrite'):
+			if output.isdir():
+				if len(output.list()) > 0:
+					raise Error, _('Output folder exists and not empty, specify "--overwrite" to force export')  # T: error message for export
+				else:
+					pass
+			else:
+				raise Error, _('Output file exists, specify "--overwrite" to force export')  # T: error message for export
+
+		if format == 'mhtml':
+			self.ignore_options('index-page')
+			if output.isdir():
+				raise UsageError, _('Need output file to export MHTML') # T: error message for export
+
+			exporter = build_mhtml_file_exporter(
+				output, template,
+				document_root_url=self.opts.get('root-url'),
+			)
+		elif page:
+			self.ignore_options('index-page')
+			if output.exists() and output.isdir():
+				ext = 'html'
+				output = output.file(page.basename) + '.' + ext
+
+			if self.opts.get('singlefile'):
+				exporter = build_single_file_exporter(
+					output, format, template, namespace=page,
+					document_root_url=self.opts.get('root-url'),
+				)
+			else:
+				exporter = build_page_exporter(
+					output, format, template, page,
+					document_root_url=self.opts.get('root-url'),
+				)
+		else:
+			if not output.exists():
+				output = Dir(output.path)
+			elif not output.isdir():
+				raise UsageError, _('Need output folder to export full notebook') # T: error message for export
+
+			exporter = build_notebook_exporter(
+				output, format, template,
+				index_page=self.opts.get('index-page'),
+				document_root_url=self.opts.get('root-url'),
+			)
+
+		return exporter
+
 	def run(self):
-		import zim.exporter
-		import zim.fs
+		from zim.export.selections import AllPages, SinglePage, SubPages
 
 		notebook, page = self.build_notebook()
-		exporter = zim.exporter.Exporter(
-			notebook,
-			format=self.opts.get('format', 'html'),
-			template=self.opts.get('template', 'Default'),
-			document_root_url=self.opts.get('root-url'),
-			index_page=self.opts.get('index-page'),
-		)
 
-		if page:
-			page = notebook.get_page(page)
-
-		if self.opts.get('output'):
-			dir = zim.fs.Dir(self.opts.get('output'))
-			if page:
-				exporter.export_page(dir, page)
-			else:
-				notebook.index.update()
-				exporter.export_all(dir)
+		if page and self.opts.get('recursive'):
+			selection = SubPages(notebook, page)
 		elif page:
-			exporter.export_page_to_fh(sys.stdout, page)
+			selection = SinglePage(notebook, page)
 		else:
-			raise UsageError, 'Need output directory to export notebook'
+			selection = AllPages(notebook)
+
+		exporter = self.get_exporter(page)
+		exporter.export(selection)
+
 
 
 class SearchCommand(NotebookCommand):

@@ -7,6 +7,9 @@ from getopt import gnu_getopt, GetoptError
 
 import logging
 
+logger = logging.getLogger('zim')
+
+
 from zim import __version__
 from zim.errors import Error
 
@@ -105,6 +108,11 @@ class Command(object):
 		else:
 			return tuple(self.args) \
 				+ (None,) * (len(self.arguments) - len(self.args))
+
+	def ignore_options(self, *options):
+		for option in options:
+			if self.opts.get(option) is not None:
+				logger.warning('Option "%s" is ignored for this command', option)
 
 	def set_logging(self):
 		'''Configure the logging module for output based on the

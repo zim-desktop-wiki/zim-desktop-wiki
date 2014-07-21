@@ -1,14 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-[% SET mode = s5 %]
+[% SET mode = "s5" %]
 
 <head>
-	<title>[% page.title %]</title>
+	<title>[% title %]</title>
 <!-- metadata -->
-<meta name="generator" content="Zim [% zim.version %]" />
+<meta name="generator" content="[% generator.name %]" />
 <meta name="version" content="S5 1.1" />
 <meta name="presdate" content="" />
 <meta name="author" content="" />
@@ -41,7 +41,9 @@
 
 <div class="presentation">
 
+[% FOR page IN pages %]
 [% page.body %]
+[% END %]
 
 </div>
 

@@ -7,7 +7,7 @@ import glob
 from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
 from zim.fs import File, TmpFile
 from zim.config import data_file
-from zim.templates import GenericTemplate
+from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
 
@@ -29,9 +29,9 @@ This is a core plugin shipping with zim.
 	}
 
 	object_type = 'equation'
-	short_label = _('E_quation')
-	insert_label = _('Insert Equation')
-	edit_label = _('_Edit Equation')
+	short_label = _('E_quation') # T: menu item
+	insert_label = _('Insert Equation') # T: menu item
+	edit_label = _('_Edit Equation') # T: menu item
 	syntax = 'latex'
 
 	@classmethod
@@ -50,9 +50,7 @@ class EquationGenerator(ImageGeneratorClass):
 
 	def __init__(self, plugin):
 		ImageGeneratorClass.__init__(self, plugin)
-		file = data_file('templates/plugins/equationeditor.tex')
-		assert file, 'BUG: could not find templates/plugins/equationeditor.tex'
-		self.template = GenericTemplate(file.readlines(), name=file)
+		self.template = get_template('plugins', 'equationeditor.tex')
 		self.texfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
@@ -65,23 +63,23 @@ class EquationGenerator(ImageGeneratorClass):
 		#~ print '>>>%s<<<' % text
 
 		# Write to tmp file using the template for the header / footer
-		texfile = self.texfile
-		texfile.writelines(
-			self.template.process({'equation': text}) )
-		#~ print '>>>%s<<<' % texfile.read()
+		lines = []
+		self.template.process(lines, {'equation': text})
+		self.texfile.writelines(lines)
+		#~ print '>>>%s<<<' % self.texfile.read()
 
 		# Call latex
-		logfile = File(texfile.path[:-4] + '.log') # len('.tex') == 4
+		logfile = File(self.texfile.path[:-4] + '.log') # len('.tex') == 4
 		try:
 			latex = Application(latexcmd)
-			latex.run((texfile.basename,), cwd=texfile.dir)
+			latex.run((self.texfile.basename,), cwd=self.texfile.dir)
 		except ApplicationError:
 			# log should have details of failure
 			return None, logfile
 
 		# Call dvipng
-		dvifile = File(texfile.path[:-4] + '.dvi') # len('.tex') == 4
-		pngfile = File(texfile.path[:-4] + '.png') # len('.tex') == 4
+		dvifile = File(self.texfile.path[:-4] + '.dvi') # len('.tex') == 4
+		pngfile = File(self.texfile.path[:-4] + '.png') # len('.tex') == 4
 		dvipng = Application(dvipngcmd)
 		dvipng.run((pngfile, dvifile)) # output, input
 			# No try .. except here - should never fail

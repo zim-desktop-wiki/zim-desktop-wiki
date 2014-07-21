@@ -18,7 +18,7 @@ from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, gtk_window_set_default_icon, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
-from zim.templates import GenericTemplate, StrftimeFunction
+from zim.templates import get_template
 
 
 import logging
@@ -177,7 +177,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Quick Note...'), stock='gtk-new')
+	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
 	def show_quick_note(self):
 		ui = self.window.ui # XXX
 		notebook = self.window.ui.notebook # XXX
@@ -274,15 +274,14 @@ class BoundQuickNoteDialog(Dialog):
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
 
 		# Initialize text from template
-		file = data_file('templates/plugins/quicknote.txt')
-		template = GenericTemplate(file.readlines(), name=file)
-		template_options.update({
-			'text': text or '',
-			'strftime': StrftimeFunction(),
-		} )
-		output = template.process(template_options)
+		template = get_template('plugins', 'quicknote.txt')
+		template_options['text'] = text or ''
+		template_options.setdefault('url', '')
+
+		lines = []
+		template.process(lines, template_options)
 		buffer = self.textview.get_buffer()
-		buffer.set_text(''.join(output))
+		buffer.set_text(''.join(lines))
 		begin, end = buffer.get_bounds()
 		buffer.place_cursor(begin)
 

@@ -1,8 +1,8 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>[% page.title %]</title>
-		<meta name='Generator' content='Zim [% zim.version %]'>
+		<title>[% title %]</title>
+		<meta name='Generator' content='[% generator.name %]'>
 		<style type='text/css'>
 			body     { background-color: #fff;
 			           color: #000;
@@ -28,11 +28,11 @@
 // Slideshow script - adapted from old kwiki package
 
 function nextSlide() {
-	window.location="[% url(pages.next) %]"
+	window.location="[% uri(navigation.next) %]"
 }
 
 function prevSlide() {
-	window.location="[% url(pages.previous) %]"
+	window.location="[% uri(navigation.prev) %]"
 }
 
 
@@ -71,11 +71,7 @@ document.onkeypress = handleKey
 	<table width="100%" height="100%" border="0" cellpadding="5" cellspacing="0">
 		<tr>
 			<td colspan="3" align="center" valign="middle" class="bar">
-				[% IF page.properties.type == 'namespace-index' -%]
-				<h3 class='bar'>Table Of Contents</h3>
-				[% ELSE %]
-				<h3 class='bar'>[% page.title %]</h3>
-				[% END %]
+				<h3 class='bar'>[% title %]</h3>
 			</td>
 		</tr>
 		<tr>
@@ -85,7 +81,9 @@ document.onkeypress = handleKey
 				<table><tr><td align='left'>
 <!-- Wiki content -->
 
+[% FOR page IN pages %]
 [% page.body %]
+[% END %]
 
 <!-- End wiki content -->
 
@@ -96,16 +94,16 @@ document.onkeypress = handleKey
 		</tr>
 		<tr>
 			<td colspan="3" align="center" valign="middle">
-				[% IF pages.previous -%]
-					<a href='[% url(pages.previous) %]' class="nav">&lt;</a>
+				[% IF navigation.prev -%]
+					<a href='[% uri(navigation.prev) %]' class="nav">&lt;</a>
 				[%- ELSE -%]
 					<span class="nav">&lt;</span>
 				[%- END %]
 
-				<a href='[% url(pages.index) %]' class="nav">+</a>
+				<a href='[% uri(links.get("index")) %]' class="nav">+</a>
 
-				[% IF pages.next -%]
-					<a href='[% url(pages.next) %]' class="nav">&gt;</a>
+				[% IF navigation.next -%]
+					<a href='[% uri(navigation.next) %]' class="nav">&gt;</a>
 				[%- ELSE -%]
 					<span class="nav">&gt;</span>
 				[%- END %]

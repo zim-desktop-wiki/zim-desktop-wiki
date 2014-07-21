@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a web interface for zim. This is an alternative
 to the GUI application.
@@ -24,18 +24,23 @@ import socket
 import logging
 import gobject
 
+from functools import partial
+
 from wsgiref.headers import Headers
 import urllib
 
 from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, IndexPage, PageNameError
 from zim.fs import File, Dir, FileNotFoundError
-from zim.formats import BaseLinker
 from zim.config import data_file, ConfigManager
 from zim.plugins import PluginManager
 from zim.stores import encode_filename
 from zim.parsing import url_encode
 
+from zim.export.linker import ExportLinker, StubLayout
+from zim.export.template import ExportTemplateContext
+
+from zim.formats import get_format
 
 logger = logging.getLogger('zim.www')
 
@@ -122,8 +127,8 @@ class WWWInterface(object):
 		else:
 			self.template = template
 
-		self.linker = WWWLinker(self.notebook)
-		self.template.set_linker(self.linker)
+		self.linker_factory = partial(WWWLinker, self.notebook, self.template.resources_dir)
+		self.dumper_factory = get_format('html').Dumper # XXX
 
 		self.plugins = PluginManager(self.config)
 		self.plugins.extend(notebook.index)
@@ -270,74 +275,65 @@ class WWWInterface(object):
 		@param page: a L{Page} object
 		@returns: html as a list of lines
 		'''
-		return self.template.process(self.notebook, page)
+		lines = []
+
+		context = ExportTemplateContext(
+			self.notebook,
+			self.linker_factory,
+			self.dumper_factory,
+			title=page.get_title(),
+			content=[page],
+			home=self.notebook.get_home_page(),
+			up=page.parent if page.parent and not page.parent.isroot else None,
+			prevpage=self.notebook.index.get_previous(page),
+			nextpage=self.notebook.index.get_next(page),
+			links={'index': '/'},
+			index_generator=self.notebook.index.walk,
+			index_page=page,
+		)
+		self.template.process(lines, context)
+		return lines
 
 
-class WWWLinker(BaseLinker):
-	'''Implements a L{linker<BaseLinker>} that returns the correct
+class WWWLinker(ExportLinker):
+	'''Implements a linker that returns the correct
 	links for the way the server handles URLs.
 	'''
 
-	def __init__(self, notebook, path=None):
-		BaseLinker.__init__(self)
-		self.notebook = notebook
-		self.path = path
-
-	def resource(self, path):
-		return url_encode('/+resources/%s' % path)
+	def __init__(self, notebook, resources_dir=None, source=None):
+		layout = StubLayout(notebook, resources_dir)
+		ExportLinker.__init__(self, notebook, layout, source=source)
 
 	def icon(self, name):
 		return url_encode('/+resources/%s.png' % name)
 
-	def resolve_file(self, link):
-		try:
-			file = self.notebook.resolve_file(link, self.path)
-		except:
-			# typical error is a non-local file:// uri
-			return None
-		else:
-			return File
+	def resource(self, path):
+		return url_encode('/+resources/%s' % path)
 
-	def link_page(self, link):
-		try:
-			page = self.notebook.resolve_path(link, source=self.path)
-		except PageNameError:
-			return ''
-		else:
-			return url_encode('/' + encode_filename(page.name) + '.html')
+	def resolve_source_file(self, link):
+		return None # not used by HTML anyway
+
+	def page_object(self, path):
+		'''Turn a L{Path} object in a relative link or URI'''
+		return url_encode('/' + encode_filename(path.name) + '.html')
 			# TODO use script location as root for cgi-bin
 
-	def link_file(self, link):
-		# cleanup the path
-		isabs = link.startswith('/')
-		isdir = link.endswith('/')
-		link = link.replace('\\', '/')
-		parts = [p for p in link.split('/') if p and not p == '.']
-		# TODO fold '..'
-		link = '/'.join(parts)
-		if isabs and link != '/': link = '/' + link
-		if isdir and link != '/': link += '/'
-
-		if link.startswith('/'):
+	def file_object(self, file):
+		'''Turn a L{File} object in a relative link or URI'''
+		if file.ischild(self.notebook.dir):
+			# attachment
+			relpath = file.relpath(self.notebook.dir)
+			return url_encode('/+file/' + relpath)
+		elif self.notebook.document_root \
+		and file.ischild(self.notebook.document_root):
 			# document root
-			return url_encode('/+docs/' + link.lstrip('/'))
+			relpath = file.relpath(self.notebook.document_root)
+			return url_encode('/+docs/' + relpath)
 			# TODO use script location as root for cgi-bin
 			# TODO allow alternative document root for cgi-bin
 		else:
-			# attachment or external file
-			try:
-				file = self.notebook.resolve_file(link, self.path)
-				if file.ischild(self.notebook.dir):
-					# attachment
-					relpath = file.relpath(self.notebook.dir)
-						# TODO: need abstract interface for this
-					return url_encode('/+file/' + relpath)
-				else:
-					# external file -> file://
-					return file.uri
-			except:
-				# typical error is a non-local file:// uri
-				return link
+			# external file -> file://
+			return file.uri
 
 
 def main(notebook, port=8080, public=True, **opts):

@@ -1,99 +1,98 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>[% title %]</title>
-		<meta name='Generator' content='Zim [% zim.version %]'>
-		<style type='text/css'>
-			a          { text-decoration: none      }
-			a:hover    { text-decoration: underline }
-			a:active   { text-decoration: underline }
-			strike     { color: grey                }
-			u          { text-decoration: none;
-			             background-color: yellow   }
-			tt         { color: #2e3436;            }
-			pre        { color: #2e3436;
-			             margin-left: 20px          }
-			h1         { text-decoration: underline;
-			             color: #4e9a06             }
-			h2         { color: #4e9a06             }
-			h3         { color: #4e9a06             }
-			h4         { color: #4e9a06             }
-			h5         { color: #4e9a06             }
-			span.insen { color: grey                }
-			div.zim-object {
-				border-style:solid;
-				border-width:1px;
-			}
-		</style>
-	</head>
-	<body>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>[% title %]</title>
+	<meta name='Generator' content='[% generator.name %]'>
+	<style type='text/css'>
+		a          { text-decoration: none      }
+		a:hover    { text-decoration: underline }
+		a:active   { text-decoration: underline }
+		strike     { color: grey                }
+		u          { text-decoration: none;
+					 background-color: yellow   }
+		tt         { color: #2e3436;            }
+		pre        { color: #2e3436;
+					 margin-left: 20px          }
+		h1         { text-decoration: underline;
+					 color: #4e9a06             }
+		h2         { color: #4e9a06             }
+		h3         { color: #4e9a06             }
+		h4         { color: #4e9a06             }
+		h5         { color: #4e9a06             }
+		span.insen { color: grey                }
+		div.zim-object {
+			border-style:solid;
+			border-width:1px;
+		}
+	</style>
+</head>
+<body>
 
 <!-- Header -->
-
-[% IF pages.previous -%]
-	[ <a href='[% url(pages.previous) %]'>Prev</a> ]
-[%- ELSE -%]
+<div class='header'>
+[% IF navigation.prev %]
+	[ <a href='[% uri(navigation.prev) %]'>Prev</a> ]
+[% ELSE %]
 	[ <span class='insen'>Prev</span> ]
-[%- END %]
+[% END %]
 
-[% IF page.properties.type == 'namespace-index' -%]
+[% IF links.get("index") %]
+	[ <a href='[% uri(links.get("index")) %]'>Index</a> ]
+[% ELSE %]
 	[ <span class='insen'>Index</span> ]
-[%- ELSE -%]
-	[% IF pages.index -%]
-		[ <a href='[% url(pages.index) %]'>Index</a> ]
-	[%- ELSE -%]
-		[ <a href='/'>Index</a> ]
-	[%- END %]
-[%- END %]
+[% END %]
 
-[% IF pages.next -%]
-	[ <a href='[% url(pages.next) %]'>Next</a> ]
-[%- ELSE -%]
+[% IF navigation.next %]
+	[ <a href='[% uri(navigation.next) %]'>Next</a> ]
+[% ELSE %]
 	[ <span class='insen'>Next</span> ]
-[%- END %]
-
-<!-- End Header -->
+[% END %]
+</div>
 
 <hr />
 
 <!-- Wiki content -->
 
-[% IF page.properties.type == 'namespace-index' -%]
-<h1>Document Index</h1>
-[%- ELSE -%]
-<h1>[% page.heading %]</h1>
-[%- END %]
+<div class='pages'>
+<!--[% FOR page IN pages %]-->
+	<div class='heading'>
+	<h1>[% page.heading %] <a name='[% anchor(page) %]'></a></h1>
+	</div>
 
-[% page.body %]
+	<div class='content'>
+	[% page.body %]
+	</div>
 
-<!-- End wiki content -->
+	<br />
 
-<hr />
+	<div class='page-footer'>
+	<!--[% FOR link IN page.backlinks %]-->
+		[% IF loop.first %]<b>Backlinks:</b>[% END %]
 
-<!-- Attachments and Backlinks -->
+		<a href='[% uri(link) %]'>[% link.name %]</a>
 
-[% IF page.has_backlinks -%]
-	<b>Backlinks:</b>
-	[%- FOREACH link = page.backlinks -%]
-		<a href='[% url(link) %]'>[% link.name %]</a>
-	[%- END -%]
-[%- ELSE -%]
-	<i>No backlinks to this page.</i>
-[%- END %]
-<br><br>
+		[% IF loop.last %]<br /><br />[% END %]
+	<!--[% END %]-->
 
-[% IF page.has_attachments -%]
-	<b>Attachments:</b>
-	<table>
-	[%- FOREACH file = page.attachments -%]
-		<tr><td><a href='[% url(file) %]'>[% file.basename %]</a></td><td>&nbsp;</td><td>[% file.size %]</td></tr>
-	[%- END -%]
-	</table>
-[%- END %]
+	<!--[% FOR file IN page.attachments %]-->
+		[% IF loop.first %]
+			<b>Attachments:</b>
+			<table>
+		[% END %]
 
-<!-- End Attachments and Backlinks -->
+			<tr><td><a href='[% uri(file) %]'>[% file.basename %]</a></td><td>&nbsp;</td><td>[% file.size %]</td></tr>
 
-	</body>
+		[% IF loop.last %]
+			</table>
+		[% END %]
+	<!--[% END %]-->
+	</div>
 
+	[% IF not loop.last %]<hr />[% END %]
+
+<!--[% END %]-->
+</div>
+
+</body>
 </html>

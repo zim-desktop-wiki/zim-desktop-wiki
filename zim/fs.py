@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Module with basic filesystem objects.
 
@@ -128,7 +128,6 @@ import threading
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.parsing import url_encode, url_decode, URL_ENCODE_READABLE
 from zim.signals import SignalEmitter, SIGNAL_AFTER
-
 
 logger = logging.getLogger('zim.fs')
 
@@ -295,10 +294,24 @@ def expanduser(path):
 			# assume it is compatible
 			parts[0] = os.path.expanduser(parts[0])
 
-		return '/'.join(parts)
+		path = '/'.join(parts)
 	else:
 		# Let encode() handle the unicode encoding
-		return decode(os.path.expanduser(encode(path)))
+		path = decode(os.path.expanduser(encode(path)))
+
+	if path.startswith('~'):
+		# expansion failed - do a simple fallback
+		from zim.environ import environ
+
+		home = environ['HOME']
+		parts = path.replace('\\', '/').strip('/').split('/')
+		if parts[0] == '~':
+			path = '/'.join([home] + parts[1:])
+		else: # ~user
+			dir = os.path.basename(home) # /home or similar ?
+			path = '/'.join([dir, parts[0][1:]] + parts[1:])
+
+	return path
 
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -576,8 +589,6 @@ class UnixPath(SignalEmitter):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
 			path = expanduser(path)
-			if path.startswith('~'):
-				raise AssertionError, 'Could not expand path "%s" this could mean $HOME is not set' % path
 
 		self._set_path(path) # overloaded in WindowsPath
 
@@ -1663,7 +1674,7 @@ class UnixFile(FilePath):
 	def remove(self):
 		'''Remove (delete) this file and cleanup any related temporary
 		files we created. This action can not be un-done.
-		Ignores silently if the page did not exist in the first place.
+		Ignores silently if the file did not exist in the first place.
 		'''
 		logger.info('Remove file: %s', self)
 		with self._lock:

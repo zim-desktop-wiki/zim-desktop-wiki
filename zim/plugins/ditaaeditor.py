@@ -36,9 +36,9 @@ This is a core plugin shipping with zim.
 	}
 
 	object_type = 'ditaa'
-	short_label = _('Ditaa')
-	insert_label = _('Insert Ditaa')
-	edit_label = _('_Edit Ditaa')
+	short_label = _('Ditaa') # T: menu item
+	insert_label = _('Insert Ditaa') # T: menu item
+	edit_label = _('_Edit Ditaa') # T: menu item
 	syntax = None
 
 	@classmethod
