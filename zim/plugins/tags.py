@@ -561,7 +561,10 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 				#~ else:
 					#~ return str(self.index.n_list_tagged_pages(tag))
 		else:
-			return PageTreeStore.on_get_value(self, iter, column)
+			if column == NAME_COL:
+				return iter.indexpath.name # Show pages with full context
+			else:
+				return PageTreeStore.on_get_value(self, iter, column)
 
 
 class TaggedPageTreeStore(DuplicatePageTreeStore):
