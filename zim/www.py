@@ -287,7 +287,9 @@ class WWWInterface(object):
 			up=page.parent if page.parent and not page.parent.isroot else None,
 			prevpage=self.notebook.index.get_previous(page),
 			nextpage=self.notebook.index.get_next(page),
-			links={'index': '/'}
+			links={'index': '/'},
+			index_generator=self.notebook.index.walk,
+			index_page=page,
 		)
 		self.template.process(lines, context)
 		return lines

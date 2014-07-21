@@ -15,7 +15,8 @@ from zim.notebook import Path, Notebook, init_notebook, \
 	interwiki_link, get_notebook_list, NotebookInfo
 #~ from zim.exporter import Exporter, StaticLinker
 #~ from zim.applications import Application
-#~
+from zim.templates import list_templates
+
 from zim.main import ExportCommand
 
 # TODO add check that attachments are copied correctly
@@ -343,16 +344,13 @@ class TestPageSelections(tests.TestCase):
 
 class TestMultiFileExporter(tests.TestCase):
 
-	format = 'html'
-	template = 'Default'
-
 	def runTest(self):
 		dir =  Dir(self.create_tmp_dir())
 		#~ dir =  VirtualDir('/test')
 		notebook = tests.new_notebook(fakedir='/foo')
 		pages = AllPages(notebook)
 
-		exporter = build_notebook_exporter(dir, self.format, self.template)
+		exporter = build_notebook_exporter(dir, 'html', 'Default')
 		self.assertIsInstance(exporter, MultiFileExporter)
 		exporter.export(pages)
 
@@ -397,20 +395,45 @@ class TestMHTMLExporter(tests.TestCase):
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
+class TestExportFormat(object):
 
-class TestExportFormatLatex(TestMultiFileExporter):
+	def runTest(self):
+		dir =  Dir(self.create_tmp_dir())
+		#~ dir =  VirtualDir('/test')
 
+		i = 0
+		print ''
+		for template, file in list_templates(self.format):
+			print 'Testing template: %s' % template
+			notebook = tests.new_notebook(fakedir='/foo')
+			pages = AllPages(notebook) # TODO - sub-section ?
+			exporter = build_notebook_exporter(dir.subdir(template), self.format, template)
+			self.assertIsInstance(exporter, MultiFileExporter)
+			exporter.export(pages)
+
+			file = exporter.layout.page_file(Path('roundtrip'))
+			text =  file.read()
+			self.assertIn('Lorem ipsum dolor sit amet', text)
+
+			i += 1
+
+		if self.format in ('html', 'latex'):
+			self.assertTrue(i >= 3)
+
+
+class TestExportFormatHtml(TestExportFormat, tests.TestCase):
+	format = 'html'
+
+
+class TestExportFormatLatex(TestExportFormat, tests.TestCase):
 	format = 'latex'
-	template = 'Article'
 
 
-class TestExportFormatMarkDown(TestMultiFileExporter):
-
+class TestExportFormatMarkDown(TestExportFormat, tests.TestCase):
 	format = 'markdown'
 
 
-class TestExportFormatRst(TestMultiFileExporter):
-
+class TestExportFormatRst(TestExportFormat, tests.TestCase):
 	format = 'rst'
 
 

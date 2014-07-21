@@ -8,6 +8,7 @@ import logging
 
 logger = logging.getLogger('zim.export')
 
+from zim.utils import MovingWindowIter
 
 from zim.config import data_file
 from zim.notebook import IndexPage, Page, Path
@@ -73,20 +74,18 @@ class MultiFileExporter(FilesExporterBase):
 		self.index_page = index_page # TODO make generic special page in output selection
 
 	def export_iter(self, pages):
-		# Install template method for ToC
-		# TODO
-
 		self.export_resources()
 
-		for page in pages:
+		for prev, page, next in MovingWindowIter(pages):
 			logger.info('Exporting page: %s', page.name)
 			yield page
 			try:
-				self.export_page(pages.notebook, page)
+				self.export_page(pages.notebook, page, pages, prevpage=prev, nextpage=next)
 					# XXX FIXME remove need for notebook here
 				self.export_attachments(pages.notebook, page)
 					# XXX FIXME remove need for notebook here
 			except:
+				raise
 				logger.exception('Error while exporting: %s', page.name)
 
 		if self.index_page:
@@ -95,13 +94,13 @@ class MultiFileExporter(FilesExporterBase):
 				if isinstance(index_page, basestring):
 					index_page = pages.notebook.cleanup_pathname(index_page) # XXX
 
-				logger.info('Export index: %s', index_page)
+				logger.info('Export index: %s', index_page, pages)
 				yield Path(index_page)
 				self.export_index(index_page, pages)
 			except:
 				logger.exception('Error while exporting index')
 
-	def export_page(self, notebook, page):
+	def export_page(self, notebook, page, pages, prevpage=None, nextpage=None):
 		# XXX FIXME remove need for notebook here
 
 		file=self.layout.page_file(page)
@@ -119,8 +118,11 @@ class MultiFileExporter(FilesExporterBase):
 			linker_factory, dumper_factory,
 			title=page.get_title(),
 			content=[page],
-			home=None, up=None, prevpage=None, nextpage=None, # TODO
-			links=None, # TODO
+			home=None, up=None, # TODO
+			prevpage=prevpage, nextpage=nextpage,
+			links={'index': self.index_page},
+			index_generator=pages.index,
+			index_page=page,
 		)
 
 		lines = []
@@ -141,7 +143,7 @@ class MultiFileExporter(FilesExporterBase):
 		indexpage.set_parsetree(_page.get_parsetree())
 		indexpage.readonly = True
 
-		self.export_page(pages.notebook, indexpage)
+		self.export_page(pages.notebook, indexpage, pages)
 
 
 class SingleFileExporter(FilesExporterBase):
@@ -150,9 +152,6 @@ class SingleFileExporter(FilesExporterBase):
 	# TODO make robust for errors during page iteration - needs to be in template code - allow removing try .. except in multifile above ?
 
 	def export_iter(self, pages):
-		# Install template method for ToC
-		# TODO
-
 		self.export_resources()
 
 		linker_factory = partial(ExportLinker,
@@ -172,6 +171,8 @@ class SingleFileExporter(FilesExporterBase):
 			special=None, # TODO
 			home=None,  # TODO
 			links=None,
+			index_generator=pages.index,
+			index_page=None,
 		)
 
 		lines = []

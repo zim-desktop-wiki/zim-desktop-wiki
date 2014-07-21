@@ -26,7 +26,7 @@ breakatwhitespace=false,        % sets if automatic breaks should only happen at
 
 [% options.document_type = 'report' %]
 
-\title{[% page.basename %]}
+\title{[% title %]}
 \date{[% strftime("%A %d %B %Y") %]}
 \author{}
 
@@ -36,6 +36,8 @@ breakatwhitespace=false,        % sets if automatic breaks should only happen at
 
 \tableofcontents
 
-[% page.body %]
+[% FOR page IN pages %]
+[% page.content %]
+[% END %]
 
 \end{document}

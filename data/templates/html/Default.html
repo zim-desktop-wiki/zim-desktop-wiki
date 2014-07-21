@@ -30,7 +30,7 @@
 <body>
 
 <!-- Header -->
-
+<div class='header'>
 [% IF navigation.prev %]
 	[ <a href='[% uri(navigation.prev) %]'>Prev</a> ]
 [% ELSE %]
@@ -48,16 +48,25 @@
 [% ELSE %]
 	[ <span class='insen'>Next</span> ]
 [% END %]
+</div>
 
 <hr />
 
 <!-- Wiki content -->
 
+<div class='pages'>
 <!--[% FOR page IN pages %]-->
+	<div class='heading'>
 	<h1>[% page.heading %] <a name='[% anchor(page) %]'></a></h1>
+	</div>
+
+	<div class='content'>
 	[% page.body %]
+	</div>
 
 	<br />
+
+	<div class='page-footer'>
 	<!--[% FOR link IN page.backlinks %]-->
 		[% IF loop.first %]<b>Backlinks:</b>[% END %]
 
@@ -78,12 +87,12 @@
 			</table>
 		[% END %]
 	<!--[% END %]-->
+	</div>
 
 	[% IF not loop.last %]<hr />[% END %]
 
 <!--[% END %]-->
-
+</div>
 
 </body>
-
 </html>

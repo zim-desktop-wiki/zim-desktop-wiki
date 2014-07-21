@@ -590,6 +590,7 @@ class TestTemplateFunctions(tests.TestCase):
 
 	def testFuncLen(self):
 		func = build_template_functions()['len']
+		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(
 			func([1, 2, 3]),
 			3
@@ -597,6 +598,7 @@ class TestTemplateFunctions(tests.TestCase):
 
 	def testFuncSorted(self):
 		func = build_template_functions()['sorted']
+		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(
 			func(['bbb', 'aaa', 'ccc']),
 			['aaa', 'bbb', 'ccc']
@@ -604,6 +606,7 @@ class TestTemplateFunctions(tests.TestCase):
 
 	def testFuncReversed(self):
 		func = build_template_functions()['reversed']
+		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(
 			func(['bbb', 'aaa', 'ccc']),
 			['ccc', 'aaa', 'bbb']
@@ -611,6 +614,7 @@ class TestTemplateFunctions(tests.TestCase):
 
 	def testFuncRange(self):
 		func = build_template_functions()['range']
+		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(
 			func(1, 10),
 			[1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -620,6 +624,7 @@ class TestTemplateFunctions(tests.TestCase):
 		from datetime import date
 
 		func = build_template_functions()['strftime']
+		self.assertIsInstance(func, ExpressionFunction)
 		self.assertTrue(func('%Y %m %d'))
 		self.assertEqual(
 			func('%Y %m %d', date(2014, 05, 26)),
@@ -630,11 +635,22 @@ class TestTemplateFunctions(tests.TestCase):
 		from datetime import date
 
 		func = build_template_functions()['strfcal']
+		self.assertIsInstance(func, ExpressionFunction)
 		self.assertTrue(func('%Y %W'))
 		self.assertEqual(
 			func('%Y %W', date(2014, 05, 26)),
 			'2014 22'
 		)
+
+	def testHTMLEncode(self):
+		func = build_template_functions()['html_encode']
+		self.assertIsInstance(func, ExpressionFunction)
+		self.assertEqual(func('<a>foo</a>'), '&lt;a&gt;foo&lt;/a&gt;')
+
+	def testURLEncode(self):
+		func = build_template_functions()['url_encode']
+		self.assertIsInstance(func, ExpressionFunction)
+		self.assertEqual(func('/foo/bar baz'), '%2Ffoo%2Fbar%20baz')
 
 
 class TestTemplate(tests.TestCase):

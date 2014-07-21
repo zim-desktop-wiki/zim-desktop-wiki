@@ -249,7 +249,7 @@ class TestDialogs(tests.TestCase):
 			'X-Zim-ExecTool': 'foo %u',
 			'X-Zim-ReadOnly': False,
 			'X-Zim-ShowInToolBar': False,
-
+			'X-Zim-ReplaceSelection': False,
 		}
 		dialog.manager.create(**properties)
 		dialog.listview.refresh()
@@ -263,7 +263,7 @@ class TestDialogs(tests.TestCase):
 			'X-Zim-ExecTool': 'foo %u',
 			'X-Zim-ReadOnly': False,
 			'X-Zim-ShowInToolBar': False,
-
+			'X-Zim-ReplaceSelection': False,
 		}
 		dialog.form.update(input)
 		output = dialog.assert_response_ok()

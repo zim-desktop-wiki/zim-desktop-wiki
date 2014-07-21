@@ -86,6 +86,8 @@ from zim.environ import environ
 from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 from zim.notebook import Path
 
+from zim.formats import ParseTree, ParseTreeBuilder, \
+	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK
 
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
@@ -104,6 +106,7 @@ class ExportTemplateContext(dict):
 		title, content, special=None,
 		home=None, up=None, prevpage=None, nextpage=None,
 		links=None,
+		index_generator=None, index_page=None,
 	):
 		'''Constructor
 
@@ -130,11 +133,19 @@ class ExportTemplateContext(dict):
 		@param links: list of links to special pages if any, links are
 		given as a 2-tuple of a key and a target (either a L{Path} or
 		a L{NotebookPathProxy})
+		@param index_generator: a generator function or that
+		provides L{IndexPath} or L{Page} objects to be used for the
+		the C{index()} function. This method should take a single
+		argument for the root namespace to show.
+		See the definition of L{Index.walk()} or L{PageSelection.index()}.
+		@param index_page: the current page to show in the index if any
 		'''
-		# TODO get rid of need of noetbook here!
-		self.notebook = notebook
+		# TODO get rid of need of notebook here!
+		self._content = content
 		self._linker_factory = linker_factory
 		self._dumper_factory = dumper_factory
+		self._index_generator = index_generator or content
+		self._index_page = index_page
 
 		self.linker = linker_factory()
 
@@ -177,8 +188,9 @@ class ExportTemplateContext(dict):
 			'options': TemplateContextDict({}), # can be modified by template
 
 			# Functions
-			'toc': self.toc_function,
+			#~ 'toc': self.toc_function,
 			'index': self.index_function,
+			'pageindex': self.index_function, # backward compatibility
 			'uri': self.uri_function,
 			'anchor': self.anchor_function,
 			'resource': self.resource_function,
@@ -197,14 +209,104 @@ class ExportTemplateContext(dict):
 			template_options=self['options']
 		)
 
-	@ExpressionFunction
-	def toc_function(self):
-		pass # TODO
+	#~ @ExpressionFunction
+	#~ def toc_function(self):
+		#~ # TODO
+		#~ #       needs way to link heading achors in exported code (html)
+		#~ #       pass these anchors through the parse tree
+		#~
+		#~ builder = ParseTreeBuilder()
+		#~ builder.start(FORMATTEDTEXT)
+		#~ builder.start(BULLETLIST)
+
+		#~ for page in self._content:
+			#~ current = 1
+			#~ for level, heading in ...:
+				#~ if level > current:
+					#~ for range(current, level):
+						#~ builder.start(BULLETLIST)
+					#~ current = level
+				#~ elif level < current:
+					#~ for range(level, current):
+						#~ builder.end(BULLETLIST)
+					#~ current = level
+
+				#~ builder.start(LISTITEM)
+				#~ builder.append(LINK, {'href': ...}, anchor)
+				#~ builder.end(LISTITEM)
+
+			#~ for range(1, current):
+				#~ builder.end(BULLETLIST)
+			#~
+		#~ builder.end(BULLETLIST)
+		#~ builder.end(FORMATTEDTEXT)
+
+		#~ tree = builder.get_parsetree()
+		#~ if not tree:
+			#~ return ''
+
+		#~ print "!!!", tree.tostring()
+		#~ dumper = self.dumper_factory(None)
+		#~ return ''.join(dumper.dump(tree))
 
 	@ExpressionFunction
-	def index_function(self):
-		# TODO some caching for the index when generating many similar pages ?
-		pass # TODO
+	def index_function(self, namespace=None, collapse=True, ignore_empty=True):
+		'''Index function for export template
+		@param namespace: the namespace to include
+		@param collapse: if C{True} only the branch of the current page
+		is shown, if C{False} the whole index is shown
+		@param ignore_empty: if C{True} empty pages (placeholders) are
+		not shown in the index
+		'''
+		if not self._index_generator:
+			return ''
+
+		builder = ParseTreeBuilder()
+		builder.start(FORMATTEDTEXT)
+		builder.start(BULLETLIST)
+		expanded = [self._index_page] + list(self._index_page.parents())
+		stack = []
+
+		for path in self._index_generator(namespace):
+			if self._index_page and collapse \
+			and not path.parent in expanded:
+				continue # skip since it is not part of current path
+			elif ignore_empty and not (path.hascontent or path.haschildren):
+				continue # skip since page is empty
+
+			if not stack:
+				stack.append(path.parent)
+			elif stack[-1] != path.parent:
+				if path.ischild(stack[-1]):
+					builder.start(BULLETLIST)
+					stack.append(path.parent)
+				else:
+					while stack and stack[-1] != path.parent:
+						builder.end(BULLETLIST)
+						stack.pop()
+
+			builder.start(LISTITEM)
+			if path == self._index_page:
+				# Current page is marked with the strong style
+				builder.append(STRONG, text=path.basename)
+			else:
+				# links to other pages
+				builder.append(LINK,
+					{'type': 'page', 'href': ':'+path.name},
+					path.basename)
+			builder.end(LISTITEM)
+
+		for p in stack:
+			builder.end(BULLETLIST)
+		builder.end(FORMATTEDTEXT)
+
+		tree = builder.get_parsetree()
+		if not tree:
+			return ''
+
+		#~ print "!!!", tree.tostring()
+		dumper = self.dumper_factory(None)
+		return ''.join(dumper.dump(tree))
 
 	@ExpressionFunction
 	def uri_function(self, link):
@@ -214,8 +316,10 @@ class ExportTemplateContext(dict):
 			return self.linker.page_object(link._path)
 		elif isinstance(link, FilePathProxy):
 			return self.linker.file_object(link._file)
-		else:
+		elif isinstance(link, basestring):
 			return self.linker.link(link)
+		else:
+			return None
 
 	@ExpressionFunction
 	def anchor_function(self, page):

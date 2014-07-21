@@ -15,13 +15,18 @@ class PageSelection(object):
 	title = None # name used in export template
 
 	def __iter__(self):
-		'''Iterate page obejcts
+		'''Iterate page objects
 		@implementation: must be implemented by subclases
 		'''
 		raise NotImplemented
 
+	def index(self, namespace=None):
+		'''Iterate path objects for template C{index()} function, depth first
+		@param namespace: the sub namespace to iterate or None to iterate
+		toplevel
+		'''
+		raise NotImplemented
 
-	# TODO add alternative method to walk names for ToC
 	# TODO add __len__ that gives total pages for progress
 	# TODO Use collections subclass to make interface complete ?
 
@@ -37,6 +42,9 @@ class AllPages(PageSelection):
 	def __iter__(self):
 		return self.notebook.walk()
 
+	def index(self, namespace=None):
+		return self.notebook.index.walk(namespace)
+
 
 class SinglePage(PageSelection):
 	'''Selection of one specific page without subpages'''
@@ -51,6 +59,12 @@ class SinglePage(PageSelection):
 	def __iter__(self):
 		yield self.notebook.get_page(self.page)
 
+	def index(self, namespace=None):
+		if namespace is None:
+			yield self.page
+		else:
+			pass
+
 
 class SubPages(SinglePage):
 	'''Selection of pages in sub-tree of a notebook'''
@@ -60,6 +74,13 @@ class SubPages(SinglePage):
 		for page in self.notebook.walk(self.page):
 			yield page
 
+	def index(self, namespace=None):
+		if namespace is None or namespace.name == page.name:
+			return self.notebook.index.walk(self.page)
+		elif namespace.ischild(self.page):
+			return self.notebook.index.walk(namespace)
+		else:
+			pass
 
 
 
