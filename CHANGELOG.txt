@@ -4,6 +4,8 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.61 - ... ===
+* Added Finnish translation
 
 === 0.60 - Tue 30 Apr 2013 ===
 * In this release the required python version is changed from 2.5 to 2.6 !
