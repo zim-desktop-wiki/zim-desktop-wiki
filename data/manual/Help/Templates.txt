@@ -37,111 +37,267 @@ This template is used to initialize new pages in the Journal namespace.
 
 Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
 
-Template syntax:
+==== Template syntax ====
+
+The template is a combination of the normal document output that you want to produce (e.g. HTML or Latex) combined with template instructions. The normal text is passed on to the output unmodified, while the instructions get replaced by the output of the template processing.
+
+Template instructions can have to forms:
 
 '''
-[% var %]	# interpolates a variable
-[%- var %]	# + strip line break before the expression
-[% var -%]	# + strip line break after the expression
-[%- var -%]	# + strip line breaks on both sides
+[% some expression %]
+'''
 
+''and''
+
+''<!--[% some expression %]-->''
+
+The first is typically used but the second form can look better in HTML or XML templates as it is parsed as an XML comment by other tools.
+
+=== Expressions ===
+
+Expressions used in template instructions can be:
+
+'''
+True, False, None		# literal true, false and none
+"string", 'string', 5, 5.0	# text or number
+[.., .., ..]			# list
+variable			# variable name
+variable.name,			# variable name with named attributes
+mylist.0			# variable containing a list with index
+function(.., ..)		# function call
+'''
+
+
+The following operators can be used:
+'''
+
+and
+or
+not
+== 		# Equals
+!= 		# Not equals
+> 		# Greater than
+>=		# Greater or equal than
+< 		# Less than
+<=		# Less or equal than
+'''
+
+
+Valid variable names can contain letters (a - z) and numbers (0 - 9) and underscores ( _ ). The first character of the variable name must be a letter.
+
+=== Instructions ===
+
+An instruction can be one of the following:
+
+'''
+GET
+SET
+IF expr EL(S)IF expr .. ELSE .. END
+FOR var IN expr .. END
+FOREACH var = expr ... END
+BLOCK name .. END
+INCLUDE name or expr -- block or file
+'''
+
+
+The instruction is always in upper case letters. The expressions within can be either upper or lower case names.
+
+== Get & Set ==
+
+'''
+[% expr %]			 # implicit GET
+
+[% GET expr %]
+'''
+
+With GET you evaluate an expression and the result is put into the output. Typically the expression will just be a variable name.
+
+'''
+[% SET var = expr %]
+'''
+
+With SET you assign a variable. It does not output in the result and the instruction will be removed.
+
+== Conditionals ==
+
+'''
 [% IF expr %] ... [% END %]	# conditionals
+'''
 
+'''
 [% IF expr %]
-	...
+...
 [% ELSIF expr %]
-	...
+...
 [% ELSE %]
-	...
+...
+[% END %]
+'''
+
+In any of these constructs the expression is evaluated and depending on the result one of the blocks is added to the output. Used to include optional output in the template
+
+== Loops ==
+
+'''
+[% FOR var IN expr %]		# loop
+...
+[% END %]
+'''
+
+'''
+[% FOREACH var = expr ]
+...
+[% END %]
+'''
+
+In these instructions the result of an expression — typically an input variable — is iterated and for each iteration the block is evaluated.
+
+Within the loop the variable "''var''" is available and set to result of the iteration.
+
+In addition there is a special variable "''loop''" that can be used to access the loop state. It is defined with following attributes:
+
+'''
+loop.first		True / False
+loop.last		True / False
+loop.parity		"even" or "odd"
+loop.even		True / False
+loop.odd		True / False
+loop.size		n
+loop.max		n-1
+loop.index		0 .. n-1
+loop.count		1 .. n
+loop.outer		outer "loop" or None
+loop.prev		previous item or None
+loop.next		next item or None
+'''
+
+
+== Blocks ==
+
+'''
+[% BLOCK name %]
+...
 [% END %]
 
-[% FOREACH name = var ]		# loop
-... [% name %] ...
-[% END %]
-
-[% strftime("%c") %]		# current time stamp
-[% strftime("%c", var) %]	# date from variable
-
-
-[% options.option_name = value %] # set the template option option_name to value
-
-[% page.properties["Creation-Date"] %] # access dict
+[%  INCLUDE name %]
 '''
 
 
-For the ''IF'' and ''ELIF'' statements the expression can be either just a variable, in which case it is evaluated boolean, or an equality expression with "==". For example "''[% IF page.name == 'foo' %]''" is understood. More complex expressions are not supported.
+A BLOCK can be defined anywhere in the template and then included in other places using the INCLUDE statement. This is useful e.g. for template parts that repeat multiple times in the document. Note that a BLOCK is always defined in the top level scope, so you can not put them e.g. in an IF clause to define alternative versions. A BLOCK may be defined after the location where they are used.
 
-Available variables:
+=== Objects and functions ===
 
-'''
-zim.version		# version of zim
-notebook.name		# name of the notebook
-notebook.interwiki	# interwiki key of the notebook if any
+Most variables behave partially as objects, which means that it is possible to call object methods on them. The following standard (python) object methods are commonly supported:
 
-page.name		# complete page name
-page.namespace		# namespace
-page.basename		# last part of the page name
-page.properties		# dict with page properties
-page.title		# first heading in the page or the basename
-page.heading		# first heading in the page
-page.body		# content of the page without the leading heading
-page.content	# content of the page including the leading heading
-page.has_links	# True if the page has links to other pages
-page.links		# list of page objects for pages linked in this page
-page.has_backlinks	# True if the page is linked by other pages
-page.backlinks		# list of page objects for pages linking to this page
-page.has_attachments	# True if the page has attachments
-page.attachments	# list of file objects for attachments
+Strings: '''capitalize''', '''center''', '''count''', '''endswith''', '''expandtabs''', '''ljust''', '''lower''', '''lstrip''', '''replace''', '''rjust''', '''rsplit''', '''rstrip''', '''split''', '''splitlines''', '''startswith''', '''title''', '''upper'''
 
-# These special pages have the same properties as the 'page' object
-pages.index		# the index page generated when exporting
-pages.home		# the home page
-pages.next		# the next page in the index (if any)
-pages.previous		# the previous page in the index (if any)
+Lists: '''get''', '''len''', '''reversed''', '''sorted'''
 
-options			# dict where format specific options can be set
-'''
+Dictionary: '''get''', '''keys''', '''values''', '''items''', '''len''', '''reversed''', '''sorted'''
+
+The following standard (python) functions are supported: ''len(list)'', ''sorted(list)'', ''reversed(list)'', ''range(start, end)''. 
 
 
-File objects returned by page.attachments have the following attributes:
+Other functions defined for all templates:
 
-'''
-file.path		# (relative) path as a string
-file.basename	# file basename
-file.mtime		# file mtime, to be used with strftime()
-file.size		# file size as human readable string
-'''
-
-
-Functions available:
-
-	''url(link)''
-		Turns a zim link or file object into an URL
-
-	''resource(filename)''
-		Returns an URL for a template resource (see below)
+	''html_encode(text)''
+		Format text in HTML encoding
+	
+	''url_encode(text)''
+		Format text in URL encoding
 
 	''strftime(template, date)''
 		Format a date, see standard library for codes
 		
-	strfcal(template, date)
+	''strfcal(template, date)''
 		Format a week number, accepts:
 		
 			%w for day of week according to locale
 			%W for weeknumber according to locale
 			%Y for the year to which the week belongs
 
-	pageindex''(namespace, collapse, ignore_empty)''
-		Creates a page index of a given namespace or the whole notebook
 
-		''namespace'': the starting root - defaults to the top level (":")
-		''collapse:'' if ''TRUE'' only branches related to the current page are visible//, // if ''FALSE'' all branches are visible - defaults to TRUE
-		''ignore_empty:'' if ''TRUE'' empty pages are ignored — defaults to TRUE.
 
-		//Example//:	''menu(page.namespace,  TRUE, FALSE)''
+==== Variables available for new pages ====
 
+Only a single variable is defined for new pages:
+
+'''
+page
+	.name
+	.namespace
+	.basename
+'''
 
 See also the [[Plugins:Journal|Journal Plugin]] for some properties available for journal pages
+
+
+==== Variables and functions available for Export templates ====
+
+When using templates when [[Export|exporting]] the following set of variables and functions is available in the export template:
+
+'''
+generator
+	.name		Zim version number "Zim x.xx"
+	.user		The current user name
+
+title			Page title
+
+navigation		links to other export pages (if not included in the same output file)
+	.home
+	.up
+	.prev
+	.next
+
+links			Sorted dictionary with links to other export pages (index, plugins, etc.)
+
+	link
+		.name
+		.basename
+
+pages			Iterator over all content to be exported (special + content)
+	.special	Sorted dictionary with special pages to be included (index, plugins, etc.)
+ 	.content	Iterator with pages being exported to this file (1 or more)
+
+	page
+		.title
+		.name
+		.namespace
+		.basename
+		.heading	First heading of the page
+		.body		Full body minus first heading
+		.content	Heading + body
+		.properties
+		.links
+		.backlinks
+		.attachments
+
+			file
+				.basename
+				.mtime
+				.size
+
+options			Dictionary with template options that can be set to control the output format
+'''
+
+Functions:
+
+	''uri(link|file)''
+		Turns a zim link or file object into an URL
+
+	''anchor(page)''
+		Turns an output page into an achor that can be linked
+
+	''resource(filename)''
+		Returns an URL for a template resource (see below)
+
+	''index(namespace, collapse, ignore_empty)''
+		Creates a page index of a given namespace or the set of pages being exported.
+
+		''namespace'': the starting root - defaults to the top level (":")
+		''collapse'': if ''TRUE'' only branches related to the current page are visible, if ''FALSE'' all branches are visible - defaults to ''TRUE''
+		''ignore_empty'': if ''TRUE'' empty pages are ignored — defaults to ''TRUE''.
+
 
 ==== Template Resources ====
 To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.

@@ -73,9 +73,6 @@ Export Options:
   -s, --singlefile export all pages to a single output file
   -O, --overwrite  force overwriting existing file(s)
 
-  You can use the export option to print a single page to stdout.
-  When exporting a whole notebook you need to provide a directory.
-
 Search Options:
   None
 

@@ -45,15 +45,6 @@
 #	loop.prev		previous item or None
 #	loop.next		next item or None
 
-# TODO Document:
-# * all of the above
-# * that we follow template toolkit syntax, but not full implementation
-#   and especially not perl style implicite behavior
-#   e.g. calling methods without ()
-#   or calling methods by assigning with "="
-# * valid param names
-# * internal functions - TODO strftime / html_encode / url_encode / ...
-# * methods callable on string / dict / list
 
 
 import logging

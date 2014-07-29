@@ -31,7 +31,7 @@ General Options:
 
 GUI Options:
   --list          show the list with notebooks instead of
-                  opening the default notebook
+				  opening the default notebook
   --geometry      window size and position as WxH+X+Y
   --fullscreen    start in fullscreen mode
   --standalone     start a single instance, no background process
@@ -42,14 +42,14 @@ Server Options:
   --gui           run the gui wrapper for the server
 
 Export Options:
-  --format        format to use (defaults to 'html')
-  --template      name of the template to use
-  -o, --output    output directory
-  --root-url      url to use for the document root
-  --index-page    index page name
-
-  You can use the export option to print a single page to stdout.
-  When exporting a whole notebook you need to provide a directory.
+  -o, --output     output directory (mandatory option)
+  --format         format to use (defaults to 'html')
+  --template       name of the template to use
+  --root-url       url to use for the document root
+  --index-page     index page name
+  -r, --recursive  when exporting a page, also export sub-pages
+  -s, --singlefile export all pages to a single output file
+  -O, --overwrite  force overwriting existing file(s)
 
 Search Options:
   None

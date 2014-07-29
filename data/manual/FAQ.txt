@@ -64,5 +64,5 @@ By synchronizing all visible files in the notebook. E.g. by putting the zim notb
 Zim is written as a "single user" program, so it is not intended for multiple people using the same notebook. However it can be used with version control like Bazaar, Git or Mercurial. This way multiple users can work on the same notebook and merge their changes. See the [[Plugins:Version Control|Version Control plugin]].
 
 ===== I have a useful trick or tip. How can I share it with other users? =====
-You can have a look at the [[http://www.zim-wiki.org/wiki/doku.php|zim documentation wiki]]. It has a section dedicated to [[http://www.zim-wiki.org/wiki/doku.php?id=tips_and_tricks|tricks and tips]]. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
+You can have a look at the [[http://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
 
