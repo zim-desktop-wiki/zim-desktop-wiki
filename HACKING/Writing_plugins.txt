@@ -7,43 +7,14 @@ This page collects random notes on writing plugins.
 
 **NOTE:** Under the GPL license used for distributing this program all plugins should also be licensed under the GPL. A closed source plugin extension is not allowed. A plugin is allowed to call any non-GPL program as long as the plugin itself is under GPL and the non-GPL program runs as a separate process with a clearly defined inter process communication interface.
 
-===== Topics: =====
+===== Writing a new plugin =====
+See the module documentation in ''zim.plugins'' for documentation of the plugin framework.
 
-==== What does a plugin look like ====
-A plugin is just a python module that is a sub-module of ''zim.plugins'' . It should contain exactly one class that is a subclass of the base class "''PluginClass''". When zim loads a plugin a instance of this sub-class is created and attached to the main application object. From there it can access most other parts of the object structure that drives the application.
-
-Since a plugin is just a sub-module of "''zim.plugins''" a plugin is installed by placing it in any folder in the python path that maps to the "''zim.plugins''" module. So for example you can put them directly in "''./zim/plugins''" in the source code. When installing a plugin locally you may want to put it in the "[[http://docs.python.org/whatsnew/2.6.html#pep-370-per-user-site-packages-directory|per user site packages directory]]". If (after restarting) zim detects the new plugin it will show up in the plugins tab of the preferences dialog.
-
-See the API documentation for "''zim.plugins''"  for all the implementation details of the plugin class. Of course the quickest way to get started is to take an existing plugin that does something you want to do as well and copy it, then start modifying it to suit your needs. 
-
-TODO: we may want a system in the future where plugins can be packaged as zip files and installed by dropping the zip file in a place like "''.local/share/zim/plugins''"
-
-==== Plugin Info ====
-Each plugin object should have an attribute "''plugin_info''" which is a dict with basic information about the plugin such as the name, the author and a short description. This info is displayed to the user in the preferences dialog.
-
-==== How to use preferences ====
-The "''preferences''" attribute of the plugin holds a dict with preferences that are global for all zim instances. Typically these are editable by the customer in the preferences dialog. However to make preferences show up in the user interface they should be defined in the "''plugin_preferences''" attribute, which has some basic info like the name, a description, a type and a default value for each preference.
-
-==== How to use uistate ====
-The "''uistate''" attribute of the plugin holds a dict which is intended to keep a persistent state for a specific notebook. You may use it for example to store that last folder the user opened so next time you can start at the same place - or you can put the window size of a dialog in it.
-
-==== How to add menu items ====
-The menu bar and the toolbar in zim are managed by a Gtk UIManager. This construct consists of two parts: 1) a piece of XML that defines what items should show up in which menu or at which place in the toolbar and 2) a definition of "actions" which gives the description, icon, keybinding, etc. for each menu item. Zim has a wrapper for this that hooks each "action" to a method of the plugin object with the same name.
-
-See the PrintToBrowser plugin for a very simple plugin that just defines one menu item. To get a view of the whole menu structure have a look at ''./data/menubar.xml''.
-
-==== How to call a plugin from the commandline ====
-For interprocess communication it is nice if a plugin can be called externally. This for example used by the Quicknote and TrayIcon plugins that are shipped with zim which both have a few commandline options (see the user manual).
-
-To make it possible to call a plugin from the commandline the plugin module should define a "''main()''" function. When zim is called with "''zim --plugin pluginname''" this main function is called.
-
-This ''main()'' method is called directly in the new process. If you want to connect to a running instance of zim the plugin should load the daemon interface itself. See the TrayIcon plugin for an example.
-
-==== How to package ====
+===== How to package =====
 TODO: At this moment we have no standard way for packagin plugins
 
-==== Manual page ====
+===== Manual page =====
 Each plugin should have it's own page in the user manual that explains what it does and how to use it. Please write it before proposing your plugin to be included in the main package.
 
-==== Unit testing ====
+===== Unit testing =====
 As stated in the guidelines [[Test Suite|unittesting]] is good. Please try to write some test cases for your plugin before proposing it to be included in the main package. Other developers may not use your plugin, so if it breaks later on it may go undetected unless there is a test case for it.

@@ -45,5 +45,5 @@ Windows: ''%APPDATA%/Python/Python26/site-packages''
 See http://www.python.org/dev/peps/pep-0370/ for details.
 
 ===== Writing Plugins =====
-If you are looking for information on **writing plugins** please download the source package and have a look at the notes included in the "HACKING" folder.
+If you are looking for information on **writing plugins** please download the source package and have a look at the module documentation of the "''zim.plugins''" python module.
 

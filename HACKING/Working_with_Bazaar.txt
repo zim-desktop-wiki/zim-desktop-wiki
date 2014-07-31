@@ -1,0 +1,24 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2014-07-31T21:05:49+02:00
+
+====== Working with Bazaar ======
+
+The zim code is kept under version control using the bazaar version control system. See the website for documentation on using this system: http://bazaar.canonical.com/en/
+
+The quick course, to get a copy of the zim code:
+
+	bzr branch lp:zim
+
+To check in some changes (don't forget to give some meaningful changelog)
+
+	bzr add
+	bzr commit
+
+
+To create a patch that can be mailed:
+
+	bzr send -o some-description.patch
+
+Alternatively you can publish your branch directly on the launchpad website and file a merge proposal.
+

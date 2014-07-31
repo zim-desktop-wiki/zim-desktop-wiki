@@ -1,0 +1,22 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2014-07-31T21:07:55+02:00
+
+====== Gtk and GObject and signals ======
+
+Zim is build on top of pygtk and pygobject. However, the classes outside the 'gui' namespace are not allowed to use the gtk libraries, and should work when only gobject is available. This potentially allows zim to run without a graphical interface, also it gives a strict boundry between UI and data layers in the class hierarchy. The exception are modules in the 'plugin' namespace, which can of course package their own UI components. However, these should check on initialization if we are running in graphical mode or not.
+
+Zim should be able to run at systems with at least Gtk+ version 2.6, however up to date systems can be  expected to have at least Gtk+ version 2.20 or newer. Therefore Gtk+ 2.20 is required to use all functionality. This means that you can use features not available for Gtk < 2.20 but you should wrap them in a block that checks the Gtk version first. Critical functions that can not be disabled should not rely on Gtk > 2.6. Note that the Gtk API documentation specifies what version a function was introduced (if not specified it can be assumed to be present in all 2.x versions).
+
+===== Signals =====
+Keep in mind that with each "**connect()**" an object reference is created. The reference is kept by the object that is being connected to and is only broken when that object is being destroyed. So if you do
+
+	object_A.connect('some-signal', object_B.some_method)
+
+then object_B will not be destroyed as long as object_A is alive. On the other hand, if object_A is destroyed, object_B simply doesn't get any signals anymore.
+
+This seems not to be a problem when you e.g. connect a button signal within a dialog object. Reason is probably that the circular reference is broken when the dialog is destroyed. But it is a problem when e.g. a dialog connects to an external object, or a plugin connect to the main interface objects. In those cases signals need to be explicitly disconnected when you close the dialog or remove the plugin.
+
+See the **ConnectorMixin** class in zim.signals for some convenience methods for dealing with this.
+
+A special not about **connect_object()**. In the Python API it looks like this method is only intended to swap the object argument when calling the callback, however in the C API it is mentioned that this method also results in an additional object reference and it has a bug in current versions with cleaning up those references. So it is better avoided.

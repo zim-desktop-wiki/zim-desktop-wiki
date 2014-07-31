@@ -1,0 +1,29 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2014-07-31T20:56:17+02:00
+
+====== HACKING ======
+
+This notebook contains random notes and thoughts that may be useful when you want to change source code for zim.
+
+It is not a complete tutorial or something like that for working with the zim object API. In fact all real API documentation can be found directly in the python modules. Anyway, the code is always the most up to date documentation for development.
+
+When you are working with the development code check the folder "./tools/" for some useful scripts.
+
+
+In addition we use the following resources to communicate on zim development:
+
+Bug tracker:
+https://bugs.launchpad.net/zim
+Also for feature requests
+
+Development wiki:
+http://www.zim-wiki.org/wiki/
+Has e.g. the planning for some of the developers
+
+Mailing list:
+https://launchpad.net/~zim-wiki
+For all your questions
+
+IRC Channel:
+#zim-wiki on Freenode IRC network. (Access from your web browser at https://webchat.freenode.net/?channels=%23zim-wiki .)

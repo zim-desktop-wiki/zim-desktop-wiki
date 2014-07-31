@@ -14,15 +14,15 @@ ditaa is a small command-line utility written in Java, that can convert diagrams
 |Document|   |!magic!|    |       |
 |     {d}|   |       |    |       |
 +---+----+   +-------+    +-------+
-    :                         ^
-    |       Lots of work      |
-    +-------------------------+
+	:                         ^
+	|       Lots of work      |
+	+-------------------------+
 '''
 
 
 After conversion using ditaa, the above file becomes:
 {{./ditaa.png?type=ditaa}}
-ditaa interprets ascci art as a series of open and closed shapes, but it also uses special markup syntax to increase the possibilities of shapes and symbols that can be rendered.
+ditaa interprets ascii art as a series of open and closed shapes, but it also uses special markup syntax to increase the possibilities of shapes and symbols that can be rendered.
 ditaa is open source and free software (free as in free speech), since it is released under the GPL license.
 
 See  http://ditaa.sourceforge.net/ for more information about ditaa
