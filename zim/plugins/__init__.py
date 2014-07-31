@@ -55,6 +55,11 @@ work. The only thing needed to define a new plugin of this type is a
 plugin object (derived from L{ImageGeneratorPlugin}) and an object that
 knows how to generate the image (derived from L{ImageGeneratorClass})
 
+Some plugins also want to add commandline options, such that they can
+be called directly with "zim --plugin PLUGIN_NAME [OPTIONS]", an example
+is the quicknote plugin. To make this work, all that is needed is to
+define a class that derives from the L{Command} class (see L{zim.command}).
+
 Also defined here is the L{PluginManager} class. This class is the
 interface towards the rest of the application to load/unload plugins and
 to let plugins extend specific application objects.

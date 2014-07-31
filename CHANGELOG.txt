@@ -4,7 +4,31 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-=== 0.61 - ... ===
+=== 0.61 - Thu 31 Jul 2014 ===
+* Full refactoring of code for parsing and processing wiki syntax
+  making parser easier to extend and document interface more scalable
+* Full refactoring of code for plugin framework making plugins more
+  flexible by defining decorators for specific application objects
+* Full refactoring of code for exporting pages from zim
+  - Now supports MHTML export format
+  - Supports exporting multiple pages to a single file
+  - Supports recursive export of a page and all it's sub-pages
+  - Templates now support many more instructions and expressions
+* Full refactoring of the code for parsing commandline commands and
+  initializing the application
+* New config manager code to make parsing and handling of config files
+  more robust
+* Merged new plugin for editing sequence diagrams by Greg Warner
+* Improved the ToC plugin with floating widget
+* Fixed unicode issue when calling external applications, and in
+  particular for the hg and git commands
+* Fixed support for unicode CamelCase word detection
+* Fixed bug on windows with unicode user names in background process
+  connection
+* Changed "tags" plugin to show full page paths in the pre-tag view
+* Added option for custom commands to replace the current selection
+* Added keybindings for XF86Back and XF86Forward
+* Many small fixes & patches from various persons that I forgot about *sorry*
 * Added Finnish translation
 
 === 0.60 - Tue 30 Apr 2013 ===
