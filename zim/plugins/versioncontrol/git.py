@@ -133,7 +133,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		self.add('.') # add all existing files
 
 	def repo_exists(self):
-		return self.root.subdir('.git').exists()
+		return self.root.subdir('.git').exists() or self.root.file('.git').exists()
 
 	def init(self):
 		"""

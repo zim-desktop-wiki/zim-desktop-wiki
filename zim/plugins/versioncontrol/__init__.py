@@ -291,7 +291,7 @@ class VCS(object):
 				return 'bzr', path
 			elif path.subdir('.hg').exists():
 				return 'hg', path
-			elif path.subdir('.git').exists():
+			elif path.subdir('.git').exists() or path.file('.git').exists():
 				return 'git', path
 			elif path.subdir('.svn').exists():
 				return 'svn', path
