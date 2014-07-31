@@ -3,6 +3,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>Zim - a desktop wiki</title>
+	<meta name='Generator' content='[% generator.name %]'>
 	<link rel="icon" href="/favicon.ico">
 	<link rel="stylesheet" type="text/css" href="/zim.css">
 	<meta name="keywords" content="dektop, wiki, notebook, wikipad, notepad, notes, stickynotes, linux, software">
@@ -54,6 +55,7 @@
 <!-- main -->
 <h1 class="header">Zim - A Desktop Wiki</h1>
 
+<!--[% FOR page IN pages %]-->
 <h2>[% page.heading %]</h2>
 
 [% page.body %]
@@ -61,6 +63,7 @@
 
 	</td>
 	</tr>
+<!--[% END %]-->
 
 <!-- footer -->
 	<tr>

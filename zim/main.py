@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module defines the L{main()} function for executing the zim
 application. It also defines a number of command classes that implement
@@ -365,6 +365,7 @@ class ExportCommand(NotebookCommand):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
 		notebook, page = self.build_notebook()
+		#~ notebook.index.update()
 
 		if page and self.opts.get('recursive'):
 			selection = SubPages(notebook, page)

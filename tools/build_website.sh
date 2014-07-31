@@ -2,11 +2,13 @@
 
 rm -fr './html'
 
+./zim.py --index ./website/pages/ -V
 ./zim.py --export ./website/pages/ -V \
 	--template ./website/template.html \
 	--output ./html/ \
 	--root-url /
 
+./zim.py --index ./data/manual/ -V
 ./zim.py --export ./data/manual/ -V \
 	--template ./website/template.html \
 	--output ./html/manual/ \
