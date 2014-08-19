@@ -96,9 +96,7 @@ ui_actions = (
 	('reload_index', None, _('Update Index'), '', '', False), # T: Menu item
 	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
 	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
-	('open_page_back_alt1', None, '', 'XF86Back', '', True),
 	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
-	('open_page_forward_alt1', None, '', 'XF86Forward', '', True),
 	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page'), True), # T: Menu item
 	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page'), True), # T: Menu item
 	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page'), True), # T: Menu item
@@ -111,6 +109,18 @@ ui_actions = (
 	('show_help_bugs', None, _('_Bugs'), '', '', True), # T: Menu item
 	('show_about', 'gtk-about', _('_About'), '', '', True), # T: Menu item
 )
+
+if os.name == 'nt':
+	# THe XF86 keys are mapped wrongly on windows, see bug lp:1277929
+	ui_actions = ui_actions + (
+		('open_page_back_alt1', None, '', '', '', True),
+		('open_page_forward_alt1', None, '', '', '', True),
+	)
+else:
+	ui_actions = ui_actions + (
+		('open_page_back_alt1', None, '', 'XF86Back', '', True),
+		('open_page_forward_alt1', None, '', 'XF86Forward', '', True),
+	)
 
 #: More menu actions
 ui_actions_window = (
