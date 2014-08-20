@@ -155,7 +155,12 @@ class NotebookInfo(object):
 
 	def __eq__(self, other):
 		# objects describe the same notebook when the uri is the same
-		return self.uri == other.uri
+		if isinstance(other, basestring):
+			return self.uri == other
+		elif hasattr(other, 'uri'):
+			return self.uri == other.uri
+		else:
+			return False
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.uri)
