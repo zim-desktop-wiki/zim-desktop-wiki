@@ -249,7 +249,7 @@ class PluginsTab(gtk.HBox):
 				elif required:
 					insert(u'\u2022 %s - %s\n' % (text, _('Failed')), 'red') # T: dependency failed
 				else:
-					insert(u'\u2022 %s - %s (%s)' % (text,
+					insert(u'\u2022 %s - %s (%s)\n' % (text,
 						_('Failed'), # T: dependency failed
 						_('Optional') # T: optional dependency
 					) )
