@@ -129,6 +129,7 @@ def natural_sort_key(string, numeric_padding=5):
 	@returns: string transformed to sorting key
 	'''
 	templ = '%0' + str(numeric_padding) + 'i'
+	string.strip()
 	string = _num_re.sub(lambda m: templ % int(m.group()), string)
 	if isinstance(string, unicode):
 		string = unicodedata.normalize('NFKC', string)

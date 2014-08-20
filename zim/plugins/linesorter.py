@@ -10,6 +10,7 @@ import gtk
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
 from zim.gui.widgets import ui_environment, MessageDialog
+from zim.utils import natural_sort_key
 
 #from zim.gui.clipboard import parsetree_from_selectiondata
 
@@ -19,7 +20,6 @@ logger = logging.getLogger('zim.plugins.linesorter')
 
 
 class LineSorterPlugin(PluginClass):
-	'''FIXME'''
 
 	plugin_info = {
 		'name': _('Line Sorter'), # T: plugin name
@@ -72,26 +72,24 @@ class MainWindowExtension(WindowExtension):
 				iter_end_line = buffer.get_end_iter()
 			iter_begin_line = buffer.get_iter_at_line(first_lineno)
 
-			# 1/ build a list of formatted lines with get_parsetree()
-			# 2/ make a list of tuples, first element of each tuple is
-			#    text only (white space stripped etc.), second element
-			#    is parsetree per line from step 1
+			# Make a list of tuples, first element of each tuple is
+			# text only sort key (no formatting), second element
+			# is parsetree per line
 			lines = []
 			for line_nr in range(first_lineno, last_lineno+1):
 				start, end = buffer.get_line_bounds(line_nr)
-				text = buffer.get_text(start, end).lower().strip()
+				text = buffer.get_text(start, end)
 				tree = buffer.get_parsetree(bounds=(start, end))
-				lines.append((text, tree))
-			#logger.debug("Content of selected lines (text, tree): %s", lines)
+				lines.append((natural_sort_key(text), tree))
+			#~ logger.debug("Content of selected lines (text, tree): %s", lines)
 
-			# 3/ sort this list of tuples, sort will look at first element of the tuple
-			sorted_lines = sorted(lines, key=lambda lines: lines[0])
-			# checks whether the list is sorted "a -> z", if so reverses its order
-			if lines == sorted_lines:
+			# Sort the list of tuples
+			sorted_lines = sorted(lines)
+			if lines == sorted_lines: # reverse if already sorted
 				sorted_lines.reverse()
-			# logger.debug("Sorted lines: %s",  sorted_lines)
+			#~ logger.debug("Sorted lines: %s",  sorted_lines)
 
-			# 4/ for the replacement insert the parsetrees of the lines one by one
+			# Replace selection
 			buffer.delete(iter_begin_line, iter_end_line)
 			for line in sorted_lines:
 				buffer.insert_parsetree_at_cursor(line[1])

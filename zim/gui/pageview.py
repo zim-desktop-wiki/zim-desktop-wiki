@@ -2389,7 +2389,7 @@ class TextBuffer(gtk.TextBuffer):
 		tree.encode_urls()
 		#~ print tree.tostring()
 
-		if not raw:
+		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
 			# and get rid of oddities in our generated parsetree.
 			#~ print ">>> Parsetree original:", tree.tostring()
