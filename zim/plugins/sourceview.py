@@ -13,16 +13,19 @@ except:
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
 from zim.objectmanager import ObjectManager, CustomObjectClass
+from zim.config import String
 from zim.gui.widgets import Dialog
 from zim.gui.pageview import CustomObjectBin, POSITION_BEGIN, POSITION_END
 from zim.formats.html import html_encode
 
+if gtksourceview2:
+	lm = gtksourceview2.LanguageManager()
+	lang_ids = lm.get_language_ids()
+	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
-lm = gtksourceview2.LanguageManager()
-lang_ids = lm.get_language_ids()
-lang_names = [lm.get_language(i).get_name() for i in lang_ids]
-
-LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+else:
+	LANGUAGES = {}
 #~ print LANGUAGES
 
 OBJECT_TYPE = 'code'
@@ -105,12 +108,12 @@ class MainWindowExtension(WindowExtension):
 	@action(_('Code Block'), readonly=False) # T: menu item
 	def insert_sourceview(self):
 		'''Inserts new SourceView'''
-		lang = InsertCodeBlockDialog(self.ui).run() # XXX
+		lang = InsertCodeBlockDialog(self.window.ui).run() # XXX
 		if not lang:
 			return # dialog cancelled
 		else:
-			obj = SourceViewObject({'type': OBJECT_TYPE, 'lang': lang}, '', self.ui) # XXX
-			pageview = self.ui.mainwindow.pageview # XXX
+			obj = SourceViewObject({'type': OBJECT_TYPE, 'lang': lang}, '', self.window.ui) # XXX
+			pageview = self.window.pageview
 			pageview.insert_object(pageview.view.get_buffer(), obj)
 
 
@@ -124,6 +127,7 @@ class InsertCodeBlockDialog(Dialog):
 		)
 
 		# Set previous used language
+		self.uistate.define(lang=String(None))
 		if 'lang' in self.uistate:
 			for name, id in LANGUAGES.items():
 				if self.uistate['lang'] == id:
@@ -136,8 +140,9 @@ class InsertCodeBlockDialog(Dialog):
 
 	def do_response_ok(self):
 		name = self.form['lang']
-		self.result = LANGUAGES[name]
-		self.uistate['lang'] = LANGUAGES[name]
+		if name:
+			self.result = LANGUAGES[name]
+			self.uistate['lang'] = LANGUAGES[name]
 		return True
 
 
@@ -149,102 +154,107 @@ class SourceViewObject(CustomObjectClass):
 			# If we have trailing \n it looks like an extra empty line
 			# in the buffer, so we default remove one
 		CustomObjectClass.__init__(self, attrib, data, ui)
-		if self.ui and self.ui.__class__.__name__ == 'GtkInterface': # XXX seperate widget and object
-			from zim.gui.widgets import ScrolledWindow
+		self.view = None
 
-			# SourceView scrolled window
-			self.buffer = gtksourceview2.Buffer()
-			self.buffer.set_text(self._data)
-			self.buffer.connect('modified-changed', self.on_modified_changed)
-			self.buffer.set_highlight_matching_brackets(True)
-			self.buffer.set_modified(False)
-			self._data = None
-			self.view = gtksourceview2.View(self.buffer)
-			self.view.modify_font(pango.FontDescription('monospace'))
-			self.view.set_auto_indent(True)
-			self.view.set_smart_home_end(True)
-			self.view.set_highlight_current_line(True)
-			self.view.set_right_margin_position(80)
-			self.view.set_show_right_margin(True)
-			self.view.set_tab_width(4)
+	def get_widget(self):
+		if not self._widget:
+			self._init_widget()
+		return self._widget
 
-			win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
-				# only horizontal scroll
-			win.set_border_width(5)
+	def _init_widget(self):
+		from zim.gui.widgets import ScrolledWindow
 
-			self._attrib.setdefault('lang', None)
-			self._attrib.setdefault('linenumbers', 'true') # FIXME make boolean
-			self.set_language(self._attrib['lang'], save=False)
-			self.show_line_numbers(self._attrib['linenumbers'], save=False)
+		# SourceView scrolled window
+		self.buffer = gtksourceview2.Buffer()
+		self.buffer.set_text(self._data)
+		self.buffer.connect('modified-changed', self.on_modified_changed)
+		self.buffer.set_highlight_matching_brackets(True)
+		self.buffer.set_modified(False)
+		self._data = None
+		self.view = gtksourceview2.View(self.buffer)
+		self.view.modify_font(pango.FontDescription('monospace'))
+		self.view.set_auto_indent(True)
+		self.view.set_smart_home_end(True)
+		self.view.set_highlight_current_line(True)
+		self.view.set_right_margin_position(80)
+		self.view.set_show_right_margin(True)
+		self.view.set_tab_width(4)
 
-			self.view.connect('populate-popup', self.on_populate_popup)
+		win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
+			# only horizontal scroll
+		win.set_border_width(5)
 
-			# simple toolbar
-			#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
-			#~ lang_selector = gtk.combo_box_new_text()
-			#~ lang_selector.append_text('(None)')
-			#~ for l in lang_names: lang_selector.append_text(l)
-			#~ try:
-				#~ lang_selector.set_active(lang_ids.index(self._attrib['lang'])+1)
-				#~ self.set_language(self._attrib['lang'] or None, False)
-			#~ except (ValueError, KeyError):
-				#~ lang_selector.set_active(0)
-				#~ self.set_language(None, False)
-			#~ lang_selector.connect('changed', self.on_lang_changed)
-			#~ bar.pack_start(lang_selector, False, False)
-		#~
-			#~ line_numbers = gtk.ToggleButton('Line numbers')
-			#~ try:
-				#~ line_numbers.set_active(self._attrib['linenumbers']=='true')
-				#~ self.show_line_numbers(self._attrib['linenumbers'], False)
-			#~ except (ValueError, KeyError):
-				#~ line_numbers.set_active(True)
-				#~ self.show_line_numbers(True, False)
-			#~ line_numbers.connect('toggled', self.on_line_numbers_toggled)
-			#~ bar.pack_start(line_numbers, False, False)
+		self._attrib.setdefault('lang', None)
+		self._attrib.setdefault('linenumbers', 'true') # FIXME make boolean
+		self.set_language(self._attrib['lang'], save=False)
+		self.show_line_numbers(self._attrib['linenumbers'], save=False)
 
-			# TODO: other toolbar options
-			# TODO: autohide toolbar if textbuffer is not active
+		self.view.connect('populate-popup', self.on_populate_popup)
 
-			# Pack everything
-			box = gtk.VBox()
-			#~ box.pack_start(bar, False, False)
-			box.pack_start(win)
-			self._widget = CustomObjectBin()
-			self._widget.set_has_cursor(True)
-			self._widget.add(box)
+		# simple toolbar
+		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
+		#~ lang_selector = gtk.combo_box_new_text()
+		#~ lang_selector.append_text('(None)')
+		#~ for l in lang_names: lang_selector.append_text(l)
+		#~ try:
+			#~ lang_selector.set_active(lang_ids.index(self._attrib['lang'])+1)
+			#~ self.set_language(self._attrib['lang'] or None, False)
+		#~ except (ValueError, KeyError):
+			#~ lang_selector.set_active(0)
+			#~ self.set_language(None, False)
+		#~ lang_selector.connect('changed', self.on_lang_changed)
+		#~ bar.pack_start(lang_selector, False, False)
+	#~
+		#~ line_numbers = gtk.ToggleButton('Line numbers')
+		#~ try:
+			#~ line_numbers.set_active(self._attrib['linenumbers']=='true')
+			#~ self.show_line_numbers(self._attrib['linenumbers'], False)
+		#~ except (ValueError, KeyError):
+			#~ line_numbers.set_active(True)
+			#~ self.show_line_numbers(True, False)
+		#~ line_numbers.connect('toggled', self.on_line_numbers_toggled)
+		#~ bar.pack_start(line_numbers, False, False)
 
-			# Hook up integration with pageview cursor movement
-			def on_grab_cursor(bin, position):
-				begin, end = self.buffer.get_bounds()
-				if position == POSITION_BEGIN:
-					self.buffer.place_cursor(begin)
-				else:
-					self.buffer.place_cursor(end)
-				self.view.grab_focus()
+		# TODO: other toolbar options
+		# TODO: autohide toolbar if textbuffer is not active
 
-			def on_move_cursor(view, step_size, count, extend_selection):
-				buffer = view.get_buffer()
-				iter = buffer.get_iter_at_mark(buffer.get_insert())
-				if (iter.is_start() or iter.is_end()) \
-				and not extend_selection:
-					if iter.is_start() and count < 0:
-						self._widget.release_cursor(POSITION_BEGIN)
-						return None
-					elif iter.is_end() and count > 0:
-						self._widget.release_cursor(POSITION_END)
-						return None
+		# Pack everything
+		box = gtk.VBox()
+		#~ box.pack_start(bar, False, False)
+		box.pack_start(win)
+		self._widget = CustomObjectBin()
+		self._widget.set_has_cursor(True)
+		self._widget.add(box)
 
-				return gtksourceview2.View.do_move_cursor(view, step_size, count, extend_selection)
+		# Hook up integration with pageview cursor movement
+		def on_grab_cursor(bin, position):
+			begin, end = self.buffer.get_bounds()
+			if position == POSITION_BEGIN:
+				self.buffer.place_cursor(begin)
+			else:
+				self.buffer.place_cursor(end)
+			self.view.grab_focus()
 
-			self._widget.connect('grab-cursor', on_grab_cursor)
-			self.view.connect('move-cursor', on_move_cursor)
+		def on_move_cursor(view, step_size, count, extend_selection):
+			buffer = view.get_buffer()
+			iter = buffer.get_iter_at_mark(buffer.get_insert())
+			if (iter.is_start() or iter.is_end()) \
+			and not extend_selection:
+				if iter.is_start() and count < 0:
+					self._widget.release_cursor(POSITION_BEGIN)
+					return None
+				elif iter.is_end() and count > 0:
+					self._widget.release_cursor(POSITION_END)
+					return None
 
-			# Resize widget if parent TextView has been resized -- XXX
-			self.ui.mainwindow.pageview.view.connect_after('size-allocate',
-												self.on_parent_view_resized)
-		else:
-			self.view = None
+			return None # let parent handle this signal
+
+		self._widget.connect('grab-cursor', on_grab_cursor)
+		self.view.connect('move-cursor', on_move_cursor)
+
+		# Resize widget if parent TextView has been resized -- XXX
+		self.ui.mainwindow.pageview.view.connect_after('size-allocate',
+											self.on_parent_view_resized)
 
 	def set_preferences(self, preferences):
 		if self.view:
@@ -272,13 +282,16 @@ class SourceViewObject(CustomObjectClass):
 				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
 				# TODO: not all GtkSourceView language ids match with SyntaxHighlighter
 				# language ids.
+				# TODO: some template instruction to be able to use other highlighters as well?
 				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
 			else:
 				output = ['<pre>\n']
-			data = html_encode(self.get_data())
+			data = self.get_data()
+			#~ data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
+			data = data.replace('<br>\n', '\n') # XXX remove encoding for double line end in <pre>
 			if self._attrib['linenumbers'] == 'true':
 				for i, l in enumerate(data.splitlines(1)):
-					output.append('%i ' % (i+1) + l)
+					output.append('%i&nbsp;' % (i+1) + l)
 			else:
 				output.append(data)
 			output.append('</pre>\n')

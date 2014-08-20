@@ -73,8 +73,6 @@ from zim.objectmanager import ObjectManager
 
 import zim.plugins
 
-import zim.notebook # no 'from' to prevent cyclic import errors
-
 
 logger = logging.getLogger('zim.formats')
 
@@ -1211,8 +1209,10 @@ class DumperClass(Visitor):
 		if 'type' in attrib:
 			obj = ObjectManager.get_object(attrib['type'], attrib, u''.join(strings))
 			output = obj.dump(format, self, self.linker)
-			if output is not None:
+			if isinstance(output, basestring):
 				return [output]
+			elif output is not None:
+				return output
 
 		return self.dump_object_fallback(tag, attrib, strings)
 

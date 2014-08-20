@@ -4943,7 +4943,7 @@ class PageView(gtk.VBox):
 			return None
 		else:
 			buffer = self.view.get_buffer()
-			if buffer.get_modified():
+			if not hasattr(self, '_parsetree') or buffer.get_modified():
 				self._parsetree = buffer.get_parsetree()
 				buffer.set_modified(False)
 			#~ print self._parsetree.tostring()
