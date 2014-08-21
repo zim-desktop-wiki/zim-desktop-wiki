@@ -56,4 +56,4 @@ def foo(a, b):
 		dumper = HtmlDumper(StubLinker())
 		html = dumper.dump(tree)
 		#~ print '>>', html
-		self.assertIn('&nbsp;&nbsp;&nbsp;&nbsp;print "FOO", a &gt;= b\n', html)
+		self.assertIn('\tprint "FOO", a &gt;= b\n', html)

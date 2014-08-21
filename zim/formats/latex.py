@@ -103,7 +103,7 @@ class Dumper(TextDumper):
 		return TextDumper.dump(self, tree)
 
 	@staticmethod
-	def encode_text(text):
+	def encode_text(tag, text):
 		return encode_re.sub(lambda m: encode_dict[m.group(1)], text)
 
 	def dump_pre(self, tag, attrib, strings):

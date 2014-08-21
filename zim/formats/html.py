@@ -68,25 +68,29 @@ class Dumper(DumperClass):
 		self._isrtl = None
 		return DumperClass.dump(self, tree)
 
-	def encode_text(self, text):
+	def encode_text(self, tag, text):
 		# if _isrtl is already set the direction was already
 		# determined for this section
 		if self._isrtl is None and not text.isspace():
 			self._isrtl = self.isrtl(text)
 
 		text = html_encode(text)
-		text = encode_whitespace(text)
+		if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT):
+			text = encode_whitespace(text)
 		return text
 
 	def text(self, text):
 		if self.context[-1].tag == FORMATTEDTEXT \
 		and	text.isspace():
 			# Reduce top level empty lines
-			l = text.count('\n') - 1
-			if l > 0:
-				self.context[-1].text.append('\n' + ('<br>\n' * l) + '\n')
-			elif l == 0:
-				self.context[-1].text.append('\n')
+			self.context[-1].text.append('\n')
+
+			## old code to insert <br> for empty lines ##
+			#~ l = text.count('\n') - 1
+			#~ if l > 0:
+				#~ self.context[-1].text.append('\n' + ('<br>\n' * l) + '\n')
+			#~ elif l == 0:
+				#~ self.context[-1].text.append('\n')
 		else:
 			DumperClass.text(self, text)
 

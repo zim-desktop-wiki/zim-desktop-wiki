@@ -287,8 +287,7 @@ class SourceViewObject(CustomObjectClass):
 			else:
 				output = ['<pre>\n']
 			data = self.get_data()
-			#~ data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
-			data = data.replace('<br>\n', '\n') # XXX remove encoding for double line end in <pre>
+			data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
 			if self._attrib['linenumbers'] == 'true':
 				for i, l in enumerate(data.splitlines(1)):
 					output.append('%i&nbsp;' % (i+1) + l)

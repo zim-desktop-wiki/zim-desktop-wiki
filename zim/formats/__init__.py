@@ -1124,7 +1124,8 @@ class DumperClass(Visitor):
 
 	def text(self, text):
 		assert not text is None
-		text = self.encode_text(text)
+		if self.context[-1].tag != OBJECT:
+			text = self.encode_text(self.context[-1].tag, text)
 		self.context[-1].text.append(text)
 
 	def end(self, tag):
@@ -1158,11 +1159,11 @@ class DumperClass(Visitor):
 		if tag in self.TAGS:
 			assert text is not None, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
-			text = self.encode_text(text)
+			text = self.encode_text(tag, text)
 			strings = [start, text, end]
 		elif tag == FORMATTEDTEXT:
 			if text is not None:
-				strings = [self.encode_text(text)]
+				strings = [self.encode_text(tag, text)]
 		else:
 			if attrib:
 				attrib = attrib.copy() # Ensure dumping does not change tree
@@ -1174,19 +1175,22 @@ class DumperClass(Visitor):
 
 			if text is None:
 				strings = method(tag, attrib, None)
+			elif tag == OBJECT:
+				strings = method(tag, attrib, [text])
 			else:
-				strings = method(tag, attrib, [self.encode_text(text)])
+				strings = method(tag, attrib, [self.encode_text(tag, text)])
 
 		if strings is not None:
 			self.context[-1].text.extend(strings)
 
-	def encode_text(self, text):
+	def encode_text(self, tag, text):
 		'''Optional method to encode text elements in the output
 
 		@note: Do not apply text encoding in the C{dump_} methods, the
 		list of strings given there may contain prefix and postfix
 		formatting of nested tags.
 
+		@param tag: formatting tag
 		@param text: text to be encoded
 		@returns: encoded text
 		@implementation: optional, default just returns unmodified input
