@@ -4653,7 +4653,8 @@ class PageView(gtk.VBox):
 			self.ui.register_preferences('PageView', ui_preferences)
 
 		self.view = TextView(preferences=self.preferences)
-		self.add(ScrolledWindow(self.view))
+		self.swindow = ScrolledWindow(self.view)
+		self.add(self.swindow)
 
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)

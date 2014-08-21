@@ -101,10 +101,12 @@ class MainWindowExtension(WindowExtension):
 			self._save_colors(window)
 			self._set_colors(self._custom_colors)
 			window.toggle_panes(show=False)
+			window.pageview.swindow.set_shadow_type(gtk.SHADOW_NONE) # XXX
 		elif self._normal_colors:
 			self._set_colors(self._normal_colors)
 			window.toggle_panes(show=self._show_panes)
 			window.pageview.grab_focus()
+			window.pageview.swindow.set_shadow_type(gtk.SHADOW_IN) # XXX
 		else:
 			pass
 
