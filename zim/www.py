@@ -119,6 +119,10 @@ class WWWInterface(object):
 		self.config = config or ConfigManager(profile=notebook.profile)
 
 		self.output = None
+
+		if template is None:
+			template = 'Default'
+
 		if isinstance(template, basestring):
 			from zim.templates import get_template
 			self.template = get_template('html', template)
