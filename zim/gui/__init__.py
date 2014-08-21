@@ -3175,6 +3175,8 @@ class NewPageDialog(Dialog):
 		# TODO: reset default when page input changed -
 		# especially if namespace has other template
 
+		self.form.set_default_activate('page') # close dialog on <Enter> immediatly, do not select template
+
 		if subpage:
 			self.form.widgets['page'].subpaths_only = True
 

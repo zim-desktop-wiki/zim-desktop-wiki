@@ -985,6 +985,8 @@ class InputForm(gtk.Table):
 		self.widgets = {} # all widgets - contains individual radiobuttons
 		self._widgets = [] # sequence for widgets in self.widgets
 
+		self._default_activate = None
+
 		if inputs:
 			self.add_inputs(inputs)
 
@@ -994,6 +996,17 @@ class InputForm(gtk.Table):
 
 		if values:
 			self.update(values)
+
+	def set_default_activate(self, name):
+		'''Mark a widget as the default activation widget.
+		This will cause the "last-activated" signal to be triggered
+		for this widget even if it is not the last widget in the form.
+		@param name: the name or C{None}
+		'''
+		if name is None:
+			self._default_activate = None
+		else:
+			self._default_activate = self.widgets[name]
 
 	#{ Form construction methods
 
@@ -1233,7 +1246,8 @@ class InputForm(gtk.Table):
 		return [(k, self.widgets[k]) for k in group]
 
 	def on_activate_widget(self, widget):
-		if not self._focus_next(widget, activatable=True):
+		if widget == self._default_activate \
+		or not self._focus_next(widget, activatable=True):
 			self.emit('last-activated')
 
 	def focus_first(self):
