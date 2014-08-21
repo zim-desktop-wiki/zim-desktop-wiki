@@ -321,19 +321,10 @@ class TestGit(tests.TestCase):
 		subdir = root.subdir('foo/bar')
 		file = subdir.file('baz.txt')
 		file.write('foo\nbar\n')
-		self.assertEqual(''.join(vcs.get_status()), '''\
-# On branch master
-#
-# Initial commit
-#
-# Changes to be committed:
-#   (use "git rm --cached <file>..." to unstage)
-#
-#	new file:   .gitignore
-#	new file:   foo/bar/baz.txt
-#
-''' )
-
+		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
+			'A  .gitignore\n'
+			'A  foo/bar/baz.txt\n'
+		)
 		vcs.update_staging()
 		vcs.commit('test 1')
 #[master 0f4132e] test 1
@@ -346,14 +337,9 @@ class TestGit(tests.TestCase):
 		file = subdir.file('bar.txt')
 		file.write('second\ntest\n')
 
-		self.assertEqual(''.join(vcs.get_status()), '''\
-# On branch master
-# Changes to be committed:
-#   (use "git reset HEAD <file>..." to unstage)
-#
-#	new file:   foo/bar/bar.txt
-#
-''' )
+		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
+			'A  foo/bar/bar.txt\n'
+		)
 
 		vcs.update_staging()
 		vcs.commit('test 2')
@@ -395,16 +381,7 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 ''' )
 
 		vcs.revert()
-		self.assertIn(vcs.get_status(), (
-[
-'# On branch master\n',
-'nothing to commit (working directory clean)\n'
-],
-[
-'# On branch master\n',
-'nothing to commit, working directory clean\n'
-],
-) )
+		self.assertEqual(vcs.get_status(porcelain=True), [])
 
 		file.write('second\nbaz\n')
 		vcs.commit('test 3')

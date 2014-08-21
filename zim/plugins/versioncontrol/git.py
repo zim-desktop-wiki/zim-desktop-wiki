@@ -146,7 +146,8 @@ class GITApplicationBackend(VCSApplicationBase):
 		@returns: True if the repo is not up-to-date, or False
 		"""
 		# If status return an empty answer, this means the local repo is up-to-date
-		return not (''.join( self.status() ).find( 'nothing to commit' ) > -1)
+		status = ''.join( self.pipe(['status', '--porcelain']) )
+		return bool(status.strip())
 
 	def log(self, path=None):
 		"""
@@ -233,8 +234,12 @@ class GITApplicationBackend(VCSApplicationBase):
 		self.run(['add', '-u'])
 		self.run(['add', '-A'])
 
-	def status(self):
+	def status(self, porcelain=False):
 		"""
 		Runs: git status
+		@param porcelain: see --porcelain in git documentation, used for testing
 		"""
-		return self.pipe(['status'])
+		if porcelain:
+			return self.pipe(['status', '--porcelain'])
+		else:
+			return self.pipe(['status'])

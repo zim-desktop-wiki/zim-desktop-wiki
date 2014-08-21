@@ -462,14 +462,14 @@ class VCSBackend(ConnectorMixin):
 		with self.lock:
 			return self.vcs.is_modified()
 
-	def get_status(self):
+	def get_status(self, **kwarg):
 		"""Returns repo status as a list of text lines
 
 		@returns: list of text lines (like a shell command result)
 		"""
 		status = list()
 		with self.lock:
-			status = self.vcs.status()
+			status = self.vcs.status(**kwarg)
 		return status
 
 	def get_diff(self, versions=None, file=None):
