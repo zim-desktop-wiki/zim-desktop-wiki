@@ -1326,14 +1326,17 @@ class GtkInterface(gobject.GObject):
 		from the history, or the first child.
 		@returns: C{True} if succesful
 		'''
-		if not self.page.haschildren:
+		path = self.notebook.index.lookup_path(self.page)
+			# Force refresh "haschildren" ...
+		if not path.haschildren:
+			print 'HASCHILDREN still False'
 			return False
 
-		record = self.history.get_child(self.page)
+		record = self.history.get_child(path)
 		if not record is None:
 			self.open_page(record)
 		else:
-			pages = list(self.notebook.index.list_pages(self.page))
+			pages = list(self.notebook.index.list_pages(path))
 			if pages:
 				self.open_page(pages[0])
 		return True
