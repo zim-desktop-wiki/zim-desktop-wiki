@@ -1454,7 +1454,6 @@ class Notebook(Object):
 		store = self.get_store(page)
 		func = store.store_page_async(page)
 		try:
-			print "emit"
 			self.emit('stored-page', page)
 				# FIXME - stored-page is emitted early, but emitting from
 				# the thread is also not perfect, since the page may have

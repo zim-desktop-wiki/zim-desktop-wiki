@@ -17,15 +17,14 @@ Templates can either be system defaults, or custom templates in your home folder
 
 **Note:** if you try to edit for example a HTML template, and it opens in the web browser instead of in your default text editor, the cause is most likely that you did not explicitly configure a text editor in the preferences. Go to the [[Preferences|Preferences Dialog]] and specify your text editor.
 
-===== Templates for export =====
+===== Templates =====
+Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
+
+==== Export templates ====
 
 For a list of templates for exporting see [[Export]] and subpages.
 
-===== Template options =====
-
-Templates can also set template options that influence the generated output, by setting key-value pairs like in the example below. A list of available template options for a output format can be found at [[Export]] and subpages.
-
-===== Special templates =====
+==== Page templates ====
 
 **wiki/Default.txt**
 This template is used to initialize new pages. The default contains a header with the page name and the date at which the page was created.
@@ -33,12 +32,7 @@ This template is used to initialize new pages. The default contains a header wit
 **wiki/Journal.txt**
 This template is used to initialize new pages in the Journal namespace.
 
-===== Customizing =====
-
-Templates are located in ''/usr/share/zim/templates/'' and ''~/.local/share/zim/templates'' by default. You can add templates you use more often there. To modify a template copy it to the ''~/.local/...'' directory and edit it.
-
-==== Template syntax ====
-
+===== Template syntax =====
 The template is a combination of the normal document output that you want to produce (e.g. HTML or Latex) combined with template instructions. The normal text is passed on to the output unmodified, while the instructions get replaced by the output of the template processing.
 
 Template instructions can have to forms:
@@ -53,8 +47,7 @@ Template instructions can have to forms:
 
 The first is typically used but the second form can look better in HTML or XML templates as it is parsed as an XML comment by other tools.
 
-=== Expressions ===
-
+==== Expressions ====
 Expressions used in template instructions can be:
 
 '''
@@ -85,8 +78,7 @@ not
 
 Valid variable names can contain letters (a - z) and numbers (0 - 9) and underscores ( _ ). The first character of the variable name must be a letter.
 
-=== Instructions ===
-
+==== Instructions ====
 An instruction can be one of the following:
 
 '''
@@ -102,7 +94,7 @@ INCLUDE name or expr -- block or file
 
 The instruction is always in upper case letters. The expressions within can be either upper or lower case names.
 
-== Get & Set ==
+=== Get & Set ===
 
 '''
 [% expr %]			 # implicit GET
@@ -118,7 +110,7 @@ With GET you evaluate an expression and the result is put into the output. Typic
 
 With SET you assign a variable. It does not output in the result and the instruction will be removed.
 
-== Conditionals ==
+=== Conditionals ===
 
 '''
 [% IF expr %] ... [% END %]	# conditionals
@@ -136,7 +128,7 @@ With SET you assign a variable. It does not output in the result and the instruc
 
 In any of these constructs the expression is evaluated and depending on the result one of the blocks is added to the output. Used to include optional output in the template
 
-== Loops ==
+=== Loops ===
 
 '''
 [% FOR var IN expr %]		# loop
@@ -172,7 +164,7 @@ loop.next		next item or None
 '''
 
 
-== Blocks ==
+=== Blocks ===
 
 '''
 [% BLOCK name %]
@@ -185,7 +177,7 @@ loop.next		next item or None
 
 A BLOCK can be defined anywhere in the template and then included in other places using the INCLUDE statement. This is useful e.g. for template parts that repeat multiple times in the document. Note that a BLOCK is always defined in the top level scope, so you can not put them e.g. in an IF clause to define alternative versions. A BLOCK may be defined after the location where they are used.
 
-=== Objects and functions ===
+==== Objects and functions ====
 
 Most variables behave partially as objects, which means that it is possible to call object methods on them. The following standard (python) object methods are commonly supported:
 
@@ -217,9 +209,9 @@ Other functions defined for all templates:
 			%Y for the year to which the week belongs
 
 
+===== Template variables and functions =====
 
-==== Variables available for new pages ====
-
+==== Page templates ====
 Only a single variable is defined for new pages:
 
 '''
@@ -231,9 +223,7 @@ page
 
 See also the [[Plugins:Journal|Journal Plugin]] for some properties available for journal pages
 
-
-==== Variables and functions available for Export templates ====
-
+==== Export templates ====
 When using templates when [[Export|exporting]] the following set of variables and functions is available in the export template:
 
 '''
@@ -299,7 +289,23 @@ Functions:
 		''ignore_empty'': if ''TRUE'' empty pages are ignored — defaults to ''TRUE''.
 
 
-==== Template Resources ====
+===== Template Options =====
+For export templates there is a paramter "''options''" that allows setting options for the export format. You can set an option in a template using e.g.:
+'''
+
+[% options.line_breaks = 'remove' %]
+
+'''
+The following options are supported:
+
+**HTML**
+* ''options.line_breaks'': value should be either "''default''" or "''remove''", controls line breaks (''<br>'' elements) in paragraphs
+* ''options.empty_lines'': value should be either "defualt" or "remove", controls whether empty lines in the source should be inserted as ''<br>'' elements in the HTML output
+
+**Latex**
+* ''options.document_type'': one of "''report''", "''article''" or "''book''". Controls the heading type used.
+
+===== Template Resources =====
 To add additional files to the template, create a folder of the same name as the template. Any files in the folder (like style sheets, images, javascript files, etc.) will be copied along when this template is used to export data in zim. There is a function "''resource(filename)''" to refer to these files in the template.
 
 Zim always includes some images when exporting for the checkboxes used in checkbox lists. To customize these there should be template resources named "''checked-box.png''", "''unchecked-box.png''" and "''xchecked-box.png''" in this folder.

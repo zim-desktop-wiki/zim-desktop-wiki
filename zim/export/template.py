@@ -202,7 +202,12 @@ class ExportTemplateContext(dict):
 				self['links'][k] = l
 
 	def dumper_factory(self, page):
-		'''Returns a L{DumperClass} instance for source page C{page}'''
+		'''Returns a L{DumperClass} instance for source page C{page}
+
+		Only template options defined before this method is called are
+		included, so only construct the "dumper" when you are about to
+		use it
+		'''
 		linker = self._linker_factory(source=page)
 		return self._dumper_factory(
 			linker=linker,

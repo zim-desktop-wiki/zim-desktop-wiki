@@ -395,6 +395,22 @@ class TestMHTMLExporter(tests.TestCase):
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
+class TestTemplateOptions(tests.TestCase):
+
+	def runTest(self):
+		dir =  Dir(self.create_tmp_dir())
+		file = dir.file('test.tex')
+		page = Path('roundtrip')
+		exporter = build_page_exporter(file, 'latex', 'Article', page)
+
+		notebook = tests.new_notebook(fakedir='/foo')
+		selection = SinglePage(notebook, page)
+
+		exporter.export(selection)
+		result = file.read()
+		#~ print result
+		self.assertIn('\section{Head1}', result) # this implies that document_type "article" was indeed used
+
 class TestExportFormat(object):
 
 	def runTest(self):

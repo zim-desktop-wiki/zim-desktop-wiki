@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This modules handles export of LaTeX Code'''
 
@@ -12,7 +12,7 @@ import logging
 from zim.fs import File, FileNotFoundError
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
-
+from zim.config.dicts import Choice
 
 logger = logging.getLogger('zim.formats.latex')
 
@@ -87,19 +87,15 @@ class Dumper(TextDumper):
 		SUPERSCRIPT:	('$^{', '}$'),
 	}
 
+	TEMPLATE_OPTIONS = {
+		'document_type': Choice('report', ('report', 'article','book'))
+	}
+
 	def dump(self, tree):
 		assert isinstance(tree, ParseTree)
 		assert self.linker, 'LaTeX dumper needs a linker object'
-
-		self.document_type = self.template_options.get('document_type')
-			# Option set in template - potentially tainted value
-
-		if not self.document_type in ('report', 'article','book'):
-			logger.warn('No document type set in template, assuming "report"')
-			self.document_type = 'report' # arbitrary default
-		else:
-			logger.info('used document type: %s' % self.document_type)
-
+		self.document_type = self.template_options['document_type']
+		logger.info('used document type: %s' % self.document_type)
 		return TextDumper.dump(self, tree)
 
 	@staticmethod

@@ -305,13 +305,15 @@ class TestConfigDefinitions(tests.TestCase):
 	def testChoice(self):
 		definition = Choice('xxx', ('xxx', 'foo', 'bar'))
 		self.assertEqual(definition.check('foo'), 'foo')
-		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertEqual(definition.check('Foo'), 'foo') # case independent
+		self.assertRaises(ValueError, definition.check, 'YYY')
 		self.assertRaises(ValueError, definition.check, '')
 		self.assertRaises(ValueError, definition.check, None)
 
 		definition = Choice('xxx', ('xxx', 'foo', 'bar'), allow_empty=True)
-		self.assertRaises(ValueError, definition.check, 'XXX')
+		self.assertRaises(ValueError, definition.check, 'YYY')
 		self.assertEqual(definition.check('foo'), 'foo')
+		self.assertEqual(definition.check('Foo'), 'foo') # case independent
 		self.assertEqual(definition.check(''), None)
 		self.assertEqual(definition.check(None), None)
 

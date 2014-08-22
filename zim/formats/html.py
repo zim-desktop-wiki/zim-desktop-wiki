@@ -12,6 +12,8 @@ import string
 
 from zim.formats import *
 from zim.parsing import TextBuffer, link_type
+from zim.config.dicts import Choice
+
 
 info = {
 	'name': 'html',
@@ -35,20 +37,6 @@ def html_encode(text):
 		return ''
 
 
-_indent_re = re.compile('^(\t+)', re.M)
-
-def _replace_indent(match):
-	return '&nbsp;' * len(match.group(1)) * 4
-
-def encode_whitespace(text):
-	if not text is None:
-		text = text.replace('\n', '<br>\n')
-		text = _indent_re.sub(_replace_indent, text)
-		return text
-	else:
-		return ''
-
-
 class Dumper(DumperClass):
 
 	TAGS = {
@@ -63,6 +51,11 @@ class Dumper(DumperClass):
 
 	}
 
+	TEMPLATE_OPTIONS = {
+		'empty_lines': Choice('default', ('default', 'remove')),
+		'line_breaks': Choice('default', ('default', 'remove')),
+	}
+
 	def dump(self, tree):
 		# FIXME should be an init function for this
 		self._isrtl = None
@@ -75,22 +68,24 @@ class Dumper(DumperClass):
 			self._isrtl = self.isrtl(text)
 
 		text = html_encode(text)
-		if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT):
-			text = encode_whitespace(text)
+		if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT) \
+		and not self.template_options['line_breaks'] == 'remove':
+			text = text.replace('\n', '<br>\n')
+
 		return text
 
 	def text(self, text):
 		if self.context[-1].tag == FORMATTEDTEXT \
 		and	text.isspace():
 			# Reduce top level empty lines
-			self.context[-1].text.append('\n')
-
-			## old code to insert <br> for empty lines ##
-			#~ l = text.count('\n') - 1
-			#~ if l > 0:
-				#~ self.context[-1].text.append('\n' + ('<br>\n' * l) + '\n')
-			#~ elif l == 0:
-				#~ self.context[-1].text.append('\n')
+			if self.template_options['empty_lines'] == 'remove':
+				self.context[-1].text.append('\n')
+			else:
+				l = text.count('\n') - 1
+				if l > 0:
+					self.context[-1].text.append('\n' + ('<br>\n' * l) + '\n')
+				elif l == 0:
+					self.context[-1].text.append('\n')
 		else:
 			DumperClass.text(self, text)
 
@@ -109,6 +104,8 @@ class Dumper(DumperClass):
 	def dump_block(self, tag, attrib, strings, _extra=None):
 		if strings and strings[-1].endswith('<br>\n'):
 			strings[-1] = strings[-1][:-5]
+		elif strings and strings[-1].endswith('\n'):
+			strings[-1] = strings[-1][:-1]
 
 		start = '<' + tag
 		if self._isrtl:

@@ -308,7 +308,7 @@ class Float(ConfigDefinition):
 
 
 class Choice(ConfigDefinition):
-	'''Definition that allows selection a value from a given set
+	'''Definition that allows selecting a value from a given set
 	Will be presented in the gui as a dropdown with a list of choices
 	'''
 
@@ -331,6 +331,7 @@ class Choice(ConfigDefinition):
 		if self._check_allow_empty(value):
 			return None
 		else:
+			# Allow options that are not strings (e.g. tuples of strings)
 			if isinstance(value, basestring) \
 			and not all(isinstance(t, basestring) for t in self.choices):
 				value = self._eval_string(value)
@@ -349,6 +350,8 @@ class Choice(ConfigDefinition):
 
 			if value in choices:
 				return value
+			elif isinstance(value, basestring) and value.lower() in choices:
+				return value.lower()
 			else:
 				raise ValueError, 'Value should be one of %s' % unicode(choices)
 

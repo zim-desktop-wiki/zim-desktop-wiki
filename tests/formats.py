@@ -619,7 +619,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 
 	# TODO add test using http://validator.w3.org
 
-	def testHeadings(self):
+	def testEmptyLines(self):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
 		builder.append(HEADING, {'level':1}, 'head1')
@@ -627,9 +627,68 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 		builder.append(HEADING, {'level':2}, 'head2')
 		builder.end(FORMATTEDTEXT)
 		tree = builder.get_parsetree()
-		html = self.format.Dumper(linker=StubLinker()).dump(tree)
+
+		html = self.format.Dumper(
+			linker=StubLinker(),
+			template_options={'empty_lines': 'default'}
+		).dump(tree)
 		self.assertEqual(''.join(html),
-			'<h1>head1</h1>\n\n<h2>head2</h2>\n\n')
+			'<h1>head1</h1>\n\n'
+			'<br>\n\n'
+			'<h2>head2</h2>\n\n'
+		)
+
+		html = self.format.Dumper(
+			linker=StubLinker(),
+			template_options={'empty_lines': 'remove'}
+		).dump(tree)
+		self.assertEqual(''.join(html),
+			'<h1>head1</h1>\n\n'
+			'<h2>head2</h2>\n\n'
+		)
+
+		html = self.format.Dumper(
+			linker=StubLinker(),
+			template_options={'empty_lines': 'Remove'} # case sensitive
+		).dump(tree)
+		self.assertEqual(''.join(html),
+			'<h1>head1</h1>\n\n'
+			'<h2>head2</h2>\n\n'
+		)
+
+
+	def testLineBreaks(self):
+		builder = ParseTreeBuilder()
+		builder.start(FORMATTEDTEXT)
+		builder.append(PARAGRAPH, None,
+			'bla bla bla\n'
+			'bla bla bla\n'
+		)
+		builder.end(FORMATTEDTEXT)
+		tree = builder.get_parsetree()
+
+		html = self.format.Dumper(
+			linker=StubLinker(),
+			template_options={'line_breaks': 'default'}
+		).dump(tree)
+		self.assertEqual(''.join(html),
+			'<p>\n'
+			'bla bla bla<br>\n'
+			'bla bla bla\n'
+			'</p>\n'
+		)
+
+		html = self.format.Dumper(
+			linker=StubLinker(),
+			template_options={'line_breaks': 'remove'}
+		).dump(tree)
+		self.assertEqual(''.join(html),
+			'<p>\n'
+			'bla bla bla\n'
+			'bla bla bla\n'
+			'</p>\n'
+		)
+
 
 
 class TestMarkdownFormat(tests.TestCase, TestFormatMixin):
@@ -675,6 +734,26 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 		input = r'\foo $ % ^ \% bar < >'
 		wanted = r'$\backslash$foo \$  \% \^{} $\backslash$\% bar \textless{} \textgreater{}'
 		self.assertEqual(format.Dumper.encode_text(PARAGRAPH, input), wanted)
+
+	def testDocumentType(self):
+		builder = ParseTreeBuilder()
+		builder.start(FORMATTEDTEXT)
+		builder.append(HEADING, {'level':1}, 'head1')
+		builder.text('\n')
+		builder.append(HEADING, {'level':2}, 'head2')
+		builder.end(FORMATTEDTEXT)
+		tree = builder.get_parsetree()
+
+		for type, head1 in (
+			('report', 'chapter'),
+			('article', 'section'),
+			('book', 'part'),
+		):
+			lines = self.format.Dumper(
+				linker=StubLinker(),
+				template_options={'document_type': type}
+			).dump(tree)
+			self.assertIn(head1, ''.join(lines))
 
 
 class StubFile(object):

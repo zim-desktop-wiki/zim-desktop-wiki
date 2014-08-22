@@ -68,7 +68,7 @@ from zim.fs import Dir, File
 from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
-from zim.config import data_file
+from zim.config import data_file, ConfigDict
 from zim.objectmanager import ObjectManager
 
 import zim.plugins
@@ -1081,8 +1081,10 @@ class DumperClass(Visitor):
 	tags are serialized depth-first.
 
 	@ivar linker: the (optional) L{Linker} object, used to resolve links
-	@ivar template_options: a dict with options that may be set in a
-	template (so inherently not safe !) to control the output style
+	@ivar template_options: a L{ConfigDict} with options that may be set
+	in a template (so inherently not safe !) to control the output style.
+	Formats using this need to define the supported keys in the dict
+	C{TEMPLATE_OPTIONS}.
 	@ivar context: the stack of open tags maintained by this class. Can
 	be used in C{dump_} methods to inspect the parent scope of the
 	format. Elements on this stack have "tag", "attrib" and "text"
@@ -1092,9 +1094,12 @@ class DumperClass(Visitor):
 
 	TAGS = {} #: dict mapping formatting tags to 2-tuples of a prefix and a postfix string
 
+	TEMPLATE_OPTIONS = {} #: dict mapping ConfigDefinitions for template options
+
 	def __init__(self, linker=None, template_options=None):
 		self.linker = linker
-		self.template_options = template_options or {}
+		self.template_options = ConfigDict(template_options)
+		self.template_options.define(self.TEMPLATE_OPTIONS)
 		self.context = []
 		self._text = []
 

@@ -4,6 +4,7 @@
 		<title>[% title %]</title>
 		<meta name='Generator' content='[% generator.name %]'>
 		<style type='text/css'>
+	<style type='text/css'>
 			body     { background-color: #fff;
 			           color: #000;
 			           font-size: large              }
@@ -13,15 +14,24 @@
 			strike   { color: grey                   }
 			u        { text-decoration: none;
 			           background-color: yellow      }
+			tt         { color: #2e3436;             }
 			pre      { background-color: lightyellow }
-			.bar     { background-color: #E0E0FF;
-			           margin: 0                     }
-			.nav     { color: grey;
-			           font-size: small              }
+			h1         { text-decoration: underline;
+						 color: #4e9a06; margin-bottom: 0 }
+			h2         { color: #4e9a06; margin-bottom: 0 }
+			h3         { color: #4e9a06; margin-bottom: 0 }
+			h4         { color: #4e9a06; margin-bottom: 0 }
+			h5         { color: #4e9a06; margin-bottom: 0 }
+			p          { margin-top: 0              }
 			div.zim-object {
 				border-style:solid;
 				border-width:1px;
 			}
+
+			.bar     { background-color: #E0E0FF;
+			           margin: 0                     }
+			.nav     { color: grey;
+			           font-size: small              }
 		</style>
 		<script type='text/javascript'>
 		<!--
@@ -66,6 +76,9 @@ document.onkeypress = handleKey
 		// -->
 		</script>
 	</head>
+
+[% options.empty_lines = "default" %]
+
 	<body>
 
 	<table width="100%" height="100%" border="0" cellpadding="5" cellspacing="0">
