@@ -2331,6 +2331,8 @@ class MainWindow(Window):
 		self._sidepane_autoclose = False
 		self._switch_focus_accelgroup = None
 
+		self.maximized = False
+
 		# Catching this signal prevents the window to actually be destroyed
 		# when the user tries to close it. The action for close should either
 		# hide or destroy the window.
@@ -2435,6 +2437,10 @@ class MainWindow(Window):
 	def do_window_state_event(self, event):
 		#~ print 'window-state changed:', event.changed_mask
 		#~ print 'window-state new state:', event.new_window_state
+
+		if bool(event.changed_mask & gtk.gdk.WINDOW_STATE_MAXIMIZED):
+			self.maximized = bool(event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED)
+
 		isfullscreen = gtk.gdk.WINDOW_STATE_FULLSCREEN
 		if bool(event.changed_mask & isfullscreen):
 			# Did not find property for this - so tracking state ourself
@@ -2839,6 +2845,13 @@ class MainWindow(Window):
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 
+			self.uistate.setdefault('windowmaximized', False)
+			self.maximized = bool(self.uistate['windowmaximized'])
+			if self.maximized:
+				self.maximize()
+		else:
+			self.maximized = False
+
 		self.uistate.setdefault('active_tabs', None, tuple)
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
@@ -2859,8 +2872,7 @@ class MainWindow(Window):
 		self.preferences['GtkInterface'].setdefault('toolbar_size', None,
 			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
 
-
-		self._set_widgets_visable()
+		self._set_widgets_visable() # toggle what panes are visible
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
 
@@ -2910,6 +2922,7 @@ class MainWindow(Window):
 		if not self.isfullscreen:
 			self.uistate['windowpos'] = self.get_position()
 			self.uistate['windowsize'] = self.get_size()
+			self.uistate['windowmaximized'] = self.maximized
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
 
