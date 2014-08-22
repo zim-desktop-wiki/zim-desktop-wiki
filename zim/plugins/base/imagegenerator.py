@@ -331,6 +331,8 @@ class ImageGeneratorDialog(Dialog):
 		self.logfile = None
 
 		text = self.get_text()
+		if isinstance(text, basestring):
+			text = text.splitlines(True)
 		text = self.generator.process_input(text)
 		try:
 			imagefile, logfile = self.generator.generate_image(text)
