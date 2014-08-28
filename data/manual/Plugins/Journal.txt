@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== Journal ======
 
-The Journal Plugin turns a specific namespace ("Journal" by default, but this is configurable) into a journal. It can either have a page per day, organized by year and month, or a page per week or per month. The plugin also adds a calendar widget to zim. By default this is done by adding a dialog, but optionally it can also be put in the side pane above the page index. In this calendar each date is linked to a page for that date.
+The Journal Plugin turns a specific section of the notebook into a journal (the "Journal" section by default, but this is configurable). It can either have a page per day, organized by year and month, or a page per week or per month. The plugin also adds a calendar widget to zim. By default this is done by adding a dialog, but optionally it can also be put in the side pane above the page index. In this calendar each date is linked to a page for that date.
 
 This plugin is intended to help organize notes by date like you would do for a journal. Another use case is e.g. to put minutes of meetings or class notes on the page for the date of the meeting - possibly to work them out later in pages for the specific subject.
 
@@ -18,7 +18,7 @@ The option **Show calendar in sidepane instead of as dialog** does just that; if
 
 The option **Use a page for each: ...** allows you to set the calendar to either use a separate page for each day, each week, each month or even each year.
 
-The **Namespace** controls where the calendar pages are stored.
+The **Section** controls where the calendar pages are stored.
 
 ===== Keybindings =====
 * ''<Alt>D''  - navigate to the calendar date for today

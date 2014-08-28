@@ -1986,7 +1986,8 @@ class Notebook(Object):
 			'page': {
 				'name': path.name,
 				'basename': path.basename,
-				'namespace': path.namespace,
+				'section': path.namespace,
+				'namespace': path.namespace, # backward compat
 			}
 		}
 		self.emit('new-page-template', path, template) # plugin hook

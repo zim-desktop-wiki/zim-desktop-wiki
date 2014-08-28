@@ -155,7 +155,7 @@ ui_pathbar_radio_actions = (
 	('set_pathbar_recent', None, _('_Recent pages'), None, None, 1), # T: Menu item
 	('set_pathbar_recent_changed', None, _('Recently _Changed pages'), None, None, 1), # T: Menu item
 	('set_pathbar_history', None, _('_History'),  None, None, 2), # T: Menu item
-	('set_pathbar_path', None, _('N_amespace'), None, None, 3), # T: Menu item
+	('set_pathbar_path', None, _('_Page Hierarchy'), None, None, 3), # T: Menu item
 )
 
 PATHBAR_NONE = 'none' #: Constant for no pathbar
@@ -3292,8 +3292,8 @@ class MovePageDialog(Dialog):
 			# T: label in MovePage dialog - %i is number of backlinks
 			# TODO update label to reflect that links can also be to child pages
 		self.add_form([
-			('parent', 'namespace', _('Namespace'), self.path.parent),
-				# T: Input label for namespace to move a file to
+			('parent', 'namespace', _('Section'), self.path.parent),
+				# T: Input label for the section to move a page to
 			('update', 'bool', label),
 				# T: option in 'move page' dialog
 		])

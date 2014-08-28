@@ -78,7 +78,7 @@ class CalendarPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Journal'), # T: plugin name
 		'description': _('''\
-This plugin turns one namespace into a journal
+This plugin turns one section of the notebook into a journal
 with a page per day, week or month.
 Also adds a calendar widget to access these pages.
 '''),
@@ -98,7 +98,7 @@ Also adds a calendar widget to access these pages.
 		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
 		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
-		('namespace', 'namespace', _('Namespace'), Path(':Journal')), # T: input label
+		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
 	)
 	# TODO disable pane setting if not embedded
 

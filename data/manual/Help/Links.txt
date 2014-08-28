@@ -3,18 +3,18 @@ Wiki-Format: zim 0.4
 
 ====== Links ======
 
-You can either link pages or urls. Urls are recognized because they start with e.g. "''html://''" or "''mailto:''". Page names can contain ':' characters to separate namespaces.
+You can either link pages or urls. Urls are recognized because they start with e.g. "''html://''" or "''mailto:''". Page names can contain ':' characters to separate the page name from parent pages.
 
 * Links containing a '/' are considered links to external files
-* Links that start with a ':' are resolved from the root namespace
-* Links that start with a '+' are resolved in the namespace below the current page
+* Links that start with a ':' are resolved from the top level of the notebook
+* Links that start with a '+' are resolved as sub-pages below the current page
 * Links that contain a '?' are interwiki links, see below.
 * All other links are resolved within the path from the root to the current page
 
 You can make any text into a link, thus the link you see and what it links to do not have to be the same. You can use the "//Edit//->//Link//" menu item to modify a link.
 
 ==== Relative links ====
-All links to other pages are relative to the current page unless they start with an ":" character. Zim first looks in the same namespace as the current page and if the name is not found searches all parent namespaces for a like named page.
+All links to other pages are relative to the current page unless they start with an ":" character. Zim first looks in the same section as the current page and if the name is not found searches all parent sections for a like named page.
 
 For example you have a page "''Zim:Examples:Linking:Relative''" now you just use "''Absolute''" to link to "''Zim:Examples:Linking:Absolute''", but you also use "''Examples:Calendar''" to link to "''Zim:Examples:Calendar''". This link works because the first part of the link ("''Examples''") is resolved relatively in the tree above the current page.
 

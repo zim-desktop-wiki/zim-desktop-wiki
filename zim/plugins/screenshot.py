@@ -111,7 +111,7 @@ This is a core plugin shipping with zim.
 	}
 	plugin_preferences = (
 		# key, type, label, default
-		('screenshot_command', 'choice', _('Screenshot Command'), COMMAND, SUPPORTED_COMMANDS),
+		('screenshot_command', 'choice', _('Screenshot Command'), COMMAND, SUPPORTED_COMMANDS), # T: plugin preference
 	)
 	screenshot_cmd = COMMAND
 

@@ -32,7 +32,7 @@ Export template parameters supported::
 
  		page
  			.title		-- heading or basename
- 			.name / .namespace / .basename
+ 			.name / .section / .basename
  			.heading
  			.body		-- full body minus first heading
  			.content	-- heading + body
@@ -56,7 +56,7 @@ Export template parameters supported::
   options		-- dict with template options (for format)
 
   toc([page])			-- iter of headings in this page or all of pages
-  index([namespace])	-- index of full export job, not just in this page
+  index([section])	-- index of full export job, not just in this page
   uri(link|file)
   resource(file)
   anchor(page|section)
@@ -373,7 +373,8 @@ class PageProxy(object):
 		self._dumper = dumper
 
 		self.name = self._page.name
-		self.namespace = self._page.namespace
+		self.section = self._page.namespace
+		self.namespace = self._page.namespace # backward compat
 		self.basename = self._page.basename
 		self.properties = self._page.properties
 
@@ -478,7 +479,8 @@ class NotebookPathProxy(object):
 		self._path = path
 		self.name = path.name
 		self.basename = path.basename
-		self.namespace = path.namespace
+		self.section = path.namespace
+		self.namespace = path.namespace # backward compat
 
 
 class UriProxy(object):

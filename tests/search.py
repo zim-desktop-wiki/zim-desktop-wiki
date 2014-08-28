@@ -166,6 +166,8 @@ class TestSearch(tests.TestCase):
 		for text in (
 			'Namespace: "Test:Foo Bar"',
 			'Namespace:"Test:Foo Bar"'
+			'Section: "Test:Foo Bar"'
+			'Section:"Test:Foo Bar"'
 		):
 			# check if space in page name works - found bug for 2nd form
 			query = Query(text)

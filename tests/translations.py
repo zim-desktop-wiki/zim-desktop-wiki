@@ -12,9 +12,13 @@ class TestTranslations(TestCase):
 		for file in ['translations/zim.pot'] + glob('translations/*.po'):
 			if verbose:
 				print 'Checking %s' % file
+
 			t = TranslationFile(file)
 
 			if file == 'translations/zim.pot':
+				text = open(file).read()
+				self.assertFalse('namespace' in text.lower())
+
 				pot_creation_date = t.headers['POT-Creation-Date']
 			else:
 				if not t.headers['POT-Creation-Date'] == pot_creation_date:

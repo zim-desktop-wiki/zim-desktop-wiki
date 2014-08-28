@@ -26,7 +26,7 @@ The "//Search//->//Search//..." menu item triggers the search dialog to pop up. 
 
 You can not only search for multiple words, but zim also allows using more refined search queries. See below for the query syntax supported by this dialog for advanced usage.
 
-A normal search runs through all the pages of the notebook. Special searches, such as searching for links or namespaces, search only part of the index and are correspondingly faster, which may be important for large notebooks with hundreds to thousands of pages.
+A normal search runs through all the pages of the notebook. Special searches, such as searching for links or page names, search only part of the index and are correspondingly faster, which may be important for large notebooks with hundreds to thousands of pages.
 
 ===== Back links =====
 This is the last item in the Search menu. As a special case you can search for a page name. Instead of a full text search a cache lookup will be done and a list is shown of pages linking to the page you searched for. Page names are defined as words containing a ":" character in this context.
@@ -59,7 +59,7 @@ OR or ||			any one of the words must be on the page
 **Keywords:**	//details on keyword searches below//
 Content:
 Name:
-NameSpace:
+Section:
 Links:
 LinksFrom:
 LinksTo:
@@ -131,7 +131,7 @@ So far we just searched for words in the page contents and page names. If you wa
  
 	**Content:**
 	**Name:**
-	**NameSpace:**
+	**Section:**
 	**Links:**
 	**LinksFrom:**
 	**LinksTo:**
@@ -151,11 +151,11 @@ The "Content:" keyword only matches page contents and excludes e.g. page names.
 
 will find pages that have foo written somewhere in their page content but that do not contain "foo" in the page name.
 
-The "NameSpace:" keyword limits the query to pages in the index name space below the one named . Essentially, the namespace is what you see in the index panel. The exact namespace as needed for the search is visible on the bottom left in the status bar.
+The "Section:" keyword limits the search to sub-pages of a specific page name. This allows searching a sub-set of the full notebook.
 
 Suppose under Home you have the page "photo" as top level page with multiple pages below it and you want to search only the photo part of your large notebook. You want to find all entries about depth of field or its abbreviation DoF, so you type the following search: 
 
-	''Namespace: Home:photo "depth of field" or dof''
+	''Section: Home:photo "depth of field" or dof''
 
 The "Links" and "LinksFrom" keywords return all pages linked by a certain page while "LinksTo" returns all pages that link to a certain page, this is used to find back links.
 
@@ -165,10 +165,10 @@ To exclude all pages linking to ":Done" try:
 NOT LinksTo: ":Done"
 '''
 
-A complex example would be to find any pages in the ":Date" namespace that link to ":Planning". 
+A complex example would be to find any pages in the section ":Date" that link to ":Planning". 
 
 '''
-namespace: Date and linksto: Planning
+section: Date and linksto: Planning
 '''
 
 The keyword "Tag" can be used to search for specifics tags like:

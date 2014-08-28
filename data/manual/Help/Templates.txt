@@ -30,7 +30,7 @@ For a list of templates for exporting see [[Export]] and subpages.
 This template is used to initialize new pages. The default contains a header with the page name and the date at which the page was created.
 
 **wiki/Journal.txt**
-This template is used to initialize new pages in the Journal namespace.
+This template is used to initialize new pages in the Journal section.
 
 ===== Template syntax =====
 The template is a combination of the normal document output that you want to produce (e.g. HTML or Latex) combined with template instructions. The normal text is passed on to the output unmodified, while the instructions get replaced by the output of the template processing.
@@ -217,7 +217,7 @@ Only a single variable is defined for new pages:
 '''
 page
 	.name
-	.namespace
+	.section
 	.basename
 '''
 
@@ -252,7 +252,7 @@ pages			Iterator over all content to be exported (special + content)
 	page
 		.title
 		.name
-		.namespace
+		.section
 		.basename
 		.heading	First heading of the page
 		.body		Full body minus first heading
@@ -281,10 +281,10 @@ Functions:
 	''resource(filename)''
 		Returns an URL for a template resource (see below)
 
-	''index(namespace, collapse, ignore_empty)''
-		Creates a page index of a given namespace or the set of pages being exported.
+	''index(section, collapse, ignore_empty)''
+		Creates a page index of the set of pages being exported.
 
-		''namespace'': the starting root - defaults to the top level (":")
+		''section'': the starting page of the index - defaults to the top level (":")
 		''collapse'': if ''TRUE'' only branches related to the current page are visible, if ''FALSE'' all branches are visible - defaults to ''TRUE''
 		''ignore_empty'': if ''TRUE'' empty pages are ignored — defaults to ''TRUE''.
 

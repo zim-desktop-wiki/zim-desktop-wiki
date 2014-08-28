@@ -11,7 +11,7 @@ Now you can use the items in the //Format// menu or their corresponding [[:Help:
 
 Once you have several pages you can navigate them like you would in a browser. There are buttons and keybindings for going Back, Forward or Home.
 
-It is also possible to order your pages into namespaces. The namespace separator is the colon ":" character. So when you use this character as part of a page name the name will be split at that point. The tree in the side pane will show a hierarchy of namespaces when you use this.
+It is also possible to order your pages into sub-sections. To do so, you create new pages as sub-pages of another page. The colon ":" character is used to separate the page names when pages are nested. So when you use this character as part of a page name the name will be split at that point. The tree in the side pane will show a hierarchy of pages when you use this.
 
 After you have edited some pages you might want to have a look at how they are saved. Use your file browser to open the notebook directory. As you will see there is a simple text file corresponding to each page. These text files are formatted with [[:Help:Wiki Syntax|wiki format]] to preserve markup. This "raw" markup can also be used in Zim, try entering some raw syntax in your page and press ''<ctrl>R'' to reload the page; your formatting codes are now parsed into markup. Apart from the raw wiki syntax there are also a number of formats that are parsed as you type them, this is called [[Help:Auto Formatting|autoformatting]] and can be very useful to speed up your typing.
 

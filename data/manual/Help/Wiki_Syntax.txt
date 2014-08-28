@@ -30,9 +30,9 @@ Headings are created by using an appropriate amount of "=" characters:
 Link to another page like this:
 
 '''
-[[foo]]  links to page in the current namespace or parents
-[[:foo]] links to page in the root namespace
-[[+foo]] links to page in a subnamespace
+[[foo]]  links to a page on the same level or up
+[[:foo]] links to a page in the top level of the notebook
+[[+foo]] links to a sub-page
 
 [[foo|bar]] links to "foo" but display "bar"
 '''

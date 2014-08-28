@@ -13,7 +13,7 @@ You can just link non-existing pages. If you follow such a link the page will be
 Uhm, if you mean the buttons above your page, technically that are not tabs but a path bar keeping track of your history or recent pages. The buttons in this bar map to pages in your browse history, not to open pages or something like that. You can not "close" something that is in your history. To change the style of this bar, or hide it completely, go to the "//View"// -> "//Pathbar//" menu item.
 
 ===== How do I organize my pages in a tree structure? =====
-You can use "namespaces" to organize your pages. A "namespace" is similar to a directory for files, it is a named group of pages. Namespaces are separated by the "'':''" character in the page name. Thus if you link to "''foo:bar''" you will link to the page called "bar" in the namespace "foo". Just link a non-existing page and follow the link to create it. See [[Help:Pages|Pages]] for more information.
+You can organize your pages by grouping them in sections. To do so you put pages as sub-pages of a top level page. The "'':''" character is used to separate the page levels in the page name. Thus if you link to "''foo:bar''" you will link to the page called "bar" as a sub-page of the "foo" section. Just link a non-existing page and follow the link to create it. See [[Help:Pages|Pages]] for more information.
 
 ===== Why are some pages in the index grayed out? =====
 These are pages that are linked by other pages but do not (yet) contain text. You can edit them to make them regular pages or check the pages linking them.

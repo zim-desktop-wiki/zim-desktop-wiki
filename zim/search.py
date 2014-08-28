@@ -16,7 +16,8 @@ so "foo AND NOT bar OR baz" means AND(foo, OR(NOT(bar), baz))
 Supported keywords:
 	- C{Content}
 	- C{Name}
-	- C{Namespace}: alias for Name XXX or Name: XXX:*
+	- C{Section}: alias for "Name XXX or Name: XXX:*"
+	- C{Namespace}: alias for "Name XXX or Name: XXX:*" -- backward compatible
 	- C{Links}: forward - alias for linksfrom
 	- C{LinksFrom}: forward
 	- C{LinksTo}: backward
@@ -68,7 +69,7 @@ operators = {
 }
 
 KEYWORDS = (
-	'content', 'name', 'namespace', 'contentorname',
+	'content', 'name', 'namespace', 'section', 'contentorname',
 	'links', 'linksfrom', 'linksto', 'tag'
 )
 
@@ -386,14 +387,14 @@ class SearchSelection(PageSelection):
 		index = self.notebook.index
 		scoped = False
 
-		if term.keyword in ('name', 'namespace', 'contentorname'):
+		if term.keyword in ('name', 'namespace', 'section', 'contentorname'):
 			scoped = True # for these keywords we use scope immediatly
 			if scope:
 				generator = iter(scope)
 			else:
 				generator = index.walk()
 
-			if term.keyword == 'namespace':
+			if term.keyword in ('namespace', 'section'):
 				regex = self._namespace_regex(term.string)
 			elif term.keyword == 'contentorname':
 				# More lax matching for default case

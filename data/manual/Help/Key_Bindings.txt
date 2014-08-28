@@ -12,7 +12,7 @@ See also [[Menu Items]].
 F9		Toggle visibility of sidepane(s)
 <Ctrl>F9	Show all sidepanes
 <Ctrl><Space>	Toggle focus between index and buffer
-    		opens side pane if index is invisible
+			opens side pane if index is invisible
 		(optional see preferences)
 <Ctrl><Tab>	Focus next inteface element (gtk default)
 <Ctrl><Shift><Tab> Focus previous interface element (gtk default)
@@ -24,8 +24,8 @@ Esc		Close sidepane (when focus is on a side pane)
 <Alt><Home>	Go to the home page
 <Alt><Left>	Go one page back in history
 <Alt><Right>	Go one page forward in history
-<Alt><Up>	Go one page up in the namespace
-<Alt><Down>	Go one page down in the namespace
+<Alt><Up>	Go one level up in the page hierarchy
+<Alt><Down>	Go one page down in the page hierarchy
 		(The actual page is chosen by the history)
 <Alt><PgUp>	Go to the previous page in the index
 <Alt><PgDown>	Go to the next page in the index

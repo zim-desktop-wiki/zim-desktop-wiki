@@ -33,7 +33,7 @@ Options:
   --help, -h             Print this help text and exit
   --notebook URI         Select the notebook in the dialog
   --page STRING          Fill in full page name
-  --namespace STRING     Fill in the namespace in the dialog
+  --section STRING       Fill in the page section in the dialog
   --basename STRING      Fill in the page name in the dialog
   --append [true|false]  Set whether to append or create new page
   --text TEXT            Provide the text directly
@@ -54,7 +54,8 @@ class QuickNotePluginCommand(Command):
 		('help', 'h', 'Print this help text and exit'),
 		('notebook=', '', 'Select the notebook in the dialog'),
 		('page=', '', 'Fill in full page name'),
-		('namespace=', '', 'Fill in the namespace in the dialog'),
+		('section=', '', 'Fill in the page section in the dialog'),
+		('namespace=', '', 'Fill in the page section in the dialog'), # backward compatibility
 		('basename=', '', 'Fill in the page name in the dialog'),
 		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
 		('text=', '', 'Provide the text directly'),
@@ -218,7 +219,7 @@ class BoundQuickNoteDialog(Dialog):
 
 		self.form.add_inputs( (
 				('page', 'page', _('Page')),
-				('namespace', 'namespace', _('Namespace')), # T: text entry field
+				('namespace', 'namespace', _('Page section')), # T: text entry field
 				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
 				('basename', 'string', _('Title')) # T: text entry field
 			) )

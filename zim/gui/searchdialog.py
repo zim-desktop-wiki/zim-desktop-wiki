@@ -55,7 +55,7 @@ class SearchDialog(Dialog):
 			tooltips = gtk.Tooltips()
 			tooltips.set_tip(self.query_entry, help_text)
 
-		self.namespacecheckbox = gtk.CheckButton(_('Limit search to current namespace'))
+		self.namespacecheckbox = gtk.CheckButton(_('Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
 		self.vbox.pack_start(self.namespacecheckbox, False)
 
@@ -83,7 +83,7 @@ class SearchDialog(Dialog):
 	def _search(self):
 		string = self.query_entry.get_text()
 		if self.namespacecheckbox.get_active():
-			string = 'Namespace: "%s" ' % self.ui.page.name + string
+			string = 'Section: "%s" ' % self.ui.page.name + string
 		#~ print '!! QUERY: ' + string
 
 		self._set_state(self.SEARCHING)

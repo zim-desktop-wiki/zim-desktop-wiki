@@ -1882,7 +1882,7 @@ class PageEntry(InputEntry):
 
 		if self._allow_select_root:
 			placeholder_text = _('<Top>')
-			# T: default text for empty namespace selection
+			# T: default text for empty page section selection
 		else:
 			placeholder_text = None
 		InputEntry.__init__(self, allow_empty=self._allow_select_root, placeholder_text=placeholder_text)
