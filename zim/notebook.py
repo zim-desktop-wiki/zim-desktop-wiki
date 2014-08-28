@@ -1255,10 +1255,10 @@ class Notebook(Object):
 			# Avoid duplicates with and without '_' (e.g. in index)
 
 		if purge:
-			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n"):
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r"):
 				name = name.replace(char, '')
 		else:
-			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n"):
+			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r"):
 				if char in name:
 					raise PageNameError, orig
 
