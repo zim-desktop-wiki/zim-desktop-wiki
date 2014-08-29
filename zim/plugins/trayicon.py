@@ -211,7 +211,7 @@ class TrayIconBase(object):
 	def do_quick_note(self):
 		'''Show the dialog from the quicknote plugin'''
 		from zim.plugins.quicknote import QuickNoteDialog
-		dialog = QuickNoteDialog(None, {})
+		dialog = QuickNoteDialog(None)
 		dialog.show()
 
 
