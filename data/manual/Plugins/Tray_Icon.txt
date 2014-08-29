@@ -11,7 +11,9 @@ Clicking in the tray icon with the right mouse button will open a menu with all 
 
 When this plugin is enabled windows are hidden when they are closed instead of closing them entirely.  Quiting a notebook will really close it. However even when all the windows have quit there is still a zim process running in the background. Select "Quit" in the tray icon menu is the only way to completely exit zim.
 
-**Dependencies:** This plugin has no additional dependencies if you use gtk+ version 2.10 or newer. It is not available for older releases.
+**Dependencies:** This plugin requires Gtk+ version 2.10 or newer. It is not available for older releases. If you wish to use the Ubuntu Unity style trayicon ("app-indicator" menu) you need to install the "''python-appindicator''" package.
+
+The "app-indicator" style trayicon can also be used in Gnome3 with the "AppIndicator Support" extension.
 
 **Commandline:** The following command will just start the trayicon without opening a zim notebook: ''zim --plugin trayicon''
 

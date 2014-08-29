@@ -22,6 +22,9 @@ except ImportError:
 	appindicator = None
 
 
+logger = logging.getLogger('zim.plugins.trayicon')
+
+
 class TrayIconPluginCommand(Command):
 	'''Class to handle "zim --plugin trayicon" '''
 
@@ -67,7 +70,10 @@ This is a core plugin shipping with zim.
 	@classmethod
 	def check_dependencies(klass):
 		version_ok = (gtk.gtk_version >= (2, 10, 0))
-		return (version_ok, [('GTK >= 2.10', version_ok, True)])
+		return (version_ok, [
+			('GTK >= 2.10', version_ok, True),
+			('Unity appindicator', bool(appindicator), False),
+		])
 
 	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
@@ -83,11 +89,13 @@ This is a core plugin shipping with zim.
 		if zim.ipc.in_child_process() \
 		and not self.preferences['standalone']:
 			if appindicator and not self.preferences['classic']:
-				return AppIndicatorMainWindowExtension
+				extension = AppIndicatorMainWindowExtension
 			else:
-				return DaemonMainWindowExtension
+				extension = DaemonMainWindowExtension
 		else:
-			return StandAloneMainWindowExtension
+			extension = StandAloneMainWindowExtension
+		logger.debug('Trayicon using class: %s', extension.__name__)
+		return extension
 
 
 class TrayIconBase(object):

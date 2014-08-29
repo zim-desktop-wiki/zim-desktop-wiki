@@ -100,6 +100,7 @@ def in_child_process():
 	'''Returns C{True} is the current process is a child process
 	of a server process.
 	'''
+	global SERVER_CONTEXT
 	return SERVER_CONTEXT is not None
 
 
@@ -622,6 +623,8 @@ def childmain(conn, remoteobject, loglevel, logqueue, arg, kwarg):
 		assert hasattr(klass, 'main'), 'Child process objects should at least have a "main()" and a "quit()"'
 		assert hasattr(klass, 'quit'), 'Child process objects should at least have a "main()" and a "quit()"'
 
+		SERVER_CONTEXT = ServerProxyClass(ischildprocess=True)
+
 		if id is None:
 			obj = klass(*arg, **kwarg)
 		else:
@@ -631,7 +634,10 @@ def childmain(conn, remoteobject, loglevel, logqueue, arg, kwarg):
 		adapter = ConnectionAdapter(conn, remoteobject, obj)
 		RemoteObjectProxy._client_proxy_authkey = multiprocessing.current_process().authkey
 			# Since we inherit from the server, we inherit authkey
-		SERVER_CONTEXT = ServerProxyClass(adapter)
+		SERVER_CONTEXT.set_adapter(adapter)
+			# Need to set adapter to allow "connect()" via SERVER_CONTEXT
+			# FIXME - improve object dependencies to allow connect from
+			# klass init as well
 
 		if sys.platform == 'win32':
 			# Windows pipe
@@ -780,8 +786,12 @@ class ServerProxyClass(RemoteObjectProxy):
 	_obj = RemoteObject('zim.ipc.Server')
 	_notebookklass = 'zim.gui.GtkInterface' # used for testing
 
-	def __init__(self, _adapter=None):
-		self._adapter = _adapter # used for SERVER_CONTEXT
+	def __init__(self, ischildprocess=False):
+		self._ischildprocess = ischildprocess
+		self._adapter = None
+
+	def set_adapter(self, adapter):
+		self._adapter = adapter
 
 	def get_proxy(self, remoteobject, open=True):
 		'''Get a L{RemoteObjectProxy} for an remote object
@@ -829,13 +839,16 @@ class ServerProxyClass(RemoteObjectProxy):
 		'''
 		# FIXME, should we have same arguments as regular connect() ?
 		assert signal in Server._signals
-		if not self._adapter:
+		if not self._ischildprocess:
 			raise AssertionError, 'Only child processes can connect to signals'
+		elif not self._adapter:
+			raise AssertionError, 'Can not connect signals before IPC adpater is initialized'
 		self._adapter.listento(signal, object)
 
 
 def ServerProxy():
 	'''Returns an object of class L{ServerProxyClass}'''
+	global SERVER_CONTEXT
 	if SERVER_CONTEXT:
 		return SERVER_CONTEXT
 	else:
