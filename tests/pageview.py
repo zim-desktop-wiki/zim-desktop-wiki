@@ -1843,7 +1843,7 @@ class MockBuffer(tests.MockObject):
 
 class TestCamelCase(tests.TestCase):
 
-	def runTest(self):
+	def testLatin(self):
 		for text in (
 			'CamelCase', 'AbbA',
 			u'ĚěščřžýáíéúůŮěščřžýáíéúů'
@@ -1858,6 +1858,30 @@ class TestCamelCase(tests.TestCase):
 			'123', 'A123A123',
 			u'ĚŠČŘŽÝÁÍÉÚŮ', u'ěščřžýáíéúů',
 		):
+			self.assertFalse(
+				camelcase(unicode(text)),
+				msg='"%s" should NOT be CamelCase' % text
+			)
+
+	def testArabic(self):
+		# Arabic text should never be CamelCase,
+		# letters test as neither upper not lower case
+		for text in (
+			u'سلام',
+			u'کهکشان',
+			u'روزانه',
+			u'ذائقه',
+			u'آبادی',
+			u'انشاء',
+			u'محَبّت',
+			u'اَعْداد',
+			u'حتماً',
+			u'ماوراء‌الطبیعه',
+			u'پشتک‌وارو',
+			u'راه‌راه',
+			u' یاپ کارزنبرگ',
+		):
+			assert isinstance(text, unicode)
 			self.assertFalse(
 				camelcase(unicode(text)),
 				msg='"%s" should NOT be CamelCase' % text

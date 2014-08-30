@@ -290,18 +290,26 @@ def camelcase(word):
 	# - remainder of the text needs to be mixed case
 	if len(word) < 3 \
 	or not unicode.isalpha(word) \
+	or not unicode.isupper(word[0]) \
 	or unicode.islower(word[1:]) \
-	or unicode.islower(word[0]) \
 	or unicode.isupper(word[1:]):
 		return False
 
-	# Now do detailed check to exclude e.g. "AAbb"
-	# Remainder needs to split in at least two mixed case parts
-	i = 2
-	while unicode.isupper(word[:i]):
-		i += 1
+	# Now do detailed check and check indeed lower case followed by
+	# upper case and exclude e.g. "AAbb"
+	# Also check that check that string does not contain letters that
+	# are neither upper or lower case (e.g. some Arabic letters)
+	upper = map(unicode.isupper, word)
+	lower = map(unicode.islower, word)
+	if not all(upper[i] or lower[i] for i in range(len(word))):
+		return False
 
-	return not unicode.islower(word[i:])
+	count = 0
+	for i in range(1, len(word)):
+		if not upper[i-1] and upper[i]:
+			return True
+	else:
+		return False
 
 
 def increase_list_bullet(bullet):
