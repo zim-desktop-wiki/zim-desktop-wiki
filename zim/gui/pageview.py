@@ -6816,11 +6816,13 @@ class MoveTextDialog(Dialog):
 		buffer.delete(*bounds)
 
 		# Insert Link
+		self.uistate['link'] = self.form['link']
 		if self.form['link']:
 			href = self.form.widgets['page'].get_text() # TODO add method to Path "get_link" which gives rel path formatted correctly
 			buffer.insert_link_at_cursor(href, href)
 
 		# Show page
+		self.uistate['open_page'] = self.form['open_page']
 		if self.form['open_page']:
 			self.ui.open_page(newpage)
 
