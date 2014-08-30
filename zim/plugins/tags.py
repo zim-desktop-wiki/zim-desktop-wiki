@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2010 Fabian Moser
-# Copyright 2011, 2012 Jaap Karssenberg
+# Copyright 2011-2014 Jaap Karssenberg
 
 
 import gobject
@@ -562,7 +562,12 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 					#~ return str(self.index.n_list_tagged_pages(tag))
 		else:
 			if column == NAME_COL:
-				return iter.indexpath.name # Show pages with full context
+				# Show top level pages with full contex
+				# top level tree is tags, so top level pages len(path) is 2
+				if len(iter.treepath) <= 2:
+					return iter.indexpath.name
+				else:
+					return iter.indexpath.basename
 			else:
 				return PageTreeStore.on_get_value(self, iter, column)
 
@@ -685,6 +690,17 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 			return self.index.n_list_all_pages()
 		else:
 			return PageTreeStore.on_iter_n_children(self, iter)
+
+	def on_get_value(self, iter, column):
+		'''Returns the data for a specific column'''
+		if column == NAME_COL:
+			# Show top level pages with full contex
+			if len(iter.treepath) == 1:
+				return iter.indexpath.name
+			else:
+				return iter.indexpath.basename
+		else:
+			return PageTreeStore.on_get_value(self, iter, column)
 
 
 class TagsPageTreeView(PageTreeView):
