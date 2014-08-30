@@ -263,11 +263,11 @@ class VCS(object):
 		name, root = klass._detect_in_folder(dir)
 
 		if name == 'bzr':
-			vcs = VCS.create(VCS.BZR, root)
+			vcs = VCS.create(VCS.BZR, root, dir)
 		elif name == 'hg':
-			vcs = VCS.create(VCS.HG, root)
+			vcs = VCS.create(VCS.HG, root, dir)
 		elif name == 'git':
-			vcs = VCS.create(VCS.GIT, root)
+			vcs = VCS.create(VCS.GIT, root, dir)
 		else:
 			# else maybe detected something, but no backend available
 			vcs = None
@@ -336,7 +336,7 @@ class VCS(object):
 		(must be equal to or below vcs_dir)
 		@returns: a C{VCSBackend} instance setup with the required backend
 		"""
-		if not notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir):
+		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
 			raise AssertionError, 'Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir)
 
 		vcs_backend_klass = VCS.get_backend(vcs)
@@ -554,7 +554,7 @@ class VCSApplicationBase(object):
 		@param notebook_dir: a L{Dir} instance representing the notebook root folder
 		(must be equal to or below vcs_dir)
 		"""
-		if not notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir):
+		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
 			raise AssertionError, 'Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir)
 		self._app = self.build_bin_application_instance()
 		self.root = vcs_dir
