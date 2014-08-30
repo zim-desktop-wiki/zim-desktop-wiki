@@ -21,9 +21,6 @@ logger = logging.getLogger('zim.vcs.hg')
 
 class HGApplicationBackend(VCSApplicationBase):
 
-	def __init__(self, root):
-		VCSApplicationBase.__init__(self, root)
-
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('hg', '--noninteractive', '--encoding', 'utf8'), encoding='utf-8')
@@ -71,7 +68,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		Runs: hg add {{PATH}}
 		"""
 		if path is None:
-			return self.run(['add'])
+			return self.run(['add', self.notebook_dir])
 		else:
 			return self.run(['add', path])
 

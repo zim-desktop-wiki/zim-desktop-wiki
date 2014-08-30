@@ -175,7 +175,7 @@ class TestBazaar(tests.TestCase):
 		print '\n!! Some raw output from Bazaar expected here !!'
 
 		root = get_tmp_dir('versioncontrol_TestBazaar')
-		vcs = VCS.create(VCS.BZR, root)
+		vcs = VCS.create(VCS.BZR, root, root)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -310,7 +310,7 @@ class TestGit(tests.TestCase):
 		print '\n!! Some raw output from Git could appear here !!'
 
 		root = get_tmp_dir('versioncontrol_TestGit')
-		vcs = VCS.create(VCS.GIT, root)
+		vcs = VCS.create(VCS.GIT, root, root)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -489,7 +489,7 @@ class TestMercurial(tests.TestCase):
 		print '\n!! Some raw output from Mercurial expected here !!'
 
 		root = get_tmp_dir('versioncontrol_TestMercurial')
-		vcs = VCS.create(VCS.HG, root)
+		vcs = VCS.create(VCS.HG, root, root)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):

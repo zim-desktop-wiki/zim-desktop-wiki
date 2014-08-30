@@ -17,9 +17,6 @@ logger = logging.getLogger('zim.vcs.bzr')
 
 class BZRApplicationBackend(VCSApplicationBase):
 
-	def __init__(self, root):
-		VCSApplicationBase.__init__(self, root)
-
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('bzr',))
@@ -61,7 +58,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 		Runs: bzr add {{PATH}}
 		"""
 		if path is None:
-			return self.run(['add'])
+			return self.run(['add', self.notebook_dir])
 		else:
 			return self.run(['add', path])
 

@@ -18,9 +18,6 @@ logger = logging.getLogger('zim.vcs.git')
 
 class GITApplicationBackend(VCSApplicationBase):
 
-	def __init__(self, root):
-		VCSApplicationBase.__init__(self, root)
-
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('git',), encoding='utf-8')
@@ -70,7 +67,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		Runs: git add {{PATH}}
 		"""
 		if path is None:
-			return self.run(['add', '.'])
+			return self.run(['add', self.notebook_dir])
 		else:
 			return self.run(['add', path])
 

@@ -112,7 +112,7 @@ class NotebookExtension(ObjectExtension):
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
-		self.vcs = VCS.create(vcs, dir)
+		self.vcs = VCS.create(vcs, dir, dir)
 
 		if self.vcs:
 			with self.notebook.lock:
@@ -247,7 +247,6 @@ class VCS(object):
 	- create there a class inheriting from VCSApplicationBase \
 	- add here the stuff to manage it
 	"""
-	## TODO merge with VCSBackend class ?
 
 	# Enumeration of all available backends
 	BZR = _('Bazaar') # T: option value
@@ -258,7 +257,7 @@ class VCS(object):
 	def detect_in_folder(klass, dir):
 		"""Detect if a version control system has already been setup in the folder.
 		It also create the instance by calling the VCS.create() method
-		@param dir: a L{File} instance representing the notebook root folder
+		@param dir: a L{Dir} instance representing the notebook root folder
 		@returns: a L{VCSBackend} instance which will manage the versioning or C{None}
 		"""
 		name, root = klass._detect_in_folder(dir)
@@ -328,18 +327,20 @@ class VCS(object):
 
 
 	@classmethod
-	def create(klass, vcs, dir):
+	def create(klass, vcs, vcs_dir, notebook_dir):
 		"""Build the required instance of a Version Control System
 
 		@param vcs: Version Control System to build (choose between VCS.BZR, VCS.HG, VCS.GIT)
-		@param dir: a L{File} instance representing the notebook root folder
+		@param vcs_dir: a L{Dir} instance representing the VCS root folder
+		@param notebook_dir: a L{Dir} instance representing the notebook root folder
+		(must be equal to or below vcs_dir)
 		@returns: a C{VCSBackend} instance setup with the required backend
 		"""
-		new_vcs = None
-		vcs_backend_klass = VCS.get_backend(vcs)
-		new_vcs = VCSBackend(dir, vcs_backend_klass(dir))
+		if not notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir):
+			raise AssertionError, 'Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir)
 
-		return new_vcs
+		vcs_backend_klass = VCS.get_backend(vcs)
+		return VCSBackend(vcs_dir, vcs_backend_klass(vcs_dir, notebook_dir))
 
 	@classmethod
 	def check_dependencies(klass, vcs):
@@ -355,7 +356,6 @@ class VCSBackend(ConnectorMixin):
 	"""Parent class for all VCS backend implementations.
 	It implements the required API.
 	"""
-	## TODO merge with VCS class ?
 
 	def __init__(self, dir, vcs_specific_app):
 		"""Initialize the instance in normal or test mode
@@ -548,12 +548,17 @@ class VCSApplicationBase(object):
 	a folder.
 	"""
 
-	def __init__(self, root):
+	def __init__(self, vcs_dir, notebook_dir):
 		"""Constructor.
-		@param root: a L{Dir} instance representing the notebook root folder
+		@param vcs_dir: a L{Dir} instance representing the VCS root folder
+		@param notebook_dir: a L{Dir} instance representing the notebook root folder
+		(must be equal to or below vcs_dir)
 		"""
+		if not notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir):
+			raise AssertionError, 'Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir)
 		self._app = self.build_bin_application_instance()
-		self.root = root
+		self.root = vcs_dir
+		self.notebook_dir = notebook_dir
 
 	@classmethod
 	def build_bin_application_instance(cls):
