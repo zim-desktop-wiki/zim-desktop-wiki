@@ -24,7 +24,7 @@ All files in this package, with the exception of those mentioned below
 are copyrighted and licensed as follows:
 
 
-Copyright 2008-20104 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

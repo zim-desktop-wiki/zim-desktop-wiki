@@ -3479,8 +3479,11 @@ class AttachFileDialog(FileDialog):
 
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['insert_attached_images'] = not checkbox.get_active()
-		self.uistate['last_attachment_folder'] = self.filechooser.get_current_folder()
-			# Similar code in zim.gui.InsertImageDialog
+		last_folder = self.filechooser.get_current_folder()
+		if last_folder:
+			# e.g. "Recent Used" view in dialog does not have a current folder
+			self.uistate['last_attachment_folder'] = last_folder
+		# Similar code in zim.gui.pageview.InsertImageDialog
 
 		for file in files:
 			file = self.ui.do_attach_file(self.path, file)
