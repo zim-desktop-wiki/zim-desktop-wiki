@@ -6716,8 +6716,12 @@ class WordCountDialog(Dialog):
 			start, end = bounds
 			lines = end.get_line() - start.get_line() + 1
 			chars = end.get_offset() - start.get_offset()
-			iter = start.copy()
+
+			strings = start.get_text(end).strip().split()
+			non_space_chars = sum(len(s) for s in strings)
+
 			words = 0
+			iter = start.copy()
 			while iter.compare(end) < 0:
 				if iter.forward_word_end():
 					words += 1
@@ -6727,7 +6731,8 @@ class WordCountDialog(Dialog):
 					break
 				else:
 					break
-			return lines, words, chars
+
+			return lines, words, chars, non_space_chars
 
 		buffer = pageview.view.get_buffer()
 		buffercount = count(buffer, buffer.get_bounds())
@@ -6739,7 +6744,7 @@ class WordCountDialog(Dialog):
 		if buffer.get_has_selection():
 			selectioncount = count(buffer, buffer.get_selection_bounds())
 		else:
-			selectioncount = (0, 0, 0)
+			selectioncount = (0, 0, 0, 0)
 
 		table = gtk.Table(3, 4)
 		table.set_row_spacings(5)
@@ -6752,8 +6757,9 @@ class WordCountDialog(Dialog):
 		wlabel = gtk.Label('<b>'+_('Words')+'</b>:') # T: label in word count dialog
 		llabel = gtk.Label('<b>'+_('Lines')+'</b>:') # T: label in word count dialog
 		clabel = gtk.Label('<b>'+_('Characters')+'</b>:') # T: label in word count dialog
+		dlabel = gtk.Label('<b>'+_('Characters excluding spaces')+'</b>:') # T: label in word count dialog
 
-		for label in (wlabel, llabel, clabel):
+		for label in (wlabel, llabel, clabel, dlabel):
 			label.set_use_markup(True)
 			label.set_alignment(0.0, 0.5)
 
@@ -6779,6 +6785,12 @@ class WordCountDialog(Dialog):
 		table.attach(gtk.Label(str(buffercount[2])), 1,2, 3,4)
 		table.attach(gtk.Label(str(paracount[2])), 2,3, 3,4)
 		table.attach(gtk.Label(str(selectioncount[2])), 3,4, 3,4)
+
+		# Characters excluding spaces
+		table.attach(dlabel, 0,1, 4,5)
+		table.attach(gtk.Label(str(buffercount[3])), 1,2, 4,5)
+		table.attach(gtk.Label(str(paracount[3])), 2,3, 4,5)
+		table.attach(gtk.Label(str(selectioncount[3])), 3,4, 4,5)
 
 
 class MoveTextDialog(Dialog):
