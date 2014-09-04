@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger('zim.exporter')
 
-import base64
+#~ import base64
 
 from .layouts import ExportLayout
 
@@ -60,7 +60,7 @@ class ExportLinker(BaseLinker):
 
 		self.document_root_url = document_root_url
 
-		self._icons = {} # memorize them because the occur often in one page
+		#~ self._icons = {} # memorize them because the occur often in one page
 
 
 	## Methods used while exporting to resolve links etc. ##
@@ -88,12 +88,12 @@ class ExportLinker(BaseLinker):
 		'''Returns an url for image file 'src' '''
 		return self._link_file(src)
 
-	def icon(self, name):
-		'''Returns an url for an icon'''
-		if not name in self._icons:
-			path = 'icons/%s.png' % name
-			self._icons[name] = self.resource(path)
-		return self._icons[name]
+	#~ def icon(self, name):
+		#~ '''Returns an url for an icon'''
+		#~ if not name in self._icons:
+			#~ path = 'icons/%s.png' % name
+			#~ self._icons[name] = self.resource(path)
+		#~ return self._icons[name]
 
 	def resource(self, path):
 		'''Return an url for template resources'''
@@ -235,13 +235,13 @@ class StubLayout(ExportLayout):
 		return self.resources_dir
 
 
-def data_uri(file):
-	if file.basename.endswith('.png'):
-		mime = 'image/png'
-	else:
-		mime = file.get_mimetype()
-	data64 = u''.join(base64.encodestring(file.raw()).splitlines())
-	return u'data:%s;base64,%s' % (mime, data64)
+#~ def data_uri(file):
+	#~ if file.basename.endswith('.png'):
+		#~ mime = 'image/png'
+	#~ else:
+		#~ mime = file.get_mimetype()
+	#~ data64 = u''.join(base64.encodestring(file.raw()).splitlines())
+	#~ return u'data:%s;base64,%s' % (mime, data64)
 
 
 class StaticExportLinker(ExportLinker):
@@ -254,20 +254,20 @@ class StaticExportLinker(ExportLinker):
 		layout = StubLayout(notebook, resources_dir)
 		ExportLinker.__init__(self, notebook, layout, source=source)
 
-	def icon(self, name):
-		if not name in self._icons:
-			path = 'icons/%s.png' % name
-			if self.layout.resources_dir:
-				file = self.layout.resources_dir.file(path)
-				if file.exists():
-					self._icons[name] = data_uri(file)
+	#~ def icon(self, name):
+		#~ if not name in self._icons:
+			#~ path = 'icons/%s.png' % name
+			#~ if self.layout.resources_dir:
+				#~ file = self.layout.resources_dir.file(path)
+				#~ if file.exists():
+					#~ self._icons[name] = data_uri(file)
 
-			if not name in self._icons:
-				file = data_file('pixmaps/%s.png' % name)
-				if file.exists():
-					self._icons[name] = data_uri(file)
-				else:
-					self._icons[name] = file.uri
+			#~ if not name in self._icons:
+				#~ file = data_file('pixmaps/%s.png' % name)
+				#~ if file.exists():
+					#~ self._icons[name] = data_uri(file)
+				#~ else:
+					#~ self._icons[name] = file.uri
 
-		return self._icons[name]
+		#~ return self._icons[name]
 

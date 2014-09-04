@@ -162,8 +162,7 @@ class Dumper(DumperClass):
 	def dump_li(self, tag, attrib, strings):
 		bullet = attrib.get('bullet', BULLET)
 		if self.context[-1].tag == BULLETLIST and bullet != BULLET:
-			icon = self.linker.icon(bullet)
-			start = '<li style="list-style-image: url(%s)"' % icon
+			start = '<li class="%s"' % bullet
 		else:
 			start = '<li'
 

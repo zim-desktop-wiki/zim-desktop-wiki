@@ -48,10 +48,10 @@ class FilesExporterBase(Exporter):
 		dir = self.layout.resources_dir()
 
 		# Copy icons -- TODO should we define default resources somewhere ?
-		for name in ('checked-box', 'unchecked-box', 'xchecked-box'):
-			icon = data_file('pixmaps/%s.png' % name)
-			file = dir.file(name + '.png')
-			icon.copyto(file)
+		#~ for name in ('checked-box', 'unchecked-box', 'xchecked-box'):
+			#~ icon = data_file('pixmaps/%s.png' % name)
+			#~ file = dir.file(name + '.png')
+			#~ icon.copyto(file)
 
 		# Copy template resources (can overwrite icons)
 		if self.template.resources_dir \

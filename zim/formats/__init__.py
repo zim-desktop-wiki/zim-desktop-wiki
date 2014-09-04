@@ -1285,11 +1285,11 @@ class BaseLinker(object):
 		'''
 		raise NotImplementedError
 
-	def icon(self, name):
-		'''Returns an url for an icon
-		@implementation: must be implemented by child classes
-		'''
-		raise NotImplementedError
+	#~ def icon(self, name):
+		#~ '''Returns an url for an icon
+		#~ @implementation: must be implemented by child classes
+		#~ '''
+		#~ raise NotImplementedError
 
 	def resource(self, path):
 		'''Return an url for template resources
@@ -1339,8 +1339,8 @@ class StubLinker(BaseLinker):
 	def img(self, src):
 		return src
 
-	def icon(self, name):
-		return 'icon:' + name
+	#~ def icon(self, name):
+		#~ return 'icon:' + name
 
 	def resource(self, path):
 		return path
