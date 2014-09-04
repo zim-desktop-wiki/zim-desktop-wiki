@@ -171,6 +171,9 @@ Check the internet for more examples.
 
 There is a notebook specific config files called "''notebook.zim''" which should be in the notebook folder. This file contains a section "''[Notebook]''" which contains the properties that can be set in the [[properties|properties dialog]].
 
-There is one hidden property, called "''end_of_line''" which determines the end-of-line convention for files written by zim within the scope of this notebook. The value can be either "''dos''" or "''unix''". For newly created notebooks this value is set depending on the platform on which zim is running. Main purpose of this property is to ensure that a notebook which is shared between e.g. linux and windows machines does not change the full file on every write. When desired the property can be changed manually, which will affect all pages edited after the change.
+One hidden property is "''end_of_line''" which determines the end-of-line convention for files written by zim within the scope of this notebook. The value can be either "''dos''" or "''unix''". For newly created notebooks this value is set depending on the platform on which zim is running. Main purpose of this property is to ensure that a notebook which is shared between e.g. linux and windows machines does not change the full file on every write. When desired the property can be changed manually, which will affect all pages edited after the change.
 
 A second hidden option is "''disable_trash''" which defaults to ''False''. If enabled this will cause zim to avoid using the system trash for this notebook, see the section about deleting in [[Pages]].
+
+A third hidden option is "''shared" which defaults to True'' (however will be ''False'' for older notebooks). If ''True'', zim stores the notebook cache in the home folder (XDG_CACHE_HOME). Usually this is what you want, however in particular cases, e.g. when the notebook resides in an encrypted folder, you may want to set this to ''False'' in order to make sure the cache is actually stored in the notebook folder (using a ".zim" hidden folder).
+

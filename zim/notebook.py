@@ -756,7 +756,7 @@ class NotebookConfig(INIConfigFile):
 			('home', ConfigDefinitionByClass(Path('Home'))),
 			('icon', String(None)), # XXX should be file, but resolves relative
 			('document_root', String(None)), # XXX should be dir, but resolves relative
-			('shared', Boolean(False)),
+			('shared', Boolean(True)),
 			('endofline', Choice(endofline, set(('dos', 'unix')))),
 			('disable_trash', Boolean(False)),
 			('profile', String(None)),
@@ -842,7 +842,7 @@ class Notebook(Object):
 		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
 		#~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
 		('profile', 'string', _('Profile')), # T: label for properties dialog
-		('shared', 'bool', _('Shared Notebook')), # T: label for properties dialog
+		# 'shared' property is not shown in properties anymore
 	)
 
 	def __init__(self, dir=None, file=None, config=None, index=None):
