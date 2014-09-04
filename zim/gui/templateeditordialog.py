@@ -63,6 +63,14 @@ class TemplateEditorDialog(Dialog):
 		self._delete_button = delete_button
 		self.on_selection_changed()
 
+		## Same button appears in export dialog
+		if gtk.gtk_version >= (2, 10):
+			url_button = gtk.LinkButton(
+				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
+				_('Get more templates online')
+			)
+			self.vbox.pack_start(url_button, False)
+
 	def on_selection_changed(self, *a):
 		# Set sensitivity of the buttons
 		# All insensitive if category (folder) is selected

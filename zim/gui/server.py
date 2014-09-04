@@ -19,7 +19,6 @@ used to start/stop the WWW server.
 
 import gtk
 import glib
-import webbrowser
 import sys
 
 import logging
@@ -66,7 +65,6 @@ class ServerWindow(gtk.Window):
 		if gtk.gtk_version >= (2, 10):
 			self.link_button = gtk.LinkButton('')
 			self.link_button.set_sensitive(False)
-			gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
 		else:
 			self.link_button = None
 

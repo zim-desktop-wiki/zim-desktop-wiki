@@ -226,6 +226,15 @@ class FormatPage(AssistantPage):
 			'document_root_url': 'document_root:url'
 		} )
 
+		## Same button appears in edit preferences dialog
+		if gtk.gtk_version >= (2, 10):
+			url_button = gtk.LinkButton(
+				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
+				_('Get more templates online')
+			)
+			self.pack_start(url_button, False)
+
+
 		# Set template list based on selected format
 		def set_templates(self):
 			format = self.form['format']

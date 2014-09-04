@@ -20,6 +20,7 @@ import logging
 import gobject
 import gtk
 import threading
+import webbrowser
 
 
 from zim.main import get_zim_application
@@ -47,7 +48,13 @@ from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
 from zim.gui.clipboard import Clipboard
 from zim.gui.applications import ApplicationManager, CustomToolManager, AddApplicationDialog
 
+
 logger = logging.getLogger('zim.gui')
+
+
+if gtk.gtk_version >= (2, 10):
+	gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
+
 
 #: Menu actions
 ui_actions = (

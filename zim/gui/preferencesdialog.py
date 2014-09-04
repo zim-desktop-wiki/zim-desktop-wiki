@@ -173,23 +173,26 @@ class PreferencesDialog(Dialog):
 		return True
 
 
-class PluginsTab(gtk.HBox):
+class PluginsTab(gtk.VBox):
 
 	def __init__(self, dialog, plugins):
-		gtk.HBox.__init__(self, spacing=12)
-		self.set_border_width(5)
+		gtk.VBox.__init__(self, spacing=5)
 		self.dialog = dialog
 		self.plugins = plugins
+
+		self.hbox = gtk.HBox(self, spacing=12)
+		self.hbox.set_border_width(5)
+		self.add(self.hbox)
 
 		#~ logger.debug('Plugins that are loaded: %s' % list(plugins))
 
 		self.treeview = PluginsTreeView(self.plugins)
 		self.treeview.connect('row-activated', self.do_row_activated)
 		swindow = ScrolledWindow(self.treeview, hpolicy=gtk.POLICY_NEVER)
-		self.pack_start(swindow, False)
+		self.hbox.pack_start(swindow, False)
 
 		vbox = gtk.VBox()
-		self.add(vbox)
+		self.hbox.add(vbox)
 
 		# Textview with scrollbars to show plugins info. Required by small screen devices
 		swindow, textview = ScrolledTextView()
@@ -213,6 +216,13 @@ class PluginsTab(gtk.HBox):
 		hbox.pack_start(self.configure_button, False)
 
 		self.do_row_activated(self.treeview, (0,), 0)
+
+		if gtk.gtk_version >= (2, 10):
+			url_button = gtk.LinkButton(
+				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins',
+				_('Get more plugins online')
+			)
+			self.pack_start(url_button, False)
 
 	def do_row_activated(self, treeview, path, col):
 		key, active, activatable, name, klass = treeview.get_model()[path]
