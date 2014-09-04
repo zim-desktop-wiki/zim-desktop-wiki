@@ -230,7 +230,7 @@ class FormatPage(AssistantPage):
 		if gtk.gtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
-				_('Get more templates online')
+				_('Get more templates online') # T: label for button with URL
 			)
 			self.pack_start(url_button, False)
 

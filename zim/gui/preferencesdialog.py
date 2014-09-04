@@ -220,7 +220,7 @@ class PluginsTab(gtk.VBox):
 		if gtk.gtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins',
-				_('Get more plugins online')
+				_('Get more plugins online') # T: label for button with URL
 			)
 			self.pack_start(url_button, False)
 
