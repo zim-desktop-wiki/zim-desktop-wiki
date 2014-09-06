@@ -15,6 +15,7 @@ for common base classes for widgets and dialogs.
 from __future__ import with_statement
 
 import os
+import signal
 import re
 import logging
 import gobject
@@ -637,6 +638,14 @@ class GtkInterface(gobject.GObject):
 
 		gtk.accel_map_get().connect('changed', on_accel_map_changed)
 
+
+		def handle_sigterm(signal, frame):
+			logger.info('Got SIGTERM, quit')
+			self.close_page()
+			self._quit()
+
+		signal.signal(signal.SIGTERM, handle_sigterm)
+
 		# And here we go!
 		self.mainwindow.show_all()
 
@@ -743,6 +752,9 @@ class GtkInterface(gobject.GObject):
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
+		self._quit()
+
+	def _quit(self):
 		self.emit('quit')
 
 		if gtk.main_level() > 0:
