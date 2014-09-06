@@ -3,11 +3,8 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 
-[% SET mode = "s5" %]
-[% options.empty_lines = "remove" %]
-
 <head>
-	<title>[% title %]</title>
+<title>[% title %]</title>
 <!-- metadata -->
 <meta name="generator" content="[% generator.name %]" />
 <meta name="version" content="S5 1.1" />
@@ -18,12 +15,12 @@
 <meta name="defaultView" content="slideshow" />
 <meta name="controlVis" content="hidden" />
 <!-- style sheet links -->
-<link rel="stylesheet" href="ui/default/slides.css" type="text/css" media="projection" id="slideProj" />
-<link rel="stylesheet" href="ui/default/outline.css" type="text/css" media="screen" id="outlineStyle" />
-<link rel="stylesheet" href="ui/default/print.css" type="text/css" media="print" id="slidePrint" />
-<link rel="stylesheet" href="ui/default/opera.css" type="text/css" media="projection" id="operaFix" />
+<link rel="stylesheet" href="[% resource('ui/default/slides.css') %]" type="text/css" media="projection" id="slideProj" />
+<link rel="stylesheet" href="[% resource('ui/default/outline.css') %]" type="text/css" media="screen" id="outlineStyle" />
+<link rel="stylesheet" href="[% resource('ui/default/print.css') %]" type="text/css" media="print" id="slidePrint" />
+<link rel="stylesheet" href="[% resource('ui/default/opera.css') %]" type="text/css" media="projection" id="operaFix" />
 <!-- S5 JS -->
-<script src="ui/default/slides.js" type="text/javascript"></script>
+<script src="[% resource('ui/default/slides.js') %]" type="text/javascript"></script>
 </head>
 <body>
 
@@ -42,8 +39,22 @@
 
 <div class="presentation">
 
+[% options.empty_lines = "remove" %]
+
+<div class="slide">
+<h1>[% title %]</h1>
+<!--
+<h2>[slide show subtitle]</h2>
+<h3>[name of presenter]</h3>
+<h4>[affiliation of presenter]</h4>
+-->
+</div>
+
+
 [% FOR page IN pages %]
-[% page.body %]
+<div class="slide">
+[% page.content %]
+</div>
 [% END %]
 
 </div>

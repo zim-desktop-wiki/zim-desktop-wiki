@@ -36,12 +36,12 @@ Export template parameters supported::
  			.heading
  			.body		-- full body minus first heading
  			.content	-- heading + body
- 			.sections 	-- iter over sections (headings) -- TODO later
+ 			.headings(level) 	-- iter over headings -- TODO later
 
- 				section -- TODO
+ 				headingsection -- TODO
  					.heading
  					.body
- 					.level
+ 					.content
 
  			.properties
  			.links
