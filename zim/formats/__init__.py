@@ -317,6 +317,13 @@ class ParseTree(object):
 				return first
 		return None
 
+	def get_heading_level(self):
+		heading_elem = self._get_heading_element()
+		if heading_elem is not None:
+			return int(heading_elem.attrib['level'])
+		else:
+			return None
+
 	def get_heading(self, level=1):
 		heading_elem = self._get_heading_element(level)
 		if heading_elem is not None:

@@ -36,9 +36,10 @@ Export template parameters supported::
  			.heading
  			.body		-- full body minus first heading
  			.content	-- heading + body
- 			.headings(level) 	-- iter over headings -- TODO later
+ 			.headings(level) 	-- iter over headings
 
- 				headingsection -- TODO
+ 				headingsection
+					.level
  					.heading
  					.body
  					.content
@@ -86,8 +87,8 @@ from zim.environ import environ
 from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 from zim.notebook import Path
 
-from zim.formats import ParseTree, ParseTreeBuilder, \
-	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK
+from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
+	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
 
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
@@ -352,6 +353,45 @@ class ExportTemplatePageIter(object):
 			yield p
 
 
+class HeadingSplitter(Visitor):
+
+	def __init__(self, max_level=None):
+		self.max_level = max_level or 999
+		self._builder = ParseTreeBuilder()
+		self.headings = []
+
+	def _split(self):
+		self._builder.end(FORMATTEDTEXT)
+		tree = self._builder.get_parsetree()
+		if tree.hascontent:
+			self.headings.append(tree)
+		self._builder = ParseTreeBuilder()
+		self._builder.start(FORMATTEDTEXT)
+
+	def _close(self):
+		tree = self._builder.get_parsetree()
+		if tree.hascontent:
+			self.headings.append(tree)
+
+	def start(self, tag, attrib=None):
+		if tag is HEADING and int(attrib['level']) <= self.max_level:
+			self._split()
+		self._builder.start(tag, attrib)
+
+	def end(self, tag):
+		self._builder.end(tag)
+		if tag == FORMATTEDTEXT:
+			self._close()
+
+	def text(self, text):
+		self._builder.text(text)
+
+	def append(self, tag, attrib=None, text=None):
+		if tag is HEADING and int(attrib['level']) <= self.max_level:
+			self._split()
+		self._builder.append(tag, attrib, text)
+
+
 class PageListProxy(object):
 
 	def __init__(self, notebook, iterable, dumper_factory):
@@ -365,22 +405,7 @@ class PageListProxy(object):
 			yield PageProxy(self._notebook, page, dumper)
 
 
-class PageProxy(object):
-
-	def __init__(self, notebook, page, dumper):
-		self._notebook = notebook
-		self._page = page
-		self._dumper = dumper
-
-		self.name = self._page.name
-		self.section = self._page.namespace
-		self.namespace = self._page.namespace # backward compat
-		self.basename = self._page.basename
-		self.properties = self._page.properties
-
-	@property
-	def title(self):
-		return self.heading or self.basename
+class ParseTreeProxy(object):
 
 	@property
 	def heading(self):
@@ -403,9 +428,8 @@ class PageProxy(object):
 	@property
 	def content(self):
 		try:
-			tree = self._page.get_parsetree()
-			if tree:
-				lines = self._dumper.dump(tree)
+			if self._tree:
+				lines = self._dumper.dump(self._tree)
 				return u''.join(lines)
 			else:
 				return ''
@@ -415,15 +439,41 @@ class PageProxy(object):
 
 	def _split_head(self):
 		if not hasattr(self, '_severed_head'):
-			tree = self._page.get_parsetree()
-			if tree:
-				tree = tree.copy()
+			if self._tree:
+				tree = self._tree.copy()
 				head, level = tree.pop_heading()
 				self._severed_head = (head, tree) # head can be None here
 			else:
 				self._severed_head = (None, None)
 
 		return self._severed_head
+
+
+class PageProxy(ParseTreeProxy):
+
+	def __init__(self, notebook, page, dumper):
+		self._notebook = notebook
+		self._page = page
+		self._tree = page.get_parsetree()
+		self._dumper = dumper
+
+		self.name = self._page.name
+		self.section = self._page.namespace
+		self.namespace = self._page.namespace # backward compat
+		self.basename = self._page.basename
+		self.properties = self._page.properties
+
+	@property
+	def title(self):
+		return self.heading or self.basename
+
+	@ExpressionFunction
+	def headings(self, max_level=None):
+		if self._tree and self._tree.hascontent:
+			splitter = HeadingSplitter(max_level)
+			self._tree.visit(splitter)
+			for subtree in splitter.headings:
+				yield HeadingProxy(self._page, subtree, self._dumper)
 
 	@property
 	def links(self):
@@ -446,12 +496,13 @@ class PageProxy(object):
 				yield FileProxy(file, './'+basename)
 
 
+class HeadingProxy(ParseTreeProxy):
 
-#~ class PageSectionProxy(object):
-	#~ #					.heading
-	#~ #					.body
-	#~ #					.level
-	#~ pass
+	def __init__(self, page, tree, dumper):
+		self._page = page
+		self._tree = tree
+		self._dumper = dumper
+		self.level = tree.get_heading_level() or 1
 
 
 class FilePathProxy(object):

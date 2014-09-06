@@ -34,7 +34,8 @@ from zim.export.exporters.files import *
 from zim.export.exporters.mhtml import MHTMLExporter
 
 from zim.templates import Template
-from zim.templates.expression import ExpressionParameter
+from zim.templates.expression import ExpressionParameter, \
+	ExpressionFunctionCall, ExpressionList
 
 from zim.notebook import Path
 
@@ -273,6 +274,23 @@ class TestExportTemplateContext(tests.TestCase):
 		#			.backlinks
 		#			.attachments
 		#
+
+
+		# Test HeadingsProxy
+		mycall = ExpressionFunctionCall(
+			ExpressionParameter('mypage.headings'),
+			ExpressionList(),
+		)
+		headings = list(mycall(self.context))
+		self.assertEqual(len(headings), 2)
+
+		self.context['h1'] = headings[0]
+		self.context['h2'] = headings[1]
+		self.assertEqual(get('h1.level'), 1)
+		self.assertEqual(get('h2.level'), 2)
+		self.assertIsInstance(get('h1.heading'), basestring)
+		self.assertIsInstance(get('h1.body'), basestring)
+		self.assertIsInstance(get('h1.content'), basestring)
 
 		# Test FileProxy
 		#				file

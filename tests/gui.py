@@ -289,7 +289,6 @@ class TestDialogs(tests.TestCase):
 			'home': Path('Home'),
 			'icon': './icon.png',
 			'document_root': File('/foo').path, # win32 save test
-			'shared': False,
 			'profile': None,
 		}
 		config2 = {
@@ -298,7 +297,6 @@ class TestDialogs(tests.TestCase):
 			'home': Path('HomeSweetHome'),
 			'icon': './picture.png',
 			'document_root': File('/bar').path, # win32 save test
-			'shared': True,
 			'profile': 'foo',
 		}
 		notebook.save_properties(**config1)

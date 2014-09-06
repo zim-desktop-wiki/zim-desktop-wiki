@@ -180,6 +180,11 @@ bar baz
 [[~/foo/bar.pdf]]
 {{~/foo/bar.pdf}}
 
+===== Sub heading =====
+
+dsfsdf
+sdfsdf
+
 </page>
 <page name="Test:foo:bar">
 = FOO Bar =

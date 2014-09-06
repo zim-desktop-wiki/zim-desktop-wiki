@@ -41,20 +41,12 @@
 
 [% options.empty_lines = "remove" %]
 
-<div class="slide">
-<h1>[% title %]</h1>
-<!--
-<h2>[slide show subtitle]</h2>
-<h3>[name of presenter]</h3>
-<h4>[affiliation of presenter]</h4>
--->
-</div>
-
-
 [% FOR page IN pages %]
+[% FOR section IN page.headings(1) %]
 <div class="slide">
-[% page.content %]
+[% section.content %]
 </div>
+[% END %]
 [% END %]
 
 </div>
