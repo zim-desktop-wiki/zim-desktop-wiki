@@ -113,8 +113,9 @@ def get_template(category, template):
 					file = dir.file(basename)
 					if file.exists(): # is a file
 						break
-
-		if not file:
+			if file and file.exists():
+				break
+		else:
 			file = File(template)
 			if not file.exists():
 				raise PathLookupError, _('Could not find template "%s"') % template

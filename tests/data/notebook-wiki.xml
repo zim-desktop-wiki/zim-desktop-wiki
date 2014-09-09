@@ -222,6 +222,9 @@ It also tests which weird @s!gns (sees only "s") and @num6ers @wit#in (aka
 <page name="Test:Foo Bar:Dus Ja Hmm">
 Testing with whitespace in page name
 </page>
+<page name="Test:Foo(Bar):Dus.Ja">
+Testing with () and . in page name
+</page>
 <page name="roundtrip">
 ====== Head1 ======
 

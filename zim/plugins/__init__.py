@@ -111,7 +111,7 @@ for dir in data_dirs('plugins'):
 
 __path__.append(__path__.pop(0)) # reshuffle real module path to the end
 
-print "PLUGIN PATH:", __path__
+#~ print "PLUGIN PATH:", __path__
 
 
 class PluginManager(ConnectorMixin, collections.Mapping):
