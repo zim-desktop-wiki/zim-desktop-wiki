@@ -63,6 +63,11 @@ define a class that derives from the L{Command} class (see L{zim.command}).
 Also defined here is the L{PluginManager} class. This class is the
 interface towards the rest of the application to load/unload plugins and
 to let plugins extend specific application objects.
+
+
+To allow plugins to be installed locally, the
+C{$XDG_DATA_HOME/zim/plugins} and all C{$XDG_DATA_DIRS/zim/plugins}
+are added to the search path for C{zim.plugins}.
 '''
 
 from __future__ import with_statement
@@ -83,118 +88,30 @@ from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandl
 from zim.actions import action, toggle_action, get_gtk_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
-from zim.config import VirtualConfigManager
+from zim.config import data_dirs, VirtualConfigManager
 
 
 logger = logging.getLogger('zim.plugins')
 
+# Extend path for importing and searching plugins
+#
+# Set C{__path__} for the C{zim.plugins} module. This determines what
+# directories are searched when importing plugin packages in the
+# C{zim.plugins} namespace.
+#
+# Originally this added to the C{__path__} folders based on C{sys.path}
+# however this leads to conflicts when multiple zim versions are
+# installed. By switching to XDG_DATA_HOME this conflict is removed
+# by separating custom plugins and default plugins from other versions.
+# Also this switch makes it easier to have a single instruction for
+# users where to put custom plugins.
 
-def user_site_packages_directory():
-	'''Get the per user site-packages directory
+for dir in data_dirs('plugins'):
+	__path__.append(dir.path)
 
-	In Python 2.6 the "Per-user site-packages Directory" feature has
-	been introduced, see
-	U{http://docs.python.org/whatsnew/2.6.html#pep-370-per-user-site-packages-directory}.
-	This function backports this feature to Python 2.5.
+__path__.append(__path__.pop(0)) # reshuffle real module path to the end
 
-	@returns: the per user site-packages directory.
-	This directoy is part of the search path for plugin modules, so users
-	can install plugins in locally.
-	'''
-	from zim.environ import environ
-	if os.name == 'nt':
-		appdata = environ.get('APPDATA')
-		if appdata:
-			dir = Dir((appdata, 'Python/Python25/site-packages'))
-			return dir.path
-		else:
-			return None
-	else:
-		dir = Dir('~/.local/lib/python2.5/site-packages')
-		return dir.path
-
-# Add the per-user site-packages directory to the system path
-if sys.version_info[0:2] == (2, 5):
-	userdir = user_site_packages_directory()
-	if userdir and not userdir in sys.path:
-		sys.path.insert(0, userdir)
-
-
-def set_plugin_search_path():
-	'''Initialize C{__path__} variable with the search path for plugins
-
-	Sets C{__path__} for the C{zim.plugins} module. This determines what
-	directories are searched when importing plugin packages in the
-	zim.plugins namespace. This function looks at C{sys.path} and would
-	need to be run again if C{sys.path} is modified after loading this
-	module.
-	'''
-	global __path__
-	__path__ = [] # flush completely
-	# We don't even keep the directory of this source file because we
-	# want order in __path__ match order in sys.path, so per-user
-	# folder takes proper precedence
-
-	for dir in sys.path:
-		try:
-			dir = dir.decode(zim.fs.ENCODING)
-		except UnicodeDecodeError:
-			logger.exception('Could not decode path "%s"', dir)
-			continue
-
-		if os.path.basename(dir) == 'zim.exe':
-			# path is an executable, not a folder -- examine containing folder
-			dir = os.path.dirname(dir)
-
-		if dir == '':
-			dir = '.'
-
-		dir = os.path.sep.join((dir, 'zim', 'plugins'))
-		#~ print '>> PLUGIN DIR', dir
-		__path__.append(dir)
-
-# extend path for importing and searching plugins
-set_plugin_search_path()
-
-
-def get_plugin_class(name):
-	'''Get the plugin class for a given name
-
-	@param name: the plugin module name (e.g. "calendar")
-	@returns: the plugin class object
-	'''
-	mod = get_module('zim.plugins.' + name)
-	return lookup_subclass(mod, PluginClass)
-
-
-def list_plugins():
-	'''List available plugin module names
-
-	@returns: a set of available plugin names that can be loaded
-	using L{get_plugin_class()}.
-	'''
-	# Only listing folders in __path__ because this parameter determines
-	# what folders will considered when importing sub-modules of the
-	# this package once this module is loaded.
-
-	plugins = set()
-
-	for dir in __path__:
-		dir = Dir(dir)
-		for candidate in dir.list(): # returns [] if dir does not exist
-			if candidate.startswith('_') or candidate == 'base':
-				continue
-			elif candidate.endswith('.py'):
-				#~ print '>> FOUND %s.py in %s' % (candidate, dir.path)
-				plugins.add(candidate[:-3])
-			elif zim.fs.isdir(dir.path+'/'+candidate) \
-			and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
-				#~ print '>> FOUND %s/__init__.py in %s' % (candidate, dir.path)
-				plugins.add(candidate)
-			else:
-				pass
-
-	return sorted(plugins)
+print "PLUGIN PATH:", __path__
 
 
 class PluginManager(ConnectorMixin, collections.Mapping):
@@ -256,6 +173,41 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 				logger.exception('Exception while loading plugin: %s', name)
 				self.general_preferences['plugins'].remove(name)
 
+	@classmethod
+	def list_installed_plugins(klass):
+		'''Lists plugin names for all installed plugins
+		@returns: a set of plugin names
+		'''
+		# List "zim.plugins" sub modules based on __path__ because this
+		# parameter determines what folders will considered when importing
+		# sub-modules of the this package once this module is loaded.
+		plugins = set()
+		for dir in __path__:
+			dir = Dir(dir)
+			for candidate in dir.list(): # returns [] if dir does not exist
+				if candidate.startswith('_') or candidate == 'base':
+					continue
+				elif candidate.endswith('.py'):
+					plugins.add(candidate[:-3])
+				elif zim.fs.isdir(dir.path+'/'+candidate) \
+				and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
+					plugins.add(candidate)
+				else:
+					pass
+
+		return plugins
+
+	@classmethod
+	def get_plugin_class(klass, name):
+		'''Get the plugin class for a given name
+
+		@param name: the plugin name (e.g. "calendar")
+		@returns: the plugin class object
+		'''
+		modname = 'zim.plugins.' + name
+		mod = get_module(modname)
+		return lookup_subclass(mod, PluginClass)
+
 	@SignalHandler
 	def on_preferences_changed(self, o):
 		current = set(self._plugins.keys())
@@ -290,7 +242,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			return self._plugins[name]
 
 		logger.debug('Loading plugin: %s', name)
-		klass = get_plugin_class(name)
+		klass = self.get_plugin_class(name)
 		if not klass.check_dependencies_ok():
 			raise AssertionError, 'Dependencies failed for plugin %s' % name
 

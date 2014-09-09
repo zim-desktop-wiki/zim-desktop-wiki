@@ -21,7 +21,7 @@ class TestPluginClasses(tests.TestCase):
 	'''Test case to check coding and documentation of plugin classes'''
 
 	def runTest(self):
-		plugins = list_plugins()
+		plugins = PluginManager.list_installed_plugins()
 		self.assertTrue(len(plugins) > 10)
 		self.assertTrue('spell' in plugins)
 		self.assertTrue('linkmap' in plugins)
@@ -35,7 +35,7 @@ class TestPluginClasses(tests.TestCase):
 		}
 		for name in plugins:
 			#~ print '>>', name
-			klass = get_plugin_class(name)
+			klass = PluginManager.get_plugin_class(name)
 
 			# test plugin info
 			for key in ('name', 'description', 'author'):
@@ -133,8 +133,8 @@ class TestPlugins(tests.TestCase):
 		manager = PluginManager()
 		preferences = manager.config.get_config_dict('<profile>/preferences.conf')
 		self.assertFalse(preferences.modified)
-		for name in list_plugins():
-			klass = get_plugin_class(name)
+		for name in PluginManager.list_installed_plugins():
+			klass = PluginManager.get_plugin_class(name)
 			if klass.check_dependencies_ok():
 				manager.load_plugin(name)
 				self.assertIn(name, manager)

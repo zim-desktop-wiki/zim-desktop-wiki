@@ -8,7 +8,6 @@ import pango
 import gtk
 import logging
 
-import zim.plugins
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
 from zim.gui.applications import CustomizeOpenWithDialog
@@ -155,9 +154,9 @@ class PreferencesDialog(Dialog):
 		# Restore previous situation if the user changed something
 		# in this dialog session
 		with self.ui.preferences.blocked_signals('changed'):
-			for name in zim.plugins.list_plugins():
+			for name in self.ui.plugins.list_installed_plugins():
 				try:
-					klass = zim.plugins.get_plugin_class(name)
+					klass = self.ui.plugins.get_plugin_class(name)
 				except:
 					continue
 
@@ -272,7 +271,7 @@ class PluginsTab(gtk.VBox):
 		self.plugin_help_button.set_sensitive('help' in klass.plugin_info)
 
 	def on_help_button_clicked(self, button):
-		klass = zim.plugins.get_plugin_class(self._current_plugin)
+		klass = self.plugins.get_plugin_class(self._current_plugin)
 		self.dialog.ui.show_help(klass.plugin_info['help']) # XXX
 
 	def on_configure_button_clicked(self, button):
@@ -290,6 +289,7 @@ class PluginsTab(gtk.VBox):
 			return False # keep the foreach going
 		model.foreach(find)
 
+
 class PluginsTreeModel(gtk.ListStore):
 
 	def __init__(self, plugins):
@@ -298,9 +298,9 @@ class PluginsTreeModel(gtk.ListStore):
 		self.plugins = plugins
 
 		allplugins = []
-		for key in zim.plugins.list_plugins():
+		for key in self.plugins.list_installed_plugins():
 			try:
-				klass = zim.plugins.get_plugin_class(key)
+				klass = self.plugins.get_plugin_class(key)
 				name = klass.plugin_info['name']
 				allplugins.append((name, key, klass))
 			except:

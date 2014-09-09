@@ -120,9 +120,9 @@ class _ObjectManager(object):
 		@returns: a 3-tuple of the plugin name, a boolean for the
 		dependency check, and the plugin class, or C{None}.
 		'''
-		for name in zim.plugins.list_plugins():
+		for name in zim.plugins.PluginManager.list_installed_plugins(): # XXX
 			try:
-				klass = zim.plugins.get_plugin_class(name)
+				klass = zim.plugins.PluginManager.get_plugin_class(name) # XXX
 				types = klass.plugin_info.get('object_types')
 				if types and type in types:
 					activatable = klass.check_dependencies_ok()

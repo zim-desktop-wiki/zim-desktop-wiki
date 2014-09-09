@@ -28,9 +28,6 @@ def get_module(name):
 	@param name: the module name
 	@returns: module object
 	@raises ImportError: if the given name does not exist
-
-	@note: don't actually use this method to get plugin modules, see
-	L{get_plugin_module()} instead.
 	'''
 	# __import__ has some quirks, see the reference manual
 	mod = __import__(name)
@@ -51,7 +48,7 @@ def lookup_subclass(module, klass):
 	@param klass: base class
 
 	@note: don't actually use this method to get plugin classes, see
-	L{get_plugin_class()} instead.
+	L{PluginManager.get_plugin_class()} instead.
 	'''
 	subclasses = lookup_subclasses(module, klass)
 	if len(subclasses) > 1:
