@@ -27,15 +27,15 @@ info = {
 }
 
 
-bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\]|\\d+\\.|\\w\\.)[\\ \\t]+'
+bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]' or '[x]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
-bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
+bullet_line_re = re.compile(ur'^(\t*)(%s)(.*\n)$' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
-number_bullet_re = re.compile('^(\d+|\w)\.$')
+number_bullet_re = re.compile(u'^(\d+|[a-zA-Z])\.$')
 def check_number_bullet(bullet):
 	'''If bullet is a numbered bullet this returns the number or letter,
 	C{None} otherwise
