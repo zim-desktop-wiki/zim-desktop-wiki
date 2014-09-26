@@ -1178,27 +1178,38 @@ class GtkInterface(gobject.GObject):
 		'''
 		if notebook is None:
 			# Handle menu item for 'open another notebook'
+			# FIXME - this should be a "show_open_notebook" action or similar
 			from zim.gui.notebookdialog import NotebookDialog
 			NotebookDialog.unique(self, self, callback=self.open_notebook).show() # implicit recurs
 		else:
-			# Could be call back from open notebook dialog - XXX
 			import zim.ipc
-			if zim.ipc.in_child_process():
-				if isinstance(notebook, basestring) \
-				and notebook.startswith('zim+') \
-				and '?' in notebook:
-					# Interwiki link with page name attached
-					notebook, pagename = notebook.split('?', 1)
-					pagename = url_decode(pagename) # usually encoded
+
+			# XXX notebook can be either object or string - fix this to always be an object
+			pagename = None
+			if isinstance(notebook, basestring):
+				if notebook.startswith('zim+'):
+					if '?' in notebook:
+						uri, pagename = notebook.split('?', 1)
+						uri = uri[4:]
+					else:
+						uri = notebook[4:]
 				else:
-					pagename = None
-				notebook = zim.ipc.ServerProxy().get_notebook(notebook)
+					uri = File(notebook).uri
+			elif hasattr(notebook, 'uri'):
+				uri = notebook.uri
+			else:
+				raise AssertionError, 'Can not handle: %s' % notebook
+
+			if self.notebook and self.notebook.uri == uri:
+				self.present(page=pagename)
+			elif zim.ipc.in_child_process():
+				notebook = zim.ipc.ServerProxy().get_notebook(uri)
 				notebook.present(page=pagename)
 			else:
-				if hasattr(notebook, 'uri'):
-					get_zim_application('--gui', notebook.uri).spawn()
+				if pagename:
+					get_zim_application('--gui', uri, pagename).spawn()
 				else:
-					get_zim_application('--gui', notebook).spawn()
+					get_zim_application('--gui', uri).spawn()
 
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for
