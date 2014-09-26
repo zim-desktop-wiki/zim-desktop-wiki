@@ -49,7 +49,7 @@ You can change this by modifying the ''gtkrc'' file, see [[Help:Config Files|Con
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
 
 ===== Does it run on OS X? =====
-Yes it does. You can install the dependencies using [[http://www.macports.org/|Mac Ports]].
+Yes it does. See the install instructions on our [[http://zim-wiki.org/install.html|webpage]], or check in the [[http://www.zim-wiki.org/wiki/|zim documentation wiki]] for additional tips how to install it.
 
 ===== I want to move/backup/synchronize a zim notebook. Which files do I need to take care of? =====
 The visible files in the notebook folder contain all data of notes and [[Help:Attachments|attachments]].
