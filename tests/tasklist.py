@@ -9,6 +9,7 @@ import zim.plugins
 import zim.config
 import zim.formats
 
+from zim.plugins import PluginManager
 from zim.parsing import parse_date
 from zim.plugins.tasklist import *
 
@@ -17,7 +18,7 @@ class TestTaskList(tests.TestCase):
 
 	def testIndexing(self):
 		'''Check indexing of tasklist plugin'''
-		klass = zim.plugins.get_plugin_class('tasklist')
+		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
 		notebook = tests.new_notebook()
@@ -36,7 +37,7 @@ class TestTaskList(tests.TestCase):
 			self.assertTrue(not path is None)
 
 	def testParsing(self):
-		klass = zim.plugins.get_plugin_class('tasklist')
+		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
 		notebook = tests.new_notebook()
@@ -239,7 +240,7 @@ TODO: @someday
 		# TODO
 
 	def testTaskListTreeView(self):
-		klass = zim.plugins.get_plugin_class('tasklist')
+		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
 		notebook = tests.new_notebook()

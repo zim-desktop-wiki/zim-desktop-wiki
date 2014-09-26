@@ -16,9 +16,13 @@ from zim.stores import encode_filename
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressBarDialog, ErrorDialog, QuestionDialog, \
 	MessageDialog, LogFileDialog, Button
+from zim.notebook import Path
 
 from zim.export import *
 from zim.export.selections import *
+
+
+logger = logging.getLogger('zim.export')
 
 
 class ExportDialog(Assistant):
@@ -34,7 +38,11 @@ class ExportDialog(Assistant):
 	def do_response_ok(self):
 		output, exporter = self.get_exporter()
 		selection = self.get_selection()
+		logger.debug('exporter: %s, selection: %s',
+			exporter.__class__.__name__,
+			selection.__class__.__name__)
 		if exporter is None or selection is None:
+			logger.debug('Cancelled - selection')
 			return False # canceled
 
 		# Check index up to date
@@ -43,6 +51,7 @@ class ExportDialog(Assistant):
 			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
 				index.ensure_update(callback=lambda p: dialog.pulse(p.name))
 				if dialog.cancelled:
+					logger.debug('Cancelled - progress dialog index')
 					return False
 
 		# Run export
@@ -52,6 +61,7 @@ class ExportDialog(Assistant):
 				# T: Title for progressbar window
 				for p in exporter.export_iter(selection):
 					if not dialog.pulse(p.name):
+						logger.debug('Cancelled - progress dialog export')
 						return False # canceled
 
 		#~ print '>>> %s E: %i, W: %i' % (
@@ -189,7 +199,7 @@ class InputPage(AssistantPage):
 		#~ self.uistate.setdefault('selection', 'all', ('all', 'page'))
 		self.uistate.setdefault('selection', 'all')
 		self.uistate.setdefault('selection_recursive', True)
-		self.uistate.setdefault('selected_page', self.form['page'])
+		self.uistate.setdefault('selected_page', self.form['page'], check=Path)
 		self.form['selection'] = self.uistate['selection']
 
 	def save_uistate(self):
@@ -467,7 +477,7 @@ class LogContext(object):
 		self.logger.removeHandler(self.handler)
 		#~ self.logger.setLevel(self._old_level)
 		self.handler.close()
-		return True # re-raises error
+		return False # re-raises error
 
 
 class LogFilter(logging.Filter):

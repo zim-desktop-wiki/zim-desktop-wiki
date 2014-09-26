@@ -250,13 +250,21 @@ pages			Iterator over all content to be exported (special + content)
  	.content	Iterator with pages being exported to this file (1 or more)
 
 	page
-		.title
-		.name
-		.section
-		.basename
+		.title		Either the first heading, or the page name
+		.name		The page name
+		.section	The name of the parent page, if any
+		.basename	The page name without the section name
 		.heading	First heading of the page
 		.body		Full body minus first heading
 		.content	Heading + body
+		.headings(max_level)	Split the page content by headings
+
+ 			headingsection
+				.level		Heading level
+ 				.heading	Heading text
+ 				.body		Content below this heading
+ 				.content	Content including the heading
+
 		.properties
 		.links
 		.backlinks

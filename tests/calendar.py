@@ -11,7 +11,7 @@ from datetime import date as dateclass
 
 import zim.datetimetz
 
-import zim.plugins
+from zim.plugins import PluginManager
 from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
@@ -113,7 +113,7 @@ class TestCalendarFunctions(tests.TestCase):
 class TestCalendarPlugin(tests.TestCase):
 
 	def testMainWindowExtensions(self):
-		pluginklass = zim.plugins.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 
 		notebook = tests.new_notebook(self.get_tmp_name())
@@ -154,7 +154,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin.preferences['embedded'] = True # switch back
 
 	def testNotebookExtension(self):
-		pluginklass = zim.plugins.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 
 		notebook = tests.new_notebook(self.get_tmp_name())
@@ -172,7 +172,7 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertIsNone(link)
 
 	def testNamespace(self):
-		pluginklass = zim.plugins.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 		today = dateclass.today()
 		for namespace in (Path('Calendar'), Path(':')):
@@ -204,7 +204,7 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertEqual(path.name, 'Calendar:2012:04')
 
 	def testTemplate(self):
-		pluginklass = zim.plugins.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 		plugin.preferences['namespace'] = Path('Calendar')
 

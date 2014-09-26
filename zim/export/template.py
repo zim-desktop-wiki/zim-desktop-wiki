@@ -36,7 +36,7 @@ Export template parameters supported::
  			.heading
  			.body		-- full body minus first heading
  			.content	-- heading + body
- 			.headings(level) 	-- iter over headings
+ 			.headings(max_level) 	-- iter over headings
 
  				headingsection
 					.level
@@ -270,7 +270,10 @@ class ExportTemplateContext(dict):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
 		builder.start(BULLETLIST)
-		expanded = [self._index_page] + list(self._index_page.parents())
+		if self._index_page:
+			expanded = [self._index_page] + list(self._index_page.parents())
+		else:
+			expanded = []
 		stack = []
 
 		for path in self._index_generator(namespace):
@@ -331,9 +334,9 @@ class ExportTemplateContext(dict):
 	def anchor_function(self, page):
 		# TODO remove prefix from anchors?
 		if isinstance(page, (PageProxy, NotebookPathProxy)):
-			return "#" + page.name
+			return page.name
 		else:
-			return "#" + page
+			return page
 
 	@ExpressionFunction
 	def resource_function(self, link):

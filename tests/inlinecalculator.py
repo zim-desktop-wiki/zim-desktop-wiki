@@ -4,7 +4,7 @@
 
 import tests
 
-import zim.plugins
+from zim.plugins import PluginManager
 
 
 @tests.slowTest
@@ -12,7 +12,7 @@ class TestPrintToBrowser(tests.TestCase):
 
 	def runTest(self):
 		'Test InlineCalculator plugin'
-		pluginklass = zim.plugins.get_plugin_class('inlinecalculator')
+		pluginklass = PluginManager.get_plugin_class('inlinecalculator')
 		plugin = pluginklass()
 
 		for text, wanted in (

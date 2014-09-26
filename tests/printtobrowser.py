@@ -4,7 +4,7 @@
 
 import tests
 
-import zim.plugins
+from zim.plugins import PluginManager
 from zim.notebook import Path
 
 
@@ -13,7 +13,7 @@ class TestPrintToBrowser(tests.TestCase):
 
 	def runTest(self):
 		'Test PrintToBrowser plugin'
-		pluginklass = zim.plugins.get_plugin_class('printtobrowser')
+		pluginklass = PluginManager.get_plugin_class('printtobrowser')
 		plugin = pluginklass()
 
 		notebook = tests.new_notebook()

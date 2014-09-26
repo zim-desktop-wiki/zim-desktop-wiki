@@ -183,7 +183,7 @@ class TestPageEntry(tests.TestCase):
 		# completion now has full notebook
 
 		entry.set_text('Test:')
-		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:tags', 'Test:wiki'])
+		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:Foo(Bar)', 'Test:tags', 'Test:wiki'])
 
 
 class TestNamespaceEntry(TestPageEntry):
