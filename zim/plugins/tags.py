@@ -86,6 +86,7 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 
 		self.uistate.setdefault('treeview', 'tagged', set(['tagged', 'tags']))
 		self.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
+		self.uistate.setdefault('show_full_page_name', True)
 
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
 		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
@@ -118,9 +119,18 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 
 		self.reload_model()
 
+	def toggle_show_full_page_name(self):
+		self.uistate['show_full_page_name'] = not self.uistate['show_full_page_name']
+		self.reload_model()
+
 	def on_populate_popup(self, treeview, menu):
 		# Add a popup menu item to switch the treeview mode
 		populate_popup_add_separator(menu, prepend=True)
+
+		item = gtk.CheckMenuItem(_('Show full page name')) # T: menu option
+		item.set_active(self.uistate['show_full_page_name'])
+		item.connect_object('toggled', self.__class__.toggle_show_full_page_name, self)
+		menu.prepend(item)
 
 		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
 		item.set_active(self.uistate['treeview'] == 'tags')
@@ -170,9 +180,9 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 				model = DuplicatePageTreeStore(self.index)
 					# show the normal index in this case
 			else:
-				model = TaggedPageTreeStore(self.index)
+				model = TaggedPageTreeStore(self.index, self.uistate['show_full_page_name'])
 		elif type == 'tags':
-			model = TagsPageTreeStore(self.index)
+			model = TagsPageTreeStore(self.index, self.uistate['show_full_page_name'])
 		else:
 			assert False
 
@@ -245,8 +255,9 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 
 	filter_depth = 2 # tag filter applies to top two levels
 
-	def __init__(self, index):
+	def __init__(self, index, show_full_page_name=True):
 		self._reverse_cache = {}
+		self.show_full_page_name = show_full_page_name
 		self.untagged = IndexTag(_('untagged'), -1)
 			# T: label for untagged pages in side pane
 		PageTreeStore.__init__(self, index)
@@ -561,7 +572,7 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 				#~ else:
 					#~ return str(self.index.n_list_tagged_pages(tag))
 		else:
-			if column == NAME_COL:
+			if column == NAME_COL and self.show_full_page_name:
 				# Show top level pages with full contex
 				# top level tree is tags, so top level pages len(path) is 2
 				if len(iter.treepath) <= 2:
@@ -580,9 +591,10 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 
 	filter_depth = 1 # tag filter only applies to top level
 
-	def __init__(self, index):
+	def __init__(self, index, show_full_page_name=True):
 		PageTreeStore.__init__(self, index)
 		self._reverse_cache = {}
+		self.show_full_page_name = show_full_page_name
 
 	def _connect(self):
 		def on_page_changed(o, path, signal):
@@ -693,7 +705,7 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 
 	def on_get_value(self, iter, column):
 		'''Returns the data for a specific column'''
-		if column == NAME_COL:
+		if column == NAME_COL and self.show_full_page_name:
 			# Show top level pages with full contex
 			if len(iter.treepath) == 1:
 				return iter.indexpath.name
