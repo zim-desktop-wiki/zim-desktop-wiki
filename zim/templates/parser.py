@@ -160,7 +160,8 @@ class TemplateParser(object):
 	def __call__(self, builder, text):
 		wrapper = TemplateBuilderTextBuffer(builder)
 		wrapper.start('TEMPLATE')
-		self.text_parser(wrapper, text)
+		if text:
+			self.text_parser(wrapper, text)
 		wrapper.end('TEMPLATE')
 
 	def build_text_parser(self):

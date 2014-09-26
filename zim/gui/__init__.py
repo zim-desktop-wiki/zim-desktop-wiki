@@ -3164,6 +3164,7 @@ discarded, but you can restore the copy later.''')
 		ErrorDialog.run(self)
 		gobject.source_remove(id)
 
+
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
 	Prompts for a page name and navigate to that page on 'Ok'.

@@ -9,6 +9,8 @@ from __future__ import with_statement
 import tests
 
 
+from zim.fs import File, Dir, FileNotFoundError
+
 from zim.templates import *
 
 from zim.templates.parser import *
@@ -700,3 +702,15 @@ class TestTemplate(tests.TestCase):
 		#~ print ''.join(output)
 
 		# TODO assert something
+
+		### Test empty template OK as well
+		dir = Dir(self.create_tmp_dir())
+		file = dir.file('empty.html')
+
+		self.assertRaises(FileNotFoundError, Template, file)
+
+		file.touch()
+		templ = Template(file)
+		output = []
+		templ.process(output, {})
+		self.assertEqual(output, [])
