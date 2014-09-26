@@ -525,7 +525,7 @@ class ParseTree(object):
 		@param tag: tag name
 		@returns: yields L{Node} objects
 		'''
-		for elt in self._etree.iter(tag):
+		for elt in self._etree.getiterator(tag):
 			yield Element.new_from_etree(elt)
 
 	def replace(self, tag, func):
