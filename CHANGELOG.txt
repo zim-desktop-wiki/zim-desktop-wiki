@@ -4,6 +4,30 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.62 - Tue 30 Sep 2014 ===
+Bug fix release
+* Fixed broken Source View plugin
+* Fixed Tray Icon plugin for Ubuntu
+* Fixed bug with Caps Lock on windows
+* Fixed behavior of New Page dialog
+* Fixed status parsing for Git backend
+* Fixed bug with CamelCase parsing for Persian & Arabic script
+* Fixed parsing of numbered list character to be robust for Chinese characters
+* Fixed bug with www server dialog
+* Fixed bug in Go Child Page action
+* Fixed export using the S5 slideshow template - now splits by heading
+* Fixed bug in indexing for python 2.6
+* Fixed bug in Open Notebook dialog when selecting current notebook
+* Changed lookup path for 3rd party plugin modules - now uses XDG path
+* Merged patch to support more screenshot tools in the Insert Screenshot
+  plugin - Andri Kusumah
+* Updated Sort Lines plugin to use natural sorting for unicode
+* Added control for handling of line breaks in HTML export
+* Changed rendering of checkboxes in HTML export
+* Merged patch to set image size for GNU R plugin - Olivier Scholder
+* Added control to toggle full page name in Tag index view
+* Added handling of SIGTERM signal
+
 === 0.61 - Thu 31 Jul 2014 ===
 * Full refactoring of code for parsing and processing wiki syntax
   making parser easier to extend and document interface more scalable
