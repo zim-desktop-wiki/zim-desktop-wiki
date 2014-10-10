@@ -4796,8 +4796,17 @@ class PageView(gtk.VBox):
 
 	def on_open_notebook(self, ui, notebook):
 		# Connect to notebook
+		def assert_not_modified(page, *a):
+			if page == self.page \
+			and self.view.get_buffer().get_modified():
+				raise AssertionError, 'BUG: page changed while buffer changed as well'
+				# not using assert here because it could be optimized away
 
-		# Also connect to parent window here in a HACK to ensure
+		for s in ('stored-page', 'deleted-page', 'moved-page'):
+			notebook.connect(s, assert_not_modified)
+
+	def _connect_focus_event(self):
+		# Connect to parent window here in a HACK to ensure
 		# we do not hijack keybindings like ^C and ^V while we are not
 		# focus (e.g. paste in find bar) Put it here to ensure
 		# mainwindow is initialized.
@@ -4809,15 +4818,6 @@ class PageView(gtk.VBox):
 		window = self.get_toplevel()
 		if window and window != self:
 			window.connect('set-focus', set_actiongroup_sensitive)
-
-		def assert_not_modified(page, *a):
-			if page == self.page \
-			and self.view.get_buffer().get_modified():
-				raise AssertionError, 'BUG: page changed while buffer changed as well'
-				# not using assert here because it could be optimized away
-
-		for s in ('stored-page', 'deleted-page', 'moved-page'):
-			notebook.connect(s, assert_not_modified)
 
 	def set_page(self, page, cursor=None):
 		'''Set the current page to be displayed in the pageview
@@ -4843,6 +4843,9 @@ class PageView(gtk.VBox):
 		# unhook from previous page
 		if self.page:
 			self.page.set_ui_object(None)
+		else:
+			# first run - bootstrap HACK
+			self._connect_focus_event()
 
 		# for some reason keeping a copy of the previous buffer
 		# prevents a number of segfaults ...
