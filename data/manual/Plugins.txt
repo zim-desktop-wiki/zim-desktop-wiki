@@ -35,15 +35,9 @@ The following plugins are standard included with zim:
 
 Plugins can be enabled and configured in the [[Help:Preferences|preferences dialog]]. A number of plugins have additional dependencies, like specific external programs, that are not required for the core functionality of zim. If one or more dependencies of a plugin are not fulfilled, these are marked red.
 
-===== Installing Plugins =====
-If a plugin is distributed as a separate python module, it should be installed such that zim can find it. For use specific plugins you can install them Python's "per user site-package directory".
-
-For example for python 2.6 this folder is:
-Unix (including Mac OS X): ''~/.local/lib/python2.6/site-packages''
-Windows: ''%APPDATA%/Python/Python26/site-packages''
-
-See http://www.python.org/dev/peps/pep-0370/ for details.
+===== Custom Plugins =====
+More plugins can be found here: https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins
 
 ===== Writing Plugins =====
-If you are looking for information on **writing plugins** please download the source package and have a look at the module documentation of the "''zim.plugins''" python module.
+If you are looking for information on **writing plugins** please download the source package and have a look at the module documentation of the "''zim.plugins''" python module as well as the "HACKING" notebook that is included.
 
