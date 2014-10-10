@@ -214,7 +214,10 @@ class PluginsTab(gtk.VBox):
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
 		hbox.pack_start(self.configure_button, False)
 
-		self.do_row_activated(self.treeview, (0,), 0)
+		try:
+			self.do_row_activated(self.treeview, (0,), 0)
+		except:
+			pass # maybe loading plugins failed
 
 		if gtk.gtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
