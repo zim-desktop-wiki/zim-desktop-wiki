@@ -26,10 +26,10 @@ import makeman # helper script
 
 try:
 	version_info = sys.version_info
-	assert version_info >= (2, 5)
+	assert version_info >= (2, 6)
 	assert version_info < (3, 0)
 except:
-	print >> sys.stderr, 'zim needs python >= 2.5   (but < 3.0)'
+	print >> sys.stderr, 'zim needs python >= 2.6   (but < 3.0)'
 	sys.exit(1)
 
 
@@ -236,6 +236,7 @@ class zim_build_scripts_class(build_scripts_class):
 class zim_build_class(build_class):
 	# Generate _version.py etc. and call build_trans as a subcommand
 	# Also set PLATFORM in zim/__init__.py
+	# And put list of default plugins in zim/plugins/__init__.py
 
 	sub_commands = build_class.sub_commands + [('build_trans', None)]
 
@@ -259,6 +260,40 @@ class zim_build_class(build_class):
 				break
 		else:
 			assert False, 'Missed line for PLATFORM'
+
+		fh = open(file, 'w')
+		fh.writelines(lines)
+		fh.close()
+
+		## Set default plugins
+		plugins = []
+		for name in os.listdir('./zim/plugins'):
+			if name.startswith('_') or name == 'base':
+				continue
+			elif '.' in name:
+				if name.endswith('.py'):
+					name, x = name.rsplit('.', 1)
+					plugins.append(name)
+				else:
+					continue
+			else:
+				plugins.append(name)
+		assert len(plugins) > 20, 'Did not find plugins'
+
+
+		file = os.path.join(self.build_lib, 'zim', 'plugins', '__init__.py')
+		print 'Setting plugin list in %s' % file
+		assert os.path.isfile(file)
+		fh = open(file)
+		lines = fh.readlines()
+		fh.read()
+
+		for i, line in enumerate(lines):
+			if line.startswith('\t\tplugins = set()'):
+				lines[i] = '\t\tplugins = set(%r) # DEFAULT PLUGINS COMPILED IN BY SETUP.PY\n' % plugins
+				break
+		else:
+			assert False, 'Missed line for plugin list'
 
 		fh = open(file, 'w')
 		fh.writelines(lines)

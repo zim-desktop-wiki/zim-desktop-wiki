@@ -84,9 +84,6 @@ distutils.dir_util.copy_tree("icons", path.join(EXE_ROOT, "icons"), update=1)
 # Copy translation files
 distutils.dir_util.copy_tree("locale", path.join(EXE_ROOT, "locale"), update=1)
 
-# Copy plugins folder so Preferences dialog can iterate through them
-distutils.dir_util.copy_tree(r"zim\plugins", path.join(EXE_ROOT, r"zim\plugins"), update=1)
-
 # Copy the hicolor icon theme from windows folder because it's missing from Gtk/win32 distro
 p = path.join(EXE_ROOT, r"share\icons\hicolor")
 if not path.exists(p): os.makedirs(p)

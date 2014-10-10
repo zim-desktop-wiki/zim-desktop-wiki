@@ -181,7 +181,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		# List "zim.plugins" sub modules based on __path__ because this
 		# parameter determines what folders will considered when importing
 		# sub-modules of the this package once this module is loaded.
-		plugins = set()
+		plugins = set() # THIS LINE IS REPLACED BY SETUP.PY - DON'T CHANGE IT
 		for dir in __path__:
 			dir = Dir(dir)
 			for candidate in dir.list(): # returns [] if dir does not exist
