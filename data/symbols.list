@@ -291,5 +291,15 @@
 +-	177   # +- sign
 +_	177   # +- sign
 
+<3		9825 # Heart empty
+\music	9835 # Beamed Eighth Notes
+\warn	9888 # Warning
+:)		9786 # Smiley  - have a nice day!
+\smile	9786 # Smiley  - have a nice day!
+\mail	9993 # Envelope - Mail
+\tel	9990 # Telephone Sign
+\phone	9990 # Telephone Sign
+\flag	9873 # Black Flag
+
 ## Suggestions for more shortcuts are welcome - please file in bug tracker ##
 
