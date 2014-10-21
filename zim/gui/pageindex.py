@@ -533,9 +533,6 @@ class PageTreeView(BrowserTreeView):
 		'''
 		self._cleanup = None # else it might be pointing to old model
 		BrowserTreeView.set_model(self, model)
-		if self.ui.page:
-			self.select_page(self.ui.page, vivificate=True)
-
 		model.connect('row-inserted', self.on_row_inserted)
 
 	def on_row_inserted(self, model, treepath, iter):
@@ -740,16 +737,9 @@ class PageIndex(gtk.ScrolledWindow):
 		self.treeview.connect('insert-link',
 			lambda v, p: self.ui.mainwindow.pageview.insert_links([p]))
 
-		if self.ui.notebook:
-			self.on_open_notebook(self.ui, self.ui.notebook)
-		else:
-			ui.connect('open-notebook', self.on_open_notebook)
-		ui.connect('open-page', self.on_open_page)
-		ui.connect('start-index-update', lambda o: self.disconnect_model())
-		ui.connect('end-index-update', lambda o: self.reload_model())
-
-	def on_open_notebook(self, ui, notebook):
-		index = notebook.index
+		# Set model and connect to index
+		assert self.ui.notebook, 'BUG: need notebook at initialization'
+		index = self.ui.notebook.index
 
 		model = PageTreeStore(index)
 		self.treeview.set_model(model)
@@ -759,6 +749,15 @@ class PageIndex(gtk.ScrolledWindow):
 			# T: statusbar message
 		index.connect('end-update',
 			lambda o: ui.mainwindow.statusbar.pop(2) )
+
+		# Connect to ui signals
+		ui.connect('open-page', self.on_open_page)
+		ui.connect('start-index-update', lambda o: self.disconnect_model())
+		ui.connect('end-index-update', lambda o: self.reload_model())
+
+		# Select current page, if any
+		if self.ui.page:
+			self.select_page(self.ui.page, vivificate=True)
 
 	def on_open_page(self, ui, page, path):
 		self.treeview.select_page(path, vivificate=True)
@@ -792,3 +791,5 @@ class PageIndex(gtk.ScrolledWindow):
 		'''
 		model = PageTreeStore(self.ui.notebook.index)
 		self.treeview.set_model(model)
+		if self.ui.page:
+			self.select_page(self.ui.page, vivificate=True)

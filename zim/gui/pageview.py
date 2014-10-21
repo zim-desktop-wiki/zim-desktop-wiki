@@ -4711,10 +4711,17 @@ class PageView(gtk.VBox):
 
 		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
-		if self.ui.notebook:
-			self.on_open_notebook(self.ui, self.ui.notebook)
-		else:
-			self.ui.connect('open-notebook', self.on_open_notebook)
+		# Connect to notebook
+		assert self.ui.notebook, 'BUG: need notebook at initialization'
+
+		def assert_not_modified(page, *a):
+			if page == self.page \
+			and self.view.get_buffer().get_modified():
+				raise AssertionError, 'BUG: page changed while buffer changed as well'
+				# not using assert here because it could be optimized away
+
+		for s in ('stored-page', 'deleted-page', 'moved-page'):
+			self.ui.notebook.connect(s, assert_not_modified)
 
 	def grab_focus(self):
 		self.view.grab_focus()
@@ -4793,17 +4800,6 @@ class PageView(gtk.VBox):
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:
 				TextBuffer.tag_styles[tag] = attrib
-
-	def on_open_notebook(self, ui, notebook):
-		# Connect to notebook
-		def assert_not_modified(page, *a):
-			if page == self.page \
-			and self.view.get_buffer().get_modified():
-				raise AssertionError, 'BUG: page changed while buffer changed as well'
-				# not using assert here because it could be optimized away
-
-		for s in ('stored-page', 'deleted-page', 'moved-page'):
-			notebook.connect(s, assert_not_modified)
 
 	def _connect_focus_event(self):
 		# Connect to parent window here in a HACK to ensure

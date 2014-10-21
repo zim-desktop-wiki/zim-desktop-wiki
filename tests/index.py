@@ -401,6 +401,7 @@ class TestPageTreeView(tests.TestCase):
 		self.ui.notebook = self.notebook
 		self.model = PageTreeStore(self.notebook.index)
 		self.treeview = PageTreeView(self.ui, self.model)
+		self.treeview.select_page(Path('Test'))
 
 	def testContextMenu(self):
 		menu = self.treeview.get_popup()
