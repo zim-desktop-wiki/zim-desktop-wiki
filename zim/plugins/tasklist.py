@@ -180,9 +180,12 @@ class IndexExtension(ObjectExtension):
 	def _set_preferences(self):
 		self._current_preferences = self._serialize_rebuild_on_preferences()
 
-		string = self.preferences['labels'].strip(' ,')
-		if string:
-			self.task_labels = [s.strip() for s in self.preferences['labels'].split(',')]
+		if self.preferences['labels']:
+			self.task_labels = [
+				s.strip()
+					for s in self.preferences['labels'].split(',')
+						if s and not s.isspace()
+			]
 		else:
 			self.task_labels = []
 
