@@ -366,6 +366,7 @@ class Calendar(gtk.Calendar):
 	def get_date(self):
 		'''Get the datetime object for the selected date'''
 		year, month, day = gtk.Calendar.get_date(self)
+		if day == 0: day = 1
 		return datetime.date(year, month + 1, day)
 
 # Need to register classes defining gobject signals
