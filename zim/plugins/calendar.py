@@ -99,6 +99,7 @@ Also adds a calendar widget to access these pages.
 		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
 		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
+		('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True), # T: preferences option
 	)
 	# TODO disable pane setting if not embedded
 
@@ -165,7 +166,7 @@ class NotebookExtension(ObjectExtension):
 	def __init__(self, plugin, notebook):
 		self.plugin = plugin
 		self.notebook = notebook
-		self._set_template = None
+		self._initialized_namespace = None
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -211,16 +212,18 @@ class NotebookExtension(ObjectExtension):
 		self.teardown()
 		ns = preferences['namespace'].name
 		self.notebook.namespace_properties[ns]['template'] = 'Journal'
-		self._set_template = ns
+		self.notebook.namespace_properties[ns]['auto_expand_in_index'] = preferences['auto_expand_in_index']
+		self._initialized_namespace = ns
 
 	def teardown(self):
-		if self._set_template:
-			ns = self._set_template
-			try:
-				self.notebook.namespace_properties[ns].remove('template')
-			except KeyError:
-				pass
-			self._set_template = None
+		if self._initialized_namespace:
+			ns = self._initialized_namespace
+			for key in ('template', 'auto_expand_in_index'):
+				try:
+					self.notebook.namespace_properties[ns].remove('template')
+				except KeyError:
+					pass
+			self._initialized_namespace = None
 
 
 class MainWindowExtension(WindowExtension):

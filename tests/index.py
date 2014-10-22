@@ -358,8 +358,8 @@ class TestPageTreeStore(tests.TestCase):
 
 		# Try some TreeView methods
 		path = Path('Test:foo')
-		self.assertTrue(treeview.select_page(path))
-		self.assertEqual(treeview.get_selected_path(), path)
+		self.assertTrue(treeview.set_current_page(path))
+		# TODO assert something
 		treepath = treeview.get_model().get_treepath(path)
 		self.assertTrue(not treepath is None)
 		col = treeview.get_column(0)
@@ -401,7 +401,8 @@ class TestPageTreeView(tests.TestCase):
 		self.ui.notebook = self.notebook
 		self.model = PageTreeStore(self.notebook.index)
 		self.treeview = PageTreeView(self.ui, self.model)
-		self.treeview.select_page(Path('Test'))
+		treepath = self.treeview.set_current_page(Path('Test'))
+		self.treeview.select_treepath(treepath)
 
 	def testContextMenu(self):
 		menu = self.treeview.get_popup()

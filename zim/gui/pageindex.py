@@ -147,7 +147,7 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		'''
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
-		self.selected_page = None
+		self.current_page = None
 
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
@@ -198,12 +198,12 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		'''
 		self.disconnect_from(self.index)
 
-	def select_page(self, path):
+	def set_current_page(self, path):
 		'''Set the current open page to highlight it in the index.
 		@param path: the L{Path} that is currently open, or C{None} to unset
 		'''
-		oldpath = self.selected_page
-		self.selected_page = path
+		oldpath = self.current_page
+		self.current_page = path
 
 		for mypath in (oldpath, path):
 			if mypath:
@@ -248,7 +248,7 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 			else:
 				return self.EMPTY_COLOR
 		elif column == WEIGHT_COL:
-			if path == self.selected_page:
+			if path == self.current_page:
 				return pango.WEIGHT_BOLD
 			else:
 				return pango.WEIGHT_NORMAL
@@ -642,11 +642,11 @@ class PageTreeView(BrowserTreeView):
 		else:
 			dragcontext.finish(False, False, time) # NOK
 
-	def select_page(self, path, vivificate=False):
+	def set_current_page(self, path, vivificate=False):
 		'''Select a page in the treeview
 
 		@param path: a notebook L{Path} object for the page
-		@keyword vivificate: when C{True} the path is created
+		@param vivificate: when C{True} the path is created
 		temporarily when it did not yet exist
 
 		@returns: a gtk TreePath (tuple of intergers) or C{None}
@@ -657,18 +657,14 @@ class PageTreeView(BrowserTreeView):
 			return None # index not yet initialized ...
 
 		treepath = model.get_treepath(path)
-		if treepath:
-			# path existed, now select it
-			self.select_treepath(treepath)
-		elif vivificate:
-			# path does not exist, but we can create it
-			path = model.index.touch(path)
-			treepath = model.get_treepath(path)
-			assert treepath, 'BUG: failed to touch placeholder'
-			self.select_treepath(treepath)
-		else:
-			# path does not exist and we are not going to create it
-			return None
+		if not treepath:
+			if vivificate:
+				# path does not exist, but we can create it
+				path = model.index.touch(path)
+				treepath = model.get_treepath(path)
+				assert treepath, 'BUG: failed to touch placeholder'
+			else:
+				return None
 
 		rowreference = gtk.TreeRowReference(model, treepath)
 			# make reference before cleanup - path may change
@@ -682,7 +678,7 @@ class PageTreeView(BrowserTreeView):
 
 		self._cleanup = rowreference
 
-		model.select_page(path) # highlight in model
+		model.set_current_page(path) # highlight in model
 
 		return treepath
 
@@ -757,10 +753,13 @@ class PageIndex(gtk.ScrolledWindow):
 
 		# Select current page, if any
 		if self.ui.page:
-			self.select_page(self.ui.page, vivificate=True)
+			self.on_open_page(self.ui, self.ui,page, self.ui,page)
 
 	def on_open_page(self, ui, page, path):
-		self.treeview.select_page(path, vivificate=True)
+		treepath = self.treeview.set_current_page(path, vivificate=True)
+		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
+		if treepath and expand:
+			self.treeview.select_treepath(treepath)
 
 	def is_focus(self):
 		return self.treeview.is_focus()
@@ -792,4 +791,4 @@ class PageIndex(gtk.ScrolledWindow):
 		model = PageTreeStore(self.ui.notebook.index)
 		self.treeview.set_model(model)
 		if self.ui.page:
-			self.select_page(self.ui.page, vivificate=True)
+			self.on_open_page(self.ui, self.ui,page, self.ui,page)

@@ -108,7 +108,16 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		self.reload_model()
 
 	def on_open_page(self, ui, page, path):
-		self.treeview.select_page(path)
+		expand = True
+		treepath = self.treeview.set_current_page(path, vivificate=True)
+		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
+		if treepath and expand:
+			# change selection only if necessary
+			selected_path = self.treeview.get_selected_path()
+			if path == selected_path:
+				logger.debug('Already selected: "%s"', path)
+			else:
+				self.treeview.select_treepath(treepath)
 
 	def toggle_treeview(self):
 		'''Toggle the treeview type in the widget'''
@@ -215,10 +224,10 @@ class DuplicatePageTreeStore(PageTreeStore):
 	multiple times in the tree.
 	'''
 
-	def select_page(self, path):
+	def set_current_page(self, path):
 		'''Since there may be duplicates of each page, highlight all of them'''
-		oldpath = self.selected_page
-		self.selected_page = path
+		oldpath = self.current_page
+		self.current_page = path
 
 		for mypath in (oldpath, path):
 			if mypath:
@@ -785,7 +794,7 @@ class TagsPageTreeView(PageTreeView):
 		filtermodel.get_treepath = get_treepath
 		filtermodel.get_treepaths = get_treepaths
 		filtermodel.index = model.index
-		filtermodel.select_page = model.select_page
+		filtermodel.set_current_page = model.set_current_page
 
 		PageTreeView.set_model(self, filtermodel)
 
@@ -822,8 +831,8 @@ class TagsPageTreeView(PageTreeView):
 		data = pack_urilist((link,))
 		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
-	def select_page(self, path, vivificate=False):
-		'''Select a page in the treeview if the page is not already selected
+	def set_current_page(self, path, vivificate=False):
+		'''Set the current page in the treeview
 
 		@param path: a notebook L{Path} object for the page
 		@keyword vivificate: when C{True} the path is created
@@ -836,23 +845,13 @@ class TagsPageTreeView(PageTreeView):
 		if model is None:
 			return None # index not yet initialized ...
 
-		# change selection only if necessary
-		selected_path = self.get_selected_path()
-		if path == selected_path:
-			_, iter = self.get_selection().get_selected()
-			treepath = model.get_path(iter)
-			logger.debug('Already selected: "%s"', treepath)
-		else:
-			treepath = model.get_treepath(path)
-			if treepath:
-				# path existed, now select it
-				self.select_treepath(treepath)
-			elif vivificate:
+		treepath = model.get_treepath(path)
+		if not treepath:
+			if vivificate:
 				# path does not exist, but we can create it
 				path = model.index.touch(path)
 				treepath = model.get_treepath(path)
 				assert treepath, 'BUG: failed to touch placeholder'
-				self.select_treepath(treepath)
 			else:
 				# path does not exist and we are not going to create it
 				return None
@@ -869,7 +868,7 @@ class TagsPageTreeView(PageTreeView):
 
 		self._cleanup = rowreference
 
-		model.select_page(path) # highlight in model
+		model.set_current_page(path) # highlight in model
 
 		return treepath
 
