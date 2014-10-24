@@ -36,3 +36,5 @@ You can insert images and links to files very easily by dragging them into the p
 === Use the <ctrl><space> keybinding ===
 The ''<ctrl><space>'' keybinding is used to switch focus between the text area and the tree in the side pane. This allows you to switch pages using the keyboard instead of needing to grab the mouse. As an extra feature the ''<ctrl><space>'' keybinding pops open the side pane when it was hidden but closes it as soon as you have selected a page. This is very useful when you do not want to have the side pane open all the time but instead use it occasionally to find another page.
 
+=== Type wiki syntax to format on the fly ===
+Typing "''**foo**''" will automatically turn into "**foo**" because wiki syntax is formatted on the fly. The same way you can insert bullets by typing  "* " at the beginning of a line. Typing either "[] ", "[*] ", "[x] " or "() ", "(*) ", "(x) " will give your different kinds of [[Check Boxes]].

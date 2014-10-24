@@ -157,8 +157,9 @@ To change the base colors of the pageview widget use something like:
 '''
 style "mycolors" 
 {
-	base: "#ccc"
-	text: "#fff"
+	base[NORMAL]: "black"
+	base[SELECTED]: "#6699cc"
+	text[NORMAL]: "#c0c0c0"
 }
 widget "*.zim-pageview" style "mycolors"
 '''
