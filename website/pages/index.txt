@@ -16,4 +16,4 @@ Wiki-Format: zim 0.4
 
 {{/screenshots/thumbs/zim-normal.png}}        {{/screenshots/thumbs/zim-minimal.png}}
 
-Although **zim** now exists for over 3 years there is no "1.0" version yet. This does not mean that the application is particularly un-stable (although making backups is always good practice) or only usable for linux gurus. But it does mean that the feature set is not yet complete (of course everything described in the manual is implemented). New releases are announced through [[http://freshmeat.net/projects/zim/|freshmeat]], subscribe there to get the latest updates.
+Although **zim** now exists for over 3 years there is no "1.0" version yet. This does not mean that the application is particularly un-stable (although making backups is always good practice) or only usable for linux gurus. But it does mean that the feature set is not yet complete (of course everything described in the manual is implemented).
