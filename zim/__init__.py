@@ -118,6 +118,8 @@ import os
 import sys
 import gettext
 import logging
+import locale
+
 
 logger = logging.getLogger('zim')
 
@@ -148,14 +150,16 @@ else:
 	)
 
 
+## Initialize locale  (needed e.g. for natural_sort)
+locale.setlocale(locale.LC_ALL, '')
+
 
 ## Initialize gettext  (maybe make this optional later for module use ?)
 
 if os.name == "nt" and not os.environ.get('LANG'):
 	# Set locale config for gettext (other platforms have this by default)
 	# Using LANG because it is lowest prio - do not override other params
-	import locale
-	lang, enc = locale.getdefaultlocale()
+	lang, enc = locale.getlocale()
 	os.environ['LANG'] = lang + '.' + enc
 	logging.info('Locale set to: %s', os.environ['LANG'])
 
