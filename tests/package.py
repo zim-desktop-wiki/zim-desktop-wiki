@@ -10,7 +10,7 @@ import tests
 import os
 import copy
 import re
-
+import subprocess
 import inspect
 
 
@@ -48,6 +48,12 @@ class TestMetaData(tests.TestCase):
 		revision = zim.get_zim_revision()
 			# This call could fail if bazaar revision format changed
 		self.assertTrue(isinstance(revision, basestring))
+
+		# Check desktop file
+		try:
+			subprocess.check_call(['desktop-file-validate', 'xdg/zim.desktop'])
+		except OSError:
+			print "Could not run desktop-file-validate"
 
 
 @tests.slowTest

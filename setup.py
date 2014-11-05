@@ -289,7 +289,7 @@ class zim_build_class(build_class):
 		fh.read()
 
 		for i, line in enumerate(lines):
-			if line.startswith('\t\tplugins = set()'):
+			if line.startswith('\t\tplugins = set('):
 				lines[i] = '\t\tplugins = set(%r) # DEFAULT PLUGINS COMPILED IN BY SETUP.PY\n' % plugins
 				break
 		else:
