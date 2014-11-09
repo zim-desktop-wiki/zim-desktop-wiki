@@ -443,7 +443,7 @@ class Dumper(TextDumper):
 
 		opts = []
 		for key, value in attrib.items():
-			if key in ('type', 'indent') or not value:
+			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them
 			opts.append(' %s="%s"' % (key, str(value).replace('"', '""')))

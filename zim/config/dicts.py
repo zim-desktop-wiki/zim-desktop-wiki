@@ -507,6 +507,17 @@ class ConfigDict(ControlledDict):
 			)
 		ControlledDict.update(self, E, **F)
 
+	def dump(self):
+		'''Returns a dict that combines the defined keys with any
+		undefined input keys. Used e.g. when you only define part of the
+		keys in the dict, but want to preserve all of them when
+		writing back to a file.
+		'''
+		# TODO make this output ordered as well...
+		dump = dict(self._input)
+		dump.update(self)
+		return dump
+
 	# Note that OrderedDict optimizes __getitem__, cannot overload it
 
 	def __setitem__(self, k, v):

@@ -204,13 +204,14 @@ def ScrolledWindow(widget, hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_AUTO
 	return window
 
 
-def ScrolledTextView(text=None, monospace=False):
+def ScrolledTextView(text=None, monospace=False, **kwarg):
 	'''Initializes a C{gtk.TextView} with sane defaults for displaying a
 	piece of multiline text and wraps it in a scrolled window
 
 	@param text: initial text to show in the textview
 	@param monospace: when C{True} the font will be set to monospaced
 	and line wrapping disabled, use this to display log files etc.
+	@param kwarg: arguments passed on to L{ScrolledWindow}
 	@returns: a 2-tuple of the scrolled window and the textview
 	'''
 	textview = gtk.TextView(TextBuffer())
@@ -225,7 +226,7 @@ def ScrolledTextView(text=None, monospace=False):
 
 	if text:
 		textview.get_buffer().set_text(text)
-	window = ScrolledWindow(textview)
+	window = ScrolledWindow(textview, **kwarg)
 	return window, textview
 
 def ScrolledSourceView(text=None, syntax=None):

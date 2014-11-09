@@ -44,6 +44,9 @@ from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
 from zim.objectmanager import ObjectManager, CustomObjectClass
+from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
+from zim.utils import WeakSet
+
 
 logger = logging.getLogger('zim.gui.pageview')
 
@@ -4654,6 +4657,7 @@ class PageView(gtk.VBox):
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
+		self._object_widgets = WeakSet()
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondary:
@@ -4668,6 +4672,8 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
+
+		self.view.connect_after('size-allocate', self.on_view_size_allocate)
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.view)
@@ -4854,7 +4860,7 @@ class PageView(gtk.VBox):
 		finderstate = self._prev_buffer.finder.get_state()
 
 		for child in self.view.get_children():
-			if isinstance(child, CustomObjectBin):
+			if isinstance(child, CustomObjectWidget):
 				self.view.remove(child)
 				if hasattr(child, "_zim_objmanager"):
 					del child._zim_objmanager
@@ -4868,7 +4874,7 @@ class PageView(gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
-			buffer.connect('insert-object', self.insert_object)
+			buffer.connect('insert-object', self.on_insert_object)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5860,16 +5866,23 @@ class PageView(gtk.VBox):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
-	def insert_object(self, buffer, obj, interactive=False):
-		'''Inserts custom object to TextView & Textbuffer.
-		`obj` can be Element or CustomObjectClass instance.'''
+	def insert_object_at_cursor(self, obj):
+		'''Inserts a custom object in the page
+		@param obj: an imjobt implementing L{CustomerObjectClass}
+		'''
+		assert isinstance(obj, CustomObjectClass)
+		self.on_insert_object(self.view.get_buffer(), obj)
+
+	def on_insert_object(self, buffer, obj, interactive=False):
+		# Inserts custom object to TextView & Textbuffer.
+		# obj can be Element or CustomObjectClass instance.
 		logger.debug("Insert object(%s, %s)", buffer, obj)
 		if not isinstance(obj, CustomObjectClass):
 			# assume obj is a parsetree element
 			element = obj
 			if not 'type' in element.attrib:
 				return None
-			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text, self.ui)
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
 
 		def on_modified_changed(obj):
 			if obj.get_modified() and not buffer.get_modified():
@@ -5888,11 +5901,18 @@ class PageView(gtk.VBox):
 		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
 		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectBin)
+		assert isinstance(widget, CustomObjectWidget)
 		widget.connect('release-cursor', on_release_cursor, anchor)
+		widget.show_all()
 		self.view.add_child_at_anchor(widget, anchor)
+		self._object_widgets.add(widget)
 
 		widget.show_all()
+
+	def on_view_size_allocate(self, textview, allocation):
+		for widget in self._object_widgets:
+			if widget._resize:
+				widget.resize_to_textview(textview)
 
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
@@ -5953,60 +5973,6 @@ class ObjectAnchor(gtk.TextChildAnchor):
 		gtk.TextChildAnchor.__init__(self)
 
 gobject.type_register(ObjectAnchor)
-
-
-# Constants for grab-focus-cursor and release-focus-cursor
-POSITION_BEGIN = 1
-POSITION_END = 2
-
-class CustomObjectBin(gtk.EventBox):
-	'''CustomObjectBin adds border and set arrow as mouse cursor
-
-	Defines two signals:
-	  * grab-cursor (position): emitted when embedded widget
-	    should grab focus, position can be either POSITION_BEGIN or
-	    POSITION_END
-	  * release-cursor (position): emitted when the embedded
-	    widget wants to give back focus to the embedding TextView
-	'''
-
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
-		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
-	}
-
-	def __init__(self):
-		gtk.EventBox.__init__(self)
-		self.set_border_width(5)
-		self._has_cursor = False
-
-	def do_realize(self):
-		gtk.EventBox.do_realize(self)
-		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
-
-	def	has_cursor(self):
-		'''Returns True if this object has an internal cursor. Will be
-		used by the TextView to determine if the cursor should go
-		"into" the object or just jump from the position before to the
-		position after the object. If True the embedded widget is
-		expected to support grab_cursor() and use release_cursor().
-		'''
-		return self._has_cursor
-
-	def	set_has_cursor(self, has_cursor):
-		'''See has_cursor()'''
-		self._has_cursor = has_cursor
-
-	def grab_cursor(self, position):
-		'''Emits the grab-cursor signal'''
-		self.emit('grab-cursor', position)
-
-	def release_cursor(self, position):
-		'''Emits the release-cursor signal'''
-		self.emit('release-cursor', position)
-
-gobject.type_register(CustomObjectBin)
 
 
 class InsertDateDialog(Dialog):

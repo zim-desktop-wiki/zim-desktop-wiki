@@ -1,46 +1,28 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
+# Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gobject
-import weakref
-import zim.plugins
 import logging
 
 logger = logging.getLogger("zim.objectmanager")
 
+from zim.signals import SignalEmitter, SIGNAL_AFTER
+from zim.utils import WeakSet
+from zim.config.dicts import ConfigDict, String
 
-# WeakRefSet has to be located before ObjectManager singleton instance creation
-class WeakRefSet(object):
-	'''Simpel collection of weak references to objects.
-	Can be iterated over to list objects that are still active.
-	'''
+import zim.plugins
 
-	def __init__(self):
-		self._refs = []
-
-	def add(self, obj):
-		'''Add an object to the collection'''
-		ref = weakref.ref(obj, self._remove)
-		self._refs.append(ref)
-
-	def _remove(self, ref):
-		self._refs.remove(ref)
-
-	def __iter__(self):
-		for ref in self._refs:
-			obj = ref()
-			if obj:
-				yield obj
-
+## TODO remove singleton contruction, add ref to plugin manager
+##      to allow fallback object widget to have toolbar to load plugin
 
 class _ObjectManager(object):
 	'''Manages custom objects.'''
 
 	def __init__(self):
 		self.factories = {}
-		self.objects = {'fallback': WeakRefSet()}
+		self.objects = {'fallback': WeakSet()}
 
 	def register_object(self, type, factory):
 		'''Register a factory method or class for a specific object type.
@@ -49,12 +31,11 @@ class _ObjectManager(object):
 		should callable and return objects. When constructing objects
 		this factory will be called as::
 
-			factory(attrib, text, ui)
+			factory(attrib, text)
 
 		Where:
 		  - C{attrib} is a dict with attributes
 		  - C{text} is the main text source of the object
-		  - C{ui} is the main ui object
 
 		@returns: a previously set factory for C{type} or C{None}
 		'''
@@ -62,7 +43,7 @@ class _ObjectManager(object):
 		type = type.lower()
 		old = self.factories.get(type)
 		self.factories[type] = factory
-		self.objects[type] = WeakRefSet()
+		self.objects[type] = WeakSet()
 		return old
 
 	def unregister_object(self, type):
@@ -82,12 +63,11 @@ class _ObjectManager(object):
 		'''Returns C{True} if object type has already been registered.'''
 		return type.lower() in self.factories
 
-	def get_object(self, type, attrib, text, ui=None):
+	def get_object(self, type, attrib, text):
 		'''Returns a new object for given type with given attributes
 		@param type: the object type as string
 		@param attrib: dict with attributes
 		@param text: main source of the object
-		@param ui: the ui object
 		@returns: a new object instance, either created by the factory
 		method for C{type}, or an instance of L{FallbackObject}
 		'''
@@ -95,11 +75,11 @@ class _ObjectManager(object):
 
 		if type in self.factories:
 			factory = self.factories[type]
-			obj = factory(attrib, text, ui)
+			obj = factory(attrib, text)
 			self.objects[type].add(obj)
 		else:
 			factory = FallbackObject
-			obj = factory(attrib, text, ui)
+			obj = factory(attrib, text)
 			self.objects['fallback'].add(obj)
 
 		return obj
@@ -135,7 +115,7 @@ class _ObjectManager(object):
 ObjectManager = _ObjectManager() # Singleton object
 
 
-class CustomObjectClass(gobject.GObject):
+class CustomObjectClass(SignalEmitter):
 	'''
 	Base Class for custom objects.
 
@@ -144,18 +124,19 @@ class CustomObjectClass(gobject.GObject):
 
 	'''
 
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-		#'changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	OBJECT_ATTR = {
+		'type': String('object')
 	}
 
-	def __init__(self, attrib, data, ui=None):
-		gobject.GObject.__init__(self)
-		self._attrib = attrib
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'modified-changed': (SIGNAL_AFTER, None, ()),
+	}
+
+	def __init__(self, attrib, data):
+		self._attrib = ConfigDict(attrib)
+		self._attrib.define(self.OBJECT_ATTR)
 		self._data = data if data is not None else ''
-		self._widget = None
-		self.ui = ui
 		self.modified = False
 
 	def get_modified(self):
@@ -169,12 +150,12 @@ class CustomObjectClass(gobject.GObject):
 			self.emit("modified-changed")
 
 	def get_widget(self):
-		'''Returns GTK widget if GUI is detected, None otherwise.'''
-		return self._widget
+		'''Returns a new gtk widget for this object'''
+		raise NotImplemented
 
 	def get_attrib(self):
 		'''Returns object attributes. The 'type' attribute stores type of object.'''
-		return self._attrib
+		return self._attrib.dump()
 
 	def get_data(self):
 		'''Returns serialized data of object.'''
@@ -184,72 +165,36 @@ class CustomObjectClass(gobject.GObject):
 		'''Dumps current object. Returns None if format is not supported.'''
 		return None
 
-gobject.type_register(CustomObjectClass)
-
 
 class FallbackObject(CustomObjectClass):
 	'''Fallback object displays data as TextView and
 	preserves attributes unmodified.
 	'''
 
-	def __init__(self, attrib, data, ui=None):
-		CustomObjectClass.__init__(self, attrib, data, ui)
-		if self.ui and self.ui.__class__.__name__ == 'GtkInterface':  # XXX seperate widget and object
-			import gtk
-			from zim.gui.pageview import CustomObjectBin
-			from zim.gui.widgets import ScrolledTextView
+	def __init__(self, attrib, data):
+		CustomObjectClass.__init__(self, attrib, data)
+		self.buffer = None
 
-			self._widget = CustomObjectBin()
-			box = gtk.VBox()
-			box.set_border_width(5)
-			type = attrib.get('type')
-			plugin = ObjectManager.find_plugin(type) if type else None
-			if plugin:
-				key, name, activatable, klass = plugin
-				hbox = gtk.HBox(False, 5)
-				box.pack_start(hbox)
-				label = gtk.Label(_("Plugin %s is required to display this object.") % name)
-					# T: Label for object manager
-				hbox.pack_start(label)
-				if activatable: # and False:
-					# Plugin can be enabled
-					button = gtk.Button(_("Enable plugin")) # T: Label for object manager
-					def load_plugin(button):
-						self.ui.plugins.load_plugin(key)
-						self.ui.reload_page()
-					button.connect("clicked", load_plugin)
-				else:
-					# Plugin has some unresolved dependencies
-					def plugin_info(button):
-						from zim.gui.preferencesdialog import PreferencesDialog
-						dialog = PreferencesDialog(self.ui, "Plugins", select_plugin=name)
-						dialog.run()
-						self.ui.reload_page()
-					button = gtk.Button(_("Show plugin details")) # T: Label for object manager
-					button.connect("clicked", plugin_info)
-				hbox.pack_start(button)
-			else:
-				label = gtk.Label(_("No plugin is available to display this object.")) # T: Label for object manager
-				box.pack_start(label)
+	def get_widget(self):
+		import gtk
+		from zim.gui.objectmanager import FallbackObjectWidget
 
-			win, self.view = ScrolledTextView(self._data, monospace=True)
-			self.view.set_editable(True)
-			buffer = self.view.get_buffer();
-			buffer.connect('modified-changed', self.on_modified_changed)
-			buffer.set_modified(False)
+		if not self.buffer:
+			self.buffer = gtk.TextBuffer()
+			self.buffer.set_text(self._data)
+			self.buffer.connect('modified-changed', self.on_modified_changed)
+			self.buffer.set_modified(False)
 			self._data = None
 
-			win.set_border_width(5)
-			win.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
-			box.pack_start(win)
-			self._widget.add(box)
+		type = self._attrib['type']
+		return FallbackObjectWidget(type, self.buffer)
 
 	def get_data(self):
-		if self._widget:
-			buffer = self.view.get_buffer()
-			bounds = buffer.get_bounds()
-			return buffer.get_text(bounds[0], bounds[1])
-		return self._data
+		if self.buffer:
+			bounds = self.buffer.get_bounds()
+			return self.buffer.get_text(bounds[0], bounds[1])
+		else:
+			return self._data
 
 	def on_modified_changed(self, buffer):
 		'''Callback for TextBuffer's modifications.'''
@@ -261,4 +206,3 @@ class FallbackObject(CustomObjectClass):
 		'''Sets label at the top area of widget.'''
 		self.label.set_text(label)
 
-	# TODO: undo(), redo() stuff

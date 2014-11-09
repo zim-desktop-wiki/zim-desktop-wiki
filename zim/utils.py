@@ -145,7 +145,7 @@ import weakref
 
 class WeakSet(object):
 	'''Class that behaves like a set, but keeps weak references to
-	memebers of the set.
+	members of the set.
 	'''
 
 	def __init__(self):

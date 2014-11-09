@@ -52,8 +52,8 @@ class TestObjectManager(tests.TestCase):
 		)
 
 
-def classafactory(attrib, text, ui):
-	return ClassA(attrib, text, ui)
+def classafactory(attrib, text):
+	return ClassA(attrib, text)
 
 
 class ClassA(CustomObjectClass):
@@ -67,8 +67,10 @@ class ClassB(CustomObjectClass):
 class TestFallbackObject(tests.TestCase):
 
 	def runTest(self):
-		attrib = {'lang': 'text/html'}
+		attrib = {'type': 'foo', 'lang': 'text/html', 'foo': 'bar'}
 		text = '''<b>test 123</b>\n'''
 		obj = FallbackObject(attrib, text)
 
 		self.assertEqual(obj.get_data(), text)
+		self.assertEqual(obj.get_attrib(), attrib)
+
