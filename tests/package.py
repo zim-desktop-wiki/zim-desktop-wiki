@@ -124,6 +124,11 @@ class TestCoding(tests.TestCase):
 			self.assertFalse('gtk.HPaned(' in code, '%s uses gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
 			self.assertFalse('gtk.VPaned(' in code, '%s uses gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
 
+			if not file.endswith('pageview.py'):
+				self.assertFalse('string.letters' in code, '%s uses string.letters - this can case locale dependent issues' % file)
+				self.assertFalse('srting.lowercase' in code, '%s uses string.lowercase - this can case locale dependent issues' % file)
+				self.assertFalse('srting.uppercase' in code, '%s uses string.uppercase - this can case locale dependent issues' % file)
+
 			if not file.endswith('widgets.py'):
 				self.assertFalse('gtk.ScrolledWindow(' in code, '%s uses gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)
 

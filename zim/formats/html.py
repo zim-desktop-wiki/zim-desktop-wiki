@@ -146,12 +146,12 @@ class Dumper(DumperClass):
 		myattrib = ''
 		if 'start' in attrib:
 			start = attrib['start']
-			if start in string.lowercase:
+			if start in 'abcdefghijklmnopqrstuvwxyz':
 				type = 'a'
-				start = string.lowercase.index(start) + 1
-			elif start in string.uppercase:
+				start = 'abcdefghijklmnopqrstuvwxyz'.index(start) + 1
+			elif start in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
 				type = 'A'
-				start = string.uppercase.index(start) + 1
+				start = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.index(start) + 1
 			else:
 				type = '1'
 			return self.dump_block(tag, attrib, strings,

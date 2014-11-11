@@ -279,7 +279,7 @@ tag_re = Re(r'^(@\w+)$', re.U)
 # These sets adjust to the current locale - so not same as "[a-z]" ..
 # Must be kidding - no classes for this in the regex engine !?
 _classes = {
-	'letters': string.letters
+	'letters': string.letters # locale dependent !
 }
 twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
 del _classes
@@ -1344,7 +1344,7 @@ class TextBuffer(gtk.TextBuffer):
 			if not newbullet:
 				if not is_numbered_bullet_re.match(bullet):
 					return
-				elif bullet.rstrip('.') in string.letters:
+				elif bullet.rstrip('.') in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz':
 					newbullet = '1.' # switch e.g. "a." -> "1."
 				else:
 					newbullet = 'a.' # switch "1." -> "a."

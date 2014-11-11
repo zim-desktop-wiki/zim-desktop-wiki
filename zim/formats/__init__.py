@@ -131,6 +131,8 @@ ANCHOR = 'anchor'
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM)
 
 
+_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
 def increase_list_iter(listiter):
 	'''Get the next item in a list for a numbered list
 	E.g if C{listiter} is C{"1"} this function returns C{"2"}, if it
@@ -144,12 +146,12 @@ def increase_list_iter(listiter):
 		return str(i + 1)
 	except ValueError:
 		try:
-			i = string.letters.index(listiter)
-			return string.letters[i+1]
+			i = _letters.index(listiter)
+			return _letters[i+1]
 		except ValueError: # listiter is not a letter
 			return None
 		except IndexError: # wrap to start of list
-			return string.letters[0]
+			return _letters[0]
 
 def encode_xml(text):
 	'''Encode text such that it can be used in xml

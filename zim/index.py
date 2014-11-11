@@ -88,6 +88,7 @@ from __future__ import with_statement
 import sqlite3
 import gobject
 import unicodedata
+import locale
 import logging
 
 import zim
@@ -530,10 +531,10 @@ class Index(gobject.GObject):
 
 		self.properties = PropertiesDict(self.db)
 		with self.db_commit:
-			if self.properties['zim_version'] != zim.__version__:
+			if self.properties['zim_version'] != zim.__version__ \
+			or self.properties['locale'] != "%s.%s" % locale.getlocale():
 				# flush content and init database layout
 				self._flush()
-				self.properties._set('zim_version', zim.__version__)
 
 	def do_initialize_db(self):
 		with self.db_commit:
@@ -575,6 +576,7 @@ class Index(gobject.GObject):
 
 		# Set meta properties
 		self.properties._set('zim_version', zim.__version__)
+		self.properties._set('locale', "%s.%s" % locale.getlocale()) # relevant for sorting
 
 	def _flush_queue(self, path):
 		# Removes any pending updates for path and it's children
