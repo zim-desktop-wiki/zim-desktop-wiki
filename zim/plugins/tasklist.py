@@ -902,7 +902,8 @@ class TaskListTreeView(BrowserTreeView):
 		self.append_column(column)
 		self.set_expander_column(column)
 
-		if gtk.gtk_version >= (2, 12, 0):
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
 			self.set_tooltip_column(self.TASK_COL)
 
 		# Rendering of the Date column

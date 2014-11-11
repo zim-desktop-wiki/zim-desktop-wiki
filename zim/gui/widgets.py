@@ -609,7 +609,8 @@ class SingleClickTreeView(gtk.TreeView):
 	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
 
 	# backwards compatibility
-	if gtk.gtk_version < (2, 12, 0):
+	if gtk.gtk_version < (2, 12) \
+	and gtk.pygtk_version >= (2, 12):
 		def set_rubber_banding(self, enable):
 			pass
 
@@ -1257,7 +1258,8 @@ class InputForm(gtk.Table):
 
 	def focus_next(self):
 		'''Focus the next input in the form'''
-		if gtk.gtk_version >=  (2, 14, 0):
+		if gtk.gtk_version >=  (2, 14) \
+		and gtk.pygtk_version >= (2, 14):
 			widget = self.get_focus_child()
 		else:
 			for w in self.widgets.values():
@@ -1327,7 +1329,8 @@ class InputForm(gtk.Table):
 			elif isinstance(widget, gtk.SpinButton):
 				return int(widget.get_value())
 			elif isinstance(widget, gtk.ColorButton):
-				if gtk.gtk_version > (2, 14, 0):
+				if gtk.gtk_version > (2, 14) \
+				and gtk.pygtk_version >= (2, 14):
 					# This version supposedly gives compacter values
 					return str(widget.get_color())
 				else:
@@ -1523,7 +1526,8 @@ class InputEntry(gtk.Entry):
 		@requires: Gtk >= 2.16
 		@todo: add argument to set tooltip on the icon
 		'''
-		if gtk.gtk_version < (2, 16, 0):
+		if gtk.gtk_version < (2, 16) \
+		and gtk.pygtk_version >= (2, 16):
 			return False
 
 		self.set_property('secondary-icon-stock', icon)
@@ -1550,7 +1554,8 @@ class InputEntry(gtk.Entry):
 
 		@requires: Gtk >= 2.16
 		'''
-		if gtk.gtk_version < (2, 16, 0):
+		if gtk.gtk_version < (2, 16) \
+		and gtk.pygtk_version >= (2, 16):
 			return False
 
 		self.set_icon(gtk.STOCK_CLEAR, self.clear, _('Clear'))
@@ -2211,7 +2216,8 @@ class WindowSidePane(gtk.VBox):
 		# Add notebook
 		self.notebook = gtk.Notebook()
 		self.notebook.set_show_border(False)
-		if gtk.gtk_version >= (2, 22, 0):
+		if gtk.gtk_version >= (2, 22) \
+		and gtk.pygtk_version >= (2, 22):
 			button = self._close_button()
 			self.notebook.set_action_widget(button, gtk.PACK_END)
 
@@ -2257,7 +2263,8 @@ class WindowSidePane(gtk.VBox):
 				self.topbar.hide()
 
 			self.notebook.set_show_tabs(True)
-			if gtk.gtk_version >= (2, 22, 0):
+			if gtk.gtk_version >= (2, 22) \
+			and gtk.pygtk_version >= (2, 22):
 				button = self.notebook.get_action_widget(gtk.PACK_END)
 				button.set_no_show_all(True)
 				button.hide()
@@ -2272,7 +2279,8 @@ class WindowSidePane(gtk.VBox):
 			child = self.notebook.get_nth_page(0)
 			title = self.notebook.get_tab_label_text(child)
 			self.topbar.label.set_text(title)
-			if gtk.gtk_version >= (2, 22, 0):
+			if gtk.gtk_version >= (2, 22) \
+			and gtk.pygtk_version >= (2, 22):
 				button = self.notebook.get_action_widget(gtk.PACK_END)
 				button.set_no_show_all(True)
 				button.hide()
@@ -2296,7 +2304,8 @@ class WindowSidePane(gtk.VBox):
 		else:
 			self.notebook.set_show_tabs(True)
 			self.topbar.label.set_text('') # no title
-			if gtk.gtk_version >= (2, 22, 0):
+			if gtk.gtk_version >= (2, 22) \
+			and gtk.pygtk_version >= (2, 22):
 				button = self.notebook.get_action_widget(gtk.PACK_END)
 				button.set_no_show_all(False)
 				button.show_all()

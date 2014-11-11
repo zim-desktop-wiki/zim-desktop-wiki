@@ -491,7 +491,8 @@ class PageTreeView(BrowserTreeView):
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
-		if gtk.gtk_version >= (2, 12, 0):
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
 			self.set_tooltip_column(TIP_COL)
 
 		self.set_headers_visible(False)

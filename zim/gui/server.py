@@ -62,7 +62,8 @@ class ServerWindow(gtk.Window):
 		self.stop_button.connect('clicked', lambda o: self.stop())
 		self.stop_button.set_sensitive(False)
 
-		if gtk.gtk_version >= (2, 10):
+		if gtk.gtk_version >= (2, 10) \
+		and gtk.pygtk_version >= (2, 10):
 			self.link_button = gtk.LinkButton('')
 			self.link_button.set_sensitive(False)
 		else:

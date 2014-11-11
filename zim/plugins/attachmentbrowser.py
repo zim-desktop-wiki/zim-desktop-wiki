@@ -489,7 +489,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.zoomin_button = zoomin
 		self.zoomout_button = zoomout
 
-		if gtk.gtk_version >= (2, 12):
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
 			# custom tooltip
 			self.fileview.props.has_tooltip = True
 			self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)

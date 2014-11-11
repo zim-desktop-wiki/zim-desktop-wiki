@@ -141,7 +141,8 @@ class LinksTreeView(BrowserTreeView):
 		column = gtk.TreeViewColumn('_page_', cell_renderer, text=TEXT_COL)
 		self.append_column(column)
 
-		if gtk.gtk_version >= (2, 12, 0):
+		if gtk.gtk_version >= (2, 12, 0) \
+		and gtk.pygtk_version >= (2, 12, 0):
 			self.set_tooltip_column(TEXT_COL)
 
 

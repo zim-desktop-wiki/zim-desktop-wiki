@@ -53,7 +53,8 @@ from zim.gui.applications import ApplicationManager, CustomToolManager, AddAppli
 logger = logging.getLogger('zim.gui')
 
 
-if gtk.gtk_version >= (2, 10):
+if gtk.gtk_version >= (2, 10) \
+and gtk.pygtk_version >= (2, 10):
 	gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
 
 
@@ -593,7 +594,8 @@ class GtkInterface(gobject.GObject):
 
 		from zim.gui.widgets import InputEntry
 		entry = InputEntry(placeholder_text=_('Search'))
-		if gtk.gtk_version >= (2, 16):
+		if gtk.gtk_version >= (2, 16) \
+		and gtk.pygtk_version >= (2, 16):
 			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
 			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
 			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))

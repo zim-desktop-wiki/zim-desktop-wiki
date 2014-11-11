@@ -69,7 +69,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		version_ok = (gtk.gtk_version >= (2, 10, 0))
+		version_ok = (gtk.gtk_version >= (2, 10, 0) and gtk.pygtk_version >= (2, 10, 0))
 		return (version_ok, [
 			('GTK >= 2.10', version_ok, True),
 			('Unity appindicator', bool(appindicator), False),

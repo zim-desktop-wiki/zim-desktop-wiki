@@ -219,7 +219,8 @@ class PluginsTab(gtk.VBox):
 		except:
 			pass # maybe loading plugins failed
 
-		if gtk.gtk_version >= (2, 10):
+		if gtk.gtk_version >= (2, 10) \
+		and gtk.pygtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins',
 				_('Get more plugins online') # T: label for button with URL

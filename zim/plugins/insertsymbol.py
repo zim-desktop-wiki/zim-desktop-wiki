@@ -151,7 +151,8 @@ class InsertSymbolDialog(Dialog):
 		self.iconview.set_text_column(0)
 		self.iconview.set_column_spacing(0)
 		self.iconview.set_row_spacing(0)
-		if gtk.gtk_version >= (2, 12, 0):
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
 			self.iconview.set_property('has-tooltip', True)
 			self.iconview.connect('query-tooltip', self.on_query_tooltip)
 		self.iconview.connect('item-activated', self.on_activated)

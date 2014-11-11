@@ -35,7 +35,7 @@ class SearchDialog(Dialog):
 		hbox.pack_start(self.search_button, False)
 
 		if gtk.gtk_version >= (2, 20) \
-		and gtk.pygtk_version >= (2, 22):
+		and gtk.pygtk_version >= (2, 22): # update in pygtk was later
 			self.spinner = gtk.Spinner()
 			hbox.pack_start(self.spinner, False)
 		else:
@@ -49,7 +49,8 @@ class SearchDialog(Dialog):
 			'For advanced search you can use operators like\n'
 			'AND, OR and NOT. See the help page for more details.'
 		) # T: help text for the search dialog
-		if gtk.gtk_version >= (2, 12, 0):
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
 			self.query_entry.set_tooltip_text(help_text)
 		else:
 			tooltips = gtk.Tooltips()

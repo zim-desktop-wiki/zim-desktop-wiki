@@ -416,7 +416,8 @@ class PathBar(ScrolledHBox):
 			self.add(button)
 
 		# FIXME tooltips seem not to work - not sure why
-		if gtk.gtk_version >= (2, 12, 0):
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
 			for button in self.get_children()[2:]:
 				button.set_tooltip_text(button.zim_path.name)
 		else:
