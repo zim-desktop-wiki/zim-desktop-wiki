@@ -792,4 +792,4 @@ class PageIndex(gtk.ScrolledWindow):
 		model = PageTreeStore(self.ui.notebook.index)
 		self.treeview.set_model(model)
 		if self.ui.page:
-			self.on_open_page(self.ui, self.ui,page, self.ui,page)
+			self.on_open_page(self.ui, self.ui.page, self.ui.page)

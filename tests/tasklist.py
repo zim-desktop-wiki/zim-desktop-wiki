@@ -99,7 +99,7 @@ FIXME: dus
 [ ] Bar
 
 [ ] And then there are @tags
-[ ] And due dates
+[ ] Next: And due dates
 [ ] Date [d: 11/12]
 [ ] Date [d: 11/12/2012]
 	[ ] TODO: BAR !!!
@@ -144,6 +144,12 @@ TODO: @someday
 [ ] B
 	[ ] B-1
 [ ] C
+
+TODO @home
+[ ] main task
+	[x] do this
+	[ ] Next: do that
+	[ ] Next: do something else
 '''
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
@@ -167,7 +173,7 @@ TODO: @someday
 			]),
 			(t('Bar'), []),
 			(t('And then there are @tags', tags='tags'), []),
-			(t('And due dates'), []),
+			(t('Next: And due dates', actionable=False), []),
 			(t('Date [d: 11/12]', due=mydate), []),
 			(t('Date [d: 11/12/2012]', due='2012-12-11'), [
 				(t('TODO: BAR !!!', prio=3, due='2012-12-11'), []),
@@ -198,6 +204,11 @@ TODO: @someday
 				(t('B-1', tags='someday', actionable=False), []),
 			]),
 			(t('C', tags='someday', actionable=False), []),
+			(t('main task', tags='home'), [
+				(t('do this', open=False, tags='home'), []),
+				(t('Next: do that', tags='home'), []),
+				(t('Next: do something else', tags='home', actionable=False), []),
+			])
 		]
 
 		plugin.preferences['nonactionable_tags'] = '@someday, @maybe'
@@ -212,6 +223,7 @@ TODO: @someday
 			(t('B'), []),
 			(t('C'), []),
 			(t('FIXME: dus'), []),
+			(t('Next: And due dates', actionable=False), []),
 			(t('TODO: BAR !!!', prio=3), []),
 			# this list inherits the @home tag - and inherits prio
 			(t('Some more tasks !!!', prio=3, tags='home'), [
@@ -227,6 +239,11 @@ TODO: @someday
 				(t('B-1', tags='someday', actionable=False), []),
 			]),
 			(t('C', tags='someday', actionable=False), []),
+			(t('main task', tags='home'), [
+				(t('do this', open=False, tags='home'), []),
+				(t('Next: do that', tags='home'), []),
+				(t('Next: do something else', tags='home', actionable=False), []),
+			])
 		]
 
 		tasks = extract_tasks(text)

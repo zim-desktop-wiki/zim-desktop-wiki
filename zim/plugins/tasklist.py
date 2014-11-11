@@ -610,7 +610,7 @@ class TasksParser(Visitor):
 		elif any(t.lower() in self.nonactionable_tags for t in tags):
 			actionable = False
 		elif self._matches_next_label(text) and parent_children:
-			previous = parent_children[-1]
+			previous = parent_children[-1][0]
 			actionable = not previous[0] # previous task not open
 		else:
 			actionable = True
