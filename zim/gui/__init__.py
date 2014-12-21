@@ -609,6 +609,30 @@ class GtkInterface(gobject.GObject):
 		self.mainwindow.toolbar.insert(item, -1)
 		##
 
+		try:
+			import gtkosx_application
+			macapp = gtkosx_application.Application()
+
+			# move the menus to the OS X menu bar
+			menu_bar = gtk.MenuBar()
+			for i, child in enumerate(self.mainwindow.menubar.get_children()):
+				child.reparent(menu_bar)
+			macapp.set_menu_bar(menu_bar)
+			self.mainwindow.menubar.hide()
+			macapp.set_help_menu(self.uimanager.get_widget('/menubar/help_menu'))
+
+			# move some menu items to the application menu
+			quit = self.uimanager.get_widget('/menubar/file_menu/quit')
+			macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
+			quit.hide()
+			about = self.uimanager.get_widget('/menubar/help_menu/show_about')
+			macapp.insert_app_menu_item(about, 0)
+			prefs = self.uimanager.get_widget('/menubar/edit_menu/show_preferences')
+			macapp.insert_app_menu_item(prefs, 1)
+			macapp.ready()
+		except ImportError:
+			pass
+
 		if ui_environment['platform'] == 'maemo':
 			# Move the menu to the hildon menu
 			# This is save for later updates of the menus (e.g. by plugins)
