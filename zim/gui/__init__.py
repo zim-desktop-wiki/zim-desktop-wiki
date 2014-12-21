@@ -73,12 +73,12 @@ ui_actions = (
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 
 	# name, stock id, label, accelerator, tooltip, readonly
-	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><ctrl>N', '', False), # T: Menu item
-	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
+	('new_page',  'gtk-new', _('_New Page...'), '<Primary>N', '', False), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><Primary>N', '', False), # T: Menu item
+	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<Primary>O', '', True), # T: Menu item
 	('open_new_window', None, _('Open in New _Window'), '', '', True), # T: Menu item
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
-	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', '', False), # T: Menu item
+	('save_page', 'gtk-save', _('_Save'), '<Primary>S', '', False), # T: Menu item
 	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
 	('show_export',  None, _('E_xport...'), '', '', True), # T: Menu item
 	('email_page', None, _('_Send To...'), '', '', True), # T: Menu item
@@ -86,15 +86,15 @@ ui_actions = (
 	('rename_page', None, _('_Rename Page...'), 'F2', '', False), # T: Menu item
 	('delete_page', None, _('_Delete Page'), '', '', False), # T: Menu item
 	('show_properties',  'gtk-properties', _('Proper_ties'), '', '', True), # T: Menu item
-	('close',  'gtk-close', _('_Close'), '<ctrl>W', '', True), # T: Menu item
-	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', '', True), # T: Menu item
-	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', '', True), # T: Menu item
+	('close',  'gtk-close', _('_Close'), '<Primary>W', '', True), # T: Menu item
+	('quit',  'gtk-quit', _('_Quit'), '<Primary>Q', '', True), # T: Menu item
+	('show_search',  'gtk-find', _('_Search...'), '<shift><Primary>F', '', True), # T: Menu item
 	('show_search_backlinks', None, _('Search _Backlinks...'), '', '', True), # T: Menu item
 	('show_recent_changes', None, _('Recent Changes...'), '', '', True), # T: Menu item
-	('copy_location', None, _('Copy _Location'), '<shift><ctrl>L', '', True), # T: Menu item
+	('copy_location', None, _('Copy _Location'), '<shift><Primary>L', '', True), # T: Menu item
 	('show_templateeditor',  None, _('_Templates'), '', '', True), # T: Menu item
 	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
-	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', '', True), # T: Menu item
+	('reload_page',  'gtk-refresh', _('_Reload'), '<Primary>R', '', True), # T: Menu item
 	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
 	('open_notebook_folder', 'gtk-open', _('Open _Notebook Folder'), '', '', True), # T: Menu item
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
@@ -111,7 +111,7 @@ ui_actions = (
 	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page'), True), # T: Menu item
 	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page'), True), # T: Menu item
 	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home'), True), # T: Menu item
-	('open_page', 'gtk-jump-to', _('_Jump To...'), '<ctrl>J', '', True), # T: Menu item
+	('open_page', 'gtk-jump-to', _('_Jump To...'), '<Primary>J', '', True), # T: Menu item
 	('show_help', 'gtk-help', _('_Contents'), 'F1', '', True), # T: Menu item
 	('show_help_faq', None, _('_FAQ'), '', '', True), # T: Menu item
 	('show_help_keys', None, _('_Keybindings'), '', '', True), # T: Menu item
@@ -134,7 +134,7 @@ else:
 #: More menu actions
 ui_actions_window = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('show_all_panes', None, _('_All Panes'), '<ctrl>F9', _('Show All Panes'), True), # T: Menu item
+	('show_all_panes', None, _('_All Panes'), '<Primary>F9', _('Show All Panes'), True), # T: Menu item
 )
 
 #: Menu actions that toggle between two states
@@ -150,7 +150,7 @@ ui_toggle_actions_window = (
 if ui_environment['platform'] == 'maemo':
 	ui_toggle_actions_window = (
 		# name, stock id, label, accelerator, tooltip, initial state, readonly
-		('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
+		('toggle_toolbar', None, _('_Toolbar'),  '<Primary>M', '', True, True), # T: Menu item
 		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 		('toggle_panes',  'gtk-index', _('_Side Panes'), 'F9', _('Show Side Panes'), True, True), # T: Menu item # FIXME review text
 		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
@@ -203,7 +203,7 @@ ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane'), False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Primary><Space> to switch to the side pane'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
@@ -2526,7 +2526,7 @@ class MainWindow(Window):
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Ctrl-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
-			group.connect_group( # <Ctrl><Space>
+			group.connect_group( # <Primary><Space>
 				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
@@ -2713,7 +2713,7 @@ class MainWindow(Window):
 		'''Switch focus between the textview and the page index.
 		Automatically opens the sidepane if it is closed
 		(but sets a property to automatically close it again).
-		This method is used for the (optional) <Ctrl><Space> keybinding.
+		This method is used for the (optional) <Primary><Space> keybinding.
 		'''
 		action = self.actiongroup.get_action('toggle_panes')
 		if action.get_active():

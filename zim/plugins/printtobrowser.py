@@ -69,7 +69,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('_Print to Browser'), 'gtk-print', '<ctrl>P') # T: menu item
+	@action(_('_Print to Browser'), 'gtk-print', '<Primary>P') # T: menu item
 	def print_to_browser(self, page=None):
 		notebook = self.window.ui.notebook # XXX
 		if page is None:
