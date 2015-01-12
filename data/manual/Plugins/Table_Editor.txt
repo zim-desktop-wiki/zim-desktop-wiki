@@ -14,10 +14,10 @@ This plugin allows you to integrat a table in zim.
 
 === Features ===
 1. Help page entry with table-sytax documented
+2. Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex  
 
 === Open Steps ===
-[ ] Creating plugin structure
-[ ] Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex
+[x] Creating plugin structure
 [ ] Displaying table in wiki page
 [ ] Tables can be edited in wiki page
 [ ] User-Dialogs for adding data (add, remove, reorder rows)

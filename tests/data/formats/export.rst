@@ -192,6 +192,20 @@ Some Objects
 	brought countless ills upon
 	the Achaeans.
 
+A table
+-------
++------------------+-----------------+
+|        H1        |              H2 |
+|                  |              h2 |
++==================+=================+
+|      Column      |       Column A2 |
+|        A1        |                 |
++------------------+-----------------+
+| a very long cell | **bold column** |
++------------------+-----------------+
+
+After a table there must be a blank line.
+
 
 ====
 This is not a header

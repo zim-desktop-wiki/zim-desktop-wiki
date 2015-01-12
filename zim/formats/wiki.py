@@ -163,6 +163,14 @@ class WikiParser(object):
 				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
 				process=self.parse_heading
 			),
+			Rule(TABLE, r'''
+				^(\|.*\|)$\n								# starting and ending with |
+				^( (?:\| [\|\-:]+ \|$\n)? )					# column align
+				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
+				^(?= \s*? \n)								# empty line / only spaces
+				''',
+				process=self.parse_table
+			)
 		)
 		p.process_unmatched = self.parse_para
 		return p
@@ -218,6 +226,48 @@ class WikiParser(object):
 			attrib['indent'] = len(indent)
 
 		builder.append(OBJECT, attrib, body)
+
+	def parse_table(self, builder, headerrow, alignstyle, body):
+		'''Table'''
+
+		cols = []
+
+		for celltext in alignstyle.split('|')[1:-1]:
+			if(celltext.startswith(':') and celltext.endswith(':')):
+				alignment = 'center'
+			elif(celltext.startswith(':')):
+				alignment = 'left'
+			elif(celltext.endswith(':')):
+				alignment = 'right'
+			elif(':' in celltext):
+				alignment = 'center'
+			else:
+				alignment = 'left'
+			cols.append(alignment)
+
+		missingstylerows = len(headerrow.split('|')[1:-1]) - len(alignstyle.split('|')[1:-1])
+		while missingstylerows > 0:
+			missingstylerows -= 1
+			cols.append('left')
+
+		builder.start(TABLE, {'cols':','.join(cols)})
+
+		builder.start(HEADROW)
+		for celltext in headerrow.split('|')[1:-1]:
+			celltext = celltext.replace("\\n", "\n")
+			builder.append(HEADDATA, {}, celltext)
+		builder.end(HEADROW)
+
+		for bodyrow in body.split("\n")[0:-1]:
+			builder.start(TABLEROW)
+			for celltext in bodyrow.split('|')[1:-1]:
+				builder.start(TABLEDATA)
+				celltext = celltext.replace("\\n", "\n")
+				self.inline_parser(builder, celltext)
+				builder.end(TABLEDATA)
+			builder.end(TABLEROW)
+
+		builder.end(TABLE)
 
 	def parse_para(self, builder, text):
 		'''Split a text into paragraphs and empty lines'''

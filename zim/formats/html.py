@@ -220,3 +220,40 @@ class Dumper(DumperClass):
 
 		# TODO put content in attrib, use text for caption (with full recursion)
 		# See img
+
+	def dump_table(self, tag, attrib, strings):
+		aligns = attrib['cols'].split(',')
+		tdcount = 0
+		for i, string in enumerate(strings):
+			if('<tr' in string):
+				tdcount = 0
+			elif'<th' in string:
+				strings[i] = string.replace('<th', '<th align="'+aligns[tdcount]+'"')
+				tdcount += 1
+			elif'<td' in string:
+				strings[i] = string.replace('<td', '<td align="'+aligns[tdcount]+'"')
+				tdcount += 1
+
+		strings.insert(0, '<table>\n')
+		strings.append('</table>\n')
+		return strings
+
+	def dump_thead(self, tag, attrib, strings):
+		strings.insert(0, '<thead><tr>\n')
+		strings.append('</tr></thead>\n')
+		return strings
+
+	def dump_th(self, tag, attrib, strings):
+		strings.insert(0, '  <th>')
+		strings.append('</th>\n')
+		return strings
+
+	def dump_trow(self, tag, attrib, strings):
+		strings.insert(0, '<tr>\n')
+		strings.append('</tr>\n')
+		return strings
+
+	def dump_td(self, tag, attrib, strings):
+		strings.insert(0, '  <td>')
+		strings.append('</td>\n')
+		return strings

@@ -108,4 +108,62 @@ class Dumper(TextDumper):
 		# dump object as verbatim block
 		return self.prefix_lines('\t', strings)
 
+	def dump_table(self, tag, attrib, strings):
+		aligns = attrib['cols'].split(',')
+		single_headers = strings[0]  # single line headers
+		header_length = len(single_headers) # number of columns
+		single_rows = strings[1::]  # body rows which are on a single-line
+		maxwidths = []  # character width of each column
+		table = []  # result table
 
+		# be aware of linebreaks within cells
+		single_headers = map(lambda cell: cell.replace("\n", "<br>"), single_headers)
+		for i, single_row in enumerate(single_rows):
+			while len(single_row) < header_length: # fill missing cells in body area
+				single_row.append('')
+			single_rows[i] = map\
+				(lambda cell: cell.replace("\n", "<br>"), single_row)
+
+		for i in range(header_length):  # calculate maximum widths of columns
+			header_max_characters = max(map(len, single_headers))
+			row_max_characters = max(map(len,single_row))
+			maxwidths.append(max(0, header_max_characters, row_max_characters))
+
+		# helper functions
+		def rowsep(y='-', x='|'):  # example: rowsep('-', '+') -> +-----+--+
+			cells = []
+			for i, width in enumerate(maxwidths):
+				align = aligns[i]
+				cell = (width) * y
+				if align == 'left':
+					cell = ':' + cell + y
+				elif align == 'right' :
+					cell = y + cell + ':'
+				elif align == 'center':
+					cell = ':' + cell + ':'
+				else:
+					cell = y + cell + y
+				cells.append(cell)
+			return x + x.join(cells) + x
+
+		def rowline(row, x='|', y=' '):  # example: rowline(['aa',''], '+','-') -> +-aa--+--+
+			cells = []
+			for i, val in enumerate(row):
+				align = aligns[i]
+				if align == 'left':
+					(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
+				elif align == 'right':
+					(lspace, rspace) = (maxwidths[i] - len(val) + 1, 1)
+				elif align == 'center':
+					lspace = (maxwidths[i] - len(val)) / 2 + 1
+					rspace = (maxwidths[i] - lspace - len(val) + 2)
+				else:
+					(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
+				cells.append(lspace * y + val + rspace * y)
+			return x + x.join(cells) + x
+
+		# print table
+		table += [rowline(single_headers)]
+		table.append(rowsep('-'))
+		table += [rowline(row) for row in single_rows]
+		return map(lambda line: line+"\n", table)

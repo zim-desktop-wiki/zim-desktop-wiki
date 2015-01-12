@@ -227,3 +227,46 @@ class Dumper(TextDumper):
 			assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 
 	dump_object_fallback = dump_pre
+
+	def dump_table(self, tag, attrib, strings):
+		aligns = attrib['cols'].split(',')
+		single_headers = strings[0]  # single line headers
+		header_length = len(single_headers) # number of columns
+		single_rows = strings[1::]  # body rows which are on a single-line
+		table = []  # result table
+
+		getalign = lambda a : 'l' if a == 'left' else 'r' if  a == 'right' else 'c' if a == 'center' else 'l'
+
+		# be aware of linebreaks within cells
+		for i, cell in enumerate(single_headers):
+			if '\n' in cell:
+				single_headers[i] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\\\") + '}'
+		for i, single_row in enumerate(single_rows):
+			while len(single_row) < header_length: # fill missing cells in body area
+				single_row.append('')
+			for (j, cell) in enumerate(single_row):
+				if '\n' in cell:
+					single_rows[i][j]  = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\\\") + '}'
+
+		positions = []
+		for align in aligns:
+			positions.append(getalign(align))
+
+		table.append('\\begin{tabular}{ |' + '|'.join(positions) + '| }')
+		table.append('\hline')
+
+		# helper functions
+		def rowline(row, x='&', y=' '):  # example: rowline(['aa',''], '+','-') -> +-aa--+--+
+			cells = []
+			for i, val in enumerate(row):
+				(lspace, rspace) = (1, 1)
+				cells.append(lspace * y + val + rspace * y)
+			return x.join(cells) + '\\tabularnewline\n\hline'
+
+		# print table
+		table += [rowline(single_headers)]
+		table.append('\hline')
+		table += [rowline(row) for row in single_rows]
+
+		table.append('\end{tabular}')
+		return map(lambda line: line+"\n", table)

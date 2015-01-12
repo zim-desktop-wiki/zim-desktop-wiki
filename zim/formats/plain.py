@@ -188,3 +188,73 @@ class Dumper(DumperClass):
 
 	def dump_object_fallback(self, tag, attrib, strings):
 		return strings
+
+	def dump_table(self, tag, attrib, strings):
+		aligns = attrib['cols'].split(',')
+		single_headers = strings[0]  # single line headers
+		header_length = len(single_headers) # number of columns
+		single_rows = strings[1::]  # body rows which are on a single-line
+		maxwidths = []  # character width of each column
+		rows = [] # normalized rows
+		table = []  # result table
+
+		# be aware of linebreaks within cells
+		headers_list = [cell.split("\n") for cell in single_headers]
+		header_lines = map(lambda *x: map(lambda e: e if e is not None else '', x), *headers_list)  # transpose h_list
+		for single_row in single_rows:
+			while len(single_row) < header_length: # fill missing cells in body area
+				single_row.append('')
+			row_list = [cell.split("\n") for cell in single_row]
+			rows.append(map(lambda *x: map(lambda e: e if e is not None else '', x), *row_list)) # transpose r_list
+
+		for i in range(header_length):  # calculate maximum widths of columns
+			header_max_characters = max([len(r[i]) for r in header_lines])
+			row_max_characters = max([len(r[i]) for rowline in rows for r in rowline])
+			maxwidths.append(max(0, header_max_characters, row_max_characters))
+
+		# helper functions
+		def rowsep(y='-', x='+'):  # example: rowsep('-', '+') -> +-----+--+
+			return x + x.join(map(lambda width: (width+2) * y, maxwidths)) + x
+
+		def rowline(row, x='|', y=' '):  # example: rowline(['aa',''], '+','-') -> +-aa--+--+
+			cells = []
+			for i, val in enumerate(row):
+				align = aligns[i]
+				if align == 'left':
+					(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
+				elif align == 'right':
+					(lspace, rspace) = (maxwidths[i] - len(val) + 1, 1)
+				elif align == 'center':
+					lspace = (maxwidths[i] - len(val)) / 2 + 1
+					rspace = (maxwidths[i] - lspace - len(val) + 2)
+				else:
+					(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
+				cells.append(lspace * y + val + rspace * y)
+			return x + x.join(cells) + x
+
+		# print table
+		table.append(rowsep('-'))
+		table += [rowline(line) for line in header_lines]
+		table.append(rowsep('='))
+		for row in rows:
+			table += [rowline(line) for line in row]
+			table.append(rowsep('-'))
+		return map(lambda line: line+"\n", table)
+
+	def dump_col(self, tag, attrib, strings):
+		attrib = "abc"
+		return
+
+	def dump_thead(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_th(self, tag, attrib, strings):
+		return strings
+
+	def dump_trow(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_td(self, tag, attrib, strings):
+		if len(strings) > 1:
+			return [''.join(strings)]
+		return strings

@@ -37,6 +37,11 @@ Supported tags:
 	- link for links, attribute href gives the target
 	- img for images, attributes src, width, height an optionally href and alt
 		- type can be used to control plugin functionality, e.g. type=equation
+	- table for tables, attribute cols - comma separated values right,left,center cols
+		- thead for table header row
+			- th for table header cell
+		- trow for table row
+			- td for table data cell
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -127,6 +132,12 @@ SUPERSCRIPT = 'sup'
 LINK = 'link'
 TAG = 'tag'
 ANCHOR = 'anchor'
+
+TABLE = 'table'
+HEADROW = 'thead'
+HEADDATA = 'th'
+TABLEROW = 'trow'
+TABLEDATA = 'td'
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM)
 
