@@ -242,8 +242,6 @@ class Dumper(TextDumper):
 			if '\n' in cell:
 				single_headers[i] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\\\") + '}'
 		for i, single_row in enumerate(single_rows):
-			while len(single_row) < header_length: # fill missing cells in body area
-				single_row.append('')
 			for (j, cell) in enumerate(single_row):
 				if '\n' in cell:
 					single_rows[i][j]  = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\\\") + '}'

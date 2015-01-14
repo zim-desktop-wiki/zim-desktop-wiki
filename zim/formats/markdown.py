@@ -119,8 +119,6 @@ class Dumper(TextDumper):
 		# be aware of linebreaks within cells
 		single_headers = map(lambda cell: cell.replace("\n", "<br>"), single_headers)
 		for i, single_row in enumerate(single_rows):
-			while len(single_row) < header_length: # fill missing cells in body area
-				single_row.append('')
 			single_rows[i] = map\
 				(lambda cell: cell.replace("\n", "<br>"), single_row)
 

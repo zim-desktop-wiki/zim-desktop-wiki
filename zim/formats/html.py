@@ -224,14 +224,19 @@ class Dumper(DumperClass):
 	def dump_table(self, tag, attrib, strings):
 		aligns = attrib['cols'].split(',')
 		tdcount = 0
+		def align(pos):
+			if pos == 'left' or pos == 'right' or pos == 'center':
+				return ' align="' + pos + '"'
+			return ''
+
 		for i, string in enumerate(strings):
 			if('<tr' in string):
 				tdcount = 0
 			elif'<th' in string:
-				strings[i] = string.replace('<th', '<th align="'+aligns[tdcount]+'"')
+				strings[i] = string.replace('<th', '<th' + align(aligns[tdcount]))
 				tdcount += 1
 			elif'<td' in string:
-				strings[i] = string.replace('<td', '<td align="'+aligns[tdcount]+'"')
+				strings[i] = string.replace('<td', '<td' + align(aligns[tdcount]))
 				tdcount += 1
 
 		strings.insert(0, '<table>\n')
@@ -254,6 +259,8 @@ class Dumper(DumperClass):
 		return strings
 
 	def dump_td(self, tag, attrib, strings):
+		if strings == [" "]:
+			strings = ["&nbsp;"]
 		strings.insert(0, '  <td>')
 		strings.append('</td>\n')
 		return strings

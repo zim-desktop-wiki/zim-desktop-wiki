@@ -202,8 +202,6 @@ class Dumper(DumperClass):
 		headers_list = [cell.split("\n") for cell in single_headers]
 		header_lines = map(lambda *x: map(lambda e: e if e is not None else '', x), *headers_list)  # transpose h_list
 		for single_row in single_rows:
-			while len(single_row) < header_length: # fill missing cells in body area
-				single_row.append('')
 			row_list = [cell.split("\n") for cell in single_row]
 			rows.append(map(lambda *x: map(lambda e: e if e is not None else '', x), *row_list)) # transpose r_list
 
@@ -240,10 +238,6 @@ class Dumper(DumperClass):
 			table += [rowline(line) for line in row]
 			table.append(rowsep('-'))
 		return map(lambda line: line+"\n", table)
-
-	def dump_col(self, tag, attrib, strings):
-		attrib = "abc"
-		return
 
 	def dump_thead(self, tag, attrib, strings):
 		return [strings]
