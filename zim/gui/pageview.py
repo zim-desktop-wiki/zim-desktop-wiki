@@ -530,6 +530,8 @@ class TextBuffer(gtk.TextBuffer):
 	lock the current cursor position
 	@signal: C{insert-object (object_element)}: request inserting of
 	custom object
+	@signal: C{insert-table (table_element)}: request inserting of
+	table object
 
 	@todo: document tag styles that are supported
 	'''
@@ -551,6 +553,7 @@ class TextBuffer(gtk.TextBuffer):
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -872,7 +875,7 @@ class TextBuffer(gtk.TextBuffer):
 					level = int(element.attrib['indent'])
 				else:
 					level = list_level + 1
-				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw) # recurs
+				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw) # recursdd
 				set_indent(None)
 			elif element.tag == 'li':
 				force_line_start()
@@ -919,6 +922,8 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				set_indent(None)
+			elif element.tag == 'table':
+				self.emit('insert-table', element)
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -4875,6 +4880,7 @@ class PageView(gtk.VBox):
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
 			buffer.connect('insert-object', self.on_insert_object)
+			buffer.connect('insert-table', self.on_insert_table)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5908,6 +5914,66 @@ class PageView(gtk.VBox):
 		self._object_widgets.add(widget)
 
 		widget.show_all()
+
+	def insert_talbe_at_cursor(self, obj):
+		'''Inserts a table object in the page
+		@param obj: an imjobt implementing L{CustomerObjectClass}
+		'''
+		assert isinstance(obj, CustomObjectClass)
+		self.on_insert_table(self.view.get_buffer(), obj)
+
+	def on_insert_table(self, buffer, obj, interactive=False):
+		# Inserts custom table to TreeView & Treestore.
+		logger.debug("Insert table(%s, %s)", buffer, obj)
+
+
+		if not isinstance(obj, CustomObjectClass):
+			# assume obj is a parsetree element
+			element = obj
+			if not 'type' in element.attrib:
+				return None
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
+			logger.fatal("OBJ")
+			logger.fatal(obj)
+		'''
+		def on_modified_changed(obj):
+			if obj.get_modified() and not buffer.get_modified():
+				buffer.set_modified(True)
+
+		obj.connect('modified-changed', on_modified_changed)
+		iter = buffer.get_insert_iter()
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.view.grab_focus()
+
+		anchor = ObjectAnchor(obj)
+		buffer.insert_child_anchor(iter, anchor)
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectWidget)
+		widget.connect('release-cursor', on_release_cursor, anchor)
+		widget.show_all()
+		'''
+
+		# TOOD - manual inserted
+		anchor = buffer.create_child_anchor(buffer.get_iter_at_line(3))
+		textview = gtk.TextView()
+		textbuffer = textview.get_buffer()
+		textview.show()
+
+		print textview
+
+		widget = textview
+		# END TOOD
+
+		self.view.add_child_at_anchor(widget, anchor)
+		self._object_widgets.add(widget)
+
+		widget.show_all()
+
 
 	def on_view_size_allocate(self, textview, allocation):
 		for widget in self._object_widgets:

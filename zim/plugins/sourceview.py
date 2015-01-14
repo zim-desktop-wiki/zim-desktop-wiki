@@ -218,7 +218,7 @@ class SourceViewObject(CustomObjectClass):
 				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
 				# TODO: not all GtkSourceView language ids match with SyntaxHighlighter
 				# language ids.
-				# TODO: some template instruction to be able to use other highlighters as well?
+				# TODO: some template instrmFuction to be able to use other highlighters as well?
 				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
 			else:
 				output = ['<pre>\n']
