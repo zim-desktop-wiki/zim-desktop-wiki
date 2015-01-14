@@ -575,14 +575,14 @@ class Dumper(TextDumper):
 		return [strings]
 
 	def dump_th(self, tag, attrib, strings):
-		strings = map(lambda s: s.replace('|', '\\|'), strings)
+		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 		return strings
 
 	def dump_trow(self, tag, attrib, strings):
 		return [strings]
 
 	def dump_td(self, tag, attrib, strings):
-		strings = map(lambda s: s.replace('|', '\\|'), strings)
+		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 		if len(strings) > 1:
 			strings = ''.join(strings)
 		return strings

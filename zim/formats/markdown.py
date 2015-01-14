@@ -116,16 +116,8 @@ class Dumper(TextDumper):
 		maxwidths = []  # character width of each column
 		table = []  # result table
 
-		# be aware of linebreaks within cells
-		single_headers = map(lambda cell: cell.replace("\n", "<br>"), single_headers)
-		for i, single_row in enumerate(single_rows):
-			single_rows[i] = map\
-				(lambda cell: cell.replace("\n", "<br>"), single_row)
-
 		for i in range(header_length):  # calculate maximum widths of columns
-			header_max_characters = max(map(len, single_headers))
-			row_max_characters = max(map(len,single_row))
-			maxwidths.append(max(0, header_max_characters, row_max_characters))
+			maxwidths.append(max(0, len(single_headers[i]), len(single_rows[0])))
 
 		# helper functions
 		def rowsep(y='-', x='|'):  # example: rowsep('-', '+') -> +-----+--+
@@ -165,3 +157,19 @@ class Dumper(TextDumper):
 		table.append(rowsep('-'))
 		table += [rowline(row) for row in single_rows]
 		return map(lambda line: line+"\n", table)
+
+	def dump_thead(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_th(self, tag, attrib, strings):
+		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
+		return strings
+
+	def dump_trow(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_td(self, tag, attrib, strings):
+		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
+		if len(strings) > 1:
+			return [''.join(strings)]
+		return strings

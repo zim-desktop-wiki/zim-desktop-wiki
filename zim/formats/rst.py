@@ -149,12 +149,14 @@ class Dumper(TextDumper):
 		return [strings]
 
 	def dump_th(self, tag, attrib, strings):
+		strings = [s.replace('|', '∣') for s in strings]
 		return strings
 
 	def dump_trow(self, tag, attrib, strings):
 		return [strings]
 
 	def dump_td(self, tag, attrib, strings):
+		strings = [s.replace('|', '∣') for s in strings]
 		if len(strings) > 1:
 			return [''.join(strings)]
 		return strings

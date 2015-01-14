@@ -240,11 +240,11 @@ class Dumper(TextDumper):
 		# be aware of linebreaks within cells
 		for i, cell in enumerate(single_headers):
 			if '\n' in cell:
-				single_headers[i] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\\\") + '}'
+				single_headers[i] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\") + '}'
 		for i, single_row in enumerate(single_rows):
 			for (j, cell) in enumerate(single_row):
 				if '\n' in cell:
-					single_rows[i][j]  = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\\\") + '}'
+					single_rows[i][j] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\") + '}'
 
 		positions = []
 		for align in aligns:
