@@ -509,6 +509,7 @@ class ParseTree(object):
 			pass
 
 	def _visit(self, visitor, node):
+		logger.fatal(node.tag)
 		try:
 			if len(node): # Has children
 				visitor.start(node.tag, node.attrib)

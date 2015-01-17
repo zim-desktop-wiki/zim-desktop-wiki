@@ -231,12 +231,16 @@ class WikiParser(object):
 		'''Table'''
 
 		cols = []
-		headerrow = headerrow.replace('\\|', '#124;') #escaping
-		nrcols = headerrow.count('|')-1
+		headerrow = headerrow.replace('\\|', '#124;')  # escaping
 		body = body.replace('\\|', '#124;')
 
+		# add headercells - no row might not contain more cells than the header
+		nrcols = max([row.count('|') for row in body.split('\n')])  # max number of cells in a row
+		while headerrow.count('|') < nrcols:
+			headerrow += '|'
+
 		# transform header separator line into alignment definitions
-		while(alignstyle.count('|') < headerrow.count('|')):
+		while alignstyle.count('|') < headerrow.count('|'):
 			alignstyle += '|'  # fill cells thus they match with nr of headers
 		for celltext in alignstyle.split('|')[1:-1]:
 			if celltext.startswith(':') and celltext.endswith(':'):
@@ -257,19 +261,19 @@ class WikiParser(object):
 		for celltext in headerrow.split('|')[1:-1]:
 			celltext = celltext.replace("\\n", "\n").strip()
 			if not celltext:
-				celltext = ' ' # celltext must contain at least one character
+				celltext = ' '  # celltext must contain at least one character
 			builder.append(HEADDATA, {}, celltext)
 		builder.end(HEADROW)
 
 		for bodyrow in body.split("\n")[0:-1]:
-			while(bodyrow.count('|') < headerrow.count('|')):
+			while bodyrow.count('|') < headerrow.count('|'):
 				bodyrow += '|'  # fill cells thus they match with nr of headers
 			builder.start(TABLEROW)
 			for celltext in bodyrow.split('|')[1:-1]:
 				builder.start(TABLEDATA)
-				celltext = celltext.replace("\\n", "\n").replace("#124;","|").strip()  # cleanup cell
+				celltext = celltext.replace("\\n", "\n").replace("#124;", "|").strip()  # cleanup cell
 				if not celltext:
-					celltext = ' ' # celltext must contain at least one character
+					celltext = ' '  # celltext must contain at least one character
 				self.inline_parser(builder, celltext)
 				builder.end(TABLEDATA)
 			builder.end(TABLEROW)
@@ -515,7 +519,7 @@ class Dumper(TextDumper):
 	def dump_table(self, tag, attrib, strings):
 		aligns = attrib['cols'].split(',')
 		single_headers = strings[0]  # single line headers
-		header_length = len(single_headers) # number of columns
+		header_length =  len(single_headers)  # number of columns
 		single_rows = strings[1::]  # body rows which are on a single-line
 		maxwidths = []  # character width of each column
 		rows = [] # normalized rows
@@ -526,7 +530,7 @@ class Dumper(TextDumper):
 		header_lines = map(lambda *x: map(lambda e: e if e is not None else '', x), *headers_list)  # transpose h_list
 		for single_row in single_rows:
 			row_list = [cell.split("\n") for cell in single_row]
-			rows.append(map(lambda *x: map(lambda e: e if e is not None else '', x), *row_list)) # transpose r_list
+			rows.append(map(lambda *x: map(lambda e: e if e is not None else '', x), *row_list))  # transpose r_list
 
 		for i in range(header_length):  # calculate maximum widths of columns
 			header_max_characters = max([len(r[i]) for r in header_lines])

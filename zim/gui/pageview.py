@@ -2328,11 +2328,21 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 				if hasattr(anchor, 'manager'):
 					attrib = anchor.manager.get_attrib()
-					data = anchor.manager.get_data()
-					logger.debug("Anchor with CustomObject: %s", anchor.manager)
-					builder.start('object', attrib)
-					builder.data(data)
-					builder.end('object')
+					if(attrib['type'] == 'table'):
+						del attrib['type']
+						data = anchor.manager.get_data()
+						logger.debug("Anchor with TableObject: %s", anchor.manager)
+						builder.start('table', attrib)
+						builder.data(data)
+						builder.end('table')
+						logger.fatal(data)
+					else:
+						data = anchor.manager.get_data()
+						logger.debug("Anchor with CustomObject: %s", anchor.manager)
+						builder.start('object', attrib)
+						builder.data(data)
+						builder.end('object')
+
 					anchor.manager.set_modified(False)
 				iter.forward_char()
 			else:
@@ -2408,7 +2418,7 @@ class TextBuffer(gtk.TextBuffer):
 		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
 			# and get rid of oddities in our generated parsetree.
-			#~ print ">>> Parsetree original:", tree.tostring()
+			print ">>> Parsetree original:", tree.tostring()
 			from zim.formats import get_format
 			format = get_format("wiki") # FIXME should the format used here depend on the store ?
 			dumper = format.Dumper()
@@ -5915,7 +5925,7 @@ class PageView(gtk.VBox):
 
 		widget.show_all()
 
-	def insert_talbe_at_cursor(self, obj):
+	def insert_table_at_cursor(self, obj):
 		'''Inserts a table object in the page
 		@param obj: an imjobt implementing L{CustomerObjectClass}
 		'''
@@ -5923,57 +5933,10 @@ class PageView(gtk.VBox):
 		self.on_insert_table(self.view.get_buffer(), obj)
 
 	def on_insert_table(self, buffer, obj, interactive=False):
-		# Inserts custom table to TreeView & Treestore.
-		logger.debug("Insert table(%s, %s)", buffer, obj)
-
-
-		if not isinstance(obj, CustomObjectClass):
-			# assume obj is a parsetree element
-			element = obj
-			if not 'type' in element.attrib:
-				return None
-			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
-			logger.fatal("OBJ")
-			logger.fatal(obj)
-		'''
-		def on_modified_changed(obj):
-			if obj.get_modified() and not buffer.get_modified():
-				buffer.set_modified(True)
-
-		obj.connect('modified-changed', on_modified_changed)
-		iter = buffer.get_insert_iter()
-
-		def on_release_cursor(widget, position, anchor):
-			myiter = buffer.get_iter_at_child_anchor(anchor)
-			if position == POSITION_END:
-				myiter.forward_char()
-			buffer.place_cursor(myiter)
-			self.view.grab_focus()
-
-		anchor = ObjectAnchor(obj)
-		buffer.insert_child_anchor(iter, anchor)
-		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectWidget)
-		widget.connect('release-cursor', on_release_cursor, anchor)
-		widget.show_all()
-		'''
-
-		# TOOD - manual inserted
-		anchor = buffer.create_child_anchor(buffer.get_iter_at_line(3))
-		textview = gtk.TextView()
-		textbuffer = textview.get_buffer()
-		textview.show()
-
-		print textview
-
-		widget = textview
-		# END TOOD
-
-		self.view.add_child_at_anchor(widget, anchor)
-		self._object_widgets.add(widget)
-
-		widget.show_all()
-
+		element = obj
+		element.attrib['type'] = 'table'
+		element.text = element
+		self.on_insert_object(buffer, obj, interactive)
 
 	def on_view_size_allocate(self, textview, allocation):
 		for widget in self._object_widgets:

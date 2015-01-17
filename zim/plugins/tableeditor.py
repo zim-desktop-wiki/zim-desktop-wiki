@@ -15,8 +15,9 @@ from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
 from zim.gui.widgets import Dialog, ScrolledWindow
-from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget, TableViewWidget
+from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
 from zim.formats.html import html_encode
+from zim.config.dicts import ConfigDict, String
 
 OBJECT_TYPE = 'table'
 
@@ -36,7 +37,7 @@ class TableEditorPlugin(PluginClass):
 		'name': _('Table Editor'), # T: plugin name
 		'description': _('''\
 **IN DEVELOPMENT**
-This plugin allows inserting 'Tables' in the page. These will be shown as TreeGrid widgets.
+This plugin allows inserting 'Tables' in the page. These will be shown as TreeView widgets.
 Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 '''), # T: plugin description
 		'object_types': (OBJECT_TYPE, ),
@@ -64,8 +65,8 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		PluginClass.__init__(self, config)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
-	def create_object(self, attrib, text):
-		'''Factory method for SourceViewObject objects'''
+	def create_table(self, attrib, text):
+		'''Factory method for Table objects'''
 		obj = TableViewObject(attrib, text, self.preferences)
 		return obj
 
@@ -92,7 +93,7 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_object)
+		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table)
 			# XXX use pageview attribute instead of singleton
 
 	def teardown(self):
@@ -107,9 +108,9 @@ class MainWindowExtension(WindowExtension):
 		if not lang:
 			return # dialog cancelled
 		else:
-			obj = self.plugin.create_object({'type': OBJECT_TYPE, 'lang': lang}, '')
+			obj = self.plugin.create_table({'type': OBJECT_TYPE, 'lang': lang, 'kkk':'kkk'}, '')
 			pageview = self.window.pageview
-			pageview.insert_object_at_cursor(obj)
+			pageview.insert_table_at_cursor(obj)
 
 
 class TableViewObject(CustomObjectClass):
@@ -117,15 +118,15 @@ class TableViewObject(CustomObjectClass):
 	OBJECT_ATTR = {
 		'type': String('table'),
 		'lang': String(None),
-		'linenumbers': Boolean(True),
+		#'linenumbers': Boolean(True),
 	}
 
 	def __init__(self, attrib, data, preferences):
-		if data.endswith('\n'):
-			data = data[:-1]
-			# If we have trailing \n it looks like an extra empty line
-			# in the buffer, so we default remove one
-		CustomObjectClass.__init__(self, attrib, data)
+		data = "hallo"
+		self._attrib = ConfigDict(attrib)
+		self._attrib.define(self.OBJECT_ATTR)
+		self._data = data if data is not None else ''
+		self.modified = False
 		self.preferences = preferences
 		self.buffer = None
 		self._widgets = WeakSet()
@@ -139,16 +140,10 @@ class TableViewObject(CustomObjectClass):
 			self.buffer.set_modified(False)
 			self._data = None
 
-			try:
-				if self._attrib['lang']:
-					self.buffer.set_language(lm.get_language(self._attrib['lang']))
-			except:
-				logger.exception('Could not set language for sourceview: %s', lang)
 
 		widget = TableViewWidget(self, self.buffer)
 		self._widgets.add(widget)
 
-		widget.view.set_show_line_numbers(self._attrib['linenumbers'])
 		widget.set_preferences(self.preferences)
 		return widget
 
@@ -157,9 +152,11 @@ class TableViewObject(CustomObjectClass):
 			widget.set_preferences(self.preferences)
 
 	def on_modified_changed(self, buffer):
-		# Sourceview changed, set change on oject, reset state of
-		# sourceview buffer so we get a new signal with next change
+		# Table changed, set change on oject, reset state of
+		# table buffer so we get a new signal with next change
 		if buffer.get_modified():
+			logger.fatal("buffer changed")
+			logger.fatal(buffer)
 			self.set_modified(True)
 			buffer.set_modified(False)
 
@@ -174,6 +171,7 @@ class TableViewObject(CustomObjectClass):
 			return self._data
 
 	def dump(self, format, dumper, linker=None):
+		logger.fatal("DUMPING")
 		if format == "html":
 			if self._attrib['lang']:
 				# class="brush: language;" works with SyntaxHighlighter 2.0.278
@@ -215,11 +213,19 @@ class TableViewObject(CustomObjectClass):
 			widget.view.set_show_line_numbers(show)
 
 
-
 class TableViewWidget(CustomObjectWidget):
 
 	def __init__(self, obj, buffer):
-		CustomObjectWidget.__init__(self)
+		gtk.EventBox.__init__(self)
+		self.set_border_width(5)
+		self._has_cursor = False
+		self._resize = True
+
+		# Add vbox and wrap it to have a shadow around it
+		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
+		win = ScrolledWindow(self.vbox, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_IN)
+		self.add(win)
+
 		self.set_has_cursor(True)
 		self.buffer = buffer
 		self.obj = obj
@@ -238,6 +244,17 @@ class TableViewWidget(CustomObjectWidget):
 		self.view.set_right_margin_position(80)
 		self.view.set_show_right_margin(True)
 		self.view.set_tab_width(4)
+
+
+		self.liststore = gtk.ListStore(str, str)
+		self.liststore.append(["Fedora", "http://fedoraproject.org/"])
+		treeview = gtk.TreeView(model=self.liststore)
+
+
+		renderer_text = gtk.CellRendererText()
+		column_text = gtk.TreeViewColumn("Text", renderer_text, text=0)
+		treeview.append_column(column_text)
+		self.view = treeview
 
 		# simple toolbar
 		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
@@ -273,17 +290,18 @@ class TableViewWidget(CustomObjectWidget):
 		self.vbox.pack_start(win)
 
 		# Hook up signals
-		self.view.connect('populate-popup', self.on_populate_popup)
+		#self.view.connect('populate-popup', self.on_populate_popup)
 		self.view.connect('move-cursor', self.on_move_cursor)
 
 
 	def set_preferences(self, preferences):
-		self.view.set_auto_indent(preferences['auto_indent'])
-		self.view.set_smart_home_end(preferences['smart_home_end'])
-		self.view.set_highlight_current_line(preferences['highlight_current_line'])
-		self.view.set_right_margin_position(preferences['right_margin_position'])
-		self.view.set_show_right_margin(preferences['show_right_margin'])
-		self.view.set_tab_width(preferences['tab_width'])
+		pass
+		#self.view.set_auto_indent(preferences['auto_indent'])
+		#self.view.set_smart_home_end(preferences['smart_home_end'])
+		#self.view.set_highlight_current_line(preferences['highlight_current_line'])
+		#self.view.set_right_margin_position(preferences['right_margin_position'])
+		#self.view.set_show_right_margin(preferences['show_right_margin'])
+		#self.view.set_tab_width(preferences['tab_width'])
 
 	def on_move_cursor(self, view, step_size, count, extend_selection):
 		# If you try to move the cursor out of the sourceview
