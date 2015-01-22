@@ -117,12 +117,11 @@ class TableViewObject(CustomObjectClass):
 
 	OBJECT_ATTR = {
 		'type': String('table'),
-		'lang': String(None),
 		#'linenumbers': Boolean(True),
 	}
 
 	def __init__(self, attrib, data, preferences):
-		data = "hallo"
+		data = "Hallo"
 		self._attrib = ConfigDict(attrib)
 		self._attrib.define(self.OBJECT_ATTR)
 		self._data = data if data is not None else ''
@@ -141,11 +140,13 @@ class TableViewObject(CustomObjectClass):
 			self._data = None
 
 
-		widget = TableViewWidget(self, self.buffer)
+		widget = TableViewWidget(self.buffer)
 		self._widgets.add(widget)
 
 		widget.set_preferences(self.preferences)
 		return widget
+
+
 
 	def preferences_changed(self):
 		for widget in self._widgets:
@@ -173,6 +174,7 @@ class TableViewObject(CustomObjectClass):
 	def dump(self, format, dumper, linker=None):
 		logger.fatal("DUMPING")
 		if format == "html":
+			logger.fatal("HTML")
 			if self._attrib['lang']:
 				# class="brush: language;" works with SyntaxHighlighter 2.0.278
 				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
@@ -215,7 +217,15 @@ class TableViewObject(CustomObjectClass):
 
 class TableViewWidget(CustomObjectWidget):
 
-	def __init__(self, obj, buffer):
+	def __init__(self, data):
+		self._data = data
+
+		#tree = self.get_treeview()
+		#logger.fatal(tree)
+		#raise
+		#logger.fatal(self._data.get('cols'))
+
+
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
 		self._has_cursor = False
@@ -228,33 +238,23 @@ class TableViewWidget(CustomObjectWidget):
 
 		self.set_has_cursor(True)
 		self.buffer = buffer
-		self.obj = obj
+		#self.obj = obj
 
-		#win, self.view = ScrolledTextView(monospace=True,
-		#	hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_NEVER, shadow=gtk.SHADOW_NONE)
-		#self.view.set_buffer(buffer)
-		#self.view.set_editable(True)
-		#self.vbox.pack_start(win)
+		logger.fatal( self.buffer)
+		logger.fatal( "--")
+		#logger.fatal(self.obj)
 
-		self.view = gtksourceview2.View(self.buffer)
-		self.view.modify_font(pango.FontDescription('monospace'))
-		self.view.set_auto_indent(True)
-		self.view.set_smart_home_end(True)
-		self.view.set_highlight_current_line(True)
-		self.view.set_right_margin_position(80)
-		self.view.set_show_right_margin(True)
-		self.view.set_tab_width(4)
 
 
 		self.liststore = gtk.ListStore(str, str)
 		self.liststore.append(["Fedora", "http://fedoraproject.org/"])
 		treeview = gtk.TreeView(model=self.liststore)
-
+		self.view = treeview
 
 		renderer_text = gtk.CellRendererText()
 		column_text = gtk.TreeViewColumn("Text", renderer_text, text=0)
 		treeview.append_column(column_text)
-		self.view = treeview
+		#self.view = self.create_treeview()
 
 		# simple toolbar
 		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
@@ -293,6 +293,31 @@ class TableViewWidget(CustomObjectWidget):
 		#self.view.connect('populate-popup', self.on_populate_popup)
 		self.view.connect('move-cursor', self.on_move_cursor)
 
+	def create_treeview(self):
+		table = self._data
+		aligns = table.get('cols').split(',')
+		nrcols = len(aligns)
+		cols = [str]*nrcols
+		liststore = gtk.ListStore(*cols)
+		treeview = gtk.Treeview(liststore)
+
+		for headcol in table.findall('thead/th'):
+			renderer_editabletext = gtk.CellRendererText()
+			renderer_editabletext.set_property("editable", True)
+			column_editabletext = gtk.TreeViewColumn(headcol, renderer_editabletext, markup=1)
+			treeview.append_column(column_editabletext)
+			# renderer_editabletext.connect("edited", self.on_cell_changed)
+			# renderer_editabletext.connect("editing-started", self.on_cell_editing_started)
+
+		for row in table.findall('trow'):
+			for i, cell in enumerate(row):
+				pass
+
+
+
+		return treeview
+
+
 
 	def set_preferences(self, preferences):
 		pass
@@ -304,7 +329,7 @@ class TableViewWidget(CustomObjectWidget):
 		#self.view.set_tab_width(preferences['tab_width'])
 
 	def on_move_cursor(self, view, step_size, count, extend_selection):
-		# If you try to move the cursor out of the sourceview
+		# If you try to move the cursor out of the tableditor
 		# release the cursor to the parent textview
 		buffer = view.get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
@@ -335,22 +360,14 @@ class TableViewWidget(CustomObjectWidget):
 			self.obj.show_line_numbers(item.get_active())
 
 		item = gtk.CheckMenuItem(_('Show Line Numbers'))
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 		item.set_active(self.obj._attrib['linenumbers'])
 		item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)
 
 
-		def activate_lang(item):
-			self.obj.set_language(item.zim_sourceview_languageid)
-
 		item = gtk.MenuItem(_('Syntax'))
 		submenu = gtk.Menu()
-		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
-			langitem = gtk.MenuItem(lang)
-			langitem.connect('activate', activate_lang)
-			langitem.zim_sourceview_languageid = LANGUAGES[lang]
-			submenu.append(langitem)
 		item.set_submenu(submenu)
 		menu.prepend(item)
 

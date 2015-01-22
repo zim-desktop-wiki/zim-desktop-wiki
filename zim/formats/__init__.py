@@ -90,7 +90,7 @@ except:
 	logger.warn('Could not load pango - RTL scripts may look bad')
 
 try:
-	import xml.etree.cElementTree as ElementTreeModule
+    import xml.etree.cElementTree as ElementTreeModule
 except:  #pragma: no cover
 	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
@@ -509,7 +509,6 @@ class ParseTree(object):
 			pass
 
 	def _visit(self, visitor, node):
-		logger.fatal(node.tag)
 		try:
 			if len(node): # Has children
 				visitor.start(node.tag, node.attrib)

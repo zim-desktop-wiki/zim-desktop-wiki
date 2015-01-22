@@ -2332,6 +2332,7 @@ class TextBuffer(gtk.TextBuffer):
 						del attrib['type']
 						data = anchor.manager.get_data()
 						logger.debug("Anchor with TableObject: %s", anchor.manager)
+						logger.fatal(data)
 						builder.start('table', attrib)
 						builder.data(data)
 						builder.end('table')

@@ -252,7 +252,7 @@ class WikiParser(object):
 			elif ':' in celltext:
 				alignment = 'center'
 			else:
-				alignment = 'default'
+				alignment = 'normal'
 			cols.append(alignment)
 
 		builder.start(TABLE, {'cols': ','.join(cols)})

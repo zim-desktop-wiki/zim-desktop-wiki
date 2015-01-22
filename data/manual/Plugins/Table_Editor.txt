@@ -11,13 +11,12 @@ This plugin allows you to integrat a table in zim.
 **WARNING 1:** You may __loose your pages__ where you have integrated a table
 **WARNING 2:** There might be some features which are not usable yet
 
-
 === Features ===
 1. Help page entry with table-sytax documented
 2. Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex  
 
 === Open Steps ===
-[x] Creating plugin structure
+[*] Creating plugin structure
 [ ] Displaying table in wiki page
 [ ] Tables can be edited in wiki page
 [ ] User-Dialogs for adding data (add, remove, reorder rows)
@@ -50,4 +49,34 @@ Each row and each cell starts and ends with a "|"
 Text after table. Table has to end with an empty line.
 '''
 
-The header line can only be inserted after the first line
+The header line can only be inserted after the first line:
+''---	normal (left) alignment''
+'':--	left  alignment''
+''--:	right  alignment''
+'':-:	centered alignment''
+
+===== Markup in a cell =====
+**bold**, //italic//, __highlight__, ~~strike through and~~ and ''verbatim''
+
+'''
+**bold**, //italic//, __highlight__, ~~strike through~~ and ''verbatim''
+'''
+
+\\n		Newline
+\|		| Character
+
+===== Links in a  cell =====
+Note:	Only __one__** link per cell** is allowed
+A link can be accessed with:	''CTRL + LEFT MOUSE-BUTTON-CLICK'' on a cell
+
+Examples:
+'''
+http://www.python.org
+foo@bar.org
+[[foo]]		Internal Link
+'''
+
+
+
+See also:	[[:Help:Links|Syntax for Links]]
+
