@@ -165,7 +165,7 @@ class WikiParser(object):
 			),
 			Rule(TABLE, r'''
 				^(\|.*\|)$\n								# starting and ending with |
-				^( (?:\| [\|\-:]+ \|$\n)? )					# column align
+				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
 				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
 				^(?= \s*? \n)								# empty line / only spaces
 				''',
@@ -243,14 +243,13 @@ class WikiParser(object):
 		while alignstyle.count('|') < headerrow.count('|'):
 			alignstyle += '|'  # fill cells thus they match with nr of headers
 		for celltext in alignstyle.split('|')[1:-1]:
+			celltext = celltext.strip()
 			if celltext.startswith(':') and celltext.endswith(':'):
 				alignment = 'center'
 			elif celltext.startswith(':'):
 				alignment = 'left'
 			elif celltext.endswith(':'):
 				alignment = 'right'
-			elif ':' in celltext:
-				alignment = 'center'
 			else:
 				alignment = 'normal'
 			cols.append(alignment)
@@ -517,6 +516,12 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
+		logger.fatal(type(strings[0]))
+		logger.fatal("DUMP_TABL")
+		logger.fatal(strings)
+		logger.fatal(tag)
+		logger.fatal(attrib)
+		logger.fatal("---")
 		aligns = attrib['cols'].split(',')
 		single_headers = strings[0]  # single line headers
 		header_length =  len(single_headers)  # number of columns
@@ -534,7 +539,7 @@ class Dumper(TextDumper):
 
 		for i in range(header_length):  # calculate maximum widths of columns
 			header_max_characters = max([len(r[i]) for r in header_lines])
-			row_max_characters = max([len(r[i]) for rowline in rows for r in rowline])
+			row_max_characters = max([len(r[i]) for row in rows for r in row])
 			maxwidths.append(max(0, header_max_characters, row_max_characters))
 
 		# helper functions

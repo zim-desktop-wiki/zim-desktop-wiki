@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Tobias Haupenthal <thaupenthal@xdn.de>
+# Copyright 2015 Tobias Haupenthal
 
 import gtk
-import gtksourceview2
 import pango
 import logging
+from xml.etree import ElementTree
+import re
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
@@ -19,16 +20,17 @@ from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
 from zim.formats.html import html_encode
 from zim.config.dicts import ConfigDict, String
 
+
 OBJECT_TYPE = 'table'
 
-if gtksourceview2:
-	lm = gtksourceview2.LanguageManager()
-	lang_ids = lm.get_language_ids()
-	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
-
-	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
-else:
-	LANGUAGES = {}
+# Wiki-Parsetree -> Pango (Table cell) -> TextView (Table cell editing)
+SYNTAX_WIKI_PANGO = (
+	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
+	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
+	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
+	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
+	(r'<a href="\1">\2</a>', r'<span foreground="blue">\1</span>', r'[[\1]]')
+)
 
 
 class TableEditorPlugin(PluginClass):
@@ -117,36 +119,24 @@ class TableViewObject(CustomObjectClass):
 
 	OBJECT_ATTR = {
 		'type': String('table'),
-		#'linenumbers': Boolean(True),
 	}
 
 	def __init__(self, attrib, data, preferences):
-		data = "Hallo"
 		self._attrib = ConfigDict(attrib)
 		self._attrib.define(self.OBJECT_ATTR)
-		self._data = data if data is not None else ''
+		self.tabledata = data if data is not None else ''
 		self.modified = False
 		self.preferences = preferences
-		self.buffer = None
+		self.treeview = None
 		self._widgets = WeakSet()
 
 	def get_widget(self):
-		if not self.buffer:
-			self.buffer = gtksourceview2.Buffer()
-			self.buffer.set_text(self._data)
-			self.buffer.connect('modified-changed', self.on_modified_changed)
-			self.buffer.set_highlight_matching_brackets(True)
-			self.buffer.set_modified(False)
-			self._data = None
-
-
-		widget = TableViewWidget(self.buffer)
+		widget = TableViewWidget(self, self.tabledata)
+		self.treeview = widget.get_treeview()
 		self._widgets.add(widget)
 
 		widget.set_preferences(self.preferences)
 		return widget
-
-
 
 	def preferences_changed(self):
 		for widget in self._widgets:
@@ -163,62 +153,42 @@ class TableViewObject(CustomObjectClass):
 
 	def get_data(self):
 		'''Returns data as text.'''
-		if self.buffer:
-			bounds = self.buffer.get_bounds()
-			text = self.buffer.get_text(bounds[0], bounds[1])
-			text += '\n' # Make sure we always have a trailing \n
-			return text
-		else:
-			return self._data
+		liststore = self.treeview.get_model()
+		headers = []
+		aligns = []
+		rows = []
+		for column in self.treeview.get_columns():
+			val = column.get_title() if column.get_title() else ' '
+			headers.append(val)
+			alignment = column.get_alignment()
+			if alignment == 0.0:
+				align = 'left'
+			elif alignment == 0.5:
+				alig = 'center'
+			elif alignment == 1.0:
+				align = 'right'
+			else:
+				align = 'normal'
+			aligns.append(align)
+		iter = liststore.get_iter_first()
+		while iter is not None:
+			row = []
+			for colid in range(len(self.treeview.get_columns())):
+				val = liststore.get_value(iter, colid) if liststore.get_value(iter, colid) else ' '
+				row.append(val)
+			rows.append(row)
+			iter = liststore.iter_next(iter)
+		return headers, aligns, rows
 
 	def dump(self, format, dumper, linker=None):
 		logger.fatal("DUMPING")
-		if format == "html":
-			logger.fatal("HTML")
-			if self._attrib['lang']:
-				# class="brush: language;" works with SyntaxHighlighter 2.0.278
-				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
-				# TODO: not all GtkSourceView language ids match with SyntaxHighlighter
-				# language ids.
-				# TODO: some template instruction to be able to use other highlighters as well?
-				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
-			else:
-				output = ['<pre>\n']
-			data = self.get_data()
-			data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
-			if self._attrib['linenumbers']:
-				for i, l in enumerate(data.splitlines(1)):
-					output.append('%i&nbsp;' % (i+1) + l)
-			else:
-				output.append(data)
-			output.append('</pre>\n')
-			return output
 		return CustomObjectClass.dump(self, format, dumper, linker)
-
-	def set_language(self, lang):
-		'''Set language in SourceView.'''
-		self._attrib['lang'] = lang
-		self.set_modified(True)
-
-		if self.buffer:
-			if lang is None:
-				self.buffer.set_language(None)
-			else:
-				self.buffer.set_language(lm.get_language(lang))
-
-	def show_line_numbers(self, show):
-		'''Toggles line numbers in SourceView.'''
-		self._attrib['linenumbers'] = show
-		self.set_modified(True)
-
-		for widget in self._widgets:
-			widget.view.set_show_line_numbers(show)
 
 
 class TableViewWidget(CustomObjectWidget):
 
-	def __init__(self, data):
-		self._data = data
+	def __init__(self, obj, data):
+		self.tabledata = data
 
 		#tree = self.get_treeview()
 		#logger.fatal(tree)
@@ -237,23 +207,17 @@ class TableViewWidget(CustomObjectWidget):
 		self.add(win)
 
 		self.set_has_cursor(True)
-		self.buffer = buffer
-		#self.obj = obj
 
-		logger.fatal( self.buffer)
-		logger.fatal( "--")
+		self.treeview = self.create_treeview()
+		win = ScrolledWindow(self.treeview, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
+		# only horizontal scroll
+		self.vbox.pack_start(win)
+
+
 		#logger.fatal(self.obj)
 
 
 
-		self.liststore = gtk.ListStore(str, str)
-		self.liststore.append(["Fedora", "http://fedoraproject.org/"])
-		treeview = gtk.TreeView(model=self.liststore)
-		self.view = treeview
-
-		renderer_text = gtk.CellRendererText()
-		column_text = gtk.TreeViewColumn("Text", renderer_text, text=0)
-		treeview.append_column(column_text)
 		#self.view = self.create_treeview()
 
 		# simple toolbar
@@ -285,38 +249,72 @@ class TableViewWidget(CustomObjectWidget):
 
 		# Pack everything
 		#~ self.vbox.pack_start(bar, False, False)
-		win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
-			# only horizontal scroll
-		self.vbox.pack_start(win)
+
+
+	def get_treeview(self):
+		return self.treeview
+
+	def create_treeview(self):
+		tabledata = self.tabledata
+		aligns = tabledata.get('cols').split(',')
+		nrcols = len(aligns)
+		cols = [str]*nrcols
+		self.liststore = gtk.ListStore(*cols)
+		liststore = self.liststore
+		treeview = gtk.TreeView(liststore)
+
+		align = None
+		for i, headcol in enumerate(tabledata.findall('thead/th')):
+			tview_column = gtk.TreeViewColumn(headcol.text)
+			treeview.append_column(tview_column)
+			cell = gtk.CellRendererText()
+			tview_column.pack_start(cell, True)
+
+			# set alignment
+			if aligns[i] == 'left':
+				align = 0.0
+			elif aligns[i] == 'center':
+				align = 0.5
+			elif aligns[i] == 'right':
+				align = 1.0
+			else:
+				align = None
+			if align:
+				tview_column.set_alignment(align)
+				cell.set_alignment(align, 0.0)
+
+			# set properties of column
+			tview_column.set_attributes(cell, markup=i)
+			tview_column.set_sort_column_id(i)
+
+			# set properties of cell
+			cell.set_property("editable", True)
+			cell.connect("edited", self.on_cell_changed, i)
+			cell.connect("editing-started", self.on_cell_editing_started, i)
+
+
+		for trow in tabledata.findall('trow'):
+			row = trow.findall('td')
+			row = [ElementTree.tostring(r).replace('<td>', '').replace('</td>', '') for r in row]
+
+			rowtext = []
+			for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+				wikipattern = re.compile(wiki.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
+				row = [wikipattern.sub(pango, cell) for cell in row]
+
+			rowtext = row
+			logger.fatal(rowtext)
+
+			liststore.append(rowtext)
+			#TODO reformat to pango
+
+		logger.fatal(liststore[0][0])
 
 		# Hook up signals
 		#self.view.connect('populate-popup', self.on_populate_popup)
-		self.view.connect('move-cursor', self.on_move_cursor)
-
-	def create_treeview(self):
-		table = self._data
-		aligns = table.get('cols').split(',')
-		nrcols = len(aligns)
-		cols = [str]*nrcols
-		liststore = gtk.ListStore(*cols)
-		treeview = gtk.Treeview(liststore)
-
-		for headcol in table.findall('thead/th'):
-			renderer_editabletext = gtk.CellRendererText()
-			renderer_editabletext.set_property("editable", True)
-			column_editabletext = gtk.TreeViewColumn(headcol, renderer_editabletext, markup=1)
-			treeview.append_column(column_editabletext)
-			# renderer_editabletext.connect("edited", self.on_cell_changed)
-			# renderer_editabletext.connect("editing-started", self.on_cell_editing_started)
-
-		for row in table.findall('trow'):
-			for i, cell in enumerate(row):
-				pass
-
-
+		#self.view.connect('move-cursor', self.on_move_cursor)
 
 		return treeview
-
 
 
 	def set_preferences(self, preferences):
@@ -356,13 +354,10 @@ class TableViewWidget(CustomObjectWidget):
 	def on_populate_popup(self, view, menu):
 		menu.prepend(gtk.SeparatorMenuItem())
 
-		def activate_linenumbers(item):
-			self.obj.show_line_numbers(item.get_active())
-
 		item = gtk.CheckMenuItem(_('Show Line Numbers'))
 			# T: preference option for tableeditor plugin
 		item.set_active(self.obj._attrib['linenumbers'])
-		item.connect_after('activate', activate_linenumbers)
+		#item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)
 
 
@@ -374,3 +369,25 @@ class TableViewWidget(CustomObjectWidget):
 		menu.show_all()
 
 	# TODO: undo(), redo() stuff
+
+	def on_cell_changed(self, cellrenderer, path, text, colid):
+		# converts plain text to pango
+		markup = text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;')\
+			.replace("'", '&apos;').replace('\\n','\n')
+		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+			# regular expression must be escaped
+			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
+			editpattern = re.compile(edit)
+			markup = editpattern.sub(pango, markup)
+		self.liststore[path][colid] = markup
+
+	def on_cell_editing_started(self, cellrenderer, editable, path, colid):
+		# converts pango to plain text
+		# model, treeiter = self.treeview.get_selection().get_selected()
+		markup = self.liststore[path][colid]
+		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
+			markup = pangopattern.sub(edit, markup)
+		markup = markup.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<')\
+			.replace('&quot;', '"').replace('&apos;', "'").replace('\n','\\n')
+		editable.set_text(markup)

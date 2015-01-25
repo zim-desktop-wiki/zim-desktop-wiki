@@ -2328,15 +2328,26 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 				if hasattr(anchor, 'manager'):
 					attrib = anchor.manager.get_attrib()
-					if(attrib['type'] == 'table'):
-						del attrib['type']
-						data = anchor.manager.get_data()
+					if attrib['type'] == 'table':
 						logger.debug("Anchor with TableObject: %s", anchor.manager)
-						logger.fatal(data)
+						del attrib['type']
+						headers, aligns, rows = anchor.manager.get_data()
 						builder.start('table', attrib)
-						builder.data(data)
+						builder.start('thead')
+						for header in headers:
+							builder.start('th')
+							builder.data(header)
+							builder.end('th')
+						builder.end('thead')
+						for row in rows:
+							builder.start('trow')
+							for cell in row:
+								# todo parse text
+								builder.start('td')
+								builder.data(cell)
+								builder.end('td')
+							builder.end('trow')
 						builder.end('table')
-						logger.fatal(data)
 					else:
 						data = anchor.manager.get_data()
 						logger.debug("Anchor with CustomObject: %s", anchor.manager)
