@@ -5945,10 +5945,41 @@ class PageView(gtk.VBox):
 		self.on_insert_table(self.view.get_buffer(), obj)
 
 	def on_insert_table(self, buffer, obj, interactive=False):
+		# same as on_insert_object, but different here: ObjectManager.get_object( - , - , element)
 		element = obj
 		element.attrib['type'] = 'table'
-		element.text = element
-		self.on_insert_object(buffer, obj, interactive)
+		#element.text = element
+		if not isinstance(obj, CustomObjectClass):
+			# assume obj is a parsetree element
+			element = obj
+			if not 'type' in element.attrib:
+				return None
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element)
+
+		def on_modified_changed(obj):
+			if obj.get_modified() and not buffer.get_modified():
+				buffer.set_modified(True)
+
+		obj.connect('modified-changed', on_modified_changed)
+		iter = buffer.get_insert_iter()
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.view.grab_focus()
+
+		anchor = ObjectAnchor(obj)
+		buffer.insert_child_anchor(iter, anchor)
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectWidget)
+		widget.connect('release-cursor', on_release_cursor, anchor)
+		widget.show_all()
+		self.view.add_child_at_anchor(widget, anchor)
+		self._object_widgets.add(widget)
+
+		widget.show_all()
 
 	def on_view_size_allocate(self, textview, allocation):
 		for widget in self._object_widgets:

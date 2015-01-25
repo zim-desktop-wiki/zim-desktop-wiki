@@ -1124,14 +1124,15 @@ class DumperClass(Visitor):
 		self._text = []
 
 	def dump(self, tree):
-		logger.fatal("f-dump")
+		#logger.fatal("f-dump")
 		'''Convenience methods to dump a given tree.
 		@param tree: a parse tree object that supports a C{visit()} method
 		'''
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []
 		self.context = [DumperContextElement(None, None, self._text)]
-		logger.fatal(self.context)
+		#logger.fatal("E: DumpCOntext")
+		#logger.fatal(self.context)
 		tree.visit(self)
 		if len(self.context) != 1:
 			raise AssertionError, 'Unclosed tags on tree: %s' % self.context[-1].tag
@@ -1145,28 +1146,33 @@ class DumperClass(Visitor):
 		return u''.join(self._text).splitlines(1)
 
 	def start(self, tag, attrib=None):
-		logger.fatal("f-start")
+		#logger.fatal("f-start")
 		if attrib:
 			attrib = attrib.copy() # Ensure dumping does not change tree
 		self.context.append(DumperContextElement(tag, attrib, []))
 
 	def text(self, text):
-		logger.fatal("f-text")
+		#logger.fatal("f-text")
+		#logger.fatal(text)
 		assert not text is None
 		if self.context[-1].tag != OBJECT:
-			logger.fatal(self.context[-1].tag)
-			logger.fatal(text)
+		#	logger.fatal(self.context[-1])
 			text = self.encode_text(self.context[-1].tag, text)
 		self.context[-1].text.append(text)
+		#logger.fatal("--")
+		#logger.fatal(text)
+		#logger.fatal(self.context[-1])
+		#logger.fatal("f-text end")
 
 	def end(self, tag):
 		if not tag or tag != self.context[-1].tag:
 			raise AssertionError, 'Unexpected tag closed: %s' % tag
-		logger.fatal(self.context)
+		#logger.fatal(self.context)
 		_, attrib, strings = self.context.pop()
 
-		logger.fatal("str ")
-		logger.fatal(strings)
+		#logger.fatal("str ")
+		#logger.fatal(strings)
+		#logger.fatal(tag)
 		if tag in self.TAGS:
 			assert strings, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
@@ -1181,6 +1187,7 @@ class DumperClass(Visitor):
 				method = getattr(self, 'dump_'+tag)
 			except AttributeError:
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+			logger.fatal("STRING")
 			logger.fatal(strings)
 			strings = method(tag, attrib, strings)
 			#~ try:
@@ -1190,10 +1197,12 @@ class DumperClass(Visitor):
 
 		if strings is not None:
 			self.context[-1].text.extend(strings)
-		logger.fatal("endstr")
-		logger.fatal(strings)
+		#logger.fatal("endstr")
+		#logger.fatal(strings)
 
 	def append(self, tag, attrib=None, text=None):
+		#logger.fatal("e: f-append")
+		#logger.fatal(tag)
 		strings = None
 		if tag in self.TAGS:
 			assert text is not None, 'Can not append empty %s element' % tag
@@ -1247,7 +1256,7 @@ class DumperClass(Visitor):
 		return [prefix + l for l in lines]
 
 	def dump_object(self, tag, attrib, strings=None):
-		logger.fatal("dump object")
+		#logger.fatal("dump object")
 		'''Dumps object using proper ObjectManager'''
 		format = str(self.__class__.__module__).split('.')[-1]
 		if 'type' in attrib:

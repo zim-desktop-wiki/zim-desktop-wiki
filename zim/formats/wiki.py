@@ -516,12 +516,13 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		logger.fatal(type(strings[0]))
+		logger.debug("Dumping table: %s, %s", attrib, strings)
+		#logger.fatal(type(strings[0]))
 		logger.fatal("DUMP_TABL")
 		logger.fatal(strings)
-		logger.fatal(tag)
-		logger.fatal(attrib)
-		logger.fatal("---")
+		#logger.fatal(tag)
+		#logger.fatal(attrib)
+		#logger.fatal("---")
 		aligns = attrib['cols'].split(',')
 		single_headers = strings[0]  # single line headers
 		header_length =  len(single_headers)  # number of columns
@@ -530,19 +531,26 @@ class Dumper(TextDumper):
 		rows = [] # normalized rows
 		table = []  # result table
 
-		# be aware of linebreaks within cells
-		headers_list = [cell.split("\n") for cell in single_headers]
-		header_lines = map(lambda *x: map(lambda e: e if e is not None else '', x), *headers_list)  # transpose h_list
-		for single_row in single_rows:
-			row_list = [cell.split("\n") for cell in single_row]
-			rows.append(map(lambda *x: map(lambda e: e if e is not None else '', x), *row_list))  # transpose r_list
-
 		for i in range(header_length):  # calculate maximum widths of columns
-			header_max_characters = max([len(r[i]) for r in header_lines])
-			row_max_characters = max([len(r[i]) for row in rows for r in row])
-			maxwidths.append(max(0, header_max_characters, row_max_characters))
+			maxwidths.append(max(0, len(single_headers[i]), len(single_rows[0][i])))
 
 		# helper functions
+		def rowsep(y='-', x='|'):  # example: rowsep('-', '+') -> +-----+--+
+			cells = []
+			for i, width in enumerate(maxwidths):
+				align = aligns[i]
+				cell = (width) * y
+				if align == 'left':
+					cell = ':' + cell + y
+				elif align == 'right' :
+					cell = y + cell + ':'
+				elif align == 'center':
+					cell = ':' + cell + ':'
+				else:
+					cell = y + cell + y
+				cells.append(cell)
+			return x + x.join(cells) + x
+
 		def rowline(row, x='|', y=' '):  # example: rowline(['aa',''], '+','-') -> +-aa--+--+
 			cells = []
 			for i, val in enumerate(row):
@@ -559,25 +567,14 @@ class Dumper(TextDumper):
 				cells.append(lspace * y + val + rspace * y)
 			return x + x.join(cells) + x
 
+		logger.fatal(single_rows)
+
+
 		# print table
-		table += [rowline(line) for line in header_lines]
-
-		# line between header and body - defines alignment
-		splitlines = []
-		for i, align in enumerate(aligns):
-			if align == 'left':
-				(lchar, rchar) = (':', ' ')
-			elif align == 'right':
-				(lchar, rchar) = (' ', ':')
-			elif align == 'center':
-				(lchar, rchar) = (':', ':')
-			else:
-				(lchar, rchar) = (' ', ' ')
-			splitlines.append(lchar + (maxwidths[i] * '-') + rchar)
-		table += ['|' + '|'.join(splitlines) + '|']
-
-		for row in rows:
-			table += [rowline(line) for line in row]
+		table += [rowline(single_headers)]
+		table.append(rowsep('-'))
+		table += [rowline(row) for row in single_rows]
+		logger.fatal(map(lambda line: line+"\n", table))
 		return map(lambda line: line+"\n", table)
 
 	def dump_thead(self, tag, attrib, strings):
@@ -591,7 +588,9 @@ class Dumper(TextDumper):
 		return [strings]
 
 	def dump_td(self, tag, attrib, strings):
+		logger.fatal('dump-td')
 		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+		strings = map(lambda s: s.replace('<br>', '\\n'), strings)
 		if len(strings) > 1:
 			strings = ''.join(strings)
 		return strings

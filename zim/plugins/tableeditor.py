@@ -29,7 +29,7 @@ SYNTAX_WIKI_PANGO = (
 	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
 	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
 	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
-	(r'<a href="\1">\2</a>', r'<span foreground="blue">\1</span>', r'[[\1]]')
+	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
 )
 
 
@@ -110,7 +110,7 @@ class MainWindowExtension(WindowExtension):
 		if not lang:
 			return # dialog cancelled
 		else:
-			obj = self.plugin.create_table({'type': OBJECT_TYPE, 'lang': lang, 'kkk':'kkk'}, '')
+			obj = self.plugin.create_table({'type': OBJECT_TYPE}, '')
 			pageview = self.window.pageview
 			pageview.insert_table_at_cursor(obj)
 
@@ -133,6 +133,8 @@ class TableViewObject(CustomObjectClass):
 	def get_widget(self):
 		widget = TableViewWidget(self, self.tabledata)
 		self.treeview = widget.get_treeview()
+		self.liststore = widget.get_liststore()
+		self.liststore.connect('row-changed', self.on_modified_changed)
 		self._widgets.add(widget)
 
 		widget.set_preferences(self.preferences)
@@ -142,14 +144,9 @@ class TableViewObject(CustomObjectClass):
 		for widget in self._widgets:
 			widget.set_preferences(self.preferences)
 
-	def on_modified_changed(self, buffer):
-		# Table changed, set change on oject, reset state of
-		# table buffer so we get a new signal with next change
-		if buffer.get_modified():
-			logger.fatal("buffer changed")
-			logger.fatal(buffer)
-			self.set_modified(True)
-			buffer.set_modified(False)
+	def on_modified_changed(self, treemodel, path, iter):
+		logger.fatal("row-changed")
+		self.set_modified(True)
 
 	def get_data(self):
 		'''Returns data as text.'''
@@ -178,6 +175,17 @@ class TableViewObject(CustomObjectClass):
 				row.append(val)
 			rows.append(row)
 			iter = liststore.iter_next(iter)
+
+		logger.fatal('get-data')
+		logger.fatal(rows)
+
+		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
+			rows = [[pangopattern.sub(edit, r)] for row in rows for r in row]
+			rows = [[r.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<')\
+			.replace('&quot;', '"').replace('&apos;', "'")] for row in rows for r in row]
+
+		logger.fatal(rows)
 		return headers, aligns, rows
 
 	def dump(self, format, dumper, linker=None):
@@ -253,6 +261,9 @@ class TableViewWidget(CustomObjectWidget):
 
 	def get_treeview(self):
 		return self.treeview
+
+	def get_liststore(self):
+		return self.liststore
 
 	def create_treeview(self):
 		tabledata = self.tabledata
@@ -379,6 +390,7 @@ class TableViewWidget(CustomObjectWidget):
 			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
 			editpattern = re.compile(edit)
 			markup = editpattern.sub(pango, markup)
+		logger.fatal(markup)
 		self.liststore[path][colid] = markup
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, colid):
