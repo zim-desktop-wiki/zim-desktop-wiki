@@ -101,10 +101,10 @@ class MainWindowExtension(WindowExtension):
 	def teardown(self):
 		ObjectManager.unregister_object(OBJECT_TYPE)
 
-	@action(_('Code Block'), readonly=False) # T: menu item
+	@action(_('Table'), readonly=False) # T: menu item
 	def insert_table(self):
 		'''Inserts new SourceView'''
-		logger.fatal("InsertCodeBlockDialog")
+		logger.fatal("InsertTableDialog")
 		#lang = InsertCodeBlockDialog(self.window.ui).run() # XXX
 		lang = "php"
 		if not lang:

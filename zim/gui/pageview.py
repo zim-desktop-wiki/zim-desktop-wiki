@@ -741,6 +741,9 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 
+		logger.fatal("INSERT AT CURSOR")
+		logger.fatal(tree._etree.getroot())
+
 		# Check tree
 		root = tree._etree.getroot() # HACK - switch to new interface !
 		assert root.tag == 'zim-tree'
@@ -3205,6 +3208,8 @@ class TextFinder(object):
 		return self._find_next(iter)
 
 	def _find_next(self, iter):
+		start, end = self.buffer.get_bounds()
+
 		# Common functionality between find() and find_next()
 		# Looking for a match starting at iter
 		if self.regex is None:
@@ -3298,6 +3303,9 @@ class TextFinder(object):
 		# Clear highlighting
 		tag = self.highlight_tag
 		start, end = self.buffer.get_bounds()
+		#if start.get_child_anchor() is not None:
+		#	self._replace_in_widget(start, self.regex, string)
+		#else:
 		self.buffer.remove_tag(tag, start, end)
 
 		# Set highlighting
@@ -3317,6 +3325,15 @@ class TextFinder(object):
 			start = self.buffer.get_iter_at_line(line)
 			if start.ends_line():
 				continue
+
+			# search within external widgets
+			if start.get_child_anchor() is not None:
+				result = self._search_in_widget(start, step)
+				if result:
+					logger.fatal(result)
+					yield (start, start, result[2])
+				else:
+					continue
 			end = start.copy()
 			end.forward_to_line_end()
 			text = start.get_slice(end)
@@ -3330,6 +3347,34 @@ class TextFinder(object):
 				enditer = self.buffer.get_iter_at_line_offset(
 					line, match.end() )
 				yield startiter, enditer, match
+
+
+	def _search_in_widget(self, start, step):
+		'''
+		Search within a widget
+		:param start: position-of-widget
+		:return:
+		'''
+		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
+			return
+		widgets = start.get_child_anchor().get_widgets()
+		if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
+			table = widgets[0]
+			liststore = table.get_liststore()
+			iter = liststore.get_iter_root()
+			while iter is not None:
+				for col in range(liststore.get_n_columns()):
+					text = liststore.get_value(iter, col)
+					matches = self.regex.finditer(text)
+					if step == -1:
+						matches = list(matches)
+						matches.reverse()
+					for match in matches:
+						startiter = iter
+						enditer = iter
+						logger.fatal((startiter, enditer, match))
+						return startiter, enditer, match
+				iter = liststore.iter_next(iter)
 
 	def replace(self, string):
 		'''Replace current match
@@ -3351,22 +3396,50 @@ class TextFinder(object):
 			if start.equal(iter):
 				if self.flags & FIND_REGEX:
 					string = match.expand(string)
-
+				# search within external widgets
+				if start.get_child_anchor() is not None:
+					self._replace_in_widget(start, self.regex, string)
+				else:
+					with self.buffer.user_action:
+						self.buffer.select_range(start, end) # ensure editmode logic is used
+						self.buffer.delete(start, end)
+						self.buffer.insert_at_cursor(string)
 				offset = start.get_offset()
-				with self.buffer.user_action:
-					self.buffer.select_range(start, end) # ensure editmode logic is used
-					self.buffer.delete(start, end)
-					self.buffer.insert_at_cursor(string)
-
 				start = self.buffer.get_iter_at_offset(offset)
 				end = self.buffer.get_iter_at_offset(offset+len(string))
 				self.buffer.select_range(start, end)
-
 				return True
 		else:
 			return False
 
 		self._update_highlight()
+
+	'''
+	Replace within a widget
+	:param start: position-of-widget
+	:return:
+	'''
+	def _replace_in_widget(self, start, regex, string, replaceall=False):
+		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
+			return
+		widgets = start.get_child_anchor().get_widgets()
+		if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
+			table = widgets[0]
+			liststore = table.get_liststore()
+			iter = liststore.get_iter_root()
+			has_replaced = False
+			while iter is not None:
+				for col in range(liststore.get_n_columns()):
+					text = liststore.get_value(iter, col)
+					if(regex.search(text)):
+						newtext = regex.sub(string, text)
+						liststore.set_value(iter, col, newtext)
+						if(not replaceall):
+							return True
+						else:
+							has_replaced = True
+				iter = liststore.iter_next(iter)
+		return has_replaced
 
 	def replace_all(self, string):
 		'''Replace all matched
@@ -3386,16 +3459,19 @@ class TextFinder(object):
 				string = match.expand(orig)
 			matches.append((start.get_offset(), end.get_offset(), string))
 
-		matches.reverse() # work our way back top keep offsets valid
+		matches.reverse() # work ourway back top keep offsets valid
 
 		with self.buffer.user_action:
 			with self.buffer.tmp_cursor():
 				for start, end, string in matches:
 					start = self.buffer.get_iter_at_offset(start)
 					end = self.buffer.get_iter_at_offset(end)
-					self.buffer.select_range(start, end) # ensure editmode logic is used
-					self.buffer.delete(start, end)
-					self.buffer.insert(start, string)
+					if start.get_child_anchor() is not None:
+						self._replace_in_widget(start, self.regex, string, True)
+					else:
+						self.buffer.select_range(start, end) # ensure editmode logic is used
+						self.buffer.delete(start, end)
+						self.buffer.insert(start, string)
 
 		self._update_highlight()
 
@@ -4489,6 +4565,8 @@ class UndoStackManager:
 		the group at once. This method proceses all such delayed
 		requests.
 		'''
+		logger.fatal(self.buffer.get_parsetree(None, raw=True))
+
 		def _flush_group(group):
 			for i in reversed(range(len(group))):
 				action, start, end, tree = group[i]
