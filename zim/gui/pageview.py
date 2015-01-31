@@ -43,9 +43,12 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
-from zim.objectmanager import ObjectManager, CustomObjectClass
+from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
+from zim.formats import get_dumper
+from zim.formats.wiki import Dumper as WikiDumper
+
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -554,6 +557,7 @@ class TextBuffer(gtk.TextBuffer):
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -741,8 +745,8 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 
-		logger.fatal("INSERT AT CURSOR")
-		logger.fatal(tree._etree.getroot())
+		#logger.fatal("INSERT AT CURSOR")
+		#logger.fatal(tree._etree.getroot())
 
 		# Check tree
 		root = tree._etree.getroot() # HACK - switch to new interface !
@@ -2334,24 +2338,31 @@ class TextBuffer(gtk.TextBuffer):
 					if attrib['type'] == 'table':
 						logger.debug("Anchor with TableObject: %s", anchor.manager)
 						del attrib['type']
-						headers, aligns, rows = anchor.manager.get_data()
-						builder.start('table', attrib)
-						builder.start('thead')
-						for header in headers:
-							builder.start('th')
-							builder.data(header)
-							builder.end('th')
-						builder.end('thead')
-						for row in rows:
-							builder.start('trow')
-							for cell in row:
-								# todo parse text
-								builder.start('td')
-								builder.data(cell)
-								builder.end('td')
-							builder.end('trow')
-						builder.end('table')
+						tabledata = anchor.manager.get_data()
+						if isinstance(tabledata, basestring):
+							# data from Fallback-Object are not validated
+							builder.data(tabledata)
+						else:
+							# tableeditor plugin is activated -> parsetree is generated
+							headers, aligns, rows = tabledata
+							builder.start('table', attrib)
+							builder.start('thead')
+							for header in headers:
+								builder.start('th')
+								builder.data(header)
+								builder.end('th')
+							builder.end('thead')
+							for row in rows:
+								builder.start('trow')
+								for cell in row:
+									# todo parse text
+									builder.start('td')
+									builder.data(cell)
+									builder.end('td')
+								builder.end('trow')
+							builder.end('table')
 					else:
+						# general object related parsing
 						data = anchor.manager.get_data()
 						logger.debug("Anchor with CustomObject: %s", anchor.manager)
 						builder.start('object', attrib)
@@ -3330,7 +3341,7 @@ class TextFinder(object):
 			if start.get_child_anchor() is not None:
 				result = self._search_in_widget(start, step)
 				if result:
-					logger.fatal(result)
+					#logger.fatal(result)
 					yield (start, start, result[2])
 				else:
 					continue
@@ -3372,7 +3383,7 @@ class TextFinder(object):
 					for match in matches:
 						startiter = iter
 						enditer = iter
-						logger.fatal((startiter, enditer, match))
+						#logger.fatal((startiter, enditer, match))
 						return startiter, enditer, match
 				iter = liststore.iter_next(iter)
 
@@ -4565,7 +4576,7 @@ class UndoStackManager:
 		the group at once. This method proceses all such delayed
 		requests.
 		'''
-		logger.fatal(self.buffer.get_parsetree(None, raw=True))
+		#logger.fatal(self.buffer.get_parsetree(None, raw=True))
 
 		def _flush_group(group):
 			for i in reversed(range(len(group))):
@@ -6023,22 +6034,35 @@ class PageView(gtk.VBox):
 		self.on_insert_table(self.view.get_buffer(), obj)
 
 	def on_insert_table(self, buffer, obj, interactive=False):
-		# same as on_insert_object, but different here: ObjectManager.get_object( - , - , element)
-		element = obj
-		element.attrib['type'] = 'table'
-		#element.text = element
+		tableobj = obj
+		tableobj.attrib['type'] = 'table'
+
 		if not isinstance(obj, CustomObjectClass):
 			# assume obj is a parsetree element
 			element = obj
 			if not 'type' in element.attrib:
 				return None
 			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element)
+			if not hasattr(obj, 'attr'):
+				obj.attr = dict()
+				obj.attr['type'] = 'table'
+
+		if isinstance(obj, FallbackObject):
+			# if table plugin is not loaded - show table as plain text
+			tree = ParseTree(tableobj)
+			text = get_dumper('wiki').dump(tree)
+			lines = "".join(text)
+			obj._data = lines
+
+
+		# same as on_insert_object, but different here: ObjectManager.get_object( - , - , element)
 
 		def on_modified_changed(obj):
 			if obj.get_modified() and not buffer.get_modified():
 				buffer.set_modified(True)
 
 		obj.connect('modified-changed', on_modified_changed)
+		obj.connect_object('link-clicked', PageView.do_link_clicked, self)
 		iter = buffer.get_insert_iter()
 
 		def on_release_cursor(widget, position, anchor):
@@ -6050,6 +6074,10 @@ class PageView(gtk.VBox):
 
 		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
+		logger.fatal(obj)
+		import inspect
+		logger.fatal(inspect.getmro(obj.__class__))
+		logger.fatal(isinstance(obj, FallbackObject))
 		widget = obj.get_widget()
 		assert isinstance(widget, CustomObjectWidget)
 		widget.connect('release-cursor', on_release_cursor, anchor)

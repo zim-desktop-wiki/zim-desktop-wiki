@@ -1156,7 +1156,7 @@ class DumperClass(Visitor):
 		#logger.fatal(text)
 		assert not text is None
 		if self.context[-1].tag != OBJECT:
-		#	logger.fatal(self.context[-1])
+		#logger.fatal(self.context[-1])
 			text = self.encode_text(self.context[-1].tag, text)
 		self.context[-1].text.append(text)
 		#logger.fatal("--")
@@ -1187,8 +1187,8 @@ class DumperClass(Visitor):
 				method = getattr(self, 'dump_'+tag)
 			except AttributeError:
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
-			logger.fatal("STRING")
-			logger.fatal(strings)
+			#logger.fatal("STRING")
+			#logger.fatal(strings)
 			strings = method(tag, attrib, strings)
 			#~ try:
 				#~ u''.join(strings)

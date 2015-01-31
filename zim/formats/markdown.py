@@ -117,7 +117,8 @@ class Dumper(TextDumper):
 		table = []  # result table
 
 		for i in range(header_length):  # calculate maximum widths of columns
-			maxwidths.append(max(0, len(single_headers[i]), len(single_rows[0][i])))
+			row_max_characters = max([len(r[i]) for r in single_rows])
+			maxwidths.append(max(0, len(single_headers[i]), row_max_characters))
 
 		# helper functions
 		def rowsep(y='-', x='|'):  # example: rowsep('-', '+') -> +-----+--+

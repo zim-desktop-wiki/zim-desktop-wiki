@@ -469,7 +469,9 @@ class Index(gobject.GObject):
 		will fall back to the default database file for the notebook.
 		'''
 		gobject.GObject.__init__(self)
-		self.dbfile = dbfile
+		logger.fatal("BDB")
+		logger.fatal(dbfile)
+		self.dbfile = "/tmp/test.sqlite"
 		self.db = None
 		self.db_commit = None
 		self.notebook = None

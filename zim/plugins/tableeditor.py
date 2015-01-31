@@ -7,18 +7,22 @@ import pango
 import logging
 from xml.etree import ElementTree
 import re
+import gobject
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
+from zim.plugins import PluginClass, extends, WindowExtension
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
-from zim.gui.widgets import Dialog, ScrolledWindow
+from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
 from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
 from zim.formats.html import html_encode
 from zim.config.dicts import ConfigDict, String
+from zim.gui.pageview import PageView
+
 
 
 OBJECT_TYPE = 'table'
@@ -38,8 +42,7 @@ class TableEditorPlugin(PluginClass):
 	plugin_info = {
 		'name': _('Table Editor'), # T: plugin name
 		'description': _('''\
-**IN DEVELOPMENT**
-This plugin allows inserting 'Tables' in the page. These will be shown as TreeView widgets.
+With this plugin you can embed a 'Table' into the wiki page. Tables will be shown as GTK TreeView widgets.
 Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 '''), # T: plugin description
 		'object_types': (OBJECT_TYPE, ),
@@ -50,17 +53,17 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 	plugin_preferences = (
 		# key, type, label, default
 		('auto_indent', 'bool', _('Auto indenting'), True),
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 		('smart_home_end', 'bool', _('Smart Home key'), True),
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 		('highlight_current_line', 'bool', _('Highlight current line'), False),
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 		('show_right_margin', 'bool', _('Show right margin'), False),
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 		('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
-			# T: preference option for sourceview plugin
+			# T: preference option for tableeditor plugin
 	)
 
 	def __init__(self, config=None):
@@ -76,6 +79,33 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		'''Update preferences on open objects'''
 		for obj in ObjectManager.get_active_objects(OBJECT_TYPE):
 			obj.preferences_changed()
+
+	# TODO - remove this
+	def load_file(self):
+		self.symbols = {}
+		self.symbol_order = []
+		file = self.config.get_config_file('symbols.list')
+		for line in file.readlines():
+			line = line.strip()
+			if not line or line.startswith('#'): continue
+			try:
+				if '#' in line:
+					line, _ = line.split('#', 1)
+					line = line.strip()
+				shortcut, code = line.split()
+				symbol = unichr(int(code))
+				if not shortcut in self.symbols:
+					self.symbols[shortcut] = symbol
+					self.symbol_order.append(shortcut)
+				else:
+					logger.exception('Shortcut defined twice: %s', shortcut)
+			except:
+				logger.exception('Could not parse symbol: %s', line)
+	# TODO - remove this
+	def get_symbols(self):
+		for shortcut in self.symbol_order:
+			symbol = self.symbols[shortcut]
+			yield symbol, shortcut
 
 
 @extends('MainWindow')
@@ -103,16 +133,8 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('Table'), readonly=False) # T: menu item
 	def insert_table(self):
-		'''Inserts new SourceView'''
-		logger.fatal("InsertTableDialog")
-		#lang = InsertCodeBlockDialog(self.window.ui).run() # XXX
-		lang = "php"
-		if not lang:
-			return # dialog cancelled
-		else:
-			obj = self.plugin.create_table({'type': OBJECT_TYPE}, '')
-			pageview = self.window.pageview
-			pageview.insert_table_at_cursor(obj)
+		'''Run the InsertTableDialog'''
+		InsertTableDialog(self.window, self.plugin, self.window.pageview).run()
 
 
 class TableViewObject(CustomObjectClass):
@@ -130,11 +152,13 @@ class TableViewObject(CustomObjectClass):
 		self.treeview = None
 		self._widgets = WeakSet()
 
+
 	def get_widget(self):
 		widget = TableViewWidget(self, self.tabledata)
 		self.treeview = widget.get_treeview()
 		self.liststore = widget.get_liststore()
 		self.liststore.connect('row-changed', self.on_modified_changed)
+
 		self._widgets.add(widget)
 
 		widget.set_preferences(self.preferences)
@@ -143,6 +167,9 @@ class TableViewObject(CustomObjectClass):
 	def preferences_changed(self):
 		for widget in self._widgets:
 			widget.set_preferences(self.preferences)
+
+	def on_sort_column_changed(self, liststore):
+		self.set_modified(True)
 
 	def on_modified_changed(self, treemodel, path, iter):
 		logger.fatal("row-changed")
@@ -176,8 +203,8 @@ class TableViewObject(CustomObjectClass):
 			rows.append(row)
 			iter = liststore.iter_next(iter)
 
-		logger.fatal('get-data')
-		logger.fatal(rows)
+		#logger.fatal('get-data')
+		#logger.fatal(rows)
 
 		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
 			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
@@ -185,18 +212,23 @@ class TableViewObject(CustomObjectClass):
 			rows = [[r.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<')\
 			.replace('&quot;', '"').replace('&apos;', "'")] for row in rows for r in row]
 
-		logger.fatal(rows)
+		#logger.fatal(rows)
 		return headers, aligns, rows
 
 	def dump(self, format, dumper, linker=None):
-		logger.fatal("DUMPING")
+		#logger.fatal("DUMPING")
 		return CustomObjectClass.dump(self, format, dumper, linker)
 
 
 class TableViewWidget(CustomObjectWidget):
 
+
 	def __init__(self, obj, data):
+
+
+		self.obj = obj
 		self.tabledata = data
+
 
 		#tree = self.get_treeview()
 		#logger.fatal(tree)
@@ -221,42 +253,11 @@ class TableViewWidget(CustomObjectWidget):
 		# only horizontal scroll
 		self.vbox.pack_start(win)
 
-
-		#logger.fatal(self.obj)
-
-
-
-		#self.view = self.create_treeview()
-
-		# simple toolbar
-		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
-		#~ lang_selector = gtk.combo_box_new_text()
-		#~ lang_selector.append_text('(None)')
-		#~ for l in lang_names: lang_selector.append_text(l)
-		#~ try:
-			#~ lang_selector.set_active(lang_ids.index(self._attrib['lang'])+1)
-			#~ self.set_language(self._attrib['lang'] or None, False)
-		#~ except (ValueError, KeyError):
-			#~ lang_selector.set_active(0)
-			#~ self.set_language(None, False)
-		#~ lang_selector.connect('changed', self.on_lang_changed)
-		#~ bar.pack_start(lang_selector, False, False)
-
-		#~ line_numbers = gtk.ToggleButton('Line numbers')
-		#~ try:
-			#~ line_numbers.set_active(self._attrib['linenumbers']=='true')
-			#~ self.show_line_numbers(self._attrib['linenumbers'], False)
-		#~ except (ValueError, KeyError):
-			#~ line_numbers.set_active(True)
-			#~ self.show_line_numbers(True, False)
-		#~ line_numbers.connect('toggled', self.on_line_numbers_toggled)
-		#~ bar.pack_start(line_numbers, False, False)
-
-		# TODO: other toolbar options
-		# TODO: autohide toolbar if textbuffer is not active
-
-		# Pack everything
-		#~ self.vbox.pack_start(bar, False, False)
+		# Hook up signals
+		self.treeview.connect('button-press-event', self.on_button_press_event)
+		#self.treeview.connect('row-activated', self.on_row_activated)
+		#self.treeview.connect('populate-popup', self.on_populate_popup)
+		#self.view.connect('move-cursor', self.on_move_cursor)
 
 
 	def get_treeview(self):
@@ -276,10 +277,19 @@ class TableViewWidget(CustomObjectWidget):
 
 		align = None
 		for i, headcol in enumerate(tabledata.findall('thead/th')):
-			tview_column = gtk.TreeViewColumn(headcol.text)
+			label = gtk.Label(headcol.text)
+			label.show()
+			tview_column = gtk.TreeViewColumn()
+			tview_column.set_widget(label)
+		
+
+
 			treeview.append_column(tview_column)
 			cell = gtk.CellRendererText()
 			tview_column.pack_start(cell, True)
+
+			# set sort function
+			liststore.set_sort_func(i, self.sort_by_number_or_string, i)
 
 			# set alignment
 			if aligns[i] == 'left':
@@ -306,7 +316,7 @@ class TableViewWidget(CustomObjectWidget):
 
 		for trow in tabledata.findall('trow'):
 			row = trow.findall('td')
-			row = [ElementTree.tostring(r).replace('<td>', '').replace('</td>', '') for r in row]
+			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
 
 			rowtext = []
 			for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
@@ -319,7 +329,7 @@ class TableViewWidget(CustomObjectWidget):
 			liststore.append(rowtext)
 			#TODO reformat to pango
 
-		logger.fatal(liststore[0][0])
+		#logger.fatal(liststore[0][0])
 
 		# Hook up signals
 		#self.view.connect('populate-popup', self.on_populate_popup)
@@ -336,6 +346,7 @@ class TableViewWidget(CustomObjectWidget):
 		#self.view.set_right_margin_position(preferences['right_margin_position'])
 		#self.view.set_show_right_margin(preferences['show_right_margin'])
 		#self.view.set_tab_width(preferences['tab_width'])
+
 
 	def on_move_cursor(self, view, step_size, count, extend_selection):
 		# If you try to move the cursor out of the tableditor
@@ -379,6 +390,94 @@ class TableViewWidget(CustomObjectWidget):
 
 		menu.show_all()
 
+	def fetch_cell_by_event(self, event):
+		(xpos, ypos) = event.get_coords()
+		(treepath, treecol, xrel, yrel) = self.treeview.get_path_at_pos(int(xpos), int(ypos))
+		treeiter = self.liststore.get_iter(treepath)
+		cellvalue = self.liststore.get_value(treeiter, self.treeview.get_columns().index(treecol))
+		return cellvalue
+
+	def get_linkurl(self, celltext):
+		linkregex = r'<span foreground="blue">(.*?)</span>'
+		matches = re.match(linkregex, celltext)
+		linkvalue = matches.group(1) if matches else None
+		return linkvalue
+
+	def on_button_press_event(self, treeview, event):
+		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 1 and event.get_state() &  gtk.gdk.CONTROL_MASK:
+			# With CTRL + LEFT-Mouse-Click link of cell is opened
+			cellvalue = self.fetch_cell_by_event(event)
+			linkvalue = self.get_linkurl(cellvalue)
+			if linkvalue:
+				logger.fatal(linkvalue)
+				self.obj.emit('link-clicked', {'href': linkvalue})
+			return
+
+
+		#logger.fatal(treeviw)
+		#(treemodel, iter) = treeview.get_selection().get_selected()
+		#logger.fatal(iter)
+		#logger.fatal(self.liststore.get_value(iter, 0))
+
+		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+			cellvalue = self.fetch_cell_by_event(event)
+			linkvalue = self.get_linkurl(cellvalue)
+			linkitem_is_activated = (linkvalue is not None)
+
+			menu = gtk.Menu()
+
+			# Create a new menu-item with a name...
+			item = gtk.ImageMenuItem(gtk.STOCK_ADD)
+			item.set_always_show_image(True)
+			item.set_label(_('Add row'))
+			item.connect_after('activate', self.on_add_row)
+			menu.append(item)
+
+			item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
+			item.set_always_show_image(True)
+			item.set_label(_('Delete row'))
+			item.connect_after('activate', self.on_delete_row)
+			menu.append(item)
+
+			menu.append(gtk.SeparatorMenuItem())
+
+			item = gtk.ImageMenuItem(gtk.STOCK_JUMP_TO)
+			item.set_always_show_image(True)
+			# only if clicked cell contains a link, this menu item is selectable
+			item.set_sensitive(linkitem_is_activated)
+			item.set_label(_('Open cell content link'))
+			item.connect_after('activate', self.on_open_link, linkvalue)
+			menu.append(item)
+
+			menu.append(gtk.SeparatorMenuItem())
+
+			item = gtk.ImageMenuItem(gtk.STOCK_PREFERENCES)
+			item.set_always_show_image(True)
+			item.set_label(_('Change columns'))
+			item.connect_after('activate', self.on_change_columns)
+			menu.append(item)
+
+
+			menu.show_all()
+			menu.popup(None, None, None, event.button, event.time)
+
+	def on_add_row(self, action):
+		logger.fatal("add row")
+		pass
+
+	def on_delete_row(self, action):
+		logger.fatal("delete row")
+		pass
+
+	def on_open_link(self, action, link):
+		self.obj.emit('link-clicked', {'href': link})
+
+	def on_change_columns(self, action):
+		logger.fatal("change columns")
+		pass
+
+
+
 	# TODO: undo(), redo() stuff
 
 	def on_cell_changed(self, cellrenderer, path, text, colid):
@@ -390,12 +489,13 @@ class TableViewWidget(CustomObjectWidget):
 			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
 			editpattern = re.compile(edit)
 			markup = editpattern.sub(pango, markup)
-		logger.fatal(markup)
+		#logger.fatal(markup)
 		self.liststore[path][colid] = markup
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, colid):
 		# converts pango to plain text
 		# model, treeiter = self.treeview.get_selection().get_selected()
+		logger.fatal(self.liststore[path][colid])
 		markup = self.liststore[path][colid]
 		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
 			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
@@ -403,3 +503,129 @@ class TableViewWidget(CustomObjectWidget):
 		markup = markup.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<')\
 			.replace('&quot;', '"').replace('&apos;', "'").replace('\n','\\n')
 		editable.set_text(markup)
+
+	def on_row_activated(self, treemodel, row, col):
+		logger.fatal("--")
+		logger.fatal(treemodel)
+
+
+	def sort_by_number_or_string(self, treemodel, iter1, iter2, colid):
+		data1 = treemodel.get_value(iter1, colid)
+		data2 = treemodel.get_value(iter2, colid)
+		if data1.isdigit() and data2.isdigit():
+			data1 = int(data1)
+			data2 = int(data2)
+		self.obj.set_modified(True)
+		return cmp(data1, data2)
+
+	def on_populate_popup(self, view, menu):
+		menu.prepend(gtk.SeparatorMenuItem())
+
+		def activate_linenumbers(item):
+			self.obj.show_line_numbers(item.get_active())
+
+		item = gtk.CheckMenuItem(_('Show Line Numbers'))
+			# T: preference option for tableeditor plugin
+		item.set_active(self.obj._attrib['linenumbers'])
+		item.connect_after('activate', activate_linenumbers)
+		menu.prepend(item)
+
+
+		def activate_lang(item):
+			self.obj.set_language(item.zim_sourceview_languageid)
+
+		item = gtk.MenuItem(_('Syntax'))
+		submenu = gtk.Menu()
+		'''
+		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
+			langitem = gtk.MenuItem(lang)
+			langitem.connect('activate', activate_lang)
+			langitem.zim_sourceview_languageid = LANGUAGES[lang]
+			submenu.append(langitem)
+		item.set_submenu(submenu)
+		'''
+		menu.prepend(item)
+
+		menu.show_all()
+
+class InsertTableDialog(Dialog):
+
+	def __init__(self, ui, plugin, pageview):
+		Dialog.__init__(self, ui, _('Insert Table'), # T: Dialog title
+			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
+			defaultwindowsize=(350, 400) )
+		self.plugin = plugin
+		self.pageview = pageview
+
+		plugin.load_file()
+
+		self.textentry = InputEntry()
+		self.vbox.pack_start(self.textentry, False)
+
+		# TODO make this iconview single-click
+		model = gtk.ListStore(str, str) # text, shortcut
+		self.iconview = gtk.IconView(model)
+		self.iconview.set_text_column(0)
+		self.iconview.set_column_spacing(0)
+		self.iconview.set_row_spacing(0)
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
+			self.iconview.set_property('has-tooltip', True)
+			self.iconview.connect('query-tooltip', self.on_query_tooltip)
+		self.iconview.connect('item-activated', self.on_activated)
+
+		self.vbox.add(ScrolledWindow(self.iconview))
+
+		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button.connect('clicked', self.on_edit)
+		self.action_area.add(button)
+		self.action_area.reorder_child(button, 0)
+
+		self.load_symbols()
+
+	def load_symbols(self):
+		model = self.iconview.get_model()
+		model.clear()
+		for symbol, shortcut in self.plugin.get_symbols():
+			model.append((symbol, shortcut))
+
+	def on_query_tooltip(self, iconview, x, y, keyboard, tooltip):
+		if keyboard: return False
+
+		x, y = iconview.convert_widget_to_bin_window_coords(x, y)
+		path = iconview.get_path_at_pos(x, y)
+		if path is None: return False
+
+		model = iconview.get_model()
+		iter = model.get_iter(path)
+		text = model.get_value(iter, 1)
+		if not text: return False
+
+		tooltip.set_text(text)
+		return True
+
+	def on_activated(self, iconview, path):
+		model = iconview.get_model()
+		iter = model.get_iter(path)
+		text = model.get_value(iter, 0)
+		text = text.decode('utf-8')
+		pos = self.textentry.get_position()
+		self.textentry.insert_text(text, pos)
+		self.textentry.set_position(pos + len(text))
+
+	def on_edit(self, button):
+		file = self.confg.get_config_file('symbols.list')
+		if self.ui.edit_config_file(file):
+			self.plugin.load_file()
+			self.load_symbols()
+
+	def run(self):
+		self.iconview.grab_focus()
+		Dialog.run(self)
+
+	def do_response_ok(self):
+		text = self.textentry.get_text()
+		textview = self.pageview.view
+		buffer = textview.get_buffer()
+		buffer.insert_at_cursor(text)
+		return True

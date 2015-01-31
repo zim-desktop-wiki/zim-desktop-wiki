@@ -518,8 +518,8 @@ class Dumper(TextDumper):
 	def dump_table(self, tag, attrib, strings):
 		logger.debug("Dumping table: %s, %s", attrib, strings)
 		#logger.fatal(type(strings[0]))
-		logger.fatal("DUMP_TABL")
-		logger.fatal(strings)
+		#logger.fatal("DUMP_TABL")
+		#logger.fatal(strings)
 		#logger.fatal(tag)
 		#logger.fatal(attrib)
 		#logger.fatal("---")
@@ -532,7 +532,8 @@ class Dumper(TextDumper):
 		table = []  # result table
 
 		for i in range(header_length):  # calculate maximum widths of columns
-			maxwidths.append(max(0, len(single_headers[i]), len(single_rows[0][i])))
+			row_max_characters = max([len(r[i]) for r in single_rows])
+			maxwidths.append(max(0, len(single_headers[i]), row_max_characters))
 
 		# helper functions
 		def rowsep(y='-', x='|'):  # example: rowsep('-', '+') -> +-----+--+
@@ -567,14 +568,14 @@ class Dumper(TextDumper):
 				cells.append(lspace * y + val + rspace * y)
 			return x + x.join(cells) + x
 
-		logger.fatal(single_rows)
+		#logger.fatal(single_rows)
 
 
 		# print table
 		table += [rowline(single_headers)]
 		table.append(rowsep('-'))
 		table += [rowline(row) for row in single_rows]
-		logger.fatal(map(lambda line: line+"\n", table))
+		#logger.fatal(map(lambda line: line+"\n", table))
 		return map(lambda line: line+"\n", table)
 
 	def dump_thead(self, tag, attrib, strings):
@@ -588,7 +589,7 @@ class Dumper(TextDumper):
 		return [strings]
 
 	def dump_td(self, tag, attrib, strings):
-		logger.fatal('dump-td')
+		#logger.fatal('dump-td')
 		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 		strings = map(lambda s: s.replace('<br>', '\\n'), strings)
 		if len(strings) > 1:

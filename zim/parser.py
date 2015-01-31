@@ -325,8 +325,8 @@ class Rule(object):
 		return Parser(self, other)
 
 	def _process(self, builder, text):
-		logger.fatal("PROCESS tag")
-		logger.fatal(self.tag)
+		#logger.fatal("PROCESS tag")
+		#logger.fatal(self.tag)
 		# default action for matched text
 		if self.descent:
 			builder.start(self.tag)

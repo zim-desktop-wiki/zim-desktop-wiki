@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== Table Editor ======
 
-This plugin allows you to integrat a table in zim.
+This plugin allows you to integrate a table in zim.
 
 **Dependencies:** This plugin has no additional dependencies
 
@@ -17,7 +17,7 @@ This plugin allows you to integrat a table in zim.
 
 === Open Steps ===
 [*] Creating plugin structure
-[ ] Displaying table in wiki page
+[*] Displaying table in wiki page
 [ ] Tables can be edited in wiki page
 [ ] User-Dialogs for adding data (add, remove, reorder rows)
 [ ] Changing columns headers / Reorder columns
