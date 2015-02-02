@@ -165,7 +165,10 @@ class FallbackObjectWidget(TextViewWidget):
 		TextViewWidget.__init__(self, buffer)
 		#~ self.view.set_editable(False) # object knows best how to manage content
 		# TODO set background grey ?
-
+		import logging
+		logger = logging.getLogger('zim.gui.pageview')
+		logger.fatal("fallback object")
+		logger.fatal(type)
 		plugin = ObjectManager.find_plugin(type) if type else None
 		if plugin:
 			self._add_load_plugin_bar(plugin)

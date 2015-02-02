@@ -67,6 +67,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 	)
 
 	def __init__(self, config=None):
+		logger.fatal("Load plugin")
 		PluginClass.__init__(self, config)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
@@ -76,36 +77,10 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		return obj
 
 	def on_preferences_changed(self, preferences):
+		logger.fatal("update preferences")
 		'''Update preferences on open objects'''
 		for obj in ObjectManager.get_active_objects(OBJECT_TYPE):
 			obj.preferences_changed()
-
-	# TODO - remove this
-	def load_file(self):
-		self.symbols = {}
-		self.symbol_order = []
-		file = self.config.get_config_file('symbols.list')
-		for line in file.readlines():
-			line = line.strip()
-			if not line or line.startswith('#'): continue
-			try:
-				if '#' in line:
-					line, _ = line.split('#', 1)
-					line = line.strip()
-				shortcut, code = line.split()
-				symbol = unichr(int(code))
-				if not shortcut in self.symbols:
-					self.symbols[shortcut] = symbol
-					self.symbol_order.append(shortcut)
-				else:
-					logger.exception('Shortcut defined twice: %s', shortcut)
-			except:
-				logger.exception('Could not parse symbol: %s', line)
-	# TODO - remove this
-	def get_symbols(self):
-		for shortcut in self.symbol_order:
-			symbol = self.symbols[shortcut]
-			yield symbol, shortcut
 
 
 @extends('MainWindow')
@@ -124,12 +99,15 @@ class MainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
+		logger.fatal("mainwindow extension")
 		WindowExtension.__init__(self, plugin, window)
+
 		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table)
-			# XXX use pageview attribute instead of singleton
+		self.window.ui.reload_page()
 
 	def teardown(self):
 		ObjectManager.unregister_object(OBJECT_TYPE)
+		self.window.ui.reload_page()
 
 	@action(_('Table'), readonly=False) # T: menu item
 	def insert_table(self):
@@ -151,7 +129,6 @@ class TableViewObject(CustomObjectClass):
 		self.preferences = preferences
 		self.treeview = None
 		self._widgets = WeakSet()
-
 
 	def get_widget(self):
 		widget = TableViewWidget(self, self.tabledata)
@@ -277,11 +254,7 @@ class TableViewWidget(CustomObjectWidget):
 
 		align = None
 		for i, headcol in enumerate(tabledata.findall('thead/th')):
-			label = gtk.Label(headcol.text)
-			label.show()
-			tview_column = gtk.TreeViewColumn()
-			tview_column.set_widget(label)
-		
+			tview_column = gtk.TreeViewColumn(headcol.text)
 
 
 			treeview.append_column(tview_column)
@@ -339,6 +312,7 @@ class TableViewWidget(CustomObjectWidget):
 
 
 	def set_preferences(self, preferences):
+		logger.fatal("Preferences changed")
 		pass
 		#self.view.set_auto_indent(preferences['auto_indent'])
 		#self.view.set_smart_home_end(preferences['smart_home_end'])
@@ -462,12 +436,25 @@ class TableViewWidget(CustomObjectWidget):
 			menu.popup(None, None, None, event.button, event.time)
 
 	def on_add_row(self, action):
-		logger.fatal("add row")
-		pass
+		selection = self.treeview.get_selection()
+		model, iter = selection.get_selected()
+		row = len(self.treeview.get_columns())*['']
+		path = model.insert_after(iter,row)
+		self.obj.set_modified(True)
 
 	def on_delete_row(self, action):
-		logger.fatal("delete row")
-		pass
+		selection = self.treeview.get_selection()
+		model, iter = selection.get_selected()
+
+		if(len(model) > 1):
+			model.remove(iter)
+			self.obj.set_modified(True)
+		else:
+			md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+									_("The table must consist of at least on row!\n No deletion done."))
+			md.run()
+			md.destroy()
+
 
 	def on_open_link(self, action, link):
 		self.obj.emit('link-clicked', {'href': link})

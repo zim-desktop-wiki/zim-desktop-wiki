@@ -558,6 +558,7 @@ class TextBuffer(gtk.TextBuffer):
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -4788,6 +4789,7 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
+		#self.view.connect_object('reload-page', PageView.do_reload_page, self)
 
 		self.view.connect_after('size-allocate', self.on_view_size_allocate)
 
@@ -5545,6 +5547,9 @@ class PageView(gtk.VBox):
 
 		menu.show_all()
 
+	def do_reload_page(self):
+		self.ui.reload_page()
+
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
@@ -6063,6 +6068,7 @@ class PageView(gtk.VBox):
 
 		obj.connect('modified-changed', on_modified_changed)
 		obj.connect_object('link-clicked', PageView.do_link_clicked, self)
+
 		iter = buffer.get_insert_iter()
 
 		def on_release_cursor(widget, position, anchor):
