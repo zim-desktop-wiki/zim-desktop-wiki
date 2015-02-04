@@ -97,6 +97,7 @@ _last_warning_missing_icon = None
 
 
 def get_mime_icon(file, size):
+	logger.fatal("Mime icon")
 	# FIXME put this in some library ?
 	if not gio:
 		return None
@@ -131,6 +132,7 @@ def get_mime_icon(file, size):
 
 
 def get_mime_description(mimetype):
+	logger.fatal("mime description")
 	# TODO move this to zim.fs or something
 	#
 	# Check XML file /usr/share/mime/MEDIA/SUBTYPE.xml
@@ -148,6 +150,7 @@ def get_mime_description(mimetype):
 
 
 def _read_comment_from(file):
+	logger.fatal("read comment")
 	import locale
 	from zim.formats import ElementTreeModule as et
 
@@ -175,6 +178,7 @@ def _read_comment_from(file):
 
 
 def render_file_icon(widget, size):
+	logger.fatal("render file icon")
 	# Sizes defined in gtk source,
 	# gtkiconfactory.c for gtk+ 2.18.9
 	#
@@ -203,6 +207,7 @@ def render_file_icon(widget, size):
 
 
 def is_hidden_file(file):
+	logger.fatal("is hidden file")
 	# FIXME put this in zim.fs
 	if not os.name == 'nt':
 		return False
@@ -275,6 +280,8 @@ class MainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
+
+		logger.fatal("init")
 		WindowExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
 		self._monitor = None
@@ -310,6 +317,8 @@ class MainWindowExtension(WindowExtension):
 		self.connectto(self.window, 'pane-state-changed')
 
 	def on_preferences_changed(self, preferences):
+
+		logger.fatal("on preferenceds changed")
 		if self.widget is None:
 			return
 
@@ -326,6 +335,7 @@ class MainWindowExtension(WindowExtension):
 		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
 	)
 	def toggle_fileview(self, active):
+		logger.fatal("toggle fileview")
 		# This toggle is called to focus on our widget
 		# but also after the fact when we detect focus changed
 		# so check state explicitly and don't do more than needed
@@ -345,6 +355,7 @@ class MainWindowExtension(WindowExtension):
 			# else pass
 
 	def on_pane_state_changed(self, window, pane, visible, active):
+		logger.fatal("on pane state changed")
 		if pane != self.preferences['pane']:
 			return
 
@@ -357,6 +368,7 @@ class MainWindowExtension(WindowExtension):
 			self.widget.set_active(False)
 
 	def on_open_page(self, ui, page, path):
+		logger.fatal("on open page")
 		self._disconnect_monitor()
 
 		self.widget.set_page(ui.notebook, page) # XXX
@@ -367,23 +379,27 @@ class MainWindowExtension(WindowExtension):
 		self._monitor = (dir, id)
 
 	def _disconnect_monitor(self):
+		logger.fatal("disconnect monitor")
 		if self._monitor:
 			dir, id = self._monitor
 			dir.disconnect(id)
 			self._monitor = None
 
 	def on_dir_changed(self, *a):
+		logger.fatal("on dir changed")
 		logger.debug('Dir change detected: %s', a)
 		self._refresh_statusbar(self.window.ui.page) # XXX
 		self.widget.refresh()
 
 	def _refresh_statusbar(self, page):
+		logger.fatal("refresh statusbar")
 		n = self.get_n_attachments(page)
 		self.statusbar_button.set_label(
 			ngettext('%i _Attachment', '%i _Attachments', n) % n)
 			# T: Label for the statusbar, %i is the number of attachments for the current page
 
 	def get_n_attachments(self, page):
+		logger.fatal("get attachment")
 		# Calculate independent from the widget
 		# (e.g. widget is not refreshed when hidden)
 		n = 0
@@ -399,6 +415,7 @@ class MainWindowExtension(WindowExtension):
 		return n
 
 	def teardown(self):
+		logger.fatal("teardown")
 		self._disconnect_monitor()
 		self.toggle_fileview(False)
 		self.window.remove(self.widget)
@@ -412,6 +429,7 @@ class uistate_property(object):
 	# TODO add hook such that it will be initialized on init of owner obj
 
 	def __init__(self, key, *default):
+		logger.fatal("uistat init")
 		self.key = key
 		self.default = default
 		self._initialized = False

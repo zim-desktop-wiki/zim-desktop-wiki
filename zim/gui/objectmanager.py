@@ -99,6 +99,9 @@ class CustomObjectWidget(gtk.EventBox):
 		self.emit('release-cursor', position)
 
 	def resize_to_textview(self, view):
+		import logging
+		logger = logging.getLogger("abc")
+		logger.fatal("resize")
 		'''Resizes widget if parent textview size has been changed.'''
 		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
 		if not win:

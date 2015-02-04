@@ -17,25 +17,58 @@ from zim.plugins import PluginClass, extends, WindowExtension
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
-from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
+from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow, IconButton
 from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
 from zim.formats.html import html_encode
 from zim.config.dicts import ConfigDict, String
 from zim.gui.pageview import PageView
 
 
-
 OBJECT_TYPE = 'table'
 
 # Wiki-Parsetree -> Pango (Table cell) -> TextView (Table cell editing)
 SYNTAX_WIKI_PANGO = (
-	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
-	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
-	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
-	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
-	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
+	(r'<strong>{0}</strong>', r'<b>{1}</b>', r'**{0}**'),
+	(r'<emphasis>{0}</emphasis>', r'<i>{1}</i>', r'//{0}//'),
+	(r'<mark>{0}</mark>', r'<span background="yellow">{0}</span>', r'__{0}__'),
+	(r'<code>{0}</code>', r'<tt>{0}</tt>', r"''{0}''"),
+	(r'<link href="{0}">{1}</link>', r'<span foreground="blue">{0}</span>', r'[[{0}]]')
 )
 
+SYNTAX_CELL_INPUT = (
+	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'", '\n', '\\n')
+)
+
+'''
+	for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+			# regular expression must be escaped
+			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
+			editpattern = re.compile(edit)
+			markup = editpattern.sub(pango, markup)
+
+		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
+			rows = map2dim(lambda cell: pangopattern.sub(edit, cell), rows)
+			logger.fatal(rows)
+
+	for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
+				wikipattern = re.compile(wiki.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
+				row = [wikipattern.sub(pango, cell) for cell in row]
+'''
+
+
+class TableReplacer:
+	@staticmethod
+	def cell_to_input(text):
+		for k, v in SYNTAX_CELL_INPUT:
+			text = text.replace(k, v)
+		return text
+
+	@staticmethod
+	def input_to_cell(text):
+		for k, v in SYNTAX_CELL_INPUT:
+			text = text.replace(v, k)
+		return text
 
 class TableEditorPlugin(PluginClass):
 
@@ -95,6 +128,11 @@ class MainWindowExtension(WindowExtension):
 				</placeholder>
 			</menu>
 		</menubar>
+		<toolbar name='toolbar'>
+				<placeholder name='format'>
+					<toolitem action='insert_table'/>
+				</placeholder>
+			</toolbar>
 		</ui>
 	'''
 
@@ -103,16 +141,21 @@ class MainWindowExtension(WindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 
 		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table)
-		self.window.ui.reload_page()
+
+		# reload tables on current page after plugin activation
+		if self.window.ui.page:
+			self.window.ui.reload_page()
+
 
 	def teardown(self):
 		ObjectManager.unregister_object(OBJECT_TYPE)
 		self.window.ui.reload_page()
 
-	@action(_('Table'), readonly=False) # T: menu item
+	@action(_('Insert Table'), stock='zim-insert-table', readonly=False) # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
 		InsertTableDialog(self.window, self.plugin, self.window.pageview).run()
+
 
 
 class TableViewObject(CustomObjectClass):
@@ -180,16 +223,23 @@ class TableViewObject(CustomObjectClass):
 			rows.append(row)
 			iter = liststore.iter_next(iter)
 
-		#logger.fatal('get-data')
-		#logger.fatal(rows)
+		logger.fatal('get-data')
+		logger.fatal(rows)
+
+		def map2dim(fun, rows):
+			return [map(fun, row) for row in rows]
+
+		def map3dim(fun, multiline_rows):
+			return [[map(fun, row) for row in lines] for lines in multiline_rows]
 
 		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
 			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
-			rows = [[pangopattern.sub(edit, r)] for row in rows for r in row]
-			rows = [[r.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<')\
-			.replace('&quot;', '"').replace('&apos;', "'")] for row in rows for r in row]
+			rows = map2dim(lambda cell: pangopattern.sub(edit, cell), rows)
+			logger.fatal(rows)
 
-		#logger.fatal(rows)
+		rows = map2dim(TableReplacer.cell_to_input, rows)
+
+		logger.fatal(rows)
 		return headers, aligns, rows
 
 	def dump(self, format, dumper, linker=None):
@@ -197,11 +247,13 @@ class TableViewObject(CustomObjectClass):
 		return CustomObjectClass.dump(self, format, dumper, linker)
 
 
+
+
 class TableViewWidget(CustomObjectWidget):
 
 
 	def __init__(self, obj, data):
-
+		self.set_size_request(-1,-1)
 
 		self.obj = obj
 		self.tabledata = data
@@ -218,23 +270,45 @@ class TableViewWidget(CustomObjectWidget):
 		self._has_cursor = False
 		self._resize = True
 
+		#
+
 		# Add vbox and wrap it to have a shadow around it
 		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
 		win = ScrolledWindow(self.vbox, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_IN)
-		self.add(win)
+		#win.add(gtk.Button("abc",gtk.STOCK_OK))
+		#self.add(win)
 
 		self.set_has_cursor(True)
 
 		self.treeview = self.create_treeview()
-		win = ScrolledWindow(self.treeview, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
+		#win = ScrolledWindow(self.treeview, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
 		# only horizontal scroll
-		self.vbox.pack_start(win)
+		#self.vbox.pack_start(win)
 
 		# Hook up signals
 		self.treeview.connect('button-press-event', self.on_button_press_event)
+		self.treeview.set_receives_default(True)
+		self.treeview.set_size_request(-1, -1)
+
+
+		self.add(self.treeview)
+		#self.treeview.set_border_width(5)
 		#self.treeview.connect('row-activated', self.on_row_activated)
 		#self.treeview.connect('populate-popup', self.on_populate_popup)
 		#self.view.connect('move-cursor', self.on_move_cursor)
+
+	def resize_to_textview(self, view):
+		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
+		if not win:
+			return
+
+		vmargin = view.get_left_margin() + view.get_right_margin() \
+					+ 2 * self.get_border_width()
+
+		# override size
+		self.get_size_request()
+
+		self.set_size_request(-1, -1)
 
 
 	def get_treeview(self):
@@ -251,12 +325,13 @@ class TableViewWidget(CustomObjectWidget):
 		self.liststore = gtk.ListStore(*cols)
 		liststore = self.liststore
 		treeview = gtk.TreeView(liststore)
+		logger.fatal("size")
 
 		align = None
 		for i, headcol in enumerate(tabledata.findall('thead/th')):
 			tview_column = gtk.TreeViewColumn(headcol.text)
-
-
+			#tview_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+			#tview_column.set_expand(False)
 			treeview.append_column(tview_column)
 			cell = gtk.CellRendererText()
 			tview_column.pack_start(cell, True)
@@ -285,6 +360,8 @@ class TableViewWidget(CustomObjectWidget):
 			cell.set_property("editable", True)
 			cell.connect("edited", self.on_cell_changed, i)
 			cell.connect("editing-started", self.on_cell_editing_started, i)
+
+
 
 
 		for trow in tabledata.findall('trow'):
@@ -469,8 +546,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_cell_changed(self, cellrenderer, path, text, colid):
 		# converts plain text to pango
-		markup = text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;')\
-			.replace("'", '&apos;').replace('\\n','\n')
+		markup = TableReplacer.input_to_cell(text)
 		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
 			# regular expression must be escaped
 			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
@@ -487,8 +563,7 @@ class TableViewWidget(CustomObjectWidget):
 		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
 			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
 			markup = pangopattern.sub(edit, markup)
-		markup = markup.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<')\
-			.replace('&quot;', '"').replace('&apos;', "'").replace('\n','\\n')
+		markup = TableReplacer.cell_to_input(markup)
 		editable.set_text(markup)
 
 	def on_row_activated(self, treemodel, row, col):
@@ -535,84 +610,191 @@ class TableViewWidget(CustomObjectWidget):
 
 		menu.show_all()
 
+
 class InsertTableDialog(Dialog):
 
-	def __init__(self, ui, plugin, pageview):
-		Dialog.__init__(self, ui, _('Insert Table'), # T: Dialog title
-			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
-			defaultwindowsize=(350, 400) )
-		self.plugin = plugin
-		self.pageview = pageview
+	def __init__(self, ui, plugin, pageview, tablemodel=None):
+		self.default_column_item = ["", False, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
 
-		plugin.load_file()
+		model = gtk.ListStore(str, int, str, str, str)
+		self.model = model
 
-		self.textentry = InputEntry()
-		self.vbox.pack_start(self.textentry, False)
+		model.append(["Benjamin", True, "left", gtk.STOCK_JUSTIFY_LEFT, "Left"])
+		model.append(["Charles", False, "normal",gtk.STOCK_JUSTIFY_LEFT, "Normal"])
+		model.append(["alfred", False, "right", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append(["Alfred", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append(["David", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append(["charles", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append(["david", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append(["benjamin", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
 
-		# TODO make this iconview single-click
-		model = gtk.ListStore(str, str) # text, shortcut
-		self.iconview = gtk.IconView(model)
-		self.iconview.set_text_column(0)
-		self.iconview.set_column_spacing(0)
-		self.iconview.set_row_spacing(0)
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			self.iconview.set_property('has-tooltip', True)
-			self.iconview.connect('query-tooltip', self.on_query_tooltip)
-		self.iconview.connect('item-activated', self.on_activated)
+		Dialog.__init__(self, ui, _('Insert Table'), # T: dialog title
+		)
 
-		self.vbox.add(ScrolledWindow(self.iconview))
+		self.set_default_size(380, 400)
 
-		button = gtk.Button(stock=gtk.STOCK_EDIT)
-		button.connect('clicked', self.on_edit)
-		self.action_area.add(button)
-		self.action_area.reorder_child(button, 0)
+		#self.set_help('Plugins:Table Editor');
+		self.add_help_text(_('Managing table columns'))
 
-		self.load_symbols()
 
-	def load_symbols(self):
-		model = self.iconview.get_model()
-		model.clear()
-		for symbol, shortcut in self.plugin.get_symbols():
-			model.append((symbol, shortcut))
+		hbox = gtk.HBox(spacing=5)
+		hbox.set_size_request(300, 300)
+		self.vbox.pack_start(hbox, False)
+		header_scrolled_area = ScrolledWindow(self.headcolumn_list())
+		header_scrolled_area.set_size_request(200, -1)
+		hbox.add(header_scrolled_area)
+		hbox.add(self.button_box())
 
-	def on_query_tooltip(self, iconview, x, y, keyboard, tooltip):
-		if keyboard: return False
+	def button_box(self):
+		vbox = gtk.VBox(spacing=5)
+		tooltips = gtk.Tooltips()
+		for stock, handler, data, tooltip in (
+			(gtk.STOCK_ADD, self.on_add, None, _('Add column')),
+			(gtk.STOCK_DELETE, self.on_delete, None, _('Remove column')),
+			(gtk.STOCK_GO_UP, self.on_move, -1, _('Move column ahead')),
+			(gtk.STOCK_GO_DOWN, self.on_move, 1, _('Move column backward')),
+		):
+			button = IconButton(stock)
+			if data:
+				button.connect('clicked', handler, data)
+			else:
+				button.connect('clicked', handler)
+			tooltips.set_tip(button, tooltip)
+			vbox.pack_start(button, False)
 
-		x, y = iconview.convert_widget_to_bin_window_coords(x, y)
-		path = iconview.get_path_at_pos(x, y)
-		if path is None: return False
+		vbox.show_all()
+		return vbox
 
-		model = iconview.get_model()
-		iter = model.get_iter(path)
-		text = model.get_value(iter, 1)
-		if not text: return False
-
-		tooltip.set_text(text)
-		return True
-
-	def on_activated(self, iconview, path):
-		model = iconview.get_model()
-		iter = model.get_iter(path)
-		text = model.get_value(iter, 0)
-		text = text.decode('utf-8')
-		pos = self.textentry.get_position()
-		self.textentry.insert_text(text, pos)
-		self.textentry.set_position(pos + len(text))
-
-	def on_edit(self, button):
-		file = self.confg.get_config_file('symbols.list')
-		if self.ui.edit_config_file(file):
-			self.plugin.load_file()
-			self.load_symbols()
 
 	def run(self):
-		self.iconview.grab_focus()
 		Dialog.run(self)
 
 	def do_response_ok(self):
-		text = self.textentry.get_text()
-		textview = self.pageview.view
-		buffer = textview.get_buffer()
-		buffer.insert_at_cursor(text)
+		logger.fatal("OK response")
+		#text = self.textentry.get_text()
+		#textview = self.pageview.view
+		#buffer = textview.get_buffer()
+		#buffer.insert_at_cursor(text)
 		return True
+
+	def do_response_cancel(self):
+		logger.fatal("cacnel")
+		return True
+
+
+	def headcolumn_list(self):
+		model = self.model
+
+		treeview = gtk.TreeView(model)
+		self.treeview = treeview
+		treeview.connect( 'row-activated', self.on_row_activated)
+
+		# 1. Column - Title
+		cell = gtk.CellRendererText()
+		cell.set_property('editable', True)
+		column = gtk.TreeViewColumn(_('Title'), cell, text=0)
+		column.set_min_width(120)
+		treeview.append_column(column)
+		cell.connect("edited", self.on_cell_changed, model, 0)
+
+		# 2. Column - Wrap Line
+		cell = gtk.CellRendererToggle()
+		cell.connect('toggled', self.on_cell_toggled, model)
+		column = gtk.TreeViewColumn(_('Wrap\nLine'), cell)
+		treeview.append_column(column)
+		column.add_attribute(cell, 'active', 1)
+
+		# 3. Column - Alignment
+		store = gtk.ListStore(str, str, str)
+		store.append(['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')])
+		store.append(['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')])
+		store.append(['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')])
+
+		column = gtk.TreeViewColumn(_('Align'))
+		cellicon = gtk.CellRendererPixbuf()
+		column.pack_start(cellicon)
+		column.add_attribute(cellicon, 'stock-id', 3)
+
+		cell = gtk.CellRendererCombo()
+		cell.set_property('model', store)
+		cell.set_property('has-entry', False)
+		cell.set_property('text-column', 2)
+		cell.set_property('width', 50)
+		cell.set_property('editable', True)
+		column.pack_start(cell)
+		column.add_attribute(cell, 'text', 4)
+		cell.connect("changed", self.on_cell_combo_changed, model)
+		treeview.append_column(column)
+
+		return treeview
+
+	def on_cell_editing_started(self, renderer, editable, path, model, colid):
+		# converts pango to plain text
+		text = model[path][colid]
+		text = TableReplacer.cell_to_input(text)
+		editable.set_text(text)
+
+	def on_cell_changed(self, renderer, path, text, model, colid):
+		model[path][colid] = TableReplacer.input_to_cell(text)
+
+	def on_cell_toggled(self, renderer, path, model):#
+		iter = model.get_iter(path)
+		val = model.get_value(iter, 1)
+		model.set_value(iter, 1, not val)
+
+
+	def on_cell_combo_changed(self, renderer, path, comboiter, model):
+		combomodel = renderer.get_property('model')
+		align = combomodel.get_value(comboiter, 0)
+		alignimg = combomodel.get_value(comboiter, 1)
+		aligntext = combomodel.get_value(comboiter, 2)
+
+		iter = model.get_iter(path)
+		model.set_value(iter, 2, align)
+		model.set_value(iter, 3, alignimg)
+		model.set_value(iter, 4, aligntext)
+
+
+	def on_row_activated(self, tree, path, column):
+		model = tree.get_model()
+		iter = model.get_iter(path)
+		colid = tree.get_columns().index(column)
+		value = model.get_value( iter, colid)
+		logger.fatal(value)
+
+	def on_add(self, btn):
+
+		(model, iter) = self.treeview.get_selection().get_selected()
+
+		model.insert_after(iter, self.default_column_item)
+		newiter = model.get_path(iter) if iter else model.get_iter_first()
+		self.treeview.get_selection().select_iter(newiter)
+
+	def on_delete(self, btn):
+		(model, iter) = self.treeview.get_selection().get_selected()
+
+		if iter:
+			model.remove(iter)
+		else:
+			self.selection_info()
+
+	def on_move(self, btn, direction):
+		(model, iter) = self.treeview.get_selection().get_selected()
+
+		if not iter:  # no selected item
+			self.selection_info()
+
+
+		path = model.get_path(iter)
+		newpos = path[0] + direction
+		if 0 > newpos or newpos > len(model):  # first item cannot be pushed forward, last not backwards
+			return
+		newiter = model.get_iter((newpos,))
+
+		model.swap(iter, newiter)
+
+	def selection_info(self):
+			md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+									_("Please select a row, before you push the button."))
+			md.run()
+			md.destroy()
