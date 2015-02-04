@@ -190,7 +190,7 @@ class Dumper(DumperClass):
 		return strings
 
 	def dump_table(self, tag, attrib, strings):
-		aligns = attrib['cols'].split(',')
+		aligns = attrib['aligns'].split(',')
 		single_headers = strings[0]  # single line headers
 		header_length = len(single_headers) # number of columns
 		single_rows = strings[1::]  # body rows which are on a single-line

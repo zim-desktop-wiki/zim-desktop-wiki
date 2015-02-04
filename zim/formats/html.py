@@ -222,7 +222,7 @@ class Dumper(DumperClass):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		aligns = attrib['cols'].split(',')
+		aligns = attrib['aligns'].split(',')
 		tdcount = 0
 		def align(pos):
 			if pos == 'left' or pos == 'right' or pos == 'center':

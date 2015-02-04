@@ -37,7 +37,9 @@ Supported tags:
 	- link for links, attribute href gives the target
 	- img for images, attributes src, width, height an optionally href and alt
 		- type can be used to control plugin functionality, e.g. type=equation
-	- table for tables, attribute cols - comma separated values right,left,center cols
+	- table for tables, attributes
+			* aligns - comma separated values: right,left,center
+			* wraps - 0 for not wrapped, 1 for auto-wrapped line display
 		- thead for table header row
 			- th for table header cell
 		- trow for table row
@@ -1256,7 +1258,7 @@ class DumperClass(Visitor):
 		return [prefix + l for l in lines]
 
 	def dump_object(self, tag, attrib, strings=None):
-		#logger.fatal("dump object")
+		logger.fatal("dump object")
 		'''Dumps object using proper ObjectManager'''
 		format = str(self.__class__.__module__).split('.')[-1]
 		if 'type' in attrib:

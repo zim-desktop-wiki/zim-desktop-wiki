@@ -28,47 +28,20 @@ OBJECT_TYPE = 'table'
 
 # Wiki-Parsetree -> Pango (Table cell) -> TextView (Table cell editing)
 SYNTAX_WIKI_PANGO = (
-	(r'<strong>{0}</strong>', r'<b>{1}</b>', r'**{0}**'),
-	(r'<emphasis>{0}</emphasis>', r'<i>{1}</i>', r'//{0}//'),
-	(r'<mark>{0}</mark>', r'<span background="yellow">{0}</span>', r'__{0}__'),
-	(r'<code>{0}</code>', r'<tt>{0}</tt>', r"''{0}''"),
-	(r'<link href="{0}">{1}</link>', r'<span foreground="blue">{0}</span>', r'[[{0}]]')
+	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
+	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
+	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
+	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
+	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
 )
 
-SYNTAX_CELL_INPUT = (
-	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'", '\n', '\\n')
-)
+SYNTAX_CHAR_REGEX = [
+	('*', '\*'), ('[', '\['), (']', '\]'), (r'\1', '(.+?)'), (r'\2', '(.+?)')
+]
 
-'''
-	for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-			# regular expression must be escaped
-			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
-			editpattern = re.compile(edit)
-			markup = editpattern.sub(pango, markup)
-
-		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
-			rows = map2dim(lambda cell: pangopattern.sub(edit, cell), rows)
-			logger.fatal(rows)
-
-	for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-				wikipattern = re.compile(wiki.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
-				row = [wikipattern.sub(pango, cell) for cell in row]
-'''
-
-
-class TableReplacer:
-	@staticmethod
-	def cell_to_input(text):
-		for k, v in SYNTAX_CELL_INPUT:
-			text = text.replace(k, v)
-		return text
-
-	@staticmethod
-	def input_to_cell(text):
-		for k, v in SYNTAX_CELL_INPUT:
-			text = text.replace(v, k)
-		return text
+SYNTAX_CELL_INPUT = [
+	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'"), ('\n', '\\n')
+]
 
 class TableEditorPlugin(PluginClass):
 
@@ -116,6 +89,26 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 			obj.preferences_changed()
 
 
+class TableReplacer:
+	@staticmethod
+	def cell_to_input(text):
+		for k, v in SYNTAX_CELL_INPUT:
+			text = text.replace(k, v)
+		return text
+
+	@staticmethod
+	def input_to_cell(text):
+		for k, v in SYNTAX_CELL_INPUT:
+			text = text.replace(v, k)
+		return text
+
+	@staticmethod
+	def text_to_regex(text):
+		for k, v in SYNTAX_CHAR_REGEX:
+			text = text.replace(k, v)
+		return text
+
+
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
 
@@ -154,8 +147,15 @@ class MainWindowExtension(WindowExtension):
 	@action(_('Insert Table'), stock='zim-insert-table', readonly=False) # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
-		InsertTableDialog(self.window, self.plugin, self.window.pageview).run()
+		col_model = InsertTableDialog(self.window, self.plugin, self.window.pageview).run()
+		logger.fatal("INSERTION OK")
+		logger.fatal(col_model)
+		#widget = TableViewWidget(self, self.tabledata)
+		pass
+		#model.append([id,"Benjamin", True, "left", gtk.STOCK_JUSTIFY_LEFT, "Left"])
 
+	def convert_colmodel(self, col_model, replace=False):
+		new_store = len(col_model) * []
 
 
 class TableViewObject(CustomObjectClass):
@@ -164,7 +164,7 @@ class TableViewObject(CustomObjectClass):
 		'type': String('table'),
 	}
 
-	def __init__(self, attrib, data, preferences):
+		def __init__(self, attrib,  , preferences):
 		self._attrib = ConfigDict(attrib)
 		self._attrib.define(self.OBJECT_ATTR)
 		self.tabledata = data if data is not None else ''
@@ -208,7 +208,7 @@ class TableViewObject(CustomObjectClass):
 			if alignment == 0.0:
 				align = 'left'
 			elif alignment == 0.5:
-				alig = 'center'
+				align = 'center'
 			elif alignment == 1.0:
 				align = 'right'
 			else:
@@ -223,8 +223,8 @@ class TableViewObject(CustomObjectClass):
 			rows.append(row)
 			iter = liststore.iter_next(iter)
 
-		logger.fatal('get-data')
-		logger.fatal(rows)
+		#logger.fatal('get-data')
+		#logger.fatal(rows)
 
 		def map2dim(fun, rows):
 			return [map(fun, row) for row in rows]
@@ -317,9 +317,11 @@ class TableViewWidget(CustomObjectWidget):
 	def get_liststore(self):
 		return self.liststore
 
-	def create_treeview(self):
-		tabledata = self.tabledata
-		aligns = tabledata.get('cols').split(',')
+	def create_treeview(self, tabledata=None):
+		if not tabledata:
+			tabledata = self.tabledata
+		aligns = tabledata.get('aligns').split(',')
+		wraps = map(int, tabledata.get('wraps').split(','))
 		nrcols = len(aligns)
 		cols = [str]*nrcols
 		self.liststore = gtk.ListStore(*cols)
@@ -549,7 +551,8 @@ class TableViewWidget(CustomObjectWidget):
 		markup = TableReplacer.input_to_cell(text)
 		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
 			# regular expression must be escaped
-			edit = edit.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)').replace('*', '\*').replace('[', '\[').replace(']', '\]')
+			edit = TableReplacer.text_to_regex(edit)
+			logger.fatal(edit)
 			editpattern = re.compile(edit)
 			markup = editpattern.sub(pango, markup)
 		#logger.fatal(markup)
@@ -612,22 +615,26 @@ class TableViewWidget(CustomObjectWidget):
 
 
 class InsertTableDialog(Dialog):
+	class Col():
+		id, title, wrapped, align, alignicon, aligntext = range(6)
 
 	def __init__(self, ui, plugin, pageview, tablemodel=None):
 		self.default_column_item = ["", False, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
+		self.pageview = pageview
 
-		model = gtk.ListStore(str, int, str, str, str)
+		model = gtk.ListStore(int, str, int, str, str, str)
 		self.model = model
 
-		model.append(["Benjamin", True, "left", gtk.STOCK_JUSTIFY_LEFT, "Left"])
-		model.append(["Charles", False, "normal",gtk.STOCK_JUSTIFY_LEFT, "Normal"])
-		model.append(["alfred", False, "right", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append(["Alfred", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append(["David", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append(["charles", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append(["david", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append(["benjamin", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append([0, "Benjamin", True, "left", gtk.STOCK_JUSTIFY_LEFT, "Left"])
+		model.append([1, "Charles", False, "normal",gtk.STOCK_JUSTIFY_LEFT, "Normal"])
+		model.append([2, "alfred", False, "right", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append([3, "Alfred", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append([4, "David", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append([5, "charles", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append([6, "david", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append([7, "benjamin", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
 
+		self.maxid = max(id[0] for id in model)
 		Dialog.__init__(self, ui, _('Insert Table'), # T: dialog title
 		)
 
@@ -665,16 +672,8 @@ class InsertTableDialog(Dialog):
 		vbox.show_all()
 		return vbox
 
-
-	def run(self):
-		Dialog.run(self)
-
 	def do_response_ok(self):
-		logger.fatal("OK response")
-		#text = self.textentry.get_text()
-		#textview = self.pageview.view
-		#buffer = textview.get_buffer()
-		#buffer.insert_at_cursor(text)
+		self.result = self.model
 		return True
 
 	def do_response_cancel(self):
@@ -687,22 +686,21 @@ class InsertTableDialog(Dialog):
 
 		treeview = gtk.TreeView(model)
 		self.treeview = treeview
-		treeview.connect( 'row-activated', self.on_row_activated)
 
 		# 1. Column - Title
 		cell = gtk.CellRendererText()
 		cell.set_property('editable', True)
-		column = gtk.TreeViewColumn(_('Title'), cell, text=0)
+		column = gtk.TreeViewColumn(_('Title'), cell, text=self.Col.title)
 		column.set_min_width(120)
 		treeview.append_column(column)
-		cell.connect("edited", self.on_cell_changed, model, 0)
+		cell.connect("edited", self.on_cell_changed, model, self.Col.title)
 
 		# 2. Column - Wrap Line
 		cell = gtk.CellRendererToggle()
-		cell.connect('toggled', self.on_cell_toggled, model)
+		cell.connect('toggled', self.on_cell_toggled, model, self.Col.wrapped)
 		column = gtk.TreeViewColumn(_('Wrap\nLine'), cell)
 		treeview.append_column(column)
-		column.add_attribute(cell, 'active', 1)
+		column.add_attribute(cell, 'active', self.Col.wrapped)
 
 		# 3. Column - Alignment
 		store = gtk.ListStore(str, str, str)
@@ -713,7 +711,7 @@ class InsertTableDialog(Dialog):
 		column = gtk.TreeViewColumn(_('Align'))
 		cellicon = gtk.CellRendererPixbuf()
 		column.pack_start(cellicon)
-		column.add_attribute(cellicon, 'stock-id', 3)
+		column.add_attribute(cellicon, 'stock-id', self.Col.alignicon)
 
 		cell = gtk.CellRendererCombo()
 		cell.set_property('model', store)
@@ -722,7 +720,7 @@ class InsertTableDialog(Dialog):
 		cell.set_property('width', 50)
 		cell.set_property('editable', True)
 		column.pack_start(cell)
-		column.add_attribute(cell, 'text', 4)
+		column.add_attribute(cell, 'text', self.Col.aligntext)
 		cell.connect("changed", self.on_cell_combo_changed, model)
 		treeview.append_column(column)
 
@@ -737,11 +735,10 @@ class InsertTableDialog(Dialog):
 	def on_cell_changed(self, renderer, path, text, model, colid):
 		model[path][colid] = TableReplacer.input_to_cell(text)
 
-	def on_cell_toggled(self, renderer, path, model):#
+	def on_cell_toggled(self, renderer, path, model, colid):#
 		iter = model.get_iter(path)
-		val = model.get_value(iter, 1)
-		model.set_value(iter, 1, not val)
-
+		val = model.get_value(iter, colid)
+		model.set_value(iter, colid, not val)
 
 	def on_cell_combo_changed(self, renderer, path, comboiter, model):
 		combomodel = renderer.get_property('model')
@@ -750,22 +747,14 @@ class InsertTableDialog(Dialog):
 		aligntext = combomodel.get_value(comboiter, 2)
 
 		iter = model.get_iter(path)
-		model.set_value(iter, 2, align)
-		model.set_value(iter, 3, alignimg)
-		model.set_value(iter, 4, aligntext)
-
-
-	def on_row_activated(self, tree, path, column):
-		model = tree.get_model()
-		iter = model.get_iter(path)
-		colid = tree.get_columns().index(column)
-		value = model.get_value( iter, colid)
-		logger.fatal(value)
+		model.set_value(iter, self.Col.align, align)
+		model.set_value(iter, self.Col.alignicon, alignimg)
+		model.set_value(iter, self.Col.aligntext, aligntext)
 
 	def on_add(self, btn):
-
 		(model, iter) = self.treeview.get_selection().get_selected()
-
+		self.maxid += 1
+		self.default_columns_item[self.Col.id] = self.maxid
 		model.insert_after(iter, self.default_column_item)
 		newiter = model.get_path(iter) if iter else model.get_iter_first()
 		self.treeview.get_selection().select_iter(newiter)

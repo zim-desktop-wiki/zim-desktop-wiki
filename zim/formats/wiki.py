@@ -230,7 +230,8 @@ class WikiParser(object):
 	def parse_table(self, builder, headerrow, alignstyle, body):
 		'''Table'''
 
-		cols = []
+		aligns = []
+		wraps = []
 		headerrow = headerrow.replace('\\|', '#124;')  # escaping
 		body = body.replace('\\|', '#124;')
 
@@ -246,15 +247,20 @@ class WikiParser(object):
 			celltext = celltext.strip()
 			if celltext.startswith(':') and celltext.endswith(':'):
 				alignment = 'center'
+				wrap = 1 if celltext.startswith('::') else 0
 			elif celltext.startswith(':'):
 				alignment = 'left'
+				wrap = 1 if celltext.startswith('::') else 0
 			elif celltext.endswith(':'):
 				alignment = 'right'
+				wrap = 1 if celltext.endswith('::') else 0
 			else:
 				alignment = 'normal'
-			cols.append(alignment)
+				wrap = 0
+			aligns.append(alignment)
+			wraps.append(wrap)
 
-		builder.start(TABLE, {'cols': ','.join(cols)})
+		builder.start(TABLE, {'aligns': ','.join(aligns), 'wraps': ','.join(map(str, wraps))})
 
 		builder.start(HEADROW)
 		for celltext in headerrow.split('|')[1:-1]:
@@ -523,7 +529,8 @@ class Dumper(TextDumper):
 		#logger.fatal(tag)
 		#logger.fatal(attrib)
 		#logger.fatal("---")
-		aligns = attrib['cols'].split(',')
+		aligns = attrib['aligns'].split(',')
+		wraps =  map(int, attrib['wraps'].split(','))
 		single_headers = strings[0]  # single line headers
 		header_length =  len(single_headers)  # number of columns
 		single_rows = strings[1::]  # body rows which are on a single-line
@@ -540,13 +547,14 @@ class Dumper(TextDumper):
 			cells = []
 			for i, width in enumerate(maxwidths):
 				align = aligns[i]
+				wrap = wraps[i]
 				cell = (width) * y
 				if align == 'left':
-					cell = ':' + cell + y
+					cell = ':' + cell + y if wrap == 0 else '::' + cell
 				elif align == 'right' :
-					cell = y + cell + ':'
+					cell = y + cell + ':' if wrap == 0 else cell + '::'
 				elif align == 'center':
-					cell = ':' + cell + ':'
+					cell = ':' + cell + ':' if wrap == 0 else '::' + (width-1) * y + ':'
 				else:
 					cell = y + cell + y
 				cells.append(cell)
@@ -575,8 +583,10 @@ class Dumper(TextDumper):
 		table += [rowline(single_headers)]
 		table.append(rowsep('-'))
 		table += [rowline(row) for row in single_rows]
+		#logger.fatal("dump table")
 		#logger.fatal(map(lambda line: line+"\n", table))
-		return map(lambda line: line+"\n", table)
+		table = map(lambda line: line+"\n", table)
+		return table
 
 	def dump_thead(self, tag, attrib, strings):
 		return [strings]
