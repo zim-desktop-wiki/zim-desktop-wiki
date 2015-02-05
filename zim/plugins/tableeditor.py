@@ -15,6 +15,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.utils import WeakSet
+from zim.formats import Element
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
 from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow, IconButton
@@ -23,34 +24,38 @@ from zim.formats.html import html_encode
 from zim.config.dicts import ConfigDict, String
 from zim.gui.pageview import PageView
 
-
 OBJECT_TYPE = 'table'
-
-# Wiki-Parsetree -> Pango (Table cell) -> TextView (Table cell editing)
-SYNTAX_WIKI_PANGO = (
-	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
-	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
-	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
-	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
-	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
-)
-
-SYNTAX_CHAR_REGEX = [
-	('*', '\*'), ('[', '\['), (']', '\]'), (r'\1', '(.+?)'), (r'\2', '(.+?)')
-]
 
 SYNTAX_CELL_INPUT = [
 	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'"), ('\n', '\\n')
 ]
 
+# Wiki-Parsetree -> Pango (Table cell) -> TextView (Table cell editing)
+SYNTAX_WIKI_PANGO2 = [
+	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
+	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
+	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
+	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
+	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
+]
+
+
+def reg_replace(string):
+	string = string.replace('*', '\*').replace('[', '\[').replace(']', '\]') \
+		.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)')
+	return re.compile(string)
+
+SYNTAX_WIKI_PANGO = [tuple(map(reg_replace, expr_list)) for expr_list in SYNTAX_WIKI_PANGO2]
+
+
 class TableEditorPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Table Editor'), # T: plugin name
+		'name': _('Table Editor'),  # T: plugin name
 		'description': _('''\
 With this plugin you can embed a 'Table' into the wiki page. Tables will be shown as GTK TreeView widgets.
 Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'object_types': (OBJECT_TYPE, ),
 		'help': 'Plugins:Table Editor',
 		'author': 'Tobias Haupenthal',
@@ -78,9 +83,36 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def create_table(self, attrib, text):
+		if ElementTree.iselement(text) and text.get('type') == 'table':
+			(header, rows) = self.tabledom_to_list(text)
+			attrib['wraps'] = attrib.get('wraps').split(',')
+			attrib['aligns'] = attrib.get('aligns').split(',')
+
+
+		else:
+			header = text[0]
+			rows = [len(text[0]) * [' ']]
+
+			logger.fatal(header)
+			logger.fatal(header)
+			logger.fatal(rows)
+			logger.fatal(attrib)
+
 		'''Factory method for Table objects'''
-		obj = TableViewObject(attrib, text, self.preferences)
+		obj = TableViewObject(attrib, header, rows, self.preferences)
 		return obj
+
+	def tabledom_to_list(self, tabledata):
+		header = map(lambda head: head.text.decode('utf-8'), tabledata.findall('thead/th'))
+		header = map(TableReplacer.wiki_to_cell, header)
+
+		rows = []
+		for trow in tabledata.findall('trow'):
+			row = trow.findall('td')
+			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
+			row = map(TableReplacer.wiki_to_cell, row)
+			rows.append(row)
+		return header, rows
 
 	def on_preferences_changed(self, preferences):
 		logger.fatal("update preferences")
@@ -90,8 +122,11 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 
 
 class TableReplacer:
+
 	@staticmethod
 	def cell_to_input(text):
+		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+			text = pattern[1].sub(replace[2], text)
 		for k, v in SYNTAX_CELL_INPUT:
 			text = text.replace(k, v)
 		return text
@@ -100,14 +135,21 @@ class TableReplacer:
 	def input_to_cell(text):
 		for k, v in SYNTAX_CELL_INPUT:
 			text = text.replace(v, k)
+		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+			text = pattern[2].sub(replace[1], text)
 		return text
 
 	@staticmethod
-	def text_to_regex(text):
-		for k, v in SYNTAX_CHAR_REGEX:
-			text = text.replace(k, v)
+	def wiki_to_cell(text):
+		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+			text = pattern[0].sub(replace[1], text)
 		return text
 
+	@staticmethod
+	def cell_to_wiki(text):
+		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+			text = pattern[1].sub(replace[0], text)
+		return text
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
@@ -144,15 +186,38 @@ class MainWindowExtension(WindowExtension):
 		ObjectManager.unregister_object(OBJECT_TYPE)
 		self.window.ui.reload_page()
 
+	def change_table(self, treeview):
+		logger.fatal("OK change-table")
+		pass
+
+
 	@action(_('Insert Table'), stock='zim-insert-table', readonly=False) # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
 		col_model = InsertTableDialog(self.window, self.plugin, self.window.pageview).run()
+		if not col_model:
+			return
+
+		isnew = True
+		ids = []
+		headers = []
+		rows = []
+		aligns = []
+		wraps = []
+
+		for model in col_model:
+			ids.append(model[0])
+			headers.append(model[1])
+			aligns.append(model[3])
+			wraps.append(model[2])
+
+		attrs = {'ids': ids, 'aligns': aligns, 'wraps': wraps}
+
+		obj = self.plugin.create_table(attrs, [headers])
+
+		pageview = self.window.pageview
+		pageview.insert_object_at_cursor(obj)
 		logger.fatal("INSERTION OK")
-		logger.fatal(col_model)
-		#widget = TableViewWidget(self, self.tabledata)
-		pass
-		#model.append([id,"Benjamin", True, "left", gtk.STOCK_JUSTIFY_LEFT, "Left"])
 
 	def convert_colmodel(self, col_model, replace=False):
 		new_store = len(col_model) * []
@@ -164,17 +229,32 @@ class TableViewObject(CustomObjectClass):
 		'type': String('table'),
 	}
 
-		def __init__(self, attrib,  , preferences):
-		self._attrib = ConfigDict(attrib)
-		self._attrib.define(self.OBJECT_ATTR)
-		self.tabledata = data if data is not None else ''
+	def __init__(self, attrib, header, rows, preferences):
+		_attrib = {}
+		for k, v in attrib.iteritems():
+			logger.fatal("!!!")
+			logger.fatal(attrib)
+			logger.fatal(type(v))
+			if k == 'ids':
+				continue
+			if isinstance(v, list):
+				v = ','.join(map(str, v))
+			_attrib[k] = v
+
+		CustomObjectClass.__init__(self, _attrib, [header]+rows)
+
+		self.attrib = attrib
+		self.header = header
+		self.rows = rows
 		self.modified = False
 		self.preferences = preferences
 		self.treeview = None
+		self.liststore = None
 		self._widgets = WeakSet()
 
 	def get_widget(self):
-		widget = TableViewWidget(self, self.tabledata)
+
+		widget = TableViewWidget(self, self.header, self.rows, self.attrib)
 		self.treeview = widget.get_treeview()
 		self.liststore = widget.get_liststore()
 		self.liststore.connect('row-changed', self.on_modified_changed)
@@ -232,15 +312,10 @@ class TableViewObject(CustomObjectClass):
 		def map3dim(fun, multiline_rows):
 			return [[map(fun, row) for row in lines] for lines in multiline_rows]
 
-		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
-			rows = map2dim(lambda cell: pangopattern.sub(edit, cell), rows)
-			logger.fatal(rows)
-
 		rows = map2dim(TableReplacer.cell_to_input, rows)
 
 		logger.fatal(rows)
-		return headers, aligns, rows
+		return headers, rows
 
 	def dump(self, format, dumper, linker=None):
 		#logger.fatal("DUMPING")
@@ -251,12 +326,10 @@ class TableViewObject(CustomObjectClass):
 
 class TableViewWidget(CustomObjectWidget):
 
-
-	def __init__(self, obj, data):
-		self.set_size_request(-1,-1)
+	def __init__(self, obj, headers, rows, attrs):
 
 		self.obj = obj
-		self.tabledata = data
+		self.liststore = None
 
 
 		#tree = self.get_treeview()
@@ -279,8 +352,7 @@ class TableViewWidget(CustomObjectWidget):
 		#self.add(win)
 
 		self.set_has_cursor(True)
-
-		self.treeview = self.create_treeview()
+		self.treeview = self.create_treeview(headers, rows, attrs)
 		#win = ScrolledWindow(self.treeview, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
 		# only horizontal scroll
 		#self.vbox.pack_start(win)
@@ -317,21 +389,22 @@ class TableViewWidget(CustomObjectWidget):
 	def get_liststore(self):
 		return self.liststore
 
-	def create_treeview(self, tabledata=None):
-		if not tabledata:
-			tabledata = self.tabledata
-		aligns = tabledata.get('aligns').split(',')
-		wraps = map(int, tabledata.get('wraps').split(','))
+	def create_treeview(self, headers, rows, attrs):
+		logger.fatal(attrs)
+		aligns = attrs.get('aligns')
+		wraps = attrs.get('wraps')
 		nrcols = len(aligns)
+
 		cols = [str]*nrcols
+
 		self.liststore = gtk.ListStore(*cols)
 		liststore = self.liststore
 		treeview = gtk.TreeView(liststore)
-		logger.fatal("size")
 
 		align = None
-		for i, headcol in enumerate(tabledata.findall('thead/th')):
-			tview_column = gtk.TreeViewColumn(headcol.text)
+		for i, headcol in enumerate(headers):
+			logger.fatal("new head")
+			tview_column = gtk.TreeViewColumn(headcol)
 			#tview_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 			#tview_column.set_expand(False)
 			treeview.append_column(tview_column)
@@ -364,31 +437,17 @@ class TableViewWidget(CustomObjectWidget):
 			cell.connect("editing-started", self.on_cell_editing_started, i)
 
 
+		for trow in rows:
+			liststore.append(trow)
 
-
-		for trow in tabledata.findall('trow'):
-			row = trow.findall('td')
-			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
-
-			rowtext = []
-			for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-				wikipattern = re.compile(wiki.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
-				row = [wikipattern.sub(pango, cell) for cell in row]
-
-			rowtext = row
-			logger.fatal(rowtext)
-
-			liststore.append(rowtext)
-			#TODO reformat to pango
-
-		#logger.fatal(liststore[0][0])
 
 		# Hook up signals
-		#self.view.connect('populate-popup', self.on_populate_popup)
-		#self.view.connect('move-cursor', self.on_move_cursor)
+		treeview.connect('move-cursor', self.on_move_cursor)
 
 		return treeview
 
+	def on_populate_popup(self):
+		pass
 
 	def set_preferences(self, preferences):
 		logger.fatal("Preferences changed")
@@ -425,23 +484,6 @@ class TableViewWidget(CustomObjectWidget):
 	#~ def on_line_numbers_toggled(self, button):
 		#~ '''Callback for toggling line numbers.'''
 		#~ self.show_line_numbers(button.get_active())
-
-	def on_populate_popup(self, view, menu):
-		menu.prepend(gtk.SeparatorMenuItem())
-
-		item = gtk.CheckMenuItem(_('Show Line Numbers'))
-			# T: preference option for tableeditor plugin
-		item.set_active(self.obj._attrib['linenumbers'])
-		#item.connect_after('activate', activate_linenumbers)
-		menu.prepend(item)
-
-
-		item = gtk.MenuItem(_('Syntax'))
-		submenu = gtk.Menu()
-		item.set_submenu(submenu)
-		menu.prepend(item)
-
-		menu.show_all()
 
 	def fetch_cell_by_event(self, event):
 		(xpos, ypos) = event.get_coords()
@@ -525,7 +567,7 @@ class TableViewWidget(CustomObjectWidget):
 		selection = self.treeview.get_selection()
 		model, iter = selection.get_selected()
 
-		if(len(model) > 1):
+		if len(model) > 1:
 			model.remove(iter)
 			self.obj.set_modified(True)
 		else:
@@ -539,7 +581,12 @@ class TableViewWidget(CustomObjectWidget):
 		self.obj.emit('link-clicked', {'href': link})
 
 	def on_change_columns(self, action):
-		logger.fatal("change columns")
+		model = self.treeview.get_model()
+
+
+		#model, iter = selection.get_selected()
+		#logger.fatal(model)
+		#logger.fatal("change columns")
 		pass
 
 
@@ -549,23 +596,11 @@ class TableViewWidget(CustomObjectWidget):
 	def on_cell_changed(self, cellrenderer, path, text, colid):
 		# converts plain text to pango
 		markup = TableReplacer.input_to_cell(text)
-		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-			# regular expression must be escaped
-			edit = TableReplacer.text_to_regex(edit)
-			logger.fatal(edit)
-			editpattern = re.compile(edit)
-			markup = editpattern.sub(pango, markup)
-		#logger.fatal(markup)
 		self.liststore[path][colid] = markup
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, colid):
 		# converts pango to plain text
-		# model, treeiter = self.treeview.get_selection().get_selected()
-		logger.fatal(self.liststore[path][colid])
 		markup = self.liststore[path][colid]
-		for (wiki, pango, edit) in SYNTAX_WIKI_PANGO:
-			pangopattern = re.compile(pango.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)'))
-			markup = pangopattern.sub(edit, markup)
 		markup = TableReplacer.cell_to_input(markup)
 		editable.set_text(markup)
 
@@ -583,58 +618,22 @@ class TableViewWidget(CustomObjectWidget):
 		self.obj.set_modified(True)
 		return cmp(data1, data2)
 
-	def on_populate_popup(self, view, menu):
-		menu.prepend(gtk.SeparatorMenuItem())
-
-		def activate_linenumbers(item):
-			self.obj.show_line_numbers(item.get_active())
-
-		item = gtk.CheckMenuItem(_('Show Line Numbers'))
-			# T: preference option for tableeditor plugin
-		item.set_active(self.obj._attrib['linenumbers'])
-		item.connect_after('activate', activate_linenumbers)
-		menu.prepend(item)
-
-
-		def activate_lang(item):
-			self.obj.set_language(item.zim_sourceview_languageid)
-
-		item = gtk.MenuItem(_('Syntax'))
-		submenu = gtk.Menu()
-		'''
-		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
-			langitem = gtk.MenuItem(lang)
-			langitem.connect('activate', activate_lang)
-			langitem.zim_sourceview_languageid = LANGUAGES[lang]
-			submenu.append(langitem)
-		item.set_submenu(submenu)
-		'''
-		menu.prepend(item)
-
-		menu.show_all()
-
-
 class InsertTableDialog(Dialog):
 	class Col():
 		id, title, wrapped, align, alignicon, aligntext = range(6)
 
 	def __init__(self, ui, plugin, pageview, tablemodel=None):
-		self.default_column_item = ["", False, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
+		self.default_column_item = [-1, "", 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
+		first_column_item = [-1, _("Column 1"), 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
 		self.pageview = pageview
+		self.treeview = None
 
 		model = gtk.ListStore(int, str, int, str, str, str)
 		self.model = model
 
-		model.append([0, "Benjamin", True, "left", gtk.STOCK_JUSTIFY_LEFT, "Left"])
-		model.append([1, "Charles", False, "normal",gtk.STOCK_JUSTIFY_LEFT, "Normal"])
-		model.append([2, "alfred", False, "right", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append([3, "Alfred", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append([4, "David", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append([5, "charles", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append([6, "david", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
-		model.append([7, "benjamin", False, "normal", gtk.STOCK_JUSTIFY_LEFT, "Right"])
+		model.append(first_column_item)
 
-		self.maxid = max(id[0] for id in model)
+		self.maxid = max(1, max(id[0] for id in model))
 		Dialog.__init__(self, ui, _('Insert Table'), # T: dialog title
 		)
 
@@ -673,11 +672,12 @@ class InsertTableDialog(Dialog):
 		return vbox
 
 	def do_response_ok(self):
-		self.result = self.model
+		self.result = [[m[0], m[1], m[2],m[3]] for m in self.model]
 		return True
 
 	def do_response_cancel(self):
 		logger.fatal("cacnel")
+		self.result = None
 		return True
 
 
@@ -754,7 +754,7 @@ class InsertTableDialog(Dialog):
 	def on_add(self, btn):
 		(model, iter) = self.treeview.get_selection().get_selected()
 		self.maxid += 1
-		self.default_columns_item[self.Col.id] = self.maxid
+		self.default_column_item[self.Col.id] = self.maxid
 		model.insert_after(iter, self.default_column_item)
 		newiter = model.get_path(iter) if iter else model.get_iter_first()
 		self.treeview.get_selection().select_iter(newiter)
@@ -763,7 +763,13 @@ class InsertTableDialog(Dialog):
 		(model, iter) = self.treeview.get_selection().get_selected()
 
 		if iter:
-			model.remove(iter)
+			if len(model) > 1:
+				model.remove(iter)
+			else:
+				md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+										_("A table needs to have at least one column."))
+				md.run()
+				md.destroy()
 		else:
 			self.selection_info()
 

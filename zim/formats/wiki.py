@@ -527,10 +527,11 @@ class Dumper(TextDumper):
 		#logger.fatal("DUMP_TABL")
 		#logger.fatal(strings)
 		#logger.fatal(tag)
-		#logger.fatal(attrib)
-		#logger.fatal("---")
+		logger.fatal(attrib)
+		logger.fatal("---")
 		aligns = attrib['aligns'].split(',')
-		wraps =  map(int, attrib['wraps'].split(','))
+		logger.fatal(attrib)
+		wraps = map(int, attrib['wraps'].split(','))
 		single_headers = strings[0]  # single line headers
 		header_length =  len(single_headers)  # number of columns
 		single_rows = strings[1::]  # body rows which are on a single-line

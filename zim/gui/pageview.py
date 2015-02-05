@@ -2458,7 +2458,7 @@ class TextBuffer(gtk.TextBuffer):
 					builder.data('\n')
 				return
 
-			headers, aligns, rows = tabledata
+			headers, rows = tabledata
 			if need_newline_infront:
 				builder.data('\n')
 
