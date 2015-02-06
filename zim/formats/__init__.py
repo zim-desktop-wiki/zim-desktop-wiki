@@ -904,6 +904,7 @@ class OldParseTreeBuilder(object):
 		self._tail = True
 
 		if len(self._stack) > 1 and not (tag == 'img' or tag == 'object'
+		or tag == 'td' or tag == 'th'
 		or (self._last.text and not self._last.text.isspace())
 		or self._last.getchildren() ):
 			# purge empty tags
@@ -1133,7 +1134,8 @@ class DumperClass(Visitor):
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []
 		self.context = [DumperContextElement(None, None, self._text)]
-		#logger.fatal("E: DumpCOntext")
+		logger.fatal("E: DumpCOntext")
+		logger.fatal(tree.tostring())
 		#logger.fatal(self.context)
 		tree.visit(self)
 		if len(self.context) != 1:
@@ -1154,8 +1156,9 @@ class DumperClass(Visitor):
 		self.context.append(DumperContextElement(tag, attrib, []))
 
 	def text(self, text):
-		#logger.fatal("f-text")
-		#logger.fatal(text)
+		logger.fatal("f-text")
+		logger.fatal(self.context[-1].tag)
+		logger.fatal("."+text+".")
 		assert not text is None
 		if self.context[-1].tag != OBJECT:
 		#logger.fatal(self.context[-1])
@@ -1172,6 +1175,8 @@ class DumperClass(Visitor):
 		#logger.fatal(self.context)
 		_, attrib, strings = self.context.pop()
 
+		logger.fatal(self.context)
+		logger.fatal(strings)
 		#logger.fatal("str ")
 		#logger.fatal(strings)
 		#logger.fatal(tag)

@@ -229,6 +229,7 @@ class WikiParser(object):
 
 	def parse_table(self, builder, headerrow, alignstyle, body):
 		'''Table'''
+		logger.fatal("Parse table")
 
 		aligns = []
 		wraps = []
@@ -603,6 +604,8 @@ class Dumper(TextDumper):
 		#logger.fatal('dump-td')
 		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 		strings = map(lambda s: s.replace('<br>', '\\n'), strings)
+		logger.fatal("dump-td")
+		logger.fatal(strings)
 		if len(strings) > 1:
 			strings = ''.join(strings)
 		return strings

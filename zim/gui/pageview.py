@@ -2336,10 +2336,13 @@ class TextBuffer(gtk.TextBuffer):
 				if anchor is None:
 					continue
 				if hasattr(anchor, 'manager'):
+					logger.fatal("analyze anchor")
 					attrib = anchor.manager.get_attrib()
 					if attrib and attrib['type'] == 'table':
+						logger.fatal("typed table")
 						self.build_parsetree_of_table(builder, anchor.manager, iter)
 					else:
+						logger.fatal("not typed table tree")
 						# general object related parsing
 						data = anchor.manager.get_data()
 						logger.debug("Anchor with CustomObject: %s", anchor.manager)
@@ -2434,6 +2437,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def build_parsetree_of_table(self, builder, anchormanager, iter):
 			logger.debug("Anchor with TableObject: %s", anchormanager)
+			logger.fatal(builder)
 			attrib = anchormanager.get_attrib()
 			del attrib['type']
 			tabledata = anchormanager.get_data()
@@ -2473,6 +2477,7 @@ class TextBuffer(gtk.TextBuffer):
 			for row in rows:
 				builder.start('trow')
 				for cell in row:
+					logger.fatal('td')
 					builder.start('td')
 					builder.data(cell)
 					builder.end('td')
@@ -6071,9 +6076,9 @@ class PageView(gtk.VBox):
 		# - content of fallback-object is like a plaintext table
 		# - content of table-widget is not text, but a xml table tree
 		# - callbacks for 'link-clicked' and 'edit-object'
-		tableobj = obj
-		tableobj.attrib['type'] = 'table'
+		logger.debug("Insert table(%s, %s)", buffer, obj)
 
+		obj.attrib['type'] = 'table'
 		if not isinstance(obj, CustomObjectClass):
 			# assume obj is a parsetree element
 			element = obj
@@ -6084,12 +6089,12 @@ class PageView(gtk.VBox):
 				obj.attr = dict()
 				obj.attr['type'] = 'table'
 
-		if isinstance(obj, FallbackObject):
-			# if table plugin is not loaded - show table as plain text
-			tree = ParseTree(tableobj)
-			text = get_dumper('wiki').dump(tree)
-			lines = "".join(text)
-			obj._data = lines
+			if isinstance(obj, FallbackObject):
+				# if table plugin is not loaded - show table as plain text
+				tree = ParseTree(element)
+				text = get_dumper('wiki').dump(tree)
+				lines = "".join(text)
+				obj._data = lines
 
 		def on_modified_changed(obj):
 			logger.fatal("on-modified-changed")
@@ -6119,11 +6124,9 @@ class PageView(gtk.VBox):
 
 		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
-		logger.fatal(obj)
 		widget = obj.get_widget()
 		assert isinstance(widget, CustomObjectWidget)
 		widget.connect('release-cursor', on_release_cursor, anchor)
-		widget.show_all()
 		self.view.add_child_at_anchor(widget, anchor)
 		self._object_widgets.add(widget)
 

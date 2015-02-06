@@ -737,6 +737,9 @@ class EditTableDialog(Dialog):
 		hbox.add(header_scrolled_area)
 		hbox.add(self.button_box())
 
+		# currently edited cell - save it on exit
+		self.currently_edited = None
+
 	def button_box(self):
 		vbox = gtk.VBox(spacing=5)
 		tooltips = gtk.Tooltips()
@@ -817,9 +820,11 @@ class EditTableDialog(Dialog):
 		text = model[path][colid]
 		text = TableReplacer.cell_to_input(text)
 		editable.set_text(text)
+		self.currently_edited = (path, colid)
 
 	def on_cell_changed(self, renderer, path, text, model, colid):
 		model[path][colid] = TableReplacer.input_to_cell(text)
+		self.currently_edited = None
 
 	def on_cell_toggled(self, renderer, path, model, colid):#
 		iter = model.get_iter(path)
@@ -859,7 +864,14 @@ class EditTableDialog(Dialog):
 		else:
 			self.selection_info()
 
+	def save_open_cell(self):
+		if self.currently_edited is not None:
+			path, colid = self.currently_edited
+		model[path][colid] = TableReplacer.input_to_cell(text)
+
+
 	def on_move(self, btn, direction):
+		self.save_open_cell()
 		(model, iter) = self.treeview.get_selection().get_selected()
 
 		if not iter:  # no selected item

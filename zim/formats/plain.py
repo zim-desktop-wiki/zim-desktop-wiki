@@ -190,6 +190,7 @@ class Dumper(DumperClass):
 		return strings
 
 	def dump_table(self, tag, attrib, strings):
+		logger.fatal("print plain")
 		aligns = attrib['aligns'].split(',')
 		single_headers = strings[0]  # single line headers
 		header_length = len(single_headers) # number of columns
