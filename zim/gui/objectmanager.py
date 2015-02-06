@@ -173,6 +173,7 @@ class FallbackObjectWidget(TextViewWidget):
 		logger.fatal("fallback object")
 		logger.fatal(type)
 		plugin = ObjectManager.find_plugin(type) if type else None
+		logger.fatal(plugin)
 		if plugin:
 			self._add_load_plugin_bar(plugin)
 		else:
@@ -180,7 +181,7 @@ class FallbackObjectWidget(TextViewWidget):
 			self.vbox.pack_start(label)
 
 	def _add_load_plugin_bar(self, plugin):
-		key, name, activatable, klass, _ = plugin
+		key, name, activatable, klass, _winextension = plugin
 
 		hbox = gtk.HBox(False, 5)
 		label = gtk.Label(_("Plugin %s is required to display this object.") % name)

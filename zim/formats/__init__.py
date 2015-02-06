@@ -1189,8 +1189,8 @@ class DumperClass(Visitor):
 				method = getattr(self, 'dump_'+tag)
 			except AttributeError:
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
-			#logger.fatal("STRING")
-			#logger.fatal(strings)
+			logger.fatal("STRING")
+			logger.fatal(strings)
 			strings = method(tag, attrib, strings)
 			#~ try:
 				#~ u''.join(strings)

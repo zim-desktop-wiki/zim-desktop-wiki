@@ -109,7 +109,11 @@ class _ObjectManager(object):
 				types = klass.plugin_info.get('object_types')
 				if types and type in types:
 					activatable = klass.check_dependencies_ok()
-					return (name, klass.plugin_info['name'], activatable, klass, self.window_extensions[type])
+					win_ext = self.window_extensions[type] if type in self.window_extensions else None
+					#logger.fatal("HI")
+					#logger.fatal(win_ext)
+					#logger.fatal(self.window_extensions[type])
+					return (name, klass.plugin_info['name'], activatable, klass, win_ext)
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue

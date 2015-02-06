@@ -78,7 +78,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 	)
 
 	def __init__(self, config=None):
-		logger.fatal("Load plugin")
+		#logger.fatal("Load plugin")
 		PluginClass.__init__(self, config)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
@@ -93,10 +93,10 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 			header = text[0]
 			rows = [len(text[0]) * [' ']]
 
-			logger.fatal(header)
-			logger.fatal(header)
-			logger.fatal(rows)
-			logger.fatal(attrib)
+			#logger.fatal(header)
+			#logger.fatal(header)
+			#logger.fatal(rows)
+			#logger.fatal(attrib)
 
 		'''Factory method for Table objects'''
 		obj = TableViewObject(attrib, header, rows, self.preferences)
@@ -115,7 +115,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		return header, rows
 
 	def on_preferences_changed(self, preferences):
-		logger.fatal("update preferences")
+		#logger.fatal("update preferences")
 		'''Update preferences on open objects'''
 		for obj in ObjectManager.get_active_objects(OBJECT_TYPE):
 			obj.preferences_changed()
@@ -174,7 +174,7 @@ class MainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		logger.fatal("mainwindow extension")
+		#logger.fatal("mainwindow extension")
 		WindowExtension.__init__(self, plugin, window)
 
 		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table, self)
@@ -189,7 +189,7 @@ class MainWindowExtension(WindowExtension):
 		self.window.ui.reload_page()
 
 	def change_table(self, treeview):
-		logger.fatal("OK change-table")
+		#logger.fatal("OK change-table")
 		pass
 
 
@@ -219,12 +219,12 @@ class MainWindowExtension(WindowExtension):
 
 		pageview = self.window.pageview
 		pageview.insert_object_at_cursor(obj)
-		logger.fatal("INSERTION OK")
+		#logger.fatal("INSERTION OK")
 
 	def do_edit_object(self, obj):
 		'''Run the InsertTableDialog'''
-		logger.fatal("obj")
-		logger.fatal(obj)
+		#logger.fatal("obj")
+		#logger.fatal(obj)
 		aligns = obj.attrib['aligns']
 		wraps = obj.attrib['wraps']
 		titles = [col.get_title() for col in obj.treeview.get_columns()]
@@ -246,35 +246,47 @@ class MainWindowExtension(WindowExtension):
 			if model[0] != -1:
 				id_mapping[i] = model[0]
 			ids.append(model[0])
-			headers.append(model[1])
+			header = model[1] if model[1] else ' '
+			headers.append(header)
 			aligns.append(model[3])
 			wraps.append(model[2])
 
 		attrs = {'aligns': aligns, 'wraps': wraps}
 		# copy row-data
 		new_rows = []
+		logger.fatal("CHANGING columns")
+		logger.fatal(id_mapping)
 		for oldrow in obj.treeview.get_model():
-				newrow = [' ']*len(ids)
-				for k, v in id_mapping.iteritems():
-					newrow[k] = oldrow[v]
+				newrow = [' ']*len(headers)
+				logger.fatal("Newrow")
+				logger.fatal(newrow)
+				for v, k in id_mapping.iteritems():
+					newrow[v] = oldrow[k]
 				new_rows.append(newrow)
 
+		logger.fatal(new_rows)
 		widget = TableViewWidget(obj, headers, new_rows, attrs)
-		logger.fatal(obj._attrib)
+		new_treeview = widget.get_treeview()
+		new_model =  new_treeview.get_model()
 		#obj._attrib.update({'aligns': ','.join(aligns), 'wraps': ','.join(str(wrap) for wrap in wraps)})
 		#obj.treeview = widget.get_treeview()
+
+
+
+		obj.treeview.set_model(new_treeview.get_model())
+		# remove all old columns and move new columns to original treeview
+		for col in obj.treeview.get_columns():
+			obj.treeview.remove_column(col)
+		for col in new_treeview.get_columns():
+			new_treeview.remove_column(col)
+			obj.treeview.append_column(col)
+
+		obj.liststore = new_model
+		obj.widget.liststore = new_model
+		#obj.widget.attrib = attrs
 		#obj.treeview.attrib = attrs
-		#obj.attrib = attrs
-
-
-		obj.treeview.set_model()
-		logger.fatal(obj)
-		#logger.fatal(self.window.pageview.get_buff)
+		obj.attrib = attrs
 		obj.set_modified(True)
-
-		pageview = self.window.pageview
-		#		self.window.ui.reload_page()
-
 
 class TableViewObject(CustomObjectClass):
 
@@ -301,6 +313,7 @@ class TableViewObject(CustomObjectClass):
 		self.rows = rows
 		self.modified = False
 		self.preferences = preferences
+		self.widget = None
 		self.treeview = None
 		self.liststore = None
 		self._widgets = WeakSet()
@@ -308,6 +321,7 @@ class TableViewObject(CustomObjectClass):
 	def get_widget(self):
 
 		widget = TableViewWidget(self, self.header, self.rows, self.attrib)
+		self.widget = widget
 		self.treeview = widget.get_treeview()
 		self.liststore = widget.get_liststore()
 		self.liststore.connect('row-changed', self.on_modified_changed)
@@ -325,12 +339,14 @@ class TableViewObject(CustomObjectClass):
 		self.set_modified(True)
 
 	def on_modified_changed(self, treemodel, path, iter):
-		logger.fatal("row-changed")
+		#logger.fatal("row-changed")
 		self.set_modified(True)
 
 	def get_data(self):
 		'''Returns data as text.'''
 		liststore = self.treeview.get_model()
+		logger.fatal("get-data")
+		logger.fatal(liststore)
 		headers = []
 		aligns = []
 		rows = []
@@ -356,8 +372,8 @@ class TableViewObject(CustomObjectClass):
 			rows.append(row)
 			iter = liststore.iter_next(iter)
 
-		#logger.fatal('get-data')
-		#logger.fatal(rows)
+		logger.fatal('get-data')
+		logger.fatal(rows)
 
 		def map2dim(fun, rows):
 			return [map(fun, row) for row in rows]
@@ -367,12 +383,14 @@ class TableViewObject(CustomObjectClass):
 
 		rows = [map(lambda cell: TableReplacer.cell_to_input(cell, True), row) for row in rows]
 
+		logger.fatal("get-data")
 		logger.fatal(rows)
 		# TODO WRAPS
 		wraps = self.attrib['wraps']
 		attrs = {'aligns': ','.join(aligns), 'wraps': ','.join(str(wrap) for wrap in wraps)}
 		logger.fatal('##attributes')
 		logger.fatal(attrs)
+		logger.debug("Table as get-data: : %s, %s, %s", headers, rows, attrs)
 		return headers, rows, attrs
 
 	def dump(self, format, dumper, linker=None):
@@ -448,7 +466,7 @@ class TableViewWidget(CustomObjectWidget):
 		return self.liststore
 
 	def create_treeview(self, headers, rows, attrs):
-		logger.fatal(attrs)
+		#logger.fatal(attrs)
 		aligns = attrs.get('aligns')
 		wraps = attrs.get('wraps')
 		nrcols = len(aligns)
@@ -461,7 +479,7 @@ class TableViewWidget(CustomObjectWidget):
 
 		align = None
 		for i, headcol in enumerate(headers):
-			logger.fatal("new head")
+			#logger.fatal("new head")
 			tview_column = gtk.TreeViewColumn(headcol)
 			#tview_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 			#tview_column.set_expand(False)
@@ -562,7 +580,7 @@ class TableViewWidget(CustomObjectWidget):
 			cellvalue = self.fetch_cell_by_event(event)
 			linkvalue = self.get_linkurl(cellvalue)
 			if linkvalue:
-				logger.fatal(linkvalue)
+				#logger.fatal(linkvalue)
 				self.obj.emit('link-clicked', {'href': linkvalue})
 			return
 
@@ -664,8 +682,10 @@ class TableViewWidget(CustomObjectWidget):
 		editable.set_text(markup)
 
 	def on_row_activated(self, treemodel, row, col):
-		logger.fatal("--")
-		logger.fatal(treemodel)
+		logger.fatal("row-activated: nothing to do")
+		pass
+		#logger.fatal("--")
+		#logger.fatal(treemodel)
 
 
 	def sort_by_number_or_string(self, treemodel, iter1, iter2, colid):
@@ -698,10 +718,10 @@ class EditTableDialog(Dialog):
 			model.append(first_column_item)
 		else:
 			for col in tablemodel:
-				logger.fatal(col)
+				#logger.fatal(col)
 				align = col.pop(2)
 				col += COLUMNS_ALIGNMENTS[align] if align in COLUMNS_ALIGNMENTS else COLUMNS_ALIGNMENTS['normal']
-				logger.fatal(col)
+				#logger.fatal(col)
 				model.append(col)
 
 
@@ -742,7 +762,7 @@ class EditTableDialog(Dialog):
 		return True
 
 	def do_response_cancel(self):
-		logger.fatal("cacnel")
+		#logger.fatal("cacnel")
 		self.result = None
 		return True
 
@@ -820,9 +840,9 @@ class EditTableDialog(Dialog):
 	def on_add(self, btn):
 		(model, iter) = self.treeview.get_selection().get_selected()
 		model.insert_after(iter, self.default_column_item)
-		logger.fatal(iter)
+		#logger.fatal(iter)
 		newiter = iter if iter else model.get_iter_first()
-		logger.fatal(newiter)
+		#logger.fatal(newiter)
 		self.treeview.get_selection().select_iter(newiter)
 
 	def on_delete(self, btn):
