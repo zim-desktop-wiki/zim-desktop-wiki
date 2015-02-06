@@ -48,7 +48,7 @@ class TestObjectManager(tests.TestCase):
 		from zim.plugins.sourceview import SourceViewPlugin
 		self.assertEqual(
 			manager.find_plugin('code'),
-			('sourceview', 'Source View', True, SourceViewPlugin)
+			('sourceview', 'Source View', True, SourceViewPlugin, None)
 		)
 
 

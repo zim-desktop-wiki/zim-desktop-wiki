@@ -304,7 +304,7 @@ class SourceViewWidget(TextViewWidget):
 		self.vbox.pack_start(win)
 
 		# Hook up signals
-		self.view.connect('populate-popup', self.on_populate_popup)
+		#self.view.connect('populate-popup', self.on_populate_popup)
 		self.view.connect('move-cursor', self.on_move_cursor)
 
 

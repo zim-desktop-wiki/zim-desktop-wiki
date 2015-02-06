@@ -48,7 +48,7 @@ from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_E
 from zim.utils import WeakSet
 from zim.formats import get_dumper
 from zim.formats.wiki import Dumper as WikiDumper
-
+from zim.plugins import PluginManager
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -557,6 +557,7 @@ class TextBuffer(gtk.TextBuffer):
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'edit-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
@@ -2458,7 +2459,7 @@ class TextBuffer(gtk.TextBuffer):
 					builder.data('\n')
 				return
 
-			headers, rows = tabledata
+			headers, rows, attrib = tabledata
 			if need_newline_infront:
 				builder.data('\n')
 
@@ -5385,6 +5386,7 @@ class PageView(gtk.VBox):
 			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
+
 		# Add custom tool
 		# FIXME need way to (deep)copy widgets in the menu
 		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
@@ -6064,6 +6066,11 @@ class PageView(gtk.VBox):
 		self.on_insert_table(self.view.get_buffer(), obj)
 
 	def on_insert_table(self, buffer, obj, interactive=False):
+		#  adopted from on_insert_object, with some changes:
+		# - 'type=table' added to xml-element
+		# - content of fallback-object is like a plaintext table
+		# - content of table-widget is not text, but a xml table tree
+		# - callbacks for 'link-clicked' and 'edit-object'
 		tableobj = obj
 		tableobj.attrib['type'] = 'table'
 
@@ -6084,15 +6091,22 @@ class PageView(gtk.VBox):
 			lines = "".join(text)
 			obj._data = lines
 
-
-		# same as on_insert_object, but different here: ObjectManager.get_object( - , - , element)
-
 		def on_modified_changed(obj):
+			logger.fatal("on-modified-changed")
 			if obj.get_modified() and not buffer.get_modified():
+				logger.fatal("mark-as-changed")
 				buffer.set_modified(True)
+
+		def on_edit_object(pageview, obj):
+			plugin = ObjectManager.find_plugin(obj._attrib['type'])
+			window_extension = plugin[4]
+
+			if window_extension:
+				window_extension.do_edit_object(obj)
 
 		obj.connect('modified-changed', on_modified_changed)
 		obj.connect_object('link-clicked', PageView.do_link_clicked, self)
+		obj.connect_object('edit-object', on_edit_object, self)
 
 		iter = buffer.get_insert_iter()
 
@@ -6106,9 +6120,6 @@ class PageView(gtk.VBox):
 		anchor = ObjectAnchor(obj)
 		buffer.insert_child_anchor(iter, anchor)
 		logger.fatal(obj)
-		import inspect
-		logger.fatal(inspect.getmro(obj.__class__))
-		logger.fatal(isinstance(obj, FallbackObject))
 		widget = obj.get_widget()
 		assert isinstance(widget, CustomObjectWidget)
 		widget.connect('release-cursor', on_release_cursor, anchor)

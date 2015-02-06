@@ -3,26 +3,20 @@
 # Copyright 2015 Tobias Haupenthal
 
 import gtk
-import pango
 import logging
 from xml.etree import ElementTree
 import re
-import gobject
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
-from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.utils import WeakSet
-from zim.formats import Element
 from zim.objectmanager import ObjectManager, CustomObjectClass
-from zim.config import String, Boolean
-from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow, IconButton
-from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
-from zim.formats.html import html_encode
-from zim.config.dicts import ConfigDict, String
-from zim.gui.pageview import PageView
+from zim.config import String
+from zim.gui.widgets import Dialog, ScrolledWindow, IconButton
+from zim.gui.objectmanager import CustomObjectWidget
+
 
 OBJECT_TYPE = 'table'
 
@@ -30,7 +24,7 @@ SYNTAX_CELL_INPUT = [
 	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'"), ('\n', '\\n')
 ]
 
-# Wiki-Parsetree -> Pango (Table cell) -> TextView (Table cell editing)
+# Regex replacement strings: Wiki-Parsetree -> Pango (Table cell) -> Input (Table cell editing)
 SYNTAX_WIKI_PANGO2 = [
 	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
 	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
@@ -39,12 +33,18 @@ SYNTAX_WIKI_PANGO2 = [
 	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
 ]
 
+COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],
+					  'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],
+					  'right': ['right', gtk.STOCK_JUSTIFY_LEFT, _('Right')],
+					  'normal': ['normal', None, _('Unspecified')],}
+
 
 def reg_replace(string):
 	string = string.replace('*', '\*').replace('[', '\[').replace(']', '\]') \
 		.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)')
 	return re.compile(string)
 
+# Regex compiled search patterns
 SYNTAX_WIKI_PANGO = [tuple(map(reg_replace, expr_list)) for expr_list in SYNTAX_WIKI_PANGO2]
 
 
@@ -85,7 +85,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 	def create_table(self, attrib, text):
 		if ElementTree.iselement(text) and text.get('type') == 'table':
 			(header, rows) = self.tabledom_to_list(text)
-			attrib['wraps'] = attrib.get('wraps').split(',')
+			attrib['wraps'] = map(int, attrib.get('wraps').split(','))
 			attrib['aligns'] = attrib.get('aligns').split(',')
 
 
@@ -124,19 +124,21 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 class TableReplacer:
 
 	@staticmethod
-	def cell_to_input(text):
-		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
-			text = pattern[1].sub(replace[2], text)
+	def cell_to_input(text, with_pango=False):
+		if with_pango:
+			for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+				text = pattern[1].sub(replace[2], text)
 		for k, v in SYNTAX_CELL_INPUT:
 			text = text.replace(k, v)
 		return text
 
 	@staticmethod
-	def input_to_cell(text):
+	def input_to_cell(text, with_pango=False):
 		for k, v in SYNTAX_CELL_INPUT:
 			text = text.replace(v, k)
-		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
-			text = pattern[2].sub(replace[1], text)
+		if with_pango:
+			for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+				text = pattern[2].sub(replace[1], text)
 		return text
 
 	@staticmethod
@@ -175,7 +177,7 @@ class MainWindowExtension(WindowExtension):
 		logger.fatal("mainwindow extension")
 		WindowExtension.__init__(self, plugin, window)
 
-		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table)
+		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table, self)
 
 		# reload tables on current page after plugin activation
 		if self.window.ui.page:
@@ -194,7 +196,7 @@ class MainWindowExtension(WindowExtension):
 	@action(_('Insert Table'), stock='zim-insert-table', readonly=False) # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
-		col_model = InsertTableDialog(self.window, self.plugin, self.window.pageview).run()
+		col_model = EditTableDialog(self.window, self.plugin, self.window.pageview).run()
 		if not col_model:
 			return
 
@@ -219,8 +221,59 @@ class MainWindowExtension(WindowExtension):
 		pageview.insert_object_at_cursor(obj)
 		logger.fatal("INSERTION OK")
 
-	def convert_colmodel(self, col_model, replace=False):
-		new_store = len(col_model) * []
+	def do_edit_object(self, obj):
+		'''Run the InsertTableDialog'''
+		logger.fatal("obj")
+		logger.fatal(obj)
+		aligns = obj.attrib['aligns']
+		wraps = obj.attrib['wraps']
+		titles = [col.get_title() for col in obj.treeview.get_columns()]
+		old_model = []
+		for i in range(len(titles)):
+			old_model.append([i, titles[i], aligns[i], wraps[i]])
+		new_model = EditTableDialog(self.window, self.plugin, self.window.pageview, old_model).run()
+
+		if not new_model:
+			return
+
+		id_mapping = {}
+		ids = []
+		headers = []
+		aligns = []
+		wraps = []
+
+		for i, model in enumerate(new_model):
+			if model[0] != -1:
+				id_mapping[i] = model[0]
+			ids.append(model[0])
+			headers.append(model[1])
+			aligns.append(model[3])
+			wraps.append(model[2])
+
+		attrs = {'aligns': aligns, 'wraps': wraps}
+		# copy row-data
+		new_rows = []
+		for oldrow in obj.treeview.get_model():
+				newrow = [' ']*len(ids)
+				for k, v in id_mapping.iteritems():
+					newrow[k] = oldrow[v]
+				new_rows.append(newrow)
+
+		widget = TableViewWidget(obj, headers, new_rows, attrs)
+		logger.fatal(obj._attrib)
+		#obj._attrib.update({'aligns': ','.join(aligns), 'wraps': ','.join(str(wrap) for wrap in wraps)})
+		#obj.treeview = widget.get_treeview()
+		#obj.treeview.attrib = attrs
+		#obj.attrib = attrs
+
+
+		obj.treeview.set_model()
+		logger.fatal(obj)
+		#logger.fatal(self.window.pageview.get_buff)
+		obj.set_modified(True)
+
+		pageview = self.window.pageview
+		#		self.window.ui.reload_page()
 
 
 class TableViewObject(CustomObjectClass):
@@ -232,9 +285,9 @@ class TableViewObject(CustomObjectClass):
 	def __init__(self, attrib, header, rows, preferences):
 		_attrib = {}
 		for k, v in attrib.iteritems():
-			logger.fatal("!!!")
-			logger.fatal(attrib)
-			logger.fatal(type(v))
+			#logger.fatal("!!!")
+			#logger.fatal(attrib)
+			#logger.fatal(type(v))
 			if k == 'ids':
 				continue
 			if isinstance(v, list):
@@ -312,10 +365,15 @@ class TableViewObject(CustomObjectClass):
 		def map3dim(fun, multiline_rows):
 			return [[map(fun, row) for row in lines] for lines in multiline_rows]
 
-		rows = map2dim(TableReplacer.cell_to_input, rows)
+		rows = [map(lambda cell: TableReplacer.cell_to_input(cell, True), row) for row in rows]
 
 		logger.fatal(rows)
-		return headers, rows
+		# TODO WRAPS
+		wraps = self.attrib['wraps']
+		attrs = {'aligns': ','.join(aligns), 'wraps': ','.join(str(wrap) for wrap in wraps)}
+		logger.fatal('##attributes')
+		logger.fatal(attrs)
+		return headers, rows, attrs
 
 	def dump(self, format, dumper, linker=None):
 		#logger.fatal("DUMPING")
@@ -583,6 +641,7 @@ class TableViewWidget(CustomObjectWidget):
 	def on_change_columns(self, action):
 		model = self.treeview.get_model()
 
+		self.obj.emit('edit-object', self.obj)
 
 		#model, iter = selection.get_selected()
 		#logger.fatal(model)
@@ -595,13 +654,13 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_cell_changed(self, cellrenderer, path, text, colid):
 		# converts plain text to pango
-		markup = TableReplacer.input_to_cell(text)
+		markup = TableReplacer.input_to_cell(text, True)
 		self.liststore[path][colid] = markup
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, colid):
 		# converts pango to plain text
 		markup = self.liststore[path][colid]
-		markup = TableReplacer.cell_to_input(markup)
+		markup = TableReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
 
 	def on_row_activated(self, treemodel, row, col):
@@ -618,30 +677,37 @@ class TableViewWidget(CustomObjectWidget):
 		self.obj.set_modified(True)
 		return cmp(data1, data2)
 
-class InsertTableDialog(Dialog):
+class EditTableDialog(Dialog):
 	class Col():
 		id, title, wrapped, align, alignicon, aligntext = range(6)
 
 	def __init__(self, ui, plugin, pageview, tablemodel=None):
+		title = _('Insert Table') if tablemodel is None else _('Edit Table')
+		Dialog.__init__(self, ui, title)
+
+		# Prepare table in which all columns are listed
 		self.default_column_item = [-1, "", 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
-		first_column_item = [-1, _("Column 1"), 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
+		first_column_item = list(self.default_column_item)
+		first_column_item[1] = _("Column 1")
 		self.pageview = pageview
 		self.treeview = None
-
 		model = gtk.ListStore(int, str, int, str, str, str)
 		self.model = model
 
-		model.append(first_column_item)
+		if tablemodel is None:
+			model.append(first_column_item)
+		else:
+			for col in tablemodel:
+				logger.fatal(col)
+				align = col.pop(2)
+				col += COLUMNS_ALIGNMENTS[align] if align in COLUMNS_ALIGNMENTS else COLUMNS_ALIGNMENTS['normal']
+				logger.fatal(col)
+				model.append(col)
 
-		self.maxid = max(1, max(id[0] for id in model))
-		Dialog.__init__(self, ui, _('Insert Table'), # T: dialog title
-		)
 
-		self.set_default_size(380, 400)
-
-		#self.set_help('Plugins:Table Editor');
+		# Set layout of Window
 		self.add_help_text(_('Managing table columns'))
-
+		self.set_default_size(380, 400)
 
 		hbox = gtk.HBox(spacing=5)
 		hbox.set_size_request(300, 300)
@@ -704,9 +770,9 @@ class InsertTableDialog(Dialog):
 
 		# 3. Column - Alignment
 		store = gtk.ListStore(str, str, str)
-		store.append(['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')])
-		store.append(['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')])
-		store.append(['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')])
+		store.append(COLUMNS_ALIGNMENTS['left'])
+		store.append(COLUMNS_ALIGNMENTS['center'])
+		store.append(COLUMNS_ALIGNMENTS['right'])
 
 		column = gtk.TreeViewColumn(_('Align'))
 		cellicon = gtk.CellRendererPixbuf()
@@ -753,10 +819,10 @@ class InsertTableDialog(Dialog):
 
 	def on_add(self, btn):
 		(model, iter) = self.treeview.get_selection().get_selected()
-		self.maxid += 1
-		self.default_column_item[self.Col.id] = self.maxid
 		model.insert_after(iter, self.default_column_item)
-		newiter = model.get_path(iter) if iter else model.get_iter_first()
+		logger.fatal(iter)
+		newiter = iter if iter else model.get_iter_first()
+		logger.fatal(newiter)
 		self.treeview.get_selection().select_iter(newiter)
 
 	def on_delete(self, btn):
