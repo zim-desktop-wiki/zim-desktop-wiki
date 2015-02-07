@@ -25,6 +25,8 @@ SYNTAX_CELL_INPUT = [
 ]
 
 # Regex replacement strings: Wiki-Parsetree -> Pango (Table cell) -> Input (Table cell editing)
+# the target pattern is easier to read, the source pattern is generated out of it
+# With this syntax text can be format within a table-cell
 SYNTAX_WIKI_PANGO2 = [
 	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
 	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
@@ -33,6 +35,7 @@ SYNTAX_WIKI_PANGO2 = [
 	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
 ]
 
+# Possible alignments in edit-table-dialog
 COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],
 					  'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],
 					  'right': ['right', gtk.STOCK_JUSTIFY_LEFT, _('Right')],
@@ -40,6 +43,11 @@ COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],
 
 
 def reg_replace(string):
+	'''
+	Target pattern is translated into source regex pattern
+	:param string: target pattern
+	:return:source pattern
+	'''
 	string = string.replace('*', '\*').replace('[', '\[').replace(']', '\]') \
 		.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)')
 	return re.compile(string)
@@ -49,7 +57,19 @@ SYNTAX_WIKI_PANGO = [tuple(map(reg_replace, expr_list)) for expr_list in SYNTAX_
 
 
 class TableEditorPlugin(PluginClass):
+	'''
+	This is the plugin for displaying tables within the wiki.
+	A table consists always of a header with at least one header-cell and at least one or several rows.
+	The number of cells in a row must be equal to the header.
+	Currently there are two attributes, which have a tuple format, so they can describe all columns:
+	- aligns: left, center, right
+	- wraps: 0 	/ display text in a row		1 / long text will be broken and wrapped
 
+
+	Most other files which are linked to this plugin are:
+	- zim.gui.pageview
+	- zim.formats.wiki
+	'''
 	plugin_info = {
 		'name': _('Table Editor'),  # T: plugin name
 		'description': _('''\
@@ -61,6 +81,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		'author': 'Tobias Haupenthal',
 	}
 
+	# TODO cleanup
 	plugin_preferences = (
 		# key, type, label, default
 		('auto_indent', 'bool', _('Auto indenting'), True),
@@ -83,48 +104,62 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def create_table(self, attrib, text):
+		'''
+		Automatic way for displaying the table-object as a table within the wiki,
+		:param attrib:  {type: 'table', wraps:'1,0,1' , aligns:'left,right,center' }
+		:param text: XML - formated as a zim-tree table-object OR tuple of [header], [row1], [row2]
+		:return: a TableViewObject
+		'''
 		if ElementTree.iselement(text) and text.get('type') == 'table':
+			# default parameters style
 			(header, rows) = self.tabledom_to_list(text)
 			attrib['wraps'] = map(int, attrib.get('wraps').split(','))
 			attrib['aligns'] = attrib.get('aligns').split(',')
-
-
 		else:
+			# parameters in case of the Table-Insert-Dialog
 			header = text[0]
 			rows = [len(text[0]) * [' ']]
-
-			#logger.fatal(header)
-			#logger.fatal(header)
-			#logger.fatal(rows)
-			#logger.fatal(attrib)
 
 		'''Factory method for Table objects'''
 		obj = TableViewObject(attrib, header, rows, self.preferences)
 		return obj
 
 	def tabledom_to_list(self, tabledata):
+		'''
+		Extracts necessary data out of a xml-table into a list structure
+
+		:param tabledata: XML - formated as a zim-tree table-object
+		:return: tuple of header-list and list of row lists -  ([h1,h2],[[r11,r12],[r21,r22])
+		'''
 		header = map(lambda head: head.text.decode('utf-8'), tabledata.findall('thead/th'))
-		header = map(TableReplacer.wiki_to_cell, header)
+		header = map(CellFormatReplacer.zimtree_to_cell, header)
 
 		rows = []
 		for trow in tabledata.findall('trow'):
 			row = trow.findall('td')
 			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
-			row = map(TableReplacer.wiki_to_cell, row)
+			row = map(CellFormatReplacer.zimtree_to_cell, row)
 			rows.append(row)
 		return header, rows
 
 	def on_preferences_changed(self, preferences):
-		#logger.fatal("update preferences")
-		'''Update preferences on open objects'''
+		'''Update preferences on open table objects'''
 		for obj in ObjectManager.get_active_objects(OBJECT_TYPE):
 			obj.preferences_changed()
 
 
-class TableReplacer:
-
+class CellFormatReplacer:
+	'''
+	Static class for converting formated text from one into the other format:
+	- cell:	in a wiki pageview the table-cell must be of this format
+	- input: if a user is editing the cell, this format is used
+	- zimtree: Format for zimtree xml structure
+	'''
 	@staticmethod
 	def cell_to_input(text, with_pango=False):
+		'''
+		Cell-Format is the actually display format for the gui
+		'''
 		if with_pango:
 			for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
 				text = pattern[1].sub(replace[2], text)
@@ -142,20 +177,23 @@ class TableReplacer:
 		return text
 
 	@staticmethod
-	def wiki_to_cell(text):
+	def zimtree_to_cell(text):
 		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
 			text = pattern[0].sub(replace[1], text)
 		return text
 
 	@staticmethod
-	def cell_to_wiki(text):
+	def cell_to_zimtree(text):
 		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
 			text = pattern[1].sub(replace[0], text)
 		return text
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
-
+	'''
+	Connector between the zim application with its toolbar and menu and the tableview-object
+	In GTK there is no native table symbol. So this image is needed: data/pixmaps/insert-table.png
+	'''
 	uimanager_xml = '''
 		<ui>
 		<menubar name='menubar'>
@@ -174,7 +212,6 @@ class MainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		#logger.fatal("mainwindow extension")
 		WindowExtension.__init__(self, plugin, window)
 
 		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table, self)
@@ -183,29 +220,18 @@ class MainWindowExtension(WindowExtension):
 		if self.window.ui.page:
 			self.window.ui.reload_page()
 
-
 	def teardown(self):
 		ObjectManager.unregister_object(OBJECT_TYPE)
 		self.window.ui.reload_page()
 
-	def change_table(self, treeview):
-		#logger.fatal("OK change-table")
-		pass
-
-
-	@action(_('Insert Table'), stock='zim-insert-table', readonly=False) # T: menu item
+	@action(_('Insert Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
 		col_model = EditTableDialog(self.window, self.plugin, self.window.pageview).run()
 		if not col_model:
 			return
 
-		isnew = True
-		ids = []
-		headers = []
-		rows = []
-		aligns = []
-		wraps = []
+		ids, headers, aligns, wraps = ([], [], [], [])
 
 		for model in col_model:
 			ids.append(model[0])
@@ -219,12 +245,15 @@ class MainWindowExtension(WindowExtension):
 
 		pageview = self.window.pageview
 		pageview.insert_object_at_cursor(obj)
-		#logger.fatal("INSERTION OK")
 
 	def do_edit_object(self, obj):
-		'''Run the InsertTableDialog'''
-		#logger.fatal("obj")
-		#logger.fatal(obj)
+		'''
+		With the right button press a context-menu is opened and a table can then be edited
+		'''
+		self.do_edit_table(obj)
+
+	def do_edit_table(self, obj):
+		'''Run the EditTableDialog '''
 		aligns = obj.attrib['aligns']
 		wraps = obj.attrib['wraps']
 		titles = [col.get_title() for col in obj.treeview.get_columns()]
@@ -233,47 +262,34 @@ class MainWindowExtension(WindowExtension):
 			old_model.append([i, titles[i], aligns[i], wraps[i]])
 		new_model = EditTableDialog(self.window, self.plugin, self.window.pageview, old_model).run()
 
-		if not new_model:
-			return
+		if new_model:
+			self.update_table_view(obj, new_model)
 
-		id_mapping = {}
-		ids = []
-		headers = []
-		aligns = []
-		wraps = []
-
+	def update_table_view(self, obj, new_model):
+		'''
+		Replaces liststore of currently displayed treeview with updated data and fixes references to attributes
+		:param obj: tableview object
+		:param new_model: tuple of lists for ([id], [header], [warps], [aligns])
+		'''
+		# prepare results out of dialog-window
+		id_mapping, headers, aligns, wraps = ({}, [], [], [])
 		for i, model in enumerate(new_model):
 			if model[0] != -1:
 				id_mapping[i] = model[0]
-			ids.append(model[0])
 			header = model[1] if model[1] else ' '
 			headers.append(header)
 			aligns.append(model[3])
 			wraps.append(model[2])
 
+		# creation of new table-view widget
 		attrs = {'aligns': aligns, 'wraps': wraps}
-		# copy row-data
-		new_rows = []
-		logger.fatal("CHANGING columns")
-		logger.fatal(id_mapping)
-		for oldrow in obj.treeview.get_model():
-				newrow = [' ']*len(headers)
-				logger.fatal("Newrow")
-				logger.fatal(newrow)
-				for v, k in id_mapping.iteritems():
-					newrow[v] = oldrow[k]
-				new_rows.append(newrow)
-
-		logger.fatal(new_rows)
-		widget = TableViewWidget(obj, headers, new_rows, attrs)
+		newrows = self.calculate_new_liststore(obj.treeview.get_model(), id_mapping, len(headers))
+		widget = TableViewWidget(obj, headers, newrows, attrs)
 		new_treeview = widget.get_treeview()
-		new_model =  new_treeview.get_model()
-		#obj._attrib.update({'aligns': ','.join(aligns), 'wraps': ','.join(str(wrap) for wrap in wraps)})
-		#obj.treeview = widget.get_treeview()
+		new_model = new_treeview.get_model()
 
-
-
-		obj.treeview.set_model(new_treeview.get_model())
+		# update of displayed table(=treeview) and its structure (=liststore)
+		obj.treeview.set_model(new_model)
 		# remove all old columns and move new columns to original treeview
 		for col in obj.treeview.get_columns():
 			obj.treeview.remove_column(col)
@@ -281,14 +297,22 @@ class MainWindowExtension(WindowExtension):
 			new_treeview.remove_column(col)
 			obj.treeview.append_column(col)
 
-		obj.liststore = new_model
-		obj.widget.liststore = new_model
-		#obj.widget.attrib = attrs
-		#obj.treeview.attrib = attrs
 		obj.attrib = attrs
 		obj.set_modified(True)
 
+	def calculate_new_liststore(self, liststore, id_mapping, nr_cols):
+		''' Old value of cells are used in the new table, but only if its column is not deleted '''
+		new_rows = []
+		for oldrow in liststore:
+				newrow = [' ']*nr_cols
+				for v, k in id_mapping.iteritems():
+					newrow[v] = oldrow[k]
+				new_rows.append(newrow)
+		return new_rows
+
+
 class TableViewObject(CustomObjectClass):
+	# TODO Code review
 
 	OBJECT_ATTR = {
 		'type': String('table'),
@@ -313,18 +337,18 @@ class TableViewObject(CustomObjectClass):
 		self.rows = rows
 		self.modified = False
 		self.preferences = preferences
-		self.widget = None
+		#self.widget = None
 		self.treeview = None
-		self.liststore = None
+		#self.liststore = None
 		self._widgets = WeakSet()
 
 	def get_widget(self):
 
 		widget = TableViewWidget(self, self.header, self.rows, self.attrib)
-		self.widget = widget
+		#self.widget = widget
 		self.treeview = widget.get_treeview()
-		self.liststore = widget.get_liststore()
-		self.liststore.connect('row-changed', self.on_modified_changed)
+		liststore = self.treeview.get_model()
+		liststore.connect('row-changed', self.on_modified_changed)
 
 		self._widgets.add(widget)
 
@@ -381,7 +405,7 @@ class TableViewObject(CustomObjectClass):
 		def map3dim(fun, multiline_rows):
 			return [[map(fun, row) for row in lines] for lines in multiline_rows]
 
-		rows = [map(lambda cell: TableReplacer.cell_to_input(cell, True), row) for row in rows]
+		rows = [map(lambda cell: CellFormatReplacer.cell_to_input(cell, True), row) for row in rows]
 
 		logger.fatal("get-data")
 		logger.fatal(rows)
@@ -405,7 +429,7 @@ class TableViewWidget(CustomObjectWidget):
 	def __init__(self, obj, headers, rows, attrs):
 
 		self.obj = obj
-		self.liststore = None
+		#self.liststore = None
 
 
 		#tree = self.get_treeview()
@@ -462,8 +486,8 @@ class TableViewWidget(CustomObjectWidget):
 	def get_treeview(self):
 		return self.treeview
 
-	def get_liststore(self):
-		return self.liststore
+	#def get_liststore(self):
+	#	return self.liststore
 
 	def create_treeview(self, headers, rows, attrs):
 		#logger.fatal(attrs)
@@ -473,8 +497,8 @@ class TableViewWidget(CustomObjectWidget):
 
 		cols = [str]*nrcols
 
-		self.liststore = gtk.ListStore(*cols)
-		liststore = self.liststore
+		#self.liststore = gtk.ListStore(*cols)
+		liststore = gtk.ListStore(*cols)
 		treeview = gtk.TreeView(liststore)
 
 		align = None
@@ -509,8 +533,8 @@ class TableViewWidget(CustomObjectWidget):
 
 			# set properties of cell
 			cell.set_property("editable", True)
-			cell.connect("edited", self.on_cell_changed, i)
-			cell.connect("editing-started", self.on_cell_editing_started, i)
+			cell.connect("edited", self.on_cell_changed, treeview.get_model(), i)
+			cell.connect("editing-started", self.on_cell_editing_started, treeview.get_model(), i)
 
 
 		for trow in rows:
@@ -561,11 +585,12 @@ class TableViewWidget(CustomObjectWidget):
 		#~ '''Callback for toggling line numbers.'''
 		#~ self.show_line_numbers(button.get_active())
 
-	def fetch_cell_by_event(self, event):
+	def fetch_cell_by_event(self, event, treeview):
+		liststore = treeview.get_model()
 		(xpos, ypos) = event.get_coords()
-		(treepath, treecol, xrel, yrel) = self.treeview.get_path_at_pos(int(xpos), int(ypos))
-		treeiter = self.liststore.get_iter(treepath)
-		cellvalue = self.liststore.get_value(treeiter, self.treeview.get_columns().index(treecol))
+		(treepath, treecol, xrel, yrel) = treeview.get_path_at_pos(int(xpos), int(ypos))
+		treeiter = liststore.get_iter(treepath)
+		cellvalue = liststore.get_value(treeiter, treeview.get_columns().index(treecol))
 		return cellvalue
 
 	def get_linkurl(self, celltext):
@@ -577,7 +602,7 @@ class TableViewWidget(CustomObjectWidget):
 	def on_button_press_event(self, treeview, event):
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 1 and event.get_state() &  gtk.gdk.CONTROL_MASK:
 			# With CTRL + LEFT-Mouse-Click link of cell is opened
-			cellvalue = self.fetch_cell_by_event(event)
+			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			if linkvalue:
 				#logger.fatal(linkvalue)
@@ -591,7 +616,7 @@ class TableViewWidget(CustomObjectWidget):
 		#logger.fatal(self.liststore.get_value(iter, 0))
 
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-			cellvalue = self.fetch_cell_by_event(event)
+			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			linkitem_is_activated = (linkvalue is not None)
 
@@ -670,15 +695,15 @@ class TableViewWidget(CustomObjectWidget):
 
 	# TODO: undo(), redo() stuff
 
-	def on_cell_changed(self, cellrenderer, path, text, colid):
+	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		# converts plain text to pango
-		markup = TableReplacer.input_to_cell(text, True)
-		self.liststore[path][colid] = markup
+		markup = CellFormatReplacer.input_to_cell(text, True)
+		liststore[path][colid] = markup
 
-	def on_cell_editing_started(self, cellrenderer, editable, path, colid):
+	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
 		# converts pango to plain text
-		markup = self.liststore[path][colid]
-		markup = TableReplacer.cell_to_input(markup, True)
+		markup = liststore[path][colid]
+		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
 
 	def on_row_activated(self, treemodel, row, col):
@@ -696,6 +721,7 @@ class TableViewWidget(CustomObjectWidget):
 			data2 = int(data2)
 		self.obj.set_modified(True)
 		return cmp(data1, data2)
+
 
 class EditTableDialog(Dialog):
 	class Col():
@@ -737,7 +763,7 @@ class EditTableDialog(Dialog):
 		hbox.add(header_scrolled_area)
 		hbox.add(self.button_box())
 
-		# currently edited cell - save it on exit
+		# currently edited cell - tuple (editable, path, colid) save it on exit
 		self.currently_edited = None
 
 	def button_box(self):
@@ -761,6 +787,7 @@ class EditTableDialog(Dialog):
 		return vbox
 
 	def do_response_ok(self):
+		self.autosave_cell()
 		self.result = [[m[0], m[1], m[2],m[3]] for m in self.model]
 		return True
 
@@ -768,7 +795,6 @@ class EditTableDialog(Dialog):
 		#logger.fatal("cacnel")
 		self.result = None
 		return True
-
 
 	def headcolumn_list(self):
 		model = self.model
@@ -782,7 +808,9 @@ class EditTableDialog(Dialog):
 		column = gtk.TreeViewColumn(_('Title'), cell, text=self.Col.title)
 		column.set_min_width(120)
 		treeview.append_column(column)
-		cell.connect("edited", self.on_cell_changed, model, self.Col.title)
+		cell.connect('edited', self.on_cell_changed, model, self.Col.title)
+		cell.connect('editing-started', self.on_cell_editing_started, model, self.Col.title)
+
 
 		# 2. Column - Wrap Line
 		cell = gtk.CellRendererToggle()
@@ -810,7 +838,7 @@ class EditTableDialog(Dialog):
 		cell.set_property('editable', True)
 		column.pack_start(cell)
 		column.add_attribute(cell, 'text', self.Col.aligntext)
-		cell.connect("changed", self.on_cell_combo_changed, model)
+		cell.connect('changed', self.on_cell_combo_changed, model)
 		treeview.append_column(column)
 
 		return treeview
@@ -818,15 +846,17 @@ class EditTableDialog(Dialog):
 	def on_cell_editing_started(self, renderer, editable, path, model, colid):
 		# converts pango to plain text
 		text = model[path][colid]
-		text = TableReplacer.cell_to_input(text)
+		text = CellFormatReplacer.cell_to_input(text)
 		editable.set_text(text)
-		self.currently_edited = (path, colid)
+		logger.fatal("editable")
+		logger.fatal(editable)
+		self.currently_edited = (editable, model, path, colid)
 
 	def on_cell_changed(self, renderer, path, text, model, colid):
-		model[path][colid] = TableReplacer.input_to_cell(text)
+		model[path][colid] = CellFormatReplacer.input_to_cell(text)
 		self.currently_edited = None
 
-	def on_cell_toggled(self, renderer, path, model, colid):#
+	def on_cell_toggled(self, renderer, path, model, colid):
 		iter = model.get_iter(path)
 		val = model.get_value(iter, colid)
 		model.set_value(iter, colid, not val)
@@ -842,7 +872,17 @@ class EditTableDialog(Dialog):
 		model.set_value(iter, self.Col.alignicon, alignimg)
 		model.set_value(iter, self.Col.aligntext, aligntext)
 
+	def autosave_cell(self):
+		logger.fatal("autosave")
+		logger.fatal(self.currently_edited)
+		if self.currently_edited:
+			editable, model, path, colid = self.currently_edited
+			text = editable.get_text()
+			model[path][colid] = CellFormatReplacer.input_to_cell(text)
+			self.currently_edited = None
+
 	def on_add(self, btn):
+		self.autosave_cell()
 		(model, iter) = self.treeview.get_selection().get_selected()
 		model.insert_after(iter, self.default_column_item)
 		#logger.fatal(iter)
@@ -851,6 +891,7 @@ class EditTableDialog(Dialog):
 		self.treeview.get_selection().select_iter(newiter)
 
 	def on_delete(self, btn):
+		self.autosave_cell()
 		(model, iter) = self.treeview.get_selection().get_selected()
 
 		if iter:
@@ -864,19 +905,12 @@ class EditTableDialog(Dialog):
 		else:
 			self.selection_info()
 
-	def save_open_cell(self):
-		if self.currently_edited is not None:
-			path, colid = self.currently_edited
-		model[path][colid] = TableReplacer.input_to_cell(text)
-
-
 	def on_move(self, btn, direction):
-		self.save_open_cell()
+		self.autosave_cell()
 		(model, iter) = self.treeview.get_selection().get_selected()
 
 		if not iter:  # no selected item
 			self.selection_info()
-
 
 		path = model.get_path(iter)
 		newpos = path[0] + direction
