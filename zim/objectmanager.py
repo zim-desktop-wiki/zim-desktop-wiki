@@ -29,7 +29,7 @@ class _ObjectManager(object):
 		'''Register a factory method or class for a specific object type.
 		@param type: the object type as string (unique name)
 		@param factory: can be either an object class or a method,
-		@param window_extension: the plugin related window_extension
+		@param window_extension: dictionary - the plugin related window_extension
 		should callable and return objects. When constructing objects
 		this factory will be called as::
 
@@ -110,9 +110,6 @@ class _ObjectManager(object):
 				if types and type in types:
 					activatable = klass.check_dependencies_ok()
 					win_ext = self.window_extensions[type] if type in self.window_extensions else None
-					#logger.fatal("HI")
-					#logger.fatal(win_ext)
-					#logger.fatal(self.window_extensions[type])
 					return (name, klass.plugin_info['name'], activatable, klass, win_ext)
 			except:
 				logger.exception('Could not load plugin %s', name)
@@ -182,13 +179,11 @@ class FallbackObject(CustomObjectClass):
 		CustomObjectClass.__init__(self, attrib, data)
 		self.buffer = None
 
-
 	def get_widget(self):
 		import gtk
 		from zim.gui.objectmanager import FallbackObjectWidget
 
 		if not self.buffer:
-			logger.fatal(self)
 			self.buffer = gtk.TextBuffer()
 			self.buffer.set_text(self._data)
 			self.buffer.connect('modified-changed', self.on_modified_changed)

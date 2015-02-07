@@ -6,8 +6,6 @@
 
 import gtk
 import gobject
-import gtksourceview2
-import pango
 
 from zim.objectmanager import ObjectManager
 
@@ -17,33 +15,6 @@ from zim.gui.widgets import ScrolledTextView, ScrolledWindow
 # Constants for grab-focus-cursor and release-focus-cursor
 POSITION_BEGIN = 1
 POSITION_END = 2
-
-if gtksourceview2:
-	lm = gtksourceview2.LanguageManager()
-	lang_ids = lm.get_language_ids()
-	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
-
-	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
-else:
-	LANGUAGES = {}
-#~ print LANGUAGES
-
-plugin_preferences = (
-		# key, type, label, default
-		('auto_indent', 'bool', _('Auto indenting'), True),
-			# T: preference option for sourceview plugin
-		('smart_home_end', 'bool', _('Smart Home key'), True),
-			# T: preference option for sourceview plugin
-		('highlight_current_line', 'bool', _('Highlight current line'), False),
-			# T: preference option for sourceview plugin
-		('show_right_margin', 'bool', _('Show right margin'), False),
-			# T: preference option for sourceview plugin
-		('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
-			# T: preference option for sourceview plugin
-		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
-			# T: preference option for sourceview plugin
-	)
-
 
 class CustomObjectWidget(gtk.EventBox):
 	'''Base class & contained for custom object widget
@@ -99,9 +70,6 @@ class CustomObjectWidget(gtk.EventBox):
 		self.emit('release-cursor', position)
 
 	def resize_to_textview(self, view):
-		import logging
-		logger = logging.getLogger("abc")
-		logger.fatal("resize")
 		'''Resizes widget if parent textview size has been changed.'''
 		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
 		if not win:
@@ -168,12 +136,8 @@ class FallbackObjectWidget(TextViewWidget):
 		TextViewWidget.__init__(self, buffer)
 		#~ self.view.set_editable(False) # object knows best how to manage content
 		# TODO set background grey ?
-		import logging
-		logger = logging.getLogger('zim.gui.pageview')
-		logger.fatal("fallback object")
-		logger.fatal(type)
+
 		plugin = ObjectManager.find_plugin(type) if type else None
-		logger.fatal(plugin)
 		if plugin:
 			self._add_load_plugin_bar(plugin)
 		else:

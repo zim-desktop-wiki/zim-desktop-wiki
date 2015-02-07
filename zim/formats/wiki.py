@@ -227,9 +227,9 @@ class WikiParser(object):
 
 		builder.append(OBJECT, attrib, body)
 
-	def parse_table(self, builder, headerrow, alignstyle, body):
+	@staticmethod
+	def parse_table(builder, headerrow, alignstyle, body):
 		'''Table'''
-		logger.fatal("Parse table")
 
 		aligns = []
 		wraps = []
@@ -524,14 +524,8 @@ class Dumper(TextDumper):
 
 	def dump_table(self, tag, attrib, strings):
 		logger.debug("Dumping table: %s, %s", attrib, strings)
-		#logger.fatal(type(strings[0]))
-		#logger.fatal("DUMP_TABL")
-		#logger.fatal(strings)
-		#logger.fatal(tag)
-		logger.fatal(attrib)
-		logger.fatal("---")
+
 		aligns = attrib['aligns'].split(',')
-		logger.fatal(attrib)
 		wraps = map(int, attrib['wraps'].split(','))
 		single_headers = strings[0]  # single line headers
 		header_length =  len(single_headers)  # number of columns
@@ -578,15 +572,10 @@ class Dumper(TextDumper):
 				cells.append(lspace * y + val + rspace * y)
 			return x + x.join(cells) + x
 
-		#logger.fatal(single_rows)
-
-
 		# print table
 		table += [rowline(single_headers)]
 		table.append(rowsep('-'))
 		table += [rowline(row) for row in single_rows]
-		#logger.fatal("dump table")
-		#logger.fatal(map(lambda line: line+"\n", table))
 		table = map(lambda line: line+"\n", table)
 		return table
 
@@ -601,11 +590,8 @@ class Dumper(TextDumper):
 		return [strings]
 
 	def dump_td(self, tag, attrib, strings):
-		#logger.fatal('dump-td')
 		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 		strings = map(lambda s: s.replace('<br>', '\\n'), strings)
-		logger.fatal("dump-td")
-		logger.fatal(strings)
 		if len(strings) > 1:
 			strings = ''.join(strings)
 		return strings

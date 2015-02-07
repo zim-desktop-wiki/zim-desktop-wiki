@@ -218,7 +218,7 @@ class SourceViewObject(CustomObjectClass):
 				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
 				# TODO: not all GtkSourceView language ids match with SyntaxHighlighter
 				# language ids.
-				# TODO: some template instrmFuction to be able to use other highlighters as well?
+				# TODO: some template instruction to be able to use other highlighters as well?
 				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
 			else:
 				output = ['<pre>\n']
@@ -271,40 +271,40 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_tab_width(4)
 
 		# simple toolbar
-		bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
-		lang_selector = gtk.combo_box_new_text()
-		lang_selector.append_text('(None)')
-		for l in lang_names: lang_selector.append_text(l)
-		#try:
-			#lang_selector.set_active(lang_ids.index(self._attrib['lang'])+1)
-			#self.set_language(self._attrib['lang'] or None, False)
-		#except (ValueError, KeyError):
-			#lang_selector.set_active(0)
-			#self.set_language(None, False)
-		#lang_selector.connect('changed', self.on_lang_changed)
-		bar.pack_start(lang_selector, False, False)
+		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
+		#~ lang_selector = gtk.combo_box_new_text()
+		#~ lang_selector.append_text('(None)')
+		#~ for l in lang_names: lang_selector.append_text(l)
+		#~ try:
+			#~ lang_selector.set_active(lang_ids.index(self._attrib['lang'])+1)
+			#~ self.set_language(self._attrib['lang'] or None, False)
+		#~ except (ValueError, KeyError):
+			#~ lang_selector.set_active(0)
+			#~ self.set_language(None, False)
+		#~ lang_selector.connect('changed', self.on_lang_changed)
+		#~ bar.pack_start(lang_selector, False, False)
 
-		line_numbers = gtk.ToggleButton('Line numbers')
-		#try:
-		#	line_numbers.set_active(self._attrib['linenumbers']=='true')
-		#	self.show_line_numbers(self._attrib['linenumbers'], False)
-		#except (ValueError, KeyError):
-		#	line_numbers.set_active(True)
-		#	self.show_line_numbers(True, False)
-		#line_numbers.connect('toggled', self.on_line_numbers_toggled)
-		bar.pack_start(line_numbers, False, False)
+		#~ line_numbers = gtk.ToggleButton('Line numbers')
+		#~ try:
+			#~ line_numbers.set_active(self._attrib['linenumbers']=='true')
+			#~ self.show_line_numbers(self._attrib['linenumbers'], False)
+		#~ except (ValueError, KeyError):
+			#~ line_numbers.set_active(True)
+			#~ self.show_line_numbers(True, False)
+		#~ line_numbers.connect('toggled', self.on_line_numbers_toggled)
+		#~ bar.pack_start(line_numbers, False, False)
 
 		# TODO: other toolbar options
 		# TODO: autohide toolbar if textbuffer is not active
 
 		# Pack everything
-		self.vbox.pack_start(bar, False, False)
+		#~ self.vbox.pack_start(bar, False, False)
 		win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
 			# only horizontal scroll
 		self.vbox.pack_start(win)
 
 		# Hook up signals
-		#self.view.connect('populate-popup', self.on_populate_popup)
+		self.view.connect('populate-popup', self.on_populate_popup)
 		self.view.connect('move-cursor', self.on_move_cursor)
 
 
@@ -316,14 +316,14 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_show_right_margin(preferences['show_right_margin'])
 		self.view.set_tab_width(preferences['tab_width'])
 
-	def on_lang_changed(self, selector):
+	#~ def on_lang_changed(self, selector):
 		#~ '''Callback for language selector'''
-		lang = selector.get_active()
-		self.set_language(lang_ids[lang-1] if lang>0 else '')
+		#~ lang = selector.get_active()
+		#~ self.set_language(lang_ids[lang-1] if lang>0 else '')
 
-	def on_line_numbers_toggled(self, button):
+	#~ def on_line_numbers_toggled(self, button):
 		#~ '''Callback for toggling line numbers.'''
-		self.show_line_numbers(button.get_active())
+		#~ self.show_line_numbers(button.get_active())
 
 	def on_populate_popup(self, view, menu):
 		menu.prepend(gtk.SeparatorMenuItem())

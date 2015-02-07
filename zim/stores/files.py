@@ -334,12 +334,6 @@ class FileStorePage(Page):
 	def _dump(self):
 		'''Returns the page source'''
 		tree = self.get_parsetree()
-		#logger.fatal("e1")
-		from zim.formats import get_format
-		#logger.fatal(tree)
-		# FIXME  - tree.tostring throws exception
-		#logger.fatal(tree.tostring())
-		#logger.fatal(tree.tostring())
 		if tree is None:
 			raise AssertionError, 'BUG: Can not store a page without content'
 

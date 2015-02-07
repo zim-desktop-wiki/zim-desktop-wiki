@@ -518,6 +518,9 @@ class TextBuffer(gtk.TextBuffer):
 	@ivar user_action: A L{UserActionContext} context manager
 	@ivar finder: A L{TextFinder} for this buffer
 
+	@signal: C{reload-page ()}:
+	Emitted when plugin is activated and current page should be reloaded
+	to display object properly 
 	@signal: C{begin-insert-tree ()}:
 	Emitted at the begin of a complex insert
 	@signal: C{end-insert-tree ()}:
@@ -526,6 +529,8 @@ class TextBuffer(gtk.TextBuffer):
 	Gives inserted tree after inserting it
 	@signal: C{textstyle-changed (style)}:
 	Emitted when textstyle at the cursor changes
+	@signal: C{link-clicked ()}:
+	Emitted when a link is clicked; for example within a table cell
 	@signal: C{clear ()}:
 	emitted to clear the whole buffer before destruction
 	@signal: C{undo-save-cursor (iter)}:
@@ -533,7 +538,11 @@ class TextBuffer(gtk.TextBuffer):
 	lock the current cursor position
 	@signal: C{insert-object (object_element)}: request inserting of
 	custom object
+	@signal: C{edit-object (object_element)}: request editing of 
+	custom object
 	@signal: C{insert-table (table_element)}: request inserting of
+	table object
+	@signal: C{edit-table (table_element)}: request editing of 
 	table object
 
 	@todo: document tag styles that are supported
@@ -556,6 +565,7 @@ class TextBuffer(gtk.TextBuffer):
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'edit-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'edit-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
@@ -747,9 +757,6 @@ class TextBuffer(gtk.TextBuffer):
 		'''
 		#~ print 'INSERT AT CURSOR', tree.tostring()
 
-		#logger.fatal("INSERT AT CURSOR")
-		#logger.fatal(tree._etree.getroot())
-
 		# Check tree
 		root = tree._etree.getroot() # HACK - switch to new interface !
 		assert root.tag == 'zim-tree'
@@ -884,7 +891,7 @@ class TextBuffer(gtk.TextBuffer):
 					level = int(element.attrib['indent'])
 				else:
 					level = list_level + 1
-				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw) # recursdd
+				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw) # recurs
 				set_indent(None)
 			elif element.tag == 'li':
 				force_line_start()
@@ -931,8 +938,6 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				set_indent(None)
-			elif element.tag == 'table':
-				self.emit('insert-table', element)
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -2336,13 +2341,10 @@ class TextBuffer(gtk.TextBuffer):
 				if anchor is None:
 					continue
 				if hasattr(anchor, 'manager'):
-					logger.fatal("analyze anchor")
 					attrib = anchor.manager.get_attrib()
 					if attrib and attrib['type'] == 'table':
-						logger.fatal("typed table")
 						self.build_parsetree_of_table(builder, anchor.manager, iter)
 					else:
-						logger.fatal("not typed table tree")
 						# general object related parsing
 						data = anchor.manager.get_data()
 						logger.debug("Anchor with CustomObject: %s", anchor.manager)
@@ -2425,7 +2427,7 @@ class TextBuffer(gtk.TextBuffer):
 		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
 			# and get rid of oddities in our generated parsetree.
-			print ">>> Parsetree original:", tree.tostring()
+			#~ print ">>> Parsetree original:", tree.tostring()
 			from zim.formats import get_format
 			format = get_format("wiki") # FIXME should the format used here depend on the store ?
 			dumper = format.Dumper()
@@ -2437,7 +2439,6 @@ class TextBuffer(gtk.TextBuffer):
 
 	def build_parsetree_of_table(self, builder, anchormanager, iter):
 			logger.debug("Anchor with TableObject: %s", anchormanager)
-			logger.fatal(builder)
 			attrib = anchormanager.get_attrib()
 			del attrib['type']
 			tabledata = anchormanager.get_data()
@@ -2477,7 +2478,6 @@ class TextBuffer(gtk.TextBuffer):
 			for row in rows:
 				builder.start('trow')
 				for cell in row:
-					logger.fatal('td')
 					builder.start('td')
 					builder.data(cell)
 					builder.end('td')
@@ -3251,8 +3251,6 @@ class TextFinder(object):
 		return self._find_next(iter)
 
 	def _find_next(self, iter):
-		start, end = self.buffer.get_bounds()
-
 		# Common functionality between find() and find_next()
 		# Looking for a match starting at iter
 		if self.regex is None:
@@ -3346,9 +3344,6 @@ class TextFinder(object):
 		# Clear highlighting
 		tag = self.highlight_tag
 		start, end = self.buffer.get_bounds()
-		#if start.get_child_anchor() is not None:
-		#	self._replace_in_widget(start, self.regex, string)
-		#else:
 		self.buffer.remove_tag(tag, start, end)
 
 		# Set highlighting
@@ -3373,7 +3368,6 @@ class TextFinder(object):
 			if start.get_child_anchor() is not None:
 				result = self._search_in_widget(start, step)
 				if result:
-					#logger.fatal(result)
 					yield (start, start, result[2])
 				else:
 					continue
@@ -3396,7 +3390,8 @@ class TextFinder(object):
 		'''
 		Search within a widget
 		:param start: position-of-widget
-		:return:
+		:param step: search direction (up / down): -1 / 1
+		:return: tuple (startiter, enditer, match)
 		'''
 		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
 			return
@@ -3415,7 +3410,6 @@ class TextFinder(object):
 					for match in matches:
 						startiter = iter
 						enditer = iter
-						#logger.fatal((startiter, enditer, match))
 						return startiter, enditer, match
 				iter = liststore.iter_next(iter)
 
@@ -3447,10 +3441,12 @@ class TextFinder(object):
 						self.buffer.select_range(start, end) # ensure editmode logic is used
 						self.buffer.delete(start, end)
 						self.buffer.insert_at_cursor(string)
+
 				offset = start.get_offset()
 				start = self.buffer.get_iter_at_offset(offset)
 				end = self.buffer.get_iter_at_offset(offset+len(string))
 				self.buffer.select_range(start, end)
+
 				return True
 		else:
 			return False
@@ -3460,7 +3456,10 @@ class TextFinder(object):
 	'''
 	Replace within a widget
 	:param start: position-of-widget
-	:return:
+	:param regex: regular expression pattern
+	:param text: substituation text
+	:param replaceall: boolean if all matches should be replaced
+	:return: True / False - a replacement was done / no replaces 
 	'''
 	def _replace_in_widget(self, start, regex, string, replaceall=False):
 		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
@@ -3502,7 +3501,7 @@ class TextFinder(object):
 				string = match.expand(orig)
 			matches.append((start.get_offset(), end.get_offset(), string))
 
-		matches.reverse() # work ourway back top keep offsets valid
+		matches.reverse() # work our way back top keep offsets valid
 
 		with self.buffer.user_action:
 			with self.buffer.tmp_cursor():
@@ -4608,8 +4607,6 @@ class UndoStackManager:
 		the group at once. This method proceses all such delayed
 		requests.
 		'''
-		#logger.fatal(self.buffer.get_parsetree(None, raw=True))
-
 		def _flush_group(group):
 			for i in reversed(range(len(group))):
 				action, start, end, tree = group[i]
@@ -4820,7 +4817,6 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
-		#self.view.connect_object('reload-page', PageView.do_reload_page, self)
 
 		self.view.connect_after('size-allocate', self.on_view_size_allocate)
 
@@ -5391,7 +5387,6 @@ class PageView(gtk.VBox):
 			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
-
 		# Add custom tool
 		# FIXME need way to (deep)copy widgets in the menu
 		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
@@ -6065,7 +6060,7 @@ class PageView(gtk.VBox):
 
 	def insert_table_at_cursor(self, obj):
 		'''Inserts a table object in the page
-		@param obj: an imjobt implementing L{CustomerObjectClass}
+		@param obj: an object implementing L{CustomerObjectClass}
 		'''
 		assert isinstance(obj, CustomObjectClass)
 		self.on_insert_table(self.view.get_buffer(), obj)
@@ -6097,9 +6092,7 @@ class PageView(gtk.VBox):
 				obj._data = lines
 
 		def on_modified_changed(obj):
-			logger.fatal("on-modified-changed")
 			if obj.get_modified() and not buffer.get_modified():
-				logger.fatal("mark-as-changed")
 				buffer.set_modified(True)
 
 		def on_edit_object(pageview, obj):

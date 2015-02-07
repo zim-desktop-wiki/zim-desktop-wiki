@@ -247,7 +247,6 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			raise AssertionError, 'Dependencies failed for plugin %s' % name
 
 		plugin = klass(self.config)
-		logger.fatal(plugin)
 		self.connectto(plugin, 'extension-point-changed')
 		self._plugins[name] = plugin
 

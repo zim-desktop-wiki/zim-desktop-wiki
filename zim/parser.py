@@ -39,7 +39,7 @@ through to the final expression.
 import re
 
 import xml.etree.cElementTree as ElementTree
-from zim import logger
+
 
 from zim.errors import Error
 
@@ -325,8 +325,6 @@ class Rule(object):
 		return Parser(self, other)
 
 	def _process(self, builder, text):
-		#logger.fatal("PROCESS tag")
-		#logger.fatal(self.tag)
 		# default action for matched text
 		if self.descent:
 			builder.start(self.tag)
