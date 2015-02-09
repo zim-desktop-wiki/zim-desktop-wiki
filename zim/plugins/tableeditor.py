@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2015 Tobias Haupenthal
+#
+# This plugin includes a whole featureset. Please be familiar with the documentation in Plugins:Table Editor.
+#
+# - Suggestions for the future:
+# better column sort-algorithm "sort-by-number-or-string"
+# undo / redo - not trivial, because currently only position in textview is saved
+# 				ideas: save everytime the whole table OR save a tuple (position in textview, row, column)
+
+
 
 import gtk
 import logging
@@ -65,7 +74,6 @@ class TableEditorPlugin(PluginClass):
 	Currently there are two attributes, which have a tuple format, so they can describe all columns:
 	- aligns: left, center, right
 	- wraps: 0 	/ display text in a row		1 / long text will be broken and wrapped
-
 
 	Most other files which are linked to this plugin are:
 	- zim.gui.pageview
@@ -356,21 +364,22 @@ class TableViewObject(CustomObjectClass):
 
 	# getters and setters for attributes
 	def get_aligns(self):
+		''' get the list of align-attributes '''
 		return self._attrib['aligns'].split(',')
 
 	def set_aligns(self, data):
+		''' Set list of align attributes for the current table. Each item belongs to a column.'''
 		assert(isinstance(data, list))
 		self._attrib['aligns'] = ','.join(data)
 
 	def get_wraps(self):
+		''' get the list of wrap-attributes '''
 		return map(int, self._attrib['wraps'].split(','))
 
 	def set_wraps(self, data):
+		''' Set list of wrap attributes for the current table. Each item belongs to a column.'''
 		assert(isinstance(data, list))
 		self._attrib['wraps'] = ','.join(str(item) for item in data)
-
-	def set_textview_geometry(self, geometry):
-		self.textview_geometry = geometry
 
 	def get_widget(self):
 		''' Creates a new table-widget which can displayed on the wiki-page '''
@@ -382,7 +391,6 @@ class TableViewObject(CustomObjectClass):
 		liststore.connect('row-changed', self.on_modified_changed)
 
 		self._widgets.add(widget)
-
 		widget.set_preferences(self.preferences)
 		return widget
 
@@ -395,19 +403,15 @@ class TableViewObject(CustomObjectClass):
 		''' Trigger after a column-header is clicked and therefore its sort order has changed '''
 		self.set_modified(True)
 
-	def on_modified_changed(self, liststore, path, iter):
+	def on_modified_changed(self, liststore, path, treeiter):
 		''' Trigger after a table cell content is changed by the user '''
 		self.set_modified(True)
 
 	def get_data(self):
 		'''Returns table-object into textual data, for saving it as text.'''
 		liststore = self.treeview.get_model()
-		logger.fatal("get-data")
-		logger.fatal(liststore)
 		headers = []
-		aligns = []
 		rows = []
-		wraps = []
 
 		# parsing table header and attributes
 		for column in self.treeview.get_columns():
@@ -416,14 +420,14 @@ class TableViewObject(CustomObjectClass):
 		attrs = {'aligns': self._attrib['aligns'], 'wraps': self._attrib['wraps']}
 
 		# parsing rows
-		iter = liststore.get_iter_first()
-		while iter is not None:
+		treeiter = liststore.get_iter_first()
+		while treeiter is not None:
 			row = []
 			for colid in range(len(self.treeview.get_columns())):
-				val = liststore.get_value(iter, colid) if liststore.get_value(iter, colid) else ' '
+				val = liststore.get_value(treeiter, colid) if liststore.get_value(treeiter, colid) else ' '
 				row.append(val)
 			rows.append(row)
-			iter = liststore.iter_next(iter)
+			treeiter = liststore.iter_next(treeiter)
 		rows = [map(lambda cell: CellFormatReplacer.cell_to_input(cell, True), row) for row in rows]
 
 		logger.debug("Table as get-data: : %s, %s, %s", headers, rows, attrs)
@@ -488,17 +492,29 @@ class TableViewWidget(CustomObjectWidget):
 		#self.view.connect('move-cursor', self.on_move_cursor)
 
 	def resize_to_textview(self, view):
+		''' Overriding - on resizing the table should not expanded to 100% width'''
 		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
 		if not win:
 			return
+		old_width = self.textarea_width
 		self.textarea_width = win.get_geometry()[2]
 
-		vmargin = view.get_left_margin() + view.get_right_margin() \
-					+ 2 * self.get_border_width()
+		if old_width == self.textarea_width:
+			return
 
-		# override size
-		#self.get_size_request()
+		for i, wrap in enumerate(self.obj.get_wraps()):
+			if wrap == 1 and gtk.gtk_version >= (2, 8) and self.textarea_width:
+				column = self.treeview.get_column(i)
+				cell = column.get_cell_renderers()[0]
+				cell.set_property('wrap-width', self.textarea_width/len(self.obj.get_wraps()))
+				cell.set_property('wrap-mode', pango.WRAP_WORD)
 
+				column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE) # allow column shrinks
+				column.set_max_width(0)	# shrink column
+				column.set_max_width(-1) # reset value
+				column.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY) # reset value
+
+		# override setting table to a special size
 		self.set_size_request(-1, -1)
 
 	def _column_alignment(self, aligntext):
@@ -513,105 +529,83 @@ class TableViewWidget(CustomObjectWidget):
 			align = None
 		return align
 
-
-	def get_treeview(self):
-		return self.treeview
-
-	#def get_liststore(self):
-	#	return self.liststore
-
 	def create_treeview(self, headers, rows, attrs):
-		#logger.fatal(attrs)
+		'''
+		Initializes a treeview with its model (liststore) and all its columns
+		:param headers: a list of title values for the column-headers
+		:param rows: a list of list of cells, for the table body
+		:param attrs: some more attributes, which define the layout of a column
+		:return: gtk.treeview
+		'''
 		nrcols = len(headers)
 
 		cols = [str]*nrcols
 
-		#self.liststore = gtk.ListStore(*cols)
 		liststore = gtk.ListStore(*cols)
 		treeview = gtk.TreeView(liststore)
+		for trow in rows:
+			liststore.append(trow)
 
-		align = None
+		# Hook up signals
+		treeview.connect('move-cursor', self.on_move_cursor)
+
 		for i, headcol in enumerate(headers):
-			#logger.fatal("new head")
 			cell = gtk.CellRendererText()
 			tview_column = gtk.TreeViewColumn(headcol, cell)
 			treeview.append_column(tview_column)
 
-			if attrs['wraps'][i] == 1 and gtk.gtk_version >= (2, 8) and self.textarea_width is not None:
-				cell.set_property('wrap-width', self.textarea_width/len(headers))
-				cell.set_property('wrap-mode', pango.WRAP_WORD)
-			#tview_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-			#tview_column.set_expand(False)
-
-			#tview_column.pack_start(cell, True)
-
+			# set properties of column
+			tview_column.set_attributes(cell, markup=i)
+			cell.set_property('editable', True)
+			tview_column.set_sort_column_id(i)
 			# set sort function
 			liststore.set_sort_func(i, self.sort_by_number_or_string, i)
 
-			# set alignment
+			# if wrapping is enabled, the column can only be as wide as 1/nrcols and is then fragmented into two lines
+			if attrs['wraps'][i] == 1 and gtk.gtk_version >= (2, 8) and self.textarea_width is not None:
+				cell.set_property('wrap-width', self.textarea_width/nrcols)
+				cell.set_property('wrap-mode', pango.WRAP_WORD)
 
+			# set alignment - left center right
 			align = self._column_alignment(attrs['aligns'][i])
 			if align:
 				tview_column.set_alignment(align)
 				cell.set_alignment(align, 0.0)
 
-			# set properties of column
-			tview_column.set_attributes(cell, markup=i)
-			tview_column.set_sort_column_id(i)
-
-			# set properties of cell
-			cell.set_property('editable', True)
+			# callbacks after an action
 			cell.connect('edited', self.on_cell_changed, treeview.get_model(), i)
 			cell.connect('editing-started', self.on_cell_editing_started, treeview.get_model(), i)
 
-
-		for trow in rows:
-			liststore.append(trow)
-
-
-		# Hook up signals
-		treeview.connect('move-cursor', self.on_move_cursor)
-
 		return treeview
 
+	def get_treeview(self):
+		# treeview of current table
+		return self.treeview
 
 	def set_preferences(self, preferences):
+		''' Sets general plugin settings for this object'''
+		# todo
 		logger.fatal("Preferences changed")
 		pass
-		#self.view.set_auto_indent(preferences['auto_indent'])
-		#self.view.set_smart_home_end(preferences['smart_home_end'])
-		#self.view.set_highlight_current_line(preferences['highlight_current_line'])
-		#self.view.set_right_margin_position(preferences['right_margin_position'])
-		#self.view.set_show_right_margin(preferences['show_right_margin'])
-		#self.view.set_tab_width(preferences['tab_width'])
-
 
 	def on_move_cursor(self, view, step_size, count, extend_selection):
-		# If you try to move the cursor out of the tableditor
-		# release the cursor to the parent textview
+		''' 'If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
+		# TODO
 		buffer = view.get_buffer()
-		iter = buffer.get_iter_at_mark(buffer.get_insert())
-		if (iter.is_start() or iter.is_end()) \
+		treeiter = buffer.get_iter_at_mark(buffer.get_insert())
+		if (treeiter.is_start() or treeiter.is_end()) \
 		and not extend_selection:
-			if iter.is_start() and count < 0:
+			if treeiter.is_start() and count < 0:
 				self.release_cursor(POSITION_BEGIN)
 				return None
-			elif iter.is_end() and count > 0:
+			elif treeiter.is_end() and count > 0:
 				self.release_cursor(POSITION_END)
 				return None
 
 		return None # let parent handle this signal
 
-	#~ def on_lang_changed(self, selector):
-		#~ '''Callback for language selector'''
-		#~ lang = selector.get_active()
-		#~ self.set_language(lang_ids[lang-1] if lang>0 else '')
-
-	#~ def on_line_numbers_toggled(self, button):
-		#~ '''Callback for toggling line numbers.'''
-		#~ self.show_line_numbers(button.get_active())
-
 	def fetch_cell_by_event(self, event, treeview):
+		'''	Looks for the cell where the mouse clicked on it '''
 		liststore = treeview.get_model()
 		(xpos, ypos) = event.get_coords()
 		(treepath, treecol, xrel, yrel) = treeview.get_path_at_pos(int(xpos), int(ypos))
@@ -620,12 +614,17 @@ class TableViewWidget(CustomObjectWidget):
 		return cellvalue
 
 	def get_linkurl(self, celltext):
+		'''	Checks a cellvalue if it contains a link and returns only the link value '''
 		linkregex = r'<span foreground="blue">(.*?)</span>'
 		matches = re.match(linkregex, celltext)
 		linkvalue = matches.group(1) if matches else None
 		return linkvalue
 
 	def on_button_press_event(self, treeview, event):
+		'''
+		Displays a context-menu on right button click
+		Opens the link of a tablecell on CTRL pressed and left button click
+		'''
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 1 and event.get_state() &  gtk.gdk.CONTROL_MASK:
 			# With CTRL + LEFT-Mouse-Click link of cell is opened
 			cellvalue = self.fetch_cell_by_event(event, treeview)
@@ -635,11 +634,6 @@ class TableViewWidget(CustomObjectWidget):
 				self.obj.emit('link-clicked', {'href': linkvalue})
 			return
 
-
-		#logger.fatal(treeviw)
-		#(treemodel, iter) = treeview.get_selection().get_selected()
-		#logger.fatal(iter)
-		#logger.fatal(self.liststore.get_value(iter, 0))
 
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
 			cellvalue = self.fetch_cell_by_event(event, treeview)
@@ -690,26 +684,29 @@ class TableViewWidget(CustomObjectWidget):
 			menu.popup(None, None, None, event.button, event.time)
 
 	def on_add_row(self, action):
+		''' Context menu: Add a row '''
 		selection = self.treeview.get_selection()
-		model, iter = selection.get_selected()
+		model, treeiter = selection.get_selected()
 		row = len(self.treeview.get_columns())*['']
-		path = model.insert_after(iter, row)
+		path = model.insert_after(treeiter, row)
 		self.obj.set_modified(True)
 
 	def on_clone_row(self, action):
+		''' Context menu: Clone a row '''
 		selection = self.treeview.get_selection()
-		model, iter = selection.get_selected()
-		path = model.get_path(iter)
+		model, treeiter = selection.get_selected()
+		path = model.get_path(treeiter)
 		row = model[path[0]]
-		model.insert_after(iter, row)
+		model.insert_after(treeiter, row)
 		self.obj.set_modified(True)
 
 	def on_delete_row(self, action):
+		''' Context menu: Delete a row '''
 		selection = self.treeview.get_selection()
-		model, iter = selection.get_selected()
+		model, treeiter = selection.get_selected()
 
 		if len(model) > 1:
-			model.remove(iter)
+			model.remove(treeiter)
 			self.obj.set_modified(True)
 		else:
 			md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
@@ -717,47 +714,37 @@ class TableViewWidget(CustomObjectWidget):
 			md.run()
 			md.destroy()
 
-
 	def on_open_link(self, action, link):
+		''' Context menu: Open a link, which is written in a cell '''
 		self.obj.emit('link-clicked', {'href': link})
 
 	def on_change_columns(self, action):
-
-		logger.fatal("change columns")
-		model = self.treeview.get_model()
-
+		''' Context menu: Edit table '''
 		self.obj.emit('edit-object', self.obj)
 
-		#model, iter = selection.get_selected()
-		#logger.fatal(model)
-		#logger.fatal("change columns")
-		pass
-
-
-
-	# TODO: undo(), redo() stuff
-
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
-		# converts plain text to pango
+		''' Trigger after cell-editing, to transform displayed table cell into right format '''
 		markup = CellFormatReplacer.input_to_cell(text, True)
 		liststore[path][colid] = markup
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
-		# converts pango to plain text
+		''' Trigger before cell-editing, to transform text-field data into right format '''
 		markup = liststore[path][colid]
 		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
 
-	def on_row_activated(self, treemodel, row, col):
-		logger.fatal("row-activated: nothing to do")
-		pass
-		#logger.fatal("--")
-		#logger.fatal(treemodel)
-
-
-	def sort_by_number_or_string(self, treemodel, iter1, iter2, colid):
-		data1 = treemodel.get_value(iter1, colid)
-		data2 = treemodel.get_value(iter2, colid)
+	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
+		'''
+		Sort algorithm for sorting numbers correctly and putting 10 after 3.
+		This part can be improved in future to support also currencies, dates, floats, etc.
+		:param liststore: model of treeview
+		:param treeiter1: treeiter 1
+		:param treeiter2: treeiter 2
+		:param colid: a column number
+		:return: -1 / first data is smaller than second, 0 / equality, 1 / else
+		'''
+		data1 = liststore.get_value(treeiter1, colid)
+		data2 = liststore.get_value(treeiter2, colid)
 		if data1.isdigit() and data2.isdigit():
 			data1 = int(data1)
 			data2 = int(data2)
@@ -932,9 +919,9 @@ class EditTableDialog(Dialog):
 
 	def on_wrap_toggled(self, renderer, path, model, colid):
 		''' Trigger for wrap-option (enable/disable)'''
-		iter = model.get_iter(path)
-		val = model.get_value(iter, colid)
-		model.set_value(iter, colid, not val)
+		treeiter = model.get_iter(path)
+		val = model.get_value(treeiter, colid)
+		model.set_value(treeiter, colid, not val)
 
 	def on_alignment_changed(self, renderer, path, comboiter, model):
 		''' Trigger for align-option (selectionbox with icon and alignment as text)'''
@@ -943,10 +930,10 @@ class EditTableDialog(Dialog):
 		alignimg = combomodel.get_value(comboiter, 1)
 		aligntext = combomodel.get_value(comboiter, 2)
 
-		iter = model.get_iter(path)
-		model.set_value(iter, self.Col.align, align)
-		model.set_value(iter, self.Col.alignicon, alignimg)
-		model.set_value(iter, self.Col.aligntext, aligntext)
+		treeiter = model.get_iter(path)
+		model.set_value(treeiter, self.Col.align, align)
+		model.set_value(treeiter, self.Col.alignicon, alignimg)
+		model.set_value(treeiter, self.Col.aligntext, aligntext)
 
 	def autosave_title_cell(self):
 		''' Saving cell, in case of editing it and then do not close it, but do another action, like closing window '''
@@ -959,19 +946,19 @@ class EditTableDialog(Dialog):
 	def on_add_new_column(self, btn):
 		''' Trigger for adding a new column into the table / it is a new row in the treeview '''
 		self.autosave_title_cell()
-		(model, iter) = self.treeview.get_selection().get_selected()
-		model.insert_after(iter, self.default_column_item)
-		newiter = iter if iter else model.get_iter_first()
+		(model, treeiter) = self.treeview.get_selection().get_selected()
+		model.insert_after(treeiter, self.default_column_item)
+		newiter = treeiter if treeiter else model.get_iter_first()
 		self.treeview.get_selection().select_iter(newiter)
 
 	def on_delete_column(self, btn):
 		''' Trigger for deleting a column out of the table / it is a deleted row in the treeview '''
 		self.autosave_title_cell()
-		(model, iter) = self.treeview.get_selection().get_selected()
+		(model, treeiter) = self.treeview.get_selection().get_selected()
 
-		if iter:
+		if treeiter:
 			if len(model) > 1:
-				model.remove(iter)
+				model.remove(treeiter)
 			else:
 				md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
 										_("A table needs to have at least one column."))
@@ -983,18 +970,18 @@ class EditTableDialog(Dialog):
 	def on_move_column(self, btn, direction):
 		''' Trigger for moving a column one position left/right) - it is a movement up/down in the treeview '''
 		self.autosave_title_cell()
-		(model, iter) = self.treeview.get_selection().get_selected()
+		(model, treeiter) = self.treeview.get_selection().get_selected()
 
-		if not iter:  # no selected item
+		if not treeiter:  # no selected item
 			self.selection_info()
 
-		path = model.get_path(iter)
+		path = model.get_path(treeiter)
 		newpos = path[0] + direction
 		if 0 > newpos or newpos > len(model):  # first item cannot be pushed forward, last not backwards
 			return
 		newiter = model.get_iter((newpos,))
 
-		model.swap(iter, newiter)
+		model.swap(treeiter, newiter)
 
 	def selection_info(self):
 		''' Info-Popup for selecting a cell before this action can be done '''
