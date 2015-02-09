@@ -227,10 +227,8 @@ class WikiParser(object):
 
 		builder.append(OBJECT, attrib, body)
 
-	@staticmethod
-	def parse_table(builder, headerrow, alignstyle, body):
-		'''Table'''
-
+	def parse_table(self, builder, headerrow, alignstyle, body):
+		'''Table parsing'''
 		aligns = []
 		wraps = []
 		headerrow = headerrow.replace('\\|', '#124;')  # escaping

@@ -938,6 +938,8 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				set_indent(None)
+			elif element.tag == 'table':
+				self.emit('insert-table', element)
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))

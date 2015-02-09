@@ -1500,3 +1500,14 @@ class DocumentFragment(Node):
 		self.attrib = None
 		if content:
 			self.extend(content)
+
+class TableParser():
+	'''Common functions for converting a table from its' xml structure to another format'''
+
+	@staticmethod
+	def map2dim(fun, rows):
+		return [map(fun, row) for row in rows]
+
+	@staticmethod
+	def map3dim(fun, multiline_rows):
+		return [[map(fun, row) for row in lines] for lines in multiline_rows]
