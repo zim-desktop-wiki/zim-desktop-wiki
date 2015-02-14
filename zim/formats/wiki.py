@@ -521,7 +521,7 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		logger.debug("Dumping table: %s, %s", attrib, strings)
+		# logger.debug("Dumping table: %s, %s", attrib, strings)
 
 		aligns = attrib['aligns'].split(',')
 		wraps = map(int, attrib['wraps'].split(','))

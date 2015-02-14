@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Tobias Haupenthal
+# Author: Tobias Haupenthal
+# Plugin created: 2015
 #
-# This plugin includes a whole featureset. Please be familiar with the documentation in Plugins:Table Editor.
+#
+# This plugin includes a whole featureset. Please be familiar with the documentation in 'Plugins:Table Editor',
+# before you do here any code change.
 #
 # - Suggestions for the future:
 # better column sort-algorithm "sort-by-number-or-string"
@@ -10,12 +13,17 @@
 # 				ideas: save everytime the whole table OR save a tuple (position in textview, row, column)
 
 
-
+import gobject
+import subprocess
+import time
+import threading
+from threading import Timer, Thread
 import gtk
 import logging
 from xml.etree import ElementTree
 import pango
 import re
+import signal
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
@@ -24,6 +32,7 @@ from zim.plugins import PluginClass, extends, WindowExtension
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String
+from zim.main import get_zim_application
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton
 from zim.gui.objectmanager import CustomObjectWidget
 
@@ -430,7 +439,7 @@ class TableViewObject(CustomObjectClass):
 			treeiter = liststore.iter_next(treeiter)
 		rows = [map(lambda cell: CellFormatReplacer.cell_to_input(cell, True), row) for row in rows]
 
-		logger.debug("Table as get-data: : %s, %s, %s", headers, rows, attrs)
+		# logger.debug("Table as get-data: : %s, %s, %s", headers, rows, attrs)
 		return headers, rows, attrs
 
 
@@ -440,56 +449,157 @@ class TableViewObject(CustomObjectClass):
 
 
 class TableViewWidget(CustomObjectWidget):
+	class TimerThread(threading.Thread):
+		def __init__(self, cmd):
+			super(TableViewWidget.TimerThread, self).__init__()
+			logger.fatal("init thread")
+			self.cmd = cmd
+
+		def run(self):
+			logger.fatal("run thread")
+			time.sleep(2)
+			self.cmd()
+			logger.fatal("ready thread")
+
+	class MyThread(threading.Thread):
+		def __init__(self, cmd):
+			self.cmd = cmd
+			threading.Thread.__init__(self)
+			#self.stopped = event
+
+		def run(self):
+			while not self.stopped.wait(0.5):
+				print "my thread"
+
 	textarea_width = None
 	# TODO add comments
 	def __init__(self, obj, headers, rows, attrs):
 		if MainWindowExtension.get_geometry() is not None:
 			self.textarea_width = MainWindowExtension.get_geometry()[2]
 
-		#logger.fatal(MainWindowExtension.textarea_width)
-
-		logger.fatal("----------------")
 		self.obj = obj
-		#self.liststore = None
-
-
-		#tree = self.get_treeview()
-		#logger.fatal(tree)
-		#raise
-		#logger.fatal(self._data.get('cols'))
+		self.timer = None
+		self._editing = False
 
 
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
-		self._has_cursor = False
-		self._resize = True
 
 		#
 
 		# Add vbox and wrap it to have a shadow around it
 		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
-		win = ScrolledWindow(self.vbox, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_IN)
 		#win.add(gtk.Button("abc",gtk.STOCK_OK))
 		#self.add(win)
 
-		self.set_has_cursor(True)
+		#self.set_has_cursor(True)
+		#handlebox = gtk.HandleBox()
+		#self.vbox.pack_start(handlebox)
+		toolbar = self.create_toolbar()
+		self.obj.toolbar = toolbar
+
+		#handlebox.add(toolbar)
+
 
 		self.treeview = self.create_treeview(headers, rows, attrs)
-		#win = ScrolledWindow(self.treeview, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
+		#win = ScrolledWindow(self.treeview, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_OUT)
+
 		# only horizontal scroll
+		self.vbox.pack_start(toolbar)
 		#self.vbox.pack_start(win)
+		self.vbox.pack_start(self.treeview)
 
 		# Hook up signals
 		self.treeview.connect('button-press-event', self.on_button_press_event)
 		self.treeview.set_receives_default(True)
 		self.treeview.set_size_request(-1, -1)
 
+		#self.set_size_request(200,100)
+		self.add(self.vbox)
+		self.treeview.set_border_width(5)
+		#self.show_all()
+		#self.vbox.hide()
 
-		self.add(self.treeview)
-		#self.treeview.set_border_width(5)
 		#self.treeview.connect('row-activated', self.on_row_activated)
 		#self.treeview.connect('populate-popup', self.on_populate_popup)
-		#self.view.connect('move-cursor', self.on_move_cursor)
+		self.treeview.connect('focus-in-event', self.on_focus_in, toolbar)
+		self.treeview.connect('focus-out-event', self.on_focus_out, toolbar)
+
+		# disable interactive column search
+		self.treeview.set_enable_search(False)
+		gtk.binding_entry_remove(gtk.TreeView, gtk.keysyms.f, gtk.gdk.CONTROL_MASK)
+		self.treeview.set_search_column(-1)
+
+		self.thread_stopper = None
+
+	def on_focus_in(self, treeview, event, toolbar):
+		logger.fatal("focus in")
+		self._editing = False
+		if self.timer:
+			gobject.source_remove(self.timer)
+		if self.thread_stopper:
+			self.thread_stopper.set()
+			self.thread_stopper = None
+		toolbar.show()
+
+	def on_focus_out(self, treeview, event, toolbar):
+		def receive_alarm():
+			if self._editing:
+				self.timer = None
+			if self.timer:
+				logger.fatal("alarm belled")
+				self.timer = None
+				treeview.get_selection().unselect_all()
+				toolbar.hide()
+				return False
+
+		self.timer = gobject.timeout_add(500, receive_alarm)
+		logger.fatal("timer started")
+		logger.fatal(self.timer)
+		logger.fatal("focus")
+
+
+	def create_toolbar(self):
+		toolbar = gtk.Toolbar()
+		toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+		toolbar.set_style(gtk.TOOLBAR_ICONS)
+		toolbar.set_border_width(1)
+
+		tooltips = gtk.Tooltips()
+		for pos, stock, handler, data, tooltip in (
+			(0, gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),
+			(1, gtk.STOCK_DELETE, self.on_delete_row, None, _('Remove row')),
+			(2, gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),
+			(3, None, None, None, None),
+			(4, gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),
+			(5, gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),
+			(6, None, None, None, None),
+			(7, gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns')),
+			(8, None, None, None, None),
+			(9, gtk.STOCK_HELP, self.on_open_help, None, _('Open help')),
+		):
+			if stock is None:
+				toolbar.insert(gtk.SeparatorToolItem(), pos)
+			else:
+				button = gtk.ToolButton(stock)
+				if data:
+					button.connect('clicked', handler, data)
+				else:
+					button.connect('clicked', handler)
+				tooltips.set_tip(button, tooltip)
+				toolbar.insert(button, pos)
+
+
+		#toolbar.insert(gtk.SeparatorToolItem(), 3)
+		#toolbar.insert(gtk.SeparatorToolItem(), 5)
+		toolbar.set_size_request(300,-1)
+		toolbar.set_icon_size(gtk.ICON_SIZE_MENU)
+
+		return toolbar
+
+	def toolbar_hide(self):
+		self.obj.toolbar.hide()
+
 
 	def resize_to_textview(self, view):
 		''' Overriding - on resizing the table should not expanded to 100% width'''
@@ -546,9 +656,6 @@ class TableViewWidget(CustomObjectWidget):
 		for trow in rows:
 			liststore.append(trow)
 
-		# Hook up signals
-		treeview.connect('move-cursor', self.on_move_cursor)
-
 		for i, headcol in enumerate(headers):
 			cell = gtk.CellRendererText()
 			tview_column = gtk.TreeViewColumn(headcol, cell)
@@ -575,6 +682,7 @@ class TableViewWidget(CustomObjectWidget):
 			# callbacks after an action
 			cell.connect('edited', self.on_cell_changed, treeview.get_model(), i)
 			cell.connect('editing-started', self.on_cell_editing_started, treeview.get_model(), i)
+			cell.connect('editing-canceled', self.on_cell_editing_canceled)
 
 		return treeview
 
@@ -588,9 +696,18 @@ class TableViewWidget(CustomObjectWidget):
 		logger.fatal("Preferences changed")
 		pass
 
+	def on_cursor_changed(self, treeview):
+		logger.fatal("cursor changed")
+
+	def on_cell_editing_canceled(self, renderer):
+		logger.fatal(renderer)
+		logger.fatal("cursor canceled")
+
 	def on_move_cursor(self, view, step_size, count, extend_selection):
 		''' 'If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
 		# TODO
+		logger.fatal("move cursor")
+
 		buffer = view.get_buffer()
 		treeiter = buffer.get_iter_at_mark(buffer.get_insert())
 		if (treeiter.is_start() or treeiter.is_end()) \
@@ -636,48 +753,41 @@ class TableViewWidget(CustomObjectWidget):
 
 
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+			self._editing = True
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			linkitem_is_activated = (linkvalue is not None)
 
 			menu = gtk.Menu()
 
-			# Create a new menu-item with a name...
-			item = gtk.ImageMenuItem(gtk.STOCK_ADD)
-			item.set_always_show_image(True)
-			item.set_label(_('Add row'))
-			item.connect_after('activate', self.on_add_row)
-			menu.append(item)
+			for stock, handler, data, tooltip in (
+				(gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),
+				(gtk.STOCK_DELETE, self.on_delete_row, None, _('Delete row')),
+				(gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),
+				(None, None, None, None),
+				(gtk.STOCK_JUMP_TO, self.on_open_link, linkvalue, _('Open cell content link')),
+				(None, None, None, None),
+				(gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),
+				(gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),
+				(None, None, None, None),
+				(gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns'))
+			):
 
-			item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-			item.set_always_show_image(True)
-			item.set_label(_('Delete row'))
-			item.connect_after('activate', self.on_delete_row)
-			menu.append(item)
+				if stock is None:
+					menu.append(gtk.SeparatorMenuItem())
+				else:
+					item = gtk.ImageMenuItem(stock)
+					item.set_always_show_image(True)
+					item.set_label(_(tooltip))
+					if data:
+						item.connect_after('activate', handler, data)
+					else:
+						item.connect_after('activate', handler)
+					if handler == self.on_open_link:
+						item.set_sensitive(linkitem_is_activated)
+					menu.append(item)
 
-			item = gtk.ImageMenuItem(gtk.STOCK_COPY)
-			item.set_always_show_image(True)
-			item.set_label(_('Clone row'))
-			item.connect_after('activate', self.on_clone_row)
-			menu.append(item)
 
-			menu.append(gtk.SeparatorMenuItem())
-
-			item = gtk.ImageMenuItem(gtk.STOCK_JUMP_TO)
-			item.set_always_show_image(True)
-			# only if clicked cell contains a link, this menu item is selectable
-			item.set_sensitive(linkitem_is_activated)
-			item.set_label(_('Open cell content link'))
-			item.connect_after('activate', self.on_open_link, linkvalue)
-			menu.append(item)
-
-			menu.append(gtk.SeparatorMenuItem())
-
-			item = gtk.ImageMenuItem(gtk.STOCK_PREFERENCES)
-			item.set_always_show_image(True)
-			item.set_label(_('Change columns'))
-			item.connect_after('activate', self.on_change_columns)
-			menu.append(item)
 
 
 			menu.show_all()
@@ -687,6 +797,10 @@ class TableViewWidget(CustomObjectWidget):
 		''' Context menu: Add a row '''
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
+		if not treeiter:  # no selected item
+			self.selection_info()
+			return
+
 		row = len(self.treeview.get_columns())*['']
 		path = model.insert_after(treeiter, row)
 		self.obj.set_modified(True)
@@ -695,6 +809,10 @@ class TableViewWidget(CustomObjectWidget):
 		''' Context menu: Clone a row '''
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
+		if not treeiter:  # no selected item
+			self.selection_info()
+			return
+
 		path = model.get_path(treeiter)
 		row = model[path[0]]
 		model.insert_after(treeiter, row)
@@ -704,6 +822,9 @@ class TableViewWidget(CustomObjectWidget):
 		''' Context menu: Delete a row '''
 		selection = self.treeview.get_selection()
 		model, treeiter = selection.get_selected()
+		if not treeiter:  # no selected item
+			self.selection_info()
+			return
 
 		if len(model) > 1:
 			model.remove(treeiter)
@@ -714,9 +835,32 @@ class TableViewWidget(CustomObjectWidget):
 			md.run()
 			md.destroy()
 
+	def on_move_row(self, action, direction):
+		''' Trigger for moving a row one position up/down '''
+		selection = self.treeview.get_selection()
+		model, treeiter = selection.get_selected()
+		if not treeiter:  # no selected item
+			self.selection_info()
+			return
+
+		path = model.get_path(treeiter)
+		newpos = path[0] + direction
+		if 0 > newpos or newpos >= len(model):  # first item cannot be pushed forward, last not backwards
+			return
+		newiter = model.get_iter((newpos,))
+
+		model.swap(treeiter, newiter)
+		self.obj.set_modified(True)
+
+
 	def on_open_link(self, action, link):
 		''' Context menu: Open a link, which is written in a cell '''
 		self.obj.emit('link-clicked', {'href': link})
+
+	def on_open_help(self, action):
+		''' Context menu: Open help '''
+		get_zim_application('--manual', 'Plugins:Table Editor').spawn()
+		pass
 
 	def on_change_columns(self, action):
 		''' Context menu: Edit table '''
@@ -724,14 +868,21 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		''' Trigger after cell-editing, to transform displayed table cell into right format '''
+		self._editing = False
+		logger.fatal("cell changed")
 		markup = CellFormatReplacer.input_to_cell(text, True)
 		liststore[path][colid] = markup
 
+
 	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
+		self._editing = True
 		markup = liststore[path][colid]
 		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
+
+	def start_timer(self):
+		return self.timer
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
@@ -750,6 +901,17 @@ class TableViewWidget(CustomObjectWidget):
 			data2 = int(data2)
 		self.obj.set_modified(True)
 		return cmp(data1, data2)
+
+
+
+
+
+	def selection_info(self):
+		''' Info-Popup for selecting a cell before this action can be done '''
+		md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+								_("Please select a row, before you push the button."))
+		md.run()
+		md.destroy()
 
 
 class EditTableDialog(Dialog):
@@ -907,6 +1069,7 @@ class EditTableDialog(Dialog):
 
 	def on_cell_editing_started(self, renderer, editable, path, model, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
+		logger.fatal("edittable started")
 		text = model[path][colid]
 		text = CellFormatReplacer.cell_to_input(text)
 		editable.set_text(text)
@@ -974,10 +1137,11 @@ class EditTableDialog(Dialog):
 
 		if not treeiter:  # no selected item
 			self.selection_info()
+			return
 
 		path = model.get_path(treeiter)
 		newpos = path[0] + direction
-		if 0 > newpos or newpos > len(model):  # first item cannot be pushed forward, last not backwards
+		if 0 > newpos or newpos >= len(model):  # first item cannot be pushed forward, last not backwards
 			return
 		newiter = model.get_iter((newpos,))
 
@@ -989,3 +1153,37 @@ class EditTableDialog(Dialog):
 								_("Please select a row, before you push the button."))
 		md.run()
 		md.destroy()
+
+import thread
+import threading
+
+class Operation(threading._Timer):
+    def __init__(self, *args, **kwargs):
+        threading._Timer.__init__(self, *args, **kwargs)
+        self.setDaemon(True)
+
+    def run(self):
+		self.finished.clear()
+		self.finished.wait(self.interval)
+		if not self.finished.isSet():
+			self.function(*self.args, **self.kwargs)
+		else:
+			return
+		self.finished.set()
+
+class Manager(object):
+
+    ops = []
+
+    def add_operation(self, operation, interval, args=[], kwargs={}):
+        op = Operation(interval, operation, args, kwargs)
+        self.ops.append(op)
+        thread.start_new_thread(op.run, ())
+
+    def stop(self):
+        for op in self.ops:
+            op.cancel()
+        self._event.set()
+
+
+#if __name__ == '__main__':

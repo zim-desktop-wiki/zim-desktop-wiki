@@ -6126,6 +6126,8 @@ class PageView(gtk.VBox):
 		self._object_widgets.add(widget)
 
 		widget.show_all()
+		if not isinstance(obj, FallbackObject):
+			widget.toolbar_hide()
 
 	def on_view_size_allocate(self, textview, allocation):
 		for widget in self._object_widgets:
