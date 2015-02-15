@@ -313,9 +313,11 @@ class MainWindowExtension(WindowExtension):
 		# remove all old columns and move new columns to original treeview
 		for col in obj.treeview.get_columns():
 			obj.treeview.remove_column(col)
-		for col in new_treeview.get_columns():
+		for i, col in enumerate(new_treeview.get_columns()):
 			new_treeview.remove_column(col)
 			obj.treeview.append_column(col)
+			title_label = TableViewWidget.create_headerlabel(headers[i])
+			col.set_widget(title_label)
 
 		obj.set_aligns(aligns)
 		obj.set_wraps(wraps)
@@ -461,13 +463,13 @@ class TableViewWidget(CustomObjectWidget):
 
 		# used in pageview
 		self._resize = True  # attribute, that triggers resizing
-		self._has_cursor = True # Cursor is within the object
+		self._has_cursor = False  # Skip table object, if someone moves cursor around in textview
 
 		# used here
 		self.obj = obj
 		self._timer = None  # NONE or number of current gobject.timer, which is running
 		self._cell_editing = False  # a cell is currently edited, toolbar should not be hidden
-		self._show_toolbar = True  # sets if toolbar should be shown beneath a selected table
+		self._toolbar_enabled = True  # sets if toolbar should be shown beneath a selected table
 
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
@@ -486,6 +488,7 @@ class TableViewWidget(CustomObjectWidget):
 		self.treeview.connect('button-press-event', self.on_button_press_event)
 		self.treeview.connect('focus-in-event', self.on_focus_in, toolbar)
 		self.treeview.connect('focus-out-event', self.on_focus_out, toolbar)
+		self.treeview.connect('move-cursor', self.on_move_cursor)
 
 		# Set options
 		self.treeview.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
@@ -506,16 +509,12 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_focus_in(self, treeview, event, toolbar):
 		'''After a table is selected, this function will be triggered'''
-		if not self._show_toolbar:
-			return
 
 		self._cell_editing = False
 		if self._timer:
 			gobject.source_remove(self._timer)
-		if self.thread_stopper:
-			self.thread_stopper.set()
-			self.thread_stopper = None
-		toolbar.show()
+		if self._toolbar_enabled:
+			toolbar.show()
 
 	def on_focus_out(self, treeview, event, toolbar):
 		'''After a table is deselected, this function will be triggered'''
@@ -525,7 +524,8 @@ class TableViewWidget(CustomObjectWidget):
 			if self._timer:
 				self._timer = None
 				treeview.get_selection().unselect_all()
-				toolbar.hide()
+				if self._toolbar_enabled:
+					toolbar.hide()
 			return False
 
 		self._timer = gobject.timeout_add(500, receive_alarm)
@@ -660,6 +660,10 @@ class TableViewWidget(CustomObjectWidget):
 		return treeview
 
 	def create_headerlabel(self, title):
+		return TableViewWidget.create_headerlabel(title)
+
+	@staticmethod
+	def create_headerlabel(title):
 		''' Sets options for the treeview header'''
 		col_widget = gtk.VBox()
 		col_widget.show()
@@ -683,7 +687,7 @@ class TableViewWidget(CustomObjectWidget):
 		return self.treeview
 
 	def set_preferences(self, preferences):
-		self._show_toolbar = preferences['show_helper_toolbar']
+		self._toolbar_enabled = preferences['show_helper_toolbar']
 
 		''' Sets general plugin settings for this object'''
 		grid_option = self.pref_gridlines(preferences['grid_lines'])
@@ -704,23 +708,9 @@ class TableViewWidget(CustomObjectWidget):
 		''' Trigger after a cell is edited but not change is skipped'''
 		pass
 
-	def on_move_cursor(self, view, step_size, count, extend_selection):
+	def on_move_cursor(self, view, step_size, count):
 		''' If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
-		# TODO
-		logger.fatal("move cursor")
-
-		buffer = view.get_buffer()
-		treeiter = buffer.get_iter_at_mark(buffer.get_insert())
-		if (treeiter.is_start() or treeiter.is_end()) \
-		and not extend_selection:
-			if treeiter.is_start() and count < 0:
-				self.release_cursor(POSITION_BEGIN)
-				return None
-			elif treeiter.is_end() and count > 0:
-				self.release_cursor(POSITION_END)
-				return None
-
-		return None # let parent handle this signal
+		return None  # let parent handle this signal
 
 	def fetch_cell_by_event(self, event, treeview):
 		'''	Looks for the cell where the mouse clicked on it '''
@@ -748,7 +738,6 @@ class TableViewWidget(CustomObjectWidget):
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			if linkvalue:
-				#logger.fatal(linkvalue)
 				self.obj.emit('link-clicked', {'href': linkvalue})
 			return
 
@@ -866,7 +855,6 @@ class TableViewWidget(CustomObjectWidget):
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		''' Trigger after cell-editing, to transform displayed table cell into right format '''
 		self._cell_editing = False
-		logger.fatal("cell changed")
 		markup = CellFormatReplacer.input_to_cell(text, True)
 		liststore[path][colid] = markup
 
@@ -1062,7 +1050,6 @@ class EditTableDialog(Dialog):
 
 	def on_cell_editing_started(self, renderer, editable, path, model, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
-		logger.fatal("edittable started")
 		text = model[path][colid]
 		text = CellFormatReplacer.cell_to_input(text)
 		editable.set_text(text)
