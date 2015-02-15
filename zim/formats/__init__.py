@@ -1501,13 +1501,134 @@ class DocumentFragment(Node):
 		if content:
 			self.extend(content)
 
+
 class TableParser():
 	'''Common functions for converting a table from its' xml structure to another format'''
 
 	@staticmethod
 	def map2dim(fun, rows):
+		''' Like map(fun, list), only for two-dimensional lists	'''
 		return [map(fun, row) for row in rows]
 
 	@staticmethod
 	def map3dim(fun, multiline_rows):
+		''' Like map(fun, list), only for three-dimensional lists	'''
 		return [[map(fun, row) for row in lines] for lines in multiline_rows]
+
+	@staticmethod
+	def width2dim(lines):
+		'''
+		Calculates the characters on each column and return list of widths
+		:param lines: 32dim multiline rows
+		:return: the number of characters of the longest cell-value by column
+		'''
+		widths = [max(map(len, line)) for line in zip(*lines)]
+		return widths
+
+	@staticmethod
+	def width3dim(lines):
+		'''
+		Calculates the characters on each column and return list of widths
+		:param lines: 3-dim multiline rows
+		:return: the number of characters of the longest cell-value by column
+		'''	
+		lines = reduce(lambda x, y: x+y, lines)
+		widths = [max(map(len, line)) for line in zip(*lines)]
+		return widths
+
+	@staticmethod
+	def convert_to_multiline_cells(rows):
+		'''
+		Each cell of a list of list is splitted by "\n" and a 3-dimensional list is returned,
+		whereas each tuple represents a line and multiple lines represents a row and multiple rows represents the table
+		c11a = Cell in Row 1 in Column 1 in first = a line
+		:param strings: format like (('c11a \n c11b', 'c12a \n c12b'), ('c21', 'c22a \n 22b'))
+		:return: format like (((c11a, c12a), (c11b, c12b)), ((c21, c22a), ('', c22b)))
+		'''
+		multi_rows = TableParser.map2dim(lambda cell: cell.split("\n"), rows)
+
+		# grouping by line, not by row
+		strings = [map(lambda *line: map(lambda val: val if val is not None else '', line), *row) for row in multi_rows]
+		return strings
+
+	@staticmethod
+	def get_options(attrib):
+		'''
+		Lists the attributes as tuple
+		:param attrib:
+		:return: tuple of attributes
+		'''
+		aligns = attrib['aligns'].split(',')
+		wraps = attrib['aligns'].split(',')
+
+		return aligns, wraps
+
+	@staticmethod
+	def rowsep(maxwidths, x='+', y='-'):
+		'''
+		Displays a row separator
+		example: rowsep((3,0), '-', '+') -> +-----+--+
+		:param maxwidths: list of column lengths
+		:param x: point-separator
+		:param y: line-separator
+		:return: a textline
+		'''
+		return x + x.join(map(lambda width: (width+2) * y, maxwidths)) + x
+
+	@staticmethod
+	def headsep(maxwidths, aligns, wraps=None, x='|', y='-'):
+		'''
+		Displays a header separation with alignment infos
+		example: rowsep((3,0), '-', '+') -> +-----+--+
+		:param maxwidths: list of column lengths
+		:param aligns:  list of alignments
+		:param wraps:  list of wraps
+		:param x: point-separator
+		:param y: line-separator
+		:return: a textline
+		'''
+		wraps = wraps if wraps is not None else len(maxwidths) * [0]
+		cells = []
+		for width, align, wrap in zip(maxwidths, aligns, wraps):
+			line = width * y
+			if align == 'left':
+				cell = ':' + line + y if wrap == 0 else '::' + line
+			elif align == 'right' :
+				cell = y + line + ':' if wrap == 0 else line + '::'
+			elif align == 'center':
+				cell = ':' + line + ':' if wrap == 0 else '::' + line[1:] + ':'
+			else:
+				cell = y + line + y
+			cells.append(cell)
+		return x + x.join(cells) + x
+
+	@staticmethod
+	def rowline(row, maxwidths, aligns, x='|', y=' '):
+		'''
+		Displays a normal column line in text format
+		example: rowline((3,0), (left, left), '+','-') -> +-aa--+--+
+		:param row: tuple of cells
+		:param maxwidths: list of column length
+		:param aligns:  list of alignments
+		:param x:  point-separator
+		:param y: space-separator
+		:return: a textline
+		'''
+		cells = []
+		for i, val in enumerate(row):
+			align = aligns[i]
+			if align == 'left':
+				(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
+			elif align == 'right':
+				(lspace, rspace) = (maxwidths[i] - len(val) + 1, 1)
+			elif align == 'center':
+				lspace = (maxwidths[i] - len(val)) / 2 + 1
+				rspace = (maxwidths[i] - lspace - len(val) + 2)
+			else:
+				(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
+			cells.append(lspace * y + val + rspace * y)
+		return x + x.join(cells) + x
+
+if __name__ == '__main__':
+	a=(("abc", "defg"), ("dasistganzlang", "hier bin ich"), ("k","d"))
+	print [ max(map(len ,d))  for d in zip(*a)]

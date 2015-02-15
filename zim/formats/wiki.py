@@ -523,59 +523,19 @@ class Dumper(TextDumper):
 	def dump_table(self, tag, attrib, strings):
 		# logger.debug("Dumping table: %s, %s", attrib, strings)
 
-		aligns = attrib['aligns'].split(',')
-		wraps = map(int, attrib['wraps'].split(','))
-		single_headers = strings[0]  # single line headers
-		header_length =  len(single_headers)  # number of columns
-		single_rows = strings[1::]  # body rows which are on a single-line
-		maxwidths = []  # character width of each column
-		rows = [] # normalized rows
 		table = []  # result table
+		rows = strings
 
-		for i in range(header_length):  # calculate maximum widths of columns
-			row_max_characters = max([len(r[i]) for r in single_rows])
-			maxwidths.append(max(0, len(single_headers[i]), row_max_characters))
-
-		# helper functions
-		def rowsep(y='-', x='|'):  # example: rowsep('-', '+') -> +-----+--+
-			cells = []
-			for i, width in enumerate(maxwidths):
-				align = aligns[i]
-				wrap = wraps[i]
-				cell = (width) * y
-				if align == 'left':
-					cell = ':' + cell + y if wrap == 0 else '::' + cell
-				elif align == 'right' :
-					cell = y + cell + ':' if wrap == 0 else cell + '::'
-				elif align == 'center':
-					cell = ':' + cell + ':' if wrap == 0 else '::' + (width-1) * y + ':'
-				else:
-					cell = y + cell + y
-				cells.append(cell)
-			return x + x.join(cells) + x
-
-		def rowline(row, x='|', y=' '):  # example: rowline(['aa',''], '+','-') -> +-aa--+--+
-			cells = []
-			for i, val in enumerate(row):
-				align = aligns[i]
-				if align == 'left':
-					(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
-				elif align == 'right':
-					(lspace, rspace) = (maxwidths[i] - len(val) + 1, 1)
-				elif align == 'center':
-					lspace = (maxwidths[i] - len(val)) / 2 + 1
-					rspace = (maxwidths[i] - lspace - len(val) + 2)
-				else:
-					(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
-				cells.append(lspace * y + val + rspace * y)
-			return x + x.join(cells) + x
+		aligns, _wraps = TableParser.get_options(attrib)
+		maxwidths = TableParser.width2dim(rows)
+		headsep = TableParser.headsep(maxwidths, aligns, wraps=_wraps, x='|', y='-')
+		rowline = lambda row: TableParser.rowline(row, maxwidths, aligns)
 
 		# print table
-		table += [rowline(single_headers)]
-		table.append(rowsep('-'))
-		table += [rowline(row) for row in single_rows]
-		table = map(lambda line: line+"\n", table)
-		return table
+		table += [rowline(rows[0])]
+		table.append(headsep)
+		table += [rowline(row) for row in rows[1:]]
+		return map(lambda line: line+"\n", table)
 
 	def dump_thead(self, tag, attrib, strings):
 		return [strings]

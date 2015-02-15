@@ -229,42 +229,25 @@ class Dumper(TextDumper):
 	dump_object_fallback = dump_pre
 
 	def dump_table(self, tag, attrib, strings):
-		aligns = attrib['aligns'].split(',')
-		single_headers = strings[0]  # single line headers
-		header_length = len(single_headers) # number of columns
-		single_rows = strings[1::]  # body rows which are on a single-line
 		table = []  # result table
+		rows = strings
 
-		getalign = lambda a : 'l' if a == 'left' else 'r' if  a == 'right' else 'c' if a == 'center' else 'l'
+		aligns, _wraps = TableParser.get_options(attrib)
+		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\hline'
+		aligns = map(lambda a: 'l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l', aligns)
 
-		# be aware of linebreaks within cells
-		for i, cell in enumerate(single_headers):
-			if '\n' in cell:
-				single_headers[i] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\") + '}'
-		for i, single_row in enumerate(single_rows):
-			for (j, cell) in enumerate(single_row):
+		for i, row in enumerate(rows):
+			for j, (cell, align) in enumerate(zip(row, aligns)):
 				if '\n' in cell:
-					single_rows[i][j] = '\shortstack[' + getalign(aligns[i]) + ']{' + cell.replace("\n", "\\") + '}'
-
-		positions = []
-		for align in aligns:
-			positions.append(getalign(align))
-
-		table.append('\\begin{tabular}{ |' + '|'.join(positions) + '| }')
-		table.append('\hline')
-
-		# helper functions
-		def rowline(row, x='&', y=' '):  # example: rowline(['aa',''], '+','-') -> +-aa--+--+
-			cells = []
-			for i, val in enumerate(row):
-				(lspace, rspace) = (1, 1)
-				cells.append(lspace * y + val + rspace * y)
-			return x.join(cells) + '\\tabularnewline\n\hline'
+					rows[i][j] = '\shortstack[' + align + ']{' + cell.replace("\n", "\\") + '}'
 
 		# print table
-		table += [rowline(single_headers)]
+		table.append('\\begin{tabular}{ |' + '|'.join(aligns) + '| }')
 		table.append('\hline')
-		table += [rowline(row) for row in single_rows]
+
+		table += [rowline(rows[0])]
+		table.append('\hline')
+		table += [rowline(row) for row in rows[1:]]
 
 		table.append('\end{tabular}')
 		return map(lambda line: line+"\n", table)
