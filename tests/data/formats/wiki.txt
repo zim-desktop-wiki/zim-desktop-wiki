@@ -163,7 +163,7 @@ the Achaeans.
 
 ===== A table =====
 |H1|H2\nh2|
-|:-:|-:|
+|:-:|-::|
 |Column\n A1| Column A2|
 |a very long cell|**bold column**|
 

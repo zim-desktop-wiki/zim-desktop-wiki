@@ -126,7 +126,7 @@ brought countless ills upon
 the Achaeans.
 </object>
 <h level="2">A table</h>
-<table aligns="center,right" wraps="0,0"><thead><th>H1</th><th>H2
+<table aligns="center,right" wraps="0,1"><thead><th>H1</th><th>H2
 h2</th></thead><trow><td>Column
  A1</td><td>Column A2</td></trow><trow><td>a very long cell</td><td><strong>bold column</strong></td></trow></table>
 <p>After a table there must be a blank line.
