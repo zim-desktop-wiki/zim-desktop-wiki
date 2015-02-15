@@ -14,16 +14,11 @@
 
 
 import gobject
-import subprocess
-import time
-import threading
-from threading import Timer, Thread
 import gtk
 import logging
 from xml.etree import ElementTree
-import pango
 import re
-import signal
+import pango
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
@@ -99,21 +94,20 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		'author': 'Tobias Haupenthal',
 	}
 
-	# TODO cleanup
+	global LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL, LINES_BOTH # Hack - to make sure translation is loaded
+	LINES_BOTH = _('with lines') # T: option value
+	LINES_NONE = _('no grid lines') # T: option value
+	LINES_HORIZONTAL = _('horizontal lines') # T: option value
+	LINES_VERTICAL = _('vertical lines') # T: option value
+
+
+
 	plugin_preferences = (
 		# key, type, label, default
-		('auto_indent', 'bool', _('Auto indenting'), True),
-			# T: preference option for tableeditor plugin
-		('smart_home_end', 'bool', _('Smart Home key'), True),
-			# T: preference option for tableeditor plugin
-		('highlight_current_line', 'bool', _('Highlight current line'), False),
-			# T: preference option for tableeditor plugin
-		('show_right_margin', 'bool', _('Show right margin'), False),
-			# T: preference option for tableeditor plugin
-		('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
-			# T: preference option for tableeditor plugin
-		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
-			# T: preference option for tableeditor plugin
+		('show_helper_toolbar', 'bool', _('Show helper toolbar'), True),
+
+		# option for displaying grid-lines within the table
+		('grid_lines', 'choice', _('Grid lines'), LINES_BOTH, (LINES_BOTH, LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL)),
 	)
 
 	def __init__(self, config=None):
@@ -449,117 +443,95 @@ class TableViewObject(CustomObjectClass):
 
 
 class TableViewWidget(CustomObjectWidget):
-	class TimerThread(threading.Thread):
-		def __init__(self, cmd):
-			super(TableViewWidget.TimerThread, self).__init__()
-			logger.fatal("init thread")
-			self.cmd = cmd
-
-		def run(self):
-			logger.fatal("run thread")
-			time.sleep(2)
-			self.cmd()
-			logger.fatal("ready thread")
-
-	class MyThread(threading.Thread):
-		def __init__(self, cmd):
-			self.cmd = cmd
-			threading.Thread.__init__(self)
-			#self.stopped = event
-
-		def run(self):
-			while not self.stopped.wait(0.5):
-				print "my thread"
 
 	textarea_width = None
-	# TODO add comments
+
 	def __init__(self, obj, headers, rows, attrs):
+		'''
+		This is a group of GTK Gui elements which are directly displayed within the wiki textarea
+		On initilizing also some signals are registered and a toolbar is initialized
+		:param obj: a Table-View-Object
+		:param headers: list of titles
+		:param rows: list of list of cells
+		:param attrs: table settings, like alignment and wrapping
+		:return:
+		'''
 		if MainWindowExtension.get_geometry() is not None:
 			self.textarea_width = MainWindowExtension.get_geometry()[2]
 
-		self.obj = obj
-		self.timer = None
-		self._editing = False
+		# used in pageview
+		self._resize = True  # attribute, that triggers resizing
+		self._has_cursor = True # Cursor is within the object
 
+		# used here
+		self.obj = obj
+		self._timer = None  # NONE or number of current gobject.timer, which is running
+		self._cell_editing = False  # a cell is currently edited, toolbar should not be hidden
+		self._show_toolbar = True  # sets if toolbar should be shown beneath a selected table
 
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
 
-		#
-
 		# Add vbox and wrap it to have a shadow around it
 		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
-		#win.add(gtk.Button("abc",gtk.STOCK_OK))
-		#self.add(win)
 
-		#self.set_has_cursor(True)
-		#handlebox = gtk.HandleBox()
-		#self.vbox.pack_start(handlebox)
+		# Toolbar for table actions
 		toolbar = self.create_toolbar()
 		self.obj.toolbar = toolbar
 
-		#handlebox.add(toolbar)
-
-
+		# Actual gtk table object
 		self.treeview = self.create_treeview(headers, rows, attrs)
-		#win = ScrolledWindow(self.treeview, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_OUT)
 
-		# only horizontal scroll
-		self.vbox.pack_start(toolbar)
-		#self.vbox.pack_start(win)
-		self.vbox.pack_start(self.treeview)
-
-		# Hook up signals
+		# Hook up signals & set options
 		self.treeview.connect('button-press-event', self.on_button_press_event)
-		self.treeview.set_receives_default(True)
-		self.treeview.set_size_request(-1, -1)
-
-		#self.set_size_request(200,100)
-		self.add(self.vbox)
-		self.treeview.set_border_width(5)
-		#self.show_all()
-		#self.vbox.hide()
-
-		#self.treeview.connect('row-activated', self.on_row_activated)
-		#self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.treeview.connect('focus-in-event', self.on_focus_in, toolbar)
 		self.treeview.connect('focus-out-event', self.on_focus_out, toolbar)
+
+		# Set options
+		self.treeview.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
+		self.treeview.set_receives_default(True)
+		self.treeview.set_size_request(-1, -1)
+		self.treeview.set_border_width(5)
 
 		# disable interactive column search
 		self.treeview.set_enable_search(False)
 		gtk.binding_entry_remove(gtk.TreeView, gtk.keysyms.f, gtk.gdk.CONTROL_MASK)
 		self.treeview.set_search_column(-1)
 
-		self.thread_stopper = None
+		# package gui elements
+		self.vbox.pack_end(toolbar)
+		self.add(self.vbox)
+		win = ScrolledWindow(self.treeview, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_OUT)
+		self.vbox.pack_start(win)
 
 	def on_focus_in(self, treeview, event, toolbar):
-		logger.fatal("focus in")
-		self._editing = False
-		if self.timer:
-			gobject.source_remove(self.timer)
+		'''After a table is selected, this function will be triggered'''
+		if not self._show_toolbar:
+			return
+
+		self._cell_editing = False
+		if self._timer:
+			gobject.source_remove(self._timer)
 		if self.thread_stopper:
 			self.thread_stopper.set()
 			self.thread_stopper = None
 		toolbar.show()
 
 	def on_focus_out(self, treeview, event, toolbar):
+		'''After a table is deselected, this function will be triggered'''
 		def receive_alarm():
-			if self._editing:
-				self.timer = None
-			if self.timer:
-				logger.fatal("alarm belled")
-				self.timer = None
+			if self._cell_editing:
+				self._timer = None
+			if self._timer:
+				self._timer = None
 				treeview.get_selection().unselect_all()
 				toolbar.hide()
-				return False
+			return False
 
-		self.timer = gobject.timeout_add(500, receive_alarm)
-		logger.fatal("timer started")
-		logger.fatal(self.timer)
-		logger.fatal("focus")
-
+		self._timer = gobject.timeout_add(500, receive_alarm)
 
 	def create_toolbar(self):
+		'''This function creates a toolbar which is displayed next to the table'''
 		toolbar = gtk.Toolbar()
 		toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
 		toolbar.set_style(gtk.TOOLBAR_ICONS)
@@ -589,17 +561,14 @@ class TableViewWidget(CustomObjectWidget):
 				tooltips.set_tip(button, tooltip)
 				toolbar.insert(button, pos)
 
-
-		#toolbar.insert(gtk.SeparatorToolItem(), 3)
-		#toolbar.insert(gtk.SeparatorToolItem(), 5)
 		toolbar.set_size_request(300,-1)
 		toolbar.set_icon_size(gtk.ICON_SIZE_MENU)
 
 		return toolbar
 
 	def toolbar_hide(self):
+		''' Hide toolbar of the table (moving rows around, etc.) '''
 		self.obj.toolbar.hide()
-
 
 	def resize_to_textview(self, view):
 		''' Overriding - on resizing the table should not expanded to 100% width'''
@@ -661,6 +630,10 @@ class TableViewWidget(CustomObjectWidget):
 			tview_column = gtk.TreeViewColumn(headcol, cell)
 			treeview.append_column(tview_column)
 
+			# set title as label
+			header_label = self.create_headerlabel(headcol)
+			tview_column.set_widget(header_label)
+
 			# set properties of column
 			tview_column.set_attributes(cell, markup=i)
 			cell.set_property('editable', True)
@@ -686,25 +659,53 @@ class TableViewWidget(CustomObjectWidget):
 
 		return treeview
 
+	def create_headerlabel(self, title):
+		''' Sets options for the treeview header'''
+		col_widget = gtk.VBox()
+		col_widget.show()
+
+
+		col_label = gtk.Label('<u>'+title+'</u>')
+		col_label.set_use_markup(True)
+		col_label.show()
+		col_widget.pack_start(col_label)
+		#col_align.add(col_label)
+
+		'''col_entry = gtk.Entry()
+		col_entry.set_name('treeview-header-entry')
+		col_entry.show()
+		col_widget.pack_start(col_entry)'''
+
+		return col_widget
+
 	def get_treeview(self):
 		# treeview of current table
 		return self.treeview
 
 	def set_preferences(self, preferences):
+		self._show_toolbar = preferences['show_helper_toolbar']
+
 		''' Sets general plugin settings for this object'''
-		# todo
-		logger.fatal("Preferences changed")
+		grid_option = self.pref_gridlines(preferences['grid_lines'])
+		self.treeview.set_grid_lines(grid_option)
 		pass
 
-	def on_cursor_changed(self, treeview):
-		logger.fatal("cursor changed")
+	def pref_gridlines(self, option):
+		if option == LINES_BOTH:
+			return gtk.TREE_VIEW_GRID_LINES_BOTH
+		elif option == LINES_NONE:
+			return gtk.TREE_VIEW_GRID_LINES_NONE
+		elif option == LINES_HORIZONTAL:
+			return gtk.TREE_VIEW_GRID_LINES_HORIZONTAL
+		elif option == LINES_VERTICAL:
+			return gtk.TREE_VIEW_GRID_LINES_VERTICAL
 
 	def on_cell_editing_canceled(self, renderer):
-		logger.fatal(renderer)
-		logger.fatal("cursor canceled")
+		''' Trigger after a cell is edited but not change is skipped'''
+		pass
 
 	def on_move_cursor(self, view, step_size, count, extend_selection):
-		''' 'If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
+		''' If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
 		# TODO
 		logger.fatal("move cursor")
 
@@ -751,9 +752,8 @@ class TableViewWidget(CustomObjectWidget):
 				self.obj.emit('link-clicked', {'href': linkvalue})
 			return
 
-
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-			self._editing = True
+			self._cell_editing = True
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			linkitem_is_activated = (linkvalue is not None)
@@ -786,9 +786,6 @@ class TableViewWidget(CustomObjectWidget):
 					if handler == self.on_open_link:
 						item.set_sensitive(linkitem_is_activated)
 					menu.append(item)
-
-
-
 
 			menu.show_all()
 			menu.popup(None, None, None, event.button, event.time)
@@ -868,7 +865,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		''' Trigger after cell-editing, to transform displayed table cell into right format '''
-		self._editing = False
+		self._cell_editing = False
 		logger.fatal("cell changed")
 		markup = CellFormatReplacer.input_to_cell(text, True)
 		liststore[path][colid] = markup
@@ -876,13 +873,13 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
-		self._editing = True
+		self._cell_editing = True
 		markup = liststore[path][colid]
 		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
 
 	def start_timer(self):
-		return self.timer
+		return self._timer
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
@@ -901,10 +898,6 @@ class TableViewWidget(CustomObjectWidget):
 			data2 = int(data2)
 		self.obj.set_modified(True)
 		return cmp(data1, data2)
-
-
-
-
 
 	def selection_info(self):
 		''' Info-Popup for selecting a cell before this action can be done '''
@@ -1153,37 +1146,3 @@ class EditTableDialog(Dialog):
 								_("Please select a row, before you push the button."))
 		md.run()
 		md.destroy()
-
-import thread
-import threading
-
-class Operation(threading._Timer):
-    def __init__(self, *args, **kwargs):
-        threading._Timer.__init__(self, *args, **kwargs)
-        self.setDaemon(True)
-
-    def run(self):
-		self.finished.clear()
-		self.finished.wait(self.interval)
-		if not self.finished.isSet():
-			self.function(*self.args, **self.kwargs)
-		else:
-			return
-		self.finished.set()
-
-class Manager(object):
-
-    ops = []
-
-    def add_operation(self, operation, interval, args=[], kwargs={}):
-        op = Operation(interval, operation, args, kwargs)
-        self.ops.append(op)
-        thread.start_new_thread(op.run, ())
-
-    def stop(self):
-        for op in self.ops:
-            op.cancel()
-        self._event.set()
-
-
-#if __name__ == '__main__':
