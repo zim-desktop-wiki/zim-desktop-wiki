@@ -1531,7 +1531,7 @@ class TableParser():
 		Calculates the characters on each column and return list of widths
 		:param lines: 3-dim multiline rows
 		:return: the number of characters of the longest cell-value by column
-		'''	
+		'''
 		lines = reduce(lambda x, y: x+y, lines)
 		widths = [max(map(len, line)) for line in zip(*lines)]
 		return widths
@@ -1628,7 +1628,3 @@ class TableParser():
 				(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
 			cells.append(lspace * y + val + rspace * y)
 		return x + x.join(cells) + x
-
-if __name__ == '__main__':
-	a=(("abc", "defg"), ("dasistganzlang", "hier bin ich"), ("k","d"))
-	print [ max(map(len ,d))  for d in zip(*a)]
