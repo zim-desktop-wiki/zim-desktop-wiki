@@ -28,9 +28,8 @@ from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String
 from zim.main import get_zim_application
-from zim.gui.widgets import Dialog, ScrolledWindow, IconButton
+from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
 from zim.gui.objectmanager import CustomObjectWidget
-
 
 OBJECT_TYPE = 'table'
 
@@ -240,8 +239,8 @@ class MainWindowExtension(WindowExtension):
 	@staticmethod
 	def get_geometry():
 		'''Returns tuple of geometry data from wiki textview window. Useful for setting width of object'''
-		geometry = MainWindowExtension.window.pageview.view.get_window(gtk.TEXT_WINDOW_TEXT).get_geometry()
-		assert(geometry is not None)
+		pageview = MainWindowExtension.window.pageview.view
+		geometry = pageview.get_geometry() if hasattr(pageview, 'get_geometry') else None
 		return geometry
 
 	@action(_('Insert Table'), stock='zim-insert-table', readonly=False)  # T: menu item
@@ -337,7 +336,6 @@ class MainWindowExtension(WindowExtension):
 class TableViewObject(CustomObjectClass):
 	'''data presenter of an inserted table within a page'''
 	OBJECT_ATTR = {
-		'text': String('abc'),
 		'type': String('table'),
 		'aligns': String(''),  # i.e. String(left,right,center)
 		'wraps': String('')	  # i.e. String(0,1,0)
@@ -675,7 +673,7 @@ class TableViewWidget(CustomObjectWidget):
 		col_widget.pack_start(col_label)
 		#col_align.add(col_label)
 
-		'''col_entry = gtk.Entry()
+		'''col_entry = InputEntry()
 		col_entry.set_name('treeview-header-entry')
 		col_entry.show()
 		col_widget.pack_start(col_entry)'''
@@ -983,7 +981,7 @@ class EditTableDialog(Dialog):
 		# 2. Column - Wrap Line
 		cell = gtk.CellRendererToggle()
 		cell.connect('toggled', self.on_wrap_toggled, liststore, self.Col.wrapped)
-		column = gtk.TreeViewColumn(_('Wrap\nLine'), cell)
+		column = gtk.TreeViewColumn(_('Auto\nWrap'), cell)
 		treeview.append_column(column)
 		column.add_attribute(cell, 'active', self.Col.wrapped)
 

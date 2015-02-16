@@ -3,9 +3,12 @@ Wiki-Format: zim 0.4
 
 ====== Table Editor ======
 
-This plugin allows you to integrate a table in zim.
-
+This plugin allows you to integrate a table into the zim editor. 
 **Dependencies:** This plugin has no additional dependencies
+
+===== Options =====
+**Show helper toolbar**: Displays a menu with buttons beneath the table, if it is selected.
+**Grid lines**: Enables or disables lines between table cells
 
 ===== Development - Use it at your own risk and only with testing data =====
 **WARNING 1:** You may __loose your pages__ where you have integrated a table

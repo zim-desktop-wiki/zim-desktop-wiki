@@ -3435,16 +3435,16 @@ class TextFinder(object):
 			if start.equal(iter):
 				if self.flags & FIND_REGEX:
 					string = match.expand(string)
-				# search within external widgets
+
+				offset = start.get_offset()
+
 				if start.get_child_anchor() is not None:
-					self._replace_in_widget(start, self.regex, string)
+					self._replace_in_widget(start, self.regex, string)  # replace within external widgets
 				else:
 					with self.buffer.user_action:
 						self.buffer.select_range(start, end) # ensure editmode logic is used
 						self.buffer.delete(start, end)
 						self.buffer.insert_at_cursor(string)
-
-				offset = start.get_offset()
 				start = self.buffer.get_iter_at_offset(offset)
 				end = self.buffer.get_iter_at_offset(offset+len(string))
 				self.buffer.select_range(start, end)

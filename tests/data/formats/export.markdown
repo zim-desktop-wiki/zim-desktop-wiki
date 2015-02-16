@@ -167,10 +167,11 @@ Some Objects
 
 A table
 -------
-|        H1        |        H2<br>h2 |
-|:----------------:|----------------:|
-|  Column<br> A1   |       Column A2 |
-| a very long cell | **bold column** |
+|        H1        |         H2 h2 | H3 |
+|:----------------:|--------------:|:---|
+|    Column A1     |  Column    A2 | a  |
+| a very long cell | **bold text** | b  |
+
 
 After a table there must be a blank line.
 

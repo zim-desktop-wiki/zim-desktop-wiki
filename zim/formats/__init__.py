@@ -1559,7 +1559,7 @@ class TableParser():
 		:return: tuple of attributes
 		'''
 		aligns = attrib['aligns'].split(',')
-		wraps = attrib['aligns'].split(',')
+		wraps = map(int, attrib['wraps'].split(','))
 
 		return aligns, wraps
 
