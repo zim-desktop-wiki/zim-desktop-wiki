@@ -1,0 +1,59 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
+====== Superior Table Operations ======
+
+===== Insertion in textarea =====
+
+'''
+|Header 1|Header 2|Header 3|
+|---|---|---|
+|Data 1a|Data 2a|Data 3a|
+|Data 1b|Data 2b|Data 2b|
+'''
+
+
+==== Alignment ====
+The header line can only be inserted after the first line:
+''---	normal (left) alignment''
+'':--	left  alignment''
+''--:	right  alignment''
+'':-:	centered alignment''
+
+==== Wrapping ====
+Wrapping is done, if you use two colons instead one:
+''::--	left alignment with wrapping''
+''--::	right alignment with wrapping''
+''::-:	centered alignment with wrapping''
+
+===== Markup in a cell =====
+
+==== Common formats ====
+**bold**, //italic//, __highlight__, ~~strike through and~~ and ''verbatim''
+
+'''
+**bold**, //italic//, __highlight__, ~~strike through~~ and ''verbatim''
+'''
+
+
+==== Special characters ====
+\\n		Newline
+\|		| Character
+
+==== Links in a  cell ====
+'''
+[[http://www.python.org]]
+[[foo@bar.org]]
+[[foo]]		Internal Link
+'''
+
+Note:	Only **one link per cell** can be opened. The first one is taken.
+		You can not use a special link text. The link text is the url, the mail-address or the Title of the linked page.
+A link can be accessed with:
+* ''RIGHT MOUSE-BUTTON-CLICK'' on cell with the link  and selection of the menu item //Open cell in content link//
+* ''CTRL + LEFT MOUSE-BUTTON-CLICK'' on a cell
+
+See also:	[[:Help:Links|Syntax for Links]]
+
+===== Exporting: =====
+Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex have been also adjusted for the table plugin.

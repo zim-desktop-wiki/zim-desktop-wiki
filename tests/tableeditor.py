@@ -15,7 +15,6 @@ from zim.plugins.tableeditor import *
 class TestMainWindowExtension(tests.TestCase):
 
 	def runTest(self):
-		logger.fatal("HI")
 		window = tests.MockObject()
 		window.pageview = setUpPageView()
 		window.ui = tests.MockObject()
@@ -32,29 +31,54 @@ class TestMainWindowExtension(tests.TestCase):
 		tree = window.pageview.get_parsetree()
 		#~ print tree.tostring()
 		obj = tree.find('table')
-
+		
 		self.assertTrue(obj.attrib['aligns'] == 'left')
 		self.assertTrue(obj.attrib['wraps'] == '0')
+
+		# Parses tree to a table object
+		tabledata = tree.tostring().replace("<?xml version='1.0' encoding='utf-8'?>", '')\
+			.replace('<zim-tree>', '').replace('</zim-tree>', '')\
+			.replace('<td> </td>', '<td>text</td>')
+
+		table = plugin.create_table({'type': 'table'}, ElementTree.fromstring(tabledata))
+
+		self.assertTrue(isinstance(table, TableViewObject))
 
 	def checkInsertTableDialog(self, dialog):
 		self.assertIsInstance(dialog, EditTableDialog)
 		dialog.assert_response_ok()
 
+class TestEditTableExtension(tests.TestCase):
+	def checkUpdateTableDialog(self, dialog):
+		self.assertIsInstance(dialog, EditTableDialog)
+		dialog.assert_response_ok()
 
-class TestTableObject(tests.TestCase):
+	def testChangeTable(self):
+		window = tests.MockObject()
+		window.pageview = setUpPageView()
+		window.ui = tests.MockObject()
+		window.ui.uimanager = tests.MockObject()
+		window.ui.uistate = ConfigDict()
+		window.ui.mainwindow = window # XXX
+		plugin = TableEditorPlugin()
+		extension = MainWindowExtension(plugin, window)
+		obj = plugin.create_table({'aligns': 'normal,normal', 'wraps': '0,0'}, (('h1', 'h2'),('t1', 't2')))
+		obj.get_widget()
 
-	def testDumpHtml(self):
-		xml = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree>
-<table aligns="right,center" wraps="0,1"><thead><th>Column 1</th><th>Column 2</th></thead>
-<trow><td>text 1</td><td>text 2</td></trow></table>
-</zim-tree>
-'''
-		tree = ParseTree().fromstring(xml)
-		dumper = HtmlDumper(StubLinker())
-		html = dumper.dump(tree)
-		#~ print '>>', html
-		print '>>', html
-		self.assertIn('  <td align="right">text 1</td>\n', html)
-		self.assertIn('  <td align="center">text 2</td>\n', html)
+		with tests.DialogContext(self.checkUpdateTableDialog):
+			extension.do_edit_object(obj)
+
+		self.assertTrue(isinstance(obj.get_widget().treeview, gtk.TreeView))
+
+class TestTableFunctions(tests.TestCase):
+	def testCellFormater(self):
+		self.assertEqual(CellFormatReplacer.input_to_cell('**hello**', with_pango=True), '<b>hello</b>')
+		self.assertEqual(CellFormatReplacer.cell_to_input('<span background="yellow">highlight</span>', with_pango=True),
+						 '__highlight__')
+		self.assertEqual(CellFormatReplacer.zim_to_cell('<link href="./alink">hello</link>'),
+						 '<span foreground="blue">./alink</span>')
+		self.assertEqual(CellFormatReplacer.cell_to_zim('<tt>code-block</tt>'), '<code>code-block</code>')
+
+class TestColumnSorting(tests.TestCase):
+	def testSorting(self):
+		pass

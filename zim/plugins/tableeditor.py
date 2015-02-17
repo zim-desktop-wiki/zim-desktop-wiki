@@ -45,6 +45,7 @@ SYNTAX_WIKI_PANGO2 = [
 	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
 	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
 	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
+	(r'<strike>\1</strike>', r'<s>\1</s>', r'~~\1~~'),
 	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
 ]
 
@@ -121,7 +122,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		:param text: XML - formated as a zim-tree table-object OR tuple of [header], [row1], [row2]
 		:return: a TableViewObject
 		'''
-		if ElementTree.iselement(text) and text.get('type') == 'table':
+		if ElementTree.iselement(text) and attrib.get('type') == 'table':
 			(header, rows) = self._tabledom_to_list(text)
 		else:
 			# parameters in case of the Table-Insert-Dialog
@@ -140,13 +141,13 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		:return: tuple of header-list and list of row lists -  ([h1,h2],[[r11,r12],[r21,r22])
 		'''
 		header = map(lambda head: head.text.decode('utf-8'), tabledata.findall('thead/th'))
-		header = map(CellFormatReplacer.zimtree_to_cell, header)
+		header = map(CellFormatReplacer.zim_to_cell, header)
 
 		rows = []
 		for trow in tabledata.findall('trow'):
 			row = trow.findall('td')
 			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
-			row = map(CellFormatReplacer.zimtree_to_cell, row)
+			row = map(CellFormatReplacer.zim_to_cell, row)
 			rows.append(row)
 		return header, rows
 
@@ -183,13 +184,13 @@ class CellFormatReplacer:
 		return text
 
 	@staticmethod
-	def zimtree_to_cell(text):
+	def zim_to_cell(text):
 		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
 			text = pattern[0].sub(replace[1], text)
 		return text
 
 	@staticmethod
-	def cell_to_zimtree(text):
+	def cell_to_zim(text):
 		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
 			text = pattern[1].sub(replace[0], text)
 		return text
@@ -243,7 +244,7 @@ class MainWindowExtension(WindowExtension):
 		geometry = pageview.get_geometry() if hasattr(pageview, 'get_geometry') else None
 		return geometry
 
-	@action(_('Insert Table'), stock='zim-insert-table', readonly=False)  # T: menu item
+	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
 		col_model = EditTableDialog(self.window, self.plugin, self.window.pageview).run()
@@ -492,7 +493,7 @@ class TableViewWidget(CustomObjectWidget):
 		self.treeview.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
 		self.treeview.set_receives_default(True)
 		self.treeview.set_size_request(-1, -1)
-		self.treeview.set_border_width(5)
+		self.treeview.set_border_width(2)
 
 		# disable interactive column search
 		self.treeview.set_enable_search(False)
@@ -863,9 +864,6 @@ class TableViewWidget(CustomObjectWidget):
 		markup = liststore[path][colid]
 		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
-
-	def start_timer(self):
-		return self._timer
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
