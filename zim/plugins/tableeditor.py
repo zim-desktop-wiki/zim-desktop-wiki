@@ -50,10 +50,10 @@ SYNTAX_WIKI_PANGO2 = [
 ]
 
 # Possible alignments in edit-table-dialog
-COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],
-					  'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],
-					  'right': ['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')],
-					  'normal': ['normal', None, _('Unspecified')],}
+COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],  # T: alignment option
+					  'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],  # T: alignment option
+					  'right': ['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')],  # T: alignment option
+					  'normal': ['normal', None, _('Unspecified')],}  # T: alignment option
 
 
 def reg_replace(string):
@@ -104,10 +104,11 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('show_helper_toolbar', 'bool', _('Show helper toolbar'), True),
+		('show_helper_toolbar', 'bool', _('Show helper toolbar'), True),   # T: preference description
 
 		# option for displaying grid-lines within the table
 		('grid_lines', 'choice', _('Grid lines'), LINES_BOTH, (LINES_BOTH, LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL)),
+		# T: preference description
 	)
 
 	def __init__(self, config=None):
@@ -244,7 +245,7 @@ class MainWindowExtension(WindowExtension):
 		geometry = pageview.get_geometry() if hasattr(pageview, 'get_geometry') else None
 		return geometry
 
-	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
+	@action(_('Table'), stock='zim-insert-table', readonly=False) # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
 		col_model = EditTableDialog(self.window, self.plugin, self.window.pageview).run()
@@ -538,16 +539,16 @@ class TableViewWidget(CustomObjectWidget):
 
 		tooltips = gtk.Tooltips()
 		for pos, stock, handler, data, tooltip in (
-			(0, gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),
-			(1, gtk.STOCK_DELETE, self.on_delete_row, None, _('Remove row')),
-			(2, gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),
+			(0, gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: tooltip on mouse hover
+			(1, gtk.STOCK_DELETE, self.on_delete_row, None, _('Remove row')),  # T: tooltip on mouse hover
+			(2, gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),  # T: tooltip on mouse hover
 			(3, None, None, None, None),
-			(4, gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),
-			(5, gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),
+			(4, gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),  # T: tooltip on mouse hover
+			(5, gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),  # T: tooltip on mouse hover
 			(6, None, None, None, None),
-			(7, gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns')),
+			(7, gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns')),  # T: tooltip on mouse hover
 			(8, None, None, None, None),
-			(9, gtk.STOCK_HELP, self.on_open_help, None, _('Open help')),
+			(9, gtk.STOCK_HELP, self.on_open_help, None, _('Open help')),  # T: tooltip on mouse hover
 		):
 			if stock is None:
 				toolbar.insert(gtk.SeparatorToolItem(), pos)
@@ -749,16 +750,16 @@ class TableViewWidget(CustomObjectWidget):
 			menu = gtk.Menu()
 
 			for stock, handler, data, tooltip in (
-				(gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),
-				(gtk.STOCK_DELETE, self.on_delete_row, None, _('Delete row')),
-				(gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),
+				(gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: menu item
+				(gtk.STOCK_DELETE, self.on_delete_row, None, _('Delete row')),  # T: menu item
+				(gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),  # T: menu item
+				(None, None, None, None),  # T: menu item
+				(gtk.STOCK_JUMP_TO, self.on_open_link, linkvalue, _('Open cell content link')),  # T: menu item
 				(None, None, None, None),
-				(gtk.STOCK_JUMP_TO, self.on_open_link, linkvalue, _('Open cell content link')),
+				(gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),  # T: menu item
+				(gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),  # T: menu item
 				(None, None, None, None),
-				(gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),
-				(gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),
-				(None, None, None, None),
-				(gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns'))
+				(gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns'))  # T: menu item
 			):
 
 				if stock is None:
@@ -817,6 +818,7 @@ class TableViewWidget(CustomObjectWidget):
 		else:
 			md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
 									_("The table must consist of at least on row!\n No deletion done."))
+									# T: Popup dialog
 			md.run()
 			md.destroy()
 
@@ -887,6 +889,7 @@ class TableViewWidget(CustomObjectWidget):
 		''' Info-Popup for selecting a cell before this action can be done '''
 		md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
 								_("Please select a row, before you push the button."))
+		# T:
 		md.run()
 		md.destroy()
 
@@ -914,14 +917,14 @@ class EditTableDialog(Dialog):
 		:param tablemodel: list of row-data
 		:return:
 		'''
-		title = _('Insert Table') if tablemodel is None else _('Edit Table')
+		title = _('Insert Table') if tablemodel is None else _('Edit Table')  # T: Dialog title
 		Dialog.__init__(self, ui, title)
 
 		# Prepare treeview in which all columns of the table are listed
 		self.default_column_item = [-1, "", 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
 
 		# Set layout of Window
-		self.add_help_text(_('Managing table columns'))
+		self.add_help_text(_('Managing table columns'))  # T: Description of "Table-Insert" Dialog
 		self.set_default_size(380, 400)
 
 		liststore = self._prepare_liststore(tablemodel)
@@ -945,7 +948,7 @@ class EditTableDialog(Dialog):
 		:return:liststore
 		'''
 		first_column_item = list(self.default_column_item)
-		first_column_item[1] = _("Column 1")
+		first_column_item[1] = _("Column 1")   # T: Initial data for column title in table
 		liststore = gtk.ListStore(int, str, int, str, str, str)
 
 		# each table column is displayed in a new row
@@ -979,7 +982,7 @@ class EditTableDialog(Dialog):
 		# 2. Column - Wrap Line
 		cell = gtk.CellRendererToggle()
 		cell.connect('toggled', self.on_wrap_toggled, liststore, self.Col.wrapped)
-		column = gtk.TreeViewColumn(_('Auto\nWrap'), cell)
+		column = gtk.TreeViewColumn(_('Auto\nWrap'), cell)  # T: table header
 		treeview.append_column(column)
 		column.add_attribute(cell, 'active', self.Col.wrapped)
 
@@ -989,7 +992,7 @@ class EditTableDialog(Dialog):
 		store.append(COLUMNS_ALIGNMENTS['center'])
 		store.append(COLUMNS_ALIGNMENTS['right'])
 
-		column = gtk.TreeViewColumn(_('Align'))
+		column = gtk.TreeViewColumn(_('Align'))  # T: table header
 		cellicon = gtk.CellRendererPixbuf()
 		column.pack_start(cellicon)
 		column.add_attribute(cellicon, 'stock-id', self.Col.alignicon)
@@ -1017,10 +1020,10 @@ class EditTableDialog(Dialog):
 		vbox = gtk.VBox(spacing=5)
 		tooltips = gtk.Tooltips()
 		for stock, handler, data, tooltip in (
-			(gtk.STOCK_ADD, self.on_add_new_column, None, _('Add column')),
-			(gtk.STOCK_DELETE, self.on_delete_column, None, _('Remove column')),
-			(gtk.STOCK_GO_UP, self.on_move_column, -1, _('Move column ahead')),
-			(gtk.STOCK_GO_DOWN, self.on_move_column, 1, _('Move column backward')),
+			(gtk.STOCK_ADD, self.on_add_new_column, None, _('Add column')),  # T: hoover tooltip
+			(gtk.STOCK_DELETE, self.on_delete_column, None, _('Remove column')),  # T: hoover tooltip
+			(gtk.STOCK_GO_UP, self.on_move_column, -1, _('Move column ahead')),  # T: hoover tooltip
+			(gtk.STOCK_GO_DOWN, self.on_move_column, 1, _('Move column backward')),  # T: hoover tooltip
 		):
 			button = IconButton(stock)
 			if data:
@@ -1100,7 +1103,7 @@ class EditTableDialog(Dialog):
 				model.remove(treeiter)
 			else:
 				md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-										_("A table needs to have at least one column."))
+										_("A table needs to have at least one column."))  # T: popup dialog
 				md.run()
 				md.destroy()
 		else:
@@ -1126,6 +1129,6 @@ class EditTableDialog(Dialog):
 	def selection_info(self):
 		''' Info-Popup for selecting a cell before this action can be done '''
 		md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-								_("Please select a row, before you push the button."))
+								_("Please select a row, before you push the button.")) # T: Popup dialog
 		md.run()
 		md.destroy()
