@@ -241,11 +241,11 @@ class MainWindowExtension(WindowExtension):
 	@staticmethod
 	def get_geometry():
 		'''Returns tuple of geometry data from wiki textview window. Useful for setting width of object'''
-		pageview = MainWindowExtension.window.pageview.view
-		geometry = pageview.get_geometry() if hasattr(pageview, 'get_geometry') else None
+		win = MainWindowExtension.window.pageview.view.get_window(gtk.TEXT_WINDOW_TEXT)
+		geometry = win.get_geometry() if hasattr(win, 'get_geometry') else None
 		return geometry
 
-	@action(_('Table'), stock='zim-insert-table', readonly=False) # T: menu item
+	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):
 		'''Run the InsertTableDialog'''
 		col_model = EditTableDialog(self.window, self.plugin, self.window.pageview).run()
@@ -319,6 +319,8 @@ class MainWindowExtension(WindowExtension):
 			obj.treeview.append_column(col)
 			title_label = TableViewWidget.create_headerlabel(headers[i])
 			col.set_widget(title_label)
+
+		TableViewWidget.wrap_columns(obj.treeview, MainWindowExtension.get_geometry()[2], wraps)
 
 		obj.set_aligns(aligns)
 		obj.set_wraps(wraps)
@@ -446,8 +448,6 @@ class TableViewObject(CustomObjectClass):
 
 class TableViewWidget(CustomObjectWidget):
 
-	textarea_width = None
-
 	def __init__(self, obj, headers, rows, attrs):
 		'''
 		This is a group of GTK Gui elements which are directly displayed within the wiki textarea
@@ -458,8 +458,7 @@ class TableViewWidget(CustomObjectWidget):
 		:param attrs: table settings, like alignment and wrapping
 		:return:
 		'''
-		if MainWindowExtension.get_geometry() is not None:
-			self.textarea_width = MainWindowExtension.get_geometry()[2]
+		self.textarea_width = 0
 
 		# used in pageview
 		self._resize = True  # attribute, that triggers resizing
@@ -468,7 +467,8 @@ class TableViewWidget(CustomObjectWidget):
 		# used here
 		self.obj = obj
 		self._timer = None  # NONE or number of current gobject.timer, which is running
-		self._cell_editing = False  # a cell is currently edited, toolbar should not be hidden
+		self._keep_toolbar_open = False  # a cell is currently edited, toolbar should not be hidden
+		self._cellinput_canceled = None  # cell changes should be skipped
 		self._toolbar_enabled = True  # sets if toolbar should be shown beneath a selected table
 
 		gtk.EventBox.__init__(self)
@@ -510,7 +510,7 @@ class TableViewWidget(CustomObjectWidget):
 	def on_focus_in(self, treeview, event, toolbar):
 		'''After a table is selected, this function will be triggered'''
 
-		self._cell_editing = False
+		self._keep_toolbar_open = False
 		if self._timer:
 			gobject.source_remove(self._timer)
 		if self._toolbar_enabled:
@@ -519,7 +519,7 @@ class TableViewWidget(CustomObjectWidget):
 	def on_focus_out(self, treeview, event, toolbar):
 		'''After a table is deselected, this function will be triggered'''
 		def receive_alarm():
-			if self._cell_editing:
+			if self._keep_toolbar_open:
 				self._timer = None
 			if self._timer:
 				self._timer = None
@@ -573,28 +573,38 @@ class TableViewWidget(CustomObjectWidget):
 	def resize_to_textview(self, view):
 		''' Overriding - on resizing the table should not expanded to 100% width'''
 		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
-		if not win:
+		if not win or win.get_geometry()[2] == self.textarea_width:
 			return
-		old_width = self.textarea_width
+
 		self.textarea_width = win.get_geometry()[2]
+		self.wrap_columns(self.treeview, self.textarea_width, self.obj.get_wraps())
 
-		if old_width == self.textarea_width:
+	def wrap_columns(self, treeview, textarea_width, wraps):
+		TableViewWidget.wrap_columns(treeview, textarea_width, wraps)
+
+	@staticmethod
+	def wrap_columns(treeview, textarea_width, wraps):
+		''' Wrap all columns, which should be wrapped '''
+		nrcols = len(treeview.get_columns())
+
+		if wraps == [1] * nrcols: # in case all columns are wrapped
+			max_width = textarea_width - 38 - nrcols * 10 if textarea_width else -1
+		else:
+			max_width = textarea_width - 40
+		if (not gtk.gtk_version >= (2, 8)) or max_width <= 0 or not textarea_width:
 			return
 
-		for i, wrap in enumerate(self.obj.get_wraps()):
-			if wrap == 1 and gtk.gtk_version >= (2, 8) and self.textarea_width:
-				column = self.treeview.get_column(i)
-				cell = column.get_cell_renderers()[0]
-				cell.set_property('wrap-width', self.textarea_width/len(self.obj.get_wraps()))
+		for column, wrap in zip(treeview.get_columns(), wraps):
+			cell = column.get_cell_renderers()[0]
+			cell.set_property('yalign', 0.0)  # no vertical alignment, text starts on the top
+			if wrap == 1:
+				cell.set_property('wrap-width', max_width//nrcols)
 				cell.set_property('wrap-mode', pango.WRAP_WORD)
 
-				column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE) # allow column shrinks
-				column.set_max_width(0)	# shrink column
-				column.set_max_width(-1) # reset value
-				column.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY) # reset value
-
-		# override setting table to a special size
-		self.set_size_request(-1, -1)
+			column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
+			column.set_max_width(0)	 # shrink column
+			column.set_max_width(-1)  # reset value
+			column.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)  # reset value
 
 	def _column_alignment(self, aligntext):
 		''' The column alignment must be converted from numeric to keywords '''
@@ -640,12 +650,6 @@ class TableViewWidget(CustomObjectWidget):
 			tview_column.set_sort_column_id(i)
 			# set sort function
 			liststore.set_sort_func(i, self.sort_by_number_or_string, i)
-
-			# if wrapping is enabled, the column can only be as wide as 1/nrcols and is then fragmented into two lines
-			if attrs['wraps'][i] == 1 and gtk.gtk_version >= (2, 8) and self.textarea_width is not None:
-				cell.set_property('wrap-width', self.textarea_width/nrcols)
-				cell.set_property('wrap-mode', pango.WRAP_WORD)
-
 			# set alignment - left center right
 			align = self._column_alignment(attrs['aligns'][i])
 			if align:
@@ -704,10 +708,6 @@ class TableViewWidget(CustomObjectWidget):
 		elif option == LINES_VERTICAL:
 			return gtk.TREE_VIEW_GRID_LINES_VERTICAL
 
-	def on_cell_editing_canceled(self, renderer):
-		''' Trigger after a cell is edited but not change is skipped'''
-		pass
-
 	def on_move_cursor(self, view, step_size, count):
 		''' If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
 		return None  # let parent handle this signal
@@ -742,7 +742,8 @@ class TableViewWidget(CustomObjectWidget):
 			return
 
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-			self._cell_editing = True
+			# Right button opens context menu
+			self._keep_toolbar_open = True
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			linkitem_is_activated = (linkvalue is not None)
@@ -855,17 +856,30 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		''' Trigger after cell-editing, to transform displayed table cell into right format '''
-		self._cell_editing = False
+		self._keep_toolbar_open = False
 		markup = CellFormatReplacer.input_to_cell(text, True)
 		liststore[path][colid] = markup
-
+		self._cellinput_canceled = False
 
 	def on_cell_editing_started(self, cellrenderer, editable, path, liststore, colid):
 		''' Trigger before cell-editing, to transform text-field data into right format '''
-		self._cell_editing = True
+		self._keep_toolbar_open = True
+
+		editable.connect('focus-out-event', self.on_cell_focus_out, cellrenderer, path, liststore, colid)
 		markup = liststore[path][colid]
 		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
+		logger.fatal(editable)
+		self._cellinput_canceled = False
+
+	def on_cell_focus_out(self, editable, event, cellrenderer, path, liststore, colid):
+		if not self._cellinput_canceled:
+			self.on_cell_changed(cellrenderer, path, editable.get_text(), liststore, colid)
+
+	def on_cell_editing_canceled(self, renderer):
+		''' Trigger after a cell is edited but any change is skipped '''
+		self._cellinput_canceled = True
+
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
@@ -921,25 +935,30 @@ class EditTableDialog(Dialog):
 		Dialog.__init__(self, ui, title)
 
 		# Prepare treeview in which all columns of the table are listed
+		self.creation_mode = tablemodel is None
 		self.default_column_item = [-1, "", 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
+		# currently edited cell - tuple (editable, path, colid) save it on exit
+		self.currently_edited = None
 
 		# Set layout of Window
 		self.add_help_text(_('Managing table columns'))  # T: Description of "Table-Insert" Dialog
 		self.set_default_size(380, 400)
 
 		liststore = self._prepare_liststore(tablemodel)
-		treeview = self._prepare_treeview_with_headcolumn_list(liststore)
+		self.treeview = self._prepare_treeview_with_headcolumn_list(liststore)
 		hbox = gtk.HBox(spacing=5)
 		hbox.set_size_request(300, 300)
 		self.vbox.pack_start(hbox, False)
-		header_scrolled_area = ScrolledWindow(treeview)
+		header_scrolled_area = ScrolledWindow(self.treeview)
 		header_scrolled_area.set_size_request(200, -1)
 		hbox.add(header_scrolled_area)
 		hbox.add(self._button_box())
 
-		# currently edited cell - tuple (editable, path, colid) save it on exit
-		self.currently_edited = None
-		self.treeview = treeview
+		self.show_all()
+		if self.creation_mode:  # preselect first entry
+			path = self.treeview.get_model().get_path(self.treeview.get_model().get_iter_first())
+			self.treeview.set_cursor_on_cell(path, self.treeview.get_column(0), start_editing=True)
+
 
 	def _prepare_liststore(self, tablemodel):
 		'''
@@ -1089,9 +1108,11 @@ class EditTableDialog(Dialog):
 		''' Trigger for adding a new column into the table / it is a new row in the treeview '''
 		self.autosave_title_cell()
 		(model, treeiter) = self.treeview.get_selection().get_selected()
-		model.insert_after(treeiter, self.default_column_item)
-		newiter = treeiter if treeiter else model.get_iter_first()
-		self.treeview.get_selection().select_iter(newiter)
+		if not treeiter:  # preselect first entry
+			path = model.iter_n_children(None)-1
+			treeiter = model.get_iter(path)
+		newiter = model.insert_after(treeiter, self.default_column_item)
+		self.treeview.set_cursor_on_cell(model.get_path(newiter), self.treeview.get_column(0), start_editing=True)
 
 	def on_delete_column(self, btn):
 		''' Trigger for deleting a column out of the table / it is a deleted row in the treeview '''

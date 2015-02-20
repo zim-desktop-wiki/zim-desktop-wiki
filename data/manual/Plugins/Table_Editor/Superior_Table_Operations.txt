@@ -27,6 +27,9 @@ Wrapping is done, if you use two colons instead one:
 ''::-:	centered alignment with wrapping''
 
 ===== Markup in a cell =====
+The main toolbar buttons for formatting are disabled. You have to know the special syntax and insert it directly within the textbox.
+While editing:		{{./cell_editing_with_text_formatting.png}}
+After formatting: 	{{./cell_after_text_formatting.png}}
 
 ==== Common formats ====
 **bold**, //italic//, __highlight__, ~~strike through and~~ and ''verbatim''
@@ -57,3 +60,10 @@ See also:	[[:Help:Links|Syntax for Links]]
 
 ===== Exporting: =====
 Exporting filters for Plain, HTML, Markdown, reStructuredText, Latex have been also adjusted for the table plugin.
+
+===== Limits of widget's integration =====
+* search / replacing:
+	* no highlighting
+	* only first location is found and after that the next one within the main text
+* Undo / Redo not supported at all
+* There can not be any element right or left to the table. The table must stand alone. 

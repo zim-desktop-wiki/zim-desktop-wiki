@@ -1,12 +1,10 @@
 [Notebook]
-version=0.4
 name=Zim Manual
-interwiki=
-home=Start
+home=:Start
 icon=
 document_root=
-shared=True
+slow_fs=False
+version=0.4
 endofline=unix
-disable_trash=False
-profile=
+profile=None
 

@@ -164,7 +164,7 @@ the Achaeans.
 ===== A table =====
 |        H1        |         H2 h2 | H3 |
 |::---------------:|--------------:|::--|
-|    Column A1     |  Column    A2 | a  |
+|    Column A1     |     Column A2 | a  |
 | a very long cell | **bold text** | b  |
 
 
