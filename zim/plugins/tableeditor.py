@@ -320,7 +320,8 @@ class MainWindowExtension(WindowExtension):
 			title_label = TableViewWidget.create_headerlabel(headers[i])
 			col.set_widget(title_label)
 
-		TableViewWidget.wrap_columns(obj.treeview, MainWindowExtension.get_geometry()[2], wraps)
+		geometry = MainWindowExtension.get_geometry()[2] if  MainWindowExtension.get_geometry() else 600
+		TableViewWidget.wrap_columns(obj.treeview, geometry, wraps)
 
 		obj.set_aligns(aligns)
 		obj.set_wraps(wraps)

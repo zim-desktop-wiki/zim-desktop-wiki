@@ -220,6 +220,4 @@ class Dumper(DumperClass):
 
 	def dump_td(self, tag, attrib, strings):
 		strings = [s.replace('|', '∣') for s in strings]
-		if len(strings) > 1:
-			return [''.join(strings)]
 		return strings

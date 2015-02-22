@@ -1160,13 +1160,15 @@ class DumperClass(Visitor):
 		if not tag or tag != self.context[-1].tag:
 			raise AssertionError, 'Unexpected tag closed: %s' % tag
 		_, attrib, strings = self.context.pop()
+
+		if tag in (TABLEDATA, HEADDATA) and not isinstance(strings, basestring):
+			strings = [''.join(strings)] # child elements of td and th are concated to string
+
 		if tag in self.TAGS:
 			assert strings, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
 			strings.insert(0, start)
 			strings.append(end)
-		elif tag in (TABLEDATA, HEADDATA):
-			strings = [''.join(strings)] # child elements of td and th are concated to string
 		elif tag in FORMATTEDTEXT:
 			pass
 		else:

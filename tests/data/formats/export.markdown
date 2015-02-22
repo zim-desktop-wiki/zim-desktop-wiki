@@ -167,14 +167,11 @@ Some Objects
 
 A table
 -------
+
 |        H1        |         H2 h2 | H3 |
 |:----------------:|--------------:|:---|
 |    Column A1     |     Column A2 | a  |
 | a very long cell | **bold text** | b  |
-
-
-After a table there must be a blank line.
-
 
 ====
 This is not a header
