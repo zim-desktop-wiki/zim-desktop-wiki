@@ -1508,16 +1508,6 @@ class TableParser():
 	'''Common functions for converting a table from its' xml structure to another format'''
 
 	@staticmethod
-	def map2dim(fun, rows):
-		''' Like map(fun, list), only for two-dimensional lists	'''
-		return [map(fun, row) for row in rows]
-
-	@staticmethod
-	def map3dim(fun, multiline_rows):
-		''' Like map(fun, list), only for three-dimensional lists	'''
-		return [[map(fun, row) for row in lines] for lines in multiline_rows]
-
-	@staticmethod
 	def width2dim(lines):
 		'''
 		Calculates the characters on each column and return list of widths
@@ -1547,7 +1537,7 @@ class TableParser():
 		:param strings: format like (('c11a \n c11b', 'c12a \n c12b'), ('c21', 'c22a \n 22b'))
 		:return: format like (((c11a, c12a), (c11b, c12b)), ((c21, c22a), ('', c22b)))
 		'''
-		multi_rows = TableParser.map2dim(lambda cell: cell.split("\n"), rows)
+		multi_rows = [map(lambda cell: cell.split("\n"), row) for row in rows]
 
 		# grouping by line, not by row
 		strings = [map(lambda *line: map(lambda val: val if val is not None else '', line), *row) for row in multi_rows]
