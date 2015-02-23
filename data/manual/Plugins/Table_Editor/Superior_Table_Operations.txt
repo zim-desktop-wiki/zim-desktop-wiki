@@ -3,29 +3,6 @@ Wiki-Format: zim 0.4
 
 ====== Superior Table Operations ======
 
-===== Insertion in textarea =====
-
-'''
-|Header 1|Header 2|Header 3|
-|---|---|---|
-|Data 1a|Data 2a|Data 3a|
-|Data 1b|Data 2b|Data 2b|
-'''
-
-
-==== Alignment ====
-The header line can only be inserted after the first line:
-''---	normal (left) alignment''
-'':--	left  alignment''
-''--:	right  alignment''
-'':-:	centered alignment''
-
-==== Wrapping ====
-Wrapping is done, if you use two colons instead one:
-''::--	left alignment with wrapping''
-''--::	right alignment with wrapping''
-''::-:	centered alignment with wrapping''
-
 ===== Markup in a cell =====
 The main toolbar buttons for formatting are disabled. You have to know the special syntax and insert it directly within the textbox.
 While editing:		{{./cell_editing_with_text_formatting.png}}
