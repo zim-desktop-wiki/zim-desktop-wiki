@@ -164,9 +164,10 @@ the Achaeans.
 ===== A table =====
 
 {{{table: aligns="center,right,left" wraps="1,0,1"
-|        H1        |         H2 h2 | H3 |
-|    Column A1     |     Column A2 | a  |
-| a very long cell | **bold text** | b  |
+|        H1        |         H2 h2 | H3                     |
+|    Column A1     |     Column A2 | a                      |
+| a very long cell | **bold text** | b                      |
+|    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
 }}}
 
 ====

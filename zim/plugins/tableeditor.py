@@ -42,11 +42,14 @@ SYNTAX_CELL_INPUT = [
 # With this syntax text can be format within a table-cell
 SYNTAX_WIKI_PANGO2 = [
 	(r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
-	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//'),
 	(r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
 	(r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
 	(r'<strike>\1</strike>', r'<s>\1</s>', r'~~\1~~'),
-	(r'<link href="\1">\2</link>', r'<span foreground="blue">\1</span>', r'[[\1]]')
+	# Link url without link text  - Link url has always size = 0
+	(r'<link href="\1">\1</link>', r'<span foreground="blue">\1<span size="0">\1</span></span>', r'[[\1]]'),
+	# Link url with link text  - Link url has always size = 0
+	(r'<link href="\1">\2</link>', r'<span foreground="blue">\2<span size="0">\1</span></span>', r'[[\2|\1]]'),
+	(r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//')
 ]
 
 # Possible alignments in edit-table-dialog
@@ -63,7 +66,7 @@ def reg_replace(string):
 	:return:source pattern
 	'''
 	string = string.replace('*', '\*').replace('[', '\[').replace(']', '\]') \
-		.replace(r'\1', '(.+?)').replace(r'\2', '(.+?)')
+		.replace(r'\1', '(.+?)', 1).replace(r'\2', '(.+?)', 1).replace('|', '\|')
 	return re.compile(string)
 
 # Regex compiled search patterns
@@ -180,7 +183,8 @@ class CellFormatReplacer:
 		for k, v in SYNTAX_CELL_INPUT:
 			text = text.replace(v, k)
 		if with_pango:
-			for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
+			# Links without text are handled as [[link]] and not as [[link|text]], therefore reverse order of replacements
+			for pattern, replace in zip(reversed(SYNTAX_WIKI_PANGO), reversed(SYNTAX_WIKI_PANGO2)):
 				text = pattern[2].sub(replace[1], text)
 		return text
 
@@ -724,7 +728,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def get_linkurl(self, celltext):
 		'''	Checks a cellvalue if it contains a link and returns only the link value '''
-		linkregex = r'<span foreground="blue">(.*?)</span>'
+		linkregex = r'<span foreground="blue">.*?<span.*?>(.*?)</span></span>'
 		matches = re.match(linkregex, celltext)
 		linkvalue = matches.group(1) if matches else None
 		return linkvalue
@@ -870,7 +874,6 @@ class TableViewWidget(CustomObjectWidget):
 		markup = liststore[path][colid]
 		markup = CellFormatReplacer.cell_to_input(markup, True)
 		editable.set_text(markup)
-		logger.fatal(editable)
 		self._cellinput_canceled = False
 
 	def on_cell_focus_out(self, editable, event, cellrenderer, path, liststore, colid):

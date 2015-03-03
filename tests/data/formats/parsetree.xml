@@ -127,7 +127,7 @@ the Achaeans.
 </object>
 <h level="2">A table</h>
 
-<table aligns="center,right,left" wraps="1,0,1"><thead><th>H1</th><th>H2 h2</th><th>H3</th></thead><trow><td>Column A1</td><td>Column A2</td><td>a</td></trow><trow><td>a very long cell</td><td><strong>bold text</strong></td><td>b</td></trow></table>
+<table aligns="center,right,left" wraps="1,0,1"><thead><th>H1</th><th>H2 h2</th><th>H3</th></thead><trow><td>Column A1</td><td>Column A2</td><td>a</td></trow><trow><td>a very long cell</td><td><strong>bold text</strong></td><td>b</td></trow><trow><td>hyperlinks</td><td><link href="wp?wiki">wp?wiki</link></td><td><link href="http://x.org">Xorg</link></td></trow></table>
 <p>====
 This is not a header
 </p>

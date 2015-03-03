@@ -76,7 +76,7 @@ class TestTableFunctions(tests.TestCase):
 		self.assertEqual(CellFormatReplacer.cell_to_input('<span background="yellow">highlight</span>', with_pango=True),
 						 '__highlight__')
 		self.assertEqual(CellFormatReplacer.zim_to_cell('<link href="./alink">hello</link>'),
-						 '<span foreground="blue">./alink</span>')
+						 '<span foreground="blue">hello<span size="0">./alink</span></span>')
 		self.assertEqual(CellFormatReplacer.cell_to_zim('<tt>code-block</tt>'), '<code>code-block</code>')
 
 class TestColumnSorting(tests.TestCase):

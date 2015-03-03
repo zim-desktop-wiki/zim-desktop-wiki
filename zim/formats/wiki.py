@@ -264,7 +264,7 @@ class WikiParser(object):
 
 		builder.start(HEADROW)
 		for celltext in rows[0].split('|')[1:-1]:
-			celltext = celltext.replace('\\n', '\n').strip()
+			celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()
 			if not celltext:
 				celltext = ' '  # celltext must contain at least one character
 			builder.append(HEADDATA, {}, celltext)
@@ -276,7 +276,7 @@ class WikiParser(object):
 			builder.start(TABLEROW)
 			for celltext in bodyrow.split('|')[1:-1]:
 				builder.start(TABLEDATA)
-				celltext = celltext.replace('\\n', '\n').strip()  # cleanup cell
+				celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()  # cleanup cell
 				if not celltext:
 					celltext = ' '  # celltext must contain at least one character
 				self.inline_parser(builder, celltext)
