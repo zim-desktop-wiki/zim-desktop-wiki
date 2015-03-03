@@ -165,6 +165,14 @@ Some Objects
 	brought countless ills upon
 	the Achaeans.
 
+A table
+-------
+
+|        H1        |                        H2 h2 | H3                   |
+|:----------------:|-----------------------------:|:---------------------|
+|    Column A1     |                    Column A2 | a                    |
+| a very long cell |                **bold text** | b                    |
+|    hyperlinks    | [wp?wiki](interwiki:wp?wiki) | [Xorg](http://x.org) |
 
 ====
 This is not a header

@@ -108,4 +108,31 @@ class Dumper(TextDumper):
 		# dump object as verbatim block
 		return self.prefix_lines('\t', strings)
 
+	def dump_table(self, tag, attrib, strings):
+		table = []  # result table
+		rows = strings
 
+		aligns, _wraps = TableParser.get_options(attrib)
+		maxwidths = TableParser.width2dim(rows)
+		headsep = TableParser.headsep(maxwidths, aligns, wraps=None, x='|', y='-')
+		rowline = lambda row: TableParser.rowline(row, maxwidths, aligns)
+
+		# print table
+		table += [rowline(rows[0])]
+		table.append(headsep)
+		table += [rowline(row) for row in rows[1:]]
+		return map(lambda line: line+"\n", table)
+
+	def dump_thead(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_th(self, tag, attrib, strings):
+		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
+		return strings
+
+	def dump_trow(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_td(self, tag, attrib, strings):
+		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
+		return strings

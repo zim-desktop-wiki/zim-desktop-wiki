@@ -27,6 +27,7 @@ The following plugins are standard included with zim:
 * [[+Sequence Diagram Editor|Sequence Diagram Editor]]
 * [[+Source View|Source View]]
 * [[+Spell Checker|Spell Checker]]
+* [[+Table Editor|Table Editor]]
 * [[+Table Of Contents|Table Of Contents]]
 * [[+Tags|Tags]]
 * [[+Task List|Task List]]

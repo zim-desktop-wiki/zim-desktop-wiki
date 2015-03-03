@@ -188,3 +188,36 @@ class Dumper(DumperClass):
 
 	def dump_object_fallback(self, tag, attrib, strings):
 		return strings
+
+	def dump_table(self, tag, attrib, strings):
+		table = []  # result table
+
+		aligns, _wraps = TableParser.get_options(attrib)
+		rows = TableParser.convert_to_multiline_cells(strings)
+		maxwidths = TableParser.width3dim(rows)
+		rowsep = lambda y: TableParser.rowsep(maxwidths, x='+', y=y)
+		rowline = lambda row: TableParser.rowline(row, maxwidths, aligns)
+
+		# print table
+		table.append(rowsep('-'))
+		table += [rowline(line) for line in rows[0]]
+		table.append(rowsep('='))
+		for row in rows[1:]:
+			table += [rowline(line) for line in row]
+			table.append(rowsep('-'))
+
+		return map(lambda line: line+"\n", table)
+
+	def dump_thead(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_th(self, tag, attrib, strings):
+		strings = [s.replace('|', '∣') for s in strings]
+		return strings
+
+	def dump_trow(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_td(self, tag, attrib, strings):
+		strings = [s.replace('|', '∣') for s in strings]
+		return strings
