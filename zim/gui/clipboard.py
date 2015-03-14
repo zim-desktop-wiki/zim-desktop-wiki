@@ -204,7 +204,7 @@ def _link_tree(links, notebook, path):
 			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
 			if type == 'page':
-				href = Path(notebook.cleanup_pathname(link)) # Assume links are always absolute
+				href = Path(Path.makeValidPageName(link)) # Assume links are always absolute
 				link = notebook.relative_link(path, href) or link
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs

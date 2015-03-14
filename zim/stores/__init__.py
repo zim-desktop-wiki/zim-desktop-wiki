@@ -49,10 +49,8 @@ for pages that have just been deleted.
 
 The index will cache page listings in order to speed up the performance,
 so it should not be necessary to do speed optimizations in the store lookups.
-However for efficient caching, store objects should implement the
-L{get_pagelist_indexkey()<StoreClass.get_pagelist_indexkey()>}
-and L{get_page_indexkey()<StoreClass.get_page_indexkey()>}
-methods.
+However for efficient caching, store objects must implement the
+L{get_children_etag()} and L{get_content_etag()} methods.
 '''
 
 from __future__ import with_statement
@@ -150,24 +148,7 @@ class StoreClass():
 	sure parameters in the API are sane, we may assume the requestor
 	already verified for example that the path we get really
 	belongs to this store.
-
-	@note: Do not call store objects directly from outside the Notebook
-	class !
-
-	@ivar notebook: the L{Notebook} this store is part of
-	@ivar namespace: the L{Path} where this store will be
-	'mounted' in the notebook
 	'''
-
-	def __init__(self, notebook, namespace):
-		'''Constructor
-
-		@param notebook: the L{Notebook} this store will be part of
-		@param namespace: the L{Path} where this store will be
-		'mounted' in the notebook
-		'''
-		self.notebook = notebook
-		self.namespace = namespace
 
 	def get_page(self, path):
 		'''Get a L{Page} object
@@ -307,96 +288,46 @@ class StoreClass():
 		'''
 		raise TrashNotSupportedError, 'Not implemented'
 
-	def get_pagelist_indexkey(self, path):
+	def get_children_etag(self, path):
 		'''Get key for checking cached state of a page list
 
 		This method should return a key that can be checked by the index
-		to determine if a list of (sub-)pages should be indexed again.
+		to determine if a list of pages should be indexed again.
 		A typical implementation would be to return the modification time
-		of the directory where the pages are stored. The default in the
-		base class returns None, forcing the index to always re-index
-		the page. This is not very efficient and should be overloaded
-		by the store.
+		of the directory where the pages are stored.
 
 		@param path: a L{Path} object
 		@returns: a string encoding the state of the page list for
-		sub-pages of C{path}
+		sub-pages of C{path} or C{None} if C{path} does not have sub-pages
 
-		@implementation: optional, can be implemented in subclasses
+		@implementation: must be implemented in subclasses
 		'''
-		return None
+		raise NotImplementedError
 
-	def get_page_indexkey(self, path):
+	def get_content_etag(self, path):
 		'''Get key for checking cached state of a page
 
-		Like L{get_pagelist_indexkey()} but used to decide whether page
-		contents should be indexed again or not. Typical implementation
-		would be to check the modification time of the file.
-
-		The index will try to index the page after it was stored, so
-		it gets the new state after L{store_page} was called.
+		This method should return a key that can be checked by the index
+		to determine if the page contents should be indexed again.
+		A typical implementation would be to return the modification time
+		of the file where the page is stored.
 
 		@param path: a L{Path} object
-		@returns: a string encoding the state of the content of C{path}
+		@returns: a string encoding the state of the page content
+		or C{None} if the page has no content
 
-		@implementation: optional, can be implemented in subclasses
+		@implementation: must be implemented in subclasses
 		'''
-		return None
-
-	def store_has_dir(self):
-		'''Convenience method to initalize the storage dir
-
-		Typically used in the constructor of a sub class.
-
-		@returns: C{True} when the store has a C{dir} attribute set
-		or when it was able to create such an attribute based on the
-		namespace and the notebook C{dir} attribute.
-		'''
-		if hasattr(self, 'dir') and not self.dir is None:
-			return isinstance(self.dir, Dir)
-		elif hasattr(self.notebook, 'dir'):
-			path = self.namespace.name.replace(':', '/')
-			if path.strip(':') == '':
-				self.dir = self.notebook.dir
-			else:
-				self.dir = self.notebook.dir.subdir(path)
-			return True
-		else:
-			return False
-
-	def store_has_file(self):
-		'''Convenience method to initalize the storage file
-
-		Like L{store_has_dir()} but initializes the C{file} attribute.
-		'''
-		if hasattr(self, 'file') and not self.file is None:
-			return isinstance(self.file, File)
-		elif hasattr(self.notebook, 'file') and self.namespace.isroot:
-			self.file = self.notebook.file
-			return isinstance(self.file, File)
-		else:
-			return False
+		raise NotImplementedError
 
 	def get_attachments_dir(self, path):
 		'''Get the folder for storing attachments for a page
 
 		@param path: a L{Path} object
 		@returns: a L{Dir} object for the attachment folder of C{path}
-
-		@implementation: optional, sub-classes may implement this
-		method. The default implementation assumes the store has a
-		directory set already and applies the default heuristic for
-		mapping page names to file names. Sub-classes that do not have
-		a directory or want a different layout need to subclass this method.
+		@implementation: must be implemented in subclasses
 		'''
-		# TODO merge with _get_dir and _get_file in stores/files.py
-		assert self.dir, 'Stores without a dir attribute need to overload this method'
-		if path == self.namespace:
-			return self.dir
-		else:
-			name = path.relname(self.namespace)
-			dirpath = encode_filename(name)
-			return Dir([self.dir, dirpath])
+		raise NotImplementedError
 
 	def walk(self, path=None):
 		'''Generator to walk all pages under this store
@@ -405,7 +336,7 @@ class StoreClass():
 		depth-first
 		'''
 		if path is None:
-			path = self.namespace
+			path = Path(':')
 
 		for page in self.get_pagelist(path):
 			yield page

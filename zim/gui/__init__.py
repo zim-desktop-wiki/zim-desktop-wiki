@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the Gtk user interface for zim.
 The main widgets and dialogs are separated out in sub-modules.
@@ -478,7 +478,7 @@ class GtkInterface(gobject.GObject):
 
 		self._init_notebook(self.notebook)
 		if page and isinstance(page, basestring): # IPC call
-			page = self.notebook.resolve_path(page)
+			page = self.notebook.pages.lookup_from_user_input(page)
 
 		self._first_page = page # XXX HACK - if we call open_page here, plugins are not yet initialized
 
@@ -519,22 +519,23 @@ class GtkInterface(gobject.GObject):
 		notebook.connect('move-page', save_page) # before action
 		notebook.connect('moved-page', follow) # after action
 
-		def new_child(index, indexpath):
-			if self.page and indexpath.ischild(self.page):
-				child = self.actiongroup.get_action('open_page_child')
-				child.set_sensitive(True)
+		# FIXME
+		#~ def new_child(index, indexpath):
+			#~ if self.page and indexpath.ischild(self.page):
+				#~ child = self.actiongroup.get_action('open_page_child')
+				#~ child.set_sensitive(True)
+		#~
+		#~ def child_deleted(index, indexpath):
+			#~ if self.page and indexpath.ischild(self.page):
+				#~ ourpath = index.lookup_path(self.page)
+				#~ child = self.actiongroup.get_action('open_page_child')
+				#~ child.set_sensitive(ourpath.haschildren)
 
-		def child_deleted(index, indexpath):
-			if self.page and indexpath.ischild(self.page):
-				ourpath = index.lookup_path(self.page)
-				child = self.actiongroup.get_action('open_page_child')
-				child.set_sensitive(ourpath.haschildren)
-
-		notebook.index.connect('page-inserted', new_child)
-		notebook.index.connect('page-deleted', child_deleted)
+		#~ notebook.index.connect('page-inserted', new_child)
+		#~ notebook.index.connect('page-deleted', child_deleted)
 
 		# Start a lightweight background check of the index
-		self.notebook.index.update_async()
+		self.notebook.index.start_update()
 
 		self.set_readonly(notebook.readonly)
 
@@ -749,8 +750,8 @@ class GtkInterface(gobject.GObject):
 			# Do not quit if page not saved
 			return False
 
-		self.notebook.index.stop_updating() # XXX - avoid long wait
 		self.mainwindow.hide() # look more responsive
+		self.notebook.index.stop_update()
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
@@ -1269,7 +1270,7 @@ class GtkInterface(gobject.GObject):
 
 		parent.set_sensitive(len(page.namespace) > 0)
 
-		indexpath = self.notebook.index.lookup_path(page)
+		indexpath = self.notebook.pages.lookup_by_pagename(page)
 		child.set_sensitive(indexpath.haschildren)
 			# FIXME: Need index path here, page.haschildren is also True
 			#        when the page just has a attachment folder
@@ -1358,7 +1359,7 @@ class GtkInterface(gobject.GObject):
 		from the history, or the first child.
 		@returns: C{True} if succesful
 		'''
-		path = self.notebook.index.lookup_path(self.page)
+		path = self.notebook.pages.lookup_by_pagename(self.page)
 			# Force refresh "haschildren" ...
 		if not path.haschildren:
 			print 'HASCHILDREN still False'
@@ -1368,16 +1369,15 @@ class GtkInterface(gobject.GObject):
 		if not record is None:
 			self.open_page(record)
 		else:
-			pages = list(self.notebook.index.list_pages(path))
-			if pages:
-				self.open_page(pages[0])
+			child = self.notebook.pages.get_next(path)
+			self.open_page(child)
 		return True
 
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
 		@returns: C{True} if succesful
 		'''
-		path = self.notebook.index.get_previous(self.page)
+		path = self.notebook.pages.get_previous(self.page)
 		if not path is None:
 			self.open_page(path)
 			return True
@@ -1388,7 +1388,7 @@ class GtkInterface(gobject.GObject):
 		'''Menu action to open the next page from the index
 		@returns: C{True} if succesful
 		'''
-		path = self.notebook.index.get_next(self.page)
+		path = self.notebook.pages.get_next(self.page)
 		if not path is None:
 			self.open_page(path)
 			return True
@@ -1442,14 +1442,13 @@ class GtkInterface(gobject.GObject):
 			name = text.strip()[:30]
 			if '\n' in name:
 				name, _ = name.split('\n', 1)
-			name = self.notebook.cleanup_pathname(name.replace(':', ''), purge=True)
+			name = Path.makeValidPageName(name.replace(':', ''))
 		elif isinstance(name, Path):
-			name = name.name
-			name = self.notebook.cleanup_pathname(name, purge=True)
+			name = Path.makeValidPageName(name.name)
 		else:
-			name = self.notebook.cleanup_pathname(name, purge=True)
+			name = Path.makeValidPageName(name)
 
-		path = self.notebook.resolve_path(name)
+		path = self.notebook.pages.lookup_from_user_input(name)
 		page = self.notebook.get_new_page(path)
 		if use_template:
 			parsetree = self.notebook.get_template(page)
@@ -1500,7 +1499,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		if isinstance(name, Path):
 			name = name.name
-		path = self.notebook.resolve_path(name)
+		path = self.notebook.pages.lookup_from_user_input(name)
 		page = self.notebook.get_page(path)
 		page.parse('wiki', text, append=True) # FIXME format hard coded
 		self.notebook.store_page(page)
@@ -2121,16 +2120,15 @@ class GtkInterface(gobject.GObject):
 		@returns: C{True} unless the user cancelled the update
 		'''
 		self.emit('start-index-update')
-
-		index = self.notebook.index
-		index.stop_updating()
+		self.notebook.index.stop_update()
 		if flush:
-			index.flush()
+			self.notebook.index.flush()
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		with dialog:
-			index.update(callback=lambda p: dialog.pulse(p.name))
+			for c, p in self.notebook.index.update_iter():
+				dialog.pulse(p.name)
 
 		self.emit('end-index-update')
 		return not dialog.cancelled
@@ -2241,7 +2239,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				tool.run(args)
 				self.reload_page()
-				self.notebook.index.update_async()
+				self.notebook.index.start_update()
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
@@ -2981,7 +2979,7 @@ class MainWindow(Window):
 
 		self.pageview.set_page(page, cursor)
 
-		n = ui.notebook.index.n_list_links(page, LINK_DIR_BACKWARD)
+		n = ui.notebook.links.n_list_links(page, LINK_DIR_BACKWARD)
 		label = self.statusbar_backlinks_button.label
 		label.set_text_with_mnemonic(
 			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
@@ -3029,8 +3027,8 @@ class BackLinksMenuButton(MenuButton):
 	def popup_menu(self, event=None):
 		# Create menu on the fly
 		self.menu = gtk.Menu()
-		index = self.ui.notebook.index
-		links = list(index.list_links(self.ui.page, LINK_DIR_BACKWARD))
+		notebook = self.ui.notebook
+		links = list(notebook.links.list_links(self.ui.page, LINK_DIR_BACKWARD))
 		if not links:
 			return
 
@@ -3287,7 +3285,7 @@ class ImportPageDialog(FileDialog):
 		if basename.endswith('.txt'):
 			basename = basename[:-4]
 
-		path = self.ui.notebook.resolve_path(basename)
+		path = self.ui.notebook.pages.lookup_from_user_input(basename)
 		page = self.ui.notebook.get_page(path)
 		if page.hascontent:
 			path = self.ui.notebook.index.get_unique_path(path)
@@ -3312,11 +3310,9 @@ class MovePageDialog(Dialog):
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
 
-		indexpath = self.ui.notebook.index.lookup_path(self.path)
-		if indexpath:
-			i = self.ui.notebook.index.n_list_links_to_tree(
-					indexpath, LINK_DIR_BACKWARD )
-		else:
+		try:
+			i = self.ui.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		except IndexNotFoundError:
 			i = 0
 
 		label = ngettext(
@@ -3361,11 +3357,9 @@ class RenamePageDialog(Dialog):
 		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
 
-		indexpath = self.ui.notebook.index.lookup_path(self.path)
-		if indexpath:
-			i = self.ui.notebook.index.n_list_links_to_tree(
-					indexpath, LINK_DIR_BACKWARD )
-		else:
+		try:
+			i = self.ui.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD )
+		except IndexNotFoundError:
 			i = 0
 
 		label = ngettext(
@@ -3432,11 +3426,9 @@ class DeletePageDialog(Dialog):
 		label.set_markup('<b>'+short+'</b>\n\n'+long)
 		vbox.pack_start(label, False)
 
-		indexpath = self.ui.notebook.index.lookup_path(self.path)
-		if indexpath:
-			i = self.ui.notebook.index.n_list_links_to_tree(
-					indexpath, LINK_DIR_BACKWARD )
-		else:
+		try:
+			i = self.ui.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		except IndexNotFoundError:
 			i = 0
 
 		label = ngettext(

@@ -50,7 +50,7 @@ __all__ = [
 	'parsing', 'formats', 'templates', 'objectmanager',
 	'stores', 'index', 'notebook', 'history',
 	'export', 'www', 'search',
-	'widgets', 'gui', 'pageview', 'clipboard',
+	'widgets', 'pageindex', 'pageview', 'clipboard', 'gui',
 	'main', 'plugins',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
@@ -393,7 +393,6 @@ def _expand_manifest(names):
 			manifest.add(name)
 	return manifest
 
-
 def new_parsetree():
 	'''Returns a new ParseTree object for testing
 
@@ -437,6 +436,9 @@ def new_page_from_text(text, format='wiki'):
 	return page
 
 
+
+_notebook_data = None
+
 def new_notebook(fakedir=None):
 	'''Returns a new Notebook object with all data in memory
 
@@ -449,21 +451,41 @@ def new_notebook(fakedir=None):
 	'''
 	from zim.fs import Dir
 	from zim.notebook import Notebook, Path
-	from zim.index import Index
+	from zim.stores.memory import MemoryStore
+	from zim.index import Index, MemoryDBConnection
 
-	notebook = Notebook(index=Index(dbfile=':memory:'))
-	store = notebook.add_store(Path(':'), 'memory')
-	manifest = []
-	for name, text in WikiTestData:
-		manifest.append(name)
-		store.set_node(Path(name), text)
-	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.update()
+	global _notebook_data
+	if not _notebook_data: # run this one time only
+		store = MemoryStore()
+		manifest = []
+		for name, text in WikiTestData:
+			manifest.append(name)
+			store.store_node(Path(name), text)
+		manifest = frozenset(_expand_manifest(manifest))
+
+		index = Index.new_from_memory(store)
+		index.update()
+		with index._db as db:
+			lines = list(db.iterdump())
+		sql = '\n'.join(lines)
+
+		_notebook_data = (store, sql, manifest)
+
+
+	store, sql, manifest = _notebook_data
+	store = store.copy()
+
+	db_conn = MemoryDBConnection()
+	with db_conn.db_change_context() as db:
+		db.executescript(sql)
+	index = Index(db_conn, store)
+
+	notebook = Notebook(index=index, store=store)
+	notebook.testdata_manifest = manifest
 
 	if fakedir:
 		dir = Dir(fakedir)
 		notebook.dir = dir
-		store.dir = dir
 
 	return notebook
 

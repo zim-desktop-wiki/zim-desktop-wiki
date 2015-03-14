@@ -339,9 +339,9 @@ class BoundQuickNoteDialog(Dialog):
 			if '\n' in title:
 				title, _ = title.split('\n', 1)
 			try:
-				title = Notebook.cleanup_pathname(title, purge=True)
+				title = Path.makeValidPageName(title.replace(':', ''))
 				self.form['basename'] = title
-			except PageNameError:
+			except ValueError:
 				pass
 			self._updating_title = False
 

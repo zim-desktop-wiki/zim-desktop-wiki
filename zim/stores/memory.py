@@ -2,68 +2,86 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Store module that keeps a tree of pages in memory.
+'''Store module that keeps a tree of pages in memory'''
 
-See StoreClass in zim.stores for the API documentation.
-
-FIXME document nodetree
-FIXME document subclassing
-'''
+import time
+import copy
 
 from zim.formats import get_format
-from zim.notebook import Page, LookupError, PageExistsError
+
 from zim.stores import StoreClass
+
+from zim.notebook import Page, LookupError, PageExistsError
+
+
+# We could also just use time stamps here to determine etags
+# however using hashes here makes this class more interesting as a
+# for the test suite. It helps to verify that etags are really treated
+# as etags and not as timestamps.
+def _md5(content):
+	import hashlib
+	m = hashlib.md5()
+	if isinstance(content, unicode):
+		m.update(content.encode('utf-8'))
+	elif isinstance(content, basestring):
+		m.update(content)
+	else:
+		for l in content:
+			m.update(l)
+	return m.hexdigest()
+
 
 
 class Node(object):
 
-	__slots__ = ('basename', 'text', 'children')
+	__slots__ = ('basename', 'text', 'children', 'content_etag', 'children_etag', 'ctime', 'mtime')
 
 	def __init__(self, basename, text=None):
 		self.basename = basename
 		self.text = text
-		self.children = []
+		self.children = {}
+		self.content_etag = _md5(text) if text else None
+		self.children_etag = None
+		self.ctime = time.time()
+		self.mtime = None
+
+	def set_content_etag(self):
+		self.content_etag = _md5(self.text) if self.text else None
+		self.mtime = time.time()
+
+	def set_children_etag(self):
+		self.children_etag = _md5(';'.join(self.children.keys()))
 
 
 class MemoryStore(StoreClass):
 
-	def __init__(self, notebook, path):
-		'''Construct a memory store.
-		Pass args needed for StoreClass init.
-		'''
-		StoreClass.__init__(self, notebook, path)
-		self.format = get_format('wiki') # TODO make configable
-		self._nodetree = []
+	def __init__(self):
+		self.format = get_format('wiki') # TODO make configurable
+		self._root = Node('')
 		self.readonly = False
 
-	def set_node(self, path, text):
-		'''Sets node for 'page' and return it.'''
-		node = self.get_node(path, vivificate=True)
-		node.text = text
-		return node
+	def copy(self):
+		new = self.__class__()
+		new._root = copy.deepcopy(self._root)
+		return new
 
 	def get_node(self, path, vivificate=False):
 		'''Returns node for page 'name' or None.
 		If 'vivificate' is True nodes are created on the fly.
 		'''
-		assert path != self.namespace, 'Can not get node for root namespace'
-		name = path.relname(self.namespace)
-		names = name.split(':')  # list with names
-		branch = self._nodetree  # list of page nodes
-		while names:
-			n = names.pop(0) # get next item
-			node = None
-			for leaf in branch:
-				if leaf.basename == n:
-					node = leaf
-					break
-			if node is None:
+		if path.isroot:
+			return self._root
+
+		node = self._root
+		for basename in path.parts:
+			if basename not in node.children:
 				if vivificate:
-					node = Node(basename=n)
-					branch.append(node)
+					node.children[basename] = Node(basename)
+					node.set_children_etag()
 				else:
 					return None
-			branch = node.children
+
+			node = node.children[basename]
 
 		return node
 
@@ -85,26 +103,33 @@ class MemoryStore(StoreClass):
 			page.set_parsetree(self.format.Parser().parse(text))
 			page.modified = False
 		page.readonly = self.readonly
+
+		if node:
+			page.ctime = node.ctime
+			page.mtime = node.mtime
+		else:
+			page.ctime = None
+			page.mtime = None
+
 		return page
 
 	def get_pagelist(self, path):
-		if path == self.namespace:
-			nodes = self._nodetree
-		else:
-			node = self.get_node(path)
-			if node is None:
-				return # implicit generate empty list
-			else:
-				nodes = node.children
-
-		for node in nodes:
-			childpath = path + node.basename
-			yield self._build_page(childpath, node)
+		node = self.get_node(path)
+		if node:
+			for basename in sorted(node.children):
+				child = path + basename
+				yield self._build_page(child, node.children[basename])
 
 	def store_page(self, page):
-		text = self.format.Dumper().dump(page.get_parsetree())
-		self.set_node(page, text)
+		self.store_node(
+			page, self.format.Dumper().dump(page.get_parsetree())
+		)
 		page.modified = False
+
+	def store_node(self, path, text):
+		node = self.get_node(path, vivificate=True)
+		node.text = text
+		node.set_content_etag()
 
 	def move_page(self, path, newpath):
 		node = self.get_node(path)
@@ -119,28 +144,31 @@ class MemoryStore(StoreClass):
 
 		newnode = self.get_node(newpath, vivificate=True)
 		newnode.text = node.text
-		newnode.children = node.children # children
+		newnode.set_content_etag()
+		newnode.children = node.children
+		newnode.set_children_etag()
 
 	def delete_page(self, path):
 		# Make sure not to destroy the actual content, we are used by
 		# move_page, which could be keeping a reference to the content
+		assert not path.isroot
 		node = self.get_node(path)
-		if node is None:
+		if node:
+			pnode = self.get_node(path.parent)
+			pnode.children.pop(path.basename)
+			pnode.set_children_etag()
+
+			if not (path.parent.isroot or pnode.text or pnode.children):
+				self.delete_page(path.parent) # recurs to cleanup empty parent
+
+			return True
+		else:
 			return False
 
-		parent = path.parent
-		if parent.isroot:
-			self._nodetree.remove(node)
-		else:
-			pnode = self.get_node(parent)
-			pnode.children.remove(node)
-			if not (pnode.text or pnode.children):
-				self.delete_page(parent) # recurs to cleanup empty parent
+	def get_content_etag(self, path):
+		node = self.get_node(path)
+		return node.content_etag
 
-		if isinstance(path, Page):
-			path.haschildren = False
-			path.set_parsetree(None)
-			path.modified = False
-
-		return True
-
+	def get_children_etag(self, path):
+		node = self.get_node(path)
+		return node.children_etag

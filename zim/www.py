@@ -139,7 +139,7 @@ class WWWInterface(object):
 		self.plugins.extend(notebook)
 		self.plugins.extend(self)
 
-		#~ self.notebook.index.update()
+		#~ self.notebook.indexer.update()
 
 	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Follows the
@@ -224,7 +224,7 @@ class WWWInterface(object):
 				else:
 					raise PageNotFoundError(path)
 
-				path = self.notebook.resolve_path(pagename)
+				path = self.notebook.pages.lookup_from_user_input(pagename)
 				page = self.notebook.get_page(path)
 				if page.hascontent:
 					content = self.render_page(page)
@@ -289,10 +289,10 @@ class WWWInterface(object):
 			content=[page],
 			home=self.notebook.get_home_page(),
 			up=page.parent if page.parent and not page.parent.isroot else None,
-			prevpage=self.notebook.index.get_previous(page),
-			nextpage=self.notebook.index.get_next(page),
+			prevpage=self.notebook.pages.get_previous(page),
+			nextpage=self.notebook.pages.get_next(page),
 			links={'index': '/'},
-			index_generator=self.notebook.index.walk,
+			index_generator=self.notebook.pages.walk,
 			index_page=page,
 		)
 		self.template.process(lines, context)

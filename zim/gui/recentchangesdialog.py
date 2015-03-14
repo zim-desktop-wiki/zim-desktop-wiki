@@ -32,9 +32,9 @@ class RecentChangesDialog(Dialog):
 	def update(self):
 		model = self.treeview.get_model()
 		model.clear()
-		list = self.ui.notebook.index.list_recent_pages(offset=0, limit=50)
+		list = self.ui.notebook.index.list_recent_changes(limit=50)
 		for indexpath in list:
-			model.append((indexpath.name, indexpath.contentkey)) # HACK !
+			model.append((indexpath.name, indexpath.mtime))
 
 
 
@@ -59,10 +59,8 @@ class RecentChangesTreeView(BrowserTreeView):
 		today = datetime.date.today()
 		yesterday = today - datetime.timedelta(days=1)
 		def render_date(col, cell, model, i):
-			utime = model.get_value(i, self.MODIFIED_COL)
-			if utime:
-				utime = float(utime)
-				dt = datetime.datetime.fromtimestamp(utime)
+			dt = model.get_value(i, self.MODIFIED_COL)
+			if dt:
 				date = dt.date()
 				if date == today:
 					text = _('Today') + dt.strftime(' %H:%M')

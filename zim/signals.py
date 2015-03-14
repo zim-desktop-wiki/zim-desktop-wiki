@@ -19,7 +19,8 @@ else:
 
 
 # Constants for signal order
-SIGNAL_NORMAL = 1
+SIGNAL_BEFORE = 1
+SIGNAL_NORMAL = SIGNAL_BEFORE
 SIGNAL_AFTER = 2
 SIGNAL_OBJECT = 4
 
@@ -270,14 +271,17 @@ class SignalEmitter(object):
 	API should be backward compatible with API offered by GObject.
 	'''
 
+	# TODO optimize compiling the total handler function on connect
+
 	__signals__ = {} #: signals supported by this class
 
 	# define signals we want to use - (closure type, return type and arg types)
-	# E.g. {signal: (gobject.SIGNAL_RUN_LAST, None, (object, object))}
+	# E.g. {signal: (SIGNAL_NORMAL, None, (object, object))}
+	# TODO use this fo validation
 
 	__hooks__ = ()
 	# name of signals that return first result
-
+	# TODO: replace by not None return value in signals ?
 
 	def _get_signal(self, name):
 		if name in self.__signals__:

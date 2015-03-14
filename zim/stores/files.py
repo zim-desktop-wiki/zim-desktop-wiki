@@ -32,42 +32,29 @@ logger = logging.getLogger('zim.stores.files')
 
 class FilesStore(StoreClass):
 
-	def __init__(self, notebook, path, dir=None):
+	def __init__(self, dir, endofline='unix'):
 		'''Constructor
-
-		@param notebook: a L{Notebook} object
-		@param path: a L{Path} object for the mount point within the notebook
-		@keyword dir: a L{Dir} object
-
-		When no dir is given and the notebook has a dir already
-		the dir is derived based on the path parameter. In the easiest
-		case when path is the root, the notebook dir is copied.
+		@param dir: a L{Dir} object
+		@param endofline: property for new L{File} objects
 		'''
-		StoreClass.__init__(self, notebook, path)
 		self.dir = dir
-		if not self.store_has_dir():
-			raise AssertionError, 'File store needs directory'
-			# not using assert here because it could be optimized away
+		self.endofline = endofline
 		self.format = get_format('wiki') # TODO make configurable
 
 	def _get_file(self, path):
 		'''Returns a File object for a notebook path'''
-		assert path != self.namespace, 'Can not get a file for the toplevel namespace'
-		name = path.relname(self.namespace)
-		filepath = encode_filename(name)+'.txt' # FIXME hard coded extension
+		filepath = encode_filename(path.name)+'.txt' # FIXME hard coded extension
 		file = self.dir.file(filepath)
 		file.checkoverwrite = True
-		file.endofline = self.notebook.endofline
+		file.endofline = self.endofline
 		return file
 
 	def _get_dir(self, path):
 		'''Returns a dir object for a notebook path'''
-		if path == self.namespace:
-			return self.dir
-		else:
-			name = path.relname(self.namespace)
-			dirpath = encode_filename(name)
-			return self.dir.subdir(dirpath)
+		if path.isroot:
+			raise ValueError, 'No dir for root path'
+		dirpath = encode_filename(path.name)
+		return self.dir.subdir(dirpath)
 
 	def get_page(self, path):
 		file = self._get_file(path)
@@ -75,7 +62,11 @@ class FilesStore(StoreClass):
 		return FileStorePage(path, source=file, folder=dir, format=self.format)
 
 	def get_pagelist(self, path):
-		dir = self._get_dir(path)
+		if path.isroot:
+			dir = self.dir
+		else:
+			dir = self._get_dir(path)
+
 		names = set() # collide files and dirs with same name
 
 		# We skip files with a space in them, because we can not resolve
@@ -96,7 +87,7 @@ class FilesStore(StoreClass):
 			else:
 				pass # unknown file type
 
-		for name in names: # sets are sorted by default
+		for name in sorted(names):
 			yield self.get_page(path + name)
 
 	def store_page(self, page):
@@ -162,9 +153,6 @@ class FilesStore(StoreClass):
 			file.cleanup()
 			dir.remove_children()
 			dir.cleanup()
-			if isinstance(path, Page):
-				path.haschildren = False
-				# hascontent is determined based on file existence
 			return True
 
 	def trash_page(self, path):
@@ -192,18 +180,25 @@ class FilesStore(StoreClass):
 	# more efficient to just re-index whenever the timestamps are out of
 	# sync instead of calculating the MD5 for each page to be checked.
 
-	def get_pagelist_indexkey(self, path):
-		dir = self._get_dir(path)
+	def get_children_etag(self, path):
+		if path.isroot:
+			dir = self.dir
+		else:
+			dir = self._get_dir(path)
+
 		if dir.exists():
-			return dir.mtime()
+			return str(dir.mtime())
 		else:
 			return None
 
-	def get_page_indexkey(self, path):
+	def get_content_etag(self, path):
+		if path.isroot:
+			return None
+
 		file = self._get_file(path)
 		if file.exists():
 			try:
-				return file.mtime()
+				return str(file.mtime())
 			except OSError:
 				# This should never happen - but it did, see lp:809086
 				logger.exception('BUG:')
@@ -212,10 +207,8 @@ class FilesStore(StoreClass):
 			return None
 
 	def get_attachments_dir(self, path):
-		dir = StoreClass.get_attachments_dir(self, path)
-		if not dir is None:
-			dir = FilteredDir(dir)
-			dir.ignore('*.txt') # FIXME hardcoded extension
+		dir = FilteredDir(self._get_dir(path))
+		dir.ignore('*.txt') # FIXME hardcoded extension
 		return dir
 
 
@@ -242,6 +235,14 @@ class FileStorePage(Page):
 		self.format = format
 		self.readonly = not self.source.iswritable()
 		self.properties = None
+
+	@property
+	def mtime(self):
+		return self.source.mtime()
+
+	@property
+	def ctime(self):
+		return self.source.ctime()
 
 	def isequal(self, other):
 		print "IS EQUAL", self, other

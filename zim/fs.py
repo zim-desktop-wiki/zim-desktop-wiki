@@ -760,6 +760,12 @@ class UnixPath(SignalEmitter):
 		'''
 		return self._stat().st_mtime
 
+	def ctime(self):
+		'''Get the creation time of the file path.
+		@returns: the mtime timestamp
+		'''
+		return self._stat().st_ctime
+
 	def size(self):
 		'''Get file size in bytes
 		See L{format_file_size()} to get a human readable label

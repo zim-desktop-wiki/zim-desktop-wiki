@@ -96,7 +96,7 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		model.clear()
 
-		backlinks = notebook.index.list_links(page, LINK_DIR_BACKWARD)
+		backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
 			# XXX allow access through page object
 		for link in backlinks:
 			href = notebook.relative_link(link.href, link.source) # XXX

@@ -30,7 +30,7 @@ import zim.formats
 from zim.fs import File, Dir, normalize_file_uris
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
-from zim.notebook import Path, interwiki_link
+from zim.notebook import Path, interwiki_link, HRef
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
@@ -5222,7 +5222,9 @@ class PageView(gtk.VBox):
 					# T: error when unknown interwiki link is clicked
 
 			if type == 'page':
-				path = self.ui.notebook.resolve_path(href, source=self.page)
+				path = self.ui.notebook.pages.resolve_link(
+					self.page, HRef.new_from_wiki_link(href)
+				)
 				if new_window:
 					self.ui.open_new_window(path)
 				else:
@@ -5359,7 +5361,9 @@ class PageView(gtk.VBox):
 
 		if type == 'page':
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
-			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
+			path = self.ui.notebook.pages.resolve_link(
+				self.page, HRef.new_from_wiki_link(link['href'])
+			)
 			item.connect('activate', set_pagelink, path)
 		elif type == 'interwiki':
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item

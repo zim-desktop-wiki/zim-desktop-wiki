@@ -462,7 +462,7 @@ class CalendarWidgetModel(object):
 
 	def list_dates_for_month(self, date):
 		namespace = self.plugin.path_for_month_from_date(date)
-		for path in self.notebook.index.list_pages(namespace):
+		for path in self.notebook.pages.list_pages(namespace):
 			if date_path_re.match(path.name):
 				dates = daterange_from_path(path)
 				if dates and dates[0] == 'day':

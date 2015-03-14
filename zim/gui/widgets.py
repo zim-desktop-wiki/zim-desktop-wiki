@@ -1937,7 +1937,9 @@ class PageEntry(InputEntry):
 				name = '+' + name
 			try:
 				if self.notebook:
-					path = self.notebook.resolve_path(name, source=self.notebookpath)
+					path = self.notebook.pages.lookup_from_user_input(
+						name, reference=self.notebookpath
+					)
 				else:
 					path = Path(name)
 			except PageNameError:
@@ -1958,15 +1960,14 @@ class PageEntry(InputEntry):
 		## that can stop recursion of some branches or force order
 
 		# first yield children
-		index = notebook.index
-		for p in index.walk(path):
+		for p in notebook.pages.walk(path):
 			yield notebook.relative_link(path, p), p.basename
 
 		# than peers and parents, sort by distance
 		if path.namespace:
 			parent = Path(path.parts[0])
 			peers = []
-			for p in index.walk(parent):
+			for p in notebook.pages.walk(parent):
 				if not p.ischild(path):
 					relname = notebook.relative_link(path, p)
 					basename = p.basename
@@ -1979,7 +1980,7 @@ class PageEntry(InputEntry):
 			parent = path
 
 		# than the rest of the tree, excluding direct parent
-		for p in index.walk():
+		for p in notebook.pages.walk():
 			if not p.ischild(parent):
 				yield notebook.relative_link(path, p), p.basename
 
@@ -2000,8 +2001,8 @@ class PageEntry(InputEntry):
 			pass
 		else:
 			try:
-				text = Notebook.cleanup_pathname(text.lstrip('+'))
-			except PageNameError:
+				Path.assertValidPageName(text.lstrip('+'))
+			except AssertionError:
 				self.set_input_valid(False)
 				return
 			else:
@@ -2056,7 +2057,7 @@ class PageEntry(InputEntry):
 				link = '+' + link.lstrip(':')
 
 			try:
-				path = self.notebook.resolve_path(link, source=reference)
+				path = self.notebook.pages.lookup_from_user_input(link, reference)
 			except PageNameError:
 				return
 
@@ -2067,7 +2068,7 @@ class PageEntry(InputEntry):
 		if prefix:
 			# Complete a single namespace based on the prefix
 			completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
-			for p in self.notebook.index.list_pages(path):
+			for p in self.notebook.pages.list_pages(path):
 				model.append((prefix+p.basename, prefix+p.basename))
 		else:
 			# Find any pages that match the text
@@ -2076,7 +2077,7 @@ class PageEntry(InputEntry):
 				for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
 					model.append((relname, basename))
 			else:
-				for p in self.notebook.index.walk():
+				for p in self.notebook.pages.walk():
 					model.append((":"+p.name, p.basename))
 
 		completion.complete()

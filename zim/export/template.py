@@ -480,13 +480,13 @@ class PageProxy(ParseTreeProxy):
 
 	@property
 	def links(self):
-		links = self._notebook.index.list_links(self._page, LINK_DIR_FORWARD)
+		links = self._notebook.links.list_links(self._page, LINK_DIR_FORWARD)
 		for link in links:
 			yield NotebookPathProxy(link.target)
 
 	@property
 	def backlinks(self):
-		links = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
+		links = self._notebook.links.list_links(self._page, LINK_DIR_BACKWARD)
 		for link in links:
 			yield NotebookPathProxy(link.source)
 

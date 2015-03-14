@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2010 Fabian Moser
-# Copyright 2011-2014 Jaap Karssenberg
+# Copyright 2011-2015 Jaap Karssenberg
 
 
 import gobject

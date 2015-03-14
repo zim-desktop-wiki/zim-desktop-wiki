@@ -49,7 +49,7 @@ import logging
 
 from zim.parsing import split_quoted_strings, unescape_quoted_string, Re
 from zim.notebook import Path, PageNameError
-from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
+from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD, IndexNotFoundError
 
 logger = logging.getLogger('zim.search')
 
@@ -384,7 +384,6 @@ class SearchSelection(PageSelection):
 		# a time - leave it up to _process_group to combine them
 		myresults = SearchSelection(None)
 		myresults.scores = self.scores # HACK for callback function
-		index = self.notebook.index
 		scoped = False
 
 		if term.keyword in ('name', 'namespace', 'section', 'contentorname'):
@@ -392,7 +391,7 @@ class SearchSelection(PageSelection):
 			if scope:
 				generator = iter(scope)
 			else:
-				generator = index.walk()
+				generator = self.notebook.pages.walk()
 
 			if term.keyword in ('namespace', 'section'):
 				regex = self._namespace_regex(term.string)
@@ -420,14 +419,14 @@ class SearchSelection(PageSelection):
 				string = term.string
 
 			try:
-				path = self.notebook.resolve_path(string)
-			except PageNameError:
+				path = self.notebook.pages.lookup_from_user_input(string)
+			except ValueError:
 				return myresults
 
 			if recurs:
-				links = index.list_links_to_tree(path, dir)
+				links = self.notebook.links.list_links_section(path, dir)
 			else:
-				links = index.list_links(path, dir)
+				links = self.notebook.links.list_links(path, dir)
 
 			if dir == LINK_DIR_FORWARD:
 				for link in links:
@@ -437,11 +436,11 @@ class SearchSelection(PageSelection):
 					myresults.add(link.source)
 
 		elif term.keyword == 'tag':
-			tag = index.lookup_tag(term.string)
-			if tag:
-				for path in index.list_tagged_pages(tag):
+			try:
+				for path in notebook.tags.list_pages(tag):
 					myresults.add(path)
-
+			except IndexNotFoundError:
+				pass
 		else:
 			assert False, 'BUG: unknown keyword: %s' % term.keyword
 
@@ -454,7 +453,7 @@ class SearchSelection(PageSelection):
 			if not scope:
 				# initialize scope with whole notebook :S
 				scope = set()
-				for p in index.walk():
+				for p in self.notebook.pages.walk():
 					scope.add(p)
 			inverse = scope - myresults
 			myresults.clear()

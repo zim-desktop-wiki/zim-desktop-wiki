@@ -146,7 +146,7 @@ class NotebookCommand(Command):
 		if len(self.arguments) > 1 \
 		and self.arguments[1] in ('PAGE', '[PAGE]') \
 		and args[1] is not None:
-			pagename = Notebook.cleanup_pathname(args[1], purge=True)
+			pagename = Path.makeValidPageName(args[1])
 			return notebookinfo, Path(pagename)
 		else:
 			return notebookinfo, None
@@ -365,7 +365,9 @@ class ExportCommand(NotebookCommand):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
 		notebook, page = self.build_notebook()
-		#~ notebook.index.update()
+		if not notebook.index.probably_uptodate:
+			for check, path in notebook.index.update_iter():
+				logger.info('Indexing %s', path.name)
 
 		if page and self.opts.get('recursive'):
 			selection = SubPages(notebook, page)
@@ -409,13 +411,9 @@ class IndexCommand(NotebookCommand):
 
 	def run(self):
 		notebook, p = self.build_notebook()
-		index = notebook.index
-		index.flush()
-		def on_callback(path):
-			logger.info('Indexed %s', path.name)
-			return True
-		index.update(callback=on_callback)
-
+		notebook.index.flush()
+		for check, path in notebook.index.update_iter():
+			logger.info('Indexing %s', path.name)
 
 
 commands = {

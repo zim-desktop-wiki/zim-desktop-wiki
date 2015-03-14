@@ -147,9 +147,13 @@ class ExportLinker(BaseLinker):
 
 	def _link_page(self, link):
 		try:
-			path = self.notebook.resolve_path(link, source=self.source)
-				# Allows source to be None
-		except PageNameError:
+			if self.source:
+				path = self.notebook.pages.resolve_link(
+					self.source, HRef.new_from_wiki_link(link)
+				)
+			else:
+				path = self.notebook.pages.lookup_from_user_input(link)
+		except ValueError:
 			return ''
 		else:
 			return self.page_object(path)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
 This module contains the main Notebook class and related classes.
@@ -18,20 +18,11 @@ The Notebook can map multiple store backends under different namespaces
 single root on unix systems) although this is not used in the default
 configuration.
 
-The notebook works together with an L{Index} object which keeps a
-database of all the pages to speed up notebook access and allows us
-to e.g. show a list of pages in the side pane of the user interface.
-This means that not all operations access the store module directly,
-when the data is available is in the index this can be used, e.g.
-L{Notebook.resolve_path()} uses it to check case-insensitive for
-existing pages. The index is also needed to keep track of links between
-pages and allows e.g. to update all links to a page when moving the page.
-
 The class L{Path} abstracts the location of a single page in the
 notebook. Once a path object is constructed we can assume we have
 sanitized user input etc. Therefore almost all methods in the Notebook
-API require path objects. (See L{Notebook.resolve_path()} to convert a
-page name as string to a Path object, or L{Notebook.cleanup_pathname()}
+API require path objects. (See L{notebook.pages.lookup_from_user_input()} to convert a
+page name as string to a Path object, or L{Path.makeValidPageName()}
 to sanitize user input without creating a Path object.)
 
 L{Page} object map to a page and it's actual content. It derives from
@@ -82,12 +73,13 @@ import threading
 
 import gobject
 
-
-from .base import Object
+from zim.signals import ConnectorMixin, SignalEmitter
 
 import zim.fs
+
 from zim.fs import File, Dir, FS, FilePath, FileNotFoundError
 from zim.errors import Error, TrashNotSupportedError
+from zim.utils import natural_sort_key
 from zim.config import SectionedConfigDict, INIConfigFile, HierarchicDict, \
 	data_dir, ConfigManager, XDGConfigFileIter #list_profiles
 from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
@@ -734,7 +726,6 @@ class PageReadOnlyError(Error):
 			# T: error message for read-only pages
 
 
-_first_char_re = re.compile(r'^\W', re.UNICODE)
 
 
 from zim.config import String, ConfigDefinitionByClass, Boolean, Choice
@@ -763,7 +754,7 @@ class NotebookConfig(INIConfigFile):
 		))
 
 
-class Notebook(Object):
+class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 
 	This class defines an API that proxies between backend L{zim.stores}
@@ -845,10 +836,9 @@ class Notebook(Object):
 		# 'shared' property is not shown in properties anymore
 	)
 
-	def __init__(self, dir=None, file=None, config=None, index=None):
+	def __init__(self, dir=None, file=None, config=None, index=None, store=None):
 		assert not (dir and file), 'BUG: can not provide both dir and file '
 		self._namespaces = []	# list used to resolve stores
-		self._stores = {}		# dict mapping namespaces to stores
 		self.namespace_properties = HierarchicDict({
 				'template': 'Default'
 			})
@@ -894,20 +884,33 @@ class Notebook(Object):
 			logger.debug('Cache dir: %s', self.cache_dir)
 
 			# TODO check if config defined root namespace
-			self.add_store(Path(':'), 'files') # set root
-			# TODO add other namespaces from config
+			if store:
+				self.store = store
+			else:
+				from zim.stores.files import FilesStore
+				self.store = FilesStore(dir, self.endofline)
 		elif file:
 			assert isinstance(file, File)
 			self.file = file
 			self.readonly = not file.iswritable()
 			assert False, 'TODO: support for single file notebooks'
+		else:
+			assert store, 'Provide a dir or a store'
+			self.store = store
 
 		if index is None:
-			import zim.index # circular import
-			self.index = zim.index.Index(notebook=self)
+			import zim.index # XXX circular import
+			self.index = zim.index.Index.new_from_file(
+				self.cache_dir.file('index.db'),
+				self.store
+			)
 		else:
 			self.index = index
-			self.index.set_notebook(self)
+
+		from zim.index import PagesView, LinksView, TagsView
+		self.pages = PagesView.new_from_index(self.index)
+		self.links = LinksView.new_from_index(self.index)
+		self.tags = TagsView.new_from_index(self.index)
 
 		def on_page_updated(index, indexpath):
 			## FIXME still not called for parent pages -- need refactor
@@ -917,8 +920,8 @@ class Notebook(Object):
 				#~ print "  --> IN CAHCE"
 				self._page_cache[indexpath.name].haschildren = indexpath.haschildren
 
-		self.index.connect('page-inserted', on_page_updated)
-		self.index.connect('page-updated', on_page_updated)
+		self.index.connect('page-added', on_page_updated)
+		self.index.connect('page-changed', on_page_updated)
 
 		if self.config is None:
 			from zim.config import VirtualConfigBackend
@@ -1036,162 +1039,10 @@ class Notebook(Object):
 
 		# TODO - can we switch cache_dir on run time when 'shared' changed ?
 
-	def add_store(self, path, store, **args):
-		'''Set a storeage model for a specific path
-
-		Add a store to the notebook to handle a specific path and all
-		it's sub-pages.
-
-		@param path: the path to mount the store
-		@param store: the store name as understood by
-		L{zim.stores.get_store()} or a store object
-		@param args: arguments to pass to the store constructor
-		when a name was given
-
-		@returns: the store object
-		'''
-		assert not path.name in self._stores, 'Store for "%s" exists' % path
-		if isinstance(store, basestring):
-			klass = zim.stores.get_store(store)
-			mystore = klass(notebook=self, path=path, **args)
-		else:
-			assert not args
-			mystore = store
-		self._stores[path.name] = mystore
-		self._namespaces.append(path.name)
-
-		# keep order correct for lookup
-		self._namespaces.sort(reverse=True)
-
-		return mystore
-
-	def get_store(self, path):
-		'''Returns the store object to for a specific path
-
-		@param path: a L{Path} object
-		'''
-		for namespace in self._namespaces:
-			# longest match first because of reverse sorting
-			if namespace == ''			\
-			or path.name == namespace	\
-			or path.name.startswith(namespace+':'):
-				return self._stores[namespace]
-		else:
-			raise LookupError, 'Could not find store for: %s' % path.name
-
-	def resolve_path(self, name, source=None, index=None):
-		'''Returns a proper path name for page names given in links
-		or from user input
-
-		If no source path is given or if the page name starts with
-		a ':' the name is considered an absolute name and only case is
-		resolved. If the page does not exist the last part(s) of the
-		name will remain in the case as given.
-
-		If a source path is given and the page name starts with '+'
-		it will be resolved as a direct child of the source.
-
-		Else we first look for a match of the first part of the name in
-		the source path. If that fails we do a search for the first part
-		of the name through all namespaces in the source path, starting
-		with pages below the namespace of the source. If no existing
-		page was found in this search we default to a new page below
-		this namespace.
-
-		So if we for example look for "baz" with as source
-		"C{:foo:bar:dus}" the following pages will be checked in a case
-		insensitive way::
-
-			:foo:bar:baz
-			:foo:baz
-			:baz
-
-		And if none exist we default to ":foo:bar:baz"
-
-		However if for example we are looking for "bar:bud" with as
-		source ":foo:bar:baz:dus", we only try to resolve the case
-		for ":foo:bar:bud" and default to the given case if it does
-		not yet exist.
-
-		@param name: the input name
-		@keyword source: L{Path} for the the referring page,
-		if any, or the path of the "current" page in the user interface.
-
-		This path will be used for resolving relative names.
-		When it is C{None} all names are resolved as absolute names.
-
-		@keyword index: an optional L{Index} object. If C{None}
-		the default index for this notebook is used.
-
-		@returns: a L{Path} object
-
-		@raises PageNameError: when the name resolves to an empty
-		string
-
-		(Since all trailing ":" characters are removed there is
-		no way for the name to address the root path in this method -
-		and typically user input should not need to able to address this
-		path.)
-		'''
-		assert name, 'BUG: name is empty string'
-
-		startswith = name[0]
-		if startswith == '.':
-			startswith = '+' # backward compat
-		if startswith == '+':
-			name = name[1:]
-		name = self.cleanup_pathname(name)
-
-		if index is None:
-			index = self.index
-
-		if startswith == ':' or source == None:
-			return index.resolve_case(name) or Path(name)
-		elif startswith == '+':
-			if not source:
-				raise PageNameError, '+'+name
-			return index.resolve_case(source.name+':'+name)  \
-						or Path(source.name+':'+name)
-			# FIXME use parent as argument
-		else:
-			# first check if we see an explicit match in the path
-			assert isinstance(source, Path)
-			anchor = name.split(':')[0].lower()
-			lowerpath = [p.lower() for p in source.parts]
-			if anchor in lowerpath:
-				# ok, so we can shortcut to an absolute path
-				lowerpath.reverse() # why is there no rindex or rfind ?
-				i = lowerpath.index(anchor) + 1
-				path = source.parts # reset case
-				path.reverse()
-				path = path[i:]
-				path.reverse()
-				path.append( name.lstrip(':') )
-				name = ':'.join(path)
-				return index.resolve_case(name) or Path(name)
-				# FIXME use parent as argument
-				# FIXME use short cut when the result is the parent
-			else:
-				# no luck, do a search through the whole path - including root
-				source = index.lookup_path(source) or source
-				for parent in source.parents():
-					candidate = index.resolve_case(name, namespace=parent)
-					if not candidate is None:
-						return candidate
-				else:
-					# name not found, keep case as is
-					if source.isroot:
-						# special case needed by namespace entry widget
-						# where we use the current namespace as reference
-						# instead of the current page
-						return Path(name)
-					else:
-						return source.parent + name
-
 	def relative_link(self, source, href):
 		'''Returns a relative links for a page link
 
-		More or less the opposite of resolve_path().
+		More or less the opposite of resolve_link().
 
 		@param source: L{Path} for the referring page
 		@param href: L{Path} for the linked page
@@ -1225,94 +1076,6 @@ class Notebook(Object):
 		'''
 		return self.emit('suggest-link', source, word)
 
-	@staticmethod
-	def cleanup_pathname(name, purge=False):
-		'''Returns a safe version of a page name
-
-		This method is used indirectly by methods like L{resolve_path()}
-		to check a given input name, but in some cases you might want
-		to use it directly, e.g to check user input.
-
-		@note: the returned page name is B{not} a L{Path} object and can
-		not be used in places where the API asks for a path. See
-		L{resolve_path()} instead.
-
-		@param name: the name to be cleaned up
-
-		@keyword purge: if C{True} any invalid characters will be
-		removed, otherwise these will result in a L{PageNameError}
-		exception
-
-		See the module documentation of L{zim.notebook} for an
-		overview of invalid characters.
-
-		@returns: a string for the new page name
-
-		@raises PageNameError: when the name is not valid
-		'''
-		orig = name
-		name = name.replace('_', ' ')
-			# Avoid duplicates with and without '_' (e.g. in index)
-
-		if purge:
-			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r"):
-				name = name.replace(char, '')
-		else:
-			for char in ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r"):
-				if char in name:
-					raise PageNameError, orig
-
-		parts = filter(lambda n: len(n)>0, unicode(name).split(':'))
-
-		for part in parts:
-			if _first_char_re.match(part) \
-			or part.endswith(' '):
-				raise PageNameError, orig
-
-		name = ':'.join(parts)
-
-		if not name:
-			raise PageNameError, orig
-
-		return name
-
-	@staticmethod
-	def cleanup_pathname_zim028(name):
-		'''Backward compatible version of L{cleanup_pathname()}
-
-		This method also cleansup page names, but applies logic as it
-		was in zim 0.28. It restricted all special characters but
-		white lists ".", "-", "_", "(", ")", ":" and "%". It replaces
-		illegal characters by "_" instead of throwing an exception.
-
-		Needed only when upgrading links in older notebooks.
-		'''
-		# OLD CODE WAS:
-		# $name =~ s/^:*/:/ unless $rel;	# absolute name
-		# $name =~ s/:+$//;					# not a namespace
-		# $name =~ s/::+/:/g;				# replace multiple ":"
-		# $name =~ s/[^:\w\.\-\(\)\%]/_/g;	# replace forbidden chars
-		# $name =~ s/(:+)[\_\.\-\(\)]+/$1/g;	# remove non-letter at begin
-		# $name =~ s/_+(:|$)/$1/g;			# remove trailing underscore
-
-		forbidden_re = re.compile(r'[^\w\.\-\(\)]', re.UNICODE)
-		non_letter_re = re.compile(r'^\W+', re.UNICODE)
-
-		prefix = ''
-		if name[0] in (':', '.', '+'):
-			prefix = name[0]
-			name = name[1:]
-
-		path = []
-		for n in filter(len, name.split(':')):
-			n = forbidden_re.sub('_', n) # replace forbidden chars
-			n = non_letter_re.sub('', n) # remove non-letter at begin
-			n = n.rstrip('_') # remove trailing underscore
-			if len(n):
-				path.append(n)
-
-		return prefix + ':'.join(path)
-
 	def get_page(self, path):
 		'''Get a L{Page} object for a given path
 
@@ -1337,16 +1100,21 @@ class Notebook(Object):
 		'''
 		# As a special case, using an invalid page as the argument should
 		# return a valid page object.
+		from zim.index import IndexNotFoundError # FIXME
 		assert isinstance(path, Path)
 		if path.name in self._page_cache \
 		and self._page_cache[path.name].valid:
 			return self._page_cache[path.name]
 		else:
-			store = self.get_store(path)
-			page = store.get_page(path)
-			indexpath = self.index.lookup_path(path)
-			if indexpath and indexpath.haschildren:
-				page.haschildren = True
+			page = self.store.get_page(path)
+			try:
+				indexpath = self.pages.lookup_by_pagename(path)
+			except IndexNotFoundError:
+				pass
+				# TODO trigger indexer here if page exists !
+			else:
+				if indexpath and indexpath.haschildren:
+					page.haschildren = True
 				# page might be the parent of a placeholder, in that case
 				# the index knows it has children, but the store does not
 
@@ -1400,27 +1168,6 @@ class Notebook(Object):
 		'''Returns a L{Page} object for the home page'''
 		return self.get_page(self.config['Notebook']['home'])
 
-	def get_pagelist(self, path):
-		'''List pages in a specific namespace
-
-		@note: only use this method if you really want L{Page} objects,
-		if you just want the names use
-		L{index.list_pages()<zim.index.Index.list_pages()>} instead.
-
-		@param path: a L{Path} object or C{None} for the top level
-		@returns: a list of L{Page} objects that are sub-pages of C{path}
-		or an empty list if C{path} does not have children or does not
-		exist in the first place
-		'''
-		if path is None:
-			path = Path(':')
-
-		with self.lock:
-			store = self.get_store(path)
-			list = store.get_pagelist(path)
-		# TODO: add sub-stores in this namespace if any
-		return list
-
 	def store_page(self, page):
 		'''Save the data from the page in the storage backend
 
@@ -1430,8 +1177,7 @@ class Notebook(Object):
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
 		self.emit('store-page', page)
-		store = self.get_store(page)
-		store.store_page(page)
+		self.store.store_page(page)
 		self.emit('stored-page', page)
 
 	def store_page_async(self, page):
@@ -1451,8 +1197,7 @@ class Notebook(Object):
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
 		self.emit('store-page', page)
-		store = self.get_store(page)
-		func = store.store_page_async(page)
+		func = self.store.store_page_async(page)
 		try:
 			self.emit('stored-page', page)
 				# FIXME - stored-page is emitted early, but emitting from
@@ -1461,6 +1206,11 @@ class Notebook(Object):
 				# (we tried this and it broke autosave for some users!)
 		finally:
 			return func
+
+	def delete_page(self, path):
+		# TODO integrate operation with update links again
+		self.store.delete_page(path)
+		self.index.on_delete_page(path)
 
 	def revert_page(self, page):
 		'''Reload the page from the storage backend, discarding all
@@ -1479,362 +1229,7 @@ class Notebook(Object):
 		@param page: a L{Page} object
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
-		store = self.get_store(page)
-		store.revert_page(page)
-
-	def move_page(self, path, newpath, update_links=True, callback=None):
-		'''Move a page in the notebook
-
-		@param path: a L{Path} object for the old/current page name
-		@param newpath: a L{Path} object for the new page name
-		@param update_links: if C{True} all links B{from} and B{to} this
-		page and any of it's children will be updated to reflect the
-		new page name
-
-		The original page C{path} does not have to exist, in this case
-		only the link update will done. This is useful to update links
-		for a placeholder.
-
-		@param callback: a callback function which is called for each
-		page that is updates when updating links. It is called as::
-
-			callback(page, total=None)
-
-		Where:
-		  - C{page} is the L{Page} object for the page being updated
-		  - C{total} is an optional parameter for the number of pages
-		    still to go - if known
-
-		@raises PageExistsError: if C{newpath} already exists
-
-		@emits: move-page before the move
-		@emits: moved-page after succesful move
-		'''
-		if path == newpath:
-			return
-
-		if update_links and self.index.updating:
-			raise IndexBusyError, 'Index busy'
-			# Index need to be complete in order to be 100% sure we
-			# know all backlinks, so no way we can update links before.
-
-		page = self.get_page(path)
-		assert not page.modified, 'BUG: moving a page with uncomitted changes'
-
-		newpage = self.get_page(newpath)
-		if newpage.exists() and not newpage.isequal(page):
-			# Check isequal to allow case sensitive rename on
-			# case insensitive file system
-			raise PageExistsError, 'Page already exists: %s' % newpath.name
-
-		self.emit('move-page', path, newpath, update_links)
-		logger.debug('Move %s to %s (%s)', path, newpath, update_links)
-
-		# Collect backlinks
-		if update_links:
-			from zim.index import LINK_DIR_BACKWARD
-			backlinkpages = set()
-			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
-				backlinkpages.add(l.source)
-
-			if page.haschildren:
-				for child in self.index.walk(path):
-					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
-						backlinkpages.add(l.source)
-
-		# Do the actual move (if the page exists)
-		if page.exists():
-			store = self.get_store(path)
-			newstore = self.get_store(newpath)
-			if newstore == store:
-				store.move_page(path, newpath)
-			else:
-				assert False, 'TODO: move between stores'
-				# recursive + move attachments as well
-
-		self.flush_page_cache(path)
-		self.flush_page_cache(newpath)
-
-		# Update links in moved pages
-		page = self.get_page(newpath)
-		if page.hascontent:
-			if callback: callback(page)
-			self._update_links_from(page, path, page, path)
-			store = self.get_store(page)
-			store.store_page(page)
-			# do not use self.store_page because it emits signals
-		for child in self._no_index_walk(newpath):
-			if not child.hascontent:
-				continue
-			if callback: callback(child)
-			oldpath = path + child.relname(newpath)
-			self._update_links_from(child, oldpath, newpath, path)
-			store = self.get_store(child)
-			store.store_page(child)
-			# do not use self.store_page because it emits signals
-
-		# Update links to the moved page tree
-		if update_links:
-			# Need this indexed before we can resolve links to it
-			self.index.delete(path)
-			self.index.update(newpath)
-			#~ print backlinkpages
-			total = len(backlinkpages)
-			for p in backlinkpages:
-				if p == path or p.ischild(path):
-					continue
-				page = self.get_page(p)
-				if callback: callback(page, total=total)
-				self._update_links_in_page(page, path, newpath)
-				self.store_page(page)
-
-		self.emit('moved-page', path, newpath, update_links)
-
-	def _no_index_walk(self, path):
-		'''Walking that can be used when the index is not in sync'''
-		# TODO allow this to cross several stores
-		store = self.get_store(path)
-		for page in store.get_pagelist(path):
-			yield page
-			for child in self._no_index_walk(page): # recurs
-				yield child
-
-	@staticmethod
-	def _update_link_tag(elt, newhref):
-		newhref = str(newhref)
-		if elt.gettext() == elt.get('href'):
-			elt[:] = [newhref]
-		elt.set('href', newhref)
-		return elt
-
-	def _update_links_from(self, page, oldpath, parent, oldparent):
-		logger.debug('Updating links in %s (was %s)', page, oldpath)
-		tree = page.get_parsetree()
-		if not tree:
-			return
-
-		def replacefunc(elt):
-			href = elt.attrib['href']
-			type = link_type(href)
-			if type != 'page':
-				raise zim.formats.VisitorSkip
-
-			hrefpath = self.resolve_path(href, source=page)
-			oldhrefpath = self.resolve_path(href, source=oldpath)
-			#~ print 'LINK', oldhrefpath, '->', hrefpath
-			if hrefpath != oldhrefpath:
-				if (hrefpath == page or hrefpath.ischild(page)) \
-				and (oldhrefpath == oldpath or oldhrefpath.ischild(oldpath)):
-					#~ print '\t.. Ignore'
-					raise zim.formats.VisitorSkip
-				else:
-					newhref = self.relative_link(page, oldhrefpath)
-					#~ print '\t->', newhref
-					return self._update_link_tag(elt, newhref)
-			elif (hrefpath == oldparent or hrefpath.ischild(oldparent)):
-				# Special case where we e.g. link to our own children using
-				# a common parent between old and new path as an anchor for resolving
-				newhrefpath = parent
-				if hrefpath.ischild(oldparent):
-					newhrefpath = parent + hrefpath.relname(oldparent)
-				newhref = self.relative_link(page, newhrefpath)
-				#~ print '\t->', newhref
-				return self._update_link_tag(elt, newhref)
-			else:
-				raise zim.formats.VisitorSkip
-
-		tree.replace(zim.formats.LINK, replacefunc)
-		page.set_parsetree(tree)
-
-	def _update_links_in_page(self, page, oldpath, newpath):
-		# Maybe counter intuitive, but pages below oldpath do not need
-		# to exist anymore while we still try to resolve links to these
-		# pages. The reason is that all pages that could link _upward_
-		# to these pages are below and are moved as well.
-		logger.debug('Updating links in %s to %s (was: %s)', page, newpath, oldpath)
-		tree = page.get_parsetree()
-		if not tree:
-			logger.warn('Page turned out to be empty: %s', page)
-			return
-
-		def replacefunc(elt):
-			href = elt.attrib['href']
-			type = link_type(href)
-			if type != 'page':
-				raise zim.formats.VisitorSkip
-
-			hrefpath = self.resolve_path(href, source=page)
-			#~ print 'LINK', hrefpath
-			if hrefpath == oldpath:
-				newhrefpath = newpath
-				#~ print '\t==', oldpath, '->', newhrefpath
-			elif hrefpath.ischild(oldpath):
-				rel = hrefpath.relname(oldpath)
-				newhrefpath = newpath + rel
-				#~ print '\t>', oldpath, '->', newhrefpath
-			else:
-				raise zim.formats.VisitorSkip
-
-			newhref = self.relative_link(page, newhrefpath)
-			return self._update_link_tag(elt, newhref)
-
-		tree.replace(zim.formats.LINK, replacefunc)
-		page.set_parsetree(tree)
-
-	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
-		'''Rename page to a page in the same namespace but with a new
-		basename.
-
-		This is similar to moving within the same namespace, but
-		conceptually different in the user interface. Internally
-		L{move_page()} is used here as well.
-
-		@param path: a L{Path} object for the old/current page name
-		@param newbasename: new name as string
-		@param update_heading: if C{True} the first heading in the
-		page will be updated to the new name
-		@param update_links: if C{True} all links B{from} and B{to} this
-		page and any of it's children will be updated to reflect the
-		new page name
-		@param callback: see L{move_page()} for details
-		'''
-		logger.debug('Rename %s to "%s" (%s, %s)',
-			path, newbasename, update_heading, update_links)
-
-		newbasename = self.cleanup_pathname(newbasename)
-		newpath = Path(path.namespace + ':' + newbasename)
-		if newbasename.lower() != path.basename.lower():
-			# allow explicit case-sensitive renaming
-			newpath = self.index.resolve_case(
-				newbasename, namespace=path.parent) or newpath
-
-		self.move_page(path, newpath, update_links, callback)
-		if update_heading:
-			page = self.get_page(newpath)
-			tree = page.get_parsetree()
-			if not tree is None:
-				tree.set_heading(newbasename)
-				page.set_parsetree(tree)
-				self.store_page(page)
-
-		return newpath
-
-	def delete_page(self, path, update_links=True, callback=None):
-		'''Delete a page from the notebook
-
-		@param path: a L{Path} object
-		@param update_links: if C{True} pages linking to the
-		deleted page will be updated and the link are removed.
-		@param callback: see L{move_page()} for details
-
-		@returns: C{True} when the page existed and was deleted,
-		C{False} when the page did not exist in the first place.
-
-		Raises an error when delete failed.
-
-		@emits: delete-page before the actual delete
-		@emits: deleted-page after succesful deletion
-		'''
-		return self._delete_page(path, update_links, callback)
-
-	def trash_page(self, path, update_links=True, callback=None):
-		'''Move a page to Trash
-
-		Like L{delete_page()} but will use the system Trash (which may
-		depend on the OS we are running on). This is used in the
-		interface as a more user friendly version of delete as it is
-		undoable.
-
-		@param path: a L{Path} object
-		@param update_links: if C{True} pages linking to the
-		deleted page will be updated and the link are removed.
-		@param callback: see L{move_page()} for details
-
-		@returns: C{True} when the page existed and was deleted,
-		C{False} when the page did not exist in the first place.
-
-		Raises an error when trashing failed.
-
-		@raises TrashNotSupportedError: if trashing is not supported by
-		the storage backend or when trashing is explicitly disabled
-		for this notebook.
-
-		@emits: delete-page before the actual delete
-		@emits: deleted-page after succesful deletion
-		'''
-		if self.config['Notebook']['disable_trash']:
-			raise TrashNotSupportedError, 'disable_trash is set'
-		return self._delete_page(path, update_links, callback, trash=True)
-
-	def _delete_page(self, path, update_links=True, callback=None, trash=False):
-		# Collect backlinks
-		indexpath = self.index.lookup_path(path)
-		if update_links and indexpath:
-			from zim.index import LINK_DIR_BACKWARD
-			backlinkpages = set()
-			for l in self.index.list_links(path, LINK_DIR_BACKWARD):
-				backlinkpages.add(l.source)
-
-			page = self.get_page(path)
-			if page.haschildren:
-				for child in self.index.walk(path):
-					for l in self.index.list_links(child, LINK_DIR_BACKWARD):
-						backlinkpages.add(l.source)
-		else:
-			update_links = False
-
-		# actual delete
-		self.emit('delete-page', path)
-
-		store = self.get_store(path)
-		if trash:
-			existed = store.trash_page(path)
-		else:
-			existed = store.delete_page(path)
-
-		self.flush_page_cache(path)
-		path = Path(path.name)
-
-		# Update links to the deleted page tree
-		if update_links:
-			#~ print backlinkpages
-			total = len(backlinkpages)
-			for p in backlinkpages:
-				if p == path or p.ischild(path):
-					continue
-				page = self.get_page(p)
-				if callback: callback(page, total=total)
-				self._remove_links_in_page(page, path)
-				self.store_page(page)
-
-		# let everybody know what happened
-		self.emit('deleted-page', path)
-
-		return existed
-
-	def _remove_links_in_page(self, page, path):
-		logger.debug('Removing links in %s to %s', page, path)
-		tree = page.get_parsetree()
-		if not tree:
-			return
-
-		def replacefunc(elt):
-			href = elt.attrib['href']
-			type = link_type(href)
-			if type != 'page':
-				raise zim.formats.VisitorSkip
-
-			hrefpath = self.resolve_path(href, source=page)
-			#~ print 'LINK', hrefpath
-			if hrefpath == path \
-			or hrefpath.ischild(path):
-				# Replace the link by it's text
-				return zim.formats.DocumentFragment(*elt)
-			else:
-				raise zim.formats.VisitorSkip
-
-		tree.replace(zim.formats.LINK, replacefunc)
-		page.set_parsetree(tree)
+		self.store.revert_page(page)
 
 	def resolve_file(self, filename, path=None):
 		'''Resolve a file or directory path relative to a page or
@@ -1965,8 +1360,7 @@ class Notebook(Object):
 		C{None} is returned the store implementation does not support
 		an attachments folder for this page.
 		'''
-		store = self.get_store(path)
-		return store.get_attachments_dir(path)
+		return self.store.get_attachments_dir(path)
 
 	def get_template(self, path):
 		'''Get a template for the intial text on new pages
@@ -1996,44 +1390,6 @@ class Notebook(Object):
 		parser = zim.formats.get_parser('wiki')
 		return parser.parse(lines)
 
-	def walk(self, path=None):
-		'''Generator function which iterates through all pages, depth first.
-
-		@note: Only use this method when you really want L{Page} objects
-		otherwise use L{index.walk()<zim.index.Index.walk()>}.
-
-		@param path: a L{Path} object. If given, this method only iterates
-		through sub-pages of this path, when C{None} iterates through
-		whole notebook.
-		'''
-		if path == None:
-			path = Path(':')
-		for p in self.index.walk(path):
-			page = self.get_page(p)
-			yield page
-
-	def get_pagelist_indexkey(self, path):
-		'''Returns a key for the pagelist
-
-		Used by the index to check if the index is still up to date
-
-		@param path: a L{Path} object
-		@returns: a string
-		'''
-		store = self.get_store(path)
-		return store.get_pagelist_indexkey(path)
-
-	def get_page_indexkey(self, path):
-		'''Returns a key for the page
-
-		Used by the index to check if the index is still up to date
-
-		@param path: a L{Path} object
-		@returns: a string
-		'''
-		store = self.get_store(path)
-		return store.get_page_indexkey(path)
-
 	@property
 	def needs_upgrade(self):
 		'''Checks if the notebook is uptodate with the current zim version'''
@@ -2044,89 +1400,20 @@ class Notebook(Object):
 		except KeyError:
 			return True
 
-	def upgrade_notebook(self, callback=None):
-		'''Tries to update older notebook to format supported by the
-		latest version
 
-		@todo: document exact actions of this method
-
-		@param callback: callback function that is called for each
-		page that is updated, if it returns C{False} the upgrade
-		is cancelled
-		'''
-		# Currently we just assume upgrade from zim < 0.43
-		# may need to add more sophisticated logic later..
-		#
-		# We check for links based on old pagename cleanup rules
-		# also we write every page, just to be sure they are stored in
-		# the latest wiki format.
-		logger.info('Notebook update started')
-		self.index.ensure_update(callback=callback)
-
-		candidate_re = re.compile('[\W_]')
-		for page in self.walk():
-			if callback:
-				cont = callback(page)
-				if not cont:
-					logger.info('Notebook update cancelled')
-					return
-
-			try:
-				tree = page.get_parsetree()
-			except:
-				# Some issue we can't fix
-				logger.exception('Error while parsing page: "%s"', page.name)
-				tree = None
-
-			if tree is None:
-				continue
-
-			changed = False
-			for tag in tree.getiterator('link'):
-				href = tag.attrib['href']
-				type = link_type(href)
-				if type == 'page' and candidate_re.search(href):
-					# Skip if we can resolve it already
-					try:
-						link = self.resolve_path(href, source=page)
-						link = self.get_page(link)
-					except:
-						pass
-					else:
-						if link and link.hascontent:
-							# Do not check haschildren here, children could be placeholders as well
-							continue
-
-					# Otherwise check if old version would have found a match
-					try:
-						newhref = self.cleanup_pathname_zim028(href)
-						if newhref != href:
-							link = self.resolve_path(newhref, source=page)
-							link = self.get_page(link)
-						else:
-							link = None
-					except:
-						pass
-					else:
-						if link and link.hascontent:
-							# Do not check haschildren here, children could be placeholders as well
-							tag.attrib['href'] = newhref
-							changed = True
-							logger.info('Changed link "%s" to "%s"', href, newhref)
-
-			# Store this page
-			try:
-				if changed:
-					page.set_parsetree(tree)
-
-				self.store_page(page)
-			except:
-				logger.exception('Could not store page: "%s"', page.name)
-
-		# Update the version and we are done
-		self.config['Notebook']['version'] = '.'.join(map(str, DATA_FORMAT_VERSION))
-		self.config.write()
-		logger.info('Notebook update done')
+_pagename_reduce_colon_re = re.compile('::+')
+_pagename_invalid_char_re = re.compile(
+	'(' +
+		'^\W|(?<=:)\W' +
+	'|' +
+		'[' + re.escape(''.join(
+			("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
+		)) + ']' +
+	')',
+re.UNICODE)
+	# This pattern matches a non-alphanumber at start or after the ':'
+	# seperator. It also matches any invalid character.
+	# The UNICODE flag is used to make the alphanumber check international.
 
 
 class Path(object):
@@ -2154,39 +1441,68 @@ class Path(object):
 
 	__slots__ = ('name',)
 
+	@staticmethod
+	def assertValidPageName(name):
+		'''Raises an C{AssertionError} if C{name} does not represent
+		a valid page name.
+		This is a strict check, most names that fail this test can still
+		be cleaned up by the L{makeValidPageName()}.
+		@param name: a string
+		@raises AssertionError: if the name is not valid
+		'''
+		assert isinstance(name, basestring)
+		if not name.strip(':') \
+		or _pagename_reduce_colon_re.search(name) \
+		or _pagename_invalid_char_re.search(name):
+			raise AssertionError, 'Not a valid page name: %s' % name
+
+	@staticmethod
+	def makeValidPageName(name):
+		'''Remove any invalid characters from the string and return
+		a valid page name. Only string that can not be turned in
+		somthing valid is a string that reduces to an empty string
+		after removing all invalid characters.
+		@param name: a string
+		@returns: a string
+		@raises ValueError: when the result would be an empty string
+		'''
+		newname = _pagename_reduce_colon_re.sub(':', name.strip(':'))
+		newname = _pagename_invalid_char_re.sub('', newname)
+		if newname:
+			return newname
+		else:
+			raise ValueError, 'Not a valid page name: %s' % name
+
 	def __init__(self, name):
 		'''Constructor.
 
-		@param name: the absolute page name in the right case.
+		@param name: the absolute page name in the right case as a
+		string or as a tuple strings
 
 		The name ":" is used as a special case to construct a path for
 		the toplevel namespace in a notebook.
 
-		@note: This class does not do any checks for the sanity of
+		@note: This constructor does not do any checks for the sanity of
 		the path name. Never construct a path directly from user input,
-		but always use either L{Notebook.resolve_path()} or check the
-		name with L{Notebook.cleanup_pathname()} first.
+		but use either L{index.lookup_from_user_input()} or first check the
+		name with L{makeValidPageName()}
 		'''
 		if isinstance(name, (list, tuple)):
-			name = ':'.join(name)
-
-		if name == ':': # root namespace
-			self.name = ''
+			self.name = ':'.join(name)
 		else:
 			self.name = name.strip(':')
 
 		try:
 			self.name = unicode(self.name)
 		except UnicodeDecodeError:
-			raise Error, 'BUG: invalid input, page names should be in ascii, or given as unicode'
+			raise ValueError, 'BUG: invalid input, page names should be in ascii, or given as unicode'
 
 	@classmethod
 	def new_from_zim_config(klass, string):
 		'''Returns a new object based on the string representation for
-		that path
+		that path.
 		'''
-		string = Notebook.cleanup_pathname(string)
-		return klass(string)
+		return klass( klass.makeValidPageName(string) )
 
 	def serialize_zim_config(self):
 		'''Returns the name for serializing this path'''
@@ -2240,7 +1556,7 @@ class Path(object):
 		'''C{True} when this Path represents the top level namespace'''
 		return self.name == ''
 
-	def relname(self, path):
+	def relname(self, path): # TODO make this use HRef !
 		'''Get a part of this path relative to a parent path
 
 		@param path: a parent L{Path}
@@ -2318,6 +1634,68 @@ class Path(object):
 					return Path(':'.join(parent))
 			else:
 				return Path(':'.join(parent))
+
+
+HREF_REL_ABSOLUTE = 0
+HREF_REL_FLOATING = 1
+HREF_REL_RELATIVE = 2
+
+class HRef(object):
+
+	__slots__ = ('rel', 'names', 'sortkeys')
+
+	@classmethod
+	def new_from_wiki_link(klass, href):
+		'''Constructor that constructs a L{HRef} object for a link as
+		writen in zim's wiki syntax.
+		@param href: a string for the link
+		@returns: a L{HRef} object
+		@raises ValueError: when the string could not be parsed
+		(see L{Path.makeValidPageName()})
+
+		@note: This mehtod HRef class assumes the logic of our wiki links
+		for other formats, a separate constructor may be needed
+		'''
+
+		if href.startswith(':'):
+			rel = HREF_REL_ABSOLUTE
+		elif href.startswith('+'):
+			rel = HREF_REL_RELATIVE
+		else:
+			rel = HREF_REL_FLOATING
+
+		names = Path.makeValidPageName(href.lstrip('+'))
+			# Can raise ValueError if link would reduce to empty string
+
+		sortkeys = ':'.join(natural_sort_key(n) for n in names.split(':'))
+		assert names.count(':') == sortkeys.count(':'), 'BUG: conflict in usage of the ":" character'
+
+		return klass(rel, names, sortkeys)
+
+	def __init__(self, rel, names, sortkeys):
+		self.rel = rel
+		self.names = names
+		self.sortkeys = sortkeys
+
+	def __str__(self):
+		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
+		return '<%s: %s %s>' % (self.__class__.__name__, rel, self.names)
+
+	def parts(self):
+		return zip(
+			self.names.split(':'),
+			self.sortkeys.split(':')
+		)
+
+	def anchor_key(self):
+		'''Returns the first part of C{sortkeys}, this is used to anchor
+		the "floating" link type by looking for matching of this part
+		in the path.
+		'''
+		if ':' in self.sortkeys:
+			return self.sortkeys.split(':', 1)[0]
+		else:
+			return self.sortkeys
 
 
 class Page(Path):
@@ -2531,34 +1909,38 @@ class Page(Path):
 		else:
 			self.set_parsetree(format.Parser().parse(text))
 
-	def get_links(self):
-		'''Generator for links in the page content
+	def iter_page_href(self):
+		'''Generator for page links in the text
 
-		This method gives the raw links from the content, if you want
-		nice L{Link} objects use
-		L{index.list_links()<zim.index.Index.list_links()>} instead.
+		This method gives the raw links from the content, which are used
+		by the indexer. If you want nice L{Link} objects use
+		L{index.links.list_links()} instead.
 
-		@returns: yields a list of 3-tuples C{(type, href, attrib)}
-		where:
-		  - C{type} is the link type (e.g. "page" or "file")
-		  - C{href} is the link itself
-		  - C{attrib} is a dict with link properties
+		@returns: yields a list of unique L{HRef} objects
 		'''
 		# FIXME optimize with a ParseTree.get_links that does not
 		#       use Node
-		tree = self.get_parsetree()
-		if tree:
+
+		def my_href_iter(tree):
 			for elt in tree.findall(zim.formats.LINK):
 				href = elt.attrib.pop('href')
-				type = link_type(href)
-				yield type, href, elt.attrib
+				yield href
 
 			for elt in tree.findall(zim.formats.IMAGE):
-				if not 'href' in elt.attrib:
-					continue
-				href = elt.attrib.pop('href')
-				type = link_type(href)
-				yield type, href, elt.attrib
+				if 'href' in elt.attrib:
+					yield elt.attrib.pop('href')
+
+		tree = self.get_parsetree()
+		if tree:
+			seen = set()
+			for href in my_href_iter(tree):
+				if href not in seen \
+				and link_type(href) == 'page':
+					seen.add(href)
+					try:
+						yield HRef.new_from_wiki_link(href)
+					except ValueError:
+						pass
 
 	def get_tags(self):
 		'''Generator for tags in the page content
@@ -2575,7 +1957,7 @@ class Page(Path):
 				name = elt.gettext()
 				if not name in seen:
 					seen.add(name)
-					yield name, elt.attrib
+					yield name.lstrip('@'), elt.attrib
 
 	def get_title(self):
 		tree = self.get_parsetree()
@@ -2622,7 +2004,7 @@ class IndexPage(Page):
 		builder = zim.formats.ParseTreeBuilder()
 
 		def add_namespace(path):
-			pagelist = self.notebook.index.list_pages(path)
+			pagelist = self.notebook.pages.list_pages(path)
 			builder.start(zim.formats.BULLETLIST)
 			for page in pagelist:
 				builder.start(zim.formats.LISTITEM)
