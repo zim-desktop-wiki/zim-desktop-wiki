@@ -7,7 +7,7 @@ import tests
 import gtk
 import pango
 
-from zim.index import Index, IndexPath, IndexTag
+from zim.notebook.index import Index, IndexPath, IndexTag
 from zim.notebook import Path
 from zim.gui.pageindex import FGCOLOR_COL, \
 	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL

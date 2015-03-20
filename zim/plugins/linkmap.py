@@ -8,8 +8,7 @@ import gtk
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
-from zim.notebook import Path
-from zim.index import LINK_DIR_BOTH
+from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
 from zim.gui.widgets import ui_environment, Dialog, IconButton

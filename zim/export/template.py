@@ -84,8 +84,7 @@ from zim.utils import OrderedDict
 from zim.fs import format_file_size
 from zim.environ import environ
 
-from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
-from zim.notebook import Path
+from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
 from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
 	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING

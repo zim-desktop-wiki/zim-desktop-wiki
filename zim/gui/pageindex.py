@@ -16,11 +16,13 @@ import logging
 
 from functools import partial
 
-from zim.index import PagesView, IndexPath, \
+from zim.signals import ConnectorMixin
+from zim.notebook import Path
+from zim.notebook.index import PagesView, IndexPath, \
 	ROOT_PATH, IndexNotFoundError, \
 	get_indexpath_for_treepath_factory, \
 	get_treepath_for_indexpath_factory
-from zim.notebook import Path
+
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
 	populate_popup_add_separator, encode_markup_text, \
 	ErrorDialog
@@ -28,7 +30,6 @@ from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
-from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.gui.pageindex')

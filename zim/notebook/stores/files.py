@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Store module for storing pages as files.
 
@@ -11,23 +11,30 @@ page names are mapped almost one on one to filesystem paths::
 	page            notebook_folder/page.txt
 	page:subpage    notebook_folder/page/subpage.txt
 
-(The exact file extension can be determined by the source format used.)
 '''
 
 import sys
 import logging
 
+logger = logging.getLogger('zim.notebook.stores.files')
+
 import zim.fs
 import zim.datetimetz as datetime
+
 from zim.fs import File, Dir, FilteredDir, FileNotFoundError
 from zim.utils import FunctionThread
 from zim.formats import get_format
-from zim.notebook import Path, Page, LookupError, PageExistsError
-from zim.stores import StoreClass, encode_filename, decode_filename
 from zim.config import HeadersDict
 from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
 
-logger = logging.getLogger('zim.stores.files')
+
+from zim.notebook.page import Page
+
+
+from . import StoreClass, encode_filename, decode_filename, \
+	PageExistsError, PageNotFoundError
+
+
 
 
 class FilesStore(StoreClass):
@@ -36,6 +43,15 @@ class FilesStore(StoreClass):
 		'''Constructor
 		@param dir: a L{Dir} object
 		@param endofline: property for new L{File} objects
+
+		This property can be one of 'unix' or 'dos'. Typically this
+		property reflects the platform on which the notebook was created.
+
+		For page files etc. this convention should be used when writing
+		the file. This way a notebook can be edited from different
+		platforms and we avoid showing the whole file as changed after
+		every edit. (Especially important when a notebook is under
+		version control.)
 		'''
 		self.dir = dir
 		self.endofline = endofline
@@ -92,6 +108,7 @@ class FilesStore(StoreClass):
 
 	def store_page(self, page):
 		# FIXME assert page is ours and page is FilePage
+		# FIXME make explicit what errors to be raise on failures like read-only
 		page._store()
 
 	def store_page_async(self, page):
@@ -109,7 +126,7 @@ class FilesStore(StoreClass):
 		file = self._get_file(path)
 		dir = self._get_dir(path)
 		if not (file.exists() or dir.exists()):
-			raise LookupError, 'No such page: %s' % path.name
+			raise PageNotFoundError(path)
 
 		newfile = self._get_file(newpath)
 		newdir = self._get_dir(newpath)
@@ -119,9 +136,9 @@ class FilesStore(StoreClass):
 				# renaming on case-insensitive filesystem
 				pass
 			elif newfile.exists() or newdir.exists():
-				raise PageExistsError, 'Page already exists: %s' % newpath.name
+				raise PageExistsError(newpath)
 		elif newfile.exists() or newdir.exists():
-			raise PageExistsError, 'Page already exists: %s' % newpath.name
+			raise PageExistsError(newpath)
 
 		if file.exists():
 			file.rename(newfile)

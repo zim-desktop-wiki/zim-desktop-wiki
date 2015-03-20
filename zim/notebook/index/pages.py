@@ -2,16 +2,13 @@
 
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
 
-import sqlite3
-import threading
-import logging
 
 from datetime import datetime
 
-from zim.notebook import Path, HRef
 from zim.utils import natural_sort_key
-from zim.notebook import \
+from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 from .base import IndexViewBase, IndexerBase, \
@@ -24,10 +21,19 @@ ROOT_ID = 1 #: Constant for the ID of the root namespace in "pages"
 
 
 class IndexPath(Path):
+	'''Sub-class of L{Path} that tracks the index row ids of a path and
+	its parents.
+	'''
 
 	__slots__ = ('ids', 'id')
 
 	def __init__(self, name, ids):
+		'''Constructor
+		@param name: the full page name
+		@param ids: a tuple of page ids for all the parents of
+		this page and it's own page id (so linking all rows in the
+		page hierarchy for this page)
+		'''
 		Path.__init__(self, name) # FUTURE - optimize this away ??
 		self.id = ids[-1]
 		self.ids = tuple(ids)
@@ -55,6 +61,9 @@ class IndexPath(Path):
 		yield ROOT_PATH
 
 	def child_by_row(self, row):
+		'''Returns a L{IndexPathRow} object for the child page
+		represented by C{row}
+		'''
 		name = self.name + ':' + row['basename']
 		ids = self.ids + (row['id'],)
 		return IndexPathRow(name, ids, row)
@@ -64,33 +73,25 @@ ROOT_PATH = IndexPath(':', [ROOT_ID])
 
 
 class IndexPathRow(IndexPath):
-	'''Subclass of L{Path} but optimized for index lookups. Objects of
-	this class can be used anywhere where a L{Path} is required in the
-	API. However in the L{Index} API they are special because the
-	IndexPath also contains information which is cached in the
-	index.
+	'''Object representing a page L{Path} in the index, with data
+	for the corresponding row in the C{pages} table.
 
-	@ivar name: the full name of the path
-	@ivar parts: all the parts of the name (split on ":")
-	@ivar basename: the basename of the path (last part of the name)
-	@ivar namespace: the name for the parent page or empty string
-	@ivar isroot: C{True} when this Path represents the top level namespace
-	@ivar parent: the L{Path} object for the parent page
+	@ivar sortkey: the L{natural_sort_key()} for the basename
+	@ivar n_children: number of child pages in the index
 	@ivar hascontent: page has text content
-	@ivar haschildren: page has child pages
-	@ivar ctime: creation time of the page (currently unused)
-	@ivar mtime: modification time of the page (currently unused)
+	@ivar haschildren: page has child pages (C{n_children} > 0}
+	@ivar ctime: creation time of the page
+	@ivar mtime: modification time of the page
+	@ivar content_etag: unique key for the state of the page
+	@ivar children_etag: unique key for the state of the child folder
+	@ivar treepath: tuple of index numbers, reserved for use by
+	C{TreeStore} widgets
 	'''
-	## TODO update docs
-
-	# treepath is reserved for use by e.g. a treestore implementation
 
 	__slots__ = ('_row', 'treepath')
 
 	_attrib = (
-		'basename',
 		'sortkey',
-		'parent',
 		'n_children',
 		'ctime',
 		'mtime',
@@ -100,12 +101,11 @@ class IndexPathRow(IndexPath):
 
 	def __init__(self, name, ids, row):
 		'''Constructor
-
 		@param name: the full page name
-		@param indexpath: a tuple of page ids for all the parents of
+		@param ids: a tuple of page ids for all the parents of
 		this page and it's own page id (so linking all rows in the
 		page hierarchy for this page)
-		@param row: optional sqlite3.Row for row for this page in the
+		@param row: a C{sqlite3.Row} object for this page in the
 		"pages" table, specifies most other attributes for this object
 		The property C{hasdata} is C{True} when the row is set.
 		'''
@@ -401,7 +401,7 @@ class PagesView(IndexViewBase):
 	def lookup_from_user_input(self, name, reference=None):
 		'''Lookup a pagename based on user input
 		@param name: the user input as string
-		@reference: a L{Path} in case reletive links are supported as
+		@param reference: a L{Path} in case reletive links are supported as
 		customer input
 		@returns: a L{IndexPath} or L{Path} for C{name}
 		@raises ValueError: when C{name} would reduce to empty string

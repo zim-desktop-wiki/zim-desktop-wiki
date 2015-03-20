@@ -11,7 +11,7 @@ import tests
 
 from zim.formats import *
 from zim.fs import File
-from zim.notebook import Path, Link
+from zim.notebook import Path
 from zim.parsing import link_type
 from zim.templates import Template
 
@@ -384,8 +384,6 @@ A list
 		for elt in tree.findall(LINK):
 			self.assertTrue(elt.gettext())
 			self.assertTrue(elt.get('href'))
-			link = Link(self.page, **elt.attrib)
-			self.assertEqual(elt.attrib['href'], link.href)
 			found += 1
 		self.assertEqual(found, 3)
 

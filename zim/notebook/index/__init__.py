@@ -3,6 +3,9 @@
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
+from __future__ import with_statement
+
+
 ### ISSUES ###
 #
 # Links should never resolve based on placeholders, this makes the
@@ -50,12 +53,15 @@
 # way interactive changes from the GUI always are handled immediatly.
 
 
+import sqlite3
 import threading
 import logging
 
-logger = logging.getLogger('zim.index')
+logger = logging.getLogger('zim.notebook.index')
 
-from .base import IndexConsistencyError
+from zim.utils.threading import WorkerThread
+
+from .base import *
 from .pages import *
 from .links import *
 from .tags import *
@@ -189,7 +195,7 @@ class Index(object):
 		if self._thread and self._thread.is_alive():
 			pass
 		else:
-			self._thread = WorkerThread(indexer)
+			self._thread = WorkerThread(indexer, indexer.__class__.__name__)
 			self._thread.start()
 
 	def stop_update(self):
@@ -197,10 +203,14 @@ class Index(object):
 			self._thread.stop()
 			self._thread = None
 
-	def wait_for_update(self):
+	def wait_for_update(self, timeout=None):
 		if self._thread:
-			self._thread.join()
-			self._thread = None
+			self._thread.join(timeout)
+			if self._thread.is_alive():
+				return True # keep waiting
+			else:
+				self._thread = None
+		return False
 
 	def flush(self):
 		'''Delete all data in the index'''
@@ -336,25 +346,6 @@ class IndexInternal(object):
 		# TODO also check for incoming links / turn into palceholder if so
 		# in that case trigger in turn parents to be flagged as
 		# placeholder as well !
-
-
-class WorkerThread(threading.Thread):
-
-	def __init__(self, iterable):
-		threading.Thread.__init__(self)
-		self.iterable = iterable
-		self._stop = threading.Event()
-
-	def stop(self):
-		self._stop.set()
-		self.join()
-
-	def run(self):
-		for i in self.iterable:
-			if self._stop.is_set():
-				break
-			else:
-				continue
 
 
 class TreeIndexer(IndexInternal):
@@ -719,21 +710,3 @@ class DBChangeContext(object):
 			self.change_lock.release()
 
 		return False # re-raise error
-
-
-
-if __name__ == '__main__': #pragma: no cover
-	import sys
-	from zim.fs import Dir, File
-	from zim.notebook import Notebook, Path
-
-	logging.basicConfig()
-
-	dbfile = sys.argv[1]
-	notebookdir = sys.argv[2]
-
-	notebook = Notebook(Dir(notebookdir))
-
-	index = Index.new_from_file(File(dbfile), notebook.store)
-	index.flush()
-	index.update()

@@ -48,8 +48,10 @@ import re
 import logging
 
 from zim.parsing import split_quoted_strings, unescape_quoted_string, Re
-from zim.notebook import Path, PageNameError
-from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD, IndexNotFoundError
+from zim.notebook import Path, \
+	PageNotFoundError, IndexNotFoundError, \
+	LINK_DIR_BACKWARD, LINK_DIR_FORWARD
+
 
 logger = logging.getLogger('zim.search')
 
@@ -485,7 +487,10 @@ class SearchSelection(PageSelection):
 		if scope:
 			def page_generator():
 				for path in scope:
-					yield self.notebook.get_page(path)
+					try:
+						yield self.notebook.get_page(path)
+					except PageNotFoundError:
+						pass
 			generator = page_generator()
 		else:
 			generator = self.notebook.walk()

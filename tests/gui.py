@@ -11,7 +11,8 @@ import gtk
 
 from zim.errors import Error
 from zim.config import ConfigManager, VirtualConfigManager
-from zim.notebook import get_notebook_list, Path, Page, NotebookInfo, NotebookConfig
+from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
+from zim.notebook.notebook import NotebookConfig
 from zim.formats import ParseTree
 from zim.fs import File, Dir
 from zim.gui.clipboard import Clipboard

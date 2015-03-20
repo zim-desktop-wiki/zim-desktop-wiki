@@ -2,7 +2,10 @@
 
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from zim.notebook import HRef, \
+from __future__ import with_statement
+
+
+from zim.notebook.page import HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 

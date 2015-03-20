@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
+
+from __future__ import with_statement
+
 
 import os
 import sys
@@ -450,9 +453,11 @@ def new_notebook(fakedir=None):
 	(hence it being 'fake').
 	'''
 	from zim.fs import Dir
+	from zim.config import VirtualConfigBackend
 	from zim.notebook import Notebook, Path
-	from zim.stores.memory import MemoryStore
-	from zim.index import Index, MemoryDBConnection
+	from zim.notebook.notebook import NotebookConfig
+	from zim.notebook.stores.memory import MemoryStore
+	from zim.notebook.index import Index, MemoryDBConnection
 
 	global _notebook_data
 	if not _notebook_data: # run this one time only
@@ -480,13 +485,23 @@ def new_notebook(fakedir=None):
 		db.executescript(sql)
 	index = Index(db_conn, store)
 
-	notebook = Notebook(index=index, store=store)
-	notebook.testdata_manifest = manifest
+	### XXX - Big HACK here - Get better classes for this - XXX ###
+	dir = VirtualConfigBackend()
+	file = dir.file('notebook.zim')
+	file.dir = dir
+	file.dir.basename = 'Unnamed Notebook'
+	###
+	config = NotebookConfig(file)
 
 	if fakedir:
 		dir = Dir(fakedir)
-		notebook.dir = dir
+		cache_dir = dir.subdir('.zim')
+	else:
+		dir = None
+		cache_dir = None
 
+	notebook = Notebook(dir, cache_dir, config, store, index)
+	notebook.testdata_manifest = manifest
 	return notebook
 
 
@@ -503,14 +518,16 @@ def new_files_notebook(dir):
 
 	dir = Dir(dir)
 	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	store = notebook.get_store(':')
+	notebook = Notebook.new_from_dir(dir)
+
+	store = notebook.store
 	manifest = []
 	for name, text in WikiTestData:
 		manifest.append(name)
 		page = store.get_page(Path(name))
 		page.parse('wiki', text)
 		store.store_page(page)
+
 	notebook.testdata_manifest = _expand_manifest(manifest)
 	notebook.index.update()
 

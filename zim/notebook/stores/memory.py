@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Store module that keeps a tree of pages in memory'''
 
 import time
 import copy
+import hashlib
 
 from zim.formats import get_format
 
-from zim.stores import StoreClass
+from zim.notebook.page import Page
 
-from zim.notebook import Page, LookupError, PageExistsError
+from . import StoreClass, PageExistsError, PageNotFoundError
 
 
 # We could also just use time stamps here to determine etags
@@ -19,7 +20,6 @@ from zim.notebook import Page, LookupError, PageExistsError
 # for the test suite. It helps to verify that etags are really treated
 # as etags and not as timestamps.
 def _md5(content):
-	import hashlib
 	m = hashlib.md5()
 	if isinstance(content, unicode):
 		m.update(content.encode('utf-8'))
@@ -134,11 +134,11 @@ class MemoryStore(StoreClass):
 	def move_page(self, path, newpath):
 		node = self.get_node(path)
 		if node is None:
-			raise LookupError, 'No such page: %s' % path.name
+			raise PageNotFoundError(path)
 
 		newnode = self.get_node(newpath)
 		if not newnode is None:
-			raise PageExistsError, 'Page already exists: %s' % newpath.name
+			raise PageExistsError(newpath)
 
 		self.delete_page(path)
 

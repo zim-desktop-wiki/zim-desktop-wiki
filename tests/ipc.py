@@ -16,7 +16,7 @@ import zim
 
 from zim.fs import File, get_tmpdir
 from zim.notebook import NotebookInfo, Path, Page
-from zim.stores.files import FileStorePage
+from zim.notebook.stores.files import FileStorePage
 
 
 @tests.slowTest

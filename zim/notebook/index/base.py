@@ -5,7 +5,7 @@
 
 import logging
 
-logger = logging.getLogger('zim.index')
+logger = logging.getLogger('zim.notebook.index')
 
 
 from zim.signals import SIGNAL_BEFORE, SIGNAL_AFTER

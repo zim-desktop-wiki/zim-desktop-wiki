@@ -11,10 +11,11 @@ import pango
 import logging
 
 from zim.plugins import PluginClass, extends, WindowExtension
-from zim.gui.pageindex import PageTreeStore, PageTreeIter, PageTreeView, \
+#~ PageTreeIter
+from zim.gui.pageindex import PageTreeStore, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
-from zim.index import IndexPath, IndexTag
+from zim.notebook.index import IndexPath, IndexTag
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 from zim.signals import ConnectorMixin

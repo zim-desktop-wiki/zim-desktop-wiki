@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 '''The ExportLinker object translates links in zim pages to URLS
@@ -19,8 +19,7 @@ from zim.formats import BaseLinker
 
 from zim.fs import File, PathLookupError
 from zim.config import data_file
-from zim.notebook import PageNameError, interwiki_link
-from zim.stores import encode_filename
+from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
 from zim.formats import BaseLinker
 
@@ -226,10 +225,13 @@ class StubLayout(ExportLayout):
 		self.resources_dir = resources_dir
 
 	def page_file(self, page):
-		page = self.notebook.get_page(page)
-		if hasattr(page, 'source') and isinstance(page.source, File):
-			return page.source
-		else:
+		try:
+			page = self.notebook.get_page(page)
+			if hasattr(page, 'source') and isinstance(page.source, File):
+				return page.source
+			else:
+				return None
+		except PageNotFoundError:
 			return None
 
 	def attachments_dir(self, page):

@@ -2,6 +2,9 @@
 
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
+
 import tests
 
 import copy
@@ -11,10 +14,10 @@ from functools import partial
 
 from zim.fs import Dir
 from zim.notebook import Path
-from zim.stores.memory import MemoryStore
-from zim.stores.files import FilesStore
+from zim.notebook.stores.memory import MemoryStore
+from zim.notebook.stores.files import FilesStore
 
-from zim.index import *
+from zim.notebook.index import *
 
 
 PAGES = {

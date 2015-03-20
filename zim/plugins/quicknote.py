@@ -11,7 +11,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.command import Command
 from zim.actions import action
 from zim.config import data_file, ConfigManager
-from zim.notebook import Notebook, PageNameError, NotebookInfo, \
+from zim.notebook import Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
 from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \

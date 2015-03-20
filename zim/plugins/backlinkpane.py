@@ -9,9 +9,8 @@ import gtk
 import pango
 
 from zim.plugins import PluginClass, extends, WindowExtension
-from zim.notebook import Path
+from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
-from zim.index import LINK_DIR_BACKWARD
 
 
 class BackLinksPanePlugin(PluginClass):

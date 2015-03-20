@@ -48,7 +48,7 @@ import zim.fs
 
 from zim.fs import File, Dir
 from zim.config import value_is_coord
-from zim.notebook import Notebook, Path, PageNameError
+from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
 from zim.signals import ConnectorMixin
 
@@ -1928,6 +1928,7 @@ class PageEntry(InputEntry):
 		'''
 		name = self.get_text().decode('utf-8').strip()
 		if self._allow_select_root and (name == ':' or not name):
+			self.set_input_valid(True)
 			return Path(':')
 		elif not name:
 			self.set_input_valid(False)
@@ -1935,20 +1936,26 @@ class PageEntry(InputEntry):
 		else:
 			if self.subpaths_only and not name.startswith('+'):
 				name = '+' + name
+
 			try:
 				if self.notebook:
 					path = self.notebook.pages.lookup_from_user_input(
 						name, reference=self.notebookpath
 					)
 				else:
+					name = Path.makeValidPageName(name)
 					path = Path(name)
-			except PageNameError:
+			except ValueError:
 				self.set_input_valid(False)
 				return None
 			else:
+				self.set_input_valid(True)
 				if self.existing_only:
-					page = self.notebook.get_page(path)
-					if not (page and page.exists()):
+					try:
+						page = self.notebook.get_page(path)
+						if not page.exists():
+							return None
+					except PageNotFoundError:
 						return None
 				return path
 
@@ -2058,7 +2065,7 @@ class PageEntry(InputEntry):
 
 			try:
 				path = self.notebook.pages.lookup_from_user_input(link, reference)
-			except PageNameError:
+			except ValueError:
 				return
 
 		# Fill model with pages from pathname

@@ -2,6 +2,7 @@
 
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
 
 from .base import IndexerBase, IndexViewBase, IndexNotFoundError
 from .pages import PagesViewInternal

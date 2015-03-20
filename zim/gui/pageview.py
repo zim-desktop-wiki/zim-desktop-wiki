@@ -30,7 +30,7 @@ import zim.formats
 from zim.fs import File, Dir, normalize_file_uris
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
-from zim.notebook import Path, interwiki_link, HRef
+from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
@@ -6791,7 +6791,11 @@ class MoveTextDialog(Dialog):
 		newpage = self.form['page']
 		if not newpage:
 			return False
-		newpage = self.ui.notebook.get_page(newpage)
+
+		try:
+			newpage = self.ui.notebook.get_page(newpage)
+		except PageNotFoundError:
+			return False
 
 		# Copy text
 		if newpage.exists():

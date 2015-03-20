@@ -10,7 +10,7 @@ import base64
 
 from zim.fs import get_tmpdir
 
-from zim.stores import encode_filename
+from zim.notebook import encode_filename
 
 from zim.export.exporters import Exporter
 from zim.export.exporters.files import SingleFileExporter

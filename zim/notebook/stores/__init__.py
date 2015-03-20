@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''Base class for storage backends
-
-This module contains a base class for store modules. It implements
-some common methods and provides API documentation for the store
-modules.
+'''This module defined the base class for storage backends
 
 Each store sub-module should implement exactly one class which
 inherits from StoreClass. These classes can be loaded with the function
@@ -16,41 +12,51 @@ L{get_store()}.
 Storage Model
 =============
 
-Stores handle content in terms of Page objects. How the data that is
-managed by the store is mapped to pages is up to the store implementation.
+Stores handle content in terms of Page objects. How the pages are mapped
+to files or other data storage concepts is up to the store implementation.
 For example in the default store each page is mapped to a text file,
-but there can also be store implementations that store many pages in the
-same file, or that use for example a database. The store is however
-expected to be consistent. So when a page is stored under a specific name
-it should also be retrievable under that name.
+but there could also be store implementations that store many pages in the
+same file, or that use a database.
 
-Pages can be stored in a hierarchical way where each page can have sub-pages.
-Or, in other terms, each page has a namespace of the same name that can store
-sub pages. In the default store this structure is mapped to a directory
-structure where for each page there can be a like named directory which
-contains the files used to store sub-pages. The full page name for a page
-consists of the names of all it's parents plus it's own base name separated
-with the ':' character. It is advised that each page should have a unique
-name. Symbolic links or aliases for pages should be handled on a different
-level. In the store interface page names are always assumed to be case
-sensitive. However the store is allowed to be not case sensitive if the storage
-backend does not support this (e.g. a file system that is not case sensitive).
+Pages can be stored in a hierarchical way where each page can have
+sub-pages. The full page name for a page consists of the names of all
+it's parents plus it's own base name separated with the ':' character.
 
 The API consistently uses L{Path} objects to represent page names. These
 paths just map to a specific page name but do not contain any information
-about the actual existence of the page etc.
+about the actual existence of the page etc. In the store interface page
+names are always assumed to be case sensitive. However the store is
+allowed to be case in-sensitive if the storage backend does not support
+this (e.g. a file system that is not case sensitive).
 
-The store exposes it's content using Page objects and lists of Page objects.
-Each page object has two boolean attributes 'C{hascontent}' and 'C{haschildren}'.
-Typically in a page listing at least one of these attributes should be True,
-as a page either has content of it's own, or is used as a container for
-sub-pages, or both. However both attributes can be False for new pages, or
-for pages that have just been deleted.
+The store exposes it's content using L{Page} objects and lists of L{Page}
+objects. Each page object has two boolean attributes 'C{hascontent}'
+and 'C{haschildren}'. Typically in a page listing at least one of these
+attributes should be True, as a page either has content of it's own, or
+is used as a container for sub-pages, or both. However, the API allows
+for L{Page} objects to exist representing pages that do not exist in
+the store backend (e.g. when the user opens a not-yet-existing page).
+In that case both these attributes will be C{False}.
 
-The index will cache page listings in order to speed up the performance,
-so it should not be necessary to do speed optimizations in the store lookups.
-However for efficient caching, store objects must implement the
-L{get_children_etag()} and L{get_content_etag()} methods.
+The C{Index} will remember page lists also indexes page contents. It
+uses the L{get_children_etag()} and L{get_content_etag()} methods to
+query the store for changes.
+
+
+Concurency
+==========
+
+The store should not need to worry about concurrency of the backend
+(e.g. files changed behind our back by another process) as long as
+conflicts are infrequent. For zim, the notebook index represents the
+consistent state, regardless of not-yet-known changes in the store.
+When pages are stored an etag check is done to aoid over-writing
+concurrent changed. However some operations, like updating links after
+moving a page, may touch a lot of pages and concurrent changes during
+such an operation can not be handled fully gracefully. This may be a
+problem for stores that have high concurency as the likelyhood of
+conflicts becomes bigger. For these cases the locking mechanism should
+be overruled to really lock the backend.
 '''
 
 from __future__ import with_statement
@@ -61,6 +67,7 @@ import codecs
 
 import zim.fs
 import zim.plugins
+
 from zim.fs import File, Dir
 from zim.parsing import is_url_re
 from zim.errors import Error, TrashNotSupportedError
@@ -72,7 +79,7 @@ def get_store(name):
 	@param name: the module name of the store (e.g. "files")
 	@returns: the subclass of L{StoreClass} found in the module
 	'''
-	mod = zim.plugins.get_module('zim.stores.' + name.lower())
+	mod = zim.plugins.get_module('zim.notebook.stores.' + name.lower())
 	obj = zim.plugins.lookup_subclass(mod, StoreClass)
 	return obj
 
@@ -137,46 +144,76 @@ def decode_filename(filename):
 	return filename.replace('/', ':').replace('_', ' ')
 
 
+class PageError(Error):
+
+	def __init__(self, path):
+		self.path = path
+		self.msg = self._msg % path.name
+
+
+class PageNotFoundError(PageError):
+	_msg = _('No such page: %s') # T: message for PageNotFoundError
+
+
+class PageNotAllowedError(PageNotFoundError):
+	_msg = _('Page not allowed: %s') # T: message for PageNotAllowedError
+	description = _('This page name cannot be used due to technical limitations of the storage')
+			# T: description for PageNotAllowedError
+
+
+class PageExistsError(Error):
+	_msg = _('Page already exists: %s') # T: message for PageExistsError
+
+
+class PageReadOnlyError(Error):
+	_msg = _('Can not modify page: %s') # T: error message for read-only pages
+
+
 class StoreClass():
-	'''Base class for all storage backends
-
-	Defines API that should be implemented in store objects as well
-	as some convenience methods.
-
-	Note that typically stores are only called by the L{Notebook} object,
-	which does varies sanity checks. So although we should still make
-	sure parameters in the API are sane, we may assume the requestor
-	already verified for example that the path we get really
-	belongs to this store.
-	'''
+	'''Base class for store classes, see module docs L{zim.notebook.stores}'''
 
 	def get_page(self, path):
 		'''Get a L{Page} object
 
 		If a non-existing page is requested the store should check if we
 		are allowed to create the page. If so, a new page object should
-		be returned, but actually creating the page can be delayed until
-		content is stored in it. If we are not allowed to create
-		the page (e.g. in case of a read-only notebook) C{None} may
-		be returned but a read-only Page object is also allowed.
+		be returned, but actually creating the page must be delayed until
+		content is stored in the page.
+
+		If the store implementation for some reason does not allow to use
+		this page name, a L{PageNotAllowedError} must be raised.
+
+		In the specific case that the store backend is read-only either
+		temporary or permanently a L{PageNotFoundError} should be raised
+		for non-existing pages. But it is also allowed to return a
+		read-only page object. (E.g. if it is uncertain whether there
+		are child pages without an elaborate check etc.)
 
 		@param path: a L{Path} object
-		@returns: a L{Page} object or C{None}
+		@returns: a L{Page} object
+		@raises PageNotFoundError: a L{PageNotFoundError} or L{PageNotAllowedError} for
+		pages that can not be created (for checking, be aware that
+		C{PageNotAllowed} is a sub-class of C{PageNotFound})
 
 		@implementation: must be implemented by subclasses
 		'''
 		raise NotImplementedError
 
 	def get_pagelist(self, path):
-		'''Get a list (or iterator) of page objects in a namespace
+		'''Get a list (or iteraterable) of page objects in a namespace
 
-		This method is used by the index to recursively find all pages
-		in the store, so it should also include empty pages that do
-		have sub-pages. Otherwise those sub-pages are never indexed.
+		This method is used by the index to recursively find all
+		pages in the store, so pages that do not occur in this list
+		are never indexed and thus do not exist from the point of view
+		of the notebook. In specific empty pages that do have child pages
+		should appear in the list, and even pages for which it is
+		uncertain whether they have child pages or not.
 
-		@param path: a L{Path} object
-		@returns: A list or iterator for a list of L{Page} objects or
-		an empty list when C{path} does not exist.
+		If C{path} does not exist, this method should yield an empty list
+
+		@param path: a L{Path} object for a page or the root node
+		@returns: An iterable for L{Page} objects for child pages of
+		C{path}.
 
 		@implementation: must be implemented by subclasses
 		'''
@@ -212,6 +249,7 @@ class StoreClass():
 		'''
 		self.store_page(page)
 
+	# TODO: remove this method - set_parsetree should be immediate
 	def revert_page(self, page):
 		'''Revert the state of an un-stored page object
 
@@ -232,7 +270,7 @@ class StoreClass():
 		page.modified = False
 
 	def move_page(self, path, newpath):
-		'''Move a page and all it's sub-pages
+		'''Move a page and all it's sub-pages and attachments
 
 		Move content, sub-pages and attachments from C{path} to
 		C{newpath}. Must raise an error if C{path} does not exist,
@@ -243,6 +281,8 @@ class StoreClass():
 
 		@param path: a L{Path} object for the the current path
 		@param newpath: a L{Path} object for the new path
+		@raises PageNotFoundError: if C{path} does not exist
+		@raises PageExistsError: if C{newpath} already exists
 
 		@implementation: must be implemented by subclasses if the
 		store is writable
@@ -283,7 +323,7 @@ class StoreClass():
 		@returns: C{False} if page did not exist in the first place,
 		C{True} otherwise.
 
-		@implementation: must be implemented by subclasses if the
+		@implementation: optional to be implemented by subclasses if the
 		store is writable
 		'''
 		raise TrashNotSupportedError, 'Not implemented'

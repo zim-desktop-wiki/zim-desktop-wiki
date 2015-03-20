@@ -9,11 +9,13 @@ import tests
 import os
 
 from zim.fs import File, Dir
-from zim.config import ConfigManager, XDG_CONFIG_HOME
-from zim.notebook import *
-from zim.index import *
-import zim.errors
+from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
 from zim.formats import ParseTree
+
+from zim.notebook import *
+from zim.notebook.notebook import NotebookConfig
+from zim.notebook.index import Index
+from zim.notebook.stores.memory import MemoryStore
 
 
 class TestNotebookInfo(tests.TestCase):
@@ -771,7 +773,7 @@ class TestIndexPage(tests.TestCase):
 		indexpage = IndexPage(self.notebook, Path(':'))
 		tree = indexpage.get_parsetree()
 		self.assertTrue(tree)
-		links = [link[1] for link in indexpage.get_links()]
+		links = [href.names for href in indexpage.iter_page_href()]
 		self.assertTrue(len(links) > 1)
 		#~ print links
 		self.assertTrue('Test:foo' in links)
@@ -780,8 +782,20 @@ class TestIndexPage(tests.TestCase):
 class TestNewNotebook(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = Notebook(index=Index(dbfile=':memory:'))
-		self.notebook.add_store(Path(':'), 'memory')
+		store = MemoryStore()
+		index = Index.new_from_memory(store)
+
+		### XXX - Big HACK here - Get better classes for this - XXX ###
+		dir = VirtualConfigBackend()
+		file = dir.file('notebook.zim')
+		file.dir = dir
+		file.dir.basename = 'Unnamed Notebook'
+		###
+		config = NotebookConfig(file)
+
+		dir = None
+		cache_dir = None
+		self.notebook = Notebook(dir, cache_dir, config, store, index)
 		# Explicitly not run index.update() here
 
 	def runTest(self):
@@ -806,22 +820,22 @@ class TestNewNotebook(tests.TestCase):
 			('page1:child', 0, 1),
 			('page2', 1, 0),
 			('page3', 0, 0),
-			('page3:page1', 0, 0),
-			('page3:page1:child', 0, 0),
 		):
 			path = Path(name)
 			#~ print path, \
 				#~ list(index.list_links(path, LINK_DIR_FORWARD)), \
 				#~ list(index.list_links(path, LINK_DIR_BACKWARD))
 			self.assertEqual(
-				index.n_list_links(path, LINK_DIR_FORWARD), forw)
+				notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
 			self.assertEqual(
-				index.n_list_links(path, LINK_DIR_BACKWARD), backw)
+				notebook.links.n_list_links(path, LINK_DIR_BACKWARD), backw)
+
+		self.assertRaises(IndexNotFoundError,
+			notebook.links.n_list_links, Path('page3:page1'), LINK_DIR_FORWARD
+		)
 
 		notebook.move_page(Path('page1'), Path('page3:page1'))
 		for name, forw, backw in (
-			('page1', 0, 0),
-			('page1:child', 0, 0),
 			('page2', 1, 0),
 			('page3', 0, 0),
 			('page3:page1', 0, 0),
@@ -832,9 +846,13 @@ class TestNewNotebook(tests.TestCase):
 				#~ list(index.list_links(path, LINK_DIR_FORWARD)), \
 				#~ list(index.list_links(path, LINK_DIR_BACKWARD))
 			self.assertEqual(
-				index.n_list_links(path, LINK_DIR_FORWARD), forw)
+				notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
 			self.assertEqual(
-				index.n_list_links(path, LINK_DIR_BACKWARD), backw)
+				notebook.links.n_list_links(path, LINK_DIR_BACKWARD), backw)
+
+		self.assertRaises(IndexNotFoundError,
+			notebook.links.n_list_links, Path('page1'), LINK_DIR_FORWARD
+		)
 
 		text = ''.join(notebook.get_page(Path('page3:page1:child')).dump('wiki'))
 		self.assertEqual(text, 'I have backlinks !\n')

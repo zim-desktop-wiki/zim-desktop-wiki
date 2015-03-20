@@ -29,9 +29,7 @@ from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback, SignalHandler
-from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook
-from zim.stores import encode_filename
-from zim.index import LINK_DIR_BACKWARD
+from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook, encode_filename, LINK_DIR_BACKWARD, PageExistsError
 from zim.config import data_file, data_dirs, ConfigDict, value_is_coord, ConfigManager
 from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
@@ -1223,6 +1221,7 @@ class GtkInterface(gobject.GObject):
 		L{HistoryPath} we assume that this call is the result of a
 		history action and the page is not again added to the history.
 
+		@raises PageNotFound: if C{path} can not be opened
 		@emits: open-page
 		'''
 		assert self.notebook
@@ -1234,7 +1233,7 @@ class GtkInterface(gobject.GObject):
 		if isinstance(path, Page) and path.valid:
 			page = path
 		else:
-			page = self.notebook.get_page(path)
+			page = self.notebook.get_page(path) # can raise
 
 		if self.page and id(self.page) == id(page):
 			# Check ID to enable reload_page but catch all other
@@ -1496,11 +1495,12 @@ class GtkInterface(gobject.GObject):
 
 		@param name: the page name
 		@param text: the content of the page (wiki format)
+		@raises PageNotFound: if the page for C{name} can not be opened
 		'''
 		if isinstance(name, Path):
 			name = name.name
 		path = self.notebook.pages.lookup_from_user_input(name)
-		page = self.notebook.get_page(path)
+		page = self.notebook.get_page(path) # can raise
 		page.parse('wiki', text, append=True) # FIXME format hard coded
 		self.notebook.store_page(page)
 
@@ -3232,10 +3232,9 @@ class NewPageDialog(Dialog):
 		if not path:
 			return False
 
-		page = self.ui.notebook.get_page(path)
-		if page.hascontent or page.haschildren:
-			raise Error, _('Page exists')+': %s' % page.name
-				# T: Error when creating new page
+		page = self.ui.notebook.get_page(path) # can raise PageNotFoundError
+		if page.exists():
+			raise PageExistsError(path)
 
 		template = get_template('wiki', self.form['template'])
 		tree = self.ui.notebook.eval_new_page_template(page, template)
@@ -3290,7 +3289,7 @@ class ImportPageDialog(FileDialog):
 		if page.hascontent:
 			path = self.ui.notebook.index.get_unique_path(path)
 			page = self.ui.notebook.get_page(path)
-			assert not page.hascontent
+			assert not page.exists()
 
 		page.parse('wiki', file.readlines())
 		self.ui.notebook.store_page(page)
