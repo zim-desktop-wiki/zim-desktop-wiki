@@ -28,6 +28,7 @@ PAGES = {
 			'@tag1 @tag2\n' \
 			'[[:Foo]]\n',
 		'links': ['Foo'],
+		'backlinks': [],
 		'tags': ['tag1', 'tag2'],
 	},
 	Path('Foo'): {
@@ -35,6 +36,7 @@ PAGES = {
 		'n_children': 2,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
+		'backlinks': ['Bar'],
 		'tags': [],
 	},
 	Path('Foo:Child1'): {
@@ -42,6 +44,7 @@ PAGES = {
 		'n_children': 2,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
+		'backlinks': [],
 		'tags': [],
 	},
 	Path('Foo:Child2'): {
@@ -49,6 +52,7 @@ PAGES = {
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
+		'backlinks': [],
 		'tags': [],
 	},
 	Path('Foo:Child1:GrandChild1'): {
@@ -56,6 +60,7 @@ PAGES = {
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
+		'backlinks': [],
 		'tags': [],
 	},
 	Path('Foo:Child1:GrandChild2'): {
@@ -63,6 +68,7 @@ PAGES = {
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
+		'backlinks': [],
 		'tags': [],
 	},
 }
@@ -250,13 +256,15 @@ class MemoryIndexerTests(tests.TestCase):
 		def signal_logger(o, path, signal):
 			signals.append((signal, path.name))
 
+		sids = []
 		for signal in (
 			'page-added',
 			'page-haschildren-toggled',
 			'page-changed',
 			'page-to-be-removed',
 		):
-			self.index.connect(signal, partial(signal_logger, signal=signal))
+			sids.append(
+				self.index.connect(signal, partial(signal_logger, signal=signal)) )
 
 		indexer = TreeIndexer.new_from_index(self.index)
 
@@ -273,6 +281,9 @@ class MemoryIndexerTests(tests.TestCase):
 		indexer.queue_check(ROOT_PATH)
 		self.runSequence(indexer, SEQUENCE, PAGES)
 		self.assertEqual(signals, [])
+
+		for sid in sids:
+			self.index.disconnect(sid)
 
 		#~ print "### Update new page"
 		self.write_pages(UPDATE)
@@ -380,14 +391,42 @@ class TestHRefFromWikiLink(tests.TestCase):
 class TestPagesView(tests.TestCase):
 
 	def setUp(self):
-		store = tests.MockObject()
-		self.index = Index.new_from_memory(store)
+		store = MemoryStore()
+		for path, attr in PAGES.items():
+			store.store_node(path, attr['content'])
 
-		## XXX using Index internals here - todo pre-define useful Mocks for setting up a store + memory index
-		with self.index._db as db:
-			for path in sorted(PAGES.keys(), key=lambda p: p.name):
-				parent = self.index._pages.lookup_by_pagename(db, path.parent)
-				self.index._index.insert_page(db, parent, path)
+		self.index = Index.new_from_memory(store)
+		self.index.update()
+
+	def testWalk(self):
+		pages = PagesView.new_from_index(self.index)
+		pagelist = list( pages.walk() )
+		self.assertEqual(
+			[p.name for p in pagelist],
+			sorted([p.name for p in PAGES.keys()])
+		)
+		#~ print [p.name for p in pagelist]
+
+		last = len(pagelist)-1
+		for i, p in enumerate(pagelist):
+			if i > 0:
+				r = pages.get_previous(p)
+				self.assertEqual(r.name, pagelist[i-1].name)
+
+			if i < last:
+				r = pages.get_next(p)
+				self.assertEqual(r.name, pagelist[i+1].name)
+
+	def testRecentChanges(self):
+		pages = PagesView.new_from_index(self.index)
+		pageset = set( pages.walk() )
+
+		recent = set(pages.list_recent_changes())
+		self.assertEqual(recent, pageset)
+
+		recent = set(pages.list_recent_changes(limit=3, offset=0))
+		self.assertEqual(len(recent), 3)
+
 
 	def testResolveLink(self):
 		pages = PagesView.new_from_index(self.index)
@@ -431,3 +470,105 @@ class TestPagesView(tests.TestCase):
 			get_indexpath_for_treepath_factory(self.index, cache),
 			get_treepath_for_indexpath_factory(self.index, cache)
 		)
+
+
+class TestTagsView(tests.TestCase):
+
+	def setUp(self):
+		store = MemoryStore()
+		for path, attr in PAGES.items():
+			store.store_node(path, attr['content'])
+
+		self.index = Index.new_from_memory(store)
+		self.index.update()
+
+	def runTest(self):
+		tags = TagsView.new_from_index(self.index)
+
+		mytags = {}
+		for p, attr in PAGES.items():
+			for t in attr['tags']:
+				if not t in mytags:
+					mytags[t] = set()
+				mytags[t].add(p.name)
+
+		assert len(mytags) > 1
+		for t in mytags:
+			pages = set(p.name for p in tags.list_pages(t))
+			self.assertEqual(pages, mytags[t])
+
+
+class TestLinksView(tests.TestCase):
+
+	def setUp(self):
+		store = MemoryStore()
+		for path, attr in PAGES.items():
+			store.store_node(path, attr['content'])
+
+		self.index = Index.new_from_memory(store)
+		self.index.update()
+
+	def runTest(self):
+		linksview = LinksView.new_from_index(self.index)
+
+		for p, attr in PAGES.items():
+			links = [l.target.name for l in linksview.list_links(p)]
+			n_links = linksview.n_list_links(p)
+			self.assertEqual(links, attr['links'])
+			self.assertEqual(n_links, len(links))
+
+			back_links = [l.source.name for l in linksview.list_links(p, LINK_DIR_BACKWARD)]
+			n_back_links = linksview.n_list_links(p, LINK_DIR_BACKWARD)
+			self.assertEqual(back_links, attr['backlinks'])
+			self.assertEqual(n_back_links, len(back_links))
+
+			all_links = [(l.source.name, l.target.name) for l in linksview.list_links(p, LINK_DIR_BOTH)]
+			n_all_links = linksview.n_list_links(p, LINK_DIR_BOTH)
+			self.assertEqual(all_links,
+				[(p.name, l) for l in links] + [(l, p.name) for l in back_links])
+			self.assertEqual(n_all_links, len(all_links))
+
+			if p.parent.isroot:
+				links = list(linksview.list_links_section(p))
+				self.assertTrue(len(links) >= len(attr['links']))
+				n_links = linksview.n_list_links_section(p)
+				self.assertEqual(n_links, len(links))
+
+
+class TestDBConnection(tests.TestCase):
+
+		@staticmethod
+		def select(conn, statement):
+			rows = []
+			with conn.db_context() as db:
+				for row in db.execute(statement):
+					rows.append(tuple(row))
+			return rows
+
+		def testRollback(self):
+			conn = MemoryDBConnection()
+			cont = conn.db_change_context()
+
+			# setup table
+			with cont as db:
+				db.executescript(
+					'CREATE TABLE test (string TEXT); '
+					'INSERT INTO test VALUES("bar"); '
+					'INSERT INTO test VALUES("foo"); '
+				)
+
+			self.assertEqual(self.select(conn, 'SELECT * FROM test ORDER BY string'),
+				[('bar',), ('foo',)]
+			)
+
+			# test rollback after error
+			def insert_with_error():
+				with cont as db:
+					db.execute('INSERT INTO test VALUES("dus")')
+					db.execute('INSERT INTO test VALUES("ja")')
+					raise AssertionError
+
+			self.assertRaises(AssertionError, insert_with_error)
+			self.assertEqual(self.select(conn, 'SELECT * FROM test ORDER BY string'),
+				[('bar',), ('foo',)]
+			)

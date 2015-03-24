@@ -171,8 +171,7 @@ class Index(object):
 
 	def disconnect(self, handlerid):
 		for indexer in self.indexers:
-			if signal in indexer.__signals__:
-				return indexer.disconnect(signal, handlerid)
+			indexer.disconnect(handlerid)
 		# else pass
 
 	def update(self, path=None):

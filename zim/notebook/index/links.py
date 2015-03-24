@@ -156,7 +156,7 @@ class LinksView(IndexViewBase):
 			indexpath = self._pages.lookup_by_pagename(db, path)
 			for link in self._list_links(db, indexpath, direction):
 				yield link
-			for child in self._pages.walk(indexpath):
+			for child in self._pages.walk(db, indexpath):
 				for link in self._list_links(db, child, direction):
 					yield link
 
@@ -196,9 +196,9 @@ class LinksView(IndexViewBase):
 		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
 		with self._db as db:
 			indexpath = self._pages.lookup_by_pagename(db, path)
-			n = self._n_list_link(db, indexpath, direction)
-			for child in self._pages.walk(indexpath):
-				n += self._n_list_links(db, child)
+			n = self._n_list_links(db, indexpath, direction)
+			for child in self._pages.walk(db, indexpath):
+				n += self._n_list_links(db, child, direction)
 			return n
 
 	def _n_list_links(self, db, indexpath, direction):

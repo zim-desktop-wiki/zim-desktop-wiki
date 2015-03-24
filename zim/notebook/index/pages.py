@@ -485,9 +485,9 @@ class PagesView(IndexViewBase):
 
 			c = db.execute(
 				'SELECT * FROM pages WHERE parent=? and sortkey<? and basename<? '
-				'ORDER BY sortkey, basename DESC LIMIT 1',
+				'ORDER BY sortkey DESC, basename DESC LIMIT 1',
 				(path.parent.id, natural_sort_key(path.basename), path.basename)
-			) # DESC means revers order
+			)
 			row = c.fetchone()
 			if not row:
 				# First on this level - climb one up to parent
@@ -501,9 +501,9 @@ class PagesView(IndexViewBase):
 				while prev.haschildren:
 					c = db.execute(
 						'SELECT * FROM pages WHERE parent=? '
-						'ORDER BY sortkey, basename DESC LIMIT 1',
+						'ORDER BY sortkey DESC, basename DESC',
 						(prev.id,)
-					) # DESC means revers order
+					)
 					row = c.fetchone()
 					if row:
 						prev = prev.child_by_row(row)
@@ -563,7 +563,8 @@ class PagesView(IndexViewBase):
 
 		with self._db as db:
 			for row in db.execute(
-				'SELECT * FROM pages ORDER BY mtime' + selection
+				'SELECT * FROM pages WHERE id>? ORDER BY mtime' + selection,
+				(ROOT_ID,)
 			):
 				yield self._pages.lookup_by_row(db, row)
 

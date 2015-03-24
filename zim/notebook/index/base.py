@@ -56,7 +56,7 @@ class IndexerBase(object):
 				if id(handler) == handlerid:
 					self._signal_handlers[signal].remove(handler)
 					if not self._signal_handlers[signal]:
-						self._signal_handlers.remove(signal)
+						self._signal_handlers.pop(signal)
 					return
 
 	def emit(self, signal, *args):

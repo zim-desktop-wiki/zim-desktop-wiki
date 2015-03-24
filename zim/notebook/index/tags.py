@@ -106,7 +106,7 @@ class TagsView(IndexViewBase):
 	def _lookup_by_name(self, db, tag):
 		if isinstance(tag, IndexTag):
 			tag = tag.name
-		row = self.db.execute(
+		row = db.execute(
 			'SELECT * FROM tags WHERE name=?', (tag.lstrip('@'),)
 		).fetchone()
 		if not row:
@@ -147,6 +147,6 @@ class TagsView(IndexViewBase):
 				(tag.id,)
 				# order by id as well because basenames are not unique
 			):
-				yield self._pages.lookup_by_id(row['source'])
+				yield self._pages.lookup_by_id(db, row['source'])
 
 
