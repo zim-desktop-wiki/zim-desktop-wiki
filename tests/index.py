@@ -316,9 +316,42 @@ class MemoryIndexerTests(tests.TestCase):
 		self.runSequence(indexer, [t for t in SEQUENCE if t[0]==INDEX_CHECK_PAGE], PAGES)
 
 	def testThreaded(self):
+		# Test to prove that thread will update properly
 		self.index.start_update()
-		self.index.wait_for_update()
+		try:
+			self.index.wait_for_update()
+		except:
+			self.index.stop_update()
+			raise
 		self.assertIndexMatchesPages(self.index, PAGES)
+
+		# Test case to prove that the indexer properly releases the
+		# change_lock and the state_lock
+		import time
+
+		class MockTreeIndexer(TreeIndexer):
+			# Mock indexer that never stops indexing
+
+			def do_update_iter(self, db):
+				self.counter = 0
+				while True:
+					self.counter += 1
+					yield
+
+		indexer = MockTreeIndexer.new_from_index(self.index)
+		thread = WorkerThread(indexer, indexer.__class__.__name__)
+		thread.start()
+		try:
+			time.sleep(0.1)
+			with self.index.db_conn.db_context():
+				pass
+			time.sleep(0.1)
+			with self.index.db_conn.db_change_context():
+				pass
+		finally:
+			thread.stop()
+
+		self.assertGreater(indexer.counter, 100)
 
 
 @tests.slowTest

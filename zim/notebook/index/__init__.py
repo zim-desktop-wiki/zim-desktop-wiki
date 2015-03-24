@@ -11,15 +11,12 @@ from __future__ import with_statement
 # Links should never resolve based on placeholders, this makes the
 # result depend on order of resolving !
 #
-# signals around commit
-# - when working with a memory db, these signals should be emitted immediatly
-#
 # Some way for main thread to inspect progress -- for progress dialog
 #	report stage (scanning tree, indexing pages)
 #	x out of n (done since start of update versus total flagged to do)
 #  - use the probably-up-to-date here as well ?
 #
-# Try to use multiprocessing instead of threading for the indexer
+# Try to use multiprocessing instead of threading for the indexer ?
 #
 ##############
 
@@ -111,16 +108,27 @@ class Index(object):
 
 	@classmethod
 	def new_from_file(klass, file, store):
+		'''Constructor for a file based index
+		@param file: a L{File} object for the sqlite database
+		@param store: a L{StoreClass} instance to index
+		'''
 		file.dir.touch()
 		db_conn = ThreadingDBConnection(file.encodedpath)
 		return klass(db_conn, store)
 
 	@classmethod
 	def new_from_memory(klass, store):
+		'''Constructor for an in-memory index
+		@param store: a L{StoreClass} instance to index
+		'''
 		db_conn = MemoryDBConnection()
 		return klass(db_conn, store)
 
 	def __init__(self, db_conn, store):
+		'''Constructor
+		@param db_conn: a L{DBConnection} object
+		@param store: a L{StoreClass} instance to index
+		'''
 		self.db_conn = db_conn
 		self._db = db_conn.db_change_context()
 		self.store = store
@@ -176,6 +184,8 @@ class Index(object):
 
 	def update(self, path=None):
 		'''Update the index and return when done
+		This method is faster than the background updates because
+		it only commits the database at the end when all is done.
 		@param path: a C{Path} object, if given only the index
 		below this path is updated, else the entire index is updated.
 		'''
@@ -183,26 +193,42 @@ class Index(object):
 			continue
 
 	def update_iter(self, path=None):
+		self.stop_update()
+
 		indexer = TreeIndexer.new_from_index(self)
 		indexer.queue_check(path)
-		for i in indexer:
-			yield i
+
+		# Run with a single commit at the end
+		with self._db as db:
+			for i in indexer.do_update_iter(db):
+				yield i
 
 	def start_update(self, path=None):
+		'''Start update in a separate thread.
+		This is a relatively slow update because a separate commit is
+		done for each page. The advantage is that changes become
+		visible incrementally.
+		If an update is
+		'''
 		indexer = TreeIndexer.new_from_index(self)
 		indexer.queue_check(path)
-		if self._thread and self._thread.is_alive():
-			pass
-		else:
+
+		if not (self._thread and self._thread.is_alive()):
 			self._thread = WorkerThread(indexer, indexer.__class__.__name__)
 			self._thread.start()
 
 	def stop_update(self):
+		'''Stop update thread if any'''
 		if self._thread:
 			self._thread.stop()
 			self._thread = None
 
 	def wait_for_update(self, timeout=None):
+		'''Wait for update thread if any
+		@param timeout: timeout in second
+		@returns: C{True} is thread was still running at timeout, else
+		C{False}
+		'''
 		if self._thread:
 			self._thread.join(timeout)
 			if self._thread.is_alive():
@@ -385,56 +411,63 @@ class TreeIndexer(IndexInternal):
 			)
 
 	def __iter__(self):
+		# Run with commit after each cycle
+		change_context = self.db_conn.db_change_context()
+		update_iter = self.do_update_iter(change_context._db)
+		while True:
+			with change_context:
+				try:
+					i = update_iter.next()
+				except StopIteration:
+					break
+				else:
+					yield i
+
+	def do_update_iter(self, db):
 		logger.info('Starting index update')
 		while True:
-			indexpath = None
-			try:
-				with self.db_conn.db_change_context() as db:
-					# Get next page to be checked from db
-					row = db.execute(
-						'SELECT * FROM pages WHERE needscheck > 0 '
-						'ORDER BY needscheck, id LIMIT 1'
-					).fetchone()
-						# ORDER BY: parents always have lower "id" than children
+			# Get next page to be checked from db
+			row = db.execute(
+				'SELECT * FROM pages WHERE needscheck > 0 '
+				'ORDER BY needscheck, id LIMIT 1'
+			).fetchone()
+				# ORDER BY: parents always have lower "id" than children
 
-					if row:
-						check = row['needscheck']
-						indexpath = self._pages.lookup_by_row(db, row)
-					else:
-						break # Stop thread, index up to date
-
-					# Let outside world know what we are doing
-					yield check, indexpath
-
-					# Dispatch to the proper method
-					if check == INDEX_CHECK_CHILDREN:
-						self.check_children(db, indexpath)
-					elif check == INDEX_CHECK_TREE:
-						self.check_children(db, indexpath, checktree=True)
-					elif check == INDEX_CHECK_PAGE:
-						self.check_page(db, indexpath)
-					else:
-						raise AssertionError('BUG: Unknown update flag: %i' % check)
-			except GeneratorExit:
-				raise
-			except:
-				if not indexpath:
-					raise
-
-				logger.exception('Error while handling update for page: %s', indexpath)
-				with self.db_conn.db_change_context() as db:
-					# Avoid looping for same page
-					db.execute(
-						'UPDATE pages SET needscheck=? WHERE id=?',
-						(INDEX_UPTODATE, indexpath.id)
-					)
+			if row:
+				check = row['needscheck']
+				indexpath = self._pages.lookup_by_row(db, row)
 			else:
-				for indexer in self.indexers:
-					indexer.emit_queued_signals()
+				break # Stop thread, index up to date
 
-		with self.db_conn.db_change_context() as db:
-			self.set_property(db, 'probably_uptodate', True)
+			# Dispatch to the proper method
+			try:
+				if check == INDEX_CHECK_CHILDREN:
+					self.check_children(db, indexpath)
+				elif check == INDEX_CHECK_TREE:
+					self.check_children(db, indexpath, checktree=True)
+				elif check == INDEX_CHECK_PAGE:
+					self.check_page(db, indexpath)
+				else:
+					raise AssertionError('BUG: Unknown update flag: %i' % check)
+			except:
+				# Avoid looping for same page
+				logger.exception('Error while handling update for page: %s', indexpath)
+				db.execute(
+					'UPDATE pages SET needscheck=? WHERE id=?',
+					(INDEX_UPTODATE, indexpath.id)
+				)
+
+			for indexer in self.indexers:
+				indexer.emit_queued_signals()
+
+			# Let outside world know what we are doing
+			# and allow wrapper to commit changes
+			yield check, indexpath
+
+		self.set_property(db, 'probably_uptodate', True)
+
 		logger.info('Index update finished')
+
 
 	def check_children(self, db, indexpath, checktree=False):
 		# Get etag first - when data changes these should
