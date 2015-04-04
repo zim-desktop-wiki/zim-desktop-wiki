@@ -163,10 +163,12 @@ class WikiParser(object):
 				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
 				process=self.parse_heading
 			),
-			# plain table for fast manual inserts; it is saved as table-object
+			# standard table format
 			Rule(TABLE, r'''
-				( (?:^\|.*\|$\n){2,} )						# multi-lines: starting and ending with |
-				^(?= \s*? \n)								# empty line / only spaces
+				^(\|.*\|)$\n								# starting and ending with |
+				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
+				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
+				^(?= \s*? \n)							# empty line / only spaces
 				''',
 				process=self.parse_table
 			)
@@ -222,11 +224,7 @@ class WikiParser(object):
 		if indent:
 			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
-
-		if type == 'table':
-			self.parse_table(builder, body, attrib)
-		else:
-			builder.append(OBJECT, attrib, body)
+		builder.append(OBJECT, attrib, body)
 
 	def check_multi_attribute(self, attrib, key, default, list_length):
 		'''
@@ -248,29 +246,55 @@ class WikiParser(object):
 			values.append(default)
 		return ','.join(values)
 
-
-	def parse_table(self, builder,  body, attr={}):
+	def parse_table(self, builder, headerrow, alignstyle, body):
 		'''Table parsing'''
 		body = body.replace('\\|', '#124;')  # escaping
 		rows = body.split('\n')[:-1]
 		# get maximum number of columns - each columns must have same size
-		nrcols = max([row.count('|') for row in rows])-1
-		aligns = self.check_multi_attribute(attr, 'aligns', 'normal', nrcols)
-		wraps = self.check_multi_attribute(attr, 'wraps', '0', nrcols)
-		attrib = {'aligns': aligns, 'wraps': wraps}
+		nrcols = max([headerrow.count('|')]+[row.count('|') for row in rows])-1
+
+		# transform header separator line into alignment definitions
+		aligns = []
+		while alignstyle.count('|') < nrcols+1:
+			alignstyle += '|'  # fill cells thus they match with nr of headers
+		for celltext in alignstyle.split('|')[1:-1]:
+			celltext = celltext.strip()
+			if celltext.startswith(':') and celltext.endswith(':'):
+				alignment = 'center'
+			elif celltext.startswith(':'):
+				alignment = 'left'
+			elif celltext.endswith(':'):
+				alignment = 'right'
+			else:
+				alignment = 'normal'
+			aligns.append(alignment)
+		
+		# collect wrap settings from first table row
+		headers = []
+		wraps = []
+		for celltext in headerrow.split('|')[1:-1]:
+			if celltext.rstrip().endswith('<'):
+				celltext = celltext.rstrip().rstrip('<')
+				wraps.append(1)
+			else:
+				wraps.append(0)
+			headers.append(celltext)
+
+		attrib = {'aligns': ','.join(aligns), 'wraps': ','.join(map(str, wraps))}
+
 
 		# build table
 		builder.start(TABLE, attrib)
 
 		builder.start(HEADROW)
-		for celltext in rows[0].split('|')[1:-1]:
+		for celltext in headers:
 			celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()
 			if not celltext:
 				celltext = ' '  # celltext must contain at least one character
 			builder.append(HEADDATA, {}, celltext)
 		builder.end(HEADROW)
 
-		for bodyrow in rows[1:]:
+		for bodyrow in rows:
 			while bodyrow.count('|') < nrcols+1:
 				bodyrow += '|'  # fill cells thus they match with nr of headers
 			builder.start(TABLEROW)
@@ -527,14 +551,16 @@ class Dumper(TextDumper):
 		table = []  # result table
 		rows = strings
 
-		aligns, _wraps = TableParser.get_options(attrib)
+		aligns, wraps = TableParser.get_options(attrib)
 		maxwidths = TableParser.width2dim(rows)
+		headsep = TableParser.headsep(maxwidths, aligns, x='|', y='-')
 		rowline = lambda row: TableParser.rowline(row, maxwidths, aligns)
 
 		# print table
-		table += [rowline(row)+'\n' for row in rows]
-		attrib['type'] = 'table'
-		return self.dump_object('table', attrib, table)
+		table += [TableParser.headline(rows[0], maxwidths, aligns, wraps)]
+		table.append(headsep)
+		table += [rowline(row) for row in rows[1:]]
+		return map(lambda line: line+"\n", table)
 
 	def dump_thead(self, tag, attrib, strings):
 		return [strings]

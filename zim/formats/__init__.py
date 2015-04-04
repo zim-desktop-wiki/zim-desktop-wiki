@@ -1511,7 +1511,7 @@ class TableParser():
 	def width2dim(lines):
 		'''
 		Calculates the characters on each column and return list of widths
-		:param lines: 32dim multiline rows
+		:param lines: 2-dim multiline rows
 		:return: the number of characters of the longest cell-value by column
 		'''
 		widths = [max(map(len, line)) for line in zip(*lines)]
@@ -1568,30 +1568,47 @@ class TableParser():
 		return x + x.join(map(lambda width: (width+2) * y, maxwidths)) + x
 
 	@staticmethod
-	def headsep(maxwidths, aligns, wraps=None, x='|', y='-'):
+	def headsep(maxwidths, aligns, x='|', y='-'):
 		'''
 		Displays a header separation with alignment infos
 		example: rowsep((3,0), '-', '+') -> +-----+--+
 		:param maxwidths: list of column lengths
 		:param aligns:  list of alignments
-		:param wraps:  list of wraps
 		:param x: point-separator
 		:param y: line-separator
 		:return: a textline
 		'''
-		wraps = wraps if wraps is not None else len(maxwidths) * [0]
 		cells = []
-		for width, align, wrap in zip(maxwidths, aligns, wraps):
+		for width, align in zip(maxwidths, aligns):
 			line = width * y
 			if align == 'left':
-				cell = ':' + line + y if wrap == 0 else '::' + line
-			elif align == 'right' :
-				cell = y + line + ':' if wrap == 0 else line + '::'
+				cell = ':' + line + y
+			elif align == 'right':
+				cell = y + line + ':'
 			elif align == 'center':
-				cell = ':' + line + ':' if wrap == 0 else '::' + line[1:] + ':'
+				cell = ':' + line + ':'
 			else:
 				cell = y + line + y
 			cells.append(cell)
+		return x + x.join(cells) + x
+
+	@staticmethod
+	def headline(row, maxwidths, aligns, wraps, x='|', y=' '):
+		'''
+		Displays a headerline line in text format
+		:param row: tuple of cells
+		:param maxwidths: list of column length
+		:param aligns:  list of alignments
+		:param x:  point-separator
+		:param y: space-separator
+		:return: a textline
+		'''
+		row = TableParser.alignrow(row, maxwidths, aligns, y)
+		cells = []
+		for val, wrap in zip(row, wraps):
+			if wrap == 1:
+				val = val[:-1]+'<'
+			cells.append(val)
 		return x + x.join(cells) + x
 
 	@staticmethod
@@ -1606,17 +1623,30 @@ class TableParser():
 		:param y: space-separator
 		:return: a textline
 		'''
-		cells = []
-		for i, val in enumerate(row):
-			align = aligns[i]
-			if align == 'left':
-				(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
-			elif align == 'right':
-				(lspace, rspace) = (maxwidths[i] - len(val) + 1, 1)
-			elif align == 'center':
-				lspace = (maxwidths[i] - len(val)) / 2 + 1
-				rspace = (maxwidths[i] - lspace - len(val) + 2)
-			else:
-				(lspace, rspace) = (1, maxwidths[i] - len(val) + 1)
-			cells.append(lspace * y + val + rspace * y)
+		cells = TableParser.alignrow(row, maxwidths, aligns, y)
 		return x + x.join(cells) + x
+
+	@staticmethod
+	def alignrow(row, maxwidths, aligns, y=' '):
+		'''
+		Formats a row with the right alignments
+		:param row: tuple of cells
+		:param maxwidths: list of column length
+		:param aligns:  list of alignments
+		:param x:  point-separator
+		:param y: space-separator
+		:return: a textline
+		'''
+		cells = []
+		for val, align, maxwidth in zip(row, aligns, maxwidths):
+			if align == 'left':
+				(lspace, rspace) = (1, maxwidth - len(val) + 1)
+			elif align == 'right':
+				(lspace, rspace) = (maxwidth - len(val) + 1, 1)
+			elif align == 'center':
+				lspace = (maxwidth - len(val)) / 2 + 1
+				rspace = (maxwidth - lspace - len(val) + 2)
+			else:
+				(lspace, rspace) = (1, maxwidth - len(val) + 1)
+			cells.append(lspace * y + val + rspace * y)
+		return cells

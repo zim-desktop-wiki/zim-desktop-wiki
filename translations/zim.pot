@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-02-23 09:34+0100\n"
+"POT-Creation-Date: 2015-04-04 12:31+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -371,7 +371,7 @@ msgstr ""
 #. label in export dialog
 #: zim/gui/exportdialog.py:423
 #, python-format
-msgid "%(n_errors)i errors and %(n_warnings)i warnings occurred, see log"
+msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
 msgstr ""
 
 #. label in export dialog
@@ -2740,7 +2740,7 @@ msgid "Create a new page for each note"
 msgstr ""
 
 #. text entry field
-#: zim/plugins/quicknote.py:224 zim/plugins/tableeditor.py:996
+#: zim/plugins/quicknote.py:224 zim/plugins/tableeditor.py:999
 msgid "Title"
 msgstr ""
 
@@ -2956,32 +2956,32 @@ msgid ""
 msgstr ""
 
 #. alignment option
-#: zim/plugins/tableeditor.py:53 zim/plugins/tableeditor.py:940
+#: zim/plugins/tableeditor.py:56 zim/plugins/tableeditor.py:943
 msgid "Left"
 msgstr ""
 
 #. alignment option
-#: zim/plugins/tableeditor.py:54
+#: zim/plugins/tableeditor.py:57
 msgid "Center"
 msgstr ""
 
 #. alignment option
-#: zim/plugins/tableeditor.py:55
+#: zim/plugins/tableeditor.py:58
 msgid "Right"
 msgstr ""
 
 #. alignment option
-#: zim/plugins/tableeditor.py:56
+#: zim/plugins/tableeditor.py:59
 msgid "Unspecified"
 msgstr ""
 
 #. plugin name
-#: zim/plugins/tableeditor.py:87
+#: zim/plugins/tableeditor.py:90
 msgid "Table Editor"
 msgstr ""
 
 #. plugin description
-#: zim/plugins/tableeditor.py:88
+#: zim/plugins/tableeditor.py:91
 msgid ""
 "With this plugin you can embed a 'Table' into the wiki page. Tables will be "
 "shown as GTK TreeView widgets.\n"
@@ -2990,156 +2990,156 @@ msgid ""
 msgstr ""
 
 #. option value
-#: zim/plugins/tableeditor.py:98
+#: zim/plugins/tableeditor.py:101
 msgid "with lines"
 msgstr ""
 
 #. option value
-#: zim/plugins/tableeditor.py:99
+#: zim/plugins/tableeditor.py:102
 msgid "no grid lines"
 msgstr ""
 
 #. option value
-#: zim/plugins/tableeditor.py:100
+#: zim/plugins/tableeditor.py:103
 msgid "horizontal lines"
 msgstr ""
 
 #. option value
-#: zim/plugins/tableeditor.py:101
+#: zim/plugins/tableeditor.py:104
 msgid "vertical lines"
 msgstr ""
 
 #. preference description
-#: zim/plugins/tableeditor.py:107
+#: zim/plugins/tableeditor.py:110
 msgid "Show helper toolbar"
 msgstr ""
 
 #. preference description
-#: zim/plugins/tableeditor.py:110
+#: zim/plugins/tableeditor.py:113
 msgid "Grid lines"
 msgstr ""
 
 #. menu item
-#: zim/plugins/tableeditor.py:248
+#: zim/plugins/tableeditor.py:252
 msgid "Table"
 msgstr ""
 
 #. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:543 zim/plugins/tableeditor.py:755
+#: zim/plugins/tableeditor.py:547 zim/plugins/tableeditor.py:759
 msgid "Add row"
 msgstr ""
 
 #. tooltip on mouse hover
-#: zim/plugins/tableeditor.py:544
+#: zim/plugins/tableeditor.py:548
 msgid "Remove row"
 msgstr ""
 
 #. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:545 zim/plugins/tableeditor.py:757
+#: zim/plugins/tableeditor.py:549 zim/plugins/tableeditor.py:761
 msgid "Clone row"
 msgstr ""
 
 #. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:547 zim/plugins/tableeditor.py:761
+#: zim/plugins/tableeditor.py:551 zim/plugins/tableeditor.py:765
 msgid "Row up"
 msgstr ""
 
 #. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:548 zim/plugins/tableeditor.py:762
+#: zim/plugins/tableeditor.py:552 zim/plugins/tableeditor.py:766
 msgid "Row down"
 msgstr ""
 
 #. tooltip on mouse hover | 
 #. menu item
-#: zim/plugins/tableeditor.py:550 zim/plugins/tableeditor.py:764
+#: zim/plugins/tableeditor.py:554 zim/plugins/tableeditor.py:768
 msgid "Change columns"
 msgstr ""
 
 #. tooltip on mouse hover
-#: zim/plugins/tableeditor.py:552
+#: zim/plugins/tableeditor.py:556
 msgid "Open help"
 msgstr ""
 
 #. menu item
-#: zim/plugins/tableeditor.py:756
+#: zim/plugins/tableeditor.py:760
 msgid "Delete row"
 msgstr ""
 
 #. menu item
-#: zim/plugins/tableeditor.py:759
+#: zim/plugins/tableeditor.py:763
 msgid "Open cell content link"
 msgstr ""
 
 #. Popup dialog
-#: zim/plugins/tableeditor.py:822
+#: zim/plugins/tableeditor.py:826
 msgid ""
 "The table must consist of at least on row!\n"
 " No deletion done."
 msgstr ""
 
 #. Popup dialog
-#: zim/plugins/tableeditor.py:906 zim/plugins/tableeditor.py:1154
+#: zim/plugins/tableeditor.py:909 zim/plugins/tableeditor.py:1157
 msgid "Please select a row, before you push the button."
 msgstr ""
 
 #. Dialog title
-#: zim/plugins/tableeditor.py:935
+#: zim/plugins/tableeditor.py:938
 msgid "Insert Table"
 msgstr ""
 
 #. Dialog title
-#: zim/plugins/tableeditor.py:935
+#: zim/plugins/tableeditor.py:938
 msgid "Edit Table"
 msgstr ""
 
 #. Description of "Table-Insert" Dialog
-#: zim/plugins/tableeditor.py:945
+#: zim/plugins/tableeditor.py:948
 msgid "Managing table columns"
 msgstr ""
 
 #. Initial data for column title in table
-#: zim/plugins/tableeditor.py:971
+#: zim/plugins/tableeditor.py:974
 msgid "Column 1"
 msgstr ""
 
 #. table header
-#: zim/plugins/tableeditor.py:1005
+#: zim/plugins/tableeditor.py:1008
 msgid ""
 "Auto\n"
 "Wrap"
 msgstr ""
 
 #. table header
-#: zim/plugins/tableeditor.py:1015
+#: zim/plugins/tableeditor.py:1018
 msgid "Align"
 msgstr ""
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:1043
+#: zim/plugins/tableeditor.py:1046
 msgid "Add column"
 msgstr ""
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:1044
+#: zim/plugins/tableeditor.py:1047
 msgid "Remove column"
 msgstr ""
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:1045
+#: zim/plugins/tableeditor.py:1048
 msgid "Move column ahead"
 msgstr ""
 
 #. hoover tooltip
-#: zim/plugins/tableeditor.py:1046
+#: zim/plugins/tableeditor.py:1049
 msgid "Move column backward"
 msgstr ""
 
 #. popup dialog
-#: zim/plugins/tableeditor.py:1128
+#: zim/plugins/tableeditor.py:1131
 msgid "A table needs to have at least one column."
 msgstr ""
 
