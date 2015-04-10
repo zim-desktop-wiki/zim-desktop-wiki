@@ -47,11 +47,12 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		if isinstance(versions, (tuple, list)):
 			assert 1 <= len(versions) <= 2
 			if len(versions) == 2:
-				return ['--from', versions[0], '--to', versions[1]]
+				return ['-r', versions[0], '--to', versions[1]]
 			else:
-				return ['--from', versions[0]]
-
-		return []
+				return ['-r', versions[0]]
+		if versions is None:
+			return []
+		return ['-r', versions]
 
 	########
 	#
@@ -225,6 +226,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			fossil revert {{REV_ARGS}}
 		"""
 		revision_params = self.build_revision_arguments(version)
+		Log("revision_params = {0} version = {1} path = {2}".format(revision_params, version, path))
 		if path:
 			return self.run(['revert', path] + revision_params)
 		else:
