@@ -21,10 +21,6 @@ RE_LogRecord = re.compile(r"([0-9:-]+)\s*\[([0-9a-fA-F]+)\]\s*(\*\S+\* *)*(.*)\(
 RE_Tag = re.compile(r"(?:,\s*)?(\S+:)")
 RE_Time = re.compile(r"[0-9][0-9]:[0-9][0-9]:[0-9][0-9]")
 
-def Log(line):
-	with open("/tmp/zim-xitsa/log.txt","a") as text_file:
-		text_file.write(line + "\n")
-
 class FOSSILApplicationBackend(VCSApplicationBase):
 
 	@classmethod
@@ -169,7 +165,6 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		Runs: fossil timeline --type ci {{PATH}}
 		"--type ci" option for file commits only
 		"""
-		Log("root {0}".format(self.root.file('notebook.fossil')))
 		options = ['--width', '0', '--limit', '1000']
 		if not path is None:
 			return self.pipe(['finfo'] + options + [path])
@@ -226,7 +221,6 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			fossil revert {{REV_ARGS}}
 		"""
 		revision_params = self.build_revision_arguments(version)
-		Log("revision_params = {0} version = {1} path = {2}".format(revision_params, version, path))
 		if path:
 			return self.run(['revert', path] + revision_params)
 		else:
