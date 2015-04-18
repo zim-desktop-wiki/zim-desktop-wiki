@@ -10,7 +10,7 @@ from zim.notebook.page import HRef, \
 
 
 from .base import IndexerBase, IndexViewBase
-from .pages import PagesViewInternal, IndexPath
+from .pages import PagesViewInternal, IndexPath, ROOT_ID
 
 
 LINK_DIR_FORWARD = 1 #: Constant for forward links
@@ -61,9 +61,6 @@ class LinksIndexer(IndexerBase):
 		self._pages = PagesViewInternal()
 
 	def on_new_page(self, db, indexpath):
-		# TODO - refine this -- idem below in on_delete
-		# - can we join tables and only flag links that have a plaeceholder as target?
-		# - what about absolute links that may match a different case now ?
 		db.execute(
 			'UPDATE links SET needscheck=1 WHERE rel=? and sortkeys LIKE ?',
 			(HREF_REL_FLOATING, '%:' + indexpath.sortkey + ':%',)
@@ -80,23 +77,22 @@ class LinksIndexer(IndexerBase):
 
 	def on_delete_page(self, db, indexpath):
 		db.execute(
-			'UPDATE links SET needscheck=1 WHERE target=?',
+			'DELETE FROM links WHERE source=?',
 			(indexpath.id,)
 		)
-		# TODO refine - see comment above in on_new
+		db.execute(
+			'UPDATE links SET needscheck=1, target=? WHERE target=?',
+			(ROOT_ID, indexpath.id,)
+		) # Need to link somewhere, if target is gone, use ROOT instead
 		db.execute(
 			'UPDATE links SET needscheck=1 WHERE rel=? and sortkeys LIKE ?',
 			(HREF_REL_FLOATING, '%:' + indexpath.sortkey + ':%',)
 		)
-		db.execute(
-			'DELETE FROM links WHERE source=?',
-			(indexpath.id,)
-		)
+
+	def on_deleted_page(self, db, parent, basename):
 		self._update_links(db)
 
 	def _update_links(self, db):
-		# TODO: should thid be in the queue ? Seems potential heavy operation, even though all on index
-
 		# Order of processig is important here for stability of the index
 		# e.g. two placeholders with different case
 		for row in db.execute(

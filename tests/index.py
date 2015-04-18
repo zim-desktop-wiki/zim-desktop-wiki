@@ -71,14 +71,24 @@ PAGES = {
 		'backlinks': [],
 		'tags': [],
 	},
+	Path('SOME EMPTY FOLDER'): {
+		'treepath': None,
+		'n_children': 0,
+		'content': None,
+		'links': [],
+		'backlinks': [],
+		'tags': [],
+	},
 }
 
 SEQUENCE = ( # Per phase children iterate in order of discovery
 	(INDEX_CHECK_TREE, ''),
 	(INDEX_CHECK_TREE, 'Foo'),
+	(INDEX_CHECK_TREE, 'SOME EMPTY FOLDER'), # non existent, but gets checked
 	(INDEX_CHECK_TREE, 'Foo:Child1'),
 	(INDEX_CHECK_PAGE, 'Bar'),
 	(INDEX_CHECK_PAGE, 'Foo'),
+	(INDEX_CHECK_PAGE, 'SOME EMPTY FOLDER'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1'),
 	(INDEX_CHECK_PAGE, 'Foo:Child2'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1:GrandChild1'),
@@ -87,7 +97,6 @@ SEQUENCE = ( # Per phase children iterate in order of discovery
 
 INIT_SIGNALS = [
 	('page-added', 'Bar'),
-	('page-haschildren-toggled', ''),
 	('page-added', 'Foo'),
 	('page-added', 'Foo:Child1'),
 	('page-haschildren-toggled', 'Foo'),
@@ -97,18 +106,21 @@ INIT_SIGNALS = [
 	('page-added', 'Foo:Child1:GrandChild2'),
 ]
 for check, name in SEQUENCE:
-	if name and check == INDEX_CHECK_PAGE:
+	if name and check == INDEX_CHECK_PAGE \
+	and not 'EMPTY' in name :
 		INIT_SIGNALS.append(('page-changed', name))
 
 
 UPDATE = {
 	Path('Bar:AAA'): {
+		'treepath': (),
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
 		'tags': [],
 	},
 	Path('Bar:BBB'): {
+		'treepath': (),
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
@@ -116,6 +128,7 @@ UPDATE = {
 	},
 	# On purpose skipping "Bar:CCC" here - should be touched & cleaned up automatically
 	Path('Bar:CCC:aaa'): {
+		'treepath': (),
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
 		'links': [],
@@ -126,6 +139,7 @@ UPDATE = {
 UPDATED_PAGES = dict(copy.deepcopy(PAGES.items()) + UPDATE.items())
 UPDATED_PAGES[Path('Bar')]['n_children'] = 3
 UPDATED_PAGES[Path('Bar:CCC')] = {
+	'treepath': (),
 	'n_children': 1,
 	'content': None,
 	'links': [],
@@ -136,10 +150,12 @@ UPDATE_SEQUENCE = ( # New pages appended at the end of each phase
 	(INDEX_CHECK_TREE, ''),
 	(INDEX_CHECK_TREE, 'Bar'),
 	(INDEX_CHECK_TREE, 'Foo'),
+	(INDEX_CHECK_TREE, 'SOME EMPTY FOLDER'),
 	(INDEX_CHECK_TREE, 'Foo:Child1'),
 	(INDEX_CHECK_TREE, 'Bar:CCC'),
 	(INDEX_CHECK_PAGE, 'Bar'),
 	(INDEX_CHECK_PAGE, 'Foo'),
+	(INDEX_CHECK_PAGE, 'SOME EMPTY FOLDER'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1'),
 	(INDEX_CHECK_PAGE, 'Foo:Child2'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1:GrandChild1'),
@@ -155,14 +171,22 @@ UPDATE_ROLLBACK_SEQUENCE = (
 	(INDEX_CHECK_TREE, ''),
 	(INDEX_CHECK_TREE, 'Bar'),
 	(INDEX_CHECK_TREE, 'Foo'),
+	(INDEX_CHECK_TREE, 'SOME EMPTY FOLDER'),
 	(INDEX_CHECK_TREE, 'Foo:Child1'),
 	(INDEX_CHECK_PAGE, 'Bar'),
 	(INDEX_CHECK_PAGE, 'Foo'),
+	(INDEX_CHECK_PAGE, 'SOME EMPTY FOLDER'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1'),
 	(INDEX_CHECK_PAGE, 'Foo:Child2'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1:GrandChild1'),
 	(INDEX_CHECK_PAGE, 'Foo:Child1:GrandChild2'),
 )
+
+REINDEX_SEQUENCE = [
+	t for t in SEQUENCE
+		if t[0]==INDEX_CHECK_PAGE
+		and PAGES[Path(t[1])]['content'] is not None
+]
 
 
 class MemoryIndexerTests(tests.TestCase):
@@ -177,8 +201,18 @@ class MemoryIndexerTests(tests.TestCase):
 	def write_pages(self, pages):
 		for path, attrib in pages.items():
 			page = self.store.get_page(path)
-			page.parse('wiki', attrib['content'])
-			self.store.store_page(page)
+			if attrib['content']:
+				page.parse('wiki', attrib['content'])
+				self.store.store_page(page)
+			else:
+				## HACK to make child folder to exist ##
+				if isinstance(self.store, MemoryStore):
+					print "### TODO: virtual attachments folder"
+					node = self.store.get_node(path, vivificate=True)
+					node.children_etag = 'EMPTY_FOLDER_ETAG'
+				else:
+					dir = self.store.get_attachments_dir(page)
+					dir.file('foo.png').touch()
 
 	def delete_pages(self, pages):
 		for path, attrib in pages.items():
@@ -188,17 +222,19 @@ class MemoryIndexerTests(tests.TestCase):
 		pages = PagesViewInternal()
 		with index.db_conn.db_context() as db:
 			seen = set()
-			for row in db.execute('SELECT * FROM pages'):
+			for row in db.execute('SELECT * FROM pages WHERE page_exists>0'):
 				if row['id'] == ROOT_ID:
 					continue
 				indexpath = pages.lookup_by_id(db, row['id'])
 				path = Path(indexpath.name)
 				self.assertIn(path, wanted)
+				self.assertIsNotNone(wanted[path]['treepath'])
 				self.assertEqual(indexpath.n_children, wanted[path]['n_children'])
 				seen.add(path)
 
 			for path in wanted:
-				self.assertIn(path, seen)
+				if wanted[path]['treepath'] is not None:
+					self.assertIn(path, seen)
 
 	def assertIndexMatchesPages(self, index, wanted):
 		pages = PagesViewInternal()
@@ -206,7 +242,7 @@ class MemoryIndexerTests(tests.TestCase):
 		tagsview = TagsView.new_from_index(index)
 		with index.db_conn.db_context() as db:
 			seen = set()
-			for row in db.execute('SELECT id FROM pages'):
+			for row in db.execute('SELECT id FROM pages WHERE page_exists>0'):
 				if row['id'] == ROOT_ID:
 					continue
 				indexpath = pages.lookup_by_id(db, row['id'])
@@ -215,6 +251,7 @@ class MemoryIndexerTests(tests.TestCase):
 				self.assertEqual(indexpath.n_children, wanted[path]['n_children'])
 
 				attrib = wanted[path]
+				self.assertIsNotNone(attrib['treepath'])
 				if attrib['content']:
 					self.assertTrue(indexpath.hascontent)
 				else:
@@ -233,7 +270,8 @@ class MemoryIndexerTests(tests.TestCase):
 				seen.add(path)
 
 			for path in wanted:
-				self.assertIn(path, seen)
+				if wanted[path]['treepath'] is not None:
+					self.assertIn(path, seen)
 
 	def runSequence(self, indexer, sequence, result):
 		treecheck = False
@@ -313,7 +351,7 @@ class MemoryIndexerTests(tests.TestCase):
 
 		#~ print "### Force re-index"
 		self.index.flag_reindex()
-		self.runSequence(indexer, [t for t in SEQUENCE if t[0]==INDEX_CHECK_PAGE], PAGES)
+		self.runSequence(indexer, REINDEX_SEQUENCE, PAGES)
 
 	def testThreaded(self):
 		# Test to prove that thread will update properly
@@ -481,11 +519,12 @@ class TestPagesView(tests.TestCase):
 	def testTreePathMethods(self):
 		def check_treepath(get_indexpath_for_treepath, get_treepath_for_indexpath):
 			for p, attr in PAGES.items():
-				indexpath = get_indexpath_for_treepath(attr['treepath'])
-				self.assertEqual(indexpath.name, p.name)
-				self.assertEqual(indexpath.treepath, attr['treepath'])
-				treepath = get_treepath_for_indexpath(indexpath)
-				self.assertEqual(treepath, attr['treepath'])
+				if attr['treepath']:
+					indexpath = get_indexpath_for_treepath(attr['treepath'])
+					self.assertEqual(indexpath.name, p.name)
+					self.assertEqual(indexpath.treepath, attr['treepath'])
+					treepath = get_treepath_for_indexpath(indexpath)
+					self.assertEqual(treepath, attr['treepath'])
 
 		# Separate caches to lets each method start from scratch
 		cache1 = {}

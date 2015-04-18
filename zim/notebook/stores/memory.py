@@ -50,7 +50,10 @@ class Node(object):
 		self.mtime = time.time()
 
 	def set_children_etag(self):
-		self.children_etag = _md5(';'.join(self.children.keys()))
+		if self.children:
+			self.children_etag = _md5(';'.join(self.children.keys()))
+		else:
+			self.children_etag = None
 
 
 class MemoryStore(StoreClass):
@@ -95,7 +98,7 @@ class MemoryStore(StoreClass):
 			haschildren = False
 		else:
 			text = node.text
-			haschildren = bool(node.children)
+			haschildren = node.children_etag is not None
 
 		page = Page(path, haschildren)
 		if text:
@@ -167,8 +170,8 @@ class MemoryStore(StoreClass):
 
 	def get_content_etag(self, path):
 		node = self.get_node(path)
-		return node.content_etag
+		return node.content_etag if node else None
 
 	def get_children_etag(self, path):
 		node = self.get_node(path)
-		return node.children_etag
+		return node.children_etag if node else None

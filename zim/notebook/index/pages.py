@@ -16,8 +16,13 @@ from .base import IndexViewBase, IndexerBase, \
 	SIGNAL_BEFORE, SIGNAL_AFTER
 
 
-ROOT_ID = 1 #: Constant for the ID of the root namespace in "pages"
+ROOT_ID = 1 # Constant for the ID of the root namespace in "pages"
 			# (Primary key starts count at 1 and first entry will be root)
+
+
+PAGE_EXISTS_UNCERTAIN = 0 # e.g. folder with unknown children - not shown to outside world
+PAGE_EXISTS_AS_LINK = 1 # placeholder for link target
+PAGE_EXISTS_HAS_CONTENT = 2 # either has content or children have content
 
 
 class IndexPath(Path):
@@ -84,6 +89,7 @@ class IndexPathRow(IndexPath):
 	@ivar mtime: modification time of the page
 	@ivar content_etag: unique key for the state of the page
 	@ivar children_etag: unique key for the state of the child folder
+	@ivar page_exists: flag for page existance
 	@ivar treepath: tuple of index numbers, reserved for use by
 	C{TreeStore} widgets
 	'''
@@ -97,6 +103,7 @@ class IndexPathRow(IndexPath):
 		'mtime',
 		'content_etag',
 		'children_etag',
+		'page_exists',
 	)
 
 	def __init__(self, name, ids, row):
@@ -165,7 +172,10 @@ class PagesIndexer(IndexerBase):
 			content_etag TEXT,
 			children_etag TEXT,
 
-			-- these keys are managed by PageIndex
+			-- managed by both TreeIndexer and PageIndexer
+			page_exists INTEGER DEFAULT 0,
+
+			-- these keys are managed by PageIndexer
 			n_children BOOLEAN DEFAULT 0,
 			ctime TIMESTAMP,
 			mtime TIMESTAMP,
@@ -176,26 +186,14 @@ class PagesIndexer(IndexerBase):
 	'''
 
 	def on_new_page(self, db, indexpath):
-		# emit inserted
-		# emit haschildren-toggled on parent when first
 		parent = indexpath.parent
-		id = parent.id
-		n_children_pre = db.execute(
-			'SELECT n_children FROM pages WHERE id=?',
-			(id,)
-		).fetchone()['n_children']
-		db.execute(
-			'UPDATE pages '
-			'SET n_children=(SELECT count(*) FROM pages WHERE parent=?) '
-			'WHERE id=?',
-			(id, id)
-		)
+		n_children_pre = self.n_children(db, parent)
+		self.update_parent(db, parent)
 		self.emit('page-added', indexpath)
-		if n_children_pre == 0:
+		if n_children_pre == 0 and not parent.isroot:
 			self.emit('page-haschildren-toggled', parent)
 
 	def on_index_page(self, db, indexpath, page):
-		# emit changed if mtime is new - or just always ?
 		ctime = datetime.fromtimestamp(page.ctime)
 		mtime = datetime.fromtimestamp(page.mtime)
 		db.execute(
@@ -207,24 +205,27 @@ class PagesIndexer(IndexerBase):
 		self.emit('page-changed', indexpath)
 
 	def on_delete_page(self, db, indexpath):
-		# emit to-be-deleted
-		# emit haschildren-toggled on parent when last
-		# Same as on_new_page, but subtract 1 because this page is to be deleted
-		parent = indexpath.parent
-		id = parent.id
+		self.emit('page-to-be-removed', indexpath)
+
+	def on_deleted_page(self, db, parent, basename):
+		self.update_parent(db, parent)
+		if self.n_children(db, parent) == 0 and not parent.isroot:
+			self.emit('page-haschildren-toggled', parent)
+
+	def n_children(self, db, parent):
+		return db.execute(
+			'SELECT n_children FROM pages WHERE id=?',
+			(parent.id,)
+		).fetchone()['n_children']
+
+	def update_parent(self, db, parent):
 		db.execute(
 			'UPDATE pages '
-			'SET n_children=(SELECT count(*) FROM pages WHERE parent=?) - 1 '
+			'SET n_children=(SELECT count(*) FROM pages WHERE parent=?) '
 			'WHERE id=?',
-			(id, id)
+			(parent.id, parent.id)
 		)
-		self.emit('page-to-be-removed', indexpath)
-		n_children_post = db.execute(
-			'SELECT n_children FROM pages WHERE id=?',
-			(id,)
-		).fetchone()['n_children']
-		if n_children_post == 0:
-			self.emit('page-haschildren-toggled', parent)
+
 
 
 class PagesViewInternal(object):
@@ -263,12 +264,12 @@ class PagesViewInternal(object):
 		or claim to not have children
 		'''
 		# Constructs the indexpath upwards
-		indexpath = [row['id']]
+		ids = [row['id']]
 		names = [row['basename']]
 		parent = row['parent']
 		cursor = db.cursor()
 		while parent != 0:
-			indexpath.insert(0, parent)
+			ids.insert(0, parent)
 			cursor.execute('SELECT basename, parent, n_children FROM pages WHERE id=?', (parent,))
 			myrow = cursor.fetchone()
 			if not myrow or myrow['n_children'] < 1:
@@ -279,7 +280,16 @@ class PagesViewInternal(object):
 			names.insert(0, myrow['basename'])
 			parent = myrow['parent']
 
-		return IndexPathRow(':'.join(names), indexpath, row)
+		return IndexPathRow(':'.join(names), ids, row)
+
+	def lookup_by_indexpath(self, db, indexpath):
+		'''Return an L{IndexPathRow} for an L{IndexPath}'''
+		c = db.execute('SELECT * FROM pages WHERE id=?', (indexpath.id,))
+		row = c.fetchone()
+		if row:
+			return IndexPathRow(indexpath.name, indexpath.ids, row)
+		else:
+			raise IndexConsistencyError, 'No such page id: %r' % indexpath.id
 
 	def lookup_by_pagename(self, db, path):
 		#~ @param db: a C{sqlite3.Connection} object
@@ -596,7 +606,8 @@ def get_indexpath_for_treepath_factory(index, cache):
 					parent = cache[mytreepath]
 				else:
 					row = db.execute(
-						'SELECT * FROM pages WHERE parent=? '
+						'SELECT * FROM pages '
+						'WHERE parent=? and page_exists>0 '
 						'ORDER BY sortkey, basename '
 						'LIMIT 1 OFFSET ? ',
 						(parent.id, mytreepath[-1])
@@ -612,7 +623,8 @@ def get_indexpath_for_treepath_factory(index, cache):
 			parentpath = treepath[:-1]
 			offset = treepath[-1]
 			for i, row in enumerate(db.execute(
-				'SELECT * FROM pages WHERE parent=? '
+				'SELECT * FROM pages '
+				'WHERE parent=? and page_exists>0 '
 				'ORDER BY sortkey, basename '
 				'LIMIT 20 OFFSET ? ',
 				(parent.id, offset)
@@ -655,7 +667,7 @@ def get_treepath_for_indexpath_factory(index, cache):
 				sortkey = natural_sort_key(basename)
 				row = db.execute(
 					'SELECT COUNT(*) FROM pages '
-					'WHERE parent=? and ('
+					'WHERE page_exists>0 and parent=? and ('
 					'	sortkey<? '
 					'	or (sortkey=? and basename<?)'
 					')',

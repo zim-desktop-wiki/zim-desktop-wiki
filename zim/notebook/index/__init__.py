@@ -8,9 +8,6 @@ from __future__ import with_statement
 
 ### ISSUES ###
 #
-# Links should never resolve based on placeholders, this makes the
-# result depend on order of resolving !
-#
 # Some way for main thread to inspect progress -- for progress dialog
 #	report stage (scanning tree, indexing pages)
 #	x out of n (done since start of update versus total flagged to do)
@@ -64,7 +61,7 @@ from .links import *
 from .tags import *
 
 
-DB_VERSION = '0.7'
+DB_VERSION = '0.6'
 
 # Constants for the "needsheck" column in the "pages" table
 # Lower numbers take precedence while processing
@@ -330,20 +327,46 @@ class IndexInternal(object):
 		db.execute('INSERT INTO zim_index(key, value) VALUES (?, ?)', (key, value))
 
 	def insert_page(self, db, parent, path, needscheck=INDEX_CHECK_PAGE):
+		'''Insert a record for the page, but page does not really exists
+		untill L{set_page_exists()} has been called.
+		'''
 		db.execute(
 			'INSERT INTO pages(parent, basename, sortkey, needscheck) '
 			'VALUES (?, ?, ?, ?)',
 			(parent.id, path.basename, natural_sort_key(path.basename), needscheck)
 		)
 		indexpath = self._pages.lookup_by_parent(db, parent, path.basename)
-		for indexer in self.indexers:
-			indexer.on_new_page(db, indexpath)
 		return indexpath
+
+	def set_page_exists(self, db, indexpath, page_exists=PAGE_EXISTS_HAS_CONTENT):
+		assert page_exists in (PAGE_EXISTS_AS_LINK, PAGE_EXISTS_HAS_CONTENT)
+
+		for parent in reversed(list(indexpath.parents())): # top down
+			parentrow = self._pages.lookup_by_indexpath(db, parent)
+			if parentrow.page_exists < page_exists:
+				self._set_page_exists(db, parentrow, page_exists)
+
+		self._set_page_exists(db, indexpath, page_exists)
+
+	def _set_page_exists(self, db, indexpath, page_exists):
+		new = indexpath.page_exists == PAGE_EXISTS_UNCERTAIN
+		db.execute(
+			'UPDATE pages SET page_exists=? WHERE id=?',
+			(page_exists, indexpath.id),
+		)
+		if new and not indexpath.isroot:
+			for indexer in self.indexers:
+				indexer.on_new_page(db, indexpath)
 
 	def index_page(self, db, indexpath):
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
+		assert isinstance(indexpath, IndexPathRow)
 		etag = self.store.get_content_etag(indexpath)
+
+		if etag and indexpath.page_exists != PAGE_EXISTS_HAS_CONTENT:
+			self.set_page_exists(db, indexpath)
+
 		page = self.store.get_page(indexpath)
 		for indexer in self.indexers:
 			indexer.on_index_page(db, indexpath, page)
@@ -356,7 +379,13 @@ class IndexInternal(object):
 		assert not indexpath.isroot
 		for indexer in self.indexers:
 			indexer.on_delete_page(db, indexpath)
+
 		db.execute('DELETE FROM pages WHERE id=?', (indexpath.id,))
+
+		parent = indexpath.parent
+		basename = indexpath.basename
+		for indexer in self.indexers:
+			indexer.on_deleted_page(db, parent, basename)
 
 	def cleanup_page(self, db, indexpath):
 		if indexpath.isroot:
@@ -468,7 +497,6 @@ class TreeIndexer(IndexInternal):
 
 		logger.info('Index update finished')
 
-
 	def check_children(self, db, indexpath, checktree=False):
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
@@ -521,7 +549,9 @@ class TreeIndexer(IndexInternal):
 	def new_children(self, db, indexpath, etag):
 		for page in self.store.get_pagelist(indexpath):
 			check = INDEX_CHECK_TREE if page.haschildren else INDEX_CHECK_PAGE
-			self.insert_page(db, indexpath, page, needscheck=check)
+			child = self.insert_page(db, indexpath, page, needscheck=check)
+			if page.hascontent:
+				self.set_page_exists(db, child)
 
 	def update_children(self, db, indexpath, etag, checktree=False):
 		c = db.cursor()
@@ -538,19 +568,26 @@ class TreeIndexer(IndexInternal):
 			row = c.fetchone()
 			if not row: # New child
 				check = INDEX_CHECK_TREE if page.haschildren else INDEX_CHECK_PAGE
-				self.insert_page(db, indexpath, page, needscheck=check)
+				indexpath = self.insert_page(db, indexpath, page, needscheck=check)
+				if page.hascontent:
+					self.set_page_exists(db, indexpath)
 			else: # Existing child
+				if page.hascontent and row['page_exists'] != PAGE_EXISTS_HAS_CONTENT:
+					indexpath = self._pages.lookup_by_row(db, row)
+					self.set_page_exists(db, indexpath)
+
 				if checktree:
 					if page.haschildren or row['n_children'] > 0: # has and/or had children
 						check = INDEX_CHECK_TREE
 					else:
 						check = INDEX_CHECK_PAGE
-				elif page.hascontent != row['hascontent']:
-					check = INDEX_CHECK_PAGE
-				elif page.haschildren != (row['n_children'] > 0):
-					check = INDEX_CHECK_CHILDREN
 				else:
-					check = None
+					if page.hascontent != row['hascontent']:
+						check = INDEX_CHECK_PAGE
+					elif page.haschildren != (row['n_children'] > 0):
+						check = INDEX_CHECK_CHILDREN
+					else:
+						check = None
 
 				if check is None:
 					c.execute(
@@ -562,6 +599,7 @@ class TreeIndexer(IndexInternal):
 						'UPDATE pages SET childseen=1, needscheck=? WHERE id=?',
 						(check, row['id'],)
 					)
+
 		# Finish by deleting pages that went missing
 		for row in c.execute(
 			'SELECT * FROM pages WHERE parent=? and childseen=0',

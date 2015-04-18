@@ -93,7 +93,7 @@ class IndexerBase(object):
 		'''Callback that is called after a new page is added to the
 		database.
 		@param db: a C{sqlite3.Connection} object
-		@param indexpath: a L{IndexPath} object
+		@param indexpath: an L{IndexPath} object
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
 		pass
@@ -101,7 +101,7 @@ class IndexerBase(object):
 	def on_index_page(self, db, indexpath, page):
 		'''Callback that is called when the content of a page is indexed.
 		@param db: a C{sqlite3.Connection} object
-		@param indexpath: a L{IndexPath} object
+		@param indexpath: an L{IndexPath} object
 		@param page: a L{Page} object
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
@@ -111,7 +111,17 @@ class IndexerBase(object):
 		'''Callback that is called before a page is deleted from the
 		database.
 		@param db: a C{sqlite3.Connection} object
-		@param indexpath: a L{IndexPath} object
+		@param indexpath: an L{IndexPath} object
+		@implementation: can be overloaded by subclass, default does nothing
+		'''
+		pass
+
+	def on_deleted_page(self, db, parent, basename):
+		'''Callback that is called after a page is deleted from the
+		database.
+		@param db: a C{sqlite3.Connection} object
+		@param parent: an L{IndexPath} object
+		@param basename: a string
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
 		pass
