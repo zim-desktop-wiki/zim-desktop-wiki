@@ -54,11 +54,8 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 		self.pngfile = File(self.diagfile.path[:-5] + '.png') # len('.diag') == 5
 
 	def generate_image(self, text):
-		if isinstance(text, basestring):
-			text = text.splitlines(True)
-
 		# Write to tmp file
-		self.diagfile.writelines(text)
+		self.diagfile.write(text)
 
 		# Call seqdiag
 		try:

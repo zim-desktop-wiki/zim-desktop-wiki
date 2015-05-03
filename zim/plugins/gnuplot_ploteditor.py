@@ -73,14 +73,11 @@ class GnuplotGenerator(ImageGeneratorClass):
 		self.plotscriptfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
-
 		plotscriptfile = self.plotscriptfile
 		pngfile = File(plotscriptfile.path[:-4] + '.png')
 
-		plot_script = "".join(text)
-
 		template_vars = { # they go in the template
-			'gnuplot_script': plot_script,
+			'gnuplot_script': text,
 			'png_fname': pngfile.path,
 		}
 		if self.attachment_folder and self.attachment_folder.exists():
