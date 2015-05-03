@@ -227,3 +227,27 @@ class Dumper(TextDumper):
 			assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 
 	dump_object_fallback = dump_pre
+
+	def dump_table(self, tag, attrib, strings):
+		table = []  # result table
+		rows = strings
+
+		aligns, _wraps = TableParser.get_options(attrib)
+		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\hline'
+		aligns = map(lambda a: 'l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l', aligns)
+
+		for i, row in enumerate(rows):
+			for j, (cell, align) in enumerate(zip(row, aligns)):
+				if '\n' in cell:
+					rows[i][j] = '\shortstack[' + align + ']{' + cell.replace("\n", "\\") + '}'
+
+		# print table
+		table.append('\\begin{tabular}{ |' + '|'.join(aligns) + '| }')
+		table.append('\hline')
+
+		table += [rowline(rows[0])]
+		table.append('\hline')
+		table += [rowline(row) for row in rows[1:]]
+
+		table.append('\end{tabular}')
+		return map(lambda line: line+"\n", table)

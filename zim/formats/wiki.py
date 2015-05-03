@@ -163,6 +163,15 @@ class WikiParser(object):
 				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
 				process=self.parse_heading
 			),
+			# standard table format
+			Rule(TABLE, r'''
+				^(\|.*\|)$\n								# starting and ending with |
+				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
+				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
+				^(?= \s*? \n)							# empty line / only spaces
+				''',
+				process=self.parse_table
+			)
 		)
 		p.process_unmatched = self.parse_para
 		return p
@@ -195,8 +204,7 @@ class WikiParser(object):
 
 		builder.append(VERBATIM_BLOCK, attrib, text)
 
-	@staticmethod
-	def parse_object(builder, indent, header, body):
+	def parse_object(self, builder, indent, header, body):
 		'''Custom object'''
 		type, param = header.split(':', 1)
 		type = type.strip().lower()
@@ -216,8 +224,90 @@ class WikiParser(object):
 		if indent:
 			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
-
 		builder.append(OBJECT, attrib, body)
+
+	def check_multi_attribute(self, attrib, key, default, list_length):
+		'''
+		Correct multi-attributes, so they do fit with column length of table
+		:param attrib: key-value store
+		:param key: key to select of attribute
+		:param default: default value for one list entry
+		:param list_length: required length of selected attribute
+		:return: attribute-value as list of different options
+		'''
+		if attrib and key in attrib and attrib[key]:
+			values = attrib[key].split(',')
+		else:
+			values = []
+
+		while len(values) > list_length:
+			values.pop()
+		while len(values) < list_length:
+			values.append(default)
+		return ','.join(values)
+
+	def parse_table(self, builder, headerrow, alignstyle, body):
+		'''Table parsing'''
+		body = body.replace('\\|', '#124;')  # escaping
+		rows = body.split('\n')[:-1]
+		# get maximum number of columns - each columns must have same size
+		nrcols = max([headerrow.count('|')]+[row.count('|') for row in rows])-1
+
+		# transform header separator line into alignment definitions
+		aligns = []
+		while alignstyle.count('|') < nrcols+1:
+			alignstyle += '|'  # fill cells thus they match with nr of headers
+		for celltext in alignstyle.split('|')[1:-1]:
+			celltext = celltext.strip()
+			if celltext.startswith(':') and celltext.endswith(':'):
+				alignment = 'center'
+			elif celltext.startswith(':'):
+				alignment = 'left'
+			elif celltext.endswith(':'):
+				alignment = 'right'
+			else:
+				alignment = 'normal'
+			aligns.append(alignment)
+		
+		# collect wrap settings from first table row
+		headers = []
+		wraps = []
+		for celltext in headerrow.split('|')[1:-1]:
+			if celltext.rstrip().endswith('<'):
+				celltext = celltext.rstrip().rstrip('<')
+				wraps.append(1)
+			else:
+				wraps.append(0)
+			headers.append(celltext)
+
+		attrib = {'aligns': ','.join(aligns), 'wraps': ','.join(map(str, wraps))}
+
+
+		# build table
+		builder.start(TABLE, attrib)
+
+		builder.start(HEADROW)
+		for celltext in headers:
+			celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()
+			if not celltext:
+				celltext = ' '  # celltext must contain at least one character
+			builder.append(HEADDATA, {}, celltext)
+		builder.end(HEADROW)
+
+		for bodyrow in rows:
+			while bodyrow.count('|') < nrcols+1:
+				bodyrow += '|'  # fill cells thus they match with nr of headers
+			builder.start(TABLEROW)
+			for celltext in bodyrow.split('|')[1:-1]:
+				builder.start(TABLEDATA)
+				celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()  # cleanup cell
+				if not celltext:
+					celltext = ' '  # celltext must contain at least one character
+				self.inline_parser(builder, celltext)
+				builder.end(TABLEDATA)
+			builder.end(TABLEROW)
+
+		builder.end(TABLE)
 
 	def parse_para(self, builder, text):
 		'''Split a text into paragraphs and empty lines'''
@@ -454,3 +544,35 @@ class Dumper(TextDumper):
 
 		# TODO put content in attrib, use text for caption (with full recursion)
 		# See img
+
+	def dump_table(self, tag, attrib, strings):
+		# logger.debug("Dumping table: %s, %s", attrib, strings)
+
+		table = []  # result table
+		rows = strings
+
+		aligns, wraps = TableParser.get_options(attrib)
+		maxwidths = TableParser.width2dim(rows)
+		headsep = TableParser.headsep(maxwidths, aligns, x='|', y='-')
+		rowline = lambda row: TableParser.rowline(row, maxwidths, aligns)
+
+		# print table
+		table += [TableParser.headline(rows[0], maxwidths, aligns, wraps)]
+		table.append(headsep)
+		table += [rowline(row) for row in rows[1:]]
+		return map(lambda line: line+"\n", table)
+
+	def dump_thead(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_th(self, tag, attrib, strings):
+		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+		return strings
+
+	def dump_trow(self, tag, attrib, strings):
+		return [strings]
+
+	def dump_td(self, tag, attrib, strings):
+		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+		strings = map(lambda s: s.replace('<br>', '\\n'), strings)
+		return strings

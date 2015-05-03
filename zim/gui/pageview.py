@@ -43,9 +43,12 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
-from zim.objectmanager import ObjectManager, CustomObjectClass
+from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
+from zim.formats import get_dumper
+from zim.formats.wiki import Dumper as WikiDumper
+from zim.plugins import PluginManager
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -515,6 +518,9 @@ class TextBuffer(gtk.TextBuffer):
 	@ivar user_action: A L{UserActionContext} context manager
 	@ivar finder: A L{TextFinder} for this buffer
 
+	@signal: C{reload-page ()}:
+	Emitted when plugin is activated and current page should be reloaded
+	to display object properly 
 	@signal: C{begin-insert-tree ()}:
 	Emitted at the begin of a complex insert
 	@signal: C{end-insert-tree ()}:
@@ -523,6 +529,8 @@ class TextBuffer(gtk.TextBuffer):
 	Gives inserted tree after inserting it
 	@signal: C{textstyle-changed (style)}:
 	Emitted when textstyle at the cursor changes
+	@signal: C{link-clicked ()}:
+	Emitted when a link is clicked; for example within a table cell
 	@signal: C{clear ()}:
 	emitted to clear the whole buffer before destruction
 	@signal: C{undo-save-cursor (iter)}:
@@ -530,6 +538,12 @@ class TextBuffer(gtk.TextBuffer):
 	lock the current cursor position
 	@signal: C{insert-object (object_element)}: request inserting of
 	custom object
+	@signal: C{edit-object (object_element)}: request editing of 
+	custom object
+	@signal: C{insert-table (table_element)}: request inserting of
+	table object
+	@signal: C{edit-table (table_element)}: request editing of 
+	table object
 
 	@todo: document tag styles that are supported
 	'''
@@ -551,6 +565,11 @@ class TextBuffer(gtk.TextBuffer):
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'edit-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'edit-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -919,6 +938,8 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				set_indent(None)
+			elif element.tag == 'table':
+				self.emit('insert-table', element)
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -2323,11 +2344,16 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 				if hasattr(anchor, 'manager'):
 					attrib = anchor.manager.get_attrib()
-					data = anchor.manager.get_data()
-					logger.debug("Anchor with CustomObject: %s", anchor.manager)
-					builder.start('object', attrib)
-					builder.data(data)
-					builder.end('object')
+					if attrib and attrib['type'] == 'table':
+						self.build_parsetree_of_table(builder, anchor.manager, iter)
+					else:
+						# general object related parsing
+						data = anchor.manager.get_data()
+						logger.debug("Anchor with CustomObject: %s", anchor.manager)
+						builder.start('object', attrib)
+						builder.data(data)
+						builder.end('object')
+
 					anchor.manager.set_modified(False)
 				iter.forward_char()
 			else:
@@ -2412,6 +2438,55 @@ class TextBuffer(gtk.TextBuffer):
 			#~ print ">>> Parsetree recreated:", tree.tostring()
 
 		return tree
+
+	def build_parsetree_of_table(self, builder, anchormanager, iter):
+			logger.debug("Anchor with TableObject: %s", anchormanager)
+			attrib = anchormanager.get_attrib()
+			del attrib['type']
+			tabledata = anchormanager.get_data()
+
+			# inserts a newline before and after table-object
+			bound = iter.copy()
+			bound.backward_char()
+			char_before_table = bound.get_slice(iter)
+			need_newline_infront = char_before_table.decode('utf-8') != "\n".decode('utf-8')
+			bound = iter.copy()
+			bound.forward_char()
+			iter2 = bound.copy()
+			bound.forward_char()
+			char_after_table = iter2.get_slice(bound)
+			need_newline_behind = char_after_table.decode('utf-8') != "\n".decode('utf-8')
+
+			# table-editor plugin is not activated -> handle table-object like a fallback-object
+			if isinstance(tabledata, basestring):
+				if need_newline_infront:
+					builder.data('\n')
+				builder.data(tabledata)
+				if need_newline_behind:
+					builder.data('\n')
+				return
+
+			headers, rows, attrib = tabledata
+			if need_newline_infront:
+				builder.data('\n')
+
+			builder.start('table', attrib)
+			builder.start('thead')
+			for header in headers:
+				builder.start('th')
+				builder.data(header)
+				builder.end('th')
+			builder.end('thead')
+			for row in rows:
+				builder.start('trow')
+				for cell in row:
+					builder.start('td')
+					builder.data(cell)
+					builder.end('td')
+				builder.end('trow')
+			builder.end('table')
+			if need_newline_behind:
+				builder.data('\n')
 
 	def select_line(self):
 		'''Selects the current line
@@ -3290,6 +3365,14 @@ class TextFinder(object):
 			start = self.buffer.get_iter_at_line(line)
 			if start.ends_line():
 				continue
+
+			# search within external widgets
+			if start.get_child_anchor() is not None:
+				result = self._search_in_widget(start, step)
+				if result:
+					yield (start, start, result[2])
+				else:
+					continue
 			end = start.copy()
 			end.forward_to_line_end()
 			text = start.get_slice(end)
@@ -3303,6 +3386,34 @@ class TextFinder(object):
 				enditer = self.buffer.get_iter_at_line_offset(
 					line, match.end() )
 				yield startiter, enditer, match
+
+
+	def _search_in_widget(self, start, step):
+		'''
+		Search within a widget
+		:param start: position-of-widget
+		:param step: search direction (up / down): -1 / 1
+		:return: tuple (startiter, enditer, match)
+		'''
+		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
+			return
+		widgets = start.get_child_anchor().get_widgets()
+		if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
+			table = widgets[0]
+			liststore = table.get_liststore()
+			iter = liststore.get_iter_root()
+			while iter is not None:
+				for col in range(liststore.get_n_columns()):
+					text = liststore.get_value(iter, col)
+					matches = self.regex.finditer(text)
+					if step == -1:
+						matches = list(matches)
+						matches.reverse()
+					for match in matches:
+						startiter = iter
+						enditer = iter
+						return startiter, enditer, match
+				iter = liststore.iter_next(iter)
 
 	def replace(self, string):
 		'''Replace current match
@@ -3326,11 +3437,14 @@ class TextFinder(object):
 					string = match.expand(string)
 
 				offset = start.get_offset()
-				with self.buffer.user_action:
-					self.buffer.select_range(start, end) # ensure editmode logic is used
-					self.buffer.delete(start, end)
-					self.buffer.insert_at_cursor(string)
 
+				if start.get_child_anchor() is not None:
+					self._replace_in_widget(start, self.regex, string)  # replace within external widgets
+				else:
+					with self.buffer.user_action:
+						self.buffer.select_range(start, end) # ensure editmode logic is used
+						self.buffer.delete(start, end)
+						self.buffer.insert_at_cursor(string)
 				start = self.buffer.get_iter_at_offset(offset)
 				end = self.buffer.get_iter_at_offset(offset+len(string))
 				self.buffer.select_range(start, end)
@@ -3340,6 +3454,36 @@ class TextFinder(object):
 			return False
 
 		self._update_highlight()
+
+	'''
+	Replace within a widget
+	:param start: position-of-widget
+	:param regex: regular expression pattern
+	:param text: substituation text
+	:param replaceall: boolean if all matches should be replaced
+	:return: True / False - a replacement was done / no replaces 
+	'''
+	def _replace_in_widget(self, start, regex, string, replaceall=False):
+		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
+			return
+		widgets = start.get_child_anchor().get_widgets()
+		if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
+			table = widgets[0]
+			liststore = table.get_liststore()
+			iter = liststore.get_iter_root()
+			has_replaced = False
+			while iter is not None:
+				for col in range(liststore.get_n_columns()):
+					text = liststore.get_value(iter, col)
+					if(regex.search(text)):
+						newtext = regex.sub(string, text)
+						liststore.set_value(iter, col, newtext)
+						if(not replaceall):
+							return True
+						else:
+							has_replaced = True
+				iter = liststore.iter_next(iter)
+		return has_replaced
 
 	def replace_all(self, string):
 		'''Replace all matched
@@ -3366,9 +3510,12 @@ class TextFinder(object):
 				for start, end, string in matches:
 					start = self.buffer.get_iter_at_offset(start)
 					end = self.buffer.get_iter_at_offset(end)
-					self.buffer.select_range(start, end) # ensure editmode logic is used
-					self.buffer.delete(start, end)
-					self.buffer.insert(start, string)
+					if start.get_child_anchor() is not None:
+						self._replace_in_widget(start, self.regex, string, True)
+					else:
+						self.buffer.select_range(start, end) # ensure editmode logic is used
+						self.buffer.delete(start, end)
+						self.buffer.insert(start, string)
 
 		self._update_highlight()
 
@@ -4875,6 +5022,7 @@ class PageView(gtk.VBox):
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
 			buffer.connect('insert-object', self.on_insert_object)
+			buffer.connect('insert-table', self.on_insert_table)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5428,6 +5576,9 @@ class PageView(gtk.VBox):
 
 		menu.show_all()
 
+	def do_reload_page(self):
+		self.ui.reload_page()
+
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
@@ -5908,6 +6059,75 @@ class PageView(gtk.VBox):
 		self._object_widgets.add(widget)
 
 		widget.show_all()
+
+	def insert_table_at_cursor(self, obj):
+		'''Inserts a table object in the page
+		@param obj: an object implementing L{CustomerObjectClass}
+		'''
+		assert isinstance(obj, CustomObjectClass)
+		self.on_insert_table(self.view.get_buffer(), obj)
+
+	def on_insert_table(self, buffer, obj, interactive=False):
+		#  adopted from on_insert_object, with some changes:
+		# - 'type=table' added to xml-element
+		# - content of fallback-object is like a plaintext table
+		# - content of table-widget is not text, but a xml table tree
+		# - callbacks for 'link-clicked' and 'edit-object'
+		logger.debug("Insert table(%s, %s)", buffer, obj)
+
+		obj.attrib['type'] = 'table'
+		if not isinstance(obj, CustomObjectClass):
+			# assume obj is a parsetree element
+			element = obj
+			if not 'type' in element.attrib:
+				return None
+			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element)
+			if not hasattr(obj, 'attr'):
+				obj.attr = dict()
+				obj.attr['type'] = 'table'
+
+			if isinstance(obj, FallbackObject):
+				# if table plugin is not loaded - show table as plain text
+				tree = ParseTree(element)
+				text = get_dumper('wiki').dump(tree)
+				lines = "".join(text)
+				obj._data = lines
+
+		def on_modified_changed(obj):
+			if obj.get_modified() and not buffer.get_modified():
+				buffer.set_modified(True)
+
+		def on_edit_object(pageview, obj):
+			plugin = ObjectManager.find_plugin(obj._attrib['type'])
+			window_extension = plugin[4]
+
+			if window_extension:
+				window_extension.do_edit_object(obj)
+
+		obj.connect('modified-changed', on_modified_changed)
+		obj.connect_object('link-clicked', PageView.do_link_clicked, self)
+		obj.connect_object('edit-object', on_edit_object, self)
+
+		iter = buffer.get_insert_iter()
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.view.grab_focus()
+
+		anchor = ObjectAnchor(obj)
+		buffer.insert_child_anchor(iter, anchor)
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectWidget)
+		widget.connect('release-cursor', on_release_cursor, anchor)
+		self.view.add_child_at_anchor(widget, anchor)
+		self._object_widgets.add(widget)
+
+		widget.show_all()
+		if not isinstance(obj, FallbackObject):
+			widget.toolbar_hide()
 
 	def on_view_size_allocate(self, textview, allocation):
 		for widget in self._object_widgets:

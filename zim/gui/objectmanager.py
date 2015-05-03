@@ -145,7 +145,7 @@ class FallbackObjectWidget(TextViewWidget):
 			self.vbox.pack_start(label)
 
 	def _add_load_plugin_bar(self, plugin):
-		key, name, activatable, klass = plugin
+		key, name, activatable, klass, _winextension = plugin
 
 		hbox = gtk.HBox(False, 5)
 		label = gtk.Label(_("Plugin %s is required to display this object.") % name)
