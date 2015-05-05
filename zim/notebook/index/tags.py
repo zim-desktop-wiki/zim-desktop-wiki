@@ -60,7 +60,7 @@ class TagsIndexer(IndexerBase):
 		);
 	'''
 
-	def on_index_page(self, db, indexpath, page):
+	def on_index_page(self, index, db, indexpath, page):
 		db.execute(
 			'DELETE FROM tagsources WHERE source=?',
 			(indexpath.id,)
@@ -87,7 +87,7 @@ class TagsIndexer(IndexerBase):
 			'DELETE FROM tags WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
 		)
 
-	def on_delete_page(self, db, indexpath):
+	def on_delete_page(self, index, db, indexpath):
 		db.execute(
 			'DELETE FROM tagsources WHERE source=?',
 			(indexpath.id,)

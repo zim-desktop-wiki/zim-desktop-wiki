@@ -5,7 +5,6 @@
 
 import re
 
-from zim.utils import natural_sort_key
 from zim.parsing import link_type
 
 import zim.formats
@@ -283,7 +282,7 @@ HREF_REL_RELATIVE = 2
 
 class HRef(object):
 
-	__slots__ = ('rel', 'names', 'sortkeys')
+	__slots__ = ('rel', 'names')
 
 	@classmethod
 	def new_from_wiki_link(klass, href):
@@ -307,36 +306,18 @@ class HRef(object):
 
 		names = Path.makeValidPageName(href.lstrip('+'))
 			# Can raise ValueError if link would reduce to empty string
+		return klass(rel, names)
 
-		sortkeys = ':'.join(natural_sort_key(n) for n in names.split(':'))
-		assert names.count(':') == sortkeys.count(':'), 'BUG: conflict in usage of the ":" character'
-
-		return klass(rel, names, sortkeys)
-
-	def __init__(self, rel, names, sortkeys):
+	def __init__(self, rel, names):
 		self.rel = rel
 		self.names = names
-		self.sortkeys = sortkeys
 
 	def __str__(self):
 		rel = {HREF_REL_ABSOLUTE: 'abs', HREF_REL_FLOATING: 'float', HREF_REL_RELATIVE: 'rel'}[self.rel]
 		return '<%s: %s %s>' % (self.__class__.__name__, rel, self.names)
 
 	def parts(self):
-		return zip(
-			self.names.split(':'),
-			self.sortkeys.split(':')
-		)
-
-	def anchor_key(self):
-		'''Returns the first part of C{sortkeys}, this is used to anchor
-		the "floating" link type by looking for matching of this part
-		in the path.
-		'''
-		if ':' in self.sortkeys:
-			return self.sortkeys.split(':', 1)[0]
-		else:
-			return self.sortkeys
+		return self.names.split(':')
 
 
 class Page(Path):

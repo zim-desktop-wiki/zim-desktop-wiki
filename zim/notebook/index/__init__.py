@@ -165,7 +165,7 @@ class Index(object):
 			logger.debug('(Re-)Initializing database for index')
 			db.executescript(INDEX_INIT_SCRIPT)
 			for indexer in self.indexers:
-				indexer.on_db_init(db)
+				indexer.on_db_init(self, db)
 
 	def connect(self, signal, handler):
 		for indexer in self.indexers:
@@ -256,29 +256,9 @@ class Index(object):
 			try:
 				indexpath = self._pages.lookup_by_pagename(db, page)
 			except IndexNotFoundError:
-				indexpath = self._touch_path(db, page)
+				indexpath = self._index.touch_path(db, page)
 
 			self._index.index_page(db, indexpath)
-
-	def _touch_path(self, db, path):
-		parent = ROOT_PATH
-		names = path.parts
-		while names: # find existing parents
-			try:
-				indexpath = self._pages.lookup_by_parent(db, parent, names[0])
-			except IndexNotFoundError:
-				break
-			else:
-				names.pop(0)
-				parent = indexpath
-
-		while names: # create missing parts
-			basename = names.pop(0)
-			path = parent.child(basename)
-			indexpath = self._index.insert_page(db, parent, path)
-			parent = indexpath
-
-		return indexpath
 
 	def on_delete_page(self, path):
 		with self._db as db:
@@ -287,11 +267,7 @@ class Index(object):
 			except IndexNotFoundError:
 				return
 
-			self._index.delete_page(db, indexpath)
-			for parent in indexpath.parents():
-				parent = self._pages.lookup_by_id(db, parent.id)
-				if not self._index.cleanup_page(db, parent):
-					break
+			self._index.delete_page(db, indexpath, cleanup=True)
 
 	def flag_reindex(self):
 		'''This methods flags all pages with content to be re-indexed.
@@ -356,7 +332,27 @@ class IndexInternal(object):
 		)
 		if new and not indexpath.isroot:
 			for indexer in self.indexers:
-				indexer.on_new_page(db, indexpath)
+				indexer.on_new_page(self, db, indexpath)
+
+	def touch_path(self, db, path):
+		parent = ROOT_PATH
+		names = path.parts
+		while names: # find existing parents
+			try:
+				indexpath = self._pages.lookup_by_parent(db, parent, names[0])
+			except IndexNotFoundError:
+				break
+			else:
+				names.pop(0)
+				parent = indexpath
+
+		while names: # create missing parts
+			basename = names.pop(0)
+			path = parent.child(basename)
+			indexpath = self.insert_page(db, parent, path, needscheck=INDEX_UPTODATE)
+			parent = indexpath
+
+		return indexpath
 
 	def index_page(self, db, indexpath):
 		# Get etag first - when data changes these should
@@ -369,37 +365,41 @@ class IndexInternal(object):
 
 		page = self.store.get_page(indexpath)
 		for indexer in self.indexers:
-			indexer.on_index_page(db, indexpath, page)
+			indexer.on_index_page(self, db, indexpath, page)
 		db.execute(
 			'UPDATE pages SET content_etag=? WHERE id=?',
 			(etag, indexpath.id)
 		)
 
-	def delete_page(self, db, indexpath):
+	def delete_page(self, db, indexpath, cleanup):
 		assert not indexpath.isroot
 		for indexer in self.indexers:
-			indexer.on_delete_page(db, indexpath)
+			indexer.on_delete_page(self, db, indexpath)
 
 		db.execute('DELETE FROM pages WHERE id=?', (indexpath.id,))
 
 		parent = indexpath.parent
 		basename = indexpath.basename
 		for indexer in self.indexers:
-			indexer.on_deleted_page(db, parent, basename)
+			indexer.on_deleted_page(self, db, parent, basename)
 
-	def cleanup_page(self, db, indexpath):
-		if indexpath.isroot:
-			return False
+		if cleanup:
+			parent = indexpath.parent
+			if not parent.isroot:
+				parent = self._pages.lookup_by_id(db, parent.id)
+				if not self.check_existance(db, parent):
+					self.delete_page(db, parent, cleanup=True) # recurs
 
-		if indexpath.exists():
-			return False
-		else: # cleanup
-			self.delete_page(db, indexpath)
+	def check_existance(self, db, indexpath):
+		if indexpath.hascontent:
 			return True
-
-		# TODO also check for incoming links / turn into palceholder if so
-		# in that case trigger in turn parents to be flagged as
-		# placeholder as well !
+		else:
+			c = db.execute(
+				'SELECT count(*) FROM pages '
+				'WHERE parent=? and page_exists>0',
+				(indexpath.id,)
+			)
+			return c.fetchone()[0] > 0
 
 
 class TreeIndexer(IndexInternal):
@@ -498,6 +498,9 @@ class TreeIndexer(IndexInternal):
 		logger.info('Index update finished')
 
 	def check_children(self, db, indexpath, checktree=False):
+		### TODO check page_exists tag is correct here
+		###      if not, propagate changes upward
+
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
 		etag = self.store.get_children_etag(indexpath)
@@ -557,7 +560,9 @@ class TreeIndexer(IndexInternal):
 		c = db.cursor()
 
 		# First flag all children in index
-		c.execute('UPDATE pages SET childseen=0 WHERE parent=?', (indexpath.id,))
+		c.execute('UPDATE pages SET childseen=0 WHERE parent=? and page_exists<>?',
+			(indexpath.id, PAGE_EXISTS_AS_LINK)
+		)
 
 		# Then go over the list
 		for page in self.store.get_pagelist(indexpath):
@@ -568,13 +573,13 @@ class TreeIndexer(IndexInternal):
 			row = c.fetchone()
 			if not row: # New child
 				check = INDEX_CHECK_TREE if page.haschildren else INDEX_CHECK_PAGE
-				indexpath = self.insert_page(db, indexpath, page, needscheck=check)
+				child = self.insert_page(db, indexpath, page, needscheck=check)
 				if page.hascontent:
-					self.set_page_exists(db, indexpath)
+					self.set_page_exists(db, child)
 			else: # Existing child
 				if page.hascontent and row['page_exists'] != PAGE_EXISTS_HAS_CONTENT:
-					indexpath = self._pages.lookup_by_row(db, row)
-					self.set_page_exists(db, indexpath)
+					child = self._pages.lookup_by_row(db, row)
+					self.set_page_exists(db, child)
 
 				if checktree:
 					if page.haschildren or row['n_children'] > 0: # has and/or had children
@@ -582,7 +587,7 @@ class TreeIndexer(IndexInternal):
 					else:
 						check = INDEX_CHECK_PAGE
 				else:
-					if page.hascontent != row['hascontent']:
+					if page.hascontent != bool(row['content_etag']):
 						check = INDEX_CHECK_PAGE
 					elif page.haschildren != (row['n_children'] > 0):
 						check = INDEX_CHECK_CHILDREN
@@ -607,7 +612,7 @@ class TreeIndexer(IndexInternal):
 		):
 			child = self._pages.lookup_by_row(db, row)
 			self.delete_children(db, child)
-			self.delete_page(db, child)
+			self.delete_page(db, child, cleanup=False)
 
 	def delete_children(self, db, indexpath):
 		for row in db.execute(
@@ -616,7 +621,7 @@ class TreeIndexer(IndexInternal):
 		):
 			child = indexpath.child_by_row(row)
 			self.delete_children(db, child) # recurs depth first - no check here on haschildren!
-			self.delete_page(db, child)
+			self.delete_page(db, child, cleanup=False)
 
 	def check_page(self, db, indexpath):
 		etag = self.store.get_content_etag(indexpath)

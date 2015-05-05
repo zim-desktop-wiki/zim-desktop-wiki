@@ -20,7 +20,7 @@ from zim.notebook.stores.files import FilesStore
 from zim.notebook.index import *
 
 
-PAGES = {
+PAGES_TREE = { # Pages stored initially in the notebook
 	Path('Bar'): {
 		'treepath': (0,),
 		'n_children': 0,
@@ -50,8 +50,9 @@ PAGES = {
 	Path('Foo:Child2'): {
 		'treepath': (1,1),
 		'n_children': 0,
-		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
-		'links': [],
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n'
+			'[[Child3]]\n',
+		'links': ['Foo:Child3'],
 		'backlinks': [],
 		'tags': [],
 	},
@@ -81,7 +82,22 @@ PAGES = {
 	},
 }
 
-SEQUENCE = ( # Per phase children iterate in order of discovery
+# Add placeholders for links in content, remove empty folder
+PAGES = copy.deepcopy(PAGES_TREE)
+PAGES[Path('Foo:Child3')] = {
+	'treepath': (1,2),
+	'n_children': 0,
+	'content': None,
+	'links': [],
+	'backlinks': ['Foo:Child2'],
+	'tags': [],
+}
+PAGES[Path('Foo')]['n_children'] = 3
+
+PAGES.pop(Path('SOME EMPTY FOLDER'))
+
+# Indexer sequence - per phase children iterate in order of discovery
+SEQUENCE = (
 	(INDEX_CHECK_TREE, ''),
 	(INDEX_CHECK_TREE, 'Foo'),
 	(INDEX_CHECK_TREE, 'SOME EMPTY FOLDER'), # non existent, but gets checked
@@ -95,6 +111,7 @@ SEQUENCE = ( # Per phase children iterate in order of discovery
 	(INDEX_CHECK_PAGE, 'Foo:Child1:GrandChild2'),
 )
 
+# Signals emitted during initial indexing
 INIT_SIGNALS = [
 	('page-added', 'Bar'),
 	('page-added', 'Foo'),
@@ -104,13 +121,18 @@ INIT_SIGNALS = [
 	('page-added', 'Foo:Child1:GrandChild1'),
 	('page-haschildren-toggled', 'Foo:Child1'),
 	('page-added', 'Foo:Child1:GrandChild2'),
+	('page-changed', 'Bar'),
+	('page-changed', 'Foo'),
+	# No signal here for 'SOME EMPTY FOLDER', no content, so not indexed
+	('page-changed', 'Foo:Child1'),
+	('page-changed', 'Foo:Child2'),
+	('page-added', 'Foo:Child3'), # placeholder discovered
+	('page-changed', 'Foo:Child1:GrandChild1'),
+	('page-changed', 'Foo:Child1:GrandChild2'),
 ]
-for check, name in SEQUENCE:
-	if name and check == INDEX_CHECK_PAGE \
-	and not 'EMPTY' in name :
-		INIT_SIGNALS.append(('page-changed', name))
 
-
+# Pages to be added and deleted to test updates
+# Both new namespace (below Bar) and in existing namespace (below Foo)
 UPDATE = {
 	Path('Bar:AAA'): {
 		'treepath': (),
@@ -134,10 +156,18 @@ UPDATE = {
 		'links': [],
 		'tags': [],
 	},
+	Path('Foo:AAA'): {
+		'treepath': (),
+		'n_children': 0,
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
+		'links': [],
+		'tags': [],
+	},
 }
 
-UPDATED_PAGES = dict(copy.deepcopy(PAGES.items()) + UPDATE.items())
-UPDATED_PAGES[Path('Bar')]['n_children'] = 3
+UPDATED_PAGES = copy.deepcopy(PAGES)
+UPDATED_PAGES.update(UPDATE)
+UPDATED_PAGES[Path('Bar')]['n_children'] += 3
 UPDATED_PAGES[Path('Bar:CCC')] = {
 	'treepath': (),
 	'n_children': 1,
@@ -145,8 +175,10 @@ UPDATED_PAGES[Path('Bar:CCC')] = {
 	'links': [],
 	'tags': [],
 }
+UPDATED_PAGES[Path('Foo')]['n_children'] += 1
 
-UPDATE_SEQUENCE = ( # New pages appended at the end of each phase
+# Sequence when updating - new pages appended at the end of each phase
+UPDATE_SEQUENCE = (
 	(INDEX_CHECK_TREE, ''),
 	(INDEX_CHECK_TREE, 'Bar'),
 	(INDEX_CHECK_TREE, 'Foo'),
@@ -163,11 +195,12 @@ UPDATE_SEQUENCE = ( # New pages appended at the end of each phase
 	(INDEX_CHECK_PAGE, 'Bar:AAA'),
 	(INDEX_CHECK_PAGE, 'Bar:BBB'),
 	(INDEX_CHECK_PAGE, 'Bar:CCC'),
+	(INDEX_CHECK_PAGE, 'Foo:AAA'),
 	(INDEX_CHECK_PAGE, 'Bar:CCC:aaa'),
 )
 
+# Sequence after deleting update again - same as SEQUENCE but with extra check for Bar children
 UPDATE_ROLLBACK_SEQUENCE = (
-	# Same as SEQUENCE but with extra check for Bar children
 	(INDEX_CHECK_TREE, ''),
 	(INDEX_CHECK_TREE, 'Bar'),
 	(INDEX_CHECK_TREE, 'Foo'),
@@ -182,10 +215,10 @@ UPDATE_ROLLBACK_SEQUENCE = (
 	(INDEX_CHECK_PAGE, 'Foo:Child1:GrandChild2'),
 )
 
+# Sequence for re-indexing the whole notebook
 REINDEX_SEQUENCE = [
 	t for t in SEQUENCE
-		if t[0]==INDEX_CHECK_PAGE
-		and PAGES[Path(t[1])]['content'] is not None
+		if t[0]==INDEX_CHECK_PAGE and Path(t[1]) in PAGES
 ]
 
 
@@ -193,13 +226,14 @@ class MemoryIndexerTests(tests.TestCase):
 
 	def setUp(self):
 		self.store = MemoryStore()
-		self.write_pages(PAGES)
+		self.write_pages(PAGES_TREE)
 		self.index = Index.new_from_memory(
 			self.store
 		)
 
 	def write_pages(self, pages):
 		for path, attrib in pages.items():
+			#~ print "Write", path
 			page = self.store.get_page(path)
 			if attrib['content']:
 				page.parse('wiki', attrib['content'])
@@ -229,7 +263,7 @@ class MemoryIndexerTests(tests.TestCase):
 				path = Path(indexpath.name)
 				self.assertIn(path, wanted)
 				self.assertIsNotNone(wanted[path]['treepath'])
-				self.assertEqual(indexpath.n_children, wanted[path]['n_children'])
+				self.assertEqual(indexpath.n_children, wanted[path]['n_children'], 'n_children for %s is %i' % (indexpath.name, indexpath.n_children))
 				seen.add(path)
 
 			for path in wanted:
@@ -273,14 +307,17 @@ class MemoryIndexerTests(tests.TestCase):
 				if wanted[path]['treepath'] is not None:
 					self.assertIn(path, seen)
 
-	def runSequence(self, indexer, sequence, result):
+	def runSequence(self, indexer, sequence, result, tree=None):
+		if not tree:
+			tree = result
 		treecheck = False
+		#~ print '---'
 		for i, q in enumerate(indexer):
-			#~ print '>>', q
+			print '>>', q
 			self.assertEqual(q[1].name, sequence[i][1])
 			self.assertEqual(q[0], sequence[i][0])
 			if not treecheck and q[0] != INDEX_CHECK_TREE:
-				self.assertIndexMatchesTree(self.index, result)
+				self.assertIndexMatchesTree(self.index, tree)
 				treecheck = True
 
 		assert i == len(sequence)-1
@@ -309,7 +346,7 @@ class MemoryIndexerTests(tests.TestCase):
 		#~ print "### Init"
 		self.assertFalse(self.index.probably_uptodate)
 		indexer.queue_check(ROOT_PATH)
-		self.runSequence(indexer, SEQUENCE, PAGES)
+		self.runSequence(indexer, SEQUENCE, PAGES, PAGES_TREE)
 		self.assertTrue(self.index.probably_uptodate)
 		#~ import pprint; pprint.pprint(signals);
 		self.assertEqual(signals, INIT_SIGNALS)
@@ -344,12 +381,11 @@ class MemoryIndexerTests(tests.TestCase):
 
 		#~ print "### Delete pages"
 		for path, attrib in UPDATE.items():
-			#~ print ">>", path
 			self.store.delete_page(path)
 			self.index.on_delete_page(path)
 		self.assertIndexMatchesPages(self.index, PAGES)
 
-		#~ print "### Force re-index"
+		print "### Force re-index"
 		self.index.flag_reindex()
 		self.runSequence(indexer, REINDEX_SEQUENCE, PAGES)
 
@@ -398,7 +434,7 @@ class IndexerTests(MemoryIndexerTests):
 	def setUp(self):
 		dir = Dir(self.create_tmp_dir())
 		self.store = FilesStore(dir)
-		self.write_pages(PAGES)
+		self.write_pages(PAGES_TREE)
 		self.index = Index.new_from_file(
 			dir.file('.zim/test_index.db'),
 			self.store
@@ -421,6 +457,7 @@ class TestIndexPath(tests.TestCase):
 		path = IndexPathRow('Foo:Bar', [ROOT_ID,2,3], {
 			'n_children': 5,
 			'content_etag': '1234',
+			'page_exists': PAGE_EXISTS_HAS_CONTENT,
 		})
 		self.assertEqual(path.n_children, 5)
 		self.assertTrue(path.hascontent)
@@ -443,6 +480,7 @@ class TestTestNotebook(tests.TestCase):
 			self.assertIsInstance(indexpath, IndexPathRow)
 		# What else to check ?
 
+
 ### TODO put in test module for Path and Notebook ?
 class TestHRefFromWikiLink(tests.TestCase):
 
@@ -459,18 +497,135 @@ class TestHRefFromWikiLink(tests.TestCase):
 			self.assertEqual(href.names, names)
 ###
 
-class TestPagesView(tests.TestCase):
-
-	def setUp(self):
-		store = MemoryStore()
-		for path, attr in PAGES.items():
+def new_memory_index():
+	store = MemoryStore()
+	for path, attr in PAGES_TREE.items():
+		if attr['content'] is not None:
 			store.store_node(path, attr['content'])
 
-		self.index = Index.new_from_memory(store)
-		self.index.update()
+	index = Index.new_from_memory(store)
+	index.update()
+	return index
+
+
+class TestPlaceHolders(tests.TestCase):
+
+	def _get_page_exists(self, index, path):
+		pages = PagesView.new_from_index(index)
+		path = pages.lookup_by_pagename(path)
+		return path.page_exists
+
+	def assertIsPlaceholder(self, index, path):
+		assert self._get_page_exists(index, path) == PAGE_EXISTS_AS_LINK, 'Is not a placeholder: %s' % path
+
+	def assertExists(self, index, path):
+		assert self._get_page_exists(index, path) == PAGE_EXISTS_HAS_CONTENT, 'Does not exist: %s' % path
+
+	def assertDoesNotExist(self, index, path):
+		try:
+			e = self._get_page_exists(index, path)
+		except IndexNotFoundError:
+			pass
+		else:
+			raise AssertionError, 'Should not exist: %s' % path
+
+	def assertLinks(self, index, source, target):
+		links = LinksView.new_from_index(index)
+		for link in links.list_links(source):
+			if link.target.name == target.name:
+				break
+		else:
+			assert False, '%s does not link to %s' % (source, target)
+
+	def store_page(self, index, path, content):
+		index.store.store_node(path, content)
+		index.on_store_page(index.store.get_page(path))
+
+	def delete_page(self, index, path):
+		index.store.delete_page(path)
+		index.on_delete_page(path)
+
+	def runTest(self):
+		index = new_memory_index()
+		self.assertExists(index, Path('Foo:Child2'))
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# delete link origin, placeholder should be gone as well
+		self.delete_page(index, Path('Foo:Child2'))
+		self.assertDoesNotExist(index, Path('Foo:Child2'))
+		self.assertDoesNotExist(index, Path('Foo:Child3'))
+
+		# add again
+		self.store_page(index, Path('Foo:Child2'), '\n[[Child3]]\n')
+		self.assertExists(index, Path('Foo:Child2'))
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# add content to placeholder
+		self.store_page(index, Path('Foo:Child3'), 'test 123\n')
+		self.assertExists(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# delete content again, turn back to placeholder
+		self.delete_page(index, Path('Foo:Child3'))
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# update children on parent, placeholder should survive
+		index.store.store_node(Path('Foo:AAA'), 'test 123\n')
+		index.update()
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# add page with same name level above, link now resolves
+		self.store_page(index, Path('Child3'), 'test 123\n')
+		self.assertDoesNotExist(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Child3'))
+
+		# delete again, placeholder moves back
+		self.delete_page(index, Path('Child3'))
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# add placeholder level above, keep both placeholders
+		self.store_page(index, Path('Foo'), 'test 123\n[[Child3]]\n')
+		self.assertIsPlaceholder(index, Path('Child3'))
+		self.assertLinks(index, Path('Foo'), Path('Child3'))
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+		# delete again, placeholder moves back
+		self.store_page(index, Path('Foo'), 'test 123\n')
+		self.assertDoesNotExist(index, Path('Child3'))
+		self.assertIsPlaceholder(index, Path('Foo:Child3'))
+		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
+
+
+
+class TestPagesView(tests.TestCase):
+
+	def testBasics(self):
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
+
+		root = pages.lookup_by_pagename(Path(':'))
+		self.assertTrue(root.isroot)
+		toplevel = [p.name for p in pages.list_pages(root)]
+		self.assertEqual(toplevel, ['Bar', 'Foo'])
+		for name in toplevel:
+			path = pages.lookup_by_pagename(Path(name))
+			userpath = pages.lookup_from_user_input(name)
+			self.assertEqual(path, userpath)
+			userpath = pages.lookup_from_user_input(name, ROOT_PATH)
+			self.assertEqual(path, userpath)
+
+		self.assertRaises(ValueError, pages.get_previous, ROOT_PATH)
+		self.assertRaises(ValueError, pages.get_next, ROOT_PATH)
 
 	def testWalk(self):
-		pages = PagesView.new_from_index(self.index)
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
 		pagelist = list( pages.walk() )
 		self.assertEqual(
 			[p.name for p in pagelist],
@@ -480,16 +635,25 @@ class TestPagesView(tests.TestCase):
 
 		last = len(pagelist)-1
 		for i, p in enumerate(pagelist):
+			r = pages.get_previous(p)
 			if i > 0:
-				r = pages.get_previous(p)
 				self.assertEqual(r.name, pagelist[i-1].name)
+			else:
+				self.assertIsNone(r)
 
+			r = pages.get_next(p)
 			if i < last:
-				r = pages.get_next(p)
 				self.assertEqual(r.name, pagelist[i+1].name)
+			else:
+				self.assertIsNone(r)
+
+		section = Path('Foo')
+		for page in pages.walk(section):
+			self.assertTrue(page.ischild(section))
 
 	def testRecentChanges(self):
-		pages = PagesView.new_from_index(self.index)
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
 		pageset = set( pages.walk() )
 
 		recent = set(pages.list_recent_changes())
@@ -498,9 +662,9 @@ class TestPagesView(tests.TestCase):
 		recent = set(pages.list_recent_changes(limit=3, offset=0))
 		self.assertEqual(len(recent), 3)
 
-
 	def testResolveLink(self):
-		pages = PagesView.new_from_index(self.index)
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
 		for sourcename, link, target in (
 			('Foo:Child1:GrandChild1', 'Child1', 'Foo:Child1'),
 			('Foo:Child1:GrandChild1', 'Child2:AAA', 'Foo:Child2:AAA'),
@@ -517,7 +681,10 @@ class TestPagesView(tests.TestCase):
 			self.assertEqual(path.name, target)
 
 	def testTreePathMethods(self):
+		index = new_memory_index()
+
 		def check_treepath(get_indexpath_for_treepath, get_treepath_for_indexpath):
+			# Test all pages
 			for p, attr in PAGES.items():
 				if attr['treepath']:
 					indexpath = get_indexpath_for_treepath(attr['treepath'])
@@ -526,12 +693,17 @@ class TestPagesView(tests.TestCase):
 					treepath = get_treepath_for_indexpath(indexpath)
 					self.assertEqual(treepath, attr['treepath'])
 
+			# Test non-existing
+			p = get_indexpath_for_treepath((1,2,3,4,5))
+			self.assertIsNone(p)
+
+
 		# Separate caches to lets each method start from scratch
 		cache1 = {}
 		cache2 = {}
 		check_treepath(
-			get_indexpath_for_treepath_factory(self.index, cache1),
-			get_treepath_for_indexpath_factory(self.index, cache2)
+			get_indexpath_for_treepath_factory(index, cache1),
+			get_treepath_for_indexpath_factory(index, cache2)
 		)
 
 		self.assertEqual(cache1, cache2)
@@ -539,23 +711,25 @@ class TestPagesView(tests.TestCase):
 		# Now try again with a shared cache
 		cache = {}
 		check_treepath(
-			get_indexpath_for_treepath_factory(self.index, cache),
-			get_treepath_for_indexpath_factory(self.index, cache)
+			get_indexpath_for_treepath_factory(index, cache),
+			get_treepath_for_indexpath_factory(index, cache)
 		)
 
 
 class TestTagsView(tests.TestCase):
 
-	def setUp(self):
-		store = MemoryStore()
-		for path, attr in PAGES.items():
-			store.store_node(path, attr['content'])
+	def testIndexTag(self):
+		foo = {'name': 'foooooo', 'id':1}
+		bar = {'name': 'barrrrr', 'id':2}
+		tag = IndexTag(foo)
+		self.assertTrue(tag == IndexTag(foo))
+		self.assertTrue(tag != IndexTag(bar))
+		self.assertTrue(isinstance(hash(tag), int))
+		self.assertTrue(isinstance(repr(tag), str))
 
-		self.index = Index.new_from_memory(store)
-		self.index.update()
-
-	def runTest(self):
-		tags = TagsView.new_from_index(self.index)
+	def testTagsView(self):
+		index = new_memory_index()
+		tags = TagsView.new_from_index(index)
 
 		mytags = {}
 		for p, attr in PAGES.items():
@@ -569,19 +743,15 @@ class TestTagsView(tests.TestCase):
 			pages = set(p.name for p in tags.list_pages(t))
 			self.assertEqual(pages, mytags[t])
 
+		with self.assertRaises(IndexNotFoundError):
+			list(tags.list_pages('foooo'))
+
 
 class TestLinksView(tests.TestCase):
 
-	def setUp(self):
-		store = MemoryStore()
-		for path, attr in PAGES.items():
-			store.store_node(path, attr['content'])
-
-		self.index = Index.new_from_memory(store)
-		self.index.update()
-
 	def runTest(self):
-		linksview = LinksView.new_from_index(self.index)
+		index = new_memory_index()
+		linksview = LinksView.new_from_index(index)
 
 		for p, attr in PAGES.items():
 			links = [l.target.name for l in linksview.list_links(p)]

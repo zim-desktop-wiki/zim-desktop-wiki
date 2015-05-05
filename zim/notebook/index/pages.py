@@ -133,7 +133,7 @@ class IndexPathRow(IndexPath):
 			raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
 
 	def exists(self):
-		return self.haschildren or self.hascontent
+		return self._row['page_exists'] == PAGE_EXISTS_HAS_CONTENT # self or children have content
 
 
 class PagesIndexer(IndexerBase):
@@ -172,10 +172,10 @@ class PagesIndexer(IndexerBase):
 			content_etag TEXT,
 			children_etag TEXT,
 
-			-- managed by both TreeIndexer and PageIndexer
+			-- managed by both TreeIndexer and PageIndexer - signal on change # TODO TODO TODO
 			page_exists INTEGER DEFAULT 0,
 
-			-- these keys are managed by PageIndexer
+			-- these keys are managed by PageIndexer - signal on change
 			n_children BOOLEAN DEFAULT 0,
 			ctime TIMESTAMP,
 			mtime TIMESTAMP,
@@ -185,7 +185,7 @@ class PagesIndexer(IndexerBase):
 		INSERT INTO pages(parent, basename, sortkey) VALUES (0, '', '');
 	'''
 
-	def on_new_page(self, db, indexpath):
+	def on_new_page(self, index, db, indexpath):
 		parent = indexpath.parent
 		n_children_pre = self.n_children(db, parent)
 		self.update_parent(db, parent)
@@ -193,7 +193,7 @@ class PagesIndexer(IndexerBase):
 		if n_children_pre == 0 and not parent.isroot:
 			self.emit('page-haschildren-toggled', parent)
 
-	def on_index_page(self, db, indexpath, page):
+	def on_index_page(self, index, db, indexpath, page):
 		ctime = datetime.fromtimestamp(page.ctime)
 		mtime = datetime.fromtimestamp(page.mtime)
 		db.execute(
@@ -204,10 +204,10 @@ class PagesIndexer(IndexerBase):
 		)
 		self.emit('page-changed', indexpath)
 
-	def on_delete_page(self, db, indexpath):
+	def on_delete_page(self, index, db, indexpath):
 		self.emit('page-to-be-removed', indexpath)
 
-	def on_deleted_page(self, db, parent, basename):
+	def on_deleted_page(self, index, db, parent, basename):
 		self.update_parent(db, parent)
 		if self.n_children(db, parent) == 0 and not parent.isroot:
 			self.emit('page-haschildren-toggled', parent)
@@ -330,41 +330,39 @@ class PagesViewInternal(object):
 
 	def resolve_link(self, db, source, href):
 		'''Internal implementation of L{PageView.resolve_link()}'''
-		# First determine where the link is anchored, search upward
 		if href.rel == HREF_REL_ABSOLUTE or source.isroot:
-			path = ROOT_PATH
+			return self.resolve_path(db, ROOT_PATH, href.parts())
 		elif href.rel == HREF_REL_RELATIVE:
-			path = source
+			return self.resolve_path(db, source, href.parts())
 		else: # HREF_REL_FLOATING
-			anchor_key = href.anchor_key()
-			path_keys = [natural_sort_key(p) for p in source.parts]
-			if anchor_key in path_keys:
-				# explicit anchor in page name - use last match
-				i = [i for i, k in enumerate(path_keys) if k == anchor_key][-1]
-				if i == 0:
-					path = ROOT_PATH
-				else:
-					path = IndexPath(':'.join(source.parts[:i]), source.ids[:i])
+			# Search upward namespaces for existing pages,
+			# ignore "exists as link" placeholders to avoid circular
+			# dependencies between links and placeholders
+			assert href.rel == HREF_REL_FLOATING
+			anchor_key = natural_sort_key(href.parts()[0])
+			for parent in source.parents():
+				r = db.execute(
+					'SELECT id, basename FROM pages '
+					'WHERE parent=? and sortkey=? and page_exists=? LIMIT 1',
+					(parent.id, anchor_key, PAGE_EXISTS_HAS_CONTENT)
+				).fetchone()
+				if r:
+					return self.resolve_path(db, parent, href.parts())
 			else:
-				# search upward namespaces
-				for parent in source.parents():
-					r = db.execute(
-						'SELECT id, basename FROM pages WHERE parent=? and sortkey=? LIMIT 1',
-						(parent.id, anchor_key)
-					).fetchone()
-					if r:
-						path = parent
-						break
-				else:
-					path = source.parent # default to parent namespace
-					assert path is not None
+				return self.resolve_path(db, source.parent, href.parts())
 
-		# Now resolve downward the right case
-		parts = href.parts()
-		while parts:
-			basename, sortkey = parts.pop(0)
+	def resolve_path(self, db, parent, names):
+		'''Resolve a path in the right case'''
+		# TODO distinguish existence in resolve order
+		path = parent
+		names = list(names) # copy
+		while names:
+			basename = names.pop(0)
+			sortkey = natural_sort_key(basename)
 			rows = db.execute(
-				'SELECT * FROM pages WHERE parent=? and sortkey=? ORDER BY basename',
+				'SELECT * FROM pages '
+				'WHERE parent=? and sortkey=? and page_exists>0 '
+				'ORDER BY basename',
 				(path.id, sortkey)
 			).fetchall()
 			for row in rows:
@@ -375,7 +373,7 @@ class PagesViewInternal(object):
 				if rows: # case insensitive match
 					path = path.child_by_row(rows[0])
 				else:
-					remainder = ':'.join([basename] + [t[0] for t in parts])
+					remainder = ':'.join([basename] + names)
 					return path.child(remainder)
 		else:
 			return path

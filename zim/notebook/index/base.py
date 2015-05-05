@@ -78,9 +78,10 @@ class IndexerBase(object):
 			except:
 				logger.exception('Exception in signal emit %s %r', signal, args)
 
-	def on_db_init(self, db):
+	def on_db_init(self, index, db):
 		'''Callback that is called when a databse is initialized.
 		Default implementation executes the C{INIT_SCRIPT} attribute.
+		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
 		@implementation: can be overloaded by subclass
 		'''
@@ -89,17 +90,19 @@ class IndexerBase(object):
 		else:
 			raise NotImplementedError
 
-	def on_new_page(self, db, indexpath):
+	def on_new_page(self, index, db, indexpath):
 		'''Callback that is called after a new page is added to the
 		database.
+		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
 		@param indexpath: an L{IndexPath} object
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
 		pass
 
-	def on_index_page(self, db, indexpath, page):
+	def on_index_page(self, index, db, indexpath, page):
 		'''Callback that is called when the content of a page is indexed.
+		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
 		@param indexpath: an L{IndexPath} object
 		@param page: a L{Page} object
@@ -107,18 +110,20 @@ class IndexerBase(object):
 		'''
 		pass
 
-	def on_delete_page(self, db, indexpath):
+	def on_delete_page(self, index, db, indexpath):
 		'''Callback that is called before a page is deleted from the
 		database.
+		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
 		@param indexpath: an L{IndexPath} object
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
 		pass
 
-	def on_deleted_page(self, db, parent, basename):
+	def on_deleted_page(self, index, db, parent, basename):
 		'''Callback that is called after a page is deleted from the
 		database.
+		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
 		@param parent: an L{IndexPath} object
 		@param basename: a string
