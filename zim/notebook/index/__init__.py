@@ -15,6 +15,13 @@ from __future__ import with_statement
 #
 # Try to use multiprocessing instead of threading for the indexer ?
 #
+# Issue with page exists flag: since PAGE_EXISTS_AS_LINK overrules
+# PAGE_EXISTS_UNCERTAIN, methods like check_pagelist and update_children
+# can miss pages that are flagged as placeholder, while existing as
+# well as folder in the store
+# Solve be "page_exists_in_store" flag, or separate table of files &
+# folders from table of notebook nodes ...
+#
 ##############
 
 # Flow for indexer when checking a page:
@@ -259,6 +266,7 @@ class Index(object):
 				indexpath = self._index.touch_path(db, page)
 
 			self._index.index_page(db, indexpath)
+			self._index.update_parent(db, indexpath.parent)
 
 	def on_delete_page(self, path):
 		with self._db as db:
@@ -267,7 +275,8 @@ class Index(object):
 			except IndexNotFoundError:
 				return
 
-			self._index.delete_page(db, indexpath, cleanup=True)
+			last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
+			self._index.update_parent(db, last_deleted.parent)
 
 	def flag_reindex(self):
 		'''This methods flags all pages with content to be re-indexed.
@@ -388,7 +397,10 @@ class IndexInternal(object):
 			if not parent.isroot:
 				parent = self._pages.lookup_by_id(db, parent.id)
 				if not self.check_existance(db, parent):
-					self.delete_page(db, parent, cleanup=True) # recurs
+					return self.delete_page(db, parent, cleanup=True) # recurs
+
+		# else
+		return indexpath
 
 	def check_existance(self, db, indexpath):
 		if indexpath.hascontent:
@@ -400,6 +412,40 @@ class IndexInternal(object):
 				(indexpath.id,)
 			)
 			return c.fetchone()[0] > 0
+
+	def update_parent(self, db, parent):
+		# To be called after inserting or deleting a page driven by
+		# the notebook API (not driven by the indexer)
+
+		# Get etag first - when data changes these should
+		# always be older to ensure changes are detected in next run
+		etag = self.store.get_children_etag(parent)
+		if self.check_pagelist(db, parent):
+			db.execute(
+				'UPDATE pages SET children_etag=? WHERE id=?',
+				(etag, parent.id)
+			)
+			# do not set 'needscheck', allow for recursive update in action
+		else:
+			raise AssertionError, 'Namespace changed: %s' % parent
+			#~ pass # TODO - actively start indexer
+
+	def check_pagelist(self, db, indexpath):
+		pages = set()
+		for page in self.store.get_pagelist(indexpath):
+			pages.add(page.basename)
+			# TODO - speedup with name list API iso. object list
+
+		try:
+			for row in db.execute(
+				'SELECT basename FROM pages WHERE parent=? and page_exists<>?',
+				(indexpath.id, PAGE_EXISTS_AS_LINK)
+			):
+				pages.remove(row['basename'])
+		except KeyError:
+			return False
+
+		return not pages # OK if empty
 
 
 class TreeIndexer(IndexInternal):

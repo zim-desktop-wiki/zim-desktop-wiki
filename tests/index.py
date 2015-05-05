@@ -313,7 +313,7 @@ class MemoryIndexerTests(tests.TestCase):
 		treecheck = False
 		#~ print '---'
 		for i, q in enumerate(indexer):
-			print '>>', q
+			#~ print '>>', q
 			self.assertEqual(q[1].name, sequence[i][1])
 			self.assertEqual(q[0], sequence[i][0])
 			if not treecheck and q[0] != INDEX_CHECK_TREE:
@@ -372,7 +372,7 @@ class MemoryIndexerTests(tests.TestCase):
 
 		#~ print "### Store pages"
 		for path, attrib in UPDATE.items():
-			#~ print ">>", path
+			#~ print "<<", path
 			page = self.store.get_page(path)
 			page.parse('wiki', attrib['content'])
 			self.store.store_page(page)
@@ -381,11 +381,12 @@ class MemoryIndexerTests(tests.TestCase):
 
 		#~ print "### Delete pages"
 		for path, attrib in UPDATE.items():
+			#~ print "<<", path
 			self.store.delete_page(path)
 			self.index.on_delete_page(path)
 		self.assertIndexMatchesPages(self.index, PAGES)
 
-		print "### Force re-index"
+		#~ print "### Force re-index"
 		self.index.flag_reindex()
 		self.runSequence(indexer, REINDEX_SEQUENCE, PAGES)
 
