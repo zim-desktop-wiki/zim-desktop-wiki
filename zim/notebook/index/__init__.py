@@ -61,6 +61,7 @@ import logging
 logger = logging.getLogger('zim.notebook.index')
 
 from zim.utils.threading import WorkerThread
+from zim.fs import File
 
 from .base import *
 from .pages import *
@@ -147,9 +148,20 @@ class Index(object):
 					logger.debug('Index db_version out of date')
 					self._db_init()
 		except sqlite3.OperationalError:
-			# table does not exist (?)
-			logger.debug('Index db_version out of date (?)')
+			# db is there but table does not exist
+			logger.debug('Operational error, init tabels')
 			self._db_init()
+		except sqlite3.DatabaseError:
+			if hasattr(db_conn, 'dbfilepath'):
+				logger.warning('Overwriting possibly corrupt database: %s', db_conn.dbfilepath)
+				db_conn.close_connections()
+				file = File(self.db_conn.dbfilepath)
+				if file.exists():
+					file.remove()
+				self._db = db_conn.db_change_context()
+				self._db_init()
+			else:
+				raise
 
 		# TODO checks on locale, others?
 
@@ -736,6 +748,9 @@ class DBConnection(object):
 			self._state_lock, self._change_lock
 		)
 
+	def close_connections(self):
+		raise NotImplementedError
+
 
 class MemoryDBConnection(DBConnection):
 
@@ -757,8 +772,8 @@ class ThreadingDBConnection(DBConnection):
 	def __init__(self, dbfilepath):
 		if dbfilepath == ':memory:':
 			raise ValueError, 'This class can not work with in-memory databases, use MemoryDBConnection instead'
+		self.dbfilepath = dbfilepath
 		self._connections = {}
-		self._dbfilepath = dbfilepath
 		self._state_lock = threading.RLock()
 		self._change_lock = threading.RLock()
 
@@ -767,9 +782,13 @@ class ThreadingDBConnection(DBConnection):
 		if thread not in self._connections:
 			self._connections[thread] = \
 				self._db_connect(
-					self._dbfilepath, check_same_thread=check_same_thread)
+					self.dbfilepath, check_same_thread=check_same_thread)
 		return self._connections[thread]
 
+	def close_connections(self):
+		for key in self._connections.keys():
+			db = self._connections.pop(key)
+			db.close()
 
 
 class DBContext(object):
@@ -789,10 +808,12 @@ class DBContext(object):
 
 	def __enter__(self):
 		self.state_lock.acquire()
+		self._total_changes = self._db.total_changes
 		return self._db
 
 	def __exit__(self, exc_type, exc_value, traceback):
 		self.state_lock.release()
+		assert self._total_changes == self._db.total_changes, 'Unexpected changes to db'
 		return False # re-raise error
 
 

@@ -221,6 +221,30 @@ REINDEX_SEQUENCE = [
 		if t[0]==INDEX_CHECK_PAGE and Path(t[1]) in PAGES
 ]
 
+@tests.slowTest
+class TestIndex(tests.TestCase):
+
+	def testInit(self):
+		dir = Dir(self.create_tmp_dir())
+		dir.touch()
+		store = MemoryStore()
+
+		# No file
+		file = dir.file('not_yet_existing.db')
+		assert not file.exists()
+		index = Index.new_from_file(file, store)
+
+		# No zim database
+		# TODO
+
+		# Old zim database
+		# TODO
+
+		# Corrupt file
+		file = dir.file('corrupt.db')
+		file.write('foooooooooo\n')
+		index = Index.new_from_file(file, store)
+
 
 class MemoryIndexerTests(tests.TestCase):
 
