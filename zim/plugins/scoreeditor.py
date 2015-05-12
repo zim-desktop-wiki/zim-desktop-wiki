@@ -84,9 +84,6 @@ class ScoreGenerator(ImageGeneratorClass):
 		self.include_footer = plugin.preferences['include_footer']
 
 	def process_input(self, text):
-		'''Prepend version string to user input. It is also stored in
-		the script file.
-		'''
 		version_present = False
 		for l in text.splitlines(True):
 			if l.strip().startswith('\\version'):
@@ -98,17 +95,15 @@ class ScoreGenerator(ImageGeneratorClass):
 	def extract_version(self, text):
 		outtext = []
 		version = None
-		for l in text:
+		for l in text.splitlines(True):
 			if l.strip().startswith('\\version'):
 				version = l.strip()
 			else:
 				outtext.append(l)
-		return (version, outtext)
+		return (version, ''.join(outtext))
 
 	def generate_image(self, text):
-
 		(version, text) = self.extract_version(text)
-		text = ''.join(text)
 		#~ print '>>>%s<<<' % text
 
 		# Write to tmp file using the template for the header / footer

@@ -54,10 +54,10 @@ class EquationGenerator(ImageGeneratorClass):
 		self.texfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
-
 		# Filter out empty lines, not allowed in latex equation blocks
-		text = (line for line in text if line and not line.isspace())
-		text = ''.join(text)
+		text = ''.join(
+			l for l in text.splitlines(True) if l and not l.isspace()
+		)
 		#~ print '>>>%s<<<' % text
 
 		# Write to tmp file using the template for the header / footer

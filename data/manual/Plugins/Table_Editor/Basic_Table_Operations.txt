@@ -1,0 +1,41 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
+====== Basic Table Operations ======
+
+===== Insertion of a table =====
+
+==== Insert directly within textarea ====
+
+'''
+|Header 1|Header 2|Header 3|
+|Data 1a|Data 2a|Data 3a|
+|Data 1b|Data 2b|Data 2b|
+
+Text after table. Table has to end with a blank line.
+'''
+
+Press CTRL+R or open menu item **View->reload**, so that the table can be displayed as widget.
+
+==== Use the insert-table button ====
+{{./insert-table.png}} or press the menu item **Insert -> Table**
+After this step you can define the table titles with following Options:
+**Title**:  Column title
+**Alignment**: Alignment of the cell (left, center, right)
+**Automatic Wrapping**: Column Cells with long text should be **automatic wrapped** to new lines.
+{{./table_settings_dialog.png}}
+
+==== Add row / Change table layout ====
+Press the right button on the area of the table - but not on the header - and select in the popup menu some item.
+{{./table_popup.png}}
+
+===== Enter text in a cell =====
+1. Click one time on a cell, wait one second.
+2. Click again on the cell.
+3. Now it opens a textfield where you can fill the cell.
+4. Press <ENTER> and the text will be fixed. 
+	 or Press <ESC> and the inserted text will be ignored.
+
+
+===== Sorting =====
+Click one time on the column title, which you want to sort.
