@@ -235,13 +235,11 @@ class TestParser(tests.TestCase):
 
 	def testFunctions(self):
 		# Helper functions
-		for input, wanted in (
-			('foo', 'foo\n'),
-			('foo\nbar', 'foo\nbar\n'),
-			('    foo\n\t     bar', '\tfoo\n\t\t bar\n'),
-		):
-			output = prepare_text(input)
-			self.assertEqual(output, wanted)
+
+		self.assertEqual(fix_line_end('foo'), 'foo\n')
+		self.assertEqual(fix_line_end('foo\nbar'), 'foo\nbar\n')
+
+		self.assertEqual(convert_space_to_tab('    foo\n\t     bar\n'), '\tfoo\n\t\t bar\n')
 
 		text = 'foo\nbar\nbaz\n'
 		for offset, wanted in (

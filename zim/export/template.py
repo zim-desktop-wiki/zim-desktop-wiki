@@ -269,7 +269,6 @@ class ExportTemplateContext(dict):
 
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		builder.start(BULLETLIST)
 		if self._index_page:
 			expanded = [self._index_page] + list(self._index_page.parents())
 		else:
@@ -285,6 +284,7 @@ class ExportTemplateContext(dict):
 
 			if not stack:
 				stack.append(path.parent)
+				builder.start(BULLETLIST)
 			elif stack[-1] != path.parent:
 				if path.ischild(stack[-1]):
 					builder.start(BULLETLIST)

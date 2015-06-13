@@ -268,7 +268,7 @@ class WikiParser(object):
 			else:
 				alignment = 'normal'
 			aligns.append(alignment)
-		
+
 		# collect wrap settings from first table row
 		headers = []
 		wraps = []
@@ -325,6 +325,7 @@ class WikiParser(object):
 					# verbatim.
 					builder.append(VERBATIM_BLOCK, None, block)
 				else:
+					block = convert_space_to_tab(block)
 					builder.start(PARAGRAPH)
 					self.list_and_indent_parser(builder, block)
 					builder.end(PARAGRAPH)
@@ -443,11 +444,8 @@ class Parser(ParserClass):
 		if not isinstance(input, basestring):
 			input = ''.join(input)
 
-		lineend = input and input[-1] == '\n'
-		input = prepare_text(input)
-		if partial and input.endswith('\n') and not lineend:
-			# reverse extension done by prepare_text()
-			input = input[:-1]
+		if not partial:
+			input = fix_line_end(input)
 
 		builder = ParseTreeBuilder(partial=partial)
 		wikiparser.backward = self.backward # HACK

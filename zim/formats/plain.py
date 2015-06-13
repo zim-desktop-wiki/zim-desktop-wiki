@@ -7,7 +7,7 @@
 import re
 
 import zim.parser
-from zim.parser import prepare_text, Rule
+from zim.parser import fix_line_end, Rule
 
 from zim.formats import *
 from zim.parsing import url_re
@@ -40,7 +40,7 @@ class Parser(ParserClass):
 			input = ''.join(input)
 
 		if not partial:
-			input = prepare_text(input)
+			input = fix_line_end(input)
 
 		parser = zim.parser.Parser(
 			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
