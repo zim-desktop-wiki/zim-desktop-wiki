@@ -23,7 +23,7 @@ import gtk
 import pango
 import re
 import string
-import datetime
+import zim.datetimetz as datetime
 
 import zim.formats
 
@@ -169,8 +169,8 @@ ui_format_actions = (
 	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<ctrl>I', _('Emphasis')), # T: Menu item
 	('apply_format_mark', 'gtk-underline', _('_Mark'), '<ctrl>U', _('Mark')), # T: Menu item
 	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<ctrl>K', _('Strike')), # T: Menu item
-	('apply_format_sub', None, _('_Subscript'), '', _('_Subscript')), # T: Menu item
-	('apply_format_sup', None, _('_Superscript'), '', _('_Superscript')), # T: Menu item
+	('apply_format_sub', None, _('_Subscript'), '<Ctrl><Shift>b', _('_Subscript')), # T: Menu item
+	('apply_format_sup', None, _('_Superscript'), '<Ctrl><Shift>p', _('_Superscript')), # T: Menu item
 	('apply_format_code', None, _('_Verbatim'), '<ctrl>T', _('Verbatim')), # T: Menu item
 )
 
@@ -520,7 +520,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	@signal: C{reload-page ()}:
 	Emitted when plugin is activated and current page should be reloaded
-	to display object properly 
+	to display object properly
 	@signal: C{begin-insert-tree ()}:
 	Emitted at the begin of a complex insert
 	@signal: C{end-insert-tree ()}:
@@ -538,11 +538,11 @@ class TextBuffer(gtk.TextBuffer):
 	lock the current cursor position
 	@signal: C{insert-object (object_element)}: request inserting of
 	custom object
-	@signal: C{edit-object (object_element)}: request editing of 
+	@signal: C{edit-object (object_element)}: request editing of
 	custom object
 	@signal: C{insert-table (table_element)}: request inserting of
 	table object
-	@signal: C{edit-table (table_element)}: request editing of 
+	@signal: C{edit-table (table_element)}: request editing of
 	table object
 
 	@todo: document tag styles that are supported
@@ -3461,7 +3461,7 @@ class TextFinder(object):
 	:param regex: regular expression pattern
 	:param text: substituation text
 	:param replaceall: boolean if all matches should be replaced
-	:return: True / False - a replacement was done / no replaces 
+	:return: True / False - a replacement was done / no replaces
 	'''
 	def _replace_in_widget(self, start, regex, string, replaceall=False):
 		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
@@ -6205,7 +6205,7 @@ class InsertDateDialog(Dialog):
 		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
 		self.buffer = buffer
-		self.date = datetime.datetime.now()
+		self.date = datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
 		self.uistate.setdefault('linkdate', False)

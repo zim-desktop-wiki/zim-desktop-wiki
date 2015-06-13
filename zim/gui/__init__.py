@@ -3518,18 +3518,24 @@ class AttachFileDialog(FileDialog):
 			self.uistate['last_attachment_folder'] = last_folder
 		# Similar code in zim.gui.pageview.InsertImageDialog
 
-		for file in files:
+		last = len(files) - 1
+		for i, file in enumerate(files):
 			file = self.ui.do_attach_file(self.path, file)
 			if file is None:
 				return False # overwrite dialog was canceled
 
 			pageview = self.ui.mainwindow.pageview
+			buffer = pageview.view.get_buffer()
 			if self.uistate['insert_attached_images'] and file.isimage():
 				ok = pageview.insert_image(file, interactive=False)
 				if not ok: # image type not supported?
 					logger.info('Could not insert image: %s', file)
 					pageview.insert_links([file])
+				if i != last:
+					buffer.insert_at_cursor('\n')
 			else:
 				pageview.insert_links([file])
+				if i != last:
+					buffer.insert_at_cursor('\n')
 
 		return True
