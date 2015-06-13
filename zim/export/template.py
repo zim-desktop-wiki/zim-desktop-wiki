@@ -71,6 +71,8 @@ From template base::
 Test in a template for single page export use: "IF loop.first and loop.last"
 '''
 
+from functools import partial
+
 import logging
 
 logger = logging.getLogger('zim.export')
@@ -142,9 +144,10 @@ class ExportTemplateContext(dict):
 		@param index_page: the current page to show in the index if any
 		'''
 		# TODO get rid of need of notebook here!
+		template_options = TemplateContextDict({}) # can be modified by template
 		self._content = content
 		self._linker_factory = linker_factory
-		self._dumper_factory = dumper_factory
+		self._dumper_factory = partial(dumper_factory, template_options=template_options)
 		self._index_generator = index_generator or content
 		self._index_page = index_page
 
@@ -161,12 +164,12 @@ class ExportTemplateContext(dict):
 
 		if special:
 			pages = ExportTemplatePageIter(
-				special=PageListProxy(notebook, special, self.dumper_factory),
-				content=PageListProxy(notebook, content, self.dumper_factory)
+				special=PageListProxy(notebook, special, self._dumper_factory, self._linker_factory),
+				content=PageListProxy(notebook, content, self._dumper_factory, self._linker_factory)
 			)
 		else:
 			pages = ExportTemplatePageIter(
-				content=PageListProxy(notebook, content, self.dumper_factory)
+				content=PageListProxy(notebook, content, self._dumper_factory, self._linker_factory)
 			)
 
 		self.update({
@@ -186,7 +189,7 @@ class ExportTemplateContext(dict):
 			'pages': pages,
 
 			# Template settings
-			'options': TemplateContextDict({}), # can be modified by template
+			'options': template_options, # can be modified by template
 
 			# Functions
 			#~ 'toc': self.toc_function,
@@ -202,7 +205,7 @@ class ExportTemplateContext(dict):
 				l = _link(l)
 				self['links'][k] = l
 
-	def dumper_factory(self, page):
+	def get_dumper(self, page):
 		'''Returns a L{DumperClass} instance for source page C{page}
 
 		Only template options defined before this method is called are
@@ -210,10 +213,7 @@ class ExportTemplateContext(dict):
 		use it
 		'''
 		linker = self._linker_factory(source=page)
-		return self._dumper_factory(
-			linker=linker,
-			template_options=self['options']
-		)
+		return self._dumper_factory(linker)
 
 	#~ @ExpressionFunction
 	#~ def toc_function(self):
@@ -252,7 +252,7 @@ class ExportTemplateContext(dict):
 			#~ return ''
 
 		#~ print "!!!", tree.tostring()
-		#~ dumper = self.dumper_factory(None)
+		#~ dumper = self.get_dumper(None)
 		#~ return ''.join(dumper.dump(tree))
 
 	@ExpressionFunction
@@ -314,7 +314,7 @@ class ExportTemplateContext(dict):
 			return ''
 
 		#~ print "!!!", tree.tostring()
-		dumper = self.dumper_factory(None)
+		dumper = self.get_dumper(None)
 		return ''.join(dumper.dump(tree))
 
 	@ExpressionFunction
@@ -324,7 +324,8 @@ class ExportTemplateContext(dict):
 		elif isinstance(link, NotebookPathProxy):
 			return self.linker.page_object(link._path)
 		elif isinstance(link, FilePathProxy):
-			return self.linker.file_object(link._file)
+			file = link._dest_file or link._file
+			return self.linker.file_object(file)
 		elif isinstance(link, basestring):
 			return self.linker.link(link)
 		else:
@@ -397,15 +398,17 @@ class HeadingSplitter(Visitor):
 
 class PageListProxy(object):
 
-	def __init__(self, notebook, iterable, dumper_factory):
+	def __init__(self, notebook, iterable, dumper_factory, linker_factory):
 		self._notebook = notebook
 		self._iterable = iterable
 		self._dumper_factory = dumper_factory
+		self._linker_factory = linker_factory
 
 	def __iter__(self):
 		for page in self._iterable:
-			dumper = self._dumper_factory(page)
-			yield PageProxy(self._notebook, page, dumper)
+			linker = self._linker_factory(source=page)
+			dumper = self._dumper_factory(linker)
+			yield PageProxy(self._notebook, page, dumper, linker)
 
 
 class ParseTreeProxy(object):
@@ -454,11 +457,12 @@ class ParseTreeProxy(object):
 
 class PageProxy(ParseTreeProxy):
 
-	def __init__(self, notebook, page, dumper):
+	def __init__(self, notebook, page, dumper, linker):
 		self._notebook = notebook
 		self._page = page
 		self._tree = page.get_parsetree()
 		self._dumper = dumper
+		self._linker = linker
 
 		self.name = self._page.name
 		self.section = self._page.namespace
@@ -492,11 +496,12 @@ class PageProxy(ParseTreeProxy):
 
 	@property
 	def attachments(self):
-		dir = self._notebook.get_attachments_dir(self._page)
-		for basename in dir.list():
-			file = dir.file(basename)
+		source_dir = self._notebook.get_attachments_dir(self._page)
+		for basename in source_dir.list():
+			file = source_dir.file(basename)
 			if file.exists(): # is file
-				yield FileProxy(file, './'+basename)
+				dest_file = self._linker.resolve_dest_file('./'+basename)
+				yield FileProxy(file, dest_file=dest_file, relpath='./'+basename)
 
 
 class HeadingProxy(ParseTreeProxy):
@@ -510,8 +515,9 @@ class HeadingProxy(ParseTreeProxy):
 
 class FilePathProxy(object):
 
-	def __init__(self, file, relpath=None):
+	def __init__(self, file, dest_file=None, relpath=None):
 		self._file = file
+		self._dest_file = dest_file
 		self.name = relpath or file.basename
 		self.basename = file.basename
 

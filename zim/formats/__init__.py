@@ -1206,7 +1206,7 @@ class DumperClass(Visitor):
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
 
 			if text is None:
-				strings = method(tag, attrib, None)
+				strings = method(tag, attrib, [])
 			elif tag == OBJECT:
 				strings = method(tag, attrib, [text])
 			else:

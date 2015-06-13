@@ -92,7 +92,7 @@ class MainWindowExtension(WindowExtension):
 		try:
 			self.spell = gtkspell.Spell(textview, lang)
 		except:
-			ErrorDialog(self.ui, (
+			ErrorDialog(self.window.ui, (
 				_('Could not load spell checking'),
 					# T: error message
 				_('This could mean you don\'t have the proper\ndictionaries installed')
