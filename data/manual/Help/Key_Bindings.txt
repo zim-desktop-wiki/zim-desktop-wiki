@@ -116,6 +116,9 @@ The following key bindings works when the tree in the side pane is focussed:
 '''
 
 
+=== Keyboard navigation of the index ===
+When you click a page in the index with the mouse, this page is opened. However when you navigate the index with keyboard cursor keys, the page that is focused is not actually opened until you press ''<Space>'' or ''<Enter>''. This means that there will be two pages highlighted, the page that has the focus and the page that is open. The page that is open is highlighted with **bold** text, while the focus is typically highlighted in the color of your desktop theme.
+
 ==== Text selections ====
 For selected text the following keybindings are added:
 

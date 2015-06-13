@@ -12,6 +12,7 @@ import logging
 from zim.fs import File, FileNotFoundError
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
+from zim.parsing import url_encode, URL_ENCODE_READABLE
 from zim.config.dicts import Choice
 
 logger = logging.getLogger('zim.formats.latex')
@@ -210,6 +211,7 @@ class Dumper(TextDumper):
 
 	def dump_link(self, tag, attrib, strings=None):
 		href = self.linker.link(attrib['href'])
+		href = url_encode(href, URL_ENCODE_READABLE)
 		if strings:
 			text = u''.join(strings)
 		else:
