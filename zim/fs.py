@@ -1084,6 +1084,7 @@ class Dir(FilePath):
 		'''Remove this folder, fails if it is not empty.'''
 		logger.info('Remove dir: %s', self)
 		lrmdir(self.encodedpath)
+		FS.emit('path-deleted', self)
 
 	def cleanup(self):
 		'''Remove this foldder and any empty parent folders. If the
@@ -1684,6 +1685,8 @@ class UnixFile(FilePath):
 			tmp = self.encodedpath + '.zim-new~'
 			if os.path.isfile(tmp):
 				os.remove(tmp)
+
+		FS.emit('path-deleted', self)
 
 	def cleanup(self):
 		'''Remove this file and cleanup any empty parent folder.

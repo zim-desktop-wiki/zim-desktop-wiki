@@ -455,7 +455,7 @@ class VCSBackend(ConnectorMixin):
 		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
 			self.on_path_deleted(self, fs, oldpath)
 
-	def on_path_deleted(self, path):
+	def on_path_deleted(self, fs, path):
 		"""Callback to remove a file from Bazaar when deleted from the wiki
 		Note: the VCS operation is asynchronous
 

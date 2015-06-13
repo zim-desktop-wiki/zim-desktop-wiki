@@ -586,7 +586,9 @@ rename from foo/bar/baz.txt
 rename to bar.txt
 ''' )
 
-
+		# Test deleting file
+		root.file('bar.txt').remove()
+		vcs.commit('test deleting')
 
 		# Test unicode support
 		file.write(WIKITEXT)
