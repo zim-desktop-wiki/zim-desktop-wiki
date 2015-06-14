@@ -259,7 +259,7 @@ class Path(object):
 
 		@param other: another L{Path} object
 
-		@returns: a L{Path} object for the first common parent or C{None}
+		@returns: a L{Path} object for the first common parent
 		'''
 		parent = []
 		parts = self.parts
@@ -318,6 +318,15 @@ class HRef(object):
 
 	def parts(self):
 		return self.names.split(':')
+
+	def to_wiki_link(self):
+		'''Returns href as text for wiki link'''
+		if self.rel == HREF_REL_ABSOLUTE:
+			return ":" + self.names.strip(':')
+		elif self.rel == HREF_REL_RELATIVE:
+			return "+" + self.names
+		else:
+			return self.names
 
 
 class Page(Path):

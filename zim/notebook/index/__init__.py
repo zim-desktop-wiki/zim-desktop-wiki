@@ -280,12 +280,25 @@ class Index(object):
 			self._index.index_page(db, indexpath)
 			self._index.update_parent(db, indexpath.parent)
 
+	#~ def on_move_page(self, oldpath, newpath):
+		#~ with self._db as db:
+			#~ oldindexpath = self._pages.lookup_by_pagename(db, oldpath)
+			#~ new
+			#~ except IndexNotFoundError:
+				#~ return
+#~
+			#~ last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
+			#~ self._index.update_parent(db, last_deleted.parent)
+
 	def on_delete_page(self, path):
 		with self._db as db:
 			try:
 				indexpath = self._pages.lookup_by_pagename(db, path)
 			except IndexNotFoundError:
 				return
+
+			for child in self._pages.walk_bottomup(db, indexpath):
+				self._index.delete_page(db, child, cleanup=False)
 
 			last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
 			self._index.update_parent(db, last_deleted.parent)
@@ -394,20 +407,39 @@ class IndexInternal(object):
 
 	def delete_page(self, db, indexpath, cleanup):
 		assert not indexpath.isroot
+
 		for indexer in self.indexers:
 			indexer.on_delete_page(self, db, indexpath)
 
-		db.execute('DELETE FROM pages WHERE id=?', (indexpath.id,))
+		if indexpath.n_children > 0:
+			if all(row['page_exists'] == PAGE_EXISTS_AS_LINK
+				for row in db.execute(
+					'SELECT page_exists FROM pages WHERE parent=?',
+					(indexpath.id,),
+				)
+			):
+				db.execute(
+					'UPDATE pages SET page_exists=? WHERE id=?',
+					(PAGE_EXISTS_AS_LINK, indexpath.id)
+				)
+			else:
+				raise AssertionError, 'Can not delete path with children'
+		else:
+			db.execute('DELETE FROM pages WHERE id=?', (indexpath.id,))
 
 		parent = indexpath.parent
 		basename = indexpath.basename
 		for indexer in self.indexers:
 			indexer.on_deleted_page(self, db, parent, basename)
 
-		if cleanup:
-			parent = indexpath.parent
-			if not parent.isroot:
-				parent = self._pages.lookup_by_id(db, parent.id)
+		if cleanup and not indexpath.parent.isroot:
+			# be careful, parent may already have disappeared due to
+			# e.g. placeholder cleanup
+			try:
+				parent = self._pages.lookup_by_pagename(db, indexpath.parent)
+			except IndexNotFoundError:
+				pass
+			else:
 				if not self.check_existance(db, parent):
 					return self.delete_page(db, parent, cleanup=True) # recurs
 
@@ -420,8 +452,8 @@ class IndexInternal(object):
 		else:
 			c = db.execute(
 				'SELECT count(*) FROM pages '
-				'WHERE parent=? and page_exists>0',
-				(indexpath.id,)
+				'WHERE parent=? and page_exists=?',
+				(indexpath.id, PAGE_EXISTS_HAS_CONTENT)
 			)
 			return c.fetchone()[0] > 0
 
@@ -439,8 +471,7 @@ class IndexInternal(object):
 			)
 			# do not set 'needscheck', allow for recursive update in action
 		else:
-			raise AssertionError, 'Namespace changed: %s' % parent
-			#~ pass # TODO - actively start indexer
+			pass # TODO - actively start indexer
 
 	def check_pagelist(self, db, indexpath):
 		pages = set()
@@ -487,8 +518,13 @@ class TreeIndexer(IndexInternal):
 
 	def queue_check(self, path, check=INDEX_CHECK_TREE):
 		with self.db_conn.db_change_context() as db:
-			if path and not path.isroot:
-				path = self._pages.lookup_by_pagename(db, pagename)
+			while path and not path.isroot:
+				try:
+					path = self._pages.lookup_by_pagename(db, path)
+				except IndexNotFoundError:
+					path = path.parent
+				else:
+					break
 			else:
 				path = ROOT_PATH
 

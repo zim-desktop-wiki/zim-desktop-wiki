@@ -471,13 +471,21 @@ class TestIndexPath(tests.TestCase):
 	def runTest(self):
 		path = IndexPath('Foo:Bar:Baz', [ROOT_ID,2,3,4])
 		self.assertEqual(path.id, 4)
+		self.assertEqual(path.parent, Path('Foo:Bar'))
 		self.assertEqual(path.parent.id, 3)
 		self.assertEqual(path.parent.ids, (ROOT_ID,2,3))
-		self.assertEqual(list(path.parents()), [
+		for parent, wanted in zip(path.parents(), [
 			IndexPath('Foo:Bar', [ROOT_ID,2,3]),
 			IndexPath('Foo', [ROOT_ID,2]),
 			IndexPath('', [ROOT_ID])
-		])
+		]):
+			self.assertEqual(parent, wanted)
+			self.assertEqual(parent.ids, wanted.ids)
+
+		parent = path.commonparent(Path('Foo:Bar:Dus:Ja'))
+		self.assertEqual(parent, Path('Foo:Bar'))
+		self.assertEqual(parent.id, 3)
+		self.assertEqual(parent.ids, (ROOT_ID,2,3))
 
 		path = IndexPathRow('Foo:Bar', [ROOT_ID,2,3], {
 			'n_children': 5,
@@ -510,16 +518,17 @@ class TestTestNotebook(tests.TestCase):
 class TestHRefFromWikiLink(tests.TestCase):
 
 	def runtTest(self):
-		for link, rel, names in (
-			('Foo:::Bar', HREF_REL_FLOATING, 'Foo:Bar'),
-			(':Foo:', HREF_REL_ABSOLUTE, 'Foo'),
-			(':<Foo>:', HREF_REL_ABSOLUTE, 'Foo'),
-			('+Foo:Bar', HREF_REL_RELATIVE, 'Foo:Bar'),
-			('Child2:AAA', HREF_REL_FLOATING, 'Child2:AAA'),
+		for link, rel, names, properlink in (
+			('Foo:::Bar', HREF_REL_FLOATING, 'Foo:Bar', 'Foo:Bar'),
+			(':Foo:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
+			(':<Foo>:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
+			('+Foo:Bar', HREF_REL_RELATIVE, 'Foo:Bar', '+Foo:Bar'),
+			('Child2:AAA', HREF_REL_FLOATING, 'Child2:AAA', 'Child2:AAA'),
 		):
 			href = HRef.new_from_wiki_link(link)
 			self.assertEqual(href.rel, rel)
 			self.assertEqual(href.names, names)
+			self.assertEqual(href.to_wiki_link(), properlink)
 ###
 
 def new_memory_index():
@@ -704,6 +713,10 @@ class TestPagesView(tests.TestCase):
 			href = HRef.new_from_wiki_link(link)
 			path = pages.resolve_link(source, href)
 			self.assertEqual(path.name, target)
+
+			newhref = pages.create_link(source, path)
+			self.assertEqual(newhref.rel, href.rel)
+			self.assertEqual(newhref.names, href.names)
 
 	def testTreePathMethods(self):
 		index = new_memory_index()

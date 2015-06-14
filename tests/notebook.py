@@ -13,7 +13,7 @@ from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
 from zim.formats import ParseTree
 
 from zim.notebook import *
-from zim.notebook.notebook import NotebookConfig
+from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError
 from zim.notebook.index import Index
 from zim.notebook.stores.memory import MemoryStore
 
@@ -227,10 +227,6 @@ class TestNotebook(tests.TestCase):
 
 	def testAPI(self):
 		'''Test various notebook methods'''
-		# TODO now do the same with multiple stores
-		self.assertEqual(
-			self.notebook.get_store(':foo'), self.notebook._stores[''])
-
 		self.assertTrue(
 			isinstance(self.notebook.get_home_page(), Page))
 
@@ -265,17 +261,6 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(page) # new object
 		self.assertEqual(page.dump('plain'), newtext)
 
-		pages = list(self.notebook.get_pagelist(Path(':')))
-		self.assertTrue(len(pages) > 0)
-		for page in pages:
-			self.assertTrue(isinstance(page, Page))
-
-		index = set()
-		for page in self.notebook.walk():
-			self.assertTrue(isinstance(page, Page))
-			index.add(page.name)
-		self.assertTrue(index.issuperset(self.notebook.testdata_manifest))
-
 	def testManipulate(self):
 		'''Test renaming, moving and deleting pages in the notebook'''
 
@@ -295,15 +280,11 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TaskList'))
 
-		self.notebook.index.update_async()
-		self.assertTrue(self.notebook.index.updating)
-		self.assertRaises(IndexBusyError,
+		self.notebook.index.flag_reindex()
+		self.assertFalse(self.notebook.index.probably_uptodate)
+		self.assertRaises(IndexNotUptodateError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
-		self.notebook.index.ensure_update()
-
-		# non-existing page - just check no errors here
-		self.notebook.move_page(Path('NewPage'), Path('Test:NewPage')),
-		self.notebook.index.ensure_update()
+		self.notebook.index.update()
 
 		# Test actual moving
 		for oldpath, newpath in (
@@ -314,7 +295,7 @@ class TestNotebook(tests.TestCase):
 			text = page.dump('wiki')
 			self.assertTrue(page.haschildren)
 			self.notebook.move_page(oldpath, newpath)
-			self.notebook.index.ensure_update()
+			self.notebook.index.update()
 
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
@@ -336,7 +317,7 @@ class TestNotebook(tests.TestCase):
 		self.notebook.store_page(page)
 
 		self.notebook.move_page(oldpath, newpath)
-		self.notebook.index.ensure_update()
+		self.notebook.index.update()
 		page = self.notebook.get_page(newpath)
 		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
 
@@ -405,7 +386,7 @@ class TestNotebook(tests.TestCase):
 			print 'trashing not supported'
 
 		#~ print '\n==== DB ===='
-		#~ self.notebook.index.ensure_update()
+		#~ self.notebook.index.update()
 		#~ cursor = self.notebook.index.db.cursor()
 		#~ cursor.execute('select * from pages')
 		#~ for row in cursor:
@@ -421,7 +402,7 @@ class TestNotebook(tests.TestCase):
 			# we now have a copy of the page object - this is an important
 			# part of the test - see if caching of page objects doesn't bite
 
-		self.notebook.index.ensure_update()
+		self.notebook.index.update()
 		self.notebook.rename_page(Path('Test:wiki'), 'foo')
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertFalse(page.hascontent)
@@ -432,7 +413,7 @@ class TestNotebook(tests.TestCase):
 
 		self.assertFalse(copy.valid)
 
-		self.notebook.index.ensure_update()
+		self.notebook.index.update()
 		self.notebook.rename_page(Path('Test:foo'), 'Foo')
 		page = self.notebook.get_page(Path('Test:foo'))
 		self.assertFalse(page.hascontent)
@@ -779,7 +760,7 @@ class TestIndexPage(tests.TestCase):
 		self.assertTrue('Test:foo' in links)
 
 
-class TestNewNotebook(tests.TestCase):
+class TestMovePageNewNotebook(tests.TestCase):
 
 	def setUp(self):
 		store = MemoryStore()
@@ -796,7 +777,7 @@ class TestNewNotebook(tests.TestCase):
 		dir = None
 		cache_dir = None
 		self.notebook = Notebook(dir, cache_dir, config, store, index)
-		# Explicitly not run index.update() here
+		index.update()
 
 	def runTest(self):
 		'''Try populating a notebook from scratch'''

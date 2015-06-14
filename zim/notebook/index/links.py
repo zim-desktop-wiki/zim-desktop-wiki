@@ -127,6 +127,18 @@ class LinksIndexer(IndexerBase):
 
 		self.cleanup_placeholders(index, db)
 
+	def on_moved_page(self, index, db, indexpath, oldpath):
+		db.execute(
+			'UPDATE links SET needscheck=1 WHERE source=? or target=?',
+			(indexpath, indexpath)
+		)
+		for child in self._pages.walk(indexpath):
+			db.execute(
+				'UPDATE links SET needscheck=1 WHERE source=? or target=?',
+				(child, child)
+			)
+		self.check_links(index, db)
+
 	def on_delete_page(self, index, db, indexpath):
 		db.execute(
 			'DELETE FROM links WHERE source=?',
@@ -165,7 +177,7 @@ class LinksIndexer(IndexerBase):
 		for row in db.execute(
 			'SELECT pages.id '
 			'FROM pages LEFT JOIN links ON pages.id=links.target '
-			'WHERE pages.page_exists=? and links.source IS NULL ',
+			'WHERE pages.page_exists=? and pages.n_children=0 and links.source IS NULL ',
 			(PAGE_EXISTS_AS_LINK,)
 		):
 			indexpath = self._pages.lookup_by_id(db, row['id'])
@@ -273,3 +285,13 @@ class LinksView(IndexViewBase):
 
 		return c.fetchone()[0]
 
+	def list_floating_links(self, name):
+		with self._db as db:
+			for row in db.execute(
+				'SELECT DISTINCT source, target FROM links '
+				'WHERE names=? or names LIKE ?',
+				(name, name + ':%')
+			):
+				target = self._pages.lookup_by_id(db, row['target'])
+				source = self._pages.lookup_by_id(db, row['source'])
+				yield IndexLink(source, target)

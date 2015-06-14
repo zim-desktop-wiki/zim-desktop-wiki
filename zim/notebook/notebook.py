@@ -19,16 +19,21 @@ import zim.formats
 from zim.fs import File, Dir
 from zim.errors import Error
 from zim.config import HierarchicDict
-from zim.parsing import is_interwiki_keyword_re
+from zim.parsing import is_interwiki_keyword_re, link_type
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .page import Path, Page
+from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
+from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 DATA_FORMAT_VERSION = (0, 4)
 
 
-
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
+
+
+class IndexNotUptodateError(Error):
+	pass # TODO description here?
+
 
 class NotebookConfig(INIConfigFile):
 	'''Wrapper for the X{notebook.zim} file'''
@@ -511,9 +516,262 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		finally:
 			return func
 
-	def move_page(self, path, dest):
-		self.store.move_page(path, dest)
-		self.index.on_move_page(path, dest)
+	def move_page(self, path, newpath, update_links=True, callback=None):
+		'''Move a page in the notebook
+
+		@param path: a L{Path} object for the old/current page name
+		@param newpath: a L{Path} object for the new page name
+		@param update_links: if C{True} all links B{from} and B{to} this
+		page and any of it's children will be updated to reflect the
+		new page name
+
+		The original page C{path} does not have to exist, in this case
+		only the link update will done. This is useful to update links
+		for a placeholder.
+
+		@param callback: a callback function which is called for each
+		page that is updates when updating links. It is called as::
+
+			callback(page, total=None)
+
+		Where:
+		  - C{page} is the L{Page} object for the page being updated
+		  - C{total} is an optional parameter for the number of pages
+		    still to go - if known
+
+		@raises PageExistsError: if C{newpath} already exists
+
+		@emits: move-page before the move
+		@emits: moved-page after succesful move
+		'''
+		logger.debug('Move page %s to %s', path, newpath)
+		assert callback is None # TODO TODO - iterator version
+		if update_links and not self.index.probably_uptodate:
+			raise IndexNotUptodateError, 'Index not up to date'
+
+		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		self.store.move_page(path, newpath)
+		self.index.on_delete_page(path)
+		self.index.update(newpath) # TODO - optimize by letting indexers know about move?
+		if not update_links:
+			return
+
+		self._update_links_in_moved_page(path, newpath)
+		self._update_links_to_moved_page(path, newpath)
+		new_n_links = self.links.n_list_links_section(newpath, LINK_DIR_BACKWARD)
+		if new_n_links != n_links:
+			logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
+		else:
+			logger.debug('Number of links after move does match number before move (%i)', new_n_links)
+
+	def _update_links_in_moved_page(self, oldtarget, newtarget):
+		# Find (floating) links that originate from the moved page
+		# check if they would resolve different from the old location
+		seen = set()
+		for link in list(self.links.list_links_section(newtarget)):
+			if link.source.name not in seen \
+			and not (
+				link.target == newtarget
+				or link.target.ischild(newtarget)
+			):
+				if link.source == newtarget:
+					oldpath = oldtarget
+				else:
+					oldpath = oldtarget + link.source.relname(newtarget)
+				self._update_moved_page(link.source, oldpath)
+
+	def _update_moved_page(self, path, oldpath):
+		logger.debug('Updating links in page moved from %s to %s', oldpath, path)
+		page = self.get_page(path)
+		tree = page.get_parsetree()
+		if not tree:
+			return 0
+
+		def replacefunc(elt):
+			text = elt.attrib['href']
+			if link_type(text) != 'page':
+				raise zim.formats.VisitorSkip
+
+			href = HRef.new_from_wiki_link(text)
+			if href.rel == HREF_REL_FLOATING:
+				newtarget = self.pages.resolve_link(page, href)
+				oldtarget = self.pages.resolve_link(oldpath, href)
+
+				if newtarget != oldtarget:
+					return self._update_link_tag(elt, page, oldtarget, href)
+				else:
+					raise zim.formats.VisitorSkip
+			else:
+				raise zim.formats.VisitorSkip
+
+		tree.replace(zim.formats.LINK, replacefunc)
+		page.set_parsetree(tree)
+		self.store_page(page)
+
+
+	def _update_links_to_moved_page(self, oldtarget, newtarget):
+		# 1. Check remaining placeholders, update pages causing them
+		seen = set()
+		try:
+			oldtarget = self.pages.lookup_by_pagename(oldtarget)
+		except IndexNotFoundError:
+			pass
+		else:
+			for link in list(self.links.list_links_section(oldtarget, LINK_DIR_BACKWARD)):
+				if link.source.name not in seen:
+					self._move_links_in_page(link.source, oldtarget, newtarget)
+					seen.add(link.source.name)
+
+		# 2. Check for links that have anchor of same name as the moved page
+		# and originate from a (grand)child of the parent of the moved page
+		# and no longer resolve to the moved page
+		# (these may have resolved to a higher level after the move)
+		parent = oldtarget.parent
+		for link in list(self.links.list_floating_links(oldtarget.basename)):
+			if link.source.name not in seen \
+			and link.source.ischild(parent) \
+			and not (
+				link.target.ischild(parent)
+				or link.target == newtarget
+				or link.target.ischild(newtarget)
+			):
+				self._move_links_in_page(link.source, oldtarget, newtarget)
+				seen.add(link.source.name)
+
+	def _move_links_in_page(self, path, oldtarget, newtarget):
+		logger.debug('Updating page %s to move link from %s to %s', path, oldtarget, newtarget)
+		page = self.get_page(path)
+		tree = page.get_parsetree()
+		if not tree:
+			return 0
+
+		def replacefunc(elt):
+			text = elt.attrib['href']
+			if link_type(text) != 'page':
+				raise zim.formats.VisitorSkip
+
+			href = HRef.new_from_wiki_link(text)
+			target = self.pages.resolve_link(page, href)
+
+			if target == newtarget or target.ischild(newtarget):
+				raise zim.formats.VisitorSkip
+
+			elif target == oldtarget:
+				return self._update_link_tag(elt, page, newtarget, href)
+			elif target.ischild(oldtarget):
+				mynewtarget = newtarget.child( target.relname(oldtarget) )
+				return self._update_link_tag(elt, page, mynewtarget, href)
+
+			elif href.rel == HREF_REL_FLOATING \
+			and href.parts()[0] == newtarget.basename \
+			and page.ischild(oldtarget.parent) \
+			and not target.ischild(oldtarget.parent):
+				# Edge case: an link that was anchored to the moved page,
+				# and now resolves somewhere higher in the tree
+				if href.names == newtarget.basename:
+					return self._update_link_tag(elt, page, newtarget, href)
+				else:
+					mynewtarget = newtarget.child(':'.join(href.parts[1:]))
+					return self._update_link_tag(elt, page, mynewtarget, href)
+
+			else:
+				raise zim.formats.VisitorSkip
+
+		tree.replace(zim.formats.LINK, replacefunc)
+		page.set_parsetree(tree)
+		self.store_page(page)
+
+	def _update_link_tag(self, elt, source, target, oldhref):
+		if oldhref.rel == HREF_REL_ABSOLUTE: # prefer to keep absolute links
+			newhref = HRef(HREF_REL_ABSOLUTE, target.name)
+		else:
+			newhref = self.pages.create_link(source, target)
+
+		text = newhref.to_wiki_link()
+		if elt.gettext() == elt.get('href'):
+			elt[:] = [text]
+		elt.set('href', text)
+		return elt
+
+	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
+		'''Rename page to a page in the same namespace but with a new
+		basename.
+
+		This is similar to moving within the same namespace, but
+		conceptually different in the user interface. Internally
+		L{move_page()} is used here as well.
+
+		@param path: a L{Path} object for the old/current page name
+		@param newbasename: new name as string
+		@param update_heading: if C{True} the first heading in the
+		page will be updated to the new name
+		@param update_links: if C{True} all links B{from} and B{to} this
+		page and any of it's children will be updated to reflect the
+		new page name
+		@param callback: see L{move_page()} for details
+		'''
+		logger.debug('Rename %s to "%s" (%s, %s)',
+			path, newbasename, update_heading, update_links)
+
+		newbasename = Path.makeValidPageName(newbasename)
+		newpath = Path(path.namespace + ':' + newbasename)
+		self.move_page(path, newpath, update_links, callback)
+		if update_heading:
+			page = self.get_page(newpath)
+			tree = page.get_parsetree()
+			if not tree is None:
+				tree.set_heading(newbasename)
+				page.set_parsetree(tree)
+				self.store_page(page)
+
+		return newpath
+
+	def delete_page(self, path, update_links=True, callback=None):
+		'''Delete a page from the notebook
+
+		@param path: a L{Path} object
+		@param update_links: if C{True} pages linking to the
+		deleted page will be updated and the link are removed.
+		@param callback: see L{move_page()} for details
+
+		@returns: C{True} when the page existed and was deleted,
+		C{False} when the page did not exist in the first place.
+
+		Raises an error when delete failed.
+
+		@emits: delete-page before the actual delete
+		@emits: deleted-page after succesful deletion
+		'''
+		return self._delete_page(path, update_links, callback)
+
+	def trash_page(self, path, update_links=True, callback=None):
+		'''Move a page to Trash
+
+		Like L{delete_page()} but will use the system Trash (which may
+		depend on the OS we are running on). This is used in the
+		interface as a more user friendly version of delete as it is
+		undoable.
+
+		@param path: a L{Path} object
+		@param update_links: if C{True} pages linking to the
+		deleted page will be updated and the link are removed.
+		@param callback: see L{move_page()} for details
+
+		@returns: C{True} when the page existed and was deleted,
+		C{False} when the page did not exist in the first place.
+
+		Raises an error when trashing failed.
+
+		@raises TrashNotSupportedError: if trashing is not supported by
+		the storage backend or when trashing is explicitly disabled
+		for this notebook.
+
+		@emits: delete-page before the actual delete
+		@emits: deleted-page after succesful deletion
+		'''
+		if self.config['Notebook']['disable_trash']:
+			raise TrashNotSupportedError, 'disable_trash is set'
+		return self._delete_page(path, update_links, callback, trash=True)
 
 	def delete_page(self, path):
 		# TODO integrate operation with update links again

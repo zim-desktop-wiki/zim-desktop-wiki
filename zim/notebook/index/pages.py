@@ -65,6 +65,14 @@ class IndexPath(Path):
 				ids.pop()
 		yield ROOT_PATH
 
+	def commonparent(self, other):
+		parent = Path.commonparent(self, other)
+		if parent.isroot:
+			return ROOT_PATH
+		else:
+			i = parent.name.count(':')
+			return IndexPath(parent.name, self.ids[:i+2])
+
 	def child_by_row(self, row):
 		'''Returns a L{IndexPathRow} object for the child page
 		represented by C{row}
@@ -389,6 +397,17 @@ class PagesViewInternal(object):
 				for grandchild in self.walk(db, child): # recurs
 					yield grandchild
 
+	def walk_bottomup(self, db, indexpath):
+		for row in db.execute(
+			'SELECT * FROM pages WHERE parent=? ORDER BY sortkey, basename',
+			(indexpath.id,)
+		):
+			child = indexpath.child_by_row(row)
+			if child.haschildren:
+				for grandchild in self.walk(db, child): # recurs
+					yield grandchild
+			yield child
+
 
 class PagesView(IndexViewBase):
 	'''Index view that exposes the "pages" table in the index'''
@@ -445,6 +464,34 @@ class PagesView(IndexViewBase):
 		with self._db as db:
 			source = self._pages.lookup_by_pagename(db, source)
 			return self._pages.resolve_link(db, source, href)
+
+	def create_link(self, source, target):
+		'''Determine best way to represent a link between two pages
+		@param source: a L{Path} object
+		@param target: a L{Path} object
+		@returns: a L{HRef} object
+		'''
+		if target == source: # weird edge case ..
+			return HRef(HREF_REL_FLOATING, target.basename)
+		elif target.ischild(source):
+			return HRef(HREF_REL_RELATIVE, target.relname(source))
+		else:
+			href = self._find_floating_link(source, target)
+			return href or HRef(HREF_REL_ABSOLUTE, target.name)
+
+	def _find_floating_link(self, source, target):
+		# First try if basename resolves, then extend link names untill match is found
+		with self._db as db:
+			source = self._pages.lookup_by_pagename(db, source)
+			parts = target.parts
+			names = []
+			while parts:
+				names.insert(0, parts.pop())
+				href = HRef(HREF_REL_FLOATING, ':'.join(names))
+				if self._pages.resolve_link(db, source, href) == target:
+					return href
+			else:
+				return None # no floating link possible
 
 	def list_pages(self, path):
 		'''Generator for child pages of C{path}

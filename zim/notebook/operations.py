@@ -5,6 +5,43 @@
 
 from zim.errors import Error
 
+# Make update links / delete links a post processing
+# that way it can be used as a "repair" function as well
+# - navigation to the page touches the placeholder - makes paralel links resolve as well
+
+# On move page
+# - actual move page
+# - update index
+# - for links from section
+#	- find floating links outside of moved structure
+#	- resolve from old location, if result is different, update
+# - for links to section
+#	- if placeholder remaining, update pages causing those to link to new location
+#   (this means some floating links may find a new target in levels above)
+# 	- ( check count of links to section, if matched pre- vs post- do nothing )
+# 	- else find links where anchor has same name as top level of moved page
+# 	update if the source is a child of the parent of the moved page
+
+# for update
+# - find common parent
+# - resolve common parent from source
+# - if not match, take parent one level up, repeat
+# - if top level and no match, use absolute link (all common parents are "shielded" by similar named pages on a lower level)
+#
+# index.create_href(source, target)
+#	rel link ?
+# 	index.find_link_anchor(source, target)
+# 	if None: absolute link
+
+# On delete page
+# - actually delete the page
+# - update the index
+# - if placeholder remaining, update pages causing those
+#   (this means some floating links may find a new target in levels above)
+# - ( check if number of deleted links matches total incoming before delete )
+# - else find links where anchor has same name as top level of moved page
+# update if the source is a child of the parent of the moved page
+
 
 class IndexBusyError(Error):
 	'''Error for operations that need the index when the index is not
@@ -53,9 +90,8 @@ class PageMover(object):
 		if path == newpath:
 			return
 
-		# TODO
-		#~ if update_links and self.index.updating:
-			#~ raise IndexBusyError, 'Index busy'
+		if update_links and self.index.updating:
+			raise IndexBusyError, 'Index busy'
 			# Index need to be complete in order to be 100% sure we
 			# know all backlinks, so no way we can update links before.
 
