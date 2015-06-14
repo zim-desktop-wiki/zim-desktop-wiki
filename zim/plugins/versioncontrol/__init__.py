@@ -459,6 +459,7 @@ class VCSBackend(ConnectorMixin):
 		"""Callback to remove a file from Bazaar when deleted from the wiki
 		Note: the VCS operation is asynchronous
 
+		@param fs: the L{FSSingletonClass} instance representing the file system
 		@param path: the L{UnixFile} object representing the path of the file or folder to delete
 		@returns: nothing
 		"""

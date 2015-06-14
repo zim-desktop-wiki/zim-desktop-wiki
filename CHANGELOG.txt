@@ -5,8 +5,10 @@ This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
 
-=== 0.63 - ... ===
+=== 0.63 - Sat 13 Jun 2015 ===
 * Table plugin - by Tobias Haupenthal
+* Support for Fossil version control - by Stas Bushuev
+... Many bug fixes
 
 
 === 0.62 - Tue 30 Sep 2014 ===
