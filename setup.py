@@ -354,6 +354,9 @@ if py2exe:
 				"ascii": 1,
 				"bundle_files": 3,
 				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim"],
+				"dll_excludes": {
+					"DNSAPI.DLL"
+				}
 			}
 		}
 	}
