@@ -205,7 +205,9 @@ class Index(object):
 		@param path: a C{Path} object, if given only the index
 		below this path is updated, else the entire index is updated.
 		'''
+		#~ print "--- Update ---"
 		for i in self.update_iter(path):
+			#~ print ">>", i
 			continue
 
 	def update_iter(self, path=None):
@@ -392,17 +394,23 @@ class IndexInternal(object):
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
 		assert isinstance(indexpath, IndexPathRow)
-		etag = self.store.get_content_etag(indexpath)
+		node = self.store.get_node(indexpath)
+		etag = node.get_content_etag()
 
 		if etag and indexpath.page_exists != PAGE_EXISTS_HAS_CONTENT:
 			self.set_page_exists(db, indexpath)
 
-		page = self.store.get_page(indexpath)
+		parsetree = node.get_parsetree()
 		for indexer in self.indexers:
-			indexer.on_index_page(self, db, indexpath, page)
+			indexer.on_index_page(self, db, indexpath, parsetree)
+
+		ctime = datetime.fromtimestamp(node.ctime)
+		mtime = datetime.fromtimestamp(node.mtime)
 		db.execute(
-			'UPDATE pages SET content_etag=? WHERE id=?',
-			(etag, indexpath.id)
+			'UPDATE pages '
+			'SET content_etag=?, ctime=?, mtime=? '
+			'WHERE id=?',
+			(etag, ctime, mtime, indexpath.id)
 		)
 
 	def delete_page(self, db, indexpath, cleanup):
@@ -463,7 +471,8 @@ class IndexInternal(object):
 
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
-		etag = self.store.get_children_etag(parent)
+		node = self.store.get_node(parent)
+		etag = node.get_children_etag()
 		if self.check_pagelist(db, parent):
 			db.execute(
 				'UPDATE pages SET children_etag=? WHERE id=?',
@@ -474,21 +483,21 @@ class IndexInternal(object):
 			pass # TODO - actively start indexer
 
 	def check_pagelist(self, db, indexpath):
-		pages = set()
-		for page in self.store.get_pagelist(indexpath):
-			pages.add(page.basename)
-			# TODO - speedup with name list API iso. object list
+		# TODO - how to speed this up?
+		names = set()
+		for node in self.store.get_children(indexpath):
+			names.add(node.basename)
 
 		try:
 			for row in db.execute(
 				'SELECT basename FROM pages WHERE parent=? and page_exists<>?',
 				(indexpath.id, PAGE_EXISTS_AS_LINK)
 			):
-				pages.remove(row['basename'])
+				names.remove(row['basename'])
 		except KeyError:
 			return False
 
-		return not pages # OK if empty
+		return not names # OK if empty
 
 
 class TreeIndexer(IndexInternal):
@@ -597,7 +606,8 @@ class TreeIndexer(IndexInternal):
 
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
-		etag = self.store.get_children_etag(indexpath)
+		node = self.store.get_node(indexpath)
+		etag = node.get_children_etag()
 
 		if etag != indexpath.children_etag:
 			self.set_property(db, 'probably_uptodate', False)
@@ -611,15 +621,15 @@ class TreeIndexer(IndexInternal):
 			# Check whether any grand-children changed
 			# For a file store this may affect the children_etag
 			# because creating the folder changes the parent folder
-			# for emory store and other file layouts this behavior
+			# for memory store and other file layouts this behavior
 			# differs.
-			for page in self.store.get_pagelist(indexpath):
+			for node in self.store.get_children(indexpath):
 				row = db.execute(
 					'SELECT * FROM pages WHERE parent=? and basename=?',
-					(indexpath.id, page.basename)
+					(indexpath.id, node.basename)
 				).fetchone()
 				if row:
-					if page.haschildren or row['n_children'] > 0: # has and/or had children
+					if node.haschildren or row['n_children'] > 0: # has and/or had children
 						check = INDEX_CHECK_TREE
 					else:
 						check = INDEX_CHECK_PAGE
@@ -629,7 +639,7 @@ class TreeIndexer(IndexInternal):
 						(check, row['id'],)
 					)
 				else:
-					raise IndexConsistencyError, 'Missing index for: %s' % page
+					raise IndexConsistencyError, 'Missing index for: %s' % indexpath + node.basename
 		else:
 			pass
 
@@ -644,10 +654,11 @@ class TreeIndexer(IndexInternal):
 		)
 
 	def new_children(self, db, indexpath, etag):
-		for page in self.store.get_pagelist(indexpath):
-			check = INDEX_CHECK_TREE if page.haschildren else INDEX_CHECK_PAGE
-			child = self.insert_page(db, indexpath, page, needscheck=check)
-			if page.hascontent:
+		for node in self.store.get_children(indexpath):
+			child_path = indexpath + node.basename
+			check = INDEX_CHECK_TREE if node.haschildren else INDEX_CHECK_PAGE
+			child = self.insert_page(db, indexpath, child_path, needscheck=check)
+			if node.hascontent:
 				self.set_page_exists(db, child)
 
 	def update_children(self, db, indexpath, etag, checktree=False):
@@ -659,29 +670,30 @@ class TreeIndexer(IndexInternal):
 		)
 
 		# Then go over the list
-		for page in self.store.get_pagelist(indexpath):
+		for node in self.store.get_children(indexpath):
 			c.execute(
 				'SELECT * FROM pages WHERE parent=? and basename=?',
-				(indexpath.id, page.basename)
+				(indexpath.id, node.basename)
 			)
 			row = c.fetchone()
 			if not row: # New child
-				check = INDEX_CHECK_TREE if page.haschildren else INDEX_CHECK_PAGE
-				child = self.insert_page(db, indexpath, page, needscheck=check)
-				if page.hascontent:
+				child_path = indexpath + node.basename
+				check = INDEX_CHECK_TREE if node.haschildren else INDEX_CHECK_PAGE
+				child = self.insert_page(db, indexpath, child_path, needscheck=check)
+				if node.hascontent:
 					self.set_page_exists(db, child)
 			else: # Existing child
-				if page.hascontent and row['page_exists'] != PAGE_EXISTS_HAS_CONTENT:
+				if node.hascontent and row['page_exists'] != PAGE_EXISTS_HAS_CONTENT:
 					child = self._pages.lookup_by_row(db, row)
 					self.set_page_exists(db, child)
 
 				if checktree:
-					if page.haschildren or row['n_children'] > 0: # has and/or had children
+					if node.haschildren or row['n_children'] > 0: # has and/or had children
 						check = INDEX_CHECK_TREE
 					else:
 						check = INDEX_CHECK_PAGE
 				else:
-					if page.hascontent != bool(row['content_etag']):
+					if node.hascontent != bool(row['content_etag']):
 						check = INDEX_CHECK_PAGE
 					elif page.haschildren != (row['n_children'] > 0):
 						check = INDEX_CHECK_CHILDREN
@@ -715,15 +727,21 @@ class TreeIndexer(IndexInternal):
 		):
 			child = indexpath.child_by_row(row)
 			self.delete_children(db, child) # recurs depth first - no check here on haschildren!
-			self.delete_page(db, child, cleanup=False)
+			try:
+				child = self._pages.lookup_by_indexpath(db, child)
+			except IndexConsistencyError:
+				pass # page cleanup already in the process
+			else:
+				self.delete_page(db, child, cleanup=False)
 
 	def check_page(self, db, indexpath):
-		etag = self.store.get_content_etag(indexpath)
+		node = self.store.get_node(indexpath)
+		etag = node.get_content_etag()
 		if etag != indexpath.content_etag:
 			self.index_page(db, indexpath)
 
 		# Queue a children check if needed (not recursive)
-		children_etag = self.store.get_children_etag(indexpath)
+		children_etag = node.get_children_etag()
 		if children_etag == indexpath.children_etag:
 			needscheck = INDEX_UPTODATE
 		else:

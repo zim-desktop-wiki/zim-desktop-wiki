@@ -431,7 +431,7 @@ class Page(Path):
 
 	def _source_hascontent(self):
 		'''Method to be overloaded in sub-classes.
-		Should return a parsetree True if _fetch_parsetree() returns content.
+		Should return True if _fetch_parsetree() returns content.
 		'''
 		raise NotImplementedError
 
@@ -538,38 +538,8 @@ class Page(Path):
 		else:
 			self.set_parsetree(format.Parser().parse(text))
 
-	def iter_page_href(self):
-		'''Generator for page links in the text
-
-		This method gives the raw links from the content, which are used
-		by the indexer. If you want nice L{Link} objects use
-		L{index.links.list_links()} instead.
-
-		@returns: yields a list of unique L{HRef} objects
-		'''
-		# FIXME optimize with a ParseTree.get_links that does not
-		#       use Node
-
-		def my_href_iter(tree):
-			for elt in tree.findall(zim.formats.LINK):
-				href = elt.attrib.pop('href')
-				yield href
-
-			for elt in tree.findall(zim.formats.IMAGE):
-				if 'href' in elt.attrib:
-					yield elt.attrib.pop('href')
-
-		tree = self.get_parsetree()
-		if tree:
-			seen = set()
-			for href in my_href_iter(tree):
-				if href not in seen \
-				and link_type(href) == 'page':
-					seen.add(href)
-					try:
-						yield HRef.new_from_wiki_link(href)
-					except ValueError:
-						pass
+	def get_links(self):
+		raise NotImplementedError
 
 	def get_tags(self):
 		'''Generator for tags in the page content
@@ -606,6 +576,83 @@ class Page(Path):
 			return tree.get_heading() == self.basename
 		else:
 			return False
+
+
+class StoreNodePage(Page):
+	'''Implementation of L{Page} that has a L{StoreNode} as source
+
+	NOTE: THis is a temporary adaptor for backward compatibility while refactoring
+
+	@ivar source: the L{File} object for this page
+	@ivar format: the L{zim.formats} sub-module used for parsing the file
+	'''
+
+	def __init__(self, path, node):
+		Page.__init__(self, path, haschildren=node.haschildren)
+		self._node = node
+		self.source = node.source_file
+		self.folder = node.attachments_dir
+		if self.source:
+			self.readonly = not self.source.iswritable() # XXX
+		else:
+			self.readonly = False
+		self.properties = node.properties if hasattr(node, 'properties') else {}
+
+	@property
+	def mtime(self):
+		return self._node.mtime
+
+	@property
+	def ctime(self):
+		return self._node.ctime
+
+	def isequal(self, other):
+		#~ print "IS EQUAL", self, other
+		if not isinstance(other, self.__class__):
+			return False
+
+		if self == other:
+			# If object equal by definition they are the equal
+			return True
+
+		# If we have an existing source check it
+		# If we have an existing folder check it
+		# If either fails we are not equal
+		# If both do not exist we are also not equal
+
+		ok = False
+		if self.source and self.source.exists():
+			ok = (
+				other.source
+				and self.source.isequal(other.source)
+			)
+			if not ok:
+				return False
+
+
+		if self.folder and self.folder.exists():
+			ok = (
+				other.folder
+				and self.folder.isequal(other.folder)
+			)
+
+		return ok
+
+	def _source_hascontent(self):
+		return self._node.hascontent
+
+	def _fetch_parsetree(self):
+		return self._node.get_parsetree()
+
+	def _store(self):
+		tree = self.get_parsetree()
+		if tree and tree.hascontent:
+			self._node.store_parsetree(tree)
+		else:
+			assert False, 'How to cleanup the source?'
+			# Remove the file - this is not the same as remove_page()
+			#~ self.source.cleanup()
+		self.modified = False
 
 
 class IndexPage(Page):

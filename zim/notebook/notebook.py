@@ -22,7 +22,7 @@ from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
+from .page import Path, Page, StoreNodePage, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 DATA_FORMAT_VERSION = (0, 4)
@@ -414,7 +414,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		and self._page_cache[path.name].valid:
 			return self._page_cache[path.name]
 		else:
-			page = self.store.get_page(path)
+			node = self.store.get_node(path)
+			page = StoreNodePage(path, node)
 			try:
 				indexpath = self.pages.lookup_by_pagename(path)
 			except IndexNotFoundError:
@@ -485,7 +486,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
 		self.emit('store-page', page)
-		self.store.store_page(page)
+		page._store()
 		self.index.on_store_page(page)
 		self.emit('stored-page', page)
 
@@ -551,8 +552,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
 		self.store.move_page(path, newpath)
-		self.index.on_delete_page(path)
-		self.index.update(newpath) # TODO - optimize by letting indexers know about move?
+		if not (newpath == path or newpath.ischild(path)):
+			self.index.on_delete_page(path)
+		self.index.update(newpath) # TODO - optimize by letting indexers know about move
 		if not update_links:
 			return
 
@@ -773,10 +775,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			raise TrashNotSupportedError, 'disable_trash is set'
 		return self._delete_page(path, update_links, callback, trash=True)
 
-	def delete_page(self, path):
-		# TODO integrate operation with update links again
-		self.store.delete_page(path)
-		self.index.on_delete_page(path)
 
 	def revert_page(self, page):
 		'''Reload the page from the storage backend, discarding all

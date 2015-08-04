@@ -107,23 +107,24 @@ class LinksIndexer(IndexerBase):
 		)
 		self.check_links(index, db)
 
-	def on_index_page(self, index, db, indexpath, page):
+	def on_index_page(self, index, db, indexpath, parsetree):
 		db.execute(
 			'DELETE FROM links WHERE source=?',
 			(indexpath.id,)
 		)
 
-		for href in page.iter_page_href():
-			target = self._pages.resolve_link(db, indexpath, href)
-			if not isinstance(target, IndexPath):
-				target = self.touch_placeholder(index, db, target)
+		if parsetree:
+			for href in parsetree.iter_href():
+				target = self._pages.resolve_link(db, indexpath, href)
+				if not isinstance(target, IndexPath):
+					target = self.touch_placeholder(index, db, target)
 
-			anchorkey = natural_sort_key(href.parts()[0])
-			db.execute(
-				'INSERT INTO links(source, target, rel, names, anchorkey) '
-				'VALUES (?, ?, ?, ?, ?)',
-				(indexpath.id, target.id, href.rel, href.names, anchorkey)
-			)
+				anchorkey = natural_sort_key(href.parts()[0])
+				db.execute(
+					'INSERT INTO links(source, target, rel, names, anchorkey) '
+					'VALUES (?, ?, ?, ?, ?)',
+					(indexpath.id, target.id, href.rel, href.names, anchorkey)
+				)
 
 		self.cleanup_placeholders(index, db)
 

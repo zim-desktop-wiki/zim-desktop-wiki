@@ -60,6 +60,7 @@ to a title or subtitle in the document.
 
 import re
 import string
+import itertools
 import logging
 
 import types
@@ -306,6 +307,36 @@ class ParseTree(object):
 		except:
 			print ">>>", xml, "<<<"
 			raise
+
+	def iter_href(self):
+		'''Generator for links in the text
+		@returns: yields a list of unique L{HRef} objects
+		'''
+		from zim.notebook.page import HRef # XXX
+		seen = set()
+		for elt in itertools.chain(
+			self._etree.getiterator(LINK),
+			self._etree.getiterator(IMAGE)
+		):
+			href = elt.attrib.get('href')
+			if href and href not in seen:
+				seen.add(href)
+				if link_type(href) == 'page':
+					try:
+						yield HRef.new_from_wiki_link(href)
+					except ValueError:
+						pass
+
+	def iter_tag_names(self):
+		'''Generator for tags in the page content
+		@returns: yields an unordered list of tag names
+		'''
+		seen = set()
+		for elt in self._etree.getiterator(TAG):
+			name = elt.text
+			if not name in seen:
+				seen.add(name)
+				yield name.lstrip('@')
 
 	def _get_heading_element(self, level=1):
 		root = self._etree.getroot()
@@ -1115,6 +1146,7 @@ class DumperClass(Visitor):
 	def dump(self, tree):
 		'''Convenience methods to dump a given tree.
 		@param tree: a parse tree object that supports a C{visit()} method
+		@returns: a list of lines
 		'''
 		# FIXME - issue here is that we need to reset state - should be in __init__
 		self._text = []

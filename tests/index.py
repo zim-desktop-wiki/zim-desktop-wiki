@@ -11,6 +11,7 @@ import copy
 
 from functools import partial
 
+import zim.formats
 
 from zim.fs import Dir
 from zim.notebook import Path
@@ -148,8 +149,8 @@ UPDATE = {
 		'links': [],
 		'tags': [],
 	},
-	# On purpose skipping "Bar:CCC" here - should be touched & cleaned up automatically
-	Path('Bar:CCC:aaa'): {
+	# On purpose skipping "Bar:CCC" and children here - should be touched & cleaned up automatically
+	Path('Bar:CCC:xxx:yyy:zzz:aaa'): {
 		'treepath': (),
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
@@ -168,13 +169,19 @@ UPDATE = {
 UPDATED_PAGES = copy.deepcopy(PAGES)
 UPDATED_PAGES.update(UPDATE)
 UPDATED_PAGES[Path('Bar')]['n_children'] += 3
-UPDATED_PAGES[Path('Bar:CCC')] = {
-	'treepath': (),
-	'n_children': 1,
-	'content': None,
-	'links': [],
-	'tags': [],
-}
+for path in (
+	Path('Bar:CCC'),
+	Path('Bar:CCC:xxx'),
+	Path('Bar:CCC:xxx:yyy'),
+	Path('Bar:CCC:xxx:yyy:zzz'),
+):
+	UPDATED_PAGES[path] = {
+		'treepath': (),
+		'n_children': 1,
+		'content': None,
+		'links': [],
+		'tags': [],
+	}
 UPDATED_PAGES[Path('Foo')]['n_children'] += 1
 
 # Sequence when updating - new pages appended at the end of each phase
@@ -185,6 +192,9 @@ UPDATE_SEQUENCE = (
 	(INDEX_CHECK_TREE, 'SOME EMPTY FOLDER'),
 	(INDEX_CHECK_TREE, 'Foo:Child1'),
 	(INDEX_CHECK_TREE, 'Bar:CCC'),
+	(INDEX_CHECK_TREE, 'Bar:CCC:xxx'),
+	(INDEX_CHECK_TREE, 'Bar:CCC:xxx:yyy'),
+	(INDEX_CHECK_TREE, 'Bar:CCC:xxx:yyy:zzz'),
 	(INDEX_CHECK_PAGE, 'Bar'),
 	(INDEX_CHECK_PAGE, 'Foo'),
 	(INDEX_CHECK_PAGE, 'SOME EMPTY FOLDER'),
@@ -196,7 +206,10 @@ UPDATE_SEQUENCE = (
 	(INDEX_CHECK_PAGE, 'Bar:BBB'),
 	(INDEX_CHECK_PAGE, 'Bar:CCC'),
 	(INDEX_CHECK_PAGE, 'Foo:AAA'),
-	(INDEX_CHECK_PAGE, 'Bar:CCC:aaa'),
+	(INDEX_CHECK_PAGE, 'Bar:CCC:xxx'),
+	(INDEX_CHECK_PAGE, 'Bar:CCC:xxx:yyy'),
+	(INDEX_CHECK_PAGE, 'Bar:CCC:xxx:yyy:zzz'),
+	(INDEX_CHECK_PAGE, 'Bar:CCC:xxx:yyy:zzz:aaa'),
 )
 
 # Sequence after deleting update again - same as SEQUENCE but with extra check for Bar children
@@ -256,20 +269,22 @@ class MemoryIndexerTests(tests.TestCase):
 		)
 
 	def write_pages(self, pages):
+		parser = zim.formats.get_parser('wiki')
 		for path, attrib in pages.items():
 			#~ print "Write", path
-			page = self.store.get_page(path)
+			node = self.store.get_node(path)
 			if attrib['content']:
-				page.parse('wiki', attrib['content'])
-				self.store.store_page(page)
+				tree = parser.parse(attrib['content'])
+				node.store_parsetree(tree)
 			else:
 				## HACK to make child folder to exist ##
 				if isinstance(self.store, MemoryStore):
 					print "### TODO: virtual attachments folder"
 					node = self.store.get_node(path, vivificate=True)
 					node.children_etag = 'EMPTY_FOLDER_ETAG'
+					node.haschildren = True
 				else:
-					dir = self.store.get_attachments_dir(page)
+					dir = node.attachments_dir
 					dir.file('foo.png').touch()
 
 	def delete_pages(self, pages):
@@ -395,12 +410,13 @@ class MemoryIndexerTests(tests.TestCase):
 		self.runSequence(indexer, UPDATE_ROLLBACK_SEQUENCE, PAGES)
 
 		#~ print "### Store pages"
+		parser = zim.formats.get_parser('wiki')
 		for path, attrib in UPDATE.items():
 			#~ print "<<", path
-			page = self.store.get_page(path)
-			page.parse('wiki', attrib['content'])
-			self.store.store_page(page)
-			self.index.on_store_page(page)
+			node = self.store.get_node(path)
+			tree = parser.parse(attrib['content'])
+			node.store_parsetree(tree)
+			self.index.on_store_page(path)
 		self.assertIndexMatchesPages(self.index, UPDATED_PAGES)
 
 		#~ print "### Delete pages"
@@ -533,9 +549,12 @@ class TestHRefFromWikiLink(tests.TestCase):
 
 def new_memory_index():
 	store = MemoryStore()
+	parser = zim.formats.get_parser('wiki')
 	for path, attr in PAGES_TREE.items():
 		if attr['content'] is not None:
-			store.store_node(path, attr['content'])
+			node = store.get_node(path)
+			tree = parser.parse(attr['content'])
+			node.store_parsetree(tree)
 
 	index = Index.new_from_memory(store)
 	index.update()
@@ -572,8 +591,11 @@ class TestPlaceHolders(tests.TestCase):
 			assert False, '%s does not link to %s' % (source, target)
 
 	def store_page(self, index, path, content):
-		index.store.store_node(path, content)
-		index.on_store_page(index.store.get_page(path))
+		parser = zim.formats.get_parser('wiki')
+		tree = parser.parse(content)
+		node = index.store.get_node(path)
+		node.store_parsetree(tree)
+		index.on_store_page(path)
 
 	def delete_page(self, index, path):
 		index.store.delete_page(path)
@@ -607,7 +629,10 @@ class TestPlaceHolders(tests.TestCase):
 		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
 
 		# update children on parent, placeholder should survive
-		index.store.store_node(Path('Foo:AAA'), 'test 123\n')
+		parser = zim.formats.get_parser('wiki')
+		tree = parser.parse('test 123\n')
+		node = index.store.get_node(Path('Foo:AAA'))
+		node.store_parsetree(tree)
 		index.update()
 		self.assertIsPlaceholder(index, Path('Foo:Child3'))
 		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))

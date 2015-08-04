@@ -201,15 +201,7 @@ class PagesIndexer(IndexerBase):
 		if n_children_pre == 0 and not parent.isroot:
 			self.emit('page-haschildren-toggled', parent)
 
-	def on_index_page(self, index, db, indexpath, page):
-		ctime = datetime.fromtimestamp(page.ctime)
-		mtime = datetime.fromtimestamp(page.mtime)
-		db.execute(
-			'UPDATE pages '
-			'SET ctime=?, mtime=? '
-			'WHERE id=?',
-			(ctime, mtime, indexpath.id)
-		)
+	def on_index_page(self, index, db, indexpath, parsetree):
 		self.emit('page-changed', indexpath)
 
 	def on_delete_page(self, index, db, indexpath):
@@ -234,6 +226,27 @@ class PagesIndexer(IndexerBase):
 			(parent.id, parent.id)
 		)
 
+
+def _rindex(list, value):
+	i = list.index(value) # can raise ValueError
+	try:
+		while True:
+			j = list[i+1:].index(value)
+			i = i + 1 + j
+	except ValueError:
+		return i
+
+
+class IndexPageNotFoundError(IndexNotFoundError):
+
+	def __init__(self, path, parent=None):
+		'''Constructor
+		@param path: the L{Path} that was not found
+		@param parent: optional parent that was found
+		'''
+		self.path = path
+		self.parent = parent
+		IndexNotFoundError.__init__(self, 'No such path in index: %s' % path.name)
 
 
 class PagesViewInternal(object):
@@ -280,10 +293,13 @@ class PagesViewInternal(object):
 			ids.insert(0, parent)
 			cursor.execute('SELECT basename, parent, n_children FROM pages WHERE id=?', (parent,))
 			myrow = cursor.fetchone()
-			if not myrow or myrow['n_children'] < 1:
-				if myrow:
-					raise IndexConsistencyError, 'Parent has no children'
-				else:
+			## Check on children can be enabled again when set_exists logic is gone
+			#~ if not myrow or myrow['n_children'] < 1:
+				#~ if myrow:
+					#~ raise IndexConsistencyError, 'Parent has no children'
+				#~ else:
+					#~ raise IndexConsistencyError, 'Parent missing'
+			if not myrow:
 					raise IndexConsistencyError, 'Parent missing'
 			names.insert(0, myrow['basename'])
 			parent = myrow['parent']
@@ -300,8 +316,6 @@ class PagesViewInternal(object):
 			raise IndexConsistencyError, 'No such page id: %r' % indexpath.id
 
 	def lookup_by_pagename(self, db, path):
-		#~ @param db: a C{sqlite3.Connection} object
-
 		# Constructs the indexpath downwards - do not optimize for
 		# IndexPath objects - assume they are invalid and check top down
 		if path.isroot:
@@ -318,8 +332,9 @@ class PagesViewInternal(object):
 				)
 				row = cursor.fetchone()
 				if row is None:
-					# TODO some wrapper that uses this error to trigger indexer checks
-					raise IndexNotFoundError, 'No such path in index: %s' % path.name
+					parentname = ':'.join(path.parts[:len(ids)])
+					parent = IndexPath(parentname, ids) # last existing parent
+					raise IndexPageNotFoundError(path, parent)
 				ids.append(row['id'])
 
 			return IndexPathRow(path.name, ids, row)
@@ -334,21 +349,43 @@ class PagesViewInternal(object):
 		if row:
 			return parent.child_by_row(row)
 		else:
-			raise IndexNotFoundError, 'No such path in index: %s' % parent.child(basename).name
+			raise IndexPageNotFoundError(parent.child(basename))
 
 	def resolve_link(self, db, source, href):
 		'''Internal implementation of L{PageView.resolve_link()}'''
 		if href.rel == HREF_REL_ABSOLUTE or source.isroot:
 			return self.resolve_path(db, ROOT_PATH, href.parts())
-		elif href.rel == HREF_REL_RELATIVE:
-			return self.resolve_path(db, source, href.parts())
+
+		# Do not assume source exists, find start point that does
+		relnames = []
+		if isinstance(source, IndexPath):
+			root = source
+		else:
+			try:
+				root = self.lookup_by_pagename(db, source)
+			except IndexPageNotFoundError, error:
+				assert error.parent
+				root = error.parent
+				relnames = source.relname(root).split(':')
+
+		if href.rel == HREF_REL_RELATIVE:
+			return self.resolve_path(db, root, relnames + href.parts())
 		else: # HREF_REL_FLOATING
 			# Search upward namespaces for existing pages,
 			# ignore "exists as link" placeholders to avoid circular
 			# dependencies between links and placeholders
 			assert href.rel == HREF_REL_FLOATING
 			anchor_key = natural_sort_key(href.parts()[0])
-			for parent in source.parents():
+
+			if relnames: # Check if we are anchored in non-existing part
+				try:
+					i = _rindex([natural_sort_key(n) for n in relnames], anchor_key)
+				except ValueError:
+					pass
+				else:
+					return self.resolve_path(db, root, relnames[:i] + href.parts())
+
+			for parent in root.parents():
 				r = db.execute(
 					'SELECT id, basename FROM pages '
 					'WHERE parent=? and sortkey=? and page_exists=? LIMIT 1',
@@ -357,7 +394,11 @@ class PagesViewInternal(object):
 				if r:
 					return self.resolve_path(db, parent, href.parts())
 			else:
-				return self.resolve_path(db, source.parent, href.parts())
+				# Return "brother" of source
+				if relnames:
+					return self.resolve_path(db, root, relnames[:-1] + href.parts())
+				else:
+					return self.resolve_path(db, root.parent, href.parts())
 
 	def resolve_path(self, db, parent, names):
 		'''Resolve a path in the right case'''
@@ -462,7 +503,6 @@ class PagesView(IndexViewBase):
 		assert isinstance(source, Path)
 		assert isinstance(href, HRef)
 		with self._db as db:
-			source = self._pages.lookup_by_pagename(db, source)
 			return self._pages.resolve_link(db, source, href)
 
 	def create_link(self, source, target):

@@ -465,7 +465,10 @@ def new_notebook(fakedir=None):
 		manifest = []
 		for name, text in WikiTestData:
 			manifest.append(name)
-			store.store_node(Path(name), text)
+			node = store.get_node(Path(name))
+			node.text = text
+			node.set_content_etag()
+
 		manifest = frozenset(_expand_manifest(manifest))
 
 		index = Index.new_from_memory(store)

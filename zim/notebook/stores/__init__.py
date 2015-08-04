@@ -169,105 +169,174 @@ class PageReadOnlyError(Error):
 	_msg = _('Can not modify page: %s') # T: error message for read-only pages
 
 
-class StoreClass():
+class StoreNode(object):
+	'''Proxy object that exposes page data based on source files.
+	**Temporary class to deal with refactoring, will be removed again**
+	'''
+
+	__slots__ = ('basename', 'hascontent', 'haschildren', 'source_file', 'attachments_dir', 'ctime', 'mtime')
+
+	def __init__(self, basename, hascontent, haschildren, source_file, attachments_dir, ctime, mtime):
+		self.basename = basename
+		self.hascontent = hascontent
+		self.haschildren = haschildren
+		self.source_file = source_file
+		self.attachments_dir = attachments_dir
+		self.ctime = ctime
+		self.mtime = mtime
+
+	def exists(self):
+		return self.hascontent or self.haschildren
+
+	def get_parsetree(self):
+		raise NotImplementedError
+
+	def store_parsetree(self, parsetree):
+		raise NotImplementedError
+
+	def get_children_etag(self):
+		'''Get key for checking cached state of a page list
+
+		This method should return a key that can be checked by the index
+		to determine if a list of pages should be indexed again.
+		A typical implementation would be to return the modification time
+		of the directory where the pages are stored.
+
+		@returns: a string encoding the state of the page list for
+		sub-pages of C{path} or C{None} if C{path} does not have sub-pages
+
+		@implementation: must be implemented in subclasses
+		'''
+		raise NotImplementedError
+
+	def get_content_etag(self):
+		'''Get key for checking cached state of a page
+
+		This method should return a key that can be checked by the index
+		to determine if the page contents should be indexed again.
+		A typical implementation would be to return the modification time
+		of the file where the page is stored.
+
+		@returns: a string encoding the state of the page content
+		or C{None} if the page has no content
+
+		@implementation: must be implemented in subclasses
+		'''
+		raise NotImplementedError
+
+
+
+class StoreClass(object):
 	'''Base class for store classes, see module docs L{zim.notebook.stores}'''
 
-	def get_page(self, path):
-		'''Get a L{Page} object
-
-		If a non-existing page is requested the store should check if we
-		are allowed to create the page. If so, a new page object should
-		be returned, but actually creating the page must be delayed until
-		content is stored in the page.
-
-		If the store implementation for some reason does not allow to use
-		this page name, a L{PageNotAllowedError} must be raised.
-
-		In the specific case that the store backend is read-only either
-		temporary or permanently a L{PageNotFoundError} should be raised
-		for non-existing pages. But it is also allowed to return a
-		read-only page object. (E.g. if it is uncertain whether there
-		are child pages without an elaborate check etc.)
-
-		@param path: a L{Path} object
-		@returns: a L{Page} object
-		@raises PageNotFoundError: a L{PageNotFoundError} or L{PageNotAllowedError} for
-		pages that can not be created (for checking, be aware that
-		C{PageNotAllowed} is a sub-class of C{PageNotFound})
-
-		@implementation: must be implemented by subclasses
+	def get_node(self, path):
+		'''Returns the L{StoreNode} object for C{path}
+		@raises PageNotAllowedError: when node cannot be accessed
 		'''
 		raise NotImplementedError
 
-	def get_pagelist(self, path):
-		'''Get a list (or iteraterable) of page objects in a namespace
-
-		This method is used by the index to recursively find all
-		pages in the store, so pages that do not occur in this list
-		are never indexed and thus do not exist from the point of view
-		of the notebook. In specific empty pages that do have child pages
-		should appear in the list, and even pages for which it is
-		uncertain whether they have child pages or not.
-
-		If C{path} does not exist, this method should yield an empty list
-
-		@param path: a L{Path} object for a page or the root node
-		@returns: An iterable for L{Page} objects for child pages of
-		C{path}.
-
-		@implementation: must be implemented by subclasses
+	def get_children(self, path):
+		'''Iterator that yields L{StoreNode} objects for children of
+		C{path}
 		'''
 		raise NotImplementedError
 
-	def store_page(self, page):
-		'''Store a page
+	#~ def get_page(self, path):
+		#~ '''Get a L{Page} object
+#~
+		#~ If a non-existing page is requested the store should check if we
+		#~ are allowed to create the page. If so, a new page object should
+		#~ be returned, but actually creating the page must be delayed until
+		#~ content is stored in the page.
+#~
+		#~ If the store implementation for some reason does not allow to use
+		#~ this page name, a L{PageNotAllowedError} must be raised.
+#~
+		#~ In the specific case that the store backend is read-only either
+		#~ temporary or permanently a L{PageNotFoundError} should be raised
+		#~ for non-existing pages. But it is also allowed to return a
+		#~ read-only page object. (E.g. if it is uncertain whether there
+		#~ are child pages without an elaborate check etc.)
+#~
+		#~ @param path: a L{Path} object
+		#~ @returns: a L{Page} object
+		#~ @raises PageNotFoundError: a L{PageNotFoundError} or L{PageNotAllowedError} for
+		#~ pages that can not be created (for checking, be aware that
+		#~ C{PageNotAllowed} is a sub-class of C{PageNotFound})
+#~
+		#~ @implementation: must be implemented by subclasses
+		#~ '''
+		#~ raise NotImplementedError
 
-		This method should save pages that were changed in the user
-		interface. If the page does not yet exist it should be
-		created automatically. Also all parent pages that did not yet
-		exist should be created when needed.
+	#~ def get_pagelist(self, path):
+		#~ '''Get a list (or iteraterable) of page objects in a namespace
+#~
+		#~ This method is used by the index to recursively find all
+		#~ pages in the store, so pages that do not occur in this list
+		#~ are never indexed and thus do not exist from the point of view
+		#~ of the notebook. In specific empty pages that do have child pages
+		#~ should appear in the list, and even pages for which it is
+		#~ uncertain whether they have child pages or not.
+#~
+		#~ If C{path} does not exist, this method should yield an empty list
+#~
+		#~ @param path: a L{Path} object for a page or the root node
+		#~ @returns: An iterable for L{Page} objects for child pages of
+		#~ C{path}.
+#~
+		#~ @implementation: must be implemented by subclasses
+		#~ '''
+		#~ raise NotImplementedError
 
-		@param page: a L{Page} object obtained from L{get_page()} on
-		this same object. The object must be from the same store
-		to allow stores to sub-class the Page class and add additional
-		internal state.
-
-		@implementation: must be implemented by subclasses
-		'''
-		raise NotImplementedError
-
-	def store_page_async(self, page):
-		'''Store a page asynchronously
-
-		Like L{store_page()} but with asynchronous operation.
-
-		@param page: a L{Page} object
-
-		@implementation: optional, can be implemented in subclasses.
-		If not implemented in the subclass it will fall back to just
-		calling L{store_page()} and then call the callback function.
-		'''
-		self.store_page(page)
+	#~ def store_page(self, page):
+		#~ '''Store a page
+#~
+		#~ This method should save pages that were changed in the user
+		#~ interface. If the page does not yet exist it should be
+		#~ created automatically. Also all parent pages that did not yet
+		#~ exist should be created when needed.
+#~
+		#~ @param page: a L{Page} object obtained from L{get_page()} on
+		#~ this same object. The object must be from the same store
+		#~ to allow stores to sub-class the Page class and add additional
+		#~ internal state.
+#~
+		#~ @implementation: must be implemented by subclasses
+		#~ '''
+		#~ raise NotImplementedError
+#~
+	#~ def store_page_async(self, page):
+		#~ '''Store a page asynchronously
+#~
+		#~ Like L{store_page()} but with asynchronous operation.
+#~
+		#~ @param page: a L{Page} object
+#~
+		#~ @implementation: optional, can be implemented in subclasses.
+		#~ If not implemented in the subclass it will fall back to just
+		#~ calling L{store_page()} and then call the callback function.
+		#~ '''
+		#~ self.store_page(page)
 
 	# TODO: remove this method - set_parsetree should be immediate
-	def revert_page(self, page):
-		'''Revert the state of an un-stored page object
-
-		Does not return a page object, changes are in the object
-		supplied. This allows to revert an object that is being
-		edited by the user interface.
-
-		Kind of opposite to L{store_page()}.
-
-		@implementation: optional, can be implemented in subclasses. In
-		this base class it defaults to requesting a new copy of the page
-		and copying the parse tree to the old object. Needs to be
-		overloaded when the page has more internal state
-		(e.g. a file object with mtime check).
-		'''
-		newpage = self.get_page(page)
-		page.set_parsetree(newpage.get_parsetree())
-		page.modified = False
+	#~ def revert_page(self, page):
+		#~ '''Revert the state of an un-stored page object
+#~
+		#~ Does not return a page object, changes are in the object
+		#~ supplied. This allows to revert an object that is being
+		#~ edited by the user interface.
+#~
+		#~ Kind of opposite to L{store_page()}.
+#~
+		#~ @implementation: optional, can be implemented in subclasses. In
+		#~ this base class it defaults to requesting a new copy of the page
+		#~ and copying the parse tree to the old object. Needs to be
+		#~ overloaded when the page has more internal state
+		#~ (e.g. a file object with mtime check).
+		#~ '''
+		#~ newpage = self.get_page(page)
+		#~ page.set_parsetree(newpage.get_parsetree())
+		#~ page.modified = False
 
 	def move_page(self, path, newpath):
 		'''Move a page and all it's sub-pages and attachments
@@ -328,57 +397,25 @@ class StoreClass():
 		'''
 		raise TrashNotSupportedError, 'Not implemented'
 
-	def get_children_etag(self, path):
-		'''Get key for checking cached state of a page list
+	#~ def get_attachments_dir(self, path):
+		#~ '''Get the folder for storing attachments for a page
+#~
+		#~ @param path: a L{Path} object
+		#~ @returns: a L{Dir} object for the attachment folder of C{path}
+		#~ @implementation: must be implemented in subclasses
+		#~ '''
+		#~ raise NotImplementedError
 
-		This method should return a key that can be checked by the index
-		to determine if a list of pages should be indexed again.
-		A typical implementation would be to return the modification time
-		of the directory where the pages are stored.
-
-		@param path: a L{Path} object
-		@returns: a string encoding the state of the page list for
-		sub-pages of C{path} or C{None} if C{path} does not have sub-pages
-
-		@implementation: must be implemented in subclasses
-		'''
-		raise NotImplementedError
-
-	def get_content_etag(self, path):
-		'''Get key for checking cached state of a page
-
-		This method should return a key that can be checked by the index
-		to determine if the page contents should be indexed again.
-		A typical implementation would be to return the modification time
-		of the file where the page is stored.
-
-		@param path: a L{Path} object
-		@returns: a string encoding the state of the page content
-		or C{None} if the page has no content
-
-		@implementation: must be implemented in subclasses
-		'''
-		raise NotImplementedError
-
-	def get_attachments_dir(self, path):
-		'''Get the folder for storing attachments for a page
-
-		@param path: a L{Path} object
-		@returns: a L{Dir} object for the attachment folder of C{path}
-		@implementation: must be implemented in subclasses
-		'''
-		raise NotImplementedError
-
-	def walk(self, path=None):
-		'''Generator to walk all pages under this store
-
-		@returns: yields all pages under this store as L{Page} objects
-		depth-first
-		'''
-		if path is None:
-			path = Path(':')
-
-		for page in self.get_pagelist(path):
-			yield page
-			for child in self.walk(page): # recurs
-				yield child
+	#~ def walk(self, path=None):
+		#~ '''Generator to walk all pages under this store
+#~
+		#~ @returns: yields all pages under this store as L{Page} objects
+		#~ depth-first
+		#~ '''
+		#~ if path is None:
+			#~ path = Path(':')
+#~
+		#~ for page in self.get_pagelist(path):
+			#~ yield page
+			#~ for child in self.walk(page): # recurs
+				#~ yield child

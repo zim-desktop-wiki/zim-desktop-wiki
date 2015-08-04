@@ -16,7 +16,6 @@ import zim
 
 from zim.fs import File, get_tmpdir
 from zim.notebook import NotebookInfo, Path, Page
-from zim.notebook.stores.files import FileStorePage
 
 
 @tests.slowTest
@@ -81,7 +80,6 @@ class TestIPC(tests.TestCase):
 			NotebookInfo('file:///test'),
 			Path('foo'),
 			Page(Path('foo')),
-			FileStorePage(Path('foo'), File('file:///test'), File('file:///test'), format='wiki'),
 		):
 			#~ print ">>> %r" % obj
 			re = proxy.echo(obj)

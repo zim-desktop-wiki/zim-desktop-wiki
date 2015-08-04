@@ -124,7 +124,8 @@ class TestReadOnlyStore(object):
 		self.assertEqual(names, self.index)
 
 
-class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
+#~ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
+class TestStoresMemory(object):
 	'''Test the store.memory module'''
 
 	def setUp(self):

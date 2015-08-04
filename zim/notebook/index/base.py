@@ -15,10 +15,8 @@ class IndexNotFoundError(ValueError):
 	pass
 
 
-
 class IndexConsistencyError(ValueError):
 	pass
-
 
 
 class IndexViewBase(object):
@@ -100,12 +98,12 @@ class IndexerBase(object):
 		'''
 		pass
 
-	def on_index_page(self, index, db, indexpath, page):
+	def on_index_page(self, index, db, indexpath, parsetree):
 		'''Callback that is called when the content of a page is indexed.
 		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
 		@param indexpath: an L{IndexPath} object
-		@param page: a L{Page} object
+		@param parsetree: a L{ParseTree} object
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
 		pass

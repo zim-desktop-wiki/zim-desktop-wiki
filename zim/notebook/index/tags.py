@@ -60,28 +60,29 @@ class TagsIndexer(IndexerBase):
 		);
 	'''
 
-	def on_index_page(self, index, db, indexpath, page):
+	def on_index_page(self, index, db, indexpath, parsetree):
 		db.execute(
 			'DELETE FROM tagsources WHERE source=?',
 			(indexpath.id,)
 		)
 
-		for name, attrib in page.get_tags():
-			row = db.execute(
-				'SELECT id FROM tags WHERE name=?', (name,)
-			).fetchone()
-			if row:
-				tagid = row['id']
-			else:
-				c = db.execute(
-					'INSERT INTO tags(name) VALUES (?)', (name,)
-				)
-				tagid = c.lastrowid
+		if parsetree:
+			for name in parsetree.iter_tag_names():
+				row = db.execute(
+					'SELECT id FROM tags WHERE name=?', (name,)
+				).fetchone()
+				if row:
+					tagid = row['id']
+				else:
+					c = db.execute(
+						'INSERT INTO tags(name) VALUES (?)', (name,)
+					)
+					tagid = c.lastrowid
 
-			db.execute(
-				'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
-				(indexpath.id, tagid)
-			)
+				db.execute(
+					'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
+					(indexpath.id, tagid)
+				)
 
 		db.execute(
 			'DELETE FROM tags WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
