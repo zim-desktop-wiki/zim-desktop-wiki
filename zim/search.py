@@ -423,23 +423,29 @@ class SearchSelection(PageSelection):
 			try:
 				path = self.notebook.pages.lookup_from_user_input(string)
 			except ValueError:
-				return myresults
-
-			if recurs:
-				links = self.notebook.links.list_links_section(path, dir)
+				pass
 			else:
-				links = self.notebook.links.list_links(path, dir)
 
-			if dir == LINK_DIR_FORWARD:
-				for link in links:
-					myresults.add(link.href)
-			else:
-				for link in links:
-					myresults.add(link.source)
+				try:
+					if recurs:
+						links = self.notebook.links.list_links_section(path, dir)
+					else:
+						links = self.notebook.links.list_links(path, dir)
+				except IndexNotFoundError:
+					pass
+				else:
+
+					if dir == LINK_DIR_FORWARD:
+						for link in links:
+							myresults.add(link.target)
+					else:
+						for link in links:
+							myresults.add(link.source)
 
 		elif term.keyword == 'tag':
+			tag = term.string.strip('*') # XXX
 			try:
-				for path in notebook.tags.list_pages(tag):
+				for path in self.notebook.tags.list_pages(tag):
 					myresults.add(path)
 			except IndexNotFoundError:
 				pass
@@ -493,7 +499,7 @@ class SearchSelection(PageSelection):
 						pass
 			generator = page_generator()
 		else:
-			generator = self.notebook.walk()
+			generator = map(self.notebook.get_page, self.notebook.pages.walk())
 
 		if results is None:
 			results = SearchSelection(None)

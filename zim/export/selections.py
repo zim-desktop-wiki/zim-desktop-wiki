@@ -65,7 +65,7 @@ class SinglePage(PageSelection):
 
 	def __iter__(self):
 		try:
-			yield self.notebook.get_page(path)
+			yield self.notebook.get_page(self.page)
 		except PageNotFoundError:
 			pass
 

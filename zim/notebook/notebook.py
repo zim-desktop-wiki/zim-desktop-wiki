@@ -17,9 +17,9 @@ import zim.templates
 import zim.formats
 
 from zim.fs import File, Dir
-from zim.errors import Error
+from zim.errors import Error, TrashNotSupportedError
 from zim.config import HierarchicDict
-from zim.parsing import is_interwiki_keyword_re, link_type
+from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .page import Path, Page, StoreNodePage, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
@@ -408,7 +408,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		# As a special case, using an invalid page as the argument should
 		# return a valid page object.
-		from zim.notebook.index import IndexNotFoundError # FIXME
 		assert isinstance(path, Path)
 		if path.name in self._page_cache \
 		and self._page_cache[path.name].valid:
@@ -555,6 +554,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if not (newpath == path or newpath.ischild(path)):
 			self.index.on_delete_page(path)
 		self.index.update(newpath) # TODO - optimize by letting indexers know about move
+		self.flush_page_cache(path)
 		if not update_links:
 			return
 
@@ -744,6 +744,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: delete-page before the actual delete
 		@emits: deleted-page after succesful deletion
 		'''
+		logger.debug('Delete page: %s', path)
 		return self._delete_page(path, update_links, callback)
 
 	def trash_page(self, path, update_links=True, callback=None):
@@ -771,29 +772,72 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: delete-page before the actual delete
 		@emits: deleted-page after succesful deletion
 		'''
+		logger.debug('Trash page: %s', path)
 		if self.config['Notebook']['disable_trash']:
 			raise TrashNotSupportedError, 'disable_trash is set'
 		return self._delete_page(path, update_links, callback, trash=True)
 
+	def _delete_page(self, path, update_links=True, callback=None, trash=False):
+		assert callback is None # TODO TODO - iterator version
 
-	def revert_page(self, page):
-		'''Reload the page from the storage backend, discarding all
-		changes
+		# actual delete
+		self.emit('delete-page', path)
 
-		This method changes the state of a Page object to revert all
-		changes compared to the data in the store. For a file based
-		store this can mean for example re-reading the file and putting
-		the data into the Page object.
+		if trash:
+			existed = self.store.trash_page(path)
+		else:
+			existed = self.store.delete_page(path)
 
-		This is different from just flushing the cache and getting a
-		new object with L{get_page()} because the old object remains
-		valid - which is important when it is in use in the user
-		interface.
+		self.flush_page_cache(path)
+		path = Path(path.name)
 
-		@param page: a L{Page} object
-		'''
-		assert page.valid, 'BUG: page object no longer valid'
-		self.store.revert_page(page)
+		self.index.on_delete_page(path)
+
+		if not update_links:
+			return
+
+		# remove persisting links
+		try:
+			indexpath = self.pages.lookup_by_pagename(path)
+		except IndexNotFoundError:
+			return # no placeholder, we are done
+
+		pages = set(
+			l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD) )
+
+		for p in pages:
+				page = self.get_page(p)
+				self._remove_links_in_page(page, path)
+				self.store_page(page)
+
+		# let everybody know what happened
+		self.emit('deleted-page', path)
+
+		return existed
+
+	def _remove_links_in_page(self, page, path):
+		logger.debug('Removing links in %s to %s', page, path)
+		tree = page.get_parsetree()
+		if not tree:
+			return
+
+		def replacefunc(elt):
+			href = elt.attrib['href']
+			type = link_type(href)
+			if type != 'page':
+				raise zim.formats.VisitorSkip
+
+			hrefpath = self.pages.lookup_from_user_input(href, page)
+			#~ print 'LINK', hrefpath
+			if hrefpath == path \
+			or hrefpath.ischild(path):
+				# Replace the link by it's text
+				return zim.formats.DocumentFragment(*elt)
+			else:
+				raise zim.formats.VisitorSkip
+
+		tree.replace(zim.formats.LINK, replacefunc)
+		page.set_parsetree(tree)
 
 	def resolve_file(self, filename, path=None):
 		'''Resolve a file or directory path relative to a page or
@@ -924,7 +968,14 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		C{None} is returned the store implementation does not support
 		an attachments folder for this page.
 		'''
-		return self.store.get_attachments_dir(path)
+		folder = self.get_page(path).folder
+		if not folder and self.store.__class__.__name__.startswith('Memory'):
+			# XXX this is just to keep tests with "fakedir" happy :(
+			from .stores import encode_filename
+			dirpath = encode_filename(path.name)
+			return self.dir.subdir(dirpath)
+		else:
+			return folder
 
 	def get_template(self, path):
 		'''Get a template for the intial text on new pages

@@ -7,7 +7,7 @@ from __future__ import with_statement
 
 from datetime import datetime
 
-from zim.utils import natural_sort_key
+from zim.utils import natural_sort_key, init_generator
 from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
@@ -481,10 +481,13 @@ class PagesView(IndexViewBase):
 		# separate because it has a distinct different purpose.
 		# Only accidental that we treat user input as links ... ;)
 		href = HRef.new_from_wiki_link(name)
+		if reference:
+			reference = self.lookup_by_pagename(reference)
+
 		if reference and not reference.isroot:
 			return self.resolve_link(reference, href)
 		elif href.rel == HREF_REL_RELATIVE:
-			raise ValueError, 'Invalid page name: %s' % name
+			raise ValueError, 'Got relative page name without parent: %s' % name
 		else:
 			return self.resolve_link(ROOT_PATH, href)
 
@@ -533,6 +536,7 @@ class PagesView(IndexViewBase):
 			else:
 				return None # no floating link possible
 
+	@init_generator
 	def list_pages(self, path):
 		'''Generator for child pages of C{path}
 		@param path: a L{Path} object
@@ -541,6 +545,8 @@ class PagesView(IndexViewBase):
 		'''
 		with self._db as db:
 			path = self._pages.lookup_by_pagename(db, path)
+			yield # init done
+
 			for row in db.execute(
 				'SELECT * FROM pages WHERE parent=? ORDER BY sortkey, basename',
 				(path.id,)
@@ -548,6 +554,7 @@ class PagesView(IndexViewBase):
 				child = path.child_by_row(row)
 				yield child
 
+	@init_generator
 	def walk(self, path=None):
 		'''Generator function to yield all pages in the index, depth
 		first
@@ -560,9 +567,13 @@ class PagesView(IndexViewBase):
 		'''
 		with self._db as db:
 			if path is None or path.isroot:
-				return self._pages.walk(db, ROOT_PATH)
+				indexpath = ROOT_PATH
 			else:
-				return self._pages.walk(db, self.lookup_by_pagename(path))
+				indexpath = self.lookup_by_pagename(path)
+			yield # init done
+
+			for path in self._pages.walk(db, indexpath):
+				yield path
 
 	def get_previous(self, path):
 		'''Get the previous path in the index, in the same order that

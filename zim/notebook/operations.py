@@ -39,8 +39,7 @@ from zim.errors import Error
 # - if placeholder remaining, update pages causing those
 #   (this means some floating links may find a new target in levels above)
 # - ( check if number of deleted links matches total incoming before delete )
-# - else find links where anchor has same name as top level of moved page
-# update if the source is a child of the parent of the moved page
+
 
 
 class IndexBusyError(Error):

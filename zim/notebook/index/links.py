@@ -5,7 +5,7 @@
 from __future__ import with_statement
 
 
-from zim.utils import natural_sort_key
+from zim.utils import natural_sort_key, init_generator
 from zim.notebook.page import HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
@@ -199,6 +199,7 @@ class LinksView(IndexViewBase):
 		IndexViewBase.__init__(self, db_context)
 		self._pages = PagesViewInternal()
 
+	@init_generator
 	def list_links(self, path, direction=LINK_DIR_FORWARD):
 		'''Generator listing links between pages
 
@@ -213,13 +214,18 @@ class LinksView(IndexViewBase):
 		'''
 		with self._db as db:
 			indexpath = self._pages.lookup_by_pagename(db, path)
+			yield # init done
+
 			for link in self._list_links(db, indexpath, direction):
 				yield link
 
+	@init_generator
 	def list_links_section(self, path, direction=LINK_DIR_FORWARD):
 		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
 		with self._db as db:
 			indexpath = self._pages.lookup_by_pagename(db, path)
+			yield # init done
+
 			for link in self._list_links(db, indexpath, direction):
 				yield link
 			for child in self._pages.walk(db, indexpath):

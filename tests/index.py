@@ -256,7 +256,8 @@ class TestIndex(tests.TestCase):
 		# Corrupt file
 		file = dir.file('corrupt.db')
 		file.write('foooooooooo\n')
-		index = Index.new_from_file(file, store)
+		with tests.LoggingFilter('zim.notebook.index', 'Overwriting possibly corrupt database'):
+			index = Index.new_from_file(file, store)
 
 
 class MemoryIndexerTests(tests.TestCase):
@@ -743,6 +744,35 @@ class TestPagesView(tests.TestCase):
 			self.assertEqual(newhref.rel, href.rel)
 			self.assertEqual(newhref.names, href.names)
 
+	def testResolveUserInput(self):
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
+
+		self.assertRaises(IndexNotFoundError, pages.lookup_from_user_input, 'foo', Path('non-existing-page'))
+
+		# cleaning absolute paths
+		for name, wanted in (
+			('foo:::bar', 'Foo:bar'), # "Foo" exists, so "foo" gets capital
+			('::foo:bar:', 'Foo:bar'),
+			(':foo', 'Foo'),
+			('/foo', 'Foo'),
+			(':Bar', 'Bar'),
+			(':Foo (Bar)', 'Foo (Bar)'),
+			# TODO more ambigous test cases
+		): self.assertEqual(
+			pages.lookup_from_user_input(name), Path(wanted) )
+
+		# resolving relative paths
+		for name, ns, wanted in (
+			('foo:test', 'Foo:Child1', 'Foo:test'),
+			('foo:test', 'Bar', 'Foo:test'),
+			('test', 'Foo:Child1', 'Foo:test'),
+			('+test', 'Foo:Child1', 'Foo:Child1:test'),
+		): self.assertEqual(
+			pages.lookup_from_user_input(name, Path(ns)), Path(wanted) )
+
+		self.assertRaises(ValueError, pages.lookup_from_user_input, ':::')
+
 	def testTreePathMethods(self):
 		index = new_memory_index()
 
@@ -807,7 +837,7 @@ class TestTagsView(tests.TestCase):
 			self.assertEqual(pages, mytags[t])
 
 		with self.assertRaises(IndexNotFoundError):
-			list(tags.list_pages('foooo'))
+			tags.list_pages('foooo')
 
 
 class TestLinksView(tests.TestCase):

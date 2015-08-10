@@ -5,6 +5,9 @@
 
 '''Module with assorted useful classes and functions used in the zim code'''
 
+import functools
+
+
 from .threading import *
 
 
@@ -19,6 +22,24 @@ class classproperty(object):
 	def __get__(self, obj, owner):
 		return self.func(owner)
 
+
+def init_generator(func):
+	'''Decorator to wrap generator functions and discard the first result
+	It will fetch the first result immediatly when called where normal
+	generators will wait untill iteration starts.
+	The result is that initiation code of the generator that may
+	yield errors is executed immediatly and errors occur where they
+	are expected. Generators using this decorator should yield C{None}
+	after the initialization is done and before yielding actual results.
+	'''
+	def wrapper(*arg, **kwarg):
+		iter = func(*arg, **kwarg)
+		init = iter.next()
+		assert init is None, 'Generator yielded not None after initialization'
+		return iter
+
+	functools.update_wrapper(wrapper, func)
+	return wrapper
 
 ## Functions for dynamic loading of modules and klasses
 import inspect

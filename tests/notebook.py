@@ -4,6 +4,8 @@
 
 '''Test cases for the zim.notebook module.'''
 
+from __future__ import with_statement
+
 import tests
 
 import os
@@ -350,6 +352,8 @@ class TestNotebook(tests.TestCase):
 		self.assertFalse(page.hascontent)
 		self.assertRaises(IndexNotFoundError,
 			self.notebook.links.n_list_links_section, page, LINK_DIR_BACKWARD)
+		self.assertRaises(IndexNotFoundError,
+			self.notebook.links.list_links_section, page, LINK_DIR_BACKWARD)
 			# if links are removed and placeholder is cleaned up the
 			# page doesn't exist anymore in the index so we get this error
 
@@ -364,11 +368,13 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertFalse(page.haschildren)
 		self.assertFalse(page.hascontent)
-		nlinks = self.notebook.index.n_list_links_to_tree(page, LINK_DIR_BACKWARD)
+		nlinks = self.notebook.links.n_list_links_section(page, LINK_DIR_BACKWARD)
 		self.assertEqual(nlinks, 1)
 		self.notebook.delete_page(page)
-		self.assertRaises(ValueError,
-			self.notebook.index.n_list_links_to_tree, page, LINK_DIR_BACKWARD)
+		self.assertRaises(IndexNotFoundError,
+			self.notebook.links.n_list_links_section, page, LINK_DIR_BACKWARD)
+		self.assertRaises(IndexNotFoundError,
+			self.notebook.links.list_links_section, page, LINK_DIR_BACKWARD)
 			# if links are removed and placeholder is cleaned up the
 			# page doesn't exist anymore in the index so we get this error
 
@@ -403,7 +409,8 @@ class TestNotebook(tests.TestCase):
 			# part of the test - see if caching of page objects doesn't bite
 
 		self.notebook.index.update()
-		self.notebook.rename_page(Path('Test:wiki'), 'foo')
+		with tests.LoggingFilter('zim.notebook', message='Number of links'):
+			self.notebook.rename_page(Path('Test:wiki'), 'foo')
 		page = self.notebook.get_page(Path('Test:wiki'))
 		self.assertFalse(page.hascontent)
 		page = self.notebook.get_page(Path('Test:foo'))
@@ -420,7 +427,7 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(Path('Test:Foo'))
 		self.assertTrue(page.hascontent)
 
-	def testUpdateLinks(self):
+	def DESIABLEtestUpdateLinks(self):
 		'''Test logic for updating links on move'''
 
 		# creating relative paths
@@ -470,7 +477,7 @@ http://foo.org # urls are untouched
 		page.parse('wiki', text)
 		self.notebook._update_links_from(page, Path('Dus:Baz'), page,  Path('Dus:Baz'))
 		self.assertEqual(u''.join(page.dump('wiki')), wanted1)
-		print '--'
+
 		# "rename" Dus:Baz -> Dus:Bar
 		page = self.notebook.get_page(Path('Dus:Bar'))
 		page.parse('wiki', text)
@@ -547,37 +554,6 @@ http://foo.org # urls are untouched
 		self.assertTrue(links(newpath, Path('Linking:Dus')))
 		self.assertTrue(links(newpath, Path('Linking:Foo:Bar')))
 		self.assertTrue(links(Path('Linking:Foo:Bar'), newpath))
-
-
-	def testResolvePath(self):
-		'''Test notebook.resolve_path()'''
-
-		# cleaning absolute paths
-		for name, wanted in (
-			('foo:::bar', 'foo:bar'),
-			('::foo:bar:', 'foo:bar'),
-			(':foo', 'foo'),
-			(':Bar', 'Bar'),
-			(':Foo (Bar)', 'Foo (Bar)'),
-			# TODO more ambigous test cases
-		): self.assertEqual(
-			self.notebook.resolve_path(name), Path(wanted) )
-
-		# resolving relative paths
-		for name, ns, wanted in (
-			('foo:bar', 'Test:xxx', 'Test:foo:bar'),
-			('test', 'Test:xxx', 'Test'),
-			('+test', 'Test:xxx', 'Test:xxx:test'),
-			('foo', 'Test:xxx', 'Test:foo'),
-			('+foo', 'Test:xxx', 'Test:xxx:foo'),
-			('Test', 'TaskList:bar', 'Test'),
-			('test:me', 'TaskList:bar', 'Test:me'),
-		): self.assertEqual(
-			self.notebook.resolve_path(name, Path(ns)), Path(wanted) )
-
-		self.assertRaises(PageNameError, self.notebook.resolve_path, ':::')
-		self.assertRaises(PageNameError, self.notebook.resolve_path, '/foo')
-		self.assertRaises(PageNameError, self.notebook.resolve_path, ':foo:(bar)')
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
@@ -718,7 +694,7 @@ class TestPage(TestPath):
 
 		tags = list(page.get_tags())
 		self.assertEqual(tags, [
-			('@baz', {'name': 'baz'}),
+			('baz', {'name': 'baz'}),
 		])
 
 		self.assertEqual(page.get_parsetree().tostring(), tree.tostring())

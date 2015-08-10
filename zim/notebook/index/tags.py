@@ -4,6 +4,10 @@
 
 from __future__ import with_statement
 
+
+from zim.utils import init_generator
+
+
 from .base import IndexerBase, IndexViewBase, IndexNotFoundError
 from .pages import PagesViewInternal
 
@@ -132,7 +136,7 @@ class TagsView(IndexViewBase):
 			):
 				yield IndexTag(row)
 
-
+	@init_generator
 	def list_pages(self, tag):
 		'''List all pages tagged with a given tag.
 		@param tag: a tag name as string or an C{IndexTag} object
@@ -140,6 +144,8 @@ class TagsView(IndexViewBase):
 		'''
 		with self._db as db:
 			tag = self._lookup_by_name(db, tag)
+			yield # init done
+
 			for row in db.execute(
 				'SELECT tagsources.source '
 				'FROM tagsources JOIN pages ON tagsources.source=pages.id '

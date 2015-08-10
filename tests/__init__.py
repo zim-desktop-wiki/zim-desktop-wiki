@@ -139,6 +139,38 @@ if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	_setUpEnvironment()
 
 
+## Setup special logging for tests
+
+class UncaughtWarningError(AssertionError):
+	pass
+
+
+class TestLoggingHandler(logging.Handler):
+	'''Handler class that raises uncaught errors to ensure test don't fail silently'''
+
+	def __init__(self, level=logging.WARNING):
+		logging.Handler.__init__(self, level)
+		fmt = logging.Formatter('%(levelname)s %(filename)s %(lineno)s: %(message)s')
+		self.setFormatter(fmt)
+
+	def emit(self, record):
+		if record.levelno >= logging.WARNING:
+			raise UncaughtWarningError, self.format(record)
+		else:
+			pass
+
+logging.getLogger('zim').addHandler(TestLoggingHandler())
+
+try:
+	logging.getLogger('zim.test').warning('foo')
+except UncaughtWarningError:
+	pass
+else:
+	raise AssertionError, 'Raising errors on warning fails'
+
+###
+
+
 _zim_pyfiles = []
 
 def zim_pyfiles():
@@ -517,7 +549,6 @@ def new_files_notebook(dir):
 	'''
 	from zim.fs import Dir
 	from zim.notebook import init_notebook, Notebook, Path
-	from zim.index import Index
 
 	dir = Dir(dir)
 	init_notebook(dir)
@@ -527,9 +558,9 @@ def new_files_notebook(dir):
 	manifest = []
 	for name, text in WikiTestData:
 		manifest.append(name)
-		page = store.get_page(Path(name))
+		page = notebook.get_page(Path(name))
 		page.parse('wiki', text)
-		store.store_page(page)
+		notebook.store_page(page)
 
 	notebook.testdata_manifest = _expand_manifest(manifest)
 	notebook.index.update()

@@ -39,7 +39,7 @@ from zim.parsing import url_decode
 from .info import NotebookInfo, NotebookInfoList, \
 	resolve_notebook, get_notebook_list, get_notebook_info, interwiki_link
 
-from .notebook import Notebook
+from .notebook import Notebook, TrashNotSupportedError
 
 from .page import Path, Page, IndexPage, \
 	HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
@@ -106,8 +106,9 @@ def build_notebook(location, notebookclass=None):
 
 	# And finally create the notebook
 	if notebookclass is None:
-		notebookclass = Notebook
-	notebook = notebookclass.new_from_dir(dir) # Notebook(dir)
+		notebook = Notebook.new_from_dir(dir)
+	else:
+		notebook = notebookclass(dir)
 
 	return notebook, page
 
@@ -154,5 +155,5 @@ def init_notebook(dir, name=None):
 	from .notebook import NotebookConfig
 	dir.touch()
 	config = NotebookConfig(dir.file('notebook.zim'))
-	config['Notebook']['name'] = name or path.basename
+	config['Notebook']['name'] = name or dir.basename
 	config.write()
