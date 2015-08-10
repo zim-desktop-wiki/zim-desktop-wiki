@@ -51,6 +51,8 @@ from zim.config import value_is_coord
 from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
 from zim.signals import ConnectorMixin
+from zim.notebook.index import IndexNotFoundError
+
 
 logger = logging.getLogger('zim.gui')
 
@@ -2008,7 +2010,7 @@ class PageEntry(InputEntry):
 			pass
 		else:
 			try:
-				Path.assertValidPageName(text.lstrip('+'))
+				Path.assertValidPageName(text.lstrip('+').strip(':'))
 			except AssertionError:
 				self.set_input_valid(False)
 				return
@@ -2072,20 +2074,23 @@ class PageEntry(InputEntry):
 		completion = self.get_completion()
 		model = completion.get_model()
 		model.clear()
-		if prefix:
-			# Complete a single namespace based on the prefix
-			completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
-			for p in self.notebook.pages.list_pages(path):
-				model.append((prefix+p.basename, prefix+p.basename))
-		else:
-			# Find any pages that match the text
-			completion.set_match_func(gtk_entry_completion_match_func, 1)
-			if self.notebookpath:
-				for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
-					model.append((relname, basename))
+		try:
+			if prefix:
+				# Complete a single namespace based on the prefix
+				completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
+				for p in self.notebook.pages.list_pages(path):
+					model.append((prefix+p.basename, prefix+p.basename))
 			else:
-				for p in self.notebook.pages.walk():
-					model.append((":"+p.name, p.basename))
+				# Find any pages that match the text
+				completion.set_match_func(gtk_entry_completion_match_func, 1)
+				if self.notebookpath:
+					for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
+						model.append((relname, basename))
+				else:
+					for p in self.notebook.pages.walk():
+						model.append((":"+p.name, p.basename))
+		except IndexNotFoundError:
+			pass
 
 		completion.complete()
 

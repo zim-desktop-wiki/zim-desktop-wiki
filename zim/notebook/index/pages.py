@@ -332,7 +332,7 @@ class PagesViewInternal(object):
 				)
 				row = cursor.fetchone()
 				if row is None:
-					parentname = ':'.join(path.parts[:len(ids)])
+					parentname = ':'.join(path.parts[:len(ids)-1])
 					parent = IndexPath(parentname, ids) # last existing parent
 					raise IndexPageNotFoundError(path, parent)
 				ids.append(row['id'])
@@ -351,7 +351,7 @@ class PagesViewInternal(object):
 		else:
 			raise IndexPageNotFoundError(parent.child(basename))
 
-	def resolve_link(self, db, source, href):
+	def resolve_link(self, db, source, href, ignore_placeholders=True):
 		'''Internal implementation of L{PageView.resolve_link()}'''
 		if href.rel == HREF_REL_ABSOLUTE or source.isroot:
 			return self.resolve_path(db, ROOT_PATH, href.parts())
@@ -372,7 +372,7 @@ class PagesViewInternal(object):
 			return self.resolve_path(db, root, relnames + href.parts())
 		else: # HREF_REL_FLOATING
 			# Search upward namespaces for existing pages,
-			# ignore "exists as link" placeholders to avoid circular
+			# By default ignore "exists as link" placeholders to avoid circular
 			# dependencies between links and placeholders
 			assert href.rel == HREF_REL_FLOATING
 			anchor_key = natural_sort_key(href.parts()[0])
@@ -386,11 +386,18 @@ class PagesViewInternal(object):
 					return self.resolve_path(db, root, relnames[:i] + href.parts())
 
 			for parent in root.parents():
-				r = db.execute(
-					'SELECT id, basename FROM pages '
-					'WHERE parent=? and sortkey=? and page_exists=? LIMIT 1',
-					(parent.id, anchor_key, PAGE_EXISTS_HAS_CONTENT)
-				).fetchone()
+				if ignore_placeholders:
+					r = db.execute(
+						'SELECT id, basename FROM pages '
+						'WHERE parent=? and sortkey=? and page_exists=? LIMIT 1',
+						(parent.id, anchor_key, PAGE_EXISTS_HAS_CONTENT)
+					).fetchone()
+				else:
+					r = db.execute(
+						'SELECT id, basename FROM pages '
+						'WHERE parent=? and sortkey=? and page_exists>0 LIMIT 1',
+						(parent.id, anchor_key)
+					).fetchone()
 				if r:
 					return self.resolve_path(db, parent, href.parts())
 			else:
@@ -480,18 +487,19 @@ class PagesView(IndexViewBase):
 		# This method re-uses most of resolve_link() but is defined
 		# separate because it has a distinct different purpose.
 		# Only accidental that we treat user input as links ... ;)
-		href = HRef.new_from_wiki_link(name)
 		if reference:
 			reference = self.lookup_by_pagename(reference)
 
+		href = HRef.new_from_wiki_link(name)
+
 		if reference and not reference.isroot:
-			return self.resolve_link(reference, href)
+			return self.resolve_link(reference, href, ignore_placeholders=False)
 		elif href.rel == HREF_REL_RELATIVE:
 			raise ValueError, 'Got relative page name without parent: %s' % name
 		else:
-			return self.resolve_link(ROOT_PATH, href)
+			return self.resolve_link(ROOT_PATH, href, ignore_placeholders=False)
 
-	def resolve_link(self, source, href):
+	def resolve_link(self, source, href, ignore_placeholders=True):
 		'''Find the end point of a link
 		Depending on the link type (absolute, relative, or floating),
 		this method first determines the starting point of the link
@@ -499,6 +507,9 @@ class PagesView(IndexViewBase):
 		against the index.
 		@param source: a L{Path} for the starting point of the link
 		@param href: a L{HRef} object for the link
+		@param ignore_placeholders: when C{True} index pages that are
+		placeholders for links will be ignored. This is the default to
+		avoid circular dependencies between links.
 		@returns: a L{Path} or L{IndexPath} object for the target of the
 		link. The object type of the return value depends on whether the
 		target exists in the index or not.
@@ -506,7 +517,7 @@ class PagesView(IndexViewBase):
 		assert isinstance(source, Path)
 		assert isinstance(href, HRef)
 		with self._db as db:
-			return self._pages.resolve_link(db, source, href)
+			return self._pages.resolve_link(db, source, href, ignore_placeholders)
 
 	def create_link(self, source, target):
 		'''Determine best way to represent a link between two pages

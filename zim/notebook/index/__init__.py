@@ -416,22 +416,23 @@ class IndexInternal(object):
 	def delete_page(self, db, indexpath, cleanup):
 		assert not indexpath.isroot
 
+		if indexpath.n_children > 0 \
+		and not all(row['page_exists'] == PAGE_EXISTS_AS_LINK
+			for row in db.execute(
+				'SELECT page_exists FROM pages WHERE parent=?',
+				(indexpath.id,),
+			)
+		):
+			raise AssertionError, 'Can not delete path with children'
+
 		for indexer in self.indexers:
 			indexer.on_delete_page(self, db, indexpath)
 
 		if indexpath.n_children > 0:
-			if all(row['page_exists'] == PAGE_EXISTS_AS_LINK
-				for row in db.execute(
-					'SELECT page_exists FROM pages WHERE parent=?',
-					(indexpath.id,),
-				)
-			):
-				db.execute(
-					'UPDATE pages SET page_exists=? WHERE id=?',
-					(PAGE_EXISTS_AS_LINK, indexpath.id)
-				)
-			else:
-				raise AssertionError, 'Can not delete path with children'
+			db.execute(
+				'UPDATE pages SET page_exists=?, content_etag=?, ctime=?, mtime=?, children_etag=? WHERE id=?',
+				(PAGE_EXISTS_AS_LINK, None, None, None, None, indexpath.id)
+			)
 		else:
 			db.execute('DELETE FROM pages WHERE id=?', (indexpath.id,))
 

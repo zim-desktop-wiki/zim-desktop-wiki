@@ -703,8 +703,12 @@ class TestRstFormat(tests.TestCase, TestFormatMixin):
 
 class LatexLoggingFilter(tests.LoggingFilter):
 
-	logger = 'zim.formats.latex'
-	message = ('No document type set in template', 'Could not find latex equation')
+	def __init__(self):
+		tests.LoggingFilter.__init__(
+			self,
+			'zim.formats.latex',
+			('No document type set in template', 'Could not find latex equation')
+		)
 
 
 class TestLatexFormat(tests.TestCase, TestFormatMixin):

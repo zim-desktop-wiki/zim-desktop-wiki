@@ -738,7 +738,7 @@ class TestExportDialog(tests.TestCase):
 		foologger = logging.getLogger('zim.foo')
 		log_context = LogContext()
 
-		with tests.LoggingFilter(message='Test'):
+		with tests.LoggingFilter(logger='zim', message='Test'):
 			with log_context:
 				mylogger.warn('Test export warning')
 				mylogger.debug('Test export debug')

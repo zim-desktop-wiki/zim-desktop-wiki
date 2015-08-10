@@ -1441,11 +1441,9 @@ class GtkInterface(gobject.GObject):
 			name = text.strip()[:30]
 			if '\n' in name:
 				name, _ = name.split('\n', 1)
-			name = Path.makeValidPageName(name.replace(':', ''))
+			name = name.replace(':', '')
 		elif isinstance(name, Path):
-			name = Path.makeValidPageName(name.name)
-		else:
-			name = Path.makeValidPageName(name)
+			name = name.name
 
 		path = self.notebook.pages.lookup_from_user_input(name)
 		page = self.notebook.get_new_page(path)
@@ -1692,7 +1690,7 @@ class GtkInterface(gobject.GObject):
 		)
 
 	def _wrap_move_page(self, func, update_links):
-		if self.notebook.index.updating:
+		if self.notebook.index.probably_uptodate:
 			# Ask regardless of update_links because it might very
 			# well be that the dialog thinks there are no links
 			# but they are simply not indexed yet

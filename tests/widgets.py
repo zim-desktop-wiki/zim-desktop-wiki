@@ -150,19 +150,24 @@ class TestPageEntry(tests.TestCase):
 		reference = self.reference
 
 		entry.set_path(Path('Test'))
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), ':Test')
 		self.assertEqual(entry.get_path(), Path('Test'))
 
 		entry.set_text('bar')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Bar')) # resolved due to placeholder
 
 		entry.set_text('non existing')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Test:non existing'))
 
 		entry.set_text('+bar')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Test:foo:bar'))
 
 		entry.set_text(':bar')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Bar'))
 
 		## Test completion
@@ -172,17 +177,21 @@ class TestPageEntry(tests.TestCase):
 			return [r[0] for r in model]
 
 		entry.set_text('+T')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(get_completions(entry), ['+bar'])
 
 		entry.set_text(':T')
+		self.assertTrue(entry.get_input_valid())
 		completions = get_completions(entry)
 		self.assertTrue(len(completions) > 5 and ':Test' in completions)
 
 		entry.set_text('T')
+		self.assertTrue(entry.get_input_valid())
 		self.assertTrue(len(completions) > 5 and ':Test' in completions)
 		# completion now has full notebook
 
 		entry.set_text('Test:')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:Foo(Bar)', 'Test:tags', 'Test:wiki'])
 
 

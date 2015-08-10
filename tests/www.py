@@ -22,8 +22,8 @@ from zim.config import VirtualConfigManager
 
 class Filter404(tests.LoggingFilter):
 
-	logger = 'zim.www'
-	message = '404 Not Found'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.www', '404 Not Found')
 
 
 @tests.slowTest

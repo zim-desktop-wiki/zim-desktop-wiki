@@ -42,7 +42,7 @@ here
 class CatchAllLogging(tests.LoggingFilter):
 
 	def __init__(self):
-		tests.LoggingFilter.__init__(self)
+		tests.LoggingFilter.__init__(self, 'zim', '')
 		self.records = []
 
 	def filter(self, record):

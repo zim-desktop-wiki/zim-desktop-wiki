@@ -528,6 +528,10 @@ class TestTestNotebook(tests.TestCase):
 			path = Path(name)
 			indexpath = pages.lookup_by_pagename(path)
 			self.assertIsInstance(indexpath, IndexPathRow)
+
+		for page in reversed(list(notebook.pages.walk())): # delete bottom up
+			notebook.delete_page(page)
+
 		# What else to check ?
 
 

@@ -159,7 +159,8 @@ class TestLoggingHandler(logging.Handler):
 		else:
 			pass
 
-logging.getLogger('zim').addHandler(TestLoggingHandler())
+logging.getLogger().addHandler(TestLoggingHandler())
+	# Handle all errors that make it up to the root level
 
 try:
 	logging.getLogger('zim.test').warning('foo')
@@ -273,44 +274,50 @@ class TestCase(unittest.TestCase):
 		return os.path.join(TMPDIR, name)
 
 
-class LoggingFilter(object):
-	'''Base class for logging filters that can be used as a context
-	using the "with" keyword. To subclass it you only need to set the
-	logger to be used and (the begin of) the message to filter.
-
-	The message can be a string, or a list or tuple of strings. Any
-	messages that start with this string or any of these strings are
-	surpressed.
+class LoggingFilter(logging.Filter):
+	'''Convenience class to surpress zim errors and warnings in the
+	test suite. Acts as a context manager and can be used with the
+	'with' keyword.
 
 	Alternatively you can call L{wrap_test()} from test C{setUp}.
 	This will start the filter and make sure it is cleaned up again.
 	'''
 
-	logger = 'zim'
-	message = None
+	# Due to how the "logging" module works, logging channels do inherit
+	# handlers of parents but not filters. Therefore setting a filter
+	# on the "zim" channel will not surpress messages from sub-channels.
+	# Instead we need to set the filter both on the channel and on
+	# top level handlers to get the desired effect.
 
-	def __init__(self, logger=None, message=None):
-		if logger:
-			self.logger = logger
-
-		if message:
-			self.message = message
-
-		self.loggerobj = logging.getLogger(self.logger)
+	def __init__(self, logger, message):
+		'''Constructor
+		@param logger: the logging channel name
+		@param message: can be a string, or a sequence of strings.
+		Any messages that start with this string or any of these
+		strings are surpressed.
+		'''
+		self.logger = logger
+		self.message = message
 
 	def __enter__(self):
-		self.loggerobj.addFilter(self)
+		logging.getLogger(self.logger).addFilter(self)
+		for handler in logging.getLogger().handlers:
+			handler.addFilter(self)
 
 	def __exit__(self, *a):
-		self.loggerobj.removeFilter(self)
+		logging.getLogger(self.logger).removeFilter(self)
+		for handler in logging.getLogger().handlers:
+			handler.removeFilter(self)
 
 	def filter(self, record):
-		msg = record.getMessage()
-
-		if isinstance(self.message, tuple):
-			return not any(msg.startswith(m) for m in self.message)
+		if record.name.startswith(self.logger):
+			msg = record.getMessage()
+			if isinstance(self.message, tuple):
+				return not any(msg.startswith(m) for m in self.message)
+			else:
+				return not msg.startswith(self.message)
 		else:
-			return not msg.startswith(self.message)
+			return True
 
 	def wrap_test(self, test):
 		self.__enter__()

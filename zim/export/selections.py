@@ -81,8 +81,8 @@ class SubPages(SinglePage):
 
 	def __iter__(self):
 		yield self.notebook.get_page(self.page)
-		for page in self.notebook.walk(self.page):
-			yield page
+		for path in self.notebook.pages.walk(self.page):
+			yield self.notebook.get_page(path)
 
 	def index(self, namespace=None):
 		if namespace is None or namespace.name == page.name:

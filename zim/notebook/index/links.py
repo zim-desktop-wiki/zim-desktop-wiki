@@ -96,7 +96,8 @@ class LinksIndexer(IndexerBase):
 	def __init__(self):
 		IndexerBase.__init__(self)
 		self._pages = PagesViewInternal()
-		self._recursing = StateFlag()
+		self._prevent_recursion_touch = StateFlag()
+		self._prevent_recursion_cleanup = StateFlag()
 
 	def on_new_page(self, index, db, indexpath):
 		db.execute(
@@ -105,7 +106,8 @@ class LinksIndexer(IndexerBase):
 			'AND target in (SELECT id FROM pages WHERE page_exists=?)',
 			(HREF_REL_FLOATING, indexpath.sortkey, PAGE_EXISTS_AS_LINK)
 		)
-		self.check_links(index, db)
+		if not self._prevent_recursion_touch:
+			self.check_links(index, db)
 
 	def on_index_page(self, index, db, indexpath, parsetree):
 		db.execute(
@@ -155,9 +157,6 @@ class LinksIndexer(IndexerBase):
 			# Can result in page being resurrected as placeholder for link target
 
 	def check_links(self, index, db):
-		if self._recursing:
-			return # Result from touch path for placeholders
-
 		for row in db.execute(
 			'SELECT * FROM links WHERE needscheck=1 '
 			'ORDER BY anchorkey, names'
@@ -175,18 +174,22 @@ class LinksIndexer(IndexerBase):
 		self.cleanup_placeholders(index, db)
 
 	def cleanup_placeholders(self, index, db):
-		for row in db.execute(
-			'SELECT pages.id '
-			'FROM pages LEFT JOIN links ON pages.id=links.target '
-			'WHERE pages.page_exists=? and pages.n_children=0 and links.source IS NULL ',
-			(PAGE_EXISTS_AS_LINK,)
-		):
-			indexpath = self._pages.lookup_by_id(db, row['id'])
-			index.delete_page(db, indexpath, cleanup=True)
+		if self._prevent_recursion_cleanup:
+			return
+
+		with self._prevent_recursion_cleanup:
+			for row in db.execute(
+				'SELECT pages.id '
+				'FROM pages LEFT JOIN links ON pages.id=links.target '
+				'WHERE pages.page_exists=? and pages.n_children=0 and links.source IS NULL ',
+				(PAGE_EXISTS_AS_LINK,)
+			):
+				indexpath = self._pages.lookup_by_id(db, row['id'])
+				index.delete_page(db, indexpath, cleanup=True)
 
 	def touch_placeholder(self, index, db, target):
-		with self._recursing:
-			# Create placeholder for link target
+		# Create placeholder for link target
+		with self._prevent_recursion_touch:
 			target = index.touch_path(db, target)
 			index.set_page_exists(db, target, PAGE_EXISTS_AS_LINK)
 			#~ print "Touch target", target

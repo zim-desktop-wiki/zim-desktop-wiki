@@ -363,7 +363,7 @@ class TestNotebook(tests.TestCase):
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** [[:AnotherNewPage]]\n' )
 
-		self.notebook.delete_page(path) # now should fail silently
+		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar')) # now should fail silently
 
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertFalse(page.haschildren)
@@ -648,10 +648,24 @@ class TestPath(tests.TestCase):
 	def runTest(self):
 		'''Test Path object'''
 
+		for name in ('test', 'test this', 'test (this)', 'test:this (2)'):
+			Path.assertValidPageName(name)
+
+		for name in (':test', '+test', 'foo:_bar', 'foo::bar', 'foo#bar'):
+			self.assertRaises(AssertionError, Path.assertValidPageName, name)
+
+		#~ for input, name in ():
+			#~ self.assertEqual(Path.makeValidPageName(input), name)
+
 		for name, namespace, basename in [
 			('Test:foo', 'Test', 'foo'),
 			('Test', '', 'Test'),
 		]:
+			# test name
+			Path.assertValidPageName(name)
+			self.assertEqual(Path.makeValidPageName(name), name)
+
+			# get object
 			path = self.generator(name)
 
 			# test basic properties

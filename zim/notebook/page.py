@@ -13,7 +13,7 @@ import zim.formats
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
 	'(' +
-		'^\W|(?<=:)\W' +
+		'^[_\W]|(?<=:)[_\W]' +
 	'|' +
 		'[' + re.escape(''.join(
 			("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
@@ -108,10 +108,11 @@ class Path(object):
 		'''
 		newname = _pagename_reduce_colon_re.sub(':', name.strip(':'))
 		newname = _pagename_invalid_char_re.sub('', newname)
-		if newname:
-			return newname
-		else:
-			raise ValueError, 'Not a valid page name: %s' % name
+		try:
+			Path.assertValidPageName(newname)
+		except AssertionError:
+			raise ValueError, 'Not a valid page name: %s (was: %s)' % (newname, name)
+		return newname
 
 	def __init__(self, name):
 		'''Constructor.
@@ -296,7 +297,6 @@ class HRef(object):
 		@note: This mehtod HRef class assumes the logic of our wiki links
 		for other formats, a separate constructor may be needed
 		'''
-
 		if href.startswith(':'):
 			rel = HREF_REL_ABSOLUTE
 		elif href.startswith('+'):
