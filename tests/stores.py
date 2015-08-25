@@ -50,8 +50,8 @@ def ascii_page_tree(store, namespace=None, level=0):
 
 class FilterOverWriteWarning(tests.LoggingFilter):
 
-	logger = 'zim.fs'
-	message = 'mtime check failed'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.fs', 'mtime check failed')
 
 
 class TestUtils(tests.TestCase):

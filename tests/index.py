@@ -752,8 +752,6 @@ class TestPagesView(tests.TestCase):
 		index = new_memory_index()
 		pages = PagesView.new_from_index(index)
 
-		self.assertRaises(IndexNotFoundError, pages.lookup_from_user_input, 'foo', Path('non-existing-page'))
-
 		# cleaning absolute paths
 		for name, wanted in (
 			('foo:::bar', 'Foo:bar'), # "Foo" exists, so "foo" gets capital
@@ -762,6 +760,7 @@ class TestPagesView(tests.TestCase):
 			('/foo', 'Foo'),
 			(':Bar', 'Bar'),
 			(':Foo (Bar)', 'Foo (Bar)'),
+			('non-existing-page', 'non-existing-page'),
 			# TODO more ambigous test cases
 		): self.assertEqual(
 			pages.lookup_from_user_input(name), Path(wanted) )

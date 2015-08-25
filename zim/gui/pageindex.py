@@ -417,7 +417,6 @@ class PageTreeView(BrowserTreeView):
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
 		self.ui = ui
-		self._cleanup = None # temporary created path that needs to be removed later
 
 		column = gtk.TreeViewColumn('_pages_')
 		self.append_column(column)
@@ -473,7 +472,6 @@ class PageTreeView(BrowserTreeView):
 
 		@param model: a new TreeModel object
 		'''
-		self._cleanup = None # else it might be pointing to old model
 		BrowserTreeView.set_model(self, model)
 		model.connect('row-inserted', self.on_row_inserted)
 
@@ -593,9 +591,6 @@ class PageTreeView(BrowserTreeView):
 
 		@returns: a gtk TreePath (tuple of intergers) or C{None}
 		'''
-		print "TODO TODO TODO - set current page"
-		return
-
 		#~ print '!! SELECT', path
 		model = self.get_model()
 		if model is None:
@@ -605,23 +600,11 @@ class PageTreeView(BrowserTreeView):
 		if not treepath:
 			if vivificate:
 				# path does not exist, but we can create it
-				path = model.index.touch(path)
+				path = model.index.touch_path_interactive(path)
 				treepath = model.get_treepath(path)
 				assert treepath, 'BUG: failed to touch placeholder'
 			else:
 				return None
-
-		rowreference = gtk.TreeRowReference(model, treepath)
-			# make reference before cleanup - path may change
-
-		if self._cleanup and self._cleanup.valid():
-			mytreepath = self._cleanup.get_path()
-			if mytreepath != treepath:
-				indexpath = model.get_indexpath( model.get_iter(mytreepath) )
-				#~ print '!! CLEANUP', indexpath
-				model.index.cleanup(indexpath)
-
-		self._cleanup = rowreference
 
 		model.set_current_page(path) # highlight in model
 

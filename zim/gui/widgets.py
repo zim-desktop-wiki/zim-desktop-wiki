@@ -1948,6 +1948,7 @@ class PageEntry(InputEntry):
 					name = Path.makeValidPageName(name)
 					path = Path(name)
 			except ValueError:
+				logger.warn('Invalid path name: %s', name)
 				self.set_input_valid(False)
 				return None
 			else:

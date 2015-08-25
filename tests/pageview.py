@@ -17,8 +17,8 @@ from zim.gui.clipboard import Clipboard
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
 
-	logger = 'zim.gui.pageview'
-	message = 'No such image:'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
 
 def new_parsetree_from_text(text):
@@ -1803,9 +1803,9 @@ dus bar bazzz baz
 	def testInsertLinkDialog(self):
 		# Insert Link dialog
 		ui = MockUI()
-		ui.notebook.index = tests.MockObject()
-		ui.notebook.index.mock_method('list_pages', [])
-		ui.notebook.index.mock_method('walk', [])
+		ui.notebook.pages = tests.MockObject()
+		ui.notebook.pages.mock_method('list_pages', [])
+		ui.notebook.pages.mock_method('walk', [])
 		pageview = tests.MockObject()
 		pageview.page = Path('Test:foo:bar')
 		textview = TextView({})

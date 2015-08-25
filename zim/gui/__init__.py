@@ -30,6 +30,7 @@ from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback, SignalHandler
 from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook, encode_filename, LINK_DIR_BACKWARD, PageExistsError
+from zim.notebook.index import IndexNotFoundError
 from zim.config import data_file, data_dirs, ConfigDict, value_is_coord, ConfigManager
 from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
@@ -1269,8 +1270,12 @@ class GtkInterface(gobject.GObject):
 
 		parent.set_sensitive(len(page.namespace) > 0)
 
-		indexpath = self.notebook.pages.lookup_by_pagename(page)
-		child.set_sensitive(indexpath.haschildren)
+		try:
+			indexpath = self.notebook.pages.lookup_by_pagename(page)
+		except IndexNotFoundError:
+			pass
+		else:
+			child.set_sensitive(indexpath.haschildren)
 			# FIXME: Need index path here, page.haschildren is also True
 			#        when the page just has a attachment folder
 
@@ -1361,7 +1366,6 @@ class GtkInterface(gobject.GObject):
 		path = self.notebook.pages.lookup_by_pagename(self.page)
 			# Force refresh "haschildren" ...
 		if not path.haschildren:
-			print 'HASCHILDREN still False'
 			return False
 
 		record = self.history.get_child(path)
@@ -2977,7 +2981,11 @@ class MainWindow(Window):
 
 		self.pageview.set_page(page, cursor)
 
-		n = ui.notebook.links.n_list_links(page, LINK_DIR_BACKWARD)
+		try:
+			n = ui.notebook.links.n_list_links(page, LINK_DIR_BACKWARD)
+		except IndexNotFoundError:
+			n = 0
+
 		label = self.statusbar_backlinks_button.label
 		label.set_text_with_mnemonic(
 			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)

@@ -482,14 +482,10 @@ class PagesView(IndexViewBase):
 		@raises ValueError: when C{name} would reduce to empty string
 		after removing all invalid characters, or if C{name} is a
 		relative link while no C{reference} page is given.
-		@raises IndexNotFoundError: when C{reference} is not indexed
 		'''
 		# This method re-uses most of resolve_link() but is defined
 		# separate because it has a distinct different purpose.
 		# Only accidental that we treat user input as links ... ;)
-		if reference:
-			reference = self.lookup_by_pagename(reference)
-
 		href = HRef.new_from_wiki_link(name)
 
 		if reference and not reference.isroot:

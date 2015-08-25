@@ -545,7 +545,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: moved-page after succesful move
 		'''
 		logger.debug('Move page %s to %s', path, newpath)
-		assert callback is None # TODO TODO - iterator version
 		if update_links and not self.index.probably_uptodate:
 			raise IndexNotUptodateError, 'Index not up to date'
 
@@ -558,15 +557,15 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if not update_links:
 			return
 
-		self._update_links_in_moved_page(path, newpath)
-		self._update_links_to_moved_page(path, newpath)
+		self._update_links_in_moved_page(path, newpath, callback)
+		self._update_links_to_moved_page(path, newpath, callback)
 		new_n_links = self.links.n_list_links_section(newpath, LINK_DIR_BACKWARD)
 		if new_n_links != n_links:
 			logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
 		else:
 			logger.debug('Number of links after move does match number before move (%i)', new_n_links)
 
-	def _update_links_in_moved_page(self, oldtarget, newtarget):
+	def _update_links_in_moved_page(self, oldtarget, newtarget, callback):
 		# Find (floating) links that originate from the moved page
 		# check if they would resolve different from the old location
 		seen = set()
@@ -580,6 +579,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 					oldpath = oldtarget
 				else:
 					oldpath = oldtarget + link.source.relname(newtarget)
+
+				if callback:
+					callback(link.source)
 				self._update_moved_page(link.source, oldpath)
 
 	def _update_moved_page(self, path, oldpath):
@@ -611,7 +613,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.store_page(page)
 
 
-	def _update_links_to_moved_page(self, oldtarget, newtarget):
+	def _update_links_to_moved_page(self, oldtarget, newtarget, callback):
 		# 1. Check remaining placeholders, update pages causing them
 		seen = set()
 		try:
@@ -621,6 +623,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			for link in list(self.links.list_links_section(oldtarget, LINK_DIR_BACKWARD)):
 				if link.source.name not in seen:
+					if callback:
+						callback(link.source)
 					self._move_links_in_page(link.source, oldtarget, newtarget)
 					seen.add(link.source.name)
 
@@ -637,6 +641,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				or link.target == newtarget
 				or link.target.ischild(newtarget)
 			):
+				if callback:
+					callback(link.source)
 				self._move_links_in_page(link.source, oldtarget, newtarget)
 				seen.add(link.source.name)
 
@@ -778,8 +784,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		return self._delete_page(path, update_links, callback, trash=True)
 
 	def _delete_page(self, path, update_links=True, callback=None, trash=False):
-		assert callback is None # TODO TODO - iterator version
-
 		# actual delete
 		self.emit('delete-page', path)
 
@@ -806,9 +810,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD) )
 
 		for p in pages:
-				page = self.get_page(p)
-				self._remove_links_in_page(page, path)
-				self.store_page(page)
+			if callback:
+				callback(p)
+			page = self.get_page(p)
+			self._remove_links_in_page(page, path)
+			self.store_page(page)
 
 		# let everybody know what happened
 		self.emit('deleted-page', path)

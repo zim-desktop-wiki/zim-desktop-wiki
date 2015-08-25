@@ -32,7 +32,7 @@ class RecentChangesDialog(Dialog):
 	def update(self):
 		model = self.treeview.get_model()
 		model.clear()
-		list = self.ui.notebook.index.list_recent_changes(limit=50)
+		list = self.ui.notebook.pages.list_recent_changes(limit=50)
 		for indexpath in list:
 			model.append((indexpath.name, indexpath.mtime))
 
