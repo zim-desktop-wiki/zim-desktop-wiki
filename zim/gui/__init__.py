@@ -532,9 +532,6 @@ class GtkInterface(gobject.GObject):
 		#~ notebook.index.connect('page-inserted', new_child)
 		#~ notebook.index.connect('page-deleted', child_deleted)
 
-		# Start a lightweight background check of the index
-		self.notebook.index.start_update()
-
 		self.set_readonly(notebook.readonly)
 
 	def on_notebook_properties_changed(self, notebook):
@@ -657,6 +654,13 @@ class GtkInterface(gobject.GObject):
 			del self._first_page
 		else:
 			self.open_page_home()
+
+		if not self.notebook.index.probably_uptodate:
+			# Show dialog, do fast foreground update
+			self.reload_index()
+		else:
+			# Start a lightweight background check of the index
+			self.notebook.index.start_update()
 
 		self.mainwindow.pageview.grab_focus()
 		gtk.main()
@@ -1630,6 +1634,11 @@ class GtkInterface(gobject.GObject):
 	def show_export(self):
 		'''Menu action to show an L{ExportDialog}'''
 		from zim.gui.exportdialog import ExportDialog
+
+		if not self.notebook.probably_uptodate:
+			if not self.reload_index():
+				return # Cancelled
+
 		ExportDialog(self).run()
 
 	def email_page(self):
@@ -1653,74 +1662,30 @@ class GtkInterface(gobject.GObject):
 		@param path: a L{Path} object, or C{None} to move to current
 		selected page
 		'''
+		if not self.notebook.probably_uptodate:
+			if not self.reload_index():
+				return # Cancelled
+
 		if path is None:
 			path = self._get_path_context()
-		MovePageDialog(self, path).run()
 
-	def do_move_page(self, path, newpath, update_links):
-		'''Callback for MovePageDialog and PageIndex for executing
-		notebook.move_page but wrapping with all the proper exception
-		dialogs. Returns boolean for success.
-		'''
 		self.assert_save_page_if_modified()
-
-		return self._wrap_move_page(
-			lambda update_links, callback: self.notebook.move_page(
-				path, newpath, update_links, callback),
-			update_links
-		)
+		MovePageDialog(self, path).run()
 
 	def rename_page(self, path=None):
 		'''Menu action to show the L{RenamePageDialog}
 		@param path: a L{Path} object, or C{None} for the current
 		selected page
 		'''
+		if not self.notebook.probably_uptodate:
+			if not self.reload_index():
+				return # Cancelled
+
 		if path is None:
 			path = self._get_path_context()
-		RenamePageDialog(self, path).run()
 
-	def do_rename_page(self, path, newbasename, update_heading=True, update_links=True):
-		'''Callback for RenamePageDialog for executing
-		notebook.rename_page but wrapping with all the proper exception
-		dialogs. Returns boolean for success.
-		'''
 		self.assert_save_page_if_modified()
-
-		return self._wrap_move_page(
-			lambda update_links, callback: self.notebook.rename_page(
-				path, newbasename, update_heading, update_links, callback),
-			update_links
-		)
-
-	def _wrap_move_page(self, func, update_links):
-		if self.notebook.index.probably_uptodate:
-			# Ask regardless of update_links because it might very
-			# well be that the dialog thinks there are no links
-			# but they are simply not indexed yet
-			cont = QuestionDialog(self,
-				_('The index is still busy updating. Until this '
-				  'is finished links can not be updated correctly. '
-				  'Performing this action now could break links, '
-				  'do you want to continue anyway?'
-				) # T: question dialog text
-			).run()
-			if cont:
-				update_links = False
-			else:
-				return False
-
-		dialog = ProgressBarDialog(self, _('Updating Links'))
-			# T: Title of progressbar dialog
-		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
-
-		try:
-			with dialog:
-				func(update_links, callback)
-		except Exception, error:
-			ErrorDialog(self, error).run()
-			return False
-		else:
-			return True
+		RenamePageDialog(self, path).run()
 
 	def delete_page(self, path=None):
 		'''Delete a page by either trashing it, or permanent deletion
@@ -1735,13 +1700,17 @@ class GtkInterface(gobject.GObject):
 			path = self._get_path_context()
 			if not path: return
 
+		if not self.notebook.probably_uptodate:
+			if not self.reload_index():
+				return # Cancelled
+
 		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
 		dialog = ProgressBarDialog(self, _('Removing Links'))
 			# T: Title of progressbar dialog
-		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
 		try:
 			with dialog:
-				self.notebook.trash_page(path, update_links, callback)
+				for p in self.notebook.trash_page_iter(path, update_links):
+					dialog.pulse(p.name)
 		except TrashNotSupportedError, error:
 			logger.info('Trash not supported: %s', error.msg)
 			DeletePageDialog(self, path).run()
@@ -1793,6 +1762,9 @@ class GtkInterface(gobject.GObject):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
 		PreferencesDialog(self).run()
+
+		if not self.notebook.index.probably_uptodate:
+			self.reload_index()
 
 	def do_preferences_changed(self, *a):
 		self.uimanager.set_add_tearoffs(
@@ -2113,17 +2085,13 @@ class GtkInterface(gobject.GObject):
 		# TODO instead of spawn, include in this process
 		get_zim_application('--server', '--gui', self.notebook.uri).spawn()
 
-	def reload_index(self, flush=False):
+	def reload_index(self):
 		'''Check the notebook for changes and update the index.
 		Shows an progressbar while updateing.
-		@param flush: if C{True} the index is flushed and rebuild from
-		scratch
 		@returns: C{True} unless the user cancelled the update
 		'''
 		self.emit('start-index-update')
 		self.notebook.index.stop_update()
-		if flush:
-			self.notebook.index.flush()
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
@@ -2132,6 +2100,11 @@ class GtkInterface(gobject.GObject):
 				dialog.pulse(p.name)
 
 		self.emit('end-index-update')
+
+		if dialog.cancelled \
+		and not self.notebook.index.probably_uptodate:
+			self.notebook.index.start_update() # Keep going anyway
+
 		return not dialog.cancelled
 
 	def manage_custom_tools(self):
@@ -3342,12 +3315,13 @@ class MovePageDialog(Dialog):
 		update = self.form['update']
 		newpath = parent + self.path.basename
 		self.hide() # hide this dialog before showing the progressbar
-		ok = self.ui.do_move_page(self.path, newpath, update)
-		if ok:
-			return True
-		else:
-			self.show() # prompt again
-			return False
+
+		dialog = ProgressBarDialog(self, _('Updating Links')) # T: label for progress dialog
+		with dialog:
+			for p in self.ui.notebook.move_page_iter(self.path, newpath, update):
+				dialog.pulse(p.name)
+
+		return True
 
 
 class RenamePageDialog(Dialog):
@@ -3398,12 +3372,13 @@ class RenamePageDialog(Dialog):
 		head = self.form['head']
 		update = self.form['update']
 		self.hide() # hide this dialog before showing the progressbar
-		ok = self.ui.do_rename_page(self.path, name, head, update)
-		if ok:
-			return True
-		else:
-			self.show() # prompt again
-			return False
+
+		dialog = ProgressBarDialog(self, _('Updating Links')) # T: label for progress dialog
+		with dialog:
+			for p in self.ui.notebook.rename_page_iter(self.path, name, head, update):
+				dialog.pulse(p.name)
+
+		return True
 
 
 class DeletePageDialog(Dialog):
@@ -3472,10 +3447,9 @@ class DeletePageDialog(Dialog):
 
 		dialog = ProgressBarDialog(self, _('Removing Links'))
 			# T: Title of progressbar dialog
-		callback = lambda p, **kwarg: dialog.pulse(p.name, **kwarg)
-
 		with dialog:
-			self.ui.notebook.delete_page(self.path, update_links, callback)
+			for p in self.ui.notebook.delete_page_iter(self.path, update_links):
+				dialog.pulse(p.name)
 
 		return True
 

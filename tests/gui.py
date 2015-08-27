@@ -135,49 +135,33 @@ class TestDialogs(tests.TestCase):
 
 	def testMovePageDialog(self):
 		'''Test MovePageDialog'''
-		# Can't test much here except for the call to do_move_page
-		self.ui.mock_method('do_move_page', True)
-
-		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar'))
+		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar')) # Path has backlinks
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('New')
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_move_page', Path('Test:foo:bar'), Path('New:bar'), True))
 
-		dialog = zim.gui.MovePageDialog(self.ui, path=Path('New:bar'))
+		dialog = zim.gui.MovePageDialog(self.ui, path=Path('TaskList')) # No links to this path
 		self.assertFalse(dialog.form['update'])
 		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('foo')
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_move_page', Path('New:bar'), Path('foo:bar'), False))
 
 	def testRenamePageDialog(self):
 		'''Test RenamePageDialog'''
-		# Can't test much here except for the call to do_rename_page
-		self.ui.mock_method('do_rename_page', True)
-
-		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar'))
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar')) # Has backlinks
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertFalse(dialog.form['head']) # There is no heading
-		self.assertTrue(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_rename_page', Path('Test:foo:bar'), 'New', False, True))
 
-		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('New:bar'))
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('TaskList')) # No links to this path
 		self.assertFalse(dialog.form['update'])
 		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertFalse(dialog.form['head'])
-		self.assertFalse(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_rename_page', Path('New:bar'), 'New', False, False))
 
 	def testRenamePageDialogWithHeadingChanges(self):
 		'''Test RenamePageDialog's heading auto-change option depending on

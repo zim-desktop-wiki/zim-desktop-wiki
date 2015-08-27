@@ -516,7 +516,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		finally:
 			return func
 
-	def move_page(self, path, newpath, update_links=True, callback=None):
+	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook
 
 		@param path: a L{Path} object for the old/current page name
@@ -529,11 +529,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		only the link update will done. This is useful to update links
 		for a placeholder.
 
-		@param callback: a callback function which is called for each
-		page that is updates when updating links. It is called as::
-
-			callback(page, total=None)
-
 		Where:
 		  - C{page} is the L{Page} object for the page being updated
 		  - C{total} is an optional parameter for the number of pages
@@ -543,6 +538,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		@emits: move-page before the move
 		@emits: moved-page after succesful move
+		'''
+		for p in self.move_page_iter(path, newpath, update_links):
+			pass
+
+	def move_page_iter(self, path, newpath, update_links=True):
+		'''Like L{move_page()} but yields pages that are being updated
+		if C{update_links} is C{True}
 		'''
 		logger.debug('Move page %s to %s', path, newpath)
 		if update_links and not self.index.probably_uptodate:
@@ -554,18 +556,21 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			self.index.on_delete_page(path)
 		self.index.update(newpath) # TODO - optimize by letting indexers know about move
 		self.flush_page_cache(path)
-		if not update_links:
-			return
 
-		self._update_links_in_moved_page(path, newpath, callback)
-		self._update_links_to_moved_page(path, newpath, callback)
-		new_n_links = self.links.n_list_links_section(newpath, LINK_DIR_BACKWARD)
-		if new_n_links != n_links:
-			logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
-		else:
-			logger.debug('Number of links after move does match number before move (%i)', new_n_links)
+		if update_links:
+			for p in self._update_links_in_moved_page(path, newpath):
+				yield p
 
-	def _update_links_in_moved_page(self, oldtarget, newtarget, callback):
+			for p in self._update_links_to_moved_page(path, newpath):
+				yield p
+
+			new_n_links = self.links.n_list_links_section(newpath, LINK_DIR_BACKWARD)
+			if new_n_links != n_links:
+				logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
+			else:
+				logger.debug('Number of links after move does match number before move (%i)', new_n_links)
+
+	def _update_links_in_moved_page(self, oldtarget, newtarget):
 		# Find (floating) links that originate from the moved page
 		# check if they would resolve different from the old location
 		seen = set()
@@ -580,8 +585,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				else:
 					oldpath = oldtarget + link.source.relname(newtarget)
 
-				if callback:
-					callback(link.source)
+				yield link.source
 				self._update_moved_page(link.source, oldpath)
 
 	def _update_moved_page(self, path, oldpath):
@@ -612,8 +616,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		page.set_parsetree(tree)
 		self.store_page(page)
 
-
-	def _update_links_to_moved_page(self, oldtarget, newtarget, callback):
+	def _update_links_to_moved_page(self, oldtarget, newtarget):
 		# 1. Check remaining placeholders, update pages causing them
 		seen = set()
 		try:
@@ -623,8 +626,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			for link in list(self.links.list_links_section(oldtarget, LINK_DIR_BACKWARD)):
 				if link.source.name not in seen:
-					if callback:
-						callback(link.source)
+					yield link.source
 					self._move_links_in_page(link.source, oldtarget, newtarget)
 					seen.add(link.source.name)
 
@@ -641,8 +643,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				or link.target == newtarget
 				or link.target.ischild(newtarget)
 			):
-				if callback:
-					callback(link.source)
+				yield link.source
 				self._move_links_in_page(link.source, oldtarget, newtarget)
 				seen.add(link.source.name)
 
@@ -701,7 +702,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		elt.set('href', text)
 		return elt
 
-	def rename_page(self, path, newbasename, update_heading=True, update_links=True, callback=None):
+	def rename_page(self, path, newbasename, update_heading=True, update_links=True):
 		'''Rename page to a page in the same namespace but with a new
 		basename.
 
@@ -716,14 +717,28 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param update_links: if C{True} all links B{from} and B{to} this
 		page and any of it's children will be updated to reflect the
 		new page name
-		@param callback: see L{move_page()} for details
+		'''
+		newbasename = Path.makeValidPageName(newbasename)
+		newpath = Path(path.namespace + ':' + newbasename)
+
+		for p in self.rename_page_iter(path, newbasename, update_heading, update_links):
+			pass
+
+		return newpath
+
+	def rename_page_iter(self, path, newbasename, update_heading=True, update_links=True):
+		'''Like L{rename_page()} but yields pages that are being updated
+		if C{update_links} is C{True}
 		'''
 		logger.debug('Rename %s to "%s" (%s, %s)',
 			path, newbasename, update_heading, update_links)
 
 		newbasename = Path.makeValidPageName(newbasename)
 		newpath = Path(path.namespace + ':' + newbasename)
-		self.move_page(path, newpath, update_links, callback)
+
+		for p in self.move_page_iter(path, newpath, update_links):
+			yield p
+
 		if update_heading:
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
@@ -732,15 +747,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				page.set_parsetree(tree)
 				self.store_page(page)
 
-		return newpath
-
-	def delete_page(self, path, update_links=True, callback=None):
+	def delete_page(self, path, update_links=True):
 		'''Delete a page from the notebook
 
 		@param path: a L{Path} object
 		@param update_links: if C{True} pages linking to the
 		deleted page will be updated and the link are removed.
-		@param callback: see L{move_page()} for details
 
 		@returns: C{True} when the page existed and was deleted,
 		C{False} when the page did not exist in the first place.
@@ -750,10 +762,26 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: delete-page before the actual delete
 		@emits: deleted-page after succesful deletion
 		'''
-		logger.debug('Delete page: %s', path)
-		return self._delete_page(path, update_links, callback)
+		existed = self._delete_page(path)
 
-	def trash_page(self, path, update_links=True, callback=None):
+		for p in self._deleted_page(path, update_links):
+			pass
+
+		return existed
+
+	def delete_page_iter(self, path, update_links=True):
+		'''Like L{delete_page()}'''
+		self._delete_page(path)
+
+		for p in self._deleted_page(path, update_links):
+			yield p
+
+	def _delete_page(self, path):
+		logger.debug('Delete page: %s', path)
+		self.emit('delete-page', path)
+		return self.store.delete_page(path)
+
+	def trash_page(self, path, update_links=True):
 		'''Move a page to Trash
 
 		Like L{delete_page()} but will use the system Trash (which may
@@ -764,7 +792,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param path: a L{Path} object
 		@param update_links: if C{True} pages linking to the
 		deleted page will be updated and the link are removed.
-		@param callback: see L{move_page()} for details
 
 		@returns: C{True} when the page existed and was deleted,
 		C{False} when the page did not exist in the first place.
@@ -778,48 +805,55 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: delete-page before the actual delete
 		@emits: deleted-page after succesful deletion
 		'''
+		existed = self._trash_page(path)
+
+		for p in self._deleted_page(path, update_links):
+			pass
+
+		return existed
+
+	def trash_page_iter(self, path, update_links=True):
+		'''Like L{trash_page()}'''
+		self._trash_page(path)
+
+		for p in self._deleted_page(path, update_links):
+			yield p
+
+	def _trash_page(self, path):
 		logger.debug('Trash page: %s', path)
+
 		if self.config['Notebook']['disable_trash']:
 			raise TrashNotSupportedError, 'disable_trash is set'
-		return self._delete_page(path, update_links, callback, trash=True)
 
-	def _delete_page(self, path, update_links=True, callback=None, trash=False):
-		# actual delete
 		self.emit('delete-page', path)
+		existed = self.store.trash_page(path)
 
-		if trash:
-			existed = self.store.trash_page(path)
-		else:
-			existed = self.store.delete_page(path)
+		return existed
 
+	def _deleted_page(self, path, update_links):
 		self.flush_page_cache(path)
 		path = Path(path.name)
 
 		self.index.on_delete_page(path)
 
-		if not update_links:
-			return
+		if update_links:
+			# remove persisting links
+			try:
+				indexpath = self.pages.lookup_by_pagename(path)
+			except IndexNotFoundError:
+				pass
+			else:
+				pages = set(
+					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD) )
 
-		# remove persisting links
-		try:
-			indexpath = self.pages.lookup_by_pagename(path)
-		except IndexNotFoundError:
-			return # no placeholder, we are done
-
-		pages = set(
-			l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD) )
-
-		for p in pages:
-			if callback:
-				callback(p)
-			page = self.get_page(p)
-			self._remove_links_in_page(page, path)
-			self.store_page(page)
+				for p in pages:
+					yield p
+					page = self.get_page(p)
+					self._remove_links_in_page(page, path)
+					self.store_page(page)
 
 		# let everybody know what happened
 		self.emit('deleted-page', path)
-
-		return existed
 
 	def _remove_links_in_page(self, page, path):
 		logger.debug('Removing links in %s to %s', page, path)

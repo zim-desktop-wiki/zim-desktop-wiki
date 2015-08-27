@@ -295,7 +295,7 @@ class Index(object):
 				'DELETE FROM links WHERE source=?',
 				(ROOT_ID,)
 			)
-			for indexer in self._index._indexers:
+			for indexer in self._indexers:
 				if hasattr(indexer, 'cleanup_placeholders'):
 					indexer.cleanup_placeholders(self._index, db)
 					break

@@ -45,17 +45,6 @@ class ExportDialog(Assistant):
 			logger.debug('Cancelled - selection')
 			return False # canceled
 
-		# Check index up to date
-		index = self.ui.notebook.index
-		if not index.probably_uptodate:
-			index.stop_update()
-			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
-				for c, p in index.update_iter():
-					dialog.pulse(p.name)
-					if dialog.cancelled:
-						logger.debug('Cancelled - progress dialog index')
-						return False
-
 		# Run export
 		logging_context = LogContext()
 		with logging_context:
