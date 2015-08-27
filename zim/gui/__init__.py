@@ -403,7 +403,6 @@ class GtkInterface(gobject.GObject):
 			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
 
 		self.plugins = PluginManager(self.config)
-		self.plugins.extend(notebook.index)
 		self.plugins.extend(notebook)
 
 		self.preferences_register = ConfigDict()

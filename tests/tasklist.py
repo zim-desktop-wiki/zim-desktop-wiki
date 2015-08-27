@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -16,50 +16,37 @@ from zim.plugins.tasklist import *
 
 class TestTaskList(tests.TestCase):
 
-	def testIndexing(self):
-		'''Check indexing of tasklist plugin'''
-		klass = PluginManager.get_plugin_class('tasklist')
-		plugin = klass()
-
-		notebook = tests.new_notebook()
-		plugin.extend(notebook.index)
-		index_ext = plugin.get_extension(IndexExtension)
-		self.assertIsNotNone(index_ext)
-
-		# Test indexing based on index signals
-		notebook.index.flush()
-		notebook.index.update()
-		self.assertTrue(index_ext.db_initialized)
-		tasks = list(index_ext.list_tasks())
-		self.assertTrue(len(tasks) > 5)
-		for task in tasks:
-			path = index_ext.get_path(task)
-			self.assertTrue(not path is None)
-
 	def testParsing(self):
-		klass = PluginManager.get_plugin_class('tasklist')
-		plugin = klass()
-
-		notebook = tests.new_notebook()
-		plugin.extend(notebook.index)
-		index_ext = plugin.get_extension(IndexExtension)
-		self.assertIsNotNone(index_ext)
-
 		# Test correctnest of parsing
+		from zim.plugins.tasklist import _task_labels_re, _next_label_re
 		NO_DATE = '9999'
 
-		def extract_tasks(text):
+		def extract_tasks(text,
+			task_label_re=_task_labels_re(['TODO', 'FIXME', 'Next']),
+			next_label_re=_next_label_re('Next:'),
+			nonactionable_tags=[],
+			all_checkboxes=True,
+			deadline=None,
+		):
 			# Returns a nested list of tuples, where each node is
 			# like "(TASK, [CHILD, ...]) where each task (and child)
 			# is a tuple like (open, actionable, prio, due, description)
 			parser = zim.formats.get_format('wiki').Parser()
-			tree = parser.parse(text)
-			origtree = tree.tostring()
+			parsetree = parser.parse(text)
+			origtree = parsetree.tostring()
 			#~ print 'TREE', origtree
 
-			tasks = index_ext._extract_tasks(tree)
-			self.assertEqual(tree.tostring(), origtree)
-				# extract should not modify the tree
+			parser = TasksParseTreeParser(
+				task_label_re,
+				next_label_re,
+				nonactionable_tags,
+				all_checkboxes,
+				deadline,
+			)
+			parser.parse(parsetree)
+			tasks = parser.get_tasks()
+
+			self.assertEqual(parsetree.tostring(), origtree) # parser should not modify the tree
 			return tasks
 
 		def t(label, open=True, due=NO_DATE, prio=0, tags='', actionable=True):
@@ -210,14 +197,9 @@ TODO @home
 				(t('Next: do something else', tags='home', actionable=False), []),
 			])
 		]
-
-		plugin.preferences['nonactionable_tags'] = '@someday, @maybe'
-		index_ext._set_preferences()
-		tasks = extract_tasks(text)
+		tasks = extract_tasks(text, nonactionable_tags=['someday', 'maybe'])
 		self.assertEqual(tasks, wanted)
 
-
-		plugin.preferences['all_checkboxes'] = False
 		wanted = [
 			(t('A'), []),
 			(t('B'), []),
@@ -245,32 +227,42 @@ TODO @home
 				(t('Next: do something else', tags='home', actionable=False), []),
 			])
 		]
-
-		tasks = extract_tasks(text)
+		tasks = extract_tasks(text, nonactionable_tags=['someday', 'maybe'], all_checkboxes=False)
 		self.assertEqual(tasks, wanted)
 
 		# TODO: more tags, due dates, tags for whole list, etc. ?
 
-	#~ def testDialog(self):
-		#~ '''Check tasklist plugin dialog'''
-		#
-		# TODO
+	def testIndexing(self):
+		'''Check indexing of tasklist plugin'''
+		klass = PluginManager.get_plugin_class('tasklist')
+		plugin = klass()
+
+		notebook = tests.new_notebook()
+		plugin.extend(notebook)
+		self.assertIsInstance(notebook.index._indexers[-1], TasksIndexer)
+
+		# Test indexing based on index signals
+		notebook.index.update()
+
+		view = TasksView.new_from_index(notebook.index)
+		tasks = list(view.list_tasks())
+		self.assertTrue(len(tasks) > 5)
+		for task in tasks:
+			path = view.get_path(task)
+			self.assertTrue(not path is None)
 
 	def testTaskListTreeView(self):
 		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
 		notebook = tests.new_notebook()
-		plugin.extend(notebook.index)
-		index_ext = plugin.get_extension(IndexExtension)
-		self.assertIsNotNone(index_ext)
-
-		notebook.index.flush()
+		plugin.extend(notebook)
 		notebook.index.update()
 
 		from zim.plugins.tasklist import TaskListTreeView
+		view = TasksView.new_from_index(notebook.index)
 		opener = tests.MockObject()
-		treeview = TaskListTreeView(index_ext, opener)
+		treeview = TaskListTreeView(view, opener, task_labels=['TODO', 'FIXME'], next_label='Next')
 
 		menu = treeview.get_popup()
 
@@ -289,3 +281,8 @@ TODO @home
 
 		# TODO test filtering for tags, labels, string - all case insensitive
 
+
+	#~ def testDialog(self):
+		#~ '''Check tasklist plugin dialog'''
+		#
+		# TODO

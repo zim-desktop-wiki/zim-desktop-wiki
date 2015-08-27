@@ -49,14 +49,14 @@ class TagsIndexer(IndexerBase):
 	__signals__ = {}
 
 	INIT_SCRIPT = '''
-		CREATE TABLE if not exists tags (
+		CREATE TABLE tags (
 			id INTEGER PRIMARY KEY,
 			name TEXT,
 			sortkey TEXT,
 
 			CONSTRAINT uc_TagOnce UNIQUE (name)
 		);
-		CREATE TABLE if not exists tagsources (
+		CREATE TABLE tagsources (
 			source INTEGER REFERENCES pages(id),
 			tag INTEGER REFERENCES tags(id),
 

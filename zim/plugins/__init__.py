@@ -378,9 +378,6 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	in the plugin module
 
 	@ivar extensions: a set with extension objects loaded by this plugin.
-	The lookup extensions objects it is usually better to use the methods
-	L{get_extension()} or L{get_extensions()} rather than using this
-	set directly.
 
 	@signal: C{extension-point-changed (name)}: emitted when extension
 	point C{name} changes
@@ -542,14 +539,15 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		@param extends: class name of the to-be-extended object
 		'''
 		klass = self.extension_classes.pop(extends)
-		for obj in self.get_extensions(klass):
-			obj.destroy()
+		for obj in self.extensions:
+			if isinstance(obj, klass):
+				obj.destroy()
 
 	def extend(self, obj, _name=None):
 		'''This method will look through the extensions defined for this
 		plugin and construct a new extension object if a match is found
 		for C{obj}.
-		@param obj: the obejct to be extended
+		@param obj: the object to be extended
 		@param _name: lookup name to use when extending the object.
 		To be used for testing only. Normally the class name of C{obj}
 		is used.
@@ -559,31 +557,32 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 			ext = self.extension_classes[name](self, obj)
 			self.extensions.add(ext)
 
-	def get_extension(self, klass, **attr):
-		'''Look up an extension object instatiation
-		@param klass: the class of the extention object (_not_ the to-be-extended
-		klass)
-		@param attr: any object attributes that should match
-		@returns: a single extension object or C{None}
+	def get_extensions(self, obj):
+		'''Look up any extensions for C{obj} managed by this plugin
+		@param obj: the extended object
+		@returns: a list of extension objects
 		'''
-		ext = self.get_extensions(klass)
-		for key, value in attr.items():
-			ext = filter(lambda e: getattr(e, key) == value, ext)
-
-		if len(ext) > 1:
-			raise AssertionError, 'BUG: multiple extensions of class %s found' % klass
-		elif ext:
-			return ext[0]
+		if hasattr(obj, '__zim_extension_objects__'):
+			return [e for e in obj.__zim_extension_objects__ if e in self.extensions]
 		else:
-			return None
+			return []
 
-	def get_extensions(self, klass):
-		'''Look up extension object instatiations
+	def get_extension(self, obj, klass):
+		'''Look up an extension object instatiation
+		@param obj: the extended object
 		@param klass: the class of the extention object (_not_ the to-be-extended
 		klass)
-		@returns: a list of extension objects (if any)
+		@returns: a single extension object
+		@raises ValueError: if no extension was found
 		'''
-		return [e for e in self.extensions if isinstance(e, klass)]
+		exts = [e for e in self.get_extensions(obj) if isinstance(e, klass)]
+
+		#~ if len(exts) == 1:
+			#~ return exts[0]
+		#~ elif len(ext) > 1:
+			#~ raise AssertionError, 'BUG: multiple extensions found of class: %s' % klass
+		#~ else:
+			#~ raise ValueError, 'No extension of class: %s' % klass
 
 	def destroy(self):
 		'''Destroy the plugin object and all extensions

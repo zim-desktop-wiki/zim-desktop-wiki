@@ -134,7 +134,6 @@ class WWWInterface(object):
 		self.dumper_factory = get_format('html').Dumper # XXX
 
 		self.plugins = PluginManager(self.config)
-		self.plugins.extend(notebook.index)
 		self.plugins.extend(notebook)
 		self.plugins.extend(self)
 

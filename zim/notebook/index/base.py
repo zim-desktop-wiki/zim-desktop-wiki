@@ -77,7 +77,7 @@ class IndexerBase(object):
 				logger.exception('Exception in signal emit %s %r', signal, args)
 
 	def on_db_init(self, index, db):
-		'''Callback that is called when a databse is initialized.
+		'''Callback that is called when a database is initialized.
 		Default implementation executes the C{INIT_SCRIPT} attribute.
 		@param index: an L{IndexInternal} instance for the calling index
 		@param db: a C{sqlite3.Connection} object
@@ -128,3 +128,35 @@ class IndexerBase(object):
 		@implementation: can be overloaded by subclass, default does nothing
 		'''
 		pass
+
+
+class PluginIndexerBase(IndexerBase):
+	'''Base class for indexers defined in plugins. These need some
+	additional logic to allow them to be added and removed flexibly.
+	See L{Index.add_plugin_indexer()} and L{Index.remove_plugin_indexer()}.
+
+	Additional behavior required for plugin indexers:
+
+	  - PLUGIN_NAME and PLUGIN_DB_FORMAT must be defined
+	  - INIT_SCRIPT or on_db_init() must be robust against data from
+	    an older verion of the plugin being present. E.g. by first dropping
+	    the plugin table and then initializing it again.
+	  - TEARDOWN_SCRIPT needs to be defined, or on_teardown() implemented
+
+	'''
+
+	PLUGIN_NAME = None #: plugin name as string
+	PLUGIN_DB_FORMAT = None #: version of the db scheme for this plugin as string
+
+	def on_teardown(self, index, db):
+		'''Callback that is called when the plugin is removed. Will not be
+		called when the application exits.
+		Default implementation executes the C{TEARDOWN_SCRIPT} attribute.
+		@param index: an L{IndexInternal} instance for the calling index
+		@param db: a C{sqlite3.Connection} object
+		@implementation: can be overloaded by subclass
+		'''
+		if hasattr(self, 'TEARDOWN_SCRIPT'):
+			db.executescript(self.TEARDOWN_SCRIPT)
+		else:
+			raise NotImplementedError

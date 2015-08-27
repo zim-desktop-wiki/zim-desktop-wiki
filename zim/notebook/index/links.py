@@ -75,7 +75,7 @@ class LinksIndexer(IndexerBase):
 	__signals__ = {}
 
 	INIT_SCRIPT = '''
-		CREATE TABLE if not exists links (
+		CREATE TABLE links (
 			source INTEGER REFERENCES pages(id),
 			target INTEGER REFERENCES pages(id),
 

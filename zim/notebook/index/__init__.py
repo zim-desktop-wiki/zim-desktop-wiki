@@ -137,9 +137,9 @@ class Index(object):
 		self.db_conn = db_conn
 		self._db = db_conn.db_change_context()
 		self.store = store
-		self.indexers = [PagesIndexer(), LinksIndexer(), TagsIndexer()]
+		self._indexers = [PagesIndexer(), LinksIndexer(), TagsIndexer()]
 		self._pages = PagesViewInternal()
-		self._index = IndexInternal(self.store, self.indexers)
+		self._index = IndexInternal(self.store, self._indexers)
 		self._thread = None
 
 		try:
@@ -183,18 +183,18 @@ class Index(object):
 
 			logger.debug('(Re-)Initializing database for index')
 			db.executescript(INDEX_INIT_SCRIPT)
-			for indexer in self.indexers:
+			for indexer in self._indexers:
 				indexer.on_db_init(self, db)
 
 	def connect(self, signal, handler):
-		for indexer in self.indexers:
+		for indexer in self._indexers:
 			if signal in indexer.__signals__:
 				return indexer.connect(signal, handler)
 		else:
 			raise ValueError, 'No such signal: %s' % signal
 
 	def disconnect(self, handlerid):
-		for indexer in self.indexers:
+		for indexer in self._indexers:
 			indexer.disconnect(handlerid)
 		# else pass
 
@@ -295,7 +295,7 @@ class Index(object):
 				'DELETE FROM links WHERE source=?',
 				(ROOT_ID,)
 			)
-			for indexer in self._index.indexers:
+			for indexer in self._index._indexers:
 				if hasattr(indexer, 'cleanup_placeholders'):
 					indexer.cleanup_placeholders(self._index, db)
 					break
@@ -333,17 +333,52 @@ class Index(object):
 			last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
 			self._index.update_parent(db, last_deleted.parent)
 
+	def add_plugin_indexer(self, indexer):
+		'''Add an indexer for a plugin
+		Checks the C{PLUGIN_NAME} and C{PLUGIN_DB_FORMAT}
+		attributes and calls C{on_db_init()} when needed.
+		Can result in reset of L{probably_uptodate} because the new
+		indexer has not seen the pages in the index.
+		@param indexer: An instantiation of L{PluginIndexerBase}
+		'''
+		assert indexer.PLUGIN_NAME and indexer.PLUGIN_DB_FORMAT
+		with self._db as db:
+			if self._index.get_property(db, indexer.PLUGIN_NAME) != indexer.PLUGIN_DB_FORMAT:
+				indexer.on_db_init(self._index, db)
+				self._index.set_property(db, indexer.PLUGIN_NAME, indexer.PLUGIN_DB_FORMAT)
+				self._flag_reindex(db)
+
+		self._indexers.append(indexer)
+
+	def remove_plugin_indexer(self, indexer):
+		'''Remove an indexer for a plugin
+		Calls the C{on_teardown()} method of the indexer and
+		remove it from the list.
+		@param indexer: An instantiation of L{PluginIndexerBase}
+		'''
+		try:
+			self._indexers.remove(indexer)
+		except ValueError:
+			pass
+
+		with self._db as db:
+			indexer.on_teardown(self._index, db)
+			self._index.set_property(db, indexer.PLUGIN_NAME, None)
+
 	def flag_reindex(self):
 		'''This methods flags all pages with content to be re-indexed.
 		Main reason to use this would be when loading a new plugin that
 		wants to index all pages.
 		'''
 		with self._db as db:
-			self._index.set_property(db, 'probably_uptodate', False)
-			db.execute(
-				'UPDATE pages SET content_etag=?, needscheck=? WHERE content_etag IS NOT NULL',
-				('_reindex_', INDEX_CHECK_PAGE),
-			)
+			self._flag_reindex(db)
+
+	def _flag_reindex(self, db):
+		self._index.set_property(db, 'probably_uptodate', False)
+		db.execute(
+			'UPDATE pages SET content_etag=?, needscheck=? WHERE content_etag IS NOT NULL',
+			('_reindex_', INDEX_CHECK_PAGE),
+		)
 
 
 class IndexInternal(object):
@@ -364,7 +399,8 @@ class IndexInternal(object):
 
 	def set_property(self, db, key, value):
 		db.execute('DELETE FROM zim_index WHERE key=?', (key,))
-		db.execute('INSERT INTO zim_index(key, value) VALUES (?, ?)', (key, value))
+		if key is not None:
+			db.execute('INSERT INTO zim_index(key, value) VALUES (?, ?)', (key, value))
 
 	def insert_page(self, db, parent, path, needscheck=INDEX_CHECK_PAGE):
 		'''Insert a record for the page, but page does not really exists
@@ -545,7 +581,7 @@ class TreeIndexer(IndexInternal):
 		return klass(
 			index.db_conn,
 			index.store,
-			index.indexers
+			index._indexers
 		)
 
 	def __init__(self, db_conn, store, indexers):
