@@ -577,12 +577,12 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		'''
 		exts = [e for e in self.get_extensions(obj) if isinstance(e, klass)]
 
-		#~ if len(exts) == 1:
-			#~ return exts[0]
-		#~ elif len(ext) > 1:
-			#~ raise AssertionError, 'BUG: multiple extensions found of class: %s' % klass
-		#~ else:
-			#~ raise ValueError, 'No extension of class: %s' % klass
+		if len(exts) == 1:
+			return exts[0]
+		elif len(ext) > 1:
+			raise AssertionError, 'BUG: multiple extensions found of class: %s' % klass
+		else:
+			raise ValueError, 'No extension of class: %s' % klass
 
 	def destroy(self):
 		'''Destroy the plugin object and all extensions

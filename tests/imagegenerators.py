@@ -179,6 +179,7 @@ class TestScoreEditor(TestGenerator):
 	generatorklass = ScoreGenerator
 
 	validinput = r'''
+\version "2.18.2"
 \relative c {
         \clef bass
         \key d \major

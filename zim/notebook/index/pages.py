@@ -150,12 +150,12 @@ class PagesIndexer(IndexerBase):
 	"pages" table is already handled by the L{TreeIndexer} class.
 	Main function of the indexer is to emit the proper signals.
 
-	@signal: C{page-inserted (L{IndexPathRow})}: emitted when a page is newly
+	@signal: C{page-added (L{IndexPathRow})}: emitted when a page is newly
 	added to the index (so a new row is inserted in the pages table)
-	@signal: C{page-updated (L{IndexPathRow})}: page content has changed
+	@signal: C{page-changed (L{IndexPathRow})}: page content has changed
 	@signal: C{page-haschildren-toggled (L{IndexPathRow})}: the value of the
 	C{haschildren} attribute changed for this page
-	@signal: C{page-to-be-deleted (L{IndexPathRow})}: emitted before a
+	@signal: C{page-to-be-removed (L{IndexPathRow})}: emitted before a
 	page is deleted from the index
 	'''
 

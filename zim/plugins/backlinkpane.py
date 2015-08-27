@@ -98,8 +98,8 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
 			# XXX allow access through page object
 		for link in backlinks:
-			href = notebook.relative_link(link.href, link.source) # XXX
-				# relative link from href *back* to source
+			href = notebook.relative_link(link.target, link.source) # XXX
+				# relative link from target *back* to source
 			href = href.lstrip(':')
 			#~ model.append(None, (link.source, href))
 			model.append((link.source, href))

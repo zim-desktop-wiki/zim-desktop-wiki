@@ -19,6 +19,7 @@ from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
+from zim.notebook.index import IndexPageNotFoundError
 from zim.templates.expression import ExpressionFunction
 
 logger = logging.getLogger('zim.plugins.calendar')
@@ -462,11 +463,14 @@ class CalendarWidgetModel(object):
 
 	def list_dates_for_month(self, date):
 		namespace = self.plugin.path_for_month_from_date(date)
-		for path in self.notebook.pages.list_pages(namespace):
-			if date_path_re.match(path.name):
-				dates = daterange_from_path(path)
-				if dates and dates[0] == 'day':
-					yield dates[1]
+		try:
+			for path in self.notebook.pages.list_pages(namespace):
+				if date_path_re.match(path.name):
+					dates = daterange_from_path(path)
+					if dates and dates[0] == 'day':
+						yield dates[1]
+		except IndexPageNotFoundError:
+			pass
 
 
 class CalendarDialog(Dialog):

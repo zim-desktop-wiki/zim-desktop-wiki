@@ -529,7 +529,7 @@ class GtkInterface(gobject.GObject):
 				#~ child = self.actiongroup.get_action('open_page_child')
 				#~ child.set_sensitive(ourpath.haschildren)
 
-		#~ notebook.index.connect('page-inserted', new_child)
+		#~ notebook.index.connect('page-added', new_child)
 		#~ notebook.index.connect('page-deleted', child_deleted)
 
 		self.set_readonly(notebook.readonly)

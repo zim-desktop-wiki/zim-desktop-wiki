@@ -207,7 +207,8 @@ sdfsdf
 
 
 		# Test some more pages - any errors ?
-		for page in ui.notebook.walk():
+		for path in ui.notebook.pages.walk():
+			page = ui.notebook.get_page(path)
 			widget.on_open_page(ui, page, page)
 			widget.on_stored_page(ui.notebook, page)
 

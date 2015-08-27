@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -50,7 +50,8 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 8)
 
-		self.index.update(callback=tests.gtk_process_events)
+		for p in self.index.update_iter():
+			tests.gtk_process_events()
 		tests.gtk_process_events()
 
 		#~ treeview = PageTreeView(None) # just run hidden to check errors

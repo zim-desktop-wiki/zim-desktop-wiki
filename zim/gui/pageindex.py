@@ -182,8 +182,6 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 			('page-haschildren-toggled', partial(on_changed, signal='row-has-child-toggled')),
 			('page-to-be-removed', on_deleted),
 		))
-		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
-		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def disconnect_index(self):
 		'''Stop the model from listening to the index. Used e.g. to

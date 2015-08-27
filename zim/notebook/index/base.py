@@ -40,10 +40,16 @@ class IndexerBase(object):
 		self._signal_handlers = {}
 		self._signal_queue = []
 
-	def connect(self, signal, handler):
+	def connect(self, signal, handler, userdata=None):
 		assert signal in self.__signals__
 		if not signal in self._signal_handlers:
 			self._signal_handlers[signal] = []
+		if userdata is not None:
+			inner = handler
+			def wrapper(*a):
+				a = a + (userdata,)
+				inner(*a)
+			handler = wrapper
 		myhandler = (handler,) # new tuple to ensure unique object
 		self._signal_handlers[signal].append(myhandler)
 		return id(myhandler)

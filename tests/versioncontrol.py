@@ -84,10 +84,10 @@ class TestMainWindowExtension(tests.TestCase):
 		plugin.extend(notebook)
 		plugin.extend(ui.mainwindow)
 
-		notebook_ext = plugin.get_extension(NotebookExtension)
+		notebook_ext = plugin.get_extension(notebook, NotebookExtension)
 		self.assertIsInstance(notebook_ext, NotebookExtension)
 
-		window_ext = plugin.get_extension(MainWindowExtension)
+		window_ext = plugin.get_extension(ui.mainwindow, MainWindowExtension)
 		self.assertIsInstance(window_ext, MainWindowExtension)
 
 		## init & save version

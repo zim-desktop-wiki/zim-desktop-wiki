@@ -356,10 +356,10 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			self._flush()
 
 		self.connectto_all(self.index, (
-			('page-inserted', on_page_changed, 'row-inserted'),
-			('page-updated', on_page_changed, 'row-changed'),
+			('page-added', on_page_changed, 'row-inserted'),
+			('page-changed', on_page_changed, 'row-changed'),
 			('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
-			('page-to-be-deleted', on_page_deleted),
+			('page-to-be-removed', on_page_deleted),
 			# TODO: Treat tag-inserted and new tag differently
 			('tag-created', on_tag_created),
 			('tag-to-be-inserted', on_tag_to_be_inserted),
@@ -368,8 +368,6 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			('tag-removed', on_tag_removed),
 			('tag-to-be-deleted', on_tag_to_be_deleted),
 		))
-		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
-		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def _get_iter(self, treepath):
 		'''Convert the tree hierarchy to a PageTreeIter'''
@@ -595,8 +593,9 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 
 class TaggedPageTreeStore(DuplicatePageTreeStore):
 	'''
-	A TreeModel that lists all Zim pages in a flat list filtered by tags.
-	Pages with	associated sub-pages still show them as sub-nodes.
+	A TreeModel that lists all Zim pages in a flat list.
+	Pages with associated sub-pages still show them as sub-nodes.
+	Intended to be filtered by tags.
 	'''
 
 	filter_depth = 1 # tag filter only applies to top level
@@ -621,10 +620,10 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 			self._flush()
 
 		self.connectto_all(self.index, (
-			('page-inserted', on_page_changed, 'row-inserted'),
-			('page-updated', on_page_changed, 'row-changed'),
+			('page-added', on_page_changed, 'row-inserted'),
+			('page-changed', on_page_changed, 'row-changed'),
 			('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
-			('page-to-be-deleted', on_page_deleted),
+			('page-to-be-removed', on_page_deleted),
 		))
 
 	def _get_iter(self, treepath):
