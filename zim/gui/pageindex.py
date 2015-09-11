@@ -136,21 +136,20 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		self.index = index
 		self._pages = PagesView.new_from_index(index)
 		self.current_page = None
-
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
 		self._cache = {}
 		self._flush_scheduled = False
+
+		self._connect()
+
+	def _connect(self):
+		# May be overridden by descendants (e.g. TagTreeStore)
+
 		self._get_indexpath_for_treepath = \
 			get_indexpath_for_treepath_factory(self.index, self._cache)
 		self._get_treepath_for_indexpath = \
 			get_treepath_for_indexpath_factory(self.index, self._cache)
-
-		self._connect()
-
-
-	def _connect(self):
-		# May be overridden by descendants (e.g. TagTreeStore)
 
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path

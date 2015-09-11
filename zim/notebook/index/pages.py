@@ -436,7 +436,7 @@ class PagesViewInternal(object):
 
 	def walk(self, db, indexpath):
 		for row in db.execute(
-			'SELECT * FROM pages WHERE parent=? ORDER BY sortkey, basename',
+			'SELECT * FROM pages WHERE parent=? and page_exists>0 ORDER BY sortkey, basename',
 			(indexpath.id,)
 		):
 			child = indexpath.child_by_row(row)
@@ -447,7 +447,7 @@ class PagesViewInternal(object):
 
 	def walk_bottomup(self, db, indexpath):
 		for row in db.execute(
-			'SELECT * FROM pages WHERE parent=? ORDER BY sortkey, basename',
+			'SELECT * FROM pages WHERE parent=? and page_exists>0 ORDER BY sortkey, basename',
 			(indexpath.id,)
 		):
 			child = indexpath.child_by_row(row)
@@ -555,11 +555,20 @@ class PagesView(IndexViewBase):
 			yield # init done
 
 			for row in db.execute(
-				'SELECT * FROM pages WHERE parent=? ORDER BY sortkey, basename',
+				'SELECT * FROM pages WHERE parent=? and page_exists>0 ORDER BY sortkey, basename',
 				(path.id,)
 			):
 				child = path.child_by_row(row)
 				yield child
+
+	def n_all_pages(self):
+		'''Returns to total number of pages in the index'''
+		with self._db as db:
+			r = db.execute(
+				'SELECT COUNT(*) FROM pages WHERE id<>? and page_exists>0',
+				(ROOT_ID,)
+			).fetchone()
+			return r[0]
 
 	@init_generator
 	def walk(self, path=None):
@@ -597,7 +606,7 @@ class PagesView(IndexViewBase):
 			path = self._pages.lookup_by_pagename(db, path)
 
 			c = db.execute(
-				'SELECT * FROM pages WHERE parent=? and sortkey<? and basename<? '
+				'SELECT * FROM pages WHERE parent=? and sortkey<? and basename<? and page_exists>0 '
 				'ORDER BY sortkey DESC, basename DESC LIMIT 1',
 				(path.parent.id, natural_sort_key(path.basename), path.basename)
 			)
@@ -613,7 +622,7 @@ class PagesView(IndexViewBase):
 				prev = path.parent.child_by_row(row)
 				while prev.haschildren:
 					c = db.execute(
-						'SELECT * FROM pages WHERE parent=? '
+						'SELECT * FROM pages WHERE parent=? and page_exists>0 '
 						'ORDER BY sortkey DESC, basename DESC',
 						(prev.id,)
 					)
@@ -641,7 +650,7 @@ class PagesView(IndexViewBase):
 			if path.haschildren:
 				# Descent to first child
 				c = db.execute(
-					'SELECT * FROM pages WHERE parent=? '
+					'SELECT * FROM pages WHERE parent=? and page_exists>0 '
 					'ORDER BY sortkey, basename LIMIT 1',
 					(path.id,)
 				)
@@ -654,7 +663,7 @@ class PagesView(IndexViewBase):
 				while not path.isroot:
 					# Next on this level
 					c = db.execute(
-						'SELECT * FROM pages WHERE parent=? and sortkey>? and basename>? '
+						'SELECT * FROM pages WHERE parent=? and sortkey>? and basename>? and page_exists>0 '
 						'ORDER BY sortkey, basename LIMIT 1',
 						(path.parent.id, natural_sort_key(path.basename), path.basename)
 					)
@@ -676,10 +685,12 @@ class PagesView(IndexViewBase):
 
 		with self._db as db:
 			for row in db.execute(
-				'SELECT * FROM pages WHERE id>? ORDER BY mtime' + selection,
+				'SELECT * FROM pages WHERE id<>? and page_exists>0 ORDER BY mtime' + selection,
 				(ROOT_ID,)
 			):
 				yield self._pages.lookup_by_row(db, row)
+
+
 
 
 def get_indexpath_for_treepath_factory(index, cache):
@@ -693,6 +704,8 @@ def get_indexpath_for_treepath_factory(index, cache):
 	'''
 	# This method is constructed by a factory to speed up all lookups
 	# it is defined here to keep all SQL code in the same module
+	assert not cache, 'Better start with an empty cache!'
+
 	db_context = index.db_conn.db_context()
 
 	def get_indexpath_for_treepath(treepath):
@@ -700,9 +713,9 @@ def get_indexpath_for_treepath_factory(index, cache):
 		if treepath in cache:
 			return cache[treepath]
 
+		parent = ROOT_PATH
 		with db_context as db:
 			# Iterate parent paths
-			parent = ROOT_PATH
 			for i in range(1, len(treepath)):
 				mytreepath = tuple(treepath[:i])
 				if mytreepath in cache:
@@ -733,9 +746,10 @@ def get_indexpath_for_treepath_factory(index, cache):
 				(parent.id, offset)
 			)):
 				mytreepath = parentpath + (offset + i,)
-				indexpath = parent.child_by_row(row)
-				indexpath.treepath = mytreepath
-				cache[mytreepath] = indexpath
+				if not mytreepath in cache:
+					indexpath = parent.child_by_row(row)
+					indexpath.treepath = mytreepath
+					cache[mytreepath] = indexpath
 
 		try:
 			return cache[treepath]
@@ -743,6 +757,7 @@ def get_indexpath_for_treepath_factory(index, cache):
 			return None
 
 	return get_indexpath_for_treepath
+
 
 def get_treepath_for_indexpath_factory(index, cache):
 	'''Factory for the "get_treepath_for_indexpath()" method
@@ -758,15 +773,18 @@ def get_treepath_for_indexpath_factory(index, cache):
 	# Only cache to ensure subsequent get_indexpath_for_treepath calls
 	# are faster. Don't overwrite existing items in the cache to ensure
 	# ref count on paths.
+	assert not cache, 'Better start with an empty cache!'
 
 	db_context = index.db_conn.db_context()
 
 	def get_treepath_for_indexpath(indexpath):
 		with db_context as db:
-			treepath = []
 			parent = ROOT_PATH
-			for part in reversed([indexpath] + list(indexpath.parents())[:-1]):
-				basename = part.basename
+			treepath = []
+			for basename, id in zip(
+				indexpath.name.split(':'),
+				indexpath.ids[1:] # remove ROOT_ID in front
+			):
 				sortkey = natural_sort_key(basename)
 				row = db.execute(
 					'SELECT COUNT(*) FROM pages '
@@ -779,27 +797,185 @@ def get_treepath_for_indexpath_factory(index, cache):
 				if row:
 					treepath.append(row[0])
 					mytreepath = tuple(treepath)
-					if mytreepath in cache:
-						if cache[mytreepath].ids != part.ids:
-							raise IndexConsistencyError, 'Cache out of date'
-					elif not isinstance(part, IndexPathRow):
+					try:
+						parent = cache[mytreepath]
+					except KeyError:
 						row = db.execute(
-							'SELECT * FROM pages WHERE id=?', (part.id,)
+							'SELECT * FROM pages WHERE id=?', (id,)
 						).fetchone()
 						if row:
-							part = parent.child_by_row(row)
-							part.treepath = mytreepath
-							cache[mytreepath] = part
+							parent = parent.child_by_row(row)
+							parent.treepath = mytreepath
+							cache[mytreepath] = parent
 						else:
-							raise IndexConsistencyError, 'Invalid IndexPath: %r' % part
-					else:
-						part.treepath = mytreepath
-						cache[mytreepath] = part
-
-					parent = part
+							raise IndexConsistencyError
 				else:
 					raise IndexConsistencyError, 'huh!?'
 
 		return tuple(treepath)
 
 	return get_treepath_for_indexpath
+
+
+
+
+def get_indexpath_for_treepath_flatlist_factory(index, cache):
+	'''Factory for the "get_indexpath_for_treepath()" method
+	used by the page index Gtk widget.
+	This method stores the corresponding treepaths in the C{treepath}
+	attribute of the indexpath.
+	The "flatlist" version lists all pages in the toplevel of the tree,
+	followed by their children. This is intended to be filtered
+	dynamically.
+	@param index: an L{Index} object
+	@param cache: a dict used to store (intermediate) results
+	@returns: a function
+	'''
+	# This method is constructed by a factory to speed up all lookups
+	# it is defined here to keep all SQL code in the same module
+	assert not cache, 'Better start with an empty cache!'
+
+	db_context = index.db_conn.db_context()
+	pages = PagesViewInternal()
+
+	def get_indexpath_for_treepath_flatlist(treepath):
+		assert isinstance(treepath, tuple)
+		if treepath in cache:
+			return cache[treepath]
+
+		with db_context as db:
+			# Get toplevel
+			mytreepath = (treepath[0],)
+			if mytreepath in cache:
+				parent = cache[mytreepath]
+			else:
+				row = db.execute(
+					'SELECT * FROM pages '
+					'WHERE page_exists>0 and id<>?'
+					'ORDER BY sortkey, basename, id '
+					'LIMIT 1 OFFSET ? ',
+					(ROOT_ID, treepath[0])
+				).fetchone()
+				if row:
+					parent = pages.lookup_by_row(db, row)
+					parent.treepath = mytreepath
+					cache[mytreepath] = parent
+				else:
+					return None
+
+			# Iterate parent paths
+			for i in range(2, len(treepath)):
+				mytreepath = tuple(treepath[:i])
+				if mytreepath in cache:
+					parent = cache[mytreepath]
+				else:
+					row = db.execute(
+						'SELECT * FROM pages '
+						'WHERE parent=? and page_exists>0 '
+						'ORDER BY sortkey, basename '
+						'LIMIT 1 OFFSET ? ',
+						(parent.id, mytreepath[-1])
+					).fetchone()
+					if row:
+						parent = parent.child_by_row(row)
+						parent.treepath = mytreepath
+						cache[mytreepath] = parent
+					else:
+						return None
+
+			# Now cache a slice at the target level
+			parentpath = treepath[:-1]
+			offset = treepath[-1]
+			for i, row in enumerate(db.execute(
+				'SELECT * FROM pages '
+				'WHERE parent=? and page_exists>0 '
+				'ORDER BY sortkey, basename '
+				'LIMIT 20 OFFSET ? ',
+				(parent.id, offset)
+			)):
+				mytreepath = parentpath + (offset + i,)
+				if not mytreepath in cache:
+					indexpath = parent.child_by_row(row)
+					indexpath.treepath = mytreepath
+					cache[mytreepath] = indexpath
+
+		try:
+			return cache[treepath]
+		except KeyError:
+			return None
+
+	return get_indexpath_for_treepath_flatlist
+
+
+def get_treepaths_for_indexpath_flatlist_factory(index, cache):
+	'''Factory for the "get_treepath_for_indexpath()" method
+	used by the page index Gtk widget.
+	The "flatlist" version lists all pages in the toplevel of the tree,
+	followed by their children. This is intended to be filtered
+	dynamically.
+	@param index: an L{Index} object
+	@param cache: a dict used to store (intermediate) results
+	@returns: a function
+	'''
+	# This method is constructed by a factory to speed up all lookups
+	# it is defined here to keep all SQL code in the same module
+	#
+	# We don't do a reverse cache lookup - faster to just go forwards.
+	# Only cache to ensure subsequent get_indexpath_for_treepath calls
+	# are faster. Don't overwrite existing items in the cache to ensure
+	# ref count on paths.
+	#
+	# For the flatlist, all parents are toplevel, so number of results
+	# are equal to number of parents + self
+	# Below toplevel, paths are all the same
+	assert not cache, 'Better start with an empty cache!'
+
+	db_context = index.db_conn.db_context()
+	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(index, {})
+
+	def get_treepaths_for_indexpath_flatlist(indexpath):
+		normalpath = get_treepath_for_indexpath(indexpath)
+
+		with db_context as db:
+			parent = ROOT_PATH
+			treepaths = []
+			for basename, id, j in zip(
+				indexpath.name.split(':'),
+				indexpath.ids[1:], # remove ROOT_ID in front
+				range(1, len(indexpath.ids))
+			):
+				sortkey = natural_sort_key(basename)
+				row = db.execute(
+					'SELECT COUNT(*) FROM pages '
+					'WHERE page_exists>0 and id<>? and ('
+					'	sortkey<? '
+					'	or (sortkey=? and basename<?)'
+					'   or (sortkey=? and basename=? and id<?)'
+					')',
+					(ROOT_ID,
+						sortkey,
+						sortkey, basename,
+						sortkey, basename, id
+					)
+				).fetchone()
+				if row:
+					mytreepath = (row[0],) + normalpath[j:]
+						# toplevel + remainder of real treepath
+					treepaths.append(mytreepath)
+					#~ if not mytreepath in cache:
+						#~ row = db.execute(
+							#~ 'SELECT * FROM pages WHERE id=?', (id,)
+						#~ ).fetchone()
+						#~ if row:
+							#~ parent = parent.child_by_row(row)
+							#~ parent.treepath = mytreepath
+							#~ cache[mytreepath] = parent
+						#~ else:
+							#~ raise IndexConsistencyError, 'Invalid IndexPath: %r' % part
+				else:
+					raise IndexConsistencyError, 'huh!?'
+
+		return treepaths
+
+	return get_treepaths_for_indexpath_flatlist
+

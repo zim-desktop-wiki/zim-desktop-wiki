@@ -43,27 +43,30 @@ PAGES_TREE = { # Pages stored initially in the notebook
 	Path('Foo:Child1'): {
 		'treepath': (1,0),
 		'n_children': 2,
-		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' \
+			'@tag1 @tag2\n',
 		'links': [],
 		'backlinks': [],
-		'tags': [],
+		'tags': ['tag1', 'tag2'],
 	},
 	Path('Foo:Child2'): {
 		'treepath': (1,1),
 		'n_children': 0,
-		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n'
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' \
+			'@tag2\n' \
 			'[[Child3]]\n',
 		'links': ['Foo:Child3'],
 		'backlinks': [],
-		'tags': [],
+		'tags': ['tag2'],
 	},
 	Path('Foo:Child1:GrandChild1'): {
 		'treepath': (1,0,0),
 		'n_children': 0,
-		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' \
+			'@tag2\n',
 		'links': [],
 		'backlinks': [],
-		'tags': [],
+		'tags': ['tag2'],
 	},
 	Path('Foo:Child1:GrandChild2'): {
 		'treepath': (1,0,1),
@@ -138,16 +141,18 @@ UPDATE = {
 	Path('Bar:AAA'): {
 		'treepath': (),
 		'n_children': 0,
-		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' \
+			'@tag1 @tag2\n',
 		'links': [],
-		'tags': [],
+		'tags': ['tag1', 'tag2'],
 	},
 	Path('Bar:BBB'): {
 		'treepath': (),
 		'n_children': 0,
-		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n',
+		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' \
+			'@tag3\n',
 		'links': [],
-		'tags': [],
+		'tags': ['tag3'],
 	},
 	# On purpose skipping "Bar:CCC" and children here - should be touched & cleaned up automatically
 	Path('Bar:CCC:xxx:yyy:zzz:aaa'): {
@@ -697,6 +702,8 @@ class TestPagesView(tests.TestCase):
 		)
 		#~ print [p.name for p in pagelist]
 
+		self.assertEqual(len(pagelist), pages.n_all_pages())
+
 		last = len(pagelist)-1
 		for i, p in enumerate(pagelist):
 			r = pages.get_previous(p)
@@ -779,7 +786,10 @@ class TestPagesView(tests.TestCase):
 	def testTreePathMethods(self):
 		index = new_memory_index()
 
-		def check_treepath(get_indexpath_for_treepath, get_treepath_for_indexpath):
+		def check_treepath(
+			get_indexpath_for_treepath,
+			get_treepath_for_indexpath,
+		):
 			# Test all pages
 			for p, attr in PAGES.items():
 				if attr['treepath']:
@@ -811,6 +821,46 @@ class TestPagesView(tests.TestCase):
 			get_treepath_for_indexpath_factory(index, cache)
 		)
 
+	def testTreePathMethodsFlatlist(self):
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
+
+		def check_treepath(
+			get_indexpath_for_treepath,
+			get_treepaths_for_indexpath,
+		):
+			# Test all pages
+			for p, attr in PAGES.items():
+				if attr['treepath']:
+					indexpath = pages.lookup_by_pagename(p)
+					assert not indexpath.isroot
+					for treepath in get_treepaths_for_indexpath(indexpath):
+						myindexpath = get_indexpath_for_treepath(treepath)
+						self.assertEqual(myindexpath.name, p.name)
+						self.assertEqual(myindexpath.treepath, treepath)
+
+			# Test non-existing
+			p = get_indexpath_for_treepath((1,2,3,4,5))
+			self.assertIsNone(p)
+
+		# Separate caches to lets each method start from scratch
+		cache1 = {}
+		cache2 = {}
+		check_treepath(
+			get_indexpath_for_treepath_flatlist_factory(index, cache1),
+			get_treepaths_for_indexpath_flatlist_factory(index, cache2)
+		)
+
+		#~ self.assertEqual(cache1, cache2)
+
+		# Now try again with a shared cache
+		cache = {}
+		check_treepath(
+			get_indexpath_for_treepath_flatlist_factory(index, cache),
+			get_treepaths_for_indexpath_flatlist_factory(index, cache)
+		)
+
+
 
 class TestTagsView(tests.TestCase):
 
@@ -835,12 +885,65 @@ class TestTagsView(tests.TestCase):
 				mytags[t].add(p.name)
 
 		assert len(mytags) > 1
+		#~ import pprint; pprint.pprint(mytags)
 		for t in mytags:
 			pages = set(p.name for p in tags.list_pages(t))
 			self.assertEqual(pages, mytags[t])
 
 		with self.assertRaises(IndexNotFoundError):
 			tags.list_pages('foooo')
+
+	def testTreePathMethodsTagged(self):
+		index = new_memory_index()
+		pages = PagesView.new_from_index(index)
+		tags = TagsView.new_from_index(index)
+
+		def check_treepath(
+			get_indexpath_for_treepath,
+			get_treepaths_for_indexpath,
+		):
+			# Test all tags
+			for tag in tags.list_all_tags():
+				treepaths = get_treepaths_for_indexpath(tag)
+				self.assertTrue(len(treepaths) == 1 and len(treepaths[0]) == 1)
+				indextag = get_indexpath_for_treepath(treepaths[0])
+				self.assertEqual(indextag.treepath, treepaths[0])
+				self.assertEqual(indextag.name, tag.name)
+
+			# Test all pages
+			for p, attr in PAGES.items():
+				if attr['treepath']:
+					indexpath = pages.lookup_by_pagename(p)
+					for treepath in get_treepaths_for_indexpath(indexpath):
+						myindexpath = get_indexpath_for_treepath(treepath)
+						self.assertEqual(myindexpath.name, p.name)
+						self.assertEqual(myindexpath.treepath, treepath)
+
+			# Test non-existing
+			p = get_indexpath_for_treepath((20,))
+			self.assertIsNone(p)
+			p = get_indexpath_for_treepath((1,2,3,4,5))
+			self.assertIsNone(p)
+
+		# Separate caches to lets each method start from scratch
+		cache1 = {}
+		cache2 = {}
+		check_treepath(
+			get_indexpath_for_treepath_tagged_factory(index, cache1),
+			get_treepaths_for_indexpath_tagged_factory(index, cache2)
+		)
+
+		#~ self.assertEqual(cache1, cache2)
+
+		# Now try again with a shared cache
+		cache = {}
+		check_treepath(
+			get_indexpath_for_treepath_tagged_factory(index, cache),
+			get_treepaths_for_indexpath_tagged_factory(index, cache)
+		)
+
+
+
 
 
 class TestLinksView(tests.TestCase):

@@ -16,7 +16,6 @@ from zim.config import ConfigDict
 from zim.plugins.tags import *
 
 
-@tests.slowTest
 class TestTaggedPageTreeStore(tests.TestCase):
 
 	def setUp(self):
@@ -25,71 +24,44 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		self.notebook = tests.new_notebook()
 		self.index = self.notebook.index
 
-	def runTest(self):
+	def testTreeStore(self):
 		'''Test TaggedPageTreeStore index interface'''
-		# This is one big test instead of seperate sub tests because in the
-		# subclass we generate a file based notebook in setUp, and we do not
-		# want to do that many times.
 		# Hooking up the treeview as well just to see if we get any errors
 		# From the order the signals are generated.
 
-		ui = MockUI()
-		ui.notebook = self.notebook
-		ui.page = Path('Test:foo')
-		self.assertTrue(self.notebook.get_page(ui.page).exists())
-
+		# Check configuration
 		treestore = self.storeclass(self.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 8)
-		treeview = self.viewclass(ui, treestore)
-		model = treeview.get_model()
-		if isinstance(model, gtk.TreeModelFilter):
-			model = model.get_model() # look inside filtered model
-		self.assertEqual(model, treestore)
-
-		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 8)
-
-		for p in self.index.update_iter():
-			tests.gtk_process_events()
-		tests.gtk_process_events()
-
-		#~ treeview = PageTreeView(None) # just run hidden to check errors
-		#~ treeview.set_model(treestore)
-
-		n = treestore.on_iter_n_children(None)
-		self.assertTrue(n > 0)
-		n = treestore.iter_n_children(None)
-		self.assertTrue(n > 0)
-
 		for i in range(treestore.get_n_columns()):
 			self.assertTrue(not treestore.get_column_type(i) is None)
 
+		# Check top level
+		n = treestore.on_iter_n_children(None) # iternal
+		self.assertTrue(n > 0)
+		n = treestore.iter_n_children(None) # external
+		self.assertTrue(n > 0)
+
 		# Quick check for basic methods
 		iter = treestore.on_get_iter((0,))
-		self.assertTrue(isinstance(iter, (PageTreeIter, PageTreeTagIter)))
 		if self.storeclass is TaggedPageTreeStore:
-			self.assertTrue(isinstance(iter, PageTreeIter))
-			self.assertTrue(isinstance(iter.indexpath, IndexPath))
-			self.assertFalse(iter.indexpath.isroot)
+			self.assertIsInstance(iter, IndexPath)
+			self.assertFalse(iter.isroot)
 		else:
-			self.assertTrue(isinstance(iter, PageTreeTagIter))
-			self.assertTrue(isinstance(iter.indextag, IndexTag))
-		basename = treestore.on_get_value(iter, 0)
-		self.assertTrue(len(basename) > 0)
+			self.assertIsInstance(iter, IndexTag)
+
 		self.assertEqual(iter.treepath, (0,))
 		self.assertEqual(treestore.on_get_path(iter), (0,))
-		if self.storeclass is TaggedPageTreeStore:
-			self.assertEqual(treestore.get_treepath(iter.indexpath), (0,))
-			self.assertEqual(treestore.get_treepath(Path(iter.indexpath.name)), (0,))
-		else:
-			self.assertEqual(treestore.get_treepath(iter.indextag), (0,))
+		self.assertEqual(treestore.get_treepath(iter), (0,))
+
+		basename = treestore.on_get_value(iter, 0)
+		self.assertTrue(len(basename) > 0)
 
 		iter2 = treestore.on_iter_children(None)
 		if self.storeclass is TaggedPageTreeStore:
-			self.assertEqual(iter2.indexpath, iter.indexpath)
+			self.assertIsInstance(iter, IndexPath)
 		else:
-			self.assertEqual(iter2.indextag, iter.indextag)
+			self.assertIsInstance(iter, IndexTag)
 
 		self.assertTrue(treestore.on_get_iter((20,20,20,20,20)) is None)
 		self.assertTrue(treestore.get_treepath(Path('nonexisting')) is None)
@@ -108,10 +80,13 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			iter = treestore.get_iter(path)
 			self.assertEqual(treestore.get_path(iter), tuple(path))
 
-			if isinstance(treestore.on_get_iter(path), PageTreeIter):
+			rawiter = treestore.on_get_iter(path)
+			if isinstance(rawiter, IndexPath):
 				self._check_indexpath_iter(treestore, iter, path)
-			else:
+			elif isinstance(rawiter, IndexTag):
 				self._check_indextag_iter(treestore, iter, path)
+			else:
+				assert False, 'Huh!?'
 
 			# Determine how to continue
 			if treestore.iter_has_child(iter):
@@ -130,16 +105,22 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		self.assertTrue(nitems > 10) # double check sanity of loop
 
-		# Check if all the signals go OK
-		treestore.disconnect_index()
-		del treestore
-		self.index.flush()
+	def testTreeView(self):
+		ui = MockUI()
+		ui.notebook = self.notebook
+		ui.page = Path('roundtrip')
+		self.assertTrue(self.notebook.get_page(ui.page).exists())
+
 		treestore = self.storeclass(self.index)
-		treeview = TagsPageTreeView(ui, treestore)
-		self.index.update(callback=tests.gtk_process_events)
+		treeview = self.viewclass(ui, treestore)
+
+		# Process signals on by one
+		for p in self.index.update_iter():
+			tests.gtk_process_events()
+		tests.gtk_process_events()
 
 		# Try some TreeView methods
-		path = Path('Test:foo')
+		path = Path('roundtrip')
 		self.assertTrue(treeview.set_current_page(path))
 		# TODO assert something
 		treepath = treeview.get_model().get_treepath(path)
@@ -152,7 +133,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		treeview.emit('copy')
 
 		# Check if all the signals go OK in delete
-		for page in reversed(list(self.notebook.walk())): # delete bottom up
+		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
 
@@ -184,19 +165,12 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		self.assertEqual(treestore.get_value(iter, NAME_COL), indextag.name)
 		self.assertEqual(treestore.get_value(iter, PATH_COL), indextag)
-		if indextag == treestore.untagged:
-			self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
-			self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
-			self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
-		else:
-			self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
-			self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-			self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
+		self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
+		self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
+		self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 
-		if indextag == treestore.untagged:
-			haschildren = self.index.n_list_untagged_root_pages() > 0
-		else:
-			haschildren = self.index.n_list_tagged_pages(indextag) > 0
+		tags = TagsView.new_from_index(self.index)
+		haschildren = tags.n_list_pages(indextag) > 0
 		self._check_iter_children(treestore, iter, path, haschildren)
 
 	def _check_iter_children(self, treestore, iter, path, haschildren):
@@ -235,10 +209,6 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		TestTaggedPageTreeStore.setUp(self)
 		self.storeclass = TagsPageTreeStore
 		self.viewclass = TagsPageTreeView
-
-	def runTest(self):
-		'''Test TagsPageTreeStore index interface'''
-		TestTaggedPageTreeStore.runTest(self)
 
 
 @tests.slowTest
@@ -312,7 +282,7 @@ class TestTagPluginWidget(tests.TestCase):
 		for iter in toplevel(filteredmodel):
 			path = filteredmodel.get_indexpath(iter)
 			self.assertTrue(not path is None)
-			tags = list(ui.notebook.index.list_tags(path))
+			tags = list(ui.notebook.tags.list_tags(path))
 			tags = frozenset(tags)
 			self.assertTrue(selected.issubset(tags)) # Needs to contains selected tags
 			self.assertTrue(tags.issubset(filtered)) # All other tags should be in the filter selection
@@ -330,7 +300,7 @@ class TestTagPluginWidget(tests.TestCase):
 			for iter in childiter(filteredmodel, iter):
 				path = filteredmodel.get_indexpath(iter)
 				self.assertTrue(not path is None)
-				tags = list(ui.notebook.index.list_tags(path))
+				tags = list(ui.notebook.tags.list_tags(path))
 				tags = frozenset(tags)
 				self.assertTrue(selected.issubset(tags)) # Needs to contains selected tags
 				self.assertTrue(tags.issubset(filtered)) # All other tags should be in the filter selection

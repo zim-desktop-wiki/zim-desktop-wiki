@@ -236,16 +236,13 @@ class Path(object):
 				path.pop()
 		yield Path(':')
 
-	def child(self, name):
+	def child(self, basename):
 		'''Get a child Path
 
-		@param name: the relative name for the child
+		@param basename: the relative name for the child
 		@returns: a new L{Path} object
 		'''
-		if len(self.name):
-			return Path(self.name+':'+name)
-		else: # we are the top level root namespace
-			return Path(name)
+		return Path(self.name+':'+basename)
 
 	def ischild(self, parent):
 		'''Check of this path is a child of a given path
