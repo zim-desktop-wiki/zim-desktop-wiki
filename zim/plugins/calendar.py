@@ -422,8 +422,7 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		#print "UPDATE LABEL %s" % id(self)
 		format = _('%A %d %B %Y').replace(' 0', ' ')
 			# T: strftime format for current date label
-		text = datetime.date.today().strftime(str(format))
-			# str() needed for python 2.5 compatibility strftime
+		text = datetime.strftime(format, datetime.date.today())
 		self.label.set_text(text)
 		return True # else timer is stopped
 

@@ -6293,7 +6293,7 @@ class InsertDateDialog(Dialog):
 		def update_date(model, path, iter):
 			format = model[iter][self.FORMAT_COL]
 			try:
-				string = date.strftime(format)
+				string = datetime.strftime(format, date)
 			except ValueError:
 				string = 'INVALID: ' + format
 			model[iter][self.DATE_COL] = string

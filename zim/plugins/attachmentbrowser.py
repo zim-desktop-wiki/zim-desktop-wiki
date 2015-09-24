@@ -41,7 +41,6 @@
 import os
 import re
 import hashlib # for thumbfilenames
-import datetime
 import logging
 import Queue
 import threading
@@ -65,6 +64,8 @@ from zim.fs import File, Dir, format_file_size
 from zim.errors import Error
 from zim.applications import Application
 from zim.parsing import url_encode, URL_ENCODE_READABLE
+
+import zim.datetimetz as datetime
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
 	IconButton, ScrolledWindow, button_set_statusbar_style, \
@@ -707,7 +708,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		file = self.dir.file(name)
 		mtime = file.mtime()
 		if mtime:
-			mdate = datetime.datetime.fromtimestamp(file.mtime()).strftime('%c')
+			mdate = datetime.datetime.fromtimestamp(file.mtime())
+			mdate = datetime.strftime('%c', mdate)
 			# TODO: fix datetime format
 		else:
 			mdate = _('Unknown') # T: unspecified value for file modification time

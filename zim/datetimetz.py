@@ -15,6 +15,7 @@ with weeknumbers correctly.
 '''
 
 import re
+import locale
 
 from datetime import *
 
@@ -83,7 +84,6 @@ def init_first_day_of_week():
 	global FIRST_DAY_OF_WEEK
 	try:
 		import babel
-		import locale
 		mylocale = babel.Locale(locale.getdefaultlocale()[0])
 		if mylocale.first_week_day == 0:
 			FIRST_DAY_OF_WEEK = MONDAY
@@ -247,7 +247,10 @@ def strftime(format, date):
 			return code # ignore unsupported codes
 
 	format = re.sub(r'\%.', replacefunc, format)
-	return date.strftime(format)
+	string = date.strftime(str(format)) # str() needed for python 2.5 compatibility strftime
+	string = string.decode(locale.getlocale()[1]) # decode local specific output to unicode
+	return string
+
 
 
 if __name__ == '__main__': #pragma: no cover
