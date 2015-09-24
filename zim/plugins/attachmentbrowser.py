@@ -466,7 +466,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.fileview.connect('drag-data-get', self.on_drag_data_get)
 		self.fileview.connect('drag-data-received', self.on_drag_data_received)
 
-		self.add(ScrolledWindow(self.fileview))
+		self.add(ScrolledWindow(self.fileview, shadow=gtk.SHADOW_NONE))
 
 		self.buttonbox = gtk.VBox()
 		self.pack_end(self.buttonbox, False)

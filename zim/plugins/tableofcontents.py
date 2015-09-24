@@ -14,7 +14,7 @@ import datetime
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.notebook import Path
 from zim.formats import HEADING
-from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, TableVBox
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 from zim.signals import ConnectorMixin
 
@@ -401,65 +401,16 @@ class SidePaneToC(ToCWidget):
 		self.set_size_request(-1, 200) # Fixed Height
 
 
-class BoxWidget(gtk.VBox):
-
-	# Tried to implement somthing like this from scratch,
-	# but found that I need to inherit from a concrete gtk.Container
-	# implementation because I couldn't figure out how to override
-	# / implement the forall() method from python
-
-	BORDER = 0
-	LINE = 1
-
-	def __init__(self):
-		gtk.VBox.__init__(self)
-		self.set_border_width(self.BORDER + self.LINE)
-		self.set_spacing(2 * self.BORDER + self.LINE)
-		self.set_redraw_on_allocate(True)
-
-	def do_expose_event(self, event):
-		self.foreach(self._expose_child, event)
-		return True
-
-	def _expose_child(self, child, event):
-		# Draw box around child, then draw child
-		# Widget must ensure there is space arount the child
-
-		line = self.LINE
-		border = self.BORDER
-
-		if child.is_drawable():
-			self.style.paint_flat_box(
-				event.window, gtk.STATE_ACTIVE, gtk.SHADOW_NONE, None, self, None,
-				child.allocation.x - border - line,
-				child.allocation.y - border - line,
-				child.allocation.width + 2*border + 2*line,
-				child.allocation.height + 2*border + 2*line,
-			)
-			self.style.paint_flat_box(
-				event.window, gtk.STATE_NORMAL, gtk.SHADOW_NONE, None, self, None,
-				child.allocation.x - border,
-				child.allocation.y - border,
-				child.allocation.width + 2*border,
-				child.allocation.height + 2*border,
-			)
-		gtk.Container.propagate_expose(self, child, event)
-
-
-# Need to register classes defining gobject signals
-gobject.type_register(BoxWidget)
-
-
-class FloatingToC(BoxWidget, ConnectorMixin):
+class FloatingToC(TableVBox, ConnectorMixin):
 
 	# This class does all the work to keep the floating window in
 	# the right place, and with the right size
-	# Depends on BoxWidget to draw nice line border around it
+	# Depends on TableVBox to draw nice line border around it
 
 	TEXTVIEW_OFFSET = 5
 
 	def __init__(self, ui, pageview):
-		BoxWidget.__init__(self)
+		TableVBox.__init__(self)
 
 		hscroll = gtk.HScrollbar(gtk.Adjustment())
 		self._hscroll_height = hscroll.size_request()[1]
@@ -514,7 +465,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 
 	def destroy(self):
 		self._event_box.destroy()
-		BoxWidget.destroy(self)
+		TableVBox.destroy(self)
 
 	def on_toggle(self, *a):
 		self.widget.set_property('visible',
@@ -530,7 +481,7 @@ class FloatingToC(BoxWidget, ConnectorMixin):
 		text_window = self.textview.get_window(gtk.TEXT_WINDOW_WIDGET)
 		if text_window is None:
 			# Textview not yet initialized (?)
-			return BoxWidget.do_size_request(self, requisition)
+			return TableVBox.do_size_request(self, requisition)
 
 		text_x, text_y, text_w, text_h, text_z = text_window.get_geometry()
 
