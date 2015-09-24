@@ -3398,9 +3398,12 @@ class TextFinder(object):
 		if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
 			return
 		widgets = start.get_child_anchor().get_widgets()
+		# TODO TODO TODO - generalize interface so all widgets can integrate find
 		if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
 			table = widgets[0]
-			liststore = table.get_liststore()
+			# get treeview first
+			treeview = table.get_treeview()
+			liststore = treeview.get_model()
 			iter = liststore.get_iter_root()
 			while iter is not None:
 				for col in range(liststore.get_n_columns()):
