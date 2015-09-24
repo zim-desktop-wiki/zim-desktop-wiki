@@ -8,6 +8,7 @@ The following plugins are standard included with zim:
 * [[+Arithmetic|Arithmetic]]
 * [[+Attachment Browser|Attachment Browser]]
 * [[+BackLinks Pane|BackLinks Pane]]
+* [[+BookmarksBar|BookmarksBar]]
 * [[+Diagram Editor|Diagram Editor]]
 * [[+Distraction Free Editing|Distraction Free Editing]]
 * [[+Ditaa Editor|Ditaa Editor]]

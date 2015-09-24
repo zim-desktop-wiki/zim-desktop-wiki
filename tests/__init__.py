@@ -55,7 +55,7 @@ __all__ = [
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
-	'sourceview', 'tableeditor',
+	'sourceview', 'tableeditor', 'bookmarksbar',
 	'ipc'
 ]
 
