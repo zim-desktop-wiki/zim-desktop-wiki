@@ -59,7 +59,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		Runs: fossil add {{PATH}}
 		"""
 		if path is None:
-			return self.run(['add', self.notebook_dir])
+			return self.run(['addremove', self.notebook_dir])
 		else:
 			return self.run(['add', path])
 

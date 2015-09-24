@@ -76,6 +76,7 @@ class TestVCS(tests.TestCase):
 		subdir.touch()
 		self.assertEqual(VCS._detect_in_folder(subdir), ('fossil', subroot))
 
+
 @tests.slowTest
 @tests.skipUnless(
 	any(
@@ -162,6 +163,17 @@ class TestVersionsDialog(tests.TestCase):
 		pass # TODO test other dialog functions
 
 
+class VersionControlBackendTests(object):
+
+	def setUp(self):
+		zim.plugins.versioncontrol.TEST_MODE = False
+
+	def tearDown(self):
+		zim.plugins.versioncontrol.TEST_MODE = True
+
+	# TODO - unify test cases with single interface test
+
+
 
 #####################################################
 #
@@ -170,18 +182,11 @@ class TestVersionsDialog(tests.TestCase):
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.BZR), 'Missing dependencies')
-class TestBazaar(tests.TestCase):
+class TestBazaar(VersionControlBackendTests, tests.TestCase):
 
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''
-		print '\n!! Some raw output from Bazaar expected here !!'
-
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = VCS.create(VCS.BZR, root, root)
 		vcs.init()
@@ -297,6 +302,12 @@ bar
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
 
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
+
 
 #####################################################
 #
@@ -305,18 +316,10 @@ bar
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
-class TestGit(tests.TestCase):
-
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+class TestGit(VersionControlBackendTests, tests.TestCase):
 
 	def runTest(self):
 		'''Test Git version control'''
-		print '\n!! Some raw output from Git could appear here !!'
-
 		root = get_tmp_dir('versioncontrol_TestGit')
 		vcs = VCS.create(VCS.GIT, root, root)
 		vcs.init()
@@ -458,6 +461,12 @@ test
 		self.assertIn(UTF8_COMMENT, versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
 
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
+
 
 # XXX ignore renames and deletions?
 
@@ -484,18 +493,10 @@ test
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.HG), 'Missing dependencies')
-class TestMercurial(tests.TestCase):
-
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+class TestMercurial(VersionControlBackendTests, tests.TestCase):
 
 	def runTest(self):
 		'''Test Mercurial version control'''
-		print '\n!! Some raw output from Mercurial expected here !!'
-
 		root = get_tmp_dir('versioncontrol_TestMercurial')
 		vcs = VCS.create(VCS.HG, root, root)
 		vcs.init()
@@ -600,6 +601,13 @@ rename to bar.txt
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
 
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
+
+
 #####################################################
 #
 # FOSSIL BACKEND TEST
@@ -607,18 +615,10 @@ rename to bar.txt
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.FOSSIL), 'Missing dependencies')
-class TestFossil(tests.TestCase):
-
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+class TestFossil(VersionControlBackendTests, tests.TestCase):
 
 	def runTest(self):
 		'''Test Fossil version control'''
-		print '\n!! Some raw output from Fossil could appear here !!'
-
 		root = get_tmp_dir('versioncontrol_TestFossil')
 		vcs = VCS.create(VCS.FOSSIL, root, root)
 		vcs.init()
@@ -731,3 +731,8 @@ Index: foo/bar/bar.txt
 		self.assertIn(UTF8_COMMENT, versions[0][-1])
 		self.assertIsInstance(versions[0][-1], unicode)
 
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
