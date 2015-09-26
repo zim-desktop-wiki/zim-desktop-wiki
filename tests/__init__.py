@@ -55,7 +55,7 @@ __all__ = [
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
-	'sourceview', 'tableeditor', 'bookmarksbar',
+	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
 	'ipc'
 ]
 
@@ -272,10 +272,13 @@ class LoggingFilter(object):
 	def filter(self, record):
 		msg = record.getMessage()
 
-		if isinstance(self.message, tuple):
+		if self.message is None:
+			return False
+		elif isinstance(self.message, tuple):
 			return not any(msg.startswith(m) for m in self.message)
 		else:
 			return not msg.startswith(self.message)
+
 
 	def wrap_test(self, test):
 		self.__enter__()

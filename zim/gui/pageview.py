@@ -465,7 +465,7 @@ class TextBuffer(gtk.TextBuffer):
 	Formatting styles like bold, italic etc. as well as functional
 	text objects like links and tags are represented by C{gtk.TextTags}.
 	For static styles these TextTags have the same name as the style.
-	For links and tag anonymous TextTags are used. Be aware thoush that
+	For links and tag anonymous TextTags are used. Be aware though that
 	not all TextTags in the model are managed by us, e.g. gtkspell
 	uses it's own tags. TextTags that are managed by us have an
 	additional attribute C{zim_type} which gives the format type
@@ -3590,7 +3590,6 @@ class TextView(gtk.TextView):
 		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
 		self._cursor_link = None
-		self.gtkspell = None
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
@@ -3598,18 +3597,6 @@ class TextView(gtk.TextView):
 		actions = gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE | gtk.gdk.ACTION_LINK
 		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
 			# Flags is 0 because gtktextview does everything itself
-
-	def set_buffer(self, buffer):
-		'''Set a new L{TextBuffer} to display
-
-		@param buffer: a L{TextBuffer} object
-		'''
-		if not self.gtkspell is None:
-			# Hardcoded hook because using signals here
-			# seems to introduce lag
-			self.gtkspell.detach()
-			self.gtkspell = None
-		gtk.TextView.set_buffer(self, buffer)
 
 	def do_copy_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.copy_clipboard
