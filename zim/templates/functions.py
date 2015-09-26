@@ -53,6 +53,7 @@ def template_strftime(format, date=None):
 		# strftime returns locale as understood by the C api
 		# unfortunately there is no guarantee we can actually
 		# decode it ...
+		return string
 	except:
 		logger.exception('Error in strftime "%s"', format)
 
