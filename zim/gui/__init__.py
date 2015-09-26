@@ -575,72 +575,10 @@ class GtkInterface(gobject.GObject):
 		timeout = self.preferences['GtkInterface']['autosave_timeout'] * 1000 # s -> ms
 		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
 
-
 		# Check notebook
 		self.check_notebook_needs_upgrade()
 
-		# Update menus etc.
-		self.uimanager.ensure_update()
-			# Prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap.
-			# For maemo ensure all items are initialized before moving
-			# them to the hildon menu
-
-		## HACK - should be in MainWindow, but needs to go after ensure_update()
-		space = gtk.SeparatorToolItem()
-		space.set_draw(False)
-		space.set_expand(True)
-		self.mainwindow.toolbar.insert(space, -1)
-
-		from zim.gui.widgets import InputEntry
-		entry = InputEntry(placeholder_text=_('Search'))
-		if gtk.gtk_version >= (2, 16) \
-		and gtk.pygtk_version >= (2, 16):
-			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
-			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
-			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
-				# T: label in search entry
-		inline_search = lambda e, *a: self.show_search(query=e.get_text() or None)
-		entry.connect('activate', inline_search)
-		entry.connect('icon-release', inline_search)
-		entry.show()
-		item = gtk.ToolItem()
-		item.add(entry)
-		self.mainwindow.toolbar.insert(item, -1)
-		##
-
-		if ui_environment['platform'] == 'maemo':
-			# Move the menu to the hildon menu
-			# This is save for later updates of the menus (e.g. by plugins)
-			# as long as the toplevel menus are not changed
-			menu = gtk.Menu()
-			for child in self.mainwindow.menubar.get_children():
-				child.reparent(menu)
-			self.mainwindow.set_menu(menu)
-			self.mainwindow.menubar.hide()
-
-			# Localize the fullscreen button in the toolbar
-			for i in range(self.mainwindow.toolbar.get_n_items()):
-				self.fsbutton = None
-				toolitem = self.mainwindow.toolbar.get_nth_item(i)
-				if isinstance(toolitem, gtk.ToolButton):
-					if toolitem.get_stock_id() == 'gtk-fullscreen':
-						self.fsbutton = toolitem
-						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
-						break
-
-		accelmap = self.config.get_config_file('accelmap').file
-		logger.debug('Accelmap: %s', accelmap.path)
-		if accelmap.exists():
-			gtk.accel_map_load(accelmap.path)
-
-		def on_accel_map_changed(o, path, key, mod):
-			logger.info('Accelerator changed for %s', path)
-			gtk.accel_map_save(accelmap.path)
-
-		gtk.accel_map_get().connect('changed', on_accel_map_changed)
-
-
+		# Setup signal handler
 		def handle_sigterm(signal, frame):
 			logger.info('Got SIGTERM, quit')
 			self.close_page()
@@ -2865,6 +2803,7 @@ class MainWindow(Window):
 		# delayed till show or show_all because all this needs real
 		# uistate to be in place and plugins to be loaded
 		# also pathbar needs history in place
+		# Run between loading plugins and actually presenting the window to the user
 		self.uistate = self.ui.uistate['MainWindow']
 
 		if not self._geometry_set:
@@ -2936,6 +2875,46 @@ class MainWindow(Window):
 
 		# Notify plugins
 		self.emit('init-uistate')
+
+		# Update menus etc.
+		self.ui.uimanager.ensure_update()
+			# Prevent flashing when the toolbar is loaded after showing the window
+			# and do this before connecting signal below for accelmap.
+
+		# Add search bar onec toolbar is loaded
+		space = gtk.SeparatorToolItem()
+		space.set_draw(False)
+		space.set_expand(True)
+		self.toolbar.insert(space, -1)
+
+		from zim.gui.widgets import InputEntry
+		entry = InputEntry(placeholder_text=_('Search'))
+		if gtk.gtk_version >= (2, 16) \
+		and gtk.pygtk_version >= (2, 16):
+			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
+			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
+			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
+				# T: label in search entry
+		inline_search = lambda e, *a: self.ui.show_search(query=e.get_text() or None)
+		entry.connect('activate', inline_search)
+		entry.connect('icon-release', inline_search)
+		entry.show()
+		item = gtk.ToolItem()
+		item.add(entry)
+		self.toolbar.insert(item, -1)
+
+		# Load accelmap config and setup saving it
+		accelmap = self.ui.config.get_config_file('accelmap').file
+		logger.debug('Accelmap: %s', accelmap.path)
+		if accelmap.exists():
+			gtk.accel_map_load(accelmap.path)
+
+		def on_accel_map_changed(o, path, key, mod):
+			logger.info('Accelerator changed for %s', path)
+			gtk.accel_map_save(accelmap.path)
+
+		gtk.accel_map_get().connect('changed', on_accel_map_changed)
+
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets

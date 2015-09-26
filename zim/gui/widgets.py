@@ -2786,10 +2786,10 @@ class Window(gtkwindowclass):
 		# are enabled before we finalize the presentation of the window.
 		# This is important for state of e.g. panes to work correctly
 		if not self._registered:
-			register_window(self)
 			self._registered = True
-		if hasattr(self, 'uistate'):
-			self.init_uistate()
+			register_window(self)
+			if hasattr(self, 'uistate'):
+				self.init_uistate()
 		gtkwindowclass.show_all(self)
 
 # Need to register classes defining gobject signals
@@ -3903,9 +3903,10 @@ class Assistant(Dialog):
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
 			ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
 			self.disconnect(self._expose_event_id)
+			return False # propagate
 
 		self._expose_event_id = \
-			self.connect('expose-event', _set_heading_color)
+			self.connect_after('expose-event', _set_heading_color)
 
 		hbox = gtk.HBox()
 		hbox.set_border_width(5)

@@ -501,15 +501,28 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self._insenstive_color = None
 
 		def _init_base_color(*a):
-			# This is handled on expose event, because style does not
-			# yet reflect theming on construction
-			if self._senstive_color is None:
-				self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
-				self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
+			try:
+				# This is handled on expose event, because style does not
+				# yet reflect theming on construction
+				if self._senstive_color is None:
+					self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
+					self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
 
-			self._update_state()
+				# Calling _update_state here locks up the interface
+				if self.dir is None or not self.dir.exists():
+					self.fileview.modify_base(
+						gtk.STATE_NORMAL, self._insenstive_color)
+				else:
+					self.fileview.modify_base(
+						gtk.STATE_NORMAL, self._senstive_color)
+			except:
+				logger.exception('Exception in expose event')
 
-		self.connect('expose-event', _init_base_color)
+			return False # propagate
+
+		self.connect_after('expose-event', _init_base_color)
+
+		self._update_state()
 
 	def embed_closebutton(self, button):
 		if button:
