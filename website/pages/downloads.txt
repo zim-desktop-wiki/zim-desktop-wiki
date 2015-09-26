@@ -44,6 +44,6 @@ The following Linux distributions are known to include zim:
 * Ubuntu (universe)
 
 BSD flavors with a zim port:
-* [[http://www.freshports.org/editors/zim|FreeBSD]]
+* [[http://www.freshports.org/deskutils/zim|FreeBSD]]
 * [[http://www.openbsd.org/cgi-bin/cvsweb/ports/productivity/zim/|OpenBSD]]
 

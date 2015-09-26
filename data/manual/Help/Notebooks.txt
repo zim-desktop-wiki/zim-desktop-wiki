@@ -21,7 +21,7 @@ If multiple notebooks are defined and there is no default notebook the "Open not
 If you don't want to see the "Open notebook" dialog each time you start zim, you can set a default using the "**Set Default**" button in this dialog. The default can either be a directory or the name of one of the notebooks in the list.
 
 ===== Notebook configuration file =====
-In the notebook directory zim will write a configuration file called "''zim.notebook''". This file contains the settings and state that are notebook specific. You can open the notebook from your file browser by opening this config file with zim (which should be the default application).
+In the notebook directory zim will write a configuration file called "''notebook.zim''". This file contains the settings and state that are notebook specific. You can open the notebook from your file browser by opening this config file with zim (which should be the default application).
 
 ===== Automount commands for notebooks =====
 The config file ''automount.conf'' can be used to configure mount commands for specific notebook paths. See [[Automount]] for details.
