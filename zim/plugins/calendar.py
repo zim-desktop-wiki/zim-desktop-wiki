@@ -373,7 +373,17 @@ class Calendar(gtk.Calendar):
 		'''Get the datetime object for the selected date'''
 		year, month, day = gtk.Calendar.get_date(self)
 		if day == 0: day = 1
-		return datetime.date(year, month + 1, day)
+
+		try:
+			date = datetime.date(year, month + 1, day)
+		except ValueError:
+			# This error may mean that day number is higher than allowed.
+			# If so, set date to the last day of the month.
+			if day > 27:
+				date = datetime.date(year, month + 2, 1) - datetime.timedelta(days = 1)
+			else:
+				raise
+		return date
 
 # Need to register classes defining gobject signals
 gobject.type_register(Calendar)
