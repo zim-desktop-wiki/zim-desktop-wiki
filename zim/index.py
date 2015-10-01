@@ -757,6 +757,9 @@ class Index(gobject.GObject):
 		@param path: a L{Path} object
 		@returns: the L{IndexPath} object for C{path}
 		'''
+		_path = self.lookup_path(path)
+		if _path:
+			return _path
 		with self.db_commit:
 			return self._touch(path)
 

@@ -856,6 +856,9 @@ class TagsPageTreeView(PageTreeView):
 				# path does not exist, but we can create it
 				path = model.index.touch(path)
 				treepath = model.get_treepath(path)
+				if not treepath \
+				and isinstance(model, gtk.TreeModelFilter):
+					return None # path is filtered
 				assert treepath, 'BUG: failed to touch placeholder'
 			else:
 				# path does not exist and we are not going to create it
