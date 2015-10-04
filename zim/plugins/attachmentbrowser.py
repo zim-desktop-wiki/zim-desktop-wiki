@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
-#           2011-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+#           2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # License:  same as zim (gpl)
 #
+#
+# !! NOTE: when changing this plugin, do test performance on a folder with lots of photos!
+#
 # ChangeLog
+# 2015-10-04 Reworked threads to better avoid blocking user interface (Jaap)
 # 2013-03-03 Change to new plugin extension structure (Jaap)
 # 2013-02-25 Added zooming icon size, made icon rendering more robust (Jaap)
 # 2012-08-17 Added mimetype icons, statusbar toggle button, and gio monitor support (Jaap)
@@ -23,27 +27,54 @@
 # 2010-06-29 1st working version
 #
 # TODO:
-# [ ] Better management of queue - how to avoid flooding it ?
 # [ ] Action for deleting files in context menu
 # [ ] Copy / cut files in context menu
 # [ ] Button to clean up the folder - only show when the folder is empty
-# [x] GIO watcher to detect folder update - add API to zim.fs for watcher ?
-# [ ] Allow more than 1 thread for thumbnailing ?
-# [ ] Can we cache image to thumb mapping (or image MD5) to spead up ?
-# [ ] Dont thumb small images
-# [x] Mimetype specific icons
-# [ ] Restore ImageMagick thumbnailer
-# [ ] Use thumbnailers/settings from gnome or other DEs ?
+# [ ] Avoid scaling up small images when thumbnailing (check spec on this)
+# [ ] Store failures as well
+
+
+# Thumbnail handling following freedesktop.org spec mostly
+#
+# Spec version May 2012 -- http://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html
+# * storage
+# 	* XDG_CACHE_HOME/thumbnails/normal <= 128 x 128
+# 	* XDG_CACHE_HOME/thumbnails/large <= 256 x 256
+# 	* XDG_CACHE_HOME/thumbnails/fail
+# * thumbnail file creation
+# 	* Name is md5 hex of full uri
+# 	* Must have PNG attributes for mtime and uri (if mtime cannot be determined, do not create a thumbnail)
+# 	* Must write as tmp file in same dir and then rename atomic
+# 	* Permissions on files must be 0600 --> manager
+# * lookup / recreate
+# 	* Must equal orig mtime vs thumbnail mtime property (not thumbnail file mtime)
+# 	* Only store failures for permanent failures, to prevent re-doing them
+# 	* Failure is app specific, so subdir with app name and version
+# 	* Failure record is just empty png
+#	* Don't attempt creation when not readable (do not store failure)
+#
+# Uri according to RFC 2396
+# * file/// for files on localhost
+# * No clear consensus on encoding and white space - do most strict version
+#
+# The ThumbnailCreator should take case of the png attributes and
+# the usage of tmp file + atomic rename (on unix)
+# The ThumbnailManager implements the rest of the spec
+#
+# File.uri is already encoded, don't do anything else here
+
+
 
 '''Zim plugin to display files in attachments folder.'''
 
 
 import os
 import re
-import hashlib # for thumbfilenames
+import hashlib
+import datetime
 import logging
-import Queue
 import threading
+import Queue
 
 import gobject
 import gtk
@@ -61,15 +92,11 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import toggle_action
 
 from zim.fs import File, Dir, format_file_size
-from zim.errors import Error
-from zim.applications import Application
-from zim.parsing import url_encode, URL_ENCODE_READABLE
-
-import zim.datetimetz as datetime
+from zim.config import XDG_CACHE_HOME
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
 	IconButton, ScrolledWindow, button_set_statusbar_style, \
-	WindowSidePaneWidget
+	WindowSidePaneWidget, rotate_pixbuf
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -80,25 +107,49 @@ logger = logging.getLogger('zim.plugins.attachmentbrowser')
 
 
 # freedesktop.org spec
-LOCAL_THUMB_STORAGE = Dir('~/.thumbnails')
-LOCAL_THUMB_STORAGE_NORMAL = LOCAL_THUMB_STORAGE.subdir('normal')
-LOCAL_THUMB_STORAGE_LARGE = LOCAL_THUMB_STORAGE.subdir('large')
-LOCAL_THUMB_STORAGE_FAIL = LOCAL_THUMB_STORAGE.subdir('fail/zim-%s' % zim.__version__)
+LOCAL_THUMB_STORAGE_NORMAL = XDG_CACHE_HOME.subdir('thumbnails/normal')
+LOCAL_THUMB_STORAGE_LARGE = XDG_CACHE_HOME.subdir('thumbnails/large')
+LOCAL_THUMB_STORAGE_FAIL = XDG_CACHE_HOME.subdir('thumbnails/fail/zim-%s' % zim.__version__)
 
 THUMB_SIZE_NORMAL = 128
 THUMB_SIZE_LARGE = 256
 
 # For plugin
-MIN_ICON_SIZE = 16
-DEFAULT_ICON_SIZE = 64
+MIN_THUMB_SIZE = 64 # don't render thumbs when icon size is smaller than this
+MAX_ICON_SIZE = 128 # never render icons larger than this - thumbs go up
+
+MIN_ICON_ZOOM = 16
+DEFAULT_ICON_ZOOM = 64
 
 
 _last_warning_missing_icon = None
 	# used to surpress redundant logging
 
 
+
+####### TODO add in utils ?
+class uistate_property(object):
+
+	# TODO add hook such that it will be initialized on init of owner obj
+
+	def __init__(self, key, *default):
+		self.key = key
+		self.default = default
+		self._initialized = False
+
+	def __get__(self, obj, klass):
+		if obj:
+			if not self._initialized:
+				obj.uistate.setdefault(self.key, *self.default)
+				self._initialized = True
+			return obj.uistate[self.key]
+
+	def __set__(self, obj, value):
+		obj.uistate[self.key] = value
+#######
+
+### TODO - put this in zim.fs
 def get_mime_icon(file, size):
-	# FIXME put this in some library ?
 	if not gio:
 		return None
 
@@ -132,11 +183,8 @@ def get_mime_icon(file, size):
 
 
 def get_mime_description(mimetype):
-	# TODO move this to zim.fs or something
-	#
 	# Check XML file /usr/share/mime/MEDIA/SUBTYPE.xml
 	# Find element "comment" with "xml:lang" attribute for the locale
-	# Etree fills in the namespaces which obfuscates the names
 	from zim.config import XDG_DATA_DIRS
 
 	media, subtype = mimetype.split('/', 1)
@@ -151,6 +199,7 @@ def get_mime_description(mimetype):
 def _read_comment_from(file):
 	import locale
 	from zim.formats import ElementTreeModule as et
+	# Etree fills in the namespaces which obfuscates the names
 
 	mylang, enc = locale.getdefaultlocale()
 	xmlns = "{http://www.w3.org/XML/1998/namespace}"
@@ -173,6 +222,29 @@ def _read_comment_from(file):
 			return fallback[-1][1] # longest match
 		else:
 			return None
+
+
+#### TODO put in zim.fs, remove in dir iter by default
+def is_hidden_file(file):
+	# FIXME put this in zim.fs
+	if os.name != 'nt':
+		return file.basename.startswith('.')
+
+	import ctypes
+	INVALID_FILE_ATTRIBUTES = -1
+	FILE_ATTRIBUTE_HIDDEN = 2
+
+	try:
+		attrs = ctypes.windll.kernel32.GetFileAttributesW(file.path)
+			# note: GetFileAttributesW is unicode version of GetFileAttributes
+	except AttributeError:
+		return False
+	else:
+		if attrs == INVALID_FILE_ATTRIBUTES:
+			return False
+		else:
+			return bool(attrs & FILE_ATTRIBUTE_HIDDEN)
+###
 
 
 def render_file_icon(widget, size):
@@ -203,31 +275,10 @@ def render_file_icon(widget, size):
 		return pixbuf
 
 
-def is_hidden_file(file):
-	# FIXME put this in zim.fs
-	if not os.name == 'nt':
-		return False
-
-	import ctypes
-	INVALID_FILE_ATTRIBUTES = -1
-	FILE_ATTRIBUTE_HIDDEN = 2
-
-	try:
-		attrs = ctypes.windll.kernel32.GetFileAttributesW(file.path)
-			# note: GetFileAttributesW is unicode version of GetFileAttributes
-	except AttributeError:
-		return False
-	else:
-		if attrs == INVALID_FILE_ATTRIBUTES:
-			return False
-		else:
-			return bool(attrs & FILE_ATTRIBUTE_HIDDEN)
-
-
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Attachment Browser'), # T: plugin name
+		'name': _('Attachment Browser ALT'), # T: plugin name
 		'description': _('''\
 This plugin shows the attachments folder of the current page as an
 icon view at bottom pane.
@@ -254,7 +305,7 @@ This plugin is still under development.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class AttachmentBrowserWindowExtension(WindowExtension):
 
 	TAB_NAME = _('Attachments') # T: label for attachment browser pane
 
@@ -263,13 +314,13 @@ class MainWindowExtension(WindowExtension):
 		<menubar name='menubar'>
 			<menu action='view_menu'>
 				<placeholder name="plugin_items">
-					<menuitem action="toggle_fileview" />
+					<menuitem action="toggle_attachmentbrowser" />
 				</placeholder>
 			</menu>
 		</menubar>
 		<toolbar name='toolbar'>
 			<placeholder name='tools'>
-				<toolitem action='toggle_fileview'/>
+				<toolitem action='toggle_attachmentbrowser'/>
 			</placeholder>
 		</toolbar>
 	</ui>
@@ -289,7 +340,7 @@ class MainWindowExtension(WindowExtension):
 		button_set_statusbar_style(self.statusbar_button)
 
 		self.statusbar_button.set_use_underline(True)
-		self.__class__.toggle_fileview.connect_actionable(
+		self.__class__.toggle_attachmentbrowser.connect_actionable(
 			self, self.statusbar_button)
 
 		self.statusbar_frame.add(self.statusbar_button)
@@ -307,6 +358,7 @@ class MainWindowExtension(WindowExtension):
 		if self.window.ui.page:
 			self.on_open_page(self.window.ui, self.window.ui.page, self.window.ui.page)
 		self.connectto(self.window.ui, 'open-page')
+		self.connectto(self.window.ui, 'close-page')
 
 		self.connectto(self.window, 'pane-state-changed')
 
@@ -326,7 +378,7 @@ class MainWindowExtension(WindowExtension):
 		gtk.STOCK_DIRECTORY,
 		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
 	)
-	def toggle_fileview(self, active):
+	def toggle_attachmentbrowser(self, active):
 		# This toggle is called to focus on our widget
 		# but also after the fact when we detect focus changed
 		# so check state explicitly and don't do more than needed
@@ -350,123 +402,53 @@ class MainWindowExtension(WindowExtension):
 			return
 
 		if visible and active == self.TAB_NAME:
-			self.toggle_fileview(True)
-			if not self.widget.get_active():
-				self.widget.set_active(True) # implies refresh
+			self.toggle_attachmentbrowser(True)
 		else:
-			self.toggle_fileview(False)
-			self.widget.set_active(False)
+			self.toggle_attachmentbrowser(False)
 
 	def on_open_page(self, ui, page, path):
-		self._disconnect_monitor()
-
-		self.widget.set_page(ui.notebook, page) # XXX
-		self._refresh_statusbar(page)
-
 		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_attachemnts_dir()
-		id = dir.connect('changed', self.on_dir_changed)
-		self._monitor = (dir, id)
+		self.widget.iconview.set_folder(dir)
+		self._refresh_statusbar()
 
-	def _disconnect_monitor(self):
-		if self._monitor:
-			dir, id = self._monitor
-			dir.disconnect(id)
-			self._monitor = None
+	def on_close_page(self, ui, page, final):
+		self.widget.iconview.teardown_folder()
 
-	def on_dir_changed(self, *a):
-		logger.debug('Dir change detected: %s', a)
-		self._refresh_statusbar(self.window.ui.page) # XXX
-		self.widget.refresh()
-
-	def _refresh_statusbar(self, page):
-		n = self.get_n_attachments(page)
+	def _refresh_statusbar(self):
+		model = self.widget.iconview.get_model() # XXX
+		n = len(model)
 		self.statusbar_button.set_label(
 			ngettext('%i _Attachment', '%i _Attachments', n) % n)
 			# T: Label for the statusbar, %i is the number of attachments for the current page
 
-	def get_n_attachments(self, page):
-		# Calculate independent from the widget
-		# (e.g. widget is not refreshed when hidden)
-		n = 0
-		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_
-		from zim.fs import isdir
-		for name in dir.list():
-			# If dir is an attachment folder, sub-pages maybe filtered out already
-			# TODO need method in zim.fs to do this count efficiently
-			# TODO ignore hidden files here as well
-			if not isdir(dir.path + '/' + name):
-				# Ignore subfolders -- FIXME ?
-				n += 1
-		return n
-
 	def teardown(self):
-		self._disconnect_monitor()
-		self.toggle_fileview(False)
+		self.widget.iconview.teardown_folder()
+		self.toggle_attachmentbrowser(False)
 		self.window.remove(self.widget)
 		if self.statusbar_frame:
 			self.window.statusbar.remove(self.statusbar_frame)
 		self.widget = None
 
 
-class uistate_property(object):
-
-	# TODO add hook such that it will be initialized on init of owner obj
-
-	def __init__(self, key, *default):
-		self.key = key
-		self.default = default
-		self._initialized = False
-
-	def __get__(self, obj, klass):
-		if obj:
-			if not self._initialized:
-				obj.uistate.setdefault(self.key, *self.default)
-				self._initialized = True
-			return obj.uistate[self.key]
-
-	def __set__(self, obj, value):
-		obj.uistate[self.key] = value
-
-
-BASENAME_COL = 0
-PIXBUF_COL = 1
 
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
-	icon_size = uistate_property('icon_size', DEFAULT_ICON_SIZE)
+	'''Wrapper aroung the L{FileBrowserIconView} that adds the buttons
+	for zoom / open folder / etc. ...
+	'''
+
+	icon_size = uistate_property('icon_size', DEFAULT_ICON_ZOOM)
 
 	def __init__(self, extension, opener, preferences):
 		gtk.HBox.__init__(self)
-		self.page = None # XXX
 		self.extension = extension # XXX
 		self.opener = opener
 		self.uistate = extension.uistate
 		self.preferences = preferences
-		self.dir = None
-		self._active = True
 
-		self.thumbman = ThumbnailManager(preferences)
-		self.thumbman.connect('thumbnail-ready', self.on_thumbnail_ready)
-
-		self.fileview = gtk.IconView()
-
-		self.store = gtk.ListStore(str, gtk.gdk.Pixbuf) # BASENAME_COL, PIXBUF_COL
-
-		self.fileview = gtk.IconView(self.store)
-		self.fileview.set_text_column(BASENAME_COL)
-		self.fileview.set_pixbuf_column(PIXBUF_COL)
-
-		self.fileview.enable_model_drag_source(
-			gtk.gdk.BUTTON1_MASK,
-			URI_TARGETS,
-			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE )
-		self.fileview.enable_model_drag_dest(
-			URI_TARGETS,
-			gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE )
-		self.fileview.connect('drag-data-get', self.on_drag_data_get)
-		self.fileview.connect('drag-data-received', self.on_drag_data_received)
-
-		self.add(ScrolledWindow(self.fileview, shadow=gtk.SHADOW_NONE))
+		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
+		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
+		self.add(ScrolledWindow(self.iconview))
 
 		self.buttonbox = gtk.VBox()
 		self.pack_end(self.buttonbox, False)
@@ -481,48 +463,16 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		zoomin = IconButton(gtk.STOCK_ZOOM_IN, relief=False)
 		zoomout = IconButton(gtk.STOCK_ZOOM_OUT, relief=False)
-		zoomin.connect('clicked', lambda o: self.zoom_in())
-		zoomout.connect('clicked', lambda o: self.zoom_out())
+		zoomin.connect('clicked', lambda o: self.on_zoom_in())
+		zoomout.connect('clicked', lambda o: self.on_zoom_out())
 		self.buttonbox.pack_end(zoomout, False)
 		self.buttonbox.pack_end(zoomin, False)
-		self.fileview.connect('button-press-event', self.on_button_press_event)
-		self.fileview.connect('item-activated', self.on_item_activated)
 		self.zoomin_button = zoomin
 		self.zoomout_button = zoomout
 
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			# custom tooltip
-			self.fileview.props.has_tooltip = True
-			self.fileview.connect("query-tooltip", self.query_tooltip_icon_view_cb)
+		self.set_icon_size(self.icon_size)
 
-		# Store colors
-		self._senstive_color = None
-		self._insenstive_color = None
-
-		def _init_base_color(*a):
-			try:
-				# This is handled on expose event, because style does not
-				# yet reflect theming on construction
-				if self._senstive_color is None:
-					self._senstive_color = self.fileview.style.base[gtk.STATE_NORMAL]
-					self._insenstive_color = self.fileview.style.base[gtk.STATE_INSENSITIVE]
-
-				# Calling _update_state here locks up the interface
-				if self.dir is None or not self.dir.exists():
-					self.fileview.modify_base(
-						gtk.STATE_NORMAL, self._insenstive_color)
-				else:
-					self.fileview.modify_base(
-						gtk.STATE_NORMAL, self._senstive_color)
-			except:
-				logger.exception('Exception in expose event')
-
-			return False # propagate
-
-		self.connect_after('expose-event', _init_base_color)
-
-		self._update_state()
+		self.iconview.connect('folder-changed', lambda o: self.extension._refresh_statusbar())
 
 	def embed_closebutton(self, button):
 		if button:
@@ -534,148 +484,267 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 					self.buttonbox.remove(widget)
 		return True
 
-	def set_page(self, notebook, page):
-		self.page = page # XXX
-		dir = notebook.get_attachments_dir(page) # XXX page.get_attachments_dir
-		self.set_folder(dir)
-
-	def set_folder(self, dir):
-		#~ print "set_folder", dir
-		if dir != self.dir:
-			self.dir = dir
-			self.refresh()
-
-	def get_active(self):
-		return self._active
-
-	def set_active(self, active):
-		self._active = active
-		self.refresh()
-
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
-		self.opener.open_dir(self.dir)
-		self._update_state()
+		self.opener.open_dir(self.iconview.folder)
+		self.iconview.refresh()
 
 	def on_refresh_button(self):
+		self.iconview.refresh()
+		self.extension._refresh_statusbar() # XXX
+
+	def on_zoom_in(self):
+		self.set_icon_size(
+			min((self.icon_size * 2, THUMB_SIZE_LARGE))) # 16 > 32 > 64 > 128 > 256
+
+	def on_zoom_out(self):
+		self.set_icon_size(
+			max((self.icon_size/2, MIN_ICON_ZOOM))) # 16 < 32 < 64 < 128 < 256
+
+	def set_icon_size(self, icon_size):
+		self.iconview.set_icon_size(icon_size)
+		self.zoomin_button.set_sensitive(False)
+		self.zoomout_button.set_sensitive(False)
+		self.zoomin_button.set_sensitive(icon_size < THUMB_SIZE_LARGE)
+		self.zoomout_button.set_sensitive(icon_size > MIN_ICON_ZOOM)
+		self.icon_size = icon_size # Do this last - avoid store state after fail
+
+
+BASENAME_COL = 0
+PIXBUF_COL = 1
+MTIME_COL = 2
+
+class FileBrowserIconView(gtk.IconView):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'folder_changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+	}
+
+	def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True):
+		self.opener = opener
+		self.use_thumbnails = use_thumbnails
+		self.icon_size = None
+		self.folder = None
+		self._thumbnailer = ThumbnailQueue()
+		self._idle_event_id = None
+		self._monitor = None
+		self._mtime = None
+
+		gtk.IconView.__init__(self,
+			gtk.ListStore(str, gtk.gdk.Pixbuf, object) ) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+		self.set_text_column(BASENAME_COL)
+		self.set_pixbuf_column(PIXBUF_COL)
+		self.set_icon_size(icon_size)
+
+		self.enable_model_drag_source(
+			gtk.gdk.BUTTON1_MASK,
+			URI_TARGETS,
+			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE )
+		self.enable_model_drag_dest(
+			URI_TARGETS,
+			gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE )
+		self.connect('drag-data-get', self.on_drag_data_get)
+		self.connect('drag-data-received', self.on_drag_data_received)
+
+		if gtk.gtk_version >= (2, 12) \
+		and gtk.pygtk_version >= (2, 12):
+			# custom tooltip
+			self.props.has_tooltip = True
+			self.connect("query-tooltip", self._query_tooltip_cb)
+
+		# Store colors
+		self._sensitive_color = None
+		self._insensitive_color = None
+
+		def _init_base_color(*a):
+			# This is handled on expose event, because style does not
+			# yet reflect theming on construction
+			self._sensitive_color = self.style.base[gtk.STATE_NORMAL]
+			self._insensitive_color = self.style.base[gtk.STATE_INSENSITIVE]
+			self._update_state()
+			self.disconnect(self._expose_event_id) # only need this once
+
+		self._expose_event_id = self.connect('expose-event', _init_base_color)
+		self.connect('button-press-event', self.on_button_press_event)
+		self.connect('item-activated', self.on_item_activated)
+
+
+	def set_icon_size(self, icon_size):
+		self.icon_size = icon_size
+		self.refresh(icon_size_changed=True)
+
+	def set_folder(self, folder):
+		self.teardown_folder() # clears _thumbnailer and _monitor
+		self.folder = folder
+
 		self.refresh()
-		self.extension._refresh_statusbar(self.page)
-			# XXX FIXME communicate to extension by signal
 
-	def zoom_in(self):
-		self.icon_size = min((self.icon_size * 2, THUMB_SIZE_LARGE)) # 16 > 32 > 64 > 128 > 256
-		self.refresh()
+		id = self.folder.connect('changed', self._on_folder_changed)
+		self._monitor = (self.folder, id)
 
-	def zoom_out(self):
-		self.icon_size = max((self.icon_size/2, MIN_ICON_SIZE)) # 16 < 32 < 64 < 128 < 256
-		self.refresh()
-
-	def refresh(self):
-		if not self._active:
-			return # avoid unnecessary work
-
-		# Clear data
-		self.store.clear()
-		self.thumbman.clear_async_queue()
-		self._update_state()
-
-		# Update once, re-use below
-		self._file_icon = render_file_icon(self, min((self.icon_size, THUMB_SIZE_NORMAL)))
-		self._file_icon_tooltip = render_file_icon(self, THUMB_SIZE_NORMAL)
-
-		# Add files
-		for name in self.dir.list():
-			# If dir is an attachment folder, sub-pages maybe filtered out already
-			file = self.dir.file(name)
-			if file.isdir() or is_hidden_file(file):
-				continue # Ignore subfolders -- FIXME ?
-			else:
-				self._add_file(file)
-
-		# Update column size etc.
-		if self.icon_size < 64:
-			# Would like to switch to by-column layout here, but looks
-			# like gtk.IconView does not support that
-			self.fileview.set_orientation(gtk.ORIENTATION_HORIZONTAL)
-			size = self._get_max_width()
-			if size > 0:
-				if self.icon_size > 16:
-					size = int((size+1) / 2) # Wrap over 2 rows
-				# Else no wrap
-				size += self.icon_size
-				self.fileview.set_item_width(size)
-			self.fileview.set_row_spacing(0)
-			self.fileview.set_column_spacing(0)
+	def refresh(self, icon_size_changed=False):
+		if self.folder is None:
+			return # Not yet initialized
 		else:
-			self.fileview.set_orientation(gtk.ORIENTATION_VERTICAL)
-			size = max((self.icon_size + 12, 96))
-			self.fileview.set_item_width(size)
-				# Set item width to force wrapping text for long items
-				# Set to icon size + some space for padding etc.
-			self.fileview.set_row_spacing(3)
-			self.fileview.set_column_spacing(3)
+			try:
+				self._mtime = self.folder.mtime()
+			except OSError: # folder went missing?
+				self.teardown_folder()
+				self._update_state()
+				return
+			else:
+				self._update_state()
 
-	def _get_max_width(self):
-		import pango
-		layout = self.fileview.create_pango_layout('')
-		model = self.fileview.get_model()
-		l = 0
-		for r in model:
-			l = max((l, len(r[BASENAME_COL])))
-			#layout.set_text(r[BASENAME_COL])
-			#l = max((l, layout.get_pixel_size()[0]))
-		return l * 10 # XXX Rough estimate with 10px per char...
+		#~ import time
+		#~ print "start", time.time()
 
+		self._thumbnailer.clear_queue()
+		if self._idle_event_id:
+			gobject.source_remove(self._idle_event_id)
+			self._idle_event_id = None
+
+		# Get cache, clear model
+		cache = {}
+		model = self.get_model()
+		for str, pixbuf, mtime in model:
+			cache[str] = (pixbuf, mtime)
+		model.clear()
+
+		# Cache for mime icons - speed up lookup
+		min_icon_size = min((self.icon_size, MAX_ICON_SIZE)) # Avoid huge icons
+		file_icon = render_file_icon(self, min_icon_size)
+		mime_cache = {}
+		def my_get_mime_icon(file):
+			mt = file.get_mimetype()
+			if not mt in mime_cache:
+				mime_cache[mt] = get_mime_icon(file, min_icon_size) or file_icon
+			return mime_cache[mt]
+
+		# Add (new) files & queue thumbnails
+		max_text = 1
+		show_thumbs = self.use_thumbnails and self.icon_size >= MIN_THUMB_SIZE
+		for basename in self.folder.list():
+			file = self.folder.file(basename)
+			if file.isdir() or is_hidden_file(file):
+				continue
+
+			max_text = max(max_text, len(basename))
+
+			pixbuf, mtime = cache.pop(basename, (None, None))
+			if show_thumbs and file.isimage():
+				if not pixbuf:
+					pixbuf = my_get_mime_icon(file) # temporary icon
+					mtime = None
+
+				if icon_size_changed:
+					self._thumbnailer.queue_thumbnail_request(file, self.icon_size)
+				else:
+					self._thumbnailer.queue_thumbnail_request(file, self.icon_size, mtime)
+			elif pixbuf is None or icon_size_changed:
+				pixbuf = my_get_mime_icon(file)
+				mtime  = None
+			else:
+				pass # re-use from cache
+
+			model.append((basename, pixbuf, mtime))
+
+		self._set_orientation_and_size(max_text)
+
+		if not self._thumbnailer.queue_empty():
+			self._thumbnailer.start() # delay till here - else reduces our speed on loading
+			self._idle_event_id = \
+				gobject.idle_add(self._on_check_thumbnail_queue)
+
+		#~ print "stop ", time.time()
+
+	def _on_check_thumbnail_queue(self):
+		file, size, thumbfile, pixbuf, mtime = \
+			self._thumbnailer.get_ready_thumbnail()
+		if file is not None:
+			basename = file.basename
+			model = self.get_model()
+			def update(model, path, iter):
+				if model[iter][BASENAME_COL] == basename:
+					model[iter][PIXBUF_COL] = pixbuf
+					model[iter][MTIME_COL] = mtime
+			model.foreach(update)
+
+		cont = not self._thumbnailer.queue_empty()
+		if not cont:
+			self._idle_event_id = None
+		return cont # if False event is stopped
+
+	def _set_orientation_and_size(self, max_text_length):
+		# Set item width to force wrapping text for long items
+		# Set to icon size + some space for padding etc.
+		# And set orientation etc.
+		text_size = max_text_length * 13 # XXX assume 13x per char
+		icon_size = self.icon_size
+
+		if icon_size < 64:
+			# Text next to the icons
+			if icon_size > 16 and max_text_length > 15:
+				# Wrap text over 2 rows
+				self.set_item_width(
+					icon_size + int((text_size+1) / 2) )
+			else:
+				# Single row
+				self.set_item_width(icon_size + text_size)
+
+			self.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+			self.set_row_spacing(0)
+			self.set_column_spacing(0)
+		else:
+			# Text below the icons
+			self.set_item_width(max((icon_size + 12, 96)))
+			self.set_orientation(gtk.ORIENTATION_VERTICAL)
+			self.set_row_spacing(3)
+			self.set_column_spacing(3)
 
 	def _update_state(self):
-		# Here we set color like senstive or insensitive widget without
+		# Here we set color like sensitive or insensitive widget without
 		# really making the widget insensitive - reason is to allow
 		# drag & drop for a non-existing folder; making the widget
 		# insensitive also blocks drag & drop.
-		if self.dir is None or not self.dir.exists():
-			self.fileview.modify_base(
-				gtk.STATE_NORMAL, self._insenstive_color)
-
-			self.zoomin_button.set_sensitive(False)
-			self.zoomout_button.set_sensitive(False)
+		if self.folder is None or not self.folder.exists():
+			self.modify_base(
+				gtk.STATE_NORMAL, self._insensitive_color)
 		else:
-			self.fileview.modify_base(
-				gtk.STATE_NORMAL, self._senstive_color)
+			self.modify_base(
+				gtk.STATE_NORMAL, self._sensitive_color)
 
-			self.zoomin_button.set_sensitive(self.icon_size < THUMB_SIZE_LARGE)
-			self.zoomout_button.set_sensitive(self.icon_size > MIN_ICON_SIZE)
+	def teardown_folder(self):
+		try:
+			if self._monitor:
+				dir, id = self._monitor
+				dir.disconnect(id)
+		except:
+			logger.exception('Could not cancel file monitor')
+		finally:
+			self._monitor = None
 
+		if self._idle_event_id:
+			gobject.source_remove(self._idle_event_id)
+			self._idle_event_id = None
 
-	def _add_file(self, file):
-		if self.icon_size >= DEFAULT_ICON_SIZE:
-			# Only use thumbnails if icons sufficiently large to show them
-			pixbuf = self.thumbman.get_thumbnail_async(file, self.icon_size)
-		else:
-			pixbuf = None
+		try:
+			self._thumbnailer.clear_queue()
+		except:
+			logger.exception('Could not stop thumbnailer')
 
-		if pixbuf is None:
-			# Set generic icon first - maybe thumbnail follows later, maybe not
-			# Icon size for mime icons is limitted, avoid huge icons
-			pixbuf = get_mime_icon(file, min((self.icon_size, THUMB_SIZE_NORMAL))) \
-				or self._file_icon
+		self.get_model().clear()
 
-		self.store.append((file.basename, pixbuf)) # BASENAME_COL, PIXBUF_COL
-
-	def on_thumbnail_ready(self, o, file, size, pixbuf):
-		#~ print "GOT THUMB:", file, size, pixbuf
-		if size != self.icon_size or file.dir != self.dir:
-			return
-
-		basename = file.basename
-		def update(model, path, iter):
-			if model[iter][BASENAME_COL] == basename:
-				model[iter][PIXBUF_COL] = pixbuf
-
-		self.store.foreach(update)
+	def _on_folder_changed(self, *a):
+		if self.folder and self.folder.mtime() != self._mtime:
+			logger.debug('Folder change detected: %s', self.folder)
+			self.refresh()
+			self.emit('folder-changed')
 
 	def on_item_activated(self, iconview, path):
-		iter = self.store.get_iter(path)
-		file = self.dir.file(self.store[iter][BASENAME_COL])
+		store = iconview.get_model()
+		iter = store.get_iter(path)
+		file = self.folder.file(store[iter][BASENAME_COL])
 		self.opener.open_file(file)
 
 	def on_button_press_event(self, iconview, event):
@@ -685,9 +754,9 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 			x = int(event.x)
 			y = int(event.y)
 			time = event.time
-			pathinfo = self.fileview.get_path_at_pos(x, y)
+			pathinfo = iconview.get_path_at_pos(x, y)
 			if pathinfo is not None:
-				self.fileview.grab_focus()
+				iconview.grab_focus()
 				popup_menu.popup(None, None, None, event.button, time)
 				self.do_populate_popup(popup_menu, pathinfo)
 					# FIXME should use a signal here
@@ -696,13 +765,15 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def do_populate_popup(self, menu, pathinfo):
 		# print "do_populate_popup"
-		iter = self.store.get_iter(pathinfo)
-		file = self.dir.file(self.store[iter][BASENAME_COL])
+		store = self.get_model()
+		iter = store.get_iter(pathinfo)
+		file = self.folder.file(store[iter][BASENAME_COL])
 
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
-		submenu = OpenWithMenu(self.extension.window, file) # XXX any widget should do to find window
+		window = self.get_toplevel()
+		submenu = OpenWithMenu(window, file) # XXX any widget should do to find window
 		item.set_submenu(submenu)
 
 		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
@@ -711,28 +782,26 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		menu.show_all()
 
-	def query_tooltip_icon_view_cb(self, widget, x, y, keyboard_tip, tooltip):
+	def _query_tooltip_cb(self, widget, x, y, keyboard_tip, tooltip):
 		context = widget.get_tooltip_context(x, y, keyboard_tip)
 		if not context:
 			return False
 
+		thumbman = ThumbnailManager()
 		model, path, iter = context
 		name = model[iter][BASENAME_COL]
-		file = self.dir.file(name)
+		file = self.folder.file(name)
 		mtime = file.mtime()
 		if mtime:
-			mdate = datetime.datetime.fromtimestamp(file.mtime())
-			mdate = datetime.strftime('%c', mdate)
+			mdate = datetime.datetime.fromtimestamp(file.mtime()).strftime('%c')
 			# TODO: fix datetime format
 		else:
 			mdate = _('Unknown') # T: unspecified value for file modification time
 		size = format_file_size(file.size())
 
-		pixbuf = self.thumbman.get_thumbnail(file, THUMB_SIZE_LARGE)
+		thumbfile, pixbuf = thumbman.get_thumbnail(file, THUMB_SIZE_LARGE)
 		if not pixbuf:
-			# No thumbnail, use icon, but use it at normal size
-			pixbuf = get_mime_icon(file, THUMB_SIZE_NORMAL) \
-				or self._file_icon_tooltip
+			pixbuf = get_mime_icon(file, 64) or render_file_icon(self, 64)
 
 		mtype = file.get_mimetype()
 		mtype_desc = get_mime_description(mtype)
@@ -755,12 +824,13 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		return True
 
+	# TODO - test drag and drop
 	def on_drag_data_get(self, iconview, dragcontext, selectiondata, info, time):
 		assert selectiondata.target in URI_TARGET_NAMES
-		paths = self.fileview.get_selected_items()
+		paths = self.iconview.get_selected_items()
 		if paths:
-			model = self.fileview.get_model()
-			path_to_uri = lambda p: self.dir.file(model[p][BASENAME_COL]).uri
+			model = self.iconview.get_model()
+			path_to_uri = lambda p: self.folder.file(model[p][BASENAME_COL]).uri
 			uris = map(path_to_uri, paths)
 			data = pack_urilist(uris)
 			selectiondata.set(URI_TARGET_NAMES[0], 8, data)
@@ -799,170 +869,168 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def _move_files(self, files):
 		for file in files:
-			newfile = self.dir.new_file(file.basename)
+			newfile = self.folder.new_file(file.basename)
 			file.rename(newfile)
-			self._add_file(newfile)
-			# TODO sort
 
-		self._update_state()
+		self.refresh()
 
 	def _copy_files(self, files):
 		for file in files:
-			newfile = self.dir.new_file(file.basename)
+			newfile = self.folder.new_file(file.basename)
 			file.copyto(newfile)
-			self._add_file(newfile)
-			# TODO sort
+
+		self.refresh()
 
 
-class ThumbnailManager(gobject.GObject):
-	''' Thumbnail handling following freedesktop.org spec mostly
+class ThumbnailCreatorFailure(ValueError):
+	pass
 
-	@signal: C{thumbnail-ready (file, size, pixbuf)}: thumbnail ready
+
+if os.name == 'nt':
+	assert False, "Put code for atomic rename here"
+else:
+	atomic_rename = os.rename
+
+
+def pixbufThumbnailCreator(file, thumbfile, thumbsize):
+	'''Thumbnailer implementation that uses the C{gtk.gdk.Pixbuf}
+	functions to create the thumbnail.
 	'''
-	# TODO more doc here to explain what the function of the manager is
-
-	# Spec retrieved 2012-02-26 from http://people.freedesktop.org/~vuntz/thumbnail-spec-cache/
-	# Notes on spec:
-	# * storage
-	# 	* ~/.thumbnails/normal <= 128 x 128
-	# 	* ~/.thumbnails/large <= 256 x 256
-	# 	* ~/.thumbnails/fail
-	# * thumbnail file
-	# 	* Name is md5 hex of full uri (where uri must be "file:///" NOT "file://localhost/")
-	# 	* Must have PNG attributes for mtime and uri
-	# 		* If mtime orig can not be determined, do not create a thumbnail
-	# 	* Must write as tmp file in same dir and then rename atomic
-	# 	* Permissions on files must be 0600
-	# * lookup / recreate
-	# 	* Must equal orig mtime vs thumbnail mtime property (not thumbnail file mtime)
-	# 	* Only store failures for permanent failures, to prevent re-doing them
-	# 	* Failure is app specific, so subdir with app name and version
-	# 	* Failure record is just empty png
-
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'thumbnail-ready': (gobject.SIGNAL_RUN_LAST, None, (object, int, gtk.gdk.Pixbuf)),
+	tmpfile = thumbfile.dir.file('zim-thumb.new~')
+	options = {
+		'tEXt::Thumb::URI': file.uri,
+		'tEXt::Thumb::MTime': str( int( file.mtime() ) ),
 	}
-
-	def __init__(self, preferences):
-		gobject.GObject.__init__(self)
-
-		self.preferences = preferences
-		self.async_thread = None
-		self.async_queue = Queue.Queue()
-
-		for dir in (
-			LOCAL_THUMB_STORAGE_NORMAL,
-			LOCAL_THUMB_STORAGE_LARGE,
-			LOCAL_THUMB_STORAGE_FAIL
-		):
-			try:
-				dir.touch(mode=0700)
-			except OSError:
-				pass
-
-	def clear_async_queue(self):
-		if self.async_thread:
-			self.async_thread.stop()
-
-		self.async_thread = None
-		self.async_queue = Queue.Queue()
-
-	def get_thumbnail(self, file, size):
-		'''Get a C{Pixbuf} with the thumbnail for a given file
-		@param file: the original file to be thumbnailed
-		@param size: thumbnail size in pixels
-		(C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
-		@returns: a C{gtk.gdk.Pixbuf} object
-		'''
-		thumbfile = self.get_thumbnail_file(file, size)
-		pixbuf = self._existing_thumbnail(file, thumbfile, size)
-		if pixbuf:
-			return pixbuf
-		else:
-			return self._create_thumbnail(file, thumbfile, size)
-
-	def _existing_thumbnail(self, file, thumbfile, size):
-		if thumbfile.exists():
-			# Check the thumbnail is valid
-			pixbuf = self._pixbuf(thumbfile, size)
-			mtime = self._mtime_from_pixbuf(pixbuf)
-			if mtime is not None:
-				# Check mtime from PNG attribute
-				if mtime == int(file.mtime()):
-					return pixbuf
-				else:
-					return None
-			else:
-				# Fallback for thumbnails without proper attributes
-				if thumbfile.mtime() > file.mtime():
-					return pixbuf
-				else:
-					return None
-
-	def _pixbuf(self, file, size):
-		# Read file at size and return pixbuf
-		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
+	try:
+		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.encodedpath, thumbsize, thumbsize)
+		pixbuf = rotate_pixbuf(pixbuf)
+		pixbuf.save(tmpfile.encodedpath, 'png', options)
+		atomic_rename(tmpfile.encodedpath, thumbfile.encodedpath)
+	except:
+		raise ThumbnailCreatorFailure
+	else:
 		return pixbuf
 
-	def _mtime_from_pixbuf(self, pixbuf):
-		# Get mtime and return as int, if any
-		mtime = pixbuf.get_option('tEXt::Thumb::MTime')
-		if mtime is not None:
-			return int(mtime)
-		else:
-			return None
 
-	def _create_thumbnail(self, file, thumbfile, size):
-		assert file.exists()
-		normsize = self._norm_size(size)
-		thumbnailer = PixbufThumbnailer()
-		try:
-			thumbnailer.create_thumbnail(file, thumbfile, normsize)
-				# TODO enforce tmp file, 0600 permissions, as specced
-			pixbuf = self._pixbuf(thumbfile, size)
-			self.emit('thumbnail-ready', file, size, pixbuf)
-			return pixbuf
-		except:
-			# TODO Error class, logging, create failure file ?
-			#~ logger.info('Failed to generate thumbnail for: %s', file)
-			return None
+class ThumbnailQueue(object):
 
-		#~ if self.preferences['use_imagemagick']:
-			#~ TODO TODO
+	'''Wrapper for L{ThumbnailManager} that does that actual thumbnailing
+	in a separate thread and manages the requests and the results with
+	queues.
+	'''
 
-	def get_thumbnail_async(self, file, size):
-		'''Get a C{Pixbuf} with the thumbnail for a given file
-		Like L{get_thumbnail()} but if thumbnail needs to be generated
-		first it will be done asynchronously. When the thumbnail is
-		ready the C{thumbnail-ready} signal will be emitted.
-		@param file: the original file to be thumbnailed
-		@param size: thumbnail size in pixels
-		(C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
-		@returns: C{gtk.gdk.Pixbuf} is thumbnail exists already,
-		C{None} otherwise
+	def __init__(self, thumbnailcreator=pixbufThumbnailCreator):
+		self._thread = None
+		self._in_queue = Queue.Queue()
+		self._out_queue = Queue.Queue()
+		self._thumbmanager = ThumbnailManager(thumbnailcreator)
+		self._count = 0
+		self._count_lock = threading.Lock()
+		self._running = threading.Event()
+
+	def queue_empty(self):
+		'''Returns C{True} when both input and output queue are empty'''
+		# Guard total count of items in process
+		# input + output + in between in main function
+		# use lock to protect queue
+		return self._count == 0
+
+	def queue_thumbnail_request(self, file, size, mtime=None):
+		'''Add a new request to the queue
+		@param file: a L{File} object
+		@param size: the size of the thumbnail in pixels
+		@param mtime: the mtime of a previous loaded thumbnail, if this
+		matches the current file, the request will be dropped
 		'''
-		thumbfile = self.get_thumbnail_file(file, size)
-		pixbuf = self._existing_thumbnail(file, thumbfile, size)
-		if pixbuf:
-			return pixbuf
-		else:
-			self.async_queue.put( (file, thumbfile, size) )
+		with self._count_lock:
+			self._count += 1
+			self._in_queue.put_nowait((file, size, mtime))
 
-			if not self.async_thread \
-			or not self.async_thread.is_alive():
-				self.async_thread = WorkerThread(self.async_queue, self._create_thumbnail_async)
-				self.async_thread.start()
+	def start(self):
+		if not (self._thread and self._thread.is_alive()):
+			self._running.set()
+			self._thread = threading.Thread(
+				name=self.__class__.__name__,
+				target=self._thread_main,
+			)
+			self._thread.setDaemon(True)
+			self._thread.start()
 
-	def _create_thumbnail_async(self, file, thumbfile, size):
+	def _thread_main(self):
+		# Loop executed in the thread
+		import time
 		try:
-			self._create_thumbnail(file, thumbfile, size)
-		except:
-			logger.exception('Error while creating thumbnail')
+			while self._running.is_set():
+				time.sleep(0.1) # give other threads a change as well
+				file, size, mtime = self._in_queue.get_nowait()
+				self._in_queue.task_done()
+
+				try:
+					if mtime and file.mtime() == mtime:
+						self._count -= 1 # skip
+					else:
+						mtime = file.mtime()
+						thumbfile, pixbuf = self._thumbmanager.get_thumbnail(file, size)
+						if thumbfile and pixbuf:
+							self._out_queue.put_nowait((file, size, thumbfile, pixbuf, mtime))
+						else:
+							self._count -= 1 # skip
+				except:
+					logger.exception('Exception in thumbnail queue')
+					self._count -= 1 # drop
+		except Queue.Empty:
+			pass
+		finally:
+			self._running.clear()
+
+	def get_ready_thumbnail(self, block=False):
+		'''Check output queue for a thumbnail that is ready
+		@returns: a 5-tuple C{(file, size, thumbfile, pixbuf, mtime)} or 5 times
+		C{None} when nothing is ready and C{block} is C{False}.
+		'''
+		with self._count_lock:
+			try:
+				file, size, thumbfile, pixbuf, mtime = self._out_queue.get(block=block)
+				self._out_queue.task_done()
+				assert self._count > 0
+				self._count -= 1
+				return file, size, thumbfile, pixbuf, mtime
+			except Queue.Empty:
+				return (None, None, None, None, None)
+
+	def clear_queue(self):
+		def _clear_queue(queue):
+				try:
+					while True:
+						queue.get_nowait()
+						queue.task_done()
+				except Queue.Empty:
+					pass
+
+		with self._count_lock: # nothing in or out while locked!
+			self._running.clear() # stop thread from competing with us
+			_clear_queue(self._in_queue)
+
+			if self._thread and self._thread.is_alive():
+				self._thread.join()
+				self._thread = None
+
+			_clear_queue(self._out_queue)
+
+			self._count = 0
+
+
+class ThumbnailManager(object):
+	'''This class implements thumbnails management (mostly) following
+	the C{freedesktop.org} spec.
+	'''
+
+	def __init__(self, thumbnailcreator=pixbufThumbnailCreator):
+		self._thumbnailcreator = thumbnailcreator
 
 	def get_thumbnail_file(self, file, size):
 		'''Get L{File} object for thumbnail
-		Does not gurarntee that the thumbnail actually exists.
+		Does not guarantee that the thumbnail actually exists.
 		Do not use this method to lookup the thumbnail, use L{get_thumbnail()}
 		instead.
 		@param file: the original file to be thumbnailed
@@ -970,18 +1038,62 @@ class ThumbnailManager(gobject.GObject):
 		@returns: a L{File} object
 		'''
 		basename = hashlib.md5(file.uri).hexdigest() + '.png'
-		size = self._norm_size(size)
-		if (size == THUMB_SIZE_NORMAL):
+		if size <= THUMB_SIZE_NORMAL:
 			return LOCAL_THUMB_STORAGE_NORMAL.file(basename)
 		else:
 			return LOCAL_THUMB_STORAGE_LARGE.file(basename)
 
-	def _norm_size(self, size):
-		# Convert custom size to normalized size for storage
-		if size <= THUMB_SIZE_NORMAL:
-			return THUMB_SIZE_NORMAL
+	def get_thumbnail(self, file, size, create=True):
+		'''Looksup thumbnail and return it if a valid thumbnail is
+		availabel.
+		@param file: the file to be thumbnailed as L{File} object
+		@param size: pixel size for thumbnail image as integer
+		@param create: if C{True} we try to create the thumbnail if
+		it doesn't exist
+		@returns: a 2-tuple of the thumbnail file and a pixbuf object
+		or 2 times C{None}
+		'''
+		thumbfile = self.get_thumbnail_file(file, size)
+		if thumbfile.exists():
+			# Check the thumbnail is valid
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)
+			mtime = pixbuf.get_option('tEXt::Thumb::MTime')
+			if mtime and int(mtime) == int(file.mtime()):
+				return thumbfile, pixbuf
+			else:
+				pass # according to spec recreate when option is missing
+
+		if create:
+			try:
+				return self.create_thumbnail(file, size)
+			except ThumbnailCreatorFailure:
+				return None, None
 		else:
-			return THUMB_SIZE_LARGE
+			return None, None
+
+	def create_thumbnail(self, file, size):
+		'''(Re-)create a thumbnail without any checking whether the
+		old one is still valid.
+		@param file: the file to be thumbnailed as L{File} object
+		@param size: pixel size for thumbnail file as integer
+		@returns: a 2-tuple of the thumbnail file and a pixbuf object
+		@raises ThumbnailCreatorFailure: if creation fails unexpectedly
+		'''
+		thumbfile = self.get_thumbnail_file(file, size)
+		thumbsize = THUMB_SIZE_NORMAL if size <= THUMB_SIZE_NORMAL else THUMB_SIZE_LARGE
+
+		thumbfile.dir.touch(mode=0700)
+		pixbuf = self._thumbnailcreator(file, thumbfile, thumbsize)
+		os.chmod(thumbfile.encodedpath, 0600)
+
+		if not pixbuf:
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)
+		elif thumbsize != size:
+			w, h = pixbuf.get_width(), pixbuf.get_height()
+			sw, sh = (size, int(size*float(h)/w)) if (w > h) else (int(size*float(w)/h), size)
+			pixbuf = pixbuf.scale_simple(sw, sh, gtk.gdk.INTERP_NEAREST)
+
+		return thumbfile, pixbuf
 
 	def remove_thumbnails(self, file):
 		'''Remove thumbnails for at all sizes
@@ -991,60 +1103,16 @@ class ThumbnailManager(gobject.GObject):
 		'''
 		for size in (THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE):
 			thumbfile = self.get_thumbnail_file(file, size)
-			if thumbfile.exists():
+			try:
 				thumbfile.remove()
-
-# Need to register classes defining gobject signals
-gobject.type_register(ThumbnailManager)
-
-
-class WorkerThread(threading.Thread):
-
-	daemon = True
-
-	def __init__(self, queue, func):
-		threading.Thread.__init__(self)
-		self.queue = queue
-		self.func = func
-		self._stop = False
-
-	def stop(self):
-		self._stop = True
-
-	def run(self):
-		while not self._stop:
-			args = self.queue.get()
-			self.func(*args)
-			self.queue.task_done()
+			except OSError:
+				pass
 
 
-class Thumbnailer(object):
 
-	def create_thumbnail(self, file, thumbfile, size):
-		'''Create a thumbnail
-		@param file: the file to be thumbnailed as L{File} object
-		@param thumbfile: to be created thumbnail file as L{File} object
-		@param size: pixel size for thumbnail as integer
-		@implementation: must be implemented in subclasses
-		'''
-		raise NotImplementedError
+#~ class ImageMagickThumbnailer(Thumbnailer):
 
-
-class PixbufThumbnailer(Thumbnailer):
-
-	def create_thumbnail(self, file, thumbfile, size):
-		options = {
-			'tEXt::Thumb::URI': url_encode(file.uri, mode=URL_ENCODE_READABLE), # No UTF-8 here
-			'tEXt::Thumb::MTime': str( int( file.mtime() ) ),
-		}
-		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, size, size)
-		pixbuf.save(thumbfile.path, 'png', options)
-
-
-class ImageMagickThumbnailer(Thumbnailer):
-
-	def create_thumbnail(self, file, thumbfile, size):
-		pass
+	#~ def create_thumbnail(self, file, thumbfile, size):
 
 		#~ magickextensions=('SVG','PDF','PS','EPS','DVI','DJVU','RAW','DOT','HTML','HTM','TTF','XCF')
 		#~ textextensions=('SH','BAT','TXT','C','C++','CPP','H','H++','HPP','PY','PL') #'AVI','MPG','M2V','M4V','MPEG'

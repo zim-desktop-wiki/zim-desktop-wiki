@@ -595,17 +595,17 @@ class OpenWithMenu(gtk.Menu):
 	CUSTOMIZE = _('Customize...')
 		# T: label to customize 'open with' menu
 
-	def __init__(self, ui, file, mimetype=None):
+	def __init__(self, widget, file, mimetype=None):
 		'''Constructor
 
-		@param ui: main ui object, needed to pop dialogs correctly
+		@param widget: parent widget, needed to pop dialogs correctly
 		@param file: a L{File} object or URL
 		@param mimetype: the mime-type of the application, if already
 		known. Providing this arguments prevents redundant lookups of
 		the type (which is slow).
 		'''
 		gtk.Menu.__init__(self)
-		self.ui = ui
+		self._window = widget.get_toplevel()
 		self.file = file
 		if mimetype is None:
 			mimetype = get_mimetype(file)
@@ -634,7 +634,7 @@ class OpenWithMenu(gtk.Menu):
 		entry.spawn((self.file,))
 
 	def on_activate_customize(self, o, mimetype):
-		CustomizeOpenWithDialog(self.ui, mimetype=mimetype).run()
+		CustomizeOpenWithDialog(self._window, mimetype=mimetype).run()
 
 
 class DesktopEntryMenuItem(gtk.ImageMenuItem):

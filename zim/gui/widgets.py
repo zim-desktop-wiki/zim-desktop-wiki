@@ -349,6 +349,8 @@ def rotate_pixbuf(pixbuf):
 	shows how the camera was held.
 	@returns: a new version of the pixbuf or the pixbuf itself.
 	'''
+	# For newer gtk we could use gtk.gdk.Pixbuf.apply_embedded_orientation
+
 	# Values for orientation seen in some random snippet in gtkpod
 	o = pixbuf.get_option('orientation')
 	if o: o = int(o)
