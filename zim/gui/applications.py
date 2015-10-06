@@ -131,6 +131,89 @@ def get_mimetype(obj):
 			return "x-scheme-handler/%s" % scheme
 
 
+try:
+	import gio
+except ImportError:
+	gio = None
+
+_last_warning_missing_icon = None
+	# used to surpress redundant logging
+
+def get_mime_icon(file, size):
+	if not gio:
+		return None
+
+	try:
+		f = gio.File(uri=file.uri)
+		info = f.query_info('standard::*')
+		icon = info.get_icon()
+	except:
+		logger.exception('Failed to query info for file: %s', file)
+		return None
+
+	global _last_warning_missing_icon
+
+	if isinstance(icon, gio.ThemedIcon):
+		names = icon.get_names()
+		icon_theme = gtk.icon_theme_get_default()
+		try:
+			icon_info = icon_theme.choose_icon(names, size, 0)
+			if icon_info:
+				return icon_info.load_icon()
+			else:
+				if _last_warning_missing_icon != names:
+					logger.debug('Missing icons in icon theme: %s', names)
+					_last_warning_missing_icon = names
+				return None
+		except gobject.GError:
+			logger.exception('Could not load icon for file: %s', file)
+			return None
+	else:
+		return None
+
+
+def get_mime_description(mimetype):
+	# Check XML file /usr/share/mime/MEDIA/SUBTYPE.xml
+	# Find element "comment" with "xml:lang" attribute for the locale
+	from zim.config import XDG_DATA_DIRS
+
+	media, subtype = mimetype.split('/', 1)
+	for dir in XDG_DATA_DIRS:
+		file = dir.file(('mime', media, subtype + '.xml'))
+		if file.exists():
+			return _read_comment_from(file)
+	else:
+		return None
+
+
+def _read_comment_from(file):
+	import locale
+	from zim.formats import ElementTreeModule as et
+	# Etree fills in the namespaces which obfuscates the names
+
+	mylang, enc = locale.getdefaultlocale()
+	xmlns = "{http://www.w3.org/XML/1998/namespace}"
+	xml = et.parse(file.path)
+	fallback = []
+	#~ print "FIND COMMENT", file, mylang
+	for elt in xml.getroot():
+		if elt.tag.endswith('comment'):
+			lang = elt.attrib.get(xmlns+'lang', '')
+			if lang == mylang:
+				return elt.text
+			elif not lang or mylang.startswith(lang+'_'):
+				fallback.append((lang, elt.text))
+			else:
+				pass
+	else:
+		#~ print "FALLBACK", fallback
+		if fallback:
+			fallback.sort()
+			return fallback[-1][1] # longest match
+		else:
+			return None
+
+
 class ApplicationManager(object):
 	'''Manager object for dealing with desktop applications. Uses the
 	freedesktop.org (XDG) system to locate desktop entry files for

@@ -1907,3 +1907,55 @@ class FileHandle(file):
 		if not self.on_close is None:
 			self.on_close()
 
+
+
+
+# Replace logic based on discussion here:
+# http://stupidpythonideas.blogspot.nl/2014/07/getting-atomic-writes-right.html
+#
+# The point is to get a function to replace an old file with a new
+# file as "atomic" as possible
+
+if hasattr(os, 'replace'):
+	_replace_file = os.replace
+elif sys.platform == 'win32':
+	import win32api, win32con
+	def _replace_file(src, dst):
+		# True atomic replace, if supported
+		try:
+			win32api.MoveFileEx(src, dst, win32con.MOVEFILE_REPLACE_EXISTING)
+		except:
+			# Sometimes it fails - we play stupid and try again...
+			time.sleep(0.5)
+			win32api.MoveFileEx(src, dst, win32con.MOVEFILE_REPLACE_EXISTING)
+
+		# Fall back using 2-file shuffle approach
+		#~ bak = dst + '.zim-bak~'
+		#~ win32api.ReplaceFile(src, dst, bak, 0)
+else:
+	_replace_file = os.rename
+
+
+### TODO filter Dir.list directly for hidden files
+if os.name != 'nt':
+	def is_hidden_file(file):
+			return file.basename.startswith('.')
+
+else:
+	import ctypes
+
+	def is_hidden_file(file):
+		INVALID_FILE_ATTRIBUTES = -1
+		FILE_ATTRIBUTE_HIDDEN = 2
+
+		try:
+			attrs = ctypes.windll.kernel32.GetFileAttributesW(file.path)
+				# note: GetFileAttributesW is unicode version of GetFileAttributes
+		except AttributeError:
+			return False
+		else:
+			if attrs == INVALID_FILE_ATTRIBUTES:
+				return False
+			else:
+				return bool(attrs & FILE_ATTRIBUTE_HIDDEN)
+###

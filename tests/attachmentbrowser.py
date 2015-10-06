@@ -6,24 +6,11 @@ import tests
 
 import time
 
-from zim.parsing import url_encode, URL_ENCODE_READABLE
-from zim.plugins.attachmentbrowser import *
 
+from zim.fs import File, Dir
 
-@tests.slowTest
-class TestXDGMimeInfo(tests.TestCase):
-
-	def runTest(self):
-		dir = Dir('./data/pixmaps')
-		for i, filename in enumerate(dir.list()):
-			file = dir.file(filename)
-			icon = get_mime_icon(file, THUMB_SIZE_NORMAL)
-			self.assertIsInstance(icon, gtk.gdk.Pixbuf)
-			desc = get_mime_description(file.get_mimetype())
-			self.assertIsInstance(desc, basestring)
-			self.assertTrue(len(desc) > 5)
-
-		self.assertTrue(i > 3)
+from zim.plugins.attachmentbrowser.thumbnailer import *
+from zim.plugins.attachmentbrowser.filebrowser import FileBrowserIconView
 
 
 @tests.slowTest
