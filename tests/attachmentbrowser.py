@@ -128,7 +128,7 @@ class TestThumbnailManager(tests.TestCase):
 @tests.slowTest
 class TestThumbnailQueue(tests.TestCase):
 
-	def runTest(self):
+	def testQueue(self):
 		queue = ThumbnailQueue()
 		self.assertTrue(queue.queue_empty())
 
@@ -170,6 +170,29 @@ class TestThumbnailQueue(tests.TestCase):
 		time.sleep(0.1)
 		queue.clear_queue()
 		self.assertTrue(queue.queue_empty())
+
+	def testError(self):
+
+		def creator_with_failure(*a):
+			raise ThumbnailCreatorFailure
+
+		def creator_with_error(*a):
+			raise ValueError
+
+		file = File('./data/zim.png')
+		self.assertTrue(file.exists())
+		self.assertTrue(file.isimage())
+
+		for creator in creator_with_failure, creator_with_error:
+			#~ print ">>", creator.__name__
+			queue = ThumbnailQueue(creator)
+			queue.queue_thumbnail_request(file, 64)
+
+			with tests.LoggingFilter('zim.plugins.attachmentbrowser', 'Exception'):
+				queue.start()
+				while not queue.queue_empty():
+					r = queue.get_ready_thumbnail()
+					self.assertIsNone(r[0], None)
 
 
 @tests.slowTest

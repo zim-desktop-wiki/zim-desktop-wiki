@@ -64,12 +64,10 @@ DEFAULT_ICON_ZOOM = 64
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Attachment Browser ALT'), # T: plugin name
+		'name': _('Attachment Browser'), # T: plugin name
 		'description': _('''\
 This plugin shows the attachments folder of the current page as an
 icon view at bottom pane.
-
-This plugin is still under development.
 '''), # T: plugin description
 		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
 		'help': 'Plugins:Attachment Browser',
@@ -234,7 +232,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
 		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
-		self.add(ScrolledWindow(self.iconview))
+		self.add(ScrolledWindow(self.iconview, shadow=gtk.SHADOW_NONE))
 
 		self.buttonbox = gtk.VBox()
 		self.pack_end(self.buttonbox, False)

@@ -13,6 +13,10 @@ import datetime
 import gobject
 import gtk
 
+import logging
+
+logger = logging.getLogger('zim.plugins.attachmentbrowser')
+
 
 from zim.fs import File, Dir, format_file_size, is_hidden_file
 

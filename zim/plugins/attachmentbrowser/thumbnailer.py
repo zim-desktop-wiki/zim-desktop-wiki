@@ -46,6 +46,11 @@ import Queue
 
 import gtk
 
+import logging
+
+logger = logging.getLogger('zim.plugins.attachmentbrowser')
+
+
 import zim
 
 from zim.config import XDG_CACHE_HOME
@@ -71,8 +76,8 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	functions to create the thumbnail.
 	'''
 	tmpfile = thumbfile.dir.file('zim-thumb.new~')
-	options = {
-		'tEXt::Thumb::URI': file.uri,
+	options = { # no unicode allowed in options!
+		'tEXt::Thumb::URI': str( file.uri ),
 		'tEXt::Thumb::MTime': str( int( file.mtime() ) ),
 	}
 	try:
