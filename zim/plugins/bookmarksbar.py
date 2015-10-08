@@ -112,7 +112,7 @@ class MainWindowExtension(WindowExtension):
 		if path:
 			item = gtk.SeparatorMenuItem()
 			menu.prepend(item)
-			item = gtk.MenuItem(_('Add Bookmark'))
+			item = gtk.MenuItem(_('Add Bookmark')) # T: menu item bookmark plugin
 			page = self.window.ui.notebook.get_page(path)
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
@@ -120,7 +120,7 @@ class MainWindowExtension(WindowExtension):
 
 
 	@toggle_action(_('Bookmarks'), stock='zim-add-bookmark',
-				   tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY)
+				   tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY) # T: menu item bookmark plugin
 	def toggle_show_bookmarks(self, active):
 		'''
 		Show/hide the bar with bookmarks.
@@ -131,7 +131,7 @@ class MainWindowExtension(WindowExtension):
 			self.hide_widget()
 		self.uistate['show_bar'] = active
 
-	@action(_('Add Bookmark'), accelerator = BM_ADD_BOOKMARK_KEY)
+	@action(_('Add Bookmark'), accelerator = BM_ADD_BOOKMARK_KEY) # T: menu item bookmark plugin
 	def add_bookmark(self):
 		'''
 		Function to add new bookmarks to the bar.
@@ -263,7 +263,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		if ask_confirmation:
 			# Prevent accidental deleting of all bookmarks.
 			menu = gtk.Menu()
-			item = gtk.MenuItem(_('Do you want to delete all bookmarks?'))
+			item = gtk.MenuItem(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
 			item.connect('activate', lambda o: _delete_all())
 			menu.append(item)
 			menu.show_all()
@@ -339,7 +339,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		'''Handler for button-release-event, triggers popup menu for plus button.'''
 		if event.button == 3:
 			menu = gtk.Menu()
-			item = gtk.CheckMenuItem(_('Show full Page Name'))
+			item = gtk.CheckMenuItem(_('Show full Page Name')) # T: menu item for context menu
 			item.set_active(self.uistate['show_full_page_name'])
 			item.connect('activate', lambda o: self.toggle_show_full_page_name())
 			menu.append(item)
@@ -351,7 +351,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		'''Handler for button-release-event, triggers popup menu for bookmarks.'''
 		if event.button != 3:
                         return False
-  
+
 		path = button.zim_path
 
 		_button_width = button.size_request()[0]
@@ -361,23 +361,24 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			self._saved_bookmark = path
 
 		if button.get_label() in (path, self._get_short_page_name(path)):
-			rename_button_text = _('Set New Name')
+			rename_button_text = _('Set New Name') # T: button label
 		else:
-			rename_button_text = _('Back to Original Name')
+			rename_button_text = _('Back to Original Name') # T: button label
 
 		# main popup menu
 		main_menu = gtk.Menu()
-		main_menu_items = ( (_('Remove'), lambda o: self.delete(path)),
-				    (_('Remove All'), lambda o: self.delete_all(True)),
+		main_menu_items = (
+					(_('Remove'), lambda o: self.delete(path)),			# T: menu item
+				    (_('Remove All'), lambda o: self.delete_all(True)),	# T: menu item
 				    ('separator', ''),
-				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))),
+				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
 				    ('separator', ''),
 				    ('gtk-copy', lambda o: set_save_bookmark(path)),
 				    ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
 				    ('separator', ''),
 				    (rename_button_text, lambda o: self.rename_bookmark(button)),
 				    ('separator', ''),
-				    (_('Set to Current Page'), lambda o: self.change_bookmark(path)) )
+				    (_('Set to Current Page'), lambda o: self.change_bookmark(path)) ) # T: menu item
 
 		for name, func in main_menu_items:
 			if name == 'separator':
