@@ -526,6 +526,7 @@ class Index(gobject.GObject):
 	def _connect(self):
 		self.db = sqlite3.connect(
 			str(self.dbfile), detect_types=sqlite3.PARSE_DECLTYPES)
+		self.db.execute('PRAGMA synchronous=OFF;')
 		self.db.row_factory = sqlite3.Row
 		self.db_commit = DBCommitContext(self.db)
 
