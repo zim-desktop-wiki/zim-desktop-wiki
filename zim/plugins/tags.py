@@ -133,6 +133,11 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		self.reload_model()
 
 	def on_populate_popup(self, treeview, menu):
+		# If not a not a page (but e.g. a tag), remove page action
+		if not treeview.get_selected_path():
+			for item in menu.get_children():
+				menu.remove(item)
+
 		# Add a popup menu item to switch the treeview mode
 		populate_popup_add_separator(menu, prepend=True)
 
@@ -851,6 +856,9 @@ class TagsPageTreeView(PageTreeView):
 				# path does not exist, but we can create it
 				path = model.index.touch(path)
 				treepath = model.get_treepath(path)
+				if not treepath \
+				and isinstance(model, gtk.TreeModelFilter):
+					return None # path is filtered
 				assert treepath, 'BUG: failed to touch placeholder'
 			else:
 				# path does not exist and we are not going to create it

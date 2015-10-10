@@ -22,6 +22,7 @@ from zim.plugins.versioncontrol import *
 import zim.plugins.versioncontrol.bzr
 import zim.plugins.versioncontrol.hg
 import zim.plugins.versioncontrol.git
+import zim.plugins.versioncontrol.fossil
 
 
 # We define our own tmp dir here instead of using tests.create_tmp_dir
@@ -66,6 +67,14 @@ class TestVCS(tests.TestCase):
 		subdir = subroot.subdir('Foo/Bar')
 		subdir.touch()
 		self.assertEqual(VCS._detect_in_folder(subdir), ('git', subroot))
+
+		subroot = root.subdir('subfold')
+		subroot.file('.fslckout').touch()
+		self.assertEqual(VCS._detect_in_folder(subroot), ('fossil', subroot))
+
+		subdir = subroot.subdir('Foo/Bar')
+		subdir.touch()
+		self.assertEqual(VCS._detect_in_folder(subdir), ('fossil', subroot))
 
 
 @tests.slowTest
@@ -154,6 +163,17 @@ class TestVersionsDialog(tests.TestCase):
 		pass # TODO test other dialog functions
 
 
+class VersionControlBackendTests(object):
+
+	def setUp(self):
+		zim.plugins.versioncontrol.TEST_MODE = False
+
+	def tearDown(self):
+		zim.plugins.versioncontrol.TEST_MODE = True
+
+	# TODO - unify test cases with single interface test
+
+
 
 #####################################################
 #
@@ -162,18 +182,11 @@ class TestVersionsDialog(tests.TestCase):
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.BZR), 'Missing dependencies')
-class TestBazaar(tests.TestCase):
+class TestBazaar(VersionControlBackendTests, tests.TestCase):
 
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
 
 	def runTest(self):
 		'''Test Bazaar version control'''
-		print '\n!! Some raw output from Bazaar expected here !!'
-
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = VCS.create(VCS.BZR, root, root)
 		vcs.init()
@@ -289,6 +302,12 @@ bar
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
 
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
+
 
 #####################################################
 #
@@ -297,18 +316,10 @@ bar
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.GIT), 'Missing dependencies')
-class TestGit(tests.TestCase):
-
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+class TestGit(VersionControlBackendTests, tests.TestCase):
 
 	def runTest(self):
 		'''Test Git version control'''
-		print '\n!! Some raw output from Git could appear here !!'
-
 		root = get_tmp_dir('versioncontrol_TestGit')
 		vcs = VCS.create(VCS.GIT, root, root)
 		vcs.init()
@@ -450,6 +461,12 @@ test
 		self.assertIn(UTF8_COMMENT, versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
 
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
+
 
 # XXX ignore renames and deletions?
 
@@ -476,18 +493,10 @@ test
 #####################################################
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.HG), 'Missing dependencies')
-class TestMercurial(tests.TestCase):
-
-	def setUp(self):
-		zim.plugins.versioncontrol.TEST_MODE = False
-
-	def tearDown(self):
-		zim.plugins.versioncontrol.TEST_MODE = True
+class TestMercurial(VersionControlBackendTests, tests.TestCase):
 
 	def runTest(self):
 		'''Test Mercurial version control'''
-		print '\n!! Some raw output from Mercurial expected here !!'
-
 		root = get_tmp_dir('versioncontrol_TestMercurial')
 		vcs = VCS.create(VCS.HG, root, root)
 		vcs.init()
@@ -578,7 +587,9 @@ rename from foo/bar/baz.txt
 rename to bar.txt
 ''' )
 
-
+		# Test deleting file
+		root.file('bar.txt').remove()
+		vcs.commit('test deleting')
 
 		# Test unicode support
 		file.write(WIKITEXT)
@@ -589,3 +600,139 @@ rename to bar.txt
 		versions = vcs.list_versions()
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], unicode)
+
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')
+
+
+#####################################################
+#
+# FOSSIL BACKEND TEST
+#
+#####################################################
+@tests.slowTest
+@tests.skipUnless(VCS.check_dependencies(VCS.FOSSIL), 'Missing dependencies')
+class TestFossil(VersionControlBackendTests, tests.TestCase):
+
+	def runTest(self):
+		'''Test Fossil version control'''
+		root = get_tmp_dir('versioncontrol_TestFossil')
+		vcs = VCS.create(VCS.FOSSIL, root, root)
+		vcs.init()
+
+		subdir = root.subdir('foo/bar')
+		file = subdir.file('baz.txt')
+		file.write('foo\nbar\n')
+		vcs.on_path_created(None,file)
+		self.assertEqual(''.join(vcs.get_status()),
+			'ADDED      foo/bar/baz.txt\n'
+		)
+		vcs.update_staging()
+		vcs.commit('test 1')
+
+		file = subdir.file('bar.txt')
+		file.write('second\ntest\n')
+		vcs.on_path_created(None,file)
+
+		self.assertEqual(''.join(vcs.get_status()),
+			'ADDED      foo/bar/bar.txt\n'
+		)
+
+		vcs.update_staging()
+		vcs.commit('test 2')
+
+		versions = vcs.list_versions()
+
+		self.assertTrue(isinstance(versions,list))
+		#~ print 'VERSIONS>>', versions
+		self.assertTrue(len(versions) == 3)
+		self.assertTrue(isinstance(versions[0],tuple))
+		self.assertTrue(len(versions[0]) == 4)
+		self.assertTrue(isinstance(versions[0][0],basestring))
+		self.assertTrue(isinstance(versions[0][1],basestring))
+		self.assertTrue(isinstance(versions[0][2],basestring))
+		self.assertTrue(isinstance(versions[0][3],basestring))
+		self.assertEqual(versions[0][3], u'test 2 ')
+		self.assertTrue(len(versions[1]) == 4)
+		self.assertEqual(versions[1][3], u'test 1 ')
+
+		# slightly different, we check the 2nd file
+		lines = vcs.get_version(file, version=versions[0][0])
+		self.assertEqual(''.join(lines), '''\
+second
+test
+''' )
+
+		diff = vcs.get_diff(versions=(versions[2][0], versions[0][0]))
+		diff = ''.join(diff)
+		self.assertEqual(diff, '''\
+ADDED   foo/bar/bar.txt
+ADDED   foo/bar/baz.txt
+''' )
+
+		file.write('second\nbaz\n')
+		diff = vcs.get_diff()
+		diff = ''.join(diff)
+		self.assertEqual(diff, '''\
+Index: foo/bar/bar.txt
+==================================================================
+--- foo/bar/bar.txt
++++ foo/bar/bar.txt
+@@ -1,2 +1,2 @@
+ second
+-test
++baz
+
+''' )
+
+		vcs.revert()
+		self.assertEqual(vcs.get_status(), [])
+
+		file.write('second\nbaz\n')
+		vcs.commit('test 3')
+
+		versions = vcs.list_versions()
+
+		diff = vcs.get_diff(versions=(versions[1][0], versions[0][0]))
+		diff = ''.join(diff)
+		self.assertEqual(diff, '''\
+Index: foo/bar/bar.txt
+==================================================================
+--- foo/bar/bar.txt
++++ foo/bar/bar.txt
+@@ -1,2 +1,2 @@
+ second
+-test
++baz
+
+''' )
+
+		annotated = vcs.get_annotated(file)
+		lines = []
+		for line in annotated:
+			# get rid of commit hash, its unique
+			commit, date, num, text = line.split(None, 4)
+			lines.append(num+' '+text)
+
+		self.assertEqual('\n'.join(lines), '''\
+1: second
+2: baz''' )
+
+		# Test unicode support
+		file.write(WIKITEXT)
+		diff = vcs.get_diff()
+		diff = ''.join(diff)
+		self.assertIsInstance(diff, unicode)
+		vcs.commit(UTF8_COMMENT)
+		versions = vcs.list_versions()
+		self.assertIn(UTF8_COMMENT, versions[0][-1])
+		self.assertIsInstance(versions[0][-1], unicode)
+
+		### Test delete ###
+		file.remove()
+		file.dir.cleanup()
+		diff = vcs.get_diff()
+		vcs.commit('deleted file')

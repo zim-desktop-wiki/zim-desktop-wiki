@@ -60,7 +60,7 @@ class SinglePage(PageSelection):
 		yield self.notebook.get_page(self.page)
 
 	def index(self, namespace=None):
-		if namespace is None:
+		if namespace is None or self.page.ischild(namespace):
 			yield self.page
 		else:
 			pass
@@ -76,9 +76,12 @@ class SubPages(SinglePage):
 
 	def index(self, namespace=None):
 		if namespace is None or namespace.name == page.name:
-			return self.notebook.index.walk(self.page)
+			yield self.page
+			for page in self.notebook.index.walk(self.page):
+				yield page
 		elif namespace.ischild(self.page):
-			return self.notebook.index.walk(namespace)
+			for page in self.notebook.index.walk(namespace):
+				yield page
 		else:
 			pass
 

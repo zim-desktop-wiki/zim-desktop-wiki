@@ -9,7 +9,7 @@ import gobject
 
 from zim.objectmanager import ObjectManager
 
-from zim.gui.widgets import ScrolledTextView, ScrolledWindow
+from zim.gui.widgets import ScrolledTextView, ScrolledWindow, TableVBox
 
 
 # Constants for grab-focus-cursor and release-focus-cursor
@@ -38,11 +38,8 @@ class CustomObjectWidget(gtk.EventBox):
 		self.set_border_width(5)
 		self._has_cursor = False
 		self._resize = True
-
-		# Add vbox and wrap it to have a shadow around it
-		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
-		win = ScrolledWindow(self.vbox, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_IN)
-		self.add(win)
+		self.vbox = TableVBox()
+		self.add(self.vbox)
 
 	def do_realize(self):
 		gtk.EventBox.do_realize(self)
@@ -145,7 +142,7 @@ class FallbackObjectWidget(TextViewWidget):
 			self.vbox.pack_start(label)
 
 	def _add_load_plugin_bar(self, plugin):
-		key, name, activatable, klass = plugin
+		key, name, activatable, klass, _winextension = plugin
 
 		hbox = gtk.HBox(False, 5)
 		label = gtk.Label(_("Plugin %s is required to display this object.") % name)

@@ -23,11 +23,13 @@ class _ObjectManager(object):
 	def __init__(self):
 		self.factories = {}
 		self.objects = {'fallback': WeakSet()}
+		self.window_extensions = {}
 
-	def register_object(self, type, factory):
+	def register_object(self, type, factory, window_extension=None):
 		'''Register a factory method or class for a specific object type.
 		@param type: the object type as string (unique name)
 		@param factory: can be either an object class or a method,
+		@param window_extension: dictionary - the plugin related window_extension
 		should callable and return objects. When constructing objects
 		this factory will be called as::
 
@@ -44,6 +46,7 @@ class _ObjectManager(object):
 		old = self.factories.get(type)
 		self.factories[type] = factory
 		self.objects[type] = WeakSet()
+		self.window_extensions[type] = window_extension
 		return old
 
 	def unregister_object(self, type):
@@ -97,8 +100,8 @@ class _ObjectManager(object):
 		'''Find a plugin to handle a specific object type. Intended to
 		suggest plugins to the user that can be loaded.
 		@param type: object type as string
-		@returns: a 3-tuple of the plugin name, a boolean for the
-		dependency check, and the plugin class, or C{None}.
+		@returns: a 5-tuple of the plugin name, a boolean for the
+		dependency check, the plugin class, or C{None} and the related plugin window_extension
 		'''
 		for name in zim.plugins.PluginManager.list_installed_plugins(): # XXX
 			try:
@@ -106,7 +109,8 @@ class _ObjectManager(object):
 				types = klass.plugin_info.get('object_types')
 				if types and type in types:
 					activatable = klass.check_dependencies_ok()
-					return (name, klass.plugin_info['name'], activatable, klass)
+					win_ext = self.window_extensions[type] if type in self.window_extensions else None
+					return (name, klass.plugin_info['name'], activatable, klass, win_ext)
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue

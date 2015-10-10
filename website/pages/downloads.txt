@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.62 =====
+===== Latest release: 0.63 =====
 
 **This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
@@ -44,6 +44,6 @@ The following Linux distributions are known to include zim:
 * Ubuntu (universe)
 
 BSD flavors with a zim port:
-* [[http://www.freshports.org/editors/zim|FreeBSD]]
+* [[http://www.freshports.org/deskutils/zim|FreeBSD]]
 * [[http://www.openbsd.org/cgi-bin/cvsweb/ports/productivity/zim/|OpenBSD]]
 

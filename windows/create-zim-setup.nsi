@@ -13,6 +13,7 @@ Name "${APPNAMEANDVERSION}"
 InstallDir "$PROGRAMFILES\Zim Desktop Wiki"
 InstallDirRegKey HKLM "Software\${APPNAME}" ""
 OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
+SetCompressor /SOLID lzma
 
 ; Modern interface settings
 !include "MUI.nsh"

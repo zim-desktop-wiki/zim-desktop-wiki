@@ -147,7 +147,9 @@ class InsertCodeBlockDialog(Dialog):
 		if name:
 			self.result = LANGUAGES[name]
 			self.uistate['lang'] = LANGUAGES[name]
-		return True
+			return True
+		else:
+			return False # no syntax selected
 
 
 class SourceViewObject(CustomObjectClass):

@@ -417,10 +417,10 @@ class AddNotebookDialog(Dialog):
 			'folder': folder,
 		})
 
-		self.add_help_text('''\
+		self.add_help_text(_('''\
 To create a new notebook you need to select an empty folder.
 Of course you can also select an existing zim notebook folder.
-''') # T: help text in the 'Add Notebook' dialog
+''')) # T: help text in the 'Add Notebook' dialog
 
 		# Hook entries to copy name when appropriate
 		self._block_update = False

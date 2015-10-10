@@ -420,7 +420,7 @@ class ExportDoneDialog(MessageDialog):
 		n_error = logging_context.handler.n_error
 		n_warning = logging_context.handler.n_warning
 		if n_error and n_warning:
-			text = _('%(n_errors)i errors and %(n_warnings)i warnings occurred, see log') % {'n_error': n_error, 'n_warnings': n_warning}
+			text = _('%(n_error)i errors and %(n_warning)i warnings occurred, see log') % {'n_error': n_error, 'n_warning': n_warning}
 				# T: label in export dialog
 		elif n_error:
 			text = _('%i errors occurred, see log') % n_error

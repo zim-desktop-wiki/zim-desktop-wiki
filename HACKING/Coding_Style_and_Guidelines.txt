@@ -2,7 +2,7 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
 Creation-Date: 2014-07-31T21:06:39+02:00
 
-====== Coding Style & Guidelines ======
+====== Coding Style and Guidelines ======
 Created Thursday 31 July 2014
 
 See the python style guide for best practices. Some items to keep in mind:

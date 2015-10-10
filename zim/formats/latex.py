@@ -12,6 +12,7 @@ import logging
 from zim.fs import File, FileNotFoundError
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
+from zim.parsing import url_encode, URL_ENCODE_READABLE
 from zim.config.dicts import Choice
 
 logger = logging.getLogger('zim.formats.latex')
@@ -210,6 +211,7 @@ class Dumper(TextDumper):
 
 	def dump_link(self, tag, attrib, strings=None):
 		href = self.linker.link(attrib['href'])
+		href = url_encode(href, URL_ENCODE_READABLE)
 		if strings:
 			text = u''.join(strings)
 		else:
@@ -227,3 +229,27 @@ class Dumper(TextDumper):
 			assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 
 	dump_object_fallback = dump_pre
+
+	def dump_table(self, tag, attrib, strings):
+		table = []  # result table
+		rows = strings
+
+		aligns, _wraps = TableParser.get_options(attrib)
+		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\hline'
+		aligns = map(lambda a: 'l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l', aligns)
+
+		for i, row in enumerate(rows):
+			for j, (cell, align) in enumerate(zip(row, aligns)):
+				if '\n' in cell:
+					rows[i][j] = '\shortstack[' + align + ']{' + cell.replace("\n", "\\") + '}'
+
+		# print table
+		table.append('\\begin{tabular}{ |' + '|'.join(aligns) + '| }')
+		table.append('\hline')
+
+		table += [rowline(rows[0])]
+		table.append('\hline')
+		table += [rowline(row) for row in rows[1:]]
+
+		table.append('\end{tabular}')
+		return map(lambda line: line+"\n", table)

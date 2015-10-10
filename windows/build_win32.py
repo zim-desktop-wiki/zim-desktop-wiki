@@ -32,8 +32,16 @@ EXE_ROOT = path.join(APP_ROOT, r"App\ZimDesktopWiki")
 
 # Find GTK 'runtime' folder
 for libdir in os.environ["PATH"].split(path.pathsep):
+	# Look for GTK bin folder in a $PATH element
 	if path.exists(path.join(libdir, "libgtk-win32-2.0-0.dll")):
 		GTK_ROOT = path.dirname(libdir)
+		break
+	# Look for GTK under Python's site-packages folder
+	if path.exists(path.join(libdir, r"Lib\site-packages\gtk-2.0\runtime\bin", "libgtk-win32-2.0-0.dll")):
+		GTK_ROOT = path.join(libdir, r"Lib\site-packages\gtk-2.0\runtime")
+		break
+if not GTK_ROOT:
+	raise RuntimeError("Can't find GTK")
 
 # Parse '__version__' out of zim package since simply importing __version__ from zim fails as of 0.61
 f = open("zim/__init__.py", "r")

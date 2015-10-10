@@ -198,9 +198,16 @@ class ScrolledHBox(gtk.HBox):
 
 		#~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
 		#~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
+
+		gtk.HBox.do_size_allocate(self, allocation)
+
 		children = self.get_children()[2:]
 		if not children:
+			self._forw_button.set_child_visible(False)
+			self._back_button.set_child_visible(False)
 			return # nothing to render
+
+
 
 		direction, index = self._anchor or (DIR_FORWARD, len(children)-1)
 		assert 0 <= index <= len(children)

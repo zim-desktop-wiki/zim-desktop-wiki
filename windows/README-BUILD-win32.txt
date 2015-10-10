@@ -18,36 +18,23 @@ Installer".
 Requirements
 ------------
 
-1. Install Python 2.6 or greater for Windows from
+1. Install Python 2.7 for Windows from
 
    http://www.python.org/download/
 
-   Note: Python version must be 2.6 or greater, but less than 3.0
+   Note: Zim has not yet been ported to Python 3.
 
 2. Install the py2exe library from
 
    http://sourceforge.net/projects/py2exe/files/
 
-3. Download GTK+ Bundle from
+3. Install PyGTK All-in-One from
 
-   http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/
+   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
 
-   Or a newer version if one exists. Extract this Zip file to a
-   convenient place such as
+   Be sure to include "PyGTKSourceView" when you run the installer.
 
-   C:\Program Files (x86)\Common Files\GTK+ Bundle
-
-4. Install PyCairo, PyGObject, and PyGTK from
-
-   http://ftp.gnome.org/pub/GNOME/binaries/win32/pycairo/[newest version]/pycairo-VERSION.win32-pyVER.msi
-   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygobject/[newest version]/pygobject-VERSION.win32-pyVER.msi
-   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/[newest version]/pygtk-VERSION.win32-pyVER.msi
-
-   Make sure that the Python version matches the one you're using, and
-   that you don't download a pygtk library with a version newer than
-   the bundle from the previous step.
-
-5. Jpeg for Windows
+4. Jpeg for Windows
 
    http://gnuwin32.sourceforge.net/packages/jpeg.htm
 

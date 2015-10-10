@@ -48,7 +48,10 @@ def daterange_from_path(path):
 	if date_path_re.match(path.name):
 		type = 'day'
 		year, month, day = map(int, path.name.rsplit(':', 3)[-3:])
-		date = datetime.date(year, month, day)
+		try:
+			date = datetime.date(year, month, day)
+		except ValueError:
+			return None # not a valid date
 		end_date = date
 	elif week_path_re.match(path.name):
 		type = 'week'
@@ -58,7 +61,10 @@ def daterange_from_path(path):
 	elif month_path_re.match(path.name):
 		type = 'month'
 		year, month = map(int, path.name.rsplit(':', 2)[-2:])
-		date = datetime.date(year, month, 1)
+		try:
+			date = datetime.date(year, month, 1)
+		except ValueError:
+			return None # not a valid month
 		if month == 12:
 			end_date = datetime.date(year, 12, 31)
 		else:
@@ -367,7 +373,17 @@ class Calendar(gtk.Calendar):
 		'''Get the datetime object for the selected date'''
 		year, month, day = gtk.Calendar.get_date(self)
 		if day == 0: day = 1
-		return datetime.date(year, month + 1, day)
+
+		try:
+			date = datetime.date(year, month + 1, day)
+		except ValueError:
+			# This error may mean that day number is higher than allowed.
+			# If so, set date to the last day of the month.
+			if day > 27:
+				date = datetime.date(year, month + 2, 1) - datetime.timedelta(days = 1)
+			else:
+				raise
+		return date
 
 # Need to register classes defining gobject signals
 gobject.type_register(Calendar)
@@ -385,10 +401,14 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		self.model = model
 
 		self.label_box = gtk.HBox()
-		self.pack_start(self.label_box, False)
+ 		self.pack_start(self.label_box, False)
 
 		self.label = gtk.Label()
-		self.label_box.add(self.label)
+		self.label_event = gtk.EventBox()
+		self.label_event.add(self.label)
+		self.label_event.connect("button_press_event", lambda w, e: self.go_today())
+		self.label_box.add(self.label_event)
+
 		self._refresh_label()
 		self._timer_id = \
 			gobject.timeout_add(300000, self._refresh_label)
@@ -409,12 +429,16 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False)
 
+	def go_today(self):
+		self.select_date(datetime.date.today())
+		self.calendar.emit('activate')
+
 	def embed_closebutton(self, button):
 		if button:
 			self.label_box.pack_end(button, False)
 		else:
 			for widget in self.label_box.get_children():
-				if not widget == self.label:
+				if not widget == self.label_event:
 					self.label_box.remove(widget)
 		return True
 
@@ -422,8 +446,7 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		#print "UPDATE LABEL %s" % id(self)
 		format = _('%A %d %B %Y').replace(' 0', ' ')
 			# T: strftime format for current date label
-		text = datetime.date.today().strftime(str(format))
-			# str() needed for python 2.5 compatibility strftime
+		text = datetime.strftime(format, datetime.date.today())
 		self.label.set_text(text)
 		return True # else timer is stopped
 
@@ -501,4 +524,4 @@ class CalendarDialog(Dialog):
 		self.calendar_widget.set_page(page)
 
 	def do_today(self, event):
-		self.calendar_widget.select_date(datetime.date.today())
+		self.calendar_widget.go_today()

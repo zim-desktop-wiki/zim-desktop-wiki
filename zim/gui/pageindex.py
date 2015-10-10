@@ -676,6 +676,7 @@ class PageTreeView(BrowserTreeView):
 				indexpath = model.get_indexpath( model.get_iter(mytreepath) )
 				#~ print '!! CLEANUP', indexpath
 				model.index.cleanup(indexpath)
+				treepath = model.get_treepath(path)
 
 		self._cleanup = rowreference
 

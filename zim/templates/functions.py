@@ -42,19 +42,18 @@ def build_template_functions():
 @ExpressionFunction
 def template_strftime(format, date=None):
 	'''Template function wrapper for strftime'''
-	format = str(format) # Needed to please datetime.strftime()
 	try:
 		if date is None:
-			string = datetime.now().strftime(format)
+			string = datetime.strftime(format, datetime.now())
 		elif isinstance(date, (datetime.date, datetime.datetime)):
-			string = date.strftime(format)
+			string = datetime.strftime(format, date)
 		else:
 			raise Error, 'Not a datetime object: %s' % date
 
-		return string.decode(locale.getpreferredencoding())
-			# strftime returns locale as understood by the C api
-			# unfortunately there is no guarantee we can actually
-			# decode it ...
+		# strftime returns locale as understood by the C api
+		# unfortunately there is no guarantee we can actually
+		# decode it ...
+		return string
 	except:
 		logger.exception('Error in strftime "%s"', format)
 
@@ -62,7 +61,6 @@ def template_strftime(format, date=None):
 @ExpressionFunction
 def template_strfcal(format, date=None):
 	'''Template function wrapper for strfcal'''
-	format = str(format) # Needed to please datetime.strftime()
 	try:
 		if date is None:
 			date = datetime.now()

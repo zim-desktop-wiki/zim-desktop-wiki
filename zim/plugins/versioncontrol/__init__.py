@@ -65,8 +65,9 @@ This is a core plugin shipping with zim.
 		has_bzr = VCS.check_dependencies(VCS.BZR)
 		has_git  = VCS.check_dependencies(VCS.GIT)
 		has_hg  = VCS.check_dependencies(VCS.HG)
+		has_fossil = VCS.check_dependencies(VCS.FOSSIL)
 		#TODO parameterize the return, so that a new backend will be automatically available
-		return has_bzr|has_hg|has_git, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False)]
+		return has_bzr|has_hg|has_git|has_fossil, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False), ('fossil', has_fossil, False)]
 
 	def extend(self, obj):
 		name = obj.__class__.__name__
@@ -252,6 +253,7 @@ class VCS(object):
 	BZR = _('Bazaar') # T: option value
 	HG  = _('Mercurial') # T: option value
 	GIT = _('Git') # T: option value
+	FOSSIL = _('Fossil') # T: option value
 
 	@classmethod
 	def detect_in_folder(klass, dir):
@@ -268,6 +270,8 @@ class VCS(object):
 			vcs = VCS.create(VCS.HG, root, dir)
 		elif name == 'git':
 			vcs = VCS.create(VCS.GIT, root, dir)
+		elif name == 'fossil':
+			vcs = VCS.create(VCS.FOSSIL, root, dir)
 		else:
 			# else maybe detected something, but no backend available
 			vcs = None
@@ -294,6 +298,8 @@ class VCS(object):
 				return 'git', path
 			elif path.subdir('.svn').exists():
 				return 'svn', path
+			elif path.file('.fslckout').exists() or path.file('_FOSSIL_').exists():
+				return 'fossil', path
 			## Commented CVS out since it potentially
 			## conflicts with like-named pages
 			# elif path.subdir('CVS').exists():
@@ -320,6 +326,9 @@ class VCS(object):
 		elif vcs == VCS.GIT:
 			from zim.plugins.versioncontrol.git import GITApplicationBackend
 			vcs_klass = GITApplicationBackend
+		elif vcs == VCS.FOSSIL:
+			from zim.plugins.versioncontrol.fossil import FOSSILApplicationBackend
+			vcs_klass = FOSSILApplicationBackend
 		else:
 			assert False, 'Unkown VCS: %s' % vcs
 
@@ -330,7 +339,7 @@ class VCS(object):
 	def create(klass, vcs, vcs_dir, notebook_dir):
 		"""Build the required instance of a Version Control System
 
-		@param vcs: Version Control System to build (choose between VCS.BZR, VCS.HG, VCS.GIT)
+		@param vcs: Version Control System to build (choose between VCS.BZR, VCS.HG, VCS.GIT, VCS.FOSSIL)
 		@param vcs_dir: a L{Dir} instance representing the VCS root folder
 		@param notebook_dir: a L{Dir} instance representing the notebook root folder
 		(must be equal to or below vcs_dir)
@@ -345,7 +354,7 @@ class VCS(object):
 	@classmethod
 	def check_dependencies(klass, vcs):
 		"""Check if the dependencies for the requested vcs are ok
-		@param vcs: the requested vcs: VCS.BZR, VCS.GIT or VCS.HG
+		@param vcs: the requested vcs: VCS.BZR, VCS.GIT, VCS.HG or VCS.FOSSIL
 		@returns: C{True} if dependencies are checked ok.
 		"""
 		return VCS.get_backend(vcs).tryexec()
@@ -446,10 +455,11 @@ class VCSBackend(ConnectorMixin):
 		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
 			self.on_path_deleted(self, fs, oldpath)
 
-	def on_path_deleted(self, path):
+	def on_path_deleted(self, fs, path):
 		"""Callback to remove a file from Bazaar when deleted from the wiki
 		Note: the VCS operation is asynchronous
 
+		@param fs: the L{FSSingletonClass} instance representing the file system
 		@param path: the L{UnixFile} object representing the path of the file or folder to delete
 		@returns: nothing
 		"""
@@ -843,7 +853,7 @@ class VersionControlInitDialog(QuestionDialog):
 		)
 
 		self.combobox = gtk.combo_box_new_text()
-		for option in (VCS.BZR, VCS.GIT, VCS.HG):
+		for option in (VCS.BZR, VCS.GIT, VCS.HG, VCS.FOSSIL):
 			if VCS.check_dependencies(option):
 				self.combobox.append_text(option)
 		self.combobox.set_active(0)
