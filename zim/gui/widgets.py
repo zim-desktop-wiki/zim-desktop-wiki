@@ -2151,19 +2151,9 @@ def format_title(title):
 	return '%s - Zim' % title
 
 
-def get_window(ui):
-	'''Returns a C{gtk.Window} object or C{None}.
-	Used to find the parent window for dialogs.
-	@param ui: a parent dialog or window, or GtkInterface object
-	@returns: a C{gtk.Window} object or C{None}
-	'''
-	if isinstance(ui, gtk.Window):
-		return ui
-	elif hasattr(ui, 'mainwindow') \
-	and isinstance(ui.mainwindow, gtk.Window):
-		return ui.mainwindow
-	else:
-		return None
+def get_window(widget):
+	return widget.get_toplevel() if widget else None
+		# GtkInterface also implements get_toplevel
 
 
 def register_window(window):

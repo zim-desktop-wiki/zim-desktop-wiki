@@ -846,7 +846,7 @@ def get_side_by_side_app():
 class VersionControlInitDialog(QuestionDialog):
 
 	def __init__(self):
-		QuestionDialog.__init__(self,
+		QuestionDialog.__init__(self, self,
 			_("Enable Version Control?"), # T: Question dialog
 			_("Version control is currently not enabled for this notebook.\n"
 			  "Do you want to enable it?" ) # T: Detailed question

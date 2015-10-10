@@ -38,6 +38,9 @@
 #
 # File.uri is already encoded, don't do anything else here
 
+from __future__ import with_statement
+
+
 import os
 import hashlib
 import time

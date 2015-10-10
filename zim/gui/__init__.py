@@ -629,6 +629,9 @@ class GtkInterface(gobject.GObject):
 			dialog.set_total(self.notebook.index.n_list_all_pages())
 			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 
+	def get_toplevel(self):
+		return self.mainwindow
+
 	def present(self, page=None, fullscreen=None, geometry=None):
 		'''Present the mainwindow. Typically used to bring back a
 		the application after it was hidden. Also used for remote
