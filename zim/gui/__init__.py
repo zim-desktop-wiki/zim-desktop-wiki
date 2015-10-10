@@ -2548,10 +2548,10 @@ class MainWindow(Window):
 				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
-		# layouts - esp. when switching input method on Ctrl-Space
+		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
 			group.connect_group( # <Primary><Space>
-				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
+				space, gtk.gdk.META_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)

@@ -606,7 +606,7 @@ class SingleClickTreeView(gtk.TreeView):
 		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
-	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
+	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.META_MASK
 
 	# backwards compatibility
 	if gtk.gtk_version < (2, 12) \
