@@ -34,22 +34,32 @@ On Ubuntu or other debian derived systems, the following packages should be inst
 **Note:** see [[downloads]] for a pre-packaged Ubuntu package
 
 === Windows ===
-To install gtk, python and python-gtk on Windows see the instructions at http://www.pygtk.org . If you use python 2.5 you will also need to install the python simplejson module. This can be obtained from http://pypi.python.org. The python-xdg module is not usefull on Windows, so you can skip it.
+To install gtk, python and python-gtk on Windows see the instructions at http://www.pygtk.org . If you use python 2.5 you will also need to install the python simplejson module. This can be obtained from http://pypi.python.org. The python-xdg module is not useful on Windows, so you can skip it.
 
 **Note:** see [[downloads]] for a pre-packaged Windows installer
 
 === Mac OS X ===
-You can run zim on mac if you have the proper dependencies installed.
-If you are using [[http://www.macports.org/|Mac Ports]] than installing the following ports should work:
+You can run Zim on Mac if you have the proper dependencies installed. Additionally, if [[https://wiki.gnome.org/Projects/GTK+/OSX/Integration|GtkOSXApplication]] is installed, Zim's menus will appear in OS X's menu bar instead of in the Zim window.
 
-* python26
-* py26-gtk
-* py26-simplejson
-* py26-xdg
+Zim's dependencies can be installed with the help of [[http://brew.sh|Homebrew]]. Installing the ''gtk-mac-integration'' package installs the GTK+ dependencies. pyxdg can be installed using pip:
 
-(The python25 packages should work as well if you prefer them)
+	''brew install gtk-mac-integration''
+	''/usr/local/bin/pip install pyxdg''
 
-An alternative that is reported to work is to install [[http://sourceforge.net/projects/macpkg/files/PyGTK/2.24.0/PyGTK.pkg/download|Pygtk for mac]]. This will make your zim window look nicer compared to using the Mac Ports option.  With pygtk for mac installed, you can just run zim directly from the source package.
+Now you can run Zim from the source package using the Homebrew-provided Python:
+
+	''/usr/local/bin/python zim.py''
+
+If you are using [[http://www.macports.org/|MacPorts]] instead then installing the following ports should work:
+
+* gtk2 (preferably with +quartz+no_x11 options)
+* python27
+* py27-pygtk
+* py27-gtk-osx-application-gtk2
+* py27-simplejson
+* py27-xdg
+
+An alternative that is reported to work is to install [[http://sourceforge.net/projects/macpkg/files/PyGTK/2.24.0/PyGTK.pkg/download|PyGTK for Mac]]. This will make your zim window look nicer compared to using the Mac Ports option. With PyGTK for Mac installed, you can just run zim directly from the source package.
 
 ==== Testing ====
 To verify zim is working properly on your system you can call the test suite using `''./test.py''`. Failures do not have to be critical, but in theory all tests should pass.
