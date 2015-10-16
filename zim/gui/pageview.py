@@ -112,22 +112,22 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = gtk.gdk.CONTROL_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
+KEYSTATES = gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', '', False), # T: Menu item
-	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', '', False), # T: Menu item
-	('redo_alt1', None, '', '<ctrl>Y', '', False),
-	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', '', False), # T: Menu item
-	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', '', False), # T: Menu item
-	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', '', False), # T: Menu item
+	('undo', 'gtk-undo', _('_Undo'), '<Primary>Z', '', False), # T: Menu item
+	('redo', 'gtk-redo', _('_Redo'), '<Primary><shift>Z', '', False), # T: Menu item
+	('redo_alt1', None, '', '<Primary>Y', '', False),
+	('cut', 'gtk-cut', _('Cu_t'), '<Primary>X', '', False), # T: Menu item
+	('copy', 'gtk-copy', _('_Copy'), '<Primary>C', '', False), # T: Menu item
+	('paste', 'gtk-paste', _('_Paste'), '<Primary>V', '', False), # T: Menu item
 	('delete', 'gtk-delete', _('_Delete'), '', '', False), # T: Menu item
 	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
 	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
-	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', '', False), # T: Menu item
+	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<Primary>E', '', False), # T: Menu item
 	('remove_link', None, _('_Remove Link'), '', '', False), # T: Menu item
-	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
+	('insert_date', None, _('_Date and Time...'), '<Primary>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
 	('insert_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item
@@ -136,20 +136,20 @@ ui_actions = (
 	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item,
 	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
-	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
-	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
-	('show_find_alt1', None, '', '<ctrl>F3', '', True),
-	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
+	('insert_link', 'zim-link', _('_Link...'), '<Primary>L', _('Insert Link'), False), # T: Menu item
+	('clear_formatting', None, _('_Clear Formatting'), '<Primary>9', '', False), # T: Menu item
+	('show_find', 'gtk-find', _('_Find...'), '<Primary>F', '', True), # T: Menu item
+	('show_find_alt1', None, '', '<Primary>F3', '', True),
+	('find_next', None, _('Find Ne_xt'), '<Primary>G', '', True), # T: Menu item
 	('find_next_alt1', None, '', 'F3', '', True), # T: Menu item
-	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
+	('find_previous', None, _('Find Pre_vious'), '<Primary><shift>G', '', True), # T: Menu item
 	('find_previous_alt1', None, '', '<shift>F3', '', True),
-	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
+	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<Primary>H', '', False), # T: Menu item
 	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
-	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<ctrl>plus', '', True), # T: Menu item
-	('zoom_in_alt1', None, '', '<ctrl>equal', '', True),
-	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
-	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
+	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<Primary>plus', '', True), # T: Menu item
+	('zoom_in_alt1', None, '', '<Primary>equal', '', True),
+	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<Primary>minus', '', True), # T: Menu item
+	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<Primary>0', '', True), # T: Menu item to reset zoom
 
 	# name, stock id, label
 	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
@@ -160,18 +160,18 @@ ui_actions = (
 
 ui_format_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('apply_format_h1', None, _('Heading _1'), '<ctrl>1', _('Heading 1')), # T: Menu item
-	('apply_format_h2', None, _('Heading _2'), '<ctrl>2', _('Heading 2')), # T: Menu item
-	('apply_format_h3', None, _('Heading _3'), '<ctrl>3', _('Heading 3')), # T: Menu item
-	('apply_format_h4', None, _('Heading _4'), '<ctrl>4', _('Heading 4')), # T: Menu item
-	('apply_format_h5', None, _('Heading _5'), '<ctrl>5', _('Heading 5')), # T: Menu item
-	('apply_format_strong', 'gtk-bold', _('_Strong'), '<ctrl>B', _('Strong')), # T: Menu item
-	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<ctrl>I', _('Emphasis')), # T: Menu item
-	('apply_format_mark', 'gtk-underline', _('_Mark'), '<ctrl>U', _('Mark')), # T: Menu item
-	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<ctrl>K', _('Strike')), # T: Menu item
-	('apply_format_sub', None, _('_Subscript'), '<Ctrl><Shift>b', _('_Subscript')), # T: Menu item
-	('apply_format_sup', None, _('_Superscript'), '<Ctrl><Shift>p', _('_Superscript')), # T: Menu item
-	('apply_format_code', None, _('_Verbatim'), '<ctrl>T', _('Verbatim')), # T: Menu item
+	('apply_format_h1', None, _('Heading _1'), '<Primary>1', _('Heading 1')), # T: Menu item
+	('apply_format_h2', None, _('Heading _2'), '<Primary>2', _('Heading 2')), # T: Menu item
+	('apply_format_h3', None, _('Heading _3'), '<Primary>3', _('Heading 3')), # T: Menu item
+	('apply_format_h4', None, _('Heading _4'), '<Primary>4', _('Heading 4')), # T: Menu item
+	('apply_format_h5', None, _('Heading _5'), '<Primary>5', _('Heading 5')), # T: Menu item
+	('apply_format_strong', 'gtk-bold', _('_Strong'), '<Primary>B', _('Strong')), # T: Menu item
+	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<Primary>I', _('Emphasis')), # T: Menu item
+	('apply_format_mark', 'gtk-underline', _('_Mark'), '<Primary>U', _('Mark')), # T: Menu item
+	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<Primary>K', _('Strike')), # T: Menu item
+	('apply_format_sub', None, _('_Subscript'), '<Primary><Shift>b', _('_Subscript')), # T: Menu item
+	('apply_format_sup', None, _('_Superscript'), '<Primary><Shift>p', _('_Superscript')), # T: Menu item
+	('apply_format_code', None, _('_Verbatim'), '<Primary>T', _('Verbatim')), # T: Menu item
 )
 
 ui_format_toggle_actions = (
@@ -3853,7 +3853,7 @@ class TextView(gtk.TextView):
 				return gtk.TextView.do_key_press_event(self, event)
 
 		elif (event.keyval in KEYVALS_HOME
-		and not event.state & gtk.gdk.CONTROL_MASK):
+		and not event.state & gtk.gdk.META_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)

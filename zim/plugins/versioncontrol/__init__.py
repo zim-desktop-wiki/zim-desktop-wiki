@@ -200,7 +200,7 @@ class MainWindowExtension(WindowExtension):
 		except NoChangesError:
 			logger.debug('No autosave version needed - no changes')
 
-	@action(_('S_ave Version...'), 'gtk-save-as', '<ctrl><shift>S', readonly=False) # T: menu item
+	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False) # T: menu item
 	def save_version(self):
 		self.window.ui.assert_save_page_if_modified() # XXX
 
