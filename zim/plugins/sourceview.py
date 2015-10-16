@@ -117,8 +117,8 @@ class MainWindowExtension(WindowExtension):
 			return # dialog cancelled
 		else:
 			obj = self.plugin.create_object({'type': OBJECT_TYPE, 'lang': lang}, '')
-			pageview = self.window.pageview
-			pageview.insert_object_at_cursor(obj)
+			pageview = self.window.pageview # XXX
+			pageview.insert_object(obj)
 
 
 class InsertCodeBlockDialog(Dialog):

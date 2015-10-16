@@ -536,14 +536,8 @@ class TextBuffer(gtk.TextBuffer):
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
-	@signal: C{insert-object (object_element)}: request inserting of
-	custom object
-	@signal: C{edit-object (object_element)}: request editing of
-	custom object
-	@signal: C{insert-table (table_element)}: request inserting of
-	table object
-	@signal: C{edit-table (table_element)}: request editing of
-	table object
+	@signal: C{insert-object (object, achor)}: emitted when an object
+	is inserted, should trigger L{TextView} to attach a widget
 
 	@todo: document tag styles that are supported
 	'''
@@ -564,10 +558,7 @@ class TextBuffer(gtk.TextBuffer):
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'edit-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'insert-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'edit-table': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
@@ -939,11 +930,29 @@ class TextBuffer(gtk.TextBuffer):
 				self.set_textstyle(None)
 				set_indent(None)
 			elif element.tag == 'table':
-				self.emit('insert-table', element)
+				if 'indent' in element.attrib:
+					set_indent(int(element.attrib['indent']))
+
+				obj = ObjectManager.get_object('table', element.attrib, element)
+				if isinstance(obj, FallbackObject):
+					# HACK - if table plugin is not loaded - show table as plain text
+					tree = ParseTree(element)
+					lines = get_dumper('wiki').dump(tree)
+					obj.set_data(''.join(lines))
+
+				self.insert_object_at_cursor(obj)
+
+				set_indent(None)
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-				self.emit('insert-object', element)
+
+				if 'type' in element.attrib:
+					obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
+					self.insert_object_at_cursor(obj)
+				else:
+					logger.warning('Skipping object without type')
+
 				set_indent(None)
 			else:
 				# Text styles
@@ -1195,6 +1204,25 @@ class TextBuffer(gtk.TextBuffer):
 			return pixbuf.zim_attrib.copy()
 		else:
 			return None
+
+	def insert_object_at_cursor(self, obj):
+		'''Inserts a custom object in the page
+		@param obj: an object implementing L{CustomerObjectClass}
+		'''
+		assert isinstance(obj, CustomObjectClass)
+		logger.debug("Insert object: %s", obj)
+
+		def on_modified_changed(obj):
+			if obj.get_modified() and not self.get_modified():
+				self.set_modified(True)
+
+		obj.connect('modified-changed', on_modified_changed)
+
+		anchor = ObjectAnchor(obj)
+		iter = self.get_insert_iter()
+		self.insert_child_anchor(iter, anchor)
+
+		self.emit('insert-object', obj, anchor)
 
 	def set_bullet(self, line, bullet):
 		'''Sets the bullet type for a line
@@ -3590,6 +3618,7 @@ class TextView(gtk.TextView):
 		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
 		self._cursor_link = None
+		self._object_widgets = WeakSet()
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
@@ -3597,6 +3626,54 @@ class TextView(gtk.TextView):
 		actions = gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE | gtk.gdk.ACTION_LINK
 		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
 			# Flags is 0 because gtktextview does everything itself
+
+		self._object_size_request = (-1, -1)
+		self.connect_after('size-allocate', self.__class__.on_size_allocate)
+
+	def set_buffer(self, buffer):
+		buffer.connect('insert-object', self.on_insert_object)
+		gtk.TextView.set_buffer(self, buffer)
+
+	def on_insert_object(self, buffer, obj, anchor):
+		# Connect widget for this view to object
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectWidget)
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.grab_focus()
+
+		widget.connect('release-cursor', on_release_cursor, anchor)
+
+		for signal in ('link-clicked', 'link-enter', 'link-leave'):
+			widget.connect(signal, lambda o, *a: self.emit(signal, *a))
+
+		widget.on_textview_size_changed(self, *self._object_size_request)
+
+		self.add_child_at_anchor(widget, anchor)
+		self._object_widgets.add(widget)
+		widget.show_all()
+
+	def on_size_allocate(self, allocation):
+		# Update size request for widgets
+		request = self._get_object_size_request()
+		if request != self._object_size_request:
+			for widget in self._object_widgets:
+				widget.on_textview_size_changed(self, *request)
+			self._object_size_request = request
+
+	def _get_object_size_request(self):
+		# TODO - take into account indent level per widget anchor...
+		text_window = self.get_window(gtk.TEXT_WINDOW_TEXT)
+		if text_window:
+			width, height = text_window.get_geometry()[2:4]
+			hmargin = self.get_left_margin() + self.get_right_margin()
+			return width - hmargin, -1
+		else:
+			return 500, -1 # arbitrary default
 
 	def do_copy_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.copy_clipboard
@@ -4794,7 +4871,6 @@ class PageView(gtk.VBox):
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
-		self._object_widgets = WeakSet()
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondary:
@@ -4809,8 +4885,6 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
-
-		self.view.connect_after('size-allocate', self.on_view_size_allocate)
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.view)
@@ -5011,8 +5085,6 @@ class PageView(gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
-			buffer.connect('insert-object', self.on_insert_object)
-			buffer.connect('insert-table', self.on_insert_table)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5661,6 +5733,11 @@ class PageView(gtk.VBox):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
 
+	def insert_object(self, obj):
+		buffer = self.view.get_buffer()
+		with buffer.user_action:
+			buffer.insert_object_at_cursor(obj)
+
 	def insert_image(self, file=None, type=None, interactive=True, force=False):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 
@@ -6006,123 +6083,6 @@ class PageView(gtk.VBox):
 	def show_word_count(self):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
-
-	def insert_object_at_cursor(self, obj):
-		'''Inserts a custom object in the page
-		@param obj: an imjobt implementing L{CustomerObjectClass}
-		'''
-		assert isinstance(obj, CustomObjectClass)
-		self.on_insert_object(self.view.get_buffer(), obj)
-
-	def on_insert_object(self, buffer, obj, interactive=False):
-		# Inserts custom object to TextView & Textbuffer.
-		# obj can be Element or CustomObjectClass instance.
-		logger.debug("Insert object(%s, %s)", buffer, obj)
-		if not isinstance(obj, CustomObjectClass):
-			# assume obj is a parsetree element
-			element = obj
-			if not 'type' in element.attrib:
-				return None
-			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
-
-		def on_modified_changed(obj):
-			if obj.get_modified() and not buffer.get_modified():
-				buffer.set_modified(True)
-
-		obj.connect('modified-changed', on_modified_changed)
-		iter = buffer.get_insert_iter()
-
-		def on_release_cursor(widget, position, anchor):
-			myiter = buffer.get_iter_at_child_anchor(anchor)
-			if position == POSITION_END:
-				myiter.forward_char()
-			buffer.place_cursor(myiter)
-			self.view.grab_focus()
-
-		anchor = ObjectAnchor(obj)
-		buffer.insert_child_anchor(iter, anchor)
-		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectWidget)
-		widget.connect('release-cursor', on_release_cursor, anchor)
-		widget.show_all()
-		self.view.add_child_at_anchor(widget, anchor)
-		self._object_widgets.add(widget)
-
-		widget.show_all()
-
-	def insert_table_at_cursor(self, obj):
-		'''Inserts a table object in the page
-		@param obj: an object implementing L{CustomerObjectClass}
-		'''
-		assert isinstance(obj, CustomObjectClass)
-		self.on_insert_table(self.view.get_buffer(), obj)
-
-	def on_insert_table(self, buffer, obj, interactive=False):
-		#  adopted from on_insert_object, with some changes:
-		# - 'type=table' added to xml-element
-		# - content of fallback-object is like a plaintext table
-		# - content of table-widget is not text, but a xml table tree
-		# - callbacks for 'link-clicked' and 'edit-object'
-		logger.debug("Insert table(%s, %s)", buffer, obj)
-
-		obj.attrib['type'] = 'table'
-		if not isinstance(obj, CustomObjectClass):
-			# assume obj is a parsetree element
-			element = obj
-			if not 'type' in element.attrib:
-				return None
-			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element)
-			if not hasattr(obj, 'attr'):
-				obj.attr = dict()
-				obj.attr['type'] = 'table'
-
-			if isinstance(obj, FallbackObject):
-				# if table plugin is not loaded - show table as plain text
-				tree = ParseTree(element)
-				text = get_dumper('wiki').dump(tree)
-				lines = "".join(text)
-				obj._data = lines
-
-		def on_modified_changed(obj):
-			if obj.get_modified() and not buffer.get_modified():
-				buffer.set_modified(True)
-
-		def on_edit_object(pageview, obj):
-			plugin = ObjectManager.find_plugin(obj._attrib['type'])
-			window_extension = plugin[4]
-
-			if window_extension:
-				window_extension.do_edit_object(obj)
-
-		obj.connect('modified-changed', on_modified_changed)
-		obj.connect_object('link-clicked', PageView.do_link_clicked, self)
-		obj.connect_object('edit-object', on_edit_object, self)
-
-		iter = buffer.get_insert_iter()
-
-		def on_release_cursor(widget, position, anchor):
-			myiter = buffer.get_iter_at_child_anchor(anchor)
-			if position == POSITION_END:
-				myiter.forward_char()
-			buffer.place_cursor(myiter)
-			self.view.grab_focus()
-
-		anchor = ObjectAnchor(obj)
-		buffer.insert_child_anchor(iter, anchor)
-		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectWidget)
-		widget.connect('release-cursor', on_release_cursor, anchor)
-		self.view.add_child_at_anchor(widget, anchor)
-		self._object_widgets.add(widget)
-
-		widget.show_all()
-		if not isinstance(obj, FallbackObject):
-			widget.toolbar_hide()
-
-	def on_view_size_allocate(self, textview, allocation):
-		for widget in self._object_widgets:
-			if widget._resize:
-				widget.resize_to_textview(textview)
 
 	def zoom_in(self):
 		'''Menu action to increase the font size'''

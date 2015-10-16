@@ -31,7 +31,7 @@ class TestMainWindowExtension(tests.TestCase):
 		tree = window.pageview.get_parsetree()
 		#~ print tree.tostring()
 		obj = tree.find('table')
-		
+
 		self.assertTrue(obj.attrib['aligns'] == 'left')
 		self.assertTrue(obj.attrib['wraps'] == '0')
 
@@ -54,21 +54,16 @@ class TestEditTableExtension(tests.TestCase):
 		dialog.assert_response_ok()
 
 	def testChangeTable(self):
-		window = tests.MockObject()
-		window.pageview = setUpPageView()
-		window.ui = tests.MockObject()
-		window.ui.uimanager = tests.MockObject()
-		window.ui.uistate = ConfigDict()
-		window.ui.mainwindow = window # XXX
-		plugin = TableEditorPlugin()
-		extension = MainWindowExtension(plugin, window)
-		obj = plugin.create_table({'aligns': 'normal,normal', 'wraps': '0,0'}, (('h1', 'h2'),('t1', 't2')))
-		obj.get_widget()
+		attrib = {'aligns': 'normal,normal', 'wraps': '0,0'}
+		header = ['h1', 'h2']
+		rows = [['t1', 't2'],]
+		obj = TableViewObject(attrib, header, rows, {})
+		widget = obj.get_widget()
 
 		with tests.DialogContext(self.checkUpdateTableDialog):
-			extension.do_edit_object(obj)
+			widget.on_change_columns(None)
 
-		self.assertTrue(isinstance(obj.get_widget().treeview, gtk.TreeView))
+		self.assertTrue(isinstance(widget.treeview, gtk.TreeView))
 
 class TestTableFunctions(tests.TestCase):
 	def testCellFormater(self):

@@ -16,7 +16,6 @@
 import gobject
 import gtk
 import logging
-from xml.etree import ElementTree
 import re
 import pango
 
@@ -30,6 +29,7 @@ from zim.config import String
 from zim.main import get_zim_application
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
 from zim.gui.objectmanager import CustomObjectWidget
+from zim.formats import ElementTreeModule as ElementTree
 
 OBJECT_TYPE = 'table'
 
@@ -117,6 +117,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 	def __init__(self, config=None):
 		''' Constructor '''
 		PluginClass.__init__(self, config)
+		ObjectManager.register_object(OBJECT_TYPE, self.create_table)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def create_table(self, attrib, text):
@@ -126,16 +127,9 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		:param text: XML - formated as a zim-tree table-object OR tuple of [header], [row1], [row2]
 		:return: a TableViewObject
 		'''
-		if ElementTree.iselement(text) and attrib.get('type') == 'table':
-			(header, rows) = self._tabledom_to_list(text)
-		else:
-			# parameters in case of the Table-Insert-Dialog
-			header = text[0]
-			rows = [len(text[0]) * [' ']]
-
-		'''Factory method for Table objects'''
-		obj = TableViewObject(attrib, header, rows, self.preferences)
-		return obj
+		assert ElementTree.iselement(text)
+		(header, rows) = self._tabledom_to_list(text)
+		return TableViewObject(attrib, header, rows, self.preferences)
 
 	def _tabledom_to_list(self, tabledata):
 		'''
@@ -223,15 +217,9 @@ class MainWindowExtension(WindowExtension):
 		</ui>
 	'''
 
-	''' static reference to window object, necessary for access to pageview '''
-	window = None
-
 	def __init__(self, plugin, window):
 		''' Constructor '''
 		WindowExtension.__init__(self, plugin, window)
-		MainWindowExtension.window = window
-
-		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_table, self)
 
 		# reload tables on current page after plugin activation
 		if self.window.ui.page:
@@ -242,17 +230,10 @@ class MainWindowExtension(WindowExtension):
 		ObjectManager.unregister_object(OBJECT_TYPE)
 		self.window.ui.reload_page()
 
-	@staticmethod
-	def get_geometry():
-		'''Returns tuple of geometry data from wiki textview window. Useful for setting width of object'''
-		win = MainWindowExtension.window.pageview.view.get_window(gtk.TEXT_WINDOW_TEXT)
-		geometry = win.get_geometry() if hasattr(win, 'get_geometry') else None
-		return geometry
-
 	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):
-		'''Run the InsertTableDialog'''
-		col_model = EditTableDialog(self.window, self.plugin, self.window.pageview).run()
+		'''Run the EditTableDialog'''
+		col_model = EditTableDialog(self.window).run()
 		if not col_model:
 			return
 
@@ -263,87 +244,17 @@ class MainWindowExtension(WindowExtension):
 			aligns.append(model[3])
 			wraps.append(model[2])
 
-		attrs = {'aligns': aligns, 'wraps': wraps}
+		attrib = {'aligns': aligns, 'wraps': wraps}
+		rows = [len(headers) * [' ']]
 
-		obj = self.plugin.create_table(attrs, [headers])
-		obj.attrib = {'type': OBJECT_TYPE}
-		pageview = self.window.pageview
-		pageview.insert_table_at_cursor(obj)
-
-	def do_edit_object(self, obj):
-		'''
-		With the right button press a context-menu is opened and a table can then be edited
-		'''
-		self.do_edit_table(obj)
-
-	def do_edit_table(self, obj):
-		'''Run the EditTableDialog '''
-
-		aligns = obj.get_aligns()
-		wraps = obj.get_wraps()
-		titles = [col.get_title() for col in obj.treeview.get_columns()]
-		old_model = []
-		for i in range(len(titles)):
-			old_model.append([i, titles[i], aligns[i], wraps[i]])
-		new_model = EditTableDialog(self.window, self.plugin, self.window.pageview, old_model).run()
-
-		if new_model:
-			self._update_table_view(obj, new_model)
-
-	def _update_table_view(self, obj, new_model):
-		'''
-		Replaces liststore of currently displayed treeview with updated data and fixes references to attributes
-		:param obj: tableview object
-		:param new_model: tuple of lists for ([id], [header], [warps], [aligns])
-		'''
-		# prepare results out of dialog-window
-		id_mapping, headers, aligns, wraps = ({}, [], [], [])
-		for i, model in enumerate(new_model):
-			if model[0] != -1:
-				id_mapping[i] = model[0]
-			header = model[1] if model[1] else ' '
-			headers.append(header)
-			aligns.append(model[3])
-			wraps.append(model[2])
-
-		# creation of new table-view widget
-		attrs = {'aligns': aligns, 'wraps': wraps}
-		newrows = self._calculate_new_liststore(obj.treeview.get_model(), id_mapping, len(headers))
-		widget = TableViewWidget(obj, headers, newrows, attrs)
-		new_treeview = widget.get_treeview()
-		new_model = new_treeview.get_model()
-
-		# update of displayed table(=treeview) and its structure (=liststore)
-		obj.treeview.set_model(new_model)
-		# remove all old columns and move new columns to original treeview
-		for col in obj.treeview.get_columns():
-			obj.treeview.remove_column(col)
-		for i, col in enumerate(new_treeview.get_columns()):
-			new_treeview.remove_column(col)
-			obj.treeview.append_column(col)
-			title_label = TableViewWidget.create_headerlabel(headers[i])
-			col.set_widget(title_label)
-
-		geometry = MainWindowExtension.get_geometry()[2] if  MainWindowExtension.get_geometry() else 600
-		TableViewWidget.wrap_columns(obj.treeview, geometry, wraps)
-
-		obj.set_aligns(aligns)
-		obj.set_wraps(wraps)
-		obj.set_modified(True)
-
-	def _calculate_new_liststore(self, liststore, id_mapping, nr_cols):
-		''' Old value of cells are used in the new table, but only if its column is not deleted '''
-		new_rows = []
-		for oldrow in liststore:
-				newrow = [' ']*nr_cols
-				for v, k in id_mapping.iteritems():
-					newrow[v] = oldrow[k]
-				new_rows.append(newrow)
-		return new_rows
+		obj = TableViewObject(attrib, headers, rows, self.plugin.preferences)
+		pageview = self.window.pageview # XXX
+		pageview.insert_object(obj)
 
 
 class TableViewObject(CustomObjectClass):
 	'''data presenter of an inserted table within a page'''
+
 	OBJECT_ATTR = {
 		'type': String('table'),
 		'aligns': String(''),  # i.e. String(left,right,center)
@@ -364,15 +275,15 @@ class TableViewObject(CustomObjectClass):
 				v = ','.join(map(str, v))
 			_attrib[k] = v
 		CustomObjectClass.__init__(self, _attrib, [header]+rows)
+		self.attrib = {'type': OBJECT_TYPE} # just to be sure
 
 		self._tableattrib = attrib
 		self._header = header
 		self._rows = rows
-		self.modified = False
-		self.preferences = preferences
-		self.treeview = None
 		self._widgets = WeakSet()
-		self.textview_geometry = None
+		self._liststore = None # shared model between widgets
+
+		self.preferences = preferences
 
 	# getters and setters for attributes
 	def get_aligns(self):
@@ -393,15 +304,21 @@ class TableViewObject(CustomObjectClass):
 		assert(isinstance(data, list))
 		self._attrib['wraps'] = ','.join(str(item) for item in data)
 
+	def _get_liststore(self, reset=False):
+		if reset or not self._liststore:
+			cols = [str]*len(self._header)
+			self._liststore = gtk.ListStore(*cols)
+			for trow in self._rows:
+				self._liststore.append(trow)
+			self._liststore.connect('row-changed', self.on_modified_changed)
+
+		return self._liststore
+
 	def get_widget(self):
 		''' Creates a new table-widget which can displayed on the wiki-page '''
+		liststore = self._get_liststore()
 		attrib = {'aligns': self.get_aligns(), 'wraps': self.get_wraps()}
-		widget = TableViewWidget(self, self._header, self._rows, attrib)
-		treeview = widget.get_treeview()
-		self.treeview = treeview
-		liststore = treeview.get_model()
-		liststore.connect('row-changed', self.on_modified_changed)
-
+		widget = TableViewWidget(self, liststore, self._header, attrib)
 		self._widgets.add(widget)
 		widget.set_preferences(self.preferences)
 		return widget
@@ -421,52 +338,99 @@ class TableViewObject(CustomObjectClass):
 
 	def get_data(self):
 		'''Returns table-object into textual data, for saving it as text.'''
-		liststore = self.treeview.get_model()
-		headers = []
-		rows = []
-
-		# parsing table header and attributes
-		for column in self.treeview.get_columns():
-			title = column.get_title() if column.get_title() else ' '
-			headers.append(title)
+		headers = self._header
 		attrs = {'aligns': self._attrib['aligns'], 'wraps': self._attrib['wraps']}
 
-		# parsing rows
-		treeiter = liststore.get_iter_first()
-		while treeiter is not None:
-			row = []
-			for colid in range(len(self.treeview.get_columns())):
-				val = liststore.get_value(treeiter, colid) if liststore.get_value(treeiter, colid) else ' '
-				row.append(val)
-			rows.append(row)
-			treeiter = liststore.iter_next(treeiter)
-		rows = [map(lambda cell: CellFormatReplacer.cell_to_input(cell, True), row) for row in rows]
+		if not self._liststore:
+			rows = self._rows
+		else:
+			rows = []
+			for treerow in self._liststore:
+				rows.append(map(
+					lambda cell: CellFormatReplacer.cell_to_input(cell, True),
+					treerow
+				))
 
 		# logger.debug("Table as get-data: : %s, %s, %s", headers, rows, attrs)
 		return headers, rows, attrs
-
 
 	def dump(self, format, dumper, linker=None):
 		''' Dumps currently structure for table into textual format - mostly used for debugging / testing purposes '''
 		return CustomObjectClass.dump(self, format, dumper, linker)
 
+	def change_model(self, new_model):
+		'''
+		Replace liststore with new model and notify widgets to update
+		their treeview.
+		:param new_model: tuple of lists for ([id], [header], [warps], [aligns])
+		'''
+		# prepare results out of dialog-window
+		id_mapping, headers, aligns, wraps = ({}, [], [], [])
+		for i, model in enumerate(new_model):
+			if model[0] != -1:
+				id_mapping[i] = model[0]
+			header = model[1] if model[1] else ' '
+			headers.append(header)
+			aligns.append(model[3])
+			wraps.append(model[2])
+
+		# update data
+		if self._liststore:
+			liststore = self._get_liststore()
+			self._rows = self._update_rows(liststore, id_mapping, len(headers))
+			liststore = self._get_liststore(reset=True)
+		else:
+			liststore = None
+			self._rows = self._update_rows(self._rows, id_mapping, len(headers))
+
+		self.set_aligns(aligns)
+		self.set_wraps(wraps)
+		self.set_modified(True)
+
+		# notify widgets
+		for widget in self._widgets:
+			assert liststore is not None, 'Huh?'
+			attrib = {'aligns': self.get_aligns(), 'wraps': self.get_wraps()}
+			widget.on_model_changed(liststore, headers, attrib)
+
+		self.preferences_changed() # reset prefs on widgets
+
+	def _update_rows(self, old_rows, id_mapping, nr_cols):
+		''' Old value of cells are used in the new table, but only if its column is not deleted '''
+		new_rows = []
+		for oldrow in old_rows:
+				newrow = [' ']*nr_cols
+				for v, k in id_mapping.iteritems():
+					newrow[v] = oldrow[k]
+				new_rows.append(newrow)
+		return new_rows
+
+
+
+GTK_GRIDLINES = {
+	LINES_BOTH: gtk.TREE_VIEW_GRID_LINES_BOTH,
+	LINES_NONE: gtk.TREE_VIEW_GRID_LINES_NONE,
+	LINES_HORIZONTAL: gtk.TREE_VIEW_GRID_LINES_HORIZONTAL,
+	LINES_VERTICAL: gtk.TREE_VIEW_GRID_LINES_VERTICAL,
+}
+
 
 class TableViewWidget(CustomObjectWidget):
 
-	def __init__(self, obj, headers, rows, attrs):
+	def __init__(self, obj, liststore, headers, attrs):
 		'''
 		This is a group of GTK Gui elements which are directly displayed within the wiki textarea
 		On initilizing also some signals are registered and a toolbar is initialized
 		:param obj: a Table-View-Object
+		:param liststore: a gtk.ListStore object
 		:param headers: list of titles
-		:param rows: list of list of cells
 		:param attrs: table settings, like alignment and wrapping
 		:return:
 		'''
+		CustomObjectWidget.__init__(self)
 		self.textarea_width = 0
 
 		# used in pageview
-		self._resize = True  # attribute, that triggers resizing
 		self._has_cursor = False  # Skip table object, if someone moves cursor around in textview
 
 		# used here
@@ -479,20 +443,28 @@ class TableViewWidget(CustomObjectWidget):
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
 
-		# Add vbox and wrap it to have a shadow around it
-		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
-
 		# Toolbar for table actions
-		toolbar = self.create_toolbar()
-		self.obj.toolbar = toolbar
+		self.toolbar = self.create_toolbar()
+		self.toolbar.show_all()
+		self.toolbar.set_no_show_all(True)
+		self.toolbar.hide()
 
+		# Create treeview
+		self._init_treeview(liststore, headers, attrs)
+
+		# package gui elements
+		self.vbox.pack_end(self.toolbar)
+		self.scroll_win = ScrolledWindow(self.treeview, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
+		self.vbox.pack_start(self.scroll_win)
+
+	def _init_treeview(self, liststore, headers, attrs):
 		# Actual gtk table object
-		self.treeview = self.create_treeview(headers, rows, attrs)
+		self.treeview = self.create_treeview(liststore, headers, attrs)
 
 		# Hook up signals & set options
 		self.treeview.connect('button-press-event', self.on_button_press_event)
-		self.treeview.connect('focus-in-event', self.on_focus_in, toolbar)
-		self.treeview.connect('focus-out-event', self.on_focus_out, toolbar)
+		self.treeview.connect('focus-in-event', self.on_focus_in, self.toolbar)
+		self.treeview.connect('focus-out-event', self.on_focus_out, self.toolbar)
 		self.treeview.connect('move-cursor', self.on_move_cursor)
 
 		# Set options
@@ -506,11 +478,17 @@ class TableViewWidget(CustomObjectWidget):
 		gtk.binding_entry_remove(gtk.TreeView, gtk.keysyms.f, gtk.gdk.CONTROL_MASK)
 		self.treeview.set_search_column(-1)
 
-		# package gui elements
-		self.vbox.pack_end(toolbar)
-		self.add(self.vbox)
-		win = ScrolledWindow(self.treeview, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_OUT)
-		self.vbox.pack_start(win)
+	def on_model_changed(self, liststore, headers, attrs):
+		'''Called by TableViewObject when columns changed, replaces the
+		treeview idget with a new one for the new model
+		'''
+		self.scroll_win.remove(self.treeview)
+		self._init_treeview(liststore, headers, attrs)
+		self.scroll_win.add(self.treeview)
+		self.scroll_win.show_all()
+
+	def on_textview_size_changed(self, textview, width, height):
+		self.wrap_columns(width)
 
 	def on_focus_in(self, treeview, event, toolbar):
 		'''After a table is selected, this function will be triggered'''
@@ -571,25 +549,10 @@ class TableViewWidget(CustomObjectWidget):
 
 		return toolbar
 
-	def toolbar_hide(self):
-		''' Hide toolbar of the table (moving rows around, etc.) '''
-		self.obj.toolbar.hide()
-
-	def resize_to_textview(self, view):
-		''' Overriding - on resizing the table should not expanded to 100% width'''
-		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
-		if not win or win.get_geometry()[2] == self.textarea_width:
-			return
-
-		self.textarea_width = win.get_geometry()[2]
-		self.wrap_columns(self.treeview, self.textarea_width, self.obj.get_wraps())
-
-	def wrap_columns(self, treeview, textarea_width, wraps):
-		TableViewWidget.wrap_columns(treeview, textarea_width, wraps)
-
-	@staticmethod
-	def wrap_columns(treeview, textarea_width, wraps):
+	def wrap_columns(self, textarea_width):
 		''' Wrap all columns, which should be wrapped '''
+		treeview = self.treeview
+		wraps = self.obj.get_wraps()
 		nrcols = len(treeview.get_columns())
 
 		if wraps == [1] * nrcols: # in case all columns are wrapped
@@ -623,7 +586,7 @@ class TableViewWidget(CustomObjectWidget):
 			align = None
 		return align
 
-	def create_treeview(self, headers, rows, attrs):
+	def create_treeview(self, liststore, headers, attrs):
 		'''
 		Initializes a treeview with its model (liststore) and all its columns
 		:param headers: a list of title values for the column-headers
@@ -631,14 +594,7 @@ class TableViewWidget(CustomObjectWidget):
 		:param attrs: some more attributes, which define the layout of a column
 		:return: gtk.treeview
 		'''
-		nrcols = len(headers)
-
-		cols = [str]*nrcols
-
-		liststore = gtk.ListStore(*cols)
 		treeview = gtk.TreeView(liststore)
-		for trow in rows:
-			liststore.append(trow)
 
 		for i, headcol in enumerate(headers):
 			cell = gtk.CellRendererText()
@@ -696,22 +652,8 @@ class TableViewWidget(CustomObjectWidget):
 		return self.treeview
 
 	def set_preferences(self, preferences):
-		self._toolbar_enabled = preferences['show_helper_toolbar']
-
-		''' Sets general plugin settings for this object'''
-		grid_option = self.pref_gridlines(preferences['grid_lines'])
-		self.treeview.set_grid_lines(grid_option)
-		pass
-
-	def pref_gridlines(self, option):
-		if option == LINES_BOTH:
-			return gtk.TREE_VIEW_GRID_LINES_BOTH
-		elif option == LINES_NONE:
-			return gtk.TREE_VIEW_GRID_LINES_NONE
-		elif option == LINES_HORIZONTAL:
-			return gtk.TREE_VIEW_GRID_LINES_HORIZONTAL
-		elif option == LINES_VERTICAL:
-			return gtk.TREE_VIEW_GRID_LINES_VERTICAL
+		self._toolbar_enabled = preferences.get('show_helper_toolbar', True)
+		self.treeview.set_grid_lines(GTK_GRIDLINES[preferences.get('grid_lines', LINES_BOTH)])
 
 	def on_move_cursor(self, view, step_size, count):
 		''' If you try to move the cursor out of the tableditor release the cursor to the parent textview '''
@@ -856,8 +798,18 @@ class TableViewWidget(CustomObjectWidget):
 		pass
 
 	def on_change_columns(self, action):
-		''' Context menu: Edit table '''
-		self.obj.emit('edit-object', self.obj)
+		''' Context menu: Edit table, run the EditTableDialog '''
+		aligns = self.obj.get_aligns()
+		wraps = self.obj.get_wraps()
+		titles = [col.get_title() for col in self.treeview.get_columns()]
+		old_model = []
+		for i in range(len(titles)):
+			old_model.append([i, titles[i], aligns[i], wraps[i]])
+
+		new_model = EditTableDialog(self.get_toplevel(), old_model).run()
+
+		if new_model:
+			self.obj.change_model(new_model) # Will call back to change our treeview
 
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		''' Trigger after cell-editing, to transform displayed table cell into right format '''
@@ -926,12 +878,10 @@ class EditTableDialog(Dialog):
 		'''
 		id, title, wrapped, align, alignicon, aligntext = range(6)
 
-	def __init__(self, ui, plugin, pageview, tablemodel=None):
+	def __init__(self, ui, tablemodel=None):
 		'''
 		Constructor, which intializes the dialog window
 		:param ui:
-		:param plugin:
-		:param pageview:
 		:param tablemodel: list of row-data
 		:return:
 		'''

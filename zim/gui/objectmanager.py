@@ -29,6 +29,10 @@ class CustomObjectWidget(gtk.EventBox):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
+		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+
 		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 	}
@@ -37,13 +41,15 @@ class CustomObjectWidget(gtk.EventBox):
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
 		self._has_cursor = False
-		self._resize = True
 		self.vbox = TableVBox()
 		self.add(self.vbox)
 
 	def do_realize(self):
 		gtk.EventBox.do_realize(self)
 		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+
+	def on_textview_size_changed(self, textview, width, height):
+		self.set_size_request(width, height)
 
 	def	has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be
@@ -65,19 +71,6 @@ class CustomObjectWidget(gtk.EventBox):
 	def release_cursor(self, position):
 		'''Emits the release-cursor signal'''
 		self.emit('release-cursor', position)
-
-	def resize_to_textview(self, view):
-		'''Resizes widget if parent textview size has been changed.'''
-		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
-		if not win:
-			return
-
-		vmargin = view.get_left_margin() + view.get_right_margin() \
-					+ 2 * self.get_border_width()
-		#~ hmargin =  2 * 20 + 2 * self.get_border_width()
-		width, height = win.get_geometry()[2:4]
-		#~ self.set_size_request(width - vmargin, height - hmargin)
-		self.set_size_request(width - vmargin, -1)
 
 gobject.type_register(CustomObjectWidget)
 

@@ -200,6 +200,12 @@ class FallbackObject(CustomObjectClass):
 		else:
 			return self._data
 
+	def set_data(self, text):
+		if self.buffer:
+			self.buffer.set_text(text)
+		else:
+			self._data = text
+
 	def on_modified_changed(self, buffer):
 		'''Callback for TextBuffer's modifications.'''
 		if buffer.get_modified():
