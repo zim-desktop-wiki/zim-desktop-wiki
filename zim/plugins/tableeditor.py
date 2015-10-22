@@ -417,6 +417,10 @@ GTK_GRIDLINES = {
 
 class TableViewWidget(CustomObjectWidget):
 
+	__gsignals__ = {
+		'size-request': 'override',
+	}
+
 	def __init__(self, obj, liststore, headers, attrs):
 		'''
 		This is a group of GTK Gui elements which are directly displayed within the wiki textarea
@@ -487,8 +491,45 @@ class TableViewWidget(CustomObjectWidget):
 		self.scroll_win.add(self.treeview)
 		self.scroll_win.show_all()
 
-	def on_textview_size_changed(self, textview, width, height):
-		self.wrap_columns(width)
+	def do_size_request(self, requisition):
+		wraps = self.obj.get_wraps()
+		if not any(wraps):
+			return gtk.EventBox.do_size_request(self, requisition)
+
+		# Negotiate how to wrap ..
+		for col in self.treeview.get_columns():
+			cr = col.get_cell_renderers()[0]
+			cr.set_property('wrap-width', -1) # reset size
+
+			#~ col.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
+			#~ col.set_max_width(0)	 # shrink column
+			#~ col.set_max_width(-1)  # reset value
+			#~ col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)  # reset value
+
+		gtk.EventBox.do_size_request(self, requisition)
+
+		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
+		if requisition.width > self._textview_width:
+			# Figure out width of fixed cols
+			fixed = 0
+			for col, wrap in zip(self.treeview.get_columns(), wraps):
+				if not wrap:
+					fixed += col.get_width()
+
+			nwrap = sum(wraps)
+			wrap_size = (self._textview_width - fixed) // nwrap
+
+			# Set width for wrappable cols
+			#~ print "Fixed, nwrap, wrap_size", (fixed, nwrap, wrap_size)
+			for col, wrap in zip(self.treeview.get_columns(), wraps):
+				if wrap:
+					cr = col.get_cell_renderers()[0]
+					cr.set_property('wrap-width', wrap_size) # reset size
+
+			# Update request
+			gtk.EventBox.do_size_request(self, requisition)
+		else:
+			pass
 
 	def on_focus_in(self, treeview, event, toolbar):
 		'''After a table is selected, this function will be triggered'''
@@ -549,31 +590,6 @@ class TableViewWidget(CustomObjectWidget):
 
 		return toolbar
 
-	def wrap_columns(self, textarea_width):
-		''' Wrap all columns, which should be wrapped '''
-		treeview = self.treeview
-		wraps = self.obj.get_wraps()
-		nrcols = len(treeview.get_columns())
-
-		if wraps == [1] * nrcols: # in case all columns are wrapped
-			max_width = textarea_width - 38 - nrcols * 10 if textarea_width else -1
-		else:
-			max_width = textarea_width - 40
-		if (not gtk.gtk_version >= (2, 8)) or max_width <= 0 or not textarea_width:
-			return
-
-		for column, wrap in zip(treeview.get_columns(), wraps):
-			cell = column.get_cell_renderers()[0]
-			cell.set_property('yalign', 0.0)  # no vertical alignment, text starts on the top
-			if wrap == 1:
-				cell.set_property('wrap-width', max_width//nrcols)
-				cell.set_property('wrap-mode', pango.WRAP_WORD)
-
-			column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
-			column.set_max_width(0)	 # shrink column
-			column.set_max_width(-1)  # reset value
-			column.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)  # reset value
-
 	def _column_alignment(self, aligntext):
 		''' The column alignment must be converted from numeric to keywords '''
 		if aligntext == 'left':
@@ -599,6 +615,7 @@ class TableViewWidget(CustomObjectWidget):
 		for i, headcol in enumerate(headers):
 			cell = gtk.CellRendererText()
 			tview_column = gtk.TreeViewColumn(headcol, cell)
+			tview_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
 			treeview.append_column(tview_column)
 
 			# set title as label
@@ -608,6 +625,7 @@ class TableViewWidget(CustomObjectWidget):
 			# set properties of column
 			tview_column.set_attributes(cell, markup=i)
 			cell.set_property('editable', True)
+			cell.set_property('yalign', 0.0)  # no vertical alignment, text starts on the top
 			tview_column.set_sort_column_id(i)
 			# set sort function
 			liststore.set_sort_func(i, self.sort_by_number_or_string, i)
@@ -616,6 +634,10 @@ class TableViewWidget(CustomObjectWidget):
 			if align:
 				tview_column.set_alignment(align)
 				cell.set_alignment(align, 0.0)
+
+			# set wrap mode, wrap-size is set elsewhere
+			if attrs['wraps'][i]:
+				cell.set_property('wrap-mode', pango.WRAP_WORD)
 
 			# callbacks after an action
 			cell.connect('edited', self.on_cell_changed, treeview.get_model(), i)

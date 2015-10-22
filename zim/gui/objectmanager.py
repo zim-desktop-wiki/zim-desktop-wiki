@@ -35,6 +35,8 @@ class CustomObjectWidget(gtk.EventBox):
 
 		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+
+		'size-request': 'override',
 	}
 
 	def __init__(self):
@@ -43,13 +45,22 @@ class CustomObjectWidget(gtk.EventBox):
 		self._has_cursor = False
 		self.vbox = TableVBox()
 		self.add(self.vbox)
+		self._textview_width = -1
 
 	def do_realize(self):
 		gtk.EventBox.do_realize(self)
 		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
 
 	def on_textview_size_changed(self, textview, width, height):
-		self.set_size_request(width, height)
+		self._textview_width = width
+		self.queue_resize()
+
+	def do_size_request(self, requisition):
+		gtk.EventBox.do_size_request(self, requisition)
+
+		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
+		if self._textview_width > requisition.width:
+			requisition.width = self._textview_width
 
 	def	has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be
