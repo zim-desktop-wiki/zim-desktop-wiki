@@ -444,9 +444,6 @@ class TableViewWidget(CustomObjectWidget):
 		self._cellinput_canceled = None  # cell changes should be skipped
 		self._toolbar_enabled = True  # sets if toolbar should be shown beneath a selected table
 
-		gtk.EventBox.__init__(self)
-		self.set_border_width(5)
-
 		# Toolbar for table actions
 		self.toolbar = self.create_toolbar()
 		self.toolbar.show_all()
@@ -494,7 +491,7 @@ class TableViewWidget(CustomObjectWidget):
 	def do_size_request(self, requisition):
 		wraps = self.obj.get_wraps()
 		if not any(wraps):
-			return gtk.EventBox.do_size_request(self, requisition)
+			return CustomObjectWidget.do_size_request(self, requisition)
 
 		# Negotiate how to wrap ..
 		for col in self.treeview.get_columns():
@@ -506,7 +503,7 @@ class TableViewWidget(CustomObjectWidget):
 			#~ col.set_max_width(-1)  # reset value
 			#~ col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)  # reset value
 
-		gtk.EventBox.do_size_request(self, requisition)
+		CustomObjectWidget.do_size_request(self, requisition)
 
 		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
 		if requisition.width > self._textview_width:
@@ -527,7 +524,7 @@ class TableViewWidget(CustomObjectWidget):
 					cr.set_property('wrap-width', wrap_size) # reset size
 
 			# Update request
-			gtk.EventBox.do_size_request(self, requisition)
+			CustomObjectWidget.do_size_request(self, requisition)
 		else:
 			pass
 
@@ -884,6 +881,66 @@ class TableViewWidget(CustomObjectWidget):
 		# T:
 		md.run()
 		md.destroy()
+
+	#~ def _search_in_widget(self, start, step):
+		#~ '''
+		#~ Search within a widget
+		#~ :param start: position-of-widget
+		#~ :param step: search direction (up / down): -1 / 1
+		#~ :return: tuple (startiter, enditer, match)
+		#~ '''
+		#~ if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
+			#~ return
+		#~ widgets = start.get_child_anchor().get_widgets()
+		#~ # TODO TODO TODO - generalize interface so all widgets can integrate find
+		#~ if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
+			#~ table = widgets[0]
+			#~ # get treeview first
+			#~ treeview = table.get_treeview()
+			#~ liststore = treeview.get_model()
+			#~ iter = liststore.get_iter_root()
+			#~ while iter is not None:
+				#~ for col in range(liststore.get_n_columns()):
+					#~ text = liststore.get_value(iter, col)
+					#~ matches = self.regex.finditer(text)
+					#~ if step == -1:
+						#~ matches = list(matches)
+						#~ matches.reverse()
+					#~ for match in matches:
+						#~ startiter = iter
+						#~ enditer = iter
+						#~ return startiter, enditer, match
+				#~ iter = liststore.iter_next(iter)
+
+	#~ def _replace_in_widget(self, start, regex, string, replaceall=False):
+		#~ '''
+		#~ Replace within a widget
+		#~ :param start: position-of-widget
+		#~ :param regex: regular expression pattern
+		#~ :param text: substituation text
+		#~ :param replaceall: boolean if all matches should be replaced
+		#~ :return: True / False - a replacement was done / no replaces
+		#~ '''
+		#~ if start.get_child_anchor() is None or len(start.get_child_anchor().get_widgets()) < 1:
+			#~ return
+		#~ widgets = start.get_child_anchor().get_widgets()
+		#~ if isinstance(widgets[0], zim.plugins.tableeditor.TableViewWidget):
+			#~ table = widgets[0]
+			#~ liststore = table.get_liststore()
+			#~ iter = liststore.get_iter_root()
+			#~ has_replaced = False
+			#~ while iter is not None:
+				#~ for col in range(liststore.get_n_columns()):
+					#~ text = liststore.get_value(iter, col)
+					#~ if(regex.search(text)):
+						#~ newtext = regex.sub(string, text)
+						#~ liststore.set_value(iter, col, newtext)
+						#~ if(not replaceall):
+							#~ return True
+						#~ else:
+							#~ has_replaced = True
+				#~ iter = liststore.iter_next(iter)
+		#~ return has_replaced
 
 
 class EditTableDialog(Dialog):

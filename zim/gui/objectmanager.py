@@ -19,12 +19,20 @@ POSITION_END = 2
 class CustomObjectWidget(gtk.EventBox):
 	'''Base class & contained for custom object widget
 
-	Defines two signals:
-	  * grab-cursor (position): emitted when embedded widget
-	    should grab focus, position can be either POSITION_BEGIN or
-	    POSITION_END
-	  * release-cursor (position): emitted when the embedded
-	    widget wants to give back focus to the embedding TextView
+	We derive from a C{gtk.EventBox} because we want to re-set the
+	default cursor for the area of the object widget. For this the
+	widget needs it's own window for drawing.
+
+	Child widgets should be added to the C{vbox} attribute. This attribute
+	is a L{TableVBox} which draws 1px borders around it's child elements.
+
+	@signal: C{link-clicked (link)}: To be emitted when the user clicks a link
+	@signal: C{link-enter (link)}: To be emitted when the mouse pointer enters a link
+	@signal: C{link-leave (link)}: To be emitted when the mouse pointer leaves a link
+	@signal: C{grab-cursor (position)}: emitted when embedded widget
+	should grab focus, position can be either POSITION_BEGIN or POSITION_END
+	@signal:  C{release-cursor (position)}: emitted when the embedded
+	widget wants to give back focus to the embedding TextView
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
