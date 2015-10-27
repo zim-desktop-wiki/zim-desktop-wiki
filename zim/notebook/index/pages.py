@@ -544,14 +544,17 @@ class PagesView(IndexViewBase):
 				return None # no floating link possible
 
 	@init_generator
-	def list_pages(self, path):
+	def list_pages(self, path=None):
 		'''Generator for child pages of C{path}
 		@param path: a L{Path} object
 		@returns: yields L{IndexPathRow} objects for children of C{path}
 		@raises IndexNotFoundError: if C{path} is not found in the index
 		'''
 		with self._db as db:
-			path = self._pages.lookup_by_pagename(db, path)
+			if path is None:
+				path = ROOT_PATH
+			else:
+				path = self._pages.lookup_by_pagename(db, path)
 			yield # init done
 
 			for row in db.execute(

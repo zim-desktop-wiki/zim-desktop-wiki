@@ -31,6 +31,16 @@ def zim_modules():
 		yield name, mod
 
 
+@tests.skipUnless(os.path.isdir('./.bzr'), 'Not a bazaar source folder')
+class TestBzr(tests.TestCase):
+
+	def runTest(self):
+		unknown = subprocess.check_output(['bzr', 'ls', '-u'])
+		if unknown:
+			raise AssertionError, 'File unknown to bzr - need to be added or ignored:\n' + unknown
+		else:
+			pass
+
 
 class TestCompileAll(tests.TestCase):
 

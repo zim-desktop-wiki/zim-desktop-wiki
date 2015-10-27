@@ -16,6 +16,22 @@ from zim.notebook import Path
 from zim.fs import Dir, TmpFile
 
 
+@tests.slowTest
+class TestXDGMimeInfo(tests.TestCase):
+
+	def runTest(self):
+		dir = Dir('./data/pixmaps')
+		for i, filename in enumerate(dir.list()):
+			file = dir.file(filename)
+			icon = get_mime_icon(file, THUMB_SIZE_NORMAL)
+			self.assertIsInstance(icon, gtk.gdk.Pixbuf)
+			desc = get_mime_description(file.get_mimetype())
+			self.assertIsInstance(desc, basestring)
+			self.assertTrue(len(desc) > 5)
+
+		self.assertTrue(i > 3)
+
+
 def replace(l, old, new):
 	l = list(l)
 	while old in l:

@@ -155,8 +155,14 @@ def natural_sort_key(string, numeric_padding=5):
 		string = unicodedata.normalize('NFKC', string)
 		# may be done by strxfrm as well, but want to be sure
 	string = string.lower() # sort case insensitive
-	bytestring = locale.strxfrm(string)
-		# 8-bit byte string - enode to hex -- in pyton3 check if byte data type is handled better by sqlite3 and others
+
+	try:
+		bytestring = locale.strxfrm(string)
+			# 8-bit byte string - enode to hex -- in pyton3 check if byte data type is handled better by sqlite3 and others
+	except MemoryError:
+		# Known python issue :(
+		bytestring = string.encode('utf-8')
+
 	key = ''.join(["%02x" % ord(c) for c in bytestring])
 	return key
 

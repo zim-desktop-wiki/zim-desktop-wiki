@@ -9,7 +9,7 @@ import gobject
 
 from zim.objectmanager import ObjectManager
 
-from zim.gui.widgets import ScrolledTextView, ScrolledWindow
+from zim.gui.widgets import ScrolledTextView, ScrolledWindow, TableVBox
 
 
 # Constants for grab-focus-cursor and release-focus-cursor
@@ -19,34 +19,56 @@ POSITION_END = 2
 class CustomObjectWidget(gtk.EventBox):
 	'''Base class & contained for custom object widget
 
-	Defines two signals:
-	  * grab-cursor (position): emitted when embedded widget
-	    should grab focus, position can be either POSITION_BEGIN or
-	    POSITION_END
-	  * release-cursor (position): emitted when the embedded
-	    widget wants to give back focus to the embedding TextView
+	We derive from a C{gtk.EventBox} because we want to re-set the
+	default cursor for the area of the object widget. For this the
+	widget needs it's own window for drawing.
+
+	Child widgets should be added to the C{vbox} attribute. This attribute
+	is a L{TableVBox} which draws 1px borders around it's child elements.
+
+	@signal: C{link-clicked (link)}: To be emitted when the user clicks a link
+	@signal: C{link-enter (link)}: To be emitted when the mouse pointer enters a link
+	@signal: C{link-leave (link)}: To be emitted when the mouse pointer leaves a link
+	@signal: C{grab-cursor (position)}: emitted when embedded widget
+	should grab focus, position can be either POSITION_BEGIN or POSITION_END
+	@signal:  C{release-cursor (position)}: emitted when the embedded
+	widget wants to give back focus to the embedding TextView
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
+		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+
 		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+
+		'size-request': 'override',
 	}
 
 	def __init__(self):
 		gtk.EventBox.__init__(self)
 		self.set_border_width(5)
 		self._has_cursor = False
-		self._resize = True
-
-		# Add vbox and wrap it to have a shadow around it
-		self.vbox = gtk.VBox() #: C{gtk.VBox} to contain widget contents
-		win = ScrolledWindow(self.vbox, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_IN)
-		self.add(win)
+		self.vbox = TableVBox()
+		self.add(self.vbox)
+		self._textview_width = -1
 
 	def do_realize(self):
 		gtk.EventBox.do_realize(self)
 		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+
+	def on_textview_size_changed(self, textview, width, height):
+		self._textview_width = width
+		self.queue_resize()
+
+	def do_size_request(self, requisition):
+		gtk.EventBox.do_size_request(self, requisition)
+
+		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
+		if self._textview_width > requisition.width:
+			requisition.width = self._textview_width
 
 	def	has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be
@@ -68,19 +90,6 @@ class CustomObjectWidget(gtk.EventBox):
 	def release_cursor(self, position):
 		'''Emits the release-cursor signal'''
 		self.emit('release-cursor', position)
-
-	def resize_to_textview(self, view):
-		'''Resizes widget if parent textview size has been changed.'''
-		win = view.get_window(gtk.TEXT_WINDOW_TEXT)
-		if not win:
-			return
-
-		vmargin = view.get_left_margin() + view.get_right_margin() \
-					+ 2 * self.get_border_width()
-		#~ hmargin =  2 * 20 + 2 * self.get_border_width()
-		width, height = win.get_geometry()[2:4]
-		#~ self.set_size_request(width - vmargin, height - hmargin)
-		self.set_size_request(width - vmargin, -1)
 
 gobject.type_register(CustomObjectWidget)
 
@@ -145,7 +154,7 @@ class FallbackObjectWidget(TextViewWidget):
 			self.vbox.pack_start(label)
 
 	def _add_load_plugin_bar(self, plugin):
-		key, name, activatable, klass = plugin
+		key, name, activatable, klass, _winextension = plugin
 
 		hbox = gtk.HBox(False, 5)
 		label = gtk.Label(_("Plugin %s is required to display this object.") % name)

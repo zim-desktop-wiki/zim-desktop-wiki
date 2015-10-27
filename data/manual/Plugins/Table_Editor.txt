@@ -1,0 +1,21 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+
+====== Table Editor ======
+
+{{./table_demo.png}}[Only a picture]
+This plugin allows you to integrate a table into the zim editor. 
+**Dependencies:** This plugin has no additional dependencies
+
+===== Options =====
+Before you can use this plugin, it must be enabled in **Insert->Preferences** on the tab Plugins.
+Here you can configure it with these options:
+
+**Show helper toolbar**: Displays a menu with buttons beneath the table, if it is selected.
+{{./table_toolbar.png}}{{./table_footer.png}}
+**Grid lines**: Enables or disables lines between table cells
+{{./with_borders.png}}{{./without_borders.png}}
+
+===== Read more =====
+[[+Basic Table Operations|Basic Table Operations]]
+[[+Superior Table Operations|Superior Table Operations]]

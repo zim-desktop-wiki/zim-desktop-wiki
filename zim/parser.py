@@ -44,12 +44,9 @@ import xml.etree.cElementTree as ElementTree
 from zim.errors import Error
 
 
-def prepare_text(text, tabstop=4):
-	'''Ensures text is properly formatted.
-	  - Fixes missing line end
-	  - Expands spaces to tabs
+def fix_line_end(text):
+	'''Fixes missing line end
 	@param text: the intput text
-	@param tabstop: the number of spaces to represent a tab
 	@returns: the fixed text
 	'''
 	# HACK this char is recognized as line end by splitlines()
@@ -61,6 +58,15 @@ def prepare_text(text, tabstop=4):
 	if not text.endswith('\n'):
 		text = text + '\n'
 
+	return text
+
+
+def convert_space_to_tab(text, tabstop=4):
+	'''Convert spaces to tabs
+	@param text: the intput text
+	@param tabstop: the number of spaces to represent a tab
+	@returns: the fixed text
+	'''
 	# Fix tabs
 	spaces = ' ' * tabstop
 	pattern = '(?m)^(\t*)((?:%s)+)' % spaces

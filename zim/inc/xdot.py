@@ -1482,7 +1482,7 @@ class DotWidget(gtk.DrawingArea):
     def get_drag_action(self, event):
         state = event.state
         if event.button in (1, 2): # left or middle button
-            if state & gtk.gdk.CONTROL_MASK:
+            if state & gtk.gdk.META_MASK:
                 return ZoomAction
             elif state & gtk.gdk.SHIFT_MASK:
                 return ZoomAreaAction

@@ -187,7 +187,12 @@ def ScrolledWindow(widget, hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_AUTO
 	window = gtk.ScrolledWindow()
 	window.set_policy(hpolicy, vpolicy)
 	window.set_shadow_type(shadow)
-	window.add(widget)
+
+	if isinstance(widget, (gtk.TextView, gtk.TreeView, gtk.Layout)):
+		# Known native-scrolling widgets
+		window.add(widget)
+	else:
+		window.add_with_viewport(widget)
 
 	if hpolicy == gtk.POLICY_NEVER:
 		hsize = -1 # do not set
@@ -346,6 +351,8 @@ def rotate_pixbuf(pixbuf):
 	shows how the camera was held.
 	@returns: a new version of the pixbuf or the pixbuf itself.
 	'''
+	# For newer gtk we could use gtk.gdk.Pixbuf.apply_embedded_orientation
+
 	# Values for orientation seen in some random snippet in gtkpod
 	o = pixbuf.get_option('orientation')
 	if o: o = int(o)
@@ -608,7 +615,7 @@ class SingleClickTreeView(gtk.TreeView):
 		'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
-	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK
+	mask = gtk.gdk.SHIFT_MASK | gtk.gdk.META_MASK
 
 	# backwards compatibility
 	if gtk.gtk_version < (2, 12) \
@@ -2158,19 +2165,10 @@ def format_title(title):
 	return '%s - Zim' % title
 
 
-def get_window(ui):
-	'''Returns a C{gtk.Window} object or C{None}.
-	Used to find the parent window for dialogs.
-	@param ui: a parent dialog or window, or GtkInterface object
-	@returns: a C{gtk.Window} object or C{None}
-	'''
-	if isinstance(ui, gtk.Window):
-		return ui
-	elif hasattr(ui, 'mainwindow') \
-	and isinstance(ui.mainwindow, gtk.Window):
-		return ui.mainwindow
-	else:
-		return None
+def get_window(widget):
+	window = widget.get_toplevel() if widget else None
+		# GtkInterface also implements get_toplevel
+	return window if isinstance(window, gtk.Window) else None
 
 
 def register_window(window):
@@ -2180,6 +2178,27 @@ def register_window(window):
 	if  hasattr(window, 'ui') \
 	and hasattr(window.ui, 'register_new_window'):
 		window.ui.register_new_window(window)
+
+
+class uistate_property(object):
+	'''Class for uistate get/set attributes'''
+
+	# TODO add hook such that it will be initialized on init of owner obj
+
+	def __init__(self, key, *default):
+		self.key = key
+		self.default = default
+		self._initialized = False
+
+	def __get__(self, obj, klass):
+		if obj:
+			if not self._initialized:
+				obj.uistate.setdefault(self.key, *self.default)
+				self._initialized = True
+			return obj.uistate[self.key]
+
+	def __set__(self, obj, value):
+		obj.uistate[self.key] = value
 
 
 # Some constants used to position widgets in the window panes
@@ -2795,10 +2814,10 @@ class Window(gtkwindowclass):
 		# are enabled before we finalize the presentation of the window.
 		# This is important for state of e.g. panes to work correctly
 		if not self._registered:
-			register_window(self)
 			self._registered = True
-		if hasattr(self, 'uistate'):
-			self.init_uistate()
+			register_window(self)
+			if hasattr(self, 'uistate'):
+				self.init_uistate()
 		gtkwindowclass.show_all(self)
 
 # Need to register classes defining gobject signals
@@ -3912,9 +3931,10 @@ class Assistant(Dialog):
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
 			ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
 			self.disconnect(self._expose_event_id)
+			return False # propagate
 
 		self._expose_event_id = \
-			self.connect('expose-event', _set_heading_color)
+			self.connect_after('expose-event', _set_heading_color)
 
 		hbox = gtk.HBox()
 		hbox.set_border_width(5)
@@ -4328,3 +4348,77 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		assert not newfile.exists() # just to be real sure
 		self.result = newfile
 		return True
+
+
+
+class TableBoxMixin(object):
+
+	# Tried to implement somthing like this from scratch,
+	# but found that I need to inherit from a concrete gtk.Container
+	# implementation because I couldn't figure out how to override
+	# / implement the forall() method from python
+
+	BORDER = 0
+	LINE = 1
+
+	def __init__(self):
+		self.set_border_width(self.BORDER + self.LINE)
+		self.set_spacing(2 * self.BORDER + self.LINE)
+		self.set_redraw_on_allocate(True)
+
+	def do_expose_event(self, event):
+		self.foreach(self._expose_child, event)
+		return True
+
+	def _expose_child(self, child, event):
+		# Draw box around child, then draw child
+		# Widget must ensure there is space arount the child
+
+		line = self.LINE
+		border = self.BORDER
+
+		if child.is_drawable():
+			self.style.paint_flat_box(
+				event.window, gtk.STATE_ACTIVE, gtk.SHADOW_NONE, None, self, None,
+				child.allocation.x - border - line,
+				child.allocation.y - border - line,
+				child.allocation.width + 2*border + 2*line,
+				child.allocation.height + 2*border + 2*line,
+			)
+			self.style.paint_flat_box(
+				event.window, gtk.STATE_NORMAL, gtk.SHADOW_NONE, None, self, None,
+				child.allocation.x - border,
+				child.allocation.y - border,
+				child.allocation.width + 2*border,
+				child.allocation.height + 2*border,
+			)
+		gtk.Container.propagate_expose(self, child, event)
+
+
+class TableVBox(TableBoxMixin, gtk.VBox):
+	'''This is a C{gtk.VBox} except that it draws a fine line between
+	the items in the box. This makes it look like a table.
+	Used to render widgets in the pageview.
+	'''
+
+	def __init__(self):
+		gtk.VBox.__init__(self)
+		TableBoxMixin.__init__(self)
+
+# Need to register classes defining gobject signals
+gobject.type_register(TableVBox)
+
+
+class TableHBox(TableBoxMixin, gtk.HBox):
+	'''This is a C{gtk.HBox} except that it draws a fine line between
+	the items in the box. This makes it look like a table.
+	Used to render widgets in the pageview.
+	'''
+
+	def __init__(self):
+		gtk.HBox.__init__(self)
+		TableBoxMixin.__init__(self)
+
+# Need to register classes defining gobject signals
+gobject.type_register(TableHBox)
+

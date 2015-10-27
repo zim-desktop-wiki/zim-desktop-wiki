@@ -195,7 +195,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		"""
 		Runs: hg rm {{PATH}}
 		"""
-		return self.run(['rm', path])
+		return self.run(['rm', '-A', path])
 
 	def revert(self, path, version):
 		"""

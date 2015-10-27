@@ -294,13 +294,17 @@ class WebBrowser(Application):
 	name = _('Default') + ' (webbrowser)' # T: label for default webbrowser
 	key = 'webbrowser' # Used by zim.gui.applications
 
-	def __init__(self):
+	def __init__(self, encoding=None):
 		import webbrowser
 		self.controller = None
 		try:
 			self.controller = webbrowser.get()
 		except webbrowser.Error:
 			pass # webbrowser throws an error when no browser is found
+
+		self.encoding = encoding or zim.fs.ENCODING
+		if self.encoding == 'mbcs':
+			self.encoding = 'utf-8'
 
 	def tryexec(self):
 		return not self.controller is None
@@ -318,6 +322,7 @@ class WebBrowser(Application):
 		for url in args:
 			if isinstance(url, (zim.fs.File, zim.fs.Dir)):
 				url = url.uri
+			url = url.encode(self.encoding)
 			logger.info('Opening in webbrowser: %s', url)
 			self.controller.open(url)
 

@@ -64,25 +64,22 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		self.plotscriptfile = TmpFile(self.scriptname)
 
 	def generate_image(self, text):
-
 		plotscriptfile = self.plotscriptfile
 		pngfile = File(plotscriptfile.path[:-2] + '.png')
 
-		plot_script = "".join(text)
-		
 		plot_width = 480 # default image width (px)
 		plot_height = 480 # default image height (px)
 
 		# LOOK for image size in comments of the script
-		r=re.search(r"^#\s*WIDTH\s*=\s*([0-9]+)$",plot_script,re.M)
+		r=re.search(r"^#\s*WIDTH\s*=\s*([0-9]+)$", text,re.M)
 		if r:
 			plot_width=int(r.group(1))
-		r=re.search(r"^#\s*HEIGHT\s*=\s*([0-9]+)$",plot_script,re.M)
+		r=re.search(r"^#\s*HEIGHT\s*=\s*([0-9]+)$", text,re.M)
 		if r:
 			plot_height=int(r.group(1))
 
 		template_vars = {
-			'gnu_r_plot_script': plot_script,
+			'gnu_r_plot_script': text,
 			'r_width': plot_width,
 			'r_height': plot_height,
 			'png_fname': pngfile.path.replace('\\', '/'),

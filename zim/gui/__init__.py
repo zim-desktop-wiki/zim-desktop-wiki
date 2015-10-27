@@ -72,12 +72,12 @@ ui_actions = (
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 
 	# name, stock id, label, accelerator, tooltip, readonly
-	('new_page',  'gtk-new', _('_New Page...'), '<ctrl>N', '', False), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><ctrl>N', '', False), # T: Menu item
-	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<ctrl>O', '', True), # T: Menu item
+	('new_page',  'gtk-new', _('_New Page...'), '<Primary>N', '', False), # T: Menu item
+	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><Primary>N', '', False), # T: Menu item
+	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<Primary>O', '', True), # T: Menu item
 	('open_new_window', None, _('Open in New _Window'), '', '', True), # T: Menu item
 	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
-	('save_page', 'gtk-save', _('_Save'), '<ctrl>S', '', False), # T: Menu item
+	('save_page', 'gtk-save', _('_Save'), '<Primary>S', '', False), # T: Menu item
 	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
 	('show_export',  None, _('E_xport...'), '', '', True), # T: Menu item
 	('email_page', None, _('_Send To...'), '', '', True), # T: Menu item
@@ -85,15 +85,15 @@ ui_actions = (
 	('rename_page', None, _('_Rename Page...'), 'F2', '', False), # T: Menu item
 	('delete_page', None, _('_Delete Page'), '', '', False), # T: Menu item
 	('show_properties',  'gtk-properties', _('Proper_ties'), '', '', True), # T: Menu item
-	('close',  'gtk-close', _('_Close'), '<ctrl>W', '', True), # T: Menu item
-	('quit',  'gtk-quit', _('_Quit'), '<ctrl>Q', '', True), # T: Menu item
-	('show_search',  'gtk-find', _('_Search...'), '<shift><ctrl>F', '', True), # T: Menu item
+	('close',  'gtk-close', _('_Close'), '<Primary>W', '', True), # T: Menu item
+	('quit',  'gtk-quit', _('_Quit'), '<Primary>Q', '', True), # T: Menu item
+	('show_search',  'gtk-find', _('_Search...'), '<shift><Primary>F', '', True), # T: Menu item
 	('show_search_backlinks', None, _('Search _Backlinks...'), '', '', True), # T: Menu item
 	('show_recent_changes', None, _('Recent Changes...'), '', '', True), # T: Menu item
-	('copy_location', None, _('Copy _Location'), '<shift><ctrl>L', '', True), # T: Menu item
+	('copy_location', None, _('Copy _Location'), '<shift><Primary>L', '', True), # T: Menu item
 	('show_templateeditor',  None, _('_Templates'), '', '', True), # T: Menu item
 	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
-	('reload_page',  'gtk-refresh', _('_Reload'), '<ctrl>R', '', True), # T: Menu item
+	('reload_page',  'gtk-refresh', _('_Reload'), '<Primary>R', '', True), # T: Menu item
 	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
 	('open_notebook_folder', 'gtk-open', _('Open _Notebook Folder'), '', '', True), # T: Menu item
 	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
@@ -110,7 +110,7 @@ ui_actions = (
 	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page'), True), # T: Menu item
 	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page'), True), # T: Menu item
 	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home'), True), # T: Menu item
-	('open_page', 'gtk-jump-to', _('_Jump To...'), '<ctrl>J', '', True), # T: Menu item
+	('open_page', 'gtk-jump-to', _('_Jump To...'), '<Primary>J', '', True), # T: Menu item
 	('show_help', 'gtk-help', _('_Contents'), 'F1', '', True), # T: Menu item
 	('show_help_faq', None, _('_FAQ'), '', '', True), # T: Menu item
 	('show_help_keys', None, _('_Keybindings'), '', '', True), # T: Menu item
@@ -133,7 +133,7 @@ else:
 #: More menu actions
 ui_actions_window = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('show_all_panes', None, _('_All Panes'), '<ctrl>F9', _('Show All Panes'), True), # T: Menu item
+	('show_all_panes', None, _('_All Panes'), '<Primary>F9', _('Show All Panes'), True), # T: Menu item
 )
 
 #: Menu actions that toggle between two states
@@ -149,7 +149,7 @@ ui_toggle_actions_window = (
 if ui_environment['platform'] == 'maemo':
 	ui_toggle_actions_window = (
 		# name, stock id, label, accelerator, tooltip, initial state, readonly
-		('toggle_toolbar', None, _('_Toolbar'),  '<ctrl>M', '', True, True), # T: Menu item
+		('toggle_toolbar', None, _('_Toolbar'),  '<Primary>M', '', True, True), # T: Menu item
 		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
 		('toggle_panes',  'gtk-index', _('_Side Panes'), 'F9', _('Show Side Panes'), True, True), # T: Menu item # FIXME review text
 		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
@@ -202,7 +202,7 @@ ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Ctrl><Space> to switch to the side pane'), False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Primary><Space> to switch to the side pane'), False),
 		# T: Option in the preferences dialog
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
@@ -571,72 +571,10 @@ class GtkInterface(gobject.GObject):
 		timeout = self.preferences['GtkInterface']['autosave_timeout'] * 1000 # s -> ms
 		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
 
-
 		# Check notebook
 		self.check_notebook_needs_upgrade()
 
-		# Update menus etc.
-		self.uimanager.ensure_update()
-			# Prevent flashing when the toolbar is after showing the window
-			# and do this before connecting signal below for accelmap.
-			# For maemo ensure all items are initialized before moving
-			# them to the hildon menu
-
-		## HACK - should be in MainWindow, but needs to go after ensure_update()
-		space = gtk.SeparatorToolItem()
-		space.set_draw(False)
-		space.set_expand(True)
-		self.mainwindow.toolbar.insert(space, -1)
-
-		from zim.gui.widgets import InputEntry
-		entry = InputEntry(placeholder_text=_('Search'))
-		if gtk.gtk_version >= (2, 16) \
-		and gtk.pygtk_version >= (2, 16):
-			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
-			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
-			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
-				# T: label in search entry
-		inline_search = lambda e, *a: self.show_search(query=e.get_text() or None)
-		entry.connect('activate', inline_search)
-		entry.connect('icon-release', inline_search)
-		entry.show()
-		item = gtk.ToolItem()
-		item.add(entry)
-		self.mainwindow.toolbar.insert(item, -1)
-		##
-
-		if ui_environment['platform'] == 'maemo':
-			# Move the menu to the hildon menu
-			# This is save for later updates of the menus (e.g. by plugins)
-			# as long as the toplevel menus are not changed
-			menu = gtk.Menu()
-			for child in self.mainwindow.menubar.get_children():
-				child.reparent(menu)
-			self.mainwindow.set_menu(menu)
-			self.mainwindow.menubar.hide()
-
-			# Localize the fullscreen button in the toolbar
-			for i in range(self.mainwindow.toolbar.get_n_items()):
-				self.fsbutton = None
-				toolitem = self.mainwindow.toolbar.get_nth_item(i)
-				if isinstance(toolitem, gtk.ToolButton):
-					if toolitem.get_stock_id() == 'gtk-fullscreen':
-						self.fsbutton = toolitem
-						self.fsbutton.tap_and_hold_setup(menu) # attach app menu to fullscreen button for N900
-						break
-
-		accelmap = self.config.get_config_file('accelmap').file
-		logger.debug('Accelmap: %s', accelmap.path)
-		if accelmap.exists():
-			gtk.accel_map_load(accelmap.path)
-
-		def on_accel_map_changed(o, path, key, mod):
-			logger.info('Accelerator changed for %s', path)
-			gtk.accel_map_save(accelmap.path)
-
-		gtk.accel_map_get().connect('changed', on_accel_map_changed)
-
-
+		# Setup signal handler
 		def handle_sigterm(signal, frame):
 			logger.info('Got SIGTERM, quit')
 			self.close_page()
@@ -646,6 +584,31 @@ class GtkInterface(gobject.GObject):
 
 		# And here we go!
 		self.mainwindow.show_all()
+
+        # Adapt the GUI to OS X conventions
+		try:
+			import gtkosx_application
+			macapp = gtkosx_application.Application()
+
+			# move the menus to the OS X menu bar
+			menu_bar = gtk.MenuBar()
+			for i, child in enumerate(self.mainwindow.menubar.get_children()):
+				child.reparent(menu_bar)
+			macapp.set_menu_bar(menu_bar)
+			self.mainwindow.menubar.hide()
+			macapp.set_help_menu(self.uimanager.get_widget('/menubar/help_menu'))
+
+			# move some menu items to the application menu
+			quit = self.uimanager.get_widget('/menubar/file_menu/quit')
+			macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
+			quit.hide()
+			about = self.uimanager.get_widget('/menubar/help_menu/show_about')
+			macapp.insert_app_menu_item(about, 0)
+			prefs = self.uimanager.get_widget('/menubar/edit_menu/show_preferences')
+			macapp.insert_app_menu_item(prefs, 1)
+			macapp.ready()
+		except ImportError:
+			pass
 
 		# HACK: Delay opening first page till after show_all() -- else plugins are not initialized
 		#       FIXME need to do extension & initialization of uistate earlier
@@ -693,6 +656,9 @@ class GtkInterface(gobject.GObject):
 			self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
 			dialog.set_total(self.notebook.index.n_list_all_pages())
 			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
+
+	def get_toplevel(self):
+		return self.mainwindow
 
 	def present(self, page=None, fullscreen=None, geometry=None):
 		'''Present the mainwindow. Typically used to bring back a
@@ -2496,10 +2462,10 @@ class MainWindow(Window):
 				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
-		# layouts - esp. when switching input method on Ctrl-Space
+		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
-			group.connect_group( # <Ctrl><Space>
-				space, gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE,
+			group.connect_group( # <Primary><Space>
+				space, gtk.gdk.META_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)
@@ -2685,7 +2651,7 @@ class MainWindow(Window):
 		'''Switch focus between the textview and the page index.
 		Automatically opens the sidepane if it is closed
 		(but sets a property to automatically close it again).
-		This method is used for the (optional) <Ctrl><Space> keybinding.
+		This method is used for the (optional) <Primary><Space> keybinding.
 		'''
 		action = self.actiongroup.get_action('toggle_panes')
 		if action.get_active():
@@ -2837,6 +2803,7 @@ class MainWindow(Window):
 		# delayed till show or show_all because all this needs real
 		# uistate to be in place and plugins to be loaded
 		# also pathbar needs history in place
+		# Run between loading plugins and actually presenting the window to the user
 		self.uistate = self.ui.uistate['MainWindow']
 
 		if not self._geometry_set:
@@ -2908,6 +2875,46 @@ class MainWindow(Window):
 
 		# Notify plugins
 		self.emit('init-uistate')
+
+		# Update menus etc.
+		self.ui.uimanager.ensure_update()
+			# Prevent flashing when the toolbar is loaded after showing the window
+			# and do this before connecting signal below for accelmap.
+
+		# Add search bar onec toolbar is loaded
+		space = gtk.SeparatorToolItem()
+		space.set_draw(False)
+		space.set_expand(True)
+		self.toolbar.insert(space, -1)
+
+		from zim.gui.widgets import InputEntry
+		entry = InputEntry(placeholder_text=_('Search'))
+		if gtk.gtk_version >= (2, 16) \
+		and gtk.pygtk_version >= (2, 16):
+			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
+			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
+			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
+				# T: label in search entry
+		inline_search = lambda e, *a: self.ui.show_search(query=e.get_text() or None)
+		entry.connect('activate', inline_search)
+		entry.connect('icon-release', inline_search)
+		entry.show()
+		item = gtk.ToolItem()
+		item.add(entry)
+		self.toolbar.insert(item, -1)
+
+		# Load accelmap config and setup saving it
+		accelmap = self.ui.config.get_config_file('accelmap').file
+		logger.debug('Accelmap: %s', accelmap.path)
+		if accelmap.exists():
+			gtk.accel_map_load(accelmap.path)
+
+		def on_accel_map_changed(o, path, key, mod):
+			logger.info('Accelerator changed for %s', path)
+			gtk.accel_map_save(accelmap.path)
+
+		gtk.accel_map_get().connect('changed', on_accel_map_changed)
+
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
@@ -3488,18 +3495,24 @@ class AttachFileDialog(FileDialog):
 			self.uistate['last_attachment_folder'] = last_folder
 		# Similar code in zim.gui.pageview.InsertImageDialog
 
-		for file in files:
+		last = len(files) - 1
+		for i, file in enumerate(files):
 			file = self.ui.do_attach_file(self.path, file)
 			if file is None:
 				return False # overwrite dialog was canceled
 
 			pageview = self.ui.mainwindow.pageview
+			buffer = pageview.view.get_buffer()
 			if self.uistate['insert_attached_images'] and file.isimage():
 				ok = pageview.insert_image(file, interactive=False)
 				if not ok: # image type not supported?
 					logger.info('Could not insert image: %s', file)
 					pageview.insert_links([file])
+				if i != last:
+					buffer.insert_at_cursor('\n')
 			else:
 				pageview.insert_links([file])
+				if i != last:
+					buffer.insert_at_cursor('\n')
 
 		return True

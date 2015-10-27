@@ -497,7 +497,7 @@ class PageTreeView(BrowserTreeView):
 		handled = False
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
-		if event.state & gtk.gdk.CONTROL_MASK:
+		if event.state & gtk.gdk.META_MASK:
 			if event.keyval == KEYVAL_C:
 				self.emit('copy')
 				handled = True

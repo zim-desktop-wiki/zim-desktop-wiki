@@ -63,15 +63,15 @@ class RecentChangesTreeView(BrowserTreeView):
 			if dt:
 				date = dt.date()
 				if date == today:
-					text = _('Today') + dt.strftime(' %H:%M')
+					text = _('Today') + datetime.strftime(' %H:%M', dt)
 					# T: label for modified time
 				elif date == yesterday:
-					text = _('Yesterday') + dt.strftime(' %H:%M')
+					text = _('Yesterday') + datetime.strftime(' %H:%M', dt)
 					# T: label for modified time
 				elif date.year == today.year:
-					text = dt.strftime('%a %d %b %H:%M') # TODO allow config for format ?
+					text = datetime.strftime('%a %d %b %H:%M', dt) # TODO allow config for format ?
 				else:
-					text = dt.strftime('%a %d %b, %Y %H:%M') # TODO allow config for format ?
+					text = datetime.strftime('%a %d %b %Y %H:%M', dt) # TODO allow config for format ?
 			else:
 				text = ''
 

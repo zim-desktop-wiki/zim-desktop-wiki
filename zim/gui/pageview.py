@@ -23,7 +23,7 @@ import gtk
 import pango
 import re
 import string
-import datetime
+import zim.datetimetz as datetime
 
 import zim.formats
 
@@ -43,9 +43,12 @@ from zim.gui.widgets import ui_environment, \
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
-from zim.objectmanager import ObjectManager, CustomObjectClass
+from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
+from zim.formats import get_dumper
+from zim.formats.wiki import Dumper as WikiDumper
+from zim.plugins import PluginManager
 
 
 logger = logging.getLogger('zim.gui.pageview')
@@ -109,22 +112,22 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = gtk.gdk.CONTROL_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
+KEYSTATES = gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 ui_actions = (
 	# name, stock id, label, accelerator, tooltip, readonly
-	('undo', 'gtk-undo', _('_Undo'), '<ctrl>Z', '', False), # T: Menu item
-	('redo', 'gtk-redo', _('_Redo'), '<ctrl><shift>Z', '', False), # T: Menu item
-	('redo_alt1', None, '', '<ctrl>Y', '', False),
-	('cut', 'gtk-cut', _('Cu_t'), '<ctrl>X', '', False), # T: Menu item
-	('copy', 'gtk-copy', _('_Copy'), '<ctrl>C', '', False), # T: Menu item
-	('paste', 'gtk-paste', _('_Paste'), '<ctrl>V', '', False), # T: Menu item
+	('undo', 'gtk-undo', _('_Undo'), '<Primary>Z', '', False), # T: Menu item
+	('redo', 'gtk-redo', _('_Redo'), '<Primary><shift>Z', '', False), # T: Menu item
+	('redo_alt1', None, '', '<Primary>Y', '', False),
+	('cut', 'gtk-cut', _('Cu_t'), '<Primary>X', '', False), # T: Menu item
+	('copy', 'gtk-copy', _('_Copy'), '<Primary>C', '', False), # T: Menu item
+	('paste', 'gtk-paste', _('_Paste'), '<Primary>V', '', False), # T: Menu item
 	('delete', 'gtk-delete', _('_Delete'), '', '', False), # T: Menu item
 	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
 	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
-	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<ctrl>E', '', False), # T: Menu item
+	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<Primary>E', '', False), # T: Menu item
 	('remove_link', None, _('_Remove Link'), '', '', False), # T: Menu item
-	('insert_date', None, _('_Date and Time...'), '<ctrl>D', '', False), # T: Menu item
+	('insert_date', None, _('_Date and Time...'), '<Primary>D', '', False), # T: Menu item
 	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
 	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
 	('insert_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item
@@ -133,20 +136,20 @@ ui_actions = (
 	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item,
 	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
 	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
-	('insert_link', 'zim-link', _('_Link...'), '<ctrl>L', _('Insert Link'), False), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<ctrl>9', '', False), # T: Menu item
-	('show_find', 'gtk-find', _('_Find...'), '<ctrl>F', '', True), # T: Menu item
-	('show_find_alt1', None, '', '<ctrl>F3', '', True),
-	('find_next', None, _('Find Ne_xt'), '<ctrl>G', '', True), # T: Menu item
+	('insert_link', 'zim-link', _('_Link...'), '<Primary>L', _('Insert Link'), False), # T: Menu item
+	('clear_formatting', None, _('_Clear Formatting'), '<Primary>9', '', False), # T: Menu item
+	('show_find', 'gtk-find', _('_Find...'), '<Primary>F', '', True), # T: Menu item
+	('show_find_alt1', None, '', '<Primary>F3', '', True),
+	('find_next', None, _('Find Ne_xt'), '<Primary>G', '', True), # T: Menu item
 	('find_next_alt1', None, '', 'F3', '', True), # T: Menu item
-	('find_previous', None, _('Find Pre_vious'), '<ctrl><shift>G', '', True), # T: Menu item
+	('find_previous', None, _('Find Pre_vious'), '<Primary><shift>G', '', True), # T: Menu item
 	('find_previous_alt1', None, '', '<shift>F3', '', True),
-	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<ctrl>H', '', False), # T: Menu item
+	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<Primary>H', '', False), # T: Menu item
 	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
-	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<ctrl>plus', '', True), # T: Menu item
-	('zoom_in_alt1', None, '', '<ctrl>equal', '', True),
-	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<ctrl>minus', '', True), # T: Menu item
-	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<ctrl>0', '', True), # T: Menu item to reset zoom
+	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<Primary>plus', '', True), # T: Menu item
+	('zoom_in_alt1', None, '', '<Primary>equal', '', True),
+	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<Primary>minus', '', True), # T: Menu item
+	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<Primary>0', '', True), # T: Menu item to reset zoom
 
 	# name, stock id, label
 	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
@@ -157,18 +160,18 @@ ui_actions = (
 
 ui_format_actions = (
 	# name, stock id, label, accelerator, tooltip
-	('apply_format_h1', None, _('Heading _1'), '<ctrl>1', _('Heading 1')), # T: Menu item
-	('apply_format_h2', None, _('Heading _2'), '<ctrl>2', _('Heading 2')), # T: Menu item
-	('apply_format_h3', None, _('Heading _3'), '<ctrl>3', _('Heading 3')), # T: Menu item
-	('apply_format_h4', None, _('Heading _4'), '<ctrl>4', _('Heading 4')), # T: Menu item
-	('apply_format_h5', None, _('Heading _5'), '<ctrl>5', _('Heading 5')), # T: Menu item
-	('apply_format_strong', 'gtk-bold', _('_Strong'), '<ctrl>B', _('Strong')), # T: Menu item
-	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<ctrl>I', _('Emphasis')), # T: Menu item
-	('apply_format_mark', 'gtk-underline', _('_Mark'), '<ctrl>U', _('Mark')), # T: Menu item
-	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<ctrl>K', _('Strike')), # T: Menu item
-	('apply_format_sub', None, _('_Subscript'), '', _('_Subscript')), # T: Menu item
-	('apply_format_sup', None, _('_Superscript'), '', _('_Superscript')), # T: Menu item
-	('apply_format_code', None, _('_Verbatim'), '<ctrl>T', _('Verbatim')), # T: Menu item
+	('apply_format_h1', None, _('Heading _1'), '<Primary>1', _('Heading 1')), # T: Menu item
+	('apply_format_h2', None, _('Heading _2'), '<Primary>2', _('Heading 2')), # T: Menu item
+	('apply_format_h3', None, _('Heading _3'), '<Primary>3', _('Heading 3')), # T: Menu item
+	('apply_format_h4', None, _('Heading _4'), '<Primary>4', _('Heading 4')), # T: Menu item
+	('apply_format_h5', None, _('Heading _5'), '<Primary>5', _('Heading 5')), # T: Menu item
+	('apply_format_strong', 'gtk-bold', _('_Strong'), '<Primary>B', _('Strong')), # T: Menu item
+	('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<Primary>I', _('Emphasis')), # T: Menu item
+	('apply_format_mark', 'gtk-underline', _('_Mark'), '<Primary>U', _('Mark')), # T: Menu item
+	('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<Primary>K', _('Strike')), # T: Menu item
+	('apply_format_sub', None, _('_Subscript'), '<Primary><Shift>b', _('_Subscript')), # T: Menu item
+	('apply_format_sup', None, _('_Superscript'), '<Primary><Shift>p', _('_Superscript')), # T: Menu item
+	('apply_format_code', None, _('_Verbatim'), '<Primary>T', _('Verbatim')), # T: Menu item
 )
 
 ui_format_toggle_actions = (
@@ -462,7 +465,7 @@ class TextBuffer(gtk.TextBuffer):
 	Formatting styles like bold, italic etc. as well as functional
 	text objects like links and tags are represented by C{gtk.TextTags}.
 	For static styles these TextTags have the same name as the style.
-	For links and tag anonymous TextTags are used. Be aware thoush that
+	For links and tag anonymous TextTags are used. Be aware though that
 	not all TextTags in the model are managed by us, e.g. gtkspell
 	uses it's own tags. TextTags that are managed by us have an
 	additional attribute C{zim_type} which gives the format type
@@ -515,6 +518,9 @@ class TextBuffer(gtk.TextBuffer):
 	@ivar user_action: A L{UserActionContext} context manager
 	@ivar finder: A L{TextFinder} for this buffer
 
+	@signal: C{reload-page ()}:
+	Emitted when plugin is activated and current page should be reloaded
+	to display object properly
 	@signal: C{begin-insert-tree ()}:
 	Emitted at the begin of a complex insert
 	@signal: C{end-insert-tree ()}:
@@ -523,13 +529,15 @@ class TextBuffer(gtk.TextBuffer):
 	Gives inserted tree after inserting it
 	@signal: C{textstyle-changed (style)}:
 	Emitted when textstyle at the cursor changes
+	@signal: C{link-clicked ()}:
+	Emitted when a link is clicked; for example within a table cell
 	@signal: C{clear ()}:
 	emitted to clear the whole buffer before destruction
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
-	@signal: C{insert-object (object_element)}: request inserting of
-	custom object
+	@signal: C{insert-object (object, achor)}: emitted when an object
+	is inserted, should trigger L{TextView} to attach a widget
 
 	@todo: document tag styles that are supported
 	'''
@@ -550,7 +558,9 @@ class TextBuffer(gtk.TextBuffer):
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -919,10 +929,30 @@ class TextBuffer(gtk.TextBuffer):
 					self.insert_at_cursor(element.text)
 				self.set_textstyle(None)
 				set_indent(None)
+			elif element.tag == 'table':
+				if 'indent' in element.attrib:
+					set_indent(int(element.attrib['indent']))
+
+				obj = ObjectManager.get_object('table', element.attrib, element)
+				if isinstance(obj, FallbackObject):
+					# HACK - if table plugin is not loaded - show table as plain text
+					tree = ParseTree(element)
+					lines = get_dumper('wiki').dump(tree)
+					obj.set_data(''.join(lines))
+
+				self.insert_object_at_cursor(obj)
+
+				set_indent(None)
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-				self.emit('insert-object', element)
+
+				if 'type' in element.attrib:
+					obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
+					self.insert_object_at_cursor(obj)
+				else:
+					logger.warning('Skipping object without type')
+
 				set_indent(None)
 			else:
 				# Text styles
@@ -1174,6 +1204,25 @@ class TextBuffer(gtk.TextBuffer):
 			return pixbuf.zim_attrib.copy()
 		else:
 			return None
+
+	def insert_object_at_cursor(self, obj):
+		'''Inserts a custom object in the page
+		@param obj: an object implementing L{CustomerObjectClass}
+		'''
+		assert isinstance(obj, CustomObjectClass)
+		logger.debug("Insert object: %s", obj)
+
+		def on_modified_changed(obj):
+			if obj.get_modified() and not self.get_modified():
+				self.set_modified(True)
+
+		obj.connect('modified-changed', on_modified_changed)
+
+		anchor = ObjectAnchor(obj)
+		iter = self.get_insert_iter()
+		self.insert_child_anchor(iter, anchor)
+
+		self.emit('insert-object', obj, anchor)
 
 	def set_bullet(self, line, bullet):
 		'''Sets the bullet type for a line
@@ -2323,11 +2372,16 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 				if hasattr(anchor, 'manager'):
 					attrib = anchor.manager.get_attrib()
-					data = anchor.manager.get_data()
-					logger.debug("Anchor with CustomObject: %s", anchor.manager)
-					builder.start('object', attrib)
-					builder.data(data)
-					builder.end('object')
+					if attrib and attrib['type'] == 'table':
+						self.build_parsetree_of_table(builder, anchor.manager, iter)
+					else:
+						# general object related parsing
+						data = anchor.manager.get_data()
+						logger.debug("Anchor with CustomObject: %s", anchor.manager)
+						builder.start('object', attrib)
+						builder.data(data)
+						builder.end('object')
+
 					anchor.manager.set_modified(False)
 				iter.forward_char()
 			else:
@@ -2412,6 +2466,55 @@ class TextBuffer(gtk.TextBuffer):
 			#~ print ">>> Parsetree recreated:", tree.tostring()
 
 		return tree
+
+	def build_parsetree_of_table(self, builder, anchormanager, iter):
+			logger.debug("Anchor with TableObject: %s", anchormanager)
+			attrib = anchormanager.get_attrib()
+			del attrib['type']
+			tabledata = anchormanager.get_data()
+
+			# inserts a newline before and after table-object
+			bound = iter.copy()
+			bound.backward_char()
+			char_before_table = bound.get_slice(iter)
+			need_newline_infront = char_before_table.decode('utf-8') != "\n".decode('utf-8')
+			bound = iter.copy()
+			bound.forward_char()
+			iter2 = bound.copy()
+			bound.forward_char()
+			char_after_table = iter2.get_slice(bound)
+			need_newline_behind = char_after_table.decode('utf-8') != "\n".decode('utf-8')
+
+			# table-editor plugin is not activated -> handle table-object like a fallback-object
+			if isinstance(tabledata, basestring):
+				if need_newline_infront:
+					builder.data('\n')
+				builder.data(tabledata)
+				if need_newline_behind:
+					builder.data('\n')
+				return
+
+			headers, rows, attrib = tabledata
+			if need_newline_infront:
+				builder.data('\n')
+
+			builder.start('table', attrib)
+			builder.start('thead')
+			for header in headers:
+				builder.start('th')
+				builder.data(header)
+				builder.end('th')
+			builder.end('thead')
+			for row in rows:
+				builder.start('trow')
+				for cell in row:
+					builder.start('td')
+					builder.data(cell)
+					builder.end('td')
+				builder.end('trow')
+			builder.end('table')
+			if need_newline_behind:
+				builder.data('\n')
 
 	def select_line(self):
 		'''Selects the current line
@@ -3290,6 +3393,7 @@ class TextFinder(object):
 			start = self.buffer.get_iter_at_line(line)
 			if start.ends_line():
 				continue
+
 			end = start.copy()
 			end.forward_to_line_end()
 			text = start.get_slice(end)
@@ -3326,6 +3430,7 @@ class TextFinder(object):
 					string = match.expand(string)
 
 				offset = start.get_offset()
+
 				with self.buffer.user_action:
 					self.buffer.select_range(start, end) # ensure editmode logic is used
 					self.buffer.delete(start, end)
@@ -3366,9 +3471,12 @@ class TextFinder(object):
 				for start, end, string in matches:
 					start = self.buffer.get_iter_at_offset(start)
 					end = self.buffer.get_iter_at_offset(end)
-					self.buffer.select_range(start, end) # ensure editmode logic is used
-					self.buffer.delete(start, end)
-					self.buffer.insert(start, string)
+					if start.get_child_anchor() is not None:
+						self._replace_in_widget(start, self.regex, string, True)
+					else:
+						self.buffer.select_range(start, end) # ensure editmode logic is used
+						self.buffer.delete(start, end)
+						self.buffer.insert(start, string)
 
 		self._update_highlight()
 
@@ -3440,7 +3548,7 @@ class TextView(gtk.TextView):
 		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
 		self._cursor_link = None
-		self.gtkspell = None
+		self._object_widgets = WeakSet()
 		self.set_left_margin(10)
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
@@ -3449,17 +3557,54 @@ class TextView(gtk.TextView):
 		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
 			# Flags is 0 because gtktextview does everything itself
 
-	def set_buffer(self, buffer):
-		'''Set a new L{TextBuffer} to display
+		self._object_size_request = (-1, -1)
+		self.connect_after('size-allocate', self.__class__.on_size_allocate)
 
-		@param buffer: a L{TextBuffer} object
-		'''
-		if not self.gtkspell is None:
-			# Hardcoded hook because using signals here
-			# seems to introduce lag
-			self.gtkspell.detach()
-			self.gtkspell = None
+	def set_buffer(self, buffer):
+		buffer.connect('insert-object', self.on_insert_object)
 		gtk.TextView.set_buffer(self, buffer)
+
+	def on_insert_object(self, buffer, obj, anchor):
+		# Connect widget for this view to object
+		widget = obj.get_widget()
+		assert isinstance(widget, CustomObjectWidget)
+
+		def on_release_cursor(widget, position, anchor):
+			myiter = buffer.get_iter_at_child_anchor(anchor)
+			if position == POSITION_END:
+				myiter.forward_char()
+			buffer.place_cursor(myiter)
+			self.grab_focus()
+
+		widget.connect('release-cursor', on_release_cursor, anchor)
+
+		for signal in ('link-clicked', 'link-enter', 'link-leave'):
+			widget.connect(signal, lambda o, *a: self.emit(signal, *a))
+
+		widget.on_textview_size_changed(self, *self._object_size_request)
+
+		self.add_child_at_anchor(widget, anchor)
+		self._object_widgets.add(widget)
+		widget.show_all()
+
+	def on_size_allocate(self, allocation):
+		# Update size request for widgets
+		request = self._get_object_size_request()
+		if request != self._object_size_request:
+			for widget in self._object_widgets:
+				widget.on_textview_size_changed(self, *request)
+			self._object_size_request = request
+
+	def _get_object_size_request(self):
+		# TODO - take into account indent level per widget anchor...
+		text_window = self.get_window(gtk.TEXT_WINDOW_TEXT)
+		if text_window:
+			width, height = text_window.get_geometry()[2:4]
+			hmargin = self.get_left_margin() + self.get_right_margin() + 5
+				# the +5 is arbitrary, but without it we show a scrollbar anyway ..
+			return width - hmargin, -1
+		else:
+			return 500, -1 # arbitrary default
 
 	def do_copy_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.copy_clipboard
@@ -3639,7 +3784,7 @@ class TextView(gtk.TextView):
 				return gtk.TextView.do_key_press_event(self, event)
 
 		elif (event.keyval in KEYVALS_HOME
-		and not event.state & gtk.gdk.CONTROL_MASK):
+		and not event.state & gtk.gdk.META_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)
@@ -4657,7 +4802,6 @@ class PageView(gtk.VBox):
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
-		self._object_widgets = WeakSet()
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondary:
@@ -4672,8 +4816,6 @@ class PageView(gtk.VBox):
 		self.view.connect_object('link-enter', PageView.do_link_enter, self)
 		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
-
-		self.view.connect_after('size-allocate', self.on_view_size_allocate)
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.view)
@@ -4874,7 +5016,6 @@ class PageView(gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.ui.notebook, self.page)
-			buffer.connect('insert-object', self.on_insert_object)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5432,6 +5573,9 @@ class PageView(gtk.VBox):
 
 		menu.show_all()
 
+	def do_reload_page(self):
+		self.ui.reload_page()
+
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
@@ -5523,6 +5667,11 @@ class PageView(gtk.VBox):
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
+
+	def insert_object(self, obj):
+		buffer = self.view.get_buffer()
+		with buffer.user_action:
+			buffer.insert_object_at_cursor(obj)
 
 	def insert_image(self, file=None, type=None, interactive=True, force=False):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
@@ -5870,54 +6019,6 @@ class PageView(gtk.VBox):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
-	def insert_object_at_cursor(self, obj):
-		'''Inserts a custom object in the page
-		@param obj: an imjobt implementing L{CustomerObjectClass}
-		'''
-		assert isinstance(obj, CustomObjectClass)
-		self.on_insert_object(self.view.get_buffer(), obj)
-
-	def on_insert_object(self, buffer, obj, interactive=False):
-		# Inserts custom object to TextView & Textbuffer.
-		# obj can be Element or CustomObjectClass instance.
-		logger.debug("Insert object(%s, %s)", buffer, obj)
-		if not isinstance(obj, CustomObjectClass):
-			# assume obj is a parsetree element
-			element = obj
-			if not 'type' in element.attrib:
-				return None
-			obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
-
-		def on_modified_changed(obj):
-			if obj.get_modified() and not buffer.get_modified():
-				buffer.set_modified(True)
-
-		obj.connect('modified-changed', on_modified_changed)
-		iter = buffer.get_insert_iter()
-
-		def on_release_cursor(widget, position, anchor):
-			myiter = buffer.get_iter_at_child_anchor(anchor)
-			if position == POSITION_END:
-				myiter.forward_char()
-			buffer.place_cursor(myiter)
-			self.view.grab_focus()
-
-		anchor = ObjectAnchor(obj)
-		buffer.insert_child_anchor(iter, anchor)
-		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectWidget)
-		widget.connect('release-cursor', on_release_cursor, anchor)
-		widget.show_all()
-		self.view.add_child_at_anchor(widget, anchor)
-		self._object_widgets.add(widget)
-
-		widget.show_all()
-
-	def on_view_size_allocate(self, textview, allocation):
-		for widget in self._object_widgets:
-			if widget._resize:
-				widget.resize_to_textview(textview)
-
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
 		self._zoom_increase_decrease_font_size( +1 )
@@ -5989,7 +6090,7 @@ class InsertDateDialog(Dialog):
 		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
 		self.buffer = buffer
-		self.date = datetime.datetime.now()
+		self.date = datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
 		self.uistate.setdefault('linkdate', False)
@@ -6074,7 +6175,7 @@ class InsertDateDialog(Dialog):
 		def update_date(model, path, iter):
 			format = model[iter][self.FORMAT_COL]
 			try:
-				string = date.strftime(format)
+				string = datetime.strftime(format, date)
 			except ValueError:
 				string = 'INVALID: ' + format
 			model[iter][self.DATE_COL] = string

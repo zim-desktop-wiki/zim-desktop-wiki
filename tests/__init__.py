@@ -58,7 +58,7 @@ __all__ = [
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
-	'sourceview',
+	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
 	'ipc'
 ]
 
@@ -289,7 +289,7 @@ class LoggingFilter(logging.Filter):
 	# Instead we need to set the filter both on the channel and on
 	# top level handlers to get the desired effect.
 
-	def __init__(self, logger, message):
+	def __init__(self, logger, message=None):
 		'''Constructor
 		@param logger: the logging channel name
 		@param message: can be a string, or a sequence of strings.
@@ -312,12 +312,15 @@ class LoggingFilter(logging.Filter):
 	def filter(self, record):
 		if record.name.startswith(self.logger):
 			msg = record.getMessage()
-			if isinstance(self.message, tuple):
+			if self.message is None:
+				return False
+			elif isinstance(self.message, tuple):
 				return not any(msg.startswith(m) for m in self.message)
 			else:
 				return not msg.startswith(self.message)
 		else:
 			return True
+
 
 	def wrap_test(self, test):
 		self.__enter__()

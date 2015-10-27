@@ -37,6 +37,13 @@ Supported tags:
 	- link for links, attribute href gives the target
 	- img for images, attributes src, width, height an optionally href and alt
 		- type can be used to control plugin functionality, e.g. type=equation
+	- table for tables, attributes
+			* aligns - comma separated values: right,left,center
+			* wraps - 0 for not wrapped, 1 for auto-wrapped line display
+		- thead for table header row
+			- th for table header cell
+		- trow for table row
+			- td for table data cell
 
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
@@ -129,7 +136,13 @@ LINK = 'link'
 TAG = 'tag'
 ANCHOR = 'anchor'
 
-BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM)
+TABLE = 'table'
+HEADROW = 'thead'
+HEADDATA = 'th'
+TABLEROW = 'trow'
+TABLEDATA = 'td'
+
+BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
 
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -922,6 +935,7 @@ class OldParseTreeBuilder(object):
 		self._tail = True
 
 		if len(self._stack) > 1 and not (tag == 'img' or tag == 'object'
+		or tag == HEADDATA or tag == TABLEDATA
 		or (self._last.text and not self._last.text.isspace())
 		or self._last.getchildren() ):
 			# purge empty tags
@@ -1178,6 +1192,10 @@ class DumperClass(Visitor):
 		if not tag or tag != self.context[-1].tag:
 			raise AssertionError, 'Unexpected tag closed: %s' % tag
 		_, attrib, strings = self.context.pop()
+
+		if tag in (TABLEDATA, HEADDATA) and not isinstance(strings, basestring):
+			strings = [''.join(strings)] # child elements of td and th are concated to string
+
 		if tag in self.TAGS:
 			assert strings, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
@@ -1220,7 +1238,7 @@ class DumperClass(Visitor):
 				raise AssertionError, 'BUG: Unknown tag: %s' % tag
 
 			if text is None:
-				strings = method(tag, attrib, None)
+				strings = method(tag, attrib, [])
 			elif tag == OBJECT:
 				strings = method(tag, attrib, [text])
 			else:
@@ -1516,3 +1534,151 @@ class DocumentFragment(Node):
 		self.attrib = None
 		if content:
 			self.extend(content)
+
+
+class TableParser():
+	'''Common functions for converting a table from its' xml structure to another format'''
+
+	@staticmethod
+	def width2dim(lines):
+		'''
+		Calculates the characters on each column and return list of widths
+		:param lines: 2-dim multiline rows
+		:return: the number of characters of the longest cell-value by column
+		'''
+		widths = [max(map(len, line)) for line in zip(*lines)]
+		return widths
+
+	@staticmethod
+	def width3dim(lines):
+		'''
+		Calculates the characters on each column and return list of widths
+		:param lines: 3-dim multiline rows
+		:return: the number of characters of the longest cell-value by column
+		'''
+		lines = reduce(lambda x, y: x+y, lines)
+		widths = [max(map(len, line)) for line in zip(*lines)]
+		return widths
+
+	@staticmethod
+	def convert_to_multiline_cells(rows):
+		'''
+		Each cell of a list of list is splitted by "\n" and a 3-dimensional list is returned,
+		whereas each tuple represents a line and multiple lines represents a row and multiple rows represents the table
+		c11a = Cell in Row 1 in Column 1 in first = a line
+		:param strings: format like (('c11a \n c11b', 'c12a \n c12b'), ('c21', 'c22a \n 22b'))
+		:return: format like (((c11a, c12a), (c11b, c12b)), ((c21, c22a), ('', c22b)))
+		'''
+		multi_rows = [map(lambda cell: cell.split("\n"), row) for row in rows]
+
+		# grouping by line, not by row
+		strings = [map(lambda *line: map(lambda val: val if val is not None else '', line), *row) for row in multi_rows]
+		return strings
+
+	@staticmethod
+	def get_options(attrib):
+		'''
+		Lists the attributes as tuple
+		:param attrib:
+		:return: tuple of attributes
+		'''
+		aligns = attrib['aligns'].split(',')
+		wraps = map(int, attrib['wraps'].split(','))
+
+		return aligns, wraps
+
+	@staticmethod
+	def rowsep(maxwidths, x='+', y='-'):
+		'''
+		Displays a row separator
+		example: rowsep((3,0), '-', '+') -> +-----+--+
+		:param maxwidths: list of column lengths
+		:param x: point-separator
+		:param y: line-separator
+		:return: a textline
+		'''
+		return x + x.join(map(lambda width: (width+2) * y, maxwidths)) + x
+
+	@staticmethod
+	def headsep(maxwidths, aligns, x='|', y='-'):
+		'''
+		Displays a header separation with alignment infos
+		example: rowsep((3,0), '-', '+') -> +-----+--+
+		:param maxwidths: list of column lengths
+		:param aligns:  list of alignments
+		:param x: point-separator
+		:param y: line-separator
+		:return: a textline
+		'''
+		cells = []
+		for width, align in zip(maxwidths, aligns):
+			line = width * y
+			if align == 'left':
+				cell = ':' + line + y
+			elif align == 'right':
+				cell = y + line + ':'
+			elif align == 'center':
+				cell = ':' + line + ':'
+			else:
+				cell = y + line + y
+			cells.append(cell)
+		return x + x.join(cells) + x
+
+	@staticmethod
+	def headline(row, maxwidths, aligns, wraps, x='|', y=' '):
+		'''
+		Displays a headerline line in text format
+		:param row: tuple of cells
+		:param maxwidths: list of column length
+		:param aligns:  list of alignments
+		:param x:  point-separator
+		:param y: space-separator
+		:return: a textline
+		'''
+		row = TableParser.alignrow(row, maxwidths, aligns, y)
+		cells = []
+		for val, wrap in zip(row, wraps):
+			if wrap == 1:
+				val = val[:-1]+'<'
+			cells.append(val)
+		return x + x.join(cells) + x
+
+	@staticmethod
+	def rowline(row, maxwidths, aligns, x='|', y=' '):
+		'''
+		Displays a normal column line in text format
+		example: rowline((3,0), (left, left), '+','-') -> +-aa--+--+
+		:param row: tuple of cells
+		:param maxwidths: list of column length
+		:param aligns:  list of alignments
+		:param x:  point-separator
+		:param y: space-separator
+		:return: a textline
+		'''
+		cells = TableParser.alignrow(row, maxwidths, aligns, y)
+		return x + x.join(cells) + x
+
+	@staticmethod
+	def alignrow(row, maxwidths, aligns, y=' '):
+		'''
+		Formats a row with the right alignments
+		:param row: tuple of cells
+		:param maxwidths: list of column length
+		:param aligns:  list of alignments
+		:param x:  point-separator
+		:param y: space-separator
+		:return: a textline
+		'''
+		cells = []
+		for val, align, maxwidth in zip(row, aligns, maxwidths):
+			if align == 'left':
+				(lspace, rspace) = (1, maxwidth - len(val) + 1)
+			elif align == 'right':
+				(lspace, rspace) = (maxwidth - len(val) + 1, 1)
+			elif align == 'center':
+				lspace = (maxwidth - len(val)) / 2 + 1
+				rspace = (maxwidth - lspace - len(val) + 2)
+			else:
+				(lspace, rspace) = (1, maxwidth - len(val) + 1)
+			cells.append(lspace * y + val + rspace * y)
+		return cells

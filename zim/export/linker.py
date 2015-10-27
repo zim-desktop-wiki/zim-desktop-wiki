@@ -110,6 +110,12 @@ class ExportLinker(BaseLinker):
 		'''
 		return self.notebook.resolve_file(link, self.source)
 
+	def resolve_dest_file(self, link):
+		'''Find the destination file for an attachment
+		@returns: a L{File} object
+		'''
+		return self._resolve_file(link)
+
 	def page_object(self, path):
 		'''Turn a L{Path} object in a relative link or URI'''
 		try:
@@ -158,6 +164,10 @@ class ExportLinker(BaseLinker):
 			return self.page_object(path)
 
 	def _link_file(self, link):
+		file = self._resolve_file(link)
+		return self.file_object(file)
+
+	def _resolve_file(self, link):
 		# TODO checks here are copy of notebook.resolve_file - should be single function
 		#      to determine type of file link: attachment / document / other
 		#      or generic function that takes attachment folder & document folder as args
@@ -184,7 +194,7 @@ class ExportLinker(BaseLinker):
 				# Allow ../ here - limit resulting relative link
 				# in self.file_object()
 
-		return self.file_object(file)
+		return file
 
 	def _link_mailto(self, link):
 		if link.startswith('mailto:'):
