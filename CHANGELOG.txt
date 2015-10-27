@@ -5,6 +5,17 @@ This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
 
+=== 0.64 - Tue 27 Oct 2015 ===
+* Bookmark plugin - by Pavel M
+* Updated spell plugin to allow using gtkspellcheck as backend
+* Updated attachmentbrowser plugin with new thumbnailing logic
+* Speed up of sqlite indexing
+* Updated support for OS X - by Brecht Machiels
+* Bug fixes for the Fossil version control support
+* Bug fixes for locale in strftime and strxfrm functions
+* Bug fix to avoid overwriting the accelmap config file
+
+
 === 0.63 - Sat 13 Jun 2015 ===
 * Table plugin - by Tobias Haupenthal
 * Support for Fossil version control - by Stas Bushuev

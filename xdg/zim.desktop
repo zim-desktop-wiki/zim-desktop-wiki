@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Exec=zim
+Exec=zim %f
 Icon=zim
 StartupNotify=true
 Terminal=false
