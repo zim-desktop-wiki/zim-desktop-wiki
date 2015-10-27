@@ -205,7 +205,7 @@ class MainWindowExtension(WindowExtension):
 		self.window.ui.assert_save_page_if_modified() # XXX
 
 		if not self.notebook_ext.vcs:
-			vcs = VersionControlInitDialog().run()
+			vcs = VersionControlInitDialog(self.window).run()
 			if vcs is None:
 				return # Canceled
 
@@ -845,12 +845,12 @@ def get_side_by_side_app():
 
 class VersionControlInitDialog(QuestionDialog):
 
-	def __init__(self):
-		QuestionDialog.__init__(self, self,
+	def __init__(self, ui):
+		QuestionDialog.__init__(self, ui, (
 			_("Enable Version Control?"), # T: Question dialog
 			_("Version control is currently not enabled for this notebook.\n"
 			  "Do you want to enable it?" ) # T: Detailed question
-		)
+		) )
 
 		self.combobox = gtk.combo_box_new_text()
 		for option in (VCS.BZR, VCS.GIT, VCS.HG, VCS.FOSSIL):
