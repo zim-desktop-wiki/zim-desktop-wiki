@@ -2477,7 +2477,7 @@ class MainWindow(Window):
 		if self._switch_focus_accelgroup:
 			self.remove_accel_group(self._switch_focus_accelgroup)
 
-		space = gtk.gdk.unicode_to_keyval(ord(' '))
+		space_keyval = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
 
 		self.preferences['GtkInterface'].setdefault('toggle_on_altspace', False)
@@ -2486,14 +2486,16 @@ class MainWindow(Window):
 			# several international layouts (space mistaken for alt-space,
 			# see bug lp:620315)
 			group.connect_group( # <Alt><Space>
-				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+				space_keyval, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
+			x, mask = gtk.accelerator_parse('<Primary>')
+				# <Primary> is either CONTROL (for linux & window) or META (for OS X)
 			group.connect_group( # <Primary><Space>
-				space, gtk.gdk.META_MASK, gtk.ACCEL_VISIBLE,
+				space_keyval, mask, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)
