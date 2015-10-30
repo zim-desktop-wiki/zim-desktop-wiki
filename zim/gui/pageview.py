@@ -35,6 +35,7 @@ from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
+from zim.actions import gtk_accelerator_preparse_list
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
@@ -4835,8 +4836,10 @@ class PageView(gtk.VBox):
 
 		# format actions need some custom hooks
 		actiongroup = self.actiongroup
-		actiongroup.add_actions(ui_format_actions)
-		actiongroup.add_toggle_actions(ui_format_toggle_actions)
+		actiongroup.add_actions(
+			gtk_accelerator_preparse_list(ui_format_actions))
+		actiongroup.add_toggle_actions(
+			gtk_accelerator_preparse_list(ui_format_toggle_actions))
 
 		for name in [a[0] for a in ui_format_actions]:
 			action = actiongroup.get_action(name)

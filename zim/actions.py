@@ -18,10 +18,66 @@ classes, but it can cooperate with these classes and use them as proxies.
 import inspect
 import weakref
 import logging
+import re
 
 import zim.errors
 
 logger = logging.getLogger('zim')
+
+
+try:
+	import gtk
+except ImportError:
+	gtk = None
+
+
+# We want to switch between <Control> for linux and windows and
+# <Command> for OS X. The gtk solution is to use the abstract <Primary>
+# modifier key. Unfortunately, this is not supported in gtk before
+# version gtk_version 2.24.7. Therefore we try to detect whether this
+# abstract key is supported or not, and if not, we fall back to <Control>.
+#
+# Secondary use of the PRIMARY_MODIFIER constant is that it can be
+# shown in user menus.
+
+if gtk:
+	x, mod = gtk.accelerator_parse('<Primary>')
+	if not mod:
+		# <Primary> is not supported - anyway to detect OS X?
+		_replace_primary_modifier = "<Control>"
+		PRIMARY_MODIFIER = "<Control>"
+	else:
+		_replace_primary_modifier = None
+		if mod == gtk.gdk.META_MASK:
+			PRIMARY_MODIFIER = "<Command>"
+		else:
+			PRIMARY_MODIFIER = "<Control>"
+else:
+	_replace_primary_modifier = "<Control>"
+	PRIMARY_MODIFIER = "<Control>"
+
+if _replace_primary_modifier:
+	def gtk_accelerator_preparse(code):
+		if code:
+			return re.sub('<Primary>', _replace_primary_modifier, code, flags=re.I)
+		else:
+			return code # empty string, None, ...
+else:
+	def gtk_accelerator_preparse(code):
+		return code
+
+# FIXME - temporary helper method - remove it again when all users are refactored
+def gtk_accelerator_preparse_list(actions):
+	myactions = []
+	for action in actions:
+		if len(action) > 3:
+			a = list(action)
+			a[3] = gtk_accelerator_preparse(a[3])
+			action = tuple(a)
+		myactions.append(action)
+	return myactions
+
+
 
 class Action(object):
 	'''Action, used by the L{action} decorator'''
@@ -35,7 +91,7 @@ class Action(object):
 		self.readonly = readonly
 		self.func = func
 		self._attr = (self.name, label, tooltip, stock)
-		self._accel = accelerator
+		self._accel = gtk_accelerator_preparse(accelerator)
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -180,7 +236,7 @@ def get_gtk_actiongroup(obj):
 
 	This method can only be used when gtk is available
 	'''
-	import gtk
+	assert gtk, 'This method only works in gtk environment'
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:

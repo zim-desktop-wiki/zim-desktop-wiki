@@ -37,6 +37,7 @@ from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
+from zim.actions import gtk_accelerator_preparse_list, PRIMARY_MODIFIER
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
@@ -203,8 +204,8 @@ ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use <Primary><Space> to switch to the side pane'), False),
-		# T: Option in the preferences dialog
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER+'<Space>'), False),
+		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
 	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
@@ -770,7 +771,8 @@ class GtkInterface(gobject.GObject):
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
-		group.add_actions([a[0:5] for a in actions])
+		group.add_actions(
+			gtk_accelerator_preparse_list(a[0:5] for a in actions))
 		self._connect_actions(actions, group, handler)
 
 	def add_toggle_actions(self, actions, handler):
@@ -808,7 +810,8 @@ class GtkInterface(gobject.GObject):
 		'''
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
 		group = self.init_actiongroup(handler)
-		group.add_toggle_actions([a[0:5]+(None,)+(a[5],) for a in actions])
+		group.add_toggle_actions(
+			gtk_accelerator_preparse_list(a[0:5]+(None, a[5]) for a in actions))
 			# insert 'None' for callback
 		self._connect_actions(actions, group, handler, is_toggle=True)
 
@@ -845,7 +848,8 @@ class GtkInterface(gobject.GObject):
 		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tuples'
 		assert hasattr(handler, methodname), 'No such method %s' % methodname
 		group = self.init_actiongroup(handler)
-		group.add_radio_actions(actions)
+		group.add_radio_actions(
+			gtk_accelerator_preparse_list(actions))
 		method = getattr(handler, methodname)
 		action = group.get_action(actions[0][0])
 		action.connect('changed', self._radio_action_handler, method)
@@ -2477,7 +2481,7 @@ class MainWindow(Window):
 		if self._switch_focus_accelgroup:
 			self.remove_accel_group(self._switch_focus_accelgroup)
 
-		space_keyval = gtk.gdk.unicode_to_keyval(ord(' '))
+		space = gtk.gdk.unicode_to_keyval(ord(' '))
 		group = gtk.AccelGroup()
 
 		self.preferences['GtkInterface'].setdefault('toggle_on_altspace', False)
@@ -2486,16 +2490,15 @@ class MainWindow(Window):
 			# several international layouts (space mistaken for alt-space,
 			# see bug lp:620315)
 			group.connect_group( # <Alt><Space>
-				space_keyval, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
-			x, mask = gtk.accelerator_parse('<Primary>')
-				# <Primary> is either CONTROL (for linux & window) or META (for OS X)
+			mask = gtk.gdk.META_MASK if PRIMARY_MODIFIER == '<Command>' else gtk.gdk.CONTROL_MASK
 			group.connect_group( # <Primary><Space>
-				space_keyval, mask, gtk.ACCEL_VISIBLE,
+				space, mask, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)
