@@ -1225,6 +1225,14 @@ class TextBuffer(gtk.TextBuffer):
 
 		self.emit('insert-object', obj, anchor)
 
+	def get_object_at_cursor(self):
+		iter = self.get_insert_iter()
+		anchor = iter.get_child_anchor()
+		if anchor and hasattr(anchor, 'manager'):
+			return anchor.manager
+		else:
+			return None
+
 	def set_bullet(self, line, bullet):
 		'''Sets the bullet type for a line
 
@@ -2373,8 +2381,10 @@ class TextBuffer(gtk.TextBuffer):
 					continue
 				if hasattr(anchor, 'manager'):
 					attrib = anchor.manager.get_attrib()
-					if attrib and attrib['type'] == 'table':
-						self.build_parsetree_of_table(builder, anchor.manager, iter)
+					if attrib and attrib['type'] == 'table' \
+					and hasattr(anchor.manager, 'build_parsetree_of_table'): # fallback should not go here...
+						obj = anchor.manager
+						obj.build_parsetree_of_table(builder, iter)
 					else:
 						# general object related parsing
 						data = anchor.manager.get_data()
@@ -2463,59 +2473,11 @@ class TextBuffer(gtk.TextBuffer):
 			format = get_format("wiki") # FIXME should the format used here depend on the store ?
 			dumper = format.Dumper()
 			parser = format.Parser()
-			tree = parser.parse(dumper.dump(tree), partial=tree.ispartial)
+			text = dumper.dump(tree)
+			tree = parser.parse(text, partial=tree.ispartial)
 			#~ print ">>> Parsetree recreated:", tree.tostring()
 
 		return tree
-
-	def build_parsetree_of_table(self, builder, anchormanager, iter):
-			logger.debug("Anchor with TableObject: %s", anchormanager)
-			attrib = anchormanager.get_attrib()
-			del attrib['type']
-			tabledata = anchormanager.get_data()
-
-			# inserts a newline before and after table-object
-			bound = iter.copy()
-			bound.backward_char()
-			char_before_table = bound.get_slice(iter)
-			need_newline_infront = char_before_table.decode('utf-8') != "\n".decode('utf-8')
-			bound = iter.copy()
-			bound.forward_char()
-			iter2 = bound.copy()
-			bound.forward_char()
-			char_after_table = iter2.get_slice(bound)
-			need_newline_behind = char_after_table.decode('utf-8') != "\n".decode('utf-8')
-
-			# table-editor plugin is not activated -> handle table-object like a fallback-object
-			if isinstance(tabledata, basestring):
-				if need_newline_infront:
-					builder.data('\n')
-				builder.data(tabledata)
-				if need_newline_behind:
-					builder.data('\n')
-				return
-
-			headers, rows, attrib = tabledata
-			if need_newline_infront:
-				builder.data('\n')
-
-			builder.start('table', attrib)
-			builder.start('thead')
-			for header in headers:
-				builder.start('th')
-				builder.data(header)
-				builder.end('th')
-			builder.end('thead')
-			for row in rows:
-				builder.start('trow')
-				for cell in row:
-					builder.start('td')
-					builder.data(cell)
-					builder.end('td')
-				builder.end('trow')
-			builder.end('table')
-			if need_newline_behind:
-				builder.data('\n')
 
 	def select_line(self):
 		'''Selects the current line

@@ -30,6 +30,8 @@ from zim.main import get_zim_application
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
 from zim.gui.objectmanager import CustomObjectWidget
 from zim.formats import ElementTreeModule as ElementTree
+from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
+
 
 OBJECT_TYPE = 'table'
 
@@ -351,12 +353,7 @@ class TableViewObject(CustomObjectClass):
 					treerow
 				))
 
-		# logger.debug("Table as get-data: : %s, %s, %s", headers, rows, attrs)
 		return headers, rows, attrs
-
-	def dump(self, format, dumper, linker=None):
-		''' Dumps currently structure for table into textual format - mostly used for debugging / testing purposes '''
-		return CustomObjectClass.dump(self, format, dumper, linker)
 
 	def change_model(self, new_model):
 		'''
@@ -404,6 +401,44 @@ class TableViewObject(CustomObjectClass):
 					newrow[v] = oldrow[k]
 				new_rows.append(newrow)
 		return new_rows
+
+	def build_parsetree_of_table(self, builder, iter):
+			logger.debug("Anchor with TableObject: %s", self)
+
+			# inserts a newline before and after table-object
+			bound = iter.copy()
+			bound.backward_char()
+			char_before_table = bound.get_slice(iter)
+			need_newline_infront = char_before_table.decode('utf-8') != "\n".decode('utf-8')
+			bound = iter.copy()
+			bound.forward_char()
+			iter2 = bound.copy()
+			bound.forward_char()
+			char_after_table = iter2.get_slice(bound)
+			need_newline_behind = char_after_table.decode('utf-8') != "\n".decode('utf-8')
+			#
+
+			headers, rows, attrib = self.get_data()
+			#~ print "Table data:", headers, rows, attrib
+
+
+			if need_newline_infront:
+				builder.data('\n')
+
+			builder.start(TABLE, attrib)
+			builder.start(HEADROW)
+			for header in headers:
+				builder.append(HEADDATA, header)
+			builder.end(HEADROW)
+			for row in rows:
+				builder.start(TABLEROW)
+				for cell in row:
+					builder.append(TABLEDATA, cell)
+				builder.end(TABLEROW)
+			builder.end(TABLE)
+
+			if need_newline_behind:
+				builder.data('\n')
 
 
 

@@ -123,16 +123,10 @@ class Dumper(TextDumper):
 		table += [rowline(row) for row in rows[1:]]
 		return map(lambda line: line+"\n", table)
 
-	def dump_thead(self, tag, attrib, strings):
-		return [strings]
-
 	def dump_th(self, tag, attrib, strings):
 		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
-		return strings
-
-	def dump_trow(self, tag, attrib, strings):
-		return [strings]
+		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
 		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
-		return strings
+		return [self._concat(strings)]

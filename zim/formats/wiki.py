@@ -526,7 +526,7 @@ class Dumper(TextDumper):
 		# TODO use text for caption (with full recursion)
 
 	def dump_object(self, tag, attrib, strings=None):
-		logger.debug("Dumping object: %s, %s", attrib, strings)
+		#~ logger.debug("Dumping object: %s, %s", attrib, strings)
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
@@ -544,7 +544,9 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		# logger.debug("Dumping table: %s, %s", attrib, strings)
+		#~ print "Dumping table: %s, %s" % (attrib, strings)
+		n = len(strings[0])
+		assert all(len(s) == n for s in strings), strings
 
 		table = []  # result table
 		rows = strings
@@ -560,17 +562,17 @@ class Dumper(TextDumper):
 		table += [rowline(row) for row in rows[1:]]
 		return map(lambda line: line+"\n", table)
 
-	def dump_thead(self, tag, attrib, strings):
-		return [strings]
-
 	def dump_th(self, tag, attrib, strings):
-		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
-		return strings
-
-	def dump_trow(self, tag, attrib, strings):
-		return [strings]
+		if not strings:
+			return [''] # force empty cell
+		else:
+			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+			return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
-		strings = map(lambda s: s.replace('<br>', '\\n'), strings)
-		return strings
+		if not strings:
+			return [''] # force empty cell
+		else:
+			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+			strings = map(lambda s: s.replace('<br>', '\\n'), strings)
+			return [self._concat(strings)]

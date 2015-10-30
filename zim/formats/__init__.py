@@ -903,10 +903,11 @@ class OldParseTreeBuilder(object):
 			"end tag mismatch (expected %s, got %s)" % (self._last.tag, tag)
 		self._tail = True
 
-		if len(self._stack) > 1 and not (tag == 'img' or tag == 'object'
-		or tag == HEADDATA or tag == TABLEDATA
-		or (self._last.text and not self._last.text.isspace())
-		or self._last.getchildren() ):
+		if len(self._stack) > 1 and not (
+			tag in (IMAGE, OBJECT, HEADDATA, TABLEDATA)
+			or (self._last.text and not self._last.text.isspace())
+			or self._last.getchildren()
+		):
 			# purge empty tags
 			if self._last.text and self._last.text.isspace():
 				self._append_to_previous(self._last.text)
@@ -934,6 +935,11 @@ class OldParseTreeBuilder(object):
 	def data(self, text):
 		assert isinstance(text, basestring)
 		self._data.append(text)
+
+	def append(self, tag, text):
+		self.start(tag)
+		self.data(text)
+		self.end(tag)
 
 	def _flush(self, need_eol=0):
 		# need_eol makes sure previous data ends with \n
@@ -1161,15 +1167,12 @@ class DumperClass(Visitor):
 			raise AssertionError, 'Unexpected tag closed: %s' % tag
 		_, attrib, strings = self.context.pop()
 
-		if tag in (TABLEDATA, HEADDATA) and not isinstance(strings, basestring):
-			strings = [''.join(strings)] # child elements of td and th are concated to string
-
 		if tag in self.TAGS:
 			assert strings, 'Can not append empty %s element' % tag
 			start, end = self.TAGS[tag]
 			strings.insert(0, start)
 			strings.append(end)
-		elif tag in FORMATTEDTEXT:
+		elif tag == FORMATTEDTEXT:
 			pass
 		else:
 			try:
