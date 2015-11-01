@@ -4730,6 +4730,8 @@ class PageView(gtk.VBox):
 	@ivar preferences: a L{ConfigDict} with preferences
 
 	@signal: C{modified-changed ()}: emitted when the page is edited
+	@signal: C{textstyle-changed (style)}:
+	Emitted when textstyle at the cursor changes
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -4742,6 +4744,8 @@ class PageView(gtk.VBox):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+
 	}
 
 	def __init__(self, ui, secondary=False):
@@ -4776,8 +4780,6 @@ class PageView(gtk.VBox):
 		self.add(self.swindow)
 
 		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
-		self.view.connect_object('link-enter', PageView.do_link_enter, self)
-		self.view.connect_object('link-leave', PageView.do_link_leave, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
@@ -5009,7 +5011,7 @@ class PageView(gtk.VBox):
 			self.set_cursor_pos(cursor)
 
 			self._buffer_signals = (
-				buffer.connect('textstyle-changed', self.do_textstyle_changed),
+				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
 				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o) ),
 				buffer.connect_after('mark-set', self.do_mark_set),
 			)
@@ -5263,14 +5265,9 @@ class PageView(gtk.VBox):
 			self.actiongroup.get_action('edit_object').set_sensitive(False)
 			self.actiongroup.get_action('remove_link').set_sensitive(False)
 
-	def do_textstyle_changed(self, buffer, style):
+	def do_textstyle_changed(self, style):
 		# Update menu items for current style
 		#~ print '>>> SET STYLE', style
-
-		# set statusbar
-		if style: label = style.title()
-		else: label = 'None'
-		self.ui.mainwindow.statusbar_style_label.set_text(label)
 
 		# set toolbar toggles
 		if style:
@@ -5297,12 +5294,6 @@ class PageView(gtk.VBox):
 				action.handler_unblock_by_func(self.do_toggle_format_action)
 
 		#~ print '<<<'
-
-	def do_link_enter(self, link):
-		self.ui.mainwindow.statusbar.push(1, 'Go to "%s"' % link['href'])
-
-	def do_link_leave(self, link):
-		self.ui.mainwindow.statusbar.pop(1)
 
 	def do_link_clicked(self, link, new_window=False):
 		assert isinstance(link, dict)

@@ -75,7 +75,7 @@ class TestGenerator(tests.TestCase):
 
 		# Dialog OK
 		attachment_dir = Dir(self.create_tmp_dir())
-		dialog = self.dialogklass(MockUI(attachment_dir), '<title>', generator)
+		dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
 		dialog.set_text(self.validinput)
 		dialog.assert_response_ok()
 
@@ -86,7 +86,7 @@ class TestGenerator(tests.TestCase):
 				dialog.do_response(gtk.RESPONSE_YES)
 
 			with tests.DialogContext(ok_store):
-				dialog = self.dialogklass(MockUI(attachment_dir), '<title>', generator)
+				dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
 				dialog.set_text(self.invalidinput)
 				dialog.assert_response_ok()
 
@@ -265,7 +265,5 @@ class MockUI(tests.MockObject):
 		tests.MockObject.__init__(self)
 		self.notebook = tests.MockObject()
 		self.notebook.mock_method('get_attachments_dir', dir)
-		self.mainwindow = tests.MockObject()
-		self.mainwindow.pageview = tests.MockObject()
 
 

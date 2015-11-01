@@ -159,8 +159,8 @@ class TestPlugins(tests.TestCase):
 		for obj in (
 			notebook,
 			notebook.index,
-			ui.mainwindow,
-			ui.mainwindow.pageview,
+			ui._mainwindow,				# XXX
+			ui._mainwindow.pageview,	# XXX
 			dialog,
 		):
 			manager.extend(obj)

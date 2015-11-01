@@ -9,7 +9,11 @@
 
 
 import os
+import re
 import subprocess
+
+
+comment_re = re.compile('^\s*#\s*Tests\s*:', re.I)
 
 
 def get_project_dir(file):
@@ -25,14 +29,22 @@ def get_project_dir(file):
 def get_test_names(file):
 	basename, ext = os.path.basename(file).split('.', 1)
 	if basename == '__init__':
-		file = os.path.dirname(file)
-		basename, ext = os.path.basename(file).split('.', 1)
+		dir = os.path.dirname(file)
+		basename = os.path.basename(dir)
+
+	for line in open(file):
+		m = comment_re.match(line)
+		if m:
+			i = len(m.group(0))
+			tests = line[i:].strip().split()
+			break
+	else:
+		tests = [basename]
 
 	if "plugins" in os.path.dirname(file):
-		return ['plugins', basename]
-	else:
-		return [basename]
+		tests.insert(0, 'plugins')
 
+	return tests
 
 def run_tests(pwd, names):
 	argv = [os.path.join(pwd, 'test.py')] + names
@@ -44,6 +56,6 @@ if __name__ == '__main__':
 	import sys
 	file = sys.argv[1]
 	pwd, file = get_project_dir(file)
-	names = get_test_names(file)
+	names = get_test_names(os.path.join(pwd, file))
 	re = run_tests(pwd, names)
 	sys.exit(re)

@@ -91,7 +91,7 @@ class TestMainWindowExtension(tests.TestCase):
 		notebook = tests.new_files_notebook(dir)
 		ui = setupGtkInterface(self, notebook=notebook)
 		plugin.extend(notebook)
-		plugin.extend(ui.mainwindow)
+		plugin.extend(ui._mainwindow) # XXX
 
 		notebook_ext = plugin.get_extension(NotebookExtension)
 		self.assertIsInstance(notebook_ext, NotebookExtension)

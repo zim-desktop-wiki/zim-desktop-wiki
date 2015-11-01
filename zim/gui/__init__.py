@@ -343,7 +343,6 @@ class GtkInterface(gobject.GObject):
 	instead of closing when the main window is closed, typically used
 	in combination with the background server process and the
 	L{tray icon plugin<zim.plugins.trayicon>}
-	@ivar mainwindow: the L{MainWindow} object
 	@ivar history: the L{History} object
 	@ivar uimanager: the C{gtk.UIManager} (see the methods
 	L{add_actions()} and L{add_ui()} for wrappers)
@@ -446,17 +445,17 @@ class GtkInterface(gobject.GObject):
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		# Init UI
-		self.mainwindow = MainWindow(self, self.preferences, fullscreen, geometry)
+		self._mainwindow = MainWindow(self, self.preferences, fullscreen, geometry)
 
 		self.add_actions(ui_actions, self)
-		self.add_actions(ui_actions_window, self.mainwindow)
-		self.add_toggle_actions(ui_toggle_actions_window, self.mainwindow)
+		self.add_actions(ui_actions_window, self._mainwindow)
+		self.add_toggle_actions(ui_toggle_actions_window, self._mainwindow)
 		self.add_radio_actions(ui_pathbar_radio_actions,
-								self.mainwindow, 'do_set_pathbar')
+								self._mainwindow, 'do_set_pathbar')
 		self.add_radio_actions(ui_toolbar_style_radio_actions,
-								self.mainwindow, 'do_set_toolbar_style')
+								self._mainwindow, 'do_set_toolbar_style')
 		self.add_radio_actions(ui_toolbar_size_radio_actions,
-								self.mainwindow, 'do_set_toolbar_size')
+								self._mainwindow, 'do_set_toolbar_size')
 
 		if ui_environment['platform'] == 'maemo':
 			# Customized menubar for maemo, specific for maemo version
@@ -464,12 +463,6 @@ class GtkInterface(gobject.GObject):
 		else:
 			fname = 'menubar.xml'
 		self.add_ui(data_file(fname).read(), self)
-
-		if ui_environment['platform'] == 'maemo':
-			# Hardware fullscreen key is F6 in N8xx devices
-			self.mainwindow.connect('key-press-event',
-				lambda o, event: event.keyval == gtk.keysyms.F6
-					and self.mainwindow.toggle_fullscreen())
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
@@ -510,7 +503,7 @@ class GtkInterface(gobject.GObject):
 				self.open_page(newpath)
 
 		def save_page(o, p, *a):
-			page = self.mainwindow.pageview.get_page()
+			page = self._mainwindow.pageview.get_page()
 			if p == page and page.modified:
 				self.save_page(page)
 
@@ -590,7 +583,7 @@ class GtkInterface(gobject.GObject):
 		signal.signal(signal.SIGTERM, handle_sigterm)
 
 		# And here we go!
-		self.mainwindow.show_all()
+		self._mainwindow.show_all()
 
         # Adapt the GUI to OS X conventions
 		try:
@@ -599,10 +592,10 @@ class GtkInterface(gobject.GObject):
 
 			# move the menus to the OS X menu bar
 			menu_bar = gtk.MenuBar()
-			for i, child in enumerate(self.mainwindow.menubar.get_children()):
+			for i, child in enumerate(self._mainwindow.menubar.get_children()):
 				child.reparent(menu_bar)
 			macapp.set_menu_bar(menu_bar)
-			self.mainwindow.menubar.hide()
+			self._mainwindow.menubar.hide()
 			macapp.set_help_menu(self.uimanager.get_widget('/menubar/help_menu'))
 
 			# move some menu items to the application menu
@@ -625,7 +618,7 @@ class GtkInterface(gobject.GObject):
 		else:
 			self.open_page_home()
 
-		self.mainwindow.pageview.grab_focus()
+		self._mainwindow.pageview.grab_focus()
 		gtk.main()
 
 	def check_notebook_needs_upgrade(self):
@@ -658,7 +651,7 @@ class GtkInterface(gobject.GObject):
 			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 
 	def get_toplevel(self):
-		return self.mainwindow
+		return self._mainwindow
 
 	def present(self, page=None, fullscreen=None, geometry=None):
 		'''Present the mainwindow. Typically used to bring back a
@@ -671,26 +664,26 @@ class GtkInterface(gobject.GObject):
 		@param geometry: the window geometry as string in format
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
-		self.mainwindow.present()
+		self._mainwindow.present()
 		if page:
 			if isinstance(page, basestring):
 				page = Path(page)
 			self.open_page(page)
 
 		if geometry:
-			self.mainwindow.parse_geometry(geometry)
+			self._mainwindow.parse_geometry(geometry)
 		elif fullscreen:
-			self.mainwindow.toggle_fullscreen(show=True)
+			self._mainwindow.toggle_fullscreen(show=True)
 
 	def toggle_present(self):
 		'''Present main window if it is not on top, but hide if it is.
 		Used by the L{trayicon plugin<zim.plugins.trayicon>} to toggle
 		visibility of the window.
 		'''
-		if self.mainwindow.is_active():
-			self.mainwindow.hide()
+		if self._mainwindow.is_active():
+			self._mainwindow.hide()
 		else:
-			self.mainwindow.present()
+			self._mainwindow.present()
 
 	def hide(self):
 		'''Hide the main window. Note that this is not the same as
@@ -699,7 +692,7 @@ class GtkInterface(gobject.GObject):
 		it can not be accessed by the user anymore until L{present()}
 		has been called.
 		'''
-		self.mainwindow.hide()
+		self._mainwindow.hide()
 
 	def close(self):
 		'''Menu action for close. Will hide when L{hideonclose} is set,
@@ -719,7 +712,7 @@ class GtkInterface(gobject.GObject):
 			return False
 
 		self.notebook.index.stop_updating() # XXX - avoid long wait
-		self.mainwindow.hide() # look more responsive
+		self._mainwindow.hide() # look more responsive
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
@@ -884,7 +877,7 @@ class GtkInterface(gobject.GObject):
 		try:
 			method(*arg)
 		except Exception, error:
-			ErrorDialog(self.mainwindow, error).run()
+			ErrorDialog(self._mainwindow, error).run()
 			# error dialog also does logging automatically
 
 	def _radio_action_handler(self, object, action, method):
@@ -1272,8 +1265,8 @@ class GtkInterface(gobject.GObject):
 
 		current = self.history.get_current()
 		if current == page:
-			current.cursor = self.mainwindow.pageview.get_cursor_pos()
-			current.scroll = self.mainwindow.pageview.get_scroll_pos()
+			current.cursor = self._mainwindow.pageview.get_cursor_pos()
+			current.scroll = self._mainwindow.pageview.get_scroll_pos()
 
 		def save_uistate_cb():
 			if self.uistate.modified:
@@ -1379,14 +1372,14 @@ class GtkInterface(gobject.GObject):
 		navigates away without first adding content. Though subtle this
 		is expected behavior for users.
 		'''
-		NewPageDialog(self, path=self._get_path_context()).run()
+		NewPageDialog(self._mainwindow, path=self._get_path_context()).run()
 
 	def new_sub_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog}.
 		Like L{new_page()} but forces a child page of the current
 		page.
 		'''
-		NewPageDialog(self, path=self._get_path_context(), subpage=True).run()
+		NewPageDialog(self._mainwindow, path=self._get_path_context(), subpage=True).run()
 
 	def new_page_from_text(self, text, name=None, use_template=False, attachments=None, open_page=False):
 		'''Create a new page with content. This method is intended
@@ -1488,7 +1481,7 @@ class GtkInterface(gobject.GObject):
 	@SignalHandler
 	def do_autosave(self):
 		if self._check_autosave_done():
-			page = self.mainwindow.pageview.get_page()
+			page = self._mainwindow.pageview.get_page()
 			if page.modified \
 			and self._save_page_check_page(page):
 				try:
@@ -1513,7 +1506,7 @@ class GtkInterface(gobject.GObject):
 			# FIXME - should we force page.modified = True here ?
 			logger.error('Error during autosave - re-try',
 					exc_info=self._autosave_thread.exc_info)
-			self._save_page(self.mainwindow.pageview.get_page()) # force normal save
+			self._save_page(self._mainwindow.pageview.get_page()) # force normal save
 			return True
 		else:
 			return True # Done and no error ..
@@ -1522,7 +1515,7 @@ class GtkInterface(gobject.GObject):
 		'''Like C{save_page()} but only saves when needed.
 		@raises PageHasUnSavedChangesError: when page was not saved
 		'''
-		page = self.mainwindow.pageview.get_page()
+		page = self._mainwindow.pageview.get_page()
 		if page is None:
 			return
 
@@ -1546,7 +1539,7 @@ class GtkInterface(gobject.GObject):
 		@returns: C{True} when successful, C{False} when the page still
 		has unsaved changes
 		'''
-		page = self.mainwindow.pageview.get_page()
+		page = self._mainwindow.pageview.get_page()
 		assert page is not None
 
 		if self._autosave_thread \
@@ -1576,7 +1569,7 @@ class GtkInterface(gobject.GObject):
 			logger.exception('Failed to save page: %s', page.name)
 			with self.do_autosave.blocked():
 				# Avoid new autosave (on idle) while dialog is seen
-				SavePageErrorDialog(self, error, page).run()
+				SavePageErrorDialog(self._mainwindow, error, page).run()
 
 		return not page.modified
 
@@ -1590,7 +1583,7 @@ class GtkInterface(gobject.GObject):
 		except Exception, error:
 			with self.do_autosave.blocked():
 				# Avoid new autosave (on idle) while dialog is seen
-				SavePageErrorDialog(self, error, page).run()
+				SavePageErrorDialog(self._mainwindow, error, page).run()
 			return False
 		else:
 			return True
@@ -1731,9 +1724,9 @@ class GtkInterface(gobject.GObject):
 		'''
 		from zim.gui.searchdialog import SearchDialog
 		if query is None:
-			query = self.mainwindow.pageview.get_selection()
+			query = self._mainwindow.pageview.get_selection()
 
-		dialog = SearchDialog(self)
+		dialog = SearchDialog(self._mainwindow)
 		dialog.show_all()
 
 		if query is not None:
@@ -1785,7 +1778,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		if path is None:
 			path = self._get_path_context()
-		AttachFileDialog(self, path).run()
+		AttachFileDialog(self._mainwindow, path).run()
 
 	def do_attach_file(self, path, file, force_overwrite=False):
 		'''Callback for AttachFileDialog and InsertImageDialog
@@ -2194,14 +2187,14 @@ class GtkInterface(gobject.GObject):
 		manager = CustomToolManager()
 		tool = manager.get_tool(action.get_name())
 		logger.info('Execute custom tool %s', tool.name)
-		args = (self.notebook, self.page, self.mainwindow.pageview)
+		args = (self.notebook, self.page, self._mainwindow.pageview)
 		try:
 			if tool.isreadonly:
 				tool.spawn(args)
 			elif tool.replaceselection:
 				output = tool.pipe(args)
 				logger.debug('Replace output with %s', output)
-				pageview = self.mainwindow.pageview # XXX
+				pageview = self._mainwindow.pageview # XXX
 				buffer = pageview.view.get_buffer() # XXX
 				if buffer.get_has_selection():
 					start, end = buffer.get_selection_bounds()
@@ -2361,13 +2354,21 @@ class MainWindow(Window):
 		self.pageindex = PageIndex(ui)
 		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
 
+		self.pageindex.treeview.connect('insert-link',
+			lambda v, p: self.pageview.insert_links([p]))
+
 		self.pathbar = None
 		self.pathbar_box = gtk.HBox()
 		self.add_widget(self.pathbar_box, (TOP_PANE, TOP))
 
 		self.pageview = PageView(ui)
+		self.pageview.connect_after(
+			'textstyle-changed', self.on_textview_textstyle_changed)
 		self.pageview.view.connect_after(
-			'toggle-overwrite', self.do_textview_toggle_overwrite)
+			'toggle-overwrite', self.on_textview_toggle_overwrite)
+		self.pageview.view.connect('link-enter', self.on_link_enter)
+		self.pageview.view.connect('link-leave', self.on_link_leave)
+
 		self.add(self.pageview)
 
 		# create statusbar
@@ -2402,6 +2403,13 @@ class MainWindow(Window):
 		frame.set_shadow_type(gtk.SHADOW_IN)
 		self.statusbar.pack_end(frame, False)
 		frame.add(self.statusbar_backlinks_button)
+
+		index = self.ui.notebook.index
+		index.connect('start-update',
+			lambda o: self.statusbar.push(2, _('Updating index...')) )
+			# T: statusbar message
+		index.connect('end-update',
+			lambda o: self.statusbar.pop(2) )
 
 		# add a second statusbar widget - somehow the corner grip
 		# does not render properly after the pack_end for the first one
@@ -3012,11 +3020,21 @@ class MainWindow(Window):
 	def on_close_page(self, ui, page, final):
 		self.save_uistate()
 
-	def do_textview_toggle_overwrite(self, view):
+	def on_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
 		if state: text = 'OVR'
 		else: text = 'INS'
 		self.statusbar_insert_label.set_text(text)
+
+	def on_textview_textstyle_changed(self, view, style):
+		label = style.title() if style else 'None'
+		self.statusbar_style_label.set_text(label)
+
+	def on_link_enter(self, view, link):
+		self.statusbar.push(1, 'Go to "%s"' % link['href'])
+
+	def on_link_leave(self, view, link):
+		self.statusbar.pop(1)
 
 	def do_button_press_event(self, event):
 		## Try to capture buttons for navigation
@@ -3088,18 +3106,6 @@ class PageWindow(Window):
 		self.add(self.pageview)
 
 
-def get_window(ui):
-	'''Returns a gtk.Window object or None. Used to find the parent window
-	for dialogs.
-	'''
-	if isinstance(ui, gtk.Window):
-		return ui
-	elif hasattr(ui, 'mainwindow'):
-		return ui.mainwindow
-	else:
-		return None
-
-
 class SavePageErrorDialog(ErrorDialog):
 	'''Error dialog used when we hit an error while trying to save a page.
 	Allow to save a copy or to discard changes. Includes a timer which
@@ -3108,7 +3114,7 @@ class SavePageErrorDialog(ErrorDialog):
 	we want to prevent an accidental action.
 	'''
 
-	def __init__(self, ui, error, page):
+	def __init__(self, window, error, page):
 		msg = _('Could not save page: %s') % page.name
 			# T: Heading of error dialog
 		desc = unicode(error).encode('utf-8').strip() \
@@ -3118,11 +3124,11 @@ To continue you can save a copy of this page or discard
 any changes. If you save a copy changes will be also
 discarded, but you can restore the copy later.''')
 			# T: text in error dialog when saving page failed
-		ErrorDialog.__init__(self, ui, (msg, desc), buttons=gtk.BUTTONS_NONE)
+		ErrorDialog.__init__(self, window, (msg, desc), buttons=gtk.BUTTONS_NONE)
 
 		self.page = page
 		self.error = error
-		self.ui = ui
+		self.app_window = window
 
 		self.timer_label = gtk.Label()
 		self.timer_label.set_alignment(0.9, 0.5)
@@ -3135,9 +3141,9 @@ discarded, but you can restore the copy later.''')
 
 		self._done = False
 		def discard(self):
-			self.ui.mainwindow.pageview.clear()
+			self.app_window.pageview.clear()
 				# issue may be caused in pageview - make sure it unlocks
-			self.ui.notebook.revert_page(self.page)
+			self.app_window.ui.notebook.revert_page(self.page)
 			self._done = True
 
 		def save(self):
@@ -3210,11 +3216,11 @@ class NewPageDialog(Dialog):
 	to create it.
 	'''
 
-	def __init__(self, ui, path=None, subpage=False):
+	def __init__(self, window, path=None, subpage=False):
 		if subpage: title = _('New Sub Page') # T: Dialog title
 		else: title = _('New Page') # T: Dialog title
 
-		Dialog.__init__(self, ui, title,
+		Dialog.__init__(self, window, title,
 			help_text=_(
 				'Please note that linking to a non-existing page\n'
 				'also creates a new page automatically.'),
@@ -3222,16 +3228,17 @@ class NewPageDialog(Dialog):
 			help=':Help:Pages'
 		)
 
-		self.path = path or ui.page
+		self.app_window = window
+		self.path = path or window.ui.page
 
 		key = self.path or ''
-		default = ui.notebook.namespace_properties[key]['template']
+		default = window.ui.notebook.namespace_properties[key]['template'] # XXX
 		templates = [t[0] for t in list_templates('wiki')]
 		if not default in templates:
 			templates.insert(0, default)
 
 		self.add_form([
-			('page', 'page', _('Page Name'), (path or ui.page)), # T: Input label
+			('page', 'page', _('Page Name'), self.path), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
 		self.form['template'] = default
@@ -3256,9 +3263,9 @@ class NewPageDialog(Dialog):
 		template = get_template('wiki', self.form['template'])
 		tree = self.ui.notebook.eval_new_page_template(page, template)
 		page.set_parsetree(tree)
-		self.ui.open_page(page)
-		self.ui.mainwindow.pageview.set_cursor_pos(-1) # HACK set position to end of template
-		self.ui.save_page() # Save new page directly
+		self.app_window.ui.open_page(page)
+		self.app_window.pageview.set_cursor_pos(-1) # HACK set position to end of template
+		self.app_window.ui.save_page() # Save new page directly
 		return True
 
 
@@ -3500,14 +3507,15 @@ class DeletePageDialog(Dialog):
 
 class AttachFileDialog(FileDialog):
 
-	def __init__(self, ui, path):
+	def __init__(self, window, path):
 		assert path, 'Need a page here'
-		FileDialog.__init__(self, ui, _('Attach File'), multiple=True) # T: Dialog title
+		FileDialog.__init__(self, window, _('Attach File'), multiple=True) # T: Dialog title
+		self.app_window = window
 		self.uistate.setdefault('last_attachment_folder','~')
 		self.filechooser.set_current_folder(self.uistate['last_attachment_folder'])
 		self.path = path
 
-		dir = self.ui.notebook.get_attachments_dir(self.path)
+		dir = self.app_window.ui.notebook.get_attachments_dir(self.path)
 		if dir is None:
 			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
 				# T: Error dialog - %s is the full page name
@@ -3538,7 +3546,7 @@ class AttachFileDialog(FileDialog):
 			if file is None:
 				return False # overwrite dialog was canceled
 
-			pageview = self.ui.mainwindow.pageview
+			pageview = self.app_window.pageview
 			buffer = pageview.view.get_buffer()
 			if self.uistate['insert_attached_images'] and file.isimage():
 				ok = pageview.insert_image(file, interactive=False)

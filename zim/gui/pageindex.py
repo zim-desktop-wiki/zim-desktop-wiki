@@ -732,21 +732,12 @@ class PageIndex(gtk.ScrolledWindow):
 		self.treeview = PageTreeView(ui)
 		self.add(self.treeview)
 
-		self.treeview.connect('insert-link',
-			lambda v, p: self.ui.mainwindow.pageview.insert_links([p]))
-
 		# Set model and connect to index
 		assert self.ui.notebook, 'BUG: need notebook at initialization'
 		index = self.ui.notebook.index
 
 		model = PageTreeStore(index)
 		self.treeview.set_model(model)
-
-		index.connect('start-update',
-			lambda o: ui.mainwindow.statusbar.push(2, _('Updating index...')) )
-			# T: statusbar message
-		index.connect('end-update',
-			lambda o: ui.mainwindow.statusbar.pop(2) )
 
 		# Connect to ui signals
 		ui.connect('open-page', self.on_open_page)

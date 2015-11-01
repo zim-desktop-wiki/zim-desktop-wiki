@@ -51,9 +51,6 @@ def setUpPageView(fakedir=None, notebook=None):
 	ui.uimanager = tests.MockObject()
 	ui.uimanager.mock_method('get_accel_group', tests.MockObject())
 
-	ui.mainwindow = tests.MockObject()
-	ui.mainwindow.statusbar_style_label = tests.MockObject()
-
 	return PageView(ui)
 
 
@@ -1822,7 +1819,6 @@ class MockUI(tests.MockObject):
 
 	def __init__(self):
 		tests.MockObject.__init__(self)
-		self.mainwindow = None
 		self.notebook = tests.MockObject()
 		self.preferences = SectionedConfigDict()
 		self.page = Path('Test')

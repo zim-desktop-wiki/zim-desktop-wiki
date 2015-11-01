@@ -664,7 +664,6 @@ class TestExportDialog(tests.TestCase):
 		ui = tests.MockObject()
 		ui.notebook = notebook
 		ui.page = Path('foo')
-		ui.mainwindow = None
 		ui.uistate = SectionedConfigDict()
 
 		## Test export all pages

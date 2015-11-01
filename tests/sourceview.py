@@ -23,7 +23,6 @@ class TestMainWindowExtension(tests.TestCase):
 		window.ui = tests.MockObject()
 		window.ui.uimanager = tests.MockObject()
 		window.ui.uistate = ConfigDict()
-		window.ui.mainwindow = window # XXX
 
 		plugin = SourceViewPlugin()
 		extension = MainWindowExtension(plugin, window)

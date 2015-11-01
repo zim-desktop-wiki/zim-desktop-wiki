@@ -178,6 +178,7 @@ class InsertScreenshotDialog(Dialog):
 
 	def __init__(self, window, notebook, page, screenshot_command):
 		Dialog.__init__(self, window, _('Insert Screenshot'))  # T: dialog title
+		self.app_window = window
 		self.screenshot_command = screenshot_command
 		if ScreenshotPicker.has_select_cmd(self.screenshot_command):
 			self.screen_radio = gtk.RadioButton(None,
@@ -219,7 +220,7 @@ class InsertScreenshotDialog(Dialog):
 				imgdir = self.notebook.get_attachments_dir(self.page)
 				imgfile = imgdir.new_file(name)
 				tmpfile.rename(imgfile)
-				pageview = self.ui.mainwindow.pageview
+				pageview = self.app_window.pageview
 				pageview.insert_image(imgfile, interactive=False, force=True)
 			else:
 				ErrorDialog(self.ui,

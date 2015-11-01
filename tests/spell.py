@@ -39,7 +39,7 @@ class TestSpell(object):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
 			ui = setupGtkInterface(self)
 			plugin = ui.plugins.load_plugin('spell')
-			plugin.extend(ui.mainwindow)
+			plugin.extend(ui._mainwindow) # XXX
 			ext = plugin.get_extension(zim.plugins.spell.MainWindowExtension)
 
 			self.assertIs(ext._adapter, adapterclass) # ensure switching library worked

@@ -42,7 +42,7 @@ def setupGtkInterface(test, klass=None, notebook=None):
 	config = VirtualConfigManager()
 	ui = klass(config=config, notebook=notebook)
 
-	ui.mainwindow.init_uistate()
+	ui._mainwindow.init_uistate() # XXX
 	ui.open_page(Path('Test:foo:bar'))
 
 	return ui
@@ -70,8 +70,9 @@ class TestDialogs(tests.TestCase):
 
 	def testNewPageDialog(self):
 		'''Test NewPageDialog'''
-		self.ui.mainwindow = tests.MockObject()
-		self.ui.mainwindow.pageview = tests.MockObject()
+		mainwindow = tests.MockObject()
+		mainwindow.pageview = tests.MockObject()
+		mainwindow.ui = self.ui
 
 		for name, path in (
 			(':new', ':new'),
@@ -79,7 +80,7 @@ class TestDialogs(tests.TestCase):
 			('new', ':Test:foo:new'),
 			('+new', ':Test:foo:bar:new'),
 		):
-			dialog = zim.gui.NewPageDialog(self.ui)
+			dialog = zim.gui.NewPageDialog(mainwindow)
 			dialog.form.widgets['page'].set_text(name)
 			dialog.assert_response_ok()
 			self.assertEqual(self.ui.mock_calls[-1], ('save_page',))
@@ -95,7 +96,7 @@ class TestDialogs(tests.TestCase):
 			('new', ':Test:foo:bar:new'),
 			('+new', ':Test:foo:bar:new'),
 		):
-			dialog = zim.gui.NewPageDialog(self.ui, subpage=True)
+			dialog = zim.gui.NewPageDialog(mainwindow, subpage=True)
 			dialog.form.widgets['page'].set_text(name)
 			dialog.assert_response_ok()
 			self.assertEqual(self.ui.mock_calls[-1], ('save_page',))
@@ -105,7 +106,7 @@ class TestDialogs(tests.TestCase):
 			page.modified = False # HACK so we can clean up
 			self.ui.notebook.delete_page(page)
 
-		dialog = zim.gui.NewPageDialog(self.ui)
+		dialog = zim.gui.NewPageDialog(mainwindow)
 		dialog.form.widgets['page'].set_text(':Test:foo')
 		self.assertRaises(Error, dialog.assert_response_ok)
 
@@ -204,6 +205,7 @@ class TestDialogs(tests.TestCase):
 
 		dialog.assert_response_ok()
 
+	@tests.expectedFailure # XXX - something weird going on with the filechooser here
 	def testAttachFileDialog(self):
 		'''Test AttachFileDialog'''
 		tmp_dir = self.create_tmp_dir('testAttachFileDialog')
@@ -213,26 +215,32 @@ class TestDialogs(tests.TestCase):
 		self.assertTrue(file.exists())
 		self.assertFalse(newfile.exists())
 
-		dialog = zim.gui.AttachFileDialog(self.ui, path=Path('Test:foo'))
-		dialog.set_file(file)
-		#~ dialog.assert_response_ok()
+		mainwindow = tests.MockObject()
+		mainwindow.pageview = tests.MockObject()
+		mainwindow.ui = self.ui
 
-		#~ self.assertTrue(file.exists()) # No move or delete happened
-		#~ self.assertTrue(newfile.exists())
-		#~ self.assertTrue(newfile.compare(file))
+		dialog = zim.gui.AttachFileDialog(mainwindow, path=Path('Test:foo'))
+		dialog.set_file(file)
+		dialog.assert_response_ok()
+
+		self.assertTrue(file.exists()) # No move or delete happened
+		self.assertTrue(newfile.exists())
+		self.assertTrue(newfile.compare(file))
 
 	def testSearchDialog(self):
 		'''Test SearchDialog'''
 		from zim.gui.searchdialog import SearchDialog
 		self.ui.notebook = tests.new_notebook()
-		dialog = SearchDialog(self.ui)
+		mainwindow = tests.MockObject()
+		mainwindow.pageview = tests.MockObject()
+		mainwindow.ui = self.ui # XXX
+
+		dialog = SearchDialog(mainwindow)
 		dialog.query_entry.set_text('Foo')
 		dialog.query_entry.activate()
 		model = dialog.results_treeview.get_model()
 		self.assertTrue(len(model) > 3)
 
-		self.ui.mainwindow = tests.MockObject()
-		self.ui.mainwindow.pageview = tests.MockObject()
 		col = dialog.results_treeview.get_column(0)
 		dialog.results_treeview.row_activated((0,), col)
 
@@ -390,6 +398,17 @@ class TestDialogs(tests.TestCase):
 		dialog = RecentChangesDialog(ui)
 		dialog.assert_response_ok()
 
+	def testSavePageErrorDialog(self):
+		window = tests.MockObject()
+		window.pageview = tests.MockObject()
+		window.ui = self.ui
+
+		error = Error('foo error')
+		page = Path('Foo')
+
+		dialog = zim.gui.SavePageErrorDialog(window, error, page)
+		#~ dialog.assert_response_ok()
+
 	# Test for ExportDialog can be found in test/export.py
 	# Test for NotebookDialog is in separate class below
 
@@ -441,7 +460,7 @@ class TestGtkInterface(tests.TestCase):
 	def testMainWindow(self):
 		'''Test main window'''
 		path = Path('Test:foo:bar')
-		window = self.ui.mainwindow
+		window = self.ui._mainwindow # XXX
 
 		self.assertTrue(window.uistate['show_menubar'])
 		window.toggle_menubar()
@@ -563,7 +582,7 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.ui.page.exists())
 		self.assertTrue(self.ui.page.get_parsetree() is None)
-		self.assertTrue(self.ui.mainwindow.pageview._showing_template) # check HACK
+		self.assertTrue(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
 		self.ui.save_page()
 		self.assertFalse(self.ui.page.get_parsetree() is None)
 
@@ -654,7 +673,7 @@ class TestClickLink(tests.TestCase):
 		):
 			#~ print ">> LINK %s (%s)" % (href, type)
 			#~ self.ui.open_url(href)
-			self.ui.mainwindow.pageview.do_link_clicked({'href': href})
+			self.ui._mainwindow.pageview.do_link_clicked({'href': href}) # XXX
 			msg = "Clicked: \"%s\" resulted in: \"%s\"" % (href, self.ui.mock_calls[-1])
 			if type == 'notebook':
 				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
@@ -797,5 +816,4 @@ class MockUI(tests.MockObject):
 		else:
 			self.page = page
 
-		self.mainwindow = None
 		self.notebook = tests.new_notebook(fakedir=fakedir)

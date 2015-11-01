@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+# Tests: search gui.TestDialogs.testSearchDialog
 
 import gtk
 import gobject
@@ -20,11 +22,12 @@ class SearchDialog(Dialog):
 	SEARCHING = 1
 	CANCELLED = 2
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Search'), # T: Dialog title
+	def __init__(self, window):
+		Dialog.__init__(self, window, _('Search'), # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching',
 			defaultwindowsize=(400, 300)
 		)
+		self.app_window = window
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
@@ -64,7 +67,7 @@ class SearchDialog(Dialog):
 		# TODO checkbox _('Match c_ase')
 		# TODO checkbox _('Whole _word')
 
-		self.results_treeview = SearchResultsTreeView(self.ui)
+		self.results_treeview = SearchResultsTreeView(self.app_window)
 		self.vbox.add(ScrolledWindow(self.results_treeview))
 
 		self.search_button.connect_object('clicked', self.__class__._search, self)
@@ -84,7 +87,7 @@ class SearchDialog(Dialog):
 	def _search(self):
 		string = self.query_entry.get_text()
 		if self.namespacecheckbox.get_active():
-			string = 'Section: "%s" ' % self.ui.page.name + string
+			string = 'Section: "%s" ' % self.app_window.ui.page.name + string # XXX
 		#~ print '!! QUERY: ' + string
 
 		self._set_state(self.SEARCHING)
@@ -137,13 +140,13 @@ class SearchResultsTreeView(BrowserTreeView):
 	SCORE_COL = 1
 	PATH_COL = 2
 
-	def __init__(self, ui):
+	def __init__(self, window):
 		model = gtk.ListStore(str, int, object)
 			# NAME_COL, SCORE_COL, PATH_COL
 		BrowserTreeView.__init__(self, model)
-		self.ui = ui
+		self.app_window = window
 		self.query = None
-		self.selection = SearchSelection(ui.notebook)
+		self.selection = SearchSelection(window.ui.notebook) # XXX
 		self.cancelled = False
 
 		cell_renderer = gtk.CellRendererText()
@@ -221,10 +224,10 @@ class SearchResultsTreeView(BrowserTreeView):
 
 	def _do_open_page(self, view, path, col):
 		page = Path( self.get_model()[path][0].decode('utf-8') )
-		self.ui.open_page(page)
+		self.app_window.ui.open_page(page) # XXX
 
 		# Popup find dialog with same query
 		if self.query and self.query.simple_match:
 			string = self.query.simple_match
 			string = string.strip('*') # support partial matches
-			self.ui.mainwindow.pageview.show_find(string, highlight=True)
+			self.app_window.pageview.show_find(string, highlight=True)
