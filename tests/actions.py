@@ -4,13 +4,14 @@
 
 import tests
 
+import gtk
+
 from zim.actions import *
 
 
 class TestPrimaryKeyBinding(tests.TestCase):
 
 	def runTest(self):
-		self.assertIn(PRIMARY_MODIFIER, ('<Control>', '<Command>'))
 		for accel in ( # Ctrl-A or Command-A
 			"<Control>a",
 			"<Meta>a",

@@ -25,12 +25,6 @@ import zim.errors
 logger = logging.getLogger('zim')
 
 
-try:
-	import gtk
-except ImportError:
-	gtk = None
-
-
 # We want to switch between <Control> for linux and windows and
 # <Command> for OS X. The gtk solution is to use the abstract <Primary>
 # modifier key. Unfortunately, this is not supported in gtk before
@@ -40,31 +34,35 @@ except ImportError:
 # Secondary use of the PRIMARY_MODIFIER constant is that it can be
 # shown in user menus.
 
-if gtk:
-	x, mod = gtk.accelerator_parse('<Primary>')
-	if not mod:
-		# <Primary> is not supported - anyway to detect OS X?
-		_replace_primary_modifier = "<Control>"
-		PRIMARY_MODIFIER = "<Control>"
-	else:
-		_replace_primary_modifier = None
-		if mod == gtk.gdk.META_MASK:
-			PRIMARY_MODIFIER = "<Command>"
-		else:
-			PRIMARY_MODIFIER = "<Control>"
-else:
-	_replace_primary_modifier = "<Control>"
-	PRIMARY_MODIFIER = "<Control>"
+_accelerator_preparse_re = re.compile('(?i)<Primary>')
 
-if _replace_primary_modifier:
-	def gtk_accelerator_preparse(code):
-		if code:
-			return re.sub('<Primary>', _replace_primary_modifier, code, flags=re.I)
+def gtk_accelerator_preparse(code, force=False):
+	'''Pre-parse the accelerator code to change <Primary> into
+	<Control> or <Command> if <Primary> is not supported.
+	@param code: accelerator code
+	@param force: if C{True} <Primary> is replaced even if not needed
+	@returns: same or modified accelerator code
+	'''
+	if not code:
+		return code # tolerate None ...
+
+	m = _accelerator_preparse_re.search(code)
+	if m:
+		import gtk
+		x, mod = gtk.accelerator_parse('<Primary>')
+		if not mod:
+			# <Primary> is not supported - anyway to detect OS X?
+			return _accelerator_preparse_re.sub('<Control>', code)
+		elif force:
+			if mod == gtk.gdk.META_MASK:
+				return _accelerator_preparse_re.sub('<Command>', code)
+			else:
+				return _accelerator_preparse_re.sub('<Control>', code)
 		else:
-			return code # empty string, None, ...
-else:
-	def gtk_accelerator_preparse(code):
+			return code
+	else:
 		return code
+
 
 # FIXME - temporary helper method - remove it again when all users are refactored
 def gtk_accelerator_preparse_list(actions):
@@ -236,7 +234,7 @@ def get_gtk_actiongroup(obj):
 
 	This method can only be used when gtk is available
 	'''
-	assert gtk, 'This method only works in gtk environment'
+	import gtk
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:

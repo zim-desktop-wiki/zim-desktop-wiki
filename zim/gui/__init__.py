@@ -37,7 +37,7 @@ from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
-from zim.actions import gtk_accelerator_preparse_list, PRIMARY_MODIFIER
+from zim.actions import gtk_accelerator_preparse, gtk_accelerator_preparse_list
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
@@ -198,6 +198,8 @@ TOOLBAR_TEXT_ONLY = 'text_only'
 TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
+
+PRIMARY_MODIFIER = gtk_accelerator_preparse('<primary>', force=True)
 
 #: Preferences for the user interface
 ui_preferences = (
