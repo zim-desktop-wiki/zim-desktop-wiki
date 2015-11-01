@@ -1,0 +1,12 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2015-11-01T15:25:36+01:00
+
+====== Coding Tools ======
+Created Sunday 01 November 2015
+
+Some usefull sctipts are found in the ''./tool/'' folder of the source archive.
+
+When you want to setup an environment for continuous testing while working on the source code, try using ''./tools/test_file.py'' . This tool maps the source file to the test suite and runs the appropriate unittests for this file.
+
+Of course it is good practise to run the whole suite before checking in a new feature, but running the tests per source file will definitely help with rapid development.

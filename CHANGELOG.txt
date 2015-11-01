@@ -5,6 +5,14 @@ This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
 
+=== 0.65 - Sun 01 Nov 2015 ===
+This release fixes two critical bugs in version 0.64:
+* <Control> keybindings fail for older gtk versions, and in particular
+  for the <Control><Space> keybinding
+* The table editor tends to drop columns of content in the precences
+  of empty cells
+
+
 === 0.64 - Tue 27 Oct 2015 ===
 * Bookmark plugin - by Pavel M
 * Updated spell plugin to allow using gtkspellcheck as backend
