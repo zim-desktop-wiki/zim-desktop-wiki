@@ -57,6 +57,56 @@ def setUpPageView(fakedir=None, notebook=None):
 	return PageView(ui)
 
 
+class TestLines(tests.TestCase):
+
+	def testLines(self):
+		'''Test lines formatting.'''
+
+		pageview = setUpPageView()
+		buffer = pageview.view.get_buffer()
+
+		def check_text(input, result):
+			buffer.set_text(input)
+			tree = buffer.get_parsetree()
+			dumper = get_format('wiki').Dumper()
+			text = ''.join(dumper.dump(tree))
+			self.assertEqual(text, result)
+
+		# Check formatting.
+		string = 'text... \n{}\n text... \n'
+		input = string.format('_'*4)
+		check_text(input, input) # doesn't format
+		for i in range(30):
+			if i < 5:
+				output = string.format('_'*i)
+			else:
+				output = string.format(LINE_TEXT)
+			input = string.format('_'*i)
+			check_text(input, output)
+
+		# Check that any additional symbol other than '_' fails.
+		input = 'text... {}\n text... \n'.format('_'*10)
+		check_text(input, input)
+		input = 'text... \n{}text... \n'.format('_'*10)
+		check_text(input, input)
+		input = 'text... \n{} \n text... \n'.format('_'*10)
+		check_text(input, input)
+		input = 'text... \n {}\n text... \n'.format('_'*10)
+		check_text(input, input)
+
+		# Check more complex text.
+		string = 'text... \n\n{0}\n\n{0}\n\n text... \n'
+		input = string.format('_'*7)
+		output = string.format(LINE_TEXT)
+		check_text(input, output)
+
+		string = '... \n{}\n{}\n{}\n ... \n{}\n{}0\n'
+		input = string.format('_'*8, '_'*6, '_'*4, '_'*11, '_'*10)
+		output = string.format(LINE_TEXT, LINE_TEXT, '_'*4, LINE_TEXT, '_'*10)
+		check_text(input, output)
+
+
+
 class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
