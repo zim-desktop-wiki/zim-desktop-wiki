@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Exec=browser --url %u
-TryExec=browser
-Icon=qgn_list_browser
-NoDisplay=true
-X-Zim-AppType=web_browser
-Name=Microb (maemo)

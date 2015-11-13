@@ -507,11 +507,6 @@ class PageTreeView(BrowserTreeView):
 			(INTERNAL_PAGELIST_TARGET,),
 			gtk.gdk.ACTION_MOVE )
 
-		if ui_environment['platform'] == 'maemo':
-			# Maemo gtk UI bugfix: expanders are hidden by default
-			self.set_property('level-indentation', 0)
-			self.set_property('show-expanders', 1)
-
 		if model:
 			self.set_model(model)
 

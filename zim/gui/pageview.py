@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -35,7 +35,7 @@ from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
-from zim.actions import gtk_accelerator_preparse_list
+from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
@@ -115,48 +115,9 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # numlock or fn keys are active, resulting in keybindings failing
 KEYSTATES = gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
-ui_actions = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('undo', 'gtk-undo', _('_Undo'), '<Primary>Z', '', False), # T: Menu item
-	('redo', 'gtk-redo', _('_Redo'), '<Primary><shift>Z', '', False), # T: Menu item
-	('redo_alt1', None, '', '<Primary>Y', '', False),
-	('cut', 'gtk-cut', _('Cu_t'), '<Primary>X', '', False), # T: Menu item
-	('copy', 'gtk-copy', _('_Copy'), '<Primary>C', '', False), # T: Menu item
-	('paste', 'gtk-paste', _('_Paste'), '<Primary>V', '', False), # T: Menu item
-	('delete', 'gtk-delete', _('_Delete'), '', '', False), # T: Menu item
-	('toggle_checkbox', STOCK_CHECKED_BOX, _('Toggle Checkbox \'V\''), 'F12', '', False), # T: Menu item
-	('xtoggle_checkbox', STOCK_XCHECKED_BOX, _('Toggle Checkbox \'X\''), '<shift>F12', '', False), # T: Menu item
-	('edit_object', 'gtk-properties', _('_Edit Link or Object...'), '<Primary>E', '', False), # T: Menu item
-	('remove_link', None, _('_Remove Link'), '', '', False), # T: Menu item
-	('insert_date', None, _('_Date and Time...'), '<Primary>D', '', False), # T: Menu item
-	('insert_image', None, _('_Image...'), '', '', False), # T: Menu item
-	('insert_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item
-	('insert_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item
-	('insert_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
-	('apply_format_bullet_list', None, _('Bulle_t List'), '', '', False), # T: Menu item,
-	('apply_format_numbered_list', None, _('_Numbered List'), '', '', False), # T: Menu item,
-	('apply_format_checkbox_list', None, _('Checkbo_x List'), '', '', False), # T: Menu item,
-	('insert_text_from_file', None, _('Text From _File...'), '', '', False), # T: Menu item
-	('insert_link', 'zim-link', _('_Link...'), '<Primary>L', _('Insert Link'), False), # T: Menu item
-	('clear_formatting', None, _('_Clear Formatting'), '<Primary>9', '', False), # T: Menu item
-	('show_find', 'gtk-find', _('_Find...'), '<Primary>F', '', True), # T: Menu item
-	('show_find_alt1', None, '', '<Primary>F3', '', True),
-	('find_next', None, _('Find Ne_xt'), '<Primary>G', '', True), # T: Menu item
-	('find_next_alt1', None, '', 'F3', '', True), # T: Menu item
-	('find_previous', None, _('Find Pre_vious'), '<Primary><shift>G', '', True), # T: Menu item
-	('find_previous_alt1', None, '', '<shift>F3', '', True),
-	('show_find_and_replace', 'gtk-find-and-replace', _('_Replace...'), '<Primary>H', '', False), # T: Menu item
-	('show_word_count', None, _('Word Count...'), '', '', True), # T: Menu item
-	('zoom_in', 'gtk-zoom-in', _('_Zoom In'), '<Primary>plus', '', True), # T: Menu item
-	('zoom_in_alt1', None, '', '<Primary>equal', '', True),
-	('zoom_out', 'gtk-zoom-out', _('Zoom _Out'), '<Primary>minus', '', True), # T: Menu item
-	('zoom_reset', 'gtk-zoom-100', _('_Normal Size'), '<Primary>0', '', True), # T: Menu item to reset zoom
-
+MENU_ACTIONS = (
 	# name, stock id, label
 	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
-
-	# name, stock id, label, accelerator, tooltip, readonly
-	('open_file_templates_folder', 'gtk-directory', _('File _Templates...'), '', '', False), # T: Menu item in "Insert > New File Attachment" submenu
 )
 
 ui_format_actions = (
@@ -223,21 +184,6 @@ ui_preferences = (
 		_('Folder with templates for attachment files'), '~/Templates'),
 		# T: option in preferences dialog
 )
-
-if ui_environment['platform'] == 'maemo':
-	# Manipulate preferences with Maemo specific settings
-	ui_preferences = list(ui_preferences)
-	for i in range(len(ui_preferences)):
-		if ui_preferences[i][0] == 'follow_on_enter':
-			ui_preferences[i] = \
-				('follow_on_enter', 'bool', None, None, True)
-				# There is no ALT key on maemo devices
-		elif ui_preferences[i][0] == 'unindent_on_backspace':
-			ui_preferences[i] = \
-				('unindent_on_backspace', 'bool', None, None, True)
-				# There is no hardware TAB key on maemo devices
-	ui_preferences = tuple(ui_preferences)
-
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
 _is_indent_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'indent'
@@ -3722,9 +3668,6 @@ class TextView(gtk.TextView):
 		# This method defines extra key bindings. It also triggers
 		# end-of-word and end-of-line signals.
 		#
-		# Note that on maemo only TAB triggers this method, other keys
-		# avoid it somehow
-		#
 		# Calls in read-only mode or selection mode are dispatched to two
 		# methods below.
 
@@ -4791,7 +4734,9 @@ class PageView(gtk.VBox):
 		if self.secondary:
 			# HACK - divert actions from uimanager
 			self.actiongroup = gtk.ActionGroup('SecondaryPageView')
-		self.ui.add_actions(ui_actions, self)
+
+		group = get_gtk_actiongroup(self)
+		group.add_actions(MENU_ACTIONS, self)
 
 		# setup hooks for new file submenu
 		action = self.actiongroup.get_action('insert_new_file_menu')
@@ -5528,30 +5473,37 @@ class PageView(gtk.VBox):
 	def do_reload_page(self):
 		self.ui.reload_page()
 
+	@action(_('_Undo'), 'gtk-undo', '<Primary>Z', readonly=False) # T: Menu item
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
 
+	@action(_('_Redo'), 'gtk-redo', '<Primary><shift>Z', alt_accelerator='<Primary>Y', readonly=False) # T: Menu item
 	def redo(self):
 		'''Menu action to redo a single step'''
 		self.undostack.redo()
 
+	@action(_('Cu_t'), 'gtk-cut', '<Primary>X', readonly=False) # T: Menu item
 	def cut(self):
 		'''Menu action for cut to clipboard'''
 		self.view.emit('cut-clipboard')
 
+	@action(_('_Copy'), 'gtk-copy', '<Primary>C', readonly=False) # T: Menu item
 	def copy(self):
 		'''Menu action for copy to clipboard'''
 		self.view.emit('copy-clipboard')
 
+	@action(_('_Paste'), 'gtk-paste', '<Primary>V', readonly=False) # T: Menu item
 	def paste(self):
 		'''Menu action for paste from clipboard'''
 		self.view.emit('paste-clipboard')
 
+	@action(_('_Delete'), 'gtk-delete', readonly=False) # T: Menu item
 	def delete(self):
 		'''Menu action for delete'''
 		self.view.emit('delete-from-cursor', gtk.DELETE_CHARS, 1)
 
+	@action(_('Toggle Checkbox \'V\''), STOCK_CHECKED_BOX, 'F12', readonly=False) # T: Menu item
 	def toggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
@@ -5560,6 +5512,7 @@ class PageView(gtk.VBox):
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recurs)
 
+	@action(_('Toggle Checkbox \'X\''), STOCK_XCHECKED_BOX, '<shift>F12', readonly=False) # T: Menu item
 	def xtoggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
@@ -5568,6 +5521,7 @@ class PageView(gtk.VBox):
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
 
+	@action(_('_Edit Link or Object...'), 'gtk-properties', '<Primary>E', readonly=False) # T: Menu item
 	def edit_object(self, iter=None):
 		'''Menu action to trigger proper edit dialog for the current
 		object at the cursor
@@ -5599,6 +5553,7 @@ class PageView(gtk.VBox):
 		else:
 			return False
 
+	@action(_('_Remove Link'), readonly=False) # T: Menu item
 	def remove_link(self, iter=None):
 		'''Menu action to remove link object at the current cursor position
 
@@ -5616,6 +5571,7 @@ class PageView(gtk.VBox):
 		if bounds:
 			buffer.remove_link(*bounds)
 
+	@action(_('_Date and Time...'), accelerator='<Primary>D', readonly=False) # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self.ui, self.view.get_buffer()).run()
@@ -5625,6 +5581,7 @@ class PageView(gtk.VBox):
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
 
+	@action(_('_Image...'), readonly=False) # T: Menu item
 	def insert_image(self, file=None, type=None, interactive=True, force=False):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 
@@ -5652,14 +5609,17 @@ class PageView(gtk.VBox):
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 			return True
 
+	@action(_('Bulle_t List'), readonly=False) # T: Menu item
 	def insert_bullet_list(self):
 		'''Menu action insert a bullet item at the cursor'''
 		self._start_bullet(BULLET)
 
+	@action(_('_Numbered List'), readonly=False) # T: Menu item
 	def insert_numbered_list(self):
 		'''Menu action insert a numbered list item at the cursor'''
 		self._start_bullet(NUMBER_BULLET)
 
+	@action(_('Checkbo_x List'), readonly=False) # T: Menu item
 	def insert_checkbox_list(self):
 		'''Menu action insert an open checkbox at the cursor'''
 		self._start_bullet(UNCHECKED_BOX)
@@ -5676,14 +5636,17 @@ class PageView(gtk.VBox):
 			iter.forward_to_line_end()
 			buffer.place_cursor(iter)
 
+	@action(_('Bulle_t List'), readonly=False) # T: Menu item,
 	def apply_format_bullet_list(self):
 		'''Menu action to format selection as bullet list'''
 		self._apply_bullet(BULLET)
 
+	@action(_('_Numbered List'), readonly=False) # T: Menu item,
 	def apply_format_numbered_list(self):
 		'''Menu action to format selection as numbered list'''
 		self._apply_bullet(NUMBER_BULLET)
 
+	@action(_('Checkbo_x List'), readonly=False) # T: Menu item,
 	def apply_format_checkbox_list(self):
 		'''Menu action to format selection as checkbox list'''
 		self._apply_bullet(UNCHECKED_BOX)
@@ -5692,6 +5655,7 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
 
+	@action(_('Text From _File...'), readonly=False) # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
 		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
@@ -5733,6 +5697,7 @@ class PageView(gtk.VBox):
 				buffer.insert_link_at_cursor(link, link)
 				buffer.insert_at_cursor(sep)
 
+	@action(_('_Link...'), 'zim-link', '<Primary>L', tooltip=_('Insert Link'), readonly=False) # T: Menu item
 	def insert_link(self):
 		'''Menu item to show the L{InsertLinkDialog}'''
 		InsertLinkDialog(self.ui, self).run()
@@ -5810,7 +5775,7 @@ class PageView(gtk.VBox):
 
 		#~ self.ui.open_file(file) # FIXME should this be optional ?
 
-
+	@action(_('File _Templates...'), 'gtk-directory') # T: Menu item in "Insert > New File Attachment" submenu
 	def open_file_templates_folder(self):
 		'''Menu action to open the templates folder'''
 		dir = self.preferences['file_templates_folder']
@@ -5833,6 +5798,7 @@ class PageView(gtk.VBox):
 				dir.touch()
 				self.ui.open_file(dir)
 
+	@action(_('_Clear Formatting'), accelerator='<Primary>9', readonly=False) # T: Menu item
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
 		buffer = self.view.get_buffer()
@@ -5931,6 +5897,7 @@ class PageView(gtk.VBox):
 		buffer.finder.find(string, flags)
 		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
 
+	@action(_('_Find...'), 'gtk-find', '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
 	def show_find(self, string=None, flags=0, highlight=False):
 		'''Show the L{FindBar} widget
 
@@ -5951,30 +5918,36 @@ class PageView(gtk.VBox):
 		self.find_bar.hide()
 		self.view.grab_focus()
 
+	@action(_('Find Ne_xt'), accelerator='<Primary>G', alt_accelerator='F3') # T: Menu item
 	def find_next(self):
 		'''Menu action to skip to next match'''
 		self.find_bar.show()
 		self.find_bar.find_next()
 
+	@action(_('Find Pre_vious'), accelerator='<Primary><shift>G', alt_accelerator='<shift>F3') # T: Menu item
 	def find_previous(self):
 		'''Menu action to go back to previous match'''
 		self.find_bar.show()
 		self.find_bar.find_previous()
 
+	@action(_('_Replace...'), 'gtk-find-and-replace', '<Primary>H', readonly=False) # T: Menu item
 	def show_find_and_replace(self):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
 		dialog = FindAndReplaceDialog.unique(self, self.ui, self.view)
 		dialog.set_from_buffer()
 		dialog.present()
 
+	@action(_('Word Count...')) # T: Menu item
 	def show_word_count(self):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
+	@action(_('_Zoom In'), 'gtk-zoom-in', '<Primary>plus', alt_accelerator='<Primary>equal') # T: Menu item
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
 		self._zoom_increase_decrease_font_size( +1 )
 
+	@action(_('Zoom _Out'), 'gtk-zoom-out', '<Primary>minus') # T: Menu item
 	def zoom_out(self):
 		'''Menu action to decrease the font size'''
 		self._zoom_increase_decrease_font_size( -1 )
@@ -5999,6 +5972,7 @@ class PageView(gtk.VBox):
 
 		self.text_style.write()
 
+	@action(_('_Normal Size'), 'gtk-zoom-100', '<Primary>0') # T: Menu item to reset zoom
 	def zoom_reset(self):
 		'''Menu action to reset the font size'''
 		if not self.text_style['TextView']['font']:
@@ -6618,11 +6592,7 @@ class FindBar(FindWidget, gtk.HBox):
 			item.connect('toggled',
 				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
 			menu.append(item)
-			if ui_environment['platform'] == 'maemo':
-				# maemo UI convention: up arrow button with no label
-				button = MenuButton('', menu)
-			else:
-				button = MenuButton(_('Options'), menu) # T: Options button
+			button = MenuButton(_('Options'), menu) # T: Options button
 			self.pack_start(button, False)
 		else:
 			self.pack_start(self.case_option_checkbox, False)

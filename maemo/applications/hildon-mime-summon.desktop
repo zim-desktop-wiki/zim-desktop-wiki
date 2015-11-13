@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Exec=hildon-mime-summon
-TryExec=hildon-mime-summon
-Icon=file-manager
-NoDisplay=true
-X-Zim-AppType=file_browser
-Name=hildon-mime-summon (maemo)

@@ -124,10 +124,6 @@ import locale
 logger = logging.getLogger('zim')
 
 
-#: This parameter can be set by ./setup.py, can be e.g. "maemo"
-PLATFORM = None
-
-
 ########################################################################
 
 ## Note: all init here must happen before importing any other zim

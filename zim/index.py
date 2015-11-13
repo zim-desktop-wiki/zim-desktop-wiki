@@ -80,7 +80,7 @@ See the "tasklist" plugin for an example.
 # the private one with a db commit. This is done to minimize the number
 # of commits per action. SQLite is optimized for low number of commits
 # and doing many of them will hurt performance, especially on systems
-# with a slow harddisk (e.g. the flash drive in a maemo system).
+# with a slow harddisk.
 
 
 from __future__ import with_statement

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the Gtk user interface for zim.
 The main widgets and dialogs are separated out in sub-modules.
@@ -29,6 +29,8 @@ from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback, SignalHandler
+from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
+	gtk_accelerator_preparse, gtk_accelerator_preparse_list
 from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook
 from zim.stores import encode_filename
 from zim.index import LINK_DIR_BACKWARD
@@ -37,7 +39,6 @@ from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
 from zim.history import History, HistoryPath
 from zim.templates import list_templates, get_template
-from zim.actions import gtk_accelerator_preparse, gtk_accelerator_preparse_list
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
@@ -59,8 +60,7 @@ and gtk.pygtk_version >= (2, 10):
 	gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
 
 
-#: Menu actions
-ui_actions = (
+MENU_ACTIONS = (
 	('file_menu', None, _('_File')), # T: Menu title
 	('edit_menu', None, _('_Edit')), # T: Menu title
 	('view_menu', None, _('_View')), # T: Menu title
@@ -72,101 +72,8 @@ ui_actions = (
 	('help_menu', None, _('_Help')), # T: Menu title
 	('pathbar_menu', None, _('P_athbar')), # T: Menu title
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
-
-	# name, stock id, label, accelerator, tooltip, readonly
-	('new_page',  'gtk-new', _('_New Page...'), '<Primary>N', '', False), # T: Menu item
-	('new_sub_page',  'gtk-new', _('New S_ub Page...'), '<shift><Primary>N', '', False), # T: Menu item
-	('open_notebook', 'gtk-open', _('_Open Another Notebook...'), '<Primary>O', '', True), # T: Menu item
-	('open_new_window', None, _('Open in New _Window'), '', '', True), # T: Menu item
-	('import_page', None, _('_Import Page...'), '', '', False), # T: Menu item
-	('save_page', 'gtk-save', _('_Save'), '<Primary>S', '', False), # T: Menu item
-	('save_copy', None, _('Save A _Copy...'), '', '', True), # T: Menu item
-	('show_export',  None, _('E_xport...'), '', '', True), # T: Menu item
-	('email_page', None, _('_Send To...'), '', '', True), # T: Menu item
-	('move_page', None, _('_Move Page...'), '', '', False), # T: Menu item
-	('rename_page', None, _('_Rename Page...'), 'F2', '', False), # T: Menu item
-	('delete_page', None, _('_Delete Page'), '', '', False), # T: Menu item
-	('show_properties',  'gtk-properties', _('Proper_ties'), '', '', True), # T: Menu item
-	('close',  'gtk-close', _('_Close'), '<Primary>W', '', True), # T: Menu item
-	('quit',  'gtk-quit', _('_Quit'), '<Primary>Q', '', True), # T: Menu item
-	('show_search',  'gtk-find', _('_Search...'), '<shift><Primary>F', '', True), # T: Menu item
-	('show_search_backlinks', None, _('Search _Backlinks...'), '', '', True), # T: Menu item
-	('show_recent_changes', None, _('Recent Changes...'), '', '', True), # T: Menu item
-	('copy_location', None, _('Copy _Location'), '<shift><Primary>L', '', True), # T: Menu item
-	('show_templateeditor',  None, _('_Templates'), '', '', True), # T: Menu item
-	('show_preferences',  'gtk-preferences', _('Pr_eferences'), '', '', True), # T: Menu item
-	('reload_page',  'gtk-refresh', _('_Reload'), '<Primary>R', '', True), # T: Menu item
-	('open_attachments_folder', 'gtk-open', _('Open Attachments _Folder'), '', '', True), # T: Menu item
-	('open_notebook_folder', 'gtk-open', _('Open _Notebook Folder'), '', '', True), # T: Menu item
-	('open_document_root', 'gtk-open', _('Open _Document Root'), '', '', True), # T: Menu item
-	('open_document_folder', 'gtk-open', _('Open _Document Folder'), '', '', True), # T: Menu item
-	('attach_file', 'zim-attachment', _('Attach _File'), '', _('Attach external file'), False), # T: Menu item
-	('edit_page_source', 'gtk-edit', _('Edit _Source'), '', '', False), # T: Menu item
-	('show_server_gui', None, _('Start _Web Server'), '', '', True), # T: Menu item
-	('reload_index', None, _('Update Index'), '', '', False), # T: Menu item
-	('manage_custom_tools', 'gtk-preferences', _('Custom _Tools'), '', '', True), # T: Menu item
-	('open_page_back', 'gtk-go-back', _('_Back'), '<alt>Left', _('Go page back'), True), # T: Menu item
-	('open_page_forward', 'gtk-go-forward', _('_Forward'), '<alt>Right', _('Go page forward'), True), # T: Menu item
-	('open_page_parent', 'gtk-go-up', _('_Parent'), '<alt>Up', _('Go to parent page'), True), # T: Menu item
-	('open_page_child', 'gtk-go-down', _('_Child'), '<alt>Down', _('Go to child page'), True), # T: Menu item
-	('open_page_previous', None, _('_Previous in index'), '<alt>Page_Up', _('Go to previous page'), True), # T: Menu item
-	('open_page_next', None, _('_Next in index'), '<alt>Page_Down', _('Go to next page'), True), # T: Menu item
-	('open_page_home', 'gtk-home', _('_Home'), '<alt>Home', _('Go home'), True), # T: Menu item
-	('open_page', 'gtk-jump-to', _('_Jump To...'), '<Primary>J', '', True), # T: Menu item
-	('show_help', 'gtk-help', _('_Contents'), 'F1', '', True), # T: Menu item
-	('show_help_faq', None, _('_FAQ'), '', '', True), # T: Menu item
-	('show_help_keys', None, _('_Keybindings'), '', '', True), # T: Menu item
-	('show_help_bugs', None, _('_Bugs'), '', '', True), # T: Menu item
-	('show_about', 'gtk-about', _('_About'), '', '', True), # T: Menu item
 )
 
-if os.name == 'nt':
-	# THe XF86 keys are mapped wrongly on windows, see bug lp:1277929
-	ui_actions = ui_actions + (
-		('open_page_back_alt1', None, '', '', '', True),
-		('open_page_forward_alt1', None, '', '', '', True),
-	)
-else:
-	ui_actions = ui_actions + (
-		('open_page_back_alt1', None, '', 'XF86Back', '', True),
-		('open_page_forward_alt1', None, '', 'XF86Forward', '', True),
-	)
-
-#: More menu actions
-ui_actions_window = (
-	# name, stock id, label, accelerator, tooltip, readonly
-	('show_all_panes', None, _('_All Panes'), '<Primary>F9', _('Show All Panes'), True), # T: Menu item
-)
-
-#: Menu actions that toggle between two states
-ui_toggle_actions_window = (
-	# name, stock id, label, accelerator, tooltip, initial state, readonly
-	('toggle_toolbar', None, _('_Toolbar'),  '', '', True, True), # T: Menu item
-	('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
-	('toggle_panes',  'gtk-index', _('_Side Panes'), 'F9', _('Show Side Panes'), True, True), # T: Menu item # FIXME review text
-	('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
-	('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
-)
-
-if ui_environment['platform'] == 'maemo':
-	ui_toggle_actions_window = (
-		# name, stock id, label, accelerator, tooltip, initial state, readonly
-		('toggle_toolbar', None, _('_Toolbar'),  '<Primary>M', '', True, True), # T: Menu item
-		('toggle_statusbar', None, _('_Statusbar'), None, '', True, True), # T: Menu item
-		('toggle_panes',  'gtk-index', _('_Side Panes'), 'F9', _('Show Side Panes'), True, True), # T: Menu item # FIXME review text
-		('toggle_fullscreen',  'gtk-fullscreen', _('_Fullscreen'), 'F11', '', False, True), # T: Menu item
-		('toggle_readonly', 'gtk-edit', _('Notebook _Editable'), '', _('Toggle notebook editable'), True, True), # T: menu item
-	)
-
-#: Menu items with a radio checkbox
-ui_pathbar_radio_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('set_pathbar_none', None, _('_None'),  None, None, 0), # T: Menu item
-	('set_pathbar_recent', None, _('_Recent pages'), None, None, 1), # T: Menu item
-	('set_pathbar_recent_changed', None, _('Recently _Changed pages'), None, None, 1), # T: Menu item
-	('set_pathbar_history', None, _('_History'),  None, None, 2), # T: Menu item
-	('set_pathbar_path', None, _('_Page Hierarchy'), None, None, 3), # T: Menu item
-)
 
 PATHBAR_NONE = 'none' #: Constant for no pathbar
 PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
@@ -174,22 +81,6 @@ PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathb
 PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
 PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
 PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
-
-#: Menu items for the context menu of the toolbar
-ui_toolbar_style_radio_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('set_toolbar_icons_and_text', None, _('Icons _And Text'), None, None, 0), # T: Menu item
-	('set_toolbar_icons_only', None, _('_Icons Only'), None, None, 1), # T: Menu item
-	('set_toolbar_text_only', None, _('_Text Only'), None, None, 2), # T: Menu item
-)
-
-#: Menu items for the context menu of the toolbar
-ui_toolbar_size_radio_actions = (
-	# name, stock id, label, accelerator, tooltip
-	('set_toolbar_icons_large', None, _('_Large Icons'), None, None, 0), # T: Menu item
-	('set_toolbar_icons_small', None, _('_Small Icons'), None, None, 1), # T: Menu item
-	('set_toolbar_icons_tiny', None, _('_Tiny Icons'), None, None, 2), # T: Menu item
-)
 
 TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
 TOOLBAR_ICONS_ONLY = 'icons_only'
@@ -200,6 +91,7 @@ TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
 PRIMARY_MODIFIER = gtk_accelerator_preparse('<primary>', force=True)
+
 
 #: Preferences for the user interface
 ui_preferences = (
@@ -215,16 +107,6 @@ ui_preferences = (
 	('always_use_last_cursor_pos', 'bool', 'Interface', _('Always use last cursor position when opening a page'), True),
 		# T: Option in the preferences dialog
 )
-
-if ui_environment['platform'] == 'maemo':
-	# Maemo specific settings
-	ui_preferences = (
-		# key, type, category, label, default
-		('tearoff_menus', 'bool', None, None, False),
-			# Maemo can't have tearoff_menus
-		('toggle_on_ctrlspace', 'bool', None, None, True),
-			# There is no ALT key on maemo devices
-	)
 
 
 
@@ -344,8 +226,7 @@ class GtkInterface(gobject.GObject):
 	in combination with the background server process and the
 	L{tray icon plugin<zim.plugins.trayicon>}
 	@ivar history: the L{History} object
-	@ivar uimanager: the C{gtk.UIManager} (see the methods
-	L{add_actions()} and L{add_ui()} for wrappers)
+	@ivar uimanager: the C{gtk.UIManager}
 	@ivar preferences_register: a L{ConfigDict} with preferences to show
 	in the preferences dialog, see L{register_preferences()} to add
 	to more preferences
@@ -447,22 +328,20 @@ class GtkInterface(gobject.GObject):
 		# Init UI
 		self._mainwindow = MainWindow(self, self.preferences, fullscreen, geometry)
 
-		self.add_actions(ui_actions, self)
-		self.add_actions(ui_actions_window, self._mainwindow)
-		self.add_toggle_actions(ui_toggle_actions_window, self._mainwindow)
-		self.add_radio_actions(ui_pathbar_radio_actions,
-								self._mainwindow, 'do_set_pathbar')
-		self.add_radio_actions(ui_toolbar_style_radio_actions,
-								self._mainwindow, 'do_set_toolbar_style')
-		self.add_radio_actions(ui_toolbar_size_radio_actions,
-								self._mainwindow, 'do_set_toolbar_size')
+		## add actions
+		group = get_gtk_actiongroup(self)
+		group.add_actions(MENU_ACTIONS)
+		self.uimanager.insert_action_group(group, 0)
 
-		if ui_environment['platform'] == 'maemo':
-			# Customized menubar for maemo, specific for maemo version
-			fname = 'menubar-' + ui_environment['maemo_version'] + '.xml'
-		else:
-			fname = 'menubar.xml'
-		self.add_ui(data_file(fname).read(), self)
+		group = get_gtk_actiongroup(self._mainwindow)
+		self.uimanager.insert_action_group(group, 0)
+
+		group = get_gtk_actiongroup(self._mainwindow.pageview)
+		self.uimanager.insert_action_group(group, 0)
+		##
+
+		fname = 'menubar.xml'
+		self.uimanager.add_ui_from_string(data_file(fname).read())
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
@@ -489,10 +368,15 @@ class GtkInterface(gobject.GObject):
 			self.uistate = SectionedConfigDict()
 
 		def move_away(o, path):
-			if path == self.page or self.page.ischild(path):
-				self.open_page_back() \
-				or self.open_page_parent \
-				or self.open_page_home
+			actions = [
+				self.open_page_back,
+				self.open_page_parent,
+				self.open_page_home
+			]
+			while actions \
+			and path == self.page or self.page.ischild(path):
+				action = actions.pop(0)
+				action()
 
 		def follow(o, path, newpath, update_links):
 			if self.page == path:
@@ -673,7 +557,7 @@ class GtkInterface(gobject.GObject):
 		if geometry:
 			self._mainwindow.parse_geometry(geometry)
 		elif fullscreen:
-			self._mainwindow.toggle_fullscreen(show=True)
+			self._mainwindow.toggle_fullscreen(True)
 
 	def toggle_present(self):
 		'''Present main window if it is not on top, but hide if it is.
@@ -694,6 +578,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		self._mainwindow.hide()
 
+	@action(_('_Close'), 'gtk-close', '<Primary>W', readonly=True) # T: Menu item
 	def close(self):
 		'''Menu action for close. Will hide when L{hideonclose} is set,
 		calls L{quit()} otherwise.
@@ -703,6 +588,7 @@ class GtkInterface(gobject.GObject):
 		else:
 			self.quit()
 
+	@action(_('_Quit'), 'gtk-quit', '<Primary>Q') # T: Menu item
 	def quit(self):
 		'''Menu action for quit.
 		@emits: quit
@@ -725,218 +611,6 @@ class GtkInterface(gobject.GObject):
 			gtk.main_quit()
 
 		return True
-
-	def add_actions(self, actions, handler, methodname=None):
-		'''Add extra menu actions to the interface which can be used
-		in the menubar and toolbar.
-
-		Wrapper for C{gtk.ActionGroup.add_actions()}. Adding actions
-		will not show them in the interface immediately. To achieve
-		that you first need to load some layout definition using
-		L{add_ui()}.
-
-		This method assumes the actions are implemented by a "handler"
-		object. The actions are store in the C{gtk.ActionGroup} in
-		the "actiongroup" attribute of this object. This attribute
-		is created and attached to the uimanager if it does not yet
-		exist.
-
-		@param actions: a list of action definitions. Actions are
-		defined as a 6-tuple of :
-		  - the name of the action
-		  - a gtk stock id for the icon, or C{None}
-		  - the label
-		  - the accelerator key binding
-		  - a tooltip message
-		  - a boolean, if C{True} this action is can be used in a
-		    read-only interface
-
-		Actions that define (sub-)menus are a special case, they are
-		defined as a 3-tuple of the name, stock id and a lable. In this
-		case the name must end with "_menu"
-
-		See C{gtk.ActionGroup} documentation for more details.
-
-		@param handler: object that implements these actions. Each
-		action is mapped to an object method of the same name.
-		@param methodname: name for a method on the handler object which
-		will handle all actions. This overrules the default mapping of
-		actions by action name. Used to implement groups of actions
-		with a single handler method.
-		'''
-		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
-		group = self.init_actiongroup(handler)
-		group.add_actions(
-			gtk_accelerator_preparse_list(a[0:5] for a in actions))
-		self._connect_actions(actions, group, handler)
-
-	def add_toggle_actions(self, actions, handler):
-		'''Add extra menu actions to the interface which can be used
-		in the menubar and toolbar.
-
-		Wrapper for C{gtk.ActionGroup.add_toggle_actions()}.
-
-		Differs from L{add_actions()} in the way actions are mapped to
-		object methods, the name is prefixed with "do_". The reason for
-		this is that we need some code to keep the state of toolbar
-		and menubar widgets in sync with the internal state, while at
-		the same time we want to be able to call the standard method
-		name from other interface. So e.g. an action "foo" will trigger
-		a method "C{do_foo()}" which should implement the logic. This
-		allows also to have a public method "C{foo()}" which calls
-		"C{action.activate()}" whic in turn triggers "C{do_foo()}"
-		again. See L{zim.plugins.PluginClass.toggle_action()} for a
-		convenience method to help implementing this.
-
-		@param actions: list of action definitions. Actions are defined
-		defined as a 7-tuple of :
-		  - the name of the action
-		  - a gtk stock id for the icon, or C{None}
-		  - the label
-		  - the accelerator key binding
-		  - a tooltip message
-		  - initial state C{True} or C{False}
-		  - a boolean, if C{True} this action is can be used in a
-		    read-only interface
-
-		See C{gtk.ActionGroup} documentation for more details.
-
-		@param handler: object that implements these actions.
-		'''
-		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tupels'
-		group = self.init_actiongroup(handler)
-		group.add_toggle_actions(
-			gtk_accelerator_preparse_list(a[0:5]+(None, a[5]) for a in actions))
-			# insert 'None' for callback
-		self._connect_actions(actions, group, handler, is_toggle=True)
-
-	def add_radio_actions(self, actions, handler, methodname):
-		'''Add extra menu actions to the interface which can be used
-		in the menubar and toolbar.
-
-		Wrapper for C{gtk.ActionGroup.add_radio_actions()}, defining
-		a single group of radio actions. Of this group only one item
-		can be active at the time.
-
-		@param actions: a list of action definitions. Actions are
-		defined as a 6-tuple of :
-		  - the name of the action
-		  - a gtk stock id for the icon, or C{None}
-		  - the label
-		  - the accelerator key binding
-		  - a tooltip message
-		  - the value to set on the radio
-
-		See C{gtk.ActionGroup} documentation for more details.
-
-		@param handler: object that implements these actions
-		@param methodname: name for a method on the handler object which
-		will handle all actions, this is mandatory for radio actions,
-		they always have a single handler for the whole group. The
-		handler gets the name of the selected radio as the first
-		argument.
-		'''
-		# A bit different from the other two methods since radioactions
-		# come in mutual exclusive groups. Only need to connect to one
-		# action to get signals from whole group. But need to pass on
-		# the name of the active action
-		assert isinstance(actions[0], tuple), 'BUG: actions should be list of tuples'
-		assert hasattr(handler, methodname), 'No such method %s' % methodname
-		group = self.init_actiongroup(handler)
-		group.add_radio_actions(
-			gtk_accelerator_preparse_list(actions))
-		method = getattr(handler, methodname)
-		action = group.get_action(actions[0][0])
-		action.connect('changed', self._radio_action_handler, method)
-
-	def init_actiongroup(self, handler):
-		'''Initializes the actiongroup for a handler object if it does
-		not already exist. The actiongroup is set in the "actiongroup"
-		attribute of the object and inserted in the ui manager.
-		@param handler: the handler object
-		@returns: the actiongroup object
-		'''
-		if not hasattr(handler, 'actiongroup') or handler.actiongroup is None:
-			name = handler.__class__.__name__
-			handler.actiongroup = gtk.ActionGroup(name)
-			self.uimanager.insert_action_group(handler.actiongroup, 0)
-		return handler.actiongroup
-
-	def remove_actiongroup(self, handler):
-		'''Remove the actiongroup for a handler object and remove all
-		actions from the ui manager.
-		@param handler: the handler object
-		'''
-		if hasattr(handler, 'actiongroup') and handler.actiongroup:
-			self.uimanager.remove_action_group(handler.actiongroup)
-			handler.actiongroup = None
-
-	def _action_handler(self, action, method, *arg):
-		name = action.get_name()
-		logger.debug('Action: %s', name)
-		try:
-			method(*arg)
-		except Exception, error:
-			ErrorDialog(self._mainwindow, error).run()
-			# error dialog also does logging automatically
-
-	def _radio_action_handler(self, object, action, method):
-		# radio action object is not active radio action
-		self._action_handler(action, method, action.get_name())
-
-	def _connect_actions(self, actions, group, handler, is_toggle=False):
-		for name, readonly in [(a[0], a[-1]) for a in actions if not a[0].endswith('_menu')]:
-			action = group.get_action(name)
-			action.zim_readonly = readonly
-			if re.search('_alt\d$', name): # alternative key bindings
-				name, _ = name.rsplit('_', 1)
-
-			if is_toggle:
-				name = 'do_' + name
-
-			assert hasattr(handler, name), 'No method defined for action %s' % name
-			method = getattr(handler, name)
-			action.connect('activate', self._action_handler, method)
-			if self.readonly and not action.zim_readonly:
-				action.set_sensitive(False)
-
-	def add_ui(self, xml, handler):
-		'''Add a definition of the layout of the menubar and/or toolbar
-		adding new menu items.
-
-		Wrapper for C{gtk.UIManager.add_ui_from_string()}, see
-		documentation there for more details on XML spec.
-
-		@param xml: layout definition as string in XML format
-		@param handler: handler object, this object is used to keep
-		track of ui ID's so L{remove_ui()} can remove all ui elements
-		of this handler at once
-		@returns: the ui ID
-		'''
-		id = self.uimanager.add_ui_from_string(xml)
-		if hasattr(handler, '_ui_merge_ids') and handler._ui_merge_ids:
-			handler._ui_merge_ids += (id,)
-		else:
-			handler._ui_merge_ids = (id,)
-		return id
-
-	def remove_ui(self, handler, id=None):
-		'''Remove the ui definition(s) for a specific handler.
-
-		@param handler: handler object
-		@param id: if a ui ID is given, only that part is removed, else
-		all ui definitions for this handler object are removed
-		'''
-		if id:
-			self.uimanager.remove_ui(id)
-			if hasattr(handler, '_ui_merge_ids'):
-				handler._ui_merge_ids = \
-					filter(lambda i: i != id, handler._ui_merge_ids)
-		else:
-			if hasattr(handler, '_ui_merge_ids'):
-				for id in handler._ui_merge_ids:
-					self.uimanager.remove_ui(id)
-				handler._ui_merge_ids = None
 
 	def populate_popup(self, name, menu, path_context=None):
 		'''Populate a popup menu from a popup defined in the uimanager
@@ -1135,6 +809,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		return self._path_context or self.page
 
+	@action(_('_Open Another Notebook...'), 'gtk-open', '<Primary>O') # T: Menu item
 	def open_notebook(self, notebook=None):
 		'''Open a new notebook. If this is the first notebook the
 		notebook is opened in this application instance. Otherwise we
@@ -1178,6 +853,7 @@ class GtkInterface(gobject.GObject):
 				else:
 					get_zim_application('--gui', uri).spawn()
 
+	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
@@ -1285,6 +961,10 @@ class GtkInterface(gobject.GObject):
 						DelayedCallback(2000, save_uistate_cb) # 2 sec
 				self.uistate._delayed_async_write()
 
+	@action(
+		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
+		accelerator='<alt>Left', alt_accelerator=('XF86Back' if os.name != 'nt' else None)
+	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
 		@returns: C{True} if succesful
@@ -1292,10 +972,11 @@ class GtkInterface(gobject.GObject):
 		record = self.history.get_previous()
 		if not record is None:
 			self.open_page(record)
-			return True
-		else:
-			return False
 
+	@action(
+		_('_Forward'), 'gtk-go-forward', tooltip=_('Go page forward'), # T: Menu item
+		accelerator='<alt>Right', alt_accelerator=('XF86Forward' if os.name != 'nt' else None)
+	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
 		@returns: C{True} if succesful
@@ -1303,10 +984,8 @@ class GtkInterface(gobject.GObject):
 		record = self.history.get_next()
 		if not record is None:
 			self.open_page(record)
-			return True
-		else:
-			return False
 
+	@action(_('_Parent'), 'gtk-go-up', '<alt>Up', tooltip=_('Go to parent page')) # T: Menu item
 	def open_page_parent(self):
 		'''Menu action to open the parent page
 		@returns: C{True} if succesful
@@ -1314,10 +993,8 @@ class GtkInterface(gobject.GObject):
 		namespace = self.page.namespace
 		if namespace:
 			self.open_page(Path(namespace))
-			return True
-		else:
-			return False
 
+	@action(_('_Child'), 'gtk-go-down', '<alt>Down', tooltip=_('Go to child page')) # T: Menu item
 	def open_page_child(self):
 		'''Menu action to open a child page. Either takes the last child
 		from the history, or the first child.
@@ -1327,7 +1004,6 @@ class GtkInterface(gobject.GObject):
 			# Force refresh "haschildren" ...
 		if not path.haschildren:
 			print 'HASCHILDREN still False'
-			return False
 
 		record = self.history.get_child(path)
 		if not record is None:
@@ -1336,8 +1012,8 @@ class GtkInterface(gobject.GObject):
 			pages = list(self.notebook.index.list_pages(path))
 			if pages:
 				self.open_page(pages[0])
-		return True
 
+	@action(_('_Previous in index'), accelerator='<alt>Page_Up', tooltip=_('Go to previous page')) # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
 		@returns: C{True} if succesful
@@ -1345,10 +1021,8 @@ class GtkInterface(gobject.GObject):
 		path = self.notebook.index.get_previous(self.page)
 		if not path is None:
 			self.open_page(path)
-			return True
-		else:
-			return False
 
+	@action(_('_Next in index'), accelerator='<alt>Page_Down', tooltip=_('Go to next page')) # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
 		@returns: C{True} if succesful
@@ -1356,14 +1030,13 @@ class GtkInterface(gobject.GObject):
 		path = self.notebook.index.get_next(self.page)
 		if not path is None:
 			self.open_page(path)
-			return True
-		else:
-			return False
 
+	@action(_('_Home'), 'gtk-home', '<alt>Home', tooltip=_('Go home')) # T: Menu item
 	def open_page_home(self):
 		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
 
+	@action(_('_New Page...'), 'gtk-new', '<Primary>N', readonly=False) # T: Menu item
 	def new_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog},
 
@@ -1374,6 +1047,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		NewPageDialog(self._mainwindow, path=self._get_path_context()).run()
 
+	@action(_('New S_ub Page...'), 'gtk-new', '<shift><Primary>N', readonly=False) # T: Menu item
 	def new_sub_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog}.
 		Like L{new_page()} but forces a child page of the current
@@ -1470,6 +1144,7 @@ class GtkInterface(gobject.GObject):
 		page.parse('wiki', text, append=True) # FIXME format hard coded
 		self.notebook.store_page(page)
 
+	@action(_('Open in New _Window')) # T: Menu item
 	def open_new_window(self, page=None):
 		'''Menu action to open a page in a secondary L{PageWindow}
 		@param page: the page L{Path}, deafults to current selected
@@ -1530,6 +1205,7 @@ class GtkInterface(gobject.GObject):
 		else:
 			return True
 
+	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
 	def save_page(self):
 		'''Menu action to save the current page.
 
@@ -1588,15 +1264,18 @@ class GtkInterface(gobject.GObject):
 		else:
 			return True
 
+	@action(_('Save A _Copy...')) # T: Menu item
 	def save_copy(self):
 		'''Menu action to show a L{SaveCopyDialog}'''
 		SaveCopyDialog(self).run()
 
+	@action(_('E_xport...')) # T: Menu item
 	def show_export(self):
 		'''Menu action to show an L{ExportDialog}'''
 		from zim.gui.exportdialog import ExportDialog
 		ExportDialog(self).run()
 
+	@action(_('_Send To...')) # T: Menu item
 	def email_page(self):
 		'''Menu action to open an email containing the current page.
 		Encodes the current page as "mailto:" URI and calls L{open_url()}
@@ -1609,10 +1288,12 @@ class GtkInterface(gobject.GObject):
 		)
 		self.open_url(url)
 
+	@action(_('_Import Page...'), readonly=False) # T: Menu item
 	def import_page(self):
 		'''Menu action to show an L{ImportPageDialog}'''
 		ImportPageDialog(self).run()
 
+	@action(_('_Move Page...'), readonly=False) # T: Menu item
 	def move_page(self, path=None):
 		'''Menu action to show the L{MovePageDialog}
 		@param path: a L{Path} object, or C{None} to move to current
@@ -1635,6 +1316,7 @@ class GtkInterface(gobject.GObject):
 			update_links
 		)
 
+	@action(_('_Rename Page...'), accelerator='F2', readonly=False) # T: Menu item
 	def rename_page(self, path=None):
 		'''Menu action to show the L{RenamePageDialog}
 		@param path: a L{Path} object, or C{None} for the current
@@ -1687,6 +1369,7 @@ class GtkInterface(gobject.GObject):
 		else:
 			return True
 
+	@action(_('_Delete Page'), readonly=False) # T: Menu item
 	def delete_page(self, path=None):
 		'''Delete a page by either trashing it, or permanent deletion
 		after confirmation of a L{DeletePageDialog}. When trashing the
@@ -1713,11 +1396,13 @@ class GtkInterface(gobject.GObject):
 		except TrashCancelledError, error:
 			pass
 
+	@action(_('Proper_ties'), 'gtk-properties') # T: Menu item
 	def show_properties(self):
 		'''Menu action to show the L{PropertiesDialog}'''
 		from zim.gui.propertiesdialog import PropertiesDialog
 		PropertiesDialog(self).run()
 
+	@action(_('_Search...'), 'gtk-find', '<shift><Primary>F') # T: Menu item
 	def show_search(self, query=None):
 		'''Menu action to show the L{SearchDialog}
 		@param query: the search query to show
@@ -1732,6 +1417,7 @@ class GtkInterface(gobject.GObject):
 		if query is not None:
 			dialog.search(query)
 
+	@action(_('Search _Backlinks...')) # T: Menu item
 	def show_search_backlinks(self):
 		'''Menu action to show the L{SearchDialog} with a query for
 		backlinks
@@ -1739,21 +1425,25 @@ class GtkInterface(gobject.GObject):
 		query = 'LinksTo: "%s"' % self.page.name
 		self.show_search(query)
 
+	@action(_('Recent Changes...')) # T: Menu item
 	def show_recent_changes(self):
 		'''Menu action to show the L{RecentChangesDialog}'''
 		from .recentchangesdialog import RecentChangesDialog
 		dialog = RecentChangesDialog.unique(self, self)
 		dialog.present()
 
+	@action(_('Copy _Location'), accelerator='<shift><Primary>L') # T: Menu item
 	def copy_location(self):
 		'''Menu action to copy the current page name to the clipboard'''
 		Clipboard.set_pagelink(self.notebook, self.page)
 
+	@action(_('_Templates')) # T: Menu item
 	def show_templateeditor(self):
 		'''Menu action to show the L{TemplateEditorDialog}'''
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		TemplateEditorDialog(self).run()
 
+	@action(_('Pr_eferences'), 'gtk-preferences') # T: Menu item
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
@@ -1763,6 +1453,7 @@ class GtkInterface(gobject.GObject):
 		self.uimanager.set_add_tearoffs(
 			self.preferences['GtkInterface']['tearoff_menus'] )
 
+	@action(_('_Reload'), 'gtk-refresh', '<Primary>R') # T: Menu item
 	def reload_page(self):
 		'''Menu action to reload the current page. Will first try
 		to save any unsaved changes, then reload the page from disk.
@@ -1771,6 +1462,7 @@ class GtkInterface(gobject.GObject):
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
 
+	@action(_('Attach _File'), 'zim-attachment', tooltip=_('Attach external file'), readonly=False) # T: Menu item
 	def attach_file(self, path=None):
 		'''Menu action to show the L{AttachFileDialog}
 		@param path: a L{Path} object, or C{None} for the current
@@ -1942,6 +1634,7 @@ class GtkInterface(gobject.GObject):
 		except NotImplementedError:
 			entry.spawn((uri,)) # E.g. webbrowser module
 
+	@action(_('Open Attachments _Folder'), 'gtk-open') # T: Menu item
 	def open_attachments_folder(self):
 		'''Menu action to open the attachment folder for the current page'''
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1952,6 +1645,7 @@ class GtkInterface(gobject.GObject):
 		else:
 			self.open_dir(dir)
 
+	@action(_('Open _Notebook Folder'), 'gtk-open') # T: Menu item
 	def open_notebook_folder(self):
 		'''Menu action to open the notebook folder'''
 		if self.notebook.dir:
@@ -1961,12 +1655,14 @@ class GtkInterface(gobject.GObject):
 		else:
 			assert False, 'BUG: notebook has neither dir or file'
 
+	@action(_('Open _Document Root'), 'gtk-open') # T: Menu item
 	def open_document_root(self):
 		'''Menu action to open the document root folder'''
 		dir = self.notebook.document_root
 		if dir:
 			self.open_dir(dir)
 
+	@action(_('Open _Document Folder'), 'gtk-open') # T: Menu item
 	def open_document_folder(self):
 		'''Menu action to open a sub-foldel of the document root folder
 		for the current page
@@ -1979,6 +1675,7 @@ class GtkInterface(gobject.GObject):
 		dir = Dir([dir, dirpath])
 		self.open_dir(dir)
 
+	@action(_('Edit _Source'), 'gtk-edit', readonly=False) # T: Menu item
 	def edit_page_source(self, page=None):
 		'''Menu action to edit the page source in an external editor.
 		See L{edit_file} for details.
@@ -2071,6 +1768,7 @@ class GtkInterface(gobject.GObject):
 
 		dialog.run()
 
+	@action(_('Start _Web Server')) # T: Menu item
 	def show_server_gui(self):
 		'''Menu action to show the server interface from
 		L{zim.gui.server}. Spawns a new zim instance for the server.
@@ -2078,6 +1776,7 @@ class GtkInterface(gobject.GObject):
 		# TODO instead of spawn, include in this process
 		get_zim_application('--server', '--gui', self.notebook.uri).spawn()
 
+	@action(_('Update Index'), readonly=False) # T: Menu item
 	def reload_index(self, flush=False):
 		'''Check the notebook for changes and update the index.
 		Shows an progressbar while updateing.
@@ -2100,6 +1799,7 @@ class GtkInterface(gobject.GObject):
 		self.emit('end-index-update')
 		return not dialog.cancelled
 
+	@action(_('Custom _Tools'), 'gtk-preferences') # T: Menu item
 	def manage_custom_tools(self):
 		'''Menu action to show the L{CustomToolManagerDialog}'''
 		from zim.gui.customtools import CustomToolManagerDialog
@@ -2212,6 +1912,7 @@ class GtkInterface(gobject.GObject):
 		except Exception, error:
 			ErrorDialog(self, error).run()
 
+	@action(_('_Contents'), 'gtk-help', 'F1') # T: Menu item
 	def show_help(self, page=None):
 		'''Menu action to show the user manual. Will start a new zim
 		instance showing the notebook with the manual.
@@ -2222,18 +1923,22 @@ class GtkInterface(gobject.GObject):
 		else:
 			get_zim_application('--manual').spawn()
 
+	@action(_('_FAQ')) # T: Menu item
 	def show_help_faq(self):
 		'''Menu action to show the 'FAQ' page in the user manual'''
 		self.show_help('FAQ')
 
+	@action(_('_Keybindings')) # T: Menu item
 	def show_help_keys(self):
 		'''Menu action to show the 'Key Bindings' page in the user manual'''
 		self.show_help('Help:Key Bindings')
 
+	@action(_('_Bugs')) # T: Menu item
 	def show_help_bugs(self):
 		'''Menu action to show the 'Bugs' page in the user manual'''
 		self.show_help('Bugs')
 
+	@action(_('_About'), 'gtk-about') # T: Menu item
 	def show_about(self):
 		'''Menu action to show the "about" dialog'''
 		gtk.about_dialog_set_url_hook(lambda d, l: self.open_url(l))
@@ -2376,9 +2081,6 @@ class MainWindow(Window):
 		self.add_bar(hbox, BOTTOM)
 
 		self.statusbar = gtk.Statusbar()
-		if ui_environment['platform'] == 'maemo':
-			# Maemo windows aren't resizeable so it makes no sense to show the resize grip
-			self.statusbar.set_has_resize_grip(False)
 		self.statusbar.push(0, '<page>')
 		hbox.add(self.statusbar)
 
@@ -2462,7 +2164,7 @@ class MainWindow(Window):
 			self._set_widgets_visable()
 			if self.actiongroup:
 				# only do this after we initalize
-				self.toggle_fullscreen(show=self.isfullscreen)
+				self.toggle_fullscreen(self.isfullscreen)
 
 			if wasfullscreen:
 				# restore uistate
@@ -2538,17 +2240,12 @@ class MainWindow(Window):
 			logger.debug('No path in focus mainwindow')
 			return None
 
-	def toggle_menubar(self, show=None):
+	@toggle_action(_('Menubar'), init=True)
+	def toggle_menubar(self, show):
 		'''Menu action to toggle the visibility of the menu bar
 		@param show: when C{True} or C{False} force the visibility,
 		when C{None} toggle based on current state
 		'''
-		self.do_toggle_menubar(show=show)
-
-	def do_toggle_menubar(self, show=None):
-		if show is None:
-			show = not self.uistate['show_menubar']
-
 		if show:
 			self.menubar.set_no_show_all(False)
 			self.menubar.show()
@@ -2561,22 +2258,9 @@ class MainWindow(Window):
 		else:
 			self.uistate['show_menubar'] = show
 
-	def toggle_toolbar(self, show=None):
-		'''Menu action to toggle the visibility of the tool bar
-		@param show: when C{True} or C{False} force the visibility,
-		when C{None} toggle based on current state
-		'''
-		action = self.actiongroup.get_action('toggle_toolbar')
-		if show is None or show != action.get_active():
-			action.activate()
-		else:
-			self.do_toggle_toolbar(show=show)
-
-	def do_toggle_toolbar(self, show=None):
-		if show is None:
-			action = self.actiongroup.get_action('toggle_toolbar')
-			show = action.get_active()
-
+	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
+	def toggle_toolbar(self, show):
+		'''Menu action to toggle the visibility of the tool bar'''
 		if show:
 			self.toolbar.set_no_show_all(False)
 			self.toolbar.show()
@@ -2594,22 +2278,9 @@ class MainWindow(Window):
 		menu = self.ui.uimanager.get_widget('/toolbar_popup')
 		menu.popup(None, None, None, button, 0)
 
-	def toggle_statusbar(self, show=None):
-		'''Menu action to toggle the visibility of the status bar
-		@param show: when C{True} or C{False} force the visibility,
-		when C{None} toggle based on current state
-		'''
-		action = self.actiongroup.get_action('toggle_statusbar')
-		if show is None or show != action.get_active():
-			action.activate()
-		else:
-			self.do_toggle_statusbar(show=show)
-
-	def do_toggle_statusbar(self, show=None):
-		if show is None:
-			action = self.actiongroup.get_action('toggle_statusbar')
-			show = action.get_active()
-
+	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
+	def toggle_statusbar(self, show):
+		'''Menu action to toggle the visibility of the status bar'''
 		if show:
 			self.statusbar.set_no_show_all(False)
 			self.statusbar.show()
@@ -2622,22 +2293,9 @@ class MainWindow(Window):
 		else:
 			self.uistate['show_statusbar'] = show
 
-	def toggle_fullscreen(self, show=None):
-		'''Menu action to toggle the fullscreen state of the window.
-		@param show: when C{True} or C{False} force the state
-		when C{None} toggle based on current state
-		'''
-		action = self.actiongroup.get_action('toggle_fullscreen')
-		if show is None or show != action.get_active():
-			action.activate()
-		else:
-			self.do_toggle_fullscreen(show=show)
-
-	def do_toggle_fullscreen(self, show=None):
-		if show is None:
-			action = self.actiongroup.get_action('toggle_fullscreen')
-			show = action.get_active()
-
+	@toggle_action(_('_Fullscreen'), 'gtk-fullscreen', 'F11', init=False) # T: Menu item
+	def toggle_fullscreen(self, show):
+		'''Menu action to toggle the fullscreen state of the window'''
 		if show:
 			self.save_uistate()
 			self.fullscreen()
@@ -2655,23 +2313,12 @@ class MainWindow(Window):
 		if visible != action.get_active():
 			action.set_active(visible)
 
-	def toggle_panes(self, show=None):
+	@toggle_action(_('_Side Panes'), 'gtk-index', 'F9', tooltip=_('Show Side Panes'), init=True) # T: Menu item
+	def toggle_panes(self, show):
 		'''Menu action to toggle the visibility of the all panes
 		@param show: when C{True} or C{False} force the visibility,
 		when C{None} toggle based on current state
 		'''
-		action = self.actiongroup.get_action('toggle_panes')
-		if show is None or show != action.get_active():
-			action.activate()
-		else:
-			self.do_toggle_panes(show=show)
-		Window.save_uistate(self)
-
-	def do_toggle_panes(self, show=None):
-		if show is None:
-			action = self.actiongroup.get_action('toggle_panes')
-			show = action.get_active()
-
 		self._block_toggle_panes = True
 		Window.toggle_panes(self, show)
 		self._block_toggle_panes = False
@@ -2682,12 +2329,13 @@ class MainWindow(Window):
 			self.pageview.grab_focus()
 
 		self._sidepane_autoclose = False
+		Window.save_uistate(self)
 
 	#~ def do_set_focus(self, widget):
 		#~ if widget == self.pageview.view \
 		#~ and self._sidepane_autoclose:
 			#~ # Sidepane open and should close automatically
-			#~ self.toggle_panes(show=False)
+			#~ self.toggle_panes(False)
 		#~ return Window.do_set_focus(self, widget)
 
 	def toggle_sidepane_focus(self, *a):
@@ -2704,12 +2352,19 @@ class MainWindow(Window):
 			else:
 				self.pageview.grab_focus()
 				if self._sidepane_autoclose:
-					self.toggle_panes(show=False)
+					self.toggle_panes(False)
 		else:
 			# open the pane
-			self.toggle_panes(show=True)
+			self.toggle_panes(True)
 			self._sidepane_autoclose = True
 
+	@radio_action(
+		radio_option(PATHBAR_NONE, _('_None')),
+		radio_option(PATHBAR_RECENT, _('_Recent pages')),
+		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
+		radio_option(PATHBAR_HISTORY, _('_History')),
+		radio_option(PATHBAR_PATH, _('_Page Hierarchy'))
+	)
 	def set_pathbar(self, type):
 		'''Set the pathbar type
 
@@ -2720,26 +2375,21 @@ class MainWindow(Window):
 			- C{PATHBAR_HISTORY} to show the history
 			- C{PATHBAR_PATH} to show the namespace path
 		'''
-		self.actiongroup.get_action('set_pathbar_'+type).activate()
-
-	def do_set_pathbar(self, name):
-		style = name[12:] # len('set_pathbar_') == 12
-
-		if style == PATHBAR_NONE:
+		if type == PATHBAR_NONE:
 			self.pathbar_box.hide()
 			klass = None
-		elif style == PATHBAR_HISTORY:
+		elif type == PATHBAR_HISTORY:
 			klass = HistoryPathBar
-		elif style == PATHBAR_RECENT:
+		elif type == PATHBAR_RECENT:
 			klass = RecentPathBar
-		elif style == PATHBAR_RECENT_CHANGED:
+		elif type == PATHBAR_RECENT_CHANGED:
 			klass = RecentChangesPathBar
-		elif style == PATHBAR_PATH:
+		elif type == PATHBAR_PATH:
 			klass = NamespacePathBar
 		else:
-			assert False, 'BUG: Unknown pathbar type %s' % style
+			assert False, 'BUG: Unknown pathbar type %s' % type
 
-		if not style == PATHBAR_NONE:
+		if not type == PATHBAR_NONE:
 			if not (self.pathbar and self.pathbar.__class__ == klass):
 				for child in self.pathbar_box.get_children():
 					self.pathbar_box.remove(child)
@@ -2749,10 +2399,15 @@ class MainWindow(Window):
 			self.pathbar_box.show_all()
 
 		if self.isfullscreen:
-			self.uistate['pathbar_type_fullscreen'] = style
+			self.uistate['pathbar_type_fullscreen'] = type
 		else:
-			self.uistate['pathbar_type'] = style
+			self.uistate['pathbar_type'] = type
 
+	@radio_action(
+		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')), # T: Menu item
+		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')), # T: Menu item
+		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')), # T: Menu item
+	)
 	def set_toolbar_style(self, style):
 		'''Set the toolbar style
 		@param style: can be either:
@@ -2760,17 +2415,6 @@ class MainWindow(Window):
 			- C{TOOLBAR_ICONS_ONLY}
 			- C{TOOLBAR_TEXT_ONLY}
 		'''
-		assert style in ('icons_and_text', 'icons_only', 'text_only'), style
-		self.actiongroup.get_action('set_toolbar_'+style).activate()
-		self.do_set_toolbar_style(style)
-			# if no configuration set, active may not represent actual case - force activation
-
-	def do_set_toolbar_style(self, name):
-		if name.startswith('set_toolbar_'):
-			style = name[12:] # len('set_toolbar_') == 12
-		else:
-			style = name
-
 		if style == TOOLBAR_ICONS_AND_TEXT:
 			self.toolbar.set_style(gtk.TOOLBAR_BOTH)
 		elif style == TOOLBAR_ICONS_ONLY:
@@ -2782,24 +2426,18 @@ class MainWindow(Window):
 
 		self.preferences['GtkInterface']['toolbar_style'] = style
 
-	def set_toolbar_size(self, size):
+	@radio_action(
+		radio_option(TOOLBAR_ICONS_LARGE, _('_Large Icons')), # T: Menu item
+		radio_option(TOOLBAR_ICONS_SMALL, _('_Small Icons')), # T: Menu item
+		radio_option(TOOLBAR_ICONS_TINY, _('_Tiny Icons')), # T: Menu item
+	)
+	def set_toolbar_icon_size(self, size):
 		'''Set the toolbar style
 		@param size: can be either:
 			- C{TOOLBAR_ICONS_LARGE}
 			- C{TOOLBAR_ICONS_SMALL}
 			- C{TOOLBAR_ICONS_TINY}
 		'''
-		assert size in ('large', 'small', 'tiny'), size
-		self.actiongroup.get_action('set_toolbar_icons_'+size).activate()
-		self.do_set_toolbar_size(size)
-			# if no configuration set, active may not represent actual case - force activation
-
-	def do_set_toolbar_size(self, name):
-		if name.startswith('set_toolbar_icons_'):
-			size = name[18:] # len('set_toolbar_icons_') == 18
-		else:
-			size = name
-
 		if size == TOOLBAR_ICONS_LARGE:
 			self.toolbar.set_icon_size(gtk.ICON_SIZE_LARGE_TOOLBAR)
 		elif size == TOOLBAR_ICONS_SMALL:
@@ -2811,23 +2449,9 @@ class MainWindow(Window):
 
 		self.preferences['GtkInterface']['toolbar_size'] = size
 
-	def toggle_readonly(self, readonly=None):
-		'''Menu action to toggle the read-only state of the application
-		@param readonly: when C{True} or C{False} force the state
-		when C{None} toggle based on current state
-		'''
-		action = self.actiongroup.get_action('toggle_readonly')
-		if readonly is None or readonly == action.get_active():
-			action.activate()
-		else:
-			active = not readonly
-			self.do_toggle_readonly(active=active)
-
-	def do_toggle_readonly(self, active=None):
-		if active is None:
-			action = self.actiongroup.get_action('toggle_readonly')
-			active = action.get_active()
-		readonly = not active
+	@toggle_action(_('Notebook _Editable'), 'gtk-edit', tooltip=_('Toggle notebook editable'), init=True) # T: menu item
+	def toggle_readonly(self, readonly):
+		'''Menu action to toggle the read-only state of the application'''
 		self.ui.set_readonly(readonly)
 		self.uistate['readonly'] = readonly
 
@@ -2870,11 +2494,7 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		if ui_environment['platform'] == 'maemo':
-			# N900 lacks menu and fullscreen hardware buttons, UI must provide them
-			self.uistate.setdefault('show_toolbar_fullscreen', True)
-		else:
-			self.uistate.setdefault('show_toolbar_fullscreen', False)
+		self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
@@ -2894,17 +2514,17 @@ class MainWindow(Window):
 			self.set_toolbar_style(self.preferences['GtkInterface']['toolbar_style'])
 
 		if self.preferences['GtkInterface']['toolbar_size'] is not None:
-			self.set_toolbar_size(self.preferences['GtkInterface']['toolbar_size'])
+			self.set_toolbar_icon_size(self.preferences['GtkInterface']['toolbar_size'])
 
-		self.toggle_fullscreen(show=self._set_fullscreen)
+		self.toggle_fullscreen(self._set_fullscreen)
 
 		self.uistate.setdefault('readonly', False)
 		if self.ui.notebook.readonly:
-			self.toggle_readonly(readonly=True)
+			self.toggle_readonly(True)
 			action = self.actiongroup.get_action('toggle_readonly')
 			action.set_sensitive(False)
 		else:
-			self.toggle_readonly(readonly=self.uistate['readonly'])
+			self.toggle_readonly(self.uistate['readonly'])
 
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(self.ui.notebook)
@@ -2962,14 +2582,14 @@ class MainWindow(Window):
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
 		if self.isfullscreen:
-			self.toggle_menubar(show=self.uistate['show_menubar_fullscreen'])
-			self.toggle_toolbar(show=self.uistate['show_toolbar_fullscreen'])
-			self.toggle_statusbar(show=self.uistate['show_statusbar_fullscreen'])
+			self.toggle_menubar(self.uistate['show_menubar_fullscreen'])
+			self.toggle_toolbar(self.uistate['show_toolbar_fullscreen'])
+			self.toggle_statusbar(self.uistate['show_statusbar_fullscreen'])
 			self.set_pathbar(self.uistate['pathbar_type_fullscreen'])
 		else:
-			self.toggle_menubar(show=self.uistate['show_menubar'])
-			self.toggle_toolbar(show=self.uistate['show_toolbar'])
-			self.toggle_statusbar(show=self.uistate['show_statusbar'])
+			self.toggle_menubar(self.uistate['show_menubar'])
+			self.toggle_toolbar(self.uistate['show_toolbar'])
+			self.toggle_statusbar(self.uistate['show_statusbar'])
 			self.set_pathbar(self.uistate['pathbar_type'])
 
 	def save_uistate(self):

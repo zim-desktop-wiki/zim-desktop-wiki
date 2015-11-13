@@ -17,8 +17,6 @@ from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 
 
 PLATFORM = os.name
-if ui_environment['platform'] == 'maemo':  # don't know what os.name return on maemo
-	PLATFORM = 'maemo'
 
 """
 TESTED:
@@ -26,13 +24,11 @@ TESTED:
 	- scrot
 UNTESTED:
 	- boxcutter (windows, http://keepnote.org/boxcutter/)
-	- screenshot-tool (maemo)
 """
 COMMAND = 'import'
 SUPPORTED_COMMANDS_BY_PLATFORM = dict([
 	('posix', ('import', 'scrot')),
 	('nt', ('boxcutter',)),
-	('maemo', ('screenshot-tool',)),
 ])
 SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[PLATFORM]
 if len(SUPPORTED_COMMANDS):
@@ -56,11 +52,6 @@ class ScreenshotPicker(object):
 			'full': ('--fullscreen',),
 			'delay': None,
 		}),
-		('screenshot-tool', {
-			'select': None,
-			'full': (),
-			'delay': '-d',
-		})
 	])
 	cmd_default = COMMAND
 	final_cmd_options = ()

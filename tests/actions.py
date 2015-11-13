@@ -42,13 +42,15 @@ class TestAction(tests.TestCase):
 
 			@action('Do Action', accelerator='<Control>A')
 			def test_action(self):
-				return output.append('OK')
+				output.append('OK')
+				return 'FOO'
 
 		self.assertIsInstance(TestClass.test_action, Action)
 
 		obj = TestClass()
-		obj.test_action()
+		re = obj.test_action()
 		self.assertEqual(output, ['OK'])
+		self.assertIsNone(re) # do not allow return value for actions!
 
 		gtk_group = get_gtk_actiongroup(obj)
 		gtk_action = gtk_group.get_action('test_action')
@@ -68,13 +70,16 @@ class TestToggleAction(tests.TestCase):
 
 			@toggle_action('Do Action', accelerator='<Control>A')
 			def test_action(self, active):
-				return output.append(active)
+				output.append(active)
+				return 'FOO'
 
 		self.assertIsInstance(TestClass.test_action, ToggleAction)
 
 		obj = TestClass()
-		obj.test_action()
+		re = obj.test_action()
 		self.assertEqual(output, [True])
+		self.assertIsNone(re) # do not allow return value for actions!
+
 		obj.test_action()
 		self.assertEqual(output, [True, False])
 		obj.test_action(False)
@@ -90,3 +95,41 @@ class TestToggleAction(tests.TestCase):
 		self.assertEqual(gtk_action.get_active(), True) # correct init state
 		gtk_action.activate()
 		self.assertEqual(output, [True, False, True, False])
+
+
+class TestRadioAction(tests.TestCase):
+
+	def runTest(self):
+		output = []
+
+		class TestClass(object):
+
+			@radio_action(
+				radio_option('AAA', 'Do A'),
+				radio_option('BBB', 'Do B')
+			)
+			def test_action(self, key):
+				output.append(key)
+				return 'FOO'
+
+		self.assertIsInstance(TestClass.test_action, RadioAction)
+
+		obj = TestClass()
+		re = obj.test_action('AAA')
+		self.assertIsNone(re) # do not allow return value for actions!
+
+		obj.test_action('BBB')
+		self.assertEqual(output, ['AAA', 'BBB'])
+
+		self.assertRaises(ValueError, obj.test_action, 'CCC')
+
+		gtk_group = get_gtk_actiongroup(obj)
+		self.assertEqual(
+			[a.get_name() for a in gtk_group.list_actions()],
+			['test_action_AAA', 'test_action_BBB']
+		)
+
+		gtk_action = gtk_group.get_action('test_action_AAA')
+		self.assertIsInstance(gtk_action, gtk.RadioAction)
+		gtk_action.activate()
+		self.assertEqual(output, ['AAA', 'BBB', 'AAA'])

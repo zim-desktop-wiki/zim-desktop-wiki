@@ -522,7 +522,7 @@ class TestGtkInterface(tests.TestCase):
 			zim.gui.TOOLBAR_ICONS_SMALL,
 			zim.gui.TOOLBAR_ICONS_TINY,
 		):
-			window.set_toolbar_size(size)
+			window.set_toolbar_icon_size(size)
 			self.assertEqual(window.preferences['GtkInterface']['toolbar_size'], size)
 
 		# FIXME: test fails because "readonly" not active because notebook was already readonly, so action never activatable
@@ -551,29 +551,34 @@ class TestGtkInterface(tests.TestCase):
 
 		# check forward & backward
 		for path in reversed(history[:-1]):
-			self.assertTrue(self.ui.open_page_back())
+			self.ui.open_page_back()
 			self.assertEqual(self.ui.page, path)
-		self.assertFalse(self.ui.open_page_back())
+		self.ui.open_page_back()
+		self.assertEqual(self.ui.page, path) # not changed
 
 		for path in history[1:]:
-			self.assertTrue(self.ui.open_page_forward())
+			self.ui.open_page_forward()
 			self.assertEqual(self.ui.page, path)
-		self.assertFalse(self.ui.open_page_forward())
+		self.ui.open_page_forward()
+		self.assertEqual(self.ui.page, path) # not changed
 
 		# check upward and downward
 		for path in (Path('Test:foo:'), Path('Test:')):
-			self.assertTrue(self.ui.open_page_parent())
+			self.ui.open_page_parent()
 			self.assertEqual(self.ui.page, path)
-		self.assertFalse(self.ui.open_page_parent())
+		self.ui.open_page_parent()
+		self.assertEqual(self.ui.page, path) # not changed
 
 		for path in (Path('Test:foo:'), Path('Test:foo:bar')):
-			self.assertTrue(self.ui.open_page_child())
+			self.ui.open_page_child()
 			self.assertEqual(self.ui.page, path)
-		self.assertFalse(self.ui.open_page_child())
+		self.ui.open_page_child()
+		self.assertEqual(self.ui.page, path) # not changed
 
 		# previous and next
-		self.assertTrue(self.ui.open_page_previous())
-		self.assertTrue(self.ui.open_page_next())
+		self.ui.open_page_previous()
+		self.assertNotEqual(self.ui.page, Path('Test:foo:bar'))
+		self.ui.open_page_next()
 		self.assertEqual(self.ui.page, Path('Test:foo:bar'))
 
 	def testSave(self):
