@@ -4,26 +4,19 @@ from __future__ import with_statement
 
 import tests
 
-from tests.pageview import setUpPageView
-
-from zim.config import ConfigDict
 from zim.formats import ParseTree, StubLinker
 from zim.formats.html import Dumper as HtmlDumper
 
 from zim.plugins.tableeditor import *
 
-
+from tests.plugins import MockWindow
 from tests.pageview import setUpPageView
 
 
 class TestMainWindowExtension(tests.TestCase):
 
 	def runTest(self):
-		window = tests.MockObject()
-		window.pageview = setUpPageView()
-		window.ui = tests.MockObject()
-		window.ui.uimanager = tests.MockObject()
-		window.ui.uistate = ConfigDict()
+		window = MockWindow()
 
 		plugin = TableEditorPlugin()
 		extension = MainWindowExtension(plugin, window)

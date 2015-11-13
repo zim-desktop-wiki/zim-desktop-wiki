@@ -226,7 +226,6 @@ class GtkInterface(gobject.GObject):
 	in combination with the background server process and the
 	L{tray icon plugin<zim.plugins.trayicon>}
 	@ivar history: the L{History} object
-	@ivar uimanager: the C{gtk.UIManager}
 	@ivar preferences_register: a L{ConfigDict} with preferences to show
 	in the preferences dialog, see L{register_preferences()} to add
 	to more preferences
@@ -305,16 +304,6 @@ class GtkInterface(gobject.GObject):
 
 		gtk_window_set_default_icon()
 
-		self.uimanager = gtk.UIManager()
-		self.uimanager.add_ui_from_string('''
-		<ui>
-			<menubar name="menubar">
-			</menubar>
-			<toolbar name="toolbar">
-			</toolbar>
-		</ui>
-		''')
-
 		self.register_preferences('GtkInterface', ui_preferences)
 
 		# Hidden setting to force the gtk bell off. Otherwise it
@@ -327,21 +316,6 @@ class GtkInterface(gobject.GObject):
 
 		# Init UI
 		self._mainwindow = MainWindow(self, self.preferences, fullscreen, geometry)
-
-		## add actions
-		group = get_gtk_actiongroup(self)
-		group.add_actions(MENU_ACTIONS)
-		self.uimanager.insert_action_group(group, 0)
-
-		group = get_gtk_actiongroup(self._mainwindow)
-		self.uimanager.insert_action_group(group, 0)
-
-		group = get_gtk_actiongroup(self._mainwindow.pageview)
-		self.uimanager.insert_action_group(group, 0)
-		##
-
-		fname = 'menubar.xml'
-		self.uimanager.add_ui_from_string(data_file(fname).read())
 
 		self._custom_tool_ui_id = None
 		self._custom_tool_actiongroup = None
@@ -480,15 +454,15 @@ class GtkInterface(gobject.GObject):
 				child.reparent(menu_bar)
 			macapp.set_menu_bar(menu_bar)
 			self._mainwindow.menubar.hide()
-			macapp.set_help_menu(self.uimanager.get_widget('/menubar/help_menu'))
+			macapp.set_help_menu(self._mainwindow.uimanager.get_widget('/menubar/help_menu'))
 
 			# move some menu items to the application menu
-			quit = self.uimanager.get_widget('/menubar/file_menu/quit')
+			quit = self._mainwindow.uimanager.get_widget('/menubar/file_menu/quit')
 			macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
 			quit.hide()
-			about = self.uimanager.get_widget('/menubar/help_menu/show_about')
+			about = self._mainwindow.uimanager.get_widget('/menubar/help_menu/show_about')
 			macapp.insert_app_menu_item(about, 0)
-			prefs = self.uimanager.get_widget('/menubar/edit_menu/show_preferences')
+			prefs = self._mainwindow.uimanager.get_widget('/menubar/edit_menu/show_preferences')
 			macapp.insert_app_menu_item(prefs, 1)
 			macapp.ready()
 		except ImportError:
@@ -631,7 +605,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		# ... so we have to do our own XML parsing here :(
 		# but take advantage of nicely formatted line-based output ...
-		xml = self.uimanager.get_ui()
+		xml = self._mainwindow.uimanager.get_ui()
 		xml = [l.strip() for l in xml.splitlines()]
 
 		# Get slice of XML
@@ -670,7 +644,7 @@ class GtkInterface(gobject.GObject):
 			elif line.startswith('<menuitem'):
 				pre, post = line.split('action="', 1)
 				actionname, post = post.split('"', 1)
-				for group in self.uimanager.get_action_groups():
+				for group in self._mainwindow.uimanager.get_action_groups():
 					action = group.get_action(actionname)
 					if action:
 						item = action.create_menu_item()
@@ -707,7 +681,7 @@ class GtkInterface(gobject.GObject):
 			# Save any modification now - will not be allowed after switch
 			self.assert_save_page_if_modified()
 
-		for group in self.uimanager.get_action_groups():
+		for group in self._mainwindow.uimanager.get_action_groups():
 			for action in group.list_actions():
 				if hasattr(action, 'zim_readonly') \
 				and not action.zim_readonly:
@@ -1450,7 +1424,7 @@ class GtkInterface(gobject.GObject):
 		PreferencesDialog(self).run()
 
 	def do_preferences_changed(self, *a):
-		self.uimanager.set_add_tearoffs(
+		self._mainwindow.uimanager.set_add_tearoffs(
 			self.preferences['GtkInterface']['tearoff_menus'] )
 
 	@action(_('_Reload'), 'gtk-refresh', '<Primary>R') # T: Menu item
@@ -1814,10 +1788,10 @@ class GtkInterface(gobject.GObject):
 
 		# Remove old actions
 		if self._custom_tool_ui_id:
-			self.uimanager.remove_ui(self._custom_tool_ui_id)
+			self._mainwindow.uimanager.remove_ui(self._custom_tool_ui_id)
 
 		if self._custom_tool_actiongroup:
-			self.uimanager.remove_action_group(self._custom_tool_actiongroup)
+			self._mainwindow.uimanager.remove_action_group(self._custom_tool_actiongroup)
 
 		if self._custom_tool_iconfactory:
 			self._custom_tool_iconfactory.remove_default()
@@ -1880,8 +1854,8 @@ class GtkInterface(gobject.GObject):
 	''.join(textlines), ''.join(pagelines)
 )
 
-		self.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
-		self._custom_tool_ui_id = self.uimanager.add_ui_from_string(ui)
+		self._mainwindow.uimanager.insert_action_group(self._custom_tool_actiongroup, 0)
+		self._custom_tool_ui_id = self._mainwindow.uimanager.add_ui_from_string(ui)
 
 	def _exec_custom_tool(self, action):
 		manager = CustomToolManager()
@@ -1997,6 +1971,8 @@ class MainWindow(Window):
 	contains the main L{PageView} and the side pane with a L{PageIndex}.
 	Also includes the menubar, toolbar, L{PathBar}, statusbar etc.
 
+	@ivar uimanager: the C{gtk.UIManager}
+
 	@ivar pageview: the L{PageView} object
 	@ivar pageindex: the L{PageIndex} object
 	@ivar pathbar: the L{PathBar} object
@@ -2045,13 +2021,24 @@ class MainWindow(Window):
 			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
 
+		# init uimanager
+		self.uimanager = gtk.UIManager()
+		self.uimanager.add_ui_from_string('''
+		<ui>
+			<menubar name="menubar">
+			</menubar>
+			<toolbar name="toolbar">
+			</toolbar>
+		</ui>
+		''')
+
 		# setup the window layout
 		from zim.gui.widgets import TOP, BOTTOM, TOP_PANE, LEFT_PANE
 
 		# setup menubar and toolbar
-		self.add_accel_group(ui.uimanager.get_accel_group())
-		self.menubar = ui.uimanager.get_widget('/menubar')
-		self.toolbar = ui.uimanager.get_widget('/toolbar')
+		self.add_accel_group(self.uimanager.get_accel_group())
+		self.menubar = self.uimanager.get_widget('/menubar')
+		self.toolbar = self.uimanager.get_widget('/toolbar')
 		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
 		self.add_bar(self.menubar, TOP)
 		self.add_bar(self.toolbar, TOP)
@@ -2136,6 +2123,20 @@ class MainWindow(Window):
 		self.preferences['GtkInterface'].setdefault('mouse_nav_button_back', 8)
 		self.preferences['GtkInterface'].setdefault('mouse_nav_button_forw', 9)
 
+		# Finish uimanager
+		group = get_gtk_actiongroup(ui) # XXX
+		self.uimanager.insert_action_group(group, 0)
+
+		group = get_gtk_actiongroup(self.pageview)
+		self.uimanager.insert_action_group(group, 0)
+
+		group = get_gtk_actiongroup(self)
+		group.add_actions(MENU_ACTIONS)
+		self.uimanager.insert_action_group(group, 0)
+
+		fname = 'menubar.xml'
+		self.uimanager.add_ui_from_string(data_file(fname).read())
+
 	def do_update_statusbar(self, *a):
 		page = self.pageview.get_page()
 		if not page:
@@ -2180,14 +2181,6 @@ class MainWindow(Window):
 				schedule_on_idle(lambda : self.pageview.scroll_cursor_on_screen())
 					# HACK to have this scroll done after all updates to
 					# the gui are done...
-
-		# Maemo UI bugfix: If ancestor method is not called the window
-		# will have borders when fullscreen
-		# But is virtual method on other platforms
-		try:
-			Window.do_window_state_event(self, event)
-		except NotImplementedError:
-			pass
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -2275,7 +2268,7 @@ class MainWindow(Window):
 
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
-		menu = self.ui.uimanager.get_widget('/toolbar_popup')
+		menu = self.uimanager.get_widget('/toolbar_popup')
 		menu.popup(None, None, None, button, 0)
 
 	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
@@ -2540,7 +2533,7 @@ class MainWindow(Window):
 		self.emit('init-uistate')
 
 		# Update menus etc.
-		self.ui.uimanager.ensure_update()
+		self.uimanager.ensure_update()
 			# Prevent flashing when the toolbar is loaded after showing the window
 			# and do this before connecting signal below for accelmap.
 
