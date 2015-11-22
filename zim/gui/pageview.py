@@ -155,6 +155,8 @@ ui_actions = (
 	# name, stock id, label
 	('insert_new_file_menu', None, _('New _Attachment')), # T: Menu title
 
+	('remove_line', None, '_Remove Line', '<Primary>L', '', False), # T: Menu item
+
 	# name, stock id, label, accelerator, tooltip, readonly
 	('open_file_templates_folder', 'gtk-directory', _('File _Templates...'), '', '', False), # T: Menu item in "Insert > New File Attachment" submenu
 )
@@ -2478,6 +2480,18 @@ class TextBuffer(gtk.TextBuffer):
 			#~ print ">>> Parsetree recreated:", tree.tostring()
 
 		return tree
+
+	def remove_current_line(self):
+		'''Remove current line'''
+		insert = self.get_iter_at_mark(self.get_insert())
+		line = insert.get_line()
+		start = self.get_iter_at_line(line)
+		end = self.get_iter_at_line(line)
+		end.forward_to_line_end()
+		self.delete(start, end)
+		self.set_modified(True)
+		self.update_editmode()
+
 
 	def select_line(self):
 		'''Selects the current line
@@ -5624,6 +5638,12 @@ class PageView(gtk.VBox):
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			buffer.remove_link(*bounds)
+
+	def remove_line(self):
+		'''Menu action to remove line at the current cursor position'''
+		buffer = self.view.get_buffer()
+		buffer.remove_current_line()
+
 
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''

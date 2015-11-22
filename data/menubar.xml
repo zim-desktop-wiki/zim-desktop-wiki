@@ -41,6 +41,7 @@
 			<separator/>
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>
+			<menuitem action='remove_line'/>
 			<separator/>
 			<placeholder name='plugin_items'/>
 			<separator/>
