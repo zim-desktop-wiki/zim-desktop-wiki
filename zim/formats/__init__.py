@@ -255,7 +255,9 @@ class ParseTree(object):
 	def hascontent(self):
 		'''Returns True if the tree contains any content at all.'''
 		root = self._etree.getroot()
-		return bool(root.getchildren()) or (root.text and not root.text.isspace())
+		return root is not None and (
+			bool(root.getchildren()) or (root.text and not root.text.isspace())
+		)
 
 	@property
 	def ispartial(self):

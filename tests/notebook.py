@@ -263,6 +263,12 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(page) # new object
 		self.assertEqual(page.dump('plain'), newtext)
 
+		# ensure storing empty tree works
+		emptytree = ParseTree()
+		self.assertFalse(emptytree.hascontent)
+		page.set_parsetree(emptytree)
+		self.notebook.store_page(page)
+
 	def testManipulate(self):
 		'''Test renaming, moving and deleting pages in the notebook'''
 

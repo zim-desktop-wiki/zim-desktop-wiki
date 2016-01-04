@@ -468,8 +468,8 @@ class IndexInternal(object):
 		for indexer in self.indexers:
 			indexer.on_index_page(self, db, indexpath, parsetree)
 
-		ctime = datetime.fromtimestamp(node.ctime)
-		mtime = datetime.fromtimestamp(node.mtime)
+		ctime = datetime.fromtimestamp(node.ctime) if node.ctime else None
+		mtime = datetime.fromtimestamp(node.mtime) if node.mtime else None
 		db.execute(
 			'UPDATE pages '
 			'SET content_etag=?, ctime=?, mtime=? '

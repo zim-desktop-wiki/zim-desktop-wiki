@@ -94,9 +94,12 @@ class FileStoreNode(StoreNode):
 		###
 
 		#~ print 'STORE', tree.tostring()
-		if not tree or not tree.hascontent:
-			raise AssertionError, 'Cannot store empty content'
+		if tree and tree.hascontent:
+			self._store_parsetree(tree)
+		else:
+			self.source_file.cleanup()
 
+	def _store_parsetree(self, tree):
 		if self.hascontent and not self.properties:
 			self.get_parsetree()
 			assert self.properties

@@ -63,8 +63,14 @@ class MemoryStoreNode(StoreNode):
 			return None
 
 	def store_parsetree(self, parsetree):
-		self.text = ''.join(_DUMPER.dump(parsetree))
-		self.set_content_etag()
+		if parsetree and parsetree.hascontent:
+			self.text = ''.join(_DUMPER.dump(parsetree))
+			self.set_content_etag()
+		else:
+			self.text = None
+			self.set_content_etag()
+			self.ctime = None
+			self.mtime = None
 
 	def get_children_etag(self):
 		return self.children_etag

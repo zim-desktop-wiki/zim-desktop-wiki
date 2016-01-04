@@ -2731,7 +2731,10 @@ discarded, but you can restore the copy later.''')
 		def discard(self):
 			self.app_window.pageview.clear()
 				# issue may be caused in pageview - make sure it unlocks
-			self.app_window.ui.notebook.revert_page(self.page)
+			self.page.valid = False # invalidate the page
+			page = self.app_window.ui.notebook.get_page(self.page) # get a new one
+			self.app_window.pageview.set_page(page) # and open it ..
+			self.app_window.ui.page = page # XXX
 			self._done = True
 
 		def save(self):

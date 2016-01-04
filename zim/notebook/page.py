@@ -670,12 +670,7 @@ class StoreNodePage(Page):
 
 	def _store(self):
 		tree = self.get_parsetree()
-		if tree and tree.hascontent:
-			self._node.store_parsetree(tree)
-		else:
-			assert False, 'How to cleanup the source?'
-			# Remove the file - this is not the same as remove_page()
-			#~ self.source.cleanup()
+		self._node.store_parsetree(tree)
 		self.modified = False
 
 

@@ -188,12 +188,13 @@ class TasksIndexer(PluginIndexerBase):
 	def on_index_page(self, index, db, indexpath, parsetree):
 		self.on_delete_page(index, db, indexpath)
 
-		tasks = self.taskiterfactory(indexpath, parsetree)
-		c = db.cursor()
-		count = c.rowcount
-		self._insert_tasks(c, indexpath, 0, tasks)
-		if c.rowcount > count:
-			self.tasklist_changed()
+		if parsetree:
+			tasks = self.taskiterfactory(indexpath, parsetree)
+			c = db.cursor()
+			count = c.rowcount
+			self._insert_tasks(c, indexpath, 0, tasks)
+			if c.rowcount > count:
+				self.tasklist_changed()
 
 	def _insert_tasks(self, db, indexpath, parentid, tasks):
 		# Helper function to insert tasks in table
