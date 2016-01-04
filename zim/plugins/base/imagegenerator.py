@@ -120,7 +120,7 @@ class MainWindowExtensionBase(WindowExtension):
 		title = self.insert_label.replace('_', '')
 		generator = self.build_generator()
 		dialog = ImageGeneratorDialog(
-			self.window.ui, title,
+			self.window, title,
 			generator, syntax=self.syntax,
 			help=self.plugin.plugin_info['help']
 		) # XXX ui
@@ -130,7 +130,7 @@ class MainWindowExtensionBase(WindowExtension):
 		title = self.edit_label.replace('_', '')
 		generator = self.build_generator()
 		dialog = ImageGeneratorDialog(
-			self.window.ui, title,
+			self.window, title,
 			generator, syntax=self.syntax, image=image,
 			help=self.plugin.plugin_info['help']
 		) # XXX ui
@@ -223,18 +223,16 @@ class ImageGeneratorClass(object):
 
 
 class ImageGeneratorDialog(Dialog):
-	'''Base class for use by plugins that generate and insert an image
-	based on textual user input. This is used e.g. by the equation editor
-	and similar plugins. The dialog provides text input and an image view
-	for showing previews.
+	'''Dialog that provides text input and an image view
+	for showing previews for an L{ImageGeneratorClass} implementation.
 	'''
 
 	# TODO: use uistate to remember pane position
 
-	def __init__(self, ui, title, generator, image=None, syntax=None, **opt):
+	def __init__(self, window, title, generator, image=None, syntax=None, **opt):
 		'''Constructor
 
-		@param ui: L{GtkInterface} object or parent window
+		@param window: the L{MainWindow}
 		@param title: the dialog title
 		@param generator: an L{ImageGeneratorClass} object
 		@param image: image data for an image in the
@@ -242,17 +240,8 @@ class ImageGeneratorDialog(Dialog):
 		@param syntax: optional syntax name (as understood by gtksourceview)
 		@param opt: any other arguments to pass to the L{Dialog} constructor
 		'''
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (450,480)
-			# Use maximum available vertical space because decorations take
-			# too much real state
-		else:
-			defaultsize = (450,300)
-		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize, **opt)
-		if ui_environment['platform'] == 'maemo':
-			self.resize(450,480)
-			# Force maximum dialog size under maemo, otherwise
-			# we'll end with a too small dialog and no way to resize it
+		Dialog.__init__(self, window, title, defaultwindowsize=(450,300), **opt)
+		self.app_window = window
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None
@@ -370,8 +359,8 @@ class ImageGeneratorDialog(Dialog):
 		if self._existing_file:
 			textfile = self._existing_file
 		else:
-			page = self.ui.page
-			dir = self.ui.notebook.get_attachments_dir(page)
+			page = self.app_window.ui.page # XXX
+			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
 			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write( self.generator.process_input(self.get_text()) )
@@ -383,9 +372,9 @@ class ImageGeneratorDialog(Dialog):
 			imgfile.remove()
 
 		if self._existing_file:
-			self.ui.reload_page()
+			self.app_window.ui.reload_page() # XXX
 		else:
-			pageview = self.ui.mainwindow.pageview # XXX
+			pageview = self.app_window.pageview
 			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)
 
 		if self.logfile and self.logfile.exists():

@@ -6,9 +6,8 @@ from __future__ import with_statement
 
 import tests
 
-from tests.pageview import setUpPageView
+from tests.plugins import MockWindow
 
-from zim.config import ConfigDict
 from zim.formats import ParseTree, StubLinker
 from zim.formats.html import Dumper as HtmlDumper
 
@@ -18,13 +17,7 @@ from zim.plugins.sourceview import *
 class TestMainWindowExtension(tests.TestCase):
 
 	def runTest(self):
-		window = tests.MockObject()
-		window.pageview = setUpPageView()
-		window.ui = tests.MockObject()
-		window.ui.uimanager = tests.MockObject()
-		window.ui.uistate = ConfigDict()
-		window.ui.mainwindow = window # XXX
-
+		window = MockWindow()
 		plugin = SourceViewPlugin()
 		extension = MainWindowExtension(plugin, window)
 

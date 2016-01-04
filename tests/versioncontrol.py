@@ -90,13 +90,14 @@ class TestMainWindowExtension(tests.TestCase):
 		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
 		notebook = tests.new_files_notebook(dir)
 		ui = setupGtkInterface(self, notebook=notebook)
+		mainwindow = ui._mainwindow # XXX
 		plugin.extend(notebook)
-		plugin.extend(ui.mainwindow)
+		plugin.extend(mainwindow)
 
 		notebook_ext = plugin.get_extension(notebook, NotebookExtension)
 		self.assertIsInstance(notebook_ext, NotebookExtension)
 
-		window_ext = plugin.get_extension(ui.mainwindow, MainWindowExtension)
+		window_ext = plugin.get_extension(mainwindow, MainWindowExtension)
 		self.assertIsInstance(window_ext, MainWindowExtension)
 
 		## init & save version

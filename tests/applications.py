@@ -15,6 +15,8 @@ from zim.gui.applications import *
 from zim.notebook import Path
 from zim.fs import Dir, TmpFile
 
+THUMB_SIZE_NORMAL = 128
+
 
 @tests.slowTest
 class TestXDGMimeInfo(tests.TestCase):

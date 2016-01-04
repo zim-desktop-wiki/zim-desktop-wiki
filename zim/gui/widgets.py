@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -52,7 +52,7 @@ from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
 from zim.signals import ConnectorMixin
 from zim.notebook.index import IndexNotFoundError
-
+from zim.actions import action
 
 logger = logging.getLogger('zim.gui')
 
@@ -85,29 +85,7 @@ ui_environment = {
 }
 
 
-# Check for Maemo environment
-if zim.PLATFORM == 'maemo':
-	import hildon
-	gtkwindowclass = hildon.Window
-	ui_environment['platform'] = 'maemo'
-	if hasattr(gtkwindowclass,'set_app_menu'):
-		ui_environment['maemo_version'] = 'maemo5'
-	else:
-		ui_environment['maemo_version'] = 'maemo4'
-	ui_environment['maxscreensize'] = (800, 480)
-	ui_environment['smallscreen'] = True
-
-	# Maemo gtk UI bugfix: expander-size is set to 0 by default
-	gtk.rc_parse_string('''\
-style "toolkit"
-{
-	GtkTreeView::expander-size = 12
-}
-
-class "GtkTreeView" style "toolkit"
-''' )
-else:
-	gtkwindowclass = gtk.Window
+gtkwindowclass = gtk.Window
 
 
 def encode_markup_text(text):
@@ -2489,10 +2467,6 @@ class Window(gtkwindowclass):
 	is to create placeholders where plugins *might* want to add some
 	widget.
 
-	When zim is configured to run on a maemo device this class will
-	inherit from C{hildon.Window} instead of C{gtk.Window} to make
-	sure it plays nicely with the maemo environment.
-
 	All windows in zim must inherit from this class.
 
 	@signal: C{pane-state-changed (pane, visible, active)}: emitted when
@@ -2761,6 +2735,7 @@ class Window(gtkwindowclass):
 			for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 				self.set_pane_state(pane, False)
 
+	@action(_('_All Panes'), accelerator='<Primary>F9', tooltip=_('Show All Panes')) # T: Menu item
 	def show_all_panes(self):
 		for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			self.set_pane_state(pane, True)
@@ -3138,12 +3113,11 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			destroy = True
 
 		try:
-			if ui_environment['platform'] != 'maemo':
-				x, y = self.get_position()
-				self.uistate['_windowpos'] = (x, y)
-				w, h = self.get_size()
-				self.uistate['windowsize'] = (w, h)
-				self.save_uistate()
+			x, y = self.get_position()
+			self.uistate['_windowpos'] = (x, y)
+			w, h = self.get_size()
+			self.uistate['windowsize'] = (w, h)
+			self.save_uistate()
 		except:
 			logger.exception('Exception in do_response()')
 
@@ -3520,12 +3494,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 
-		if ui_environment['platform'] == 'maemo':
-			defaultsize = (800, 480)
-		else:
-			defaultsize = (500, 400)
-
-		Dialog.__init__(self, ui, title, defaultwindowsize=defaultsize,
+		Dialog.__init__(self, ui, title, defaultwindowsize=(500, 400),
 			buttons=buttons, button=button, help_text=help_text, help=help)
 
 		self.filechooser = gtk.FileChooserWidget(action=action)

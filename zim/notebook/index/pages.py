@@ -163,7 +163,7 @@ class PagesIndexer(IndexerBase):
 		'page-added': (SIGNAL_AFTER, None, (object,)),
 		'page-haschildren-toggled': (SIGNAL_AFTER, None, (object,)),
 		'page-changed': (SIGNAL_AFTER, None, (object,)),
-		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)),
+		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)), # SIGNAL_BEFORE --> Emit immediatly
 	}
 
 	INIT_SCRIPT = '''
@@ -811,7 +811,7 @@ def get_treepath_for_indexpath_factory(index, cache):
 							parent.treepath = mytreepath
 							cache[mytreepath] = parent
 						else:
-							raise IndexConsistencyError
+							raise IndexConsistencyError, 'Got indexpath %s %s but can not find row for id %s' % (indexpath, indexpath.ids, id)
 				else:
 					raise IndexConsistencyError, 'huh!?'
 

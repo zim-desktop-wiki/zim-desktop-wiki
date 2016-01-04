@@ -63,13 +63,13 @@
 				<menuitem action='set_pathbar_path'/>
 			</menu>
 			<menu action='toolbar_menu'>
-				<menuitem action='set_toolbar_icons_and_text'/>
-				<menuitem action='set_toolbar_icons_only'/>
-				<menuitem action='set_toolbar_text_only'/>
+				<menuitem action='set_toolbar_style_icons_and_text'/>
+				<menuitem action='set_toolbar_style_icons_only'/>
+				<menuitem action='set_toolbar_style_text_only'/>
 				<separator/>
-				<menuitem action='set_toolbar_icons_large'/>
-				<menuitem action='set_toolbar_icons_small'/>
-				<menuitem action='set_toolbar_icons_tiny'/>
+				<menuitem action='set_toolbar_icon_size_large'/>
+				<menuitem action='set_toolbar_icon_size_small'/>
+				<menuitem action='set_toolbar_icon_size_tiny'/>
 			</menu>
 			<menuitem action='toggle_fullscreen'/>
 			<separator/>
@@ -210,13 +210,13 @@
 -->
 	</toolbar>
 	<popup name='toolbar_popup'>
-		<menuitem action='set_toolbar_icons_and_text'/>
-		<menuitem action='set_toolbar_icons_only'/>
-		<menuitem action='set_toolbar_text_only'/>
+		<menuitem action='set_toolbar_style_icons_and_text'/>
+		<menuitem action='set_toolbar_style_icons_only'/>
+		<menuitem action='set_toolbar_style_text_only'/>
 		<separator/>
-		<menuitem action='set_toolbar_icons_large'/>
-		<menuitem action='set_toolbar_icons_small'/>
-		<menuitem action='set_toolbar_icons_tiny'/>
+		<menuitem action='set_toolbar_icon_size_large'/>
+		<menuitem action='set_toolbar_icon_size_small'/>
+		<menuitem action='set_toolbar_icon_size_tiny'/>
 	</popup>
 	<popup name='page_popup'>
 		<menuitem action='new_page'/>

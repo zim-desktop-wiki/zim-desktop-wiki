@@ -34,13 +34,6 @@ def new_parsetree_from_text(text):
 
 def setUpPageView(fakedir=None, notebook=None):
 	'''Some bootstrap code to get an isolated PageView object'''
-	## TODO - should not be needed
-	## we can get rid of this when we refactor the actiongroup stuff
-	## to not register, by be called by the window
-	PageView.actiongroup = tests.MockObject() # use class attribute to fake ui init
-	PageView.actiongroup.mock_method('get_action', tests.MockObject())
-	PageView.actiongroup.mock_method('list_actions', [])
-
 	if notebook is None:
 		notebook = tests.new_notebook(fakedir)
 
@@ -48,11 +41,8 @@ def setUpPageView(fakedir=None, notebook=None):
 	ui.config = VirtualConfigManager()
 	ui.notebook = notebook
 	ui.page = None
-	ui.uimanager = tests.MockObject()
-	ui.uimanager.mock_method('get_accel_group', tests.MockObject())
-
-	ui.mainwindow = tests.MockObject()
-	ui.mainwindow.statusbar_style_label = tests.MockObject()
+	#~ ui.uimanager = tests.MockObject()
+	#~ ui.uimanager.mock_method('get_accel_group', tests.MockObject())
 
 	return PageView(ui)
 
@@ -1822,7 +1812,6 @@ class MockUI(tests.MockObject):
 
 	def __init__(self):
 		tests.MockObject.__init__(self)
-		self.mainwindow = None
 		self.notebook = tests.MockObject()
 		self.preferences = SectionedConfigDict()
 		self.page = Path('Test')

@@ -651,7 +651,7 @@ class TaskListDialog(Dialog):
 			tag_by_page=preferences['tag_by_page'],
 			use_workweek=preferences['use_workweek']
 		)
-		self.task_list.set_headers_visible(True) # Fix for maemo
+		self.task_list.set_headers_visible(True)
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
@@ -895,10 +895,7 @@ class TaskListTreeView(BrowserTreeView):
 		column.set_resizable(True)
 		column.set_sort_column_id(self.TASK_COL)
 		column.set_expand(True)
-		if ui_environment['platform'] == 'maemo':
-			column.set_min_width(250) # don't let this column get too small
-		else:
-			column.set_min_width(300) # don't let this column get too small
+		column.set_min_width(300) # don't let this column get too small
 		self.append_column(column)
 		self.set_expander_column(column)
 

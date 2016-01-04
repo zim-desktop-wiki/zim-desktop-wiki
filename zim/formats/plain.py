@@ -208,16 +208,21 @@ class Dumper(DumperClass):
 
 		return map(lambda line: line+"\n", table)
 
+	@staticmethod
+	def _concat(s):
+		return s if isinstance(s, basestring) else ''.join(s)
+
 	def dump_thead(self, tag, attrib, strings):
-		return [strings]
+		return [ strings ] # HACK to keep row structure
+
+	def dump_trow(self, tag, attrib, strings):
+		return [ strings ] # HACK to keep row structure
 
 	def dump_th(self, tag, attrib, strings):
 		strings = [s.replace('|', '∣') for s in strings]
-		return strings
-
-	def dump_trow(self, tag, attrib, strings):
-		return [strings]
+		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
 		strings = [s.replace('|', '∣') for s in strings]
-		return strings
+		return [self._concat(strings)]
+

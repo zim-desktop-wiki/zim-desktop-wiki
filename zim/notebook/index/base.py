@@ -65,7 +65,7 @@ class IndexerBase(object):
 
 	def emit(self, signal, *args):
 		if signal in self._signal_handlers:
-			if self.__signals__[signal][1] == SIGNAL_BEFORE:
+			if self.__signals__[signal][0] == SIGNAL_BEFORE:
 				self._emit(signal, args)
 			else:
 				self._signal_queue.append((signal, args))

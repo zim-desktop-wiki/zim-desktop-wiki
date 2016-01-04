@@ -31,8 +31,9 @@ class TestInsertSymbolPlugin(tests.TestCase):
 
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = pageview
+		mainwindow.uimanager = tests.MockObject()
+
 		mainwindow.ui = tests.MockObject() # XXX
-		mainwindow.ui.uimanager = tests.MockObject() # XXX
 		mainwindow.ui.uistate = SectionedConfigDict()
 
 		plugin.extend(mainwindow, 'MainWindow')

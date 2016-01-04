@@ -399,10 +399,7 @@ class AddNotebookDialog(Dialog):
 		self._name_set = not name is None
 		self._folder_set = not folder is None
 
-		if ui_environment['platform'] == 'maemo':
-			nb_folder = '~/MyDocs/Notebooks/' # 'MyDocs' is the "Device" folder on maemo
-		else:
-			nb_folder = '~/Notebooks/'
+		nb_folder = '~/Notebooks/'
 
 		if not self._name_set and not self._folder_set:
 			name = 'Notes'

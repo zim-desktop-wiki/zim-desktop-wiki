@@ -746,10 +746,9 @@ class WindowExtension(ObjectExtension):
 			self.uistate = None
 
 		if hasattr(self, 'uimanager_xml'):
-			# XXX TODO move uimanager to window
 			actiongroup = get_gtk_actiongroup(self)
-			self.window.ui.uimanager.insert_action_group(actiongroup, 0)
-			self._uimanager_id = self.window.ui.uimanager.add_ui_from_string(self.uimanager_xml)
+			self.window.uimanager.insert_action_group(actiongroup, 0)
+			self._uimanager_id = self.window.uimanager.add_ui_from_string(self.uimanager_xml)
 
 		self.connectto(window, 'destroy')
 
@@ -760,12 +759,12 @@ class WindowExtension(ObjectExtension):
 		# TODO move uimanager to window
 		if hasattr(self, '_uimanager_id') \
 		and self._uimanager_id is not None:
-			self.window.ui.uimanager.remove_ui(self._uimanager_id)
+			self.window.uimanager.remove_ui(self._uimanager_id)
 			self._uimanager_id = None
 
 		if hasattr(self, 'actiongroup') \
 		and self.actiongroup is not None:
-			self.window.ui.uimanager.remove_action_group(self.actiongroup)
+			self.window.uimanager.remove_action_group(self.actiongroup)
 
 
 class DialogExtension(WindowExtension):

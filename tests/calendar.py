@@ -118,10 +118,11 @@ class TestCalendarPlugin(tests.TestCase):
 
 		notebook = tests.new_notebook(self.get_tmp_name())
 		ui = setupGtkInterface(self, notebook=notebook)
+		mainwindow = ui._mainwindow # XXX
 
 		plugin.preferences['embedded'] = True
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
-		plugin.extend(ui.mainwindow)
+		plugin.extend(mainwindow)
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
@@ -134,7 +135,7 @@ class TestCalendarPlugin(tests.TestCase):
 
 		plugin.preferences['embedded'] = False
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)
-		plugin.extend(ui.mainwindow) # plugin does not remember objects, manager does that
+		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
