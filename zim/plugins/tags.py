@@ -255,9 +255,6 @@ class DuplicatePageTreeStore(PageTreeStore):
 class TagsPageTreeStore(DuplicatePageTreeStore):
 	'''Subclass of the PageTreeStore that shows tags as the top level
 	for sub-sets of the page tree.
-
-	A special top level item 'untagged' is created with all the
-	untagged (top level) pages.
 	'''
 
 	filter_depth = 2 # tag filter applies to top two levels
@@ -277,7 +274,7 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			#~ print '!!', signal, path
 			self._flush()
 			treepaths = self.get_treepaths(path)
-			for treepath in treepaths:
+			for treepath in sorted(treepaths):
 				#~ print '!!', signal, path, treepath
 				try:
 					treeiter = self.get_iter(treepath)
@@ -289,70 +286,44 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 		def on_page_deleted(o, path):
 			#~ print '!! page delete', path
 			treepaths = self.get_treepaths(path)
-			for treepath in treepaths:
+			for treepath in sorted(treepaths):
 				self.emit('row-deleted', treepath)
 			self._flush()
 
 		def on_tag_created(o, tag):
 			self._flush()
-			treepath = (self.index.get_tag_index(tag) + 1,)
+			treepath = self._get_treepaths_for_indexpath(tag)[0]
 			treeiter = self.get_iter(treepath)
 			#~ print '!! tag created', tag, treepath
 			self.row_inserted(treepath, treeiter)
 
-		def on_tag_to_be_inserted(o, tag, path, first):
-			if first and not path.namespace:
-				# Remove from untagged branch
-				treepath = (0, self.index.get_untagged_root_page_index(path))
-				#~ print '!! removed from untagged', treepath
-				self.row_deleted(treepath)
-				self._flush()
-
-		def on_tag_inserted(o, tag, path, first):
-			if first and not path.namespace:
-				# Finish update of untagged branch
-				if not self.index.n_list_untagged_root_pages():
-					treeiter = self.get_iter((0,))
-					self.row_has_child_toggled((0,), treeiter)
-
-			# Add to tag branch
-			self._flush()
-			tagindex = self.index.get_tag_index(tag)
-			pageindex = self.index.get_tagged_page_index(tag, path)
-			treepath = (tagindex + 1, pageindex)
-			treeiter = self.get_iter(treepath)
-			#~ print '!! tag inserted', tag, treepath
-			self.row_inserted(treepath, treeiter)
-			if not path.hasdata:
-				path = self.index.lookup_data(path)
-			if path.haschildren:
-				self.row_has_child_toggled(treepath, treeiter)
-
-		def on_tag_to_be_removed(o, tag, path, last):
-			# Remove from tag branch
-			tagindex = self.index.get_tag_index(tag)
-			pageindex = self.index.get_tagged_page_index(tag, path)
-			treepath = (tagindex + 1, pageindex)
-			#~ print '!! tag removed', tag, treepath
-			self.row_deleted(treepath)
-			self._flush()
-
-		def on_tag_removed(o, tag, path, last):
-			if last and not path.namespace:
-				# Add to untagged
-				pageindex = self.index.get_untagged_root_page_index(path)
-				treepath = (0, pageindex)
-				treeiter = self.get_iter(treepath)
-				#~ print '!! new untagged', treepath
-				if self.index.n_list_untagged_root_pages() == 1:
-					treeiter = self.get_iter((0,))
-					self.row_has_child_toggled((0,), treeiter)
-				self.row_inserted(treepath, treeiter)
-
 		def on_tag_to_be_deleted(o, tag):
-			treepath = (self.index.get_tag_index(tag) + 1,)
+			treepath = self._get_treepaths_for_indexpath(tag)[0]
 			#~ print '!! tag deleted', tag, treepath
 			self.row_deleted(treepath)
+			self._flush()
+
+		def on_tag_inserted(o, tag, path):
+			# Add to tag branch
+			self._flush()
+			tagindex = self._get_treepaths_for_indexpath(tag)[0][0]
+			for treepath in self._get_treepaths_for_indexpath(path):
+				if treepath[0] == tagindex \
+				and len(treepath) == len(path.parts) + 1:
+					treeiter = self.get_iter(treepath)
+					#~ print '!! tag inserted', tag, treepath
+					self.row_inserted(treepath, treeiter)
+
+					if path.haschildren:
+						self.row_has_child_toggled(treepath, treeiter)
+
+		def on_tag_to_be_removed(o, tag, path):
+			# Remove from tag branch
+			tagindex = self._get_treepaths_for_indexpath(tag)[0][0]
+			for treepath in self._get_treepaths_for_indexpath(path):
+				if treepath[0] == tagindex \
+				and len(treepath) == len(path.parts) + 1:
+					self.row_deleted(treepath)
 			self._flush()
 
 		self.connectto_all(self.index, (
@@ -362,12 +333,9 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			('page-to-be-removed', on_page_deleted),
 
 			('tag-created', on_tag_created),
-			('tag-delete', on_tag_to_be_deleted),
-
-			('tag-add-to-page', on_tag_to_be_inserted),
+			('tag-to-be-deleted', on_tag_to_be_deleted),
 			('tag-added-to-page', on_tag_inserted),
-			('tag-remove-from-page', on_tag_to_be_removed),
-			('tag-removed-from-page', on_tag_removed),
+			('tag-removed-from-page', on_tag_to_be_removed),
 		))
 
 	def get_treepaths(self, path):
@@ -473,15 +441,17 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 			get_treepaths_for_indexpath_flatlist_factory(self.index, self._cache)
 
 		def on_page_changed(o, path, signal):
+			#~ print ">>", signal, path
 			self._flush()
 			treepaths = self.get_treepaths(path)
-			for treepath in treepaths:
+			for treepath in sorted(treepaths):
 				treeiter = self.get_iter(treepath)
 				self.emit(signal, treepath, treeiter)
 
 		def on_page_deleted(o, path):
+			#~ print ">> delete page", path
 			treepaths = self.get_treepaths(path)
-			for treepath in treepaths:
+			for treepath in sorted(treepaths):
 				self.emit('row-deleted', treepath)
 			self._flush()
 

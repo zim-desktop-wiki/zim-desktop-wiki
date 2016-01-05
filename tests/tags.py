@@ -26,8 +26,6 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 	def testTreeStore(self):
 		'''Test TaggedPageTreeStore index interface'''
-		# Hooking up the treeview as well just to see if we get any errors
-		# From the order the signals are generated.
 
 		# Check configuration
 		treestore = self.storeclass(self.index)
@@ -111,10 +109,12 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		ui.page = Path('roundtrip')
 		self.assertTrue(self.notebook.get_page(ui.page).exists())
 
+		self.index.flush() # we want to index ourselves
 		treestore = self.storeclass(self.index)
 		treeview = self.viewclass(ui, treestore)
 
 		# Process signals on by one
+		self.assertEqual(self.notebook.pages.n_all_pages(), 0) # assert we start blank
 		for p in self.index.update_iter():
 			tests.gtk_process_events()
 		tests.gtk_process_events()
@@ -131,6 +131,17 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		#~ treeview.emit('popup-menu')
 		treeview.emit('insert-link', path)
 		treeview.emit('copy')
+
+		# Check signals for page change
+		page = self.notebook.get_page(Path('Foo'))
+
+		page.parse('wiki', 'Fooo @tag1 @tag2\n')
+		self.notebook.store_page(page)
+		tests.gtk_process_events()
+
+		page.parse('wiki', 'Fooo @foo @bar @tag2\n')
+		self.notebook.store_page(page)
+		tests.gtk_process_events()
 
 		# Check if all the signals go OK in delete
 		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
@@ -236,8 +247,12 @@ class TestTagPluginWidget(tests.TestCase):
 		self.assertTrue(not treepath is None)
 
 		# Check signals
-		#~ widget.treeview.emit('popup-menu')
+		widget.treeview.emit('populate-popup', gtk.Menu())
 		widget.treeview.emit('insert-link', path)
+
+		# Toggles in popup
+		widget.toggle_show_full_page_name()
+		widget.toggle_show_full_page_name()
 
 		# Check tag filtering
 		cloud = widget.tagcloud
@@ -257,6 +272,14 @@ class TestTagPluginWidget(tests.TestCase):
 		self.assertTrue(tag in filtered)
 
 		self.assertTrue(not widget.treeview._tag_filter is None)
+
+		# check menu and sorting of tag cloud
+		cloud.emit('populate-popup', gtk.Menu())
+		mockaction = tests.MockObject()
+		mockaction.get_active = lambda : True
+		cloud._switch_sorting(mockaction)
+		mockaction.get_active = lambda : False
+		cloud._switch_sorting(mockaction)
 
 		# check filtering in treestore
 		tagfilter = (selected, filtered)

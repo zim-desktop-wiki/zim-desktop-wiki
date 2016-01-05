@@ -119,11 +119,11 @@ SEQUENCE = (
 INIT_SIGNALS = [
 	('page-added', 'Bar'),
 	('page-added', 'Foo'),
-	('page-added', 'Foo:Child1'),
 	('page-haschildren-toggled', 'Foo'),
+	('page-added', 'Foo:Child1'),
 	('page-added', 'Foo:Child2'),
-	('page-added', 'Foo:Child1:GrandChild1'),
 	('page-haschildren-toggled', 'Foo:Child1'),
+	('page-added', 'Foo:Child1:GrandChild1'),
 	('page-added', 'Foo:Child1:GrandChild2'),
 	('page-changed', 'Bar'),
 	('page-changed', 'Foo'),
@@ -435,6 +435,18 @@ class MemoryIndexerTests(tests.TestCase):
 		#~ print "### Force re-index"
 		self.index.flag_reindex()
 		self.runSequence(indexer, REINDEX_SEQUENCE, PAGES)
+
+		#~ print "### Page Changed"
+		path = Path('Foo:Child1')
+		for content in ( # First with different tags, then with empty tree
+			'Blah blah blah @foo @tag2',
+			'',
+		):
+			node = self.store.get_node(path)
+			tree = parser.parse(content)
+			node.store_parsetree(tree)
+			self.index.on_store_page(path)
+			# No assert but increases coverage, check for no error
 
 	def testThreaded(self):
 		# Test to prove that thread will update properly

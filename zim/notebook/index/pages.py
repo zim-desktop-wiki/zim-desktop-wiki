@@ -161,7 +161,7 @@ class PagesIndexer(IndexerBase):
 
 	__signals__ = {
 		'page-added': (SIGNAL_AFTER, None, (object,)),
-		'page-haschildren-toggled': (SIGNAL_AFTER, None, (object,)),
+		'page-haschildren-toggled': (SIGNAL_BEFORE, None, (object,)),
 		'page-changed': (SIGNAL_AFTER, None, (object,)),
 		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)), # SIGNAL_BEFORE --> Emit immediatly
 	}
@@ -934,9 +934,12 @@ def get_treepaths_for_indexpath_flatlist_factory(index, cache):
 	assert not cache, 'Better start with an empty cache!'
 
 	db_context = index.db_conn.db_context()
-	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(index, {})
+	normal_cache = {}
+	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(index, normal_cache)
 
 	def get_treepaths_for_indexpath_flatlist(indexpath):
+		if not cache:
+			normal_cache.clear() # flush 2nd cache as well..
 		normalpath = get_treepath_for_indexpath(indexpath)
 
 		with db_context as db:

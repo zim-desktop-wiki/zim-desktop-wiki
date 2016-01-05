@@ -6,7 +6,7 @@ from __future__ import with_statement
 
 
 from zim.utils import natural_sort_key, init_generator
-from zim.signals import SIGNAL_BEFORE
+from zim.signals import SIGNAL_BEFORE, SIGNAL_AFTER
 
 
 from .base import IndexerBase, IndexViewBase, IndexNotFoundError
@@ -51,14 +51,14 @@ class IndexTag(object):
 class TagsIndexer(IndexerBase):
 
 	__signals__ = {
-		'tag-created': (None, None, (object,)),
-		'tag-delete': (SIGNAL_BEFORE, None, (object,)),
-		'tag-deleted': (None, None, (object,)),
+		'tag-created': (SIGNAL_AFTER, None, (object,)),
+		'tag-to-be-deleted': (SIGNAL_BEFORE, None, (object,)),
+		'tag-deleted': (SIGNAL_AFTER, None, (object,)),
 
-		'tag-add-to-page': (SIGNAL_BEFORE, None, (object, object)),
-		'tag-added-to-page': (None, None, (object, object)),
-		'tag-remove-from-page': (SIGNAL_BEFORE, None, (object, object)),
-		'tag-removed-from-page': (None, None, (object, object)),
+		#~ 'tag-to-be-added-to-page': (SIGNAL_BEFORE, None, (object, object)),
+		'tag-added-to-page': (SIGNAL_AFTER, None, (object, object)),
+		#~ 'tag-to-be-removed-from-page': (SIGNAL_BEFORE, None, (object, object)),
+		'tag-removed-from-page': (SIGNAL_AFTER, None, (object, object)),
 	}
 
 	INIT_SCRIPT = '''
@@ -78,42 +78,80 @@ class TagsIndexer(IndexerBase):
 	'''
 
 	def on_index_page(self, index, db, indexpath, parsetree):
-		db.execute(
-			'DELETE FROM tagsources WHERE source=?',
-			(indexpath.id,)
-		)
+		newtags = set()
+		oldtags = set()
+
+		for row in db.execute(
+				'SELECT tags.name, tags.id '
+				'FROM tagsources '
+				'LEFT JOIN tags ON tagsources.tag=tags.id '
+				'WHERE tagsources.source = ?'
+				'ORDER BY tags.sortkey, tags.name',
+				(indexpath.id,)
+			):
+				oldtags.add(IndexTag(row))
 
 		if parsetree:
 			for name in parsetree.iter_tag_names():
 				row = db.execute(
-					'SELECT id FROM tags WHERE name=?', (name,)
+					'SELECT * FROM tags WHERE name=?', (name,)
 				).fetchone()
 				if row:
-					tagid = row['id']
+					tag = IndexTag(row)
+					if tag in oldtags:
+						oldtags.remove(tag)
+					else:
+						newtags.add(tag)
 				else:
 					sortkey = natural_sort_key(name)
 					c = db.execute(
 						'INSERT INTO tags(name, sortkey) VALUES (?, ?)', (name, sortkey)
 					)
-					tagid = c.lastrowid
+					row = db.execute('SELECT * FROM tags WHERE id=?', (c.lastrowid,)).fetchone()
+					tag = IndexTag(row)
+					self.emit('tag-created', tag)
+					newtags.add(tag)
 
-				db.execute(
-					'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
-					(indexpath.id, tagid)
-				)
+		for tag in oldtags:
+			#~ self.emit('tag-to-be-removed-from-page', tag, indexpath)
+			db.execute(
+				'DELETE FROM tagsources WHERE source=? and tag=?',
+				(indexpath.id, tag.id)
+			)
+			self.emit('tag-removed-from-page', tag, indexpath)
 
-		db.execute(
-			'DELETE FROM tags WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
-		)
+		for tag in newtags:
+			#~ self.emit('tag-to-be-added-to-page', tag, indexpath)
+			db.execute(
+				'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
+				(indexpath.id, tag.id)
+			)
+			self.emit('tag-added-to-page', tag, indexpath)
+
+		self._cleanup(db)
 
 	def on_delete_page(self, index, db, indexpath):
 		db.execute(
 			'DELETE FROM tagsources WHERE source=?',
 			(indexpath.id,)
 		)
+		self._cleanup(db)
+
+	def _cleanup(self, db):
+		to_be_removed = []
+		for row in db.execute(
+			'SELECT * FROM tags WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
+		):
+			tag = IndexTag(row)
+			to_be_removed.append(tag)
+			self.emit('tag-to-be-deleted', tag)
+
 		db.execute(
 			'DELETE FROM tags WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
 		)
+
+		for tag in to_be_removed:
+			self.emit('tag-deleted', tag)
 
 
 class TagsView(IndexViewBase):
@@ -218,6 +256,18 @@ class TagsView(IndexViewBase):
 				(indexpath.id,)
 			):
 				yield IndexTag(row)
+
+	def n_list_tags(self, path):
+		with self._db as db:
+			indexpath = self._pages.lookup_by_pagename(db, path)
+			r = db.execute(
+				'SELECT COUNT(*) '
+				'FROM tagsources '
+				'LEFT JOIN tags ON tagsources.tag=tags.id '
+				'WHERE tagsources.source = ?',
+				(indexpath.id,)
+			).fetchone()
+			return r[0]
 
 	@init_generator
 	def list_pages(self, tag):

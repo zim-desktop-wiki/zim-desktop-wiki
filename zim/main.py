@@ -151,9 +151,12 @@ class NotebookCommand(Command):
 		else:
 			return notebookinfo, None
 
-	def build_notebook(self):
+	def build_notebook(self, ensure_uptodate=True):
 		'''Get the L{Notebook} object for this command
 		Tries to automount the file location if needed.
+		@param ensure_uptodate: if C{True} index is updated when needed.
+		Only set to C{False} when index update is handled explicitly
+		(e.g. in the main gui).
 		@returns: a L{Notebook} object and a L{Path} object or C{None}
 		@raises NotebookLookupError: if the notebook could not be
 		resolved or is not given
@@ -166,6 +169,11 @@ class NotebookCommand(Command):
 		if not notebookinfo:
 			raise NotebookLookupError, _('Please specify a notebook')
 		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+
+		if ensure_uptodate and not notebook.index.probably_uptodate:
+			for check, path in notebook.index.update_iter():
+				logger.info('Indexing %s', path.name)
+
 		return notebook, page or uripage
 
 
@@ -198,7 +206,7 @@ class GuiCommand(NotebookCommand):
 				return notebookinfo, page
 
 	def run(self):
-		notebook, page = self.build_notebook()
+		notebook, page = self.build_notebook(ensure_uptodate=False)
 		if not notebook:
 			return # Cancelled notebook dialog
 
@@ -365,9 +373,6 @@ class ExportCommand(NotebookCommand):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
 		notebook, page = self.build_notebook()
-		if not notebook.index.probably_uptodate:
-			for check, path in notebook.index.update_iter():
-				logger.info('Indexing %s', path.name)
 
 		if page and self.opts.get('recursive'):
 			selection = SubPages(notebook, page)
@@ -410,7 +415,7 @@ class IndexCommand(NotebookCommand):
 	arguments = ('NOTEBOOK',)
 
 	def run(self):
-		notebook, p = self.build_notebook()
+		notebook, p = self.build_notebook(ensure_uptodate=False)
 		notebook.index.flush()
 		for check, path in notebook.index.update_iter():
 			logger.info('Indexing %s', path.name)

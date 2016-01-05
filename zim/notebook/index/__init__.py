@@ -134,12 +134,12 @@ class Index(object):
 		@param db_conn: a L{DBConnection} object
 		@param store: a L{StoreClass} instance to index
 		'''
-		self.db_conn = db_conn
-		self._db = db_conn.db_change_context()
 		self.store = store
 		self._indexers = [PagesIndexer(), LinksIndexer(), TagsIndexer()]
 		self._pages = PagesViewInternal()
 		self._index = IndexInternal(self.store, self._indexers)
+		self.db_conn = db_conn
+		self._db = db_conn.db_change_context(self._index.on_commit)
 		self._thread = None
 
 		try:
@@ -158,12 +158,17 @@ class Index(object):
 				file = File(self.db_conn.dbfilepath)
 				if file.exists():
 					file.remove()
-				self._db = db_conn.db_change_context()
+				self._db = db_conn.db_change_context(self._index.on_commit)
 				self._db_init()
 			else:
 				raise
 
 		# TODO checks on locale, others?
+
+		with self._db as db:
+			db.execute('PRAGMA synchronous=OFF;')
+			# Don't wait for disk writes, we can recover from crashes
+			# anyway. Allows us to use commit more frequently.
 
 	@property
 	def probably_uptodate(self):
@@ -216,10 +221,8 @@ class Index(object):
 		indexer = TreeIndexer.new_from_index(self)
 		indexer.queue_check(path)
 
-		# Run with a single commit at the end
-		with self._db as db:
-			for i in indexer.do_update_iter(db):
-				yield i
+		for i in indexer:
+			yield i
 
 	def start_update(self, path=None):
 		'''Start update in a separate thread.
@@ -388,6 +391,11 @@ class IndexInternal(object):
 		self.store = store
 		self.indexers = indexers
 		self._pages = PagesViewInternal()
+
+	def on_commit(self):
+		# Callback for change context - emits SIGNAL_AFTER signals
+		for indexer in self.indexers:
+			indexer.emit_queued_signals()
 
 	def get_property(self, db, key):
 		c = db.execute('SELECT value FROM zim_index WHERE key=?', (key,))
@@ -591,7 +599,7 @@ class TreeIndexer(IndexInternal):
 		self._pages = PagesViewInternal()
 
 	def queue_check(self, path, check=INDEX_CHECK_TREE):
-		with self.db_conn.db_change_context() as db:
+		with self.db_conn.db_change_context(self.on_commit) as db:
 			while path and not path.isroot:
 				try:
 					path = self._pages.lookup_by_pagename(db, path)
@@ -609,7 +617,7 @@ class TreeIndexer(IndexInternal):
 
 	def __iter__(self):
 		# Run with commit after each cycle
-		change_context = self.db_conn.db_change_context()
+		change_context = self.db_conn.db_change_context(self.on_commit)
 		update_iter = self.do_update_iter(change_context._db)
 		while True:
 			with change_context:
@@ -653,9 +661,6 @@ class TreeIndexer(IndexInternal):
 					'UPDATE pages SET needscheck=? WHERE id=?',
 					(INDEX_UPTODATE, indexpath.id)
 				)
-
-			for indexer in self.indexers:
-				indexer.emit_queued_signals()
 
 			# Let outside world know what we are doing
 			# and allow wrapper to commit changes
@@ -860,11 +865,12 @@ class DBConnection(object):
 		'''Returns a L{DBContext} object'''
 		return DBContext(self._get_db(), self._state_lock)
 
-	def db_change_context(self):
+	def db_change_context(self, on_commit=None):
 		'''Returns a L{DBChangeContext} object'''
 		return DBChangeContext(
 			self._get_db(check_same_thread=True),
-			self._state_lock, self._change_lock
+			self._state_lock, self._change_lock,
+			on_commit
 		)
 
 	def close_connections(self):
@@ -947,11 +953,12 @@ class DBChangeContext(object):
 			db.execute(...)
 	'''
 
-	def __init__(self, db, state_lock, change_lock):
+	def __init__(self, db, state_lock, change_lock, on_commit=None):
 		self._db = db
 		self.state_lock = state_lock
 		self.change_lock = change_lock
 		self._counter = 0 # counter makes commit re-entrant
+		self.on_commit = on_commit
 
 	def __enter__(self):
 		self.change_lock.acquire()
@@ -967,6 +974,9 @@ class DBChangeContext(object):
 				else:
 					with self.state_lock:
 						self._db.commit()
+
+					if self.on_commit:
+						self.on_commit()
 		finally:
 			self.change_lock.release()
 

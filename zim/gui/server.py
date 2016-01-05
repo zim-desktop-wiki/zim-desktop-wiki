@@ -127,6 +127,10 @@ class ServerWindow(gtk.Window):
 			else:
 				return
 
+			if not notebook.index.probably_uptodate:
+				for check, path in notebook.index.update_iter():
+					logger.info('Indexing %s', path.name)
+
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
 			self.httpd = make_server(notebook, port, public, **self.interface_opts)
