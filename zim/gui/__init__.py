@@ -1251,7 +1251,7 @@ class GtkInterface(gobject.GObject):
 		'''Menu action to show an L{ExportDialog}'''
 		from zim.gui.exportdialog import ExportDialog
 
-		if not self.notebook.probably_uptodate:
+		if not self.notebook.index.probably_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1281,7 +1281,7 @@ class GtkInterface(gobject.GObject):
 		@param path: a L{Path} object, or C{None} to move to current
 		selected page
 		'''
-		if not self.notebook.probably_uptodate:
+		if not self.notebook.index.probably_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1297,7 +1297,7 @@ class GtkInterface(gobject.GObject):
 		@param path: a L{Path} object, or C{None} for the current
 		selected page
 		'''
-		if not self.notebook.probably_uptodate:
+		if not self.notebook.index.probably_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1321,7 +1321,7 @@ class GtkInterface(gobject.GObject):
 			path = self._get_path_context()
 			if not path: return
 
-		if not self.notebook.probably_uptodate:
+		if not self.notebook.index.probably_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
