@@ -163,7 +163,7 @@ class PagesIndexer(IndexerBase):
 		'page-added': (SIGNAL_AFTER, None, (object,)),
 		'page-haschildren-toggled': (SIGNAL_BEFORE, None, (object,)),
 		'page-changed': (SIGNAL_AFTER, None, (object,)),
-		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)), # SIGNAL_BEFORE --> Emit immediatly
+		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)),
 	}
 
 	INIT_SCRIPT = '''

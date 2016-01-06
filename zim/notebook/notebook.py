@@ -117,9 +117,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 	@signal: C{store-page (page)}: emitted before actually storing the page
 	@signal: C{stored-page (page)}: emitted after storing the page
-	@signal: C{move-page (oldpath, newpath, update_links)}: emitted before
+	@signal: C{move-page (oldpath, newpath)}: emitted before
 	actually moving a page
-	@signal: C{moved-page (oldpath, newpath, update_links)}: emitted after
+	@signal: C{moved-page (oldpath, newpath)}: emitted after
 	moving the page
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
@@ -508,12 +508,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if update_links and not self.index.probably_uptodate:
 			raise IndexNotUptodateError, 'Index not up to date'
 
+		self.emit('move-page', path, newpath)
 		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
 		self.store.move_page(path, newpath)
-		if not (newpath == path or newpath.ischild(path)):
-			self.index.on_delete_page(path)
-		self.index.update(newpath) # TODO - optimize by letting indexers know about move
+		self.index.on_move_page(path, newpath)
 		self.flush_page_cache(path)
+		self.emit('moved-page', path, newpath)
 
 		if update_links:
 			for p in self._update_links_in_moved_page(path, newpath):
@@ -679,6 +679,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param update_links: if C{True} all links B{from} and B{to} this
 		page and any of it's children will be updated to reflect the
 		new page name
+
+		@emits: move-page before the move
+		@emits: moved-page after succesful move
 		'''
 		newbasename = Path.makeValidPageName(newbasename)
 		newpath = Path(path.namespace + ':' + newbasename)

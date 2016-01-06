@@ -350,7 +350,7 @@ class GtkInterface(gobject.GObject):
 				action = actions.pop(0)
 				action()
 
-		def follow(o, path, newpath, update_links):
+		def follow(o, path, newpath):
 			if self.page == path:
 				self.open_page(newpath)
 			elif self.page.ischild(path):

@@ -192,7 +192,7 @@ class History(gobject.GObject):
 		if changed:
 			self.emit('changed')
 
-	def _on_page_moved(self, nb, oldpath, newpath, update_links):
+	def _on_page_moved(self, nb, oldpath, newpath):
 		# Update paths to reflect new position while keeping other data
 		changed = False
 		for list in (self._history, self._recent):

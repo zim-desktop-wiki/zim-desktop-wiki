@@ -313,15 +313,11 @@ class Index(object):
 			self._index.index_page(db, indexpath)
 			self._index.update_parent(db, indexpath.parent)
 
-	#~ def on_move_page(self, oldpath, newpath):
-		#~ with self._db as db:
-			#~ oldindexpath = self._pages.lookup_by_pagename(db, oldpath)
-			#~ new
-			#~ except IndexNotFoundError:
-				#~ return
-#~
-			#~ last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
-			#~ self._index.update_parent(db, last_deleted.parent)
+	def on_move_page(self, oldpath, newpath):
+		# TODO - optimize by letting indexers know about move
+		if not (newpath == oldpath or newpath.ischild(oldpath)):
+			self.on_delete_page(oldpath)
+		self.update(newpath)
 
 	def on_delete_page(self, path):
 		with self._db as db:

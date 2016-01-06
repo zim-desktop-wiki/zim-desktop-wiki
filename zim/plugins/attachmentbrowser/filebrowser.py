@@ -291,7 +291,12 @@ class FileBrowserIconView(gtk.IconView):
 		self.get_model().clear()
 
 	def _on_folder_changed(self, *a):
-		if self.folder and self.folder.mtime() != self._mtime:
+		try:
+			changed = self.folder and self.folder.mtime() != self._mtime
+		except OSError: # folder went missing?
+			changed = True
+
+		if changed:
 			logger.debug('Folder change detected: %s', self.folder)
 			self.refresh()
 			self.emit('folder-changed')
