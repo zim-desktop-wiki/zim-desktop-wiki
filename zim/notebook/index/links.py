@@ -95,6 +95,7 @@ class LinksIndexer(IndexerBase):
 
 	def __init__(self):
 		IndexerBase.__init__(self)
+		self.check_links_pending = False
 		self._pages = PagesViewInternal()
 		self._prevent_recursion_touch = StateFlag()
 		self._prevent_recursion_cleanup = StateFlag()
@@ -106,8 +107,9 @@ class LinksIndexer(IndexerBase):
 			'AND target in (SELECT id FROM pages WHERE page_exists=?)',
 			(HREF_REL_FLOATING, indexpath.sortkey, PAGE_EXISTS_AS_LINK)
 		)
-		if not self._prevent_recursion_touch:
-			self.check_links(index, db)
+		#~ if not self._prevent_recursion_touch:
+			#~ self.check_links(index, db)
+		self.check_links_pending = True
 
 	def on_index_page(self, index, db, indexpath, parsetree):
 		db.execute(
@@ -140,7 +142,8 @@ class LinksIndexer(IndexerBase):
 				'UPDATE links SET needscheck=1 WHERE source=? or target=?',
 				(child, child)
 			)
-		self.check_links(index, db)
+		#~ self.check_links(index, db)
+		self.check_links_pending = True
 
 	def on_delete_page(self, index, db, indexpath):
 		db.execute(
@@ -152,11 +155,18 @@ class LinksIndexer(IndexerBase):
 			(ROOT_ID, indexpath.id,)
 		) # Need to link somewhere, if target is gone, use ROOT instead
 
-	def on_deleted_page(self, index, db, parent, basename):
-		self.check_links(index, db)
+		self.check_links_pending = True
+
+	#~ def on_deleted_page(self, index, db, parent, basename):
+		#~ self.check_links(index, db)
 			# Can result in page being resurrected as placeholder for link target
 
 	def check_links(self, index, db):
+		## HACK Called as a special case from InternalIndexer
+
+		if not self.check_links_pending:
+			return
+
 		for row in db.execute(
 			'SELECT * FROM links WHERE needscheck=1 '
 			'ORDER BY anchorkey, names'
@@ -172,6 +182,8 @@ class LinksIndexer(IndexerBase):
 			)
 
 		self.cleanup_placeholders(index, db)
+
+		self.check_links_pending = False
 
 	def cleanup_placeholders(self, index, db):
 		if self._prevent_recursion_cleanup:

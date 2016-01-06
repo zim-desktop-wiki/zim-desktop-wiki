@@ -139,7 +139,7 @@ class Index(object):
 		self._pages = PagesViewInternal()
 		self._index = IndexInternal(self.store, self._indexers)
 		self.db_conn = db_conn
-		self._db = db_conn.db_change_context(self._index.on_commit)
+		self._db = db_conn.db_change_context()
 		self._thread = None
 
 		try:
@@ -158,7 +158,7 @@ class Index(object):
 				file = File(self.db_conn.dbfilepath)
 				if file.exists():
 					file.remove()
-				self._db = db_conn.db_change_context(self._index.on_commit)
+				self._db = db_conn.db_change_context()
 				self._db_init()
 			else:
 				raise
@@ -313,6 +313,10 @@ class Index(object):
 			self._index.index_page(db, indexpath)
 			self._index.update_parent(db, indexpath.parent)
 
+			self._index.before_commit(db)
+
+		self._index.after_commit()
+
 	def on_move_page(self, oldpath, newpath):
 		# TODO - optimize by letting indexers know about move
 		if not (newpath == oldpath or newpath.ischild(oldpath)):
@@ -331,6 +335,10 @@ class Index(object):
 
 			last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
 			self._index.update_parent(db, last_deleted.parent)
+
+			self._index.before_commit(db)
+
+		self._index.after_commit()
 
 	def add_plugin_indexer(self, indexer):
 		'''Add an indexer for a plugin
@@ -388,7 +396,18 @@ class IndexInternal(object):
 		self.indexers = indexers
 		self._pages = PagesViewInternal()
 
-	def on_commit(self):
+	def before_commit(self, db):
+		# This goes here to avoid link updates in between sequences
+		# of multiple delete pages. That scenario goes wrong when there
+		# are cross-refs because signals for delete and touch placeholder
+		# will go out of sync.
+		#
+		# This is really a hack, but OK
+		for indexer in self.indexers:
+			if isinstance(indexer, LinksIndexer):
+				indexer.check_links(self, db)
+
+	def after_commit(self):
 		# Callback for change context - emits SIGNAL_AFTER signals
 		for indexer in self.indexers:
 			indexer.emit_queued_signals()
@@ -595,7 +614,7 @@ class TreeIndexer(IndexInternal):
 		self._pages = PagesViewInternal()
 
 	def queue_check(self, path, check=INDEX_CHECK_TREE):
-		with self.db_conn.db_change_context(self.on_commit) as db:
+		with self.db_conn.db_change_context() as db:
 			while path and not path.isroot:
 				try:
 					path = self._pages.lookup_by_pagename(db, path)
@@ -613,16 +632,19 @@ class TreeIndexer(IndexInternal):
 
 	def __iter__(self):
 		# Run with commit after each cycle
-		change_context = self.db_conn.db_change_context(self.on_commit)
+		change_context = self.db_conn.db_change_context()
 		update_iter = self.do_update_iter(change_context._db)
 		while True:
 			with change_context:
 				try:
 					i = update_iter.next()
+					self.before_commit(change_context._db)
 				except StopIteration:
 					break
 				else:
 					yield i
+
+			self.after_commit()
 
 	def do_update_iter(self, db):
 		logger.info('Starting index update')
@@ -862,12 +884,11 @@ class DBConnection(object):
 		'''Returns a L{DBContext} object'''
 		return DBContext(self._get_db(), self._state_lock)
 
-	def db_change_context(self, on_commit=None):
+	def db_change_context(self):
 		'''Returns a L{DBChangeContext} object'''
 		return DBChangeContext(
 			self._get_db(check_same_thread=True),
-			self._state_lock, self._change_lock,
-			on_commit
+			self._state_lock, self._change_lock
 		)
 
 	def close_connections(self):
@@ -950,12 +971,11 @@ class DBChangeContext(object):
 			db.execute(...)
 	'''
 
-	def __init__(self, db, state_lock, change_lock, on_commit=None):
+	def __init__(self, db, state_lock, change_lock):
 		self._db = db
 		self.state_lock = state_lock
 		self.change_lock = change_lock
 		self._counter = 0 # counter makes commit re-entrant
-		self.on_commit = on_commit
 
 	def __enter__(self):
 		self.change_lock.acquire()
@@ -971,9 +991,6 @@ class DBChangeContext(object):
 				else:
 					with self.state_lock:
 						self._db.commit()
-
-					if self.on_commit:
-						self.on_commit()
 		finally:
 			self.change_lock.release()
 
