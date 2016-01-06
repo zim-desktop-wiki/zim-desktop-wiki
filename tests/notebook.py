@@ -436,22 +436,6 @@ class TestNotebook(tests.TestCase):
 	def testUpdateLinks(self):
 		'''Test logic for updating links on move'''
 
-		# creating relative paths
-		for source, href, link in (
-			('Foo:Bar', 'Foo:Bar', 'Bar'),
-			('Foo:Bar', 'Foo:Bar:Baz', '+Baz'),
-			('Foo:Bar:Baz', 'Foo:Dus', 'Foo:Dus'),
-			('Foo:Bar:Baz', 'Foo:Bar:Dus', 'Dus'),
-			('Foo:Bar', 'Dus:Ja', 'Dus:Ja'),
-			('Foo:Bar', 'Foo:Ja', 'Ja'),
-			('Foo:Bar:Baz', 'Foo:Bar', 'Bar'),
-			('Foo:Bar:Baz', 'Foo', 'Foo'),
-			('Foo:Bar:Baz', 'Bar', ':Bar'), # conflict with anchor
-		):
-			#~ print '>', source, href, link
-			self.assertEqual(
-				self.notebook.relative_link(Path(source), Path(href)), link)
-
 		# update the page that was moved itself
 		# moving from Dus:Baz to foo:bar:Baz or renaming to Dus:Bar
 		# while updating links in Dus:Ja

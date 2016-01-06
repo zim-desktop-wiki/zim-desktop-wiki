@@ -334,48 +334,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		# TODO - can we switch cache_dir on run time when 'shared' changed ?
 
-	def lookup_pagename_from_user_input(self, name, reference=None):
-		'''Lookup a pagename based on user input
-		@param name: the user input as string
-		@param reference: a L{Path} in case reletive links are supported as
-		customer input
-		@returns: a L{IndexPath} or L{Path} for C{name}
-		@raises ValueError: when C{name} would reduce to empty string
-		after removing all invalid characters, or if C{name} is a
-		relative link while no C{reference} page is given.
-		@raises IndexNotFoundError: when C{reference} is not indexed
-		'''
-		return self.pages.lookup_from_user_input(name, reference)
-
-	def relative_link(self, source, href):
-		'''Returns a relative links for a page link
-
-		More or less the opposite of resolve_link().
-
-		@param source: L{Path} for the referring page
-		@param href: L{Path} for the linked page
-		@returns: a link for href, either relative to 'source' or an
-		absolute link
-		'''
-		if href == source: # page linking to itself
-			return href.basename
-		elif href.ischild(source): # link to a child or grand child
-			return '+' + href.relname(source)
-		else:
-			parent = source.commonparent(href)
-			if parent.isroot: # no common parent except for root
-				if href.parts[0].lower() in [p.lower() for p in source.parts]:
-					# there is a conflicting anchor name in path
-					return ':' + href.name
-				else:
-					return href.name
-			elif parent == href: # link to an parent or grand parent
-				return href.basename
-			elif parent == source.parent: # link to sibling of same parent
-				return href.relname(parent)
-			else:
-				return parent.basename + ':' + href.relname(parent)
-
 	def suggest_link(self, source, word):
 		'''Suggest a link Path for 'word' or return None if no suggestion is
 		found. By default we do not do any suggestion but plugins can

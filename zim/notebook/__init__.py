@@ -7,7 +7,7 @@ This module contains the main Notebook class and related classes.
 
 The C{Notebook} interface is the generic API for accessing and storing
 pages and other data in the notebook. The interface uses L{Path} objects
-to indicate a specific page. See L{Notebook.lookup_pagename_from_user_input()}
+to indicate a specific page. See L{Notebook.pages.lookup_from_user_input()}
 to obtain a L{Path} from a page name as string. Pages in the notebook
 are represented by the L{Page} object, which allows to access the page
 contents.

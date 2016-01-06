@@ -98,11 +98,11 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
 			# XXX allow access through page object
 		for link in backlinks:
-			href = notebook.relative_link(link.target, link.source) # XXX
+			href = notebook.pages.create_link(link.target, link.source)
 				# relative link from target *back* to source
-			href = href.lstrip(':')
-			#~ model.append(None, (link.source, href))
-			model.append((link.source, href))
+			text = href.to_wiki_link().strip(':')
+			#~ model.append(None, (link.source, text))
+			model.append((link.source, text))
 
 		## TODO make hierarchy by link type ?
 		## use link.type attribute

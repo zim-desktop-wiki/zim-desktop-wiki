@@ -754,7 +754,18 @@ class TestPagesView(tests.TestCase):
 			('Foo:Child1:GrandChild1', 'AAA', 'Foo:Child1:AAA'),
 			('Foo:Child1:GrandChild1', '+AAA', 'Foo:Child1:GrandChild1:AAA'),
 			('Foo:Child1:GrandChild1', ':AAA', 'AAA'),
+
 			# TODO more examples
+			#~ ('Foo:Bar', 'Bar', 'Foo:Bar'),
+			#~ ('Foo:Bar', '+Baz', 'Foo:Bar:Baz'),
+			#~ ('Foo:Bar:Baz', 'Foo:Dus', 'Foo:Dus'),
+			#~ ('Foo:Bar:Baz', 'Dus', 'Foo:Bar:Dus'),
+			#~ ('Foo:Bar', 'Dus:Ja', 'Dus:Ja'),
+			#~ ('Foo:Bar', 'Ja', 'Foo:Ja'),
+			#~ ('Foo:Bar:Baz', 'Bar', 'Foo:Bar'),
+			#~ ('Foo:Bar:Baz', 'Foo', 'Foo'),
+			#~ ('Foo:Bar:Baz', ':Bar', 'Bar'), # conflict with anchor
+
 		):
 			source = pages.lookup_by_pagename(Path(sourcename))
 			self.assertIsNotNone(source)

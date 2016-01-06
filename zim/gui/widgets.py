@@ -1954,9 +1954,13 @@ class PageEntry(InputEntry):
 		## TODO can be more efficient with a visitor pattern
 		## that can stop recursion of some branches or force order
 
+		def relative_link(target):
+			href = notebook.pages.create_link(path, target)
+			return href.to_wiki_link()
+
 		# first yield children
 		for p in notebook.pages.walk(path):
-			yield notebook.relative_link(path, p), p.basename
+			yield relative_link(p), p.basename
 
 		# than peers and parents, sort by distance
 		if path.namespace:
@@ -1964,7 +1968,7 @@ class PageEntry(InputEntry):
 			peers = []
 			for p in notebook.pages.walk(parent):
 				if not p.ischild(path):
-					relname = notebook.relative_link(path, p)
+					relname = relative_link(p)
 					basename = p.basename
 					distance = relname.count(':')
 					peers.append((distance, relname, basename))
@@ -1977,7 +1981,7 @@ class PageEntry(InputEntry):
 		# than the rest of the tree, excluding direct parent
 		for p in notebook.pages.walk():
 			if not p.ischild(parent):
-				yield notebook.relative_link(path, p), p.basename
+				yield relative_link(p), p.basename
 
 	def do_changed(self):
 		text = self.get_text()

@@ -482,6 +482,7 @@ class PagesView(IndexViewBase):
 		@raises ValueError: when C{name} would reduce to empty string
 		after removing all invalid characters, or if C{name} is a
 		relative link while no C{reference} page is given.
+		@raises IndexNotFoundError: when C{reference} is not indexed
 		'''
 		# This method re-uses most of resolve_link() but is defined
 		# separate because it has a distinct different purpose.
