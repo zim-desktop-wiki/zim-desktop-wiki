@@ -212,7 +212,7 @@ class Path(object):
 			i = len(path.name)+1
 			return self.name[i:].strip(':')
 		else:
-			raise Exception, '"%s" is not below "%s"' % (self, path)
+			raise ValueError, '"%s" is not below "%s"' % (self, path)
 
 	@property
 	def parent(self):

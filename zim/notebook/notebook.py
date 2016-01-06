@@ -586,9 +586,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 					oldpath = oldtarget + link.source.relname(newtarget)
 
 				yield link.source
-				self._update_moved_page(link.source, oldpath)
+				self._update_moved_page(link.source, oldpath, newtarget, oldtarget)
+				seen.add(link.source.name)
 
-	def _update_moved_page(self, path, oldpath):
+	def _update_moved_page(self, path, oldpath, newroot, oldroot):
 		logger.debug('Updating links in page moved from %s to %s', oldpath, path)
 		page = self.get_page(path)
 		tree = page.get_parsetree()
@@ -606,11 +607,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				oldtarget = self.pages.resolve_link(oldpath, href)
 
 				if newtarget != oldtarget:
-					return self._update_link_tag(elt, page, oldtarget, href)
-				else:
-					raise zim.formats.VisitorSkip
-			else:
-				raise zim.formats.VisitorSkip
+					try:
+						update = \
+							newtarget.relname(newroot) != oldtarget.relname(oldroot)
+					except ValueError:
+						update = True
+
+					if update:
+						return self._update_link_tag(elt, page, oldtarget, href)
+
+			raise zim.formats.VisitorSkip
 
 		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
@@ -633,14 +639,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		# 2. Check for links that have anchor of same name as the moved page
 		# and originate from a (grand)child of the parent of the moved page
 		# and no longer resolve to the moved page
-		# (these may have resolved to a higher level after the move)
 		parent = oldtarget.parent
 		for link in list(self.links.list_floating_links(oldtarget.basename)):
 			if link.source.name not in seen \
 			and link.source.ischild(parent) \
 			and not (
-				link.target.ischild(parent)
-				or link.target == newtarget
+				link.target == newtarget
 				or link.target.ischild(newtarget)
 			):
 				yield link.source

@@ -681,7 +681,7 @@ class TreeIndexer(IndexInternal):
 
 		if etag != indexpath.children_etag:
 			self.set_property(db, 'probably_uptodate', False)
-			if etag and not indexpath.children_etag:
+			if etag and indexpath.n_children == 0:
 				self.new_children(db, indexpath, etag)
 			elif etag:
 				self.update_children(db, indexpath, etag, checktree=checktree)
@@ -724,6 +724,7 @@ class TreeIndexer(IndexInternal):
 		)
 
 	def new_children(self, db, indexpath, etag):
+		assert indexpath.n_children == 0
 		for node in self.store.get_children(indexpath):
 			child_path = indexpath + node.basename
 			check = INDEX_CHECK_TREE if node.haschildren else INDEX_CHECK_PAGE
