@@ -113,7 +113,7 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
+KEYSTATES = gtk.gdk.CONTROL_MASK |gtk.gdk.META_MASK| gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 MENU_ACTIONS = (
 	# name, stock id, label
@@ -3691,7 +3691,7 @@ class TextView(gtk.TextView):
 				return gtk.TextView.do_key_press_event(self, event)
 
 		elif (event.keyval in KEYVALS_HOME
-		and not event.state & gtk.gdk.META_MASK):
+		and not event.state & gtk.gdk.CONTROL_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)
