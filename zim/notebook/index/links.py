@@ -256,12 +256,18 @@ class LinksView(IndexViewBase):
 		elif direction == LINK_DIR_BOTH:
 			c = db.execute(
 				'SELECT DISTINCT source, target FROM links '
-				'WHERE source = ? or target = ?', (indexpath.id, indexpath.id)
+				'WHERE source = ? or (target = ? and source <> ?)', (indexpath.id, indexpath.id, ROOT_ID)
+					# Excluding root here because linking from root
+					# is used as a hack in __init__.py to set a
+					# placeholder for the current page
 			)
 		else:
 			c = db.execute(
 				'SELECT DISTINCT source, target FROM links '
-				'WHERE target = ?', (indexpath.id,)
+				'WHERE target = ? and source <> ?', (indexpath.id, ROOT_ID)
+					# Excluding root here because linking from root
+					# is used as a hack in __init__.py to set a
+					# placeholder for the current page
 			)
 
 		for row in c:
@@ -297,22 +303,29 @@ class LinksView(IndexViewBase):
 		elif direction == LINK_DIR_BOTH:
 			c = db.execute(
 				'SELECT count(*) FROM links '
-				'WHERE source=? or target=?', (indexpath.id, indexpath.id)
+				'WHERE source=? or (target=? and source<>?)' , (indexpath.id, indexpath.id, ROOT_ID)
+					# Excluding root here because linking from root
+					# is used as a hack in __init__.py to set a
+					# placeholder for the current page
 			)
 		else:
 			c = db.execute(
 				'SELECT count(*) FROM links '
-				'WHERE target=?', (indexpath.id,)
+				'WHERE target=? and source<>?', (indexpath.id, ROOT_ID)
+					# Excluding root here because linking from root
+					# is used as a hack in __init__.py to set a
+					# placeholder for the current page
 			)
 
 		return c.fetchone()[0]
 
-	def list_floating_links(self, name):
+	def list_floating_links(self, basename):
+		anchorkey = natural_sort_key(basename)
 		with self._db as db:
 			for row in db.execute(
 				'SELECT DISTINCT source, target FROM links '
-				'WHERE names=? or names LIKE ?',
-				(name, name + ':%')
+				'WHERE rel=? and anchorkey=?',
+				(HREF_REL_FLOATING, anchorkey)
 			):
 				target = self._pages.lookup_by_id(db, row['target'])
 				source = self._pages.lookup_by_id(db, row['source'])

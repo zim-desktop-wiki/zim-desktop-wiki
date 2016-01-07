@@ -263,45 +263,43 @@ class Index(object):
 		logger.info('Flushing index')
 		self._db_init()
 
-	def touch_path_interactive(self, path):
-		'''Check to be called when a page is opened in the GUI
-		Temporarily touches the path as a placeholder and starts checks.
+	def touch_current_page_placeholder(self, path):
+		'''Create a placeholder for C{path} if the page does not
+		exist. Cleans up old placeholders.
 		'''
-		# HACK - using link from root to touch path
-		self.cleanup_path_interactive(path)
-		try:
-			with self._db as db:
-				indexpath = self._pages.lookup_by_pagename(db, path)
-		except IndexNotFoundError:
-			pass
-		else:
-			return indexpath
+		# This method used a hack by linking the page from the ROOT_ID
+		# page if it does not exist.
 
 		with self._db as db:
-			target = self._index.touch_path(db, path)
-			self._index.set_page_exists(db, target, PAGE_EXISTS_HAS_CONTENT) # hack to avoid cleanup before next step :S
-			db.execute(
-				'INSERT INTO links(source, target, rel, names) '
-				'VALUES (?, ?, ?, ?)',
-				(ROOT_ID, target.id, HREF_REL_ABSOLUTE, target.name)
-			)
-			self._index.set_page_exists(db, target, PAGE_EXISTS_AS_LINK)
-			return target
-
-	def cleanup_path_interactive(self, path):
-		'''Cleanup to be called when leaving a (non-existing) page.
-		Removes placeholders left by C{touch_path_interactive()}
-		'''
-		# Actually, removes all interactive paths
-		with self._db as db:
+			# delete
 			db.execute(
 				'DELETE FROM links WHERE source=?',
 				(ROOT_ID,)
 			)
 			for indexer in self._indexers:
-				if hasattr(indexer, 'cleanup_placeholders'):
+				if isinstance(indexer, LinksIndexer):
 					indexer.cleanup_placeholders(self._index, db)
-					break
+
+			# touch if needed
+			try:
+				indexpath = self._pages.lookup_by_pagename(db, path)
+			except IndexNotFoundError:
+				# insert link
+				# insert placeholder
+				target = self._index.touch_path(db, path)
+				#~ self._index.set_page_exists(db, target, PAGE_EXISTS_HAS_CONTENT) # hack to avoid cleanup before next step :S
+				db.execute(
+					'INSERT INTO links(source, target, rel, names) '
+					'VALUES (?, ?, ?, ?)',
+					(ROOT_ID, target.id, HREF_REL_ABSOLUTE, target.name)
+				)
+				self._index.set_page_exists(db, target, PAGE_EXISTS_AS_LINK)
+			else:
+				pass # nothing to do
+
+			self._index.before_commit(db)
+
+		self._index.after_commit()
 
 	def on_store_page(self, page):
 		with self._db as db:

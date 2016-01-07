@@ -589,18 +589,11 @@ class PageTreeView(BrowserTreeView):
 			return None # index not yet initialized ...
 
 		treepath = model.get_treepath(path)
-		if not treepath:
-			if vivificate:
-				# path does not exist, but we can create it
-				path = model.index.touch_path_interactive(path)
-				treepath = model.get_treepath(path)
-				assert treepath, 'BUG: failed to touch placeholder'
-			else:
-				return None
-
-		model.set_current_page(path) # highlight in model
-
-		return treepath
+		if treepath:
+			model.set_current_page(path) # highlight in model
+			return treepath
+		else:
+			return None
 
 	def select_treepath(self, treepath):
 		'''Select a gtk TreePath in the view

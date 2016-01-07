@@ -863,6 +863,9 @@ class GtkInterface(gobject.GObject):
 				raise AssertionError, 'Could not close page'
 				# assert statement could be optimized away
 
+		self.notebook.index.touch_current_page_placeholder(path)
+			# XXX to be incorporated in checkout/checkin logic
+
 		logger.info('Open page: %s (%s)', page, path)
 		self.emit('open-page', page, path)
 

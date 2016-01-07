@@ -27,7 +27,7 @@ PAGES_TREE = { # Pages stored initially in the notebook
 		'n_children': 0,
 		'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n' \
 			'@tag1 @tag2\n' \
-			'[[:Foo]]\n',
+			'[[Foo]]\n',
 		'links': ['Foo'],
 		'backlinks': [],
 		'tags': ['tag1', 'tag2'],
@@ -997,6 +997,11 @@ class TestLinksView(tests.TestCase):
 				self.assertTrue(len(links) >= len(attr['links']))
 				n_links = linksview.n_list_links_section(p)
 				self.assertEqual(n_links, len(links))
+
+		lclinks = [(l.source, l.target) for l in linksview.list_floating_links('foo')]
+		uclinks = [(l.source, l.target) for l in linksview.list_floating_links('FOO')]
+		self.assertGreater(len(lclinks), 0)
+		self.assertEqual(lclinks, uclinks)
 
 
 class TestDBConnection(tests.TestCase):
