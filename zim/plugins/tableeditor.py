@@ -374,10 +374,12 @@ class TableViewObject(CustomObjectClass):
 		# update data
 		if self._liststore:
 			liststore = self._get_liststore()
+			self._header = headers
 			self._rows = self._update_rows(liststore, id_mapping, len(headers))
 			liststore = self._get_liststore(reset=True)
 		else:
 			liststore = None
+			self._header = headers
 			self._rows = self._update_rows(self._rows, id_mapping, len(headers))
 
 		self.set_aligns(aligns)
