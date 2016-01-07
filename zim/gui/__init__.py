@@ -2468,9 +2468,9 @@ class MainWindow(Window):
 
 		if not self._geometry_set:
 			# Ignore this if an explicit geometry was specified to the constructor
-			self.uistate.setdefault('windowpos', (None, None), check=value_is_coord)
-			x, y = self.uistate['windowpos']
-			if (x, y) != (None, None):
+			self.uistate.setdefault('windowpos', None, check=value_is_coord)
+			if self.uistate['windowpos'] is not None:
+				x, y = self.uistate['windowpos']
 				self.move(x, y)
 			self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 			w, h = self.uistate['windowsize']
