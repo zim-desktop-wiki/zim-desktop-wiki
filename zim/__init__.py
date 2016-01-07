@@ -156,8 +156,9 @@ if os.name == "nt" and not os.environ.get('LANG'):
 	# Set locale config for gettext (other platforms have this by default)
 	# Using LANG because it is lowest prio - do not override other params
 	lang, enc = locale.getlocale()
-	os.environ['LANG'] = lang + '.' + enc
-	logging.info('Locale set to: %s', os.environ['LANG'])
+	if lang is not None:
+		os.environ['LANG'] = lang + '.' + enc if enc else lang
+		logging.info('Locale set to: %s', os.environ['LANG'])
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
