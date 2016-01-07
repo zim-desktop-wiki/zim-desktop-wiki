@@ -120,12 +120,11 @@ class ConfigDefinition(object):
 	__slots__ = ('default', 'allow_empty')
 
 	def __init__(self, default, allow_empty=False):
-		self.default = default
 		if default is None:
 			allow_empty = True
 		self.allow_empty = allow_empty
 
-		self.check(default) # ensure that default follows check
+		self.default = self.check(default) # ensure that default follows check
 
 	def __eq__(self, other):
 		return self.__class__ == other.__class__ \

@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Config Files ======
 
-This page documents the various config files used. 
+This page documents the various config files used.
 Also see [[preferences]] for documentation of the preferences dialog.
 
 ===== Paths =====
@@ -58,7 +58,7 @@ Note that if you want interwiki page to include url syntax like a "#" to link to
 As a special case you can add other zim notebooks in the url list using "''zim+file://''" as URL scheme. These URLs will trigger zim to open the notebook directly.
 
 ==== Date format list ====
-The file ''XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the XDG_DATA path is used. 
+The file ''XDG_DATA/zim/dates.list'' gives a list of strftime formats, one on each line, to be used to populate the "Insert Date and Time" dialog. The first instance of this file that is found in the XDG_DATA path is used.
 
 See [[http://docs.python.org/library/time.html%23time.strftime|this link]] for documentation of the strftime formatting.
 
@@ -90,6 +90,7 @@ Known properties for TextView:
 * **linespacing**: //integer//	- line spacing in pixels
 * **justify**: ''JUSTIFY_LEFT'', ''JUSTIFY_FILL'', ...
 * **font**: //string//
+* **bullet_icon_size**: ''ICON_SIZE_MENU'', ''ICON_SIZE_LARGE_TOOLBAR'', ...
 
 Known style tags:
 * **h1**, **h2**, **h3**, **h4**, **h5**, **h6**: various headings
@@ -141,7 +142,7 @@ widget "*.zim-pageindex" style "zim-pageindex-style"
 or this example to make the treeview a bit more compact:
 
 '''
-style "gtkcompact" 
+style "gtkcompact"
 {
 	GtkTreeView::vertical-separator=0
 	GtkTreeView::horizontal-separator=0
@@ -155,7 +156,7 @@ class "GtkWidget" style "gtkcompact"
 To change the base colors of the pageview widget use something like:
 
 '''
-style "mycolors" 
+style "mycolors"
 {
 	base[NORMAL]: "black"
 	base[SELECTED]: "#6699cc"

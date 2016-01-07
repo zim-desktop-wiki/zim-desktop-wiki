@@ -292,8 +292,8 @@ class AsciiString(String):
 class ConfigDefinitionConstant(String):
 
 	def __init__(self, default, prefix=None):
-		String.__init__(self, default=default)
 		self.prefix = prefix
+		String.__init__(self, default=default)
 
 	def check(self, value):
 		value = String.check(self, value)
@@ -512,6 +512,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	# style attributes
 	pixels_indent = 30 #: pixels indent for a single indent level
+	bullet_icon_size = gtk.ICON_SIZE_MENU #: constant for icon size of checkboxes etc.
 
 	#: text styles supported by the editor
 	tag_styles = {
@@ -1258,10 +1259,10 @@ class TextBuffer(gtk.TextBuffer):
 				# Insert icon
 				stock = bullet_types[bullet]
 				widget = gtk.HBox() # Need *some* widget here...
-				pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
+				pixbuf = widget.render_icon(stock, self.bullet_icon_size)
 				if pixbuf is None:
 					logger.warn('Could not find icon: %s', stock)
-					pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+					pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, self.bullet_icon_size)
 				pixbuf.zim_type = 'icon'
 				pixbuf.zim_attrib = {'stock': stock}
 				self.insert_pixbuf(self.get_insert_iter(), pixbuf)
@@ -4798,6 +4799,8 @@ class PageView(gtk.VBox):
 		# TODO: reload buffer on style changed to make change visible
 		#       now it is only visible on next page load
 
+		self.text_style['TextView'].define(bullet_icon_size=GtkConstant('ICON_SIZE_MENU'))
+
 		self.text_style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
 		self.text_style['TextView'].setdefault('tabs', None, int)
 			# Don't set a default for 'tabs' as not to break pages that
@@ -4834,6 +4837,7 @@ class PageView(gtk.VBox):
 
 		# Set properties for TextBuffer
 		TextBuffer.pixels_indent = self.text_style['TextView']['indent']
+		TextBuffer.bullet_icon_size = self.text_style['TextView']['bullet_icon_size']
 
 		# Load TextTags
 		testbuffer = gtk.TextBuffer()
