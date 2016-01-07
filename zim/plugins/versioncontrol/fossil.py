@@ -59,7 +59,11 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		Runs: fossil add {{PATH}}
 		"""
 		if path is None:
-			return self.run(['addremove', self.notebook_dir])
+			# `fossil addremove` does not support a path argument,
+			# need to check ourselves :S
+			if self.notebook_dir != self.root:
+				logger.warning('"Fossil addremove" does not support path argument, so files outside of notebook may be added to the repository!')
+			return self.run(['addremove'])
 		else:
 			return self.run(['add', path])
 
