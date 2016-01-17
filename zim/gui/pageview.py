@@ -69,7 +69,7 @@ class LineSeparator(CustomObjectWidget):
 		self.vbox.set_size_request(self._textview_width, height = 3)
 
 class LineObject(CustomObjectClass):
-	'''Class to display 'LineSeparator' objects on the wiki-page.'''
+	'''Class to work with 'LineSeparator' objects.'''
 	OBJECT_ATTR = {
 		'type': String('line'),
 	}
@@ -83,7 +83,7 @@ ObjectManager.register_object('line', LineObject)
 def IS_LINE(line):
 	'''Function used for line autoformatting.'''
 	length = len(line)
-	return (line == '_'*length) and (length > 4)
+	return (line == '-'*length) and (length > 4)
 
 
 STOCK_CHECKED_BOX = 'zim-checked-box'

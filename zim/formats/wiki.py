@@ -173,7 +173,7 @@ class WikiParser(object):
 				process=self.parse_table
 			),
 			# line format
-			Rule(LINE, r'(?<=\n)_{4}_+(?=\n)', process=self.parse_line) # \n______\n
+			Rule(LINE, r'(?<=\n)-{4}-+(?=\n)', process=self.parse_line) # \n-----\n
 
 		)
 		p.process_unmatched = self.parse_para

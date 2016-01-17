@@ -74,35 +74,35 @@ class TestLines(tests.TestCase):
 
 		# Check formatting.
 		string = 'text... \n{}\n text... \n'
-		input = string.format('_'*4)
+		input = string.format('-'*4)
 		check_text(input, input) # doesn't format
 		for i in range(30):
 			if i < 5:
-				output = string.format('_'*i)
+				output = string.format('-'*i)
 			else:
 				output = string.format(LINE_TEXT)
-			input = string.format('_'*i)
+			input = string.format('-'*i)
 			check_text(input, output)
 
-		# Check that any additional symbol other than '_' fails.
-		input = 'text... {}\n text... \n'.format('_'*10)
+		# Check that any additional symbol other than '-' fails.
+		input = 'text... {}\n text... \n'.format('-'*10)
 		check_text(input, input)
-		input = 'text... \n{}text... \n'.format('_'*10)
+		input = 'text... \n{}text... \n'.format('-'*10)
 		check_text(input, input)
-		input = 'text... \n{} \n text... \n'.format('_'*10)
+		input = 'text... \n{} \n text... \n'.format('-'*10)
 		check_text(input, input)
-		input = 'text... \n {}\n text... \n'.format('_'*10)
+		input = 'text... \n {}\n text... \n'.format('-'*10)
 		check_text(input, input)
 
 		# Check more complex text.
 		string = 'text... \n\n{0}\n\n{0}\n\n text... \n'
-		input = string.format('_'*7)
+		input = string.format('-'*7)
 		output = string.format(LINE_TEXT)
 		check_text(input, output)
 
 		string = '... \n{}\n{}\n{}\n ... \n{}\n{}0\n'
-		input = string.format('_'*8, '_'*6, '_'*4, '_'*11, '_'*10)
-		output = string.format(LINE_TEXT, LINE_TEXT, '_'*4, LINE_TEXT, '_'*10)
+		input = string.format('-'*8, '-'*6, '-'*4, '-'*11, '-'*10)
+		output = string.format(LINE_TEXT, LINE_TEXT, '-'*4, LINE_TEXT, '-'*10)
 		check_text(input, output)
 
 
