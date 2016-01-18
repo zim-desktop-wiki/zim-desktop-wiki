@@ -18,64 +18,67 @@ Installer".
 Requirements
 ------------
 
-1. Install Python 2.7 for Windows from
+1.  Install Python 2.7 for Windows from
 
-   http://www.python.org/download/
+    http://www.python.org/download/
 
-   Note: Zim has not yet been ported to Python 3.
+    Note: Zim has not yet been ported to Python 3.
 
-2. Install the py2exe library from
+2.  Install the py2exe library from
 
-   http://sourceforge.net/projects/py2exe/files/
+    http://sourceforge.net/projects/py2exe/files/
 
-3. Install PyGTK All-in-One from
+3.  Install PyGTK All-in-One from
 
-   http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
+    http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
 
-   Be sure to include "PyGTKSourceView" when you run the installer.
+    Be sure to include "PyGTKSourceView" when you run the installer.
 
-4. Jpeg for Windows
+4.  Jpeg for Windows
 
-   http://gnuwin32.sourceforge.net/packages/jpeg.htm
+    http://gnuwin32.sourceforge.net/packages/jpeg.htm
 
-   Get jpeg62.dll and put it in ./windows .
+    Get jpeg62.dll and put it in ./windows .
 
-6. Install Bazaar using the PYTHON-BASED installer from
+6.  Install Bazaar using the PYTHON-BASED installer from
 
-   http://wiki.bazaar.canonical.com/WindowsDownloads
+    http://wiki.bazaar.canonical.com/WindowsDownloads
 
-   The build script depends on Python Bazaar.
+    The build script depends on Python Bazaar.
+7.  Install PyWin32 from
 
-7. Install NSIS from
+    http://sourceforge.net/projects/pywin32/files/pywin32/
 
-   http://nsis.sourceforge.net/Download
+8.  Install NSIS from
 
-7a. You will also want to download Venis IX if you want to edit the
+    http://nsis.sourceforge.net/Download
+
+8a. You will also want to download Venis IX if you want to edit the
     NSIS script in an IDE. (The script is a plain text file, though,
     if you don't want to use an IDE.)
     http://nsis.sourceforge.net/Venis_IX
 
-8. For the PortableApps.com build, additionally install these three
-   utilities:
+9.  For the PortableApps.com build, additionally install these three
+    utilities:
 
-   http://portableapps.com/apps/development/nsis_portable (Unicode version)
-   http://portableapps.com/apps/development/portableapps.com_installer
-   http://portableapps.com/apps/development/portableapps.com_launcher
+    http://portableapps.com/apps/development/nsis_portable (Unicode version)
+    http://portableapps.com/apps/development/portableapps.com_installer
+    http://portableapps.com/apps/development/portableapps.com_launcher
 
-   These tools default to installing in ~/Desktop, but I personally
-   put them in ~/Apps. Be sure to put them all in the same folder.
+    These tools default to installing in ~/Desktop, but I personally
+    put them in ~/Apps. Be sure to put them all in the same folder.
 
-9. See http://www.py2exe.org/index.cgi/Tutorial#Step5 . You need to
-   create the following files under ./windows/src/ :
-     Microsoft.VC90.CRT/
-     +-- Microsoft.VC90.CRT.manifest
-     +-- msvcm90.dll
-     +-- msvcp90.dll
-     +-- msvcr90.dll -- must be exactly version 9.0.21022.8 for Python 2.7
-   You can get these files here:
-   http://www.glump.net/content/zim/Microsoft.VC90.CRT.zip
-   (Not included in Zim source because the license for redistribution is
-   confusing.)
+10. See http://www.py2exe.org/index.cgi/Tutorial#Step5 . You need to
+    create the following files under ./windows/src/ :
+      Microsoft.VC90.CRT/
+      +-- Microsoft.VC90.CRT.manifest
+      +-- msvcm90.dll
+      +-- msvcp90.dll
+      +-- msvcr90.dll -- must be exactly version 9.0.21022.8 for Python 2.7
+    You can get these files here:
+    http://www.glump.net/content/zim/Microsoft.VC90.CRT.zip
+    (Not included in Zim source because the license for redistribution is
+    confusing.)
 
 
 Building the application icon
