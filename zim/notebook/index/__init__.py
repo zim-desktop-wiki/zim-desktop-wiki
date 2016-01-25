@@ -139,18 +139,20 @@ class Index(object):
 		self._pages = PagesViewInternal()
 		self._index = IndexInternal(self.store, self._indexers)
 		self.db_conn = db_conn
-		self._db = db_conn.db_change_context()
 		self._thread = None
 
+		db_context = self.db_conn.db_change_context()
+
 		try:
-			with self._db as db:
+			with db_context as db:
 				if self._index.get_property(db, 'db_version') != DB_VERSION:
 					logger.debug('Index db_version out of date')
-					self._db_init()
+					self._db_init(db)
 		except sqlite3.OperationalError:
 			# db is there but table does not exist
 			logger.debug('Operational error, init tabels')
-			self._db_init()
+			with db_context as db:
+				self._db_init(db)
 		except sqlite3.DatabaseError:
 			if hasattr(db_conn, 'dbfilepath'):
 				logger.warning('Overwriting possibly corrupt database: %s', db_conn.dbfilepath)
@@ -158,38 +160,39 @@ class Index(object):
 				file = File(self.db_conn.dbfilepath)
 				if file.exists():
 					file.remove()
-				self._db = db_conn.db_change_context()
-				self._db_init()
+
+				db_context = db_conn.db_change_context()
+				with db_context as db:
+					self._db_init(db)
 			else:
 				raise
 
 		# TODO checks on locale, others?
 
-		with self._db as db:
+		with db_context as db:
 			db.execute('PRAGMA synchronous=OFF;')
 			# Don't wait for disk writes, we can recover from crashes
 			# anyway. Allows us to use commit more frequently.
 
 	@property
 	def probably_uptodate(self):
-		with self._db as db:
+		with self.db_conn.db_context() as db:
 			value = self._index.get_property(db, 'probably_uptodate')
 			return False if value == '0' else True
 
-	def _db_init(self):
-		with self._db as db:
-			c = db.execute(
-				'SELECT name FROM sqlite_master '
-				'WHERE type="table" and name NOT LIKE "sqlite%"'
-			)
-			tables = [row[0] for row in c.fetchall()]
-			for table in tables:
-				db.execute('DROP TABLE %s' % table)
+	def _db_init(self, db):
+		c = db.execute(
+			'SELECT name FROM sqlite_master '
+			'WHERE type="table" and name NOT LIKE "sqlite%"'
+		)
+		tables = [row[0] for row in c.fetchall()]
+		for table in tables:
+			db.execute('DROP TABLE %s' % table)
 
-			logger.debug('(Re-)Initializing database for index')
-			db.executescript(INDEX_INIT_SCRIPT)
-			for indexer in self._indexers:
-				indexer.on_db_init(self, db)
+		logger.debug('(Re-)Initializing database for index')
+		db.executescript(INDEX_INIT_SCRIPT)
+		for indexer in self._indexers:
+			indexer.on_db_init(self, db)
 
 	def connect(self, signal, handler, userdata=None):
 		for indexer in self._indexers:
@@ -261,7 +264,8 @@ class Index(object):
 	def flush(self):
 		'''Delete all data in the index'''
 		logger.info('Flushing index')
-		self._db_init()
+		with self.db_conn.db_change_context() as db:
+			self._db_init(db)
 
 	def touch_current_page_placeholder(self, path):
 		'''Create a placeholder for C{path} if the page does not
@@ -270,7 +274,7 @@ class Index(object):
 		# This method used a hack by linking the page from the ROOT_ID
 		# page if it does not exist.
 
-		with self._db as db:
+		with self.db_conn.db_change_context() as db:
 			# delete
 			db.execute(
 				'DELETE FROM links WHERE source=?',
@@ -302,7 +306,7 @@ class Index(object):
 		self._index.after_commit()
 
 	def on_store_page(self, page):
-		with self._db as db:
+		with self.db_conn.db_change_context() as db:
 			try:
 				indexpath = self._pages.lookup_by_pagename(db, page)
 			except IndexNotFoundError:
@@ -322,7 +326,7 @@ class Index(object):
 		self.update(newpath)
 
 	def on_delete_page(self, path):
-		with self._db as db:
+		with self.db_conn.db_change_context() as db:
 			try:
 				indexpath = self._pages.lookup_by_pagename(db, path)
 			except IndexNotFoundError:
@@ -347,7 +351,7 @@ class Index(object):
 		@param indexer: An instantiation of L{PluginIndexerBase}
 		'''
 		assert indexer.PLUGIN_NAME and indexer.PLUGIN_DB_FORMAT
-		with self._db as db:
+		with self.db_conn.db_change_context() as db:
 			if self._index.get_property(db, indexer.PLUGIN_NAME) != indexer.PLUGIN_DB_FORMAT:
 				indexer.on_db_init(self._index, db)
 				self._index.set_property(db, indexer.PLUGIN_NAME, indexer.PLUGIN_DB_FORMAT)
@@ -366,7 +370,7 @@ class Index(object):
 		except ValueError:
 			pass
 
-		with self._db as db:
+		with self.db_conn.db_change_context() as db:
 			indexer.on_teardown(self._index, db)
 			self._index.set_property(db, indexer.PLUGIN_NAME, None)
 
@@ -375,7 +379,7 @@ class Index(object):
 		Main reason to use this would be when loading a new plugin that
 		wants to index all pages.
 		'''
-		with self._db as db:
+		with self.db_conn.db_change_context() as db:
 			self._flag_reindex(db)
 
 	def _flag_reindex(self, db):
@@ -864,7 +868,7 @@ class DBConnection(object):
 		raise NotImplementedError
 
 	@staticmethod
-	def _db_connect(string, check_same_thread=False):
+	def _db_connect(string):
 		# We use the undocumented "check_same_thread=False" argument to
 		# allow calling database from multiple threads. This allows
 		# views to be used from different threads as well. The state lock
@@ -873,7 +877,7 @@ class DBConnection(object):
 		db = sqlite3.connect(
 			string,
 			detect_types=sqlite3.PARSE_DECLTYPES,
-			check_same_thread=check_same_thread,
+			check_same_thread=False,
 		)
 		db.row_factory = sqlite3.Row
 		return db
@@ -885,7 +889,7 @@ class DBConnection(object):
 	def db_change_context(self):
 		'''Returns a L{DBChangeContext} object'''
 		return DBChangeContext(
-			self._get_db(check_same_thread=True),
+			self._get_db(),
 			self._state_lock, self._change_lock
 		)
 
@@ -900,7 +904,7 @@ class MemoryDBConnection(DBConnection):
 		self._state_lock = threading.RLock()
 		self._change_lock = self._state_lock # all changes visile immediatly
 
-	def _get_db(self, check_same_thread=False):
+	def _get_db(self):
 		return self._db
 
 
@@ -918,12 +922,10 @@ class ThreadingDBConnection(DBConnection):
 		self._state_lock = threading.RLock()
 		self._change_lock = threading.RLock()
 
-	def _get_db(self, check_same_thread=False):
+	def _get_db(self):
 		thread = threading.current_thread().ident
 		if thread not in self._connections:
-			self._connections[thread] = \
-				self._db_connect(
-					self.dbfilepath, check_same_thread=check_same_thread)
+			self._connections[thread] = self._db_connect(self.dbfilepath)
 		return self._connections[thread]
 
 	def close_connections(self):

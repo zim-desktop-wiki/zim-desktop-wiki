@@ -212,11 +212,11 @@ class TestHistory(tests.TestCase):
 
 		self.assertIn(Path('Test:wiki'), list(history.get_history()))
 
-		history._on_page_moved(self.notebook, Path('Test'), Path('New'), False)
+		history._on_page_moved(self.notebook, Path('Test'), Path('New'))
 		self.assertNotIn(Path('Test:wiki'), list(history.get_history()))
 		self.assertIn(Path('New:wiki'), list(history.get_history()))
 
-		history._on_page_moved(self.notebook, Path('New'), Path('Test'), False)
+		history._on_page_moved(self.notebook, Path('New'), Path('Test'))
 		self.assertNotIn(Path('New:wiki'), list(history.get_history()))
 		self.assertIn(Path('Test:wiki'), list(history.get_history()))
 

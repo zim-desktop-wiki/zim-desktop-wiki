@@ -572,10 +572,12 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.set_readonly(False)
 		self.ui.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.ui.page.exists())
-		self.assertTrue(self.ui.page.get_parsetree() is None)
+		self.assertIsNone(self.ui.page.get_parsetree())
 		self.assertTrue(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
 		self.ui.save_page()
-		self.assertFalse(self.ui.page.get_parsetree() is None)
+		self.assertTrue(self.ui.page.exists())
+		self.assertIsNotNone(self.ui.page.get_parsetree())
+		self.assertFalse(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
 
 	def testPageMove(self):
 		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
@@ -608,6 +610,90 @@ class TestGtkInterface(tests.TestCase):
 	def testClipboard(self):
 		self.ui.copy_location()
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
+
+
+from zim.notebook import Notebook
+from zim.gui import SavePageHandler, SavePageErrorDialog
+
+@tests.slowTest
+class TestSavePageHandler(tests.TestCase):
+
+	def runTest(self):
+		dir = Dir(self.create_tmp_dir())
+		notebook = Notebook.new_from_dir(dir)
+		page = notebook.get_page(Path('SomePage'))
+
+		orig_store_page = notebook.store_page
+		store_page_counter = tests.Counter()
+		def wrapper(page):
+			store_page_counter()
+			orig_store_page(page)
+		notebook.store_page = wrapper
+
+		window = tests.MockObject()
+		window.ui = tests.MockObject()
+		window.ui.readonly = False
+
+		handler = SavePageHandler(window, notebook, lambda: page)
+
+		# Normal operation
+		self.assertFalse(page.modified)
+		handler.do_autosave()
+		self.assertEqual(store_page_counter.count, 0)
+
+		self.assertFalse(page.modified)
+		handler.assert_save_page_if_modified()
+		self.assertEqual(store_page_counter.count, 0)
+
+		self.assertFalse(page.modified)
+		handler.save_page()
+		self.assertEqual(store_page_counter.count, 1)
+
+		page.modified = True
+		handler.do_autosave()
+		self.assertEqual(store_page_counter.count, 2)
+		handler.join()
+		self.assertFalse(page.modified)
+
+		page.modified = True
+		handler.assert_save_page_if_modified()
+		self.assertEqual(store_page_counter.count, 3)
+		self.assertFalse(page.modified)
+
+		page.modified = True
+		handler.save_page()
+		self.assertEqual(store_page_counter.count, 4)
+		self.assertFalse(page.modified)
+
+		# With errors
+		def wrapper(page):
+			raise AssertionError
+		notebook.store_page = wrapper
+
+		page.modified = True
+
+		self.assertRaises(AssertionError, handler.assert_save_page_if_modified)
+		self.assertTrue(page.modified)
+
+		def catch_dialog(dialog):
+			assert isinstance(dialog, SavePageErrorDialog)
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(catch_dialog):
+				handler.save_page()
+		self.assertTrue(page.modified)
+
+		# For autosave first error is ignore, 2nd results in dialog
+		self.assertFalse(handler._thread_error_event.is_set())
+		with tests.LoggingFilter('zim'):
+			handler.do_autosave()
+			handler.join()
+		self.assertTrue(handler._thread_error_event.is_set())
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(catch_dialog):
+				handler.do_autosave()
+		self.assertTrue(page.modified)
 
 
 @tests.slowTest

@@ -515,7 +515,7 @@ def new_notebook(fakedir=None):
 
 		index = Index.new_from_memory(store)
 		index.update()
-		with index._db as db:
+		with index.db_conn.db_context() as db:
 			lines = list(db.iterdump())
 		sql = '\n'.join(lines)
 

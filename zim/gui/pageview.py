@@ -4780,7 +4780,7 @@ class PageView(gtk.VBox):
 				raise AssertionError, 'BUG: page changed while buffer changed as well'
 				# not using assert here because it could be optimized away
 
-		for s in ('stored-page', 'deleted-page', 'moved-page'):
+		for s in ('store-page', 'delete-page', 'move-page'):
 			self.ui.notebook.connect(s, assert_not_modified)
 
 	def grab_focus(self):

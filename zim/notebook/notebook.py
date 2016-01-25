@@ -131,11 +131,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	evaluating a template for a new page, intended for plugins that want
 	to extend page templates
 
-	@note: For store_async() the 'page-stored' signal is emitted
-	after scheduling the store, but potentially before it was really
-	executed. This may bite when you do direct access to the underlying
-	files - however when using the API this should not be visible.
-
 	@ivar name: The name of the notebook (string)
 	@ivar icon: The path for the notebook icon (if any)
 	# FIXME should be L{File} object
@@ -169,8 +164,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	__gsignals__ = {
 		'store-page': (SIGNAL_NORMAL, None, (object,)),
 		'stored-page': (SIGNAL_NORMAL, None, (object,)),
-		'move-page': (SIGNAL_NORMAL, None, (object, object, bool)),
-		'moved-page': (SIGNAL_NORMAL, None, (object, object, bool)),
+		'move-page': (SIGNAL_NORMAL, None, (object, object)),
+		'moved-page': (SIGNAL_NORMAL, None, (object, object)),
 		'delete-page': (SIGNAL_NORMAL, None, (object,)),
 		'deleted-page': (SIGNAL_NORMAL, None, (object,)),
 		'properties-changed': (SIGNAL_NORMAL, None, ()),
@@ -446,33 +441,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		page._store()
 		self.index.on_store_page(page)
 		self.emit('stored-page', page)
-
-	def store_page_async(self, page):
-		'''Save the data from a page in the storage backend
-		asynchronously
-
-		Like L{store_page()} but asynchronous, so the method returns
-		as soon as possible without waiting for success. Falls back to
-		L{store_page()} when the backend does not support asynchronous
-		operations.
-
-		@param page: a L{Page} object
-		@returns: A L{FunctionThread} for the background job or C{None}
-		if save was performed in the foreground
-		@emits: store-page before storing the page
-		@emits: stored-page on success
-		'''
-		assert page.valid, 'BUG: page object no longer valid'
-		self.emit('store-page', page)
-		func = self.store.store_page_async(page)
-		try:
-			self.emit('stored-page', page)
-				# FIXME - stored-page is emitted early, but emitting from
-				# the thread is also not perfect, since the page may have
-				# changed already in the gui
-				# (we tried this and it broke autosave for some users!)
-		finally:
-			return func
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook

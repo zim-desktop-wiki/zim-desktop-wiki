@@ -24,6 +24,10 @@ import threading
 import webbrowser
 
 
+gobject.threads_init()
+	# initialization needed to make gtk mainloop play nice with threading
+
+
 from zim.main import get_zim_application
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
@@ -388,6 +392,15 @@ class GtkInterface(gobject.GObject):
 
 		self.set_readonly(notebook.readonly)
 
+		self.preferences['GtkInterface'].setdefault('autosave_timeout', 10)
+		self._save_page_handler = SavePageHandler(
+			self._mainwindow,
+			self.notebook,
+			self._mainwindow.pageview.get_page,
+			timeout=self.preferences['GtkInterface']['autosave_timeout']
+		)
+
+
 	def on_notebook_properties_changed(self, notebook):
 		self.config.set_profile(notebook.profile)
 
@@ -411,20 +424,6 @@ class GtkInterface(gobject.GObject):
 		if self._first_page is None:
 			self._first_page = self.history.get_current()
 
-		# We schedule the autosave on idle to try to make it impact
-		# the performance of the application less. Of course using the
-		# async interface also helps, but we need to account for cases
-		# where asynchronous actions are not supported.
-
-		def schedule_autosave():
-			schedule_on_idle(self.do_autosave)
-			return True # keep ticking
-
-		# older gobject version doesn't know about seconds
-		self.preferences['GtkInterface'].setdefault('autosave_timeout', 10)
-		timeout = self.preferences['GtkInterface']['autosave_timeout'] * 1000 # s -> ms
-		self._autosave_timer = gobject.timeout_add(timeout, schedule_autosave)
-
 		# Check notebook
 		self.check_notebook_needs_upgrade()
 
@@ -437,6 +436,7 @@ class GtkInterface(gobject.GObject):
 		signal.signal(signal.SIGTERM, handle_sigterm)
 
 		# And here we go!
+		self._save_page_handler.start_autosave()
 		self._mainwindow.show_all()
 
         # Adapt the GUI to OS X conventions
@@ -1133,116 +1133,22 @@ class GtkInterface(gobject.GObject):
 			page = self._get_path_context()
 		PageWindow(self, page).show_all()
 
-	@SignalHandler
-	def do_autosave(self):
-		if self._check_autosave_done():
-			page = self._mainwindow.pageview.get_page()
-			if page.modified \
-			and self._save_page_check_page(page):
-				try:
-					self._autosave_thread = self.notebook.store_page_async(page)
-				except:
-					# probably means backend does not support async store
-					# AND failed storing - re-try immediatly
-					logger.exception('Error during autosave - re-try')
-					self.save_page()
-			else:
-				self._autosave_thread = None
-		else:
-			pass # still busy
-
-	def _check_autosave_done(self):
-		## Returning True here does not mean previous save was OK, just that it finished!
-		if not self._autosave_thread:
-			return True
-		elif not self._autosave_thread.done:
-			return False
-		elif self._autosave_thread.error:
-			# FIXME - should we force page.modified = True here ?
-			logger.error('Error during autosave - re-try',
-					exc_info=self._autosave_thread.exc_info)
-			self._save_page(self._mainwindow.pageview.get_page()) # force normal save
-			return True
-		else:
-			return True # Done and no error ..
-
 	def assert_save_page_if_modified(self):
-		'''Like C{save_page()} but only saves when needed.
+		'''Like C{save_page()} but only saves when needed and raises
+		always when page not saved.
 		@raises PageHasUnSavedChangesError: when page was not saved
 		'''
-		page = self._mainwindow.pageview.get_page()
-		if page is None:
-			return
-
-		if self._autosave_thread \
-		and not self._autosave_thread.done:
-			self._autosave_thread.join() # wait to finish
-
-		self._check_autosave_done() # handle errors if any
-
-		if page.modified:
-			return self._save_page(page)
-		else:
-			return True
+		self._save_page_handler.assert_save_page_if_modified()
 
 	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
 	def save_page(self):
 		'''Menu action to save the current page.
 
 		Can result in a L{SavePageErrorDialog} when there is an error
-		while saving a page.
-
-		@returns: C{True} when successful, C{False} when the page still
-		has unsaved changes
+		while saving a page. If that dialog is cancelled by the user,
+		the page may not be saved after all.
 		'''
-		page = self._mainwindow.pageview.get_page()
-		assert page is not None
-
-		if self._autosave_thread \
-		and not self._autosave_thread.done:
-			self._autosave_thread.join() # wait to finish
-
-		# No error handling here for autosave, we save anyway
-
-		return self._save_page(page)
-
-	def _save_page(self, page):
-		if not self._save_page_check_page(page):
-			return
-
-		## HACK - otherwise we get a bug when saving a new page immediatly
-		# hasattr assertions used to detect when the hack breaks
-		assert hasattr(page, '_ui_object')
-		if page._ui_object:
-			assert hasattr(page._ui_object, '_showing_template')
-			page._ui_object._showing_template = False
-		##
-
-		logger.debug('Saving page: %s', page)
-		try:
-			self.notebook.store_page(page)
-		except Exception, error:
-			logger.exception('Failed to save page: %s', page.name)
-			with self.do_autosave.blocked():
-				# Avoid new autosave (on idle) while dialog is seen
-				SavePageErrorDialog(self._mainwindow, error, page).run()
-
-		return not page.modified
-
-	def _save_page_check_page(self, page):
-		# Ensure that the page can be saved in the first place
-		try:
-			if self.readonly:
-				raise AssertionError, 'BUG: can not save page when read-only'
-			elif page.readonly:
-				raise AssertionError, 'BUG: can not save read-only page'
-		except Exception, error:
-			with self.do_autosave.blocked():
-				# Avoid new autosave (on idle) while dialog is seen
-				SavePageErrorDialog(self._mainwindow, error, page).run()
-			return False
-		else:
-			return True
+		self._save_page_handler.save_page()
 
 	@action(_('Save A _Copy...')) # T: Menu item
 	def save_copy(self):
@@ -2697,6 +2603,127 @@ class PageWindow(Window):
 		self.add(self.pageview)
 
 
+class SavePageHandler(object):
+	'''Object for handling page saving.
+	Implements autosave feature and asynchronous save to avoid blocking
+	the user interface.
+	'''
+
+	def __init__(self, window, notebook, get_page_cb, timeout=10):
+		self.app_window = window
+		self.notebook = notebook
+		self.get_page_cb = get_page_cb
+		self.timeout = timeout
+		self._autosave_timer = None
+		self._thread = None
+		self._thread_error_event = threading.Event()
+
+	def join(self):
+		if self._thread:
+			self._thread.join()
+			self._thread = None
+
+	def start_autosave(self):
+		assert not self._autosave_timer
+		self._autosave_timer = gobject.timeout_add(
+			self.timeout*1000, # s -> ms
+			self.do_autosave
+		)
+
+	def stop_autosave(self):
+		if self._autosave_timer:
+			gobject.source_remove(self._autosave_timer)
+			self._autosave_timer = None
+
+	@SignalHandler
+	def do_autosave(self, *a):
+		if self._thread and self._thread.is_alive():
+			logger.debug('Save still in progress, skiping auto-save')
+		else:
+			self._thread = None
+			page = self.get_page_cb()
+			if page and page.modified:
+				if self._thread_error_event.is_set():
+					# Error in previous auto-save, save in foreground
+					logger.debug('Last auto-save resulted in error, re-try in foreground')
+					self.save_page(timeout=True)
+				else:
+					# Save in background async
+					page.get_parsetree()
+					self._thread = threading.Thread(
+						target=self._save_page_async,
+						args=(page,)
+					)
+					self._thread.start()
+
+		return True # keep timer going
+
+	def assert_save_page_if_modified(self):
+		'''Like C{save_page()} but only saves when needed and raises
+		always when page not saved.
+		@raises PageHasUnSavedChangesError: when page was not saved
+		'''
+		self.join()
+
+		page = self.get_page_cb()
+		if page and page.modified:
+			self._save_page(page)
+
+			if page.modified: # _save_page failed silently !?
+				raise PageHasUnSavedChangesError
+
+	def save_page(self, timeout=False):
+		'''Save the current page.
+
+		Can result in a L{SavePageErrorDialog} when there is an error
+		while saving a page. If that dialog is cancelled by the user,
+		the page may not be saved after all.
+		'''
+		self.join()
+
+		page = self.get_page_cb()
+		if page:
+			try:
+				self._save_page(page)
+			except Exception, error:
+				logger.exception('Failed to save page: %s', page.name)
+				with self.do_autosave.blocked():
+					SavePageErrorDialog(self.app_window, error, page, timeout).run()
+
+	def _assert_can_save_page(self, page):
+		if self.app_window.ui.readonly:
+			raise AssertionError, 'BUG: can not save page when UI is read-only'
+		elif page.readonly:
+			raise AssertionError, 'BUG: can not save read-only page'
+
+	def _save_page(self, page):
+		self._assert_can_save_page(page)
+
+		## HACK - otherwise we get a bug when saving a new page immediatly
+		# hasattr assertions used to detect when the hack breaks
+		assert hasattr(page, '_ui_object')
+		if page._ui_object:
+			assert hasattr(page._ui_object, '_showing_template')
+			page._ui_object._showing_template = False
+		##
+
+		logger.debug('Saving page: %s', page)
+		self.notebook.store_page(page)
+
+		self._thread_error_event.clear()
+
+	def _save_page_async(self, page):
+		logger.debug('Saving page: %s (background autosave)', page)
+		try:
+			self._assert_can_save_page(page)
+			self.notebook.store_page(page)
+		except:
+			logger.exception('Error during auto-save')
+			self._thread_error_event.set()
+		else:
+			self._thread_error_event.clear()
+
+
 class SavePageErrorDialog(ErrorDialog):
 	'''Error dialog used when we hit an error while trying to save a page.
 	Allow to save a copy or to discard changes. Includes a timer which
@@ -2705,7 +2732,7 @@ class SavePageErrorDialog(ErrorDialog):
 	we want to prevent an accidental action.
 	'''
 
-	def __init__(self, window, error, page):
+	def __init__(self, window, error, page, timeout=False):
 		msg = _('Could not save page: %s') % page.name
 			# T: Heading of error dialog
 		desc = unicode(error).encode('utf-8').strip() \
@@ -2716,6 +2743,8 @@ any changes. If you save a copy changes will be also
 discarded, but you can restore the copy later.''')
 			# T: text in error dialog when saving page failed
 		ErrorDialog.__init__(self, window, (msg, desc), buttons=gtk.BUTTONS_NONE)
+
+		self.timeout = timeout
 
 		self.page = page
 		self.error = error
@@ -2762,23 +2791,28 @@ discarded, but you can restore the copy later.''')
 		return self._done
 
 	def run(self):
-		self.timer = 5
-		self.timer_label.set_text('%i sec.' % self.timer)
-		def timer(self):
-			self.timer -= 1
-			if self.timer > 0:
-				self.timer_label.set_text('%i sec.' % self.timer)
-				return True # keep timer going
-			else:
-				for button in self.action_area.get_children():
-					button.set_sensitive(True)
-				self.timer_label.set_text('')
-				return False # remove timer
+		if self.timeout:
+			self.timer = 5
+			self.timer_label.set_text('%i sec.' % self.timer)
+			def timer(self):
+				self.timer -= 1
+				if self.timer > 0:
+					self.timer_label.set_text('%i sec.' % self.timer)
+					return True # keep timer going
+				else:
+					for button in self.action_area.get_children():
+						button.set_sensitive(True)
+					self.timer_label.set_text('')
+					return False # remove timer
 
-		# older gobject version doesn't know about seconds
-		id = gobject.timeout_add(1000, timer, self)
-		ErrorDialog.run(self)
-		gobject.source_remove(id)
+			# older gobject version doesn't know about seconds
+			id = gobject.timeout_add(1000, timer, self)
+			ErrorDialog.run(self)
+			gobject.source_remove(id)
+		else:
+			for button in self.action_area.get_children():
+				button.set_sensitive(True)
+			ErrorDialog.run(self)
 
 
 class OpenPageDialog(Dialog):

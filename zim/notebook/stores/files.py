@@ -224,14 +224,6 @@ class FilesStore(StoreClass):
 		dirpath = encode_filename(path.name)
 		return self.dir.subdir(dirpath)
 
-	#~ def revert_page(self, page):
-		#~ # FIXME assert page is ours and page is FilePage
-		#~ newpage = self.get_page(page)
-		#~ page.source = newpage.source
-		#~ page.set_parsetree(newpage.get_parsetree())
-			#~ # use set_parsetree because it triggers ui_object
-		#~ page.modified = False
-
 	def move_page(self, path, newpath):
 		file = self._get_file(path)
 		dir = self._get_dir(path)
