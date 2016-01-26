@@ -4,6 +4,10 @@
 
 
 import re
+import logging
+
+logger = logging.getLogger('zim.notebook')
+
 
 from zim.parsing import link_type
 
@@ -614,6 +618,7 @@ class StoreNodePage(Page):
 	def __init__(self, path, node):
 		Page.__init__(self, path, haschildren=node.haschildren)
 		self._node = node
+		self._last_etag = None
 		self.source = node.source_file
 		self.folder = node.attachments_dir
 		if self.source:
@@ -666,12 +671,22 @@ class StoreNodePage(Page):
 		return self._node.hascontent
 
 	def _fetch_parsetree(self):
+		self._last_etag = self._node.get_content_etag()
 		return self._node.get_parsetree()
 
 	def _store(self):
 		tree = self.get_parsetree()
 		self._node.store_parsetree(tree)
+		self._last_etag = self._node.get_content_etag()
 		self.modified = False
+
+	def _check_source_etag(self):
+		if self._last_etag or self._parsetree or self._ui_object:
+			if self._last_etag != self._node.get_content_etag():
+				logger.info('Page changed on disk: %s', self.name)
+				self._last_etag = None
+				self._parsetree = None
+				# TODO emit-page-changed / notify ui object
 
 
 class IndexPage(Page):

@@ -102,7 +102,7 @@ class FileStoreNode(StoreNode):
 	def _store_parsetree(self, tree):
 		if self.hascontent and not self.properties:
 			self.get_parsetree()
-			assert self.properties
+			assert self.properties is not None
 
 		if self.properties is None:
 			self.properties = HeadersDict()

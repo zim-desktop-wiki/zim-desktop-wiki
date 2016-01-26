@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from __future__ import with_statement
@@ -364,7 +364,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		assert isinstance(path, Path)
 		if path.name in self._page_cache \
 		and self._page_cache[path.name].valid:
-			return self._page_cache[path.name]
+			page = self._page_cache[path.name]
+			assert isinstance(page, StoreNodePage)
+			page._check_source_etag()
+			return page
 		else:
 			node = self.store.get_node(path)
 			page = StoreNodePage(path, node)

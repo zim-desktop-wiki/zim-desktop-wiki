@@ -852,3 +852,57 @@ class TestMovePageNewNotebook(tests.TestCase):
 
 		text = ''.join(notebook.get_page(Path('page3:page1:child')).dump('wiki'))
 		self.assertEqual(text, 'I have backlinks !\n')
+
+
+@tests.slowTest
+class TestPageChangeFile(tests.TestCase):
+	# Test case to ensure page caching doesn't bite after page has
+	# changed on disk. This is important for use cases where an
+	# open/cached page gets modified by e.g. syncing Dropbox.
+	# Reloading the pageshould show the changes.
+
+	def runTest(self):
+		dir = Dir(self.create_tmp_dir())
+		notebook = Notebook.new_from_dir(dir)
+
+		page = notebook.get_page(Path('SomePage'))
+		file = page.source
+		self.assertIsInstance(file, File)
+
+
+		## First we don't keep ref, but change params quick enough
+		## that caching will not have time to clean up
+
+		page.parse('wiki', 'Test 123\n')
+		notebook.store_page(page)
+
+		# Page as we stored it
+		page = notebook.get_page(Path('SomePage'))
+		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
+
+		# Now we change the file and want to see the change
+		file.write('Test 5 6 7 8\n')
+		page = notebook.get_page(Path('SomePage'))
+		self.assertEqual(page.dump('wiki'), ['Test 5 6 7 8\n'])
+
+
+		## Repeat but keep refs explicitly
+		del page
+
+		page1 = notebook.get_page(Path('SomePage'))
+		page1.parse('wiki', 'Test 123\n')
+		notebook.store_page(page1)
+
+		# Page as we stored it
+		page2 = notebook.get_page(Path('SomePage'))
+		self.assertEqual(page2.dump('wiki'), ['Test 123\n'])
+
+		# Now we change the file and want to see the change
+		file.read() # reset mtime check
+		file.write('Test 5 6 7 8\n')
+		page3 = notebook.get_page(Path('SomePage'))
+
+		for page in (page1, page2, page3):
+			self.assertTrue(page.valid)
+			self.assertEqual(page.dump('wiki'), ['Test 5 6 7 8\n'])
+
