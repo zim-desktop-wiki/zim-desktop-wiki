@@ -279,6 +279,12 @@ TODO @home
 		self.assertTrue(len(lines[0].split(',')) > 3)
 		self.assertFalse(any('<span' in l for l in lines)) # make sure encoding is removed
 
+		# Test tags
+		tags = treeview.get_tags()
+		for tag in ('home', 'FIXME', '__no_tags__', 'tags'):
+			self.assertIn(tag, tags)
+			self.assertGreater(tags[tag], 0)
+
 		# TODO test filtering for tags, labels, string - all case insensitive
 
 

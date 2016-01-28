@@ -1002,7 +1002,7 @@ class TaskListTreeView(BrowserTreeView):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
 			# Update tag count
-			tags = row['tags'].split(',')
+			tags = [t for t in row['tags'].split(',') if t]
 			if self.tag_by_page:
 				tags = tags + path.parts
 
