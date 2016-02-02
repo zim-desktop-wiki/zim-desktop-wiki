@@ -4863,7 +4863,7 @@ class PageView(gtk.VBox):
 			except:
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:
-				TextBuffer.tag_styles[tag] = attrib
+				TextBuffer.tag_styles[tag].update(attrib)
 
 	def _connect_focus_event(self):
 		# Connect to parent window here in a HACK to ensure
