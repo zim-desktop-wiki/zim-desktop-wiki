@@ -223,8 +223,16 @@ class PluginsTab(gtk.VBox):
 
 		## Add buttons to get and install new plugins
 		hbox = gtk.HButtonBox()
+		hbox.set_border_width(5)
 		hbox.set_layout(gtk.BUTTONBOX_START)
 		self.pack_start(hbox, False)
+
+		assert hasattr(self.dialog, 'ui')
+		open_button = gtk.Button(label=_('Open plugins folder'))
+		open_button.connect('clicked',
+			lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
+		)
+		hbox.pack_start(open_button, False)
 
 		if gtk.gtk_version >= (2, 10) \
 		and gtk.pygtk_version >= (2, 10):
@@ -234,13 +242,6 @@ class PluginsTab(gtk.VBox):
 			)
 			hbox.pack_start(url_button, False)
 
-		assert hasattr(self.dialog, 'ui')
-		open_button = gtk.Button(label=_('Open plugins folder'))
-		open_button.set_relief(gtk.RELIEF_NONE)
-		open_button.connect('clicked',
-			lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
-		)
-		hbox.pack_start(open_button, False)
 
 	def do_row_activated(self, treeview, path, col):
 		key, active, activatable, name, klass = treeview.get_model()[path]
