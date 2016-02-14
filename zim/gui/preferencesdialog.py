@@ -12,6 +12,8 @@ from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
 from zim.gui.applications import CustomizeOpenWithDialog
 
+from zim.plugins import PLUGIN_FOLDER
+
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
 
@@ -219,13 +221,26 @@ class PluginsTab(gtk.VBox):
 		except:
 			pass # maybe loading plugins failed
 
+		## Add buttons to get and install new plugins
+		hbox = gtk.HButtonBox()
+		hbox.set_layout(gtk.BUTTONBOX_START)
+		self.pack_start(hbox, False)
+
 		if gtk.gtk_version >= (2, 10) \
 		and gtk.pygtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins',
 				_('Get more plugins online') # T: label for button with URL
 			)
-			self.pack_start(url_button, False)
+			hbox.pack_start(url_button, False)
+
+		assert hasattr(self.dialog, 'ui')
+		open_button = gtk.Button(label=_('Open plugins folder'))
+		open_button.set_relief(gtk.RELIEF_NONE)
+		open_button.connect('clicked',
+			lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
+		)
+		hbox.pack_start(open_button, False)
 
 	def do_row_activated(self, treeview, path, col):
 		key, active, activatable, name, klass = treeview.get_model()[path]
