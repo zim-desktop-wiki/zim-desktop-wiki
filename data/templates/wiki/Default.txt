@@ -1,3 +1,2 @@
 ======= [% page.basename %] =======
-Created [% strftime("%A %d %B %Y") %]
-
+[% gettext("Created") %] [% strftime("%A %d %B %Y") %]
