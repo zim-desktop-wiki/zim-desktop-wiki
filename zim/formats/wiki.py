@@ -171,7 +171,10 @@ class WikiParser(object):
 				^(?= \s*? \n)							# empty line / only spaces
 				''',
 				process=self.parse_table
-			)
+			),
+			# line format
+			Rule(LINE, r'(?<=\n)-{4}-+(?=\n)', process=self.parse_line) # \n-----\n
+
 		)
 		p.process_unmatched = self.parse_para
 		return p
@@ -428,6 +431,9 @@ class WikiParser(object):
 	def parse_tag(builder, text):
 		builder.append(TAG, {'name': text[1:]}, text)
 
+	@staticmethod
+	def parse_line(builder, text):
+		builder.append(LINE)
 
 
 
@@ -576,3 +582,11 @@ class Dumper(TextDumper):
 			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 			strings = map(lambda s: s.replace('<br>', '\\n'), strings)
 			return [self._concat(strings)]
+
+	def dump_line(self, tag, attrib, strings = None):
+		#logger.debug("Dumping line tag:%s, attrib:%s, strings:%s", tag, attrib, strings)
+		if not strings:
+			strings = [LINE_TEXT]
+		elif isinstance(strings, basestring):
+			strings = [strings]
+		return strings

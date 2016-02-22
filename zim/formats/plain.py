@@ -226,3 +226,5 @@ class Dumper(DumperClass):
 		strings = [s.replace('|', '∣') for s in strings]
 		return [self._concat(strings)]
 
+	def dump_line(self, tag, attrib, strings=None):
+		return '\n{}\n'.format(LINE_TEXT)

@@ -34,7 +34,7 @@ from zim.notebook import Path, interwiki_link
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, LINE_TEXT
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -53,6 +53,37 @@ from zim.plugins import PluginManager
 
 
 logger = logging.getLogger('zim.gui.pageview')
+
+
+class LineSeparator(CustomObjectWidget):
+	'''Class to create a separation line.'''
+	__gsignals__ = {
+		'size-request': 'override',
+	}
+
+	def __init__(self):
+		CustomObjectWidget.__init__(self)
+		# Set color of the line.
+		self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse('darkgrey'))
+		# Set size of the line.
+		self.vbox.set_size_request(self._textview_width, height = 3)
+
+class LineObject(CustomObjectClass):
+	'''Class to work with 'LineSeparator' objects.'''
+	OBJECT_ATTR = {
+		'type': String('line'),
+	}
+
+	def get_widget(self):
+		'''Creates a new line which can be displayed on the wiki-page.'''
+		return LineSeparator()
+
+ObjectManager.register_object('line', LineObject)
+
+def IS_LINE(line):
+	'''Function used for line autoformatting.'''
+	length = len(line)
+	return (line == '-'*length) and (length > 4)
 
 
 STOCK_CHECKED_BOX = 'zim-checked-box'
@@ -891,6 +922,10 @@ class TextBuffer(gtk.TextBuffer):
 				self.insert_object_at_cursor(obj)
 
 				set_indent(None)
+			elif element.tag == 'line':
+				obj = ObjectManager.get_object('line', None, None)
+				self.insert_object_at_cursor(obj)
+
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -2332,6 +2367,18 @@ class TextBuffer(gtk.TextBuffer):
 					and hasattr(anchor.manager, 'build_parsetree_of_table'): # fallback should not go here...
 						obj = anchor.manager
 						obj.build_parsetree_of_table(builder, iter)
+					elif attrib and attrib['type'] == 'line':
+						# Add (if necessary) additional newline symbols
+						# to prevent formatting back from line object to text.
+						_new_iter = iter.copy()
+						_start = '' if _new_iter.starts_line() else '\n'
+						_new_iter.forward_char()
+						_end = '' if _new_iter.ends_line() else '\n'
+						data = '{}{}{}'.format(_start, LINE_TEXT, _end)
+						logger.debug("Anchor with Line, obj:%s", anchor.manager)
+						builder.start('line', attrib)
+						builder.data(data)
+						builder.end('line')
 					else:
 						# general object related parsing
 						data = anchor.manager.get_data()
@@ -4203,6 +4250,12 @@ class TextView(gtk.TextView):
 			buffer.insert_with_tags_by_name(
 				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
 			buffer.delete_mark(mark)
+		elif IS_LINE(line):
+			with buffer.user_action:
+				buffer.delete(start, end)
+				obj = ObjectManager.get_object('line', None, None)
+				buffer.insert_object_at_cursor(obj)
+				buffer.insert_at_cursor('\n')
 		elif not buffer.get_bullet_at_iter(start) is None:
 			# we are part of bullet list
 			# FIXME should logic be handled by TextBufferList ?
@@ -4364,6 +4417,7 @@ class UndoStackManager:
 			('insert-text', self.do_insert_text),
 			#~ ('inserted-tree', self.do_insert_tree), # TODO
 			('insert-pixbuf', self.do_insert_pixbuf),
+			('insert-child-anchor', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
 			('begin-user-action', self.do_begin_user_action),
 			('end-user-action', self.do_end_user_action),
@@ -5584,6 +5638,20 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
+
+	@action(_('_Line'), readonly=False) # T: Menu item
+	def insert_line(self):
+		'''
+                This function is called from menu action.
+                Insert a line at the cursor position.
+		'''
+		obj = ObjectManager.get_object('line', None, None)
+
+		buffer = self.view.get_buffer()
+		with buffer.user_action:
+			buffer.insert_object_at_cursor(obj)
+			# Add newline after line separator widget.
+			buffer.insert_at_cursor('\n')
 
 	@action(_('_Image...'), readonly=False) # T: Menu item
 	def insert_image(self, file=None, type=None, interactive=True, force=False):
