@@ -190,6 +190,7 @@ class TestBazaar(VersionControlBackendTests, tests.TestCase):
 		'''Test Bazaar version control'''
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = VCS.create(VCS.BZR, root, root)
+		self.addCleanup(vcs.disconnect_all)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -323,6 +324,7 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
 		'''Test Git version control'''
 		root = get_tmp_dir('versioncontrol_TestGit')
 		vcs = VCS.create(VCS.GIT, root, root)
+		self.addCleanup(vcs.disconnect_all)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -500,6 +502,7 @@ class TestMercurial(VersionControlBackendTests, tests.TestCase):
 		'''Test Mercurial version control'''
 		root = get_tmp_dir('versioncontrol_TestMercurial')
 		vcs = VCS.create(VCS.HG, root, root)
+		self.addCleanup(vcs.disconnect_all)
 		vcs.init()
 
 		#~ for notebookdir in (root, root.subdir('foobar')):
@@ -622,6 +625,7 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		'''Test Fossil version control'''
 		root = get_tmp_dir('versioncontrol_TestFossil')
 		vcs = VCS.create(VCS.FOSSIL, root, root)
+		self.addCleanup(vcs.disconnect_all)
 		vcs.init()
 
 		subdir = root.subdir('foo/bar')

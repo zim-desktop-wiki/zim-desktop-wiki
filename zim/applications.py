@@ -189,17 +189,22 @@ class Application(object):
 				cwd=cwd,
 				stdout=open(os.devnull, 'w'),
 				stderr=subprocess.PIPE,
-				startupinfo=info)
+				startupinfo=info,
+				bufsize=4096,
+				close_fds=True
+			)
 		else:
 			p = subprocess.Popen(argv,
 				cwd=cwd,
 				stdout=open(os.devnull, 'w'),
-				stderr=subprocess.PIPE)
-		p.wait()
-		stderr = p.stderr.read()
+				stderr=subprocess.PIPE,
+				bufsize=4096,
+				close_fds=True
+			)
+		stdout,	stderr = p.communicate()
 
 		if not p.returncode == self.STATUS_OK:
-			raise ApplicationError(argv[0], argv[1:], p.returncode, p.stderr.read())
+			raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
 		#~ elif stderr:
 			#~ logger.warn(stderr)
 
