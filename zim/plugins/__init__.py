@@ -647,6 +647,8 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 	@ivar obj: the object being extended
 	'''
 
+	__signals__ = {}
+
 	def __init__(self, plugin, obj):
 		'''Constructor
 		@param plugin: the plugin object to which this extension belongs

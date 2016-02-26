@@ -161,7 +161,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	# TODO add checks for read-only page in much more methods
 
 	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
+	__signals__ = {
 		'store-page': (SIGNAL_NORMAL, None, (object,)),
 		'stored-page': (SIGNAL_NORMAL, None, (object,)),
 		'move-page': (SIGNAL_NORMAL, None, (object, object)),

@@ -38,7 +38,7 @@ else: #pragma: no cover
 	import simplejson as json # extra dependency
 
 
-from zim.signals import SignalEmitter, ConnectorMixin
+from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
 from zim.utils import OrderedDict, FunctionThread
 from zim.fs import File, FileNotFoundError
 from zim.errors import Error
@@ -47,6 +47,11 @@ from .basedirs import XDG_CONFIG_HOME
 
 
 logger = logging.getLogger('zim.config')
+
+
+class _MyMeta(SignalEmitter.__metaclass__, OrderedDict.__metaclass__):
+	# Combine meta classes to resolve conflict
+	pass
 
 
 class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
@@ -59,6 +64,12 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 	@signal: C{changed ()}: emitted when content of this dict changed,
 	or a nested C{ControlledDict} changed
 	'''
+
+	__metaclass__ = _MyMeta
+
+	__signals__ = {
+		'changed': (SIGNAL_NORMAL, None, ())
+	}
 
 	def __init__(self, E=None, **F):
 		OrderedDict.__init__(self, E, **F)
@@ -80,7 +91,7 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 
 	def update(self, E=(), **F):
 		# Only emit changed once here
-		with self.blocked_signals('changed'):
+		with self.block_signals('changed'):
 			OrderedDict.update(self, E, **F)
 		self.emit('changed')
 
@@ -576,7 +587,7 @@ class ConfigDict(ControlledDict):
 				value = self._input.pop(key)
 				self._set_input(key, value)
 			else:
-				with self.blocked_signals('changed'):
+				with self.block_signals('changed'):
 					OrderedDict.__setitem__(self, key, definition.default)
 
 	def _set_input(self, key, value):
@@ -589,7 +600,7 @@ class ConfigDict(ControlledDict):
 			)
 			value = self.definitions[key].default
 
-		with self.blocked_signals('changed'):
+		with self.block_signals('changed'):
 			OrderedDict.__setitem__(self, key, value)
 
 	def setdefault(self, key, default, check=None, allow_empty=False):
@@ -683,7 +694,7 @@ class SectionedConfigDict(ControlledDict):
 		try:
 			return ControlledDict.__getitem__(self, k)
 		except KeyError:
-			with self.blocked_signals('changed'):
+			with self.block_signals('changed'):
 				ControlledDict.__setitem__(self, k, ConfigDict())
 			return ControlledDict.__getitem__(self, k)
 
@@ -734,7 +745,7 @@ class INIConfigFile(SectionedConfigDict):
 		SectionedConfigDict.__init__(self)
 		self.file = file
 		try:
-			with self.blocked_signals('changed'):
+			with self.block_signals('changed'):
 				self.read()
 			self.set_modified(False)
 		except FileNotFoundError:
@@ -746,14 +757,14 @@ class INIConfigFile(SectionedConfigDict):
 	def on_file_changed(self, *a):
 		if self.file.check_has_changed_on_disk():
 			try:
-				with self.blocked_signals('changed'):
+				with self.block_signals('changed'):
 					self.read()
 			except FileNotFoundError:
 				pass
 			else:
 				# First emit top level to allow general changes
 				self.emit('changed')
-				with self.blocked_signals('changed'):
+				with self.block_signals('changed'):
 					for section in self.values():
 						section.emit('changed')
 				self.set_modified(False)
