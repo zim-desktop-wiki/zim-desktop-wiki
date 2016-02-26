@@ -35,16 +35,9 @@ class TestEmitter(tests.TestCase):
 		self.assertEqual(data, ['test2'])
 		emitter.disconnect(i)
 
-		data_userdata = []
-		def check_userdata(o, a, u):
-			self.assertIs(o, emitter)
-			data_userdata.append((a, u))
-
-		emitter.connect('bar', check_userdata, userdata='XYZ')
 		emitter.emit('bar', 'test3')
 		self.assertEqual(emitter.state, 'DO bar test3')
 		self.assertEqual(data, ['test2']) # check stopped listening after disconnect
-		self.assertEqual(data_userdata, [('test3', 'XYZ')])
 
 
 	def testHook(self):

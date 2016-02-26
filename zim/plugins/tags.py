@@ -10,6 +10,8 @@ import pango
 
 import logging
 
+from functools import partial
+
 from zim.plugins import PluginClass, extends, WindowExtension
 #~ PageTreeIter
 from zim.gui.pageindex import PageTreeStore, PageTreeView, \
@@ -327,9 +329,9 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 			self._flush()
 
 		self.connectto_all(self.index, (
-			('page-added', on_page_changed, 'row-inserted'),
-			('page-changed', on_page_changed, 'row-changed'),
-			('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
+			('page-added', partial(on_page_changed, signal='row-inserted')),
+			('page-changed', partial(on_page_changed, signal='row-changed')),
+			('page-haschildren-toggled', partial(on_page_changed, signal='row-has-child-toggled')),
 			('page-to-be-removed', on_page_deleted),
 
 			('tag-created', on_tag_created),
@@ -456,9 +458,9 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 			self._flush()
 
 		self.connectto_all(self.index, (
-			('page-added', on_page_changed, 'row-inserted'),
-			('page-changed', on_page_changed, 'row-changed'),
-			('page-haschildren-toggled', on_page_changed, 'row-has-child-toggled'),
+			('page-added', partial(on_page_changed, signal='row-inserted')),
+			('page-changed', partial(on_page_changed, signal='row-changed')),
+			('page-haschildren-toggled', partial(on_page_changed, signal='row-has-child-toggled')),
 			('page-to-be-removed', on_page_deleted),
 		))
 

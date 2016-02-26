@@ -9,6 +9,8 @@ import gtk
 
 import re
 
+from functools import partial
+
 import logging
 
 from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
@@ -197,8 +199,10 @@ class NotebookExtension(ObjectExtension):
 		daterange = daterange_from_path(path)
 		if daterange:
 			self.connectto(template, 'process',
-				self.on_process_new_page_template,
-				userdata=daterange
+				partial(
+					self.on_process_new_page_template,
+					daterange=daterange
+				)
 			)
 
 	def on_process_new_page_template(self, template, output, context, daterange):

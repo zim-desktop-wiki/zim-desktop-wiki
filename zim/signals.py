@@ -107,7 +107,7 @@ class ConnectorMixin(object):
 	# TODO connect variant that wraps with a handler that catches
 	#  unwanted arguments
 
-	def connectto(self, obj, signal, handler=None, userdata=None, order=SIGNAL_NORMAL):
+	def connectto(self, obj, signal, handler=None, order=SIGNAL_NORMAL):
 		'''Connect to signals of another object
 		E.g.::
 
@@ -117,7 +117,6 @@ class ConnectorMixin(object):
 		@param signal: the signal name
 		@param handler: the callback function, or C{None} to map to
 		a method prefixed with "on_".
-		@param userdata: optional user data
 		@param order: if order is C{NORMAL} then C{GObject.connect()}
 		is used, if order is C{AFTER} then C{GObject.connect_after()}
 		is used.
@@ -130,15 +129,9 @@ class ConnectorMixin(object):
 				raise NotImplementedError, 'No method "%s"' % name
 
 		if order == SIGNAL_NORMAL:
-			if userdata is None:
-				i = obj.connect(signal, handler)
-			else:
-				i = obj.connect(signal, handler, userdata)
+			i = obj.connect(signal, handler)
 		else: # SIGNAL_AFTER
-			if userdata is None:
-				i = obj.connect_after(signal, handler)
-			else:
-				i = obj.connect_after(signal, handler, userdata)
+			i = obj.connect_after(signal, handler)
 
 		if not hasattr(self, '_connected_signals'):
 			self._connected_signals = {}
@@ -152,7 +145,7 @@ class ConnectorMixin(object):
 
 		return i
 
-	def connectto_all(self, obj, signals, handler=None, userdata=None, order=SIGNAL_NORMAL):
+	def connectto_all(self, obj, signals, handler=None, order=SIGNAL_NORMAL):
 		'''Convenience method to combine multiple calls to
 		L{connectto()}.
 
@@ -170,13 +163,12 @@ class ConnectorMixin(object):
 		parameters are not specified explicitly per signal.
 
 		@param handler: optional parameter
-		@param userdata: optional parameter
 		@param order: optional parameter
 		'''
-		default = (None, handler, userdata, order)
+		default = (None, handler, order)
 		for signal in signals:
 			if isinstance(signal, basestring):
-				self.connectto(obj, signal, handler, userdata, order)
+				self.connectto(obj, signal, handler, order)
 			else:
 				arg = signal + default[len(signal):]
 					# fill in missing positional arguments
@@ -271,7 +263,7 @@ class SignalEmitter(object):
 
 		return obj
 
-	def connect(self, signal, handler, userdata=None):
+	def connect(self, signal, handler):
 		'''Register a handler for a specific object.
 
 		Note that connecting makes a hard reference to the connected
@@ -283,21 +275,16 @@ class SignalEmitter(object):
 		@param handler: callback to be called upon the signal,
 		first object to the callback will be the emitting object,
 		other params are signal specific.
-		@param userdata: optional data to provide to the callback
 		@returns: an id for the registered handler
 		'''
-		return self._connect(SIGNAL_BEFORE, signal, handler, userdata)
+		return self._connect(SIGNAL_BEFORE, signal, handler)
 
-	def connect_after(self, signal, handler, userdata=None):
+	def connect_after(self, signal, handler):
 		'''Like L{connect()} but handler will be called after default handler'''
-		return self._connect(SIGNAL_AFTER, signal, handler, userdata)
+		return self._connect(SIGNAL_AFTER, signal, handler)
 
-	def _connect(self, category, signal, callback, userdata):
+	def _connect(self, category, signal, callback):
 		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
-
-		if userdata:
-			inner = callback
-			callback = lambda *a: inner(*(a + (userdata,)))
 
 		if not signal in self._signal_handlers:
 			self._signal_handlers[signal] = []
