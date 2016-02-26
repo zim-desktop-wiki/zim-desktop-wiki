@@ -122,7 +122,7 @@ sdfsdf
 		ui.open_page(page)
 		widget.on_open_page(ui, page, page)
 		self.assertEqual(get_tree(), without_h1)
-		widget.on_stored_page(ui.notebook, page)
+		widget.on_store_page(ui.notebook, page)
 		self.assertEqual(get_tree(), without_h1)
 
 		widget.set_show_h1(True)
@@ -203,7 +203,7 @@ sdfsdf
 		emptypage = tests.MockObject()
 		widget.on_open_page(ui, emptypage, emptypage)
 		self.assertEqual(get_tree(), [])
-		widget.on_stored_page(ui.notebook, emptypage)
+		widget.on_store_page(ui.notebook, emptypage)
 		self.assertEqual(get_tree(), [])
 
 
@@ -211,7 +211,7 @@ sdfsdf
 		for path in ui.notebook.pages.walk():
 			page = ui.notebook.get_page(path)
 			widget.on_open_page(ui, page, page)
-			widget.on_stored_page(ui.notebook, page)
+			widget.on_store_page(ui.notebook, page)
 
 # TODO check selecting heading in actual PageView
 # especially test selecting a non-existing item to check we don't get infinite loop
