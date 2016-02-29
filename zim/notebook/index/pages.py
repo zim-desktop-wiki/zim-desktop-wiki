@@ -164,6 +164,7 @@ class PagesIndexer(IndexerBase):
 		'page-haschildren-toggled': (SIGNAL_BEFORE, None, (object,)),
 		'page-changed': (SIGNAL_AFTER, None, (object,)),
 		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)),
+		'page-removed': (SIGNAL_AFTER, None, (object,)),
 	}
 
 	INIT_SCRIPT = '''
@@ -206,6 +207,7 @@ class PagesIndexer(IndexerBase):
 
 	def on_delete_page(self, index, db, indexpath):
 		self.emit('page-to-be-removed', indexpath)
+		self.emit('page-removed', indexpath)
 
 	def on_deleted_page(self, index, db, parent, basename):
 		self.update_parent(db, parent)

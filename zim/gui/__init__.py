@@ -375,20 +375,19 @@ class GtkInterface(gobject.GObject):
 		notebook.connect('move-page', save_page) # before action
 		notebook.connect('moved-page', follow) # after action
 
-		# FIXME
-		#~ def new_child(index, indexpath):
-			#~ if self.page and indexpath.ischild(self.page):
-				#~ child = self.actiongroup.get_action('open_page_child')
-				#~ child.set_sensitive(True)
-		#~
-		#~ def child_deleted(index, indexpath):
-			#~ if self.page and indexpath.ischild(self.page):
-				#~ ourpath = index.lookup_path(self.page)
-				#~ child = self.actiongroup.get_action('open_page_child')
-				#~ child.set_sensitive(ourpath.haschildren)
+		def new_child(index, indexpath):
+			if self.page and indexpath.ischild(self.page):
+				child = self.actiongroup.get_action('open_page_child')
+				child.set_sensitive(True)
 
-		#~ notebook.index.connect('page-added', new_child)
-		#~ notebook.index.connect('page-deleted', child_deleted)
+		def child_deleted(index, indexpath):
+			if self.page and indexpath.ischild(self.page):
+				ourpath = index.lookup_path(self.page)
+				child = self.actiongroup.get_action('open_page_child')
+				child.set_sensitive(ourpath.haschildren)
+
+		notebook.index.connect('page-added', new_child)
+		notebook.index.connect('page-removed', child_deleted)
 
 		self.set_readonly(notebook.readonly)
 
