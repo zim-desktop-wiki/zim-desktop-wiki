@@ -660,7 +660,8 @@ class PageIndex(gtk.ScrolledWindow):
 			self.on_open_page(self.ui, self.ui,page, self.ui,page)
 
 	def on_open_page(self, ui, page, path):
-		treepath = self.treeview.set_current_page(path, vivificate=True)
+		treepath = self.treeview.set_current_page(Path(path.name), vivificate=True)
+			# Force reloading Path - stale IndexPath will not be checked later
 		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
 		if treepath and expand:
 			self.treeview.select_treepath(treepath)
