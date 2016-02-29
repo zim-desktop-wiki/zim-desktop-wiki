@@ -169,7 +169,9 @@ class FilesStore(StoreClass):
 		@raises PageNotAllowedError: when node cannot be accessed
 		'''
 		if path.isroot:
-			return FileStoreNode(None, None, self.dir, self.format)
+			dir = FilteredDir(self.dir)
+			dir.ignore('*.txt') # FIXME hardcoded extension
+			return FileStoreNode(None, None, dir, self.format)
 		else:
 			file = self._get_file(path)
 			dir = FilteredDir(self._get_dir(path))
