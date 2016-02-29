@@ -689,7 +689,7 @@ class PagesView(IndexViewBase):
 
 		with self._db as db:
 			for row in db.execute(
-				'SELECT * FROM pages WHERE id<>? and page_exists>0 ORDER BY mtime' + selection,
+				'SELECT * FROM pages WHERE id<>? and page_exists>0 ORDER BY mtime DESC' + selection,
 				(ROOT_ID,)
 			):
 				yield self._pages.lookup_by_row(db, row)
