@@ -111,6 +111,8 @@ FIXME: jaja - TODO !! @FIXME
 	[ ] Sub item bullets
 * dus
 
+Next this line is not a tasks, even though it starts with "next"
+
 1. Numbered list
 2. With tasks as sub items
 	[ ] Sub item numbered
@@ -205,7 +207,6 @@ TODO @home
 			(t('B'), []),
 			(t('C'), []),
 			(t('FIXME: dus'), []),
-			(t('Next: And due dates', actionable=False), []),
 			(t('TODO: BAR !!!', prio=3), []),
 			# this list inherits the @home tag - and inherits prio
 			(t('Some more tasks !!!', prio=3, tags='home'), [

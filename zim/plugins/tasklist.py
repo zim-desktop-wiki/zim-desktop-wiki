@@ -415,6 +415,7 @@ class TasksParseTreeParser(Visitor):
 		self._last_node = (None, None) # (tag, attrib) of last item seen by start()
 		self._intasklist = False # True if we are in a tasklist with a header
 		self._tasklist_tags = None # global tags from the tasklist header
+		self._previous = False # has direct previous, for "Next"
 
 	def parse(self, parsetree):
 		#~ filter = TreeFilter(
@@ -517,6 +518,8 @@ class TasksParseTreeParser(Visitor):
 		for line in u''.join(strings).splitlines():
 			if self._matches_label(line):
 				self._parse_task(line)
+			else:
+				self._previous = False
 
 	def _parse_list_item(self, attrib, text):
 		# List item to parse - check bullet, then match label
@@ -530,6 +533,8 @@ class TasksParseTreeParser(Visitor):
 			self._parse_task(line, open=open)
 		elif self._matches_label(line):
 			self._parse_task(line)
+		else:
+			self._previous = False
 
 	def _matches_label(self, line):
 		return self.task_label_re and self.task_label_re.match(line)
@@ -571,9 +576,12 @@ class TasksParseTreeParser(Visitor):
 			actionable = False
 		elif any(t.lower() in self.nonactionable_tags for t in tags):
 			actionable = False
-		elif self._matches_next_label(text) and parent_children:
-			previous = parent_children[-1][0]
-			actionable = not previous[0] # previous task not open
+		elif self._matches_next_label(text):
+			if self._previous and parent_children:
+				previous = parent_children[-1][0]
+				actionable = not previous[0] # previous task not open
+			else:
+				return # skip
 		else:
 			actionable = True
 
@@ -589,6 +597,7 @@ class TasksParseTreeParser(Visitor):
 		if self._depth > 0: # (don't add paragraph level items to the stack)
 			self._stack.append((level, task, children))
 
+		self._previous = True
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
