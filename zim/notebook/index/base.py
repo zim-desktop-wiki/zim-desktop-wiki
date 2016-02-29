@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger('zim.notebook.index')
 
 
-from zim.signals import SIGNAL_BEFORE, SIGNAL_AFTER
+from zim.signals import SIGNAL_BEFORE, SIGNAL_AFTER, SignalEmitter
 
 
 class IndexNotFoundError(ValueError):
@@ -30,7 +30,7 @@ class IndexViewBase(object):
 		self._db = db_context
 
 
-class IndexerBase(object):
+class IndexerBase(SignalEmitter):
 	'''Base class for "Indexer" objects.
 	The methods in this class all take the "db" as the first argument
 	because they can be used with a db onnection in a separate thread.
@@ -40,47 +40,16 @@ class IndexerBase(object):
 		self._signal_handlers = {}
 		self._signal_queue = []
 
-	def connect(self, signal, handler, userdata=None):
-		assert signal in self.__signals__
-		if not signal in self._signal_handlers:
-			self._signal_handlers[signal] = []
-		if userdata is not None:
-			inner = handler
-			def wrapper(*a):
-				a = a + (userdata,)
-				inner(*a)
-			handler = wrapper
-		myhandler = (handler,) # new tuple to ensure unique object
-		self._signal_handlers[signal].append(myhandler)
-		return id(myhandler)
-
-	def disconnect(self, handlerid):
-		for signal in self._signal_handlers:
-			for handler in self._signal_handlers[signal]:
-				if id(handler) == handlerid:
-					self._signal_handlers[signal].remove(handler)
-					if not self._signal_handlers[signal]:
-						self._signal_handlers.pop(signal)
-					return
-
 	def emit(self, signal, *args):
-		if signal in self._signal_handlers:
-			if self.__signals__[signal][0] == SIGNAL_BEFORE:
-				self._emit(signal, args)
-			else:
-				self._signal_queue.append((signal, args))
+		if self.__signals__.get(signal, (None,))[0] == SIGNAL_AFTER:
+			self._signal_queue.append((signal, args))
+		else:
+			SignalEmitter.emit(self, signal, *args)
 
 	def emit_queued_signals(self):
 		for signal, args in self._signal_queue:
-			self._emit(signal, args)
+			SignalEmitter.emit(self, signal, *args)
 		self._signal_queue = []
-
-	def _emit(self, signal, args):
-		for myhandler in self._signal_handlers[signal]:
-			try:
-				myhandler[0](self, *args)
-			except:
-				logger.exception('Exception in signal emit %s %r', signal, args)
 
 	def on_db_init(self, index, db):
 		'''Callback that is called when a database is initialized.

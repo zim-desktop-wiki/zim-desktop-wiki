@@ -194,10 +194,10 @@ class Index(object):
 		for indexer in self._indexers:
 			indexer.on_db_init(self, db)
 
-	def connect(self, signal, handler, userdata=None):
+	def connect(self, signal, handler):
 		for indexer in self._indexers:
 			if signal in indexer.__signals__:
-				return indexer.connect(signal, handler, userdata)
+				return indexer.connect(signal, handler)
 		else:
 			raise ValueError, 'No such signal: %s' % signal
 
