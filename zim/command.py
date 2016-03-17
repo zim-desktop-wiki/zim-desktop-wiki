@@ -1,9 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+'''This module contains base classes for the application.
+These are used in L{zim.main} to construct that behavior of the
+zim application when called from the commandline.
+
+This module is responsible for commandline parsing, setting up
+application processes, and dispatching to the application specific
+logic.
+
+NOTE: For Gtk3 replace this by using GtkApplication / GApplication
+
+'''
 
 
 from getopt import gnu_getopt, GetoptError
+
+import os
+import sys
 
 import logging
 
@@ -12,6 +27,8 @@ logger = logging.getLogger('zim')
 
 from zim import __version__
 from zim.errors import Error
+
+import zim.newipc
 
 
 class UsageError(Error):
@@ -47,15 +64,16 @@ class Command(object):
 
 	use_gtk = False #: Flag whether this command uses a graphical interface
 
-	def __init__(self, command, *args, **opts):
+	def __init__(self, command):
 		'''Constructor
 		@param command: the command switch (first commandline argument)
 		@param args: positional commandline arguments
 		@param opts: command options
 		'''
 		self.command = command
-		self.args = list(args)
-		self.opts = opts
+		self.commandline = ['--'+command]
+		self.args = []
+		self.opts = {}
 
 	def parse_options(self, *args):
 		'''Parse commandline options for this command
@@ -64,6 +82,8 @@ class Command(object):
 		@param args: all remaining options to be parsed
 		@raises GetOptError: when options are not correct
 		'''
+		self.commandline.extend(args)
+
 		options = ''
 		long_options = []
 		options_map = {}
@@ -140,10 +160,150 @@ class Command(object):
 			logger.debug(zim.get_zim_revision())
 			zim.config.log_basedirs()
 
-
 	def run(self):
 		'''Run the command
 		@raises UsageError: when arguments are not correct
 		@implementation: must be implemented by subclasses
 		'''
 		raise NotImplementedError
+
+
+
+class PluginCommand(Command):
+
+	def __init__(self, command):
+		self.command = command
+		self.commandline = ['--plugin', command]
+		self.args = []
+		self.opts = {}
+
+
+from zim.utils import WeakSet
+assert hasattr(WeakSet, '_del'), 'assure hack remains working'
+
+class InstancesSet(WeakSet):
+	'''Overloaded to exit application when last instance is
+	destroyed.
+	'''
+
+	def _del(self, ref):
+		print ">>> DEL"
+		import gtk
+
+		WeakSet._del(self, ref)
+		if not list(self) \
+		and gtk.main_level() > 0:
+			print ">>>>>>>> QUIT"
+			gtk.main_quit()
+
+
+_INSTANCES = WeakSet()  # Global / Sigleton per process
+
+
+def run_in_main_process(function):
+	'''Decorator that wraps ipc logic around a C{run()} method.
+	Ensures either main process is contacten, or a new main process
+	is started.
+	Only if the command has set the option "standalone" this wrapper
+	is ignorerd.
+
+	In this wrapper an argument C{instances} is added that holds a
+	set that can be used to store unique object instnaces within the
+	main process.
+
+	Finally this wrapper is also responsible for calling C{gtk.main},
+	don't try to do this from the C{run()} method.
+
+	@note: never pass on C{instances} to other objects, this would violate
+	the design principle on the decentralized object structure!
+	'''
+	def wrapper(cmd):
+		assert cmd.use_gtk # dispatch handler assumes use of gtk main loop
+		if zim.newipc.get_in_main_process():
+			function(cmd, _INSTANCES)
+		elif cmd.opts.get('standalone'):
+			logger.debug('Running standalone process')
+
+			import gtk, gobject
+			gobject.threads_init()
+
+			function(cmd, _INSTANCES)
+
+			gtk.main()
+		else:
+			if _try_dispatch(cmd.commandline):
+				pass # we are done
+			else:
+				# we become the main process
+				logger.debug('Starting primary process')
+				import gtk, gobject
+				gobject.threads_init()
+
+				_daemonize()
+				zim.newipc.start_listening()
+				function(cmd, _INSTANCES)
+
+				gtk.main()
+
+	return wrapper
+
+
+def _try_dispatch(argv):
+	try:
+		zim.newipc.dispatch(*argv)
+	except IOError:
+		return False
+	except Exception:
+		logger.exception('Got error in dispatch')
+		return False
+	else:
+		logger.debug('Dispatched command')
+		return True
+
+
+def _daemonize():
+	# Decouple from parent environment
+	# and redirect standard file descriptors
+	os.chdir("/")
+
+	try:
+		si = file(os.devnull, 'r')
+		os.dup2(si.fileno(), sys.stdin.fileno())
+	except:
+		pass
+
+	loglevel = logging.getLogger().getEffectiveLevel()
+	if loglevel <= logging.INFO and sys.stdout.isatty() and sys.stderr.isatty():
+		# more detailed logging has lower number, so WARN > INFO > DEBUG
+		# log to file unless output is a terminal and logging <= INFO
+		pass
+	else:
+		# Redirect output to file
+		dir = zim.fs.get_tmpdir()
+		err_stream = open(os.path.join(dir.path, "zim.log"), "w")
+
+		# First try to dup handles for anyone who still has a reference
+		# if that fails, just set them
+		sys.stdout.flush()
+		sys.stderr.flush()
+		try:
+			os.dup2(err_stream.fileno(), sys.stdout.fileno())
+			os.dup2(err_stream.fileno(), sys.stderr.fileno())
+		except:
+			# Maybe stdout / stderr were not real files
+			# in the first place..
+			sys.stdout = err_stream
+			sys.stderr = err_stream
+
+		# Re-initialize logging handler, in case it keeps reference
+		# to the old stderr object
+		try:
+			rootlogger = logging.getLogger()
+			for handler in rootlogger.handlers:
+				rootlogger.removeHandler(handler)
+
+			handler = logging.StreamHandler()
+			handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+			rootlogger.addHandler(handler)
+		except:
+			pass

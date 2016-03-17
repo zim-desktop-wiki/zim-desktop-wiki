@@ -19,7 +19,7 @@ import zim.config.basedirs
 
 from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
-from zim.command import Command, UsageError, GetoptError
+from zim.command import Command, UsageError, GetoptError, run_in_main_process
 from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
 
@@ -197,29 +197,33 @@ class GuiCommand(NotebookCommand):
 			else:
 				return notebookinfo, page
 
-	def run(self):
+	@run_in_main_process
+	def run(self, instances):
 		notebook, page = self.build_notebook()
 		if not notebook:
 			return # Cancelled notebook dialog
 
-		if self.opts.get('standalone'):
-			import zim.gui
-			handler = zim.gui.GtkInterface(notebook=notebook, page=page, **self.get_options('geometry', 'fullscreen'))
-			handler.main()
+		import zim.gui
+
+		gui = None
+		for o in instances:
+			if isinstance(o, zim.gui.GtkInterface) \
+			and o.notebook.uri == notebook.uri:
+				gui = o
+				break
+
+		if gui:
+			gui.present(
+				page=page,
+				**self.get_options('geometry', 'fullscreen'))
 		else:
-			import zim.ipc
-			zim.ipc.start_server_if_not_running()
-			server = zim.ipc.ServerProxy()
-			gui = server.get_notebook(notebook)
-			gui.present(page=page, **self.get_options('geometry', 'fullscreen'))
-			logger.debug(
-				'NOTE FOR BUG REPORTS:\n'
-				'	At this point zim has send the command to open a notebook to a\n'
-				'	background process and the current process will now quit.\n'
-				'	If this is the end of your debug output it is probably not useful\n'
-				'	for bug reports. Please close all zim windows, quit the\n'
-				'	zim trayicon (if any), and try again.\n'
+			gui = zim.gui.GtkInterface(
+				notebook=notebook,
+				page=page,
+				**self.get_options('geometry', 'fullscreen')
 			)
+			instances.add(gui)
+			gui.run()
 
 
 class ManualCommand(GuiCommand):
@@ -245,11 +249,8 @@ class ServerCommand(NotebookCommand):
 	options = (
 		('port=', 'p', 'port number to use (defaults to 8080)'),
 		('template=', 't', 'name or path of the template to use'),
-		#~ ('gui', '', 'run the gui wrapper for the server'),
 		('standalone', '', 'start a single instance, no background process'),
 	)
-	# For now "--standalone" is ignored - server does not use ipc
-	# --gui is special cased to switch to ServerGuiCommand
 
 	def run(self):
 		import zim.www
@@ -268,10 +269,8 @@ class ServerGuiCommand(NotebookCommand):
 	options = (
 		('port=', 'p', 'port number to use (defaults to 8080)'),
 		('template=', 't', 'name or path of the template to use'),
-		#~ ('gui', '', 'run the gui wrapper for the server'),
 		('standalone', '', 'start a single instance, no background process'),
 	)
-	# For now "--standalone" is ignored - server does not use ipc
 
 	use_gtk = True
 

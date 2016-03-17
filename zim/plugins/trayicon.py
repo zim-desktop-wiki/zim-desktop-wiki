@@ -9,8 +9,8 @@ import logging
 
 from zim.plugins import PluginClass, WindowExtension
 from zim.config import data_file, ConfigManager
-from zim.command import Command
-from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
+from zim.command import PluginCommand
+#~ from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 from zim.gui.widgets import gtk_window_set_default_icon
 
@@ -25,7 +25,7 @@ except ImportError:
 logger = logging.getLogger('zim.plugins.trayicon')
 
 
-class TrayIconPluginCommand(Command):
+class TrayIconPluginCommand(PluginCommand):
 	'''Class to handle "zim --plugin trayicon" '''
 
 	def run(self):
@@ -85,7 +85,7 @@ This is a core plugin shipping with zim.
 		self.set_extension_class('MainWindow', klass)
 
 	def get_extension_class(self):
-		import zim.ipc
+		#~ import zim.ipc
 		if zim.ipc.in_child_process() \
 		and not self.preferences['standalone']:
 			if appindicator and not self.preferences['classic']:

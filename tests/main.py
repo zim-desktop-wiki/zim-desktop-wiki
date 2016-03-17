@@ -24,6 +24,7 @@ from zim.main import *
 
 import zim
 import zim.main
+import zim.newipc
 
 
 class TestGetApplication(tests.TestCase):
@@ -126,4 +127,41 @@ class TestHelp(tests.TestCase):
 ## ExportCommand() is tested in tests/export.py
 
 
+class TestIPC(tests.TestCase):
 
+	def runTest(self):
+		zim.newipc.start_listening()
+		self.addCleanup(zim.newipc._close_listener)
+
+		self.assertRaises(AssertionError, zim.newipc.dispatch, '--manual')
+
+		zim.newipc.set_in_main_process(False) # overrule sanity check
+		zim.newipc.dispatch('--version')
+
+		with capture_stdout() as output:
+			tests.gtk_process_events()
+		self.assertTrue(output.getvalue().startswith('zim'))
+
+
+		# Now to test the dispatching, we overload the version command
+		# however after dispatch, the normal class will run
+		from zim.command import run_in_main_process
+
+		class MyVersionCommand(VersionCommand):
+
+			use_gtk = True # pass check
+
+			@run_in_main_process
+			def run(self):
+				raise AssertionError, 'should never read this point!'
+
+		cmd = MyVersionCommand('version')
+		cmd.run()
+
+		with capture_stdout() as output:
+			tests.gtk_process_events()
+		self.assertTrue(output.getvalue().startswith('zim'))
+
+
+		# NOT TESTED is starting main process in command object.
+		# Reason is that we don't want to daemonize on the test run

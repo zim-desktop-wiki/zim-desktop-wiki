@@ -8,12 +8,12 @@ import re
 from datetime import date as dateclass
 
 from zim.plugins import PluginClass, WindowExtension, extends
-from zim.command import Command
+from zim.command import PluginCommand
 from zim.actions import action
 from zim.config import data_file, ConfigManager
 from zim.notebook import Notebook, PageNameError, NotebookInfo, \
 	resolve_notebook, build_notebook
-from zim.ipc import start_server_if_not_running, ServerProxy
+#~ from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, gtk_window_set_default_icon, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
@@ -48,7 +48,7 @@ Options:
 '''
 
 
-class QuickNotePluginCommand(Command):
+class QuickNotePluginCommand(PluginCommand):
 
 	options = (
 		('help', 'h', 'Print this help text and exit'),
@@ -81,7 +81,7 @@ class QuickNotePluginCommand(Command):
 					key, value = arg.split('=', 1)
 					self.opts[key] = value
 		else:
-			Command.parse_options(self, *args)
+			PluginCommand.parse_options(self, *args)
 
 		self.template_options = {}
 		for arg in self.opts['option']:
@@ -123,7 +123,7 @@ class QuickNotePluginCommand(Command):
 
 	def run(self):
 		if self.opts.get('help'):
-			print usagehelp # TODO handle this in Command base class
+			print usagehelp # TODO handle this in the base class
 		else:
 			gtk_window_set_default_icon()
 

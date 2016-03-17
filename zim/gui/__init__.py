@@ -400,17 +400,9 @@ class GtkInterface(gobject.GObject):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
 
-	def main(self):
-		'''Wrapper for C{gtk.main()}, runs main loop of the application.
-		Does not return until program has ended. Also takes care of
-		a number of initialization actions, like prompting the
-		L{NotebookDialog} if needed and will show the main window.
-		'''
+	def run(self):
+		'''Final initialization and show mainwindow'''
 		assert self.notebook is not None
-
-		if self.notebook.dir:
-			os.chdir(self.notebook.dir.path)
-			environ['PWD'] = self.notebook.dir.path
 
 		if self._first_page is None:
 			self._first_page = self.history.get_current()
@@ -477,7 +469,6 @@ class GtkInterface(gobject.GObject):
 			self.open_page_home()
 
 		self._mainwindow.pageview.grab_focus()
-		gtk.main()
 
 	def check_notebook_needs_upgrade(self):
 		'''Check whether the notebook needs to be upgraded and prompt
@@ -560,13 +551,18 @@ class GtkInterface(gobject.GObject):
 		if self.hideonclose:
 			self.hide()
 		else:
-			self.quit()
+			self._close()
 
 	@action(_('_Quit'), 'gtk-quit', '<Primary>Q') # T: Menu item
 	def quit(self):
 		'''Menu action for quit.
 		@emits: quit
 		'''
+		self._close()
+		if gtk.main_level() > 0:
+			gtk.main_quit()
+
+	def _close(self):
 		if not self.close_page(self.page, final=True):
 			# Do not quit if page not saved
 			return False
@@ -576,15 +572,9 @@ class GtkInterface(gobject.GObject):
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
-		self._quit()
-
-	def _quit(self):
-		self.emit('quit')
-
-		if gtk.main_level() > 0:
-			gtk.main_quit()
-
-		return True
+		gobject.source_remove(self._autosave_timer)
+		self._mainwindow.destroy()
+		self._mainwindow = None
 
 	def populate_popup(self, name, menu, path_context=None):
 		'''Populate a popup menu from a popup defined in the uimanager
