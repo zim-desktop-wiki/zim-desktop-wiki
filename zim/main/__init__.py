@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2013,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module defines the L{main()} function for executing the zim
 application. It also defines a number of command classes that implement
@@ -506,7 +506,7 @@ class ZimApplication(object):
 		existing process, or a new process.
 		@param args: commandline arguments
 		'''
-		cmd = build_command(*args)
+		cmd = build_command(args)
 
 		if self._running:
 			# This is not the first command that we process
@@ -708,8 +708,6 @@ class ZimApplication(object):
 				gtk.main_quit()
 
 
-
-
 ZIM_APPLICATION = ZimApplication() # Singleton per process
 
 
@@ -718,7 +716,7 @@ def main(*argv):
 	@returns: exit code (if error handled, else just raises)
 	'''
 	try:
-		ZIM_APPLICATION.run(argv[1:])
+		ZIM_APPLICATION.run(*argv[1:])
 	except KeyboardInterrupt:
 		# Don't show error dialog for this error..
 		logger.error('KeyboardInterrupt')

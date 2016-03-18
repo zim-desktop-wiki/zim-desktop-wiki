@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the base zim module.'''
 

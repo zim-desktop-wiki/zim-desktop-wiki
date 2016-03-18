@@ -22,7 +22,8 @@ class TestQuickNotePlugin(tests.TestCase):
 		def main(*args):
 			cmd = QuickNotePluginCommand('quicknote')
 			cmd.parse_options(*args)
-			cmd.run()
+			dialog = cmd.run(set())
+			dialog.run()
 
 		def has_text(text):
 			# create the actual check function

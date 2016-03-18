@@ -134,12 +134,22 @@ class GtkCommand(Command):
 	either calls a method on one of those objects are creates a new
 	toplevel object and returns.
 
+	These "toplevel" objects are typically gtk windows, but they can
+	be any object that has both a C{destroy()} method and a C{destroy}
+	signal. The C{destroy()} method of each toplevel is called by the
+	application before the application exits. The signal should be
+	emitted when the toplevel closes itself.
+
 	NOTE: Do _not_ call C{gtk.main} from the command, this will be
 	done by the application object.
 
 	NOTE: Do _not_ pass these toplevel objects to any delegate object!
 	Doing so breaks the decentralized object design.
 	'''
+
+	default_options	 = Command.default_options + (
+		('standalone', '', 'start a single instance, no background process'),
+	)
 
 	def run(self, toplevels):
 		'''Run the command
