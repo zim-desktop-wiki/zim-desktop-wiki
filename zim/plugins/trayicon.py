@@ -9,10 +9,9 @@ import logging
 
 from zim.plugins import PluginClass, WindowExtension
 from zim.config import data_file, ConfigManager
-from zim.command import PluginCommand
+from zim.main import Command
 #~ from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
-from zim.gui.widgets import gtk_window_set_default_icon
 
 
 # Try if we are on Ubunutu with app-indicator support
@@ -25,7 +24,7 @@ except ImportError:
 logger = logging.getLogger('zim.plugins.trayicon')
 
 
-class TrayIconPluginCommand(PluginCommand):
+class TrayIconPluginCommand(Command):
 	'''Class to handle "zim --plugin trayicon" '''
 
 	def run(self):
@@ -304,7 +303,6 @@ class DaemonTrayIconMixin(object):
 
 	def main(self):
 		# Set window icon in case we open the notebook dialog
-		gtk_window_set_default_icon()
 		gtk.main()
 
 	def quit(self):

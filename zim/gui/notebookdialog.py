@@ -384,7 +384,7 @@ class NotebookDialog(Dialog):
 		else:
 			if page is None:
 				page = self.help_page
-			zim.main.get_zim_application('--manual', page).spawn()
+			zim.main.ZIM_APPLICATION.run('--manual', page)
 
 
 class AddNotebookDialog(Dialog):

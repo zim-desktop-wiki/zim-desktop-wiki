@@ -36,7 +36,6 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 try:
 	import zim
 	import zim.main
-	import zim.ipc
 except ImportError:
 	sys.excepthook(*sys.exc_info())
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
@@ -47,7 +46,6 @@ except ImportError:
 
 # Run the application and handle some exceptions
 try:
-	zim.ipc.handle_argv()
 	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
 	argv = [arg.decode(encoding) for arg in sys.argv]
 	exitcode = zim.main.main(*argv)

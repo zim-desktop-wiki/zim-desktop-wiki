@@ -26,7 +26,7 @@ from zim.plugins import PluginClass, extends, WindowExtension
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String
-from zim.main import get_zim_application
+from zim.main import ZIM_APPLICATION
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
 from zim.gui.objectmanager import CustomObjectWidget
 from zim.formats import ElementTreeModule as ElementTree
@@ -850,8 +850,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_open_help(self, action):
 		''' Context menu: Open help '''
-		get_zim_application('--manual', 'Plugins:Table Editor').spawn()
-		pass
+		ZIM_APPLICATION.run('--manual', 'Plugins:Table Editor')
 
 	def on_change_columns(self, action):
 		''' Context menu: Edit table, run the EditTableDialog '''

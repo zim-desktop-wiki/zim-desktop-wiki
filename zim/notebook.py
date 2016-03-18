@@ -83,8 +83,6 @@ import threading
 import gobject
 
 
-from .base import Object
-
 import zim.fs
 from zim.fs import File, Dir, FS, FilePath, FileNotFoundError
 from zim.errors import Error, TrashNotSupportedError
@@ -95,6 +93,7 @@ from zim.parsing import Re, is_url_re, is_email_re, is_win32_path_re, \
 import zim.templates
 import zim.formats
 import zim.stores
+from zim.signals import ConnectorMixin, SignalEmitter
 
 
 logger = logging.getLogger('zim.notebook')
@@ -763,7 +762,7 @@ class NotebookConfig(INIConfigFile):
 		))
 
 
-class Notebook(Object):
+class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 
 	This class defines an API that proxies between backend L{zim.stores}

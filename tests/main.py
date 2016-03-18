@@ -24,23 +24,7 @@ from zim.main import *
 
 import zim
 import zim.main
-import zim.newipc
-
-
-class TestGetApplication(tests.TestCase):
-
-	def setUp(self):
-		self.old_exe = zim.ZIM_EXECUTABLE
-
-	def tearDown(self):
-		zim.ZIM_EXECUTABLE = self.old_exe
-
-	def runTest(self):
-		zim.ZIM_EXECUTABLE = '/foo/bar/zim.py'
-		app = zim.main.get_zim_application('--help')
-		self.assertEqual(app.cmd[:4], ('/foo/bar/zim.py', '--help', '--standalone'))
-			# limit to cmd[:4] because running test with "-D" or "-V" can add more
-
+import zim.main.ipc
 
 
 class capture_stdout:
@@ -130,38 +114,26 @@ class TestHelp(tests.TestCase):
 class TestIPC(tests.TestCase):
 
 	def runTest(self):
-		zim.newipc.start_listening()
-		self.addCleanup(zim.newipc._close_listener)
+		inbox = [None]
+		def handler(*args):
+			inbox[0] = args
 
-		self.assertRaises(AssertionError, zim.newipc.dispatch, '--manual')
+		zim.main.ipc.start_listening(handler)
+		self.addCleanup(zim.main.ipc._close_listener)
 
-		zim.newipc.set_in_main_process(False) # overrule sanity check
-		zim.newipc.dispatch('--version')
+		self.assertRaises(AssertionError, zim.main.ipc.dispatch, '--manual')
 
-		with capture_stdout() as output:
-			tests.gtk_process_events()
-		self.assertTrue(output.getvalue().startswith('zim'))
+		zim.main.ipc.set_in_main_process(False) # overrule sanity check
+		zim.main.ipc.dispatch('test', '123')
 
-
-		# Now to test the dispatching, we overload the version command
-		# however after dispatch, the normal class will run
-		from zim.command import run_in_main_process
-
-		class MyVersionCommand(VersionCommand):
-
-			use_gtk = True # pass check
-
-			@run_in_main_process
-			def run(self):
-				raise AssertionError, 'should never read this point!'
-
-		cmd = MyVersionCommand('version')
-		cmd.run()
-
-		with capture_stdout() as output:
-			tests.gtk_process_events()
-		self.assertTrue(output.getvalue().startswith('zim'))
+		tests.gtk_process_events()
+		self.assertEqual(inbox[0], ('test', '123'))
 
 
-		# NOT TESTED is starting main process in command object.
-		# Reason is that we don't want to daemonize on the test run
+### TODO test various ways of calling ZimApplicaiton ####
+
+# Start main
+# Handle incoming
+# Toplevel life cycle
+# Spawn new
+# Spawn standalone

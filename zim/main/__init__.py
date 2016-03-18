@@ -4,24 +4,33 @@
 
 '''This module defines the L{main()} function for executing the zim
 application. It also defines a number of command classes that implement
-specific commandline commands.
+specific commandline commands and an singleton application object that
+takes core of the process life cycle.
 '''
 
+import os
 import sys
 import logging
+import signal
 
 logger = logging.getLogger('zim')
 
 import zim
+import zim.fs
 import zim.errors
 import zim.config
 import zim.config.basedirs
 
+from zim import __version__
+
 from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
-from zim.command import Command, UsageError, GetoptError, run_in_main_process
 from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
+
+from .command import Command, GtkCommand, UsageError, GetoptError
+from .ipc import dispatch as _ipc_dispatch
+from .ipc import start_listening as _ipc_start_listening
 
 
 class HelpCommand(Command):
@@ -169,7 +178,7 @@ class NotebookCommand(Command):
 		return notebook, page or uripage
 
 
-class GuiCommand(NotebookCommand):
+class GuiCommand(NotebookCommand, GtkCommand):
 	'''Class implementing the C{--gui} command and run the gtk interface'''
 
 	arguments = ('[NOTEBOOK]', '[PAGE]')
@@ -179,8 +188,6 @@ class GuiCommand(NotebookCommand):
 		('fullscreen', '', 'start in fullscreen mode'),
 		('standalone', '', 'start a single instance, no background process'),
 	)
-
-	use_gtk = True
 
 	def get_notebook_argument(self):
 		def prompt():
@@ -197,8 +204,7 @@ class GuiCommand(NotebookCommand):
 			else:
 				return notebookinfo, page
 
-	@run_in_main_process
-	def run(self, instances):
+	def run(self, toplevels):
 		notebook, page = self.build_notebook()
 		if not notebook:
 			return # Cancelled notebook dialog
@@ -206,10 +212,10 @@ class GuiCommand(NotebookCommand):
 		import zim.gui
 
 		gui = None
-		for o in instances:
-			if isinstance(o, zim.gui.GtkInterface) \
-			and o.notebook.uri == notebook.uri:
-				gui = o
+		for o in toplevels:
+			if isinstance(o, zim.gui.MainWindow) \
+			and o.ui.notebook.uri == notebook.uri:
+				gui = o.ui # XXX
 				break
 
 		if gui:
@@ -222,8 +228,8 @@ class GuiCommand(NotebookCommand):
 				page=page,
 				**self.get_options('geometry', 'fullscreen')
 			)
-			instances.add(gui)
 			gui.run()
+			return gui._mainwindow # XXX
 
 
 class ManualCommand(GuiCommand):
@@ -233,11 +239,11 @@ class ManualCommand(GuiCommand):
 	options = filter(lambda t: t[0] != 'list', GuiCommand.options)
 		# exclude --list
 
-	def run(self):
+	def run(self, toplevels):
 		from zim.config import data_dir
 		self.arguments = ('NOTEBOOK', '[PAGE]') # HACK
 		self.args.insert(0, data_dir('manual').path)
-		GuiCommand.run(self)
+		return GuiCommand.run(self, toplevels)
 
 
 class ServerCommand(NotebookCommand):
@@ -260,7 +266,7 @@ class ServerCommand(NotebookCommand):
 		zim.www.main(notebook, **self.get_options('template', 'port'))
 
 
-class ServerGuiCommand(NotebookCommand):
+class ServerGuiCommand(NotebookCommand, GtkCommand):
 	'''Like L{ServerCommand} but uses the graphical interface for the
 	server defined in L{zim.gui.server}.
 	'''
@@ -272,13 +278,19 @@ class ServerGuiCommand(NotebookCommand):
 		('standalone', '', 'start a single instance, no background process'),
 	)
 
-	use_gtk = True
-
-	def run(self):
+	def run(self, toplevels):
 		import zim.gui.server
 		self.opts['port'] = int(self.opts.get('port', 8080))
 		notebookinfo, page = self.get_notebook_argument()
-		zim.gui.server.main(notebookinfo, **self.get_options('template', 'port'))
+
+		window = zim.gui.server.ServerWindow(
+			notebookinfo,
+			public=True,
+			**self.get_options('template', 'port')
+		)
+		window.show_all()
+
+		return window
 
 
 class ExportCommand(NotebookCommand):
@@ -429,42 +441,18 @@ commands = {
 	'index': IndexCommand,
 }
 
-def main(*argv):
-	'''Run full zim application
-	@returns: exit code (if error handled, else just raises)
-	'''
-	argv = list(argv)
-	exe = argv.pop(0)
 
-	obj = build_command(argv)
-	import zim.errors # !???
-	zim.errors.set_use_gtk(obj.use_gtk)
-
-	obj.set_logging()
-	try:
-		obj.run()
-	except KeyboardInterrupt:
-		# Don't show error dialog for this error..
-		logger.error('KeyboardInterrupt')
-		return 1
-	except Exception:
-		zim.errors.exception_handler('Exception in main()')
-		return 1
-	else:
-		return 0
-
-
-def build_command(argv):
+def build_command(args):
 	'''Parse all commandline options
 	@returns: a L{Command} object
-	@raises UsageError: if argv is not correct
+	@raises UsageError: if args is not correct
 	'''
-	argv = list(argv)
+	args = list(args)
 
-	if argv and argv[0] == '--plugin':
-		argv.pop(0)
+	if args and args[0] == '--plugin':
+		args.pop(0)
 		try:
-			cmd = argv.pop(0)
+			cmd = args.pop(0)
 		except IndexError:
 			raise UsageError, 'Missing plugin name'
 
@@ -474,16 +462,16 @@ def build_command(argv):
 		except:
 			raise UsageError, 'Could not load commandline command for plugin "%s"' % cmd
 	else:
-		if argv and argv[0].startswith('--') and argv[0][2:] in commands:
-			cmd = argv.pop(0)[2:]
-			if cmd == 'server' and '--gui' in argv:
-				argv.remove('--gui')
+		if args and args[0].startswith('--') and args[0][2:] in commands:
+			cmd = args.pop(0)[2:]
+			if cmd == 'server' and '--gui' in args:
+				args.remove('--gui')
 				cmd = 'servergui'
-		elif argv and argv[0] == '-v':
-			argv.pop(0)
+		elif args and args[0] == '-v':
+			args.pop(0)
 			cmd = 'version'
-		elif argv and argv[0] == '-h':
-			argv.pop(0)
+		elif args and args[0] == '-h':
+			args.pop(0)
 			cmd = 'help'
 		else:
 			cmd = 'gui' # default
@@ -491,35 +479,153 @@ def build_command(argv):
 		klass = commands[cmd]
 
 	obj = klass(cmd)
-	obj.parse_options(*argv)
+	obj.parse_options(*args)
 	return obj
 
 
-########################################################################
-# Not sure where this function belongs
 
-def get_zim_application(command, *args):
-	'''Constructor to get a L{Application} object for zim itself
-	Use this object to spawn new instances of zim from inside the zim
-	application.
+class ZimApplication(object):
+	'''This object is repsonsible for managing the life cycle of the
+	application process.
 
-	@param command: the first commandline argument for zim, e.g.
-	"C{--gui}", "C{--manual}" or "C{--server}"
-	@param args: additional commandline arguments.
-	@returns: a L{Application} object for zim itself
+	To do so, it decides whether to dispatch a command to an already
+	running zim process or to handle it in the current process.
+	For gtk based commands it keeps track of the toplevel objects
+	for re-use and to be able to end the process when no toplevel
+	objects are left.
 	'''
-	# TODO: if not standalone, make object call IPC directly rather than
-	#       first spawning a process
-	assert command is not None
 
-	from zim import ZIM_EXECUTABLE
-	from zim.applications import Application
-	from zim.ipc import in_child_process
+	def __init__(self):
+		self._running = False
+		self._log_started = False
+		self.standalone = False
+		self.toplevels = set()
 
-	args = [command] + list(args)
-	if not command.startswith('--ipc'):
-		if not in_child_process():
-			args.append('--standalone',)
+	def run(self, *args):
+		'''Run a commandline command, either in this process, an
+		existing process, or a new process.
+		@param args: commandline arguments
+		'''
+		cmd = build_command(*args)
+
+		if self._running:
+			# This is not the first command that we process
+			if self.standalone or cmd.opts.get('standalone'):
+				self._spawn_standalone(args)
+			if isinstance(cmd, GtkCommand):
+				self._run_gtk_cmd(cmd)
+			else:
+				self._run_cmd(cmd)
+		else:
+			self.standalone = cmd.opts.get('standalone')
+			if isinstance(cmd, GtkCommand):
+				if self._try_dispatch(args):
+					pass # We are done
+				else:
+					self._running = True
+					self._run_main_loop(cmd)
+			else:
+				self._run_cmd(cmd)
+
+	def _run_cmd(self, cmd):
+		# Run for non-gtk commands
+		# When adding setup steps here, also consider adding to _run_gtk_cmd
+		self._setup_logging(cmd)
+		self._log_start()
+
+		cmd.run()
+
+	def _run_gtk_cmd(self, cmd):
+		# Run for gtk commands recieved after mainloop has started
+		# When adding setup steps here consider adding both in _run_main_loop and _run_cmd
+		self._setup_logging(cmd)
+
+		toplevel = cmd.run(frozenset(self.toplevels))
+		if toplevel:
+			self._add_toplevel(toplevel)
+
+	def _run_main_loop(self, cmd):
+		# Run for the 1st gtk command in a primary process, but can still be standalone process
+		# When adding setup steps here, also consider adding to _run_gtk_cmd
+		self._setup_logging(cmd)
+		self._log_start()
+
+		import gtk, gobject
+		gobject.threads_init()
+
+		from zim.gui.widgets import gtk_window_set_default_icon
+		gtk_window_set_default_icon()
+
+		zim.errors.set_use_gtk(True)
+		self._setup_signal_handling()
+
+		if self.standalone:
+			logger.debug('Starting standalone process')
+		else:
+			logger.debug('Starting primary process')
+			self._daemonize()
+			_ipc_start_listening(self.run)
+
+		toplevel = cmd.run(frozenset(self.toplevels))
+		if toplevel:
+			self._add_toplevel(toplevel)
+
+			gtk.main()
+
+			for toplevel in list(self.toplevels): # copy set
+				toplevel.destroy()
+				while gtk.events_pending():
+					gtk.main_iteration(block=False)
+
+		# exit immediatly if not toplevel returned
+
+	def _setup_logging(self, cmd):
+		if cmd.opts.get('debug'):
+			level = logging.DEBUG
+		elif cmd.opts.get('verbose'):
+			level = logging.INFO
+		else:
+			level = logging.WARN
+
+		root = logging.getLogger() # root
+		if level < root.getEffectiveLevel():
+			root.setLevel(level)
+
+	def _log_start(self):
+		if self._log_started:
+			pass
+		else:
+			self._log_started = True
+
+			logger = logging.getLogger('zim')
+			logger.info('This is zim %s', __version__)
+			level = logger.getEffectiveLevel()
+			if level == logging.DEBUG:
+				import sys
+				import os
+				import zim.config
+
+				logger.debug('Python version is %s', str(sys.version_info))
+				logger.debug('Platform is %s', os.name)
+				logger.debug(zim.get_zim_revision())
+				zim.config.log_basedirs()
+
+	def _setup_signal_handling(self):
+		def handle_sigterm(signal, frame):
+			import gtk
+
+			logger.info('Got SIGTERM, quit')
+			if gtk.main_level() > 0:
+				gtk.main_quit()
+
+		signal.signal(signal.SIGTERM, handle_sigterm)
+
+	def _spawn_standalone(self, *args):
+		from zim import ZIM_EXECUTABLE
+		from zim.applications import Application
+
+		if not '--standalone' in args:
+			args.append('--standalone')
 
 		# more detailed logging has lower number, so WARN > INFO > DEBUG
 		loglevel = logging.getLogger().getEffectiveLevel()
@@ -528,5 +634,97 @@ def get_zim_application(command, *args):
 		elif loglevel <= logging.INFO:
 			args.append('-V',)
 
-	return Application([ZIM_EXECUTABLE] + args)
+		Application([ZIM_EXECUTABLE] + args).spawn()
 
+	def _try_dispatch(self, args):
+		try:
+			_ipc_dispatch(*args)
+		except IOError:
+			return False
+		except Exception:
+			logger.exception('Got error in dispatch')
+			return False
+		else:
+			logger.debug('Dispatched command %r', args)
+			return True
+
+	def _daemonize(self):
+		# Decouple from parent environment
+		# and redirect standard file descriptors
+		os.chdir("/")
+
+		try:
+			si = file(os.devnull, 'r')
+			os.dup2(si.fileno(), sys.stdin.fileno())
+		except:
+			pass
+
+		loglevel = logging.getLogger().getEffectiveLevel()
+		if loglevel <= logging.INFO and sys.stdout.isatty() and sys.stderr.isatty():
+			# more detailed logging has lower number, so WARN > INFO > DEBUG
+			# log to file unless output is a terminal and logging <= INFO
+			pass
+		else:
+			# Redirect output to file
+			dir = zim.fs.get_tmpdir()
+			err_stream = open(os.path.join(dir.path, "zim.log"), "w")
+
+			# First try to dup handles for anyone who still has a reference
+			# if that fails, just set them (maybe not real files in the first place)
+			sys.stdout.flush()
+			sys.stderr.flush()
+			try:
+				os.dup2(err_stream.fileno(), sys.stdout.fileno())
+				os.dup2(err_stream.fileno(), sys.stderr.fileno())
+			except:
+				sys.stdout = err_stream
+				sys.stderr = err_stream
+
+			# Re-initialize logging handler, in case it keeps reference
+			# to the old stderr object
+			try:
+				rootlogger = logging.getLogger()
+				for handler in rootlogger.handlers:
+					rootlogger.removeHandler(handler)
+
+				handler = logging.StreamHandler()
+				handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+				rootlogger.addHandler(handler)
+			except:
+				pass
+
+	def _add_toplevel(self, toplevel):
+		assert hasattr(toplevel, 'destroy')
+		toplevel.connect('destroy', self._on_toplevel_destroy)
+		self.toplevels.add(toplevel)
+
+	def _on_toplevel_destroy(self, toplevel):
+		self.toplevels.remove(toplevel)
+		if not self.toplevels:
+			import gtk
+
+			logger.debug('Last toplevel destroyed, quit')
+			if gtk.main_level() > 0:
+				gtk.main_quit()
+
+
+
+
+ZIM_APPLICATION = ZimApplication() # Singleton per process
+
+
+def main(*argv):
+	'''Run full zim application
+	@returns: exit code (if error handled, else just raises)
+	'''
+	try:
+		ZIM_APPLICATION.run(argv[1:])
+	except KeyboardInterrupt:
+		# Don't show error dialog for this error..
+		logger.error('KeyboardInterrupt')
+		return 1
+	except Exception:
+		zim.errors.exception_handler('Exception in main()')
+		return 1
+	else:
+		return 0

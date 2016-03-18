@@ -15,7 +15,6 @@ for common base classes for widgets and dialogs.
 from __future__ import with_statement
 
 import os
-import signal
 import re
 import logging
 import gobject
@@ -24,7 +23,7 @@ import threading
 import webbrowser
 
 
-from zim.main import get_zim_application
+from zim.main import ZIM_APPLICATION
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
@@ -42,7 +41,7 @@ from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
-from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
+from zim.gui.widgets import ui_environment, \
 	Button, MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
@@ -302,8 +301,6 @@ class GtkInterface(gobject.GObject):
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
-		gtk_window_set_default_icon()
-
 		self.register_preferences('GtkInterface', ui_preferences)
 
 		# Hidden setting to force the gtk bell off. Otherwise it
@@ -423,14 +420,6 @@ class GtkInterface(gobject.GObject):
 
 		# Check notebook
 		self.check_notebook_needs_upgrade()
-
-		# Setup signal handler
-		def handle_sigterm(signal, frame):
-			logger.info('Got SIGTERM, quit')
-			self.close_page()
-			self._quit()
-
-		signal.signal(signal.SIGTERM, handle_sigterm)
 
 		# And here we go!
 		self._mainwindow.show_all()
@@ -813,9 +802,9 @@ class GtkInterface(gobject.GObject):
 				notebook.present(page=pagename)
 			else:
 				if pagename:
-					get_zim_application('--gui', uri, pagename).spawn()
+					ZIM_APPLICATION.run('--gui', uri, pagename)
 				else:
-					get_zim_application('--gui', uri).spawn()
+					ZIM_APPLICATION.run('--gui', uri)
 
 	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def open_page(self, path=None):
@@ -1738,7 +1727,7 @@ class GtkInterface(gobject.GObject):
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
 		# TODO instead of spawn, include in this process
-		get_zim_application('--server', '--gui', self.notebook.uri).spawn()
+		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
 
 	@action(_('Update Index'), readonly=False) # T: Menu item
 	def reload_index(self, flush=False):
@@ -1883,9 +1872,9 @@ class GtkInterface(gobject.GObject):
 		@param page: manual page to show (string)
 		'''
 		if page:
-			get_zim_application('--manual', page).spawn()
+			ZIM_APPLICATION.run('--manual', page)
 		else:
-			get_zim_application('--manual').spawn()
+			ZIM_APPLICATION.run('--manual')
 
 	@action(_('_FAQ')) # T: Menu item
 	def show_help_faq(self):
