@@ -74,8 +74,12 @@ On Ubuntu or Debian install package 'python-coverage'.
 		else:
 			assert False
 
-	# Set logging handler
-	logging.basicConfig(level=loglevel, format='%(levelname)s: %(message)s')
+	# Set logging handler (don't use basicConfig here, we already installed stuff)
+	handler = logging.StreamHandler()
+	handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+	logger = logging.getLogger()
+	logger.setLevel(loglevel)
+	logger.addHandler(handler)
 
 	# Build the test suite
 	loader = unittest.TestLoader()

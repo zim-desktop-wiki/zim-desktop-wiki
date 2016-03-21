@@ -13,7 +13,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.main import GtkCommand
 from zim.actions import action
 from zim.config import data_file, ConfigManager
-from zim.notebook import Notebook, PageNameError, NotebookInfo, \
+from zim.notebook import Path, Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, QuestionDialog
@@ -339,9 +339,9 @@ class BoundQuickNoteDialog(Dialog):
 			if '\n' in title:
 				title, _ = title.split('\n', 1)
 			try:
-				title = Notebook.cleanup_pathname(title, purge=True)
+				title = Path.makeValidPageName(title.replace(':', ''))
 				self.form['basename'] = title
-			except PageNameError:
+			except ValueError:
 				pass
 			self._updating_title = False
 

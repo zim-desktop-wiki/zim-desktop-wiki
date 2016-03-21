@@ -133,7 +133,7 @@ class CustomObjectClass(SignalEmitter):
 	}
 
 	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
+	__signals__ = {
 		'modified-changed': (SIGNAL_AFTER, None, ()),
 	}
 

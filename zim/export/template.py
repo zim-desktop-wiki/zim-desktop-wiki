@@ -86,8 +86,7 @@ from zim.utils import OrderedDict
 from zim.fs import format_file_size
 from zim.environ import environ
 
-from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
-from zim.notebook import Path
+from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
 from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
 	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
@@ -484,13 +483,13 @@ class PageProxy(ParseTreeProxy):
 
 	@property
 	def links(self):
-		links = self._notebook.index.list_links(self._page, LINK_DIR_FORWARD)
+		links = self._notebook.links.list_links(self._page, LINK_DIR_FORWARD)
 		for link in links:
 			yield NotebookPathProxy(link.target)
 
 	@property
 	def backlinks(self):
-		links = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
+		links = self._notebook.links.list_links(self._page, LINK_DIR_BACKWARD)
 		for link in links:
 			yield NotebookPathProxy(link.source)
 

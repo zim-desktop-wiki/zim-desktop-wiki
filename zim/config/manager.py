@@ -12,7 +12,7 @@ from .dicts import INIConfigFile
 
 from zim.fs import FileNotFoundError
 
-from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler
+from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler, SIGNAL_NORMAL
 
 
 class ConfigManager(object):
@@ -220,12 +220,14 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	or for file monitors or on profile switched
 	'''
 
-	# TODO __signals__
+	__signals__ = {
+		'changed': (SIGNAL_NORMAL, None, ())
+	}
 
 	def __init__(self, file, defaults=None):
 		self.file = None
 		self.defaults = None
-		with self.blocked_signals('changed'):
+		with self.block_signals('changed'):
 			self.set_files(file, defaults)
 
 	def __repr__(self):

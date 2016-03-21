@@ -12,11 +12,11 @@ import zim.formats
 import zim.templates
 
 from zim.fs import File, Dir, TmpFile
-from zim.stores import encode_filename
+from zim.notebook import Path, encode_filename
+
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressBarDialog, ErrorDialog, QuestionDialog, \
 	MessageDialog, LogFileDialog, Button
-from zim.notebook import Path
 
 from zim.export import *
 from zim.export.selections import *
@@ -44,15 +44,6 @@ class ExportDialog(Assistant):
 		if exporter is None or selection is None:
 			logger.debug('Cancelled - selection')
 			return False # canceled
-
-		# Check index up to date
-		index = self.ui.notebook.index
-		if index.updating:
-			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
-				index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-				if dialog.cancelled:
-					logger.debug('Cancelled - progress dialog index')
-					return False
 
 		# Run export
 		logging_context = LogContext()

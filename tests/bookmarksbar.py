@@ -22,7 +22,6 @@ class TestBookmarksBar(tests.TestCase):
 
 	def setUp(self):
 		self.notebook = tests.new_notebook()
-		self.index = self.notebook.index
 
 	def runTest(self):
 		'''There is one long test.'''
@@ -96,10 +95,10 @@ class TestBookmarksBar(tests.TestCase):
 		self.assertTrue(Bar.paths == [])
 
 		# Check restriction of max bookmarks in the bar.
-		pagelist = set(self.index.list_pages(None))
+		pagelist = set(self.notebook.pages.list_pages())
 		_enhanced_pagelist = set()
 		for page in pagelist:
-			_enhanced_pagelist.update( set(self.index.list_pages(page)) )
+			_enhanced_pagelist.update( set(self.notebook.pages.list_pages(page)) )
 			if len(_enhanced_pagelist) > MAX_BOOKMARKS:
 				break
 		pagelist.update(_enhanced_pagelist)

@@ -509,7 +509,7 @@ class FSSingletonClass(SignalEmitter):
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
+	__signals__ = {
 		'path-created': (SIGNAL_AFTER, None, (object,)),
 		'path-moved': (SIGNAL_AFTER, None, (object, object)),
 		'path-deleted': (SIGNAL_AFTER, None, (object,)),
@@ -538,7 +538,7 @@ class FSSingletonClass(SignalEmitter):
 FS = FSSingletonClass()
 
 
-class UnixPath(SignalEmitter):
+class UnixPath(object):
 	'''Base class for Dir and File objects, represents a file path
 
 	@ivar path: the absolute file path as string
@@ -555,8 +555,6 @@ class UnixPath(SignalEmitter):
 	changed - availability based on C{gio} support for file monitors on
 	this platform
 	'''
-
-	# TODO __signals__
 
 	def __init__(self, path):
 		'''Constructor
@@ -681,57 +679,9 @@ class UnixPath(SignalEmitter):
 		path = os.path.dirname(self.path) # encoding safe
 		return Dir(path)
 
-	def _setup_signal(self, signal):
-		if signal != 'changed' \
-		or not gio:
-			return
-
-		try:
-			self._teardown_signal(signal) # just to be sure
-			file = gio.File(uri=self.uri)
-			self._gio_file_monitor = file.monitor()
-			self._gio_file_monitor.connect('changed', self._do_changed)
-		except:
-			logger.exception('Error while setting up file monitor')
-
-	def _teardown_signal(self, signal):
-		if signal != 'changed' \
-		or not hasattr(self, '_gio_file_monitor') \
-		or not self._gio_file_monitor:
-			return
-
-		try:
-			self._gio_file_monitor.cancel()
-			self._gio_file_monitor = None
-		except:
-			logger.exception('Error while tearing down file monitor')
-
-	def _do_changed(self, filemonitor, file, other_file, event_type):
-		# 'FILE_MONITOR_EVENT_CHANGED' is always followed by
-		# a 'FILE_MONITOR_EVENT_CHANGES_DONE_HINT' when the filehandle
-		# is closed (or after timeout). Idem for "created", assuming it
-		# is not created empty.
-		#
-		# TODO: do not emit changed on CREATED - separate signal that
-		#       can be used when monitoring a file list, but reserve
-		#       changed for changes-done-hint so that we ensure the
-		#       content is complete.
-		#       + emit on write and block redundant signals here
-		#
-		# Also note that in many cases "moved" will not be used, but a
-		# sequence of deleted, created will be signaled
-		#
-		# For Dir objects, the event will refer to files contained in
-		# the dir.
-
-		#~ print 'MONITOR:', self, event_type
-		if event_type in (
-			gio.FILE_MONITOR_EVENT_CREATED,
-			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
-			gio.FILE_MONITOR_EVENT_DELETED,
-			gio.FILE_MONITOR_EVENT_MOVED,
-		):
-			self.emit('changed', None, None) # TODO translate otherfile and eventtype
+	def monitor(self):
+		'''Creates a L{FSObjectMonitor} for this path'''
+		return FSObjectMonitor(self)
 
 	def exists(self):
 		'''Check if a file or folder exists.
@@ -759,6 +709,12 @@ class UnixPath(SignalEmitter):
 		@returns: the mtime timestamp
 		'''
 		return self._stat().st_mtime
+
+	def ctime(self):
+		'''Get the creation time of the file path.
+		@returns: the mtime timestamp
+		'''
+		return self._stat().st_ctime
 
 	def size(self):
 		'''Get file size in bytes
@@ -1959,3 +1915,62 @@ else:
 			else:
 				return bool(attrs & FILE_ATTRIBUTE_HIDDEN)
 ###
+
+
+class FSObjectMonitor(SignalEmitter):
+
+	__signals__ = {
+		'changed': (),
+	}
+
+	def __init__(self, path):
+		self.path = path
+		self._gio_file_monitor = None
+
+	def _setup_signal(self, signal):
+		if signal == 'changed' \
+		and self._gio_file_monitor is None \
+		and gio:
+			try:
+				file = gio.File(uri=self.path.uri)
+				self._gio_file_monitor = file.monitor()
+				self._gio_file_monitor.connect('changed', self._on_changed)
+			except:
+				logger.exception('Error while setting up file monitor')
+
+	def _teardown_signal(self, signal):
+		if signal == 'changed' \
+		and self._gio_file_monitor:
+			try:
+				self._gio_file_monitor.cancel()
+			except:
+				logger.exception('Error while tearing down file monitor')
+			finally:
+				self._gio_file_monitor = None
+
+	def _on_changed(self, filemonitor, file, other_file, event_type):
+		# 'FILE_MONITOR_EVENT_CHANGED' is always followed by
+		# a 'FILE_MONITOR_EVENT_CHANGES_DONE_HINT' when the filehandle
+		# is closed (or after timeout). Idem for "created", assuming it
+		# is not created empty.
+		#
+		# TODO: do not emit changed on CREATED - separate signal that
+		#       can be used when monitoring a file list, but reserve
+		#       changed for changes-done-hint so that we ensure the
+		#       content is complete.
+		#       + emit on write and block redundant signals here
+		#
+		# Also note that in many cases "moved" will not be used, but a
+		# sequence of deleted, created will be signaled
+		#
+		# For Dir objects, the event will refer to files contained in
+		# the dir.
+
+		#~ print 'MONITOR:', self, event_type
+		if event_type in (
+			gio.FILE_MONITOR_EVENT_CREATED,
+			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
+			gio.FILE_MONITOR_EVENT_DELETED,
+			gio.FILE_MONITOR_EVENT_MOVED,
+		):
+			self.emit('changed', None, None) # TODO translate otherfile and eventtype

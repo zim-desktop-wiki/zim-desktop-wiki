@@ -48,9 +48,10 @@ import zim.fs
 
 from zim.fs import File, Dir
 from zim.config import value_is_coord
-from zim.notebook import Notebook, Path, PageNameError
+from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
 from zim.signals import ConnectorMixin
+from zim.notebook.index import IndexNotFoundError
 from zim.actions import action
 
 logger = logging.getLogger('zim.gui')
@@ -1914,6 +1915,7 @@ class PageEntry(InputEntry):
 		'''
 		name = self.get_text().decode('utf-8').strip()
 		if self._allow_select_root and (name == ':' or not name):
+			self.set_input_valid(True)
 			return Path(':')
 		elif not name:
 			self.set_input_valid(False)
@@ -1921,18 +1923,27 @@ class PageEntry(InputEntry):
 		else:
 			if self.subpaths_only and not name.startswith('+'):
 				name = '+' + name
+
 			try:
 				if self.notebook:
-					path = self.notebook.resolve_path(name, source=self.notebookpath)
+					path = self.notebook.pages.lookup_from_user_input(
+						name, reference=self.notebookpath
+					)
 				else:
+					name = Path.makeValidPageName(name)
 					path = Path(name)
-			except PageNameError:
+			except ValueError:
+				logger.warn('Invalid path name: %s', name)
 				self.set_input_valid(False)
 				return None
 			else:
+				self.set_input_valid(True)
 				if self.existing_only:
-					page = self.notebook.get_page(path)
-					if not (page and page.exists()):
+					try:
+						page = self.notebook.get_page(path)
+						if not page.exists():
+							return None
+					except PageNotFoundError:
 						return None
 				return path
 
@@ -1943,18 +1954,21 @@ class PageEntry(InputEntry):
 		## TODO can be more efficient with a visitor pattern
 		## that can stop recursion of some branches or force order
 
+		def relative_link(target):
+			href = notebook.pages.create_link(path, target)
+			return href.to_wiki_link()
+
 		# first yield children
-		index = notebook.index
-		for p in index.walk(path):
-			yield notebook.relative_link(path, p), p.basename
+		for p in notebook.pages.walk(path):
+			yield relative_link(p), p.basename
 
 		# than peers and parents, sort by distance
 		if path.namespace:
 			parent = Path(path.parts[0])
 			peers = []
-			for p in index.walk(parent):
+			for p in notebook.pages.walk(parent):
 				if not p.ischild(path):
-					relname = notebook.relative_link(path, p)
+					relname = relative_link(p)
 					basename = p.basename
 					distance = relname.count(':')
 					peers.append((distance, relname, basename))
@@ -1965,9 +1979,9 @@ class PageEntry(InputEntry):
 			parent = path
 
 		# than the rest of the tree, excluding direct parent
-		for p in index.walk():
+		for p in notebook.pages.walk():
 			if not p.ischild(parent):
-				yield notebook.relative_link(path, p), p.basename
+				yield relative_link(p), p.basename
 
 	def do_changed(self):
 		text = self.get_text()
@@ -1986,8 +2000,8 @@ class PageEntry(InputEntry):
 			pass
 		else:
 			try:
-				text = Notebook.cleanup_pathname(text.lstrip('+'))
-			except PageNameError:
+				Path.assertValidPageName(text.lstrip('+').strip(':'))
+			except AssertionError:
 				self.set_input_valid(False)
 				return
 			else:
@@ -2042,28 +2056,31 @@ class PageEntry(InputEntry):
 				link = '+' + link.lstrip(':')
 
 			try:
-				path = self.notebook.resolve_path(link, source=reference)
-			except PageNameError:
+				path = self.notebook.pages.lookup_from_user_input(link, reference)
+			except ValueError:
 				return
 
 		# Fill model with pages from pathname
 		completion = self.get_completion()
 		model = completion.get_model()
 		model.clear()
-		if prefix:
-			# Complete a single namespace based on the prefix
-			completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
-			for p in self.notebook.index.list_pages(path):
-				model.append((prefix+p.basename, prefix+p.basename))
-		else:
-			# Find any pages that match the text
-			completion.set_match_func(gtk_entry_completion_match_func, 1)
-			if self.notebookpath:
-				for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
-					model.append((relname, basename))
+		try:
+			if prefix:
+				# Complete a single namespace based on the prefix
+				completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
+				for p in self.notebook.pages.list_pages(path):
+					model.append((prefix+p.basename, prefix+p.basename))
 			else:
-				for p in self.notebook.index.walk():
-					model.append((":"+p.name, p.basename))
+				# Find any pages that match the text
+				completion.set_match_func(gtk_entry_completion_match_func, 1)
+				if self.notebookpath:
+					for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
+						model.append((relname, basename))
+				else:
+					for p in self.notebook.pages.walk():
+						model.append((":"+p.name, p.basename))
+		except IndexNotFoundError:
+			pass
 
 		completion.complete()
 

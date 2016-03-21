@@ -8,8 +8,7 @@ import gtk
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
-from zim.notebook import Path
-from zim.index import LINK_DIR_BOTH
+from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
 from zim.gui.widgets import ui_environment, Dialog, IconButton
@@ -47,22 +46,22 @@ class LinkMap(object):
 		self.depth = depth
 
 	def _all_links(self):
-		for page in self.notebook.index.walk():
-			for link in self.notebook.index.list_links(page):
+		for page in self.notebook.pages.walk():
+			for link in self.notebook.links.list_links(page):
 				yield link
 
 	def _links(self, path, depth, seen=None):
 		if seen is None:
 			seen = set()
 
-		for link in self.notebook.index.list_links(path, direction=LINK_DIR_BOTH):
-			key = (link.source.name, link.href.name)
+		for link in self.notebook.links.list_links(path, direction=LINK_DIR_BOTH):
+			key = (link.source.name, link.target.name)
 
 			if not key in seen:
 				yield link
 				seen.add(key)
 
-				if link.source == path: other = link.href
+				if link.source == path: other = link.target
 				else: other = link.source
 				if depth > 0:
 					for link in self._links(other, depth-1, seen):
@@ -84,12 +83,12 @@ class LinkMap(object):
 		seen = set()
 		seen.add(self.path.name)
 		for link in self._links(self.path, self.depth):
-			for name in (link.source.name, link.href.name):
+			for name in (link.source.name, link.target.name):
 				if not name in seen:
 					dotcode.append('  "%s" [URL="%s"];' % (name, name))
 					seen.add(name)
 			dotcode.append(
-				'  "%s" -> "%s";'  % (link.source.name, link.href.name))
+				'  "%s" -> "%s";'  % (link.source.name, link.target.name))
 
 		dotcode.append('}')
 
@@ -160,7 +159,7 @@ if __name__ == '__main__':
 	import zim.notebook
 	import gui
 	notebook = zim.notebook.build_notebook(Dir(sys.argv[1]))
-	path = notebook.resolve_path(sys.argv[2])
+	path = notebook.pages.lookup_from_user_input(sys.argv[2])
 	linkmap = LinkMap(notebook, path)
 	dialog = LinkMapDialog(None, linkmap, None)
 	dialog.show_all()

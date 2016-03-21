@@ -12,11 +12,35 @@ import time
 from zim.signals import *
 
 
+# TODO test Connector
+
+
 class TestEmitter(tests.TestCase):
 
-	def runTest(self):
+	def testSignal(self):
+		emitter = Emitter()
+		self.assertIsNone(emitter.state)
 
-		# Test hook
+		emitter.emit('bar', 'test1')
+		self.assertEqual(emitter.state, 'DO bar test1')
+
+		data = []
+		def check(o, a):
+			self.assertIs(o, emitter)
+			data.append(a)
+
+		i = emitter.connect('bar', check)
+		emitter.emit('bar', 'test2')
+		self.assertEqual(emitter.state, 'DO bar test2')
+		self.assertEqual(data, ['test2'])
+		emitter.disconnect(i)
+
+		emitter.emit('bar', 'test3')
+		self.assertEqual(emitter.state, 'DO bar test3')
+		self.assertEqual(data, ['test2']) # check stopped listening after disconnect
+
+
+	def testHook(self):
 		emitter = Emitter()
 		self.assertIsNone(emitter.emit('foo', 'x'))
 
@@ -25,12 +49,50 @@ class TestEmitter(tests.TestCase):
 		self.assertEqual(emitter.emit('foo', 'x'), 'xxx')
 			# pick first result
 
+	def testSignalSetup(self):
+		emitter = FancyEmitter()
+		self.assertIsNone(emitter.state)
 
-# TODO test Connector, DelayedCallback
+		emitter.connect('foo', lambda o,a: None)
+		self.assertEqual(emitter.state, 'SETUP foo')
+
+
+	# TODO
+	# Test inheritance
+	# Test validation signal signature
+	# Test before / after sequence
+
 
 class Emitter(SignalEmitter):
 
+	__signals__ = {
+		'foo': (),
+		'bar': (),
+	}
+
 	__hooks__ = ('foo')
+
+	def __init__(self):
+		self.state = None
+
+	def do_bar(self, arg):
+		self.state = 'DO bar %s' % arg
+
+
+class FancyEmitter(SignalEmitter):
+
+	__signals__ = {
+		'foo': (),
+	}
+
+	def __init__(self):
+		self.state = None
+
+	def _setup_signal(self, signal):
+		self.state = 'SETUP %s' % signal
+
+	def _teardown_signal(self, signal):
+		self.state = 'TEARDOWN %s' % signal
 
 
 

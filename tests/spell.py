@@ -40,7 +40,7 @@ class TestSpell(object):
 			ui = setupGtkInterface(self)
 			plugin = ui.plugins.load_plugin('spell')
 			plugin.extend(ui._mainwindow) # XXX
-			ext = plugin.get_extension(zim.plugins.spell.MainWindowExtension)
+			ext = plugin.get_extension(ui._mainwindow, zim.plugins.spell.MainWindowExtension) # XXX
 
 			self.assertIs(ext._adapter, adapterclass) # ensure switching library worked
 

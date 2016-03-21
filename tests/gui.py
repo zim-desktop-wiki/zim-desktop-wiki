@@ -11,7 +11,8 @@ import gtk
 
 from zim.errors import Error
 from zim.config import ConfigManager, VirtualConfigManager
-from zim.notebook import get_notebook_list, Path, Page, NotebookInfo, NotebookConfig
+from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
+from zim.notebook.notebook import NotebookConfig
 from zim.formats import ParseTree
 from zim.fs import File, Dir
 from zim.gui.clipboard import Clipboard
@@ -36,6 +37,7 @@ def setupGtkInterface(test, klass=None, notebook=None):
 
 	# create interface object with new notebook
 	if notebook is None:
+		test.clear_tmp_dir()
 		dirpath = test.get_tmp_name()
 		notebook = tests.new_notebook(fakedir=dirpath)
 
@@ -134,49 +136,33 @@ class TestDialogs(tests.TestCase):
 
 	def testMovePageDialog(self):
 		'''Test MovePageDialog'''
-		# Can't test much here except for the call to do_move_page
-		self.ui.mock_method('do_move_page', True)
-
-		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar'))
+		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar')) # Path has backlinks
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('New')
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_move_page', Path('Test:foo:bar'), Path('New:bar'), True))
 
-		dialog = zim.gui.MovePageDialog(self.ui, path=Path('New:bar'))
+		dialog = zim.gui.MovePageDialog(self.ui, path=Path('TaskList')) # No links to this path
 		self.assertFalse(dialog.form['update'])
 		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('foo')
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_move_page', Path('New:bar'), Path('foo:bar'), False))
 
 	def testRenamePageDialog(self):
 		'''Test RenamePageDialog'''
-		# Can't test much here except for the call to do_rename_page
-		self.ui.mock_method('do_rename_page', True)
-
-		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar'))
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar')) # Has backlinks
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertFalse(dialog.form['head']) # There is no heading
-		self.assertTrue(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_rename_page', Path('Test:foo:bar'), 'New', False, True))
 
-		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('New:bar'))
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('TaskList')) # No links to this path
 		self.assertFalse(dialog.form['update'])
 		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertFalse(dialog.form['head'])
-		self.assertFalse(dialog.form.widgets['head'].get_property('sensitive'))
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
-		self.assertEqual(self.ui.mock_calls[-1],
-			('do_rename_page', Path('New:bar'), 'New', False, False))
 
 	def testRenamePageDialogWithHeadingChanges(self):
 		'''Test RenamePageDialog's heading auto-change option depending on
@@ -416,8 +402,8 @@ class TestDialogs(tests.TestCase):
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
 
-	logger = 'zim.gui.pageview'
-	message = 'No such image:'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
 
 @tests.slowTest
@@ -433,7 +419,7 @@ class TestGtkInterface(tests.TestCase):
 		'''Test Gtk interface initialization'''
 
 		# test read only (starts readonly because notebook has no dir or file)
-		self.assertTrue(self.ui.readonly)
+		#~ self.assertTrue(self.ui.readonly)
 		self.ui.set_readonly(False)
 		self.assertFalse(self.ui.readonly)
 		self.ui.set_readonly(True)
@@ -586,16 +572,18 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.set_readonly(False)
 		self.ui.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.ui.page.exists())
-		self.assertTrue(self.ui.page.get_parsetree() is None)
+		self.assertIsNone(self.ui.page.get_parsetree())
 		self.assertTrue(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
 		self.ui.save_page()
-		self.assertFalse(self.ui.page.get_parsetree() is None)
+		self.assertTrue(self.ui.page.exists())
+		self.assertIsNotNone(self.ui.page.get_parsetree())
+		self.assertFalse(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
 
 	def testPageMove(self):
 		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
 
 		# Open page and process message queue to sync tree view
-		indexpath = self.ui.notebook.index.lookup_path(oldpath)
+		indexpath = self.ui.notebook.pages.lookup_by_pagename(oldpath)
 		self.ui.open_page(indexpath)
 		while gtk.events_pending():
 			gtk.main_iteration(False)
@@ -603,9 +591,9 @@ class TestGtkInterface(tests.TestCase):
 		# Test actual moving
 		page = self.ui.notebook.get_page(oldpath)
 		text = page.dump('wiki')
-		self.ui.notebook.index.ensure_update()
+		self.ui.notebook.index.update()
 		self.ui.notebook.move_page(oldpath, newpath)
-		self.ui.notebook.index.ensure_update()
+		self.ui.notebook.index.update()
 
 		# newpath should exist and look like the old one
 		page = self.ui.notebook.get_page(newpath)
@@ -622,6 +610,90 @@ class TestGtkInterface(tests.TestCase):
 	def testClipboard(self):
 		self.ui.copy_location()
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
+
+
+from zim.notebook import Notebook
+from zim.gui import SavePageHandler, SavePageErrorDialog
+
+@tests.slowTest
+class TestSavePageHandler(tests.TestCase):
+
+	def runTest(self):
+		dir = Dir(self.create_tmp_dir())
+		notebook = Notebook.new_from_dir(dir)
+		page = notebook.get_page(Path('SomePage'))
+
+		orig_store_page = notebook.store_page
+		store_page_counter = tests.Counter()
+		def wrapper(page):
+			store_page_counter()
+			orig_store_page(page)
+		notebook.store_page = wrapper
+
+		window = tests.MockObject()
+		window.ui = tests.MockObject()
+		window.ui.readonly = False
+
+		handler = SavePageHandler(window, notebook, lambda: page)
+
+		# Normal operation
+		self.assertFalse(page.modified)
+		handler.do_autosave()
+		self.assertEqual(store_page_counter.count, 0)
+
+		self.assertFalse(page.modified)
+		handler.assert_save_page_if_modified()
+		self.assertEqual(store_page_counter.count, 0)
+
+		self.assertFalse(page.modified)
+		handler.save_page()
+		self.assertEqual(store_page_counter.count, 1)
+
+		page.modified = True
+		handler.do_autosave()
+		self.assertEqual(store_page_counter.count, 2)
+		handler.join()
+		self.assertFalse(page.modified)
+
+		page.modified = True
+		handler.assert_save_page_if_modified()
+		self.assertEqual(store_page_counter.count, 3)
+		self.assertFalse(page.modified)
+
+		page.modified = True
+		handler.save_page()
+		self.assertEqual(store_page_counter.count, 4)
+		self.assertFalse(page.modified)
+
+		# With errors
+		def wrapper(page):
+			raise AssertionError
+		notebook.store_page = wrapper
+
+		page.modified = True
+
+		self.assertRaises(AssertionError, handler.assert_save_page_if_modified)
+		self.assertTrue(page.modified)
+
+		def catch_dialog(dialog):
+			assert isinstance(dialog, SavePageErrorDialog)
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(catch_dialog):
+				handler.save_page()
+		self.assertTrue(page.modified)
+
+		# For autosave first error is ignore, 2nd results in dialog
+		self.assertFalse(handler._thread_error_event.is_set())
+		with tests.LoggingFilter('zim'):
+			handler.do_autosave()
+			handler.join()
+		self.assertTrue(handler._thread_error_event.is_set())
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(catch_dialog):
+				handler.do_autosave()
+		self.assertTrue(page.modified)
 
 
 @tests.slowTest
@@ -648,6 +720,7 @@ class TestClickLink(tests.TestCase):
 					self.mock_method(method, None)
 
 		self.ui = setupGtkInterface(self, klass=MyMock)
+		self.ui._mainwindow.pageview.page = Path('foo') # XXX
 
 	def runTest(self):
 		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')

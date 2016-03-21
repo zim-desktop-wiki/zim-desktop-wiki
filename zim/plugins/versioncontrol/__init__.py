@@ -73,7 +73,7 @@ This is a core plugin shipping with zim.
 		name = obj.__class__.__name__
 		if name == 'MainWindow':
 			nb = obj.ui.notebook # XXX
-			nb_ext = self.get_extension(NotebookExtension, notebook=nb)
+			nb_ext = self.get_extension(nb, NotebookExtension)
 			assert nb_ext, 'No notebook extension found for: %s' % nb
 			mw_ext = MainWindowExtension(self, obj, nb_ext)
 			self.extensions.add(mw_ext)

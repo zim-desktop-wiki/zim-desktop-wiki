@@ -45,8 +45,8 @@ zim.config.data_dir = marshal_path_lookup(zim.config.data_dir)
 
 class FilterInvalidConfigWarning(tests.LoggingFilter):
 
-	logger = 'zim.config'
-	message = 'Invalid config value'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.config', 'Invalid config value')
 
 
 class EnvironmentConfigContext(EnvironmentContext):

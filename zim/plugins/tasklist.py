@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -15,6 +15,8 @@ from zim.parsing import parse_date
 from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
 from zim.actions import action
 from zim.notebook import Path
+from zim.notebook.index.base import PluginIndexerBase, IndexViewBase
+from zim.notebook.index.pages import PagesViewInternal
 from zim.gui.widgets import ui_environment, \
 	Dialog, MessageDialog, \
 	InputEntry, Button, IconButton, MenuButton, \
@@ -31,25 +33,6 @@ from zim.config import StringAllowEmpty
 from zim.plugins.calendar import daterange_from_path
 
 logger = logging.getLogger('zim.plugins.tasklist')
-
-
-SQL_FORMAT_VERSION = (0, 6)
-SQL_FORMAT_VERSION_STRING = "0.6"
-
-SQL_CREATE_TABLES = '''
-create table if not exists tasklist (
-	id INTEGER PRIMARY KEY,
-	source INTEGER,
-	parent INTEGER,
-	haschildren BOOLEAN,
-	open BOOLEAN,
-	actionable BOOLEAN,
-	prio INTEGER,
-	due TEXT,
-	tags TEXT,
-	description TEXT
-);
-'''
 
 
 _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
@@ -91,20 +74,16 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Task List'
 	}
 
-	plugin_preferences = (
-		# key, type, label, default
+	parser_preferences = (
+			# key, type, label, default
 		('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
-			# T: label for plugin preferences dialog
-		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
-			# T: label for plugin preferences dialog
-		('deadline_by_page', 'bool', _('Implicit due date for task items in calendar pages'), False),
-			# T: label for plugin preferences dialog
-		('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), True),
 			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO", "TASKS"
 		('next_label', 'string', _('Label for next task'), 'Next:', StringAllowEmpty),
 			# T: label for plugin preferences dialog - label is by default "Next"
+		('deadline_by_page', 'bool', _('Implicit due date for task items in calendar pages'), False),
+			# T: label for plugin preferences dialog
 		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', StringAllowEmpty),
 			# T: label for plugin preferences dialog
 		('included_subtrees', 'string', _('Subtree(s) to index'), '', StringAllowEmpty),
@@ -112,245 +91,150 @@ This is a core plugin shipping with zim.
 		('excluded_subtrees', 'string', _('Subtree(s) to ignore'), '', StringAllowEmpty),
 			# T: subtrees of the included subtrees to *not* search for tasks - default is none
 	)
-	_rebuild_on_preferences = ['all_checkboxes', 'labels', 'next_label', 'deadline_by_page', 'nonactionable_tags',
-				   'included_subtrees', 'excluded_subtrees' ]
-		# Rebuild database table if any of these preferences changed.
-		# But leave it alone if others change.
 
-	def extend(self, obj):
-		name = obj.__class__.__name__
-		if name == 'MainWindow':
-			index = obj.ui.notebook.index # XXX
-			i_ext = self.get_extension(IndexExtension, index=index)
-			mw_ext = MainWindowExtension(self, obj, i_ext)
-			self.extensions.add(mw_ext)
-		else:
-			PluginClass.extend(self, obj)
+	plugin_preferences = parser_preferences + (
+		# key, type, label, default
+		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
+			# T: label for plugin preferences dialog
+		('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), True),
+			# T: label for plugin preferences dialog
+	)
 
 
-@extends('Index')
-class IndexExtension(ObjectExtension):
+@extends('Notebook')
+class NotebookExtension(ObjectExtension):
 
-	# define signals we want to use - (closure type, return type and arg types)
+	def __init__(self, plugin, notebook):
+		ObjectExtension.__init__(self, plugin, notebook)
+
+		self._parser_key = self._get_parser_key()
+
+		self.index = notebook.index
+		self.indexer = TasksIndexer(TasksParser(plugin.preferences))
+		self.index.add_plugin_indexer(self.indexer)
+
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def on_preferences_changed(self, preferences):
+		if self._parser_key != self._get_parser_key():
+			# Need to construct new parser, re-index pages
+			self.index.remove_plugin_indexer(self.indexer)
+
+			self._parser_key = self._get_parser_key()
+
+			self.indexer = TasksIndexer(TasksParser(plugin.preferences))
+			self.index.add_plugin_indexer(self.indexer)
+
+	def _get_parser_key(self):
+		tuple(
+			self.plugin.preferences[t[0]]
+				for t in self.plugin.parser_preferences
+		)
+
+	def teardown(self):
+		self.index.remove_plugin_indexer(self.indexer)
+
+
+class TasksIndexer(PluginIndexerBase):
+	'''Indexer that gets added to the L{Index} to keep track of tasks
+	in the database
+	'''
+
+	PLUGIN_NAME = "tasklist"
+	PLUGIN_DB_FORMAT = "0.6"
+
+	INIT_SCRIPT = '''
+		DROP TABLE IF EXISTS "tasklist";
+
+		CREATE TABLE tasklist (
+			id INTEGER PRIMARY KEY,
+			source INTEGER,
+			parent INTEGER,
+			haschildren BOOLEAN,
+			open BOOLEAN,
+			actionable BOOLEAN,
+			prio INTEGER,
+			due TEXT,
+			tags TEXT,
+			description TEXT
+		);
+	'''
+
+	TEARDOWN_SCRIPT = '''
+		DROP TABLE "tasklist";
+	'''
+
 	__signals__ = {
 		'tasklist-changed': (None, None, ()),
 	}
 
-	def __init__(self, plugin, index):
-		ObjectExtension.__init__(self, plugin, index)
-		self.plugin = plugin
-		self.index = index
-
-		self.preferences = plugin.preferences
-
-		self.task_labels = None
-		self.task_label_re = None
-		self.next_label = None
-		self.next_label_re = None
-		self.nonactionable_tags = []
-		self.included_re = None
-		self.excluded_re = None
-		self.db_initialized = False
-		self._current_preferences = None
-
-		db_version = self.index.properties['plugin_tasklist_format']
-		if db_version == '%i.%i' % SQL_FORMAT_VERSION:
-			self.db_initialized = True
-
-		self._set_preferences()
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
-		self.connectto_all(self.index, (
-			('initialize-db', self.initialize_db, None, SIGNAL_AFTER),
-			('page-indexed', self.index_page),
-			('page-deleted', self.remove_page),
-		))
-		# We don't care about pages that are moved
-
-	def on_preferences_changed(self, preferences):
-		if self._current_preferences is None \
-		or not self.db_initialized:
-			return
-
-		new_preferences = self._serialize_rebuild_on_preferences()
-		if new_preferences != self._current_preferences:
-			self._drop_table()
-		self._set_preferences()  # Sets _current_preferences
-
-	def _set_preferences(self):
-		self._current_preferences = self._serialize_rebuild_on_preferences()
-
-		if self.preferences['labels']:
-			self.task_labels = [
-				s.strip()
-					for s in self.preferences['labels'].split(',')
-						if s and not s.isspace()
-			]
-		else:
-			self.task_labels = []
-
-		if self.preferences['next_label']:
-			self.next_label = self.preferences['next_label']
-				# Adding this avoid the need for things like "TODO: Next: do this next"
-			self.next_label_re = re.compile(r'^' + re.escape(self.next_label) + r':?\s+' )
-			self.task_labels.append(self.next_label)
-		else:
-			self.next_label = None
-			self.next_label_re = None
-
-		if self.preferences['nonactionable_tags']:
-			self.nonactionable_tags = [
-				t.strip('@').lower()
-					for t in self.preferences['nonactionable_tags'].replace(',', ' ').strip().split()]
-		else:
-			self.nonactionable_tags = []
-
-		if self.task_labels:
-			regex = r'^(' + '|'.join(map(re.escape, self.task_labels)) + r')(?!\w)'
-			self.task_label_re = re.compile(regex)
-		else:
-			self.task_label_re = None
-
-		if self.preferences['included_subtrees']:
-			included = [i.strip().strip(':') for i in self.preferences['included_subtrees'].split(',')]
-			included.sort(key=lambda s: len(s), reverse=True) # longest first
-			included_re = '^(' + '|'.join(map(re.escape, included)) + ')(:.+)?$'
-			#~ print '>>>>>', "included_re", repr(included_re)
-			self.included_re = re.compile(included_re)
-		else:
-			self.included_re = None
-
-		if self.preferences['excluded_subtrees']:
-			excluded = [i.strip().strip(':') for i in self.preferences['excluded_subtrees'].split(',')]
-			excluded.sort(key=lambda s: len(s), reverse=True) # longest first
-			excluded_re = '^(' + '|'.join(map(re.escape, excluded)) + ')(:.+)?$'
-			#~ print '>>>>>', "excluded_re", repr(excluded_re)
-			self.excluded_re = re.compile(excluded_re)
-		else:
-			self.excluded_re = None
-
-	def _serialize_rebuild_on_preferences(self):
-		# string mapping settings that influence building the table
-		string = ''
-		for pref in self.plugin._rebuild_on_preferences:
-			string += str(self.preferences[pref])
-		return string
-
-	def initialize_db(self, index):
-		with index.db_commit:
-			index.db.executescript(SQL_CREATE_TABLES)
-		self.index.properties['plugin_tasklist_format'] = '%i.%i' % SQL_FORMAT_VERSION
-		self.db_initialized = True
-
-	def teardown(self):
-		self._drop_table()
-
-	def _drop_table(self):
-		self.index.properties['plugin_tasklist_format'] = 0
-
-		try:
-			self.index.db.execute('DROP TABLE "tasklist"')
-		except:
-			if self.db_initialized:
-				logger.exception('Could not drop table:')
-
-		self.db_initialized = False
-
-	def _excluded(self, path):
-		if self.included_re and self.excluded_re:
-			# judge which match is more specific
-			# this allows including subnamespace of excluded namespace
-			# and vice versa
-			inc_match = self.included_re.match(path.name)
-			exc_match = self.excluded_re.match(path.name)
-			if not exc_match:
-				return not bool(inc_match)
-			elif not inc_match:
-				return bool(exc_match)
-			else:
-				return len(inc_match.group(1)) < len(exc_match.group(1))
-		elif self.included_re:
-			return not bool(self.included_re.match(path.name))
-		elif self.excluded_re:
-			return bool(self.excluded_re.match(path.name))
-		else:
-			return False
-
-	def index_page(self, index, path, page):
-		if not self.db_initialized: return
-		#~ print '>>>>>', path, page, page.hascontent
-
-		tasksfound = self.remove_page(index, path, _emit=False)
-		if self._excluded(path):
-			if tasksfound:
-				self.emit('tasklist-changed')
-			return
-
-		parsetree = page.get_parsetree()
-		if not parsetree:
-			return
-
-		#~ print '!! Checking for tasks in', path
-		dates = daterange_from_path(path)
-		if dates and self.preferences['deadline_by_page']:
-			deadline = dates[2]
-		else:
-			deadline = None
-		tasks = self._extract_tasks(parsetree, deadline)
-
-		if tasks:
-			# Do insert with a single commit
-			with self.index.db_commit:
-				self._insert(path, 0, tasks)
-
-		if tasks or tasksfound:
-			self.emit('tasklist-changed')
-
-	def _insert(self, page, parentid, children):
-		# Helper function to insert tasks in table
-		c = self.index.db.cursor()
-		for task, grandchildren in children:
-			task[4] = ','.join(sorted(task[4])) # set to text
-			c.execute(
-				'insert into tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
-				'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				(page.id, parentid, bool(grandchildren)) + tuple(task)
-			)
-			if grandchildren:
-				self._insert(page, c.lastrowid, grandchildren) # recurs
-
-	def _extract_tasks(self, parsetree, defaultdate=None):
-		'''Extract all tasks from a parsetree.
-		@param parsetree: a L{zim.formats.ParseTree} object
-		@param defaultdate: default due date for the whole page (e.g. for calendar pages) as string
-		@returns: nested list of tasks, each task is given as a 2-tuple, 1st item is a tuple
-		with following properties: C{(open, actionable, prio, due, description)}, 2nd item
-		is a list of child tasks (if any).
+	def __init__(self, taskiterfactory):
+		'''Constructor
+		@param taskiterfactory: a callable that takes two arguments,
+		the C{indexpath} and the C{parsetree}, and returns an iterator
+		that produces a tree of tasks
 		'''
-		parser = TasksParser(
-			self.task_label_re,
-			self.next_label_re,
-			self.nonactionable_tags,
-			self.preferences['all_checkboxes'],
-			defaultdate
-		)
-		parser.parse(parsetree)
-		return parser.get_tasks()
+		PluginIndexerBase.__init__(self)
+		self.taskiterfactory = taskiterfactory
 
-	def remove_page(self, index, path, _emit=True):
-		if not self.db_initialized: return
-
-		tasksfound = False
-		with index.db_commit:
-			cursor = index.db.cursor()
-			cursor.execute(
-				'delete from tasklist where source=?', (path.id,) )
-			tasksfound = cursor.rowcount > 0
-
-		if tasksfound and _emit:
+	def tasklist_changed(self):
+		'''Emit tasklist-changed'''
+		if not (
+			self._signal_queue
+			and self._signal_queue[-1] == ('tasklist-changed',)
+		):
 			self.emit('tasklist-changed')
 
-		return tasksfound
+	def on_index_page(self, index, db, indexpath, parsetree):
+		self.on_delete_page(index, db, indexpath)
+
+		if parsetree:
+			tasks = self.taskiterfactory(indexpath, parsetree)
+			c = db.cursor()
+			count = c.rowcount
+			self._insert_tasks(c, indexpath, 0, tasks)
+			if c.rowcount > count:
+				self.tasklist_changed()
+
+	def _insert_tasks(self, db, indexpath, parentid, tasks):
+		# Helper function to insert tasks in table
+		for task, children in tasks:
+			task[4] = ','.join(sorted(task[4])) # make tag list a string
+			db.execute(
+				'INSERT INTO tasklist(source, parent, haschildren, open, actionable, prio, due, tags, description)'
+				'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+				(indexpath.id, parentid, bool(children)) + tuple(task)
+			)
+			if children:
+				self._insert_tasks(db, indexpath, db.lastrowid, children) # recurs
+
+	def on_delete_page(self, index, db, indexpath):
+		count = db.execute(
+			'SELECT count(*) '
+			'FROM tasklist WHERE source=?',
+			(indexpath.id,)
+		).fetchone()[0]
+		if count > 0:
+			db.execute(
+				'DELETE FROM tasklist WHERE source=?',
+				(indexpath.id,)
+			)
+			self.tasklist_changed()
+
+
+class TasksView(IndexViewBase):
+	'''Database "view" that shows tasks that are indexed'''
+
+	def __init__(self, db_context):
+		IndexViewBase.__init__(self, db_context)
+		self._pages = PagesViewInternal()
+
+		# Test the db really has a tasklist
+		try:
+			with self._db as db:
+				c = db.execute('SELECT * FROM tasklist LIMIT 1')
+		except sqlite3.OperationalError:
+			raise ValueError, 'No tasklist in index'
 
 	def list_tasks(self, parent=None):
 		'''List tasks
@@ -361,75 +245,153 @@ class IndexExtension(ObjectExtension):
 		if parent: parentid = parent['id']
 		else: parentid = 0
 
-		if self.db_initialized:
-			cursor = self.index.db.cursor()
-			cursor.execute('select * from tasklist where parent=? order by prio, due, description', (parentid,))
+		with self._db as db:
+			for row in db.execute(
+				'SELECT * FROM tasklist '
+				'WHERE parent=? ORDER BY prio, due, description',
+				(parentid,)
+			):
 				# Want order by prio & due - add desc to keep sorting more or less stable
-			for row in cursor:
 				yield row
 
 	def get_task(self, taskid):
-		cursor = self.index.db.cursor()
-		cursor.execute('select * from tasklist where id=?', (taskid,))
-		return cursor.fetchone()
+		with self._db as db:
+			row = db.execute(
+				'SELECT * FROM tasklist WHERE id=?',
+				(taskid,)
+			).fetchone()
+		return row
 
 	def get_path(self, task):
 		'''Get the L{Path} for the source of a task
 		@param task: the task (as returned by L{list_tasks()}
 		@returns: an L{IndexPath} object
 		'''
-		return self.index.lookup_id(task['source'])
+		with self._db as db:
+			return self._pages.lookup_by_id(db, task['source'])
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+def _parse_task_labels(string):
+	return [
+		s.strip()
+			for s in string.split(',')
+				if s and not s.isspace()
+	]
 
-	uimanager_xml = '''
-		<ui>
-			<menubar name='menubar'>
-				<menu action='view_menu'>
-					<placeholder name="plugin_items">
-						<menuitem action="show_task_list" />
-					</placeholder>
-				</menu>
-			</menubar>
-			<toolbar name='toolbar'>
-				<placeholder name='tools'>
-					<toolitem action='show_task_list'/>
-				</placeholder>
-			</toolbar>
-		</ui>
+
+def _task_labels_re(labels):
+	return re.compile(
+		r'^(' + '|'.join(re.escape(l.strip(':')) for l in labels) + r')(?!\w)'
+	)
+
+
+def _next_label_re(label):
+	return re.compile(r'^' + re.escape(label.strip(':')) + r':?\s+')
+
+
+class TasksParser(object):
+	'''This object handles parsing tasks for a single page based
+	on the plugin preferences. It is used by L{TasksIndexer} and in
+	turn it uses L{TasksParseTreeParser}
 	'''
 
-	def __init__(self, plugin, window, index_ext):
-		WindowExtension.__init__(self, plugin, window)
-		self.index_ext = index_ext
+	def __init__(self, preferences):
+		# all_checkboxes
+		self.all_checkboxes = preferences['all_checkboxes']
 
-	@action(_('Task List'), stock='zim-task-list', readonly=True) # T: menu item
-	def show_task_list(self):
-		if not self.index_ext.db_initialized:
-			MessageDialog(self.window, (
-				_('Need to index the notebook'),
-				# T: Short message text on first time use of task list plugin
-				_('This is the first time the task list is opened.\n'
-				  'Therefore the index needs to be rebuild.\n'
-				  'Depending on the size of the notebook this can\n'
-				  'take up to several minutes. Next time you use the\n'
-				  'task list this will not be needed again.' )
-				# T: Long message text on first time use of task list plugin
-			) ).run()
-			logger.info('Tasklist not initialized, need to rebuild index')
-			finished = self.window.ui.reload_index(flush=True) # XXX
-			# Flush + Reload will also initialize task list
-			if not finished:
-				self.index_ext.db_initialized = False
-				return
+		# task_labels
+		if preferences['labels']:
+			task_labels = _parse_task_labels(preferences['labels'])
+		else:
+			task_labels = []
 
-		dialog = TaskListDialog.unique(self, self.window, self.index_ext, self.plugin.preferences)
-		dialog.present()
+		# next_label_re
+		if preferences['next_label']:
+			self.next_label_re = _next_label_re(preferences['next_label'])
+			task_labels.append(preferences['next_label'])
+				# Adding this avoid the need for things like "TODO: Next: do this next"
+		else:
+			self.next_label_re = None
+
+		# tasklabel_re
+		if task_labels:
+			self.task_label_re = _task_labels_re(task_labels)
+		else:
+			self.task_label_re = None
+
+		# nonactionable_tags
+		if preferences['nonactionable_tags']:
+			self.nonactionable_tags = [
+				t.strip('@').lower()
+					for t in preferences['nonactionable_tags'].replace(',', ' ').strip().split()]
+		else:
+			self.nonactionable_tags = []
+
+		# included_re
+		if preferences['included_subtrees']:
+			included = [i.strip().strip(':') for i in preferences['included_subtrees'].split(',')]
+			included.sort(key=lambda s: len(s), reverse=True) # longest first
+			included_re = '^(' + '|'.join(map(re.escape, included)) + ')(:.+)?$'
+			#~ print '>>>>>', "included_re", repr(included_re)
+			self.included_re = re.compile(included_re)
+		else:
+			self.included_re = None
+
+		# excluded_re
+		if preferences['excluded_subtrees']:
+			excluded = [i.strip().strip(':') for i in preferences['excluded_subtrees'].split(',')]
+			excluded.sort(key=lambda s: len(s), reverse=True) # longest first
+			excluded_re = '^(' + '|'.join(map(re.escape, excluded)) + ')(:.+)?$'
+			#~ print '>>>>>', "excluded_re", repr(excluded_re)
+			self.excluded_re = re.compile(excluded_re)
+		else:
+			self.excluded_re = None
+
+		# deadline_by_page
+		self.deadline_by_page = preferences['deadline_by_page']
+
+	def __call__(self, indexpath, parsetree):
+		deadline = None
+		if self.deadline_by_page:
+			dates = daterange_from_path(path)
+			if dates:
+				deadline = dates[2]
+
+		if self._include_page(indexpath):
+			parser = TasksParseTreeParser(
+				self.task_label_re,
+				self.next_label_re,
+				self.nonactionable_tags,
+				self.all_checkboxes,
+				deadline,
+			)
+			parser.parse(parsetree)
+			return parser.get_tasks()
+		else:
+			return []
+
+	def _include_page(self, path):
+		if self.included_re and self.excluded_re:
+			# judge which match is more specific
+			# this allows including subnamespace of excluded namespace
+			# and vice versa
+			inc_match = self.included_re.match(path.name)
+			exc_match = self.excluded_re.match(path.name)
+			if not exc_match:
+				return bool(inc_match)
+			elif not inc_match:
+				return not bool(exc_match)
+			else:
+				return len(inc_match.group(1)) > len(exc_match.group(1))
+		elif self.included_re:
+			return bool(self.included_re.match(path.name))
+		elif self.excluded_re:
+			return not bool(self.excluded_re.match(path.name))
+		else:
+			return True
 
 
-class TasksParser(Visitor):
+class TasksParseTreeParser(Visitor):
 	'''Parse tasks from a parsetree'''
 
 	def __init__(self, task_label_re, next_label_re, nonactionable_tags, all_checkboxes, defaultdate):
@@ -453,6 +415,7 @@ class TasksParser(Visitor):
 		self._last_node = (None, None) # (tag, attrib) of last item seen by start()
 		self._intasklist = False # True if we are in a tasklist with a header
 		self._tasklist_tags = None # global tags from the tasklist header
+		self._previous = False # has direct previous, for "Next"
 
 	def parse(self, parsetree):
 		#~ filter = TreeFilter(
@@ -555,6 +518,8 @@ class TasksParser(Visitor):
 		for line in u''.join(strings).splitlines():
 			if self._matches_label(line):
 				self._parse_task(line)
+			else:
+				self._previous = False
 
 	def _parse_list_item(self, attrib, text):
 		# List item to parse - check bullet, then match label
@@ -568,6 +533,8 @@ class TasksParser(Visitor):
 			self._parse_task(line, open=open)
 		elif self._matches_label(line):
 			self._parse_task(line)
+		else:
+			self._previous = False
 
 	def _matches_label(self, line):
 		return self.task_label_re and self.task_label_re.match(line)
@@ -609,9 +576,12 @@ class TasksParser(Visitor):
 			actionable = False
 		elif any(t.lower() in self.nonactionable_tags for t in tags):
 			actionable = False
-		elif self._matches_next_label(text) and parent_children:
-			previous = parent_children[-1][0]
-			actionable = not previous[0] # previous task not open
+		elif self._matches_next_label(text):
+			if self._previous and parent_children:
+				previous = parent_children[-1][0]
+				actionable = not previous[0] # previous task not open
+			else:
+				return # skip
 		else:
 			actionable = True
 
@@ -627,15 +597,49 @@ class TasksParser(Visitor):
 		if self._depth > 0: # (don't add paragraph level items to the stack)
 			self._stack.append((level, task, children))
 
+		self._previous = True
+
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
+
+	uimanager_xml = '''
+		<ui>
+			<menubar name='menubar'>
+				<menu action='view_menu'>
+					<placeholder name="plugin_items">
+						<menuitem action="show_task_list" />
+					</placeholder>
+				</menu>
+			</menubar>
+			<toolbar name='toolbar'>
+				<placeholder name='tools'>
+					<toolitem action='show_task_list'/>
+				</placeholder>
+			</toolbar>
+		</ui>
+	'''
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+
+	@action(_('Task List'), stock='zim-task-list', readonly=True) # T: menu item
+	def show_task_list(self):
+		# TODO: add check + dialog for index probably_up_to_date
+
+		index = self.window.ui.notebook.index # XXX
+		tasksview = TasksView.new_from_index(index)
+		dialog = TaskListDialog.unique(self, self.window, tasksview, self.plugin.preferences)
+		dialog.present()
+
 
 class TaskListDialog(Dialog):
 
-	def __init__(self, window, index_ext, preferences):
+	def __init__(self, window, tasksview, preferences):
 		Dialog.__init__(self, window, _('Task List'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=(550, 400) )
 		self.preferences = preferences
-		self.index_ext = index_ext
+		self.tasksview = tasksview
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
@@ -644,11 +648,15 @@ class TaskListDialog(Dialog):
 		self.hpane.set_position(self.uistate['hpane_pos'])
 		self.vbox.add(self.hpane)
 
+		task_labels = _parse_task_labels(preferences['labels'])
+		next_label = preferences['next_label']
+
 		# Task list
 		self.uistate.setdefault('only_show_act', False)
 		opener = window.get_resource_opener()
 		self.task_list = TaskListTreeView(
-			self.index_ext, opener,
+			self.tasksview, opener,
+			task_labels, next_label,
 			filter_actionable=self.uistate['only_show_act'],
 			tag_by_page=preferences['tag_by_page'],
 			use_workweek=preferences['use_workweek']
@@ -657,7 +665,7 @@ class TaskListDialog(Dialog):
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
-		self.tag_list = TagListTreeView(self.index_ext, self.task_list)
+		self.tag_list = TagListTreeView(self.task_list, task_labels)
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
@@ -710,7 +718,8 @@ class TaskListDialog(Dialog):
 			# Don't really care about the delay, but want to
 			# make it less blocking - should be async preferably
 			# now it is at least on idle
-		self.connectto(index_ext, 'tasklist-changed', callback)
+		index = window.ui.notebook.index # XXX
+		self.connectto(index, 'tasklist-changed', callback)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -729,12 +738,12 @@ class TagListTreeView(SingleClickTreeView):
 	_type_tag = 2
 	_type_untagged = 3
 
-	def __init__(self, index_ext, task_list):
+	def __init__(self, task_list, task_labels):
 		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-		self.index_ext = index_ext
 		self.task_list = task_list
+		self.task_labels = task_labels
 
 		column = gtk.TreeViewColumn(_('Tags'))
 			# T: Column header for tag list in Task List dialog
@@ -798,9 +807,8 @@ class TagListTreeView(SingleClickTreeView):
 		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
 
 		used_labels = self.task_list.get_labels()
-		for label in self.index_ext.task_labels: # explicitly keep sorting from preferences
-			if label in used_labels \
-			and label != self.index_ext.next_label:
+		for label in self.task_labels: # explicitly keep sorting from preferences
+			if label in used_labels:
 				model.append((label, used_labels[label], self._type_label, pango.WEIGHT_BOLD))
 
 		tags = self.task_list.get_tags()
@@ -850,7 +858,7 @@ class TaskListTreeView(BrowserTreeView):
 	TASKID_COL = 7
 	TAGS_COL = 8
 
-	def __init__(self, index_ext, opener, filter_actionable=False, tag_by_page=False, use_workweek=False):
+	def __init__(self, tasksview, opener, task_labels, next_label, filter_actionable=False, tag_by_page=False, use_workweek=False):
 		self.real_model = gtk.TreeStore(bool, int, str, str, str, bool, bool, int, object)
 			# VIS_COL, PRIO_COL, TASK_COL, DATE_COL, PAGE_COL, ACT_COL, OPEN_COL, TASKID_COL, TAGS_COL
 		model = self.real_model.filter_new()
@@ -859,13 +867,15 @@ class TaskListTreeView(BrowserTreeView):
 		model.set_sort_column_id(self.PRIO_COL, gtk.SORT_DESCENDING)
 		BrowserTreeView.__init__(self, model)
 
-		self.index_ext = index_ext
+		self.tasksview = tasksview
 		self.opener = opener
 		self.filter = None
 		self.tag_filter = None
 		self.label_filter = None
 		self.filter_actionable = filter_actionable
 		self.tag_by_page = tag_by_page
+		self.task_labels = task_labels
+		self.next_label = next_label
 		self._tags = {}
 		self._labels = {}
 
@@ -979,12 +989,15 @@ class TaskListTreeView(BrowserTreeView):
 		self._labels = {}
 
 	def _append_tasks(self, task, iter, path_cache):
-		for row in self.index_ext.list_tasks(task):
+		task_label_re = _task_labels_re(self.task_labels)
+		next_label_re = _next_label_re(self.next_label)
+
+		for row in self.tasksview.list_tasks(task):
 			if not row['open']:
 				continue # Only include open items for now
 
 			if row['source'] not in path_cache:
-				path = self.index_ext.get_path(row)
+				path = self.tasksview.get_path(row)
 				if path is None:
 					# Be robust for glitches - filter these out
 					continue
@@ -994,11 +1007,11 @@ class TaskListTreeView(BrowserTreeView):
 			path = path_cache[row['source']]
 
 			# Update labels
-			for label in self.index_ext.task_label_re.findall(row['description']):
+			for label in task_label_re.findall(row['description']):
 				self._labels[label] = self._labels.get(label, 0) + 1
 
 			# Update tag count
-			tags = row['tags'].split(',')
+			tags = [t for t in row['tags'].split(',') if t]
 			if self.tag_by_page:
 				tags = tags + path.parts
 
@@ -1012,11 +1025,11 @@ class TaskListTreeView(BrowserTreeView):
 			# Format description
 			task = _date_re.sub('', row['description'], count=1)
 			task = re.sub('\s*!+\s*', ' ', task) # get rid of exclamation marks
-			task = self.index_ext.next_label_re.sub('', task) # get rid of "next" label in description
+			task = next_label_re.sub('', task) # get rid of "next" label in description
 			task = encode_markup_text(task)
 			if row['actionable']:
 				task = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', task) # highlight tags - same color as used in pageview
-				task = self.index_ext.task_label_re.sub(r'<b>\1</b>', task) # highlight labels
+				task = task_label_re.sub(r'<b>\1</b>', task) # highlight labels
 			else:
 				task = r'<span color="darkgrey">%s</span>' % task
 
@@ -1174,7 +1187,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def _get_raw_text(self, task):
 		id = task[self.TASKID_COL]
-		row = self.index_ext.get_task(id)
+		row = self.tasksview.get_task(id)
 		return row['description']
 
 	def do_initialize_popup(self, menu):

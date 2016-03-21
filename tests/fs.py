@@ -34,14 +34,14 @@ def modify_file_mtime(path, func):
 
 class FilterOverWriteWarning(tests.LoggingFilter):
 
-	logger = 'zim.fs'
-	message = 'mtime check failed'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.fs', 'mtime check failed')
 
 
 class FilterFileMissingWarning(tests.LoggingFilter):
 
-	logger = 'zim.fs'
-	message = 'File missing:'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.fs', 'File missing:')
 
 
 class TestFS(tests.TestCase):

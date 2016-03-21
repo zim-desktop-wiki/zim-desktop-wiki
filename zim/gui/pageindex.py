@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the page index widget which is normally shown
 in the side pane of the main window. L{PageIndex} is the main widget
@@ -14,8 +14,15 @@ import gtk
 import pango
 import logging
 
-from zim.index import IndexPath
+from functools import partial
+
+from zim.signals import ConnectorMixin
 from zim.notebook import Path
+from zim.notebook.index import PagesView, IndexPath, \
+	ROOT_PATH, IndexNotFoundError, \
+	get_indexpath_for_treepath_factory, \
+	get_treepath_for_indexpath_factory
+
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
 	populate_popup_add_separator, encode_markup_text, \
 	ErrorDialog
@@ -23,7 +30,6 @@ from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
-from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.gui.pageindex')
@@ -48,27 +54,6 @@ KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
 #~ gc.set_debug(gc.DEBUG_STATS)
 
 
-class PageTreeIter(object):
-	'''Simple wrapper for L{IndexPath} objects used as tree iters
-	in the L{PageTreeStore}
-	'''
-
-	__slots__ = ('indexpath', 'treepath', 'n_children')
-
-	def __init__(self, treepath, indexpath):
-		'''Constructor
-
-		@param treepath: the tree path (a tuple of integers)
-		@param indexpath: the L{IndexPath} object
-		'''
-		self.treepath = treepath #: the tree path
-		self.indexpath = indexpath #: the L{IndexPath}
-		self.n_children = None #: number of children, C{None} means unknown
-
-	def __repr__(self):
-		return '<PageTreeIter, %s, %s>' % (self.treepath, self.indexpath.name)
-
-
 class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom gtk TreeModel that is integrated closely with the L{Index}
 	object of the notebook. This model is mostly an API layer translating
@@ -88,10 +73,12 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 	"treepath", while arguments called "path" refer to a zim Path.
 
 	For all the methods with a name starting with C{on_} the "iter"
-	argument is a L{PageTreeIter}. The GenericTreeModel in turn
+	argument is a L{IndexPath}. However these IndexPaths are special
+	because they have the C{treepath} attribute set as well. So you
+	can not use just any IndexPath. The GenericTreeModel in turn
 	wraps these in C{gtk.TreeIter} object. So e.g. the implementation
 	of C{get_iter()} calls C{on_get_iter()} and wraps the
-	L{PageTreeIter} into a C{gtk.TreeIter}.
+	L{IndexPath} into a C{gtk.TreeIter}.
 	'''
 
 	# We inherit from gtk.TreeDragSource and gtk.TreeDragDest even though
@@ -147,8 +134,8 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		'''
 		gtk.GenericTreeModel.__init__(self)
 		self.index = index
+		self._pages = PagesView.new_from_index(index)
 		self.current_page = None
-
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
 		self._cache = {}
@@ -159,9 +146,16 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 	def _connect(self):
 		# May be overridden by descendants (e.g. TagTreeStore)
 
+		self._get_indexpath_for_treepath = \
+			get_indexpath_for_treepath_factory(self.index, self._cache)
+		self._get_treepath_for_indexpath = \
+			get_treepath_for_indexpath_factory(self.index, self._cache)
+
 		def on_changed(o, path, signal):
 			#~ print '!!', signal, path
 			self._flush()
+			if path.isroot:
+				return # ignore changes in root node
 			treepath = self.get_treepath(path)
 			if treepath:
 				#~ print '!!', signal, path, treepath
@@ -182,13 +176,11 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 			self._flush()
 
 		self.connectto_all(self.index, (
-			('page-inserted', on_changed, 'row-inserted'),
-			('page-updated', on_changed, 'row-changed'),
-			('page-haschildren-toggled', on_changed, 'row-has-child-toggled'),
-			('page-to-be-deleted', on_deleted),
+			('page-added', partial(on_changed, signal='row-inserted')),
+			('page-changed', partial(on_changed, signal='row-changed')),
+			('page-haschildren-toggled', partial(on_changed, signal='row-has-child-toggled')),
+			('page-to-be-removed', on_deleted),
 		))
-		# The page-to-be-deleted signal is a hack so we have time to ensure we know the
-		# treepath of this indexpath - once we get page-deleted it is to late to get this
 
 	def disconnect_index(self):
 		'''Stop the model from listening to the index. Used e.g. to
@@ -228,88 +220,48 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 
 	def on_get_value(self, iter, column):
 		#~ print '>> on_get_value', iter, column
-		path = iter.indexpath
 		if column == NAME_COL:
-			return path.basename
+			return iter.basename
 		elif column == TIP_COL:
-			return encode_markup_text(path.basename)
+			return encode_markup_text(iter.basename)
 		elif column == PATH_COL:
-			return path
+			return iter
 		elif column == EMPTY_COL:
-			return not path.hascontent and not path.haschildren
+			return not iter.hascontent and not iter.haschildren
 		elif column == STYLE_COL:
-			if path.hascontent or path.haschildren:
+			if iter.hascontent or iter.haschildren:
 				return pango.STYLE_NORMAL
 			else:
 				return pango.STYLE_ITALIC
 		elif column == FGCOLOR_COL:
-			if path.hascontent or path.haschildren:
+			if iter.hascontent or iter.haschildren:
 				return self.NORMAL_COLOR
 			else:
 				return self.EMPTY_COLOR
 		elif column == WEIGHT_COL:
-			if path == self.current_page:
+			if iter == self.current_page:
 				return pango.WEIGHT_BOLD
 			else:
 				return pango.WEIGHT_NORMAL
 		elif column == N_CHILD_COL:
-			if path.haschildren:
-				return str(self.index.n_list_pages(path))
+			if iter.haschildren:
+				return str(iter.n_children)
 			else:
 				return '' # not "0", want to keep look bit clean
 
 	def on_get_iter(self, treepath):
-		'''Returns a L{PageTreeIter} for a gtk TreePath or None'''
+		'''Returns an indexpath for a gtk TreePath or None'''
 		#~ print '>> on_get_iter', treepath
 		return self._get_iter(treepath)
 
 	def on_get_path(self, iter):
-		'''Returns a gtk TreePath for a L{PageTreeIter}'''
+		'''Returns a gtk TreePath for an indexpath'''
 		#~ print '>> on_get_path', iter
 		return iter.treepath
 
 	def _get_iter(self, treepath):
-		# Lookup and return the PageTreeIter for an gtk treepath
-		#
-		# Takes care of caching and makes sure we keep references to
-		# paths long enough while they are used in an iter.
-		# Also schedule a flush to be execute as soon as the loop is
-		# idle again. The cache is a dict which takes treepath tuples
-		# as keys and has PageTreeIter objects as values, it is filled
-		# on demand.
-		#
-		# There is no TreePath gtk object, treepaths are just tuples
-		# of ints:
-		# Path (0,) is the first item in the root namespace
-		# Path (2, 4) is the 5th child of the 3rd item
-		#
-		# All other API methods that need a PageTreeIter use this method
-		# to do the actual lookup
+		indexpath = self._get_indexpath_for_treepath(treepath)
 
-		#~ print '>>> Lookup path', treepath
-		if not treepath in self._cache:
-			parent = None
-			for i in range(1, len(treepath)+1):
-				mytreepath = treepath[:i]
-				if not mytreepath in self._cache:
-					parenttreepath = treepath[:i-1]
-					offset = mytreepath[-1]
-					#~ print '>>>> Load pagelist for', parent, 'offset', offset
-					pages = self.index.list_pages(parent, offset, limit=20)
-					for j, path in enumerate(pages):
-						childtreepath = parenttreepath + (offset + j,)
-						iter = PageTreeIter(childtreepath, path)
-						self._cache.setdefault(childtreepath, iter)
-				try:
-					parent = self._cache[mytreepath].indexpath
-				except KeyError:
-					return None
-
-		#~ print '>>> Return', self._cache.get(treepath, None)
-		self._schedule_flush()
-		return self._cache.get(treepath, None)
-
-	def _schedule_flush(self):
 		# Schedule a flush with some timeout to try to take advantage
 		# of known cache for repeated requests. Cache can grow very fast
 		# on scroll, so don't make the time constant to large.
@@ -321,13 +273,14 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 			gobject.timeout_add(500, idle_add)
 			self._flush_scheduled = True
 
+		return indexpath
+
 	def _flush(self):
 		# Drop references and free memory
-		# Cache is populated by either _get_iter() or get_treepath()
 		#~ print '!! Freeing %i refs' % len(self._cache)
 		#~ print '=' * 60
 		self.invalidate_iters()
-		self._cache = {} # del _cache - keep no ref to this dict
+		self._cache.clear()
 		self._flush_scheduled = False
 		return False # In case we are called from idle signal
 
@@ -338,25 +291,19 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		@returns: a gtk TreePath (which is a tuple of integers) or
 		C{None} if the path does not appear in the index
 		'''
-		assert isinstance(path, Path)
+		# The indexpath here may or may not contain a treepath
 		if path.isroot:
 			raise ValueError
-
-		if not isinstance(path, IndexPath):
-			path = self.index.lookup_path(path)
-			if path is None:
-				return None
-
-		paths = list(path.parents())
-		paths.pop() # get rid of root namespace as parent
-		paths.reverse()
-		paths.append(path)
-		treepath = ()
-		for path in paths:
-			n = self.index.get_page_index(path)
-			treepath += (n,)
-
-		return treepath
+		elif isinstance(path, IndexPath) \
+		and hasattr(path, 'treepath'):
+			return path.treepath
+		else:
+			if not isinstance(path, IndexPath):
+				try:
+					path = self._pages.lookup_by_pagename(path)
+				except IndexNotFoundError:
+					return None
+			return self._get_treepath_for_indexpath(path)
 
 	def get_indexpath(self, treeiter):
 		'''Get an L{IndexPath} for a C{gtk.TreeIter}
@@ -364,9 +311,7 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		@param treeiter: a C{gtk.TreeIter}
 		@returns: an L{IndexPath} object
 		'''
-		# Note that iter is TreeIter here, not PageTreeIter
-		iter = self.get_user_data(treeiter)
-		return iter.indexpath
+		return self.get_user_data(treeiter)
 
 	def on_iter_next(self, iter):
 		'''Returns the IndexPath for the next row on the same level or None'''
@@ -390,10 +335,7 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 
 	def on_iter_has_child(self, iter):
 		'''Returns True if IndexPath for iter has children'''
-		path = iter.indexpath
-		if not path.hasdata:
-			path = self.index.lookup_data(path)
-		return bool(path.haschildren)
+		return bool(iter.haschildren)
 
 	def on_iter_n_children(self, iter):
 		'''Returns the number of children in a namespace. When iter
@@ -401,14 +343,12 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		'''
 		#~ print '>> on_iter_n_children', iter
 		if iter is None:
-			path = Path(':')
-		else:
-			path = iter.indexpath
-		return self.index.n_list_pages(path)
+			iter = self._pages.lookup_by_pagename(ROOT_PATH)
+		return iter.n_children
 
 	def on_iter_nth_child(self, iter, n):
-		'''Returns the nth child for a given PageTreeIter or None. If
-		iter is C{None} the nth item in the root namespace is returned.
+		'''Returns the nth child or None. If iter is C{None} the
+		nth item in the root namespace is returned.
 		'''
 		#~ print '>> on_iter_nth_child', iter, n
 		if iter is None:
@@ -418,7 +358,7 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 		return self._get_iter(treepath)
 
 	def on_iter_parent(self, iter):
-		'''Returns a PageTreeIter for parent node of iter or None'''
+		'''Returns an indexpath for parent node or None'''
 		#~ print '>> on_iter_parent', iter
 		treepath = iter.treepath[:-1]
 		if len(treepath) > 0:
@@ -430,14 +370,12 @@ class PageTreeStore(ConnectorMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gt
 	# Compatibility for older version of GenericTreeModel
 	if not hasattr(gtk.GenericTreeModel, 'create_tree_iter'):
 		logger.warn('Using work around for older version of GenericTreeModel - may hurt performance')
-		def create_tree_iter(self, iter):
-			'''Turn an PageTreeIter into a TreeIter'''
+		def create_tree_iter(self, indexpath):
 			# Use GenericTreeModel API to wrap the iter
 			return self.get_iter(iter.treepath)
 
 	if not hasattr(gtk.GenericTreeModel, 'get_user_data'):
 		def get_user_data(self, treeiter):
-			'''Turn a TreeIter into an PageTreeIter'''
 			# Use GenericTreeModel API to unwrap the iter
 			treepath = self.get_path(treeiter)
 			return self._cache[treepath]
@@ -476,7 +414,6 @@ class PageTreeView(BrowserTreeView):
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
 		self.ui = ui
-		self._cleanup = None # temporary created path that needs to be removed later
 
 		column = gtk.TreeViewColumn('_pages_')
 		self.append_column(column)
@@ -527,7 +464,6 @@ class PageTreeView(BrowserTreeView):
 
 		@param model: a new TreeModel object
 		'''
-		self._cleanup = None # else it might be pointing to old model
 		BrowserTreeView.set_model(self, model)
 		model.connect('row-inserted', self.on_row_inserted)
 
@@ -653,31 +589,11 @@ class PageTreeView(BrowserTreeView):
 			return None # index not yet initialized ...
 
 		treepath = model.get_treepath(path)
-		if not treepath:
-			if vivificate:
-				# path does not exist, but we can create it
-				path = model.index.touch(path)
-				treepath = model.get_treepath(path)
-				assert treepath, 'BUG: failed to touch placeholder'
-			else:
-				return None
-
-		rowreference = gtk.TreeRowReference(model, treepath)
-			# make reference before cleanup - path may change
-
-		if self._cleanup and self._cleanup.valid():
-			mytreepath = self._cleanup.get_path()
-			if mytreepath != treepath:
-				indexpath = model.get_indexpath( model.get_iter(mytreepath) )
-				#~ print '!! CLEANUP', indexpath
-				model.index.cleanup(indexpath)
-				treepath = model.get_treepath(path)
-
-		self._cleanup = rowreference
-
-		model.set_current_page(path) # highlight in model
-
-		return treepath
+		if treepath:
+			model.set_current_page(path) # highlight in model
+			return treepath
+		else:
+			return None
 
 	def select_treepath(self, treepath):
 		'''Select a gtk TreePath in the view
@@ -744,7 +660,8 @@ class PageIndex(gtk.ScrolledWindow):
 			self.on_open_page(self.ui, self.ui,page, self.ui,page)
 
 	def on_open_page(self, ui, page, path):
-		treepath = self.treeview.set_current_page(path, vivificate=True)
+		treepath = self.treeview.set_current_page(Path(path.name), vivificate=True)
+			# Force reloading Path - stale IndexPath will not be checked later
 		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
 		if treepath and expand:
 			self.treeview.select_treepath(treepath)

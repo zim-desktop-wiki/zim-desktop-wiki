@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for basic stores modules.'''
 
@@ -13,9 +13,10 @@ import time
 
 from zim.fs import File, Dir, FileWriteError
 from zim.errors import TrashNotSupportedError
-from zim.notebook import Notebook, Path, LookupError, PageExistsError
-import zim.stores
+from zim.notebook import Path, PageNotFoundError, PageExistsError
 from zim.formats import ParseTree
+
+from zim.notebook.stores import *
 
 
 def walk(store, namespace=None):
@@ -49,8 +50,8 @@ def ascii_page_tree(store, namespace=None, level=0):
 
 class FilterOverWriteWarning(tests.LoggingFilter):
 
-	logger = 'zim.fs'
-	message = 'mtime check failed'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.fs', 'mtime check failed')
 
 
 class TestUtils(tests.TestCase):
@@ -62,23 +63,23 @@ class TestUtils(tests.TestCase):
 		try:
 			zim.fs.ENCODING = 'utf-8'
 			pagename = u'utf8:\u03b1\u03b2\u03b3'
-			filename = zim.stores.encode_filename(pagename)
+			filename = encode_filename(pagename)
 			self.assertEqual(filename, u'utf8/\u03b1\u03b2\u03b3')
-			roundtrip = zim.stores.decode_filename(filename)
+			roundtrip = decode_filename(filename)
 			self.assertEqual(roundtrip, pagename)
 
 			zim.fs.ENCODING = 'ascii'
 			pagename = u'utf8:\u03b1\u03b2\u03b3'
-			filename = zim.stores.encode_filename(pagename)
+			filename = encode_filename(pagename)
 			self.assertEqual(filename, u'utf8/%CE%B1%CE%B2%CE%B3')
-			roundtrip = zim.stores.decode_filename(filename)
+			roundtrip = decode_filename(filename)
 			self.assertEqual(roundtrip, pagename)
 
 			zim.fs.ENCODING = 'gb2312'
 			pagename = u'utf8:\u2022:\u4e2d\u6587:foo' # u2022 can not be encoded in gb2312
-			filename = zim.stores.encode_filename(pagename)
+			filename = encode_filename(pagename)
 			self.assertEqual(filename, u'utf8/%E2%80%A2/\u4e2d\u6587/foo')
-			roundtrip = zim.stores.decode_filename(filename)
+			roundtrip = decode_filename(filename)
 			self.assertEqual(roundtrip, pagename)
 		except Exception:
 			zim.fs.ENCODING = realencoding
@@ -88,8 +89,8 @@ class TestUtils(tests.TestCase):
 
 		# try roundtrip with actual current encoding
 		pagename = u'utf8:\u03b1\u03b2\u03b3:\u2022:\u4e2d\u6587:foo'
-		filename = zim.stores.encode_filename(pagename)
-		roundtrip = zim.stores.decode_filename(filename)
+		filename = encode_filename(pagename)
+		roundtrip = decode_filename(filename)
 		self.assertEqual(roundtrip, pagename)
 
 class TestReadOnlyStore(object):
@@ -123,15 +124,16 @@ class TestReadOnlyStore(object):
 		self.assertEqual(names, self.index)
 
 
-class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
+#~ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
+class TestStoresMemory(object):
 	'''Test the store.memory module'''
 
 	def setUp(self):
-		klass = zim.stores.get_store('memory')
-		self.store = klass(path=Path(':'), notebook=Notebook())
+		klass = get_store('memory')
+		self.store = klass()
 		self.index = set()
 		for name, text in tests.WikiTestData:
-			self.store.set_node(Path(name), text)
+			self.store.store_node(Path(name), text)
 			self.index.add(name)
 		self.normalize_index()
 
@@ -207,7 +209,7 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 			self.assertFalse(page.hascontent)
 
 		# check errors
-		self.assertRaises(LookupError,
+		self.assertRaises(PageNotFoundError,
 			self.store.move_page, Path('NewPage'), Path('Test:BAR'))
 		self.assertRaises(PageExistsError,
 			self.store.move_page, Path('Test:foo'), Path('TaskList'))
@@ -237,8 +239,6 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 			# let's delete the newpath again
 			page = self.store.get_page(newpath)
 			self.assertTrue(self.store.delete_page(page))
-			self.assertFalse(page.haschildren)
-			self.assertFalse(page.hascontent)
 			page = self.store.get_page(newpath)
 			self.assertFalse(page.haschildren)
 			self.assertFalse(page.hascontent)
@@ -304,46 +304,6 @@ class TestStoresMemory(TestReadOnlyStore, tests.TestCase):
 			self.assertRaises(TrashNotSupportedError, self.store.trash_page, page)
 
 
-class TextXMLStore(TestReadOnlyStore, tests.TestCase):
-
-	xml = u'''\
-<?xml version='1.0' encoding='utf-8'?>
-<section>
-<page name='Foo'>
-Fooo!
-<page name="Bar">
-Foooo Barrr
-</page>
-</page>
-<page name='Baz'>
-Fooo barrr bazzz
-</page>
-<page name='utf8'>
-<page name='\u03b1\u03b2\u03b3'>
-Utf8 content here
-</page>
-</page>
-</section>
-'''
-
-	def setUp(self):
-		buffer = StubFile(self.xml)
-		klass = zim.stores.get_store('xml')
-		self.store = klass(path=Path(':'), notebook=Notebook(), file=buffer)
-		self.index = set(['Foo', 'Foo:Bar', 'Baz', u'utf8:\u03b1\u03b2\u03b3'])
-		self.normalize_index()
-
-	def testIndex(self):
-		'''Test we get a proper index for the XML store'''
-		TestReadOnlyStore.testIndex(self)
-
-	def testContent(self):
-		page = self.store.get_page(Path('Foo:Bar'))
-		self.assertEqual(page.dump(format='wiki'), ['Foooo Barrr\n'])
-		ref = self.xml.replace("'", '"')
-		self.assertEqual(''.join(self.store.dump()), ref)
-
-
 @tests.slowTest
 class TestFiles(TestStoresMemory):
 	'''Test the store.files module'''
@@ -353,8 +313,8 @@ class TestFiles(TestStoresMemory):
 		tmpdir = self.create_tmp_dir(u'_some_utf8_here_\u0421\u0430\u0439')
 		self.dir = Dir([tmpdir, 'store-files'])
 		self.mem = self.store
-		klass = zim.stores.get_store('files')
-		self.store = klass(path=Path(':'), notebook=Notebook(), dir=self.dir)
+		klass = get_store('files')
+		self.store = klass(self.dir)
 		for parent, page in walk(self.mem):
 			if page.hascontent:
 				mypage = self.store.get_page(page)

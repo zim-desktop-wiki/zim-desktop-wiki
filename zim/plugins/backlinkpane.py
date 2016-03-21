@@ -9,9 +9,8 @@ import gtk
 import pango
 
 from zim.plugins import PluginClass, extends, WindowExtension
-from zim.notebook import Path
+from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
-from zim.index import LINK_DIR_BACKWARD
 
 
 class BackLinksPanePlugin(PluginClass):
@@ -96,14 +95,14 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		model.clear()
 
-		backlinks = notebook.index.list_links(page, LINK_DIR_BACKWARD)
+		backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
 			# XXX allow access through page object
 		for link in backlinks:
-			href = notebook.relative_link(link.href, link.source) # XXX
-				# relative link from href *back* to source
-			href = href.lstrip(':')
-			#~ model.append(None, (link.source, href))
-			model.append((link.source, href))
+			href = notebook.pages.create_link(link.target, link.source)
+				# relative link from target *back* to source
+			text = href.to_wiki_link().strip(':')
+			#~ model.append(None, (link.source, text))
+			model.append((link.source, text))
 
 		## TODO make hierarchy by link type ?
 		## use link.type attribute

@@ -213,7 +213,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
 		# XXX remove ui - use signals from pageview for this
 		self.connectto(ui, 'open-page')
-		self.connectto(ui.notebook, 'stored-page')
+		self.connectto(ui.notebook, 'store-page')
 
 		self.pageview = pageview
 		if self.pageview.page:
@@ -228,7 +228,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 	def on_open_page(self, ui, page, path):
 		self.load_page(page)
 
-	def on_stored_page(self, notebook, page):
+	def on_store_page(self, notebook, page):
 		if page == self.pageview.page:
 			self.load_page(page)
 

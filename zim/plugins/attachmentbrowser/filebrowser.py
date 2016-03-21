@@ -135,8 +135,9 @@ class FileBrowserIconView(gtk.IconView):
 
 		self.refresh()
 
-		id = self.folder.connect('changed', self._on_folder_changed)
-		self._monitor = (self.folder, id)
+		monitor = self.folder.monitor()
+		id = monitor.connect('changed', self._on_folder_changed)
+		self._monitor = (monitor, id)
 
 	def refresh(self, icon_size_changed=False):
 		if self.folder is None:
@@ -272,8 +273,8 @@ class FileBrowserIconView(gtk.IconView):
 	def teardown_folder(self):
 		try:
 			if self._monitor:
-				dir, id = self._monitor
-				dir.disconnect(id)
+				monitor, id = self._monitor
+				monitor.disconnect(id)
 		except:
 			logger.exception('Could not cancel file monitor')
 		finally:
@@ -291,7 +292,12 @@ class FileBrowserIconView(gtk.IconView):
 		self.get_model().clear()
 
 	def _on_folder_changed(self, *a):
-		if self.folder and self.folder.mtime() != self._mtime:
+		try:
+			changed = self.folder and self.folder.mtime() != self._mtime
+		except OSError: # folder went missing?
+			changed = True
+
+		if changed:
 			logger.debug('Folder change detected: %s', self.folder)
 			self.refresh()
 			self.emit('folder-changed')

@@ -254,7 +254,7 @@ class MockWindow(tests.MockObject):
 		tests.MockObject.__init__(self)
 		self.ui = MockUI(dir)
 		self.ui.uistate = None
-		self.ui.uimanager = tests.MockObject()
+		self.uimanager = tests.MockObject()
 		self.pageview = tests.MockObject()
 		self.mock_method('connect', None)
 

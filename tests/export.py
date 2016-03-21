@@ -424,11 +424,14 @@ class TestTemplateOptions(tests.TestCase):
 		notebook = tests.new_notebook(fakedir='/foo')
 		selection = SinglePage(notebook, page)
 
-		exporter.export(selection)
+		with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):
+			exporter.export(selection)
 		result = file.read()
 		#~ print result
 		self.assertIn('\section{Head1}', result) # this implies that document_type "article" was indeed used
 
+
+@tests.slowTest
 class TestExportFormat(object):
 
 	def runTest(self):
@@ -443,7 +446,9 @@ class TestExportFormat(object):
 			pages = AllPages(notebook) # TODO - sub-section ?
 			exporter = build_notebook_exporter(dir.subdir(template), self.format, template)
 			self.assertIsInstance(exporter, MultiFileExporter)
-			exporter.export(pages)
+
+			with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):
+				exporter.export(pages)
 
 			file = exporter.layout.page_file(Path('roundtrip'))
 			text =  file.read()
@@ -732,7 +737,7 @@ class TestExportDialog(tests.TestCase):
 		foologger = logging.getLogger('zim.foo')
 		log_context = LogContext()
 
-		with tests.LoggingFilter(message='Test'):
+		with tests.LoggingFilter(logger='zim', message='Test'):
 			with log_context:
 				mylogger.warn('Test export warning')
 				mylogger.debug('Test export debug')

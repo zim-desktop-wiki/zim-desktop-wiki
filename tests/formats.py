@@ -11,7 +11,7 @@ import tests
 
 from zim.formats import *
 from zim.fs import File
-from zim.notebook import Path, Link
+from zim.notebook import Path
 from zim.parsing import link_type
 from zim.templates import Template
 
@@ -384,8 +384,6 @@ A list
 		for elt in tree.findall(LINK):
 			self.assertTrue(elt.gettext())
 			self.assertTrue(elt.get('href'))
-			link = Link(self.page, **elt.attrib)
-			self.assertEqual(elt.attrib['href'], link.href)
 			found += 1
 		self.assertEqual(found, 3)
 
@@ -705,8 +703,12 @@ class TestRstFormat(tests.TestCase, TestFormatMixin):
 
 class LatexLoggingFilter(tests.LoggingFilter):
 
-	logger = 'zim.formats.latex'
-	message = ('No document type set in template', 'Could not find latex equation')
+	def __init__(self):
+		tests.LoggingFilter.__init__(
+			self,
+			'zim.formats.latex',
+			('No document type set in template', 'Could not find latex equation')
+		)
 
 
 class TestLatexFormat(tests.TestCase, TestFormatMixin):

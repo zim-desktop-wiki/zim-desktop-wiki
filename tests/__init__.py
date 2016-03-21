@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
+
+from __future__ import with_statement
+
 
 import os
 import sys
@@ -50,7 +53,7 @@ __all__ = [
 	'parsing', 'formats', 'templates', 'objectmanager',
 	'stores', 'index', 'notebook', 'history',
 	'export', 'www', 'search',
-	'widgets', 'gui', 'pageview', 'clipboard',
+	'widgets', 'pageindex', 'pageview', 'clipboard', 'gui',
 	'main', 'plugins',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
@@ -133,6 +136,39 @@ if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	# Do this when loaded, but not re-do in sub processes
 	# (doing so will kill e.g. the ipc test...)
 	_setUpEnvironment()
+
+
+## Setup special logging for tests
+
+class UncaughtWarningError(AssertionError):
+	pass
+
+
+class TestLoggingHandler(logging.Handler):
+	'''Handler class that raises uncaught errors to ensure test don't fail silently'''
+
+	def __init__(self, level=logging.WARNING):
+		logging.Handler.__init__(self, level)
+		fmt = logging.Formatter('%(levelname)s %(filename)s %(lineno)s: %(message)s')
+		self.setFormatter(fmt)
+
+	def emit(self, record):
+		if record.levelno >= logging.WARNING:
+			raise UncaughtWarningError, self.format(record)
+		else:
+			pass
+
+logging.getLogger().addHandler(TestLoggingHandler())
+	# Handle all errors that make it up to the root level
+
+try:
+	logging.getLogger('zim.test').warning('foo')
+except UncaughtWarningError:
+	pass
+else:
+	raise AssertionError, 'Raising errors on warning fails'
+
+###
 
 
 _zim_pyfiles = []
@@ -237,46 +273,52 @@ class TestCase(unittest.TestCase):
 		return os.path.join(TMPDIR, name)
 
 
-class LoggingFilter(object):
-	'''Base class for logging filters that can be used as a context
-	using the "with" keyword. To subclass it you only need to set the
-	logger to be used and (the begin of) the message to filter.
-
-	The message can be a string, or a list or tuple of strings. Any
-	messages that start with this string or any of these strings are
-	surpressed.
+class LoggingFilter(logging.Filter):
+	'''Convenience class to surpress zim errors and warnings in the
+	test suite. Acts as a context manager and can be used with the
+	'with' keyword.
 
 	Alternatively you can call L{wrap_test()} from test C{setUp}.
 	This will start the filter and make sure it is cleaned up again.
 	'''
 
-	logger = 'zim'
-	message = None
+	# Due to how the "logging" module works, logging channels do inherit
+	# handlers of parents but not filters. Therefore setting a filter
+	# on the "zim" channel will not surpress messages from sub-channels.
+	# Instead we need to set the filter both on the channel and on
+	# top level handlers to get the desired effect.
 
-	def __init__(self, logger=None, message=None):
-		if logger:
-			self.logger = logger
-
-		if message:
-			self.message = message
-
-		self.loggerobj = logging.getLogger(self.logger)
+	def __init__(self, logger, message=None):
+		'''Constructor
+		@param logger: the logging channel name
+		@param message: can be a string, or a sequence of strings.
+		Any messages that start with this string or any of these
+		strings are surpressed.
+		'''
+		self.logger = logger
+		self.message = message
 
 	def __enter__(self):
-		self.loggerobj.addFilter(self)
+		logging.getLogger(self.logger).addFilter(self)
+		for handler in logging.getLogger().handlers:
+			handler.addFilter(self)
 
 	def __exit__(self, *a):
-		self.loggerobj.removeFilter(self)
+		logging.getLogger(self.logger).removeFilter(self)
+		for handler in logging.getLogger().handlers:
+			handler.removeFilter(self)
 
 	def filter(self, record):
-		msg = record.getMessage()
-
-		if self.message is None:
-			return False
-		elif isinstance(self.message, tuple):
-			return not any(msg.startswith(m) for m in self.message)
+		if record.name.startswith(self.logger):
+			msg = record.getMessage()
+			if self.message is None:
+				return False
+			elif isinstance(self.message, tuple):
+				return not any(msg.startswith(m) for m in self.message)
+			else:
+				return not msg.startswith(self.message)
 		else:
-			return not msg.startswith(self.message)
+			return True
 
 
 	def wrap_test(self, test):
@@ -395,7 +437,6 @@ def _expand_manifest(names):
 			manifest.add(name)
 	return manifest
 
-
 def new_parsetree():
 	'''Returns a new ParseTree object for testing
 
@@ -439,6 +480,9 @@ def new_page_from_text(text, format='wiki'):
 	return page
 
 
+
+_notebook_data = None
+
 def new_notebook(fakedir=None):
 	'''Returns a new Notebook object with all data in memory
 
@@ -450,23 +494,58 @@ def new_notebook(fakedir=None):
 	(hence it being 'fake').
 	'''
 	from zim.fs import Dir
+	from zim.config import VirtualConfigBackend
 	from zim.notebook import Notebook, Path
-	from zim.index import Index
+	from zim.notebook.notebook import NotebookConfig
+	from zim.notebook.stores.memory import MemoryStore
+	from zim.notebook.index import Index, MemoryDBConnection
 
-	notebook = Notebook(index=Index(dbfile=':memory:'))
-	store = notebook.add_store(Path(':'), 'memory')
-	manifest = []
-	for name, text in WikiTestData:
-		manifest.append(name)
-		store.set_node(Path(name), text)
-	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.update()
+	global _notebook_data
+	if not _notebook_data: # run this one time only
+		store = MemoryStore()
+		manifest = []
+		for name, text in WikiTestData:
+			manifest.append(name)
+			node = store.get_node(Path(name))
+			node.text = text
+			node.set_content_etag()
+
+		manifest = frozenset(_expand_manifest(manifest))
+
+		index = Index.new_from_memory(store)
+		index.update()
+		with index.db_conn.db_context() as db:
+			lines = list(db.iterdump())
+		sql = '\n'.join(lines)
+
+		_notebook_data = (store, sql, manifest)
+
+
+	store, sql, manifest = _notebook_data
+	store = store.copy()
+
+	db_conn = MemoryDBConnection()
+	with db_conn.db_change_context() as db:
+		db.executescript(sql)
+	index = Index(db_conn, store)
+
+	### XXX - Big HACK here - Get better classes for this - XXX ###
+	dir = VirtualConfigBackend()
+	file = dir.file('notebook.zim')
+	file.dir = dir
+	file.dir.basename = 'Unnamed Notebook'
+	###
+	config = NotebookConfig(file)
 
 	if fakedir:
 		dir = Dir(fakedir)
-		notebook.dir = dir
-		store.dir = dir
+		cache_dir = dir.subdir('.zim')
+	else:
+		dir = None
+		cache_dir = None
 
+	notebook = Notebook(dir, cache_dir, config, store, index)
+	notebook.testdata_manifest = manifest
 	return notebook
 
 
@@ -479,18 +558,19 @@ def new_files_notebook(dir):
 	'''
 	from zim.fs import Dir
 	from zim.notebook import init_notebook, Notebook, Path
-	from zim.index import Index
 
 	dir = Dir(dir)
 	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	store = notebook.get_store(':')
+	notebook = Notebook.new_from_dir(dir)
+
+	store = notebook.store
 	manifest = []
 	for name, text in WikiTestData:
 		manifest.append(name)
-		page = store.get_page(Path(name))
+		page = notebook.get_page(Path(name))
 		page.parse('wiki', text)
-		store.store_page(page)
+		notebook.store_page(page)
+
 	notebook.testdata_manifest = _expand_manifest(manifest)
 	notebook.index.update()
 
