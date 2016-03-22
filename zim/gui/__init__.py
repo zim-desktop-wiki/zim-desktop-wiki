@@ -178,18 +178,6 @@ class PageHasUnSavedChangesError(Error):
 		# T: Error description
 
 
-class WindowManager(object):
-
-	def __iter__(self):
-		for window in gtk.window_list_toplevels():
-			if isinstance(window, Window): # implies a zim object
-				yield Window
-
-	def present(self):
-		assert False, 'TODO pick window to present'
-
-
-
 class GtkInterface(gobject.GObject):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
@@ -560,7 +548,7 @@ class GtkInterface(gobject.GObject):
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
-		gobject.source_remove(self._autosave_timer)
+		self._save_page_handler.stop_autosave()
 		self._mainwindow.destroy()
 		self._mainwindow = None
 

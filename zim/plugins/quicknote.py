@@ -21,6 +21,8 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import get_template
 
+from zim.main import ZIM_APPLICATION
+
 
 import logging
 
@@ -122,7 +124,7 @@ class QuickNotePluginCommand(GtkCommand):
 
 		return text
 
-	def run(self, toplevels):
+	def run(self):
 		if self.opts.get('help'):
 			print usagehelp # TODO handle this in the base class
 		else:
@@ -500,5 +502,4 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		return notebook
 
 	def open_page(self, notebook, path):
-		from zim.main import ZIM_APPLICATION
 		ZIM_APPLICATION.run('--gui', notebook.uri, path.name)
