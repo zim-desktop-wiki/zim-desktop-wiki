@@ -48,7 +48,7 @@ FAST_TEST = False #: determines whether we skip slow tests or not
 __all__ = [
 	'package', 'translations',
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
-	'environ', 'fs',
+	'environ', 'fs', 'newfs',
 	'config', 'applications',
 	'parsing', 'formats', 'templates', 'objectmanager',
 	'stores', 'index', 'notebook', 'history',
@@ -232,39 +232,43 @@ class TestCase(unittest.TestCase):
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
-	def create_tmp_dir(self, name=None):
+	@classmethod
+	def create_tmp_dir(cls, name=None):
 		'''Returns a path to a tmp dir where tests can write data.
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
-		self.clear_tmp_dir(name)
-		path = self._get_tmp_name(name)
+		cls.clear_tmp_dir(name)
+		path = cls._get_tmp_name(name)
 		os.makedirs(path)
 		assert os.path.exists(path) # make real sure
 		return path
 
-	def get_tmp_name(self, name=None):
+	@classmethod
+	def get_tmp_name(cls, name=None):
 		'''Returns the same path as L{create_tmp_dir()} but without
 		touching it. This method will raise an exception when a file
 		or dir exists of the same name.
 		'''
-		path = self._get_tmp_name(name)
+		path = cls._get_tmp_name(name)
 		assert not os.path.exists(path), 'This path should not exist: %s' % path
 		return path
 
-	def clear_tmp_dir(self, name=None):
+	@classmethod
+	def clear_tmp_dir(cls, name=None):
 		'''Clears the tmp dir for this test'''
-		path = self._get_tmp_name(name)
+		path = cls._get_tmp_name(name)
 		if os.path.exists(path):
 			shutil.rmtree(path)
 		assert not os.path.exists(path) # make real sure
 
-	def _get_tmp_name(self, name):
+	@classmethod
+	def _get_tmp_name(cls, name):
 		if name:
 			assert not os.path.sep in name, 'Don\'t use this method to get sub folders or files'
-			name = self.__class__.__name__ + '_' + name
+			name = cls.__name__ + '_' + name
 		else:
-			name = self.__class__.__name__
+			name = cls.__name__
 
 		if os.name == 'nt':
 			name = unicode(name)
