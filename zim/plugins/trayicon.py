@@ -29,6 +29,10 @@ from zim.main import ZIM_APPLICATION
 
 
 GLOBAL_TRAYICON = None
+# The trayicon is global because you should only have one per process
+# so in a sense it is an external resource represented by a global
+# state.
+
 
 def set_gloal_trayicon(classic=False):
 	global GLOBAL_TRAYICON
@@ -290,6 +294,10 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 gobject.type_register(StatusIconTrayIcon)
 
 
+_GLOBAL_INDICATOR = None
+# This item is global, because if we create one, we can not detroy it
+# again and it remains active in the desktop as an external resource
+
 
 class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 	'''Trayicon using the daemon and based on appindicator'''
@@ -300,8 +308,15 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		# Note that even though we specify the icon "zim", the
 		# ubuntu appindicator framework will first check for an icon
 		# "zim-panel". This way it finds the mono color icons.
-		self.appindicator = appindicator.Indicator(
-			'zim-desktop-wiki', 'zim', appindicator.CATEGORY_APPLICATION_STATUS)
+		global _GLOBAL_INDICATOR
+
+		if not _GLOBAL_INDICATOR:
+			_GLOBAL_INDICATOR = appindicator.Indicator(
+				'zim-desktop-wiki', 'zim',
+				appindicator.CATEGORY_APPLICATION_STATUS
+			)
+
+		self.appindicator = _GLOBAL_INDICATOR
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
 		self.on_notebook_list_changed()
 
@@ -311,5 +326,5 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		self.appindicator.set_menu(menu)
 
 	def destroy(self):
-		# TODO How to destroy ?
+		self.appindicator.set_status(appindicator.STATUS_PASSIVE)
 		self.emit('destroy')
