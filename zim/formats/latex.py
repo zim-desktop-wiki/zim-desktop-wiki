@@ -254,5 +254,5 @@ class Dumper(TextDumper):
 		table.append('\end{tabular}')
 		return map(lambda line: line+"\n", table)
 
-        def dump_line(self, tag, attrib, strings=None):
-                return '\n\\hrule\n'
+	def dump_line(self, tag, attrib, strings=None):
+		return '\n\\hrule\n'

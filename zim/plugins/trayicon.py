@@ -196,7 +196,7 @@ class TrayIconBase(object):
 
 	def populate_menu_with_notebooks(self, menu, notebooks):
 		'''Populate a menu with a list of notebooks'''
-		# TODO put checkbox behind open notebooks when we run in daemon mode
+		# TODO put checkbox behind open notebooks ?
 		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
 		item.set_sensitive(False)
 		menu.append(item)

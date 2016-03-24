@@ -17,7 +17,7 @@ from zim.notebook import Path, Notebook, init_notebook, \
 #~ from zim.applications import Application
 from zim.templates import list_templates
 
-from zim.main import ExportCommand
+from zim.main import ExportCommand, UsageError
 
 # TODO add check that attachments are copied correctly
 
@@ -38,8 +38,6 @@ from zim.templates.expression import ExpressionParameter, \
 	ExpressionFunctionCall, ExpressionList
 
 from zim.notebook import Path
-
-from zim.command import UsageError
 
 
 def md5(f):
