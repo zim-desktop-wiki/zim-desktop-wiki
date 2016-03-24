@@ -10,13 +10,9 @@ However it is also relatively slow, so having a good mock makes
 good test cases much more usable.
 Therefore we go to great lenght here to have a full set of mock
 classes for all file system related objects.
-
-mock file system:
-- MockFSNode and MockFS - internals for the mock fs objects
-- MockFSObjectBase
-- MockFile
-- MockFolder
 '''
+
+from __future__ import with_statement
 
 import time
 import copy
@@ -44,7 +40,10 @@ class MockFSNode(object):
 	def on_changed(self):
 		# Called after change of data attribute to update
 		# mtime, ctime and size attributes
+		old = self.mtime
 		self.mtime = time.time()
+		if old and "%.2f" % self.mtime == "%.2f" % old:
+			self.mtime += 0.01 # Hack to make tests pass ..
 		if self.ctime is None:
 			self.ctime = self.mtime
 		self.size = len(self.data) if self.data else 0
@@ -90,6 +89,7 @@ class MockFS(MockFSNode):
 			parent = node
 			if not name in parent.data:
 				parent.data[name] = MockFSNode({}) # new folder
+				parent.on_changed()
 			node = parent.data[name]
 			if not node.isdir:
 				raise AssertionError, 'Not a folder: %s' % _SEP.join(names[:i+1])
@@ -97,6 +97,7 @@ class MockFS(MockFSNode):
 		parent, basename = node, names[-1]
 		if basename not in parent.data:
 			parent.data[basename] = MockFSNode(data)
+			parent.on_changed()
 
 		return parent.data[basename]
 
@@ -193,6 +194,7 @@ class MockFSObjectBase(FSObjectBase):
 
 		parentnode = self._fs.stat(self.pathnames[:-1])
 		parentnode.data.pop(self.pathnames[-1])
+		parentnode.on_changed()
 
 
 class MockFolder(MockFSObjectBase, Folder):

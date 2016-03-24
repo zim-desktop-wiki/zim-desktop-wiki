@@ -729,7 +729,7 @@ class TreeIndexer(IndexInternal):
 						(check, row['id'],)
 					)
 				else:
-					raise IndexConsistencyError, 'Missing index for: %s' % indexpath + node.basename
+					raise IndexConsistencyError, 'Missing index for: %s' % indexpath.name + ':' + node.basename
 		else:
 			pass
 

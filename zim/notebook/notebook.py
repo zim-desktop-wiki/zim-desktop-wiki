@@ -31,6 +31,10 @@ DATA_FORMAT_VERSION = (0, 4)
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 
 
+from zim.newfs import LocalFolder
+from .store import MockStore
+
+
 class IndexNotUptodateError(Error):
 	pass # TODO description here?
 
@@ -203,7 +207,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			cache_dir = _cache_dir_for_dir(dir)
 
 		store = FilesStore(dir, endofline)
-		index = Index.new_from_file(cache_dir.file('index.db'), store)
+		mockstore = MockStore(LocalFolder(dir.path), endofline)
+		index = Index.new_from_file(cache_dir.file('index.db'), mockstore)
 
 		return klass(dir, cache_dir, config, store, index)
 

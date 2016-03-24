@@ -15,10 +15,13 @@ import zim.formats
 
 from zim.fs import Dir
 from zim.notebook import Path
-from zim.notebook.stores.memory import MemoryStore
-from zim.notebook.stores.files import FilesStore
+
 
 from zim.notebook.index import *
+from zim.notebook.store import MockStore
+
+from zim.newfs import LocalFolder
+from zim.newfs.mock import MockFolder
 
 
 PAGES_TREE = { # Pages stored initially in the notebook
@@ -245,7 +248,7 @@ class TestIndex(tests.TestCase):
 	def testInit(self):
 		dir = Dir(self.create_tmp_dir())
 		dir.touch()
-		store = MemoryStore()
+		store = MockStore(LocalFolder(dir.path))
 
 		# No file
 		file = dir.file('not_yet_existing.db')
@@ -268,34 +271,35 @@ class TestIndex(tests.TestCase):
 class MemoryIndexerTests(tests.TestCase):
 
 	def setUp(self):
-		self.store = MemoryStore()
+		self.folder = MockFolder('/mock_root')
+		self.store = MockStore(self.folder)
 		self.write_pages(PAGES_TREE)
 		self.index = Index.new_from_memory(
 			self.store
 		)
 
 	def write_pages(self, pages):
+		#~ print "WRITE >>>"
 		parser = zim.formats.get_parser('wiki')
 		for path, attrib in pages.items():
 			#~ print "Write", path
 			node = self.store.get_node(path)
 			if attrib['content']:
-				tree = parser.parse(attrib['content'])
-				node.store_parsetree(tree)
+				node._file.write(attrib['content'])
 			else:
 				## HACK to make child folder to exist ##
-				if isinstance(self.store, MemoryStore):
-					print "### TODO: virtual attachments folder"
-					node = self.store.get_node(path, vivificate=True)
-					node.children_etag = 'EMPTY_FOLDER_ETAG'
-					node.haschildren = True
-				else:
-					dir = node.attachments_dir
-					dir.file('foo.png').touch()
+				node._folder.touch()
+		#~ print "<<<"
 
 	def delete_pages(self, pages):
 		for path, attrib in pages.items():
-			self.store.delete_page(path)
+			node = self.store.get_node(path)
+			if node._file.exists():
+				node._file.remove()
+
+			if node._folder.exists():
+				node._folder.remove_children()
+
 
 	def assertIndexMatchesTree(self, index, wanted):
 		pages = PagesViewInternal()
@@ -420,15 +424,20 @@ class MemoryIndexerTests(tests.TestCase):
 		for path, attrib in UPDATE.items():
 			#~ print "<<", path
 			node = self.store.get_node(path)
-			tree = parser.parse(attrib['content'])
-			node.store_parsetree(tree)
+			node._file.write(attrib['content'])
 			self.index.on_store_page(path)
 		self.assertIndexMatchesPages(self.index, UPDATED_PAGES)
 
 		#~ print "### Delete pages"
 		for path, attrib in UPDATE.items():
 			#~ print "<<", path
-			self.store.delete_page(path)
+			node = self.store.get_node(path)
+			if node._file.exists():
+				node._file.remove()
+
+			if node._folder.exists():
+				node._folder.remove_children()
+
 			self.index.on_delete_page(path)
 		self.assertIndexMatchesPages(self.index, PAGES)
 
@@ -443,8 +452,7 @@ class MemoryIndexerTests(tests.TestCase):
 			'',
 		):
 			node = self.store.get_node(path)
-			tree = parser.parse(content)
-			node.store_parsetree(tree)
+			node._file.write(content)
 			self.index.on_store_page(path)
 			# No assert but increases coverage, check for no error
 
@@ -492,7 +500,8 @@ class IndexerTests(MemoryIndexerTests):
 
 	def setUp(self):
 		dir = Dir(self.create_tmp_dir())
-		self.store = FilesStore(dir)
+		self.folder = LocalFolder(dir.path)
+		self.store = MockStore(self.folder)
 		self.write_pages(PAGES_TREE)
 		self.index = Index.new_from_file(
 			dir.file('.zim/test_index.db'),
@@ -570,13 +579,11 @@ class TestHRefFromWikiLink(tests.TestCase):
 ###
 
 def new_memory_index():
-	store = MemoryStore()
-	parser = zim.formats.get_parser('wiki')
+	store = MockStore(MockFolder('/mock_root'))
 	for path, attr in PAGES_TREE.items():
 		if attr['content'] is not None:
 			node = store.get_node(path)
-			tree = parser.parse(attr['content'])
-			node.store_parsetree(tree)
+			node._file.write(attr['content'])
 
 	index = Index.new_from_memory(store)
 	index.update()
@@ -613,14 +620,18 @@ class TestPlaceHolders(tests.TestCase):
 			assert False, '%s does not link to %s' % (source, target)
 
 	def store_page(self, index, path, content):
-		parser = zim.formats.get_parser('wiki')
-		tree = parser.parse(content)
 		node = index.store.get_node(path)
-		node.store_parsetree(tree)
+		node._file.write(content)
 		index.on_store_page(path)
 
 	def delete_page(self, index, path):
-		index.store.delete_page(path)
+		node = index.store.get_node(path)
+		if node._file.exists():
+			node._file.remove()
+
+		if node._folder.exists():
+			node._folder.remove_children()
+
 		index.on_delete_page(path)
 
 	def runTest(self):
@@ -651,10 +662,8 @@ class TestPlaceHolders(tests.TestCase):
 		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
 
 		# update children on parent, placeholder should survive
-		parser = zim.formats.get_parser('wiki')
-		tree = parser.parse('test 123\n')
 		node = index.store.get_node(Path('Foo:AAA'))
-		node.store_parsetree(tree)
+		node._file.write('test 123\n')
 		index.update()
 		self.assertIsPlaceholder(index, Path('Foo:Child3'))
 		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
@@ -1041,3 +1050,4 @@ class TestDBConnection(tests.TestCase):
 			self.assertEqual(self.select(conn, 'SELECT * FROM test ORDER BY string'),
 				[('bar',), ('foo',)]
 			)
+
