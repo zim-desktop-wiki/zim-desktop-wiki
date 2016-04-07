@@ -11,6 +11,9 @@ Zim's default installation ships with a Version Control Plugin. To enable it, go
 ===== Options =====
 If the option **Autosave version when the notebook is closed** is enabled zim will save (or "commit") a new version every time you close zim or when opening zim if new changes are detected.
 
+When the option **Autosave version on regular intervals** is enabled zim will save (or "commit") a new version after a set time interval. The **Autosave interval in minutes** gives the time interval.
+Saving at regular intervals also includes at the exit and at the start of the application.
+
 ===== Usage =====
 If you want to keep track of your changes or if you want to collaborate on a Zim notebook as a team, version control is the best way to go. Zim integrates very well with existing version control software because all relevant data is stored in plain text files.
 

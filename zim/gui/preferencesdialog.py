@@ -248,7 +248,7 @@ class PluginsTab(gtk.VBox):
 		treeview = selection.get_tree_view()
 		selected = selection.get_selected()
 		path = selected[0].get_path(selected[1])
-		
+
 		key, active, activatable, name, klass = treeview.get_model()[path]
 
 		self._current_plugin = key
@@ -394,6 +394,7 @@ class PluginConfigureDialog(Dialog):
 		for pref in self.plugin.plugin_preferences:
 			if len(pref) == 4:
 				key, type, label, default = pref
+				check = None
 				self.plugin.preferences.setdefault(key, default) # just to be sure
 			else:
 				key, type, label, default, check = pref
