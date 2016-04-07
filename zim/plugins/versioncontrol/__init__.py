@@ -57,7 +57,8 @@ This is a core plugin shipping with zim.
 	}
 
 	plugin_preferences = (
-		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+		#~ ('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+		('autosave', 'bool', _('Autosave version when the notebook is closed'), False), # T: Label for plugin preference
 	)
 
 	@classmethod
