@@ -169,14 +169,18 @@ class GtkspellcheckAdapter(object):
 		self._lang = lang
 		self._textview = textview
 		self._checker = None
+		self._active = False
 		self.enable()
 
 	def on_new_buffer(self):
 		if self._checker:
 			# wanted to use checker.buffer_initialize() here,
 			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
-			self.detach()
-			self.enable()
+			if self._active:
+				self.detach()
+				self.enable()
+			else:
+				self.detach()
 
 	def enable(self):
 		if self._checker:
@@ -184,16 +188,19 @@ class GtkspellcheckAdapter(object):
 		else:
 			self._clean_tag_table()
 			self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
+		self._active = True
 
 	def disable(self):
 		if self._checker:
 			self._checker.disable()
+		self._active = False
 
 	def detach(self):
 		if self._checker:
 			self._checker.disable()
 			self._clean_tag_table()
 			self._checker = None
+		self._active = False
 
 	def _clean_tag_table(self):
 		## cleanup tag table - else next loading will fail
