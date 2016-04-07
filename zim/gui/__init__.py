@@ -1391,6 +1391,11 @@ class GtkInterface(gobject.GObject):
 		if query is not None:
 			dialog.search(query)
 
+	@action(_('Search this section'), 'gtk-find') # T: Menu item for search a sub-set of the notebook
+	def show_search_section(self, page=None):
+		page = self._get_path_context() if page is None else page
+		self.show_search(query='Section: "%s"' % page.name)
+
 	@action(_('Search _Backlinks...')) # T: Menu item
 	def show_search_backlinks(self):
 		'''Menu action to show the L{SearchDialog} with a query for

@@ -230,6 +230,7 @@
 		<menuitem action='delete_page'/>
 		<placeholder name='page_modification_actions'/>
 		<separator/>
+		<menuitem action='show_search_section'/>
 		<placeholder name='tools'/>
 <!--
 		<separator/>
