@@ -17,9 +17,11 @@ It provides low level functions to:
 import sys
 import threading
 import logging
+import hashlib
 
 from multiprocessing.connection import Listener, Client
 
+import zim
 import zim.fs
 
 # TODO - make robust if socket already exists, but not responsive
@@ -44,14 +46,21 @@ def set_in_main_process(in_main_process):
 
 
 
+version = zim.__version__
+_m = hashlib.md5()
+_m.update(zim.ZIM_EXECUTABLE)
+
+version += '-' + _m.hexdigest() ## Make it specific for the install location
+
+
 if sys.platform == 'win32':
 	# Windows named pipe
 	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
-	SERVER_ADDRESS = '\\\\.\\pipe\\%s-primary-process' % userstring
+	SERVER_ADDRESS = '\\\\.\\pipe\\%s-%s-primary' % (userstring, version)
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket
-	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('zim-primary-process-socket').path)
+	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('primary-%s' % version).path)
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
