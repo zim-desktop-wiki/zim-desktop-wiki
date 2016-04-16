@@ -2178,18 +2178,14 @@ def register_window(window):
 class uistate_property(object):
 	'''Class for uistate get/set attributes'''
 
-	# TODO add hook such that it will be initialized on init of owner obj
-
 	def __init__(self, key, *default):
 		self.key = key
 		self.default = default
-		self._initialized = False
 
 	def __get__(self, obj, klass):
 		if obj:
-			if not self._initialized:
+			if not self.key in obj.uistate:
 				obj.uistate.setdefault(self.key, *self.default)
-				self._initialized = True
 			return obj.uistate[self.key]
 
 	def __set__(self, obj, value):
