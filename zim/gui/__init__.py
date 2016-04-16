@@ -255,11 +255,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		gobject.GObject.__init__(self)
 
-		if isinstance(notebook, basestring): # deal with IPC call
-			info = NotebookInfo(notebook)
-			notebook, x = build_notebook(info)
-		elif not isinstance(notebook, Notebook):
-			notebook, x = build_notebook(notebook)
+		assert isinstance(notebook, Notebook)
 
 		logger.debug('Opening notebook: %s', notebook)
 		self.notebook = notebook
@@ -732,48 +728,28 @@ class GtkInterface(gobject.GObject):
 		return self._path_context or self.page
 
 	@action(_('_Open Another Notebook...'), 'gtk-open', '<Primary>O') # T: Menu item
-	def open_notebook(self, notebook=None):
-		'''Open a new notebook. If this is the first notebook the
-		notebook is opened in this application instance. Otherwise we
-		let another instance handle it.
-		@param notebook: notebook location, if C{None} we will prompt
-		the user with the L{NotebookDialog}
-		@emits: open-notebook
+	def show_open_notebook(self):
+		'''Show the L{NotebookDialog} dialog'''
+		from zim.gui.notebookdialog import NotebookDialog
+		NotebookDialog.unique(self, self, callback=self.open_notebook).show()
+
+	def open_notebook(self, location, pagename=None):
+		'''Open another notebook.
+		@param location: notebook location as uri or object with "uri" attribute
+		@param pagename: optional page name
 		'''
-		if notebook is None:
-			# Handle menu item for 'open another notebook'
-			# FIXME - this should be a "show_open_notebook" action or similar
-			from zim.gui.notebookdialog import NotebookDialog
-			NotebookDialog.unique(self, self, callback=self.open_notebook).show() # implicit recurs
+		assert isinstance(location, basestring) or hasattr(location, 'uri')
+		assert pagename is None or isinstance(pagename, basestring)
+
+		uri = location.uri if hasattr(location, 'uri') else location
+
+		if self.notebook and self.notebook.uri == uri:
+			self.present(page=pagename)
 		else:
-			import zim.ipc
-
-			# XXX notebook can be either object or string - fix this to always be an object
-			pagename = None
-			if isinstance(notebook, basestring):
-				if notebook.startswith('zim+'):
-					if '?' in notebook:
-						uri, pagename = notebook.split('?', 1)
-						uri = uri[4:]
-					else:
-						uri = notebook[4:]
-				else:
-					uri = File(notebook).uri
-			elif hasattr(notebook, 'uri'):
-				uri = notebook.uri
+			if pagename:
+				ZIM_APPLICATION.run('--gui', uri, pagename)
 			else:
-				raise AssertionError, 'Can not handle: %s' % notebook
-
-			if self.notebook and self.notebook.uri == uri:
-				self.present(page=pagename)
-			elif zim.ipc.in_child_process():
-				notebook = zim.ipc.ServerProxy().get_notebook(uri)
-				notebook.present(page=pagename)
-			else:
-				if pagename:
-					ZIM_APPLICATION.run('--gui', uri, pagename)
-				else:
-					ZIM_APPLICATION.run('--gui', uri)
+				ZIM_APPLICATION.run('--gui', uri)
 
 	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def open_page(self, path=None):

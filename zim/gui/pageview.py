@@ -27,7 +27,7 @@ import zim.datetimetz as datetime
 
 import zim.formats
 
-from zim.fs import File, Dir, normalize_file_uris
+from zim.fs import File, Dir, normalize_file_uris, FilePath
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
@@ -5333,7 +5333,16 @@ class PageView(gtk.VBox):
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
 			elif type == 'notebook':
-				self.ui.open_notebook(href)
+				if href.startswith('zim+'):
+					uri = href[4:]
+					if '?' in href:
+						uri, pagename = notebook.split('?', 1)
+
+					self.ui.open_notebook(uri, pagename)
+
+				else:
+					self.ui.open_notebook(FilePath(href).uri)
+
 			else:
 				if type == 'mailto' \
 				and not href.startswith('mailto:'):
