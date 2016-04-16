@@ -5672,7 +5672,7 @@ class PageView(gtk.VBox):
 		@returns: C{True} if succesfull
 		'''
 		if interactive:
-			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
+			InsertImageDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page, file).run()
 		else:
 			# Check if file is supported, otherwise unsupported file
 			# results in broken image icon
@@ -5734,7 +5734,7 @@ class PageView(gtk.VBox):
 	@action(_('Text From _File...'), readonly=False) # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
+		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -6223,24 +6223,30 @@ class InsertDateDialog(Dialog):
 class InsertImageDialog(FileDialog):
 	'''Dialog to insert an image in the page'''
 
-	def __init__(self, ui, buffer, path, file=None):
+	def __init__(self, ui, buffer, notebook, path, file=None):
 		FileDialog.__init__(
 			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
+
 		self.buffer = buffer
+		self.notebook = notebook
 		self.path = path
-		self.add_filter_images()
 
 		self.uistate.setdefault('attach_inserted_images', False)
+		self.uistate.setdefault('last_image_folder', None, check=basestring)
+
+		self.add_shortcut(notebook, path)
+		self.add_filter_images()
+
 		checkbox = gtk.CheckButton(_('Attach image first'))
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
-		self.uistate.setdefault('last_image_folder','~')
-		self.filechooser.set_current_folder(self.uistate['last_image_folder'])
 
 		if file:
 			self.set_file(file)
+		else:
+			self.load_last_folder()
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -6251,14 +6257,11 @@ class InsertImageDialog(FileDialog):
 				# T: Error message when trying to insert a not supported file as image
 			return False
 
+		self.save_last_folder()
+
+		# Similar code in zim.gui.AttachFileDialog
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['attach_inserted_images'] = checkbox.get_active()
-		last_folder = self.filechooser.get_current_folder()
-		if last_folder:
-			# e.g. "Recent Used" view in dialog does not have a current folder
-			self.uistate['last_image_folder'] = last_folder
-		# Similar code in zim.gui.AttachFileDialog
-
 		if self.uistate['attach_inserted_images']:
 			dir = self.ui.notebook.get_attachments_dir(self.path)
 			if not file.dir == dir:
@@ -6266,7 +6269,7 @@ class InsertImageDialog(FileDialog):
 				if file is None:
 					return False # Cancelled overwrite dialog
 
-		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
+		src = self.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
 
@@ -6398,10 +6401,12 @@ class EditImageDialog(Dialog):
 class InsertTextFromFileDialog(FileDialog):
 	'''Dialog to insert text from an external file into the page'''
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, notebook, page):
 		FileDialog.__init__(
 			self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
+		self.load_last_folder()
+		self.add_shortcut(notebook, page)
 		self.buffer = buffer
 
 	def do_response_ok(self):
@@ -6410,6 +6415,7 @@ class InsertTextFromFileDialog(FileDialog):
 		parser = get_format('plain').Parser()
 		tree = parser.parse(file.readlines())
 		self.buffer.insert_parsetree_at_cursor(tree)
+		self.save_last_folder()
 		return True
 
 

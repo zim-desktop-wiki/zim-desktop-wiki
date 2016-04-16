@@ -205,8 +205,9 @@ class TestDialogs(tests.TestCase):
 		mainwindow.pageview = tests.MockObject()
 		mainwindow.ui = self.ui
 
-		dialog = zim.gui.AttachFileDialog(mainwindow, path=Path('Test:foo'))
+		dialog = zim.gui.AttachFileDialog(mainwindow, self.ui.notebook, path=Path('Test:foo'))
 		dialog.set_file(file)
+		tests.gtk_process_events()
 		dialog.assert_response_ok()
 
 		self.assertTrue(file.exists()) # No move or delete happened

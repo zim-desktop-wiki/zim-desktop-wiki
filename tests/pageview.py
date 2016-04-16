@@ -1769,9 +1769,10 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert Image dialog
 		ui = MockUI()
+		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
 		file = File('data/zim.png')
-		dialog = InsertImageDialog(ui, buffer, Path(':some_page'), file)
+		dialog = InsertImageDialog(ui, buffer, ui.notebook, Path(':some_page'), file)
 		self.assertTrue(dialog.filechooser.get_preview_widget_active())
 		#~ self.assertEqual(dialog.get_file(), file)
 		#~ dialog.assert_response_ok()
@@ -1808,8 +1809,9 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert text from file dialog
 		ui = MockUI()
+		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
-		dialog = InsertTextFromFileDialog(ui, buffer)
+		dialog = InsertTextFromFileDialog(ui, buffer, ui.notebook, Path(':some_page'))
 		#~ dialog.set_file()
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')

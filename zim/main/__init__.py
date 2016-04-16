@@ -661,7 +661,9 @@ class ZimApplication(object):
 	def _daemonize(self):
 		# Decouple from parent environment
 		# and redirect standard file descriptors
-		os.chdir("/")
+		os.chdir(zim.fs.Dir('~').path)
+			# Using HOME because this folder will not disappear normally
+			# and because it is a sane starting point for file choosers etc.
 
 		try:
 			si = file(os.devnull, 'r')

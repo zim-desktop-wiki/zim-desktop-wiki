@@ -1287,7 +1287,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		if path is None:
 			path = self._get_path_context()
-		AttachFileDialog(self._mainwindow, path).run()
+		AttachFileDialog(self._mainwindow, self.notebook, path).run()
 
 	def do_attach_file(self, path, file, force_overwrite=False):
 		'''Callback for AttachFileDialog and InsertImageDialog
@@ -2864,10 +2864,12 @@ class SaveCopyDialog(FileDialog):
 	def __init__(self, ui, page=None):
 		FileDialog.__init__(self, ui, _('Save Copy'), gtk.FILE_CHOOSER_ACTION_SAVE)
 			# T: Dialog title of file save dialog
-		self.filechooser.set_current_name(self.ui.page.name + '.txt')
 		if page is None:
 			page = self.ui.page
 		self.page = page
+		self.filechooser.set_current_name(self.page.name + '.txt')
+		self.add_shortcut(ui.notebook, page)
+
 		# TODO also include headers
 		# TODO add droplist with native formats to choose + hook filters
 
@@ -2888,6 +2890,8 @@ class ImportPageDialog(FileDialog):
 	def __init__(self, ui):
 		FileDialog.__init__(self, ui, _('Import Page')) # T: Dialog title
 		self.add_filter(_('Text Files'), '*.txt') # T: File filter for '*.txt'
+		self.add_shortcut(ui.notebook, ui.page)
+
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):
@@ -3092,12 +3096,13 @@ class DeletePageDialog(Dialog):
 
 class AttachFileDialog(FileDialog):
 
-	def __init__(self, window, path):
+	def __init__(self, window, notebook, path):
 		assert path, 'Need a page here'
 		FileDialog.__init__(self, window, _('Attach File'), multiple=True) # T: Dialog title
+		self.add_shortcut(notebook, path)
+		self.load_last_folder()
+
 		self.app_window = window
-		self.uistate.setdefault('last_attachment_folder','~')
-		self.filechooser.set_current_folder(self.uistate['last_attachment_folder'])
 		self.path = path
 
 		dir = self.app_window.ui.notebook.get_attachments_dir(self.path)
@@ -3117,13 +3122,11 @@ class AttachFileDialog(FileDialog):
 		if not files:
 			return False
 
+		self.save_last_folder()
+
+		# Similar code in zim.gui.pageview.InsertImageDialog
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['insert_attached_images'] = not checkbox.get_active()
-		last_folder = self.filechooser.get_current_folder()
-		if last_folder:
-			# e.g. "Recent Used" view in dialog does not have a current folder
-			self.uistate['last_attachment_folder'] = last_folder
-		# Similar code in zim.gui.pageview.InsertImageDialog
 
 		last = len(files) - 1
 		for i, file in enumerate(files):
