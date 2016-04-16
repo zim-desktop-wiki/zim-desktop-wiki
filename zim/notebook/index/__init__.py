@@ -238,7 +238,7 @@ class Index(object):
 		indexer.queue_check(path)
 
 		if not (self._thread and self._thread.is_alive()):
-			self._thread = WorkerThread(indexer, indexer.__class__.__name__)
+			self._thread = WorkerThread(indexer, "%s--%i" % (indexer.__class__.__name__, id(self.store)))
 			self._thread.start()
 
 	def stop_update(self):
