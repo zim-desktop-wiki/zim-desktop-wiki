@@ -168,7 +168,7 @@ class TestResolveNotebook(tests.TestCase):
 
 @tests.slowTest
 class TestBuildNotebook(tests.TestCase):
-	# Test including automount !
+	# Test including automount and uniqueness !
 
 	def setUp(self):
 		self.tmpdir = Dir(self.get_tmp_name())
@@ -205,20 +205,27 @@ mount=%s %s
 		def mockconstructor(dir):
 			return dir
 
+		nbid = None
 		for uri, path in (
 			(self.notebookdir.uri, None),
+			(self.notebookdir.uri, None), # repeat to check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
 			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
 		):
 			#~ print ">>", uri
 			info = NotebookInfo(uri)
-			nb, p = build_notebook(info, notebookclass=mockconstructor)
-			self.assertEqual(nb, self.notebookdir)
+			nb, p = build_notebook(info)
+			self.assertEqual(nb.dir, self.notebookdir)
 			self.assertEqual(p, path)
+			if nbid is None:
+				nbid = id(nb)
+			else:
+				self.assertEqual(id(nb), nbid, 'Check uniqueness')
 
 		info = NotebookInfo(self.notebookdir.file('nonexistingfile.txt'))
 		self.assertRaises(FileNotFoundError, build_notebook, info)
+
 
 
 class TestNotebook(tests.TestCase):

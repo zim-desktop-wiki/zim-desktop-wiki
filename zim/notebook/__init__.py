@@ -52,11 +52,10 @@ from .index import IndexNotFoundError, \
 
 
 
-def build_notebook(location, notebookclass=None):
+def build_notebook(location):
 	'''Create a L{Notebook} object for a file location
 	Tries to automount file locations first if needed
 	@param location: a L{FilePath} or a L{NotebookInfo}
-	@param notebookclass: class to instantiate, used for testing
 	@returns: a L{Notebook} object and a L{Path} object or C{None}
 	@raises FileNotFoundError: if file location does not exist and could not be mounted
 	'''
@@ -105,11 +104,7 @@ def build_notebook(location, notebookclass=None):
 		page = Path(path)
 
 	# And finally create the notebook
-	if notebookclass is None:
-		notebook = Notebook.new_from_dir(dir)
-	else:
-		notebook = notebookclass(dir)
-
+	notebook = Notebook.new_from_dir(dir)
 	return notebook, page
 
 

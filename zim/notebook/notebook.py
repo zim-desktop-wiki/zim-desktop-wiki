@@ -108,6 +108,10 @@ def _cache_dir_for_dir(dir):
 	return XDG_CACHE_HOME.subdir(('zim', path))
 
 
+
+_NOTEBOOK_CACHE = weakref.WeakValueDictionary()
+
+
 class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 
@@ -187,7 +191,20 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 	@classmethod
 	def new_from_dir(klass, dir):
+		'''Constructore to create a notebook based on a specific
+		file system location.
+		Since the file system is an external resource, this method
+		will return unique objects per location and keep (weak)
+		references for re-use.
+
+		@param dir: a L{Dir} object
+		@returns: a L{Notebook} object
+		'''
 		assert isinstance(dir, Dir)
+
+		nb = _NOTEBOOK_CACHE.get(dir.uri)
+		if nb:
+			return nb
 
 		from .stores.files import FilesStore
 		from .index import Index
@@ -205,7 +222,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		store = FilesStore(dir, endofline)
 		index = Index.new_from_file(cache_dir.file('index.db'), store)
 
-		return klass(dir, cache_dir, config, store, index)
+		nb = klass(dir, cache_dir, config, store, index)
+		_NOTEBOOK_CACHE[dir.uri] = nb
+		return nb
 
 	def __init__(self, dir, cache_dir, config, store, index):
 		self.dir = dir
