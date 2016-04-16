@@ -195,7 +195,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget.iconview.set_folder(dir)
 		self._refresh_statusbar()
 
-	def on_close_page(self, ui, page, final):
+	def on_close_page(self, ui, page):
 		self.widget.iconview.teardown_folder()
 
 	def _refresh_statusbar(self):

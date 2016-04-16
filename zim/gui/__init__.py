@@ -221,12 +221,9 @@ class GtkInterface(gobject.GObject):
 	a page, the Path is given as the 2nd argument so the source of the
 	path can be checked - in particular when a path is opened through a
 	history function this will be a L{HistoryPath}
-	@signal: C{close-page (L{Page}, final)}: Emitted before closing a
+	@signal: C{close-page (L{Page})}: Emitted before closing a
 	page, typically just before a new page is opened and before closing
-	the application. If 'C{final}' is C{True} we expect this to be the
-	final page closure before quiting the application. This it is only
-	a hint, so do not destroy any ui components when 'C{final}' is set,
-	but it can be used to decide to do some actions async or not.
+	the application.
 	@signal: C{read-only-changed ()}: Emitted when the ui changed from
 	read-write to read-only or back
 	@signal: C{quit ()}: Emitted when the application is about to quit
@@ -239,7 +236,7 @@ class GtkInterface(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object, bool)),
+		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'start-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -525,32 +522,17 @@ class GtkInterface(gobject.GObject):
 		calls L{quit()} otherwise.
 		'''
 		if self.hideonclose:
-			self.hide()
+			self._mainwindow.hide()
 		else:
-			self._close()
+			self._mainwindow.destroy()
 
 	@action(_('_Quit'), 'gtk-quit', '<Primary>Q') # T: Menu item
 	def quit(self):
 		'''Menu action for quit.
 		@emits: quit
 		'''
-		self._close()
 		if gtk.main_level() > 0:
 			gtk.main_quit()
-
-	def _close(self):
-		if not self.close_page(self.page, final=True):
-			# Do not quit if page not saved
-			return False
-
-		self._mainwindow.hide() # look more responsive
-		self.notebook.index.stop_update()
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
-
-		self._save_page_handler.stop_autosave()
-		self._mainwindow.destroy()
-		self._mainwindow = None
 
 	def populate_popup(self, name, menu, path_context=None):
 		'''Populate a popup menu from a popup defined in the uimanager
@@ -863,14 +845,11 @@ class GtkInterface(gobject.GObject):
 			# FIXME: Need index path here, page.haschildren is also True
 			#        when the page just has a attachment folder
 
-	def close_page(self, page=None, final=False):
+	def close_page(self, page=None):
 		'''Close the page and try to save any changes in the page.
 
 		@param page: the page to close, defaults to current page in
 		main window
-		@param final: hint if we believe this to be the last page
-		before quitting the page
-
 		@returns: C{True} if succesful, C{False} if page still has
 		un-saved changes.
 
@@ -878,13 +857,13 @@ class GtkInterface(gobject.GObject):
 		'''
 		if page is None:
 			page = self.page
-		self.emit('close-page', page, final)
+		self.emit('close-page', page)
 		page._parsetree = None
 			# XXX HACK to avoid caching parsetree - can be removed
 			# once the pageview takes care of saving the page
 		return not page.modified
 
-	def do_close_page(self, page, final):
+	def do_close_page(self, page):
 		self.assert_save_page_if_modified()
 
 		current = self.history.get_current()
@@ -899,15 +878,13 @@ class GtkInterface(gobject.GObject):
 
 		if self.uistate.modified and hasattr(self.uistate, 'write'):
 			# during tests we may have a config dict without config file
-			if final:
-				self.uistate.write()
-			else:
-				# Delayed signal avoid queueing many of these in a
-				# short time when going back and forward in the history
-				if not hasattr(self.uistate, '_delayed_async_write'):
-					self.uistate._delayed_async_write = \
-						DelayedCallback(2000, save_uistate_cb) # 2 sec
-				self.uistate._delayed_async_write()
+
+			# Delayed signal avoid queueing many of these in a
+			# short time when going back and forward in the history
+			if not hasattr(self.uistate, '_delayed_async_write'):
+				self.uistate._delayed_async_write = \
+					DelayedCallback(2000, save_uistate_cb) # 2 sec
+			self.uistate._delayed_async_write()
 
 	@action(
 		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
@@ -1020,8 +997,8 @@ class GtkInterface(gobject.GObject):
 		# The 'open_page' and 'attachments' arguments are a bit of a
 		# hack for remote calls. They are needed because the remote
 		# function doesn't know the exact page name we creates...
-		# TODO: with new zim.ipc we can now return the page name and
-		# get rid of this hack
+		# With new multi-window process this is not used anymore by
+		# - so get rid of the hack and just return the page
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
@@ -1981,6 +1958,25 @@ class MainWindow(Window):
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
 
+	def destroy(self):
+		if not self.ui.close_page(self.ui.page):
+			# Do not quit if page not saved
+			return
+
+		self.hide() # look more responsive
+		self.ui.notebook.index.stop_update()
+		while gtk.events_pending():
+			gtk.main_iteration(block=False)
+
+		if self.ui.uistate.modified and hasattr(self.ui.uistate, 'write'):
+			# during tests we may have a config dict without config file
+			self.ui.uistate.write()
+
+		self.ui._save_page_handler.stop_autosave()
+		self.ui._mainwindow = None
+
+		Window.destroy(self) # gtk destroy & will also emit destroy signal
+
 	def do_update_statusbar(self, *a):
 		page = self.pageview.get_page()
 		if not page:
@@ -2478,7 +2474,7 @@ class MainWindow(Window):
 
 		#TODO: set toggle_readonly insensitive when page is readonly
 
-	def on_close_page(self, ui, page, final):
+	def on_close_page(self, ui, page):
 		self.save_uistate()
 
 	def on_textview_toggle_overwrite(self, view):

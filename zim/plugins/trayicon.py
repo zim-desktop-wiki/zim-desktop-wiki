@@ -11,7 +11,6 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.config import data_file, ConfigManager
 from zim.main import GtkCommand
 from zim.signals import SignalEmitter
-#~ from zim.ipc import start_server_if_not_running, ServerProxy, RemoteObject
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 
 

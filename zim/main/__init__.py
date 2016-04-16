@@ -579,13 +579,19 @@ class ZimApplication(object):
 		if w is not None:
 			self.add_window(w)
 
-		if self._windows:
+		while self._windows:
 			gtk.main()
 
 			for toplevel in list(self._windows):
-				toplevel.destroy()
-				while gtk.events_pending():
-					gtk.main_iteration(block=False)
+				try:
+					toplevel.destroy()
+					while gtk.events_pending():
+						gtk.main_iteration(block=False)
+				except:
+					logger.exception('Exception while destroying window')
+					self.remove_window(toplevel) # force removal
+
+			# start main again if toplevels remaining ..
 
 		# exit immediatly if no toplevel created
 
@@ -607,7 +613,6 @@ class ZimApplication(object):
 	def _log_start(self):
 		self._log_started = True
 
-		logger = logging.getLogger('zim')
 		logger.info('This is zim %s', __version__)
 		level = logger.getEffectiveLevel()
 		if level == logging.DEBUG:
@@ -630,10 +635,11 @@ class ZimApplication(object):
 
 		signal.signal(signal.SIGTERM, handle_sigterm)
 
-	def _spawn_standalone(self, *args):
+	def _spawn_standalone(self, args):
 		from zim import ZIM_EXECUTABLE
 		from zim.applications import Application
 
+		args = list(args)
 		if not '--standalone' in args:
 			args.append('--standalone')
 
