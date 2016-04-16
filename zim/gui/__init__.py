@@ -1705,11 +1705,12 @@ class GtkInterface(gobject.GObject):
 		tool = manager.get_tool(action.get_name())
 		logger.info('Execute custom tool %s', tool.name)
 		args = (self.notebook, self.page, self._mainwindow.pageview)
+		cwd = self.page.source.dir
 		try:
 			if tool.isreadonly:
-				tool.spawn(args)
+				tool.spawn(args, cwd=cwd)
 			elif tool.replaceselection:
-				output = tool.pipe(args)
+				output = tool.pipe(args, cwd=cwd)
 				logger.debug('Replace output with %s', output)
 				pageview = self._mainwindow.pageview # XXX
 				buffer = pageview.view.get_buffer() # XXX
@@ -1721,7 +1722,7 @@ class GtkInterface(gobject.GObject):
 				else:
 					pass # error here ??
 			else:
-				tool.run(args)
+				tool.run(args, cwd=cwd)
 				self.reload_page()
 				self.notebook.index.start_update()
 				# TODO instead of using run, use spawn and show dialog
