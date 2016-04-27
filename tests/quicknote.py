@@ -108,7 +108,8 @@ attachment {{./zim16.png}}
 		attachments = ui.notebook.get_attachments_dir(path)
 
 		self.assertEqual(page.get_parsetree().tostring(), wanted)
-		self.assertIn('zim16.png', attachments.list())
+		self.assertIn('zim16.png', Dir(attachments.path).list())
+		#~ self.assertIn('zim16.png', attachments.list_names())
 
 
 	#~ @tests.slowTest

@@ -309,7 +309,7 @@ class TestCustomTools(tests.TestCase):
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
 			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
-			('foo %s', ('foo', '')), # no file source
+			('foo %s', ('foo', page.source.path)),
 			('foo %n', ('foo', dir.path)),
 			('foo %D', ('foo', '')), # no document root
 			('foo %t', ('foo', 'FooBar')),

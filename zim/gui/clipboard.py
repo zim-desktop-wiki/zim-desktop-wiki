@@ -13,6 +13,7 @@ import gtk
 import logging
 
 from zim.fs import File, Dir, FS
+from zim.newfs import LocalFolder
 from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
@@ -152,6 +153,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 			return None
 
 		dir = notebook.get_attachments_dir(path)
+		assert isinstance(dir, LocalFolder)
 		if not dir.exists():
 			logger.debug("Creating attachment dir: %s", dir)
 			dir.touch()

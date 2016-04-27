@@ -49,6 +49,9 @@ class LocalFSObjectBase(FSObjectBase):
 		except OSError:
 			raise FileNotFoundError(self)
 
+	def _set_mtime(self, mtime):
+		os.utime(self._encodedpath, (mtime, mtime))
+
 	def parent(self):
 		dirname = self.dirname
 		if dirname is None:
@@ -83,9 +86,16 @@ class LocalFSObjectBase(FSObjectBase):
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundaries, while rename can not
 		if isinstance(self, File):
-			assert isinstance(other, FilePath) and not isinstance(other, Folder)
+			if isinstance(other, Folder):
+				other = other.file(self.basename)
+
+			assert isinstance(other, File)
 		else:
-			assert isinstance(other, FilePath) and not isinstance(other, File)
+			assert isinstance(other, Folder)
+
+		if not isinstance(other, LocalFSObjectBase):
+			raise NotImplementedError, 'TODO: support cross object type move'
+
 		assert not other.path == self.path # case sensitive
 		logger.info('Rename %s to %s', self.path, other.path)
 
@@ -200,17 +210,22 @@ class LocalFolder(LocalFSObjectBase, Folder):
 			raise FileNotFoundError(p)
 
 	def copyto(self, other):
-		assert isinstance(other, FilePath) and not isinstance(other, File)
+		assert isinstance(other, Folder)
 		assert not other.path == self.path
-		logger.info('Copy dir %s to %s', self.path, other.path)
-		other = self.__class__(other, watcher=self.watcher)
-		if os.path.exists(other._encodedpath):
-			raise FileExistsError(other)
 
-		shutil.copytree(self._encodedpath, other._encodedpath, symlinks=True)
+		logger.info('Copy dir %s to %s', self.path, other.path)
+
+		if isinstance(other, LocalFolder):
+			if os.path.exists(other._encodedpath):
+				raise FileExistsError(other)
+
+			shutil.copytree(self._encodedpath, other._encodedpath, symlinks=True)
+		else:
+			self._copyto(other)
 
 		if self.watcher:
 			self.watcher.emit('created', other)
+
 		return other
 
 	def remove(self):
@@ -368,6 +383,11 @@ class LocalFile(LocalFSObjectBase, File):
 			with AtomicWriteContext(self, mode=mode) as fh:
 				fh.writelines(lines)
 
+	def write_binary(self, data):
+		with self._write_decoration():
+			with AtomicWriteContext(self, mode='wb') as fh:
+				fh.write(data)
+
 	def touch(self):
 		# overloaded because atomic write can cause mtime < ctime
 		if not self.exists():
@@ -376,15 +396,22 @@ class LocalFile(LocalFSObjectBase, File):
 					fh.write('')
 
 	def copyto(self, other):
-		assert isinstance(other, FilePath) and not isinstance(other, Folder)
-		assert other.path != self.path
-		logger.info('Copy %s to %s', self.path, other.path)
-		other = self.__class__(other, watcher=self.watcher)
-		if os.path.exists(other._encodedpath):
-			raise FileExistsError(other)
+		if isinstance(other, Folder):
+			other = other.file(self.basename)
 
-		other.parent().touch()
-		shutil.copy2(self._encodedpath, other._encodedpath)
+		assert isinstance(other, File)
+		assert other.path != self.path
+
+		logger.info('Copy %s to %s', self.path, other.path)
+
+		if isinstance(other, LocalFile):
+			if os.path.exists(other._encodedpath):
+				raise FileExistsError(other)
+
+			other.parent().touch()
+			shutil.copy2(self._encodedpath, other._encodedpath)
+		else:
+			self._copyto(other)
 
 		if self.watcher:
 			self.watcher.emit('created', other)

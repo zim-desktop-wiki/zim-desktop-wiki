@@ -94,6 +94,8 @@ from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
 
+from zim.newfs import FileNotFoundError
+
 
 class ExportTemplateContext(dict):
 	# No need to inherit from TemplateContextDict here, the template
@@ -467,7 +469,7 @@ class PageProxy(ParseTreeProxy):
 		self.section = self._page.namespace
 		self.namespace = self._page.namespace # backward compat
 		self.basename = self._page.basename
-		self.properties = self._page.properties
+		self.properties = dict(self._page.properties)
 
 	@property
 	def title(self):
@@ -496,11 +498,14 @@ class PageProxy(ParseTreeProxy):
 	@property
 	def attachments(self):
 		source_dir = self._notebook.get_attachments_dir(self._page)
-		for basename in source_dir.list():
-			file = source_dir.file(basename)
-			if file.exists(): # is file
-				dest_file = self._linker.resolve_dest_file('./'+basename)
-				yield FileProxy(file, dest_file=dest_file, relpath='./'+basename)
+		try:
+			for file in source_dir.list_files():
+				if file.exists(): # is file
+					href = './'+file.basename
+					dest_file = self._linker.resolve_dest_file(href)
+					yield FileProxy(file, dest_file=dest_file, relpath=href)
+		except FileNotFoundError:
+			pass
 
 
 class HeadingProxy(ParseTreeProxy):

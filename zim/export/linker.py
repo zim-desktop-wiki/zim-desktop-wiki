@@ -17,7 +17,7 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.fs import File, PathLookupError
+from zim.fs import File, Dir, PathLookupError
 from zim.config import data_file
 from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
@@ -190,9 +190,12 @@ class ExportLinker(BaseLinker):
 			else:
 				dir = self.layout.relative_root
 
-			file = dir.resolve_file(filename)
-				# Allow ../ here - limit resulting relative link
-				# in self.file_object()
+			if isinstance(dir, Dir):
+				file = dir.resolve_file(filename)
+			else: # newfs Folder
+				file = File(dir.get_abspath(filename))
+			# Allow ../ here - limit resulting relative link
+			# in self.file_object()
 
 		return file
 

@@ -15,13 +15,25 @@ classes for all file system related objects.
 from __future__ import with_statement
 
 import time
-import copy
 
 from .base import *
-from .base import _rootpath, _EOL, _SEP
+from .base import _EOL, _SEP
 
 
 __all__ = ('MockFolder', 'MockFile')
+
+
+def clone_mock_object(source, target):
+	'''Similar to C{copyto}, but used to copy to a mock object
+	that belongs to another mock filesystem hierarchy.
+	@param source: a L{MockFile} or L{MockFolder}
+	@param target: another L{MockFile} or L{MockFolder}
+	'''
+	assert source.__class__ is target.__class__
+	mynode = source._node()
+	newnode = target._fs.touch(target.pathnames, mynode.deepcopy_data())
+	newnode.ctime = mynode.ctime
+	newnode.mtime = mynode.mtime
 
 
 class MockFSNode(object):
@@ -36,6 +48,17 @@ class MockFSNode(object):
 		self.isdir = isinstance(data, dict)
 		self.data = data
 		self.on_changed()
+
+	def deepcopy_data(self):
+		if self.isdir:
+			new = {}
+			for name, node in self.data.items():
+				new[name] = MockFSNode(node.deepcopy_data()) # recurs
+				new[name].ctime = node.ctime
+				new[name].mtime = node.mtime
+			return new
+		else:
+			return self.data
 
 	def on_changed(self):
 		# Called after change of data attribute to update
@@ -58,12 +81,12 @@ class MockFS(MockFSNode):
 	def tree(self):
 		def walk(prefix, node):
 			for name in node.data:
-				yield prefix + named
+				yield prefix + name
 				if node.data[name].isdir:
-					for line in walk(prefix + name + '/', node):
+					for line in walk(prefix + name + '/', node.data[name]):
 						yield line
 
-		return walk('/', self)
+		return walk('', self)
 
 	def stat(self, names):
 		# Find node below or self if 'names' is empty
@@ -115,9 +138,13 @@ class MockFSObjectBase(FSObjectBase):
 		FSObjectBase.__init__(self, path, watcher=watcher)
 		if not _fs:
 			_fs = MockFS()
-			_fs.touch([_rootpath(self.path)], {}) # ensure root exists!
 		self._fs = _fs
 		assert isinstance(self._fs, MockFS)
+
+	def _set_mtime(self, mtime):
+		assert isinstance(mtime, (int, float))
+		node = self._node()
+		node.mtime = mtime
 
 	def _node(self):
 		raise NotImplemented
@@ -140,6 +167,11 @@ class MockFSObjectBase(FSObjectBase):
 	def iswritable(self):
 		return True
 
+	def isequal(self, other):
+		return isinstance(other, self.__class__) \
+			and self._fs is other._fs \
+			and self.path == other.path
+
 	def ctime(self):
 		return self._node().ctime
 
@@ -147,7 +179,13 @@ class MockFSObjectBase(FSObjectBase):
 		return self._node().mtime
 
 	def moveto(self, other):
-		other = self._copyto(other)
+		if isinstance(self, File) and isinstance(other, Folder):
+			other = other.file(self.basename)
+
+		if not isinstance(other, MockFSObjectBase):
+			raise NotImplementedError, 'TODO: support cross object type move'
+
+		self._mock_copyto(other)
 		self._remove(removechildren=True)
 		if self.watcher:
 			self.watcher.emit('moved', self, other)
@@ -156,26 +194,35 @@ class MockFSObjectBase(FSObjectBase):
 		return other
 
 	def copyto(self, other):
-		other = self._copyto(other)
+		if isinstance(self, File) and isinstance(other, Folder):
+			other = other.file(self.basename)
+
+		if isinstance(other, MockFSObjectBase):
+			self._mock_copyto(other)
+		else:
+			assert isinstance(other, (File, Folder))
+			self._copyto(other)
+
 		if self.watcher:
 			self.watcher.emit('created', other)
 		return other
 
-	def _copyto(self, other):
+	def _mock_copyto(self, other):
+		assert other._fs is self._fs
 		assert not other.path == self.path
+
 		if isinstance(self, File):
-			assert isinstance(other, FilePath) and not isinstance(other, Folder)
+			assert isinstance(other, File)
 		else:
-			assert isinstance(other, FilePath) and not isinstance(other, File)
+			assert isinstance(other, Folder)
 
 		try:
 			node = self._fs.stat(other.pathnames)
 		except FileNotFoundError:
 			mynode = self._node()
-			newnode = self._fs.touch(other.pathnames, copy.deepcopy(mynode.data))
+			newnode = self._fs.touch(other.pathnames, mynode.deepcopy_data())
 			newnode.ctime = mynode.ctime
 			newnode.mtime = mynode.mtime
-			return self.__class__(other, watcher=self.watcher, _fs=self._fs)
 		else:
 			raise FileExistsError(other)
 
@@ -304,6 +351,8 @@ class MockFile(MockFSObjectBase, File):
 			else:
 				node.data = text
 				node.on_changed()
+
+	write_binary = write
 
 	def writelines(self, lines):
 		self.write(''.join(lines))

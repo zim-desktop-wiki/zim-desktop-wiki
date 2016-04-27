@@ -492,7 +492,7 @@ class TestFS(object):
 		self.assertEqual(newfile.mtime(), mtime)
 		self.assertFalse(file.exists())
 
-		re = newfile.moveto(FilePath(file.path))
+		re = newfile.moveto(file)
 		self.assertIsInstance(re, File)
 		self.assertEqual(re.path, file.path)
 		self.assertEqual(file.read(), 'test 123\n')
@@ -500,11 +500,17 @@ class TestFS(object):
 		self.assertEqual(file.mtime(), mtime)
 		self.assertFalse(newfile.exists())
 
-		root.file('exists.txt').touch()
-		root.folder('exists').touch()
-		for name in ('exists', 'exists.txt'):
-			newpath = root.get_childpath(name)
-			self.assertRaises(FileExistsError, file.moveto, newpath)
+		efile = root.file('exists.txt')
+		efile.touch()
+		self.assertRaises(FileExistsError, file.moveto, efile)
+
+		efolder = root.folder('exists')
+		efolder.touch()
+		re = file.moveto(efolder)
+		self.assertIsInstance(re, File)
+		self.assertTrue(re.exists())
+		self.assertEqual(re.path, efolder.file(file.basename).path)
+
 
 	def testMoveFolder(self):
 		root = self.get_root_folder('testMoveFolder')
@@ -526,7 +532,7 @@ class TestFS(object):
 		self.assertEqual(newfolder.mtime(), mtime)
 		self.assertFalse(folder.exists())
 
-		re = newfolder.moveto(FilePath(folder.path))
+		re = newfolder.moveto(folder)
 		self.assertIsInstance(re, Folder)
 		self.assertEqual(re.path, folder.path)
 		self.assertEqual(folder.list_names(), ['somefile.txt'])
@@ -534,11 +540,13 @@ class TestFS(object):
 		self.assertEqual(folder.mtime(), mtime)
 		self.assertFalse(newfolder.exists())
 
-		root.file('exists.txt').touch()
-		root.folder('exists').touch()
-		for name in ('exists', 'exists.txt'):
-			newpath = root.get_childpath(name)
-			self.assertRaises(FileExistsError, folder.moveto, newpath)
+		efolder = root.folder('exists')
+		efolder.touch()
+		self.assertRaises(FileExistsError, folder.moveto, efolder)
+
+		file = root.file('file.txt')
+		self.assertRaises(AssertionError, folder.moveto, file)
+
 
 	def testMoveCaseSensitive(self):
 		root = self.get_root_folder('testMoveCaseSensitive')
@@ -567,7 +575,7 @@ class TestFS(object):
 		self.assertTrue(file.exists())
 		self.assertFalse(newfile.exists())
 
-		re = file.copyto(FilePath(newfile.path))
+		re = file.copyto(newfile)
 		self.assertIsInstance(re, File)
 		self.assertEqual(re.path, newfile.path)
 		self.assertEqual(newfile.read(), 'test 123\n')
@@ -575,11 +583,16 @@ class TestFS(object):
 		#~ self.assertEqual(newfile.mtime(), file.mtime()) # FIXME
 		#~ self.assertEqual(newfile.ctime(), file.ctime()) # FIXME
 
-		root.file('exists.txt').touch()
-		root.folder('exists').touch()
-		for name in ('exists', 'exists.txt'):
-			newpath = root.get_childpath(name)
-			self.assertRaises(FileExistsError, file.copyto, newpath)
+		efile = root.file('exists.txt')
+		efile.touch()
+		self.assertRaises(FileExistsError, file.copyto, efile)
+
+		efolder = root.folder('exists')
+		efolder.touch()
+		re = file.copyto(efolder)
+		self.assertIsInstance(re, File)
+		self.assertTrue(re.exists())
+		self.assertEqual(re.path, efolder.file(file.basename).path)
 
 	def testCopyFolder(self):
 		root = self.get_root_folder('testCopyFolder')
@@ -591,7 +604,7 @@ class TestFS(object):
 		self.assertTrue(folder.exists())
 		self.assertFalse(newfolder.exists())
 
-		re = folder.copyto(FilePath(newfolder.path))
+		re = folder.copyto(newfolder)
 		self.assertIsInstance(re, Folder)
 		self.assertEqual(re.path, newfolder.path)
 		self.assertEqual(newfolder.list_names(), ['somefile.txt'])
@@ -599,11 +612,12 @@ class TestFS(object):
 		#~ self.assertEqual(newfolder.mtime(), folder.mtime()) # FIXME
 		#~ self.assertEqual(newfolder.ctime(), folder.ctime()) # FIXME
 
-		root.file('exists.txt').touch()
-		root.folder('exists').touch()
-		for name in ('exists', 'exists.txt'):
-			newpath = root.get_childpath(name)
-			self.assertRaises(FileExistsError, folder.copyto, newpath)
+		efolder = root.folder('exists')
+		efolder.touch()
+		self.assertRaises(FileExistsError, folder.copyto, efolder)
+
+		file = root.file('file.txt')
+		self.assertRaises(AssertionError, folder.copyto, file)
 
 	def testFileTreeWatcher(self):
 		root = self.get_root_folder('testFileTreeWatcher')
@@ -686,11 +700,52 @@ class TestFS(object):
 
 
 
-class TestMockFs(tests.TestCase, TestFS):
+class TestMockFS(tests.TestCase, TestFS):
 
 	def get_root_folder(self, name):
 		return MockFolder(P('/mock_folder/') + name)
 
+	@tests.slowTest
+	def testCrossFSCopy(self):
+		rootpath = self.create_tmp_dir('folder_test')
+
+		# File
+		lfile = LocalFile(rootpath + _SEP + 'file.txt')
+		mfile = MockFile('/mock/file.txt')
+
+		mfile.write('foo 123')
+		mfile.copyto(lfile)
+		self.assertEqual(lfile.read(), 'foo 123')
+		#~ self.assertEqual(lfile.mtime(), mfile.mtime())
+
+		self.assertRaises(FileExistsError, mfile.copyto, lfile)
+		self.assertRaises(FileExistsError, lfile.copyto, mfile)
+
+		mfile.remove()
+		lfile.write('bar 123')
+		lfile.copyto(mfile)
+		self.assertEqual(mfile.read(), 'bar 123')
+		self.assertEqual(mfile.mtime(), lfile.mtime())
+
+		# Folder
+		lfolder = LocalFolder(rootpath + _SEP + 'folder')
+		mfolder = MockFolder('/mock/folder')
+
+		for path in ('file1.txt', 'file2.txt', 'subfolder/file3.txt'):
+			mfolder.file(path).write('foo 123')
+		mfolder.copyto(lfolder)
+		self.assertTrue(lfolder.file('subfolder/file3.txt').exists())
+
+		self.assertRaises(FileExistsError, mfolder.copyto, lfolder)
+		self.assertRaises(FileExistsError, lfolder.copyto, mfolder)
+
+		mfolder.remove_children()
+		lfolder.copyto(mfolder)
+		self.assertTrue(mfolder.file('subfolder/file3.txt').exists())
+
+	#~ @tests.slowTest
+	#~ def testCrossFSMove(self):
+		#~ pass
 
 
 @tests.slowTest

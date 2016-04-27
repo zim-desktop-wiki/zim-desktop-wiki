@@ -130,6 +130,8 @@ class FileBrowserIconView(gtk.IconView):
 		self.refresh(icon_size_changed=True)
 
 	def set_folder(self, folder):
+		folder = Dir(folder.path) # XXXX adapting mock- or localfolder
+
 		self.teardown_folder() # clears _thumbnailer and _monitor
 		self.folder = folder
 

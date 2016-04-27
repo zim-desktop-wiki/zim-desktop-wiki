@@ -1105,7 +1105,7 @@ class GtkInterface(gobject.GObject):
 			# FIXME could use list objects, or list_files()
 			file = dir.file(name)
 			if not file.isdir():
-				file.copyto(attachments)
+				file.copyto(Dir(attachments.path))
 
 	def append_text_to_page(self, name, text):
 		'''Append text to an (existing) page. This method is intended
@@ -3099,8 +3099,12 @@ class DeletePageDialog(Dialog):
 
 		# TODO use expander here
 		dir = self.ui.notebook.get_attachments_dir(self.path)
-		text = dir.get_file_tree_as_text(raw=True)
-		n = len([l for l in text.splitlines() if not l.endswith('/')])
+		if dir.exists():
+			text = self._get_file_tree_as_text(dir)
+			n = len([l for l in text.splitlines() if not l.endswith('/')])
+		else:
+			text = ''
+			n = 0
 
 		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
 			# T: label in the DeletePage dialog to warn user of attachments being deleted
@@ -3113,6 +3117,21 @@ class DeletePageDialog(Dialog):
 		window, textview = ScrolledTextView(text, monospace=True)
 		window.set_size_request(250, 200)
 		self.vbox.add(window)
+
+	def _get_file_tree_as_text(self, dir):
+		'''Returns an overview of files and folders below this dir
+		as text. Used in tests.
+		@param dir: a L{Folder} object
+		@returns: file listing as string
+		'''
+		from zim.newfs import Folder
+		text = ''
+		for child in dir.walk():
+			path = child.relpath(self)
+			if isinstance(child, (Folder, Dir)):
+				path += '/'
+			text += path + '\n'
+		return text
 
 	def do_response_ok(self):
 		update_links = self.links_checkbox.get_active()

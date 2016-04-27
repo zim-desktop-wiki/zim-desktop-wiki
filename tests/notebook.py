@@ -9,15 +9,20 @@ from __future__ import with_statement
 import tests
 
 import os
+import time
 
 from zim.fs import File, Dir
 from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
 from zim.formats import ParseTree
 
 from zim.notebook import *
-from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError
+from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError, PageExistsError
 from zim.notebook.index import Index
-from zim.notebook.stores.memory import MemoryStore
+from zim.notebook.store import MockStore
+from zim.notebook.layout import FilesLayout
+
+import zim.newfs
+import zim.newfs.mock
 
 
 class TestNotebookInfo(tests.TestCase):
@@ -701,14 +706,12 @@ class TestPath(tests.TestCase):
 
 	# TODO test operators on paths > < + - >= <= == !=
 
+
 class TestPage(TestPath):
 	'''Test page object'''
 
-	def setUp(self):
-		self.notebook = tests.new_notebook()
-
 	def generator(self, name):
-		return self.notebook.get_page(Path(name))
+		return Page(Path(name))
 
 	def testMain(self):
 		'''Test Page object'''
@@ -722,7 +725,6 @@ class TestPage(TestPath):
 </zim-tree>
 '''		)
 		page = Page(Path('Foo'))
-		page.readonly = False
 		page.set_parsetree(tree)
 
 		links = list(page.get_links())
@@ -748,7 +750,6 @@ class TestPage(TestPath):
 
 	def testShouldAutochangeHeading(self):
 		page = Page(Path("Foo"))
-		page.readonly = False
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
 		tree.set_heading("Foo")
 		page.set_parsetree(tree)
@@ -756,6 +757,51 @@ class TestPage(TestPath):
 		tree.set_heading("Bar")
 		page.set_parsetree(tree)
 		self.assertFalse(page.heading_matches_pagename())
+
+	def testPageSource(self):
+		from zim.notebook.page import NewPage
+		from zim.newfs.mock import MockFile, MockFolder
+
+		file = MockFile('/mock/test/page.txt')
+		folder = MockFile('/mock/test/page/')
+		page = NewPage(Path('Foo'), False, file, folder)
+
+		self.assertFalse(page.readonly)
+		self.assertFalse(page.hascontent)
+		self.assertIsNone(page.ctime)
+		self.assertIsNone(page.mtime)
+		self.assertIsNone(page.get_parsetree())
+
+		page1 = NewPage(Path('Foo'), False, file, folder)
+		self.assertTrue(page.isequal(page1))
+
+		tree = ParseTree().fromstring('''\
+<zim-tree>
+<link href='foo:bar'>foo:bar</link>
+<link href='bar'>bar</link>
+<tag name='baz'>@baz</tag>
+</zim-tree>
+'''		)
+		page.set_parsetree(tree)
+		page._store()
+
+		self.assertTrue(file.exists())
+		self.assertTrue(page.hascontent)
+		self.assertIsInstance(page.ctime, float)
+		self.assertIsInstance(page.mtime, float)
+
+		self.assertEqual(page.get_parsetree(), tree)
+
+		self.assertTrue(page.isequal(page1))
+		self.assertTrue(page1.hascontent)
+		self.assertIsInstance(page1.ctime, float)
+		self.assertIsInstance(page1.mtime, float)
+		self.assertIsNotNone(page1.get_parsetree())
+
+		file.write('foo 123')
+		page.set_parsetree(tree)
+
+		self.assertRaises(zim.newfs.FileChangedError, page._store)
 
 
 class TestIndexPage(tests.TestCase):
@@ -778,8 +824,10 @@ class TestIndexPage(tests.TestCase):
 class TestMovePageNewNotebook(tests.TestCase):
 
 	def setUp(self):
-		store = MemoryStore()
-		index = Index.new_from_memory(store)
+		folder = zim.newfs.mock.MockFolder('/mock/notebook')
+		layout = FilesLayout(folder)
+		mockstore = MockStore(folder, endofline='unix')
+		index = Index.new_from_memory(mockstore)
 
 		### XXX - Big HACK here - Get better classes for this - XXX ###
 		dir = VirtualConfigBackend()
@@ -791,7 +839,7 @@ class TestMovePageNewNotebook(tests.TestCase):
 
 		dir = None
 		cache_dir = None
-		self.notebook = Notebook(dir, cache_dir, config, store, index)
+		self.notebook = Notebook(dir, cache_dir, config, folder, layout, index)
 		index.update()
 
 	def runTest(self):
@@ -866,9 +914,15 @@ class TestPageChangeFile(tests.TestCase):
 		notebook = Notebook.new_from_dir(dir)
 
 		page = notebook.get_page(Path('SomePage'))
-		file = page.source
-		self.assertIsInstance(file, File)
+		file = zim.newfs.LocalFile(page.source_file.path)
+		self.assertIsNot(file, page.source_file)
 
+		def change_file(file, text):
+			old = file.mtime()
+			file.write(text)
+			while file.mtime() == old:
+				time.sleep(0.01) # new mtime
+				file.write(text)
 
 		## First we don't keep ref, but change params quick enough
 		## that caching will not have time to clean up
@@ -881,28 +935,30 @@ class TestPageChangeFile(tests.TestCase):
 		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
 
 		# Now we change the file and want to see the change
-		file.write('Test 5 6 7 8\n')
+		change_file(file, 'Test 5 6 7 8\n')
+
 		page = notebook.get_page(Path('SomePage'))
 		self.assertEqual(page.dump('wiki'), ['Test 5 6 7 8\n'])
 
 
 		## Repeat but keep refs explicitly
-		del page
 
-		page1 = notebook.get_page(Path('SomePage'))
+		page1 = notebook.get_page(Path('SomeOtherPage'))
 		page1.parse('wiki', 'Test 123\n')
 		notebook.store_page(page1)
 
 		# Page as we stored it
-		page2 = notebook.get_page(Path('SomePage'))
+		page2 = notebook.get_page(Path('SomeOtherPage'))
+		self.assertIs(page2, page1)
 		self.assertEqual(page2.dump('wiki'), ['Test 123\n'])
 
 		# Now we change the file and want to see the change
-		file.read() # reset mtime check
-		file.write('Test 5 6 7 8\n')
-		page3 = notebook.get_page(Path('SomePage'))
+		file = zim.newfs.LocalFile(page1.source_file.path)
+		self.assertIsNot(file, page1.source_file)
+		change_file(file, 'Test 5 6 7 8\n')
 
-		for page in (page1, page2, page3):
-			self.assertTrue(page.valid)
-			self.assertEqual(page.dump('wiki'), ['Test 5 6 7 8\n'])
+		page3 = notebook.get_page(Path('SomeOtherPage'))
+		self.assertIs(page3, page1)
+		self.assertTrue(page3.valid)
+		self.assertEqual(page3.dump('wiki'), ['Test 5 6 7 8\n'])
 

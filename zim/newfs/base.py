@@ -171,9 +171,6 @@ if os.name == 'nt':
 		elif re.match(r'^\\\\\w+$', names[0]): # UNC path - e.g. file://host/share
 			return 'file://' + names[0].strip('\\') + '/' + '/'.join(names[1:])
 
-	def _rootpath(path):
-		return _splitnormpath(path)[0] # always need drive or host
-
 else:
 	def _joinabspath(names):
 		if names[0].startswith('\\\\'):
@@ -189,12 +186,6 @@ else:
 		else:
 			return 'file:///' + '/'.join(names)
 
-	def _rootpath(path):
-		start = _splitnormpath(path)[0]
-		if start.startswith('/'):
-			return '/'
-		else:
-			return start # hostname
 
 if FS_ENCODING == 'mbcs':
 	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
@@ -226,9 +217,6 @@ else:
 				raise ValueError, 'BUG: invalid filename %s' % path
 				#~ raise Error, 'BUG: invalid filename %s' % path
 
-
-def _isroot(path):
-	return _rootpath(path) == path
 
 
 def _os_expanduser(path):
@@ -321,8 +309,7 @@ class FilePath(object):
 
 	@property
 	def dirname(self):
-		if len(self.pathnames) > 2 \
-		or (len(self.pathnames) == 2 and not _isroot(self.pathnames[0])):
+		if len(self.pathnames) >= 2:
 			return _joinabspath(self.pathnames[:-1])
 		else:
 			return None
@@ -433,6 +420,14 @@ class FSObjectBase(FilePath):
 	def copyto(self, other):
 		raise NotImplementedError
 
+	def _set_mtime(self, mtime):
+		raise NotImplementedError
+
+	def _moveto(self, other):
+		logger.debug('Cross FS type move %s --> %s', (self, other))
+		self._copyto(other)
+		self.remove()
+
 	def remove(self):
 		raise NotImplementedError
 
@@ -492,13 +487,13 @@ class Folder(FSObjectBase):
 		return self._new_child(path, self.file)
 
 	def new_folder(self, path):
-		'''Get a L{File} object for a new file below this folder.
-		Like L{file()} but guarantees the file does not yet exist by
+		'''Get a L{Folder} object for a new folder below this folder.
+		Like L{folder()} but guarantees the file does not yet exist by
 		adding sequential numbers if needed. So the resulting file
 		may have a modified name.
 
 		@param path: the relative file path
-		@returns: a L{File} object
+		@returns: a L{Folder} object
 		'''
 		return self._new_child(path, self.folder)
 
@@ -538,6 +533,16 @@ class Folder(FSObjectBase):
 			else:
 				child.remove()
 
+	def _copyto(self, other):
+		if other.exists():
+			raise FileExistsError(other)
+		other.touch()
+		for child in self:
+			if isinstance(child, File):
+				child.copyto(other.file(child.basename))
+			else:
+				child.copyto(other.folder(child.basename))
+		other._set_mtime(self.mtime())
 
 
 xdgmime = None
@@ -671,6 +676,9 @@ class File(FSObjectBase):
 	def writelines(self, lines):
 		raise NotImplementedError
 
+	def write_binary(self, data):
+		raise NotImplementedError
+
 	@contextlib.contextmanager
 	def _write_decoration(self):
 		existed = self.exists()
@@ -706,21 +714,34 @@ class File(FSObjectBase):
 		return self._write_with_etag(self.writelines, lines, etag)
 
 	def _write_with_etag(self, func, content, etag):
+		# TODO, to make rock-solid would also need to lock the file
+		# before etag check and release after write
+
 		if not self.exists():
 			# Goal is to prevent overwriting new content. If the file
 			# does not yet exist or went missing, just write it anyway.
 			pass
 		else:
-			if isinstance(etag, tuple) and len(etag) == 2:
-				mtime = self.mtime()
-				if etag[0] != mtime:
-					# mtime fails .. lets see about md5
-					md5 = _md5(self.read())
-					if etag[1] != md5:
-						raise FileChangedError(self)
-			else:
-				raise AssertionError, 'Invalid etag: %s' % etag
+			if not self.verify_etag(etag):
+				raise FileChangedError(self)
 
 		func(content)
 		return (self.mtime(), _md5(content))
 
+	def verify_etag(self, etag):
+		if isinstance(etag, tuple) and len(etag) == 2:
+			mtime = self.mtime()
+			if etag[0] != mtime:
+				# mtime fails .. lets see about md5
+				md5 = _md5(self.read())
+				return etag[1] == md5
+			else:
+				return True
+		else:
+			raise AssertionError, 'Invalid etag: %r' % etag
+
+	def _copyto(self, other):
+		if other.exists():
+			raise FileExistsError(other)
+		other.write_binary(self.read_binary())
+		other._set_mtime(self.mtime())

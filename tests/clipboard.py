@@ -164,6 +164,10 @@ some <b>bold</b> text
 			['http://cpan.org', 'ftp://foo@test.org', 'user@mail.com'])
 
 		# image data -> tree
+
+		inner = self.notebook.get_attachments_dir
+		self.notebook.get_attachments_dir = lambda p: LocalFolder(inner(p).path) # fixture to ensure local folder used
+
 		page = self.notebook.get_page(Path('Test:wiki'))
 		file = File('./data/zim.png')
 		set_clipboard_image(file)

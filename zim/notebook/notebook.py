@@ -22,7 +22,7 @@ from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .page import Path, Page, StoreNodePage, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
+from .page import Path, Page, NewPage, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 DATA_FORMAT_VERSION = (0, 4)
@@ -32,7 +32,6 @@ from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, 
 
 
 from zim.newfs import LocalFolder
-from .store import MockStore
 
 
 class IndexNotUptodateError(Error):
@@ -110,6 +109,31 @@ def _cache_dir_for_dir(dir):
 		path = 'notebook-' + dir.path.replace('/', '_').strip('_')
 
 	return XDG_CACHE_HOME.subdir(('zim', path))
+
+
+class PageError(Error):
+
+	def __init__(self, path):
+		self.path = path
+		self.msg = self._msg % path.name
+
+
+class PageNotFoundError(PageError):
+	_msg = _('No such page: %s') # T: message for PageNotFoundError
+
+
+class PageNotAllowedError(PageNotFoundError):
+	_msg = _('Page not allowed: %s') # T: message for PageNotAllowedError
+	description = _('This page name cannot be used due to technical limitations of the storage')
+			# T: description for PageNotAllowedError
+
+
+class PageExistsError(Error):
+	_msg = _('Page already exists: %s') # T: message for PageExistsError
+
+
+class PageReadOnlyError(Error):
+	_msg = _('Can not modify page: %s') # T: error message for read-only pages
 
 
 class Notebook(ConnectorMixin, SignalEmitter):
@@ -193,8 +217,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	def new_from_dir(klass, dir):
 		assert isinstance(dir, Dir)
 
-		from .stores.files import FilesStore
 		from .index import Index
+		from .store import MockStore
+		from .layout import FilesLayout
 
 		config = NotebookConfig(dir.file('notebook.zim'))
 		endofline = config['Notebook']['endofline']
@@ -206,17 +231,20 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			cache_dir = _cache_dir_for_dir(dir)
 
-		store = FilesStore(dir, endofline)
-		mockstore = MockStore(LocalFolder(dir.path), endofline)
+		folder = LocalFolder(dir.path)
+		layout = FilesLayout(folder)
+
+		mockstore = MockStore(folder, endofline)
 		index = Index.new_from_file(cache_dir.file('index.db'), mockstore)
 
-		return klass(dir, cache_dir, config, store, index)
+		return klass(dir, cache_dir, config, folder, layout, index)
 
-	def __init__(self, dir, cache_dir, config, store, index):
-		self.dir = dir
+	def __init__(self, dir, cache_dir, config, folder, layout, index):
+		self.dir = dir # TODO remove
+		self.folder = folder
 		self.cache_dir = cache_dir
 		self.config = config
-		self.store = store
+		self.layout = layout
 		self.index = index
 
 		self.readonly = not _iswritable(dir) if dir else None # XXX
@@ -233,11 +261,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.icon = None
 		self.document_root = None
 
-		self.lock = threading.Lock()
-			# We don't use FS.get_async_lock() at this level. A store
-			# backend will automatically trigger this when it calls any
-			# async file operations. This one is more abstract for the
-			# notebook as a whole, regardless of storage
+		self.lock = threading.Lock() #: lock for async notebook access
 
 		from .index import PagesView, LinksView, TagsView
 		self.pages = PagesView.new_from_index(self.index)
@@ -345,10 +369,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	def get_page(self, path):
 		'''Get a L{Page} object for a given path
 
-		This method requests the page object from the store object and
-		hashes it in a weakref dictionary to ensure that an unique
-		object is being used for each page.
-
 		Typically a Page object will be returned even when the page
 		does not exist. In this case the C{hascontent} attribute of
 		the Page will be C{False} and C{get_parsetree()} will return
@@ -370,12 +390,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if path.name in self._page_cache \
 		and self._page_cache[path.name].valid:
 			page = self._page_cache[path.name]
-			assert isinstance(page, StoreNodePage)
+			assert isinstance(page, NewPage)
 			page._check_source_etag()
 			return page
 		else:
-			node = self.store.get_node(path)
-			page = StoreNodePage(path, node)
+			file, folder = self.layout.map_page(path)
+			page = NewPage(path, False, file, folder)
 			try:
 				indexpath = self.pages.lookup_by_pagename(path)
 			except IndexNotFoundError:
@@ -486,7 +506,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		self.emit('move-page', path, newpath)
 		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
-		self.store.move_page(path, newpath)
+		self._move_file_and_folder(path, newpath)
 		self.index.on_move_page(path, newpath)
 		self.flush_page_cache(path)
 		self.emit('moved-page', path, newpath)
@@ -503,6 +523,45 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				logger.warn('Number of links after move (%i) does not match number before move (%i)', new_n_links, n_links)
 			else:
 				logger.debug('Number of links after move does match number before move (%i)', new_n_links)
+
+	def _move_file_and_folder(self, path, newpath):
+		file, folder = self.layout.map_page(path)
+		if not (file.exists() or folder.exists()):
+			raise PageNotFoundError(path)
+
+		newfile, newfolder = self.layout.map_page(newpath)
+		if file.path.lower() == newfile.path.lower():
+			if newfile.isequal(file) or newfolder.isequal(folder):
+				pass # renaming on case-insensitive filesystem
+			elif newfile.exists() or newfolder.exists():
+				raise PageExistsError(newpath)
+		elif newfile.exists() or newfolder.exists():
+			raise PageExistsError(newpath)
+
+		# First move the dir - if it fails due to some file being locked
+		# the whole move is cancelled. Chance is bigger than the other
+		# way around, e.g. attachment open in external program.
+
+		if folder.exists():
+			if newfolder.ischild(folder):
+				# special case where we want to move a page down
+				# into it's own namespace
+				parent = folder.parent()
+				tmp = parent.new_folder(folder.basename)
+				folder.moveto(tmp)
+				tmp.moveto(newfolder)
+
+				# check if we also moved the file inadvertently
+				if file.ischild(folder):
+					rel = file.relpath(folder)
+					movedfile = newfolder.file(rel)
+					movedfile.moveto(newfile)
+			else:
+				folder.moveto(newfolder)
+
+		if file.exists():
+			file.moveto(newfile)
+
 
 	def _update_links_in_moved_page(self, oldtarget, newtarget):
 		# Find (floating) links that originate from the moved page
@@ -720,7 +779,21 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	def _delete_page(self, path):
 		logger.debug('Delete page: %s', path)
 		self.emit('delete-page', path)
-		return self.store.delete_page(path)
+
+		file, folder = self.layout.map_page(path)
+		assert file.path.startswith(self.folder.path)
+		assert folder.path.startswith(self.folder.path)
+
+		if not (file.exists() or folder.exists()):
+			return False
+		else:
+			if folder.exists():
+				folder.remove_children()
+				folder.remove()
+			if file.exists():
+				file.remove()
+			return True
+
 
 	def trash_page(self, path, update_links=True):
 		'''Move a page to Trash
@@ -767,9 +840,22 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			raise TrashNotSupportedError, 'disable_trash is set'
 
 		self.emit('delete-page', path)
-		existed = self.store.trash_page(path)
 
-		return existed
+		file, folder = self.layout.map_page(path)
+		if not (file.exists() or folder.exists()):
+			return False
+
+		#~ if folder.exists():
+			#~ re = folder.trash() or re
+			#~ folder.cleanup()
+			#~ if isinstance(path, Page):
+				#~ path.haschildren = False
+		#~
+		#~ if file.exists():
+			#~ if not file.trash():
+				#~ return False
+			#~ re = True
+		raise TrashNotSupportedError, 'TODO'
 
 	def _deleted_page(self, path, update_links):
 		self.flush_page_cache(path)
@@ -864,11 +950,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			if path:
 				dir = self.get_attachments_dir(path)
+				return File((dir.path, filename)) # XXX LocalDir --> File
 			else:
 				assert self.dir, 'Can not resolve relative path for notebook without root folder'
-				dir = self.dir
-
-			return File((dir, filename))
+				return File((self.dir, filename))
 
 	def relative_filepath(self, file, path=None):
 		'''Get a file path relative to the notebook or page
@@ -897,8 +982,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@returns: relative file path as string, or C{None} when no
 		relative path was found
 		'''
-		notebook_root = self.dir
-		document_root = self.document_root
+		from zim.newfs import LocalFile, LocalFolder
+		file = LocalFile(file.path) # XXX
+		notebook_root = self.layout.root
+		document_root = LocalFolder(self.document_root.path) if self.document_root else None# XXX
 
 		# Look within the notebook
 		if path:
@@ -936,7 +1023,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			return '/'+file.relpath(document_root)
 
 		# Finally check HOME or give up
-		return file.user_path or None
+		path = file.userpath
+		return path if path.startswith('~') else None
 
 	def get_attachments_dir(self, path):
 		'''Get the X{attachment folder} for a specific page
@@ -949,14 +1037,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		C{None} is returned the store implementation does not support
 		an attachments folder for this page.
 		'''
-		folder = self.get_page(path).folder
-		if not folder and self.store.__class__.__name__.startswith('Memory'):
-			# XXX this is just to keep tests with "fakedir" happy :(
-			from .stores import encode_filename
-			dirpath = encode_filename(path.name)
-			return self.dir.subdir(dirpath)
-		else:
-			return folder
+		file, folder = self.layout.map_page(path)
+		return folder
 
 	def get_template(self, path):
 		'''Get a template for the intial text on new pages

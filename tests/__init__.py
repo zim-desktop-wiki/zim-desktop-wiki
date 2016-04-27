@@ -51,7 +51,7 @@ __all__ = [
 	'environ', 'fs', 'newfs',
 	'config', 'applications',
 	'parsing', 'formats', 'templates', 'objectmanager',
-	'stores', 'index', 'notebook', 'history',
+	'index', 'notebook', 'history',
 	'export', 'www', 'search',
 	'widgets', 'pageindex', 'pageview', 'clipboard', 'gui',
 	'main', 'plugins',
@@ -472,7 +472,6 @@ def new_parsetree_from_xml(xml):
 def new_page():
 	from zim.notebook import Path, Page
 	page = Page(Path('roundtrip'))
-	page.readonly = False
 	page.set_parsetree(new_parsetree())
 	return page
 
@@ -480,7 +479,6 @@ def new_page():
 def new_page_from_text(text, format='wiki'):
 	from zim.notebook import Path, Page
 	page = Page(Path('Test'))
-	page.readonly = False
 	page.set_parsetree(new_parsetree_from_text(text, format))
 	return page
 
@@ -494,7 +492,7 @@ def new_notebook(fakedir=None):
 	Uses data from L{WikiTestData}
 
 	@param fakedir: optional parameter to set the 'dir' attribute for
-	the notebook and the main store which allows you to resolve file
+	the notebook which allows you to resolve file
 	paths etc. It will not automatically touch the dir
 	(hence it being 'fake').
 	'''
@@ -502,37 +500,51 @@ def new_notebook(fakedir=None):
 	from zim.config import VirtualConfigBackend
 	from zim.notebook import Notebook, Path
 	from zim.notebook.notebook import NotebookConfig
-	from zim.notebook.stores.memory import MemoryStore
 	from zim.notebook.index import Index, MemoryDBConnection
+
+	from zim.notebook.store import MockStore
+	from zim.notebook.layout import FilesLayout
+	from zim.newfs.mock import MockFolder, clone_mock_object
 
 	global _notebook_data
 	if not _notebook_data: # run this one time only
-		store = MemoryStore()
+		templfolder = MockFolder('/mock/notebook')
+		layout = FilesLayout(templfolder)
+
 		manifest = []
 		for name, text in WikiTestData:
 			manifest.append(name)
-			node = store.get_node(Path(name))
-			node.text = text
-			node.set_content_etag()
+			file, x = layout.map_page(Path(name))
+			file.write(text)
 
 		manifest = frozenset(_expand_manifest(manifest))
 
-		index = Index.new_from_memory(store)
+		mockstore = MockStore(templfolder, endofline='unix')
+		index = Index.new_from_memory(mockstore)
 		index.update()
 		with index.db_conn.db_context() as db:
 			lines = list(db.iterdump())
 		sql = '\n'.join(lines)
 
-		_notebook_data = (store, sql, manifest)
+		_notebook_data = (templfolder, sql, manifest)
 
+	if fakedir:
+		fakedir = fakedir if isinstance(fakedir, basestring) else fakedir.path
+	templfolder, sql, manifest = _notebook_data
+	folder = MockFolder(fakedir or templfolder.path)
+	clone_mock_object(templfolder, folder)
 
-	store, sql, manifest = _notebook_data
-	store = store.copy()
+	#~ print ">>>>>>>>>>>>>"
+	#~ for path in folder._fs.tree():
+		#~ print path
+
+	layout = FilesLayout(folder)
+	mockstore = MockStore(folder, endofline='unix')
 
 	db_conn = MemoryDBConnection()
 	with db_conn.db_change_context() as db:
 		db.executescript(sql)
-	index = Index(db_conn, store)
+	index = Index(db_conn, mockstore)
 
 	### XXX - Big HACK here - Get better classes for this - XXX ###
 	dir = VirtualConfigBackend()
@@ -549,13 +561,13 @@ def new_notebook(fakedir=None):
 		dir = None
 		cache_dir = None
 
-	notebook = Notebook(dir, cache_dir, config, store, index)
+	notebook = Notebook(dir, cache_dir, config, folder, layout, index)
 	notebook.testdata_manifest = manifest
 	return notebook
 
 
 def new_files_notebook(dir):
-	'''Returns a new Notebook object with a file store
+	'''Returns a new Notebook object
 
 	Uses data from L{WikiTestData}
 
@@ -568,7 +580,6 @@ def new_files_notebook(dir):
 	init_notebook(dir)
 	notebook = Notebook.new_from_dir(dir)
 
-	store = notebook.store
 	manifest = []
 	for name, text in WikiTestData:
 		manifest.append(name)

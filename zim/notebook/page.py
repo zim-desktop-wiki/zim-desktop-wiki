@@ -10,9 +10,13 @@ logger = logging.getLogger('zim.notebook')
 
 
 from zim.parsing import link_type
+from zim.config import HeadersDict
+from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
+
 
 import zim.formats
-
+import zim.fs
+import zim.newfs
 
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
@@ -372,8 +376,11 @@ class Page(Path):
 		self.modified = False
 		self._parsetree = parsetree
 		self._ui_object = None
-		self.readonly = True # stores need to explicitly set readonly False
 		self.properties = {}
+
+	@property
+	def readonly(self):
+		return False
 
 	@property
 	def hascontent(self):
@@ -606,41 +613,50 @@ class Page(Path):
 			return False
 
 
-class StoreNodePage(Page):
-	'''Implementation of L{Page} that has a L{StoreNode} as source
+class SourceFile(zim.fs.File):
 
-	NOTE: THis is a temporary adaptor for backward compatibility while refactoring
+	def iswritable(self):
+		return False
 
-	@ivar source: the L{File} object for this page
-	@ivar format: the L{zim.formats} sub-module used for parsing the file
-	'''
+	def write(self, *a):
+		raise AssertionError, 'Not writeable'
 
-	def __init__(self, path, node):
-		Page.__init__(self, path, haschildren=node.haschildren)
-		self._node = node
+	def writelines(self, *a):
+		raise AssertionError, 'Not writeable'
+
+
+class NewPage(Page):
+
+	def __init__(self, path, haschildren, file, folder):
+		Page.__init__(self, path, haschildren=haschildren)
+		self._readonly = None
 		self._last_etag = None
-		self.source = node.source_file
-		self.folder = node.attachments_dir
-		if self.source:
-			self.readonly = not self.source.iswritable() # XXX
-		else:
-			self.readonly = False
-		self.properties = node.properties if hasattr(node, 'properties') else {}
+		self.format = zim.formats.get_format('wiki') # TODO make configurable
+		self.source = SourceFile(file.path) # XXX
+		self.source_file = file
+		self.attachments_folder = folder
+		self.properties = HeadersDict()
+
+	@property
+	def readonly(self):
+		if self._readonly is None:
+			self._readonly = not self.source_file.iswritable()
+		return self._readonly
 
 	@property
 	def mtime(self):
-		return self._node.mtime
+		return self.source_file.mtime() if self.source_file.exists() else None
 
 	@property
 	def ctime(self):
-		return self._node.ctime
+		return self.source_file.ctime() if self.source_file.exists() else None
 
 	def isequal(self, other):
 		#~ print "IS EQUAL", self, other
 		if not isinstance(other, self.__class__):
 			return False
 
-		if self == other:
+		if self is other:
 			# If object equal by definition they are the equal
 			return True
 
@@ -649,44 +665,81 @@ class StoreNodePage(Page):
 		# If either fails we are not equal
 		# If both do not exist we are also not equal
 
-		ok = False
-		if self.source and self.source.exists():
-			ok = (
-				other.source
-				and self.source.isequal(other.source)
-			)
-			if not ok:
+		if self.source_file.exists():
+			if not self.source_file.isequal(other.source_file):
 				return False
 
+		if self.attachments_folder.exists():
+			if not self.attachments_folder.isequal(other.attachments_folder):
+				return False
 
-		if self.folder and self.folder.exists():
-			ok = (
-				other.folder
-				and self.folder.isequal(other.folder)
-			)
-
-		return ok
+		return self == other # Path.__eq__
 
 	def _source_hascontent(self):
-		return self._node.hascontent
+		return self.source_file.exists()
 
 	def _fetch_parsetree(self):
-		self._last_etag = self._node.get_content_etag()
-		return self._node.get_parsetree()
+		try:
+			lines, self._last_etag = self.source_file.readlines_with_etag()
+			self.properties.read(lines)
+			# TODO: detect other formats by the header as well
+			if 'Wiki-Format' in self.properties:
+				version = self.properties['Wiki-Format']
+			else:
+				version = 'Unknown'
+			parser = self.format.Parser(version)
+			return parser.parse(lines)
+		except zim.newfs.FileNotFoundError:
+			return None
 
 	def _store(self):
 		tree = self.get_parsetree()
-		self._node.store_parsetree(tree)
-		self._last_etag = self._node.get_content_etag()
+		if tree and tree.hascontent:
+			self._last_etag = self._store_parsetree(tree)
+		else:
+			self.source_file.remove()
+			self._last_etag = None
 		self.modified = False
 
+	def _store_parsetree(self, tree):
+		if self.hascontent and not self.properties:
+			self.get_parsetree()
+		elif not self.hascontent:
+			now = datetime.now()
+			self.properties['Creation-Date'] = now.isoformat()
+
+		self.properties['Content-Type'] = 'text/x-zim-wiki'
+		self.properties['Wiki-Format'] = WIKI_FORMAT_VERSION
+
+		# Note: No "Modification-Date" here because it causes conflicts
+		# when merging branches with version control, use mtime from filesystem
+		# If we see this header, remove it because it will not be updated.
+		try:
+			del self.properties['Modification-Date']
+		except:
+			pass
+
+		lines = self.properties.dump()
+		lines.append('\n')
+		lines.extend(self.format.Dumper().dump(tree))
+
+		return self.source_file.writelines_with_etag(lines, self._last_etag)
+
 	def _check_source_etag(self):
-		if self._last_etag or self._parsetree or self._ui_object:
-			if self._last_etag != self._node.get_content_etag():
-				logger.info('Page changed on disk: %s', self.name)
-				self._last_etag = None
-				self._parsetree = None
-				# TODO emit-page-changed / notify ui object
+		if (
+			self._last_etag
+			and not self.source_file.verify_etag(self._last_etag)
+		) or (
+			not self._last_etag
+			and self._parsetree
+			and self.source_file.exists()
+		):
+			logger.info('Page changed on disk: %s', self.name)
+			self._last_etag = None
+			self._parsetree = None
+			# TODO emit-page-changed / notify ui object
+		else:
+			pass # no check
 
 
 class IndexPage(Page):

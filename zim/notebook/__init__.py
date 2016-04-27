@@ -17,10 +17,6 @@ in a C{sqlite} database. Methods that need a list of pages in the
 notebook always use the index rather than a direct lookup. See
 L{zim.notebook.index} for more details.
 
-The actual contents of a notebook are managed by a L{StoreClass} object.
-By default a L{FileStore} is used, which maps page names to file names
-and stores plain text files. However other backends are possible.
-
 The C{NotebookInfoList} is defined to help access known notebooks and
 a C{NotebookInfo} object can be used to access the notebook properties
 without instantiating a full L{Notebook} object. Use the convience
@@ -39,13 +35,13 @@ from zim.parsing import url_decode
 from .info import NotebookInfo, NotebookInfoList, \
 	resolve_notebook, get_notebook_list, get_notebook_info, interwiki_link
 
-from .notebook import Notebook, TrashNotSupportedError
+from .notebook import Notebook, TrashNotSupportedError, \
+	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
 
 from .page import Path, Page, IndexPage, \
 	HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
-from .stores import encode_filename, decode_filename, \
-	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
+from .layout import encode_filename, decode_filename
 
 from .index import IndexNotFoundError, \
 	LINK_DIR_BACKWARD, LINK_DIR_BOTH, LINK_DIR_FORWARD

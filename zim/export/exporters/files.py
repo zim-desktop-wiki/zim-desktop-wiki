@@ -18,6 +18,9 @@ from zim.export.exporters import Exporter
 from zim.export.linker import ExportLinker
 from zim.export.template import ExportTemplateContext
 
+from zim.fs import Dir
+from zim.newfs import FileNotFoundError, LocalFolder
+
 
 class FilesExporterBase(Exporter):
 	'''Base class for exporters that export to files'''
@@ -38,11 +41,15 @@ class FilesExporterBase(Exporter):
 		# XXX FIXME remove need for notebook here
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
-		for name in source.list():
-			file = source.file(name)
-			if not file.isdir():
-				file.copyto(target)
-			# XXX what to do with folders that do not map to a page ?
+		try:
+			for file in source.list_files():
+				if isinstance(target, Dir):
+					file.copyto(LocalFolder(target.path)) # XXX convert
+				else:
+					assert False
+				# XXX what to do with folders that do not map to a page ?
+		except FileNotFoundError:
+			pass
 
 	def export_resources(self):
 		dir = self.layout.resources_dir()
@@ -139,9 +146,7 @@ class MultiFileExporter(FilesExporterBase):
 
 		# Bit of a HACK here - need better support for these index pages
 		_page = IndexPage(pages.notebook, pages.prefix) # TODO make more flexible - use pages iter itself
-		indexpage.readonly = False
 		indexpage.set_parsetree(_page.get_parsetree())
-		indexpage.readonly = True
 
 		self.export_page(pages.notebook, indexpage, pages)
 
