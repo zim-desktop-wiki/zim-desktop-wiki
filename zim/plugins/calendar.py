@@ -231,7 +231,7 @@ class NotebookExtension(ObjectExtension):
 			ns = self._initialized_namespace
 			for key in ('template', 'auto_expand_in_index'):
 				try:
-					self.notebook.namespace_properties[ns].remove('template')
+					self.notebook.namespace_properties[ns].remove(key)
 				except KeyError:
 					pass
 			self._initialized_namespace = None

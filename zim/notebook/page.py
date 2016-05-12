@@ -10,7 +10,6 @@ logger = logging.getLogger('zim.notebook')
 
 
 from zim.parsing import link_type
-from zim.config import HeadersDict
 from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
 
 
@@ -354,7 +353,6 @@ class Page(Path):
 	@ivar modified: C{True} if the page was modified since the last
 	store. Will be reset by L{Notebook.store_page()}
 	@ivar readonly: C{True} when the page is read-only
-	@ivar properties: dict with page properties
 	@ivar valid: C{True} when this object is 'fresh' but C{False} e.g.
 	after flushing the notebook cache. Invalid Page objects can still
 	be used anywhere in the API where a L{Path} is needed, but not
@@ -376,7 +374,6 @@ class Page(Path):
 		self.modified = False
 		self._parsetree = parsetree
 		self._ui_object = None
-		self.properties = {}
 
 	@property
 	def readonly(self):
@@ -635,7 +632,6 @@ class NewPage(Page):
 		self.source = SourceFile(file.path) # XXX
 		self.source_file = file
 		self.attachments_folder = folder
-		self.properties = HeadersDict()
 
 	@property
 	def readonly(self):
@@ -680,15 +676,9 @@ class NewPage(Page):
 
 	def _fetch_parsetree(self):
 		try:
-			lines, self._last_etag = self.source_file.readlines_with_etag()
-			self.properties.read(lines)
-			# TODO: detect other formats by the header as well
-			if 'Wiki-Format' in self.properties:
-				version = self.properties['Wiki-Format']
-			else:
-				version = 'Unknown'
-			parser = self.format.Parser(version)
-			return parser.parse(lines)
+			text, self._last_etag = self.source_file.read_with_etag()
+			parser = self.format.Parser()
+			return parser.parse(text)
 		except zim.newfs.FileNotFoundError:
 			return None
 
@@ -702,27 +692,12 @@ class NewPage(Page):
 		self.modified = False
 
 	def _store_parsetree(self, tree):
-		if self.hascontent and not self.properties:
-			self.get_parsetree()
-		elif not self.hascontent:
+		if not self.hascontent:
+			# New page
 			now = datetime.now()
-			self.properties['Creation-Date'] = now.isoformat()
+			tree.meta['Creation-Date'] = now.isoformat()
 
-		self.properties['Content-Type'] = 'text/x-zim-wiki'
-		self.properties['Wiki-Format'] = WIKI_FORMAT_VERSION
-
-		# Note: No "Modification-Date" here because it causes conflicts
-		# when merging branches with version control, use mtime from filesystem
-		# If we see this header, remove it because it will not be updated.
-		try:
-			del self.properties['Modification-Date']
-		except:
-			pass
-
-		lines = self.properties.dump()
-		lines.append('\n')
-		lines.extend(self.format.Dumper().dump(tree))
-
+		lines = self.format.Dumper().dump(tree)
 		return self.source_file.writelines_with_etag(lines, self._last_etag)
 
 	def _check_source_etag(self):
@@ -752,7 +727,6 @@ class IndexPage(Page):
 		Page.__init__(self, path, haschildren=True)
 		self.index_recurs = recurs
 		self.notebook = notebook
-		self.properties['type'] = 'namespace-index'
 
 	@property
 	def hascontent(self): return True

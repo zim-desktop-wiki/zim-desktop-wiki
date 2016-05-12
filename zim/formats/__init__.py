@@ -250,6 +250,7 @@ class ParseTree(object):
 	def __init__(self, *arg, **kwarg):
 		self._etree = ElementTreeModule.ElementTree(*arg, **kwarg)
 		self._object_cache = {}
+		self.meta = None
 
 	@property
 	def hascontent(self):
@@ -1166,7 +1167,7 @@ class DumperClass(Visitor):
 		self._text = []
 
 	def dump(self, tree):
-		'''Convenience methods to dump a given tree.
+		'''Format a parsetree to text
 		@param tree: a parse tree object that supports a C{visit()} method
 		@returns: a list of lines
 		'''
@@ -1687,3 +1688,57 @@ class TableParser():
 				(lspace, rspace) = (1, maxwidth - len(val) + 1)
 			cells.append(lspace * y + val + rspace * y)
 		return cells
+
+
+from zim.config.dicts import OrderedDict
+
+_is_header_re = re.compile('^([\w\-]+):\s+(.*?)\n', re.M)
+_is_continue_re = re.compile('^([^\S\n]+)(.+?)\n', re.M)
+
+def parse_header_lines(text):
+	'''Read header lines in the rfc822 format.
+	Can e.g. look like::
+
+		Content-Type: text/x-zim-wiki
+		Wiki-Format: zim 0.4
+		Creation-Date: 2010-12-14T14:15:09.134955
+
+	@returns: the text minus the headers and a dict with the headers
+	'''
+	assert isinstance(text, basestring)
+	meta = OrderedDict()
+	match = _is_header_re.match(text)
+	pos = 0
+	while match:
+		header = match.group(1)
+		value  = match.group(2)
+		pos = match.end()
+
+		meta[header] = value.strip()
+		match = _is_continue_re.match(text, pos)
+		while match:
+			cont = match.group(2)
+			meta[header] += '\n' + cont.strip()
+			pos = match.end()
+			match = _is_continue_re.match(text, pos)
+
+		match = _is_header_re.match(text, pos)
+	else:
+		if pos > 0:
+			try:
+				if text[pos] == '\n':
+					pos += 1
+			except IndexError:
+				pass
+			text = text[pos:]
+
+	return text, meta
+
+
+def dump_header_lines(headers):
+	'''Return text representation of header dict'''
+	text = []
+	for k, v in headers.items():
+		v = v.strip().replace('\n', '\n\t')
+		text.extend((k, ': ', v, '\n'))
+	return ''.join(text)

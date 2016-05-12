@@ -58,8 +58,7 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 	'''Sub-class of C{OrderedDict} that tracks modified state.
 	This modified state is recursive for nested C{ControlledDict}s.
 
-	Used as base class for L{SectionedConfigDict}, L{ConfigDict}
-	and L{HeadersDict}.
+	Used as base class for L{SectionedConfigDict} and L{ConfigDict}.
 
 	@signal: C{changed ()}: emitted when content of this dict changed,
 	or a nested C{ControlledDict} changed
@@ -855,112 +854,6 @@ class INIConfigFile(SectionedConfigDict):
 					dump_section(name, section)
 
 		return lines
-
-
-class HeaderParsingError(Error):
-	'''Error when parsing a L{HeadersDict}'''
-
-	description = '''\
-Invalid data was found in a block with headers.
-This probably means the header block was corrupted
-and can not be read correctly.'''
-
-	def __init__(self, line):
-		self.msg = 'Invalid header >>%s<<' % line.strip('\n')
-
-
-class HeadersDict(ControlledDict):
-	'''This class maps a set of headers in the rfc822 format.
-	Can e.g. look like::
-
-		Content-Type: text/x-zim-wiki
-		Wiki-Format: zim 0.4
-		Creation-Date: 2010-12-14T14:15:09.134955
-
-	Header names are always kept in "title()" format to ensure
-	case-insensitivity.
-	'''
-
-	_is_header_re = re.compile('^([\w\-]+):\s+(.*)')
-	_is_continue_re = re.compile('^(\s+)(?=\S)')
-
-	def __init__(self, text=None):
-		'''Constructor
-
-		@param text: the header text, passed on to L{parse()}
-		'''
-		OrderedDict.__init__(self)
-		if not text is None:
-			self.parse(text)
-
-	def __getitem__(self, k):
-		return OrderedDict.__getitem__(self, k.title())
-
-	def __setitem__(self, k, v):
-		return OrderedDict.__setitem__(self, k.title(), v)
-
-	def read(self, lines):
-		'''Checks for headers at the start of the list of lines and
-		read them into the dict until the first empty line. Will remove
-		any lines belonging to the header block from the original list,
-		so after this method returns the input does no longer contain
-		the header block.
-		@param lines: a list of lines
-		'''
-		self._parse(lines, fatal=False)
-		if lines and lines[0].isspace():
-			lines.pop(0)
-
-	def parse(self, text):
-		'''Adds headers defined in 'text' to the dict.
-		Trailing whitespace is ignored.
-
-		@param text: a header block, either as string or as a list of lines.
-
-		@raises HeaderParsingError: when C{text} is not a valid header
-		block
-		'''
-		if isinstance(text, basestring):
-			lines = text.rstrip().splitlines(True)
-		else:
-			lines = text[:] # make copy so we do not destry the original
-		self._parse(lines)
-
-	def _parse(self, lines, fatal=True):
-		header = None
-		while lines:
-			is_header = self._is_header_re.match(lines[0])
-			if is_header:
-				header = is_header.group(1)
-				value  = is_header.group(2)
-				self[header] = value.strip()
-			elif self._is_continue_re.match(lines[0]) and not header is None:
-				self[header] += '\n' + lines[0].strip()
-			else:
-				if fatal:
-					raise HeaderParsingError, lines[0]
-				else:
-					break
-			lines.pop(0)
-
-	def dump(self, strict=False):
-		'''Serialize the dict to a header block in rfc822 header format.
-
-		@param strict: if C{True} lines will be properly terminated
-		with '\\r\\n' instead of '\\n'.
-
-		@returns: the header block as a list of lines
-		'''
-		buffer = []
-		for k, v in self.items():
-			v = v.strip().replace('\n', '\n\t')
-			buffer.extend((k, ': ', v, '\n'))
-		text = ''.join(buffer)
-
-		if strict:
-			text = text.replace('\n', '\r\n')
-
-		return text.splitlines(True)
 
 
 class HierarchicDict(object):

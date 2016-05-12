@@ -828,3 +828,28 @@ grrr
 		root = builder.close()
 		tree = ParseTree(root)
 		self.assertEqual(tree.tostring(), wanted)
+
+
+class TestParseHeaderLines(tests.TestCase):
+
+	def runTest(self):
+		text = '''\
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+X-Foo: Some text
+	here
+Creation-Date: 2010-12-14T14:15:09.134955
+
+Blaat
+'''
+		body, meta = parse_header_lines(text)
+		self.assertEqual(dict(meta), {
+			'Content-Type': 'text/x-zim-wiki',
+			'Wiki-Format': 'zim 0.4',
+			'Creation-Date': '2010-12-14T14:15:09.134955',
+			'X-Foo': 'Some text\nhere'
+		})
+		self.assertEqual(body, 'Blaat\n')
+
+		out = dump_header_lines(meta)
+		self.assertEqual(out+'\nBlaat\n', text)

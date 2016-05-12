@@ -4947,7 +4947,6 @@ class PageView(gtk.VBox):
 				page.set_ui_object(self) # only after successful set tree in buffer
 		except Exception, error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
-			self.page.readonly = True
 			self.set_readonly()
 			self.set_sensitive(False)
 			ErrorDialog(self.ui, error).run()

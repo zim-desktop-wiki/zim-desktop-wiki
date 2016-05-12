@@ -70,8 +70,6 @@ class MockStore(object):
 		return self._folder.folder(path)
 
 
-from zim.config import HeadersDict
-
 class MockStoreNode(object):
 
 	def __init__(self, basename, file, folder, format):
@@ -90,11 +88,9 @@ class MockStoreNode(object):
 
 	def get_parsetree(self):
 		try:
-			lines = self._file.readlines()
-			properties = HeadersDict()
-			properties.read(lines)
+			text = self._file.read()
 			parser = self._format.Parser()
-			return parser.parse(lines)
+			return parser.parse(text)
 		except FileNotFoundError:
 			return None
 

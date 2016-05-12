@@ -514,61 +514,6 @@ none=
 		self.assertFalse(conf.modified)
 
 
-class TestHeaders(tests.TestCase):
-
-	def runTest(self):
-		'''Test HeadersDict class'''
-		# normal operation
-		text='''\
-Foobar: 123
-More-Lines: test
-	1234
-	test
-Aaa: foobar
-'''
-		headers = HeadersDict(text)
-		self.assertEqual(headers['Foobar'], '123')
-		self.assertEqual(headers['More-Lines'], 'test\n1234\ntest')
-		self.assertEqual(headers.dump(), text.splitlines(True))
-
-		moretext='''\
-Foobar: 123
-More-Lines: test
-	1234
-	test
-Aaa: foobar
-
-test 123
-test 456
-'''
-		lines = moretext.splitlines(True)
-		headers = HeadersDict()
-		headers.read(lines)
-		self.assertEqual(headers.dump(), text.splitlines(True))
-		self.assertEqual(lines, ['test 123\n', 'test 456\n'])
-
-		# error tolerance and case insensitivity
-		text = '''\
-more-lines: test
-1234
-test
-'''
-		self.assertRaises(HeaderParsingError, HeadersDict, text)
-
-		text = '''\
-fooo
-more-lines: test
-1234
-test
-'''
-		self.assertRaises(HeaderParsingError, HeadersDict, text)
-
-		text = 'foo-bar: test\n\n\n'
-		headers = HeadersDict(text)
-		self.assertEqual(headers['Foo-Bar'], 'test')
-		self.assertEqual(headers.dump(), ['Foo-Bar: test\n'])
-
-
 class TestUserDirs(tests.TestCase):
 
 	def setUp(self):

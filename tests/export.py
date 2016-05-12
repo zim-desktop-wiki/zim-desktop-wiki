@@ -267,7 +267,7 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertEqual(get('mypage.heading'), 'Foo')
 		self.assertIsInstance(get('mypage.content'), basestring)
 		self.assertIsInstance(get('mypage.body'), basestring)
-		self.assertIsInstance(get('mypage.properties'), dict)
+		self.assertIsInstance(get('mypage.meta'), dict)
 
 
 		#			.links
@@ -321,7 +321,7 @@ class TestExportTemplateContext(tests.TestCase):
 
 		## TODO test modification of options by template ends up in context
 		##      test setting other local paramters in template does NOT affect context object
-		##      test setting page properties is NOT allowed
+		##      test setting page meta is NOT allowed
 
 		## TODO list simple template with processor to test looping through pages
 

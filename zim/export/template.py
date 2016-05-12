@@ -44,7 +44,6 @@ Export template parameters supported::
  					.body
  					.content
 
- 			.properties
  			.links
  			.backlinks
  			.attachments
@@ -415,6 +414,10 @@ class PageListProxy(object):
 class ParseTreeProxy(object):
 
 	@property
+	def meta(self):
+		return self._tree.meta or {}
+
+	@property
 	def heading(self):
 		head, body = self._split_head()
 		return head
@@ -469,7 +472,7 @@ class PageProxy(ParseTreeProxy):
 		self.section = self._page.namespace
 		self.namespace = self._page.namespace # backward compat
 		self.basename = self._page.basename
-		self.properties = dict(self._page.properties)
+		self.properties = {} # undocumented field kept for backward compat
 
 	@property
 	def title(self):
