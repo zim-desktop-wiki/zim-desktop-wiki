@@ -308,7 +308,24 @@ class SourceViewWidget(TextViewWidget):
 		# Hook up signals
 		self.view.connect('populate-popup', self.on_populate_popup)
 		self.view.connect('move-cursor', self.on_move_cursor)
+		self.connect('parent-set', self.on_parent_set)
+		self.parent_notify_h = None
 
+	def set_editable(self, editable):
+		self.view.set_editable(editable)
+		self.view.set_cursor_visible(editable)		      
+
+	def on_parent_set(self, widget, old_parent):
+		if old_parent and self.parent_notify_h:
+			old_parent.disconnect(self.parent_notify_h)
+			self.parent_notify_h = None
+		parent = self.get_parent()
+		if parent:
+			self.set_editable(parent.get_editable())
+			self.parent_notify_h = parent.connect('notify::editable', self.on_parent_notify)
+
+	def on_parent_notify(self, widget, prop, *args):
+		self.set_editable(self.get_parent().get_editable())
 
 	def set_preferences(self, preferences):
 		self.view.set_auto_indent(preferences['auto_indent'])
@@ -336,6 +353,7 @@ class SourceViewWidget(TextViewWidget):
 		item = gtk.CheckMenuItem(_('Show Line Numbers'))
 			# T: preference option for sourceview plugin
 		item.set_active(self.obj._attrib['linenumbers'])
+		item.set_sensitive(self.view.get_editable())
 		item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)
 
@@ -344,6 +362,7 @@ class SourceViewWidget(TextViewWidget):
 			self.obj.set_language(item.zim_sourceview_languageid)
 
 		item = gtk.MenuItem(_('Syntax'))
+		item.set_sensitive(self.view.get_editable())
 		submenu = gtk.Menu()
 		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
 			langitem = gtk.MenuItem(lang)
