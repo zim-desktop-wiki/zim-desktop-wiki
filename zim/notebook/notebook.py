@@ -834,6 +834,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			yield p
 
 	def _trash_page(self, path):
+		from zim.newfs.helpers import TrashHelper
+
 		logger.debug('Trash page: %s', path)
 
 		if self.config['Notebook']['disable_trash']:
@@ -842,20 +844,18 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.emit('delete-page', path)
 
 		file, folder = self.layout.map_page(path)
-		if not (file.exists() or folder.exists()):
-			return False
+		helper = TrashHelper()
 
-		#~ if folder.exists():
-			#~ re = folder.trash() or re
-			#~ folder.cleanup()
-			#~ if isinstance(path, Page):
-				#~ path.haschildren = False
-		#~
-		#~ if file.exists():
-			#~ if not file.trash():
-				#~ return False
-			#~ re = True
-		raise TrashNotSupportedError, 'TODO'
+		re = False
+		if folder.exists():
+			re = helper.trash(folder)
+			if isinstance(path, Page):
+				path.haschildren = False
+
+		if file.exists():
+			re = helper.trash(file) or re
+
+		return re
 
 	def _deleted_page(self, path, update_links):
 		self.flush_page_cache(path)

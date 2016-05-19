@@ -945,28 +945,37 @@ class TestFunc(tests.TestCase):
 			'foo%bar.txt'
 		)
 
-#~ @tests.slowTest
-#~ @tests.skipUnless(zim.fs.gio, 'Trashing not supported, \'gio\' is missing')
-#~ class TestTrash(tests.TestCase):
-#~
-	#~ @tests.expectedFailure
-	#~ def runTest(self):
-		#~ '''Test trashing files and folders'''
-		#~ root = Dir(self.create_tmp_dir())
-		#~ file = root.file('test.txt')
-		#~ file.touch()
-		#~ self.assertTrue(file.exists())
-		#~ self.assertTrue(file.trash())
-		#~ self.assertFalse(file.exists())
-		#~ dir = root.subdir('test')
-		#~ dir.touch()
-		#~ self.assertTrue(dir.exists())
-		#~ self.assertTrue(dir.trash())
-		#~ self.assertFalse(dir.exists())
-#~
-		#~ # fails silent if file does not exist
-		#~ self.assertFalse(file.trash())
-		#~ self.assertFalse(dir.trash())
-#~
-		#~ # How can we cause gio to give an error and test that case ??
+
+try:
+	import gio
+except ImportError:
+	gio = None
+
+from zim.newfs.helpers import TrashHelper
+
+@tests.slowTest
+@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+class TestTrash(tests.TestCase):
+
+	def runTest(self):
+		root = LocalFolder(self.create_tmp_dir())
+		helper = TrashHelper()
+
+		file = root.file('test.txt')
+		file.touch()
+		self.assertTrue(file.exists())
+		self.assertTrue(helper.trash(file))
+		self.assertFalse(file.exists())
+
+		dir = root.folder('test')
+		dir.touch()
+		self.assertTrue(dir.exists())
+		self.assertTrue(helper.trash(dir))
+		self.assertFalse(dir.exists())
+
+		# fails silent if file does not exist
+		self.assertFalse(helper.trash(file))
+		self.assertFalse(helper.trash(dir))
+
+		# How can we cause gio to give an error and test that case ??
 

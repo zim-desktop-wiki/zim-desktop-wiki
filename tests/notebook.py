@@ -396,12 +396,6 @@ class TestNotebook(tests.TestCase):
 			'**bold** :AnotherNewPage\n' )
 
 
-		# Try trashing
-		try:
-			self.notebook.trash_page(Path('TrashMe'))
-		except TrashNotSupportedError:
-			print 'trashing not supported'
-
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.update()
 		#~ cursor = self.notebook.index.db.cursor()
@@ -962,3 +956,22 @@ class TestPageChangeFile(tests.TestCase):
 		self.assertTrue(page3.valid)
 		self.assertEqual(page3.dump('wiki'), ['Test 5 6 7 8\n'])
 
+
+try:
+	import gio
+except ImportError:
+	gio = None
+
+@tests.slowTest
+@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+class TestTrash(tests.TestCase):
+
+	def runTest(self):
+		notebook = tests.new_files_notebook(self.create_tmp_dir())
+		page = notebook.get_page(Path('TrashMe'))
+		self.assertTrue(page.exists())
+
+		notebook.trash_page(Path('TrashMe'))
+
+		page = notebook.get_page(Path('TrashMe'))
+		self.assertFalse(page.exists())
