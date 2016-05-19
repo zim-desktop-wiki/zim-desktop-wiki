@@ -306,9 +306,8 @@ class SourceViewWidget(TextViewWidget):
 		self.vbox.pack_start(win)
 
 		# Hook up signals
+		self._init_signals()
 		self.view.connect('populate-popup', self.on_populate_popup)
-		self.view.connect('move-cursor', self.on_move_cursor)
-
 
 	def set_preferences(self, preferences):
 		self.view.set_auto_indent(preferences['auto_indent'])
@@ -336,6 +335,7 @@ class SourceViewWidget(TextViewWidget):
 		item = gtk.CheckMenuItem(_('Show Line Numbers'))
 			# T: preference option for sourceview plugin
 		item.set_active(self.obj._attrib['linenumbers'])
+		item.set_sensitive(self.view.get_editable())
 		item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)
 
@@ -344,6 +344,7 @@ class SourceViewWidget(TextViewWidget):
 			self.obj.set_language(item.zim_sourceview_languageid)
 
 		item = gtk.MenuItem(_('Syntax'))
+		item.set_sensitive(self.view.get_editable())
 		submenu = gtk.Menu()
 		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
 			langitem = gtk.MenuItem(lang)
