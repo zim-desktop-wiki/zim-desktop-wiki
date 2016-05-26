@@ -1138,6 +1138,9 @@ class CustomToolDict(DesktopEntryDict):
 			else:
 				cmd[cmd.index('%s')] = ''
 
+		if '%p' in cmd:
+			cmd[cmd.index('%p')] = page.name
+
 		if '%n' in cmd:
 			cmd[cmd.index('%n')] = File(notebook.uri).path
 

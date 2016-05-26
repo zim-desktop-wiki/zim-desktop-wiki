@@ -19,6 +19,7 @@ When defining a command, you can use the following parameters to supply the exte
 **%f**	for page source as a temporary file
 **%d**	for the [[Help:Attachments|attachment]] directory of the current page
 **%s**	for the real page source file (if any)
+**%p**  for the page name
 **%n**	for the notebook location (file or folder)
 **%D**	for the document root (if any)
 **%t** 	for the selected text or word under cursor
