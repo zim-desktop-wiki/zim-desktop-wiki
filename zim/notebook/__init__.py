@@ -38,7 +38,7 @@ from .info import NotebookInfo, NotebookInfoList, \
 from .notebook import Notebook, TrashNotSupportedError, \
 	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
 
-from .page import Path, Page, IndexPage, \
+from .page import Path, Page, \
 	HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 from .layout import encode_filename, decode_filename

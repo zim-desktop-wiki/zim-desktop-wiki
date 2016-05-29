@@ -94,6 +94,7 @@ from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
 
 from zim.newfs import FileNotFoundError
+from zim.notebook.index import IndexPageNotFoundError
 
 
 class ExportTemplateContext(dict):
@@ -204,6 +205,7 @@ class ExportTemplateContext(dict):
 			for k, l in links.items():
 				l = _link(l)
 				self['links'][k] = l
+
 
 	def get_dumper(self, page):
 		'''Returns a L{DumperClass} instance for source page C{page}
@@ -488,28 +490,36 @@ class PageProxy(ParseTreeProxy):
 
 	@property
 	def links(self):
-		links = self._notebook.links.list_links(self._page, LINK_DIR_FORWARD)
-		for link in links:
-			yield NotebookPathProxy(link.target)
+		try:
+			links = self._notebook.links.list_links(self._page, LINK_DIR_FORWARD)
+			for link in links:
+				yield NotebookPathProxy(link.target)
+		except IndexPageNotFoundError:
+			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
 	def backlinks(self):
-		links = self._notebook.links.list_links(self._page, LINK_DIR_BACKWARD)
-		for link in links:
-			yield NotebookPathProxy(link.source)
+		try:
+			links = self._notebook.links.list_links(self._page, LINK_DIR_BACKWARD)
+			for link in links:
+				yield NotebookPathProxy(link.source)
+		except IndexPageNotFoundError:
+			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
 	def attachments(self):
-		source_dir = self._notebook.get_attachments_dir(self._page)
 		try:
-			for file in source_dir.list_files():
-				if file.exists(): # is file
-					href = './'+file.basename
-					dest_file = self._linker.resolve_dest_file(href)
-					yield FileProxy(file, dest_file=dest_file, relpath=href)
-		except FileNotFoundError:
-			pass
-
+			source_dir = self._notebook.get_attachments_dir(self._page)
+			try:
+				for file in source_dir.list_files():
+					if file.exists(): # is file
+						href = './'+file.basename
+						dest_file = self._linker.resolve_dest_file(href)
+						yield FileProxy(file, dest_file=dest_file, relpath=href)
+			except FileNotFoundError:
+				pass
+		except IndexPageNotFoundError:
+			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 class HeadingProxy(ParseTreeProxy):
 

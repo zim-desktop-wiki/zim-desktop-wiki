@@ -11,7 +11,7 @@ import os
 from zim.fs import _md5, File, Dir
 
 from zim.config import data_file, SectionedConfigDict
-from zim.notebook import Path, Notebook, init_notebook, \
+from zim.notebook import Path, Page, Notebook, init_notebook, \
 	interwiki_link, get_notebook_list, NotebookInfo
 #~ from zim.exporter import Exporter, StaticLinker
 #~ from zim.applications import Application
@@ -368,7 +368,7 @@ class TestMultiFileExporter(tests.TestCase):
 		notebook = tests.new_notebook(fakedir='/foo')
 		pages = AllPages(notebook)
 
-		exporter = build_notebook_exporter(dir, 'html', 'Default')
+		exporter = build_notebook_exporter(dir, 'html', 'Default', index_page='Index')
 		self.assertIsInstance(exporter, MultiFileExporter)
 		exporter.export(pages)
 
@@ -376,6 +376,9 @@ class TestMultiFileExporter(tests.TestCase):
 		text =  file.read()
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
+		file = exporter.layout.page_file(Path('Index'))
+		text =  file.read()
+		self.assertIn('<li><a href="./roundtrip.html" title="roundtrip" class="page">roundtrip</a></li>', text)
 
 
 class TestSingleFileExporter(tests.TestCase):

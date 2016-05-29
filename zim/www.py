@@ -30,7 +30,7 @@ from wsgiref.headers import Headers
 import urllib
 
 from zim.errors import Error
-from zim.notebook import Notebook, Path, Page, IndexPage, encode_filename, PageNotFoundError
+from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
 from zim.fs import File, Dir, FileNotFoundError
 from zim.config import data_file, ConfigManager
 from zim.plugins import PluginManager
@@ -38,6 +38,7 @@ from zim.parsing import url_encode
 
 from zim.export.linker import ExportLinker, StubLayout
 from zim.export.template import ExportTemplateContext
+from zim.export.exporters import createIndexPage
 
 from zim.formats import get_format
 
@@ -272,7 +273,8 @@ class WWWInterface(object):
 		@param namespace: the namespace L{Path}
 		@returns: html as a list of lines
 		'''
-		page = IndexPage(self.notebook, namespace)
+		path = namespace or Path(':')
+		page = createIndexPage(self.notebook, path, namespace)
 		return self.render_page(page)
 
 	def render_page(self, page):

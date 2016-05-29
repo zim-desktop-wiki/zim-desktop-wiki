@@ -798,23 +798,6 @@ class TestPage(TestPath):
 		self.assertRaises(zim.newfs.FileChangedError, page._store)
 
 
-class TestIndexPage(tests.TestCase):
-
-	def setUp(self):
-		self.notebook = tests.new_notebook()
-		self.notebook.index.update()
-
-	def runTest(self):
-		'''Test index page generation'''
-		indexpage = IndexPage(self.notebook, Path(':'))
-		tree = indexpage.get_parsetree()
-		self.assertTrue(tree)
-		links = [href.names for href in tree.iter_href()]
-		self.assertTrue(len(links) > 1)
-		#~ print links
-		self.assertTrue('Test:foo' in links)
-
-
 class TestMovePageNewNotebook(tests.TestCase):
 
 	def setUp(self):
