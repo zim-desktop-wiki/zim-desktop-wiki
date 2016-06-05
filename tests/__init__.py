@@ -56,7 +56,7 @@ __all__ = [
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-	'ipc'
+	'ipc', 'arithmetic',
 ]
 
 

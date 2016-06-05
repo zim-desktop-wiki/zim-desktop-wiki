@@ -49,7 +49,7 @@ Usage as module:
 import re
 
 
-renumber = re.compile( r'([0-9][0-9,]*(\.[0-9]*)?%?)|(\.[0-9]+%?)' )
+renumber = re.compile( r'(-?[0-9][0-9,]*(\.[0-9]*)?%?)|(\.[0-9]+%?)' )
 reidentifier = re.compile( r'[a-zA-Z][a-zA-Z0-9_]*' )
 rexenclosed = re.compile( r'[0-9.)](x)[^a-zA-Z]' )
 
