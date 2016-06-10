@@ -266,7 +266,7 @@ class Dumper(DumperClass):
 		strings.append('</td>\n')
 		return strings
 
-        def dump_line(self, tag, attrib, strings=None):
-                return '\n<hr>\n'
+	def dump_line(self, tag, attrib, strings=None):
+		return '\n<hr>\n'
 
         
