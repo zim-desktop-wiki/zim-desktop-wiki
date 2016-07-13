@@ -950,7 +950,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			if path:
 				dir = self.get_attachments_dir(path)
-				return File((dir.path, filename)) # XXX LocalDir --> File
+				return File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
 			else:
 				assert self.dir, 'Can not resolve relative path for notebook without root folder'
 				return File((self.dir, filename))

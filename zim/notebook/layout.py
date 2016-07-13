@@ -8,7 +8,7 @@ import codecs
 
 from .page import Path
 
-from zim.newfs import FS_ENCODING
+from zim.newfs import FS_ENCODING, File
 
 FILE_TYPE_PAGE_SOURCE = 1
 FILE_TYPE_ATTACHMENT = 2
@@ -96,7 +96,7 @@ class FilesLayout(object):
 		path = encode_filename(pagename.name)
 		file = self.root.file(path + self.default_extension)
 		folder = self.root.folder(path)
-		return file, folder
+		return file, FilesAttachmentFolder(folder, self.default_extension)
 
 	def map_file(self, filepath):
 		'''Map a filepath to a pagename
@@ -125,3 +125,31 @@ class FilesLayout(object):
 		'''
 		filespaths.sort(key=lambda p: (p.ctime(), p.basename))
 		return filepaths[0]
+
+
+class FilesAttachmentFolder(object):
+
+	def __init__(self, folder, default_extension):
+		self._folder = folder
+		self._default_extension = default_extension
+
+	def __getattr__(self, name):
+		return getattr(self._folder, name)
+
+	def __iter__(self):
+		for obj in self._folder:
+			if isinstance(obj, File) \
+			and not obj.basename.endswith(self._default_extension) \
+			and not obj.basename.endswith('.zim'):
+				yield obj
+
+	def list_names(self):
+		for obj in self.__iter__():
+			yield obj.basename
+
+	def list_files(self):
+		return self.__iter__()
+
+	def list_folders(self):
+		return []
+

@@ -190,12 +190,7 @@ class ExportLinker(BaseLinker):
 			else:
 				dir = self.layout.relative_root
 
-			if isinstance(dir, Dir):
-				file = dir.resolve_file(filename)
-			else: # newfs Folder
-				file = File(dir.get_abspath(filename))
-			# Allow ../ here - limit resulting relative link
-			# in self.file_object()
+			file = File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
 
 		return file
 

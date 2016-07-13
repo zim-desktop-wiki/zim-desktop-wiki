@@ -16,6 +16,7 @@ import wsgiref.handlers
 from zim.fs import File
 from zim.www import WWWInterface
 from zim.config import VirtualConfigManager
+from zim.notebook import Path
 
 # TODO how to test fetching from a socket while mainloop is running ?
 
@@ -102,9 +103,23 @@ class TestWWWInterface(tests.TestCase):
 			self.assertTrue('<li><a href="/Test/foo.html" title="foo" class="page">foo</a>' in response)
 
 		# page
+		afolder = notebook.get_attachments_dir(Path('Test:foo'))
+		afile = afolder.file('attachment.pdf')
+		afile.touch()
+		
 		response = call('GET', '/Test/foo.html')
 		self.assertResponseOK(response)
-		self.assertTrue('<h1>Foo <a name=\'Test:foo\'></a></h1>' in response)
+		self.assertIn('<h1>Foo <a name=\'Test:foo\'></a></h1>', response)
+
+		# - ensure page link works
+		self.assertIn('<a href="/Test/foo/bar.html"', response)
+
+		# - ensure attachment link works
+		self.assertIn("<td><a href='/%2Bfile/Test/foo/attachment.pdf'>attachment.pdf</a></td>", response)
+
+		# - ensure sub page does not show up as attachment
+		self.assertNotIn('bar.txt', response)
+
 
 		# page not found
 		with Filter404():
