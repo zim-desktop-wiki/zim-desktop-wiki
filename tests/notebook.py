@@ -18,7 +18,6 @@ from zim.formats import ParseTree
 from zim.notebook import *
 from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError, PageExistsError
 from zim.notebook.index import Index
-from zim.notebook.store import MockStore
 from zim.notebook.layout import FilesLayout
 
 import zim.newfs
@@ -802,9 +801,8 @@ class TestMovePageNewNotebook(tests.TestCase):
 
 	def setUp(self):
 		folder = zim.newfs.mock.MockFolder('/mock/notebook')
-		layout = FilesLayout(folder)
-		mockstore = MockStore(folder, endofline='unix')
-		index = Index.new_from_memory(mockstore)
+		layout = FilesLayout(folder, endofline='unix')
+		index = Index.new_from_memory(layout)
 
 		### XXX - Big HACK here - Get better classes for this - XXX ###
 		dir = VirtualConfigBackend()

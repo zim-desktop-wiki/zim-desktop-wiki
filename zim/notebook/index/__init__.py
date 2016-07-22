@@ -63,6 +63,8 @@ logger = logging.getLogger('zim.notebook.index')
 from zim.utils.threading import WorkerThread
 from zim.fs import File
 
+from zim.newfs import FileNotFoundError
+
 from .base import *
 from .pages import *
 from .links import *
@@ -112,32 +114,32 @@ class Index(object):
 	# used instead.
 
 	@classmethod
-	def new_from_file(klass, file, store):
+	def new_from_file(klass, file, layout):
 		'''Constructor for a file based index
 		@param file: a L{File} object for the sqlite database
-		@param store: a L{StoreClass} instance to index
+		@param layout: a L{NotebookLayout} instance to index
 		'''
 		file.dir.touch()
 		db_conn = ThreadingDBConnection(file.encodedpath)
-		return klass(db_conn, store)
+		return klass(db_conn, layout)
 
 	@classmethod
-	def new_from_memory(klass, store):
+	def new_from_memory(klass, layout):
 		'''Constructor for an in-memory index
-		@param store: a L{StoreClass} instance to index
+		@param layout: a L{NotebookLayout} instance to index
 		'''
 		db_conn = MemoryDBConnection()
-		return klass(db_conn, store)
+		return klass(db_conn, layout)
 
-	def __init__(self, db_conn, store):
+	def __init__(self, db_conn, layout):
 		'''Constructor
 		@param db_conn: a L{DBConnection} object
-		@param store: a L{StoreClass} instance to index
+		@param layout: a L{NotebookLayout} instance to index
 		'''
-		self.store = store
+		self.layout = layout
 		self._indexers = [PagesIndexer(), LinksIndexer(), TagsIndexer()]
 		self._pages = PagesViewInternal()
-		self._index = IndexInternal(self.store, self._indexers)
+		self._index = IndexInternal(self.layout, self._indexers)
 		self.db_conn = db_conn
 		self._thread = None
 
@@ -393,8 +395,8 @@ class Index(object):
 class IndexInternal(object):
 	'''Common methods between L{TreeIndexer} and L{Index}'''
 
-	def __init__(self, store, indexers):
-		self.store = store
+	def __init__(self, layout, indexers):
+		self.layout = layout
 		self.indexers = indexers
 		self._pages = PagesViewInternal()
 
@@ -483,18 +485,28 @@ class IndexInternal(object):
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
 		assert isinstance(indexpath, IndexPathRow)
-		node = self.store.get_node(indexpath)
-		etag = node.get_content_etag()
+		file, folder = self.layout.map_page(indexpath)
 
-		if etag and indexpath.page_exists != PAGE_EXISTS_HAS_CONTENT:
-			self.set_page_exists(db, indexpath)
+		try:
+			etag = str(file.mtime())
+			ctime = datetime.fromtimestamp(file.ctime())
+			mtime = datetime.fromtimestamp(file.mtime())
 
-		parsetree = node.get_parsetree()
-		for indexer in self.indexers:
-			indexer.on_index_page(self, db, indexpath, parsetree)
+			if indexpath.page_exists != PAGE_EXISTS_HAS_CONTENT:
+				self.set_page_exists(db, indexpath)
 
-		ctime = datetime.fromtimestamp(node.ctime) if node.ctime else None
-		mtime = datetime.fromtimestamp(node.mtime) if node.mtime else None
+			format = self.layout.get_format(file)
+			parsetree = format.Parser().parse(file.read())
+			for indexer in self.indexers:
+				indexer.on_index_page(self, db, indexpath, parsetree)
+
+		except FileNotFoundError:
+			etag = None
+			ctime = None
+			mtime = None
+			for indexer in self.indexers:
+				indexer.on_index_page(self, db, indexpath, None)
+
 		db.execute(
 			'UPDATE pages '
 			'SET content_etag=?, ctime=?, mtime=? '
@@ -561,8 +573,8 @@ class IndexInternal(object):
 
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
-		node = self.store.get_node(parent)
-		etag = node.get_children_etag()
+		file, folder = self.layout.map_page(parent)
+		etag = str(folder.mtime()) if folder.exists() else None
 		if self.check_pagelist(db, parent):
 			db.execute(
 				'UPDATE pages SET children_etag=? WHERE id=?',
@@ -575,8 +587,8 @@ class IndexInternal(object):
 	def check_pagelist(self, db, indexpath):
 		# TODO - how to speed this up?
 		names = set()
-		for node in self.store.get_children(indexpath):
-			names.add(node.basename)
+		for pagename in self.layout.index_list_children(indexpath):
+			names.add(pagename.basename)
 
 		try:
 			for row in db.execute(
@@ -605,13 +617,13 @@ class TreeIndexer(IndexInternal):
 	def new_from_index(klass, index):
 		return klass(
 			index.db_conn,
-			index.store,
+			index.layout,
 			index._indexers
 		)
 
-	def __init__(self, db_conn, store, indexers):
+	def __init__(self, db_conn, layout, indexers):
 		self.db_conn = db_conn
-		self.store = store
+		self.layout = layout
 		self.indexers = indexers
 		self._pages = PagesViewInternal()
 
@@ -696,8 +708,8 @@ class TreeIndexer(IndexInternal):
 
 		# Get etag first - when data changes these should
 		# always be older to ensure changes are detected in next run
-		node = self.store.get_node(indexpath)
-		etag = node.get_children_etag()
+		file, folder = self.layout.map_page(indexpath)
+		etag = str(folder.mtime()) if folder.exists() else None
 
 		if etag != indexpath.children_etag:
 			self.set_property(db, 'probably_uptodate', False)
@@ -713,13 +725,14 @@ class TreeIndexer(IndexInternal):
 			# because creating the folder changes the parent folder
 			# for memory store and other file layouts this behavior
 			# differs.
-			for node in self.store.get_children(indexpath):
+			for pagename in self.layout.index_list_children(indexpath):
 				row = db.execute(
 					'SELECT * FROM pages WHERE parent=? and basename=?',
-					(indexpath.id, node.basename)
+					(indexpath.id, pagename.basename)
 				).fetchone()
 				if row:
-					if node.haschildren or row['n_children'] > 0: # has and/or had children
+					file, folder = self.layout.map_page(pagename)
+					if folder.exists() or row['n_children'] > 0: # has and/or had children
 						check = INDEX_CHECK_TREE
 					else:
 						check = INDEX_CHECK_PAGE
@@ -729,7 +742,7 @@ class TreeIndexer(IndexInternal):
 						(check, row['id'],)
 					)
 				else:
-					raise IndexConsistencyError, 'Missing index for: %s' % indexpath.name + ':' + node.basename
+					raise IndexConsistencyError, 'Missing index for: %s' % pagename
 		else:
 			pass
 
@@ -745,11 +758,11 @@ class TreeIndexer(IndexInternal):
 
 	def new_children(self, db, indexpath, etag):
 		assert indexpath.n_children == 0
-		for node in self.store.get_children(indexpath):
-			child_path = indexpath + node.basename
-			check = INDEX_CHECK_TREE if node.haschildren else INDEX_CHECK_PAGE
+		for child_path in self.layout.index_list_children(indexpath):
+			file, folder = self.layout.map_page(child_path)
+			check = INDEX_CHECK_TREE if folder.exists() else INDEX_CHECK_PAGE
 			child = self.insert_page(db, indexpath, child_path, needscheck=check)
-			if node.hascontent:
+			if file and file.exists():
 				self.set_page_exists(db, child)
 
 	def update_children(self, db, indexpath, etag, checktree=False):
@@ -761,30 +774,30 @@ class TreeIndexer(IndexInternal):
 		)
 
 		# Then go over the list
-		for node in self.store.get_children(indexpath):
+		for child_path in self.layout.index_list_children(indexpath):
+			file, folder = self.layout.map_page(child_path)
 			c.execute(
 				'SELECT * FROM pages WHERE parent=? and basename=?',
-				(indexpath.id, node.basename)
+				(indexpath.id, child_path.basename)
 			)
 			row = c.fetchone()
 			if not row: # New child
-				child_path = indexpath + node.basename
-				check = INDEX_CHECK_TREE if node.haschildren else INDEX_CHECK_PAGE
+				check = INDEX_CHECK_TREE if folder.exists() else INDEX_CHECK_PAGE
 				child = self.insert_page(db, indexpath, child_path, needscheck=check)
-				if node.hascontent:
+				if file and file.exists():
 					self.set_page_exists(db, child)
 			else: # Existing child
-				if node.hascontent and row['page_exists'] != PAGE_EXISTS_HAS_CONTENT:
+				if file and file.exists() and row['page_exists'] != PAGE_EXISTS_HAS_CONTENT:
 					child = self._pages.lookup_by_row(db, row)
 					self.set_page_exists(db, child)
 
 				if checktree:
-					if node.haschildren or row['n_children'] > 0: # has and/or had children
+					if folder.exists() or row['n_children'] > 0: # has and/or had children
 						check = INDEX_CHECK_TREE
 					else:
 						check = INDEX_CHECK_PAGE
 				else:
-					if node.hascontent != bool(row['content_etag']):
+					if file and file.exists() != bool(row['content_etag']):
 						check = INDEX_CHECK_PAGE
 					elif page.haschildren != (row['n_children'] > 0):
 						check = INDEX_CHECK_CHILDREN
@@ -826,13 +839,13 @@ class TreeIndexer(IndexInternal):
 				self.delete_page(db, child, cleanup=False)
 
 	def check_page(self, db, indexpath):
-		node = self.store.get_node(indexpath)
-		etag = node.get_content_etag()
+		file, folder = self.layout.map_page(indexpath)
+		etag = str(file.mtime()) if file.exists() else None
 		if etag != indexpath.content_etag:
 			self.index_page(db, indexpath)
 
 		# Queue a children check if needed (not recursive)
-		children_etag = node.get_children_etag()
+		children_etag = str(folder.mtime()) if folder.exists() else None
 		if children_etag == indexpath.children_etag:
 			needscheck = INDEX_UPTODATE
 		else:

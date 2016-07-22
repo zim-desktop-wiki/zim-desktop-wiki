@@ -8,7 +8,8 @@ import codecs
 
 from .page import Path
 
-from zim.newfs import FS_ENCODING, File
+from zim.newfs import FS_ENCODING, File, _EOL
+from zim.formats import get_format
 
 FILE_TYPE_PAGE_SOURCE = 1
 FILE_TYPE_ATTACHMENT = 2
@@ -76,27 +77,38 @@ def decode_filename(filename):
 
 
 
-class FilesLayout(object):
+class NotebookLayout(object):
+	pass
+
+
+class FilesLayout(NotebookLayout):
 	'''Layout is responsible for mapping between pages and files.
 	This is the most basic version, which each page to the like-named
 	file.
 	'''
 
 	default_extension = '.txt'
+	default_format = get_format('wiki')
 
-	def __init__(self, folder):
+	def __init__(self, folder, endofline=_EOL):
 		self.root = folder
+		self.endofline = _EOL
 
 	def map_page(self, pagename):
-		'''Map a pagename to a filepath
+		'''Map a pagename to a (default) file
 		@param pagename: a L{Path}
 		@returns: a 2-tuple of a L{File} for the source and a L{Folder}
 		for the attachments. Neither of these needs to exist.
 		'''
 		path = encode_filename(pagename.name)
 		file = self.root.file(path + self.default_extension)
-		folder = self.root.folder(path)
-		return file, FilesAttachmentFolder(folder, self.default_extension)
+		file.endofline = self.endofline ## TODO, make this auto-detect for existing files ?
+		folder = self.root.folder(path) if path else self.root
+		return file, folder
+
+	def get_attachments_folder(self, pagename):
+		file, folder = self.map_page(pagename)
+		return FilesAttachmentFolder(folder, self.default_extension)
 
 	def map_file(self, filepath):
 		'''Map a filepath to a pagename
@@ -125,6 +137,30 @@ class FilesLayout(object):
 		'''
 		filespaths.sort(key=lambda p: (p.ctime(), p.basename))
 		return filepaths[0]
+
+	def get_format(self, file):
+		if file.path.endswith(self.default_extension):
+			return self.default_format
+		else:
+			raise AssertionError, 'Unknown file type for page: %s' % file
+
+	def index_list_children(self, pagename):
+		# Convenience method - remove if no longer used by the index
+		file, folder = self.map_page(pagename)
+		if not folder.exists():
+			return []
+
+		names = set()
+		for object in folder:
+			if isinstance(object, File):
+				if object.path.endswith(self.default_extension):
+					name = object.basename[:-len(self.default_extension)]
+					names.add(decode_filename(name))
+			else: # Folder
+				name = object.basename
+				names.add(decode_filename(name))
+
+		return [pagename+basename for basename in sorted(names)]
 
 
 class FilesAttachmentFolder(object):

@@ -322,6 +322,7 @@ class FilePath(object):
 			return self.path
 
 	def get_childpath(self, path):
+		assert path
 		names = _splitnormpath(path)
 		if not names or names[0] == '..':
 			raise ValueError, 'Relative path not below parent: %s' % path

@@ -502,14 +502,13 @@ def new_notebook(fakedir=None):
 	from zim.notebook.notebook import NotebookConfig
 	from zim.notebook.index import Index, MemoryDBConnection
 
-	from zim.notebook.store import MockStore
 	from zim.notebook.layout import FilesLayout
 	from zim.newfs.mock import MockFolder, clone_mock_object
 
 	global _notebook_data
 	if not _notebook_data: # run this one time only
 		templfolder = MockFolder('/mock/notebook')
-		layout = FilesLayout(templfolder)
+		layout = FilesLayout(templfolder, endofline='unix')
 
 		manifest = []
 		for name, text in WikiTestData:
@@ -519,8 +518,7 @@ def new_notebook(fakedir=None):
 
 		manifest = frozenset(_expand_manifest(manifest))
 
-		mockstore = MockStore(templfolder, endofline='unix')
-		index = Index.new_from_memory(mockstore)
+		index = Index.new_from_memory(layout)
 		index.update()
 		with index.db_conn.db_context() as db:
 			lines = list(db.iterdump())
@@ -538,13 +536,12 @@ def new_notebook(fakedir=None):
 	#~ for path in folder._fs.tree():
 		#~ print path
 
-	layout = FilesLayout(folder)
-	mockstore = MockStore(folder, endofline='unix')
+	layout = FilesLayout(folder, endofline='unix')
 
 	db_conn = MemoryDBConnection()
 	with db_conn.db_change_context() as db:
 		db.executescript(sql)
-	index = Index(db_conn, mockstore)
+	index = Index(db_conn, layout)
 
 	### XXX - Big HACK here - Get better classes for this - XXX ###
 	dir = VirtualConfigBackend()

@@ -218,7 +218,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		assert isinstance(dir, Dir)
 
 		from .index import Index
-		from .store import MockStore
 		from .layout import FilesLayout
 
 		config = NotebookConfig(dir.file('notebook.zim'))
@@ -232,10 +231,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			cache_dir = _cache_dir_for_dir(dir)
 
 		folder = LocalFolder(dir.path)
-		layout = FilesLayout(folder)
-
-		mockstore = MockStore(folder, endofline)
-		index = Index.new_from_file(cache_dir.file('index.db'), mockstore)
+		layout = FilesLayout(folder, endofline)
+		index = Index.new_from_file(cache_dir.file('index.db'), layout)
 
 		return klass(dir, cache_dir, config, folder, layout, index)
 
@@ -395,6 +392,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			return page
 		else:
 			file, folder = self.layout.map_page(path)
+			folder = self.layout.get_attachments_folder(path)
 			page = NewPage(path, False, file, folder)
 			try:
 				indexpath = self.pages.lookup_by_pagename(path)
@@ -1037,8 +1035,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		C{None} is returned the store implementation does not support
 		an attachments folder for this page.
 		'''
-		file, folder = self.layout.map_page(path)
-		return folder
+		return self.layout.get_attachments_folder(path)
 
 	def get_template(self, path):
 		'''Get a template for the intial text on new pages

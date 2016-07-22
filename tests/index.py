@@ -18,7 +18,7 @@ from zim.notebook import Path
 
 
 from zim.notebook.index import *
-from zim.notebook.store import MockStore
+from zim.notebook.layout import FilesLayout
 
 from zim.newfs import LocalFolder
 from zim.newfs.mock import MockFolder
@@ -248,12 +248,12 @@ class TestIndex(tests.TestCase):
 	def testInit(self):
 		dir = Dir(self.create_tmp_dir())
 		dir.touch()
-		store = MockStore(LocalFolder(dir.path))
+		layout = FilesLayout(LocalFolder(dir.path))
 
 		# No file
 		file = dir.file('not_yet_existing.db')
 		assert not file.exists()
-		index = Index.new_from_file(file, store)
+		index = Index.new_from_file(file, layout)
 
 		# No zim database
 		# TODO
@@ -265,41 +265,43 @@ class TestIndex(tests.TestCase):
 		file = dir.file('corrupt.db')
 		file.write('foooooooooo\n')
 		with tests.LoggingFilter('zim.notebook.index', 'Overwriting possibly corrupt database'):
-			index = Index.new_from_file(file, store)
+			index = Index.new_from_file(file, layout)
 
 
 class MemoryIndexerTests(tests.TestCase):
 
 	def setUp(self):
 		self.folder = MockFolder('/mock_root')
-		self.store = MockStore(self.folder)
+		self.layout = FilesLayout(self.folder)
 		self.write_pages(PAGES_TREE)
 		self.index = Index.new_from_memory(
-			self.store
+			self.layout
 		)
+
+		f, folder = self.layout.map_page(ROOT_PATH)
+		assert folder.exists()
 
 	def write_pages(self, pages):
 		#~ print "WRITE >>>"
 		parser = zim.formats.get_parser('wiki')
 		for path, attrib in pages.items():
-			#~ print "Write", path
-			node = self.store.get_node(path)
+			file, folder = self.layout.map_page(path)
 			if attrib['content']:
-				node._file.write(attrib['content'])
+				#~ print "WRITE", file
+				file.write(attrib['content'])
 			else:
 				## HACK to make child folder to exist ##
-				node._folder.touch()
+				folder.touch()
 		#~ print "<<<"
 
 	def delete_pages(self, pages):
 		for path, attrib in pages.items():
-			node = self.store.get_node(path)
-			if node._file.exists():
-				node._file.remove()
+			file, folder = self.layout.map_page(path)
+			if file.exists():
+				file.remove()
 
-			if node._folder.exists():
-				node._folder.remove_children()
-
+			if folder.exists():
+				folder.remove_children()
 
 	def assertIndexMatchesTree(self, index, wanted):
 		pages = PagesViewInternal()
@@ -423,20 +425,20 @@ class MemoryIndexerTests(tests.TestCase):
 		parser = zim.formats.get_parser('wiki')
 		for path, attrib in UPDATE.items():
 			#~ print "<<", path
-			node = self.store.get_node(path)
-			node._file.write(attrib['content'])
+			file, folder = self.layout.map_page(path)
+			file.write(attrib['content'])
 			self.index.on_store_page(path)
 		self.assertIndexMatchesPages(self.index, UPDATED_PAGES)
 
 		#~ print "### Delete pages"
 		for path, attrib in UPDATE.items():
 			#~ print "<<", path
-			node = self.store.get_node(path)
-			if node._file.exists():
-				node._file.remove()
+			file, folder = self.layout.map_page(path)
+			if file.exists():
+				file.remove()
 
-			if node._folder.exists():
-				node._folder.remove_children()
+			if folder.exists():
+				folder.remove_children()
 
 			self.index.on_delete_page(path)
 		self.assertIndexMatchesPages(self.index, PAGES)
@@ -451,8 +453,8 @@ class MemoryIndexerTests(tests.TestCase):
 			'Blah blah blah @foo @tag2',
 			'',
 		):
-			node = self.store.get_node(path)
-			node._file.write(content)
+			file, folder = self.layout.map_page(path)
+			file.write(content)
 			self.index.on_store_page(path)
 			# No assert but increases coverage, check for no error
 
@@ -501,11 +503,11 @@ class IndexerTests(MemoryIndexerTests):
 	def setUp(self):
 		dir = Dir(self.create_tmp_dir())
 		self.folder = LocalFolder(dir.path)
-		self.store = MockStore(self.folder)
+		self.layout = FilesLayout(self.folder)
 		self.write_pages(PAGES_TREE)
 		self.index = Index.new_from_file(
 			dir.file('.zim/test_index.db'),
-			self.store
+			self.layout
 		)
 
 
@@ -579,13 +581,13 @@ class TestHRefFromWikiLink(tests.TestCase):
 ###
 
 def new_memory_index():
-	store = MockStore(MockFolder('/mock_root'))
+	layout = FilesLayout(MockFolder('/mock_root'))
 	for path, attr in PAGES_TREE.items():
 		if attr['content'] is not None:
-			node = store.get_node(path)
-			node._file.write(attr['content'])
+			file, folder = layout.map_page(path)
+			file.write(attr['content'])
 
-	index = Index.new_from_memory(store)
+	index = Index.new_from_memory(layout)
 	index.update()
 	return index
 
@@ -620,17 +622,17 @@ class TestPlaceHolders(tests.TestCase):
 			assert False, '%s does not link to %s' % (source, target)
 
 	def store_page(self, index, path, content):
-		node = index.store.get_node(path)
-		node._file.write(content)
+		file, folder = index.layout.map_page(path)
+		file.write(content)
 		index.on_store_page(path)
 
 	def delete_page(self, index, path):
-		node = index.store.get_node(path)
-		if node._file.exists():
-			node._file.remove()
+		file, folder = index.layout.map_page(path)
+		if file.exists():
+			file.remove()
 
-		if node._folder.exists():
-			node._folder.remove_children()
+		if folder.exists():
+			folder.remove_children()
 
 		index.on_delete_page(path)
 
@@ -662,8 +664,8 @@ class TestPlaceHolders(tests.TestCase):
 		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
 
 		# update children on parent, placeholder should survive
-		node = index.store.get_node(Path('Foo:AAA'))
-		node._file.write('test 123\n')
+		file, folder = index.layout.map_page(Path('Foo:AAA'))
+		file.write('test 123\n')
 		index.update()
 		self.assertIsPlaceholder(index, Path('Foo:Child3'))
 		self.assertLinks(index, Path('Foo:Child2'), Path('Foo:Child3'))
