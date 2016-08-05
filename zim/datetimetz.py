@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2010-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2010-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Thin wrapper for 'datetime' module from the standard library.
 Provides timezone info for the local time. Based on example code
@@ -248,7 +248,9 @@ def strftime(format, date):
 
 	format = re.sub(r'\%.', replacefunc, format)
 	string = date.strftime(str(format)) # str() needed for python 2.5 compatibility strftime
-	string = string.decode(locale.getlocale()[1]) # decode local specific output to unicode
+	lang, enc = locale.getlocale()
+	if enc is not None:
+		string = string.decode(enc) # decode local specific output to unicode
 	return string
 
 

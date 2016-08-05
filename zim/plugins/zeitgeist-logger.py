@@ -84,7 +84,7 @@ class PageViewExtension(ObjectExtension):
 		logger.debug("Opened page: %s", page.name)
 		self.plugin.create_and_send_event(page, Interpretation.ACCESS_EVENT)
 
-	def on_close_page(self, ui, page, *a):
+	def on_close_page(self, ui, page):
 		logger.debug("Left page: %s", page.name)
 		self.plugin.create_and_send_event(page, Interpretation.LEAVE_EVENT)
 

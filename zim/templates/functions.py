@@ -36,6 +36,7 @@ def build_template_functions():
 		'strfcal': template_strfcal,
 		'html_encode': ExpressionFunction(html_encode),
 		'url_encode': ExpressionFunction(partial(url_encode, mode=URL_ENCODE_DATA)),
+		'gettext': template_gettext,
 	}
 
 
@@ -67,3 +68,11 @@ def template_strfcal(format, date=None):
 		return datetime.strfcal(format, date)
 	except:
 		logger.exception('Error in strftime "%s"', format)
+
+@ExpressionFunction
+def template_gettext(string):
+	'''Template function wrapper for gettext'''
+	try:
+		return (_(string))
+	except:
+		logger.exception('Error in gettext "%s"', string)

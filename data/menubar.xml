@@ -3,7 +3,7 @@
 		<menu action='file_menu'>
 			<menuitem action='new_page'/>
 			<menuitem action='new_sub_page'/>
-			<menuitem action='open_notebook'/>
+			<menuitem action='show_open_notebook'/>
 			<menuitem action='import_page'/>
 			<placeholder name='open_items'/>
 			<separator/>
@@ -88,6 +88,7 @@
 			<menuitem action='insert_bullet_list'/>
 			<menuitem action='insert_numbered_list'/>
 			<menuitem action='insert_checkbox_list'/>
+			<menuitem action='insert_line'/>
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>

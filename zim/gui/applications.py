@@ -1162,9 +1162,9 @@ class CustomToolDict(DesktopEntryDict):
 
 	_cmd = parse_exec # To hook into Application.spawn and Application.run
 
-	def run(self, args):
+	def run(self, args, cwd=None):
 		self._tmpfile = None
-		Application.run(self, args)
+		Application.run(self, args, cwd=cwd)
 		if self._tmpfile:
 			notebook, page, pageview = args
 			page.parse('wiki', self._tmpfile.readlines())

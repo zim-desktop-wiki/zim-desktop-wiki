@@ -191,7 +191,7 @@ class SingleFileLayout(DirLayoutBase):
 
 		basename = file.basename
 		if '.' in basename:
-			basename, x = basename.rsplit('.')
+			basename, x = basename.rsplit('.', 1)
 		self.dir = file.dir.subdir(basename + '_files')
 		self.relative_root = self.dir
 

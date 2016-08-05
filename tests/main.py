@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the base zim module.'''
 
@@ -24,22 +24,7 @@ from zim.main import *
 
 import zim
 import zim.main
-
-
-class TestGetApplication(tests.TestCase):
-
-	def setUp(self):
-		self.old_exe = zim.ZIM_EXECUTABLE
-
-	def tearDown(self):
-		zim.ZIM_EXECUTABLE = self.old_exe
-
-	def runTest(self):
-		zim.ZIM_EXECUTABLE = '/foo/bar/zim.py'
-		app = zim.main.get_zim_application('--help')
-		self.assertEqual(app.cmd[:4], ('/foo/bar/zim.py', '--help', '--standalone'))
-			# limit to cmd[:4] because running test with "-D" or "-V" can add more
-
+import zim.main.ipc
 
 
 class capture_stdout:
@@ -126,4 +111,29 @@ class TestHelp(tests.TestCase):
 ## ExportCommand() is tested in tests/export.py
 
 
+class TestIPC(tests.TestCase):
 
+	def runTest(self):
+		inbox = [None]
+		def handler(*args):
+			inbox[0] = args
+
+		zim.main.ipc.start_listening(handler)
+		self.addCleanup(zim.main.ipc._close_listener)
+
+		self.assertRaises(AssertionError, zim.main.ipc.dispatch, '--manual')
+
+		zim.main.ipc.set_in_main_process(False) # overrule sanity check
+		zim.main.ipc.dispatch('test', '123')
+
+		tests.gtk_process_events()
+		self.assertEqual(inbox[0], ('test', '123'))
+
+
+### TODO test various ways of calling ZimApplicaiton ####
+
+# Start main
+# Handle incoming
+# Toplevel life cycle
+# Spawn new
+# Spawn standalone

@@ -313,24 +313,80 @@ class TestInputForm(tests.TestCase):
 
 @tests.slowTest
 class TestFileDialog(tests.TestCase):
+	## Something weird in how the filechooser works internally
+	## need a lot of gtk_process_events() to get it work OK in test
+	## and still it fails at random :(
 
 	def runTest(self):
-		tmp_dir = self.create_tmp_dir()
+		tmp_dir = Dir(self.create_tmp_dir())
 
-		file = File((tmp_dir, 'test.txt'))
-		file.write('test 123')
+		for name in ('test1.txt', 'test2.txt', 'test3.txt'):
+			tmp_dir.file(name).write('test 123')
+
+		tmp_dir.subdir('folder1').touch()
+
+		# Single file
+		file = tmp_dir.file('test1.txt')
 		self.assertTrue(file.exists())
 
 		dialog = FileDialog(None, 'Test')
+		self.assertIsNone(dialog.get_file())
+
 		dialog.set_file(file)
-		#~ myfile = dialog.get_file()
-		#~ self.assertTrue(myfile)
-		#~ self.assertTrue(myfile == file)
-		#~ dialog.assert_response_ok()
-		#~ self.assertTrue(dialog.result == file)
+		tests.gtk_process_events()
+		dialog.set_file(file)
+		tests.gtk_process_events()
+		dialog.set_file(file)
+		tests.gtk_process_events()
 
-		# TODO select multiple
+		myfile = dialog.get_file()
+		self.assertIsInstance(myfile, File)
+		self.assertEqual(myfile.uri, file.uri)
 
-		# TODO select folder
+		dialog.assert_response_ok()
+		self.assertIsInstance(dialog.result, File)
+		self.assertEqual(dialog.result.uri, file.uri)
 
-		# TODO add filters
+		# Multiple files
+		file1 = tmp_dir.file('test1.txt')
+		file2 = tmp_dir.file('test2.txt')
+		self.assertTrue(file1.exists())
+		self.assertTrue(file2.exists())
+
+		dialog = FileDialog(None, 'Test', multiple=True)
+		assert dialog.filechooser.select_uri(file1.uri)
+		assert dialog.filechooser.select_uri(file2.uri)
+		tests.gtk_process_events()
+
+		self.assertRaises(AssertionError, dialog.get_file)
+
+		files = dialog.get_files()
+		self.assertTrue(all(isinstance(f, File) for f in files))
+		#~ self.assertEqual([f.uri for f in files], [file1.uri, file2.uri]) -- TODO
+
+		dialog.assert_response_ok()
+		self.assertIsInstance(dialog.result, list)
+
+		# Select folder
+		folder = tmp_dir.subdir('folder1')
+		self.assertTrue(folder.exists())
+
+		dialog = FileDialog(None, 'Test', action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		assert dialog.filechooser.select_uri(folder.uri)
+		tests.gtk_process_events()
+		assert dialog.filechooser.select_uri(folder.uri)
+		tests.gtk_process_events()
+		assert dialog.filechooser.select_uri(folder.uri)
+		tests.gtk_process_events()
+
+		myfolder = dialog.get_dir()
+		self.assertIsInstance(myfolder, Dir)
+		self.assertEqual(myfolder.uri, folder.uri)
+
+		dialog.assert_response_ok()
+		self.assertIsInstance(dialog.result, Dir)
+
+
+		# TODO test adding filters
+		# TODO test preview
+		# TODO test remember_folder

@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+
+'''
+This module is responsible for commandline parsing. It provides a base
+class for the commandline commands defined in L{zim.main}
+'''
 
 
 from getopt import gnu_getopt, GetoptError
@@ -10,7 +15,6 @@ import logging
 logger = logging.getLogger('zim')
 
 
-from zim import __version__
 from zim.errors import Error
 
 
@@ -45,17 +49,13 @@ class Command(object):
 		('debug', 'D', 'Debug output'),
 	)
 
-	use_gtk = False #: Flag whether this command uses a graphical interface
-
-	def __init__(self, command, *args, **opts):
+	def __init__(self, command):
 		'''Constructor
 		@param command: the command switch (first commandline argument)
-		@param args: positional commandline arguments
-		@param opts: command options
 		'''
 		self.command = command
-		self.args = list(args)
-		self.opts = opts
+		self.args = []
+		self.opts = {}
 
 	def parse_options(self, *args):
 		'''Parse commandline options for this command
@@ -114,36 +114,29 @@ class Command(object):
 			if self.opts.get(option) is not None:
 				logger.warning('Option "%s" is ignored for this command', option)
 
-	def set_logging(self):
-		'''Configure the logging module for output based on the
-		default options -V and -D
-		'''
-		if self.opts.get('debug'):
-			level = logging.DEBUG
-		elif self.opts.get('verbose'):
-			level = logging.INFO
-		else:
-			level = logging.WARN
-
-		root = logging.getLogger() # root
-		root.setLevel(level)
-
-		logger = logging.getLogger('zim')
-		logger.info('This is zim %s', __version__)
-		if level == logging.DEBUG:
-			import sys
-			import os
-			import zim.config
-
-			logger.debug('Python version is %s', str(sys.version_info))
-			logger.debug('Platform is %s', os.name)
-			logger.debug(zim.get_zim_revision())
-			zim.config.log_basedirs()
-
-
 	def run(self):
 		'''Run the command
 		@raises UsageError: when arguments are not correct
 		@implementation: must be implemented by subclasses
 		'''
 		raise NotImplementedError
+
+
+class GtkCommand(Command):
+	'''Base class for commandline commands that result in a Gtk
+	user interface being presented to the user.
+
+	These commands are candidates for being run in another process
+	and also will be wrapped with a C{gtk.main} loop.
+
+	If the C{run()} method returns a window, it will be added to the
+	application top level windows.
+
+	NOTE: Do _not_ call C{gtk.main} from the command, this will be
+	done by the application object.
+	'''
+
+	default_options	 = Command.default_options + (
+		('standalone', '', 'start a single instance, no background process'),
+	)
+

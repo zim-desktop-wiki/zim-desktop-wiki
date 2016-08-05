@@ -60,19 +60,8 @@ def set_basedirs():
 		XDG_CONFIG_DIRS = map(Dir,
 			environ.get_list('XDG_CONFIG_DIRS', '~/.config/')) # Backwards compatibility
 
-		try:
-			import _winreg as wreg
-			wreg_key = wreg.OpenKey(
-				wreg.HKEY_CURRENT_USER,
-				r'Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders')
-			cache_dir = str(wreg.QueryValueEx(wreg_key, "Cache")[0].replace(u'%USERPROFILE%', environ['USERPROFILE']))
-			wreg.CloseKey(wreg_key)
-		except:
-			cache_dir = APPDATA + r'\zim\cache'
-			# Not using TMP here because it is cleaned too often
-
 		XDG_CACHE_HOME = Dir(
-			environ.get('XDG_CACHE_HOME', cache_dir + r'\zim'))
+			environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))
 	else:
 		XDG_DATA_HOME = Dir(
 			environ.get('XDG_DATA_HOME', '~/.local/share/'))

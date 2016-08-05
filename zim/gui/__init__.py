@@ -15,7 +15,6 @@ for common base classes for widgets and dialogs.
 from __future__ import with_statement
 
 import os
-import signal
 import re
 import logging
 import gobject
@@ -24,11 +23,8 @@ import threading
 import webbrowser
 
 
-gobject.threads_init()
-	# initialization needed to make gtk mainloop play nice with threading
+from zim.main import ZIM_APPLICATION
 
-
-from zim.main import get_zim_application
 from zim.fs import File, Dir, normalize_win32_share
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
@@ -45,7 +41,7 @@ from zim.templates import list_templates, get_template
 from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
-from zim.gui.widgets import ui_environment, gtk_window_set_default_icon, \
+from zim.gui.widgets import ui_environment, \
 	Button, MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
@@ -182,18 +178,6 @@ class PageHasUnSavedChangesError(Error):
 		# T: Error description
 
 
-class WindowManager(object):
-
-	def __iter__(self):
-		for window in gtk.window_list_toplevels():
-			if isinstance(window, Window): # implies a zim object
-				yield Window
-
-	def present(self):
-		assert False, 'TODO pick window to present'
-
-
-
 class GtkInterface(gobject.GObject):
 	'''Main class for the zim Gtk interface. This object wraps a single
 	notebook and provides actions to manipulate and access this notebook.
@@ -237,12 +221,9 @@ class GtkInterface(gobject.GObject):
 	a page, the Path is given as the 2nd argument so the source of the
 	path can be checked - in particular when a path is opened through a
 	history function this will be a L{HistoryPath}
-	@signal: C{close-page (L{Page}, final)}: Emitted before closing a
+	@signal: C{close-page (L{Page})}: Emitted before closing a
 	page, typically just before a new page is opened and before closing
-	the application. If 'C{final}' is C{True} we expect this to be the
-	final page closure before quiting the application. This it is only
-	a hint, so do not destroy any ui components when 'C{final}' is set,
-	but it can be used to decide to do some actions async or not.
+	the application.
 	@signal: C{read-only-changed ()}: Emitted when the ui changed from
 	read-write to read-only or back
 	@signal: C{quit ()}: Emitted when the application is about to quit
@@ -255,7 +236,7 @@ class GtkInterface(gobject.GObject):
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
 		'open-page': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object, bool)),
+		'close-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'quit': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'start-index-update': (gobject.SIGNAL_RUN_LAST, None, ()),
@@ -274,11 +255,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		gobject.GObject.__init__(self)
 
-		if isinstance(notebook, basestring): # deal with IPC call
-			info = NotebookInfo(notebook)
-			notebook, x = build_notebook(info)
-		elif not isinstance(notebook, Notebook):
-			notebook, x = build_notebook(notebook)
+		assert isinstance(notebook, Notebook)
 
 		logger.debug('Opening notebook: %s', notebook)
 		self.notebook = notebook
@@ -303,8 +280,6 @@ class GtkInterface(gobject.GObject):
 
 		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
 		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
-
-		gtk_window_set_default_icon()
 
 		self.register_preferences('GtkInterface', ui_preferences)
 
@@ -408,17 +383,9 @@ class GtkInterface(gobject.GObject):
 			action = self.actiongroup.get_action(action)
 			action.set_sensitive(has_doc_root)
 
-	def main(self):
-		'''Wrapper for C{gtk.main()}, runs main loop of the application.
-		Does not return until program has ended. Also takes care of
-		a number of initialization actions, like prompting the
-		L{NotebookDialog} if needed and will show the main window.
-		'''
+	def run(self):
+		'''Final initialization and show mainwindow'''
 		assert self.notebook is not None
-
-		if self.notebook.dir:
-			os.chdir(self.notebook.dir.path)
-			environ['PWD'] = self.notebook.dir.path
 
 		if self._first_page is None:
 			self._first_page = self.history.get_current()
@@ -426,42 +393,35 @@ class GtkInterface(gobject.GObject):
 		# Check notebook
 		self.check_notebook_needs_upgrade()
 
-		# Setup signal handler
-		def handle_sigterm(signal, frame):
-			logger.info('Got SIGTERM, quit')
-			self.close_page()
-			self._quit()
-
-		signal.signal(signal.SIGTERM, handle_sigterm)
-
 		# And here we go!
 		self._save_page_handler.start_autosave()
 		self._mainwindow.show_all()
 
         # Adapt the GUI to OS X conventions
-		try:
-			import gtkosx_application
-			macapp = gtkosx_application.Application()
-
-			# move the menus to the OS X menu bar
-			menu_bar = gtk.MenuBar()
-			for i, child in enumerate(self._mainwindow.menubar.get_children()):
-				child.reparent(menu_bar)
-			macapp.set_menu_bar(menu_bar)
-			self._mainwindow.menubar.hide()
-			macapp.set_help_menu(self._mainwindow.uimanager.get_widget('/menubar/help_menu'))
-
-			# move some menu items to the application menu
-			quit = self._mainwindow.uimanager.get_widget('/menubar/file_menu/quit')
-			macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
-			quit.hide()
-			about = self._mainwindow.uimanager.get_widget('/menubar/help_menu/show_about')
-			macapp.insert_app_menu_item(about, 0)
-			prefs = self._mainwindow.uimanager.get_widget('/menubar/edit_menu/show_preferences')
-			macapp.insert_app_menu_item(prefs, 1)
-			macapp.ready()
-		except ImportError:
-			pass
+        ### TODO adapt this to support multiple toplevel windows per process ###
+		#~ try:
+			#~ import gtkosx_application
+			#~ macapp = gtkosx_application.Application()
+#~
+			#~ # move the menus to the OS X menu bar
+			#~ menu_bar = gtk.MenuBar()
+			#~ for i, child in enumerate(self._mainwindow.menubar.get_children()):
+				#~ child.reparent(menu_bar)
+			#~ macapp.set_menu_bar(menu_bar)
+			#~ self._mainwindow.menubar.hide()
+			#~ macapp.set_help_menu(self._mainwindow.uimanager.get_widget('/menubar/help_menu'))
+#~
+			#~ # move some menu items to the application menu
+			#~ quit = self._mainwindow.uimanager.get_widget('/menubar/file_menu/quit')
+			#~ macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
+			#~ quit.hide()
+			#~ about = self._mainwindow.uimanager.get_widget('/menubar/help_menu/show_about')
+			#~ macapp.insert_app_menu_item(about, 0)
+			#~ prefs = self._mainwindow.uimanager.get_widget('/menubar/edit_menu/show_preferences')
+			#~ macapp.insert_app_menu_item(prefs, 1)
+			#~ macapp.ready()
+		#~ except ImportError:
+			#~ pass
 
 		# HACK: Delay opening first page till after show_all() -- else plugins are not initialized
 		#       FIXME need to do extension & initialization of uistate earlier
@@ -479,7 +439,6 @@ class GtkInterface(gobject.GObject):
 			self.notebook.index.start_update()
 
 		self._mainwindow.pageview.grab_focus()
-		gtk.main()
 
 	def check_notebook_needs_upgrade(self):
 		'''Check whether the notebook needs to be upgraded and prompt
@@ -560,33 +519,17 @@ class GtkInterface(gobject.GObject):
 		calls L{quit()} otherwise.
 		'''
 		if self.hideonclose:
-			self.hide()
+			self._mainwindow.hide()
 		else:
-			self.quit()
+			self._mainwindow.destroy()
 
 	@action(_('_Quit'), 'gtk-quit', '<Primary>Q') # T: Menu item
 	def quit(self):
 		'''Menu action for quit.
 		@emits: quit
 		'''
-		if not self.close_page(self.page, final=True):
-			# Do not quit if page not saved
-			return False
-
-		self._mainwindow.hide() # look more responsive
-		self.notebook.index.stop_update()
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
-
-		self._quit()
-
-	def _quit(self):
-		self.emit('quit')
-
 		if gtk.main_level() > 0:
 			gtk.main_quit()
-
-		return True
 
 	def populate_popup(self, name, menu, path_context=None):
 		'''Populate a popup menu from a popup defined in the uimanager
@@ -786,48 +729,28 @@ class GtkInterface(gobject.GObject):
 		return self._path_context or self.page
 
 	@action(_('_Open Another Notebook...'), 'gtk-open', '<Primary>O') # T: Menu item
-	def open_notebook(self, notebook=None):
-		'''Open a new notebook. If this is the first notebook the
-		notebook is opened in this application instance. Otherwise we
-		let another instance handle it.
-		@param notebook: notebook location, if C{None} we will prompt
-		the user with the L{NotebookDialog}
-		@emits: open-notebook
+	def show_open_notebook(self):
+		'''Show the L{NotebookDialog} dialog'''
+		from zim.gui.notebookdialog import NotebookDialog
+		NotebookDialog.unique(self, self, callback=self.open_notebook).show()
+
+	def open_notebook(self, location, pagename=None):
+		'''Open another notebook.
+		@param location: notebook location as uri or object with "uri" attribute
+		@param pagename: optional page name
 		'''
-		if notebook is None:
-			# Handle menu item for 'open another notebook'
-			# FIXME - this should be a "show_open_notebook" action or similar
-			from zim.gui.notebookdialog import NotebookDialog
-			NotebookDialog.unique(self, self, callback=self.open_notebook).show() # implicit recurs
+		assert isinstance(location, basestring) or hasattr(location, 'uri')
+		assert pagename is None or isinstance(pagename, basestring)
+
+		uri = location.uri if hasattr(location, 'uri') else location
+
+		if self.notebook and self.notebook.uri == uri:
+			self.present(page=pagename)
 		else:
-			import zim.ipc
-
-			# XXX notebook can be either object or string - fix this to always be an object
-			pagename = None
-			if isinstance(notebook, basestring):
-				if notebook.startswith('zim+'):
-					if '?' in notebook:
-						uri, pagename = notebook.split('?', 1)
-						uri = uri[4:]
-					else:
-						uri = notebook[4:]
-				else:
-					uri = File(notebook).uri
-			elif hasattr(notebook, 'uri'):
-				uri = notebook.uri
+			if pagename:
+				ZIM_APPLICATION.run('--gui', uri, pagename)
 			else:
-				raise AssertionError, 'Can not handle: %s' % notebook
-
-			if self.notebook and self.notebook.uri == uri:
-				self.present(page=pagename)
-			elif zim.ipc.in_child_process():
-				notebook = zim.ipc.ServerProxy().get_notebook(uri)
-				notebook.present(page=pagename)
-			else:
-				if pagename:
-					get_zim_application('--gui', uri, pagename).spawn()
-				else:
-					get_zim_application('--gui', uri).spawn()
+				ZIM_APPLICATION.run('--gui', uri)
 
 	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def open_page(self, path=None):
@@ -899,14 +822,11 @@ class GtkInterface(gobject.GObject):
 			# FIXME: Need index path here, page.haschildren is also True
 			#        when the page just has a attachment folder
 
-	def close_page(self, page=None, final=False):
+	def close_page(self, page=None):
 		'''Close the page and try to save any changes in the page.
 
 		@param page: the page to close, defaults to current page in
 		main window
-		@param final: hint if we believe this to be the last page
-		before quitting the page
-
 		@returns: C{True} if succesful, C{False} if page still has
 		un-saved changes.
 
@@ -914,13 +834,13 @@ class GtkInterface(gobject.GObject):
 		'''
 		if page is None:
 			page = self.page
-		self.emit('close-page', page, final)
+		self.emit('close-page', page)
 		page._parsetree = None
 			# XXX HACK to avoid caching parsetree - can be removed
 			# once the pageview takes care of saving the page
 		return not page.modified
 
-	def do_close_page(self, page, final):
+	def do_close_page(self, page):
 		self.assert_save_page_if_modified()
 
 		current = self.history.get_current()
@@ -935,15 +855,13 @@ class GtkInterface(gobject.GObject):
 
 		if self.uistate.modified and hasattr(self.uistate, 'write'):
 			# during tests we may have a config dict without config file
-			if final:
-				self.uistate.write()
-			else:
-				# Delayed signal avoid queueing many of these in a
-				# short time when going back and forward in the history
-				if not hasattr(self.uistate, '_delayed_async_write'):
-					self.uistate._delayed_async_write = \
-						DelayedCallback(2000, save_uistate_cb) # 2 sec
-				self.uistate._delayed_async_write()
+
+			# Delayed signal avoid queueing many of these in a
+			# short time when going back and forward in the history
+			if not hasattr(self.uistate, '_delayed_async_write'):
+				self.uistate._delayed_async_write = \
+					DelayedCallback(2000, save_uistate_cb) # 2 sec
+			self.uistate._delayed_async_write()
 
 	@action(
 		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
@@ -1056,8 +974,8 @@ class GtkInterface(gobject.GObject):
 		# The 'open_page' and 'attachments' arguments are a bit of a
 		# hack for remote calls. They are needed because the remote
 		# function doesn't know the exact page name we creates...
-		# TODO: with new zim.ipc we can now return the page name and
-		# get rid of this hack
+		# With new multi-window process this is not used anymore by
+		# - so get rid of the hack and just return the page
 		if not name:
 			name = text.strip()[:30]
 			if '\n' in name:
@@ -1323,7 +1241,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		if path is None:
 			path = self._get_path_context()
-		AttachFileDialog(self._mainwindow, path).run()
+		AttachFileDialog(self._mainwindow, self.notebook, path).run()
 
 	def do_attach_file(self, path, file, force_overwrite=False):
 		'''Callback for AttachFileDialog and InsertImageDialog
@@ -1627,7 +1545,7 @@ class GtkInterface(gobject.GObject):
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
 		# TODO instead of spawn, include in this process
-		get_zim_application('--server', '--gui', self.notebook.uri).spawn()
+		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
 
 	@action(_('Update Index'), readonly=False) # T: Menu item
 	def reload_index(self):
@@ -1741,11 +1659,12 @@ class GtkInterface(gobject.GObject):
 		tool = manager.get_tool(action.get_name())
 		logger.info('Execute custom tool %s', tool.name)
 		args = (self.notebook, self.page, self._mainwindow.pageview)
+		cwd = self.page.source.dir
 		try:
 			if tool.isreadonly:
-				tool.spawn(args)
+				tool.spawn(args, cwd=cwd)
 			elif tool.replaceselection:
-				output = tool.pipe(args)
+				output = tool.pipe(args, cwd=cwd)
 				logger.debug('Replace output with %s', output)
 				pageview = self._mainwindow.pageview # XXX
 				buffer = pageview.view.get_buffer() # XXX
@@ -1757,7 +1676,7 @@ class GtkInterface(gobject.GObject):
 				else:
 					pass # error here ??
 			else:
-				tool.run(args)
+				tool.run(args, cwd=cwd)
 				self.reload_page()
 				self.notebook.index.start_update()
 				# TODO instead of using run, use spawn and show dialog
@@ -1772,9 +1691,9 @@ class GtkInterface(gobject.GObject):
 		@param page: manual page to show (string)
 		'''
 		if page:
-			get_zim_application('--manual', page).spawn()
+			ZIM_APPLICATION.run('--manual', page)
 		else:
-			get_zim_application('--manual').spawn()
+			ZIM_APPLICATION.run('--manual')
 
 	@action(_('_FAQ')) # T: Menu item
 	def show_help_faq(self):
@@ -2015,6 +1934,25 @@ class MainWindow(Window):
 
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
+
+	def destroy(self):
+		if not self.ui.close_page(self.ui.page):
+			# Do not quit if page not saved
+			return
+
+		self.hide() # look more responsive
+		self.ui.notebook.index.stop_update()
+		while gtk.events_pending():
+			gtk.main_iteration(block=False)
+
+		if self.ui.uistate.modified and hasattr(self.ui.uistate, 'write'):
+			# during tests we may have a config dict without config file
+			self.ui.uistate.write()
+
+		self.ui._save_page_handler.stop_autosave()
+		self.ui._mainwindow = None
+
+		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
 	def do_update_statusbar(self, *a):
 		page = self.pageview.get_page()
@@ -2347,9 +2285,9 @@ class MainWindow(Window):
 
 		if not self._geometry_set:
 			# Ignore this if an explicit geometry was specified to the constructor
-			self.uistate.setdefault('windowpos', (None, None), check=value_is_coord)
-			x, y = self.uistate['windowpos']
-			if (x, y) != (None, None):
+			self.uistate.setdefault('windowpos', None, check=value_is_coord)
+			if self.uistate['windowpos'] is not None:
+				x, y = self.uistate['windowpos']
 				self.move(x, y)
 			self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 			w, h = self.uistate['windowsize']
@@ -2513,7 +2451,7 @@ class MainWindow(Window):
 
 		#TODO: set toggle_readonly insensitive when page is readonly
 
-	def on_close_page(self, ui, page, final):
+	def on_close_page(self, ui, page):
 		self.save_uistate()
 
 	def on_textview_toggle_overwrite(self, view):
@@ -2900,10 +2838,12 @@ class SaveCopyDialog(FileDialog):
 	def __init__(self, ui, page=None):
 		FileDialog.__init__(self, ui, _('Save Copy'), gtk.FILE_CHOOSER_ACTION_SAVE)
 			# T: Dialog title of file save dialog
-		self.filechooser.set_current_name(self.ui.page.name + '.txt')
 		if page is None:
 			page = self.ui.page
 		self.page = page
+		self.filechooser.set_current_name(self.page.name + '.txt')
+		self.add_shortcut(ui.notebook, page)
+
 		# TODO also include headers
 		# TODO add droplist with native formats to choose + hook filters
 
@@ -2924,6 +2864,8 @@ class ImportPageDialog(FileDialog):
 	def __init__(self, ui):
 		FileDialog.__init__(self, ui, _('Import Page')) # T: Dialog title
 		self.add_filter(_('Text Files'), '*.txt') # T: File filter for '*.txt'
+		self.add_shortcut(ui.notebook, ui.page)
+
 		# TODO add input for namespace, format
 
 	def do_response_ok(self):
@@ -3147,12 +3089,13 @@ class DeletePageDialog(Dialog):
 
 class AttachFileDialog(FileDialog):
 
-	def __init__(self, window, path):
+	def __init__(self, window, notebook, path):
 		assert path, 'Need a page here'
 		FileDialog.__init__(self, window, _('Attach File'), multiple=True) # T: Dialog title
+		self.add_shortcut(notebook, path)
+		self.load_last_folder()
+
 		self.app_window = window
-		self.uistate.setdefault('last_attachment_folder','~')
-		self.filechooser.set_current_folder(self.uistate['last_attachment_folder'])
 		self.path = path
 
 		dir = self.app_window.ui.notebook.get_attachments_dir(self.path)
@@ -3172,13 +3115,11 @@ class AttachFileDialog(FileDialog):
 		if not files:
 			return False
 
+		self.save_last_folder()
+
+		# Similar code in zim.gui.pageview.InsertImageDialog
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['insert_attached_images'] = not checkbox.get_active()
-		last_folder = self.filechooser.get_current_folder()
-		if last_folder:
-			# e.g. "Recent Used" view in dialog does not have a current folder
-			self.uistate['last_attachment_folder'] = last_folder
-		# Similar code in zim.gui.pageview.InsertImageDialog
 
 		last = len(files) - 1
 		for i, file in enumerate(files):

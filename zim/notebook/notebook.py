@@ -136,6 +136,10 @@ class PageReadOnlyError(Error):
 	_msg = _('Can not modify page: %s') # T: error message for read-only pages
 
 
+
+_NOTEBOOK_CACHE = weakref.WeakValueDictionary()
+
+
 class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 
@@ -215,7 +219,20 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 	@classmethod
 	def new_from_dir(klass, dir):
+		'''Constructor to create a notebook based on a specific
+		file system location.
+		Since the file system is an external resource, this method
+		will return unique objects per location and keep (weak)
+		references for re-use.
+
+		@param dir: a L{Dir} object
+		@returns: a L{Notebook} object
+		'''
 		assert isinstance(dir, Dir)
+
+		nb = _NOTEBOOK_CACHE.get(dir.uri)
+		if nb:
+			return nb
 
 		from .index import Index
 		from .layout import FilesLayout
@@ -234,7 +251,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		layout = FilesLayout(folder, endofline)
 		index = Index.new_from_file(cache_dir.file('index.db'), layout)
 
-		return klass(dir, cache_dir, config, folder, layout, index)
+		nb = klass(dir, cache_dir, config, folder, layout, index)
+		_NOTEBOOK_CACHE[dir.uri] = nb
+		return nb
 
 	def __init__(self, dir, cache_dir, config, folder, layout, index):
 		self.dir = dir # TODO remove

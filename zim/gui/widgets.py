@@ -559,9 +559,13 @@ class IconChooserButton(gtk.Button):
 	def do_clicked(self):
 		dialog = FileDialog(self, _('Select File')) # T: dialog title
 		dialog.add_filter_images()
-		file = dialog.run()
-		if file:
-			self.set_file(file)
+		oldfile = self.get_file()
+		if oldfile:
+			dialog.set_file(oldfile)
+
+		newfile = dialog.run()
+		if newfile:
+			self.set_file(newfile)
 
 	def set_file(self, file):
 		'''Set the file to display in the chooser button
@@ -1749,9 +1753,18 @@ class FSPathEntry(InputEntry):
 		if self.file_type_hint == 'image':
 			dialog.add_filter_images()
 
+		if self.notebook:
+			dialog.add_shortcut(self.notebook, self.notebookpath)
+
 		path = FSPathEntry.get_path(self) # overloaded in LinkEntry
 		if path:
 			dialog.set_file(path)
+		elif self.notebookpath:
+			page = self.notebook.get_page(self.notebookpath)
+			dialog.set_current_dir(page.source.dir)
+		elif self.notebook:
+			dialog.set_current_dir(self.notebook.dir)
+
 
 		file = dialog.run()
 		if not file is None:
@@ -2165,18 +2178,14 @@ def register_window(window):
 class uistate_property(object):
 	'''Class for uistate get/set attributes'''
 
-	# TODO add hook such that it will be initialized on init of owner obj
-
 	def __init__(self, key, *default):
 		self.key = key
 		self.default = default
-		self._initialized = False
 
 	def __get__(self, obj, klass):
 		if obj:
-			if not self._initialized:
+			if not self.key in obj.uistate:
 				obj.uistate.setdefault(self.key, *self.default)
-				self._initialized = True
 			return obj.uistate[self.key]
 
 	def __set__(self, obj, value):
@@ -3468,7 +3477,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, help=None, multiple=False
+			help_text=None, help=None, multiple=False,
 		):
 		'''Constructor.
 
@@ -3501,7 +3510,8 @@ class FileDialog(Dialog):
 		Dialog.__init__(self, ui, title, defaultwindowsize=(500, 400),
 			buttons=buttons, button=button, help_text=help_text, help=help)
 
-		self.filechooser = gtk.FileChooserWidget(action=action)
+		self.filechooser = gtk.FileChooserWidget()
+		self.filechooser.set_action(action)
 		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.set_select_multiple(multiple)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
@@ -3512,9 +3522,12 @@ class FileDialog(Dialog):
 		self.filechooser.set_preview_widget(self.preview_widget)
 		self.filechooser.connect('update-preview', self.on_update_preview)
 
+		self._action = action
+
 	def on_update_preview(self, *a):
-		filename = self.filechooser.get_preview_filename()
 		try:
+			filename = self.filechooser.get_preview_filename()
+
 			info, w, h = gtk.gdk.pixbuf_get_file_info(filename)
 			if w <= 128 and h <= 128:
 				# Show icons etc. on real size
@@ -3528,30 +3541,63 @@ class FileDialog(Dialog):
 			self.filechooser.set_preview_widget_active(False)
 		return
 
+	def set_current_dir(self, dir):
+		'''Set the current folder for the dialog
+		(Only needed if not followed by L{set_file()})
+		@param dir: a L{Dir} object
+		'''
+		ok = self.filechooser.set_current_folder_uri(dir.uri)
+		if not ok:
+			raise AssertionError, 'Could not set folder: %s' % dir.uri
+
+	def load_last_folder(self):
+		self.uistate.setdefault('last_folder_uri', None, check=basestring)
+		if self.uistate['last_folder_uri']:
+			uri = self.uistate['last_folder_uri']
+			ok = self.filechooser.set_current_folder_uri(uri)
+			if not ok:
+				logger.warning('Could not set current folder to: %s', uri)
+
+	def save_last_folder(self):
+		last_folder = self.filechooser.get_current_folder_uri()
+		if last_folder:
+			# e.g. "Recent Used" view in dialog does not have a current folder
+			self.uistate['last_folder_uri'] = last_folder
+		else:
+			self.uistate['last_folder_uri'] = None
+
+	def add_shortcut(self, notebook, path=None):
+		'''Add shortcuts for the notebook folder and page folder'''
+		self.filechooser.add_shortcut_folder(notebook.dir.path)
+		if path:
+			page = notebook.get_page(path)
+			if hasattr(page, 'source') and page.source is not None:
+				self.filechooser.add_shortcut_folder(page.source.dir.path)
+
 	def set_file(self, file):
 		'''Set the file or dir to pre select in the dialog
 		@param file: a L{File} or L{Dir} object
 		'''
-		ok = self.filechooser.set_filename(file.path)
+		ok = self.filechooser.set_uri(file.uri)
 		if not ok:
-			raise Exception, 'Could not set filename: %s' % file.path
+			raise AssertionError, 'Could not set file: %s' % file.uri
 
 	def get_file(self):
 		'''Get the current selected file
 		@returns: a L{File} object or C{None}.
 		'''
-		path = self.filechooser.get_filename()
-		if path is None: return None
-		else: return File(path.decode('utf-8'))
+		if self.filechooser.get_select_multiple():
+			raise AssertionError, 'Multiple files selected, use get_files() instead'
+
+		uri = self.filechooser.get_uri()
+		return File(uri.decode('utf-8')) if uri else None
 
 	def get_files(self):
 		'''Get list of selected file. Assumes the dialog was created
 		with C{multiple=True}.
 		@returns: a list of L{File} objects
 		'''
-		paths = [path.decode('utf-8')
-				for path in self.filechooser.get_filenames()]
-		return [File(path) for path in paths]
+		return [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
 
 	def get_dir(self):
 		'''Get the the current selected dir. Assumes the dialog was
@@ -3559,9 +3605,11 @@ class FileDialog(Dialog):
 		C{gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER}.
 		@returns: a L{Dir} object or C{None}
 		'''
-		path = self.filechooser.get_filename().decode('utf-8')
-		if path is None: return None
-		else: return Dir(path)
+		if self.filechooser.get_select_multiple():
+			raise AssertionError, 'Multiple files selected, use get_files() instead'
+
+		uri = self.filechooser.get_uri()
+		return Dir(uri.decode('utf-8')) if uri else None
 
 	def _add_filter_all(self):
 		filter = gtk.FileFilter()
@@ -3606,16 +3654,16 @@ class FileDialog(Dialog):
 		of the dialog accordingly, so the method run() will return the
 		selected file(s) or folder(s).
 		'''
-		action = self.filechooser.get_action()
+		action = self._action
 		multiple = self.filechooser.get_select_multiple()
 		if action in (
 			gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
 			gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER
 		):
-			if multiple:
-				self.result = self.get_dirs()
-			else:
-				self.result = self.get_dir()
+			#~ if multiple:
+				#~ self.result = self.get_dirs()
+			#~ else:
+			self.result = self.get_dir()
 		else:
 			if multiple:
 				self.result = self.get_files()

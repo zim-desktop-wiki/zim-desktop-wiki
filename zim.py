@@ -20,12 +20,13 @@ except:
 
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
 # See http://www.py2exe.org/index.cgi/StderrLog
+# If startup is OK, this will be overruled in zim/main with per user log file
 if os.name == "nt" and sys.argv[0].endswith('.exe'):
 	import tempfile
 	dir = tempfile.gettempdir()
 	if not os.path.isdir(dir):
 		os.makedirs(dir)
-	err_stream = open(dir + "\\zim.log", "w")
+	err_stream = open(dir + "\\zim.exe.log", "w")
 	sys.stdout = err_stream
 	sys.stderr = err_stream
 
@@ -36,7 +37,6 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 try:
 	import zim
 	import zim.main
-	import zim.ipc
 except ImportError:
 	sys.excepthook(*sys.exc_info())
 	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
@@ -47,7 +47,6 @@ except ImportError:
 
 # Run the application and handle some exceptions
 try:
-	zim.ipc.handle_argv()
 	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
 	argv = [arg.decode(encoding) for arg in sys.argv]
 	exitcode = zim.main.main(*argv)

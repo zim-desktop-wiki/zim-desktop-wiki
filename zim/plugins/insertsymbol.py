@@ -197,7 +197,7 @@ class InsertSymbolDialog(Dialog):
 		self.textentry.set_position(pos + len(text))
 
 	def on_edit(self, button):
-		file = self.confg.get_config_file('symbols.list')
+		file = self.ui.config.get_config_file('symbols.list')
 		if self.ui.edit_config_file(file):
 			self.plugin.load_file()
 			self.load_symbols()

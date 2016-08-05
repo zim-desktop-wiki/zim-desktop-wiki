@@ -27,14 +27,14 @@ import zim.datetimetz as datetime
 
 import zim.formats
 
-from zim.fs import File, Dir, normalize_file_uris
+from zim.fs import File, Dir, normalize_file_uris, FilePath
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, LINE_TEXT
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -53,6 +53,37 @@ from zim.plugins import PluginManager
 
 
 logger = logging.getLogger('zim.gui.pageview')
+
+
+class LineSeparator(CustomObjectWidget):
+	'''Class to create a separation line.'''
+	__gsignals__ = {
+		'size-request': 'override',
+	}
+
+	def __init__(self):
+		CustomObjectWidget.__init__(self)
+		# Set color of the line.
+		self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse('darkgrey'))
+		# Set size of the line.
+		self.vbox.set_size_request(self._textview_width, height = 3)
+
+class LineObject(CustomObjectClass):
+	'''Class to work with 'LineSeparator' objects.'''
+	OBJECT_ATTR = {
+		'type': String('line'),
+	}
+
+	def get_widget(self):
+		'''Creates a new line which can be displayed on the wiki-page.'''
+		return LineSeparator()
+
+ObjectManager.register_object('line', LineObject)
+
+def IS_LINE(line):
+	'''Function used for line autoformatting.'''
+	length = len(line)
+	return (line == '-'*length) and (length > 4)
 
 
 STOCK_CHECKED_BOX = 'zim-checked-box'
@@ -113,7 +144,7 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
+KEYSTATES = gtk.gdk.CONTROL_MASK |gtk.gdk.META_MASK| gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 MENU_ACTIONS = (
 	# name, stock id, label
@@ -292,8 +323,8 @@ class AsciiString(String):
 class ConfigDefinitionConstant(String):
 
 	def __init__(self, default, prefix=None):
-		String.__init__(self, default=default)
 		self.prefix = prefix
+		String.__init__(self, default=default)
 
 	def check(self, value):
 		value = String.check(self, value)
@@ -512,6 +543,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	# style attributes
 	pixels_indent = 30 #: pixels indent for a single indent level
+	bullet_icon_size = gtk.ICON_SIZE_MENU #: constant for icon size of checkboxes etc.
 
 	#: text styles supported by the editor
 	tag_styles = {
@@ -890,6 +922,10 @@ class TextBuffer(gtk.TextBuffer):
 				self.insert_object_at_cursor(obj)
 
 				set_indent(None)
+			elif element.tag == 'line':
+				obj = ObjectManager.get_object('line', None, None)
+				self.insert_object_at_cursor(obj)
+
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
@@ -1258,10 +1294,10 @@ class TextBuffer(gtk.TextBuffer):
 				# Insert icon
 				stock = bullet_types[bullet]
 				widget = gtk.HBox() # Need *some* widget here...
-				pixbuf = widget.render_icon(stock, gtk.ICON_SIZE_MENU)
+				pixbuf = widget.render_icon(stock, self.bullet_icon_size)
 				if pixbuf is None:
 					logger.warn('Could not find icon: %s', stock)
-					pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+					pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, self.bullet_icon_size)
 				pixbuf.zim_type = 'icon'
 				pixbuf.zim_attrib = {'stock': stock}
 				self.insert_pixbuf(self.get_insert_iter(), pixbuf)
@@ -2331,6 +2367,18 @@ class TextBuffer(gtk.TextBuffer):
 					and hasattr(anchor.manager, 'build_parsetree_of_table'): # fallback should not go here...
 						obj = anchor.manager
 						obj.build_parsetree_of_table(builder, iter)
+					elif attrib and attrib['type'] == 'line':
+						# Add (if necessary) additional newline symbols
+						# to prevent formatting back from line object to text.
+						_new_iter = iter.copy()
+						_start = '' if _new_iter.starts_line() else '\n'
+						_new_iter.forward_char()
+						_end = '' if _new_iter.ends_line() else '\n'
+						data = '{}{}{}'.format(_start, LINE_TEXT, _end)
+						logger.debug("Anchor with Line, obj:%s", anchor.manager)
+						builder.start('line', attrib)
+						builder.data(data)
+						builder.end('line')
 					else:
 						# general object related parsing
 						data = anchor.manager.get_data()
@@ -3690,7 +3738,7 @@ class TextView(gtk.TextView):
 				return gtk.TextView.do_key_press_event(self, event)
 
 		elif (event.keyval in KEYVALS_HOME
-		and not event.state & gtk.gdk.META_MASK):
+		and not event.state & gtk.gdk.CONTROL_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)
@@ -4202,6 +4250,12 @@ class TextView(gtk.TextView):
 			buffer.insert_with_tags_by_name(
 				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
 			buffer.delete_mark(mark)
+		elif IS_LINE(line):
+			with buffer.user_action:
+				buffer.delete(start, end)
+				obj = ObjectManager.get_object('line', None, None)
+				buffer.insert_object_at_cursor(obj)
+				buffer.insert_at_cursor('\n')
 		elif not buffer.get_bullet_at_iter(start) is None:
 			# we are part of bullet list
 			# FIXME should logic be handled by TextBufferList ?
@@ -4363,6 +4417,7 @@ class UndoStackManager:
 			('insert-text', self.do_insert_text),
 			#~ ('inserted-tree', self.do_insert_tree), # TODO
 			('insert-pixbuf', self.do_insert_pixbuf),
+			('insert-child-anchor', self.do_insert_pixbuf),
 			('delete-range', self.do_delete_range),
 			('begin-user-action', self.do_begin_user_action),
 			('end-user-action', self.do_end_user_action),
@@ -4798,6 +4853,8 @@ class PageView(gtk.VBox):
 		# TODO: reload buffer on style changed to make change visible
 		#       now it is only visible on next page load
 
+		self.text_style['TextView'].define(bullet_icon_size=GtkConstant('ICON_SIZE_MENU'))
+
 		self.text_style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
 		self.text_style['TextView'].setdefault('tabs', None, int)
 			# Don't set a default for 'tabs' as not to break pages that
@@ -4834,6 +4891,7 @@ class PageView(gtk.VBox):
 
 		# Set properties for TextBuffer
 		TextBuffer.pixels_indent = self.text_style['TextView']['indent']
+		TextBuffer.bullet_icon_size = self.text_style['TextView']['bullet_icon_size']
 
 		# Load TextTags
 		testbuffer = gtk.TextBuffer()
@@ -4859,7 +4917,7 @@ class PageView(gtk.VBox):
 			except:
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:
-				TextBuffer.tag_styles[tag] = attrib
+				TextBuffer.tag_styles[tag].update(attrib)
 
 	def _connect_focus_event(self):
 		# Connect to parent window here in a HACK to ensure
@@ -5274,7 +5332,16 @@ class PageView(gtk.VBox):
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
 			elif type == 'notebook':
-				self.ui.open_notebook(href)
+				if href.startswith('zim+'):
+					uri = href[4:]
+					if '?' in href:
+						uri, pagename = href.split('?', 1)
+
+					self.ui.open_notebook(uri, pagename)
+
+				else:
+					self.ui.open_notebook(FilePath(href).uri)
+
 			else:
 				if type == 'mailto' \
 				and not href.startswith('mailto:'):
@@ -5584,6 +5651,20 @@ class PageView(gtk.VBox):
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
 
+	@action(_('Horizontal _Line'), readonly=False) # T: Menu item for Insert menu
+	def insert_line(self):
+		'''
+                This function is called from menu action.
+                Insert a line at the cursor position.
+		'''
+		obj = ObjectManager.get_object('line', None, None)
+
+		buffer = self.view.get_buffer()
+		with buffer.user_action:
+			buffer.insert_object_at_cursor(obj)
+			# Add newline after line separator widget.
+			buffer.insert_at_cursor('\n')
+
 	@action(_('_Image...'), readonly=False) # T: Menu item
 	def insert_image(self, file=None, type=None, interactive=True, force=False):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
@@ -5599,7 +5680,7 @@ class PageView(gtk.VBox):
 		@returns: C{True} if succesfull
 		'''
 		if interactive:
-			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
+			InsertImageDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page, file).run()
 		else:
 			# Check if file is supported, otherwise unsupported file
 			# results in broken image icon
@@ -5661,7 +5742,7 @@ class PageView(gtk.VBox):
 	@action(_('Text From _File...'), readonly=False) # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
+		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -6150,24 +6231,30 @@ class InsertDateDialog(Dialog):
 class InsertImageDialog(FileDialog):
 	'''Dialog to insert an image in the page'''
 
-	def __init__(self, ui, buffer, path, file=None):
+	def __init__(self, ui, buffer, notebook, path, file=None):
 		FileDialog.__init__(
 			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
+
 		self.buffer = buffer
+		self.notebook = notebook
 		self.path = path
-		self.add_filter_images()
 
 		self.uistate.setdefault('attach_inserted_images', False)
+		self.uistate.setdefault('last_image_folder', None, check=basestring)
+
+		self.add_shortcut(notebook, path)
+		self.add_filter_images()
+
 		checkbox = gtk.CheckButton(_('Attach image first'))
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
-		self.uistate.setdefault('last_image_folder','~')
-		self.filechooser.set_current_folder(self.uistate['last_image_folder'])
 
 		if file:
 			self.set_file(file)
+		else:
+			self.load_last_folder()
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -6178,14 +6265,11 @@ class InsertImageDialog(FileDialog):
 				# T: Error message when trying to insert a not supported file as image
 			return False
 
+		self.save_last_folder()
+
+		# Similar code in zim.gui.AttachFileDialog
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['attach_inserted_images'] = checkbox.get_active()
-		last_folder = self.filechooser.get_current_folder()
-		if last_folder:
-			# e.g. "Recent Used" view in dialog does not have a current folder
-			self.uistate['last_image_folder'] = last_folder
-		# Similar code in zim.gui.AttachFileDialog
-
 		if self.uistate['attach_inserted_images']:
 			dir = self.ui.notebook.get_attachments_dir(self.path)
 			if not file.dir == dir:
@@ -6193,7 +6277,7 @@ class InsertImageDialog(FileDialog):
 				if file is None:
 					return False # Cancelled overwrite dialog
 
-		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
+		src = self.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
 
@@ -6325,10 +6409,12 @@ class EditImageDialog(Dialog):
 class InsertTextFromFileDialog(FileDialog):
 	'''Dialog to insert text from an external file into the page'''
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, notebook, page):
 		FileDialog.__init__(
 			self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
+		self.load_last_folder()
+		self.add_shortcut(notebook, page)
 		self.buffer = buffer
 
 	def do_response_ok(self):
@@ -6337,6 +6423,7 @@ class InsertTextFromFileDialog(FileDialog):
 		parser = get_format('plain').Parser()
 		tree = parser.parse(file.readlines())
 		self.buffer.insert_parsetree_at_cursor(tree)
+		self.save_last_folder()
 		return True
 
 

@@ -12,6 +12,8 @@ from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
 from zim.gui.applications import CustomizeOpenWithDialog
 
+from zim.plugins import PLUGIN_FOLDER
+
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
 
@@ -186,7 +188,8 @@ class PluginsTab(gtk.VBox):
 		#~ logger.debug('Plugins that are loaded: %s' % list(plugins))
 
 		self.treeview = PluginsTreeView(self.plugins)
-		self.treeview.connect('row-activated', self.do_row_activated)
+		self.treeselection = self.treeview.get_selection()
+		self.treeselection.connect('changed', self.do_selection_changed)
 		swindow = ScrolledWindow(self.treeview, hpolicy=gtk.POLICY_NEVER)
 		self.hbox.pack_start(swindow, False)
 
@@ -215,9 +218,22 @@ class PluginsTab(gtk.VBox):
 		hbox.pack_start(self.configure_button, False)
 
 		try:
-			self.do_row_activated(self.treeview, (0,), 0)
+			self.treeselection.select_path(0)
 		except:
 			pass # maybe loading plugins failed
+
+		## Add buttons to get and install new plugins
+		hbox = gtk.HButtonBox()
+		hbox.set_border_width(5)
+		hbox.set_layout(gtk.BUTTONBOX_START)
+		self.pack_start(hbox, False)
+
+		assert hasattr(self.dialog, 'ui')
+		open_button = gtk.Button(label=_('Open plugins folder'))
+		open_button.connect('clicked',
+			lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
+		)
+		hbox.pack_start(open_button, False)
 
 		if gtk.gtk_version >= (2, 10) \
 		and gtk.pygtk_version >= (2, 10):
@@ -225,9 +241,14 @@ class PluginsTab(gtk.VBox):
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Plugins',
 				_('Get more plugins online') # T: label for button with URL
 			)
-			self.pack_start(url_button, False)
+			hbox.pack_start(url_button, False)
 
-	def do_row_activated(self, treeview, path, col):
+
+	def do_selection_changed(self, selection):
+		treeview = selection.get_tree_view()
+		selected = selection.get_selected()
+		path = selected[0].get_path(selected[1])
+		
 		key, active, activatable, name, klass = treeview.get_model()[path]
 
 		self._current_plugin = key
@@ -288,7 +309,7 @@ class PluginsTab(gtk.VBox):
 			if model[iter][2] == name:
 				self.treeview.scroll_to_cell(path)
 				self.treeview.set_cursor(path)
-				self.do_row_activated(self.treeview, path, 0)
+				self.do_selection_changed(self.treeselection, 0)
 				return True;
 			return False # keep the foreach going
 		model.foreach(find)

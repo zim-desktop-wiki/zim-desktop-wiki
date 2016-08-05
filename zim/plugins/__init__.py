@@ -88,7 +88,7 @@ from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandl
 from zim.actions import action, toggle_action, get_gtk_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
-from zim.config import data_dirs, VirtualConfigManager
+from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
 
 
 logger = logging.getLogger('zim.plugins')
@@ -112,6 +112,9 @@ for dir in data_dirs('plugins'):
 __path__.append(__path__.pop(0)) # reshuffle real module path to the end
 
 #~ print "PLUGIN PATH:", __path__
+
+
+PLUGIN_FOLDER = XDG_DATA_HOME.subdir('zim/plugins')
 
 
 class PluginManager(ConnectorMixin, collections.Mapping):

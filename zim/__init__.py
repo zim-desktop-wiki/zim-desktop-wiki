@@ -63,9 +63,6 @@ can be extended by plugins.
 The graphical user interface is implemented in the L{zim.gui} module
 and it's sub-modules. The webinterface is implemented in L{zim.www}.
 
-The graphical interface uses a background process to coordinate
-between running instances, this is implemented in L{zim.ipc}.
-
 Functionality for exporting content is implemented in L{zim.exporter}.
 And search functionality can be found in L{zim.search}.
 
@@ -156,8 +153,9 @@ if os.name == "nt" and not os.environ.get('LANG'):
 	# Set locale config for gettext (other platforms have this by default)
 	# Using LANG because it is lowest prio - do not override other params
 	lang, enc = locale.getlocale()
-	os.environ['LANG'] = lang + '.' + enc
-	logging.info('Locale set to: %s', os.environ['LANG'])
+	if lang is not None:
+		os.environ['LANG'] = lang + '.' + enc if enc else lang
+		logging.info('Locale set to: %s', os.environ['LANG'])
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')

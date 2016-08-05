@@ -343,7 +343,7 @@ is_uri_re = Re('^(\w[\w\+\-\.]*):')
 	# "scheme:"
 is_url_re = Re('^(\w[\w\+\-\.]*)://')
 	# "scheme://"
-is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+$', re.U)
+is_email_re = Re('^(mailto:\S+|[^\s:]+)\@\S+\.\w+(\?.+)?$', re.U)
 	# "mailto:" address
 	# name "@" host
 	# but exclude other uris like mid: and cid:
