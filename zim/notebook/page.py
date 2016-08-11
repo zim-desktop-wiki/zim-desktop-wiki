@@ -17,6 +17,9 @@ import zim.formats
 import zim.fs
 import zim.newfs
 
+from zim.signals import SignalEmitter, SIGNAL_NORMAL
+
+
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
 	'(' +
@@ -333,7 +336,7 @@ class HRef(object):
 			return self.names
 
 
-class Page(Path):
+class Page(Path, SignalEmitter):
 	'''Class to represent a single page in the notebook.
 
 	Page objects inherit from L{Path} but have internal state reflecting
@@ -359,7 +362,15 @@ class Page(Path):
 	for any function that actually requires a L{Page} object.
 	The way replace an invalid page object is by calling
 	C{notebook.get_page(invalid_page)}.
+
+	@signal: C{page-changed (changed-on-disk)}: signal emitted on page
+	change. The argument "changed-on-disk" is C{True} when an external
+	edit was detected. For internal edits it is C{False}.
 	'''
+
+	__signals__ = {
+		'page-changed': (SIGNAL_NORMAL, None, (bool,))
+	}
 
 	def __init__(self, path, haschildren=False, parsetree=None):
 		'''Construct Page object. Needs a path object and a boolean to flag
@@ -712,7 +723,7 @@ class NewPage(Page):
 			logger.info('Page changed on disk: %s', self.name)
 			self._last_etag = None
 			self._parsetree = None
-			# TODO emit-page-changed / notify ui object
+			self.emit('page-changed', True)
 		else:
 			pass # no check
 
