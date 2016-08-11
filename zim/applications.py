@@ -191,7 +191,7 @@ class Application(object):
 				stderr=subprocess.PIPE,
 				startupinfo=info,
 				bufsize=4096,
-				close_fds=True
+				#~ close_fds=True
 			)
 		else:
 			p = subprocess.Popen(argv,
