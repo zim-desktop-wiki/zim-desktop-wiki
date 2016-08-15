@@ -76,10 +76,31 @@ class TestHelp(tests.TestCase):
 		self.assertTrue(output.getvalue().startswith('usage:'))
 
 
+class TestNotebookCommand(tests.TestCase):
+
+	
+	def runTest(self):
+		cmd = NotebookCommand('gui')
+		cmd.arguments = ('NOTEBOOK', '[PAGE]')
+		cmd.parse_options('./Notes')
+
+		# check if PWD at "parse_options" is remembered after changing dir
+		from zim.notebook.info import NotebookInfo
+		pwd = os.getcwd()
+		self.addCleanup(os.chdir, pwd)
+
+		myinfo = NotebookInfo(pwd + '/Notes')
+		os.chdir('/')
+		notebookinfo, page = cmd.get_notebook_argument()
+		
+		self.assertEqual(notebookinfo, myinfo)
+		os.chdir(pwd)
+
 #~ class TestGui(tests.TestCase):
-#~
+
 	#~ def runTest(self):
-		#~ cmd = GuiCommand()
+		#~ cmd = GuiCommand('gui')
+		#~ cmd.parse_options('../../Notes')
 		#~ with DialogContext():
 			#~ cmd.run()
 
@@ -130,7 +151,7 @@ class TestIPC(tests.TestCase):
 		self.assertEqual(inbox[0], ('test', '123'))
 
 
-### TODO test various ways of calling ZimApplicaiton ####
+### TODO test various ways of calling ZimApplication ####
 
 # Start main
 # Handle incoming

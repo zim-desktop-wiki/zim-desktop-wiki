@@ -7,6 +7,7 @@ This module is responsible for commandline parsing. It provides a base
 class for the commandline commands defined in L{zim.main}
 '''
 
+import os
 
 from getopt import gnu_getopt, GetoptError
 
@@ -56,6 +57,7 @@ class Command(object):
 		self.command = command
 		self.args = []
 		self.opts = {}
+		self.pwd = None
 
 	def parse_options(self, *args):
 		'''Parse commandline options for this command
@@ -88,6 +90,8 @@ class Command(object):
 				self.opts[key].append(a)
 			else:
 				self.opts[key] = a
+
+		self.pwd = os.getcwd()
 
 	def get_options(self, *names):
 		'''Retrieve a dict with a sub-set of the command options

@@ -65,19 +65,21 @@ else:
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
 
-
 def dispatch(*args):
 	'''If there is an existing zim process pass along the arguments
 	@param args: commandline arguments
 	@raises AssertionError: when no existing zim process or connection failed
 	'''
 	assert not get_in_main_process()
-	conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
-	conn.send(args)
-	re = conn.recv()
-	if not re == 'OK':
-		raise AssertionError, 'Got %s' % re
-
+	try:
+		conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
+		conn.send(args)
+		re = conn.recv()
+	except:
+		raise AssertionError, 'Error while connecting'
+	else:
+		if not re == 'OK':
+			raise AssertionError, 'Error in response: got %s' % re
 
 
 def start_listening(handler):
@@ -96,7 +98,7 @@ def start_listening(handler):
 
 
 def _listener_thread_main(started, handler):
-	l = Listener(SERVER_ADDRESS)
+	l = Listener(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 	started.set()
 	while True:
 		conn = l.accept()

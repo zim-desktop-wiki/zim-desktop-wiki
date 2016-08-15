@@ -147,7 +147,7 @@ class NotebookCommand(Command):
 			else:
 				return None, None
 
-		notebookinfo = resolve_notebook(notebook)
+		notebookinfo = resolve_notebook(notebook, pwd=self.pwd)
 		if not notebookinfo:
 			raise NotebookLookupError, _('Could not find notebook: %s') % notebook
 				# T: error message
@@ -655,7 +655,8 @@ class ZimApplication(object):
 	def _try_dispatch(self, args):
 		try:
 			_ipc_dispatch(*args)
-		except IOError:
+		except AssertionError, err:
+			logger.debug('Got error in dispatch: %s', str(err))
 			return False
 		except Exception:
 			logger.exception('Got error in dispatch')

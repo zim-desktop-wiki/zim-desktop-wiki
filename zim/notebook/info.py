@@ -29,7 +29,7 @@ def get_notebook_list():
 	return NotebookInfoList(file)
 
 
-def resolve_notebook(string):
+def resolve_notebook(string, pwd=None):
 	'''Takes either a notebook name or a file or dir path. For a name
 	it resolves the path by looking for a notebook of that name in the
 	notebook list.
@@ -40,10 +40,17 @@ def resolve_notebook(string):
 	@returns: a L{NotebookInfo} or C{None}
 	'''
 	assert isinstance(string, basestring)
+	from zim.fs import isabs
 
 	if '/' in string or os.path.sep in string:
 		# FIXME do we need a isfilepath() function in fs.py ?
-		return NotebookInfo(string)
+		if is_url_re.match(string):
+			uri = string
+		elif pwd and not isabs(string):
+			uri = pwd + os.sep + string
+		else:
+			uri = string
+		return NotebookInfo(uri)
 	else:
 		nblist = get_notebook_list()
 		return nblist.get_by_name(string)
