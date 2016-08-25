@@ -24,7 +24,7 @@ logger = logging.getLogger('zim.plugins.bookmarksbar')
 
 # Keyboard shortcut constants.
 BM_TOGGLE_BAR_KEY ='F4'
-BM_ADD_BOOKMARK_KEY ='<alt>1'
+BM_ADD_BOOKMARK_KEY ='<alt>0'
 
 class BookmarksBarPlugin(PluginClass):
 
@@ -50,22 +50,43 @@ class MainWindowExtension(WindowExtension):
 	<ui>
 	<menubar name='menubar'>
 	<menu action='view_menu'>
-			<placeholder name='plugin_items'>
-		<menuitem action='toggle_show_bookmarks'/>
+		<placeholder name='plugin_items'>
+			<menuitem action='toggle_show_bookmarks'/>
 		</placeholder>
 	</menu>
-		<menu action='tools_menu'>
+	<menu action='tools_menu'>
 		<placeholder name='plugin_items'>
 			<menuitem action='add_bookmark'/>
-			</placeholder>
+		</placeholder>
 	</menu>
+    <menu action='go_menu'>
+		<placeholder name='plugin_items'>
+			<menu action='go_bookmarks_menu'>
+                <menuitem action='bookmark_1'/>
+                <menuitem action='bookmark_2'/>
+                <menuitem action='bookmark_3'/>
+                <menuitem action='bookmark_4'/>
+                <menuitem action='bookmark_5'/>
+                <menuitem action='bookmark_6'/>
+                <menuitem action='bookmark_7'/>
+                <menuitem action='bookmark_8'/>
+                <menuitem action='bookmark_9'/>
+			</menu>
+        </placeholder>
+    </menu>
 	</menubar>
 	<toolbar name='toolbar'>
 		<placeholder name='tools'>
 			<toolitem action='toggle_show_bookmarks'/>
 		</placeholder>
 	</toolbar>
-	</ui>'''
+	</ui>
+	'''
+
+	uimanager_menu_labels = {
+		'go_bookmarks_menu': _('Book_marks'), # T: Menu title
+	}
+
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 		self.widget = BookmarkBar(self.window.ui, self.uistate,
@@ -117,6 +138,49 @@ class MainWindowExtension(WindowExtension):
 			menu.prepend(item)
 			menu.show_all()
 
+
+	@action(_('_Run bookmark'), accelerator='<alt>1')
+	def bookmark_1(self):
+		self._open_bookmark(1)
+
+	@action(_('_Run bookmark'), accelerator='<alt>2')
+	def bookmark_2(self):
+		self._open_bookmark(2)
+
+	@action(_('_Run bookmark'), accelerator='<alt>3')
+	def bookmark_3(self):
+		self._open_bookmark(3)
+
+	@action(_('_Run bookmark'), accelerator='<alt>4')
+	def bookmark_4(self):
+		self._open_bookmark(4)
+
+	@action(_('_Run bookmark'), accelerator='<alt>5')
+	def bookmark_5(self):
+		self._open_bookmark(5)
+
+	@action(_('_Run bookmark'), accelerator='<alt>6')
+	def bookmark_6(self):
+		self._open_bookmark(6)
+
+	@action(_('_Run bookmark'), accelerator='<alt>7')
+	def bookmark_7(self):
+		self._open_bookmark(7)
+
+	@action(_('_Run bookmark'), accelerator='<alt>8')
+	def bookmark_8(self):
+		self._open_bookmark(8)
+
+	@action(_('_Run bookmark'), accelerator='<alt>9')
+	def bookmark_9(self):
+		self._open_bookmark(9)
+
+	def _open_bookmark(self, number):
+		number -= 1
+		try:
+			self.window.ui.open_page(Path(self.widget.paths[number]))
+		except IndexError:
+			pass
 
 	@toggle_action(_('Bookmarks'), stock='zim-add-bookmark',
 				   tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY) # T: menu item bookmark plugin
@@ -206,7 +270,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				button.set_active(True)
 			else:
 				button.set_active(False)
-	
+
 	def add_new_page(self, page = None):
 		'''
 		Add new page as bookmark to the bar.
@@ -217,7 +281,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		if page.exists():
 			return self._add_new(page.name, self.add_bookmarks_to_beginning)
-		
+
 	def _add_new(self, path, add_bookmarks_to_beginning = False):
 		'''Add bookmark to the bar.
 		:param path: path as a string object
@@ -400,6 +464,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		main_menu.show_all()
 		main_menu.popup(None, None, None, 3, 0)
 		return True
+
 
 	def on_bookmark_clicked(self, button):
 		'''Open page if a bookmark is clicked.'''
