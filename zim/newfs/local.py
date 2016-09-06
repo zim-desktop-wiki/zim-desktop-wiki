@@ -41,16 +41,16 @@ class LocalFSObjectBase(FSObjectBase):
 
 	def __init__(self, path, watcher=None):
 		FSObjectBase.__init__(self, path, watcher=watcher)
-		self._encodedpath = _encode_path(self.path)
+		self.encodedpath = _encode_path(self.path)
 
 	def _stat(self):
 		try:
-			return os.stat(self._encodedpath)
+			return os.stat(self.encodedpath)
 		except OSError:
 			raise FileNotFoundError(self)
 
 	def _set_mtime(self, mtime):
-		os.utime(self._encodedpath, (mtime, mtime))
+		os.utime(self.encodedpath, (mtime, mtime))
 
 	def parent(self):
 		dirname = self.dirname
@@ -67,7 +67,7 @@ class LocalFSObjectBase(FSObjectBase):
 
 	def iswritable(self):
 		if self.exists():
-			return os.access(self._encodedpath, os.W_OK)
+			return os.access(self.encodedpath, os.W_OK)
 		else:
 			return self.parent().iswritable() # recurs
 
@@ -75,8 +75,8 @@ class LocalFSObjectBase(FSObjectBase):
 		# Do NOT assume paths are the same - could be hard link
 		# or it could be a case-insensitive filesystem
 		try:
-			stat_result = os.stat(self._encodedpath)
-			other_stat_result = os.stat(other._encodedpath)
+			stat_result = os.stat(self.encodedpath)
+			other_stat_result = os.stat(other.encodedpath)
 		except OSError:
 			return False
 		else:
@@ -104,15 +104,15 @@ class LocalFSObjectBase(FSObjectBase):
 			# Rename to other case - need in between step
 			other = self.__class__(other, watcher=self.watcher)
 			tmp = self.parent().new_file(self.basename)
-			shutil.move(self._encodedpath, tmp._encodedpath)
-			shutil.move(tmp._encodedpath, other._encodedpath)
+			shutil.move(self.encodedpath, tmp.encodedpath)
+			shutil.move(tmp.encodedpath, other.encodedpath)
 		elif os.path.exists(_encode_path(other.path)):
 			raise FileExistsError(other)
 		else:
 			# normal case
 			other = self.__class__(other, watcher=self.watcher)
 			other.parent().touch()
-			shutil.move(self._encodedpath, other._encodedpath)
+			shutil.move(self.encodedpath, other.encodedpath)
 
 		if self.watcher:
 			self.watcher.emit('moved', self, other)
@@ -124,16 +124,16 @@ class LocalFSObjectBase(FSObjectBase):
 class LocalFolder(LocalFSObjectBase, Folder):
 
 	def exists(self):
-		return os.path.isdir(self._encodedpath)
+		return os.path.isdir(self.encodedpath)
 
 	def touch(self, mode=None):
 		if not self.exists():
-			self.parent().touch()
+			self.parent().touch(mode)
 			try:
 				if mode is not None:
-					os.mkdir(self._encodedpath, mode=mode)
+					os.mkdir(self.encodedpath, mode)
 				else:
-					os.mkdir(self._encodedpath)
+					os.mkdir(self.encodedpath)
 			except OSError, e:
 				if e.errno != errno.EEXIST:
 					raise
@@ -156,7 +156,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 	def _object_iter(self, names, showfile, showdir):
 		# inner iter to force FileNotFoundError on call instead of first iter call
 		for name in names:
-			encpath = self._encodedpath + _SEP + _encode_path(name)
+			encpath = self.encodedpath + _SEP + _encode_path(name)
 			if os.path.isdir(encpath):
 				if showdir:
 					yield self.folder(name)
@@ -166,7 +166,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 
 	def list_names(self):
 		try:
-			names = os.listdir(self._encodedpath)
+			names = os.listdir(self.encodedpath)
 		except OSError:
 			raise FileNotFoundError(self)
 
@@ -177,14 +177,14 @@ class LocalFolder(LocalFSObjectBase, Folder):
 
 		if FS_ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively
-			assert isinstance(self._encodedpath, unicode)
+			assert isinstance(self.encodedpath, unicode)
 			assert all(isinstance(n, unicode) for n in names)
 			return names
 		else:
 			# If filesystem does not handle unicode natively and path for
 			# os.listdir(path) is _not_ a unicode object, the result will
 			# be a list of byte strings. We can decode them ourselves.
-			assert not isinstance(self._encodedpath, unicode)
+			assert not isinstance(self.encodedpath, unicode)
 			encnames = []
 			for n in names:
 				try:
@@ -216,10 +216,10 @@ class LocalFolder(LocalFSObjectBase, Folder):
 		logger.info('Copy dir %s to %s', self.path, other.path)
 
 		if isinstance(other, LocalFolder):
-			if os.path.exists(other._encodedpath):
+			if os.path.exists(other.encodedpath):
 				raise FileExistsError(other)
 
-			shutil.copytree(self._encodedpath, other._encodedpath, symlinks=True)
+			shutil.copytree(self.encodedpath, other.encodedpath, symlinks=True)
 		else:
 			self._copyto(other)
 
@@ -229,9 +229,9 @@ class LocalFolder(LocalFSObjectBase, Folder):
 		return other
 
 	def remove(self):
-		if os.path.isdir(self._encodedpath):
+		if os.path.isdir(self.encodedpath):
 			try:
-				_os_lrmdir(self._encodedpath)
+				_os_lrmdir(self.encodedpath)
 			except OSError:
 				raise FolderNotEmptyError, 'Folder not empty: %s' % self.path
 			else:
@@ -275,7 +275,7 @@ class AtomicWriteContext(object):
 	# Should not be needed outside this module
 
 	def __init__(self, file, mode='w'):
-		self.path = file._encodedpath
+		self.path = file.encodedpath
 		self.tmppath = self.path + '.zim-new~'
 		self.mode = mode
 
@@ -309,14 +309,14 @@ class LocalFile(LocalFSObjectBase, File):
 		self.endofline = endofline
 
 	def exists(self):
-		return os.path.isfile(self._encodedpath)
+		return os.path.isfile(self.encodedpath)
 
 	def size(self):
 		return self._stat().st_size
 
 	def read_binary(self):
 		try:
-			with open(self._encodedpath, 'rb') as fh:
+			with open(self.encodedpath, 'rb') as fh:
 				return fh.read()
 		except IOError:
 			if not self.exists():
@@ -326,7 +326,7 @@ class LocalFile(LocalFSObjectBase, File):
 
 	def read(self):
 		try:
-			with open(self._encodedpath, 'rU') as fh:
+			with open(self.encodedpath, 'rU') as fh:
 				try:
 					text = fh.read().decode('UTF-8')
 				except UnicodeDecodeError, err:
@@ -344,7 +344,7 @@ class LocalFile(LocalFSObjectBase, File):
 
 	def readlines(self):
 		try:
-			with open(self._encodedpath, 'rU') as fh:
+			with open(self.encodedpath, 'rU') as fh:
 				return [
 					l.decode('UTF-8').lstrip(u'\ufeff').replace('\x00', '')
 						for l in fh ]
@@ -392,7 +392,7 @@ class LocalFile(LocalFSObjectBase, File):
 		# overloaded because atomic write can cause mtime < ctime
 		if not self.exists():
 			with self._write_decoration():
-				with open(self._encodedpath, 'w') as fh:
+				with open(self.encodedpath, 'w') as fh:
 					fh.write('')
 
 	def copyto(self, other):
@@ -405,11 +405,11 @@ class LocalFile(LocalFSObjectBase, File):
 		logger.info('Copy %s to %s', self.path, other.path)
 
 		if isinstance(other, LocalFile):
-			if os.path.exists(other._encodedpath):
+			if os.path.exists(other.encodedpath):
 				raise FileExistsError(other)
 
 			other.parent().touch()
-			shutil.copy2(self._encodedpath, other._encodedpath)
+			shutil.copy2(self.encodedpath, other.encodedpath)
 		else:
 			self._copyto(other)
 
@@ -419,8 +419,8 @@ class LocalFile(LocalFSObjectBase, File):
 		return other
 
 	def remove(self):
-		if os.path.isfile(self._encodedpath):
-			os.remove(self._encodedpath)
+		if os.path.isfile(self.encodedpath):
+			os.remove(self.encodedpath)
 
 		if self.watcher:
 			self.watcher.emit('removed', self)
@@ -445,9 +445,9 @@ def get_tmpdir():
 
 	try:
 		dir.touch(mode=0700) # Limit to single user
-		os.chmod(dir._encodedpath, 0700) # Limit to single user when dir already existed
+		os.chmod(dir.encodedpath, 0700) # Limit to single user when dir already existed
 			# Raises OSError if not allowed to chmod
-		os.listdir(dir._encodedpath)
+		os.listdir(dir.encodedpath)
 			# Raises OSError if we do not have access anymore
 	except OSError:
 		raise AssertionError, \

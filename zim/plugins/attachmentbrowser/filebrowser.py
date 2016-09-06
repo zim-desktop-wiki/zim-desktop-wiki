@@ -18,7 +18,8 @@ import logging
 logger = logging.getLogger('zim.plugins.attachmentbrowser')
 
 
-from zim.fs import File, Dir, format_file_size, is_hidden_file
+from zim.newfs import LocalFile, FileNotFoundError
+from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
 from zim.gui.applications import get_mime_icon, get_mime_description, \
 	OpenWithMenu
@@ -130,14 +131,12 @@ class FileBrowserIconView(gtk.IconView):
 		self.refresh(icon_size_changed=True)
 
 	def set_folder(self, folder):
-		folder = Dir(folder.path) # XXXX adapting mock- or localfolder
-
 		self.teardown_folder() # clears _thumbnailer and _monitor
 		self.folder = folder
 
 		self.refresh()
 
-		monitor = self.folder.monitor()
+		monitor = FSObjectMonitor(self.folder)
 		id = monitor.connect('changed', self._on_folder_changed)
 		self._monitor = (monitor, id)
 
@@ -147,7 +146,7 @@ class FileBrowserIconView(gtk.IconView):
 		else:
 			try:
 				self._mtime = self.folder.mtime()
-			except OSError: # folder went missing?
+			except FileNotFoundError: # folder went missing?
 				self.teardown_folder()
 				self._update_state()
 				return
@@ -174,7 +173,7 @@ class FileBrowserIconView(gtk.IconView):
 		file_icon = render_file_icon(self, min_icon_size)
 		mime_cache = {}
 		def my_get_mime_icon(file):
-			mt = file.get_mimetype()
+			mt = file.mimetype()
 			if not mt in mime_cache:
 				mime_cache[mt] = get_mime_icon(file, min_icon_size) or file_icon
 			return mime_cache[mt]
@@ -182,14 +181,11 @@ class FileBrowserIconView(gtk.IconView):
 		# Add (new) files & queue thumbnails
 		max_text = 1
 		show_thumbs = self.use_thumbnails and self.icon_size >= MIN_THUMB_SIZE
-		for basename in self.folder.list():
-			file = self.folder.file(basename)
-			if file.isdir() or is_hidden_file(file):
-				continue
+		for file in self.folder.list_files():
 
-			max_text = max(max_text, len(basename))
+			max_text = max(max_text, len(file.basename))
 
-			pixbuf, mtime = cache.pop(basename, (None, None))
+			pixbuf, mtime = cache.pop(file.basename, (None, None))
 			if show_thumbs and file.isimage():
 				if not pixbuf:
 					pixbuf = my_get_mime_icon(file) # temporary icon
@@ -205,7 +201,7 @@ class FileBrowserIconView(gtk.IconView):
 			else:
 				pass # re-use from cache
 
-			model.append((basename, pixbuf, mtime))
+			model.append((file.basename, pixbuf, mtime))
 
 		self._set_orientation_and_size(max_text)
 
@@ -366,7 +362,7 @@ class FileBrowserIconView(gtk.IconView):
 		if not pixbuf:
 			pixbuf = get_mime_icon(file, 64) or render_file_icon(self, 64)
 
-		mtype = file.get_mimetype()
+		mtype = file.mimetype()
 		mtype_desc = get_mime_description(mtype)
 		if mtype_desc:
 			mtype_desc = mtype_desc + " (%s)" % mtype # E.g. "PDF document (application/pdf)"
@@ -401,7 +397,7 @@ class FileBrowserIconView(gtk.IconView):
 	def on_drag_data_received(self, iconview, dragcontext, x, y, selectiondata, info, time):
 		assert selectiondata.target in URI_TARGET_NAMES
 		names = unpack_urilist(selectiondata.data)
-		files = [File(uri) for uri in names if uri.startswith('file://')]
+		files = [LocalFile(uri) for uri in names if uri.startswith('file://')]
 		action = dragcontext.action
 		logger.debug('Drag received %s, %s', action, files)
 
@@ -433,7 +429,7 @@ class FileBrowserIconView(gtk.IconView):
 	def _move_files(self, files):
 		for file in files:
 			newfile = self.folder.new_file(file.basename)
-			file.rename(newfile)
+			file.moveto(newfile)
 
 		self.refresh()
 

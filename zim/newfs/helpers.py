@@ -81,3 +81,85 @@ class TrashHelper(object):
 		else:
 			return False
 
+
+
+class FSObjectMonitor(SignalEmitter):
+
+	__signals__ = {
+		'changed': (),
+	}
+
+	def __init__(self, path):
+		self.path = path
+		self._gio_file_monitor = None
+
+	def _setup_signal(self, signal):
+		if signal == 'changed' \
+		and self._gio_file_monitor is None \
+		and gio:
+			try:
+				file = gio.File(uri=self.path.uri)
+				self._gio_file_monitor = file.monitor()
+				self._gio_file_monitor.connect('changed', self._on_changed)
+			except:
+				logger.exception('Error while setting up file monitor')
+
+	def _teardown_signal(self, signal):
+		if signal == 'changed' \
+		and self._gio_file_monitor:
+			try:
+				self._gio_file_monitor.cancel()
+			except:
+				logger.exception('Error while tearing down file monitor')
+			finally:
+				self._gio_file_monitor = None
+
+	def _on_changed(self, filemonitor, file, other_file, event_type):
+		# 'FILE_MONITOR_EVENT_CHANGED' is always followed by
+		# a 'FILE_MONITOR_EVENT_CHANGES_DONE_HINT' when the filehandle
+		# is closed (or after timeout). Idem for "created", assuming it
+		# is not created empty.
+		#
+		# TODO: do not emit changed on CREATED - separate signal that
+		#       can be used when monitoring a file list, but reserve
+		#       changed for changes-done-hint so that we ensure the
+		#       content is complete.
+		#       + emit on write and block redundant signals here
+		#
+		# Also note that in many cases "moved" will not be used, but a
+		# sequence of deleted, created will be signaled
+		#
+		# For Dir objects, the event will refer to files contained in
+		# the dir.
+
+		#~ print 'MONITOR:', self, event_type
+		if event_type in (
+			gio.FILE_MONITOR_EVENT_CREATED,
+			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
+			gio.FILE_MONITOR_EVENT_DELETED,
+			gio.FILE_MONITOR_EVENT_MOVED,
+		):
+			self.emit('changed', None, None) # TODO translate otherfile and eventtype
+
+
+def format_file_size(bytes):
+	'''Returns a human readable label  for a file size
+	E.g. C{1230} becomes C{"1.23kb"}, idem for "Mb" and "Gb"
+	@param bytes: file size in bytes as integer
+	@returns: size as string
+	'''
+	for unit, label in (
+		(1000000000, 'Gb'),
+		(1000000, 'Mb'),
+		(1000, 'kb'),
+	):
+		if bytes >= unit:
+			size = float(bytes) / unit
+			if size < 10:
+				return "%.2f%s" % (size, label)
+			elif size < 100:
+				return "%.1f%s" % (size, label)
+			else:
+				return "%.0f%s" % (size, label)
+	else:
+		return str(bytes) + 'b'

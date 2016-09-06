@@ -10,8 +10,7 @@ import tests
 
 import time
 
-
-from zim.fs import File, Dir
+from zim.newfs import LocalFile, LocalFolder
 
 from zim.plugins.attachmentbrowser.thumbnailer import *
 from zim.plugins.attachmentbrowser.filebrowser import FileBrowserIconView
@@ -24,10 +23,10 @@ class TestThumbnailCreators(tests.TestCase):
 
 	def runTest(self):
 		for creator in self.creators:
-			thumbdir = Dir(self.create_tmp_dir(creator.__name__))
+			thumbdir = LocalFolder(self.create_tmp_dir(creator.__name__))
 
-			dir = Dir('./data/pixmaps')
-			for i, basename in enumerate(dir.list()):
+			dir = self.SRC_DIR.folder('data/pixmaps')
+			for i, basename in enumerate(dir.list_names()):
 				file = dir.file(basename)
 				thumbfile = thumbdir.file('thumb--' + basename)
 
@@ -47,7 +46,7 @@ class TestThumbnailCreators(tests.TestCase):
 			thumbfile = thumbdir.file('thumb-test.txt')
 			self.assertRaises(
 				ThumbnailCreatorFailure,
-				creator, File('./README.txt'), thumbfile, THUMB_SIZE_NORMAL
+				creator, self.SRC_DIR.file('README.txt'), thumbfile, THUMB_SIZE_NORMAL
 			)
 
 @tests.slowTest
@@ -56,7 +55,8 @@ class TestThumbnailManager(tests.TestCase):
 	def testThumbnailFile(self):
 		manager = ThumbnailManager()
 
-		file = File(u'./foo-\u00e8\u00e1\u00f1.png') # non-existing path with unicode name
+		folder = LocalFolder(self.get_tmp_name('empty'))
+		file = folder.file(u'./foo-\u00e8\u00e1\u00f1.png') # non-existing path with unicode name
 		self.assertTrue('%C3%A8%C3%A1%C3%B1' in file.uri) # utf encoded!
 		basename = hashlib.md5(file.uri).hexdigest() + '.png'
 
@@ -81,9 +81,9 @@ class TestThumbnailManager(tests.TestCase):
 	def testCreateThumbnail(self):
 		manager = ThumbnailManager()
 
-		dir = Dir(self.create_tmp_dir())
+		dir = LocalFolder(self.create_tmp_dir())
 		file = dir.file('zim.png')
-		File('./data/zim.png').copyto(file)
+		self.SRC_DIR.file('data/zim.png').copyto(file)
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 		self.removeThumbnail(manager, file)
@@ -103,7 +103,7 @@ class TestThumbnailManager(tests.TestCase):
 		import stat
 		mode = os.stat(thumbfile.encodedpath).st_mode
 		self.assertEqual(stat.S_IMODE(mode), 0600)
-		mode = os.stat(thumbfile.dir.dir.encodedpath).st_mode # thumnails dir
+		mode = os.stat(thumbfile.parent().parent().encodedpath).st_mode # thumnails dir
 		self.assertEqual(stat.S_IMODE(mode), 0700)
 
 		# Change mtime to make thumbfile invalid
@@ -137,12 +137,12 @@ class TestThumbnailQueue(tests.TestCase):
 		self.assertTrue(queue.queue_empty())
 
 		# Test input / output
-		queue.queue_thumbnail_request(File('./README.txt'), 64)
+		queue.queue_thumbnail_request(self.SRC_DIR.file('README.txt'), 64)
 			# put an error in the queue
 
-		dir = Dir('./data/pixmaps')
+		dir = self.SRC_DIR.folder('data/pixmaps')
 		pixmaps = set()
-		for basename in dir.list():
+		for basename in dir.list_names():
 			file = dir.file(basename)
 			pixmaps.add(file)
 			queue.queue_thumbnail_request(file, 64)
@@ -183,7 +183,7 @@ class TestThumbnailQueue(tests.TestCase):
 		def creator_with_error(*a):
 			raise ValueError
 
-		file = File('./data/zim.png')
+		file = self.SRC_DIR.file('data/zim.png')
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 
@@ -206,7 +206,7 @@ class TestFileBrowserIconView(tests.TestCase):
 		opener = tests.MockObject()
 		iconview = FileBrowserIconView(opener)
 
-		dir = Dir('./data/pixmaps')
+		dir = self.SRC_DIR.folder('data/pixmaps')
 		iconview.set_folder(dir)
 
 		# simulate idle events

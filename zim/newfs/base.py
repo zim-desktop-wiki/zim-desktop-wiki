@@ -18,6 +18,7 @@ from . import FS_ENCODING, FS_SUPPORT_NON_LOCAL_FILE_SHARES
 
 from zim.errors import Error
 from zim.environ import environ
+from zim.parsing import url_encode
 
 
 is_url_re = re.compile('^\w{2,}:/')
@@ -167,9 +168,9 @@ if os.name == 'nt':
 		if not re.match(r'^(\w:|\\\\\w)', names[0]):
 			raise ValueError, 'Not an absolute path: %s' % '\\'.join(names)
 		elif re.match(r'^\w:$', names[0]): # Drive letter - e.g. file:///C:/foo
-			return 'file:///' + '/'.join(names)
+			return 'file:///' + names[0] + '/' + url_encode('/'.join(names[1:]))
 		elif re.match(r'^\\\\\w+$', names[0]): # UNC path - e.g. file://host/share
-			return 'file://' + names[0].strip('\\') + '/' + '/'.join(names[1:])
+			return 'file://' + url_encode(names[0].strip('\\') + '/' + '/'.join(names[1:]))
 
 else:
 	def _joinabspath(names):
@@ -182,9 +183,10 @@ else:
 
 	def _joinuri(names):
 		if names[0][0] == '/':
-			return 'file://' + '/'.join(names)
+			return 'file://' + url_encode('/'.join(names))
 		else:
-			return 'file:///' + '/'.join(names)
+			return 'file:///' + url_encode('/'.join(names))
+
 
 
 if FS_ENCODING == 'mbcs':
@@ -287,6 +289,9 @@ class FilePath(object):
 
 	def __repr__(self):
 		return "<%s: %s>" % (self.__class__.__name__, self.path)
+
+	def __eq__(self, other):
+		return isinstance(other, self.__class__) and other.path == self.path
 
 	def serialize_zim_config(self):
 		'''Returns the file path as string for serializing the object'''

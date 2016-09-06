@@ -66,7 +66,7 @@ mydir = os.path.dirname(__file__)
 
 
 # when a test is missing from the list that should be detected
-for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
+for file in glob.glob(mydir + '/*.py'):
 	name = os.path.basename(file)[:-3]
 	if name != '__init__' and not name in __all__:
 		raise AssertionError, 'Test missing in __all__: %s' % name
@@ -89,6 +89,9 @@ else:
 
 # also get the default tmpdir and put a copy in the env
 REAL_TMPDIR = tempfile.gettempdir()
+
+
+from zim.newfs import LocalFolder
 
 
 def load_tests(loader, tests, pattern):
@@ -215,6 +218,9 @@ class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
 
 	maxDiff = None
+
+	SRC_DIR = LocalFolder(mydir + '/../')
+	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
 
 	@classmethod
 	def tearDownClass(cls):

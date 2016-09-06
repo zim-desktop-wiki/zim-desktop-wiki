@@ -141,6 +141,9 @@ class MockFSObjectBase(FSObjectBase):
 		self._fs = _fs
 		assert isinstance(self._fs, MockFS)
 
+	def __eq__(self, other):
+		return FilePath.__eq__(self, other) and other._fs is self._fs
+
 	def _set_mtime(self, mtime):
 		assert isinstance(mtime, (int, float))
 		node = self._node()
