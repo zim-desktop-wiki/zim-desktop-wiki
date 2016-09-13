@@ -168,9 +168,16 @@ class TestDialogs(tests.TestCase):
 		'''Test RenamePageDialog's heading auto-change option depending on
 		whether we have a changed heading or not.
 		'''
+		from zim.newfs.mock import MockFile, MockFolder
+		file = MockFile('/mock/test/page.txt')
+		folder = MockFile('/mock/test/page/')
+		page = Page(Path("Test:foo:bar"), False, file, folder)
+		
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
 		tree.set_heading("bar")
-		self.ui.page = Page(Path("Test:foo:bar"), parsetree=tree)
+		page.set_parsetree(tree)
+		
+		self.ui.page = page
 		self.ui.notebook.get_page = lambda path: self.ui.page
 		dialog = zim.gui.RenamePageDialog(self.ui, path=Path("Test:foo:bar"))
 		self.assertTrue(dialog.form['head'])

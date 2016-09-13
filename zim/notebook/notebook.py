@@ -22,7 +22,7 @@ from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .page import Path, Page, NewPage, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
+from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 DATA_FORMAT_VERSION = (0, 4)
@@ -140,6 +140,39 @@ class PageReadOnlyError(Error):
 _NOTEBOOK_CACHE = weakref.WeakValueDictionary()
 
 
+def with_notebook_state(func):
+	'''Decorator function that aquires the notebook state'''
+	def wrapper(self, *args, **kwds):
+		with self.notebook_state:
+			return func(self, *args, **kwds)
+	return wrapper
+
+
+class NotebookState(object):
+	'''Context manager that aquires the notebook threading lock and
+	also ensures all pending changes have been saved.
+
+	In general this lock is not needed when only reading data from
+	the notebook. However it should be used when doing operations that
+	need a fixed state, e.g. exporting the notebook or when executing
+	version control commands on the storage directory.
+	'''
+
+	def __init__(self, notebook):
+		self.notebook = notebook
+		if not hasattr(notebook, '_notebook_state_lock'):
+			notebook._notebook_state_lock = threading.RLock()
+
+	def __enter__(self):
+		self.notebook.index.wait_for_update()
+		self.notebook._notebook_state_lock.acquire()
+		self.notebook.save()
+
+	def __exit__(self, *args):
+		self.notebook._notebook_state_lock.release()
+
+
+
 class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 
@@ -172,14 +205,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
 	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
-	@ivar lock: An C{threading.Lock} for async notebook operations
+	@ivar notebook_state: A L{NotebookState} object
 	@ivar profile: The name of the profile used by the notebook or C{None}
-
-	In general this lock is not needed when only reading data from
-	the notebook. However it should be used when doing operations that
-	need a fixed state, e.g. exporting the notebook or when executing
-	version control commands on the storage directory.
-
 	@ivar index: The L{Index} object used by the notebook
 	'''
 
@@ -277,7 +304,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.icon = None
 		self.document_root = None
 
-		self.lock = threading.Lock() #: lock for async notebook access
+		self.notebook_state = NotebookState(self)
 
 		from .index import PagesView, LinksView, TagsView
 		self.pages = PagesView.new_from_index(self.index)
@@ -319,6 +346,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	def profile(self):
 		'''The 'profile' property for this notebook'''
 		return self.config['Notebook'].get('profile') or None # avoid returning ''
+
+	def save(self):
+		for page in self._page_cache.values():
+			if page.modified:
+				self.store_page(page)
 
 	def save_properties(self, **properties):
 		'''Save a set of properties in the notebook config
@@ -406,13 +438,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if path.name in self._page_cache \
 		and self._page_cache[path.name].valid:
 			page = self._page_cache[path.name]
-			assert isinstance(page, NewPage)
+			assert isinstance(page, Page)
 			page._check_source_etag()
 			return page
 		else:
 			file, folder = self.layout.map_page(path)
 			folder = self.layout.get_attachments_folder(path)
-			page = NewPage(path, False, file, folder)
+			page = Page(path, False, file, folder)
 			try:
 				indexpath = self.pages.lookup_by_pagename(path)
 			except IndexNotFoundError:
@@ -450,6 +482,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			page = self.get_page(path)
 		return page
 
+	@with_notebook_state
 	def flush_page_cache(self, path):
 		'''Flush the cache used by L{get_page()}
 
@@ -513,6 +546,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		for p in self.move_page_iter(path, newpath, update_links):
 			pass
 
+	@with_notebook_state
 	def move_page_iter(self, path, newpath, update_links=True):
 		'''Like L{move_page()} but yields pages that are being updated
 		if C{update_links} is C{True}
@@ -743,6 +777,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return newpath
 
+	@with_notebook_state
 	def rename_page_iter(self, path, newbasename, update_heading=True, update_links=True):
 		'''Like L{rename_page()} but yields pages that are being updated
 		if C{update_links} is C{True}
@@ -786,6 +821,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return existed
 
+	@with_notebook_state
 	def delete_page_iter(self, path, update_links=True):
 		'''Like L{delete_page()}'''
 		self._delete_page(path)
@@ -810,7 +846,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			if file.exists():
 				file.remove()
 			return True
-
 
 	def trash_page(self, path, update_links=True):
 		'''Move a page to Trash
@@ -843,6 +878,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return existed
 
+	@with_notebook_state
 	def trash_page_iter(self, path, update_links=True):
 		'''Like L{trash_page()}'''
 		self._trash_page(path)

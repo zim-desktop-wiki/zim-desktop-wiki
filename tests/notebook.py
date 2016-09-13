@@ -195,7 +195,7 @@ for path in (
 ''')
 
 		automount = XDG_CONFIG_HOME.file('zim/automount.conf')
-		assert not automount.exists()
+		assert not automount.exists(), "Exists: %s" % automount
 		automount.write('''\
 [Path %s]
 mount=%s %s
@@ -711,7 +711,10 @@ class TestPage(TestPath):
 	'''Test page object'''
 
 	def generator(self, name):
-		return Page(Path(name))
+		from zim.newfs.mock import MockFile, MockFolder
+		file = MockFile('/mock/test/page.txt')
+		folder = MockFile('/mock/test/page/')
+		return Page(Path(name), False, file, folder)
 
 	def testMain(self):
 		'''Test Page object'''
@@ -724,7 +727,7 @@ class TestPage(TestPath):
 <tag name='baz'>@baz</tag>
 </zim-tree>
 '''		)
-		page = Page(Path('Foo'))
+		page = self.generator('Foo')
 		page.set_parsetree(tree)
 
 		links = list(page.get_links())
@@ -749,7 +752,11 @@ class TestPage(TestPath):
 		self.assertFalse(page.hascontent)
 
 	def testShouldAutochangeHeading(self):
-		page = Page(Path("Foo"))
+		from zim.newfs.mock import MockFile, MockFolder
+		file = MockFile('/mock/test/page.txt')
+		folder = MockFile('/mock/test/page/')
+		page = Page(Path('Foo'), False, file, folder)
+				
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
 		tree.set_heading("Foo")
 		page.set_parsetree(tree)
@@ -759,12 +766,11 @@ class TestPage(TestPath):
 		self.assertFalse(page.heading_matches_pagename())
 
 	def testPageSource(self):
-		from zim.notebook.page import NewPage
 		from zim.newfs.mock import MockFile, MockFolder
 
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
-		page = NewPage(Path('Foo'), False, file, folder)
+		page = Page(Path('Foo'), False, file, folder)
 
 		self.assertFalse(page.readonly)
 		self.assertFalse(page.hascontent)
@@ -772,7 +778,7 @@ class TestPage(TestPath):
 		self.assertIsNone(page.mtime)
 		self.assertIsNone(page.get_parsetree())
 
-		page1 = NewPage(Path('Foo'), False, file, folder)
+		page1 = Page(Path('Foo'), False, file, folder)
 		self.assertTrue(page.isequal(page1))
 
 		tree = ParseTree().fromstring('''\

@@ -336,6 +336,19 @@ class HRef(object):
 			return self.names
 
 
+
+class SourceFile(zim.fs.File):
+
+	def iswritable(self):
+		return False
+
+	def write(self, *a):
+		raise AssertionError, 'Not writeable'
+
+	def writelines(self, *a):
+		raise AssertionError, 'Not writeable'
+
+
 class Page(Path, SignalEmitter):
 	'''Class to represent a single page in the notebook.
 
@@ -372,10 +385,7 @@ class Page(Path, SignalEmitter):
 		'page-changed': (SIGNAL_NORMAL, None, (bool,))
 	}
 
-	def __init__(self, path, haschildren=False, parsetree=None):
-		'''Construct Page object. Needs a path object and a boolean to flag
-		if the page has children.
-		'''
+	def __init__(self, path, haschildren, file, folder):
 		assert isinstance(path, Path)
 		self.name = path.name
 		self.haschildren = haschildren
@@ -383,12 +393,30 @@ class Page(Path, SignalEmitter):
 			# when a child page is stored
 		self.valid = True
 		self.modified = False
-		self._parsetree = parsetree
+		self._parsetree = None
 		self._ui_object = None
+
+
+		self._readonly = None
+		self._last_etag = None
+		self.format = zim.formats.get_format('wiki') # TODO make configurable
+		self.source = SourceFile(file.path) # XXX
+		self.source_file = file
+		self.attachments_folder = folder
 
 	@property
 	def readonly(self):
-		return False
+		if self._readonly is None:
+			self._readonly = not self.source_file.iswritable()
+		return self._readonly
+
+	@property
+	def mtime(self):
+		return self.source_file.mtime() if self.source_file.exists() else None
+
+	@property
+	def ctime(self):
+		return self.source_file.ctime() if self.source_file.exists() else None
 
 	@property
 	def hascontent(self):
@@ -402,12 +430,39 @@ class Page(Path, SignalEmitter):
 			else:
 				return False
 		else:
-			try:
-				hascontent = self._source_hascontent()
-			except NotImplementedError:
-				return False
-			else:
-				return hascontent
+			return self.source_file.exists()
+
+
+	def _store(self):
+		tree = self.get_parsetree()
+		if tree and tree.hascontent:
+			if not self.hascontent:
+				# New page
+				now = datetime.now()
+				tree.meta['Creation-Date'] = now.isoformat()
+
+			lines = self.format.Dumper().dump(tree)
+			self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
+		else:
+			self.source_file.remove()
+			self._last_etag = None
+		self.modified = False
+
+	def _check_source_etag(self):
+		if (
+			self._last_etag
+			and not self.source_file.verify_etag(self._last_etag)
+		) or (
+			not self._last_etag
+			and self._parsetree
+			and self.source_file.exists()
+		):
+			logger.info('Page changed on disk: %s', self.name)
+			self._last_etag = None
+			self._parsetree = None
+			self.emit('page-changed', True)
+		else:
+			pass # no check
 
 	def exists(self):
 		'''C{True} when the page has either content or children'''
@@ -424,7 +479,12 @@ class Page(Path, SignalEmitter):
 		@returns: C{True} of both page objects point to the same resource
 		@implementation: can be implementated by subclasses
 		'''
-		return self == other
+		if self is other or self == other:
+			return True
+		elif self.source_file.exists():
+			return self.source_file.isequal(other.source_file)
+		else:
+			return False
 
 	def get_parsetree(self):
 		'''Returns the contents of the page
@@ -439,23 +499,13 @@ class Page(Path, SignalEmitter):
 			return self._ui_object.get_parsetree()
 		else:
 			try:
-				self._parsetree = self._fetch_parsetree()
-			except NotImplementedError:
+				text, self._last_etag = self.source_file.read_with_etag()
+				parser = self.format.Parser()
+				self._parsetree = parser.parse(text)
+			except zim.newfs.FileNotFoundError:
 				return None
 			else:
 				return self._parsetree
-
-	def _source_hascontent(self):
-		'''Method to be overloaded in sub-classes.
-		Should return True if _fetch_parsetree() returns content.
-		'''
-		raise NotImplementedError
-
-	def _fetch_parsetree(self):
-		'''Method to be overloaded in sub-classes.
-		Should return a parsetree or None.
-		'''
-		raise NotImplementedError
 
 	def set_parsetree(self, tree):
 		'''Set the parsetree with content for this page
@@ -567,21 +617,21 @@ class Page(Path, SignalEmitter):
 		  - C{href} is the link itself
 		  - C{attrib} is a dict with link properties
 		'''
-        # FIXME optimize with a ParseTree.get_links that does not
+		# FIXME optimize with a ParseTree.get_links that does not
 		#       use Node
 		tree = self.get_parsetree()
 		if tree:
-				for elt in tree.findall(zim.formats.LINK):
-						href = elt.attrib.pop('href')
-						type = link_type(href)
-						yield type, href, elt.attrib
+			for elt in tree.findall(zim.formats.LINK):
+				href = elt.attrib.pop('href')
+				type = link_type(href)
+				yield type, href, elt.attrib
 
-				for elt in tree.findall(zim.formats.IMAGE):
-						if not 'href' in elt.attrib:
-								continue
-						href = elt.attrib.pop('href')
-						type = link_type(href)
-						yield type, href, elt.attrib
+			for elt in tree.findall(zim.formats.IMAGE):
+				if not 'href' in elt.attrib:
+					continue
+				href = elt.attrib.pop('href')
+				type = link_type(href)
+				yield type, href, elt.attrib
 
 
 	def get_tags(self):
@@ -619,111 +669,3 @@ class Page(Path, SignalEmitter):
 			return tree.get_heading() == self.basename
 		else:
 			return False
-
-
-class SourceFile(zim.fs.File):
-
-	def iswritable(self):
-		return False
-
-	def write(self, *a):
-		raise AssertionError, 'Not writeable'
-
-	def writelines(self, *a):
-		raise AssertionError, 'Not writeable'
-
-
-class NewPage(Page):
-
-	def __init__(self, path, haschildren, file, folder):
-		Page.__init__(self, path, haschildren=haschildren)
-		self._readonly = None
-		self._last_etag = None
-		self.format = zim.formats.get_format('wiki') # TODO make configurable
-		self.source = SourceFile(file.path) # XXX
-		self.source_file = file
-		self.attachments_folder = folder
-
-	@property
-	def readonly(self):
-		if self._readonly is None:
-			self._readonly = not self.source_file.iswritable()
-		return self._readonly
-
-	@property
-	def mtime(self):
-		return self.source_file.mtime() if self.source_file.exists() else None
-
-	@property
-	def ctime(self):
-		return self.source_file.ctime() if self.source_file.exists() else None
-
-	def isequal(self, other):
-		#~ print "IS EQUAL", self, other
-		if not isinstance(other, self.__class__):
-			return False
-
-		if self is other:
-			# If object equal by definition they are the equal
-			return True
-
-		# If we have an existing source check it
-		# If we have an existing folder check it
-		# If either fails we are not equal
-		# If both do not exist we are also not equal
-
-		if self.source_file.exists():
-			if not self.source_file.isequal(other.source_file):
-				return False
-
-		if self.attachments_folder.exists():
-			if not self.attachments_folder.isequal(other.attachments_folder):
-				return False
-
-		return self == other # Path.__eq__
-
-	def _source_hascontent(self):
-		return self.source_file.exists()
-
-	def _fetch_parsetree(self):
-		try:
-			text, self._last_etag = self.source_file.read_with_etag()
-			parser = self.format.Parser()
-			return parser.parse(text)
-		except zim.newfs.FileNotFoundError:
-			return None
-
-	def _store(self):
-		tree = self.get_parsetree()
-		if tree and tree.hascontent:
-			self._last_etag = self._store_parsetree(tree)
-		else:
-			self.source_file.remove()
-			self._last_etag = None
-		self.modified = False
-
-	def _store_parsetree(self, tree):
-		if not self.hascontent:
-			# New page
-			now = datetime.now()
-			tree.meta['Creation-Date'] = now.isoformat()
-
-		lines = self.format.Dumper().dump(tree)
-		return self.source_file.writelines_with_etag(lines, self._last_etag)
-
-	def _check_source_etag(self):
-		if (
-			self._last_etag
-			and not self.source_file.verify_etag(self._last_etag)
-		) or (
-			not self._last_etag
-			and self._parsetree
-			and self.source_file.exists()
-		):
-			logger.info('Page changed on disk: %s', self.name)
-			self._last_etag = None
-			self._parsetree = None
-			self.emit('page-changed', True)
-		else:
-			pass # no check
-

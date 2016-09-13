@@ -91,9 +91,6 @@ else:
 REAL_TMPDIR = tempfile.gettempdir()
 
 
-from zim.newfs import LocalFolder
-
-
 def load_tests(loader, tests, pattern):
 	'''Load all test cases and return a unittest.TestSuite object.
 	The parameters 'tests' and 'pattern' are ignored.
@@ -172,6 +169,9 @@ else:
 	raise AssertionError, 'Raising errors on warning fails'
 
 ###
+
+
+from zim.newfs import LocalFolder
 
 
 _zim_pyfiles = []
@@ -476,14 +476,21 @@ def new_parsetree_from_xml(xml):
 
 def new_page():
 	from zim.notebook import Path, Page
-	page = Page(Path('roundtrip'))
+	from zim.newfs.mock import MockFile, MockFolder
+	file = MockFile('/mock/test/page.txt')
+	folder = MockFile('/mock/test/page/')
+	page = Page(Path('roundtrip'), False, file, folder)
 	page.set_parsetree(new_parsetree())
 	return page
 
 
 def new_page_from_text(text, format='wiki'):
 	from zim.notebook import Path, Page
-	page = Page(Path('Test'))
+	from zim.notebook import Path, Page
+	from zim.newfs.mock import MockFile, MockFolder
+	file = MockFile('/mock/test/page.txt')
+	folder = MockFile('/mock/test/page/')
+	page = Page(Path('Test'), False, file, folder)
 	page.set_parsetree(new_parsetree_from_text(text, format))
 	return page
 

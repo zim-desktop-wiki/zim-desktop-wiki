@@ -116,7 +116,7 @@ class NotebookExtension(ObjectExtension):
 		self.vcs = VCS.create(vcs, dir, dir)
 
 		if self.vcs:
-			with self.notebook.lock:
+			with self.notebook.notebook_state:
 				self.vcs.init()
 
 	def teardown(self):
@@ -214,7 +214,7 @@ class MainWindowExtension(WindowExtension):
 				gaction = self.actiongroup.get_action('show_versions')
 				gaction.set_sensitive(True)
 
-		with self.notebook_ext.notebook.lock:
+		with self.notebook_ext.notebook.notebook_state:
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
 	@action(_('_Versions...')) # T: menu item

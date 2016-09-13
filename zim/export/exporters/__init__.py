@@ -38,7 +38,7 @@ class Exporter(object):
 
 
 
-from zim.notebook.page import Path, NewPage
+from zim.notebook.page import Path, Page
 from zim.newfs.mock import MockFile
 from zim.formats import ParseTreeBuilder, \
 	FORMATTEDTEXT, HEADING, BULLETLIST, LISTITEM, LINK
@@ -74,6 +74,6 @@ def createIndexPage(notebook, path, section=None):
 		tree = builder.get_parsetree()
 		#~ print "!!!", tree.tostring()
 
-		indexpage = NewPage(path, False, MockFile('/index'), None)
+		indexpage = Page(path, False, MockFile('/index'), None)
 		indexpage.set_parsetree(tree)
 		return indexpage

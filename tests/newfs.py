@@ -787,7 +787,7 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertIn(file.mimetype(), ('image/png', 'image/x-png'))
 		blob = file.read_binary()
 		self.assertNotIsInstance(blob, unicode)
-		with open(file._encodedpath, 'rb') as fh:
+		with open(file.encodedpath, 'rb') as fh:
 			raw = fh.read()
 		self.assertEqual(blob, raw)
 
@@ -810,12 +810,12 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file = root.file('read-only-file.txt')
 		file.write('test 123\n')
 
-		os.chmod(file._encodedpath, 0444)
+		os.chmod(file.encodedpath, 0444)
 		try:
 			self.assertRaises(FileNotWritableError, file.write, 'Overwritten!')
 			self.assertEqual(file.read(), 'test 123\n')
 		finally:
-			os.chmod(file._encodedpath, 0644) # make it removable again
+			os.chmod(file.encodedpath, 0644) # make it removable again
 			file.remove()
 
 	def testFileEncoding(self):
@@ -827,13 +827,13 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file.endofline = 'dos'
 		file.write('Some lines\nWith win32 newlines\n')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
-		with open(file._encodedpath, 'rb') as fh:
+		with open(file.encodedpath, 'rb') as fh:
 			self.assertEqual(fh.read(), 'Some lines\r\nWith win32 newlines\r\n')
 
 		file.writelines(['Some lines\n', 'With win32 newlines2\n'])
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines2\n')
 
-		with open(file._encodedpath, 'rb') as fh:
+		with open(file.encodedpath, 'rb') as fh:
 			self.assertEqual(fh.read(), 'Some lines\r\nWith win32 newlines2\r\n')
 
 		# test line-ends option - unix
@@ -841,13 +841,13 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file.endofline = 'unix'
 		file.write('Some lines\nWith unix newlines\n')
 		self.assertEqual(file.read(), 'Some lines\nWith unix newlines\n')
-		with open(file._encodedpath, 'rb') as fh:
+		with open(file.encodedpath, 'rb') as fh:
 			self.assertEqual(fh.read(), 'Some lines\nWith unix newlines\n')
 
 		file.writelines(['Some lines\n', 'With unix newlines2\n'])
 		self.assertEqual(file.read(), 'Some lines\nWith unix newlines2\n')
 
-		with open(file._encodedpath, 'rb') as fh:
+		with open(file.encodedpath, 'rb') as fh:
 			self.assertEqual(fh.read(), 'Some lines\nWith unix newlines2\n')
 
 		# test encoding error
@@ -870,8 +870,8 @@ class TestLocalFS(tests.TestCase, TestFS):
 
 		dir = root.folder('data/')
 		file = dir.file('bar.txt').touch()
-		os.symlink(targetdir._encodedpath, dir._encodedpath + '/link')
-		os.symlink(targetfile._encodedpath, dir._encodedpath + '/link.txt')
+		os.symlink(targetdir.encodedpath, dir.encodedpath + '/link')
+		os.symlink(targetfile.encodedpath, dir.encodedpath + '/link.txt')
 
 		# Now we have:
 		# ../target/foo.txt		(real)
@@ -922,7 +922,7 @@ class TestTmpFile(tests.TestCase):
 		file.write('test 123\n')
 		self.assertTrue(file.ischild(dir))
 
-		path = file._encodedpath
+		path = file.encodedpath
 		self.assertTrue(os.path.isfile(path))
 		del file
 		self.assertFalse(os.path.isfile(path)) # not persistent
