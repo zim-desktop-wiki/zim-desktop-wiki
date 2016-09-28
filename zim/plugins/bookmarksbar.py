@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Pavel_M <plprgt@gmail.com>.
+# Copyright 2015-2016 Pavel_M <plprgt@gmail.com>,
+# released under the GNU GPL version 3.
 # This plugin is for Zim program by Jaap Karssenberg <jaap.karssenberg@gmail.com>.
 #
 # This plugin uses an icon from Tango Desktop Project (http://tango.freedesktop.org/)
@@ -21,9 +22,6 @@ from zim.gui.clipboard import Clipboard
 import logging
 logger = logging.getLogger('zim.plugins.bookmarksbar')
 
-# Constant for max number of bookmarks in the bar.
-MAX_BOOKMARKS = 15
-
 # Keyboard shortcut constants.
 BM_TOGGLE_BAR_KEY ='F4'
 BM_ADD_BOOKMARK_KEY ='<alt>1'
@@ -40,6 +38,7 @@ class BookmarksBarPlugin(PluginClass):
 
 	plugin_preferences = (
 		# key, type, label, default
+		('max_bookmarks', 'int', _('Maximum number of bookmarks'), 15, (5, 20)), # T: plugin preference
 		('save', 'bool', _('Save bookmarks'), True), # T: preferences option
 		('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False), # T: preferences option
 	)
@@ -70,7 +69,7 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 		self.widget = BookmarkBar(self.window.ui, self.uistate,
-								  self.window.pageview.get_page)
+					  self.window.pageview.get_page)
 		self.widget.show_all()
 
 		# Add a new option to the Index popup menu.
@@ -149,10 +148,12 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		self.uistate = uistate
 		self.save_flag = False # if True save bookmarks in config
 		self.add_bookmarks_to_beginning = False # add new bookmarks to the end of the bar
+		self.max_bookmarks = False # maximum number of bookmarks
 		self._get_page = get_page_func # function to get current page
 
 		# Create button to add new bookmarks.
 		self.plus_button = IconsButton(gtk.STOCK_ADD, gtk.STOCK_REMOVE, relief = False)
+		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings'))
 		self.plus_button.connect('clicked', lambda o: self.add_new_page())
 		self.plus_button.connect('button-release-event', self.do_plus_button_popup_menu)
 		self.pack_start(self.plus_button, expand = False)
@@ -164,7 +165,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		# Toggle between full/short page names.
 		self.uistate.setdefault('show_full_page_name', False)
 
-		# Save path to use later in Cut/Paste menu.
+		# Save path to use later in Copy/Paste menu.
 		self._saved_bookmark = None
 
 		self.paths = [] # list of bookmarks as string objects
@@ -173,7 +174,8 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		# Add pages from config to the bar.
 		for path in self.uistate['bookmarks']:
 			page = self.ui.notebook.get_page(Path(path))
-			self.add_new_page(page, reload_bar = False)
+			if page.exists() and (page.name not in self.paths):
+				self.paths.append(page.name)
 
 		self.paths_names = {} # dict of changed names of bookmarks
 		self.uistate.setdefault('bookmarks_names', {})
@@ -189,46 +191,46 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				except:
 					logger.error('BookmarksBar: Error while loading path_names.')
 
-		self._reload_bar()
+		# Look for new pages to mark corresponding bookmarks in the bar.
+		self.connectto(self.ui, 'open-page', self.on_open_page)
 
 		# Delete a bookmark if a page is deleted.
 		self.connectto(self.ui.notebook.index, 'page-deleted',
 					   lambda obj, path: self.delete(path.name))
 
-	def add_new_page(self, page = None, reload_bar = True):
+	def on_open_page(self, ui, page, path):
+		'''If a page is present as a bookmark than select it.'''
+		pagename = page.name
+		for button in self.container.get_children()[2:]:
+			if button.zim_path == pagename:
+				button.set_active(True)
+			else:
+				button.set_active(False)
+	
+	def add_new_page(self, page = None):
 		'''
 		Add new page as bookmark to the bar.
 		:param page: L{Page}, if None takes currently opened page,
-		:reload_bar: if True reload the bar.
 		'''
 		if not page:
 			page = self._get_page()
 
 		if page.exists():
-			return self._add_new(page.name, self.add_bookmarks_to_beginning, reload_bar)
-
-	def _add_new(self, path, add_bookmarks_to_beginning = False, reload_bar = True):
+			return self._add_new(page.name, self.add_bookmarks_to_beginning)
+		
+	def _add_new(self, path, add_bookmarks_to_beginning = False):
 		'''Add bookmark to the bar.
 		:param path: path as a string object
 		:param add_bookmarks_to_beginning: bool,
 		add new bookmarks to the beginning of the bar,
-		:reload_bar: if True reload the bar.
 		'''
 		if path in self.paths:
 			logger.debug('BookmarksBar: path is already in the bar.')
-
-			# Temporary change icon for plus_button to show
-			# that bookmark is already in the bar.
-			def _change_icon():
-				'''Function to be called only once.'''
-				self.plus_button.change_state()
-				return False
-			self.plus_button.change_state()
-			gobject.timeout_add(300, _change_icon)
+			self.plus_button.blink()
 			return False
 
 		# Limit max number of bookmarks.
-		if len(self.paths) >= MAX_BOOKMARKS:
+		if self.max_bookmarks and (len(self.paths) >= self.max_bookmarks):
 			logger.debug('BookmarksBar: max number of bookmarks is achieved.')
 			return False
 
@@ -238,7 +240,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		else:
 			self.paths.append(path)
 
-		if reload_bar: self._reload_bar()
+		self._reload_bar()
 
 	def delete(self, path):
 		'''
@@ -284,8 +286,13 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		if new_path and (new_path not in self.paths) and (new_path != old_path):
 			self.paths[self.paths.index(old_path)] = new_path
-			self.paths_names.pop(old_path, None)
+			name = self.paths_names.pop(old_path, None)
+			if name:
+				self.paths_names[new_path] = name
+
 			self._reload_bar()
+		else:
+			self.plus_button.blink()
 
 	def move_bookmark(self, first, second, direction):
 		'''
@@ -350,7 +357,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 	def do_bookmarks_popup_menu(self, button, event):
 		'''Handler for button-release-event, triggers popup menu for bookmarks.'''
 		if event.button != 3:
-                        return False
+			return False
 
 		path = button.zim_path
 
@@ -371,13 +378,12 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 					(_('Remove'), lambda o: self.delete(path)),			# T: menu item
 				    (_('Remove All'), lambda o: self.delete_all(True)),	# T: menu item
 				    ('separator', ''),
-				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
-				    ('separator', ''),
 				    ('gtk-copy', lambda o: set_save_bookmark(path)),
 				    ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
 				    ('separator', ''),
-				    (rename_button_text, lambda o: self.rename_bookmark(button)),
+				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
 				    ('separator', ''),
+				    (rename_button_text, lambda o: self.rename_bookmark(button)),
 				    (_('Set to Current Page'), lambda o: self.change_bookmark(path)) ) # T: menu item
 
 		for name, func in main_menu_items:
@@ -412,6 +418,10 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			self.uistate['bookmarks'] = []
 			self.uistate['bookmarks_names'] = {}
 
+		if self.max_bookmarks != preferences['max_bookmarks']:
+			self.max_bookmarks = preferences['max_bookmarks']
+			self._reload_bar() # to update plus_button
+
 	def _get_short_page_name(self, name):
 		'''
 		Function to return short name for the page.
@@ -430,6 +440,12 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		for button in self.container.get_children()[2:]:
 			self.container.remove(button)
 
+		page = self._get_page()
+		if page:
+			pagename = page.name
+		else:
+			pagename = None
+
 		for path in self.paths:
 			if path in self.paths_names:
 				name = self.paths_names[path]
@@ -437,16 +453,19 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				name = self._get_short_page_name(path)
 			else:
 				name = path
-			button = gtk.Button(label = name, use_underline = False)
+			button = gtk.ToggleButton(label = name, use_underline = False)
 			button.set_tooltip_text(path)
 			button.zim_path = path
+			if path == pagename:
+				button.set_active(True)
+
 			button.connect('clicked', self.on_bookmark_clicked)
 			button.connect('button-release-event', self.do_bookmarks_popup_menu)
 			button.show()
 			self.container.add(button)
 
 		# 'Disable' plus_button if max bookmarks is reached.
-		if len(self.paths) >= MAX_BOOKMARKS:
+		if self.max_bookmarks and (len(self.paths) >= self.max_bookmarks):
 			self.plus_button.change_state(False)
 		else:
 			self.plus_button.change_state(True)
@@ -501,3 +520,13 @@ class IconsButton(gtk.Button):
 			self._enabled_state = not self._enabled_state
 			self.show_all()
 
+	def blink(self):
+		'''Quickly change an icon to show
+		that bookmark can't be added/changed.'''
+
+		def change_icon():
+			'''Function to be called only once.'''
+			self.change_state()
+			return False
+		self.change_state()
+		gobject.timeout_add(300, change_icon)
