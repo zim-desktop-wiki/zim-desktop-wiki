@@ -194,16 +194,14 @@ class MainWindowExtension(WindowExtension):
 			msg = _('Automatically saved version from zim')
 				# T: default version comment for auto-saved versions
 
-		self.window.ui.assert_save_page_if_modified() # XXX
-		try:
-			self.notebook_ext.vcs.commit(msg)
-		except NoChangesError:
-			logger.debug('No autosave version needed - no changes')
+		with self.notebook_ext.notebook.notebook_state:
+			try:
+				self.notebook_ext.vcs.commit(msg)
+			except NoChangesError:
+				logger.debug('No autosave version needed - no changes')
 
 	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False) # T: menu item
 	def save_version(self):
-		self.window.ui.assert_save_page_if_modified() # XXX
-
 		if not self.notebook_ext.vcs:
 			vcs = VersionControlInitDialog(self.window).run()
 			if vcs is None:
@@ -219,8 +217,6 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('_Versions...')) # T: menu item
 	def show_versions(self):
-		self.window.ui.assert_save_page_if_modified() # XXX
-
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
 			self.notebook_ext.notebook,

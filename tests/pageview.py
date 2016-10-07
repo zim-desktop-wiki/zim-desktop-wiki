@@ -44,7 +44,7 @@ def setUpPageView(fakedir=None, notebook=None):
 	#~ ui.uimanager = tests.MockObject()
 	#~ ui.uimanager.mock_method('get_accel_group', tests.MockObject())
 
-	return PageView(ui)
+	return PageView(ui, ui.notebook)
 
 
 class TestLines(tests.TestCase):

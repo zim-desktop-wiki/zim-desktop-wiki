@@ -149,8 +149,8 @@ def with_notebook_state(func):
 
 
 class NotebookState(object):
-	'''Context manager that aquires the notebook threading lock and
-	also ensures all pending changes have been saved.
+	'''Context manager that ensures the index is up to date and
+	aquires the notebook threading lock.
 
 	In general this lock is not needed when only reading data from
 	the notebook. However it should be used when doing operations that
@@ -166,7 +166,6 @@ class NotebookState(object):
 	def __enter__(self):
 		self.notebook.index.wait_for_update()
 		self.notebook._notebook_state_lock.acquire()
-		self.notebook.save()
 
 	def __exit__(self, *args):
 		self.notebook._notebook_state_lock.release()
@@ -347,11 +346,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''The 'profile' property for this notebook'''
 		return self.config['Notebook'].get('profile') or None # avoid returning ''
 
-	def save(self):
-		for page in self._page_cache.values():
-			if page.modified:
-				self.store_page(page)
-
 	def save_properties(self, **properties):
 		'''Save a set of properties in the notebook config
 
@@ -514,11 +508,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: store-page before storing the page
 		@emits: stored-page on success
 		'''
-		assert page.valid, 'BUG: page object no longer valid'
-		self.emit('store-page', page)
-		page._store()
-		self.index.on_store_page(page)
-		self.emit('stored-page', page)
+		with self._notebook_state_lock:
+			assert page.valid, 'BUG: page object no longer valid'
+			self.emit('store-page', page)
+			page._store()
+			self.index.on_store_page(page)
+			self.emit('stored-page', page)
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook

@@ -53,7 +53,7 @@ __all__ = [
 	'parsing', 'formats', 'templates', 'objectmanager',
 	'index', 'notebook', 'history',
 	'export', 'www', 'search',
-	'widgets', 'pageindex', 'pageview', 'clipboard', 'gui',
+	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
 	'main', 'plugins',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
