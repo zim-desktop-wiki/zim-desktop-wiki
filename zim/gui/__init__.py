@@ -2597,7 +2597,8 @@ class SaveCopyDialog(FileDialog):
 			page = self.ui.page
 		self.page = page
 		self.filechooser.set_current_name(self.page.name + '.txt')
-		self.add_shortcut(ui.notebook, page)
+		if hasattr(ui, 'notebook'):
+			self.add_shortcut(ui.notebook, page)
 
 		# TODO also include headers
 		# TODO add droplist with native formats to choose + hook filters

@@ -4775,6 +4775,7 @@ class SavePageHandler(object):
 					##
 
 					logger.debug('Saving page: %s', page)
+					#~ assert False, "TEST"
 					self.notebook.store_page(page)
 
 				except Exception, error:
@@ -4790,18 +4791,21 @@ class SavePageHandler(object):
 		    foreground, else it tries to write the page in a background
 		    thread
 		'''
+		self.cancel_autosave()
 		self.do_try_save_page()
 
 	def do_try_save_page(self, *a):
-		if self._thread and self._thread.is_alive():
+		page = self.get_page_cb()
+		if not (page and page.modified):
+			self._autosave_timer = None
+			return False # stop timer
+
+		if self._thread and self._thread.is_alive() \
+		or self.notebook.notebook_state._is_owned():
 			logger.debug('Save still in progress, skipping auto-save')
 			return True # Check back later if on timer
 		else:
 			self._thread = None
-			page = self.get_page_cb()
-			if not (page and page.modified):
-				self._autosave_timer = None
-				return False # stop timer
 			
 			if self._thread_error_event.is_set():
 				# Error in previous auto-save, save in foreground to allow error dialog
@@ -4809,8 +4813,7 @@ class SavePageHandler(object):
 				self.save_page_now(dialog_timeout=True)
 			else:
 				# Save in background async
-				page.get_parsetree()
-				# TODO: assert current thread does not hold the state lock - else we dead-lock !!!
+				# TODO retrieve tree here and pass on to thread for background store
 				thread_started = threading.Event()
 				self._thread = threading.Thread(
 					target=self._save_page_async,
@@ -4823,7 +4826,7 @@ class SavePageHandler(object):
 				return True # if True, timer will keep going
 			else:
 				self._autosave_timer = None
-				return False
+				return False # stop timer
 
 	def _save_page_async(self, page, thread_started):
 		logger.debug('Saving page: %s (background autosave)', page)
@@ -4881,15 +4884,16 @@ discarded, but you can restore the copy later.''')
 
 		self._done = False
 		def discard(self):
+			page.set_ui_object(None) # unhook
 			pageview.clear()
 				# issue may be caused in pageview - make sure it unlocks
-			#~ self.page.valid = False # invalidate the page
-			#~ page = self.app_window.ui.notebook.get_page(self.page) # get a new one
-			#~ self.app_window.pageview.set_page(page) # and open it ..
-			#~ self.app_window.ui.page = page # XXX
+			page._parsetree = None # removed cached tree
+			page.modified = False
+			pageview.set_page(page)
 			self._done = True
 
 		def save(self):
+			from zim.gui import SaveCopyDialog
 			if SaveCopyDialog(self, page=self.page).run():
 				discard(self)
 
@@ -5081,7 +5085,7 @@ class PageView(gtk.VBox):
 		)
 
 		def on_focus_out_event(*a):
-			self._save_page_handler.do_try_save_page()
+			self._save_page_handler.try_save_page()
 			return False # don't block the event
 		self.view.connect('focus-out-event', on_focus_out_event)
 

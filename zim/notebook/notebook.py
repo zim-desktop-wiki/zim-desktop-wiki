@@ -170,6 +170,9 @@ class NotebookState(object):
 	def __exit__(self, *args):
 		self.notebook._notebook_state_lock.release()
 
+	def _is_owned(self):
+		return self.notebook._notebook_state_lock._is_owned()
+			# XXX using non-documented method of RLock, can break in future
 
 
 class Notebook(ConnectorMixin, SignalEmitter):
