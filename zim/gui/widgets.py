@@ -2806,7 +2806,13 @@ class Window(gtkwindowclass):
 			register_window(self)
 			if hasattr(self, 'uistate'):
 				self.init_uistate()
-		gtkwindowclass.show_all(self)
+
+		if not TEST_MODE:
+			gtkwindowclass.show_all(self)
+
+	def present(self):
+		if not TEST_MODE:
+			gtkwindowclass.present()
 
 # Need to register classes defining gobject signals
 gobject.type_register(Window)

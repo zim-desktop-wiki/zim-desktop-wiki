@@ -238,7 +238,8 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				**self.get_options('geometry', 'fullscreen')
 			)
 			gui.run()
-			return gui._mainwindow # XXX
+
+		return gui._mainwindow # XXX
 
 
 class ManualCommand(GuiCommand):
@@ -272,7 +273,11 @@ class ServerCommand(NotebookCommand):
 		self.opts['port'] = int(self.opts.get('port', 8080))
 		self.opts.setdefault('template', 'Default')
 		notebook, page = self.build_notebook()
-		zim.www.main(notebook, **self.get_options('template', 'port'))
+		
+		self.server = httpd = zim.www.make_server(notebook, public=True, **self.get_options('template', 'port'))
+			# server attribute used in testing to stop sever in thread
+		logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
+		httpd.serve_forever()
 
 
 class ServerGuiCommand(NotebookCommand, GtkCommand):
@@ -505,8 +510,9 @@ class ZimApplication(object):
 		self._windows = set()
 
 	def add_window(self, window):
-		logger.debug('Add window: %s', window.__class__.__name__)
 		if not window in self._windows:
+			logger.debug('Add window: %s', window.__class__.__name__)
+
 			assert hasattr(window, 'destroy')
 			window.connect('destroy', self._on_destroy_window)
 			self._windows.add(window)
@@ -533,6 +539,9 @@ class ZimApplication(object):
 		@param args: commandline arguments
 		'''
 		cmd = build_command(args)
+		self._run_cmd(cmd) # test seam
+
+	def _run_cmd(self, cmd, *args):
 		self._setup_logging(cmd)
 
 		if self._running:
@@ -548,7 +557,7 @@ class ZimApplication(object):
 		else:
 			self._standalone = cmd.opts.get('standalone')
 			if isinstance(cmd, GtkCommand):
-				if self._try_dispatch(args):
+				if not self._standalone and self._try_dispatch(args):
 					pass # We are done
 				else:
 					self._running = True

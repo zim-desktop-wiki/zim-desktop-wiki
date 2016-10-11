@@ -464,6 +464,7 @@ class GtkInterface(gobject.GObject):
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
 		self._mainwindow.present()
+			
 		if page:
 			if isinstance(page, basestring):
 				page = Path(page)
