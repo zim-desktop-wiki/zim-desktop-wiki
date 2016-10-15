@@ -2474,6 +2474,18 @@ class TextBuffer(gtk.TextBuffer):
 
 		return tree
 
+	def remove_current_line(self):
+		'''Remove current line'''
+		insert = self.get_iter_at_mark(self.get_insert())
+		line = insert.get_line()
+		start = self.get_iter_at_line(line)
+		end = self.get_iter_at_line(line)
+		end.forward_to_line_end()
+		self.delete(start, end)
+		self.set_modified(True)
+		self.update_editmode()
+
+
 	def select_line(self):
 		'''Selects the current line
 
@@ -5629,6 +5641,12 @@ class PageView(gtk.VBox):
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			buffer.remove_link(*bounds)
+
+	@action(_('_Remove Line'), accelerator='<Primary>L', readonly=False)  # T: Menu item
+	def remove_line(self):
+		'''Menu action to remove line at the current cursor position'''
+		buffer = self.view.get_buffer()
+		buffer.remove_current_line()
 
 	@action(_('_Date and Time...'), accelerator='<Primary>D', readonly=False) # T: Menu item
 	def insert_date(self):
