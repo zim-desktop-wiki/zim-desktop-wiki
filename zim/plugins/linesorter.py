@@ -42,6 +42,9 @@ class MainWindowExtension(WindowExtension):
 			<menu action='edit_menu'>
 				<placeholder name='plugin_items'>
 					<menuitem action='sort_selected_lines'/>
+					<menuitem action='remove_line'/>
+					<menuitem action='move_line_up'/>
+					<menuitem action='move_line_down'/>
 				</placeholder>
 			</menu>
 		</menubar>
@@ -93,3 +96,62 @@ class MainWindowExtension(WindowExtension):
 			buffer.delete(iter_begin_line, iter_end_line)
 			for line in sorted_lines:
 				buffer.insert_parsetree_at_cursor(line[1])
+
+
+	def move_line(self, offset):
+		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
+		buffer = self.window.pageview.view.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		line = iter.get_line()
+		line_offset = iter.get_line_offset()
+		last_line = buffer.get_end_iter().get_line()
+
+		start, end = buffer.get_line_bounds(line)
+		tree = buffer.get_parsetree(bounds=(start, end))
+		target_line = line + offset
+
+		# do nothing if target is before begin or after end of document
+		if target_line < 0 or target_line >= last_line:
+			return
+
+		with buffer.user_action:
+			buffer.delete(start, end)
+			iter = buffer.get_iter_at_line(target_line)
+			#scroll with one line margin on top/bottom
+			scroll_target_iter = buffer.get_iter_at_line(target_line  - 1 * (offset < 0 and target_line > 0))
+			buffer.place_cursor(iter)
+			buffer.insert_parsetree_at_cursor(tree)
+			iter = buffer.get_iter_at_line_offset(target_line, line_offset)
+			buffer.place_cursor(iter)
+
+			self.window.pageview.view.scroll_to_iter(scroll_target_iter, 0)
+
+
+	@action(_('_Move Line Up'), accelerator='<Primary>Up', readonly=False)  # T: Menu item
+	def move_line_up(self):
+		'''Menu action to move line up'''
+		self.move_line(-1)
+
+
+	@action(_('_Move Line Down'), accelerator='<Primary>Down', readonly=False)  # T: Menu item
+	def move_line_down(self):
+		'''Menu action to move line down'''
+		self.move_line(1)
+
+
+	@action(_('_Remove Line'), accelerator='<Primary><Shift>D', readonly=False)  # T: Menu item
+	def remove_line(self):
+		'''Menu action to remove line at the current cursor position'''
+		buffer = self.window.pageview.view.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		line = iter.get_line()
+		start, end = buffer.get_line_bounds(line)
+		buffer.delete(start, end)
+		buffer.set_modified(True)
+		buffer.update_editmode()
+
+		iter = buffer.get_iter_at_line(max(0, line - 1))
+		if line != 0:
+			iter.forward_to_line_end()
+		buffer.place_cursor(iter)
+
