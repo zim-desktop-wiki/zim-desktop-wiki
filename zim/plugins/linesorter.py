@@ -101,29 +101,50 @@ class MainWindowExtension(WindowExtension):
 	def move_line(self, offset):
 		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
 		buffer = self.window.pageview.view.get_buffer()
-		iter = buffer.get_iter_at_mark(buffer.get_insert())
-		line = iter.get_line()
-		line_offset = iter.get_line_offset()
-		last_line = buffer.get_end_iter().get_line()
+		#get start/end iter
+		iter_start = buffer.get_iter_at_mark(buffer.get_insert())
+		iter_end = buffer.get_iter_at_mark(buffer.get_selection_bound())
 
-		start, end = buffer.get_line_bounds(line)
+		#get start/end line and calculate target lines
+		line_start = iter_start.get_line()
+		line_end = iter_end.get_line()
+		target_line = line_start + offset
+		target_end_line = line_end + offset
+
+		#remember offset of cursor/selection bound
+		line_start_offset = iter_start.get_line_offset()
+		line_end_offset = iter_end.get_line_offset()
+
+		has_selection = buffer.get_has_selection()
+
+		#get bounding iters for deletion and copy tree
+		start = buffer.get_iter_at_line(line_start)
+		end = buffer.get_iter_at_line(line_end)
+		end.forward_line()
 		tree = buffer.get_parsetree(bounds=(start, end))
-		target_line = line + offset
 
 		# do nothing if target is before begin or after end of document
-		if target_line < 0 or target_line >= last_line:
+		last_line = buffer.get_end_iter().get_line()
+		if target_line < 0 or target_end_line >= last_line:
 			return
 
 		with buffer.user_action:
+			#delete lines and insert at target
 			buffer.delete(start, end)
 			iter = buffer.get_iter_at_line(target_line)
-			#scroll with one line margin on top/bottom
-			scroll_target_iter = buffer.get_iter_at_line(target_line  - 1 * (offset < 0 and target_line > 0))
 			buffer.place_cursor(iter)
 			buffer.insert_parsetree_at_cursor(tree)
-			iter = buffer.get_iter_at_line_offset(target_line, line_offset)
-			buffer.place_cursor(iter)
 
+			#redo selection/place cursor at same position
+			iter = buffer.get_iter_at_line_offset(target_line, line_start_offset)
+			if has_selection:
+				iter_end = buffer.get_iter_at_line_offset(target_end_line, line_end_offset)
+				buffer.select_range(iter, iter_end)
+			else:
+				buffer.place_cursor(iter)
+
+			#scroll with one line margin on top/bottom if necessary
+			scroll_target_iter = buffer.get_iter_at_line(target_line  - 1 * (offset < 0 and target_line > 0))
 			self.window.pageview.view.scroll_to_iter(scroll_target_iter, 0)
 
 
