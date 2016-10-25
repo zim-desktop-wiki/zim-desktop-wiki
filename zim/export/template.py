@@ -95,6 +95,8 @@ from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
 
+from zim.notebook import Path
+
 
 class ExportTemplateContext(dict):
 	# No need to inherit from TemplateContextDict here, the template
@@ -275,12 +277,18 @@ class ExportTemplateContext(dict):
 			expanded = []
 		stack = []
 
+		if isinstance(namespace, PageProxy):
+			namespace=Path(namespace.name)
+		elif isinstance(namespace, str):
+			namespace=Path(namespace)
+
 		for path in self._index_generator(namespace):
+			logger.info(path)
 			if self._index_page and collapse \
 			and not path.parent in expanded:
 				continue # skip since it is not part of current path
-			elif ignore_empty and not (path.hascontent or path.haschildren):
-				continue # skip since page is empty
+			#elif ignore_empty and not (path.hascontent or path.haschildren): - bug,  should be page.hascontent,  page.haschildren
+			#	continue # skip since page is empty
 
 			if not stack:
 				stack.append(path.parent)
@@ -550,4 +558,3 @@ class UriProxy(object):
 
 	def __str__(self):
 		return self.uri
-

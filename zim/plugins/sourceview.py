@@ -3,9 +3,23 @@
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+# This plugin can work without GUI for just the export
+# Be nice about gtk, since it may not be present in a server CLI only version
+try:
+	import gtk
+	import pango
+except:
+	gtk = None
 
-import gtk
-import pango
+try:
+	from zim.gui.widgets import Dialog, ScrolledWindow
+	from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
+except:
+	class Dialog():
+		pass
+	class TextViewWidget():
+		pass
+
 import logging
 
 logger = logging.getLogger('zim.pugin.sourceview')
@@ -20,8 +34,6 @@ from zim.actions import action
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
-from zim.gui.widgets import Dialog, ScrolledWindow
-from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
 from zim.formats.html import html_encode
 
 if gtksourceview2:
@@ -68,11 +80,12 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 	@classmethod
 	def check_dependencies(klass):
-		check = not gtksourceview2 is None
+		check = gtk is None or not gtksourceview2 is None
 		return check, [('gtksourceview2', check, True)]
 
 	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
+		ObjectManager.register_object(OBJECT_TYPE, self.create_object) # register the plugin in the main init so it works for a non-gui export
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def create_object(self, attrib, text):
@@ -103,7 +116,7 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_object)
+		#ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_object) already registered in the main init
 			# XXX use pageview attribute instead of singleton
 
 	def teardown(self):
@@ -216,22 +229,34 @@ class SourceViewObject(CustomObjectClass):
 	def dump(self, format, dumper, linker=None):
 		if format == "html":
 			if self._attrib['lang']:
-				# class="brush: language;" works with SyntaxHighlighter 2.0.278
-				# by Alex Gorbatchev <http://alexgorbatchev.com/SyntaxHighlighter/>
-				# TODO: not all GtkSourceView language ids match with SyntaxHighlighter
-				# language ids.
+				''' to use highlight.js add the following to your template:
+				<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/styles/default.min.css">
+				<script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/highlight.min.js"></script>
+				<script>hljs.initHighlightingOnLoad();</script>
+				Map GtkSourceView language ids match with Highlight.js language ids.
+				http://packages.ubuntu.com/precise/all/libgtksourceview2.0-common/filelist
+				http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
+                '''
+				sh_map = { 'dosbatch':'dos' }
+				sh_lang = sh_map[self._attrib['lang']] if self._attrib['lang'] in sh_map else self._attrib['lang']
 				# TODO: some template instruction to be able to use other highlighters as well?
-				output = ['<pre class="brush: %s;">\n' % html_encode(self._attrib['lang'])]
+				output = ['<pre><code class="%s">' % html_encode(sh_lang)] # for syntaxhigligther
+				'''' class="brush: language;" works with SyntaxHighlighter 2.0.278, 3 & 4
+				output = ['<pre class="brush: %s;">' % html_encode(sh_lang)] # for syntaxhigligther
+				'''
 			else:
 				output = ['<pre>\n']
 			data = self.get_data()
 			data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
-			if self._attrib['linenumbers']:
-				for i, l in enumerate(data.splitlines(1)):
-					output.append('%i&nbsp;' % (i+1) + l)
+			#if self._attrib['linenumbers']:
+			#	for i, l in enumerate(data.splitlines(1)):
+			#		output.append('%i&nbsp;' % (i+1) + l)
+			#else:
+			output.append(data) # ignoring numbering for html - syntaxhighlighter takes care of that
+			if self._attrib['lang']:
+				output.append('</code></pre>\n')
 			else:
-				output.append(data)
-			output.append('</pre>\n')
+				output.append('</pre>\n')
 			return output
 		return CustomObjectClass.dump(self, format, dumper, linker)
 

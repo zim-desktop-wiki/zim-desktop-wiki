@@ -363,9 +363,17 @@ class ExportCommand(NotebookCommand):
 
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
+		from zim.plugins import PluginManager
+		from zim.config import ConfigManager
 
 		notebook, page = self.build_notebook()
 		#~ notebook.index.update()
+
+        # load plugins, needed so the the proper export functions would work from CLI
+		config = ConfigManager(profile=notebook.profile)
+		plugins = PluginManager(config)
+		plugins.extend(notebook.index)
+		plugins.extend(notebook)
 
 		if page and self.opts.get('recursive'):
 			selection = SubPages(notebook, page)
@@ -530,4 +538,3 @@ def get_zim_application(command, *args):
 			args.append('-V',)
 
 	return Application([ZIM_EXECUTABLE] + args)
-
