@@ -301,9 +301,11 @@ class FileBrowserIconView(gtk.IconView):
 			self.emit('folder-changed')
 
 	def on_item_activated(self, iconview, path):
+		from zim.fs import File
 		store = iconview.get_model()
 		iter = store.get_iter(path)
 		file = self.folder.file(store[iter][BASENAME_COL])
+		file = File(file)
 		self.opener.open_file(file)
 
 	def on_button_press_event(self, iconview, event):
@@ -324,9 +326,11 @@ class FileBrowserIconView(gtk.IconView):
 
 	def do_populate_popup(self, menu, pathinfo):
 		# print "do_populate_popup"
+		from zim.fs import File
 		store = self.get_model()
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
+		file = File(file)
 
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)

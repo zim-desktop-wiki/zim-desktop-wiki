@@ -270,7 +270,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
-		self.opener.open_dir(self.iconview.folder)
+		from zim.fs import Dir
+		self.opener.open_dir(Dir(self.iconview.folder.path))
 		self.iconview.refresh()
 
 	def on_refresh_button(self):
