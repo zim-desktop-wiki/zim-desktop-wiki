@@ -27,6 +27,7 @@ class LineSorterPlugin(PluginClass):
 This plugin sorts selected lines in alphabetical order.
 If the list is already sorted the order will be reversed
 (A-Z to Z-A).
+It also provides shortcuts to delete, duplicate and move lines.
 '''), # T: plugin description
 		'author': 'NorfCran',
 		'help': 'Plugins:Line Sorter',
@@ -41,10 +42,11 @@ class MainWindowExtension(WindowExtension):
 		<menubar name='menubar'>
 			<menu action='edit_menu'>
 				<placeholder name='plugin_items'>
-					<menuitem action='sort_selected_lines'/>
 					<menuitem action='remove_line'/>
+					<menuitem action='duplicate_line'/>
 					<menuitem action='move_line_up'/>
 					<menuitem action='move_line_down'/>
+					<menuitem action='sort_selected_lines'/>
 				</placeholder>
 			</menu>
 		</menubar>
@@ -111,10 +113,14 @@ class MainWindowExtension(WindowExtension):
 		target_line = line_start + offset
 		target_end_line = line_end + offset
 
+		# do nothing if target is before begin or after end of document
+		last_line = buffer.get_end_iter().get_line()
+		if target_line < 0 or target_end_line >= last_line:
+			return
+
 		#remember offset of cursor/selection bound
 		line_start_offset = iter_start.get_line_offset()
 		line_end_offset = iter_end.get_line_offset()
-
 		has_selection = buffer.get_has_selection()
 
 		#get bounding iters for deletion and copy tree
@@ -122,11 +128,6 @@ class MainWindowExtension(WindowExtension):
 		end = buffer.get_iter_at_line(line_end)
 		end.forward_line()
 		tree = buffer.get_parsetree(bounds=(start, end))
-
-		# do nothing if target is before begin or after end of document
-		last_line = buffer.get_end_iter().get_line()
-		if target_line < 0 or target_end_line >= last_line:
-			return
 
 		with buffer.user_action:
 			#delete lines and insert at target
@@ -143,7 +144,7 @@ class MainWindowExtension(WindowExtension):
 			else:
 				buffer.place_cursor(iter)
 
-			#scroll with one line margin on top/bottom if necessary
+			#scroll with one line margin on top/bottom
 			scroll_target_iter = buffer.get_iter_at_line(target_line  - 1 * (offset < 0 and target_line > 0))
 			self.window.pageview.view.scroll_to_iter(scroll_target_iter, 0)
 
@@ -158,6 +159,18 @@ class MainWindowExtension(WindowExtension):
 	def move_line_down(self):
 		'''Menu action to move line down'''
 		self.move_line(1)
+
+
+	@action(_('_Duplicate Line'), accelerator='<Alt>R', readonly=False)  # T: Menu item
+	def duplicate_line(self):
+		'''Menu action to dublicate line'''
+		buffer = self.window.pageview.view.get_buffer()
+		iter = buffer.get_iter_at_mark(buffer.get_insert())
+		line = iter.get_line()
+		start, end = buffer.get_line_bounds(line)
+		tree = buffer.get_parsetree(bounds=(start, end))
+		with buffer.user_action:
+			buffer.insert_parsetree(end, tree)
 
 
 	@action(_('_Remove Line'), accelerator='<Primary><Shift>D', readonly=False)  # T: Menu item
