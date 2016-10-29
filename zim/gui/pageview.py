@@ -601,6 +601,7 @@ class TextBuffer(gtk.TextBuffer):
 		'indent': Integer(None),
 		'underline': PangoConstant(None, prefix='UNDERLINE_'),
 		'linespacing': Integer(None),
+		'rise': Integer(None),
 	} #: Valid properties for a style in tag_styles
 
 	def __init__(self, notebook=None, page=None):

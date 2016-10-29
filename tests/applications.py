@@ -25,7 +25,7 @@ class TestXDGMimeInfo(tests.TestCase):
 		dir = Dir('./data/pixmaps')
 		for i, filename in enumerate(dir.list()):
 			file = dir.file(filename)
-			icon = get_mime_icon(file, THUMB_SIZE_NORMAL)
+			icon = get_mime_icon(file, 128)
 			self.assertIsInstance(icon, gtk.gdk.Pixbuf)
 			desc = get_mime_description(file.get_mimetype())
 			self.assertIsInstance(desc, basestring)
@@ -286,6 +286,7 @@ class TestCustomTools(tests.TestCase):
 		# %f for source file as tmp file current page
 		# %d for attachment directory
 		# %s for real source file (if any)
+		# %p for the page name
 		# %n for notebook location (file or directory)
 		# %D for document root
 		# %t for selected text or word under cursor
@@ -310,6 +311,7 @@ class TestCustomTools(tests.TestCase):
 			('foo %f', ('foo', tmpfile)),
 			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
 			('foo %s', ('foo', page.source.path)),
+			('foo %p', ('foo', 'Test:Foo')),
 			('foo %n', ('foo', dir.path)),
 			('foo %D', ('foo', '')), # no document root
 			('foo %t', ('foo', 'FooBar')),

@@ -10,6 +10,7 @@ import gtk
 
 import os
 import logging
+import threading
 
 from zim.fs import FS, File, TmpFile
 from zim.plugins import PluginClass, extends, WindowExtension, ObjectExtension
@@ -57,7 +58,9 @@ This is a core plugin shipping with zim.
 	}
 
 	plugin_preferences = (
-		('autosave', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+		('autosave', 'bool', _('Autosave version when the notebook is closed'), False), # T: Label for plugin preference
+		('autosave_at_interval', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
+		('autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)), # T: Label for plugin preference
 	)
 
 	@classmethod
@@ -158,37 +161,69 @@ class MainWindowExtension(WindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 		self.notebook_ext = notebook_ext
 		self._autosave_thread = None
+		self._autosave_timer = None
 
 		if self.notebook_ext.vcs is None:
 			gaction = self.actiongroup.get_action('show_versions')
 			gaction.set_sensitive(False)
 		else:
-			if self.plugin.preferences['autosave']:
-				self.do_save_version_async()
+			self.on_preferences_changed(None, start=True)
 
 		def on_quit(o):
-			if self._autosave_thread and not self._autosave_thread.done:
-				self._autosave_thread.join()
+			self._stop_timer()
 
-			if self.plugin.preferences['autosave']:
+			if self.plugin.preferences['autosave'] \
+			or self.plugin.preferences['autosave_at_interval']:
 				self.do_save_version()
 
 		self.window.ui.connect('quit', on_quit) # XXX
 
+		self.connectto(self.plugin.preferences, 'changed',
+			self.on_preferences_changed)
+
+	def on_preferences_changed(self, o, start=False):
+		self._stop_timer()
+
+		if (start and self.plugin.preferences['autosave']) \
+		or self.plugin.preferences['autosave_at_interval']:
+			self.do_save_version_async()
+
+		if self.plugin.preferences['autosave_at_interval']:
+			self._start_timer()
+
+	def _start_timer(self):
+		timeout = 60000 * self.plugin.preferences['autosave_interval']
+		self._autosave_timer = gobject.timeout_add(
+			timeout, self.do_save_version_async)
+
+	def _stop_timer(self):
+		if self._autosave_timer:
+			gobject.source_remove(self._autosave_timer)
+			self._autosave_timer = None
+
+	def teardown(self):
+		self._stop_timer()
+
 	def do_save_version_async(self, msg=None):
 		if not self.notebook_ext.vcs:
-			return
+			return False # stop timer
 
 		if self._autosave_thread and not self._autosave_thread.done:
-			self._autosave_thread.join()
+			return True # continue time
 
 		self._autosave_thread = FunctionThread(self.do_save_version, (msg,))
 		self._autosave_thread.start()
 		monitor_thread(self._autosave_thread)
+		return True # continue timer
 
 	def do_save_version(self, msg=None):
 		if not self.notebook_ext.vcs:
 			return
+
+		if self._autosave_thread \
+		and not self._autosave_thread.done \
+		and not self._autosave_thread == threading.current_thread():
+			self._autosave_thread.join()
 
 		if not msg:
 			msg = _('Automatically saved version from zim')
@@ -211,6 +246,7 @@ class MainWindowExtension(WindowExtension):
 			if self.notebook_ext.vcs:
 				gaction = self.actiongroup.get_action('show_versions')
 				gaction.set_sensitive(True)
+				self.on_preferences_changed(None, start=False)
 
 		with self.notebook_ext.notebook.notebook_state:
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()

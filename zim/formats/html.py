@@ -269,4 +269,3 @@ class Dumper(DumperClass):
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n<hr>\n'
 
-

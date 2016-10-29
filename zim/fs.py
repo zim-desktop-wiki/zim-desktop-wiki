@@ -447,7 +447,10 @@ def _md5(content):
 		m.update(content)
 	else:
 		for l in content:
-			m.update(l)
+			if  isinstance(l, unicode):
+				m.update(l.encode('utf-8'))
+			elif isinstance(l, basestring):
+				m.update(l)
 	return m.digest()
 
 

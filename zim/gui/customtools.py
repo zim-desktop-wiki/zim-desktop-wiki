@@ -196,6 +196,7 @@ in the command when it is executed:
 <b>%f</b> the page source as a temporary file
 <b>%d</b> the attachment directory of the current page
 <b>%s</b> the real page source file (if any)
+<b>%p</b> the page name
 <b>%n</b> the notebook location (file or folder)
 <b>%D</b> the document root (if any)
 <b>%t</b> the selected text or word under cursor

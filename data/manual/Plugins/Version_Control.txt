@@ -9,7 +9,10 @@ Zim's default installation ships with a Version Control Plugin. To enable it, go
 **Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently Bazaar, Git, Mercurial and Fossil are supported, so one of these applications is required. In specific the "''bzr''", "''git''", "''hg''" or "''fossil''" command should be available in the system path.
 
 ===== Options =====
-If the option **Autosave version on regular intervals** is enabled zim will save (or "commit") a new version every time you close zim or when opening zim if new changes are detected.
+If the option **Autosave version when the notebook is closed** is enabled zim will save (or "commit") a new version every time you close zim or when opening zim if new changes are detected.
+
+When the option **Autosave version on regular intervals** is enabled zim will save (or "commit") a new version after a set time interval. The **Autosave interval in minutes** gives the time interval.
+Saving at regular intervals also includes at the exit and at the start of the application.
 
 ===== Usage =====
 If you want to keep track of your changes or if you want to collaborate on a Zim notebook as a team, version control is the best way to go. Zim integrates very well with existing version control software because all relevant data is stored in plain text files.
@@ -21,7 +24,7 @@ You can browse the complete history of saved versions by selecting ''File -> Ver
 ==== The "Versions" dialog ====
 TODO: document details all buttons
 
-The button "**Side by Side**" is used to show two versions of the page side by side with an external program like [[http://meldmerge.org/|meld]]. It only works when you select a revision for a single page. If the button remains insensitive, probably no suitable application is found. 
+The button "**Side by Side**" is used to show two versions of the page side by side with an external program like [[http://meldmerge.org/|meld]]. It only works when you select a revision for a single page. If the button remains insensitive, probably no suitable application is found.
 
 You can configure applications to use for side by side comparison by installing a ''.desktop'' file in the [[Help:Config Files|zim data folder]] under ''helpers/compare_files/''. The application should accept two file names as arguments.
 

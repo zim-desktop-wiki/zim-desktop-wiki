@@ -110,8 +110,29 @@ class TextViewWidget(CustomObjectWidget):
 		self.view.set_editable(True)
 		self.vbox.pack_start(win)
 
+		self._init_signals()
+
+	def _init_signals(self):
 		# Hook up integration with pageview cursor movement
 		self.view.connect('move-cursor', self.on_move_cursor)
+		self.connect('parent-set', self.on_parent_set)
+		self.parent_notify_h = None
+
+	def set_editable(self, editable):
+		self.view.set_editable(editable)
+		self.view.set_cursor_visible(editable)
+
+	def on_parent_set(self, widget, old_parent):
+		if old_parent and self.parent_notify_h:
+			old_parent.disconnect(self.parent_notify_h)
+			self.parent_notify_h = None
+		parent = self.get_parent()
+		if parent:
+			self.set_editable(parent.get_editable())
+			self.parent_notify_h = parent.connect('notify::editable', self.on_parent_notify)
+
+	def on_parent_notify(self, widget, prop, *args):
+		self.set_editable(self.get_parent().get_editable())
 
 	def do_grab_cursor(self, position):
 		# Emitted when we are requesed to capture the cursor
