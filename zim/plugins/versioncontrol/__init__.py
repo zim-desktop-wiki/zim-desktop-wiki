@@ -192,7 +192,7 @@ class MainWindowExtension(WindowExtension):
 			self._start_timer()
 
 	def _start_timer(self):
-		timeout = 60000 * self.plugin.preferences['autosave_at_interval']
+		timeout = 60000 * self.plugin.preferences['autosave_interval']
 		self._autosave_timer = gobject.timeout_add(
 			timeout, self.do_save_version_async)
 
