@@ -113,6 +113,7 @@ TODO list:
 	- ☑ sub item 2
 - ☒ baz
 
+- ▷ Migrated checkbox
 
 A numbered list:
 1. foo

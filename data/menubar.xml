@@ -38,6 +38,7 @@
 			<separator/>
 			<menuitem action='toggle_checkbox'/>
 			<menuitem action='xtoggle_checkbox'/>
+			<menuitem action='migrate_checkbox'/>
 			<separator/>
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>

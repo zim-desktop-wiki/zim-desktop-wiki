@@ -34,7 +34,7 @@ from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, LINE_TEXT
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -89,12 +89,15 @@ def IS_LINE(line):
 STOCK_CHECKED_BOX = 'zim-checked-box'
 STOCK_UNCHECKED_BOX = 'zim-unchecked-box'
 STOCK_XCHECKED_BOX = 'zim-xchecked-box'
+STOCK_MIGRATED_BOX = 'zim-migrated-box'
 
 bullet_types = {
 	CHECKED_BOX: STOCK_CHECKED_BOX,
 	UNCHECKED_BOX: STOCK_UNCHECKED_BOX,
 	XCHECKED_BOX: STOCK_XCHECKED_BOX,
+	MIGRATED_BOX: STOCK_MIGRATED_BOX,
 }
+
 # reverse dict
 bullets = {}
 for bullet in bullet_types:
@@ -105,15 +108,19 @@ for bullet in bullet_types:
 autoformat_bullets = {
 	'*': BULLET,
 	'[]': UNCHECKED_BOX,
+	'[ ]': UNCHECKED_BOX,
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
+	'[>]': MIGRATED_BOX,
 	'()': UNCHECKED_BOX,
+	'( )': UNCHECKED_BOX,
 	'(*)': CHECKED_BOX,
 	'(x)': XCHECKED_BOX,
+	'(>)': MIGRATED_BOX,
 }
 
-BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
-CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
+CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
 
 NUMBER_BULLET = '#.' # Special case for autonumbering
 is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
@@ -569,6 +576,7 @@ class TextBuffer(gtk.TextBuffer):
 		'unchecked-checkbox': {},
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
+		'migrated-checkbox': {},
 		'find-highlight': {'background': 'magenta', 'foreground': 'white'},
 		'find-match': {'background': '#38d878', 'foreground': 'white'}
 	}
@@ -1227,6 +1235,7 @@ class TextBuffer(gtk.TextBuffer):
 			UNCHECKED_BOX
 			CHECKED_BOX
 			XCHECKED_BOX
+			MIGRATED_BOX
 			NUMBER_BULLET
 			None
 		or a numbered bullet, like C{"1."}
@@ -1756,6 +1765,7 @@ class TextBuffer(gtk.TextBuffer):
 				elif bullet == CHECKED_BOX: stylename = 'checked-checkbox'
 				elif bullet == UNCHECKED_BOX: stylename = 'unchecked-checkbox'
 				elif bullet == XCHECKED_BOX: stylename = 'xchecked-checkbox'
+				elif bullet == MIGRATED_BOX: stylename = 'migrated-checkbox'
 				elif is_numbered_bullet_re.match(bullet): stylename = 'numbered-list'
 				else: raise AssertionError, 'BUG: Unkown bullet type'
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
@@ -2122,6 +2132,7 @@ class TextBuffer(gtk.TextBuffer):
 				UNCHECKED_BOX
 				CHECKED_BOX
 				XCHECKED_BOX
+				MIGRATED_BOX
 		or a numbered list bullet (test with L{is_numbered_bullet_re})
 		'''
 		iter = self.get_iter_at_line(line)
@@ -2145,7 +2156,7 @@ class TextBuffer(gtk.TextBuffer):
 		if pixbuf:
 			if hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'icon' \
 			and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
 				return bullets[pixbuf.zim_attrib['stock']]
 			else:
 				return None
@@ -2180,7 +2191,7 @@ class TextBuffer(gtk.TextBuffer):
 			return False
 
 	def _iter_forward_past_bullet(self, iter, bullet, raw=False):
-		if bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX):
+		if bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX):
 			# Each of these just means one char
 			iter.forward_char()
 		else:
@@ -2600,7 +2611,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		@param line: the line number
 		@param checkbox_type: the checkbox type that we want to toggle:
-		one of C{CHECKED_BOX}, C{XCHECKED_BOX}.
+		one of C{CHECKED_BOX}, C{XCHECKED_BOX}, C{MIGRATED_BOX}.
 		If C{checkbox_type} is given, it toggles between this type and
 		unchecked. Otherwise it rotates through unchecked, checked
 		and xchecked.
@@ -3065,6 +3076,7 @@ class TextBufferList(list):
 			CHECKED_BOX
 			UNCHECKED_BOX
 			XCHECKED_BOX
+			MIGRATED_BOX
 		'''
 		assert bullet in BULLETS
 		with self.buffer.user_action:
@@ -3073,7 +3085,7 @@ class TextBufferList(list):
 				pass
 			elif bullet == UNCHECKED_BOX:
 				self._checkbox_unchecked(row)
-			else: # CHECKED_BOX or XCHECKED_BOX
+			else: # CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX
 				self._checkbox_checked(row, bullet)
 
 	def _checkbox_unchecked(self, row):
@@ -4038,7 +4050,7 @@ class TextView(gtk.TextView):
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
 		if pixbuf:
 			if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
 				cursor = CURSOR_WIDGET
 			elif 'href' in pixbuf.zim_attrib:
 				link = {'href': pixbuf.zim_attrib['href']}
@@ -4283,7 +4295,7 @@ class TextView(gtk.TextView):
 
 				# add bullet on new line
 				bullet = buffer.get_bullet_at_iter(start)
-				if bullet in (CHECKED_BOX, XCHECKED_BOX):
+				if bullet in (CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX):
 					bullet = UNCHECKED_BOX
 				elif is_numbered_bullet_re.match(bullet):
 					bullet = increase_list_bullet(bullet)
@@ -5516,9 +5528,11 @@ class PageView(gtk.VBox):
 		if bullet and bullet in CHECKBOXES:
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
+			self.actiongroup.get_action('migrate_checkbox').set_sensitive(True)
 		else:
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
+			self.actiongroup.get_action('migrate_checkbox').set_sensitive(False)
 
 		if buffer.get_link_tag(iter):
 			self.actiongroup.get_action('remove_link').set_sensitive(True)
@@ -5853,6 +5867,15 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
+
+	@action(_('Toggle Checkbox \'>\''), STOCK_MIGRATED_BOX, '', readonly=False) # T: Menu item
+	def migrate_checkbox(self):
+		'''Menu action to toggle checkbox at the cursor or in current
+		selected text
+		'''
+		buffer = self.view.get_buffer()
+		recurs = self.preferences['recursive_checklist']
+		buffer.toggle_checkbox_for_cursor_or_selection(MIGRATED_BOX, recurs)
 
 	@action(_('_Edit Link or Object...'), 'gtk-properties', '<Primary>E', readonly=False) # T: Menu item
 	def edit_object(self, iter=None):

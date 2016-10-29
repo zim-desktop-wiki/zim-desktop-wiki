@@ -286,6 +286,8 @@ And a checkbox list
 [ ] item 3
 	[x] item FOOOOOO !
 
+[>] Migrated checkbox
+
 A numbered list:
 1. foo
 2. bar

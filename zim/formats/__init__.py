@@ -107,6 +107,7 @@ TEXT_FORMAT = 8 # Used for "Copy As" menu - these all prove "text/plain" mimetyp
 UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
+MIGRATED_BOX = 'migrated-box'
 BULLET = '*' # FIXME make this 'bullet'
 
 FORMATTEDTEXT = 'zim-tree'

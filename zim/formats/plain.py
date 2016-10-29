@@ -67,6 +67,7 @@ class Dumper(DumperClass):
 		UNCHECKED_BOX:	u'[ ]',
 		XCHECKED_BOX:	u'[x]',
 		CHECKED_BOX:	u'[*]',
+		MIGRATED_BOX:	u'[>]',
 		BULLET:			u'*',
 	}
 
