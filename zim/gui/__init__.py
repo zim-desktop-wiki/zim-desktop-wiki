@@ -70,6 +70,7 @@ MENU_ACTIONS = (
 	('help_menu', None, _('_Help')), # T: Menu title
 	('pathbar_menu', None, _('P_athbar')), # T: Menu title
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
+	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
 )
 
 

@@ -420,4 +420,11 @@ class DelayedCallback(object):
 		self.__del__()
 
 
-
+def callback(func, *arg, **kwarg):
+	'''Returns a wrapper functions that call func and.
+	Intended as wrapper for callbacks connected to (gtk) signals. The
+	wrapper ignores any arguments given.
+	'''
+	def cb(*a):
+		func(*arg, **kwarg)
+	return cb

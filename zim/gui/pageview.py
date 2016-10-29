@@ -47,6 +47,7 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
+from zim.signals import callback
 from zim.formats import get_dumper
 from zim.formats.wiki import Dumper as WikiDumper
 from zim.plugins import PluginManager
@@ -2615,6 +2616,8 @@ class TextBuffer(gtk.TextBuffer):
 		If C{checkbox_type} is given, it toggles between this type and
 		unchecked. Otherwise it rotates through unchecked, checked
 		and xchecked.
+		As a special case when the C{checkbox_type} ir C{UNCHECKED_BOX}
+		the box is always unchecked.
 		@param recursive: When C{True} any child items in the list will
 		also be upadted accordingly (see L{TextBufferList.set_bullet()}
 
@@ -3689,8 +3692,6 @@ class TextView(gtk.TextView):
 						self.click_link() or self.click_checkbox()
 					else:
 						self.click_link() or self.click_checkbox(CHECKED_BOX)
-				elif event.button == 3:
-					self.click_checkbox(XCHECKED_BOX)
 			elif event.button == 1:
 				# no changing checkboxes for read-only content
 				self.click_link()
@@ -5526,10 +5527,12 @@ class PageView(gtk.VBox):
 		line = iter.get_line()
 		bullet = buffer.get_bullet(line)
 		if bullet and bullet in CHECKBOXES:
+			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('migrate_checkbox').set_sensitive(True)
 		else:
+			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('migrate_checkbox').set_sensitive(False)
@@ -5628,6 +5631,20 @@ class PageView(gtk.VBox):
 			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
+		buffer = self.view.get_buffer()
+		if not buffer.get_has_selection():
+			iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+			if iter.get_line_offset() == 1:
+				iter.backward_char() # if clicked on right half of image, iter is after the image
+			bullet = buffer.get_bullet_at_iter(iter)
+			if bullet and bullet in CHECKBOXES:
+				self._checkbox_do_populate_popup(menu)
+			else:
+				self._default_do_populate_popup(menu)
+		else:
+			self._default_do_populate_popup(menu)
+
+	def _default_do_populate_popup(self, menu):
 		# Add custom tool
 		# FIXME need way to (deep)copy widgets in the menu
 		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
@@ -5817,6 +5834,26 @@ class PageView(gtk.VBox):
 
 		menu.show_all()
 
+	def _checkbox_do_populate_popup(self, menu):
+		buffer = self.view.get_buffer()
+		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+		line = iter.get_line()
+
+		menu.prepend(gtk.SeparatorMenuItem())
+
+		for bullet, label in (
+			(MIGRATED_BOX, _('Check Checkbox \'>\'')), # T: popup menu menuitem
+			(XCHECKED_BOX, _('Check Checkbox \'X\'')), # T: popup menu menuitem
+			(CHECKED_BOX, _('Check Checkbox \'V\'')), # T: popup menu menuitem
+			(UNCHECKED_BOX, _('Un-check Checkbox')), # T: popup menu menuitem
+		):
+			item = gtk.ImageMenuItem(stock_id=bullet_types[bullet])
+			item.set_label(label)
+			item.connect('activate', callback(buffer.set_bullet, line, bullet))
+			menu.prepend(item)
+
+		menu.show_all()
+			
 	def do_reload_page(self):
 		self.ui.reload_page()
 
@@ -5849,6 +5886,12 @@ class PageView(gtk.VBox):
 	def delete(self):
 		'''Menu action for delete'''
 		self.view.emit('delete-from-cursor', gtk.DELETE_CHARS, 1)
+
+	@action(_('Un-check Checkbox'), STOCK_UNCHECKED_BOX, '', readonly=False) # T: Menu item
+	def uncheck_checkbox(self):
+		buffer = self.view.get_buffer()
+		recurs = self.preferences['recursive_checklist']
+		buffer.toggle_checkbox_for_cursor_or_selection(UNCHECKED_BOX, recurs)
 
 	@action(_('Toggle Checkbox \'V\''), STOCK_CHECKED_BOX, 'F12', readonly=False) # T: Menu item
 	def toggle_checkbox(self):

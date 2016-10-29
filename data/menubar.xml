@@ -36,10 +36,12 @@
 			<menuitem action='paste'/>
 			<menuitem action='delete'/>
 			<separator/>
-			<menuitem action='toggle_checkbox'/>
-			<menuitem action='xtoggle_checkbox'/>
-			<menuitem action='migrate_checkbox'/>
-			<separator/>
+			<menu action='checkbox_menu'>
+				<menuitem action='uncheck_checkbox'/>
+				<menuitem action='toggle_checkbox'/>
+				<menuitem action='xtoggle_checkbox'/>
+				<menuitem action='migrate_checkbox'/>
+			</menu>
 			<menuitem action='edit_object'/>
 			<menuitem action='remove_link'/>
 			<separator/>
