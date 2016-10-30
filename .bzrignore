@@ -9,6 +9,7 @@
 **/.zim
 .coverage*
 ./coverage
+./htmlcov
 ./tests/tmp
 ./doxygen
 ./bin
