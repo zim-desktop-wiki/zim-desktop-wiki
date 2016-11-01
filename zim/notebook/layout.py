@@ -155,10 +155,14 @@ class FilesLayout(NotebookLayout):
 			if isinstance(object, File):
 				if object.path.endswith(self.default_extension):
 					name = object.basename[:-len(self.default_extension)]
-					names.add(decode_filename(name))
+				else:
+					continue
 			else: # Folder
 				name = object.basename
-				names.add(decode_filename(name))
+
+			pname = decode_filename(name)
+			if encode_filename(pname) == name: # will reject e.g. whitespace in file name
+				names.add(pname)
 
 		return [pagename+basename for basename in sorted(names)]
 
