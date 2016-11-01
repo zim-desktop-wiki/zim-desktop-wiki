@@ -16,12 +16,20 @@ class TestSavePageHandler(tests.TestCase):
 		notebook = Notebook.new_from_dir(dir)
 		page = notebook.get_page(Path('SomePage'))
 
-		orig_store_page = notebook.store_page
+		orig_store_page_1 = notebook.store_page
+		orig_store_page_2 = notebook._store_page_async
 		store_page_counter = tests.Counter()
-		def wrapper(page):
+
+		def wrapper1(page):
 			store_page_counter()
-			orig_store_page(page)
-		notebook.store_page = wrapper
+			orig_store_page_1(page)
+
+		def wrapper2(page, tree):
+			store_page_counter()
+			orig_store_page_2(page, tree)
+
+		notebook.store_page = wrapper1
+		notebook._store_page_async = wrapper2
 
 		pageview = tests.MockObject()
 		pageview.readonly = False
@@ -49,9 +57,10 @@ class TestSavePageHandler(tests.TestCase):
 		self.assertFalse(page.modified)
 
 		# With errors
-		def wrapper(page):
+		def wrapper(*a):
 			raise AssertionError
 		notebook.store_page = wrapper
+		notebook._store_page_async = wrapper
 		page.modified = True
 
 		def catch_dialog(dialog):

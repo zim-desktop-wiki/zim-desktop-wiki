@@ -4827,11 +4827,13 @@ class SavePageHandler(object):
 				self.save_page_now(dialog_timeout=True)
 			else:
 				# Save in background async
-				# TODO retrieve tree here and pass on to thread for background store
+				# Retrieve tree here and pass on to thread to prevent
+				# changing the buffer while extracting it
 				thread_started = threading.Event()
+				tree = page.get_parsetree()
 				self._thread = threading.Thread(
 					target=self._save_page_async,
-					args=(page, thread_started)
+					args=(page, tree, thread_started)
 				)
 				self._thread.start()
 				thread_started.wait()
@@ -4842,13 +4844,13 @@ class SavePageHandler(object):
 				self._autosave_timer = None
 				return False # stop timer
 
-	def _save_page_async(self, page, thread_started):
+	def _save_page_async(self, page, tree, thread_started):
 		logger.debug('Saving page: %s (background autosave)', page)
 		with self.notebook.notebook_state:
 			thread_started.set() # we have the lock, allow parent to continue
 			try:
 				self._assert_can_save_page(page)
-				self.notebook.store_page(page)
+				self.notebook._store_page_async(page, tree)
 			except:
 				logger.exception('Error during auto-save')
 				self._thread_error_event.set()

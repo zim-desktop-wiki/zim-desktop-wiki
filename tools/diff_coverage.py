@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 # Tool that reads diff from pipe and filters out sections that are
 # covered by testing

@@ -518,6 +518,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			self.index.on_store_page(page)
 			self.emit('stored-page', page)
 
+	def _store_page_async(self, page, parsetree):
+		# HACK to avoid retrieving parsetree in thread
+		# remove when saving is fully integrated between page & pageview
+		with self._notebook_state_lock:
+			assert page.valid, 'BUG: page object no longer valid'
+			self.emit('store-page', page)
+			page._store_tree(parsetree)
+			self.index.on_store_page(page)
+			self.emit('stored-page', page)
+
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook
 

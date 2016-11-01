@@ -435,6 +435,9 @@ class Page(Path, SignalEmitter):
 
 	def _store(self):
 		tree = self.get_parsetree()
+		self._store_tree(tree)
+
+	def _store_tree(self, tree):
 		if tree and tree.hascontent:
 			if not self.hascontent:
 				# New page
