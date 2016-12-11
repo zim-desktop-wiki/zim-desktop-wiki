@@ -127,7 +127,7 @@ class MainWindowExtension(WindowExtension):
 		start = buffer.get_iter_at_line(line_start)
 		end = buffer.get_iter_at_line(line_end)
 		end.forward_line()
-		tree = buffer.get_parsetree(bounds=(start, end))
+		tree = buffer.get_parsetree(bounds=(start, end), raw=True)
 
 		with buffer.user_action:
 			#delete lines and insert at target
