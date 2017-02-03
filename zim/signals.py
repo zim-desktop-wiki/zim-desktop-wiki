@@ -14,9 +14,9 @@ logger = logging.getLogger('zim')
 
 # Constants for signal order
 SIGNAL_BEFORE = 1
-SIGNAL_NORMAL = SIGNAL_BEFORE
-SIGNAL_CLOSURE = 2
-SIGNAL_AFTER = 3
+SIGNAL_NORMAL = 2
+SIGNAL_CLOSURE = 3
+SIGNAL_AFTER = 4
 
 
 class SignalHandler(object):
@@ -103,9 +103,8 @@ class ConnectorMixin(object):
 	want to connect to signals of other objects.
 	'''
 
-	# TODO connectto with whole set of signals
 	# TODO connect variant that wraps with a handler that catches
-	#  unwanted arguments
+	#  unwanted arguments -- kind of reverse "partial()"
 
 	def connectto(self, obj, signal, handler=None, order=SIGNAL_NORMAL):
 		'''Connect to signals of another object
@@ -130,8 +129,15 @@ class ConnectorMixin(object):
 
 		if order == SIGNAL_NORMAL:
 			i = obj.connect(signal, handler)
-		else: # SIGNAL_AFTER
+		elif order == SIGNAL_AFTER:
 			i = obj.connect_after(signal, handler)
+		elif order == SIGNAL_BEFORE:
+			try:
+				i = obj.connect_before(signal, handler)
+			except AttributeError:
+				i = obj.connect(signal, handler)
+		else:
+			raise ValueError, 'order argument not recognized'
 
 		if not hasattr(self, '_connected_signals'):
 			self._connected_signals = {}

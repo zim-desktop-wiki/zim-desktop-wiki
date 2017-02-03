@@ -525,8 +525,8 @@ class RecentChangesPathBar(PathBar):
 			self._select(current)
 
 	def get_paths(self):
-		return reversed(list(
-			self.ui.notebook.pages.list_recent_changes(limit=10)))
+		return reversed(
+				self.ui.notebook.pages.list_recent_changes(limit=10) )
 
 
 class NamespacePathBar(PathBar):

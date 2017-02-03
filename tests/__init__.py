@@ -42,7 +42,7 @@ __unittest = 1 # needed to get stack trace OK for class TestCase
 gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
 FAST_TEST = False #: determines whether we skip slow tests or not
-
+FULL_TEST = False #: determine whether we mock filesystem tests or not
 
 # This list also determines the order in which tests will executed
 __all__ = [
@@ -51,7 +51,7 @@ __all__ = [
 	'environ', 'fs', 'newfs',
 	'config', 'applications',
 	'parsing', 'formats', 'templates', 'objectmanager',
-	'index', 'notebook', 'history',
+	'indexers', 'indexviews', 'notebook', 'history',
 	'export', 'www', 'search',
 	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
 	'main', 'plugins',
@@ -215,6 +215,12 @@ def slowTest(obj):
 		return obj
 
 
+MOCK_ALWAYS = 'always' #: Always choose mock folder, alwasy fast
+MOCK_SOME   = 'some'   #: Sometimes test with real fs, for tests with real interaction
+MOCK_NEVER  = 'never'  #: Never choose mock folder, always use real filesystem,
+
+import random
+
 class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
 
@@ -237,6 +243,47 @@ class TestCase(unittest.TestCase):
 			self.assertMultiLineEqual(first, second, msg)
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
+
+	@classmethod
+	def setUpFolder(cls, name=None, mock=MOCK_SOME):
+		'''Convenience method to create a temporary folder for testing
+		Default uses "C{MOCK_SOME}", which means that about 20% of the cases
+		will use real filesystem at random while the rest will mock. (Thus
+		giving a balance between overall test speed and the whish to detect
+		cases where mock and real filesystem give different results.)
+		This behavior is overruled by "--fast" and "--full" in the test script.
+		@param name: basename for the folder, use class name if C{None}
+		@param mock: mock level for this test, one of C{MOCK_NEVER},
+		C{MOCK_SOME} or C{MOCK_ALWAYS}
+		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
+		that is guarenteed non-existing
+		'''
+		path = cls._get_tmp_name(name)
+
+		if mock == MOCK_ALWAYS: use_mock = True
+		elif mock == MOCK_NEVER: use_mock = False
+		else: # MOCK_SOME:
+			if FULL_TEST: use_mock = False
+			elif FAST_TEST: use_mock = True
+			elif random.random() < 0.2:
+				logger.info("Random dice throw: use real file system")
+				use_mock = False
+			else:
+				use_mock = True
+
+		if use_mock:
+			from zim.newfs.mock import MockFolder
+			folder = MockFolder(path)
+		else:
+			from zim.newfs import LocalFolder
+			if os.path.exists(path):
+				logger.debug('Clear tmp folder: %s', path)
+				shutil.rmtree(path)
+				assert not os.path.exists(path) # make real sure
+			folder = LocalFolder(path)
+
+		assert not folder.exists()
+		return folder
 
 	@classmethod
 	def create_tmp_dir(cls, name=None):
@@ -509,11 +556,13 @@ def new_notebook(fakedir=None):
 	paths etc. It will not automatically touch the dir
 	(hence it being 'fake').
 	'''
+	import sqlite3
+
 	from zim.fs import Dir
 	from zim.config import VirtualConfigBackend
 	from zim.notebook import Notebook, Path
 	from zim.notebook.notebook import NotebookConfig
-	from zim.notebook.index import Index, MemoryDBConnection
+	from zim.notebook.index import Index
 
 	from zim.notebook.layout import FilesLayout
 	from zim.newfs.mock import MockFolder, clone_mock_object
@@ -531,10 +580,9 @@ def new_notebook(fakedir=None):
 
 		manifest = frozenset(_expand_manifest(manifest))
 
-		index = Index.new_from_memory(layout)
+		index = Index(':memory:', layout)
 		index.update()
-		with index.db_conn.db_context() as db:
-			lines = list(db.iterdump())
+		lines = list(index.db.iterdump())
 		sql = '\n'.join(lines)
 
 		_notebook_data = (templfolder, sql, manifest)
@@ -550,11 +598,11 @@ def new_notebook(fakedir=None):
 		#~ print path
 
 	layout = FilesLayout(folder, endofline='unix')
-
-	db_conn = MemoryDBConnection()
-	with db_conn.db_change_context() as db:
-		db.executescript(sql)
-	index = Index(db_conn, layout)
+	index = Index(':memory:', layout)
+	index.db = sqlite3.Connection(':memory:') # Hack to get empty db
+	index.db.row_factory = sqlite3.Row
+	index.db.executescript(sql)
+	index.db.commit()
 
 	### XXX - Big HACK here - Get better classes for this - XXX ###
 	dir = VirtualConfigBackend()
@@ -659,6 +707,89 @@ class MockObject(MockObjectBase):
 			raise AttributeError
 		else:
 			return self.mock_method(name, None)
+
+
+import logging
+logger = logging.getLogger('test')
+
+from functools import partial
+
+class SignalLogger(dict):
+	'''Listening object that attaches to all signals of the target and records
+	all signals calls in a dicationary.
+	'''
+
+	def __init__(self, obj, filter_func=None):
+		self._obj = obj
+		self._ids = []
+
+		if filter_func is None:
+			filter_func = lambda s, o, *a: a
+
+		for signal in self._obj.__signals__:
+			seen = []
+			self[signal] = seen
+
+			def handler(seen, signal, obj, *a):
+				seen.append(filter_func(signal, obj, a))
+				logger.debug('Signal: %s %r', signal, a)
+
+			id = obj.connect(signal, partial(handler, seen, signal))
+			self._ids.append(id)
+
+	def __enter__(self):
+		pass
+
+	def __exit__(self, *e):
+		self.disconnect()
+
+	def clear(self):
+		for signal, seen in self.items():
+			seen[:] = []
+
+	def disconnect(self):
+		for id in self._ids:
+			self._obj.disconnect(id)
+		self._ids = []
+
+
+
+class CallBackLogger(dict):
+	'''Mock object that allows any method to be called as callback and
+	records the calls in a dictionary.
+	'''
+
+	def __init__(self, filter_func=None):
+		if filter_func is None:
+			filter_func = lambda n, a, kw: (a, kw)
+
+		self._filter_func = filter_func
+
+	def __getattr__(self, name):
+
+		def cb_method(*arg, **kwarg):
+			logger.debug('Callback %s %r %r', name, arg, kwarg)
+			self.setdefault(name, [])
+
+			self[name].append(
+				self._filter_func(name, arg, kwarg)
+			)
+
+		setattr(self, name, cb_method)
+		return cb_method
+
+
+class MaskedObject(object):
+
+	def __init__(self, obj, *names):
+		self.__obj = obj
+		self.__names = names
+
+	def __getattr__(self, name):
+		if name in self.__names:
+			return getattr(self.__obj, name)
+		else:
+			raise AttributeError, 'Acces to \'%s\' not allowed' % name
 
 
 def gtk_process_events(*a):

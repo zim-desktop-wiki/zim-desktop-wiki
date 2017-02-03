@@ -8,7 +8,7 @@ import codecs
 
 from .page import Path
 
-from zim.newfs import FS_ENCODING, File, _EOL
+from zim.newfs import FS_ENCODING, File, Folder, _EOL, _SEP
 from zim.formats import get_format
 
 FILE_TYPE_PAGE_SOURCE = 1
@@ -81,16 +81,22 @@ class NotebookLayout(object):
 	pass
 
 
+
 class FilesLayout(NotebookLayout):
 	'''Layout is responsible for mapping between pages and files.
-	This is the most basic version, which each page to the like-named
-	file.
+	This is the most basic version, where each page maps to the
+	like-named file.
 	'''
 
 	default_extension = '.txt'
 	default_format = get_format('wiki')
 
 	def __init__(self, folder, endofline=_EOL):
+		'''Constructor
+		@param folder: a L{Folder} object
+		@param endofline: either "dos" or "unix", default per OS
+		'''
+		assert isinstance(folder, Folder)
 		self.root = folder
 		self.endofline = _EOL
 
@@ -118,15 +124,17 @@ class FilesLayout(NotebookLayout):
 		'''
 		path = filepath.relpath(self.root)
 		if path.endswith(self.default_extension):
-			path = path[:len(self.default_extension)]
+			path = path[:-len(self.default_extension)]
 			type = FILE_TYPE_PAGE_SOURCE
 		else:
-			if ':' in path:
-				path, _ = path.rsplit(':', 1)
+			if _SEP in path:
+				path, x = path.rsplit(_SEP, 1)
 			else:
 				path = ':' # ROOT_PATH
 			type = FILE_TYPE_ATTACHMENT
-		return Path(decode_filename(path)), type
+		name = decode_filename(path)
+		Path.assertValidPageName(name)
+		return Path(name), type
 
 	def resolve_conflict(self, *filepaths):
 		'''Decide which is the real page file when multiple files

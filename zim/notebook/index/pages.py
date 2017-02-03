@@ -7,15 +7,16 @@ from __future__ import with_statement
 
 from datetime import datetime
 
-from zim.utils import natural_sort_key, init_generator
+from zim.utils import natural_sort_key
 from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
-from .base import IndexViewBase, IndexerBase, \
-	IndexConsistencyError, IndexNotFoundError, \
-	SIGNAL_BEFORE, SIGNAL_AFTER
+from .base import IndexView, \
+	IndexConsistencyError, IndexNotFoundError
 
+from zim.signals import SIGNAL_BEFORE, SIGNAL_AFTER
 
+ROOT_PATH = Path(':')
 ROOT_ID = 1 # Constant for the ID of the root namespace in "pages"
 			# (Primary key starts count at 1 and first entry will be root)
 
@@ -24,463 +25,608 @@ PAGE_EXISTS_UNCERTAIN = 0 # e.g. folder with unknown children - not shown to out
 PAGE_EXISTS_AS_LINK = 1 # placeholder for link target
 PAGE_EXISTS_HAS_CONTENT = 2 # either has content or children have content
 
+from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
+from zim.utils import natural_sort_key
 
-class IndexPath(Path):
-	'''Sub-class of L{Path} that tracks the index row ids of a path and
-	its parents.
+from zim.notebook.layout import \
+	FILE_TYPE_PAGE_SOURCE, \
+	FILE_TYPE_ATTACHMENT
+
+
+class PagesIndexer(object):
+	'''Indexer for the "pages" table.
+
+	@signal: C{page-added (L{Path})}: a page is newly added to the index
+	@signal: C{page-changed (L{Path}}): page content has changed
+	@signal: C{page-node-changed (L{Path}): page attributes changed
+	@signal: C{page-haschildren-toggled (L{Path})}: the value of the
+	C{haschildren} attribute changed for this page
+	@signal: C{page-removed (L{Path})}: a page is removed from the index
 	'''
 
-	__slots__ = ('ids', 'id')
+	__signals__ = {
+		'page-added': (SIGNAL_NORMAL, None, (object,)),
+		'page-haschildren-toggled': (SIGNAL_NORMAL, None, (object,)),
+		'page-node-changed': (SIGNAL_NORMAL, None, (object,)),
+		'page-changed': (SIGNAL_NORMAL, None, (object,)),
+		'page-removed': (SIGNAL_NORMAL, None, (object,)),
+	}
 
-	def __init__(self, name, ids):
-		'''Constructor
-		@param name: the full page name
-		@param ids: a tuple of page ids for all the parents of
-		this page and it's own page id (so linking all rows in the
-		page hierarchy for this page)
-		'''
-		Path.__init__(self, name) # FUTURE - optimize this away ??
-		self.id = ids[-1]
-		self.ids = tuple(ids)
+	def __init__(self, db, layout, content_indexers, signal_queue):
+		self.db = db
+		self.layout = layout
+		self.content_indexers = content_indexers
+		self.signals = signal_queue
 
-	@property
-	def parent(self):
-		'''Get the path for the parent page'''
-		namespace = self.namespace
-		if namespace:
-			return IndexPath(namespace, self.ids[:-1])
-		elif self.isroot:
-			return None
+	def init_db(self):
+		self.db.executescript('''
+			CREATE TABLE IF NOT EXISTS pages(
+				id INTEGER PRIMARY KEY,
+				parent INTEGER REFERENCES pages(id),
+				n_children INTEGER DEFAULT 0,
+
+				name TEXT UNIQUE NOT NULL,
+				sortkey TEXT NOT NULL,
+				mtime TIMESTAMP,
+
+				source_file INTEGER REFERENCES files(id),
+				is_link_placeholder BOOLEAN DEFAULT 0
+			);
+			CREATE UNIQUE INDEX IF NOT EXISTS pages_name ON pages(name)
+		''')
+		row = self.db.execute('SELECT * FROM pages WHERE id == 1').fetchone()
+		if row is None:
+			c = self.db.execute(
+				'INSERT INTO pages(parent, name, sortkey, source_file) '
+				'VALUES (? , ?, ?, ?)',
+				(0, '', '', 1)
+			)
+			assert c.lastrowid == 1 # ensure we start empty
+
+	def _select(self, pagename):
+		return self.db.execute(
+			'SELECT * FROM pages WHERE name=?', (pagename.name,)
+		).fetchone()
+
+	def on_db_start_update(self, o):
+		for c in self.content_indexers:
+			c.on_db_start_update(self) # forward signal
+
+	def on_db_finish_update(self, o):
+		for c in self.content_indexers:
+			c.on_db_finish_update(self) # forward signal
+
+	# We should not read file contents on db-file-inserted because
+	# there can be many in one iterarion when the FileIndexer indexes
+	# a folder. Therefore we only send page-changed in response to
+	# db-file-updated and trust we get this signal for each file
+	# that is inserted in a separate iteration.
+
+	def on_db_file_inserted(self, o, file_id, file):
+		pagename, file_type = self.layout.map_file(file)
+		if file_type != FILE_TYPE_PAGE_SOURCE:
+			return # nothing to do
+
+		row = self._select(pagename)
+		if row is None:
+			self.insert_page(pagename, file_id)
+		elif row['source_file'] is None:
+			self._set_source_file(pagename, file_id)
 		else:
-			return ROOT_PATH
+			# TODO: Flag conflict
+			raise NotImplementedError
 
-	def parents(self):
-		'''Generator function for parent Paths including root'''
-		if ':' in self.name:
-			path = self.name.split(':')[:-1]
-			ids = list(self.ids[:-1])
-			while len(path) > 0:
-				yield IndexPath(':'.join(path), tuple(ids))
-				path.pop()
-				ids.pop()
-		yield ROOT_PATH
+	def on_db_file_updated(self, o, file_id, file):
+		pagename, file_type = self.layout.map_file(file)
+		if file_type != FILE_TYPE_PAGE_SOURCE:
+			return # nothing to do
 
-	def commonparent(self, other):
-		parent = Path.commonparent(self, other)
-		if parent.isroot:
-			return ROOT_PATH
+		row = self._select(pagename)
+		assert row is not None
+
+		if row['source_file'] == file_id:
+			format = self.layout.get_format(file)
+			mtime = file.mtime()
+			tree = format.Parser().parse(file.read())
+			doc = ParseTreeMask(tree)
+			self.update_page(pagename, mtime, doc)
 		else:
-			i = parent.name.count(':')
-			return IndexPath(parent.name, self.ids[:i+2])
+			pass # some conflict file changed
 
-	def child_by_row(self, row):
-		'''Returns a L{IndexPathRow} object for the child page
-		represented by C{row}
-		'''
-		name = self.name + ':' + row['basename']
-		ids = self.ids + (row['id'],)
-		return IndexPathRow(name, ids, row)
+	def on_db_file_deleted(self, o, file_id, file):
+		pagename, file_type = self.layout.map_file(file)
+		if file_type != FILE_TYPE_PAGE_SOURCE:
+			return # nothing to do
+
+		row = self._select(pagename)
+		assert row is not None
+
+		if row['source_file'] == file_id:
+			if row['n_children'] > 0:
+				self._set_source_file(pagename, None)
+			else:
+				self.remove_page(pagename)
+		else:
+			raise NotImplemented # some conflict removed
+
+	def insert_page(self, pagename, file_id):
+		return self._insert_page(pagename, False, file_id)
+
+	def insert_link_placeholder(self, pagename):
+		return self._insert_page(pagename, True)
+
+	def delete_link_placeholder(self, pagename):
+		row = self._select(pagename)
+		assert row is not None
+
+		if not row['is_link_placeholder']:
+			raise AssertionError, 'Not a placeholder'
+		else:
+			self.remove_page(pagename)
+
+	def _insert_page(self, pagename, is_link_placeholder, file_id=None):
+		assert not (is_link_placeholder and file_id)
+
+		# insert parents
+		parent_row = self._select(pagename.parent)
+		if parent_row is None:
+			self._insert_page(pagename.parent, is_link_placeholder) # recurs
+			parent_row = self._select(pagename.parent)
+			assert parent_row is not None
+
+		# update table
+		sortkey = natural_sort_key(pagename.basename)
+		self.db.execute(
+			'INSERT INTO pages(name, sortkey, parent, is_link_placeholder, source_file)'
+			'VALUES (?, ?, ?, ?, ?)',
+			(pagename.name, sortkey, parent_row['id'], is_link_placeholder, file_id)
+		)
+		self.update_parent(pagename.parent)
+
+		# notify others
+		row = self._select(pagename)
+		pagename = PageIndexRecord(row)
+		self.signals.append(('page-added', pagename))
+		for c in self.content_indexers:
+			c.on_db_added_page(self, row['id'], pagename)
+
+		return row['id']
+
+	def update_parent(self, parentname):
+		row = self._select(parentname)
+		assert row is not None
+
+		# get new status
+		n_children, all_child_are_placeholder = self.db.execute(
+			'SELECT count(*), min(is_link_placeholder) FROM pages WHERE parent=?',
+				# "min()" works as "any(not is_link_placeholder)"
+				# because False is "0" in sqlite
+			(row['id'],)
+		).fetchone()
+
+		if n_children == 0 and row['source_file'] is None:
+			# cleanup if no longr needed
+			self.db.execute(
+				'UPDATE pages SET n_children=? WHERE id=?',
+				(n_children, row['id'])
+			)
+			self.remove_page(parentname) # indirect recurs
+		else:
+			# update table
+			is_placeholder = row['source_file'] is None and all_child_are_placeholder
+			self.db.execute(
+				'UPDATE pages SET n_children=?, is_link_placeholder=? WHERE id=?',
+				(n_children, is_placeholder, row['id'])
+			)
+			if bool(row['is_link_placeholder']) is not is_placeholder:
+				self.update_parent(parentname.parent) # recurs
+
+			parentname = PageIndexRecord(self._select(parentname))
+
+			# notify others
+			if not parentname.isroot:
+				if (row['n_children'] != n_children) \
+				and (row['n_children'] == 0 or n_children == 0):
+					self.signals.append(('page-haschildren-toggled', parentname))
+
+				self.signals.append(('page-node-changed', parentname))
+
+	def update_page(self, pagename, mtime, content):
+		self.db.execute(
+			'UPDATE pages SET mtime=? WHERE name=?',
+			(mtime, pagename.name),
+		)
+
+		row = self._select(pagename)
+		for c in self.content_indexers:
+			c.on_db_index_page(self, row['id'], pagename, content)
+
+		pagename = PageIndexRecord(row)
+		self.signals.append(('page-changed', pagename))
+
+	def _set_source_file(self, pagename, file_id):
+		self.db.execute(
+			'UPDATE pages SET source_file=?, mtime=?, is_link_placeholder=? WHERE name=?',
+			(file_id, None, False, pagename.name)
+		)
+
+		if file_id is None:
+			# check any children have sources - else will be removed
+			self.update_parent(pagename)
+		else:
+			self.update_parent(pagename.parent)
+			pagename = PageIndexRecord(self._select(pagename))
+			self.signals.append(('page-node-changed', pagename))
+
+	def remove_page(self, pagename):
+		row = self._select(pagename)
+		if row['n_children'] > 0:
+			raise AssertionError, 'Page has child pages'
+
+		for c in self.content_indexers:
+			c.on_db_delete_page(self, row['id'], pagename)
+
+		self.db.execute('DELETE FROM pages WHERE name=?', (pagename.name,))
+		self.update_parent(pagename.parent)
+		pagename = PageIndexRecord(row)
+		self.signals.append(('page-removed', pagename))
 
 
-ROOT_PATH = IndexPath(':', [ROOT_ID])
+class ParseTreeMask(object):
+	## XXX temporary object, replace when refactoring formats
+
+	def __init__(self, tree):
+		self._tree = tree
+
+	def iter_href(self):
+		return self._tree.iter_href()
+
+	def iter_tag_names(self):
+		return self._tree.iter_tag_names()
 
 
-class IndexPathRow(IndexPath):
+class PageIndexRecord(Path):
 	'''Object representing a page L{Path} in the index, with data
 	for the corresponding row in the C{pages} table.
-
-	@ivar sortkey: the L{natural_sort_key()} for the basename
-	@ivar n_children: number of child pages in the index
-	@ivar hascontent: page has text content
-	@ivar haschildren: page has child pages (C{n_children} > 0}
-	@ivar ctime: creation time of the page
-	@ivar mtime: modification time of the page
-	@ivar content_etag: unique key for the state of the page
-	@ivar children_etag: unique key for the state of the child folder
-	@ivar page_exists: flag for page existance
-	@ivar treepath: tuple of index numbers, reserved for use by
-	C{TreeStore} widgets
 	'''
 
 	__slots__ = ('_row', 'treepath')
 
-	_attrib = (
-		'sortkey',
-		'n_children',
-		'ctime',
-		'mtime',
-		'content_etag',
-		'children_etag',
-		'page_exists',
-	)
-
-	def __init__(self, name, ids, row):
+	def __init__(self, row, treepath=None):
 		'''Constructor
 		@param name: the full page name
-		@param ids: a tuple of page ids for all the parents of
-		this page and it's own page id (so linking all rows in the
-		page hierarchy for this page)
 		@param row: a C{sqlite3.Row} object for this page in the
 		"pages" table, specifies most other attributes for this object
 		The property C{hasdata} is C{True} when the row is set.
 		'''
-		assert row
-		IndexPath.__init__(self, name, ids)
+		Path.__init__(self, row['name'])
 		self._row = row
+		self.treepath = treepath
 
 	@property
-	def hascontent(self): return self._row['content_etag'] is not None
+	def id(self): return self._row['id']
+
+	@property
+	def hascontent(self): return self._row['source_file'] is not None
 
 	@property
 	def haschildren(self): return self._row['n_children'] > 0
 
-	def __getattr__(self, attr):
-		if attr in self._attrib:
-			return self._row[attr]
-		else:
-			raise AttributeError, '%s has no attribute %s' % (self.__repr__(), attr)
+	@property
+	def n_children(self): return self._row['n_children']
+
+	@property
+	def mtime(self): return self._row['mtime']
 
 	def exists(self):
-		return self._row['page_exists'] == PAGE_EXISTS_HAS_CONTENT # self or children have content
-
-
-class PagesIndexer(IndexerBase):
-	'''Indexer for the "pages" table.
-	This object doesn't do much, since most logic for updating the
-	"pages" table is already handled by the L{TreeIndexer} class.
-	Main function of the indexer is to emit the proper signals.
-
-	@signal: C{page-added (L{IndexPathRow})}: emitted when a page is newly
-	added to the index (so a new row is inserted in the pages table)
-	@signal: C{page-changed (L{IndexPathRow})}: page content has changed
-	@signal: C{page-haschildren-toggled (L{IndexPathRow})}: the value of the
-	C{haschildren} attribute changed for this page
-	@signal: C{page-to-be-removed (L{IndexPathRow})}: emitted before a
-	page is deleted from the index
-	'''
-
-	__signals__ = {
-		'page-added': (SIGNAL_AFTER, None, (object,)),
-		'page-haschildren-toggled': (SIGNAL_BEFORE, None, (object,)),
-		'page-changed': (SIGNAL_AFTER, None, (object,)),
-		'page-to-be-removed': (SIGNAL_BEFORE, None, (object,)),
-		'page-removed': (SIGNAL_AFTER, None, (object,)),
-	}
-
-	INIT_SCRIPT = '''
-		CREATE TABLE pages (
-			-- these keys are set when inserting a new page and never modified
-			id INTEGER PRIMARY KEY,
-			parent INTEGER REFERENCES pages(id),
-			basename TEXT,
-			sortkey TEXT,
-
-			-- these keys are managed by the TreeIndexer - no need to signal
-			needscheck INTEGER DEFAULT 0,
-			childseen BOOLEAN DEFAULT 1,
-			content_etag TEXT,
-			children_etag TEXT,
-
-			-- managed by both TreeIndexer and PageIndexer - signal on change # TODO TODO TODO
-			page_exists INTEGER DEFAULT 0,
-
-			-- these keys are managed by PageIndexer - signal on change
-			n_children BOOLEAN DEFAULT 0,
-			ctime TIMESTAMP,
-			mtime TIMESTAMP,
-
-			CONSTRAINT uc_PagesOnce UNIQUE (parent, basename)
-		);
-		INSERT INTO pages(parent, basename, sortkey) VALUES (0, '', '');
-	'''
-
-	def on_new_page(self, index, db, indexpath):
-		parent = indexpath.parent
-		n_children_pre = self.n_children(db, parent)
-		self.update_parent(db, parent)
-		self.emit('page-added', indexpath)
-		if n_children_pre == 0 and not parent.isroot:
-			self.emit('page-haschildren-toggled', parent)
-
-	def on_index_page(self, index, db, indexpath, parsetree):
-		self.emit('page-changed', indexpath)
-
-	def on_delete_page(self, index, db, indexpath):
-		self.emit('page-to-be-removed', indexpath)
-		self.emit('page-removed', indexpath)
-
-	def on_deleted_page(self, index, db, parent, basename):
-		self.update_parent(db, parent)
-		if self.n_children(db, parent) == 0 and not parent.isroot:
-			self.emit('page-haschildren-toggled', parent)
-
-	def n_children(self, db, parent):
-		return db.execute(
-			'SELECT n_children FROM pages WHERE id=?',
-			(parent.id,)
-		).fetchone()['n_children']
-
-	def update_parent(self, db, parent):
-		db.execute(
-			'UPDATE pages '
-			'SET n_children=(SELECT count(*) FROM pages WHERE parent=?) '
-			'WHERE id=?',
-			(parent.id, parent.id)
-		)
-
-
-def _rindex(list, value):
-	i = list.index(value) # can raise ValueError
-	try:
-		while True:
-			j = list[i+1:].index(value)
-			i = i + 1 + j
-	except ValueError:
-		return i
-
-
-class IndexPageNotFoundError(IndexNotFoundError):
-
-	def __init__(self, path, parent=None):
-		'''Constructor
-		@param path: the L{Path} that was not found
-		@param parent: optional parent that was found
-		'''
-		self.path = path
-		self.parent = parent
-		IndexNotFoundError.__init__(self, 'No such path in index: %s' % path.name)
+		return not self._row['is_link_placeholder']
 
 
 class PagesViewInternal(object):
 	'''This class defines private methods used by L{PagesView},
-	L{LinksView}, L{TagsView} and others. Because it is used internal
-	it assumes proper locks are in place, and arguments are always valid
-	L{IndexPath}s where specified. It takes a C{sqlite3.Connection}
-	object as the first argument for all methods.
-
-	This class is B{not} intended for use out side of index related
-	classes. Instead the L{PagesView} class should be used, which has
-	a more robust API and checks locks and validity of paths.
+	L{LinksView}, L{TagsView} and others.
 	'''
 
-	def lookup_by_id(self, db, id):
-		'''Get the L{IndexPathRow} for a given page id
-		@param db: a C{sqlite3.Connection} object
-		@param id: the page id (primary key for this page)
-		@returns: the L{IndexPathRow} for this id
-		@raises IndexConsistencyError: if C{id} does not exist in the index
-		or parents are missing or inconsistent
-		'''
-		c = db.execute('SELECT * FROM pages WHERE id=?', (id,))
-		row = c.fetchone()
-		if row:
-			return self.lookup_by_row(db, row)
-		else:
-			raise IndexConsistencyError, 'No such page id: %r' % id
+	def __init__(self, db):
+		self.db = db
 
-	def lookup_by_row(self, db, row):
-		'''Get the L{IndexPathRow} for a given table row
-		@param db: a C{sqlite3.Connection} object
-		@param row: the table row for the page
-		@returns: the L{IndexPathRow} for this row
-		@raises IndexConsistencyError: if parents of C{row} are missing
-		or claim to not have children
-		'''
-		# Constructs the indexpath upwards
-		ids = [row['id']]
-		names = [row['basename']]
-		parent = row['parent']
-		cursor = db.cursor()
-		while parent != 0:
-			ids.insert(0, parent)
-			cursor.execute('SELECT basename, parent, n_children FROM pages WHERE id=?', (parent,))
-			myrow = cursor.fetchone()
-			## Check on children can be enabled again when set_exists logic is gone
-			#~ if not myrow or myrow['n_children'] < 1:
-				#~ if myrow:
-					#~ raise IndexConsistencyError, 'Parent has no children'
-				#~ else:
-					#~ raise IndexConsistencyError, 'Parent missing'
-			if not myrow:
-					raise IndexConsistencyError, 'Parent missing'
-			names.insert(0, myrow['basename'])
-			parent = myrow['parent']
+	def get_pagename(self, page_id):
+		row = self.db.execute(
+			'SELECT * FROM pages WHERE id=?', (page_id,)
+		).fetchone()
+		if row is None:
+			raise IndexConsistencyError, 'No page for page_id "%r"' % page_id
+		return PageIndexRecord(row)
 
-		return IndexPathRow(':'.join(names), ids, row)
+	def get_page_id(self, pagename):
+		row = self.db.execute(
+			'SELECT id FROM pages WHERE name=?', (pagename.name,)
+		).fetchone()
+		if row is None:
+			raise IndexNotFoundError, 'Page not found in index: %s' % pagename.name
+		return row['id']
 
-	def lookup_by_indexpath(self, db, indexpath):
-		'''Return an L{IndexPathRow} for an L{IndexPath}'''
-		c = db.execute('SELECT * FROM pages WHERE id=?', (indexpath.id,))
-		row = c.fetchone()
-		if row:
-			return IndexPathRow(indexpath.name, indexpath.ids, row)
-		else:
-			raise IndexConsistencyError, 'No such page id: %r' % indexpath.id
-
-	def lookup_by_pagename(self, db, path):
-		# Constructs the indexpath downwards - do not optimize for
-		# IndexPath objects - assume they are invalid and check top down
-		if path.isroot:
-			c = db.execute('SELECT * FROM pages WHERE id=?', (ROOT_ID,))
-			row = c.fetchone()
-			return IndexPathRow(path.name, [ROOT_ID], row)
-		else:
-			cursor = db.cursor()
-			ids = [ROOT_ID]
-			for basename in path.parts:
-				cursor.execute(
-					'SELECT * FROM pages WHERE basename=? and parent=?',
-					(basename, ids[-1])
-				)
-				row = cursor.fetchone()
-				if row is None:
-					parentname = ':'.join(path.parts[:len(ids)-1])
-					parent = IndexPath(parentname, ids) # last existing parent
-					raise IndexPageNotFoundError(path, parent)
-				ids.append(row['id'])
-
-			return IndexPathRow(path.name, ids, row)
-
-	def lookup_by_parent(self, db, parent, basename):
-		'''Internal implementation of L{PageView.lookup_by_parent()}'''
-		c = db.execute(
-			'SELECT * FROM pages WHERE parent=? and basename=?',
-			(parent.id, basename)
-		)
-		row = c.fetchone()
-		if row:
-			return parent.child_by_row(row)
-		else:
-			raise IndexPageNotFoundError(parent.child(basename))
-
-	def resolve_link(self, db, source, href, ignore_placeholders=True):
-		'''Internal implementation of L{PageView.resolve_link()}'''
+	def resolve_link(self, source, href, ignore_link_placeholders=True):
 		if href.rel == HREF_REL_ABSOLUTE or source.isroot:
-			return self.resolve_path(db, ROOT_PATH, href.parts())
+			return self.resolve_pagename(ROOT_PATH, href.parts())
 
-		# Do not assume source exists, find start point that does
-		relnames = []
-		if isinstance(source, IndexPath):
-			root = source
-		else:
+		start, relnames = source, []
+		while True:
+			# Do not assume source exists, find start point that does
 			try:
-				root = self.lookup_by_pagename(db, source)
-			except IndexPageNotFoundError, error:
-				assert error.parent
-				root = error.parent
-				relnames = source.relname(root).split(':')
+				start_id = self.get_page_id(start)
+			except IndexNotFoundError:
+				relnames.append(start.basename)
+				start = start.parent
+			else:
+				break
 
 		if href.rel == HREF_REL_RELATIVE:
-			return self.resolve_path(db, root, relnames + href.parts())
-		else: # HREF_REL_FLOATING
+			return self.resolve_pagename(start, relnames + href.parts())
+		else:
+			# HREF_REL_FLOATING
 			# Search upward namespaces for existing pages,
-			# By default ignore "exists as link" placeholders to avoid circular
+			# By default ignore link placeholders to avoid circular
 			# dependencies between links and placeholders
 			assert href.rel == HREF_REL_FLOATING
 			anchor_key = natural_sort_key(href.parts()[0])
 
-			if relnames: # Check if we are anchored in non-existing part
-				try:
-					i = _rindex([natural_sort_key(n) for n in relnames], anchor_key)
-				except ValueError:
-					pass
-				else:
-					return self.resolve_path(db, root, relnames[:i] + href.parts())
+			if relnames:
+				# Check if we are anchored in non-existing part
+				keys = map(natural_sort_key, relnames)
+				if anchor_key in keys:
+					i = [c for c,k in enumerate(keys) if k==anchorkey][-1]
+					return self.resolve_pagename(db, root, relnames[:i] + href.parts()[1:])
 
-			for parent in root.parents():
-				if ignore_placeholders:
-					r = db.execute(
-						'SELECT id, basename FROM pages '
-						'WHERE parent=? and sortkey=? and page_exists=? LIMIT 1',
-						(parent.id, anchor_key, PAGE_EXISTS_HAS_CONTENT)
-					).fetchone()
-				else:
-					r = db.execute(
-						'SELECT id, basename FROM pages '
-						'WHERE parent=? and sortkey=? and page_exists>0 LIMIT 1',
-						(parent.id, anchor_key)
-					).fetchone()
-				if r:
-					return self.resolve_path(db, parent, href.parts())
+			if ignore_link_placeholders:
+				c = self.db.execute(
+					'SELECT name FROM pages '
+					'WHERE sortkey=? and is_link_placeholder=0 '
+					'ORDER BY name DESC',
+					(anchor_key,)
+				) # sort longest first
+			else:
+				c = self.db.execute(
+					'SELECT name FROM pages '
+					'WHERE sortkey=? '
+					'ORDER BY name DESC',
+					(anchor_key,)
+				) # sort longest first
+
+			for name, in c:
+				parentname = name.rsplit(':', 1)[0]
+				if start.name.startswith(parentname): # we have a common parent
+					return self.resolve_pagename(Path(name), href.parts()[1:])
 			else:
 				# Return "brother" of source
 				if relnames:
-					return self.resolve_path(db, root, relnames[:-1] + href.parts())
+					return self.resolve_pagename(start, relnames[:-1] + href.parts())
 				else:
-					return self.resolve_path(db, root.parent, href.parts())
+					return self.resolve_pagename(start.parent, href.parts())
 
-	def resolve_path(self, db, parent, names):
-		'''Resolve a path in the right case'''
-		# TODO distinguish existence in resolve order
-		path = parent
-		names = list(names) # copy
-		while names:
-			basename = names.pop(0)
-			sortkey = natural_sort_key(basename)
-			rows = db.execute(
-				'SELECT * FROM pages '
-				'WHERE parent=? and sortkey=? and page_exists>0 '
-				'ORDER BY basename',
-				(path.id, sortkey)
-			).fetchall()
-			for row in rows:
-				if row['basename'] == basename: # exact match
-					path = path.child_by_row(row)
-					break
+
+	def resolve_pagename(self, parent, names):
+		'''Resolve a pagename in the right case'''
+		# We do not ignore placeholders here. This can lead to a dependencies
+		# in how links are resolved based on order of indexing. However, this
+		# is not really a problem. Ignoring them means you could see duplicates
+		# if the tree for multiple links with slightly different spelling.
+		# Also we would need another call to return the page_id if a resolved
+		# page happens to exist.
+		pagename = parent
+		page_id = self.get_page_id(parent)
+		for i, basename in enumerate(names):
+			if page_id == ROOT_ID:
+				row = self.db.execute(
+					'SELECT id, name FROM pages WHERE name=?',
+					(basename,)
+				).fetchone()
 			else:
-				if rows: # case insensitive match
-					path = path.child_by_row(rows[0])
-				else:
-					remainder = ':'.join([basename] + names)
-					return path.child(remainder)
+				row = self.db.execute(
+					'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
+					(page_id, "%:"+basename)
+				).fetchone()
+
+			if row: # exact match
+				pagename = Path(row['name'])
+				page_id = row['id']
+			else:
+				sortkey = natural_sort_key(basename)
+				row = self.db.execute(
+					'SELECT id, name FROM pages '
+					'WHERE parent=? and sortkey=? ORDER BY name',
+					(page_id, sortkey)
+				).fetchone()
+				if row: # case insensitive match
+					pagename = Path(row['name'])
+					page_id = row['id']
+				else: # no match
+					return None, pagename.child(':'.join(names[i:]))
 		else:
-			return path
+			return page_id, pagename
 
-	def walk(self, db, indexpath):
-		for row in db.execute(
-			'SELECT * FROM pages WHERE parent=? and page_exists>0 ORDER BY sortkey, basename',
-			(indexpath.id,)
+	def walk(self, parent_id):
+		# Need to do this recursive to preserve sorting
+		#              else we could just do "name LIKE parent%"
+		for row in self.db.execute(
+			'SELECT * FROM pages WHERE parent=? '
+			'ORDER BY sortkey, name',
+			(parent_id,)
 		):
-			child = indexpath.child_by_row(row)
-			yield child
-			if child.haschildren:
-				for grandchild in self.walk(db, child): # recurs
-					yield grandchild
+			yield PageIndexRecord(row)
+			if row['n_children'] > 0:
+				for child in self.walk(row['id']): # recurs
+					yield child
 
-	def walk_bottomup(self, db, indexpath):
-		for row in db.execute(
-			'SELECT * FROM pages WHERE parent=? and page_exists>0 ORDER BY sortkey, basename',
-			(indexpath.id,)
+	def walk_bottomup(self, parent_id):
+		for row in self.db.execute(
+			'SELECT * FROM pages WHERE parent=? '
+			'ORDER BY sortkey, name',
+			(parent_id,)
 		):
-			child = indexpath.child_by_row(row)
-			if child.haschildren:
-				for grandchild in self.walk(db, child): # recurs
-					yield grandchild
-			yield child
+			if row['n_children'] > 0:
+				for child in self.walk_bottomup(row['id']): # recurs
+					yield child
+			yield PageIndexRecord(row)
 
 
-class PagesView(IndexViewBase):
+class PagesView(IndexView):
 	'''Index view that exposes the "pages" table in the index'''
 
-	def __init__(self, db_context):
-		IndexViewBase.__init__(self, db_context)
-		self._pages = PagesViewInternal()
+	def __init__(self, db):
+		IndexView.__init__(self, db)
+		self._pages = PagesViewInternal(db)
 
-	def lookup_by_pagename(self, path):
-		'''Lookup a pagename in the index
+	def lookup_by_pagename(self, pagename):
+		r = self.db.execute(
+			'SELECT * FROM pages WHERE name=?', (pagename.name,)
+		).fetchone()
+		if r is None:
+			raise IndexNotFoundError
+		else:
+			return PageIndexRecord(r)
+
+	def list_pages(self, path=None):
+		'''Generator for child pages of C{path}
 		@param path: a L{Path} object
-		@returns: a L{IndexPathRow} object
+		@returns: yields L{Path} objects for children of C{path}
+		@raises IndexNotFoundError: if C{path} is not found in the index
+		'''
+		if path is None:
+			page_id = ROOT_ID
+		else:
+			page_id = self._pages.get_page_id(path) # can raise
+		return self._list_pages(page_id)
+
+	def _list_pages(self, page_id):
+		for row in self.db.execute(
+			'SELECT * FROM pages WHERE parent=? ORDER BY sortkey, name',
+			(page_id,)
+		):
+			yield PageIndexRecord(row)
+
+	def n_list_pages(self, path=None):
+		page_id = self._pages.get_page_id(path or ROOT_PATH)
+		c, = self.db.execute(
+			'SELECT COUNT(*) FROM pages WHERE parent=?', (page_id,)
+		).fetchone()
+		return c
+
+	def walk(self, path=None):
+		'''Generator function to yield all pages in the index, depth
+		first
+
+		@param path: a L{Path} object for the starting point, can be
+		used to only iterate a sub-tree. When this is C{None} the
+		whole notebook is iterated over
+		@returns: an iterator that yields L{Path} objects
 		@raises IndexNotFoundError: if C{path} does not exist in the index
 		'''
-		with self._db as db:
-			return self._pages.lookup_by_pagename(db, path)
+		# Need to do this recursive to preserve sorting
+		#              else we could just do "name LIKE parent%"
+		page_id = self._pages.get_page_id(path) if path else ROOT_ID # can raise
+		return self._pages.walk(page_id)
+
+	def walk_bottomup(self, path=None):
+		page_id = self._pages.get_page_id(path) if path else ROOT_ID # can raise
+		return self._pages.walk_bottomup(page_id)
+
+	def n_all_pages(self):
+		'''Returns to total number of pages in the index'''
+		c, = self.db.execute('SELECT COUNT(*) FROM pages').fetchone()
+		return c - 1 # don't count ROOT
+
+	def get_previous(self, path):
+		'''Get the previous path in the index, in the same order that
+		L{walk()} will yield them
+		@param path: a L{Path} object
+		@returns: a L{Path} object or C{None} if {path} is the first page in
+		the index
+		'''
+		# Find last (grand)child of previous item with same parent
+		# If no previous item, yield parent
+		if path.isroot: raise ValueError, 'Can\'t use root'
+
+		r = self.db.execute(
+			'SELECT parent FROM pages WHERE name=?', (path.name,)
+		).fetchone()
+		if r is None:
+			raise IndexNotFoundError, 'No such page: %s', path
+		else:
+			parent_id = r[0]
+
+		r = self.db.execute(
+			'SELECT * FROM pages WHERE parent=? and sortkey<? and name<? '
+			'ORDER BY sortkey DESC, name DESC LIMIT 1',
+			(parent_id, natural_sort_key(path.basename), path.name)
+		).fetchone()
+		if not r:
+			parent = self._pages.get_pagename(parent_id)
+			return None if parent.isroot else parent
+		else:
+			while r['n_children'] > 0:
+				r = self.db.execute(
+					'SELECT * FROM pages WHERE parent=? '
+					'ORDER BY sortkey DESC, name DESC LIMIT 1',
+					(r['id'],)
+				).fetchone()
+				if r is None:
+					raise IndexConsistencyError, 'Missing children'
+			else:
+				return PageIndexRecord(r)
+
+	def get_next(self, path):
+		'''Get the next path in the index, in the same order that
+		L{walk()} will yield them
+		@param path: a L{Path} object
+		@returns: a L{Path} object or C{None} if C{path} is the last page in
+		the index
+		'''
+		# If item has children, yield first child
+		# Else find next item with same parent
+		# If no next item, find next item for parent
+		if path.isroot: raise ValueError, 'Can\'t use root'
+
+		r = self.db.execute(
+			'SELECT * FROM pages WHERE name=?', (path.name,)
+		).fetchone()
+		if r is None:
+			raise IndexNotFoundError, 'No such page: %s', path
+
+		if r['n_children'] > 0:
+			r = self.db.execute(
+				'SELECT name FROM pages WHERE parent=? '
+				'ORDER BY sortkey, name LIMIT 1',
+				(r['id'],)
+			).fetchone()
+			if r is None:
+				raise IndexConsistencyError, 'Missing children'
+			else:
+				return PageIndexRecord(r)
+		else:
+			while True:
+				n = self.db.execute(
+					'SELECT * FROM pages WHERE parent=? and sortkey>? and name>? '
+					'ORDER BY sortkey, name LIMIT 1',
+					(r['parent'], r['sortkey'], r['name'])
+				).fetchone()
+				if n is not None:
+					return PageIndexRecord(n)
+				elif r['parent'] == ROOT_ID:
+					return None
+				else:
+					r = self.db.execute(
+						'SELECT * FROM pages WHERE id=?', (r['parent'],)
+					).fetchone()
+					if r is None:
+						raise IndexConsistencyError, 'Missing parent'
 
 	def lookup_from_user_input(self, name, reference=None):
 		'''Lookup a pagename based on user input
 		@param name: the user input as string
-		@param reference: a L{Path} in case reletive links are supported as
+		@param reference: a L{Path} in case relative links are supported as
 		customer input
-		@returns: a L{IndexPath} or L{Path} for C{name}
+		@returns: a L{Path} object for C{name}
 		@raises ValueError: when C{name} would reduce to empty string
 		after removing all invalid characters, or if C{name} is a
 		relative link while no C{reference} page is given.
@@ -490,15 +636,15 @@ class PagesView(IndexViewBase):
 		# separate because it has a distinct different purpose.
 		# Only accidental that we treat user input as links ... ;)
 		href = HRef.new_from_wiki_link(name)
-
-		if reference and not reference.isroot:
-			return self.resolve_link(reference, href, ignore_placeholders=False)
-		elif href.rel == HREF_REL_RELATIVE:
+		if reference is None and href.rel == HREF_REL_RELATIVE:
 			raise ValueError, 'Got relative page name without parent: %s' % name
 		else:
-			return self.resolve_link(ROOT_PATH, href, ignore_placeholders=False)
+			source = reference or ROOT_PATH
+			id, pagename = self._pages.resolve_link(
+								source, href, ignore_link_placeholders=False)
+			return pagename
 
-	def resolve_link(self, source, href, ignore_placeholders=True):
+	def resolve_link(self, source, href):
 		'''Find the end point of a link
 		Depending on the link type (absolute, relative, or floating),
 		this method first determines the starting point of the link
@@ -506,17 +652,12 @@ class PagesView(IndexViewBase):
 		against the index.
 		@param source: a L{Path} for the starting point of the link
 		@param href: a L{HRef} object for the link
-		@param ignore_placeholders: when C{True} index pages that are
-		placeholders for links will be ignored. This is the default to
-		avoid circular dependencies between links.
-		@returns: a L{Path} or L{IndexPath} object for the target of the
-		link. The object type of the return value depends on whether the
-		target exists in the index or not.
+		@returns: a L{Path} object for the target of the link.
 		'''
 		assert isinstance(source, Path)
 		assert isinstance(href, HRef)
-		with self._db as db:
-			return self._pages.resolve_link(db, source, href, ignore_placeholders)
+		id, pagename = self._pages.resolve_link(source, href)
+		return pagename
 
 	def create_link(self, source, target):
 		'''Determine best way to represent a link between two pages
@@ -534,153 +675,16 @@ class PagesView(IndexViewBase):
 
 	def _find_floating_link(self, source, target):
 		# First try if basename resolves, then extend link names untill match is found
-		with self._db as db:
-			source = self._pages.lookup_by_pagename(db, source)
-			parts = target.parts
-			names = []
-			while parts:
-				names.insert(0, parts.pop())
-				href = HRef(HREF_REL_FLOATING, ':'.join(names))
-				if self._pages.resolve_link(db, source, href) == target:
-					return href
-			else:
-				return None # no floating link possible
-
-	@init_generator
-	def list_pages(self, path=None):
-		'''Generator for child pages of C{path}
-		@param path: a L{Path} object
-		@returns: yields L{IndexPathRow} objects for children of C{path}
-		@raises IndexNotFoundError: if C{path} is not found in the index
-		'''
-		with self._db as db:
-			if path is None:
-				path = ROOT_PATH
-			else:
-				path = self._pages.lookup_by_pagename(db, path)
-			yield # init done
-
-			for row in db.execute(
-				'SELECT * FROM pages WHERE parent=? and page_exists>0 ORDER BY sortkey, basename',
-				(path.id,)
-			):
-				child = path.child_by_row(row)
-				yield child
-
-	def n_all_pages(self):
-		'''Returns to total number of pages in the index'''
-		with self._db as db:
-			r = db.execute(
-				'SELECT COUNT(*) FROM pages WHERE id<>? and page_exists>0',
-				(ROOT_ID,)
-			).fetchone()
-			return r[0]
-
-	@init_generator
-	def walk(self, path=None):
-		'''Generator function to yield all pages in the index, depth
-		first
-
-		@param path: a L{Path} object for the starting point, can be
-		used to only iterate a sub-tree. When this is C{None} the
-		whole notebook is iterated over
-		@returns: an iterator that yields L{IndexPathRow} objects
-		@raises IndexNotFoundError: if C{path} does not exist in the index
-		'''
-		with self._db as db:
-			if path is None or path.isroot:
-				indexpath = ROOT_PATH
-			else:
-				indexpath = self.lookup_by_pagename(path)
-			yield # init done
-
-			for path in self._pages.walk(db, indexpath):
-				yield path
-
-	def get_previous(self, path):
-		'''Get the previous path in the index, in the same order that
-		L{walk()} will yield them
-
-		@param path: a L{Path} object
-		@returns: an L{IndexPath} or C{None} if there was no previous
-		page
-		'''
-		if path.isroot:
-			raise ValueError, 'Got: %s' % path
-
-		with self._db as db:
-			path = self._pages.lookup_by_pagename(db, path)
-
-			c = db.execute(
-				'SELECT * FROM pages WHERE parent=? and sortkey<? and basename<? and page_exists>0 '
-				'ORDER BY sortkey DESC, basename DESC LIMIT 1',
-				(path.parent.id, natural_sort_key(path.basename), path.basename)
-			)
-			row = c.fetchone()
-			if not row:
-				# First on this level - climb one up to parent
-				if path.parent.isroot:
-					return None
-				else:
-					return path.parent
-			else:
-				# Decent to deepest child of previous path
-				prev = path.parent.child_by_row(row)
-				while prev.haschildren:
-					c = db.execute(
-						'SELECT * FROM pages WHERE parent=? and page_exists>0 '
-						'ORDER BY sortkey DESC, basename DESC',
-						(prev.id,)
-					)
-					row = c.fetchone()
-					if row:
-						prev = prev.child_by_row(row)
-					else:
-						raise IndexConsistencyError, 'Missing children'
-				return prev
-
-	def get_next(self, path):
-		'''Get the next path in the index, in the same order that
-		L{walk()} will yield them
-
-		@param path: a L{Path} object
-		@returns: an L{IndexPath} or C{None} if there was no next
-		page
-		'''
-		if path.isroot:
-			raise ValueError, 'Got: %s' % path
-
-		with self._db as db:
-			path = self._pages.lookup_by_pagename(db, path)
-
-			if path.haschildren:
-				# Descent to first child
-				c = db.execute(
-					'SELECT * FROM pages WHERE parent=? and page_exists>0 '
-					'ORDER BY sortkey, basename LIMIT 1',
-					(path.id,)
-				)
-				row = c.fetchone()
-				if row:
-					return path.child_by_row(row)
-				else:
-					raise IndexConsistencyError, 'Missing children'
-			else:
-				while not path.isroot:
-					# Next on this level
-					c = db.execute(
-						'SELECT * FROM pages WHERE parent=? and sortkey>? and basename>? and page_exists>0 '
-						'ORDER BY sortkey, basename LIMIT 1',
-						(path.parent.id, natural_sort_key(path.basename), path.basename)
-					)
-					row = c.fetchone()
-					if row:
-						return path.parent.child_by_row(row)
-					else:
-						# Go up one level and find next there
-						path = path.parent
-				else:
-					return None
+		parts = target.parts
+		names = []
+		while parts:
+			names.insert(0, parts.pop())
+			href = HRef(HREF_REL_FLOATING, ':'.join(names))
+			id, pagename = self._pages.resolve_link(source, href)
+			if pagename == target:
+				return href
+		else:
+			return None # no floating link possible
 
 	def list_recent_changes(self, limit=None, offset=None):
 		assert not (offset and not limit), "Can't use offset without limit"
@@ -689,73 +693,65 @@ class PagesView(IndexViewBase):
 		else:
 			selection = ''
 
-		with self._db as db:
-			for row in db.execute(
-				'SELECT * FROM pages WHERE id<>? and page_exists>0 ORDER BY mtime DESC' + selection,
-				(ROOT_ID,)
-			):
-				yield self._pages.lookup_by_row(db, row)
+		for row in self.db.execute(
+			'SELECT * FROM pages WHERE id<>1 ORDER BY mtime DESC' + selection,
+		):
+			yield PageIndexRecord(row)
 
 
-
-
-def get_indexpath_for_treepath_factory(index, cache):
+def get_indexpath_for_treepath_factory(db, cache):
 	'''Factory for the "get_indexpath_for_treepath()" method
 	used by the page index Gtk widget.
 	This method stores the corresponding treepaths in the C{treepath}
 	attribute of the indexpath.
-	@param index: an L{Index} object
+	@param db: a L{sqlite3.Connection} object
 	@param cache: a dict used to store (intermediate) results
 	@returns: a function
 	'''
 	# This method is constructed by a factory to speed up all lookups
 	# it is defined here to keep all SQL code in the same module
 	assert not cache, 'Better start with an empty cache!'
-
-	db_context = index.db_conn.db_context()
-
 	def get_indexpath_for_treepath(treepath):
 		assert isinstance(treepath, tuple)
 		if treepath in cache:
 			return cache[treepath]
 
-		parent = ROOT_PATH
-		with db_context as db:
-			# Iterate parent paths
-			for i in range(1, len(treepath)):
-				mytreepath = tuple(treepath[:i])
-				if mytreepath in cache:
-					parent = cache[mytreepath]
+		# Iterate parent paths
+		parent, parent_id = ROOT_PATH, ROOT_ID
+		for i in range(1, len(treepath)):
+			mytreepath = tuple(treepath[:i])
+			if mytreepath in cache:
+				parent = cache[mytreepath]
+				parent_id = parent.id
+			else:
+				row = db.execute(
+					'SELECT * FROM pages '
+					'WHERE parent=? '
+					'ORDER BY sortkey, name '
+					'LIMIT 1 OFFSET ? ',
+					(parent_id, mytreepath[-1])
+				).fetchone()
+				if row:
+					parent = PageIndexRecord(row, treepath)
+					cache[mytreepath] = parent
+					parent_id = parent.id
 				else:
-					row = db.execute(
-						'SELECT * FROM pages '
-						'WHERE parent=? and page_exists>0 '
-						'ORDER BY sortkey, basename '
-						'LIMIT 1 OFFSET ? ',
-						(parent.id, mytreepath[-1])
-					).fetchone()
-					if row:
-						parent = parent.child_by_row(row)
-						parent.treepath = mytreepath
-						cache[mytreepath] = parent
-					else:
-						return None
+					return None
 
-			# Now cache a slice at the target level
-			parentpath = treepath[:-1]
-			offset = treepath[-1]
-			for i, row in enumerate(db.execute(
-				'SELECT * FROM pages '
-				'WHERE parent=? and page_exists>0 '
-				'ORDER BY sortkey, basename '
-				'LIMIT 20 OFFSET ? ',
-				(parent.id, offset)
-			)):
-				mytreepath = parentpath + (offset + i,)
-				if not mytreepath in cache:
-					indexpath = parent.child_by_row(row)
-					indexpath.treepath = mytreepath
-					cache[mytreepath] = indexpath
+		# Now cache a slice at the target level
+		parentpath = treepath[:-1]
+		offset = treepath[-1]
+		for i, row in enumerate(db.execute(
+			'SELECT * FROM pages '
+			'WHERE parent=? '
+			'ORDER BY sortkey, name '
+			'LIMIT 20 OFFSET ? ',
+			(parent_id, offset)
+		)):
+			mytreepath = parentpath + (offset + i,)
+			if not mytreepath in cache:
+				indexpath = PageIndexRecord(row, mytreepath)
+				cache[mytreepath] = indexpath
 
 		try:
 			return cache[treepath]
@@ -765,10 +761,10 @@ def get_indexpath_for_treepath_factory(index, cache):
 	return get_indexpath_for_treepath
 
 
-def get_treepath_for_indexpath_factory(index, cache):
+def get_treepath_for_indexpath_factory(db, cache):
 	'''Factory for the "get_treepath_for_indexpath()" method
 	used by the page index Gtk widget.
-	@param index: an L{Index} object
+	@param db: an L{sqlite3.Connection} object
 	@param cache: a dict used to store (intermediate) results
 	@returns: a function
 	'''
@@ -781,42 +777,38 @@ def get_treepath_for_indexpath_factory(index, cache):
 	# ref count on paths.
 	assert not cache, 'Better start with an empty cache!'
 
-	db_context = index.db_conn.db_context()
-
 	def get_treepath_for_indexpath(indexpath):
-		with db_context as db:
-			parent = ROOT_PATH
-			treepath = []
-			for basename, id in zip(
-				indexpath.name.split(':'),
-				indexpath.ids[1:] # remove ROOT_ID in front
-			):
-				sortkey = natural_sort_key(basename)
+		parent, parent_id = ROOT_PATH, ROOT_ID
+		treepath = []
+		names = indexpath.parts
+		for i, basename in enumerate(names):
+			name = ':'.join(names[:i+1])
+			sortkey = natural_sort_key(basename)
+			row = db.execute(
+				'SELECT COUNT(*) FROM pages '
+				'WHERE parent=? and ('
+				'	sortkey<? '
+				'	or (sortkey=? and name<?)'
+				')',
+				(parent_id, sortkey, sortkey, name)
+			).fetchone()
+			treepath.append(row[0])
+			mytreepath = tuple(treepath)
+			try:
+				parent = cache[mytreepath]
+				parent_id = parent.id
+				if parent.name != name:
+					return None # page does not exist, count gives next page
+			except KeyError:
 				row = db.execute(
-					'SELECT COUNT(*) FROM pages '
-					'WHERE page_exists>0 and parent=? and ('
-					'	sortkey<? '
-					'	or (sortkey=? and basename<?)'
-					')',
-					(parent.id, sortkey, sortkey, basename)
+					'SELECT * FROM pages WHERE name=?', (name,)
 				).fetchone()
 				if row:
-					treepath.append(row[0])
-					mytreepath = tuple(treepath)
-					try:
-						parent = cache[mytreepath]
-					except KeyError:
-						row = db.execute(
-							'SELECT * FROM pages WHERE id=?', (id,)
-						).fetchone()
-						if row:
-							parent = parent.child_by_row(row)
-							parent.treepath = mytreepath
-							cache[mytreepath] = parent
-						else:
-							raise IndexConsistencyError, 'Got indexpath %s %s but can not find row for id %s' % (indexpath, indexpath.ids, id)
+					parent = PageIndexRecord(row, mytreepath)
+					cache[mytreepath] = parent
+					parent_id = parent.id
 				else:
-					raise IndexConsistencyError, 'huh!?'
+					return None # page does not exist
 
 		return tuple(treepath)
 
@@ -825,7 +817,7 @@ def get_treepath_for_indexpath_factory(index, cache):
 
 
 
-def get_indexpath_for_treepath_flatlist_factory(index, cache):
+def get_indexpath_for_treepath_flatlist_factory(db, cache):
 	'''Factory for the "get_indexpath_for_treepath()" method
 	used by the page index Gtk widget.
 	This method stores the corresponding treepaths in the C{treepath}
@@ -833,7 +825,7 @@ def get_indexpath_for_treepath_flatlist_factory(index, cache):
 	The "flatlist" version lists all pages in the toplevel of the tree,
 	followed by their children. This is intended to be filtered
 	dynamically.
-	@param index: an L{Index} object
+	@param db: an L{sqlite3.Connection} object
 	@param cache: a dict used to store (intermediate) results
 	@returns: a function
 	'''
@@ -841,69 +833,62 @@ def get_indexpath_for_treepath_flatlist_factory(index, cache):
 	# it is defined here to keep all SQL code in the same module
 	assert not cache, 'Better start with an empty cache!'
 
-	db_context = index.db_conn.db_context()
-	pages = PagesViewInternal()
-
 	def get_indexpath_for_treepath_flatlist(treepath):
 		assert isinstance(treepath, tuple)
 		if treepath in cache:
 			return cache[treepath]
 
-		with db_context as db:
-			# Get toplevel
-			mytreepath = (treepath[0],)
+		# Get toplevel
+		mytreepath = (treepath[0],)
+		if mytreepath in cache:
+			parent = cache[mytreepath]
+		else:
+			row = db.execute(
+				'SELECT * FROM pages '
+				'WHERE id<>? '
+				'ORDER BY sortkey, name '
+				'LIMIT 1 OFFSET ? ',
+				(ROOT_ID, treepath[0])
+			).fetchone()
+			if row:
+				parent = PageIndexRecord(row, mytreepath)
+				cache[mytreepath] = parent
+			else:
+				return None
+
+		# Iterate parent paths
+		for i in range(2, len(treepath)):
+			mytreepath = tuple(treepath[:i])
 			if mytreepath in cache:
 				parent = cache[mytreepath]
 			else:
 				row = db.execute(
 					'SELECT * FROM pages '
-					'WHERE page_exists>0 and id<>?'
-					'ORDER BY sortkey, basename, id '
+					'WHERE parent=? '
+					'ORDER BY sortkey, name '
 					'LIMIT 1 OFFSET ? ',
-					(ROOT_ID, treepath[0])
+					(parent.id, mytreepath[-1])
 				).fetchone()
 				if row:
-					parent = pages.lookup_by_row(db, row)
-					parent.treepath = mytreepath
+					parent = PageIndexRecord(row, mytreepath)
 					cache[mytreepath] = parent
 				else:
 					return None
 
-			# Iterate parent paths
-			for i in range(2, len(treepath)):
-				mytreepath = tuple(treepath[:i])
-				if mytreepath in cache:
-					parent = cache[mytreepath]
-				else:
-					row = db.execute(
-						'SELECT * FROM pages '
-						'WHERE parent=? and page_exists>0 '
-						'ORDER BY sortkey, basename '
-						'LIMIT 1 OFFSET ? ',
-						(parent.id, mytreepath[-1])
-					).fetchone()
-					if row:
-						parent = parent.child_by_row(row)
-						parent.treepath = mytreepath
-						cache[mytreepath] = parent
-					else:
-						return None
-
-			# Now cache a slice at the target level
-			parentpath = treepath[:-1]
-			offset = treepath[-1]
-			for i, row in enumerate(db.execute(
-				'SELECT * FROM pages '
-				'WHERE parent=? and page_exists>0 '
-				'ORDER BY sortkey, basename '
-				'LIMIT 20 OFFSET ? ',
-				(parent.id, offset)
-			)):
-				mytreepath = parentpath + (offset + i,)
-				if not mytreepath in cache:
-					indexpath = parent.child_by_row(row)
-					indexpath.treepath = mytreepath
-					cache[mytreepath] = indexpath
+		# Now cache a slice at the target level
+		parentpath = treepath[:-1]
+		offset = treepath[-1]
+		for i, row in enumerate(db.execute(
+			'SELECT * FROM pages '
+			'WHERE parent=? '
+			'ORDER BY sortkey, name '
+			'LIMIT 20 OFFSET ? ',
+			(parent.id, offset)
+		)):
+			mytreepath = parentpath + (offset + i,)
+			if not mytreepath in cache:
+				indexpath = PageIndexRecord(row, mytreepath)
+				cache[mytreepath] = indexpath
 
 		try:
 			return cache[treepath]
@@ -913,13 +898,13 @@ def get_indexpath_for_treepath_flatlist_factory(index, cache):
 	return get_indexpath_for_treepath_flatlist
 
 
-def get_treepaths_for_indexpath_flatlist_factory(index, cache):
+def get_treepaths_for_indexpath_flatlist_factory(db, cache):
 	'''Factory for the "get_treepath_for_indexpath()" method
 	used by the page index Gtk widget.
 	The "flatlist" version lists all pages in the toplevel of the tree,
 	followed by their children. This is intended to be filtered
 	dynamically.
-	@param index: an L{Index} object
+	@param db: an L{sqlite3.Connection} object
 	@param cache: a dict used to store (intermediate) results
 	@returns: a function
 	'''
@@ -936,55 +921,83 @@ def get_treepaths_for_indexpath_flatlist_factory(index, cache):
 	# Below toplevel, paths are all the same
 	assert not cache, 'Better start with an empty cache!'
 
-	db_context = index.db_conn.db_context()
 	normal_cache = {}
-	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(index, normal_cache)
+	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(db, normal_cache)
 
 	def get_treepaths_for_indexpath_flatlist(indexpath):
 		if not cache:
 			normal_cache.clear() # flush 2nd cache as well..
 		normalpath = get_treepath_for_indexpath(indexpath)
 
-		with db_context as db:
-			parent = ROOT_PATH
-			treepaths = []
-			for basename, id, j in zip(
-				indexpath.name.split(':'),
-				indexpath.ids[1:], # remove ROOT_ID in front
-				range(1, len(indexpath.ids))
-			):
-				sortkey = natural_sort_key(basename)
-				row = db.execute(
-					'SELECT COUNT(*) FROM pages '
-					'WHERE page_exists>0 and id<>? and ('
-					'	sortkey<? '
-					'	or (sortkey=? and basename<?)'
-					'   or (sortkey=? and basename=? and id<?)'
-					')',
-					(ROOT_ID,
-						sortkey,
-						sortkey, basename,
-						sortkey, basename, id
-					)
-				).fetchone()
-				if row:
-					mytreepath = (row[0],) + normalpath[j:]
-						# toplevel + remainder of real treepath
-					treepaths.append(mytreepath)
-					#~ if not mytreepath in cache:
-						#~ row = db.execute(
-							#~ 'SELECT * FROM pages WHERE id=?', (id,)
-						#~ ).fetchone()
-						#~ if row:
-							#~ parent = parent.child_by_row(row)
-							#~ parent.treepath = mytreepath
-							#~ cache[mytreepath] = parent
-						#~ else:
-							#~ raise IndexConsistencyError, 'Invalid IndexPath: %r' % part
-				else:
-					raise IndexConsistencyError, 'huh!?'
+		parent = ROOT_PATH
+		treepaths = []
+		names = indexpath.parts
+		for i, basename in enumerate(names):
+			name = ':'.join(names[:i+1])
+			sortkey = natural_sort_key(basename)
+			row = db.execute(
+				'SELECT COUNT(*) FROM pages '
+				'WHERE id<>? and ('
+				'	sortkey<? '
+				'	or (sortkey=? and name<?)'
+				')',
+				(ROOT_ID, sortkey, sortkey, name)
+			).fetchone()
+			mytreepath = (row[0],) + normalpath[i+1:]
+				# toplevel + remainder of real treepath
+			treepaths.append(mytreepath)
 
 		return treepaths
 
 	return get_treepaths_for_indexpath_flatlist
 
+
+class TestPagesDBTable(object):
+	# Mixin for test cases, defined here to have all SQL in one place
+
+	def assertPagesDBConsistent(self, db):
+		for row in db.execute('SELECT * FROM pages'):
+			count, = db.execute(
+				'SELECT count(*) FROM pages WHERE parent=?',
+				(row['id'],)
+			).fetchone()
+			self.assertEqual(row['n_children'], count,
+				'Count for "%s" is %i while n_children=%i' % (row['name'], row['n_children'], count)
+			)
+
+			if row['source_file'] is not None:
+				self.assertFalse(row['is_link_placeholder'],
+					'Placeholder status for %s is wrong (has source itself)' % row['name']
+				)
+			elif not row['is_link_placeholder']:
+				# Check downwards - at least one child that is not a placeholder either
+				child = db.execute(
+					'SELECT * FROM pages WHERE parent=? and is_link_placeholder=?',
+					(row['id'], False),
+				).fetchone()
+				self.assertIsNotNone(child,
+					'Missing child with source for %s' % row['name'])
+
+			if row['id'] > 1:
+				parent = db.execute(
+					'SELECT * FROM pages WHERE id=?',
+					(row['id'],)
+				).fetchone()
+				self.assertIsNotNone(parent,
+					'Missing parent for %s' % row['name'])
+
+				if not row['is_link_placeholder']:
+					# Check upwards - parent(s) must not be placeholder either
+					self.assertFalse(parent['is_link_placeholder'],
+						'Placeholder status for parent of %s is inconcsisten' % row['name']
+					)
+
+	def assertPagesDBEquals(self, db, pages):
+		rows = db.execute('SELECT * FROM pages WHERE id>1').fetchall()
+		in_db = set(r['name'] for r in rows)
+		self.assertEqual(in_db, set(pages))
+
+	def assertPagesDBContains(self, db, pages):
+		rows = db.execute('SELECT * FROM pages WHERE id>1').fetchall()
+		in_db = set(r['name'] for r in rows)
+		self.assertTrue(set(pages).issubset(in_db))

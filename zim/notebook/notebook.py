@@ -164,7 +164,7 @@ class NotebookState(object):
 			notebook._notebook_state_lock = threading.RLock()
 
 	def __enter__(self):
-		self.notebook.index.wait_for_update()
+		#self.notebook.index.wait_for_update()
 		self.notebook._notebook_state_lock.acquire()
 
 	def __exit__(self, *args):
@@ -515,7 +515,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			assert page.valid, 'BUG: page object no longer valid'
 			self.emit('store-page', page)
 			page._store()
-			self.index.on_store_page(page)
+			file, folder = self.layout.map_page(page)
+			self.index.update_file(file)
 			self.emit('stored-page', page)
 
 	def _store_page_async(self, page, parsetree):
@@ -853,6 +854,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				folder.remove()
 			if file.exists():
 				file.remove()
+
+			self.index.update_file(file)
+			self.index.update_file(folder)
+
 			return True
 
 	def trash_page(self, path, update_links=True):
@@ -916,13 +921,14 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if file.exists():
 			re = helper.trash(file) or re
 
+		self.index.update_file(file)
+		self.index.update_file(folder)
+
 		return re
 
 	def _deleted_page(self, path, update_links):
 		self.flush_page_cache(path)
 		path = Path(path.name)
-
-		self.index.on_delete_page(path)
 
 		if update_links:
 			# remove persisting links

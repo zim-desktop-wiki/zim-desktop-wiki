@@ -5,14 +5,13 @@
 from __future__ import with_statement
 
 
-from zim.utils import natural_sort_key, init_generator
+from zim.utils import natural_sort_key
 from zim.notebook.page import HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 
-from .base import IndexerBase, IndexViewBase
-from .pages import PagesViewInternal, IndexPath, \
-	ROOT_ID, PAGE_EXISTS_AS_LINK
+from .base import ContentIndexer, IndexView
+from .pages import PagesViewInternal, ROOT_ID
 
 
 LINK_DIR_FORWARD = 1 #: Constant for forward links
@@ -26,23 +25,24 @@ LINK_DIR_BOTH = 3 #: Constant for links in any direction
 # 3/ HREF_REL_RELATIVE - below the source page, e.g. "+foo"
 #
 # If the target page does not exist, a "placeholder" is created for this
-# page with the flag PAGE_EXISTS_AS_LINK.
+# page.
 #
 # Floating links are resolved to existing pages in parent namespaces
 # therefore they may need to be recalculated when pages of the same name
 # are created or deleted. This is done by the 'anchorkey' field in the
 # links table.
 # To avoid circular dependencies between the existance of placeholder
-# pages and links, floating links do /not/ resolve to placeholders in
-# parent namespaces. (Else we would need to drop all placeholders and
+# pages and links, floating links do /not/ resolve to placeholders,
+# but only to existing links.
+# (Else we would need to drop all placeholders and
 # re-calculate all links on every page index to ensure the outcome.)
 
 
 class IndexLink(object):
 	'''Class used to represent links between two pages
 
-	@ivar source: L{IndexPath} object for the source of the link
-	@ivar target: L{IndexPath} object for the target of the link
+	@ivar source: L{Path} object for the source of the link
+	@ivar target: L{Path} object for the target of the link
 	'''
 
 	__slots__ = ('source', 'target')
@@ -55,170 +55,116 @@ class IndexLink(object):
 		return '<%s: %s to %s>' % (self.__class__.__name__, self.source, self.target)
 
 
-class StateFlag(object):
-
-	def __init__(self):
-		self._state = False
-
-	def __nonzero__(self):
-		return self._state
-
-	def __enter__(self):
-		self._state = True
-
-	def __exit__(self, *a):
-		self._state = False
-
-
-class LinksIndexer(IndexerBase):
+class LinksIndexer(ContentIndexer):
 
 	__signals__ = {}
 
-	INIT_SCRIPT = '''
-		CREATE TABLE links (
-			source INTEGER REFERENCES pages(id),
-			target INTEGER REFERENCES pages(id),
+	def __init__(self, db, signal_queue):
+		ContentIndexer.__init__(self, db, signal_queue)
+		self._pages = PagesViewInternal(db)
 
-			-- attributes of a HRef object
-			rel INTEGER,
-			names TEXT,
+	def on_db_init(self):
+		self.db.execute('''
+			CREATE TABLE IF NOT EXISTS links (
+				source INTEGER REFERENCES pages(id),
+				target INTEGER REFERENCES pages(id),
 
-			-- sortkey of anchor for floating HRef
-			anchorkey TEXT,
+				-- attributes of a HRef object
+				rel INTEGER,
+				names TEXT,
 
-			-- flag for the updater
-			needscheck BOOLEAN DEFAULT 0,
+				-- sortkey of anchor for floating HRef
+				anchorkey TEXT,
 
-			CONSTRAINT uc_LinkOnce UNIQUE (source, rel, names)
-		);
-	'''
+				-- flag for the updater
+				needscheck BOOLEAN DEFAULT 0,
 
-	def __init__(self):
-		IndexerBase.__init__(self)
-		self.check_links_pending = False
-		self._pages = PagesViewInternal()
-		self._prevent_recursion_touch = StateFlag()
-		self._prevent_recursion_cleanup = StateFlag()
+				CONSTRAINT uc_LinkOnce UNIQUE (source, rel, names)
+			);
+		''')
 
-	def on_new_page(self, index, db, indexpath):
-		db.execute(
+	def on_db_added_page(self, pages_indexer, page_id, pagename):
+		# Placeholders for pages of the same name need to be
+		# recalculated, flag links to be checked with same anchorkey.
+		sortkey = natural_sort_key(pagename.basename)
+		self.db.execute( # TODO turn query into a JOIN
 			'UPDATE links SET needscheck=1 '
-			'WHERE rel=? and anchorkey=? '
-			'AND target in (SELECT id FROM pages WHERE page_exists=?)',
-			(HREF_REL_FLOATING, indexpath.sortkey, PAGE_EXISTS_AS_LINK)
+			'WHERE rel=? and anchorkey=? and target in ( '
+			'	SELECT id FROM pages WHERE is_link_placeholder=1 '
+			')',
+			(HREF_REL_FLOATING, sortkey)
 		)
-		#~ if not self._prevent_recursion_touch:
-			#~ self.check_links(index, db)
-		self.check_links_pending = True
 
-	def on_index_page(self, index, db, indexpath, parsetree):
-		db.execute(
+	def on_db_index_page(self, pages_indexer, page_id, pagename, doc):
+		# Drop links for this page and add new ones (don't bother
+		# determining delta and updating).
+		self.db.execute(
 			'DELETE FROM links WHERE source=?',
-			(indexpath.id,)
+			(page_id,)
 		)
+		for href in doc.iter_href():
+			target_id, targetname = self._pages.resolve_link(pagename, href)
+			if target_id is None:
+				target_id = pages_indexer.insert_link_placeholder(targetname)
 
-		if parsetree:
-			for href in parsetree.iter_href():
-				target = self._pages.resolve_link(db, indexpath, href)
-				if not isinstance(target, IndexPath):
-					target = self.touch_placeholder(index, db, target)
-
-				anchorkey = natural_sort_key(href.parts()[0])
-				db.execute(
-					'INSERT INTO links(source, target, rel, names, anchorkey) '
-					'VALUES (?, ?, ?, ?, ?)',
-					(indexpath.id, target.id, href.rel, href.names, anchorkey)
-				)
-
-		self.cleanup_placeholders(index, db)
-
-	def on_moved_page(self, index, db, indexpath, oldpath):
-		db.execute(
-			'UPDATE links SET needscheck=1 WHERE source=? or target=?',
-			(indexpath, indexpath)
-		)
-		for child in self._pages.walk(indexpath):
-			db.execute(
-				'UPDATE links SET needscheck=1 WHERE source=? or target=?',
-				(child, child)
+			anchorkey = natural_sort_key(href.parts()[0])
+			self.db.execute(
+				'INSERT INTO links(source, target, rel, names, anchorkey) '
+				'VALUES (?, ?, ?, ?, ?)',
+				(page_id, target_id, href.rel, href.names, anchorkey)
 			)
-		#~ self.check_links(index, db)
-		self.check_links_pending = True
 
-	def on_delete_page(self, index, db, indexpath):
-		db.execute(
+	def on_db_delete_page(self, page_indexer, page_id, pagename):
+		# Drop all outgoing links, flag incoming links to be checked.
+		# Check could result in page being re-created as placeholder
+		# at end of db update.
+		self.db.execute(
 			'DELETE FROM links WHERE source=?',
-			(indexpath.id,)
+			(page_id,)
 		)
-		db.execute(
+		self.db.execute(
 			'UPDATE links SET needscheck=1, target=? WHERE target=?',
-			(ROOT_ID, indexpath.id,)
+			(ROOT_ID, page_id,)
 		) # Need to link somewhere, if target is gone, use ROOT instead
 
-		self.check_links_pending = True
-
-	#~ def on_deleted_page(self, index, db, parent, basename):
-		#~ self.check_links(index, db)
-			# Can result in page being resurrected as placeholder for link target
-
-	def check_links(self, index, db):
-		## HACK Called as a special case from InternalIndexer
-
-		if not self.check_links_pending:
-			return
-
-		for row in db.execute(
+	def on_db_finish_update(self, pages_indexer):
+		# Update links and create placeholders where needed
+		for row in self.db.execute(
 			'SELECT * FROM links WHERE needscheck=1 '
 			'ORDER BY anchorkey, names'
 		):
-			source = self._pages.lookup_by_id(db, row['source'])
 			href = HRef(row['rel'], row['names'])
-			target = self._pages.resolve_link(db, source, href)
-			if not isinstance(target, IndexPath):
-				target = self.touch_placeholder(index, db, target)
-			db.execute(
+			source = self._pages.get_pagename(row['source'])
+			target_id, targetname = self._pages.resolve_link(source, href)
+			if target_id is None:
+				target_id = pages_indexer.insert_link_placeholder(targetname)
+
+			self.db.execute(
 				'UPDATE links SET target=?, needscheck=? WHERE source=? and names=?',
-				(target.id, False, row['source'], row['names'])
+				(target_id, False, row['source'], row['names'])
 			)
 
-		self.cleanup_placeholders(index, db)
-
-		self.check_links_pending = False
-
-	def cleanup_placeholders(self, index, db):
-		if self._prevent_recursion_cleanup:
-			return
-
-		with self._prevent_recursion_cleanup:
-			for row in db.execute(
-				'SELECT pages.id '
-				'FROM pages LEFT JOIN links ON pages.id=links.target '
-				'WHERE pages.page_exists=? and pages.n_children=0 and links.source IS NULL ',
-				(PAGE_EXISTS_AS_LINK,)
-			):
-				indexpath = self._pages.lookup_by_id(db, row['id'])
-				index.delete_page(db, indexpath, cleanup=True)
-
-	def touch_placeholder(self, index, db, target):
-		# Create placeholder for link target
-		with self._prevent_recursion_touch:
-			target = index.touch_path(db, target)
-			index.set_page_exists(db, target, PAGE_EXISTS_AS_LINK)
-			#~ print "Touch target", target
-			return target
+		# Delete un-used placeholders
+		for row in self.db.execute(
+			'SELECT pages.id '
+			'FROM pages LEFT JOIN links ON pages.id=links.target '
+			'WHERE pages.is_link_placeholder=1 and pages.n_children=0 and links.source IS NULL '
+		):
+			pagename = self._pages.get_pagename(row['id'])
+			pages_indexer.remove_page(pagename)
 
 
-class LinksView(IndexViewBase):
 
-	def __init__(self, db_context):
-		IndexViewBase.__init__(self, db_context)
-		self._pages = PagesViewInternal()
+class LinksView(IndexView):
 
-	@init_generator
-	def list_links(self, path, direction=LINK_DIR_FORWARD):
+	def __init__(self, db):
+		IndexView.__init__(self, db)
+		self._pages = PagesViewInternal(db)
+
+	def list_links(self, pagename, direction=LINK_DIR_FORWARD):
 		'''Generator listing links between pages
 
-		@param path: the L{Path} for which to list links
+		@param pagename: the L{Path} for which to list links
 		@param direction: the link direction to be listed. This can be
 		one of:
 			- C{LINK_DIR_FORWARD}: for links from path
@@ -227,106 +173,94 @@ class LinksView(IndexViewBase):
 		@returns: yields L{IndexLink} objects
 		@raises IndexNotFoundError: if C{path} is not found in the index
 		'''
-		with self._db as db:
-			indexpath = self._pages.lookup_by_pagename(db, path)
-			yield # init done
+		page_id = self._pages.get_page_id(pagename) # can raise IndexNotFoundError
+		return self._list_links(page_id, pagename, direction)
 
-			for link in self._list_links(db, indexpath, direction):
-				yield link
-
-	@init_generator
-	def list_links_section(self, path, direction=LINK_DIR_FORWARD):
-		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
-		with self._db as db:
-			indexpath = self._pages.lookup_by_pagename(db, path)
-			yield # init done
-
-			for link in self._list_links(db, indexpath, direction):
-				yield link
-			for child in self._pages.walk(db, indexpath):
-				for link in self._list_links(db, child, direction):
-					yield link
-
-	def _list_links(self, db, indexpath, direction):
+	def _list_links(self, page_id, pagename, direction):
 		if direction == LINK_DIR_FORWARD:
-			c = db.execute(
+			c = self.db.execute(
 				'SELECT DISTINCT source, target FROM links '
-				'WHERE source = ?', (indexpath.id,)
+				'WHERE source = ?', (page_id,)
 			)
 		elif direction == LINK_DIR_BOTH:
-			c = db.execute(
+			c = self.db.execute(
 				'SELECT DISTINCT source, target FROM links '
-				'WHERE source = ? or (target = ? and source <> ?)', (indexpath.id, indexpath.id, ROOT_ID)
-					# Excluding root here because linking from root
-					# is used as a hack in __init__.py to set a
-					# placeholder for the current page
+				'WHERE source = ? or target = ?', (page_id, page_id)
 			)
 		else:
-			c = db.execute(
+			c = self.db.execute(
 				'SELECT DISTINCT source, target FROM links '
-				'WHERE target = ? and source <> ?', (indexpath.id, ROOT_ID)
-					# Excluding root here because linking from root
-					# is used as a hack in __init__.py to set a
-					# placeholder for the current page
+				'WHERE target = ?', (page_id,)
 			)
 
 		for row in c:
-			if row['source'] == indexpath.id:
-				source = indexpath
-				target = self._pages.lookup_by_id(db, row['target'])
+			if row['source'] == page_id:
+				source = pagename
+				target = self._pages.get_pagename(row['target'])
+			elif row['source'] == ROOT_ID:
+				pass # hack used to create placeholders
 			else:
-				source = self._pages.lookup_by_id(db, row['source'])
-				target = indexpath
+				source = self._pages.get_pagename(row['source'])
+				target = pagename
 
 			yield IndexLink(source, target)
 
-	def n_list_links(self, path, direction=LINK_DIR_FORWARD):
-		with self._db as db:
-			indexpath = self._pages.lookup_by_pagename(db, path)
-			return self._n_list_links(db, indexpath, direction)
+	def n_list_links(self, pagename, direction=LINK_DIR_FORWARD):
+		page_id = self._pages.get_page_id(pagename)
+		return self._n_list_links(page_id, direction)
 
-	def n_list_links_section(self, path, direction=LINK_DIR_FORWARD):
-		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
-		with self._db as db:
-			indexpath = self._pages.lookup_by_pagename(db, path)
-			n = self._n_list_links(db, indexpath, direction)
-			for child in self._pages.walk(db, indexpath):
-				n += self._n_list_links(db, child, direction)
-			return n
-
-	def _n_list_links(self, db, indexpath, direction):
+	def _n_list_links(self, page_id, direction):
 		if direction == LINK_DIR_FORWARD:
-			c = db.execute(
+			c = self.db.execute(
 				'SELECT count(*) FROM links '
-				'WHERE source=?', (indexpath.id,)
+				'WHERE source=?', (page_id,)
 			)
 		elif direction == LINK_DIR_BOTH:
-			c = db.execute(
+			c = self.db.execute(
 				'SELECT count(*) FROM links '
-				'WHERE source=? or (target=? and source<>?)' , (indexpath.id, indexpath.id, ROOT_ID)
+				'WHERE source=? or (target=? and source<>?)' , (page_id, page_id, ROOT_ID)
 					# Excluding root here because linking from root
-					# is used as a hack in __init__.py to set a
-					# placeholder for the current page
+					# is used as a hack to create placeholders
 			)
 		else:
-			c = db.execute(
+			c = self.db.execute(
 				'SELECT count(*) FROM links '
-				'WHERE target=? and source<>?', (indexpath.id, ROOT_ID)
+				'WHERE target=? and source<>?', (page_id, ROOT_ID)
 					# Excluding root here because linking from root
-					# is used as a hack in __init__.py to set a
-					# placeholder for the current page
+					# is used as a hack to create placeholders
 			)
 
 		return c.fetchone()[0]
 
+	def list_links_section(self, pagename, direction=LINK_DIR_FORWARD):
+		page_id = self._pages.get_page_id(pagename)
+		return self._list_links_section(page_id, pagename, direction)
+
+	def _list_links_section(self, page_id, pagename, direction):
+		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
+
+		for link in self._list_links(page_id, pagename, direction):
+			yield link
+
+		for child in self._pages.walk(page_id):
+			for link in self._list_links(child.id, child, direction):
+				yield link
+
+	def n_list_links_section(self, pagename, direction=LINK_DIR_FORWARD):
+		# Can be optimized with WITH clause, but not supported sqlite < 3.8.4
+		page_id = self._pages.get_page_id(pagename)
+		n = self._n_list_links(page_id, direction)
+		for child in self._pages.walk(page_id):
+			n += self._n_list_links(child.id, direction)
+		return n
+
 	def list_floating_links(self, basename):
 		anchorkey = natural_sort_key(basename)
-		with self._db as db:
-			for row in db.execute(
-				'SELECT DISTINCT source, target FROM links '
-				'WHERE rel=? and anchorkey=?',
-				(HREF_REL_FLOATING, anchorkey)
-			):
-				target = self._pages.lookup_by_id(db, row['target'])
-				source = self._pages.lookup_by_id(db, row['source'])
-				yield IndexLink(source, target)
+		for row in self.db.execute(
+			'SELECT DISTINCT source, target FROM links '
+			'WHERE rel=? and anchorkey=?',
+			(HREF_REL_FLOATING, anchorkey)
+		):
+			target = self._pages.get_pagename(row['target'])
+			source = self._pages.get_pagename(row['source'])
+			yield IndexLink(source, target)

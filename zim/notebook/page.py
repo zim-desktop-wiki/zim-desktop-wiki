@@ -45,11 +45,6 @@ class Path(object):
 	has a number of methods to compare page names and determing what
 	the parent pages are etc.
 
-	@note: There are several subclasses of this class like
-	L{index.IndexPath}, L{Page}, and L{stores.files.FileStorePage}.
-	In any API call where a path object is needed an instance of any
-	of these subclasses can be used instead.
-
 	@ivar name: the full name of the path
 	@ivar parts: all the parts of the name (split on ":")
 	@ivar basename: the basename of the path (last part of the name)

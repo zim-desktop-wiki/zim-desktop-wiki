@@ -32,9 +32,8 @@ class RecentChangesDialog(Dialog):
 	def update(self):
 		model = self.treeview.get_model()
 		model.clear()
-		list = self.ui.notebook.pages.list_recent_changes(limit=50)
-		for indexpath in list:
-			model.append((indexpath.name, indexpath.mtime))
+		for rec in self.ui.notebook.pages.list_recent_changes(limit=50):
+			model.append((rec.name, rec.mtime))
 
 
 
@@ -90,4 +89,3 @@ class RecentChangesTreeView(BrowserTreeView):
 	def _do_open_page(self, view, path, col):
 		page = Path( self.get_model()[path][self.NAME_COL].decode('utf-8') )
 		self.ui.open_page(page)
-

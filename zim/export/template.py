@@ -139,7 +139,7 @@ class ExportTemplateContext(dict):
 		given as a 2-tuple of a key and a target (either a L{Path} or
 		a L{NotebookPathProxy})
 		@param index_generator: a generator function or that
-		provides L{IndexPath} or L{Page} objects to be used for the
+		provides L{Path} or L{Page} objects to be used for the
 		the C{index()} function. This method should take a single
 		argument for the root namespace to show.
 		See the definition of L{Index.walk()} or L{PageSelection.index()}.

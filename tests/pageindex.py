@@ -7,11 +7,8 @@ import tests
 import gtk
 import pango
 
-import os
-
-from zim.fs import Dir
 from zim.notebook import Path
-from zim.notebook.index import IndexPath
+from zim.notebook.index import PageIndexRecord
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
 from zim.gui.pageindex import *
@@ -37,31 +34,17 @@ class TestPageTreeStore(tests.TestCase):
 		treestore = PageTreeStore(notebook.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 8)
-
-		treeview = PageTreeView(ui) # just run hidden to check errors
-		treeview.set_model(treestore)
-
-		# Now start from scratch and fill the view
-		notebook.index.flush()
-		try:
-			for i in notebook.index.update_iter():
-				tests.gtk_process_events()
-		finally:
-			tests.gtk_process_events()
+		for i in range(treestore.get_n_columns()):
+			self.assertTrue(not treestore.get_column_type(i) is None)
 
 		n = treestore.on_iter_n_children(None)
 		self.assertTrue(n > 0)
 		n = treestore.iter_n_children(None)
 		self.assertTrue(n > 0)
 
-		for i in range(treestore.get_n_columns()):
-			self.assertTrue(not treestore.get_column_type(i) is None)
-
-		# TODO - do this again with thread
-
 		# Quick check for basic methods
 		iter = treestore.on_get_iter((0,))
-		self.assertTrue(isinstance(iter, IndexPath))
+		self.assertTrue(isinstance(iter, PageIndexRecord))
 		self.assertFalse(iter.isroot)
 		self.assertEqual(iter.treepath, (0,))
 		self.assertEqual(treestore.on_get_path(iter), (0,))
@@ -73,8 +56,8 @@ class TestPageTreeStore(tests.TestCase):
 		iter2 = treestore.on_iter_children(None)
 		self.assertEqual(iter2, iter)
 
-		self.assertTrue(treestore.on_get_iter((20,20,20,20,20)) is None)
-		self.assertTrue(treestore.get_treepath(Path('nonexisting')) is None)
+		self.assertIsNone(treestore.on_get_iter((20,20,20,20,20)))
+		self.assertIsNone(treestore.get_treepath(Path('nonexisting')))
 		self.assertRaises(ValueError, treestore.get_treepath, Path(':'))
 
 		# Now walk through the whole notebook testing the API
@@ -139,38 +122,6 @@ class TestPageTreeStore(tests.TestCase):
 
 		self.assertTrue(npages > 10) # double check sanity of walk() method
 
-		# Try some TreeView methods
-		path = Path('Test:foo')
-		treeview.set_current_page(path)
-		# TODO assert something
-		treepath = treeview.get_model().get_treepath(path)
-		self.assertTrue(not treepath is None)
-		col = treeview.get_column(0)
-		treeview.row_activated(treepath, col)
-
-		#~ treeview.emit('popup-menu')
-		treeview.emit('insert-link', path)
-		treeview.emit('copy')
-
-		# Check if all the signals go OK in delete
-		try:
-			for page in reversed(list(notebook.pages.walk())): # delete bottom up
-				notebook.delete_page(page)
-				tests.gtk_process_events()
-		finally:
-			tests.gtk_process_events()
-
-	def testThreading(self):
-		notebook = tests.new_notebook()
-
-		notebook.index.flush()
-		treestore = PageTreeStore(notebook.index)
-		notebook.index.start_update()
-		while notebook.index.wait_for_update(timeout=0.01):
-			tests.gtk_process_events()
-		else:
-			tests.gtk_process_events()
-
 
 class TestPageTreeView(tests.TestCase):
 
@@ -189,6 +140,19 @@ class TestPageTreeView(tests.TestCase):
 		assert treepath is not None
 		self.treeview.select_treepath(treepath)
 
+	def testView(self):
+		path = Path('Test:foo')
+		self.treeview.set_current_page(path)
+		# TODO assert something
+		treepath = self.treeview.get_model().get_treepath(path)
+		self.assertTrue(not treepath is None)
+		col = self.treeview.get_column(0)
+		self.treeview.row_activated(treepath, col)
+
+		#~ self.treeview.emit('popup-menu')
+		self.treeview.emit('insert-link', path)
+		self.treeview.emit('copy')
+
 	def testContextMenu(self):
 		menu = self.treeview.get_popup()
 
@@ -200,7 +164,33 @@ class TestPageTreeView(tests.TestCase):
 		tests.gtk_activate_menu_item(menu, 'gtk-copy')
 		self.assertEqual(Clipboard.get_text(), 'Test')
 
-	# Single click navigation, ... ?
+	def testSignals(self):
+		pages = []
+
+		self.assertGreater(self.model.on_iter_n_children(None), 0)
+
+		# delete all pages
+		for path in list(self.notebook.pages.walk_bottomup()):
+			page = self.notebook.get_page(path)
+			pages.append((page.name, page.dump('wiki')))
+			self.notebook.delete_page(page)
+
+		for r in self.model:
+			print tuple(r)
+			print r[0] in [p[0] for p in pages], r[1].exists()
+
+		self.assertEqual(self.notebook.pages.n_list_pages(), 0)
+		self.assertEqual(self.model.on_iter_n_children(None), 0)
+		# TODO: assert something on the view ?
+
+		# and add them again
+		for name, content in reversed(pages):
+			page = self.notebook.get_page(Path(name))
+			page.parse('wiki', content)
+			self.notebook.store_page(page)
+
+		self.assertGreater(self.model.on_iter_n_children(None), 0)
+		# TODO: assert something on the view ?
 
 
 class MockUI(tests.MockObject):

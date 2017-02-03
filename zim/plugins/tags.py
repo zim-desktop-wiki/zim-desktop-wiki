@@ -344,15 +344,8 @@ class TagsPageTreeStore(DuplicatePageTreeStore):
 		'''Convert a Zim path to tree hierarchy, in general results in multiple
 		 matches
 		'''
-		if isinstance(path, Path):
-			if path.isroot:
-				raise ValueError
-
-			if not isinstance(path, IndexPath):
-				try:
-					path = self._pages.lookup_by_pagename(path)
-				except IndexNotFoundError:
-					return None
+		if isinstance(path, Path) and path.isroot:
+			raise ValueError
 
 		return self._get_treepaths_for_indexpath(path)
 
@@ -475,13 +468,8 @@ class TaggedPageTreeStore(DuplicatePageTreeStore):
 		assert isinstance(path, Path)
 		if path.isroot:
 			raise ValueError # There can be no tree node for the tree root
-		else:
-			if not isinstance(path, IndexPath):
-				try:
-					path = self._pages.lookup_by_pagename(path)
-				except IndexNotFoundError:
-					return None
-			return self._get_treepaths_for_indexpath(path)
+
+		return self._get_treepaths_for_indexpath(path)
 
 	def on_iter_n_children(self, iter):
 		'''Returns the number of children in a namespace. As a special case,
@@ -786,6 +774,3 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 
 # Need to register classes defining gobject signals
 gobject.type_register(TagCloudWidget)
-
-
-

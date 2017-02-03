@@ -707,6 +707,22 @@ class TestPath(tests.TestCase):
 	# TODO test operators on paths > < + - >= <= == !=
 
 
+class TestHRefFromWikiLink(tests.TestCase):
+
+	def runtTest(self):
+		for link, rel, names, properlink in (
+			('Foo:::Bar', HREF_REL_FLOATING, 'Foo:Bar', 'Foo:Bar'),
+			(':Foo:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
+			(':<Foo>:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
+			('+Foo:Bar', HREF_REL_RELATIVE, 'Foo:Bar', '+Foo:Bar'),
+			('Child2:AAA', HREF_REL_FLOATING, 'Child2:AAA', 'Child2:AAA'),
+		):
+			href = HRef.new_from_wiki_link(link)
+			self.assertEqual(href.rel, rel)
+			self.assertEqual(href.names, names)
+			self.assertEqual(href.to_wiki_link(), properlink)
+
+
 class TestPage(TestPath):
 	'''Test page object'''
 

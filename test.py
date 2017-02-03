@@ -33,7 +33,7 @@ def main(argv=None):
 	failfast = False
 	loglevel = logging.WARNING
 	opts, args = getopt.gnu_getopt(argv[1:],
-		'hVD', ['help', 'coverage', 'fast', 'failfast', 'debug', 'verbose'])
+		'hVD', ['help', 'coverage', 'fast', 'failfast', 'ff', 'full', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
 			print '''\
@@ -44,8 +44,10 @@ If no module is given the whole test suite is run.
 
 Options:
   -h, --help     print this text
-  --fast         skip a number of slower tests (assumes --failfast)
+  --fast         skip a number of slower tests and mock filesystem
   --failfast     stop after the first test that fails
+  --ff           alias for "--fast --failfast"
+  --full         full test for using filesystem without mock
   --coverage     report test coverage statistics
   -V, --verbose  run with verbose output from logging
   -D, --debug    run with debug output from logging
@@ -61,20 +63,24 @@ On Ubuntu or Debian install package 'python-coverage'.
 '''
 				sys.exit(1)
 		elif o == '--fast':
-			failfast = True
 			tests.FAST_TEST = True
 				# set before any test classes are loaded !
 		elif o == '--failfast':
 			failfast = True
+		elif o == '--ff': # --fast --failfast
+			tests.FAST_TEST = True
+			failfast = True
+		elif o == '--full':
+			tests.FULL_TEST = True
 		elif o in ('-V', '--verbose'):
 			loglevel = logging.INFO
 		elif o in ('-D', '--debug'):
 			loglevel = logging.DEBUG
 		else:
-			assert False
+			assert False, 'Unkown option: %s' % o
 
 	# Start tracing
-	if coverage:			
+	if coverage:
 		cov = coverage.coverage(source=['zim'], branch=True)
 		cov.erase() # clean up old date set
 		cov.exclude('assert ')

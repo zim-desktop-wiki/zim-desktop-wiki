@@ -332,7 +332,6 @@ class GtkInterface(gobject.GObject):
 				self.open_page(newpath)
 			elif self.page.ischild(path):
 				newpath = newpath + self.page.relname(path)
-				newpath = Path(newpath.name) # IndexPath -> Path
 				self.open_page(newpath)
 
 		self.history = History(notebook, self.uistate)
@@ -465,7 +464,7 @@ class GtkInterface(gobject.GObject):
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
 		self._mainwindow.present()
-			
+
 		if page:
 			if isinstance(page, basestring):
 				page = Path(page)
@@ -1914,7 +1913,7 @@ class MainWindow(Window):
 		self.pageview.save_changes() # XXX probably dubble of close_page, just to be sure
 		if self.ui.page.modified:
 			return # Do not quit if page not saved
-		
+
 		self.hide() # look more responsive
 		self.ui.notebook.index.stop_update()
 		while gtk.events_pending():
