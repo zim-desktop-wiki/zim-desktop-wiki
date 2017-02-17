@@ -231,6 +231,7 @@
 		<placeholder name='page_modification_actions'/>
 		<separator/>
 		<menuitem action='show_search_section'/>
+		<menuitem action='show_search_backlinks'/>
 		<placeholder name='tools'/>
 <!--
 		<separator/>

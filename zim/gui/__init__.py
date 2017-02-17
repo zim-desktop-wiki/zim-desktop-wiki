@@ -1397,12 +1397,12 @@ class GtkInterface(gobject.GObject):
 		self.show_search(query='Section: "%s"' % page.name)
 
 	@action(_('Search _Backlinks...')) # T: Menu item
-	def show_search_backlinks(self):
+	def show_search_backlinks(self, page=None):
 		'''Menu action to show the L{SearchDialog} with a query for
 		backlinks
 		'''
-		query = 'LinksTo: "%s"' % self.page.name
-		self.show_search(query)
+		page = self._get_path_context() if page is None else page
+		self.show_search(query='LinksTo: "%s"' % page.name)
 
 	@action(_('Recent Changes...')) # T: Menu item
 	def show_recent_changes(self):
