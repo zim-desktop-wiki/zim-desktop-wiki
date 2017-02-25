@@ -22,20 +22,19 @@ TYPE_FOLDER = 1
 TYPE_FILE = 2
 
 from zim.newfs import File
+from zim.signals import SignalEmitter
 
 
-class FilesIndexer(object):
+class FilesIndexer(SignalEmitter):
 	'''Class that will update the "files" table in the index based on
 	changes seen on the file system.
 
-	Logic is spread over two generator functions:
+	@signal: C{start-update ()}: on start of update iter
+	@signal: C{finish-update ()}: on end of update iter
+	@signal: C{file-row-inserted (row, file)}: on new file found
+	@signal: C{file-row-changed (row, file)}: on file content changed
+	@signal: C{file-row-deleted (row)}: on file deleted
 
-	  - C{check_iter()}: will find changes on the file system and is
-	    intended to run in a background thread.
-	    Requires usage of C{queue_check()} first to schedule which
-	    records to be checked.
-	  - C{update_iter()}: will update records that have been flagged
-	    as out-of-date. This iterator is intended to run in main loop.
 	'''
 
 	# Note that there are no methods for new files or folders,
@@ -46,19 +45,18 @@ class FilesIndexer(object):
 	# Exception is a callback to let explicitly add a new file from
 	# page save in notebook
 
-	# Callbacks to the PageIndexer could have been implemented as
-	# signals, but made 1-to-1 function calls because the object
-	# configuration is fixed and logic is intertwined.
+	__signals__ = {
+		'start-update': (None, None, ()),
+		'finish-update': (None, None, ()),
+		'file-row-inserted': (None, None, (object,)),
+		'file-row-changed': (None, None, (object,)),
+		'file-row-deleted': (None, None, (object,)),
+	}
 
-	# PageIndexer is a constructor argument to keep the indexers
-	# testable
-
-	def __init__(self, db, folder, page_indexer):
+	def __init__(self, db, folder):
 		self.db = db
 		self.folder = folder
-		self.page_indexer = page_indexer
 
-	def init_db(self):
 		self.db.executescript('''
 		CREATE TABLE IF NOT EXISTS files(
 			id INTEGER PRIMARY KEY,
@@ -79,23 +77,10 @@ class FilesIndexer(object):
 				(0, '.', TYPE_FOLDER, STATUS_NEED_UPDATE)
 			)
 			assert c.lastrowid == 1 # ensure we start empty
-			return True
-
-		return False
-
-	def check_and_update_all(self):
-		'''Convenience method to do a full update at once'''
-		checker = FilesIndexChecker(self.db, self.folder)
-		checker.queue_check()
-		for out_of_date in checker.check_iter():
-			if out_of_date:
-				for i in self.update_iter():
-					pass
-		self.db.commit()
 
 	def update_iter(self):
 		'''Generator function for the actual update'''
-		self.start_update()
+		self.emit('start-update')
 
 		# sort folders before files: first index structure, then contents
 		# this makes e.g. index links more efficient and robust
@@ -110,7 +95,7 @@ class FilesIndexer(object):
 
 			if row:
 				node_id, path, node_type = row
-				#~ print ">> UPDATE", node_id, path, node_type
+				#print ">> UPDATE", node_id, path, node_type
 			else:
 				break
 
@@ -136,13 +121,7 @@ class FilesIndexer(object):
 
 			yield
 
-		self.finish_update()
-
-	def start_update(self):
-		self.page_indexer.on_db_start_update(self)
-
-	def finish_update(self):
-		self.page_indexer.on_db_finish_update(self)
+		self.emit('finish-update')
 
 	def interactive_add_file(self, file):
 		assert isinstance(file, File) and file.exists()
@@ -153,16 +132,16 @@ class FilesIndexer(object):
 			' VALUES (?, ?, ?, ?)',
 			(path, TYPE_FILE, STATUS_NEED_UPDATE, parent_id),
 		)
-		node_id, = self.db.execute(
-			'SELECT id FROM files WHERE path=?', (path,)
+		row = self.db.execute(
+			'SELECT * FROM files WHERE path=?', (path,)
 		).fetchone()
 
-		self.page_indexer.on_db_file_inserted(self, node_id, file)
+		self.emit('file-row-inserted', row)
 
-		self.update_file(node_id, file)
+		self.update_file(row['id'], file)
 
 	def _add_parent(self, folder):
-		if folder.path == self.folder.path:
+		if folder == self.folder:
 			return 1
 
 		path = folder.relpath(self.folder)
@@ -174,7 +153,9 @@ class FilesIndexer(object):
 			self.db.execute(
 				'INSERT INTO files(path, node_type, index_status, parent) '
 				'VALUES (?, ?, ?, ?)',
-				(path, TYPE_FOLDER, STATUS_NEED_UPDATE, parent_id)
+				(path, TYPE_FOLDER, STATUS_CHECK, parent_id)
+				# We set status to check because we assume the file being
+				# added is the only child, but makes sense to verify later on
 			)
 			r = self.db.execute(
 				'SELECT id FROM files WHERE path=?', (path,)
@@ -217,11 +198,10 @@ class FilesIndexer(object):
 						' VALUES (?, ?, ?, ?)',
 						(path, node_type, STATUS_NEED_UPDATE, node_id),
 					)
-					child_id, = self.db.execute(
-						'SELECT id FROM files WHERE path=?', (path,)
+					row = self.db.execute(
+						'SELECT * FROM files WHERE path=?', (path,)
 					).fetchone()
-
-					self.page_indexer.on_db_file_inserted(self, child_id, child)
+					self.emit('file-row-inserted', row)
 				else:
 					self.db.execute(
 						'INSERT INTO files(path, node_type, index_status, parent)'
@@ -234,8 +214,9 @@ class FilesIndexer(object):
 	def update_file(self, node_id, file):
 		# get mtime before contents /signal
 		self.set_node_uptodate(node_id, file.mtime())
-
-		self.page_indexer.on_db_file_updated(self, node_id, file)
+		row = self.db.execute('SELECT * FROM files WHERE id=?', (node_id,)).fetchone()
+		assert row is not None, 'No row matching id: %r' % node_id
+		self.emit('file-row-changed', row)
 
 	def set_node_uptodate(self, node_id, mtime):
 		self.db.execute(
@@ -244,11 +225,9 @@ class FilesIndexer(object):
 		)
 
 	def delete_file(self, node_id):
-		path, = self.db.execute('SELECT path FROM files WHERE id=?', (node_id,)).fetchone()
-		file = self.folder.file(path)
+		row = self.db.execute('SELECT * FROM files WHERE id=?', (node_id,)).fetchone()
+		self.emit('file-row-deleted', row)
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
-
-		self.page_indexer.on_db_file_deleted(self, node_id, file)
 
 	def delete_folder(self, node_id):
 		for child_id, child_type in self.db.execute(
@@ -269,22 +248,31 @@ class FilesIndexChecker(object):
 		self.db = db
 		self.folder = folder
 
-	def queue_check(self, path=None, recursive=True):
-		if path is None:
-			# check root
+	def queue_check(self, file=None, recursive=True):
+		if file is None or file == self.folder: # check root
 			node_id = 1
-			path, status = self.db.execute(
-				'SELECT path, index_status FROM files WHERE id = 1'
+			status, = self.db.execute(
+				'SELECT index_status FROM files WHERE id = 1'
 			).fetchone()
-		else:
-			raise NotImplementedError, 'TODO'
-
-			# check specific path
-			node_id, status = self.db.execute(
-				'SELECT id, index_status FROM files WHERE path = ?',
-				(path,)
-			).fetchone()
-			# TODO: if fail, find parent
+		else: # check specific path
+			if not file.ischild(self.folder):
+				raise ValueError, 'file must be child of %s' % self.folder
+			node_id = None
+			while node_id is None:
+				if file == self.folder:
+					node_id = 1
+					status, = self.db.execute(
+						'SELECT index_status FROM files WHERE id = 1'
+					).fetchone()
+				else:
+					row = self.db.execute(
+						'SELECT id, index_status FROM files WHERE path = ?',
+						(file.relpath(self.folder),)
+					).fetchone()
+					if row:
+						node_id, status = row
+					else:
+						file = file.parent()
 
 		new_status = STATUS_CHECK_RECURS if recursive else STATUS_CHECK
 		if status < new_status:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017s Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from __future__ import with_statement
@@ -164,7 +164,8 @@ class NotebookState(object):
 			notebook._notebook_state_lock = threading.RLock()
 
 	def __enter__(self):
-		#self.notebook.index.wait_for_update()
+		if not self.notebook.index.is_uptodate:
+			raise IndexNotUptodateError, 'Index not up to date'
 		self.notebook._notebook_state_lock.acquire()
 
 	def __exit__(self, *args):
@@ -212,15 +213,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@ivar index: The L{Index} object used by the notebook
 	'''
 
-	# Signals for store, move and delete are defined double with one
-	# emitted before the action and the other after the action run
-	# successfully. This is different from the normal connect vs.
-	# connect_after strategy. However in exceptions thrown from
-	# a signal handler are difficult to handle, so we split the signal
-	# in two steps.
-
-	# TODO add checks for read-only page in much more methods
-
 	# define signals we want to use - (closure type, return type and arg types)
 	__signals__ = {
 		'store-page': (SIGNAL_NORMAL, None, (object,)),
@@ -230,10 +222,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'delete-page': (SIGNAL_NORMAL, None, (object,)),
 		'deleted-page': (SIGNAL_NORMAL, None, (object,)),
 		'properties-changed': (SIGNAL_NORMAL, None, ()),
-		'suggest-link': (SIGNAL_NORMAL, None, (object, object)),
 		'new-page-template': (SIGNAL_NORMAL, None, (object, object)),
+
+		# Hooks
+		'suggest-link': (SIGNAL_NORMAL, object, (object, object)),
 	}
-	__hooks__ = ('suggest-link',)
 
 	properties = (
 		('name', 'string', _('Name')), # T: label for properties dialog
@@ -278,7 +271,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		folder = LocalFolder(dir.path)
 		layout = FilesLayout(folder, endofline)
-		index = Index.new_from_file(cache_dir.file('index.db'), layout)
+		cache_dir.touch() # must exist for index to work
+		index = Index(cache_dir.file('index.db').path, layout)
 
 		nb = klass(dir, cache_dir, config, folder, layout, index)
 		_NOTEBOOK_CACHE[dir.uri] = nb
@@ -313,16 +307,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.links = LinksView.new_from_index(self.index)
 		self.tags = TagsView.new_from_index(self.index)
 
-		def on_page_updated(index, indexpath):
-			## FIXME still not called for parent pages -- need refactor
-			## of index to deal with this properly I'm afraid...
-			#~ print "UPDATED", indexpath
-			if indexpath.name in self._page_cache:
-				#~ print "  --> IN CAHCE"
-				self._page_cache[indexpath.name].haschildren = indexpath.haschildren
+		def on_page_row_changed(o, row):
+			if row['name'] in self._page_cache:
+				self._page_cache[row['name']].haschildren = row['n_children'] > 0
 
-		self.index.connect('page-added', on_page_updated)
-		self.index.connect('page-changed', on_page_updated)
+		def on_page_row_deleted(o, row):
+			if row['name'] in self._page_cache:
+				self._page_cache[row['name']].haschildren = False
+
+		self.index.update_iter.pages.connect('page-row-changed', on_page_row_changed)
+		self.index.update_iter.pages.connect('page-row-deleted', on_page_row_deleted)
 
 		#~ if self.needs_upgrade:
 			#~ logger.warn('This notebook needs to be upgraded to the latest data format')
@@ -561,13 +555,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if C{update_links} is C{True}
 		'''
 		logger.debug('Move page %s to %s', path, newpath)
-		if update_links and not self.index.probably_uptodate:
-			raise IndexNotUptodateError, 'Index not up to date'
 
 		self.emit('move-page', path, newpath)
 		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
 		self._move_file_and_folder(path, newpath)
-		self.index.on_move_page(path, newpath)
 		self.flush_page_cache(path)
 		self.emit('moved-page', path, newpath)
 
@@ -610,17 +601,25 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				tmp = parent.new_folder(folder.basename)
 				folder.moveto(tmp)
 				tmp.moveto(newfolder)
-
-				# check if we also moved the file inadvertently
-				if file.ischild(folder):
-					rel = file.relpath(folder)
-					movedfile = newfolder.file(rel)
-					movedfile.moveto(newfile)
 			else:
 				folder.moveto(newfolder)
 
-		if file.exists():
+			self.index.file_moved(folder, newfolder)
+
+			# check if we also moved the file inadvertently
+			if file.ischild(folder):
+				rel = file.relpath(folder)
+				movedfile = newfolder.file(rel)
+				if movedfile.exists() and movedfile.path != newfile.path:
+						movedfile.moveto(newfile)
+						self.index.file_moved(movedfile, newfile)
+			elif file.exists():
+				file.moveto(newfile)
+				self.index.file_moved(file, newfile)
+
+		elif file.exists():
 			file.moveto(newfile)
+			self.index.file_moved(file, newfile)
 
 
 	def _update_links_in_moved_page(self, oldtarget, newtarget):

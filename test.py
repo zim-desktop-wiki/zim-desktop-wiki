@@ -96,14 +96,25 @@ On Ubuntu or Debian install package 'python-coverage'.
 
 	# Build the test suite
 	loader = unittest.TestLoader()
-	if args:
-		suite = unittest.TestSuite()
-		for name in args:
-			module = name if name.startswith('tests.') else 'tests.' + name
-			test = loader.loadTestsFromName(module)
-			suite.addTest(test)
-	else:
-		suite = tests.load_tests(loader, None, None)
+	try:
+		if args:
+			suite = unittest.TestSuite()
+			for name in args:
+				module = name if name.startswith('tests.') else 'tests.' + name
+				test = loader.loadTestsFromName(module)
+				suite.addTest(test)
+		else:
+			suite = tests.load_tests(loader, None, None)
+	except AttributeError, error:
+		# HACK: unittest raises and attribute errors if import of test script
+		# fails try to catch this and show the import error instead - else raise
+		# original error
+		import re
+		m = re.match(r"'module' object has no attribute '(\w+)'", error.args[0])
+		if m:
+			module = m.group(1)
+			m = __import__('tests.'+module) # should raise ImportError
+		raise error
 
 	# And run it
 	unittest.installHandler() # Fancy handling for ^C during test

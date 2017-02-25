@@ -116,13 +116,17 @@ class FilesLayout(NotebookLayout):
 		file, folder = self.map_page(pagename)
 		return FilesAttachmentFolder(folder, self.default_extension)
 
-	def map_file(self, filepath):
+	def map_file(self, file):
 		'''Map a filepath to a pagename
-		@param filepath: a L{FilePath} for a file
+		@param file: a L{File} or L{FilePath} object
 		@returns: a L{Path} and a file type (C{FILE_TYPE_PAGE_SOURCE},
 		F{FILE_TYPE_ATTACHMENT})
 		'''
-		path = filepath.relpath(self.root)
+		path = file.relpath(self.root)
+		return self.map_filepath(path)
+
+	def map_filepath(self, path):
+		'''Like L{map_file} but takes a string with relative path'''
 		if path.endswith(self.default_extension):
 			path = path[:-len(self.default_extension)]
 			type = FILE_TYPE_PAGE_SOURCE
@@ -132,9 +136,12 @@ class FilesLayout(NotebookLayout):
 			else:
 				path = ':' # ROOT_PATH
 			type = FILE_TYPE_ATTACHMENT
-		name = decode_filename(path)
-		Path.assertValidPageName(name)
-		return Path(name), type
+		if path == ':':
+			return Path(':'), type
+		else:
+			name = decode_filename(path)
+			Path.assertValidPageName(name)
+			return Path(name), type
 
 	def resolve_conflict(self, *filepaths):
 		'''Decide which is the real page file when multiple files
@@ -200,4 +207,3 @@ class FilesAttachmentFolder(object):
 
 	def list_folders(self):
 		return []
-

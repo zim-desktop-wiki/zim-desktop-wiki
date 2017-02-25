@@ -216,8 +216,8 @@ def slowTest(obj):
 
 
 MOCK_ALWAYS = 'always' #: Always choose mock folder, alwasy fast
-MOCK_SOME   = 'some'   #: Sometimes test with real fs, for tests with real interaction
-MOCK_NEVER  = 'never'  #: Never choose mock folder, always use real filesystem,
+MOCK_DEFAULT = 'default' #: By default use mock, but sometimes at random use real fs
+MOCK_NOT_BY_DEFAULT = 'no_default' #: By default use real fs, mock oly for --fast
 
 import random
 
@@ -245,24 +245,26 @@ class TestCase(unittest.TestCase):
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
 	@classmethod
-	def setUpFolder(cls, name=None, mock=MOCK_SOME):
+	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT):
 		'''Convenience method to create a temporary folder for testing
-		Default uses "C{MOCK_SOME}", which means that about 20% of the cases
+		Default use of "C{MOCK_DEFAULT}" means that about 20% of the cases
 		will use real filesystem at random while the rest will mock. (Thus
 		giving a balance between overall test speed and the whish to detect
 		cases where mock and real filesystem give different results.)
 		This behavior is overruled by "--fast" and "--full" in the test script.
 		@param name: basename for the folder, use class name if C{None}
-		@param mock: mock level for this test, one of C{MOCK_NEVER},
-		C{MOCK_SOME} or C{MOCK_ALWAYS}
+		@param mock: mock level for this test, one of C{MOCK_ALWAYS},
+		C{MOCK_DEFAULT} or C{MOCK_NOT_BY_DEFAULT}
 		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
 		that is guarenteed non-existing
 		'''
 		path = cls._get_tmp_name(name)
 
 		if mock == MOCK_ALWAYS: use_mock = True
-		elif mock == MOCK_NEVER: use_mock = False
-		else: # MOCK_SOME:
+		elif mock == MOCK_NOT_BY_DEFAULT:
+			if FAST_TEST: use_mock = True
+			else: use_mock = False
+		else: # MOCK_DEFAULT:
 			if FULL_TEST: use_mock = False
 			elif FAST_TEST: use_mock = True
 			elif random.random() < 0.2:
@@ -581,8 +583,8 @@ def new_notebook(fakedir=None):
 		manifest = frozenset(_expand_manifest(manifest))
 
 		index = Index(':memory:', layout)
-		index.update()
-		lines = list(index.db.iterdump())
+		index.check_and_update()
+		lines = list(index._db.iterdump())
 		sql = '\n'.join(lines)
 
 		_notebook_data = (templfolder, sql, manifest)
@@ -599,10 +601,14 @@ def new_notebook(fakedir=None):
 
 	layout = FilesLayout(folder, endofline='unix')
 	index = Index(':memory:', layout)
-	index.db = sqlite3.Connection(':memory:') # Hack to get empty db
-	index.db.row_factory = sqlite3.Row
-	index.db.executescript(sql)
-	index.db.commit()
+	tables = [r[0] for r in index._db.execute(
+		'SELECT name FROM sqlite_master '
+		'WHERE type="table" and name NOT LIKE "sqlite%"'
+	)]
+	for table in tables:
+		index._db.execute('DROP TABLE %s' % table)
+	index._db.executescript(sql)
+	index._db.commit()
 
 	### XXX - Big HACK here - Get better classes for this - XXX ###
 	dir = VirtualConfigBackend()
@@ -646,7 +652,7 @@ def new_files_notebook(dir):
 		notebook.store_page(page)
 
 	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.update()
+	notebook.index.check_and_update()
 
 	return notebook
 
@@ -783,6 +789,9 @@ class MaskedObject(object):
 
 	def __init__(self, obj, *names):
 		self.__obj = obj
+		self.__names = names
+
+	def setObjectAccess(self, *names):
 		self.__names = names
 
 	def __getattr__(self, name):

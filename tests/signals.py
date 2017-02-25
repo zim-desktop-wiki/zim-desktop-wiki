@@ -56,21 +56,34 @@ class TestEmitter(tests.TestCase):
 		emitter.connect('foo', lambda o,a: None)
 		self.assertEqual(emitter.state, 'SETUP foo')
 
+	def testInheritance(self):
+		emitter = ChildEmitter()
+		emitter.connect('bar', lambda o: 'foo') # no error
+		self.assertRaises(AssertionError, emitter.connect, 'none_existing', lambda o: 'foo')
+		 	# assert non existing raises --> thus previous non-error was really OK
 
-	# TODO
-	# Test inheritance
-	# Test validation signal signature
-	# Test before / after sequence
+	def testRunSequence(self):
+		emitter = ChildEmitter()
+
+		emitter.connect('last', lambda o,l: l.append('NORMAL'))
+		emitter.connect_after('last', lambda o,l: l.append('AFTER'))
+		seq = []
+		emitter.emit('last', seq)
+		self.assertEqual(seq, ['NORMAL', 'CLOSURE', 'AFTER'])
+
+		emitter.connect('first', lambda o,l: l.append('NORMAL'))
+		emitter.connect_after('first', lambda o,l: l.append('AFTER'))
+		seq = []
+		emitter.emit('first', seq)
+		self.assertEqual(seq, ['CLOSURE', 'NORMAL', 'AFTER'])
 
 
 class Emitter(SignalEmitter):
 
 	__signals__ = {
-		'foo': (),
-		'bar': (),
+		'foo': (None, object, ()),
+		'bar': (None, None, ()),
 	}
-
-	__hooks__ = ('foo')
 
 	def __init__(self):
 		self.state = None
@@ -82,7 +95,7 @@ class Emitter(SignalEmitter):
 class FancyEmitter(SignalEmitter):
 
 	__signals__ = {
-		'foo': (),
+		'foo': (None, None, ()),
 	}
 
 	def __init__(self):
@@ -94,6 +107,19 @@ class FancyEmitter(SignalEmitter):
 	def _teardown_signal(self, signal):
 		self.state = 'TEARDOWN %s' % signal
 
+
+class ChildEmitter(Emitter):
+
+	__signals__ = {
+		'first': (SIGNAL_RUN_FIRST, None, (object)),
+		'last': (SIGNAL_RUN_LAST, None, (object)),
+	}
+
+	def do_first(self, list):
+		list.append('CLOSURE')
+
+	def do_last(self, list):
+		list.append('CLOSURE')
 
 
 class TestSignalHandler(tests.TestCase):

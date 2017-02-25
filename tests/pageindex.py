@@ -8,7 +8,7 @@ import gtk
 import pango
 
 from zim.notebook import Path
-from zim.notebook.index import PageIndexRecord
+from zim.notebook.index.pages import MyTreeIter, IndexNotFoundError
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
 from zim.gui.pageindex import *
@@ -44,21 +44,20 @@ class TestPageTreeStore(tests.TestCase):
 
 		# Quick check for basic methods
 		iter = treestore.on_get_iter((0,))
-		self.assertTrue(isinstance(iter, PageIndexRecord))
-		self.assertFalse(iter.isroot)
+		self.assertTrue(isinstance(iter, MyTreeIter))
+		self.assertFalse(iter.row['name'] == '')
 		self.assertEqual(iter.treepath, (0,))
 		self.assertEqual(treestore.on_get_path(iter), (0,))
-		self.assertEqual(treestore.get_treepath(iter), (0,))
-		self.assertEqual(treestore.get_treepath(Path(iter.name)), (0,))
+		self.assertEqual(treestore.find(Path(iter.row['name'])), (0,))
 		basename = treestore.on_get_value(iter, 0)
 		self.assertTrue(len(basename) > 0)
 
 		iter2 = treestore.on_iter_children(None)
-		self.assertEqual(iter2, iter)
+		self.assertIs(iter2, iter)
 
 		self.assertIsNone(treestore.on_get_iter((20,20,20,20,20)))
-		self.assertIsNone(treestore.get_treepath(Path('nonexisting')))
-		self.assertRaises(ValueError, treestore.get_treepath, Path(':'))
+		self.assertRaises(IndexNotFoundError, treestore.find, Path('nonexisting'))
+		self.assertRaises(ValueError, treestore.find, Path(':'))
 
 		# Now walk through the whole notebook testing the API
 		# with nested pages and stuff
@@ -83,15 +82,14 @@ class TestPageTreeStore(tests.TestCase):
 			self.assertEqual(indexpath, page)
 			self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename)
 			self.assertEqual(treestore.get_value(iter, PATH_COL), page)
-			if page.hascontent or page.haschildren:
-				self.assertEqual(treestore.get_value(iter, EMPTY_COL), False)
-				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
-				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
-			else:
-				self.assertEqual(treestore.get_value(iter, EMPTY_COL), True)
+			if treestore.get_value(iter, EMPTY_COL):
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
 				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
+			else:
+				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
+				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 			self.assertEqual(treestore.get_path(iter), tuple(path))
+
 			if indexpath.haschildren:
 				self.assertTrue(treestore.iter_has_child(iter))
 				child = treestore.iter_children(iter)
@@ -111,7 +109,7 @@ class TestPageTreeStore(tests.TestCase):
 					self.assertEqual(
 						childpath, tuple(path) + (i,))
 				child = treestore.iter_next(child)
-				self.assertTrue(child is None)
+				self.assertIsNone(child) # children exhausted
 
 			else:
 				self.assertTrue(not treestore.iter_has_child(iter))
@@ -144,7 +142,7 @@ class TestPageTreeView(tests.TestCase):
 		path = Path('Test:foo')
 		self.treeview.set_current_page(path)
 		# TODO assert something
-		treepath = self.treeview.get_model().get_treepath(path)
+		treepath = self.treeview.get_model().find(path)
 		self.assertTrue(not treepath is None)
 		col = self.treeview.get_column(0)
 		self.treeview.row_activated(treepath, col)
@@ -174,10 +172,6 @@ class TestPageTreeView(tests.TestCase):
 			page = self.notebook.get_page(path)
 			pages.append((page.name, page.dump('wiki')))
 			self.notebook.delete_page(page)
-
-		for r in self.model:
-			print tuple(r)
-			print r[0] in [p[0] for p in pages], r[1].exists()
 
 		self.assertEqual(self.notebook.pages.n_list_pages(), 0)
 		self.assertEqual(self.model.on_iter_n_children(None), 0)

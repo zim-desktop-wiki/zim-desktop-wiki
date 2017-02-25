@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -11,54 +11,46 @@ from zim.utils import natural_sort_key
 from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
-from .base import IndexView, \
-	IndexConsistencyError, IndexNotFoundError
+from .base import *
 
-from zim.signals import SIGNAL_BEFORE, SIGNAL_AFTER
+
+from zim.notebook.layout import \
+FILE_TYPE_PAGE_SOURCE, \
+FILE_TYPE_ATTACHMENT
 
 ROOT_PATH = Path(':')
 ROOT_ID = 1 # Constant for the ID of the root namespace in "pages"
 			# (Primary key starts count at 1 and first entry will be root)
 
-
 PAGE_EXISTS_UNCERTAIN = 0 # e.g. folder with unknown children - not shown to outside world
 PAGE_EXISTS_AS_LINK = 1 # placeholder for link target
 PAGE_EXISTS_HAS_CONTENT = 2 # either has content or children have content
 
-from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
-from zim.utils import natural_sort_key
 
-from zim.notebook.layout import \
-	FILE_TYPE_PAGE_SOURCE, \
-	FILE_TYPE_ATTACHMENT
-
-
-class PagesIndexer(object):
+class PagesIndexer(IndexerBase):
 	'''Indexer for the "pages" table.
 
-	@signal: C{page-added (L{Path})}: a page is newly added to the index
-	@signal: C{page-changed (L{Path}}): page content has changed
-	@signal: C{page-node-changed (L{Path}): page attributes changed
-	@signal: C{page-haschildren-toggled (L{Path})}: the value of the
-	C{haschildren} attribute changed for this page
-	@signal: C{page-removed (L{Path})}: a page is removed from the index
+	@signal: C{page-row-inserted (row)}: new row inserted
+	@signal: C{page-row-changed (row)}: row changed
+	@signal: C{page-row-deleted (row)}: row to be deleted
+
+	@signal: C{page-changed (row, content)}: page contents changed
 	'''
 
 	__signals__ = {
-		'page-added': (SIGNAL_NORMAL, None, (object,)),
-		'page-haschildren-toggled': (SIGNAL_NORMAL, None, (object,)),
-		'page-node-changed': (SIGNAL_NORMAL, None, (object,)),
-		'page-changed': (SIGNAL_NORMAL, None, (object,)),
-		'page-removed': (SIGNAL_NORMAL, None, (object,)),
+		'page-row-inserted': (None, None, (object,)),
+		'page-row-changed':  (None, None, (object,)),
+		'page-row-deleted':  (None, None, (object,)),
+		'page-changed':      (None, None, (object, object))
 	}
 
-	def __init__(self, db, layout, content_indexers, signal_queue):
-		self.db = db
+	def __init__(self, db, layout, filesindexer):
+		IndexerBase.__init__(self, db)
 		self.layout = layout
-		self.content_indexers = content_indexers
-		self.signals = signal_queue
+		self.connectto_all(filesindexer, (
+			'file-row-inserted', 'file-row-changed', 'file-row-deleted'
+		))
 
-	def init_db(self):
 		self.db.executescript('''
 			CREATE TABLE IF NOT EXISTS pages(
 				id INTEGER PRIMARY KEY,
@@ -88,43 +80,36 @@ class PagesIndexer(object):
 			'SELECT * FROM pages WHERE name=?', (pagename.name,)
 		).fetchone()
 
-	def on_db_start_update(self, o):
-		for c in self.content_indexers:
-			c.on_db_start_update(self) # forward signal
-
-	def on_db_finish_update(self, o):
-		for c in self.content_indexers:
-			c.on_db_finish_update(self) # forward signal
-
 	# We should not read file contents on db-file-inserted because
 	# there can be many in one iterarion when the FileIndexer indexes
 	# a folder. Therefore we only send page-changed in response to
 	# db-file-updated and trust we get this signal for each file
 	# that is inserted in a separate iteration.
 
-	def on_db_file_inserted(self, o, file_id, file):
-		pagename, file_type = self.layout.map_file(file)
+	def on_file_row_inserted(self, o, filerow):
+		pagename, file_type = self.layout.map_filepath(filerow['path'])
 		if file_type != FILE_TYPE_PAGE_SOURCE:
 			return # nothing to do
 
 		row = self._select(pagename)
 		if row is None:
-			self.insert_page(pagename, file_id)
+			self.insert_page(pagename, filerow['id'])
 		elif row['source_file'] is None:
-			self._set_source_file(pagename, file_id)
+			self._set_source_file(pagename, filerow['id'])
 		else:
 			# TODO: Flag conflict
 			raise NotImplementedError
 
-	def on_db_file_updated(self, o, file_id, file):
-		pagename, file_type = self.layout.map_file(file)
+	def on_file_row_changed(self, o, filerow):
+		pagename, file_type = self.layout.map_filepath(filerow['path'])
 		if file_type != FILE_TYPE_PAGE_SOURCE:
 			return # nothing to do
 
 		row = self._select(pagename)
 		assert row is not None
 
-		if row['source_file'] == file_id:
+		if row['source_file'] == filerow['id']:
+			file = self.layout.root.file(filerow['path'])
 			format = self.layout.get_format(file)
 			mtime = file.mtime()
 			tree = format.Parser().parse(file.read())
@@ -133,15 +118,15 @@ class PagesIndexer(object):
 		else:
 			pass # some conflict file changed
 
-	def on_db_file_deleted(self, o, file_id, file):
-		pagename, file_type = self.layout.map_file(file)
+	def on_file_row_deleted(self, o, filerow):
+		pagename, file_type = self.layout.map_filepath(filerow['path'])
 		if file_type != FILE_TYPE_PAGE_SOURCE:
 			return # nothing to do
 
 		row = self._select(pagename)
 		assert row is not None
 
-		if row['source_file'] == file_id:
+		if row['source_file'] == filerow['id']:
 			if row['n_children'] > 0:
 				self._set_source_file(pagename, None)
 			else:
@@ -185,14 +170,11 @@ class PagesIndexer(object):
 
 		# notify others
 		row = self._select(pagename)
-		pagename = PageIndexRecord(row)
-		self.signals.append(('page-added', pagename))
-		for c in self.content_indexers:
-			c.on_db_added_page(self, row['id'], pagename)
+		self.emit('page-row-inserted', row)
 
 		return row['id']
 
-	def update_parent(self, parentname):
+	def update_parent(self, parentname, allow_cleanup=lambda r: True):
 		row = self._select(parentname)
 		assert row is not None
 
@@ -203,14 +185,16 @@ class PagesIndexer(object):
 				# because False is "0" in sqlite
 			(row['id'],)
 		).fetchone()
+		if all_child_are_placeholder is None:
+			all_child_are_placeholder = True
 
-		if n_children == 0 and row['source_file'] is None:
-			# cleanup if no longr needed
+		if n_children == 0 and row['source_file'] is None and allow_cleanup(row):
+			# cleanup if no longer needed
 			self.db.execute(
 				'UPDATE pages SET n_children=? WHERE id=?',
 				(n_children, row['id'])
 			)
-			self.remove_page(parentname) # indirect recurs
+			self.remove_page(parentname, allow_cleanup) # indirect recurs
 		else:
 			# update table
 			is_placeholder = row['source_file'] is None and all_child_are_placeholder
@@ -225,11 +209,11 @@ class PagesIndexer(object):
 
 			# notify others
 			if not parentname.isroot:
-				if (row['n_children'] != n_children) \
-				and (row['n_children'] == 0 or n_children == 0):
-					self.signals.append(('page-haschildren-toggled', parentname))
+				#if (row['n_children'] != n_children) \
+				#and (row['n_children'] == 0 or n_children == 0):
+				#	self.emit('page-row-has-child-changed', row)
 
-				self.signals.append(('page-node-changed', parentname))
+				self.emit('page-row-changed', row)
 
 	def update_page(self, pagename, mtime, content):
 		self.db.execute(
@@ -238,11 +222,8 @@ class PagesIndexer(object):
 		)
 
 		row = self._select(pagename)
-		for c in self.content_indexers:
-			c.on_db_index_page(self, row['id'], pagename, content)
-
-		pagename = PageIndexRecord(row)
-		self.signals.append(('page-changed', pagename))
+		self.emit('page-changed', row, content)
+		self.emit('page-row-changed', row)
 
 	def _set_source_file(self, pagename, file_id):
 		self.db.execute(
@@ -255,21 +236,19 @@ class PagesIndexer(object):
 			self.update_parent(pagename)
 		else:
 			self.update_parent(pagename.parent)
-			pagename = PageIndexRecord(self._select(pagename))
-			self.signals.append(('page-node-changed', pagename))
+			row = self._select(pagename)
+			self.emit('page-row-changed', row)
 
-	def remove_page(self, pagename):
+	def remove_page(self, pagename, allow_cleanup=lambda r: True):
+		# allow_cleanup is used by LinksIndexer when cleaning up placeholders
+
 		row = self._select(pagename)
 		if row['n_children'] > 0:
 			raise AssertionError, 'Page has child pages'
 
-		for c in self.content_indexers:
-			c.on_db_delete_page(self, row['id'], pagename)
-
+		self.emit('page-row-deleted', row)
 		self.db.execute('DELETE FROM pages WHERE name=?', (pagename.name,))
-		self.update_parent(pagename.parent)
-		pagename = PageIndexRecord(row)
-		self.signals.append(('page-removed', pagename))
+		self.update_parent(pagename.parent, allow_cleanup)
 
 
 class ParseTreeMask(object):
@@ -290,18 +269,16 @@ class PageIndexRecord(Path):
 	for the corresponding row in the C{pages} table.
 	'''
 
-	__slots__ = ('_row', 'treepath')
+	__slots__ = ('_row')
 
-	def __init__(self, row, treepath=None):
+	def __init__(self, row):
 		'''Constructor
-		@param name: the full page name
 		@param row: a C{sqlite3.Row} object for this page in the
 		"pages" table, specifies most other attributes for this object
 		The property C{hasdata} is C{True} when the row is set.
 		'''
 		Path.__init__(self, row['name'])
 		self._row = row
-		self.treepath = treepath
 
 	@property
 	def id(self): return self._row['id']
@@ -393,10 +370,30 @@ class PagesViewInternal(object):
 					(anchor_key,)
 				) # sort longest first
 
+			depth = -1 # level where items were found
+			found = [] # candidates that match the link - these can only differ in case of the basename
 			for name, in c:
-				parentname = name.rsplit(':', 1)[0]
-				if start.name.startswith(parentname): # we have a common parent
-					return self.resolve_pagename(Path(name), href.parts()[1:])
+				mydepth = name.count(':')
+				if mydepth < depth:
+					break
+
+				if mydepth > 0: # check whether we have a common parent
+					parentname = name.rsplit(':', 1)[0]
+					if start.name.startswith(parentname):
+						depth = mydepth
+						found.append(name)
+				else: # resolve from root namespace
+					found.append(name)
+
+			if found: # try to match case first, else just use first match
+				parts = href.parts()
+				anchor = parts.pop(0)
+				for name in found:
+					if name.endswith(anchor):
+						return self.resolve_pagename(Path(name), parts)
+				else:
+					return self.resolve_pagename(Path(found[0]), parts)
+
 			else:
 				# Return "brother" of source
 				if relnames:
@@ -680,7 +677,7 @@ class PagesView(IndexView):
 		while parts:
 			names.insert(0, parts.pop())
 			href = HRef(HREF_REL_FLOATING, ':'.join(names))
-			id, pagename = self._pages.resolve_link(source, href)
+			pid, pagename = self._pages.resolve_link(source, href)
 			if pagename == target:
 				return href
 		else:
@@ -699,123 +696,122 @@ class PagesView(IndexView):
 			yield PageIndexRecord(row)
 
 
-def get_indexpath_for_treepath_factory(db, cache):
-	'''Factory for the "get_indexpath_for_treepath()" method
-	used by the page index Gtk widget.
-	This method stores the corresponding treepaths in the C{treepath}
-	attribute of the indexpath.
-	@param db: a L{sqlite3.Connection} object
-	@param cache: a dict used to store (intermediate) results
-	@returns: a function
-	'''
-	# This method is constructed by a factory to speed up all lookups
-	# it is defined here to keep all SQL code in the same module
-	assert not cache, 'Better start with an empty cache!'
-	def get_indexpath_for_treepath(treepath):
+IS_PAGE = 1
+
+class PagesTreeModelMixin(TreeModelMixinBase):
+
+	# TODO: also caching name --> treepath in _find
+
+	def connect_to_updateiter(self, update_iter):
+		self.connectto_all(update_iter.pages,
+			('page-row-inserted', 'page-row-changed', 'page-row-deleted')
+		)
+
+	def on_page_row_inserted(self, o, row):
+		self.flush_cache()
+		treepath = self._find(row['name'])
+		treeiter = self.get_iter(treepath)
+		self.emit('row-inserted', treepath, treeiter)
+
+	def on_page_row_changed(self, o, row):
+		# no clear cache here - just update one row
+		treepath = self._find(row['name'])
+		self.cache[treepath].row = row # ensure uptodate info
+		treeiter = self.get_iter(treepath)
+		self.emit('row-changed', treepath, treeiter)
+
+	def on_page_row_deleted(self, o, row):
+		self.flush_cache()
+		treepath = self._find(row['name'])
+		self.emit('row-deleted', treepath)
+
+	def n_children_top(self):
+		return self.db.execute(
+			'SELECT COUNT(*) FROM pages WHERE parent=?', (ROOT_ID,)
+		).fetchone()[0]
+
+	def get_mytreeiter(self, treepath):
 		assert isinstance(treepath, tuple)
-		if treepath in cache:
-			return cache[treepath]
+		if treepath in self.cache:
+			return self.cache[treepath]
 
 		# Iterate parent paths
-		parent, parent_id = ROOT_PATH, ROOT_ID
+		parent_id = ROOT_ID
 		for i in range(1, len(treepath)):
 			mytreepath = tuple(treepath[:i])
-			if mytreepath in cache:
-				parent = cache[mytreepath]
-				parent_id = parent.id
+			if mytreepath in self.cache:
+				parent_id = self.cache[mytreepath].row['id']
 			else:
-				row = db.execute(
-					'SELECT * FROM pages '
-					'WHERE parent=? '
-					'ORDER BY sortkey, name '
-					'LIMIT 1 OFFSET ? ',
+				row = self.db.execute('''
+					SELECT * FROM pages WHERE parent=?
+					ORDER BY sortkey, name LIMIT 1 OFFSET ?
+					''',
 					(parent_id, mytreepath[-1])
 				).fetchone()
 				if row:
-					parent = PageIndexRecord(row, treepath)
-					cache[mytreepath] = parent
-					parent_id = parent.id
+					self.cache[mytreepath] = MyTreeIter(mytreepath, row, IS_PAGE)
+					parent_id = row['id']
 				else:
 					return None
 
 		# Now cache a slice at the target level
 		parentpath = treepath[:-1]
 		offset = treepath[-1]
-		for i, row in enumerate(db.execute(
-			'SELECT * FROM pages '
-			'WHERE parent=? '
-			'ORDER BY sortkey, name '
-			'LIMIT 20 OFFSET ? ',
+		for i, row in enumerate(self.db.execute('''
+			SELECT * FROM pages WHERE parent=?
+			ORDER BY sortkey, name LIMIT 20 OFFSET ?
+			''',
 			(parent_id, offset)
 		)):
 			mytreepath = parentpath + (offset + i,)
-			if not mytreepath in cache:
-				indexpath = PageIndexRecord(row, mytreepath)
-				cache[mytreepath] = indexpath
+			if mytreepath not in self.cache:
+				self.cache[mytreepath] = MyTreeIter(mytreepath, row, IS_PAGE)
 
 		try:
-			return cache[treepath]
+			return self.cache[treepath]
 		except KeyError:
 			return None
 
-	return get_indexpath_for_treepath
+	def find(self, path):
+		if path.isroot:
+			raise ValueError
+		return self._find(path.name)
 
-
-def get_treepath_for_indexpath_factory(db, cache):
-	'''Factory for the "get_treepath_for_indexpath()" method
-	used by the page index Gtk widget.
-	@param db: an L{sqlite3.Connection} object
-	@param cache: a dict used to store (intermediate) results
-	@returns: a function
-	'''
-	# This method is constructed by a factory to speed up all lookups
-	# it is defined here to keep all SQL code in the same module
-	#
-	# We don't do a reverse cache lookup - faster to just go forwards.
-	# Only cache to ensure subsequent get_indexpath_for_treepath calls
-	# are faster. Don't overwrite existing items in the cache to ensure
-	# ref count on paths.
-	assert not cache, 'Better start with an empty cache!'
-
-	def get_treepath_for_indexpath(indexpath):
-		parent, parent_id = ROOT_PATH, ROOT_ID
+	def _find(self, name):
+		parent_id = ROOT_ID
+		names = name.split(':')
 		treepath = []
-		names = indexpath.parts
 		for i, basename in enumerate(names):
+			# Get treepath
 			name = ':'.join(names[:i+1])
-			sortkey = natural_sort_key(basename)
-			row = db.execute(
-				'SELECT COUNT(*) FROM pages '
-				'WHERE parent=? and ('
-				'	sortkey<? '
-				'	or (sortkey=? and name<?)'
-				')',
+			myrow = self.db.execute(
+				'SELECT * FROM pages WHERE name=?', (name,)
+			).fetchone()
+			if myrow is None:
+				raise IndexNotFoundError
+
+			sortkey = myrow['sortkey']
+			row = self.db.execute('''
+				SELECT COUNT(*) FROM pages
+				WHERE parent=? and (
+					sortkey<? or (sortkey=? and name<?)
+				)''',
 				(parent_id, sortkey, sortkey, name)
 			).fetchone()
 			treepath.append(row[0])
+			parent_id = myrow['id']
+
+			# Update cache (avoid overwriting because of ref count)
 			mytreepath = tuple(treepath)
-			try:
-				parent = cache[mytreepath]
-				parent_id = parent.id
-				if parent.name != name:
-					return None # page does not exist, count gives next page
-			except KeyError:
-				row = db.execute(
-					'SELECT * FROM pages WHERE name=?', (name,)
-				).fetchone()
-				if row:
-					parent = PageIndexRecord(row, mytreepath)
-					cache[mytreepath] = parent
-					parent_id = parent.id
-				else:
-					return None # page does not exist
+			if mytreepath not in self.cache:
+				myiter = MyTreeIter(mytreepath, myrow, IS_PAGE)
+				self.cache[mytreepath] = myiter
 
 		return tuple(treepath)
 
-	return get_treepath_for_indexpath
 
-
-
+###################
+################
 
 def get_indexpath_for_treepath_flatlist_factory(db, cache):
 	'''Factory for the "get_indexpath_for_treepath()" method

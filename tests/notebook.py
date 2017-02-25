@@ -299,11 +299,11 @@ class TestNotebook(tests.TestCase):
 		self.assertRaises(PageExistsError,
 			self.notebook.move_page, Path('Test:foo'), Path('TaskList'))
 
-		self.notebook.index.flag_reindex()
-		self.assertFalse(self.notebook.index.probably_uptodate)
+		self.notebook.index.flush()
+		self.assertFalse(self.notebook.index.is_uptodate)
 		self.assertRaises(IndexNotUptodateError,
 			self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
-		self.notebook.index.update()
+		self.notebook.index.check_and_update()
 
 		# Test actual moving
 		for oldpath, newpath in (
@@ -314,7 +314,6 @@ class TestNotebook(tests.TestCase):
 			text = page.dump('wiki')
 			self.assertTrue(page.haschildren)
 			self.notebook.move_page(oldpath, newpath)
-			self.notebook.index.update()
 
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
@@ -324,8 +323,9 @@ class TestNotebook(tests.TestCase):
 
 			# oldpath should be deleted
 			page = self.notebook.get_page(oldpath)
-			self.assertFalse(page.haschildren)
-			self.assertFalse(page.hascontent)
+			self.assertFalse(page.hascontent, msg="%s still has content" % page)
+			#self.assertFalse(page.haschildren, msg="%s still has children" % page)
+				# Can still have remaining placeholders
 
 		# Test moving a page below it's own namespace
 		oldpath = Path('Test:Bar')
@@ -336,7 +336,6 @@ class TestNotebook(tests.TestCase):
 		self.notebook.store_page(page)
 
 		self.notebook.move_page(oldpath, newpath)
-		self.notebook.index.update()
 		page = self.notebook.get_page(newpath)
 		self.assertEqual(page.dump('wiki'), ['Test 123\n'])
 
@@ -419,7 +418,6 @@ class TestNotebook(tests.TestCase):
 			# we now have a copy of the page object - this is an important
 			# part of the test - see if caching of page objects doesn't bite
 
-		self.notebook.index.update()
 		with tests.LoggingFilter('zim.notebook', message='Number of links'):
 			self.notebook.rename_page(Path('Test:wiki'), 'foo')
 		page = self.notebook.get_page(Path('Test:wiki'))
@@ -431,7 +429,6 @@ class TestNotebook(tests.TestCase):
 
 		self.assertFalse(copy.valid)
 
-		self.notebook.index.update()
 		self.notebook.rename_page(Path('Test:foo'), 'Foo')
 		page = self.notebook.get_page(Path('Test:foo'))
 		self.assertFalse(page.hascontent)
@@ -772,7 +769,7 @@ class TestPage(TestPath):
 		file = MockFile('/mock/test/page.txt')
 		folder = MockFile('/mock/test/page/')
 		page = Page(Path('Foo'), False, file, folder)
-				
+
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
 		tree.set_heading("Foo")
 		page.set_parsetree(tree)
@@ -829,9 +826,9 @@ class TestPage(TestPath):
 class TestMovePageNewNotebook(tests.TestCase):
 
 	def setUp(self):
-		folder = zim.newfs.mock.MockFolder('/mock/notebook')
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS)
 		layout = FilesLayout(folder, endofline='unix')
-		index = Index.new_from_memory(layout)
+		index = Index(':memory:', layout)
 
 		### XXX - Big HACK here - Get better classes for this - XXX ###
 		dir = VirtualConfigBackend()
@@ -844,13 +841,12 @@ class TestMovePageNewNotebook(tests.TestCase):
 		dir = None
 		cache_dir = None
 		self.notebook = Notebook(dir, cache_dir, config, folder, layout, index)
-		index.update()
+		index.check_and_update()
 
 	def runTest(self):
 		'''Try populating a notebook from scratch'''
 		# Based on bug lp:511481 - should reproduce bug with updating links to child pages
 		notebook = self.notebook
-		index = self.notebook.index
 
 		for name, text in (
 			('page1', 'Foo bar\n'),
@@ -870,9 +866,6 @@ class TestMovePageNewNotebook(tests.TestCase):
 			('page3', 0, 0),
 		):
 			path = Path(name)
-			#~ print path, \
-				#~ list(index.list_links(path, LINK_DIR_FORWARD)), \
-				#~ list(index.list_links(path, LINK_DIR_BACKWARD))
 			self.assertEqual(
 				notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
 			self.assertEqual(
@@ -890,9 +883,6 @@ class TestMovePageNewNotebook(tests.TestCase):
 			('page3:page1:child', 0, 1),
 		):
 			path = Path(name)
-			#~ print path, \
-				#~ list(index.list_links(path, LINK_DIR_FORWARD)), \
-				#~ list(index.list_links(path, LINK_DIR_BACKWARD))
 			self.assertEqual(
 				notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
 			self.assertEqual(

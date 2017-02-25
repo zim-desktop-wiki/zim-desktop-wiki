@@ -11,12 +11,12 @@ import os
 
 logger = logging.getLogger('zim')
 
-
 # Constants for signal order
-SIGNAL_BEFORE = 1
-SIGNAL_NORMAL = 2
-SIGNAL_CLOSURE = 3
+SIGNAL_RUN_FIRST = 1
+SIGNAL_BEFORE = SIGNAL_NORMAL = 2
+SIGNAL_RUN_LAST = 3
 SIGNAL_AFTER = 4
+
 
 
 class SignalHandler(object):
@@ -116,8 +116,8 @@ class ConnectorMixin(object):
 		@param signal: the signal name
 		@param handler: the callback function, or C{None} to map to
 		a method prefixed with "on_".
-		@param order: if order is C{NORMAL} then C{GObject.connect()}
-		is used, if order is C{AFTER} then C{GObject.connect_after()}
+		@param order: if order is C{SIGNAL_NORMAL} then C{GObject.connect()}
+		is used, if order is C{SIGNAL_AFTER} then C{GObject.connect_after()}
 		is used.
 		@returns: the handler id
 		'''
@@ -127,17 +127,10 @@ class ConnectorMixin(object):
 			if handler is None:
 				raise NotImplementedError, 'No method "%s"' % name
 
-		if order == SIGNAL_NORMAL:
-			i = obj.connect(signal, handler)
-		elif order == SIGNAL_AFTER:
+		if order == SIGNAL_AFTER:
 			i = obj.connect_after(signal, handler)
-		elif order == SIGNAL_BEFORE:
-			try:
-				i = obj.connect_before(signal, handler)
-			except AttributeError:
-				i = obj.connect(signal, handler)
 		else:
-			raise ValueError, 'order argument not recognized'
+			i = obj.connect(signal, handler)
 
 		if not hasattr(self, '_connected_signals'):
 			self._connected_signals = {}
@@ -221,10 +214,9 @@ class SignalEmitterMeta(type):
 
 		if name != 'SignalEmitter':
 			for base in bases:
-				if isinstance(base, SignalEmitter):
-					for key, value in base.__signals__:
+				if issubclass(base, SignalEmitter):
+					for key, value in base.__signals__.items():
 						cls.__signals__.setdefault(key, value)
-
 
 		#  2/ set list of closures to be initialized per instance
 
@@ -232,8 +224,11 @@ class SignalEmitterMeta(type):
 		for signal in cls.__signals__:
 			name = 'do_' + signal.replace('-', '_')
 			if hasattr(cls, name):
+				order = cls.__signals__[signal][0]
+				if not order in (SIGNAL_RUN_FIRST, SIGNAL_RUN_LAST):
+					order = SIGNAL_RUN_LAST # for backward compatibility, fallback to this default
 				closure = getattr(cls, name) # unbound version!
-				cls._signal_closures.append((signal, closure))
+				cls._signal_closures.append((signal, order, closure))
 
 		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
 
@@ -242,19 +237,20 @@ class SignalEmitterMeta(type):
 class SignalEmitter(object):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be backward compatible with API offered by GObject.
+
+	Supported signals need to be defined in the dict C{__signals__}. For
+	each signal a 3-tuple is provided where the first argument is either
+	C{SIGNAL_RUN_FIRST} or C{SIGNAL_RUN_LAST}, the second is the return
+	argument (or C{None} for most signals) and the third is the argument
+	spec for the signal. See Glib documentation for more notes on execution
+	order etc.
 	'''
 
 	__metaclass__ = SignalEmitterMeta
 
-	__signals__ = {} #: signals supported by this class
-
 	# define signals we want to use - (closure type, return type and arg types)
-	# E.g. {signal: (SIGNAL_NORMAL, None, (object, object))}
-	# TODO use this fo validation
-
-	__hooks__ = ()
-	# name of signals that return first result
-	# TODO: replace by not None return value in signals ?
+	# E.g. {signal: (SIGNAL_RUN_LAST, None, (object, object))}
+	__signals__ = {} #: signals supported by this class
 
 	def __new__(cls, *arg, **kwarg):
 		# New instance: init attributes for signal handling
@@ -262,10 +258,10 @@ class SignalEmitter(object):
 
 		obj._signal_handlers = {}
 		obj._signal_blocks = {}
-		obj._signal_count = 0
+		obj._signal_count = 0 # ensure signals execute in order of connecting
 
-		for signal, closure in obj._signal_closures:
-			obj._signal_handlers[signal] = [(SIGNAL_CLOSURE, 0, closure)]
+		for signal, order, closure in obj._signal_closures:
+			obj._signal_handlers[signal] = [(order, 0, closure)]
 
 		return obj
 
@@ -329,11 +325,12 @@ class SignalEmitter(object):
 
 	def emit(self, signal, *args):
 		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
+		assert len(args) == len(self.__signals__[signal][2]), 'Signal args do not match'
 
 		if self._signal_blocks.get(signal):
 			return # ignore emit
 
-		return_first = signal in self.__hooks__
+		return_first = self.__signals__[signal][1] is not None
 		for c, i, handler in self._signal_handlers.get(signal, []):
 			try:
 				r = handler(self, *args)

@@ -12,7 +12,7 @@ from zim.notebook import Path, HRef
 from zim.formats.wiki import Parser as WikiParser
 from zim.newfs.mock import MockFolder
 
-from tests.indexers import buildFullIndexer
+from tests.indexers import buildUpdateIter
 
 TEXT = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n'
 FILES = (
@@ -52,10 +52,10 @@ def new_test_database():
 	global _SQL
 	if _SQL is None:
 		folder = MockFolder('/mock/notebook/')
-		indexer = buildFullIndexer(folder)
+		indexer = buildUpdateIter(folder)
 		for path, text in FILES:
 			folder.file(path).write(text)
-		indexer.check_and_update_all()
+		indexer.check_and_update()
 		lines = list(indexer.db.iterdump())
 		_SQL = '\n'.join(lines)
 		indexer.db.close()
@@ -74,9 +74,10 @@ def new_test_database():
 #			print line
 
 from zim.notebook.index.pages import PagesIndexer, PagesView, ParseTreeMask, \
-	get_treepath_for_indexpath_factory, get_indexpath_for_treepath_factory, \
-	get_treepaths_for_indexpath_flatlist_factory, get_indexpath_for_treepath_flatlist_factory, \
+	PagesTreeModelMixin, \
 	IndexNotFoundError
+	#get_treepath_for_indexpath_factory, get_indexpath_for_treepath_factory, \
+	#get_treepaths_for_indexpath_flatlist_factory, get_indexpath_for_treepath_flatlist_factory, \
 
 class TestPagesView(tests.TestCase):
 
@@ -199,40 +200,24 @@ class TestPagesView(tests.TestCase):
 
 	def testTreePathMethods(self):
 		db = new_test_database()
+		mockindex = tests.MockObject()
+		mockindex._db = db
+ 		mockindex.update_iter = tests.MockObject()
+ 		mockindex.update_iter.pages = tests.MockObject()
+		model = PagesTreeModelMixin(mockindex)
 
-		def check_treepath(
-			get_indexpath_for_treepath,
-			get_treepath_for_indexpath,
-		):
-			# Test all pages
-			for name, treepath in TREEPATHS:
-				indexpath = get_indexpath_for_treepath(treepath)
-				self.assertEqual(indexpath.name, name)
-				self.assertEqual(indexpath.treepath, treepath)
-				my_treepath = get_treepath_for_indexpath(indexpath)
-				self.assertEqual(my_treepath, treepath)
+		# Test all pages
+		for name, treepath in TREEPATHS:
+			myiter = model.get_mytreeiter(treepath)
+			self.assertEqual(myiter.row['name'], name)
+			self.assertEqual(myiter.treepath, treepath)
+			my_treepath = model.find(Path(name))
+			self.assertEqual(my_treepath, treepath)
 
-			# Test non-existing
-			p = get_indexpath_for_treepath((1,2,3,4,5))
-			self.assertIsNone(p)
-
-
-		# Separate caches to lets each method start from scratch
-		cache1 = {}
-		cache2 = {}
-		check_treepath(
-			get_indexpath_for_treepath_factory(db, cache1),
-			get_treepath_for_indexpath_factory(db, cache2)
-		)
-
-		self.assertEqual(cache1, cache2)
-
-		# Now try again with a shared cache
-		cache = {}
-		check_treepath(
-			get_indexpath_for_treepath_factory(db, cache),
-			get_treepath_for_indexpath_factory(db, cache)
-		)
+		# Test non-existing
+		p = model.get_mytreeiter((1,2,3,4,5))
+		self.assertIsNone(p)
+		self.assertRaises(IndexNotFoundError, model.find, Path('non-existing-page'))
 
 	def testTreePathMethodsFlatlist(self):
 		db = new_test_database()

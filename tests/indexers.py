@@ -17,7 +17,7 @@ from zim.notebook.layout import FilesLayout
 from zim.newfs import LocalFolder, File
 
 from zim.notebook import Path
-from zim.notebook.index.files import FilesIndexer, TestFilesDBTable
+from zim.notebook.index.files import FilesIndexer, TestFilesDBTable, FilesIndexChecker
 from zim.notebook.index.pages import PagesIndexer, TestPagesDBTable
 from zim.notebook.index.links import LinksIndexer
 from zim.notebook.index.tags import TagsIndexer
@@ -63,52 +63,60 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		#   2. Check and update after new files appear
 		#   3. Check and update after files disappear
 
-		self.root = self.setUpFolder()
+		self.root = self.setUpFolder(mock=tests.MOCK_NOT_BY_DEFAULT)
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 
-		def cb_filter_func(name, a, kw):
+		indexer = FilesIndexer(db, self.root)
+
+		def cb_filter_func(name, o, a):
 			#~ print '>>', name
-			if name in ('on_db_start_update', 'on_db_finish_update'):
-				o, = a
+			if name in ('start-update', 'finish-update'):
+				self.assertFalse(a)
 				return ()
 			else:
-				o, file_id, file = a
-				self.assertIsInstance(file_id, int)
-				self.assertIsInstance(file, File)
-				return file.relpath(self.root)
+				row, = a
+				self.assertIsInstance(row, sqlite3.Row)
+				return row['path']
 
-		cb_logger = tests.CallBackLogger(cb_filter_func)
+		signals = tests.SignalLogger(indexer, cb_filter_func)
 
-		indexer = FilesIndexer(db, self.root, cb_logger)
-		indexer.init_db()
+		def check_and_update_all():
+			checker = FilesIndexChecker(indexer.db, indexer.folder)
+			checker.queue_check()
+			for out_of_date in checker.check_iter():
+				if out_of_date:
+					for i in indexer.update_iter():
+						pass
+			indexer.db.commit()
+
 
 		# 1. Index existing files structure
 		self.create_files(self.FILES)
-		indexer.check_and_update_all()
+		check_and_update_all()
 
 		files = set(f for f in self.FILES if not f.endswith('/'))
 
-		self.assertEqual(set(cb_logger['on_db_file_inserted']), files)
-		self.assertEqual(set(cb_logger['on_db_file_updated']), files)
-		self.assertNotIn('on_db_file_deleted', cb_logger)
+		self.assertEqual(set(signals['file-row-inserted']), files)
+		self.assertEqual(set(signals['file-row-changed']), files)
+		self.assertEqual(signals['file-row-deleted'], [])
 
 		self.assertFilesDBConsistent(db)
 		self.assertFilesDBEquals(db, self.FILES)
 
 		# 2. Check and update after new files appear
-		cb_logger.clear()
+		signals.clear()
 		self.create_files(
 			self.FILES_UPDATE + self.FILES_CHANGE
 		)
-		indexer.check_and_update_all()
+		check_and_update_all()
 
 		files = set(f for f in self.FILES_UPDATE if not f.endswith('/'))
 		update = files | set(self.FILES_CHANGE)
 
-		self.assertEqual(set(cb_logger['on_db_file_inserted']), files)
-		self.assertEqual(set(cb_logger['on_db_file_updated']), update)
-		self.assertNotIn('on_db_file_deleted', cb_logger)
+		self.assertEqual(set(signals['file-row-inserted']), files)
+		self.assertEqual(set(signals['file-row-changed']), update)
+		self.assertEqual(signals['file-row-deleted'], [])
 
 		self.assertFilesDBConsistent(db)
 		self.assertFilesDBEquals(db,
@@ -116,15 +124,15 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		)
 
 		# 3. Check and update after files disappear
-		cb_logger.clear()
+		signals.clear()
 		self.remove_files(self.FILES_UPDATE)
-		indexer.check_and_update_all()
+		check_and_update_all()
 
 		files = set(f for f in self.FILES_UPDATE if not f.endswith('/'))
 
-		self.assertNotIn('on_db_file_inserted', cb_logger)
-		self.assertNotIn('on_db_file_updated', cb_logger)
-		self.assertEqual(set(cb_logger['on_db_file_deleted']), files)
+		self.assertEqual(signals['file-row-inserted'], [])
+		self.assertEqual(signals['file-row-changed'], [])
+		self.assertEqual(set(signals['file-row-deleted']), files)
 
 		self.assertFilesDBConsistent(db)
 		self.assertFilesDBEquals(db, self.FILES)
@@ -143,20 +151,6 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 				self.root.folder(name).remove()
 			else:
 				self.root.child(name).remove()
-
-
-class MockSignalQueue(dict):
-
-	def __init__(self, filter_func):
-		self.filter_func = filter_func
-
-	def append(self, s):
-		signal = s[0]
-		a = s[1:]
-		self.setdefault(signal, [])
-		self[signal].append(self.filter_func(signal, a))
-
-
 
 
 class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
@@ -214,77 +208,52 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		#   3. add some placeholders
 		#   4. delete files
 
-		self.root = self.setUpFolder(mock=tests.MOCK_NEVER)
+		self.root = self.setUpFolder()
 		layout = FilesLayout(self.root)
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 
-		def cb_filter_func(name, a, kw):
-			if name in ('on_db_start_update', 'on_db_finish_update'):
-				o, = a
-				return ()
-			else:
-				if name == 'on_db_index_page':
-					o, page_id, page, content = a
-				else:
-					o, page_id, page = a
-
-				self.assertIsInstance(page_id, int)
-				self.assertIsInstance(page, Path)
-				return page.name
-
-		def sig_filter_func(signal, a):
-			assert signal in PagesIndexer.__signals__, 'Unexpected signal: %s' % signal
-			path, = a
-			self.assertIsInstance(path, Path)
-			return path.name
-
-		cb_logger = tests.CallBackLogger(cb_filter_func)
-		signals = MockSignalQueue(sig_filter_func)
-
-		indexer = PagesIndexer(db, layout, [cb_logger], signals)
-		indexer.init_db()
-
 		file_indexer = tests.MockObject()
+
+		indexer = PagesIndexer(db, layout, file_indexer)
+
+		def cb_filter_func(name, o, a):
+			if name == 'page-changed':
+				row, content = a
+			else:
+				row, = a
+
+			self.assertIsInstance(row, sqlite3.Row)
+			return row['name']
+
+		signals = tests.SignalLogger(indexer, cb_filter_func)
 
 		# 1. insert files
 		for i, path in enumerate(self.FILES):
 			file = self.root.file(path)
-			file.touch()
-			indexer.on_db_file_inserted(
-				file_indexer, i, file
-			)
+			file.write('test 123')
+			row = {'id': i, 'path': path}
+			indexer.on_file_row_inserted(file_indexer, row)
 			self.assertPagesDBConsistent(db)
 
-		pages = self.PAGES
-		namespaces = self.NAMESPACES
-
-		self.assertPagesDBEquals(db, pages)
-
-		self.assertEquals(set(signals['page-added']), set(pages))
-		self.assertEquals(set(signals['page-haschildren-toggled']), set(namespaces))
-		self.assertEquals(set(signals['page-node-changed']), set(namespaces))
-		self.assertNotIn('page-changed', signals)
-		self.assertNotIn('page-removed', signals)
+		self.assertPagesDBEquals(db, self.PAGES)
+		self.assertEqual(set(signals['page-row-inserted']), set(self.PAGES))
+		self.assertEqual(set(signals['page-row-changed']), set(self.NAMESPACES))
+		self.assertEqual(signals['page-row-deleted'], [])
+		self.assertEqual(signals['page-changed'], [])
 
 		# 2. update files
 		signals.clear()
 		for i, path in enumerate(self.FILES):
-			file = self.root.file(path)
-			indexer.on_db_file_updated(
-				file_indexer, i, file
-			)
+			row = {'id': i, 'path': path}
+			indexer.on_file_row_changed(file_indexer, row)
 			self.assertPagesDBConsistent(db)
 
-		self.assertPagesDBEquals(db, pages)
-
-		pages = self.CONTENT
-
-		self.assertNotIn('page-added', signals)
-		self.assertNotIn('page-haschildren-toggled', signals)
-		self.assertNotIn('page-node-changed', signals)
-		self.assertEquals(set(signals['page-changed']), set(pages))
-		self.assertNotIn('page-removed', signals)
+		self.assertPagesDBEquals(db, self.PAGES)
+		self.assertEqual(signals['page-row-inserted'], [])
+		self.assertEqual(set(signals['page-row-changed']), set(self.CONTENT))
+		self.assertEqual(signals['page-row-deleted'], [])
+		self.assertEqual(set(signals['page-changed']), set(self.CONTENT))
 
 		# 3. add some placeholders
 		for pagename in self.PLACEHOLDERS:
@@ -305,20 +274,16 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		for i, path in enumerate(self.FILES):
 			file = self.root.file(path)
 			file.remove()
-			indexer.on_db_file_deleted(
-				file_indexer, i, file
-			)
+			row = {'id': i, 'path': path}
+			indexer.on_file_row_deleted(file_indexer, row)
 			self.assertPagesDBConsistent(db)
 
 		self.assertPagesDBEquals(db, [])
-
-		pages = self.PAGES
-		source_changed = ['foo'] # has source that is deleted before children
-
-		self.assertNotIn('page-added', signals)
-		self.assertNotIn('page-haschildren-toggled', signals)
-		self.assertEquals(set(signals['page-node-changed']), set(source_changed))
-		self.assertEquals(set(signals['page-removed']), set(pages))
+		self.assertEqual(signals['page-row-inserted'], [])
+		self.assertEqual(set(signals['page-row-changed']), set(['foo']))
+						 # "foo" has source that is deleted before children
+		self.assertEqual(set(signals['page-row-deleted']), set(self.PAGES))
+		self.assertEqual(signals['page-changed'], [])
 
 
 from zim.utils import natural_sort_key
@@ -342,8 +307,7 @@ class TestLinksIndexer(tests.TestCase):
 	def runTest(self):
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
-		pi = PagesIndexer(db, None, [], [])
-		pi.init_db()
+		pi = PagesIndexer(db, None, tests.MockObject())
 		for i, name, cont in self.PAGES:
 			db.execute(
 				'INSERT INTO pages(id, name, sortkey, parent) VALUES (?, ?, ?, 1)',
@@ -359,20 +323,22 @@ class TestLinksIndexer(tests.TestCase):
 		self.assertEqual((i, pn), (2, Path('Bar')))
 
 		## Test the actual indexer
-		indexer = LinksIndexer(db, [])
-		indexer.on_db_init()
-
-		page_indexer = tests.MaskedObject(pi, 'insert_link_placeholder')
+		pageindexer = tests.MaskedObject(pi, 'connect')
+		indexer = LinksIndexer(db, pageindexer, tests.MockObject())
 
 		for i, name, cont in self.PAGES:
-			indexer.on_db_added_page(page_indexer, i, Path(name))
+			row = {'id': i, 'name': name, 'sortkey': natural_sort_key(name)}
+			indexer.on_page_row_inserted(pageindexer, row)
 
+		###
+		pageindexer.setObjectAccess('insert_link_placeholder')
 		for i, name, text in self.PAGES:
 			tree = WikiParser().parse(text)
 			doc = ParseTreeMask(tree)
-			indexer.on_db_index_page(page_indexer, i, Path(name), doc)
+			row = {'id': i, 'name': name}
+			indexer.on_page_changed(pageindexer, row, doc)
 
-		indexer.on_db_finish_update(db)
+		indexer.on_finish_update(None)
 
 		links = sorted(
 			(r['source'], r['target'])
@@ -380,12 +346,13 @@ class TestLinksIndexer(tests.TestCase):
 		)
 		self.assertEqual(links, [(3,2), (3,4)])
 
-		page_indexer = tests.MaskedObject(pi, 'remove_page')
-
+		###
+		pageindexer.setObjectAccess('remove_page')
 		for i, name, cont in self.PAGES:
-			indexer.on_db_delete_page(page_indexer, i, Path(name))
+			row = {'id': i, 'name': name}
+			indexer.on_page_row_deleted(pageindexer, row)
 
-		indexer.on_db_finish_update(page_indexer)
+		indexer.on_finish_update(None)
 
 		rows = db.execute('SELECT * FROM links').fetchall()
 		self.assertEqual(rows, [])
@@ -402,13 +369,13 @@ class TestTagsIndexer(tests.TestCase):
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 
-		indexer = TagsIndexer(db, [])
-		indexer.on_db_init()
+		indexer = TagsIndexer(db, tests.MockObject(), tests.MockObject())
 		for i, name, text in self.PAGES:
 			tree = WikiParser().parse(text)
 			doc = ParseTreeMask(tree)
-			indexer.on_db_index_page(None, i, Path(name), doc)
-		indexer.on_db_finish_update(db)
+			row = {'id': i, 'name': name}
+			indexer.on_page_changed(None, row, doc)
+		indexer.on_finish_update(None)
 
 		self.assertTags(db,
 			[('tag1', 1), ('tag2', 2), ('tag3', 3)],
@@ -416,8 +383,9 @@ class TestTagsIndexer(tests.TestCase):
 		)
 
 		for i, name, content in self.PAGES:
-			indexer.on_db_delete_page(None, i, Path(name))
-		indexer.on_db_finish_update(db)
+			row = {'id': i, 'name': name}
+			indexer.on_page_row_deleted(None, row)
+		indexer.on_finish_update(None)
 
 		self.assertTags(db, [], [])
 
@@ -433,27 +401,14 @@ class TestTagsIndexer(tests.TestCase):
 		self.assertEqual(tagsources, wantedsources)
 
 
-def buildFullIndexer(folder):
-	layout = FilesLayout(folder)
+from zim.notebook.index import IndexUpdateIter
 
+
+def buildUpdateIter(folder):
 	db = sqlite3.connect(':memory:')
 	db.row_factory = sqlite3.Row
-
-	signals = []
-	content_indexers = [
-		LinksIndexer(db, signals),
-		TagsIndexer(db, signals)
-	]
-	for c in content_indexers:
-		c.on_db_init()
-
-	pages_indexer = PagesIndexer(db, layout, content_indexers, signals)
-	pages_indexer.init_db()
-
-	files_indexer = FilesIndexer(db, folder, pages_indexer)
-	files_indexer.init_db()
-
-	return files_indexer
+	layout = FilesLayout(folder)
+	return IndexUpdateIter(db, layout)
 
 
 class TestFullIndexer(TestFilesIndexer):
@@ -474,16 +429,16 @@ class TestFullIndexer(TestFilesIndexer):
 		#   3. Check and update after files disappear
 
 		self.root = self.setUpFolder()
-		files_indexer = buildFullIndexer(self.root)
+		update_iter = buildUpdateIter(self.root)
 
 		# 1. Index existing files structure
 		self.create_files(self.FILES)
-		files_indexer.check_and_update_all()
+		update_iter.check_and_update()
 
 		# 2. Check and update after new files appear
 		self.create_files(self.FILES_UPDATE)
-		files_indexer.check_and_update_all()
+		update_iter.check_and_update()
 
 		# 3. Check and update after files disappear
 		self.remove_files(self.FILES_UPDATE)
-		files_indexer.check_and_update_all()
+		update_iter.check_and_update()

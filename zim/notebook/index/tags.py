@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -9,9 +9,9 @@ from zim.utils import natural_sort_key
 from zim.signals import SIGNAL_NORMAL
 
 
-from .base import ContentIndexer, IndexView, IndexNotFoundError
+from .base import IndexerBase, IndexView, IndexNotFoundError
 from .pages import PagesViewInternal, ROOT_PATH, \
-	PageIndexRecord, get_treepath_for_indexpath_factory
+	PageIndexRecord  #, get_treepath_for_indexpath_factory
 
 
 class IndexTag(object):
@@ -49,16 +49,24 @@ class IndexTag(object):
 		return not self.__eq__(other)
 
 
-class TagsIndexer(ContentIndexer):
+class TagsIndexer(IndexerBase):
 
 	__signals__ = {
-		'tag-created': (SIGNAL_NORMAL, None, (object,)),
-		'tag-deleted': (SIGNAL_NORMAL, None, (object,)),
+		'tag-row-inserted': (SIGNAL_NORMAL, None, (object,)),
+		'tag-row-deleted': (SIGNAL_NORMAL, None, (object,)),
 		'tag-added-to-page': (SIGNAL_NORMAL, None, (object, object)),
 		'tag-removed-from-page': (SIGNAL_NORMAL, None, (object, object)),
 	}
 
-	def on_db_init(self):
+	def __init__(self, db, pagesindexer, filesindexer):
+		IndexerBase.__init__(self, db)
+		self.connectto_all(pagesindexer, (
+			'page-changed', 'page-row-deleted'
+		))
+		self.connectto(filesindexer,
+			'finish-update'
+		)
+
 		self.db.executescript('''
 			CREATE TABLE IF NOT EXISTS tags (
 				id INTEGER PRIMARY KEY,
@@ -75,13 +83,13 @@ class TagsIndexer(ContentIndexer):
 			);
 		''')
 
-	def on_db_index_page(self, pages_indexer, page_id, pagename, doc):
+	def on_page_changed(self, pagesindexer, pagerow, doc):
 		oldtags = dict(
 			(r[0], (r[1], r[2])) for r in self.db.execute(
 				'SELECT tags.sortkey, tags.name, tags.id FROM tagsources '
 				'LEFT JOIN tags ON tagsources.tag = tags.id '
 				'WHERE tagsources.source=?',
-				(page_id,)
+				(pagerow['id'],)
 			)
 		)
 
@@ -103,38 +111,34 @@ class TagsIndexer(ContentIndexer):
 						'SELECT name, id FROM tags WHERE sortkey=?', (sortkey,)
 					).fetchone()
 					assert row
-					tag = IndexTag(*row)
-					self.signals.append(('tag-created', tag))
-				else:
-					tag = IndexTag(*row)
+					self.emit('tag-row-inserted', row)
 
 				self.db.execute(
 					'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
-					(page_id, tag.id)
+					(pagerow['id'], row['id'])
 				)
-				self.signals.append(('tag-added-to-page', tag, pagename))
+				self.emit('tag-added-to-page', row, pagerow)
 
 		for row in oldtags.values():
-			tag = IndexTag(*row)
 			self.db.execute(
 				'DELETE FROM tagsources WHERE source=? and tag=?',
-				(page_id, tag.id)
+				(pagerow['id'], row['id'])
 			)
-			self.signals.append(('tag-removed-from-page', tag, pagename))
+			self.emit('tag-removed-from-page', row, pagerow)
 
-	def on_db_delete_page(self, page_indexer, page_id, pagename):
+	def on_page_row_deleted(self, pageindexer, row):
 		self.db.execute(
 			'DELETE FROM tagsources WHERE source=?',
-			(page_id,)
+			(row['id'],)
 		)
 
-	def on_db_finish_update(self, pages_indexer):
-		self.signals.extend([
-			('tag-deleted', IndexTag(*r)) for r in self.db.execute(
-				'SELECT tags.name, tags.id FROM tags '
-				'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
-			)
-		])
+	def on_finish_update(self, filesindexer):
+		for r in self.db.execute(
+			'SELECT tags.name, tags.id FROM tags '
+			'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
+		):
+			self.emit('tag-row-deleted', r)
+
 		self.db.execute(
 			'DELETE FROM tags '
 			'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
