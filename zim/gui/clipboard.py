@@ -73,11 +73,12 @@ TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 
 # All targets that we can convert to a parsetree, in order of choice
 PARSETREE_ACCEPT_TARGETS = (
-	PARSETREE_TARGET,
-	INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
+        PARSETREE_TARGET,
+        INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
 ) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
+
 
 
 # Mimetype text/uri-list is used for drag n drop of URLs
@@ -106,6 +107,75 @@ def unpack_urilist(text):
 	return [ line.decode('utf-8')
 		for line in lines if line and not line.isspace() ]
 		# Just to be sure we also skip empty or whitespace lines
+
+# TODO: Probably the serialize formats can replace custom copy/paste
+# handlers in TextView and TextBuffer as well
+
+
+def textbuffer_register_serialize_formats(buffer, notebook, page):
+	if gtk.pygtk_version >= (2, 10):
+		buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
+		buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
+		for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
+			buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
+		for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
+			buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
+
+def serialize_parse_tree(register_buf, content_buf, start, end):
+	tree = content_buf.get_parsetree((start, end))
+	xml = tree.tostring().encode('utf-8')
+	return xml
+
+def deserialize_parse_tree(register_buf, content_buf, iter, data, create_tags, user_data):
+	notebook, path = user_data
+	tree = ParseTree().fromstring(data)
+	tree.resolve_images(notebook, path)
+	content_buf.insert_parsetree(iter, tree, interactive=True)
+	return True
+
+def deserialize_urilist(register_buf, content_buf, iter, data, create_tags, user_data):
+	notebook, path = user_data
+	links = unpack_urilist(data)
+	tree = _link_tree(links, notebook, path)
+	content_buf.insert_parsetree(iter, tree, interactive=True)
+	return True
+
+def deserialize_image(register_buf, content_buf, iter, data, create_tags, user_data):
+	# Implementation note: we follow gtk_selection_get_pixbuf() in usage of
+	# gtk.PixbufLoader to capture clipboard data in a pixbuf object.
+	# We could skip this, but it allows for on-the-fly conversion of the data
+	# type.
+	mimetype, notebook, path = user_data
+
+	# capture image
+	loader = gtk.gdk.PixbufLoader()
+	loader.write(data)
+	loader.close()
+	pixbuf = loader.get_pixbuf()
+
+	# save it as an attachment
+	dir = notebook.get_attachments_dir(path)
+	if not dir.exists():
+		logger.debug("Creating attachment dir: %s", dir)
+		dir.touch()
+
+	format, extension = _get_image_info(mimetype)
+	if format is None or format == 'bmp':
+		# default to png format
+		# special casing bmp since many window apps use it internally
+		# but is quite large to store, so compress by using png
+		format, extension = 'png', 'png'
+
+	file = dir.new_file('pasted_image.%s' % extension)
+	logger.debug("Saving image from clipboard to %s", file)
+	pixbuf.save(file.path, format)
+	FS.emit('path-created', file) # notify version control
+
+	# and insert it in the page
+	links = [file.uri]
+	tree = _link_tree(links, notebook, path)
+	content_buf.insert_parsetree(iter, tree, interactive=True)
+	return True
 
 
 def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
