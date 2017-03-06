@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
 	info = zim.notebook.resolve_notebook(notebookpath)
 	notebook, page = zim.notebook.build_notebook(info)
-	notebook.index.update()
+	notebook.index.check_and_update()
 
 	if action == 'multi':
 		if page:

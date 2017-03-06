@@ -138,7 +138,7 @@ class WWWInterface(object):
 		self.plugins.extend(notebook)
 		self.plugins.extend(self)
 
-		#~ self.notebook.indexer.update()
+		#~ self.notebook.indexer.check_and_update()
 
 	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Follows the

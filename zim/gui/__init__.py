@@ -340,19 +340,12 @@ class GtkInterface(gobject.GObject):
 		notebook.connect('deleted-page', move_away) # after action
 		notebook.connect('moved-page', follow) # after action
 
-		def new_child(index, indexpath):
-			if self.page and indexpath.ischild(self.page):
+		def on_page_info_changed(notebook, page):
+			if self.page and page == self.page:
 				child = self.actiongroup.get_action('open_page_child')
-				child.set_sensitive(True)
+				child.set_sensitive(page.haschildren)
 
-		def child_deleted(index, indexpath):
-			if self.page and indexpath.ischild(self.page):
-				ourpath = index.lookup_path(self.page)
-				child = self.actiongroup.get_action('open_page_child')
-				child.set_sensitive(ourpath.haschildren)
-
-		notebook.index.connect('page-added', new_child)
-		notebook.index.connect('page-removed', child_deleted)
+		notebook.connect('page-info-changed', on_page_info_changed)
 
 		self.set_readonly(notebook.readonly)
 
@@ -370,9 +363,6 @@ class GtkInterface(gobject.GObject):
 
 		if self._first_page is None:
 			self._first_page = self.history.get_current()
-
-		# Check notebook
-		self.check_notebook_needs_upgrade()
 
 		# And here we go!
 		self._mainwindow.show_all()
@@ -411,43 +401,14 @@ class GtkInterface(gobject.GObject):
 		else:
 			self.open_page_home()
 
-		if not self.notebook.index.probably_uptodate:
+		if not self.notebook.index.is_uptodate:
 			# Show dialog, do fast foreground update
 			self.reload_index()
 		else:
 			# Start a lightweight background check of the index
-			self.notebook.index.start_update()
+			self.notebook.index.start_background_check()
 
 		self._mainwindow.pageview.grab_focus()
-
-	def check_notebook_needs_upgrade(self):
-		'''Check whether the notebook needs to be upgraded and prompt
-		the user to do so if this is the case.
-
-		Interactive wrapper for
-		L{Notebook.upgrade_notebook()<zim.notebook.Notebook.upgrade_notebook()>}.
-		'''
-		if not self.notebook.needs_upgrade:
-			return
-
-		ok = QuestionDialog(None, (
-			_('Upgrade Notebook?'), # T: Short question for question prompt
-			_('This notebook was created by an older of version of zim.\n'
-			  'Do you want to upgrade it to the latest version now?\n\n'
-			  'Upgrading will take some time and may make various changes\n'
-			  'to the notebook. In general it is a good idea to make a\n'
-			  'backup before doing this.\n\n'
-			  'If you choose not to upgrade now, some features\n'
-			  'may not work as expected') # T: Explanation for question to upgrade notebook
-		) ).run()
-
-		if not ok:
-			return
-
-		with ProgressBarDialog(self, _('Upgrading notebook')) as dialog: # T: Title of progressbar dialog
-			self.notebook.index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-			dialog.set_total(self.notebook.index.n_list_all_pages())
-			self.notebook.upgrade_notebook(callback=lambda p: dialog.pulse(p.name))
 
 	def get_toplevel(self):
 		return self._mainwindow
@@ -793,15 +754,7 @@ class GtkInterface(gobject.GObject):
 			forward.set_sensitive(False)
 
 		parent.set_sensitive(len(page.namespace) > 0)
-
-		try:
-			indexpath = self.notebook.pages.lookup_by_pagename(page)
-		except IndexNotFoundError:
-			pass
-		else:
-			child.set_sensitive(indexpath.haschildren)
-			# FIXME: Need index path here, page.haschildren is also True
-			#        when the page just has a attachment folder
+		child.set_sensitive(page.haschildren)
 
 	def close_page(self, page=None):
 		'''Close the page and try to save any changes in the page.
@@ -1048,7 +1001,7 @@ class GtkInterface(gobject.GObject):
 		'''Menu action to show an L{ExportDialog}'''
 		from zim.gui.exportdialog import ExportDialog
 
-		if not self.notebook.index.probably_uptodate:
+		if not self.notebook.index.is_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1078,7 +1031,7 @@ class GtkInterface(gobject.GObject):
 		@param path: a L{Path} object, or C{None} to move to current
 		selected page
 		'''
-		if not self.notebook.index.probably_uptodate:
+		if not self.notebook.index.is_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1093,7 +1046,7 @@ class GtkInterface(gobject.GObject):
 		@param path: a L{Path} object, or C{None} for the current
 		selected page
 		'''
-		if not self.notebook.index.probably_uptodate:
+		if not self.notebook.index.is_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1116,7 +1069,7 @@ class GtkInterface(gobject.GObject):
 			path = self._get_path_context()
 			if not path: return
 
-		if not self.notebook.index.probably_uptodate:
+		if not self.notebook.index.is_uptodate:
 			if not self.reload_index():
 				return # Cancelled
 
@@ -1191,7 +1144,8 @@ class GtkInterface(gobject.GObject):
 		from zim.gui.preferencesdialog import PreferencesDialog
 		PreferencesDialog(self).run()
 
-		if not self.notebook.index.probably_uptodate:
+		# Loading plugins can modify the index state
+		if not self.notebook.index.is_uptodate:
 			self.reload_index()
 
 	def do_preferences_changed(self, *a):
@@ -1527,19 +1481,16 @@ class GtkInterface(gobject.GObject):
 		@returns: C{True} unless the user cancelled the update
 		'''
 		self.emit('start-index-update')
-		self.notebook.index.stop_update()
 
 		dialog = ProgressBarDialog(self, _('Updating index'))
 			# T: Title of progressbar dialog
 		with dialog:
-			for c, p in self.notebook.index.update_iter():
-				dialog.pulse(p.name)
+			#for c, p in self.notebook.index.update_iter:
+			#	dialog.pulse(p.name)
+			for i in self.notebook.index.check_and_update_iter():
+				dialog.pulse()
 
 		self.emit('end-index-update')
-
-		if dialog.cancelled \
-		and not self.notebook.index.probably_uptodate:
-			self.notebook.index.start_update() # Keep going anyway
 
 		return not dialog.cancelled
 
@@ -1651,7 +1602,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				tool.run(args, cwd=cwd)
 				self.reload_page()
-				self.notebook.index.start_update()
+				self.notebook.index.start_background_check()
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
@@ -1864,13 +1815,6 @@ class MainWindow(Window):
 		self.statusbar.pack_end(frame, False)
 		frame.add(self.statusbar_backlinks_button)
 
-		index = self.ui.notebook.index
-		#~ index.connect('start-update',
-			#~ lambda o: self.statusbar.push(2, _('Updating index...')) )
-			#~ # T: statusbar message
-		#~ index.connect('end-update',
-			#~ lambda o: self.statusbar.pop(2) )
-
 		# add a second statusbar widget - somehow the corner grip
 		# does not render properly after the pack_end for the first one
 		#~ statusbar2 = gtk.Statusbar()
@@ -1915,7 +1859,7 @@ class MainWindow(Window):
 			return # Do not quit if page not saved
 
 		self.hide() # look more responsive
-		self.ui.notebook.index.stop_update()
+		self.ui.notebook.index.stop_background_check()
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
@@ -2639,11 +2583,8 @@ class ImportPageDialog(FileDialog):
 			basename = basename[:-4]
 
 		path = self.ui.notebook.pages.lookup_from_user_input(basename)
-		page = self.ui.notebook.get_page(path)
-		if page.hascontent:
-			path = self.ui.notebook.index.get_unique_path(path)
-			page = self.ui.notebook.get_page(path)
-			assert not page.exists()
+		page = self.ui.notebook.get_new_page(path)
+		assert not page.exists()
 
 		page.parse('wiki', file.readlines())
 		self.ui.notebook.store_page(page)

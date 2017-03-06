@@ -26,6 +26,10 @@ objects.
 @note: To open a notebook based on e.g. a commandline option it is
 almost always better to use L{build_notebook()} rather than istantiating
 the notebook directly.
+
+@note: for more information about threading and concurency,
+see L{zim.notebook.operations}
+
 '''
 
 from zim.fs import FilePath, File, Dir, FileNotFoundError
@@ -34,6 +38,9 @@ from zim.parsing import url_decode
 
 from .info import NotebookInfo, NotebookInfoList, \
 	resolve_notebook, get_notebook_list, get_notebook_info, interwiki_link
+
+from .operations import NotebookOperation, SimpleAsyncOperation, \
+	NotebookOperationOngoing, NotebookState
 
 from .notebook import Notebook, TrashNotSupportedError, \
 	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError

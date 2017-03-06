@@ -51,7 +51,7 @@ __all__ = [
 	'environ', 'fs', 'newfs',
 	'config', 'applications',
 	'parsing', 'formats', 'templates', 'objectmanager',
-	'indexers', 'indexviews', 'notebook', 'history',
+	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
 	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
 	'main', 'plugins',
@@ -215,9 +215,10 @@ def slowTest(obj):
 		return obj
 
 
-MOCK_ALWAYS = 'always' #: Always choose mock folder, alwasy fast
-MOCK_DEFAULT = 'default' #: By default use mock, but sometimes at random use real fs
-MOCK_NOT_BY_DEFAULT = 'no_default' #: By default use real fs, mock oly for --fast
+MOCK_ALWAYS_MOCK = 'mock' #: Always choose mock folder, alwasy fast
+MOCK_DEFAULT_MOCK = 'default_mock' #: By default use mock, but sometimes at random use real fs or at --full
+MOCK_DEFAULT_REAL = 'default_real' #: By default use real fs, mock oly for --fast
+MOCK_ALWAYS_REAL = 'real' #: always use real fs -- not recommended unless test fails for mock
 
 import random
 
@@ -245,26 +246,27 @@ class TestCase(unittest.TestCase):
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
 	@classmethod
-	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT):
+	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
-		Default use of "C{MOCK_DEFAULT}" means that about 20% of the cases
+		Default use of "C{MOCK_DEFAULT_MOCK}" means that about 20% of the cases
 		will use real filesystem at random while the rest will mock. (Thus
 		giving a balance between overall test speed and the whish to detect
 		cases where mock and real filesystem give different results.)
 		This behavior is overruled by "--fast" and "--full" in the test script.
 		@param name: basename for the folder, use class name if C{None}
-		@param mock: mock level for this test, one of C{MOCK_ALWAYS},
-		C{MOCK_DEFAULT} or C{MOCK_NOT_BY_DEFAULT}
+		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
+		C{MOCK_DEFAULT_MOCK}, C{MOCK_DEFAULT_REAL} or C{MOCK_ALWAYS_REAL}.
 		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
 		that is guarenteed non-existing
 		'''
 		path = cls._get_tmp_name(name)
 
-		if mock == MOCK_ALWAYS: use_mock = True
-		elif mock == MOCK_NOT_BY_DEFAULT:
+		if mock == MOCK_ALWAYS_MOCK: use_mock = True
+		elif mock == MOCK_ALWAYS_REAL: use_mock = False
+		elif mock == MOCK_DEFAULT_REAL:
 			if FAST_TEST: use_mock = True
 			else: use_mock = False
-		else: # MOCK_DEFAULT:
+		else: # MOCK_DEFAULT_MOCK:
 			if FULL_TEST: use_mock = False
 			elif FAST_TEST: use_mock = True
 			elif random.random() < 0.2:
@@ -286,6 +288,59 @@ class TestCase(unittest.TestCase):
 
 		assert not folder.exists()
 		return folder
+
+	@classmethod
+	def setUpNotebook(cls, name=None, mock=MOCK_ALWAYS_MOCK, content={}):
+		'''
+		@param name: basename for the folder, use class name if C{None}
+		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
+		@param content: dictionary where the keys are page names and the
+		values the page content.
+		'''
+		import datetime
+		from zim.newfs.mock import MockFolder
+		from zim.config import VirtualConfigBackend
+		from zim.notebook.notebook import NotebookConfig, Notebook
+		from zim.notebook.page import Path
+		from zim.notebook.layout import FilesLayout
+		from zim.notebook.index import Index
+		from zim.formats.wiki import WIKI_FORMAT_VERSION
+
+
+		folder = cls.setUpFolder(name, mock)
+		cache_dir = folder.folder('.zim')
+		layout = FilesLayout(folder, endofline='unix')
+
+		if isinstance(folder, MockFolder):
+			### XXX - Big HACK here - Get better classes for this - XXX ###
+			dir = VirtualConfigBackend()
+			file = dir.file('notebook.zim')
+			file.dir = dir
+			file.dir.basename = folder.basename
+			###
+			config = NotebookConfig(file)
+			index = Index(':memory:', layout)
+		else:
+			from zim.fs import Dir
+			conffile = Dir(folder.path).file('notebook.zim')
+			config = NotebookConfig(conffile)
+			cache_dir.touch()
+			index = Index(cache_dir.file('index.db').path, layout)
+
+		notebook = Notebook(None, cache_dir, config, folder, layout, index)
+		for name, text in content.items():
+			file, folder = layout.map_page(Path(name))
+			file.write(
+				(
+					'Content-Type: text/x-zim-wiki\n'
+					'Wiki-Format: %s\n'
+					'Creation-Date: %s\n\n'
+				) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
+				+ text + '\n'
+			)
+
+		notebook.index.check_and_update()
+		return notebook
 
 	@classmethod
 	def create_tmp_dir(cls, name=None):

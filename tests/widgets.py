@@ -138,8 +138,13 @@ class TestPageEntry(tests.TestCase):
 	entryklass = PageEntry
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
+		self.notebook = self.setUpNotebook(content={
+			'Test:foo': 'test 123',
+			'Test:link': '[[:Placeholder]]', # link
+			'Test:foo:bar': 'test 123',
+			'Test:bar': 'test 123',
+			'Bar': 'test 123'
+		})
 
 		self.reference = Path('Test:foo')
 		self.entry = self.entryklass(self.notebook, self.reference)
@@ -147,20 +152,24 @@ class TestPageEntry(tests.TestCase):
 	def runTest(self):
 		'''Test PageEntry widget'''
 		entry = self.entry
-		reference = self.reference
 
 		entry.set_path(Path('Test'))
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), ':Test')
 		self.assertEqual(entry.get_path(), Path('Test'))
 
-		entry.set_text('bar')
+		entry.set_text('placeholder')
 		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_path(), Path('Bar')) # resolved due to placeholder
+		self.assertEqual(entry.get_path(), Path('Placeholder'))
+				# unlike links, we do use placeholders when resolving pages
 
 		entry.set_text('non existing')
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Test:non existing'))
+
+		entry.set_text('bar')
+		self.assertTrue(entry.get_input_valid())
+		self.assertEqual(entry.get_path(), Path('Test:bar'))
 
 		entry.set_text('+bar')
 		self.assertTrue(entry.get_input_valid())
@@ -182,17 +191,17 @@ class TestPageEntry(tests.TestCase):
 
 		entry.set_text(':T')
 		self.assertTrue(entry.get_input_valid())
-		completions = get_completions(entry)
-		self.assertTrue(len(completions) > 5 and ':Test' in completions)
+		self.assertEqual(get_completions(entry), [':Bar', ':Placeholder', ':Test'])
 
 		entry.set_text('T')
 		self.assertTrue(entry.get_input_valid())
-		self.assertTrue(len(completions) > 5 and ':Test' in completions)
-		# completion now has full notebook
+		self.assertEqual(get_completions(entry),
+			['+bar', 'bar', 'foo', 'link', ':Bar', ':Placeholder', 'Test'] )
 
 		entry.set_text('Test:')
 		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:Foo(Bar)', 'Test:tags', 'Test:wiki'])
+		self.assertEqual(get_completions(entry),
+			['Test:bar', 'Test:foo', 'Test:link'])
 
 
 class TestNamespaceEntry(TestPageEntry):
@@ -224,6 +233,8 @@ class TestLinkEntry(TestPageEntry, TestFileEntry):
 	def runTest(self):
 		'''Test LinkEntry widget'''
 		TestPageEntry.runTest(self)
+
+		self.notebook.dir = Dir(self.notebook.layout.root.path) # XXX
 		TestFileEntry.runTest(self)
 
 

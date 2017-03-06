@@ -63,6 +63,10 @@ class Index(SignalEmitter):
 		self._db = self.new_connection()
 		self._db_check()
 		self.update_iter = IndexUpdateIter(self._db, self.layout)
+		self.update_iter.connect('commit', self.on_commit)
+
+	def on_commit(self, iter):
+		self.emit('changed')
 
 	def _db_check(self):
 		try:
@@ -135,11 +139,20 @@ class Index(SignalEmitter):
 		with self.lock:
 			self.update_iter.check_and_update()
 
+	def check_and_update_iter(self):
+		return self.update_iter.check_and_update_iter()
+
 	def flush(self):
 		'''Delete all data in the index'''
 		logger.info('Flushing index')
 		with self.lock:
 			self._db_init()
+
+	def start_background_check(self):
+		pass
+
+	def stop_background_check(self):
+		pass
 
 	def new_connection(self):
 		if self.dbpath == ':memory:' and hasattr(self, '_db'):
@@ -187,7 +200,7 @@ class Index(SignalEmitter):
 
 			filesindexer.emit('finish-update')
 			self._db.commit()
-			self.emit('changed')
+			self.on_commit(None)
 
 	def file_moved(self, oldfile, newfile):
 		# TODO: make this more efficient, specific for moved folders
@@ -202,9 +215,6 @@ class Index(SignalEmitter):
 		else:
 			raise TypeError
 
-
-class OldIndex(object):
-
 	def touch_current_page_placeholder(self, path):
 		'''Create a placeholder for C{path} if the page does not
 		exist. Cleans up old placeholders.
@@ -212,73 +222,32 @@ class OldIndex(object):
 		# This method uses a hack by linking the page from the ROOT_ID
 		# page if it does not exist.
 
-		with self.db_conn.db_change_context() as db:
-			# delete
-			db.execute(
+		with self.lock:
+			# cleanup
+			self._db.execute(
 				'DELETE FROM links WHERE source=?',
 				(ROOT_ID,)
 			)
-			for indexer in self._indexers:
-				if isinstance(indexer, LinksIndexer):
-					indexer.cleanup_placeholders(self._index, db)
+			self.update_iter.links.cleanup_placeholders(None)
 
 			# touch if needed
-			try:
-				indexpath = self._pages.lookup_by_pagename(db, path)
-			except IndexNotFoundError:
-				# insert link
-				# insert placeholder
-				target = self._index.touch_path(db, path)
-				#~ self._index.set_page_exists(db, target, PAGE_EXISTS_HAS_CONTENT) # hack to avoid cleanup before next step :S
-				db.execute(
+			row = self._db.execute(
+				'SELECT * FROM pages WHERE name = ?', (path.name,)
+			).fetchone()
+
+			if row is None:
+				pid = self.update_iter.pages.insert_link_placeholder(path)
+				self._db.execute( # Need link to prevent cleanup
 					'INSERT INTO links(source, target, rel, names) '
 					'VALUES (?, ?, ?, ?)',
-					(ROOT_ID, target.id, HREF_REL_ABSOLUTE, target.name)
+					(ROOT_ID, pid, HREF_REL_ABSOLUTE, path.name)
 				)
-				self._index.set_page_exists(db, target, PAGE_EXISTS_AS_LINK)
-			else:
-				pass # nothing to do
 
-			self._index.before_commit(db)
+			self._db.commit()
+			self.emit('changed')
 
-		self._index.after_commit()
 
-	def on_store_page(self, page):
-		with self.db_conn.db_change_context() as db:
-			try:
-				indexpath = self._pages.lookup_by_pagename(db, page)
-			except IndexNotFoundError:
-				indexpath = self._index.touch_path(db, page)
-
-			self._index.index_page(db, indexpath)
-			self._index.update_parent(db, indexpath.parent)
-
-			self._index.before_commit(db)
-
-		self._index.after_commit()
-
-	def on_move_page(self, oldpath, newpath):
-		# TODO - optimize by letting indexers know about move
-		if not (newpath == oldpath or newpath.ischild(oldpath)):
-			self.on_delete_page(oldpath)
-		self.update(newpath)
-
-	def on_delete_page(self, path):
-		with self.db_conn.db_change_context() as db:
-			try:
-				indexpath = self._pages.lookup_by_pagename(db, path)
-			except IndexNotFoundError:
-				return
-
-			for child in self._pages.walk_bottomup(db, indexpath):
-				self._index.delete_page(db, child, cleanup=False)
-
-			last_deleted = self._index.delete_page(db, indexpath, cleanup=True)
-			self._index.update_parent(db, last_deleted.parent)
-
-			self._index.before_commit(db)
-
-		self._index.after_commit()
+class OldIndex(object):
 
 	def add_plugin_indexer(self, indexer):
 		'''Add an indexer for a plugin
@@ -328,7 +297,11 @@ class OldIndex(object):
 		)
 
 
-class IndexUpdateIter(object):
+class IndexUpdateIter(SignalEmitter):
+
+	__signals__ = {
+		'commit': (None, None, ()),
+	}
 
 	def __init__(self, db, layout):
 		self.db = db
@@ -338,23 +311,34 @@ class IndexUpdateIter(object):
 		self.links = LinksIndexer(db, self.pages, self.files)
 		self.tags = TagsIndexer(db, self.pages, self.files)
 
+	def __call__(self):
+		return self
+
 	def __iter__(self):
 		for i in self.files.update_iter():
 			yield
 		self.db.commit()
+		self.emit('commit')
 
 	def update(self):
 		'''Convenience method to do a full update at once'''
 		for i in self.files.update_iter():
 			pass
 		self.db.commit()
+		self.emit('commit')
 
 	def check_and_update(self, file=None):
 		'''Convenience method to do a full update and check at once'''
+		for i in self.check_and_update_iter(file):
+			pass
+
+	def check_and_update_iter(self, file=None):
 		checker = FilesIndexChecker(self.db, self.layout.root)
 		checker.queue_check(file=file)
 		for out_of_date in checker.check_iter():
+			yield
 			if out_of_date:
 				for i in self.files.update_iter():
-					pass
+					yield
 		self.db.commit()
+		self.emit('commit')

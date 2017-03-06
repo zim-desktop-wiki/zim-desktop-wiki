@@ -179,9 +179,9 @@ class NotebookCommand(Command):
 			raise NotebookLookupError, _('Please specify a notebook')
 		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
 
-		if ensure_uptodate and not notebook.index.probably_uptodate:
-			for check, path in notebook.index.update_iter():
-				logger.info('Indexing %s', path.name)
+		if ensure_uptodate and not notebook.index.is_uptodate:
+			for info in notebook.index.update_iter():
+				logger.info('Indexing %s', info)
 
 		return notebook, page or uripage
 
@@ -273,7 +273,7 @@ class ServerCommand(NotebookCommand):
 		self.opts['port'] = int(self.opts.get('port', 8080))
 		self.opts.setdefault('template', 'Default')
 		notebook, page = self.build_notebook()
-		
+
 		self.server = httpd = zim.www.make_server(notebook, public=True, **self.get_options('template', 'port'))
 			# server attribute used in testing to stop sever in thread
 		logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
@@ -441,8 +441,8 @@ class IndexCommand(NotebookCommand):
 	def run(self):
 		notebook, p = self.build_notebook(ensure_uptodate=False)
 		notebook.index.flush()
-		for check, path in notebook.index.update_iter():
-			logger.info('Indexing %s', path.name)
+		for info in notebook.index.update_iter():
+			logger.info('Indexing %s', info)
 
 
 commands = {
@@ -748,4 +748,3 @@ def main(*argv):
 		return 1
 	else:
 		return 0
-

@@ -134,6 +134,7 @@ class LinksIndexer(IndexerBase):
 		) # Need to link somewhere, if target is gone, use ROOT instead
 
 	def on_finish_update(self, o):
+		# Resolve pending links
 		for row in self.db.execute(
 			'SELECT * FROM links WHERE needscheck=1 '
 			'ORDER BY anchorkey, names'
@@ -167,6 +168,8 @@ class LinksIndexer(IndexerBase):
 		).fetchone()
 		return c == 0
 
+	cleanup_placeholders = on_finish_update
+	
 
 class LinksView(IndexView):
 

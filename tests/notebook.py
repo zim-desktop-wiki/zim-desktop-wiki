@@ -826,7 +826,7 @@ class TestPage(TestPath):
 class TestMovePageNewNotebook(tests.TestCase):
 
 	def setUp(self):
-		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS)
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_MOCK)
 		layout = FilesLayout(folder, endofline='unix')
 		index = Index(':memory:', layout)
 

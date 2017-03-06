@@ -94,7 +94,8 @@ class TreeModelMixinBase(ConnectorMixin):
         self.index = index
         self.db = index._db
         self.cache = {}
-        self.connect_to_updateiter(index.update_iter)
+        self.connect_to_updateiter(index, index.update_iter)
+        self.connectto(index, 'new-update-iter', self.connect_to_updateiter)
 
 	def connect_to_updateiter(self, update_iter):
 		'''Connect to a new L{IndexUpdateIter}

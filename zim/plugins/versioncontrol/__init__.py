@@ -20,6 +20,7 @@ from zim.errors import Error
 from zim.applications import Application
 from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
+from zim.notebook.operations import NotebookState
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
 	ScrolledWindow, ScrolledTextView, VPaned
@@ -119,7 +120,7 @@ class NotebookExtension(ObjectExtension):
 		self.vcs = VCS.create(vcs, dir, dir)
 
 		if self.vcs:
-			with self.notebook.notebook_state:
+			with NotebookState(self.notebook):
 				self.vcs.init()
 
 	def teardown(self):
@@ -229,7 +230,7 @@ class MainWindowExtension(WindowExtension):
 			msg = _('Automatically saved version from zim')
 				# T: default version comment for auto-saved versions
 
-		with self.notebook_ext.notebook.notebook_state:
+		with NotebookState(self.notebook_ext.notebook):
 			try:
 				self.notebook_ext.vcs.commit(msg)
 			except NoChangesError:
@@ -248,7 +249,7 @@ class MainWindowExtension(WindowExtension):
 				gaction.set_sensitive(True)
 				self.on_preferences_changed(None, start=False)
 
-		with self.notebook_ext.notebook.notebook_state:
+		with NotebookState(self.notebook_ext.notebook):
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
 	@action(_('_Versions...')) # T: menu item

@@ -17,25 +17,18 @@ import zim.templates
 import zim.formats
 
 from zim.fs import File, Dir
+from zim.newfs import LocalFolder
+from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error, TrashNotSupportedError
 from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
+from .operations import notebook_state, NOOP
 from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 DATA_FORMAT_VERSION = (0, 4)
-
-
-from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
-
-
-from zim.newfs import LocalFolder
-
-
-class IndexNotUptodateError(Error):
-	pass # TODO description here?
 
 
 class NotebookConfig(INIConfigFile):
@@ -136,44 +129,20 @@ class PageReadOnlyError(Error):
 	_msg = _('Can not modify page: %s') # T: error message for read-only pages
 
 
+class IndexNotUptodateError(Error):
+	pass # TODO description here?
 
-_NOTEBOOK_CACHE = weakref.WeakValueDictionary()
 
+def assert_index_uptodate(method):
+	def wrapper(notebook, *arg, **kwarg):
+		if not notebook.index.is_uptodate:
+			raise IndexNotUptodateError, 'Index not up to date'
+		return method(notebook, *arg, **kwarg)
 
-def with_notebook_state(func):
-	'''Decorator function that aquires the notebook state'''
-	def wrapper(self, *args, **kwds):
-		with self.notebook_state:
-			return func(self, *args, **kwds)
 	return wrapper
 
 
-class NotebookState(object):
-	'''Context manager that ensures the index is up to date and
-	aquires the notebook threading lock.
-
-	In general this lock is not needed when only reading data from
-	the notebook. However it should be used when doing operations that
-	need a fixed state, e.g. exporting the notebook or when executing
-	version control commands on the storage directory.
-	'''
-
-	def __init__(self, notebook):
-		self.notebook = notebook
-		if not hasattr(notebook, '_notebook_state_lock'):
-			notebook._notebook_state_lock = threading.RLock()
-
-	def __enter__(self):
-		if not self.notebook.index.is_uptodate:
-			raise IndexNotUptodateError, 'Index not up to date'
-		self.notebook._notebook_state_lock.acquire()
-
-	def __exit__(self, *args):
-		self.notebook._notebook_state_lock.release()
-
-	def _is_owned(self):
-		return self.notebook._notebook_state_lock._is_owned()
-			# XXX using non-documented method of RLock, can break in future
+_NOTEBOOK_CACHE = weakref.WeakValueDictionary()
 
 
 class Notebook(ConnectorMixin, SignalEmitter):
@@ -208,7 +177,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
 	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
-	@ivar notebook_state: A L{NotebookState} object
 	@ivar profile: The name of the profile used by the notebook or C{None}
 	@ivar index: The L{Index} object used by the notebook
 	'''
@@ -221,6 +189,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'moved-page': (SIGNAL_NORMAL, None, (object, object)),
 		'delete-page': (SIGNAL_NORMAL, None, (object,)),
 		'deleted-page': (SIGNAL_NORMAL, None, (object,)),
+		'page-info-changed': (SIGNAL_NORMAL, None, (object,)),
 		'properties-changed': (SIGNAL_NORMAL, None, ()),
 		'new-page-template': (SIGNAL_NORMAL, None, (object, object)),
 
@@ -285,6 +254,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.config = config
 		self.layout = layout
 		self.index = index
+		self._operation_check = NOOP
 
 		self.readonly = not _iswritable(dir) if dir else None # XXX
 
@@ -300,8 +270,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.icon = None
 		self.document_root = None
 
-		self.notebook_state = NotebookState(self)
-
 		from .index import PagesView, LinksView, TagsView
 		self.pages = PagesView.new_from_index(self.index)
 		self.links = LinksView.new_from_index(self.index)
@@ -310,23 +278,22 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		def on_page_row_changed(o, row):
 			if row['name'] in self._page_cache:
 				self._page_cache[row['name']].haschildren = row['n_children'] > 0
+				self.emit('page-info-changed', self._page_cache[row['name']])
 
 		def on_page_row_deleted(o, row):
 			if row['name'] in self._page_cache:
 				self._page_cache[row['name']].haschildren = False
+				self.emit('page-info-changed', self._page_cache[row['name']])
 
 		self.index.update_iter.pages.connect('page-row-changed', on_page_row_changed)
 		self.index.update_iter.pages.connect('page-row-deleted', on_page_row_deleted)
-
-		#~ if self.needs_upgrade:
-			#~ logger.warn('This notebook needs to be upgraded to the latest data format')
 
 		self.do_properties_changed()
 
 	@property
 	def uri(self):
 		'''Returns a file:// uri for this notebook that can be opened by zim'''
-		return self.dir.uri
+		return self.layout.root.uri
 
 	@property
 	def info(self):
@@ -343,6 +310,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''The 'profile' property for this notebook'''
 		return self.config['Notebook'].get('profile') or None # avoid returning ''
 
+	@notebook_state
 	def save_properties(self, **properties):
 		'''Save a set of properties in the notebook config
 
@@ -353,12 +321,14 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		@emits: properties-changed
 		'''
+		dir = Dir(self.layout.root.path) # XXX
+
 		# Check if icon is relative
 		icon = properties.get('icon')
 		if icon and not isinstance(icon, basestring):
 			assert isinstance(icon, File)
-			if self.dir and icon.ischild(self.dir):
-				properties['icon'] = './' + icon.relpath(self.dir)
+			if icon.ischild(dir):
+				properties['icon'] = './' + icon.relpath(dir)
 			else:
 				properties['icon'] = icon.user_path or icon.path
 
@@ -366,8 +336,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		root = properties.get('document_root')
 		if root and not isinstance(root, basestring):
 			assert isinstance(root, Dir)
-			if self.dir and root.ischild(self.dir):
-				properties['document_root'] = './' + root.relpath(self.dir)
+			if root.ischild(dir):
+				properties['document_root'] = './' + root.relpath(dir)
 			else:
 				properties['document_root'] = root.user_path or root.path
 
@@ -386,9 +356,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 	def do_properties_changed(self):
 		config = self.config['Notebook']
+		dir = Dir(self.layout.root.path) # XXX
 
 		self.name = config['name']
-		icon, document_root = _resolve_relative_config(self.dir, config)
+		icon, document_root = _resolve_relative_config(dir, config)
 		if icon:
 			self.icon = icon.path # FIXME rewrite to use File object
 		else:
@@ -473,7 +444,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			page = self.get_page(path)
 		return page
 
-	@with_notebook_state
+	@notebook_state
 	def flush_page_cache(self, path):
 		'''Flush the cache used by L{get_page()}
 
@@ -498,6 +469,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''Returns a L{Page} object for the home page'''
 		return self.get_page(self.config['Notebook']['home'])
 
+	@notebook_state
 	def store_page(self, page):
 		'''Save the data from the page in the storage backend
 
@@ -505,23 +477,21 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: store-page before storing the page
 		@emits: stored-page on success
 		'''
-		with self._notebook_state_lock:
-			assert page.valid, 'BUG: page object no longer valid'
-			self.emit('store-page', page)
-			page._store()
-			file, folder = self.layout.map_page(page)
-			self.index.update_file(file)
-			self.emit('stored-page', page)
+		assert page.valid, 'BUG: page object no longer valid'
+		self.emit('store-page', page)
+		page._store()
+		file, folder = self.layout.map_page(page)
+		self.index.update_file(file)
+		self.emit('stored-page', page)
 
 	def _store_page_async(self, page, parsetree):
 		# HACK to avoid retrieving parsetree in thread
 		# remove when saving is fully integrated between page & pageview
-		with self._notebook_state_lock:
-			assert page.valid, 'BUG: page object no longer valid'
-			self.emit('store-page', page)
-			page._store_tree(parsetree)
-			self.index.on_store_page(page)
-			self.emit('stored-page', page)
+		assert page.valid, 'BUG: page object no longer valid'
+		self.emit('store-page', page)
+		page._store_tree(parsetree)
+		self.index.on_store_page(page)
+		self.emit('stored-page', page)
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook
@@ -549,7 +519,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		for p in self.move_page_iter(path, newpath, update_links):
 			pass
 
-	@with_notebook_state
+	@assert_index_uptodate
+	@notebook_state
 	def move_page_iter(self, path, newpath, update_links=True):
 		'''Like L{move_page()} but yields pages that are being updated
 		if C{update_links} is C{True}
@@ -785,7 +756,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return newpath
 
-	@with_notebook_state
+	@assert_index_uptodate
+	@notebook_state
 	def rename_page_iter(self, path, newbasename, update_heading=True, update_links=True):
 		'''Like L{rename_page()} but yields pages that are being updated
 		if C{update_links} is C{True}
@@ -807,6 +779,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				page.set_parsetree(tree)
 				self.store_page(page)
 
+	@assert_index_uptodate
+	@notebook_state
 	def delete_page(self, path, update_links=True):
 		'''Delete a page from the notebook
 
@@ -829,7 +803,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return existed
 
-	@with_notebook_state
+	@assert_index_uptodate
+	@notebook_state
 	def delete_page_iter(self, path, update_links=True):
 		'''Like L{delete_page()}'''
 		self._delete_page(path)
@@ -859,6 +834,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 			return True
 
+	@assert_index_uptodate
+	@notebook_state
 	def trash_page(self, path, update_links=True):
 		'''Move a page to Trash
 
@@ -890,7 +867,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		return existed
 
-	@with_notebook_state
+	@assert_index_uptodate
+	@notebook_state
 	def trash_page_iter(self, path, update_links=True):
 		'''Like L{trash_page()}'''
 		self._trash_page(path)
@@ -1018,8 +996,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				dir = self.get_attachments_dir(path)
 				return File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
 			else:
-				assert self.dir, 'Can not resolve relative path for notebook without root folder'
-				return File((self.dir, filename))
+				dir = Dir(self.layout.root.path) # XXX
+				return File((dir, filename))
 
 	def relative_filepath(self, file, path=None):
 		'''Get a file path relative to the notebook or page
@@ -1132,13 +1110,3 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		parser = zim.formats.get_parser('wiki')
 		return parser.parse(lines)
-
-	@property
-	def needs_upgrade(self):
-		'''Checks if the notebook is uptodate with the current zim version'''
-		try:
-			version = str(self.config['Notebook']['version'])
-			version = tuple(version.split('.'))
-			return version < DATA_FORMAT_VERSION
-		except KeyError:
-			return True

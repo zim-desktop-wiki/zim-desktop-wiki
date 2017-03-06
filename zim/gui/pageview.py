@@ -31,6 +31,7 @@ from zim.fs import File, Dir, normalize_file_uris, FilePath
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
+from zim.notebook.operations import NotebookState
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
@@ -4752,7 +4753,7 @@ class SavePageHandler(object):
 		'''Cancel a pending autosave'''
 		if self._autosave_timer:
 			gobject.source_remove(self._autosave_timer)
-			self._autosave_timer = None			
+			self._autosave_timer = None
 
 	def _assert_can_save_page(self, page):
 		if self.pageview.readonly:
@@ -4774,7 +4775,7 @@ class SavePageHandler(object):
 
 		self._thread_error_event.clear()
 
-		with self.notebook.notebook_state:
+		with NotebookState(self.notebook):
 			page = self.get_page_cb()
 			if page:
 				try:
@@ -4798,7 +4799,7 @@ class SavePageHandler(object):
 
 	def try_save_page(self):
 		'''Try to save the page
-		
+
 		  * Will not do anything if page is not modified or when an
 		    autosave is already in progress.
 		  * If last autosave resulted in an error, will run in the
@@ -4814,13 +4815,12 @@ class SavePageHandler(object):
 			self._autosave_timer = None
 			return False # stop timer
 
-		if self._thread and self._thread.is_alive() \
-		or self.notebook.notebook_state._is_owned():
+		if self._thread and self._thread.is_alive():
 			logger.debug('Save still in progress, skipping auto-save')
 			return True # Check back later if on timer
 		else:
 			self._thread = None
-			
+
 			if self._thread_error_event.is_set():
 				# Error in previous auto-save, save in foreground to allow error dialog
 				logger.debug('Last auto-save resulted in error, re-try in foreground')
@@ -4846,7 +4846,7 @@ class SavePageHandler(object):
 
 	def _save_page_async(self, page, tree, thread_started):
 		logger.debug('Saving page: %s (background autosave)', page)
-		with self.notebook.notebook_state:
+		with NotebookState(self.notebook):
 			thread_started.set() # we have the lock, allow parent to continue
 			try:
 				self._assert_can_save_page(page)
@@ -5311,7 +5311,7 @@ class PageView(gtk.VBox):
 			else:
 				self.page.modified = True
 				self.emit('modified-changed')
-				
+
 		self._save_page_handler.queue_autosave()
 
 	def save_changes(self, write_if_not_modified=False):
@@ -5856,7 +5856,7 @@ class PageView(gtk.VBox):
 			menu.prepend(item)
 
 		menu.show_all()
-			
+
 	def do_reload_page(self):
 		self.ui.reload_page()
 

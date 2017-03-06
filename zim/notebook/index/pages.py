@@ -370,11 +370,14 @@ class PagesViewInternal(object):
 					(anchor_key,)
 				) # sort longest first
 
+			maxdepth = source.name.count(':')
 			depth = -1 # level where items were found
 			found = [] # candidates that match the link - these can only differ in case of the basename
 			for name, in c:
 				mydepth = name.count(':')
-				if mydepth < depth:
+				if mydepth > maxdepth:
+					continue
+				elif mydepth < depth:
 					break
 
 				if mydepth > 0: # check whether we have a common parent
@@ -702,7 +705,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	# TODO: also caching name --> treepath in _find
 
-	def connect_to_updateiter(self, update_iter):
+	def connect_to_updateiter(self, index, update_iter):
 		self.connectto_all(update_iter.pages,
 			('page-row-inserted', 'page-row-changed', 'page-row-deleted')
 		)

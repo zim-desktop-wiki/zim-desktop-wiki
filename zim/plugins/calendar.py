@@ -21,7 +21,7 @@ from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
-from zim.notebook.index import IndexPageNotFoundError
+from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
 
 logger = logging.getLogger('zim.plugins.calendar')
@@ -496,7 +496,7 @@ class CalendarWidgetModel(object):
 					dates = daterange_from_path(path)
 					if dates and dates[0] == 'day':
 						yield dates[1]
-		except IndexPageNotFoundError:
+		except IndexNotFoundError:
 			pass
 
 

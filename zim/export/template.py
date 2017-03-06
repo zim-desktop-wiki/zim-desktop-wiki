@@ -94,7 +94,7 @@ from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
 
 from zim.newfs import FileNotFoundError
-from zim.notebook.index import IndexPageNotFoundError
+from zim.notebook.index import IndexNotFoundError
 from zim.notebook import Path
 
 
@@ -501,7 +501,7 @@ class PageProxy(ParseTreeProxy):
 			links = self._notebook.links.list_links(self._page, LINK_DIR_FORWARD)
 			for link in links:
 				yield NotebookPathProxy(link.target)
-		except IndexPageNotFoundError:
+		except IndexNotFoundError:
 			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
@@ -510,7 +510,7 @@ class PageProxy(ParseTreeProxy):
 			links = self._notebook.links.list_links(self._page, LINK_DIR_BACKWARD)
 			for link in links:
 				yield NotebookPathProxy(link.source)
-		except IndexPageNotFoundError:
+		except IndexNotFoundError:
 			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
@@ -525,7 +525,7 @@ class PageProxy(ParseTreeProxy):
 						yield FileProxy(file, dest_file=dest_file, relpath=href)
 			except FileNotFoundError:
 				pass
-		except IndexPageNotFoundError:
+		except IndexNotFoundError:
 			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 class HeadingProxy(ParseTreeProxy):

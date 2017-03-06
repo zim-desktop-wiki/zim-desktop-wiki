@@ -17,7 +17,7 @@ import logging
 from functools import partial
 
 from zim.notebook import Path
-from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord
+from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError
 
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
 	populate_popup_add_separator, encode_markup_text, \
@@ -139,11 +139,14 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 		return False # In case we are called from idle signal
 
 	def _emit_page_changes(self, path):
-		treepath = self.find(path)
-		if treepath:
+		try:
+			treepath = self.find(path)
+		except IndexNotFoundError:
+			return None
+		else:
 			treeiter = self.get_iter(treepath)
 			self.emit('row-changed', treepath, treeiter)
-		return treepath # can be None
+			return treepath
 
 	def set_current_page(self, path):
 		'''Set the current open page to highlight it in the index.
@@ -200,7 +203,7 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 			else:
 				return self.NORMAL_COLOR
 		elif column == WEIGHT_COL:
-			if iter.row['name'] == self.current_page.name:
+			if self.current_page and iter.row['name'] == self.current_page.name:
 				return pango.WEIGHT_BOLD
 			else:
 				return pango.WEIGHT_NORMAL
@@ -217,7 +220,7 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 		# on scroll, so don't make the time constant to large.
 		if not self._flush_scheduled:
 			def idle_add():
-				gobject.idle_add(self._flush)
+				gobject.idle_add(self.flush_cache)
 				return False # delete timeout
 
 			gobject.timeout_add(500, idle_add)
