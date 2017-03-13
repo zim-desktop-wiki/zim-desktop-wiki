@@ -22,16 +22,13 @@ class IndexTag(object):
 
 	@ivar name: the name of the tag, e.g. "foo" for an "@foo" in the page
 	@ivar id: the id of this tag in the table (primary key)
-	@ivar treepath: tuple of index numbers, reserved for use by
-	C{TreeStore} widgets
 	'''
 
-	__slots__ = ('name', 'id', 'treepath')
+	__slots__ = ('name', 'id')
 
-	def __init__(self, name, id, treepath=None):
+	def __init__(self, name, id):
 		self.name = name.lstrip('@')
 		self.id = id
-		self.treepath = treepath
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.name)
@@ -85,7 +82,7 @@ class TagsIndexer(IndexerBase):
 
 	def on_page_changed(self, pagesindexer, pagerow, doc):
 		oldtags = dict(
-			(r[0], (r[1], r[2])) for r in self.db.execute(
+			(r[0], r) for r in self.db.execute(
 				'SELECT tags.sortkey, tags.name, tags.id FROM tagsources '
 				'LEFT JOIN tags ON tagsources.tag = tags.id '
 				'WHERE tagsources.source=?',
@@ -120,11 +117,11 @@ class TagsIndexer(IndexerBase):
 				self.emit('tag-added-to-page', row, pagerow)
 
 		for row in oldtags.values():
+			self.emit('tag-removed-from-page', row, pagerow)
 			self.db.execute(
 				'DELETE FROM tagsources WHERE source=? and tag=?',
 				(pagerow['id'], row['id'])
 			)
-			self.emit('tag-removed-from-page', row, pagerow)
 
 	def on_page_row_deleted(self, pageindexer, row):
 		self.db.execute(
@@ -263,9 +260,8 @@ class TagsView(IndexView):
 			'SELECT tagsources.source '
 			'FROM tagsources JOIN pages ON tagsources.source=pages.id '
 			'WHERE tagsources.tag = ? '
-			'ORDER BY pages.sortkey, pages.name',
+			'ORDER BY pages.sortkey, LENGTH(pages.name), pages.name',
 			(tag.id,)
-			# order by id as well because basenames are not unique
 		):
 			yield self._pages.get_pagename(row['source'])
 
@@ -280,190 +276,401 @@ class TagsView(IndexView):
 		return r[0]
 
 
+from .pages import IS_PAGE, PagesTreeModelMixin, MyTreeIter
+
+assert IS_PAGE == 1
+IS_TAG = 2 #: Hint for MyTreeIter
 
 
-def get_indexpath_for_treepath_tagged_factory(db, cache):
-	'''Factory for the "get_indexpath_for_treepath()" method
-	used by the page index Gtk widget.
-	This method stores the corresponding treepaths in the C{treepath}
-	attribute of the indexpath.
-	The "tagged" version uses L{IndexTag}s for the toplevel with pages
-	underneath that match the specific tag, followed by their children.
-	@param db: a {sqlite3.Connection} object
-	@param cache: a dict used to store (intermediate) results
-	@returns: a function
-	'''
-	# This method is constructed by a factory to speed up all lookups
-	# it is defined here to keep all SQL code in the same module
-	assert not cache, 'Better start with an empty cache!'
+class TagsTreeModelBase(PagesTreeModelMixin):
 
-	def get_indextag(db, position):
-		if (position,) in cache:
-			return cache[(position,)]
+	def __init__(self, index, tags=None):
+		PagesTreeModelMixin.__init__(self, index)
+		assert tags is None or all(isinstance(t, basestring) for t in tags)
+		self.tags = tags or ()
+		self._tagids = None
+		self._update_ids()
 
-		row = db.execute(
-			'SELECT name, id FROM tags ORDER BY sortkey, name LIMIT 1 OFFSET ? ',
-			(position,)
-		).fetchone()
-		if row:
-			itag = IndexTag(*row, treepath=(position,))
-			cache[itag.treepath] = itag
-			return itag
-		else:
-			return None
-
-	def get_indexpath_for_treepath_tagged(treepath):
-		assert isinstance(treepath, tuple)
-		if treepath in cache:
-			return cache[treepath]
-
-		# Get toplevel tag
-		tag = get_indextag(db, treepath[0])
-		if len(treepath) == 1 or tag is None:
-			return tag
-
-		# Get toplevel page
-		mytreepath = tag.treepath + (treepath[1],)
-		if mytreepath in cache:
-			parent = cache[mytreepath]
-		else:
-			row = db.execute(
-				'SELECT pages.* '
-				'FROM tagsources JOIN pages ON tagsources.source=pages.id '
-				'WHERE tagsources.tag = ? '
-				'ORDER BY pages.sortkey, pages.name '
-				'LIMIT 1 OFFSET ? ',
-				(tag.id, treepath[1],)
+	def _update_ids(self):
+		# Cache the ids of the selected tags
+		ids = []
+		for tag in self.tags:
+			row = self.db.execute(
+				'SELECT name, id FROM tags WHERE name=?',
+				(tag.lstrip('@'),)
 			).fetchone()
 			if row:
-				parent = PageIndexRecord(row, mytreepath)
-				cache[mytreepath] = parent
-			else:
-				return None
+				name, id = row
+				ids.append(id)
+		self._tagids = tuple(ids)
 
-		# Iterate parent paths
-		for i in range(2, len(treepath)):
-			mytreepath = tuple(treepath[:i])
-			if mytreepath in cache:
-				parent = cache[mytreepath]
-			else:
-				row = db.execute(
-					'SELECT * FROM pages '
-					'WHERE parent=? '
-					'ORDER BY sortkey, name '
-					'LIMIT 1 OFFSET ? ',
-					(parent.id, mytreepath[-1])
-				).fetchone()
-				if row:
-					parent = PageIndexRecord(row, mytreepath)
-					cache[mytreepath] = parent
-				else:
-					return None
+		if not self._tagids:
+			self._tagquery = ''
+		elif len(self._tagids) == 1:
+			self._tagquery = ' = %i' % self._tagids[0]
+		else:
+			self._tagquery = ' in %s' % (self._tagids,)
 
-		# Now cache a slice at the target level
-		parentpath = treepath[:-1]
-		offset = treepath[-1]
-		for i, row in enumerate(db.execute(
-			'SELECT * FROM pages '
-			'WHERE parent=? '
-			'ORDER BY sortkey, name '
-			'LIMIT 20 OFFSET ? ',
-			(parent.id, offset)
-		)):
-			mytreepath = parentpath + (offset + i,)
-			if not mytreepath in cache:
-				indexpath = PageIndexRecord(row, mytreepath)
-				cache[mytreepath] = indexpath
+	def _emit_children_inserted(self, pageid, treepath):
+		treeiter = self.get_iter(treepath) # not mytreeiter !
+		self.emit('row-has-child-toggled', treepath, treeiter)
+		for row in self.db.execute(
+			'SELECT id, name, n_children FROM pages WHERE parent = ?',
+			(pageid,)
+		):
+			for childtreepath in self._find_all_pages(row['name']):
+				if childtreepath[:-1] == treepath:
+					treeiter = self.get_iter(childtreepath) # not mytreeiter !
+					self.emit('row-inserted', childtreepath, treeiter)
+					if row['n_children'] > 0:
+						self._emit_children_inserted(row['id'], childtreepath) # recurs
 
-		try:
-			return cache[treepath]
-		except KeyError:
-			return None
+	def connect_to_updateiter(self, index, update_iter):
+		self.connectto_all(update_iter.pages,
+			('page-row-inserted', 'page-row-changed', 'page-row-deleted')
+		)
+		self.connectto_all(update_iter.tags,
+			('tag-row-inserted', 'tag-row-deleted', 'tag-added-to-page', 'tag-removed-from-page')
+		)
 
-	return get_indexpath_for_treepath_tagged
+	def on_tag_row_inserted(self, o, row):
+		if row['name'] in self.tags: self._update_ids()
+		# Don't emit further, view did not yet change
+
+	def on_tag_row_deleted(self, o, row):
+		if row['name'] in self.tags: self._update_ids()
+		# Don't emit further, view already changed
 
 
-def get_treepaths_for_indexpath_tagged_factory(db, cache):
-	'''Factory for the "get_treepath_for_indexpath()" method
-	used by the page index Gtk widget.
-	The "tagged" version uses L{IndexTag}s for the toplevel with pages
-	underneath that match the specific tag, followed by their children.
-	@param db: a C{sqlite3.Connection} object
-	@param cache: a dict used to store (intermediate) results
-	@returns: a function
-	'''
-	# This method is constructed by a factory to speed up all lookups
-	# it is defined here to keep all SQL code in the same module
-	#
-	# We don't do a reverse cache lookup - faster to just go forwards.
-	# Only cache to ensure subsequent get_indexpath_for_treepath calls
-	# are faster. Don't overwrite existing items in the cache to ensure
-	# ref count on paths.
-	#
-	# For the tagged version, all tags are toplevel, so walk parents and
-	# add a result for each tag of each parent followed by sub-tree
-	assert not cache, 'Better start with an empty cache!'
 
-	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(db, {})
+class TaggedPagesTreeModelMixin(TagsTreeModelBase):
+	'''Tree model that shows all pages for a given set of tags'''
 
-	def get_tag_position(tagname, tagid):
-		tagsortkey = natural_sort_key(tagname)
-		row = db.execute(
-			'SELECT COUNT(*) '
-			'FROM tags '
-			'WHERE ('
-			'   sortkey<? '
-			'   or (sortkey=? and name<?) '
-			')',
-			(tagsortkey, tagsortkey, tagname)
+	def _matches_all(self, pageid):
+		count, = self.db.execute('''
+			SELECT COUNT(*) FROM tagsources
+			LEFT JOIN pages ON tagsources.source = pages.id
+			WHERE source = ? AND tag ''' + self._tagquery,
+			(pageid,)
 		).fetchone()
-		return row[0]
+		return count == len(self._tagids)
 
-	def get_treepaths_for_indexpath_tagged(indexpath):
-		if isinstance(indexpath, IndexTag):
-			tagposition = get_tag_position(indexpath.name, indexpath.id)
-			return [(tagposition,)]
+	def on_tag_added_to_page(self, o, row, pagerow):
+		self.flush_cache()
+		if row['name'] in self.tags \
+		and self._matches_all(pagerow['id']):
+			# Without the new tag it did not match, so add to view
+			# Find top level entry - ignore possible deeper matches
+			for treepath in self._find_all_pages(pagerow['name']):
+				if len(treepath) == 1:
+					treeiter = self.get_iter(treepath) # not mytreeiter !
+					self.emit('row-inserted', treepath, treeiter)
+					if pagerow['n_children'] > 0:
+						self._emit_children_inserted(pagerow['id'], treepath)
 
-		# for each parent find each tag as starting point
+	def on_tag_removed_from_page(self, o, row, pagerow):
+		self.flush_cache()
+		if row['name'] in self.tags \
+		and self._matches_all(pagerow['id']):
+			# Still matches, but no longer after tag is removed
+			# Find top level entry - ignore possible deeper matches
+			for treepath in self._find_all_pages(pagerow['name']):
+				if len(treepath) == 1:
+					self.emit('row-deleted', treepath)
+
+	def n_children_top(self):
+		c, = self.db.execute('''
+			SELECT COUNT(DISTINCT pages.id) FROM pages
+			INNER JOIN tagsources ON pages.id = tagsources.source
+			WHERE tagsources.tag''' + self._tagquery
+		).fetchone()
+		return c
+
+	def get_mytreeiter(self, treepath):
+		# Since we derive from PagesTreeModelMixin, we only need to manage the
+		# top level. For lower levels the parent class will manage,
+		# as long as we make sure the parent treepath is in the cache
+		if treepath in self.cache:
+			return self.cache[treepath]
+
+		if len(treepath) == 1:
+			offset, = treepath
+			for i, row in enumerate(self.db.execute('''
+					SELECT pages.* FROM pages
+					INNER JOIN tagsources ON pages.id = tagsources.source
+					WHERE tagsources.tag %s
+					GROUP BY source HAVING count(tag) = ?
+					ORDER BY sortkey, LENGTH(name), name LIMIT 20 OFFSET ?
+				''' % self._tagquery,
+				(len(self._tagids), offset,)
+			)):
+				mytreepath = (offset + i,)
+				if mytreepath not in self.cache:
+					self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+				else:
+					break
+
+			return self.cache.get(treepath, None)
+		else:
+			return PagesTreeModelMixin.get_mytreeiter(self, treepath)
+
+	def _find_all_pages(self, name):
+		# multiple top levels, below remainder is always the same
 		treepaths = []
-		normalpath = get_treepath_for_indexpath(indexpath)
-		names = indexpath.parts
-		for i, basename in enumerate(names):
-			name = ':'.join(names[:i+1])
-
-			r = db.execute(
-				'SELECT id FROM pages WHERE name=?',
-				(name,)
-			).fetchone()
-			if r:
-				page_id, = r
+		names = name.split(':')
+		pagetreepath = PagesTreeModelMixin._find_all_pages(self, name, update_cache=False)[0]
+		assert len(names) == len(pagetreepath)
+		for i in range(len(names)):
+			n = ':'.join(names[:i+1])
+			row = self.db.execute('SELECT * FROM pages WHERE name=?', (n,)).fetchone()
+			if row is None:
+				raise IndexNotFoundError, name
 			else:
-				raise IndexConsistencyError, 'No such page: %s' % name
+				if self._matches_all(row['id']):
+					offset, = self.db.execute('''
+							SELECT COUNT(*) FROM (
+								SELECT * FROM pages
+								INNER JOIN tagsources ON pages.id = tagsources.source
+								WHERE tagsources.tag %s AND (
+										sortkey < ?
+										or (sortkey = ? and LENGTH(name) < ?)
+										or (sortkey = ? and LENGTH(name) = ? and name < ?)
+								)
+								GROUP BY source HAVING count(tag) = ?
+							)
+						''' % self._tagquery,
+						(
+							row['sortkey'],
+							row['sortkey'], len(row['name']),
+							row['sortkey'], len(row['name']), row['name'],
+							len(self._tagids)
+						)
+					).fetchone()
+					mytreepath = (offset,)
 
-			tags = db.execute(
-				'SELECT tags.name, tags.id '
-				'FROM tagsources '
-				'LEFT JOIN tags ON tagsources.tag=tags.id '
-				'WHERE tagsources.source = ?',
-				(page_id,)
-			).fetchall()
+					if mytreepath not in self.cache:
+						myiter = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+						self.cache[mytreepath] = myiter
 
-			sortkey = natural_sort_key(basename)
-			for tagname, tagid in tags:
-				tagposition = get_tag_position(tagname, tagid)
-				n, = db.execute(
-					'SELECT COUNT(*) FROM tagsources '
-					'LEFT JOIN pages ON tagsources.source=pages.id '
-					'WHERE tagsources.tag = ? and ('
-					'	pages.sortkey<? '
-					'	or (pages.sortkey=? and pages.name<?)'
-					')',
-					(tagid, sortkey, sortkey, name)
-				).fetchone()
-				mytreepath = (tagposition, n,) + normalpath[i+1:]
-					# tag + toplevel + remainder of real treepath
-				treepaths.append(mytreepath)
+					treepaths.append(mytreepath + pagetreepath[i+1:])
 
+		treepaths.sort()
 		return treepaths
 
-	return get_treepaths_for_indexpath_tagged
+
+class TagsTreeModelMixin(TagsTreeModelBase):
+	'''Tree model mixin class that uses tags as the toplevel
+
+		tag1
+			page_with_tag1
+				child
+				child
+			...
+		tag2
+			page_with_tag2
+		...
+
+	If any tags are given on construction, the top level will be limitted
+	to that set.
+	'''
+
+	def _get_offset_n_children(self, row):
+		offset, = self.db.execute('''
+				SELECT COUNT(*) FROM tags
+				WHERE (sortkey < ? or (sortkey < ? and name < ?))
+			''',
+			(row['sortkey'], row['sortkey'], row['name'])
+		).fetchone()
+		n_children, = self.db.execute(
+			'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
+		).fetchone()
+		return offset, n_children
+
+	def on_tag_added_to_page(self, o, row, pagerow):
+		if row['name'] in self._tagids:
+			offset, n_children = self._get_offset_n_children(row)
+
+			# emit row-insert for toplevel tag if needed
+			if n_children == 1:
+				treepath = (offset,)
+				treeiter = self.get_iter(treepath) # not mytreeiter !
+				self.emit('row-inserted', treepath, treeiter)
+
+			# emit row-inserted 2nd level - recurs for children
+			for treepath in self._find_all_pages(pagerow['name']):
+				if treepath[0] == offset:
+					treeiter = self.get_iter(treepath) # not mytreeiter !
+					self.emit('row-inserted', treepath, treeiter)
+					if pagerow['n_children'] > 0:
+						self._emit_children_inserted(pagerow['id'], treepath)
+
+	def on_tag_removed_from_page(self, o, row, pagerow):
+		if row['name'] in self.tags:
+			offset, n_children = self._get_offset_n_children(row)
+
+			# emit row-deleted 2nd level
+			for treepath in self._find_all_pages(pagerow['name']):
+				if treepath[0] == offset:
+					self.emit('row-deleted', treepath)
+
+			# emit row-insert for toplevel tag if needed
+			if n_children == 1:
+				treepath = (offset,)
+				self.emit('row-deleted', treepath)
+
+	def get_mytreeiter(self, treepath):
+		# Since we derive from PagesTreeModelMixin, we only need to manage the
+		# two highest levels. For lower levels the parent class will manage,
+		# as long as we make sure the parent treepath is in the cache
+		if treepath in self.cache:
+			return self.cache[treepath]
+
+		if len(treepath) == 1: # Toplevel tag
+			offset, = treepath
+			if self._tagids: # Selection
+				row = self.db.execute('''
+						SELECT * FROM tags WHERE id in %s
+						ORDER BY sortkey, name LIMIT 1 OFFSET ?
+					''' % (self._tagids,),
+					(offset,)
+				).fetchone()
+			else: # Full set
+				row = self.db.execute('''
+						SELECT * FROM tags
+						ORDER BY sortkey, name LIMIT 1 OFFSET ?
+					''',
+					(offset,)
+				).fetchone()
+
+			if row is None:
+				return None
+			else:
+				n_children, = self.db.execute(
+					'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
+				).fetchone()
+				mytreeiter = MyTreeIter(treepath, row, n_children, IS_TAG)
+				self.cache[treepath] = mytreeiter
+				return mytreeiter
+
+		elif len(treepath) == 2: # Top level page below tag
+			tag_path = treepath[:-1]
+			tag_iter = self.get_mytreeiter(tag_path) # recurs
+			if not tag_iter:
+				return None
+
+			offset = treepath[-1]
+			for i, row in enumerate(self.db.execute('''
+					SELECT DISTINCT pages.* FROM pages
+					INNER JOIN tagsources ON pages.id = tagsources.source
+					WHERE tagsources.tag = ?
+					ORDER BY sortkey, LENGTH(name), name LIMIT 20 OFFSET ?
+				''',
+				(tag_iter.row['id'], offset,)
+			)):
+				mytreepath = tag_path + (offset + i,)
+				if mytreepath not in self.cache:
+					self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+				else:
+					break
+
+			return self.cache.get(treepath, None)
+
+		else:
+			return PagesTreeModelMixin.get_mytreeiter(self, treepath)
+
+	def find(self, path):
+		return sorted(self.find_all(path))[0]
+
+	def find_all(self, path):
+		if isinstance(path, IndexTag):
+			return [self._find_tag(path.name)]
+		else:
+			if path.isroot:
+				raise ValueError
+			return self._find_all_pages(path.name)
+
+	def _find_tag(self, tag):
+		if isinstance(tag, int):
+			row = self.db.execute(
+				'SELECT * FROM tags WHERE id = ?', (tag,)
+			).fetchone()
+		else:
+			row = self.db.execute(
+				'SELECT * FROM tags WHERE name = ?', (tag,)
+			).fetchone()
+
+		if row is None:
+			raise IndexNotFoundError
+
+		offset, = self.db.execute('''
+				SELECT COUNT(*) FROM tags
+				WHERE (sortkey < ? or (sortkey < ? and name < ?))
+			''',
+			(row['sortkey'], row['sortkey'], row['name'])
+		).fetchone()
+		mytreepath = (offset,)
+		if mytreepath not in self.cache:
+			n_children = self.db.execute(
+				'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
+			)
+			myiter = MyTreeIter(mytreepath, row, n_children, IS_TAG)
+			self.cache[mytreepath] = myiter
+		return mytreepath
+
+	def _find_all_pages(self, name):
+		# multiple top levels, below remainder is always the same
+		treepaths = []
+		names = name.split(':')
+		pagetreepath = PagesTreeModelMixin._find_all_pages(self, name, update_cache=False)[0]
+		assert len(names) == len(pagetreepath)
+		for i in range(len(names)):
+			n = ':'.join(names[:i+1])
+			row = self.db.execute('SELECT * FROM pages WHERE name=?', (n,)).fetchone()
+			if row is None:
+				raise IndexNotFoundError, name
+			else:
+				for tagid in self._matching_tag_ids(row['id']):
+					mytreepath = self._find_tag(tagid)
+
+					offset, = self.db.execute('''
+							SELECT COUNT(DISTINCT pages.id) FROM pages
+							INNER JOIN tagsources ON pages.id = tagsources.source
+							WHERE tagsources.tag = ? AND (
+								sortkey < ?
+								or (sortkey = ? and LENGTH(name) < ?)
+								or (sortkey = ? and LENGTH(name) = ? and name < ?)
+							)
+							ORDER BY sortkey, LENGTH(name), name
+						''',
+						(tagid,
+							row['sortkey'],
+							row['sortkey'], len(row['name']),
+							row['sortkey'], len(row['name']), row['name']
+						)
+					).fetchone()
+
+					mytreepath = mytreepath + (offset,)
+					if mytreepath not in self.cache:
+						myiter = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+						self.cache[mytreepath] = myiter
+
+					treepaths.append(mytreepath + pagetreepath[i+1:])
+
+		treepaths.sort()
+		return treepaths
+
+	def _matching_tag_ids(self, pageid):
+		# Returns tag ids for tags from our set that include page
+		if self._tagids:
+			rows = self.db.execute('''
+				SELECT tag FROM tagsources
+				WHERE source = ? AND tag ''' + self._tagquery,
+				(pageid,)
+			)
+		else:
+			rows = self.db.execute('''
+				SELECT tag FROM tagsources
+				WHERE source = ?''',
+				(pageid,)
+			)
+		return tuple(r[0] for r in rows)

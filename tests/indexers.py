@@ -63,7 +63,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		#   2. Check and update after new files appear
 		#   3. Check and update after files disappear
 
-		self.root = self.setUpFolder(mock=tests.MOCK_NOT_BY_DEFAULT)
+		self.root = self.setUpFolder(mock=tests.MOCK_DEFAULT_REAL)
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 

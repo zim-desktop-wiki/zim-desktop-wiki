@@ -35,16 +35,40 @@ TREEPATHS = (
 	('Foo:Child2', (1,1)),
 	('Foo:Child3', (1,2)),
 )
-TAGS = {
-	'tag1': ['Bar', 'Foo:Child1'],
-	'tag2': ['Bar', 'Foo:Child1', 'Foo:Child2', 'Foo:Child1:GrandChild1'],
-}
 LINKS = (
 	('Bar', ['Foo'], []),
 	('Foo', [], ['Bar']),
 	('Foo:Child1', [], []),
 	('Foo:Child2', ['Foo:Child3'], []),
 	('Foo:Child3', [], ['Foo:Child2']),
+)
+TAGS = {
+	'tag1': ['Bar', 'Foo:Child1'],
+	'tag2': ['Bar', 'Foo:Child1', 'Foo:Child2', 'Foo:Child1:GrandChild1'],
+}
+TREEPATHS_TAGGED_12 = (
+	# include only pages that have both tags
+	# top level sorts by basename
+	('Bar', (0,)),
+	('Foo:Child1', (1,)),
+		('Foo:Child1:GrandChild1', (1,0)),
+		('Foo:Child1:GrandChild2', (1,1)),
+)
+TREEPATHS_TAGS_12 = (
+	# include all pages with any of the tags
+	# top level sorts by basename: Bar, Child, GranChild
+	('tag1', (0,)),
+		('Bar', (0,0)),
+		('Foo:Child1', (0,1)),
+			('Foo:Child1:GrandChild1', (0,1,0)),
+			('Foo:Child1:GrandChild2', (0,1,1)),
+	('tag2', (1,)),
+		('Bar', (1,0,)),
+		('Foo:Child1', (1,1,)),
+			('Foo:Child1:GrandChild1', (1,1,0)),
+			('Foo:Child1:GrandChild2', (1,1,1)),
+		('Foo:Child2', (1,2,)),
+		('Foo:Child1:GrandChild1', (1,3,)),
 )
 
 _SQL = None
@@ -204,6 +228,7 @@ class TestPagesView(tests.TestCase):
 		mockindex._db = db
  		mockindex.update_iter = tests.MockObject()
  		mockindex.update_iter.pages = tests.MockObject()
+
 		model = PagesTreeModelMixin(mockindex)
 
 		# Test all pages
@@ -219,47 +244,9 @@ class TestPagesView(tests.TestCase):
 		self.assertIsNone(p)
 		self.assertRaises(IndexNotFoundError, model.find, Path('non-existing-page'))
 
-	def testTreePathMethodsFlatlist(self):
-		db = new_test_database()
-		pages = PagesView(db)
-
-		def check_treepath(
-			get_indexpath_for_treepath,
-			get_treepaths_for_indexpath,
-		):
-			# Test all pages
-			for name, treepath in TREEPATHS:
-				indexpath = Path(name)
-				for treepath in get_treepaths_for_indexpath(indexpath):
-					myindexpath = get_indexpath_for_treepath(treepath)
-					self.assertEqual(myindexpath.name, name)
-					self.assertEqual(myindexpath.treepath, treepath)
-
-			# Test non-existing
-			p = get_indexpath_for_treepath((1,2,3,4,5))
-			self.assertIsNone(p)
-
-		# Separate caches to lets each method start from scratch
-		cache1 = {}
-		cache2 = {}
-		check_treepath(
-			get_indexpath_for_treepath_flatlist_factory(db, cache1),
-			get_treepaths_for_indexpath_flatlist_factory(db, cache2)
-		)
-
-		#~ self.assertEqual(cache1, cache2)
-
-		# Now try again with a shared cache
-		cache = {}
-		check_treepath(
-			get_indexpath_for_treepath_flatlist_factory(db, cache),
-			get_treepaths_for_indexpath_flatlist_factory(db, cache)
-		)
-
 
 from zim.notebook.index.tags import TagsIndexer, TagsView, IndexTag, \
-		get_indexpath_for_treepath_tagged_factory, \
-		get_treepaths_for_indexpath_tagged_factory
+		TaggedPagesTreeModelMixin, TagsTreeModelMixin
 
 
 class TestTagsView(tests.TestCase):
@@ -303,52 +290,85 @@ class TestTagsView(tests.TestCase):
 		with self.assertRaises(IndexNotFoundError):
 			tags.list_pages('foooo')
 
-	def testTreePathMethodsTagged(self):
+	def walk_treepaths(self, model, start=()):
+		maxrange = 100
+		for i in range(0, maxrange):
+			assert i < maxrange
+			mypath = start + (i,)
+			myiter = model.get_mytreeiter(mypath)
+			if myiter:
+				yield (str(myiter.row['name']), mypath)
+				for p in self.walk_treepaths(model, mypath):
+					yield p
+			else:
+				break
+
+	def testTaggedPagesTreePathMethods(self):
 		db = new_test_database()
-		pages = PagesView(db)
+		mockindex = tests.MockObject()
+		mockindex._db = db
+ 		mockindex.update_iter = tests.MockObject()
+ 		mockindex.update_iter.pages = tests.MockObject()
+ 		mockindex.update_iter.tags = tests.MockObject()
+
+		model = TaggedPagesTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
+
+		# Test all pages
+		for name, treepath in TREEPATHS_TAGGED_12:
+			myiter = model.get_mytreeiter(treepath)
+			self.assertEqual(myiter.row['name'], name)
+			self.assertEqual(myiter.treepath, treepath)
+
+			my_treepaths = model.find_all(Path(name))
+			self.assertIn(treepath, my_treepaths)
+			for treepath in my_treepaths:
+				myiter = model.get_mytreeiter(treepath)
+				self.assertEqual(myiter.row['name'], name)
+
+		# Test no more data than above
+		treepaths = list(self.walk_treepaths(model))
+		self.assertEqual(treepaths, list(TREEPATHS_TAGGED_12))
+
+		# Test non-existing
+		p = model.get_mytreeiter((1,2,3,4,5))
+		self.assertIsNone(p)
+		self.assertRaises(IndexNotFoundError, model.find_all, Path('non-existing-page'))
+
+	def testTagsTreePathMethods(self):
+		db = new_test_database()
+		mockindex = tests.MockObject()
+		mockindex._db = db
+ 		mockindex.update_iter = tests.MockObject()
+ 		mockindex.update_iter.pages = tests.MockObject()
+ 		mockindex.update_iter.tags = tests.MockObject()
+
+		model = TagsTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 		tags = TagsView(db)
 
-		def check_treepath(
-			get_indexpath_for_treepath,
-			get_treepaths_for_indexpath,
-		):
-			# Test all tags
-			for tag in tags.list_all_tags():
-				treepaths = get_treepaths_for_indexpath(tag)
-				self.assertTrue(len(treepaths) == 1 and len(treepaths[0]) == 1)
-				indextag = get_indexpath_for_treepath(treepaths[0])
-				self.assertEqual(indextag.treepath, treepaths[0])
-				self.assertEqual(indextag.name, tag.name)
+		# Test all pages
+		for name, treepath in TREEPATHS_TAGS_12:
+			myiter = model.get_mytreeiter(treepath)
+			self.assertEqual(myiter.row['name'], name)
+			self.assertEqual(myiter.treepath, treepath)
+			if len(treepath) == 1:
+				tag = tags.lookup_by_tagname(name)
+				my_treepaths = model.find_all(tag)
+			else:
+				my_treepaths = model.find_all(Path(name))
 
-			# Test all pages
-			for name, x in TREEPATHS:
-				indexpath = Path(name)
-				for treepath in get_treepaths_for_indexpath(indexpath):
-					myindexpath = get_indexpath_for_treepath(treepath)
-					self.assertEqual(myindexpath.name, name)
-					self.assertEqual(myindexpath.treepath, treepath)
+			self.assertIn(treepath, my_treepaths)
+			for treepath in my_treepaths:
+				myiter = model.get_mytreeiter(treepath)
+				self.assertEqual(myiter.row['name'], name)
 
-			# Test non-existing
-			p = get_indexpath_for_treepath((20,))
-			self.assertIsNone(p)
-			p = get_indexpath_for_treepath((1,2,3,4,5))
-			self.assertIsNone(p)
+		# Test no more data than above
+		treepaths = list(self.walk_treepaths(model))
+		self.assertEqual(treepaths, list(TREEPATHS_TAGS_12))
 
-		# Separate caches to lets each method start from scratch
-		cache1 = {}
-		cache2 = {}
-		check_treepath(
-			get_indexpath_for_treepath_tagged_factory(db, cache1),
-			get_treepaths_for_indexpath_tagged_factory(db, cache2)
-		)
-
-		# Now try again with a shared cache
-		cache = {}
-		check_treepath(
-			get_indexpath_for_treepath_tagged_factory(db, cache),
-			get_treepaths_for_indexpath_tagged_factory(db, cache)
-		)
-
+		# Test non-existing
+		p = model.get_mytreeiter((1,2,3,4,5))
+		self.assertIsNone(p)
+		self.assertRaises(IndexNotFoundError, model.find_all, Path('non-existing-page'))
 
 
 from zim.notebook.index.links import LinksIndexer, LinksView, \

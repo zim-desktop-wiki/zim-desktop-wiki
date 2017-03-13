@@ -49,11 +49,10 @@ KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
 #~ gc.set_debug(gc.DEBUG_LEAK)
 #~ gc.set_debug(gc.DEBUG_STATS)
 
-
 # TODO split in a base class to be used by e.g. Tags as well and
 # a subclass combining the base with the mixin
 
-class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
+class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom gtk TreeModel that is integrated closely with the L{Index}
 	object of the notebook. This model is mostly an API layer translating
 	between the C{gtk.TreeView} and the zim L{Index} interfaces. It
@@ -116,14 +115,8 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 	NORMAL_COLOR = None
 	EMPTY_COLOR = 'grey' # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
 
-	def __init__(self, index):
-		'''Constructor
-
-		@param index: the L{Index} object
-		'''
+	def __init__(self):
 		gtk.GenericTreeModel.__init__(self)
-		PagesTreeModelMixin.__init__(self, index)
-		self.index = index
 		self.current_page = None
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
@@ -208,7 +201,7 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 			else:
 				return pango.WEIGHT_NORMAL
 		elif column == N_CHILD_COL:
-			return iter.row['n_children'] or ''
+			return iter.n_children or ''
 				# don't display "0" to keep look bit clean
 
 	def on_get_iter(self, treepath):
@@ -255,7 +248,7 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 
 	def on_iter_has_child(self, iter):
 		'''Returns True if PageIndexRecord for iter has children'''
-		return iter.row['n_children'] > 0
+		return iter.n_children > 0
 
 	def on_iter_n_children(self, iter):
 		'''Returns the number of children in a namespace. When iter
@@ -265,7 +258,7 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 		if iter is None:
 			return self.n_children_top()
 		else:
-			return iter.row['n_children']
+			return iter.n_children
 
 	def on_iter_nth_child(self, iter, n):
 		'''Returns the nth child or None. If iter is C{None} the
@@ -302,7 +295,14 @@ class PageTreeStore(PagesTreeModelMixin, gtk.GenericTreeModel, gtk.TreeDragSourc
 			return self.cache[treepath]
 
 # Need to register classes defining gobject signals or overloading methods
-gobject.type_register(PageTreeStore)
+gobject.type_register(PageTreeStoreBase)
+
+
+class PageTreeStore(PagesTreeModelMixin, PageTreeStoreBase):
+
+	def __init__(self, index):
+		PagesTreeModelMixin.__init__(self, index)
+		PageTreeStoreBase.__init__(self)
 
 
 class PageTreeView(BrowserTreeView):

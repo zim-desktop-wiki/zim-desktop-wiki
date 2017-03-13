@@ -699,11 +699,16 @@ class PagesView(IndexView):
 			yield PageIndexRecord(row)
 
 
-IS_PAGE = 1
+IS_PAGE = 1 #: Hint for MyTreeIter
 
 class PagesTreeModelMixin(TreeModelMixinBase):
 
-	# TODO: also caching name --> treepath in _find
+	# Optimize lookup for finding records in the same level
+	# - always cache parent, to retrieve other children more quickly
+	# - cache a range of 20 records at once
+
+	# Signals use "find_all" instead of "find" to allow for subclasses that
+	# have multiple entries, like models for tags
 
 	def connect_to_updateiter(self, index, update_iter):
 		self.connectto_all(update_iter.pages,
@@ -712,21 +717,31 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def on_page_row_inserted(self, o, row):
 		self.flush_cache()
-		treepath = self._find(row['name'])
-		treeiter = self.get_iter(treepath)
-		self.emit('row-inserted', treepath, treeiter)
+		for treepath in self._find_all_pages(row['name']):
+			if treepath[-1] == 0 and len(treepath) > 1:
+				self._check_parent_has_child_toggled(treepath)
+			treeiter = self.get_iter(treepath) # not mytreeiter !
+			self.emit('row-inserted', treepath, treeiter)
+
+	def _check_parent_has_child_toggled(self, treepath):
+		parent = self.get_mytreeiter(treepath[:-1])
+		if parent.row['n_children'] == 1:
+			treeiter = self.get_iter(parent.treepath) # not mytreeiter !
+			self.emit('row-has-child-toggled', parent.treepath, treeiter)
 
 	def on_page_row_changed(self, o, row):
-		# no clear cache here - just update one row
-		treepath = self._find(row['name'])
-		self.cache[treepath].row = row # ensure uptodate info
-		treeiter = self.get_iter(treepath)
-		self.emit('row-changed', treepath, treeiter)
+		# no clear cache here - just update row
+		for treepath in self._find_all_pages(row['name']):
+			treeiter = self.get_iter(treepath) # not mytreeiter !
+			self.cache[treepath].row = row # ensure uptodate info
+			self.emit('row-changed', treepath, treeiter)
 
 	def on_page_row_deleted(self, o, row):
 		self.flush_cache()
-		treepath = self._find(row['name'])
-		self.emit('row-deleted', treepath)
+		for treepath in self._find_all_pages(row['name']):
+			if treepath[-1] == 0 and len(treepath) > 1:
+				self._check_parent_has_child_toggled(treepath)
+			self.emit('row-deleted', treepath)
 
 	def n_children_top(self):
 		return self.db.execute(
@@ -734,31 +749,22 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		).fetchone()[0]
 
 	def get_mytreeiter(self, treepath):
-		assert isinstance(treepath, tuple)
 		if treepath in self.cache:
 			return self.cache[treepath]
 
-		# Iterate parent paths
-		parent_id = ROOT_ID
-		for i in range(1, len(treepath)):
-			mytreepath = tuple(treepath[:i])
-			if mytreepath in self.cache:
-				parent_id = self.cache[mytreepath].row['id']
+		# Find parent
+		parentpath = treepath[:-1]
+		if not parentpath:
+			parent_id = ROOT_ID
+		else:
+			parent_iter = self.cache.get(parentpath, None) \
+							or self.get_mytreeiter(parentpath) # recurs
+			if parent_iter:
+				parent_id = parent_iter.row['id']
 			else:
-				row = self.db.execute('''
-					SELECT * FROM pages WHERE parent=?
-					ORDER BY sortkey, name LIMIT 1 OFFSET ?
-					''',
-					(parent_id, mytreepath[-1])
-				).fetchone()
-				if row:
-					self.cache[mytreepath] = MyTreeIter(mytreepath, row, IS_PAGE)
-					parent_id = row['id']
-				else:
-					return None
+				return None
 
 		# Now cache a slice at the target level
-		parentpath = treepath[:-1]
 		offset = treepath[-1]
 		for i, row in enumerate(self.db.execute('''
 			SELECT * FROM pages WHERE parent=?
@@ -768,19 +774,32 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		)):
 			mytreepath = parentpath + (offset + i,)
 			if mytreepath not in self.cache:
-				self.cache[mytreepath] = MyTreeIter(mytreepath, row, IS_PAGE)
+				self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+			else:
+				break # avoid overwriting cache because of ref count
 
-		try:
-			return self.cache[treepath]
-		except KeyError:
-			return None
+		return self.cache.get(treepath, None)
 
 	def find(self, path):
 		if path.isroot:
 			raise ValueError
-		return self._find(path.name)
+		treepaths = self._find_all_pages(path.name)
+		treepaths.sort()
+		try:
+			return treepaths[0]
+		except IndexError:
+			raise IndexNotFoundError, path
 
-	def _find(self, name):
+	def find_all(self, path):
+		if path.isroot:
+			raise ValueError
+		treepaths = self._find_all_pages(path.name)
+		if not treepaths:
+			raise IndexNotFoundError, path
+		else:
+			return treepaths
+
+	def _find_all_pages(self, name, update_cache=True):
 		parent_id = ROOT_ID
 		names = name.split(':')
 		treepath = []
@@ -804,152 +823,17 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			treepath.append(row[0])
 			parent_id = myrow['id']
 
-			# Update cache (avoid overwriting because of ref count)
-			mytreepath = tuple(treepath)
-			if mytreepath not in self.cache:
-				myiter = MyTreeIter(mytreepath, myrow, IS_PAGE)
-				self.cache[mytreepath] = myiter
+			if update_cache:
+				# Update cache (avoid overwriting because of ref count)
+				mytreepath = tuple(treepath)
+				if mytreepath not in self.cache:
+					myiter = MyTreeIter(mytreepath, myrow, myrow['n_children'], IS_PAGE)
+					self.cache[mytreepath] = myiter
 
-		return tuple(treepath)
-
-
-###################
-################
-
-def get_indexpath_for_treepath_flatlist_factory(db, cache):
-	'''Factory for the "get_indexpath_for_treepath()" method
-	used by the page index Gtk widget.
-	This method stores the corresponding treepaths in the C{treepath}
-	attribute of the indexpath.
-	The "flatlist" version lists all pages in the toplevel of the tree,
-	followed by their children. This is intended to be filtered
-	dynamically.
-	@param db: an L{sqlite3.Connection} object
-	@param cache: a dict used to store (intermediate) results
-	@returns: a function
-	'''
-	# This method is constructed by a factory to speed up all lookups
-	# it is defined here to keep all SQL code in the same module
-	assert not cache, 'Better start with an empty cache!'
-
-	def get_indexpath_for_treepath_flatlist(treepath):
-		assert isinstance(treepath, tuple)
-		if treepath in cache:
-			return cache[treepath]
-
-		# Get toplevel
-		mytreepath = (treepath[0],)
-		if mytreepath in cache:
-			parent = cache[mytreepath]
-		else:
-			row = db.execute(
-				'SELECT * FROM pages '
-				'WHERE id<>? '
-				'ORDER BY sortkey, name '
-				'LIMIT 1 OFFSET ? ',
-				(ROOT_ID, treepath[0])
-			).fetchone()
-			if row:
-				parent = PageIndexRecord(row, mytreepath)
-				cache[mytreepath] = parent
-			else:
-				return None
-
-		# Iterate parent paths
-		for i in range(2, len(treepath)):
-			mytreepath = tuple(treepath[:i])
-			if mytreepath in cache:
-				parent = cache[mytreepath]
-			else:
-				row = db.execute(
-					'SELECT * FROM pages '
-					'WHERE parent=? '
-					'ORDER BY sortkey, name '
-					'LIMIT 1 OFFSET ? ',
-					(parent.id, mytreepath[-1])
-				).fetchone()
-				if row:
-					parent = PageIndexRecord(row, mytreepath)
-					cache[mytreepath] = parent
-				else:
-					return None
-
-		# Now cache a slice at the target level
-		parentpath = treepath[:-1]
-		offset = treepath[-1]
-		for i, row in enumerate(db.execute(
-			'SELECT * FROM pages '
-			'WHERE parent=? '
-			'ORDER BY sortkey, name '
-			'LIMIT 20 OFFSET ? ',
-			(parent.id, offset)
-		)):
-			mytreepath = parentpath + (offset + i,)
-			if not mytreepath in cache:
-				indexpath = PageIndexRecord(row, mytreepath)
-				cache[mytreepath] = indexpath
-
-		try:
-			return cache[treepath]
-		except KeyError:
-			return None
-
-	return get_indexpath_for_treepath_flatlist
+		return [tuple(treepath)]
 
 
-def get_treepaths_for_indexpath_flatlist_factory(db, cache):
-	'''Factory for the "get_treepath_for_indexpath()" method
-	used by the page index Gtk widget.
-	The "flatlist" version lists all pages in the toplevel of the tree,
-	followed by their children. This is intended to be filtered
-	dynamically.
-	@param db: an L{sqlite3.Connection} object
-	@param cache: a dict used to store (intermediate) results
-	@returns: a function
-	'''
-	# This method is constructed by a factory to speed up all lookups
-	# it is defined here to keep all SQL code in the same module
-	#
-	# We don't do a reverse cache lookup - faster to just go forwards.
-	# Only cache to ensure subsequent get_indexpath_for_treepath calls
-	# are faster. Don't overwrite existing items in the cache to ensure
-	# ref count on paths.
-	#
-	# For the flatlist, all parents are toplevel, so number of results
-	# are equal to number of parents + self
-	# Below toplevel, paths are all the same
-	assert not cache, 'Better start with an empty cache!'
-
-	normal_cache = {}
-	get_treepath_for_indexpath = get_treepath_for_indexpath_factory(db, normal_cache)
-
-	def get_treepaths_for_indexpath_flatlist(indexpath):
-		if not cache:
-			normal_cache.clear() # flush 2nd cache as well..
-		normalpath = get_treepath_for_indexpath(indexpath)
-
-		parent = ROOT_PATH
-		treepaths = []
-		names = indexpath.parts
-		for i, basename in enumerate(names):
-			name = ':'.join(names[:i+1])
-			sortkey = natural_sort_key(basename)
-			row = db.execute(
-				'SELECT COUNT(*) FROM pages '
-				'WHERE id<>? and ('
-				'	sortkey<? '
-				'	or (sortkey=? and name<?)'
-				')',
-				(ROOT_ID, sortkey, sortkey, name)
-			).fetchone()
-			mytreepath = (row[0],) + normalpath[i+1:]
-				# toplevel + remainder of real treepath
-			treepaths.append(mytreepath)
-
-		return treepaths
-
-	return get_treepaths_for_indexpath_flatlist
-
+########################################################################
 
 class TestPagesDBTable(object):
 	# Mixin for test cases, defined here to have all SQL in one place

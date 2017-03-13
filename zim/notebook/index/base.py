@@ -73,11 +73,12 @@ class PluginIndexerBase(IndexerBase):
 
 class MyTreeIter(object):
 
-	__slots__ = ('treepath', 'row', 'hint')
+	__slots__ = ('treepath', 'row', 'n_children', 'hint')
 
-	def __init__(self, treepath, row, hint=None):
+	def __init__(self, treepath, row, n_children, hint=None):
 		self.treepath = treepath
 		self.row = row
+		self.n_children = n_children
 		self.hint = hint
 
 
@@ -138,6 +139,6 @@ class TreeModelMixinBase(ConnectorMixin):
 	def find_all(self, obj):
 		'''Like L{find()} but can return multiple results
 		@implementation: must be implemented by subclasses that have mutiple
-		entries for the same object
+		entries for the same object. Default falls back to result of L{find()}.
 		'''
 		return [self.find(obj)]
