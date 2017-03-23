@@ -50,7 +50,7 @@ __all__ = [
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
 	'environ', 'fs', 'newfs',
 	'config', 'applications',
-	'parsing', 'formats', 'templates', 'objectmanager',
+	'parsing', 'tokenparser', 'formats', 'templates', 'objectmanager',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
 	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',

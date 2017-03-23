@@ -70,7 +70,7 @@ class Index(SignalEmitter):
 
 	def _db_check(self):
 		try:
-			if self._get_property('db_version') == DB_VERSION:
+			if self.get_property('db_version') == DB_VERSION:
 				pass
 			else:
 				logger.debug('Index db_version out of date')
@@ -114,12 +114,12 @@ class Index(SignalEmitter):
 		IndexUpdateIter(self._db, self.layout)
 		self._db.commit()
 
-	def _get_property(self, key):
+	def get_property(self, key):
 		c = self._db.execute('SELECT value FROM zim_index WHERE key=?', (key,))
 		row = c.fetchone()
 		return row[0] if row else None
 
-	def _set_property(self, key, value):
+	def set_property(self, key, value):
 		with self.lock:
 			if value is None:
 				self._db.execute('DELETE FROM zim_index WHERE key=?', (key,))
@@ -147,6 +147,17 @@ class Index(SignalEmitter):
 		logger.info('Flushing index')
 		with self.lock:
 			self._db_init()
+
+	def flag_reindex(self):
+		'''This methods flags all pages with content to be re-indexed.
+		Main reason to use this would be when loading a new plugin that
+		wants to index all pages.
+		'''
+		self.flush()
+		# TODO: make this softer than "flush" and really only re-index content
+		# of known pages, no need to re-index file structure here
+		# Probably requires a separate UpdateIter function to iter through
+		# pages instead of files.
 
 	def start_background_check(self):
 		pass
@@ -245,56 +256,6 @@ class Index(SignalEmitter):
 
 			self._db.commit()
 			self.emit('changed')
-
-
-class OldIndex(object):
-
-	def add_plugin_indexer(self, indexer):
-		'''Add an indexer for a plugin
-		Checks the C{PLUGIN_NAME} and C{PLUGIN_DB_FORMAT}
-		attributes and calls C{on_init()} when needed.
-		Can result in reset of L{probably_uptodate} because the new
-		indexer has not seen the pages in the index.
-		@param indexer: An instantiation of L{PluginIndexerBase}
-		'''
-		assert indexer.PLUGIN_NAME and indexer.PLUGIN_DB_FORMAT
-		with self.db_conn.db_change_context() as db:
-			if self._index._get_property(db, indexer.PLUGIN_NAME) != indexer.PLUGIN_DB_FORMAT:
-				indexer.on_init(self._index, db)
-				self._index._set_property(db, indexer.PLUGIN_NAME, indexer.PLUGIN_DB_FORMAT)
-				self._flag_reindex(db)
-
-		self._indexers.append(indexer)
-
-	def remove_plugin_indexer(self, indexer):
-		'''Remove an indexer for a plugin
-		Calls the C{on_teardown()} method of the indexer and
-		remove it from the list.
-		@param indexer: An instantiation of L{PluginIndexerBase}
-		'''
-		try:
-			self._indexers.remove(indexer)
-		except ValueError:
-			pass
-
-		with self.db_conn.db_change_context() as db:
-			indexer.on_teardown(self._index, db)
-			self._index._set_property(db, indexer.PLUGIN_NAME, None)
-
-	def flag_reindex(self):
-		'''This methods flags all pages with content to be re-indexed.
-		Main reason to use this would be when loading a new plugin that
-		wants to index all pages.
-		'''
-		with self.db_conn.db_change_context() as db:
-			self._flag_reindex(db)
-
-	def _flag_reindex(self, db):
-		self._index._set_property(db, 'probably_uptodate', False)
-		db.execute(
-			'UPDATE pages SET content_etag=?, needscheck=? WHERE content_etag IS NOT NULL',
-			('_reindex_', INDEX_CHECK_PAGE),
-		)
 
 
 class IndexUpdateIter(SignalEmitter):

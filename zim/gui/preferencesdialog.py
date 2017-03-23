@@ -391,7 +391,11 @@ class PluginConfigureDialog(Dialog):
 		self.vbox.add(label)
 
 		fields = []
+		ignore = getattr(self.plugin, 'hide_preferences', [])
 		for pref in self.plugin.plugin_preferences:
+			if pref[0] in ignore:
+				continue
+
 			if len(pref) == 4:
 				key, type, label, default = pref
 				check = None

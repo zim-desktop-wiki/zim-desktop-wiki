@@ -780,11 +780,12 @@ class Visitor(object):
 class ParseTreeBuilder(Builder):
 	'''Builder object that builds a L{ParseTree}'''
 
-	def __init__(self, partial=False):
+	def __init__(self, partial=False, _parsetree_roundtrip=False):
 		self.partial = partial
 		self._b = ElementTreeModule.TreeBuilder()
 		self.stack = [] #: keeps track of current open elements
 		self._last_char = None
+		self._parsetree_roundtrip = _parsetree_roundtrip
 
 	def get_parsetree(self):
 		'''Returns the constructed L{ParseTree} object.
@@ -815,7 +816,7 @@ class ParseTreeBuilder(Builder):
 		if tag != self.stack[-1]:
 			raise AssertionError, 'Unmatched tag closed: %s' % tag
 
-		if tag in BLOCK_LEVEL:
+		if tag in BLOCK_LEVEL and not self._parsetree_roundtrip:
 			if self._last_char is not None and not self.partial:
 				#~ assert self._last_char == '\n', 'Block level text needs to end with newline'
 				if self._last_char != '\n' and tag not in (HEADING, LISTITEM):
@@ -829,7 +830,7 @@ class ParseTreeBuilder(Builder):
 		self.stack.pop()
 
 		# FIXME hack for backward compat
-		if tag == HEADING:
+		if tag == HEADING and not self._parsetree_roundtrip:
 			self._b.data('\n')
 
 		self._last_char = None

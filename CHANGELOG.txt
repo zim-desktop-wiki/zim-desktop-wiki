@@ -4,6 +4,9 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.66 - ....... ===
+* Tasklist plugin: removed support for "next" label
+
 
 === 0.65 - Sun 01 Nov 2015 ===
 This release fixes two critical bugs in version 0.64:

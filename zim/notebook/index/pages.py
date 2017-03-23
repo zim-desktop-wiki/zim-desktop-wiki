@@ -10,6 +10,7 @@ from datetime import datetime
 from zim.utils import natural_sort_key
 from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
+from zim.tokenparser import TokenBuilder
 
 from .base import *
 
@@ -256,12 +257,20 @@ class ParseTreeMask(object):
 
 	def __init__(self, tree):
 		self._tree = tree
+		self._tokens = None
 
 	def iter_href(self):
 		return self._tree.iter_href()
 
 	def iter_tag_names(self):
 		return self._tree.iter_tag_names()
+
+	def iter_tokens(self):
+		if not self._tokens:
+			tb = TokenBuilder()
+			self._tree.visit(tb)
+			self._tokens = tb.tokens
+		return self._tokens
 
 
 class PageIndexRecord(Path):

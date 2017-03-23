@@ -44,35 +44,7 @@ class IndexerBase(SignalEmitter, ConnectorMixin):
 		self.db = db
 
 
-
-class PluginIndexerBase(IndexerBase):
-	'''Base class for indexers defined in plugins. These need some
-	additional logic to allow them to be added and removed flexibly.
-	See L{Index.add_plugin_indexer()} and L{Index.remove_plugin_indexer()}.
-
-	Additional behavior required for plugin indexers:
-
-	  - PLUGIN_NAME and PLUGIN_DB_FORMAT must be defined
-	  - on_db_init() must be robust against data from
-	    an older verion of the plugin being present. E.g. by first dropping
-	    the plugin table and then initializing it again.
-	  - on_db_teardown() needs to be implemented
-
-	'''
-
-	PLUGIN_NAME = None #: plugin name as string
-	PLUGIN_DB_FORMAT = None #: version of the db scheme for this plugin as string
-
-	def on_db_teardown(self):
-		'''Callback that is called when the plugin is removed. Will not be
-		called when the application exits.
-		@implementation: must be overloaded by subclass
-		'''
-		raise NotImplementedError
-
-
 class MyTreeIter(object):
-
 	__slots__ = ('treepath', 'row', 'n_children', 'hint')
 
 	def __init__(self, treepath, row, n_children, hint=None):

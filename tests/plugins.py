@@ -64,7 +64,10 @@ class TestPluginClasses(tests.TestCase):
 			self.assertTrue(file.exists(), 'Missing file: %s' % file)
 
 			manual = file.read()
+			ignore = getattr(klass, 'hide_preferences', [])
 			for pref in klass.plugin_preferences:
+				if pref[0] in ignore:
+					continue
 				label = pref[2]
 				if '\n' in label:
 					label, x = label.split('\n', 1)

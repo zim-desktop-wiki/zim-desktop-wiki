@@ -1,7 +1,3 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
-Creation-Date: Wed, 12 Aug 2009 13:22:10 +0200
-
 ====== Task List ======
 
 The Task List plugin adds a dialog that lists open items across all pages of the current notebook. In a way it is a specialized search function. An open item or task is defined by a single line and can have tags and a priority.
@@ -15,19 +11,13 @@ This plugin has two options that can be configured:
 
 If the option "**Consider all checkboxes as tasks**" is enabled any checkboxes found will appear in the task list. If it is disabled only checkboxes that have a task label (like "FIXME" or "TODO") will appear in the list.
 
-If **Turn page name into tags for task items** is enabled, each task will be tagged with the path components of the page name. E.g. a task defined in the page "''Projects:ProjectA:Phase1''"  will get the tags "''Projects''", "''ProjectA''", and "''Phase''1". This is useful because it allows selecting tasks from a sub-tree of pages at once using the proper tags. Also pages with similar names in diffent parts of the tree can easily be shown in this way.
-
-If **Implicit due date for task items in calendar pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as due date. If the calendar page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date.
-
-If **Flag tasks due on Monday or Tuesday before the weekend** is enabled the highlighting of due dates assumes a Monday to Friday work week. This means that tasks due on Monday will already be highlighted on Thursday and Friday.
-
 The option **Labels marking tasks** gives a comma separated list of labels that are used to flag tasks. By default these are "TODO" and "FIXME" but this can be customized.
 
-The option **Label for next task** sets a label to start tags that depend on the previous task. The default is "Next:", but you can also customize it. If a tasks depends on the previous task it will not be "**actionable**" until the previous task is marked as done. This is particularly useful if you want to breakdown a task in serial steps, but not put all steps in the task list at once. Tasks that are not yet actionable are grayed out in the list.
-
-The option **Tags for non-actionable tasks** allows you to specify tags that will flag tasks as non-actionable. This is for example useful when working with a [[:Usage:Getting Things Done|GTD]] method to flag delegated tasks that are not actionable right now, but may need to be reviewed again later. A tag like "''@delegated''" or "''@waiting''" could be used for this. Multiple tags can be given separated by a "'',''".
+If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the calendar page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used.
 
 The options **Subtree(s) to index** and **Subtree(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default the whole notebook is used, but if either of these options or both these options are set, only a limited set is indexed. Multiple namespaces can be given separated by a "'',''".
+
+The options **Show tasklist in sidepane** and **Position in the window** allow to embed the tasklist in one of the side panes of the window.
 
 ===== Usage =====
 
@@ -78,20 +68,4 @@ As a special case labels can be used to flag a whole list being a task list. In 
 	[ ] Print menu @desk
 
 Now both items will get the tag "@home" appended.
-
-==== Non-actionable tasks ====
-Non-actionable tasks are tasks that you can not (yet) act on. For example tasks that can only start after a previous tasks has finished, or tasks that you are waiting for someone else. The tasklist dialog by default shows such tasks grayed out, but you can also hide all non-actionable tasks.
-
-There are two configuration to help flagging non-actionable tasks. The first option is the "Next" label. This flags that a task depends on the previous task being completed. This is useful when you write down an action plan, but don't want to see all at once in the task list. The "Next" label can be used at the start of a line like this:
-
-	Clean up the garage:
-	[ ] Make space by bringing old stuff to the dump
-	[ ] Next: buy new shelves @shopping
-	[ ] Next: setup new shelves in the back of the garage
-	[ ] Next: move stuff from side wall to the new shelves
-
-etc. Assuming each of these tasks will end up being done on different days, it helps to write them down step by step. But the tasklist will only show the next one coming up
-
-Another way to flag non-actionable tasks is using special tags. E.g. a generic tag @waiting could be used to flag when you wait for someone else, or @review for plans that are not agreed yet. You can define your own depending on your own work flow.
-
 

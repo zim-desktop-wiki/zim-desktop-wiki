@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -14,53 +14,11 @@ from zim.parsing import parse_date
 from zim.plugins.tasklist import *
 
 
-class TestTaskList(tests.TestCase):
+from zim.tokenparser import TokenBuilder, testTokenStream
+from zim.formats import ParseTreeBuilder
+from zim.formats.wiki import Parser as WikiParser
 
-	def testParsing(self):
-		# Test correctnest of parsing
-		from zim.plugins.tasklist import _task_labels_re, _next_label_re
-		NO_DATE = '9999'
-
-		def extract_tasks(text,
-			task_label_re=_task_labels_re(['TODO', 'FIXME', 'Next']),
-			next_label_re=_next_label_re('Next:'),
-			nonactionable_tags=[],
-			all_checkboxes=True,
-			deadline=None,
-		):
-			# Returns a nested list of tuples, where each node is
-			# like "(TASK, [CHILD, ...]) where each task (and child)
-			# is a tuple like (open, actionable, prio, due, description)
-			parser = zim.formats.get_format('wiki').Parser()
-			parsetree = parser.parse(text)
-			origtree = parsetree.tostring()
-			#~ print 'TREE', origtree
-
-			parser = TasksParseTreeParser(
-				task_label_re,
-				next_label_re,
-				nonactionable_tags,
-				all_checkboxes,
-				deadline,
-			)
-			parser.parse(parsetree)
-			tasks = parser.get_tasks()
-
-			self.assertEqual(parsetree.tostring(), origtree) # parser should not modify the tree
-			return tasks
-
-		def t(label, open=True, due=NO_DATE, prio=0, tags='', actionable=True):
-			# Generate a task tuple
-			# (open, actionable, prio, due, tags, description)
-			if tags:
-				tags = set(unicode(tags).split(','))
-			else:
-				tags = set()
-			return [open, actionable, prio, due, tags, unicode(label)]
-
-		# Note that this same text is in the test notebook
-		# so it gets run through the index as well - keep in sync
-		text = '''\
+WIKI_TEXT = '''\
 Try all kind of combos - see if the parser trips
 
 TODO:
@@ -111,7 +69,8 @@ FIXME: jaja - TODO !! @FIXME
 	[ ] Sub item bullets
 * dus
 
-Next this line is not a tasks, even though it starts with "next"
+Some text
+	With indenting that looks like list but isn't
 
 1. Numbered list
 2. With tasks as sub items
@@ -139,7 +98,38 @@ TODO @home
 	[x] do this
 	[ ] Next: do that
 	[ ] Next: do something else
+
+[*] Closed parent task
+	[ ] With open child
+	[ ] Must be open as well to show up in list
+
+[*] Closed parent task
+	[*] With closed children
+	[*] Should not
+
+Edge case with wrongly nested list
+* Foo
+		* bullet 1
+		* bullet 2
+
 '''
+
+class TestTaskParser(tests.TestCase):
+
+	def runTest(self):
+		from zim.plugins.tasklist.indexer import TaskParser
+
+		from zim.parsing import parse_date
+		NO_DATE = '9999'
+
+		def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
+			# Generate a task tuple
+			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
+			if tags:
+				tags = set(unicode(tags).split(','))
+			else:
+				tags = set()
+			return [open, prio, start, due, tags, unicode(desc)]
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
@@ -162,7 +152,7 @@ TODO @home
 			]),
 			(t('Bar'), []),
 			(t('And then there are @tags', tags='tags'), []),
-			(t('Next: And due dates', actionable=False), []),
+			(t('Next: And due dates'), []),
 			(t('Date [d: 11/12]', due=mydate), []),
 			(t('Date [d: 11/12/2012]', due='2012-12-11'), [
 				(t('TODO: BAR !!!', prio=3, due='2012-12-11'), []),
@@ -188,50 +178,41 @@ TODO @home
 				]),
 				(t('Sub3', prio=1, tags='tag1,tag2'), []),
 			]),
-			(t('A', tags='someday', actionable=False), []),
-			(t('B', tags='someday', actionable=False), [
-				(t('B-1', tags='someday', actionable=False), []),
+			(t('A', tags='someday'), []),
+			(t('B', tags='someday'), [
+				(t('B-1', tags='someday'), []),
 			]),
-			(t('C', tags='someday', actionable=False), []),
+			(t('C', tags='someday'), []),
 			(t('main task', tags='home'), [
 				(t('do this', open=False, tags='home'), []),
 				(t('Next: do that', tags='home'), []),
-				(t('Next: do something else', tags='home', actionable=False), []),
-			])
+				(t('Next: do something else', tags='home'), []),
+			]),
+			(t('Closed parent task', open=True), [
+				(t('With open child'), []),
+				(t('Must be open as well to show up in list'), []),
+			]),
+			(t('Closed parent task', open=False), [
+				(t('With closed children', open=False), []),
+				(t('Should not', open=False), []),
+			]),
 		]
-		tasks = extract_tasks(text, nonactionable_tags=['someday', 'maybe'])
+
+
+		tree = WikiParser().parse(WIKI_TEXT)
+		tb = TokenBuilder()
+		tree.visit(tb)
+		tokens = tb.tokens
+		testTokenStream(tokens)
+
+		parser = TaskParser()
+		tasks = parser.parse(tokens)
+
+		#~ import pprint; pprint.pprint(tasks)
 		self.assertEqual(tasks, wanted)
 
-		wanted = [
-			(t('A'), []),
-			(t('B'), []),
-			(t('C'), []),
-			(t('FIXME: dus'), []),
-			(t('TODO: BAR !!!', prio=3), []),
-			# this list inherits the @home tag - and inherits prio
-			(t('Some more tasks !!!', prio=3, tags='home'), [
-				(t('Foo !', prio=1, tags='home'), []),
-				(t('Bar', prio=3, tags='home'), []),
-			]),
-			(t('TODO: dus'), []),
-			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
-			(t('TODO: dus - list item'), []),
-			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
-			(t('A', tags='someday', actionable=False), []),
-			(t('B', tags='someday', actionable=False), [
-				(t('B-1', tags='someday', actionable=False), []),
-			]),
-			(t('C', tags='someday', actionable=False), []),
-			(t('main task', tags='home'), [
-				(t('do this', open=False, tags='home'), []),
-				(t('Next: do that', tags='home'), []),
-				(t('Next: do something else', tags='home', actionable=False), []),
-			])
-		]
-		tasks = extract_tasks(text, nonactionable_tags=['someday', 'maybe'], all_checkboxes=False)
-		self.assertEqual(tasks, wanted)
 
-		# TODO: more tags, due dates, tags for whole list, etc. ?
+class TestTaskList(tests.TestCase):
 
 	def testIndexing(self):
 		'''Check indexing of tasklist plugin'''
@@ -240,13 +221,12 @@ TODO @home
 
 		notebook = tests.new_notebook()
 		plugin.extend(notebook)
-		self.assertIsInstance(notebook.index._indexers[-1], TasksIndexer)
 
 		# Test indexing based on index signals
-		notebook.index.update()
+		notebook.index.check_and_update()
 
 		view = TasksView.new_from_index(notebook.index)
-		tasks = list(view.list_tasks())
+		tasks = list(view.list_open_tasks())
 		self.assertTrue(len(tasks) > 5)
 		for task in tasks:
 			path = view.get_path(task)
@@ -258,12 +238,12 @@ TODO @home
 
 		notebook = tests.new_notebook()
 		plugin.extend(notebook)
-		notebook.index.update()
+		notebook.index.check_and_update()
 
-		from zim.plugins.tasklist import TaskListTreeView
+		from zim.plugins.tasklist.gui import TaskListTreeView
 		view = TasksView.new_from_index(notebook.index)
 		opener = tests.MockObject()
-		treeview = TaskListTreeView(view, opener, task_labels=['TODO', 'FIXME'], next_label='Next')
+		treeview = TaskListTreeView(view, opener, task_labels=['TODO', 'FIXME'])
 
 		menu = treeview.get_popup()
 
