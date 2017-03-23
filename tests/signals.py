@@ -81,8 +81,8 @@ class TestEmitter(tests.TestCase):
 class Emitter(SignalEmitter):
 
 	__signals__ = {
-		'foo': (None, object, ()),
-		'bar': (None, None, ()),
+		'foo': (None, object, (str,)),
+		'bar': (None, None, (str,)),
 	}
 
 	def __init__(self):
@@ -111,8 +111,8 @@ class FancyEmitter(SignalEmitter):
 class ChildEmitter(Emitter):
 
 	__signals__ = {
-		'first': (SIGNAL_RUN_FIRST, None, (object)),
-		'last': (SIGNAL_RUN_LAST, None, (object)),
+		'first': (SIGNAL_RUN_FIRST, None, (object,)),
+		'last': (SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	def do_first(self, list):

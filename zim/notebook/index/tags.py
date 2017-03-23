@@ -579,7 +579,11 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 			return PagesTreeModelMixin.get_mytreeiter(self, treepath)
 
 	def find(self, path):
-		return sorted(self.find_all(path))[0]
+		treepaths = self.find_all(path)
+		if treepaths:
+			return treepaths[0]
+		else:
+			raise IndexNotFoundError, path.name
 
 	def find_all(self, path):
 		if isinstance(path, IndexTag):

@@ -285,7 +285,7 @@ class FilesIndexChecker(object):
 		'''Generator function that walks existing records and flags
 		records that are not longer valid. Yields in between checks
 		to allow embedding in a loop.
-		@return: Yields C{True} when an out of
+		@returns: Yields C{True} when an out of
 		date record is found.
 		'''
 		# Check for pending updates first

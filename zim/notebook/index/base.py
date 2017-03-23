@@ -55,20 +55,20 @@ class MyTreeIter(object):
 
 
 class TreeModelMixinBase(ConnectorMixin):
-    '''This class can be used as mixin class for C{gtk.TreeModel}
-    implementations that use data from the index.
+	'''This class can be used as mixin class for C{gtk.TreeModel}
+	implementations that use data from the index.
 
 	Treepaths are simply tuples with integers. This Mixin assumes L{MyTreeIter}
 	objects for iters. (Which should not be confused with C{gtk.TreeIter} as
 	used by the interface!)
 	'''
 
-    def __init__(self, index):
-        self.index = index
-        self.db = index._db
-        self.cache = {}
-        self.connect_to_updateiter(index, index.update_iter)
-        self.connectto(index, 'new-update-iter', self.connect_to_updateiter)
+	def __init__(self, index):
+		self.index = index
+		self.db = index._db
+		self.cache = {}
+		self.connect_to_updateiter(index, index.update_iter)
+		self.connectto(index, 'new-update-iter', self.connect_to_updateiter)
 
 	def connect_to_updateiter(self, update_iter):
 		'''Connect to a new L{IndexUpdateIter}
@@ -83,23 +83,23 @@ class TreeModelMixinBase(ConnectorMixin):
 		Typically each signal should also flush the cache using
 		C{self.cache.clear()}.
 
-	    @implementation: must be implemented by subclass
+		@implementation: must be implemented by subclass
 		'''
 		raise NotImplementedError
 
-    def teardown(self):
-        self.flush_cache()
-        self.disconnect_all()
+	def teardown(self):
+		self.flush_cache()
+		self.disconnect_all()
 
 	def n_children_top(self):
 		'''Return the number of items in the top level of the model'''
 		raise NotImplementedError
 
-    def get_mytreeiter(self, treepath):
-        '''Returens a C{treeiter} object for C{treepath} or C{None}
-        @implementation: must be implemented by subclass
-        '''
-        raise NotImplementedError
+	def get_mytreeiter(self, treepath):
+		'''Returens a C{treeiter} object for C{treepath} or C{None}
+		@implementation: must be implemented by subclass
+		'''
+		raise NotImplementedError
 
 	def find(self, obj):
 		'''Return the treepath for a index object like a L{Path} or L{IndexTag}

@@ -15,7 +15,7 @@ The option **Labels marking tasks** gives a comma separated list of labels that 
 
 If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the calendar page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used.
 
-The options **Subtree(s) to index** and **Subtree(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default the whole notebook is used, but if either of these options or both these options are set, only a limited set is indexed. Multiple namespaces can be given separated by a "'',''".
+The options **Section(s) to index** and **Section(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default the whole notebook is used, but if either of these options or both these options are set, only a limited set is indexed. Multiple namespaces can be given separated by a "'',''".
 
 The options **Show tasklist in sidepane** and **Position in the window** allow to embed the tasklist in one of the side panes of the window.
 

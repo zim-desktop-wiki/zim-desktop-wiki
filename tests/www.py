@@ -63,7 +63,7 @@ class TestWWWInterface(tests.TestCase):
 		'Test WWW interface'
 		config = VirtualConfigManager()
 		notebook = tests.new_notebook(fakedir=self.get_tmp_name())
-		notebook.index.update()
+		notebook.index.check_and_update()
 		interface = WWWInterface(notebook, config=config, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
@@ -106,7 +106,7 @@ class TestWWWInterface(tests.TestCase):
 		afolder = notebook.get_attachments_dir(Path('Test:foo'))
 		afile = afolder.file('attachment.pdf')
 		afile.touch()
-		
+
 		response = call('GET', '/Test/foo.html')
 		self.assertResponseOK(response)
 		self.assertIn('<h1>Foo <a name=\'Test:foo\'></a></h1>', response)

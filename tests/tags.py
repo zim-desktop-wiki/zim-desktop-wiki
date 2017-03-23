@@ -199,13 +199,14 @@ class TestTagPluginWidget(tests.TestCase):
 		widget.toggle_treeview()
 		widget.toggle_treeview()
 
-		path = Path('Test:foo')
+		path = Path('Test:tags')
+		ui.notebook.pages.lookup_by_pagename(path)
 		treepath = widget.treeview.get_model().find(path)
 
 		widget.disconnect_model()
 		widget.reconnect_model()
 
-		path = Path('Test:foo')
+		path = Path('Test:tags')
 		treepath = widget.treeview.get_model().find(path)
 
 		# Check signals

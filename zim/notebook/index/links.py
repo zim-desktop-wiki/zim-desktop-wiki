@@ -169,7 +169,7 @@ class LinksIndexer(IndexerBase):
 		return c == 0
 
 	cleanup_placeholders = on_finish_update
-	
+
 
 class LinksView(IndexView):
 
@@ -214,7 +214,7 @@ class LinksView(IndexView):
 				source = pagename
 				target = self._pages.get_pagename(row['target'])
 			elif row['source'] == ROOT_ID:
-				pass # hack used to create placeholders
+				continue # hack used to create placeholders
 			else:
 				source = self._pages.get_pagename(row['source'])
 				target = pagename

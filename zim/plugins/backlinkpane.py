@@ -10,6 +10,7 @@ import pango
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path, LINK_DIR_BACKWARD
+from zim.notebook.index import IndexNotFoundError
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
 
 
@@ -95,8 +96,12 @@ class BackLinksWidget(gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		model.clear()
 
-		backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
-			# XXX allow access through page object
+		try:
+			backlinks = notebook.links.list_links(page, LINK_DIR_BACKWARD)
+				# XXX allow access through page object
+		except IndexNotFoundError:
+			backlinks = []
+
 		for link in backlinks:
 			href = notebook.pages.create_link(link.target, link.source)
 				# relative link from target *back* to source
@@ -151,4 +156,3 @@ class LinksTreeModel(gtk.ListStore):
 	def __init__(self):
 		#~ gtk.TreeStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
 		gtk.ListStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
-

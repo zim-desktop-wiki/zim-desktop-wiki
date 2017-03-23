@@ -25,6 +25,7 @@
 # TODO: test coverage include / exclude sections
 # TODO: update manual
 
+from __future__ import with_statement
 
 from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
 from zim.actions import action
@@ -205,5 +206,6 @@ class MainWindowExtension(WindowExtension):
 			raise AssertionError, 'Could not find indexer'
 
 	def teardown(self):
-		self.window.remove(self._widget)
-		self._widget = None
+		if self._widget:
+			self.window.remove(self._widget)
+			self._widget = None

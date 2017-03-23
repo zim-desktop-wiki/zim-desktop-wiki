@@ -9,7 +9,7 @@ from __future__ import with_statement
 
 import tests
 
-from tests.config import EnvironmentConfigContext
+from tests.config import EnvironmentConfigContext, ConfigManager
 
 import sys
 import cStringIO as StringIO
@@ -81,7 +81,7 @@ class TestHelp(tests.TestCase):
 
 class TestNotebookCommand(tests.TestCase):
 
-	
+
 	def runTest(self):
 		cmd = NotebookCommand('gui')
 		cmd.arguments = ('NOTEBOOK', '[PAGE]')
@@ -95,12 +95,17 @@ class TestNotebookCommand(tests.TestCase):
 		myinfo = NotebookInfo(pwd + '/Notes')
 		os.chdir('/')
 		notebookinfo, page = cmd.get_notebook_argument()
-		
+
 		self.assertEqual(notebookinfo, myinfo)
 		os.chdir(pwd)
 
 
 class TestGui(tests.TestCase):
+
+	def setUp(self):
+		config = ConfigManager() # XXX should be passed in
+		file = config.get_config_file('notebooks.list')
+		file.remove()
 
 	def runTest(self):
 
@@ -120,7 +125,7 @@ class TestGui(tests.TestCase):
 		cmd.parse_options(dir)
 		window = cmd.run()
 		self.addCleanup(window.destroy)
-		
+
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 		self.assertEqual(window.ui.notebook.uri, Dir(dir).uri) # XXX
 
@@ -138,7 +143,7 @@ class TestManual(tests.TestCase):
 	def runTest(self):
 		cmd = ManualCommand('manual')
 		window = cmd.run()
-		self.addCleanup(window.destroy)	
+		self.addCleanup(window.destroy)
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 
 
@@ -147,7 +152,7 @@ class TestServer(tests.TestCase):
 
 	def runTest(self):
 		from urllib import urlopen
-		
+
 		dir = self.create_tmp_dir()
 		cmd = ServerCommand('server')
 		cmd.parse_options(dir)
