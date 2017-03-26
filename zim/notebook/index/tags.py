@@ -90,11 +90,15 @@ class TagsIndexer(IndexerBase):
 			)
 		)
 
-		for name in set(doc.iter_tag_names()):
+		seen = set()
+		for name in doc.iter_tag_names():
 			sortkey = natural_sort_key(name)
-			if sortkey in oldtags:
+			if sortkey in seen:
+				continue
+			elif sortkey in oldtags:
 				oldtags.pop(sortkey)
 			else:
+				seen.add(sortkey)
 				row = self.db.execute(
 					'SELECT name, id FROM tags WHERE sortkey=?', (sortkey,)
 				).fetchone()

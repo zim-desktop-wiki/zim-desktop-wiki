@@ -62,8 +62,14 @@ class Index(SignalEmitter):
 		self.lock = threading.RLock()
 		self._db = self.new_connection()
 		self._db_check()
+		if not hasattr(self, 'update_iter'):
+			self._update_iter_init()
+		# else _update_iter_init already called view _db_check --> _db_init
+
+	def _update_iter_init(self):
 		self.update_iter = IndexUpdateIter(self._db, self.layout)
 		self.update_iter.connect('commit', self.on_commit)
+		self.emit('new-update-iter', self.update_iter)
 
 	def on_commit(self, iter):
 		self.emit('changed')
@@ -111,7 +117,8 @@ class Index(SignalEmitter):
 			);
 			INSERT INTO zim_index VALUES ('db_version', %r)
 		''' % DB_VERSION)
-		IndexUpdateIter(self._db, self.layout)
+
+		self._update_iter_init() # Force re-init of all tables
 		self._db.commit()
 
 	def get_property(self, key):

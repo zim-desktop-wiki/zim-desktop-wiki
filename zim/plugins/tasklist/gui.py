@@ -587,7 +587,7 @@ class TaskListTreeView(BrowserTreeView):
 		self._eval_filter()
 
 	def _eval_filter(self):
-		logger.debug('Filtering with labels: %s tags: %s, filter: %s', self.label_filter, self.tag_filter, self.filter)
+		#logger.debug('Filtering with labels: %s tags: %s, filter: %s', self.label_filter, self.tag_filter, self.filter)
 
 		def filter(model, path, iter):
 			visible = self._filter_item(model[iter])
