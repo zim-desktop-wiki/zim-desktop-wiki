@@ -2232,7 +2232,7 @@ class WindowSidePane(gtk.VBox):
 		# Add bar with label and close button
 		self.topbar = gtk.HBox()
 		self.topbar.label = gtk.Label()
-		self.topbar.label.set_alignment(0.0, 0.5)
+		self.topbar.label.set_alignment(0.03, 0.5)
 		self.topbar.pack_start(self.topbar.label)
 		self.topbar.pack_end(self._close_button(), False)
 		self.pack_start(self.topbar, False)
@@ -2353,7 +2353,7 @@ class WindowSidePane(gtk.VBox):
 	def remove(self, widget):
 		# Note: try box.remove() except .. causes GErrors here :(
 		if widget in self.get_children():
-			gtk.Box.remove(self, widget)
+			gtk.VBox.remove(self, widget)
 			self._update_topbar()
 			return True
 		elif widget in self.notebook.get_children():
@@ -2398,6 +2398,69 @@ class WindowSidePane(gtk.VBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(WindowSidePane)
+
+
+class MinimizedTabs(object):
+
+	def __init__(self, sidepane, angle):
+		assert angle in (0, 90, 270)
+		self.on_click_cb = lambda i: None
+		self._angle = angle
+		self._update(sidepane.notebook)
+		for signal in ('page-added', 'page-reordered', 'page-removed'):
+			sidepane.notebook.connect(signal, self._update)
+
+	def _update(self, notebook, *a):
+		for child in self.get_children():
+			child.destroy()
+
+		if self._angle in (90, 270): # Hack to introduce some empty space
+			label = gtk.Label(' ')
+			self.pack_start(label, False)
+
+		ipages = range(notebook.get_n_pages())
+		if self._angle == 90:
+			ipages = reversed(ipages) # keep order the same in reading direction
+
+		for i in ipages:
+			child = notebook.get_nth_page(i)
+			text = notebook.get_tab_label_text(child)
+			button = gtk.Button(label=text)
+			button.set_relief(gtk.RELIEF_NONE)
+			button.connect('clicked', self._on_click, text)
+			if self._angle != 0: button.get_child().set_angle(self._angle)
+			self.pack_start(button, False)
+
+	def _on_click(self, b, text):
+		self.emit('clicked', text)
+
+
+class HMinimizedTabs(gtk.HBox, MinimizedTabs):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
+
+	def __init__(self, sidepane, angle=0):
+		gtk.HBox.__init__(self, spacing=12)
+		MinimizedTabs.__init__(self, sidepane, angle)
+
+
+class VMinimizedTabs(gtk.VBox, MinimizedTabs):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
+
+	def __init__(self, sidepane, angle=90):
+		gtk.VBox.__init__(self, spacing=12)
+		MinimizedTabs.__init__(self, sidepane, angle)
+
+# Need to register classes defining gobject signals
+gobject.type_register(HMinimizedTabs)
+gobject.type_register(VMinimizedTabs)
 
 
 class WindowSidePaneWidget(object):
@@ -2496,9 +2559,13 @@ class Window(gtkwindowclass):
 		self._registered = False
 		self._last_sidepane_focus = None
 
-		self._zim_window_main = gtk.VBox()
+		# Construct all the components
+		self._zim_window_main = gtk.VBox() # contains bars & central hbox
+
+		self._zim_window_central_hbox = gtk.HBox() # contains left paned(right paned(central vbox))
 		self._zim_window_left_paned = HPaned()
 		self._zim_window_right_paned = HPaned()
+		self._zim_window_central_vbox = gtk.VBox() # contains top pane(bottom pane)
 		self._zim_window_top_paned = VPaned()
 		self._zim_window_bottom_paned = VPaned()
 
@@ -2507,15 +2574,24 @@ class Window(gtkwindowclass):
 		self._zim_window_top_pane = WindowSidePane()
 		self._zim_window_bottom_pane = WindowSidePane()
 
-		self._zim_window_top_special = gtk.VBox()
+		self._zim_window_left_minimized = VMinimizedTabs(self._zim_window_left_pane)
+		self._zim_window_right_minimized = VMinimizedTabs(self._zim_window_right_pane, angle=270)
+		self._zim_window_top_minimized = HMinimizedTabs(self._zim_window_top_pane)
+		self._zim_window_bottom_minimized = HMinimizedTabs(self._zim_window_bottom_pane)
 
+		# put it all together ...
 		gtkwindowclass.add(self, self._zim_window_main)
-		self._zim_window_main.add(self._zim_window_left_paned)
+		self._zim_window_main.add(self._zim_window_central_hbox)
+		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False)
+		self._zim_window_central_hbox.add(self._zim_window_left_paned)
+		self._zim_window_central_hbox.pack_start(self._zim_window_right_minimized, False)
 		self._zim_window_left_paned.pack1(self._zim_window_left_pane, resize=False)
 		self._zim_window_left_paned.pack2(self._zim_window_right_paned, resize=True)
-		self._zim_window_right_paned.pack1(self._zim_window_top_special, resize=True)
+		self._zim_window_right_paned.pack1(self._zim_window_central_vbox, resize=True)
 		self._zim_window_right_paned.pack2(self._zim_window_right_pane, resize=False)
-		self._zim_window_top_special.add(self._zim_window_top_paned)
+		self._zim_window_central_vbox.pack_start(self._zim_window_top_minimized, False)
+		self._zim_window_central_vbox.add(self._zim_window_top_paned)
+		self._zim_window_central_vbox.pack_start(self._zim_window_bottom_minimized, False)
 		self._zim_window_top_paned.pack1(self._zim_window_top_pane, resize=False)
 		self._zim_window_top_paned.pack2(self._zim_window_bottom_paned, resize=True)
 		self._zim_window_bottom_paned.pack2(self._zim_window_bottom_pane, resize=True)
@@ -2523,16 +2599,24 @@ class Window(gtkwindowclass):
 		self._zim_window_sidepanes = {
 			LEFT_PANE: (
 				self._zim_window_left_paned,
-				self._zim_window_left_pane),
+				self._zim_window_left_pane,
+				self._zim_window_left_minimized
+			),
 			RIGHT_PANE: (
 				self._zim_window_right_paned,
-				self._zim_window_right_pane),
+				self._zim_window_right_pane,
+				self._zim_window_right_minimized
+			),
 			TOP_PANE: (
 				self._zim_window_top_paned,
-				self._zim_window_top_pane),
+				self._zim_window_top_pane,
+				self._zim_window_top_minimized
+			),
 			BOTTOM_PANE: (
 				self._zim_window_bottom_paned,
-				self._zim_window_bottom_pane),
+				self._zim_window_bottom_pane,
+				self._zim_window_bottom_minimized
+			),
 		}
 
 		def _on_switch_page(notebook, page, pagenum, key):
@@ -2540,10 +2624,13 @@ class Window(gtkwindowclass):
 			self.emit('pane-state-changed', key, visible, active)
 
 		for key, value in self._zim_window_sidepanes.items():
-			paned, pane = value
+			paned, pane, minimized = value
 			pane.set_no_show_all(True)
-			pane.zim_pane_state = (False, 200, None)
 			pane.connect('close', lambda o, k: self.set_pane_state(k, False), key)
+			pane.zim_pane_state = (False, 200, None)
+			minimized.set_no_show_all(True)
+			minimized.connect('clicked', lambda o, a, k: self.set_pane_state(k, True, activetab=a), key)
+
 			pane.notebook.connect_after('switch-page', _on_switch_page, key)
 
 	def add(self, widget):
@@ -2564,7 +2651,7 @@ class Window(gtkwindowclass):
 			# reshuffle widget to go above main widgets but
 			# below earlier added bars
 			i = self._zim_window_main.child_get_property(
-					self._zim_window_left_paned, 'position')
+					self._zim_window_central_hbox, 'position')
 			self._zim_window_main.reorder_child(widget, i)
 
 		self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
@@ -2579,7 +2666,7 @@ class Window(gtkwindowclass):
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		'''
 		key = pane
-		paned, pane = self._zim_window_sidepanes[key]
+		paned, pane, mini = self._zim_window_sidepanes[key]
 		pane.add_tab(title, widget)
 		self.set_pane_state(key, True)
 
@@ -2600,12 +2687,12 @@ class Window(gtkwindowclass):
 			if key == TOP_PANE and pos == TOP:
 				# Special case for top widget outside of pane
 				# used especially for PathBar
-				self._zim_window_top_special.pack_start(widget, False)
-				self._zim_window_top_special.reorder_child(widget, 0)
+				self._zim_window_central_vbox.pack_start(widget, False)
+				self._zim_window_central_vbox.reorder_child(widget, 0)
 			else:
 				raise NotImplementedError
 		elif key in (LEFT_PANE, RIGHT_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			pane.add_widget(widget, pos)
 			self.set_pane_state(key, True)
 		else:
@@ -2618,13 +2705,13 @@ class Window(gtkwindowclass):
 		if self._last_sidepane_focus == widget:
 			self._last_sidepane_focus = None
 
-		box = self._zim_window_top_special
+		box = self._zim_window_central_vbox
 		if widget in box.get_children():
 			box.remove(widget)
 			return
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			if pane.remove(widget):
 				if pane.is_empty():
 					self.set_pane_state(key, False)
@@ -2660,7 +2747,7 @@ class Window(gtkwindowclass):
 		# FIXME revert calculate size instead of position for left
 		# and bottom widget
 		key = pane
-		paned, pane = self._zim_window_sidepanes[key]
+		paned, pane, mini = self._zim_window_sidepanes[key]
 		if pane.get_property('visible'):
 			position = paned.get_position()
 			active = gtk_notebook_get_active_tab(pane.notebook)
@@ -2671,7 +2758,7 @@ class Window(gtkwindowclass):
 		return state
 
 	def set_pane_state(self, pane, visible, size=None, activetab=None, grab_focus=False):
-		'''Returns the state of a side pane.
+		'''Set the state of a side pane.
 		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		@param visible: C{True} to show the pane, C{False} to hide
@@ -2684,7 +2771,7 @@ class Window(gtkwindowclass):
 		# for left and botton notebook
 		# FIXME enforce size <  parent widget and > 0
 		key = pane
-		paned, pane = self._zim_window_sidepanes[key]
+		paned, pane, mini = self._zim_window_sidepanes[key]
 		if pane.get_property('visible') == visible \
 		and size is None and activetab is None:
 			if grab_focus:
@@ -2700,6 +2787,8 @@ class Window(gtkwindowclass):
 
 		if visible:
 			if not pane.is_empty():
+				mini.hide()
+				mini.set_no_show_all(True)
 				pane.set_no_show_all(False)
 				pane.show_all()
 				paned.set_position(position)
@@ -2716,6 +2805,8 @@ class Window(gtkwindowclass):
 		else:
 			pane.hide()
 			pane.set_no_show_all(True)
+			mini.set_no_show_all(False)
+			mini.show_all()
 
 		pane.zim_pane_state = (visible, size, activetab)
 		self.emit('pane-state-changed', key, visible, activetab)
@@ -2757,7 +2848,7 @@ class Window(gtkwindowclass):
 		'''Returns a list of panes that are visible'''
 		panes = []
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			if not pane.is_empty() and pane.get_property('visible'):
 				panes.append(key)
 		return panes
@@ -2766,7 +2857,7 @@ class Window(gtkwindowclass):
 		'''Returns a list of panes that are in use (i.e. not empty)'''
 		panes = []
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			if not pane.is_empty():
 				panes.append(key)
 		return panes
@@ -4448,4 +4539,3 @@ class TableHBox(TableBoxMixin, gtk.HBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(TableHBox)
-
