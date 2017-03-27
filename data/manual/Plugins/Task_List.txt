@@ -19,6 +19,13 @@ The options **Section(s) to index** and **Section(s) to ignore** can be used to 
 
 The options **Show tasklist in sidepane** and **Position in the window** allow to embed the tasklist in one of the side panes of the window.
 
+==== Context menu ====
+The context menu of the tasklist (the "right click" menu) has two further options to control the view:
+
+When **Show Tasks as Flat List** is enabled only tasks are shown that have no open child tasks. This flattens the hierarchic view to a flat list with the lowest level tasks that are open. This is use full when you use nested tasks to detail out a complex tasks into smaller steps. In this view the next steps are shown for all tasks.
+
+When **Only Show Active Tasks** is enabled tasks with a start date in the future are hidden.
+
 ===== Usage =====
 
 ==== Using Checkboxes ====

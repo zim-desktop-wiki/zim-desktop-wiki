@@ -2,9 +2,6 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-# TODO: flat list, only show (grand)children, hide parent items
-# TODO: flat list next tasks, only show first actionable (grand)child of each task that has children
-#
 # TODO: allow more complex queries for filter, in particular (NOT tag AND tag)
 #       allow multiple tabs in dialog / side pane with configurable query
 #

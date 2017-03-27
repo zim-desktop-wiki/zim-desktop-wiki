@@ -226,11 +226,14 @@ class TestTaskList(tests.TestCase):
 		notebook.index.check_and_update()
 
 		view = TasksView.new_from_index(notebook.index)
-		tasks = list(view.list_open_tasks())
-		self.assertTrue(len(tasks) > 5)
-		for task in tasks:
-			path = view.get_path(task)
-			self.assertTrue(not path is None)
+		for tasks in (
+			list(view.list_open_tasks()),
+			list(view.list_open_tasks_flatlist()),
+		):
+			self.assertTrue(len(tasks) > 5)
+			for task in tasks:
+				path = view.get_path(task)
+				self.assertTrue(not path is None)
 
 	def testTaskListTreeView(self):
 		klass = PluginManager.get_plugin_class('tasklist')

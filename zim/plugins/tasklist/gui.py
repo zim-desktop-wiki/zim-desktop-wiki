@@ -25,7 +25,69 @@ logger = logging.getLogger('zim.plugins.tasklist')
 from .indexer import _MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re
 
 
-class TaskListDialog(Dialog):
+class TaskListWidgetMixin(object):
+
+		def on_populate_popup(self, o, menu):
+			sep = gtk.SeparatorMenuItem()
+			menu.append(sep)
+
+			item = gtk.CheckMenuItem(_('Show Tasks as Flat List'))
+				# T: Checkbox in task list - hides parent items
+			item.set_active(self.uistate['show_flatlist'])
+			item.connect('toggled', self.on_show_flatlist_toggle)
+			item.show_all()
+			menu.append(item)
+
+			item = gtk.CheckMenuItem(_('Only Show Active Tasks'))
+				# T: Checkbox in task list - this options hides tasks that are not yet started
+			item.set_active(self.uistate['only_show_act'])
+			item.connect('toggled', self.on_show_active_toggle)
+			item.show_all()
+			menu.append(item)
+
+		def on_show_active_toggle(self, *a):
+			active = not self.uistate['only_show_act']
+			self.uistate['only_show_act'] = active
+			self.task_list.set_filter_actionable(active)
+
+		def on_show_flatlist_toggle(self, *a):
+			active = not self.uistate['show_flatlist']
+			self.uistate['show_flatlist'] = active
+			self.task_list.set_flatlist(active)
+
+
+class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
+
+	def __init__(self, tasksview, opener, preferences, uistate):
+		gtk.VBox.__init__(self)
+		self.uistate = uistate
+		self.uistate.setdefault('only_show_act', False)
+		self.uistate.setdefault('show_flatlist', False)
+
+		self.task_list = TaskListTreeView(
+			tasksview, opener,
+			_parse_task_labels(preferences['labels']),
+			nonactionable_tags=_parse_task_labels(preferences['nonactionable_tags']),
+			filter_actionable=self.uistate['only_show_act'],
+			tag_by_page=preferences['tag_by_page'],
+			use_workweek=preferences['use_workweek'],
+			compact=True,
+			flatlist=self.uistate['show_flatlist'],
+		)
+		self.task_list.connect('populate-popup', self.on_populate_popup)
+		self.task_list.set_headers_visible(True)
+
+		self.filter_entry = InputEntry(placeholder_text=_('Filter')) # T: label for filtering/searching tasks
+		self.filter_entry.set_icon_to_clear()
+		filter_cb = DelayedCallback(500,
+			lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
+		self.filter_entry.connect('changed', filter_cb)
+
+		self.pack_start(ScrolledWindow(self.task_list))
+		self.pack_end(self.filter_entry, False)
+
+
+class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 	def __init__(self, window, tasksview, preferences):
 		Dialog.__init__(self, window, _('Task List'), # T: dialog title
@@ -43,6 +105,7 @@ class TaskListDialog(Dialog):
 
 		# Task list
 		self.uistate.setdefault('only_show_act', False)
+		self.uistate.setdefault('show_flatlist', False)
 		opener = window.get_resource_opener()
 		task_labels = _parse_task_labels(preferences['labels'])
 		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
@@ -52,9 +115,11 @@ class TaskListDialog(Dialog):
 			nonactionable_tags=nonactionable_tags,
 			filter_actionable=self.uistate['only_show_act'],
 			tag_by_page=preferences['tag_by_page'],
-			use_workweek=preferences['use_workweek']
+			use_workweek=preferences['use_workweek'],
+			flatlist=self.uistate['show_flatlist'],
 		)
 		self.task_list.set_headers_visible(True)
+		self.task_list.connect('populate-popup', self.on_populate_popup)
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
@@ -70,20 +135,10 @@ class TaskListDialog(Dialog):
 			lambda o: self.task_list.set_filter(filter_entry.get_text()))
 		filter_entry.connect('changed', filter_cb)
 
-		# Dropdown with options - TODO
-		#~ menu = gtk.Menu()
-		#~ showtree = gtk.CheckMenuItem(_('Show _Tree')) # T: menu item in options menu
-		#~ menu.append(showtree)
-		#~ menu.append(gtk.SeparatorMenuItem())
-		#~ showall = gtk.RadioMenuItem(None, _('Show _All Items')) # T: menu item in options menu
-		#~ showopen = gtk.RadioMenuItem(showall, _('Show _Open Items')) # T: menu item in options menu
-		#~ menu.append(showall)
-		#~ menu.append(showopen)
-		#~ menubutton = MenuButton(_('_Options'), menu) # T: Button label
-		#~ hbox.pack_start(menubutton, False)
-
-		self.act_toggle = gtk.CheckButton(_('Only Show Actionable Tasks'))
-			# T: Checkbox in task list
+		# TODO: use menu button here and add same options as in context menu
+		#       for filtering the list 
+		self.act_toggle = gtk.CheckButton(_('Only Show Active Tasks'))
+			# T: Checkbox in task list - this options hides tasks that are not yet started
 		self.act_toggle.set_active(self.uistate['only_show_act'])
 		self.act_toggle.connect('toggled', lambda o: self.task_list.set_filter_actionable(o.get_active()))
 		hbox.pack_start(self.act_toggle, False)
@@ -120,52 +175,8 @@ class TaskListDialog(Dialog):
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
-		self.uistate['only_show_act'] = self.act_toggle.get_active()
 		Dialog.do_response(self, response)
 
-
-class TaskListWidget(gtk.VBox, WindowSidePaneWidget):
-
-	def __init__(self, tasksview, opener, preferences, uistate):
-		gtk.VBox.__init__(self)
-		self.uistate = uistate
-		self.uistate.setdefault('only_show_act', False)
-
-		self.task_list = TaskListTreeView(
-			tasksview, opener,
-			_parse_task_labels(preferences['labels']),
-			nonactionable_tags=_parse_task_labels(preferences['nonactionable_tags']),
-			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=preferences['tag_by_page'],
-			use_workweek=preferences['use_workweek'],
-			compact=True,
-		)
-		self.task_list.set_headers_visible(True)
-		self.task_list.connect_after('populate-popup', self.on_populate_popup)
-
-		self.filter_entry = InputEntry(placeholder_text=_('Filter')) # T: label for filtering/searching tasks
-		self.filter_entry.set_icon_to_clear()
-		filter_cb = DelayedCallback(500,
-			lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
-		self.filter_entry.connect('changed', filter_cb)
-
-		self.pack_start(ScrolledWindow(self.task_list))
-		self.pack_end(self.filter_entry, False)
-
-	def on_populate_popup(self, o, menu):
-		sep = gtk.SeparatorMenuItem()
-		menu.append(sep)
-		item = gtk.CheckMenuItem(_('Only Show Actionable Tasks'))
-			# T: Checkbox in task list
-		item.set_active(self.uistate['only_show_act'])
-		item.connect('toggled', self.on_show_active_toggle)
-		item.show_all()
-		menu.append(item)
-
-	def on_show_active_toggle(self, *a):
-		active = not self.uistate['only_show_act']
-		self.uistate['only_show_act'] = active
-		self.task_list.set_filter_actionable(active)
 
 class TagListTreeView(SingleClickTreeView):
 	'''TreeView with a single column 'Tags' which shows all tags available
@@ -298,6 +309,8 @@ class TaskListTreeView(BrowserTreeView):
 	# TODO "compact" view should be subclass
 	#  Base <|-- View
 	#  Base <|-- CompactView
+	#
+	# idem for flat list vs tree
 
 	VIS_COL = 0 # visible
 	ACT_COL = 1 # actionable
@@ -316,7 +329,7 @@ class TaskListTreeView(BrowserTreeView):
 		task_labels,
 		nonactionable_tags=(),
 		filter_actionable=False, tag_by_page=False, use_workweek=False,
-		compact=False
+		compact=False, flatlist=False,
 	):
 		self.real_model = gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
 			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
@@ -337,6 +350,7 @@ class TaskListTreeView(BrowserTreeView):
 		self.task_labels = task_labels
 		self._tags = {}
 		self._labels = {}
+		self.flatlist = flatlist
 
 		# Add some rendering for the Prio column
 		def render_prio(col, cell, model, i):
@@ -461,7 +475,13 @@ class TaskListTreeView(BrowserTreeView):
 		today = datetime.date.today()
 		today_str = str(today)
 
-		for prio_sort_int, row in enumerate(self.tasksview.list_open_tasks(task)):
+		if self.flatlist:
+			assert task is None
+			tasks = self.tasksview.list_open_tasks_flatlist()
+		else:
+			tasks = self.tasksview.list_open_tasks(task)
+
+		for prio_sort_int, row in enumerate(tasks):
 			if row['source'] not in path_cache:
 				# TODO: add pagename to list_open_tasks query - need new index
 				path = self.tasksview.get_path(row)
@@ -526,7 +546,7 @@ class TaskListTreeView(BrowserTreeView):
 			modelrow[0] = self._filter_item(modelrow)
 			myiter = self.real_model.append(iter, modelrow)
 
-			if row['haschildren']:
+			if row['haschildren'] and not self.flatlist:
 				self._append_tasks(row, myiter, path_cache) # recurs
 
 	def set_filter_actionable(self, filter):
@@ -535,6 +555,10 @@ class TaskListTreeView(BrowserTreeView):
 		'''
 		self.filter_actionable = filter
 		self._eval_filter()
+
+	def set_flatlist(self, flatlist):
+		self.flatlist = flatlist
+		self.refresh()
 
 	def set_filter(self, string):
 		# TODO allow more complex queries here - same parse as for search

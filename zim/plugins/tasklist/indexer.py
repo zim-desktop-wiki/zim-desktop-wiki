@@ -67,6 +67,7 @@ class TasksIndexer(IndexerBase):
 			source INTEGER,
 			parent INTEGER,
 			haschildren BOOLEAN,
+			hasopenchildren BOOLEAN,
 			open BOOLEAN,
 			prio INTEGER,
 			start TEXT,
@@ -154,9 +155,9 @@ class TasksIndexer(IndexerBase):
 		for task, children in tasks:
 			task[4] = ','.join(sorted(task[4])) # make tag list a string
 			db.execute(
-				'INSERT INTO tasklist(source, parent, haschildren, open, prio, start, due, tags, description)'
-				'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				(pageid, parentid, bool(children)) + tuple(task)
+				'INSERT INTO tasklist(source, parent, haschildren, hasopenchildren, open, prio, start, due, tags, description)'
+				'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+				(pageid, parentid, bool(children), any(c[0][0] for c in children)) + tuple(task)
 			)
 			if children:
 				self._insert_tasks(db, pageid, db.lastrowid, children) # recurs
@@ -214,6 +215,31 @@ class TasksView(IndexView):
 			WHERE tasklist.open=1 and tasklist.parent=? and tasklist.start>?
 			ORDER BY tasklist.start ASC, tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
 			''', (parentid, today)
+		):
+			yield row
+
+	def list_open_tasks_flatlist(self):
+		'''List tasks
+		@returns: a list of tasks as sqlite Row objects
+		'''
+		# Sort:
+		#  started tasks by prio, due date, page + id to keep order in page
+		#  not-started tasks by start date, ...
+		today = str( datetime.date.today() )
+		for row in self.db.execute('''
+			SELECT tasklist.* FROM tasklist
+			LEFT JOIN pages ON tasklist.source = pages.id
+			WHERE tasklist.open=1 and tasklist.start<=? and hasopenchildren=0
+			ORDER BY tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
+			''', (today,)
+		):
+			yield row
+		for row in self.db.execute('''
+			SELECT tasklist.* FROM tasklist
+			LEFT JOIN pages ON tasklist.source = pages.id
+			WHERE tasklist.open=1 and tasklist.start>? and hasopenchildren=0
+			ORDER BY tasklist.start ASC, tasklist.prio DESC, tasklist.due ASC, pages.name ASC, tasklist.id ASC
+			''', (today,)
 		):
 			yield row
 
