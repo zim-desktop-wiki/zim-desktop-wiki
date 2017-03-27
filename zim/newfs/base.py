@@ -290,6 +290,9 @@ class FilePath(object):
 	def __repr__(self):
 		return "<%s: %s>" % (self.__class__.__name__, self.path)
 
+	def __str__(self):
+		return self.path
+
 	def __eq__(self, other):
 		return isinstance(other, self.__class__) and other.path == self.path
 

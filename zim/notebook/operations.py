@@ -10,7 +10,7 @@ Summary:
 
   - Notebook, page and related data structures are *not* thread safe
   - Concurrency in the Gtk/Glib main loop is handled by generator
-    functions wrapped in "NotebookOperation" objects
+	functions wrapped in "NotebookOperation" objects
 
 The notebook and page objects are *not* thread safe, so threaded usage
 needs to be managed carefully. Full thread safe design has been
@@ -59,8 +59,8 @@ limitted to "read-only" access to the notebook.
 See also:
 
   - For more information about threading and the generator style
-    concurency with Gtk/GLib, see
-    https://wiki.gnome.org/Projects/PyGObject/Threading
+	concurency with Gtk/GLib, see
+	https://wiki.gnome.org/Projects/PyGObject/Threading
 
 
 Examples
@@ -93,23 +93,18 @@ thread to finish before the next thing happens.
 Index updates:
 
   - If index is out-of-date at start, run update as operation with
-    progress dialog
+	progress dialog
   - Else start thread to find out-of-date records (this is not an operation!)
   - If out-of-date records are found queue an trigger on idle to start
-    updating (if another operation is active, delay with a timeout
-    untill notebook is unlocked)
+	updating (if another operation is active, delay with a timeout
+	untill notebook is unlocked)
   - Run update as operation with progress bar in window, but not
-    blocking the window (assume updates are small)
+	blocking the window (assume updates are small)
 
   - When the user selects "update index" in the menu, or another action
-    that explicitly asks to ensure index up to date (e.g. export)
+	that explicitly asks to ensure index up to date (e.g. export)
   - If index operation is ongoing, attach progress dialog
   - Else start new update with progress dialog
-
-The update operation only does a single database commit at the end of
-the operation. This is a speed optimization. To avoid exposing partial
-updates in between, use a new database connection for the update.
-SQLite allows for concurrency between connections.
 
 The use of a thread here is allowed because it only acts on the index,
 not on the notebook. However index updates in the operation or index
@@ -182,10 +177,10 @@ class NotebookOperation(SignalEmitter):
 		dialog.run()
 
 	When using the progress dialog the values yielded by the inner
-	iterator will be passed on via the 'step' signal. This shouldbe a
-    3-tuple of C{(i, total, msg)} where C{i} and C{total} are integers for the
+	iterator will be passed on via the 'step' signal. This should be a
+	3-tuple of C{(i, total, msg)} where C{i} and C{total} are integers for the
 	current step and the total number of steps expected (or C{None} if the step
-    count is not known).
+	count is not known).
 
 	'''
 
@@ -205,6 +200,7 @@ class NotebookOperation(SignalEmitter):
 		self.notebook = notebook
 		self.message = message
 		self.cancelled = False
+		self.exception = None
 		self._do_work = iterator
 		self._block = True
 
@@ -238,9 +234,9 @@ class NotebookOperation(SignalEmitter):
 		self.notebook._operation_check = self # start blocking
 		my_iter = iter(self)
 		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
-		#~ GLib.idle_add(lambda: next(gen, False), priority=GLib.PRIORITY_LOW)
 
 	def cancel(self):
+		logger.debug('Operation cancelled')
 		self.notebook._operation_check = NOOP # stop blocking
 		self.cancelled = True
 		self.emit('finished')
@@ -252,17 +248,22 @@ class NotebookOperation(SignalEmitter):
 
 		try:
 			while self.notebook._operation_check == self:
+				# while covers cancelled, but also any other op overwriting the "lock"
 				# unblock api to do work, block again before yielding to main loop
 				self._block = False
 				progress = next(self._do_work)
-				self.emit('step', progress)
+				if isinstance(progress, tuple):
+					self.emit('step', progress)
+				else:
+					self.emit('step', (None, None, progress))
 				self._block = True
 				yield True # keep going
 		except StopIteration:
 			raise
-		except Exception:
+		except Exception, err:
 			logger.exception('Error in operation:')
 			self.cancelled = True
+			self.exception = err
 			raise StopIteration
 		finally:
 			if self.notebook._operation_check == self:

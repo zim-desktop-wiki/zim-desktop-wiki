@@ -38,13 +38,14 @@ class FilesExporterBase(Exporter):
 		self.format = get_format(format) # XXX
 		self.document_root_url = document_root_url
 
-	def export_attachments(self, notebook, page):
+	def export_attachments_iter(self, notebook, page):
 		# XXX FIXME remove need for notebook here
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
 		try:
 			for file in source.list_files():
 				if isinstance(target, Dir):
+					yield file
 					file.copyto(LocalFolder(target.path)) # XXX convert
 				else:
 					assert False
@@ -97,7 +98,8 @@ class MultiFileExporter(FilesExporterBase):
 			try:
 				self.export_page(pages.notebook, page, pages, prevpage=prev, nextpage=next)
 					# XXX FIXME remove need for notebook here
-				self.export_attachments(pages.notebook, page)
+				for file in self.export_attachments_iter(pages.notebook, page):
+					yield file
 					# XXX FIXME remove need for notebook here
 			except:
 				raise
@@ -185,8 +187,9 @@ class SingleFileExporter(FilesExporterBase):
 		# TODO also yield while exporting main page
 
 		for page in pages:
-			self.export_attachments(pages.notebook, page)
 			yield page
+			for file in self.export_attachments(pages.notebook, page):
+				yield file
 
 
 #~ class StaticFileExporter(SingleFileExporter):

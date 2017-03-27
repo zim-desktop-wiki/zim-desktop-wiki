@@ -30,6 +30,7 @@ from zim.environ import environ
 from zim.signals import DelayedCallback
 from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook, encode_filename, LINK_DIR_BACKWARD, PageExistsError
 from zim.notebook.index import IndexNotFoundError
+from zim.notebook.operations import NotebookOperation
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
 	gtk_accelerator_preparse, gtk_accelerator_preparse_list
 from zim.config import data_file, data_dirs, ConfigDict, value_is_coord, ConfigManager
@@ -43,7 +44,7 @@ from zim.gui.pageview import PageView
 from zim.gui.widgets import ui_environment, \
 	Button, MenuButton, \
 	Window, Dialog, \
-	ErrorDialog, QuestionDialog, FileDialog, ProgressBarDialog, MessageDialog, \
+	ErrorDialog, QuestionDialog, FileDialog, ProgressDialog, MessageDialog, \
 	PromptExistingFileDialog, \
 	ScrolledTextView
 from zim.gui.clipboard import Clipboard
@@ -1074,17 +1075,17 @@ class GtkInterface(gobject.GObject):
 				return # Cancelled
 
 		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
-		dialog = ProgressBarDialog(self, _('Removing Links'))
-			# T: Title of progressbar dialog
-		try:
-			with dialog:
-				for p in self.notebook.trash_page_iter(path, update_links):
-					dialog.pulse(p.name)
-		except TrashNotSupportedError, error:
-			logger.info('Trash not supported: %s', error.msg)
+		op = NotebookOperation(
+			self.notebook,
+			_('Removing Links'), # T: Title of progressbar dialog
+			self.notebook.trash_page_iter(path, update_links)
+		)
+		dialog = ProgressDialog(self, op)
+		dialog.run()
+
+		if op.exception and isinstance(op.exception, TrashNotSupportedError):
+			logger.info('Trash not supported: %s', op.exception.msg)
 			DeletePageDialog(self, path).run()
-		except TrashCancelledError, error:
-			pass
 
 	@action(_('Proper_ties'), 'gtk-properties') # T: Menu item
 	def show_properties(self):
@@ -1482,13 +1483,13 @@ class GtkInterface(gobject.GObject):
 		'''
 		self.emit('start-index-update')
 
-		dialog = ProgressBarDialog(self, _('Updating index'))
-			# T: Title of progressbar dialog
-		with dialog:
-			#for c, p in self.notebook.index.update_iter:
-			#	dialog.pulse(p.name)
-			for i in self.notebook.index.check_and_update_iter():
-				dialog.pulse()
+		op = NotebookOperation(
+			self.notebook,
+			_('Updating index'), # T: Title of progressbar dialog
+			self.notebook.index.check_and_update_iter()
+		)
+		dialog = ProgressDialog(self, op)
+		dialog.run()
 
 		self.emit('end-index-update')
 
@@ -2631,10 +2632,13 @@ class MovePageDialog(Dialog):
 		newpath = parent + self.path.basename
 		self.hide() # hide this dialog before showing the progressbar
 
-		dialog = ProgressBarDialog(self, _('Updating Links')) # T: label for progress dialog
-		with dialog:
-			for p in self.ui.notebook.move_page_iter(self.path, newpath, update):
-				dialog.pulse(p.name)
+		op = NotebookOperation(
+			self.ui.notebook,
+			_('Updating Links'), # T: label for progress dialog
+			self.ui.notebook.move_page_iter(self.path, newpath, update)
+		)
+		dialog = ProgressDialog(self, op)
+		dialog.run()
 
 		return True
 
@@ -2688,10 +2692,13 @@ class RenamePageDialog(Dialog):
 		update = self.form['update']
 		self.hide() # hide this dialog before showing the progressbar
 
-		dialog = ProgressBarDialog(self, _('Updating Links')) # T: label for progress dialog
-		with dialog:
-			for p in self.ui.notebook.rename_page_iter(self.path, name, head, update):
-				dialog.pulse(p.name)
+		op = NotebookOperation(
+			self.ui.notebook,
+			_('Updating Links'), # T: label for progress dialog
+			self.ui.notebook.rename_page_iter(self.path, name, head, update)
+		)
+		dialog = ProgressDialog(self, op)
+		dialog.run()
 
 		return True
 
@@ -2779,11 +2786,13 @@ class DeletePageDialog(Dialog):
 	def do_response_ok(self):
 		update_links = self.links_checkbox.get_active()
 
-		dialog = ProgressBarDialog(self, _('Removing Links'))
-			# T: Title of progressbar dialog
-		with dialog:
-			for p in self.ui.notebook.delete_page_iter(self.path, update_links):
-				dialog.pulse(p.name)
+		op = NotebookOperation(
+			self.ui.notebook,
+			_('Removing Links'), # T: Title of progressbar dialog
+			self.ui.notebook.delete_page_iter(self.path, update_links)
+		)
+		dialog = ProgressDialog(self, op)
+		dialog.run()
 
 		return True
 

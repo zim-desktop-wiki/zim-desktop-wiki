@@ -3770,54 +3770,20 @@ class FileDialog(Dialog):
 		return bool(self.result)
 
 
-class ProgressBarDialog(gtk.Dialog):
-	'''This class implements a dialog with a progress bar.
+class ProgressDialog(gtk.Dialog):
+	'''Dialog to show a progress bar for a operation'''
 
-	ProgressBarDialogs supposed to run modal, but are not called with
-	C{run()} as they are typically driven by a callback of a async
-	action. Typical construct would be::
-
-		dialog = ProgressBarDialog(ui, 'My progress bar')
-
-		def cb_func(*arg):
-			cancel = dialog.pulse()
-			return cancel
-
-		with dialog:
-			self.async_foo(callback=cb_func)
-
-	This example assumes that the method C{async_foo()} will cancel as
-	soon as the callback returns C{False}.
-
-	The dialog is used as context manager, so the dialog is properly
-	destroyed in case of an error.
-
-	The usage of a progress bar dialog I{must} implement a cancel action.
-
-	Note that progress bars dialogs do not have a title. But the given
-	title will be shown as a label in the dialog itself.
-
-	If you know how often L{pulse()} will be called and give this total
-	number the bar will display a percentage. Otherwise the bar will
-	just bounce up and down without indication of remaining time.
-	'''
-
-	def __init__(self, ui, text, total=None):
+	def __init__(self, ui, op):
 		'''Constructor
-
 		@param ui: either a parent window or dialog or the main
 		C{GtkInterface} object
-
-		@param text: text to show above the progress bar. Typically
-		should be the action being executed, like "Updating Links".
-		This is not a dialog title, so phrasing is slightly different.
-
-		@param total: number of times we expect L{pulse()} to be called,
-		if known. Will result in the bar showing progress by percentage.
-		Can later be modified by supplying a new total number directly
-		to L{pulse()}.
+		@param op: operation that supports a "step" signal, a "finished" signal
+		and a "run_on_idle" method - see L{NotebookOperation} for the default
+		implementation
 		'''
 		self.ui = ui
+		self.op = op
+		self._total = None
 		self.cancelled = False
 		gtk.Dialog.__init__(
 			# no title - see HIG about message dialogs
@@ -3831,7 +3797,7 @@ class ProgressBarDialog(gtk.Dialog):
 		self.set_default_size(300, 0)
 
 		label = gtk.Label()
-		label.set_markup('<b>'+encode_markup_text(text)+'</b>')
+		label.set_markup('<b>'+encode_markup_text(op.message)+'</b>')
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
@@ -3843,90 +3809,50 @@ class ProgressBarDialog(gtk.Dialog):
 		self.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		self.vbox.pack_start(self.msg_label, False)
 
-		self.set_total(total)
-
-	def __enter__(self):
-		return self
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.destroy()
-		return False # re-raises error
-
-	def set_total(self, total):
-		'''Set the number of times we expect L{pulse()} to be called,
-		calling this method also resets the count
-		@param total: number of times we expect L{pulse()} to be called
-		'''
-		self.total = total
-		self.count = 0
-
-	def pulse(self, msg=None, count=None, total=None):
-		'''update the dialog and move the progress bar by one step.
-
-		First call to C{pulse()} will also trigger a C{show_all()} if
-		the dialog is not shown yet. By not showing the dialog before
-		C{pulse()} is called prevents the dialog flashing over the
-		screen when the operation was very quick after all and never
-		needed to call the callback.
-
-		This method also run other pending gtk events. So the interface
-		keeps looking repsonsive is a long operation calls this method
-		often enough.
-
-		@param msg: optional message to show below the progress bar,
-		e.g. the name of the item being processed
-		@param count: count of steps already done, if C{None} the
-		number of steps is equal to number of times C{pulse()} has
-		been called.
-		@param total: total number of steps expected, if C{None} a
-		previous set total is used. If no total is known the bar
-		will just bounce up and down without indication of remaining
-		items.
-
-		@returns: C{True} until the 'Cancel' button has been pressed,
-		this should be used to decide if the background job should
-		continue or not.
-		'''
-		if not TEST_MODE and not self.get_property('visible'):
-			self.show_all()
-
-		if total and total != self.total:
-			self.set_total(total)
-			self.count = count or 0
-		elif count:
-			self.count = count - 1
-
-		if self.total and self.count < self.total:
-			self.count += 1
-			fraction = float(self.count) / self.total
-			self.progressbar.set_fraction(fraction)
-			self.progressbar.set_text('%i%%' % int(fraction * 100))
-		else:
-			self.progressbar.pulse()
-
-		if msg:
-			self.msg_label.set_markup('<i>'+encode_markup_text(msg)+'</i>')
-
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
-
-		return not self.cancelled
+		self.op.connect('step', self.on_step)
+		self.op.connect('finished', self.on_finished)
 
 	def show_all(self):
-		logger.debug('Opening ProgressBarDialog')
+		logger.debug('Opening ProgressDialog: %s', self.op.message)
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
+	def run(self):
+		self.op.run_on_idle()
+
+		if TEST_MODE: # Avoid flashing on screen
+			while gtk.events_pending():
+				gtk.main_iteration(block=False)
+		else:
+			self.show_all()
+			gtk.Dialog.run(self)
+
+	def on_step(self, op, info):
+		i, total, msg = info
+
+		try:
+			frac = float(i) / total
+		except TypeError:
+			# Apperently i and/or total is not integer
+			self.progressbar.pulse()
+		else:
+			self.progressbar.set_fraction(frac)
+			self.progressbar.set_text(_('%i of %i') % (i, total))
+			 	# T: lable in progressbar giving number of items and total
+
+		if msg is None:
+			self.msg_label.set_text('')
+		else:
+			self.msg_label.set_markup('<i>'+encode_markup_text(str(msg))+'</i>')
+
+	def on_finished(self, op):
+		self.cancelled = op.cancelled
+		self.destroy()
+
 	def do_response(self, id):
-		logger.debug('ProgressBarDialog get response %s', id)
+		logger.debug('ProgressDialog %s cancelled', self.op.message)
+		self.op.cancel()
 		self.cancelled = True
-
-	#def do_destroy(self):
-	#	logger.debug('Closed ProgressBarDialog')
-
-
-# Need to register classes defining gobject signals
-gobject.type_register(ProgressBarDialog)
 
 
 class LogFileDialog(Dialog):
@@ -4043,7 +3969,7 @@ class Assistant(Dialog):
 		# yet reflect theming on construction
 		# However also need to disconnect the signal after first use,
 		# because otherwise this keeps firing, which hangs the loop
-		# for handling events in ProgressBarDialog.pulse() - LP #929247
+		# for handling events in ProgressBar.pulse() - LP #929247
 		ebox = gtk.EventBox()
 		def _set_heading_color(*a):
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
