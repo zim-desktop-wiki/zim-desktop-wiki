@@ -9,7 +9,6 @@ import re
 
 import zim.datetimetz as datetime
 
-from zim.parsing import parse_date
 from zim.notebook import Path
 from zim.notebook.index.base import IndexerBase, IndexView
 from zim.notebook.index.pages import PagesViewInternal
@@ -26,9 +25,14 @@ from zim.plugins.calendar import daterange_from_path
 logger = logging.getLogger('zim.plugins.tasklist')
 
 
-_tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-_date_re = re.compile(r'\s*\[d:(.+)\]')
+from zim.parsing import parse_date as old_parse_date
+from .dates import date_re as _raw_parse_date_re
+from .dates import parse_date
 
+
+_tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
+_date_re = re.compile('[<>]' + _raw_parse_date_re.pattern + '|\[d:.+\]')
+	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
 _MAX_DUE_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
 _NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be lower case
@@ -438,14 +442,17 @@ class TaskParser(object):
 
 		start = parent[2] if parent else 0 # inherit start date
 		due = parent[3] if parent else _MAX_DUE_DATE # inherit due date
-		datematch = _date_re.search(text) # first match
-		if datematch:
-			for string in datematch.group(0).strip().split():
-				date = parse_date(string)
-				if date and string.startswith('>'):
-	 				start = '%04i-%02i-%02i' % date # (y, m, d)
-				elif date:
-	 				due = '%04i-%02i-%02i' % date # (y, m, d)
+		for string in _date_re.findall(text):
+			if string.startswith('[d:'): # backward compat
+				date = old_parse_date(string[3:-1].strip())
+				if date:
+					due = '%04i-%02i-%02i' % date # (y, m, d)
+			elif string.startswith('>'):
+				start = parse_date(string[1:]).first_day.isoformat()
+			elif string.startswith('<'):
+				due = parse_date(string[1:]).last_day.isoformat()
+			else:
+				pass # Huh !?
 
 		return [isopen, prio, start, due, tags, unicode(text.strip())]
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
