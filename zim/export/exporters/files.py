@@ -188,7 +188,7 @@ class SingleFileExporter(FilesExporterBase):
 
 		for page in pages:
 			yield page
-			for file in self.export_attachments(pages.notebook, page):
+			for file in self.export_attachments_iter(pages.notebook, page):
 				yield file
 
 
