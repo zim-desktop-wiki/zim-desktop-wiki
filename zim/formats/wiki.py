@@ -472,8 +472,8 @@ class Parser(ParserClass):
 		wikiparser(builder, input)
 
 		parsetree = builder.get_parsetree()
-		if meta:
-			parsetree.meta = meta
+		#if meta:
+		parsetree.meta = meta
 		return parsetree
 
 

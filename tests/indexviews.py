@@ -97,7 +97,7 @@ def new_test_database():
 #		for line in db.iterdump():
 #			print line
 
-from zim.notebook.index.pages import PagesIndexer, PagesView, ParseTreeMask, \
+from zim.notebook.index.pages import PagesIndexer, PagesView, \
 	PagesTreeModelMixin, \
 	IndexNotFoundError
 	#get_treepath_for_indexpath_factory, get_indexpath_for_treepath_factory, \

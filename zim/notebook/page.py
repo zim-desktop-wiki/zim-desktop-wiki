@@ -19,6 +19,8 @@ import zim.newfs
 
 from zim.signals import SignalEmitter, SIGNAL_NORMAL
 
+import zim.datetimetz as datetime
+
 
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(

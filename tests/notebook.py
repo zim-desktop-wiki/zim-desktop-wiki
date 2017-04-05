@@ -14,6 +14,7 @@ import time
 from zim.fs import File, Dir
 from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
 from zim.formats import ParseTree
+from zim.formats.wiki import Parser as WikiParser
 
 from zim.notebook import *
 from zim.notebook.notebook import NotebookConfig, IndexNotUptodateError, PageExistsError
@@ -992,3 +993,26 @@ class TestIndexBackgroundCheck(tests.TestCase):
 		self.assertTrue(notebook.pages.n_all_pages() > 10)
 
 		notebook.index.stop_background_check()
+
+
+class TestBackgroundSave(tests.TestCase):
+
+	def runTest(self):
+		notebook = self.setUpNotebook()
+
+		page = notebook.get_page(Path('Page1'))
+		tree = WikiParser().parse('test 123\n')
+
+		signals = tests.SignalLogger(notebook)
+
+		op = notebook.store_page_async(page, lambda : tree)
+		thread = op._thread
+		while thread.is_alive():
+			tests.gtk_process_events()
+
+		tests.gtk_process_events()
+		self.assertFalse(op.error_event.is_set())
+
+		text = page.dump('wiki')
+		self.assertEqual(text[-1], 'test 123\n')
+		self.assertEqual(signals['stored-page'], [(page,)]) # post handler happened as well

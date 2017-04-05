@@ -287,7 +287,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 
 
 from zim.utils import natural_sort_key
-from zim.notebook.index.pages import PagesViewInternal, ParseTreeMask
+from zim.notebook.index.pages import PagesViewInternal
 from zim.notebook.page import HRef
 from zim.formats.wiki import Parser as WikiParser
 from zim.newfs.mock import MockFile
@@ -334,9 +334,8 @@ class TestLinksIndexer(tests.TestCase):
 		pageindexer.setObjectAccess('insert_link_placeholder')
 		for i, name, text in self.PAGES:
 			tree = WikiParser().parse(text)
-			doc = ParseTreeMask(tree)
 			row = {'id': i, 'name': name}
-			indexer.on_page_changed(pageindexer, row, doc)
+			indexer.on_page_changed(pageindexer, row, tree)
 
 		indexer.on_finish_update(None)
 
@@ -372,9 +371,8 @@ class TestTagsIndexer(tests.TestCase):
 		indexer = TagsIndexer(db, tests.MockObject(), tests.MockObject())
 		for i, name, text in self.PAGES:
 			tree = WikiParser().parse(text)
-			doc = ParseTreeMask(tree)
 			row = {'id': i, 'name': name}
-			indexer.on_page_changed(None, row, doc)
+			indexer.on_page_changed(None, row, tree)
 		indexer.on_finish_update(None)
 
 		self.assertTags(db,

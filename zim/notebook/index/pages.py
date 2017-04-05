@@ -114,8 +114,7 @@ class PagesIndexer(IndexerBase):
 			format = self.layout.get_format(file)
 			mtime = file.mtime()
 			tree = format.Parser().parse(file.read())
-			doc = ParseTreeMask(tree)
-			self.update_page(pagename, mtime, doc)
+			self.update_page(pagename, mtime, tree)
 		else:
 			pass # some conflict file changed
 
@@ -250,27 +249,6 @@ class PagesIndexer(IndexerBase):
 		self.emit('page-row-deleted', row)
 		self.db.execute('DELETE FROM pages WHERE name=?', (pagename.name,))
 		self.update_parent(pagename.parent, allow_cleanup)
-
-
-class ParseTreeMask(object):
-	## XXX temporary object, replace when refactoring formats
-
-	def __init__(self, tree):
-		self._tree = tree
-		self._tokens = None
-
-	def iter_href(self):
-		return self._tree.iter_href()
-
-	def iter_tag_names(self):
-		return self._tree.iter_tag_names()
-
-	def iter_tokens(self):
-		if not self._tokens:
-			tb = TokenBuilder()
-			self._tree.visit(tb)
-			self._tokens = tb.tokens
-		return self._tokens
 
 
 class PageIndexRecord(Path):

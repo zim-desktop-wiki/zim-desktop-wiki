@@ -782,7 +782,20 @@ from functools import partial
 
 class SignalLogger(dict):
 	'''Listening object that attaches to all signals of the target and records
-	all signals calls in a dicationary.
+	all signals calls in a dictionary of lists.
+
+	Example usage:
+
+		signals = SignalLogger(myobject)
+		... # some code causing signals to be emitted
+		self.assertEqual(signals['mysignal'], [args])
+			# assert "mysignal" is called once with "*args"
+
+	If you don't want to match all arguments, the "filter_func" can be used to
+	transform the arguments before logging.
+
+		filter_func(signal_name, object, args) --> args
+
 	'''
 
 	def __init__(self, obj, filter_func=None):
@@ -790,7 +803,7 @@ class SignalLogger(dict):
 		self._ids = []
 
 		if filter_func is None:
-			filter_func = lambda s, o, *a: a
+			filter_func = lambda s, o, a: a
 
 		for signal in self._obj.__signals__:
 			seen = []

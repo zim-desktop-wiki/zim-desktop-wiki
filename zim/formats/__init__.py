@@ -149,6 +149,10 @@ LINE_TEXT = '-'*20
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
 
+
+from zim.tokenparser import TokenBuilder
+
+
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 def increase_list_iter(listiter):
@@ -246,7 +250,7 @@ def get_dumper(name, *arg, **kwarg):
 class ParseTree(object):
 	'''Wrapper for zim parse trees.'''
 
-	# No longer derives from ElementTree, internals are not private
+	# No longer derives from ElementTree, internals are now private
 
 	# TODO, also remove etree args from init
 	# TODO, rename to FormattedText
@@ -327,6 +331,11 @@ class ParseTree(object):
 		except:
 			print ">>>", xml, "<<<"
 			raise
+
+	def iter_tokens(self):
+		tb = TokenBuilder()
+		self.visit(tb)
+		return tb.tokens
 
 	def iter_href(self):
 		'''Generator for links in the text

@@ -74,6 +74,17 @@ class TokenParser(object):
 				self.builder.start(*t)
 
 
+class TokenVisitor(object):
+	# Adaptor for the visit interface
+
+	def __init__(self, tokens):
+		self.tokens = tokens
+
+	def visit(self, builder):
+		parser = TokenParser(builder)
+		builder.parse(self.tokens)
+
+
 def skip_to_end_token(token_iter, end_token):
 	eol = 0
 	nesting = 0

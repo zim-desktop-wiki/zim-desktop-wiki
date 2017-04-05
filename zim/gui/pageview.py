@@ -31,7 +31,7 @@ from zim.fs import File, Dir, normalize_file_uris, FilePath
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
-from zim.notebook.operations import NotebookState
+from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
@@ -4733,8 +4733,7 @@ class SavePageHandler(object):
 		self.get_page_cb = get_page_cb
 		self.timeout = timeout
 		self._autosave_timer = None
-		self._thread = None
-		self._thread_error_event = threading.Event()
+		self._error_event = None
 
 	def queue_autosave(self, timeout=15):
 		'''Queue a single autosave action after a given timeout.
@@ -4771,9 +4770,8 @@ class SavePageHandler(object):
 		@param dialog_timeout: passed on to L{SavePageErrorDialog}
 		'''
 		self.cancel_autosave()
-		self.join()
 
-		self._thread_error_event.clear()
+		self._error_event = None
 
 		with NotebookState(self.notebook):
 			page = self.get_page_cb()
@@ -4815,53 +4813,28 @@ class SavePageHandler(object):
 			self._autosave_timer = None
 			return False # stop timer
 
-		if self._thread and self._thread.is_alive():
-			logger.debug('Save still in progress, skipping auto-save')
+		if ongoing_operation(self.notebook):
+			logger.debug('Operation in progress, skipping auto-save') # Could be auto-save
 			return True # Check back later if on timer
+
+
+		if self._error_event and self._error_event.is_set():
+			# Error in previous auto-save, save in foreground to allow error dialog
+			logger.debug('Last auto-save resulted in error, re-try in foreground')
+			self.save_page_now(dialog_timeout=True)
 		else:
-			self._thread = None
+			# Save in background async
+			# Retrieve tree here and pass on to thread to prevent
+			# changing the buffer while extracting it
+			tree = page.get_parsetree()
+			op = self.notebook.store_page_async(page, lambda : tree)
+			self._error_event = op.error_event
 
-			if self._thread_error_event.is_set():
-				# Error in previous auto-save, save in foreground to allow error dialog
-				logger.debug('Last auto-save resulted in error, re-try in foreground')
-				self.save_page_now(dialog_timeout=True)
-			else:
-				# Save in background async
-				# Retrieve tree here and pass on to thread to prevent
-				# changing the buffer while extracting it
-				thread_started = threading.Event()
-				tree = page.get_parsetree()
-				self._thread = threading.Thread(
-					target=self._save_page_async,
-					args=(page, tree, thread_started)
-				)
-				self._thread.start()
-				thread_started.wait()
-
-			if page.modified:
-				return True # if True, timer will keep going
-			else:
-				self._autosave_timer = None
-				return False # stop timer
-
-	def _save_page_async(self, page, tree, thread_started):
-		logger.debug('Saving page: %s (background autosave)', page)
-		with NotebookState(self.notebook):
-			thread_started.set() # we have the lock, allow parent to continue
-			try:
-				self._assert_can_save_page(page)
-				self.notebook._store_page_async(page, tree)
-			except:
-				logger.exception('Error during auto-save')
-				self._thread_error_event.set()
-			else:
-				self._thread_error_event.clear()
-
-	def join(self):
-		if self._thread and self._thread.is_alive():
-			self._thread.join()
-
-
+		if page.modified:
+			return True # if True, timer will keep going
+		else:
+			self._autosave_timer = None
+			return False # stop timer
 
 
 class SavePageErrorDialog(ErrorDialog):

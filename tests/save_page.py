@@ -5,6 +5,7 @@ import tests
 
 from zim.fs import Dir
 from zim.notebook import Notebook, Path
+from zim.notebook.operations import ongoing_operation
 from zim.gui.pageview import SavePageHandler, SavePageErrorDialog
 
 
@@ -17,7 +18,7 @@ class TestSavePageHandler(tests.TestCase):
 		page = notebook.get_page(Path('SomePage'))
 
 		orig_store_page_1 = notebook.store_page
-		orig_store_page_2 = notebook._store_page_async
+		orig_store_page_2 = notebook.store_page_async
 		store_page_counter = tests.Counter()
 
 		def wrapper1(page):
@@ -26,10 +27,10 @@ class TestSavePageHandler(tests.TestCase):
 
 		def wrapper2(page, tree):
 			store_page_counter()
-			orig_store_page_2(page, tree)
+			return orig_store_page_2(page, tree)
 
 		notebook.store_page = wrapper1
-		notebook._store_page_async = wrapper2
+		notebook.store_page_async = wrapper2
 
 		pageview = tests.MockObject()
 		pageview.readonly = False
@@ -48,7 +49,7 @@ class TestSavePageHandler(tests.TestCase):
 		page.modified = True
 		handler.try_save_page()
 		self.assertEqual(store_page_counter.count, 2)
-		handler.join()
+		ongoing_operation(notebook)() # effectively a join
 		self.assertFalse(page.modified)
 
 		page.modified = True
@@ -57,10 +58,17 @@ class TestSavePageHandler(tests.TestCase):
 		self.assertFalse(page.modified)
 
 		# With errors
-		def wrapper(*a):
+		def wrapper3(page):
 			raise AssertionError
-		notebook.store_page = wrapper
-		notebook._store_page_async = wrapper
+
+		def wrapper4(page, tree):
+			def error_cb():
+				raise AssertionError
+			return orig_store_page_2(page, error_cb)
+
+		notebook.store_page = wrapper3
+		notebook.store_page_async = wrapper4
+
 		page.modified = True
 
 		def catch_dialog(dialog):
@@ -72,14 +80,13 @@ class TestSavePageHandler(tests.TestCase):
 		self.assertTrue(page.modified)
 
 		# For autosave first error is ignore, 2nd results in dialog
-		self.assertFalse(handler._thread_error_event.is_set())
+		self.assertFalse(handler._error_event and handler._error_event.is_set())
 		with tests.LoggingFilter('zim'):
 			handler.try_save_page()
-			handler.join()
-		self.assertTrue(handler._thread_error_event.is_set())
+			ongoing_operation(notebook)() # effectively a join
+		self.assertTrue(handler._error_event and handler._error_event.is_set())
 
 		with tests.LoggingFilter('zim'):
 			with tests.DialogContext(catch_dialog):
 				handler.try_save_page()
 		self.assertTrue(page.modified)
-

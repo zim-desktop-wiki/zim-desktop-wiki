@@ -13,6 +13,8 @@ import threading
 
 logger = logging.getLogger('zim.notebook')
 
+from functools import partial
+
 import zim.templates
 import zim.formats
 
@@ -24,7 +26,7 @@ from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .operations import notebook_state, NOOP
+from .operations import notebook_state, NOOP, SimpleAsyncOperation
 from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
@@ -478,20 +480,49 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@emits: stored-page on success
 		'''
 		assert page.valid, 'BUG: page object no longer valid'
+		logger.debug('Store page: %s', page)
 		self.emit('store-page', page)
 		page._store()
 		file, folder = self.layout.map_page(page)
 		self.index.update_file(file)
 		self.emit('stored-page', page)
 
-	def _store_page_async(self, page, parsetree):
-		# HACK to avoid retrieving parsetree in thread
-		# remove when saving is fully integrated between page & pageview
+	@notebook_state
+	def store_page_async(self, page, parsetree_func):
 		assert page.valid, 'BUG: page object no longer valid'
+		logger.debug('Store page in background: %s', page)
 		self.emit('store-page', page)
-		page._store_tree(parsetree)
-		self.index.on_store_page(page)
-		self.emit('stored-page', page)
+		started = threading.Event()
+		error = threading.Event()
+		thread = threading.Thread(
+			target=partial(self._store_page_async_thread_main, page, parsetree_func, started, error)
+		)
+		thread.start()
+		op = SimpleAsyncOperation(
+			notebook=self,
+			message='Store page in progress',
+			thread=thread,
+			post_handler=partial(self._store_page_async_finished, page, error)
+		)
+		op.error_event = error
+		op.run_on_idle()
+		started.wait()
+		return op
+
+	def _store_page_async_thread_main(self, page, parsetree_func, started, error):
+		started.set()
+		try:
+			tree = parsetree_func()
+			page._store_tree(tree)
+		except:
+			error.set()
+			logger.exception('Error in background save')
+
+	def _store_page_async_finished(self, page, error):
+		if not error.is_set():
+			file, folder = self.layout.map_page(page)
+			self.index.update_file(file)
+			self.emit('stored-page', page)
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook
