@@ -136,7 +136,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		filter_entry.connect('changed', filter_cb)
 
 		# TODO: use menu button here and add same options as in context menu
-		#       for filtering the list 
+		#       for filtering the list
 		self.act_toggle = gtk.CheckButton(_('Only Show Active Tasks'))
 			# T: Checkbox in task list - this options hides tasks that are not yet started
 		self.act_toggle.set_active(self.uistate['only_show_act'])
@@ -301,6 +301,7 @@ COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
 def days_to_str(days):
 	if days > 290:  return '%iy' % round(float(days)/365) # round up to 1 year from ~10 months
 	elif days > 25: return '%im' % round(float(days)/30)
+	elif days > 10: return '%iw' % round(float(days)/7)
 	else:           return '%id' % days
 
 
