@@ -3818,7 +3818,8 @@ class ProgressDialog(gtk.Dialog):
 			gtk.Dialog.show_all(self)
 
 	def run(self):
-		self.op.run_on_idle()
+		if not self.op.is_running():
+			self.op.run_on_idle()
 
 		if TEST_MODE: # Avoid flashing on screen
 			while gtk.events_pending():

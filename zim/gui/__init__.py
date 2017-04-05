@@ -29,8 +29,8 @@ from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback
 from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook, encode_filename, LINK_DIR_BACKWARD, PageExistsError
-from zim.notebook.index import IndexNotFoundError
-from zim.notebook.operations import NotebookOperation
+from zim.notebook.index import IndexNotFoundError, IndexUpdateOperation, IndexCheckAndUpdateOperation
+from zim.notebook.operations import NotebookOperation, ongoing_operation
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
 	gtk_accelerator_preparse, gtk_accelerator_preparse_list
 from zim.config import data_file, data_dirs, ConfigDict, value_is_coord, ConfigManager
@@ -404,10 +404,10 @@ class GtkInterface(gobject.GObject):
 
 		if not self.notebook.index.is_uptodate:
 			# Show dialog, do fast foreground update
-			self.reload_index()
+			self.reload_index(update_only=True)
 		else:
 			# Start a lightweight background check of the index
-			self.notebook.index.start_background_check()
+			self.notebook.index.start_background_check(self.notebook)
 
 		self._mainwindow.pageview.grab_focus()
 
@@ -757,6 +757,11 @@ class GtkInterface(gobject.GObject):
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
+		# TODO: this snippet should ensure checking of page, but causes
+		#       segfault on clicking in index
+		#paths = [page] + list(page.parents())
+		#self.notebook.index.check_async(self.notebook, paths, recursive=False)
+
 	def close_page(self, page=None):
 		'''Close the page and try to save any changes in the page.
 
@@ -1003,7 +1008,7 @@ class GtkInterface(gobject.GObject):
 		from zim.gui.exportdialog import ExportDialog
 
 		if not self.notebook.index.is_uptodate:
-			if not self.reload_index():
+			if not self.reload_index(update_only=True):
 				return # Cancelled
 
 		ExportDialog(self).run()
@@ -1033,7 +1038,7 @@ class GtkInterface(gobject.GObject):
 		selected page
 		'''
 		if not self.notebook.index.is_uptodate:
-			if not self.reload_index():
+			if not self.reload_index(update_only=True):
 				return # Cancelled
 
 		if path is None:
@@ -1048,7 +1053,7 @@ class GtkInterface(gobject.GObject):
 		selected page
 		'''
 		if not self.notebook.index.is_uptodate:
-			if not self.reload_index():
+			if not self.reload_index(update_only=True):
 				return # Cancelled
 
 		if path is None:
@@ -1071,7 +1076,7 @@ class GtkInterface(gobject.GObject):
 			if not path: return
 
 		if not self.notebook.index.is_uptodate:
-			if not self.reload_index():
+			if not self.reload_index(update_only=True):
 				return # Cancelled
 
 		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
@@ -1147,7 +1152,7 @@ class GtkInterface(gobject.GObject):
 
 		# Loading plugins can modify the index state
 		if not self.notebook.index.is_uptodate:
-			self.reload_index()
+			self.reload_index(update_only=True)
 
 	def do_preferences_changed(self, *a):
 		self._mainwindow.uimanager.set_add_tearoffs(
@@ -1476,24 +1481,38 @@ class GtkInterface(gobject.GObject):
 		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
 
 	@action(_('Update Index'), readonly=False) # T: Menu item
-	def reload_index(self):
+	def reload_index(self, update_only=False):
 		'''Check the notebook for changes and update the index.
 		Shows an progressbar while updateing.
+		@param update_only: if C{True} only updates are done, if C{False} also
+		check is done for all files
 		@returns: C{True} unless the user cancelled the update
 		'''
-		self.emit('start-index-update')
+		op = ongoing_operation(self.notebook)
 
-		op = NotebookOperation(
-			self.notebook,
-			_('Updating index'), # T: Title of progressbar dialog
-			self.notebook.index.check_and_update_iter()
-		)
-		dialog = ProgressDialog(self, op)
-		dialog.run()
+		if isinstance(op, IndexUpdateOperation):
+			dialog = ProgressDialog(self, op)
+			dialog.run()
 
-		self.emit('end-index-update')
+			if update_only or isinstance(op, IndexCheckAndUpdateOperation):
+				return not dialog.cancelled
+			else:
+				# ongoing op was update only but we want check, so try again
+				if not dialog.cancelled:
+					self.reload_index() # recurs
+				else:
+					return False
 
-		return not dialog.cancelled
+		else:
+			self.emit('start-index-update')
+
+			op = IndexCheckAndUpdateOperation(self.notebook)
+			dialog = ProgressDialog(self, op)
+			dialog.run()
+
+			self.emit('end-index-update')
+
+			return not dialog.cancelled
 
 	@action(_('Custom _Tools'), 'gtk-preferences') # T: Menu item
 	def manage_custom_tools(self):

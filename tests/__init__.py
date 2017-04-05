@@ -63,7 +63,7 @@ __all__ = [
 ]
 
 
-mydir = os.path.dirname(__file__)
+mydir = os.path.abspath(os.path.dirname(__file__))
 
 
 # when a test is missing from the list that should be detected
@@ -528,6 +528,9 @@ class TestData(object):
 		for name, text in self._test_data:
 			yield name, text # shallow copy
 
+	def items(self):
+		return list(self)
+
 	def get(self, pagename):
 		'''Return text for a specific pagename'''
 		for n, text in self._test_data:
@@ -537,6 +540,8 @@ class TestData(object):
 
 
 WikiTestData = TestData('wiki') #: singleton to be used by various tests
+
+FULL_NOTEBOOK = WikiTestData
 
 
 def _expand_manifest(names):

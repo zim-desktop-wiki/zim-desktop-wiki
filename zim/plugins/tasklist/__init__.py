@@ -98,8 +98,7 @@ class NotebookExtension(ObjectExtension):
 		self.index = notebook.index
 		if self.index.get_property(TasksIndexer.PLUGIN_NAME) != TasksIndexer.PLUGIN_DB_FORMAT:
 			with self.index.lock:
-				self.index._db.execute(TasksIndexer.TEARDOWN_SCRIPT) # XXX
-				self.index.set_property(TasksIndexer.PLUGIN_NAME, TasksIndexer.PLUGIN_DB_FORMAT)
+				self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT) # XXX
 				self.index.flag_reindex()
 
 		self.indexer = TasksIndexer.new_from_index(self.index, plugin.preferences)
@@ -123,7 +122,7 @@ class NotebookExtension(ObjectExtension):
 	def teardown(self):
 		self.indexer.disconnect_all()
 		with self.index.lock:
-			self.index._db.execute(TasksIndexer.TEARDOWN_SCRIPT) # XXX
+			self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT) # XXX
 			self.index.set_property(TasksIndexer.PLUGIN_NAME, None)
 
 

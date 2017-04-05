@@ -79,11 +79,13 @@ class TasksIndexer(IndexerBase):
 			tags TEXT,
 			description TEXT
 		);
-	'''
+		INSERT OR REPLACE INTO zim_index VALUES (%r, %r);
+	''' % (PLUGIN_NAME, PLUGIN_DB_FORMAT)
 
 	TEARDOWN_SCRIPT = '''
 		DROP TABLE IF EXISTS "tasklist";
-	'''
+		DELETE FROM zim_index WHERE key = %r;
+	''' % PLUGIN_NAME
 
 	__signals__ = {
 		'tasklist-changed': (None, None, ()),

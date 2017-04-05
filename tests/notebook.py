@@ -975,3 +975,20 @@ class TestTrash(tests.TestCase):
 
 		page = notebook.get_page(Path('TrashMe'))
 		self.assertFalse(page.exists())
+
+
+class TestIndexBackgroundCheck(tests.TestCase):
+
+	def runTest(self):
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		notebook.index.flush()
+		self.assertFalse(notebook.index.is_uptodate)
+
+		notebook.index.start_background_check(notebook)
+		thread = notebook.index.background_check._thread
+		while thread.is_alive():
+			tests.gtk_process_events()
+		self.assertTrue(notebook.index.is_uptodate)
+		self.assertTrue(notebook.pages.n_all_pages() > 10)
+
+		notebook.index.stop_background_check()

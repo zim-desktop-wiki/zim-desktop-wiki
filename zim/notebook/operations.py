@@ -187,6 +187,7 @@ class NotebookOperation(SignalEmitter):
 	# Signals are used by the progress dialog to monitor activity
 	__signals__ = {
 		'step': (None, None, (object,)),
+		'started': (None, None, ()),
 		'finished': (None, None, ()),
 	}
 
@@ -232,8 +233,16 @@ class NotebookOperation(SignalEmitter):
 			self.notebook._operation_check() # can raise
 
 		self.notebook._operation_check = self # start blocking
+		gobject.idle_add(self._start) # ensure start happens in main thread
+
+	def is_running(self):
+		return self.notebook._operation_check == self
+
+	def _start(self):
+		self.emit('started')
 		my_iter = iter(self)
 		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+		return False # run once
 
 	def cancel(self):
 		logger.debug('Operation cancelled')
@@ -356,3 +365,8 @@ def notebook_state(method):
 		return method(notebook, *arg, **kwarg)
 
 	return wrapper
+
+
+def ongoing_operation(notebook):
+	op = notebook._operation_check
+	return op if op != NOOP else None
