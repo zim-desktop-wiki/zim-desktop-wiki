@@ -1927,3 +1927,69 @@ class TestCamelCase(tests.TestCase):
 				camelcase(unicode(text)),
 				msg='"%s" should NOT be CamelCase' % text
 			)
+
+
+@tests.skipIf(gtk.pygtk_version < (2, 10), 'old pygtk, no serialization formats')
+class TestDragAndDropFunctions(tests.TestCase):
+
+	def testSerializeParseTree(self):
+		tree = tests.new_parsetree()
+		tree.resolve_images()
+		buffer = TextBuffer()
+		with FilterNoSuchImageWarning():
+			buffer.insert_parsetree_at_cursor(tree)
+
+		start, end = buffer.get_bounds()
+		xml = buffer.serialize(buffer, 'text/x-zim-parsetree', start, end)
+		tree.unresolve_images()
+		tree._etree.getroot().attrib['partial'] = True # HACK
+		self.assertEqual(xml, tree.tostring())
+
+	def testDeserializeParseTree(self):
+		notebook = tests.MockObject()
+		path = Path('Mock')
+		buffer = TextBuffer(notebook, path)
+		iter = buffer.get_insert_iter()
+		xml = tests.new_parsetree().tostring()
+		with FilterNoSuchImageWarning():
+			buffer.deserialize(buffer, 'text/x-zim-parsetree', iter, xml)
+
+	def testDeserializeUriList(self):
+		notebook = self.setUpNotebook()
+		path = Path('Mock')
+		buffer = TextBuffer(notebook, path)
+
+		# external uris
+		iter = buffer.get_insert_iter()
+		data = "http://wikipedia.com\r\n"
+		buffer.deserialize(buffer, 'text/uri-list', iter, data)
+
+		tree = buffer.get_parsetree()
+		xml = tree.tostring()
+		self.assertIn('http://wikipedia.com', xml) # FIXME: should use tree api
+
+		# internal uris
+		iter = buffer.get_insert_iter()
+		data = "Foo:Bar\r\n"
+		buffer.deserialize(buffer, 'text/x-zim-page-list-internal', iter, data)
+
+		tree = buffer.get_parsetree()
+		xml = tree.tostring()
+		self.assertIn('Foo:Bar', xml) # FIXME: should use tree api
+
+	def testDeserializeImageData(self):
+		#folder = self.setUpFolder('imagedata', mock=tests.MOCK_NEVER)
+		folder = Dir(self.create_tmp_dir('imagedata'))
+		notebook = tests.MockObject()
+		notebook.mock_method('get_attachments_dir', folder)
+		notebook.resolve_file = lambda fpath, ppath: fpath
+		path = Path('Mock')
+
+		buffer = TextBuffer(notebook, path)
+		image = File('./data/zim.png').raw()
+		iter = buffer.get_insert_iter()
+		buffer.deserialize(buffer, 'image/png', iter, image)
+
+		tree = buffer.get_parsetree()
+		xml = tree.tostring()
+		self.assertIn("pasted_image.png", xml) # FIXME: should use tree api to get image

@@ -44,7 +44,7 @@ from zim.gui.widgets import ui_environment, \
 	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
-	PARSETREE_ACCEPT_TARGETS, parsetree_from_selectiondata
+	textbuffer_register_serialize_formats
 from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
@@ -634,15 +634,7 @@ class TextBuffer(gtk.TextBuffer):
 
 		self._editmode_tags = ()
 
-		#~ import sys
-		#~ for s in (
-			#~ 'apply-tag', 'remove-tag',
-			#~ 'delete-range', 'insert-pixbuf', 'insert-text',
-			#~ 'mark-deleted', 'mark-set'
-			#~ 'changed', , 'modified-changed',
-		#~ ):
-			#~ self.connect(s, lambda *a: sys.stderr.write('>>> %s\n' % a[-1]), s)
-
+		textbuffer_register_serialize_formats(self, notebook, page)
 
 	#~ def do_begin_user_action(self):
 		#~ print '>>>> USER ACTION'
@@ -3459,6 +3451,7 @@ CURSOR_TEXT = gtk.gdk.Cursor(gtk.gdk.XTERM) #: the C{gtk.gdk.Cursor} for normal 
 CURSOR_LINK = gtk.gdk.Cursor(gtk.gdk.HAND2) #: the C{gtk.gdk.Cursor} for links
 CURSOR_WIDGET = gtk.gdk.Cursor(gtk.gdk.LEFT_PTR) #: the C{gtk.gdk.Cursor} for widgets and objects
 
+
 class TextView(gtk.TextView):
 	'''Widget to display a L{TextBuffer} with page content. Implements
 	zim specific behavior like additional key bindings, on-mouse-over
@@ -3527,9 +3520,6 @@ class TextView(gtk.TextView):
 		self.set_right_margin(5)
 		self.set_wrap_mode(gtk.WRAP_WORD)
 		self.preferences = preferences
-		actions = gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE | gtk.gdk.ACTION_LINK
-		self.drag_dest_set(0, PARSETREE_ACCEPT_TARGETS, actions)
-			# Flags is 0 because gtktextview does everything itself
 
 		self._object_size_request = (-1, -1)
 		self.connect_after('size-allocate', self.__class__.on_size_allocate)
@@ -3602,25 +3592,6 @@ class TextView(gtk.TextView):
 	#~ def do_drag_motion(self, context, *a):
 		#~ # Method that echos drag data types - only enable for debugging
 		#~ print context.targets
-
-	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, timestamp):
-		# Handle drag and drop compatibility for all copy-past data types
-		if not self.get_editable():
-			dragcontext.finish(False, False, timestamp) # NOK
-			return
-
-		logger.debug('Drag data received of type "%s"', selectiondata.target)
-		buffer = self.get_buffer()
-		tree = parsetree_from_selectiondata(selectiondata, buffer.notebook, buffer.page)
-		if tree is None:
-			logger.warn('Could not drop data type "%s"', selectiondata.target)
-			dragcontext.finish(False, False, timestamp) # NOK
-			return
-
-		x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_WIDGET, x, y)
-		iter = self.get_iter_at_location(x, y)
-		buffer.insert_parsetree(iter, tree, interactive=True)
-		dragcontext.finish(True, False, timestamp) # OK
 
 	def do_motion_notify_event(self, event):
 		# Update the cursor type when the mouse moves

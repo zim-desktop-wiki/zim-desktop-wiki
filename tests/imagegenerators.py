@@ -265,5 +265,3 @@ class MockUI(tests.MockObject):
 		tests.MockObject.__init__(self)
 		self.notebook = tests.MockObject()
 		self.notebook.mock_method('get_attachments_dir', dir)
-
-

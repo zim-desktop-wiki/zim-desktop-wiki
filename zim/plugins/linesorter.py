@@ -12,7 +12,6 @@ from zim.actions import action
 from zim.gui.widgets import ui_environment, MessageDialog
 from zim.utils import natural_sort_key
 
-#from zim.gui.clipboard import parsetree_from_selectiondata
 
 import logging
 

@@ -390,9 +390,9 @@ class FileBrowserIconView(gtk.IconView):
 	# TODO - test drag and drop
 	def on_drag_data_get(self, iconview, dragcontext, selectiondata, info, time):
 		assert selectiondata.target in URI_TARGET_NAMES
-		paths = self.iconview.get_selected_items()
+		paths = self.get_selected_items()
 		if paths:
-			model = self.iconview.get_model()
+			model = self.get_model()
 			path_to_uri = lambda p: self.folder.file(model[p][BASENAME_COL]).uri
 			uris = map(path_to_uri, paths)
 			data = pack_urilist(uris)
