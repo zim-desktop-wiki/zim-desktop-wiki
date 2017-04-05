@@ -86,7 +86,7 @@ class TrashHelper(object):
 class FSObjectMonitor(SignalEmitter):
 
 	__signals__ = {
-		'changed': (),
+		'changed': (None, None, (None, None)),
 	}
 
 	def __init__(self, path):

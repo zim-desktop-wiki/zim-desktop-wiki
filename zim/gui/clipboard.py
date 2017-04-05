@@ -223,7 +223,8 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 			return None
 
 		dir = notebook.get_attachments_dir(path)
-		assert isinstance(dir, LocalFolder)
+		assert isinstance(dir, LocalFolder) or hasattr(dir, '_folder') and isinstance(dir._folder, LocalFolder)
+			# XXX: assert we have local path  - HACK to deal with FilesAttachmentFolder
 		if not dir.exists():
 			logger.debug("Creating attachment dir: %s", dir)
 			dir.touch()

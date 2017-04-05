@@ -325,7 +325,9 @@ class SignalEmitter(object):
 
 	def emit(self, signal, *args):
 		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
-		assert len(args) == len(self.__signals__[signal][2]), 'Signal args do not match'
+
+		if not len(args) == len(self.__signals__[signal][2]):
+			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)
 
 		if self._signal_blocks.get(signal):
 			return # ignore emit

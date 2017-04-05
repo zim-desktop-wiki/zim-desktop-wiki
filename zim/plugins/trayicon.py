@@ -242,7 +242,9 @@ class TrayIconBase(object):
 class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 	'''Base class for a tray icon based on gtk.StatusIcon'''
 
-	__gsignals__ = {'destroy': (gobject.SIGNAL_RUN_LAST, None, ())}
+	__gsignals__ = {
+		'destroy': (gobject.SIGNAL_RUN_LAST, None, ())
+	}
 
 	def __init__(self):
 		gtk.StatusIcon.__init__(self)
@@ -301,7 +303,9 @@ _GLOBAL_INDICATOR = None
 class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 	'''Trayicon using the daemon and based on appindicator'''
 
-	__signals__ = {'destroy': ()}
+	__signals__ = {
+		'destroy': (None, None, ())
+	}
 
 	def __init__(self):
 		# Note that even though we specify the icon "zim", the
