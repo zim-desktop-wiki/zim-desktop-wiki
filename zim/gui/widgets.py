@@ -3845,6 +3845,10 @@ class ProgressDialog(gtk.Dialog):
 		self.cancelled = True
 
 
+# Need to register classes defining gobject signals
+gobject.type_register(ProgressDialog)
+
+
 class LogFileDialog(Dialog):
 	'''Simple dialog to show a log file'''
 
