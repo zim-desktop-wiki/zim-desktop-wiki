@@ -1477,7 +1477,6 @@ class GtkInterface(gobject.GObject):
 		'''Menu action to show the server interface from
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
-		# TODO instead of spawn, include in this process
 		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
 
 	@action(_('Update Index'), readonly=False) # T: Menu item

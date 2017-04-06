@@ -547,9 +547,9 @@ class ZimApplication(object):
 		@param args: commandline arguments
 		'''
 		cmd = build_command(args)
-		self._run_cmd(cmd) # test seam
+		self._run_cmd(cmd, args) # test seam
 
-	def _run_cmd(self, cmd, *args):
+	def _run_cmd(self, cmd, args):
 		self._setup_logging(cmd)
 
 		if self._running:

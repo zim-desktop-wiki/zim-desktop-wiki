@@ -225,7 +225,7 @@ class TestZimApplication(tests.TestCase):
 
 		cmd = MockCmd()
 		self.assertFalse(cmd.hasrun)
-		app._run_cmd(cmd)
+		app._run_cmd(cmd, ())
 		self.assertTrue(cmd.hasrun)
 
 
@@ -251,5 +251,5 @@ class TestZimApplication(tests.TestCase):
 
 		cmd = MockCmd()
 		self.assertFalse(cmd.hasrun)
-		app._run_cmd(cmd)
+		app._run_cmd(cmd, ())
 		self.assertTrue(cmd.hasrun)
