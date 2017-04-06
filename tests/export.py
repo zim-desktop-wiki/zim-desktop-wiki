@@ -801,3 +801,39 @@ class VirtualFile(object):
 
 	def readlines(self):
 		return ''.join(self._contents).splitlines(True)
+
+
+class TestOverwrite(tests.TestCase):
+
+	def testSingleFile(self):
+		# TODO: run this with mock file
+		# TODO: ensure template has resources
+		# TODO: add attachements to test notebook
+
+		from zim.fs import File
+		folder = self.setUpFolder('single', mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('test.html')
+		exporter = build_single_file_exporter(File(file.path), 'html', 'Default.html')
+
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
+
+		# Now do it twice - should not raise for file exists
+		exporter.export(pages)
+		exporter.export(pages)
+
+	def testMultiFile(self):
+		# TODO: run this with mock file
+		# TODO: ensure template has resources
+		# TODO: add attachements to test notebook
+
+		from zim.fs import Dir
+		folder = self.setUpFolder('multi', mock=tests.MOCK_ALWAYS_REAL)
+		exporter = build_notebook_exporter(Dir(folder.path), 'html', 'Default.html')
+
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
+
+		# Now do it twice - should not raise for file exists
+		exporter.export(pages)
+		exporter.export(pages)

@@ -40,16 +40,18 @@ class FilesExporterBase(Exporter):
 
 	def export_attachments_iter(self, notebook, page):
 		# XXX FIXME remove need for notebook here
+		# XXX what to do with folders that do not map to a page ?
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
+		assert isinstance(target, Dir)
+		target = LocalFolder(target.path) # XXX convert
 		try:
 			for file in source.list_files():
-				if isinstance(target, Dir):
 					yield file
-					file.copyto(LocalFolder(target.path)) # XXX convert
-				else:
-					assert False
-				# XXX what to do with folders that do not map to a page ?
+					targetfile = target.file(file.basename)
+					if targetfile.exists():
+						targetfile.remove() # Export does overwrite by default
+					file.copyto(targetfile)
 		except FileNotFoundError:
 			pass
 
@@ -65,6 +67,9 @@ class FilesExporterBase(Exporter):
 		# Copy template resources (can overwrite icons)
 		if self.template.resources_dir \
 		and self.template.resources_dir.exists():
+			if dir.exists(): # Export does overwrite by default
+				dir.remove_children()
+				dir.remove()
 			self.template.resources_dir.copyto(dir)
 
 
@@ -117,6 +122,9 @@ class MultiFileExporter(FilesExporterBase):
 		# XXX FIXME remove need for notebook here
 
 		file=self.layout.page_file(page)
+		if file.exists():
+			file.remove() # export does overwrite by default
+
 		linker_factory = partial(ExportLinker,
 			notebook=notebook,
 			layout=self.layout,
@@ -181,6 +189,8 @@ class SingleFileExporter(FilesExporterBase):
 
 		lines = []
 		self.template.process(lines, context)
+		if self.layout.file.exists():
+			self.layout.file.remove() # export does overwrite by default
 		self.layout.file.writelines(lines)
 
 		# TODO incremental write to save memory on large notebooks...
