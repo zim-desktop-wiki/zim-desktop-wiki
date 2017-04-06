@@ -661,17 +661,38 @@ class PagesView(IndexView):
 			return href or HRef(HREF_REL_ABSOLUTE, target.name)
 
 	def _find_floating_link(self, source, target):
-		# First try if basename resolves, then extend link names untill match is found
-		parts = target.parts
-		names = []
-		while parts:
-			names.insert(0, parts.pop())
+		# Relative links only resolve for pages that have a common parent
+		# with the source page. So we start finding the common parents and
+		# if that does not resolve (e.g. because same name also occurs on a
+		# lower level) try one level up to "anchor" the link.
+		# It is absolute must to use resolve_link() here - this ensures the
+		# outcome is always consistent between these functions.
+
+		parentnames = []
+		for n1, n2 in zip(source.parts, target.parts):
+			if n1 == n2:
+				parentnames.append(n1)
+			else:
+				break
+
+		def try_link(names):
 			href = HRef(HREF_REL_FLOATING, ':'.join(names))
 			pid, pagename = self._pages.resolve_link(source, href)
 			if pagename == target:
 				return href
+
+		relnames = target.parts[len(parentnames):]
+		href = try_link(relnames)
+		if href:
+			return href
 		else:
-			return None # no floating link possible
+			while parentnames:
+				relnames.insert(0, parentnames.pop())
+				href = try_link(relnames)
+				if href:
+					return href
+			else:
+				return None # no floating link possible
 
 	def list_recent_changes(self, limit=None, offset=None):
 		assert not (offset and not limit), "Can't use offset without limit"

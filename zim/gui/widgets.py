@@ -1853,6 +1853,7 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 		return False
 
 
+from zim.signals import DelayedCallback
 
 class PageEntry(InputEntry):
 	'''Widget to select a zim page path
@@ -1884,7 +1885,7 @@ class PageEntry(InputEntry):
 		self.notebookpath = path
 		self.subpaths_only = subpaths_only
 		self.existing_only = existing_only
-		self._current_completion = ()
+		self._current_completion = None
 
 		if self._allow_select_root:
 			placeholder_text = _('<Top>')
@@ -1899,6 +1900,10 @@ class PageEntry(InputEntry):
 		completion.set_text_column(0)
 		completion.set_inline_completion(True)
 		self.set_completion(completion)
+
+		self.connect_after('changed', DelayedCallback(200, self.__class__.update_completion))
+			# Don't interrupt typing to fill completion, wait for user to pause
+			# FIXME: wanted timeout of 400, but then popup becomes less responsive !?
 
 	def set_use_relative_paths(self, notebook, path=None):
 		'''Set the notebook and path to be used for relative paths.
@@ -1960,43 +1965,8 @@ class PageEntry(InputEntry):
 						return None
 				return path
 
-	@staticmethod
-	def _walk_relative(notebook, path):
-		# sort nearest neighbor first using relative paths
-
-		## TODO can be more efficient with a visitor pattern
-		## that can stop recursion of some branches or force order
-
-		def relative_link(target):
-			href = notebook.pages.create_link(path, target)
-			return href.to_wiki_link()
-
-		# first yield children
-		for p in notebook.pages.walk(path):
-			yield relative_link(p), p.basename
-
-		# than peers and parents, sort by distance
-		if path.namespace:
-			parent = Path(path.parts[0])
-			peers = []
-			for p in notebook.pages.walk(parent):
-				if not p.ischild(path):
-					relname = relative_link(p)
-					basename = p.basename
-					distance = relname.count(':')
-					peers.append((distance, relname, basename))
-			peers.sort()
-			for distance, relname, basename in peers:
-				yield relname, basename
-		else:
-			parent = path
-
-		# than the rest of the tree, excluding direct parent
-		for p in notebook.pages.walk():
-			if not p.ischild(parent):
-				yield relative_link(p), p.basename
-
 	def do_changed(self):
+		# Update valid state
 		text = self.get_text()
 
 		if not text:
@@ -2005,18 +1975,15 @@ class PageEntry(InputEntry):
 			else:
 				self.set_input_valid(True)
 				# FIXME: why should pageentry always allow empty input ?
-			return
-
-		# Check for a valid page name and clean up the text for completion
-		orig = text
-		if text in (':', '+'):
+		elif text in (':', '+'):
 			pass
+		elif text.startswith('+') and not self.notebookpath:
+			self.set_input_valid(False)
 		else:
 			try:
 				Path.assertValidPageName(text.lstrip('+').strip(':'))
 			except AssertionError:
 				self.set_input_valid(False)
-				return
 			else:
 				if self.existing_only:
 					path = self.get_path() # get_path() checks existence
@@ -2024,78 +1991,100 @@ class PageEntry(InputEntry):
 				else:
 					self.set_input_valid(True)
 
-			# restore pre- and postfix to cleaned up text
-			if orig[0] == ':' and text[0] != ':':
-				text = ':' + text
-			elif orig[0] == '+' and text[0] != '+':
-				text = '+' + text
-
-			if orig[-1] == ':' and text[-1] != ':':
-				text = text + ':'
-
+	def update_completion(self):
 		# Start completion
-		#~ print 'COMPLETE page: "%s", raw: "%s", ref: %s' % (text, orig, self.notebookpath)
 		if not self.notebook:
 			return # no completion without a notebook
+
+		text = self.get_text()
+		if self._current_completion:
+			if text.startswith(self._current_completion):
+				return # nothing to update
+			else: # Clear out-of-date completions
+				model = self.get_completion().get_model()
+				model.clear()
+				self._current_completion = None
+
+		if not text or not self.get_input_valid():
+			return # can't complete invalid input
 
 		if ':' in text:
 			i = text.rfind(':')
 			prefix = text[:i+1] # can still start with "+"
+			if prefix == ':':
+				path = Path(':')
+			else: # resolve page
+				reference = self.notebookpath or Path(':')
+				link = prefix
+				if self.subpaths_only and not link.startswith('+'):
+					link = '+' + link.lstrip(':')
+
+				try:
+					path = self.notebook.pages.lookup_from_user_input(link, reference)
+				except ValueError:
+					return
+
+			self._fill_completion_for_anchor(path, prefix, text)
+
 		elif text.startswith('+'):
 			prefix = '+'
-		else:
-			prefix = ''
+			path = self.notebookpath
 
-		# Check if we completed already for this case
-		if prefix == self._current_completion:
-			return
-		else:
-			self._current_completion = prefix
+			self._fill_completion_for_anchor(path, prefix, text)
 
-		# Resolve path
-		if prefix == ':':
-			path = Path(':')
-		elif prefix == '':
-			if self.notebookpath:
-				path = Path(self.notebookpath.namespace)
-			else:
-				path = Path(':')
-		elif prefix == '+':
+		else:
 			path = self.notebookpath or Path(':')
-		else:
-			link = prefix
-			reference = self.notebookpath or Path(':')
-			if self.subpaths_only and not link.startswith('+'):
-				link = '+' + link.lstrip(':')
 
-			try:
-				path = self.notebook.pages.lookup_from_user_input(link, reference)
-			except ValueError:
-				return
+			self._fill_completion_any(path, text)
 
-		# Fill model with pages from pathname
+		self._current_completion = text
+		self.get_completion().complete()
+
+	def _fill_completion_for_anchor(self, path, prefix, text):
+		#print "COMPLETE ANCHOR", path, prefix, text
+		# Complete a single namespace based on the prefix
+		# TODO: allow filter on "text" directly in SQL call
 		completion = self.get_completion()
-		model = completion.get_model()
-		model.clear()
-		try:
-			if prefix:
-				# Complete a single namespace based on the prefix
-				completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
-				for p in self.notebook.pages.list_pages(path):
-					model.append((prefix+p.basename, prefix+p.basename))
-			else:
-				# Find any pages that match the text
-				completion.set_match_func(gtk_entry_completion_match_func, 1)
-				if self.notebookpath:
-					for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
-						model.append((relname, basename))
-				else:
-					for p in self.notebook.pages.walk():
-						model.append((":"+p.name, p.basename))
-		except IndexNotFoundError:
-			pass
+		completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
 
-		completion.complete()
+		model = completion.get_model()
+		assert text.startswith(prefix)
+		lowertext = text.lower()
+		for p in self.notebook.pages.list_pages(path):
+			string = prefix+p.basename
+			if string.lower().startswith(lowertext):
+				model.append((string, string))
+
+	def _fill_completion_any(self, path, text):
+		#print "COMPLETE ANY", path, text
+		# Complete all matches of "text"
+		# start with children, than peers, than rest of tree
+		# if path == ":" don't use child notation
+		completion = self.get_completion()
+		completion.set_match_func(gtk_entry_completion_match_func, 1)
+
+		# TODO: use SQL to list all at once instead of walking and filter on "text"
+		#       do better sorting as well ?
+
+		def relative_link(target):
+			href = self.notebook.pages.create_link(path, target)
+			return href.to_wiki_link()
+
+		model = completion.get_model()
+		lowertext = text.lower()
+		childpos, peerpos = 0, 0
+		for p in self.notebook.pages.walk():
+			if lowertext in p.basename.lower():
+				link = relative_link(p)
+				if link.startswith('+'):
+					model.insert(childpos, (link, p.basename))
+					childpos += 1
+					peerpos += 1
+				elif not ':' in link:
+					model.insert(peerpos, (link, p.basename))
+					peerpos += 1
+				else:
+					model.append((link, p.basename))
 
 
 class NamespaceEntry(PageEntry):

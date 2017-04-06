@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -185,23 +185,25 @@ class TestPageEntry(tests.TestCase):
 			model = completion.get_model()
 			return [r[0] for r in model]
 
-		entry.set_text('+T')
-		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(get_completions(entry), ['+bar'])
+		for text, wanted in (
+			('', []),
+			('+', ['+bar']),
+			('+B', ['+bar']),
+			('+Bar', ['+bar']),
+			('+T', []),
+			(':', [':Bar', ':Placeholder', ':Test']),
+			('b', ['+bar', 'bar', ':Bar']),
+			('Test:', ['Test:bar', 'Test:foo', 'Test:link']),
 
-		entry.set_text(':T')
-		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(get_completions(entry), [':Bar', ':Placeholder', ':Test'])
-
-		entry.set_text('T')
-		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(get_completions(entry),
-			['+bar', 'bar', 'foo', 'link', ':Bar', ':Placeholder', 'Test'] )
-
-		entry.set_text('Test:')
-		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(get_completions(entry),
-			['Test:bar', 'Test:foo', 'Test:link'])
+		):
+			# Take into account that extending the string does not reset the
+			# model but just filters in the widget - so we reset for each string
+			entry.set_text('')
+			entry.update_completion()
+			entry.set_text(text)
+			entry.update_completion()
+			self.assertTrue(entry.get_input_valid())
+			self.assertEqual(get_completions(entry), wanted)
 
 
 class TestNamespaceEntry(TestPageEntry):
