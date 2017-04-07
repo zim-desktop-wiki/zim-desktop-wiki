@@ -13,6 +13,7 @@ import gtk
 import logging
 
 from zim.fs import File, Dir, FS
+from zim.newfs import LocalFolder
 from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
@@ -222,6 +223,8 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 			return None
 
 		dir = notebook.get_attachments_dir(path)
+		assert isinstance(dir, LocalFolder) or hasattr(dir, '_folder') and isinstance(dir._folder, LocalFolder)
+			# XXX: assert we have local path  - HACK to deal with FilesAttachmentFolder
 		if not dir.exists():
 			logger.debug("Creating attachment dir: %s", dir)
 			dir.touch()
@@ -274,8 +277,9 @@ def _link_tree(links, notebook, path):
 			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
 			if type == 'page':
-				href = Path(notebook.cleanup_pathname(link)) # Assume links are always absolute
-				link = notebook.relative_link(path, href) or link
+				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
+				href = notebook.pages.create_link(path, target)
+				link = href.to_wiki_link()
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri

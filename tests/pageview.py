@@ -17,8 +17,8 @@ from zim.gui.clipboard import Clipboard
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
 
-	logger = 'zim.gui.pageview'
-	message = 'No such image:'
+	def __init__(self):
+		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
 
 def new_parsetree_from_text(text):
@@ -44,7 +44,7 @@ def setUpPageView(fakedir=None, notebook=None):
 	#~ ui.uimanager = tests.MockObject()
 	#~ ui.uimanager.mock_method('get_accel_group', tests.MockObject())
 
-	return PageView(ui)
+	return PageView(ui, ui.notebook)
 
 
 class TestLines(tests.TestCase):
@@ -1769,9 +1769,10 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert Image dialog
 		ui = MockUI()
+		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
 		file = File('data/zim.png')
-		dialog = InsertImageDialog(ui, buffer, Path(':some_page'), file)
+		dialog = InsertImageDialog(ui, buffer, ui.notebook, Path(':some_page'), file)
 		self.assertTrue(dialog.filechooser.get_preview_widget_active())
 		#~ self.assertEqual(dialog.get_file(), file)
 		#~ dialog.assert_response_ok()
@@ -1808,8 +1809,9 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert text from file dialog
 		ui = MockUI()
+		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
-		dialog = InsertTextFromFileDialog(ui, buffer)
+		dialog = InsertTextFromFileDialog(ui, buffer, ui.notebook, Path(':some_page'))
 		#~ dialog.set_file()
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
@@ -1843,9 +1845,9 @@ dus bar bazzz baz
 	def testInsertLinkDialog(self):
 		# Insert Link dialog
 		ui = MockUI()
-		ui.notebook.index = tests.MockObject()
-		ui.notebook.index.mock_method('list_pages', [])
-		ui.notebook.index.mock_method('walk', [])
+		ui.notebook.pages = tests.MockObject()
+		ui.notebook.pages.mock_method('list_pages', [])
+		ui.notebook.pages.mock_method('walk', [])
 		pageview = tests.MockObject()
 		pageview.page = Path('Test:foo:bar')
 		textview = TextView({})
@@ -1953,7 +1955,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 			buffer.deserialize(buffer, 'text/x-zim-parsetree', iter, xml)
 
 	def testDeserializeUriList(self):
-		notebook = tests.MockObject()
+		notebook = self.setUpNotebook()
 		path = Path('Mock')
 		buffer = TextBuffer(notebook, path)
 
@@ -1967,7 +1969,6 @@ class TestDragAndDropFunctions(tests.TestCase):
 		self.assertIn('http://wikipedia.com', xml) # FIXME: should use tree api
 
 		# internal uris
-		notebook.cleanup_pathname = lambda name: name
 		iter = buffer.get_insert_iter()
 		data = "Foo:Bar\r\n"
 		buffer.deserialize(buffer, 'text/x-zim-page-list-internal', iter, data)

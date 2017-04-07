@@ -59,10 +59,19 @@ import zim
 from zim.config import XDG_CACHE_HOME
 from zim.gui.widgets import rotate_pixbuf
 
+from zim.newfs import LocalFile, LocalFolder
+
 
 LOCAL_THUMB_STORAGE_NORMAL = XDG_CACHE_HOME.subdir('thumbnails/normal')
 LOCAL_THUMB_STORAGE_LARGE = XDG_CACHE_HOME.subdir('thumbnails/large')
 LOCAL_THUMB_STORAGE_FAIL = XDG_CACHE_HOME.subdir('thumbnails/fail/zim-%s' % zim.__version__)
+
+## XXX zim.fs --> zim.newfs
+LOCAL_THUMB_STORAGE_NORMAL = LocalFolder(LOCAL_THUMB_STORAGE_NORMAL.path)
+LOCAL_THUMB_STORAGE_LARGE = LocalFolder(LOCAL_THUMB_STORAGE_LARGE.path)
+LOCAL_THUMB_STORAGE_FAIL = LocalFolder(LOCAL_THUMB_STORAGE_FAIL.path)
+##
+
 
 THUMB_SIZE_NORMAL = 128
 THUMB_SIZE_LARGE = 256
@@ -72,13 +81,18 @@ class ThumbnailCreatorFailure(ValueError):
 	pass
 
 
-from zim.fs import _replace_file as _atomic_rename
+from zim.newfs.local import _replace_file as _atomic_rename
 
 def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	'''Thumbnailer implementation that uses the C{gtk.gdk.Pixbuf}
 	functions to create the thumbnail.
 	'''
-	tmpfile = thumbfile.dir.file('zim-thumb.new~')
+	if not (
+		isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)
+	):
+		raise ThumbnailCreatorFailure
+		
+	tmpfile = thumbfile.parent().file('zim-thumb.new~')
 	options = { # no unicode allowed in options!
 		'tEXt::Thumb::URI': str( file.uri ),
 		'tEXt::Thumb::MTime': str( int( file.mtime() ) ),
@@ -235,6 +249,9 @@ class ThumbnailManager(object):
 		@returns: a 2-tuple of the thumbnail file and a pixbuf object
 		or 2 times C{None}
 		'''
+		if not isinstance(file, LocalFile):
+			return None, None
+			
 		thumbfile = self.get_thumbnail_file(file, size)
 		if thumbfile.exists():
 			# Check the thumbnail is valid
@@ -261,10 +278,13 @@ class ThumbnailManager(object):
 		@returns: a 2-tuple of the thumbnail file and a pixbuf object
 		@raises ThumbnailCreatorFailure: if creation fails unexpectedly
 		'''
+		if not isinstance(file, LocalFile):
+			raise None, None
+
 		thumbfile = self.get_thumbnail_file(file, size)
 		thumbsize = THUMB_SIZE_NORMAL if size <= THUMB_SIZE_NORMAL else THUMB_SIZE_LARGE
 
-		thumbfile.dir.touch(mode=0700)
+		thumbfile.parent().touch(mode=0700)
 		pixbuf = self._thumbnailcreator(file, thumbfile, thumbsize)
 		os.chmod(thumbfile.encodedpath, 0600)
 

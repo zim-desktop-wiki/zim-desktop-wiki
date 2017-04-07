@@ -18,7 +18,8 @@ import logging
 logger = logging.getLogger('zim.plugins.attachmentbrowser')
 
 
-from zim.fs import File, Dir, format_file_size, is_hidden_file
+from zim.newfs import LocalFile, FileNotFoundError
+from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
 from zim.gui.applications import get_mime_icon, get_mime_description, \
 	OpenWithMenu
@@ -135,8 +136,9 @@ class FileBrowserIconView(gtk.IconView):
 
 		self.refresh()
 
-		id = self.folder.connect('changed', self._on_folder_changed)
-		self._monitor = (self.folder, id)
+		monitor = FSObjectMonitor(self.folder)
+		id = monitor.connect('changed', self._on_folder_changed)
+		self._monitor = (monitor, id)
 
 	def refresh(self, icon_size_changed=False):
 		if self.folder is None:
@@ -144,7 +146,7 @@ class FileBrowserIconView(gtk.IconView):
 		else:
 			try:
 				self._mtime = self.folder.mtime()
-			except OSError: # folder went missing?
+			except FileNotFoundError: # folder went missing?
 				self.teardown_folder()
 				self._update_state()
 				return
@@ -171,7 +173,7 @@ class FileBrowserIconView(gtk.IconView):
 		file_icon = render_file_icon(self, min_icon_size)
 		mime_cache = {}
 		def my_get_mime_icon(file):
-			mt = file.get_mimetype()
+			mt = file.mimetype()
 			if not mt in mime_cache:
 				mime_cache[mt] = get_mime_icon(file, min_icon_size) or file_icon
 			return mime_cache[mt]
@@ -179,14 +181,11 @@ class FileBrowserIconView(gtk.IconView):
 		# Add (new) files & queue thumbnails
 		max_text = 1
 		show_thumbs = self.use_thumbnails and self.icon_size >= MIN_THUMB_SIZE
-		for basename in self.folder.list():
-			file = self.folder.file(basename)
-			if file.isdir() or is_hidden_file(file):
-				continue
+		for file in self.folder.list_files():
 
-			max_text = max(max_text, len(basename))
+			max_text = max(max_text, len(file.basename))
 
-			pixbuf, mtime = cache.pop(basename, (None, None))
+			pixbuf, mtime = cache.pop(file.basename, (None, None))
 			if show_thumbs and file.isimage():
 				if not pixbuf:
 					pixbuf = my_get_mime_icon(file) # temporary icon
@@ -202,7 +201,7 @@ class FileBrowserIconView(gtk.IconView):
 			else:
 				pass # re-use from cache
 
-			model.append((basename, pixbuf, mtime))
+			model.append((file.basename, pixbuf, mtime))
 
 		self._set_orientation_and_size(max_text)
 
@@ -272,8 +271,8 @@ class FileBrowserIconView(gtk.IconView):
 	def teardown_folder(self):
 		try:
 			if self._monitor:
-				dir, id = self._monitor
-				dir.disconnect(id)
+				monitor, id = self._monitor
+				monitor.disconnect(id)
 		except:
 			logger.exception('Could not cancel file monitor')
 		finally:
@@ -291,15 +290,22 @@ class FileBrowserIconView(gtk.IconView):
 		self.get_model().clear()
 
 	def _on_folder_changed(self, *a):
-		if self.folder and self.folder.mtime() != self._mtime:
+		try:
+			changed = self.folder and self.folder.mtime() != self._mtime
+		except OSError: # folder went missing?
+			changed = True
+
+		if changed:
 			logger.debug('Folder change detected: %s', self.folder)
 			self.refresh()
 			self.emit('folder-changed')
 
 	def on_item_activated(self, iconview, path):
+		from zim.fs import File
 		store = iconview.get_model()
 		iter = store.get_iter(path)
 		file = self.folder.file(store[iter][BASENAME_COL])
+		file = File(file)
 		self.opener.open_file(file)
 
 	def on_button_press_event(self, iconview, event):
@@ -320,9 +326,11 @@ class FileBrowserIconView(gtk.IconView):
 
 	def do_populate_popup(self, menu, pathinfo):
 		# print "do_populate_popup"
+		from zim.fs import File
 		store = self.get_model()
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
+		file = File(file)
 
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
@@ -358,7 +366,7 @@ class FileBrowserIconView(gtk.IconView):
 		if not pixbuf:
 			pixbuf = get_mime_icon(file, 64) or render_file_icon(self, 64)
 
-		mtype = file.get_mimetype()
+		mtype = file.mimetype()
 		mtype_desc = get_mime_description(mtype)
 		if mtype_desc:
 			mtype_desc = mtype_desc + " (%s)" % mtype # E.g. "PDF document (application/pdf)"
@@ -393,7 +401,7 @@ class FileBrowserIconView(gtk.IconView):
 	def on_drag_data_received(self, iconview, dragcontext, x, y, selectiondata, info, time):
 		assert selectiondata.target in URI_TARGET_NAMES
 		names = unpack_urilist(selectiondata.data)
-		files = [File(uri) for uri in names if uri.startswith('file://')]
+		files = [LocalFile(uri) for uri in names if uri.startswith('file://')]
 		action = dragcontext.action
 		logger.debug('Drag received %s, %s', action, files)
 
@@ -425,7 +433,7 @@ class FileBrowserIconView(gtk.IconView):
 	def _move_files(self, files):
 		for file in files:
 			newfile = self.folder.new_file(file.basename)
-			file.rename(newfile)
+			file.moveto(newfile)
 
 		self.refresh()
 

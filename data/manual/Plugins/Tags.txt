@@ -14,3 +14,14 @@ The tag cloud allows toggling the selection of tags that is shown in the page in
 
 ===== Options =====
 The option **Position in the window** determines in which side pane the tag list is shown.
+
+===== Usage =====
+The tag index has 3 views:
+
+1. The normal index listing all pages by hierarchy
+2. Index organized by tag with tags as the top level of the hierarchy
+3. The index filtered by a given set of tags, showing all matching pages toplevel
+
+When no tags are selected, you can switch between 1. and 2. via an option in the context menu ('Right click menu') called **Sort pages by tags**. 
+Both views switch to 3. when you select tags in the tagcloud for filtering.
+

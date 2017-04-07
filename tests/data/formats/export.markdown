@@ -95,6 +95,9 @@ TODO list:
 
 
 
+* ▷ Migrated checkbox
+
+
 A numbered list:
 
 1. foo

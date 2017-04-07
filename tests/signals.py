@@ -12,11 +12,35 @@ import time
 from zim.signals import *
 
 
+# TODO test Connector
+
+
 class TestEmitter(tests.TestCase):
 
-	def runTest(self):
+	def testSignal(self):
+		emitter = Emitter()
+		self.assertIsNone(emitter.state)
 
-		# Test hook
+		emitter.emit('bar', 'test1')
+		self.assertEqual(emitter.state, 'DO bar test1')
+
+		data = []
+		def check(o, a):
+			self.assertIs(o, emitter)
+			data.append(a)
+
+		i = emitter.connect('bar', check)
+		emitter.emit('bar', 'test2')
+		self.assertEqual(emitter.state, 'DO bar test2')
+		self.assertEqual(data, ['test2'])
+		emitter.disconnect(i)
+
+		emitter.emit('bar', 'test3')
+		self.assertEqual(emitter.state, 'DO bar test3')
+		self.assertEqual(data, ['test2']) # check stopped listening after disconnect
+
+
+	def testHook(self):
 		emitter = Emitter()
 		self.assertIsNone(emitter.emit('foo', 'x'))
 
@@ -25,13 +49,77 @@ class TestEmitter(tests.TestCase):
 		self.assertEqual(emitter.emit('foo', 'x'), 'xxx')
 			# pick first result
 
+	def testSignalSetup(self):
+		emitter = FancyEmitter()
+		self.assertIsNone(emitter.state)
 
-# TODO test Connector, DelayedCallback
+		emitter.connect('foo', lambda o,a: None)
+		self.assertEqual(emitter.state, 'SETUP foo')
+
+	def testInheritance(self):
+		emitter = ChildEmitter()
+		emitter.connect('bar', lambda o: 'foo') # no error
+		self.assertRaises(AssertionError, emitter.connect, 'none_existing', lambda o: 'foo')
+		 	# assert non existing raises --> thus previous non-error was really OK
+
+	def testRunSequence(self):
+		emitter = ChildEmitter()
+
+		emitter.connect('last', lambda o,l: l.append('NORMAL'))
+		emitter.connect_after('last', lambda o,l: l.append('AFTER'))
+		seq = []
+		emitter.emit('last', seq)
+		self.assertEqual(seq, ['NORMAL', 'CLOSURE', 'AFTER'])
+
+		emitter.connect('first', lambda o,l: l.append('NORMAL'))
+		emitter.connect_after('first', lambda o,l: l.append('AFTER'))
+		seq = []
+		emitter.emit('first', seq)
+		self.assertEqual(seq, ['CLOSURE', 'NORMAL', 'AFTER'])
+
 
 class Emitter(SignalEmitter):
 
-	__hooks__ = ('foo')
+	__signals__ = {
+		'foo': (None, object, (str,)),
+		'bar': (None, None, (str,)),
+	}
 
+	def __init__(self):
+		self.state = None
+
+	def do_bar(self, arg):
+		self.state = 'DO bar %s' % arg
+
+
+class FancyEmitter(SignalEmitter):
+
+	__signals__ = {
+		'foo': (None, None, ()),
+	}
+
+	def __init__(self):
+		self.state = None
+
+	def _setup_signal(self, signal):
+		self.state = 'SETUP %s' % signal
+
+	def _teardown_signal(self, signal):
+		self.state = 'TEARDOWN %s' % signal
+
+
+class ChildEmitter(Emitter):
+
+	__signals__ = {
+		'first': (SIGNAL_RUN_FIRST, None, (object,)),
+		'last': (SIGNAL_RUN_LAST, None, (object,)),
+	}
+
+	def do_first(self, list):
+		list.append('CLOSURE')
+
+	def do_last(self, list):
+		list.append('CLOSURE')
 
 
 class TestSignalHandler(tests.TestCase):

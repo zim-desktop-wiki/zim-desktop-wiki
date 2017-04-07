@@ -192,7 +192,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		self._reload_bar()
 
 		# Delete a bookmark if a page is deleted.
-		self.connectto(self.ui.notebook.index, 'page-deleted',
+		self.connectto(self.ui.notebook, 'deleted-page',
 					   lambda obj, path: self.delete(path.name))
 
 	def add_new_page(self, page = None, reload_bar = True):

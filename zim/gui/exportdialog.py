@@ -12,11 +12,12 @@ import zim.formats
 import zim.templates
 
 from zim.fs import File, Dir, TmpFile
-from zim.stores import encode_filename
+from zim.notebook import Path, encode_filename
+from zim.notebook.operations import NotebookOperation
+
 from zim.gui.widgets import Assistant, AssistantPage, \
-	ProgressBarDialog, ErrorDialog, QuestionDialog, \
+	ProgressDialog, ErrorDialog, QuestionDialog, \
 	MessageDialog, LogFileDialog, Button
-from zim.notebook import Path
 
 from zim.export import *
 from zim.export.selections import *
@@ -45,34 +46,27 @@ class ExportDialog(Assistant):
 			logger.debug('Cancelled - selection')
 			return False # canceled
 
-		# Check index up to date
-		index = self.ui.notebook.index
-		if index.updating:
-			with ProgressBarDialog(self, _('Updating index')) as dialog: # T: Title of progressbar dialog
-				index.ensure_update(callback=lambda p: dialog.pulse(p.name))
-				if dialog.cancelled:
-					logger.debug('Cancelled - progress dialog index')
-					return False
-
 		# Run export
 		logging_context = LogContext()
 		with logging_context:
-			with ProgressBarDialog(self, _('Exporting notebook')) as dialog:
-				# T: Title for progressbar window
-				for p in exporter.export_iter(selection):
-					if not dialog.pulse(p.name):
-						logger.debug('Cancelled - progress dialog export')
-						return False # canceled
+			op = NotebookOperation(
+				self.ui.notebook,
+				_('Exporting notebook'), # T: Title for progressbar window
+				exporter.export_iter(selection)
+			)
+			dialog = ProgressDialog(self, op)
+			dialog.run()
 
-		#~ print '>>> %s E: %i, W: %i' % (
-			#~ logging_context.file.path,
-			#~ logging_context.handler.n_error, logging_context.handler.n_warning)
-		#~ print logging_context.file.read()
-		#~ print '---'
-
-		ExportDoneDialog(self, logging_context, output).run()
-
-		return True
+		if op.cancelled:
+			return False
+		else:
+			#~ print '>>> %s E: %i, W: %i' % (
+				#~ logging_context.file.path,
+				#~ logging_context.handler.n_error, logging_context.handler.n_warning)
+			#~ print logging_context.file.read()
+			#~ print '---'
+			ExportDoneDialog(self, logging_context, output).run()
+			return True
 
 	def get_selection(self):
 		if self.uistate['selection'] == 'all':
@@ -506,4 +500,3 @@ class LogHandler(logging.FileHandler):
 			self.n_warning += 1
 
 		logging.FileHandler.emit(self, record)
-

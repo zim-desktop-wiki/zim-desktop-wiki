@@ -30,15 +30,15 @@ from wsgiref.headers import Headers
 import urllib
 
 from zim.errors import Error
-from zim.notebook import Notebook, Path, Page, IndexPage, PageNameError
+from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
 from zim.fs import File, Dir, FileNotFoundError
 from zim.config import data_file, ConfigManager
 from zim.plugins import PluginManager
-from zim.stores import encode_filename
 from zim.parsing import url_encode
 
 from zim.export.linker import ExportLinker, StubLayout
 from zim.export.template import ExportTemplateContext
+from zim.export.exporters import createIndexPage
 
 from zim.formats import get_format
 
@@ -73,7 +73,7 @@ class WWWError(Error):
 			self.msg += ' - ' + msg
 
 
-class PageNotFoundError(WWWError):
+class WebPageNotFoundError(WWWError):
 	'''Error whan a page is not found (404)'''
 
 	description = '''\
@@ -86,7 +86,7 @@ You tried to open a page that does not exist.
 		WWWError.__init__(self, 'No such page: %s' % page, status='404')
 
 
-class PathNotValidError(WWWError):
+class WebPathNotValidError(WWWError):
 	'''Error when the url points to an invalid page path'''
 
 	description = '''\
@@ -135,11 +135,10 @@ class WWWInterface(object):
 		self.dumper_factory = get_format('html').Dumper # XXX
 
 		self.plugins = PluginManager(self.config)
-		self.plugins.extend(notebook.index)
 		self.plugins.extend(notebook)
 		self.plugins.extend(self)
 
-		#~ self.notebook.index.update()
+		#~ self.notebook.indexer.check_and_update()
 
 	def __call__(self, environ, start_response):
 		'''Main function for handling a single request. Follows the
@@ -171,7 +170,7 @@ class WWWInterface(object):
 			parts = [p for p in path.split('/') if p and not p == '.']
 			if [p for p in parts if p.startswith('.')]:
 				# exclude .. and all hidden files from possible paths
-				raise PathNotValidError()
+				raise WebPathNotValidError()
 			path = '/' + '/'.join(parts)
 			if isdir and not path == '/': path += '/'
 			#~ print 'PATH', path
@@ -189,7 +188,7 @@ class WWWInterface(object):
 			elif path.startswith('/+docs/'):
 				dir = self.notebook.document_root
 				if not dir:
-					raise PageNotFoundError(path)
+					raise WebPageNotFoundError(path)
 				file = dir.file(path[7:])
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
@@ -213,7 +212,7 @@ class WWWInterface(object):
 						# Will raise FileNotFound when file does not exist
 					headers['Content-Type'] = file.get_mimetype()
 	 			else:
-					raise PageNotFoundError(path)
+					raise WebPageNotFoundError(path)
 			else:
 				# Must be a page or a namespace (html file or directory path)
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -222,16 +221,19 @@ class WWWInterface(object):
 				elif path.endswith('/'):
 					pagename = path[:-1].replace('/', ':')
 				else:
-					raise PageNotFoundError(path)
+					raise WebPageNotFoundError(path)
 
-				path = self.notebook.resolve_path(pagename)
-				page = self.notebook.get_page(path)
-				if page.hascontent:
-					content = self.render_page(page)
-				elif page.haschildren:
-					content = self.render_index(page)
-				else:
-					raise PageNotFoundError(page)
+				path = self.notebook.pages.lookup_from_user_input(pagename)
+				try:
+					page = self.notebook.get_page(path)
+					if page.hascontent:
+						content = self.render_page(page)
+					elif page.haschildren:
+						content = self.render_index(page)
+					else:
+						raise WebPageNotFoundError(path)
+				except PageNotFoundError:
+					raise WebPageNotFoundError(path)
 		except Exception, error:
 			headerlist = []
 			headers = Headers(headerlist)
@@ -239,7 +241,7 @@ class WWWInterface(object):
 			if isinstance(error, (WWWError, FileNotFoundError)):
 				logger.error(error.msg)
 				if isinstance(error, FileNotFoundError):
-					error = PageNotFoundError(path)
+					error = WebPageNotFoundError(path)
 					# show url path instead of file path
 				if error.headers:
 					for key, value in error.headers:
@@ -271,7 +273,8 @@ class WWWInterface(object):
 		@param namespace: the namespace L{Path}
 		@returns: html as a list of lines
 		'''
-		page = IndexPage(self.notebook, namespace)
+		path = namespace or Path(':')
+		page = createIndexPage(self.notebook, path, namespace)
 		return self.render_page(page)
 
 	def render_page(self, page):
@@ -289,10 +292,10 @@ class WWWInterface(object):
 			content=[page],
 			home=self.notebook.get_home_page(),
 			up=page.parent if page.parent and not page.parent.isroot else None,
-			prevpage=self.notebook.index.get_previous(page),
-			nextpage=self.notebook.index.get_next(page),
+			prevpage=self.notebook.pages.get_previous(page) if not page.isroot else None,
+			nextpage=self.notebook.pages.get_next(page) if not page.isroot else None,
 			links={'index': '/'},
-			index_generator=self.notebook.index.walk,
+			index_generator=self.notebook.pages.walk,
 			index_page=page,
 		)
 		self.template.process(lines, context)

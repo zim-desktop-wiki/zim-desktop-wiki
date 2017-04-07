@@ -80,7 +80,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 			dialog.assert_response_ok()
 
 		buffer.clear()
-		mainwindow_ext = plugin.get_extension(MainWindowExtension)
+		mainwindow_ext = plugin.get_extension(mainwindow, MainWindowExtension)
 		with tests.DialogContext(check_dialog):
 			mainwindow_ext.insert_symbol()
 		text = buffer.get_text(*buffer.get_bounds())

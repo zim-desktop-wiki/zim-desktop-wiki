@@ -1,0 +1,387 @@
+
+
+import logging
+
+logger = logging.getLogger('zim.notebook.index')
+
+
+# In addition allow indexing a page directly - file sync to happen later
+# Allow on_move, on_delete etc.
+# Allow force re-index
+
+# Files are indexed relative to the notebook folder, allow for absolute
+# path to change, e.g. when notebook is on an USB stick
+
+# Priority sorted, higher number overrules lower number
+STATUS_UPTODATE = 0
+STATUS_CHECK = 1
+STATUS_CHECK_RECURS = 2
+STATUS_NEED_UPDATE = 3
+
+TYPE_FOLDER = 1
+TYPE_FILE = 2
+
+from zim.newfs import File
+from zim.signals import SignalEmitter
+
+
+class FilesIndexer(SignalEmitter):
+	'''Class that will update the "files" table in the index based on
+	changes seen on the file system.
+
+	@signal: C{start-update ()}: on start of update iter
+	@signal: C{finish-update ()}: on end of update iter
+	@signal: C{file-row-inserted (row, file)}: on new file found
+	@signal: C{file-row-changed (row, file)}: on file content changed
+	@signal: C{file-row-deleted (row)}: on file deleted
+
+	'''
+
+	# Note that there are no methods for new files or folders,
+	# only methods for updating.
+	# Logic is that we always start with update of a parent folder.
+	# This means root folder always needs to be present in the table.
+	#
+	# Exception is a callback to let explicitly add a new file from
+	# page save in notebook
+
+	__signals__ = {
+		'start-update': (None, None, ()),
+		'finish-update': (None, None, ()),
+		'file-row-inserted': (None, None, (object,)),
+		'file-row-changed': (None, None, (object,)),
+		'file-row-deleted': (None, None, (object,)),
+	}
+
+	def __init__(self, db, folder):
+		self.db = db
+		self.folder = folder
+
+		self.db.executescript('''
+		CREATE TABLE IF NOT EXISTS files(
+			id INTEGER PRIMARY KEY,
+			parent INTEGER REFERENCES files(id),
+
+			path TEXT UNIQUE NOT NULL,
+			node_type INTEGER NOT NULL,
+			mtime TIMESTAMP,
+
+			index_status INTEGER DEFAULT 3
+		);
+		''')
+		row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
+		if row is None:
+			c = self.db.execute(
+				'INSERT INTO files(parent, path, node_type, index_status)'
+				' VALUES (?, ? , ?, ?)',
+				(0, '.', TYPE_FOLDER, STATUS_NEED_UPDATE)
+			)
+			assert c.lastrowid == 1 # ensure we start empty
+
+	def update_iter(self):
+		'''Generator function for the actual update'''
+		self.emit('start-update')
+
+		# sort folders before files: first index structure, then contents
+		# this makes e.g. index links more efficient and robust
+		# sort by id to ensure parents are found before children
+		while True:
+			row = self.db.execute(
+				'SELECT id, path, node_type FROM files'
+				' WHERE index_status = ?'
+				' ORDER BY node_type, id',
+				(STATUS_NEED_UPDATE, )
+			).fetchone()
+
+			if row:
+				node_id, path, node_type = row
+				#print ">> UPDATE", node_id, path, node_type
+			else:
+				break
+
+			try:
+				if node_type == TYPE_FOLDER:
+					folder = self.folder.folder(path)
+					if folder.exists():
+						self.update_folder(node_id, folder)
+					else:
+						self.delete_folder(node_id)
+				else:
+					file = self.folder.file(path)
+					if file.exists():
+						self.update_file(node_id, file)
+					else:
+						self.delete_file(node_id)
+			except:
+				logger.exception('Error while indexing: %s', path)
+				self.db.execute( # avoid looping
+					'UPDATE files SET index_status = ? WHERE id = ?',
+					(STATUS_UPTODATE, node_id)
+				)
+
+			yield
+
+		self.emit('finish-update')
+
+	def interactive_add_file(self, file):
+		assert isinstance(file, File) and file.exists()
+		parent_id = self._add_parent(file.parent())
+		path = file.relpath(self.folder)
+		self.db.execute(
+			'INSERT INTO files(path, node_type, index_status, parent)'
+			' VALUES (?, ?, ?, ?)',
+			(path, TYPE_FILE, STATUS_NEED_UPDATE, parent_id),
+		)
+		row = self.db.execute(
+			'SELECT * FROM files WHERE path=?', (path,)
+		).fetchone()
+
+		self.emit('file-row-inserted', row)
+
+		self.update_file(row['id'], file)
+
+	def _add_parent(self, folder):
+		if folder == self.folder:
+			return 1
+
+		path = folder.relpath(self.folder)
+		r = self.db.execute(
+			'SELECT id FROM files WHERE path=?', (path,)
+		).fetchone()
+		if r is None:
+			parent_id = self._add_parent(folder.parent()) # recurs
+			self.db.execute(
+				'INSERT INTO files(path, node_type, index_status, parent) '
+				'VALUES (?, ?, ?, ?)',
+				(path, TYPE_FOLDER, STATUS_CHECK, parent_id)
+				# We set status to check because we assume the file being
+				# added is the only child, but makes sense to verify later on
+			)
+			r = self.db.execute(
+				'SELECT id FROM files WHERE path=?', (path,)
+			).fetchone()
+			return r[0]
+		else:
+			return r[0]
+
+	def update_folder(self, node_id, folder):
+		# First invalidate all, so any children that are not found in
+		# update will be left with this status
+		#~ print '  update folder'
+		self.db.execute(
+			'UPDATE files SET index_status = ? WHERE parent = ?',
+			(STATUS_NEED_UPDATE, node_id)
+		)
+
+		children = {}
+		for childpath, child_id, mtime in self.db.execute(
+			'SELECT path, id, mtime FROM files WHERE parent = ?',
+			(node_id,)
+		):
+			children[childpath] = (child_id, mtime)
+
+		mtime = folder.mtime() # get mtime before getting contents
+		for child in folder:
+			path = child.relpath(self.folder)
+			if path in children:
+				child_id, child_mtime = children[path]
+				if child.mtime() == child_mtime:
+					self.set_node_uptodate(child_id, child_mtime)
+				else:
+					pass # leave the STATUS_NEED_UPDATE for next loop
+			else:
+				# new child
+				node_type = TYPE_FILE if isinstance(child, File) else TYPE_FOLDER
+				if node_type == TYPE_FILE:
+					self.db.execute(
+						'INSERT INTO files(path, node_type, index_status, parent)'
+						' VALUES (?, ?, ?, ?)',
+						(path, node_type, STATUS_NEED_UPDATE, node_id),
+					)
+					row = self.db.execute(
+						'SELECT * FROM files WHERE path=?', (path,)
+					).fetchone()
+					self.emit('file-row-inserted', row)
+				else:
+					self.db.execute(
+						'INSERT INTO files(path, node_type, index_status, parent)'
+						' VALUES (?, ?, ?, ?)',
+						(path, node_type, STATUS_NEED_UPDATE, node_id),
+					)
+
+		self.set_node_uptodate(node_id, mtime)
+
+	def update_file(self, node_id, file):
+		# get mtime before contents /signal
+		self.set_node_uptodate(node_id, file.mtime())
+		row = self.db.execute('SELECT * FROM files WHERE id=?', (node_id,)).fetchone()
+		assert row is not None, 'No row matching id: %r' % node_id
+		self.emit('file-row-changed', row)
+
+	def set_node_uptodate(self, node_id, mtime):
+		self.db.execute(
+			'UPDATE files SET index_status = ?, mtime = ? WHERE id = ?',
+			(STATUS_UPTODATE, mtime, node_id)
+		)
+
+	def delete_file(self, node_id):
+		row = self.db.execute('SELECT * FROM files WHERE id=?', (node_id,)).fetchone()
+		self.emit('file-row-deleted', row)
+		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
+
+	def delete_folder(self, node_id):
+		for child_id, child_type in self.db.execute(
+			'SELECT id, node_type FROM files WHERE parent == ?',
+			(node_id,)
+		):
+			if child_type == TYPE_FOLDER:
+				self.delete_folder(child_id) # recurs
+			else:
+				self.delete_file(child_id)
+
+		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
+
+
+class FilesIndexChecker(object):
+
+	def __init__(self, db, folder):
+		self.db = db
+		self.folder = folder
+
+	def queue_check(self, file=None, recursive=True):
+		if file is None or file == self.folder: # check root
+			node_id = 1
+			status, = self.db.execute(
+				'SELECT index_status FROM files WHERE id = 1'
+			).fetchone()
+		else: # check specific path
+			if not file.ischild(self.folder):
+				raise ValueError, 'file must be child of %s' % self.folder
+			node_id = None
+			while node_id is None:
+				if file == self.folder:
+					node_id = 1
+					status, = self.db.execute(
+						'SELECT index_status FROM files WHERE id = 1'
+					).fetchone()
+				else:
+					row = self.db.execute(
+						'SELECT id, index_status FROM files WHERE path = ?',
+						(file.relpath(self.folder),)
+					).fetchone()
+					if row:
+						node_id, status = row
+					else:
+						file = file.parent()
+
+		new_status = STATUS_CHECK_RECURS if recursive else STATUS_CHECK
+		if status < new_status:
+			self.db.execute(
+				'UPDATE files SET index_status = ? WHERE id = ?',
+				(new_status, node_id)
+			)
+
+	def check_iter(self):
+		'''Generator function that walks existing records and flags
+		records that are not longer valid. Yields in between checks
+		to allow embedding in a loop.
+		@returns: Yields C{True} when an out of
+		date record is found.
+		'''
+		# Check for pending updates first
+		row = self.db.execute(
+			'SELECT id FROM files WHERE index_status=?',
+			(STATUS_NEED_UPDATE,)
+		)
+		if row is not None:
+			yield True
+
+		# sort folders before files: first index structure, then contents
+		# this makes e.g. index links more efficient and robust
+		# sort by id to ensure parents are found before children
+
+		while True:
+			row = self.db.execute(
+				'SELECT id, path, node_type, mtime, index_status FROM files'
+				' WHERE index_status > ? '
+				' ORDER BY node_type, id',
+				(STATUS_UPTODATE,)
+			).fetchone()
+
+			if row:
+				node_id, path, node_type, mtime, check = row
+			else:
+				break
+
+			if check == STATUS_NEED_UPDATE:
+				yield True
+				continue
+			# else in (STATUS_CHECK, STATUS_CHECK_RECURS)
+
+			try:
+				if node_type == TYPE_FOLDER:
+					obj = self.folder.folder(path)
+				else:
+					obj = self.folder.file(path)
+
+				if not obj.exists():
+					check = STATUS_CHECK # update will drop children, no need to recurs anymore
+					new_status = STATUS_NEED_UPDATE
+
+				else:
+					if mtime == obj.mtime():
+						new_status = STATUS_UPTODATE
+					else:
+						new_status = STATUS_NEED_UPDATE
+
+				self.db.execute(
+					'UPDATE files SET index_status = ?'
+					' WHERE id = ?',
+					(new_status, node_id)
+				)
+
+				if check == STATUS_CHECK_RECURS \
+				and node_type == TYPE_FOLDER:
+					self.db.execute(
+						'UPDATE files SET index_status = ? '
+						'WHERE parent = ? and index_status < ?',
+						(STATUS_CHECK_RECURS, node_id, STATUS_CHECK_RECURS)
+					)
+					# the "<" prevents overwriting a more important flag
+
+			except:
+				logger.exception('Error while indexing: %s', path)
+				self.db.execute( # avoid looping
+					'UPDATE files SET index_status = ? WHERE id = ?',
+					(STATUS_NEED_UPDATE, node_id)
+				)
+				new_status = STATUS_NEED_UPDATE
+
+			yield new_status == STATUS_NEED_UPDATE
+
+
+
+class TestFilesDBTable(object):
+	# Mixin for test cases, defined here to have all SQL in one place
+
+	def assertFilesDBConsistent(self, db):
+		for row in db.execute('SELECT * FROM files'):
+			if row['id'] > 1:
+				parent = db.execute(
+					'SELECT * FROM files WHERE id=?',
+					(row['id'],)
+				).fetchone()
+				self.assertIsNotNone(parent,
+					'Missing parent for %s' % row['path'])
+
+
+	def assertFilesDBEquals(self, db, paths):
+		rows = db.execute('SELECT * FROM files WHERE id>1').fetchall()
+
+		in_db = dict((r['path'], r['node_type']) for r in rows)
+		wanted = dict(
+			(p.strip('/'), TYPE_FOLDER if p.endswith('/') else TYPE_FILE)
+				for p in paths
+		)
+
+		self.assertEqual(in_db, wanted)

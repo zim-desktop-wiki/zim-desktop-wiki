@@ -11,13 +11,13 @@ import os
 from zim.fs import _md5, File, Dir
 
 from zim.config import data_file, SectionedConfigDict
-from zim.notebook import Path, Notebook, init_notebook, \
+from zim.notebook import Path, Page, Notebook, init_notebook, \
 	interwiki_link, get_notebook_list, NotebookInfo
 #~ from zim.exporter import Exporter, StaticLinker
 #~ from zim.applications import Application
 from zim.templates import list_templates
 
-from zim.main import ExportCommand
+from zim.main import ExportCommand, UsageError
 
 # TODO add check that attachments are copied correctly
 
@@ -38,8 +38,6 @@ from zim.templates.expression import ExpressionParameter, \
 	ExpressionFunctionCall, ExpressionList
 
 from zim.notebook import Path
-
-from zim.command import UsageError
 
 
 def md5(f):
@@ -267,7 +265,7 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertEqual(get('mypage.heading'), 'Foo')
 		self.assertIsInstance(get('mypage.content'), basestring)
 		self.assertIsInstance(get('mypage.body'), basestring)
-		self.assertIsInstance(get('mypage.properties'), dict)
+		self.assertIsInstance(get('mypage.meta'), dict)
 
 
 		#			.links
@@ -321,7 +319,7 @@ class TestExportTemplateContext(tests.TestCase):
 
 		## TODO test modification of options by template ends up in context
 		##      test setting other local paramters in template does NOT affect context object
-		##      test setting page properties is NOT allowed
+		##      test setting page meta is NOT allowed
 
 		## TODO list simple template with processor to test looping through pages
 
@@ -368,7 +366,7 @@ class TestMultiFileExporter(tests.TestCase):
 		notebook = tests.new_notebook(fakedir='/foo')
 		pages = AllPages(notebook)
 
-		exporter = build_notebook_exporter(dir, 'html', 'Default')
+		exporter = build_notebook_exporter(dir, 'html', 'Default', index_page='Index')
 		self.assertIsInstance(exporter, MultiFileExporter)
 		exporter.export(pages)
 
@@ -376,6 +374,9 @@ class TestMultiFileExporter(tests.TestCase):
 		text =  file.read()
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
+		file = exporter.layout.page_file(Path('Index'))
+		text =  file.read()
+		self.assertIn('<li><a href="./roundtrip.html" title="roundtrip" class="page">roundtrip</a></li>', text)
 
 
 class TestSingleFileExporter(tests.TestCase):
@@ -424,11 +425,14 @@ class TestTemplateOptions(tests.TestCase):
 		notebook = tests.new_notebook(fakedir='/foo')
 		selection = SinglePage(notebook, page)
 
-		exporter.export(selection)
+		with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):
+			exporter.export(selection)
 		result = file.read()
 		#~ print result
 		self.assertIn('\section{Head1}', result) # this implies that document_type "article" was indeed used
 
+
+@tests.slowTest
 class TestExportFormat(object):
 
 	def runTest(self):
@@ -443,7 +447,9 @@ class TestExportFormat(object):
 			pages = AllPages(notebook) # TODO - sub-section ?
 			exporter = build_notebook_exporter(dir.subdir(template), self.format, template)
 			self.assertIsInstance(exporter, MultiFileExporter)
-			exporter.export(pages)
+
+			with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):
+				exporter.export(pages)
 
 			file = exporter.layout.page_file(Path('roundtrip'))
 			text =  file.read()
@@ -732,7 +738,7 @@ class TestExportDialog(tests.TestCase):
 		foologger = logging.getLogger('zim.foo')
 		log_context = LogContext()
 
-		with tests.LoggingFilter(message='Test'):
+		with tests.LoggingFilter(logger='zim', message='Test'):
 			with log_context:
 				mylogger.warn('Test export warning')
 				mylogger.debug('Test export debug')
@@ -795,3 +801,39 @@ class VirtualFile(object):
 
 	def readlines(self):
 		return ''.join(self._contents).splitlines(True)
+
+
+class TestOverwrite(tests.TestCase):
+
+	def testSingleFile(self):
+		# TODO: run this with mock file
+		# TODO: ensure template has resources
+		# TODO: add attachements to test notebook
+
+		from zim.fs import File
+		folder = self.setUpFolder('single', mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('test.html')
+		exporter = build_single_file_exporter(File(file.path), 'html', 'Default.html')
+
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
+
+		# Now do it twice - should not raise for file exists
+		exporter.export(pages)
+		exporter.export(pages)
+
+	def testMultiFile(self):
+		# TODO: run this with mock file
+		# TODO: ensure template has resources
+		# TODO: add attachements to test notebook
+
+		from zim.fs import Dir
+		folder = self.setUpFolder('multi', mock=tests.MOCK_ALWAYS_REAL)
+		exporter = build_notebook_exporter(Dir(folder.path), 'html', 'Default.html')
+
+		notebook = tests.new_notebook(fakedir='/foo')
+		pages = AllPages(notebook)
+
+		# Now do it twice - should not raise for file exists
+		exporter.export(pages)
+		exporter.export(pages)

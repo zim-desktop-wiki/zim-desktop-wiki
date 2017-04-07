@@ -6,6 +6,9 @@
 '''PageSelection objects wrap the list of pages to be exported'''
 
 
+from zim.notebook import PageNotFoundError
+
+
 class PageSelection(object):
 	'''Base class defining the public API'''
 
@@ -40,10 +43,14 @@ class AllPages(PageSelection):
 		self.title = notebook.name # XXX implement notebook.title
 
 	def __iter__(self):
-		return self.notebook.walk()
+		for path in self.notebook.pages.walk():
+			try:
+				yield self.notebook.get_page(path)
+			except PageNotFoundError:
+				pass
 
 	def index(self, namespace=None):
-		return self.notebook.index.walk(namespace)
+		return self.notebook.pages.walk(namespace)
 
 
 class SinglePage(PageSelection):
@@ -57,7 +64,10 @@ class SinglePage(PageSelection):
 		self.prefix = page
 
 	def __iter__(self):
-		yield self.notebook.get_page(self.page)
+		try:
+			yield self.notebook.get_page(self.page)
+		except PageNotFoundError:
+			pass
 
 	def index(self, namespace=None):
 		if namespace is None or self.page.ischild(namespace):
@@ -71,16 +81,16 @@ class SubPages(SinglePage):
 
 	def __iter__(self):
 		yield self.notebook.get_page(self.page)
-		for page in self.notebook.walk(self.page):
-			yield page
+		for path in self.notebook.pages.walk(self.page):
+			yield self.notebook.get_page(path)
 
 	def index(self, namespace=None):
 		if namespace is None or namespace.name == self.page.name:
 			yield self.page
-			for page in self.notebook.index.walk(self.page):
+			for page in self.notebook.pages.walk(self.page):
 				yield page
 		elif namespace.ischild(self.page):
-			for page in self.notebook.index.walk(namespace):
+			for page in self.notebook.pages.walk(namespace):
 				yield page
 		else:
 			pass

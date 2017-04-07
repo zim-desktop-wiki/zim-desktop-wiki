@@ -27,7 +27,7 @@ from zim.www import make_server
 
 from zim.notebook import build_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import IconButton, gtk_window_set_default_icon, ErrorDialog, input_table_factory
+from zim.gui.widgets import IconButton, ErrorDialog, input_table_factory
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 
 
@@ -47,7 +47,6 @@ class ServerWindow(gtk.Window):
 		gtk.Window.__init__(self)
 		self.set_title('Zim - ' + _('Web Server')) # T: Window title
 		self.set_border_width(10)
-		self.connect('destroy', lambda a: gtk.main_quit())
 		self.interface_opts = opts
 		self.httpd = None
 		self._source_id = None
@@ -126,6 +125,10 @@ class ServerWindow(gtk.Window):
 					return
 			else:
 				return
+
+			if not notebook.index.is_uptodate:
+				for info in notebook.index.update_iter():
+					logger.info('Indexing %s', info)
 
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
@@ -210,6 +213,7 @@ class ServerWindow(gtk.Window):
 
 
 def main(notebookinfo=None, port=8080, public=True, **opts):
+	from zim.widgets import gtk_window_set_default_icon
 	gtk_window_set_default_icon()
 	window = ServerWindow(notebookinfo, port, public, **opts)
 	window.show_all()

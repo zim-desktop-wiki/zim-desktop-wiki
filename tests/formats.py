@@ -11,7 +11,7 @@ import tests
 
 from zim.formats import *
 from zim.fs import File
-from zim.notebook import Path, Link
+from zim.notebook import Path
 from zim.parsing import link_type
 from zim.templates import Template
 
@@ -384,8 +384,6 @@ A list
 		for elt in tree.findall(LINK):
 			self.assertTrue(elt.gettext())
 			self.assertTrue(elt.get('href'))
-			link = Link(self.page, **elt.attrib)
-			self.assertEqual(elt.attrib['href'], link.href)
 			found += 1
 		self.assertEqual(found, 3)
 
@@ -705,8 +703,12 @@ class TestRstFormat(tests.TestCase, TestFormatMixin):
 
 class LatexLoggingFilter(tests.LoggingFilter):
 
-	logger = 'zim.formats.latex'
-	message = ('No document type set in template', 'Could not find latex equation')
+	def __init__(self):
+		tests.LoggingFilter.__init__(
+			self,
+			'zim.formats.latex',
+			('No document type set in template', 'Could not find latex equation')
+		)
 
 
 class TestLatexFormat(tests.TestCase, TestFormatMixin):
@@ -826,3 +828,28 @@ grrr
 		root = builder.close()
 		tree = ParseTree(root)
 		self.assertEqual(tree.tostring(), wanted)
+
+
+class TestParseHeaderLines(tests.TestCase):
+
+	def runTest(self):
+		text = '''\
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+X-Foo: Some text
+	here
+Creation-Date: 2010-12-14T14:15:09.134955
+
+Blaat
+'''
+		body, meta = parse_header_lines(text)
+		self.assertEqual(dict(meta), {
+			'Content-Type': 'text/x-zim-wiki',
+			'Wiki-Format': 'zim 0.4',
+			'Creation-Date': '2010-12-14T14:15:09.134955',
+			'X-Foo': 'Some text\nhere'
+		})
+		self.assertEqual(body, 'Blaat\n')
+
+		out = dump_header_lines(meta)
+		self.assertEqual(out+'\nBlaat\n', text)

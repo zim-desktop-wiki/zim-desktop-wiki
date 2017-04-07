@@ -25,9 +25,10 @@ info = {
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX:	u'- \u2610',
-		XCHECKED_BOX:	u'- \u2612',
-		CHECKED_BOX:	u'- \u2611',
+		UNCHECKED_BOX:	u'- \u2610', # ☐
+		XCHECKED_BOX:	u'- \u2612', # ☒
+		CHECKED_BOX:	u'- \u2611', # ☑
+		MIGRATED_BOX:	u'- \u25B7', # ▷
 		BULLET:		u'-',
 	}
 

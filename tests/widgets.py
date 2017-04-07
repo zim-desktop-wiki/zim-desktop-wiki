@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -138,8 +138,13 @@ class TestPageEntry(tests.TestCase):
 	entryklass = PageEntry
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
+		self.notebook = self.setUpNotebook(content={
+			'Test:foo': 'test 123',
+			'Test:link': '[[:Placeholder]]', # link
+			'Test:foo:bar': 'test 123',
+			'Test:bar': 'test 123',
+			'Bar': 'test 123'
+		})
 
 		self.reference = Path('Test:foo')
 		self.entry = self.entryklass(self.notebook, self.reference)
@@ -147,22 +152,31 @@ class TestPageEntry(tests.TestCase):
 	def runTest(self):
 		'''Test PageEntry widget'''
 		entry = self.entry
-		reference = self.reference
 
 		entry.set_path(Path('Test'))
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), ':Test')
 		self.assertEqual(entry.get_path(), Path('Test'))
 
-		entry.set_text('bar')
-		self.assertEqual(entry.get_path(), Path('Bar')) # resolved due to placeholder
+		entry.set_text('placeholder')
+		self.assertTrue(entry.get_input_valid())
+		self.assertEqual(entry.get_path(), Path('Placeholder'))
+				# unlike links, we do use placeholders when resolving pages
 
 		entry.set_text('non existing')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Test:non existing'))
 
+		entry.set_text('bar')
+		self.assertTrue(entry.get_input_valid())
+		self.assertEqual(entry.get_path(), Path('Test:bar'))
+
 		entry.set_text('+bar')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Test:foo:bar'))
 
 		entry.set_text(':bar')
+		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Bar'))
 
 		## Test completion
@@ -171,19 +185,25 @@ class TestPageEntry(tests.TestCase):
 			model = completion.get_model()
 			return [r[0] for r in model]
 
-		entry.set_text('+T')
-		self.assertEqual(get_completions(entry), ['+bar'])
+		for text, wanted in (
+			('', []),
+			('+', ['+bar']),
+			('+B', ['+bar']),
+			('+Bar', ['+bar']),
+			('+T', []),
+			(':', [':Bar', ':Placeholder', ':Test']),
+			('b', ['+bar', 'bar', ':Bar']),
+			('Test:', ['Test:bar', 'Test:foo', 'Test:link']),
 
-		entry.set_text(':T')
-		completions = get_completions(entry)
-		self.assertTrue(len(completions) > 5 and ':Test' in completions)
-
-		entry.set_text('T')
-		self.assertTrue(len(completions) > 5 and ':Test' in completions)
-		# completion now has full notebook
-
-		entry.set_text('Test:')
-		self.assertEqual(get_completions(entry), ['Test:foo', 'Test:Foo Bar', 'Test:Foo(Bar)', 'Test:tags', 'Test:wiki'])
+		):
+			# Take into account that extending the string does not reset the
+			# model but just filters in the widget - so we reset for each string
+			entry.set_text('')
+			entry.update_completion()
+			entry.set_text(text)
+			entry.update_completion()
+			self.assertTrue(entry.get_input_valid())
+			self.assertEqual(get_completions(entry), wanted)
 
 
 class TestNamespaceEntry(TestPageEntry):
@@ -215,6 +235,8 @@ class TestLinkEntry(TestPageEntry, TestFileEntry):
 	def runTest(self):
 		'''Test LinkEntry widget'''
 		TestPageEntry.runTest(self)
+
+		self.notebook.dir = Dir(self.notebook.layout.root.path) # XXX
 		TestFileEntry.runTest(self)
 
 
@@ -304,24 +326,80 @@ class TestInputForm(tests.TestCase):
 
 @tests.slowTest
 class TestFileDialog(tests.TestCase):
+	## Something weird in how the filechooser works internally
+	## need a lot of gtk_process_events() to get it work OK in test
+	## and still it fails at random :(
 
 	def runTest(self):
-		tmp_dir = self.create_tmp_dir()
+		tmp_dir = Dir(self.create_tmp_dir())
 
-		file = File((tmp_dir, 'test.txt'))
-		file.write('test 123')
+		for name in ('test1.txt', 'test2.txt', 'test3.txt'):
+			tmp_dir.file(name).write('test 123')
+
+		tmp_dir.subdir('folder1').touch()
+
+		# Single file
+		file = tmp_dir.file('test1.txt')
 		self.assertTrue(file.exists())
 
 		dialog = FileDialog(None, 'Test')
+		self.assertIsNone(dialog.get_file())
+
 		dialog.set_file(file)
-		#~ myfile = dialog.get_file()
-		#~ self.assertTrue(myfile)
-		#~ self.assertTrue(myfile == file)
-		#~ dialog.assert_response_ok()
-		#~ self.assertTrue(dialog.result == file)
+		tests.gtk_process_events()
+		dialog.set_file(file)
+		tests.gtk_process_events()
+		dialog.set_file(file)
+		tests.gtk_process_events()
 
-		# TODO select multiple
+		myfile = dialog.get_file()
+		self.assertIsInstance(myfile, File)
+		self.assertEqual(myfile.uri, file.uri)
 
-		# TODO select folder
+		dialog.assert_response_ok()
+		self.assertIsInstance(dialog.result, File)
+		self.assertEqual(dialog.result.uri, file.uri)
 
-		# TODO add filters
+		# Multiple files
+		file1 = tmp_dir.file('test1.txt')
+		file2 = tmp_dir.file('test2.txt')
+		self.assertTrue(file1.exists())
+		self.assertTrue(file2.exists())
+
+		dialog = FileDialog(None, 'Test', multiple=True)
+		assert dialog.filechooser.select_uri(file1.uri)
+		assert dialog.filechooser.select_uri(file2.uri)
+		tests.gtk_process_events()
+
+		self.assertRaises(AssertionError, dialog.get_file)
+
+		files = dialog.get_files()
+		self.assertTrue(all(isinstance(f, File) for f in files))
+		#~ self.assertEqual([f.uri for f in files], [file1.uri, file2.uri]) -- TODO
+
+		dialog.assert_response_ok()
+		self.assertIsInstance(dialog.result, list)
+
+		# Select folder
+		folder = tmp_dir.subdir('folder1')
+		self.assertTrue(folder.exists())
+
+		dialog = FileDialog(None, 'Test', action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		assert dialog.filechooser.select_uri(folder.uri)
+		tests.gtk_process_events()
+		assert dialog.filechooser.select_uri(folder.uri)
+		tests.gtk_process_events()
+		assert dialog.filechooser.select_uri(folder.uri)
+		tests.gtk_process_events()
+
+		myfolder = dialog.get_dir()
+		self.assertIsInstance(myfolder, Dir)
+		self.assertEqual(myfolder.uri, folder.uri)
+
+		dialog.assert_response_ok()
+		self.assertIsInstance(dialog.result, Dir)
+
+
+		# TODO test adding filters
+		# TODO test preview
+		# TODO test remember_folder

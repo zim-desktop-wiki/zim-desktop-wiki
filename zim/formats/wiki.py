@@ -27,9 +27,9 @@ info = {
 }
 
 
-bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
+bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
-	# and '[ ]', '[*]' or '[x]' for checkbox items
+	# and '[ ]', '[*]', '[x]' or '[>]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
 bullet_line_re = re.compile(ur'^(\t*)(%s)(.*\n)$' % bullet_pattern)
@@ -74,6 +74,7 @@ class WikiParser(object):
 		'[ ]': UNCHECKED_BOX,
 		'[x]': XCHECKED_BOX,
 		'[*]': CHECKED_BOX,
+		'[>]': MIGRATED_BOX,
 		'*': BULLET,
 	}
 
@@ -173,7 +174,7 @@ class WikiParser(object):
 				process=self.parse_table
 			),
 			# line format
-			Rule(LINE, r'(?<=\n)-{4}-+(?=\n)', process=self.parse_line) # \n-----\n
+			Rule(LINE, r'(?<=\n)-{5,}(?=\n)', process=self.parse_line) # \n----\n
 
 		)
 		p.process_unmatched = self.parse_para
@@ -450,13 +451,30 @@ class Parser(ParserClass):
 		if not isinstance(input, basestring):
 			input = ''.join(input)
 
+		meta, backward = None, False
 		if not partial:
 			input = fix_line_end(input)
+			input, meta = parse_header_lines(input)
+			version = meta.get('Wiki-Format')
+			if version and version not in ('zim 0.26', WIKI_FORMAT_VERSION):
+				backward = True
+
+			# Note: No "Modification-Date" here because it causes conflicts
+			# when merging branches with version control, use mtime from filesystem
+			# If we see this header, remove it because it will not be updated.
+			try:
+				del meta['Modification-Date']
+			except:
+				pass
 
 		builder = ParseTreeBuilder(partial=partial)
-		wikiparser.backward = self.backward # HACK
+		wikiparser.backward = backward or self.backward # HACK
 		wikiparser(builder, input)
-		return builder.get_parsetree()
+
+		parsetree = builder.get_parsetree()
+		#if meta:
+		parsetree.meta = meta
+		return parsetree
 
 
 class Dumper(TextDumper):
@@ -465,6 +483,7 @@ class Dumper(TextDumper):
 		UNCHECKED_BOX:	u'[ ]',
 		XCHECKED_BOX:	u'[x]',
 		CHECKED_BOX:	u'[*]',
+		MIGRATED_BOX:	u'[>]',
 		BULLET:			u'*',
 	}
 
@@ -478,6 +497,15 @@ class Dumper(TextDumper):
 		SUBSCRIPT:		('_{', '}'),
 		SUPERSCRIPT:	('^{', '}'),
 	}
+
+	def dump(self, tree):
+		if tree.meta and not tree.ispartial:
+			tree.meta['Content-Type'] = 'text/x-zim-wiki'
+			tree.meta['Wiki-Format'] = WIKI_FORMAT_VERSION
+			# TODO force content type is first line
+			return [dump_header_lines(tree.meta), '\n'] + TextDumper.dump(self, tree)
+		else:
+			return TextDumper.dump(self, tree)
 
 	def dump_pre(self, tag, attrib, strings):
 		# Indent and wrap with "'''" lines

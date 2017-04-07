@@ -9,6 +9,8 @@ import gtk
 
 import re
 
+from functools import partial
+
 import logging
 
 from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
@@ -19,6 +21,7 @@ from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
+from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
 
 logger = logging.getLogger('zim.plugins.calendar')
@@ -196,8 +199,10 @@ class NotebookExtension(ObjectExtension):
 		daterange = daterange_from_path(path)
 		if daterange:
 			self.connectto(template, 'process',
-				self.on_process_new_page_template,
-				userdata=daterange
+				partial(
+					self.on_process_new_page_template,
+					daterange=daterange
+				)
 			)
 
 	def on_process_new_page_template(self, template, output, context, daterange):
@@ -226,7 +231,7 @@ class NotebookExtension(ObjectExtension):
 			ns = self._initialized_namespace
 			for key in ('template', 'auto_expand_in_index'):
 				try:
-					self.notebook.namespace_properties[ns].remove('template')
+					self.notebook.namespace_properties[ns].remove(key)
 				except KeyError:
 					pass
 			self._initialized_namespace = None
@@ -485,11 +490,14 @@ class CalendarWidgetModel(object):
 
 	def list_dates_for_month(self, date):
 		namespace = self.plugin.path_for_month_from_date(date)
-		for path in self.notebook.index.list_pages(namespace):
-			if date_path_re.match(path.name):
-				dates = daterange_from_path(path)
-				if dates and dates[0] == 'day':
-					yield dates[1]
+		try:
+			for path in self.notebook.pages.list_pages(namespace):
+				if date_path_re.match(path.name):
+					dates = daterange_from_path(path)
+					if dates and dates[0] == 'day':
+						yield dates[1]
+		except IndexNotFoundError:
+			pass
 
 
 class CalendarDialog(Dialog):

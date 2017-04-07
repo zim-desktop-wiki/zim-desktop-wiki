@@ -8,7 +8,7 @@ when exporting. The subclasses give alternative file layouts.
 '''
 
 from zim.fs import Dir, File, PathLookupError
-from zim.stores import encode_filename
+from zim.notebook import encode_filename
 
 
 class ExportLayout(object):

@@ -11,12 +11,16 @@ logger = logging.getLogger('zim.export')
 from zim.utils import MovingWindowIter
 
 from zim.config import data_file
-from zim.notebook import IndexPage, Page, Path
+from zim.notebook import Path
 from zim.formats import get_format
 
-from zim.export.exporters import Exporter
+from zim.export.exporters import Exporter, createIndexPage
 from zim.export.linker import ExportLinker
 from zim.export.template import ExportTemplateContext
+
+from zim.fs import Dir
+from zim.newfs import FileNotFoundError, LocalFolder
+
 
 
 class FilesExporterBase(Exporter):
@@ -34,15 +38,22 @@ class FilesExporterBase(Exporter):
 		self.format = get_format(format) # XXX
 		self.document_root_url = document_root_url
 
-	def export_attachments(self, notebook, page):
+	def export_attachments_iter(self, notebook, page):
 		# XXX FIXME remove need for notebook here
+		# XXX what to do with folders that do not map to a page ?
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
-		for name in source.list():
-			file = source.file(name)
-			if not file.isdir():
-				file.copyto(target)
-			# XXX what to do with folders that do not map to a page ?
+		assert isinstance(target, Dir)
+		target = LocalFolder(target.path) # XXX convert
+		try:
+			for file in source.list_files():
+					yield file
+					targetfile = target.file(file.basename)
+					if targetfile.exists():
+						targetfile.remove() # Export does overwrite by default
+					file.copyto(targetfile)
+		except FileNotFoundError:
+			pass
 
 	def export_resources(self):
 		dir = self.layout.resources_dir()
@@ -56,6 +67,9 @@ class FilesExporterBase(Exporter):
 		# Copy template resources (can overwrite icons)
 		if self.template.resources_dir \
 		and self.template.resources_dir.exists():
+			if dir.exists(): # Export does overwrite by default
+				dir.remove_children()
+				dir.remove()
 			self.template.resources_dir.copyto(dir)
 
 
@@ -71,7 +85,14 @@ class MultiFileExporter(FilesExporterBase):
 		@param document_root_url: optional URL for the document root
 		'''
 		FilesExporterBase.__init__(self, layout, template, format, document_root_url)
-		self.index_page = index_page # TODO make generic special page in output selection
+		if index_page:
+			if isinstance(index_page, basestring):
+				self.index_page = Path( Path.makeValidPageName(index_page) )
+			else:
+				self.index_page = index_page
+		else:
+			self.index_page = None
+		# TODO make index_page generic special page in output selection
 
 	def export_iter(self, pages):
 		self.export_resources()
@@ -82,7 +103,8 @@ class MultiFileExporter(FilesExporterBase):
 			try:
 				self.export_page(pages.notebook, page, pages, prevpage=prev, nextpage=next)
 					# XXX FIXME remove need for notebook here
-				self.export_attachments(pages.notebook, page)
+				for file in self.export_attachments_iter(pages.notebook, page):
+					yield file
 					# XXX FIXME remove need for notebook here
 			except:
 				raise
@@ -90,13 +112,9 @@ class MultiFileExporter(FilesExporterBase):
 
 		if self.index_page:
 			try:
-				index_page = self.index_page
-				if isinstance(index_page, basestring):
-					index_page = pages.notebook.cleanup_pathname(index_page) # XXX
-
-				logger.info('Export index: %s', index_page, pages)
-				yield Path(index_page)
-				self.export_index(index_page, pages)
+				logger.info('Export index: %s', self.index_page, pages)
+				yield self.index_page
+				self.export_index(self.index_page, pages)
 			except:
 				logger.exception('Error while exporting index')
 
@@ -104,6 +122,9 @@ class MultiFileExporter(FilesExporterBase):
 		# XXX FIXME remove need for notebook here
 
 		file=self.layout.page_file(page)
+		if file.exists():
+			file.remove() # export does overwrite by default
+
 		linker_factory = partial(ExportLinker,
 			notebook=notebook,
 			layout=self.layout,
@@ -130,20 +151,11 @@ class MultiFileExporter(FilesExporterBase):
 		file.writelines(lines)
 
 	def export_index(self, index_page, pages):
-		# TODO remove hack here, and get rid of IndexPage in current shape from Notebook
-
 		if pages.prefix:
-			indexpage = Page(pages.prefix + index_page)
-		else:
-			indexpage = Page(Path(index_page))
+			index_page = pages.prefix + index_page
 
-		# Bit of a HACK here - need better support for these index pages
-		_page = IndexPage(pages.notebook, pages.prefix) # TODO make more flexible - use pages iter itself
-		indexpage.readonly = False
-		indexpage.set_parsetree(_page.get_parsetree())
-		indexpage.readonly = True
-
-		self.export_page(pages.notebook, indexpage, pages)
+		page = createIndexPage(pages.notebook, index_page, pages.prefix)
+		self.export_page(pages.notebook, page, pages)
 
 
 class SingleFileExporter(FilesExporterBase):
@@ -177,14 +189,17 @@ class SingleFileExporter(FilesExporterBase):
 
 		lines = []
 		self.template.process(lines, context)
+		if self.layout.file.exists():
+			self.layout.file.remove() # export does overwrite by default
 		self.layout.file.writelines(lines)
 
 		# TODO incremental write to save memory on large notebooks...
 		# TODO also yield while exporting main page
 
 		for page in pages:
-			self.export_attachments(pages.notebook, page)
 			yield page
+			for file in self.export_attachments_iter(pages.notebook, page):
+				yield file
 
 
 #~ class StaticFileExporter(SingleFileExporter):

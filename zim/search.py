@@ -48,8 +48,10 @@ import re
 import logging
 
 from zim.parsing import split_quoted_strings, unescape_quoted_string, Re
-from zim.notebook import Path, PageNameError
-from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
+from zim.notebook import Path, \
+	PageNotFoundError, IndexNotFoundError, \
+	LINK_DIR_BACKWARD, LINK_DIR_FORWARD
+
 
 logger = logging.getLogger('zim.search')
 
@@ -384,7 +386,6 @@ class SearchSelection(PageSelection):
 		# a time - leave it up to _process_group to combine them
 		myresults = SearchSelection(None)
 		myresults.scores = self.scores # HACK for callback function
-		index = self.notebook.index
 		scoped = False
 
 		if term.keyword in ('name', 'namespace', 'section', 'contentorname'):
@@ -392,7 +393,7 @@ class SearchSelection(PageSelection):
 			if scope:
 				generator = iter(scope)
 			else:
-				generator = index.walk()
+				generator = self.notebook.pages.walk()
 
 			if term.keyword in ('namespace', 'section'):
 				regex = self._namespace_regex(term.string)
@@ -420,28 +421,34 @@ class SearchSelection(PageSelection):
 				string = term.string
 
 			try:
-				path = self.notebook.resolve_path(string)
-			except PageNameError:
-				return myresults
-
-			if recurs:
-				links = index.list_links_to_tree(path, dir)
+				path = self.notebook.pages.lookup_from_user_input(string)
+			except ValueError:
+				pass
 			else:
-				links = index.list_links(path, dir)
 
-			if dir == LINK_DIR_FORWARD:
-				for link in links:
-					myresults.add(link.href)
-			else:
-				for link in links:
-					myresults.add(link.source)
+				try:
+					if recurs:
+						links = self.notebook.links.list_links_section(path, dir)
+					else:
+						links = self.notebook.links.list_links(path, dir)
+				except IndexNotFoundError:
+					pass
+				else:
+
+					if dir == LINK_DIR_FORWARD:
+						for link in links:
+							myresults.add(link.target)
+					else:
+						for link in links:
+							myresults.add(link.source)
 
 		elif term.keyword == 'tag':
-			tag = index.lookup_tag(term.string)
-			if tag:
-				for path in index.list_tagged_pages(tag):
+			tag = term.string.strip('*') # XXX
+			try:
+				for path in self.notebook.tags.list_pages(tag):
 					myresults.add(path)
-
+			except IndexNotFoundError:
+				pass
 		else:
 			assert False, 'BUG: unknown keyword: %s' % term.keyword
 
@@ -454,7 +461,7 @@ class SearchSelection(PageSelection):
 			if not scope:
 				# initialize scope with whole notebook :S
 				scope = set()
-				for p in index.walk():
+				for p in self.notebook.pages.walk():
 					scope.add(p)
 			inverse = scope - myresults
 			myresults.clear()
@@ -486,10 +493,13 @@ class SearchSelection(PageSelection):
 		if scope:
 			def page_generator():
 				for path in scope:
-					yield self.notebook.get_page(path)
+					try:
+						yield self.notebook.get_page(path)
+					except PageNotFoundError:
+						pass
 			generator = page_generator()
 		else:
-			generator = self.notebook.walk()
+			generator = map(self.notebook.get_page, self.notebook.pages.walk())
 
 		if results is None:
 			results = SearchSelection(None)

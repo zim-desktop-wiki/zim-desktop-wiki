@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 '''The ExportLinker object translates links in zim pages to URLS
@@ -17,10 +17,9 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.fs import File, PathLookupError
+from zim.fs import File, Dir, PathLookupError
 from zim.config import data_file
-from zim.notebook import PageNameError, interwiki_link
-from zim.stores import encode_filename
+from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
 from zim.formats import BaseLinker
 
@@ -153,9 +152,13 @@ class ExportLinker(BaseLinker):
 
 	def _link_page(self, link):
 		try:
-			path = self.notebook.resolve_path(link, source=self.source)
-				# Allows source to be None
-		except PageNameError:
+			if self.source:
+				path = self.notebook.pages.resolve_link(
+					self.source, HRef.new_from_wiki_link(link)
+				)
+			else:
+				path = self.notebook.pages.lookup_from_user_input(link)
+		except ValueError:
 			return ''
 		else:
 			return self.page_object(path)
@@ -187,9 +190,7 @@ class ExportLinker(BaseLinker):
 			else:
 				dir = self.layout.relative_root
 
-			file = dir.resolve_file(filename)
-				# Allow ../ here - limit resulting relative link
-				# in self.file_object()
+			file = File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
 
 		return file
 
@@ -232,10 +233,13 @@ class StubLayout(ExportLayout):
 		self.resources_dir = resources_dir
 
 	def page_file(self, page):
-		page = self.notebook.get_page(page)
-		if hasattr(page, 'source') and isinstance(page.source, File):
-			return page.source
-		else:
+		try:
+			page = self.notebook.get_page(page)
+			if hasattr(page, 'source') and isinstance(page.source, File):
+				return page.source
+			else:
+				return None
+		except PageNotFoundError:
 			return None
 
 	def attachments_dir(self, page):

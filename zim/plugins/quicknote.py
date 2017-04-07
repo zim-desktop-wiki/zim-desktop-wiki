@@ -7,18 +7,21 @@ import gtk
 import re
 from datetime import date as dateclass
 
+from zim.fs import Dir
+
 from zim.plugins import PluginClass, WindowExtension, extends
-from zim.command import Command
+from zim.main import GtkCommand
 from zim.actions import action
 from zim.config import data_file, ConfigManager
-from zim.notebook import Notebook, PageNameError, NotebookInfo, \
+from zim.notebook import Path, Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
-from zim.ipc import start_server_if_not_running, ServerProxy
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
-	InputForm, gtk_window_set_default_icon, QuestionDialog
+	InputForm, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import get_template
+
+from zim.main import ZIM_APPLICATION
 
 
 import logging
@@ -48,7 +51,7 @@ Options:
 '''
 
 
-class QuickNotePluginCommand(Command):
+class QuickNotePluginCommand(GtkCommand):
 
 	options = (
 		('help', 'h', 'Print this help text and exit'),
@@ -81,7 +84,7 @@ class QuickNotePluginCommand(Command):
 					key, value = arg.split('=', 1)
 					self.opts[key] = value
 		else:
-			Command.parse_options(self, *args)
+			GtkCommand.parse_options(self, *args)
 
 		self.template_options = {}
 		for arg in self.opts['option']:
@@ -123,10 +126,8 @@ class QuickNotePluginCommand(Command):
 
 	def run(self):
 		if self.opts.get('help'):
-			print usagehelp # TODO handle this in Command base class
+			print usagehelp # TODO handle this in the base class
 		else:
-			gtk_window_set_default_icon()
-
 			if 'notebook' in self.opts:
 				notebook = resolve_notebook(self.opts['notebook'])
 			else:
@@ -141,7 +142,8 @@ class QuickNotePluginCommand(Command):
 				template_options=self.template_options,
 				attachments=self.opts.get('attachments')
 			)
-			dialog.run()
+			dialog.show_all()
+			return dialog
 
 
 class QuickNotePlugin(PluginClass):
@@ -258,11 +260,11 @@ class BoundQuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+		self.open_page_check = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
 			# Don't use "O" as accelerator here to avoid conflict with "Ok"
-		self.open_page.set_active(self.uistate['open_page'])
-		self.action_area.pack_start(self.open_page, False)
-		self.action_area.set_child_secondary(self.open_page, True)
+		self.open_page_check.set_active(self.uistate['open_page'])
+		self.action_area.pack_start(self.open_page_check, False)
+		self.action_area.set_child_secondary(self.open_page_check, True)
 
 		# Add the main textview and hook up the basename field to
 		# sync with first line of the textview
@@ -317,7 +319,7 @@ class BoundQuickNoteDialog(Dialog):
 
 	def save_uistate(self):
 		self.uistate['new_page'] = self.form['new_page']
-		self.uistate['open_page'] = self.open_page.get_active()
+		self.uistate['open_page'] = self.open_page_check.get_active()
 		if self.uistate['new_page']:
 			self.uistate['namespace'] = self.form['namespace']
 		else:
@@ -339,20 +341,13 @@ class BoundQuickNoteDialog(Dialog):
 			if '\n' in title:
 				title, _ = title.split('\n', 1)
 			try:
-				title = Notebook.cleanup_pathname(title, purge=True)
+				title = Path.makeValidPageName(title.replace(':', ''))
 				self.form['basename'] = title
-			except PageNameError:
+			except ValueError:
 				pass
 			self._updating_title = False
 
-	def _get_ui(self):
-		return self._ui
-
 	def do_response_ok(self):
-		# NOTE: Keep in mind that this method should also work using
-		# a proxy object for the ui. This is why we have the get_ui()
-		# argument to construct a proxy.
-
 		buffer = self.textview.get_buffer()
 		bounds = buffer.get_bounds()
 		text = buffer.get_text(*bounds)
@@ -362,9 +357,8 @@ class BoundQuickNoteDialog(Dialog):
 		# Specify "(?m)" instead of re.M since "flags" keyword is not
 		# supported in python 2.6
 
-
-		ui = self._get_ui()
-		if ui is None:
+		notebook = self._get_notebook()
+		if notebook is None:
 			return False
 
 		if self.form['new_page']:
@@ -375,24 +369,50 @@ class BoundQuickNoteDialog(Dialog):
 					entry.set_input_valid(False, show_empty_invalid=True)
 				return False
 
-			path = self.form['namespace'].name + ':' + self.form['basename']
-			ui.new_page_from_text(text, path,
-				attachments=self.attachments,
-				open_page=self.open_page.get_active()
-			)
+			path = self.form['namespace'] + self.form['basename']
+			self.create_new_page(notebook, path, text)
 		else:
 			if not self.form.widgets['page'].get_input_valid() \
 			or not self.form['page']:
 				return False
 
-			path = self.form['page'].name
-			if self.attachments:
-				ui.import_attachments(path, self.attachments)
-			ui.append_text_to_page(path, '\n----\n'+text)
-			if self.open_page.get_active():
-				ui.present(path) # also works with proxy
+			path = self.form['page']
+			self.append_to_page(notebook, path, '\n------\n'+text)
+
+		if self.attachments:
+			self.import_attachments(notebook, path)
+
+		if self.open_page_check.get_active():
+			self.hide()
+			self.open_page(notebook, path)
 
 		return True
+
+	def _get_notebook(self):
+		# Overloaded below
+		return self._ui.notebook
+
+	def create_new_page(self, notebook, path, text):
+		page = notebook.get_new_page(path)
+		page.parse('wiki', text) # FIXME format hard coded
+		notebook.store_page(page)
+
+	def append_to_page(self, notebook, path, text):
+		page = notebook.get_page(path)
+		page.parse('wiki', text, append=True) # FIXME format hard coded
+		notebook.store_page(page)
+
+	def import_attachments(self, notebook, path, folder):
+		attachments = notebook.get_attachments_dir(path)
+		for name in folder.list():
+			# FIXME could use list objects, or list_files()
+			file = dir.file(name)
+			if not file.isdir():
+				file.copyto(attachments)
+
+	def open_page(self, notebook, path):
+		assert notebook == self._ui.notebook
+		self._ui.present(path)
 
 
 class QuickNoteDialog(BoundQuickNoteDialog):
@@ -442,7 +462,7 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 		notebook = self.notebookcombobox.get_notebook()
 		self.uistate['lastnotebook'] = notebook
 		self.uistate['new_page'] = self.form['new_page']
-		self.uistate['open_page'] = self.open_page.get_active()
+		self.uistate['open_page'] = self.open_page_check.get_active()
 		if notebook is not None:
 			if self.uistate['new_page']:
 				self.config['Namespaces'][notebook] = self.form['namespace']
@@ -476,10 +496,10 @@ class QuickNoteDialog(BoundQuickNoteDialog):
 			self.form.widgets['page'].notebook = None
 			logger.debug('Notebook for autocomplete unset')
 
-	def _get_ui(self):
-		start_server_if_not_running()
-		notebook = self.notebookcombobox.get_notebook()
-		if notebook:
-			return ServerProxy().get_notebook(notebook)
-		else:
-			return None
+	def _get_notebook(self):
+		uri = self.notebookcombobox.get_notebook()
+		notebook, p = build_notebook(Dir(uri))
+		return notebook
+
+	def open_page(self, notebook, path):
+		ZIM_APPLICATION.run('--gui', notebook.uri, path.name)

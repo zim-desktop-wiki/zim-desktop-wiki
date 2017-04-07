@@ -63,9 +63,6 @@ can be extended by plugins.
 The graphical user interface is implemented in the L{zim.gui} module
 and it's sub-modules. The webinterface is implemented in L{zim.www}.
 
-The graphical interface uses a background process to coordinate
-between running instances, this is implemented in L{zim.ipc}.
-
 Functionality for exporting content is implemented in L{zim.exporter}.
 And search functionality can be found in L{zim.search}.
 

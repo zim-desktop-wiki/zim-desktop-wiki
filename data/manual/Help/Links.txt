@@ -1,6 +1,3 @@
-Content-Type: text/x-zim-wiki
-Wiki-Format: zim 0.4
-
 ====== Links ======
 
 You can either link pages or urls. Urls are recognized because they start with e.g. "''html://''" or "''mailto:''". Page names can contain ':' characters to separate the page name from parent pages.
@@ -14,7 +11,7 @@ You can either link pages or urls. Urls are recognized because they start with e
 You can make any text into a link, thus the link you see and what it links to do not have to be the same. You can use the "//Edit//->//Link//" menu item to modify a link.
 
 ==== Relative links ====
-All links to other pages are relative to the current page unless they start with an ":" character. Zim first looks in the same section as the current page and if the name is not found searches all parent sections for a like named page.
+All links to other pages are relative to the current page unless they start with an ":" character. Zim first looks in the same section as the current page and if the name is not found searches all parent sections for a like named page. The rule is that it will check all pages that share a common parent with the current page bottom up and match the first page with the right name. If you want to link to a child of a page that has a common parent you can link it using a relative path from the top page that does have a shared parent.
 
 For example you have a page "''Zim:Examples:Linking:Relative''" now you just use "''Absolute''" to link to "''Zim:Examples:Linking:Absolute''", but you also use "''Examples:Calendar''" to link to "''Zim:Examples:Calendar''". This link works because the first part of the link ("''Examples''") is resolved relatively in the tree above the current page.
 

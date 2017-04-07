@@ -135,12 +135,18 @@ class Template(SignalEmitter):
 	'''This class defines the main interface for templates
 	It takes care of parsing a template file and allows evaluating
 	the template with a given set of template parameters.
+
+	@signal: C{process (output, context)}: emitted by the "process" method
 	'''
 
 	# On purpose a very thin class, allow to test all steps of parsing
 	# and processing as individual classes
 
 	# For templates that we define inline, use a file-like text buffer
+
+	__signals__ = {
+		'process': (None, None, (object, object))
+	}
 
 	template_functions = build_template_functions()
 
@@ -168,6 +174,7 @@ class Template(SignalEmitter):
 		@param context: a C{dict} with a set of template parameters.
 		This dict is copied to prevent changes to the original dict when
 		processing the template
+		@emits: process
 		'''
 		context = TemplateContextDict(dict(context)) # COPY to keep changes local
 		context.update(self.template_functions) # set builtins

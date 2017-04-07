@@ -195,7 +195,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget.iconview.set_folder(dir)
 		self._refresh_statusbar()
 
-	def on_close_page(self, ui, page, final):
+	def on_close_page(self, ui, page):
 		self.widget.iconview.teardown_folder()
 
 	def _refresh_statusbar(self):
@@ -270,7 +270,8 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
-		self.opener.open_dir(self.iconview.folder)
+		from zim.fs import Dir
+		self.opener.open_dir(Dir(self.iconview.folder.path))
 		self.iconview.refresh()
 
 	def on_refresh_button(self):

@@ -138,7 +138,7 @@ class PreferencesDialog(Dialog):
 		text_style['TextView']['font'] = font
 		#
 
-		with self.ui.preferences.blocked_signals('changed'):
+		with self.ui.preferences.block_signals('changed'):
 			# note we do not block signal on section dicts
 			for section in newpreferences:
 				self.ui.preferences[section].update(newpreferences[section])
@@ -155,7 +155,7 @@ class PreferencesDialog(Dialog):
 
 		# Restore previous situation if the user changed something
 		# in this dialog session
-		with self.ui.preferences.blocked_signals('changed'):
+		with self.ui.preferences.block_signals('changed'):
 			for name in self.ui.plugins.list_installed_plugins():
 				try:
 					klass = self.ui.plugins.get_plugin_class(name)
@@ -391,7 +391,11 @@ class PluginConfigureDialog(Dialog):
 		self.vbox.add(label)
 
 		fields = []
+		ignore = getattr(self.plugin, 'hide_preferences', [])
 		for pref in self.plugin.plugin_preferences:
+			if pref[0] in ignore:
+				continue
+
 			if len(pref) == 4:
 				key, type, label, default = pref
 				check = None

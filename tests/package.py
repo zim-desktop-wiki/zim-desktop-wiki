@@ -66,16 +66,16 @@ class TestMetaData(tests.TestCase):
 			print "Could not run desktop-file-validate"
 
 
-@tests.slowTest
-class TestNotebookUpgrade(tests.TestCase):
-
-	def runTest(self):
-		'''Test if included notebooks are up to date'''
-		from zim.fs import Dir
-		from zim.notebook import Notebook
-		for path in ('data/manual', 'HACKING'):
-			notebook = Notebook(dir=Dir(path))
-			self.assertTrue(not notebook.needs_upgrade)
+#~ @tests.slowTest
+#~ class TestNotebookUpgrade(tests.TestCase):
+#~
+	#~ def runTest(self):
+		#~ '''Test if included notebooks are up to date'''
+		#~ from zim.fs import Dir
+		#~ from zim.notebook import init_notebook
+		#~ for path in ('data/manual', 'HACKING'):
+			#~ notebook = init_notebook(Dir(path))
+			#~ self.assertTrue(not notebook.needs_upgrade)
 
 
 class TestCoding(tests.TestCase):
@@ -195,6 +195,7 @@ class TestCoding(tests.TestCase):
 					self.assertFalse(' ' in indent, 'Indenting should use tabs - file: %s line %s' % (file, lineno))
 				start_block = def_line and line.rstrip().endswith(':')
 
+
 class TestDocumentation(tests.TestCase):
 
 	def runTest(self):
@@ -203,6 +204,8 @@ class TestDocumentation(tests.TestCase):
 			for name, obj in self.walk_code(mod, modname):
 				if not '.inc.' in name:
 					self.assertDocumentationOK(obj, name)
+					if hasattr(obj, '__signals__'):
+						self.assertSignalSpecOK(obj, mod.__file__)
 
 	def walk_code(self, obj, objname):
 		# Yield classes, methods, and functions top down
@@ -251,11 +254,14 @@ class TestDocumentation(tests.TestCase):
 				if keywords:
 					defined.add(keywords)
 
-				self.assertEqual(documented, defined,
-					msg='Mismatch in documented parameters for %s\n'
-					'Declared: %s\nDocumented: %s' %
-					(name, tuple(defined), tuple(documented))
-				)
+				if set(defined) != set(('arg', 'kwarg')):
+					# ignore mismatched due to generic decorators
+
+					self.assertEqual(documented, defined,
+						msg='Mismatch in documented parameters for %s\n'
+						'Declared: %s\nDocumented: %s' %
+						(name, tuple(defined), tuple(documented))
+					)
 
 		# TODO can we also check whether doc should define @returns ??
 
@@ -321,3 +327,11 @@ class TestDocumentation(tests.TestCase):
 				pass
 
 		return fields
+
+
+	def assertSignalSpecOK(self, obj, file):
+		for name, spec in obj.__signals__.items():
+			self.assertTrue(
+				isinstance(spec, tuple) and len(spec) == 3 and isinstance(spec[2], tuple),
+				msg='Signal spec is malformed for %s::%s in %s' % (obj.__name__, name, file)
+			)

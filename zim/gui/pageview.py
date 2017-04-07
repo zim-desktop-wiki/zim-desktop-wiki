@@ -27,14 +27,15 @@ import zim.datetimetz as datetime
 
 import zim.formats
 
-from zim.fs import File, Dir, normalize_file_uris
+from zim.fs import File, Dir, normalize_file_uris, FilePath
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
-from zim.notebook import Path, interwiki_link
+from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
+from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, LINE_TEXT
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -47,6 +48,7 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
+from zim.signals import callback
 from zim.formats import get_dumper
 from zim.formats.wiki import Dumper as WikiDumper
 from zim.plugins import PluginManager
@@ -89,12 +91,15 @@ def IS_LINE(line):
 STOCK_CHECKED_BOX = 'zim-checked-box'
 STOCK_UNCHECKED_BOX = 'zim-unchecked-box'
 STOCK_XCHECKED_BOX = 'zim-xchecked-box'
+STOCK_MIGRATED_BOX = 'zim-migrated-box'
 
 bullet_types = {
 	CHECKED_BOX: STOCK_CHECKED_BOX,
 	UNCHECKED_BOX: STOCK_UNCHECKED_BOX,
 	XCHECKED_BOX: STOCK_XCHECKED_BOX,
+	MIGRATED_BOX: STOCK_MIGRATED_BOX,
 }
+
 # reverse dict
 bullets = {}
 for bullet in bullet_types:
@@ -105,15 +110,19 @@ for bullet in bullet_types:
 autoformat_bullets = {
 	'*': BULLET,
 	'[]': UNCHECKED_BOX,
+	'[ ]': UNCHECKED_BOX,
 	'[*]': CHECKED_BOX,
 	'[x]': XCHECKED_BOX,
+	'[>]': MIGRATED_BOX,
 	'()': UNCHECKED_BOX,
+	'( )': UNCHECKED_BOX,
 	'(*)': CHECKED_BOX,
 	'(x)': XCHECKED_BOX,
+	'(>)': MIGRATED_BOX,
 }
 
-BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
-CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX)
+BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
+CHECKBOXES = (UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
 
 NUMBER_BULLET = '#.' # Special case for autonumbering
 is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
@@ -569,6 +578,7 @@ class TextBuffer(gtk.TextBuffer):
 		'unchecked-checkbox': {},
 		'checked-checkbox': {},
 		'xchecked-checkbox': {},
+		'migrated-checkbox': {},
 		'find-highlight': {'background': 'magenta', 'foreground': 'white'},
 		'find-match': {'background': '#38d878', 'foreground': 'white'}
 	}
@@ -1220,6 +1230,7 @@ class TextBuffer(gtk.TextBuffer):
 			UNCHECKED_BOX
 			CHECKED_BOX
 			XCHECKED_BOX
+			MIGRATED_BOX
 			NUMBER_BULLET
 			None
 		or a numbered bullet, like C{"1."}
@@ -1749,6 +1760,7 @@ class TextBuffer(gtk.TextBuffer):
 				elif bullet == CHECKED_BOX: stylename = 'checked-checkbox'
 				elif bullet == UNCHECKED_BOX: stylename = 'unchecked-checkbox'
 				elif bullet == XCHECKED_BOX: stylename = 'xchecked-checkbox'
+				elif bullet == MIGRATED_BOX: stylename = 'migrated-checkbox'
 				elif is_numbered_bullet_re.match(bullet): stylename = 'numbered-list'
 				else: raise AssertionError, 'BUG: Unkown bullet type'
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
@@ -2115,6 +2127,7 @@ class TextBuffer(gtk.TextBuffer):
 				UNCHECKED_BOX
 				CHECKED_BOX
 				XCHECKED_BOX
+				MIGRATED_BOX
 		or a numbered list bullet (test with L{is_numbered_bullet_re})
 		'''
 		iter = self.get_iter_at_line(line)
@@ -2138,7 +2151,7 @@ class TextBuffer(gtk.TextBuffer):
 		if pixbuf:
 			if hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'icon' \
 			and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
 				return bullets[pixbuf.zim_attrib['stock']]
 			else:
 				return None
@@ -2173,7 +2186,7 @@ class TextBuffer(gtk.TextBuffer):
 			return False
 
 	def _iter_forward_past_bullet(self, iter, bullet, raw=False):
-		if bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX):
+		if bullet in (BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX):
 			# Each of these just means one char
 			iter.forward_char()
 		else:
@@ -2593,10 +2606,12 @@ class TextBuffer(gtk.TextBuffer):
 
 		@param line: the line number
 		@param checkbox_type: the checkbox type that we want to toggle:
-		one of C{CHECKED_BOX}, C{XCHECKED_BOX}.
+		one of C{CHECKED_BOX}, C{XCHECKED_BOX}, C{MIGRATED_BOX}.
 		If C{checkbox_type} is given, it toggles between this type and
 		unchecked. Otherwise it rotates through unchecked, checked
 		and xchecked.
+		As a special case when the C{checkbox_type} ir C{UNCHECKED_BOX}
+		the box is always unchecked.
 		@param recursive: When C{True} any child items in the list will
 		also be upadted accordingly (see L{TextBufferList.set_bullet()}
 
@@ -3058,6 +3073,7 @@ class TextBufferList(list):
 			CHECKED_BOX
 			UNCHECKED_BOX
 			XCHECKED_BOX
+			MIGRATED_BOX
 		'''
 		assert bullet in BULLETS
 		with self.buffer.user_action:
@@ -3066,7 +3082,7 @@ class TextBufferList(list):
 				pass
 			elif bullet == UNCHECKED_BOX:
 				self._checkbox_unchecked(row)
-			else: # CHECKED_BOX or XCHECKED_BOX
+			else: # CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX
 				self._checkbox_checked(row, bullet)
 
 	def _checkbox_unchecked(self, row):
@@ -3649,8 +3665,6 @@ class TextView(gtk.TextView):
 						self.click_link() or self.click_checkbox()
 					else:
 						self.click_link() or self.click_checkbox(CHECKED_BOX)
-				elif event.button == 3:
-					self.click_checkbox(XCHECKED_BOX)
 			elif event.button == 1:
 				# no changing checkboxes for read-only content
 				self.click_link()
@@ -4010,7 +4024,7 @@ class TextView(gtk.TextView):
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
 		if pixbuf:
 			if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX):
+				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
 				cursor = CURSOR_WIDGET
 			elif 'href' in pixbuf.zim_attrib:
 				link = {'href': pixbuf.zim_attrib['href']}
@@ -4255,7 +4269,7 @@ class TextView(gtk.TextView):
 
 				# add bullet on new line
 				bullet = buffer.get_bullet_at_iter(start)
-				if bullet in (CHECKED_BOX, XCHECKED_BOX):
+				if bullet in (CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX):
 					bullet = UNCHECKED_BOX
 				elif is_numbered_bullet_re.match(bullet):
 					bullet = increase_list_bullet(bullet)
@@ -4674,6 +4688,217 @@ class UndoStackManager:
 		self.unblock()
 
 
+
+import threading
+
+class SavePageHandler(object):
+	'''Object for handling page saving.
+
+	This class implements auto-saving on a timer and tries writing in
+	a background thread to ot block the user interface.
+	'''
+
+	def __init__(self, pageview, notebook, get_page_cb, timeout=15):
+		self.pageview = pageview
+		self.notebook = notebook
+		self.get_page_cb = get_page_cb
+		self.timeout = timeout
+		self._autosave_timer = None
+		self._error_event = None
+
+	def queue_autosave(self, timeout=15):
+		'''Queue a single autosave action after a given timeout.
+		Will not do anything once an autosave is already queued.
+		Autosave will keep running until page is no longer modified and
+		then stop.
+		@param timeout: timeout in seconds
+		'''
+		if not self._autosave_timer:
+			self._autosave_timer = gobject.timeout_add(
+				self.timeout*1000, # s -> ms
+				self.do_try_save_page
+			)
+
+	def cancel_autosave(self):
+		'''Cancel a pending autosave'''
+		if self._autosave_timer:
+			gobject.source_remove(self._autosave_timer)
+			self._autosave_timer = None
+
+	def _assert_can_save_page(self, page):
+		if self.pageview.readonly:
+			raise AssertionError, 'BUG: can not save page when UI is read-only'
+		elif page.readonly:
+			raise AssertionError, 'BUG: can not save read-only page'
+
+	def save_page_now(self, dialog_timeout=False):
+		'''Save the page in the foregound
+
+		Can result in a L{SavePageErrorDialog} when there is an error
+		while saving a page. If that dialog is cancelled by the user,
+		the page may not be saved after all.
+
+		@param dialog_timeout: passed on to L{SavePageErrorDialog}
+		'''
+		self.cancel_autosave()
+
+		self._error_event = None
+
+		with NotebookState(self.notebook):
+			page = self.get_page_cb()
+			if page:
+				try:
+					self._assert_can_save_page(page)
+
+					## HACK - otherwise we get a bug when saving a new page immediatly
+					# hasattr assertions used to detect when the hack breaks
+					assert hasattr(page, '_ui_object')
+					if page._ui_object:
+						assert hasattr(page._ui_object, '_showing_template')
+						page._ui_object._showing_template = False
+					##
+
+					logger.debug('Saving page: %s', page)
+					#~ assert False, "TEST"
+					self.notebook.store_page(page)
+
+				except Exception, error:
+					logger.exception('Failed to save page: %s', page.name)
+					SavePageErrorDialog(self.pageview, error, page, dialog_timeout).run()
+
+	def try_save_page(self):
+		'''Try to save the page
+
+		  * Will not do anything if page is not modified or when an
+		    autosave is already in progress.
+		  * If last autosave resulted in an error, will run in the
+		    foreground, else it tries to write the page in a background
+		    thread
+		'''
+		self.cancel_autosave()
+		self.do_try_save_page()
+
+	def do_try_save_page(self, *a):
+		page = self.get_page_cb()
+		if not (page and page.modified):
+			self._autosave_timer = None
+			return False # stop timer
+
+		if ongoing_operation(self.notebook):
+			logger.debug('Operation in progress, skipping auto-save') # Could be auto-save
+			return True # Check back later if on timer
+
+
+		if self._error_event and self._error_event.is_set():
+			# Error in previous auto-save, save in foreground to allow error dialog
+			logger.debug('Last auto-save resulted in error, re-try in foreground')
+			self.save_page_now(dialog_timeout=True)
+		else:
+			# Save in background async
+			# Retrieve tree here and pass on to thread to prevent
+			# changing the buffer while extracting it
+			tree = page.get_parsetree()
+			op = self.notebook.store_page_async(page, lambda : tree)
+			self._error_event = op.error_event
+
+		if page.modified:
+			return True # if True, timer will keep going
+		else:
+			self._autosave_timer = None
+			return False # stop timer
+
+
+class SavePageErrorDialog(ErrorDialog):
+	'''Error dialog used when we hit an error while trying to save a page.
+	Allow to save a copy or to discard changes. Includes a timer which
+	delays the action buttons becoming sensitive. Reason for this timer is
+	that the dialog may popup from auto-save while the user is typing, and
+	we want to prevent an accidental action.
+	'''
+
+	def __init__(self, pageview, error, page, timeout=False):
+		msg = _('Could not save page: %s') % page.name
+			# T: Heading of error dialog
+		desc = unicode(error).encode('utf-8').strip() \
+				+ '\n\n' \
+				+ _('''\
+To continue you can save a copy of this page or discard
+any changes. If you save a copy changes will be also
+discarded, but you can restore the copy later.''')
+			# T: text in error dialog when saving page failed
+		ErrorDialog.__init__(self, pageview, (msg, desc), buttons=gtk.BUTTONS_NONE)
+
+		self.timeout = timeout
+
+		self.page = page
+		self.error = error
+
+		self.timer_label = gtk.Label()
+		self.timer_label.set_alignment(0.9, 0.5)
+		self.timer_label.set_sensitive(False)
+		self.timer_label.show()
+		self.vbox.add(self.timer_label)
+
+		cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
+		self.add_action_widget(cancel_button, gtk.RESPONSE_CANCEL)
+
+		self._done = False
+		def discard(self):
+			page.set_ui_object(None) # unhook
+			pageview.clear()
+				# issue may be caused in pageview - make sure it unlocks
+			page._parsetree = None # removed cached tree
+			page.modified = False
+			pageview.set_page(page)
+			self._done = True
+
+		def save(self):
+			from zim.gui import SaveCopyDialog
+			if SaveCopyDialog(self, page=self.page).run():
+				discard(self)
+
+		discard_button = gtk.Button(_('_Discard Changes'))
+			# T: Button in error dialog
+		discard_button.connect_object('clicked', discard, self)
+		self.add_action_widget(discard_button, gtk.RESPONSE_OK)
+
+		save_button = Button(label=_('_Save Copy'), stock=gtk.STOCK_SAVE_AS)
+			# T: Button in error dialog
+		save_button.connect_object('clicked', save, self)
+		self.add_action_widget(save_button, gtk.RESPONSE_OK)
+
+		for button in (cancel_button, discard_button, save_button):
+			button.set_sensitive(False)
+			button.show()
+
+	def do_response_ok(self):
+		return self._done
+
+	def run(self):
+		if self.timeout:
+			self.timer = 5
+			self.timer_label.set_text('%i sec.' % self.timer)
+			def timer(self):
+				self.timer -= 1
+				if self.timer > 0:
+					self.timer_label.set_text('%i sec.' % self.timer)
+					return True # keep timer going
+				else:
+					for button in self.action_area.get_children():
+						button.set_sensitive(True)
+					self.timer_label.set_text('')
+					return False # remove timer
+
+			# older gobject version doesn't know about seconds
+			id = gobject.timeout_add(1000, timer, self)
+			ErrorDialog.run(self)
+			gobject.source_remove(id)
+		else:
+			for button in self.action_area.get_children():
+				button.set_sensitive(True)
+			ErrorDialog.run(self)
+
+
 class PageView(gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
 	a L{FindBar}. Also adds menu items and in general integrates
@@ -4718,10 +4943,11 @@ class PageView(gtk.VBox):
 
 	}
 
-	def __init__(self, ui, secondary=False):
+	def __init__(self, ui, notebook, secondary=False):
 		'''Constructor
 
 		@param ui: the L{GtkInterface} object
+		@param notebook: the L{Notebook} object
 		@param secondary: C{True} if this widget is part of a secondary
 		widget
 		'''
@@ -4807,8 +5033,21 @@ class PageView(gtk.VBox):
 				raise AssertionError, 'BUG: page changed while buffer changed as well'
 				# not using assert here because it could be optimized away
 
-		for s in ('stored-page', 'deleted-page', 'moved-page'):
+		for s in ('store-page', 'delete-page', 'move-page'):
 			self.ui.notebook.connect(s, assert_not_modified)
+
+		# Setup saving
+		self.ui.preferences['GtkInterface'].setdefault('autosave_timeout', 15) # XXX
+		self._save_page_handler = SavePageHandler(
+			self, notebook,
+			self.get_page,
+			timeout=self.ui.preferences['GtkInterface']['autosave_timeout'] # XXX
+		)
+
+		def on_focus_out_event(*a):
+			self._save_page_handler.try_save_page()
+			return False # don't block the event
+		self.view.connect('focus-out-event', on_focus_out_event)
 
 	def grab_focus(self):
 		self.view.grab_focus()
@@ -4977,7 +5216,6 @@ class PageView(gtk.VBox):
 				page.set_ui_object(self) # only after successful set tree in buffer
 		except Exception, error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
-			self.page.readonly = True
 			self.set_readonly()
 			self.set_sensitive(False)
 			ErrorDialog(self.ui, error).run()
@@ -5017,6 +5255,18 @@ class PageView(gtk.VBox):
 			else:
 				self.page.modified = True
 				self.emit('modified-changed')
+
+		self._save_page_handler.queue_autosave()
+
+	def save_changes(self, write_if_not_modified=False):
+		'''Save contents of the widget back to the page object and
+		synchronize it with the notebook.
+		@param write_if_not_modified: If C{True} page will be written
+		even if there are no changes in the widget.
+		'''
+		buffer = self.view.get_buffer()
+		if write_if_not_modified or buffer.get_modified():
+			self._save_page_handler.save_page_now()
 
 	def clear(self):
 		'''Clear the buffer'''
@@ -5224,11 +5474,15 @@ class PageView(gtk.VBox):
 		line = iter.get_line()
 		bullet = buffer.get_bullet(line)
 		if bullet and bullet in CHECKBOXES:
+			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(True)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(True)
+			self.actiongroup.get_action('migrate_checkbox').set_sensitive(True)
 		else:
+			self.actiongroup.get_action('uncheck_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('toggle_checkbox').set_sensitive(False)
 			self.actiongroup.get_action('xtoggle_checkbox').set_sensitive(False)
+			self.actiongroup.get_action('migrate_checkbox').set_sensitive(False)
 
 		if buffer.get_link_tag(iter):
 			self.actiongroup.get_action('remove_link').set_sensitive(True)
@@ -5294,7 +5548,9 @@ class PageView(gtk.VBox):
 					# T: error when unknown interwiki link is clicked
 
 			if type == 'page':
-				path = self.ui.notebook.resolve_path(href, source=self.page)
+				path = self.ui.notebook.pages.resolve_link(
+					self.page, HRef.new_from_wiki_link(href)
+				)
 				if new_window:
 					self.ui.open_new_window(path)
 				else:
@@ -5303,7 +5559,16 @@ class PageView(gtk.VBox):
 				path = self.ui.notebook.resolve_file(href, self.page)
 				self.ui.open_file(path)
 			elif type == 'notebook':
-				self.ui.open_notebook(href)
+				if href.startswith('zim+'):
+					uri = href[4:]
+					if '?' in href:
+						uri, pagename = href.split('?', 1)
+
+					self.ui.open_notebook(uri, pagename)
+
+				else:
+					self.ui.open_notebook(FilePath(href).uri)
+
 			else:
 				if type == 'mailto' \
 				and not href.startswith('mailto:'):
@@ -5313,6 +5578,20 @@ class PageView(gtk.VBox):
 			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
+		buffer = self.view.get_buffer()
+		if not buffer.get_has_selection():
+			iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+			if iter.get_line_offset() == 1:
+				iter.backward_char() # if clicked on right half of image, iter is after the image
+			bullet = buffer.get_bullet_at_iter(iter)
+			if bullet and bullet in CHECKBOXES:
+				self._checkbox_do_populate_popup(menu)
+			else:
+				self._default_do_populate_popup(menu)
+		else:
+			self._default_do_populate_popup(menu)
+
+	def _default_do_populate_popup(self, menu):
 		# Add custom tool
 		# FIXME need way to (deep)copy widgets in the menu
 		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
@@ -5431,7 +5710,9 @@ class PageView(gtk.VBox):
 
 		if type == 'page':
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
-			path = self.ui.notebook.resolve_path(link['href'], source=self.page)
+			path = self.ui.notebook.pages.resolve_link(
+				self.page, HRef.new_from_wiki_link(link['href'])
+			)
 			item.connect('activate', set_pagelink, path)
 		elif type == 'interwiki':
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
@@ -5500,6 +5781,26 @@ class PageView(gtk.VBox):
 
 		menu.show_all()
 
+	def _checkbox_do_populate_popup(self, menu):
+		buffer = self.view.get_buffer()
+		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+		line = iter.get_line()
+
+		menu.prepend(gtk.SeparatorMenuItem())
+
+		for bullet, label in (
+			(MIGRATED_BOX, _('Check Checkbox \'>\'')), # T: popup menu menuitem
+			(XCHECKED_BOX, _('Check Checkbox \'X\'')), # T: popup menu menuitem
+			(CHECKED_BOX, _('Check Checkbox \'V\'')), # T: popup menu menuitem
+			(UNCHECKED_BOX, _('Un-check Checkbox')), # T: popup menu menuitem
+		):
+			item = gtk.ImageMenuItem(stock_id=bullet_types[bullet])
+			item.set_label(label)
+			item.connect('activate', callback(buffer.set_bullet, line, bullet))
+			menu.prepend(item)
+
+		menu.show_all()
+
 	def do_reload_page(self):
 		self.ui.reload_page()
 
@@ -5533,6 +5834,12 @@ class PageView(gtk.VBox):
 		'''Menu action for delete'''
 		self.view.emit('delete-from-cursor', gtk.DELETE_CHARS, 1)
 
+	@action(_('Un-check Checkbox'), STOCK_UNCHECKED_BOX, '', readonly=False) # T: Menu item
+	def uncheck_checkbox(self):
+		buffer = self.view.get_buffer()
+		recurs = self.preferences['recursive_checklist']
+		buffer.toggle_checkbox_for_cursor_or_selection(UNCHECKED_BOX, recurs)
+
 	@action(_('Toggle Checkbox \'V\''), STOCK_CHECKED_BOX, 'F12', readonly=False) # T: Menu item
 	def toggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
@@ -5550,6 +5857,15 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
+
+	@action(_('Toggle Checkbox \'>\''), STOCK_MIGRATED_BOX, '', readonly=False) # T: Menu item
+	def migrate_checkbox(self):
+		'''Menu action to toggle checkbox at the cursor or in current
+		selected text
+		'''
+		buffer = self.view.get_buffer()
+		recurs = self.preferences['recursive_checklist']
+		buffer.toggle_checkbox_for_cursor_or_selection(MIGRATED_BOX, recurs)
 
 	@action(_('_Edit Link or Object...'), 'gtk-properties', '<Primary>E', readonly=False) # T: Menu item
 	def edit_object(self, iter=None):
@@ -5611,7 +5927,7 @@ class PageView(gtk.VBox):
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
 
-	@action(_('_Line'), readonly=False) # T: Menu item
+	@action(_('Horizontal _Line'), readonly=False) # T: Menu item for Insert menu
 	def insert_line(self):
 		'''
                 This function is called from menu action.
@@ -5640,7 +5956,7 @@ class PageView(gtk.VBox):
 		@returns: C{True} if succesfull
 		'''
 		if interactive:
-			InsertImageDialog(self.ui, self.view.get_buffer(), self.page, file).run()
+			InsertImageDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page, file).run()
 		else:
 			# Check if file is supported, otherwise unsupported file
 			# results in broken image icon
@@ -5702,7 +6018,7 @@ class PageView(gtk.VBox):
 	@action(_('Text From _File...'), readonly=False) # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self.ui, self.view.get_buffer()).run()
+		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -6191,24 +6507,30 @@ class InsertDateDialog(Dialog):
 class InsertImageDialog(FileDialog):
 	'''Dialog to insert an image in the page'''
 
-	def __init__(self, ui, buffer, path, file=None):
+	def __init__(self, ui, buffer, notebook, path, file=None):
 		FileDialog.__init__(
 			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
+
 		self.buffer = buffer
+		self.notebook = notebook
 		self.path = path
-		self.add_filter_images()
 
 		self.uistate.setdefault('attach_inserted_images', False)
+		self.uistate.setdefault('last_image_folder', None, check=basestring)
+
+		self.add_shortcut(notebook, path)
+		self.add_filter_images()
+
 		checkbox = gtk.CheckButton(_('Attach image first'))
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
-		self.uistate.setdefault('last_image_folder','~')
-		self.filechooser.set_current_folder(self.uistate['last_image_folder'])
 
 		if file:
 			self.set_file(file)
+		else:
+			self.load_last_folder()
 
 	def do_response_ok(self):
 		file = self.get_file()
@@ -6219,14 +6541,11 @@ class InsertImageDialog(FileDialog):
 				# T: Error message when trying to insert a not supported file as image
 			return False
 
+		self.save_last_folder()
+
+		# Similar code in zim.gui.AttachFileDialog
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['attach_inserted_images'] = checkbox.get_active()
-		last_folder = self.filechooser.get_current_folder()
-		if last_folder:
-			# e.g. "Recent Used" view in dialog does not have a current folder
-			self.uistate['last_image_folder'] = last_folder
-		# Similar code in zim.gui.AttachFileDialog
-
 		if self.uistate['attach_inserted_images']:
 			dir = self.ui.notebook.get_attachments_dir(self.path)
 			if not file.dir == dir:
@@ -6234,7 +6553,7 @@ class InsertImageDialog(FileDialog):
 				if file is None:
 					return False # Cancelled overwrite dialog
 
-		src = self.ui.notebook.relative_filepath(file, self.path) or file.uri
+		src = self.notebook.relative_filepath(file, self.path) or file.uri
 		self.buffer.insert_image_at_cursor(file, src)
 		return True
 
@@ -6366,10 +6685,12 @@ class EditImageDialog(Dialog):
 class InsertTextFromFileDialog(FileDialog):
 	'''Dialog to insert text from an external file into the page'''
 
-	def __init__(self, ui, buffer):
+	def __init__(self, ui, buffer, notebook, page):
 		FileDialog.__init__(
 			self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
+		self.load_last_folder()
+		self.add_shortcut(notebook, page)
 		self.buffer = buffer
 
 	def do_response_ok(self):
@@ -6378,6 +6699,7 @@ class InsertTextFromFileDialog(FileDialog):
 		parser = get_format('plain').Parser()
 		tree = parser.parse(file.readlines())
 		self.buffer.insert_parsetree_at_cursor(tree)
+		self.save_last_folder()
 		return True
 
 
@@ -6858,7 +7180,11 @@ class MoveTextDialog(Dialog):
 		newpage = self.form['page']
 		if not newpage:
 			return False
-		newpage = self.ui.notebook.get_page(newpage)
+
+		try:
+			newpage = self.ui.notebook.get_page(newpage)
+		except PageNotFoundError:
+			return False
 
 		# Copy text
 		if newpage.exists():

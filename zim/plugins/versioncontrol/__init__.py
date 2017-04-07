@@ -20,6 +20,7 @@ from zim.errors import Error
 from zim.applications import Application
 from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
+from zim.notebook.operations import NotebookState
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
 	ScrolledWindow, ScrolledTextView, VPaned
@@ -76,7 +77,7 @@ This is a core plugin shipping with zim.
 		name = obj.__class__.__name__
 		if name == 'MainWindow':
 			nb = obj.ui.notebook # XXX
-			nb_ext = self.get_extension(NotebookExtension, notebook=nb)
+			nb_ext = self.get_extension(nb, NotebookExtension)
 			assert nb_ext, 'No notebook extension found for: %s' % nb
 			mw_ext = MainWindowExtension(self, obj, nb_ext)
 			self.extensions.add(mw_ext)
@@ -119,7 +120,7 @@ class NotebookExtension(ObjectExtension):
 		self.vcs = VCS.create(vcs, dir, dir)
 
 		if self.vcs:
-			with self.notebook.lock:
+			with NotebookState(self.notebook):
 				self.vcs.init()
 
 	def teardown(self):
@@ -229,16 +230,14 @@ class MainWindowExtension(WindowExtension):
 			msg = _('Automatically saved version from zim')
 				# T: default version comment for auto-saved versions
 
-		self.window.ui.assert_save_page_if_modified() # XXX
-		try:
-			self.notebook_ext.vcs.commit(msg)
-		except NoChangesError:
-			logger.debug('No autosave version needed - no changes')
+		with NotebookState(self.notebook_ext.notebook):
+			try:
+				self.notebook_ext.vcs.commit(msg)
+			except NoChangesError:
+				logger.debug('No autosave version needed - no changes')
 
 	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False) # T: menu item
 	def save_version(self):
-		self.window.ui.assert_save_page_if_modified() # XXX
-
 		if not self.notebook_ext.vcs:
 			vcs = VersionControlInitDialog(self.window).run()
 			if vcs is None:
@@ -250,13 +249,11 @@ class MainWindowExtension(WindowExtension):
 				gaction.set_sensitive(True)
 				self.on_preferences_changed(None, start=False)
 
-		with self.notebook_ext.notebook.lock:
+		with NotebookState(self.notebook_ext.notebook):
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
 	@action(_('_Versions...')) # T: menu item
 	def show_versions(self):
-		self.window.ui.assert_save_page_if_modified() # XXX
-
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
 			self.notebook_ext.notebook,

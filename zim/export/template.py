@@ -44,7 +44,6 @@ Export template parameters supported::
  					.body
  					.content
 
- 			.properties
  			.links
  			.backlinks
  			.attachments
@@ -86,8 +85,7 @@ from zim.utils import OrderedDict
 from zim.fs import format_file_size
 from zim.environ import environ
 
-from zim.index import LINK_DIR_BACKWARD, LINK_DIR_FORWARD
-from zim.notebook import Path
+from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
 from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
 	FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
@@ -95,6 +93,8 @@ from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
 
+from zim.newfs import FileNotFoundError
+from zim.notebook.index import IndexNotFoundError
 from zim.notebook import Path
 
 
@@ -139,7 +139,7 @@ class ExportTemplateContext(dict):
 		given as a 2-tuple of a key and a target (either a L{Path} or
 		a L{NotebookPathProxy})
 		@param index_generator: a generator function or that
-		provides L{IndexPath} or L{Page} objects to be used for the
+		provides L{Path} or L{Page} objects to be used for the
 		the C{index()} function. This method should take a single
 		argument for the root namespace to show.
 		See the definition of L{Index.walk()} or L{PageSelection.index()}.
@@ -206,6 +206,7 @@ class ExportTemplateContext(dict):
 			for k, l in links.items():
 				l = _link(l)
 				self['links'][k] = l
+
 
 	def get_dumper(self, page):
 		'''Returns a L{DumperClass} instance for source page C{page}
@@ -422,6 +423,10 @@ class PageListProxy(object):
 class ParseTreeProxy(object):
 
 	@property
+	def meta(self):
+		return self._tree.meta or {}
+
+	@property
 	def heading(self):
 		head, body = self._split_head()
 		return head
@@ -476,7 +481,7 @@ class PageProxy(ParseTreeProxy):
 		self.section = self._page.namespace
 		self.namespace = self._page.namespace # backward compat
 		self.basename = self._page.basename
-		self.properties = self._page.properties
+		self.properties = {} # undocumented field kept for backward compat
 
 	@property
 	def title(self):
@@ -492,25 +497,36 @@ class PageProxy(ParseTreeProxy):
 
 	@property
 	def links(self):
-		links = self._notebook.index.list_links(self._page, LINK_DIR_FORWARD)
-		for link in links:
-			yield NotebookPathProxy(link.target)
+		try:
+			links = self._notebook.links.list_links(self._page, LINK_DIR_FORWARD)
+			for link in links:
+				yield NotebookPathProxy(link.target)
+		except IndexNotFoundError:
+			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
 	def backlinks(self):
-		links = self._notebook.index.list_links(self._page, LINK_DIR_BACKWARD)
-		for link in links:
-			yield NotebookPathProxy(link.source)
+		try:
+			links = self._notebook.links.list_links(self._page, LINK_DIR_BACKWARD)
+			for link in links:
+				yield NotebookPathProxy(link.source)
+		except IndexNotFoundError:
+			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
 	def attachments(self):
-		source_dir = self._notebook.get_attachments_dir(self._page)
-		for basename in source_dir.list():
-			file = source_dir.file(basename)
-			if file.exists(): # is file
-				dest_file = self._linker.resolve_dest_file('./'+basename)
-				yield FileProxy(file, dest_file=dest_file, relpath='./'+basename)
-
+		try:
+			source_dir = self._notebook.get_attachments_dir(self._page)
+			try:
+				for file in source_dir.list_files():
+					if file.exists(): # is file
+						href = './'+file.basename
+						dest_file = self._linker.resolve_dest_file(href)
+						yield FileProxy(file, dest_file=dest_file, relpath=href)
+			except FileNotFoundError:
+				pass
+		except IndexNotFoundError:
+			pass # XXX needed for index_page and other specials because they do not exist in the index
 
 class HeadingProxy(ParseTreeProxy):
 

@@ -15,6 +15,8 @@ from zim.gui.applications import *
 from zim.notebook import Path
 from zim.fs import Dir, TmpFile
 
+THUMB_SIZE_NORMAL = 128
+
 
 @tests.slowTest
 class TestXDGMimeInfo(tests.TestCase):
@@ -308,7 +310,7 @@ class TestCustomTools(tests.TestCase):
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
 			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
-			('foo %s', ('foo', '')), # no file source
+			('foo %s', ('foo', page.source.path)),
 			('foo %p', ('foo', 'Test:Foo')),
 			('foo %n', ('foo', dir.path)),
 			('foo %D', ('foo', '')), # no document root

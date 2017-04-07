@@ -48,9 +48,10 @@ import zim.fs
 
 from zim.fs import File, Dir
 from zim.config import value_is_coord
-from zim.notebook import Notebook, Path, PageNameError
+from zim.notebook import Notebook, Path, PageNotFoundError
 from zim.parsing import link_type
 from zim.signals import ConnectorMixin
+from zim.notebook.index import IndexNotFoundError
 from zim.actions import action
 
 logger = logging.getLogger('zim.gui')
@@ -558,9 +559,13 @@ class IconChooserButton(gtk.Button):
 	def do_clicked(self):
 		dialog = FileDialog(self, _('Select File')) # T: dialog title
 		dialog.add_filter_images()
-		file = dialog.run()
-		if file:
-			self.set_file(file)
+		oldfile = self.get_file()
+		if oldfile:
+			dialog.set_file(oldfile)
+
+		newfile = dialog.run()
+		if newfile:
+			self.set_file(newfile)
 
 	def set_file(self, file):
 		'''Set the file to display in the chooser button
@@ -1748,9 +1753,18 @@ class FSPathEntry(InputEntry):
 		if self.file_type_hint == 'image':
 			dialog.add_filter_images()
 
+		if self.notebook:
+			dialog.add_shortcut(self.notebook, self.notebookpath)
+
 		path = FSPathEntry.get_path(self) # overloaded in LinkEntry
 		if path:
 			dialog.set_file(path)
+		elif self.notebookpath:
+			page = self.notebook.get_page(self.notebookpath)
+			dialog.set_current_dir(page.source.dir)
+		elif self.notebook:
+			dialog.set_current_dir(self.notebook.dir)
+
 
 		file = dialog.run()
 		if not file is None:
@@ -1839,6 +1853,7 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 		return False
 
 
+from zim.signals import DelayedCallback
 
 class PageEntry(InputEntry):
 	'''Widget to select a zim page path
@@ -1870,7 +1885,7 @@ class PageEntry(InputEntry):
 		self.notebookpath = path
 		self.subpaths_only = subpaths_only
 		self.existing_only = existing_only
-		self._current_completion = ()
+		self._current_completion = None
 
 		if self._allow_select_root:
 			placeholder_text = _('<Top>')
@@ -1885,6 +1900,10 @@ class PageEntry(InputEntry):
 		completion.set_text_column(0)
 		completion.set_inline_completion(True)
 		self.set_completion(completion)
+
+		self.connect_after('changed', DelayedCallback(200, self.__class__.update_completion))
+			# Don't interrupt typing to fill completion, wait for user to pause
+			# FIXME: wanted timeout of 400, but then popup becomes less responsive !?
 
 	def set_use_relative_paths(self, notebook, path=None):
 		'''Set the notebook and path to be used for relative paths.
@@ -1914,6 +1933,7 @@ class PageEntry(InputEntry):
 		'''
 		name = self.get_text().decode('utf-8').strip()
 		if self._allow_select_root and (name == ':' or not name):
+			self.set_input_valid(True)
 			return Path(':')
 		elif not name:
 			self.set_input_valid(False)
@@ -1921,55 +1941,32 @@ class PageEntry(InputEntry):
 		else:
 			if self.subpaths_only and not name.startswith('+'):
 				name = '+' + name
+
 			try:
 				if self.notebook:
-					path = self.notebook.resolve_path(name, source=self.notebookpath)
+					path = self.notebook.pages.lookup_from_user_input(
+						name, reference=self.notebookpath
+					)
 				else:
+					name = Path.makeValidPageName(name)
 					path = Path(name)
-			except PageNameError:
+			except ValueError:
+				logger.warn('Invalid path name: %s', name)
 				self.set_input_valid(False)
 				return None
 			else:
+				self.set_input_valid(True)
 				if self.existing_only:
-					page = self.notebook.get_page(path)
-					if not (page and page.exists()):
+					try:
+						page = self.notebook.get_page(path)
+						if not page.exists():
+							return None
+					except PageNotFoundError:
 						return None
 				return path
 
-	@staticmethod
-	def _walk_relative(notebook, path):
-		# sort nearest neighbor first using relative paths
-
-		## TODO can be more efficient with a visitor pattern
-		## that can stop recursion of some branches or force order
-
-		# first yield children
-		index = notebook.index
-		for p in index.walk(path):
-			yield notebook.relative_link(path, p), p.basename
-
-		# than peers and parents, sort by distance
-		if path.namespace:
-			parent = Path(path.parts[0])
-			peers = []
-			for p in index.walk(parent):
-				if not p.ischild(path):
-					relname = notebook.relative_link(path, p)
-					basename = p.basename
-					distance = relname.count(':')
-					peers.append((distance, relname, basename))
-			peers.sort()
-			for distance, relname, basename in peers:
-				yield relname, basename
-		else:
-			parent = path
-
-		# than the rest of the tree, excluding direct parent
-		for p in index.walk():
-			if not p.ischild(parent):
-				yield notebook.relative_link(path, p), p.basename
-
 	def do_changed(self):
+		# Update valid state
 		text = self.get_text()
 
 		if not text:
@@ -1978,18 +1975,15 @@ class PageEntry(InputEntry):
 			else:
 				self.set_input_valid(True)
 				# FIXME: why should pageentry always allow empty input ?
-			return
-
-		# Check for a valid page name and clean up the text for completion
-		orig = text
-		if text in (':', '+'):
+		elif text in (':', '+'):
 			pass
+		elif text.startswith('+') and not self.notebookpath:
+			self.set_input_valid(False)
 		else:
 			try:
-				text = Notebook.cleanup_pathname(text.lstrip('+'))
-			except PageNameError:
+				Path.assertValidPageName(text.lstrip('+').strip(':'))
+			except AssertionError:
 				self.set_input_valid(False)
-				return
 			else:
 				if self.existing_only:
 					path = self.get_path() # get_path() checks existence
@@ -1997,75 +1991,100 @@ class PageEntry(InputEntry):
 				else:
 					self.set_input_valid(True)
 
-			# restore pre- and postfix to cleaned up text
-			if orig[0] == ':' and text[0] != ':':
-				text = ':' + text
-			elif orig[0] == '+' and text[0] != '+':
-				text = '+' + text
-
-			if orig[-1] == ':' and text[-1] != ':':
-				text = text + ':'
-
+	def update_completion(self):
 		# Start completion
-		#~ print 'COMPLETE page: "%s", raw: "%s", ref: %s' % (text, orig, self.notebookpath)
 		if not self.notebook:
 			return # no completion without a notebook
+
+		text = self.get_text()
+		if self._current_completion:
+			if text.startswith(self._current_completion):
+				return # nothing to update
+			else: # Clear out-of-date completions
+				model = self.get_completion().get_model()
+				model.clear()
+				self._current_completion = None
+
+		if not text or not self.get_input_valid():
+			return # can't complete invalid input
 
 		if ':' in text:
 			i = text.rfind(':')
 			prefix = text[:i+1] # can still start with "+"
+			if prefix == ':':
+				path = Path(':')
+			else: # resolve page
+				reference = self.notebookpath or Path(':')
+				link = prefix
+				if self.subpaths_only and not link.startswith('+'):
+					link = '+' + link.lstrip(':')
+
+				try:
+					path = self.notebook.pages.lookup_from_user_input(link, reference)
+				except ValueError:
+					return
+
+			self._fill_completion_for_anchor(path, prefix, text)
+
 		elif text.startswith('+'):
 			prefix = '+'
-		else:
-			prefix = ''
+			path = self.notebookpath
 
-		# Check if we completed already for this case
-		if prefix == self._current_completion:
-			return
-		else:
-			self._current_completion = prefix
+			self._fill_completion_for_anchor(path, prefix, text)
 
-		# Resolve path
-		if prefix == ':':
-			path = Path(':')
-		elif prefix == '':
-			if self.notebookpath:
-				path = Path(self.notebookpath.namespace)
-			else:
-				path = Path(':')
-		elif prefix == '+':
+		else:
 			path = self.notebookpath or Path(':')
-		else:
-			link = prefix
-			reference = self.notebookpath or Path(':')
-			if self.subpaths_only and not link.startswith('+'):
-				link = '+' + link.lstrip(':')
 
-			try:
-				path = self.notebook.resolve_path(link, source=reference)
-			except PageNameError:
-				return
+			self._fill_completion_any(path, text)
 
-		# Fill model with pages from pathname
+		self._current_completion = text
+		self.get_completion().complete()
+
+	def _fill_completion_for_anchor(self, path, prefix, text):
+		#print "COMPLETE ANCHOR", path, prefix, text
+		# Complete a single namespace based on the prefix
+		# TODO: allow filter on "text" directly in SQL call
 		completion = self.get_completion()
-		model = completion.get_model()
-		model.clear()
-		if prefix:
-			# Complete a single namespace based on the prefix
-			completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
-			for p in self.notebook.index.list_pages(path):
-				model.append((prefix+p.basename, prefix+p.basename))
-		else:
-			# Find any pages that match the text
-			completion.set_match_func(gtk_entry_completion_match_func, 1)
-			if self.notebookpath:
-				for relname, basename in self._walk_relative(self.notebook, self.notebookpath):
-					model.append((relname, basename))
-			else:
-				for p in self.notebook.index.walk():
-					model.append((":"+p.name, p.basename))
+		completion.set_match_func(gtk_entry_completion_match_func_startswith, 1)
 
-		completion.complete()
+		model = completion.get_model()
+		assert text.startswith(prefix)
+		lowertext = text.lower()
+		for p in self.notebook.pages.list_pages(path):
+			string = prefix+p.basename
+			if string.lower().startswith(lowertext):
+				model.append((string, string))
+
+	def _fill_completion_any(self, path, text):
+		#print "COMPLETE ANY", path, text
+		# Complete all matches of "text"
+		# start with children, than peers, than rest of tree
+		# if path == ":" don't use child notation
+		completion = self.get_completion()
+		completion.set_match_func(gtk_entry_completion_match_func, 1)
+
+		# TODO: use SQL to list all at once instead of walking and filter on "text"
+		#       do better sorting as well ?
+
+		def relative_link(target):
+			href = self.notebook.pages.create_link(path, target)
+			return href.to_wiki_link()
+
+		model = completion.get_model()
+		lowertext = text.lower()
+		childpos, peerpos = 0, 0
+		for p in self.notebook.pages.walk():
+			if lowertext in p.basename.lower():
+				link = relative_link(p)
+				if link.startswith('+'):
+					model.insert(childpos, (link, p.basename))
+					childpos += 1
+					peerpos += 1
+				elif not ':' in link:
+					model.insert(peerpos, (link, p.basename))
+					peerpos += 1
+				else:
+					model.append((link, p.basename))
 
 
 class NamespaceEntry(PageEntry):
@@ -2148,18 +2167,14 @@ def register_window(window):
 class uistate_property(object):
 	'''Class for uistate get/set attributes'''
 
-	# TODO add hook such that it will be initialized on init of owner obj
-
 	def __init__(self, key, *default):
 		self.key = key
 		self.default = default
-		self._initialized = False
 
 	def __get__(self, obj, klass):
 		if obj:
-			if not self._initialized:
+			if not self.key in obj.uistate:
 				obj.uistate.setdefault(self.key, *self.default)
-				self._initialized = True
 			return obj.uistate[self.key]
 
 	def __set__(self, obj, value):
@@ -2206,7 +2221,7 @@ class WindowSidePane(gtk.VBox):
 		# Add bar with label and close button
 		self.topbar = gtk.HBox()
 		self.topbar.label = gtk.Label()
-		self.topbar.label.set_alignment(0.0, 0.5)
+		self.topbar.label.set_alignment(0.03, 0.5)
 		self.topbar.pack_start(self.topbar.label)
 		self.topbar.pack_end(self._close_button(), False)
 		self.pack_start(self.topbar, False)
@@ -2327,7 +2342,7 @@ class WindowSidePane(gtk.VBox):
 	def remove(self, widget):
 		# Note: try box.remove() except .. causes GErrors here :(
 		if widget in self.get_children():
-			gtk.Box.remove(self, widget)
+			gtk.VBox.remove(self, widget)
 			self._update_topbar()
 			return True
 		elif widget in self.notebook.get_children():
@@ -2372,6 +2387,69 @@ class WindowSidePane(gtk.VBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(WindowSidePane)
+
+
+class MinimizedTabs(object):
+
+	def __init__(self, sidepane, angle):
+		assert angle in (0, 90, 270)
+		self.on_click_cb = lambda i: None
+		self._angle = angle
+		self._update(sidepane.notebook)
+		for signal in ('page-added', 'page-reordered', 'page-removed'):
+			sidepane.notebook.connect(signal, self._update)
+
+	def _update(self, notebook, *a):
+		for child in self.get_children():
+			child.destroy()
+
+		if self._angle in (90, 270): # Hack to introduce some empty space
+			label = gtk.Label(' ')
+			self.pack_start(label, False)
+
+		ipages = range(notebook.get_n_pages())
+		if self._angle == 90:
+			ipages = reversed(ipages) # keep order the same in reading direction
+
+		for i in ipages:
+			child = notebook.get_nth_page(i)
+			text = notebook.get_tab_label_text(child)
+			button = gtk.Button(label=text)
+			button.set_relief(gtk.RELIEF_NONE)
+			button.connect('clicked', self._on_click, text)
+			if self._angle != 0: button.get_child().set_angle(self._angle)
+			self.pack_start(button, False)
+
+	def _on_click(self, b, text):
+		self.emit('clicked', text)
+
+
+class HMinimizedTabs(gtk.HBox, MinimizedTabs):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
+
+	def __init__(self, sidepane, angle=0):
+		gtk.HBox.__init__(self, spacing=12)
+		MinimizedTabs.__init__(self, sidepane, angle)
+
+
+class VMinimizedTabs(gtk.VBox, MinimizedTabs):
+
+	# define signals we want to use - (closure type, return type and arg types)
+	__gsignals__ = {
+		'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
+
+	def __init__(self, sidepane, angle=90):
+		gtk.VBox.__init__(self, spacing=12)
+		MinimizedTabs.__init__(self, sidepane, angle)
+
+# Need to register classes defining gobject signals
+gobject.type_register(HMinimizedTabs)
+gobject.type_register(VMinimizedTabs)
 
 
 class WindowSidePaneWidget(object):
@@ -2470,9 +2548,13 @@ class Window(gtkwindowclass):
 		self._registered = False
 		self._last_sidepane_focus = None
 
-		self._zim_window_main = gtk.VBox()
+		# Construct all the components
+		self._zim_window_main = gtk.VBox() # contains bars & central hbox
+
+		self._zim_window_central_hbox = gtk.HBox() # contains left paned(right paned(central vbox))
 		self._zim_window_left_paned = HPaned()
 		self._zim_window_right_paned = HPaned()
+		self._zim_window_central_vbox = gtk.VBox() # contains top pane(bottom pane)
 		self._zim_window_top_paned = VPaned()
 		self._zim_window_bottom_paned = VPaned()
 
@@ -2481,15 +2563,24 @@ class Window(gtkwindowclass):
 		self._zim_window_top_pane = WindowSidePane()
 		self._zim_window_bottom_pane = WindowSidePane()
 
-		self._zim_window_top_special = gtk.VBox()
+		self._zim_window_left_minimized = VMinimizedTabs(self._zim_window_left_pane)
+		self._zim_window_right_minimized = VMinimizedTabs(self._zim_window_right_pane, angle=270)
+		self._zim_window_top_minimized = HMinimizedTabs(self._zim_window_top_pane)
+		self._zim_window_bottom_minimized = HMinimizedTabs(self._zim_window_bottom_pane)
 
+		# put it all together ...
 		gtkwindowclass.add(self, self._zim_window_main)
-		self._zim_window_main.add(self._zim_window_left_paned)
+		self._zim_window_main.add(self._zim_window_central_hbox)
+		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False)
+		self._zim_window_central_hbox.add(self._zim_window_left_paned)
+		self._zim_window_central_hbox.pack_start(self._zim_window_right_minimized, False)
 		self._zim_window_left_paned.pack1(self._zim_window_left_pane, resize=False)
 		self._zim_window_left_paned.pack2(self._zim_window_right_paned, resize=True)
-		self._zim_window_right_paned.pack1(self._zim_window_top_special, resize=True)
+		self._zim_window_right_paned.pack1(self._zim_window_central_vbox, resize=True)
 		self._zim_window_right_paned.pack2(self._zim_window_right_pane, resize=False)
-		self._zim_window_top_special.add(self._zim_window_top_paned)
+		self._zim_window_central_vbox.pack_start(self._zim_window_top_minimized, False)
+		self._zim_window_central_vbox.add(self._zim_window_top_paned)
+		self._zim_window_central_vbox.pack_start(self._zim_window_bottom_minimized, False)
 		self._zim_window_top_paned.pack1(self._zim_window_top_pane, resize=False)
 		self._zim_window_top_paned.pack2(self._zim_window_bottom_paned, resize=True)
 		self._zim_window_bottom_paned.pack2(self._zim_window_bottom_pane, resize=True)
@@ -2497,16 +2588,24 @@ class Window(gtkwindowclass):
 		self._zim_window_sidepanes = {
 			LEFT_PANE: (
 				self._zim_window_left_paned,
-				self._zim_window_left_pane),
+				self._zim_window_left_pane,
+				self._zim_window_left_minimized
+			),
 			RIGHT_PANE: (
 				self._zim_window_right_paned,
-				self._zim_window_right_pane),
+				self._zim_window_right_pane,
+				self._zim_window_right_minimized
+			),
 			TOP_PANE: (
 				self._zim_window_top_paned,
-				self._zim_window_top_pane),
+				self._zim_window_top_pane,
+				self._zim_window_top_minimized
+			),
 			BOTTOM_PANE: (
 				self._zim_window_bottom_paned,
-				self._zim_window_bottom_pane),
+				self._zim_window_bottom_pane,
+				self._zim_window_bottom_minimized
+			),
 		}
 
 		def _on_switch_page(notebook, page, pagenum, key):
@@ -2514,10 +2613,13 @@ class Window(gtkwindowclass):
 			self.emit('pane-state-changed', key, visible, active)
 
 		for key, value in self._zim_window_sidepanes.items():
-			paned, pane = value
+			paned, pane, minimized = value
 			pane.set_no_show_all(True)
-			pane.zim_pane_state = (False, 200, None)
 			pane.connect('close', lambda o, k: self.set_pane_state(k, False), key)
+			pane.zim_pane_state = (False, 200, None)
+			minimized.set_no_show_all(True)
+			minimized.connect('clicked', lambda o, a, k: self.set_pane_state(k, True, activetab=a), key)
+
 			pane.notebook.connect_after('switch-page', _on_switch_page, key)
 
 	def add(self, widget):
@@ -2538,7 +2640,7 @@ class Window(gtkwindowclass):
 			# reshuffle widget to go above main widgets but
 			# below earlier added bars
 			i = self._zim_window_main.child_get_property(
-					self._zim_window_left_paned, 'position')
+					self._zim_window_central_hbox, 'position')
 			self._zim_window_main.reorder_child(widget, i)
 
 		self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
@@ -2553,7 +2655,7 @@ class Window(gtkwindowclass):
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		'''
 		key = pane
-		paned, pane = self._zim_window_sidepanes[key]
+		paned, pane, mini = self._zim_window_sidepanes[key]
 		pane.add_tab(title, widget)
 		self.set_pane_state(key, True)
 
@@ -2574,12 +2676,12 @@ class Window(gtkwindowclass):
 			if key == TOP_PANE and pos == TOP:
 				# Special case for top widget outside of pane
 				# used especially for PathBar
-				self._zim_window_top_special.pack_start(widget, False)
-				self._zim_window_top_special.reorder_child(widget, 0)
+				self._zim_window_central_vbox.pack_start(widget, False)
+				self._zim_window_central_vbox.reorder_child(widget, 0)
 			else:
 				raise NotImplementedError
 		elif key in (LEFT_PANE, RIGHT_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			pane.add_widget(widget, pos)
 			self.set_pane_state(key, True)
 		else:
@@ -2592,13 +2694,13 @@ class Window(gtkwindowclass):
 		if self._last_sidepane_focus == widget:
 			self._last_sidepane_focus = None
 
-		box = self._zim_window_top_special
+		box = self._zim_window_central_vbox
 		if widget in box.get_children():
 			box.remove(widget)
 			return
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			if pane.remove(widget):
 				if pane.is_empty():
 					self.set_pane_state(key, False)
@@ -2634,7 +2736,7 @@ class Window(gtkwindowclass):
 		# FIXME revert calculate size instead of position for left
 		# and bottom widget
 		key = pane
-		paned, pane = self._zim_window_sidepanes[key]
+		paned, pane, mini = self._zim_window_sidepanes[key]
 		if pane.get_property('visible'):
 			position = paned.get_position()
 			active = gtk_notebook_get_active_tab(pane.notebook)
@@ -2645,7 +2747,7 @@ class Window(gtkwindowclass):
 		return state
 
 	def set_pane_state(self, pane, visible, size=None, activetab=None, grab_focus=False):
-		'''Returns the state of a side pane.
+		'''Set the state of a side pane.
 		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		@param visible: C{True} to show the pane, C{False} to hide
@@ -2658,7 +2760,7 @@ class Window(gtkwindowclass):
 		# for left and botton notebook
 		# FIXME enforce size <  parent widget and > 0
 		key = pane
-		paned, pane = self._zim_window_sidepanes[key]
+		paned, pane, mini = self._zim_window_sidepanes[key]
 		if pane.get_property('visible') == visible \
 		and size is None and activetab is None:
 			if grab_focus:
@@ -2674,6 +2776,8 @@ class Window(gtkwindowclass):
 
 		if visible:
 			if not pane.is_empty():
+				mini.hide()
+				mini.set_no_show_all(True)
 				pane.set_no_show_all(False)
 				pane.show_all()
 				paned.set_position(position)
@@ -2690,6 +2794,8 @@ class Window(gtkwindowclass):
 		else:
 			pane.hide()
 			pane.set_no_show_all(True)
+			mini.set_no_show_all(False)
+			mini.show_all()
 
 		pane.zim_pane_state = (visible, size, activetab)
 		self.emit('pane-state-changed', key, visible, activetab)
@@ -2731,7 +2837,7 @@ class Window(gtkwindowclass):
 		'''Returns a list of panes that are visible'''
 		panes = []
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			if not pane.is_empty() and pane.get_property('visible'):
 				panes.append(key)
 		return panes
@@ -2740,7 +2846,7 @@ class Window(gtkwindowclass):
 		'''Returns a list of panes that are in use (i.e. not empty)'''
 		panes = []
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane = self._zim_window_sidepanes[key]
+			paned, pane, mini = self._zim_window_sidepanes[key]
 			if not pane.is_empty():
 				panes.append(key)
 		return panes
@@ -2780,7 +2886,13 @@ class Window(gtkwindowclass):
 			register_window(self)
 			if hasattr(self, 'uistate'):
 				self.init_uistate()
-		gtkwindowclass.show_all(self)
+
+		if not TEST_MODE:
+			gtkwindowclass.show_all(self)
+
+	def present(self):
+		if not TEST_MODE:
+			gtkwindowclass.present()
 
 # Need to register classes defining gobject signals
 gobject.type_register(Window)
@@ -3451,7 +3563,7 @@ class FileDialog(Dialog):
 
 	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-			help_text=None, help=None, multiple=False
+			help_text=None, help=None, multiple=False,
 		):
 		'''Constructor.
 
@@ -3484,7 +3596,8 @@ class FileDialog(Dialog):
 		Dialog.__init__(self, ui, title, defaultwindowsize=(500, 400),
 			buttons=buttons, button=button, help_text=help_text, help=help)
 
-		self.filechooser = gtk.FileChooserWidget(action=action)
+		self.filechooser = gtk.FileChooserWidget()
+		self.filechooser.set_action(action)
 		self.filechooser.set_do_overwrite_confirmation(True)
 		self.filechooser.set_select_multiple(multiple)
 		self.filechooser.connect('file-activated', lambda o: self.response_ok())
@@ -3495,9 +3608,12 @@ class FileDialog(Dialog):
 		self.filechooser.set_preview_widget(self.preview_widget)
 		self.filechooser.connect('update-preview', self.on_update_preview)
 
+		self._action = action
+
 	def on_update_preview(self, *a):
-		filename = self.filechooser.get_preview_filename()
 		try:
+			filename = self.filechooser.get_preview_filename()
+
 			info, w, h = gtk.gdk.pixbuf_get_file_info(filename)
 			if w <= 128 and h <= 128:
 				# Show icons etc. on real size
@@ -3511,30 +3627,63 @@ class FileDialog(Dialog):
 			self.filechooser.set_preview_widget_active(False)
 		return
 
+	def set_current_dir(self, dir):
+		'''Set the current folder for the dialog
+		(Only needed if not followed by L{set_file()})
+		@param dir: a L{Dir} object
+		'''
+		ok = self.filechooser.set_current_folder_uri(dir.uri)
+		if not ok:
+			raise AssertionError, 'Could not set folder: %s' % dir.uri
+
+	def load_last_folder(self):
+		self.uistate.setdefault('last_folder_uri', None, check=basestring)
+		if self.uistate['last_folder_uri']:
+			uri = self.uistate['last_folder_uri']
+			ok = self.filechooser.set_current_folder_uri(uri)
+			if not ok:
+				logger.warning('Could not set current folder to: %s', uri)
+
+	def save_last_folder(self):
+		last_folder = self.filechooser.get_current_folder_uri()
+		if last_folder:
+			# e.g. "Recent Used" view in dialog does not have a current folder
+			self.uistate['last_folder_uri'] = last_folder
+		else:
+			self.uistate['last_folder_uri'] = None
+
+	def add_shortcut(self, notebook, path=None):
+		'''Add shortcuts for the notebook folder and page folder'''
+		self.filechooser.add_shortcut_folder(notebook.dir.path)
+		if path:
+			page = notebook.get_page(path)
+			if hasattr(page, 'source') and page.source is not None:
+				self.filechooser.add_shortcut_folder(page.source.dir.path)
+
 	def set_file(self, file):
 		'''Set the file or dir to pre select in the dialog
 		@param file: a L{File} or L{Dir} object
 		'''
-		ok = self.filechooser.set_filename(file.path)
+		ok = self.filechooser.set_uri(file.uri)
 		if not ok:
-			raise Exception, 'Could not set filename: %s' % file.path
+			raise AssertionError, 'Could not set file: %s' % file.uri
 
 	def get_file(self):
 		'''Get the current selected file
 		@returns: a L{File} object or C{None}.
 		'''
-		path = self.filechooser.get_filename()
-		if path is None: return None
-		else: return File(path.decode('utf-8'))
+		if self.filechooser.get_select_multiple():
+			raise AssertionError, 'Multiple files selected, use get_files() instead'
+
+		uri = self.filechooser.get_uri()
+		return File(uri.decode('utf-8')) if uri else None
 
 	def get_files(self):
 		'''Get list of selected file. Assumes the dialog was created
 		with C{multiple=True}.
 		@returns: a list of L{File} objects
 		'''
-		paths = [path.decode('utf-8')
-				for path in self.filechooser.get_filenames()]
-		return [File(path) for path in paths]
+		return [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
 
 	def get_dir(self):
 		'''Get the the current selected dir. Assumes the dialog was
@@ -3542,9 +3691,11 @@ class FileDialog(Dialog):
 		C{gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER}.
 		@returns: a L{Dir} object or C{None}
 		'''
-		path = self.filechooser.get_filename().decode('utf-8')
-		if path is None: return None
-		else: return Dir(path)
+		if self.filechooser.get_select_multiple():
+			raise AssertionError, 'Multiple files selected, use get_files() instead'
+
+		uri = self.filechooser.get_uri()
+		return Dir(uri.decode('utf-8')) if uri else None
 
 	def _add_filter_all(self):
 		filter = gtk.FileFilter()
@@ -3589,16 +3740,16 @@ class FileDialog(Dialog):
 		of the dialog accordingly, so the method run() will return the
 		selected file(s) or folder(s).
 		'''
-		action = self.filechooser.get_action()
+		action = self._action
 		multiple = self.filechooser.get_select_multiple()
 		if action in (
 			gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
 			gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER
 		):
-			if multiple:
-				self.result = self.get_dirs()
-			else:
-				self.result = self.get_dir()
+			#~ if multiple:
+				#~ self.result = self.get_dirs()
+			#~ else:
+			self.result = self.get_dir()
 		else:
 			if multiple:
 				self.result = self.get_files()
@@ -3608,54 +3759,20 @@ class FileDialog(Dialog):
 		return bool(self.result)
 
 
-class ProgressBarDialog(gtk.Dialog):
-	'''This class implements a dialog with a progress bar.
+class ProgressDialog(gtk.Dialog):
+	'''Dialog to show a progress bar for a operation'''
 
-	ProgressBarDialogs supposed to run modal, but are not called with
-	C{run()} as they are typically driven by a callback of a async
-	action. Typical construct would be::
-
-		dialog = ProgressBarDialog(ui, 'My progress bar')
-
-		def cb_func(*arg):
-			cancel = dialog.pulse()
-			return cancel
-
-		with dialog:
-			self.async_foo(callback=cb_func)
-
-	This example assumes that the method C{async_foo()} will cancel as
-	soon as the callback returns C{False}.
-
-	The dialog is used as context manager, so the dialog is properly
-	destroyed in case of an error.
-
-	The usage of a progress bar dialog I{must} implement a cancel action.
-
-	Note that progress bars dialogs do not have a title. But the given
-	title will be shown as a label in the dialog itself.
-
-	If you know how often L{pulse()} will be called and give this total
-	number the bar will display a percentage. Otherwise the bar will
-	just bounce up and down without indication of remaining time.
-	'''
-
-	def __init__(self, ui, text, total=None):
+	def __init__(self, ui, op):
 		'''Constructor
-
 		@param ui: either a parent window or dialog or the main
 		C{GtkInterface} object
-
-		@param text: text to show above the progress bar. Typically
-		should be the action being executed, like "Updating Links".
-		This is not a dialog title, so phrasing is slightly different.
-
-		@param total: number of times we expect L{pulse()} to be called,
-		if known. Will result in the bar showing progress by percentage.
-		Can later be modified by supplying a new total number directly
-		to L{pulse()}.
+		@param op: operation that supports a "step" signal, a "finished" signal
+		and a "run_on_idle" method - see L{NotebookOperation} for the default
+		implementation
 		'''
 		self.ui = ui
+		self.op = op
+		self._total = None
 		self.cancelled = False
 		gtk.Dialog.__init__(
 			# no title - see HIG about message dialogs
@@ -3669,7 +3786,7 @@ class ProgressBarDialog(gtk.Dialog):
 		self.set_default_size(300, 0)
 
 		label = gtk.Label()
-		label.set_markup('<b>'+encode_markup_text(text)+'</b>')
+		label.set_markup('<b>'+encode_markup_text(op.message)+'</b>')
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
@@ -3681,90 +3798,55 @@ class ProgressBarDialog(gtk.Dialog):
 		self.msg_label.set_ellipsize(pango.ELLIPSIZE_START)
 		self.vbox.pack_start(self.msg_label, False)
 
-		self.set_total(total)
-
-	def __enter__(self):
-		return self
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.destroy()
-		return False # re-raises error
-
-	def set_total(self, total):
-		'''Set the number of times we expect L{pulse()} to be called,
-		calling this method also resets the count
-		@param total: number of times we expect L{pulse()} to be called
-		'''
-		self.total = total
-		self.count = 0
-
-	def pulse(self, msg=None, count=None, total=None):
-		'''update the dialog and move the progress bar by one step.
-
-		First call to C{pulse()} will also trigger a C{show_all()} if
-		the dialog is not shown yet. By not showing the dialog before
-		C{pulse()} is called prevents the dialog flashing over the
-		screen when the operation was very quick after all and never
-		needed to call the callback.
-
-		This method also run other pending gtk events. So the interface
-		keeps looking repsonsive is a long operation calls this method
-		often enough.
-
-		@param msg: optional message to show below the progress bar,
-		e.g. the name of the item being processed
-		@param count: count of steps already done, if C{None} the
-		number of steps is equal to number of times C{pulse()} has
-		been called.
-		@param total: total number of steps expected, if C{None} a
-		previous set total is used. If no total is known the bar
-		will just bounce up and down without indication of remaining
-		items.
-
-		@returns: C{True} until the 'Cancel' button has been pressed,
-		this should be used to decide if the background job should
-		continue or not.
-		'''
-		if not TEST_MODE and not self.get_property('visible'):
-			self.show_all()
-
-		if total and total != self.total:
-			self.set_total(total)
-			self.count = count or 0
-		elif count:
-			self.count = count - 1
-
-		if self.total and self.count < self.total:
-			self.count += 1
-			fraction = float(self.count) / self.total
-			self.progressbar.set_fraction(fraction)
-			self.progressbar.set_text('%i%%' % int(fraction * 100))
-		else:
-			self.progressbar.pulse()
-
-		if msg:
-			self.msg_label.set_markup('<i>'+encode_markup_text(msg)+'</i>')
-
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
-
-		return not self.cancelled
+		self.op.connect('step', self.on_step)
+		self.op.connect('finished', self.on_finished)
 
 	def show_all(self):
-		logger.debug('Opening ProgressBarDialog')
+		logger.debug('Opening ProgressDialog: %s', self.op.message)
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
-	def do_response(self, id):
-		logger.debug('ProgressBarDialog get response %s', id)
-		self.cancelled = True
+	def run(self):
+		if not self.op.is_running():
+			self.op.run_on_idle()
 
-	#def do_destroy(self):
-	#	logger.debug('Closed ProgressBarDialog')
+		if TEST_MODE: # Avoid flashing on screen
+			while gtk.events_pending():
+				gtk.main_iteration(block=False)
+		else:
+			self.show_all()
+			gtk.Dialog.run(self)
+
+	def on_step(self, op, info):
+		i, total, msg = info
+
+		try:
+			frac = float(i) / total
+		except TypeError:
+			# Apperently i and/or total is not integer
+			self.progressbar.pulse()
+		else:
+			self.progressbar.set_fraction(frac)
+			self.progressbar.set_text(_('%i of %i') % (i, total))
+			 	# T: lable in progressbar giving number of items and total
+
+		if msg is None:
+			self.msg_label.set_text('')
+		else:
+			self.msg_label.set_markup('<i>'+encode_markup_text(str(msg))+'</i>')
+
+	def on_finished(self, op):
+		self.cancelled = op.cancelled
+		self.destroy()
+
+	def do_response(self, id):
+		logger.debug('ProgressDialog %s cancelled', self.op.message)
+		self.op.cancel()
+		self.cancelled = True
 
 
 # Need to register classes defining gobject signals
-gobject.type_register(ProgressBarDialog)
+gobject.type_register(ProgressDialog)
 
 
 class LogFileDialog(Dialog):
@@ -3881,7 +3963,7 @@ class Assistant(Dialog):
 		# yet reflect theming on construction
 		# However also need to disconnect the signal after first use,
 		# because otherwise this keeps firing, which hangs the loop
-		# for handling events in ProgressBarDialog.pulse() - LP #929247
+		# for handling events in ProgressBar.pulse() - LP #929247
 		ebox = gtk.EventBox()
 		def _set_heading_color(*a):
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
@@ -4377,4 +4459,3 @@ class TableHBox(TableBoxMixin, gtk.HBox):
 
 # Need to register classes defining gobject signals
 gobject.type_register(TableHBox)
-

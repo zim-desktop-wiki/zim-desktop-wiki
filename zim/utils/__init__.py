@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 '''Module with assorted useful classes and functions used in the zim code'''
+
+import functools
+
+
+from .threading import *
 
 
 class classproperty(object):
@@ -16,6 +21,7 @@ class classproperty(object):
 
 	def __get__(self, obj, owner):
 		return self.func(owner)
+
 
 
 ## Functions for dynamic loading of modules and klasses
@@ -288,54 +294,3 @@ class MovingWindowIter(object):
 
 
 
-## Wrapper for using threads for e.g. async IO
-import threading
-import sys
-
-
-class FunctionThread(threading.Thread):
-	'''Subclass of C{threading.Thread} that runs a single function and
-	keeps the result and any exceptions raised.
-
-	@ivar done: C{True} is the function is done running
-	@ivar result: the return value of C{func}
-	@ivar error: C{True} if done and an exception was raised
-	@ivar exc_info: 3-tuple with exc_info
-	'''
-
-	def __init__(self, func, args=(), kwargs={}, lock=None):
-		'''Constructor
-		@param func: the function to run in the thread
-		@param args: arguments for C{func}
-		@param kwargs: keyword arguments for C{func}
-		@param lock: optional lock, will be acquired in main thread
-		before running and released once done in background
-		'''
-		threading.Thread.__init__(self)
-
-		self.func = func
-		self.args = args
-		self.kwargs = kwargs
-
-		self.lock = lock
-
-		self.done = False
-		self.result = None
-		self.error = False
-		self.exc_info = (None, None, None)
-
-	def start(self):
-		if self.lock:
-			self.lock.acquire()
-		threading.Thread.start(self)
-
-	def run(self):
-		try:
-			self.result = self.func(*self.args, **self.kwargs)
-		except:
-			self.error = True
-			self.exc_info = sys.exc_info()
-		finally:
-			self.done = True
-			if self.lock:
-				self.lock.release()

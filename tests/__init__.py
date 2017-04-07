@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
+
+from __future__ import with_statement
+
 
 import os
 import sys
@@ -39,32 +42,32 @@ __unittest = 1 # needed to get stack trace OK for class TestCase
 gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
 FAST_TEST = False #: determines whether we skip slow tests or not
-
+FULL_TEST = False #: determine whether we mock filesystem tests or not
 
 # This list also determines the order in which tests will executed
 __all__ = [
 	'package', 'translations',
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
-	'environ', 'fs',
+	'environ', 'fs', 'newfs',
 	'config', 'applications',
-	'parsing', 'formats', 'templates', 'objectmanager',
-	'stores', 'index', 'notebook', 'history',
+	'parsing', 'tokenparser', 'formats', 'templates', 'objectmanager',
+	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
-	'widgets', 'gui', 'pageview', 'clipboard',
+	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
 	'main', 'plugins',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-	'ipc', 'arithmetic',
+	'arithmetic',
 ]
 
 
-mydir = os.path.dirname(__file__)
+mydir = os.path.abspath(os.path.dirname(__file__))
 
 
 # when a test is missing from the list that should be detected
-for file in glob.glob(os.path.dirname(__file__) + '/*.py'):
+for file in glob.glob(mydir + '/*.py'):
 	name = os.path.basename(file)[:-3]
 	if name != '__init__' and not name in __all__:
 		raise AssertionError, 'Test missing in __all__: %s' % name
@@ -136,6 +139,42 @@ if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	_setUpEnvironment()
 
 
+## Setup special logging for tests
+
+class UncaughtWarningError(AssertionError):
+	pass
+
+
+class TestLoggingHandler(logging.Handler):
+	'''Handler class that raises uncaught errors to ensure test don't fail silently'''
+
+	def __init__(self, level=logging.WARNING):
+		logging.Handler.__init__(self, level)
+		fmt = logging.Formatter('%(levelname)s %(filename)s %(lineno)s: %(message)s')
+		self.setFormatter(fmt)
+
+	def emit(self, record):
+		if record.levelno >= logging.WARNING:
+			raise UncaughtWarningError, self.format(record)
+		else:
+			pass
+
+logging.getLogger().addHandler(TestLoggingHandler())
+	# Handle all errors that make it up to the root level
+
+try:
+	logging.getLogger('zim.test').warning('foo')
+except UncaughtWarningError:
+	pass
+else:
+	raise AssertionError, 'Raising errors on warning fails'
+
+###
+
+
+from zim.newfs import LocalFolder
+
+
 _zim_pyfiles = []
 
 def zim_pyfiles():
@@ -176,10 +215,20 @@ def slowTest(obj):
 		return obj
 
 
+MOCK_ALWAYS_MOCK = 'mock' #: Always choose mock folder, alwasy fast
+MOCK_DEFAULT_MOCK = 'default_mock' #: By default use mock, but sometimes at random use real fs or at --full
+MOCK_DEFAULT_REAL = 'default_real' #: By default use real fs, mock oly for --fast
+MOCK_ALWAYS_REAL = 'real' #: always use real fs -- not recommended unless test fails for mock
+
+import random
+
 class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
 
 	maxDiff = None
+
+	SRC_DIR = LocalFolder(mydir + '/../')
+	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
 
 	@classmethod
 	def tearDownClass(cls):
@@ -196,39 +245,140 @@ class TestCase(unittest.TestCase):
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
-	def create_tmp_dir(self, name=None):
+	@classmethod
+	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT_MOCK):
+		'''Convenience method to create a temporary folder for testing
+		Default use of "C{MOCK_DEFAULT_MOCK}" means that about 20% of the cases
+		will use real filesystem at random while the rest will mock. (Thus
+		giving a balance between overall test speed and the whish to detect
+		cases where mock and real filesystem give different results.)
+		This behavior is overruled by "--fast" and "--full" in the test script.
+		@param name: basename for the folder, use class name if C{None}
+		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
+		C{MOCK_DEFAULT_MOCK}, C{MOCK_DEFAULT_REAL} or C{MOCK_ALWAYS_REAL}.
+		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
+		that is guarenteed non-existing
+		'''
+		path = cls._get_tmp_name(name)
+
+		if mock == MOCK_ALWAYS_MOCK: use_mock = True
+		elif mock == MOCK_ALWAYS_REAL: use_mock = False
+		elif mock == MOCK_DEFAULT_REAL:
+			if FAST_TEST: use_mock = True
+			else: use_mock = False
+		else: # MOCK_DEFAULT_MOCK:
+			if FULL_TEST: use_mock = False
+			elif FAST_TEST: use_mock = True
+			elif random.random() < 0.2:
+				logger.info("Random dice throw: use real file system")
+				use_mock = False
+			else:
+				use_mock = True
+
+		if use_mock:
+			from zim.newfs.mock import MockFolder
+			folder = MockFolder(path)
+		else:
+			from zim.newfs import LocalFolder
+			if os.path.exists(path):
+				logger.debug('Clear tmp folder: %s', path)
+				shutil.rmtree(path)
+				assert not os.path.exists(path) # make real sure
+			folder = LocalFolder(path)
+
+		assert not folder.exists()
+		return folder
+
+	@classmethod
+	def setUpNotebook(cls, name=None, mock=MOCK_ALWAYS_MOCK, content={}):
+		'''
+		@param name: basename for the folder, use class name if C{None}
+		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
+		@param content: dictionary where the keys are page names and the
+		values the page content.
+		'''
+		import datetime
+		from zim.newfs.mock import MockFolder
+		from zim.config import VirtualConfigBackend
+		from zim.notebook.notebook import NotebookConfig, Notebook
+		from zim.notebook.page import Path
+		from zim.notebook.layout import FilesLayout
+		from zim.notebook.index import Index
+		from zim.formats.wiki import WIKI_FORMAT_VERSION
+
+
+		folder = cls.setUpFolder(name, mock)
+		cache_dir = folder.folder('.zim')
+		layout = FilesLayout(folder, endofline='unix')
+
+		if isinstance(folder, MockFolder):
+			### XXX - Big HACK here - Get better classes for this - XXX ###
+			dir = VirtualConfigBackend()
+			file = dir.file('notebook.zim')
+			file.dir = dir
+			file.dir.basename = folder.basename
+			###
+			config = NotebookConfig(file)
+			index = Index(':memory:', layout)
+		else:
+			from zim.fs import Dir
+			conffile = Dir(folder.path).file('notebook.zim')
+			config = NotebookConfig(conffile)
+			cache_dir.touch()
+			index = Index(cache_dir.file('index.db').path, layout)
+
+		notebook = Notebook(None, cache_dir, config, folder, layout, index)
+		for name, text in content.items():
+			file, folder = layout.map_page(Path(name))
+			file.write(
+				(
+					'Content-Type: text/x-zim-wiki\n'
+					'Wiki-Format: %s\n'
+					'Creation-Date: %s\n\n'
+				) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
+				+ text + '\n'
+			)
+
+		notebook.index.check_and_update()
+		return notebook
+
+	@classmethod
+	def create_tmp_dir(cls, name=None):
 		'''Returns a path to a tmp dir where tests can write data.
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
-		self.clear_tmp_dir(name)
-		path = self._get_tmp_name(name)
+		cls.clear_tmp_dir(name)
+		path = cls._get_tmp_name(name)
 		os.makedirs(path)
 		assert os.path.exists(path) # make real sure
 		return path
 
-	def get_tmp_name(self, name=None):
+	@classmethod
+	def get_tmp_name(cls, name=None):
 		'''Returns the same path as L{create_tmp_dir()} but without
 		touching it. This method will raise an exception when a file
 		or dir exists of the same name.
 		'''
-		path = self._get_tmp_name(name)
+		path = cls._get_tmp_name(name)
 		assert not os.path.exists(path), 'This path should not exist: %s' % path
 		return path
 
-	def clear_tmp_dir(self, name=None):
+	@classmethod
+	def clear_tmp_dir(cls, name=None):
 		'''Clears the tmp dir for this test'''
-		path = self._get_tmp_name(name)
+		path = cls._get_tmp_name(name)
 		if os.path.exists(path):
 			shutil.rmtree(path)
 		assert not os.path.exists(path) # make real sure
 
-	def _get_tmp_name(self, name):
+	@classmethod
+	def _get_tmp_name(cls, name):
 		if name:
 			assert not os.path.sep in name, 'Don\'t use this method to get sub folders or files'
-			name = self.__class__.__name__ + '_' + name
+			name = cls.__name__ + '_' + name
 		else:
-			name = self.__class__.__name__
+			name = cls.__name__
 
 		if os.name == 'nt':
 			name = unicode(name)
@@ -238,46 +388,52 @@ class TestCase(unittest.TestCase):
 		return os.path.join(TMPDIR, name)
 
 
-class LoggingFilter(object):
-	'''Base class for logging filters that can be used as a context
-	using the "with" keyword. To subclass it you only need to set the
-	logger to be used and (the begin of) the message to filter.
-
-	The message can be a string, or a list or tuple of strings. Any
-	messages that start with this string or any of these strings are
-	surpressed.
+class LoggingFilter(logging.Filter):
+	'''Convenience class to surpress zim errors and warnings in the
+	test suite. Acts as a context manager and can be used with the
+	'with' keyword.
 
 	Alternatively you can call L{wrap_test()} from test C{setUp}.
 	This will start the filter and make sure it is cleaned up again.
 	'''
 
-	logger = 'zim'
-	message = None
+	# Due to how the "logging" module works, logging channels do inherit
+	# handlers of parents but not filters. Therefore setting a filter
+	# on the "zim" channel will not surpress messages from sub-channels.
+	# Instead we need to set the filter both on the channel and on
+	# top level handlers to get the desired effect.
 
-	def __init__(self, logger=None, message=None):
-		if logger:
-			self.logger = logger
-
-		if message:
-			self.message = message
-
-		self.loggerobj = logging.getLogger(self.logger)
+	def __init__(self, logger, message=None):
+		'''Constructor
+		@param logger: the logging channel name
+		@param message: can be a string, or a sequence of strings.
+		Any messages that start with this string or any of these
+		strings are surpressed.
+		'''
+		self.logger = logger
+		self.message = message
 
 	def __enter__(self):
-		self.loggerobj.addFilter(self)
+		logging.getLogger(self.logger).addFilter(self)
+		for handler in logging.getLogger().handlers:
+			handler.addFilter(self)
 
 	def __exit__(self, *a):
-		self.loggerobj.removeFilter(self)
+		logging.getLogger(self.logger).removeFilter(self)
+		for handler in logging.getLogger().handlers:
+			handler.removeFilter(self)
 
 	def filter(self, record):
-		msg = record.getMessage()
-
-		if self.message is None:
-			return False
-		elif isinstance(self.message, tuple):
-			return not any(msg.startswith(m) for m in self.message)
+		if record.name.startswith(self.logger):
+			msg = record.getMessage()
+			if self.message is None:
+				return False
+			elif isinstance(self.message, tuple):
+				return not any(msg.startswith(m) for m in self.message)
+			else:
+				return not msg.startswith(self.message)
 		else:
-			return not msg.startswith(self.message)
+			return True
 
 
 	def wrap_test(self, test):
@@ -372,6 +528,9 @@ class TestData(object):
 		for name, text in self._test_data:
 			yield name, text # shallow copy
 
+	def items(self):
+		return list(self)
+
 	def get(self, pagename):
 		'''Return text for a specific pagename'''
 		for n, text in self._test_data:
@@ -381,6 +540,8 @@ class TestData(object):
 
 
 WikiTestData = TestData('wiki') #: singleton to be used by various tests
+
+FULL_NOTEBOOK = WikiTestData
 
 
 def _expand_manifest(names):
@@ -395,7 +556,6 @@ def _expand_manifest(names):
 			name = name[:i]
 			manifest.add(name)
 	return manifest
-
 
 def new_parsetree():
 	'''Returns a new ParseTree object for testing
@@ -426,19 +586,27 @@ def new_parsetree_from_xml(xml):
 
 def new_page():
 	from zim.notebook import Path, Page
-	page = Page(Path('roundtrip'))
-	page.readonly = False
+	from zim.newfs.mock import MockFile, MockFolder
+	file = MockFile('/mock/test/page.txt')
+	folder = MockFile('/mock/test/page/')
+	page = Page(Path('roundtrip'), False, file, folder)
 	page.set_parsetree(new_parsetree())
 	return page
 
 
 def new_page_from_text(text, format='wiki'):
 	from zim.notebook import Path, Page
-	page = Page(Path('Test'))
-	page.readonly = False
+	from zim.notebook import Path, Page
+	from zim.newfs.mock import MockFile, MockFolder
+	file = MockFile('/mock/test/page.txt')
+	folder = MockFile('/mock/test/page/')
+	page = Page(Path('Test'), False, file, folder)
 	page.set_parsetree(new_parsetree_from_text(text, format))
 	return page
 
+
+
+_notebook_data = None
 
 def new_notebook(fakedir=None):
 	'''Returns a new Notebook object with all data in memory
@@ -446,33 +614,84 @@ def new_notebook(fakedir=None):
 	Uses data from L{WikiTestData}
 
 	@param fakedir: optional parameter to set the 'dir' attribute for
-	the notebook and the main store which allows you to resolve file
+	the notebook which allows you to resolve file
 	paths etc. It will not automatically touch the dir
 	(hence it being 'fake').
 	'''
-	from zim.fs import Dir
-	from zim.notebook import Notebook, Path
-	from zim.index import Index
+	import sqlite3
 
-	notebook = Notebook(index=Index(dbfile=':memory:'))
-	store = notebook.add_store(Path(':'), 'memory')
-	manifest = []
-	for name, text in WikiTestData:
-		manifest.append(name)
-		store.set_node(Path(name), text)
-	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.update()
+	from zim.fs import Dir
+	from zim.config import VirtualConfigBackend
+	from zim.notebook import Notebook, Path
+	from zim.notebook.notebook import NotebookConfig
+	from zim.notebook.index import Index
+
+	from zim.notebook.layout import FilesLayout
+	from zim.newfs.mock import MockFolder, clone_mock_object
+
+	global _notebook_data
+	if not _notebook_data: # run this one time only
+		templfolder = MockFolder('/mock/notebook')
+		layout = FilesLayout(templfolder, endofline='unix')
+
+		manifest = []
+		for name, text in WikiTestData:
+			manifest.append(name)
+			file, x = layout.map_page(Path(name))
+			file.write(text)
+
+		manifest = frozenset(_expand_manifest(manifest))
+
+		index = Index(':memory:', layout)
+		index.check_and_update()
+		lines = list(index._db.iterdump())
+		sql = '\n'.join(lines)
+
+		_notebook_data = (templfolder, sql, manifest)
+
+	if fakedir:
+		fakedir = fakedir if isinstance(fakedir, basestring) else fakedir.path
+	templfolder, sql, manifest = _notebook_data
+	folder = MockFolder(fakedir or templfolder.path)
+	clone_mock_object(templfolder, folder)
+
+	#~ print ">>>>>>>>>>>>>"
+	#~ for path in folder._fs.tree():
+		#~ print path
+
+	layout = FilesLayout(folder, endofline='unix')
+	index = Index(':memory:', layout)
+	tables = [r[0] for r in index._db.execute(
+		'SELECT name FROM sqlite_master '
+		'WHERE type="table" and name NOT LIKE "sqlite%"'
+	)]
+	for table in tables:
+		index._db.execute('DROP TABLE %s' % table)
+	index._db.executescript(sql)
+	index._db.commit()
+
+	### XXX - Big HACK here - Get better classes for this - XXX ###
+	dir = VirtualConfigBackend()
+	file = dir.file('notebook.zim')
+	file.dir = dir
+	file.dir.basename = 'Unnamed Notebook'
+	###
+	config = NotebookConfig(file)
 
 	if fakedir:
 		dir = Dir(fakedir)
-		notebook.dir = dir
-		store.dir = dir
+		cache_dir = dir.subdir('.zim')
+	else:
+		dir = None
+		cache_dir = None
 
+	notebook = Notebook(dir, cache_dir, config, folder, layout, index)
+	notebook.testdata_manifest = manifest
 	return notebook
 
 
 def new_files_notebook(dir):
-	'''Returns a new Notebook object with a file store
+	'''Returns a new Notebook object
 
 	Uses data from L{WikiTestData}
 
@@ -480,20 +699,20 @@ def new_files_notebook(dir):
 	'''
 	from zim.fs import Dir
 	from zim.notebook import init_notebook, Notebook, Path
-	from zim.index import Index
 
 	dir = Dir(dir)
 	init_notebook(dir)
-	notebook = Notebook(dir=dir)
-	store = notebook.get_store(':')
+	notebook = Notebook.new_from_dir(dir)
+
 	manifest = []
 	for name, text in WikiTestData:
 		manifest.append(name)
-		page = store.get_page(Path(name))
+		page = notebook.get_page(Path(name))
 		page.parse('wiki', text)
-		store.store_page(page)
+		notebook.store_page(page)
+
 	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.update()
+	notebook.index.check_and_update()
 
 	return notebook
 
@@ -554,6 +773,105 @@ class MockObject(MockObjectBase):
 			raise AttributeError
 		else:
 			return self.mock_method(name, None)
+
+
+import logging
+logger = logging.getLogger('test')
+
+from functools import partial
+
+class SignalLogger(dict):
+	'''Listening object that attaches to all signals of the target and records
+	all signals calls in a dictionary of lists.
+
+	Example usage:
+
+		signals = SignalLogger(myobject)
+		... # some code causing signals to be emitted
+		self.assertEqual(signals['mysignal'], [args])
+			# assert "mysignal" is called once with "*args"
+
+	If you don't want to match all arguments, the "filter_func" can be used to
+	transform the arguments before logging.
+
+		filter_func(signal_name, object, args) --> args
+
+	'''
+
+	def __init__(self, obj, filter_func=None):
+		self._obj = obj
+		self._ids = []
+
+		if filter_func is None:
+			filter_func = lambda s, o, a: a
+
+		for signal in self._obj.__signals__:
+			seen = []
+			self[signal] = seen
+
+			def handler(seen, signal, obj, *a):
+				seen.append(filter_func(signal, obj, a))
+				logger.debug('Signal: %s %r', signal, a)
+
+			id = obj.connect(signal, partial(handler, seen, signal))
+			self._ids.append(id)
+
+	def __enter__(self):
+		pass
+
+	def __exit__(self, *e):
+		self.disconnect()
+
+	def clear(self):
+		for signal, seen in self.items():
+			seen[:] = []
+
+	def disconnect(self):
+		for id in self._ids:
+			self._obj.disconnect(id)
+		self._ids = []
+
+
+
+class CallBackLogger(dict):
+	'''Mock object that allows any method to be called as callback and
+	records the calls in a dictionary.
+	'''
+
+	def __init__(self, filter_func=None):
+		if filter_func is None:
+			filter_func = lambda n, a, kw: (a, kw)
+
+		self._filter_func = filter_func
+
+	def __getattr__(self, name):
+
+		def cb_method(*arg, **kwarg):
+			logger.debug('Callback %s %r %r', name, arg, kwarg)
+			self.setdefault(name, [])
+
+			self[name].append(
+				self._filter_func(name, arg, kwarg)
+			)
+
+		setattr(self, name, cb_method)
+		return cb_method
+
+
+class MaskedObject(object):
+
+	def __init__(self, obj, *names):
+		self.__obj = obj
+		self.__names = names
+
+	def setObjectAccess(self, *names):
+		self.__names = names
+
+	def __getattr__(self, name):
+		if name in self.__names:
+			return getattr(self.__obj, name)
+		else:
+			raise AttributeError, 'Acces to \'%s\' not allowed' % name
 
 
 def gtk_process_events(*a):

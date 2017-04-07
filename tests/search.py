@@ -50,7 +50,7 @@ class TestSearch(tests.TestCase):
 
 	def runTest(self):
 		'''Test search API'''
-		self.notebook.index.update()
+		self.notebook.index.check_and_update()
 		results = SearchSelection(self.notebook)
 
 		query = Query('foo bar')

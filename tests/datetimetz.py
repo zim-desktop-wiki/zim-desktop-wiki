@@ -74,3 +74,48 @@ class TestDateTimeZ(tests.TestCase):
 		self.assertTrue(isinstance(start, datetime.date))
 		self.assertTrue(isinstance(end, datetime.date))
 		self.assertTrue(start <= dt.date() and end >= dt.date())
+
+
+from zim.plugins.tasklist.dates import *
+
+class TestDateParsing(tests.TestCase):
+
+	def testParsing(self):
+		date = datetime.date(2017, 03, 27)
+		for text in (
+			'2017-03-27', '2017-03',
+			'2017-W13', '2017-W13-1',
+			'2017W13', '2017W13-1',
+			'2017w13', '2017w13-1',
+			'W1713', 'W1713-1', 'W1713.1',
+			'Wk1713', 'Wk1713-1', 'Wk1713.1',
+			'wk1713', 'wk1713-1', 'wk1713.1',
+		):
+			m = date_re.match(text)
+			self.assertIsNotNone(m, 'Failed to match: %s' % text)
+			self.assertEqual(m.group(0), text)
+			obj = parse_date(m.group(0))
+			self.assertIsInstance(obj, (Day, Week, Month))
+			self.assertTrue(obj.first_day <= date <= obj.last_day)
+
+		for text in (
+			'foo', '123foo', '2017-03-270',
+			'20170317', '17-03-27', '17-03'
+			'17W', '2017W131', '2017-W131', '17W13.1'
+		):
+			m = date_re.match(text)
+			self.assertIsNone(m, 'Did unexpectedly match: %s' % text)
+
+	def testWeekNumer(self):
+		self.assertEqual(
+			Day(2017, 03, 27),
+			Day.new_from_weeknumber(2017, 13, 1)
+		)
+		self.assertEqual(
+			Day(2017, 03, 27).weekformat(),
+			('2017-W13-1')
+		)
+		self.assertEqual(
+			Day.new_from_weeknumber(2017, 13, 7),
+			Day.new_from_weeknumber(2017, 14, 0)
+		)

@@ -62,8 +62,8 @@ function(.., ..)		# function call
 
 
 The following operators can be used:
-'''
 
+'''
 and
 or
 not
@@ -187,23 +187,23 @@ Lists: '''get''', '''len''', '''reversed''', '''sorted'''
 
 Dictionary: '''get''', '''keys''', '''values''', '''items''', '''len''', '''reversed''', '''sorted'''
 
-The following standard (python) functions are supported: ''len(list)'', ''sorted(list)'', ''reversed(list)'', ''range(start, end)''. 
+The following standard (python) functions are supported: ''len(list)'', ''sorted(list)'', ''reversed(list)'', ''range(start, end)''.
 
 
 Other functions defined for all templates:
 
 	''html_encode(text)''
 		Format text in HTML encoding
-	
+
 	''url_encode(text)''
 		Format text in URL encoding
 
 	''strftime(template, date)''
 		Format a date, see standard library for codes
-		
+
 	''strfcal(template, date)''
 		Format a week number, accepts:
-		
+
 			%w for day of week according to locale
 			%W for weeknumber according to locale
 			%Y for the year to which the week belongs
@@ -252,6 +252,7 @@ pages			Iterator over all content to be exported (special + content)
 	page
 		.title		Either the first heading, or the page name
 		.name		The page name
+		.meta		Dict with meta properties, if any
 		.section	The name of the parent page, if any
 		.basename	The page name without the section name
 		.heading	First heading of the page
@@ -265,7 +266,6 @@ pages			Iterator over all content to be exported (special + content)
  				.body		Content below this heading
  				.content	Content including the heading
 
-		.properties
 		.links
 		.backlinks
 		.attachments

@@ -18,55 +18,39 @@ from zim.gui.clipboard import Clipboard, SelectionClipboard
 @tests.skipIf(os.name == 'nt', 'QuickNote not supported on Windows')
 class TestQuickNotePlugin(tests.TestCase):
 
+	def assertRun(self, args, text):
+		cmd = QuickNotePluginCommand('quicknote')
+		cmd.parse_options(*args)
+		dialog = cmd.run()
+
+		self.assertIsInstance(dialog, QuickNoteDialog)
+		buffer = dialog.textview.get_buffer()
+		result = buffer.get_text(*buffer.get_bounds())
+		self.assertTrue(text in result)
+
 	def testMain(self):
-		def main(*args):
-			cmd = QuickNotePluginCommand('quicknote')
-			cmd.parse_options(*args)
-			cmd.run()
-
-		def has_text(text):
-			# create the actual check function
-			def my_has_text(dialog):
-				self.assertIsInstance(dialog, QuickNoteDialog)
-				buffer = dialog.textview.get_buffer()
-				result = buffer.get_text(*buffer.get_bounds())
-				self.assertTrue(text in result)
-
-			return my_has_text
-
 		# Text on commandline
 		text = 'foo bar baz\ndus 123'
-		with tests.DialogContext(has_text(text)):
-			main('text=' + text)
-
-		with tests.DialogContext(has_text(text)):
-			main('--text', text)
+		self.assertRun(('text=' + text,), text)
+		self.assertRun(('--text', text), text)
 
 		encoded = 'Zm9vIGJhciBiYXoKZHVzIDEyMwo='
-		with tests.DialogContext(has_text(text)):
-			main('--text', encoded, '--encoding', 'base64')
+		self.assertRun(('--text', encoded, '--encoding', 'base64'), text)
 
 		encoded = 'foo%20bar%20baz%0Adus%20123'
-		with tests.DialogContext(has_text(text)):
-			main('--text', encoded, '--encoding', 'url')
+		self.assertRun(('--text', encoded, '--encoding', 'url'), text)
 
 		# Clipboard input
 		text = 'foo bar baz\ndus 123'
 		SelectionClipboard.clipboard.clear() # just to be sure
 		Clipboard.set_text(text)
-		with tests.DialogContext(has_text(text)):
-			main('input=clipboard')
-
-		with tests.DialogContext(has_text(text)):
-			main('--input', 'clipboard')
+		self.assertRun(('input=clipboard',), text)
+		self.assertRun(('--input', 'clipboard',), text)
 
 		text = 'foo bar baz\ndus 456'
 		SelectionClipboard.set_text(text)
-		with tests.DialogContext(has_text(text)):
-			main('input=clipboard')
-
-		with tests.DialogContext(has_text(text)):
-			main('--input', 'clipboard')
+		self.assertRun(('input=clipboard',), text)
+		self.assertRun(('--input', 'clipboard',), text)
 
 		# Template options
 		cmd = QuickNotePluginCommand('quicknote')
@@ -108,7 +92,8 @@ attachment {{./zim16.png}}
 		attachments = ui.notebook.get_attachments_dir(path)
 
 		self.assertEqual(page.get_parsetree().tostring(), wanted)
-		self.assertIn('zim16.png', attachments.list())
+		self.assertIn('zim16.png', Dir(attachments.path).list())
+		#~ self.assertIn('zim16.png', attachments.list_names())
 
 
 	#~ @tests.slowTest

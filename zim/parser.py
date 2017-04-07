@@ -46,7 +46,7 @@ from zim.errors import Error
 
 def fix_line_end(text):
 	'''Fixes missing line end
-	@param text: the intput text
+	@param text: the input text
 	@returns: the fixed text
 	'''
 	# HACK this char is recognized as line end by splitlines()

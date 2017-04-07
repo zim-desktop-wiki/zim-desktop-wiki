@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import weakref
@@ -11,17 +11,12 @@ import os
 
 logger = logging.getLogger('zim')
 
-
-if os.environ.get('ZIM_TEST_RUNNING'):
-	TEST_MODE = True
-else:
-	TEST_MODE = False
-
-
 # Constants for signal order
-SIGNAL_NORMAL = 1
-SIGNAL_AFTER = 2
-SIGNAL_OBJECT = 4
+SIGNAL_RUN_FIRST = 1
+SIGNAL_BEFORE = SIGNAL_NORMAL = 2
+SIGNAL_RUN_LAST = 3
+SIGNAL_AFTER = 4
+
 
 
 class SignalHandler(object):
@@ -108,11 +103,10 @@ class ConnectorMixin(object):
 	want to connect to signals of other objects.
 	'''
 
-	# TODO connectto with whole set of signals
 	# TODO connect variant that wraps with a handler that catches
-	#  unwanted arguments
+	#  unwanted arguments -- kind of reverse "partial()"
 
-	def connectto(self, obj, signal, handler=None, userdata=None, order=SIGNAL_NORMAL):
+	def connectto(self, obj, signal, handler=None, order=SIGNAL_NORMAL):
 		'''Connect to signals of another object
 		E.g.::
 
@@ -122,9 +116,8 @@ class ConnectorMixin(object):
 		@param signal: the signal name
 		@param handler: the callback function, or C{None} to map to
 		a method prefixed with "on_".
-		@param userdata: optional user data
-		@param order: if order is C{NORMAL} then C{GObject.connect()}
-		is used, if order is C{AFTER} then C{GObject.connect_after()}
+		@param order: if order is C{SIGNAL_NORMAL} then C{GObject.connect()}
+		is used, if order is C{SIGNAL_AFTER} then C{GObject.connect_after()}
 		is used.
 		@returns: the handler id
 		'''
@@ -134,16 +127,10 @@ class ConnectorMixin(object):
 			if handler is None:
 				raise NotImplementedError, 'No method "%s"' % name
 
-		if order == SIGNAL_NORMAL:
-			if userdata is None:
-				i = obj.connect(signal, handler)
-			else:
-				i = obj.connect(signal, handler, userdata)
-		else: # SIGNAL_AFTER
-			if userdata is None:
-				i = obj.connect_after(signal, handler)
-			else:
-				i = obj.connect_after(signal, handler, userdata)
+		if order == SIGNAL_AFTER:
+			i = obj.connect_after(signal, handler)
+		else:
+			i = obj.connect(signal, handler)
 
 		if not hasattr(self, '_connected_signals'):
 			self._connected_signals = {}
@@ -157,7 +144,7 @@ class ConnectorMixin(object):
 
 		return i
 
-	def connectto_all(self, obj, signals, handler=None, userdata=None, order=SIGNAL_NORMAL):
+	def connectto_all(self, obj, signals, handler=None, order=SIGNAL_NORMAL):
 		'''Convenience method to combine multiple calls to
 		L{connectto()}.
 
@@ -175,13 +162,12 @@ class ConnectorMixin(object):
 		parameters are not specified explicitly per signal.
 
 		@param handler: optional parameter
-		@param userdata: optional parameter
 		@param order: optional parameter
 		'''
-		default = (None, handler, userdata, order)
+		default = (None, handler, order)
 		for signal in signals:
 			if isinstance(signal, basestring):
-				self.connectto(obj, signal, handler, userdata, order)
+				self.connectto(obj, signal, handler, order)
 			else:
 				arg = signal + default[len(signal):]
 					# fill in missing positional arguments
@@ -217,76 +203,69 @@ class ConnectorMixin(object):
 		del self._connected_signals[key]
 
 
-def call_default(obj, signal, args):
-	name = 'do_' + signal.replace('-', '_')
-	if hasattr(obj, name):
-		method = getattr(obj, name)
-		return method(*args)
-	else:
-		return None
+class SignalEmitterMeta(type):
 
+	def __init__(cls, name, bases, dct):
+		# Init class
 
-def call_handlers(obj, signal, handlers, args):
-	for handler in handlers:
-		const, callback, userdata = handler
-		if userdata is not None:
-			if const & SIGNAL_OBJECT:
-				myargs = (userdata,) + args
-			else:
-				myargs = args + (userdata,)
-		else:
-			myargs = args
+		assert hasattr(cls, '__signals__')
 
-		try:
-			if const & SIGNAL_OBJECT:
-				r = callback(*myargs)
-			else:
-				r = callback(obj, *myargs)
-		except:
-			logger.exception('Exception in signal handler for %s on %s', signal, obj)
-			if TEST_MODE:
-				raise
-		else:
-			yield r
+		#  1/ setup inheritance for signals
 
+		if name != 'SignalEmitter':
+			for base in bases:
+				if issubclass(base, SignalEmitter):
+					for key, value in base.__signals__.items():
+						cls.__signals__.setdefault(key, value)
 
-class BlockSignalsContextManager(object):
+		#  2/ set list of closures to be initialized per instance
 
-	def __init__(self, obj, signals):
-		self.obj = obj
-		self.signals = signals
+		cls._signal_closures = []
+		for signal in cls.__signals__:
+			name = 'do_' + signal.replace('-', '_')
+			if hasattr(cls, name):
+				order = cls.__signals__[signal][0]
+				if not order in (SIGNAL_RUN_FIRST, SIGNAL_RUN_LAST):
+					order = SIGNAL_RUN_LAST # for backward compatibility, fallback to this default
+				closure = getattr(cls, name) # unbound version!
+				cls._signal_closures.append((signal, order, closure))
 
-	def __enter__(self):
-		for signal in self.signals:
-			self.obj.block_signal(signal)
+		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
 
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		for signal in self.signals:
-			self.obj.unblock_signal(signal)
 
 
 class SignalEmitter(object):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be backward compatible with API offered by GObject.
+
+	Supported signals need to be defined in the dict C{__signals__}. For
+	each signal a 3-tuple is provided where the first argument is either
+	C{SIGNAL_RUN_FIRST} or C{SIGNAL_RUN_LAST}, the second is the return
+	argument (or C{None} for most signals) and the third is the argument
+	spec for the signal. See Glib documentation for more notes on execution
+	order etc.
 	'''
 
-	__signals__ = {} #: signals supported by this class
+	__metaclass__ = SignalEmitterMeta
 
 	# define signals we want to use - (closure type, return type and arg types)
-	# E.g. {signal: (gobject.SIGNAL_RUN_LAST, None, (object, object))}
+	# E.g. {signal: (SIGNAL_RUN_LAST, None, (object, object))}
+	__signals__ = {} #: signals supported by this class
 
-	__hooks__ = ()
-	# name of signals that return first result
+	def __new__(cls, *arg, **kwarg):
+		# New instance: init attributes for signal handling
+		obj = super(SignalEmitter, cls).__new__(cls, *arg, **kwarg)
 
+		obj._signal_handlers = {}
+		obj._signal_blocks = {}
+		obj._signal_count = 0 # ensure signals execute in order of connecting
 
-	def _get_signal(self, name):
-		if name in self.__signals__:
-			return self.__signals__[name]
-		else:
-			return None
-		# TODO: iterate base classes as well
+		for signal, order, closure in obj._signal_closures:
+			obj._signal_handlers[signal] = [(order, 0, closure)]
 
-	def connect(self, signal, handler, userdata=None):
+		return obj
+
+	def connect(self, signal, handler):
 		'''Register a handler for a specific object.
 
 		Note that connecting makes a hard reference to the connected
@@ -298,44 +277,35 @@ class SignalEmitter(object):
 		@param handler: callback to be called upon the signal,
 		first object to the callback will be the emitting object,
 		other params are signal specific.
-		@param userdata: optional data to provide to the callback
 		@returns: an id for the registered handler
 		'''
-		return self._connect(SIGNAL_NORMAL, signal, handler, userdata)
+		return self._connect(SIGNAL_BEFORE, signal, handler)
 
-	def connect_after(self, signal, handler, userdata=None):
+	def connect_after(self, signal, handler):
 		'''Like L{connect()} but handler will be called after default handler'''
-		return self._connect(SIGNAL_AFTER, signal, handler, userdata)
+		return self._connect(SIGNAL_AFTER, signal, handler)
 
-	def connect_object(self, signal, handler, obj):
-		'''Like L{connect()} but handler will be called with C{obj} as main object'''
-		return self._connect(SIGNAL_NORMAL | SIGNAL_OBJECT, signal, handler, obj)
-
-	def connect_object_after(self, signal, handler, obj):
-		'''Like L{connect()} but handler will be called with C{obj} as main object'''
-		return self._connect(SIGNAL_AFTER | SIGNAL_OBJECT, signal, handler, obj)
-
-	def _connect(self, order, signal, callback, userdata):
-		#if self._get_signal(signal) is None:
-		#	raise ValueError, 'No such signal: %s' % signal
-		assert not '_' in signal, 'Signal names use "-"'
-
-		if not hasattr(self, '_signal_handlers'):
-			self._signal_handlers = {}
+	def _connect(self, category, signal, callback):
+		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
 
 		if not signal in self._signal_handlers:
-			self._setup_signal(signal)
 			self._signal_handlers[signal] = []
+			self._setup_signal(signal)
 
-		handler = (order, callback, userdata)
+		# The "handler" is a tuple with an unique object id, which is
+		# used as the handler id. It starts with a category and a counter
+		# to ensure sorting is stable, both for categories and for the
+		# order of connecting
+		handler = (category, self._signal_count, callback)
+		self._signal_count += 1
 		self._signal_handlers[signal].append(handler)
-		handlerid = id(handler) # unique object id since we construct the tuple
-		return handlerid
+		self._signal_handlers[signal].sort()
+		return id(handler)
+
+	def _setup_signal(self, signal):
+		pass
 
 	def disconnect(self, handlerid):
-		if not hasattr(self, '_signal_handlers'):
-			return
-
 		for signal, handlers in self._signal_handlers.items():
 			# unique id, so when we find it, stop searching
 			ids = map(id, handlers)
@@ -350,73 +320,51 @@ class SignalEmitter(object):
 					self._teardown_signal(signal)
 				break
 
-	def _setup_signal(self, signal):
-		# Called first time a signal is registered - for subclasses
-		pass
-
 	def _teardown_signal(self, signal):
-		# Called after last handler is disconnected - for subclasses
 		pass
 
 	def emit(self, signal, *args):
-		#signal_spec = self._get_signal(signal)
-		#if signal_spec is None:
-		#	raise ValueError, 'No such signal: %s' % signal
-		#else:
-		#	pass # TODO check arguments
+		assert signal in self.__signals__, 'No such signal: %s::%s' % (self.__class__.__name__, signal)
 
-		return_first = signal in self.__hooks__ # XXX
+		if not len(args) == len(self.__signals__[signal][2]):
+			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)
 
-		if hasattr(self, '_blocked_signals') \
-		and self._blocked_signals.get(signal):
+		if self._signal_blocks.get(signal):
 			return # ignore emit
 
-		if not hasattr(self, '_signal_handlers') \
-		or not signal in self._signal_handlers:
-			return call_default(self, signal, args)
-		else:
-			before = [h for h in self._signal_handlers[signal] if h[0] & SIGNAL_NORMAL]
-			for r in call_handlers(self, signal, before, args):
+		return_first = self.__signals__[signal][1] is not None
+		for c, i, handler in self._signal_handlers.get(signal, []):
+			try:
+				r = handler(self, *args)
+			except:
+				logger.exception('Exception in signal handler for %s on %s', signal, self)
+			else:
 				if return_first and r is not None:
 					return r
 
-			r = call_default(self, signal, args)
-			if return_first and r is not None:
-					return r
-
-			if not signal in self._signal_handlers:
-				return None # Yes I have seen a case where default resulted in all handlers disconnected here ...
-
-			after = [h for h in self._signal_handlers[signal] if h[0] & SIGNAL_AFTER]
-			for r in call_handlers(self, signal, after, args):
-				if return_first and r is not None:
-					return r
-
-	def blocked_signals(self, *signals):
+	def block_signals(self, *signals):
 		'''Returns a context manager for blocking one or more signals'''
 		return BlockSignalsContextManager(self, signals)
 
-	def block_signal(self, signal):
-		'''Block signal emition by signal name'''
-		assert signal not in self.__hooks__, 'Cannot block a hook'
-		#if self._get_signal(signal) is None:
-		#	raise ValueError, 'No such signal: %s' % signal
 
-		if not hasattr(self, '_blocked_signals'):
-			self._blocked_signals = {}
 
-		self._blocked_signals.setdefault(signal, 0)
-		self._blocked_signals[signal] += 1
+class BlockSignalsContextManager(object):
 
-	def unblock_signal(self, signal):
-		'''Unblock signal emition by signal name'''
-		#if self._get_signal(signal) is None:
-		#	raise ValueError, 'No such signal: %s' % signal
+	def __init__(self, obj, signals):
+		self.obj = obj
+		self.signals = signals
 
-		if hasattr(self, '_blocked_signals') \
-		and signal in self._blocked_signals \
-		and self._blocked_signals[signal] > 0:
-			self._blocked_signals[signal] -= 1
+	def __enter__(self):
+		for signal in self.signals:
+			self.obj._signal_blocks.setdefault(signal, 0)
+			self.obj._signal_blocks[signal] += 1
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		for signal in self.signals:
+			if signal in self.obj._signal_blocks \
+			and self.obj._signal_blocks[signal] > 0:
+				self.obj._signal_blocks[signal] -= 1
+
 
 
 class DelayedCallback(object):
@@ -477,4 +425,11 @@ class DelayedCallback(object):
 		self.__del__()
 
 
-
+def callback(func, *arg, **kwarg):
+	'''Returns a wrapper functions that call func and.
+	Intended as wrapper for callbacks connected to (gtk) signals. The
+	wrapper ignores any arguments given.
+	'''
+	def cb(*a):
+		func(*arg, **kwarg)
+	return cb
