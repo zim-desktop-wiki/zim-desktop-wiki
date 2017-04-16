@@ -4965,6 +4965,7 @@ class PageView(gtk.VBox):
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
+		self._change_counter = 0
 
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondary:
@@ -5249,14 +5250,19 @@ class PageView(gtk.VBox):
 		# get_parsetree()) while page modified is used to track need
 		# for saving and is reset after save was done
 		self._showing_template = False
-		if buffer.get_modified() and not self.page.modified:
+		if buffer.get_modified():
 			if self.readonly:
 				logger.warn('Buffer edited while read-only - potential bug')
 			else:
-				self.page.modified = True
+				# HACK: by setting page.modified to a number rather than a
+				# bool we can use this number to check against race conditions
+				# in notebook.store_page_async post handler
+				self._change_counter = max(1, (self._change_counter + 1) % 1000)
+				self.page.modified = self._change_counter
+				assert bool(self.page.modified) is True, 'BUG in counter'
 				self.emit('modified-changed')
 
-		self._save_page_handler.queue_autosave()
+				self._save_page_handler.queue_autosave()
 
 	def save_changes(self, write_if_not_modified=False):
 		'''Save contents of the widget back to the page object and

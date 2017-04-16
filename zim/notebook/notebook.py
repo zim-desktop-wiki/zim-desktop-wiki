@@ -485,6 +485,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		page._store()
 		file, folder = self.layout.map_page(page)
 		self.index.update_file(file)
+		page.modified = False
 		self.emit('stored-page', page)
 
 	@notebook_state
@@ -492,25 +493,23 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		assert page.valid, 'BUG: page object no longer valid'
 		logger.debug('Store page in background: %s', page)
 		self.emit('store-page', page)
-		started = threading.Event()
 		error = threading.Event()
 		thread = threading.Thread(
-			target=partial(self._store_page_async_thread_main, page, parsetree_func, started, error)
+			target=partial(self._store_page_async_thread_main, page, parsetree_func, error)
 		)
 		thread.start()
+		pre_modified = page.modified
 		op = SimpleAsyncOperation(
 			notebook=self,
 			message='Store page in progress',
 			thread=thread,
-			post_handler=partial(self._store_page_async_finished, page, error)
+			post_handler=partial(self._store_page_async_finished, page, error, pre_modified)
 		)
 		op.error_event = error
 		op.run_on_idle()
-		started.wait()
 		return op
 
-	def _store_page_async_thread_main(self, page, parsetree_func, started, error):
-		started.set()
+	def _store_page_async_thread_main(self, page, parsetree_func, error):
 		try:
 			tree = parsetree_func()
 			page._store_tree(tree)
@@ -518,11 +517,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			error.set()
 			logger.exception('Error in background save')
 
-	def _store_page_async_finished(self, page, error):
+	def _store_page_async_finished(self, page, error, pre_modified):
 		if not error.is_set():
 			file, folder = self.layout.map_page(page)
 			self.index.update_file(file)
-			self.emit('stored-page', page)
+			if page.modified == pre_modified:
+				# HACK: Checking modified state protects against race condition
+				# in async store. Works because pageview sets "page.modified"
+				# to a counter rather than a boolean
+				page.modified = False
+				self.emit('stored-page', page)
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook

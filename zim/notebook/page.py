@@ -449,7 +449,6 @@ class Page(Path, SignalEmitter):
 		else:
 			self.source_file.remove()
 			self._last_etag = None
-		self.modified = False
 
 	def _check_source_etag(self):
 		if (
