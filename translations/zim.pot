@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-08 10:30+0200\n"
+"POT-Creation-Date: 2017-04-16 21:26+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3413,12 +3413,12 @@ msgstr ""
 msgid "as due date for tasks"
 msgstr ""
 
-#. Notebook sections (namespaces) to search for tasks - default is the whole tree (empty string means everything)
+#. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:63
 msgid "Section(s) to index"
 msgstr ""
 
-#. Notebook sections (namespaces) to exclude when searching for tasks - default is none
+#. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:65
 msgid "Section(s) to ignore"
 msgstr ""

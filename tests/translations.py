@@ -17,7 +17,7 @@ class TestTranslations(TestCase):
 
 			if file == 'translations/zim.pot':
 				text = open(file).read()
-				self.assertFalse('namespace' in text.lower())
+				self.assertFalse('namespace' in text.lower(), 'Use "notebook section" or instead of "namespace"')
 
 				pot_creation_date = t.headers['POT-Creation-Date']
 			else:

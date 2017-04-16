@@ -61,9 +61,9 @@ This is a core plugin shipping with zim.
 			('due', _('as due date for tasks'))       # T: choice for "Use date from journal pages"
 		)),
 		('included_subtrees', 'string', _('Section(s) to index'), '', StringAllowEmpty),
-			# T: Notebook sections (namespaces) to search for tasks - default is the whole tree (empty string means everything)
+			# T: Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 		('excluded_subtrees', 'string', _('Section(s) to ignore'), '', StringAllowEmpty),
-			# T: Notebook sections (namespaces) to exclude when searching for tasks - default is none
+			# T: Notebook sections to exclude when searching for tasks - default is none
 	)
 
 	plugin_preferences = (
