@@ -6,7 +6,8 @@
 
 import os
 
-from time import strftime
+from time import strftime, gmtime, time
+from locale import setlocale, LC_TIME
 
 from zim import __version__, __url__, \
 	__author__, __copyright__, __license__
@@ -42,8 +43,9 @@ def make():
 		os.mkdir('man')
 	except OSError:
 		pass # dir already exists
+	setlocale(LC_TIME, "C")
 	manpage = open('man/zim.1', 'w')
-	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y'), __version__))
+	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y', gmtime(int(os.environ.get('SOURCE_DATE_EPOCH', time())))), __version__))
 	manpage.write('.SH NAME\nzim \\- %s\n\n' % tagline)
 	manpage.write('.SH SYNOPSIS\n%s\n' % HelpCommand.usagehelp.replace('-', r'\-'))
 	manpage.write('.SH DESCRIPTION\n%s\n' % about)

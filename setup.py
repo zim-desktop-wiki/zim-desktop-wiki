@@ -268,7 +268,7 @@ class zim_build_class(build_class):
 
 		for i, line in enumerate(lines):
 			if line.startswith('\t\tplugins = set('):
-				lines[i] = '\t\tplugins = set(%r) # DEFAULT PLUGINS COMPILED IN BY SETUP.PY\n' % plugins
+				lines[i] = '\t\tplugins = set(%r) # DEFAULT PLUGINS COMPILED IN BY SETUP.PY\n' % sorted(plugins)
 				break
 		else:
 			assert False, 'Missed line for plugin list'
