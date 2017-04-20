@@ -496,7 +496,8 @@ class VCSBackend(ConnectorMixin):
 		@param path: the L{UnixFile} object representing the path of the file or folder to delete
 		@returns: nothing
 		"""
-		FunctionThread(self.vcs.remove, (path,), lock=self._lock).start()
+		if path.ischild(self.root) and not self._ignored(path):
+			FunctionThread(self.vcs.remove, (path,), lock=self._lock).start()
 
 	@property
 	def modified(self):
