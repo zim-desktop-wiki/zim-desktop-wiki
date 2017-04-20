@@ -22,7 +22,7 @@ class Exporter(object):
 		@param pages: a L{PageSelection} object
 		'''
 		for p in self.export_iter(pages):
-			logger.info('Exporting %s', p.name)
+			logger.info('Exporting %s', p)
 
 	def export_iter(self, pages):
 		'''Export pages while yielding page objects that are exported

@@ -161,11 +161,12 @@ class Template(SignalEmitter):
 			error.parser_file = file
 			raise
 
-		rdir = file.dir.subdir(file.basename[:-5]) # XXX strip extension, .html here
-		if rdir.exists():
-			self.resources_dir = rdir
-		else:
-			self.resources_dir = None
+		self.resources_dir = None
+		if '.' in file.basename:
+			name, ext = file.basename.rsplit('.')
+			rdir = file.dir.subdir(name)
+			if rdir.exists():
+				self.resources_dir = rdir
 
 	def process(self, output, context):
 		'''Evaluate the template
@@ -183,4 +184,3 @@ class Template(SignalEmitter):
 	def do_process(self, output, context):
 		processor = TemplateProcessor(self.parts)
 		processor.process(output, context)
-
