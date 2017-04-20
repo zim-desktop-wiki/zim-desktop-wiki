@@ -106,6 +106,9 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		# Task list
 		self.uistate.setdefault('only_show_act', False)
 		self.uistate.setdefault('show_flatlist', False)
+		self.uistate.setdefault('sort_column', 0)
+		self.uistate.setdefault('sort_order', int(gtk.SORT_DESCENDING))
+
 		opener = window.get_resource_opener()
 		task_labels = _parse_task_labels(preferences['labels'])
 		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
@@ -117,6 +120,8 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			tag_by_page=preferences['tag_by_page'],
 			use_workweek=preferences['use_workweek'],
 			flatlist=self.uistate['show_flatlist'],
+			sort_column=self.uistate['sort_column'],
+			sort_order=self.uistate['sort_order']
 		)
 		self.task_list.set_headers_visible(True)
 		self.task_list.connect('populate-popup', self.on_populate_popup)
@@ -175,6 +180,17 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
+
+		for column in self.task_list.get_columns():
+			if column.get_sort_indicator():
+				self.uistate['sort_column'] = column.get_sort_column_id()
+				self.uistate['sort_order'] = int(column.get_sort_order())
+				break
+		else:
+			# if it is unsorted, just use the defaults
+			self.uistate['sort_column'] = TaskListTreeView.PRIO_COL
+			self.uistate['sort_order'] = gtk.SORT_ASCENDING
+
 		Dialog.do_response(self, response)
 
 
@@ -331,13 +347,14 @@ class TaskListTreeView(BrowserTreeView):
 		nonactionable_tags=(),
 		filter_actionable=False, tag_by_page=False, use_workweek=False,
 		compact=False, flatlist=False,
+		sort_column=PRIO_COL, sort_order=gtk.SORT_DESCENDING
 	):
 		self.real_model = gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
 			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
 		model = gtk.TreeModelSort(model)
-		model.set_sort_column_id(self.PRIO_SORT_COL, gtk.SORT_ASCENDING)
+		model.set_sort_column_id(sort_column, sort_order)
 		BrowserTreeView.__init__(self, model)
 
 		self.tasksview = tasksview
