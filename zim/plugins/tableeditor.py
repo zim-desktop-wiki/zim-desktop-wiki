@@ -741,7 +741,7 @@ class TableViewWidget(CustomObjectWidget):
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			if linkvalue:
-				self.obj.emit('link-clicked', {'href': linkvalue})
+				self.emit('link-clicked', {'href': linkvalue})
 			return
 
 		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
@@ -846,7 +846,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_open_link(self, action, link):
 		''' Context menu: Open a link, which is written in a cell '''
-		self.obj.emit('link-clicked', {'href': link})
+		self.emit('link-clicked', {'href': link})
 
 	def on_open_help(self, action):
 		''' Context menu: Open help '''

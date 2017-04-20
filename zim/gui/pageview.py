@@ -3542,8 +3542,10 @@ class TextView(gtk.TextView):
 
 		widget.connect('release-cursor', on_release_cursor, anchor)
 
-		for signal in ('link-clicked', 'link-enter', 'link-leave'):
+		def widget_connect(signal):
 			widget.connect(signal, lambda o, *a: self.emit(signal, *a))
+		for signal in ('link-clicked', 'link-enter', 'link-leave'):
+			widget_connect(signal)
 
 		widget.on_textview_size_changed(self, *self._object_size_request)
 
