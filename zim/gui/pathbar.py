@@ -5,9 +5,14 @@
 
 import gtk
 import gobject
+import logging
 
+from zim.gui.clipboard import \
+	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
+	pack_urilist
 from zim.gui.widgets import encode_markup_text
 
+logger = logging.getLogger('zim.gui')
 
 # Constants
 DIR_FORWARD = 1
@@ -418,7 +423,9 @@ class PathBar(ScrolledHBox):
 			button.connect('clicked', self.on_button_clicked)
 			button.connect('popup-menu', self.on_button_popup_menu)
 			button.connect('button-release-event', self.do_button_release_event)
-			# TODO Drag n drop support also nice to have
+			button.connect('drag-data-get', self.on_drag_data_get)
+			button.drag_source_set(gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
+				gtk.gdk.ACTION_LINK)
 			button.show()
 			self.add(button)
 
@@ -477,6 +484,13 @@ class PathBar(ScrolledHBox):
 		self.ui.populate_popup('page_popup', menu, button.zim_path)
 		menu.popup(None, None, None, 3, 0)
 		return True
+
+	def on_drag_data_get(self, button, context, selectiondata, info, time):
+		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		path = button.zim_path
+		logger.debug('Drag data requested from PathBar, we have internal path "%s"', path.name)
+		data = pack_urilist((path.name,))
+		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
 	def get_selected_path(self):
 		'''Returns path currently selected or None'''
