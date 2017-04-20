@@ -10,7 +10,9 @@ All bookmarks are placed in the bar.
 
 ===== Plugin options =====
 The option **Save bookmarks** allows to save and load bookmarks and their names between different sessions. If it is unchecked all bookmarks will be automatically deleted after closing the program.
-The option **Add new bookmarks to the beginning of the bar** allows to choose the place where new bookmarks will be added. If checked all new bookmarks will be added to the beginning of the bar, if unchecked bookmarks will be added to the end of the bar. 
+The option **Add new bookmarks to the beginning of the bar** allows to choose the place where new bookmarks will be added. If checked all new bookmarks will be added to the beginning of the bar, if unchecked bookmarks will be added to the end of the bar.
+The option **Maximum number of bookmarks** allows to set the maximum number of bookmarks in the interval from 5 to 20.
+
 
 ===== Basic operations =====
 To show/hide the bar with bookmarks press **Bookmarks** button in the toolbar or press **<F4>** on keyboard.
@@ -24,7 +26,7 @@ Choose **Remove** to delete the bookmark from the bar,
 **Remove All** to delete all bookmarks from the bar,
 **Open in New Window** to open the bookmark in a new window,
 **Copy** to mark the bookmark for following "Paste",
-**Paste** to transfer the marked bookmark to the new position,
+**Paste** to transfer the marked bookmark to the new position. The position will be determined by coordinates of the mouse click which was made to invoke the popup menu,
 **Set New Name** to set a new name to the bookmark. The name is taken from the clipboard (if the name is too long, the plugin will take only first 25 symbols),
 **Back to Original Name** to return the bookmark to its default name. This option will appear only if the bookmark is renamed,
 **Set to Current Page** to change the bookmark into a bookmark of the currently opened page.
@@ -36,6 +38,3 @@ Check **Show full Page Name** to change names of all bookmarks to their full nam
 ===== Restrictions =====
 Only existing pages (which have content or have sub-pages) can be added as bookmarks. If a page is deleted from the notebook its bookmark also will be deleted.
 No duplicate bookmarks are allowed in the bar, though there can be different bookmarks with identical names.
-The number of bookmarks is limited to 15.
-
-
