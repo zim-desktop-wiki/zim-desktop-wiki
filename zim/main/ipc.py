@@ -10,7 +10,7 @@ It provides low level functions to:
 
   1. Dispatching a list of commandline arguments to a socket
   2. Listening to a socket for commandline arguments. If recieved,
-     a callback is invoked to handle those arguments.
+	 a callback is invoked to handle those arguments.
 
 '''
 
@@ -64,19 +64,52 @@ else:
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
+SERVER_ADDRESS += '-%i'
+COUNTER = 0
+
+# For robustness against unavailable sockets, if socket exists but error
+# occurs when connecting, we increase COUNTER and try again. Thus trying to
+# find the first socket that is avaialable
+#
+# Errors that we encountered:
+#
+# On windows:
+# - Client:
+#   - WindowsError: [Errno 2] -- pipe does not exist
+#   - EOFError -- no reply (close while waiting)
+# - Listener
+#   - no errors seen, seems to allow multiple listeners on one pipe !
+#
+# On Linux:
+# - Client
+#   - socket.error: [Errno 2] - 'No such file or directory'
+#   - IOError: [Errno 104] - 'Connection reset by peer' - close while sending
+#   - EOFError close while waiting for reply
+# - Listener
+#   - socket.error: [Errno 98]  - 'Address already in use'
+
+
 
 def dispatch(*args):
 	'''If there is an existing zim process pass along the arguments
 	@param args: commandline arguments
 	@raises AssertionError: when no existing zim process or connection failed
 	'''
+	global COUNTER
 	assert not get_in_main_process()
 	try:
-		conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
+		conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
 		conn.send(args)
 		re = conn.recv()
-	except:
-		raise AssertionError, 'Error while connecting'
+	except Exception, e:
+		if hasattr(e, 'errno') and e.errno == 2:
+			raise AssertionError, 'No-one is listening'
+		else:
+			COUNTER += 1
+			if COUNTER < 100:
+				return dispatch(*args) # recurs
+			else:
+				raise
 	else:
 		if not re == 'OK':
 			raise AssertionError, 'Error in response: got %s' % re
@@ -98,8 +131,18 @@ def start_listening(handler):
 
 
 def _listener_thread_main(started, handler):
-	l = Listener(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
+	global COUNTER
+	try:
+		l = Listener(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
+	except:
+		COUNTER += 1
+		if COUNTER < 100:
+			return _listener_thread_main(started, handler) # recurs
+		else:
+			raise
+
 	started.set()
+	logger.debug('Listening on %s', SERVER_ADDRESS % COUNTER)
 	while True:
 		conn = l.accept()
 		args = conn.recv()
@@ -110,6 +153,7 @@ def _listener_thread_main(started, handler):
 		if args == 'CLOSE':
 			conn.send('OK')
 			conn.close()
+			break
 		else:
 			assert isinstance(args, (list, tuple))
 
@@ -127,7 +171,6 @@ def _listener_thread_main(started, handler):
 
 def _close_listener():
 	# For testing
-	conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
+	conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
 	conn.send('CLOSE')
 	re = conn.recv()
-
