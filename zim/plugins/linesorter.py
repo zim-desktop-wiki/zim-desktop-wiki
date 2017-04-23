@@ -57,7 +57,7 @@ class MainWindowExtension(WindowExtension):
 		try:
 			sel_start, sel_end = buffer.get_selection_bounds()
 		except ValueError:
-			MessageDialog(self.ui,
+			MessageDialog(self.window,
 				_('Please select more than one line of text, first.')).run()
 				# T: Error message in "" dialog, %s will be replaced by application name
 			return
