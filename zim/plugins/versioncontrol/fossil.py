@@ -23,6 +23,8 @@ RE_Time = re.compile(r"[0-9][0-9]:[0-9][0-9]:[0-9][0-9]")
 
 class FOSSILApplicationBackend(VCSApplicationBase):
 
+	use_staging = False
+
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('fossil',))

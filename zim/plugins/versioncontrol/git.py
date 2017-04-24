@@ -16,7 +16,27 @@ from zim.applications import Application
 logger = logging.getLogger('zim.vcs.git')
 
 
+# NOTE about staging: git has the concept of an "index" or "staging area"
+# that captures changes for the next commit and which is seperate from the
+# changes in the working directory. Specifically in contrast to the other
+# vcs systems supported in zim, git "add" only adds changes at that time, not
+# the files itself.
+#
+# Two operation modes:
+# 1. commit done through zim, we can run "add" on commit time and capture all
+#    changes, but also e.g. attachments added via the file manager
+# 2. commit is done outside of zim, we can run "add" on page and file changes
+#    to ensure latest version is captured by git commit. We do not cover files
+#    added e.g. via file manager in this case
+#
+# Thus we need to update staging on each page and file change, as well as
+# look for new files on commit.
+#
+
+
 class GITApplicationBackend(VCSApplicationBase):
+
+	use_staging = True
 
 	@classmethod
 	def build_bin_application_instance(cls):
@@ -227,9 +247,8 @@ class GITApplicationBackend(VCSApplicationBase):
 		else:
 			self.run(['reset', '--hard', 'HEAD'])
 
-	def stage(self):
-		self.run(['add', '-u'])
-		self.run(['add', '-A'])
+	def stage(self, file):
+		self.run(['add', file.relpath(self.root)])
 
 	def status(self, porcelain=False):
 		"""

@@ -335,11 +335,11 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
 		subdir = root.subdir('foo/bar')
 		file = subdir.file('baz.txt')
 		file.write('foo\nbar\n')
+		vcs.stage(file)
 		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
 			'A  .gitignore\n'
 			'A  foo/bar/baz.txt\n'
 		)
-		vcs.update_staging()
 		vcs.commit('test 1')
 #[master 0f4132e] test 1
 # 1 files changed, 3 insertions(+), 0 deletions(-)
@@ -350,12 +350,12 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
 
 		file = subdir.file('bar.txt')
 		file.write('second\ntest\n')
+		vcs.stage(file)
 
 		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
 			'A  foo/bar/bar.txt\n'
 		)
 
-		vcs.update_staging()
 		vcs.commit('test 2')
 #[master dbebdf1] test 2
 # 0 files changed, 0 insertions(+), 0 deletions(-)
@@ -635,7 +635,6 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		self.assertEqual(''.join(vcs.get_status()),
 			'ADDED      foo/bar/baz.txt\n'
 		)
-		vcs.update_staging()
 		vcs.commit('test 1')
 
 		file = subdir.file('bar.txt')
@@ -646,7 +645,6 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 			'ADDED      foo/bar/bar.txt\n'
 		)
 
-		vcs.update_staging()
 		vcs.commit('test 2')
 
 		versions = vcs.list_versions()

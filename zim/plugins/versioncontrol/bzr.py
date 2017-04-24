@@ -17,6 +17,8 @@ logger = logging.getLogger('zim.vcs.bzr')
 
 class BZRApplicationBackend(VCSApplicationBase):
 
+	use_staging = False
+
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('bzr',))

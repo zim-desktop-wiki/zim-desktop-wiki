@@ -582,7 +582,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
 		if len(exts) == 1:
 			return exts[0]
-		elif len(ext) > 1:
+		elif len(exts) > 1:
 			raise AssertionError, 'BUG: multiple extensions found of class: %s' % klass
 		else:
 			raise ValueError, 'No extension of class: %s' % klass

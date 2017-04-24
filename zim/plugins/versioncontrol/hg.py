@@ -21,6 +21,8 @@ logger = logging.getLogger('zim.vcs.hg')
 
 class HGApplicationBackend(VCSApplicationBase):
 
+	use_staging = False
+
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('hg', '--noninteractive', '--encoding', 'utf8'), encoding='utf-8')

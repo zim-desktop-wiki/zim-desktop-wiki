@@ -105,15 +105,11 @@ class NotebookExtension(ObjectExtension):
 	def detect_vcs(self):
 		dir = self._get_notebook_dir()
 		self.vcs = VCS.detect_in_folder(dir)
-		if self.vcs:
+		if self.vcs and self.vcs.use_staging:
 			# HACK - FIXME use proper FS signals here
 			# git requires changes to be added to staging, bzr does not
 			# so add a hook for when page is written, to update staging.
-			#
-			# For a more generic behavior, the update_staging is implemented
-			# for all version control systems. If not required - eg. bzr, hg,
-			# then nothing is done
-			self.notebook.connect_after('stored-page', lambda o, n: self.vcs.update_staging() )
+			self.notebook.connect_after('stored-page', self.vcs.update_staging)
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
@@ -422,6 +418,10 @@ class VCSBackend(ConnectorMixin):
 			) )
 
 	@property
+	def use_staging(self):
+		return self._app.use_staging
+
+	@property
 	def vcs(self):
 		return self._app
 
@@ -578,9 +578,13 @@ class VCSBackend(ConnectorMixin):
 			version = self.vcs.cat(file, version)
 		return version
 
-	def update_staging(self):
+	def update_staging(self, notebook, page):
+		file, x = notebook.layout.map_page(page)
+		self.stage(file)
+
+	def stage(self, file):
 		with self.lock:
-			self.vcs.stage()
+			self.vcs.stage(file)
 
 
 class VCSApplicationBase(object):
