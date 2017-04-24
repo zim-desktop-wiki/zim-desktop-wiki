@@ -601,8 +601,15 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
 		try:
 			self.disconnect_all()
+			self.teardown()
 		except:
 			logger.exception('Exception while disconnecting %s', self)
+
+	def teardown(self):
+		'''Cleanup method called by C{destroy()}.
+		Can be implemented by sub-classes.
+		'''
+		pass
 
 
 def extends(eklass, autoload=True):
@@ -697,7 +704,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 	def teardown(self):
 		'''Remove changes made by B{this} class from the extended object
 		To be overloaded by child classes
-		@note: do not call parent class C{remove()} here, that is
+		@note: do not call parent class C{teardown()} here, that is
 		already taken care of by C{destroy()}
 		'''
 		self.disconnect_all()

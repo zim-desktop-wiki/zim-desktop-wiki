@@ -122,6 +122,10 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		ObjectManager.register_object(OBJECT_TYPE, self.create_table)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
+	def teardown(self):
+		''' Deconstructor '''
+		ObjectManager.unregister_object(OBJECT_TYPE)
+
 	def create_table(self, attrib, text):
 		'''
 		Automatic way for displaying the table-object as a table within the wiki,
@@ -226,11 +230,6 @@ class MainWindowExtension(WindowExtension):
 		# reload tables on current page after plugin activation
 		if self.window.ui.page:
 			self.window.ui.reload_page()
-
-	def teardown(self):
-		''' Deconstructor '''
-		ObjectManager.unregister_object(OBJECT_TYPE)
-		self.window.ui.reload_page()
 
 	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):

@@ -112,7 +112,7 @@ class MultiFileExporter(FilesExporterBase):
 
 		if self.index_page:
 			try:
-				logger.info('Export index: %s', self.index_page, pages)
+				logger.info('Export index: %s', self.index_page)
 				yield self.index_page
 				self.export_index(self.index_page, pages)
 			except:

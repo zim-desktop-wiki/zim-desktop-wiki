@@ -88,6 +88,9 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 		ObjectManager.register_object(OBJECT_TYPE, self.create_object) # register the plugin in the main init so it works for a non-gui export
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
+	def teardown(self):
+		ObjectManager.unregister_object(OBJECT_TYPE)
+
 	def create_object(self, attrib, text):
 		'''Factory method for SourceViewObject objects'''
 		obj = SourceViewObject(attrib, text, self.preferences)
@@ -116,11 +119,6 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		#ObjectManager.register_object(OBJECT_TYPE, self.plugin.create_object) already registered in the main init
-			# XXX use pageview attribute instead of singleton
-
-	def teardown(self):
-		ObjectManager.unregister_object(OBJECT_TYPE)
 
 	@action(_('Code Block'), readonly=False) # T: menu item
 	def insert_sourceview(self):
