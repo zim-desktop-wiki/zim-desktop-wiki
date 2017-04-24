@@ -1876,6 +1876,7 @@ class MainWindow(Window):
 		self.pageview.save_changes() # XXX probably dubble of close_page, just to be sure
 		if self.ui.page.modified:
 			return # Do not quit if page not saved
+		self.pageview.page.set_ui_object(None) # XXX
 
 		self.hide() # look more responsive
 		self.ui.notebook.index.stop_background_check()
