@@ -580,6 +580,7 @@ class VCSBackend(ConnectorMixin):
 
 	def update_staging(self, notebook, page):
 		file, x = notebook.layout.map_page(page)
+		file = File(file.path) # newfs.LocalFile --> File
 		self.stage(file)
 
 	def stage(self, file):
