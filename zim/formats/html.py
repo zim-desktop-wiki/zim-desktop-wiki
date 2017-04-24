@@ -214,12 +214,7 @@ class Dumper(DumperClass):
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		# Fallback to verbatim paragraph
-		strings.insert(0, '<pre>\n')
-		strings.append('</pre>\n')
-		return strings
-
-		# TODO put content in attrib, use text for caption (with full recursion)
-		# See img
+		return ['<pre>\n'] + map(html_encode, strings) + ['</pre>\n']
 
 	def dump_table(self, tag, attrib, strings):
 		aligns = attrib['aligns'].split(',')
@@ -268,4 +263,3 @@ class Dumper(DumperClass):
 
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n<hr>\n'
-
