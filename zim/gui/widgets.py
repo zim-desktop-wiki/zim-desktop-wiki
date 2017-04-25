@@ -2643,7 +2643,7 @@ class Window(gtkwindowclass):
 					self._zim_window_central_hbox, 'position')
 			self._zim_window_main.reorder_child(widget, i)
 
-		self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
+		#self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
 			# Force to ignore the bars in keyboard navigation
 			# items in the bars are all accesible by accelerators
 

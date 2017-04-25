@@ -2078,12 +2078,12 @@ class MainWindow(Window):
 		self._sidepane_autoclose = False
 		Window.save_uistate(self)
 
-	#~ def do_set_focus(self, widget):
-		#~ if widget == self.pageview.view \
-		#~ and self._sidepane_autoclose:
-			#~ # Sidepane open and should close automatically
-			#~ self.toggle_panes(False)
-		#~ return Window.do_set_focus(self, widget)
+	def do_set_focus(self, widget):
+		Window.do_set_focus(self, widget)
+		if widget == self.pageview.view \
+		and self._sidepane_autoclose:
+			# Sidepane open and should close automatically
+			self.toggle_panes(False)
 
 	def toggle_sidepane_focus(self, *a):
 		'''Switch focus between the textview and the page index.
@@ -2097,13 +2097,16 @@ class MainWindow(Window):
 			if self.pageview.view.is_focus():
 				self.focus_last_sidepane() or self.pageindex.grab_focus()
 			else:
-				self.pageview.grab_focus()
 				if self._sidepane_autoclose:
 					self.toggle_panes(False)
+				else:
+					self.pageview.grab_focus()
 		else:
 			# open the pane
 			self.toggle_panes(True)
 			self._sidepane_autoclose = True
+
+		return True # stop
 
 	@radio_action(
 		radio_option(PATHBAR_NONE, _('_None')),
