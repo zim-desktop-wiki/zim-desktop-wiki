@@ -92,7 +92,7 @@ class LinkMap(object):
 
 		dotcode.append('}')
 
-		#~ print '\n'.join(dotcode)+'\n'
+		#print '\n'.join(dotcode)+'\n'
 		return '\n'.join(dotcode)+'\n'
 
 

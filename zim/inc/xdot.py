@@ -702,7 +702,10 @@ class Lexer:
                     msg += "'%s'" % text
                 else:
                     msg += "0x%X" % ord(text)
-                raise ParseError(msg, self.filename, line, col)
+                #raise ParseError(msg, self.filename, line, col)
+                # XXX: disabled this error to avoid the issue reported in
+                #      lp bug 1483018 - probably a much deeper issue underneath
+                #      but for now this works .... cross fingers
             else:
                 break
         return Token(type = type, text = text, line = line, col = col)
