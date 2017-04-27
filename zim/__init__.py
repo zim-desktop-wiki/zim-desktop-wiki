@@ -155,20 +155,24 @@ if os.name == "nt" and not os.environ.get('LANG'):
 	lang, enc = locale.getlocale()
 	if lang is not None:
 		os.environ['LANG'] = lang + '.' + enc if enc else lang
-		logging.info('Locale set to: %s', os.environ['LANG'])
+		logger.info('Locale set to: %s', os.environ['LANG'])
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
 if not os.name == "nt":
 	_localedir = _localedir.encode(sys.getfilesystemencoding())
 
-if os.path.isdir(_localedir):
-	# We are running from a source dir - use the locale data included there
-	gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
-else:
-	# Hope the system knows where to find the data
-	gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
-
+try:
+	if os.path.isdir(_localedir):
+		# We are running from a source dir - use the locale data included there
+		gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+	else:
+		# Hope the system knows where to find the data
+		gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+except:
+	logger.exception('Error loading translation')
+	trans = gettext.NullTranslations()
+	trans.install(unicode=True, names=('_', 'gettext', 'ngettext'))
 
 
 
