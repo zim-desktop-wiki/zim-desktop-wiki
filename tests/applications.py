@@ -18,6 +18,7 @@ from zim.fs import Dir, TmpFile
 THUMB_SIZE_NORMAL = 128
 
 
+@tests.skipIf(os.name == 'nt', 'Skip for windows')
 @tests.slowTest
 class TestXDGMimeInfo(tests.TestCase):
 
@@ -425,4 +426,3 @@ class StubPageView(object):
 if __name__ == '__main__':
 	import unittest
 	unittest.main()
-

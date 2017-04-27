@@ -194,7 +194,8 @@ class TestFS(tests.TestCase):
 			open(new, 'w').write('NEW\n')
 			open(orig, 'w').write('ORIG\n')
 			self.assertTrue(file.exists())
-			self.assertEqual(file.read(), 'NEW\n')
+			with tests.LoggingFilter('zim.fs', 'Left over file found:'):
+				self.assertEqual(file.read(), 'NEW\n')
 			self.assertFalse(os.path.isfile(new))
 			self.assertFalse(os.path.isfile(orig))
 			self.assertTrue(os.path.isfile(file.encodedpath))
@@ -204,7 +205,8 @@ class TestFS(tests.TestCase):
 			os.remove(file.encodedpath) # don't clean up folder
 			open(orig, 'w').write('ORIG 1\n')
 			self.assertFalse(file.exists())
-			self.assertRaises(FileNotFoundError, file.read)
+			with tests.LoggingFilter('zim.fs', ''):
+				self.assertRaises(FileNotFoundError, file.read)
 			self.assertFalse(os.path.isfile(orig))
 			self.assertTrue(os.path.isfile(bak))
 			self.assertTrue(os.path.isfile(bak1))

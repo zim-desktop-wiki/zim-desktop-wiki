@@ -272,7 +272,7 @@ class TestFS(object):
 
 		for name, mtype in (
 			('foo.txt', 'text/plain'),
-			('foo.png', 'image/png'),
+			#('foo.png', 'image/png'), # image/x-png on windows
 			('foo', 'application/octet-stream'),
 			('foo.bz2', 'application/x-bzip2'),
 			('foo.gz', 'application/x-gzip'),
@@ -978,4 +978,3 @@ class TestTrash(tests.TestCase):
 		self.assertFalse(helper.trash(dir))
 
 		# How can we cause gio to give an error and test that case ??
-

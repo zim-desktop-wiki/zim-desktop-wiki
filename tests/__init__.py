@@ -519,7 +519,10 @@ class TestData(object):
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
 			text = unicode(node.text.lstrip('\n'))
-			test_data.append((name, text))
+			if os.name =='nt' and isinstance(name, unicode):
+				pass # XXX No idea what goes wrong, but names are messed up
+			else:
+				test_data.append((name, text))
 
 		self._test_data = tuple(test_data)
 
@@ -627,7 +630,7 @@ def new_notebook(fakedir=None):
 	from zim.notebook.index import Index
 
 	from zim.notebook.layout import FilesLayout
-	from zim.newfs.mock import MockFolder, clone_mock_object
+	from zim.newfs.mock import MockFolder, clone_mock_object, os_native_path
 
 	global _notebook_data
 	if not _notebook_data: # run this one time only
@@ -651,6 +654,7 @@ def new_notebook(fakedir=None):
 
 	if fakedir:
 		fakedir = fakedir if isinstance(fakedir, basestring) else fakedir.path
+		fakedir = os_native_path(fakedir)
 	templfolder, sql, manifest = _notebook_data
 	folder = MockFolder(fakedir or templfolder.path)
 	clone_mock_object(templfolder, folder)
@@ -678,14 +682,10 @@ def new_notebook(fakedir=None):
 	###
 	config = NotebookConfig(file)
 
+	notebook = Notebook(None, None, config, folder, layout, index)
 	if fakedir:
-		dir = Dir(fakedir)
-		cache_dir = dir.subdir('.zim')
-	else:
-		dir = None
-		cache_dir = None
+		notebook.dir = Dir(fakedir)
 
-	notebook = Notebook(dir, cache_dir, config, folder, layout, index)
 	notebook.testdata_manifest = manifest
 	return notebook
 

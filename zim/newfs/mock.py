@@ -14,6 +14,7 @@ classes for all file system related objects.
 
 from __future__ import with_statement
 
+import os
 import time
 
 from .base import *
@@ -34,6 +35,22 @@ def clone_mock_object(source, target):
 	newnode = target._fs.touch(target.pathnames, mynode.deepcopy_data())
 	newnode.ctime = mynode.ctime
 	newnode.mtime = mynode.mtime
+
+
+def os_native_path(unixpath):
+	'''Adapts unix style paths for windows if needed
+	Used for convenience to of writing cross-platform test cases
+	Called automatically when constructing a L{MockFile} or L{MockFolder} object
+	Does not modify URLs
+	@param unixpath: the (mock) unix path as a string
+	'''
+	assert isinstance(unixpath, basestring)
+	if os.name == 'nt' and not is_url_re.match(unixpath):
+		if unixpath.startswith('/'):
+			unixpath = 'M:' + unixpath # arbitrary drive letter, should be OK for mock
+		return unixpath.replace('/', '\\')
+	else:
+		return unixpath
 
 
 class MockFSNode(object):
@@ -135,6 +152,8 @@ class MockFSObjectBase(FSObjectBase):
 	# file system.
 
 	def __init__(self, path, watcher=None, _fs=None):
+		if isinstance(path, basestring):
+			path = os_native_path(path) # make test syntax easier
 		FSObjectBase.__init__(self, path, watcher=watcher)
 		if not _fs:
 			_fs = MockFS()
@@ -359,5 +378,3 @@ class MockFile(MockFSObjectBase, File):
 
 	def writelines(self, lines):
 		self.write(''.join(lines))
-
-

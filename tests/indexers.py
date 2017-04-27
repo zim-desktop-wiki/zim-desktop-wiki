@@ -15,6 +15,7 @@ import time
 
 from zim.notebook.layout import FilesLayout
 from zim.newfs import LocalFolder, File
+from zim.newfs.mock import os_native_path
 
 from zim.notebook import Path
 from zim.notebook.index.files import FilesIndexer, TestFilesDBTable, FilesIndexChecker
@@ -23,9 +24,13 @@ from zim.notebook.index.links import LinksIndexer
 from zim.notebook.index.tags import TagsIndexer
 
 
+def is_dir(path):
+	return path.endswith('/') or path.endswith('\\')
+
+
 class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
-	FILES = (
+	FILES = tuple(map(os_native_path, (
 		'foo.txt', # page with children
 		'foo/',
 		'foo/test.png',
@@ -43,15 +48,15 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
 		'argh/', # not a page
 		'argh/somefile.pdf',
-	)
-	FILES_UPDATE = (
+	)))
+	FILES_UPDATE = tuple(map(os_native_path, (
 		'tmp.txt', # page with child
 		'tmp/',
 		'tmp/foo.txt',
 
 		'new/', # nested page
 		'new/page.txt',
-	)
+	)))
 	FILES_CHANGE = (
 		'foo.txt',
 	)
@@ -95,7 +100,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		self.create_files(self.FILES)
 		check_and_update_all()
 
-		files = set(f for f in self.FILES if not f.endswith('/'))
+		files = set(f for f in self.FILES if not is_dir(f))
 
 		self.assertEqual(set(signals['file-row-inserted']), files)
 		self.assertEqual(set(signals['file-row-changed']), files)
@@ -111,7 +116,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		)
 		check_and_update_all()
 
-		files = set(f for f in self.FILES_UPDATE if not f.endswith('/'))
+		files = set(f for f in self.FILES_UPDATE if not is_dir(f))
 		update = files | set(self.FILES_CHANGE)
 
 		self.assertEqual(set(signals['file-row-inserted']), files)
@@ -128,7 +133,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		self.remove_files(self.FILES_UPDATE)
 		check_and_update_all()
 
-		files = set(f for f in self.FILES_UPDATE if not f.endswith('/'))
+		files = set(f for f in self.FILES_UPDATE if not is_dir(f))
 
 		self.assertEqual(signals['file-row-inserted'], [])
 		self.assertEqual(signals['file-row-changed'], [])
@@ -140,14 +145,14 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
 	def create_files(self, files):
 		for name in files:
-			if name.endswith('/'):
+			if is_dir(name):
 				self.root.folder(name).touch()
 			else:
 				self.root.file(name).write(self.PAGE_TEXT)
 
 	def remove_files(self, files):
 		for name in reversed(files):
-			if name.endswith('/'):
+			if is_dir(name):
 				self.root.folder(name).remove()
 			else:
 				self.root.child(name).remove()
@@ -155,7 +160,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
 class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 
-	FILES = (
+	FILES = tuple(map(os_native_path, (
 		'foo.txt', # page with children
 		'foo/test.png',
 		'foo/sub1.txt',
@@ -164,7 +169,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		'foo-bar.txt', # page without children
 		'baz/dus/ja.txt', # page nested 2 folders deep
 		'argh/somefile.pdf', # not a page
-	)
+	)))
 	PAGES = (
 		'foo',
 		'foo:sub1',

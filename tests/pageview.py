@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import tests
 
+import os
 
 from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
@@ -13,6 +14,8 @@ from zim.notebook import Path
 from zim.gui.pageview import *
 from zim.config import SectionedConfigDict, VirtualConfigManager, ConfigManager
 from zim.gui.clipboard import Clipboard
+
+from zim.newfs.mock import os_native_path
 
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
@@ -1650,11 +1653,12 @@ foo
 		page = tests.new_page_from_text('[[~//bar.txt]]')
 			# Extra '/' is in there to verify path gets parsed as File object
 		pageview.set_page(page)
+		wanted = '~/bar.txt' if os.name != 'nt' else '~\\bar.txt'
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), '~/bar.txt')
 		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
 		self.assertEqual(tree.tostring(),
-			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="~/bar.txt">~/bar.txt</link></zim-tree>')
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
 
 
@@ -1733,14 +1737,14 @@ Baz
 
 		buffer.place_cursor(buffer.get_end_iter())
 		pageview.insert_links((Path("foo"), File("/foo.txt"), "~/bar.txt"))
-		wantedtext = 'Test 123\nfoo\n%s\n~/bar.txt\n' % File('/foo.txt').uri
+		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % (File('/foo.txt').uri, os_native_path('~/bar.txt'))
 		text = buffer.get_text(*buffer.get_bounds())
 		self.assertEqual(text, wantedtext)
 
 		buffer.place_cursor(buffer.get_iter_at_line(2))
 		buffer.select_line()
 		pageview.insert_links(('http://cpan.org',))
-		wantedtext = 'Test 123\nfoo\n%s\n~/bar.txt\n' % 'http://cpan.org '
+		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % ('http://cpan.org ', os_native_path('~/bar.txt'))
 		text = buffer.get_text(*buffer.get_bounds())
 		self.assertEqual(text, wantedtext)
 

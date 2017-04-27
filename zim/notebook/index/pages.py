@@ -667,7 +667,6 @@ class PagesView(IndexView):
 		# lower level) try one level up to "anchor" the link.
 		# It is absolute must to use resolve_link() here - this ensures the
 		# outcome is always consistent between these functions.
-
 		parentnames = []
 		for n1, n2 in zip(source.parts, target.parts):
 			if n1 == n2:
@@ -676,14 +675,16 @@ class PagesView(IndexView):
 				break
 
 		def try_link(names):
+			assert names
 			href = HRef(HREF_REL_FLOATING, ':'.join(names))
 			pid, pagename = self._pages.resolve_link(source, href)
-			if pagename == target:
-				return href
+			return href if pagename == target else None
 
 		relnames = target.parts[len(parentnames):]
+		if not relnames: # Target is direct parent
+			relnames.insert(0, parentnames.pop())
 		href = try_link(relnames)
-		if href:
+		if href is not None:
 			return href
 		else:
 			while parentnames:

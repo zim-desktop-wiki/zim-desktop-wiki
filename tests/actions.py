@@ -125,7 +125,7 @@ class TestRadioAction(tests.TestCase):
 
 		gtk_group = get_gtk_actiongroup(obj)
 		self.assertEqual(
-			[a.get_name() for a in gtk_group.list_actions()],
+			sorted(a.get_name() for a in gtk_group.list_actions()),
 			['test_action_AAA', 'test_action_BBB']
 		)
 

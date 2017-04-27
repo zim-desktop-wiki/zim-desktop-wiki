@@ -482,4 +482,3 @@ class TmpFile(LocalFile):
 	def __del__(self):
 		if not self.persistent:
 			self.remove()
-

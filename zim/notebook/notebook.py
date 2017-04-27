@@ -1066,12 +1066,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		notebook_root = self.layout.root
 		document_root = LocalFolder(self.document_root.path) if self.document_root else None# XXX
 
+		rootdir = '/'
+		mydir = '.' + os.sep
+		updir = '..' + os.sep
+
 		# Look within the notebook
 		if path:
 			attachments_dir = self.get_attachments_dir(path)
 
 			if file.ischild(attachments_dir):
-				return './'+file.relpath(attachments_dir)
+				return mydir + file.relpath(attachments_dir)
 			elif document_root and notebook_root \
 			and document_root.ischild(notebook_root) \
 			and file.ischild(document_root) \
@@ -1079,7 +1083,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				# special case when document root is below notebook root
 				# the case where document_root == attachment_folder is
 				# already caught by above if clause
-				return '/'+file.relpath(document_root)
+				return rootdir + file.relpath(document_root)
 			elif notebook_root \
 			and file.ischild(notebook_root) \
 			and attachments_dir.ischild(notebook_root):
@@ -1087,19 +1091,19 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
-				return '../'*up + downpath
+				return updir*up + downpath
 		else:
 			if document_root and notebook_root \
 			and document_root.ischild(notebook_root) \
 			and file.ischild(document_root):
 				# special case when document root is below notebook root
-				return '/'+file.relpath(document_root)
+				return rootdir + file.relpath(document_root)
 			elif notebook_root and file.ischild(notebook_root):
-				return './'+file.relpath(notebook_root)
+				return mydir + file.relpath(notebook_root)
 
 		# If that fails look for global folders
 		if document_root and file.ischild(document_root):
-			return '/'+file.relpath(document_root)
+			return rootdir + file.relpath(document_root)
 
 		# Finally check HOME or give up
 		path = file.userpath

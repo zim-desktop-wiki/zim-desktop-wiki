@@ -5,6 +5,7 @@
 
 '''This modules handles export of LaTeX Code'''
 
+import os
 import re
 import string
 import logging
@@ -132,6 +133,8 @@ class Dumper(TextDumper):
 
 	def dump_ol(self, tag, attrib, strings):
 		start = attrib.get('start', 1)
+		if os.name == 'nt':
+			start = start.encode('utf-8') # Weird locale dependent behavior
 		if start in string.lowercase:
 			type = 'a'
 			start = string.lowercase.index(start) + 1

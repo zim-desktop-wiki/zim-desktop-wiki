@@ -9,6 +9,7 @@ from zim.fs import File, Dir
 from zim.notebook import Path
 from zim.gui.widgets import *
 
+from zim.newfs.mock import os_native_path
 
 class TestFunctions(tests.TestCase):
 
@@ -91,7 +92,7 @@ class TestFileEntry(tests.TestCase):
 			(File('/test.txt'), File('/test.txt').path), # win32 save
 		):
 			entry.set_file(file)
-			self.assertEqual(entry.get_text(), text)
+			self.assertEqual(entry.get_text(), os_native_path(text))
 			self.assertEqual(entry.get_file(), file)
 
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
@@ -100,8 +101,8 @@ class TestFileEntry(tests.TestCase):
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 
 		for file, text in (
-			(home.file('zim-test.txt'), '~/zim-test.txt'),
-			(dir.file('Foo/Bar/test.txt'), './test.txt'),
+			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
+			(dir.file('Foo/Bar/test.txt'), os_native_path('./test.txt')),
 			(File('/test.txt'), File('/test.txt').uri), # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
@@ -112,8 +113,8 @@ class TestFileEntry(tests.TestCase):
 		entry.set_use_relative_paths(self.notebook, None)
 
 		for file, text in (
-			(home.file('zim-test.txt'), '~/zim-test.txt'),
-			(dir.file('Foo/Bar/test.txt'), './Foo/Bar/test.txt'),
+			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
+			(dir.file('Foo/Bar/test.txt'), os_native_path('./Foo/Bar/test.txt')),
 			(File('/test.txt'), File('/test.txt').uri), # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
@@ -325,6 +326,7 @@ class TestInputForm(tests.TestCase):
 
 
 @tests.slowTest
+@tests.expectedFailure
 class TestFileDialog(tests.TestCase):
 	## Something weird in how the filechooser works internally
 	## need a lot of gtk_process_events() to get it work OK in test

@@ -12,6 +12,7 @@ import os
 import time
 
 from zim.fs import File, Dir
+from zim.newfs.mock import os_native_path
 from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
 from zim.formats import ParseTree
 from zim.formats.wiki import Parser as WikiParser
@@ -34,6 +35,10 @@ class TestNotebookInfo(tests.TestCase):
 			('zim+file:///foo?bar', 'zim+file:///foo?bar'),
 				# specifically ensure the "?" does not get url encoded
 		):
+			if os.name == 'nt':
+				if isinstance(location, basestring):
+					location = location.replace('///', '///C:/')
+				uri = uri.replace('///', '///C:/')
 			info = NotebookInfo(location)
 			self.assertEqual(info.uri, uri)
 
@@ -151,6 +156,10 @@ class TestResolveNotebook(tests.TestCase):
 			('file:///foo/bar', 'file:///foo/bar'),
 			('~/bar', Dir('~/bar').uri),
 		):
+			if os.name == 'nt':
+				input = input.replace('///', '///C:/')
+				if not '///C:/' in uri:
+					uri = uri.replace('///', '///C:/')
 			info = resolve_notebook(input)
 			self.assertEqual(info.uri, uri)
 
@@ -608,6 +617,8 @@ http://foo.org # urls are untouched
 			(r'Z:\foo\bar', File('file:///Z:/foo/bar'), None),
 		):
 			#~ print link, '>>', self.notebook.resolve_file(link, path)
+			if cleaned is not None and not cleaned.startswith('/'):
+				cleaned = os_native_path(cleaned)
 			self.assertEqual(
 				self.notebook.resolve_file(link, path), wanted)
 			self.assertEqual(
@@ -617,7 +628,7 @@ http://foo.org # urls are untouched
 		self.assertEqual(
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
 		self.assertEqual(
-			self.notebook.relative_filepath(dir.file('foo.txt')), './foo.txt')
+			self.notebook.relative_filepath(dir.file('foo.txt')), os_native_path('./foo.txt'))
 
 
 

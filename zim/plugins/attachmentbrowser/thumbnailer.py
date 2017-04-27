@@ -87,11 +87,11 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	'''Thumbnailer implementation that uses the C{gtk.gdk.Pixbuf}
 	functions to create the thumbnail.
 	'''
-	if not (
-		isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)
-	):
+	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)) \
+	or (os.name == 'nt' and file.basename.endswith('.svg')):
+		# .svg causes segfaults on windows, even if svg support enabled 
 		raise ThumbnailCreatorFailure
-		
+
 	tmpfile = thumbfile.parent().file('zim-thumb.new~')
 	options = { # no unicode allowed in options!
 		'tEXt::Thumb::URI': str( file.uri ),
@@ -251,7 +251,7 @@ class ThumbnailManager(object):
 		'''
 		if not isinstance(file, LocalFile):
 			return None, None
-			
+
 		thumbfile = self.get_thumbnail_file(file, size)
 		if thumbfile.exists():
 			# Check the thumbnail is valid

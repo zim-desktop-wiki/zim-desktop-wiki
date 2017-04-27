@@ -11,6 +11,7 @@ from tests.environ import EnvironmentContext
 import os
 
 from zim.fs import File, Dir
+from zim.newfs.mock import os_native_path
 from zim.config import *
 from zim.notebook import Path
 
@@ -706,6 +707,8 @@ foo=myprofile
 	}
 
 	def assertMatchPath(self, file, path):
+		if not file.path.startswith('<virtual>'):
+			path = os_native_path(path)
 		assert file.path.endswith(path), '"%s" does not match "%s"' % (file.path, path)
 
 	def runTest(self):
@@ -795,5 +798,3 @@ class TestConfigManager(tests.TestCase, ConfigManagerTests):
 
 		self.manager = ConfigManager()
 		self.prefix = 'zim'
-
-

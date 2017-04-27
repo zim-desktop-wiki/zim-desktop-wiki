@@ -376,11 +376,12 @@ class TestFilesDBTable(object):
 
 
 	def assertFilesDBEquals(self, db, paths):
+		import os
 		rows = db.execute('SELECT * FROM files WHERE id>1').fetchall()
 
 		in_db = dict((r['path'], r['node_type']) for r in rows)
 		wanted = dict(
-			(p.strip('/'), TYPE_FOLDER if p.endswith('/') else TYPE_FILE)
+			(p.strip(os.sep), TYPE_FOLDER if p.endswith(os.sep) else TYPE_FILE)
 				for p in paths
 		)
 
