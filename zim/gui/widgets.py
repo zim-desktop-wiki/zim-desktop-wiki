@@ -2892,7 +2892,7 @@ class Window(gtkwindowclass):
 
 	def present(self):
 		if not TEST_MODE:
-			gtkwindowclass.present()
+			gtkwindowclass.present(self)
 
 # Need to register classes defining gobject signals
 gobject.type_register(Window)
