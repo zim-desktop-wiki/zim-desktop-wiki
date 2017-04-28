@@ -72,7 +72,7 @@ class Index(SignalEmitter):
 			self._update_iter_init()
 		# else _update_iter_init already called view _db_check --> _db_init
 
-		self.background_check = BackgroundCheck(self._db, self.layout, self.lock, None)
+		self.background_check = BackgroundCheck(self.new_connection, self.layout, self.lock, None)
 
 	def _update_iter_init(self):
 		self.update_iter = IndexUpdateIter(self._db, self.layout)
@@ -193,6 +193,7 @@ class Index(SignalEmitter):
 			return self._db
 		else:
 			db = sqlite3.Connection(self.dbpath, check_same_thread=False)
+				# check_same_thread needed for testing with :memory:
 			db.row_factory = sqlite3.Row
 			db.execute('PRAGMA synchronous=OFF;')
 			# Don't wait for disk writes, we can recover from crashes
@@ -330,19 +331,19 @@ class IndexUpdateIter(SignalEmitter):
 
 class BackgroundCheck(object):
 
-	def __init__(self, db, layout, lock, callback):
-		self.db = db
+	def __init__(self, db_factory, layout, lock, callback):
+		self.db_factory = db_factory
 		self.layout = layout
 		self.lock = lock
 		self.callback = callback
-		self.checker = FilesIndexChecker(self.db, self.layout.root)
 		self.stopped = None
 		self._thread = None
 
 	def queue_check(self, path, recursive=False):
+		checker = FilesIndexChecker(self.db_factory(), self.layout.root)
 		file, folder = self.layout.map_page(path)
-		self.checker.queue_check(file, recursive=recursive)
-		self.checker.queue_check(folder, recursive=recursive)
+		checker.queue_check(file, recursive=recursive)
+		checker.queue_check(folder, recursive=recursive)
 
 	def start(self):
 		self.stopped = False
@@ -359,13 +360,14 @@ class BackgroundCheck(object):
 
 	def _thread_main(self):
 		assert self.callback is not None
-		iter = self.checker.check_iter()
+		checker = FilesIndexChecker(self.db_factory(), self.layout.root)
+		iter = checker.check_iter()
 		logger.debug('BackgroundCheck started')
 		try:
 			while not self.stopped:
 				with self.lock:
 					needsupdate = iter.next()
-					self.checker.db.commit()
+					checker.db.commit()
 				if needsupdate:
 					self.callback()
 		except StopIteration:

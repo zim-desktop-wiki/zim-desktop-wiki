@@ -280,6 +280,7 @@ class FilesIndexChecker(object):
 				'UPDATE files SET index_status = ? WHERE id = ?',
 				(new_status, node_id)
 			)
+			self.db.commit()
 
 	def check_iter(self):
 		'''Generator function that walks existing records and flags
