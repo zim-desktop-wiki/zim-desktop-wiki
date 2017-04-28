@@ -42,6 +42,17 @@ class TestBzr(tests.TestCase):
 			pass
 
 
+@tests.skipUnless(os.path.isdir('./.git'), 'Not a git source folder')
+class TestGit(tests.TestCase):
+
+	def runTest(self):
+		unknown = subprocess.check_output(['git', 'clean', '-dn'])
+		if unknown:
+			raise AssertionError, 'File unknown to git - need to be added or ignored:\n' + unknown
+		else:
+			pass
+
+
 class TestCompileAll(tests.TestCase):
 
 	def runTest(self):

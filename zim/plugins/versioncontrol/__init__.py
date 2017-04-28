@@ -109,7 +109,7 @@ class NotebookExtension(ObjectExtension):
 			# HACK - FIXME use proper FS signals here
 			# git requires changes to be added to staging, bzr does not
 			# so add a hook for when page is written, to update staging.
-			self.notebook.connect_after('stored-page', self.vcs.update_staging)
+			self.connectto(self.notebook, 'stored-page', self.vcs.update_staging)
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()

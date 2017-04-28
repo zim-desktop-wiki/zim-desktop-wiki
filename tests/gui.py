@@ -44,6 +44,8 @@ def setupGtkInterface(test, klass=None, notebook=None):
 	config = VirtualConfigManager()
 	ui = klass(config=config, notebook=notebook)
 
+	ui.plugins.remove_plugin('versioncontrol')
+
 	ui._mainwindow.init_uistate() # XXX
 	ui.open_page(Path('Test:foo:bar'))
 
