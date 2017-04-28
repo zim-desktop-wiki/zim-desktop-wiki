@@ -36,14 +36,14 @@ def count(prefix, file):
 	return count
 
 def get_lang(name):
-	match = re.search(r'(^|[-/])(\w+).po$', name)
+	match = re.search('zim-(.*?).po$', name)
 	assert match, 'Could not parse LANG from %s !?' % name
-	return match.group(2)
+	return match.group(1)
 
 def import_translations_from(archive):
 	tfile = tarfile.open(archive, 'r:gz')
 	names = tfile.getnames()
-	#~ print names
+	#print names
 
 	potfiles = [n for n in names if n.endswith('.pot')]
 	assert len(potfiles) == 1, 'Multiple template files in this archive !?'

@@ -24,9 +24,6 @@ from multiprocessing.connection import Listener, Client
 import zim
 import zim.fs
 
-# TODO - make robust if socket already exists, but not responsive
-# TODO - for tests force the socket name ?
-
 
 logger = logging.getLogger('zim.ipc')
 
