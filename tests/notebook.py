@@ -821,6 +821,11 @@ class TestPage(TestPath):
 		self.assertIsInstance(page.ctime, float)
 		self.assertIsInstance(page.mtime, float)
 
+		lines = file.readlines()
+		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[1][:11], 'Wiki-Format')
+		self.assertEqual(lines[2][:13], 'Creation-Date')
+
 		self.assertEqual(page.get_parsetree(), tree)
 
 		self.assertTrue(page.isequal(page1))

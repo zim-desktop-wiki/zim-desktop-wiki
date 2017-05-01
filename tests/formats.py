@@ -340,21 +340,6 @@ class TestWikiFormat(TestTextFormat):
 		notebook = tests.new_notebook()
 		self.page = notebook.get_page(Path('Foo'))
 
-	#~ def testHeaders(self):
-		#~ text = '''\
-		#~ Content-Type: text/x-zim-wiki
-		#~ Wiki-Format: zim 0.26
-		#~ Creation-Date: Unkown
-		#~ Modification-Date: Wed, 06 Aug 2008 22:17:29 +0200
-		#~
-		#~ foo bar
-		#~ '''
-		#~ tree = self.format.Parser().parse(text)
-		#~ print '>>>\n'+tostring(tree)+'\n<<<\n'
-		#~ self.assertEquals(tree.getroot().attrib['Content-Type'], 'text/x-zim-wiki')
-		#~ output = self.format.Dumper().dump(tree)
-		#~ self.assertEqual(output, text.splitlines(True))
-
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
 		input = u'''\
