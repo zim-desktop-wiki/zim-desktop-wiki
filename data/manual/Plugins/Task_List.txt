@@ -15,9 +15,9 @@ The option **Labels marking tasks** gives a comma separated list of labels that 
 
 If **Use date from journal pages** is enabled, tasks found in pages that belong to the [[Journal|Journal plugin]] will get that calendar date as starting date and/or due date. If the page covers multiple days (e.g. a weekly page) the last day of the period will be taken as the due date while for the start day the first day will be used.
 
-The options **Section(s) to index** and **Section(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default the whole notebook is used, but if either of these options or both these options are set, only a limited set is indexed. Multiple namespaces can be given separated by a "'',''".
+The options **Section(s) to index** and **Section(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default the whole notebook is used, but if either or both of these options are used, only the specified set of sections is indexed. Multiple namespaces can be given separated by a "'',''".
 
-The options **Show tasklist in sidepane** and **Position in the window** allow to embed the tasklist in one of the side panes of the window.
+The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window.
 
 ==== Context menu ====
 The context menu of the tasklist (the "right click" menu) has two further options to control the view:
@@ -31,17 +31,18 @@ When **Only Show Active Tasks** is enabled tasks with a start date in the future
 ==== Using Checkboxes ====
 The first way to use the task list is to define open items by checkboxes. A list like this will be interpreted as a task list and each individual line will appear in the task list dialog.
 
-	[ ] Buy rice @groceries
-	[ ] Call Susan to invite for diner [d: 5/1] !
-	[ ] Print menu @desk
+    [ ] Buy rice @groceries
+    [ ] Call Susan to invite for diner <5/1 !
+    [ ] Print menu @desk
 
 In this example the second item will have the highest **priority** because of the "!", the more exclamation marks the higher the priority. Also the words with an "@" will be considered **tags**, so the dialog will show the tags "groceries" and "desk" which can be used for filtering the task list.
 
-A **due date** can added by typing ">" followed by a while a **start date** is given as "<" followed by a date. For example
+A **due date** is prefixed by a "<": you must complete the task **before** that date.
+A **start date** is prefixed with ">": you should start the task **after** that date.
 
-	[ ] Tasks due 27 March 2017 <2017-03-27
-	[ ] Task that will only start in a few years (as of writing) >2020-01
-	[ ] Dates can also be given by weeknumber <17W13
+    [ ] Tasks due 27 March 2017 <2017-03-27
+    [ ] Task that will only start in a few years (as of writing) >2020-01
+    [ ] Dates can also be given by weeknumber <17W13
 
 The following date forms are supported:
 * Day by date using: ''yyyy-mm-dd''  for example 2017-02-16
@@ -50,37 +51,36 @@ The following date forms are supported:
 * Day by week using  week notation followed by ''-D'' where "D" is the number of the day in the week; for example 17-W07-2 for Tuesday
 * Week and day by week notation can also use ''Wkyyww(.D)'' for example wk1707 and wk1702.2
 
-To avoid confusion between mm/dd, dd/mm and yy-mm notations neither of these is supported and the year should always be given in 4 digits for dates. For week notation a two digit year is supported; these are always prefixed by "20", so "01W17" becomes 2001W17 and "99W05" becomes 2099W05. For years starting with 19 (or any other century) the ful four digit year needs to be used.
+To avoid confusion between mm/dd, dd/mm and yy-mm notations neither of these is supported and the year should always be given in 4 digits for dates. For week notation a two digit year is supported; these are always prefixed by "20", so "01W17" becomes 2001W17 and "99W05" becomes 2099W05. For years starting with 19 (or any other century) the full four digit year needs to be used.
 
-Weeknumbers follow the iso calendar. However depending on locale Sunday can either be the first day of the starting week or the last day of the ending week. In the weekday notation this is made explicit by using "0" for sunday at the start of the week and "7" for sunday at the end of the week. Thus the dates "W1707.7" and "W1708.0" are the same day.
+Week numbers follow the iso calendar. However depending on locale Sunday can either be the first day of the starting week or the last day of the ending week. In the weekday notation this is made explicit by using "0" for Sunday at the start of the week and "7" for Sunday at the end of the week. Thus the dates "W1707.7" and "W1708.0" are the same day.
 
-For backward compatibility with previous versions a due date can also be given between squre brackets like "''[d: yyyy-mm-dd]''". This form supported also more ambigous formats, e.g. "''dd/mm''". Using this form is no longer recommended, it is better to use the unambigous forms described above. 
+For backward compatibility with previous versions a due date can also be given between square brackets like "''[d: yyyy-mm-dd]''". This form also supported more ambiguous formats, e.g. "''dd/mm''". Using this form is no longer recommended, it is better to use the unambiguous forms described above. 
 
-A task in a checkbox list can also have sub-items. This can help enormously to split up a complex task in step by step action items. For example:
+A task in a checkbox list can also have sub-items. This can help split up a complex task into step by step action items. For example:
 
-	[ ] Organize party <2017-08-19 !
-		[ ] Send invitations <2017-08 !!
-		[ ] Cleanup living room
-			[ ] Get rid of moving boxes <2017-08-10
-			[ ] Buy vacuum cleaner <2017-08-15
-		[ ] Buy food & drinks
+    [ ] Organize party <2017-08-19 !
+        [ ] Send invitations by first of month <2017-08 !!
+        [ ] Cleanup living room
+            [ ] Get rid of moving boxes <2017-08-10
+            [ ] Buy vacuum cleaner <2017-08-15
+        [ ] Buy food & drinks
 
-Such sub-items will also show up in the tasklist as sub-items below the main task in a hierarchic tree. Note that sub-items that do not have an explicit due date or priority set will inherit these from the main task. So in this example the "//send invitations//" action an earlier due date and a higher priority, while the "//cleanup living room//" and "//buy food & drinks//" items inherit due date and priority from the main task.
+Such sub-items will also show up in the tasklist as sub-items below the main task in a hierarchical tree. Note that sub-items that do not have an explicit due date or priority will inherit these from the main task. In this example, "//cleanup living room//" and "//buy food & drinks//" items inherit the due date and priority from the main task. "//send invitations//" will have an earlier due date and a higher priority because they are explicitly  specified.
 
-In this example the "**Show Tasks as Flat List**" option in the context menu would show only 4 items: "Send invitations", "Git rid of moving boxes", "buy vacuum cleaner" and "buy food & drinks". These 4 represent the lowest level "next steps" that can be acted upon.
+In this example the "**Show Tasks as Flat List**" option in the context menu would show only 4 items: "Send invitations", "Git rid of moving boxes", "Buy vacuum cleaner" and "Buy food & drinks". These 4 represent the lowest level "next steps" that can be acted upon.
 
 ==== Using labels ====
-The second way to use the task list is by using labels like "TODO" or "FIXME" in your notes. Labels can appear at the start of a line or directly after a checkbox. The rest of the lines is parsed the same as a task description after a checkbox. So the following will also be considered a task:
+The second way to use the task list is by using labels like "TODO" or "FIXME" in your notes. Labels can appear at the start of a line or directly after a checkbox. The rest of the lines are parsed the same as a task description after a checkbox. So the following will also be considered a task:
 
-	FIXME: finish the previous paragraph
+    FIXME: finish the previous paragraph
 
 Different labels can be used similar to tags to distinguish different categories of tasks.
 
 As a special case labels can be used to flag a whole list being a task list. In that case the tag needs to start a new paragraph and be on a line by itself before the first checkbox. This usage is especially useful when the option "Consider all checkboxes as tasks" is turned off. Any tags on this first line will be applied to the whole list. However no other words should appear as that would make this first line a regular item and cause the list to be ignored. An example of this usage is as follows:
 
-	TODO: @home
-	[ ] Call Susan to invite for diner [d: 5/1] !
-	[ ] Print menu @desk
+    TODO: @home
+    [ ] Call Susan to invite for diner [d: 5/1] !
+    [ ] Print menu @desk
 
 Now both items will get the tag "@home" appended.
-
