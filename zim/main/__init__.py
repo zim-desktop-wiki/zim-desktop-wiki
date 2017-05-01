@@ -392,7 +392,7 @@ class ExportCommand(NotebookCommand):
 
 		notebook, page = self.build_notebook()
 
-        # load plugins, needed so the the proper export functions would work from CLI
+		# load plugins, needed so the the proper export functions would work from CLI
 		config = ConfigManager(profile=notebook.profile)
 		plugins = PluginManager(config)
 		plugins.extend(notebook.index)
@@ -594,7 +594,11 @@ class ZimApplication(object):
 		else:
 			logger.debug('Starting primary process')
 			self._daemonize()
-			_ipc_start_listening(self.run)
+			try:
+				_ipc_start_listening(self.run)
+			except:
+				logger.exception('Failure to setup socket, falling back to "--standalone" mode')
+				self._standalone = True
 
 		w = cmd.run()
 		if w is not None:

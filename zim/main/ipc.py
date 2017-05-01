@@ -18,6 +18,7 @@ import sys
 import threading
 import logging
 import hashlib
+import os
 
 from multiprocessing.connection import Listener, Client
 
@@ -43,26 +44,31 @@ def set_in_main_process(in_main_process):
 
 
 
-version = zim.__version__
 _m = hashlib.md5()
 _m.update(zim.ZIM_EXECUTABLE)
 
-version += '-' + _m.hexdigest() ## Make it specific for the install location
-
+key = zim.__version__ + '-' + _m.hexdigest()[:8]
+	# Make name specific for the install location
+	# But don't worry about collisons, first few bytes should do it
 
 if sys.platform == 'win32':
 	# Windows named pipe
 	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
-	SERVER_ADDRESS = '\\\\.\\pipe\\%s-%s-primary' % (userstring, version)
+	SERVER_ADDRESS = '\\\\.\\pipe\\%s-%s-primary' % (userstring, key)
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 else:
 	# Unix domain socket
-	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('primary-%s' % version).path)
+	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('primary-%s' % key).path)
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
 SERVER_ADDRESS += '-%i'
 COUNTER = 0
+
+assert len(os.path.basename(SERVER_ADDRESS % COUNTER)) <= 30, "name too long: %s" % os.path.basename(SERVER_ADDRESS % COUNTER)
+	# There is an upper limit to lenght of a socket name for AF_UNIX
+	# on OS X the path to TMPDIR already consumes 50 chars, and we Address
+	# also "zim-$USER" -- can still give errors for user name > 20 chars
 
 # For robustness against unavailable sockets, if socket exists but error
 # occurs when connecting, we increase COUNTER and try again. Thus trying to
@@ -95,6 +101,7 @@ def dispatch(*args):
 	global COUNTER
 	assert not get_in_main_process()
 	try:
+		logger.debug('Try connecting to %s', SERVER_ADDRESS % COUNTER)
 		conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
 		conn.send(args)
 		re = conn.recv()
@@ -103,10 +110,10 @@ def dispatch(*args):
 			raise AssertionError, 'No-one is listening'
 		else:
 			COUNTER += 1
-			if COUNTER < 100:
+			if COUNTER < 25:
 				return dispatch(*args) # recurs
 			else:
-				raise
+				raise AssertionError, 'Permanent failure in connection'
 	else:
 		if not re == 'OK':
 			raise AssertionError, 'Error in response: got %s' % re
