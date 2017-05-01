@@ -490,10 +490,14 @@ class PageTreeView(BrowserTreeView):
 			dragcontext.finish(False, False, time) # NOK
 			return
 
-		if self.ui.do_move_page(source, dest, update_links=True):
-			dragcontext.finish(True, False, time) # OK
-		else:
+		try:
+			notebook = self.ui.notebook # XXX
+			notebook.move_page(source, dest, update_links=True)
+		except:
+			logger.exception('Failed to move page %s -> %s', source, dest)
 			dragcontext.finish(False, False, time) # NOK
+		else:
+			dragcontext.finish(True, False, time) # OK
 
 	def set_current_page(self, path, vivificate=False):
 		'''Select a page in the treeview
