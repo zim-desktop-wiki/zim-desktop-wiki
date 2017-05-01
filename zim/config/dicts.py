@@ -41,6 +41,7 @@ else: #pragma: no cover
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
 from zim.utils import OrderedDict, FunctionThread
 from zim.fs import File, FileNotFoundError
+from zim.newfs import FileNotFoundError as NewFileNotFoundError
 from zim.errors import Error
 
 from .basedirs import XDG_CONFIG_HOME
@@ -746,7 +747,7 @@ class INIConfigFile(SectionedConfigDict):
 			with self.block_signals('changed'):
 				self.read()
 			self.set_modified(False)
-		except FileNotFoundError:
+		except (FileNotFoundError, NewFileNotFoundError):
 			pass
 
 		if monitor:
@@ -757,7 +758,7 @@ class INIConfigFile(SectionedConfigDict):
 			try:
 				with self.block_signals('changed'):
 					self.read()
-			except FileNotFoundError:
+			except (FileNotFoundError, NewFileNotFoundError):
 				pass
 			else:
 				# First emit top level to allow general changes

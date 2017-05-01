@@ -42,9 +42,11 @@ def setupGtkInterface(test, klass=None, notebook=None):
 		notebook = tests.new_notebook(fakedir=dirpath)
 
 	config = VirtualConfigManager()
-	ui = klass(config=config, notebook=notebook)
+	prefs = config.get_config_dict('<profile>/preferences.conf')
+	prefs['General'].input(plugins=['calendar', 'insertsymbol', 'printtobrowser'])
+		# version control interferes with source folder, leave other default plugins
 
-	ui.plugins.remove_plugin('versioncontrol')
+	ui = klass(config=config, notebook=notebook)
 
 	ui._mainwindow.init_uistate() # XXX
 	ui.open_page(Path('Test:foo:bar'))
@@ -601,6 +603,31 @@ class TestGtkInterface(tests.TestCase):
 
 	# TODO notebook manipulation (new (sub)page, rename, delete ..)
 	# merge with tests for dialogs (?)
+
+	def testAttachFileDialogCallback(self):
+		from zim.gui.widgets import PromptExistingFileDialog
+
+		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL, content={'Foo': 'test123'})
+		self.ui = setupGtkInterface(self, notebook=notebook)
+
+		path = Path('Foo')
+		file = File('data/zim.png')
+
+		self.ui.do_attach_file(path, file)
+
+		def do_overwrite(dialog):
+			assert isinstance(dialog, PromptExistingFileDialog)
+			dialog.do_response_overwrite()
+
+		def do_new_file(dialog):
+			assert isinstance(dialog, PromptExistingFileDialog)
+			dialog.do_response_ok()
+
+		with tests.DialogContext(do_overwrite):
+			self.ui.do_attach_file(path, file)
+
+		with tests.DialogContext(do_new_file):
+			self.ui.do_attach_file(path, file)
 
 	def testClipboard(self):
 		self.ui.copy_location()

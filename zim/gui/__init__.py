@@ -1188,6 +1188,13 @@ class GtkInterface(gobject.GObject):
 			raise Error, '%s does not have an attachments dir' % path
 
 		dest = dir.file(file.basename)
+		
+		# XXX: adapt to old style object
+		from zim.newfs import LocalFile
+		assert isinstance(dest, LocalFile)
+		assert isinstance(file, File)
+		dest = File(dest.path)
+
 		if dest.exists() and not force_overwrite:
 			dialog = PromptExistingFileDialog(self, dest)
 			dest = dialog.run()
