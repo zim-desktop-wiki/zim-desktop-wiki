@@ -1188,7 +1188,7 @@ class GtkInterface(gobject.GObject):
 			raise Error, '%s does not have an attachments dir' % path
 
 		dest = dir.file(file.basename)
-		
+
 		# XXX: adapt to old style object
 		from zim.newfs import LocalFile
 		assert isinstance(dest, LocalFile)
@@ -1628,7 +1628,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				tool.run(args, cwd=cwd)
 				self.reload_page()
-				self.notebook.index.start_background_check()
+				self.notebook.index.start_background_check(self.notebook)
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
