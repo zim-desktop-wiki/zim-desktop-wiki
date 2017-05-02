@@ -5568,7 +5568,7 @@ class PageView(gtk.VBox):
 				self.ui.open_file(path)
 			elif type == 'notebook':
 				if href.startswith('zim+'):
-					uri = href[4:]
+					uri, pagename = href[4:], None
 					if '?' in href:
 						uri, pagename = href.split('?', 1)
 
