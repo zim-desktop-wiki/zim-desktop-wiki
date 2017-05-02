@@ -1998,7 +1998,8 @@ class PageEntry(InputEntry):
 
 		text = self.get_text()
 		if self._current_completion:
-			if text.startswith(self._current_completion):
+			if text.startswith(self._current_completion) \
+			and not ':' in text[len(self._current_completion):]:
 				return # nothing to update
 			else: # Clear out-of-date completions
 				model = self.get_completion().get_model()
