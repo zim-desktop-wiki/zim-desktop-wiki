@@ -184,6 +184,17 @@ class TestServerGui(tests.TestCase):
 class TestIPC(tests.TestCase):
 
 	def runTest(self):
+		if os.name == 'posix':
+			# There is an upper limit to lenght of a socket name for AF_UNIX
+			# (107 characters ?). On OS X the path to TMPDIR already consumes
+			# 50 chars, and we use "zim-$USER" -- so can still give errors for
+			# user names > 20 chars. But basename should be limitted.
+			from zim.main.ipc import SERVER_ADDRESS
+			self.assertLessEqual(
+				len(os.path.basename(SERVER_ADDRESS)), 25,
+				"name too long: %s" % os.path.basename(SERVER_ADDRESS)
+			)
+
 		inbox = [None]
 		def handler(*args):
 			inbox[0] = args

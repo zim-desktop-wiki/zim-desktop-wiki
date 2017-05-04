@@ -594,10 +594,8 @@ class ZimApplication(object):
 		else:
 			logger.debug('Starting primary process')
 			self._daemonize()
-			try:
-				_ipc_start_listening(self.run)
-			except:
-				logger.exception('Failure to setup socket, falling back to "--standalone" mode')
+			if not _ipc_start_listening(self.run):
+				logger.warn('Failure to setup socket, falling back to "--standalone" mode')
 				self._standalone = True
 
 		w = cmd.run()

@@ -62,18 +62,8 @@ else:
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
 
-SERVER_ADDRESS += '-%i'
-COUNTER = 0
 
-assert len(os.path.basename(SERVER_ADDRESS % COUNTER)) <= 30, "name too long: %s" % os.path.basename(SERVER_ADDRESS % COUNTER)
-	# There is an upper limit to lenght of a socket name for AF_UNIX
-	# on OS X the path to TMPDIR already consumes 50 chars, and we Address
-	# also "zim-$USER" -- can still give errors for user name > 20 chars
-
-# For robustness against unavailable sockets, if socket exists but error
-# occurs when connecting, we increase COUNTER and try again. Thus trying to
-# find the first socket that is avaialable
-#
+# Try to be as obust as possible for all kind of socket errors.
 # Errors that we encountered:
 #
 # On windows:
@@ -98,25 +88,23 @@ def dispatch(*args):
 	@param args: commandline arguments
 	@raises AssertionError: when no existing zim process or connection failed
 	'''
-	global COUNTER
 	assert not get_in_main_process()
 	try:
-		logger.debug('Try connecting to %s', SERVER_ADDRESS % COUNTER)
-		conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
+		logger.debug('Connecting to %s', SERVER_ADDRESS)
+		conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 		conn.send(args)
-		re = conn.recv()
+		if conn.poll(5):
+			re = conn.recv()
+		else:
+			re = 'No response'
 	except Exception, e:
 		if hasattr(e, 'errno') and e.errno == 2:
-			raise AssertionError, 'No-one is listening'
+			raise AssertionError, 'No such file or directory'
 		else:
-			COUNTER += 1
-			if COUNTER < 25:
-				return dispatch(*args) # recurs
-			else:
-				raise AssertionError, 'Permanent failure in connection'
+			raise AssertionError, 'Connection failed'
 	else:
-		if not re == 'OK':
-			raise AssertionError, 'Error in response: got %s' % re
+		if re != 'OK':
+			raise AssertionError, 'Error in response: %s' % re
 
 
 def start_listening(handler):
@@ -125,56 +113,55 @@ def start_listening(handler):
 	@param handler: the method to call when new commands are recieveds
 	'''
 	set_in_main_process(True)
-	started = threading.Event()
-	t = threading.Thread(target=_listener_thread_main, args=(started, handler))
-	t.daemon = True
-	t.start()
-	ok = started.wait(5)
-	if not ok:
-		raise AssertionError, 'Listener did not start'
 
-
-def _listener_thread_main(started, handler):
-	global COUNTER
+	logger.debug('Start listening on: %s', SERVER_ADDRESS)
 	try:
-		l = Listener(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
+		if SERVER_ADDRESS_FAMILY == 'AF_UNIX' \
+		and os.path.exists(SERVER_ADDRESS):
+			# Clean up old socket (someone should already have checked
+			# before whether or not it is functional)
+			os.unlink(SERVER_ADDRESS)
+		listener = Listener(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 	except:
-		COUNTER += 1
-		if COUNTER < 100:
-			return _listener_thread_main(started, handler) # recurs
-		else:
-			raise
+		logger.exception('Error setting up Listener')
+		return False
+	else:
+		t = threading.Thread(target=_listener_thread_main, args=(listener, handler))
+		t.daemon = True
+		t.start()
+		return True
 
-	started.set()
-	logger.debug('Listening on %s', SERVER_ADDRESS % COUNTER)
+
+def _listener_thread_main(listener, handler):
 	while True:
-		conn = l.accept()
-		args = conn.recv()
+		try:
+			conn = listener.accept()
+			args = conn.recv()
+			logger.debug('Recieved remote call: %r', args)
 
-		#~ print ">>", argv
-		logger.debug('Recieved remote call: %r', args)
+			if args == 'CLOSE':
+				conn.send('OK')
+				conn.close()
+				break
+			else:
+				assert isinstance(args, (list, tuple))
 
-		if args == 'CLOSE':
-			conn.send('OK')
-			conn.close()
-			break
-		else:
-			assert isinstance(args, (list, tuple))
+				# Throw back into the main thread -- assuming gtk main running
+				import gobject
 
-			# Throw back into the main thread -- assuming gtk main running
-			import gobject
+				def callback():
+					handler(*args)
+					return False # delete signal
+				gobject.idle_add(callback)
 
-			def callback():
-				handler(*args)
-				return False # delete signal
-			gobject.idle_add(callback)
-
-			conn.send('OK')
-			conn.close()
+				conn.send('OK')
+				conn.close()
+		except:
+			logger.exception('Error while handling incoming connection')
 
 
 def _close_listener():
 	# For testing
-	conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
+	conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 	conn.send('CLOSE')
 	re = conn.recv()
