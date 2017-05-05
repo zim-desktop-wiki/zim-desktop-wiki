@@ -370,29 +370,29 @@ class GtkInterface(gobject.GObject):
 
         # Adapt the GUI to OS X conventions
         ### TODO adapt this to support multiple toplevel windows per process ###
-		#~ try:
-			#~ import gtkosx_application
-			#~ macapp = gtkosx_application.Application()
-#~
-			#~ # move the menus to the OS X menu bar
-			#~ menu_bar = gtk.MenuBar()
-			#~ for i, child in enumerate(self._mainwindow.menubar.get_children()):
-				#~ child.reparent(menu_bar)
-			#~ macapp.set_menu_bar(menu_bar)
-			#~ self._mainwindow.menubar.hide()
-			#~ macapp.set_help_menu(self._mainwindow.uimanager.get_widget('/menubar/help_menu'))
-#~
-			#~ # move some menu items to the application menu
-			#~ quit = self._mainwindow.uimanager.get_widget('/menubar/file_menu/quit')
-			#~ macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
-			#~ quit.hide()
-			#~ about = self._mainwindow.uimanager.get_widget('/menubar/help_menu/show_about')
-			#~ macapp.insert_app_menu_item(about, 0)
-			#~ prefs = self._mainwindow.uimanager.get_widget('/menubar/edit_menu/show_preferences')
-			#~ macapp.insert_app_menu_item(prefs, 1)
-			#~ macapp.ready()
-		#~ except ImportError:
-			#~ pass
+		try:
+			import gtkosx_application
+			macapp = gtkosx_application.Application()
+
+			# move the menus to the OS X menu bar
+			menu_bar = gtk.MenuBar()
+			for i, child in enumerate(self._mainwindow.menubar.get_children()):
+				child.reparent(menu_bar)
+			macapp.set_menu_bar(menu_bar)
+			self._mainwindow.menubar.hide()
+			macapp.set_help_menu(self._mainwindow.uimanager.get_widget('/menubar/help_menu'))
+
+			# move some menu items to the application menu
+			quit = self._mainwindow.uimanager.get_widget('/menubar/file_menu/quit')
+			macapp.connect('NSApplicationBlockTermination', lambda d: not self.quit())
+			quit.hide()
+			about = self._mainwindow.uimanager.get_widget('/menubar/help_menu/show_about')
+			macapp.insert_app_menu_item(about, 0)
+			prefs = self._mainwindow.uimanager.get_widget('/menubar/edit_menu/show_preferences')
+			macapp.insert_app_menu_item(prefs, 1)
+			macapp.ready()
+		except ImportError:
+			pass
 
 		# HACK: Delay opening first page till after show_all() -- else plugins are not initialized
 		#       FIXME need to do extension & initialization of uistate earlier
