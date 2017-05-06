@@ -181,7 +181,8 @@ class NotebookCommand(Command):
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
 			for info in notebook.index.update_iter():
-				logger.info('Indexing %s', info)
+				#logger.info('Indexing %s', info)
+				pass # TODO meaningful info for above message
 
 		return notebook, page or uripage
 
@@ -442,7 +443,8 @@ class IndexCommand(NotebookCommand):
 		notebook, p = self.build_notebook(ensure_uptodate=False)
 		notebook.index.flush()
 		for info in notebook.index.update_iter():
-			logger.info('Indexing %s', info)
+			#logger.info('Indexing %s', info)
+			pass # TODO meaningful info for above message
 
 
 commands = {

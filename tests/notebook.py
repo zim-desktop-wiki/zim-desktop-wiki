@@ -1002,8 +1002,7 @@ class TestIndexBackgroundCheck(tests.TestCase):
 		self.assertFalse(notebook.index.is_uptodate)
 
 		notebook.index.start_background_check(notebook)
-		thread = notebook.index.background_check._thread
-		while thread.is_alive():
+		while notebook.index.background_check.running:
 			tests.gtk_process_events()
 		self.assertTrue(notebook.index.is_uptodate)
 		self.assertTrue(notebook.pages.n_all_pages() > 10)

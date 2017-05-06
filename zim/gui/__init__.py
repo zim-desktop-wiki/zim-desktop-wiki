@@ -407,7 +407,11 @@ class GtkInterface(gobject.GObject):
 			self.reload_index(update_only=True)
 		else:
 			# Start a lightweight background check of the index
-			self.notebook.index.start_background_check(self.notebook)
+			# put a small delay to ensure window is shown before we start
+			def start_background_check():
+				self.notebook.index.start_background_check(self.notebook)
+				return False # only run once
+			gobject.timeout_add(500, start_background_check)
 
 		self._mainwindow.pageview.grab_focus()
 
@@ -757,10 +761,8 @@ class GtkInterface(gobject.GObject):
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
-		# TODO: this snippet should ensure checking of page, but causes
-		#       segfault on clicking in index
-		#paths = [page] + list(page.parents())
-		#self.notebook.index.check_async(self.notebook, paths, recursive=False)
+		paths = [page] + list(page.parents())
+		self.notebook.index.check_async(self.notebook, paths, recursive=False)
 
 	def close_page(self, page=None):
 		'''Close the page and try to save any changes in the page.
