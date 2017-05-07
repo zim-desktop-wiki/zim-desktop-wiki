@@ -1357,6 +1357,7 @@ class GtkInterface(gobject.GObject):
 				# T: Error message
 			ErrorDialog(self, error).run()
 		else:
+			dir = Dir(dir.path) # XXX
 			self.open_dir(dir)
 
 	@action(_('Open _Notebook Folder'), 'gtk-open') # T: Menu item
