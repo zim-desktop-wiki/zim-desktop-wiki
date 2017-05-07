@@ -3658,11 +3658,18 @@ class FileDialog(Dialog):
 
 	def add_shortcut(self, notebook, path=None):
 		'''Add shortcuts for the notebook folder and page folder'''
-		self.filechooser.add_shortcut_folder(notebook.dir.path)
+		try:
+			self.filechooser.add_shortcut_folder(notebook.dir.path)
+		except:
+			pass # GError on doubles ..
+
 		if path:
 			page = notebook.get_page(path)
 			if hasattr(page, 'source') and page.source is not None:
-				self.filechooser.add_shortcut_folder(page.source.dir.path)
+				try:
+					self.filechooser.add_shortcut_folder(page.source.dir.path)
+				except:
+					pass # GError on doubles ..
 
 	def set_file(self, file):
 		'''Set the file or dir to pre select in the dialog
