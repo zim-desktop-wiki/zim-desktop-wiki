@@ -583,7 +583,23 @@ class ZimApplication(object):
 		# Run for the 1st gtk command in a primary process,
 		# but can still be standalone process
 		import gtk, gobject
-		gobject.threads_init()
+
+		#######################################################################
+		# WARNING: commented out "gobject.threads_init()" because it leads to
+		# various segfaults on linux. See github issue #7
+		# However without this init, gobject does not properly release the
+		# python GIL during C calls, so threads may block while main loop is
+		# waiting. Thus threads become very slow and unpredictable unless we
+		# actively monitor them from the mainloop, causing python to run
+		# frequently. So be very carefull relying on threads.
+		# Re-evaluate when we are above PyGObject 3.10.2 - threading should
+		# wotk bettter there even without this statement. (But even then,
+		# no Gtk calls from threads, just "gobject.idle_add()". )
+		# Kept for windows, because we need thread to run ipc listener, and no
+		# crashes observed there.
+		if os.name == 'nt':
+			gobject.threads_init()
+		#######################################################################
 
 		from zim.gui.widgets import gtk_window_set_default_icon
 		gtk_window_set_default_icon()

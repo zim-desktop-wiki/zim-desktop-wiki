@@ -202,11 +202,14 @@ class TestIPC(tests.TestCase):
 		zim.main.ipc.start_listening(handler)
 		self.addCleanup(zim.main.ipc._close_listener)
 
-		self.assertRaises(AssertionError, zim.main.ipc.dispatch, '--manual')
+		self.assertRaises(AssertionError, zim.main.ipc.dispatch, 'test', '123')
+			# raises due to sanity check same process
 
 		zim.main.ipc.set_in_main_process(False) # overrule sanity check
-		zim.main.ipc.dispatch('test', '123')
-
+		t = threading.Thread(target=zim.main.ipc.dispatch, args=('test', '123'))
+		t.start()
+		while t.is_alive():
+			tests.gtk_process_events()
 		tests.gtk_process_events()
 		self.assertEqual(inbox[0], ('test', '123'))
 

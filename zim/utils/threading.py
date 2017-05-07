@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from __future__ import absolute_import, with_statement
@@ -11,6 +11,12 @@ import threading
 
 
 logger = logging.getLogger('threading')
+
+
+try:
+	import gobject
+except ImportError:
+	gobject = None
 
 
 class FunctionThread(threading.Thread):
@@ -48,6 +54,14 @@ class FunctionThread(threading.Thread):
 		if self.lock:
 			self.lock.acquire()
 		threading.Thread.start(self)
+		if gobject:
+			gobject.idle_add(self._monitor_on_idle)
+
+	def _monitor_on_idle(self):
+		# Only goal if this callback is to ensure python runs in mainloop
+		# as long as thread is alive - avoid C code blocking for a long time
+		# See comment at threads_init() in zim/main/__init__.py
+		return self.is_alive() # if False, stop event
 
 	def run(self):
 		try:
@@ -59,55 +73,3 @@ class FunctionThread(threading.Thread):
 			self.done = True
 			if self.lock:
 				self.lock.release()
-
-
-class WorkerThread(threading.Thread):
-	'''Wrapper to run a function in a worker thread. The function
-	should be a generator that "yield"s often such that we can
-	interrupt it.
-	'''
-
-	_lock = threading.Lock()
-	_active = set()
-
-	@classmethod
-	def _acquire(klass, name):
-		with klass._lock:
-			if name in klass._active:
-				raise AssertionError, 'BUG: Another "%s" WorkerThread is still active'
-			else:
-				klass._active.add(name)
-
-	@classmethod
-	def _release(klass, name):
-		with klass._lock:
-			klass._active.discard(name)
-
-	def __init__(self, iterable, name):
-		threading.Thread.__init__(self)
-		self.iterable = iterable
-		self.name = name
-		self._stop = threading.Event()
-
-	def start(self):
-		self._acquire(self.name)
-		self._stop.clear()
-		threading.Thread.start(self)
-
-	def stop(self):
-		self._stop.set()
-		self.join()
-
-	def run(self):
-		try:
-			logger.debug('Worker thread starts: %s', self.name)
-			for i in self.iterable:
-				if self._stop.is_set():
-					logger.debug('Worker thread stopped: %s', self.name)
-					break
-			else:
-				logger.debug('Worker thread exitted: %s', self.name)
-		except:
-			logger.exception('Exception in worker thread: %s', self.name)
-		finally:
-			self._release(self.name)
