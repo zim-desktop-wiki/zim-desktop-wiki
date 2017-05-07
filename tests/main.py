@@ -117,7 +117,7 @@ class TestGui(tests.TestCase):
 
 		cmd = GuiCommand('gui')
 		with tests.DialogContext(testAddNotebookDialog):
-			self.assertRaises(NotebookLookupError, cmd.run)
+			cmd.run() # Exist without running due to no notebook given in dialog
 
 		### Try again with argument
 		dir = self.create_tmp_dir()

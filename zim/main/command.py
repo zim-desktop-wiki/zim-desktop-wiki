@@ -50,14 +50,15 @@ class Command(object):
 		('debug', 'D', 'Debug output'),
 	)
 
-	def __init__(self, command):
+	def __init__(self, command, pwd=None):
 		'''Constructor
 		@param command: the command switch (first commandline argument)
+		@param pwd: optional working directory path
 		'''
 		self.command = command
 		self.args = []
 		self.opts = {}
-		self.pwd = None
+		self.pwd = pwd or os.getcwd()
 
 	def parse_options(self, *args):
 		'''Parse commandline options for this command
@@ -90,8 +91,6 @@ class Command(object):
 				self.opts[key].append(a)
 			else:
 				self.opts[key] = a
-
-		self.pwd = os.getcwd()
 
 	def get_options(self, *names):
 		'''Retrieve a dict with a sub-set of the command options
@@ -143,4 +142,3 @@ class GtkCommand(Command):
 	default_options	 = Command.default_options + (
 		('standalone', '', 'start a single instance, no background process'),
 	)
-

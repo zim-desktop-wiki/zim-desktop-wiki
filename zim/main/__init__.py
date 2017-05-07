@@ -187,6 +187,10 @@ class NotebookCommand(Command):
 		return notebook, page or uripage
 
 
+class NotebookDialogCancelled(Exception):
+	pass
+
+
 class GuiCommand(NotebookCommand, GtkCommand):
 	'''Class implementing the C{--gui} command and run the gtk interface'''
 
@@ -202,7 +206,10 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		def prompt():
 			import zim.gui.notebookdialog
 			notebookinfo = zim.gui.notebookdialog.prompt_notebook()
-			return notebookinfo, None
+			if notebookinfo == None:
+				raise NotebookDialogCancelled
+			else:
+				return notebookinfo, None
 
 		if self.opts.get('list'):
 			return prompt()
@@ -214,8 +221,10 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				return notebookinfo, page
 
 	def run(self):
-		notebook, page = self.build_notebook(ensure_uptodate=False)
-		if not notebook:
+		try:
+			notebook, page = self.build_notebook(ensure_uptodate=False)
+		except NotebookDialogCancelled:
+			logger.debug('NotebookDialog cancelled - exit')
 			return # Cancelled notebook dialog
 
 		import gtk
@@ -460,7 +469,7 @@ commands = {
 }
 
 
-def build_command(args):
+def build_command(args, pwd=None):
 	'''Parse all commandline options
 	@returns: a L{Command} object
 	@raises UsageError: if args is not correct
@@ -500,7 +509,7 @@ def build_command(args):
 
 		klass = commands[cmd]
 
-	obj = klass(cmd)
+	obj = klass(cmd, pwd=pwd)
 	obj.parse_options(*args)
 	return obj
 
@@ -547,12 +556,13 @@ class ZimApplication(object):
 			if gtk.main_level() > 0:
 				gtk.main_quit()
 
-	def run(self, *args):
+	def run(self, *args, **kwargs):
 		'''Run a commandline command, either in this process, an
 		existing process, or a new process.
 		@param args: commandline arguments
+		@param kwargs: optional arguments for L{build_command}
 		'''
-		cmd = build_command(args)
+		cmd = build_command(args, **kwargs)
 		self._run_cmd(cmd, args) # test seam
 
 	def _run_cmd(self, cmd, args):
@@ -571,7 +581,7 @@ class ZimApplication(object):
 		else:
 			self._standalone = cmd.opts.get('standalone')
 			if isinstance(cmd, GtkCommand):
-				if not self._standalone and self._try_dispatch(args):
+				if not self._standalone and self._try_dispatch(args, cmd.pwd):
 					pass # We are done
 				else:
 					self._running = True
@@ -612,7 +622,7 @@ class ZimApplication(object):
 		else:
 			logger.debug('Starting primary process')
 			self._daemonize()
-			if not _ipc_start_listening(self.run):
+			if not _ipc_start_listening(self._handle_incoming):
 				logger.warn('Failure to setup socket, falling back to "--standalone" mode')
 				self._standalone = True
 
@@ -693,9 +703,9 @@ class ZimApplication(object):
 
 		Application([ZIM_EXECUTABLE] + args).spawn()
 
-	def _try_dispatch(self, args):
+	def _try_dispatch(self, args, pwd):
 		try:
-			_ipc_dispatch(*args)
+			_ipc_dispatch(pwd, *args)
 		except AssertionError, err:
 			logger.debug('Got error in dispatch: %s', str(err))
 			return False
@@ -705,6 +715,9 @@ class ZimApplication(object):
 		else:
 			logger.debug('Dispatched command %r', args)
 			return True
+
+	def _handle_incoming(self, pwd, *args):
+		self.run(*args, pwd=pwd)
 
 	def _daemonize(self):
 		# Decouple from parent environment
