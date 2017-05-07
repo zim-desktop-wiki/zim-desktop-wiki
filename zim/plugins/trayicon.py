@@ -265,7 +265,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 			# No open notebooks, open default or prompt full list
 			notebooks = get_notebook_list()
 			if notebooks.default:
-				self.do_activate_notebook(notebooks.default)
+				self.do_activate_notebook(notebooks.default.uri)
 			else:
 				self.do_popup_menu_notebooks(notebooks)
 		elif len(open_notebooks) == 1:
