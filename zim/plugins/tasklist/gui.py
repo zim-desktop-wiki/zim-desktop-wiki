@@ -675,7 +675,10 @@ class TaskListTreeView(BrowserTreeView):
 			# And finally the filter string should match
 			# FIXME: we are matching against markup text here - may fail for some cases
 			inverse, string = self.filter
-			match = string in description or string in pagename
+			if string.startswith('@'):
+				match = string[1:].lower() in [t.lower() for t in tags]
+			else:
+				match = string in description or string in pagename
 			if (not inverse and not match) or (inverse and match):
 				visible = False
 
@@ -725,7 +728,7 @@ class TaskListTreeView(BrowserTreeView):
 		if due != _MAX_DUE_DATE:
 			text += ['<b>', _('Due'), ':</b> ', due, '\n'] # T: due date for task
 
-		text += ['<b>', _('Page'), ':</b> ', page] # T: page label
+		text += ['<b>', _('Page'), ':</b> ', encode_markup_text(page)] # T: page label
 
 		tooltip.set_markup(''.join(text))
 		return True
