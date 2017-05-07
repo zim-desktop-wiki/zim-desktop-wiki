@@ -2051,10 +2051,13 @@ class PageEntry(InputEntry):
 		model = completion.get_model()
 		assert text.startswith(prefix)
 		lowertext = text.lower()
-		for p in self.notebook.pages.list_pages(path):
-			string = prefix+p.basename
-			if string.lower().startswith(lowertext):
-				model.append((string, string))
+		try:
+			for p in self.notebook.pages.list_pages(path):
+				string = prefix+p.basename
+				if string.lower().startswith(lowertext):
+					model.append((string, string))
+		except IndexNotFoundError:
+			pass
 
 	def _fill_completion_any(self, path, text):
 		#print "COMPLETE ANY", path, text
