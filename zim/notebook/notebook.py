@@ -489,13 +489,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.emit('stored-page', page)
 
 	@notebook_state
-	def store_page_async(self, page, parsetree_func):
+	def store_page_async(self, page, parsetree):
 		assert page.valid, 'BUG: page object no longer valid'
 		logger.debug('Store page in background: %s', page)
 		self.emit('store-page', page)
 		error = threading.Event()
 		thread = threading.Thread(
-			target=partial(self._store_page_async_thread_main, page, parsetree_func, error)
+			target=partial(self._store_page_async_thread_main, page, parsetree, error)
 		)
 		thread.start()
 		pre_modified = page.modified
@@ -509,10 +509,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		op.run_on_idle()
 		return op
 
-	def _store_page_async_thread_main(self, page, parsetree_func, error):
+	def _store_page_async_thread_main(self, page, parsetree, error):
 		try:
-			tree = parsetree_func()
-			page._store_tree(tree)
+			page._store_tree(parsetree)
 		except:
 			error.set()
 			logger.exception('Error in background save')

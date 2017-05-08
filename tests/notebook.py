@@ -1020,7 +1020,7 @@ class TestBackgroundSave(tests.TestCase):
 
 		signals = tests.SignalLogger(notebook)
 
-		op = notebook.store_page_async(page, lambda : tree)
+		op = notebook.store_page_async(page, tree)
 		thread = op._thread
 		while thread.is_alive():
 			tests.gtk_process_events()
