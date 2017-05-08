@@ -98,7 +98,6 @@ class MultiFileExporter(FilesExporterBase):
 		self.export_resources()
 
 		for prev, page, next in MovingWindowIter(pages):
-			logger.info('Exporting page: %s', page.name)
 			yield page
 			try:
 				self.export_page(pages.notebook, page, pages, prevpage=prev, nextpage=next)

@@ -67,7 +67,7 @@ class TemplateEditorDialog(Dialog):
 		if gtk.gtk_version >= (2, 10) \
 		and gtk.pygtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
-				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
+				'http://zim-wiki.org/more_templates.html',
 				_('Get more templates online') # T: label for button with URL
 			)
 			self.vbox.pack_start(url_button, False)

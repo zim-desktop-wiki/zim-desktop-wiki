@@ -408,6 +408,8 @@ class ExportCommand(NotebookCommand):
 		plugins.extend(notebook.index)
 		plugins.extend(notebook)
 
+		notebook.index.check_and_update()
+
 		if page and self.opts.get('recursive'):
 			selection = SubPages(notebook, page)
 		elif page:
