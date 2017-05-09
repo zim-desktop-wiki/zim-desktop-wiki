@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
 
@@ -221,6 +221,9 @@ MOCK_DEFAULT_REAL = 'default_real' #: By default use real fs, mock oly for --fas
 MOCK_ALWAYS_REAL = 'real' #: always use real fs -- not recommended unless test fails for mock
 
 import random
+import time
+
+TIMINGS = []
 
 class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
@@ -229,6 +232,12 @@ class TestCase(unittest.TestCase):
 
 	SRC_DIR = LocalFolder(mydir + '/../')
 	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
+
+	def run(self, *a, **kwa):
+		start = time.time()
+		unittest.TestCase.run(self, *a, **kwa)
+		end = time.time()
+		TIMINGS.append((self.__class__.__name__ + '.' + self._testMethodName, end - start))
 
 	@classmethod
 	def tearDownClass(cls):
@@ -248,14 +257,13 @@ class TestCase(unittest.TestCase):
 	@classmethod
 	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
-		Default use of "C{MOCK_DEFAULT_MOCK}" means that about 20% of the cases
-		will use real filesystem at random while the rest will mock. (Thus
-		giving a balance between overall test speed and the whish to detect
-		cases where mock and real filesystem give different results.)
-		This behavior is overruled by "--fast" and "--full" in the test script.
 		@param name: basename for the folder, use class name if C{None}
 		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
 		C{MOCK_DEFAULT_MOCK}, C{MOCK_DEFAULT_REAL} or C{MOCK_ALWAYS_REAL}.
+		The C{MOCK_ALWAYS_*} arguments force the use of a real folder or a
+		mock object. The C{MOCK_DEFAULT_*} arguments give a preference but
+		for these the behavior is overruled by "--fast" and "--full" in the
+		test script.
 		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
 		that is guarenteed non-existing
 		'''
@@ -265,21 +273,13 @@ class TestCase(unittest.TestCase):
 			use_mock = True
 		elif mock == MOCK_ALWAYS_REAL:
 			use_mock = False
-		elif mock == MOCK_DEFAULT_REAL:
-			if FAST_TEST:
-				use_mock = True
-			else:
-				use_mock = False
-		else: # MOCK_DEFAULT_MOCK:
+		else:
 			if FULL_TEST:
 				use_mock = False
 			elif FAST_TEST:
 				use_mock = True
-			elif random.random() < 0.2:
-				logger.info("Random dice throw: use real file system")
-				use_mock = False
 			else:
-				use_mock = True
+				use_mock = (mock == MOCK_DEFAULT_MOCK)
 
 		if use_mock:
 			from zim.newfs.mock import MockFolder
