@@ -206,6 +206,13 @@ class TestCoding(tests.TestCase):
 					self.assertFalse(' ' in indent, 'Indenting should use tabs - file: %s line %s' % (file, lineno))
 				start_block = def_line and line.rstrip().endswith(':')
 
+	def testLoggerDefined(self):
+		# Common to forget this import, and only notice it when an exception
+		# happens much later
+		for file, code in self.list_code():
+			if 'logger.' in code:
+				assert 'logger = logging.getLogger(' in code, 'Forgot to define "logger" in %s' % file
+
 
 class TestDocumentation(tests.TestCase):
 

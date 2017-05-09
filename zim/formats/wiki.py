@@ -563,7 +563,6 @@ class Dumper(TextDumper):
 		# TODO use text for caption (with full recursion)
 
 	def dump_object(self, tag, attrib, strings=None):
-		#~ logger.debug("Dumping object: %s, %s", attrib, strings)
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
@@ -615,7 +614,6 @@ class Dumper(TextDumper):
 			return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings = None):
-		#logger.debug("Dumping line tag:%s, attrib:%s, strings:%s", tag, attrib, strings)
 		if not strings:
 			strings = [LINE_TEXT]
 		elif isinstance(strings, basestring):

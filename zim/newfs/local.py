@@ -13,6 +13,10 @@ import shutil
 import tempfile
 import errno
 
+import logging
+
+logger = logging.getLogger('zim.newfs')
+
 
 from . import FS_CASE_SENSITIVE, FS_ENCODING
 from .base import *
