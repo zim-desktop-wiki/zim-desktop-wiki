@@ -9,6 +9,7 @@ import email.mime.nonmultipart
 import base64
 
 from zim.fs import get_tmpdir
+from zim.newfs import LocalFile, LocalFolder, File, Folder
 
 from zim.notebook import encode_filename
 
@@ -40,9 +41,9 @@ class MHTMLExporter(Exporter):
 
 	def export_iter(self, pages):
 		basename = encode_filename(pages.name)
-		dir = get_tmpdir().subdir('mhtml_export_tmp_dir')
-		dir.remove_children()
-		file = dir.file(basename + '.html')
+		folder = LocalFolder(get_tmpdir().subdir('mhtml_export_tmp_dir').path) # XXX
+		folder.remove_children()
+		file = folder.file(basename + '.html')
 		layout = SingleFileLayout(file, pages.prefix)
 		exporter = SingleFileExporter(layout, self.template, 'html', document_root_url=self.document_root_url)
 
@@ -88,14 +89,13 @@ class MHTMLEncoder(object):
 		return str(msg)
 
 	def _walk(self, dir):
-		for name in dir.list():
-			file = dir.file(name)
-			if file.exists(): # is file
-				yield file
-			else:
-				subdir = dir.subdir(name)
-				for child in self._walk(subdir): # recurs
+		if dir.exists():
+			for child in dir:
+				if isinstance(child, File):
 					yield child
+				elif child.exists():
+					for child in self._walk(child): # recurs
+						yield child
 
 	def encode_text_file(self, file, filename, mimetype):
 		type, subtype = mimetype.split('/', 1)
@@ -119,4 +119,3 @@ class MHTMLEncoder(object):
 		msg.set_payload(file.raw())
 		email.encoders.encode_base64(msg)
 		return msg
-

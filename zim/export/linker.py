@@ -51,7 +51,7 @@ class ExportLinker(BaseLinker):
 		self.output = output
 
 		if output:
-			self.base = output.dir
+			self.base = output.parent()
 		else:
 			self.base = None
 
@@ -284,4 +284,3 @@ class StaticExportLinker(ExportLinker):
 					#~ self._icons[name] = file.uri
 
 		#~ return self._icons[name]
-

@@ -154,7 +154,8 @@ class TestLoggingHandler(logging.Handler):
 		self.setFormatter(fmt)
 
 	def emit(self, record):
-		if record.levelno >= logging.WARNING:
+		if record.levelno >= logging.WARNING \
+		and not record.name.startswith('tests'):
 			raise UncaughtWarningError(self.format(record))
 		else:
 			pass
@@ -254,8 +255,7 @@ class TestCase(unittest.TestCase):
 		else:
 			unittest.TestCase.assertEqual(self, first, second, msg)
 
-	@classmethod
-	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT_MOCK):
+	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
 		@param name: basename for the folder, use class name if C{None}
 		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
@@ -267,7 +267,9 @@ class TestCase(unittest.TestCase):
 		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
 		that is guarenteed non-existing
 		'''
-		path = cls._get_tmp_name(name)
+		if name is None and self._testMethodName != 'runTest':
+			name = self._testMethodName
+		path = self._get_tmp_name(name)
 
 		if mock == MOCK_ALWAYS_MOCK:
 			use_mock = True
@@ -295,8 +297,7 @@ class TestCase(unittest.TestCase):
 		assert not folder.exists()
 		return folder
 
-	@classmethod
-	def setUpNotebook(cls, name=None, mock=MOCK_ALWAYS_MOCK, content={}):
+	def setUpNotebook(self, name=None, mock=MOCK_ALWAYS_MOCK, content={}):
 		'''
 		@param name: basename for the folder, use class name if C{None}
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
@@ -313,7 +314,7 @@ class TestCase(unittest.TestCase):
 		from zim.formats.wiki import WIKI_FORMAT_VERSION
 
 
-		folder = cls.setUpFolder(name, mock)
+		folder = self.setUpFolder(name, mock)
 		cache_dir = folder.folder('.zim')
 		layout = FilesLayout(folder, endofline='unix')
 
@@ -782,7 +783,7 @@ class MockObject(MockObjectBase):
 
 
 import logging
-logger = logging.getLogger('test')
+logger = logging.getLogger('tests')
 
 from functools import partial
 

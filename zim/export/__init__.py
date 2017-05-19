@@ -24,8 +24,6 @@ See the module functions for convenient standard configurations.
 '''
 
 
-# TODO test with fake file / dir objects ! Speedy test of all combos
-
 # TODO - when exporting with namespace / prefix we should also trim
 #        links within a SingleFile output relative to that prefix
 #        --> do not leak info on parent namespace names
@@ -33,6 +31,7 @@ See the module functions for convenient standard configurations.
 
 
 from zim.fs import Dir, File
+from zim.newfs import LocalFolder, LocalFile
 from zim.templates import get_template
 from zim.formats import get_format
 
@@ -43,6 +42,9 @@ def build_notebook_exporter(dir, format, template, **opts):
 	'''
 	from zim.export.layouts import MultiFileLayout
 	from zim.export.exporters.files import MultiFileExporter
+
+	if isinstance(dir, Dir):
+		dir = LocalFolder(dir.path)
 
 	template = get_template(format, template)
 	ext = get_format(format).info['extension']
@@ -57,6 +59,9 @@ def build_page_exporter(file, format, template, page, **opts):
 	from zim.export.layouts import FileLayout
 	from zim.export.exporters.files import MultiFileExporter
 
+	if isinstance(file, File):
+		file = LocalFile(file.path)
+
 	template = get_template(format, template)
 	ext = get_format(format).info['extension']
 	layout = FileLayout(file, page, ext)
@@ -70,6 +75,9 @@ def build_single_file_exporter(file, format, template, namespace=None, **opts):
 	from zim.export.layouts import SingleFileLayout
 	from zim.export.exporters.files import SingleFileExporter
 
+	if isinstance(file, File):
+		file = LocalFile(file.path)
+
 	template = get_template(format, template)
 	ext = get_format(format).info['extension']
 	layout = SingleFileLayout(file)
@@ -82,9 +90,8 @@ def build_mhtml_file_exporter(file, template, **opts):
 	'''
 	from zim.export.exporters.mhtml import MHTMLExporter
 
+	if isinstance(file, File):
+		file = LocalFile(file.path)
+
 	template = get_template('html', template)
 	return MHTMLExporter(file, template, **opts)
-
-
-
-

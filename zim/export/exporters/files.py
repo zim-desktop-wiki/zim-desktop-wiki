@@ -43,8 +43,6 @@ class FilesExporterBase(Exporter):
 		# XXX what to do with folders that do not map to a page ?
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
-		assert isinstance(target, Dir)
-		target = LocalFolder(target.path) # XXX convert
 		try:
 			for file in source.list_files():
 					yield file
@@ -70,7 +68,11 @@ class FilesExporterBase(Exporter):
 			if dir.exists(): # Export does overwrite by default
 				dir.remove_children()
 				dir.remove()
-			self.template.resources_dir.copyto(dir)
+
+			resources = self.template.resources_dir
+			if isinstance(resources, Dir):
+				resources = LocalFolder(resources.path)
+			resources.copyto(dir)
 
 
 class MultiFileExporter(FilesExporterBase):
