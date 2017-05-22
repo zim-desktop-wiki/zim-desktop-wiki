@@ -266,13 +266,8 @@ markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
-# These sets adjust to the current locale - so not same as "[a-z]" ..
-# Must be kidding - no classes for this in the regex engine !?
-_classes = {
-	'letters': string.letters # locale dependent !
-}
-twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
-del _classes
+twoletter_re = re.compile(r'[^\W\d]{2}', re.U) # match letters but not numbers - not non-alphanumeric and not number
+
 
 def camelcase(word):
 	# To be CamelCase, a word needs to start uppercase, followed
