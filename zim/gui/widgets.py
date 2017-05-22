@@ -1646,7 +1646,7 @@ class InputEntry(gtk.Entry):
 
 			layout = self.get_layout()
 			attr = pango.AttrList()
-			end = len(self.placeholder_text)
+			end = len(self.placeholder_text.encode('utf-8'))
 			attr.insert(pango.AttrStyle(pango.STYLE_ITALIC, 0, end))
 			c = 65535/16*8
 			attr.insert(pango.AttrForeground(c,c,c, 0, end))
