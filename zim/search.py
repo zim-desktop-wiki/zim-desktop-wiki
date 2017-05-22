@@ -577,9 +577,9 @@ class SearchSelection(PageSelection):
 		regex = prefix + re.escape(string) + postfix
 
 		if case:
-			return re.compile(regex)
+			return re.compile(regex, re.U)
 		else:
-			return re.compile(regex, re.I)
+			return re.compile(regex, re.U | re.I)
 
 	def _namespace_regex(self, string, case=False):
 		# like _name_regex but adds recursive descent below the page

@@ -209,3 +209,28 @@ class TestSearchFiles(TestSearch):
 	def runTest(self):
 		'''Test search API with file based notebook'''
 		TestSearch.runTest(self)
+
+
+class TestUnicode(tests.TestCase):
+
+	def runTest(self):
+		notebook = self.setUpNotebook(content={u'Öffnungszeiten': u'Öffnungszeiten ... 123\n'})
+		results = SearchSelection(notebook)
+		path = Path(u'Öffnungszeiten')
+
+		for string in (
+			u'*zeiten', # no unicode - just check test case
+			u'Öffnungszeiten',
+			u'öffnungszeiten', # case insensitive version
+			u'content:Öffnungszeiten',
+			u'content:öffnungszeiten',
+			u'name:Öffnungszeiten',
+			u'name:öffnungszeiten',
+			u'content:Öff*',
+			u'content:öff*',
+			u'name:Öff*',
+			u'name:öff*',
+		):
+			query = Query(string)
+			results.search(query)
+			self.assertIn(path, results, 'query did not match: "%s"' % string)
