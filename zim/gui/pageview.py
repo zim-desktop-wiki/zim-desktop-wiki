@@ -684,6 +684,11 @@ class TextBuffer(gtk.TextBuffer):
 
 		@param tree: a L{ParseTree} object
 		'''
+
+		# Since we cannot hold onto a TextMark or TextIter through a clear(), we must use offsets
+		cursorOffset = self.get_iter_at_mark(self.get_insert()).get_offset()
+		selectionOffset = self.get_iter_at_mark(self.get_selection_bound()).get_offset()
+
 		self.clear()
 		try:
 			self.insert_parsetree_at_cursor(tree)
@@ -693,6 +698,12 @@ class TextBuffer(gtk.TextBuffer):
 			raise
 		else:
 			self.set_modified(False)
+
+		# Restore the previous insertion point & selection region.
+		self.select_range(
+			self.get_iter_at_offset(cursorOffset),
+			self.get_iter_at_offset(selectionOffset)
+		);
 
 	def insert_parsetree(self, iter, tree, interactive=False):
 		'''Insert a L{ParseTree} in the buffer
