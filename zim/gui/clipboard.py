@@ -11,6 +11,7 @@ straight forward API.
 
 import gtk
 import logging
+import time
 
 from zim.fs import File, Dir, FS
 from zim.newfs import LocalFolder
@@ -236,7 +237,10 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 			# but is quite large to store, so compress by using png
 			format, extension = 'png', 'png'
 
-		file = dir.new_file('pasted_image.%s' % extension)
+		prefix = path.name.replace(':','-')
+		nameAndTime = prefix+'-'+("%x" % time.time())
+
+		file = dir.new_file(nameAndTime+'.'+extension)
 		logger.debug("Saving image from clipboard to %s", file)
 		pixbuf.save(file.path, format)
 		FS.emit('path-created', file) # notify version control
