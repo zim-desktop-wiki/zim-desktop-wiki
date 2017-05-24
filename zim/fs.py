@@ -131,6 +131,18 @@ from zim.signals import SignalEmitter, SIGNAL_AFTER
 
 logger = logging.getLogger('zim.fs')
 
+
+def adapt_from_newfs(file):
+	from zim.newfs import LocalFile, LocalFolder
+
+	if isinstance(file, LocalFile):
+		return File(file.path)
+	elif isinstance(file, LocalFolder):
+		return Dir(file.path)
+	else:
+		return file
+
+
 #: gobject and gio libraries are imported for optional features, like trash
 gobject = None
 gio = None
@@ -828,6 +840,7 @@ class UnixPath(object):
 		# Using shutil.move instead of os.rename because move can cross
 		# file system boundaries, while rename can not
 		logger.info('Rename %s to %s', self, newpath)
+		newpath = adapt_from_newfs(newpath)
 		if self.path == newpath.path:
 			raise AssertionError, 'Renaming %s to itself !?' % self.path
 
@@ -1661,6 +1674,7 @@ class UnixFile(FilePath):
 		destination is a folder, we will copy to a file below that
 		folder of the same name
 		'''
+		dest = adapt_from_newfs(dest)
 		assert isinstance(dest, (File, Dir))
 		if isinstance(dest, Dir):
 			assert not dest == self.dir, 'BUG: trying to copy a file to itself'

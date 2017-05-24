@@ -24,7 +24,7 @@ import webbrowser
 
 from zim.main import ZIM_APPLICATION
 
-from zim.fs import File, Dir, normalize_win32_share
+from zim.fs import File, Dir, normalize_win32_share, adapt_from_newfs
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback
@@ -1239,6 +1239,7 @@ class GtkInterface(gobject.GObject):
 		ignore the specified mimetype)
 		'''
 		logger.debug('open_file(%s, %s)', file, mimetype)
+		file = adapt_from_newfs(file)
 		assert isinstance(file, (File, Dir))
 		if isinstance(file, (File)) and file.isdir():
 			file = Dir(file.path)
