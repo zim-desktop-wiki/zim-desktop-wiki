@@ -262,7 +262,7 @@ class GtkInterface(gobject.GObject):
 		self.config = config or ConfigManager(profile=notebook.profile)
 		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
 		self.preferences['General'].setdefault('plugins',
-			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'osx_menubar'])
 
 		self.plugins = PluginManager(self.config)
 		self.plugins.extend(notebook)

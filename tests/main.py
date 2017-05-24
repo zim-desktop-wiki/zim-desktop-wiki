@@ -123,7 +123,8 @@ class TestGui(tests.TestCase):
 		dir = self.create_tmp_dir()
 		cmd = GuiCommand('gui')
 		cmd.parse_options(dir)
-		window = cmd.run()
+		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+			window = cmd.run()
 		self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
@@ -142,7 +143,8 @@ class TestManual(tests.TestCase):
 
 	def runTest(self):
 		cmd = ManualCommand('manual')
-		window = cmd.run()
+		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+			window = cmd.run()
 		self.addCleanup(window.destroy)
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 
