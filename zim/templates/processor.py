@@ -28,7 +28,7 @@ class TemplateContextDict(ExpressionDictObject):
 	'''
 
 	_fmethods = ExpressionDictObject._fmethods + (
-		'pop', 'clear', 'update', 'setdefault'
+		'pop', 'clear', 'update', 'setdefault', 'items'
 	) # adding methods for mutuable mapping here
 
 
