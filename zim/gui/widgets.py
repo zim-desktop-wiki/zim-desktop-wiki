@@ -2731,7 +2731,9 @@ class Window(gtkwindowclass):
 	def save_uistate(self):
 		assert self.uistate
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			self.uistate[key] = self.get_pane_state(key)
+			if key in self.uistate:
+				self.uistate[key] = self.get_pane_state(key)
+			# else pass - init_uistate() not yet called (!?)
 
 	def get_pane_state(self, pane):
 		'''Returns the state of a side pane.
