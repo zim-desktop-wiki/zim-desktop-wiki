@@ -183,12 +183,14 @@ class Index(SignalEmitter):
 		'''This methods flags all pages with content to be re-indexed.
 		Main reason to use this would be when loading a new plugin that
 		wants to index all pages.
+		Differs from L{flush()} because it does not drop all data
 		'''
-		self.flush()
-		# TODO: make this softer than "flush" and really only re-index content
-		# of known pages, no need to re-index file structure here.
-		# Set NEEDS_UPDATE for files that are actual source file only, don't
-		# check folders and other files
+		from .files import STATUS_NEED_UPDATE
+		self._db.execute(
+			'UPDATE files SET index_status = ?'
+			'WHERE id IN (SELECT source_file FROM pages)',
+			(STATUS_NEED_UPDATE,)
+		)
 
 	def start_background_check(self, notebook):
 		self.check_async(notebook, [Path(':')], recursive=True)

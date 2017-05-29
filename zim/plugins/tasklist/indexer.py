@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import logging
 import re
+import sqlite3
 
 import zim.datetimetz as datetime
 

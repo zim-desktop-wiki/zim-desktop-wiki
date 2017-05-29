@@ -171,12 +171,14 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			# now it is at least on idle
 
 		### XXX HACK to get dependency to connect to
+		###   -- no access to plugin, so can;t use get_extension()
+		##    -- duplicat of this snippet in MainWindowExtension
 		for e in window.ui.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
-				self.connectto(e.indexer, 'tasklist-changed', callback)
+				self.connectto(e, 'tasklist-changed', callback)
 				break
 		else:
-			raise AssertionError, 'Could not find indexer'
+			raise AssertionError, 'Could not find tasklist notebook extension'
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()

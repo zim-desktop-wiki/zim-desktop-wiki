@@ -89,6 +89,10 @@ This is a core plugin shipping with zim.
 @extends('Notebook')
 class NotebookExtension(ObjectExtension):
 
+	__signals__ = {
+		'tasklist-changed': (None, None, ()),
+	}
+
 	def __init__(self, plugin, notebook):
 		ObjectExtension.__init__(self, plugin, notebook)
 		self.notebook = notebook
@@ -101,6 +105,7 @@ class NotebookExtension(ObjectExtension):
 			self.index.flag_reindex()
 
 		self.indexer = TasksIndexer.new_from_index(self.index, plugin.preferences)
+		self.connectto(self.indexer, 'tasklist-changed')
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
@@ -108,12 +113,17 @@ class NotebookExtension(ObjectExtension):
 		if self._parser_key != self._get_parser_key():
 			self._parser_key = self._get_parser_key()
 
+			self.disconnect_from(self.indexer)
 			self.indexer.disconnect_all()
-			self.indexer = TasksIndexer.new_from_index(self.index, plugin.preferences)
+			self.indexer = TasksIndexer.new_from_index(self.index, preferences)
 			self.index.flag_reindex()
+			self.connectto(self.indexer, 'tasklist-changed')
+
+	def on_tasklist_changed(self, indexer):
+		self.emit('tasklist-changed')
 
 	def _get_parser_key(self):
-		tuple(
+		return tuple(
 			self.plugin.preferences[t[0]]
 				for t in self.plugin.parser_preferences
 		)
@@ -192,12 +202,14 @@ class MainWindowExtension(WindowExtension):
 			# make it less blocking - now it is at least on idle
 
 		### XXX HACK to get dependency to connect to
+		###   -- no access to plugin, so can;t use get_extension()
+		##    -- duplicat of this snippet in TaskListDialog
 		for e in self.window.ui.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
-				self.connectto(e.indexer, 'tasklist-changed', callback)
+				self.connectto(e, 'tasklist-changed', callback)
 				break
 		else:
-			raise AssertionError, 'Could not find indexer'
+			raise AssertionError, 'Could not find tasklist notebook extension'
 
 	def teardown(self):
 		if self._widget:
