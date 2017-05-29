@@ -397,6 +397,9 @@ class UserActionContext(object):
 		self.buffer.end_user_action()
 
 
+GRAVITY_RIGHT = 'right'
+GRAVITY_LEFT = 'left'
+
 class SaveCursorContext(object):
 	'''Context manager used by L{TextBuffer.tmp_cursor()}
 
@@ -411,15 +414,16 @@ class SaveCursorContext(object):
 	after exiting the context.
 	'''
 
-	def __init__(self, buffer, iter=None):
+	def __init__(self, buffer, iter=None, gravity=GRAVITY_LEFT):
 		self.buffer = buffer
 		self.iter = iter
 		self.mark = None
+		self.gravity = gravity
 
 	def __enter__(self):
 		buffer = self.buffer
 		cursor = buffer.get_iter_at_mark(buffer.get_insert())
-		self.mark = buffer.create_mark(None, cursor, left_gravity=True)
+		self.mark = buffer.create_mark(None, cursor, left_gravity=(self.gravity == GRAVITY_LEFT))
 		if self.iter:
 			buffer.place_cursor(self.iter)
 
@@ -668,13 +672,16 @@ class TextBuffer(gtk.TextBuffer):
 		'''Get a C{gtk.TextIter} for the current cursor position'''
 		return self.get_iter_at_mark(self.get_insert())
 
-	def tmp_cursor(self, iter=None):
+	def tmp_cursor(self, iter=None, gravity=GRAVITY_LEFT):
 		'''Get a L{SaveCursorContext} object
 
 		@param iter: a C{gtk.TextIter} for the new (temporary) cursor
 		position
+		@param gravity: give mark left or right "gravity" compared to new
+		inserted text, default is "left" which means new text goes after the
+		cursor position
 		'''
-		return SaveCursorContext(self, iter)
+		return SaveCursorContext(self, iter, gravity)
 
 	def set_parsetree(self, tree):
 		'''Load a new L{ParseTree} in the buffer
@@ -1245,7 +1252,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def _replace_bullet(self, line, bullet):
 		indent = self.get_indent(line)
-		with self.tmp_cursor():
+		with self.tmp_cursor(gravity=GRAVITY_RIGHT):
 			iter = self.get_iter_at_line(line)
 			bound = iter.copy()
 			self.iter_forward_past_bullet(bound)
