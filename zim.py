@@ -21,7 +21,10 @@ except:
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
 # See http://www.py2exe.org/index.cgi/StderrLog
 # If startup is OK, this will be overruled in zim/main with per user log file
-if os.name == "nt" and sys.argv[0].endswith('.exe'):
+if os.name == "nt" and (
+	sys.argv[0].endswith('.exe')
+	or sys.executable.endswith('pythonw.exe')
+):
 	import tempfile
 	dir = tempfile.gettempdir()
 	if not os.path.isdir(dir):
