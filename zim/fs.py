@@ -1892,19 +1892,21 @@ class FileHandle(file):
 if hasattr(os, 'replace'):
 	_replace_file = os.replace
 elif sys.platform == 'win32':
-	import win32api, win32con
+	# The win32api.MoveFileEx method somehow does not like our unicode,
+	# the ctypes version does ??!
+	import ctypes
+	_MoveFileEx = ctypes.windll.kernel32.MoveFileExW
+	_MoveFileEx.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
+	_MoveFileEx.restype = ctypes.c_bool
 	def _replace_file(src, dst):
-		# True atomic replace, if supported
 		try:
-			win32api.MoveFileEx(src, dst, win32con.MOVEFILE_REPLACE_EXISTING)
+			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
+				raise OSError, 'Could not replace "%s" -> "%s"' % (src, dst)
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
-			win32api.MoveFileEx(src, dst, win32con.MOVEFILE_REPLACE_EXISTING)
-
-		# Fall back using 2-file shuffle approach
-		#~ bak = dst + '.zim-bak~'
-		#~ win32api.ReplaceFile(src, dst, bak, 0)
+			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
+				raise OSError, 'Could not replace "%s" -> "%s"' % (src, dst)
 else:
 	_replace_file = os.rename
 
