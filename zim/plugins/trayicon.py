@@ -230,7 +230,7 @@ class TrayIconBase(object):
 	def do_open_notebook(self):
 		'''Opens the notebook dialogs'''
 		from zim.gui.notebookdialog import NotebookDialog
-		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
+		NotebookDialog.unique(self, None, callback=self.do_activate_notebook).show()
 
 	def do_quick_note(self):
 		'''Show the dialog from the quicknote plugin'''

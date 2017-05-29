@@ -2154,9 +2154,12 @@ def format_title(title):
 
 
 def get_window(widget):
-	window = widget.get_toplevel() if widget else None
-		# GtkInterface also implements get_toplevel
-	return window if isinstance(window, gtk.Window) else None
+	if widget and hasattr(widget, 'get_toplevel'):
+		window = widget.get_toplevel()
+			# GtkInterface also implements get_toplevel
+		return window if isinstance(window, gtk.Window) else None
+	else:
+		return None
 
 
 def register_window(window):
