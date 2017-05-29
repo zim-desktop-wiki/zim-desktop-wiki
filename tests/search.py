@@ -20,9 +20,10 @@ class TestSearchRegex(tests.TestCase):
 			('*foo*', r'\b\S*foo\S*\b'),
 			('foo$', r'\bfoo\$'),
 			('foo bar', r'\bfoo\ bar\b'),
+			('汉字', u'\汉\字'), # re.escape add extra "\"
 		):
 			#print '>>', word, regex
-			self.assertEqual(regex_func(word), re.compile(regex, re.I | re.U))
+			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
 
 
 		text = 'foo foobar FooBar Foooo Foo!'
