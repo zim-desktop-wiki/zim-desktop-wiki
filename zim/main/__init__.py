@@ -119,11 +119,13 @@ class NotebookCommand(Command):
 		'''Helper to get a default notebook'''
 		notebooks = get_notebook_list()
 		if notebooks.default:
-			return notebooks.default.uri
+			uri = notebooks.default.uri
 		elif len(notebooks) == 1:
-			return notebooks[0].uri
+			uri = notebooks[0].uri
 		else:
 			return None
+
+		return resolve_notebook(uri, pwd=self.pwd) # None if not found
 
 	def get_notebook_argument(self):
 		'''Get the notebook and page arguments for this command
@@ -138,10 +140,7 @@ class NotebookCommand(Command):
 		notebook = args[0]
 
 		if notebook is None:
-			notebook = self.get_default_or_only_notebook()
-			if notebook:
-				logger.info('Using default notebook: %s', notebook)
-			elif self.arguments[0] == 'NOTEBOOK': # not optional
+			if self.arguments[0] == 'NOTEBOOK': # not optional
 				raise NotebookLookupError, _('Please specify a notebook')
 					# T: Error when looking up a notebook
 			else:
@@ -187,10 +186,6 @@ class NotebookCommand(Command):
 		return notebook, page or uripage
 
 
-class NotebookDialogCancelled(Exception):
-	pass
-
-
 class GuiCommand(NotebookCommand, GtkCommand):
 	'''Class implementing the C{--gui} command and run the gtk interface'''
 
@@ -202,33 +197,64 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		('standalone', '', 'start a single instance, no background process'),
 	)
 
-	def get_notebook_argument(self):
-		def prompt():
-			import zim.gui.notebookdialog
-			notebookinfo = zim.gui.notebookdialog.prompt_notebook()
-			if notebookinfo == None:
-				raise NotebookDialogCancelled
-			else:
-				return notebookinfo, None
+	def build_notebook(self, ensure_uptodate=False):
+		# Bit more complicated here due to options to use default and
+		# allow using notebookdialog to prompt
 
+		# Explicit page argument has priority over implicit from uri
+		# mounting is attempted by zim.notebook.build_notebook()
+
+		from zim.notebook import FileNotFoundError
+
+		def prompt_notebook_list():
+			import zim.gui.notebookdialog
+			return zim.gui.notebookdialog.prompt_notebook()
+				# Can return None if dialog is cancelled
+
+		used_default = False
+		page = None
 		if self.opts.get('list'):
-			return prompt()
+			notebookinfo = prompt_notebook_list()
 		else:
-			notebookinfo, page = NotebookCommand.get_notebook_argument(self)
-			if not notebookinfo:
-				return prompt()
+			notebookinfo, page = self.get_notebook_argument()
+
+			if notebookinfo is None:
+				notebookinfo = self.get_default_or_only_notebook()
+				used_default = notebookinfo is not None
+
+				if notebookinfo is None:
+					notebookinfo = prompt_notebook_list()
+
+		if notebookinfo is None:
+			return None, None # Cancelled prompt
+
+		try:
+			notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+		except FileNotFoundError:
+			if used_default:
+				# Default notebook went missing? Fallback to dialog to allow changing it
+				notebookinfo = prompt_notebook_list()
+				if notebookinfo is None:
+					return None, None # Cancelled prompt
+				notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
 			else:
-				return notebookinfo, page
+				raise
+
+		if ensure_uptodate and not notebook.index.is_uptodate:
+			for info in notebook.index.update_iter():
+				#logger.info('Indexing %s', info)
+				pass # TODO meaningful info for above message
+
+		return notebook, page or uripage
 
 	def run(self):
-		try:
-			notebook, page = self.build_notebook(ensure_uptodate=False)
-		except NotebookDialogCancelled:
-			logger.debug('NotebookDialog cancelled - exit')
-			return # Cancelled notebook dialog
-
 		import gtk
 		import zim.gui
+
+		notebook, page = self.build_notebook()
+		if notebook is None:
+			logger.debug('NotebookDialog cancelled - exit')
+			return
 
 		gui = None
 		for window in gtk.window_list_toplevels():
@@ -306,6 +332,9 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 		import zim.gui.server
 		self.opts['port'] = int(self.opts.get('port', 8080))
 		notebookinfo, page = self.get_notebook_argument()
+		if notebookinfo is None:
+			# Prefer default to be selected in drop down, user can still change
+			notebookinfo = self.get_default_or_only_notebook()
 
 		window = zim.gui.server.ServerWindow(
 			notebookinfo,
