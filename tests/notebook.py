@@ -839,6 +839,17 @@ class TestPage(TestPath):
 
 		self.assertRaises(zim.newfs.FileChangedError, page._store)
 
+		### Custom header should be preserved
+		file.writelines(lines[0:3] + ['X-Custom-Header: MyTest'] + lines[3:])
+		page = Page(Path('Foo'), False, file, folder)
+		tree = page.get_parsetree()
+		page.set_parsetree(tree)
+		page._store()
+		lines = file.readlines()
+		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
+		###
+
 
 class TestMovePageNewNotebook(tests.TestCase):
 
