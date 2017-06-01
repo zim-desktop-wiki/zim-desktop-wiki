@@ -81,16 +81,20 @@ class FilesIndexer(SignalEmitter):
 	def update_iter(self):
 		'''Generator function for the actual update'''
 		self.emit('start-update')
+		for i in self._update_iter_inner():
+			yield
+		self.emit('finish-update')
 
+	def _update_iter_inner(self, prefix=''):
 		# sort folders before files: first index structure, then contents
 		# this makes e.g. index links more efficient and robust
 		# sort by id to ensure parents are found before children
 		while True:
 			row = self.db.execute(
 				'SELECT id, path, node_type FROM files'
-				' WHERE index_status = ?'
+				' WHERE index_status = ? AND path LIKE ?'
 				' ORDER BY node_type, id',
-				(STATUS_NEED_UPDATE, )
+				(STATUS_NEED_UPDATE, prefix+'%')
 			).fetchone()
 
 			if row:
@@ -122,8 +126,6 @@ class FilesIndexer(SignalEmitter):
 			self.db.commit()
 			yield
 
-		self.emit('finish-update')
-
 	def interactive_add_file(self, file):
 		assert isinstance(file, File) and file.exists()
 		parent_id = self._add_parent(file.parent())
@@ -140,6 +142,25 @@ class FilesIndexer(SignalEmitter):
 		self.emit('file-row-inserted', row)
 
 		self.update_file(row['id'], file)
+
+	def interactive_add_folder(self, folder):
+		assert isinstance(folder, Folder) and folder.exists()
+		parent_id = self._add_parent(folder.parent())
+		path = folder.relpath(self.folder)
+		self.db.execute(
+			'INSERT INTO files(path, node_type, index_status, parent)'
+			' VALUES (?, ?, ?, ?)',
+			(path, TYPE_FOLDER, STATUS_NEED_UPDATE, parent_id),
+		)
+		row = self.db.execute(
+			'SELECT * FROM files WHERE path=?', (path,)
+		).fetchone()
+
+		self.emit('file-row-inserted', row)
+
+		self.update_folder(row['id'], folder)
+		for i in self._update_iter_inner(prefix=path):
+			pass
 
 	def _add_parent(self, folder):
 		if folder == self.folder:

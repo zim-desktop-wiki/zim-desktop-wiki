@@ -225,7 +225,7 @@ class Index(SignalEmitter):
 				if isinstance(file, File):
 					filesindexer.interactive_add_file(file)
 				elif isinstance(file, Folder):
-					raise ValueError
+					filesindexer.interactive_add_folder(file)
 				else:
 					raise TypeError
 
@@ -236,15 +236,8 @@ class Index(SignalEmitter):
 	def file_moved(self, oldfile, newfile):
 		# TODO: make this more efficient, specific for moved folders
 		#       by supporting moved pages in indexers
-
-		if isinstance(oldfile, File):
-			self.update_file(oldfile)
-			self.update_file(newfile)
-		elif isinstance(oldfile, Folder):
-			self.update_file(oldfile)
-			self.update_iter.check_and_update(newfile)
-		else:
-			raise TypeError
+		self.update_file(oldfile)
+		self.update_file(newfile)
 
 	def touch_current_page_placeholder(self, path):
 		'''Create a placeholder for C{path} if the page does not
