@@ -40,7 +40,7 @@ The following Linux distributions are known to include zim:
 * [[http://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
 * Gentoo (x11-misc/zim)
 * Sourcemage (zim)
-* Fedora Extras
+* [[https://apps.fedoraproject.org/packages/Zim|Fedora]]
 * Ubuntu (universe)
 
 BSD flavors with a zim port:
