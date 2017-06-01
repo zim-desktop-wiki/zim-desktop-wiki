@@ -667,8 +667,6 @@ class ZimApplication(object):
 			for toplevel in list(self._windows):
 				try:
 					toplevel.destroy()
-					while gtk.events_pending():
-						gtk.main_iteration(block=False)
 				except:
 					logger.exception('Exception while destroying window')
 					self.remove_window(toplevel) # force removal
