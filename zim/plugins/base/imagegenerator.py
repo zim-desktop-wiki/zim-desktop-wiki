@@ -199,6 +199,14 @@ class ImageGeneratorClass(object):
 		'''
 		return text
 
+	def get_default_text(self):
+		'''Provides a template or starting point for the user to begin editing.
+
+		@implementation: Not mandatory to be implemented by subclass.
+		It defaults to the empty string.
+		'''
+		return '';
+
 	def filter_input(self, text):
 		'''Filter contents of script file before displaying in textarea
 
@@ -281,13 +289,15 @@ class ImageGeneratorDialog(Dialog):
 			hbox.pack_start(self.logbutton, False)
 		# else keep hidden
 
-		self._existing_file = None
 		if image:
 			file = image['_src_file'] # FIXME ?
 			textfile = self._stitch_fileextension(file, self.generator.scriptname)
 			self._existing_file = textfile
 			self.imageview.set_file(file)
 			self.set_text(self.generator.filter_input(textfile.read()))
+		else:
+			self._existing_file = None
+			self.set_text(self.generator.filter_input(self.generator.get_default_text()))
 
 		self.textview.grab_focus()
 
