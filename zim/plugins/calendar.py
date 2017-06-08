@@ -109,6 +109,7 @@ Also adds a calendar widget to access these pages.
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
 		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
 		('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True), # T: preferences option
+		('link_shortname', 'bool', _('When copying a link to a file, use shorter name (IE my-page instead of Journal:2017:06:my-page)'), False), # T: preferences option
 	)
 	# TODO disable pane setting if not embedded
 

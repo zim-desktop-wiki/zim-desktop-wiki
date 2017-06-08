@@ -13,6 +13,7 @@ import gtk
 import logging
 
 from zim.fs import File, Dir, FS
+from zim.main import ZIM_APPLICATION
 from zim.newfs import LocalFolder
 from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
@@ -279,12 +280,16 @@ def _link_tree(links, notebook, path):
 			if type == 'page':
 				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
 				href = notebook.pages.create_link(path, target)
-				link = href.to_wiki_link()
+				name = link = href.to_wiki_link()
+                                for window in ZIM_APPLICATION._windows: # Allow shorter links from Journal
+                                    if window.ui.plugins and window.ui.plugins['calendar'].preferences["link_shortname"] is True and name.startswith("Journal"):
+                                        pos = name.rfind(":")
+                                        name = name[pos+1:]
+                                    break
 			elif type == 'file':
 				file = File(link) # Assume links are always URIs
-				link = notebook.relative_filepath(file, path) or file.uri
-
-			builder.append(LINK, {'href': link}, link)
+				name = link = notebook.relative_filepath(file, path) or file.uri
+			builder.append(LINK, {'href': link}, name)
 
 	builder.end(FORMATTEDTEXT)
 	tree = builder.get_parsetree()
