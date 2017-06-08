@@ -264,7 +264,7 @@ class FilesIndexer(SignalEmitter):
 				self.delete_file(child_id)
 
 		row = self.db.execute('SELECT * FROM files WHERE id=?', (node_id,)).fetchone()
-		logger.debug('Drop file: %s', row['path'])
+		logger.debug('Drop folder: %s', row['path'])
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
 
 

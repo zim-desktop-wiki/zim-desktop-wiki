@@ -16,6 +16,8 @@ from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 from zim.tokenparser import TokenBuilder
 
+from zim.formats import ParseTreeBuilder
+
 from .base import *
 
 
@@ -32,11 +34,18 @@ PAGE_EXISTS_AS_LINK = 1 # placeholder for link target
 PAGE_EXISTS_HAS_CONTENT = 2 # either has content or children have content
 
 
+def emptyParseTree():
+	b = ParseTreeBuilder()
+	b.start('zim-tree')
+	b.end('zim-tree')
+	return b.get_parsetree()
+
+
 class PagesIndexer(IndexerBase):
 	'''Indexer for the "pages" table.
 
 	@signal: C{page-row-inserted (row)}: new row inserted
-	@signal: C{page-row-changed (row)}: row changed
+	@signal: C{page-row-changed (row, oldrow)}: row changed
 	@signal: C{page-row-deleted (row)}: row to be deleted
 
 	@signal: C{page-changed (row, content)}: page contents changed
@@ -44,7 +53,7 @@ class PagesIndexer(IndexerBase):
 
 	__signals__ = {
 		'page-row-inserted': (None, None, (object,)),
-		'page-row-changed':  (None, None, (object,)),
+		'page-row-changed':  (None, None, (object, object)),
 		'page-row-deleted':  (None, None, (object,)),
 		'page-changed':      (None, None, (object, object))
 	}
@@ -100,7 +109,13 @@ class PagesIndexer(IndexerBase):
 		if row is None:
 			self.insert_page(pagename, filerow['id'])
 		elif row['source_file'] is None:
-			self._set_source_file(pagename, filerow['id'])
+			self.db.execute(
+				'UPDATE pages SET source_file=?, mtime=?, is_link_placeholder=? WHERE name=?',
+				(filerow['id'], None, False, pagename.name)
+			)
+			self.update_parent(pagename.parent)
+			newrow = self._select(pagename)
+			self.emit('page-row-changed', newrow, row)
 		else:
 			# TODO: Flag conflict
 			raise NotImplementedError
@@ -132,7 +147,17 @@ class PagesIndexer(IndexerBase):
 
 		if row['source_file'] == filerow['id']:
 			if row['n_children'] > 0:
-				self._set_source_file(pagename, None)
+				self.db.execute(
+					'UPDATE pages SET source_file=?, mtime=? WHERE name=?',
+					(None, None, pagename.name)
+				)
+				self.update_parent(pagename, oldrow=row)
+					# checks if any children have sources - else will be removed
+				try:
+					row = self._select(pagename)
+					self.emit('page-changed', row, emptyParseTree())
+				except IndexNotFoundError:
+					pass
 			else:
 				self.remove_page(pagename)
 		else:
@@ -178,7 +203,7 @@ class PagesIndexer(IndexerBase):
 
 		return row['id']
 
-	def update_parent(self, parentname, allow_cleanup=lambda r: True):
+	def update_parent(self, parentname, allow_cleanup=lambda r: True, oldrow=None):
 		row = self._select(parentname)
 		assert row is not None
 
@@ -209,15 +234,10 @@ class PagesIndexer(IndexerBase):
 			if bool(row['is_link_placeholder']) is not is_placeholder:
 				self.update_parent(parentname.parent) # recurs
 
-			parentname = PageIndexRecord(self._select(parentname))
-
 			# notify others
 			if not parentname.isroot:
-				#if (row['n_children'] != n_children) \
-				#and (row['n_children'] == 0 or n_children == 0):
-				#	self.emit('page-row-has-child-changed', row)
-
-				self.emit('page-row-changed', row)
+				newrow = self._select(parentname)
+				self.emit('page-row-changed', newrow, oldrow or row)
 
 	def update_page(self, pagename, mtime, content):
 		self.db.execute(
@@ -227,21 +247,7 @@ class PagesIndexer(IndexerBase):
 
 		row = self._select(pagename)
 		self.emit('page-changed', row, content)
-		self.emit('page-row-changed', row)
-
-	def _set_source_file(self, pagename, file_id):
-		self.db.execute(
-			'UPDATE pages SET source_file=?, mtime=?, is_link_placeholder=? WHERE name=?',
-			(file_id, None, False, pagename.name)
-		)
-
-		if file_id is None:
-			# check any children have sources - else will be removed
-			self.update_parent(pagename)
-		else:
-			self.update_parent(pagename.parent)
-			row = self._select(pagename)
-			self.emit('page-row-changed', row)
+		self.emit('page-row-changed', row, row)
 
 	def remove_page(self, pagename, allow_cleanup=lambda r: True):
 		# allow_cleanup is used by LinksIndexer when cleaning up placeholders
@@ -553,7 +559,7 @@ class PagesView(IndexView):
 			'SELECT parent FROM pages WHERE name=?', (path.name,)
 		).fetchone()
 		if r is None:
-			raise IndexNotFoundError, 'No such page: %s', path
+			raise IndexNotFoundError, 'No such page: %s' % path
 		else:
 			parent_id = r[0]
 
@@ -593,7 +599,7 @@ class PagesView(IndexView):
 			'SELECT * FROM pages WHERE name=?', (path.name,)
 		).fetchone()
 		if r is None:
-			raise IndexNotFoundError, 'No such page: %s', path
+			raise IndexNotFoundError, 'No such page: %s' % path
 
 		if r['n_children'] > 0:
 			r = self.db.execute(
@@ -753,7 +759,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			treeiter = self.get_iter(parent.treepath) # not mytreeiter !
 			self.emit('row-has-child-toggled', parent.treepath, treeiter)
 
-	def on_page_row_changed(self, o, row):
+	def on_page_row_changed(self, o, row, oldrow):
 		# no clear cache here - just update row
 		for treepath in self._find_all_pages(row['name']):
 			treeiter = self.get_iter(treepath) # not mytreeiter !

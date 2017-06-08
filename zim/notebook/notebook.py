@@ -277,7 +277,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.links = LinksView.new_from_index(self.index)
 		self.tags = TagsView.new_from_index(self.index)
 
-		def on_page_row_changed(o, row):
+		def on_page_row_changed(o, row, oldrow):
 			if row['name'] in self._page_cache:
 				self._page_cache[row['name']].haschildren = row['n_children'] > 0
 				self.emit('page-info-changed', self._page_cache[row['name']])
