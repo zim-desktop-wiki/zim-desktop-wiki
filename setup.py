@@ -320,21 +320,22 @@ else:
 if py2exe:
 	py2exeoptions = {
 		'windows': [ {
-			"script": "zim.py",
-			"icon_resources": [(1, "icons/zim.ico")]
+			'script': 'zim.py',
+			'icon_resources': [(1, 'icons/zim.ico')]
 				# Windows 16x16, 32x32, and 48x48 icon based on PNG
 		} ],
 		'zipfile': None,
 		'options': {
-			"py2exe": {
-				"compressed": 1,
-				"optimize": 2,
-				"ascii": 1,
-				"bundle_files": 3,
-				"packages": ["encodings", "cairo", "atk", "pangocairo", "zim"],
-				"dll_excludes": {
-					"DNSAPI.DLL"
-				}
+			'py2exe': {
+				'compressed': 1,
+				'optimize': 2,
+				'ascii': 1,
+				'bundle_files': 3,
+				'packages': ['encodings', 'cairo', 'atk', 'pangocairo', 'zim'],
+				'dll_excludes': {
+					'DNSAPI.DLL'
+				},
+				'excludes': ['Tkconstants', 'Tkinter', 'tcl']
 			}
 		}
 	}

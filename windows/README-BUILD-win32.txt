@@ -1,139 +1,92 @@
-How to Build pyzim on Windows
-=============================
+How to Build Zim Destkop Wiki on Windows
+========================================
 
 
 Overview
 --------
 
-To build Zim for Windows, you must install all the requirements listed
-below. Then follow the steps in the "Building Zim" section.
-
-To make the regular desktop installer package, see "Packaging the
-Regular Installer".
-
-To make the portable package, see "Packaging the PortableApps.com
-Installer".
+To build Zim for Windows, you must install all the requirements listed below. Then follow the steps in the "Building Zim" section.
 
 
 Requirements
 ------------
 
-1.  Install Python 2.7 for Windows from
+1. Install Python 2.7 for Windows from
 
-    http://www.python.org/download/
+http://www.python.org/download/
 
-    Note: Zim has not yet been ported to Python 3.
+During installation, be sure to add the non-default option "Add python.exe to Path."
 
-2.  Install the py2exe library from
+NOTE: Zim has not yet been ported to Python 3.
 
-    http://sourceforge.net/projects/py2exe/files/
+2. Install the py2exe library from
 
-3.  Install PyGTK All-in-One from
+http://sourceforge.net/projects/py2exe/files/
 
-    http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
+3. Install PyGTK All-in-One from
 
-    Be sure to include "PyGTKSourceView" when you run the installer.
+http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
 
-4.  Jpeg for Windows
+Be sure to include "PyGTKSourceView" and "PyRsvg" when you run the installer.
 
-    http://gnuwin32.sourceforge.net/packages/jpeg.htm
+4. Jpeg for Windows
 
-    Get jpeg62.dll and put it in ./windows .
+http://gnuwin32.sourceforge.net/packages/jpeg.htm
 
-6.  Install Bazaar using the PYTHON-BASED installer from
+Get jpeg62.dll and put it in ./windows/lib .
 
-    http://wiki.bazaar.canonical.com/WindowsDownloads
+5. Install PyWin32 from
 
-    The build script depends on Python Bazaar.
-7.  Install PyWin32 from
+http://sourceforge.net/projects/pywin32/files/pywin32/
 
-    http://sourceforge.net/projects/pywin32/files/pywin32/
+6. Install the Visual C++ 2008 Redistributable Package (x86) from
 
-8.  Install NSIS from
+http://www.microsoft.com/en-us/download/details.aspx?id=29
 
-    http://nsis.sourceforge.net/Download
+Be sure to use the November 2007 version from that URL, not the SP1 version. This one goes with Python 2.7.
 
-8a. You will also want to download Venis IX if you want to edit the
-    NSIS script in an IDE. (The script is a plain text file, though,
-    if you don't want to use an IDE.)
-    http://nsis.sourceforge.net/Venis_IX
+7. Install NSIS 3.x from
 
-9.  For the PortableApps.com build, additionally install these three
-    utilities:
+http://nsis.sourceforge.net/Download
 
-    http://portableapps.com/apps/development/nsis_portable (Unicode version)
-    http://portableapps.com/apps/development/portableapps.com_installer
-    http://portableapps.com/apps/development/portableapps.com_launcher
+7a. You will also want to download Venis IX if you want to edit the NSIS script in an IDE. (The script is a plain text file, though, if you don't want to use an IDE.)
 
-    These tools default to installing in ~/Desktop, but I personally
-    put them in ~/Apps. Be sure to put them all in the same folder.
-
-10. See http://www.py2exe.org/index.cgi/Tutorial#Step5 . You need to
-    create the following files under ./windows/src/ :
-      Microsoft.VC90.CRT/
-      +-- Microsoft.VC90.CRT.manifest
-      +-- msvcm90.dll
-      +-- msvcp90.dll
-      +-- msvcr90.dll -- must be exactly version 9.0.21022.8 for Python 2.7
-    You can get these files here:
-    http://www.glump.net/content/zim/Microsoft.VC90.CRT.zip
-    (Not included in Zim source because the license for redistribution is
-    confusing.)
+http://nsis.sourceforge.net/Venis_IX
 
 
-Building the application icon
+Building the Application Icon
 -----------------------------
 
-If the Zim application icon has changed, you must manually rebuild it
-before running the Windows build scripts. Otherwise skip this section.
+If the Zim application icon has changed, you must manually rebuild it before running the Windows build scripts. Otherwise skip this section.
 
-1. Using IcoFX (free software), import Zim's zim16.png, zim32.png, and
-zim48.png to a fresh ICO file.
+1. Using IcoFX (version 2.x, the old free version), import Zim's zim16.png, zim32.png, and zim48.png to a fresh ICO file.
 
-2. Using InkScape, convert zim48.svg to a temporary 256x256 PNG file
-and import that into the same ICO file as step 1.
+2. Using InkScape, convert zim48.svg to a temporary 256x256 PNG file and import that into the same ICO file as step 1.
 
-3. Save as ./icons/zim.ico .
+3. Save as .\icons\zim.ico .
 
 
 Building Zim
 ------------
 
-1. Add your Python root folder and your "GTK+ Bundle\bin" folder to
-   your $PATH environment variable.
+1. At the command prompt, CD into the Zim project's root folder.
 
-2. At the command prompt, CD into the Zim project's root folder.
+2. Run "python windows\build_win32.py".
 
-3. Run "python.exe windows\build_win32.py" in the command prompt.
-   NOTE: Sometimes I get "Access denied" errors in this step. Closing
-   all windows except the command prompt usually helps.
+NOTE: Sometimes I get "Access denied" errors in this step. Closing all windows except the command prompt usually helps.
 
-4. Make sure it built okay by running
-   ".\windows\build\ZimDesktopWikiPortable\App\ZimDesktopWiki\zim.exe"
+3. Make sure it built okay by running ".\windows\build\ZimDesktopWiki\zim.exe"
 
 
-Packaging the Regular Installer
--------------------------------
+Packaging the Installer
+-----------------------
 
 1. Build zim.exe (see steps above).
 
-2. Run "./windows/create-zim-setup.nsi".
+2. At the command prompt, CD into the Zim Project's root folder.
 
-3. Find its output in "./dist/Zim-setup-*.exe" and test it.
+3. Run "python windows\make_installer_win32.py" to create the desktop installer.
 
+4. Run "python windows\make_installer_win32_portable.py" to create the portable installer.
 
-Packaging the PortableApps.com Installer
-----------------------------------------
-
-1. Build zim.exe (see steps above).
-
-2. Run the PortableApps.comLauncher app on the folder
-   "./windows/build/ZimDesktopWikiPortable".
-
-2a. Test the launcher built in "./windows/build/ZimDesktopWikiPortable".
-
-3. Run the PortableApps.comInstaller app on the folder
-   "./windows/build/ZimDesktopWikiPortable".
-
-4. You will find the installer named as
-   "./windows/build/ZimDesktopWikiPortable_VERSION.paf.exe"/
+5. Find the NSIS installers in ".\dist\zim-desktop-wiki-*.exe" and test them.

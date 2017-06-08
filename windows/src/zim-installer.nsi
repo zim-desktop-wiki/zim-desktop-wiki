@@ -4,29 +4,30 @@
 !define APPNAME "Zim Desktop Wiki"
 
 ; Define VER and BUILDDATE
-!include "build\version-and-date.nsi"
+!include "..\build\version-and-date.nsi"
 
-!define APPNAMEANDVERSION "Zim Desktop Wiki ${VER} for Windows"
+!define APPNAMEANDVERSION "Zim Desktop Wiki ${VER}"
 
 ; Main Install settings
 Name "${APPNAMEANDVERSION}"
 InstallDir "$PROGRAMFILES\Zim Desktop Wiki"
 InstallDirRegKey HKLM "Software\${APPNAME}" ""
-OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
+OutFile "..\..\dist\zim-desktop-wiki-setup-${VER}.exe"
 SetCompressor /SOLID lzma
 
 ; Modern interface settings
 !include "MUI.nsh"
 
 ; Register Extension function
-!include "src\registerExtension.nsh"
+!include "registerExtension.nsh"
+
+!include "sections.nsh"
 
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\zim.exe"
-
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "src\zim-logo-big.bmp" ; optional
-!define MUI_ICON "..\icons\zim.ico"
+!define MUI_HEADERIMAGE_BITMAP "zim-logo-big.bmp" ; optional
+!define MUI_ICON "..\..\icons\zim.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
 	"Setup will install ${APPNAME} in the following folder."
@@ -46,7 +47,6 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
-
 Section "-Main program" SecProgramFiles
 
 	; Clear installation folder, to be sure to get rid of orphaned files
@@ -55,23 +55,30 @@ Section "-Main program" SecProgramFiles
 	; Set Section properties
 	SetOverwrite on
 
-	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\ZimDesktopWikiPortable\App\ZimDesktopWiki\*.*"
-	File "..\icons\zim.ico"
+
+	; Include main files; skip the 'portable' and 'portable debug' launchers
+	File /r \
+		/x "zim.exe.log" \
+		/x "Zim *Portable*.exe" \
+		"..\build\ZimDesktopWiki\*.*"
+
+	File "..\..\icons\zim.ico"
+	File "Zim Desktop Wiki for Windows README.rtf"
 
 SectionEnd
-
 
 Section "Start Menu shortcut" SecStartShortcut
 
 	CreateDirectory "$SMPROGRAMS\Zim Desktop Wiki"
 	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Zim.lnk" "$INSTDIR\zim.exe"
+	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Zim (Debug Mode).lnk" "$INSTDIR\zim_debug.exe"
+	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\README for Zim for Windows.lnk" "$INSTDIR\Zim Desktop Wiki for Windows README.rtf"
 	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
 SectionEnd
 
-Section "Desktop shortcut" SecDesktopShortcut
+Section /o "Desktop shortcut" SecDesktopShortcut
 
 	; Set Section properties
 	SetOverwrite on
@@ -87,7 +94,7 @@ Section ".zim file association" SecAssociate
 
 SectionEnd
 
-Section "Create Registry Keys and Uninstaller" SecUninstall
+Section "Create egistry keys and uninstaller" SecUninstall
 
 	WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
@@ -108,6 +115,7 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} \
 	"Create uninstaller and registry keys necessary for uninstallation."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
 
 ;Uninstall section
 Section Uninstall
@@ -138,5 +146,3 @@ Section Uninstall
 	RMDir /r "$SMPROGRAMS\Zim Desktop Wiki"
 
 SectionEnd
-
-; eof
