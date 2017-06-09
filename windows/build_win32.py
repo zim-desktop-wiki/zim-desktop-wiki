@@ -100,15 +100,6 @@ shutil.copytree("data", path.join(EXE_ROOT, "data"))
 distutils.dir_util.copy_tree("icons", path.join(EXE_ROOT, "icons"), update=1)
 distutils.dir_util.copy_tree("locale", path.join(EXE_ROOT, "locale"), update=1)
 
-# Copy the hicolor icon theme from windows folder because it's missing from Gtk/win32 distro
-
-# p = path.join(EXE_ROOT, r"share\icons\hicolor")
-# if not path.exists(p): os.makedirs(p)
-# shutil.copy(
-# 	r"windows\src\hicolor-icon-theme__index.theme",
-# 	path.join(EXE_ROOT, r"share\icons\hicolor\index.theme")
-# )
-
 # Copy jpeg62.dll
 
 shutil.copy(r"windows\lib\jpeg62.dll", EXE_ROOT)
