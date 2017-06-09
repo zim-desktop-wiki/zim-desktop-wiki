@@ -57,7 +57,7 @@ Section "-Main program" SecProgramFiles
 
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\ZimDesktopWikiPortable\App\ZimDesktopWiki\*.*"
+	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\ZimDesktopWiki\*.*"
 	File "..\icons\zim.ico"
 
 SectionEnd
