@@ -47,7 +47,7 @@ if not path.exists(MAKENSIS):
 	if "PROGRAMFILES(X86)" in os.environ:
 		MAKENSIS = path.join(os.environ["PROGRAMFILES(x86)"], r"NSIS\makensis.exe")
 	if not path.exists(MAKENSIS):
-		raise RuntimeError("Can't find makensis.exe")
+		raise RuntimeError("Can't find makensis.exe .")
 
 # --------------------------------------
 # BUILD
@@ -102,25 +102,21 @@ distutils.dir_util.copy_tree("locale", path.join(EXE_ROOT, "locale"), update=1)
 
 # Copy the hicolor icon theme from windows folder because it's missing from Gtk/win32 distro
 
-p = path.join(EXE_ROOT, r"share\icons\hicolor")
-if not path.exists(p): os.makedirs(p)
-shutil.copy(
-	r"windows\src\hicolor-icon-theme__index.theme",
-	path.join(EXE_ROOT, r"share\icons\hicolor\index.theme")
-)
+# p = path.join(EXE_ROOT, r"share\icons\hicolor")
+# if not path.exists(p): os.makedirs(p)
+# shutil.copy(
+# 	r"windows\src\hicolor-icon-theme__index.theme",
+# 	path.join(EXE_ROOT, r"share\icons\hicolor\index.theme")
+# )
 
 # Copy jpeg62.dll
 
 shutil.copy(r"windows\lib\jpeg62.dll", EXE_ROOT)
 
-# Copy msvcr90.dll
+# Copy VC90 Redistributable
 
 vc90_target = path.join(EXE_ROOT, "Microsoft.VC90.CRT")
-os.mkdir(vc90_target)
-files = glob.glob(path.join(VC90_DLL, "*.*"))
-for file in files:
-	if path.isfile(file):
-		shutil.copy(file, vc90_target)
+shutil.copytree(VC90_DLL, vc90_target)
 shutil.copy(VC90_MANIFEST, path.join(vc90_target, "Microsoft.VC90.CRT.manifest"))
 
 # Set theme to MS-Windows
@@ -128,10 +124,6 @@ shutil.copy(VC90_MANIFEST, path.join(vc90_target, "Microsoft.VC90.CRT.manifest")
 f = open(path.join(EXE_ROOT, r"etc\gtk-2.0\gtkrc"), "w")
 print >>f, 'gtk-theme-name = "MS-Windows"'
 f.close()
-
-# --------------------------------------
-# NSIS STUFF
-# --------------------------------------
 
 # Compile Launchers
 
@@ -142,8 +134,6 @@ for nsi in [
 	"Zim Desktop Wiki Portable (Debug Mode).nsi",
 	"Zim Desktop Wiki Portable.nsi"
 ]:
-	subprocess.check_call([
-		MAKENSIS, path.join(r"windows\src\launchers", nsi)
-	])
+	subprocess.check_call([MAKENSIS, path.join(r"windows\src\launchers", nsi)])
 
 print("Done building launchers.")

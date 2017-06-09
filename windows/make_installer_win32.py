@@ -1,12 +1,3 @@
-# --------------------------------------------------------------------
-# For the complete Windows build procedure, please read
-# README-BUILD-win32.txt .
-#
-# Some general advice for building PyGTK-based Windows .EXEs can be
-# found here:
-# http://www.no-ack.org/2010/09/complete-guide-to-py2exe-for-pygtk.html
-# --------------------------------------------------------------------
-
 import os
 from os import path
 import datetime
@@ -37,10 +28,10 @@ if not path.exists(MAKENSIS):
 	if "PROGRAMFILES(X86)" in os.environ:
 		MAKENSIS = path.join(os.environ["PROGRAMFILES(x86)"], r"NSIS\makensis.exe")
 	if not path.exists(MAKENSIS):
-		raise RuntimeError("Can't find makensis.exe")
+		raise RuntimeError("Can't find makensis.exe .")
 
 # --------------------------------------
-# NSIS STUFF
+# MAKE INSTALLER
 # --------------------------------------
 
 # Print out version number to NSIS include file
@@ -54,4 +45,6 @@ f.close()
 
 if not path.exists("dist"): os.mkdir("dist")
 
-subprocess.check_call([MAKENSIS, "windows\src\zim-installer"])
+# Run NSIS compiler
+
+subprocess.check_call([MAKENSIS, "windows\src\zim-installer.msi"])

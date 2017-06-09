@@ -46,7 +46,7 @@ http://nsis.sourceforge.net/Download
 http://nsis.sourceforge.net/Venis_IX
 
 
-Building the application icon
+Building the Application Icon
 -----------------------------
 
 If the Zim application icon has changed, you must manually rebuild it before running the Windows build scripts. Otherwise skip this section.
@@ -55,7 +55,7 @@ If the Zim application icon has changed, you must manually rebuild it before run
 
 2. Using InkScape, convert zim48.svg to a temporary 256x256 PNG file and import that into the same ICO file as step 1.
 
-3. Save as ./icons/zim.ico .
+3. Save as .\icons\zim.ico .
 
 
 Building Zim
@@ -63,19 +63,20 @@ Building Zim
 
 1. At the command prompt, CD into the Zim project's root folder.
 
-2. Run "python.exe windows\build_win32.py" in the command prompt.
+2. Run "python windows\build_win32.py".
 
 NOTE: Sometimes I get "Access denied" errors in this step. Closing all windows except the command prompt usually helps.
 
-3. Make sure it built okay by running
-   ".\windows\build\ZimDesktopWiki\zim.exe"
+3. Make sure it built okay by running ".\windows\build\ZimDesktopWiki\zim.exe"
 
 
 Packaging the Installer
--------------------------------
+-----------------------
 
 1. Build zim.exe (see steps above).
 
-2. Run "./windows/create-zim-setup.nsi".
+2. At the command prompt, CD into the Zim Project's root folder.
 
-3. Find its output in "./dist/Zim-setup-*.exe" and test it.
+3. Run "python windows\make_installer_win32.py".
+
+4. Find the NSIS installer in ".\dist\Zim-setup-*.exe" and test it.
