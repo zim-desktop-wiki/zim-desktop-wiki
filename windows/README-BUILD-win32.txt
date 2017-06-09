@@ -15,7 +15,7 @@ Requirements
 
 http://www.python.org/download/
 
-Note: Zim has not yet been ported to Python 3.
+NOTE: Zim has not yet been ported to Python 3.
 
 2. Install the py2exe library from
 
@@ -42,6 +42,7 @@ http://sourceforge.net/projects/pywin32/files/pywin32/
 http://nsis.sourceforge.net/Download
 
 6a. You will also want to download Venis IX if you want to edit the NSIS script in an IDE. (The script is a plain text file, though, if you don't want to use an IDE.)
+
 http://nsis.sourceforge.net/Venis_IX
 
 
@@ -50,7 +51,7 @@ Building the application icon
 
 If the Zim application icon has changed, you must manually rebuild it before running the Windows build scripts. Otherwise skip this section.
 
-1. Using IcoFX (free software), import Zim's zim16.png, zim32.png, and zim48.png to a fresh ICO file.
+1. Using IcoFX (version 2.x, the old free version), import Zim's zim16.png, zim32.png, and zim48.png to a fresh ICO file.
 
 2. Using InkScape, convert zim48.svg to a temporary 256x256 PNG file and import that into the same ICO file as step 1.
 
@@ -60,17 +61,14 @@ If the Zim application icon has changed, you must manually rebuild it before run
 Building Zim
 ------------
 
-1. Add your Python root folder and your "GTK+ Bundle\bin" folder to
-   your $PATH environment variable.
+1. At the command prompt, CD into the Zim project's root folder.
 
-2. At the command prompt, CD into the Zim project's root folder.
+2. Run "python.exe windows\build_win32.py" in the command prompt.
 
-3. Run "python.exe windows\build_win32.py" in the command prompt.
-   NOTE: Sometimes I get "Access denied" errors in this step. Closing
-   all windows except the command prompt usually helps.
+NOTE: Sometimes I get "Access denied" errors in this step. Closing all windows except the command prompt usually helps.
 
-4. Make sure it built okay by running
-   ".\windows\build\ZimDesktopWiki\App\ZimDesktopWiki\zim.exe"
+3. Make sure it built okay by running
+   ".\windows\build\ZimDesktopWiki\zim.exe"
 
 
 Packaging the Installer

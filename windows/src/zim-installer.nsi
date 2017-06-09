@@ -4,7 +4,7 @@
 !define APPNAME "Zim Desktop Wiki"
 
 ; Define VER and BUILDDATE
-!include "build\version-and-date.nsi"
+!include "..\build\version-and-date.nsi"
 
 !define APPNAMEANDVERSION "Zim Desktop Wiki ${VER} for Windows"
 
@@ -12,21 +12,21 @@
 Name "${APPNAMEANDVERSION}"
 InstallDir "$PROGRAMFILES\Zim Desktop Wiki"
 InstallDirRegKey HKLM "Software\${APPNAME}" ""
-OutFile "..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
+OutFile "..\..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
 SetCompressor /SOLID lzma
 
 ; Modern interface settings
 !include "MUI.nsh"
 
 ; Register Extension function
-!include "src\registerExtension.nsh"
+!include "registerExtension.nsh"
 
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\zim.exe"
 
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "src\zim-logo-big.bmp" ; optional
-!define MUI_ICON "..\icons\zim.ico"
+!define MUI_HEADERIMAGE_BITMAP "zim-logo-big.bmp" ; optional
+!define MUI_ICON "..\..\icons\zim.ico"
 
 !define MUI_DIRECTORYPAGE_TEXT_TOP \
 	"Setup will install ${APPNAME} in the following folder."
@@ -57,8 +57,8 @@ Section "-Main program" SecProgramFiles
 
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "build\ZimDesktopWiki\*.*"
-	File "..\icons\zim.ico"
+	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "..\build\ZimDesktopWiki\*.*"
+	File "..\..\icons\zim.ico"
 
 SectionEnd
 

@@ -12,8 +12,6 @@ from os import path
 import sys
 import shutil
 import glob
-import datetime
-import re
 import subprocess
 import distutils.dir_util
 from distutils.sysconfig import get_python_lib
@@ -32,17 +30,6 @@ EXE_ROOT = path.join(BUILD_ROOT, "ZimDesktopWiki")
 GTK_ROOT = path.join(get_python_lib(), "gtk-2.0", "runtime")
 if not path.exists(GTK_ROOT):
 	raise RuntimeError("Can't find GTK.")
-
-# Parse '__version__' out of zim package since simply importing __version__ from zim fails as of 0.61
-
-f = open("zim/__init__.py", "r")
-text = f.read()
-f.close()
-match = re.search(r"^\s*__version__\s*=\s*['\"]([\d\.]+)['\"]\s*$", text, re.MULTILINE)
-if match:
-	ZIM_VERSION = match.group(1)
-else:
-	raise RuntimeError("Can't parse Zim version from zim/__init__.py .")
 
 # Find VC90 Redistributable
 
@@ -146,20 +133,10 @@ f.close()
 # NSIS STUFF
 # --------------------------------------
 
-# Print out version number to NSIS include file
-
-f = open(r"windows\build\version-and-date.nsi", "w")
-print >>f, '!define VER "%s"' % ZIM_VERSION
-print >>f, '!define BUILDDATE "%s"' % datetime.datetime.now().strftime("%Y-%m-%d")
-f.close()
-
-# NSIS script compiles to "dist" folder but compiler won't create it if it's needed
-
-if not path.exists("dist"): os.mkdir("dist")
-
 # Compile Launchers
 
 print("Building launchers...")
+
 for nsi in [
 	"zim_debug.nsi",
 	"Zim Desktop Wiki Portable (Debug Mode).nsi",
@@ -168,4 +145,5 @@ for nsi in [
 	subprocess.check_call([
 		MAKENSIS, path.join(r"windows\src\launchers", nsi)
 	])
+
 print("Done building launchers.")
