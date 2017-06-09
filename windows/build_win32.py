@@ -53,6 +53,15 @@ if VC90_DLL == None or VC90_MANIFEST == None:
 VC90_DLL = VC90_DLL[0]
 VC90_MANIFEST = VC90_MANIFEST[0]
 
+# NSIS compiler
+
+MAKENSIS = path.join(os.environ["PROGRAMFILES"], r"NSIS\makensis.exe")
+if not path.exists(MAKENSIS):
+	if "PROGRAMFILES(X86)" in os.environ:
+		MAKENSIS = path.join(os.environ["PROGRAMFILES(x86)"], r"NSIS\makensis.exe")
+	if not path.exists(MAKENSIS):
+		raise RuntimeError("Can't find makensis.exe")
+
 # --------------------------------------
 # BUILD
 # --------------------------------------
@@ -95,7 +104,7 @@ shutil.copy(path.join(GTK_ROOT, "bin", "librsvg-2-2.dll"), EXE_ROOT)
 
 print("Done copying GTK runtime.")
 
-# Load Zim's data folder
+# Copy Zim's data folder
 
 shutil.copytree("data", path.join(EXE_ROOT, "data"))
 
@@ -150,12 +159,6 @@ if not path.exists("dist"): os.mkdir("dist")
 
 # Compile Launchers
 
-nsis_exe = path.join(os.environ["PROGRAMFILES"], r"NSIS\makensis.exe")
-if not path.exists(nsis_exe):
-	if "PROGRAMFILES(X86)" in os.environ:
-		nsis_exe = path.join(os.environ["PROGRAMFILES(x86)"], r"NSIS\makensis.exe")
-	if not path.exists(nsis_exe):
-		raise RuntimeError("Can't find makensis.exe")
 print("Building launchers...")
 for nsi in [
 	"zim_debug.nsi",
@@ -163,6 +166,6 @@ for nsi in [
 	"Zim Desktop Wiki Portable.nsi"
 ]:
 	subprocess.check_call([
-		nsis_exe, path.join(r"windows\src\launchers", nsi)
+		MAKENSIS, path.join(r"windows\src\launchers", nsi)
 	])
 print("Done building launchers.")
