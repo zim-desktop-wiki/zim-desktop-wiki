@@ -653,6 +653,16 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.copy_location()
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
 
+	def testClosePage(self):
+		# Specific bug found when trying to close the page while auto-save
+		# in progress, test it here
+		self.ui._mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.ui._mainwindow.pageview._save_page_handler.try_save_page()
+		self.assertTrue(self.ui.page.modified)
+		ok = self.ui.close_page()
+		self.assertTrue(ok)
+		self.assertFalse(self.ui.page.modified)
+
 
 class TestClickLink(tests.TestCase):
 	'''Test to check pageview and GtkInterface play together nicely when

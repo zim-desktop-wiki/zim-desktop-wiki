@@ -778,7 +778,8 @@ class GtkInterface(gobject.GObject):
 		return not page.modified
 
 	def do_close_page(self, page):
-		self._mainwindow.pageview.save_changes() # XXX
+		self._mainwindow.pageview.save_changes() # XXX - should connect to signal instead of call here
+		self.notebook.wait_for_store_page_async() # XXX - should not be needed - hide in notebook/page class - how?
 
 		current = self.history.get_current()
 		if current == page:

@@ -26,7 +26,7 @@ from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .operations import notebook_state, NOOP, SimpleAsyncOperation
+from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
 from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
@@ -526,6 +526,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				# to a counter rather than a boolean
 				page.modified = False
 				self.emit('stored-page', page)
+
+	def wait_for_store_page_async(self):
+		op = ongoing_operation(self)
+		if isinstance(op, SimpleAsyncOperation):
+			op()
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook
