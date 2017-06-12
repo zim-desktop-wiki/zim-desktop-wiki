@@ -4,7 +4,7 @@ Creation-Date: Unknown
 
 ====== Downloads ======
 
-===== Latest release: 0.66 =====
+===== Latest release: 0.67-rc2 =====
 
 **This program depends on a number of modules including the python, gtk and the python-gtk bindings.** Most linux distributions have standard packages for these bindings, if your distribution has these packages installing them will probably be much easier then compiling them manually .
 
@@ -31,7 +31,7 @@ There is also a PPA with updates for zim [[https://launchpad.net/~jaap.karssenbe
 
 {{/images/os-windows.gif?width=24}}  **Windows**
 
-A windows installer can be found [[http://www.glump.net/software/zim|here]].
+A windows installer can be found [[https://zim.glump.net/windows/|here]].
 
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
@@ -46,4 +46,3 @@ The following Linux distributions are known to include zim:
 BSD flavors with a zim port:
 * [[http://www.freshports.org/deskutils/zim|FreeBSD]]
 * [[http://www.openbsd.org/cgi-bin/cvsweb/ports/productivity/zim/|OpenBSD]]
-

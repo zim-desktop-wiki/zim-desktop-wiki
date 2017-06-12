@@ -1,3 +1,9 @@
+zim (0.67~rc2) UNRELEASED; urgency=low
+
+  * Update to release 0.67~rc2
+
+ -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 12 Jun 2017 15:00:00 +0200
+
 zim (0.66) UNRELEASED; urgency=low
 
   * Update to release 0.66
