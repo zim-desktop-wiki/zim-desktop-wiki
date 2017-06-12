@@ -724,6 +724,39 @@ class TestClickLink(tests.TestCase):
 		# TODO test plugin with custom handler
 
 
+class TestNotebookComboBox(tests.TestCase):
+
+	def runTest(self):
+		from zim.gui.notebookdialog import NotebookComboBox, NotebookTreeModel
+
+		class MyList(list):
+			pass
+
+		notebooklist = MyList([
+			NotebookInfo('file:///test/foo', name='Foo'),
+			NotebookInfo('file:///test/bar', name='Bar')
+		])
+		notebooklist.default = notebooklist[1]
+		notebooklist.write = lambda : None
+
+		model = NotebookTreeModel(notebooklist)
+
+		combobox = NotebookComboBox(model)
+		self.assertEqual(combobox.get_notebook(), notebooklist[1].uri) # default
+
+		combobox.set_active(-1)
+		self.assertEqual(combobox.get_notebook(), None)
+
+		combobox.set_notebook(notebooklist[0].uri)
+		self.assertEqual(combobox.get_notebook(), notebooklist[0].uri)
+
+		combobox.set_notebook('file:///yet/another/notebook')
+		self.assertEqual(combobox.get_notebook(), None)
+
+		combobox.set_notebook('file:///yet/another/notebook', append=True)
+		self.assertEqual(combobox.get_notebook(), 'file:///yet/another/notebook')
+
+
 @tests.slowTest
 class TestNotebookDialog(tests.TestCase):
 
