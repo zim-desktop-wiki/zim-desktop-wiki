@@ -78,6 +78,7 @@ class TestDialogs(tests.TestCase):
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = tests.MockObject()
 		mainwindow.ui = self.ui
+		mainwindow.ui.uistate = {} # XXX needed to let Dialog what real ui object is ...
 
 		for name, path in (
 			(':new', ':new'),
@@ -379,6 +380,25 @@ class TestDialogs(tests.TestCase):
 		pref_dialog = PreferencesDialog(self.ui)
 		dialog = PluginConfigureDialog(pref_dialog, plugin)
 		dialog.assert_response_ok()
+
+		## Try plugins + cancel
+		pref_dialog = PreferencesDialog(self.ui)
+		treeview = pref_dialog.plugins_tab.treeview
+		for name in self.ui.plugins.list_installed_plugins():
+			pref_dialog.plugins_tab.select_plugin(name)
+			model, iter = treeview.get_selection().get_selected()
+			self.assertEqual(model[iter][0], name)
+
+			path = model.get_path(iter)
+			wasactive = model[iter][1]
+			model.do_toggle_path(path)
+			if wasactive:
+				self.assertEqual(model[iter][1], False)
+			else:
+				self.assertEqual(model[iter][1], model[iter][2]) # active matched activatable
+
+		pref_dialog.do_response_cancel()
+
 
 	def testTemplateEditorDialog(self):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
@@ -852,12 +872,12 @@ class TestNotebookDialog(tests.TestCase):
 		self.assertTrue(list.default is None)
 
 
+from zim.gui import GtkInterface
+
 class MockUI(tests.MockObject):
 
 	def __init__(self, page=None, fakedir=None):
 		tests.MockObject.__init__(self)
-
-		self.tmp_dir = self.create_tmp_dir()
 
 		if page and not isinstance(page, Path):
 			self.page = Path(page)
@@ -865,3 +885,9 @@ class MockUI(tests.MockObject):
 			self.page = page
 
 		self.notebook = tests.new_notebook(fakedir=fakedir)
+
+	def __getattr__(self, name):
+		if hasattr(GtkInterface, name):
+			return tests.MockObject.__getattr__(self, name)
+		else:
+			raise AttributeError, 'GtkInterface does not have a method: %s' % name

@@ -34,7 +34,7 @@ class PreferencesDialog(Dialog):
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
 		# saves a list of loaded plugins to be used later
-		self.p_save_loaded = [p.__class__ for p in self.ui.plugins]
+		self.p_save_loaded = list(self.ui.plugins)
 
 		# Dynamic tabs
 		self.forms = {}
@@ -75,15 +75,15 @@ class PreferencesDialog(Dialog):
 		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label(_('Key bindings')))
 
 		# Plugins tab
-		plugins_tab = PluginsTab(self, self.ui.plugins)
-		plugins_tab_index = gtknotebook.append_page(plugins_tab, gtk.Label(_('Plugins')))
+		self.plugins_tab = PluginsTab(self, self.ui.plugins)
+		plugins_tab_index = gtknotebook.append_page(self.plugins_tab, gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
-		plugins_tab.show()
+		self.plugins_tab.show()
 		#~ print default_tab, index
 		if default_tab == "Plugins":
 			gtknotebook.set_current_page(plugins_tab_index)
 			if not select_plugin is None:
-					plugins_tab.select_plugin(select_plugin)
+					self.plugins_tab.select_plugin(select_plugin)
 
 		# Applications tab
 		gtknotebook.append_page(ApplicationsTab(self), gtk.Label(_('Applications')))
@@ -148,26 +148,20 @@ class PreferencesDialog(Dialog):
 		return True
 
 	def do_response_cancel(self):
-		# TODO FIXME
-
 		# Obtain an updated list of loaded plugins
-		now_loaded = [p.__class__ for p in self.ui.plugins]
+		now_loaded = list(self.ui.plugins)
 
 		# Restore previous situation if the user changed something
 		# in this dialog session
 		with self.ui.preferences.block_signals('changed'):
 			for name in self.ui.plugins.list_installed_plugins():
-				try:
-					klass = self.ui.plugins.get_plugin_class(name)
-				except:
-					continue
-
-				activatable = klass.check_dependencies_ok()
-
-				if klass in self.p_save_loaded and activatable and klass not in now_loaded:
-					self.ui.load_plugin(klass.plugin_key)
-				elif klass not in self.p_save_loaded and klass in now_loaded:
-					self.ui.unload_plugin(klass.plugin_key)
+				if name in self.p_save_loaded and name not in now_loaded:
+					try:
+						self.ui.plugins.load_plugin(name)
+					except:
+						logger.exception('Could not restore plugin: %s', name)
+				elif name not in self.p_save_loaded and name in now_loaded:
+					self.ui.plugins.remove_plugin(name)
 
 		self.ui.preferences.emit('changed') # delayed emission
 
@@ -306,10 +300,10 @@ class PluginsTab(gtk.VBox):
 	def select_plugin(self, name):
 		model = self.treeview.get_model()
 		def find(model, path, iter):
-			if model[iter][2] == name:
+			if name in model[iter]: # either key or localized name
 				self.treeview.scroll_to_cell(path)
 				self.treeview.set_cursor(path)
-				self.do_selection_changed(self.treeselection, 0)
+				self.do_selection_changed(self.treeselection)
 				return True;
 			return False # keep the foreach going
 		model.foreach(find)
