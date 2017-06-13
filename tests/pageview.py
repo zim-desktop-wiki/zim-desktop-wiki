@@ -1933,6 +1933,37 @@ class TestCamelCase(tests.TestCase):
 			)
 
 
+class TestAutolink(tests.TestCase):
+
+	def runTest(self):
+		test = (
+			u'ВаняИванов',		# CamelCase
+			u'+ВаняИванов',		# page match
+			u'ВаняИванов:foo', 	# page match
+		)
+		view = TextView({'autolink_files': True, 'autolink_camelcase': True})
+		buffer = view.get_buffer()
+		for word in test:
+			buffer.insert_at_cursor(word)
+			iter = buffer.get_insert_iter()
+			start = iter.copy()
+			start.backward_chars(len(word))
+			char = '\n'
+			editmode = []
+			view.emit('end-of-word', start, iter, word, char, editmode)
+			buffer.insert_at_cursor('\n')
+
+		xml = buffer.get_parsetree().tostring()
+		self.assertEqual(xml,
+			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n'
+			'<zim-tree><p>'
+			'<link href="ВаняИванов">ВаняИванов</link>\n'
+			'<link href="+ВаняИванов">+ВаняИванов</link>\n'
+			'<link href="ВаняИванов:foo">ВаняИванов:foo</link>\n'
+			'</p></zim-tree>'
+		)
+
+
 @tests.skipIf(gtk.pygtk_version < (2, 10), 'old pygtk, no serialization formats')
 class TestDragAndDropFunctions(tests.TestCase):
 

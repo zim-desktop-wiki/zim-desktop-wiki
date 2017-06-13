@@ -81,4 +81,16 @@ class ArithmeticTest(tests.TestCase):
 		a ** b=15,625
 		a ** b=15,625
 		'''
-		self.assertEquals(feed(text).strip(), wanted.strip())
+		self.assertEqual(feed(text), wanted)
+
+		text = u'''
+		W=5
+		Höhe=3
+		W * Höhe=
+		'''
+		wanted = u'''
+		W=5
+		Höhe=3
+		W * Höhe=15
+		'''
+		self.assertEqual(feed(text), wanted)

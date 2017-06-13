@@ -27,6 +27,8 @@ from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
 
+from zim.actions import PRIMARY_MODIFIER_MASK
+
 
 logger = logging.getLogger('zim.gui.pageindex')
 
@@ -413,7 +415,7 @@ class PageTreeView(BrowserTreeView):
 		handled = False
 		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
 
-		if event.state & gtk.gdk.META_MASK:
+		if event.state & PRIMARY_MODIFIER_MASK:
 			if event.keyval == KEYVAL_C:
 				self.emit('copy')
 				handled = True

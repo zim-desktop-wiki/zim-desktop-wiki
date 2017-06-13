@@ -4,6 +4,10 @@
 
 from __future__ import with_statement
 
+import logging
+
+logger = logging.getLogger('zim.notebook.index')
+
 
 from zim.utils import natural_sort_key
 from zim.notebook.page import Path, HRef, \
@@ -38,6 +42,7 @@ LINK_DIR_BOTH = 3 #: Constant for links in any direction
 # re-calculate all links on every page index to ensure the outcome.)
 
 
+
 class IndexLink(object):
 	'''Class used to represent links between two pages
 
@@ -64,7 +69,8 @@ class LinksIndexer(IndexerBase):
 		self._pages = PagesViewInternal(db)
 		self._pagesindexer = pagesindexer
 		self.connectto_all(pagesindexer, (
-			'page-row-inserted', 'page-changed', 'page-row-deleted'
+			'page-row-inserted', 'page-row-changed', 'page-row-deleted',
+			'page-changed'
 		))
 		self.connectto(filesindexer,
 			'finish-update'
@@ -120,6 +126,10 @@ class LinksIndexer(IndexerBase):
 			(HREF_REL_FLOATING, row['sortkey'])
 		)
 
+	def on_page_row_changed(self, o, newrow, oldrow):
+		if oldrow['is_link_placeholder'] and not newrow['is_link_placeholder']:
+			self.on_page_row_inserted(o, newrow)
+
 	def on_page_row_deleted(self, o, row):
 		# Drop all outgoing links, flag incoming links to be checked.
 		# Check could result in page being re-created as placeholder
@@ -134,6 +144,14 @@ class LinksIndexer(IndexerBase):
 		) # Need to link somewhere, if target is gone, use ROOT instead
 
 	def on_finish_update(self, o):
+		# Check for ghost links - warn but still clean them up
+		for row in self.db.execute('''
+			SELECT DISTINCT pages.* FROM pages INNER JOIN links ON pages.id=links.source
+			WHERE pages.source_file IS NULL
+		''').fetchall():
+			logger.warn('Found ghost links from: %s', row['name'])
+			self.on_page_row_deleted(None, row)
+
 		# Resolve pending links
 		for row in self.db.execute(
 			'SELECT * FROM links WHERE needscheck=1 '

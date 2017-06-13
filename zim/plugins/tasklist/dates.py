@@ -54,7 +54,7 @@ date_re = re.compile(
 
 
 def parse_date(date):
-	string = date.upper().replace('-', '')
+	string = date.upper().replace('-', '').strip()
 	if 'W' in string:
 		string = string.replace('WK', '').replace('W', '').replace('.', '')
 		if len(string) == 4: # yyww

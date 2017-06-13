@@ -839,6 +839,17 @@ class TestPage(TestPath):
 
 		self.assertRaises(zim.newfs.FileChangedError, page._store)
 
+		### Custom header should be preserved
+		file.writelines(lines[0:3] + ['X-Custom-Header: MyTest'] + lines[3:])
+		page = Page(Path('Foo'), False, file, folder)
+		tree = page.get_parsetree()
+		page.set_parsetree(tree)
+		page._store()
+		lines = file.readlines()
+		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
+		###
+
 
 class TestMovePageNewNotebook(tests.TestCase):
 
@@ -1002,8 +1013,7 @@ class TestIndexBackgroundCheck(tests.TestCase):
 		self.assertFalse(notebook.index.is_uptodate)
 
 		notebook.index.start_background_check(notebook)
-		thread = notebook.index.background_check._thread
-		while thread.is_alive():
+		while notebook.index.background_check.running:
 			tests.gtk_process_events()
 		self.assertTrue(notebook.index.is_uptodate)
 		self.assertTrue(notebook.pages.n_all_pages() > 10)
@@ -1021,7 +1031,7 @@ class TestBackgroundSave(tests.TestCase):
 
 		signals = tests.SignalLogger(notebook)
 
-		op = notebook.store_page_async(page, lambda : tree)
+		op = notebook.store_page_async(page, tree)
 		thread = op._thread
 		while thread.is_alive():
 			tests.gtk_process_events()

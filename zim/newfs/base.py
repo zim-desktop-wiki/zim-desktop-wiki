@@ -11,7 +11,7 @@ import contextlib
 
 import logging
 
-logger = logging.getLogger('zim.fs')
+logger = logging.getLogger('zim.newfs')
 
 
 from . import FS_ENCODING, FS_SUPPORT_NON_LOCAL_FILE_SHARES

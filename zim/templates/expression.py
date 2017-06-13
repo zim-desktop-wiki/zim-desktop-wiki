@@ -444,4 +444,3 @@ class ExpressionListObject(ExpressionObjectBase):
 			return self._obj[i]
 		except IndexError:
 			return default
-

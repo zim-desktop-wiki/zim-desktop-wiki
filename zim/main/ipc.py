@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2016,2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''
 This module is responsible for the inter-process communication (ipc)
@@ -14,13 +14,24 @@ It provides low level functions to:
 
 '''
 
+# We rely on the multiprocessing module because it has build-in support for
+# win32 named pipes, which requires more code using other libraries.
+# Whith Gtk3 we should replace this code by dbus support in GtkApplication
+
 import sys
 import threading
 import logging
 import hashlib
 import os
 
-from multiprocessing.connection import Listener, Client
+from functools import partial
+from multiprocessing.connection import Client, SocketListener
+
+try:
+	import gobject
+except ImportError:
+	gobject = None
+
 
 import zim
 import zim.fs
@@ -56,24 +67,17 @@ if sys.platform == 'win32':
 	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
 	SERVER_ADDRESS = '\\\\.\\pipe\\%s-%s-primary' % (userstring, key)
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
+	from multiprocessing.connection import PipeListener
+	Listener = PipeListener
 else:
 	# Unix domain socket
 	SERVER_ADDRESS = str(zim.fs.get_tmpdir().file('primary-%s' % key).path)
 		# BUG in multiprocess, name must be str instead of basestring
 	SERVER_ADDRESS_FAMILY = 'AF_UNIX'
+	Listener = SocketListener
 
-SERVER_ADDRESS += '-%i'
-COUNTER = 0
 
-assert len(os.path.basename(SERVER_ADDRESS % COUNTER)) <= 30, "name too long: %s" % os.path.basename(SERVER_ADDRESS % COUNTER)
-	# There is an upper limit to lenght of a socket name for AF_UNIX
-	# on OS X the path to TMPDIR already consumes 50 chars, and we Address
-	# also "zim-$USER" -- can still give errors for user name > 20 chars
-
-# For robustness against unavailable sockets, if socket exists but error
-# occurs when connecting, we increase COUNTER and try again. Thus trying to
-# find the first socket that is avaialable
-#
+# Try to be as obust as possible for all kind of socket errors.
 # Errors that we encountered:
 #
 # On windows:
@@ -98,25 +102,23 @@ def dispatch(*args):
 	@param args: commandline arguments
 	@raises AssertionError: when no existing zim process or connection failed
 	'''
-	global COUNTER
 	assert not get_in_main_process()
 	try:
-		logger.debug('Try connecting to %s', SERVER_ADDRESS % COUNTER)
-		conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
+		logger.debug('Connecting to %s', SERVER_ADDRESS)
+		conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 		conn.send(args)
-		re = conn.recv()
+		if conn.poll(5):
+			re = conn.recv()
+		else:
+			re = 'No response'
 	except Exception, e:
 		if hasattr(e, 'errno') and e.errno == 2:
-			raise AssertionError, 'No-one is listening'
+			raise AssertionError, 'No such file or directory'
 		else:
-			COUNTER += 1
-			if COUNTER < 25:
-				return dispatch(*args) # recurs
-			else:
-				raise AssertionError, 'Permanent failure in connection'
+			raise AssertionError, 'Connection failed'
 	else:
-		if not re == 'OK':
-			raise AssertionError, 'Error in response: got %s' % re
+		if re != 'OK':
+			raise AssertionError, 'Error in response: %s' % re
 
 
 def start_listening(handler):
@@ -125,45 +127,53 @@ def start_listening(handler):
 	@param handler: the method to call when new commands are recieveds
 	'''
 	set_in_main_process(True)
-	started = threading.Event()
-	t = threading.Thread(target=_listener_thread_main, args=(started, handler))
-	t.daemon = True
-	t.start()
-	ok = started.wait(5)
-	if not ok:
-		raise AssertionError, 'Listener did not start'
 
-
-def _listener_thread_main(started, handler):
-	global COUNTER
+	logger.debug('Start listening on: %s', SERVER_ADDRESS)
 	try:
-		l = Listener(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
+		if SERVER_ADDRESS_FAMILY == 'AF_UNIX' \
+		and os.path.exists(SERVER_ADDRESS):
+			# Clean up old socket (someone should already have checked
+			# before whether or not it is functional)
+			os.unlink(SERVER_ADDRESS)
+		listener = Listener(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
 	except:
-		COUNTER += 1
-		if COUNTER < 100:
-			return _listener_thread_main(started, handler) # recurs
+		logger.exception('Error setting up Listener')
+		return False
+	else:
+		socket = _get_socket_for_listener(listener)
+		if socket is not None:
+			# Unix file descriptor
+			gobject.io_add_watch(
+				socket.fileno(), gobject.IO_IN,
+				partial(_do_accept, listener, handler)
+			)
 		else:
-			raise
+			# Win32 pipe
+			t = threading.Thread(target=_listener_thread_main, args=(listener, handler))
+			t.daemon = True
+			t.start()
+		return True
 
-	started.set()
-	logger.debug('Listening on %s', SERVER_ADDRESS % COUNTER)
-	while True:
-		conn = l.accept()
+
+def _listener_thread_main(listener, handler):
+	while _do_accept(listener, handler):
+		pass
+
+
+def _do_accept(listener, handler, *a):
+	try:
+		conn = listener.accept()
 		args = conn.recv()
-
-		#~ print ">>", argv
 		logger.debug('Recieved remote call: %r', args)
 
 		if args == 'CLOSE':
 			conn.send('OK')
 			conn.close()
-			break
+			return False
 		else:
 			assert isinstance(args, (list, tuple))
 
 			# Throw back into the main thread -- assuming gtk main running
-			import gobject
-
 			def callback():
 				handler(*args)
 				return False # delete signal
@@ -171,10 +181,27 @@ def _listener_thread_main(started, handler):
 
 			conn.send('OK')
 			conn.close()
+	except:
+		logger.exception('Error while handling incoming connection')
+
+	return True
+
+
+def _get_socket_for_listener(listener):
+	# HACK, using internal structure of library, work around because
+	# library doesn't offer the fileno externally
+	if isinstance(listener, SocketListener):
+		try:
+			return listener._socket
+		except AttributeError:
+			pass
+	return None
 
 
 def _close_listener():
 	# For testing
-	conn = Client(SERVER_ADDRESS % COUNTER, SERVER_ADDRESS_FAMILY)
-	conn.send('CLOSE')
-	re = conn.recv()
+	def _close():
+		conn = Client(SERVER_ADDRESS, SERVER_ADDRESS_FAMILY)
+		conn.send('CLOSE')
+		re = conn.recv()
+	threading.Thread(target=_close).start()

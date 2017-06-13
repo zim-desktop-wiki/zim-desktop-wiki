@@ -28,7 +28,7 @@ class TemplateContextDict(ExpressionDictObject):
 	'''
 
 	_fmethods = ExpressionDictObject._fmethods + (
-		'pop', 'clear', 'update', 'setdefault'
+		'pop', 'clear', 'update', 'setdefault', 'items'
 	) # adding methods for mutuable mapping here
 
 
@@ -141,7 +141,6 @@ class TemplateProcessor(object):
 				else:
 					raise AssertionError, 'Unknown instruction: %s' % element.tag
 			except:
-				#~ logger.exception('Exception in template')
 				raise
 
 	def _loop(self, output, element, context):

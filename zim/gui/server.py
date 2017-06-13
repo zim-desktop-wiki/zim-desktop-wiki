@@ -128,7 +128,8 @@ class ServerWindow(gtk.Window):
 
 			if not notebook.index.is_uptodate:
 				for info in notebook.index.update_iter():
-					logger.info('Indexing %s', info)
+					#logger.info('Indexing %s', info)
+					pass # TODO meaningful info for above message
 
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()

@@ -58,8 +58,9 @@ class RecentChangesTreeView(BrowserTreeView):
 		today = datetime.date.today()
 		yesterday = today - datetime.timedelta(days=1)
 		def render_date(col, cell, model, i):
-			dt = model.get_value(i, self.MODIFIED_COL)
-			if dt:
+			mtime = model.get_value(i, self.MODIFIED_COL)
+			if mtime:
+				dt = datetime.datetime.fromtimestamp(float(mtime))
 				date = dt.date()
 				if date == today:
 					text = _('Today') + datetime.strftime(' %H:%M', dt)

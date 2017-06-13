@@ -1646,7 +1646,7 @@ class InputEntry(gtk.Entry):
 
 			layout = self.get_layout()
 			attr = pango.AttrList()
-			end = len(self.placeholder_text)
+			end = len(self.placeholder_text.encode('utf-8'))
 			attr.insert(pango.AttrStyle(pango.STYLE_ITALIC, 0, end))
 			c = 65535/16*8
 			attr.insert(pango.AttrForeground(c,c,c, 0, end))
@@ -1998,7 +1998,8 @@ class PageEntry(InputEntry):
 
 		text = self.get_text()
 		if self._current_completion:
-			if text.startswith(self._current_completion):
+			if text.startswith(self._current_completion) \
+			and not ':' in text[len(self._current_completion):]:
 				return # nothing to update
 			else: # Clear out-of-date completions
 				model = self.get_completion().get_model()
@@ -2050,10 +2051,13 @@ class PageEntry(InputEntry):
 		model = completion.get_model()
 		assert text.startswith(prefix)
 		lowertext = text.lower()
-		for p in self.notebook.pages.list_pages(path):
-			string = prefix+p.basename
-			if string.lower().startswith(lowertext):
-				model.append((string, string))
+		try:
+			for p in self.notebook.pages.list_pages(path):
+				string = prefix+p.basename
+				if string.lower().startswith(lowertext):
+					model.append((string, string))
+		except IndexNotFoundError:
+			pass
 
 	def _fill_completion_any(self, path, text):
 		#print "COMPLETE ANY", path, text
@@ -2150,9 +2154,12 @@ def format_title(title):
 
 
 def get_window(widget):
-	window = widget.get_toplevel() if widget else None
-		# GtkInterface also implements get_toplevel
-	return window if isinstance(window, gtk.Window) else None
+	if widget and hasattr(widget, 'get_toplevel'):
+		window = widget.get_toplevel()
+			# GtkInterface also implements get_toplevel
+		return window if isinstance(window, gtk.Window) else None
+	else:
+		return None
 
 
 def register_window(window):
@@ -2724,7 +2731,9 @@ class Window(gtkwindowclass):
 	def save_uistate(self):
 		assert self.uistate
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			self.uistate[key] = self.get_pane_state(key)
+			if key in self.uistate:
+				self.uistate[key] = self.get_pane_state(key)
+			# else pass - init_uistate() not yet called (!?)
 
 	def get_pane_state(self, pane):
 		'''Returns the state of a side pane.
@@ -3654,11 +3663,18 @@ class FileDialog(Dialog):
 
 	def add_shortcut(self, notebook, path=None):
 		'''Add shortcuts for the notebook folder and page folder'''
-		self.filechooser.add_shortcut_folder(notebook.dir.path)
+		try:
+			self.filechooser.add_shortcut_folder(notebook.dir.path)
+		except:
+			pass # GError on doubles ..
+
 		if path:
 			page = notebook.get_page(path)
 			if hasattr(page, 'source') and page.source is not None:
-				self.filechooser.add_shortcut_folder(page.source.dir.path)
+				try:
+					self.filechooser.add_shortcut_folder(page.source.dir.path)
+				except:
+					pass # GError on doubles ..
 
 	def set_file(self, file):
 		'''Set the file or dir to pre select in the dialog

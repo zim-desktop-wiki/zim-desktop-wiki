@@ -233,8 +233,8 @@ class NotebookComboBox(gtk.ComboBox):
 		iter = model.get_iter_for_notebook(uri)
 		if iter is None:
 			if append:
-				iter = model.append_notebook(uri)
-				self.set_active_iter(iter)
+				i = model.append_notebook(uri)
+				self.set_active(i)
 			else:
 				self.set_active(-1)
 		else:

@@ -119,11 +119,13 @@ class NotebookCommand(Command):
 		'''Helper to get a default notebook'''
 		notebooks = get_notebook_list()
 		if notebooks.default:
-			return notebooks.default.uri
+			uri = notebooks.default.uri
 		elif len(notebooks) == 1:
-			return notebooks[0].uri
+			uri = notebooks[0].uri
 		else:
 			return None
+
+		return resolve_notebook(uri, pwd=self.pwd) # None if not found
 
 	def get_notebook_argument(self):
 		'''Get the notebook and page arguments for this command
@@ -138,10 +140,7 @@ class NotebookCommand(Command):
 		notebook = args[0]
 
 		if notebook is None:
-			notebook = self.get_default_or_only_notebook()
-			if notebook:
-				logger.info('Using default notebook: %s', notebook)
-			elif self.arguments[0] == 'NOTEBOOK': # not optional
+			if self.arguments[0] == 'NOTEBOOK': # not optional
 				raise NotebookLookupError, _('Please specify a notebook')
 					# T: Error when looking up a notebook
 			else:
@@ -181,7 +180,8 @@ class NotebookCommand(Command):
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
 			for info in notebook.index.update_iter():
-				logger.info('Indexing %s', info)
+				#logger.info('Indexing %s', info)
+				pass # TODO meaningful info for above message
 
 		return notebook, page or uripage
 
@@ -197,28 +197,64 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		('standalone', '', 'start a single instance, no background process'),
 	)
 
-	def get_notebook_argument(self):
-		def prompt():
-			import zim.gui.notebookdialog
-			notebookinfo = zim.gui.notebookdialog.prompt_notebook()
-			return notebookinfo, None
+	def build_notebook(self, ensure_uptodate=False):
+		# Bit more complicated here due to options to use default and
+		# allow using notebookdialog to prompt
 
+		# Explicit page argument has priority over implicit from uri
+		# mounting is attempted by zim.notebook.build_notebook()
+
+		from zim.notebook import FileNotFoundError
+
+		def prompt_notebook_list():
+			import zim.gui.notebookdialog
+			return zim.gui.notebookdialog.prompt_notebook()
+				# Can return None if dialog is cancelled
+
+		used_default = False
+		page = None
 		if self.opts.get('list'):
-			return prompt()
+			notebookinfo = prompt_notebook_list()
 		else:
-			notebookinfo, page = NotebookCommand.get_notebook_argument(self)
-			if not notebookinfo:
-				return prompt()
+			notebookinfo, page = self.get_notebook_argument()
+
+			if notebookinfo is None:
+				notebookinfo = self.get_default_or_only_notebook()
+				used_default = notebookinfo is not None
+
+				if notebookinfo is None:
+					notebookinfo = prompt_notebook_list()
+
+		if notebookinfo is None:
+			return None, None # Cancelled prompt
+
+		try:
+			notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+		except FileNotFoundError:
+			if used_default:
+				# Default notebook went missing? Fallback to dialog to allow changing it
+				notebookinfo = prompt_notebook_list()
+				if notebookinfo is None:
+					return None, None # Cancelled prompt
+				notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
 			else:
-				return notebookinfo, page
+				raise
+
+		if ensure_uptodate and not notebook.index.is_uptodate:
+			for info in notebook.index.update_iter():
+				#logger.info('Indexing %s', info)
+				pass # TODO meaningful info for above message
+
+		return notebook, page or uripage
 
 	def run(self):
-		notebook, page = self.build_notebook(ensure_uptodate=False)
-		if not notebook:
-			return # Cancelled notebook dialog
-
 		import gtk
 		import zim.gui
+
+		notebook, page = self.build_notebook()
+		if notebook is None:
+			logger.debug('NotebookDialog cancelled - exit')
+			return
 
 		gui = None
 		for window in gtk.window_list_toplevels():
@@ -296,6 +332,9 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 		import zim.gui.server
 		self.opts['port'] = int(self.opts.get('port', 8080))
 		notebookinfo, page = self.get_notebook_argument()
+		if notebookinfo is None:
+			# Prefer default to be selected in drop down, user can still change
+			notebookinfo = self.get_default_or_only_notebook()
 
 		window = zim.gui.server.ServerWindow(
 			notebookinfo,
@@ -398,6 +437,8 @@ class ExportCommand(NotebookCommand):
 		plugins.extend(notebook.index)
 		plugins.extend(notebook)
 
+		notebook.index.check_and_update()
+
 		if page and self.opts.get('recursive'):
 			selection = SubPages(notebook, page)
 		elif page:
@@ -442,7 +483,8 @@ class IndexCommand(NotebookCommand):
 		notebook, p = self.build_notebook(ensure_uptodate=False)
 		notebook.index.flush()
 		for info in notebook.index.update_iter():
-			logger.info('Indexing %s', info)
+			#logger.info('Indexing %s', info)
+			pass # TODO meaningful info for above message
 
 
 commands = {
@@ -458,7 +500,7 @@ commands = {
 }
 
 
-def build_command(args):
+def build_command(args, pwd=None):
 	'''Parse all commandline options
 	@returns: a L{Command} object
 	@raises UsageError: if args is not correct
@@ -498,7 +540,7 @@ def build_command(args):
 
 		klass = commands[cmd]
 
-	obj = klass(cmd)
+	obj = klass(cmd, pwd=pwd)
 	obj.parse_options(*args)
 	return obj
 
@@ -545,12 +587,13 @@ class ZimApplication(object):
 			if gtk.main_level() > 0:
 				gtk.main_quit()
 
-	def run(self, *args):
+	def run(self, *args, **kwargs):
 		'''Run a commandline command, either in this process, an
 		existing process, or a new process.
 		@param args: commandline arguments
+		@param kwargs: optional arguments for L{build_command}
 		'''
-		cmd = build_command(args)
+		cmd = build_command(args, **kwargs)
 		self._run_cmd(cmd, args) # test seam
 
 	def _run_cmd(self, cmd, args):
@@ -569,7 +612,7 @@ class ZimApplication(object):
 		else:
 			self._standalone = cmd.opts.get('standalone')
 			if isinstance(cmd, GtkCommand):
-				if not self._standalone and self._try_dispatch(args):
+				if not self._standalone and self._try_dispatch(args, cmd.pwd):
 					pass # We are done
 				else:
 					self._running = True
@@ -581,7 +624,23 @@ class ZimApplication(object):
 		# Run for the 1st gtk command in a primary process,
 		# but can still be standalone process
 		import gtk, gobject
-		gobject.threads_init()
+
+		#######################################################################
+		# WARNING: commented out "gobject.threads_init()" because it leads to
+		# various segfaults on linux. See github issue #7
+		# However without this init, gobject does not properly release the
+		# python GIL during C calls, so threads may block while main loop is
+		# waiting. Thus threads become very slow and unpredictable unless we
+		# actively monitor them from the mainloop, causing python to run
+		# frequently. So be very carefull relying on threads.
+		# Re-evaluate when we are above PyGObject 3.10.2 - threading should
+		# wotk bettter there even without this statement. (But even then,
+		# no Gtk calls from threads, just "gobject.idle_add()". )
+		# Kept for windows, because we need thread to run ipc listener, and no
+		# crashes observed there.
+		if os.name == 'nt':
+			gobject.threads_init()
+		#######################################################################
 
 		from zim.gui.widgets import gtk_window_set_default_icon
 		gtk_window_set_default_icon()
@@ -594,10 +653,8 @@ class ZimApplication(object):
 		else:
 			logger.debug('Starting primary process')
 			self._daemonize()
-			try:
-				_ipc_start_listening(self.run)
-			except:
-				logger.exception('Failure to setup socket, falling back to "--standalone" mode')
+			if not _ipc_start_listening(self._handle_incoming):
+				logger.warn('Failure to setup socket, falling back to "--standalone" mode')
 				self._standalone = True
 
 		w = cmd.run()
@@ -610,8 +667,6 @@ class ZimApplication(object):
 			for toplevel in list(self._windows):
 				try:
 					toplevel.destroy()
-					while gtk.events_pending():
-						gtk.main_iteration(block=False)
 				except:
 					logger.exception('Exception while destroying window')
 					self.remove_window(toplevel) # force removal
@@ -677,9 +732,9 @@ class ZimApplication(object):
 
 		Application([ZIM_EXECUTABLE] + args).spawn()
 
-	def _try_dispatch(self, args):
+	def _try_dispatch(self, args, pwd):
 		try:
-			_ipc_dispatch(*args)
+			_ipc_dispatch(pwd, *args)
 		except AssertionError, err:
 			logger.debug('Got error in dispatch: %s', str(err))
 			return False
@@ -689,6 +744,9 @@ class ZimApplication(object):
 		else:
 			logger.debug('Dispatched command %r', args)
 			return True
+
+	def _handle_incoming(self, pwd, *args):
+		self.run(*args, pwd=pwd)
 
 	def _daemonize(self):
 		# Decouple from parent environment

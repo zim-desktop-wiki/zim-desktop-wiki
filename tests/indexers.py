@@ -225,6 +225,8 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		def cb_filter_func(name, o, a):
 			if name == 'page-changed':
 				row, content = a
+			elif name == 'page-row-changed':
+				row, oldrow = a
 			else:
 				row, = a
 
@@ -288,7 +290,8 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		self.assertEqual(set(signals['page-row-changed']), set(['foo']))
 						 # "foo" has source that is deleted before children
 		self.assertEqual(set(signals['page-row-deleted']), set(self.PAGES))
-		self.assertEqual(signals['page-changed'], [])
+		self.assertEqual(signals['page-changed'], ['foo'])
+						 # "foo" has source that is deleted before children
 
 
 from zim.utils import natural_sort_key
@@ -315,7 +318,7 @@ class TestLinksIndexer(tests.TestCase):
 		pi = PagesIndexer(db, None, tests.MockObject())
 		for i, name, cont in self.PAGES:
 			db.execute(
-				'INSERT INTO pages(id, name, sortkey, parent) VALUES (?, ?, ?, 1)',
+				'INSERT INTO pages(id, name, sortkey, parent, source_file) VALUES (?, ?, ?, 1, 1)',
 				(i, name, natural_sort_key(name))
 			)
 

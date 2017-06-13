@@ -4,7 +4,38 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-=== 0.66 - Fr 28 Apr 2017 ===
+=== 0.67-rc2 - Mon 12 Jun 2017 ===
+* Critical fix for missing page headers
+* Critical fix by removing dependency on threading for index and socket handling
+  - Hidden option to also do autosave without thread to test further issues
+* Critical fix for handling unicode file names on windows
+* Fix issue where config values go missing if not used
+* Fix error for file shortcuts in various dialogs
+* Restored macOS integration using a plugin
+* Shorter socket name to avoid os specific error on OS X
+* More robustness for socket errors, fallback to --standalone automaticlly
+* More robustness at startup when default notebook went missing, fallback to --list
+* More robustness in preferences dialog when plugins give exceptions
+* Merge patch to add accelerators for bookmarks
+* Fix indexing errors on move/rename page
+* Fix regression in close-page when autosave ongoing
+* Fix regression drag-n-drop index pane
+* Fix regression for keybindings in index pane
+* Fix regressions for attaching files
+* Fix regression for opening folders
+* Fix regression in opening inter-wiki links
+* Fix regression in custom tools
+* Fix regression in completion of page name in dialog entry
+* Fix regression in quicknote "--attachments" option
+* Fix regression in date format for recentchanges dialog
+* Fix for unicode in auto-linking
+* Fix for unicode in arithmetic plugin
+* Fix search regex for chinese language to not match whitespace for start/end of word
+* Fix for table editor plugin when sorting rows
+* Fix for wrong usage of escapes in latex export for verbatim blocks
+
+
+=== 0.66 - Fri 28 Apr 2017 ===
 * Multiple notebooks run as single process now to reduce multi-process
   complexity - more robust startup, reduce need for "--standalone"
 * SQLite indexer re-written to fix long standing bugs and design flaws

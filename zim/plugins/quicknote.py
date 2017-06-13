@@ -95,6 +95,10 @@ class QuickNotePluginCommand(GtkCommand):
 			self.opts['append'] = \
 				self.opts['append'].lower() == 'true'
 
+		if self.opts.get('attachments', None):
+			self.opts['attachments'] = \
+				Dir((self.pwd, self.opts['attachments']))
+
 	def get_text(self):
 		if 'input' in self.opts:
 			if self.opts['input'] == 'stdin':
@@ -380,7 +384,7 @@ class BoundQuickNoteDialog(Dialog):
 			self.append_to_page(notebook, path, '\n------\n'+text)
 
 		if self.attachments:
-			self.import_attachments(notebook, path)
+			self.import_attachments(notebook, path, self.attachments)
 
 		if self.open_page_check.get_active():
 			self.hide()
@@ -402,9 +406,10 @@ class BoundQuickNoteDialog(Dialog):
 		page.parse('wiki', text, append=True) # FIXME format hard coded
 		notebook.store_page(page)
 
-	def import_attachments(self, notebook, path, folder):
+	def import_attachments(self, notebook, path, dir):
 		attachments = notebook.get_attachments_dir(path)
-		for name in folder.list():
+		attachments = Dir(attachments.path) # XXX
+		for name in dir.list():
 			# FIXME could use list objects, or list_files()
 			file = dir.file(name)
 			if not file.isdir():
