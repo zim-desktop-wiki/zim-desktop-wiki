@@ -1,6 +1,5 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
-Creation-Date: Sat, 08 Nov 2008 11:04:28 +0100
 
 ====== Checkboxes ======
 
@@ -11,8 +10,9 @@ Zim supports lists with checkboxes instead of bullets. These look like:
 	[*] item 2a
 	[x] item 2b
 [*] item3
+[>] item4
 
-As you can see in this example checkboxes can have 3 states: [ ] open, [*] checked as 'OK' and [x] checked as 'NOK'. States can be toggle by clicking the checkbox with either the left mouse button or using the keyboard with ''<F12>'' and ''<shift><F12>'' respectively.
+As you can see in this example checkboxes can have 4 states: [ ] open, [*] checked as completed, [x] checked as not completed, and [>] cheked as moved. States can be toggle by clicking the checkbox with either the left mouse button or using the keyboard with ''<F12>'' and ''<shift><F12>'' respectively.
 
 To start a checkbox list type on an empty line '''[]<space>''' or '''()<space>''', this will automatically insert an open checkbox. Similarly you can type checked checkboxes using '''[*]''' or '''(*)''' and '''[x]''' or '''(x)''' respectively, followed by '''<space>''' or '''<tab>'''. Lines that start with a checkbox behave like bullet list items, so you can indent by typing ''<tab>'' after the checkbox and when you press ''<enter>'' the new line will start with an empty checkbox automatically.
 

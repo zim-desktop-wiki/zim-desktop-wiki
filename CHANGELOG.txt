@@ -5,14 +5,14 @@ This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
 === 0.66 - Fr 28 Apr 2017 ===
-* Multiple notebooks run as single process now to reduce multi-process 
+* Multiple notebooks run as single process now to reduce multi-process
   complexity - more robust startup, reduce need for "--standalone"
 * SQLite indexer re-written to fix long standing bugs and design flaws
   with indexing
 * Improved performance tag filtering in side pane
 * Detect pages have changed on disk, even when page present in cache
 * Bug fix for drag-n-drop of text within the editor
-* New checkbox type available for "moved task" for joural workflow
+* New checkbox type available for "moved task" for journal workflow
 * Context menu defined for checkboxes
 * Horizontal lines "<HR>" added to wiki syntax -- Pavel_M
 * Pathbar buttons can now also be used to insert page links by drag-n-drop
@@ -35,7 +35,7 @@ Earlier version numbers for zim correspond to the Perl branch.
   -- Johannes Kirschner
 * Sourceview plugin: bug fix to make export via commandline also use
   objects -- Alex Ivkin
-* Sourceview plugin: bug fix to follow editable state of parent window 
+* Sourceview plugin: bug fix to follow editable state of parent window
   -- Jan Taus
 * Bookmarks plugin updates -- Pavel_M
 * Tableeditor plugin: bug fix for links -- Sašo Živanović
