@@ -77,7 +77,7 @@ distutils.dir_util.copy_tree(path.join(GTK_ROOT, "etc"), path.join(EXE_ROOT, "et
 distutils.dir_util.copy_tree(path.join(GTK_ROOT, "lib"), path.join(EXE_ROOT, "lib"), update=1)
 
 for f in os.listdir(path.join(GTK_ROOT, "share")):
-	if not f in ["doc", "gtk-doc", "icons"]:
+	if not f in ["doc", "gtk-doc", "icons", "man"]:
 		distutils.dir_util.copy_tree(path.join(GTK_ROOT, "share", f), path.join(EXE_ROOT, "share", f), update=1)
 
 distutils.dir_util.copy_tree(
@@ -91,12 +91,9 @@ shutil.copy(path.join(GTK_ROOT, "bin", "librsvg-2-2.dll"), EXE_ROOT)
 
 print("Done copying GTK runtime.")
 
-# Copy Zim's data folder
+# Copy Zim's data, icons, and translation folders
 
 shutil.copytree("data", path.join(EXE_ROOT, "data"))
-
-# Copy icon and translation files
-
 distutils.dir_util.copy_tree("icons", path.join(EXE_ROOT, "icons"), update=1)
 distutils.dir_util.copy_tree("locale", path.join(EXE_ROOT, "locale"), update=1)
 

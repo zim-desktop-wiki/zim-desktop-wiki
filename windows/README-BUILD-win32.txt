@@ -15,6 +15,8 @@ Requirements
 
 http://www.python.org/download/
 
+During installation, be sure to add the non-default option "Add python.exe to Path."
+
 NOTE: Zim has not yet been ported to Python 3.
 
 2. Install the py2exe library from
@@ -25,7 +27,7 @@ http://sourceforge.net/projects/py2exe/files/
 
 http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
 
-Be sure to include "PyGTKSourceView" when you run the installer.
+Be sure to include "PyGTKSourceView" and "PyRsvg" when you run the installer.
 
 4. Jpeg for Windows
 
@@ -37,11 +39,17 @@ Get jpeg62.dll and put it in ./windows/lib .
 
 http://sourceforge.net/projects/pywin32/files/pywin32/
 
-6. Install NSIS 3.x from
+6. Install the Visual C++ 2008 Redistributable Package (x86) from
+
+http://www.microsoft.com/en-us/download/details.aspx?id=29
+
+Be sure to use the November 2007 version from that URL, not the SP1 version. This one goes with Python 2.7.
+
+7. Install NSIS 3.x from
 
 http://nsis.sourceforge.net/Download
 
-6a. You will also want to download Venis IX if you want to edit the NSIS script in an IDE. (The script is a plain text file, though, if you don't want to use an IDE.)
+7a. You will also want to download Venis IX if you want to edit the NSIS script in an IDE. (The script is a plain text file, though, if you don't want to use an IDE.)
 
 http://nsis.sourceforge.net/Venis_IX
 

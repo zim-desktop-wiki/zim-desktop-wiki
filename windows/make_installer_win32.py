@@ -15,7 +15,7 @@ os.chdir(path.dirname(path.dirname(path.realpath(__file__))))
 f = open("zim/__init__.py", "r")
 text = f.read()
 f.close()
-match = re.search(r"^\s*__version__\s*=\s*['\"]([\d\.]+)['\"]\s*$", text, re.MULTILINE)
+match = re.search(r"^\s*__version__\s*=\s*['\"]([^'\"]+)['\"]\s*$", text, re.MULTILINE)
 if match:
 	ZIM_VERSION = match.group(1)
 else:
@@ -47,4 +47,4 @@ if not path.exists("dist"): os.mkdir("dist")
 
 # Run NSIS compiler
 
-subprocess.check_call([MAKENSIS, "windows\src\zim-installer.msi"])
+subprocess.check_call([MAKENSIS, "windows\src\zim-installer.nsi"])
