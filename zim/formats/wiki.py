@@ -459,21 +459,20 @@ class Parser(ParserClass):
 			if version and version not in ('zim 0.26', WIKI_FORMAT_VERSION):
 				backward = True
 
-			# Note: No "Modification-Date" here because it causes conflicts
-			# when merging branches with version control, use mtime from filesystem
-			# If we see this header, remove it because it will not be updated.
-			try:
-				del meta['Modification-Date']
-			except:
-				pass
-
 		builder = ParseTreeBuilder(partial=partial)
 		wikiparser.backward = backward or self.backward # HACK
 		wikiparser(builder, input)
 
 		parsetree = builder.get_parsetree()
-		#if meta:
-		parsetree.meta = meta
+		if meta is not None:
+			for k, v in meta.items():
+				# Skip headers that are only interesting for the parser
+				#
+				# Also remove "Modification-Date" here because it causes conflicts
+				# when merging branches with version control, use mtime from filesystem
+				# If we see this header, remove it because it will not be updated.
+				if k not in ('Content-Type', 'Wiki-Format', 'Modification-Date'):
+					parsetree.meta[k] = v
 		return parsetree
 
 
@@ -498,12 +497,16 @@ class Dumper(TextDumper):
 		SUPERSCRIPT:	('^{', '}'),
 	}
 
-	def dump(self, tree):
-		if tree.meta and not tree.ispartial:
-			tree.meta['Content-Type'] = 'text/x-zim-wiki'
-			tree.meta['Wiki-Format'] = WIKI_FORMAT_VERSION
-			# TODO force content type is first line
-			return [dump_header_lines(tree.meta), '\n'] + TextDumper.dump(self, tree)
+	def dump(self, tree, file_output=False):
+		# If file_output=True we add meta headers to the output
+		# would be nicer to handle this via a template, but works for now
+		if file_output:
+			header = (
+				('Content-Type', 'text/x-zim-wiki'),
+				('Wiki-Format', WIKI_FORMAT_VERSION),
+			)
+			return [dump_header_lines(header, getattr(tree, 'meta', {})), '\n'] \
+						+ TextDumper.dump(self, tree)
 		else:
 			return TextDumper.dump(self, tree)
 
@@ -560,7 +563,6 @@ class Dumper(TextDumper):
 		# TODO use text for caption (with full recursion)
 
 	def dump_object(self, tag, attrib, strings=None):
-		#~ logger.debug("Dumping object: %s, %s", attrib, strings)
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
@@ -612,7 +614,6 @@ class Dumper(TextDumper):
 			return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings = None):
-		#logger.debug("Dumping line tag:%s, attrib:%s, strings:%s", tag, attrib, strings)
 		if not strings:
 			strings = [LINE_TEXT]
 		elif isinstance(strings, basestring):

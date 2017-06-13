@@ -2,13 +2,11 @@
 
 rm -fr './html'
 
-./zim.py --index ./website/pages/ -V
 ./zim.py --export ./website/pages/ -V \
 	--template ./website/template.html \
 	--output ./html/ \
 	--root-url /
 
-./zim.py --index ./data/manual/ -V
 ./zim.py --export ./data/manual/ -V \
 	--template ./website/template.html \
 	--output ./html/manual/ \
@@ -25,4 +23,3 @@ perl -i -pe 's{INSERT_PAYPAL_BUTTON_HERE}{<form action="https://www.paypal.com/c
 <input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 <img alt="" border="0" src="https://www.paypal.com/nl_NL/i/scr/pixel.gif" width="1" height="1">
 </form>}' html/contribute.html
-

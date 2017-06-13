@@ -2,6 +2,11 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+import logging
+
+logger = logging.getLogger('zim.config')
+
+
 from .basedirs import *
 from .dicts import *
 from .manager import *
@@ -116,4 +121,3 @@ def user_dirs():
 	except FileNotFoundError:
 		pass
 	return dirs
-

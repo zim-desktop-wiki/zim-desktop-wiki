@@ -20,9 +20,10 @@ class TestSearchRegex(tests.TestCase):
 			('*foo*', r'\b\S*foo\S*\b'),
 			('foo$', r'\bfoo\$'),
 			('foo bar', r'\bfoo\ bar\b'),
+			('汉字', u'\汉\字'), # re.escape add extra "\"
 		):
 			#print '>>', word, regex
-			self.assertEqual(regex_func(word), re.compile(regex, re.I | re.U))
+			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
 
 
 		text = 'foo foobar FooBar Foooo Foo!'
@@ -209,3 +210,28 @@ class TestSearchFiles(TestSearch):
 	def runTest(self):
 		'''Test search API with file based notebook'''
 		TestSearch.runTest(self)
+
+
+class TestUnicode(tests.TestCase):
+
+	def runTest(self):
+		notebook = self.setUpNotebook(content={u'Öffnungszeiten': u'Öffnungszeiten ... 123\n'})
+		results = SearchSelection(notebook)
+		path = Path(u'Öffnungszeiten')
+
+		for string in (
+			u'*zeiten', # no unicode - just check test case
+			u'Öffnungszeiten',
+			u'öffnungszeiten', # case insensitive version
+			u'content:Öffnungszeiten',
+			u'content:öffnungszeiten',
+			u'name:Öffnungszeiten',
+			u'name:öffnungszeiten',
+			u'content:Öff*',
+			u'content:öff*',
+			u'name:Öff*',
+			u'name:öff*',
+		):
+			query = Query(string)
+			results.search(query)
+			self.assertIn(path, results, 'query did not match: "%s"' % string)

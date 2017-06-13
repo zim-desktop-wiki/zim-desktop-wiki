@@ -439,12 +439,12 @@ class Page(Path, SignalEmitter):
 
 	def _store_tree(self, tree):
 		if tree and tree.hascontent:
-			if not self.hascontent:
+			if not self.source_file.exists():
 				# New page
 				now = datetime.now()
 				tree.meta['Creation-Date'] = now.isoformat()
 
-			lines = self.format.Dumper().dump(tree)
+			lines = self.format.Dumper().dump(tree, file_output=True)
 			self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
 		else:
 			self.source_file.remove()

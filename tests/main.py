@@ -117,13 +117,14 @@ class TestGui(tests.TestCase):
 
 		cmd = GuiCommand('gui')
 		with tests.DialogContext(testAddNotebookDialog):
-			self.assertRaises(NotebookLookupError, cmd.run)
+			cmd.run() # Exist without running due to no notebook given in dialog
 
 		### Try again with argument
 		dir = self.create_tmp_dir()
 		cmd = GuiCommand('gui')
 		cmd.parse_options(dir)
-		window = cmd.run()
+		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+			window = cmd.run()
 		self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
@@ -142,7 +143,8 @@ class TestManual(tests.TestCase):
 
 	def runTest(self):
 		cmd = ManualCommand('manual')
-		window = cmd.run()
+		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+			window = cmd.run()
 		self.addCleanup(window.destroy)
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 
@@ -184,6 +186,17 @@ class TestServerGui(tests.TestCase):
 class TestIPC(tests.TestCase):
 
 	def runTest(self):
+		if os.name == 'posix':
+			# There is an upper limit to lenght of a socket name for AF_UNIX
+			# (107 characters ?). On OS X the path to TMPDIR already consumes
+			# 50 chars, and we use "zim-$USER" -- so can still give errors for
+			# user names > 20 chars. But basename should be limitted.
+			from zim.main.ipc import SERVER_ADDRESS
+			self.assertLessEqual(
+				len(os.path.basename(SERVER_ADDRESS)), 25,
+				"name too long: %s" % os.path.basename(SERVER_ADDRESS)
+			)
+
 		inbox = [None]
 		def handler(*args):
 			inbox[0] = args
@@ -191,11 +204,14 @@ class TestIPC(tests.TestCase):
 		zim.main.ipc.start_listening(handler)
 		self.addCleanup(zim.main.ipc._close_listener)
 
-		self.assertRaises(AssertionError, zim.main.ipc.dispatch, '--manual')
+		self.assertRaises(AssertionError, zim.main.ipc.dispatch, 'test', '123')
+			# raises due to sanity check same process
 
 		zim.main.ipc.set_in_main_process(False) # overrule sanity check
-		zim.main.ipc.dispatch('test', '123')
-
+		t = threading.Thread(target=zim.main.ipc.dispatch, args=('test', '123'))
+		t.start()
+		while t.is_alive():
+			tests.gtk_process_events()
 		tests.gtk_process_events()
 		self.assertEqual(inbox[0], ('test', '123'))
 

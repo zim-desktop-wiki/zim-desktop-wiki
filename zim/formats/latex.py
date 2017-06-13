@@ -103,7 +103,10 @@ class Dumper(TextDumper):
 
 	@staticmethod
 	def encode_text(tag, text):
-		return encode_re.sub(lambda m: encode_dict[m.group(1)], text)
+		if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT):
+			return encode_re.sub(lambda m: encode_dict[m.group(1)], text)
+		else:
+			return text
 
 	def dump_pre(self, tag, attrib, strings):
 		indent = int(attrib.get('indent', 0))

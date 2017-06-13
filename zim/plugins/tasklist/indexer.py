@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import logging
 import re
+import sqlite3
 
 import zim.datetimetz as datetime
 
@@ -31,7 +32,7 @@ from .dates import parse_date
 
 
 _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-_date_re = re.compile('[<>]' + _raw_parse_date_re.pattern + '|\[d:.+\]')
+_date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
 _MAX_DUE_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
@@ -445,16 +446,20 @@ class TaskParser(object):
 		start = parent[2] if parent else 0 # inherit start date
 		due = parent[3] if parent else _MAX_DUE_DATE # inherit due date
 		for string in _date_re.findall(text):
-			if string.startswith('[d:'): # backward compat
-				date = old_parse_date(string[3:-1].strip())
-				if date:
-					due = '%04i-%02i-%02i' % date # (y, m, d)
-			elif string.startswith('>'):
-				start = parse_date(string[1:]).first_day.isoformat()
-			elif string.startswith('<'):
-				due = parse_date(string[1:]).last_day.isoformat()
-			else:
-				pass # Huh !?
+			try:
+				if string.startswith('[d:'): # backward compat
+					date = old_parse_date(string[3:-1].strip())
+					if date:
+						(year, month, day) = date
+						due = datetime.date(year, month, day).isoformat()
+				elif string.startswith('>'):
+					start = parse_date(string[1:]).first_day.isoformat()
+				elif string.startswith('<'):
+					due = parse_date(string[1:]).last_day.isoformat()
+				else:
+					logger.warn('False postive matching date: %s', string)
+			except ValueError:
+				logger.warn('Invalid date format in task: %s', string)
 
 		return [isopen, prio, start, due, tags, unicode(text.strip())]
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc

@@ -577,9 +577,9 @@ class SearchSelection(PageSelection):
 		regex = prefix + re.escape(string) + postfix
 
 		if case:
-			return re.compile(regex)
+			return re.compile(regex, re.U)
 		else:
-			return re.compile(regex, re.I)
+			return re.compile(regex, re.U | re.I)
 
 	def _namespace_regex(self, string, case=False):
 		# like _name_regex but adds recursive descent below the page
@@ -594,14 +594,24 @@ class SearchSelection(PageSelection):
 		# Build a regex for a content search term, expands wildcards
 		# and sets case sensitivity. Tries to guess if we look for
 		# whole word or not.
+		if not isinstance(string, unicode):
+			string = string.decode('UTF-8')
 
 		# Build regex - first expand wildcards
 		parts = string.split('*')
 		regex = r'\S*'.join(map(re.escape, parts))
 
 		# Next add word delimiters
-		if re.search(r'^[\*\w]', string, re.U): regex = r'\b' + regex
-		if re.search(r'[\*\w]$', string, re.U): regex = regex + r'\b'
+		# Avoid adding them next to non-word characters or next to chinese
+		# charaters. Chinese is treated special because it does not use
+		# whitespace as word delimiter.
+		if re.search(r'^[\*\w]', string, re.U) \
+		and not u'\u4e00' <= string[0] <= u'\u9fff':
+			regex = r'\b' + regex
+
+		if re.search(r'[\*\w]$', string, re.U) \
+		and not u'\u4e00' <= string[-1] <= u'\u9fff':
+			regex = regex + r'\b'
 
 		#~ print 'SEARCH REGEX: >>%s<<' % regex
 		if case:

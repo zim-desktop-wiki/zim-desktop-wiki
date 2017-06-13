@@ -63,6 +63,14 @@ def gtk_accelerator_preparse(code, force=False):
 	else:
 		return code
 
+try:
+	import gtk
+	PRIMARY_MODIFIER_STRING = gtk_accelerator_preparse('<primary>', force=True)
+	PRIMARY_MODIFIER_MASK = gtk.gdk.META_MASK if PRIMARY_MODIFIER_STRING == '<Command>' else gtk.gdk.CONTROL_MASK
+except ImportError:
+	PRIMARY_MODIFIER_STRING = None
+	PRIMARY_MODIFIER_MASK = None
+
 
 # FIXME - temporary helper method - remove it again when all users are refactored
 def gtk_accelerator_preparse_list(actions):

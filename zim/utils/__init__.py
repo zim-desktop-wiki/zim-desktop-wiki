@@ -239,13 +239,16 @@ class OrderedDict(collections.MutableMapping):
 
 	def __delitem__(self, k):
 		del self._values[k]
-		self._keys.remove(k)
+		try:
+			self._keys.remove(k)
+		except ValueError:
+			pass
 
 	def __iter__(self):
-		return iter(self._keys)
+		return iter(k for k in self._keys if k in self._values)
 
 	def __len__(self):
-		return len(self._keys)
+		return len(self._values)
 
 
 ## Special iterator class
@@ -291,6 +294,3 @@ class MovingWindowIter(object):
 			self.items = (prev, current, next)
 
 		return self.items
-
-
-

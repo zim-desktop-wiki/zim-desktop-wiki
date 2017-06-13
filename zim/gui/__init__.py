@@ -24,7 +24,7 @@ import webbrowser
 
 from zim.main import ZIM_APPLICATION
 
-from zim.fs import File, Dir, normalize_win32_share
+from zim.fs import File, Dir, normalize_win32_share, adapt_from_newfs
 from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
 from zim.environ import environ
 from zim.signals import DelayedCallback
@@ -32,7 +32,7 @@ from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook, enc
 from zim.notebook.index import IndexNotFoundError, IndexUpdateOperation, IndexCheckAndUpdateOperation
 from zim.notebook.operations import NotebookOperation, ongoing_operation
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
-	gtk_accelerator_preparse, gtk_accelerator_preparse_list
+	PRIMARY_MODIFIER_STRING, PRIMARY_MODIFIER_MASK
 from zim.config import data_file, data_dirs, ConfigDict, value_is_coord, ConfigManager
 from zim.plugins import PluginManager
 from zim.parsing import url_encode, url_decode, URL_ENCODE_DATA, is_win32_share_re, is_url_re, is_uri_re
@@ -90,15 +90,13 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
-PRIMARY_MODIFIER = gtk_accelerator_preparse('<primary>', force=True)
-
 
 #: Preferences for the user interface
 ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER+'<Space>'), False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING+'<Space>'), False),
 		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
@@ -264,7 +262,7 @@ class GtkInterface(gobject.GObject):
 		self.config = config or ConfigManager(profile=notebook.profile)
 		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
 		self.preferences['General'].setdefault('plugins',
-			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol'])
+			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'osx_menubar'])
 
 		self.plugins = PluginManager(self.config)
 		self.plugins.extend(notebook)
@@ -407,7 +405,11 @@ class GtkInterface(gobject.GObject):
 			self.reload_index(update_only=True)
 		else:
 			# Start a lightweight background check of the index
-			self.notebook.index.start_background_check(self.notebook)
+			# put a small delay to ensure window is shown before we start
+			def start_background_check():
+				self.notebook.index.start_background_check(self.notebook)
+				return False # only run once
+			gobject.timeout_add(500, start_background_check)
 
 		self._mainwindow.pageview.grab_focus()
 
@@ -757,10 +759,8 @@ class GtkInterface(gobject.GObject):
 		parent.set_sensitive(len(page.namespace) > 0)
 		child.set_sensitive(page.haschildren)
 
-		# TODO: this snippet should ensure checking of page, but causes
-		#       segfault on clicking in index
-		#paths = [page] + list(page.parents())
-		#self.notebook.index.check_async(self.notebook, paths, recursive=False)
+		paths = [page] + list(page.parents())
+		self.notebook.index.check_async(self.notebook, paths, recursive=False)
 
 	def close_page(self, page=None):
 		'''Close the page and try to save any changes in the page.
@@ -778,7 +778,8 @@ class GtkInterface(gobject.GObject):
 		return not page.modified
 
 	def do_close_page(self, page):
-		self._mainwindow.pageview.save_changes() # XXX
+		self._mainwindow.pageview.save_changes() # XXX - should connect to signal instead of call here
+		self.notebook.wait_for_store_page_async() # XXX - should not be needed - hide in notebook/page class - how?
 
 		current = self.history.get_current()
 		if current == page:
@@ -1188,6 +1189,13 @@ class GtkInterface(gobject.GObject):
 			raise Error, '%s does not have an attachments dir' % path
 
 		dest = dir.file(file.basename)
+
+		# XXX: adapt to old style object
+		from zim.newfs import LocalFile
+		assert isinstance(dest, LocalFile)
+		assert isinstance(file, File)
+		dest = File(dest.path)
+
 		if dest.exists() and not force_overwrite:
 			dialog = PromptExistingFileDialog(self, dest)
 			dest = dialog.run()
@@ -1232,6 +1240,7 @@ class GtkInterface(gobject.GObject):
 		ignore the specified mimetype)
 		'''
 		logger.debug('open_file(%s, %s)', file, mimetype)
+		file = adapt_from_newfs(file)
 		assert isinstance(file, (File, Dir))
 		if isinstance(file, (File)) and file.isdir():
 			file = Dir(file.path)
@@ -1348,6 +1357,7 @@ class GtkInterface(gobject.GObject):
 				# T: Error message
 			ErrorDialog(self, error).run()
 		else:
+			dir = Dir(dir.path) # XXX
 			self.open_dir(dir)
 
 	@action(_('Open _Notebook Folder'), 'gtk-open') # T: Menu item
@@ -1621,7 +1631,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				tool.run(args, cwd=cwd)
 				self.reload_page()
-				self.notebook.index.start_background_check()
+				self.notebook.index.start_background_check(self.notebook)
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
 		except Exception, error:
@@ -1955,9 +1965,8 @@ class MainWindow(Window):
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
-			mask = gtk.gdk.META_MASK if PRIMARY_MODIFIER == '<Command>' else gtk.gdk.CONTROL_MASK
 			group.connect_group( # <Primary><Space>
-				space, mask, gtk.ACCEL_VISIBLE,
+				space, PRIMARY_MODIFIER_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)

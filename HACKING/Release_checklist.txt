@@ -19,6 +19,7 @@ Prepare the package:
 * Set version in ''zim/__init__.py''
 * Update CHANGELOG.txt -- see `''bzr visualize''` for changes
 * Update debian changes -- run e.g. `''debchange -v 0.46''`
+	* !!! for release candidates use "~rc" instead of "-rc" to avoid messing up the debian package version
 * Optionally merge branch with website updates since previous release
 * Update version number in website downloads page
 
@@ -47,4 +48,3 @@ Publish the release:
 * Write release notes
 * Announce on launchpad
 * Announce on mailing list
-

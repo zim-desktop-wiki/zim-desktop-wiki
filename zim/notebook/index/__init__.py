@@ -7,21 +7,20 @@ from __future__ import with_statement
 
 
 import sqlite3
-import threading
 import logging
 
 logger = logging.getLogger('zim.notebook.index')
 
 try:
-	import gtk
+	import gobject
 except ImportError:
-	gtk = None
+	gobject = None
 
 
 from zim.newfs import LocalFile, File, Folder, FileNotFoundError
 from zim.signals import SignalEmitter
 
-from zim.notebook.operations import NotebookOperation, NotebookOperationOngoing
+from zim.notebook.operations import NotebookOperation, NotebookOperationOngoing, ongoing_operation
 
 from .files import *
 from .base import *
@@ -65,14 +64,14 @@ class Index(SignalEmitter):
 		'''
 		self.dbpath = dbpath
 		self.layout = layout
-		self.lock = threading.RLock()
-		self._db = self.new_connection()
+		self._db = self._new_connection()
 		self._db_check()
 		if not hasattr(self, 'update_iter'):
 			self._update_iter_init()
 		# else _update_iter_init already called view _db_check --> _db_init
 
-		self.background_check = BackgroundCheck(self.new_connection, self.layout, self.lock, None)
+		self._checker = FilesIndexChecker(self._db, self.layout.root)
+		self.background_check = BackgroundCheck(self._checker, None)
 
 	def _update_iter_init(self):
 		self.update_iter = IndexUpdateIter(self._db, self.layout)
@@ -81,6 +80,14 @@ class Index(SignalEmitter):
 
 	def on_commit(self, iter):
 		self.emit('changed')
+
+	def _new_connection(self):
+		db = sqlite3.Connection(self.dbpath)
+		db.row_factory = sqlite3.Row
+		db.execute('PRAGMA synchronous=OFF;')
+		# Don't wait for disk writes, we can recover from crashes
+		# anyway. Allows us to use commit more frequently.
+		return db
 
 	def _db_check(self):
 		try:
@@ -102,8 +109,9 @@ class Index(SignalEmitter):
 				file.remove()
 			except:
 				logger.exception('Could not delete: %s', file)
+				# TODO: how to recover form this ? - seems fatal
 			finally:
-				db = self.new_connection()
+				self._db = self._new_connection()
 				self._db_init()
 
 		# TODO checks on locale, others?
@@ -135,11 +143,10 @@ class Index(SignalEmitter):
 		return row[0] if row else None
 
 	def set_property(self, key, value):
-		with self.lock:
-			if value is None:
-				self._db.execute('DELETE FROM zim_index WHERE key=?', (key,))
-			else:
-				self._db.execute('INSERT OR REPLACE INTO zim_index VALUES (?, ?)', (key, value))
+		if value is None:
+			self._db.execute('DELETE FROM zim_index WHERE key=?', (key,))
+		else:
+			self._db.execute('INSERT OR REPLACE INTO zim_index VALUES (?, ?)', (key, value))
 
 	@property
 	def is_uptodate(self):
@@ -151,36 +158,39 @@ class Index(SignalEmitter):
 
 	def check_and_update(self):
 		'''Update all data in the index'''
-		with self.lock:
-			self.update_iter.check_and_update()
+		self.update_iter.check_and_update()
 
 	def check_and_update_iter(self):
 		return self.update_iter.check_and_update_iter()
 
 	def check_async(self, notebook, paths, recursive=False):
-		assert gtk
+		assert gobject, 'async operation requires gobject mainloop'
 		for path in paths:
-			self.background_check.queue_check(path, recursive=recursive)
-		self.background_check.callback = lambda *a: on_out_of_date_found(notebook)
+			file, folder = self.layout.map_page(path)
+			self._checker.queue_check(file, recursive=recursive)
+			self._checker.queue_check(folder, recursive=recursive)
+
+		self.background_check.callback = lambda *a: on_out_of_date_found(notebook, self.background_check)
 				# XXX: should go via constructor, but there notebook is not known
 		self.background_check.start()
 
 	def flush(self):
 		'''Delete all data in the index'''
 		logger.info('Flushing index')
-		with self.lock:
-			self._db_init()
+		self._db_init()
 
 	def flag_reindex(self):
 		'''This methods flags all pages with content to be re-indexed.
 		Main reason to use this would be when loading a new plugin that
 		wants to index all pages.
+		Differs from L{flush()} because it does not drop all data
 		'''
-		self.flush()
-		# TODO: make this softer than "flush" and really only re-index content
-		# of known pages, no need to re-index file structure here.
-		# Set NEEDS_UPDATE for files that are actual source file only, don't
-		# check folders and other files
+		from .files import STATUS_NEED_UPDATE
+		self._db.execute(
+			'UPDATE files SET index_status = ?'
+			'WHERE id IN (SELECT source_file FROM pages)',
+			(STATUS_NEED_UPDATE,)
+		)
 
 	def start_background_check(self, notebook):
 		self.check_async(notebook, [Path(':')], recursive=True)
@@ -188,66 +198,46 @@ class Index(SignalEmitter):
 	def stop_background_check(self):
 		self.background_check.stop()
 
-	def new_connection(self):
-		if self.dbpath == ':memory:' and hasattr(self, '_db'):
-			return self._db
-		else:
-			db = sqlite3.Connection(self.dbpath, check_same_thread=False)
-				# check_same_thread needed for testing with :memory:
-			db.row_factory = sqlite3.Row
-			db.execute('PRAGMA synchronous=OFF;')
-			# Don't wait for disk writes, we can recover from crashes
-			# anyway. Allows us to use commit more frequently.
-			return db
-
 	def update_file(self, file):
-		with self.lock:
-			path = file.relpath(self.layout.root)
-			filesindexer = self.update_iter.files
-			row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
-			if row is None and not file.exists():
-				pass
-			else:
-				filesindexer.emit('start-update')
+		path = file.relpath(self.layout.root)
+		filesindexer = self.update_iter.files
+		row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
+		if row is None and not file.exists():
+			pass
+		else:
+			filesindexer.emit('start-update')
 
-				if row:
-					node_id = row[0]
-					if isinstance(file, File):
-						if file.exists():
-							filesindexer.update_file(node_id, file)
-						else:
-							filesindexer.delete_file(node_id)
-					elif isinstance(file, Folder):
-						if file.exists():
-							filesindexer.update_folder(node_id, file)
-						else:
-							filesindexer.delete_folder(node_id)
+			if row:
+				node_id = row[0]
+				if isinstance(file, File):
+					if file.exists():
+						filesindexer.update_file(node_id, file)
 					else:
-						raise TypeError
-				else: # file.exists():
-					if isinstance(file, File):
-						filesindexer.interactive_add_file(file)
-					elif isinstance(file, Folder):
-						raise ValueError
+						filesindexer.delete_file(node_id)
+				elif isinstance(file, Folder):
+					if file.exists():
+						filesindexer.update_folder(node_id, file)
 					else:
-						raise TypeError
+						filesindexer.delete_folder(node_id)
+				else:
+					raise TypeError
+			else: # file.exists():
+				if isinstance(file, File):
+					filesindexer.interactive_add_file(file)
+				elif isinstance(file, Folder):
+					filesindexer.interactive_add_folder(file)
+				else:
+					raise TypeError
 
-				filesindexer.emit('finish-update')
-				self._db.commit()
-				self.on_commit(None)
+			filesindexer.emit('finish-update')
+			self._db.commit()
+			self.on_commit(None)
 
 	def file_moved(self, oldfile, newfile):
 		# TODO: make this more efficient, specific for moved folders
 		#       by supporting moved pages in indexers
-
-		if isinstance(oldfile, File):
-			self.update_file(oldfile)
-			self.update_file(newfile)
-		elif isinstance(oldfile, Folder):
-			self.update_file(oldfile)
-			self.update_iter.check_and_update(newfile)
-		else:
-			raise TypeError
+		self.update_file(oldfile)
+		self.update_file(newfile)
 
 	def touch_current_page_placeholder(self, path):
 		'''Create a placeholder for C{path} if the page does not
@@ -256,29 +246,28 @@ class Index(SignalEmitter):
 		# This method uses a hack by linking the page from the ROOT_ID
 		# page if it does not exist.
 
-		with self.lock:
-			# cleanup
-			self._db.execute(
-				'DELETE FROM links WHERE source=?',
-				(ROOT_ID,)
+		# cleanup
+		self._db.execute(
+			'DELETE FROM links WHERE source=?',
+			(ROOT_ID,)
+		)
+		self.update_iter.links.cleanup_placeholders(None)
+
+		# touch if needed
+		row = self._db.execute(
+			'SELECT * FROM pages WHERE name = ?', (path.name,)
+		).fetchone()
+
+		if row is None:
+			pid = self.update_iter.pages.insert_link_placeholder(path)
+			self._db.execute( # Need link to prevent cleanup
+				'INSERT INTO links(source, target, rel, names) '
+				'VALUES (?, ?, ?, ?)',
+				(ROOT_ID, pid, HREF_REL_ABSOLUTE, path.name)
 			)
-			self.update_iter.links.cleanup_placeholders(None)
 
-			# touch if needed
-			row = self._db.execute(
-				'SELECT * FROM pages WHERE name = ?', (path.name,)
-			).fetchone()
-
-			if row is None:
-				pid = self.update_iter.pages.insert_link_placeholder(path)
-				self._db.execute( # Need link to prevent cleanup
-					'INSERT INTO links(source, target, rel, names) '
-					'VALUES (?, ?, ?, ?)',
-					(ROOT_ID, pid, HREF_REL_ABSOLUTE, path.name)
-				)
-
-			self._db.commit()
-			self.emit('changed')
+		self._db.commit()
+		self.emit('changed')
 
 
 class IndexUpdateIter(SignalEmitter):
@@ -301,14 +290,12 @@ class IndexUpdateIter(SignalEmitter):
 	def __iter__(self):
 		for i in self.files.update_iter():
 			yield
-		self.db.commit()
 		self.emit('commit')
 
 	def update(self):
 		'''Convenience method to do a full update at once'''
 		for i in self.files.update_iter():
 			pass
-		self.db.commit()
 		self.emit('commit')
 
 	def check_and_update(self, file=None):
@@ -324,77 +311,61 @@ class IndexUpdateIter(SignalEmitter):
 			if out_of_date:
 				for i in self.files.update_iter():
 					yield
-		self.db.commit()
 		self.emit('commit')
-
 
 
 class BackgroundCheck(object):
 
-	def __init__(self, db_factory, layout, lock, callback):
-		self.db_factory = db_factory
-		self.layout = layout
-		self.lock = lock
+	def __init__(self, checker, callback):
+		self.checker = checker
 		self.callback = callback
-		self.stopped = None
-		self._thread = None
-
-	def queue_check(self, path, recursive=False):
-		checker = FilesIndexChecker(self.db_factory(), self.layout.root)
-		file, folder = self.layout.map_page(path)
-		checker.queue_check(file, recursive=recursive)
-		checker.queue_check(folder, recursive=recursive)
+		self.running = False
 
 	def start(self):
-		self.stopped = False
-		if not self._thread or not self._thread.is_alive():
-			self._thread = threading.Thread(
-				target=self._thread_main,
-				name=self.__class__.__name__ + '--%i' % id(self)
-			)
-			self._thread.daemon = True
-			self._thread.start()
+		if not self.running:
+			my_iter = iter(self.on_idle_iter())
+			gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+			self.running = True
 
 	def stop(self):
-		self.stopped = True
+		self.running = False
 
-	def _thread_main(self):
-		assert self.callback is not None
-		checker = FilesIndexChecker(self.db_factory(), self.layout.root)
-		iter = checker.check_iter()
-		logger.debug('BackgroundCheck started')
-		try:
-			while not self.stopped:
-				with self.lock:
-					needsupdate = iter.next()
-					checker.db.commit()
-				if needsupdate:
-					self.callback()
-		except StopIteration:
-			pass
-		logger.debug('BackgroundCheck finished')
+	def on_idle_iter(self):
+		if self.running:
+			check_iter = self.checker.check_iter()
+			logger.debug('BackgroundCheck started')
+			while self.running:
+				try:
+					needsupdate = check_iter.next()
+					if needsupdate:
+						self.callback()
+						logger.debug('BackgroundCheck found out-of-date')
+						break
+					else:
+						yield True # Continue loop
+				except StopIteration:
+					logger.debug('BackgroundCheck finished')
+					break
+			else:
+				logger.debug('BackgroundCheck stopped')
+			self.running = False
 
 
-def on_out_of_date_found(notebook):
-	# Callback runs in thread, use event to handshake op really started
-	# before returning for next loop of the thread
-	done = threading.Event()
+def on_out_of_date_found(notebook, background_check):
 	op = IndexUpdateOperation(notebook)
-	op.connect_after('started', lambda o: done.set())
+	op.connect('finished', lambda *a: background_check.start()) # continue checking
+		# TODO ensure robust in case operation gives error
 	try:
 		op.run_on_idle()
 	except NotebookOperationOngoing:
-		# Thread will try again, but sleep first to avoid running loop max cpu load
-	 	import time
-		time.sleep(3)
-	else:
-		done.wait()
+		other_op = ongoing_operation(notebook)
+		other_op.connect('finished', lambda *a: background_check.start()) # continue checking
+			# TODO ensure robust in case operation gives error
 
 
 class IndexUpdateOperation(NotebookOperation):
 
 	def __init__(self, notebook):
-		self.lock = notebook.index.lock
 		NotebookOperation.__init__(
 			self,
 			notebook,
@@ -404,12 +375,6 @@ class IndexUpdateOperation(NotebookOperation):
 
 	def _get_iter(self, notebook):
 		return iter(notebook.index.update_iter)
-
-	def do_started(self):
-		self.lock.acquire()
-
-	def do_finished(self):
-		self.lock.release()
 
 
 class IndexCheckAndUpdateOperation(IndexUpdateOperation):

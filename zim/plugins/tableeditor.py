@@ -645,6 +645,9 @@ class TableViewWidget(CustomObjectWidget):
 		'''
 		treeview = gtk.TreeView(liststore)
 
+		# Set default sorting function.
+		liststore.set_default_sort_func(lambda *a: 0)
+
 		for i, headcol in enumerate(headers):
 			cell = gtk.CellRendererText()
 			tview_column = gtk.TreeViewColumn(headcol, cell)
@@ -790,6 +793,9 @@ class TableViewWidget(CustomObjectWidget):
 			self.selection_info()
 			return
 
+		# Set default sorting.
+		model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
+
 		row = len(self.treeview.get_columns())*['']
 		path = model.insert_after(treeiter, row)
 		self.obj.set_modified(True)
@@ -839,7 +845,16 @@ class TableViewWidget(CustomObjectWidget):
 			return
 		newiter = model.get_iter((newpos,))
 
-		model.swap(treeiter, newiter)
+		# Set default sorting.
+		model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
+
+		# Change values of two rows.
+		for col in range(model.get_n_columns()):
+			value = model.get_value(treeiter, col)
+			newvalue = model.get_value(newiter, col)
+			model.set_value(newiter, col, value)
+			model.set_value(treeiter, col, newvalue)
+
 		self.obj.set_modified(True)
 
 

@@ -26,7 +26,7 @@ from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
-from .operations import notebook_state, NOOP, SimpleAsyncOperation
+from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
 from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
@@ -277,7 +277,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.links = LinksView.new_from_index(self.index)
 		self.tags = TagsView.new_from_index(self.index)
 
-		def on_page_row_changed(o, row):
+		def on_page_row_changed(o, row, oldrow):
 			if row['name'] in self._page_cache:
 				self._page_cache[row['name']].haschildren = row['n_children'] > 0
 				self.emit('page-info-changed', self._page_cache[row['name']])
@@ -489,13 +489,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.emit('stored-page', page)
 
 	@notebook_state
-	def store_page_async(self, page, parsetree_func):
+	def store_page_async(self, page, parsetree):
 		assert page.valid, 'BUG: page object no longer valid'
 		logger.debug('Store page in background: %s', page)
 		self.emit('store-page', page)
 		error = threading.Event()
 		thread = threading.Thread(
-			target=partial(self._store_page_async_thread_main, page, parsetree_func, error)
+			target=partial(self._store_page_async_thread_main, page, parsetree, error)
 		)
 		thread.start()
 		pre_modified = page.modified
@@ -509,10 +509,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		op.run_on_idle()
 		return op
 
-	def _store_page_async_thread_main(self, page, parsetree_func, error):
+	def _store_page_async_thread_main(self, page, parsetree, error):
 		try:
-			tree = parsetree_func()
-			page._store_tree(tree)
+			page._store_tree(parsetree)
 		except:
 			error.set()
 			logger.exception('Error in background save')
@@ -527,6 +526,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				# to a counter rather than a boolean
 				page.modified = False
 				self.emit('stored-page', page)
+
+	def wait_for_store_page_async(self):
+		op = ongoing_operation(self)
+		if isinstance(op, SimpleAsyncOperation):
+			op()
 
 	def move_page(self, path, newpath, update_links=True):
 		'''Move a page in the notebook
@@ -599,6 +603,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		# the whole move is cancelled. Chance is bigger than the other
 		# way around, e.g. attachment open in external program.
 
+		changes = []
+
 		if folder.exists():
 			if newfolder.ischild(folder):
 				# special case where we want to move a page down
@@ -610,7 +616,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			else:
 				folder.moveto(newfolder)
 
-			self.index.file_moved(folder, newfolder)
+			changes.append((folder, newfolder))
 
 			# check if we also moved the file inadvertently
 			if file.ischild(folder):
@@ -618,14 +624,19 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				movedfile = newfolder.file(rel)
 				if movedfile.exists() and movedfile.path != newfile.path:
 						movedfile.moveto(newfile)
-						self.index.file_moved(movedfile, newfile)
+						changes.append((movedfile, newfile))
 			elif file.exists():
 				file.moveto(newfile)
-				self.index.file_moved(file, newfile)
+				changes.append((file, newfile))
 
 		elif file.exists():
 			file.moveto(newfile)
-			self.index.file_moved(file, newfile)
+			changes.append((file, newfile))
+
+		# Process index changes after all fs changes
+		# more robust if anything goes wrong in index update
+		for old, new in changes:
+			self.index.file_moved(old, new)
 
 
 	def _update_links_in_moved_page(self, oldtarget, newtarget):

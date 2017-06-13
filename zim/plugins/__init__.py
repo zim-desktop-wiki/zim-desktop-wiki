@@ -759,6 +759,10 @@ class WindowExtension(ObjectExtension):
 
 		if hasattr(self, 'uimanager_xml'):
 			actiongroup = get_gtk_actiongroup(self)
+			if hasattr(self, 'uimanager_menu_labels'):
+				actiongroup.add_actions(
+					sorted((k, None, v) for k, v in self.uimanager_menu_labels.items())
+				)
 			self.window.uimanager.insert_action_group(actiongroup, 0)
 			self._uimanager_id = self.window.uimanager.add_ui_from_string(self.uimanager_xml)
 

@@ -360,11 +360,11 @@ class TestConfigDefinitions(tests.TestCase):
 class TestConfigDict(tests.TestCase):
 
 	def runTest(self):
-		mydict = ConfigDict({
-			'a': 'AAA',
-			'b': 'BBB',
-			'c': 'CCC',
-		})
+		mydict = ConfigDict((
+			('a', 'AAA'),
+			('b', 'BBB'),
+			('c', 'CCC'),
+		))
 
 		self.assertEqual(mydict.__getitem__, mydict._values.__getitem__)
 			# optimization still in place..
@@ -454,7 +454,7 @@ class TestConfigDict(tests.TestCase):
 
 class TestINIConfigFile(tests.TestCase):
 
-	def runTest(self):
+	def testAPI(self):
 		'''Test config file format'''
 		file = XDG_CONFIG_HOME.file('zim/config_TestConfigFile.conf')
 		if file.exists():
@@ -514,6 +514,14 @@ none=
 		self.assertEqual(section, ConfigDict())
 		self.assertFalse(conf.modified)
 
+	def testPersistent(self):
+		# Make sure also not initialized values are kept
+		text = '[Foo]\nb=test\na=test\n\n'
+		file = tests.MockObject()
+		file.readlines = lambda: text.splitlines(1)
+		conf = INIConfigFile(file)
+		self.assertEqual(list(conf['Foo'].all_items()), [('b', 'test'), ('a', 'test')])
+		self.assertEqual(conf.dump(), text.splitlines(1))
 
 class TestUserDirs(tests.TestCase):
 

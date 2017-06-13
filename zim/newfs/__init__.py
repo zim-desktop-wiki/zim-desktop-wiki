@@ -6,6 +6,10 @@
 
 import sys
 import os
+import logging
+
+logger = logging.getLogger('zim.newfs')
+
 
 FS_CASE_SENSITIVE = (os.name != 'nt') #: file system case-sensitive yes or no
 
@@ -153,4 +157,3 @@ def format_file_size(bytes):
 				return "%.0f%s" % (size, label)
 	else:
 		return str(bytes) + 'b'
-

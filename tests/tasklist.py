@@ -49,7 +49,7 @@ FIXME: dus
 [ ] Date [d: 11/12/2012]
 	[ ] TODO: BAR !!!
 [ ] Date <2012-03-27 >2012-03-01
-[ ] Date <wk1213.3
+[ ] Date < wk1213.3
 
 TODO @home:
 [ ] Some more tasks !!!
@@ -161,7 +161,7 @@ class TestTaskParser(tests.TestCase):
 				# due date is inherited
 			]),
 			(t('Date <2012-03-27 >2012-03-01', due='2012-03-27', start='2012-03-01'), []),
-			(t('Date <wk1213.3', due='2012-03-28'), []),
+			(t('Date < wk1213.3', due='2012-03-28'), []),
 
 			# this list inherits the @home tag - and inherits prio
 			(t('Some more tasks !!!', prio=3, tags='home'), [

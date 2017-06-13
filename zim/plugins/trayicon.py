@@ -230,7 +230,7 @@ class TrayIconBase(object):
 	def do_open_notebook(self):
 		'''Opens the notebook dialogs'''
 		from zim.gui.notebookdialog import NotebookDialog
-		NotebookDialog.unique(self, self, callback=self.do_activate_notebook).show()
+		NotebookDialog.unique(self, None, callback=self.do_activate_notebook).show()
 
 	def do_quick_note(self):
 		'''Show the dialog from the quicknote plugin'''
@@ -265,7 +265,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 			# No open notebooks, open default or prompt full list
 			notebooks = get_notebook_list()
 			if notebooks.default:
-				self.do_activate_notebook(notebooks.default)
+				self.do_activate_notebook(notebooks.default.uri)
 			else:
 				self.do_popup_menu_notebooks(notebooks)
 		elif len(open_notebooks) == 1:

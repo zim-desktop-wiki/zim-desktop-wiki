@@ -266,13 +266,8 @@ markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
-# These sets adjust to the current locale - so not same as "[a-z]" ..
-# Must be kidding - no classes for this in the regex engine !?
-_classes = {
-	'letters': string.letters # locale dependent !
-}
-twoletter_re = re.compile(r'[%(letters)s]{2}' % _classes)
-del _classes
+twoletter_re = re.compile(r'[^\W\d]{2}', re.U) # match letters but not numbers - not non-alphanumeric and not number
+
 
 def camelcase(word):
 	# To be CamelCase, a word needs to start uppercase, followed
@@ -402,6 +397,9 @@ class UserActionContext(object):
 		self.buffer.end_user_action()
 
 
+GRAVITY_RIGHT = 'right'
+GRAVITY_LEFT = 'left'
+
 class SaveCursorContext(object):
 	'''Context manager used by L{TextBuffer.tmp_cursor()}
 
@@ -416,15 +414,16 @@ class SaveCursorContext(object):
 	after exiting the context.
 	'''
 
-	def __init__(self, buffer, iter=None):
+	def __init__(self, buffer, iter=None, gravity=GRAVITY_LEFT):
 		self.buffer = buffer
 		self.iter = iter
 		self.mark = None
+		self.gravity = gravity
 
 	def __enter__(self):
 		buffer = self.buffer
 		cursor = buffer.get_iter_at_mark(buffer.get_insert())
-		self.mark = buffer.create_mark(None, cursor, left_gravity=True)
+		self.mark = buffer.create_mark(None, cursor, left_gravity=(self.gravity == GRAVITY_LEFT))
 		if self.iter:
 			buffer.place_cursor(self.iter)
 
@@ -673,13 +672,16 @@ class TextBuffer(gtk.TextBuffer):
 		'''Get a C{gtk.TextIter} for the current cursor position'''
 		return self.get_iter_at_mark(self.get_insert())
 
-	def tmp_cursor(self, iter=None):
+	def tmp_cursor(self, iter=None, gravity=GRAVITY_LEFT):
 		'''Get a L{SaveCursorContext} object
 
 		@param iter: a C{gtk.TextIter} for the new (temporary) cursor
 		position
+		@param gravity: give mark left or right "gravity" compared to new
+		inserted text, default is "left" which means new text goes after the
+		cursor position
 		'''
-		return SaveCursorContext(self, iter)
+		return SaveCursorContext(self, iter, gravity)
 
 	def set_parsetree(self, tree):
 		'''Load a new L{ParseTree} in the buffer
@@ -1250,7 +1252,7 @@ class TextBuffer(gtk.TextBuffer):
 
 	def _replace_bullet(self, line, bullet):
 		indent = self.get_indent(line)
-		with self.tmp_cursor():
+		with self.tmp_cursor(gravity=GRAVITY_RIGHT):
 			iter = self.get_iter_at_line(line)
 			bound = iter.copy()
 			self.iter_forward_past_bullet(bound)
@@ -4700,11 +4702,12 @@ class SavePageHandler(object):
 	a background thread to ot block the user interface.
 	'''
 
-	def __init__(self, pageview, notebook, get_page_cb, timeout=15):
+	def __init__(self, pageview, notebook, get_page_cb, timeout=15, use_thread=True):
 		self.pageview = pageview
 		self.notebook = notebook
 		self.get_page_cb = get_page_cb
 		self.timeout = timeout
+		self.use_thread = use_thread
 		self._autosave_timer = None
 		self._error_event = None
 
@@ -4791,7 +4794,9 @@ class SavePageHandler(object):
 			return True # Check back later if on timer
 
 
-		if self._error_event and self._error_event.is_set():
+		if not self.use_thread:
+			self.save_page_now(dialog_timeout=True)
+		elif self._error_event and self._error_event.is_set():
 			# Error in previous auto-save, save in foreground to allow error dialog
 			logger.debug('Last auto-save resulted in error, re-try in foreground')
 			self.save_page_now(dialog_timeout=True)
@@ -4799,8 +4804,8 @@ class SavePageHandler(object):
 			# Save in background async
 			# Retrieve tree here and pass on to thread to prevent
 			# changing the buffer while extracting it
-			tree = page.get_parsetree()
-			op = self.notebook.store_page_async(page, lambda : tree)
+			parsetree = page.get_parsetree()
+			op = self.notebook.store_page_async(page, parsetree)
 			self._error_event = op.error_event
 
 		if page.modified:
@@ -5041,10 +5046,16 @@ class PageView(gtk.VBox):
 
 		# Setup saving
 		self.ui.preferences['GtkInterface'].setdefault('autosave_timeout', 15) # XXX
+		self.ui.preferences['GtkInterface'].setdefault('autosave_use_thread', True) # XXX
+		logger.debug('Autosave interval: %r - use threads: %r',
+			self.ui.preferences['GtkInterface']['autosave_timeout'], # XXX
+			self.ui.preferences['GtkInterface']['autosave_use_thread'] # XXX
+		)
 		self._save_page_handler = SavePageHandler(
 			self, notebook,
 			self.get_page,
-			timeout=self.ui.preferences['GtkInterface']['autosave_timeout'] # XXX
+			timeout=self.ui.preferences['GtkInterface']['autosave_timeout'], # XXX
+			use_thread=self.ui.preferences['GtkInterface']['autosave_use_thread'] # XXX
 		)
 
 		def on_focus_out_event(*a):
@@ -5568,7 +5579,7 @@ class PageView(gtk.VBox):
 				self.ui.open_file(path)
 			elif type == 'notebook':
 				if href.startswith('zim+'):
-					uri = href[4:]
+					uri, pagename = href[4:], None
 					if '?' in href:
 						uri, pagename = href.split('?', 1)
 

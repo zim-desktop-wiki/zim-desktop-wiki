@@ -258,7 +258,7 @@ class ParseTree(object):
 	def __init__(self, *arg, **kwarg):
 		self._etree = ElementTreeModule.ElementTree(*arg, **kwarg)
 		self._object_cache = {}
-		self.meta = None
+		self.meta = OrderedDict()
 
 	@property
 	def hascontent(self):
@@ -1749,10 +1749,16 @@ def parse_header_lines(text):
 	return text, meta
 
 
-def dump_header_lines(headers):
+def dump_header_lines(*headers):
 	'''Return text representation of header dict'''
 	text = []
-	for k, v in headers.items():
-		v = v.strip().replace('\n', '\n\t')
-		text.extend((k, ': ', v, '\n'))
+	append = lambda k, v: text.extend((k, ': ', v.strip().replace('\n', '\n\t'), '\n'))
+
+	for h in headers:
+		if hasattr(h, 'items'):
+			for k, v in h.items():
+				append(k, v)
+		else:
+			for k, v in h:
+				append(k, v)
 	return ''.join(text)

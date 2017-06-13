@@ -11,6 +11,7 @@ windows/build/
 windows/version-and-date.nsi
 zim/_version.py
 MANIFEST
+coverage/
 
 # Temporary files to be ignored
 *.bak

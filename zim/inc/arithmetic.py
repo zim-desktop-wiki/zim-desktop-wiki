@@ -50,8 +50,10 @@ import re
 
 
 renumber = re.compile( r'(-?[0-9][0-9,]*(\.[0-9]*)?%?)|(\.[0-9]+%?)' )
-reidentifier = re.compile( r'[a-zA-Z][a-zA-Z0-9_]*' )
-rexenclosed = re.compile( r'[0-9.)](x)[^a-zA-Z]' )
+#reidentifier = re.compile( r'[a-zA-Z][a-zA-Z0-9_]*' )
+#rexenclosed = re.compile( r'[0-9.)](x)[^a-zA-Z]' )
+reidentifier = re.compile( r'[^\W\d]\w*', re.U) # letter (but not a number) followed by alpha-numeric
+rexenclosed = re.compile( r'[0-9.)](x)[\W\d]', re.U)
 
 class Lexer:
     ''

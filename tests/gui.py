@@ -42,9 +42,11 @@ def setupGtkInterface(test, klass=None, notebook=None):
 		notebook = tests.new_notebook(fakedir=dirpath)
 
 	config = VirtualConfigManager()
-	ui = klass(config=config, notebook=notebook)
+	prefs = config.get_config_dict('<profile>/preferences.conf')
+	prefs['General'].input(plugins=['calendar', 'insertsymbol', 'printtobrowser'])
+		# version control interferes with source folder, leave other default plugins
 
-	ui.plugins.remove_plugin('versioncontrol')
+	ui = klass(config=config, notebook=notebook)
 
 	ui._mainwindow.init_uistate() # XXX
 	ui.open_page(Path('Test:foo:bar'))
@@ -76,6 +78,7 @@ class TestDialogs(tests.TestCase):
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = tests.MockObject()
 		mainwindow.ui = self.ui
+		mainwindow.ui.uistate = {} # XXX needed to let Dialog what real ui object is ...
 
 		for name, path in (
 			(':new', ':new'),
@@ -378,6 +381,25 @@ class TestDialogs(tests.TestCase):
 		dialog = PluginConfigureDialog(pref_dialog, plugin)
 		dialog.assert_response_ok()
 
+		## Try plugins + cancel
+		pref_dialog = PreferencesDialog(self.ui)
+		treeview = pref_dialog.plugins_tab.treeview
+		for name in self.ui.plugins.list_installed_plugins():
+			pref_dialog.plugins_tab.select_plugin(name)
+			model, iter = treeview.get_selection().get_selected()
+			self.assertEqual(model[iter][0], name)
+
+			path = model.get_path(iter)
+			wasactive = model[iter][1]
+			model.do_toggle_path(path)
+			if wasactive:
+				self.assertEqual(model[iter][1], False)
+			else:
+				self.assertEqual(model[iter][1], model[iter][2]) # active matched activatable
+
+		pref_dialog.do_response_cancel()
+
+
 	def testTemplateEditorDialog(self):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		dialog = TemplateEditorDialog(self.ui)
@@ -602,9 +624,44 @@ class TestGtkInterface(tests.TestCase):
 	# TODO notebook manipulation (new (sub)page, rename, delete ..)
 	# merge with tests for dialogs (?)
 
+	def testAttachFileDialogCallback(self):
+		from zim.gui.widgets import PromptExistingFileDialog
+
+		notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL, content={'Foo': 'test123'})
+		self.ui = setupGtkInterface(self, notebook=notebook)
+
+		path = Path('Foo')
+		file = File('data/zim.png')
+
+		self.ui.do_attach_file(path, file)
+
+		def do_overwrite(dialog):
+			assert isinstance(dialog, PromptExistingFileDialog)
+			dialog.do_response_overwrite()
+
+		def do_new_file(dialog):
+			assert isinstance(dialog, PromptExistingFileDialog)
+			dialog.do_response_ok()
+
+		with tests.DialogContext(do_overwrite):
+			self.ui.do_attach_file(path, file)
+
+		with tests.DialogContext(do_new_file):
+			self.ui.do_attach_file(path, file)
+
 	def testClipboard(self):
 		self.ui.copy_location()
 		self.assertEqual(Clipboard.get_text(), 'Test:foo:bar')
+
+	def testClosePage(self):
+		# Specific bug found when trying to close the page while auto-save
+		# in progress, test it here
+		self.ui._mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.ui._mainwindow.pageview._save_page_handler.try_save_page()
+		self.assertTrue(self.ui.page.modified)
+		ok = self.ui.close_page()
+		self.assertTrue(ok)
+		self.assertFalse(self.ui.page.modified)
 
 
 class TestClickLink(tests.TestCase):
@@ -695,6 +752,39 @@ class TestClickLink(tests.TestCase):
 			self.ui.mock_calls = [] # reset
 
 		# TODO test plugin with custom handler
+
+
+class TestNotebookComboBox(tests.TestCase):
+
+	def runTest(self):
+		from zim.gui.notebookdialog import NotebookComboBox, NotebookTreeModel
+
+		class MyList(list):
+			pass
+
+		notebooklist = MyList([
+			NotebookInfo('file:///test/foo', name='Foo'),
+			NotebookInfo('file:///test/bar', name='Bar')
+		])
+		notebooklist.default = notebooklist[1]
+		notebooklist.write = lambda : None
+
+		model = NotebookTreeModel(notebooklist)
+
+		combobox = NotebookComboBox(model)
+		self.assertEqual(combobox.get_notebook(), notebooklist[1].uri) # default
+
+		combobox.set_active(-1)
+		self.assertEqual(combobox.get_notebook(), None)
+
+		combobox.set_notebook(notebooklist[0].uri)
+		self.assertEqual(combobox.get_notebook(), notebooklist[0].uri)
+
+		combobox.set_notebook('file:///yet/another/notebook')
+		self.assertEqual(combobox.get_notebook(), None)
+
+		combobox.set_notebook('file:///yet/another/notebook', append=True)
+		self.assertEqual(combobox.get_notebook(), 'file:///yet/another/notebook')
 
 
 @tests.slowTest
@@ -792,12 +882,12 @@ class TestNotebookDialog(tests.TestCase):
 		self.assertTrue(list.default is None)
 
 
+from zim.gui import GtkInterface
+
 class MockUI(tests.MockObject):
 
 	def __init__(self, page=None, fakedir=None):
 		tests.MockObject.__init__(self)
-
-		self.tmp_dir = self.create_tmp_dir()
 
 		if page and not isinstance(page, Path):
 			self.page = Path(page)
@@ -805,3 +895,9 @@ class MockUI(tests.MockObject):
 			self.page = page
 
 		self.notebook = tests.new_notebook(fakedir=fakedir)
+
+	def __getattr__(self, name):
+		if hasattr(GtkInterface, name):
+			return tests.MockObject.__getattr__(self, name)
+		else:
+			raise AttributeError, 'GtkInterface does not have a method: %s' % name

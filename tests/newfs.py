@@ -282,8 +282,8 @@ class TestFS(object):
 			self.assertEqual(file.mimetype(), mtype)
 
 	def testFileAccess(self):
-		# File access: read, write, touch, remove
-		file = self.get_root_folder('testFileAccess').file('foo.txt')
+		# File access: read, write, touch, remove -- including unicode in path
+		file = self.get_root_folder('testFileAccess').file(u'test-αβγ.txt')
 		self.assertFalse(file.exists())
 		self.assertRaises(FileNotFoundError, file.read)
 
@@ -343,9 +343,9 @@ class TestFS(object):
 		self.assertEquals(file.read_with_etag(), ('test 890\n', etag4))
 
 	def testFolderAccess(self):
-		# Folder access: list, touch, remove, file, folder, child
+		# Folder access: list, touch, remove, file, folder, child -- including unicode in path
 
-		folder = self.get_root_folder('testFolderAccess').folder('test')
+		folder = self.get_root_folder('testFolderAccess').folder(u'test-αβγ')
 
 		# Start empty
 		self.assertFalse(folder.exists())

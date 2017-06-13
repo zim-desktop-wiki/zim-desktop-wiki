@@ -41,6 +41,7 @@ else: #pragma: no cover
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
 from zim.utils import OrderedDict, FunctionThread
 from zim.fs import File, FileNotFoundError
+from zim.newfs import FileNotFoundError as NewFileNotFoundError
 from zim.errors import Error
 
 from .basedirs import XDG_CONFIG_HOME
@@ -489,10 +490,9 @@ class ConfigDict(ControlledDict):
 		assert not (E and F)
 		ControlledDict.__init__(self)
 		self.definitions = OrderedDict()
-		if E:
-			self._input = dict(E)
-		else:
-			self._input = F
+		self._input = {}
+		if E or F:
+			self.input(E or F)
 
 	def copy(self):
 		'''Shallow copy of the items
@@ -501,6 +501,7 @@ class ConfigDict(ControlledDict):
 		new = self.__class__()
 		new.update(self)
 		new._input.update(self._input)
+		new._keys[:] = list(self._keys)
 		return new
 
 	def update(self, E=None, **F):
@@ -522,10 +523,17 @@ class ConfigDict(ControlledDict):
 		keys in the dict, but want to preserve all of them when
 		writing back to a file.
 		'''
-		# TODO make this output ordered as well...
-		dump = dict(self._input)
-		dump.update(self)
-		return dump
+		return dict(self.all_items()) # FIXME should be OrderedDict, but causes test errors
+
+	def all_items(self):
+		# Like items() but returns both defined values and input values
+		for k in self._keys:
+			if k in self._values:
+				yield k, self._values[k]
+			elif k in self._input:
+				yield k, self._input[k]
+			else:
+				pass
 
 	# Note that OrderedDict optimizes __getitem__, cannot overload it
 
@@ -540,6 +548,16 @@ class ConfigDict(ControlledDict):
 		else:
 			raise KeyError('Config key "%s" has not been defined' % k)
 
+	def __delitem__(self, k):
+		if k in self._values:
+			ControlledDict.__delitem__(self, k)
+		else:
+			del self._input[k]
+			try:
+				self._keys.remove(k)
+			except ValueError:
+				pass
+
 	def input(self, E=None, **F):
 		'''Like C{update()} but won't raise on failures.
 		Values for undefined keys are stored and validated once the
@@ -548,7 +566,7 @@ class ConfigDict(ControlledDict):
 		'''
 		assert not (E and F)
 		update = E or F
-		if isinstance(update, collections.Mapping):
+		if hasattr(update, 'items'):
 			items = update.items()
 		else:
 			items = update
@@ -558,6 +576,8 @@ class ConfigDict(ControlledDict):
 				self._set_input(key, value)
 			else:
 				self._input[key] = value # validated later
+				if key not in self._keys:
+					self._keys.append(key)
 
 	def define(self, E=None, **F):
 		'''Set one or more defintions for this config dict
@@ -746,7 +766,7 @@ class INIConfigFile(SectionedConfigDict):
 			with self.block_signals('changed'):
 				self.read()
 			self.set_modified(False)
-		except FileNotFoundError:
+		except (FileNotFoundError, NewFileNotFoundError):
 			pass
 
 		if monitor:
@@ -757,7 +777,7 @@ class INIConfigFile(SectionedConfigDict):
 			try:
 				with self.block_signals('changed'):
 					self.read()
-			except FileNotFoundError:
+			except (FileNotFoundError, NewFileNotFoundError):
 				pass
 			else:
 				# First emit top level to allow general changes
@@ -835,17 +855,20 @@ class INIConfigFile(SectionedConfigDict):
 		'''
 		lines = []
 		def dump_section(name, section):
-			try:
-				lines.append('[%s]\n' % name)
-				for key, value in section.items():
-					if not key.startswith('_'):
-						lines.append('%s=%s\n' % (key, section.definitions[key].tostring(value)))
-				lines.append('\n')
-			except:
-				logger.exception('Dumping section [%s] failed:\n%r', name, section)
+			lines.append('[%s]\n' % name)
+			for key, value in section.all_items():
+				if not key.startswith('_'):
+					try:
+						if key in section.definitions:
+							lines.append('%s=%s\n' % (key, section.definitions[key].tostring(value)))
+						else:
+							lines.append('%s=%s\n' % (key, value))
+					except:
+						logger.exception('Error serializing "%s" in section "[%s]"', key, name)
+			lines.append('\n')
 
 		for name, section in self.items():
-			if section and not name.startswith('_'):
+			if not name.startswith('_'):
 				if isinstance(section, list):
 					for s in section:
 						dump_section(name, s)
