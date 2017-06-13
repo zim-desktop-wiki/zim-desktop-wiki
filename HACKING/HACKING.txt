@@ -13,8 +13,11 @@ When you are working with the development code check the folder "./tools/" for s
 
 In addition we use the following resources to communicate on zim development:
 
+Code repository:
+https://github.com/jaap-karssenberg/zim-desktop-wiki
+
 Bug tracker:
-https://bugs.launchpad.net/zim
+https://github.com/jaap-karssenberg/zim-desktop-wiki/issues (and many requests are on the old page https://bugs.launchpad.net/zim)
 Also for feature requests
 
 Development wiki:

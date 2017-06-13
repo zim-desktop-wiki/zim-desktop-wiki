@@ -43,7 +43,7 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Improved performance tag filtering in side pane
 * Detect pages have changed on disk, even when page present in cache
 * Bug fix for drag-n-drop of text within the editor
-* New checkbox type available for "moved task" for joural workflow
+* New checkbox type available for "moved task" for journal workflow
 * Context menu defined for checkboxes
 * Horizontal lines "<HR>" added to wiki syntax -- Pavel_M
 * Pathbar buttons can now also be used to insert page links by drag-n-drop
