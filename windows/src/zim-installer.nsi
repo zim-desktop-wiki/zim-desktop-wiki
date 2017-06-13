@@ -6,13 +6,13 @@
 ; Define VER and BUILDDATE
 !include "..\build\version-and-date.nsi"
 
-!define APPNAMEANDVERSION "Zim Desktop Wiki ${VER} for Windows"
+!define APPNAMEANDVERSION "Zim Desktop Wiki ${VER}"
 
 ; Main Install settings
 Name "${APPNAMEANDVERSION}"
 InstallDir "$PROGRAMFILES\Zim Desktop Wiki"
 InstallDirRegKey HKLM "Software\${APPNAME}" ""
-OutFile "..\..\dist\Zim-setup-${VER}_${BUILDDATE}.exe"
+OutFile "..\..\dist\zim-desktop-wiki-setup-${VER}.exe"
 SetCompressor /SOLID lzma
 
 ; Modern interface settings
@@ -57,8 +57,13 @@ Section "-Main program" SecProgramFiles
 
 	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
-	File /r /x .svn /x Zim-setup*.exe /x "zim.exe.log" "..\build\ZimDesktopWiki\*.*"
+	; Include main files; skip the 'portable' and 'portable debug' launchers
+	File /r \
+		/x "zim.exe.log" \
+		/x "Zim *Portable*.exe" \
+		"..\build\ZimDesktopWiki\*.*"
 	File "..\..\icons\zim.ico"
+	File "Zim Desktop Wiki for Windows README.rtf"
 
 SectionEnd
 
@@ -67,11 +72,13 @@ Section "Start Menu shortcut" SecStartShortcut
 
 	CreateDirectory "$SMPROGRAMS\Zim Desktop Wiki"
 	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Zim.lnk" "$INSTDIR\zim.exe"
+	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Zim (Debug Mode).lnk" "$INSTDIR\zim_debug.exe"
+	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\README for Zim for Windows.lnk" "$INSTDIR\Zim Desktop Wiki for Windows README.rtf"
 	CreateShortCut "$SMPROGRAMS\Zim Desktop Wiki\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
 SectionEnd
 
-Section "Desktop shortcut" SecDesktopShortcut
+Section /o "Desktop shortcut" SecDesktopShortcut
 
 	; Set Section properties
 	SetOverwrite on
