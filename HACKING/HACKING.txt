@@ -1,6 +1,5 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
-Creation-Date: 2014-07-31T20:56:17+02:00
 
 ====== HACKING ======
 
@@ -13,8 +12,11 @@ When you are working with the development code check the folder "./tools/" for s
 
 In addition we use the following resources to communicate on zim development:
 
+Code repository:
+https://github.com/jaap-karssenberg/zim-desktop-wiki
+
 Bug tracker:
-https://bugs.launchpad.net/zim
+https://github.com/jaap-karssenberg/zim-desktop-wiki/issues (and many requests are on the old page https://bugs.launchpad.net/zim)
 Also for feature requests
 
 Development wiki:
