@@ -2060,6 +2060,11 @@ class PageEntry(InputEntry):
 			pass
 
 	def _fill_completion_any(self, path, text):
+
+		# Don't match single-character completions
+		if len(text) < 2:
+			return;
+
 		#print "COMPLETE ANY", path, text
 		# Complete all matches of "text"
 		# start with children, than peers, than rest of tree
