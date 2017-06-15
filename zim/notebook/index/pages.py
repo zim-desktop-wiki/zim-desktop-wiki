@@ -539,11 +539,16 @@ class PagesView(IndexView):
 		page_id = self._pages.get_page_id(path) if path else ROOT_ID # can raise
 		return self._pages.walk_bottomup(page_id)
 
-	def search_pagename_substring(self, text):
-		lowertext = text.lower()
-		for p in self.walk():
-			if lowertext in p.basename.lower():
-				yield p;
+	def search_pagename_substring(self, nameFragment):
+		candidates = self.db.execute(
+			'SELECT * FROM pages WHERE LOWER(name) LIKE ? ORDER BY parent,sortkey',
+			('%'+nameFragment.lower()+'%',)
+		).fetchall();
+
+		logger.debug("%d page-names contain '%s'", len(candidates), nameFragment);
+
+		for c in candidates:
+			yield PageIndexRecord(c);
 
 	def n_all_pages(self):
 		'''Returns to total number of pages in the index'''
