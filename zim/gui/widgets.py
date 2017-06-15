@@ -2075,8 +2075,15 @@ class PageEntry(InputEntry):
 			return href.to_wiki_link()
 
 		model = completion.get_model()
-		childpos, peerpos = 0, 0
+		count, childpos, peerpos = 0, 0, 0
 		for p in self.notebook.pages.search_pagename_substring(text):
+
+			count=count+1;
+			# BENCHMARK: 1 second of UI hang for every 100 entries.
+			if count > 300:
+				logger.debug("truncating long results list to prevent GTK hang")
+				break
+			
 			link = relative_link(p)
 			if link.startswith('+'):
 				model.insert(childpos, (link, p.basename))
