@@ -460,7 +460,7 @@ class PagesViewInternal(object):
 			'SELECT * FROM pages WHERE parent=? '
 			'ORDER BY sortkey, name',
 			(parent_id,)
-		):
+		).fetchall():
 			yield PageIndexRecord(row)
 			if row['n_children'] > 0:
 				for child in self.walk(row['id']): # recurs
@@ -471,7 +471,7 @@ class PagesViewInternal(object):
 			'SELECT * FROM pages WHERE parent=? '
 			'ORDER BY sortkey, name',
 			(parent_id,)
-		):
+		).fetchall():
 			if row['n_children'] > 0:
 				for child in self.walk_bottomup(row['id']): # recurs
 					yield child
