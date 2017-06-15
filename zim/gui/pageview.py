@@ -720,6 +720,10 @@ class TextBuffer(gtk.TextBuffer):
 		with self.tmp_cursor(iter):
 			self.insert_parsetree_at_cursor(tree, interactive)
 
+	def insert_parsetree_at_end(self, tree, interactive=False):
+		with self.tmp_cursor(self.get_end_iter()):
+			self.insert_parsetree_at_cursor(tree, interactive)
+
 	def insert_parsetree_at_cursor(self, tree, interactive=False):
 		'''Insert a L{ParseTree} in the buffer
 

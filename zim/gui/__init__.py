@@ -974,10 +974,22 @@ class GtkInterface(gobject.GObject):
 		'''
 		if isinstance(name, Path):
 			name = name.name
+
 		path = self.notebook.pages.lookup_from_user_input(name)
-		page = self.notebook.get_page(path) # can raise
-		page.parse('wiki', text, append=True) # FIXME format hard coded
-		self.notebook.store_page(page)
+
+		# If the page is currently open, then we have to use insert_parsetree to be sure the UI reflects the data change
+		if path.name == self._mainwindow.pageview.page.name:
+			logger.debug("appending to current/active page: '%s'", path);
+			from zim.formats import get_format
+			#tree=ParseTree().fromstring('<line>%s</line>'%(text));
+			tree=get_format('wiki').Parser().parse(text.decode('utf-8')+"\n", partial=True)
+			self._mainwindow.pageview.view.get_buffer().insert_parsetree_at_end(tree)
+			self._mainwindow.pageview.save_changes(write_if_not_modified=True) # XXX
+		else:
+			logger.debug("not current page: '%s' -> '%s' != '%s'", name, path, self._mainwindow.pageview.page.name)
+			page = self.notebook.get_page(path) # can raise
+			page.parse('wiki', text, append=True) # FIXME format hard coded
+			self.notebook.store_page(page)
 
 	@action(_('Open in New _Window')) # T: Menu item
 	def open_new_window(self, page=None):
