@@ -2075,20 +2075,18 @@ class PageEntry(InputEntry):
 			return href.to_wiki_link()
 
 		model = completion.get_model()
-		lowertext = text.lower()
 		childpos, peerpos = 0, 0
-		for p in self.notebook.pages.walk():
-			if lowertext in p.basename.lower():
-				link = relative_link(p)
-				if link.startswith('+'):
-					model.insert(childpos, (link, p.basename))
-					childpos += 1
-					peerpos += 1
-				elif not ':' in link:
-					model.insert(peerpos, (link, p.basename))
-					peerpos += 1
-				else:
-					model.append((link, p.basename))
+		for p in self.notebook.pages.search_pagename_substring(text):
+			link = relative_link(p)
+			if link.startswith('+'):
+				model.insert(childpos, (link, p.basename))
+				childpos += 1
+				peerpos += 1
+			elif not ':' in link:
+				model.insert(peerpos, (link, p.basename))
+				peerpos += 1
+			else:
+				model.append((link, p.basename))
 
 
 class NamespaceEntry(PageEntry):

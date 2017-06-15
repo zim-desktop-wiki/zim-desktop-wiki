@@ -539,6 +539,12 @@ class PagesView(IndexView):
 		page_id = self._pages.get_page_id(path) if path else ROOT_ID # can raise
 		return self._pages.walk_bottomup(page_id)
 
+	def search_pagename_substring(self, text):
+		lowertext = text.lower()
+		for p in self.walk():
+			if lowertext in p.basename.lower():
+				yield p;
+
 	def n_all_pages(self):
 		'''Returns to total number of pages in the index'''
 		c, = self.db.execute('SELECT COUNT(*) FROM pages').fetchone()
