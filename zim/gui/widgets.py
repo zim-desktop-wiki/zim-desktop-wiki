@@ -2072,8 +2072,7 @@ class PageEntry(InputEntry):
 		completion = self.get_completion()
 		completion.set_match_func(gtk_entry_completion_match_func, 1)
 
-		# TODO: use SQL to list all at once instead of walking and filter on "text"
-		#       do better sorting as well ?
+		# TODO: do better sorting?
 
 		def relative_link(target):
 			href = self.notebook.pages.create_link(path, target)
