@@ -1996,15 +1996,14 @@ class PageEntry(InputEntry):
 		if not self.notebook:
 			return # no completion without a notebook
 
-		text = self.get_text()
-		if self._current_completion:
-			if self._current_completion.startswith(text) \
-			and not ':' in text[len(self._current_completion):]:
-				return # nothing to update
-			else: # Clear out-of-date completions
-				model = self.get_completion().get_model()
+		if self._current_completion and self.get_completion():
+			# Clear out-of-date completions
+			model = self.get_completion().get_model()
+			if model:
 				model.clear()
-				self._current_completion = None
+			self._current_completion = None
+
+		text = self.get_text()
 
 		if not text or not self.get_input_valid():
 			return # can't complete invalid input
