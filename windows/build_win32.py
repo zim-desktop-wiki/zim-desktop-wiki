@@ -88,6 +88,8 @@ distutils.dir_util.copy_tree(
 
 shutil.copy(path.join(GTK_ROOT, "bin", "libxml2-2.dll"), EXE_ROOT)
 shutil.copy(path.join(GTK_ROOT, "bin", "librsvg-2-2.dll"), EXE_ROOT)
+shutil.copy(path.join(GTK_ROOT, "bin", "gspawn-win32-helper.exe"), EXE_ROOT)
+shutil.copy(path.join(GTK_ROOT, "bin", "gspawn-win32-helper-console.exe"), EXE_ROOT)
 
 print("Done copying GTK runtime.")
 
