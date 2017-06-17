@@ -86,34 +86,34 @@ quit:
 !endif
 SectionEnd
 
-	Function findPaths
-		StrCpy $zimPath "$EXEDIR\zim.exe"
-		!ifdef IS_PORTABLE
-			Push $EXEDIR
-			Call GetParent
-			Call GetParent
-			Pop $portableRoot
-		!endif
-		IfFileExists $zimPath found
+Function findPaths
+	StrCpy $zimPath "$EXEDIR\zim.exe"
+	!ifdef IS_PORTABLE
+		Push $EXEDIR
+		Call GetParent
+		Call GetParent
+		Pop $portableRoot
+	!endif
+	IfFileExists "$EXEDIR\share\zim\zim.png" found
+
+	StrCpy $zimPath "$EXEDIR\ZimDesktopWiki\zim.exe"
+	!ifdef IS_PORTABLE
+		Push $EXEDIR
+		Call GetParent
+		Pop $portableRoot
+	!endif
+	IfFileExists "$EXEDIR\ZimDesktopWiki\share\zim\zim.png" found
+
+	StrCpy $zimPath "$EXEDIR\App\ZimDesktopWiki\zim.exe"
+	!ifdef IS_PORTABLE
+		StrCpy $portableRoot $EXEDIR
+	!endif
+	IfFileExists "$EXEDIR\App\ZimDesktopWiki\share\zim\zim.png" found
 	
-		StrCpy $zimPath "$EXEDIR\ZimDesktopWiki\zim.exe"
-		!ifdef IS_PORTABLE
-			Push "$EXEDIR\ZimDesktopWiki"
-			Call GetParent
-			Pop $portableRoot
-		!endif
-		IfFileExists $zimPath found
-	
-		StrCpy $zimPath "$EXEDIR\App\ZimDesktopWiki\zim.exe"
-		!ifdef IS_PORTABLE
-			StrCpy $portableRoot $EXEDIR
-		!endif
-		IfFileExists $zimPath found
-		
-		Abort "Couldn't find zim.exe."
-	
-	found:
-	FunctionEnd
+	Abort "Couldn't find zim.exe."
+
+found:
+FunctionEnd
 
 !ifdef IS_PORTABLE
 	 ; GetParent
