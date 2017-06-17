@@ -85,6 +85,8 @@ Packaging the Installer
 
 2. At the command prompt, CD into the Zim Project's root folder.
 
-3. Run "python windows\make_installer_win32.py".
+3. Run "python windows\make_installer_win32.py" to create the desktop installer.
 
-4. Find the NSIS installer in ".\dist\Zim-setup-*.exe" and test it.
+4. Run "python windows\make_installer_win32_portable.py" to create the portable installer.
+
+5. Find the NSIS installers in ".\dist\zim-desktop-wiki-*.exe" and test them.

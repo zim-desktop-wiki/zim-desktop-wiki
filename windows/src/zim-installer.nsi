@@ -21,9 +21,10 @@ SetCompressor /SOLID lzma
 ; Register Extension function
 !include "registerExtension.nsh"
 
+!include "sections.nsh"
+
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\zim.exe"
-
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "zim-logo-big.bmp" ; optional
 !define MUI_ICON "..\..\icons\zim.ico"
@@ -46,7 +47,6 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
-
 Section "-Main program" SecProgramFiles
 
 	; Clear installation folder, to be sure to get rid of orphaned files
@@ -55,18 +55,18 @@ Section "-Main program" SecProgramFiles
 	; Set Section properties
 	SetOverwrite on
 
-	; Set Section Files and Shortcuts
 	SetOutPath "$INSTDIR\"
+
 	; Include main files; skip the 'portable' and 'portable debug' launchers
 	File /r \
 		/x "zim.exe.log" \
 		/x "Zim *Portable*.exe" \
 		"..\build\ZimDesktopWiki\*.*"
+
 	File "..\..\icons\zim.ico"
 	File "Zim Desktop Wiki for Windows README.rtf"
 
 SectionEnd
-
 
 Section "Start Menu shortcut" SecStartShortcut
 
@@ -94,7 +94,7 @@ Section ".zim file association" SecAssociate
 
 SectionEnd
 
-Section "Create Registry Keys and Uninstaller" SecUninstall
+Section "Create egistry keys and uninstaller" SecUninstall
 
 	WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"
@@ -115,6 +115,7 @@ SectionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecUninstall} \
 	"Create uninstaller and registry keys necessary for uninstallation."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
 
 ;Uninstall section
 Section Uninstall
@@ -145,5 +146,3 @@ Section Uninstall
 	RMDir /r "$SMPROGRAMS\Zim Desktop Wiki"
 
 SectionEnd
-
-; eof
