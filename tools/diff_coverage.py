@@ -32,20 +32,22 @@ class Diff(object):
 		file = None
 		for line in lines:
 			if line.startswith('+++ '):
-				file, _ = line[4:].split('\t', 1)
+				file = line[4:].split()[0]
+				if file.startswith('b/'):
+					file = file[2:] # git has a/ b/ prefixes for old and new file
 			elif line.startswith('@@'):
 				assert file is not None
 				head = line
 				part = []
 				for line in lines:
-					if not line.strip('\n'):
+					if not line[0] in (' ', '+', '-'):
 						break
 					else:
 						part.append(line)
 				yield DiffPart(file, head, part)
 			else:
-				pass # === and --- lines
-		
+				pass # any other line with info, not part of a diff block
+
 
 class DiffPart(object):
 
@@ -55,11 +57,11 @@ class DiffPart(object):
 		self.lines = lines
 
 	def range(self):
-		old, new = self.head.strip().strip('@ ').split()
+		old, new = self.head.strip().split()[:2]
 		start, size = map(int, new[1:].split(','))
 		return start, start + size
-		
-	
+
+
 
 def coverage_filter_diff(diff):
 	cov = coverage.coverage()
