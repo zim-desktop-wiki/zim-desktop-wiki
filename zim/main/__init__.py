@@ -563,6 +563,35 @@ class ZimApplication(object):
 		self._standalone = False
 		self._windows = set()
 
+	@property
+	def toplevels(self):
+		return iter(self._windows)
+
+	@property
+	def notebooks(self):
+		return frozenset(
+			w.notebook for w in self.toplevels
+				if hasattr(w, 'notebook')
+		)
+
+	def get_mainwindow(self, notebook, _class=None):
+		'''Returns an existing L{MainWindow} for C{notebook} or C{None}'''
+		from zim.gui import MainWindow
+		_class = _class or MainWindow # test seam
+		for w in self.toplevels:
+			if isinstance(w, _class) and w.notebook.uri == notebook.uri:
+				return w
+		else:
+			return None
+
+	def present(self, notebook, page=None):
+		'''Present notebook and page in a mainwindow, may not return for
+		standalone processes.
+		'''
+		uri = notebook if isinstance(notebook, basestring) else notebook.uri
+		pagename = page if isinstance(page, basestring) else page.name
+		self.run('--gui', uri, pagename)
+
 	def add_window(self, window):
 		if not window in self._windows:
 			logger.debug('Add window: %s', window.__class__.__name__)
@@ -601,17 +630,18 @@ class ZimApplication(object):
 
 		if self._running:
 			# This is not the first command that we process
-			if self._standalone or cmd.opts.get('standalone'):
-				self._spawn_standalone(args)
-			elif isinstance(cmd, GtkCommand):
-				w = cmd.run()
-				if w is not None:
-					self.add_window(w)
+			if isinstance(cmd, GtkCommand):
+				if self._standalone or cmd.standalone_process:
+					self._spawn_standalone(args)
+				else:
+					w = cmd.run()
+					if w is not None:
+						self.add_window(w)
 			else:
 				cmd.run()
 		else:
-			self._standalone = cmd.opts.get('standalone')
 			if isinstance(cmd, GtkCommand):
+				self._standalone = cmd.standalone_process
 				if not self._standalone and self._try_dispatch(args, cmd.pwd):
 					pass # We are done
 				else:

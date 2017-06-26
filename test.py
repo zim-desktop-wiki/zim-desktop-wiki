@@ -93,6 +93,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 	logger = logging.getLogger()
 	logger.setLevel(loglevel)
 	logger.addHandler(handler)
+	#logging.captureWarnings(True) # FIXME - make all test pass with this enabled
 
 	# Build the test suite
 	loader = unittest.TestLoader()

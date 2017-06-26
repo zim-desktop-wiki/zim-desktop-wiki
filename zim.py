@@ -34,7 +34,8 @@ if os.name == "nt" and (
 	sys.stderr = err_stream
 
 # Preliminary initialization of logging because modules can throw warnings at import
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.WARN, format='%(levelname)s: %(message)s')
+logging.captureWarnings(True)
 
 # Try importing our modules
 try:

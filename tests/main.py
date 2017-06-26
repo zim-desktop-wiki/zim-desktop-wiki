@@ -269,3 +269,36 @@ class TestZimApplication(tests.TestCase):
 		self.assertFalse(cmd.hasrun)
 		app._run_cmd(cmd, ())
 		self.assertTrue(cmd.hasrun)
+
+	def testPluginAPI(self):
+		from zim.signals import SignalEmitter
+		class MockWindow(SignalEmitter):
+
+			__signals__ = {
+				'destroy': (None, None, ())
+			}
+
+			def __init__(self, notebook):
+				self.notebook = notebook
+
+			def destroy(self):
+				pass
+
+		class MockNotebook(object):
+
+			def __init__(self, uri):
+				self.uri = uri
+
+		n1 = MockNotebook('foo')
+		n2 = MockNotebook('bar')
+		w1 = MockWindow(n1)
+		w2 = MockWindow(n2)
+
+		app = ZimApplication()
+		app.add_window(w1)
+		app.add_window(w2)
+
+		self.assertEqual(set(app.toplevels), set([w1, w2]))
+		self.assertEqual(app.notebooks, set([n1, n2]))
+		self.assertEqual(app.get_mainwindow(n1, _class=MockWindow), w1)
+		self.assertEqual(app.get_mainwindow(MockNotebook('foo'), _class=MockWindow), w1)

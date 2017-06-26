@@ -1881,6 +1881,10 @@ class MainWindow(Window):
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
 
+	@property
+	def notebook(self):
+		return self.ui.notebook
+
 	def destroy(self):
 		self.ui.close_page(self.ui.page) # XXX
 		self.pageview.save_changes() # XXX probably dubble of close_page, just to be sure
