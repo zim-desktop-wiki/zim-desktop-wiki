@@ -5972,7 +5972,8 @@ class PageView(gtk.VBox):
 		@param force: when C{True} the image will be inserted
 		even if it doesn't exist (or it isn't an image)
 
-		@returns: C{True} if succesfull
+		@raises ValueError: if file does not exist or is not a supported image
+		type
 		'''
 		if interactive:
 			InsertImageDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page, file).run()
@@ -5982,11 +5983,10 @@ class PageView(gtk.VBox):
 			assert isinstance(file, File)
 			if not force \
 			and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
-				return False
+				raise ValueError, 'Not an image %s' % file
 
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
-			return True
 
 	@action(_('Bulle_t List'), readonly=False) # T: Menu item
 	def insert_bullet_list(self):
