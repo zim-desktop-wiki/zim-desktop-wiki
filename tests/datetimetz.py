@@ -101,9 +101,11 @@ class TestDateParsing(tests.TestCase):
 		for text in (
 			'foo', '123foo', '2017-03-270',
 			'20170317', '17-03-27', '17-03'
-			'17W', '2017W131', '2017-W131', '17W13.1'
+			'17W', '2017W131', '2017-W131'
 		):
 			m = date_re.match(text)
+			if m:
+				print '>>', m.group(0)
 			self.assertIsNone(m, 'Did unexpectedly match: %s' % text)
 
 	def testWeekNumer(self):

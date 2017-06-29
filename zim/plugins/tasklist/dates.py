@@ -49,7 +49,7 @@ date_re = re.compile(
 	'|\d{4}-\d{2}'
 	'|(?:\d{2}|\d{4})-?[Ww][Kk]?\d{2}(?:-\d)?'
 	'|[Ww][Kk]?(?:\d{2}|\d{4})\d{2}(?:[\.-]\d)?'
-	')(?![\S])'
+	')(?![\w-])'
 )
 
 
@@ -85,7 +85,8 @@ class Day(DateRange, datetime.date):
 
 	@classmethod
 	def new_from_weeknumber(cls, year, week, weekday):
-		assert isinstance(weekday, int) and 0 <= weekday <= 7
+		if not (isinstance(weekday, int) and 0 <= weekday <= 7):
+			raise ValueError, 'Not a weekday: %i (must be between 0 and 7)' % weekday
 
 		start, end = dates_for_week(year, week)
 		if start.isoweekday() == 1: # monday
