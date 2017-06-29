@@ -15,7 +15,7 @@ from zim.notebook.index.base import IndexerBase, IndexView
 from zim.notebook.index.pages import PagesViewInternal
 from zim.formats import get_format, \
 	UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET, TAG, \
-	PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
+	HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
 	Visitor, VisitorSkip
 from zim.tokenparser import skip_to_end_token, TEXT, END
 
@@ -307,7 +307,11 @@ class TaskParser(object):
 
 		check_list_heading = False
 		for t in token_iter:
-			if t[0] == PARAGRAPH:
+			if t[0] == HEADING:
+				task = self._parse_heading(token_iter)
+				if task:
+					tasks.append(task)
+			elif t[0] == PARAGRAPH:
 				paratasks = self._parse_paragraph(token_iter, defaults)
 				check_list_heading = (len(paratasks) == 1) # Para should be single line -- ### TODO that is not strictly tested here!
 				tasks.extend(paratasks)
@@ -326,6 +330,20 @@ class TaskParser(object):
 				continue # Skip other toplevel content
 
 		return tasks
+
+	def _parse_heading(self, token_iter):
+		head = []
+		for t in token_iter:
+			if t == (END, HEADING):
+				break
+			else:
+				head.append(t)
+
+		if self._starts_with_label(head):
+			fields = self._task_from_tokens(head)
+			return (fields, [])
+		else:
+			return None
 
 	def _starts_with_label(self, tokens):
 		text = []

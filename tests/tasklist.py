@@ -23,6 +23,10 @@ from zim.formats.wiki import Parser as WikiParser
 WIKI_TEXT = '''\
 Try all kind of combos - see if the parser trips
 
+=== TODO: test heading with label ===
+
+=== Not a task ===
+
 TODO:
 [ ] A
 [ ] B
@@ -141,6 +145,7 @@ class TestTaskParser(tests.TestCase):
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
 		wanted = [
+			(t('TODO: test heading with label'), []),
 			(t('A'), []),
 			(t('B'), []),
 			(t('C'), []),
