@@ -1,6 +1,5 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
-Creation-Date: Sat, 08 Nov 2008 11:04:28 +0100
 
 ====== Checkboxes ======
 

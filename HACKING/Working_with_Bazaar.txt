@@ -1,6 +1,5 @@
 Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
-Creation-Date: 2014-07-31T21:05:49+02:00
 
 ====== Working with Bazaar ======
 
