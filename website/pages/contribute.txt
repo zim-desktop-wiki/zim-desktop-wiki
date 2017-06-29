@@ -2,7 +2,6 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
 
 ====== Contribute ======
-Also see the development page on launchpage here: https://launchpad.net/zim
 
 ===== Donations =====
 Zim is completely free software, free as in open source //and// free as in free beer. However if you feel like stimulating further development of zim, you can make a donation using the paypal button below.
@@ -18,28 +17,10 @@ Updates for the user manual can be submitted in [[http://www.zim-wiki.org/wiki/|
 See [[translations]] on how to update translation files.
 
 ===== Development planning =====
-The development planning is more or less managed using the launchpage [[https://bugs.launchpad.net/zim|bug tracker]] and launchpad [[https://blueprints.launchpad.net/zim|blueprints]]
+The development planning is more or less managed using the [[https://github.com/jaap-karssenberg/zim-desktop-wiki/issues|bug tracker]]
 
 ===== Patches =====
-The simple way to create patches is to download the source tar ball for the latest release. After you are done hacking take a diff (use "''diff -rwu''") and mail it to [[jaap.karssenberg@gmail.com|me]].
-
-If you want the full revision controlled source tree you will need the Bazaar version control system. To check out the current tree from launchpad run:
-
-'''
-$ bzr branch lp:zim
-'''
-
-This will give you a local copy to hack on. When working on a large feature please commit changes to your local branch regularly so we have a detailed log of what changed later on. When you are done there are two ways to get the changes merged with the main code:
-
-First option is to upload your branch as a new branch to launchpad and file a merge request. This way everybody can see your work, improve upon it and the merge request will trigger us to look into it.
-
-For small patches the quicker alternative is to run:
-
-'''
-$ bzr send -o some-description.patch
-'''
-
-and mail the resulting file to [[jaap.karssenberg@gmail.com|me]].
+Please see our [[https://github.com/jaap-karssenberg/zim-desktop-wiki|GitHub repository]] for the latest developement code. To submit patches please create your own branch and once done file a merge request.
 
 ===== Contact =====
 To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. This mailing list is used for synchronizing releases and the occasional brainstorm session. But feel free to mail all your comments, questions and rants to me personally as well.
