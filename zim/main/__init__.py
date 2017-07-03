@@ -637,11 +637,18 @@ class ZimApplication(object):
 					w = cmd.run()
 					if w is not None:
 						self.add_window(w)
+						w.present()
 			else:
 				cmd.run()
 		else:
+			# Although a-typical, this path could be re-entrant if a
+			# run_local() dispatches another command - therefore we set
+			# standalone before calling run_local()
 			if isinstance(cmd, GtkCommand):
-				self._standalone = cmd.standalone_process
+				self._standalone = self._standalone or cmd.standalone_process
+				if cmd.run_local():
+					return
+
 				if not self._standalone and self._try_dispatch(args, cmd.pwd):
 					pass # We are done
 				else:

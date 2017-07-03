@@ -128,26 +128,39 @@ class QuickNotePluginCommand(GtkCommand):
 
 		return text
 
-	def run(self):
+	def run_local(self):
+		# Try to run dialog from local process
+		# - prevents issues where dialog pop behind other applications
+		#   (desktop preventing new window of existing process to hijack focus)
+		# - e.g. capturing stdin requires local process
 		if self.opts.get('help'):
 			print usagehelp # TODO handle this in the base class
 		else:
-			if 'notebook' in self.opts:
-				notebook = resolve_notebook(self.opts['notebook'])
-			else:
-				notebook = None
+			dialog = self.build_dialog()
+			dialog.run()
+		return True # Done - Don't call run() as well
 
-			dialog = QuickNoteDialog(None,
-				notebook=notebook,
-				namespace=self.opts.get('namespace'),
-				basename=self.opts.get('basename'),
-				append=self.opts.get('append'),
-				text=self.get_text(),
-				template_options=self.template_options,
-				attachments=self.opts.get('attachments')
-			)
-			dialog.show_all()
-			return dialog
+	def run(self):
+		# If called from primary process just run the dialog
+		return self.build_dialog()
+
+	def build_dialog(self):
+		if 'notebook' in self.opts:
+			notebook = resolve_notebook(self.opts['notebook'])
+		else:
+			notebook = None
+
+		dialog = QuickNoteDialog(None,
+			notebook=notebook,
+			namespace=self.opts.get('namespace'),
+			basename=self.opts.get('basename'),
+			append=self.opts.get('append'),
+			text=self.get_text(),
+			template_options=self.template_options,
+			attachments=self.opts.get('attachments')
+		)
+		dialog.show_all()
+		return dialog
 
 
 class QuickNotePlugin(PluginClass):
@@ -188,29 +201,53 @@ class MainWindowExtension(WindowExtension):
 	def show_quick_note(self):
 		ui = self.window.ui # XXX
 		notebook = self.window.ui.notebook # XXX
-		dialog = BoundQuickNoteDialog.unique(self, self.window, notebook, ui)
+		dialog = QuickNoteDialog.unique(self, self.window, notebook)
 		dialog.show()
 
 
-class BoundQuickNoteDialog(Dialog):
+class QuickNoteDialog(Dialog):
 	'''Dialog bound to a specific notebook'''
 
-	def __init__(self, window, notebook, ui,
+	def __init__(self, window, notebook=None,
 		page=None, namespace=None, basename=None,
 		append=None, text=None, template_options=None, attachments=None
 	):
+		assert page is None, 'TODO'
+
+		manager = ConfigManager() # FIXME should be passed in
+		self.config = manager.get_config_dict('quicknote.conf')
+		self.uistate = self.config['QuickNoteDialog']
+
 		Dialog.__init__(self, window, _('Quick Note'))
-		self._ui = ui
 		self._updating_title = False
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
 
-		self.uistate.setdefault('namespace', None, basestring)
-		namespace = namespace or self.uistate['namespace']
+		if notebook and not isinstance(notebook, basestring):
+			notebook = notebook.uri
 
-		self.form = InputForm(notebook=notebook)
+		self.uistate.setdefault('lastnotebook', None, basestring)
+		if self.uistate['lastnotebook']:
+			notebook = notebook or self.uistate['lastnotebook']
+			self.config['Namespaces'].setdefault(notebook, None, basestring)
+			namespace = namespace or self.config['Namespaces'][notebook]
+
+		self.form = InputForm()
 		self.vbox.pack_start(self.form, False)
+
+		# TODO dropdown could use an option "Other..."
+		label = gtk.Label(_('Notebook')+': ')
+		label.set_alignment(0.0, 0.5)
+		self.form.attach(label, 0,1, 0,1, xoptions=gtk.FILL)
+			# T: Field to select Notebook from drop down list
+		self.notebookcombobox = NotebookComboBox(current=notebook)
+		self.notebookcombobox.connect('changed', self.on_notebook_changed)
+		self.form.attach(self.notebookcombobox, 1,2, 0,1)
+
 		self._init_inputs(namespace, basename, append, text, template_options)
+
+		self.uistate['lastnotebook'] = notebook
+		self._set_autocomplete(notebook)
 
 	def _init_inputs(self, namespace, basename, append, text, template_options, custom=None):
 		if template_options is None:
@@ -296,6 +333,35 @@ class BoundQuickNoteDialog(Dialog):
 
 		self.connect('delete-event', self.do_delete_event)
 
+	def on_notebook_changed(self, o):
+		notebook = self.notebookcombobox.get_notebook()
+		if not notebook or notebook == self.uistate['lastnotebook']:
+			return
+
+		self.uistate['lastnotebook'] = notebook
+		self.config['Namespaces'].setdefault(notebook, None, basestring)
+		namespace = self.config['Namespaces'][notebook]
+		if namespace:
+			self.form['namespace'] = namespace
+
+		self._set_autocomplete(notebook)
+
+	def _set_autocomplete(self, notebook):
+		if notebook:
+			try:
+				if isinstance(notebook, basestring):
+					notebook = NotebookInfo(notebook)
+				obj, x = build_notebook(notebook)
+				self.form.widgets['namespace'].notebook = obj
+				self.form.widgets['page'].notebook = obj
+				logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
+			except:
+				logger.exception('Could not set notebook: %s', notebook)
+		else:
+			self.form.widgets['namespace'].notebook = None
+			self.form.widgets['page'].notebook = None
+			logger.debug('Notebook for autocomplete unset')
+
 	def do_response(self, id):
 		if id == gtk.RESPONSE_DELETE_EVENT:
 			if self.textview.get_buffer().get_modified():
@@ -322,12 +388,16 @@ class BoundQuickNoteDialog(Dialog):
 		Dialog.show(self)
 
 	def save_uistate(self):
+		notebook = self.notebookcombobox.get_notebook()
+		self.uistate['lastnotebook'] = notebook
 		self.uistate['new_page'] = self.form['new_page']
 		self.uistate['open_page'] = self.open_page_check.get_active()
-		if self.uistate['new_page']:
-			self.uistate['namespace'] = self.form['namespace']
-		else:
-			self.uistate['namespace'] = self.form['page']
+		if notebook is not None:
+			if self.uistate['new_page']:
+				self.config['Namespaces'][notebook] = self.form['namespace']
+			else:
+				self.config['Namespaces'][notebook] = self.form['page']
+		self.config.write()
 
 	def on_title_changed(self, o):
 		o.set_input_valid(True)
@@ -388,13 +458,14 @@ class BoundQuickNoteDialog(Dialog):
 
 		if self.open_page_check.get_active():
 			self.hide()
-			self.open_page(notebook, path)
+			ZIM_APPLICATION.present(notebook, path)
 
 		return True
 
 	def _get_notebook(self):
-		# Overloaded below
-		return self._ui.notebook
+		uri = self.notebookcombobox.get_notebook()
+		notebook, p = build_notebook(Dir(uri))
+		return notebook
 
 	def create_new_page(self, notebook, path, text):
 		page = notebook.get_new_page(path)
@@ -414,97 +485,3 @@ class BoundQuickNoteDialog(Dialog):
 			file = dir.file(name)
 			if not file.isdir():
 				file.copyto(attachments)
-
-	def open_page(self, notebook, path):
-		assert notebook == self._ui.notebook
-		self._ui.present(path)
-
-
-class QuickNoteDialog(BoundQuickNoteDialog):
-	'''Dialog which includes a notebook chooser'''
-
-	def __init__(self, window, notebook=None,
-		page=None, namespace=None, basename=None,
-		append=None, text=None, template_options=None, attachments=None
-	):
-		assert page is None, 'TODO'
-		manager = ConfigManager() # FIXME should be passed in
-		self.config = manager.get_config_dict('quicknote.conf')
-		self.uistate = self.config['QuickNoteDialog']
-
-		Dialog.__init__(self, window, _('Quick Note'))
-		self._updating_title = False
-		self._title_set_manually = not basename is None
-		self.attachments = attachments
-
-		if notebook and not isinstance(notebook, basestring):
-			notebook = notebook.uri
-
-		self.uistate.setdefault('lastnotebook', None, basestring)
-		if self.uistate['lastnotebook']:
-			notebook = notebook or self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None, basestring)
-			namespace = namespace or self.config['Namespaces'][notebook]
-
-		self.form = InputForm()
-		self.vbox.pack_start(self.form, False)
-
-		# TODO dropdown could use an option "Other..."
-		label = gtk.Label(_('Notebook')+': ')
-		label.set_alignment(0.0, 0.5)
-		self.form.attach(label, 0,1, 0,1, xoptions=gtk.FILL)
-			# T: Field to select Notebook from drop down list
-		self.notebookcombobox = NotebookComboBox(current=notebook)
-		self.notebookcombobox.connect('changed', self.on_notebook_changed)
-		self.form.attach(self.notebookcombobox, 1,2, 0,1)
-
-		self._init_inputs(namespace, basename, append, text, template_options)
-
-		self.uistate['lastnotebook'] = notebook
-		self._set_autocomplete(notebook)
-
-	def save_uistate(self):
-		notebook = self.notebookcombobox.get_notebook()
-		self.uistate['lastnotebook'] = notebook
-		self.uistate['new_page'] = self.form['new_page']
-		self.uistate['open_page'] = self.open_page_check.get_active()
-		if notebook is not None:
-			if self.uistate['new_page']:
-				self.config['Namespaces'][notebook] = self.form['namespace']
-			else:
-				self.config['Namespaces'][notebook] = self.form['page']
-		self.config.write()
-
-	def on_notebook_changed(self, o):
-		notebook = self.notebookcombobox.get_notebook()
-		if not notebook or notebook == self.uistate['lastnotebook']:
-			return
-
-		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None, basestring)
-		namespace = self.config['Namespaces'][notebook]
-		if namespace:
-			self.form['namespace'] = namespace
-
-		self._set_autocomplete(notebook)
-
-	def _set_autocomplete(self, notebook):
-		if notebook:
-			if isinstance(notebook, basestring):
-				notebook = NotebookInfo(notebook)
-			obj, x = build_notebook(notebook)
-			self.form.widgets['namespace'].notebook = obj
-			self.form.widgets['page'].notebook = obj
-			logger.debug('Notebook for autocomplete: %s (%s)', obj, notebook)
-		else:
-			self.form.widgets['namespace'].notebook = None
-			self.form.widgets['page'].notebook = None
-			logger.debug('Notebook for autocomplete unset')
-
-	def _get_notebook(self):
-		uri = self.notebookcombobox.get_notebook()
-		notebook, p = build_notebook(Dir(uri))
-		return notebook
-
-	def open_page(self, notebook, path):
-		ZIM_APPLICATION.run('--gui', notebook.uri, path.name)

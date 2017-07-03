@@ -148,3 +148,12 @@ class GtkCommand(Command):
 	@property
 	def standalone_process(self):
 		return self.opts.get('standalone')
+
+	def run_local(self):
+		'''Method called in local process before we (try to) dispatch the
+		command to the primary process. If it returns C{True} we assume the
+		command is done and C{run()} is not called.
+		If the command is called from the primary process directly, this method
+		gets never called.
+		'''
+		return False

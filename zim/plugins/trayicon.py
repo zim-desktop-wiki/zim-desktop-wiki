@@ -33,7 +33,7 @@ GLOBAL_TRAYICON = None
 # state.
 
 
-def set_gloal_trayicon(classic=False):
+def set_global_trayicon(classic=False):
 	global GLOBAL_TRAYICON
 
 	if appindicator and not classic:
@@ -61,7 +61,7 @@ class TrayIconPluginCommand(GtkCommand):
 		preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
 		preferences.setdefault('classic', False)
 
-		set_gloal_trayicon(preferences['classic'])
+		set_global_trayicon(preferences['classic'])
 
 
 class TrayIconPlugin(PluginClass):
@@ -103,7 +103,7 @@ This is a core plugin shipping with zim.
 			self.load_trayicon()
 
 	def load_trayicon(self):
-		set_gloal_trayicon(self.preferences['classic'])
+		set_global_trayicon(self.preferences['classic'])
 
 
 @extends('MainWindow')
@@ -234,9 +234,7 @@ class TrayIconBase(object):
 
 	def do_quick_note(self):
 		'''Show the dialog from the quicknote plugin'''
-		from zim.plugins.quicknote import QuickNoteDialog
-		dialog = QuickNoteDialog(None)
-		dialog.show()
+		ZIM_APPLICATION.run('--plugin', 'quicknote')
 
 
 class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
