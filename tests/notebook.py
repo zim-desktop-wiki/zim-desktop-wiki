@@ -840,6 +840,7 @@ class TestPage(TestPath):
 		self.assertRaises(zim.newfs.FileChangedError, page._store)
 
 		### Custom header should be preserved
+		### Also when setting new ParseTree - e.g. after edting
 		file.writelines(lines[0:3] + ['X-Custom-Header: MyTest'] + lines[3:])
 		page = Page(Path('Foo'), False, file, folder)
 		tree = page.get_parsetree()
@@ -847,6 +848,17 @@ class TestPage(TestPath):
 		page._store()
 		lines = file.readlines()
 		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[1][:11], 'Wiki-Format')
+		self.assertEqual(lines[2][:13], 'Creation-Date')
+		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
+
+		newtree = ParseTree().fromstring('<zim-tree>Test 123</zim-tree>')
+		page.set_parsetree(newtree)
+		page._store()
+		lines = file.readlines()
+		self.assertEqual(lines[0], 'Content-Type: text/x-zim-wiki\n')
+		self.assertEqual(lines[1][:11], 'Wiki-Format')
+		self.assertEqual(lines[2][:13], 'Creation-Date')
 		self.assertEqual(lines[3], 'X-Custom-Header: MyTest\n')
 		###
 

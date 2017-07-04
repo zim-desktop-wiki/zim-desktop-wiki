@@ -395,7 +395,7 @@ class Page(Path, SignalEmitter):
 		self.modified = False
 		self._parsetree = None
 		self._ui_object = None
-
+		self._meta = None
 
 		self._readonly = None
 		self._last_etag = None
@@ -439,16 +439,30 @@ class Page(Path, SignalEmitter):
 
 	def _store_tree(self, tree):
 		if tree and tree.hascontent:
-			if not self.source_file.exists():
-				# New page
+			if self._meta is not None:
+				tree.meta.update(self._meta) # Preserver headers
+			elif self.source_file.exists():
+				# Try getting headers from file
+				try:
+					text = self.source_file.read()
+				except zim.newfs.FileNotFoundError:
+					return None
+				else:
+					parser = self.format.Parser()
+					tree = parser.parse(text)
+					self._meta = tree.meta
+					tree.meta.update(self._meta) # Preserver headers
+			else: # not self.source_file.exists()
 				now = datetime.now()
 				tree.meta['Creation-Date'] = now.isoformat()
 
 			lines = self.format.Dumper().dump(tree, file_output=True)
 			self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
+			self._meta = tree.meta
 		else:
 			self.source_file.remove()
 			self._last_etag = None
+			self._meta = None
 
 	def _check_source_etag(self):
 		if (
@@ -461,6 +475,7 @@ class Page(Path, SignalEmitter):
 		):
 			logger.info('Page changed on disk: %s', self.name)
 			self._last_etag = None
+			self._meta = None
 			self._parsetree = None
 			self.emit('page-changed', True)
 		else:
@@ -502,11 +517,13 @@ class Page(Path, SignalEmitter):
 		else:
 			try:
 				text, self._last_etag = self.source_file.read_with_etag()
-				parser = self.format.Parser()
-				self._parsetree = parser.parse(text)
 			except zim.newfs.FileNotFoundError:
 				return None
 			else:
+				parser = self.format.Parser()
+				self._parsetree = parser.parse(text)
+				self._meta = self._parsetree.meta
+				assert self._meta is not None
 				return self._parsetree
 
 	def set_parsetree(self, tree):
