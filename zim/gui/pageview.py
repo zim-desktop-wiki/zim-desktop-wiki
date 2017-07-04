@@ -27,7 +27,7 @@ import zim.datetimetz as datetime
 
 import zim.formats
 
-from zim.fs import File, Dir, normalize_file_uris, FilePath
+from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
@@ -5980,6 +5980,7 @@ class PageView(gtk.VBox):
 		else:
 			# Check if file is supported, otherwise unsupported file
 			# results in broken image icon
+			file = adapt_from_newfs(file)
 			assert isinstance(file, File)
 			if not force \
 			and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
