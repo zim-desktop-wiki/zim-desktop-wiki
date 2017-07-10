@@ -7,6 +7,8 @@ import gtk
 import gobject
 import logging
 
+from collections import Counter
+
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
@@ -416,8 +418,17 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 		self._selected = None
 
+		basenames = list(map((lambda x: x.basename), self.get_paths()))
+		basenameCounts=Counter(basenames);
+
+		def last_two_segments(name):
+			return ":".join(name.split(':')[-2:]);
+
 		for path in self.get_paths():
-			button = gtk.ToggleButton(label=path.basename)
+			if basenameCounts[path.basename] > 1 :
+				button = gtk.ToggleButton(label=last_two_segments(path.name))
+			else:
+				button = gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
