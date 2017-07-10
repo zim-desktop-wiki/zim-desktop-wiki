@@ -4,8 +4,8 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-=== 0.67-rc2 - Mon 12 Jun 2017 ===
-* Critical fix for missing page headers
+=== 0.67 - Mon 10 Jul 2017 ===
+* Critical fix for missing page headers & remembering custom headers
 * Critical fix by removing dependency on threading for index and socket handling
   - Hidden option to also do autosave without thread to test further issues
 * Critical fix for handling unicode file names on windows
@@ -16,7 +16,9 @@ Earlier version numbers for zim correspond to the Perl branch.
 * More robustness for socket errors, fallback to --standalone automaticlly
 * More robustness at startup when default notebook went missing, fallback to --list
 * More robustness in preferences dialog when plugins give exceptions
+* More robustness for invalid dates in tasklist parser
 * Merge patch to add accelerators for bookmarks
+* Updated build process for windows installer
 * Fix indexing errors on move/rename page
 * Fix regression in close-page when autosave ongoing
 * Fix regression drag-n-drop index pane
@@ -27,9 +29,12 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Fix regression in custom tools
 * Fix regression in completion of page name in dialog entry
 * Fix regression in quicknote "--attachments" option
+* Fix regression for quicknote plugin due to process management
 * Fix regression in date format for recentchanges dialog
+* Fix regression in custom tool execution
 * Fix for unicode in auto-linking
 * Fix for unicode in arithmetic plugin
+* Fix "insert image" also inserting a text link
 * Fix search regex for chinese language to not match whitespace for start/end of word
 * Fix for table editor plugin when sorting rows
 * Fix for wrong usage of escapes in latex export for verbatim blocks
