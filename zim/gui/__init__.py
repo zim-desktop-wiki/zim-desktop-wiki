@@ -1608,6 +1608,8 @@ class GtkInterface(gobject.GObject):
 		self._custom_tool_ui_id = self._mainwindow.uimanager.add_ui_from_string(ui)
 
 	def _exec_custom_tool(self, action):
+		self._mainwindow.pageview.save_changes()
+
 		manager = CustomToolManager()
 		tool = manager.get_tool(action.get_name())
 		logger.info('Execute custom tool %s', tool.name)

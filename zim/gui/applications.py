@@ -1171,6 +1171,7 @@ class CustomToolDict(DesktopEntryDict):
 		if self._tmpfile:
 			notebook, page, pageview = args
 			page.parse('wiki', self._tmpfile.readlines())
+			notebook.store_page(page)
 			self._tmpfile = None
 
 	def update(self, E=(), **F):
@@ -1201,4 +1202,3 @@ class CustomTool(CustomToolDict, INIConfigFile):
 	@property
 	def key(self):
 		return self.file.basename[:-8] # len('.desktop') is 8
-

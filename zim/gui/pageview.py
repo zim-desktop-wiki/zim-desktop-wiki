@@ -4711,6 +4711,10 @@ class SavePageHandler(object):
 		self._autosave_timer = None
 		self._error_event = None
 
+	def wait_for_store_page_async(self):
+		# FIXME: duplicate of notebook method
+		self.notebook.wait_for_store_page_async()
+
 	def queue_autosave(self, timeout=15):
 		'''Queue a single autosave action after a given timeout.
 		Will not do anything once an autosave is already queued.
@@ -5286,6 +5290,7 @@ class PageView(gtk.VBox):
 		buffer = self.view.get_buffer()
 		if write_if_not_modified or buffer.get_modified():
 			self._save_page_handler.save_page_now()
+		self._save_page_handler.wait_for_store_page_async()
 
 	def clear(self):
 		'''Clear the buffer'''
