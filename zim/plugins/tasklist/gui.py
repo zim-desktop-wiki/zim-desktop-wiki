@@ -142,10 +142,17 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 		# TODO: use menu button here and add same options as in context menu
 		#       for filtering the list
+		def on_show_active_toggle(o):
+			active = self.act_toggle.get_active()
+			if self.uistate['only_show_act'] != active:
+				self.uistate['only_show_act'] = active
+				self.task_list.set_filter_actionable(active)
+
 		self.act_toggle = gtk.CheckButton(_('Only Show Active Tasks'))
 			# T: Checkbox in task list - this options hides tasks that are not yet started
 		self.act_toggle.set_active(self.uistate['only_show_act'])
-		self.act_toggle.connect('toggled', lambda o: self.task_list.set_filter_actionable(o.get_active()))
+		self.act_toggle.connect('toggled', on_show_active_toggle)
+		self.uistate.connect('changed', lambda o: self.act_toggle.set_active(self.uistate['only_show_act']))
 		hbox.pack_start(self.act_toggle, False)
 
 		# Statistics label
