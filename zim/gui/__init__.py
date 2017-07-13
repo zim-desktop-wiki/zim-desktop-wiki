@@ -1138,7 +1138,7 @@ class GtkInterface(gobject.GObject):
 	@action(_('Copy _Location'), accelerator='<shift><Primary>L') # T: Menu item
 	def copy_location(self):
 		'''Menu action to copy the current page name to the clipboard'''
-		Clipboard.set_pagelink(self.notebook, self.page)
+		Clipboard.set_pagelink(self.notebook, self._get_path_context() or self.page)
 
 	@action(_('_Templates')) # T: Menu item
 	def show_templateeditor(self):

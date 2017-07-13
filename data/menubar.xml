@@ -226,6 +226,7 @@
 		<menuitem action='new_page'/>
 		<menuitem action='new_sub_page'/>
 		<separator/>
+		<menuitem action='copy_location'/>
 		<menuitem action='open_new_window'/>
 		<separator/>
 		<menuitem action='rename_page'/>
