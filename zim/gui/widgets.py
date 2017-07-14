@@ -1766,7 +1766,7 @@ class FSPathEntry(InputEntry):
 			page = self.notebook.get_page(self.notebookpath)
 			dialog.set_current_dir(page.source.dir)
 		elif self.notebook:
-			dialog.set_current_dir(self.notebook.dir)
+			dialog.set_current_dir(self.notebook.folder)
 
 
 		file = dialog.run()
@@ -3672,7 +3672,7 @@ class FileDialog(Dialog):
 	def add_shortcut(self, notebook, path=None):
 		'''Add shortcuts for the notebook folder and page folder'''
 		try:
-			self.filechooser.add_shortcut_folder(notebook.dir.path)
+			self.filechooser.add_shortcut_folder(notebook.folder.path)
 		except:
 			pass # GError on doubles ..
 

@@ -285,7 +285,10 @@ class TestDialogs(tests.TestCase):
 
 		from zim.config import INIConfigFile
 		notebook = self.ui.notebook
-		file = notebook.dir.file('notebook.zim')
+
+		dir = Dir(notebook.layout.root.path) # XXX
+		file = dir.file('notebook.zim')
+
 		notebook.config = NotebookConfig(file)
 		self.ui.readonly = False
 
@@ -316,7 +319,7 @@ class TestDialogs(tests.TestCase):
 			self.assertEqual(notebook.config['Notebook'][key], config1[key])
 		self.assertEqual(notebook.name, config1['name'])
 		self.assertEqual(notebook.get_home_page(), config1['home'])
-		self.assertEqual(notebook.icon, notebook.dir.file(config1['icon']).path)
+		self.assertEqual(notebook.icon, dir.file(config1['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config1['document_root']))
 
 		dialog = PropertiesDialog(self.ui)
@@ -327,7 +330,7 @@ class TestDialogs(tests.TestCase):
 			self.assertEqual(notebook.config['Notebook'][key], config2[key])
 		self.assertEqual(notebook.name, config2['name'])
 		self.assertEqual(notebook.get_home_page(), config2['home'])
-		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
+		self.assertEqual(notebook.icon, dir.file(config2['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
 
 

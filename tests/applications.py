@@ -300,7 +300,6 @@ class TestCustomTools(tests.TestCase):
 		args = (notebook, page, pageview)
 
 		tmpfile = TmpFile('tmp-page-source.txt').path
-		dir = notebook.dir
 
 		tool = CustomToolDict()
 		tool.update({
@@ -310,10 +309,10 @@ class TestCustomTools(tests.TestCase):
 		})
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
-			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
+			('foo %d', ('foo', notebook.folder.folder('Test/Foo').path)),
 			('foo %s', ('foo', page.source.path)),
 			('foo %p', ('foo', 'Test:Foo')),
-			('foo %n', ('foo', dir.path)),
+			('foo %n', ('foo', notebook.folder.path)),
 			('foo %D', ('foo', '')), # no document root
 			('foo %t', ('foo', 'FooBar')),
 			('foo %T', ('foo', '**FooBar**')),

@@ -80,12 +80,14 @@ class TestFileEntry(tests.TestCase):
 
 	def runTest(self):
 		'''Test FileEntry widget'''
+		from zim.fs import adapt_from_newfs, Dir
+		dir = Dir(self.notebook.folder) # XXX
+		
 		path = Path('Foo:Bar')
 		entry = self.entry
 		entry.set_use_relative_paths(self.notebook, path)
 
 		home = Dir('~')
-		dir = self.notebook.dir
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			(dir.file('Foo/Bar/test.txt'), './test.txt'),
@@ -236,8 +238,6 @@ class TestLinkEntry(TestPageEntry, TestFileEntry):
 	def runTest(self):
 		'''Test LinkEntry widget'''
 		TestPageEntry.runTest(self)
-
-		self.notebook.dir = Dir(self.notebook.layout.root.path) # XXX
 		TestFileEntry.runTest(self)
 
 

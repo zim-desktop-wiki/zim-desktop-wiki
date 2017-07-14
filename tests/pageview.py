@@ -1773,7 +1773,6 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert Image dialog
 		ui = MockUI()
-		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
 		file = File('data/zim.png')
 		dialog = InsertImageDialog(ui, buffer, ui.notebook, Path(':some_page'), file)
@@ -1813,7 +1812,6 @@ class TestPageviewDialogs(tests.TestCase):
 
 		## Insert text from file dialog
 		ui = MockUI()
-		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
 		dialog = InsertTextFromFileDialog(ui, buffer, ui.notebook, Path(':some_page'))
 		#~ dialog.set_file()

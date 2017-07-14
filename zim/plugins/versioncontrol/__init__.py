@@ -92,18 +92,21 @@ class NotebookExtension(ObjectExtension):
 		ObjectExtension.__init__(self, plugin, notebook)
 		self.plugin = plugin
 		self.notebook = notebook
+		self.vcs = None
 		self.detect_vcs()
 
 	def _get_notebook_dir(self):
-		if self.notebook.dir:
-			return self.notebook.dir
-		elif self.notebook.file:
-			return self.notebook.file.dir
-		else:
-			assert False, 'Notebook is not based on a file or folder'
+		from zim.fs import adapt_from_newfs, Dir
+		dir = adapt_from_newfs(self.notebook.folder)
+		assert isinstance(dir, Dir), 'Notebook not based on LocalFolder'
+		return dir
 
 	def detect_vcs(self):
-		dir = self._get_notebook_dir()
+		try:
+			dir = self._get_notebook_dir()
+		except AssertionError:
+			return
+
 		self.vcs = VCS.detect_in_folder(dir)
 		if self.vcs and self.vcs.use_staging:
 			# HACK - FIXME use proper FS signals here

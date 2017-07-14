@@ -1364,12 +1364,7 @@ class GtkInterface(gobject.GObject):
 	@action(_('Open _Notebook Folder'), 'gtk-open') # T: Menu item
 	def open_notebook_folder(self):
 		'''Menu action to open the notebook folder'''
-		if self.notebook.dir:
-			self.open_file(self.notebook.dir)
-		elif self.notebook.file:
-			self.open_file(self.notebook.file.dir)
-		else:
-			assert False, 'BUG: notebook has neither dir or file'
+		self.open_file(self.notebook.folder)
 
 	@action(_('Open _Document Root'), 'gtk-open') # T: Menu item
 	def open_document_root(self):

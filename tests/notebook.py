@@ -230,7 +230,7 @@ mount=%s %s
 			#~ print ">>", uri
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info)
-			self.assertEqual(nb.dir, self.notebookdir)
+			self.assertEqual(nb.folder.path, self.notebookdir.path)
 			self.assertEqual(p, path)
 			if nbid is None:
 				nbid = id(nb)
@@ -447,8 +447,10 @@ class TestNotebook(tests.TestCase):
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
+		from zim.fs import adapt_from_newfs, Dir
+		dir = Dir(self.notebook.folder.path) # XXX
+
 		path = Path('Foo:Bar')
-		dir = self.notebook.dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
 		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
@@ -920,28 +922,10 @@ class TestPage(TestPath):
 
 class TestMovePageNewNotebook(tests.TestCase):
 
-	def setUp(self):
-		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_MOCK)
-		layout = FilesLayout(folder, endofline='unix')
-		index = Index(':memory:', layout)
-
-		### XXX - Big HACK here - Get better classes for this - XXX ###
-		dir = VirtualConfigBackend()
-		file = dir.file('notebook.zim')
-		file.dir = dir
-		file.dir.basename = 'Unnamed Notebook'
-		###
-		config = NotebookConfig(file)
-
-		dir = None
-		cache_dir = None
-		self.notebook = Notebook(dir, cache_dir, config, folder, layout, index)
-		index.check_and_update()
-
 	def runTest(self):
 		'''Try populating a notebook from scratch'''
 		# Based on bug lp:511481 - should reproduce bug with updating links to child pages
-		notebook = self.notebook
+		notebook = self.setUpNotebook()
 
 		for name, text in (
 			('page1', 'Foo bar\n'),
@@ -950,7 +934,7 @@ class TestMovePageNewNotebook(tests.TestCase):
 			('page3', 'Hmm\n'),
 		):
 			path = Path(name)
-			page = self.notebook.get_page(path)
+			page = notebook.get_page(path)
 			page.parse('wiki', text)
 			notebook.store_page(page)
 

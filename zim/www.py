@@ -195,11 +195,11 @@ class WWWInterface(object):
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
 			elif path.startswith('/+file/'):
-				file = self.notebook.dir.file(path[7:])
+				file = self.notebook.folder.file(path[7:])
 					# TODO: need abstraction for getting file from top level dir ?
-				content = [file.raw()]
+				content = [file.read_binary()]
 					# Will raise FileNotFound when file does not exist
-				headers['Content-Type'] = file.get_mimetype()
+				headers['Content-Type'] = file.mimetype()
  			elif path.startswith('/+resources/'):
 				if self.template.resources_dir:
 					file = self.template.resources_dir.file(path[12:])
@@ -328,9 +328,9 @@ class WWWLinker(ExportLinker):
 
 	def file_object(self, file):
 		'''Turn a L{File} object in a relative link or URI'''
-		if file.ischild(self.notebook.dir):
+		if file.ischild(self.notebook.folder):
 			# attachment
-			relpath = file.relpath(self.notebook.dir)
+			relpath = file.relpath(self.notebook.folder)
 			return url_encode('/+file/' + relpath)
 		elif self.notebook.document_root \
 		and file.ischild(self.notebook.document_root):

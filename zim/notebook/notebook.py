@@ -247,12 +247,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		cache_dir.touch() # must exist for index to work
 		index = Index(cache_dir.file('index.db').path, layout)
 
-		nb = klass(dir, cache_dir, config, folder, layout, index)
+		nb = klass(cache_dir, config, folder, layout, index)
 		_NOTEBOOK_CACHE[dir.uri] = nb
 		return nb
 
-	def __init__(self, dir, cache_dir, config, folder, layout, index):
-		self.dir = dir # TODO remove
+	def __init__(self, cache_dir, config, folder, layout, index):
 		self.folder = folder
 		self.cache_dir = cache_dir
 		self.config = config
@@ -260,7 +259,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.index = index
 		self._operation_check = NOOP
 
-		self.readonly = not _iswritable(dir) if dir else None # XXX
+		self.readonly = not _iswritable(folder)
 
 		if self.readonly:
 			logger.info('Notebook read-only: %s', dir.path)

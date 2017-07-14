@@ -334,7 +334,7 @@ class TestCase(unittest.TestCase):
 			cache_dir.touch()
 			index = Index(cache_dir.file('index.db').path, layout)
 
-		notebook = Notebook(None, cache_dir, config, folder, layout, index)
+		notebook = Notebook(cache_dir, config, folder, layout, index)
 		for name, text in content.items():
 			file, folder = layout.map_page(Path(name))
 			file.write(
@@ -689,9 +689,7 @@ def new_notebook(fakedir=None):
 	###
 	config = NotebookConfig(file)
 
-	notebook = Notebook(None, None, config, folder, layout, index)
-	if fakedir:
-		notebook.dir = Dir(fakedir)
+	notebook = Notebook(None, config, folder, layout, index)
 
 	notebook.testdata_manifest = manifest
 	return notebook
