@@ -138,7 +138,8 @@ class MultiFileExporter(FilesExporterBase):
 			linker_factory, dumper_factory,
 			title=page.get_title(),
 			content=[page],
-			home=None, up=None, # TODO
+			home=notebook.get_home_page(),
+			up=None, # TODO
 			prevpage=prevpage, nextpage=nextpage,
 			links={'index': self.index_page},
 			index_generator=pages.index,
