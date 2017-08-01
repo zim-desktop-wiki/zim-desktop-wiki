@@ -2,7 +2,7 @@ Content-Type: text/x-zim-wiki
 Wiki-Format: zim 0.4
 Creation-Date: 2014-07-31T21:05:49+02:00
 
-====== Working with Bazaar ======
+====== Working with Git ======
 
 The zim code is kept under version control using the git version control system. See the website for documentation on using this system: https://git-scm.com/
 
