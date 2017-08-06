@@ -17,6 +17,8 @@ import zim.formats
 import zim.fs
 import zim.newfs
 
+import diffs  
+
 from zim.signals import SignalEmitter, SIGNAL_NORMAL
 
 import zim.datetimetz as datetime
@@ -385,7 +387,7 @@ class Page(Path, SignalEmitter):
 		'page-changed': (SIGNAL_NORMAL, None, (bool,))
 	}
 
-	def __init__(self, path, haschildren, file, folder):
+	def __init__(self, path, haschildren, file, folder):  
 		assert isinstance(path, Path)
 		self.name = path.name
 		self.haschildren = haschildren
@@ -396,6 +398,10 @@ class Page(Path, SignalEmitter):
 		self._parsetree = None
 		self._ui_object = None
 		self._meta = None
+
+                self._last_lines = None  
+                self._max3MergeSize = 500000  #max size for storing last_lines_for 3way merge, 0 for no limit
+                self._automerge = False
 
 		self._readonly = None
 		self._last_etag = None
@@ -457,12 +463,131 @@ class Page(Path, SignalEmitter):
 				tree.meta['Creation-Date'] = now.isoformat()
 
 			lines = self.format.Dumper().dump(tree, file_output=True)
-			self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
-			self._meta = tree.meta
+
+                        try:  #save new lines on disk
+                            logger.debug('Saving page')
+                            self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
+                            self._store_last_lines(lines)
+                        except zim.newfs.FileChangedError as fserror: #Catch case where file has been changed  
+                            logger.debug('File changed on disk, and saving will be made through merging')
+                            if self._automerge :
+                                self._refresh_view_merge_changes()
+                                #lines = self.format.Dumper().dump(self.get_parsetree(), file_output=True)
+                                try:
+                                    logger.debug('FILE IS BEING SAVED AGAIN with updated etags and content')
+                                    if self._last_lines is None:
+                                        self._last_etag = self.source_file.writelines_with_etag(
+                                                self.format.Dumper().dump(self.get_parsetree(),file_output=True), self._last_etag)
+                                    else:
+                                        self._last_etag = self.source_file.writelines_with_etag(self._last_lines, self._last_etag)
+                                    
+                                except zim.newfs.FileChangedError as fserror:
+                                    logger.error('FILE STILL IN CONFLICT!!!')
+                                    raise fserror
+                            else:  
+                                raise fserror  
+
+                        #self._store_last_lines(self.format.Dumper().dump(self.get_parsetree(),file_output=True))  
+                        self._meta = tree.meta
 		else:
 			self.source_file.remove()
 			self._last_etag = None
 			self._meta = None
+
+        def _store_last_lines(self, lines):  
+            sz = sum(len(s) for s in lines)
+            if self._max3MergeSize == 0 or sz <= self._max3MergeSize:
+                self._last_lines = lines  
+                logger.debug('Stored tree with %d lines and ~%d bytes for 3way merging\n', len(lines),sz)  
+            else:  
+                logger.debug('Did not store old tree lines because length of lines (%d) is longer than max (%d)\n',sz, self._max3MergeSize)  
+                self._last_lines = None  
+        
+        def get_disk_text(self):
+            if self.source_file.exists():  #get the new contents on disk
+                disktext, last_etag = self.source_file.read_with_etag()  
+                disktree = self.format.Parser().parse(disktext)  
+            else:  
+                disktree = self._ui_object.ui.notebook.get_template(self)
+                last_etag = None
+            
+            disklines = self.format.Dumper().dump(disktree, file_output=True)
+            #logger.debug('\t'+'\t'.join(disklines))
+            return disklines, last_etag
+
+        def get_merged_text(self, n_context=0):
+            logger.debug('merged text requested')  
+            disklines, last_etag = self.get_disk_text()
+
+            bufferlines = self.format.Dumper().dump(self.get_parsetree(),file_output=True)
+            
+            del disklines[0:2] #remove header lines from comparison
+            del bufferlines[0:2]
+
+            if not self.modified: #only disk modified
+                    output = diffs.unidiff2(bufferlines,disklines,'Buffer','Disk', n_context)
+                    logger.debug('Only disk modified')
+                    modified = False #no need for saving
+            elif (last_etag == self._last_etag): #only buffer modified
+                    output = diffs.unidiff2(['No changes'],['No changes'], 'Buffer','Disk',0)
+                    logger.debug('Only buffer modified')
+                    modified = self.modified #saving needed only if scheduled otherwise
+            else: #both buffer and page modified
+                modified = True #saving always needed
+                if self._last_lines is None: #only 2-way merge can be used 
+                    output = diffs.unidiff2(bufferlines,disklines, 'buffer','disk', n_context)  #only 2way merge is available
+                    for k in reversed(range(len(output))): #let's not include the removals, because no conflict resolution is available
+                        if output[k][0] == '-': 
+                            del output[k]
+                else:
+                    #logger.debug('\n3way merge oldlines:\n\t'+'\t'.join(self._last_lines))
+                    output = diffs.unidiff3(bufferlines, self._last_lines, disklines,'buffer','disk',n_context)  #full 3way merge
+            #logger.debug('merge disklines:\n\t'+'\t'.join(disklines))
+            #logger.debug('merge bufferlines:\n\t'+'\t'.join(bufferlines))
+            #logger.debug('Unified diff\n\t'+'\t'.join(output))
+            return output, last_etag, modified
+
+        #function to update buffer with text on disk
+        def _refresh_view_merge_changes(self):  
+            
+            #HERE WRITING TO BUFFER NEEDS TO BE HALTED FOR A MOMENT to keep history synchronized
+            self._ui_object.view.set_property('editable',False)
+            difflines, self._last_etag, modified = self.get_merged_text() #authorize overwriting disk on next save
+            output = diffs.diffparse(difflines)
+            self._settree_and_update_view(output)  
+            self._store_last_lines(self.format.Dumper().dump(self.get_parsetree(),file_output=True))
+            self.modified = modified
+            if not modified: self._ui_object._save_page_handler.cancel_autosave()
+            self._ui_object.view.set_property('editable',True)
+
+        def _settree_and_update_view(self, newlines):  
+            logger.debug('trying to refresh the view')  
+            view = self._ui_object.view  
+            buffer = view.get_buffer()  
+            cursor = buffer.get_iter_at_mark(buffer.get_insert())  
+           
+            for k in reversed(range(len(newlines))):
+                line = int(newlines[k][0])-1 #buffer counts lines from 0, diff output counts from 1
+                delnb = int(newlines[k][1])
+                start = buffer.get_iter_at_line(line) 
+                end = buffer.get_iter_at_line_offset(line+delnb,0)
+                if line+delnb >= buffer.get_line_count(): end = buffer.get_end_iter()
+                logger.debug('deleting from line %d by %d lines', line, delnb)
+                if delnb > 0:
+                    buffer.do_delete_range(start,end)
+                if delnb == 0: #if nothing is deleted, insert should start from next line
+                    line = line + 1;
+                if line < buffer.get_line_count():
+                        start = buffer.get_iter_at_line(line)
+                else: #line position outside buffer end not allowed
+                        start = buffer.get_end_iter()
+                        newlines[k][5].insert(0,'\n') #add new line before text to insert
+                inserttree = self.format.Parser().parse(newlines[k][5])
+                inserttree.resolve_images(self._ui_object.ui.notebook, self)
+                inserttree.encode_urls()
+                
+                if len(newlines[k][5])>0:
+                        buffer.insert_parsetree(start, inserttree)
 
 	def _check_source_etag(self):
 		if (
@@ -523,6 +648,7 @@ class Page(Path, SignalEmitter):
 				parser = self.format.Parser()
 				self._parsetree = parser.parse(text)
 				self._meta = self._parsetree.meta
+                                self._store_last_lines(self.format.Dumper().dump(self._parsetree, file_output=True))  
 				assert self._meta is not None
 				return self._parsetree
 

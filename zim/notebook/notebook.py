@@ -514,7 +514,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			page._store_tree(parsetree)
 		except:
 			error.set()
-			logger.exception('Error in background save')
+			logger.debug('Error in background save')
 
 	def _store_page_async_finished(self, page, error, pre_modified):
 		if not error.is_set():

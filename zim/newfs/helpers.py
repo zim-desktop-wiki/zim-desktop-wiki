@@ -89,9 +89,16 @@ class FSObjectMonitor(SignalEmitter):
 		'changed': (None, None, (None, None)),
 	}
 
-	def __init__(self, path):
+	def __init__(self, path, signalnbs=[0,1,2,3]):
 		self.path = path
 		self._gio_file_monitor = None
+                signals = (
+			gio.FILE_MONITOR_EVENT_CREATED,
+			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
+			gio.FILE_MONITOR_EVENT_DELETED,
+			gio.FILE_MONITOR_EVENT_MOVED,
+		)
+                self.signals = [signals[s] for s in signalnbs]
 
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
@@ -133,12 +140,7 @@ class FSObjectMonitor(SignalEmitter):
 		# the dir.
 
 		#~ print 'MONITOR:', self, event_type
-		if event_type in (
-			gio.FILE_MONITOR_EVENT_CREATED,
-			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
-			gio.FILE_MONITOR_EVENT_DELETED,
-			gio.FILE_MONITOR_EVENT_MOVED,
-		):
+                if event_type in self.signals:
 			self.emit('changed', None, None) # TODO translate otherfile and eventtype
 
 

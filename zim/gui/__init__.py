@@ -1165,8 +1165,10 @@ class GtkInterface(gobject.GObject):
 		to save any unsaved changes, then reload the page from disk.
 		'''
 		self._mainwindow.pageview.save_changes() # XXX
+                automerge = self.page._automerge #automerge status should be restored after reload
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
+                self.page._automerge = automerge
 
 	@action(_('Attach _File'), 'zim-attachment', tooltip=_('Attach external file'), readonly=False) # T: Menu item
 	def attach_file(self, path=None):
