@@ -96,7 +96,7 @@ Some generic base classes and functions can be found in L{zim.utils}
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.67'
+__version__ = '0.67-merge'
 __url__='http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __copyright__ = 'Copyright 2008 - 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>'

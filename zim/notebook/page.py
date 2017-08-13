@@ -469,8 +469,9 @@ class Page(Path, SignalEmitter):
                             self._last_etag = self.source_file.writelines_with_etag(lines, self._last_etag)
                             self._store_last_lines(lines)
                         except zim.newfs.FileChangedError as fserror: #Catch case where file has been changed  
-                            logger.debug('File changed on disk, and saving will be made through merging')
+                            logger.debug('File changed on disk')
                             if self._automerge :
+                                logger.debug('Saving will be made through merging')
                                 self._refresh_view_merge_changes()
                                 #lines = self.format.Dumper().dump(self.get_parsetree(), file_output=True)
                                 try:
@@ -528,7 +529,8 @@ class Page(Path, SignalEmitter):
                     output = diffs.unidiff2(bufferlines,disklines,'Buffer','Disk', n_context)
                     logger.debug('Only disk modified')
                     modified = False #no need for saving
-            elif (last_etag == self._last_etag): #only buffer modified
+            #elif (last_etag == self._last_etag): #only buffer modified
+            elif self.source_file.verify_etag(self._last_etag): #only buffer modified
                     output = diffs.unidiff2(['No changes'],['No changes'], 'Buffer','Disk',0)
                     logger.debug('Only buffer modified')
                     modified = self.modified #saving needed only if scheduled otherwise
