@@ -159,7 +159,7 @@ class WWWInterface(object):
 		headers = Headers(headerlist)
 		path = environ.get('PATH_INFO', '/')
 		try:
-			methods = ('GET', 'HEAD')
+			methods = ('GET', 'HEAD', 'POST')
 			if not environ['REQUEST_METHOD'] in methods:
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
 
@@ -199,6 +199,8 @@ class WWWInterface(object):
 				content = [file.raw()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
+			elif path.startswith('/+upload/'):
+                            logger.debug('Server -  Uploading content')
  			elif path.startswith('/+resources/'):
 				if self.template.resources_dir:
 					file = self.template.resources_dir.file(path[12:])
@@ -263,6 +265,51 @@ class WWWInterface(object):
 			start_response('200 OK', headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
+                        if environ['REQUEST_METHOD'] == 'POST': #upload files or notes
+                                import cgi, os
+                                formdata = cgi.FieldStorage(environ=environ, fp=environ['wsgi.input'])
+                                reply = ['\n<div>']
+
+                                dirname = self.notebook.dir.path+'/Staging/'
+                                notename = self.notebook.dir.path+'/Staging.txt'
+                                filename = formdata['newfile'].filename
+
+                                if not os.path.isdir(dirname):
+                                    os.mkdir(dirname)
+
+                                if not os.path.exists(notename):
+                                    f = open(notename,'w+')
+                                    f.write('Staging repository')
+                                    f.close()
+                                
+                                def checkname(tgt): #find next free name
+                                    tgt0, k = tgt, 0
+                                    while os.path.exists(tgt):
+                                        tgt = tgt0 + str(k)
+                                        k += 1
+                                    return(tgt)
+
+                                #Save file to /Staging
+                                if 'newfile' in formdata and formdata['newfile'].filename != '':
+                                    logger.debug('Server - uploading file')
+                                    target = checkname(os.path.join(dirname, filename))
+                                    f = open(target, 'wb')
+                                    f.write(formdata['newfile'].file.read())
+                                    f.close()
+                                    reply.append('Upload ready.\nFile stored with name '+filename+' under page Staging')
+                                #Save note to /Staging
+                                if 'comment' in formdata and len(formdata['comment'].value)>1:
+                                    fname = formdata['filename'].value if 'filename' in formdata and len(formdata['filename'].value) > 0 else 'note.txt'
+                                    target = checkname(dirname+fname)
+                                    logger.debug('Server - target is '+target)
+                                    f = open(target, 'wb')
+                                    f.write(formdata['comment'].value)
+                                    f.close()
+
+                                    reply.append('File '+str(os.path.basename(target))+' in Staging was written with contents \n'+formdata['comment'].value)
+                                    reply.append(' \n(The file index may not be updated before zim refreshes its index)')
+                                reply.append('</div>\n<a href="/" onclick="history.go(-1)">Go Back</a>')
+                                return reply
 			elif 'utf-8' in headers['Content-Type']:
 				return [string.encode('utf-8') for string in content]
 			else:
@@ -359,7 +406,14 @@ def make_server(notebook, port=8080, public=True, **opts):
 	@returns: a C{WSGIServer} object
 	'''
 	import wsgiref.simple_server
+        import os
 	app = WWWInterface(notebook, **opts) # FIXME make opts explicit
+        #To use authentication install wsgi-basic-auth 
+        from wsgi_basic_auth import BasicAuth
+        if not 'WSGI_AUTH_CREDENTIALS' in os.environ: 
+            logger.warning('WSGI_AUTH_CREDENTIALS undefined - no authentication enforced. To enable set environment variable WSGI_AUTH_CREDENTIALS="usr1:pwd1|usr2:pwd2"')
+        app = BasicAuth(app)
+        #app = BasicAuth(app,users={"foo" : "bar", "fig" : "bbb"})
 	if public:
 		httpd = wsgiref.simple_server.make_server('', port, app)
 	else:
