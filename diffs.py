@@ -148,11 +148,11 @@ if __name__ == '__main__':
     if len(args) == 3:  
         fromfile, oldfile, tofile = args # as specified in the usage string  
         #dd=diff3files(fromfile, oldfile, tofile)  
-        dd=unidiff3files(fromfile, oldfile, tofile)  
+        dd=diff3files(fromfile, oldfile, tofile)  
     elif len(args) ==2:  
         fromfile, tofile = args # as specified in the usage string  
         #dd=diff2files(fromfile, tofile)  
-        dd=unidiff2files(fromfile, tofile)  
+        dd=diff2files(fromfile, tofile)  
     try:
         sys.stdout.writelines(dd)
     except:
