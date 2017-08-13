@@ -740,7 +740,7 @@ class File(FSObjectBase):
 	def verify_etag(self, etag):
 		if isinstance(etag, tuple) and len(etag) == 2:
 			mtime = self.mtime()
-			if etag[0] != mtime:
+			if etag[0] != mtime or True: #for sshfs it's necessary to always check md5?
 				# mtime fails .. lets see about md5
 				md5 = _md5(self.read())
 				return etag[1] == md5

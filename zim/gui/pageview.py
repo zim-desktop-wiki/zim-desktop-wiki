@@ -29,6 +29,7 @@ import zim.datetimetz as datetime
 
 import zim.formats
 
+from zim.newfs import FileChangedError
 from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean
@@ -4773,13 +4774,17 @@ class SavePageHandler(object):
 					#~ assert False, "TEST"
 					self.notebook.store_page(page)
 
-				except Exception, error:
+                                except zim.newfs.FileChangedError as error: #Catch case where file has been changed  
 					logger.debug('Failed to save page: %s', page.name)
                                         if self.pageview.page._automerge:
                                             self.pageview.page._refresh_view_merge_changes()
                                         else:
-					    SavePageErrorDialog(self.pageview, error, self.pageview.page, True).run()
-                                            self.pageview.spErr = None
+                                            if self.pageview.spErr is not None:
+                                                self.spErr.tv.get_buffer().set_text(''.join(self.pageview.page.get_merged_text()[0]))
+                                            else:
+                                                SavePageErrorDialog(self.pageview, error, self.pageview.page, True)
+                                                self.pageview.spErr.run()
+                                                self.pageview.spErr = None
                                         self.notebook.store_page(page) #retry - now it should be possible to save
 
 	def try_save_page(self):
@@ -5366,8 +5371,7 @@ class PageView(gtk.VBox):
                 self._setup_change_monitor() #reset file monitor to not block following changes
                 #return True #comment out to enable testing conflicting changes with single computer
                 
-                #if not self.page._lock_save and self.page.source_file.exists() and self.page.source_file.mtime() != self.page._last_etag[0]: 
-                if (not bool(self.page.modified)) and self.page.source_file.exists() and self.page.source_file.mtime() != self.page._last_etag[0]: 
+                if (not bool(self.page.modified)) and self.page.source_file.exists() and not self.page.source_file.verify_etag(self.page._last_etag): 
                     if self.page._automerge :
                         self.page._refresh_view_merge_changes()  
 			logger.debug('FILE RELOADED\n')
