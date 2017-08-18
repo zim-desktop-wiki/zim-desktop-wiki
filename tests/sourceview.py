@@ -17,7 +17,7 @@ from zim.plugins.sourceview import *
 class TestMainWindowExtension(tests.TestCase):
 
 	def runTest(self):
-		window = MockWindow()
+		window = MockWindow(self.setUpNotebook())
 		plugin = SourceViewPlugin()
 		extension = MainWindowExtension(plugin, window)
 

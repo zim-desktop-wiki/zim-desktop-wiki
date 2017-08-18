@@ -57,7 +57,7 @@ class TestThumbnailManager(tests.TestCase):
 	def testThumbnailFile(self):
 		manager = ThumbnailManager()
 
-		folder = LocalFolder(self.get_tmp_name('empty'))
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		file = folder.file(u'./foo-\u00e8\u00e1\u00f1.png') # non-existing path with unicode name
 		self.assertTrue('%C3%A8%C3%A1%C3%B1' in file.uri) # utf encoded!
 		basename = hashlib.md5(file.uri).hexdigest() + '.png'

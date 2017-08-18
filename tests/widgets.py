@@ -73,16 +73,14 @@ class TestInputEntry(tests.TestCase):
 class TestFileEntry(tests.TestCase):
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
-
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.entry = FileEntry()
 
 	def runTest(self):
 		'''Test FileEntry widget'''
 		from zim.fs import adapt_from_newfs, Dir
 		dir = Dir(self.notebook.folder) # XXX
-		
+
 		path = Path('Foo:Bar')
 		entry = self.entry
 		entry.set_use_relative_paths(self.notebook, path)
@@ -300,7 +298,7 @@ class TestInputForm(tests.TestCase):
 
 				self.assertEqual(U[k], v)
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		form = InputForm(inputs, values1, notebook=notebook)
 
 		for input in inputs:

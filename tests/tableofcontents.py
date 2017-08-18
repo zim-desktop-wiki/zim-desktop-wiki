@@ -18,7 +18,7 @@ class TestTableOfContents(tests.TestCase):
 	def testMainWindowExtensions(self):
 		plugin = ToCPlugin()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook()
 		ui = setupGtkInterface(self, notebook=notebook)
 		mainwindow = ui._mainwindow # XXX
 
@@ -55,7 +55,7 @@ class TestTableOfContents(tests.TestCase):
 
 	def testToCWidget(self):
 		'''Test Tabel Of Contents plugin'''
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook()
 		ui = setupGtkInterface(self, notebook=notebook)
 		pageview = ui._mainwindow.pageview # XXX
 

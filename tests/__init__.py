@@ -257,7 +257,7 @@ class TestCase(unittest.TestCase):
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
-		@param name: basename for the folder, use class name if C{None}
+		@param name: basename for the folder, uses test name if C{None}
 		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
 		C{MOCK_DEFAULT_MOCK}, C{MOCK_DEFAULT_REAL} or C{MOCK_ALWAYS_REAL}.
 		The C{MOCK_ALWAYS_*} arguments force the use of a real folder or a
@@ -297,12 +297,15 @@ class TestCase(unittest.TestCase):
 		assert not folder.exists()
 		return folder
 
-	def setUpNotebook(self, name=None, mock=MOCK_ALWAYS_MOCK, content={}):
+	def setUpNotebook(self, name=None, mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
 		'''
-		@param name: basename for the folder, use class name if C{None}
+		@param name: basename for the folder, uses test name if C{None}
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
 		@param content: dictionary where the keys are page names and the
 		values the page content.
+		@param folder: determine the folder to be used, only needed in special
+		cases where the folder must be outside of the project folder, like
+		when testing version control logic
 		'''
 		import datetime
 		from zim.newfs.mock import MockFolder
@@ -313,8 +316,8 @@ class TestCase(unittest.TestCase):
 		from zim.notebook.index import Index
 		from zim.formats.wiki import WIKI_FORMAT_VERSION
 
-
-		folder = self.setUpFolder(name, mock)
+		if folder is None:
+			folder = self.setUpFolder(name, mock)
 		cache_dir = folder.folder('.zim')
 		layout = FilesLayout(folder, endofline='unix')
 
@@ -349,35 +352,15 @@ class TestCase(unittest.TestCase):
 		notebook.index.check_and_update()
 		return notebook
 
-	@classmethod
-	def create_tmp_dir(cls, name=None):
+	def create_tmp_dir(self, name=None):
 		'''Returns a path to a tmp dir where tests can write data.
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
-		cls.clear_tmp_dir(name)
-		path = cls._get_tmp_name(name)
-		os.makedirs(path)
-		assert os.path.exists(path) # make real sure
-		return path
-
-	@classmethod
-	def get_tmp_name(cls, name=None):
-		'''Returns the same path as L{create_tmp_dir()} but without
-		touching it. This method will raise an exception when a file
-		or dir exists of the same name.
-		'''
-		path = cls._get_tmp_name(name)
-		assert not os.path.exists(path), 'This path should not exist: %s' % path
-		return path
-
-	@classmethod
-	def clear_tmp_dir(cls, name=None):
-		'''Clears the tmp dir for this test'''
-		path = cls._get_tmp_name(name)
-		if os.path.exists(path):
-			shutil.rmtree(path)
-		assert not os.path.exists(path) # make real sure
+		print "Deprecated: TestCase.create_tmp_dir()"
+		folder = self.setUpFolder(name=name, mock=MOCK_ALWAYS_REAL)
+		folder.touch()
+		return folder.path
 
 	@classmethod
 	def _get_tmp_name(cls, name):
@@ -541,6 +524,9 @@ class TestData(object):
 	def items(self):
 		return list(self)
 
+	def __getitem__(self, key):
+		return self.get(key)
+
 	def get(self, pagename):
 		'''Return text for a specific pagename'''
 		for n, text in self._test_data:
@@ -613,113 +599,6 @@ def new_page_from_text(text, format='wiki'):
 	page = Page(Path('Test'), False, file, folder)
 	page.set_parsetree(new_parsetree_from_text(text, format))
 	return page
-
-
-
-_notebook_data = None
-
-def new_notebook(fakedir=None):
-	'''Returns a new Notebook object with all data in memory
-
-	Uses data from L{WikiTestData}
-
-	@param fakedir: optional parameter to set the 'dir' attribute for
-	the notebook which allows you to resolve file
-	paths etc. It will not automatically touch the dir
-	(hence it being 'fake').
-	'''
-	import sqlite3
-
-	from zim.fs import Dir
-	from zim.config import VirtualConfigBackend
-	from zim.notebook import Notebook, Path
-	from zim.notebook.notebook import NotebookConfig
-	from zim.notebook.index import Index
-
-	from zim.notebook.layout import FilesLayout
-	from zim.newfs.mock import MockFolder, clone_mock_object, os_native_path
-
-	global _notebook_data
-	if not _notebook_data: # run this one time only
-		templfolder = MockFolder('/mock/notebook')
-		layout = FilesLayout(templfolder, endofline='unix')
-
-		manifest = []
-		for name, text in WikiTestData:
-			manifest.append(name)
-			file, x = layout.map_page(Path(name))
-			file.write(text)
-
-		manifest = frozenset(_expand_manifest(manifest))
-
-		index = Index(':memory:', layout)
-		index.check_and_update()
-		lines = list(index._db.iterdump())
-		sql = '\n'.join(lines)
-
-		_notebook_data = (templfolder, sql, manifest)
-
-	if fakedir:
-		fakedir = fakedir if isinstance(fakedir, basestring) else fakedir.path
-		fakedir = os_native_path(fakedir)
-	templfolder, sql, manifest = _notebook_data
-	folder = MockFolder(fakedir or templfolder.path)
-	clone_mock_object(templfolder, folder)
-
-	#~ print ">>>>>>>>>>>>>"
-	#~ for path in folder._fs.tree():
-		#~ print path
-
-	layout = FilesLayout(folder, endofline='unix')
-	index = Index(':memory:', layout)
-	tables = [r[0] for r in index._db.execute(
-		'SELECT name FROM sqlite_master '
-		'WHERE type="table" and name NOT LIKE "sqlite%"'
-	)]
-	for table in tables:
-		index._db.execute('DROP TABLE %s' % table)
-	index._db.executescript(sql)
-	index._db.commit()
-
-	### XXX - Big HACK here - Get better classes for this - XXX ###
-	dir = VirtualConfigBackend()
-	file = dir.file('notebook.zim')
-	file.dir = dir
-	file.dir.basename = 'Unnamed Notebook'
-	###
-	config = NotebookConfig(file)
-
-	notebook = Notebook(None, config, folder, layout, index)
-
-	notebook.testdata_manifest = manifest
-	return notebook
-
-
-def new_files_notebook(dir):
-	'''Returns a new Notebook object
-
-	Uses data from L{WikiTestData}
-
-	@param path: a folder path, e.g. created by L{TestCase.create_tmp_dir()}
-	'''
-	from zim.fs import Dir
-	from zim.notebook import init_notebook, Notebook, Path
-
-	dir = Dir(dir)
-	init_notebook(dir)
-	notebook = Notebook.new_from_dir(dir)
-
-	manifest = []
-	for name, text in WikiTestData:
-		manifest.append(name)
-		page = notebook.get_page(Path(name))
-		page.parse('wiki', text)
-		notebook.store_page(page)
-
-	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.check_and_update()
-
-	return notebook
 
 
 class Counter(object):

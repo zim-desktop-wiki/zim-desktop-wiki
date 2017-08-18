@@ -24,7 +24,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 	def runTest(self):
 		plugin = InsertSymbolPlugin(ConfigManager())
 
-		pageview = setUpPageView()
+		pageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 		textview = pageview.view
 		buffer = textview.get_buffer()
 		pageview.undostack = UndoStackManager(buffer)

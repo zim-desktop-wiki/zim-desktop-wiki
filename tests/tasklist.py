@@ -238,7 +238,7 @@ class TestTaskList(tests.TestCase):
 		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		plugin.extend(notebook)
 
 		# Test indexing based on index signals
@@ -258,7 +258,7 @@ class TestTaskList(tests.TestCase):
 		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		plugin.extend(notebook)
 		notebook.index.check_and_update()
 

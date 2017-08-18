@@ -293,8 +293,7 @@ class TestCustomTools(tests.TestCase):
 		# %t for selected text or word under cursor
 		# %T for selected text or word under cursor with wiki format
 
-		path = self.get_tmp_name()
-		notebook = tests.new_notebook(fakedir=path)
+		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test:Foo'))
 		pageview = StubPageView()
 		args = (notebook, page, pageview)

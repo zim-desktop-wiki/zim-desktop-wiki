@@ -22,15 +22,12 @@ logger = logging.getLogger('zim.plugins.bookmarksbar')
 
 class TestBookmarksBar(tests.TestCase):
 
-	@classmethod
-	def setUpClass(cls):
-		cls.notebook = tests.new_notebook()
-		cls.ui = MockUI()
-		cls.ui.notebook = cls.notebook
-		cls.ui.page = Path('Test:foo')
-
-
 	def setUp(self):
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.ui = MockUI()
+		self.ui.notebook = self.notebook
+		self.ui.page = Path('Test:foo')
+
 		self.PATHS = ('Parent:Daughter:Granddaughter',
 				 'Test:tags', 'Test:foo', 'Books')
 		self.LEN_PATHS = len(self.PATHS)
@@ -85,7 +82,7 @@ class TestBookmarksBar(tests.TestCase):
 	def testDeletePages(self):
 		'''Check deleting a bookmark after deleting a page in the notebook.'''
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		ui = MockUI()
 		ui.notebook = notebook
 		self.uistate['bookmarks'] = list(self.PATHS)

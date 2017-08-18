@@ -24,7 +24,7 @@ class TestPageTreeStore(tests.TestCase):
 		# Hooking up the treeview as well just to see if we get any errors
 		# From the order the signals are generated.
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		ui = MockUI()
 		ui.notebook = notebook
@@ -130,7 +130,7 @@ class TestPageTreeView(tests.TestCase):
 	def setUp(self):
 		self.ui = tests.MockObject()
 		self.ui.page = Path('Test')
-		self.notebook = tests.new_notebook()
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.ui.notebook = self.notebook
 		self.model = PageTreeStore(self.notebook.index)
 		self.treeview = PageTreeView(self.ui, self.model)

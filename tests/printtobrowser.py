@@ -16,10 +16,9 @@ class TestPrintToBrowser(tests.TestCase):
 		pluginklass = PluginManager.get_plugin_class('printtobrowser')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = notebook.get_page(Path('Test:foo'))
 		file = plugin.print_to_file(notebook, page)
 		self.assertTrue(file.exists())
 		content = file.read()
 		self.assertTrue('<h1>Foo</h1>' in content)
-

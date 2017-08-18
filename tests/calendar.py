@@ -116,7 +116,7 @@ class TestCalendarPlugin(tests.TestCase):
 		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook()
 		ui = setupGtkInterface(self, notebook=notebook)
 		mainwindow = ui._mainwindow # XXX
 
@@ -158,7 +158,7 @@ class TestCalendarPlugin(tests.TestCase):
 		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
 
 		ext = list(plugin.extensions)
@@ -209,7 +209,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin = pluginklass()
 		plugin.preferences['namespace'] = Path('Calendar')
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
 
 		dumper = get_dumper('wiki')

@@ -148,8 +148,9 @@ class TestSingleFileLayout(tests.TestCase):
 class TestLinker(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.get_tmp_name())
-		notebook = tests.new_notebook(fakedir=dir.subdir('notebook'))
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		dir = Dir(notebook.folder.parent().folder('layout').path)
+
 		layout = MultiFileLayout(dir.subdir('layout'), 'html')
 		source = Path('foo:bar')
 		output = layout.page_file(source)
@@ -336,18 +337,18 @@ class TestPageSelections(tests.TestCase):
 	# TODO Use collections subclass to make interface complete ?
 
 	def testAllPages(self):
-		selection = AllPages(tests.new_notebook())
+		selection = AllPages(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 		self._test_iface(selection)
 
 	def testSinglePage(self):
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = notebook.get_page(Path('Test'))
 		selection = SinglePage(notebook, page)
 		self._test_iface(selection)
 		self.assertIsNotNone(selection.prefix)
 
 	def testSubPages(self):
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = notebook.get_page(Path('Test'))
 		selection = SinglePage(notebook, page)
 		self._test_iface(selection)
@@ -393,10 +394,9 @@ class TestSingleFileExporter(tests.TestCase):
 class TestMHTMLExporter(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
-		#~ dir =  VirtualDir('/test')
+		dir =  Dir(self.create_tmp_dir())
 		file = dir.file('export.mht')
-		notebook = tests.new_notebook(fakedir='/foo')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
 
 		exporter = build_mhtml_file_exporter(file, 'Default')
@@ -415,7 +415,7 @@ class TestTemplateOptions(tests.TestCase):
 		page = Path('roundtrip')
 		exporter = build_page_exporter(file, 'latex', 'Article', page)
 
-		notebook = tests.new_notebook(fakedir='/foo')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		selection = SinglePage(notebook, page)
 
 		with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):

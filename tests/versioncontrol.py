@@ -14,6 +14,7 @@ import tempfile
 import gtk
 
 from zim.fs import File, Dir
+from zim.newfs import LocalFolder
 from zim.applications import Application
 from zim.notebook import Path
 
@@ -88,7 +89,11 @@ class TestMainWindowExtension(tests.TestCase):
 		plugin = VersionControlPlugin()
 
 		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
-		notebook = tests.new_files_notebook(dir)
+		notebook = self.setUpNotebook(
+			mock=tests.MOCK_ALWAYS_REAL,
+			#content=tests.FULL_NOTEBOOK,
+			folder=LocalFolder(dir.path)
+		)
 		ui = setupGtkInterface(self, notebook=notebook)
 		mainwindow = ui._mainwindow # XXX
 		plugin.extend(notebook)

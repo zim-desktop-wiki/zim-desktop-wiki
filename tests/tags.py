@@ -191,7 +191,7 @@ class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
 		ui = MockUI()
-		ui.notebook = tests.new_notebook()
+		ui.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		uistate = ConfigDict()
 		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
 

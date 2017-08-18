@@ -24,22 +24,19 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
 
-def new_parsetree_from_text(text):
+def new_parsetree_from_text(testcase, text):
 	## FIXME had to wrap my own here becase of stupid
 	## resolve_images - get rid of that
 	tree = tests.new_parsetree_from_text(text)
-	notebook = tests.new_notebook(fakedir='/foo')
+	notebook = testcase.setUpNotebook()
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
 
 	return tree
 
 
-def setUpPageView(fakedir=None, notebook=None):
+def setUpPageView(notebook):
 	'''Some bootstrap code to get an isolated PageView object'''
-	if notebook is None:
-		notebook = tests.new_notebook(fakedir)
-
 	ui = MockUI()
 	ui.config = VirtualConfigManager()
 	ui.notebook = notebook
@@ -55,7 +52,7 @@ class TestLines(tests.TestCase):
 	def testLines(self):
 		'''Test lines formatting.'''
 
-		pageview = setUpPageView()
+		pageview = setUpPageView(self.setUpNotebook())
 		buffer = pageview.view.get_buffer()
 
 		def check_text(input, result):
@@ -130,7 +127,7 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(wikitext)
+		tree = new_parsetree_from_text(self, wikitext)
 		buffer = TextBuffer()
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(tree)
@@ -518,7 +515,7 @@ class TestUndoStackManager(tests.TestCase):
 		buffer = TextBuffer()
 		undomanager = UndoStackManager(buffer)
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(wikitext)
+		tree = new_parsetree_from_text(self, wikitext)
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree._etree.getroot())
@@ -1529,8 +1526,9 @@ foo
 		# TODO enter on link, before link, after link
 
 	def testCopyPaste(self):
-		dir = self.get_tmp_name('testCopyPaste')
-		notebook = tests.new_notebook(fakedir=dir)
+		notebook = self.setUpNotebook(
+			content={'roundtrip': tests.FULL_NOTEBOOK['roundtrip']}
+		)
 		page = notebook.get_page(Path('roundtrip'))
 		parsetree = page.get_parsetree()
 
@@ -1608,8 +1606,7 @@ foo
 
 		# popup menu
 		page = tests.new_page_from_text('Foo **Bar** Baz\n')
-		dir = self.get_tmp_name('testCopyPaste')
-		pageview = setUpPageView(fakedir=dir)
+		pageview = setUpPageView(self.setUpNotebook())
 		pageview.set_page(page)
 
 		def get_context_menu():
@@ -1634,7 +1631,7 @@ foo
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True"><p>Foo <strong>Bar</strong> Baz\n</p></zim-tree>')
 
-		page = tests.new_page_from_text('[[bar]]')
+		page = tests.new_page_from_text('[[Bar]]')
 		pageview.set_page(page)
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), 'Bar')
@@ -1669,7 +1666,7 @@ foo
 class TestPageView(tests.TestCase, TestCaseMixin):
 
 	def testGetSelection(self):
-		pageview = setUpPageView()
+		pageview = setUpPageView(self.setUpNotebook())
 		buffer = pageview.view.get_buffer()
 		buffer.set_text('''\
 Foo bar
@@ -1685,7 +1682,7 @@ Baz
 	def testAutoSelect(self):
 		# This test indirectly tests select_word, select_line and strip_selection
 
-		pageview = setUpPageView()
+		pageview = setUpPageView(self.setUpNotebook())
 		buffer = pageview.view.get_buffer()
 		buffer.set_text('''Test 123. foo\nline with spaces    \n\n''')
 
@@ -1731,7 +1728,7 @@ Baz
 		self.assertSelection(buffer, 0, 5, '123.')
 
 	def testInsertLinks(self):
-		pageview = setUpPageView()
+		pageview = setUpPageView(self.setUpNotebook())
 		buffer = pageview.view.get_buffer()
 		buffer.set_text('''Test 123\n''')
 

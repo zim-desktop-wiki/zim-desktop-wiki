@@ -185,10 +185,10 @@ class TestBuildNotebook(tests.TestCase):
 	# Test including automount and uniqueness !
 
 	def setUp(self):
-		self.tmpdir = Dir(self.get_tmp_name())
-		self.notebookdir = self.tmpdir.subdir('notebook')
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.notebookdir = folder.folder('notebook')
 
-		script = self.tmpdir.file('mount.py')
+		script = folder.file('mount.py')
 		script.write('''\
 import os
 import sys
@@ -225,7 +225,6 @@ mount=%s %s
 			(self.notebookdir.uri, None), # repeat to check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
-			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
 		):
 			#~ print ">>", uri
 			info = NotebookInfo(uri)
@@ -245,8 +244,7 @@ mount=%s %s
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def testAPI(self):
 		'''Test various notebook methods'''
@@ -1046,7 +1044,14 @@ except ImportError:
 class TestTrash(tests.TestCase):
 
 	def runTest(self):
-		notebook = tests.new_files_notebook(self.create_tmp_dir())
+		notebook = self.setUpNotebook(
+			mock=tests.MOCK_ALWAYS_REAL,
+			content={
+				'TrashMe': 'Test 123\n',
+				'TrashMe:sub1': 'Test 345\n',
+				'TrashMe:sub2': 'Test 345\n',
+			}
+		)
 		page = notebook.get_page(Path('TrashMe'))
 		self.assertTrue(page.exists())
 

@@ -42,7 +42,10 @@ class MHTMLExporter(Exporter):
 	def export_iter(self, pages):
 		basename = encode_filename(pages.name)
 		folder = LocalFolder(get_tmpdir().subdir('mhtml_export_tmp_dir').path) # XXX
-		folder.remove_children()
+		if folder.exists():
+			folder.remove_children()
+		else:
+			folder.touch()
 		file = folder.file(basename + '.html')
 		layout = SingleFileLayout(file, pages.prefix)
 		exporter = SingleFileExporter(layout, self.template, 'html', document_root_url=self.document_root_url)

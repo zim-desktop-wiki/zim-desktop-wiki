@@ -51,8 +51,7 @@ def set_clipboard_image(file):
 class TestClipboard(tests.TestCase):
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def testCopyPasteText(self):
 		text = u'test **123** \u2022' # text with non-ascii character
@@ -190,7 +189,7 @@ some <b>bold</b> text
 		self.assertEqual(data, 'Test:wiki\r\n')
 
 		data = get_clipboard_contents(PAGELIST_TARGET_NAME)
-		self.assertEqual(data, 'Unnamed Notebook?Test:wiki\r\n')
+		self.assertEqual(data, 'TestClipboard_testCopyPastePageLink?Test:wiki\r\n')
 
 		# pagelink -> parsetree
 		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki">+wiki</link></zim-tree>'''
@@ -217,6 +216,3 @@ some <b>bold</b> text
 # LP #XXX: selection gone from clipboard when leaving page
 #
 # HTML -> parsetree (need import)
-
-
-

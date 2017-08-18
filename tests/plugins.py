@@ -156,7 +156,7 @@ class TestPlugins(tests.TestCase):
 			# If "False" the check while loading the plugins is not valid
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		ui = setupGtkInterface(self, notebook=notebook)
 		dialog = PropertiesDialog(ui) # random dialog
 		for obj in (
@@ -187,10 +187,10 @@ from zim.config import ConfigDict
 
 class MockWindow(tests.MockObject):
 
-	def __init__(self):
+	def __init__(self, notebook):
 		tests.MockObject.__init__(self)
 
-		self.pageview = setUpPageView()
+		self.pageview = setUpPageView(notebook)
 		self.uimanager = tests.MockObject()
 		self.ui = tests.MockObject()
 		self.ui.uistate = ConfigDict()

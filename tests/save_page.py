@@ -103,7 +103,7 @@ class TestRaceCodition(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook(content = {'test': 'test123\n'})
-		pageview = setUpPageView(notebook=notebook)
+		pageview = setUpPageView(notebook)
 
 		# Install wrapper with events
 		orig = notebook._store_page_async_thread_main

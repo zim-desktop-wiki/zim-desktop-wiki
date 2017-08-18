@@ -37,9 +37,7 @@ def setupGtkInterface(test, klass=None, notebook=None):
 
 	# create interface object with new notebook
 	if notebook is None:
-		test.clear_tmp_dir()
-		dirpath = test.get_tmp_name()
-		notebook = tests.new_notebook(fakedir=dirpath)
+		notebook = test.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	config = VirtualConfigManager()
 	prefs = config.get_config_dict('<profile>/preferences.conf')
@@ -57,8 +55,8 @@ def setupGtkInterface(test, klass=None, notebook=None):
 class TestDialogs(tests.TestCase):
 
 	def setUp(self):
-		path = self.create_tmp_dir()
-		self.ui = MockUI('Test:foo:bar', fakedir=path)
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.ui = MockUI(notebook, 'Test:foo:bar')
 
 	def testOpenPageDialog(self):
 		'''Test OpenPageDialog dialog (Jump To...)'''
@@ -228,7 +226,7 @@ class TestDialogs(tests.TestCase):
 	def testSearchDialog(self):
 		'''Test SearchDialog'''
 		from zim.gui.searchdialog import SearchDialog
-		self.ui.notebook = tests.new_notebook()
+		self.ui.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = tests.MockObject()
 		mainwindow.ui = self.ui # XXX
@@ -338,8 +336,6 @@ class TestDialogs(tests.TestCase):
 		'''Test PreferencesDialog'''
 		from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
 
-		self.clear_tmp_dir()
-
 		gui = setupGtkInterface(self)
 		gui.register_preferences('GtkInterface', zim.gui.ui_preferences)
 		gui.register_preferences('PageView', zim.gui.pageview.ui_preferences)
@@ -412,7 +408,6 @@ class TestDialogs(tests.TestCase):
 	def testRecentChangesDialog(self):
 		from zim.gui.recentchangesdialog import RecentChangesDialog
 
-		self.clear_tmp_dir()
 		ui = setupGtkInterface(self)
 
 		dialog = RecentChangesDialog(ui)
@@ -889,7 +884,7 @@ from zim.gui import GtkInterface
 
 class MockUI(tests.MockObject):
 
-	def __init__(self, page=None, fakedir=None):
+	def __init__(self, notebook, page=None,):
 		tests.MockObject.__init__(self)
 
 		if page and not isinstance(page, Path):
@@ -897,7 +892,7 @@ class MockUI(tests.MockObject):
 		else:
 			self.page = page
 
-		self.notebook = tests.new_notebook(fakedir=fakedir)
+		self.notebook = notebook
 
 	def __getattr__(self, name):
 		if hasattr(GtkInterface, name):
