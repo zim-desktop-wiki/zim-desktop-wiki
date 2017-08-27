@@ -767,7 +767,7 @@ class TestNotebookComboBox(tests.TestCase):
 			NotebookInfo('file:///test/bar', name='Bar')
 		])
 		notebooklist.default = notebooklist[1]
-		notebooklist.write = lambda : None
+		notebooklist.write = lambda: None
 
 		model = NotebookTreeModel(notebooklist)
 

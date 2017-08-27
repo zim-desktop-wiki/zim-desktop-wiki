@@ -55,7 +55,7 @@ class TestPageTreeStore(tests.TestCase):
 		iter2 = treestore.on_iter_children(None)
 		self.assertIs(iter2, iter)
 
-		self.assertIsNone(treestore.on_get_iter((20,20,20,20,20)))
+		self.assertIsNone(treestore.on_get_iter((20, 20, 20, 20, 20)))
 		self.assertRaises(IndexNotFoundError, treestore.find, Path('nonexisting'))
 		self.assertRaises(ValueError, treestore.find, Path(':'))
 

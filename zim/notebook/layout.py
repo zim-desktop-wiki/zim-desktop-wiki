@@ -179,7 +179,7 @@ class FilesLayout(NotebookLayout):
 			if encode_filename(pname) == name: # will reject e.g. whitespace in file name
 				names.add(pname)
 
-		return [pagename+basename for basename in sorted(names)]
+		return [pagename + basename for basename in sorted(names)]
 
 
 class FilesAttachmentFolder(object):

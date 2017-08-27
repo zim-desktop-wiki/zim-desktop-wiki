@@ -64,24 +64,24 @@ class Dumper(DumperClass):
 	# readable.
 
 	BULLETS = {
-		UNCHECKED_BOX:	u'[ ]',
-		XCHECKED_BOX:	u'[x]',
-		CHECKED_BOX:	u'[*]',
-		MIGRATED_BOX:	u'[>]',
-		BULLET:			u'*',
+		UNCHECKED_BOX: u'[ ]',
+		XCHECKED_BOX: u'[x]',
+		CHECKED_BOX: u'[*]',
+		MIGRATED_BOX: u'[>]',
+		BULLET: u'*',
 	}
 
 	# No additional formatting for these tags, otherwise copy-pasting
 	# as plain text is no longer plain text
 	TAGS = {
-		EMPHASIS:		('', ''),
-		STRONG:			('', ''),
-		MARK:			('', ''),
-		STRIKE:			('', ''),
-		VERBATIM:		('', ''),
-		TAG:			('', ''),
-		SUBSCRIPT:		('', ''),
-		SUPERSCRIPT:	('', ''),
+		EMPHASIS: ('', ''),
+		STRONG: ('', ''),
+		MARK: ('', ''),
+		STRIKE: ('', ''),
+		VERBATIM: ('', ''),
+		TAG: ('', ''),
+		SUBSCRIPT: ('', ''),
+		SUPERSCRIPT: ('', ''),
 	}
 
 	def dump_indent(self, tag, attrib, strings):
@@ -211,17 +211,17 @@ class Dumper(DumperClass):
 			table += [rowline(line) for line in row]
 			table.append(rowsep('-'))
 
-		return map(lambda line: line+"\n", table)
+		return map(lambda line: line + "\n", table)
 
 	@staticmethod
 	def _concat(s):
 		return s if isinstance(s, basestring) else ''.join(s)
 
 	def dump_thead(self, tag, attrib, strings):
-		return [ strings ] # HACK to keep row structure
+		return [strings] # HACK to keep row structure
 
 	def dump_trow(self, tag, attrib, strings):
-		return [ strings ] # HACK to keep row structure
+		return [strings] # HACK to keep row structure
 
 	def dump_th(self, tag, attrib, strings):
 		strings = [s.replace('|', '∣') for s in strings]

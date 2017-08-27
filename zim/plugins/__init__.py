@@ -192,8 +192,8 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 					continue
 				elif candidate.endswith('.py'):
 					plugins.add(candidate[:-3])
-				elif zim.fs.isdir(dir.path+'/'+candidate) \
-				and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
+				elif zim.fs.isdir(dir.path + '/' + candidate) \
+				and os.path.exists(dir.path + '/' + candidate + '/__init__.py'):
 					plugins.add(candidate)
 				else:
 					pass

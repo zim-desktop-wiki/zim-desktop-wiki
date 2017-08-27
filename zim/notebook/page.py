@@ -150,7 +150,7 @@ class Path(object):
 		'''Returns a new object based on the string representation for
 		that path.
 		'''
-		return klass( klass.makeValidPageName(string) )
+		return klass(klass.makeValidPageName(string))
 
 	def serialize_zim_config(self):
 		'''Returns the name for serializing this path'''
@@ -219,7 +219,7 @@ class Path(object):
 		if path.name == '': # root path
 			return self.name
 		elif self.name.startswith(path.name + ':'):
-			i = len(path.name)+1
+			i = len(path.name) + 1
 			return self.name[i:].strip(':')
 		else:
 			raise ValueError('"%s" is not below "%s"' % (self, path))
@@ -252,7 +252,7 @@ class Path(object):
 		@param basename: the relative name for the child
 		@returns: a new L{Path} object
 		'''
-		return Path(self.name+':'+basename)
+		return Path(self.name + ':' + basename)
 
 	def ischild(self, parent):
 		'''Check of this path is a child of a given path

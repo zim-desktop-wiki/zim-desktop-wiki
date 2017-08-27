@@ -71,7 +71,7 @@ class TestThumbnailManager(tests.TestCase):
 		):
 			thumbfile = manager.get_thumbnail_file(file, size)
 			self.assertEqual(thumbfile, wanted)
-			self.assertTrue(len(thumbfile.basename) == 32+4) # lenght hexdigest according to spec + ".png"
+			self.assertTrue(len(thumbfile.basename) == 32 + 4) # lenght hexdigest according to spec + ".png"
 
 	def removeThumbnail(self, manager, file):
 		# Remove and assert thumbnail does not exist

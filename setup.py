@@ -176,7 +176,7 @@ def fix_dist():
 			'mimetypes/gnome-mime-application-x-zim-notebook.png',
 			'mimetypes/application-x-zim-notebook.png'
 		):
-			shutil.copy('icons/zim%s.png' % size, 'xdg/hicolor/'  + dir + '/' + name)
+			shutil.copy('icons/zim%s.png' % size, 'xdg/hicolor/' + dir + '/' + name)
 
 
 # Overloaded commands
@@ -321,11 +321,11 @@ else:
 
 if py2exe:
 	py2exeoptions = {
-		'windows': [ {
+		'windows': [{
 			'script': 'zim.py',
 			'icon_resources': [(1, 'icons/zim.ico')]
 				# Windows 16x16, 32x32, and 48x48 icon based on PNG
-		} ],
+		}],
 		'zipfile': None,
 		'options': {
 			'py2exe': {
@@ -356,17 +356,17 @@ setup(
 	},
 
 	# provide package properties
-	name         = 'zim',
-	version      = __version__,
-	description  = 'Zim desktop wiki',
-	author       = 'Jaap Karssenberg',
+	name = 'zim',
+	version = __version__,
+	description = 'Zim desktop wiki',
+	author = 'Jaap Karssenberg',
 	author_email = 'jaap.karssenberg@gmail.com',
-	license      = 'GPL v2+',
-	url          = __url__,
-	scripts      = scripts,
-	packages     = collect_packages(),
-	data_files   = collect_data_files(),
-	requires     = dependencies,
+	license = 'GPL v2+',
+	url = __url__,
+	scripts = scripts,
+	packages = collect_packages(),
+	data_files = collect_data_files(),
+	requires = dependencies,
 
 	**py2exeoptions
 )

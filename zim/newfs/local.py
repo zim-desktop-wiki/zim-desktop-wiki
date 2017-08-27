@@ -174,8 +174,8 @@ class LocalFolder(LocalFSObjectBase, Folder):
 		except OSError:
 			raise FileNotFoundError(self)
 
-		names = sorted([ n for n in names
-			if n[0] not in ('.', '~') and n[-1] != '~' ])
+		names = sorted([n for n in names
+			if n[0] not in ('.', '~') and n[-1] != '~'])
 			# Ignore hidden files and tmp files
 
 		if FS_ENCODING == 'mbcs':
@@ -352,7 +352,7 @@ class LocalFile(LocalFSObjectBase, File):
 			with open(self.encodedpath, 'rU') as fh:
 				return [
 					l.decode('UTF-8').lstrip(u'\ufeff').replace('\x00', '')
-						for l in fh ]
+						for l in fh]
 						# Strip unicode byte order mark
 						# Internally we use Unix line ends - so strip out \r
 						# And remove any NULL byte since they screw up parsing

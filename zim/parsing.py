@@ -233,7 +233,7 @@ def parse_date(string):
 				y = today.year
 		else:
 			y = int(y)
-			if   y < 50:
+			if y < 50:
 				y += 2000
 			elif y < 1000:
 				y += 1900
@@ -281,7 +281,7 @@ class Re(object):
 	def __len__(self):
 		if self.m is None:
 			return 0
-		return len(self.m.groups())+1
+		return len(self.m.groups()) + 1
 
 	def __getitem__(self, i):
 		if self.m is None:
@@ -327,14 +327,14 @@ class Re(object):
 				result.append(item)
 		return result
 
-	def start(self,group=0):
+	def start(self, group=0):
 		'''Return the indices of the start of the substring matched by group;
 		group defaults to zero (meaning the whole matched substring). Return -1 if
 		group exists but did not contribute to the match. See re.matchobject for
 		details'''
 		return self.m.start(group)
 
-	def end(self,group=0):
+	def end(self, group=0):
 		'''Return the indices of the end of the substring matched by group;
 		group defaults to zero (meaning the whole matched substring). Return -1 if
 		group exists but did not contribute to the match. See re.matchobject for

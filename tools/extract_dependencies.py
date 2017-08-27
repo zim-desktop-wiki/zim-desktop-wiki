@@ -15,10 +15,10 @@ def extract_deps(file):
 
 def main():
 	deps = set()
-	deps.update( extract_deps('zim.py') )
+	deps.update(extract_deps('zim.py'))
 	for dir, dirs, files in os.walk('zim/'):
 		for file in filter(lambda f: f.endswith('.py'), files):
-			deps.update( extract_deps(dir+'/'+file) )
+			deps.update(extract_deps(dir + '/' + file))
 	deps = sorted([d for d in deps if not d.startswith('zim')])
 
 	for d in deps:

@@ -303,11 +303,11 @@ class TestCustomTools(tests.TestCase):
 		dir = notebook.dir
 
 		tool = CustomToolDict()
-		tool.update( {
+		tool.update({
 			'Name': 'Test',
 			'Comment': 'Test 1 2 3',
 			'X-Zim-ExecTool': 'foo',
-		} )
+		})
 		for cmd, wanted in (
 			('foo %f', ('foo', tmpfile)),
 			('foo %d', ('foo', dir.subdir('Test/Foo').path)),

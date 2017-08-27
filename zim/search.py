@@ -75,7 +75,7 @@ KEYWORDS = (
 	'links', 'linksfrom', 'linksto', 'tag'
 )
 
-keyword_re = Re('('+'|'.join(KEYWORDS)+'):(.*)', re.I)
+keyword_re = Re('(' + '|'.join(KEYWORDS) + '):(.*)', re.I)
 operators_re = Re(r'^(\|\||\&\&|\+|\-)')
 tag_re = Re(r'^\@(\w+)$', re.U)
 
@@ -297,7 +297,7 @@ class SearchSelection(PageSelection):
 		results = None
 		for term in indexterms:
 			results, scope = op_func(results, scope,
-				self._process_from_index(term, scope) )
+				self._process_from_index(term, scope))
 
 		if callback:
 			if group.operator == OPERATOR_AND:
@@ -319,7 +319,7 @@ class SearchSelection(PageSelection):
 
 		for term in subgroups:
 			results, scope = op_func(results, scope,
-				self._process_group(term, scope, callbackwrapper) )
+				self._process_group(term, scope, callbackwrapper))
 
 			if callback:
 				if group.operator == OPERATOR_AND:
@@ -338,7 +338,7 @@ class SearchSelection(PageSelection):
 			myscope = scope # local copy here, need to pass full scope to _process_content
 			if term.keyword == 'contentorname':
 				results, myscope = op_func(results, myscope,
-					self._process_from_index(term, myscope, scoring=10) )
+					self._process_from_index(term, myscope, scoring=10))
 
 		if callback and (
 			group.operator == OPERATOR_OR or
@@ -399,7 +399,7 @@ class SearchSelection(PageSelection):
 				regex = self._namespace_regex(term.string)
 			elif term.keyword == 'contentorname':
 				# More lax matching for default case
-				regex = self._name_regex('*'+term.string.strip('*')+'*')
+				regex = self._name_regex('*' + term.string.strip('*') + '*')
 				term.name_regex = regex # needed in _process_content
 			else:
 				regex = self._name_regex(term.string)
@@ -585,7 +585,7 @@ class SearchSelection(PageSelection):
 
 	def _namespace_regex(self, string, case=False):
 		# like _name_regex but adds recursive descent below the page
-		namespace = re.escape( string.strip('*:') )
+		namespace = re.escape(string.strip('*:'))
 		regex = r'^(' + namespace + '$|' + namespace + ':)'
 		if case:
 			return re.compile(regex)

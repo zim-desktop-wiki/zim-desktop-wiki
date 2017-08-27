@@ -93,7 +93,7 @@ for ext in ["*.exe", "*.dll"]:
 		if \
 			path.isfile(file) and \
 			( not path.exists(path.join(EXE_ROOT, b)) ) and \
-			( b not in ["gtk-demo.exe"] ):
+			(b not in ["gtk-demo.exe"]):
 
 			shutil.copy(file, EXE_ROOT)
 

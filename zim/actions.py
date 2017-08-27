@@ -281,7 +281,7 @@ class RadioAction(ActionMethod):
 		self.func = func
 		self.keys = [opt[0] for opt in radio_options]
 		self._entries = tuple(
-			(name+'_'+opt[0],) + opt[1:] + (i,)
+			(name + '_' + opt[0],) + opt[1:] + (i,)
 				for i, opt in enumerate(radio_options)
 		)
 		self._state = weakref.WeakKeyDictionary()
@@ -313,7 +313,7 @@ class RadioAction(ActionMethod):
 		try:
 			name = current.get_name()
 			assert name.startswith(self.name + '_')
-			key = name[len(self.name)+1:]
+			key = name[len(self.name) + 1:]
 			if instance in self._state and key == self._state[instance]:
 				pass
 			else:
@@ -321,7 +321,7 @@ class RadioAction(ActionMethod):
 				self.__get__(instance, instance.__class__)(key)
 		except:
 			zim.errors.exception_handler(
-				'Exception during action: %s(%s)' % (self.name, key) )
+				'Exception during action: %s(%s)' % (self.name, key))
 
 
 

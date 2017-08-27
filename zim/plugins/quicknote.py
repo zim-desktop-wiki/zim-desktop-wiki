@@ -236,13 +236,13 @@ class QuickNoteDialog(Dialog):
 		self.vbox.pack_start(self.form, False)
 
 		# TODO dropdown could use an option "Other..."
-		label = gtk.Label(_('Notebook')+': ')
+		label = gtk.Label(_('Notebook') + ': ')
 		label.set_alignment(0.0, 0.5)
-		self.form.attach(label, 0,1, 0,1, xoptions=gtk.FILL)
+		self.form.attach(label, 0, 1, 0, 1, xoptions=gtk.FILL)
 			# T: Field to select Notebook from drop down list
 		self.notebookcombobox = NotebookComboBox(current=notebook)
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
-		self.form.attach(self.notebookcombobox, 1,2, 0,1)
+		self.form.attach(self.notebookcombobox, 1, 2, 0, 1)
 
 		self._init_inputs(namespace, basename, append, text, template_options)
 
@@ -260,18 +260,18 @@ class QuickNoteDialog(Dialog):
 		else:
 			page = namespace or basename
 
-		self.form.add_inputs( (
+		self.form.add_inputs((
 				('page', 'page', _('Page')),
 				('namespace', 'namespace', _('Page section')), # T: text entry field
 				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
 				('basename', 'string', _('Title')) # T: text entry field
-			) )
+			))
 		self.form.update({
 				'page': page,
 				'namespace': namespace,
 				'new_page': True,
 				'basename': basename,
-			} )
+			})
 
 		self.uistate.setdefault('open_page', True)
 		self.uistate.setdefault('new_page', True)
@@ -451,7 +451,7 @@ class QuickNoteDialog(Dialog):
 				return False
 
 			path = self.form['page']
-			self.append_to_page(notebook, path, '\n------\n'+text)
+			self.append_to_page(notebook, path, '\n------\n' + text)
 
 		if self.attachments:
 			self.import_attachments(notebook, path, self.attachments)

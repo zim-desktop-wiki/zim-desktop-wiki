@@ -201,7 +201,7 @@ class Application(object):
 				bufsize=4096,
 				close_fds=True
 			)
-		stdout,	stderr = p.communicate()
+		stdout, stderr = p.communicate()
 
 		if not p.returncode == self.STATUS_OK:
 			raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)

@@ -114,7 +114,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 		m = re.match(r"'module' object has no attribute '(\w+)'", error.args[0])
 		if m:
 			module = m.group(1)
-			m = __import__('tests.'+module) # should raise ImportError
+			m = __import__('tests.' + module) # should raise ImportError
 		raise error
 
 	# And run it

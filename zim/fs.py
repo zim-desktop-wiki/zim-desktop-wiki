@@ -452,13 +452,13 @@ def format_file_size(bytes):
 def _md5(content):
 	import hashlib
 	m = hashlib.md5()
-	if  isinstance(content, unicode):
+	if isinstance(content, unicode):
 		m.update(content.encode('utf-8'))
 	elif isinstance(content, basestring):
 		m.update(content)
 	else:
 		for l in content:
-			if  isinstance(l, unicode):
+			if isinstance(l, unicode):
 				m.update(l.encode('utf-8'))
 			elif isinstance(l, basestring):
 				m.update(l)
@@ -815,7 +815,7 @@ class UnixPath(object):
 		path = os.path.commonprefix((self.path, other.path)) # encoding safe
 		i = path.rfind(os.path.sep) # win32 save...
 		if i >= 0:
-			return Dir(path[:i+1])
+			return Dir(path[:i + 1])
 		else:
 			# different drive ?
 			return None

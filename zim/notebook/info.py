@@ -408,12 +408,12 @@ class NotebookInfoList(list):
 			'Default=%s\n' % (default or '')
 		]
 		for i, info in enumerate(self):
-			n = i+1
+			n = i + 1
 			uri = info.user_path or info.uri
 			lines.append('%i=%s\n' % (n, uri))
 
 		for i, info in enumerate(self):
-			n = i+1
+			n = i + 1
 			uri = info.user_path or info.uri
 			lines.extend([
 				'\n',

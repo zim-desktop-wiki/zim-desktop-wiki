@@ -488,7 +488,7 @@ class IndexCommand(NotebookCommand):
 
 
 commands = {
-	'help':  HelpCommand,
+	'help': HelpCommand,
 	'version': VersionCommand,
 	'gui': GuiCommand,
 	'manual': ManualCommand,

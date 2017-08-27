@@ -56,7 +56,7 @@ try:
 	exitcode = zim.main.main(*argv)
 	sys.exit(exitcode)
 except zim.main.GetoptError as err:
-	print >>sys.stderr, sys.argv[0]+':', err
+	print >>sys.stderr, sys.argv[0] + ':', err
 	sys.exit(1)
 except zim.main.UsageError as err:
 	print >>sys.stderr, err.msg

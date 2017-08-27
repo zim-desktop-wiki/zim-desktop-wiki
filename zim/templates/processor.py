@@ -193,7 +193,7 @@ class TemplateLoopState(object):
 		self.count = None
 		self.first = None
 		self.last = None
-		self.parity	= None
+		self.parity = None
 		self.even = None
 		self.odd = None
 
@@ -207,6 +207,6 @@ class TemplateLoopState(object):
 
 		self.index = i
 		self.count = i + 1
-		self.parity	= 'even' if i % 2 == 0 else 'odd'
+		self.parity = 'even' if i % 2 == 0 else 'odd'
 		self.even = self.parity == 'even'
 		self.odd = self.parity == 'odd'

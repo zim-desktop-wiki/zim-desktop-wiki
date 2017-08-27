@@ -137,7 +137,7 @@ class InsertSymbolDialog(Dialog):
 	def __init__(self, ui, plugin, pageview):
 		Dialog.__init__(self, ui, _('Insert Symbol'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
-			defaultwindowsize=(350, 400) )
+			defaultwindowsize=(350, 400))
 		self.plugin = plugin
 		self.pageview = pageview
 		if not plugin.symbols:

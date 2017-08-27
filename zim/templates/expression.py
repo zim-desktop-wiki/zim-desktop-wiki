@@ -124,7 +124,7 @@ class ExpressionParameter(Expression):
 					value = getattr(value, p)
 			except (IndexError, KeyError, AttributeError):
 				# We got right type, but data is not there
-				logger.warning('No such parameter: %s', '.'.join(map(str, self.parts[:i+1])))
+				logger.warning('No such parameter: %s', '.'.join(map(str, self.parts[:i + 1])))
 				return None
 
 			if inspect.ismethod(value) \

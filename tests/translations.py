@@ -77,13 +77,13 @@ class TranslationMessage(object):
 			return self._check_format_strings()
 
 	def _check_format_strings(self):
-		wanted = sorted( self._format_string_re.findall(self.msgid) )
+		wanted = sorted(self._format_string_re.findall(self.msgid))
 		if not wanted:
 			return True # no string format used
 
 		for msg in [self.msgid_plural] + self.msgstr:
 			if msg and not msg == '""':
-				got = sorted( self._format_string_re.findall(msg) )
+				got = sorted(self._format_string_re.findall(msg))
 				if not got == wanted:
 					return False
 		else:
@@ -138,7 +138,7 @@ class TranslationFile(object):
 		plural_forms = self.headers['Plural-Forms']
 		m = re.search(r'nplurals=(\d+);', plural_forms)
 		if m:
-			self.nplural = int( m.group(1) )
+			self.nplural = int(m.group(1))
 		else:
 			self.nplural = None
 

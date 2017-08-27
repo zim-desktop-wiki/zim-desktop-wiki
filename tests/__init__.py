@@ -97,7 +97,7 @@ def load_tests(loader, tests, pattern):
 	The parameters 'tests' and 'pattern' are ignored.
 	'''
 	suite = unittest.TestSuite()
-	for name in ['tests.'+name for name in __all__ ]:
+	for name in ['tests.' + name for name in __all__]:
 		test = loader.loadTestsFromName(name)
 		suite.addTest(test)
 	return suite
@@ -131,7 +131,7 @@ def _setUpEnvironment():
 		# Need these since gtk pixbuf loaders are in /usr/share in
 		# some setups, and this parameter is used to find them
 		os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
-			(os.environ['XDG_DATA_DIRS'], system_data_dirs) )
+			(os.environ['XDG_DATA_DIRS'], system_data_dirs))
 
 if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	# Do this when loaded, but not re-do in sub processes
@@ -181,7 +181,7 @@ def zim_pyfiles():
 	'''Returns a list with file paths for all the zim python files'''
 	if not _zim_pyfiles:
 		for d, dirs, files in os.walk('zim'):
-			_zim_pyfiles.extend([d+'/'+f for f in files if f.endswith('.py')])
+			_zim_pyfiles.extend([d + '/' + f for f in files if f.endswith('.py')])
 		_zim_pyfiles.sort()
 	for file in _zim_pyfiles:
 		yield file # shallow copy
@@ -519,13 +519,13 @@ class TestData(object):
 	def __init__(self, format):
 		assert format == 'wiki', 'TODO: add other formats'
 		root = os.environ['ZIM_TEST_ROOT']
-		tree = etree.ElementTree(file=root+'/tests/data/notebook-wiki.xml')
+		tree = etree.ElementTree(file=root + '/tests/data/notebook-wiki.xml')
 
 		test_data = []
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
 			text = unicode(node.text.lstrip('\n'))
-			if os.name =='nt' and isinstance(name, unicode):
+			if os.name == 'nt' and isinstance(name, unicode):
 				pass # XXX No idea what goes wrong, but names are messed up
 			else:
 				test_data.append((name, text))

@@ -162,7 +162,7 @@ class MainWindowExtension(WindowExtension):
 		)):
 			values = colors[i]
 			values['state'] = state
-			rc += 	'\tbase[%(state)s] = "%(base)s"\n' \
+			rc +=  '\tbase[%(state)s] = "%(base)s"\n' \
 				'\ttext[%(state)s] = "%(text)s"\n' \
 				'\tbg[%(state)s] = "%(bg)s"\n' % values
 				#'\tfg[%(state)s] = "%(fg)s"\n' % values
@@ -192,7 +192,7 @@ class MainWindowExtension(WindowExtension):
 
 		# X max width based on user preference
 		max_x = self.preferences['max_page_width']
-		xmargin = int((screen_width - max_x)/2)
+		xmargin = int((screen_width - max_x) / 2)
 		if allocation.width > max_x:
 			if allocation.x > xmargin:
 				# we are bumped to the right

@@ -8,7 +8,7 @@ import sys
 clipboard = gtk.Clipboard()
 targets = clipboard.wait_for_targets()
 
-print "="*80
+print "=" * 80
 print "Enter a number to see a specific target, or <Enter> to exit"
 print "Available targets:"
 for i in range(len(targets)):

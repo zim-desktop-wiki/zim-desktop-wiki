@@ -79,7 +79,7 @@ class MainWindowExtension(WindowExtension):
 			# text only sort key (no formatting), second element
 			# is parsetree per line
 			lines = []
-			for line_nr in range(first_lineno, last_lineno+1):
+			for line_nr in range(first_lineno, last_lineno + 1):
 				start, end = buffer.get_line_bounds(line_nr)
 				text = buffer.get_text(start, end)
 				tree = buffer.get_parsetree(bounds=(start, end))
@@ -143,7 +143,7 @@ class MainWindowExtension(WindowExtension):
 				buffer.place_cursor(iter)
 
 			#scroll with one line margin on top/bottom
-			scroll_target_iter = buffer.get_iter_at_line(target_line  - 1 * (offset < 0 and target_line > 0))
+			scroll_target_iter = buffer.get_iter_at_line(target_line - 1 * (offset < 0 and target_line > 0))
 			self.window.pageview.view.scroll_to_iter(scroll_target_iter, 0)
 
 

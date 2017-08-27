@@ -53,9 +53,9 @@ class PagesIndexer(IndexerBase):
 
 	__signals__ = {
 		'page-row-inserted': (None, None, (object,)),
-		'page-row-changed':  (None, None, (object, object)),
-		'page-row-deleted':  (None, None, (object,)),
-		'page-changed':      (None, None, (object, object))
+		'page-row-changed': (None, None, (object, object)),
+		'page-row-deleted': (None, None, (object,)),
+		'page-changed': (None, None, (object, object))
 	}
 
 	def __init__(self, db, layout, filesindexer):
@@ -349,7 +349,7 @@ class PagesViewInternal(object):
 				# Check if we are anchored in non-existing part
 				keys = map(natural_sort_key, relnames)
 				if anchor_key in keys:
-					i = [c for c,k in enumerate(keys) if k==anchorkey][-1]
+					i = [c for c, k in enumerate(keys) if k == anchorkey][-1]
 					return self.resolve_pagename(db, root, relnames[:i] + href.parts()[1:])
 
 			if ignore_link_placeholders:
@@ -432,7 +432,7 @@ class PagesViewInternal(object):
 			else:
 				row = self.db.execute(
 					'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
-					(page_id, "%:"+basename)
+					(page_id, "%:" + basename)
 				).fetchone()
 
 			if row: # exact match
@@ -836,7 +836,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		treepath = []
 		for i, basename in enumerate(names):
 			# Get treepath
-			name = ':'.join(names[:i+1])
+			name = ':'.join(names[:i + 1])
 			myrow = self.db.execute(
 				'SELECT * FROM pages WHERE name=?', (name,)
 			).fetchone()

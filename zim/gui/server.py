@@ -53,7 +53,7 @@ class ServerWindow(gtk.Window):
 
 		# Widgets
 		self.status_label = gtk.Label()
-		self.status_label.set_markup('<i>'+_('Server not started')+'</i>')
+		self.status_label.set_markup('<i>' + _('Server not started') + '</i>')
 			# T: Status in web server gui
 		self.start_button = IconButton('gtk-media-play')
 		self.start_button.connect('clicked', lambda o: self.start())
@@ -160,7 +160,7 @@ class ServerWindow(gtk.Window):
 		self.start_button.set_sensitive(False)
 		self.stop_button.set_sensitive(True)
 
-		self.status_label.set_markup('<i>'+_('Server started')+'</i>')
+		self.status_label.set_markup('<i>' + _('Server started') + '</i>')
 			# T: Status in web server gui
 		#if self.public_checkbox.get_active():
 		#	url = 'http://%s:%i' % (self.httpd.server_name, self.httpd.server_port)
@@ -201,7 +201,7 @@ class ServerWindow(gtk.Window):
 			self.httpd = None
 
 		# Update UI
-		self.status_label.set_markup('<i>'+_('Server stopped')+'</i>')
+		self.status_label.set_markup('<i>' + _('Server stopped') + '</i>')
 			# T: Status in web server gui
 		if self.link_button:
 			self.link_button.set_sensitive(False)

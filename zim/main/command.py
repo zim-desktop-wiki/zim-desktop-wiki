@@ -45,7 +45,7 @@ class Command(object):
 		#: For options that can appear multiple times,
 		#: assign a list "[]" in "self.opts" before parse_options is called
 
-	default_options	 = (
+	default_options = (
 		('verbose', 'V', 'Verbose output'),
 		('debug', 'D', 'Debug output'),
 	)
@@ -141,7 +141,7 @@ class GtkCommand(Command):
 	done by the application object.
 	'''
 
-	default_options	 = Command.default_options + (
+	default_options = Command.default_options + (
 		('standalone', '', 'start a single instance, no background process'),
 	)
 

@@ -111,7 +111,7 @@ class MockFS(MockFSNode):
 		for i, name in enumerate(names):
 			parent = node
 			if not parent.isdir:
-				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i+1]))
+				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
 			else:
 				try:
 					node = parent.data[name]
@@ -132,7 +132,7 @@ class MockFS(MockFSNode):
 				parent.on_changed()
 			node = parent.data[name]
 			if not node.isdir:
-				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i+1]))
+				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
 
 		parent, basename = node, names[-1]
 		if basename not in parent.data:

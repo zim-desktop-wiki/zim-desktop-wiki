@@ -58,7 +58,7 @@ unindented_line_re = re.compile('^\S', re.M)
 
 
 def _remove_indent(text, indent):
-	return re.sub('(?m)^'+indent, '', text)
+	return re.sub('(?m)^' + indent, '', text)
 		# Specify "(?m)" instead of re.M since "flags" keyword is not
 		# supported in python 2.6
 
@@ -255,11 +255,11 @@ class WikiParser(object):
 		body = body.replace('\\|', '#124;')  # escaping
 		rows = body.split('\n')[:-1]
 		# get maximum number of columns - each columns must have same size
-		nrcols = max([headerrow.count('|')]+[row.count('|') for row in rows])-1
+		nrcols = max([headerrow.count('|')] + [row.count('|') for row in rows]) - 1
 
 		# transform header separator line into alignment definitions
 		aligns = []
-		while alignstyle.count('|') < nrcols+1:
+		while alignstyle.count('|') < nrcols + 1:
 			alignstyle += '|'  # fill cells thus they match with nr of headers
 		for celltext in alignstyle.split('|')[1:-1]:
 			celltext = celltext.strip()
@@ -299,7 +299,7 @@ class WikiParser(object):
 		builder.end(HEADROW)
 
 		for bodyrow in rows:
-			while bodyrow.count('|') < nrcols+1:
+			while bodyrow.count('|') < nrcols + 1:
 				bodyrow += '|'  # fill cells thus they match with nr of headers
 			builder.start(TABLEROW)
 			for celltext in bodyrow.split('|')[1:-1]:
@@ -371,7 +371,7 @@ class WikiParser(object):
 
 			mylevel = len(prefix)
 			if mylevel > level:
-				self.parse_list_lines(builder, lines, level+1) # recurs
+				self.parse_list_lines(builder, lines, level + 1) # recurs
 			elif mylevel < level:
 				builder.end(listtype)
 				return
@@ -479,22 +479,22 @@ class Parser(ParserClass):
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX:	u'[ ]',
-		XCHECKED_BOX:	u'[x]',
-		CHECKED_BOX:	u'[*]',
-		MIGRATED_BOX:	u'[>]',
-		BULLET:			u'*',
+		UNCHECKED_BOX: u'[ ]',
+		XCHECKED_BOX: u'[x]',
+		CHECKED_BOX: u'[*]',
+		MIGRATED_BOX: u'[>]',
+		BULLET: u'*',
 	}
 
 	TAGS = {
-		EMPHASIS:		('//', '//'),
-		STRONG:			('**', '**'),
-		MARK:			('__', '__'),
-		STRIKE:			('~~', '~~'),
-		VERBATIM:		("''", "''"),
-		TAG:			('', ''), # No additional annotation (apart from the visible @)
-		SUBSCRIPT:		('_{', '}'),
-		SUPERSCRIPT:	('^{', '}'),
+		EMPHASIS: ('//', '//'),
+		STRONG: ('**', '**'),
+		MARK: ('__', '__'),
+		STRIKE: ('~~', '~~'),
+		VERBATIM: ("''", "''"),
+		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		SUBSCRIPT: ('_{', '}'),
+		SUPERSCRIPT: ('^{', '}'),
 	}
 
 	def dump(self, tree, file_output=False):
@@ -524,7 +524,7 @@ class Dumper(TextDumper):
 			level = 1
 		elif level > 5:
 			level = 5
-		tag = '='*(7 - level)
+		tag = '=' * (7 - level)
 		strings.insert(0, tag + ' ')
 		strings.append(' ' + tag)
 		return strings
@@ -597,7 +597,7 @@ class Dumper(TextDumper):
 		table += [TableParser.headline(rows[0], maxwidths, aligns, wraps)]
 		table.append(headsep)
 		table += [rowline(row) for row in rows[1:]]
-		return map(lambda line: line+"\n", table)
+		return map(lambda line: line + "\n", table)
 
 	def dump_th(self, tag, attrib, strings):
 		if not strings:

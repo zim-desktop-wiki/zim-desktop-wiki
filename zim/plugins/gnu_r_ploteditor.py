@@ -71,12 +71,12 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		plot_height = 480 # default image height (px)
 
 		# LOOK for image size in comments of the script
-		r=re.search(r"^#\s*WIDTH\s*=\s*([0-9]+)$", text,re.M)
+		r = re.search(r"^#\s*WIDTH\s*=\s*([0-9]+)$", text, re.M)
 		if r:
-			plot_width=int(r.group(1))
-		r=re.search(r"^#\s*HEIGHT\s*=\s*([0-9]+)$", text,re.M)
+			plot_width = int(r.group(1))
+		r = re.search(r"^#\s*HEIGHT\s*=\s*([0-9]+)$", text, re.M)
 		if r:
-			plot_height=int(r.group(1))
+			plot_height = int(r.group(1))
 
 		template_vars = {
 			'gnu_r_plot_script': text,
@@ -104,5 +104,5 @@ class GNURPlotGenerator(ImageGeneratorClass):
 
 	def cleanup(self):
 		path = self.plotscriptfile.path
-		for path in glob.glob(path[:-2]+'.*'):
+		for path in glob.glob(path[:-2] + '.*'):
 			File(path).remove()

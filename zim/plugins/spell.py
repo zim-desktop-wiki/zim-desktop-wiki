@@ -36,7 +36,7 @@ else:
 # See https://github.com/koehlma/pygtkspellcheck/issues/22
 if gtkspellcheck \
 and hasattr(gtkspellcheck.SpellChecker, '_LanguageList') \
-and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker') :
+and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 	from pylocales import code_to_name
 
 	orig_from_broker = gtkspellcheck.SpellChecker._LanguageList.from_broker
@@ -151,7 +151,7 @@ class MainWindowExtension(WindowExtension):
 					# T: error message
 				_('This could mean you don\'t have the proper\ndictionaries installed')
 					# T: error message explanation
-			) ).run()
+			)).run()
 		else:
 			textview._gtkspell = checker
 
@@ -204,7 +204,7 @@ class GtkspellcheckAdapter(object):
 
 	def _clean_tag_table(self):
 		## cleanup tag table - else next loading will fail
-		prefix='gtkspellchecker'
+		prefix = 'gtkspellchecker'
 		table = self._textview.get_buffer().get_tag_table()
 		tags = []
 		table.foreach(lambda tag, data: tags.append(tag))

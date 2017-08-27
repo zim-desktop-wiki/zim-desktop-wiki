@@ -69,7 +69,7 @@ class TestFS(tests.TestCase):
 	def testFilePath(self):
 		'''Test Path object'''
 		path = FilePath(['foo', 'bar'])
-		test = os.path.abspath( os.path.join('foo', 'bar') )
+		test = os.path.abspath(os.path.join('foo', 'bar'))
 		self.assertEqual(path.path, test)
 
 		path = FilePath('/foo/bar')
@@ -89,7 +89,7 @@ class TestFS(tests.TestCase):
 		dirs = []
 		for d in path:
 			dirs.append(d)
-		wanted = map(lambda p: Dir(os.path.abspath(drive+p)),
+		wanted = map(lambda p: Dir(os.path.abspath(drive + p)),
 					['/foo', '/foo/bar', '/foo/bar/baz'])
 		self.assertEqual(dirs, wanted)
 
@@ -150,7 +150,7 @@ class TestFS(tests.TestCase):
 		self.on_close_called = False
 		tmpdir = self.create_tmp_dir('testFileHandle')
 		fh = FileHandle(
-			tmpdir+'/foo.txt', mode='w', on_close=self.on_close)
+			tmpdir + '/foo.txt', mode='w', on_close=self.on_close)
 		fh.write('duss')
 		fh.close()
 		self.assertTrue(self.on_close_called)
@@ -161,18 +161,18 @@ class TestFS(tests.TestCase):
 	def testFile(self):
 		'''Test File object'''
 		tmpdir = self.create_tmp_dir('testFile')
-		file = File(tmpdir+'/foo/bar/baz.txt')
+		file = File(tmpdir + '/foo/bar/baz.txt')
 		assert not file.exists()
 		file.touch()
-		self.assertTrue(os.path.isfile(tmpdir+'/foo/bar/baz.txt'))
-		File(tmpdir+'/anotherfile.txt').touch()
+		self.assertTrue(os.path.isfile(tmpdir + '/foo/bar/baz.txt'))
+		File(tmpdir + '/anotherfile.txt').touch()
 		file.cleanup()
-		self.assertTrue(os.path.isfile(tmpdir+'/anotherfile.txt'))
+		self.assertTrue(os.path.isfile(tmpdir + '/anotherfile.txt'))
 		self.assertTrue(os.path.isdir(tmpdir))
-		self.assertFalse(os.path.isfile(tmpdir+'/foo/bar/baz.txt'))
-		self.assertFalse(os.path.isdir(tmpdir+'/foo'))
+		self.assertFalse(os.path.isfile(tmpdir + '/foo/bar/baz.txt'))
+		self.assertFalse(os.path.isdir(tmpdir + '/foo'))
 
-		file = File(tmpdir+'/bar.txt')
+		file = File(tmpdir + '/bar.txt')
 		file.writelines(['c\n', 'd\n'])
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
 
@@ -184,13 +184,13 @@ class TestFS(tests.TestCase):
 		except IOError:
 			del fh
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
-		self.assertTrue(os.path.isfile(file.encodedpath+'.zim-new~'))
+		self.assertTrue(os.path.isfile(file.encodedpath + '.zim-new~'))
 
 		# test recovery on windows
 		if os.name == 'nt':
-			new = file.encodedpath+'.zim-new~'
-			orig = file.encodedpath+'.zim-orig~'
-			bak = file.encodedpath+'.bak~'
+			new = file.encodedpath + '.zim-new~'
+			orig = file.encodedpath + '.zim-orig~'
+			bak = file.encodedpath + '.bak~'
 			os.remove(file.encodedpath) # don't clean up folder
 			open(new, 'w').write('NEW\n')
 			open(orig, 'w').write('ORIG\n')
@@ -202,7 +202,7 @@ class TestFS(tests.TestCase):
 			self.assertTrue(os.path.isfile(file.encodedpath))
 			self.assertTrue(os.path.isfile(bak))
 
-			bak1 = file.encodedpath+'.bak1~'
+			bak1 = file.encodedpath + '.bak1~'
 			os.remove(file.encodedpath) # don't clean up folder
 			open(orig, 'w').write('ORIG 1\n')
 			self.assertFalse(file.exists())
@@ -213,7 +213,7 @@ class TestFS(tests.TestCase):
 			self.assertTrue(os.path.isfile(bak1))
 
 		# test read-only
-		path = tmpdir+'/read-only-file.txt'
+		path = tmpdir + '/read-only-file.txt'
 		open(path, 'w').write('test 123')
 		os.chmod(path, 0o444)
 		file = File(path)
@@ -221,10 +221,10 @@ class TestFS(tests.TestCase):
 		os.chmod(path, 0o644) # make it removable again
 
 		# with windows line-ends
-		file = open(tmpdir+'/newlines.txt', 'wb')
+		file = open(tmpdir + '/newlines.txt', 'wb')
 			# binary mode means no automatic newline conversions
 		file.write('Some lines\r\nWith win32 newlines\r\n')
-		file = File(tmpdir+'/newlines.txt')
+		file = File(tmpdir + '/newlines.txt')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
 
 		# test encoding error
@@ -256,10 +256,10 @@ class TestFS(tests.TestCase):
 		file = File('test.jpg')
 		self.assertTrue(file.isimage())
 
-		file = File(tmpdir+'/foo/')
+		file = File(tmpdir + '/foo/')
 		self.assertFalse(file.isdir())
 
-		dir = Dir(tmpdir+'/foo/')
+		dir = Dir(tmpdir + '/foo/')
 		dir.touch()
 		self.assertTrue(file.isdir())
 
@@ -273,7 +273,7 @@ class TestFS(tests.TestCase):
 	def testDir(self):
 		'''Test Dir object'''
 		tmpdir = self.create_tmp_dir('testDir')
-		dir = Dir(tmpdir+'/foo/bar')
+		dir = Dir(tmpdir + '/foo/bar')
 		assert not dir.exists()
 
 		file1 = dir.file('unique.txt')
@@ -358,7 +358,7 @@ class TestFS(tests.TestCase):
 class TestFileOverwrite(tests.TestCase):
 
 	def setUp(self):
-		self.path = self.create_tmp_dir()+'/file.txt'
+		self.path = self.create_tmp_dir() + '/file.txt'
 
 	def modify(self, func):
 		modify_file_mtime(self.path, func)

@@ -136,7 +136,7 @@ class TestFormatMixin(object):
 					try:
 						start = text.index(piece, offset)
 					except ValueError:
-						self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (piece, offset, text[offset:offset+100]))
+						self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (piece, offset, text[offset:offset + 100]))
 					else:
 						offset = start + len(piece)
 
@@ -578,7 +578,7 @@ hmmm
 '''
 		tree = ParseTree()
 		tree.fromstring(xml)
-		text = ''.join( self.format.Dumper().dump(tree) )
+		text = ''.join(self.format.Dumper().dump(tree))
 		self.assertEqual(text, wanted)
 
 
@@ -605,9 +605,9 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 	def testEmptyLines(self):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		builder.append(HEADING, {'level':1}, 'head1')
+		builder.append(HEADING, {'level': 1}, 'head1')
 		builder.text('\n')
-		builder.append(HEADING, {'level':2}, 'head2')
+		builder.append(HEADING, {'level': 2}, 'head2')
 		builder.end(FORMATTEDTEXT)
 		tree = builder.get_parsetree()
 
@@ -725,9 +725,9 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
 	def testDocumentType(self):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
-		builder.append(HEADING, {'level':1}, 'head1')
+		builder.append(HEADING, {'level': 1}, 'head1')
 		builder.text('\n')
-		builder.append(HEADING, {'level':2}, 'head2')
+		builder.append(HEADING, {'level': 2}, 'head2')
 		builder.end(FORMATTEDTEXT)
 		tree = builder.get_parsetree()
 
@@ -837,4 +837,4 @@ Blaat
 		self.assertEqual(body, 'Blaat\n')
 
 		out = dump_header_lines(meta)
-		self.assertEqual(out+'\nBlaat\n', text)
+		self.assertEqual(out + '\nBlaat\n', text)

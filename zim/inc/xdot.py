@@ -127,7 +127,7 @@ class TextShape(Shape):
             # set font
             font = pango.FontDescription()
             font.set_family(self.pen.fontname)
-            font.set_absolute_size(self.pen.fontsize*pango.SCALE)
+            font.set_absolute_size(self.pen.fontsize * pango.SCALE)
             layout.set_font_description(font)
 
             # set text
@@ -141,8 +141,8 @@ class TextShape(Shape):
         descent = 2 # XXX get descender from font metrics
 
         width, height = layout.get_size()
-        width = float(width)/pango.SCALE
-        height = float(height)/pango.SCALE
+        width = float(width) / pango.SCALE
+        height = float(height) / pango.SCALE
         # we know the width that dot thinks this text should have
         # we do not necessarily have a font with the same metrics
         # scale it so that the text fits inside its box
@@ -157,7 +157,7 @@ class TextShape(Shape):
         if self.j == self.LEFT:
             x = self.x
         elif self.j == self.CENTER:
-            x = self.x - 0.5*width
+            x = self.x - 0.5 * width
         elif self.j == self.RIGHT:
             x = self.x - width
         else:
@@ -179,11 +179,11 @@ class TextShape(Shape):
             if self.j == self.LEFT:
                 x = self.x
             elif self.j == self.CENTER:
-                x = self.x - 0.5*self.w
+                x = self.x - 0.5 * self.w
             elif self.j == self.RIGHT:
                 x = self.x - self.w
             cr.move_to(x, self.y)
-            cr.line_to(x+self.w, self.y)
+            cr.line_to(x + self.w, self.y)
             cr.stroke()
 
 
@@ -203,7 +203,7 @@ class EllipseShape(Shape):
         cr.translate(self.x0, self.y0)
         cr.scale(self.w, self.h)
         cr.move_to(1.0, 0.0)
-        cr.arc(0.0, 0.0, 1.0, 0, 2.0*math.pi)
+        cr.arc(0.0, 0.0, 1.0, 0, 2.0 * math.pi)
         cr.restore()
         pen = self.select_pen(highlight)
         if self.filled:
@@ -336,10 +336,10 @@ class Node(Element):
         self.x = x
         self.y = y
 
-        self.x1 = x - 0.5*w
-        self.y1 = y - 0.5*h
-        self.x2 = x + 0.5*w
-        self.y2 = y + 0.5*h
+        self.x1 = x - 0.5 * w
+        self.y1 = y - 0.5 * h
+        self.x2 = x + 0.5 * w
+        self.y2 = y + 0.5 * h
 
         self.url = url
 
@@ -363,7 +363,7 @@ class Node(Element):
 def square_distance(x1, y1, x2, y2):
     deltax = x2 - x1
     deltay = y2 - y1
-    return deltax*deltax + deltay*deltay
+    return deltax * deltax + deltay * deltay
 
 
 class Edge(Element):
@@ -377,9 +377,9 @@ class Edge(Element):
     RADIUS = 10
 
     def get_jump(self, x, y):
-        if square_distance(x, y, *self.points[0]) <= self.RADIUS*self.RADIUS:
+        if square_distance(x, y, *self.points[0]) <= self.RADIUS * self.RADIUS:
             return Jump(self, self.dst.x, self.dst.y, highlight=set([self, self.dst]))
-        if square_distance(x, y, *self.points[-1]) <= self.RADIUS*self.RADIUS:
+        if square_distance(x, y, *self.points[-1]) <= self.RADIUS * self.RADIUS:
             return Jump(self, self.src.x, self.src.y, highlight=set([self, self.src]))
         return None
 
@@ -485,12 +485,12 @@ class XDotAttrParser:
             p.append((x, y))
         return p
 
-    def read_color(self, fallback=(0,0,0,1)):
+    def read_color(self, fallback=(0, 0, 0, 1)):
         # See http://www.graphviz.org/doc/info/attrs.html#k:color
         c = self.read_text()
         c1 = c[:1]
         if c1 == '#':
-            hex2float = lambda h: float(int(h, 16)/255.0)
+            hex2float = lambda h: float(int(h, 16) / 255.0)
             r = hex2float(c[1:3])
             g = hex2float(c[3:5])
             b = hex2float(c[5:7])
@@ -511,10 +511,10 @@ class XDotAttrParser:
             except ValueError:
                 sys.stderr.write("unknown color '%s'\n" % c)
                 return fallback
-            s = 1.0/65535.0
-            r = color.red*s
-            g = color.green*s
-            b = color.blue*s
+            s = 1.0 / 65535.0
+            r = color.red * s
+            g = color.green * s
+            b = color.blue * s
             a = 1.0
             return r, g, b, a
 
@@ -724,7 +724,7 @@ class Lexer:
             if tabpos == -1:
                 break
             self.col += tabpos - pos
-            self.col = ((self.col - 1)//self.tabsize + 1)*self.tabsize + 1
+            self.col = ((self.col - 1) // self.tabsize + 1) * self.tabsize + 1
             pos = tabpos + 1
         self.col += len(text) - pos
 
@@ -1016,8 +1016,8 @@ class XDotParser(DotParser):
             return
 
         x, y = self.parse_node_pos(pos)
-        w = float(attrs['width'])*72
-        h = float(attrs['height'])*72
+        w = float(attrs['width']) * 72
+        h = float(attrs['height']) * 72
         shapes = []
         for attr in ("_draw_", "_ldraw_"):
             if attr in attrs:
@@ -1070,8 +1070,8 @@ class XDotParser(DotParser):
 
     def transform(self, x, y):
         # XXX: this is not the right place for this code
-        x = (x + self.xoffset)*self.xscale
-        y = (y + self.yoffset)*self.yscale
+        x = (x + self.xoffset) * self.xscale
+        y = (y + self.yoffset) * self.yscale
         return x, y
 
 
@@ -1134,8 +1134,8 @@ class MoveToAnimation(LinearAnimation):
     def animate(self, t):
         sx, sy = self.source_x, self.source_y
         tx, ty = self.target_x, self.target_y
-        self.dot_widget.x = tx * t + sx * (1-t)
-        self.dot_widget.y = ty * t + sy * (1-t)
+        self.dot_widget.x = tx * t + sx * (1 - t)
+        self.dot_widget.y = ty * t + sy * (1 - t)
         self.dot_widget.queue_draw()
 
 
@@ -1160,7 +1160,7 @@ class ZoomToAnimation(MoveToAnimation):
 
     def animate(self, t):
         a, b, c = self.source_zoom, self.extra_zoom, self.target_zoom
-        self.dot_widget.zoom_ratio = c*t + b*t*(1-t) + a*(1-t)
+        self.dot_widget.zoom_ratio = c * t + b * t * (1 - t) + a * (1 - t)
         self.dot_widget.zoom_to_fit_on_resize = False
         MoveToAnimation.animate(self, t)
 
@@ -1281,7 +1281,7 @@ class DotWidget(gtk.DrawingArea):
 
     __gsignals__ = {
         'expose-event': 'override',
-        'clicked' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING, gtk.gdk.Event))
+        'clicked': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING, gtk.gdk.Event))
     }
 
     filter = 'dot'
@@ -1369,7 +1369,7 @@ class DotWidget(gtk.DrawingArea):
 
         cr.save()
         rect = self.get_allocation()
-        cr.translate(0.5*rect.width, 0.5*rect.height)
+        cr.translate(0.5 * rect.width, 0.5 * rect.height)
         cr.scale(self.zoom_ratio, self.zoom_ratio)
         cr.translate(-self.x, -self.y)
 
@@ -1395,13 +1395,13 @@ class DotWidget(gtk.DrawingArea):
 
     def zoom_image(self, zoom_ratio, center=False, pos=None):
         if center:
-            self.x = self.graph.width/2
-            self.y = self.graph.height/2
+            self.x = self.graph.width / 2
+            self.y = self.graph.height / 2
         elif pos is not None:
             rect = self.get_allocation()
             x, y = pos
-            x -= 0.5*rect.width
-            y -= 0.5*rect.height
+            x -= 0.5 * rect.width
+            y -= 0.5 * rect.height
             self.x += x / self.zoom_ratio - x / zoom_ratio
             self.y += y / self.zoom_ratio - y / zoom_ratio
         self.zoom_ratio = zoom_ratio
@@ -1413,8 +1413,8 @@ class DotWidget(gtk.DrawingArea):
         width = abs(x1 - x2)
         height = abs(y1 - y2)
         self.zoom_ratio = min(
-            float(rect.width)/float(width),
-            float(rect.height)/float(height)
+            float(rect.width) / float(width),
+            float(rect.height) / float(height)
         )
         self.zoom_to_fit_on_resize = False
         self.x = (x1 + x2) / 2
@@ -1428,8 +1428,8 @@ class DotWidget(gtk.DrawingArea):
         rect.width -= 2 * self.ZOOM_TO_FIT_MARGIN
         rect.height -= 2 * self.ZOOM_TO_FIT_MARGIN
         zoom_ratio = min(
-            float(rect.width)/float(self.graph.width),
-            float(rect.height)/float(self.graph.height)
+            float(rect.width) / float(self.graph.width),
+            float(rect.height) / float(self.graph.height)
         )
         self.zoom_image(zoom_ratio, center=True)
         self.zoom_to_fit_on_resize = True
@@ -1453,19 +1453,19 @@ class DotWidget(gtk.DrawingArea):
 
     def on_key_press_event(self, widget, event):
         if event.keyval == gtk.keysyms.Left:
-            self.x -= self.POS_INCREMENT/self.zoom_ratio
+            self.x -= self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
         if event.keyval == gtk.keysyms.Right:
-            self.x += self.POS_INCREMENT/self.zoom_ratio
+            self.x += self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
         if event.keyval == gtk.keysyms.Up:
-            self.y -= self.POS_INCREMENT/self.zoom_ratio
+            self.y -= self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
         if event.keyval == gtk.keysyms.Down:
-            self.y += self.POS_INCREMENT/self.zoom_ratio
+            self.y += self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
         if event.keyval == gtk.keysyms.Page_Up:
@@ -1559,8 +1559,8 @@ class DotWidget(gtk.DrawingArea):
 
     def window2graph(self, x, y):
         rect = self.get_allocation()
-        x -= 0.5*rect.width
-        y -= 0.5*rect.height
+        x -= 0.5 * rect.width
+        y -= 0.5 * rect.height
         x /= self.zoom_ratio
         y /= self.zoom_ratio
         x += self.x

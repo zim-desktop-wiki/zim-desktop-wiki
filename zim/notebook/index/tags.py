@@ -427,7 +427,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 		pagetreepath = PagesTreeModelMixin._find_all_pages(self, name, update_cache=False)[0]
 		assert len(names) == len(pagetreepath)
 		for i in range(len(names)):
-			n = ':'.join(names[:i+1])
+			n = ':'.join(names[:i + 1])
 			row = self.db.execute('SELECT * FROM pages WHERE name=?', (n,)).fetchone()
 			if row is None:
 				raise IndexNotFoundError(name)
@@ -458,7 +458,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 						myiter = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
 						self.cache[mytreepath] = myiter
 
-					treepaths.append(mytreepath + pagetreepath[i+1:])
+					treepaths.append(mytreepath + pagetreepath[i + 1:])
 
 		treepaths.sort()
 		return treepaths
@@ -634,7 +634,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 		pagetreepath = PagesTreeModelMixin._find_all_pages(self, name, update_cache=False)[0]
 		assert len(names) == len(pagetreepath)
 		for i in range(len(names)):
-			n = ':'.join(names[:i+1])
+			n = ':'.join(names[:i + 1])
 			row = self.db.execute('SELECT * FROM pages WHERE name=?', (n,)).fetchone()
 			if row is None:
 				raise IndexNotFoundError(name)
@@ -664,7 +664,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 						myiter = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
 						self.cache[mytreepath] = myiter
 
-					treepaths.append(mytreepath + pagetreepath[i+1:])
+					treepaths.append(mytreepath + pagetreepath[i + 1:])
 
 		treepaths.sort()
 		return treepaths

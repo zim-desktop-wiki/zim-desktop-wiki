@@ -31,8 +31,8 @@ def dip(x):
 		return x
 
 def which_call(x, mathfunc, cmathfunc, allowNegative=True):
-	x=dip(x)
-	if isinstance(x, complex) or (allowNegative == False and x<0):
+	x = dip(x)
+	if isinstance(x, complex) or (allowNegative == False and x < 0):
 		return cmathfunc(x)
 	else:
 		return mathfunc(x)
@@ -40,17 +40,17 @@ def which_call(x, mathfunc, cmathfunc, allowNegative=True):
 # math functions defined here
 
 def degrees(x):
-	return x*180/math.pi
+	return x * 180 / math.pi
 
 def radians(x):
-	return x*math.pi/180
+	return x * math.pi / 180
 
-def log(x,b=math.e):
+def log(x, b=math.e):
 	'log(x[, base]) -> the logarithm of x to the given base.\nIf the base not specified, returns the natural logarithm (base e) of x.'
-	if isinstance(x, complex) or x<0:
-		return dip( cmath.log(x) / cmath.log(b) )
+	if isinstance(x, complex) or x < 0:
+		return dip(cmath.log(x) / cmath.log(b))
 	else:
-		return math.log(x)/math.log(b)
+		return math.log(x) / math.log(b)
 
 def real(x):
 	'return just the real portion'
@@ -77,39 +77,39 @@ def sign(x):
 
 def log2(x):
 	'logarithm base 2'
-	return log(x,2)
+	return log(x, 2)
 
-def gcd(x,y):
+def gcd(x, y):
 	'greatest common denominator'
-	while x>0:
-		(x,y) = (y%x,x) # Guido showed me this one on the geek cruise
+	while x > 0:
+		(x, y) = (y % x, x) # Guido showed me this one on the geek cruise
 	return y
 
-def lcm(x,y):
+def lcm(x, y):
 	'least common multiple'
-	return x*y/gcd(x,y)
+	return x * y / gcd(x, y)
 
 def phase(z):
 	'phase of a complex in radians'
-	z=cpx(z)
-	return math.atan2( z.imag , z.real )
+	z = cpx(z)
+	return math.atan2(z.imag, z.real)
 
 def cpx(x):
 	'convert a number or tuple to a complex'
 	if isinstance(x, tuple):
-		return complex( x[0] , x[1] )
+		return complex(x[0], x[1])
 	else:
 		return complex(x)
 
-def conj( x ):
+def conj(x):
 	'complex conjugate'
-	x = cpx( x )
-	return complex( x.real , -x.imag )
+	x = cpx(x)
+	return complex(x.real, -x.imag)
 
-def complexify(x,func ):
+def complexify(x, func):
 	'call func on the real and imaginary portions, creating a complex from the respective results'
 	if isinstance(x, complex) and x.imag != 0:
-		return dip( complex( func(x.real) , func(x.imag) ) )
+		return dip(complex(func(x.real), func(x.imag)))
 	else:
 		return func(x)
 
@@ -117,17 +117,17 @@ def complexify(x,func ):
 def round(x):
 	'nearest integer'
 	if isinstance(x, complex):
-		return complexify( x , round )
+		return complexify(x, round)
 	else:
-		return math.floor(x+.5)
+		return math.floor(x + .5)
 
 def floor(x):
 	'round towards negative infinity'
-	return complexify( x , math.floor )
+	return complexify(x, math.floor)
 
 def ceil(x):
 	'round towards positive infinity'
-	return complexify( x , math.ceil )
+	return complexify(x, math.ceil)
 
 
 # functions and constants available  within the safe eval construct
@@ -152,18 +152,18 @@ GLOBALS = {
 	# other nice-to-have constants
 	'j': cmath.sqrt(-1),
 	# marshall between the math and cmath functions automatically
-	'acos': lambda x: which_call(x,math.acos,cmath.acos),
-	'asin': lambda x: which_call(x,math.asin,cmath.asin),
-	'atan': lambda x: which_call(x,math.atan,cmath.atan),
-	'cos': lambda x: which_call(x,math.cos,cmath.cos),
-	'cosh': lambda x: which_call(x,math.cosh,cmath.cosh),
-	'sin': lambda x: which_call(x,math.sin,cmath.sin),
-	'sinh': lambda x: which_call(x,math.sinh,cmath.sinh),
-	'tan': lambda x: which_call(x,math.tan,cmath.tan),
-	'tanh': lambda x: which_call(x,math.tanh,cmath.tanh),
-	'exp': lambda x: which_call(x,math.exp,cmath.exp),
-	'log10': lambda x: which_call(x,math.log10,cmath.log10,False),
-	'sqrt': lambda x: which_call(x,math.sqrt,cmath.sqrt,False),
+	'acos': lambda x: which_call(x, math.acos, cmath.acos),
+	'asin': lambda x: which_call(x, math.asin, cmath.asin),
+	'atan': lambda x: which_call(x, math.atan, cmath.atan),
+	'cos': lambda x: which_call(x, math.cos, cmath.cos),
+	'cosh': lambda x: which_call(x, math.cosh, cmath.cosh),
+	'sin': lambda x: which_call(x, math.sin, cmath.sin),
+	'sinh': lambda x: which_call(x, math.sinh, cmath.sinh),
+	'tan': lambda x: which_call(x, math.tan, cmath.tan),
+	'tanh': lambda x: which_call(x, math.tanh, cmath.tanh),
+	'exp': lambda x: which_call(x, math.exp, cmath.exp),
+	'log10': lambda x: which_call(x, math.log10, cmath.log10, False),
+	'sqrt': lambda x: which_call(x, math.sqrt, cmath.sqrt, False),
 	# functions defined here
 	'degrees': degrees,
 	'radians': radians,
@@ -189,7 +189,7 @@ class ExpressionError(Error):
 
 	description = _(
 		'The inline calculator plugin was not able\n'
-		'to evaluate the expression at the cursor.' )
+		'to evaluate the expression at the cursor.')
 		# T: error description
 
 
@@ -274,7 +274,7 @@ This is a core plugin shipping with zim.
 		expression = sep.join('(%s)' % l for l in lines[:i])
 		result = self.safe_eval(expression)
 
-		lines = lines[:i+1] + [str(result)]
+		lines = lines[:i + 1] + [str(result)]
 		return '\n'.join(lines) + '\n'
 
 

@@ -29,11 +29,11 @@ FILES = (
 TREEPATHS = (
 	('Bar', (0,)),
 	('Foo', (1,)),
-	('Foo:Child1', (1,0)),
-	('Foo:Child1:GrandChild1', (1,0,0)),
-	('Foo:Child1:GrandChild2', (1,0,1)),
-	('Foo:Child2', (1,1)),
-	('Foo:Child3', (1,2)),
+	('Foo:Child1', (1, 0)),
+	('Foo:Child1:GrandChild1', (1, 0, 0)),
+	('Foo:Child1:GrandChild2', (1, 0, 1)),
+	('Foo:Child2', (1, 1)),
+	('Foo:Child3', (1, 2)),
 )
 LINKS = (
 	('Bar', ['Foo'], []),
@@ -51,24 +51,24 @@ TREEPATHS_TAGGED_12 = (
 	# top level sorts by basename
 	('Bar', (0,)),
 	('Foo:Child1', (1,)),
-		('Foo:Child1:GrandChild1', (1,0)),
-		('Foo:Child1:GrandChild2', (1,1)),
+		('Foo:Child1:GrandChild1', (1, 0)),
+		('Foo:Child1:GrandChild2', (1, 1)),
 )
 TREEPATHS_TAGS_12 = (
 	# include all pages with any of the tags
 	# top level sorts by basename: Bar, Child, GranChild
 	('tag1', (0,)),
-		('Bar', (0,0)),
-		('Foo:Child1', (0,1)),
-			('Foo:Child1:GrandChild1', (0,1,0)),
-			('Foo:Child1:GrandChild2', (0,1,1)),
+		('Bar', (0, 0)),
+		('Foo:Child1', (0, 1)),
+			('Foo:Child1:GrandChild1', (0, 1, 0)),
+			('Foo:Child1:GrandChild2', (0, 1, 1)),
 	('tag2', (1,)),
-		('Bar', (1,0,)),
-		('Foo:Child1', (1,1,)),
-			('Foo:Child1:GrandChild1', (1,1,0)),
-			('Foo:Child1:GrandChild2', (1,1,1)),
-		('Foo:Child2', (1,2,)),
-		('Foo:Child1:GrandChild1', (1,3,)),
+		('Bar', (1, 0,)),
+		('Foo:Child1', (1, 1,)),
+			('Foo:Child1:GrandChild1', (1, 1, 0)),
+			('Foo:Child1:GrandChild2', (1, 1, 1)),
+		('Foo:Child2', (1, 2,)),
+		('Foo:Child1:GrandChild1', (1, 3,)),
 )
 
 _SQL = None
@@ -130,19 +130,19 @@ class TestPagesView(tests.TestCase):
 
 		self.assertEqual(len(pagelist), pages.n_all_pages())
 
-		last = len(pagelist)-1
+		last = len(pagelist) - 1
 		for i, name in enumerate(pagelist):
 			p = pages.get_previous(Path(name))
 			if i > 0:
 				self.assertIsNotNone(p, 'Missing prev for %s' % name)
-				self.assertEqual(p.name, pagelist[i-1])
+				self.assertEqual(p.name, pagelist[i - 1])
 			else:
 				self.assertIsNone(p)
 
 			n = pages.get_next(Path(name))
 			if i < last:
 				self.assertIsNotNone(n, 'Missing next for %s' % name)
-				self.assertEqual(n.name, pagelist[i+1])
+				self.assertEqual(n.name, pagelist[i + 1])
 			else:
 				self.assertIsNone(n)
 
@@ -154,7 +154,7 @@ class TestPagesView(tests.TestCase):
 		db = new_test_database()
 		pages = PagesView(db)
 
-		pageset = set( pages.walk() )
+		pageset = set(pages.walk())
 		recent = set(pages.list_recent_changes())
 		self.assertEqual(recent, pageset)
 
@@ -209,7 +209,7 @@ class TestPagesView(tests.TestCase):
 			# TODO more ambigous test cases
 		):
 			self.assertEqual(
-			pages.lookup_from_user_input(name), Path(wanted) )
+			pages.lookup_from_user_input(name), Path(wanted))
 
 		# resolving relative paths
 		for name, ns, wanted in (
@@ -219,7 +219,7 @@ class TestPagesView(tests.TestCase):
 			('+test', 'Foo:Child1', 'Foo:Child1:test'),
 		):
 			self.assertEqual(
-				pages.lookup_from_user_input(name, Path(ns)), Path(wanted) )
+				pages.lookup_from_user_input(name, Path(ns)), Path(wanted))
 
 		self.assertRaises(ValueError, pages.lookup_from_user_input, ':::')
 
@@ -241,7 +241,7 @@ class TestPagesView(tests.TestCase):
 			self.assertEqual(my_treepath, treepath)
 
 		# Test non-existing
-		p = model.get_mytreeiter((1,2,3,4,5))
+		p = model.get_mytreeiter((1, 2, 3, 4, 5))
 		self.assertIsNone(p)
 		self.assertRaises(IndexNotFoundError, model.find, Path('non-existing-page'))
 
@@ -331,7 +331,7 @@ class TestTagsView(tests.TestCase):
 		self.assertEqual(treepaths, list(TREEPATHS_TAGGED_12))
 
 		# Test non-existing
-		p = model.get_mytreeiter((1,2,3,4,5))
+		p = model.get_mytreeiter((1, 2, 3, 4, 5))
 		self.assertIsNone(p)
 		self.assertRaises(IndexNotFoundError, model.find_all, Path('non-existing-page'))
 
@@ -367,7 +367,7 @@ class TestTagsView(tests.TestCase):
 		self.assertEqual(treepaths, list(TREEPATHS_TAGS_12))
 
 		# Test non-existing
-		p = model.get_mytreeiter((1,2,3,4,5))
+		p = model.get_mytreeiter((1, 2, 3, 4, 5))
 		self.assertIsNone(p)
 		self.assertRaises(IndexNotFoundError, model.find_all, Path('non-existing-page'))
 

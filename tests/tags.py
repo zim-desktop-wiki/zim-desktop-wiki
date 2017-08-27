@@ -77,7 +77,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		iter2 = treestore.on_iter_children(None)
 		self.assertEqual(iter2.treepath, (0,))
 
-		self.assertTrue(treestore.on_get_iter((20,20,20,20,20)) is None)
+		self.assertTrue(treestore.on_get_iter((20, 20, 20, 20, 20)) is None)
 		self.assertRaises(IndexNotFoundError, treestore.find, Path('nonexisting'))
 		self.assertRaises(ValueError, treestore.find, Path(':'))
 
@@ -98,14 +98,14 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			if treestore.iter_has_child(iter):
 				path = path + (0,)
 			else:
-				path = path[:-1] + (path[-1]+1,) # increase last member
+				path = path[:-1] + (path[-1] + 1,) # increase last member
 				while path:
 					try:
 						treestore.get_iter(path)
 					except ValueError:
 						path = path[:-1]
 						if len(path):
-							path = path[:-1] + (path[-1]+1,) # increase last member
+							path = path[:-1] + (path[-1] + 1,) # increase last member
 					else:
 						break
 
@@ -162,7 +162,7 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		self.viewclass = TagsPageTreeView
 		self.toplevel = IS_TAG
 		self.tags = ('foo', 'bar')
-		self.notebook= self.setUpNotebook(mock=tests.MOCK_ALWAYS_MOCK, content={
+		self.notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_MOCK, content={
 			'foo': '@foo',
 			'bar': '@bar',
 			'foobar': '@foo @bar',
@@ -238,9 +238,9 @@ class TestTagPluginWidget(tests.TestCase):
 		# check menu and sorting of tag cloud
 		cloud.emit('populate-popup', gtk.Menu())
 		mockaction = tests.MockObject()
-		mockaction.get_active = lambda : True
+		mockaction.get_active = lambda: True
 		cloud._switch_sorting(mockaction)
-		mockaction.get_active = lambda : False
+		mockaction.get_active = lambda: False
 		cloud._switch_sorting(mockaction)
 
 

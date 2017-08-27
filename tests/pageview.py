@@ -67,35 +67,35 @@ class TestLines(tests.TestCase):
 
 		# Check formatting.
 		string = 'text... \n{}\n text... \n'
-		input = string.format('-'*4)
+		input = string.format('-' * 4)
 		check_text(input, input) # doesn't format
 		for i in range(30):
 			if i < 5:
-				output = string.format('-'*i)
+				output = string.format('-' * i)
 			else:
 				output = string.format(LINE_TEXT)
-			input = string.format('-'*i)
+			input = string.format('-' * i)
 			check_text(input, output)
 
 		# Check that any additional symbol other than '-' fails.
-		input = 'text... {}\n text... \n'.format('-'*10)
+		input = 'text... {}\n text... \n'.format('-' * 10)
 		check_text(input, input)
-		input = 'text... \n{}text... \n'.format('-'*10)
+		input = 'text... \n{}text... \n'.format('-' * 10)
 		check_text(input, input)
-		input = 'text... \n{} \n text... \n'.format('-'*10)
+		input = 'text... \n{} \n text... \n'.format('-' * 10)
 		check_text(input, input)
-		input = 'text... \n {}\n text... \n'.format('-'*10)
+		input = 'text... \n {}\n text... \n'.format('-' * 10)
 		check_text(input, input)
 
 		# Check more complex text.
 		string = 'text... \n\n{0}\n\n{0}\n\n text... \n'
-		input = string.format('-'*7)
+		input = string.format('-' * 7)
 		output = string.format(LINE_TEXT)
 		check_text(input, output)
 
 		string = '... \n{}\n{}\n{}\n ... \n{}\n{}0\n'
-		input = string.format('-'*8, '-'*6, '-'*4, '-'*11, '-'*10)
-		output = string.format(LINE_TEXT, LINE_TEXT, '-'*4, LINE_TEXT, '-'*10)
+		input = string.format('-' * 8, '-' * 6, '-' * 4, '-' * 11, '-' * 10)
+		output = string.format(LINE_TEXT, LINE_TEXT, '-' * 4, LINE_TEXT, '-' * 10)
 		check_text(input, output)
 
 
@@ -806,7 +806,7 @@ Tja
 			(5, 1, '*'),
 			(6, 1, '*'),
 			(7, 0, '*'),
-		] )
+		])
 
 		# Exercise indenting
 		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
@@ -1326,11 +1326,11 @@ def press(widget, sequence):
 		if isinstance(key, (int, long)):
 			event.keyval = int(key)
 		elif key == '\n':
-			event.keyval = int( gtk.gdk.keyval_from_name('Return') )
+			event.keyval = int(gtk.gdk.keyval_from_name('Return'))
 		elif key == '\t':
-			event.keyval = int( gtk.gdk.keyval_from_name('Tab') )
+			event.keyval = int(gtk.gdk.keyval_from_name('Tab'))
 		else:
-			event.keyval = int( gtk.gdk.unicode_to_keyval(ord(key)) )
+			event.keyval = int(gtk.gdk.unicode_to_keyval(ord(key)))
 
 		if not isinstance(key, (int, long)):
 			event.string = key
@@ -1547,7 +1547,7 @@ foo
 			from zim.notebook import Path, Page
 			from zim.formats import get_format
 			dumper = get_format('wiki').Dumper()
-			text = ''.join( dumper.dump(parsetree) ).encode('utf-8')
+			text = ''.join(dumper.dump(parsetree)).encode('utf-8')
 			parser = get_format('wiki').Parser()
 			parsetree = parser.parse(text)
 			return parsetree

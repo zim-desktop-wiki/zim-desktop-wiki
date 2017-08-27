@@ -248,7 +248,7 @@ class TestConfigDefinitions(tests.TestCase):
 
 	def testConfigDefinitionByClass(self):
 		for value, klass in (
-			([1,2,3], list),
+			([1, 2, 3], list),
 			(Path('foo'), Path),
 		):
 			definition = build_config_definition(value)
@@ -256,12 +256,12 @@ class TestConfigDefinitions(tests.TestCase):
 			self.assertEqual(definition.klass, klass)
 
 		# Test input by json struct
-		definition = ConfigDefinitionByClass([1,2,3])
-		self.assertEqual(definition.check('[true,200,null]'), [True,200,None])
+		definition = ConfigDefinitionByClass([1, 2, 3])
+		self.assertEqual(definition.check('[true,200,null]'), [True, 200, None])
 
 		# Test converting to tuple
-		definition = ConfigDefinitionByClass((1,2,3))
-		self.assertEqual(definition.check([5,6,7]), (5,6,7))
+		definition = ConfigDefinitionByClass((1, 2, 3))
+		self.assertEqual(definition.check([5, 6, 7]), (5, 6, 7))
 
 		# Test new_from_zim_config
 		definition = ConfigDefinitionByClass(Path('foo'))
@@ -327,8 +327,8 @@ class TestConfigDefinitions(tests.TestCase):
 		self.assertEqual(definition.check(None), None)
 
 		# test list conversion
-		definition = Choice((1,2), ((1,2), (3,4), (5,6)))
-		self.assertEqual(definition.check([3,4]), (3,4))
+		definition = Choice((1, 2), ((1, 2), (3, 4), (5, 6)))
+		self.assertEqual(definition.check([3, 4]), (3, 4))
 
 		# test hack for preferences with label
 		pref = [
@@ -350,17 +350,17 @@ class TestConfigDefinitions(tests.TestCase):
 		self.assertRaises(ValueError, definition.check, None)
 
 	def testCoordinate(self):
-		definition = Coordinate((1,2))
-		self.assertEqual(definition.check((2,3)), (2,3))
-		self.assertEqual(definition.check([2,3]), (2,3))
+		definition = Coordinate((1, 2))
+		self.assertEqual(definition.check((2, 3)), (2, 3))
+		self.assertEqual(definition.check([2, 3]), (2, 3))
 		self.assertRaises(ValueError, definition.check, 'XXX')
-		self.assertRaises(ValueError, definition.check, (1,2,3))
-		self.assertRaises(ValueError, definition.check, (1,'XXX'))
+		self.assertRaises(ValueError, definition.check, (1, 2, 3))
+		self.assertRaises(ValueError, definition.check, (1, 'XXX'))
 		self.assertRaises(ValueError, definition.check, ('XXX', 2))
 		self.assertRaises(ValueError, definition.check, '')
 		self.assertRaises(ValueError, definition.check, None)
 
-		definition = Coordinate((1,2), allow_empty=True)
+		definition = Coordinate((1, 2), allow_empty=True)
 		self.assertEqual(definition.check(''), None)
 		self.assertEqual(definition.check(None), None)
 
@@ -773,7 +773,7 @@ newkey=ja
 		self.assertFalse('myprofile' in newfile.file.path)
 
 		newfile = manager.get_config_file('<profile>/dict.conf')
-		self.assertMatchPath(newfile.file, self.prefix+'/profiles/myprofile/dict.conf')
+		self.assertMatchPath(newfile.file, self.prefix + '/profiles/myprofile/dict.conf')
 
 		newdict = manager.get_config_dict('<profile>/dict.conf')
 		self.assertEqual(id(newdict), id(dict))
@@ -788,14 +788,14 @@ newkey=ja
 		self.assertEqual(changed_counter.count, 2)
 
 		conffile = manager.get_config_file('<profile>/preferences.conf')
-		file, defaults  = conffile.file, list(conffile.defaults)
-		self.assertMatchPath(file, self.prefix+'/profiles/oldprofile/preferences.conf')
-		self.assertMatchPath(defaults[0], self.prefix+'/profiles/oldprofile.conf')
+		file, defaults = conffile.file, list(conffile.defaults)
+		self.assertMatchPath(file, self.prefix + '/profiles/oldprofile/preferences.conf')
+		self.assertMatchPath(defaults[0], self.prefix + '/profiles/oldprofile.conf')
 
 		conffile = manager.get_config_file('<profile>/style.conf')
-		file, defaults  = conffile.file, list(conffile.defaults)
-		self.assertMatchPath(file, self.prefix+'/profiles/oldprofile/style.conf')
-		self.assertMatchPath(defaults[0], self.prefix+'/styles/oldprofile.conf')
+		file, defaults = conffile.file, list(conffile.defaults)
+		self.assertMatchPath(file, self.prefix + '/profiles/oldprofile/style.conf')
+		self.assertMatchPath(defaults[0], self.prefix + '/styles/oldprofile.conf')
 
 
 class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):

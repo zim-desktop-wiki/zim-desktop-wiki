@@ -166,7 +166,7 @@ class NotebookTreeView(gtk.TreeView):
 		column = gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)
 		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
-		column.set_fixed_width(w*2)
+		column.set_fixed_width(w * 2)
 		self.append_column(column)
 
 		cell_renderer = gtk.CellRendererText()
@@ -288,7 +288,7 @@ class NotebookDialog(Dialog):
 		path = data_file('globe_banner_small.png').path
 		image = gtk.Image()
 		image.set_from_file(path) # new_from_file not in 2.6
-		align = gtk.Alignment(0,0.5, 0,0)
+		align = gtk.Alignment(0, 0.5, 0, 0)
 		align.add(image)
 		self.vbox.pack_start(align, False)
 
@@ -327,7 +327,7 @@ class NotebookDialog(Dialog):
 		clear_button.connect('clicked', lambda o: self.combobox.set_active(-1))
 
 		hbox = gtk.HBox(spacing=5)
-		hbox.pack_start(gtk.Label(_('Default notebook')+': '), False)
+		hbox.pack_start(gtk.Label(_('Default notebook') + ': '), False)
 			# T: Input label in 'open notebook' dialog
 		hbox.pack_start(self.combobox, False)
 		hbox.pack_start(clear_button, False)

@@ -58,9 +58,9 @@ def parse_date(date):
 	if 'W' in string:
 		string = string.replace('WK', '').replace('W', '').replace('.', '')
 		if len(string) == 4: # yyww
-			return Week(int(string[:2])+2000, int(string[2:4]))
+			return Week(int(string[:2]) + 2000, int(string[2:4]))
 		elif len(string) == 5: # yywwD
-			return Day.new_from_weeknumber(int(string[:2])+2000, int(string[2:4]), int(string[4]))
+			return Day.new_from_weeknumber(int(string[:2]) + 2000, int(string[2:4]), int(string[4]))
 		elif len(string) == 6: # yyyyww
 			return Week(int(string[:4]), int(string[4:]))
 		elif len(string) == 7: # yyyywwD
@@ -138,7 +138,7 @@ class Month(DateRange):
 
 	@property
 	def last_day(self):
-		return datetime.date(self.year, self.month+1, 1) - datetime.timedelta(days=1)
+		return datetime.date(self.year, self.month + 1, 1) - datetime.timedelta(days=1)
 
 	def __str__(self):
 		return '%s-%s' % (self.year, self.month)

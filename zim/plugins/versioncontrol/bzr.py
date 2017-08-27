@@ -86,10 +86,10 @@ class BZRApplicationBackend(VCSApplicationBase):
 		Runs: bzr commit -m {{MSG}} {{PATH}}
 		"""
 		params = ['commit']
-		if msg!='' and msg is not None:
+		if msg != '' and msg is not None:
 			params.append('-m')
 			params.append(msg)
-		if path!='' and path is not None:
+		if path != '' and path is not None:
 			params.append(path)
 		return self.run(params)
 

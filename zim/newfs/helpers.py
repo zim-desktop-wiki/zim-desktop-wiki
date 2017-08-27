@@ -35,7 +35,7 @@ class FileTreeWatcher(SignalEmitter):
 	__signals__ = {
 		'created': (SIGNAL_NORMAL, None, (object,)),
 		'changed': (SIGNAL_NORMAL, None, (object,)),
-		'moved':   (SIGNAL_NORMAL, None, (object, object)),
+		'moved': (SIGNAL_NORMAL, None, (object, object)),
 		'removed': (SIGNAL_NORMAL, None, (object,)),
 	} #: signals supported by this class
 

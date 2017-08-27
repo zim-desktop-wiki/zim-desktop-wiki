@@ -41,7 +41,7 @@ def _application_file(path, dirs):
 	# could also be stored as applications/kde/foo.desktop but not necessarily..
 	paths = [path]
 	if '-' in path:
-		for i in range(1, path.count('-')+1):
+		for i in range(1, path.count('-') + 1):
 			paths.append(path.replace('-', '/', i))
 
 	for dir in dirs:
@@ -198,10 +198,10 @@ def _read_comment_from(file):
 	#~ print "FIND COMMENT", file, mylang
 	for elt in xml.getroot():
 		if elt.tag.endswith('comment'):
-			lang = elt.attrib.get(xmlns+'lang', '')
+			lang = elt.attrib.get(xmlns + 'lang', '')
 			if lang == mylang:
 				return elt.text
-			elif not lang or mylang.startswith(lang+'_'):
+			elif not lang or mylang.startswith(lang + '_'):
 				fallback.append((lang, elt.text))
 			else:
 				pass
@@ -490,17 +490,17 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 	_definitions = (
 		# Data types for all keys are defined in spec - see freedesktop.org
 		# Don't define all keys in the spec, just define the ones that we might use
-		('Type',		String('Application')),
-		('Version',		Numeric(1.0)),
-		('GenericName',	LocaleString(None)),
-		('Name',		LocaleString(None)),
-		('Comment',		LocaleString(None)),
-		('Exec',		String(None)),
-		('TryExec',		String(None)),
-		('Icon',		LocaleString(None)),
-		('MimeType',	String(None)),
-		('Terminal',	Boolean(False)),
-		('NoDisplay',	Boolean(False)),
+		('Type', String('Application')),
+		('Version', Numeric(1.0)),
+		('GenericName', LocaleString(None)),
+		('Name', LocaleString(None)),
+		('Comment', LocaleString(None)),
+		('Exec', String(None)),
+		('TryExec', String(None)),
+		('Icon', LocaleString(None)),
+		('MimeType', String(None)),
+		('Terminal', Boolean(False)),
+		('NoDisplay', Boolean(False)),
 	)
 
 	def __init__(self):
@@ -774,7 +774,7 @@ class CustomizeOpenWithDialog(Dialog):
 		self.default_combo.connect('changed', self.on_default_changed)
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
-		hbox.pack_start(gtk.Label(_('Default')+':'), False) # T: label for default application
+		hbox.pack_start(gtk.Label(_('Default') + ':'), False) # T: label for default application
 		hbox.pack_start(self.default_combo)
 
 		# Button to add new
@@ -887,11 +887,11 @@ class AddApplicationDialog(Dialog):
 		Dialog.__init__(self, ui, _('Add Application')) # T: Dialog title
 		self.mimetype = mimetype
 		self.add_text(_mimetype_dialog_text(mimetype))
-		self.add_form( (
+		self.add_form((
 			('name', 'string', _('Name')), # T: Field in 'custom command' dialog
 			('exec', 'string', _('Command')), # T: Field in 'custom command' dialog
 			('default', 'bool', _('Make default application')), # T: Field in 'custom command' dialog
-		) )
+		))
 		self.form['default'] = True
 
 	def do_response_ok(self):
@@ -1061,11 +1061,11 @@ class CustomToolDict(DesktopEntryDict):
 	'''
 
 	_definitions = DesktopEntryDict._definitions + (
-			('X-Zim-ExecTool',			String(None)),
-			('X-Zim-ReadOnly',			Boolean(True)),
-			('X-Zim-ShowInToolBar',		Boolean(False)),
-			('X-Zim-ShowInContextMenu',	Choice(None, ('Text', 'Page'))),
-			('X-Zim-ReplaceSelection',	Boolean(False)),
+			('X-Zim-ExecTool', String(None)),
+			('X-Zim-ReadOnly', Boolean(True)),
+			('X-Zim-ShowInToolBar', Boolean(False)),
+			('X-Zim-ShowInContextMenu', Choice(None, ('Text', 'Page'))),
+			('X-Zim-ReplaceSelection', Boolean(False)),
 	)
 
 	def isvalid(self):

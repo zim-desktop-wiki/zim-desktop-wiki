@@ -87,7 +87,7 @@ class MultiFileExporter(FilesExporterBase):
 		FilesExporterBase.__init__(self, layout, template, format, document_root_url)
 		if index_page:
 			if isinstance(index_page, basestring):
-				self.index_page = Path( Path.makeValidPageName(index_page) )
+				self.index_page = Path(Path.makeValidPageName(index_page))
 			else:
 				self.index_page = index_page
 		else:
@@ -120,7 +120,7 @@ class MultiFileExporter(FilesExporterBase):
 	def export_page(self, notebook, page, pages, prevpage=None, nextpage=None):
 		# XXX FIXME remove need for notebook here
 
-		file=self.layout.page_file(page)
+		file = self.layout.page_file(page)
 		if file.exists():
 			file.remove() # export does overwrite by default
 

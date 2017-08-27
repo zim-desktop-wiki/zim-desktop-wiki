@@ -190,7 +190,7 @@ class ConfigDefinitionByClass(ConfigDefinition):
 	'''
 	# TODO fully get rid of this class and replace by specialized classes
 
-	__slots__= ('klass',)
+	__slots__ = ('klass',)
 
 	def __init__(self, default, klass=None, allow_empty=False):
 		if klass is None:
@@ -233,7 +233,7 @@ class ConfigDefinitionByClass(ConfigDefinition):
 		if hasattr(value, 'serialize_zim_config'):
 			return value.serialize_zim_config()
 		else:
-			return json.dumps(value, separators=(',',':'))
+			return json.dumps(value, separators=(',', ':'))
 				# specify separators for compact encoding
 
 
@@ -401,7 +401,7 @@ class Coordinate(ConfigDefinition):
 
 	def __init__(self, default, allow_empty=False):
 		if default == (None, None):
-			allow_empty=True
+			allow_empty = True
 		ConfigDefinition.__init__(self, default, allow_empty)
 
 	def check(self, value):

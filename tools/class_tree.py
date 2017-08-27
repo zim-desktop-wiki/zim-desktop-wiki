@@ -21,7 +21,7 @@ class TextTree(object):
 
 		items = object.items()
 		if items:
-			for i in range(len(items)-1):
+			for i in range(len(items) - 1):
 				add_item(items[i], '|-- ', '|   ')
 			add_item(items[-1], '`-- ', '    ')
 
@@ -50,12 +50,12 @@ class ModuleDir(ModuleFile):
 
 	def __init__(self, dir):
 		assert os.path.isdir(dir), 'Could not find dir: %s' % dir
-		ModuleFile.__init__(self, dir+'/__init__.py')
+		ModuleFile.__init__(self, dir + '/__init__.py')
 		self.dir = dir
 		self.name = os.path.basename(dir)
 		self.modules = []
 
-		paths = [dir+'/'+p for p in os.listdir(dir) if not p.startswith('_')]
+		paths = [dir + '/' + p for p in os.listdir(dir) if not p.startswith('_')]
 		for file in [f for f in paths if f.endswith('.py')]:
 			self.modules.append(ModuleFile(file))
 		for subdir in [d for d in paths if os.path.isdir(d)]:

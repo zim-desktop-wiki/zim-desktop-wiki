@@ -39,15 +39,15 @@ class ExpressionParser(object):
 
 	# Operator precedence: or -- and -- not -- <, <=, >, >=, <>, !=, ==
 	operators = {
-		'==':	operator.eq,
-		'!=':	operator.ne,
-		'>':	operator.gt,
-		'>=':	operator.ge,
-		'<':	operator.lt,
-		'<=':	operator.le,
-		'and':	operator.and_,
-		'or':	operator.or_,
-		'not':	operator.not_, # special case - unary operator
+		'==': operator.eq,
+		'!=': operator.ne,
+		'>': operator.gt,
+		'>=': operator.ge,
+		'<': operator.lt,
+		'<=': operator.le,
+		'and': operator.and_,
+		'or': operator.or_,
+		'not': operator.not_, # special case - unary operator
 	}
 
 	tokens = [',', '[', ']', '(', ')'] \

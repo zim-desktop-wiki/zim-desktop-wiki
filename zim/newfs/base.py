@@ -377,7 +377,7 @@ class FilePath(object):
 			return self
 		else:
 			for i in range(1, len(self.pathnames)):
-				if self.pathnames[:i+1] != other.pathnames[:i+1]:
+				if self.pathnames[:i + 1] != other.pathnames[:i + 1]:
 					return FilePath(self.pathnames[:i])
 
 

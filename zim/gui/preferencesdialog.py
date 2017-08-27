@@ -93,10 +93,10 @@ class PreferencesDialog(Dialog):
 
 	def _add_font_selection(self, table):
 		# need to hardcode this, cannot register it as a preference
-		table.add_inputs( (
+		table.add_inputs((
 			('use_custom_font', 'bool', _('Use a custom font')),
 			# T: option in preferences dialog
-		) )
+		))
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
 		self.fontbutton = gtk.FontButton()
@@ -113,7 +113,7 @@ class PreferencesDialog(Dialog):
 			pass
 
 		table.widgets['use_custom_font'].connect('toggled',
-			lambda o: self.fontbutton.set_sensitive(o.get_active()) )
+			lambda o: self.fontbutton.set_sensitive(o.get_active()))
 
 		self.fontbutton.set_size_request(100, -1)
 		input_table_factory(((None, self.fontbutton),), table)
@@ -281,7 +281,7 @@ class PluginsTab(gtk.VBox):
 					insert(u'\u2022 %s - %s (%s)\n' % (text,
 						_('Failed'), # T: dependency failed
 						_('Optional') # T: optional dependency
-					) )
+					))
 		insert('\n')
 
 		insert(_('Author') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
@@ -381,7 +381,7 @@ class PluginConfigureDialog(Dialog):
 
 		label = gtk.Label()
 		label.set_markup(
-			'<b>'+_('Options for plugin %s') % plugin.plugin_info['name']+'</b>')
+			'<b>' + _('Options for plugin %s') % plugin.plugin_info['name'] + '</b>')
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 

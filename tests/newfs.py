@@ -68,7 +68,7 @@ class TestFilePath(tests.TestCase):
 		# all variants should give equal result in constructor
 		testpath = P('/foo/bar')
 		testpathnames = ('/foo', 'bar') if os.name != 'nt' else ('C:', 'foo', 'bar')
-		testuri =  'file:///foo/bar' if os.name != 'nt' else 'file:///C:/foo/bar'
+		testuri = 'file:///foo/bar' if os.name != 'nt' else 'file:///C:/foo/bar'
 		for p in (
 			testpath, testpathnames, testuri,
 			testpath + '///', P('/foo/./bar/../bar'),
@@ -154,7 +154,7 @@ class TestFilePath(tests.TestCase):
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
 		):
 			self.assertEqual(
-				FilePath(P(path1)).relpath(FilePath(P(path2)), 	allowupward=True),
+				FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True),
 				P(relpath)
 			)
 

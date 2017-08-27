@@ -219,7 +219,7 @@ class SimpleTreeElement(list):
 			lines = [prefix + '%s %r [\n' % (self.tag, self.attrib)]
 			for item in self:
 				if isinstance(item, SimpleTreeElement):
-					lines.append(item.pprint(level=level+1))
+					lines.append(item.pprint(level=level + 1))
 				elif isinstance(item, basestring):
 					for line in item.splitlines(True):
 						lines.append(prefix + '  %r\n' % line)
@@ -400,7 +400,7 @@ class Parser(object):
 		if self._re is None:
 			# Generate the regex and cache it for re-use
 			self.rules = tuple(self.rules) # freeze list
-			pattern = r'|'.join( [
+			pattern = r'|'.join([
 				r"(?P<rule%i>%s)" % (i, r.pattern)
 					for i, r in enumerate(self.rules)
 			])

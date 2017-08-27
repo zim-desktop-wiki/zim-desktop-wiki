@@ -84,7 +84,7 @@ class HistoryList(list):
 		@returns: the list content as a json formatted string
 		'''
 		data = [(path.name, path.cursor, path.scroll) for path in self]
-		return json.dumps(data, separators=(',',':'))
+		return json.dumps(data, separators=(',', ':'))
 
 
 class History(gobject.GObject):
@@ -145,13 +145,13 @@ class History(gobject.GObject):
 		# so we can not use those without breaking backward compatibility
 		self.uistate.setdefault('list', [])
 		self.uistate.setdefault('recent', [])
-		self.uistate.setdefault('current', len(self._history)-1)
+		self.uistate.setdefault('current', len(self._history) - 1)
 
 		self.uistate['list'] = HistoryList(self.uistate['list'])
 		self.uistate['recent'] = HistoryList(self.uistate['recent'])
 
 		if self._current < 0 or self._current > len(self._history) - 1:
-			self._current = len(self._history)-1
+			self._current = len(self._history) - 1
 
 		# Initialize recent if it didn;t exist (was introduced version 0.55)
 		# Add all items, then go back to last position
@@ -159,7 +159,7 @@ class History(gobject.GObject):
 			for p in self._history:
 				self._update_recent(p)
 
-			for i in range(len(self._history)-1, self._current-1, -1):
+			for i in range(len(self._history) - 1, self._current - 1, -1):
 				p = self._history[i]
 				self._update_recent(p)
 
@@ -170,7 +170,7 @@ class History(gobject.GObject):
 	# read / write property
 	_current = property(
 		lambda self: self.uistate['current'],
-		lambda self, value: self.uistate.__setitem__('current', value) )
+		lambda self, value: self.uistate.__setitem__('current', value))
 
 	@property
 	def _history(self):

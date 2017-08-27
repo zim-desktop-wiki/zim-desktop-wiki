@@ -184,7 +184,7 @@ class TemplateParser(object):
 				%%\]--\>			# end of instruction
 				[^\S\n]*\n			# whitespace and end of line
 				''' % line_tokens,
-				process=self._process_token )
+				process=self._process_token)
 			| Rule('X-Text-Token', r'''
 				^[^\S\n]*			# whitespace at line start
 				\[%%				# start of instruction
@@ -199,13 +199,13 @@ class TemplateParser(object):
 				%%\]				# end of instruction
 				[^\S\n]*\n			# whitespace and end of line
 				''' % line_tokens,
-				process=self._process_token )
+				process=self._process_token)
 			| Rule('X-Inline-XML-Token',
 				r'\<\!--\[%(-?\s.*?\s-?)%\]--\>',
-				process=self._process_token )
+				process=self._process_token)
 			| Rule('X-Inline-Text-Token',
 				r'\[%(-?\s.*?\s-?)%\]',
-				process=self._process_token )
+				process=self._process_token)
 		)
 		return text_parser
 

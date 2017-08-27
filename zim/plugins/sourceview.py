@@ -235,7 +235,7 @@ class SourceViewObject(CustomObjectClass):
 				http://packages.ubuntu.com/precise/all/libgtksourceview2.0-common/filelist
 				http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
                 '''
-				sh_map = { 'dosbatch':'dos' }
+				sh_map = {'dosbatch': 'dos'}
 				sh_lang = sh_map[self._attrib['lang']] if self._attrib['lang'] in sh_map else self._attrib['lang']
 				# TODO: some template instruction to be able to use other highlighters as well?
 				output = ['<pre><code class="%s">' % html_encode(sh_lang)] # for syntaxhigligther

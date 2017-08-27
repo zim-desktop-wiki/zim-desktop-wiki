@@ -94,7 +94,7 @@ class FilesIndexer(SignalEmitter):
 				'SELECT id, path, node_type FROM files'
 				' WHERE index_status = ? AND path LIKE ?'
 				' ORDER BY node_type, id',
-				(STATUS_NEED_UPDATE, prefix+'%')
+				(STATUS_NEED_UPDATE, prefix + '%')
 			).fetchone()
 
 			if row:

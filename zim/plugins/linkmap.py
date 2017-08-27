@@ -66,7 +66,7 @@ class LinkMap(object):
 				else:
 					other = link.source
 				if depth > 0:
-					for link in self._links(other, depth-1, seen):
+					for link in self._links(other, depth - 1, seen):
 						yield link
 
 	def get_linkmap(self, format=None):
@@ -90,12 +90,12 @@ class LinkMap(object):
 					dotcode.append('  "%s" [URL="%s"];' % (name, name))
 					seen.add(name)
 			dotcode.append(
-				'  "%s" -> "%s";'  % (link.source.name, link.target.name))
+				'  "%s" -> "%s";' % (link.source.name, link.target.name))
 
 		dotcode.append('}')
 
 		#print '\n'.join(dotcode)+'\n'
-		return '\n'.join(dotcode)+'\n'
+		return '\n'.join(dotcode) + '\n'
 
 
 
@@ -141,7 +141,7 @@ class LinkMapDialog(Dialog):
 		vbox = gtk.VBox()
 		hbox.pack_start(vbox, False)
 		for stock, method in (
-			(gtk.STOCK_ZOOM_IN,  self.xdotview.on_zoom_in ),
+			(gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
 			(gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
 			(gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
 			(gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),

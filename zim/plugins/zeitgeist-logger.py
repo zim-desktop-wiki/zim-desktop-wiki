@@ -67,7 +67,7 @@ class ZeitgeistPlugin(PluginClass):
 		event = Event.new_for_values(actor='application://zim.desktop',
 		                             interpretation=event_type,
 		                             manifestation=Manifestation.USER_ACTIVITY,
-		                             subjects=[subject,])
+		                             subjects=[subject, ])
 
 		self.zeitgeist_client.insert_event(event)
 

@@ -67,11 +67,11 @@ This is a core plugin shipping with zim.
 	@classmethod
 	def check_dependencies(klass):
 		has_bzr = VCS.check_dependencies(VCS.BZR)
-		has_git  = VCS.check_dependencies(VCS.GIT)
-		has_hg  = VCS.check_dependencies(VCS.HG)
+		has_git = VCS.check_dependencies(VCS.GIT)
+		has_hg = VCS.check_dependencies(VCS.HG)
 		has_fossil = VCS.check_dependencies(VCS.FOSSIL)
 		#TODO parameterize the return, so that a new backend will be automatically available
-		return has_bzr|has_hg|has_git|has_fossil, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False), ('fossil', has_fossil, False)]
+		return has_bzr | has_hg | has_git | has_fossil, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False), ('fossil', has_fossil, False)]
 
 	def extend(self, obj):
 		name = obj.__class__.__name__
@@ -280,7 +280,7 @@ class VCS(object):
 
 	# Enumeration of all available backends
 	BZR = _('Bazaar') # T: option value
-	HG  = _('Mercurial') # T: option value
+	HG = _('Mercurial') # T: option value
 	GIT = _('Git') # T: option value
 	FOSSIL = _('Fossil') # T: option value
 
@@ -407,7 +407,7 @@ class VCSBackend(ConnectorMixin):
 		"""
 		self._root = dir
 		self._lock = FS.get_async_lock(self._root)
-		self._app  = vcs_specific_app
+		self._app = vcs_specific_app
 		if not TEST_MODE:
 			# Avoid touching the bazaar repository with zim sources
 			# when we write to tests/tmp etc.
@@ -415,7 +415,7 @@ class VCSBackend(ConnectorMixin):
 				'path-created',
 				'path-moved',
 				'path-deleted'
-			) )
+			))
 
 	@property
 	def use_staging(self):
@@ -502,7 +502,7 @@ class VCSBackend(ConnectorMixin):
 	@property
 	def modified(self):
 		"""return True if changes are detected, or False"""
-		return ''.join( self.get_status() ).strip() != ''
+		return ''.join(self.get_status()).strip() != ''
 		with self.lock:
 			return self.vcs.is_modified()
 
@@ -888,8 +888,8 @@ class VersionControlInitDialog(QuestionDialog):
 		QuestionDialog.__init__(self, ui, (
 			_("Enable Version Control?"), # T: Question dialog
 			_("Version control is currently not enabled for this notebook.\n"
-			  "Do you want to enable it?" ) # T: Detailed question
-		) )
+			  "Do you want to enable it?") # T: Detailed question
+		))
 
 		self.combobox = gtk.combo_box_new_text()
 		for option in (VCS.BZR, VCS.GIT, VCS.HG, VCS.FOSSIL):
@@ -933,7 +933,7 @@ class SaveVersionDialog(Dialog):
 		vbox = gtk.VBox()
 		vpaned.add2(vbox)
 
-		label = gtk.Label('<b>'+_('Details')+'</b>')
+		label = gtk.Label('<b>' + _('Details') + '</b>')
 			# T: section for version details in "save version" dialog
 		label.set_use_markup(True)
 		label.set_alignment(0, 0.5)
@@ -975,14 +975,14 @@ class VersionsDialog(Dialog):
 		self.vpaned.pack1(vbox, resize=True)
 
 		# Choice between whole notebook or page
-		label = gtk.Label('<b>'+_('Versions')+':</b>') # section label
+		label = gtk.Label('<b>' + _('Versions') + ':</b>') # section label
 		label.set_use_markup(True)
 		label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
 
 		self.notebook_radio = gtk.RadioButton(None, _('Complete _notebook'))
 			# T: Option in versions dialog to show version for complete notebook
-		self.page_radio = gtk.RadioButton(self.notebook_radio, _('_Page')+':')
+		self.page_radio = gtk.RadioButton(self.notebook_radio, _('_Page') + ':')
 			# T: Option in versions dialog to show version for single page
 		#~ recursive_box = gtk.CheckButton('Recursive')
 		vbox.pack_start(self.notebook_radio, False)
@@ -1002,10 +1002,10 @@ class VersionsDialog(Dialog):
 		hbox.pack_start(ann_button, False)
 
 		# Help text
-		label = gtk.Label('<i>\n'+_( '''\
+		label = gtk.Label('<i>\n' + _( '''\
 Select a version to see changes between that version and the current
 state. Or select multiple versions to see changes between those versions.
-''' ).strip()+'</i>') # T: Help text in versions dialog
+''' ).strip() + '</i>') # T: Help text in versions dialog
 		label.set_use_markup(True)
 		#~ label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
@@ -1027,7 +1027,7 @@ state. Or select multiple versions to see changes between those versions.
 		vbox = gtk.VBox(spacing=5)
 		self.vpaned.pack2(vbox, resize=False)
 
-		label = gtk.Label('<b>'+_('Comment')+'</b>') # T: version details
+		label = gtk.Label('<b>' + _('Comment') + '</b>') # T: version details
 		label.set_use_markup(True)
 		label.set_alignment(0.0, 0.5)
 		vbox.pack_start(label, False)
@@ -1157,7 +1157,7 @@ state. Or select multiple versions to see changes between those versions.
 			  'All changes since the last saved version will be lost !')
 			  % {'page': path.name, 'version': str(version)}
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
-		) ).run():
+		)).run():
 			self.vcs.revert(file=file, version=version)
 			self.ui.reload_page() # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 			# TODO trigger vcs autosave here?
