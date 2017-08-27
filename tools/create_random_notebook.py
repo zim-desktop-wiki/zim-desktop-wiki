@@ -20,25 +20,25 @@ Sed augue metus, egestas eu magna tincidunt, aliquet varius arcu. Suspendisse po
 
 
 def flatlist(n_pages, template=LOREM_IPSUM):
-	def pages_generator():
-		for i in range(n_pages):
-			yield Path('Page%i' % i), template
+    def pages_generator():
+        for i in range(n_pages):
+            yield Path('Page%i' % i), template
 
-	return pages_generator()
+    return pages_generator()
 
 
 def write_notebook(dir, pages):
-	init_notebook(dir)
-	notebook = Notebook.new_from_dir(dir)
+    init_notebook(dir)
+    notebook = Notebook.new_from_dir(dir)
 
-	for path, content in pages:
-		p = notebook.get_page(path)
-		p.parse('wiki', content)
-		notebook.store_page(p)
-		print "Wrote", p.source.path
+    for path, content in pages:
+        p = notebook.get_page(path)
+        p.parse('wiki', content)
+        notebook.store_page(p)
+        print "Wrote", p.source.path
 
 
 if __name__ == '__main__':
-	path = sys.argv[1]
-	dir = Dir(path)
-	write_notebook(dir, flatlist(2000))
+    path = sys.argv[1]
+    dir = Dir(path)
+    write_notebook(dir, flatlist(2000))

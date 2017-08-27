@@ -19,16 +19,16 @@ from zim.gui.widgets import ErrorDialog
 # Try which of the two bindings is available
 import gtk  # ensure gtkspellcheck detects right gtk binding
 try:
-	import gtkspellcheck
+    import gtkspellcheck
 except ImportError:
-	gtkspellcheck = None
+    gtkspellcheck = None
 
-	try:
-		import gtkspell
-	except ImportError:
-		gtkspell = None
+    try:
+        import gtkspell
+    except ImportError:
+        gtkspell = None
 else:
-	gtkspell = None
+    gtkspell = None
 
 
 # Hotfix for robustness of loading languages in gtkspellcheck
@@ -37,57 +37,57 @@ else:
 if gtkspellcheck \
 and hasattr(gtkspellcheck.SpellChecker, '_LanguageList') \
 and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
-	from pylocales import code_to_name
+    from pylocales import code_to_name
 
-	orig_from_broker = gtkspellcheck.SpellChecker._LanguageList.from_broker
+    orig_from_broker = gtkspellcheck.SpellChecker._LanguageList.from_broker
 
-	@classmethod
-	def new_from_broker(cls, broker):
-		try:
-			return orig_from_broker(broker)
-		except:
-			lang = []
-			for language in broker.list_languages():
-				try:
-					lang.append((language, code_to_name(language)))
-				except:
-					logger.exception('While loading language for: %s', language)
+    @classmethod
+    def new_from_broker(cls, broker):
+        try:
+            return orig_from_broker(broker)
+        except:
+            lang = []
+            for language in broker.list_languages():
+                try:
+                    lang.append((language, code_to_name(language)))
+                except:
+                    logger.exception('While loading language for: %s', language)
 
-			return cls(sorted(lang, key=lambda language: language[1]))
+            return cls(sorted(lang, key=lambda language: language[1]))
 
-	gtkspellcheck.SpellChecker._LanguageList.from_broker = new_from_broker
+    gtkspellcheck.SpellChecker._LanguageList.from_broker = new_from_broker
 #####
 
 
 class SpellPlugin(PluginClass):
 
-	plugin_info = {
-		'name': _('Spell Checker'),  # T: plugin name
-		'description': _('''\
+    plugin_info = {
+            'name': _('Spell Checker'),  # T: plugin name
+            'description': _('''\
 Adds spell checking support using gtkspell.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-		'author': 'Jaap Karssenberg',
-		'help': 'Plugins:Spell Checker',
-	}
+            'author': 'Jaap Karssenberg',
+            'help': 'Plugins:Spell Checker',
+    }
 
-	plugin_preferences = (
-		('language', 'string', 'Default Language', ''),
-	)
+    plugin_preferences = (
+            ('language', 'string', 'Default Language', ''),
+    )
 
-	@classmethod
-	def check_dependencies(klass):
-		return bool(gtkspellcheck or gtkspell), [
-			('gtkspellcheck', not gtkspellcheck is None, True),
-			('gtkspell', not gtkspell is None, True)
-		]
+    @classmethod
+    def check_dependencies(klass):
+        return bool(gtkspellcheck or gtkspell), [
+                ('gtkspellcheck', not gtkspellcheck is None, True),
+                ('gtkspell', not gtkspell is None, True)
+        ]
 
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
 
-	uimanager_xml = '''
+    uimanager_xml = '''
 	<ui>
 		<menubar name='menubar'>
 			<menu action='tools_menu'>
@@ -104,134 +104,134 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self._adapter = GtkspellcheckAdapter if gtkspellcheck else GtkspellAdapter
+    def __init__(self, plugin, window):
+        WindowExtension.__init__(self, plugin, window)
+        self._adapter = GtkspellcheckAdapter if gtkspellcheck else GtkspellAdapter
 
-		self.uistate.setdefault('active', False)
-		self.toggle_spellcheck(self.uistate['active'])
-		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER)  # XXX
+        self.uistate.setdefault('active', False)
+        self.toggle_spellcheck(self.uistate['active'])
+        self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER)  # XXX
 
-	@toggle_action(
-		_('Check _spelling'),  # T: menu item
-		stock='gtk-spell-check', accelerator='F7'
-	)
-	def toggle_spellcheck(self, active):
-		textview = self.window.pageview.view
-		checker = getattr(textview, '_gtkspell', None)
+    @toggle_action(
+            _('Check _spelling'),  # T: menu item
+            stock='gtk-spell-check', accelerator='F7'
+    )
+    def toggle_spellcheck(self, active):
+        textview = self.window.pageview.view
+        checker = getattr(textview, '_gtkspell', None)
 
-		if active:
-			if checker:
-				checker.enable()
-			else:
-				self.setup()
-		elif not active:
-			if checker:
-				checker.disable()
-			# else pass
+        if active:
+            if checker:
+                checker.enable()
+            else:
+                self.setup()
+        elif not active:
+            if checker:
+                checker.disable()
+            # else pass
 
-		self.uistate['active'] = active
+        self.uistate['active'] = active
 
-	def on_open_page(self, ui, page, record):
-		textview = self.window.pageview.view
-		checker = getattr(textview, '_gtkspell', None)
-		if checker:
-			checker.on_new_buffer()
+    def on_open_page(self, ui, page, record):
+        textview = self.window.pageview.view
+        checker = getattr(textview, '_gtkspell', None)
+        if checker:
+            checker.on_new_buffer()
 
-	def setup(self):
-		textview = self.window.pageview.view
-		lang = self.plugin.preferences['language'] or locale.getdefaultlocale()[0]
-		logger.debug('Spellcheck language: %s', lang)
-		try:
-			checker = self._adapter(textview, lang)
-		except:
-			ErrorDialog(self.window.ui, (
-				_('Could not load spell checking'),
-					# T: error message
-				_('This could mean you don\'t have the proper\ndictionaries installed')
-					# T: error message explanation
-			)).run()
-		else:
-			textview._gtkspell = checker
+    def setup(self):
+        textview = self.window.pageview.view
+        lang = self.plugin.preferences['language'] or locale.getdefaultlocale()[0]
+        logger.debug('Spellcheck language: %s', lang)
+        try:
+            checker = self._adapter(textview, lang)
+        except:
+            ErrorDialog(self.window.ui, (
+                    _('Could not load spell checking'),
+                            # T: error message
+                    _('This could mean you don\'t have the proper\ndictionaries installed')
+                            # T: error message explanation
+            )).run()
+        else:
+            textview._gtkspell = checker
 
-	def teardown(self):
-		textview = self.window.pageview.view
-		if hasattr(textview, '_gtkspell') \
-		and textview._gtkspell is not None:
-			textview._gtkspell.detach()
-			textview._gtkspell = None
+    def teardown(self):
+        textview = self.window.pageview.view
+        if hasattr(textview, '_gtkspell') \
+        and textview._gtkspell is not None:
+            textview._gtkspell.detach()
+            textview._gtkspell = None
 
 
 class GtkspellcheckAdapter(object):
 
-	def __init__(self, textview, lang):
-		self._lang = lang
-		self._textview = textview
-		self._checker = None
-		self._active = False
-		self.enable()
+    def __init__(self, textview, lang):
+        self._lang = lang
+        self._textview = textview
+        self._checker = None
+        self._active = False
+        self.enable()
 
-	def on_new_buffer(self):
-		if self._checker:
-			# wanted to use checker.buffer_initialize() here,
-			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
-			if self._active:
-				self.detach()
-				self.enable()
-			else:
-				self.detach()
+    def on_new_buffer(self):
+        if self._checker:
+            # wanted to use checker.buffer_initialize() here,
+            # but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
+            if self._active:
+                self.detach()
+                self.enable()
+            else:
+                self.detach()
 
-	def enable(self):
-		if self._checker:
-			self._checker.enable()
-		else:
-			self._clean_tag_table()
-			self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
-		self._active = True
+    def enable(self):
+        if self._checker:
+            self._checker.enable()
+        else:
+            self._clean_tag_table()
+            self._checker = gtkspellcheck.SpellChecker(self._textview, self._lang)
+        self._active = True
 
-	def disable(self):
-		if self._checker:
-			self._checker.disable()
-		self._active = False
+    def disable(self):
+        if self._checker:
+            self._checker.disable()
+        self._active = False
 
-	def detach(self):
-		if self._checker:
-			self._checker.disable()
-			self._clean_tag_table()
-			self._checker = None
-		self._active = False
+    def detach(self):
+        if self._checker:
+            self._checker.disable()
+            self._clean_tag_table()
+            self._checker = None
+        self._active = False
 
-	def _clean_tag_table(self):
-		# cleanup tag table - else next loading will fail
-		prefix = 'gtkspellchecker'
-		table = self._textview.get_buffer().get_tag_table()
-		tags = []
-		table.foreach(lambda tag, data: tags.append(tag))
-		for tag in tags:
-			name = tag.get_property('name')
-			if name and name.startswith(prefix):
-				table.remove(tag)
+    def _clean_tag_table(self):
+        # cleanup tag table - else next loading will fail
+        prefix = 'gtkspellchecker'
+        table = self._textview.get_buffer().get_tag_table()
+        tags = []
+        table.foreach(lambda tag, data: tags.append(tag))
+        for tag in tags:
+            name = tag.get_property('name')
+            if name and name.startswith(prefix):
+                table.remove(tag)
 
 
 class GtkspellAdapter(object):
 
-	def __init__(self, textview, lang):
-		self._lang = lang
-		self._textview = textview
-		self._checker = None
-		self.enable()
+    def __init__(self, textview, lang):
+        self._lang = lang
+        self._textview = textview
+        self._checker = None
+        self.enable()
 
-	def on_new_buffer(self):
-		pass
+    def on_new_buffer(self):
+        pass
 
-	def enable(self):
-		if not self._checker:
-			self._checker = gtkspell.Spell(self._textview, self._lang)
+    def enable(self):
+        if not self._checker:
+            self._checker = gtkspell.Spell(self._textview, self._lang)
 
-	def disable(self):
-		self.detach()
+    def disable(self):
+        self.detach()
 
-	def detach(self):
-		if self._checker:
-			self._checker.detach()
-			self._checker = None
+    def detach(self):
+        if self._checker:
+            self._checker.detach()
+            self._checker = None

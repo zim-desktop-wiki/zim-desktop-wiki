@@ -27,53 +27,53 @@ from zim.parsing import url_encode, URL_ENCODE_DATA
 
 
 def build_template_functions():
-	return {
-		'len': ExpressionFunction(len),
-		'sorted': ExpressionFunction(sorted),
-		'reversed': ExpressionFunction(lambda i: list(reversed(i))),
-		'range': ExpressionFunction(range),
-		'strftime': template_strftime,
-		'strfcal': template_strfcal,
-		'html_encode': ExpressionFunction(html_encode),
-		'url_encode': ExpressionFunction(partial(url_encode, mode=URL_ENCODE_DATA)),
-		'gettext': template_gettext,
-	}
+    return {
+            'len': ExpressionFunction(len),
+            'sorted': ExpressionFunction(sorted),
+            'reversed': ExpressionFunction(lambda i: list(reversed(i))),
+            'range': ExpressionFunction(range),
+            'strftime': template_strftime,
+            'strfcal': template_strfcal,
+            'html_encode': ExpressionFunction(html_encode),
+            'url_encode': ExpressionFunction(partial(url_encode, mode=URL_ENCODE_DATA)),
+            'gettext': template_gettext,
+    }
 
 
 @ExpressionFunction
 def template_strftime(format, date=None):
-	'''Template function wrapper for strftime'''
-	try:
-		if date is None:
-			string = datetime.strftime(format, datetime.now())
-		elif isinstance(date, (datetime.date, datetime.datetime)):
-			string = datetime.strftime(format, date)
-		else:
-			raise Error('Not a datetime object: %s' % date)
+    '''Template function wrapper for strftime'''
+    try:
+        if date is None:
+            string = datetime.strftime(format, datetime.now())
+        elif isinstance(date, (datetime.date, datetime.datetime)):
+            string = datetime.strftime(format, date)
+        else:
+            raise Error('Not a datetime object: %s' % date)
 
-		# strftime returns locale as understood by the C api
-		# unfortunately there is no guarantee we can actually
-		# decode it ...
-		return string
-	except:
-		logger.exception('Error in strftime "%s"', format)
+        # strftime returns locale as understood by the C api
+        # unfortunately there is no guarantee we can actually
+        # decode it ...
+        return string
+    except:
+        logger.exception('Error in strftime "%s"', format)
 
 
 @ExpressionFunction
 def template_strfcal(format, date=None):
-	'''Template function wrapper for strfcal'''
-	try:
-		if date is None:
-			date = datetime.now()
-		return datetime.strfcal(format, date)
-	except:
-		logger.exception('Error in strftime "%s"', format)
+    '''Template function wrapper for strfcal'''
+    try:
+        if date is None:
+            date = datetime.now()
+        return datetime.strfcal(format, date)
+    except:
+        logger.exception('Error in strftime "%s"', format)
 
 
 @ExpressionFunction
 def template_gettext(string):
-	'''Template function wrapper for gettext'''
-	try:
-		return (_(string))
-	except:
-		logger.exception('Error in gettext "%s"', string)
+    '''Template function wrapper for gettext'''
+    try:
+        return (_(string))
+    except:
+        logger.exception('Error in gettext "%s"', string)

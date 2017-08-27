@@ -37,49 +37,49 @@ from zim.formats import get_format
 
 
 def build_notebook_exporter(dir, format, template, **opts):
-	'''Returns an L{Exporter} that is suitable for exporting a whole
-	notebook to a folder with one file per page
-	'''
-	from zim.export.layouts import MultiFileLayout
-	from zim.export.exporters.files import MultiFileExporter
+    '''Returns an L{Exporter} that is suitable for exporting a whole
+    notebook to a folder with one file per page
+    '''
+    from zim.export.layouts import MultiFileLayout
+    from zim.export.exporters.files import MultiFileExporter
 
-	template = get_template(format, template)
-	ext = get_format(format).info['extension']
-	layout = MultiFileLayout(dir, ext)
-	return MultiFileExporter(layout, template, format, **opts)
+    template = get_template(format, template)
+    ext = get_format(format).info['extension']
+    layout = MultiFileLayout(dir, ext)
+    return MultiFileExporter(layout, template, format, **opts)
 
 
 def build_page_exporter(file, format, template, page, **opts):
-	'''Returns an L{Exporter} that is suitable for exporting a page with
-	subpages to a file and a folder (e.g. "page.html" with "page_files/")
-	'''
-	from zim.export.layouts import FileLayout
-	from zim.export.exporters.files import MultiFileExporter
+    '''Returns an L{Exporter} that is suitable for exporting a page with
+    subpages to a file and a folder (e.g. "page.html" with "page_files/")
+    '''
+    from zim.export.layouts import FileLayout
+    from zim.export.exporters.files import MultiFileExporter
 
-	template = get_template(format, template)
-	ext = get_format(format).info['extension']
-	layout = FileLayout(file, page, ext)
-	return MultiFileExporter(layout, template, format, **opts)
+    template = get_template(format, template)
+    ext = get_format(format).info['extension']
+    layout = FileLayout(file, page, ext)
+    return MultiFileExporter(layout, template, format, **opts)
 
 
 def build_single_file_exporter(file, format, template, namespace=None, **opts):
-	'''Returns an L{Exporter} that is suitable for exporting a set of
-	pages to a single file
-	'''
-	from zim.export.layouts import SingleFileLayout
-	from zim.export.exporters.files import SingleFileExporter
+    '''Returns an L{Exporter} that is suitable for exporting a set of
+    pages to a single file
+    '''
+    from zim.export.layouts import SingleFileLayout
+    from zim.export.exporters.files import SingleFileExporter
 
-	template = get_template(format, template)
-	ext = get_format(format).info['extension']
-	layout = SingleFileLayout(file)
-	return SingleFileExporter(layout, template, format, **opts)
+    template = get_template(format, template)
+    ext = get_format(format).info['extension']
+    layout = SingleFileLayout(file)
+    return SingleFileExporter(layout, template, format, **opts)
 
 
 def build_mhtml_file_exporter(file, template, **opts):
-	'''Returns an L{Exporter} that is suitable for exporting a set of
-	pages to a single mhtml file
-	'''
-	from zim.export.exporters.mhtml import MHTMLExporter
+    '''Returns an L{Exporter} that is suitable for exporting a set of
+    pages to a single mhtml file
+    '''
+    from zim.export.exporters.mhtml import MHTMLExporter
 
-	template = get_template('html', template)
-	return MHTMLExporter(file, template, **opts)
+    template = get_template('html', template)
+    return MHTMLExporter(file, template, **opts)

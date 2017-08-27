@@ -24,56 +24,56 @@ dotcmd = ('ditaa')
 
 class InsertDitaaPlugin(ImageGeneratorPlugin):
 
-	plugin_info = {
-		'name': _('Insert Ditaa'),  # T: plugin name
-		'description': _('''\
+    plugin_info = {
+            'name': _('Insert Ditaa'),  # T: plugin name
+            'description': _('''\
 This plugin provides a diagram editor for zim based on Ditaa.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-        'help': 'Plugins:Ditaa Editor',
-		'author': 'Yao-Po Wang',
-	}
+    'help': 'Plugins:Ditaa Editor',
+            'author': 'Yao-Po Wang',
+    }
 
-	object_type = 'ditaa'
-	short_label = _('Ditaa')  # T: menu item
-	insert_label = _('Insert Ditaa')  # T: menu item
-	edit_label = _('_Edit Ditaa')  # T: menu item
-	syntax = None
+    object_type = 'ditaa'
+    short_label = _('Ditaa')  # T: menu item
+    insert_label = _('Insert Ditaa')  # T: menu item
+    edit_label = _('_Edit Ditaa')  # T: menu item
+    syntax = None
 
-	@classmethod
-	def check_dependencies(klass):
-		has_dotcmd = Application(dotcmd).tryexec()
-		return has_dotcmd, [("Ditaa", has_dotcmd, True)]
+    @classmethod
+    def check_dependencies(klass):
+        has_dotcmd = Application(dotcmd).tryexec()
+        return has_dotcmd, [("Ditaa", has_dotcmd, True)]
 
 
 class DitaaGenerator(ImageGeneratorClass):
 
-	uses_log_file = False
+    uses_log_file = False
 
-	object_type = 'ditaa'
-	scriptname = 'ditaa.dia'
-	imagename = 'ditaa.png'
+    object_type = 'ditaa'
+    scriptname = 'ditaa.dia'
+    imagename = 'ditaa.png'
 
-	def __init__(self, plugin):
-		ImageGeneratorClass.__init__(self, plugin)
-		self.dotfile = TmpFile(self.scriptname)
-		self.dotfile.touch()
-		self.pngfile = File(self.dotfile.path[:-4] + '.png')  # len('.dot') == 4
+    def __init__(self, plugin):
+        ImageGeneratorClass.__init__(self, plugin)
+        self.dotfile = TmpFile(self.scriptname)
+        self.dotfile.touch()
+        self.pngfile = File(self.dotfile.path[:-4] + '.png')  # len('.dot') == 4
 
-	def generate_image(self, text):
-		# Write to tmp file
-		self.dotfile.write(text)
+    def generate_image(self, text):
+        # Write to tmp file
+        self.dotfile.write(text)
 
-		# Call GraphViz
-		try:
-			dot = Application(dotcmd)
-			dot.run((self.dotfile, '-o', self.pngfile))
-		except ApplicationError:
-			return None, None  # Sorry, no log
-		else:
-			return self.pngfile, None
+        # Call GraphViz
+        try:
+            dot = Application(dotcmd)
+            dot.run((self.dotfile, '-o', self.pngfile))
+        except ApplicationError:
+            return None, None  # Sorry, no log
+        else:
+            return self.pngfile, None
 
-	def cleanup(self):
-		self.dotfile.remove()
-		self.pngfile.remove()
+    def cleanup(self):
+        self.dotfile.remove()
+        self.pngfile.remove()

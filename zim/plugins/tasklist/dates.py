@@ -44,101 +44,101 @@ __all__ = ('date_re', 'parse_date', 'Month', 'Week', 'Day')
 
 
 date_re = re.compile(
-	'(?:'
-	'\d{4}-\d{2}-\d{2}'
-	'|\d{4}-\d{2}'
-	'|(?:\d{2}|\d{4})-?[Ww][Kk]?\d{2}(?:-\d)?'
-	'|[Ww][Kk]?(?:\d{2}|\d{4})\d{2}(?:[\.-]\d)?'
-	')(?![\w-])'
+        '(?:'
+        '\d{4}-\d{2}-\d{2}'
+        '|\d{4}-\d{2}'
+        '|(?:\d{2}|\d{4})-?[Ww][Kk]?\d{2}(?:-\d)?'
+        '|[Ww][Kk]?(?:\d{2}|\d{4})\d{2}(?:[\.-]\d)?'
+        ')(?![\w-])'
 )
 
 
 def parse_date(date):
-	string = date.upper().replace('-', '').strip()
-	if 'W' in string:
-		string = string.replace('WK', '').replace('W', '').replace('.', '')
-		if len(string) == 4:  # yyww
-			return Week(int(string[:2]) + 2000, int(string[2:4]))
-		elif len(string) == 5:  # yywwD
-			return Day.new_from_weeknumber(int(string[:2]) + 2000, int(string[2:4]), int(string[4]))
-		elif len(string) == 6:  # yyyyww
-			return Week(int(string[:4]), int(string[4:]))
-		elif len(string) == 7:  # yyyywwD
-			return Day.new_from_weeknumber(int(string[:4]), int(string[4:6]), int(string[6]))
-		else:
-			raise ValueError('Could not parse: %s' % date)
-	elif len(string) == 6:  # yyyymm
-		return Month(int(string[:4]), int(string[4:]))
-	elif len(string) == 8:  # yyyymmdd
-		return Day(int(string[:4]), int(string[4:6]), int(string[6:]))
-	else:
-		raise ValueError('Could not parse: %s' % date)
+    string = date.upper().replace('-', '').strip()
+    if 'W' in string:
+        string = string.replace('WK', '').replace('W', '').replace('.', '')
+        if len(string) == 4:  # yyww
+            return Week(int(string[:2]) + 2000, int(string[2:4]))
+        elif len(string) == 5:  # yywwD
+            return Day.new_from_weeknumber(int(string[:2]) + 2000, int(string[2:4]), int(string[4]))
+        elif len(string) == 6:  # yyyyww
+            return Week(int(string[:4]), int(string[4:]))
+        elif len(string) == 7:  # yyyywwD
+            return Day.new_from_weeknumber(int(string[:4]), int(string[4:6]), int(string[6]))
+        else:
+            raise ValueError('Could not parse: %s' % date)
+    elif len(string) == 6:  # yyyymm
+        return Month(int(string[:4]), int(string[4:]))
+    elif len(string) == 8:  # yyyymmdd
+        return Day(int(string[:4]), int(string[4:6]), int(string[6:]))
+    else:
+        raise ValueError('Could not parse: %s' % date)
 
 
 class DateRange(object):
 
-	def __repr__(self):
-		return "<%s: %s>" % (self.__class__.__name__, str(self))
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__, str(self))
 
 
 class Day(DateRange, datetime.date):
 
-	@classmethod
-	def new_from_weeknumber(cls, year, week, weekday):
-		if not (isinstance(weekday, int) and 0 <= weekday <= 7):
-			raise ValueError('Not a weekday: %i (must be between 0 and 7)' % weekday)
+    @classmethod
+    def new_from_weeknumber(cls, year, week, weekday):
+        if not (isinstance(weekday, int) and 0 <= weekday <= 7):
+            raise ValueError('Not a weekday: %i (must be between 0 and 7)' % weekday)
 
-		start, end = dates_for_week(year, week)
-		if start.isoweekday() == 1:  # monday
-			offset = weekday - 1
-		else:  # sunday
-			offset = weekday
+        start, end = dates_for_week(year, week)
+        if start.isoweekday() == 1:  # monday
+            offset = weekday - 1
+        else:  # sunday
+            offset = weekday
 
-		if offset != 0:
-			start = start + datetime.timedelta(days=offset)
-		return cls(start.year, start.month, start.day)
+        if offset != 0:
+            start = start + datetime.timedelta(days=offset)
+        return cls(start.year, start.month, start.day)
 
-	def __init__(self, year, month, day):
-		datetime.date.__init__(self, year, month, day)
-		self.first_day = self
-		self.last_day = self
+    def __init__(self, year, month, day):
+        datetime.date.__init__(self, year, month, day)
+        self.first_day = self
+        self.last_day = self
 
-	def weekcalendar(self):
-		'''Returns (year, week, weekday)'''
-		year, week, weekday = weekcalendar(self)
-		if weekday == 1 and self.isoweekday() == 7:
-			weekday = 0  # See module doc on weekday
-		else:
-			weekday = self.isoweekday()
-		return year, week, weekday
+    def weekcalendar(self):
+        '''Returns (year, week, weekday)'''
+        year, week, weekday = weekcalendar(self)
+        if weekday == 1 and self.isoweekday() == 7:
+            weekday = 0  # See module doc on weekday
+        else:
+            weekday = self.isoweekday()
+        return year, week, weekday
 
-	def weekformat(self):
-		'''Format as iso-weeknumber and weekday "YYYY-Www-D"'''
-		return '%s-W%s-%s' % self.weekcalendar()
+    def weekformat(self):
+        '''Format as iso-weeknumber and weekday "YYYY-Www-D"'''
+        return '%s-W%s-%s' % self.weekcalendar()
 
 
 class Week(DateRange):
 
-	def __init__(self, year, week):
-		self.year = year
-		self.week = week
-		self.first_day, self.last_day = dates_for_week(year, week)
+    def __init__(self, year, week):
+        self.year = year
+        self.week = week
+        self.first_day, self.last_day = dates_for_week(year, week)
 
-	def __str__(self):
-		return '%s-W%s' % (self.year, self.week)
+    def __str__(self):
+        return '%s-W%s' % (self.year, self.week)
 
 
 class Month(DateRange):
 
-	def __init__(self, year, month):
-		self.year = year
-		self.month = month
-		self.first_day = datetime.date(year, month, 1)
-			# ensures year and month are actually valid
+    def __init__(self, year, month):
+        self.year = year
+        self.month = month
+        self.first_day = datetime.date(year, month, 1)
+        # ensures year and month are actually valid
 
-	@property
-	def last_day(self):
-		return datetime.date(self.year, self.month + 1, 1) - datetime.timedelta(days=1)
+    @property
+    def last_day(self):
+        return datetime.date(self.year, self.month + 1, 1) - datetime.timedelta(days=1)
 
-	def __str__(self):
-		return '%s-%s' % (self.year, self.month)
+    def __str__(self):
+        return '%s-%s' % (self.year, self.month)

@@ -139,9 +139,9 @@ logger = logging.getLogger('zim.notebook')
 
 
 try:
-	import gobject
+    import gobject
 except ImportError:
-	gobject = None
+    gobject = None
 
 
 from zim.signals import SignalEmitter
@@ -151,222 +151,222 @@ NOOP = lambda: None
 
 
 class NotebookOperationOngoing(Error):
-	pass
+    pass
 
 
 class NotebookOperation(SignalEmitter):
-	'''This class is used to wrap generators that execute multiple
-	steps of an operation.
+    '''This class is used to wrap generators that execute multiple
+    steps of an operation.
 
-	Intended usage:
+    Intended usage:
 
-		op = NotebookOperation(
-			notebook,
-			_('Updating index'),
-			notebook.index.update_iter
-		)
-		op.run_on_idle()
+            op = NotebookOperation(
+                    notebook,
+                    _('Updating index'),
+                    notebook.index.update_iter
+            )
+            op.run_on_idle()
 
-	This will start the operation using 'idle' events in the main loop
-	to iterate throudh to operation steps.
+    This will start the operation using 'idle' events in the main loop
+    to iterate throudh to operation steps.
 
-	If you want to wait for the operation to fininsh, use a progress
-	dialog like this:
+    If you want to wait for the operation to fininsh, use a progress
+    dialog like this:
 
-		dialog = ProgressDialog(window, op)
-		dialog.run()
+            dialog = ProgressDialog(window, op)
+            dialog.run()
 
-	When using the progress dialog the values yielded by the inner
-	iterator will be passed on via the 'step' signal. This should be a
-	3-tuple of C{(i, total, msg)} where C{i} and C{total} are integers for the
-	current step and the total number of steps expected (or C{None} if the step
-	count is not known).
+    When using the progress dialog the values yielded by the inner
+    iterator will be passed on via the 'step' signal. This should be a
+    3-tuple of C{(i, total, msg)} where C{i} and C{total} are integers for the
+    current step and the total number of steps expected (or C{None} if the step
+    count is not known).
 
-	'''
+    '''
 
-	# Signals are used by the progress dialog to monitor activity
-	__signals__ = {
-		'step': (None, None, (object,)),
-		'started': (None, None, ()),
-		'finished': (None, None, ()),
-	}
+    # Signals are used by the progress dialog to monitor activity
+    __signals__ = {
+            'step': (None, None, (object,)),
+            'started': (None, None, ()),
+            'finished': (None, None, ()),
+    }
 
-	def __init__(self, notebook, message, iterator):
-		'''Constructor
-		@param notebook: the L{Notebook} object
-		@param message: a message string for L{NotebookOperationOngoing}
-		errors and for the heading of progress dialogs
-		@param iterator: iterator that yields for chunks of work
-		'''
-		self.notebook = notebook
-		self.message = message
-		self.cancelled = False
-		self.exception = None
-		self._do_work = iterator
-		self._block = True
+    def __init__(self, notebook, message, iterator):
+        '''Constructor
+        @param notebook: the L{Notebook} object
+        @param message: a message string for L{NotebookOperationOngoing}
+        errors and for the heading of progress dialogs
+        @param iterator: iterator that yields for chunks of work
+        '''
+        self.notebook = notebook
+        self.message = message
+        self.cancelled = False
+        self.exception = None
+        self._do_work = iterator
+        self._block = True
 
-	def is_running(self):
-		return self.notebook._operation_check == self
+    def is_running(self):
+        return self.notebook._operation_check == self
 
-	def __call__(self):
-		'''This method is called when another operation tries to start
-		while we are running. When called either finish quickly or
-		raise L{NotebookOperationOngoing}.
-		'''
-		if self._block:
-			if self.message:
-				raise NotebookOperationOngoing(self.message)
-			else:
-				raise NotImplementedError
+    def __call__(self):
+        '''This method is called when another operation tries to start
+        while we are running. When called either finish quickly or
+        raise L{NotebookOperationOngoing}.
+        '''
+        if self._block:
+            if self.message:
+                raise NotebookOperationOngoing(self.message)
+            else:
+                raise NotImplementedError
 
-	def run_on_idle(self):
-		'''Start the operation by setting up the main loop event handler.
+    def run_on_idle(self):
+        '''Start the operation by setting up the main loop event handler.
 
-		May raise L{NotebookOperationOngoing} if another operation is
-		already ongoing.
-		'''
-		assert gobject, "No mainloop available to run this operation"
+        May raise L{NotebookOperationOngoing} if another operation is
+        already ongoing.
+        '''
+        assert gobject, "No mainloop available to run this operation"
 
-		if self.notebook._operation_check == self:
-			raise AssertionError('Already running')
-		else:
-			self.notebook._operation_check()  # can raise
+        if self.notebook._operation_check == self:
+            raise AssertionError('Already running')
+        else:
+            self.notebook._operation_check()  # can raise
 
-		self.notebook._operation_check = self  # start blocking
-		gobject.idle_add(self._start)  # ensure start happens in main thread
+        self.notebook._operation_check = self  # start blocking
+        gobject.idle_add(self._start)  # ensure start happens in main thread
 
-	def is_running(self):
-		return self.notebook._operation_check == self
+    def is_running(self):
+        return self.notebook._operation_check == self
 
-	def _start(self):
-		self.emit('started')
-		my_iter = iter(self)
-		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
-		return False  # run once
+    def _start(self):
+        self.emit('started')
+        my_iter = iter(self)
+        gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+        return False  # run once
 
-	def cancel(self):
-		logger.debug('Operation cancelled')
-		self.notebook._operation_check = NOOP  # stop blocking
-		self.cancelled = True
-		self.emit('finished')
+    def cancel(self):
+        logger.debug('Operation cancelled')
+        self.notebook._operation_check = NOOP  # stop blocking
+        self.cancelled = True
+        self.emit('finished')
 
-	def __iter__(self):
-		if not self.notebook._operation_check == self:
-			self.notebook._operation_check()  # can raise
-			self.notebook._operation_check = self  # start blocking
+    def __iter__(self):
+        if not self.notebook._operation_check == self:
+            self.notebook._operation_check()  # can raise
+            self.notebook._operation_check = self  # start blocking
 
-		try:
-			while self.notebook._operation_check == self:
-				# while covers cancelled, but also any other op overwriting the "lock"
-				# unblock api to do work, block again before yielding to main loop
-				self._block = False
-				progress = next(self._do_work)
-				if isinstance(progress, tuple):
-					self.emit('step', progress)
-				else:
-					self.emit('step', (None, None, progress))
-				self._block = True
-				yield True  # keep going
-		except StopIteration:
-			raise
-		except Exception as err:
-			logger.exception('Error in operation:')
-			self.cancelled = True
-			self.exception = err
-			raise StopIteration
-		finally:
-			if self.notebook._operation_check == self:
-				self.notebook._operation_check = NOOP  # stop blocking
-				self.emit('finished')
+        try:
+            while self.notebook._operation_check == self:
+                # while covers cancelled, but also any other op overwriting the "lock"
+                # unblock api to do work, block again before yielding to main loop
+                self._block = False
+                progress = next(self._do_work)
+                if isinstance(progress, tuple):
+                    self.emit('step', progress)
+                else:
+                    self.emit('step', (None, None, progress))
+                self._block = True
+                yield True  # keep going
+        except StopIteration:
+            raise
+        except Exception as err:
+            logger.exception('Error in operation:')
+            self.cancelled = True
+            self.exception = err
+            raise StopIteration
+        finally:
+            if self.notebook._operation_check == self:
+                self.notebook._operation_check = NOOP  # stop blocking
+                self.emit('finished')
 
 
 class SimpleAsyncOperation(NotebookOperation):
-	'''Variant of NotebookOperation that monitors a thread.
-	Key difference is that instead of raising an exception when another
-	operation tries to start it will wait for the thread. So only
-	usefull for short run time threads, like async file write.
-	'''
+    '''Variant of NotebookOperation that monitors a thread.
+    Key difference is that instead of raising an exception when another
+    operation tries to start it will wait for the thread. So only
+    usefull for short run time threads, like async file write.
+    '''
 
-	def __init__(self, notebook, message, thread, post_handler=None):
-		'''Constructor
-		@param notebook: the L{Notebook} object
-		@param message: a message string for the heading of
-		progress dialogs
-		@param thread: a {threading.Thread} object
-		@param post_handler: optional function to call in main after
-		the thread has finished
-		'''
-		self._thread = thread
+    def __init__(self, notebook, message, thread, post_handler=None):
+        '''Constructor
+        @param notebook: the L{Notebook} object
+        @param message: a message string for the heading of
+        progress dialogs
+        @param thread: a {threading.Thread} object
+        @param post_handler: optional function to call in main after
+        the thread has finished
+        '''
+        self._thread = thread
 
-		def generator():
-			while self._thread.is_alive():
-				yield
-			if post_handler:
-				post_handler()
+        def generator():
+            while self._thread.is_alive():
+                yield
+            if post_handler:
+                post_handler()
 
-		NotebookOperation.__init__(self, notebook, message, generator())
+        NotebookOperation.__init__(self, notebook, message, generator())
 
-	def __call__(self):
-		if self._block and self._thread != threading.current_thread():
-			self._join()
+    def __call__(self):
+        if self._block and self._thread != threading.current_thread():
+            self._join()
 
-	def cancel(self):
-		if self._thread == threading.current_thread():
-			raise AssertionError('Can not cancel from thread')
-		self._join()
-		NotebookOperation.cancel(self)
+    def cancel(self):
+        if self._thread == threading.current_thread():
+            raise AssertionError('Can not cancel from thread')
+        self._join()
+        NotebookOperation.cancel(self)
 
-	def _join(self):
-		self._thread.join()
-		for i in self:
-			pass  # exhaust iter to call the post-handler
+    def _join(self):
+        self._thread.join()
+        for i in self:
+            pass  # exhaust iter to call the post-handler
 
 
 class NotebookState(object):
-	'''Context manager that can be used to wrap code that does not
-	allow for oprations to run in paralel.
+    '''Context manager that can be used to wrap code that does not
+    allow for oprations to run in paralel.
 
-	All notebook methods that modify the notebook are protected by
-	default with this context. However if you for some reason want to
-	find out earlier whether or not an error will happen you can use
-	this context explicitly.
+    All notebook methods that modify the notebook are protected by
+    default with this context. However if you for some reason want to
+    find out earlier whether or not an error will happen you can use
+    this context explicitly.
 
-	Entering the context may raise L{NotebookOperationOngoing} if an
-	operation is ongoing.
+    Entering the context may raise L{NotebookOperationOngoing} if an
+    operation is ongoing.
 
-	Intended usage:
+    Intended usage:
 
-		with NotebookState(notebook):
-			page = notebook.get_page(path)
-			# modify ...
-			notebook.store_page(page)
+            with NotebookState(notebook):
+                    page = notebook.get_page(path)
+                    # modify ...
+                    notebook.store_page(page)
 
-	'''
+    '''
 
-	def __init__(self, notebook):
-		self.notebook = notebook
+    def __init__(self, notebook):
+        self.notebook = notebook
 
-	def __enter__(self):
-		# only check whether api is blocked, don't block it ourselves
-		self.notebook._operation_check()
+    def __enter__(self):
+        # only check whether api is blocked, don't block it ourselves
+        self.notebook._operation_check()
 
-	def __exit__(self, *a):
-		pass
+    def __exit__(self, *a):
+        pass
 
 
 def notebook_state(method):
-	'''Decorator for notebook API methods that behaves
-	like the L{NotebookState} context.
+    '''Decorator for notebook API methods that behaves
+    like the L{NotebookState} context.
 
-	Intended only for methods that change the notebook.
-	'''
-	def wrapper(notebook, *arg, **kwarg):
-		notebook._operation_check()
-		return method(notebook, *arg, **kwarg)
+    Intended only for methods that change the notebook.
+    '''
+    def wrapper(notebook, *arg, **kwarg):
+        notebook._operation_check()
+        return method(notebook, *arg, **kwarg)
 
-	return wrapper
+    return wrapper
 
 
 def ongoing_operation(notebook):
-	op = notebook._operation_check
-	return op if op != NOOP else None
+    op = notebook._operation_check
+    return op if op != NOOP else None

@@ -458,7 +458,7 @@ class XDotAttrParser:
 
     def read_number(self):
         return int(float(self.read_code()))
-			# Changed to float here to fix launchpag bug #1285396
+        # Changed to float here to fix launchpag bug #1285396
 
     def read_float(self):
         return float(self.read_code())

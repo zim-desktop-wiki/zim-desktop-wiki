@@ -28,8 +28,8 @@ cgi-bin directory and edit the script to set the configuration.
 from zim.config import data_dir
 
 config = {
-	'notebook': data_dir('manual'),
-	#~ 'template': 'Default.html',
+        'notebook': data_dir('manual'),
+        #~ 'template': 'Default.html',
 }
 
 import logging
