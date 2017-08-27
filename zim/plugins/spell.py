@@ -59,7 +59,6 @@ and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 #####
 
 
-
 class SpellPlugin(PluginClass):
 
 	plugin_info = {
@@ -212,7 +211,6 @@ class GtkspellcheckAdapter(object):
 			name = tag.get_property('name')
 			if name and name.startswith(prefix):
 				table.remove(tag)
-
 
 
 class GtkspellAdapter(object):

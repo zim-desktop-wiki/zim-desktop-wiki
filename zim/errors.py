@@ -15,6 +15,7 @@ logger = logging.getLogger('zim')
 
 use_gtk_errordialog = False
 
+
 def set_use_gtk(use_gtk):
 	'''Set whether or not L{show_error} and L{exception_handler}
 	shold use the L{ErrorDialog} or not.
@@ -158,6 +159,7 @@ class TrashNotSupportedError(Error):
 	be used instead
 	'''
 	pass
+
 
 class TrashCancelledError(Error):
 	'''Error raised when a trashign operation is cancelled. (E.g. on

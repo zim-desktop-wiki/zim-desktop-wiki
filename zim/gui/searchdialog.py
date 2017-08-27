@@ -133,7 +133,6 @@ class SearchDialog(Dialog):
 			assert False, 'BUG: invalid state'
 
 
-
 class SearchResultsTreeView(BrowserTreeView):
 
 	NAME_COL = 0

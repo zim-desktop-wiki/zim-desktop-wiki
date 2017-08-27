@@ -29,7 +29,6 @@ class TestBookmarksBar(tests.TestCase):
 		cls.ui.notebook = cls.notebook
 		cls.ui.page = Path('Test:foo')
 
-
 	def setUp(self):
 		self.PATHS = ('Parent:Daughter:Granddaughter',
 				 'Test:tags', 'Test:foo', 'Books')
@@ -40,7 +39,6 @@ class TestBookmarksBar(tests.TestCase):
 		self.uistate.setdefault('bookmarks', [])
 		self.uistate.setdefault('bookmarks_names', {})
 		self.uistate.setdefault('show_full_page_name', True)
-
 
 	def testGeneral(self):
 		'''Test general functions: add, delete bookmarks.'''
@@ -81,7 +79,6 @@ class TestBookmarksBar(tests.TestCase):
 		Bar.delete_all()
 		self.assertEqual(Bar.paths, [])
 
-
 	def testDeletePages(self):
 		'''Check deleting a bookmark after deleting a page in the notebook.'''
 
@@ -97,7 +94,6 @@ class TestBookmarksBar(tests.TestCase):
 			self.assertTrue(path not in Bar.paths)
 			self.assertEqual(len(Bar.paths), self.LEN_PATHS - i - 1)
 		self.assertEqual(Bar.paths, [])
-
 
 	def testFunctions(self):
 		'''Test bookmark functions: changing, reordering, ranaming.'''
@@ -198,7 +194,6 @@ class TestBookmarksBar(tests.TestCase):
 		Bar.change_bookmark(new_paths[0], 'new path')
 		self.assertEqual(Bar.paths_names, paths_names_copy)
 		self.assertEqual(Bar.paths, ['new path'] + list(new_paths[1:]))
-
 
 	def testPreferences(self):
 		'''Check preferences: full/short page names, save option,

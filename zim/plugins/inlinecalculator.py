@@ -30,6 +30,7 @@ def dip(x):
 	else:
 		return x
 
+
 def which_call(x, mathfunc, cmathfunc, allowNegative=True):
 	x = dip(x)
 	if isinstance(x, complex) or (allowNegative == False and x < 0):
@@ -39,11 +40,14 @@ def which_call(x, mathfunc, cmathfunc, allowNegative=True):
 
 # math functions defined here
 
+
 def degrees(x):
 	return x * 180 / math.pi
 
+
 def radians(x):
 	return x * math.pi / 180
+
 
 def log(x, b=math.e):
 	'log(x[, base]) -> the logarithm of x to the given base.\nIf the base not specified, returns the natural logarithm (base e) of x.'
@@ -52,6 +56,7 @@ def log(x, b=math.e):
 	else:
 		return math.log(x) / math.log(b)
 
+
 def real(x):
 	'return just the real portion'
 	if isinstance(x, complex):
@@ -59,12 +64,14 @@ def real(x):
 	else:
 		return x
 
+
 def imag(x):
 	'return just the imaginary portion'
 	if isinstance(x, complex):
 		return x.imag
 	else:
 		return 0
+
 
 def sign(x):
 	'returns -1,0,1 for negative,zero,positive numbers'
@@ -75,9 +82,11 @@ def sign(x):
 	else:
 		return -1
 
+
 def log2(x):
 	'logarithm base 2'
 	return log(x, 2)
+
 
 def gcd(x, y):
 	'greatest common denominator'
@@ -85,14 +94,17 @@ def gcd(x, y):
 		(x, y) = (y % x, x)  # Guido showed me this one on the geek cruise
 	return y
 
+
 def lcm(x, y):
 	'least common multiple'
 	return x * y / gcd(x, y)
+
 
 def phase(z):
 	'phase of a complex in radians'
 	z = cpx(z)
 	return math.atan2(z.imag, z.real)
+
 
 def cpx(x):
 	'convert a number or tuple to a complex'
@@ -101,10 +113,12 @@ def cpx(x):
 	else:
 		return complex(x)
 
+
 def conj(x):
 	'complex conjugate'
 	x = cpx(x)
 	return complex(x.real, -x.imag)
+
 
 def complexify(x, func):
 	'call func on the real and imaginary portions, creating a complex from the respective results'
@@ -114,6 +128,8 @@ def complexify(x, func):
 		return func(x)
 
 # overwrite the built-in math functions that don't handle complex
+
+
 def round(x):
 	'nearest integer'
 	if isinstance(x, complex):
@@ -121,9 +137,11 @@ def round(x):
 	else:
 		return math.floor(x + .5)
 
+
 def floor(x):
 	'round towards negative infinity'
 	return complexify(x, math.floor)
+
 
 def ceil(x):
 	'round towards positive infinity'
@@ -215,7 +233,6 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 	#~ )
 
-
 	def process_text(self, text):
 		'''Takes a piece of text and parses it for expressions
 		to evaluate. Returns the text with result inserted or replaced.
@@ -276,7 +293,6 @@ This is a core plugin shipping with zim.
 
 		lines = lines[:i + 1] + [str(result)]
 		return '\n'.join(lines) + '\n'
-
 
 	def safe_eval(self, expression):
 		'''Safe evaluation of a python expression'''
@@ -347,5 +363,3 @@ class MainWindowExtension(WindowExtension):
 		with buffer.user_action:
 			buffer.delete(start, end)
 			buffer.insert_at_cursor(new)
-
-

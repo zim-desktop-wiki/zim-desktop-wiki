@@ -22,7 +22,6 @@ from zim.fs import Dir
 from zim.newfs import FileNotFoundError, LocalFolder
 
 
-
 class FilesExporterBase(Exporter):
 	'''Base class for exporters that export to files'''
 

@@ -81,7 +81,6 @@ PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_
 #~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
 
 
-
 # Mimetype text/uri-list is used for drag n drop of URLs
 # it is plain text encoded list of urls, separated by \r\n
 # Since not all apps follow the standard exactly, do allow for
@@ -122,10 +121,12 @@ def textbuffer_register_serialize_formats(buffer, notebook, page):
 		for name in IMAGE_TARGET_NAMES:  # FIXME, should we limit the list ?
 			buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
 
+
 def serialize_parse_tree(register_buf, content_buf, start, end):
 	tree = content_buf.get_parsetree((start, end))
 	xml = tree.tostring().encode('utf-8')
 	return xml
+
 
 def deserialize_parse_tree(register_buf, content_buf, iter, data, create_tags, user_data):
 	notebook, path = user_data
@@ -134,12 +135,14 @@ def deserialize_parse_tree(register_buf, content_buf, iter, data, create_tags, u
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
+
 def deserialize_urilist(register_buf, content_buf, iter, data, create_tags, user_data):
 	notebook, path = user_data
 	links = unpack_urilist(data)
 	tree = _link_tree(links, notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
+
 
 def deserialize_image(register_buf, content_buf, iter, data, create_tags, user_data):
 	# Implementation note: we follow gtk_selection_get_pixbuf() in usage of
@@ -596,14 +599,13 @@ Clipboard = ClipboardManager("CLIPBOARD")  # : Singleton object for the default 
 SelectionClipboard = ClipboardManager("PRIMARY")  # : Singleton object for the selection clipboard (unix)
 
 
-
-
 ########### Code to deal with HTML formatting on windows ############
 
 HTML_HEAD = '''\
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 <meta name="Description" content="Copy-Paste Buffer">
 <meta name="Generator" content="Zim">'''
+
 
 def wrap_html(html, target):
 	'''Function to wrap html with appropriate headers based on target type'''

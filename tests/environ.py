@@ -55,7 +55,6 @@ class EnvironmentContext(object):
 		return False  # Raise
 
 
-
 class TestEnviron(tests.TestCase):
 
 	def testGetSet(self):
@@ -97,6 +96,3 @@ class TestEnviron(tests.TestCase):
 			appdata = environ.get('APPDATA')
 			self.assertIsNotNone(appdata)
 			self.assertTrue(Dir(appdata).exists())
-
-
-

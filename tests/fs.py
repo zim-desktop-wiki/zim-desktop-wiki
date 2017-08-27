@@ -473,6 +473,7 @@ class TestTrash(tests.TestCase):
 
 from utils import FunctionThread
 
+
 @tests.slowTest
 class TestIOFunctionThread(tests.TestCase):
 

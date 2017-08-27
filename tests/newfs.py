@@ -19,7 +19,6 @@ import os
 import time
 
 
-
 def modify_file_mtime(path, func):
 	'''Helper function to modify a file in such a way that mtime
 	changed.
@@ -46,7 +45,6 @@ def modify_file_mtime(path, func):
 
 	#~ logger = 'zim.fs'
 	#~ message = 'File missing:'
-
 
 
 def P(path):
@@ -107,7 +105,6 @@ class TestFilePath(tests.TestCase):
 		f = FilePath('~non-existing-user/foo')
 		self.assertEqual(f.path, _HOME.dirname + _SEP + 'non-existing-user' + _SEP + 'foo')
 
-
 	def testShareDrivePath(self):
 		# Test pathnames for windows share drive
 		for p in (
@@ -139,7 +136,6 @@ class TestFilePath(tests.TestCase):
 
 		p = FilePath(P('/foo/bar/baz')).commonparent(FilePath(P('/foo/bar')))
 		self.assertEqual(p.path, P('/foo/bar'))
-
 
 		if os.name == 'nt':
 			p = FilePath(r'C:\foo\bar').commonparent(FilePath(r'D:\foo\bar\baz'))
@@ -426,7 +422,6 @@ class TestFS(object):
 		folder.remove_children()
 		self.assertFalse(folder.exists())
 
-
 	def testTreeAccess(self):
 		root = self.get_root_folder('testTreeAccess')
 		data = {
@@ -447,6 +442,7 @@ class TestFS(object):
 
 		# Tree access by list
 		found = {}
+
 		def walk(folder):
 			for child in folder:
 				self.assertTrue(child.exists())
@@ -511,7 +507,6 @@ class TestFS(object):
 		self.assertTrue(re.exists())
 		self.assertEqual(re.path, efolder.file(file.basename).path)
 
-
 	def testMoveFolder(self):
 		root = self.get_root_folder('testMoveFolder')
 		folder = root.folder('test')
@@ -546,7 +541,6 @@ class TestFS(object):
 
 		file = root.file('file.txt')
 		self.assertRaises(AssertionError, folder.moveto, file)
-
 
 	def testMoveCaseSensitive(self):
 		root = self.get_root_folder('testMoveCaseSensitive')
@@ -623,6 +617,7 @@ class TestFS(object):
 		root = self.get_root_folder('testFileTreeWatcher')
 
 		from functools import partial
+
 		class Recorder(object):
 
 			def __init__(self, watcher):
@@ -697,7 +692,6 @@ class TestFS(object):
 				('created', P('copy')),
 				('moved', P('test'), P('move')),
 			])
-
 
 
 class TestMockFS(tests.TestCase, TestFS):
@@ -912,8 +906,6 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertEqual(targetdir.list_names(), ['foo.txt'])
 
 
-
-
 class TestTmpFile(tests.TestCase):
 
 	def runTest(self):
@@ -952,6 +944,7 @@ except ImportError:
 	gio = None
 
 from zim.newfs.helpers import TrashHelper
+
 
 @tests.slowTest
 @tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')

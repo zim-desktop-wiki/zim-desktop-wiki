@@ -113,7 +113,6 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 		gobject.TYPE_STRING,  # TIP_COL
 	)
 
-
 	NORMAL_COLOR = None
 	EMPTY_COLOR = 'grey'  # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
 
@@ -282,10 +281,10 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 		else:
 			return None
 
-
 	# Compatibility for older version of GenericTreeModel
 	if not hasattr(gtk.GenericTreeModel, 'create_tree_iter'):
 		logger.warn('Using work around for older version of GenericTreeModel - may hurt performance')
+
 		def create_tree_iter(self, indexpath):
 			# Use GenericTreeModel API to wrap the iter
 			return self.get_iter(iter.treepath)

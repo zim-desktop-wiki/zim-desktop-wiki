@@ -99,7 +99,6 @@ class TestLines(tests.TestCase):
 		check_text(input, output)
 
 
-
 class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
@@ -372,8 +371,6 @@ grrr
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), wanted)
 
-
-
 		# Exercize recursive checkbox lists
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -434,7 +431,6 @@ Tja
 			# Like keypress would trigger while selection present
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
-
 
 		# Test deleting checkbox and undo / redo does not mess up indenting etc
 		undomanager = UndoStackManager(buffer)
@@ -885,7 +881,6 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-
 		# Exercize recursive checkbox lists
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -905,7 +900,6 @@ Tja
 		self.assertEqual(tree.tostring(), input)  # just a sanity check
 
 		undomanager = UndoStackManager(buffer)
-
 
 		row, list = TextBufferList.new_from_line(buffer, 2)  # Bar
 		list.set_bullet(row, CHECKED_BOX)
@@ -1265,7 +1259,6 @@ Tja
 		buffer.set_bullet(4, NUMBER_BULLET)
 		self.assertBufferEquals(buffer, wanted)
 
-
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">
@@ -1284,7 +1277,6 @@ Tja
 </zim-tree>'''
 		indent(buffer, 3)
 		self.assertBufferEquals(buffer, wanted)
-
 
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -1477,8 +1469,6 @@ foo
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-
-
 		# Test unindenting and test backspace can remove line end
 		press(view, (KEYVALS_BACKSPACE[0],))  # unindent
 		wanted = '''\
@@ -1539,6 +1529,7 @@ foo
 		textview.set_buffer(buffer)
 
 		print '** HACK for cleaning up parsetree'
+
 		def cleanup(parsetree):
 			# FIXME - HACK - dump and parse as wiki first to work
 			# around glitches in pageview parsetree dumper
@@ -1661,9 +1652,7 @@ foo
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
 
-
 # TODO: More popup stuff
-
 
 
 class TestPageView(tests.TestCase, TestCaseMixin):
@@ -1680,7 +1669,6 @@ Baz
 		self.assertEqual(pageview.get_word(), 'bar')
 		self.assertEqual(pageview.get_selection(), 'bar')
 		self.assertEqual(pageview.get_selection(format='wiki'), 'bar')
-
 
 	def testAutoSelect(self):
 		# This test indirectly tests select_word, select_line and strip_selection
@@ -1861,7 +1849,6 @@ dus bar bazzz baz
 		dialog.assert_response_ok()
 		buffer = textview.get_buffer()
 		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
-
 
 
 class MockUI(tests.MockObject):

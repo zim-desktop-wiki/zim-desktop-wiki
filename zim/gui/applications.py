@@ -139,6 +139,7 @@ except ImportError:
 _last_warning_missing_icon = None
 	# used to surpress redundant logging
 
+
 def get_mime_icon(file, size):
 	if not gio:
 		return None
@@ -434,6 +435,7 @@ from zim.config import String as BaseString
 from zim.config import Boolean as BaseBoolean
 from zim.config import Float as Numeric
 
+
 class String(BaseString):
 
 	def check(self, value):
@@ -454,7 +456,6 @@ class Boolean(BaseBoolean):
 	def tostring(self, value):
 		# Desktop entry specs "true" and "false"
 		return str(value).lower()
-
 
 
 class DesktopEntryDict(SectionedConfigDict, Application):
@@ -829,7 +830,6 @@ class SystemDefault(object):
 	name = _('System Default')  # T: Label for default application handler
 
 
-
 class ApplicationComboBox(gtk.ComboBox):
 
 	NAME_COL = 0
@@ -1034,8 +1034,8 @@ class CustomToolManager(object):
 		self._write_list()
 
 
-
 from zim.config import Choice
+
 
 class CustomToolDict(DesktopEntryDict):
 	'''This is a specialized desktop entry type that is used for

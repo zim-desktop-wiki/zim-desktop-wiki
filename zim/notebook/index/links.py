@@ -42,7 +42,6 @@ LINK_DIR_BOTH = 3  # : Constant for links in any direction
 # re-calculate all links on every page index to ensure the outcome.)
 
 
-
 class IndexLink(object):
 	'''Class used to represent links between two pages
 

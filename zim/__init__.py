@@ -175,7 +175,6 @@ except:
 	trans.install(unicode=True, names=('_', 'gettext', 'ngettext'))
 
 
-
 ########################################################################
 
 # Now we are allowed to import sub modules

@@ -108,10 +108,6 @@ from .helpers import *
 # --> Make it a context manager lock to block checkout during operation etc.
 
 
-
-
-
-
 def localFileOrFolder(path):
 	'''Convenience method that resolves a local C{File} or C{Folder} object'''
 	path = FilePath(path)

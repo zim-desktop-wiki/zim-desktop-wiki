@@ -7,6 +7,7 @@ import tests
 from zim.tokenparser import *
 from zim.formats import ParseTreeBuilder
 
+
 class TestTokenParser(tests.TestCase):
 
 	def testRoundtrip(self):
@@ -24,7 +25,6 @@ class TestTokenParser(tests.TestCase):
 		newtree = builder.get_parsetree()
 
 		self.assertEqual(tree.tostring(), newtree.tostring())
-
 
 	def testTopLevelLists(self):
 		tree = tests.new_parsetree()

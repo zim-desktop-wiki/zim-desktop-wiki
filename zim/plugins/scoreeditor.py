@@ -37,6 +37,7 @@ def _get_lilypond_version():
 	except ApplicationError:
 		return '2.14.2'
 
+
 class InsertScorePlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
@@ -127,7 +128,6 @@ class ScoreGenerator(ImageGeneratorClass):
 		except ApplicationError:
 			clogfile.write('convert-ly failed.\n')
 			return None, clogfile
-
 
 		# Call lilypond to generate image.
 		logfile = File(scorefile.path[:-3] + '.log')  # len('.ly') == 3

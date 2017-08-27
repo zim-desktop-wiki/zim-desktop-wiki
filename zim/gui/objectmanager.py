@@ -16,6 +16,7 @@ from zim.gui.widgets import ScrolledTextView, ScrolledWindow, TableVBox
 POSITION_BEGIN = 1
 POSITION_END = 2
 
+
 class CustomObjectWidget(gtk.EventBox):
 	'''Base class & contained for custom object widget
 
@@ -92,7 +93,6 @@ class CustomObjectWidget(gtk.EventBox):
 		self.emit('release-cursor', position)
 
 gobject.type_register(CustomObjectWidget)
-
 
 
 class TextViewWidget(CustomObjectWidget):

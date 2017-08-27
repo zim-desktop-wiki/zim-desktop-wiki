@@ -73,7 +73,6 @@ class HGApplicationBackend(VCSApplicationBase):
 		else:
 			return self.run(['add', path])
 
-
 	def annotate(self, file, version):
 		"""FIXME Document
 		return
@@ -127,7 +126,6 @@ class HGApplicationBackend(VCSApplicationBase):
 		"""
 		# TODO: append the rule instead of overwrite the full content
 		self.root.file('.hgignore').write(file_to_ignore_regexp)
-
 
 	def init_repo(self):
 		"""Initialize a new repo

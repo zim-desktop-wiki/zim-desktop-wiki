@@ -120,7 +120,6 @@ class TestWWWInterface(tests.TestCase):
 		# - ensure sub page does not show up as attachment
 		self.assertNotIn('bar.txt', response)
 
-
 		# page not found
 		with Filter404():
 			for path in self.file_not_found_paths:

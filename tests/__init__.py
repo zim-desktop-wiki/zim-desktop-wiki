@@ -177,6 +177,7 @@ from zim.newfs import LocalFolder
 
 _zim_pyfiles = []
 
+
 def zim_pyfiles():
 	'''Returns a list with file paths for all the zim python files'''
 	if not _zim_pyfiles:
@@ -221,6 +222,7 @@ MOCK_DEFAULT_REAL = 'default_real'  # : By default use real fs, mock oly for --f
 MOCK_ALWAYS_REAL = 'real'  # : always use real fs -- not recommended unless test fails for mock
 
 import random
+
 
 class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
@@ -311,7 +313,6 @@ class TestCase(unittest.TestCase):
 		from zim.notebook.layout import FilesLayout
 		from zim.notebook.index import Index
 		from zim.formats.wiki import WIKI_FORMAT_VERSION
-
 
 		folder = cls.setUpFolder(name, mock)
 		cache_dir = folder.folder('.zim')
@@ -441,7 +442,6 @@ class LoggingFilter(logging.Filter):
 		else:
 			return True
 
-
 	def wrap_test(self, test):
 		self.__enter__()
 		test.addCleanup(self.__exit__)
@@ -566,6 +566,7 @@ def _expand_manifest(names):
 			manifest.add(name)
 	return manifest
 
+
 def new_parsetree():
 	'''Returns a new ParseTree object for testing
 
@@ -576,6 +577,7 @@ def new_parsetree():
 	text = WikiTestData.get('roundtrip')
 	tree = parser.parse(text)
 	return tree
+
 
 def new_parsetree_from_text(text, format='wiki'):
 	import zim.formats
@@ -614,8 +616,8 @@ def new_page_from_text(text, format='wiki'):
 	return page
 
 
-
 _notebook_data = None
+
 
 def new_notebook(fakedir=None):
 	'''Returns a new Notebook object with all data in memory
@@ -786,6 +788,7 @@ logger = logging.getLogger('test')
 
 from functools import partial
 
+
 class SignalLogger(dict):
 	'''Listening object that attaches to all signals of the target and records
 	all signals calls in a dictionary of lists.
@@ -836,7 +839,6 @@ class SignalLogger(dict):
 		for id in self._ids:
 			self._obj.disconnect(id)
 		self._ids = []
-
 
 
 class CallBackLogger(dict):

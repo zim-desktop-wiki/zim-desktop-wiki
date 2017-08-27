@@ -324,6 +324,7 @@ ALERT_COLOR = '#FCEB65'  # yellow ("idem" - #FCE94F)
 
 COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR]  # index 0..3
 
+
 def days_to_str(days):
 	if days > 290:
 			return '%iy' % round(float(days) / 365)  # round up to 1 year from ~10 months
@@ -437,6 +438,7 @@ class TaskListTreeView(BrowserTreeView):
 		today = str(datetime.date.today())
 		tomorrow = str(datetime.date.today() + datetime.timedelta(days=delta1))
 		dayafter = str(datetime.date.today() + datetime.timedelta(days=delta2))
+
 		def render_date(col, cell, model, i):
 			date = model.get_value(i, self.DUE_COL)
 			if date == _MAX_DUE_DATE:
@@ -631,6 +633,7 @@ class TaskListTreeView(BrowserTreeView):
 		@returns: total number
 		'''
 		counter = [0]
+
 		def count(model, path, iter):
 			counter[0] += 1
 		self.real_model.foreach(count)
@@ -728,7 +731,6 @@ class TaskListTreeView(BrowserTreeView):
 		item.connect('activate', self.copy_to_clipboard)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)
-
 
 	def _query_tooltip_cb(self, widget, x, y, keyboard_tip, tooltip):
 		context = widget.get_tooltip_context(x, y, keyboard_tip)

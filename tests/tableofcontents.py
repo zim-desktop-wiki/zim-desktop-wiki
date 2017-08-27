@@ -36,7 +36,6 @@ class TestTableOfContents(tests.TestCase):
 		plugin.preferences['pane'] = RIGHT_PANE
 		plugin.preferences['pane'] = LEFT_PANE
 
-
 		plugin.preferences['floating'] = False
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
 		plugin.extend(mainwindow)  # plugin does not remember objects, manager does that
@@ -65,6 +64,7 @@ class TestTableOfContents(tests.TestCase):
 			# Count number of rows in TreeModel
 			model = widget.treeview.get_model()
 			rows = []
+
 			def c(model, path, iter):
 				rows.append((len(path), model[iter][TEXT_COL]))
 			model.foreach(c)
@@ -132,6 +132,7 @@ sdfsdf
 
 		column = widget.treeview.get_column(0)
 		model = widget.treeview.get_model()
+
 		def activate_row(m, path, i):
 			#~ print ">>>", path
 			widget.treeview.row_activated(path, column)
@@ -205,7 +206,6 @@ sdfsdf
 		self.assertEqual(get_tree(), [])
 		widget.on_store_page(ui.notebook, emptypage)
 		self.assertEqual(get_tree(), [])
-
 
 		# Test some more pages - any errors ?
 		for path in ui.notebook.pages.walk():

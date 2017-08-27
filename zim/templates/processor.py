@@ -172,7 +172,6 @@ class TemplateProcessor(object):
 		context['loop'] = outer
 
 
-
 class TemplateLoopState(object):
 	'''Object used for the "loop" parameter in a FOR loop'''
 

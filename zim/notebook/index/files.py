@@ -382,7 +382,6 @@ class FilesIndexChecker(object):
 			yield new_status == STATUS_NEED_UPDATE
 
 
-
 class TestFilesDBTable(object):
 	# Mixin for test cases, defined here to have all SQL in one place
 
@@ -395,7 +394,6 @@ class TestFilesDBTable(object):
 				).fetchone()
 				self.assertIsNotNone(parent,
 					'Missing parent for %s' % row['path'])
-
 
 	def assertFilesDBEquals(self, db, paths):
 		import os

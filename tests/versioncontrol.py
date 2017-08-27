@@ -175,7 +175,6 @@ class VersionControlBackendTests(object):
 	# TODO - unify test cases with single interface test
 
 
-
 #####################################################
 #
 # BAZAAR BACKEND TEST
@@ -184,7 +183,6 @@ class VersionControlBackendTests(object):
 @tests.slowTest
 @tests.skipUnless(VCS.check_dependencies(VCS.BZR), 'Missing dependencies')
 class TestBazaar(VersionControlBackendTests, tests.TestCase):
-
 
 	def runTest(self):
 		'''Test Bazaar version control'''
@@ -453,7 +451,6 @@ test
 2) baz
 ''' )
 
-
 		# Test unicode support
 		file.write(WIKITEXT)
 		diff = vcs.get_diff()
@@ -539,7 +536,6 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		vcs.revert()
 		self.assertEqual(vcs.get_diff(), ['=== No Changes\n'])
 
-
 		file.write('foo\nbaz\n')
 		vcs.commit('test 2')
 		diff = vcs.get_diff(versions=(0, 1))
@@ -561,7 +557,6 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][0], str(1))
 		self.assertEqual(versions[1][3], u'test 2')
-
 
 		lines = vcs.get_version(file, version=0)
 		self.assertEqual(''.join(lines), '''\

@@ -376,11 +376,9 @@ class Range(Integer):
 		self.max = max
 		ConfigDefinition.__init__(self, default)
 
-
 	def __eq__(self, other):
 		return ConfigDefinition.__eq__(self, other) \
 			and (self.min, self.max) == (other.min, other.max)
-
 
 	def check(self, value):
 		value = Integer.check(self, value)
@@ -464,7 +462,6 @@ def build_config_definition(default=None, check=None, allow_empty=False):
 		return Range(default, check[0], check[1])
 	else:
 		raise ValueError('Unrecognized check type')
-
 
 
 class ConfigDict(ControlledDict):
@@ -853,6 +850,7 @@ class INIConfigFile(SectionedConfigDict):
 		@returns: a list of lines with text in "ini-style" formatting
 		'''
 		lines = []
+
 		def dump_section(name, section):
 			lines.append('[%s]\n' % name)
 			for key, value in section.all_items():

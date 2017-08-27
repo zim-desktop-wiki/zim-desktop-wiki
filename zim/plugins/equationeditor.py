@@ -15,6 +15,7 @@ from zim.applications import Application, ApplicationError
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
 dvipngcmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
 
+
 class InsertEquationPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {

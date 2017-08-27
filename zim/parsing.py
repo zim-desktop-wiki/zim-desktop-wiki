@@ -56,6 +56,7 @@ def unescape_quoted_string(string):
 	@returns: string
 	'''
 	escape_re = re.compile(r'(\\(\\)|\\([\'\"]))')
+
 	def replace(m):
 		return m.group(2) or m.group(3)
 	if (string.startswith('"') or string.startswith("'")) \
@@ -118,8 +119,10 @@ URL_ENCODE_READABLE = 2  # only space and utf-8
 _url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]')  # unreserved
 _url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]')  # unreserved + /
 
+
 def _url_encode(match):
 	return '%%%02X' % ord(match.group(0))
+
 
 def _url_encode_readable(match):
 	i = ord(match.group(0))
@@ -127,6 +130,7 @@ def _url_encode_readable(match):
 		return '%%%02X' % i
 	else:  # do not encode
 		return match.group(0)
+
 
 def url_encode(url, mode=URL_ENCODE_PATH):
 	'''Replaces non-standard characters in urls with hex codes.
@@ -157,8 +161,10 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 
 _url_decode_re = re.compile('%([a-fA-F0-9]{2})')
 
+
 def _url_decode(match):
 	return chr(int(match.group(1), 16))
+
 
 def _url_decode_readable(match):
 	i = int(match.group(1), 16)
@@ -166,6 +172,7 @@ def _url_decode_readable(match):
 		return chr(i)
 	else:  # do not decode
 		return match.group(0)
+
 
 def url_decode(url, mode=URL_ENCODE_PATH):
 	'''Replace url-encoding hex sequences with their proper characters.
@@ -198,6 +205,7 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 			return url.replace('%20', ' ')
 
 _parse_date_re = re.compile(r'(\d{1,4})\D(\d{1,2})(?:\D(\d{1,4}))?')
+
 
 def parse_date(string):
 	'''Returns a tuple of (year, month, day) for a date string or None

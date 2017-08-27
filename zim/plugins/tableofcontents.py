@@ -22,6 +22,7 @@ from zim.signals import ConnectorMixin
 # FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
 _is_heading = lambda iter: bool(filter(_is_heading_tag, iter.get_tags()))
 
+
 def find_heading(buffer, heading):
 	'''Find a heading
 	@param buffer: the C{gtk.TextBuffer}
@@ -148,7 +149,6 @@ class MainWindowExtensionFloating(WindowExtension):
 		self.widget.destroy()
 
 
-
 TEXT_COL = 0
 
 
@@ -169,7 +169,6 @@ class ToCTreeView(BrowserTreeView):
 		self.append_column(column)
 
 
-
 class ToCTreeModel(gtk.TreeStore):
 
 	def __init__(self):
@@ -180,7 +179,6 @@ class ToCTreeModel(gtk.TreeStore):
 		headings = []
 		for heading in parsetree.findall(HEADING):
 			headings.append((int(heading.attrib['level']), heading.gettext()))
-
 
 		if not show_h1 \
 		and headings \
@@ -196,8 +194,6 @@ class ToCTreeModel(gtk.TreeStore):
 			parent = stack[-1][1]
 			iter = self.append(parent, (text,))
 			stack.append((level, iter))
-
-
 
 
 class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
@@ -375,7 +371,6 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
 		self.load_page(self.pageview.page)
 		return True
-
 
 	def _walk(self, model, iter):
 		# yield iter and all its (grand)children

@@ -27,6 +27,7 @@ TODO: insert random links here
 '''
 content += ('la la laaa' * 20 + '\n') * 10
 
+
 def populate_level(path, j):
     path += os.path.sep
     os.mkdir(path)

@@ -71,7 +71,6 @@ class TestExceptionHandler(tests.TestCase):
 			self.assertIsInstance(dialog, ErrorDialog)
 			self.assertFalse(dialog.showing_trace)
 
-
 		zim.errors.set_use_gtk(True)
 		try:
 			self.assertTrue(zim.errors.use_gtk_errordialog)
@@ -112,7 +111,6 @@ class TestExceptionHandler(tests.TestCase):
 		else:
 			assert False
 
-
 		# Show caught bug
 		try:
 			raise AssertionError('My AssertionError')
@@ -129,7 +127,6 @@ class TestExceptionHandler(tests.TestCase):
 			self.assertIsNotNone(records[0].exc_info)
 		else:
 			assert False
-
 
 		# Handle normal application error
 		try:
@@ -153,7 +150,6 @@ class TestExceptionHandler(tests.TestCase):
 			self.assertIsNone(records[1].exc_info)
 		else:
 			assert False
-
 
 		# Handle normal IOError
 		try:

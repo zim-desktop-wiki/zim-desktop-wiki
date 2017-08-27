@@ -82,7 +82,6 @@ class ServerWindow(gtk.Window):
 			# T: Checkbox in web server gui
 		self.public_checkbox.set_active(public)
 
-
 		# Build the interface
 		vbox = gtk.VBox()
 		self.add(vbox)
@@ -106,7 +105,6 @@ class ServerWindow(gtk.Window):
 			hbox = gtk.HBox()
 			hbox.pack_end(self.link_button, False)
 			vbox.add(hbox)
-
 
 	def open_notebook(self, notebook):
 		'''Sets the notebook in the combobox

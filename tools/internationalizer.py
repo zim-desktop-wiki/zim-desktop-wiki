@@ -5,6 +5,7 @@ import tokenize
 import token
 import re
 
+
 def match_ignore(string):
 	if string.startswith("'''"):
 		return True  # ignore docstring etc.
@@ -71,7 +72,6 @@ class Internationalizer(gtk.Window):
 		applybutton = gtk.Button(stock='gtk-apply')
 		applybutton.connect_object('clicked', self.__class__.apply_mark, self)
 		bbox.add(applybutton)
-
 
 	def open_file(self, file):
 		if self.textview.get_buffer().get_modified():

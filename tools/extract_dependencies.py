@@ -2,6 +2,7 @@
 
 import os
 
+
 def extract_deps(file):
 	#~ print 'Extracting from %s' % file
 	deps = set()
@@ -12,6 +13,7 @@ def extract_deps(file):
 			if words[0] == 'import' or (words[0] == 'from' and words[2] == 'import'):
 				deps.add(words[1])
 	return deps
+
 
 def main():
 	deps = set()

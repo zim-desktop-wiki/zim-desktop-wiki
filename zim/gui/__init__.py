@@ -107,7 +107,6 @@ ui_preferences = (
 )
 
 
-
 # Load custom application icons as stock
 def load_zim_stock_icons():
 	'''Function to load zim custom stock icons for Gtk. Will load all
@@ -628,7 +627,6 @@ class GtkInterface(gobject.GObject):
 			if category:
 				register.setdefault(category, [])
 				register[category].append(r)
-
 
 	def register_new_window(self, window):
 		'''Register a new window for the application.
@@ -2344,7 +2342,6 @@ class MainWindow(Window):
 
 		gtk.accel_map_get().connect('changed', on_accel_map_changed)
 
-
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
 		if self.isfullscreen:
@@ -2482,7 +2479,6 @@ class PageWindow(Window):
 				self.set_icon_from_file(ui.notebook.icon)
 			except gobject.GError:
 				logger.exception('Could not load icon %s', ui.notebook.icon)
-
 
 		page = ui.notebook.get_page(page)
 
@@ -2789,7 +2785,6 @@ class DeletePageDialog(Dialog):
 			self.links_checkbox.set_sensitive(False)
 		else:
 			self.links_checkbox.set_active(True)
-
 
 		# TODO use expander here
 		dir = self.ui.notebook.get_attachments_dir(self.path)

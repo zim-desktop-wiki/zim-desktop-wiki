@@ -97,4 +97,3 @@ class TaskListDialogExtension(DialogExtension):
 		self.window.ui.open_url('file://%s' % file)  # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results
-

@@ -36,6 +36,8 @@ bullet_line_re = re.compile(ur'^(\t*)(%s)(.*\n)$' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
 number_bullet_re = re.compile(u'^(\d+|[a-zA-Z])\.$')
+
+
 def check_number_bullet(bullet):
 	'''If bullet is a numbered bullet this returns the number or letter,
 	C{None} otherwise
@@ -286,7 +288,6 @@ class WikiParser(object):
 
 		attrib = {'aligns': ','.join(aligns), 'wraps': ','.join(map(str, wraps))}
 
-
 		# build table
 		builder.start(TABLE, attrib)
 
@@ -435,7 +436,6 @@ class WikiParser(object):
 	@staticmethod
 	def parse_line(builder, text):
 		builder.append(LINE)
-
 
 
 wikiparser = WikiParser()  # : singleton instance

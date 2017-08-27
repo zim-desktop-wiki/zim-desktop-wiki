@@ -150,11 +150,11 @@ LINE_TEXT = '-' * 20
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
 
-
 from zim.tokenparser import TokenBuilder
 
 
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
 
 def increase_list_iter(listiter):
 	'''Get the next item in a list for a numbered list
@@ -175,6 +175,7 @@ def increase_list_iter(listiter):
 			return None
 		except IndexError:  # wrap to start of list
 			return _letters[0]
+
 
 def encode_xml(text):
 	'''Encode text such that it can be used in xml
@@ -633,7 +634,6 @@ class ParseTree(object):
 			else:
 				pass
 
-
 		if replacements:
 			self._do_replace(elt, replacements)
 
@@ -1065,7 +1065,6 @@ class OldParseTreeBuilder(object):
 		else:
 			self._data = []
 
-
 	def close(self):
 		assert len(self._stack) == 0, 'missing end tags'
 		assert not self._last is None and self._last.tag == 'zim-tree', 'missing root element'
@@ -1126,7 +1125,6 @@ class ParserClass(object):
 			return attrib
 		else:
 			return {'src': url}
-
 
 
 import collections
@@ -1442,7 +1440,6 @@ class StubLinker(BaseLinker):
 		return file.name
 
 
-
 class Node(list):
 	'''Base class for DOM-like access to the document structure.
 	@note: This class is not optimized for keeping large structures
@@ -1713,6 +1710,7 @@ from zim.config.dicts import OrderedDict
 
 _is_header_re = re.compile('^([\w\-]+):\s+(.*?)\n', re.M)
 _is_continue_re = re.compile('^([^\S\n]+)(.+?)\n', re.M)
+
 
 def parse_header_lines(text):
 	'''Read header lines in the rfc822 format.

@@ -17,6 +17,7 @@ import zim.plugins
 # TODO remove singleton contruction, add ref to plugin manager
 # to allow fallback object widget to have toolbar to load plugin
 
+
 class _ObjectManager(object):
 	'''Manages custom objects.'''
 
@@ -215,4 +216,3 @@ class FallbackObject(CustomObjectClass):
 	def set_label(self, label):
 		'''Sets label at the top area of widget.'''
 		self.label.set_text(label)
-

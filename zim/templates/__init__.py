@@ -46,7 +46,6 @@
 #	loop.next		next item or None
 
 
-
 import logging
 
 logger = logging.getLogger('zim.templates')
@@ -60,7 +59,6 @@ from zim.signals import SignalEmitter
 from zim.templates.parser import TemplateParser
 from zim.templates.processor import TemplateProcessor, TemplateContextDict
 from zim.templates.functions import build_template_functions
-
 
 
 def list_template_categories():

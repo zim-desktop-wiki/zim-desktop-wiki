@@ -215,8 +215,6 @@ class ScrolledHBox(gtk.HBox):
 			self._back_button.set_child_visible(False)
 			return  # nothing to render
 
-
-
 		direction, index = self._anchor or (DIR_FORWARD, len(children) - 1)
 		assert 0 <= index <= len(children)
 		assert direction in (DIR_FORWARD, DIR_BACKWARD)
@@ -506,6 +504,7 @@ class PathBar(ScrolledHBox):
 		else:
 			return None
 
+
 class HistoryPathBar(PathBar):
 
 	# Get last X paths from history, add buttons
@@ -576,6 +575,7 @@ class TestPath(object):
 	def __init__(self, name):
 		self.name = name
 		self.basename = name
+
 
 class TestPathBar(PathBar):
 

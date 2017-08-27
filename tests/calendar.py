@@ -76,7 +76,6 @@ class TestCalendarFunctions(tests.TestCase):
 		self.assertEqual(weekcalendar(dec31), (2009, 53, 5))
 		self.assertEqual(weekcalendar(jan1), (2009, 53, 6))
 
-
 	def testDateRangeFromPath(self):
 		from zim.plugins.calendar import daterange_from_path
 
@@ -150,7 +149,6 @@ class TestCalendarPlugin(tests.TestCase):
 
 		with tests.DialogContext(test_dialog):
 			ext[0].show_calendar()
-
 
 		plugin.preferences['embedded'] = True  # switch back
 

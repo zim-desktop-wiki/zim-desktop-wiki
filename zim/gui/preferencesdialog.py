@@ -90,7 +90,6 @@ class PreferencesDialog(Dialog):
 		gtknotebook.append_page(ApplicationsTab(self), gtk.Label(_('Applications')))
 			# T: Heading in preferences dialog
 
-
 	def _add_font_selection(self, table):
 		# need to hardcode this, cannot register it as a preference
 		table.add_inputs((
@@ -238,7 +237,6 @@ class PluginsTab(gtk.VBox):
 			)
 			hbox.pack_start(url_button, False)
 
-
 	def do_selection_changed(self, selection):
 		treeview = selection.get_tree_view()
 		selected = selection.get_selected()
@@ -252,6 +250,7 @@ class PluginsTab(gtk.VBox):
 		# Insert plugin info into textview with proper formatting
 		# TODO use our own widget with formatted text here...
 		buffer = self.textbuffer
+
 		def insert(text, style=None):
 			if style:
 				buffer.insert_with_tags_by_name(
@@ -300,6 +299,7 @@ class PluginsTab(gtk.VBox):
 
 	def select_plugin(self, name):
 		model = self.treeview.get_model()
+
 		def find(model, path, iter):
 			if name in model[iter]:  # either key or localized name
 				self.treeview.scroll_to_cell(path)
@@ -335,7 +335,6 @@ class PluginsTreeModel(gtk.ListStore):
 				logger.exception('Could not load plugin %s', name)
 			else:
 				self.append((key, active, activatable, name, klass))
-
 
 	def do_toggle_path(self, path):
 		key, active, activatable, name, klass = self[path]

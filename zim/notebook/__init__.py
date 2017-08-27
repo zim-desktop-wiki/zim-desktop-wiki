@@ -54,7 +54,6 @@ from .index import IndexNotFoundError, \
 	LINK_DIR_BACKWARD, LINK_DIR_BOTH, LINK_DIR_FORWARD
 
 
-
 def build_notebook(location):
 	'''Create a L{Notebook} object for a file location
 	Tries to automount file locations first if needed

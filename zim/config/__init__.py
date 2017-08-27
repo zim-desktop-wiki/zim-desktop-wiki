@@ -38,7 +38,6 @@ in L{zim.config.basedirs}.
 # TODO: resources like icons etc can be managed by a Singleton ResourceManager
 
 
-
 def data_dirs(path=None):
 	'''Generator listing paths that contain zim data files in the order
 	that they should be searched. These will be the equivalent of

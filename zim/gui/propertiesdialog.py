@@ -5,6 +5,7 @@
 import gtk
 from zim.gui.widgets import Dialog
 
+
 class PropertiesDialog(Dialog):
 
 	def __init__(self, ui):

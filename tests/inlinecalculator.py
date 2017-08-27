@@ -78,4 +78,3 @@ oct(8) == '010'
 
 		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")')  # global
 		self.assertRaises(Exception, plugin.process_text, 'self')  # local
-

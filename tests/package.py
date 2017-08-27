@@ -159,7 +159,6 @@ class TestCoding(tests.TestCase):
 			if not file.endswith('config.py'):
 				self.assertFalse('os.environ\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)
 
-
 	def testImportFuture(self):
 		'''Check python 2.5 compatibility'''
 		for file, code in self.list_code():
@@ -293,7 +292,6 @@ class TestDocumentation(tests.TestCase):
 					% (name, spec)
 					)
 
-
 	known_fields = {
 		# keys are known fields, if values is True, a param is
 		# required for the first ":"
@@ -345,7 +343,6 @@ class TestDocumentation(tests.TestCase):
 				pass
 
 		return fields
-
 
 	def assertSignalSpecOK(self, obj, file):
 		for name, spec in obj.__signals__.items():

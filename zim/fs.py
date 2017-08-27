@@ -243,7 +243,6 @@ else:
 		else:
 			return path  # assume encoding is correct
 
-
 	def decode(path):
 		if isinstance(path, unicode):
 			return path  # assume encoding is correct
@@ -287,6 +286,7 @@ def joinpath(*parts):
 	'''
 	return os.path.join(*parts)
 
+
 def expanduser(path):
 	'''Wrapper for C{os.path.expanduser()} to get encoding right'''
 	if ENCODING == 'mbcs':
@@ -324,6 +324,7 @@ def expanduser(path):
 			path = '/'.join([dir, parts[0][1:]] + parts[1:])
 
 	return path
+
 
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -445,8 +446,6 @@ def format_file_size(bytes):
 				return "%.0f%s" % (size, label)
 	else:
 		return str(bytes) + 'b'
-
-
 
 
 def _md5(content):
@@ -1825,6 +1824,7 @@ class WindowsFile(UnixFile):
 
 		orig = self.encodedpath + '.zim-orig~'
 		new = self.encodedpath + '.zim-new~'
+
 		def backup_orig(orig):
 			bak = self.encodedpath + '.bak~'
 			i = 1
@@ -1893,8 +1893,6 @@ class FileHandle(file):
 			self.on_close()
 
 
-
-
 # Replace logic based on discussion here:
 # http://stupidpythonideas.blogspot.nl/2014/07/getting-atomic-writes-right.html
 #
@@ -1910,6 +1908,7 @@ elif sys.platform == 'win32':
 	_MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 	_MoveFileEx.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
 	_MoveFileEx.restype = ctypes.c_bool
+
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1):  # MOVEFILE_REPLACE_EXISTING

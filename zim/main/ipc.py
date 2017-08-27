@@ -54,7 +54,6 @@ def set_in_main_process(in_main_process):
 	_IN_MAIN_PROCESS = in_main_process
 
 
-
 _m = hashlib.md5()
 _m.update(zim.ZIM_EXECUTABLE)
 
@@ -94,7 +93,6 @@ else:
 #   - EOFError close while waiting for reply
 # - Listener
 #   - socket.error: [Errno 98]  - 'Address already in use'
-
 
 
 def dispatch(*args):

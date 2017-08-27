@@ -78,6 +78,7 @@ class MainWindowExtension(WindowExtension):
 PAGE_COL = 0
 TEXT_COL = 1
 
+
 class BackLinksWidget(gtk.ScrolledWindow):
 
 	def __init__(self, opener):

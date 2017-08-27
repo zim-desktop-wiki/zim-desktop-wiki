@@ -36,7 +36,6 @@ class RecentChangesDialog(Dialog):
 			model.append((rec.name, rec.mtime))
 
 
-
 class RecentChangesTreeView(BrowserTreeView):
 
 	NAME_COL = 0
@@ -57,6 +56,7 @@ class RecentChangesTreeView(BrowserTreeView):
 
 		today = datetime.date.today()
 		yesterday = today - datetime.timedelta(days=1)
+
 		def render_date(col, cell, model, i):
 			mtime = model.get_value(i, self.MODIFIED_COL)
 			if mtime:
@@ -83,7 +83,6 @@ class RecentChangesTreeView(BrowserTreeView):
 		column.set_cell_data_func(cell_renderer, render_date)
 		column.set_sort_column_id(self.MODIFIED_COL)
 		self.append_column(column)
-
 
 		self.connect('row-activated', self._do_open_page)
 

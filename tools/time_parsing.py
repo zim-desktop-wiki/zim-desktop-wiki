@@ -11,6 +11,7 @@ import zim.formats
 import zim.fs
 import tests
 
+
 def setup():
 	global parser, dumper
 	parser = zim.formats.get_parser('wiki')
@@ -25,6 +26,7 @@ def setup():
 	smalltext = "foo **bar** baz\n"
 	xml = "<?xml version='1.0' encoding='utf-8'?><zim-tree>foo <strong>bar</strong> baz\n</zim-tree>"
 	smalltree = tests.new_parsetree_from_xml(xml)
+
 
 def timeParsing():
 	parser.parse(wikitext)

@@ -63,7 +63,6 @@ else:
 	_global_items_initialized = False
 
 
-
 class OSXmenubarPlugin(PluginClass):
 	# This object just provides some information for the plugin manager
 	# no real logic happening here.
@@ -81,7 +80,6 @@ class OSXmenubarPlugin(PluginClass):
 		# the plugin manager
 		is_ok = gtkosx_application is not None
 		return is_ok, [('gtkosx_application', is_ok, True)]
-
 
 
 @extends('MainWindow')

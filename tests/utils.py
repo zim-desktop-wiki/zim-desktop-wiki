@@ -9,6 +9,7 @@ from copy import copy
 
 from zim.utils import *
 
+
 class TestNaturalSorting(tests.TestCase):
 
 	def runTest(self):
@@ -99,6 +100,7 @@ class TestMovingWindowIterBuffer(tests.TestCase):
 
 
 import threading
+
 
 class TestFunctionThread(tests.TestCase):
 

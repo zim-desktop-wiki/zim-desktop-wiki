@@ -128,7 +128,6 @@ some <b>bold</b> text
 		Clipboard.clear()
 		self.assertTrue(Clipboard.get_parsetree() is None)
 
-
 	def testCopyPasteToParseTree(self):
 		# text -> tree
 		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some string</zim-tree>'''
@@ -217,6 +216,3 @@ some <b>bold</b> text
 # LP #XXX: selection gone from clipboard when leaving page
 #
 # HTML -> parsetree (need import)
-
-
-

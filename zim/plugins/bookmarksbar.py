@@ -26,6 +26,7 @@ logger = logging.getLogger('zim.plugins.bookmarksbar')
 BM_TOGGLE_BAR_KEY = 'F4'
 BM_ADD_BOOKMARK_KEY = '<alt>0'
 
+
 class BookmarksBarPlugin(PluginClass):
 
 	plugin_info = {
@@ -42,6 +43,7 @@ class BookmarksBarPlugin(PluginClass):
 		('save', 'bool', _('Save bookmarks'), True),  # T: preferences option
 		('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False),  # T: preferences option
 	)
+
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
@@ -137,7 +139,6 @@ class MainWindowExtension(WindowExtension):
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
 			menu.show_all()
-
 
 	@action(_('_Run bookmark'), accelerator='<alt>1')
 	def bookmark_1(self):
@@ -464,7 +465,6 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		main_menu.show_all()
 		main_menu.popup(None, None, None, 3, 0)
 		return True
-
 
 	def on_bookmark_clicked(self, button):
 		'''Open page if a bookmark is clicked.'''

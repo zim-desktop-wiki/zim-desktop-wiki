@@ -240,4 +240,3 @@ class MainWindowExtension(WindowExtension):
 		self._set_margins(0, 0, 0, 0)
 		if self._normal_colors:
 			self._set_colors(self._normal_colors)
-

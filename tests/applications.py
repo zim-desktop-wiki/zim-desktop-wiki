@@ -200,7 +200,6 @@ class TestApplicationManager(tests.TestCase):
 		self.assertIsNone(manager.get_application('non_existing_application'))
 
 
-
 @tests.slowTest
 class TestCustomTools(tests.TestCase):
 

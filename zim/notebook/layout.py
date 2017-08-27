@@ -15,7 +15,6 @@ FILE_TYPE_PAGE_SOURCE = 1
 FILE_TYPE_ATTACHMENT = 2
 
 
-
 def _url_encode_on_error(error):
 	string = error.object
 	section = string[error.start:error.end].encode('utf-8')
@@ -57,6 +56,7 @@ def encode_filename(pagename):
 
 _url_decode_re = re.compile('%([a-fA-F0-9]{2})')
 
+
 def _url_decode(match):
 	return chr(int(match.group(1), 16))
 
@@ -76,10 +76,8 @@ def decode_filename(filename):
 	return filename.replace('\\', ':').replace('/', ':').replace('_', ' ')
 
 
-
 class NotebookLayout(object):
 	pass
-
 
 
 class FilesLayout(NotebookLayout):

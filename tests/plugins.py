@@ -181,9 +181,9 @@ class TestPlugins(tests.TestCase):
 		self.assertTrue(len(manager) == 0)
 
 
-
 from tests.pageview import setUpPageView
 from zim.config import ConfigDict
+
 
 class MockWindow(tests.MockObject):
 

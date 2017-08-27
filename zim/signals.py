@@ -18,7 +18,6 @@ SIGNAL_RUN_LAST = 3
 SIGNAL_AFTER = 4
 
 
-
 class SignalHandler(object):
 	'''Wrapper for a signal handler method that allows blocking the
 	handler for incoming signals. To be used as function decorator.
@@ -94,8 +93,6 @@ class SignalHandlerBlockContextManager(object):
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.handler._unblock()
-
-
 
 
 class ConnectorMixin(object):
@@ -233,7 +230,6 @@ class SignalEmitterMeta(type):
 		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
 
 
-
 class SignalEmitter(object):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be backward compatible with API offered by GObject.
@@ -347,7 +343,6 @@ class SignalEmitter(object):
 		return BlockSignalsContextManager(self, signals)
 
 
-
 class BlockSignalsContextManager(object):
 
 	def __init__(self, obj, signals):
@@ -364,7 +359,6 @@ class BlockSignalsContextManager(object):
 			if signal in self.obj._signal_blocks \
 			and self.obj._signal_blocks[signal] > 0:
 				self.obj._signal_blocks[signal] -= 1
-
 
 
 class DelayedCallback(object):

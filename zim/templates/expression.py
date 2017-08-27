@@ -398,7 +398,6 @@ class ExpressionObjectBase(object):
 		return list(reversed(self))
 
 
-
 class ExpressionStringObject(ExpressionObjectBase):
 	'''Proxy for string objects that gives safe methods for use in
 	expressions.
@@ -428,7 +427,6 @@ class ExpressionDictObject(ExpressionObjectBase):
 
 	def __delitem__(self, k):
 		del self._obj[k]
-
 
 
 class ExpressionListObject(ExpressionObjectBase):

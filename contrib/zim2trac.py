@@ -22,6 +22,8 @@ import sys
 import os
 
 # buscaCabeceras=re.compile('(={1:5})([^=]*)(={1:5})')
+
+
 def flatten(linkName):
 	'''Changes a zim link, possibly with categories, to a trac link
 
@@ -30,6 +32,7 @@ def flatten(linkName):
 	# remove final ':' character and
 	name = linkName[:-1] if linkName[-1] == ':' else linkName
 	return removeSpecialChars(name.replace(':', '_').replace(' ', '_'))
+
 
 def removeSpecialChars(s):
 	'''certain trac installation reported problems with special chars
@@ -52,6 +55,8 @@ namedRelLink = re.compile('\[\[([^:][^\|]+?)\|([^\|]+?)\]\]')
 simpleAbsLink = re.compile('\[\[:([^\|]+?)\]\]')
 namedAbsLink = re.compile('\[\[:([^\|]+?)\|([^\|]+?)\]\]')
 images = re.compile('([^\{])\{\{\/(.+?)\}\}')
+
+
 def translate(nota, prefix1, prefix2):
 	'''Takes a note in zim format and returns a note in trac format
 	'''
@@ -144,6 +149,7 @@ def translate(nota, prefix1, prefix2):
 	nota = images.sub("\\1[[Image(\\2)]]", nota)
 
 	return nota
+
 
 def processPath(pathin, pathout, prefix1, prefix2=''):
 	for archivo in os.listdir(pathin):

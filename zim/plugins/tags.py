@@ -29,7 +29,6 @@ from zim.signals import ConnectorMixin
 logger = logging.getLogger('zim.plugins.tags')
 
 
-
 class TagsPlugin(PluginClass):
 
 	plugin_info = {
@@ -61,6 +60,7 @@ class MainWindowExtension(WindowExtension):
 
 		self.uistate.setdefault('vpane_pos', 150)
 		self.widget.set_position(self.uistate['vpane_pos'])
+
 		def update_uistate(*a):
 			self.uistate['vpane_pos'] = self.widget.get_position()
 		self.widget.connect('notify::position', update_uistate)

@@ -69,6 +69,7 @@ def template_strfcal(format, date=None):
 	except:
 		logger.exception('Error in strftime "%s"', format)
 
+
 @ExpressionFunction
 def template_gettext(string):
 	'''Template function wrapper for gettext'''

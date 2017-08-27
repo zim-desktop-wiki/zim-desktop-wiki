@@ -39,8 +39,6 @@ _MAX_DUE_DATE = '9999'  # Constant for empty due date - value chosen for sorting
 _NO_TAGS = '__no_tags__'  # Constant that serves as the "no tags" tag - _must_ be lower case
 
 
-
-
 def _parse_task_labels(string):
 	if string is None:
 		return []

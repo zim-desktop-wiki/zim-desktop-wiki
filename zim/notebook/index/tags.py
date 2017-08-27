@@ -348,7 +348,6 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 		# Don't emit further, view already changed
 
 
-
 class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 	'''Tree model that shows all pages for a given set of tags'''
 

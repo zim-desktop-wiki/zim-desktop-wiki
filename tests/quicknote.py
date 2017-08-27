@@ -96,7 +96,6 @@ attachment {{./zim16.png}}
 		self.assertIn('zim16.png', Dir(attachments.path).list())
 		#~ self.assertIn('zim16.png', attachments.list_names())
 
-
 	#~ @tests.slowTest
 	#~ def testAppend(self):
 		#~ # test ui.append_text_to_page()

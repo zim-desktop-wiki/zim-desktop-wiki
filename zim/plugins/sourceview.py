@@ -17,6 +17,7 @@ try:
 except:
 	class Dialog():
 		pass
+
 	class TextViewWidget():
 		pass
 
@@ -361,7 +362,6 @@ class SourceViewWidget(TextViewWidget):
 		item.set_sensitive(self.view.get_editable())
 		item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)
-
 
 		def activate_lang(item):
 			self.obj.set_language(item.zim_sourceview_languageid)

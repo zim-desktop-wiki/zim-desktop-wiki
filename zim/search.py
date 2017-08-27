@@ -79,6 +79,7 @@ keyword_re = Re('(' + '|'.join(KEYWORDS) + '):(.*)', re.I)
 operators_re = Re(r'^(\|\||\&\&|\+|\-)')
 tag_re = Re(r'^\@(\w+)$', re.U)
 
+
 class QueryTerm(object):
 	'''Wrapper for a single term in a query. Consists of a keyword,
 	a string and a flag for inverse (NOT operator).
@@ -356,7 +357,6 @@ class SearchSelection(PageSelection):
 
 		# And return our results as summed by the operator
 		return results or set()
-
 
 	@staticmethod
 	def _and_operator(results, scope, newresults):

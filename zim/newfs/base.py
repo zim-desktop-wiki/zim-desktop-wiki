@@ -30,7 +30,6 @@ _SEP = os.path.sep
 _EOL = 'dos' if os.name == 'nt' else 'unix'
 
 
-
 class FileNotFoundError(Error):
 
 	# TODO - description and translation
@@ -94,7 +93,6 @@ class FolderNotEmptyError(Error):
 	def __init__(self, path):
 		path = path.path if hasattr(path, 'path') else path
 		Error.__init__(self, 'Folder not empty: %s' % path)
-
 
 
 def _split_file_url(url):
@@ -188,7 +186,6 @@ else:
 			return 'file:///' + url_encode('/'.join(names))
 
 
-
 if FS_ENCODING == 'mbcs':
 	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
 	# so here we just convert everything to unicode strings
@@ -218,7 +215,6 @@ else:
 			except UnicodeDecodeError:
 				raise ValueError('BUG: invalid filename %s' % path)
 				#~ raise Error, 'BUG: invalid filename %s' % path
-
 
 
 def _os_expanduser(path):
@@ -379,7 +375,6 @@ class FilePath(object):
 			for i in range(1, len(self.pathnames)):
 				if self.pathnames[:i + 1] != other.pathnames[:i + 1]:
 					return FilePath(self.pathnames[:i])
-
 
 
 _HOME = FilePath('~')

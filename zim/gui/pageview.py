@@ -70,6 +70,7 @@ class LineSeparator(CustomObjectWidget):
 		# Set size of the line.
 		self.vbox.set_size_request(self._textview_width, height = 3)
 
+
 class LineObject(CustomObjectClass):
 	'''Class to work with 'LineSeparator' objects.'''
 	OBJECT_ATTR = {
@@ -81,6 +82,7 @@ class LineObject(CustomObjectClass):
 		return LineSeparator()
 
 ObjectManager.register_object('line', LineObject)
+
 
 def IS_LINE(line):
 	'''Function used for line autoformatting.'''
@@ -400,6 +402,7 @@ class UserActionContext(object):
 GRAVITY_RIGHT = 'right'
 GRAVITY_LEFT = 'left'
 
+
 class SaveCursorContext(object):
 	'''Context manager used by L{TextBuffer.tmp_cursor()}
 
@@ -533,7 +536,6 @@ class TextBuffer(gtk.TextBuffer):
 	# while indenting tags are created when needed, indenting tags always
 	# have the higher priority. By explicitly lowering the priority of new
 	# link tags to zero we keep those tags on the lower endof the scale.
-
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -2251,6 +2253,7 @@ class TextBuffer(gtk.TextBuffer):
 			builder.start('zim-tree', attrib)
 
 		open_tags = []
+
 		def set_tags(iter, tags):
 			# This function changes the parse tree based on the TextTags in
 			# effect for the next section of text.
@@ -3166,6 +3169,7 @@ class TextBufferList(list):
 FIND_CASE_SENSITIVE = 1  # : Constant to find case sensitive
 FIND_WHOLE_WORD = 2  # : Constant to find whole words only
 FIND_REGEX = 4  # : Constant to find based on regexes
+
 
 class TextFinder(object):
 	'''This class handles finding text in the L{TextBuffer}
@@ -4713,8 +4717,8 @@ class UndoStackManager:
 		self.unblock()
 
 
-
 import threading
+
 
 class SavePageHandler(object):
 	'''Object for handling page saving.
@@ -4818,7 +4822,6 @@ class SavePageHandler(object):
 			logger.debug('Operation in progress, skipping auto-save')  # Could be auto-save
 			return True  # Check back later if on timer
 
-
 		if not self.use_thread:
 			self.save_page_now(dialog_timeout=True)
 		elif self._error_event and self._error_event.is_set():
@@ -4875,6 +4878,7 @@ discarded, but you can restore the copy later.''')
 		self.add_action_widget(cancel_button, gtk.RESPONSE_CANCEL)
 
 		self._done = False
+
 		def discard(self):
 			page.set_ui_object(None)  # unhook
 			pageview.clear()
@@ -4910,6 +4914,7 @@ discarded, but you can restore the copy later.''')
 		if self.timeout:
 			self.timer = 5
 			self.timer_label.set_text('%i sec.' % self.timer)
+
 			def timer(self):
 				self.timer -= 1
 				if self.timer > 0:
@@ -5687,7 +5692,6 @@ class PageView(gtk.VBox):
 			item.set_sensitive(False)
 		###
 
-
 		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
@@ -5719,7 +5723,6 @@ class PageView(gtk.VBox):
 
 		if file:
 			file = self.ui.notebook.resolve_file(file, self.page)
-
 
 		menu.prepend(gtk.SeparatorMenuItem())
 
@@ -6140,7 +6143,6 @@ class PageView(gtk.VBox):
 			item.zim_new_file_action = True
 			items.append(item)
 
-
 		for widget in action.get_proxies():
 			if hasattr(widget, 'get_submenu'):
 				menu = widget.get_submenu()
@@ -6410,6 +6412,7 @@ gobject.type_register(PageView)
 
 
 class ObjectAnchor(gtk.TextChildAnchor):
+
 	def __init__(self, manager):
 		self.manager = manager
 		gtk.TextChildAnchor.__init__(self)

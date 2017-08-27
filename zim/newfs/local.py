@@ -40,7 +40,6 @@ def _os_lrmdir(path):
 			raise
 
 
-
 class LocalFSObjectBase(FSObjectBase):
 
 	def __init__(self, path, watcher=None):
@@ -244,7 +243,6 @@ class LocalFolder(LocalFSObjectBase, Folder):
 		self._cleanup()
 
 
-
 # Replace logic based on discussion here:
 # http://stupidpythonideas.blogspot.nl/2014/07/getting-atomic-writes-right.html
 #
@@ -260,6 +258,7 @@ elif sys.platform == 'win32':
 	_MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 	_MoveFileEx.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32]
 	_MoveFileEx.restype = ctypes.c_bool
+
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1):  # MOVEFILE_REPLACE_EXISTING
@@ -303,7 +302,6 @@ class AtomicWriteContext(object):
 				os.remove(self.tmppath)
 			except:
 				pass
-
 
 
 class LocalFile(LocalFSObjectBase, File):
@@ -431,7 +429,6 @@ class LocalFile(LocalFSObjectBase, File):
 			self.watcher.emit('removed', self)
 
 		self._cleanup()
-
 
 
 def get_tmpdir():

@@ -63,7 +63,6 @@ class BZRApplicationBackend(VCSApplicationBase):
 		else:
 			return self.run(['add', path])
 
-
 	def annotate(self, file, version):
 		"""FIXME Document
 		return
@@ -112,7 +111,6 @@ class BZRApplicationBackend(VCSApplicationBase):
 		Build a .bzrignore file including the file_to_ignore_content
 		"""
 		return self.run(['ignore', file_to_ignore_regexp])
-
 
 	def init_repo(self):
 		self.init()
@@ -183,14 +181,12 @@ class BZRApplicationBackend(VCSApplicationBase):
 
 		return versions
 
-
 	def move(self, oldpath, newpath):
 		"""
 		Runs: bzr mv --after {{OLDPATH}} {{NEWPATH}}
 		"""
 		self.run(['add', '--no-recurse', newpath.dir])
 		return self.run(['mv', oldpath, newpath])
-
 
 	def remove(self, path):
 		"""

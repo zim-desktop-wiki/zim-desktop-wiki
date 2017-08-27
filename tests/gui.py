@@ -34,7 +34,6 @@ def setupGtkInterface(test, klass=None, notebook=None):
 	filter = FilterNoSuchImageWarning()
 	filter.wrap_test(test)
 
-
 	# create interface object with new notebook
 	if notebook is None:
 		test.clear_tmp_dir()
@@ -330,7 +329,6 @@ class TestDialogs(tests.TestCase):
 		self.assertEqual(notebook.icon, notebook.dir.file(config2['icon']).path)
 		self.assertEqual(notebook.document_root, Dir(config2['document_root']))
 
-
 	def testPreferencesDialog(self):
 		'''Test PreferencesDialog'''
 		from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
@@ -399,7 +397,6 @@ class TestDialogs(tests.TestCase):
 
 		pref_dialog.do_response_cancel()
 
-
 	def testTemplateEditorDialog(self):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		dialog = TemplateEditorDialog(self.ui)
@@ -417,7 +414,6 @@ class TestDialogs(tests.TestCase):
 
 	# Test for ExportDialog can be found in test/export.py
 	# Test for NotebookDialog is in separate class below
-
 
 
 class FilterNoSuchImageWarning(tests.LoggingFilter):
@@ -883,6 +879,7 @@ class TestNotebookDialog(tests.TestCase):
 
 
 from zim.gui import GtkInterface
+
 
 class MockUI(tests.MockObject):
 

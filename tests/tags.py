@@ -109,7 +109,6 @@ class TestTaggedPageTreeStore(tests.TestCase):
 					else:
 						break
 
-
 	def testTreeView(self):
 		ui = MockUI()
 		ui.notebook = self.notebook
@@ -242,7 +241,6 @@ class TestTagPluginWidget(tests.TestCase):
 		cloud._switch_sorting(mockaction)
 		mockaction.get_active = lambda: False
 		cloud._switch_sorting(mockaction)
-
 
 
 class MockUI(tests.MockObject):

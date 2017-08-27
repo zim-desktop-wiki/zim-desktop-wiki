@@ -95,7 +95,6 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 						pass
 			indexer.db.commit()
 
-
 		# 1. Index existing files structure
 		self.create_files(self.FILES)
 		check_and_update_all()
@@ -141,7 +140,6 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
 		self.assertFilesDBConsistent(db)
 		self.assertFilesDBEquals(db, self.FILES)
-
 
 	def create_files(self, files):
 		for name in files:
@@ -299,6 +297,7 @@ from zim.notebook.index.pages import PagesViewInternal
 from zim.notebook.page import HRef
 from zim.formats.wiki import Parser as WikiParser
 from zim.newfs.mock import MockFile
+
 
 class TestLinksIndexer(tests.TestCase):
 

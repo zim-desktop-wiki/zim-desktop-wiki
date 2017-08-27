@@ -51,6 +51,7 @@ class TestThumbnailCreators(tests.TestCase):
 				creator, self.SRC_DIR.file('README.txt'), thumbfile, THUMB_SIZE_NORMAL
 			)
 
+
 @tests.slowTest
 class TestThumbnailManager(tests.TestCase):
 

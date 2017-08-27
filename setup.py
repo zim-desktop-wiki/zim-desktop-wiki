@@ -260,7 +260,6 @@ class zim_build_class(build_class):
 				plugins.append(name)
 		assert len(plugins) > 20, 'Did not find plugins'
 
-
 		file = os.path.join(self.build_lib, 'zim', 'plugins', '__init__.py')
 		print 'Setting plugin list in %s' % file
 		assert os.path.isfile(file)
@@ -278,7 +277,6 @@ class zim_build_class(build_class):
 		fh = open(file, 'w')
 		fh.writelines(lines)
 		fh.close()
-
 
 
 class zim_install_class(install_class):
@@ -305,7 +303,6 @@ class zim_install_class(install_class):
 			):
 				print 'Trying: ' + ' '.join(cmd)
 				subprocess.call(cmd)
-
 
 
 # Distutils parameters, and main function

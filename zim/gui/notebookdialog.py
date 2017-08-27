@@ -178,7 +178,6 @@ class NotebookTreeView(gtk.TreeView):
 		self.append_column(column)
 
 
-
 class NotebookComboBox(gtk.ComboBox):
 	'''Combobox showing the a list of notebooks'''
 

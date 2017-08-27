@@ -320,7 +320,6 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 			return self.file.remove()
 
 
-
 class VirtualConfigBackend(object):
 	'''Virtual dir, mainly used for testing'''
 
@@ -329,7 +328,6 @@ class VirtualConfigBackend(object):
 
 	def file(self, path):
 		return VirtualConfigBackendFile(self._data, path)
-
 
 
 class VirtualConfigBackendFile(object):
@@ -388,6 +386,3 @@ class VirtualConfigBackendFile(object):
 
 	def remove(self):
 		del self._data[self._key]
-
-
-

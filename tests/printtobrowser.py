@@ -22,4 +22,3 @@ class TestPrintToBrowser(tests.TestCase):
 		self.assertTrue(file.exists())
 		content = file.read()
 		self.assertTrue('<h1>Foo</h1>' in content)
-

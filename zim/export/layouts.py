@@ -164,7 +164,6 @@ class FileLayout(DirLayoutBase):
 		return self.dir.file(encode_filename(name) + '.' + self.ext)
 
 
-
 class SingleFileLayout(DirLayoutBase):
 	'''Like FileLayout, except all pages are stored in a single file
 	while attachments still follow folder structure per page.
@@ -208,4 +207,3 @@ class SingleFileLayout(DirLayoutBase):
 			)
 		else:
 			return self.file
-

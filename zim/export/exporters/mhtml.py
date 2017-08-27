@@ -119,4 +119,3 @@ class MHTMLEncoder(object):
 		msg.set_payload(file.raw())
 		email.encoders.encode_base64(msg)
 		return msg
-

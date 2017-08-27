@@ -141,7 +141,6 @@ class TestFormatMixin(object):
 						offset = start + len(piece)
 
 
-
 class TestListFormats(tests.TestCase):
 
 	def runTest(self):
@@ -420,7 +419,6 @@ test 4 5 6
 			#~ print '>>>\n' + result + '<<<'
 			self.assertEqual(result, wanted)
 
-
 		# Bullet list (unordered list)
 		text = '''\
 * foo
@@ -466,7 +464,6 @@ C. hmmm
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><p><ol start="10"><li>foo</li><li>bar</li><li>hmmm</li></ol></p></zim-tree>'''
 		check(text, xml)
-
 
 		# Inconsistent lists
 		# ( If first item is number, make all items numbered in sequence
@@ -558,7 +555,6 @@ dus ja.
 </p></zim-tree>'''
 		check(text, xml)
 
-
 	def testIndent(self):
 		# Test some odditied pageview can give us
 		xml = '''\
@@ -639,7 +635,6 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 			'<h2>head2</h2>\n\n'
 		)
 
-
 	def testLineBreaks(self):
 		builder = ParseTreeBuilder()
 		builder.start(FORMATTEDTEXT)
@@ -671,7 +666,6 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 			'bla bla bla\n'
 			'</p>\n'
 		)
-
 
 
 class TestMarkdownFormat(tests.TestCase, TestFormatMixin):

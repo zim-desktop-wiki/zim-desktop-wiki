@@ -2,6 +2,7 @@
 
 import os
 
+
 class TextTree(object):
 
 	def tostring(self, object):
@@ -26,7 +27,6 @@ class TextTree(object):
 			add_item(items[-1], '`-- ', '    ')
 
 		return strings
-
 
 
 class ModuleFile(object):

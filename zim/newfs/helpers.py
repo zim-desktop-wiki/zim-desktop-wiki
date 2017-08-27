@@ -40,7 +40,6 @@ class FileTreeWatcher(SignalEmitter):
 	}  # : signals supported by this class
 
 
-
 class TrashHelper(object):
 
 	def trash(self, file):
@@ -80,7 +79,6 @@ class TrashHelper(object):
 			return True
 		else:
 			return False
-
 
 
 class FSObjectMonitor(SignalEmitter):

@@ -32,7 +32,6 @@ info = {
 }
 
 
-
 class Dumper(TextDumper):
 	# Inherit from wiki format Dumper class, only overload things that
 	# are different

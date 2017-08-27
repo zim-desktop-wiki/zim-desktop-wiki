@@ -21,6 +21,7 @@ RE_LogRecord = re.compile(r"([0-9:-]+)\s*\[([0-9a-fA-F]+)\]\s*(\*\S+\* *)*(.*)\(
 RE_Tag = re.compile(r"(?:,\s*)?(\S+:)")
 RE_Time = re.compile(r"[0-9][0-9]:[0-9][0-9]:[0-9][0-9]")
 
+
 class FOSSILApplicationBackend(VCSApplicationBase):
 
 	use_staging = False
@@ -68,7 +69,6 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			return self.run(['addremove'])
 		else:
 			return self.run(['add', path])
-
 
 	def annotate(self, file, version):
 		"""FIXME Document
@@ -124,7 +124,6 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		@returns: nothing
 		"""
 		return self.run(['settings', 'ignore-glob', file_to_ignore_regexp])
-
 
 	def init_repo(self):
 		"""Initialize a new repo
@@ -185,6 +184,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 				if tags[1] == "user:":
 					return tags[2].strip()
 			return ""
+
 		def CombineDateTime(CurDate, TimeOrDate):
 			if RE_Time.match(TimeOrDate):
 				return CurDate + " " + TimeOrDate

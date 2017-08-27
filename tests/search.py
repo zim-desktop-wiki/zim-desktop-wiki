@@ -7,6 +7,7 @@ import tests
 from zim.search import *
 from zim.notebook import Path
 
+
 class TestSearchRegex(tests.TestCase):
 
 	def runTest(self):
@@ -25,7 +26,6 @@ class TestSearchRegex(tests.TestCase):
 			# print '>>', word, regex
 			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
 
-
 		text = 'foo foobar FooBar Foooo Foo!'
 		regex = regex_func('foo')
 		new, n = regex.subn('', text)
@@ -36,7 +36,6 @@ class TestSearchRegex(tests.TestCase):
 		regex = regex_func('foo*')
 		new, n = regex.subn('', text)
 		self.assertEqual(n, 5)
-
 
 
 class TestSearch(tests.TestCase):

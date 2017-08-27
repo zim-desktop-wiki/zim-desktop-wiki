@@ -16,4 +16,3 @@ try:
 	server.serve_forever()
 except KeyboardInterrupt:
 	server.socket.close()
-

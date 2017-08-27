@@ -31,7 +31,6 @@ See the module functions for convenient standard configurations.
 #        --> do not leak info on parent namespace names
 
 
-
 from zim.fs import Dir, File
 from zim.templates import get_template
 from zim.formats import get_format
@@ -84,7 +83,3 @@ def build_mhtml_file_exporter(file, template, **opts):
 
 	template = get_template('html', template)
 	return MHTMLExporter(file, template, **opts)
-
-
-
-

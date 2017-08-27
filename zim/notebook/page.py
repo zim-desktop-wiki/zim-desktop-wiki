@@ -288,6 +288,7 @@ HREF_REL_ABSOLUTE = 0
 HREF_REL_FLOATING = 1
 HREF_REL_RELATIVE = 2
 
+
 class HRef(object):
 
 	__slots__ = ('rel', 'names')
@@ -334,7 +335,6 @@ class HRef(object):
 			return "+" + self.names
 		else:
 			return self.names
-
 
 
 class SourceFile(zim.fs.File):
@@ -431,7 +431,6 @@ class Page(Path, SignalEmitter):
 				return False
 		else:
 			return self.source_file.exists()
-
 
 	def _store(self):
 		tree = self.get_parsetree()
@@ -651,7 +650,6 @@ class Page(Path, SignalEmitter):
 				href = elt.attrib.pop('href')
 				type = link_type(href)
 				yield type, href, elt.attrib
-
 
 	def get_tags(self):
 		'''Generator for tags in the page content

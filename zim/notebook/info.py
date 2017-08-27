@@ -297,7 +297,6 @@ class NotebookInfoList(list):
 		#  name=Foo
 		#  uri=uri1
 
-
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
@@ -482,4 +481,3 @@ class NotebookInfoList(list):
 				return info
 		else:
 			return self.get_by_name(key)
-

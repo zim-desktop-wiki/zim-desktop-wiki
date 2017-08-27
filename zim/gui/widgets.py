@@ -146,11 +146,9 @@ def gtk_window_set_default_icon():
 		set = gtk.IconSet(pixbuf=pixbuf)
 		factory.add('zim', set)
 
-
 	if len(iconlist) < 3:
 		logger.warn('Could not find all icon sizes for the application icon')
 	gtk.window_set_default_icon_list(*iconlist)
-
 
 
 def ScrolledWindow(widget, hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_AUTOMATIC, shadow=gtk.SHADOW_IN):
@@ -214,6 +212,7 @@ def ScrolledTextView(text=None, monospace=False, **kwarg):
 	window = ScrolledWindow(textview, **kwarg)
 	return window, textview
 
+
 def ScrolledSourceView(text=None, syntax=None):
 	'''If GTKSourceView was succesfully loaded, this generates a SourceView and
 	initializes it. Otherwise ScrolledTextView will be used as a fallback.
@@ -241,6 +240,7 @@ def ScrolledSourceView(text=None, syntax=None):
 		return (window, textview)
 	else:
 		return ScrolledTextView(text=text, monospace=True)
+
 
 def populate_popup_add_separator(menu, prepend=False):
 	'''Convenience function that adds a C{gtk.SeparatorMenuItem}
@@ -837,7 +837,6 @@ class MenuButton(gtk.HBox):
 			widget.pack_start(self.label, False)
 			widget.pack_start(arrow, False)
 
-
 		self.button.add(widget)
 		# We need to wrap stuff in an eventbox in order to get the gdk.Window
 		# which we need to get coordinates when positioning the menu
@@ -913,8 +912,10 @@ class PanedClass(object):
 	def pack(*a):
 		raise NotImplementedError
 
+
 class HPaned(PanedClass, gtk.HPaned):
 	pass
+
 
 class VPaned(PanedClass, gtk.VPaned):
 	pass
@@ -1768,7 +1769,6 @@ class FSPathEntry(InputEntry):
 		elif self.notebook:
 			dialog.set_current_dir(self.notebook.dir)
 
-
 		file = dialog.run()
 		if not file is None:
 			FSPathEntry.set_path(self, file)
@@ -1859,6 +1859,7 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 
 
 from zim.signals import DelayedCallback
+
 
 class PageEntry(InputEntry):
 	'''Widget to select a zim page path
@@ -2478,8 +2479,8 @@ class WindowSidePaneWidget(object):
 		return False
 
 
-
 from zim.config import ConfigDefinition, ConfigDefinitionByClass
+
 
 class ConfigDefinitionPaneToggle(ConfigDefinition):
 
@@ -3377,7 +3378,6 @@ class ErrorDialog(gtk.MessageDialog):
 			self.showing_trace = False  # used in test
 			pass
 
-
 	def get_debug_text(self, exc_info=None):
 		'''Get the text to show in the log of a "You found a bug" dialog.
 		Includes zim version info and traceback info.
@@ -3404,7 +3404,6 @@ class ErrorDialog(gtk.MessageDialog):
 			'Python: %s\n' % str(tuple(sys.version_info)) + \
 			'Gtk: %s\n' % str(gtk.gtk_version) + \
 			'Pygtk: %s\n' % str(gtk.pygtk_version)
-
 
 		text += zim.get_zim_revision() + '\n'
 
@@ -3884,7 +3883,6 @@ class LogFileDialog(Dialog):
 		self.vbox.add(window)
 
 
-
 class Assistant(Dialog):
 	'''Dialog with multi-page input, sometimes also revert to as a
 	"wizard". Similar to C{gtk.Assistent} separate implementation to
@@ -3989,6 +3987,7 @@ class Assistant(Dialog):
 		# because otherwise this keeps firing, which hangs the loop
 		# for handling events in ProgressBar.pulse() - LP #929247
 		ebox = gtk.EventBox()
+
 		def _set_heading_color(*a):
 			ebox.modify_fg(gtk.STATE_NORMAL, self.style.fg[gtk.STATE_SELECTED])
 			ebox.modify_bg(gtk.STATE_NORMAL, self.style.bg[gtk.STATE_SELECTED])
@@ -4410,7 +4409,6 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		assert not newfile.exists()  # just to be real sure
 		self.result = newfile
 		return True
-
 
 
 class TableBoxMixin(object):

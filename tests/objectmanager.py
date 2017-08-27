@@ -73,4 +73,3 @@ class TestFallbackObject(tests.TestCase):
 
 		self.assertEqual(obj.get_data(), text)
 		self.assertEqual(obj.get_attrib(), attrib)
-

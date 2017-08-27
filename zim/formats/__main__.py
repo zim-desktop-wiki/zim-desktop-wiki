@@ -30,7 +30,6 @@ if __name__ == '__main__':
 			print '\tWill read from stdin and output to stdout'
 			sys.exit(1)
 
-
 	logging.basicConfig()
 
 	inputformat = sys.argv[1]

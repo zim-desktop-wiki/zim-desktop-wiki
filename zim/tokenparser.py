@@ -17,6 +17,7 @@ from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM, PARAGRAPH
 TEXT = 'T'
 END = '/'
 
+
 class TokenBuilder(Builder):
 
 	def __init__(self):
@@ -144,6 +145,7 @@ def topLevelLists(tokens):
 			newtokens.append(t)
 
 	return newtokens
+
 
 def _changeList(tokeniter):
 	# </li><ul>...</ul> --> <ul>...</ul></li>

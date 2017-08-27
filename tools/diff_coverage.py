@@ -8,7 +8,6 @@
 import coverage
 
 
-
 class Diff(object):
 
 	def __init__(self, lines=None):
@@ -60,7 +59,6 @@ class DiffPart(object):
 		old, new = self.head.strip().split()[:2]
 		start, size = map(int, new[1:].split(','))
 		return start, start + size
-
 
 
 def coverage_filter_diff(diff):

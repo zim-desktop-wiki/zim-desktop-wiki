@@ -450,7 +450,6 @@ class ExportCommand(NotebookCommand):
 		exporter.export(selection)
 
 
-
 class SearchCommand(NotebookCommand):
 	'''Class implementing the C{--search} command'''
 
@@ -543,7 +542,6 @@ def build_command(args, pwd=None):
 	obj = klass(cmd, pwd=pwd)
 	obj.parse_options(*args)
 	return obj
-
 
 
 class ZimApplication(object):

@@ -7,6 +7,7 @@ import tests
 from zim.parsing import *
 from zim.parser import *
 
+
 class TestParsing(tests.TestCase):
 
 	def testSplitWords(self):
@@ -163,7 +164,6 @@ class TestSimpleTreeBuilder(tests.TestCase):
 			)
 		])
 
-
 		realbuilder = SimpleTreeBuilder()
 		builder = BuilderTextBuffer(realbuilder)
 
@@ -189,7 +189,6 @@ class TestSimpleTreeBuilder(tests.TestCase):
 				]
 			)
 		])
-
 
 
 class TestBuilderTextBuffer(tests.TestCase):
@@ -228,7 +227,6 @@ class TestBuilderTextBuffer(tests.TestCase):
 				u'ddd\neee',
 			])
 		])
-
 
 
 class TestParser(tests.TestCase):

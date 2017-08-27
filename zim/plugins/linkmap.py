@@ -15,7 +15,6 @@ from zim.gui.widgets import ui_environment, Dialog, IconButton
 from zim.inc import xdot
 
 
-
 class LinkMapPlugin(PluginClass):
 
 	plugin_info = {
@@ -96,7 +95,6 @@ class LinkMap(object):
 
 		# print '\n'.join(dotcode)+'\n'
 		return '\n'.join(dotcode) + '\n'
-
 
 
 @extends('MainWindow')

@@ -72,6 +72,8 @@ TREEPATHS_TAGS_12 = (
 )
 
 _SQL = None
+
+
 def new_test_database():
 	global _SQL
 	if _SQL is None:
@@ -102,6 +104,7 @@ from zim.notebook.index.pages import PagesIndexer, PagesView, \
 	IndexNotFoundError
 	#get_treepath_for_indexpath_factory, get_indexpath_for_treepath_factory, \
 	#get_treepaths_for_indexpath_flatlist_factory, get_indexpath_for_treepath_flatlist_factory, \
+
 
 class TestPagesView(tests.TestCase):
 
@@ -374,6 +377,7 @@ class TestTagsView(tests.TestCase):
 
 from zim.notebook.index.links import LinksIndexer, LinksView, \
 	LINK_DIR_FORWARD, LINK_DIR_BACKWARD, LINK_DIR_BOTH
+
 
 class TestLinksView(tests.TestCase):
 

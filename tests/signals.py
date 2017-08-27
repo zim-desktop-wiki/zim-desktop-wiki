@@ -25,6 +25,7 @@ class TestEmitter(tests.TestCase):
 		self.assertEqual(emitter.state, 'DO bar test1')
 
 		data = []
+
 		def check(o, a):
 			self.assertIs(o, emitter)
 			data.append(a)
@@ -38,7 +39,6 @@ class TestEmitter(tests.TestCase):
 		emitter.emit('bar', 'test3')
 		self.assertEqual(emitter.state, 'DO bar test3')
 		self.assertEqual(data, ['test2'])  # check stopped listening after disconnect
-
 
 	def testHook(self):
 		emitter = Emitter()
@@ -152,8 +152,6 @@ class ClassWithHandler(object):
 	@SignalHandler
 	def add_one(self):
 		self.count += 1
-
-
 
 
 @tests.slowTest

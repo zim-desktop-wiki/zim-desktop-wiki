@@ -11,6 +11,7 @@ from zim.gui.widgets import *
 
 from zim.newfs.mock import os_native_path
 
+
 class TestFunctions(tests.TestCase):
 
 	def runTest(self):
@@ -400,7 +401,6 @@ class TestFileDialog(tests.TestCase):
 
 		dialog.assert_response_ok()
 		self.assertIsInstance(dialog.result, Dir)
-
 
 		# TODO test adding filters
 		# TODO test preview

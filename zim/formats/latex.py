@@ -173,7 +173,6 @@ class Dumper(TextDumper):
 
 		return (bullet, ' ') + tuple(strings) + ('\n',)
 
-
 	def dump_img(self, tag, attrib, strings=None):
 		# We try to get images about the same visual size,
 		# therefore need to specify dot density 96 dpi seems to be

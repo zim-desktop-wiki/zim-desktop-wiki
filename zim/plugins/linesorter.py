@@ -97,7 +97,6 @@ class MainWindowExtension(WindowExtension):
 			for line in sorted_lines:
 				buffer.insert_parsetree_at_cursor(line[1])
 
-
 	def move_line(self, offset):
 		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
 		buffer = self.window.pageview.view.get_buffer()
@@ -146,18 +145,15 @@ class MainWindowExtension(WindowExtension):
 			scroll_target_iter = buffer.get_iter_at_line(target_line - 1 * (offset < 0 and target_line > 0))
 			self.window.pageview.view.scroll_to_iter(scroll_target_iter, 0)
 
-
 	@action(_('_Move Line Up'), accelerator='<Primary>Up', readonly=False)  # T: Menu item
 	def move_line_up(self):
 		'''Menu action to move line up'''
 		self.move_line(-1)
 
-
 	@action(_('_Move Line Down'), accelerator='<Primary>Down', readonly=False)  # T: Menu item
 	def move_line_down(self):
 		'''Menu action to move line down'''
 		self.move_line(1)
-
 
 	@action(_('_Duplicate Line'), accelerator='<Primary><Shift>D', readonly=False)  # T: Menu item
 	def duplicate_line(self):
@@ -169,7 +165,6 @@ class MainWindowExtension(WindowExtension):
 		tree = buffer.get_parsetree(bounds=(start, end))
 		with buffer.user_action:
 			buffer.insert_parsetree(end, tree)
-
 
 	@action(_('_Remove Line'), accelerator='<Primary><Shift>K', readonly=False)  # T: Menu item
 	def remove_line(self):

@@ -640,7 +640,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		for old, new in changes:
 			self.index.file_moved(old, new)
 
-
 	def _update_links_in_moved_page(self, oldtarget, newtarget):
 		# Find (floating) links that originate from the moved page
 		# check if they would resolve different from the old location

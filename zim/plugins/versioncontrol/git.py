@@ -77,7 +77,6 @@ class GITApplicationBackend(VCSApplicationBase):
 			else:
 				return []
 
-
 	########
 	#
 	# NOW ARE ALL REVISION CONTROL SYSTEM SHORTCUTS
@@ -90,7 +89,6 @@ class GITApplicationBackend(VCSApplicationBase):
 			return self.run(['add', self.notebook_dir])
 		else:
 			return self.run(['add', path])
-
 
 	def annotate(self, file, version):
 		"""FIXME Document
@@ -215,7 +213,6 @@ class GITApplicationBackend(VCSApplicationBase):
 
 		versions.reverse()
 		return versions
-
 
 	def move(self, oldpath, newpath):
 		"""

@@ -6,12 +6,14 @@ source_files = {}
 
 comment_re = re.compile(r'\s+#\s+T:\s+(.+)\s*$')
 
+
 def get_file(file):
 	if not file in source_files:
 		#~ print 'Extracting comments from', file
 		source_files[file] = open(file).readlines()
 		source_files[file].append('')
 	return source_files[file]
+
 
 def extract_comment(file, line):
 	lines = get_file(file)
@@ -33,6 +35,7 @@ def extract_comment(file, line):
 			i += 1
 		return None
 
+
 def extract_comments(sources):
 	sources = [s.split(':') for s in sources]
 	comments = []
@@ -47,6 +50,7 @@ def extract_comments(sources):
 		for file, line in sources:
 			print '\t%s line %s' % (file, line)
 		return ''
+
 
 def add_comments(file):
 	messages = open(file).readlines()

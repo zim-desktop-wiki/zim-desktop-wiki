@@ -43,6 +43,7 @@ else:
 
 DSTDIFF = DSTOFFSET - STDOFFSET
 
+
 class LocalTimezone(tzinfo):
 	'''Implementation of tzinfo with the current time zone, based on
 	the platform's idea of local time
@@ -72,7 +73,6 @@ class LocalTimezone(tzinfo):
 		return tt.tm_isdst > 0
 
 
-
 # Initialize setting for first day of the week. This is locale
 # dependent, and the gtk.Calendar widget already has good code to find it out.
 # Unfortunately, the widget keeps that data private *%#*$()()*) !
@@ -80,6 +80,8 @@ class LocalTimezone(tzinfo):
 MONDAY = 0  # iso calendar starts week at Monday
 SUNDAY = 6
 FIRST_DAY_OF_WEEK = None
+
+
 def init_first_day_of_week():
 	global FIRST_DAY_OF_WEEK
 	try:
@@ -252,7 +254,6 @@ def strftime(format, date):
 	if enc is not None:
 		string = string.decode(enc)  # decode local specific output to unicode
 	return string
-
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -81,7 +81,6 @@ class TestHelp(tests.TestCase):
 
 class TestNotebookCommand(tests.TestCase):
 
-
 	def runTest(self):
 		cmd = NotebookCommand('gui')
 		cmd.arguments = ('NOTEBOOK', '[PAGE]')
@@ -178,8 +177,6 @@ class TestServerGui(tests.TestCase):
 		self.assertEqual(window.__class__.__name__, 'ServerWindow')
 
 
-
-
 ## ExportCommand() is tested in tests/export.py
 
 
@@ -198,6 +195,7 @@ class TestIPC(tests.TestCase):
 			)
 
 		inbox = [None]
+
 		def handler(*args):
 			inbox[0] = args
 
@@ -244,7 +242,6 @@ class TestZimApplication(tests.TestCase):
 		app._run_cmd(cmd, ())
 		self.assertTrue(cmd.hasrun)
 
-
 	def testGtk(self):
 		app = ZimApplication()
 
@@ -274,6 +271,7 @@ class TestZimApplication(tests.TestCase):
 
 	def testPluginAPI(self):
 		from zim.signals import SignalEmitter
+
 		class MockWindow(SignalEmitter):
 
 			__signals__ = {

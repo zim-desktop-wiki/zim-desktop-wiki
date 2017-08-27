@@ -239,7 +239,6 @@ class FormatPage(AssistantPage):
 			)
 			self.pack_start(url_button, False)
 
-
 		# Set template list based on selected format
 		def set_templates(self):
 			format = self.form['format']

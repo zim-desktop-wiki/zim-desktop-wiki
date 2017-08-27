@@ -61,7 +61,6 @@ class ExportLinker(BaseLinker):
 
 		#~ self._icons = {} # memorize them because the occur often in one page
 
-
 	## Methods used while exporting to resolve links etc. ##
 
 	def link(self, link):
@@ -143,10 +142,6 @@ class ExportLinker(BaseLinker):
 			return self.document_root_url + relpath
 		else:
 			return file.uri
-
-
-
-
 
 	## Methods below are internal, not used by format or template ##
 
@@ -284,4 +279,3 @@ class StaticExportLinker(ExportLinker):
 					#~ self._icons[name] = file.uri
 
 		#~ return self._icons[name]
-

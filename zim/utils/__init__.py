@@ -23,7 +23,6 @@ class classproperty(object):
 		return self.func(owner)
 
 
-
 # Functions for dynamic loading of modules and klasses
 import inspect
 
@@ -158,6 +157,7 @@ def natural_sort_key(string, numeric_padding=5):
 
 import weakref
 
+
 class WeakSet(object):
 	'''Class that behaves like a set, but keeps weak references to
 	members of the set.
@@ -194,6 +194,7 @@ class WeakSet(object):
 # all modules with this implementation
 
 import collections
+
 
 class OrderedDict(collections.MutableMapping):
 	'''Class that behaves like a dict but keeps items in same order.

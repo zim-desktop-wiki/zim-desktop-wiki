@@ -44,7 +44,6 @@ if __name__ == '__main__':
 	else:
 		assert False, 'TODO'
 
-
 	if page:
 		from .selections import SubPages
 		pages = SubPages(notebook, page)

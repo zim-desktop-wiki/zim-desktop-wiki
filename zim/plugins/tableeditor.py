@@ -105,8 +105,6 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 	LINES_HORIZONTAL = _('horizontal lines')  # T: option value
 	LINES_VERTICAL = _('vertical lines')  # T: option value
 
-
-
 	plugin_preferences = (
 		# key, type, label, default
 		('show_helper_toolbar', 'bool', _('Show helper toolbar'), True),   # T: preference description
@@ -199,6 +197,7 @@ class CellFormatReplacer:
 		for pattern, replace in zip(SYNTAX_WIKI_PANGO, SYNTAX_WIKI_PANGO2):
 			text = pattern[1].sub(replace[0], text)
 		return text
+
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
@@ -422,7 +421,6 @@ class TableViewObject(CustomObjectClass):
 			headers, rows, attrib = self.get_data()
 			#~ print "Table data:", headers, rows, attrib
 
-
 			if need_newline_infront:
 				builder.data('\n')
 
@@ -440,7 +438,6 @@ class TableViewObject(CustomObjectClass):
 
 			if need_newline_behind:
 				builder.data('\n')
-
 
 
 GTK_GRIDLINES = {
@@ -691,7 +688,6 @@ class TableViewWidget(CustomObjectWidget):
 		col_widget = gtk.VBox()
 		col_widget.show()
 
-
 		col_label = gtk.Label('<u>' + title + '</u>')
 		col_label.set_use_markup(True)
 		col_label.show()
@@ -857,7 +853,6 @@ class TableViewWidget(CustomObjectWidget):
 
 		self.obj.set_modified(True)
 
-
 	def on_open_link(self, action, link):
 		''' Context menu: Open a link, which is written in a cell '''
 		self.emit('link-clicked', {'href': unicode(link)})
@@ -904,7 +899,6 @@ class TableViewWidget(CustomObjectWidget):
 	def on_cell_editing_canceled(self, renderer):
 		''' Trigger after a cell is edited but any change is skipped '''
 		self._cellinput_canceled = True
-
 
 	def sort_by_number_or_string(self, liststore, treeiter1, treeiter2, colid):
 		'''
@@ -1041,7 +1035,6 @@ class EditTableDialog(Dialog):
 		if self.creation_mode:  # preselect first entry
 			path = self.treeview.get_model().get_path(self.treeview.get_model().get_iter_first())
 			self.treeview.set_cursor_on_cell(path, self.treeview.get_column(0), start_editing=True)
-
 
 	def _prepare_liststore(self, tablemodel):
 		'''

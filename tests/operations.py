@@ -57,6 +57,7 @@ def mock_iterator(notebook):
 		notebook.test('Test %i' % i)
 		yield i
 
+
 def mock_gtk_iter(notebook):
 	for i in 0, 1, 2:
 		notebook.test('Test %i' % i)
@@ -156,6 +157,7 @@ class TestNotebookOperation(tests.TestCase):
 
 import threading
 
+
 def mock_thread_main(notebook, lock):
 	with lock:
 		for i in 0, 1, 2:
@@ -173,6 +175,7 @@ class TestSimpleAsyncOperation(tests.TestCase):
 		# using lock to ensure thread doesn't finish before iteration seen
 
 		result = []
+
 		def post():
 			result.append('foo')
 

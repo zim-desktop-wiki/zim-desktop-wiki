@@ -20,7 +20,6 @@ from zim.templates.expression import \
 	ExpressionList, ExpressionFunctionCall
 
 
-
 class ExpressionSyntaxError(ParserError):
 	pass
 
@@ -182,4 +181,3 @@ class ExpressionParser(object):
 			tokens.pop(0)
 
 		return expr
-

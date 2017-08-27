@@ -65,10 +65,10 @@ def render_file_icon(widget, size):
 		return pixbuf
 
 
-
 BASENAME_COL = 0
 PIXBUF_COL = 1
 MTIME_COL = 2
+
 
 class FileBrowserIconView(gtk.IconView):
 
@@ -125,7 +125,6 @@ class FileBrowserIconView(gtk.IconView):
 		self.connect('button-press-event', self.on_button_press_event)
 		self.connect('item-activated', self.on_item_activated)
 
-
 	def set_icon_size(self, icon_size):
 		self.icon_size = icon_size
 		self.refresh(icon_size_changed=True)
@@ -172,6 +171,7 @@ class FileBrowserIconView(gtk.IconView):
 		min_icon_size = min((self.icon_size, MAX_ICON_SIZE))  # Avoid huge icons
 		file_icon = render_file_icon(self, min_icon_size)
 		mime_cache = {}
+
 		def my_get_mime_icon(file):
 			mt = file.mimetype()
 			if not mt in mime_cache:
@@ -218,6 +218,7 @@ class FileBrowserIconView(gtk.IconView):
 		if file is not None:
 			basename = file.basename
 			model = self.get_model()
+
 			def update(model, path, iter):
 				if model[iter][BASENAME_COL] == basename:
 					model[iter][PIXBUF_COL] = pixbuf
@@ -443,4 +444,3 @@ class FileBrowserIconView(gtk.IconView):
 			file.copyto(newfile)
 
 		self.refresh()
-

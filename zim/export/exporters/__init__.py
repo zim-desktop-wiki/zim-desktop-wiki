@@ -37,7 +37,6 @@ class Exporter(object):
 		raise NotImplementedError
 
 
-
 from zim.notebook.page import Path, Page
 from zim.newfs.mock import MockFile
 from zim.formats import ParseTreeBuilder, \

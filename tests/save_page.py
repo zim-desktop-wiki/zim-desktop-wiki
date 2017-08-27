@@ -109,6 +109,7 @@ class TestRaceCodition(tests.TestCase):
 		orig = notebook._store_page_async_thread_main
 		start_thread_event = threading.Event()
 		thread_done_event = threading.Event()
+
 		def wrapper(*a):
 			start_thread_event.wait()
 			orig(*a)

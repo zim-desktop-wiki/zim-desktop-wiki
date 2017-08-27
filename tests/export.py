@@ -44,7 +44,6 @@ def md5(f):
 	return _md5(f.raw())
 
 
-
 class TestMultiFileLayout(tests.TestCase):
 
 	#  dir/
@@ -56,7 +55,6 @@ class TestMultiFileLayout(tests.TestCase):
 	def runTest(self):
 		dir = Dir(self.get_tmp_name())
 		rdir = dir.subdir('_resources')
-
 
 		layout = MultiFileLayout(dir, 'html')
 		self.assertEqual(layout.relative_root, dir)
@@ -70,7 +68,6 @@ class TestMultiFileLayout(tests.TestCase):
 			self.assertEqual(layout.attachments_dir(path), adir)
 
 		self.assertRaises(PathLookupError, layout.page_file, Path(':'))
-
 
 		layout = MultiFileLayout(dir, 'html', namespace=Path('Test'))
 		self.assertEqual(layout.relative_root, dir)
@@ -148,7 +145,6 @@ class TestSingleFileLayout(tests.TestCase):
 		self.assertRaises(PathLookupError, layout.page_file, Path('Foo'))
 
 
-
 class TestLinker(tests.TestCase):
 
 	def runTest(self):
@@ -193,9 +189,6 @@ class TestLinker(tests.TestCase):
 		href = interwiki_link('foo?Ideas:Task List')
 		self.assertIsNotNone(href)
 		self.assertEqual(linker.link('foo?Ideas:Task List'), uri + '/Ideas/Task_List.txt')
-
-
-
 
 
 class TestExportTemplateContext(tests.TestCase):
@@ -254,7 +247,6 @@ class TestExportTemplateContext(tests.TestCase):
 		#		.name
 		#		.basename
 
-
 		# Test PageProxy
 		self.context['mypage'] = pages[0]
 		self.assertEqual(get('mypage.title'), 'Foo')
@@ -267,12 +259,10 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertIsInstance(get('mypage.body'), basestring)
 		self.assertIsInstance(get('mypage.meta'), dict)
 
-
 		#			.links
 		#			.backlinks
 		#			.attachments
 		#
-
 
 		# Test HeadingsProxy
 		mycall = ExpressionFunctionCall(
@@ -313,7 +303,6 @@ class TestExportTemplateContext(tests.TestCase):
 		#
 		# test single page by "IF loop.first and loop.last"
 
-
 		# TODO test all of the attributes / items accesible through the
 		# context dict are string, expressionfunction, or proxy defined in this module
 
@@ -322,8 +311,6 @@ class TestExportTemplateContext(tests.TestCase):
 		# test setting page meta is NOT allowed
 
 		# TODO list simple template with processor to test looping through pages
-
-
 
 
 class TestPageSelections(tests.TestCase):
@@ -477,7 +464,6 @@ class TestExportFormatRst(TestExportFormat, tests.TestCase):
 	format = 'rst'
 
 
-
 # TODO test all exports templates
 
 
@@ -531,7 +517,6 @@ class TestExportFormatRst(TestExportFormat, tests.TestCase):
 		#~ self.assertEqual(template.file, datahome.file('html/Default.html').path)
 		#~ self.assertEqual(template.resources_dir, datahome.subdir('html/Default'))
 		#~ self.assertTrue(template.resources_dir.exists())
-
 
 
 class TestExportCommand(tests.TestCase):

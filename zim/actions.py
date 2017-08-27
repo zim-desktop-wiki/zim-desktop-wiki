@@ -36,6 +36,7 @@ logger = logging.getLogger('zim')
 
 _accelerator_preparse_re = re.compile('(?i)<Primary>')
 
+
 def gtk_accelerator_preparse(code, force=False):
 	'''Pre-parse the accelerator code to change <Primary> into
 	<Control> or <Command> if <Primary> is not supported.
@@ -322,7 +323,6 @@ class RadioAction(ActionMethod):
 		except:
 			zim.errors.exception_handler(
 				'Exception during action: %s(%s)' % (self.name, key))
-
 
 
 def get_gtk_actiongroup(obj):

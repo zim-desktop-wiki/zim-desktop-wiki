@@ -4,6 +4,7 @@ from glob import glob
 
 from tests import TestCase
 
+
 class TestTranslations(TestCase):
 
 	def runTest(self, verbose=False):
@@ -59,7 +60,6 @@ class TranslationMessage(object):
 		assert self.msgid, 'No msgid found'
 		assert self.msgstr, 'No msgstr found'
 
-
 	_format_string_re = re.compile('%(?:\(\w+\))?\w')
 		# match "%s", "%d" etc. but also "%(foo)s" - but not just "%"
 
@@ -111,6 +111,7 @@ class TranslationFile(object):
 		buffer = []
 		lineno = 0
 		msgidlineno = 0
+
 		def flush():
 			if not buffer \
 			or all(line.startswith('#') for line in buffer):
@@ -168,7 +169,6 @@ class TranslationFile(object):
 
 			if not message.check_format_strings():
 				raise AssertionError('Error with format strings in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid)
-
 
 
 if __name__ == '__main__':

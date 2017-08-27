@@ -78,6 +78,7 @@ class TestDateTimeZ(tests.TestCase):
 
 from zim.plugins.tasklist.dates import *
 
+
 class TestDateParsing(tests.TestCase):
 
 	def testParsing(self):

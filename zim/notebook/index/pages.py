@@ -733,6 +733,7 @@ class PagesView(IndexView):
 
 IS_PAGE = 1  # : Hint for MyTreeIter
 
+
 class PagesTreeModelMixin(TreeModelMixinBase):
 
 	# Optimize lookup for finding records in the same level

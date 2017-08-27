@@ -181,7 +181,6 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(unique[0], history.get_current())
 		self.assertEqual(len(unique), 3)
 
-
 	def testChildren(self):
 		'''Test getting namespace from history'''
 		history = History(self.notebook)
@@ -202,7 +201,6 @@ class TestHistory(tests.TestCase):
 		history.append(page)
 		self.assertEqual(history.get_child(Path('Some')), Path('Some:deep'))
 		self.assertEqual(history.get_grandchild(Path('Some')), Path('Some:deep:nested:page'))
-
 
 	def testMovePage(self):
 		'''Test history is updated for moved pages'''
@@ -310,7 +308,6 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(list(newhistory.get_history()), list(history.get_history()))
 		self.assertEqual(list(newhistory.get_recent()), list(history.get_recent()))
 		self.assertEqual(newhistory.get_current(), history.get_current())
-
 
 	def testRobustness(self):
 		'''Test history can deal with garbage data'''

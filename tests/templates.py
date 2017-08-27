@@ -119,7 +119,6 @@ class TestExpressionParser(tests.TestCase):
 		):
 			self.assertEqual(p.parse(text), wanted)
 
-
 		# Test operator precedence
 		expr = ExpressionParser().parse('a or b and not c < d and f or x')
 			# Read as: '(a or ((b and ((not (c < d)) and f)) or x))'
@@ -288,8 +287,6 @@ class TestExpressionObjects(tests.TestCase):
 
 		mystring = ExpressionStringObject('foo')
 		self.assertEqual(mystring.upper(), "FOO")
-
-
 
 
 class TestTemplateBuilderTextBuffer(tests.TestCase):
@@ -511,7 +508,6 @@ class TestTemplateProcessor(tests.TestCase):
 		with self.assertRaises(AssertionError):
 			processor.process(output, context)
 
-
 	def testIfElifElse(self):
 		# test 'IF', 'ELIF', 'ELSE',
 		processor = TemplateProcessor([
@@ -569,7 +565,6 @@ class TestTemplateProcessor(tests.TestCase):
 		lines = []
 		processor.process(lines, TemplateContextDict({'foo': 'foo'}))
 		self.assertEqual(''.join(lines), 'FOO\nFOO\nFOO\n')
-
 
 
 class TestTemplateList(tests.TestCase):

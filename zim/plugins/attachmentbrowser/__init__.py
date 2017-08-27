@@ -60,7 +60,6 @@ MIN_ICON_ZOOM = 16
 DEFAULT_ICON_ZOOM = 64
 
 
-
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
@@ -214,7 +213,6 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget = None
 
 
-
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	'''Wrapper aroung the L{FileBrowserIconView} that adds the buttons
@@ -293,6 +291,3 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.zoomin_button.set_sensitive(icon_size < THUMB_SIZE_LARGE)
 		self.zoomout_button.set_sensitive(icon_size > MIN_ICON_ZOOM)
 		self.icon_size = icon_size  # Do this last - avoid store state after fail
-
-
-

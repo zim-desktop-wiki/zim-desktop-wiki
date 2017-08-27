@@ -241,7 +241,6 @@ mount=%s %s
 		self.assertRaises(FileNotFoundError, build_notebook, info)
 
 
-
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
@@ -353,7 +352,6 @@ class TestNotebook(tests.TestCase):
 		self.assertTrue(page.haschildren)
 		self.assertFalse(page.hascontent)
 
-
 		# Check delete and cleanup
 		path = Path('AnotherNewPage:Foo:bar')
 		page = self.notebook.get_page(path)
@@ -409,7 +407,6 @@ class TestNotebook(tests.TestCase):
 		self.assertEqual(''.join(content),
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** :AnotherNewPage\n')
-
 
 		#~ print '\n==== DB ===='
 		#~ self.notebook.index.update()
@@ -524,7 +521,6 @@ http://foo.org # urls are untouched
 		linking = self.notebook.get_page(Path('Dus:Ja'))
 		self.assertEqual(u''.join(linking.dump('wiki')), linkingwanted1)
 
-
 		# rename Dus:Baz -> Dus:Bar
 		oldpage = self.notebook.get_page(Path('Dus:Baz'))
 		oldpage.parse('wiki', text)
@@ -541,7 +537,6 @@ http://foo.org # urls are untouched
 
 		linking = self.notebook.get_page(Path('Dus:Ja'))
 		self.assertEqual(u''.join(linking.dump('wiki')), linkingwanted2)
-
 
 		# now test move on full notebook with more pages
 		def links(source, target):
@@ -567,7 +562,6 @@ http://foo.org # urls are untouched
 		self.assertTrue(links(newpath, Path('Linking:Foo:Bar')))
 		self.assertTrue(links(Path('Linking:Foo:Bar'), newpath))
 
-
 		# Yet another test based on bug #lp:617933 - no changes and all cross refs preserved
 		parent = self.notebook.get_page(Path('TheParent'))
 		child1 = self.notebook.get_page(Path('TheParent:FirstChild'))
@@ -590,7 +584,6 @@ http://foo.org # urls are untouched
 		self.assertEqual(u''.join(parent.dump('wiki')), 'Loves [[+FirstChild]] and [[+SecondChild]]\n')
 		self.assertEqual(u''.join(child1.dump('wiki')), 'Hates the [[SecondChild]]\n')
 		self.assertEqual(u''.join(child2.dump('wiki')), 'Loves the [[FirstChild]]\n')
-
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
@@ -629,7 +622,6 @@ http://foo.org # urls are untouched
 			self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
 		self.assertEqual(
 			self.notebook.relative_filepath(dir.file('foo.txt')), os_native_path('./foo.txt'))
-
 
 
 #	def testResolveLink(self):
@@ -974,7 +966,6 @@ class TestPageChangeFile(tests.TestCase):
 		page = notebook.get_page(Path('SomePage'))
 		self.assertEqual(page.dump('wiki'), ['Test 5 6 7 8\n'])
 
-
 		# Repeat but keep refs explicitly
 
 		page1 = notebook.get_page(Path('SomeOtherPage'))
@@ -1001,6 +992,7 @@ try:
 	import gio
 except ImportError:
 	gio = None
+
 
 @tests.slowTest
 @tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')

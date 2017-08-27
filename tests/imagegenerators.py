@@ -196,7 +196,6 @@ class TestScoreEditor(TestGenerator):
 		TestGenerator._test_generator(self)
 
 
-
 @tests.skipUnless(InsertDitaaPlugin.check_dependencies_ok(), 'Missing dependencies')
 class TestDitaaEditor(TestGenerator):
 
@@ -244,8 +243,6 @@ seqdiag {
 	def runTest(self):
 		'Test Sequence Diagram Editor plugin'
 		TestGenerator._test_generator(self)
-
-
 
 
 class MockWindow(tests.MockObject):

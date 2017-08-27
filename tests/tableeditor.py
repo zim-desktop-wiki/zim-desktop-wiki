@@ -115,4 +115,3 @@ class TestTableViewObject(tests.TestCase):
 
 			data = newobj.get_data()
 			self.assertEqual(data, (headers, rows, attrib))
-

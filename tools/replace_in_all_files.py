@@ -5,6 +5,7 @@
 import os
 import sys
 
+
 def replace_in_dir(root, old, new):
 	total = 0
 	for dir, dirs, files in os.walk(root):
@@ -14,6 +15,7 @@ def replace_in_dir(root, old, new):
 		for file in files:
 			total += replace_in_file(dir + '/' + file, old, new)
 	print '%i total in %s' % (total, root)
+
 
 def replace_in_file(file, old, new):
 	fh = open(file)

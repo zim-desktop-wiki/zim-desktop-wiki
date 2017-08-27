@@ -6,13 +6,16 @@ import re
 
 MIN_TRANLATIONS = 300
 
+
 def count_messages(file):
 	return count('msgid', file) + 1
 	# The +1 is for the first message, which is empty and translates
 	# with all meta data
 
+
 def count_translations(file):
 	return count('msgstr', file)
+
 
 def count(prefix, file):
 	count = 0
@@ -35,10 +38,12 @@ def count(prefix, file):
 			check_multiline = False
 	return count
 
+
 def get_lang(name):
 	match = re.search('zim-(.*?).po$', name)
 	assert match, 'Could not parse LANG from %s !?' % name
 	return match.group(1)
+
 
 def import_translations_from(archive):
 	tfile = tarfile.open(archive, 'r:gz')

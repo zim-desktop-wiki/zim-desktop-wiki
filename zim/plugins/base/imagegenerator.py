@@ -37,6 +37,7 @@ uimanager_xml_template = '''
 </ui>
 '''
 
+
 class ImageGeneratorPlugin(PluginClass):
 	'''Base class for image generator plugins
 
@@ -72,7 +73,6 @@ class ImageGeneratorPlugin(PluginClass):
 		assert generatorklass.object_type == self.object_type, \
 			'Object type of ImageGenerator (%s) does not match object type of plugin (%s)' \
 			% (generatorklass.object_type, self.object_type)
-
 
 		mainwindow_extension_base = \
 			self.lookup_subclass(MainWindowExtensionBase) \
@@ -385,5 +385,3 @@ class ImageGeneratorDialog(Dialog):
 	def destroy(self):
 		self.generator.cleanup()
 		Dialog.destroy(self)
-
-

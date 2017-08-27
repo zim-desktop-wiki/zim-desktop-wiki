@@ -207,7 +207,6 @@ class ExportTemplateContext(dict):
 				l = _link(l)
 				self['links'][k] = l
 
-
 	def get_dumper(self, page):
 		'''Returns a L{DumperClass} instance for source page C{page}
 
@@ -527,6 +526,7 @@ class PageProxy(ParseTreeProxy):
 				pass
 		except IndexNotFoundError:
 			pass  # XXX needed for index_page and other specials because they do not exist in the index
+
 
 class HeadingProxy(ParseTreeProxy):
 

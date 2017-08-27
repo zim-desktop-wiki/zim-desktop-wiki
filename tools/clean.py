@@ -7,6 +7,7 @@ import sys
 import shutil
 from subprocess import Popen, PIPE
 
+
 def main(remove=False):
 	pipe = Popen('bzr ls --ignored', shell=True, stdout=PIPE).stdout
 	print 'rm *.pyc'

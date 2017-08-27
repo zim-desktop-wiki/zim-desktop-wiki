@@ -83,6 +83,7 @@ class ThumbnailCreatorFailure(ValueError):
 
 from zim.newfs.local import _replace_file as _atomic_rename
 
+
 def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	'''Thumbnailer implementation that uses the C{gtk.gdk.Pixbuf}
 	functions to create the thumbnail.
@@ -311,7 +312,6 @@ class ThumbnailManager(object):
 				pass
 
 
-
 #~ class ImageMagickThumbnailer(Thumbnailer):
 
 	#~ def create_thumbnail(self, file, thumbfile, size):
@@ -340,7 +340,6 @@ class ThumbnailManager(object):
 		#~ except OSError:
 			#~ logger.exception('Could not delete tmp file: %s', tmpfile)
 		#~ return pixbuf
-
 
 	#~ def _file_to_image_magick(self,infile,outfile,w,h,fileinfo=None):
 		#~ ''' pdf to thumbnail '''

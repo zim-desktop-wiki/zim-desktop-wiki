@@ -24,6 +24,8 @@ import zim.config
 # Note that this marshalling remains in place for any subsequent tests
 
 _cwd = Dir('.')
+
+
 def marshal_path_lookup(function):
 	def marshalled_path_lookup(*arg, **kwarg):
 		value = function(*arg, **kwarg)
@@ -208,6 +210,7 @@ class TestControlledDict(tests.TestCase):
 		self.assertTrue(mydict.modified)
 
 		counter = [0]
+
 		def handler(o):
 			counter[0] += 1
 
@@ -531,6 +534,7 @@ none=
 		self.assertEqual(list(conf['Foo'].all_items()), [('b', 'test'), ('a', 'test')])
 		self.assertEqual(conf.dump(), text.splitlines(1))
 
+
 class TestUserDirs(tests.TestCase):
 
 	def setUp(self):
@@ -575,7 +579,6 @@ class TestHierarchicDict(tests.TestCase):
 		self.assertEqual(dict[Path('foo:bar:baz')]['key1'], 'foo')
 		dict['']['key2'] = 'FOO'
 		self.assertEqual(dict[Path('foo:bar:baz')]['key2'], 'FOO')
-
 
 
 class TestVirtualConfigBackend(tests.TestCase):
@@ -678,7 +681,6 @@ class TestConfigFile(tests.TestCase):
 		self.assertRaises(FileNotFoundError, file.read, fail=True)
 		self.assertRaises(FileNotFoundError, file.readlines, fail=True)
 
-
 	def testWithDefaults(self):
 		data = {'default.conf': 'default!\n'}
 		file = ConfigFile(
@@ -700,7 +702,6 @@ class TestConfigFile(tests.TestCase):
 		file.remove()
 		self.assertEqual(file.read(), 'default!\n')
 		self.assertEqual(file.readlines(), ['default!\n'])
-
 
 
 class ConfigManagerTests(object):
@@ -760,7 +761,6 @@ newkey=ja
 
 ''')
 
-
 		# Test profile switch
 		changed_counter = tests.Counter()
 		dict['FOO'].connect('changed', changed_counter)
@@ -781,7 +781,6 @@ newkey=ja
 
 		self.assertEqual(dict['FOO']['foo'], 'myprofile')
 		self.assertEqual(dict['FOO']['bar'], 'test123')
-
 
 		# Test profile backward compatibility
 		manager.set_profile('oldprofile')

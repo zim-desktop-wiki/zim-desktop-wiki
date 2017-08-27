@@ -125,6 +125,7 @@ Edge case with wrongly nested list
 
 '''
 
+
 class TestTaskParser(tests.TestCase):
 
 	def runTest(self):
@@ -216,7 +217,6 @@ class TestTaskParser(tests.TestCase):
 			]),
 		]
 
-
 		tree = WikiParser().parse(WIKI_TEXT)
 		tb = TokenBuilder()
 		tree.visit(tb)
@@ -289,7 +289,6 @@ class TestTaskList(tests.TestCase):
 			self.assertGreater(tags[tag], 0)
 
 		# TODO test filtering for tags, labels, string - all case insensitive
-
 
 	#~ def testDialog(self):
 		#~ '''Check tasklist plugin dialog'''

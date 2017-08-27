@@ -134,6 +134,7 @@ def _monitor_thread(thread):
 	else:
 		return True  # keep handler
 
+
 def monitor_thread(thread):
 	gobject.idle_add(_monitor_thread, thread)
 
@@ -363,7 +364,6 @@ class VCS(object):
 
 		return vcs_klass
 
-
 	@classmethod
 	def create(klass, vcs, vcs_dir, notebook_dir):
 		"""Build the required instance of a Version Control System
@@ -387,7 +387,6 @@ class VCS(object):
 		@returns: C{True} if dependencies are checked ok.
 		"""
 		return VCS.get_backend(vcs).tryexec()
-
 
 
 class VCSBackend(ConnectorMixin):
@@ -433,7 +432,6 @@ class VCSBackend(ConnectorMixin):
 	def lock(self):
 		return self._lock
 
-
 	def _ignored(self, path):
 		"""Return True if we should ignore this path
 		TODO add specific ignore patterns in the _ignored_vcs_specific method
@@ -468,7 +466,6 @@ class VCSBackend(ConnectorMixin):
 		"""
 		if path.ischild(self.root) and not self._ignored(path):
 			FunctionThread(self.vcs.add, (path,), lock=self._lock).start()
-
 
 	def on_path_moved(self, fs, oldpath, newpath):
 		"""Callback to move the file in Bazaar when moved in the wiki
@@ -558,7 +555,6 @@ class VCSBackend(ConnectorMixin):
 		with self.lock:
 			self.vcs.revert(file, version)
 
-
 	def list_versions(self, file=None):
 		"""Returns a list of all versions, for a file or for the entire repo
 
@@ -570,7 +566,6 @@ class VCSBackend(ConnectorMixin):
 			lines = self.vcs.log(file)
 			versions = self.vcs.log_to_revision_list(lines)
 		return versions
-
 
 	def get_version(self, file, version):
 		"""FIXME Document"""
@@ -749,7 +744,6 @@ class VCSApplicationBase(object):
 		# TODO: append the rule instead of overwrite the full content
 		raise NotImplementedError
 
-
 	def init_repo(self):
 		"""initialize a repository in the associated folder.
 		Runs L{init()}, adds existing files etc.
@@ -823,7 +817,6 @@ class VCSApplicationBase(object):
 		                   hg mv --after <oldfile> <newfile>
 		"""
 		raise NotImplementedError
-
 
 	def remove(self, file):
 		"""Remove a file from the repository.
@@ -1058,7 +1051,6 @@ state. Or select multiple versions to see changes between those versions.
 		comp_button.connect('clicked', lambda o: self.show_side_by_side())
 		buttonbox.add(comp_button)
 
-
 		# UI interaction between selections and buttons
 
 		def on_row_activated(o, iter, path):
@@ -1068,7 +1060,6 @@ state. Or select multiple versions to see changes between those versions.
 			buffer.set_text(comment)
 
 		self.versionlist.connect('row-activated', on_row_activated)
-
 
 		def on_ui_change(o):
 			usepage = self.page_radio.get_active()

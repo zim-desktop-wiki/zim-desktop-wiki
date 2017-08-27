@@ -4,6 +4,7 @@ import base64
 
 from zim.fs import File
 
+
 def data_uri(file):
 	if file.basename.endswith('.png'):
 		mime = 'image/png'

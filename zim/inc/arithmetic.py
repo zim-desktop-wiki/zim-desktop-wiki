@@ -55,8 +55,10 @@ renumber = re.compile(r'(-?[0-9][0-9,]*(\.[0-9]*)?%?)|(\.[0-9]+%?)')
 reidentifier = re.compile(r'[^\W\d]\w*', re.U)  # letter (but not a number) followed by alpha-numeric
 rexenclosed = re.compile(r'[0-9.)](x)[\W\d]', re.U)
 
+
 class Lexer:
     ''
+
     def __init__(self, text):
         self.text = text
         self.offset = 0
@@ -247,11 +249,9 @@ def evaluate(expression_text, UseDigitGrouping = True, variables = {}, functions
         return safe_eval(''.join(expressionD))
 
 
-
 reEqualSign = re.compile(' ?= ?')
 reSepar = re.compile('  +|\t')
 reColonLeft = re.compile(': ')
-
 
 
 def TypeAndValueOf(expression):
@@ -289,6 +289,7 @@ def TypeAndValueOf(expression):
         return 'e', expression  # expression with names
     else:
         return 'a', expression
+
 
 class Parser:
     'Base class'
@@ -427,8 +428,6 @@ class Parser:
                     elif tipoLeft == 'n' and tipoRight in 'n':  # define an alias
                             functions[valorLeft] = str(valorRight)
 
-
-
                     RightPrevStart = mEqualSignAct.end()
                     RightPrevEnd = RightActEnd
 
@@ -461,6 +460,7 @@ class ParserTk(Parser):
         'Write text in line i of lines from start to end offset.'
         textWidget.delete(str(i) + '.' + str(start), str(i) + '.' + str(end))
         textWidget.insert(str(i) + '.' + str(start), text)
+
 
 class ParserGTK(Parser):
     ''
@@ -501,6 +501,7 @@ class ParserGTK(Parser):
         iter_start = textBuffer.get_iter_at_line_offset(i, start)
         textBuffer.insert(iter_start, text)
 
+
 class ParserWx(Parser):
     ''
 
@@ -524,6 +525,7 @@ class ParserWx(Parser):
         startOffset = TextControl.XYToPosition(start, i)
         endOffset = TextControl.XYToPosition(end, i)
         TextControl.Replace(startOffset, endOffset, text)
+
 
 def feed(text):
     'Feed text to the parser.  It is processed line by line.'
