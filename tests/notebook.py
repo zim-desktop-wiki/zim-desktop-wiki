@@ -33,7 +33,7 @@ class TestNotebookInfo(tests.TestCase):
                 (File('file:///foo/bar'), 'file:///foo/bar'),
                 ('file:///foo/bar', 'file:///foo/bar'),
                 ('zim+file:///foo?bar', 'zim+file:///foo?bar'),
-                        # specifically ensure the "?" does not get url encoded
+            # specifically ensure the "?" does not get url encoded
         ):
             if os.name == 'nt':
                 if isinstance(location, basestring):
@@ -133,11 +133,11 @@ class TestNotebookInfoList(tests.TestCase):
         file = File('tests/data/notebook-list-old-format.list')
         list = NotebookInfoList(file)
         self.assertEqual(list[:], [
-                NotebookInfo(Dir(path).uri) for path in
+            NotebookInfo(Dir(path).uri) for path in
                         ('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar')
         ])
         self.assertEqual(list.default,
-                NotebookInfo(Dir('/home/user/code/zim.debug').uri))
+                         NotebookInfo(Dir('/home/user/code/zim.debug').uri))
 
 
 @tests.slowTest
@@ -250,7 +250,7 @@ class TestNotebook(tests.TestCase):
     def testAPI(self):
         '''Test various notebook methods'''
         self.assertTrue(
-                isinstance(self.notebook.get_home_page(), Page))
+            isinstance(self.notebook.get_home_page(), Page))
 
         page1 = self.notebook.get_page(Path('Tree:foo'))
         page2 = self.notebook.get_page(Path('Tree:foo'))
@@ -306,12 +306,12 @@ class TestNotebook(tests.TestCase):
 
         # check errors
         self.assertRaises(PageExistsError,
-                self.notebook.move_page, Path('Test:foo'), Path('TaskList'))
+                          self.notebook.move_page, Path('Test:foo'), Path('TaskList'))
 
         self.notebook.index.flush()
         self.assertFalse(self.notebook.index.is_uptodate)
         self.assertRaises(IndexNotUptodateError,
-                self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
+                          self.notebook.move_page, Path('Test:foo'), Path('Test:BAR'))
         self.notebook.index.check_and_update()
 
         # Test actual moving
@@ -360,8 +360,8 @@ class TestNotebook(tests.TestCase):
 
         page = self.notebook.get_page(Path('SomePageWithLinks'))
         page.parse('wiki',
-                '[[:AnotherNewPage:Foo:bar]]\n'
-                '**bold** [[:AnotherNewPage]]\n')
+                   '[[:AnotherNewPage:Foo:bar]]\n'
+                   '**bold** [[:AnotherNewPage]]\n')
         self.notebook.store_page(page)
 
         page = self.notebook.get_page(Path('AnotherNewPage'))
@@ -375,17 +375,17 @@ class TestNotebook(tests.TestCase):
         self.assertFalse(page.haschildren)
         self.assertFalse(page.hascontent)
         self.assertRaises(IndexNotFoundError,
-                self.notebook.links.n_list_links_section, page, LINK_DIR_BACKWARD)
+                          self.notebook.links.n_list_links_section, page, LINK_DIR_BACKWARD)
         self.assertRaises(IndexNotFoundError,
-                self.notebook.links.list_links_section, page, LINK_DIR_BACKWARD)
+                          self.notebook.links.list_links_section, page, LINK_DIR_BACKWARD)
         # if links are removed and placeholder is cleaned up the
         # page doesn't exist anymore in the index so we get this error
 
         page = self.notebook.get_page(Path('SomePageWithLinks'))
         content = page.dump('wiki')
         self.assertEqual(''.join(content),
-                ':AnotherNewPage:Foo:bar\n'
-                '**bold** [[:AnotherNewPage]]\n')
+                         ':AnotherNewPage:Foo:bar\n'
+                         '**bold** [[:AnotherNewPage]]\n')
 
         self.notebook.delete_page(Path('AnotherNewPage:Foo:bar'))  # now should fail silently
 
@@ -396,17 +396,17 @@ class TestNotebook(tests.TestCase):
         self.assertEqual(nlinks, 1)
         self.notebook.delete_page(page)
         self.assertRaises(IndexNotFoundError,
-                self.notebook.links.n_list_links_section, page, LINK_DIR_BACKWARD)
+                          self.notebook.links.n_list_links_section, page, LINK_DIR_BACKWARD)
         self.assertRaises(IndexNotFoundError,
-                self.notebook.links.list_links_section, page, LINK_DIR_BACKWARD)
+                          self.notebook.links.list_links_section, page, LINK_DIR_BACKWARD)
         # if links are removed and placeholder is cleaned up the
         # page doesn't exist anymore in the index so we get this error
 
         page = self.notebook.get_page(Path('SomePageWithLinks'))
         content = page.dump('wiki')
         self.assertEqual(''.join(content),
-                ':AnotherNewPage:Foo:bar\n'
-                '**bold** :AnotherNewPage\n')
+                         ':AnotherNewPage:Foo:bar\n'
+                         '**bold** :AnotherNewPage\n')
 
         #~ print '\n==== DB ===='
         #~ self.notebook.index.update()
@@ -613,15 +613,15 @@ http://foo.org # urls are untouched
             if cleaned is not None and not cleaned.startswith('/'):
                 cleaned = os_native_path(cleaned)
             self.assertEqual(
-                    self.notebook.resolve_file(link, path), wanted)
+                self.notebook.resolve_file(link, path), wanted)
             self.assertEqual(
-                    self.notebook.relative_filepath(wanted, path), cleaned)
+                self.notebook.relative_filepath(wanted, path), cleaned)
 
         # check relative path without Path
         self.assertEqual(
-                self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
+            self.notebook.relative_filepath(doc_root.file('foo.txt')), '/foo.txt')
         self.assertEqual(
-                self.notebook.relative_filepath(dir.file('foo.txt')), os_native_path('./foo.txt'))
+            self.notebook.relative_filepath(dir.file('foo.txt')), os_native_path('./foo.txt'))
 
 
 #	def testResolveLink(self):
@@ -749,13 +749,13 @@ class TestPage(TestPath):
 
         links = list(page.get_links())
         self.assertEqual(links, [
-                ('page', 'foo:bar', {}),
-                ('page', 'bar', {}),
+            ('page', 'foo:bar', {}),
+            ('page', 'bar', {}),
         ])
 
         tags = list(page.get_tags())
         self.assertEqual(tags, [
-                ('baz', {'name': 'baz'}),
+            ('baz', {'name': 'baz'}),
         ])
 
         self.assertEqual(page.get_parsetree().tostring(), tree.tostring())
@@ -899,13 +899,13 @@ class TestMovePageNewNotebook(tests.TestCase):
         ):
             path = Path(name)
             self.assertEqual(
-                    notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
+                notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
             self.assertEqual(
-                    notebook.links.n_list_links(path, LINK_DIR_BACKWARD), backw)
+                notebook.links.n_list_links(path, LINK_DIR_BACKWARD), backw)
 
         self.assertRaises(IndexNotFoundError,
-                notebook.links.n_list_links, Path('page3:page1'), LINK_DIR_FORWARD
-        )
+                          notebook.links.n_list_links, Path('page3:page1'), LINK_DIR_FORWARD
+                          )
 
         notebook.move_page(Path('page1'), Path('page3:page1'))
         for name, forw, backw in (
@@ -916,13 +916,13 @@ class TestMovePageNewNotebook(tests.TestCase):
         ):
             path = Path(name)
             self.assertEqual(
-                    notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
+                notebook.links.n_list_links(path, LINK_DIR_FORWARD), forw)
             self.assertEqual(
-                    notebook.links.n_list_links(path, LINK_DIR_BACKWARD), backw)
+                notebook.links.n_list_links(path, LINK_DIR_BACKWARD), backw)
 
         self.assertRaises(IndexNotFoundError,
-                notebook.links.n_list_links, Path('page1'), LINK_DIR_FORWARD
-        )
+                          notebook.links.n_list_links, Path('page1'), LINK_DIR_FORWARD
+                          )
 
         text = ''.join(notebook.get_page(Path('page3:page1:child')).dump('wiki'))
         self.assertEqual(text, 'I have backlinks !\n')

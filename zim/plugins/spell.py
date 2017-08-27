@@ -35,8 +35,8 @@ else:
 # try to be robust for future versions breaking this or not needing it
 # See https://github.com/koehlma/pygtkspellcheck/issues/22
 if gtkspellcheck \
-and hasattr(gtkspellcheck.SpellChecker, '_LanguageList') \
-and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
+        and hasattr(gtkspellcheck.SpellChecker, '_LanguageList') \
+        and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
     from pylocales import code_to_name
 
     orig_from_broker = gtkspellcheck.SpellChecker._LanguageList.from_broker
@@ -62,25 +62,25 @@ and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 class SpellPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Spell Checker'),  # T: plugin name
-            'description': _('''\
+        'name': _('Spell Checker'),  # T: plugin name
+        'description': _('''\
 Adds spell checking support using gtkspell.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Spell Checker',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Spell Checker',
     }
 
     plugin_preferences = (
-            ('language', 'string', 'Default Language', ''),
+        ('language', 'string', 'Default Language', ''),
     )
 
     @classmethod
     def check_dependencies(klass):
         return bool(gtkspellcheck or gtkspell), [
-                ('gtkspellcheck', not gtkspellcheck is None, True),
-                ('gtkspell', not gtkspell is None, True)
+            ('gtkspellcheck', not gtkspellcheck is None, True),
+            ('gtkspell', not gtkspell is None, True)
         ]
 
 
@@ -113,8 +113,8 @@ class MainWindowExtension(WindowExtension):
         self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER)  # XXX
 
     @toggle_action(
-            _('Check _spelling'),  # T: menu item
-            stock='gtk-spell-check', accelerator='F7'
+        _('Check _spelling'),  # T: menu item
+        stock='gtk-spell-check', accelerator='F7'
     )
     def toggle_spellcheck(self, active):
         textview = self.window.pageview.view
@@ -146,10 +146,10 @@ class MainWindowExtension(WindowExtension):
             checker = self._adapter(textview, lang)
         except:
             ErrorDialog(self.window.ui, (
-                    _('Could not load spell checking'),
-                            # T: error message
-                    _('This could mean you don\'t have the proper\ndictionaries installed')
-                            # T: error message explanation
+                _('Could not load spell checking'),
+                # T: error message
+                _('This could mean you don\'t have the proper\ndictionaries installed')
+                # T: error message explanation
             )).run()
         else:
             textview._gtkspell = checker
@@ -157,7 +157,7 @@ class MainWindowExtension(WindowExtension):
     def teardown(self):
         textview = self.window.pageview.view
         if hasattr(textview, '_gtkspell') \
-        and textview._gtkspell is not None:
+                and textview._gtkspell is not None:
             textview._gtkspell.detach()
             textview._gtkspell = None
 

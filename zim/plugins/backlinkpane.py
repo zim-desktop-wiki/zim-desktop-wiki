@@ -17,21 +17,21 @@ from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populat
 class BackLinksPanePlugin(PluginClass):
 
     plugin_info = {
-            'name': _('BackLinks Pane'),  # T: plugin name
-            'description': _('''\
+        'name': _('BackLinks Pane'),  # T: plugin name
+        'description': _('''\
 This plugin adds an extra widget showing a list of pages
 linking to the current page.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:BackLinks Pane',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:BackLinks Pane',
     }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
-                    # T: option for plugin preferences
+        # key, type, label, default
+        ('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
+        # T: option for plugin preferences
     )
 
 
@@ -147,7 +147,7 @@ class LinksTreeView(BrowserTreeView):
         self.append_column(column)
 
         if gtk.gtk_version >= (2, 12, 0) \
-        and gtk.pygtk_version >= (2, 12, 0):
+                and gtk.pygtk_version >= (2, 12, 0):
             self.set_tooltip_column(TEXT_COL)
 
 

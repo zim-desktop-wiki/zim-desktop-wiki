@@ -11,7 +11,7 @@ from zim.notebook import Path
 from zim.notebook.index import Index
 from zim.notebook.index.tags import MyTreeIter, IS_PAGE, IS_TAG
 from zim.gui.pageindex import FGCOLOR_COL, \
-        EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
+    EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
 # Explicitly don't import * from pageindex, make clear what we re-use
 from zim.config import ConfigDict
 from zim.plugins.tags import *
@@ -25,14 +25,14 @@ class TestTaggedPageTreeStore(tests.TestCase):
         self.toplevel = IS_PAGE
         self.tags = ('foo', 'bar')
         self.notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_MOCK, content={
-                'foobar': '@foo @bar',
-                'foobar:child1:subfoobar': '@foo @bar',
-                'bar:foobar': '@foo @bar',
+            'foobar': '@foo @bar',
+            'foobar:child1:subfoobar': '@foo @bar',
+            'bar:foobar': '@foo @bar',
 
-                'bar': '@bar',
-                'none': 'no tag here',
-                'none:child': 'or here',
-                'other': '@third tag, not used in test',
+            'bar': '@bar',
+            'none': 'no tag here',
+            'none:child': 'or here',
+            'other': '@third tag, not used in test',
         })
         # select: (@foo, @bar), sort by (basename, len(name), name)
         #
@@ -162,14 +162,14 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
         self.toplevel = IS_TAG
         self.tags = ('foo', 'bar')
         self.notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_MOCK, content={
-                'foo': '@foo',
-                'bar': '@bar',
-                'foobar': '@foo @bar',
-                'foo:child1:subfoo': '@foo',
+            'foo': '@foo',
+            'bar': '@bar',
+            'foobar': '@foo @bar',
+            'foo:child1:subfoo': '@foo',
 
-                'none': 'no tag here',
-                'none:child': 'or here',
-                'other': '@third tag, not used in test',
+            'none': 'no tag here',
+            'none:child': 'or here',
+            'other': '@third tag, not used in test',
         })
         # select: (@foo, @bar)
         #

@@ -21,14 +21,14 @@ logger = logging.getLogger('zim.plugins.linesorter')
 class LineSorterPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Line Sorter'),  # T: plugin name
-            'description': _('''\
+        'name': _('Line Sorter'),  # T: plugin name
+        'description': _('''\
 This plugin sorts selected lines in alphabetical order.
 If the list is already sorted the order will be reversed
 (A-Z to Z-A).
 '''),  # T: plugin description
-            'author': 'NorfCran',
-            'help': 'Plugins:Line Sorter',
+        'author': 'NorfCran',
+        'help': 'Plugins:Line Sorter',
     }
 
 
@@ -58,7 +58,7 @@ class MainWindowExtension(WindowExtension):
             sel_start, sel_end = buffer.get_selection_bounds()
         except ValueError:
             MessageDialog(self.window,
-                    _('Please select more than one line of text, first.')).run()
+                          _('Please select more than one line of text, first.')).run()
             # T: Error message in "" dialog, %s will be replaced by application name
             return
 

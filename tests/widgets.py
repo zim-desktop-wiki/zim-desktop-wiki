@@ -141,11 +141,11 @@ class TestPageEntry(tests.TestCase):
 
     def setUp(self):
         self.notebook = self.setUpNotebook(content={
-                'Test:foo': 'test 123',
-                'Test:link': '[[:Placeholder]]',  # link
-                'Test:foo:bar': 'test 123',
-                'Test:bar': 'test 123',
-                'Bar': 'test 123'
+            'Test:foo': 'test 123',
+            'Test:link': '[[:Placeholder]]',  # link
+            'Test:foo:bar': 'test 123',
+            'Test:bar': 'test 123',
+            'Bar': 'test 123'
         })
 
         self.reference = Path('Test:foo')
@@ -247,45 +247,45 @@ class TestInputForm(tests.TestCase):
     def runTest(self):
         '''Test InputForm widget'''
         inputs = [
-                ('foo', 'string', 'Foo'),
-                ('bar', 'password', 'Bar'),
-                ('check', 'bool', 'Check'),
-                ('width', 'int', 'Width', (0, 10)),
-                ('app', 'choice', 'Application', ['foo', 'bar', 'baz']),
-                ('page', 'page', 'Page'),
-                ('namespace', 'namespace', 'Namespace'),
-                #~ ('link', 'link', 'Link'),
-                ('file', 'file', 'File'),
-                ('image', 'image', 'Image'),
-                ('folder', 'dir', 'Folder')
+            ('foo', 'string', 'Foo'),
+            ('bar', 'password', 'Bar'),
+            ('check', 'bool', 'Check'),
+            ('width', 'int', 'Width', (0, 10)),
+            ('app', 'choice', 'Application', ['foo', 'bar', 'baz']),
+            ('page', 'page', 'Page'),
+            ('namespace', 'namespace', 'Namespace'),
+            #~ ('link', 'link', 'Link'),
+            ('file', 'file', 'File'),
+            ('image', 'image', 'Image'),
+            ('folder', 'dir', 'Folder')
         ]
 
         values1 = {
-                'foo': '',
-                'bar': 'dus',
-                'check': True,
-                'width': 1,
-                'app': 'foo',
-                'page': ':foo:bar:Baz',  # explicit string input
-                'namespace': ':foo:bar:Baz',
-                #~ 'link': '+Baz',
-                'file': '/foo/bar',
-                'image': '/foo/bar.png',
-                'folder': '/foo/bar',
+            'foo': '',
+            'bar': 'dus',
+            'check': True,
+            'width': 1,
+            'app': 'foo',
+            'page': ':foo:bar:Baz',  # explicit string input
+            'namespace': ':foo:bar:Baz',
+            #~ 'link': '+Baz',
+            'file': '/foo/bar',
+            'image': '/foo/bar.png',
+            'folder': '/foo/bar',
         }
 
         values2 = {
-                'foo': 'tja',
-                'bar': 'hmm',
-                'check': False,
-                'width': 3,
-                'app': 'bar',
-                'page': Path(':Dus:Baz'),  # explicit Path input
-                'namespace': Path(':Dus:Baz'),
-                #~ 'link': ':Foo',
-                'file': '/foo/bar/baz',
-                'image': '/foo.png',
-                'folder': '/foo/bar/baz',
+            'foo': 'tja',
+            'bar': 'hmm',
+            'check': False,
+            'width': 3,
+            'app': 'bar',
+            'page': Path(':Dus:Baz'),  # explicit Path input
+            'namespace': Path(':Dus:Baz'),
+            #~ 'link': ':Foo',
+            'file': '/foo/bar/baz',
+            'image': '/foo.png',
+            'folder': '/foo/bar/baz',
         }
 
         def assertEqual(U, V):

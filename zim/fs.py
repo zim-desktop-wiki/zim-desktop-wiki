@@ -173,39 +173,39 @@ except ImportError:
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
-        # Gleaned from gtk.gdk.get_formats()
-        'bmp',  # image/bmp
-        'gif',  # image/gif
-        'icns',  # image/x-icns
-        'ico',  # image/x-icon
-        'cur',  # image/x-icon
-        'jp2',  # image/jp2
-        'jpc',  # image/jp2
-        'jpx',  # image/jp2
-        'j2k',  # image/jp2
-        'jpf',  # image/jp2
-        'jpeg',  # image/jpeg
-        'jpe',  # image/jpeg
-        'jpg',  # image/jpeg
-        'pcx',  # image/x-pcx
-        'png',  # image/png
-        'pnm',  # image/x-portable-anymap
-        'pbm',  # image/x-portable-anymap
-        'pgm',  # image/x-portable-anymap
-        'ppm',  # image/x-portable-anymap
-        'ras',  # image/x-cmu-raster
-        'tga',  # image/x-tga
-        'targa',  # image/x-tga
-        'tiff',  # image/tiff
-        'tif',  # image/tiff
-        'wbmp',  # image/vnd.wap.wbmp
-        'xbm',  # image/x-xbitmap
-        'xpm',  # image/x-xpixmap
-        'wmf',  # image/x-wmf
-        'apm',  # image/x-wmf
-        'svg',  # image/svg+xml
-        'svgz',  # image/svg+xml
-        'svg.gz',  # image/svg+xml
+    # Gleaned from gtk.gdk.get_formats()
+    'bmp',  # image/bmp
+    'gif',  # image/gif
+    'icns',  # image/x-icns
+    'ico',  # image/x-icon
+    'cur',  # image/x-icon
+    'jp2',  # image/jp2
+    'jpc',  # image/jp2
+    'jpx',  # image/jp2
+    'j2k',  # image/jp2
+    'jpf',  # image/jp2
+    'jpeg',  # image/jpeg
+    'jpe',  # image/jpeg
+    'jpg',  # image/jpeg
+    'pcx',  # image/x-pcx
+    'png',  # image/png
+    'pnm',  # image/x-portable-anymap
+    'pbm',  # image/x-portable-anymap
+    'pgm',  # image/x-portable-anymap
+    'ppm',  # image/x-portable-anymap
+    'ras',  # image/x-cmu-raster
+    'tga',  # image/x-tga
+    'targa',  # image/x-tga
+    'tiff',  # image/tiff
+    'tif',  # image/tiff
+    'wbmp',  # image/vnd.wap.wbmp
+    'xbm',  # image/x-xbitmap
+    'xpm',  # image/x-xpixmap
+    'wmf',  # image/x-wmf
+    'apm',  # image/x-wmf
+    'svg',  # image/svg+xml
+    'svgz',  # image/svg+xml
+    'svg.gz',  # image/svg+xml
 )
 
 
@@ -259,8 +259,8 @@ def isabs(path):
     @returns: C{True} when the path is absolute instead of a relative path
     '''
     return path.startswith('file:/') \
-    or path.startswith('~') \
-    or os.path.isabs(path)
+        or path.startswith('~') \
+        or os.path.isabs(path)
 
 
 def isdir(path):
@@ -350,7 +350,7 @@ def get_tmpdir():
         # Raises OSError if we do not have access anymore
     except OSError:
         raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
-                'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
+                             'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
     else:
         # All OK, so we must be owner of a safe folder now ...
         return dir
@@ -364,7 +364,7 @@ def normalize_file_uris(path):
     @returns: the proper URI or the original input path
     '''
     if path.startswith('file:///') \
-    or path.startswith('file://localhost/'):
+            or path.startswith('file://localhost/'):
         return path
     elif path.startswith('file://'):
         return 'smb://' + path[7:]
@@ -523,9 +523,9 @@ class FSSingletonClass(SignalEmitter):
 
     # define signals we want to use - (closure type, return type and arg types)
     __signals__ = {
-            'path-created': (SIGNAL_AFTER, None, (object,)),
-            'path-moved': (SIGNAL_AFTER, None, (object, object)),
-            'path-deleted': (SIGNAL_AFTER, None, (object,)),
+        'path-created': (SIGNAL_AFTER, None, (object,)),
+        'path-moved': (SIGNAL_AFTER, None, (object, object)),
+        'path-deleted': (SIGNAL_AFTER, None, (object,)),
     }
 
     def __init__(self):
@@ -886,7 +886,7 @@ class UnixPath(object):
                 ok = f.trash()
             except gobject.GError as error:
                 if error.code == gio.ERROR_CANCELLED \
-                or (os.name == 'nt' and error.code == 0):
+                        or (os.name == 'nt' and error.code == 0):
                     # code 0 observed on windows for cancel
                     logger.info('Trash operation cancelled')
                     raise TrashCancelledError('Trashing cancelled')
@@ -1459,7 +1459,7 @@ class UnixFile(FilePath):
         # code copied from codecs.open() to wrap our FileHandle objects
         info = codecs.lookup('utf-8')
         srw = codecs.StreamReaderWriter(
-                fh, info.streamreader, info.streamwriter, 'strict')
+            fh, info.streamreader, info.streamwriter, 'strict')
         srw.encoding = 'utf-8'
         return srw
 
@@ -1762,7 +1762,7 @@ class WindowsFile(UnixFile):
         orig = self.encodedpath + '.zim-orig~'
         new = self.encodedpath + '.zim-new~'
         return os.path.isfile(self.encodedpath) or \
-                (os.path.isfile(new) and os.path.isfile(orig))
+            (os.path.isfile(new) and os.path.isfile(orig))
         # if both new and orig exists, we can recover
 
     def open(self, mode='r'):
@@ -1950,7 +1950,7 @@ else:
 class FSObjectMonitor(SignalEmitter):
 
     __signals__ = {
-            'changed': (None, None, (None, None)),
+        'changed': (None, None, (None, None)),
     }
 
     def __init__(self, path):
@@ -1959,8 +1959,8 @@ class FSObjectMonitor(SignalEmitter):
 
     def _setup_signal(self, signal):
         if signal == 'changed' \
-        and self._gio_file_monitor is None \
-        and gio:
+                and self._gio_file_monitor is None \
+                and gio:
             try:
                 file = gio.File(uri=self.path.uri)
                 self._gio_file_monitor = file.monitor()
@@ -1970,7 +1970,7 @@ class FSObjectMonitor(SignalEmitter):
 
     def _teardown_signal(self, signal):
         if signal == 'changed' \
-        and self._gio_file_monitor:
+                and self._gio_file_monitor:
             try:
                 self._gio_file_monitor.cancel()
             except:

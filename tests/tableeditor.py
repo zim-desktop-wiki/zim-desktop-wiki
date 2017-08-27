@@ -33,8 +33,8 @@ class TestMainWindowExtension(tests.TestCase):
 
         # Parses tree to a table object
         tabledata = tree.tostring().replace("<?xml version='1.0' encoding='utf-8'?>", '')\
-                .replace('<zim-tree>', '').replace('</zim-tree>', '')\
-                .replace('<td> </td>', '<td>text</td>')
+            .replace('<zim-tree>', '').replace('</zim-tree>', '')\
+            .replace('<td> </td>', '<td>text</td>')
 
         table = plugin.create_table({'type': 'table'}, ElementTree.fromstring(tabledata))
 
@@ -69,9 +69,9 @@ class TestTableFunctions(tests.TestCase):
     def testCellFormater(self):
         self.assertEqual(CellFormatReplacer.input_to_cell('**hello**', with_pango=True), '<b>hello</b>')
         self.assertEqual(CellFormatReplacer.cell_to_input('<span background="yellow">highlight</span>', with_pango=True),
-                                         '__highlight__')
+                         '__highlight__')
         self.assertEqual(CellFormatReplacer.zim_to_cell('<link href="./alink">hello</link>'),
-                                         '<span foreground="blue">hello<span size="0">./alink</span></span>')
+                         '<span foreground="blue">hello<span size="0">./alink</span></span>')
         self.assertEqual(CellFormatReplacer.cell_to_zim('<tt>code-block</tt>'), '<code>code-block</code>')
 
 
@@ -83,12 +83,12 @@ class TestTableViewObject(tests.TestCase):
 
         for headers, rows in (
                 (  # Two simple rows
-                        ['C1', 'C2'],
-                        [['a', 'b'], ['q', 'x']]
+                    ['C1', 'C2'],
+                    [['a', 'b'], ['q', 'x']]
                 ),
                 (  # Some empty fields
-                        ['C1', 'C2'],
-                        [['a', ' '], ['q', ' '], [' ', ' ']]
+                    ['C1', 'C2'],
+                    [['a', ' '], ['q', ' '], [' ', ' ']]
                 ),
         ):
             obj = TableViewObject(attrib, headers, rows, preferences)

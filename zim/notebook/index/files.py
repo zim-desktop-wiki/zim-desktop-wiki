@@ -46,11 +46,11 @@ class FilesIndexer(SignalEmitter):
     # page save in notebook
 
     __signals__ = {
-            'start-update': (None, None, ()),
-            'finish-update': (None, None, ()),
-            'file-row-inserted': (None, None, (object,)),
-            'file-row-changed': (None, None, (object,)),
-            'file-row-deleted': (None, None, (object,)),
+        'start-update': (None, None, ()),
+        'finish-update': (None, None, ()),
+        'file-row-inserted': (None, None, (object,)),
+        'file-row-changed': (None, None, (object,)),
+        'file-row-deleted': (None, None, (object,)),
     }
 
     def __init__(self, db, folder):
@@ -72,9 +72,9 @@ class FilesIndexer(SignalEmitter):
         row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
         if row is None:
             c = self.db.execute(
-                    'INSERT INTO files(parent, path, node_type, index_status)'
-                    ' VALUES (?, ? , ?, ?)',
-                    (0, '.', TYPE_FOLDER, STATUS_NEED_UPDATE)
+                'INSERT INTO files(parent, path, node_type, index_status)'
+                ' VALUES (?, ? , ?, ?)',
+                (0, '.', TYPE_FOLDER, STATUS_NEED_UPDATE)
             )
             assert c.lastrowid == 1  # ensure we start empty
 
@@ -91,10 +91,10 @@ class FilesIndexer(SignalEmitter):
         # sort by id to ensure parents are found before children
         while True:
             row = self.db.execute(
-                    'SELECT id, path, node_type FROM files'
-                    ' WHERE index_status = ? AND path LIKE ?'
-                    ' ORDER BY node_type, id',
-                    (STATUS_NEED_UPDATE, prefix + '%')
+                'SELECT id, path, node_type FROM files'
+                ' WHERE index_status = ? AND path LIKE ?'
+                ' ORDER BY node_type, id',
+                (STATUS_NEED_UPDATE, prefix + '%')
             ).fetchone()
 
             if row:
@@ -119,8 +119,8 @@ class FilesIndexer(SignalEmitter):
             except:
                 logger.exception('Error while indexing: %s', path)
                 self.db.execute(  # avoid looping
-                        'UPDATE files SET index_status = ? WHERE id = ?',
-                        (STATUS_UPTODATE, node_id)
+                    'UPDATE files SET index_status = ? WHERE id = ?',
+                    (STATUS_UPTODATE, node_id)
                 )
 
             self.db.commit()
@@ -131,12 +131,12 @@ class FilesIndexer(SignalEmitter):
         parent_id = self._add_parent(file.parent())
         path = file.relpath(self.folder)
         self.db.execute(
-                'INSERT INTO files(path, node_type, index_status, parent)'
-                ' VALUES (?, ?, ?, ?)',
-                (path, TYPE_FILE, STATUS_NEED_UPDATE, parent_id),
+            'INSERT INTO files(path, node_type, index_status, parent)'
+            ' VALUES (?, ?, ?, ?)',
+            (path, TYPE_FILE, STATUS_NEED_UPDATE, parent_id),
         )
         row = self.db.execute(
-                'SELECT * FROM files WHERE path=?', (path,)
+            'SELECT * FROM files WHERE path=?', (path,)
         ).fetchone()
 
         self.emit('file-row-inserted', row)
@@ -148,12 +148,12 @@ class FilesIndexer(SignalEmitter):
         parent_id = self._add_parent(folder.parent())
         path = folder.relpath(self.folder)
         self.db.execute(
-                'INSERT INTO files(path, node_type, index_status, parent)'
-                ' VALUES (?, ?, ?, ?)',
-                (path, TYPE_FOLDER, STATUS_NEED_UPDATE, parent_id),
+            'INSERT INTO files(path, node_type, index_status, parent)'
+            ' VALUES (?, ?, ?, ?)',
+            (path, TYPE_FOLDER, STATUS_NEED_UPDATE, parent_id),
         )
         row = self.db.execute(
-                'SELECT * FROM files WHERE path=?', (path,)
+            'SELECT * FROM files WHERE path=?', (path,)
         ).fetchone()
 
         self.emit('file-row-inserted', row)
@@ -168,19 +168,19 @@ class FilesIndexer(SignalEmitter):
 
         path = folder.relpath(self.folder)
         r = self.db.execute(
-                'SELECT id FROM files WHERE path=?', (path,)
+            'SELECT id FROM files WHERE path=?', (path,)
         ).fetchone()
         if r is None:
             parent_id = self._add_parent(folder.parent())  # recurs
             self.db.execute(
-                    'INSERT INTO files(path, node_type, index_status, parent) '
-                    'VALUES (?, ?, ?, ?)',
-                    (path, TYPE_FOLDER, STATUS_CHECK, parent_id)
-                    # We set status to check because we assume the file being
-                    # added is the only child, but makes sense to verify later on
+                'INSERT INTO files(path, node_type, index_status, parent) '
+                'VALUES (?, ?, ?, ?)',
+                (path, TYPE_FOLDER, STATUS_CHECK, parent_id)
+                # We set status to check because we assume the file being
+                # added is the only child, but makes sense to verify later on
             )
             r = self.db.execute(
-                    'SELECT id FROM files WHERE path=?', (path,)
+                'SELECT id FROM files WHERE path=?', (path,)
             ).fetchone()
             return r[0]
         else:
@@ -191,8 +191,8 @@ class FilesIndexer(SignalEmitter):
         # update will be left with this status
         logger.debug('Index folder: %s', folder)
         self.db.execute(
-                'UPDATE files SET index_status = ? WHERE parent = ?',
-                (STATUS_NEED_UPDATE, node_id)
+            'UPDATE files SET index_status = ? WHERE parent = ?',
+            (STATUS_NEED_UPDATE, node_id)
         )
 
         children = {}
@@ -216,19 +216,19 @@ class FilesIndexer(SignalEmitter):
                 node_type = TYPE_FILE if isinstance(child, File) else TYPE_FOLDER
                 if node_type == TYPE_FILE:
                     self.db.execute(
-                            'INSERT INTO files(path, node_type, index_status, parent)'
-                            ' VALUES (?, ?, ?, ?)',
-                            (path, node_type, STATUS_NEED_UPDATE, node_id),
+                        'INSERT INTO files(path, node_type, index_status, parent)'
+                        ' VALUES (?, ?, ?, ?)',
+                        (path, node_type, STATUS_NEED_UPDATE, node_id),
                     )
                     row = self.db.execute(
-                            'SELECT * FROM files WHERE path=?', (path,)
+                        'SELECT * FROM files WHERE path=?', (path,)
                     ).fetchone()
                     self.emit('file-row-inserted', row)
                 else:
                     self.db.execute(
-                            'INSERT INTO files(path, node_type, index_status, parent)'
-                            ' VALUES (?, ?, ?, ?)',
-                            (path, node_type, STATUS_NEED_UPDATE, node_id),
+                        'INSERT INTO files(path, node_type, index_status, parent)'
+                        ' VALUES (?, ?, ?, ?)',
+                        (path, node_type, STATUS_NEED_UPDATE, node_id),
                     )
 
         self.set_node_uptodate(node_id, mtime)
@@ -243,8 +243,8 @@ class FilesIndexer(SignalEmitter):
 
     def set_node_uptodate(self, node_id, mtime):
         self.db.execute(
-                'UPDATE files SET index_status = ?, mtime = ? WHERE id = ?',
-                (STATUS_UPTODATE, mtime, node_id)
+            'UPDATE files SET index_status = ?, mtime = ? WHERE id = ?',
+            (STATUS_UPTODATE, mtime, node_id)
         )
 
     def delete_file(self, node_id):
@@ -283,8 +283,8 @@ class FilesIndexChecker(object):
         # If path is not indexed, find parent that is
         while not file == self.folder:
             row = self.db.execute(
-                    'SELECT * FROM files WHERE path = ?',
-                    (file.relpath(self.folder), )
+                'SELECT * FROM files WHERE path = ?',
+                (file.relpath(self.folder), )
             ).fetchone()
             if row is None:
                 file = file.parent()
@@ -294,19 +294,19 @@ class FilesIndexChecker(object):
         # Queue check
         if recursive and file == self.folder:
             self.db.execute(
-                    'UPDATE files SET index_status = ? WHERE index_status < ?',
-                    (STATUS_CHECK, STATUS_CHECK)
+                'UPDATE files SET index_status = ? WHERE index_status < ?',
+                (STATUS_CHECK, STATUS_CHECK)
             )
         else:
             path = '.' if file == self.folder else file.relpath(self.folder)
             self.db.execute(
-                    'UPDATE files SET index_status = ? WHERE path = ? and index_status < ?',
-                    (STATUS_CHECK, path, STATUS_CHECK)
+                'UPDATE files SET index_status = ? WHERE path = ? and index_status < ?',
+                (STATUS_CHECK, path, STATUS_CHECK)
             )
             if recursive and isinstance(file, Folder):
                 self.db.execute(
-                        'UPDATE files SET index_status = ? WHERE path LIKE ? and index_status < ?',
-                        (STATUS_CHECK, path + os.path.sep + '%', STATUS_CHECK)
+                    'UPDATE files SET index_status = ? WHERE path LIKE ? and index_status < ?',
+                    (STATUS_CHECK, path + os.path.sep + '%', STATUS_CHECK)
                 )
             self.db.commit()
 
@@ -319,8 +319,8 @@ class FilesIndexChecker(object):
         '''
         # Check for pending updates first
         row = self.db.execute(
-                'SELECT id FROM files WHERE index_status=?',
-                (STATUS_NEED_UPDATE,)
+            'SELECT id FROM files WHERE index_status=?',
+            (STATUS_NEED_UPDATE,)
         ).fetchone()
         if row is not None:
             yield True
@@ -331,10 +331,10 @@ class FilesIndexChecker(object):
 
         while True:
             row = self.db.execute(
-                    'SELECT id, path, node_type, mtime, index_status FROM files'
-                    ' WHERE index_status > ? '
-                    ' ORDER BY node_type, id',
-                    (STATUS_UPTODATE,)
+                'SELECT id, path, node_type, mtime, index_status FROM files'
+                ' WHERE index_status > ? '
+                ' ORDER BY node_type, id',
+                (STATUS_UPTODATE,)
             ).fetchone()
 
             if row:
@@ -364,17 +364,17 @@ class FilesIndexChecker(object):
                         new_status = STATUS_NEED_UPDATE
 
                 self.db.execute(
-                        'UPDATE files SET index_status = ?'
-                        ' WHERE id = ?',
-                        (new_status, node_id)
+                    'UPDATE files SET index_status = ?'
+                    ' WHERE id = ?',
+                    (new_status, node_id)
                 )
                 self.db.commit()
 
             except:
                 logger.exception('Error while indexing: %s', path)
                 self.db.execute(  # avoid looping
-                        'UPDATE files SET index_status = ? WHERE id = ?',
-                        (STATUS_NEED_UPDATE, node_id)
+                    'UPDATE files SET index_status = ? WHERE id = ?',
+                    (STATUS_NEED_UPDATE, node_id)
                 )
                 self.db.commit()
                 new_status = STATUS_NEED_UPDATE
@@ -389,11 +389,11 @@ class TestFilesDBTable(object):
         for row in db.execute('SELECT * FROM files'):
             if row['id'] > 1:
                 parent = db.execute(
-                        'SELECT * FROM files WHERE id=?',
-                        (row['id'],)
+                    'SELECT * FROM files WHERE id=?',
+                    (row['id'],)
                 ).fetchone()
                 self.assertIsNotNone(parent,
-                        'Missing parent for %s' % row['path'])
+                                     'Missing parent for %s' % row['path'])
 
     def assertFilesDBEquals(self, db, paths):
         import os
@@ -401,8 +401,8 @@ class TestFilesDBTable(object):
 
         in_db = dict((r['path'], r['node_type']) for r in rows)
         wanted = dict(
-                (p.strip(os.sep), TYPE_FOLDER if p.endswith(os.sep) else TYPE_FILE)
-                        for p in paths
+            (p.strip(os.sep), TYPE_FOLDER if p.endswith(os.sep) else TYPE_FILE)
+            for p in paths
         )
 
         self.assertEqual(in_db, wanted)

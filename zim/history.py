@@ -124,7 +124,7 @@ class History(gobject.GObject):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'changed': (gobject.SIGNAL_RUN_LAST, None, tuple())
+        'changed': (gobject.SIGNAL_RUN_LAST, None, tuple())
     }
 
     def __init__(self, notebook, uistate=None):
@@ -169,8 +169,8 @@ class History(gobject.GObject):
 
     # read / write property
     _current = property(
-            lambda self: self.uistate['current'],
-            lambda self, value: self.uistate.__setitem__('current', value))
+        lambda self: self.uistate['current'],
+        lambda self, value: self.uistate.__setitem__('current', value))
 
     @property
     def _history(self):
@@ -269,7 +269,7 @@ class History(gobject.GObject):
         self._current = self._history.index(path)
         # fails if path not in history
         if not isinstance(path, RecentPath) \
-        and self._update_recent(path):
+                and self._update_recent(path):
             self.emit('changed')
 
     def get_previous(self):
@@ -341,7 +341,7 @@ class History(gobject.GObject):
         for list in (self._history, self._recent):
             for record in reversed(list):
                 if record == path \
-                and not record.cursor is None:
+                        and not record.cursor is None:
                     return record.cursor, record.scroll
         else:
             return None, None

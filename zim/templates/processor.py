@@ -28,7 +28,7 @@ class TemplateContextDict(ExpressionDictObject):
     '''
 
     _fmethods = ExpressionDictObject._fmethods + (
-            'pop', 'clear', 'update', 'setdefault', 'items'
+        'pop', 'clear', 'update', 'setdefault', 'items'
     )  # adding methods for mutuable mapping here
 
 
@@ -86,13 +86,13 @@ class TemplateProcessor(object):
         namespace = context
         for name in var.parts[:-1]:
             if namespace \
-            and isinstance(namespace, TemplateContextDict):
+                    and isinstance(namespace, TemplateContextDict):
                 namespace = namespace.get(name)
             else:
                 raise AssertionError('Can not assign: %s' % var.name)
 
         if namespace is not None \
-        and isinstance(namespace, TemplateContextDict):
+                and isinstance(namespace, TemplateContextDict):
             namespace[var.key] = value
         else:
             raise AssertionError('Can not assign: %s' % var.name)
@@ -120,8 +120,8 @@ class TemplateProcessor(object):
                     if bool(expr(context)):
                         self.__call__(output, element, context)  # recurs
                         while i < n \
-                        and isinstance(elements[i], SimpleTreeElement) \
-                        and elements[i].tag in ('ELIF', 'ELSE'):
+                                and isinstance(elements[i], SimpleTreeElement) \
+                                and elements[i].tag in ('ELIF', 'ELSE'):
                             # Skip subsequent ELIF / ELSE clauses
                             i += 1
                 elif element.tag == 'ELSE':

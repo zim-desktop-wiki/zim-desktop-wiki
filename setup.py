@@ -83,11 +83,11 @@ def include_file(file):
 def collect_data_files():
     # Search for data files to be installed in share/
     data_files = [
-            ('share/man/man1', ['man/zim.1']),
-            ('share/applications', ['xdg/zim.desktop']),
-            ('share/mime/packages', ['xdg/zim.xml']),
-            ('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
-            ('share/appdata', ['xdg/zim.appdata.xml']),
+        ('share/man/man1', ['man/zim.1']),
+        ('share/applications', ['xdg/zim.desktop']),
+        ('share/mime/packages', ['xdg/zim.xml']),
+        ('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
+        ('share/appdata', ['xdg/zim.appdata.xml']),
     ]
 
     # xdg/hicolor -> PREFIX/share/icons/hicolor
@@ -121,7 +121,7 @@ def collect_data_files():
                 data_files.pop(i)
 
         files = ['maemo/applications/%s' % f
-                        for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
+                 for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
         data_files.append((prefix, files))
 
     # .po files -> PREFIX/share/locale/..
@@ -282,10 +282,10 @@ class zim_build_class(build_class):
 class zim_install_class(install_class):
 
     user_options = install_class.user_options + \
-            [('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
+        [('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
 
     boolean_options = install_class.boolean_options + \
-            ['skip-xdg-cmd']
+        ['skip-xdg-cmd']
 
     def initialize_options(self):
         install_class.initialize_options(self)
@@ -318,52 +318,52 @@ else:
 
 if py2exe:
     py2exeoptions = {
-            'windows': [{
-                    'script': 'zim.py',
+        'windows': [{
+            'script': 'zim.py',
                     'icon_resources': [(1, 'icons/zim.ico')]
-                            # Windows 16x16, 32x32, and 48x48 icon based on PNG
-            }],
-            'zipfile': None,
-            'options': {
-                    'py2exe': {
-                            'compressed': 1,
-                            'optimize': 2,
-                            'ascii': 1,
-                            'bundle_files': 3,
-                            'packages': ['encodings', 'cairo', 'atk', 'pangocairo', 'zim'],
-                            'dll_excludes': {
-                                    'DNSAPI.DLL'
-                            },
-                            'excludes': ['Tkconstants', 'Tkinter', 'tcl']
-                    }
+                    # Windows 16x16, 32x32, and 48x48 icon based on PNG
+                    }],
+        'zipfile': None,
+        'options': {
+            'py2exe': {
+                'compressed': 1,
+                'optimize': 2,
+                'ascii': 1,
+                'bundle_files': 3,
+                'packages': ['encodings', 'cairo', 'atk', 'pangocairo', 'zim'],
+                'dll_excludes': {
+                    'DNSAPI.DLL'
+                },
+                'excludes': ['Tkconstants', 'Tkinter', 'tcl']
             }
+        }
     }
 else:
     py2exeoptions = {}
 
 
 setup(
-        # wire overload commands
-        cmdclass = {
-                'sdist': zim_sdist_class,
-                'build': zim_build_class,
-                'build_trans': zim_build_trans_class,
-                'build_scripts': zim_build_scripts_class,
-                'install': zim_install_class,
-        },
+    # wire overload commands
+    cmdclass = {
+        'sdist': zim_sdist_class,
+        'build': zim_build_class,
+        'build_trans': zim_build_trans_class,
+        'build_scripts': zim_build_scripts_class,
+        'install': zim_install_class,
+    },
 
-        # provide package properties
-        name = 'zim',
-        version = __version__,
-        description = 'Zim desktop wiki',
-        author = 'Jaap Karssenberg',
-        author_email = 'jaap.karssenberg@gmail.com',
-        license = 'GPL v2+',
-        url = __url__,
-        scripts = scripts,
-        packages = collect_packages(),
-        data_files = collect_data_files(),
-        requires = dependencies,
+    # provide package properties
+    name = 'zim',
+    version = __version__,
+    description = 'Zim desktop wiki',
+    author = 'Jaap Karssenberg',
+    author_email = 'jaap.karssenberg@gmail.com',
+    license = 'GPL v2+',
+    url = __url__,
+    scripts = scripts,
+    packages = collect_packages(),
+    data_files = collect_data_files(),
+    requires = dependencies,
 
-        **py2exeoptions
+    **py2exeoptions
 )

@@ -30,12 +30,12 @@ gnu_r_cmd = ('R',)
 class InsertGNURPlotPlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert GNU R Plot'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert GNU R Plot'),  # T: plugin name
+        'description': _('''\
 This plugin provides a plot editor for zim based on GNU R.
 '''),  # T: plugin description
-            'help': 'Plugins:GNU R Plot Editor',
-            'author': 'Lee Braiden',
+        'help': 'Plugins:GNU R Plot Editor',
+        'author': 'Lee Braiden',
     }
 
     object_type = 'gnu_r_plot'
@@ -79,11 +79,11 @@ class GNURPlotGenerator(ImageGeneratorClass):
             plot_height = int(r.group(1))
 
         template_vars = {
-                'gnu_r_plot_script': text,
-                'r_width': plot_width,
-                'r_height': plot_height,
-                'png_fname': pngfile.path.replace('\\', '/'),
-                        # Even on windows, GNU R expects unix path seperator
+            'gnu_r_plot_script': text,
+            'r_width': plot_width,
+            'r_height': plot_height,
+            'png_fname': pngfile.path.replace('\\', '/'),
+            # Even on windows, GNU R expects unix path seperator
         }
 
         # Write to tmp file usign the template for the header / footer

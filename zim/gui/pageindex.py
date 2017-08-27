@@ -20,12 +20,12 @@ from zim.notebook import Path
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError
 
 from zim.gui.widgets import ui_environment, BrowserTreeView, \
-        populate_popup_add_separator, encode_markup_text, \
-        ErrorDialog
+    populate_popup_add_separator, encode_markup_text, \
+    ErrorDialog
 from zim.gui.clipboard import \
-        Clipboard, \
-        INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
-        pack_urilist, unpack_urilist
+    Clipboard, \
+    INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
+    pack_urilist, unpack_urilist
 
 from zim.actions import PRIMARY_MODIFIER_MASK
 
@@ -103,14 +103,14 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
     # instead.)
 
     COLUMN_TYPES = (
-            gobject.TYPE_STRING,  # NAME_COL
-            gobject.TYPE_PYOBJECT,  # PATH_COL
-            bool,  # EMPTY_COL
-            pango.Style,  # STYLE_COL
-            gobject.TYPE_STRING,  # FGCOLOR_COL
-            int,  # WEIGHT_COL
-            gobject.TYPE_STRING,  # N_CHILD_COL
-            gobject.TYPE_STRING,  # TIP_COL
+        gobject.TYPE_STRING,  # NAME_COL
+        gobject.TYPE_PYOBJECT,  # PATH_COL
+        bool,  # EMPTY_COL
+        pango.Style,  # STYLE_COL
+        gobject.TYPE_STRING,  # FGCOLOR_COL
+        int,  # WEIGHT_COL
+        gobject.TYPE_STRING,  # N_CHILD_COL
+        gobject.TYPE_STRING,  # TIP_COL
     )
 
     NORMAL_COLOR = None
@@ -322,9 +322,9 @@ class PageTreeView(BrowserTreeView):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'insert-link': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'insert-link': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     def __init__(self, ui, model=None):
@@ -344,14 +344,14 @@ class PageTreeView(BrowserTreeView):
         cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
         column.pack_start(cr1, True)
         column.set_attributes(cr1, text=NAME_COL,
-                style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
+                              style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
 
         cr2 = self.get_cell_renderer_number_of_items()
         column.pack_start(cr2, False)
         column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
         if gtk.gtk_version >= (2, 12) \
-        and gtk.pygtk_version >= (2, 12):
+                and gtk.pygtk_version >= (2, 12):
             self.set_tooltip_column(TIP_COL)
 
         self.set_headers_visible(False)
@@ -360,11 +360,11 @@ class PageTreeView(BrowserTreeView):
         self.set_search_column(0)
 
         self.enable_model_drag_source(
-                gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-                gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_MOVE)
+            gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
+            gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
-                (INTERNAL_PAGELIST_TARGET,),
-                gtk.gdk.ACTION_MOVE)
+            (INTERNAL_PAGELIST_TARGET,),
+            gtk.gdk.ACTION_MOVE)
 
         if model:
             self.set_model(model)
@@ -425,7 +425,7 @@ class PageTreeView(BrowserTreeView):
                 handled = True
 
         return handled \
-                or BrowserTreeView.do_key_press_event(self, event)
+            or BrowserTreeView.do_key_press_event(self, event)
 
     def do_initialize_popup(self, menu):
         # TODO get path first and determine what menu options are valid

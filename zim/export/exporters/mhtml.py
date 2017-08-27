@@ -66,10 +66,10 @@ class MHTMLEncoder(object):
         # MIME-Version 1.0
         # Content-Type: multipart/related; boundry=...
         msg.preamble = '' \
-        'This document is a Single File Web Page, also known as a Web Archive file\n' \
-        'or MHTML. If you are seeing this message, your browser or editor doesn\'t\n' \
-        'support MHTML. Please look for a plugin or extension that adds MHTML support\n' \
-        'or download a browser that supports it.'
+            'This document is a Single File Web Page, also known as a Web Archive file\n' \
+            'or MHTML. If you are seeing this message, your browser or editor doesn\'t\n' \
+            'support MHTML. Please look for a plugin or extension that adds MHTML support\n' \
+            'or download a browser that supports it.'
 
         # Add html file
         msg.attach(self.encode_text_file(layout.file, None, 'text/html'))

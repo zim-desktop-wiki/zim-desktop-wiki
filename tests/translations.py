@@ -114,7 +114,7 @@ class TranslationFile(object):
 
         def flush():
             if not buffer \
-            or all(line.startswith('#') for line in buffer):
+                    or all(line.startswith('#') for line in buffer):
                 return
 
             try:

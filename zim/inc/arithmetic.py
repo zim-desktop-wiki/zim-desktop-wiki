@@ -194,8 +194,8 @@ def evaluate(expression_text, UseDigitGrouping = True, variables = {}, functions
                 if name not in functions[name]:
                     # standard formula
                     expression.append(str(evaluate(functions[name],
-                                       UseDigitGrouping = False,
-                                       variables=variables, functions=functions)))
+                                                   UseDigitGrouping = False,
+                                                   variables=variables, functions=functions)))
                 else:
                     # recurrent relation wihout initial value
                     expression.append('0')
@@ -383,7 +383,7 @@ class Parser:
                 if tipoLeft in 'eaif' and tipoRight in 'vif':  # evaluate expression
                     try:
                         resultado = str(evaluate(valorLeft,
-                                    variables=variables, functions=functions))
+                                                 variables=variables, functions=functions))
                         self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                     except:
                         print 'eval error:', tipoLeft, valorLeft, tipoRight, valorRight
@@ -392,7 +392,7 @@ class Parser:
                         if tipoRight != 'v':    # assign to variable
                             try:
                                 variables[valorLeft] = str(evaluate(str(valorRight),
-                                                        variables=variables, functions=functions))
+                                                                    variables=variables, functions=functions))
 
                             except:
                                 print 'exec error:', tipoLeft, valorLeft, tipoRight, valorRight
@@ -407,7 +407,7 @@ class Parser:
                         if valorLeft not in functions[valorLeft]:
                             try:                # standard formula
                                 resultado = str(evaluate(valorLeft,
-                                            variables=variables, functions=functions))
+                                                         variables=variables, functions=functions))
                                 self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                             except:
                                 print 'eval error:', tipoLeft, valorLeft, tipoRight, valorRight
@@ -415,10 +415,10 @@ class Parser:
                             if valorLeft not in variables:            # initial value
                                 if valorRight != '':
                                     variables[valorLeft] = str(evaluate(str(valorRight),
-                                                            variables=variables, functions=functions))
+                                                                        variables=variables, functions=functions))
                             else:                                         # iteration
                                 resultado = str(evaluate(functions[valorLeft],
-                                                variables=variables, functions=functions))
+                                                         variables=variables, functions=functions))
                                 self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                                 variables[valorLeft] = resultado
 

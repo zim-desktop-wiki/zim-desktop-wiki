@@ -33,7 +33,7 @@ def main(argv=None):
     failfast = False
     loglevel = logging.WARNING
     opts, args = getopt.gnu_getopt(argv[1:],
-            'hVD', ['help', 'coverage', 'fast', 'failfast', 'ff', 'full', 'debug', 'verbose'])
+                                   'hVD', ['help', 'coverage', 'fast', 'failfast', 'ff', 'full', 'debug', 'verbose'])
     for o, a in opts:
         if o in ('-h', '--help'):
             print '''\
@@ -120,18 +120,18 @@ On Ubuntu or Debian install package 'python-coverage'.
     # And run it
     unittest.installHandler()  # Fancy handling for ^C during test
     result = \
-            unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
+        unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
 
     # Check the modules were loaded from the right location
     # (so no testing based on modules from a previous installed version...)
     mylib = os.path.abspath('./zim')
     for module in [m for m in sys.modules.keys()
-                    if m == 'zim' or m.startswith('zim.')]:
+                   if m == 'zim' or m.startswith('zim.')]:
         if sys.modules[module] is None:
             continue
         file = sys.modules[module].__file__
         assert file.startswith(mylib), \
-                'Module %s was loaded from %s' % (module, file)
+            'Module %s was loaded from %s' % (module, file)
 
     test_report(result, 'test_report.html')
     print '\nWrote test report to test_report.html\n'
@@ -166,11 +166,11 @@ def test_report(result, file):
 </p>
 <hr/>
 ''' % (
-    result.testsRun,
-    len(result.skipped),
-    len(result.errors),
-    len(result.failures),
-))
+        result.testsRun,
+        len(result.skipped),
+        len(result.errors),
+        len(result.failures),
+    ))
 
     def escape_html(text):
         return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')

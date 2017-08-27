@@ -87,8 +87,8 @@ class TestDirsTestSetup(tests.TestCase):
             self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
 
         self.assertEqual(
-                zim.config.XDG_DATA_DIRS[0],
-                Dir(os.path.join(tests.TMPDIR, 'data_dir'))
+            zim.config.XDG_DATA_DIRS[0],
+            Dir(os.path.join(tests.TMPDIR, 'data_dir'))
         )
 
 
@@ -115,8 +115,8 @@ class TestXDGDirs(tests.TestCase):
         self.assertTrue(data_file('zim.png').exists())
         self.assertTrue(data_dir('templates').exists())
         self.assertEqual(
-                        list(data_dirs(('foo', 'bar'))),
-                        [d.subdir(['foo', 'bar']) for d in data_dirs()])
+            list(data_dirs(('foo', 'bar'))),
+            [d.subdir(['foo', 'bar']) for d in data_dirs()])
 
     @tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
     def testCorrect(self):
@@ -144,11 +144,11 @@ class TestXDGDirs(tests.TestCase):
     def testCorrect(self):
         '''Test config environemnt with non-default basedir paths'''
         my_environ = {
-                'XDG_DATA_HOME': '/foo/data/home',
-                'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2',
-                'XDG_CONFIG_HOME': '/foo/config/home',
-                'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
-                'XDG_CACHE_HOME': '/foo/cache',
+            'XDG_DATA_HOME': '/foo/data/home',
+            'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2',
+            'XDG_CONFIG_HOME': '/foo/config/home',
+            'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
+            'XDG_CACHE_HOME': '/foo/cache',
         }
         if os.name == 'nt':
             my_environ['XDG_DATA_DIRS'] = '/foo/data/dir1;/foo/data/dir2'
@@ -335,9 +335,9 @@ class TestConfigDefinitions(tests.TestCase):
 
         # test hack for preferences with label
         pref = [
-                ('xxx', 'XXX'),
-                ('foo', 'Foo'),
-                ('bar', 'Bar'),
+            ('xxx', 'XXX'),
+            ('foo', 'Foo'),
+            ('bar', 'Bar'),
         ]
         definition = Choice('xxx', pref)
         self.assertEqual(definition.check('foo'), 'foo')
@@ -372,9 +372,9 @@ class TestConfigDict(tests.TestCase):
 
     def runTest(self):
         mydict = ConfigDict((
-                ('a', 'AAA'),
-                ('b', 'BBB'),
-                ('c', 'CCC'),
+            ('a', 'AAA'),
+            ('b', 'BBB'),
+            ('c', 'CCC'),
         ))
 
         self.assertEqual(mydict.__getitem__, mydict._values.__getitem__)
@@ -422,8 +422,8 @@ class TestConfigDict(tests.TestCase):
         # Set a choice - reject value, use default
         with FilterInvalidConfigWarning():
             self.assertEqual(
-                    mydict.setdefault('c', 'xxx', ('xxx', 'yyy', 'zzz')),
-                    'xxx'
+                mydict.setdefault('c', 'xxx', ('xxx', 'yyy', 'zzz')),
+                'xxx'
             )
         self.assertEqual(len(mydict), 3)
         self.assertEqual(mydict.keys(), ['a', 'b', 'c'])
@@ -446,15 +446,15 @@ class TestConfigDict(tests.TestCase):
 
         # Test copying
         values = {
-                'a': 'AAA',
-                'b': 'BBB',
-                'c': 'CCC',
+            'a': 'AAA',
+            'b': 'BBB',
+            'c': 'CCC',
         }
         mydict = ConfigDict(values)
         mydict.define(
-                a=String(None),
-                b=String(None),
-                c=String(None),
+            a=String(None),
+            b=String(None),
+            c=String(None),
         )
         self.assertEqual(dict(mydict), values)
 
@@ -501,16 +501,16 @@ none=
         conf = INIConfigFile(file)
         self.assertFalse(conf.modified)
         self.assertEqual(conf['Foo']._input, {
-                'xyz': 'foooooo',
-                'foobar': '0',
-                'test': 'True',
-                'tja': '[3,4]',
+            'xyz': 'foooooo',
+            'foobar': '0',
+            'test': 'True',
+            'tja': '[3,4]',
         })
         self.assertEqual(conf['Bar']._input, {
-                'hmmm': 'tja',
-                'check': '1.333',
-                'empty': '',
-                'none': '',
+            'hmmm': 'tja',
+            'check': '1.333',
+            'empty': '',
+            'none': '',
         })
 
         conf['Foo'].setdefault('tja', (3, 4))
@@ -684,8 +684,8 @@ class TestConfigFile(tests.TestCase):
     def testWithDefaults(self):
         data = {'default.conf': 'default!\n'}
         file = ConfigFile(
-                VirtualConfigBackendFile(data, 'foo.conf'),
-                [VirtualConfigBackendFile(data, 'default.conf')]
+            VirtualConfigBackendFile(data, 'foo.conf'),
+            [VirtualConfigBackendFile(data, 'default.conf')]
         )
 
         self.assertEqual(file.read(), 'default!\n')
@@ -707,20 +707,20 @@ class TestConfigFile(tests.TestCase):
 class ConfigManagerTests(object):
 
     FILES = {
-            'foo.conf': 'FOO!\n',
-            'dict.conf': '''\
+        'foo.conf': 'FOO!\n',
+        'dict.conf': '''\
 [FOO]
 foo=test
 bar=test123
 ''',
 
-            'profiles/myprofile/dict.conf': '''\
+        'profiles/myprofile/dict.conf': '''\
 [FOO]
 foo=myprofile
 ''',
 
-            'profiles/oldprofile.conf': '',
-            'styles/oldprofile.conf': '',
+        'profiles/oldprofile.conf': '',
+        'styles/oldprofile.conf': '',
     }
 
     def assertMatchPath(self, file, path):

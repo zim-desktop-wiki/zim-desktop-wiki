@@ -8,8 +8,8 @@ import gobject
 import logging
 
 from zim.gui.clipboard import \
-        INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
-        pack_urilist
+    INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
+    pack_urilist
 from zim.gui.widgets import encode_markup_text
 from functools import reduce
 
@@ -69,8 +69,8 @@ class ScrolledHBox(gtk.HBox):
     # we can not call gtk.Box.__init__() to instantiate the object.
 
     __gsignals__ = {
-            'size-request': 'override',
-            'size-allocate': 'override',
+        'size-request': 'override',
+        'size-allocate': 'override',
     }
 
     initial_scroll_timeout = 300  # timeout before starting scrolling on button press
@@ -156,11 +156,11 @@ class ScrolledHBox(gtk.HBox):
         self.stop_scrolling()
         if initial_timeout:
             self._scroll_timeout = \
-                    gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
+                gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
             # indirect recurs
         else:
             self._scroll_timeout = \
-                    gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
+                gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
 
         return False  # make sure we are only called once from a timeout
 
@@ -354,7 +354,7 @@ class ScrolledHBox(gtk.HBox):
         # Otherwise the user has to tab through all buttons before
         # he can tab to the next widget.
         if direction in (gtk.DIR_TAB_FORWARD, gtk.DIR_TAB_BACKWARD) \
-        and self.focus_child is not None:
+                and self.focus_child is not None:
             return False  # Let outer container go to next widget
         else:
             return gtk.HBox.do_focus(self, direction)
@@ -430,13 +430,13 @@ class PathBar(ScrolledHBox):
             button.connect('button-release-event', self.do_button_release_event)
             button.connect('drag-data-get', self.on_drag_data_get)
             button.drag_source_set(gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-                    gtk.gdk.ACTION_LINK)
+                                   gtk.gdk.ACTION_LINK)
             button.show()
             self.add(button)
 
         # FIXME tooltips seem not to work - not sure why
         if gtk.gtk_version >= (2, 12) \
-        and gtk.pygtk_version >= (2, 12):
+                and gtk.pygtk_version >= (2, 12):
             for button in self.get_children()[2:]:
                 button.set_tooltip_text(button.zim_path.name)
         else:

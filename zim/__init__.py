@@ -134,12 +134,12 @@ logger = logging.getLogger('zim')
 if os.name == "nt":
     # See notes in zim/fs.py about encoding expected by abspath
     ZIM_EXECUTABLE = os.path.abspath(
-            unicode(sys.argv[0], sys.getfilesystemencoding())
+        unicode(sys.argv[0], sys.getfilesystemencoding())
     )
 else:
     ZIM_EXECUTABLE = unicode(
-            os.path.abspath(sys.argv[0]),
-            sys.getfilesystemencoding()
+        os.path.abspath(sys.argv[0]),
+        sys.getfilesystemencoding()
     )
 
 
@@ -187,10 +187,10 @@ import zim.config
 _file = zim.config.data_file('zim.png')
 if not (_file and _file.exists()):  # pragma: no cover
     raise AssertionError(
-            'ERROR: Could not find data files in path: \n'
-            '%s\n'
-            'Try setting XDG_DATA_DIRS'
-                    % map(str, zim.config.data_dirs())
+        'ERROR: Could not find data files in path: \n'
+        '%s\n'
+        'Try setting XDG_DATA_DIRS'
+        % map(str, zim.config.data_dirs())
     )
 
 

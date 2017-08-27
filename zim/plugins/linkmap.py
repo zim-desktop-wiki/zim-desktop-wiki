@@ -18,8 +18,8 @@ from zim.inc import xdot
 class LinkMapPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Link Map'),  # T: plugin name
-            'description': _('''\
+        'name': _('Link Map'),  # T: plugin name
+        'description': _('''\
 This plugin provides a dialog with a graphical
 representation of the linking structure of the
 notebook. It can be used as a kind of "mind map"
@@ -27,8 +27,8 @@ showing how pages relate.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Link Map',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Link Map',
     }
 
     @classmethod
@@ -74,11 +74,11 @@ class LinkMap(object):
 
     def get_dotcode(self):
         dotcode = [
-                'digraph LINKS {',
-                '  size="6,6";',
-                #~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
-                '  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
-                '  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name),  # special node
+            'digraph LINKS {',
+            '  size="6,6";',
+            #~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
+            '  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
+            '  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name),  # special node
         ]
 
         seen = set()
@@ -89,7 +89,7 @@ class LinkMap(object):
                     dotcode.append('  "%s" [URL="%s"];' % (name, name))
                     seen.add(name)
             dotcode.append(
-                    '  "%s" -> "%s";' % (link.source.name, link.target.name))
+                '  "%s" -> "%s";' % (link.source.name, link.target.name))
 
         dotcode.append('}')
 
@@ -123,7 +123,7 @@ class LinkMapDialog(Dialog):
 
     def __init__(self, ui, linkmap, opener):
         Dialog.__init__(self, ui, 'LinkMap',
-                defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
+                        defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
         self.linkmap = linkmap
         self.opener = opener
 

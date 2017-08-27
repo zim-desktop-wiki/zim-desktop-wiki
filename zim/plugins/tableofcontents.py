@@ -64,26 +64,26 @@ def select_heading(buffer, heading):
 class ToCPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Table of Contents'),  # T: plugin name
-            'description': _('''\
+        'name': _('Table of Contents'),  # T: plugin name
+        'description': _('''\
 This plugin adds an extra widget showing a table of
 contents for the current page.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Table Of Contents',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Table Of Contents',
     }
     # TODO add controls for changing levels in ToC
 
     plugin_preferences = (
-            # key, type, label, default
-            ('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
-                    # T: option for plugin preferences
-            ('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), True),
-                    # T: option for plugin preferences
-            ('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
-                    # T: option for plugin preferences
+        # key, type, label, default
+        ('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+        # T: option for plugin preferences
+        ('floating', 'bool', _('Show ToC as floating widget instead of in sidepane'), True),
+        # T: option for plugin preferences
+        ('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
+        # T: option for plugin preferences
     )
     # TODO disable pane setting if not embedded
 
@@ -119,7 +119,7 @@ class MainWindowExtensionEmbedded(WindowExtension):
             pass
 
         self.window.add_tab(
-                _('ToC'), self.widget, preferences['pane'])
+            _('ToC'), self.widget, preferences['pane'])
         # T: widget label
         self.widget.show_all()
 
@@ -181,9 +181,9 @@ class ToCTreeModel(gtk.TreeStore):
             headings.append((int(heading.attrib['level']), heading.gettext()))
 
         if not show_h1 \
-        and headings \
-        and headings[0][0] == 1 \
-        and all(h[0] > 1 for h in headings[1:]):
+                and headings \
+                and headings[0][0] == 1 \
+                and all(h[0] > 1 for h in headings[1:]):
             headings.pop(0)  # do not show first heading
 
         stack = [(-1, None)]
@@ -292,9 +292,9 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
         populate_popup_add_separator(menu, prepend=True)
         for text, sensitive, handler in (
                 (_('Demote'), can_demote, self.on_demote),
-                        # T: action to lower level of heading in the text
+            # T: action to lower level of heading in the text
                 (_('Promote'), can_promote, self.on_promote),
-                        # T: action to raise level of heading in the text
+            # T: action to raise level of heading in the text
         ):
             item = gtk.MenuItem(text)
             menu.prepend(item)
@@ -336,7 +336,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
         # has one.
         # Or the current parent path also has to be in the list
         if not paths \
-        or any(len(p) >= 6 for p in paths):
+                or any(len(p) >= 6 for p in paths):
             return False
 
         for p in paths:
@@ -433,21 +433,21 @@ class FloatingToC(TableVBox, ConnectorMixin):
         # gdk window. So would paint directly on background window.
         self.textview = pageview.view
         self._text_view_allocation = (
-                self.textview.allocation.width,
-                self.textview.allocation.height
+            self.textview.allocation.width,
+            self.textview.allocation.height
         )
         self._event_box = gtk.EventBox()
         self._event_box.add(self)
 
         self.textview.add_child_in_window(self._event_box, gtk.TEXT_WINDOW_WIDGET, 0, 0)
         self.connectto(self.textview,
-                'size-allocate',
-                handler=self.on_size_allocate_textview,
-        )
+                       'size-allocate',
+                       handler=self.on_size_allocate_textview,
+                       )
         self.connectto(self,
-                'size-allocate',
-                handler=self.update_position,
-        )
+                       'size-allocate',
+                       handler=self.update_position,
+                       )
 
         self._event_box.show_all()
 
@@ -464,8 +464,8 @@ class FloatingToC(TableVBox, ConnectorMixin):
 
     def on_toggle(self, *a):
         self.widget.set_property('visible',
-                not self.widget.get_property('visible')
-        )
+                                 not self.widget.get_property('visible')
+                                 )
         self.queue_draw()
 
     def do_size_request(self, requisition):
@@ -518,10 +518,10 @@ class FloatingToC(TableVBox, ConnectorMixin):
         tree_w, tree_h = self.widget.treeview.get_child_requisition()
 
         self._head_event_box.size_allocate(gtk.gdk.Rectangle(
-                x=allocation.x + border,
-                y=allocation.y + border,
-                width=allocation.width - 2 * border,
-                height=head_height
+            x=allocation.x + border,
+            y=allocation.y + border,
+            width=allocation.width - 2 * border,
+            height=head_height
         ))
 
         if self.widget.get_property('visible'):
@@ -532,10 +532,10 @@ class FloatingToC(TableVBox, ConnectorMixin):
             self.widget.set_policy(h_policy, gtk.POLICY_AUTOMATIC)
 
             self.widget.size_allocate(gtk.gdk.Rectangle(
-                    x=allocation.x + border,
-                    y=allocation.y + border + head_height + spacing,
-                    width=body_w,
-                    height=body_h
+                x=allocation.x + border,
+                y=allocation.y + border + head_height + spacing,
+                width=body_w,
+                height=body_h
             ))
 
     def on_size_allocate_textview(self, textview, a):

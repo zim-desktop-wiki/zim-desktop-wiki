@@ -22,15 +22,15 @@ from zim.newfs import LocalFile, FileNotFoundError
 from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
 from zim.gui.applications import get_mime_icon, get_mime_description, \
-        OpenWithMenu
+    OpenWithMenu
 
 from zim.gui.clipboard import \
-        URI_TARGETS, URI_TARGET_NAMES, \
-        pack_urilist, unpack_urilist
+    URI_TARGETS, URI_TARGET_NAMES, \
+    pack_urilist, unpack_urilist
 
 
 from .thumbnailer import ThumbnailQueue, ThumbnailManager, \
-        THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE
+    THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE
 
 
 MIN_THUMB_SIZE = 64  # don't render thumbs when icon size is smaller than this
@@ -74,7 +74,7 @@ class FileBrowserIconView(gtk.IconView):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'folder_changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'folder_changed': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True):
@@ -88,23 +88,23 @@ class FileBrowserIconView(gtk.IconView):
         self._mtime = None
 
         gtk.IconView.__init__(self,
-                gtk.ListStore(str, gtk.gdk.Pixbuf, object))  # BASENAME_COL, PIXBUF_COL, MTIME_COL
+                              gtk.ListStore(str, gtk.gdk.Pixbuf, object))  # BASENAME_COL, PIXBUF_COL, MTIME_COL
         self.set_text_column(BASENAME_COL)
         self.set_pixbuf_column(PIXBUF_COL)
         self.set_icon_size(icon_size)
 
         self.enable_model_drag_source(
-                gtk.gdk.BUTTON1_MASK,
-                URI_TARGETS,
-                gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
+            gtk.gdk.BUTTON1_MASK,
+            URI_TARGETS,
+            gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
-                URI_TARGETS,
-                gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
+            URI_TARGETS,
+            gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
         self.connect('drag-data-get', self.on_drag_data_get)
         self.connect('drag-data-received', self.on_drag_data_received)
 
         if gtk.gtk_version >= (2, 12) \
-        and gtk.pygtk_version >= (2, 12):
+                and gtk.pygtk_version >= (2, 12):
             # custom tooltip
             self.props.has_tooltip = True
             self.connect("query-tooltip", self._query_tooltip_cb)
@@ -208,13 +208,13 @@ class FileBrowserIconView(gtk.IconView):
         if not self._thumbnailer.queue_empty():
             self._thumbnailer.start()  # delay till here - else reduces our speed on loading
             self._idle_event_id = \
-                    gobject.idle_add(self._on_check_thumbnail_queue)
+                gobject.idle_add(self._on_check_thumbnail_queue)
 
         #~ print "stop ", time.time()
 
     def _on_check_thumbnail_queue(self):
         file, size, thumbfile, pixbuf, mtime = \
-                self._thumbnailer.get_ready_thumbnail()
+            self._thumbnailer.get_ready_thumbnail()
         if file is not None:
             basename = file.basename
             model = self.get_model()
@@ -242,7 +242,7 @@ class FileBrowserIconView(gtk.IconView):
             if icon_size > 16 and max_text_length > 15:
                 # Wrap text over 2 rows
                 self.set_item_width(
-                        icon_size + int((text_size + 1) / 2))
+                    icon_size + int((text_size + 1) / 2))
             else:
                 # Single row
                 self.set_item_width(icon_size + text_size)
@@ -264,10 +264,10 @@ class FileBrowserIconView(gtk.IconView):
         # insensitive also blocks drag & drop.
         if self.folder is None or not self.folder.exists():
             self.modify_base(
-                    gtk.STATE_NORMAL, self._insensitive_color)
+                gtk.STATE_NORMAL, self._insensitive_color)
         else:
             self.modify_base(
-                    gtk.STATE_NORMAL, self._sensitive_color)
+                gtk.STATE_NORMAL, self._sensitive_color)
 
     def teardown_folder(self):
         try:
@@ -377,12 +377,12 @@ class FileBrowserIconView(gtk.IconView):
         s_label = _('Size')  # T: label for file size
         m_label = _('Modified')  # T: label for file modification date
         tooltip.set_markup(
-                "%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
-                        name,
-                        t_label, mtype_desc or mtype,
-                        s_label, size,
-                        m_label, mdate,
-                ))
+            "%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
+                name,
+                t_label, mtype_desc or mtype,
+                s_label, size,
+                m_label, mdate,
+            ))
         tooltip.set_icon(pixbuf)
         widget.set_tooltip_item(tooltip, path)
 

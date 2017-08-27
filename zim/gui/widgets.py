@@ -69,19 +69,19 @@ else:
 KEYVAL_LEFT = gtk.gdk.keyval_from_name('Left')
 KEYVAL_RIGHT = gtk.gdk.keyval_from_name('Right')
 KEYVALS_ASTERISK = (
-        gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
+    gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
 KEYVALS_SLASH = (
-        gtk.gdk.unicode_to_keyval(ord('\\')),
-        gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+    gtk.gdk.unicode_to_keyval(ord('\\')),
+    gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
 # UI Environment config. Would properly belong in zim.gui.__init__
 # but defined here to avoid unnecessary dependencies on zim.gui
 ui_environment = {
-        'platform': None,  # platform name to trigger platform specific optimizations
-        'maxscreensize': None,  # max screensize _if_ fixed by the platform
-        'smallscreen': False,  # trigger optimizations for small screens
+    'platform': None,  # platform name to trigger platform specific optimizations
+    'maxscreensize': None,  # max screensize _if_ fixed by the platform
+    'smallscreen': False,  # trigger optimizations for small screens
 }
 
 
@@ -597,14 +597,14 @@ class SingleClickTreeView(gtk.TreeView):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'populate-popup': (gobject.SIGNAL_RUN_LAST, None, (object,)),
     }
 
     mask = gtk.gdk.SHIFT_MASK | gtk.gdk.META_MASK
 
     # backwards compatibility
     if gtk.gtk_version < (2, 12) \
-    and gtk.pygtk_version >= (2, 12):
+            and gtk.pygtk_version >= (2, 12):
         def set_rubber_banding(self, enable):
             pass
 
@@ -615,7 +615,7 @@ class SingleClickTreeView(gtk.TreeView):
         # Implement hook for context menu
 
         if event.type == gtk.gdk.BUTTON_PRESS \
-        and event.button == 3:
+                and event.button == 3:
             # Check selection state - item under cursor should be selected
             # see do_button_release_event for comments
             x, y = map(int, event.get_coords())
@@ -645,8 +645,8 @@ class SingleClickTreeView(gtk.TreeView):
         # selections, drag-n-drop, etc.
 
         if event.type == gtk.gdk.BUTTON_RELEASE \
-        and event.button == 1 and not event.state & self.mask \
-        and not self.is_rubber_banding_active():
+                and event.button == 1 and not event.state & self.mask \
+                and not self.is_rubber_banding_active():
             x, y = map(int, event.get_coords())
             # map to int to suppress deprecation warning :S
             # note that get_coords() gives back (0, 0) when cursor
@@ -845,9 +845,9 @@ class MenuButton(gtk.HBox):
         self.add(self.eventbox)
 
         self.button.connect_object(
-                'button-press-event', self.__class__.popup_menu, self)
+            'button-press-event', self.__class__.popup_menu, self)
         self._clicked_signal = self.button.connect_object(
-                'clicked', self.__class__.popup_menu, self)
+            'clicked', self.__class__.popup_menu, self)
 
         # TODO reduce size of toggle-button - see gedit-status-combo for example
         # TODO looks like other statusbar items resize on toggle button
@@ -944,8 +944,8 @@ class InputForm(gtk.Table):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'last-activated': (gobject.SIGNAL_RUN_LAST, None, ()),
-            'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'last-activated': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     # Supported input widgets:
@@ -1226,8 +1226,8 @@ class InputForm(gtk.Table):
         for name in self._widgets:
             widget = self.widgets[name]
             if isinstance(widget, InputEntry)  \
-            and widget.get_property('visible') \
-            and widget.get_property('sensitive'):
+                    and widget.get_property('visible') \
+                    and widget.get_property('sensitive'):
                 valid.append(self.widgets[name].get_input_valid())
                 #~ print '>', name, valid[-1]
         #~ print '=', all(valid)
@@ -1244,7 +1244,7 @@ class InputForm(gtk.Table):
 
     def on_activate_widget(self, widget):
         if widget == self._default_activate \
-        or not self._focus_next(widget, activatable=True):
+                or not self._focus_next(widget, activatable=True):
             self.emit('last-activated')
 
     def focus_first(self):
@@ -1254,7 +1254,7 @@ class InputForm(gtk.Table):
     def focus_next(self):
         '''Focus the next input in the form'''
         if gtk.gtk_version >=  (2, 14) \
-        and gtk.pygtk_version >= (2, 14):
+                and gtk.pygtk_version >= (2, 14):
             widget = self.get_focus_child()
         else:
             for w in self.widgets.values():
@@ -1284,8 +1284,8 @@ class InputForm(gtk.Table):
         for k in self._widgets[i:]:
             widget = self.widgets[k]
             if widget.get_property('sensitive') \
-            and widget.get_property('visible') \
-            and not (
+                and widget.get_property('visible') \
+                and not (
                     activatable
                     and not isinstance(widget, (gtk.Entry, gtk.ComboBox))
             ):
@@ -1325,7 +1325,7 @@ class InputForm(gtk.Table):
                 return int(widget.get_value())
             elif isinstance(widget, gtk.ColorButton):
                 if gtk.gtk_version > (2, 14) \
-                and gtk.pygtk_version >= (2, 14):
+                        and gtk.pygtk_version >= (2, 14):
                     # This version supposedly gives compacter values
                     return str(widget.get_color())
                 else:
@@ -1446,7 +1446,7 @@ class InputEntry(gtk.Entry):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     ERROR_COLOR = '#EF7F7F'  # light red (derived from Tango style guide)
@@ -1522,7 +1522,7 @@ class InputEntry(gtk.Entry):
         @todo: add argument to set tooltip on the icon
         '''
         if gtk.gtk_version < (2, 16) \
-        and gtk.pygtk_version >= (2, 16):
+                and gtk.pygtk_version >= (2, 16):
             return False
 
         self.set_property('secondary-icon-stock', icon)
@@ -1550,7 +1550,7 @@ class InputEntry(gtk.Entry):
         @requires: Gtk >= 2.16
         '''
         if gtk.gtk_version < (2, 16) \
-        and gtk.pygtk_version >= (2, 16):
+                and gtk.pygtk_version >= (2, 16):
             return False
 
         self.set_icon(gtk.STOCK_CLEAR, self.clear, _('Clear'))
@@ -1586,7 +1586,7 @@ class InputEntry(gtk.Entry):
         @param text: string
         '''
         if not text \
-        and not self.get_property('has-focus'):
+                and not self.get_property('has-focus'):
             gtk.Entry.set_text(self, text)
             self._show_placeholder_text()
         else:
@@ -1620,7 +1620,7 @@ class InputEntry(gtk.Entry):
 
     def _set_base_color(self, valid):
         if valid \
-        or (not self.get_text() and not self.show_empty_invalid):
+                or (not self.get_text() and not self.show_empty_invalid):
             self.modify_base(gtk.STATE_NORMAL, self._normal_color)
         else:
             self.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse(self.ERROR_COLOR))
@@ -1644,7 +1644,7 @@ class InputEntry(gtk.Entry):
 
     def _show_placeholder_text(self):
         if not self.get_text() \
-        and self.placeholder_text:
+                and self.placeholder_text:
             self._placeholder_text_shown = True
             gtk.Entry.set_text(self, self.placeholder_text)
 
@@ -1951,7 +1951,7 @@ class PageEntry(InputEntry):
             try:
                 if self.notebook:
                     path = self.notebook.pages.lookup_from_user_input(
-                            name, reference=self.notebookpath
+                        name, reference=self.notebookpath
                     )
                 else:
                     name = Path.makeValidPageName(name)
@@ -2005,7 +2005,7 @@ class PageEntry(InputEntry):
         text = self.get_text()
         if self._current_completion:
             if text.startswith(self._current_completion) \
-            and not ':' in text[len(self._current_completion):]:
+                    and not ':' in text[len(self._current_completion):]:
                 return  # nothing to update
             else:  # Clear out-of-date completions
                 model = self.get_completion().get_model()
@@ -2173,7 +2173,7 @@ def register_window(window):
     so already.
     '''
     if  hasattr(window, 'ui') \
-    and hasattr(window.ui, 'register_new_window'):
+            and hasattr(window.ui, 'register_new_window'):
         window.ui.register_new_window(window)
 
 
@@ -2207,17 +2207,17 @@ BOTTOM_PANE = 'bottom_pane'  # : Bottom pane position in window
 
 
 PANE_POSITIONS = (
-        (LEFT_PANE, _('Left Side Pane')),  # T: Option for placement of plugin widgets
-        (RIGHT_PANE, _('Right Side Pane')),  # T: Option for placement of plugin widgets
-        (BOTTOM_PANE, _('Bottom Pane')),  # T: Option for placement of plugin widgets
-        (TOP_PANE, _('Top Pane')),  # T: Option for placement of plugin widgets
+    (LEFT_PANE, _('Left Side Pane')),  # T: Option for placement of plugin widgets
+    (RIGHT_PANE, _('Right Side Pane')),  # T: Option for placement of plugin widgets
+    (BOTTOM_PANE, _('Bottom Pane')),  # T: Option for placement of plugin widgets
+    (TOP_PANE, _('Top Pane')),  # T: Option for placement of plugin widgets
 )
 
 WIDGET_POSITIONS = (
-        ((LEFT_PANE, TOP), _('Top Left')),  # T: Option for placement of plugin widgets
-        ((LEFT_PANE, BOTTOM), _('Bottom Left')),  # T: Option for placement of plugin widgets
-        ((RIGHT_PANE, TOP), _('Top Right')),  # T: Option for placement of plugin widgets
-        ((RIGHT_PANE, BOTTOM), _('Bottom Right')),  # T: Option for placement of plugin widgets
+    ((LEFT_PANE, TOP), _('Top Left')),  # T: Option for placement of plugin widgets
+    ((LEFT_PANE, BOTTOM), _('Bottom Left')),  # T: Option for placement of plugin widgets
+    ((RIGHT_PANE, TOP), _('Top Right')),  # T: Option for placement of plugin widgets
+    ((RIGHT_PANE, BOTTOM), _('Bottom Right')),  # T: Option for placement of plugin widgets
 )
 
 
@@ -2225,7 +2225,7 @@ class WindowSidePane(gtk.VBox):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'close': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'close': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     def __init__(self):
@@ -2243,7 +2243,7 @@ class WindowSidePane(gtk.VBox):
         self.notebook = gtk.Notebook()
         self.notebook.set_show_border(False)
         if gtk.gtk_version >= (2, 22) \
-        and gtk.pygtk_version >= (2, 22):
+                and gtk.pygtk_version >= (2, 22):
             button = self._close_button()
             self.notebook.set_action_widget(button, gtk.PACK_END)
 
@@ -2275,7 +2275,7 @@ class WindowSidePane(gtk.VBox):
         if children[1] != self.notebook or n_pages == 0:
             embedded = False
             if children[1] != self.notebook \
-            and isinstance(children[1], WindowSidePaneWidget):
+                    and isinstance(children[1], WindowSidePaneWidget):
                 # see if we can embed the close button in the widget
                 button = self._close_button()
                 embedded = children[1].embed_closebutton(button)
@@ -2290,7 +2290,7 @@ class WindowSidePane(gtk.VBox):
 
             self.notebook.set_show_tabs(True)
             if gtk.gtk_version >= (2, 22) \
-            and gtk.pygtk_version >= (2, 22):
+                    and gtk.pygtk_version >= (2, 22):
                 button = self.notebook.get_action_widget(gtk.PACK_END)
                 button.set_no_show_all(True)
                 button.hide()
@@ -2306,7 +2306,7 @@ class WindowSidePane(gtk.VBox):
             title = self.notebook.get_tab_label_text(child)
             self.topbar.label.set_text(title)
             if gtk.gtk_version >= (2, 22) \
-            and gtk.pygtk_version >= (2, 22):
+                    and gtk.pygtk_version >= (2, 22):
                 button = self.notebook.get_action_widget(gtk.PACK_END)
                 button.set_no_show_all(True)
                 button.hide()
@@ -2331,7 +2331,7 @@ class WindowSidePane(gtk.VBox):
             self.notebook.set_show_tabs(True)
             self.topbar.label.set_text('')  # no title
             if gtk.gtk_version >= (2, 22) \
-            and gtk.pygtk_version >= (2, 22):
+                    and gtk.pygtk_version >= (2, 22):
                 button = self.notebook.get_action_widget(gtk.PACK_END)
                 button.set_no_show_all(False)
                 button.show_all()
@@ -2442,7 +2442,7 @@ class HMinimizedTabs(gtk.HBox, MinimizedTabs):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
     }
 
     def __init__(self, sidepane, angle=0):
@@ -2454,7 +2454,7 @@ class VMinimizedTabs(gtk.VBox, MinimizedTabs):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
     }
 
     def __init__(self, sidepane, angle=90):
@@ -2494,7 +2494,7 @@ class ConfigDefinitionPaneToggle(ConfigDefinition):
             value = self._eval_string(value)
 
         if isinstance(value, (tuple, list)) \
-        and all(e in self.window._zim_window_sidepanes for e in value):
+                and all(e in self.window._zim_window_sidepanes for e in value):
             return value
         else:
             raise ValueError('Unknown pane names in: %s' % value)
@@ -2511,10 +2511,10 @@ class ConfigDefinitionPaneState(ConfigDefinitionByClass):
     def check(self, value):
         value = ConfigDefinitionByClass.check(self, value)
         if isinstance(value, (tuple, list)) \
-        and len(value) == 3 \
-        and isinstance(value[0], bool) \
-        and isinstance(value[1], int) \
-        and (value[2] is None or isinstance(value[2], basestring)):
+                and len(value) == 3 \
+                and isinstance(value[0], bool) \
+                and isinstance(value[1], int) \
+                and (value[2] is None or isinstance(value[2], basestring)):
             return value
         else:
             raise ValueError('Value is not a valid pane state')
@@ -2554,7 +2554,7 @@ class Window(gtkwindowclass):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'pane-state-changed': (gobject.SIGNAL_RUN_LAST, None, (object, bool, object)),
+        'pane-state-changed': (gobject.SIGNAL_RUN_LAST, None, (object, bool, object)),
     }
 
     def __init__(self):
@@ -2600,26 +2600,26 @@ class Window(gtkwindowclass):
         self._zim_window_bottom_paned.pack2(self._zim_window_bottom_pane, resize=True)
 
         self._zim_window_sidepanes = {
-                LEFT_PANE: (
-                        self._zim_window_left_paned,
-                        self._zim_window_left_pane,
-                        self._zim_window_left_minimized
-                ),
-                RIGHT_PANE: (
-                        self._zim_window_right_paned,
-                        self._zim_window_right_pane,
-                        self._zim_window_right_minimized
-                ),
-                TOP_PANE: (
-                        self._zim_window_top_paned,
-                        self._zim_window_top_pane,
-                        self._zim_window_top_minimized
-                ),
-                BOTTOM_PANE: (
-                        self._zim_window_bottom_paned,
-                        self._zim_window_bottom_pane,
-                        self._zim_window_bottom_minimized
-                ),
+            LEFT_PANE: (
+                self._zim_window_left_paned,
+                self._zim_window_left_pane,
+                self._zim_window_left_minimized
+            ),
+            RIGHT_PANE: (
+                self._zim_window_right_paned,
+                self._zim_window_right_pane,
+                self._zim_window_right_minimized
+            ),
+            TOP_PANE: (
+                self._zim_window_top_paned,
+                self._zim_window_top_pane,
+                self._zim_window_top_minimized
+            ),
+            BOTTOM_PANE: (
+                self._zim_window_bottom_paned,
+                self._zim_window_bottom_pane,
+                self._zim_window_bottom_minimized
+            ),
         }
 
         def _on_switch_page(notebook, page, pagenum, key):
@@ -2654,7 +2654,7 @@ class Window(gtkwindowclass):
             # reshuffle widget to go above main widgets but
             # below earlier added bars
             i = self._zim_window_main.child_get_property(
-                            self._zim_window_central_hbox, 'position')
+                self._zim_window_central_hbox, 'position')
             self._zim_window_main.reorder_child(widget, i)
 
         # self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
@@ -2725,13 +2725,13 @@ class Window(gtkwindowclass):
     def init_uistate(self):
         assert self.uistate
         self.uistate.define((
-                ('toggle_panes', ConfigDefinitionPaneToggle([], self)),
+            ('toggle_panes', ConfigDefinitionPaneToggle([], self)),
         ))
 
         for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
             default = self.get_pane_state(key)
             self.uistate.define((
-                    (key, ConfigDefinitionPaneState(default)),
+                (key, ConfigDefinitionPaneState(default)),
             ))
             self.set_pane_state(key, *self.uistate[key])
 
@@ -2778,7 +2778,7 @@ class Window(gtkwindowclass):
         key = pane
         paned, pane, mini = self._zim_window_sidepanes[key]
         if pane.get_property('visible') == visible \
-        and size is None and activetab is None:
+                and size is None and activetab is None:
             if grab_focus:
                 pane.grab_focus()
             return  # nothing else to do
@@ -2836,7 +2836,7 @@ class Window(gtkwindowclass):
 
         if show:
             panes = self.uistate['toggle_panes'] \
-                    or (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
+                or (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)
             for pane in panes:
                 self.set_pane_state(pane, True)
         else:
@@ -2881,7 +2881,7 @@ class Window(gtkwindowclass):
 
     def focus_last_sidepane(self):
         if self._last_sidepane_focus \
-        and self._last_sidepane_focus.get_property('visible'):
+                and self._last_sidepane_focus.get_property('visible'):
             self._last_sidepane_focus.grab_focus()
             return True
         else:
@@ -2977,10 +2977,10 @@ class Dialog(gtk.Dialog, ConnectorMixin):
         return dialog
 
     def __init__(self, ui, title,
-                    buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-                    help_text=None, help=None,
-                    defaultwindowsize=(-1, -1)
-            ):
+                 buttons=gtk.BUTTONS_OK_CANCEL, button=None,
+                 help_text=None, help=None,
+                 defaultwindowsize=(-1, -1)
+                 ):
         '''Constructor.
 
         @param ui: either a parent window or dialog or the main
@@ -3003,9 +3003,9 @@ class Dialog(gtk.Dialog, ConnectorMixin):
         L{GtkInterface}
         '''
         gtk.Dialog.__init__(
-                self, parent=get_window(ui),
-                title=format_title(title),
-                flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_DESTROY_WITH_PARENT,
+            self, parent=get_window(ui),
+            title=format_title(title),
+            flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_DESTROY_WITH_PARENT,
         )
         if hasattr(ui, 'ui') and hasattr(ui.ui, 'uistate'):
             ui = ui.ui  # HACK - we get other window instead.. - avoid triggering Mock objects in test ...
@@ -3020,7 +3020,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
         if hasattr(self, 'uistate'):
             assert isinstance(self.uistate, zim.config.ConfigDict)  # just to be sure
         elif hasattr(ui, 'uistate') \
-        and isinstance(ui.uistate, zim.config.SectionedConfigDict):
+                and isinstance(ui.uistate, zim.config.SectionedConfigDict):
             key = self.__class__.__name__
             self.uistate = ui.uistate[key]
         else:
@@ -3309,8 +3309,8 @@ class ErrorDialog(gtk.MessageDialog):
     '''
 
     def __init__(self, ui, error, exc_info=None, do_logging=True,
-                            buttons=gtk.BUTTONS_CLOSE
-    ):
+                 buttons=gtk.BUTTONS_CLOSE
+                 ):
         '''Constructor
 
         @param ui: either a parent window or dialog or the main
@@ -3351,9 +3351,9 @@ class ErrorDialog(gtk.MessageDialog):
         msg, show_trace = zim.errors.get_error_msg(error)
 
         gtk.MessageDialog.__init__(
-                self, parent=get_window(ui),
-                type=gtk.MESSAGE_ERROR, buttons=buttons,
-                message_format=msg
+            self, parent=get_window(ui),
+            type=gtk.MESSAGE_ERROR, buttons=buttons,
+            message_format=msg
         )
 
         if isinstance(error, zim.errors.Error):
@@ -3362,9 +3362,9 @@ class ErrorDialog(gtk.MessageDialog):
         elif show_trace:
             self.showing_trace = True  # used in test
             self.format_secondary_text(
-                    _('When reporting this bug please include\n'
-                      'the information from the text box below')
-                    )  # T: generic error dialog text
+                _('When reporting this bug please include\n'
+                  'the information from the text box below')
+            )  # T: generic error dialog text
             # TODO add link to bug tracker
 
             # Add widget with debug info
@@ -3398,12 +3398,12 @@ class ErrorDialog(gtk.MessageDialog):
             tb = None
 
         text = 'This is zim %s\n' % zim.__version__ + \
-                'Platform: %s\n' % os.name + \
-                'Locale: %s %s\n' % locale.getdefaultlocale() + \
-                'FS encoding: %s\n' % zim.fs.ENCODING + \
-                'Python: %s\n' % str(tuple(sys.version_info)) + \
-                'Gtk: %s\n' % str(gtk.gtk_version) + \
-                'Pygtk: %s\n' % str(gtk.pygtk_version)
+            'Platform: %s\n' % os.name + \
+            'Locale: %s %s\n' % locale.getdefaultlocale() + \
+            'FS encoding: %s\n' % zim.fs.ENCODING + \
+            'Python: %s\n' % str(tuple(sys.version_info)) + \
+            'Gtk: %s\n' % str(gtk.gtk_version) + \
+            'Pygtk: %s\n' % str(gtk.pygtk_version)
 
         text += zim.get_zim_revision() + '\n'
 
@@ -3477,9 +3477,9 @@ class QuestionDialog(gtk.MessageDialog):
 
         self.response = None
         gtk.MessageDialog.__init__(
-                self, parent=get_window(ui),
-                type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO,
-                message_format=question
+            self, parent=get_window(ui),
+            type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO,
+            message_format=question
         )
         if text:
             self.format_secondary_text(text)
@@ -3531,10 +3531,10 @@ class MessageDialog(gtk.MessageDialog):
 
         self.response = None
         gtk.MessageDialog.__init__(
-                self, parent=get_window(ui),
-                type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
-                message_format=msg,
-                flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            self, parent=get_window(ui),
+            type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
+            message_format=msg,
+            flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
         )
         if text:
             self.format_secondary_text(text)
@@ -3578,9 +3578,9 @@ class FileDialog(Dialog):
     '''
 
     def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                    buttons=gtk.BUTTONS_OK_CANCEL, button=None,
-                    help_text=None, help=None, multiple=False,
-            ):
+                 buttons=gtk.BUTTONS_OK_CANCEL, button=None,
+                 help_text=None, help=None, multiple=False,
+                 ):
         '''Constructor.
 
         @param ui: either a parent window or dialog or the main
@@ -3610,7 +3610,7 @@ class FileDialog(Dialog):
             # else Ok will do
 
         Dialog.__init__(self, ui, title, defaultwindowsize=(500, 400),
-                buttons=buttons, button=button, help_text=help_text, help=help)
+                        buttons=buttons, button=button, help_text=help_text, help=help)
 
         self.filechooser = gtk.FileChooserWidget()
         self.filechooser.set_action(action)
@@ -3798,11 +3798,11 @@ class ProgressDialog(gtk.Dialog):
         self._total = None
         self.cancelled = False
         gtk.Dialog.__init__(
-                # no title - see HIG about message dialogs
-                self, parent=get_window(self.ui),
-                title='',
-                flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_MODAL,
-                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
+            # no title - see HIG about message dialogs
+            self, parent=get_window(self.ui),
+            title='',
+            flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_MODAL,
+            buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
         )
         self.set_border_width(10)
         self.vbox.set_spacing(5)
@@ -3917,7 +3917,7 @@ class Assistant(Dialog):
         # Use temporary state, so we can cancel the wizard
 
         buttons = [b for b in self.action_area.get_children()
-                if not self.action_area.child_get_property(b, 'secondary')]
+                   if not self.action_area.child_get_property(b, 'secondary')]
         #~ print [b.get_label() for b in buttons]
         self.ok_button = buttons[0]  # HACK: not sure this order fixed
         self.ok_button.set_no_show_all(True)
@@ -3995,7 +3995,7 @@ class Assistant(Dialog):
             return False  # propagate
 
         self._expose_event_id = \
-                self.connect_after('expose-event', _set_heading_color)
+            self.connect_after('expose-event', _set_heading_color)
 
         hbox = gtk.HBox()
         hbox.set_border_width(5)
@@ -4085,7 +4085,7 @@ class AssistantPage(gtk.VBox):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'input-valid-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     title = ''
@@ -4174,7 +4174,7 @@ class ImageView(gtk.Layout):
     SCALE_STATIC = 2  # : use scaling factor
 
     __gsignals__ = {
-            'size-allocate': 'override',
+        'size-allocate': 'override',
     }
 
     def __init__(self, bgcolor='#FFF', checkerboard=True):
@@ -4253,7 +4253,7 @@ class ImageView(gtk.Layout):
         '''
         if pixbuf is None:
             pixbuf = self.render_icon(
-                    gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG).copy()
+                gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG).copy()
         self._pixbuf = pixbuf
         self._render()
 
@@ -4265,7 +4265,7 @@ class ImageView(gtk.Layout):
             gobject.source_remove(self._render_timeout)
 
         if not self._pixbuf \
-        or (allocation.width, allocation.height) == self._render_size:
+                or (allocation.width, allocation.height) == self._render_size:
             pass  # no update of rendering needed
         else:
             # set new timer for 100ms
@@ -4311,12 +4311,12 @@ class ImageView(gtk.Layout):
                 pixbuf = self._pixbuf
             else:
                 pixbuf = self._pixbuf.scale_simple(
-                                        wimg, himg, gtk.gdk.INTERP_NEAREST)
+                    wimg, himg, gtk.gdk.INTERP_NEAREST)
         else:
             # Generate checkerboard background while scaling
             pixbuf = self._pixbuf.composite_color_simple(
-                    wimg, himg, gtk.gdk.INTERP_NEAREST,
-                    255, 16, self._lightgrey.pixel, self._darkgrey.pixel)
+                wimg, himg, gtk.gdk.INTERP_NEAREST,
+                255, 16, self._lightgrey.pixel, self._darkgrey.pixel)
 
         # And align the image in the layout
         wvirt = max((wwin, wimg))
@@ -4352,16 +4352,16 @@ class PromptExistingFileDialog(Dialog):
         self.add_help_text( _('''\
 A file with the name <b>"%s"</b> already exists.
 You can use another name or overwrite the existing file.''' % file.basename),
-        )  # T: Dialog text in 'new filename' dialog
+                            )  # T: Dialog text in 'new filename' dialog
         self.old_file = file
         self.dir = file.dir
 
         suggested_filename = file.dir.new_file(file.basename).basename
         self.add_form((
-                        ('name', 'string', _('Filename')),  # T: Input label
-                ), {
-                        'name': suggested_filename
-                }
+            ('name', 'string', _('Filename')),  # T: Input label
+        ), {
+            'name': suggested_filename
+        }
         )
         self.form.widgets['name'].set_check_func(self._check_valid)
 
@@ -4439,18 +4439,18 @@ class TableBoxMixin(object):
 
         if child.is_drawable():
             self.style.paint_flat_box(
-                    event.window, gtk.STATE_ACTIVE, gtk.SHADOW_NONE, None, self, None,
-                    child.allocation.x - border - line,
-                    child.allocation.y - border - line,
-                    child.allocation.width + 2 * border + 2 * line,
-                    child.allocation.height + 2 * border + 2 * line,
+                event.window, gtk.STATE_ACTIVE, gtk.SHADOW_NONE, None, self, None,
+                child.allocation.x - border - line,
+                child.allocation.y - border - line,
+                child.allocation.width + 2 * border + 2 * line,
+                child.allocation.height + 2 * border + 2 * line,
             )
             self.style.paint_flat_box(
-                    event.window, gtk.STATE_NORMAL, gtk.SHADOW_NONE, None, self, None,
-                    child.allocation.x - border,
-                    child.allocation.y - border,
-                    child.allocation.width + 2 * border,
-                    child.allocation.height + 2 * border,
+                event.window, gtk.STATE_NORMAL, gtk.SHADOW_NONE, None, self, None,
+                child.allocation.x - border,
+                child.allocation.y - border,
+                child.allocation.width + 2 * border,
+                child.allocation.height + 2 * border,
             )
         gtk.Container.propagate_expose(self, child, event)
 

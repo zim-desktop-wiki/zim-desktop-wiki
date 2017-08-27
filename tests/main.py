@@ -111,8 +111,8 @@ class TestGui(tests.TestCase):
         # Without argument should prompt
         def testAddNotebookDialog(dialog):
             self.assertIn(dialog.__class__.__name__,
-                    ('AddNotebookDialog', 'NotebookDialog')
-            )
+                          ('AddNotebookDialog', 'NotebookDialog')
+                          )
 
         cmd = GuiCommand('gui')
         with tests.DialogContext(testAddNotebookDialog):
@@ -190,8 +190,8 @@ class TestIPC(tests.TestCase):
             # user names > 20 chars. But basename should be limitted.
             from zim.main.ipc import SERVER_ADDRESS
             self.assertLessEqual(
-                    len(os.path.basename(SERVER_ADDRESS)), 25,
-                    "name too long: %s" % os.path.basename(SERVER_ADDRESS)
+                len(os.path.basename(SERVER_ADDRESS)), 25,
+                "name too long: %s" % os.path.basename(SERVER_ADDRESS)
             )
 
         inbox = [None]
@@ -275,7 +275,7 @@ class TestZimApplication(tests.TestCase):
         class MockWindow(SignalEmitter):
 
             __signals__ = {
-                    'destroy': (None, None, ())
+                'destroy': (None, None, ())
             }
 
             def __init__(self, notebook):

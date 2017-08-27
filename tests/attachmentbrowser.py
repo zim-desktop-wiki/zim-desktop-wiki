@@ -47,8 +47,8 @@ class TestThumbnailCreators(tests.TestCase):
 
             thumbfile = thumbdir.file('thumb-test.txt')
             self.assertRaises(
-                    ThumbnailCreatorFailure,
-                    creator, self.SRC_DIR.file('README.txt'), thumbfile, THUMB_SIZE_NORMAL
+                ThumbnailCreatorFailure,
+                creator, self.SRC_DIR.file('README.txt'), thumbfile, THUMB_SIZE_NORMAL
             )
 
 

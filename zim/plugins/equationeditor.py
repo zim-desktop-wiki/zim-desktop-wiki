@@ -19,14 +19,14 @@ dvipngcmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
 class InsertEquationPlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert Equation'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Equation'),  # T: plugin name
+        'description': _('''\
 This plugin provides an equation editor for zim based on latex.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'help': 'Plugins:Equation Editor',
-            'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Equation Editor',
+        'author': 'Jaap Karssenberg',
     }
 
     object_type = 'equation'
@@ -40,7 +40,7 @@ This is a core plugin shipping with zim.
         has_latex = Application(latexcmd).tryexec()
         has_dvipng = Application(dvipngcmd).tryexec()
         return (has_latex and has_dvipng), \
-                        [('latex', has_latex, True), ('dvipng', has_dvipng, True)]
+            [('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
 
 class EquationGenerator(ImageGeneratorClass):

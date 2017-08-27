@@ -12,7 +12,7 @@ from zim.fs import _md5, File, Dir
 
 from zim.config import data_file, SectionedConfigDict
 from zim.notebook import Path, Page, Notebook, init_notebook, \
-        interwiki_link, get_notebook_list, NotebookInfo
+    interwiki_link, get_notebook_list, NotebookInfo
 #~ from zim.exporter import Exporter, StaticLinker
 #~ from zim.applications import Application
 from zim.templates import list_templates
@@ -35,7 +35,7 @@ from zim.export.exporters.mhtml import MHTMLExporter
 
 from zim.templates import Template
 from zim.templates.expression import ExpressionParameter, \
-        ExpressionFunctionCall, ExpressionList
+    ExpressionFunctionCall, ExpressionList
 
 from zim.notebook import Path
 
@@ -155,8 +155,8 @@ class TestLinker(tests.TestCase):
         output = layout.page_file(source)
 
         linker = ExportLinker(notebook, layout,
-                source=source, output=output, usebase=True
-        )
+                              source=source, output=output, usebase=True
+                              )
 
         self.assertEqual(linker.link('+dus'), './bar/dus.html')
         self.assertEqual(linker.link('dus'), './dus.html')
@@ -198,20 +198,20 @@ class TestExportTemplateContext(tests.TestCase):
         notebook = tests.new_notebook(tmpdir + '/notebook')
         layout = MultiFileLayout(Dir(tmpdir + '/export'), 'html')
         linker_factory = partial(ExportLinker,
-                notebook=notebook,
-                layout=layout,
-                output=layout.page_file(Path('test')),
-                usebase=True
-        )
+                                 notebook=notebook,
+                                 layout=layout,
+                                 output=layout.page_file(Path('test')),
+                                 usebase=True
+                                 )
         dumper_factory = get_format('html').Dumper
 
         title = 'Test Export'
         self.content = [notebook.get_page(Path('Test:foo'))]
         self.context = ExportTemplateContext(
-                notebook, linker_factory, dumper_factory,
-                title, self.content, special=None,
-                home=None, up=None, prevpage=None, nextpage=None,
-                links=None,
+            notebook, linker_factory, dumper_factory,
+            title, self.content, special=None,
+            home=None, up=None, prevpage=None, nextpage=None,
+            links=None,
         )
 
     def runTest(self):
@@ -266,8 +266,8 @@ class TestExportTemplateContext(tests.TestCase):
 
         # Test HeadingsProxy
         mycall = ExpressionFunctionCall(
-                ExpressionParameter('mypage.headings'),
-                ExpressionList(),
+            ExpressionParameter('mypage.headings'),
+            ExpressionList(),
         )
         headings = list(mycall(self.context))
         self.assertEqual(len(headings), 2)
@@ -537,8 +537,8 @@ class TestExportCommand(tests.TestCase):
 
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path,
-                '--output', self.tmpdir.subdir('output').path,
-        )
+                          '--output', self.tmpdir.subdir('output').path,
+                          )
         exp = cmd.get_exporter(None)
         self.assertIsInstance(exp, MultiFileExporter)
         self.assertIsInstance(exp.layout, MultiFileLayout)
@@ -551,13 +551,13 @@ class TestExportCommand(tests.TestCase):
         # Full notebook, full options
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path,
-                '--format', 'markdown',
-                '--template', './tests/data/TestTemplate.html',
-                '--output', self.tmpdir.subdir('output').path,
-                '--root-url', '/foo/',
-                '--index-page', 'myindex',
-                '--overwrite',
-        )
+                          '--format', 'markdown',
+                          '--template', './tests/data/TestTemplate.html',
+                          '--output', self.tmpdir.subdir('output').path,
+                          '--root-url', '/foo/',
+                          '--index-page', 'myindex',
+                          '--overwrite',
+                          )
         exp = cmd.get_exporter(None)
         self.assertIsInstance(exp, MultiFileExporter)
         self.assertIsInstance(exp.layout, MultiFileLayout)
@@ -570,8 +570,8 @@ class TestExportCommand(tests.TestCase):
         # Single page
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path, 'Foo:Bar',
-                '--output', self.tmpdir.subdir('output').path,
-        )
+                          '--output', self.tmpdir.subdir('output').path,
+                          )
         exp = cmd.get_exporter(Path('Foo:Bar'))
         self.assertIsInstance(exp, MultiFileExporter)
         self.assertIsInstance(exp.layout, FileLayout)
@@ -583,9 +583,9 @@ class TestExportCommand(tests.TestCase):
 
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path, 'Foo:Bar',
-                '--recursive',
-                '--output', self.tmpdir.subdir('output').path,
-        )
+                          '--recursive',
+                          '--output', self.tmpdir.subdir('output').path,
+                          )
         exp = cmd.get_exporter(Path('Foo:Bar'))
         self.assertIsInstance(exp, MultiFileExporter)
         self.assertIsInstance(exp.layout, FileLayout)
@@ -597,9 +597,9 @@ class TestExportCommand(tests.TestCase):
 
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path, 'Foo:Bar',
-                '-rs',
-                '--output', self.tmpdir.subdir('output').path,
-        )
+                          '-rs',
+                          '--output', self.tmpdir.subdir('output').path,
+                          )
         exp = cmd.get_exporter(Path('Foo:Bar'))
         self.assertIsInstance(exp, SingleFileExporter)
         self.assertIsInstance(exp.layout, SingleFileLayout)
@@ -611,9 +611,9 @@ class TestExportCommand(tests.TestCase):
         # MHTML exporter
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path, 'Foo:Bar',
-                '-rs', '--format', 'mhtml',
-                '--output', self.tmpdir.subdir('output').path,
-        )
+                          '-rs', '--format', 'mhtml',
+                          '--output', self.tmpdir.subdir('output').path,
+                          )
         exp = cmd.get_exporter(Path('Foo:Bar'))
         self.assertIsInstance(exp, MHTMLExporter)
         self.assertIsInstance(exp.file, File)
@@ -630,9 +630,9 @@ class TestExportCommand(tests.TestCase):
 
         cmd = ExportCommand('export')
         cmd.parse_options(self.notebook.path, 'Foo:Bar',
-                '--output', output.path,
-                '--template', 'tests/data/TestTemplate.html'
-        )
+                          '--output', output.path,
+                          '--template', 'tests/data/TestTemplate.html'
+                          )
         cmd.run()
 
         self.assertTrue(output.exists())

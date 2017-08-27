@@ -68,10 +68,10 @@ class OSXmenubarPlugin(PluginClass):
     # no real logic happening here.
 
     plugin_info = {
-            'name': _('macOS Menubar'),  # T: plugin name
-            'description': _('This plugin provides a macOS menubar for zim.'),  # T: plugin description
-            'author': 'Brecht Machiels, Jaap Karssenberg',
-            'help': 'Plugins:macOS Menubar'
+        'name': _('macOS Menubar'),  # T: plugin name
+        'description': _('This plugin provides a macOS menubar for zim.'),  # T: plugin description
+        'author': 'Brecht Machiels, Jaap Karssenberg',
+        'help': 'Plugins:macOS Menubar'
     }
 
     @classmethod
@@ -106,7 +106,7 @@ class MainWindowExtension(WindowExtension):
     def _on_notify(self, window, property, *a):
         # Check we recieve focus
         if property.name == 'has-toplevel-focus' \
-        and self.window.has_toplevel_focus():
+                and self.window.has_toplevel_focus():
             global _global_items_initialized
             if not _global_items_initialized:
                 self._init_global_items()

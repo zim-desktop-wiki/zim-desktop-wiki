@@ -111,7 +111,7 @@ class ExpressionParameter(Expression):
 
     def __eq__(self, other):
         return isinstance(other, ExpressionParameter) \
-                        and self.name == other.name
+            and self.name == other.name
 
     def __call__(self, context):
         value = context
@@ -128,8 +128,8 @@ class ExpressionParameter(Expression):
                 return None
 
             if inspect.ismethod(value) \
-            or inspect.isfunction(value) \
-            or inspect.isbuiltin(value):
+                    or inspect.isfunction(value) \
+                    or inspect.isbuiltin(value):
                 raise AssertionError('Can not access parameter: %s' % self.name)
 
         return value
@@ -268,13 +268,13 @@ class ExpressionFunctionCall(Expression):
                 raise KeyError
         except (TypeError, KeyError):
             if hasattr(obj, name) \
-            and isinstance(getattr(obj, name), ExpressionFunction):
+                    and isinstance(getattr(obj, name), ExpressionFunction):
                 function = getattr(obj, name)
             else:
                 wrapper = self.wrap_object(obj)
                 if wrapper is not None \
-                and hasattr(wrapper, name) \
-                and isinstance(getattr(wrapper, name), ExpressionFunction):
+                        and hasattr(wrapper, name) \
+                        and isinstance(getattr(wrapper, name), ExpressionFunction):
                     function = getattr(wrapper, name)
                 else:
                     raise AssertionError('Not a valid function: %s' % self.param.name)
@@ -404,10 +404,10 @@ class ExpressionStringObject(ExpressionObjectBase):
     '''
 
     _fmethods = (
-            'capitalize', 'center', 'count', 'endswith', 'expandtabs',
-            'ljust', 'lower', 'lstrip', 'replace', 'rjust', 'rsplit',
-            'rstrip', 'split', 'splitlines', 'startswith', 'title',
-            'upper',
+        'capitalize', 'center', 'count', 'endswith', 'expandtabs',
+        'ljust', 'lower', 'lstrip', 'replace', 'rjust', 'rsplit',
+        'rstrip', 'split', 'splitlines', 'startswith', 'title',
+        'upper',
     )
 
 
@@ -417,8 +417,8 @@ class ExpressionDictObject(ExpressionObjectBase):
     '''
 
     _fmethods = (
-            'get', 'keys', 'values', 'items',
-            'len', 'reversed', 'sorted'
+        'get', 'keys', 'values', 'items',
+        'len', 'reversed', 'sorted'
     )
     # only functions for non-mutuable mapping here !
 

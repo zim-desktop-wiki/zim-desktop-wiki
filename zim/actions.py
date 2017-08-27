@@ -158,7 +158,7 @@ class Action(ActionMethod):
             self.__get__(instance, instance.__class__)()
         except:
             zim.errors.exception_handler(
-                    'Exception during action: %s' % self.name)
+                'Exception during action: %s' % self.name)
 
 
 def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, init=False):
@@ -249,7 +249,7 @@ class ToggleAction(Action):
                 self.__get__(instance, instance.__class__)()
             except Exception as error:
                 zim.errors.exception_handler(
-                        'Exception during toggle action: %s(%s)' % (self.name, active))
+                    'Exception during toggle action: %s(%s)' % (self.name, active))
 
 
 def radio_action(*radio_options):
@@ -282,8 +282,8 @@ class RadioAction(ActionMethod):
         self.func = func
         self.keys = [opt[0] for opt in radio_options]
         self._entries = tuple(
-                (name + '_' + opt[0],) + opt[1:] + (i,)
-                        for i, opt in enumerate(radio_options)
+            (name + '_' + opt[0],) + opt[1:] + (i,)
+            for i, opt in enumerate(radio_options)
         )
         self._state = weakref.WeakKeyDictionary()
         self._proxies = weakref.WeakKeyDictionary()
@@ -322,7 +322,7 @@ class RadioAction(ActionMethod):
                 self.__get__(instance, instance.__class__)(key)
         except:
             zim.errors.exception_handler(
-                    'Exception during action: %s(%s)' % (self.name, key))
+                'Exception during action: %s(%s)' % (self.name, key))
 
 
 def get_gtk_actiongroup(obj):
@@ -336,7 +336,7 @@ def get_gtk_actiongroup(obj):
     import gtk
 
     if hasattr(obj, 'actiongroup') \
-    and obj.actiongroup is not None:
+            and obj.actiongroup is not None:
         return obj.actiongroup
 
     obj.actiongroup = gtk.ActionGroup(obj.__class__.__name__)

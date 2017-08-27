@@ -18,13 +18,13 @@ diagcmd = ('seqdiag', '-o')
 class InsertSequenceDiagramPlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert Sequence Diagram'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Sequence Diagram'),  # T: plugin name
+        'description': _('''\
 This plugin provides a sequence diagram editor for zim based on seqdiag.
 It allows easy editing of sequence diagrams.
 '''),  # T: plugin description
-            'help': 'Plugins:Sequence Diagram Editor',
-            'author': 'Greg Warner',
+        'help': 'Plugins:Sequence Diagram Editor',
+        'author': 'Greg Warner',
     }
 
     object_type = 'seqdiagram'

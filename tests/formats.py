@@ -26,22 +26,22 @@ class TestFormatMixin(object):
     reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
 
     reference_data = {
-            'wiki': 'wiki.txt',
-            'plain': 'plain.txt',
-            'html': 'export.html',
-            'latex': 'export.tex',
-            'markdown': 'export.markdown',
-            'reST': 'export.rst',
+        'wiki': 'wiki.txt',
+        'plain': 'plain.txt',
+        'html': 'export.html',
+        'latex': 'export.tex',
+        'markdown': 'export.markdown',
+        'reST': 'export.rst',
     }
 
     def testFormatInfo(self):
         for key in ('name', 'desc', 'mimetype', 'extension'):
             self.assertIsInstance(self.format.info[key], basestring,
-                    msg='Invalid key "%s" in format info' % key)
+                                  msg='Invalid key "%s" in format info' % key)
 
         for key in ('native', 'import', 'export'):
             self.assertIsInstance(self.format.info[key], bool,
-                    msg='Invalid key "%s" in format info' % key)
+                                  msg='Invalid key "%s" in format info' % key)
 
         if self.format.info['native'] or self.format.info['import']:
             self.assertTrue(hasattr(self.format, 'Parser'))
@@ -275,14 +275,14 @@ class TestParseTree(tests.TestCase):
     def testFindall(self):
         tree = ParseTree().fromstring(self.xml)
         wanted = [
-                (1, 'Head 1'),
-                (2, 'Head 2'),
-                (3, 'Head 3'),
-                (2, 'Head 4'),
-                (5, 'Head 5'),
-                (4, 'Head 6'),
-                (5, 'Head 7'),
-                (6, 'Head 8'),
+            (1, 'Head 1'),
+            (2, 'Head 2'),
+            (3, 'Head 3'),
+            (2, 'Head 4'),
+            (5, 'Head 5'),
+            (4, 'Head 6'),
+            (5, 'Head 7'),
+            (6, 'Head 8'),
         ]
         found = []
         for elt in tree.findall(HEADING):
@@ -594,7 +594,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
         tree = builder.get_parsetree()
         html = self.format.Dumper(linker=StubLinker()).dump(tree)
         self.assertEqual(''.join(html),
-                '<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;\n</p>\n')
+                         '<p>\n&lt;foo&gt;"foo" &amp; "bar"&lt;/foo&gt;\n</p>\n')
 
     # TODO add test using http://validator.w3.org
 
@@ -608,64 +608,64 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
         tree = builder.get_parsetree()
 
         html = self.format.Dumper(
-                linker=StubLinker(),
-                template_options={'empty_lines': 'default'}
+            linker=StubLinker(),
+            template_options={'empty_lines': 'default'}
         ).dump(tree)
         self.assertEqual(''.join(html),
-                '<h1>head1</h1>\n\n'
-                '<br>\n\n'
-                '<h2>head2</h2>\n\n'
-        )
+                         '<h1>head1</h1>\n\n'
+                         '<br>\n\n'
+                         '<h2>head2</h2>\n\n'
+                         )
 
         html = self.format.Dumper(
-                linker=StubLinker(),
-                template_options={'empty_lines': 'remove'}
+            linker=StubLinker(),
+            template_options={'empty_lines': 'remove'}
         ).dump(tree)
         self.assertEqual(''.join(html),
-                '<h1>head1</h1>\n\n'
-                '<h2>head2</h2>\n\n'
-        )
+                         '<h1>head1</h1>\n\n'
+                         '<h2>head2</h2>\n\n'
+                         )
 
         html = self.format.Dumper(
-                linker=StubLinker(),
-                template_options={'empty_lines': 'Remove'}  # case sensitive
+            linker=StubLinker(),
+            template_options={'empty_lines': 'Remove'}  # case sensitive
         ).dump(tree)
         self.assertEqual(''.join(html),
-                '<h1>head1</h1>\n\n'
-                '<h2>head2</h2>\n\n'
-        )
+                         '<h1>head1</h1>\n\n'
+                         '<h2>head2</h2>\n\n'
+                         )
 
     def testLineBreaks(self):
         builder = ParseTreeBuilder()
         builder.start(FORMATTEDTEXT)
         builder.append(PARAGRAPH, None,
-                'bla bla bla\n'
-                'bla bla bla\n'
-        )
+                       'bla bla bla\n'
+                       'bla bla bla\n'
+                       )
         builder.end(FORMATTEDTEXT)
         tree = builder.get_parsetree()
 
         html = self.format.Dumper(
-                linker=StubLinker(),
-                template_options={'line_breaks': 'default'}
+            linker=StubLinker(),
+            template_options={'line_breaks': 'default'}
         ).dump(tree)
         self.assertEqual(''.join(html),
-                '<p>\n'
-                'bla bla bla<br>\n'
-                'bla bla bla\n'
-                '</p>\n'
-        )
+                         '<p>\n'
+                         'bla bla bla<br>\n'
+                         'bla bla bla\n'
+                         '</p>\n'
+                         )
 
         html = self.format.Dumper(
-                linker=StubLinker(),
-                template_options={'line_breaks': 'remove'}
+            linker=StubLinker(),
+            template_options={'line_breaks': 'remove'}
         ).dump(tree)
         self.assertEqual(''.join(html),
-                '<p>\n'
-                'bla bla bla\n'
-                'bla bla bla\n'
-                '</p>\n'
-        )
+                         '<p>\n'
+                         'bla bla bla\n'
+                         'bla bla bla\n'
+                         '</p>\n'
+                         )
 
 
 class TestMarkdownFormat(tests.TestCase, TestFormatMixin):
@@ -684,9 +684,9 @@ class LatexLoggingFilter(tests.LoggingFilter):
 
     def __init__(self):
         tests.LoggingFilter.__init__(
-                self,
-                'zim.formats.latex',
-                ('No document type set in template', 'Could not find latex equation')
+            self,
+            'zim.formats.latex',
+            ('No document type set in template', 'Could not find latex equation')
         )
 
 
@@ -731,8 +731,8 @@ class TestLatexFormat(tests.TestCase, TestFormatMixin):
                 ('book', 'part'),
         ):
             lines = self.format.Dumper(
-                    linker=StubLinker(),
-                    template_options={'document_type': type}
+                linker=StubLinker(),
+                template_options={'document_type': type}
             ).dump(tree)
             self.assertIn(head1, ''.join(lines))
 
@@ -823,10 +823,10 @@ Blaat
 '''
         body, meta = parse_header_lines(text)
         self.assertEqual(dict(meta), {
-                'Content-Type': 'text/x-zim-wiki',
-                'Wiki-Format': 'zim 0.4',
-                'Creation-Date': '2010-12-14T14:15:09.134955',
-                'X-Foo': 'Some text\nhere'
+            'Content-Type': 'text/x-zim-wiki',
+            'Wiki-Format': 'zim 0.4',
+            'Creation-Date': '2010-12-14T14:15:09.134955',
+            'X-Foo': 'Some text\nhere'
         })
         self.assertEqual(body, 'Blaat\n')
 

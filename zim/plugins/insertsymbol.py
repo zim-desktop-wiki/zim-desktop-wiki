@@ -20,15 +20,15 @@ VERBATIM_BLOCK = 'pre'
 class InsertSymbolPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Insert Symbol'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Symbol'),  # T: plugin name
+        'description': _('''\
 This plugin adds the 'Insert Symbol' dialog and allows
 auto-formatting typographic characters.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Insert Symbol',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Insert Symbol',
     }
 
     def __init__(self, config=None):
@@ -98,8 +98,8 @@ class MainWindowExtension(WindowExtension):
         # "-- " emits end-of-word with "--" as word and " " (space) as
         # the char.
         if VERBATIM in editmode \
-        or VERBATIM_BLOCK in editmode \
-        or not (char.isspace() or char == ';'):
+                or VERBATIM_BLOCK in editmode \
+                or not (char.isspace() or char == ';'):
             return
 
         symbol = self.plugin.symbols.get(word)
@@ -136,8 +136,8 @@ class InsertSymbolDialog(Dialog):
 
     def __init__(self, ui, plugin, pageview):
         Dialog.__init__(self, ui, _('Insert Symbol'),  # T: Dialog title
-                button=(_('_Insert'), 'gtk-ok'),  # T: Button label
-                defaultwindowsize=(350, 400))
+                        button=(_('_Insert'), 'gtk-ok'),  # T: Button label
+                        defaultwindowsize=(350, 400))
         self.plugin = plugin
         self.pageview = pageview
         if not plugin.symbols:
@@ -153,7 +153,7 @@ class InsertSymbolDialog(Dialog):
         self.iconview.set_column_spacing(0)
         self.iconview.set_row_spacing(0)
         if gtk.gtk_version >= (2, 12) \
-        and gtk.pygtk_version >= (2, 12):
+                and gtk.pygtk_version >= (2, 12):
             self.iconview.set_property('has-tooltip', True)
             self.iconview.connect('query-tooltip', self.on_query_tooltip)
         self.iconview.connect('item-activated', self.on_activated)

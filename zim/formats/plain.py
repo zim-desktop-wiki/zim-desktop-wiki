@@ -14,14 +14,14 @@ from zim.parsing import url_re
 
 
 info = {
-        'name': 'plain',
-        'desc': 'Plain text',
-        'mimetype': 'text/plain',
-        'extension': 'txt',
-        'native': False,
-        'import': True,
-        'export': True,
-        'usebase': True,
+    'name': 'plain',
+    'desc': 'Plain text',
+    'mimetype': 'text/plain',
+    'extension': 'txt',
+    'native': False,
+    'import': True,
+    'export': True,
+    'usebase': True,
 }
 
 
@@ -43,7 +43,7 @@ class Parser(ParserClass):
             input = fix_line_end(input)
 
         parser = zim.parser.Parser(
-                Rule(LINK, url_re.r, process=self.parse_url)  # FIXME need .r atribute because url_re is a Re object
+            Rule(LINK, url_re.r, process=self.parse_url)  # FIXME need .r atribute because url_re is a Re object
         )
 
         builder = ParseTreeBuilder(partial=partial)
@@ -64,24 +64,24 @@ class Dumper(DumperClass):
     # readable.
 
     BULLETS = {
-            UNCHECKED_BOX: u'[ ]',
-            XCHECKED_BOX: u'[x]',
-            CHECKED_BOX: u'[*]',
-            MIGRATED_BOX: u'[>]',
-            BULLET: u'*',
+        UNCHECKED_BOX: u'[ ]',
+        XCHECKED_BOX: u'[x]',
+        CHECKED_BOX: u'[*]',
+        MIGRATED_BOX: u'[>]',
+        BULLET: u'*',
     }
 
     # No additional formatting for these tags, otherwise copy-pasting
     # as plain text is no longer plain text
     TAGS = {
-            EMPHASIS: ('', ''),
-            STRONG: ('', ''),
-            MARK: ('', ''),
-            STRIKE: ('', ''),
-            VERBATIM: ('', ''),
-            TAG: ('', ''),
-            SUBSCRIPT: ('', ''),
-            SUPERSCRIPT: ('', ''),
+        EMPHASIS: ('', ''),
+        STRONG: ('', ''),
+        MARK: ('', ''),
+        STRIKE: ('', ''),
+        VERBATIM: ('', ''),
+        TAG: ('', ''),
+        SUBSCRIPT: ('', ''),
+        SUPERSCRIPT: ('', ''),
     }
 
     def dump_indent(self, tag, attrib, strings):
@@ -144,7 +144,7 @@ class Dumper(DumperClass):
 
         if self.context[-1].tag == BULLETLIST:
             if 'bullet' in attrib \
-            and attrib['bullet'] in self.BULLETS:
+                    and attrib['bullet'] in self.BULLETS:
                 bullet = self.BULLETS[attrib['bullet']]
             else:
                 bullet = self.BULLETS[BULLET]
@@ -174,7 +174,7 @@ class Dumper(DumperClass):
     def dump_link(self, tag, attrib, strings=None):
         # Just plain text, either text of link, or link href
         assert 'href' in attrib, \
-                'BUG: link misses href: %s "%s"' % (attrib, strings)
+            'BUG: link misses href: %s "%s"' % (attrib, strings)
         href = attrib['href']
 
         if strings:

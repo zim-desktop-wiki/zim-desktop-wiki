@@ -89,14 +89,14 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
     functions to create the thumbnail.
     '''
     if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)) \
-    or (os.name == 'nt' and file.basename.endswith('.svg')):
+            or (os.name == 'nt' and file.basename.endswith('.svg')):
         # .svg causes segfaults on windows, even if svg support enabled 
         raise ThumbnailCreatorFailure
 
     tmpfile = thumbfile.parent().file('zim-thumb.new~')
     options = {  # no unicode allowed in options!
-            'tEXt::Thumb::URI': str(file.uri),
-            'tEXt::Thumb::MTime': str(int(file.mtime())),
+        'tEXt::Thumb::URI': str(file.uri),
+        'tEXt::Thumb::MTime': str(int(file.mtime())),
     }
     try:
         pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.encodedpath, thumbsize, thumbsize)
@@ -147,8 +147,8 @@ class ThumbnailQueue(object):
         if not (self._thread and self._thread.is_alive()):
             self._running.set()
             self._thread = threading.Thread(
-                    name=self.__class__.__name__,
-                    target=self._thread_main,
+                name=self.__class__.__name__,
+                target=self._thread_main,
             )
             self._thread.setDaemon(True)
             self._thread.start()

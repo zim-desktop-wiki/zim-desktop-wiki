@@ -55,7 +55,7 @@ class DirLayoutBase(ExportLayout):
                 path = page.relname(self.namespace)
             else:
                 raise PathLookupError(
-                        '%s not a child of %s' % (page, self.namespace)
+                    '%s not a child of %s' % (page, self.namespace)
                 )
             name = page.relname(self.namespace)
         else:
@@ -102,7 +102,7 @@ class MultiFileLayout(DirLayoutBase):
             else:
                 # This layout can not store page == namespace !
                 raise PathLookupError(
-                        '%s not a child of %s' % (page, self.namespace)
+                    '%s not a child of %s' % (page, self.namespace)
                 )
         else:
             name = page.name
@@ -159,7 +159,7 @@ class FileLayout(DirLayoutBase):
             name = page.relname(self.namespace)
         else:
             raise PathLookupError(
-                    '%s not a child of %s' % (page, self.namespace)
+                '%s not a child of %s' % (page, self.namespace)
             )
         return self.dir.file(encode_filename(name) + '.' + self.ext)
 
@@ -200,10 +200,10 @@ class SingleFileLayout(DirLayoutBase):
         if page.isroot:
             raise PathLookupError('Can not export: %s', page)
         elif self.namespace \
-        and not page == self.namespace \
-        and not page.ischild(self.namespace):
+                and not page == self.namespace \
+                and not page.ischild(self.namespace):
             raise PathLookupError(
-                    '%s not a child of %s' % (page, self.namespace)
+                '%s not a child of %s' % (page, self.namespace)
             )
         else:
             return self.file

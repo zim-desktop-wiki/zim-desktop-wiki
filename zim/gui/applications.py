@@ -27,7 +27,7 @@ import gobject
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
 from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-        data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
+    data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
@@ -80,12 +80,12 @@ def _create_application(dir, Name, Exec, klass=None, NoDisplay=True, **param):
         klass = DesktopEntryFile
     entry = klass(file)
     entry.update(
-            Type=param.pop('Type', 'Application'),
-            Version=1.0,
-            NoDisplay=NoDisplay,
-            Name=Name,
-            Exec=Exec,
-            **param
+        Type=param.pop('Type', 'Application'),
+        Version=1.0,
+        NoDisplay=NoDisplay,
+        Name=Name,
+        Exec=Exec,
+        **param
     )
 
     assert entry.isvalid(), 'BUG: created invalid desktop entry'
@@ -442,7 +442,7 @@ class String(BaseString):
         # Only ascii chars allowed in these keys
         value = BaseString.check(self, value)
         if isinstance(value, unicode) \
-        and value.encode('utf-8') != value:
+                and value.encode('utf-8') != value:
             raise ValueError('ASCII string required')
         return value
 
@@ -489,19 +489,19 @@ class DesktopEntryDict(SectionedConfigDict, Application):
     __repr__ = Application.__repr__
 
     _definitions = (
-            # Data types for all keys are defined in spec - see freedesktop.org
-            # Don't define all keys in the spec, just define the ones that we might use
-            ('Type', String('Application')),
-            ('Version', Numeric(1.0)),
-            ('GenericName', LocaleString(None)),
-            ('Name', LocaleString(None)),
-            ('Comment', LocaleString(None)),
-            ('Exec', String(None)),
-            ('TryExec', String(None)),
-            ('Icon', LocaleString(None)),
-            ('MimeType', String(None)),
-            ('Terminal', Boolean(False)),
-            ('NoDisplay', Boolean(False)),
+        # Data types for all keys are defined in spec - see freedesktop.org
+        # Don't define all keys in the spec, just define the ones that we might use
+        ('Type', String('Application')),
+        ('Version', Numeric(1.0)),
+        ('GenericName', LocaleString(None)),
+        ('Name', LocaleString(None)),
+        ('Comment', LocaleString(None)),
+        ('Exec', String(None)),
+        ('TryExec', String(None)),
+        ('Icon', LocaleString(None)),
+        ('MimeType', String(None)),
+        ('Terminal', Boolean(False)),
+        ('NoDisplay', Boolean(False)),
     )
 
     def __init__(self):
@@ -524,9 +524,9 @@ class DesktopEntryDict(SectionedConfigDict, Application):
         '''
         entry = self['Desktop Entry']
         if entry.get('Type') == 'Application' \
-        and entry.get('Version') == 1.0 \
-        and entry.get('Name') \
-        and entry.get('Exec'):
+                and entry.get('Version') == 1.0 \
+                and entry.get('Name') \
+                and entry.get('Exec'):
             return True
         else:
             logger.error('Invalid desktop entry: %s %s', self.key, entry)
@@ -632,7 +632,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 
         if '%i' in cmd:
             if 'Icon' in self['Desktop Entry'] \
-            and self['Desktop Entry']['Icon']:
+                    and self['Desktop Entry']['Icon']:
                 i = cmd.index('%i')
                 cmd[i] = self['Desktop Entry']['Icon']
                 cmd.insert(i, '--icon')
@@ -766,7 +766,7 @@ class CustomizeOpenWithDialog(Dialog):
         application
         '''
         Dialog.__init__(self, ui, _('Configure Applications'),  # T: Dialog title
-                buttons=gtk.BUTTONS_CLOSE, help='Help:Default Applications')
+                        buttons=gtk.BUTTONS_CLOSE, help='Help:Default Applications')
         self.mimetype = mimetype
         self.add_text(_mimetype_dialog_text(mimetype))
 
@@ -888,9 +888,9 @@ class AddApplicationDialog(Dialog):
         self.mimetype = mimetype
         self.add_text(_mimetype_dialog_text(mimetype))
         self.add_form((
-                ('name', 'string', _('Name')),  # T: Field in 'custom command' dialog
-                ('exec', 'string', _('Command')),  # T: Field in 'custom command' dialog
-                ('default', 'bool', _('Make default application')),  # T: Field in 'custom command' dialog
+            ('name', 'string', _('Name')),  # T: Field in 'custom command' dialog
+            ('exec', 'string', _('Command')),  # T: Field in 'custom command' dialog
+            ('default', 'bool', _('Make default application')),  # T: Field in 'custom command' dialog
         ))
         self.form['default'] = True
 
@@ -1061,11 +1061,11 @@ class CustomToolDict(DesktopEntryDict):
     '''
 
     _definitions = DesktopEntryDict._definitions + (
-                    ('X-Zim-ExecTool', String(None)),
-                    ('X-Zim-ReadOnly', Boolean(True)),
-                    ('X-Zim-ShowInToolBar', Boolean(False)),
-                    ('X-Zim-ShowInContextMenu', Choice(None, ('Text', 'Page'))),
-                    ('X-Zim-ReplaceSelection', Boolean(False)),
+        ('X-Zim-ExecTool', String(None)),
+        ('X-Zim-ReadOnly', Boolean(True)),
+        ('X-Zim-ShowInToolBar', Boolean(False)),
+        ('X-Zim-ShowInContextMenu', Choice(None, ('Text', 'Page'))),
+        ('X-Zim-ReplaceSelection', Boolean(False)),
     )
 
     def isvalid(self):
@@ -1074,12 +1074,12 @@ class CustomToolDict(DesktopEntryDict):
         '''
         entry = self['Desktop Entry']
         if entry.get('Type') == 'X-Zim-CustomTool' \
-        and entry.get('Version') == 1.0 \
-        and entry.get('Name') \
-        and entry.get('X-Zim-ExecTool') \
-        and not entry.get('X-Zim-ReadOnly') is None \
-        and not entry.get('X-Zim-ShowInToolBar') is None \
-        and 'X-Zim-ShowInContextMenu' in entry:
+                and entry.get('Version') == 1.0 \
+                and entry.get('Name') \
+                and entry.get('X-Zim-ExecTool') \
+                and not entry.get('X-Zim-ReadOnly') is None \
+                and not entry.get('X-Zim-ShowInToolBar') is None \
+                and 'X-Zim-ShowInContextMenu' in entry:
             return True
         else:
             logger.error('Invalid custom tool entry: %s %s', self.key, entry)
@@ -1183,7 +1183,7 @@ class CustomToolDict(DesktopEntryDict):
 
         # Set sane default for X-Zim-ShowInContextMenus
         if not (E and 'X-Zim-ShowInContextMenu' in E) \
-        and not 'X-Zim-ShowInContextMenu' in F:
+                and not 'X-Zim-ShowInContextMenu' in F:
             cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
             if any(c in cmd for c in ['%f', '%d', '%s']):
                 context = 'Page'

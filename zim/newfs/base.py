@@ -348,7 +348,7 @@ class FilePath(object):
     def ischild(self, parent):
         names = parent.pathnames
         return len(names) < len(self.pathnames) \
-                and self.pathnames[:len(names)] == names
+            and self.pathnames[:len(names)] == names
 
     def relpath(self, start, allowupward=False):
         if allowupward and not self.ischild(start):
@@ -563,39 +563,39 @@ except ImportError:
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
-        # Gleaned from gtk.gdk.get_formats()
-        'bmp',  # image/bmp
-        'gif',  # image/gif
-        'icns',  # image/x-icns
-        'ico',  # image/x-icon
-        'cur',  # image/x-icon
-        'jp2',  # image/jp2
-        'jpc',  # image/jp2
-        'jpx',  # image/jp2
-        'j2k',  # image/jp2
-        'jpf',  # image/jp2
-        'jpeg',  # image/jpeg
-        'jpe',  # image/jpeg
-        'jpg',  # image/jpeg
-        'pcx',  # image/x-pcx
-        'png',  # image/png
-        'pnm',  # image/x-portable-anymap
-        'pbm',  # image/x-portable-anymap
-        'pgm',  # image/x-portable-anymap
-        'ppm',  # image/x-portable-anymap
-        'ras',  # image/x-cmu-raster
-        'tga',  # image/x-tga
-        'targa',  # image/x-tga
-        'tiff',  # image/tiff
-        'tif',  # image/tiff
-        'wbmp',  # image/vnd.wap.wbmp
-        'xbm',  # image/x-xbitmap
-        'xpm',  # image/x-xpixmap
-        'wmf',  # image/x-wmf
-        'apm',  # image/x-wmf
-        'svg',  # image/svg+xml
-        'svgz',  # image/svg+xml
-        'svg.gz',  # image/svg+xml
+    # Gleaned from gtk.gdk.get_formats()
+    'bmp',  # image/bmp
+    'gif',  # image/gif
+    'icns',  # image/x-icns
+    'ico',  # image/x-icon
+    'cur',  # image/x-icon
+    'jp2',  # image/jp2
+    'jpc',  # image/jp2
+    'jpx',  # image/jp2
+    'j2k',  # image/jp2
+    'jpf',  # image/jp2
+    'jpeg',  # image/jpeg
+    'jpe',  # image/jpeg
+    'jpg',  # image/jpeg
+    'pcx',  # image/x-pcx
+    'png',  # image/png
+    'pnm',  # image/x-portable-anymap
+    'pbm',  # image/x-portable-anymap
+    'pgm',  # image/x-portable-anymap
+    'ppm',  # image/x-portable-anymap
+    'ras',  # image/x-cmu-raster
+    'tga',  # image/x-tga
+    'targa',  # image/x-tga
+    'tiff',  # image/tiff
+    'tif',  # image/tiff
+    'wbmp',  # image/vnd.wap.wbmp
+    'xbm',  # image/x-xbitmap
+    'xpm',  # image/x-xpixmap
+    'wmf',  # image/x-wmf
+    'apm',  # image/x-wmf
+    'svg',  # image/svg+xml
+    'svgz',  # image/svg+xml
+    'svg.gz',  # image/svg+xml
 )
 
 

@@ -24,14 +24,14 @@ import zim.datetimetz as datetime
 
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
-        '(' +
-                '^[_\W]|(?<=:)[_\W]' +
-        '|' +
-                '[' + re.escape(''.join(
-                        ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
-                )) + ']' +
-        ')',
-re.UNICODE)
+    '(' +
+    '^[_\W]|(?<=:)[_\W]' +
+    '|' +
+    '[' + re.escape(''.join(
+                    ("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
+                    )) + ']' +
+    ')',
+    re.UNICODE)
 # This pattern matches a non-alphanumber at start or after the ':'
 # seperator. It also matches any invalid character.
 # The UNICODE flag is used to make the alphanumber check international.
@@ -99,8 +99,8 @@ class Path(object):
         '''
         assert isinstance(name, basestring)
         if not name.strip(':') \
-        or _pagename_reduce_colon_re.search(name) \
-        or _pagename_invalid_char_re.search(name):
+                or _pagename_reduce_colon_re.search(name) \
+                or _pagename_invalid_char_re.search(name):
             raise AssertionError('Not a valid page name: %s' % name)
 
     @staticmethod
@@ -382,7 +382,7 @@ class Page(Path, SignalEmitter):
     '''
 
     __signals__ = {
-            'page-changed': (SIGNAL_NORMAL, None, (bool,))
+        'page-changed': (SIGNAL_NORMAL, None, (bool,))
     }
 
     def __init__(self, path, haschildren, file, folder):

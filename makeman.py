@@ -10,7 +10,7 @@ from time import strftime, gmtime, time
 from locale import setlocale, LC_TIME
 
 from zim import __version__, __url__, \
-        __author__, __copyright__, __license__
+    __author__, __copyright__, __license__
 from zim.main import HelpCommand
 
 

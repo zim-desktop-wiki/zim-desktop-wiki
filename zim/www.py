@@ -50,10 +50,10 @@ class WWWError(Error):
 
     #: mapping of error number to string - extend when needed
     statusstring = {
-            '403': 'Forbidden',
-            '404': 'Not Found',
-            '405': 'Method Not Allowed',
-            '500': 'Internal Server Error',
+        '403': 'Forbidden',
+        '404': 'Not Found',
+        '405': 'Method Not Allowed',
+        '500': 'Internal Server Error',
     }
 
     def __init__(self, msg, status='500', headers=None):
@@ -286,18 +286,18 @@ class WWWInterface(object):
         lines = []
 
         context = ExportTemplateContext(
-                self.notebook,
-                self.linker_factory,
-                self.dumper_factory,
-                title=page.get_title(),
-                content=[page],
-                home=self.notebook.get_home_page(),
-                up=page.parent if page.parent and not page.parent.isroot else None,
-                prevpage=self.notebook.pages.get_previous(page) if not page.isroot else None,
-                nextpage=self.notebook.pages.get_next(page) if not page.isroot else None,
-                links={'index': '/'},
-                index_generator=self.notebook.pages.walk,
-                index_page=page,
+            self.notebook,
+            self.linker_factory,
+            self.dumper_factory,
+            title=page.get_title(),
+            content=[page],
+            home=self.notebook.get_home_page(),
+            up=page.parent if page.parent and not page.parent.isroot else None,
+            prevpage=self.notebook.pages.get_previous(page) if not page.isroot else None,
+            nextpage=self.notebook.pages.get_next(page) if not page.isroot else None,
+            links={'index': '/'},
+            index_generator=self.notebook.pages.walk,
+            index_page=page,
         )
         self.template.process(lines, context)
         return lines
@@ -333,7 +333,7 @@ class WWWLinker(ExportLinker):
             relpath = file.relpath(self.notebook.dir)
             return url_encode('/+file/' + relpath)
         elif self.notebook.document_root \
-        and file.ischild(self.notebook.document_root):
+                and file.ischild(self.notebook.document_root):
             # document root
             relpath = file.relpath(self.notebook.document_root)
             return url_encode('/+docs/' + relpath)

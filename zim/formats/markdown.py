@@ -20,15 +20,15 @@ from zim.formats.plain import Dumper as TextDumper
 
 
 info = {
-        'name': 'markdown',
-        'desc': 'Markdown Text (pandoc)',
-        'mimetype': 'text/x-markdown',
-        'extension': 'markdown',
-                # No official file extension, but this is often used
-        'native': False,
-        'import': False,
-        'export': True,
-        'usebase': True,
+    'name': 'markdown',
+    'desc': 'Markdown Text (pandoc)',
+    'mimetype': 'text/x-markdown',
+    'extension': 'markdown',
+    # No official file extension, but this is often used
+    'native': False,
+    'import': False,
+    'export': True,
+    'usebase': True,
 }
 
 
@@ -37,22 +37,22 @@ class Dumper(TextDumper):
     # are different
 
     BULLETS = {
-            UNCHECKED_BOX: u'* \u2610',  # ☐
-            XCHECKED_BOX: u'* \u2612',  # ☒
-            CHECKED_BOX: u'* \u2611',  # ☑
-            MIGRATED_BOX: u'* \u25B7',  # ▷
-            BULLET: u'*',
+        UNCHECKED_BOX: u'* \u2610',  # ☐
+        XCHECKED_BOX: u'* \u2612',  # ☒
+        CHECKED_BOX: u'* \u2611',  # ☑
+        MIGRATED_BOX: u'* \u25B7',  # ▷
+        BULLET: u'*',
     }
 
     TAGS = {
-            EMPHASIS: ('*', '*'),
-            STRONG: ('**', '**'),
-            MARK: ('__', '__'),  # OPEN ISSUE: not availalbe in pandoc
-            STRIKE: ('~~', '~~'),
-            VERBATIM: ("``", "``"),
-            TAG: ('', ''),  # No additional annotation (apart from the visible @)
-            SUBSCRIPT: ('~', '~'),
-            SUPERSCRIPT: ('^', '^'),
+        EMPHASIS: ('*', '*'),
+        STRONG: ('**', '**'),
+        MARK: ('__', '__'),  # OPEN ISSUE: not availalbe in pandoc
+        STRIKE: ('~~', '~~'),
+        VERBATIM: ("``", "``"),
+        TAG: ('', ''),  # No additional annotation (apart from the visible @)
+        SUBSCRIPT: ('~', '~'),
+        SUPERSCRIPT: ('^', '^'),
     }
 
     def dump(self, tree):
@@ -90,7 +90,7 @@ class Dumper(TextDumper):
 
     def dump_link(self, tag, attrib, strings=None):
         assert 'href' in attrib, \
-                'BUG: link misses href: %s "%s"' % (attrib, strings)
+            'BUG: link misses href: %s "%s"' % (attrib, strings)
         href = self.linker.link(attrib['href'])
         text = u''.join(strings) or href
         if href == text and url_re.match(href):

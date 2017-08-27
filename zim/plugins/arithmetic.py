@@ -11,14 +11,14 @@ from zim.actions import action
 class ArithmeticPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Arithmetic'),  # T: plugin name
-            'description': _('''\
+        'name': _('Arithmetic'),  # T: plugin name
+        'description': _('''\
 This plugin allows you to embed arithmetic calculations in zim.
 It is based on the arithmetic module from
 http://pp.com.mx/python/arithmetic.
 '''),  # T: plugin description
-            'author': 'Patricio Paez',
-            'help': 'Plugins:Arithmetic',
+        'author': 'Patricio Paez',
+        'help': 'Plugins:Arithmetic',
     }
 
     #~ plugin_preferences = (

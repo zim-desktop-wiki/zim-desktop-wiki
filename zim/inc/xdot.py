@@ -613,7 +613,7 @@ class Scanner:
             flags |= re.IGNORECASE
         self.tokens_re = re.compile(
             '|'.join(['(' + regexp + ')' for type, regexp, test_lit in self.tokens]),
-             flags
+            flags
         )
 
     def next(self, buf, pos):
@@ -786,7 +786,7 @@ class DotScanner(Scanner):
             r'//[^\r\n]*|'
             r'/\*.*?\*/|'
             r'#[^\r\n]*',
-        False),
+         False),
 
         # Alphanumeric IDs
         (ID, r'[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*', True),

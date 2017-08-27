@@ -65,8 +65,8 @@ class TestParsing(tests.TestCase):
         buffer = TextBuffer()
         buffer += ['test 123\n test !', 'fooo bar\n', 'duss']
         self.assertEqual(
-                buffer.get_lines(),
-                ['test 123\n', ' test !fooo bar\n', 'duss\n'])
+            buffer.get_lines(),
+            ['test 123\n', ' test !fooo bar\n', 'duss\n'])
 
     def testURLEncoding(self):
         '''Test encoding and decoding urls'''
@@ -76,9 +76,9 @@ class TestParsing(tests.TestCase):
 
                 # from bug report lp:545712
                 ('http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm',
-                        'http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm'),
+                 'http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm'),
                 ('http://www.moneydj.com/e/newage/JAVA%20%B4%FA%B8%D5%B0%CF.htm',
-                        'http://www.moneydj.com/e/newage/JAVA %B4%FA%B8%D5%B0%CF.htm'),
+                 'http://www.moneydj.com/e/newage/JAVA %B4%FA%B8%D5%B0%CF.htm'),
         ):
             self.assertEqual(url_decode(url, mode=URL_ENCODE_READABLE), readable)
             self.assertEqual(url_decode(readable, mode=URL_ENCODE_READABLE), readable)
@@ -154,14 +154,14 @@ class TestSimpleTreeBuilder(tests.TestCase):
 
         root = builder.get_root()
         self.assertEqual(root, [
-                E('root', {}, [
-                                'foo', 'bar',
-                                E('dus', {}, ['ja']),
-                                'foo', 'bar',
-                                E('br', {}, []),
-                                'foo', 'bar',
-                        ]
-                )
+            E('root', {}, [
+                'foo', 'bar',
+                E('dus', {}, ['ja']),
+                'foo', 'bar',
+                E('br', {}, []),
+                'foo', 'bar',
+            ]
+            )
         ])
 
         realbuilder = SimpleTreeBuilder()
@@ -180,14 +180,14 @@ class TestSimpleTreeBuilder(tests.TestCase):
 
         root = realbuilder.get_root()
         self.assertEqual(root, [
-                E('root', {}, [
-                                'foobar',
-                                E('dus', {}, ['ja']),
-                                'foobar',
-                                E('br', {}, []),
-                                'foobar',
-                        ]
-                )
+            E('root', {}, [
+                'foobar',
+                E('dus', {}, ['ja']),
+                'foobar',
+                E('br', {}, []),
+                'foobar',
+            ]
+            )
         ])
 
 
@@ -221,11 +221,11 @@ class TestBuilderTextBuffer(tests.TestCase):
 
         E = SimpleTreeElement
         self.assertEqual(builder.get_root(), [
-                E('FOO', None, [
-                        u'aaa\nbbb\nccc\n',
-                        E('BAR', None, []),
-                        u'ddd\neee',
-                ])
+            E('FOO', None, [
+                u'aaa\nbbb\nccc\n',
+                E('BAR', None, []),
+                u'ddd\neee',
+            ])
         ])
 
 

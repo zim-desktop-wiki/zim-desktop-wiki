@@ -28,15 +28,15 @@ from zim.parsing import url_encode, URL_ENCODE_DATA
 
 def build_template_functions():
     return {
-            'len': ExpressionFunction(len),
-            'sorted': ExpressionFunction(sorted),
-            'reversed': ExpressionFunction(lambda i: list(reversed(i))),
-            'range': ExpressionFunction(range),
-            'strftime': template_strftime,
-            'strfcal': template_strfcal,
-            'html_encode': ExpressionFunction(html_encode),
-            'url_encode': ExpressionFunction(partial(url_encode, mode=URL_ENCODE_DATA)),
-            'gettext': template_gettext,
+        'len': ExpressionFunction(len),
+        'sorted': ExpressionFunction(sorted),
+        'reversed': ExpressionFunction(lambda i: list(reversed(i))),
+        'range': ExpressionFunction(range),
+        'strftime': template_strftime,
+        'strfcal': template_strfcal,
+        'html_encode': ExpressionFunction(html_encode),
+        'url_encode': ExpressionFunction(partial(url_encode, mode=URL_ENCODE_DATA)),
+        'gettext': template_gettext,
     }
 
 

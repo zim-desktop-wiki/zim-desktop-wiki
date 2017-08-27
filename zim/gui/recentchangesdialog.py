@@ -19,9 +19,9 @@ class RecentChangesDialog(Dialog):
 
     def __init__(self, ui):
         Dialog.__init__(self, ui, _('Recent Changes'),  # T: Dialog title
-                buttons=gtk.BUTTONS_CLOSE,
-                defaultwindowsize=(400, 300)
-        )
+                        buttons=gtk.BUTTONS_CLOSE,
+                        defaultwindowsize=(400, 300)
+                        )
 
         self.treeview = RecentChangesTreeView(ui)
         self.vbox.add(ScrolledWindow(self.treeview))

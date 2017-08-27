@@ -48,7 +48,7 @@ class TestFS(tests.TestCase):
 
     def testFunctions(self):
         smb_urls = (
-                ('smb://MyHost.local/share/My%20Documents', r'\\MyHost.local\share\My Documents'),
+            ('smb://MyHost.local/share/My%20Documents', r'\\MyHost.local\share\My Documents'),
         )
         for url, share in smb_urls:
             if os.name == 'nt':
@@ -90,7 +90,7 @@ class TestFS(tests.TestCase):
         for d in path:
             dirs.append(d)
         wanted = map(lambda p: Dir(os.path.abspath(drive + p)),
-                                ['/foo', '/foo/bar', '/foo/bar/baz'])
+                     ['/foo', '/foo/bar', '/foo/bar/baz'])
         self.assertEqual(dirs, wanted)
 
         for path1, path2, common in (
@@ -150,7 +150,7 @@ class TestFS(tests.TestCase):
         self.on_close_called = False
         tmpdir = self.create_tmp_dir('testFileHandle')
         fh = FileHandle(
-                tmpdir + '/foo.txt', mode='w', on_close=self.on_close)
+            tmpdir + '/foo.txt', mode='w', on_close=self.on_close)
         fh.write('duss')
         fh.close()
         self.assertTrue(self.on_close_called)

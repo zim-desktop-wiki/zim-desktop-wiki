@@ -36,29 +36,29 @@ from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
 OBJECT_TYPE = 'table'
 
 SYNTAX_CELL_INPUT = [
-        ('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'"), ('\n', '\\n')
+    ('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'"), ('\n', '\\n')
 ]
 
 # Regex replacement strings: Wiki-Parsetree -> Pango (Table cell) -> Input (Table cell editing)
 # the target pattern is easier to read, the source pattern is generated out of it
 # With this syntax text can be format within a table-cell
 SYNTAX_WIKI_PANGO2 = [
-        (r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
-        (r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
-        (r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
-        (r'<strike>\1</strike>', r'<s>\1</s>', r'~~\1~~'),
-        # Link url without link text  - Link url has always size = 0
-        (r'<link href="\1">\1</link>', r'<span foreground="blue">\1<span size="0">\1</span></span>', r'[[\1]]'),
-        # Link url with link text  - Link url has always size = 0
-        (r'<link href="\1">\2</link>', r'<span foreground="blue">\2<span size="0">\1</span></span>', r'[[\2|\1]]'),
-        (r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//')
+    (r'<strong>\1</strong>', r'<b>\1</b>', r'**\1**'),
+    (r'<mark>\1</mark>', r'<span background="yellow">\1</span>', r'__\1__'),
+    (r'<code>\1</code>', r'<tt>\1</tt>', r"''\1''"),
+    (r'<strike>\1</strike>', r'<s>\1</s>', r'~~\1~~'),
+    # Link url without link text  - Link url has always size = 0
+    (r'<link href="\1">\1</link>', r'<span foreground="blue">\1<span size="0">\1</span></span>', r'[[\1]]'),
+    # Link url with link text  - Link url has always size = 0
+    (r'<link href="\1">\2</link>', r'<span foreground="blue">\2<span size="0">\1</span></span>', r'[[\2|\1]]'),
+    (r'<emphasis>\1</emphasis>', r'<i>\1</i>', r'//\1//')
 ]
 
 # Possible alignments in edit-table-dialog
 COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],  # T: alignment option
-                                          'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],  # T: alignment option
-                                          'right': ['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')],  # T: alignment option
-                                          'normal': ['normal', None, _('Unspecified')], }  # T: alignment option
+                      'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],  # T: alignment option
+                      'right': ['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')],  # T: alignment option
+                      'normal': ['normal', None, _('Unspecified')], }  # T: alignment option
 
 
 def reg_replace(string):
@@ -68,7 +68,7 @@ def reg_replace(string):
     :return:source pattern
     '''
     string = string.replace('*', '\*').replace('[', '\[').replace(']', '\]') \
-            .replace(r'\1', '(.+?)', 1).replace(r'\2', '(.+?)', 1).replace('|', '\|')
+        .replace(r'\1', '(.+?)', 1).replace(r'\2', '(.+?)', 1).replace('|', '\|')
     return re.compile(string)
 
 # Regex compiled search patterns
@@ -89,14 +89,14 @@ class TableEditorPlugin(PluginClass):
     - zim.formats.wiki
     '''
     plugin_info = {
-            'name': _('Table Editor'),  # T: plugin name
-            'description': _('''\
+        'name': _('Table Editor'),  # T: plugin name
+        'description': _('''\
 With this plugin you can embed a 'Table' into the wiki page. Tables will be shown as GTK TreeView widgets.
 Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 '''),  # T: plugin description
-            'object_types': (OBJECT_TYPE, ),
-            'help': 'Plugins:Table Editor',
-            'author': 'Tobias Haupenthal',
+        'object_types': (OBJECT_TYPE, ),
+        'help': 'Plugins:Table Editor',
+        'author': 'Tobias Haupenthal',
     }
 
     global LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL, LINES_BOTH  # Hack - to make sure translation is loaded
@@ -106,12 +106,12 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
     LINES_VERTICAL = _('vertical lines')  # T: option value
 
     plugin_preferences = (
-            # key, type, label, default
-            ('show_helper_toolbar', 'bool', _('Show helper toolbar'), True),   # T: preference description
+        # key, type, label, default
+        ('show_helper_toolbar', 'bool', _('Show helper toolbar'), True),   # T: preference description
 
-            # option for displaying grid-lines within the table
-            ('grid_lines', 'choice', _('Grid lines'), LINES_BOTH, (LINES_BOTH, LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL)),
-            # T: preference description
+        # option for displaying grid-lines within the table
+        ('grid_lines', 'choice', _('Grid lines'), LINES_BOTH, (LINES_BOTH, LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL)),
+        # T: preference description
     )
 
     def __init__(self, config=None):
@@ -256,9 +256,9 @@ class TableViewObject(CustomObjectClass):
     '''data presenter of an inserted table within a page'''
 
     OBJECT_ATTR = {
-            'type': String('table'),
-            'aligns': String(''),  # i.e. String(left,right,center)
-            'wraps': String('')	  # i.e. String(0,1,0)
+        'type': String('table'),
+        'aligns': String(''),  # i.e. String(left,right,center)
+        'wraps': String('')	  # i.e. String(0,1,0)
     }
 
     def __init__(self, attrib, header, rows, preferences):
@@ -347,8 +347,8 @@ class TableViewObject(CustomObjectClass):
             rows = []
             for treerow in self._liststore:
                 rows.append(map(
-                        lambda cell: CellFormatReplacer.cell_to_input(cell, True),
-                        treerow
+                    lambda cell: CellFormatReplacer.cell_to_input(cell, True),
+                    treerow
                 ))
 
         return headers, rows, attrs
@@ -441,17 +441,17 @@ class TableViewObject(CustomObjectClass):
 
 
 GTK_GRIDLINES = {
-        LINES_BOTH: gtk.TREE_VIEW_GRID_LINES_BOTH,
-        LINES_NONE: gtk.TREE_VIEW_GRID_LINES_NONE,
-        LINES_HORIZONTAL: gtk.TREE_VIEW_GRID_LINES_HORIZONTAL,
-        LINES_VERTICAL: gtk.TREE_VIEW_GRID_LINES_VERTICAL,
+    LINES_BOTH: gtk.TREE_VIEW_GRID_LINES_BOTH,
+    LINES_NONE: gtk.TREE_VIEW_GRID_LINES_NONE,
+    LINES_HORIZONTAL: gtk.TREE_VIEW_GRID_LINES_HORIZONTAL,
+    LINES_VERTICAL: gtk.TREE_VIEW_GRID_LINES_VERTICAL,
 }
 
 
 class TableViewWidget(CustomObjectWidget):
 
     __gsignals__ = {
-            'size-request': 'override',
+        'size-request': 'override',
     }
 
     def __init__(self, obj, liststore, headers, attrs):
@@ -822,7 +822,7 @@ class TableViewWidget(CustomObjectWidget):
             self.obj.set_modified(True)
         else:
             md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-                                                            _("The table must consist of at least on row!\n No deletion done."))
+                                   _("The table must consist of at least on row!\n No deletion done."))
             # T: Popup dialog
             md.run()
             md.destroy()
@@ -921,7 +921,7 @@ class TableViewWidget(CustomObjectWidget):
     def selection_info(self):
         ''' Info-Popup for selecting a cell before this action can be done '''
         md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-                                                        _("Please select a row, before you push the button."))
+                               _("Please select a row, before you push the button."))
         # T:
         md.run()
         md.destroy()
@@ -1200,7 +1200,7 @@ class EditTableDialog(Dialog):
                 model.remove(treeiter)
             else:
                 md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-                                                                _("A table needs to have at least one column."))  # T: popup dialog
+                                       _("A table needs to have at least one column."))  # T: popup dialog
                 md.run()
                 md.destroy()
         else:
@@ -1226,6 +1226,6 @@ class EditTableDialog(Dialog):
     def selection_info(self):
         ''' Info-Popup for selecting a cell before this action can be done '''
         md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-                                                        _("Please select a row, before you push the button."))  # T: Popup dialog
+                               _("Please select a row, before you push the button."))  # T: Popup dialog
         md.run()
         md.destroy()

@@ -17,7 +17,7 @@ from zim.newfs import LocalFolder
 from zim.notebook import Path
 from zim.parsing import is_url_re, url_encode, link_type, URL_ENCODE_READABLE
 from zim.formats import get_format, ParseTree, ParseTreeBuilder, \
-        FORMATTEDTEXT, IMAGE, LINK
+    FORMATTEDTEXT, IMAGE, LINK
 from zim.export.linker import StaticExportLinker
 
 
@@ -33,7 +33,7 @@ PARSETREE_TARGET = (PARSETREE_TARGET_NAME, 0, PARSETREE_TARGET_ID)
 INTERNAL_PAGELIST_TARGET_ID = 2
 INTERNAL_PAGELIST_TARGET_NAME = 'text/x-zim-page-list-internal'
 INTERNAL_PAGELIST_TARGET = \
-        (INTERNAL_PAGELIST_TARGET_NAME, gtk.TARGET_SAME_APP, INTERNAL_PAGELIST_TARGET_ID)
+    (INTERNAL_PAGELIST_TARGET_NAME, gtk.TARGET_SAME_APP, INTERNAL_PAGELIST_TARGET_ID)
 
 PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
@@ -74,8 +74,8 @@ TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
 
 # All targets that we can convert to a parsetree, in order of choice
 PARSETREE_ACCEPT_TARGETS = (
-        PARSETREE_TARGET,
-        INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
+    PARSETREE_TARGET,
+    INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
 ) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
 #~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
@@ -207,7 +207,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
     if targetname == PARSETREE_TARGET_NAME:
         return ParseTree().fromstring(selectiondata.data)
     elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
-    or targetname in URI_TARGET_NAMES:
+            or targetname in URI_TARGET_NAMES:
         links = unpack_urilist(selectiondata.data)
         return _link_tree(links, notebook, path)
     elif targetname in TEXT_TARGET_NAMES:
@@ -302,8 +302,8 @@ def _get_image_info(targetname):
     # format name and file extension
     for format in gtk.gdk.pixbuf_get_formats():
         if targetname == format['name'] \
-        or targetname == format['name'].upper() \
-        or targetname in format['mime_types']:
+                or targetname == format['name'].upper() \
+                or targetname in format['mime_types']:
             if format['is_writable']:
                 return format['name'], format['extensions'][0]
             else:
@@ -394,7 +394,7 @@ class ParseTreeItem(ClipboardItem):
 
     def set(self, clipboard, clear_func):
         clipboard.set_with_data(self.targets, self._get, clear_func, self) \
-                or logger.warn('Failed to set data on clipboard')
+            or logger.warn('Failed to set data on clipboard')
 
     def _get(self, clipboard, selectiondata, id, *a):
         '''Callback to get the data in a specific format
@@ -410,7 +410,7 @@ class ParseTreeItem(ClipboardItem):
             selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
         elif id == HTML_TARGET_ID:
             dumper = get_format('html').Dumper(
-                    linker=StaticExportLinker(self.notebook, source=self.path))
+                linker=StaticExportLinker(self.notebook, source=self.path))
             html = ''.join(dumper.dump(self.parsetree))
             html = wrap_html(html, target=selectiondata.target)
             #~ print 'PASTING: >>>%s<<<' % html
@@ -423,7 +423,7 @@ class ParseTreeItem(ClipboardItem):
                 dumper = get_format(self.format).Dumper()
             else:
                 dumper = get_format(self.format).Dumper(
-                        linker=StaticExportLinker(self.notebook, source=self.path))
+                    linker=StaticExportLinker(self.notebook, source=self.path))
 
             text = ''.join(dumper.dump(self.parsetree)).encode('utf-8')
             selectiondata.set_text(text)
@@ -442,7 +442,7 @@ class PageLinkItem(ClipboardItem):
 
     def set(self, clipboard, clear_func):
         clipboard.set_with_data(self.targets, self._get, clear_func, self) \
-                or logger.warn('Failed to set data on clipboard')
+            or logger.warn('Failed to set data on clipboard')
 
     def _get(self, clipboard, selectiondata, id, *a):
         '''Callback to get the data in a specific format
@@ -638,14 +638,14 @@ class Win32HtmlFormat:
     '''
 
     MARKER_BLOCK_OUTPUT = \
-            "Version:1.0\r\n" \
-            "StartHTML:%09d\r\n" \
-            "EndHTML:%09d\r\n" \
-            "StartFragment:%09d\r\n" \
-            "EndFragment:%09d\r\n" \
-            "StartSelection:%09d\r\n" \
-            "EndSelection:%09d\r\n" \
-            "SourceURL:%s\r\n"
+        "Version:1.0\r\n" \
+        "StartHTML:%09d\r\n" \
+        "EndHTML:%09d\r\n" \
+        "StartFragment:%09d\r\n" \
+        "EndFragment:%09d\r\n" \
+        "StartSelection:%09d\r\n" \
+        "EndSelection:%09d\r\n" \
+        "SourceURL:%s\r\n"
 
     #~ MARKER_BLOCK_EX = \
     #~ "Version:(\S+)\s+" \
@@ -668,8 +668,8 @@ class Win32HtmlFormat:
     #~ MARKER_BLOCK_RE = re.compile(MARKER_BLOCK)
 
     DEFAULT_HTML_BODY = \
-            "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\">" \
-            "<HTML><HEAD>%s</HEAD><BODY><!--StartFragment-->%s<!--EndFragment--></BODY></HTML>"
+        "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\">" \
+        "<HTML><HEAD>%s</HEAD><BODY><!--StartFragment-->%s<!--EndFragment--></BODY></HTML>"
 
     @classmethod
     def encode(klass, fragment, selection=None, head=None, source=None):
@@ -691,10 +691,10 @@ class Win32HtmlFormat:
         lenPrefix = len(dummyPrefix)
 
         prefix = klass.MARKER_BLOCK_OUTPUT % (
-                lenPrefix, len(html) + lenPrefix,
-                fragmentStart + lenPrefix, fragmentEnd + lenPrefix,
-                selectionStart + lenPrefix, selectionEnd + lenPrefix,
-                source
+            lenPrefix, len(html) + lenPrefix,
+            fragmentStart + lenPrefix, fragmentEnd + lenPrefix,
+            selectionStart + lenPrefix, selectionEnd + lenPrefix,
+            source
         )
         return prefix + html
 

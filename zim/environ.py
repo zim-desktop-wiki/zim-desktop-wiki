@@ -93,13 +93,13 @@ if os.name == 'nt':
             environ['HOME'] = environ['USERPROFILE']
         elif 'HOMEDRIVE' in environ and 'HOMEPATH' in environ:
             environ['HOME'] = \
-                    environ['HOMEDRIVE'] + environ['HOMEPATH']
+                environ['HOMEDRIVE'] + environ['HOMEPATH']
 
     if not 'APPDATA' in environ or not environ['APPDATA']:
         environ['APPDATA'] = environ['HOME'] + '\\Application Data'
 
 assert isdir(environ['HOME']), \
-        'ERROR: environment variable $HOME not set correctly value is "%s"'
+    'ERROR: environment variable $HOME not set correctly value is "%s"'
 # using our own environ here to ensure encoding
 
 if not 'USER' in environ or not environ['USER']:

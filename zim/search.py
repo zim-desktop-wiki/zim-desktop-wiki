@@ -93,8 +93,8 @@ class QueryTerm(object):
     def __eq__(self, other):
         if isinstance(other, QueryTerm):
             return self.keyword == other.keyword \
-            and self.string == other.string \
-            and self.inverse == other.inverse
+                and self.string == other.string \
+                and self.inverse == other.inverse
         else:
             return False
 
@@ -182,7 +182,7 @@ class Query(object):
                     group = QueryGroup(OPERATOR_OR)
                     group.append(token)
                     while len(tokens) >= 2 and tokens[0] == OPERATOR_OR \
-                    and isinstance(tokens[1], QueryTerm):
+                            and isinstance(tokens[1], QueryTerm):
                         tokens.pop(0)
                         group.append(tokens.pop(0))
                     root.append(group)
@@ -205,7 +205,7 @@ class Query(object):
         # TODO make this return a list with positive terms for content
         # if find supports an OR operator, highlight them all
         if len(self.root) == 1 and isinstance(self.root[0], QueryTerm) \
-        and self.root[0].keyword in ('content', 'contentorname'):
+                and self.root[0].keyword in ('content', 'contentorname'):
             return self.root[0].string
         else:
             return None
@@ -298,7 +298,7 @@ class SearchSelection(PageSelection):
         results = None
         for term in indexterms:
             results, scope = op_func(results, scope,
-                    self._process_from_index(term, scope))
+                                     self._process_from_index(term, scope))
 
         if callback:
             if group.operator == OPERATOR_AND:
@@ -320,7 +320,7 @@ class SearchSelection(PageSelection):
 
         for term in subgroups:
             results, scope = op_func(results, scope,
-                    self._process_group(term, scope, callbackwrapper))
+                                     self._process_group(term, scope, callbackwrapper))
 
             if callback:
                 if group.operator == OPERATOR_AND:
@@ -339,7 +339,7 @@ class SearchSelection(PageSelection):
             myscope = scope  # local copy here, need to pass full scope to _process_content
             if term.keyword == 'contentorname':
                 results, myscope = op_func(results, myscope,
-                        self._process_from_index(term, myscope, scoring=10))
+                                           self._process_from_index(term, myscope, scoring=10))
 
         if callback and (
                 group.operator == OPERATOR_OR or
@@ -524,7 +524,7 @@ class SearchSelection(PageSelection):
                     #~ print '!! Count AND %s' % term
                     myscore = tree.countre(term.content_regex)
                     if term.keyword == 'contentorname' \
-                    and term.name_regex.match(path.name):
+                            and term.name_regex.match(path.name):
                         myscore += 1  # effective score going to 11
 
                     if bool(myscore) != term.inverse:  # implicit XOR
@@ -541,7 +541,7 @@ class SearchSelection(PageSelection):
                     #~ print '!! Count OR %s' % term
                     score = tree.countre(term.content_regex)
                     if term.keyword == 'contentorname' \
-                    and term.name_regex.match(path.name):
+                            and term.name_regex.match(path.name):
                         score += 1  # effective score going to 11
 
                     if bool(score) != term.inverse:  # implicit XOR
@@ -608,11 +608,11 @@ class SearchSelection(PageSelection):
         # charaters. Chinese is treated special because it does not use
         # whitespace as word delimiter.
         if re.search(r'^[\*\w]', string, re.U) \
-        and not u'\u4e00' <= string[0] <= u'\u9fff':
+                and not u'\u4e00' <= string[0] <= u'\u9fff':
             regex = r'\b' + regex
 
         if re.search(r'[\*\w]$', string, re.U) \
-        and not u'\u4e00' <= string[-1] <= u'\u9fff':
+                and not u'\u4e00' <= string[-1] <= u'\u9fff':
             regex = regex + r'\b'
 
         #~ print 'SEARCH REGEX: >>%s<<' % regex

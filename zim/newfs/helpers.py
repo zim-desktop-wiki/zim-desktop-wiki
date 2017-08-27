@@ -33,10 +33,10 @@ class FileTreeWatcher(SignalEmitter):
     '''
 
     __signals__ = {
-            'created': (SIGNAL_NORMAL, None, (object,)),
-            'changed': (SIGNAL_NORMAL, None, (object,)),
-            'moved': (SIGNAL_NORMAL, None, (object, object)),
-            'removed': (SIGNAL_NORMAL, None, (object,)),
+        'created': (SIGNAL_NORMAL, None, (object,)),
+        'changed': (SIGNAL_NORMAL, None, (object,)),
+        'moved': (SIGNAL_NORMAL, None, (object, object)),
+        'removed': (SIGNAL_NORMAL, None, (object,)),
     }  # : signals supported by this class
 
 
@@ -64,7 +64,7 @@ class TrashHelper(object):
                 ok = f.trash()
             except gobject.GError as error:
                 if error.code == gio.ERROR_CANCELLED \
-                or (os.name == 'nt' and error.code == 0):
+                        or (os.name == 'nt' and error.code == 0):
                     # code 0 observed on windows for cancel
                     logger.info('Trash operation cancelled')
                     raise TrashCancelledError('Trashing cancelled')
@@ -84,7 +84,7 @@ class TrashHelper(object):
 class FSObjectMonitor(SignalEmitter):
 
     __signals__ = {
-            'changed': (None, None, (None, None)),
+        'changed': (None, None, (None, None)),
     }
 
     def __init__(self, path):
@@ -93,8 +93,8 @@ class FSObjectMonitor(SignalEmitter):
 
     def _setup_signal(self, signal):
         if signal == 'changed' \
-        and self._gio_file_monitor is None \
-        and gio:
+                and self._gio_file_monitor is None \
+                and gio:
             try:
                 file = gio.File(uri=self.path.uri)
                 self._gio_file_monitor = file.monitor()
@@ -104,7 +104,7 @@ class FSObjectMonitor(SignalEmitter):
 
     def _teardown_signal(self, signal):
         if signal == 'changed' \
-        and self._gio_file_monitor:
+                and self._gio_file_monitor:
             try:
                 self._gio_file_monitor.cancel()
             except:

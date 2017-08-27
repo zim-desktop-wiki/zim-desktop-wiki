@@ -16,8 +16,8 @@ from zim.notebook import Path, encode_filename
 from zim.notebook.operations import NotebookOperation
 
 from zim.gui.widgets import Assistant, AssistantPage, \
-        ProgressDialog, ErrorDialog, QuestionDialog, \
-        MessageDialog, LogFileDialog, Button
+    ProgressDialog, ErrorDialog, QuestionDialog, \
+    MessageDialog, LogFileDialog, Button
 
 from zim.export import *
 from zim.export.selections import *
@@ -30,7 +30,7 @@ class ExportDialog(Assistant):
 
     def __init__(self, ui):
         Assistant.__init__(self, ui, _('Export'),  # T: dialog title
-                help=':Help:Export', defaultwindowsize=(400, 325))
+                           help=':Help:Export', defaultwindowsize=(400, 325))
 
         self.append_page(InputPage(self))
         self.append_page(FormatPage(self))
@@ -40,8 +40,8 @@ class ExportDialog(Assistant):
         output, exporter = self.get_exporter()
         selection = self.get_selection()
         logger.debug('exporter: %s, selection: %s',
-                exporter.__class__.__name__,
-                selection.__class__.__name__)
+                     exporter.__class__.__name__,
+                     selection.__class__.__name__)
         if exporter is None or selection is None:
             logger.debug('Cancelled - selection')
             return False  # canceled
@@ -50,9 +50,9 @@ class ExportDialog(Assistant):
         logging_context = LogContext()
         with logging_context:
             op = NotebookOperation(
-                    self.ui.notebook,
-                    _('Exporting notebook'),  # T: Title for progressbar window
-                    exporter.export_iter(selection)
+                self.ui.notebook,
+                _('Exporting notebook'),  # T: Title for progressbar window
+                exporter.export_iter(selection)
             )
             dialog = ProgressDialog(self, op)
             dialog.run()
@@ -89,7 +89,7 @@ class ExportDialog(Assistant):
                 options[k] = self.uistate[k]
 
         options['format'] = \
-                zim.formats.canonical_name(options['format'])
+            zim.formats.canonical_name(options['format'])
 
         if options['template'] == '__file__':
             options['template'] = self.uistate['template_file']
@@ -137,11 +137,11 @@ class ExportDialog(Assistant):
         dir = Dir(self.uistate['output_folder'])
         if dir.exists() and len(dir.list()) > 0:
             ok = QuestionDialog(self, (
-                    _('Folder exists: %s') % dir.path,  # T: message heading
-                    _('Folder already exists and has content, '
-                      'exporting to this folder may overwrite '
-                      'existing files. '
-                      'Do you want to continue?')  # T: detailed message, answers are Yes and No
+                _('Folder exists: %s') % dir.path,  # T: message heading
+                _('Folder already exists and has content, '
+                  'exporting to this folder may overwrite '
+                  'existing files. '
+                  'Do you want to continue?')  # T: detailed message, answers are Yes and No
             )).run()
             if not ok:
                 return None
@@ -151,9 +151,9 @@ class ExportDialog(Assistant):
         file = File(self.uistate['output_file'])
         if file.exists():
             ok = QuestionDialog(self, (
-                    _('File exists'),  # T: message heading
-                    _('This file already exists.\n'
-                      'Do you want to overwrite it?')  # T: detailed message, answers are Yes and No
+                _('File exists'),  # T: message heading
+                _('This file already exists.\n'
+                  'Do you want to overwrite it?')  # T: detailed message, answers are Yes and No
             )).run()
             if not ok:
                 return None
@@ -169,22 +169,22 @@ class InputPage(AssistantPage):
         AssistantPage.__init__(self, assistant)
 
         self.add_form((
-                ('selection:all', 'option', _('Complete _notebook')),
-                        # T: Option in export dialog to export complete notebook
-                #~ ('selection:selection', 'option', _('_Selection')),
-                        # T: Option in export dialog to export selection
-                #~ ('selection_query', 'string', None),
-                ('selection:page', 'option', _('Single _page')),
-                        # T: Option in export dialog to export selection
-                None,
-                ('page', 'page', _('Page')),  # T: Input field in export dialog
-                ('recursive', 'bool', _('Include subpages')),  # T: Input field in export dialog
+            ('selection:all', 'option', _('Complete _notebook')),
+            # T: Option in export dialog to export complete notebook
+            #~ ('selection:selection', 'option', _('_Selection')),
+            # T: Option in export dialog to export selection
+            #~ ('selection_query', 'string', None),
+            ('selection:page', 'option', _('Single _page')),
+            # T: Option in export dialog to export selection
+            None,
+            ('page', 'page', _('Page')),  # T: Input field in export dialog
+            ('recursive', 'bool', _('Include subpages')),  # T: Input field in export dialog
         ), {
-                'page': assistant.ui.page,
-                'recursive': True,
+            'page': assistant.ui.page,
+            'recursive': True,
         },
-        depends={
-                'page': 'selection:page',
+            depends={
+            'page': 'selection:page',
                 'recursive': 'selection:page',
         })
         self.form.widgets['page'].existing_only = True
@@ -219,23 +219,23 @@ class FormatPage(AssistantPage):
         self.export_formats.insert(1, 'MHTML (Web Page Archive)')  # TODO translatable
 
         self.add_form((
-                ('format', 'choice', _('Format'), self.export_formats),  # T: Input label in the export dialog
-                ('template', 'choice', _('Template'), ()),  # T: Input label in the export dialog
-                ('template_file', 'file', None),
-                None,
-                ('document_root:absolute', 'option', _('Link files under document root with full file path')),  # T: radio option in export dialog
-                ('document_root:url', 'option', _('Map document root to URL') + ': '),  # T: radio option in export dialog
-                ('document_root_url', 'string', None),
+            ('format', 'choice', _('Format'), self.export_formats),  # T: Input label in the export dialog
+            ('template', 'choice', _('Template'), ()),  # T: Input label in the export dialog
+            ('template_file', 'file', None),
+            None,
+            ('document_root:absolute', 'option', _('Link files under document root with full file path')),  # T: radio option in export dialog
+            ('document_root:url', 'option', _('Map document root to URL') + ': '),  # T: radio option in export dialog
+            ('document_root_url', 'string', None),
         ), depends={
-                'document_root_url': 'document_root:url'
+            'document_root_url': 'document_root:url'
         })
 
         # Same button appears in edit preferences dialog
         if gtk.gtk_version >= (2, 10) \
-        and gtk.pygtk_version >= (2, 10):
+                and gtk.pygtk_version >= (2, 10):
             url_button = gtk.LinkButton(
-                    'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
-                    _('Get more templates online')  # T: label for button with URL
+                'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
+                _('Get more templates online')  # T: label for button with URL
             )
             self.pack_start(url_button, False)
 
@@ -268,8 +268,8 @@ class FormatPage(AssistantPage):
         # Hook template entry to be sensitive on "Other.."
         self.form.widgets['template_file'].set_sensitive(False)
         self.form.widgets['template'].connect('changed',
-                lambda o: self.form.widgets['template_file'].set_sensitive(
-                                                o.get_active_text() == self.CHOICE_OTHER))
+                                              lambda o: self.form.widgets['template_file'].set_sensitive(
+                                                  o.get_active_text() == self.CHOICE_OTHER))
 
         # Check if we have a document root - if not disable all options
         docroot = assistant.ui.notebook.document_root
@@ -314,20 +314,20 @@ class OutputPage(AssistantPage):
         AssistantPage.__init__(self, assistant)
 
         self.add_form((
-                ('output:multi_file', 'option', _('Export each page to a separate file')),
-                        # T: Label for option in export dialog
-                ('output:single_file', 'option', _('Export all pages to a single file')),
-                        # T: Label for option in export dialog
-                None,
-                ('folder', 'dir', _('Output folder')),
-                        # T: Label for folder selection in export dialog
-                ('index', 'string', _('Index page')),
-                        # T: Label for setting a name for the index of exported pages
-                        # TODO validation for this entry - valid name, but not existing
-                ('file', 'output-file', _('Output file')),
-                        # T: Label for file selection in export dialog
+            ('output:multi_file', 'option', _('Export each page to a separate file')),
+            # T: Label for option in export dialog
+            ('output:single_file', 'option', _('Export all pages to a single file')),
+            # T: Label for option in export dialog
+            None,
+            ('folder', 'dir', _('Output folder')),
+            # T: Label for folder selection in export dialog
+            ('index', 'string', _('Index page')),
+            # T: Label for setting a name for the index of exported pages
+            # TODO validation for this entry - valid name, but not existing
+            ('file', 'output-file', _('Output file')),
+            # T: Label for file selection in export dialog
         ), depends={
-                'index': 'folder',
+            'index': 'folder',
         })
 
         for widget in self.form.widgets:
@@ -369,7 +369,7 @@ class OutputPage(AssistantPage):
             ext = zim.formats.get_format(format).info['extension']
 
         if self.uistate['output_file'] \
-        and isinstance(self.uistate['output_file'], File):
+                and isinstance(self.uistate['output_file'], File):
             dir = self.uistate['output_file'].dir
             file = dir.file(encode_filename(basename + '.' + ext))
         else:
@@ -431,7 +431,7 @@ class ExportDoneDialog(MessageDialog):
         # T: button in export dialog
         log_button.set_sensitive(logging_context.file.exists())
         log_button.connect_object(
-                'clicked', self.__class__.on_show_log, self)
+            'clicked', self.__class__.on_show_log, self)
 
         #~ open_button =
 

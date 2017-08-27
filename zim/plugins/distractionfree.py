@@ -20,27 +20,27 @@ _minmargin = 5  # minimum margin to keep from other widgets
 class DistractionFreePlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Distraction Free Editing'),  # T: plugin name
-            'description': _(
-                    'This plugin adds settings that help using zim\n'
-                    'as a distraction free editor.\n'
-            ),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Distraction Free Editing',
+        'name': _('Distraction Free Editing'),  # T: plugin name
+        'description': _(
+            'This plugin adds settings that help using zim\n'
+            'as a distraction free editor.\n'
+        ),  # T: plugin description
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Distraction Free Editing',
     }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('hide_menubar', 'bool', _('Hide menubar in fullscreen mode'), True),  # T: plugin preference
-            ('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True),  # T: plugin preference
-            ('hide_pathbar', 'bool', _('Hide pathbar in fullscreen mode'), True),  # T: plugin preference
-            ('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True),  # T: plugin preference
-            ('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)),  # T: plugin preference
-            ('vmargin', 'int', _('Vertical margin'), 50, (0, 10000)),  # T: plugin preference
-            ('basecolor', 'color', _('Text background color'), '#babdb6'),  # T: plugin preference
-            ('textcolor', 'color', _('Text foreground color'), '#2e3436'),  # T: plugin preference
-            ('bgcolor', 'color', _('Screen background color'), '#2e3436'),  # T: plugin preference
-            #('fgcolor', 'color', _('Screen foreground color'), '#eeeeec'),
+        # key, type, label, default
+        ('hide_menubar', 'bool', _('Hide menubar in fullscreen mode'), True),  # T: plugin preference
+        ('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True),  # T: plugin preference
+        ('hide_pathbar', 'bool', _('Hide pathbar in fullscreen mode'), True),  # T: plugin preference
+        ('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True),  # T: plugin preference
+        ('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)),  # T: plugin preference
+        ('vmargin', 'int', _('Vertical margin'), 50, (0, 10000)),  # T: plugin preference
+        ('basecolor', 'color', _('Text background color'), '#babdb6'),  # T: plugin preference
+        ('textcolor', 'color', _('Text foreground color'), '#2e3436'),  # T: plugin preference
+        ('bgcolor', 'color', _('Screen background color'), '#2e3436'),  # T: plugin preference
+        #('fgcolor', 'color', _('Screen foreground color'), '#eeeeec'),
     )
 
 
@@ -74,7 +74,7 @@ class MainWindowExtension(WindowExtension):
             self.window.toggle_statusbar(show_statusbar)
 
             if show_pathbar \
-            and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
+                    and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
                 self.window.set_pathbar(PATHBAR_RECENT)
             elif not show_pathbar:
                 self.window.set_pathbar(PATHBAR_NONE)
@@ -87,7 +87,7 @@ class MainWindowExtension(WindowExtension):
             self.window.uistate['show_statusbar_fullscreen'] = show_statusbar
 
             if show_pathbar \
-            and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
+                    and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
                 self.window.uistate['pathbar_type_fullscreen'] = PATHBAR_RECENT
             elif not show_pathbar:
                 self.window.uistate['pathbar_type_fullscreen'] = PATHBAR_NONE
@@ -126,20 +126,20 @@ class MainWindowExtension(WindowExtension):
                 # gtk.STATE_INSENSITIVE
         ):
             self._normal_colors.append({
-                    'base': style.base[gtk.STATE_NORMAL],
-                    'text': style.text[gtk.STATE_NORMAL],
-                    'bg': style.bg[gtk.STATE_NORMAL],
-                    #'fg': style.fg[gtk.STATE_NORMAL],
+                'base': style.base[gtk.STATE_NORMAL],
+                'text': style.text[gtk.STATE_NORMAL],
+                'bg': style.bg[gtk.STATE_NORMAL],
+                #'fg': style.fg[gtk.STATE_NORMAL],
             })
 
     @property
     def _custom_colors(self):
         # array of NORMAL, ACTIVE, PRELIGHT, SELECTED, INSENSITIVE
         normal = {
-                'base': self.preferences['basecolor'],
-                'text': self.preferences['textcolor'],
-                'bg': self.preferences['bgcolor'],
-                #'fg': self.preferences['fgcolor'],
+            'base': self.preferences['basecolor'],
+            'text': self.preferences['textcolor'],
+            'bg': self.preferences['bgcolor'],
+            #'fg': self.preferences['fgcolor'],
         }
         # selected = { # like normal, but reverse text and base
         #	'base': self.preferences['textcolor'],
@@ -163,8 +163,8 @@ class MainWindowExtension(WindowExtension):
             values = colors[i]
             values['state'] = state
             rc +=  '\tbase[%(state)s] = "%(base)s"\n' \
-                    '\ttext[%(state)s] = "%(text)s"\n' \
-                    '\tbg[%(state)s] = "%(bg)s"\n' % values
+                '\ttext[%(state)s] = "%(text)s"\n' \
+                '\tbg[%(state)s] = "%(bg)s"\n' % values
             #'\tfg[%(state)s] = "%(fg)s"\n' % values
 
         #rc += '}\nclass "GtkWidget" style "zim-colors"'

@@ -143,7 +143,7 @@ class Template(SignalEmitter):
     # For templates that we define inline, use a file-like text buffer
 
     __signals__ = {
-            'process': (None, None, (object, object))
+        'process': (None, None, (object, object))
     }
 
     template_functions = build_template_functions()

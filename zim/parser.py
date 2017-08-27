@@ -71,9 +71,9 @@ def convert_space_to_tab(text, tabstop=4):
     spaces = ' ' * tabstop
     pattern = '(?m)^(\t*)((?:%s)+)' % spaces
     text = re.sub(
-            pattern,
-            lambda m: m.group(1) + '\t' * (len(m.group(2)) / tabstop),
-            text
+        pattern,
+        lambda m: m.group(1) + '\t' * (len(m.group(2)) / tabstop),
+        text
     )
     # Specify "(?m)" instead of re.M since "flags" keyword is not
     # supported in python 2.6
@@ -197,8 +197,8 @@ class SimpleTreeElement(list):
 
     def __eq__(self, other):
         if self.tag == other.tag \
-        and self.attrib == other.attrib \
-        and len(self) == len(other):
+                and self.attrib == other.attrib \
+                and len(self) == len(other):
             return all(s == o for s, o in zip(self, other))
         else:
             return False
@@ -279,9 +279,9 @@ class ParserError(Error):
     @property
     def description(self):
         return _('Error in %(file)s at line %(line)i near "%(snippet)s"') % {
-                'file': self.parser_file,
-                'line': self.parser_line_offset[0],
-                'snippet': self.parser_text.strip(),
+            'file': self.parser_file,
+            'line': self.parser_line_offset[0],
+            'snippet': self.parser_text.strip(),
         }
         # T: Extended error message while parsing a file, gives file name, line number and words where error occurred
 
@@ -401,8 +401,8 @@ class Parser(object):
             # Generate the regex and cache it for re-use
             self.rules = tuple(self.rules)  # freeze list
             pattern = r'|'.join([
-                    r"(?P<rule%i>%s)" % (i, r.pattern)
-                            for i, r in enumerate(self.rules)
+                r"(?P<rule%i>%s)" % (i, r.pattern)
+                for i, r in enumerate(self.rules)
             ])
             #~ print 'PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...'
             self._re = re.compile(pattern, re.U | re.M | re.X)

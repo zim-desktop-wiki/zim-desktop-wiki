@@ -14,9 +14,9 @@ from zim.main import GtkCommand
 from zim.actions import action
 from zim.config import data_file, ConfigManager
 from zim.notebook import Path, Notebook, NotebookInfo, \
-        resolve_notebook, build_notebook
+    resolve_notebook, build_notebook
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
-        InputForm, QuestionDialog
+    InputForm, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
 from zim.templates import get_template
@@ -54,18 +54,18 @@ Options:
 class QuickNotePluginCommand(GtkCommand):
 
     options = (
-            ('help', 'h', 'Print this help text and exit'),
-            ('notebook=', '', 'Select the notebook in the dialog'),
-            ('page=', '', 'Fill in full page name'),
-            ('section=', '', 'Fill in the page section in the dialog'),
-            ('namespace=', '', 'Fill in the page section in the dialog'),  # backward compatibility
-            ('basename=', '', 'Fill in the page name in the dialog'),
-            ('append=', '', 'Set whether to append or create new page ("true" or "false")'),
-            ('text=', '', 'Provide the text directly'),
-            ('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
-            ('encoding=', '', 'Text encoding ("base64" or "url")'),
-            ('attachments=', '', 'Import all files in FOLDER as attachments, wiki input can refer these files relatively'),
-            ('option=', '', 'Set template parameter, e.g. "url=URL"'),
+        ('help', 'h', 'Print this help text and exit'),
+        ('notebook=', '', 'Select the notebook in the dialog'),
+        ('page=', '', 'Fill in full page name'),
+        ('section=', '', 'Fill in the page section in the dialog'),
+        ('namespace=', '', 'Fill in the page section in the dialog'),  # backward compatibility
+        ('basename=', '', 'Fill in the page name in the dialog'),
+        ('append=', '', 'Set whether to append or create new page ("true" or "false")'),
+        ('text=', '', 'Provide the text directly'),
+        ('input=', '', 'Provide the text on stdin ("stdin") or take the text from the clipboard ("clipboard")'),
+        ('encoding=', '', 'Text encoding ("base64" or "url")'),
+        ('attachments=', '', 'Import all files in FOLDER as attachments, wiki input can refer these files relatively'),
+        ('option=', '', 'Set template parameter, e.g. "url=URL"'),
     )
 
     def parse_options(self, *args):
@@ -93,11 +93,11 @@ class QuickNotePluginCommand(GtkCommand):
 
         if 'append' in self.opts:
             self.opts['append'] = \
-                    self.opts['append'].lower() == 'true'
+                self.opts['append'].lower() == 'true'
 
         if self.opts.get('attachments', None):
             self.opts['attachments'] = \
-                    Dir((self.pwd, self.opts['attachments']))
+                Dir((self.pwd, self.opts['attachments']))
 
     def get_text(self):
         if 'input' in self.opts:
@@ -106,8 +106,8 @@ class QuickNotePluginCommand(GtkCommand):
                 text = sys.stdin.read()
             elif self.opts['input'] == 'clipboard':
                 text = \
-                        SelectionClipboard.get_text() \
-                        or Clipboard.get_text()
+                    SelectionClipboard.get_text() \
+                    or Clipboard.get_text()
             else:
                 raise AssertionError('Unknown input type: %s' % self.opts['input'])
         else:
@@ -151,14 +151,14 @@ class QuickNotePluginCommand(GtkCommand):
             notebook = None
 
         dialog = QuickNoteDialog(None,
-                notebook=notebook,
-                namespace=self.opts.get('namespace'),
-                basename=self.opts.get('basename'),
-                append=self.opts.get('append'),
-                text=self.get_text(),
-                template_options=self.template_options,
-                attachments=self.opts.get('attachments')
-        )
+                                 notebook=notebook,
+                                 namespace=self.opts.get('namespace'),
+                                 basename=self.opts.get('basename'),
+                                 append=self.opts.get('append'),
+                                 text=self.get_text(),
+                                 template_options=self.template_options,
+                                 attachments=self.opts.get('attachments')
+                                 )
         dialog.show_all()
         return dialog
 
@@ -166,15 +166,15 @@ class QuickNotePluginCommand(GtkCommand):
 class QuickNotePlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Quick Note'),  # T: plugin name
-            'description': _('''\
+        'name': _('Quick Note'),  # T: plugin name
+        'description': _('''\
 This plugin adds a dialog to quickly drop some text or clipboard
 content into a zim page.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Quick Note',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Quick Note',
     }
 
     #~ plugin_preferences = (
@@ -209,9 +209,9 @@ class QuickNoteDialog(Dialog):
     '''Dialog bound to a specific notebook'''
 
     def __init__(self, window, notebook=None,
-            page=None, namespace=None, basename=None,
-            append=None, text=None, template_options=None, attachments=None
-    ):
+                 page=None, namespace=None, basename=None,
+                 append=None, text=None, template_options=None, attachments=None
+                 ):
         assert page is None, 'TODO'
 
         manager = ConfigManager()  # FIXME should be passed in
@@ -261,17 +261,17 @@ class QuickNoteDialog(Dialog):
             page = namespace or basename
 
         self.form.add_inputs((
-                        ('page', 'page', _('Page')),
-                        ('namespace', 'namespace', _('Page section')),  # T: text entry field
-                        ('new_page', 'bool', _('Create a new page for each note')),  # T: checkbox in Quick Note dialog
-                        ('basename', 'string', _('Title'))  # T: text entry field
-                ))
+            ('page', 'page', _('Page')),
+            ('namespace', 'namespace', _('Page section')),  # T: text entry field
+            ('new_page', 'bool', _('Create a new page for each note')),  # T: checkbox in Quick Note dialog
+            ('basename', 'string', _('Title'))  # T: text entry field
+        ))
         self.form.update({
-                        'page': page,
-                        'namespace': namespace,
-                        'new_page': True,
-                        'basename': basename,
-                })
+            'page': page,
+            'namespace': namespace,
+            'new_page': True,
+            'basename': basename,
+        })
 
         self.uistate.setdefault('open_page', True)
         self.uistate.setdefault('new_page', True)
@@ -437,7 +437,7 @@ class QuickNoteDialog(Dialog):
 
         if self.form['new_page']:
             if not self.form.widgets['namespace'].get_input_valid() \
-            or not self.form['basename']:
+                    or not self.form['basename']:
                 if not self.form['basename']:
                     entry = self.form.widgets['basename']
                     entry.set_input_valid(False, show_empty_invalid=True)
@@ -447,7 +447,7 @@ class QuickNoteDialog(Dialog):
             self.create_new_page(notebook, path, text)
         else:
             if not self.form.widgets['page'].get_input_valid() \
-            or not self.form['page']:
+                    or not self.form['page']:
                 return False
 
             path = self.form['page']

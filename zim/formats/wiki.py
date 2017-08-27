@@ -16,14 +16,14 @@ WIKI_FORMAT_VERSION = 'zim 0.4'
 
 
 info = {
-        'name': 'wiki',
-        'desc': 'Zim Wiki Format',
-        'mimetype': 'text/x-zim-wiki',
-        'extension': 'txt',
-        'native': True,
-        'import': True,
-        'export': True,
-        'usebase': True,
+    'name': 'wiki',
+    'desc': 'Zim Wiki Format',
+    'mimetype': 'text/x-zim-wiki',
+    'extension': 'txt',
+    'native': True,
+    'import': True,
+    'export': True,
+    'usebase': True,
 }
 
 
@@ -73,11 +73,11 @@ class WikiParser(object):
     # text.
 
     BULLETS = {
-            '[ ]': UNCHECKED_BOX,
-            '[x]': XCHECKED_BOX,
-            '[*]': CHECKED_BOX,
-            '[>]': MIGRATED_BOX,
-            '*': BULLET,
+        '[ ]': UNCHECKED_BOX,
+        '[x]': XCHECKED_BOX,
+        '[*]': CHECKED_BOX,
+        '[>]': MIGRATED_BOX,
+        '*': BULLET,
     }
 
     def __init__(self):
@@ -93,17 +93,17 @@ class WikiParser(object):
     def _init_inline_parse(self):
         # Rules for inline formatting, links and tags
         return (
-                Rule(LINK, url_re.r, process=self.parse_url)  # FIXME need .r atribute because url_re is a Re object
-                | Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
-                | Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
-                | Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
-                | Rule(EMPHASIS, r'//(?!/)(.*?)//')
-                | Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*')
-                | Rule(MARK, r'__(?!_)(.*?)__')
-                | Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}')
-                | Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}')
-                | Rule(STRIKE, r'~~(?!~)(.+?)~~')
-                | Rule(VERBATIM, r"''(?!')(.+?)''")
+            Rule(LINK, url_re.r, process=self.parse_url)  # FIXME need .r atribute because url_re is a Re object
+            | Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
+            | Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
+            | Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
+            | Rule(EMPHASIS, r'//(?!/)(.*?)//')
+            | Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*')
+            | Rule(MARK, r'__(?!_)(.*?)__')
+            | Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}')
+            | Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}')
+            | Rule(STRIKE, r'~~(?!~)(.+?)~~')
+            | Rule(VERBATIM, r"''(?!')(.+?)''")
         )
 
     def _init_intermediate_parser(self):
@@ -111,36 +111,36 @@ class WikiParser(object):
         # TODO: deprecate this by taking lists out of the para
         #       and make a new para for each indented block
         p = Parser(
-                Rule(
-                        'X-Bullet-List',
-                        r'''(
+            Rule(
+                'X-Bullet-List',
+                r'''(
 					^ %s .* \n								# Line starting with bullet
 					(?:
 						^ \t* %s .* \n						# Line with same or more indent and bullet
 					)*										# .. repeat
 				)''' % (bullet_pattern, bullet_pattern),
-                        process=self.parse_list
-                ),
-                Rule(
-                        'X-Indented-Bullet-List',
-                        r'''(
+                process=self.parse_list
+            ),
+            Rule(
+                'X-Indented-Bullet-List',
+                r'''(
 					^(?P<list_indent>\t+) %s .* \n			# Line with indent and bullet
 					(?:
 						^(?P=list_indent) \t* %s .* \n		# Line with same or more indent and bullet
 					)*										# .. repeat
 				)''' % (bullet_pattern, bullet_pattern),
-                        process=self.parse_list
-                ),
-                Rule(
-                        'X-Indented-Block',
-                        r'''(
+                process=self.parse_list
+            ),
+            Rule(
+                'X-Indented-Block',
+                r'''(
 					^(?P<block_indent>\t+) .* \n			# Line with indent
 					(?:
 						^(?P=block_indent) (?!\t|%s) .* \n	# Line with _same_ indent, no bullet
 					)*										# .. repeat
 				)''' % bullet_pattern,
-                        process=self.parse_indent
-                ),
+                process=self.parse_indent
+            ),
         )
         p.process_unmatched = self.inline_parser
         return p
@@ -148,35 +148,35 @@ class WikiParser(object):
     def _init_block_parser(self):
         # Top level parser, to break up block level items
         p = Parser(
-                Rule(VERBATIM_BLOCK, r'''
+            Rule(VERBATIM_BLOCK, r'''
 				^(?P<pre_indent>\t*) \'\'\' \s*?				# 3 "'"
 				( (?:^.*\n)*? )									# multi-line text
 				^(?P=pre_indent) \'\'\' \s*? \n					# another 3 "'" with matching indent
 				''',
-                        process=self.parse_pre
-                ),
-                Rule(OBJECT, r'''
+                 process=self.parse_pre
+                 ),
+            Rule(OBJECT, r'''
 				^(?P<obj_indent>\t*) \{\{\{ \s*? (\S+:.*\n)		# "{{{ object_type: attrib=..."
 				( (?:^.*\n)*? ) 								# multi-line body
 				^(?P=obj_indent) \}\}\} \s*? \n					# "}}}" with matching indent
 				''',
-                        process=self.parse_object
-                ),
-                Rule(HEADING,
-                        r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',  # "==== heading ===="
-                        process=self.parse_heading
-                ),
-                # standard table format
-                Rule(TABLE, r'''
+                 process=self.parse_object
+                 ),
+            Rule(HEADING,
+                 r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',  # "==== heading ===="
+                 process=self.parse_heading
+                 ),
+            # standard table format
+            Rule(TABLE, r'''
 				^(\|.*\|)$\n								# starting and ending with |
 				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
 				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
 				^(?= \s*? \n)							# empty line / only spaces
 				''',
-                        process=self.parse_table
-                ),
-                # line format
-                Rule(LINE, r'(?<=\n)-{5,}(?=\n)', process=self.parse_line)  # \n----\n
+                 process=self.parse_table
+                 ),
+            # line format
+            Rule(LINE, r'(?<=\n)-{5,}(?=\n)', process=self.parse_line)  # \n----\n
 
         )
         p.process_unmatched = self.parse_para
@@ -325,7 +325,7 @@ class WikiParser(object):
                 elif block.isspace():
                     builder.text(block)
                 elif self.backward \
-                and not unindented_line_re.search(block):
+                        and not unindented_line_re.search(block):
                     # Before zim 0.29 all indented paragraphs were
                     # verbatim.
                     builder.append(VERBATIM_BLOCK, None, block)
@@ -479,22 +479,22 @@ class Parser(ParserClass):
 class Dumper(TextDumper):
 
     BULLETS = {
-            UNCHECKED_BOX: u'[ ]',
-            XCHECKED_BOX: u'[x]',
-            CHECKED_BOX: u'[*]',
-            MIGRATED_BOX: u'[>]',
-            BULLET: u'*',
+        UNCHECKED_BOX: u'[ ]',
+        XCHECKED_BOX: u'[x]',
+        CHECKED_BOX: u'[*]',
+        MIGRATED_BOX: u'[>]',
+        BULLET: u'*',
     }
 
     TAGS = {
-            EMPHASIS: ('//', '//'),
-            STRONG: ('**', '**'),
-            MARK: ('__', '__'),
-            STRIKE: ('~~', '~~'),
-            VERBATIM: ("''", "''"),
-            TAG: ('', ''),  # No additional annotation (apart from the visible @)
-            SUBSCRIPT: ('_{', '}'),
-            SUPERSCRIPT: ('^{', '}'),
+        EMPHASIS: ('//', '//'),
+        STRONG: ('**', '**'),
+        MARK: ('__', '__'),
+        STRIKE: ('~~', '~~'),
+        VERBATIM: ("''", "''"),
+        TAG: ('', ''),  # No additional annotation (apart from the visible @)
+        SUBSCRIPT: ('_{', '}'),
+        SUPERSCRIPT: ('^{', '}'),
     }
 
     def dump(self, tree, file_output=False):
@@ -502,11 +502,11 @@ class Dumper(TextDumper):
         # would be nicer to handle this via a template, but works for now
         if file_output:
             header = (
-                    ('Content-Type', 'text/x-zim-wiki'),
-                    ('Wiki-Format', WIKI_FORMAT_VERSION),
+                ('Content-Type', 'text/x-zim-wiki'),
+                ('Wiki-Format', WIKI_FORMAT_VERSION),
             )
             return [dump_header_lines(header, getattr(tree, 'meta', {})), '\n'] \
-                                    + TextDumper.dump(self, tree)
+                + TextDumper.dump(self, tree)
         else:
             return TextDumper.dump(self, tree)
 
@@ -531,7 +531,7 @@ class Dumper(TextDumper):
 
     def dump_link(self, tag, attrib, strings=None):
         assert 'href' in attrib, \
-                'BUG: link misses href: %s "%s"' % (attrib, strings)
+            'BUG: link misses href: %s "%s"' % (attrib, strings)
         href = attrib['href']
 
         if not strings or href == u''.join(strings):

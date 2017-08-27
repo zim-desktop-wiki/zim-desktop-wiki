@@ -11,7 +11,7 @@ import gtk
 from zim.fs import Dir
 
 from zim.plugins.base.imagegenerator import \
-        ImageGeneratorClass, ImageGeneratorDialog, MainWindowExtensionBase
+    ImageGeneratorClass, ImageGeneratorDialog, MainWindowExtensionBase
 
 from zim.plugins.equationeditor import InsertEquationPlugin, EquationGenerator
 from zim.plugins.diagrameditor import InsertDiagramPlugin, DiagramGenerator

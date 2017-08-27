@@ -46,8 +46,8 @@ from zim.actions import toggle_action
 
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
-        IconButton, ScrolledWindow, button_set_statusbar_style, \
-        WindowSidePaneWidget, uistate_property
+    IconButton, ScrolledWindow, button_set_statusbar_style, \
+    WindowSidePaneWidget, uistate_property
 
 
 from .filebrowser import FileBrowserIconView, THUMB_SIZE_LARGE
@@ -63,23 +63,23 @@ DEFAULT_ICON_ZOOM = 64
 class AttachmentBrowserPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Attachment Browser'),  # T: plugin name
-            'description': _('''\
+        'name': _('Attachment Browser'),  # T: plugin name
+        'description': _('''\
 This plugin shows the attachments folder of the current page as an
 icon view at bottom pane.
 '''),  # T: plugin description
-            'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
-            'help': 'Plugins:Attachment Browser',
+        'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
+        'help': 'Plugins:Attachment Browser',
     }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('pane', 'choice', _('Position in the window'), BOTTOM_PANE, PANE_POSITIONS),
-                    # T: option for plugin preferences
+        # key, type, label, default
+        ('pane', 'choice', _('Position in the window'), BOTTOM_PANE, PANE_POSITIONS),
+        # T: option for plugin preferences
 
-    #	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
-    #	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
-    #~	('use_imagemagick', 'bool', _('Use ImageMagick for thumbnailing'), False), # T: input label
+        #	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
+        #	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
+        #~	('use_imagemagick', 'bool', _('Use ImageMagick for thumbnailing'), False), # T: input label
     )
 
     #~ @classmethod
@@ -124,7 +124,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 
         self.statusbar_button.set_use_underline(True)
         self.__class__.toggle_attachmentbrowser.connect_actionable(
-                self, self.statusbar_button)
+            self, self.statusbar_button)
 
         self.statusbar_frame.add(self.statusbar_button)
         self.statusbar_frame.show_all()
@@ -157,9 +157,9 @@ class AttachmentBrowserWindowExtension(WindowExtension):
         self.widget.show_all()
 
     @toggle_action(
-            _('Attachment Browser'),  # T: Menu item
-            gtk.STOCK_DIRECTORY,
-            tooltip=_('Show Attachment Browser')  # T: Toolbar item tooltip
+        _('Attachment Browser'),  # T: Menu item
+        gtk.STOCK_DIRECTORY,
+        tooltip=_('Show Attachment Browser')  # T: Toolbar item tooltip
     )
     def toggle_attachmentbrowser(self, active):
         # This toggle is called to focus on our widget
@@ -170,14 +170,14 @@ class AttachmentBrowserWindowExtension(WindowExtension):
         if active:
             if not (visible and tab == self.TAB_NAME):
                 self.window.set_pane_state(
-                        self.preferences['pane'], True,
-                        activetab=self.TAB_NAME,
-                        grab_focus=True)
+                    self.preferences['pane'], True,
+                    activetab=self.TAB_NAME,
+                    grab_focus=True)
             # else pass
         else:
             if visible and tab == self.TAB_NAME:
                 self.window.set_pane_state(
-                        self.preferences['pane'], False)
+                    self.preferences['pane'], False)
             # else pass
 
     def on_pane_state_changed(self, window, pane, visible, active):
@@ -201,7 +201,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
         model = self.widget.iconview.get_model()  # XXX
         n = len(model)
         self.statusbar_button.set_label(
-                ngettext('%i _Attachment', '%i _Attachments', n) % n)
+            ngettext('%i _Attachment', '%i _Attachments', n) % n)
         # T: Label for the statusbar, %i is the number of attachments for the current page
 
     def teardown(self):
@@ -278,11 +278,11 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
     def on_zoom_in(self):
         self.set_icon_size(
-                min((self.icon_size * 2, THUMB_SIZE_LARGE)))  # 16 > 32 > 64 > 128 > 256
+            min((self.icon_size * 2, THUMB_SIZE_LARGE)))  # 16 > 32 > 64 > 128 > 256
 
     def on_zoom_out(self):
         self.set_icon_size(
-                max((self.icon_size / 2, MIN_ICON_ZOOM)))  # 16 < 32 < 64 < 128 < 256
+            max((self.icon_size / 2, MIN_ICON_ZOOM)))  # 16 < 32 < 64 < 128 < 256
 
     def set_icon_size(self, icon_size):
         self.iconview.set_icon_size(icon_size)

@@ -88,8 +88,8 @@ class Internationalizer(gtk.Window):
 
         translated, untranslated, notsure = self.tokenize()
         self.status_label.set_text(
-                "%i translated, %i untranslated, %i not sure"
-                % (len(translated), len(untranslated), len(notsure))
+            "%i translated, %i untranslated, %i not sure"
+            % (len(translated), len(untranslated), len(notsure))
         )
 
         def get_iter(coord):
@@ -127,8 +127,8 @@ class Internationalizer(gtk.Window):
                 if state['isfunc'] and state['funcname'] == '_':
                     translated.append((start, end))
                 elif state['iskey'] or \
-                (state['isfunc'] and state['funcname'] in ignore_functions) or \
-                match_ignore(string):
+                    (state['isfunc'] and state['funcname'] in ignore_functions) or \
+                        match_ignore(string):
                     notsure.append((start, end))
                 else:
                     untranslated.append((start, end))

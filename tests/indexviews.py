@@ -17,23 +17,23 @@ from tests.indexers import buildUpdateIter
 TEXT = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n'
 FILES = (
         ('Bar.txt', TEXT + '@tag1 @tag2\n[[Foo]]\n'),
-                # --> Foo
+    # --> Foo
         ('Foo.txt', TEXT),
-                # <-- Bar
+    # <-- Bar
         ('Foo/Child1.txt', TEXT + '@tag1 @tag2\n'),
         ('Foo/Child2.txt', TEXT + '@tag2\n[[Child3]]\n'),
-                # --> PLaceholder Foo:Child3
+    # --> PLaceholder Foo:Child3
         ('Foo/Child1/GrandChild1.txt', TEXT + '@tag2\n'),
         ('Foo/Child1/GrandChild2.txt', TEXT),
 )
 TREEPATHS = (
-        ('Bar', (0,)),
-        ('Foo', (1,)),
-        ('Foo:Child1', (1, 0)),
-        ('Foo:Child1:GrandChild1', (1, 0, 0)),
-        ('Foo:Child1:GrandChild2', (1, 0, 1)),
-        ('Foo:Child2', (1, 1)),
-        ('Foo:Child3', (1, 2)),
+    ('Bar', (0,)),
+    ('Foo', (1,)),
+    ('Foo:Child1', (1, 0)),
+    ('Foo:Child1:GrandChild1', (1, 0, 0)),
+    ('Foo:Child1:GrandChild2', (1, 0, 1)),
+    ('Foo:Child2', (1, 1)),
+    ('Foo:Child3', (1, 2)),
 )
 LINKS = (
         ('Bar', ['Foo'], []),
@@ -43,32 +43,32 @@ LINKS = (
         ('Foo:Child3', [], ['Foo:Child2']),
 )
 TAGS = {
-        'tag1': ['Bar', 'Foo:Child1'],
-        'tag2': ['Bar', 'Foo:Child1', 'Foo:Child2', 'Foo:Child1:GrandChild1'],
+    'tag1': ['Bar', 'Foo:Child1'],
+    'tag2': ['Bar', 'Foo:Child1', 'Foo:Child2', 'Foo:Child1:GrandChild1'],
 }
 TREEPATHS_TAGGED_12 = (
-        # include only pages that have both tags
-        # top level sorts by basename
-        ('Bar', (0,)),
-        ('Foo:Child1', (1,)),
-                ('Foo:Child1:GrandChild1', (1, 0)),
-                ('Foo:Child1:GrandChild2', (1, 1)),
+    # include only pages that have both tags
+    # top level sorts by basename
+    ('Bar', (0,)),
+    ('Foo:Child1', (1,)),
+    ('Foo:Child1:GrandChild1', (1, 0)),
+    ('Foo:Child1:GrandChild2', (1, 1)),
 )
 TREEPATHS_TAGS_12 = (
-        # include all pages with any of the tags
-        # top level sorts by basename: Bar, Child, GranChild
-        ('tag1', (0,)),
-                ('Bar', (0, 0)),
-                ('Foo:Child1', (0, 1)),
-                        ('Foo:Child1:GrandChild1', (0, 1, 0)),
-                        ('Foo:Child1:GrandChild2', (0, 1, 1)),
-        ('tag2', (1,)),
-                ('Bar', (1, 0,)),
-                ('Foo:Child1', (1, 1,)),
-                        ('Foo:Child1:GrandChild1', (1, 1, 0)),
-                        ('Foo:Child1:GrandChild2', (1, 1, 1)),
-                ('Foo:Child2', (1, 2,)),
-                ('Foo:Child1:GrandChild1', (1, 3,)),
+    # include all pages with any of the tags
+    # top level sorts by basename: Bar, Child, GranChild
+    ('tag1', (0,)),
+    ('Bar', (0, 0)),
+    ('Foo:Child1', (0, 1)),
+    ('Foo:Child1:GrandChild1', (0, 1, 0)),
+    ('Foo:Child1:GrandChild2', (0, 1, 1)),
+    ('tag2', (1,)),
+    ('Bar', (1, 0,)),
+    ('Foo:Child1', (1, 1,)),
+    ('Foo:Child1:GrandChild1', (1, 1, 0)),
+    ('Foo:Child1:GrandChild2', (1, 1, 1)),
+    ('Foo:Child2', (1, 2,)),
+    ('Foo:Child1:GrandChild1', (1, 3,)),
 )
 
 _SQL = None
@@ -100,8 +100,8 @@ def new_test_database():
 #			print line
 
 from zim.notebook.index.pages import PagesIndexer, PagesView, \
-        PagesTreeModelMixin, \
-        IndexNotFoundError
+    PagesTreeModelMixin, \
+    IndexNotFoundError
 #get_treepath_for_indexpath_factory, get_indexpath_for_treepath_factory, \
 #get_treepaths_for_indexpath_flatlist_factory, get_indexpath_for_treepath_flatlist_factory, \
 
@@ -212,7 +212,7 @@ class TestPagesView(tests.TestCase):
                 # TODO more ambigous test cases
         ):
             self.assertEqual(
-            pages.lookup_from_user_input(name), Path(wanted))
+                pages.lookup_from_user_input(name), Path(wanted))
 
         # resolving relative paths
         for name, ns, wanted in (
@@ -222,7 +222,7 @@ class TestPagesView(tests.TestCase):
                 ('+test', 'Foo:Child1', 'Foo:Child1:test'),
         ):
             self.assertEqual(
-                    pages.lookup_from_user_input(name, Path(ns)), Path(wanted))
+                pages.lookup_from_user_input(name, Path(ns)), Path(wanted))
 
         self.assertRaises(ValueError, pages.lookup_from_user_input, ':::')
 
@@ -250,7 +250,7 @@ class TestPagesView(tests.TestCase):
 
 
 from zim.notebook.index.tags import TagsIndexer, TagsView, IndexTag, \
-                TaggedPagesTreeModelMixin, TagsTreeModelMixin
+    TaggedPagesTreeModelMixin, TagsTreeModelMixin
 
 
 class TestTagsView(tests.TestCase):
@@ -376,7 +376,7 @@ class TestTagsView(tests.TestCase):
 
 
 from zim.notebook.index.links import LinksIndexer, LinksView, \
-        LINK_DIR_FORWARD, LINK_DIR_BACKWARD, LINK_DIR_BOTH
+    LINK_DIR_FORWARD, LINK_DIR_BACKWARD, LINK_DIR_BOTH
 
 
 class TestLinksView(tests.TestCase):
@@ -398,10 +398,10 @@ class TestLinksView(tests.TestCase):
             self.assertEqual(n_backlinks, len(backlinks))
 
             all_links = [(l.source.name, l.target.name)
-                                            for l in linksview.list_links(path, LINK_DIR_BOTH)]
+                         for l in linksview.list_links(path, LINK_DIR_BOTH)]
             n_all_links = linksview.n_list_links(path, LINK_DIR_BOTH)
             self.assertEqual(all_links,
-                    [(name, l) for l in links] + [(l, name) for l in backlinks])
+                             [(name, l) for l in links] + [(l, name) for l in backlinks])
             self.assertEqual(n_all_links, len(all_links))
 
             if path.parent.isroot:

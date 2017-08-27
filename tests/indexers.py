@@ -31,34 +31,34 @@ def is_dir(path):
 class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
     FILES = tuple(map(os_native_path, (
-            'foo.txt',  # page with children
-            'foo/',
-            'foo/test.png',
-            'foo/sub1.txt',
-            'foo/sub2.txt',
+        'foo.txt',  # page with children
+        'foo/',
+        'foo/test.png',
+        'foo/sub1.txt',
+        'foo/sub2.txt',
 
-            'bar.txt',  # page without children
-            'bar/',  # empty folder
+        'bar.txt',  # page without children
+        'bar/',  # empty folder
 
-            'foo-bar.txt',  # page without children
+        'foo-bar.txt',  # page without children
 
-            'baz/',  # page nested 2 folders deep
-            'baz/dus/',
-            'baz/dus/ja.txt',
+        'baz/',  # page nested 2 folders deep
+        'baz/dus/',
+        'baz/dus/ja.txt',
 
-            'argh/',  # not a page
-            'argh/somefile.pdf',
+        'argh/',  # not a page
+        'argh/somefile.pdf',
     )))
     FILES_UPDATE = tuple(map(os_native_path, (
-            'tmp.txt',  # page with child
-            'tmp/',
-            'tmp/foo.txt',
+        'tmp.txt',  # page with child
+        'tmp/',
+        'tmp/foo.txt',
 
-            'new/',  # nested page
-            'new/page.txt',
+        'new/',  # nested page
+        'new/page.txt',
     )))
     FILES_CHANGE = (
-            'foo.txt',
+        'foo.txt',
     )
     PAGE_TEXT = 'test 123\n'
 
@@ -111,7 +111,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
         # 2. Check and update after new files appear
         signals.clear()
         self.create_files(
-                self.FILES_UPDATE + self.FILES_CHANGE
+            self.FILES_UPDATE + self.FILES_CHANGE
         )
         check_and_update_all()
 
@@ -124,8 +124,8 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
         self.assertFilesDBConsistent(db)
         self.assertFilesDBEquals(db,
-                self.FILES + self.FILES_UPDATE
-        )
+                                 self.FILES + self.FILES_UPDATE
+                                 )
 
         # 3. Check and update after files disappear
         signals.clear()
@@ -159,49 +159,49 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 
     FILES = tuple(map(os_native_path, (
-            'foo.txt',  # page with children
-            'foo/test.png',
-            'foo/sub1.txt',
-            'foo/sub2.txt',
-            'bar.txt',  # page without children
-            'foo-bar.txt',  # page without children
-            'baz/dus/ja.txt',  # page nested 2 folders deep
-            'argh/somefile.pdf',  # not a page
+        'foo.txt',  # page with children
+        'foo/test.png',
+        'foo/sub1.txt',
+        'foo/sub2.txt',
+        'bar.txt',  # page without children
+        'foo-bar.txt',  # page without children
+        'baz/dus/ja.txt',  # page nested 2 folders deep
+        'argh/somefile.pdf',  # not a page
     )))
     PAGES = (
-            'foo',
-            'foo:sub1',
-            'foo:sub2',
-            'bar',
-            'foo-bar',
-            'baz',
-            'baz:dus',
-            'baz:dus:ja',
+        'foo',
+        'foo:sub1',
+        'foo:sub2',
+        'bar',
+        'foo-bar',
+        'baz',
+        'baz:dus',
+        'baz:dus:ja',
     )
     CONTENT = (  # These have a file
-            'foo',
-            'foo:sub1',
-            'foo:sub2',
-            'bar',
-            'foo-bar',
-            'baz:dus:ja',
+        'foo',
+        'foo:sub1',
+        'foo:sub2',
+        'bar',
+        'foo-bar',
+        'baz:dus:ja',
     )
     NAMESPACES = (  # These have also a folder
-            'foo',
-            'baz',
-            'baz:dus',
+        'foo',
+        'baz',
+        'baz:dus',
     )
     PLACEHOLDERS = (
-            'some:none_existing:page',
-            'foo:sub1:subsub',
-            'toplevel'
+        'some:none_existing:page',
+        'foo:sub1:subsub',
+        'toplevel'
     )
     PLACEHOLDERS_ALL = (
-            'some:none_existing:page',
-            'some:none_existing',
-            'some',
-            'foo:sub1:subsub',
-            'toplevel'
+        'some:none_existing:page',
+        'some:none_existing',
+        'some',
+        'foo:sub1:subsub',
+        'toplevel'
     )
 
     def runTest(self):
@@ -266,7 +266,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
             self.assertPagesDBConsistent(db)
 
         self.assertPagesDBEquals(db, self.PAGES
-                + self.PLACEHOLDERS_ALL)
+                                 + self.PLACEHOLDERS_ALL)
 
         for pagename in self.PLACEHOLDERS:
             indexer.delete_link_placeholder(Path(pagename))
@@ -307,8 +307,8 @@ class TestLinksIndexer(tests.TestCase):
     # page Foo --> placeholder Dus
 
     PAGES = [
-            (2, 'Bar', 'test123\n'),
-            (3, 'Foo', '[[Bar]]\n[[Dus]]\n'),
+        (2, 'Bar', 'test123\n'),
+        (3, 'Foo', '[[Bar]]\n[[Dus]]\n'),
     ]
 
     def runTest(self):
@@ -317,8 +317,8 @@ class TestLinksIndexer(tests.TestCase):
         pi = PagesIndexer(db, None, tests.MockObject())
         for i, name, cont in self.PAGES:
             db.execute(
-                    'INSERT INTO pages(id, name, sortkey, parent, source_file) VALUES (?, ?, ?, 1, 1)',
-                    (i, name, natural_sort_key(name))
+                'INSERT INTO pages(id, name, sortkey, parent, source_file) VALUES (?, ?, ?, 1, 1)',
+                (i, name, natural_sort_key(name))
             )
 
         # Test PagesViewInternal methods
@@ -347,8 +347,8 @@ class TestLinksIndexer(tests.TestCase):
         indexer.on_finish_update(None)
 
         links = sorted(
-                (r['source'], r['target'])
-                        for r in db.execute('SELECT * FROM links')
+            (r['source'], r['target'])
+            for r in db.execute('SELECT * FROM links')
         )
         self.assertEqual(links, [(3, 2), (3, 4)])
 
@@ -383,9 +383,9 @@ class TestTagsIndexer(tests.TestCase):
         indexer.on_finish_update(None)
 
         self.assertTags(db,
-                [('tag1', 1), ('tag2', 2), ('tag3', 3)],
-                [(1, 2), (2, 2), (2, 3), (3, 3)]
-        )
+                        [('tag1', 1), ('tag2', 2), ('tag3', 3)],
+                        [(1, 2), (2, 2), (2, 3), (3, 3)]
+                        )
 
         for i, name, content in self.PAGES:
             row = {'id': i, 'name': name}
@@ -397,11 +397,11 @@ class TestTagsIndexer(tests.TestCase):
     def assertTags(self, db, wantedtags, wantedsources):
         tags = [tuple(r) for r in db.execute(
                 'SELECT name, id FROM tags'
-        )]
+                )]
         self.assertEqual(tags, wantedtags)
 
         tagsources = [tuple(r) for r in db.execute(
-                'SELECT tag, source FROM tagsources'
+            'SELECT tag, source FROM tagsources'
         )]
         self.assertEqual(tagsources, wantedsources)
 

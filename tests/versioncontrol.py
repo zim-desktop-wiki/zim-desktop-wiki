@@ -79,9 +79,9 @@ class TestVCS(tests.TestCase):
 
 @tests.slowTest
 @tests.skipUnless(
-        any(
-                map(VCS.check_dependencies, (VCS.BZR, VCS.GIT, VCS.HG))
-        ), 'Missing dependencies')
+    any(
+        map(VCS.check_dependencies, (VCS.BZR, VCS.GIT, VCS.HG))
+    ), 'Missing dependencies')
 class TestMainWindowExtension(tests.TestCase):
 
     def runTest(self):
@@ -335,9 +335,9 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
         file.write('foo\nbar\n')
         vcs.stage(file)
         self.assertEqual(''.join(vcs.get_status(porcelain=True)),
-                'A  .gitignore\n'
-                'A  foo/bar/baz.txt\n'
-        )
+                         'A  .gitignore\n'
+                         'A  foo/bar/baz.txt\n'
+                         )
         vcs.commit('test 1')
 #[master 0f4132e] test 1
 # 1 files changed, 3 insertions(+), 0 deletions(-)
@@ -351,8 +351,8 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
         vcs.stage(file)
 
         self.assertEqual(''.join(vcs.get_status(porcelain=True)),
-                'A  foo/bar/bar.txt\n'
-        )
+                         'A  foo/bar/bar.txt\n'
+                         )
 
         vcs.commit('test 2')
 #[master dbebdf1] test 2
@@ -628,8 +628,8 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
         file.write('foo\nbar\n')
         vcs.on_path_created(None, file)
         self.assertEqual(''.join(vcs.get_status()),
-                'ADDED      foo/bar/baz.txt\n'
-        )
+                         'ADDED      foo/bar/baz.txt\n'
+                         )
         vcs.commit('test 1')
 
         file = subdir.file('bar.txt')
@@ -637,8 +637,8 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
         vcs.on_path_created(None, file)
 
         self.assertEqual(''.join(vcs.get_status()),
-                'ADDED      foo/bar/bar.txt\n'
-        )
+                         'ADDED      foo/bar/bar.txt\n'
+                         )
 
         vcs.commit('test 2')
 

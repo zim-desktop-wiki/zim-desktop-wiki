@@ -145,7 +145,7 @@ def _get_tests():
             autopep8_blank_lines,
             autopep8_indentation_in_comments,
             autopep8_indentation_in_code,
-           ]
+            ]
 
 
 def main():

@@ -37,48 +37,48 @@ from .gui import TaskListDialog, TaskListWidget
 class TaskListPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Task List'),  # T: plugin name
-            'description': _('''\
+        'name': _('Task List'),  # T: plugin name
+        'description': _('''\
 This plugin adds a dialog showing all open tasks in
 this notebook. Open tasks can be either open checkboxes
 or items marked with tags like "TODO" or "FIXME".
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Task List'
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Task List'
     }
 
     parser_preferences = (
-            # key, type, label, default
-            ('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
-                    # T: label for plugin preferences dialog
-            ('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
-                    # T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
-            ('integrate_with_journal', 'choice', _('Use date from journal pages'), 'start', (
-                    ('none', _('do not use')),        # T: choice for "Use date from journal pages"
-                    ('start', _('as start date for tasks')),  # T: choice for "Use date from journal pages"
-                    ('due', _('as due date for tasks'))       # T: choice for "Use date from journal pages"
-            )),
-            ('included_subtrees', 'string', _('Section(s) to index'), '', StringAllowEmpty),
-                    # T: Notebook sections to search for tasks - default is the whole tree (empty string means everything)
-            ('excluded_subtrees', 'string', _('Section(s) to ignore'), '', StringAllowEmpty),
-                    # T: Notebook sections to exclude when searching for tasks - default is none
+        # key, type, label, default
+        ('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
+        # T: label for plugin preferences dialog
+        ('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
+        # T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
+        ('integrate_with_journal', 'choice', _('Use date from journal pages'), 'start', (
+            ('none', _('do not use')),        # T: choice for "Use date from journal pages"
+            ('start', _('as start date for tasks')),  # T: choice for "Use date from journal pages"
+            ('due', _('as due date for tasks'))       # T: choice for "Use date from journal pages"
+        )),
+        ('included_subtrees', 'string', _('Section(s) to index'), '', StringAllowEmpty),
+        # T: Notebook sections to search for tasks - default is the whole tree (empty string means everything)
+        ('excluded_subtrees', 'string', _('Section(s) to ignore'), '', StringAllowEmpty),
+        # T: Notebook sections to exclude when searching for tasks - default is none
     )
 
     plugin_preferences = (
-            # key, type, label, default
-            ('embedded', 'bool', _('Show tasklist in sidepane'), False),
-                    # T: preferences option
-            ('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
-                    # T: preferences option
+        # key, type, label, default
+        ('embedded', 'bool', _('Show tasklist in sidepane'), False),
+        # T: preferences option
+        ('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
+        # T: preferences option
     ) + parser_preferences + (
-            ('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', StringAllowEmpty),
-                    # T: label for plugin preferences dialog
-            ('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
-                    # T: label for plugin preferences dialog
-            ('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), False),
-                    # T: label for plugin preferences dialog
+        ('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', StringAllowEmpty),
+        # T: label for plugin preferences dialog
+        ('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
+        # T: label for plugin preferences dialog
+        ('use_workweek', 'bool', _('Flag tasks due on Monday or Tuesday before the weekend'), False),
+        # T: label for plugin preferences dialog
     )
 
     hide_preferences = ('nonactionable_tags', 'tag_by_page', 'use_workweek')
@@ -90,7 +90,7 @@ This is a core plugin shipping with zim.
 class NotebookExtension(ObjectExtension):
 
     __signals__ = {
-            'tasklist-changed': (None, None, ()),
+        'tasklist-changed': (None, None, ()),
     }
 
     def __init__(self, plugin, notebook):
@@ -124,8 +124,8 @@ class NotebookExtension(ObjectExtension):
 
     def _get_parser_key(self):
         return tuple(
-                self.plugin.preferences[t[0]]
-                        for t in self.plugin.parser_preferences
+            self.plugin.preferences[t[0]]
+            for t in self.plugin.parser_preferences
         )
 
     def teardown(self):

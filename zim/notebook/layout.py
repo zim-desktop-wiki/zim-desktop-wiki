@@ -192,8 +192,8 @@ class FilesAttachmentFolder(object):
     def __iter__(self):
         for obj in self._folder:
             if isinstance(obj, File) \
-            and not obj.basename.endswith(self._default_extension) \
-            and not obj.basename.endswith('.zim'):
+                    and not obj.basename.endswith(self._default_extension) \
+                    and not obj.basename.endswith('.zim'):
                 yield obj
 
     def list_names(self):

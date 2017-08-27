@@ -56,9 +56,9 @@ class TestSearch(tests.TestCase):
         query = Query('foo bar')
         self.assertTrue(query.root.operator == OPERATOR_AND)
         self.assertEqual(query.root, [
-                        QueryTerm('contentorname', 'foo'),
-                        QueryTerm('contentorname', 'bar')
-                ])
+            QueryTerm('contentorname', 'foo'),
+            QueryTerm('contentorname', 'bar')
+        ])
         results.search(query, callback=self.callback_check)
         #~ print results
         self.assertTrue(len(results) > 0)
@@ -71,9 +71,9 @@ class TestSearch(tests.TestCase):
         query = Query('+TODO -bar')
         self.assertTrue(query.root.operator == OPERATOR_AND)
         self.assertEqual(query.root, [
-                        QueryTerm('contentorname', 'TODO'),
-                        QueryTerm('contentorname', 'bar', inverse=True)
-                ])
+            QueryTerm('contentorname', 'TODO'),
+            QueryTerm('contentorname', 'bar', inverse=True)
+        ])
         results.search(query, callback=self.callback_check)
         #~ print results
         self.assertTrue(len(results) > 0)
@@ -86,9 +86,9 @@ class TestSearch(tests.TestCase):
         query = Query('TODO not bar')
         self.assertTrue(query.root.operator == OPERATOR_AND)
         self.assertEqual(query.root, [
-                        QueryTerm('contentorname', 'TODO'),
-                        QueryTerm('contentorname', 'bar', inverse=True)
-                ])
+            QueryTerm('contentorname', 'TODO'),
+            QueryTerm('contentorname', 'bar', inverse=True)
+        ])
         results.search(query, callback=self.callback_check)
         #~ print results
         self.assertTrue(len(results) > 0)
@@ -102,9 +102,9 @@ class TestSearch(tests.TestCase):
         self.assertTrue(query.root.operator == OPERATOR_AND)
         self.assertTrue(query.root[0].operator == OPERATOR_OR)
         self.assertEqual(query.root, [[
-                        QueryTerm('contentorname', 'TODO'),
-                        QueryTerm('contentorname', 'bar')
-                ]])
+            QueryTerm('contentorname', 'TODO'),
+            QueryTerm('contentorname', 'bar')
+        ]])
         results.search(query, callback=self.callback_check)
         #~ print results
         self.assertTrue(len(results) > 0)

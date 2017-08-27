@@ -1012,14 +1012,14 @@ class OldParseTreeBuilder(object):
 
         # Fix prefix newlines
         if self._tail and self._last.tag in ('h', 'p') \
-        and not text.startswith('\n'):
+                and not text.startswith('\n'):
             if text:
                 text = '\n' + text
             else:
                 text = '\n'
                 self._seen_eol = 1
         elif self._tail and self._last.tag == 'li' \
-        and text.startswith('\n'):
+                and text.startswith('\n'):
             text = text[1:]
             if not text.strip('\n'):
                 self._seen_eol -= 1
@@ -1030,7 +1030,7 @@ class OldParseTreeBuilder(object):
 
             # Tags that are not allowed to have newlines
             if not self._tail and self._last.tag in (
-            'h', 'emphasis', 'strong', 'mark', 'strike', 'code'):
+                    'h', 'emphasis', 'strong', 'mark', 'strike', 'code'):
                 # assume no nested tags in these types ...
                 if self._seen_eol:
                     text = text.rstrip('\n')

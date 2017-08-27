@@ -53,30 +53,30 @@ OBJECT_TYPE = 'code'
 class SourceViewPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Source View'),  # T: plugin name
-            'description': _('''\
+        'name': _('Source View'),  # T: plugin name
+        'description': _('''\
 This plugin allows inserting 'Code Blocks' in the page. These will be
 shown as emdedded widgets with syntax highlighting, line numbers etc.
 '''),  # T: plugin description
-            'author': 'Jiří Janoušek',
-            'help': 'Plugins:Source View',
-            'object_types': (OBJECT_TYPE, ),
+        'author': 'Jiří Janoušek',
+        'help': 'Plugins:Source View',
+        'object_types': (OBJECT_TYPE, ),
     }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('auto_indent', 'bool', _('Auto indenting'), True),
-                    # T: preference option for sourceview plugin
-            ('smart_home_end', 'bool', _('Smart Home key'), True),
-                    # T: preference option for sourceview plugin
-            ('highlight_current_line', 'bool', _('Highlight current line'), False),
-                    # T: preference option for sourceview plugin
-            ('show_right_margin', 'bool', _('Show right margin'), False),
-                    # T: preference option for sourceview plugin
-            ('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
-                    # T: preference option for sourceview plugin
-            ('tab_width', 'int', _('Tab width'), 4, (1, 80)),
-                    # T: preference option for sourceview plugin
+        # key, type, label, default
+        ('auto_indent', 'bool', _('Auto indenting'), True),
+        # T: preference option for sourceview plugin
+        ('smart_home_end', 'bool', _('Smart Home key'), True),
+        # T: preference option for sourceview plugin
+        ('highlight_current_line', 'bool', _('Highlight current line'), False),
+        # T: preference option for sourceview plugin
+        ('show_right_margin', 'bool', _('Show right margin'), False),
+        # T: preference option for sourceview plugin
+        ('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
+        # T: preference option for sourceview plugin
+        ('tab_width', 'int', _('Tab width'), 4, (1, 80)),
+        # T: preference option for sourceview plugin
     )
 
     @classmethod
@@ -139,7 +139,7 @@ class InsertCodeBlockDialog(Dialog):
         Dialog.__init__(self, ui, _('Insert Code Block'))  # T: dialog title
         names = sorted(LANGUAGES, key=lambda k: k.lower())
         self.add_form(
-                (('lang', 'choice', _('Syntax'), names),)  # T: input label
+            (('lang', 'choice', _('Syntax'), names),)  # T: input label
         )
 
         # Set previous used language
@@ -167,9 +167,9 @@ class InsertCodeBlockDialog(Dialog):
 class SourceViewObject(CustomObjectClass):
 
     OBJECT_ATTR = {
-            'type': String('code'),
-            'lang': String(None),
-            'linenumbers': Boolean(True),
+        'type': String('code'),
+        'lang': String(None),
+        'linenumbers': Boolean(True),
     }
 
     def __init__(self, attrib, data, preferences):

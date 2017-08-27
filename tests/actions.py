@@ -21,7 +21,7 @@ class TestPrimaryKeyBinding(tests.TestCase):
         ):
             #~ print ">>", accel, gtk_accelerator_preparse(accel)
             keyval, mod = gtk.accelerator_parse(
-                    gtk_accelerator_preparse(accel)
+                gtk_accelerator_preparse(accel)
             )
             self.assertEqual(keyval, 97)
             self.assertIn(mod, (gtk.gdk.CONTROL_MASK, gtk.gdk.META_MASK))
@@ -105,8 +105,8 @@ class TestRadioAction(tests.TestCase):
         class TestClass(object):
 
             @radio_action(
-                    radio_option('AAA', 'Do A'),
-                    radio_option('BBB', 'Do B')
+                radio_option('AAA', 'Do A'),
+                radio_option('BBB', 'Do B')
             )
             def test_action(self, key):
                 output.append(key)
@@ -125,8 +125,8 @@ class TestRadioAction(tests.TestCase):
 
         gtk_group = get_gtk_actiongroup(obj)
         self.assertEqual(
-                sorted(a.get_name() for a in gtk_group.list_actions()),
-                ['test_action_AAA', 'test_action_BBB']
+            sorted(a.get_name() for a in gtk_group.list_actions()),
+            ['test_action_AAA', 'test_action_BBB']
         )
 
         gtk_action = gtk_group.get_action('test_action_AAA')

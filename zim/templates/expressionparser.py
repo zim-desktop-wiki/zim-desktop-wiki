@@ -15,9 +15,9 @@ import ast
 from zim.parser import ParserError
 
 from zim.templates.expression import \
-        ExpressionOperator, ExpressionUnaryOperator, \
-        ExpressionLiteral, ExpressionParameter, \
-        ExpressionList, ExpressionFunctionCall
+    ExpressionOperator, ExpressionUnaryOperator, \
+    ExpressionLiteral, ExpressionParameter, \
+    ExpressionList, ExpressionFunctionCall
 
 
 class ExpressionSyntaxError(ParserError):
@@ -38,19 +38,19 @@ class ExpressionParser(object):
 
     # Operator precedence: or -- and -- not -- <, <=, >, >=, <>, !=, ==
     operators = {
-            '==': operator.eq,
-            '!=': operator.ne,
-            '>': operator.gt,
-            '>=': operator.ge,
-            '<': operator.lt,
-            '<=': operator.le,
-            'and': operator.and_,
-            'or': operator.or_,
-            'not': operator.not_,  # special case - unary operator
+        '==': operator.eq,
+        '!=': operator.ne,
+        '>': operator.gt,
+        '>=': operator.ge,
+        '<': operator.lt,
+        '<=': operator.le,
+        'and': operator.and_,
+        'or': operator.or_,
+        'not': operator.not_,  # special case - unary operator
     }
 
     tokens = [',', '[', ']', '(', ')'] \
-            + [k for k in operators.keys() if not k.isalnum()]
+        + [k for k in operators.keys() if not k.isalnum()]
     # Only inluding NON-alphanumeric operators here
 
     _param_re = re.compile(r'^[^\W\d_]\w*(\.[^\W_]\w*)*$')
@@ -61,7 +61,7 @@ class ExpressionParser(object):
     def __init__(self):
         tokens = map(re.escape, self.tokens)
         self._word_re = re.compile(
-                r'''(
+            r'''(
 				'(\\'|[^'])*' |  # single quoted word
 				"(\\"|[^"])*" |  # double quoted word
 				[^\s'"%s]+    |  # word without spaces and token chars
@@ -130,7 +130,7 @@ class ExpressionParser(object):
         # Handle "... op ..." where op is: <, <=, >, >=, <>, !=, ==
         lexpr = self._parse_statement(tokens)
         if tokens and tokens[0] in self.operators \
-        and tokens[0] not in ('or', 'and', 'not'):
+                and tokens[0] not in ('or', 'and', 'not'):
             op = tokens.pop(0)
             rexpr = self._parse_statement(tokens)
             return ExpressionOperator(self.operators[op], lexpr, rexpr)
@@ -144,10 +144,10 @@ class ExpressionParser(object):
         if tokens[0] == '[':
             return self._parse_list(tokens)
         elif tokens[0] in self.tokens \
-        or tokens[0] in ('or', 'and', 'not'):
+                or tokens[0] in ('or', 'and', 'not'):
             raise ExpressionSyntaxError('Unexpected token: "%s"' % tokens[0])
         elif self._param_re.match(tokens[0]) \
-        and not tokens[0] in ('True', 'False', 'None'):
+                and not tokens[0] in ('True', 'False', 'None'):
             param = ExpressionParameter(tokens.pop(0))
             if tokens and tokens[0] == '(':
                 args = self._parse_list(tokens)

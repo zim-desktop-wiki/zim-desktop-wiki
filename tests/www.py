@@ -69,13 +69,13 @@ class TestWWWInterface(tests.TestCase):
 
         def call(command, path):
             environ = {
-                    'REQUEST_METHOD': command,
-                    'SCRIPT_NAME': '',
-                    'PATH_INFO': path,
-                    'QUERY_STRING': '',
-                    'SERVER_NAME': 'localhost',
-                    'SERVER_PORT': '80',
-                    'SERVER_PROTOCOL': '1.0'
+                'REQUEST_METHOD': command,
+                'SCRIPT_NAME': '',
+                'PATH_INFO': path,
+                'QUERY_STRING': '',
+                'SERVER_NAME': 'localhost',
+                'SERVER_PORT': '80',
+                'SERVER_PROTOCOL': '1.0'
             }
             rfile = StringIO('')
             wfile = StringIO()

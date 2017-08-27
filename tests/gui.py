@@ -249,12 +249,12 @@ class TestDialogs(tests.TestCase):
         # CustomToolManager dialog
         dialog = CustomToolManagerDialog(self.ui)
         properties = {
-                'Name': 'Foo',
-                'Comment': 'Test Foo',
-                'X-Zim-ExecTool': 'foo %u',
-                'X-Zim-ReadOnly': False,
-                'X-Zim-ShowInToolBar': False,
-                'X-Zim-ReplaceSelection': False,
+            'Name': 'Foo',
+            'Comment': 'Test Foo',
+            'X-Zim-ExecTool': 'foo %u',
+            'X-Zim-ReadOnly': False,
+            'X-Zim-ShowInToolBar': False,
+            'X-Zim-ReplaceSelection': False,
         }
         dialog.manager.create(**properties)
         dialog.listview.refresh()
@@ -263,12 +263,12 @@ class TestDialogs(tests.TestCase):
         # Edit custom tool dialog
         dialog = EditCustomToolDialog(self.ui)
         input = {
-                'Name': 'Foo',
-                'Comment': 'Test Foo',
-                'X-Zim-ExecTool': 'foo %u',
-                'X-Zim-ReadOnly': False,
-                'X-Zim-ShowInToolBar': False,
-                'X-Zim-ReplaceSelection': False,
+            'Name': 'Foo',
+            'Comment': 'Test Foo',
+            'X-Zim-ExecTool': 'foo %u',
+            'X-Zim-ReadOnly': False,
+            'X-Zim-ShowInToolBar': False,
+            'X-Zim-ReplaceSelection': False,
         }
         dialog.form.update(input)
         output = dialog.assert_response_ok()
@@ -289,20 +289,20 @@ class TestDialogs(tests.TestCase):
         self.ui.readonly = False
 
         config1 = {
-                'name': 'Notebook Foo',
-                'interwiki': None,
-                'home': Path('Home'),
-                'icon': './icon.png',
-                'document_root': File('/foo').path,  # win32 save test
-                'profile': None,
+            'name': 'Notebook Foo',
+            'interwiki': None,
+            'home': Path('Home'),
+            'icon': './icon.png',
+            'document_root': File('/foo').path,  # win32 save test
+            'profile': None,
         }
         config2 = {
-                'name': 'Notebook Bar',
-                'interwiki': 'FooBar',
-                'home': Path('HomeSweetHome'),
-                'icon': './picture.png',
-                'document_root': File('/bar').path,  # win32 save test
-                'profile': 'foo',
+            'name': 'Notebook Bar',
+            'interwiki': 'FooBar',
+            'home': Path('HomeSweetHome'),
+            'icon': './picture.png',
+            'document_root': File('/bar').path,  # win32 save test
+            'profile': 'foo',
         }
         notebook.save_properties(**config1)
         for key in config1:
@@ -541,10 +541,10 @@ class TestGtkInterface(tests.TestCase):
 
         # build up some history
         history = (
-                Path('Test:foo:bar'),
-                Path('Test:'),
-                Path('Test:foo:'),
-                Path('Test:foo:bar'),
+            Path('Test:foo:bar'),
+            Path('Test:'),
+            Path('Test:foo:'),
+            Path('Test:foo:bar'),
         )
         for path in history:
             self.ui.open_page(path)
@@ -759,8 +759,8 @@ class TestNotebookComboBox(tests.TestCase):
             pass
 
         notebooklist = MyList([
-                NotebookInfo('file:///test/foo', name='Foo'),
-                NotebookInfo('file:///test/bar', name='Bar')
+            NotebookInfo('file:///test/foo', name='Foo'),
+            NotebookInfo('file:///test/bar', name='Bar')
         ])
         notebooklist.default = notebooklist[1]
         notebooklist.write = lambda: None
@@ -795,7 +795,7 @@ class TestNotebookDialog(tests.TestCase):
 
     def runTest(self):
         from zim.gui.notebookdialog import prompt_notebook, \
-                AddNotebookDialog, NotebookDialog
+            AddNotebookDialog, NotebookDialog
 
         tmpdir = self.create_tmp_dir()
         dir1 = Dir(tmpdir + '/mynotebook1')

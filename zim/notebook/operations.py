@@ -186,9 +186,9 @@ class NotebookOperation(SignalEmitter):
 
     # Signals are used by the progress dialog to monitor activity
     __signals__ = {
-            'step': (None, None, (object,)),
-            'started': (None, None, ()),
-            'finished': (None, None, ()),
+        'step': (None, None, (object,)),
+        'started': (None, None, ()),
+        'finished': (None, None, ()),
     }
 
     def __init__(self, notebook, message, iterator):

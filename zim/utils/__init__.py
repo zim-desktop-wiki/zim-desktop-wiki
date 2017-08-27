@@ -73,7 +73,7 @@ def lookup_subclasses(module, klass):
     subclasses = []
     for name, obj in inspect.getmembers(module, inspect.isclass):
         if issubclass(obj, klass) \
-        and obj.__module__.startswith(module.__name__):
+                and obj.__module__.startswith(module.__name__):
             subclasses.append(obj)
 
     return subclasses
@@ -168,9 +168,9 @@ class WeakSet(object):
 
     def __iter__(self):
         return (
-                obj for obj in
-                                [ref() for ref in self._refs]
-                                                if obj is not None
+            obj for obj in
+            [ref() for ref in self._refs]
+            if obj is not None
         )
 
     def add(self, obj):
@@ -209,7 +209,7 @@ class OrderedDict(collections.MutableMapping):
 
     def __init__(self, E=None, **F):
         if not hasattr(self, '_keys') \
-        and not hasattr(self, '_values'):
+                and not hasattr(self, '_values'):
             # Some classes have double inheritance from this class
             self._keys = []
             self._values = {}
@@ -225,8 +225,8 @@ class OrderedDict(collections.MutableMapping):
 
     def __repr__(self):
         return '<%s:\n%s\n>' % (
-                self.__class__.__name__,
-                ',\n'.join('  %r: %r' % (k, v) for k, v in self.items())
+            self.__class__.__name__,
+            ',\n'.join('  %r: %r' % (k, v) for k, v in self.items())
         )
 
     def __getitem__(self, k):

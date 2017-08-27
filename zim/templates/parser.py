@@ -120,23 +120,23 @@ class TemplateParser(object):
     _block_token_re = re.compile(r'^\w+$')  # name
 
     _tokens_with_expr = (
-            'GET', 'SET',
-            'IF', 'ELIF', 'ELSIF', 'ELSE',
-            'FOR', 'FOREACH',
-            'BLOCK', 'INCLUDE',
-            'END'
+        'GET', 'SET',
+        'IF', 'ELIF', 'ELSIF', 'ELSE',
+        'FOR', 'FOREACH',
+        'BLOCK', 'INCLUDE',
+        'END'
     )  # These tokens take an argument
 
     _tokens_without_expr = ('ELSE', 'END')
     # These tokens do not take an argument
 
     _tokens_with_end = (
-            'IF', 'ELIF', 'ELSIF', 'ELSE',
-            'FOR', 'FOREACH', 'BLOCK',
+        'IF', 'ELIF', 'ELSIF', 'ELSE',
+        'FOR', 'FOREACH', 'BLOCK',
     )  # These tokens start a block that is delimited by END
 
     _tokens_with_line_chomp = _tokens_with_end + (
-            'END', 'INCLUDE'
+        'END', 'INCLUDE'
     )  # For these tokens strip whitespace of token is on it's own line
 
     _tokens_with_default_chomp = ('SET',)
@@ -170,7 +170,7 @@ class TemplateParser(object):
         # next two rules are embdedded in content
         line_tokens = '|'.join(map(re.escape, self._tokens_with_line_chomp))
         text_parser = (
-                Rule('X-XML-Token', r'''
+            Rule('X-XML-Token', r'''
 				^[^\S\n]*			# whitespace at line start
 				\<\!--\[%%			# start of instruction
 				(
@@ -184,8 +184,8 @@ class TemplateParser(object):
 				%%\]--\>			# end of instruction
 				[^\S\n]*\n			# whitespace and end of line
 				''' % line_tokens,
-                        process=self._process_token)
-                | Rule('X-Text-Token', r'''
+                 process=self._process_token)
+            | Rule('X-Text-Token', r'''
 				^[^\S\n]*			# whitespace at line start
 				\[%%				# start of instruction
 				(
@@ -199,13 +199,13 @@ class TemplateParser(object):
 				%%\]				# end of instruction
 				[^\S\n]*\n			# whitespace and end of line
 				''' % line_tokens,
-                        process=self._process_token)
-                | Rule('X-Inline-XML-Token',
-                        r'\<\!--\[%(-?\s.*?\s-?)%\]--\>',
-                        process=self._process_token)
-                | Rule('X-Inline-Text-Token',
-                        r'\[%(-?\s.*?\s-?)%\]',
-                        process=self._process_token)
+                   process=self._process_token)
+            | Rule('X-Inline-XML-Token',
+                   r'\<\!--\[%(-?\s.*?\s-?)%\]--\>',
+                   process=self._process_token)
+            | Rule('X-Inline-Text-Token',
+                   r'\[%(-?\s.*?\s-?)%\]',
+                   process=self._process_token)
         )
         return text_parser
 

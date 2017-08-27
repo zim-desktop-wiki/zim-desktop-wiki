@@ -41,20 +41,20 @@ def _get_lilypond_version():
 class InsertScorePlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert Score'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Score'),  # T: plugin name
+        'description': _('''\
 This plugin provides an score editor for zim based on GNU Lilypond.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'help': 'Plugins:Score Editor',
-            'author': 'Shoban Preeth',
+        'help': 'Plugins:Score Editor',
+        'author': 'Shoban Preeth',
     }
 
     plugin_preferences = [
-            # key, type, label, default
-            ('include_header', 'string', _('Common include header'), '\include "predefined-guitar-fretboards.ly"'),  # T: plugin preference
-            ('include_footer', 'string', _('Common include footer'), ''),  # T: plugin preference
+        # key, type, label, default
+        ('include_header', 'string', _('Common include header'), '\include "predefined-guitar-fretboards.ly"'),  # T: plugin preference
+        ('include_footer', 'string', _('Common include footer'), ''),  # T: plugin preference
     ]
 
     object_type = 'score'
@@ -111,10 +111,10 @@ class ScoreGenerator(ImageGeneratorClass):
         scorefile = self.scorefile
         lines = []
         self.template.process(lines, {
-                'score': text,
-                'version': version or '',
-                'include_header': self.include_header or '',
-                'include_footer': self.include_footer or '',
+            'score': text,
+            'version': version or '',
+            'include_header': self.include_header or '',
+            'include_footer': self.include_footer or '',
         })
         scorefile.writelines(lines)
         #~ print '>>>%s<<<' % scorefile.read()

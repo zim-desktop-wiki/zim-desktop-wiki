@@ -18,8 +18,8 @@ class TemplateEditorDialog(Dialog):
 
     def __init__(self, ui):
         Dialog.__init__(self, ui,
-                _('Templates'), help='Help:Templates', buttons=gtk.BUTTONS_CLOSE,
-                defaultwindowsize=(400, 450))
+                        _('Templates'), help='Help:Templates', buttons=gtk.BUTTONS_CLOSE,
+                        defaultwindowsize=(400, 450))
         # T: Dialog title
 
         label = gtk.Label()
@@ -65,10 +65,10 @@ class TemplateEditorDialog(Dialog):
 
         # Same button appears in export dialog
         if gtk.gtk_version >= (2, 10) \
-        and gtk.pygtk_version >= (2, 10):
+                and gtk.pygtk_version >= (2, 10):
             url_button = gtk.LinkButton(
-                    'http://zim-wiki.org/more_templates.html',
-                    _('Get more templates online')  # T: label for button with URL
+                'http://zim-wiki.org/more_templates.html',
+                _('Get more templates online')  # T: label for button with URL
             )
             self.vbox.pack_start(url_button, False)
 
@@ -155,8 +155,8 @@ class PromptNameDialog(Dialog):
     def __init__(self, ui):
         Dialog.__init__(self, ui, _('Copy Template'))  # T: Dialog title
         self.add_form([
-                ('name', 'string', _('Name')),
-                        # T: Input label for the new name when copying a template
+            ('name', 'string', _('Name')),
+            # T: Input label for the new name when copying a template
         ])
 
     def do_response_ok(self):

@@ -38,14 +38,14 @@ class CustomObjectWidget(gtk.EventBox):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
-            'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
-            'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+        'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+        'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
 
-            'size-request': 'override',
+        'size-request': 'override',
     }
 
     def __init__(self):
@@ -105,7 +105,7 @@ class TextViewWidget(CustomObjectWidget):
         self.buffer = buffer
 
         win, self.view = ScrolledTextView(monospace=True,
-                hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_NEVER, shadow=gtk.SHADOW_NONE)
+                                          hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_NEVER, shadow=gtk.SHADOW_NONE)
         self.view.set_buffer(buffer)
         self.view.set_editable(True)
         self.vbox.pack_start(win)
@@ -149,7 +149,7 @@ class TextViewWidget(CustomObjectWidget):
         buffer = view.get_buffer()
         iter = buffer.get_iter_at_mark(buffer.get_insert())
         if (iter.is_start() or iter.is_end()) \
-        and not extend_selection:
+                and not extend_selection:
             if iter.is_start() and count < 0:
                 self.release_cursor(POSITION_BEGIN)
                 return None

@@ -17,8 +17,8 @@ from zim.templates import get_template
 from zim.formats import get_dumper
 
 from zim.plugins.calendar import NotebookExtension, \
-        MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
-        CalendarDialog
+    MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
+    CalendarDialog
 
 from tests.gui import setupGtkInterface
 
@@ -29,13 +29,13 @@ class TestCalendarFunctions(tests.TestCase):
         from zim.plugins.calendar import dates_for_week
 
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.MONDAY
+            zim.datetimetz.MONDAY
         start, end = dates_for_week(2012, 17)
         self.assertEqual(start, dateclass(2012, 4, 23))  # a monday
         self.assertEqual(end, dateclass(2012, 4, 29))  # a sunday
 
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.SUNDAY
+            zim.datetimetz.SUNDAY
         start, end = dates_for_week(2012, 17)
         self.assertEqual(start, dateclass(2012, 4, 22))  # a sunday
         self.assertEqual(end, dateclass(2012, 4, 28))  # a saturday
@@ -55,13 +55,13 @@ class TestCalendarFunctions(tests.TestCase):
         nextsunday = dateclass(2012, 4, 29)
 
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.MONDAY
+            zim.datetimetz.MONDAY
         self.assertEqual(weekcalendar(sunday), (2012, 16, 7))
         self.assertEqual(weekcalendar(monday), (2012, 17, 1))
         self.assertEqual(weekcalendar(nextsunday), (2012, 17, 7))
 
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.SUNDAY
+            zim.datetimetz.SUNDAY
         self.assertEqual(weekcalendar(sunday), (2012, 17, 1))
         self.assertEqual(weekcalendar(monday), (2012, 17, 2))
         self.assertEqual(weekcalendar(nextsunday), (2012, 18, 1))
@@ -88,7 +88,7 @@ class TestCalendarFunctions(tests.TestCase):
 
         # Week
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.MONDAY
+            zim.datetimetz.MONDAY
         type, start, end = daterange_from_path(Path('Foo:2012:Week 17'))
         self.assertEqual(type, 'week')
         self.assertEqual(start, dateclass(2012, 4, 23))  # a monday
@@ -185,7 +185,7 @@ class TestCalendarPlugin(tests.TestCase):
 
         from zim.plugins.calendar import DAY, WEEK, MONTH, YEAR
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.MONDAY
+            zim.datetimetz.MONDAY
         plugin.preferences['namespace'] = Path('Calendar')
         date = dateclass(2012, 4, 27)
         for setting, wanted, start in (
@@ -213,7 +213,7 @@ class TestCalendarPlugin(tests.TestCase):
         dumper = get_dumper('wiki')
 
         zim.datetimetz.FIRST_DAY_OF_WEEK = \
-                zim.datetimetz.MONDAY
+            zim.datetimetz.MONDAY
         for path in (
                 Path('Calendar:2012'),
                 Path('Calendar:2012:04:27'),

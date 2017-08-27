@@ -167,7 +167,7 @@ class TestCoding(tests.TestCase):
             for line in code.splitlines():
                 line = line.strip()
                 if line.startswith('from __future__ ') \
-                and 'with_statement' in line.split():
+                        and 'with_statement' in line.split():
                     import_seen = True
                 elif line.startswith('with') and line.endswith(':'):
                     suspect = True
@@ -239,7 +239,7 @@ class TestDocumentation(tests.TestCase):
                 for child in self.walk_code(member, name):  # recurs
                     yield child
             elif inspect.isfunction(member) \
-            or inspect.ismethod(member):
+                    or inspect.ismethod(member):
                 yield name, member
 
     def assertDocumentationOK(self, obj, name):
@@ -255,11 +255,11 @@ class TestDocumentation(tests.TestCase):
 
         # Check call signature for functions
         if inspect.isfunction(obj) \
-        or inspect.ismethod(obj):
+                or inspect.ismethod(obj):
             # For now we do not complain about missing docs, just mismatches
             documented = set(
-                    fields.get('param', {}).keys() +
-                    fields.get('keyword', {}).keys()
+                fields.get('param', {}).keys() +
+                fields.get('keyword', {}).keys()
             )
             if documented:
                 (args, varargs, keywords, defaults) = inspect.getargspec(obj)
@@ -275,10 +275,10 @@ class TestDocumentation(tests.TestCase):
                     # ignore mismatched due to generic decorators
 
                     self.assertEqual(documented, defined,
-                            msg='Mismatch in documented parameters for %s\n'
-                            'Declared: %s\nDocumented: %s' %
-                            (name, tuple(defined), tuple(documented))
-                    )
+                                     msg='Mismatch in documented parameters for %s\n'
+                                     'Declared: %s\nDocumented: %s' %
+                                     (name, tuple(defined), tuple(documented))
+                                     )
 
         # TODO can we also check whether doc should define @returns ??
 
@@ -288,24 +288,24 @@ class TestDocumentation(tests.TestCase):
                 # e.g.  "C{open-page (L{Page}, L{Path})}: Emitted when opening"
                 if not re.match('^C\{[\w-]+ \(.*?\)\}:', spec):
                     self.fail('Signal description in %s does not follow templates\n'
-                    'Is: %s\nShould be like "C{signal-name (arg1, arg2)}: description"'
-                    % (name, spec)
-                    )
+                              'Is: %s\nShould be like "C{signal-name (arg1, arg2)}: description"'
+                              % (name, spec)
+                              )
 
     known_fields = {
-            # keys are known fields, if values is True, a param is
-            # required for the first ":"
-            'param': True,
-            'type': True,
-            'keyword': True,
-            'returns': False,
-            'rtype': False,
-            'raises': True,
-            'cvar': True,
-            'ivar': True,
-            'todo': False,
-            'note': False,
-            'newfield': True,
+        # keys are known fields, if values is True, a param is
+        # required for the first ":"
+        'param': True,
+        'type': True,
+        'keyword': True,
+        'returns': False,
+        'rtype': False,
+        'raises': True,
+        'cvar': True,
+        'ivar': True,
+        'todo': False,
+        'note': False,
+        'newfield': True,
     }
     collect_fields = ('signal',)
 
@@ -347,6 +347,6 @@ class TestDocumentation(tests.TestCase):
     def assertSignalSpecOK(self, obj, file):
         for name, spec in obj.__signals__.items():
             self.assertTrue(
-                    isinstance(spec, tuple) and len(spec) == 3 and isinstance(spec[2], tuple),
-                    msg='Signal spec is malformed for %s::%s in %s' % (obj.__name__, name, file)
+                isinstance(spec, tuple) and len(spec) == 3 and isinstance(spec[2], tuple),
+                msg='Signal spec is malformed for %s::%s in %s' % (obj.__name__, name, file)
             )

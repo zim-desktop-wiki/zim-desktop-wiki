@@ -49,14 +49,14 @@ class TokenBuilder(Builder):
                 self._tokens.append((END, tag))
             else:
                 self._tokens.extend([
-                        (tag, attrib),
-                        (TEXT, text),
-                        (END, tag)
+                    (tag, attrib),
+                    (TEXT, text),
+                    (END, tag)
                 ])
         else:
             self._tokens.extend([
-                    (tag, attrib),
-                    (END, tag)
+                (tag, attrib),
+                (END, tag)
             ])
 
 
@@ -200,7 +200,7 @@ def reverseTopLevelLists(tokens):
 
             nexttoken = next(tokeniter)
             if nexttoken[0] in (BULLETLIST, NUMBEREDLIST) \
-            or nexttoken[0] == END and nexttoken[1] in (BULLETLIST, NUMBEREDLIST):
+                    or nexttoken[0] == END and nexttoken[1] in (BULLETLIST, NUMBEREDLIST):
                 raise AssertionError
 
             if nexttoken[0] == PARAGRAPH:

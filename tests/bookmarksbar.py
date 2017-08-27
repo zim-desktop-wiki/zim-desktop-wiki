@@ -31,7 +31,7 @@ class TestBookmarksBar(tests.TestCase):
 
     def setUp(self):
         self.PATHS = ('Parent:Daughter:Granddaughter',
-                         'Test:tags', 'Test:foo', 'Books')
+                      'Test:tags', 'Test:foo', 'Books')
         self.LEN_PATHS = len(self.PATHS)
         self.PATHS_NAMES = {self.PATHS[0]: 'name 1', self.PATHS[1]: 'name 2', self.PATHS[2]: 'name 3'}
 
@@ -139,8 +139,8 @@ class TestBookmarksBar(tests.TestCase):
 
         # Check rename_bookmark and save options.
         preferences_changed = lambda save: Bar.on_preferences_changed({'save': save,
-                        'add_bookmarks_to_beginning': False,
-                        'max_bookmarks': 15})
+                                                                       'add_bookmarks_to_beginning': False,
+                                                                       'max_bookmarks': 15})
 
         new_path_names = {new_paths[0]: '11', new_paths[1]: '22', new_paths[2]: '33'}
         Bar.paths = list(new_paths)
@@ -242,9 +242,9 @@ class TestBookmarksBar(tests.TestCase):
 
         def preferences_changed(save, max_b):
             Bar.on_preferences_changed({
-                    'save': save,
-                    'add_bookmarks_to_beginning': False,
-                    'max_bookmarks': max_b})
+                'save': save,
+                'add_bookmarks_to_beginning': False,
+                'max_bookmarks': max_b})
 
         # Check that more than max bookmarks can be loaded at start.
         self.uistate['bookmarks'] = pagelist

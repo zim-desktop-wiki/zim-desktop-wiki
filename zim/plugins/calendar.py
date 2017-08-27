@@ -19,7 +19,7 @@ from zim.signals import SignalHandler
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
 from zim.gui.widgets import ui_environment, Dialog, Button, \
-        WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
+    WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
@@ -85,15 +85,15 @@ def daterange_from_path(path):
 class CalendarPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Journal'),  # T: plugin name
-            'description': _('''\
+        'name': _('Journal'),  # T: plugin name
+        'description': _('''\
 This plugin turns one section of the notebook into a journal
 with a page per day, week or month.
 Also adds a calendar widget to access these pages.
 '''),
-            # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Journal',
+        # T: plugin description
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Journal',
     }
 
     global DAY, WEEK, MONTH, YEAR  # Hack - to make sure translation is loaded
@@ -103,12 +103,12 @@ Also adds a calendar widget to access these pages.
     YEAR = _('Year')  # T: option value
 
     plugin_preferences = (
-            # key, type, label, default
-            ('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False),  # T: preferences option
-            ('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS),  # T: preferences option
-            ('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)),  # T: preferences option, values will be "Day", "Month", ...
-            ('namespace', 'namespace', _('Section'), Path(':Journal')),  # T: input label
-            ('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True),  # T: preferences option
+        # key, type, label, default
+        ('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False),  # T: preferences option
+        ('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS),  # T: preferences option
+        ('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)),  # T: preferences option, values will be "Day", "Month", ...
+        ('namespace', 'namespace', _('Section'), Path(':Journal')),  # T: input label
+        ('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True),  # T: preferences option
     )
     # TODO disable pane setting if not embedded
 
@@ -199,11 +199,11 @@ class NotebookExtension(ObjectExtension):
         daterange = daterange_from_path(path)
         if daterange:
             self.connectto(template, 'process',
-                    partial(
-                            self.on_process_new_page_template,
-                            daterange=daterange
-                    )
-            )
+                           partial(
+                               self.on_process_new_page_template,
+                               daterange=daterange
+                           )
+                           )
 
     def on_process_new_page_template(self, template, output, context, daterange):
         '''Callback called when parsing a template, e.g. when exporting
@@ -212,11 +212,11 @@ class NotebookExtension(ObjectExtension):
         '''
         type, start, end = daterange
         context['calendar_plugin'] = {
-                'page_type': type,
-                'date': start,
-                'start_date': start,
-                'end_date': end,
-                'days': dateRangeTemplateFunction(start, end),
+            'page_type': type,
+            'date': start,
+            'start_date': start,
+            'end_date': end,
+            'days': dateRangeTemplateFunction(start, end),
         }
 
     def on_preferences_changed(self, preferences):
@@ -345,7 +345,7 @@ class Calendar(gtk.Calendar):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'activate': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'activate': (gobject.SIGNAL_RUN_LAST, None, ()),
     }
 
     def __init__(self):
@@ -355,7 +355,7 @@ class Calendar(gtk.Calendar):
     def do_key_press_event(self, event):
         handled = gtk.Calendar.do_key_press_event(self, event)
         if handled and (event.keyval in KEYVALS_SPACE
-        or event.keyval in KEYVALS_ENTER):
+                        or event.keyval in KEYVALS_ENTER):
             self.emit('activate')
         return handled
 
@@ -399,7 +399,7 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'date-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'date-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
     }
 
     def __init__(self, model):
@@ -417,19 +417,19 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 
         self._refresh_label()
         self._timer_id = \
-                gobject.timeout_add(300000, self._refresh_label)
+            gobject.timeout_add(300000, self._refresh_label)
         # 5 minute = 300_000 ms
         # Ideally we only need 1 timer per day at 00:00, but not
         # callback for that
         self.connect('destroy',
-                lambda o: gobject.source_remove(o._timer_id))
+                     lambda o: gobject.source_remove(o._timer_id))
         # Clear reference, else we get a new timer for every dialog
 
         self.calendar = Calendar()
         self.calendar.display_options(
-                gtk.CALENDAR_SHOW_HEADING |
-                gtk.CALENDAR_SHOW_DAY_NAMES |
-                gtk.CALENDAR_SHOW_WEEK_NUMBERS)
+            gtk.CALENDAR_SHOW_HEADING |
+            gtk.CALENDAR_SHOW_DAY_NAMES |
+            gtk.CALENDAR_SHOW_WEEK_NUMBERS)
         self.calendar.connect('activate', self.on_calendar_activate)
         self.calendar.connect('month-changed', self.on_month_changed)
         self.on_month_changed(self.calendar)

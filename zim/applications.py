@@ -47,8 +47,8 @@ class ApplicationError(zim.errors.Error):
         self.msg = _('Failed to run application: %s') % cmd
         # T: Error message when external application failed, %s is the command
         self.description = \
-                _('%(cmd)s\nreturned non-zero exit status %(code)i') \
-                % {'cmd': cmd + ' "' + '" "'.join(args) + '"', 'code': retcode}
+            _('%(cmd)s\nreturned non-zero exit status %(code)i') \
+            % {'cmd': cmd + ' "' + '" "'.join(args) + '"', 'code': retcode}
         # T: Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
 
         if stderr:
@@ -186,21 +186,21 @@ class Application(object):
                 info.dwFlags |= 1  # STARTF_USESHOWWINDOW = 0x01
 
             p = subprocess.Popen(argv,
-                    cwd=cwd,
-                    stdout=open(os.devnull, 'w'),
-                    stderr=subprocess.PIPE,
-                    startupinfo=info,
-                    bufsize=4096,
-                    #~ close_fds=True
-            )
+                                 cwd=cwd,
+                                 stdout=open(os.devnull, 'w'),
+                                 stderr=subprocess.PIPE,
+                                 startupinfo=info,
+                                 bufsize=4096,
+                                 #~ close_fds=True
+                                 )
         else:
             p = subprocess.Popen(argv,
-                    cwd=cwd,
-                    stdout=open(os.devnull, 'w'),
-                    stderr=subprocess.PIPE,
-                    bufsize=4096,
-                    close_fds=True
-            )
+                                 cwd=cwd,
+                                 stdout=open(os.devnull, 'w'),
+                                 stderr=subprocess.PIPE,
+                                 bufsize=4096,
+                                 close_fds=True
+                                 )
         stdout, stderr = p.communicate()
 
         if not p.returncode == self.STATUS_OK:
@@ -272,7 +272,7 @@ class Application(object):
         logger.info('Spawning: %s (cwd: %s)', argv, cwd)
         try:
             pid, stdin, stdout, stderr = \
-                    gobject.spawn_async(argv, flags=flags, **opts)
+                gobject.spawn_async(argv, flags=flags, **opts)
         except gobject.GError:
             from zim.gui.widgets import ErrorDialog
             ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
@@ -284,10 +284,10 @@ class Application(object):
                 # child watch does implicit reaping -> no zombies
                 if data is None:
                     gobject.child_watch_add(pid,
-                            lambda pid, status: callback(status))
+                                            lambda pid, status: callback(status))
                 else:
                     gobject.child_watch_add(pid,
-                            lambda pid, status, data: callback(status, data), data)
+                                            lambda pid, status, data: callback(status, data), data)
             return pid
 
 

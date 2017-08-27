@@ -34,17 +34,17 @@ from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
-        ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-        BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
+    ParseTree, ElementTreeModule, OldParseTreeBuilder, \
+    BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
-        Dialog, FileDialog, QuestionDialog, ErrorDialog, \
-        Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
-        ScrolledWindow, \
-        rotate_pixbuf, populate_popup_add_separator
+    Dialog, FileDialog, QuestionDialog, ErrorDialog, \
+    Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
+    ScrolledWindow, \
+    rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
-        textbuffer_register_serialize_formats
+    textbuffer_register_serialize_formats
 from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
@@ -60,7 +60,7 @@ logger = logging.getLogger('zim.gui.pageview')
 class LineSeparator(CustomObjectWidget):
     '''Class to create a separation line.'''
     __gsignals__ = {
-            'size-request': 'override',
+        'size-request': 'override',
     }
 
     def __init__(self):
@@ -74,7 +74,7 @@ class LineSeparator(CustomObjectWidget):
 class LineObject(CustomObjectClass):
     '''Class to work with 'LineSeparator' objects.'''
     OBJECT_ATTR = {
-            'type': String('line'),
+        'type': String('line'),
     }
 
     def get_widget(self):
@@ -96,10 +96,10 @@ STOCK_XCHECKED_BOX = 'zim-xchecked-box'
 STOCK_MIGRATED_BOX = 'zim-migrated-box'
 
 bullet_types = {
-        CHECKED_BOX: STOCK_CHECKED_BOX,
-        UNCHECKED_BOX: STOCK_UNCHECKED_BOX,
-        XCHECKED_BOX: STOCK_XCHECKED_BOX,
-        MIGRATED_BOX: STOCK_MIGRATED_BOX,
+    CHECKED_BOX: STOCK_CHECKED_BOX,
+    UNCHECKED_BOX: STOCK_UNCHECKED_BOX,
+    XCHECKED_BOX: STOCK_XCHECKED_BOX,
+    MIGRATED_BOX: STOCK_MIGRATED_BOX,
 }
 
 # reverse dict
@@ -110,17 +110,17 @@ for bullet in bullet_types:
 # E.g. Maemo devices have no hardware [] keys,
 # so allow () to be used for the same purpose
 autoformat_bullets = {
-        '*': BULLET,
-        '[]': UNCHECKED_BOX,
-        '[ ]': UNCHECKED_BOX,
-        '[*]': CHECKED_BOX,
-        '[x]': XCHECKED_BOX,
-        '[>]': MIGRATED_BOX,
-        '()': UNCHECKED_BOX,
-        '( )': UNCHECKED_BOX,
-        '(*)': CHECKED_BOX,
-        '(x)': XCHECKED_BOX,
-        '(>)': MIGRATED_BOX,
+    '*': BULLET,
+    '[]': UNCHECKED_BOX,
+    '[ ]': UNCHECKED_BOX,
+    '[*]': CHECKED_BOX,
+    '[x]': XCHECKED_BOX,
+    '[>]': MIGRATED_BOX,
+    '()': UNCHECKED_BOX,
+    '( )': UNCHECKED_BOX,
+    '(*)': CHECKED_BOX,
+    '(x)': XCHECKED_BOX,
+    '(>)': MIGRATED_BOX,
 }
 
 BULLETS = (BULLET, UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX)
@@ -140,12 +140,12 @@ KEYVALS_LEFT_TAB = map(gtk.gdk.keyval_from_name, ('ISO_Left_Tab',))
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
 CHARS_END_OF_WORD = ('\t', ' ', ')', '>', ';')
 KEYVALS_END_OF_WORD = map(
-        gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
+    gtk.gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
 
 KEYVALS_ASTERISK = (
-        gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
+    gtk.gdk.unicode_to_keyval(ord('*')), gtk.gdk.keyval_from_name('KP_Multiply'))
 KEYVALS_SLASH = (
-        gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
+    gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 KEYVALS_GT = (gtk.gdk.unicode_to_keyval(ord('>')),)
 KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
 
@@ -158,73 +158,73 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 KEYSTATES = gtk.gdk.CONTROL_MASK | gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 MENU_ACTIONS = (
-        # name, stock id, label
-        ('insert_new_file_menu', None, _('New _Attachment')),  # T: Menu title
+    # name, stock id, label
+    ('insert_new_file_menu', None, _('New _Attachment')),  # T: Menu title
 )
 
 ui_format_actions = (
-        # name, stock id, label, accelerator, tooltip
-        ('apply_format_h1', None, _('Heading _1'), '<Primary>1', _('Heading 1')),  # T: Menu item
-        ('apply_format_h2', None, _('Heading _2'), '<Primary>2', _('Heading 2')),  # T: Menu item
-        ('apply_format_h3', None, _('Heading _3'), '<Primary>3', _('Heading 3')),  # T: Menu item
-        ('apply_format_h4', None, _('Heading _4'), '<Primary>4', _('Heading 4')),  # T: Menu item
-        ('apply_format_h5', None, _('Heading _5'), '<Primary>5', _('Heading 5')),  # T: Menu item
-        ('apply_format_strong', 'gtk-bold', _('_Strong'), '<Primary>B', _('Strong')),  # T: Menu item
-        ('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<Primary>I', _('Emphasis')),  # T: Menu item
-        ('apply_format_mark', 'gtk-underline', _('_Mark'), '<Primary>U', _('Mark')),  # T: Menu item
-        ('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<Primary>K', _('Strike')),  # T: Menu item
-        ('apply_format_sub', None, _('_Subscript'), '<Primary><Shift>b', _('_Subscript')),  # T: Menu item
-        ('apply_format_sup', None, _('_Superscript'), '<Primary><Shift>p', _('_Superscript')),  # T: Menu item
-        ('apply_format_code', None, _('_Verbatim'), '<Primary>T', _('Verbatim')),  # T: Menu item
+    # name, stock id, label, accelerator, tooltip
+    ('apply_format_h1', None, _('Heading _1'), '<Primary>1', _('Heading 1')),  # T: Menu item
+    ('apply_format_h2', None, _('Heading _2'), '<Primary>2', _('Heading 2')),  # T: Menu item
+    ('apply_format_h3', None, _('Heading _3'), '<Primary>3', _('Heading 3')),  # T: Menu item
+    ('apply_format_h4', None, _('Heading _4'), '<Primary>4', _('Heading 4')),  # T: Menu item
+    ('apply_format_h5', None, _('Heading _5'), '<Primary>5', _('Heading 5')),  # T: Menu item
+    ('apply_format_strong', 'gtk-bold', _('_Strong'), '<Primary>B', _('Strong')),  # T: Menu item
+    ('apply_format_emphasis', 'gtk-italic', _('_Emphasis'), '<Primary>I', _('Emphasis')),  # T: Menu item
+    ('apply_format_mark', 'gtk-underline', _('_Mark'), '<Primary>U', _('Mark')),  # T: Menu item
+    ('apply_format_strike', 'gtk-strikethrough', _('_Strike'), '<Primary>K', _('Strike')),  # T: Menu item
+    ('apply_format_sub', None, _('_Subscript'), '<Primary><Shift>b', _('_Subscript')),  # T: Menu item
+    ('apply_format_sup', None, _('_Superscript'), '<Primary><Shift>p', _('_Superscript')),  # T: Menu item
+    ('apply_format_code', None, _('_Verbatim'), '<Primary>T', _('Verbatim')),  # T: Menu item
 )
 
 ui_format_toggle_actions = (
-        # name, stock id, label, accelerator, tooltip
-        ('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong')),
-        ('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis')),
-        ('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark')),
-        ('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
+    # name, stock id, label, accelerator, tooltip
+    ('toggle_format_strong', 'gtk-bold', _('_Strong'), '', _('Strong')),
+    ('toggle_format_emphasis', 'gtk-italic', _('_Emphasis'), '', _('Emphasis')),
+    ('toggle_format_mark', 'gtk-underline', _('_Mark'), '', _('Mark')),
+    ('toggle_format_strike', 'gtk-strikethrough', _('_Strike'), '', _('Strike')),
 )
 
 COPY_FORMATS = zim.formats.list_formats(zim.formats.TEXT_FORMAT)
 ui_preferences = (
-        # key, type, category, label, default
-        ('follow_on_enter', 'bool', 'Interface',
-                _('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
-                # T: option in preferences dialog
-        ('read_only_cursor', 'bool', 'Interface',
-                _('Show the cursor also for pages that can not be edited'), False),
-                # T: option in preferences dialog
-        ('autolink_camelcase', 'bool', 'Editing',
-                _('Automatically turn "CamelCase" words into links'), True),
-                # T: option in preferences dialog
-        ('autolink_files', 'bool', 'Editing',
-                _('Automatically turn file paths into links'), True),
-                # T: option in preferences dialog
-        ('autoselect', 'bool', 'Editing',
-                _('Automatically select the current word when you apply formatting'), True),
-                # T: option in preferences dialog
-        ('unindent_on_backspace', 'bool', 'Editing',
-                _('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
-                # T: option in preferences dialog
-        ('cycle_checkbox_type', 'bool', 'Editing',
-                _('Repeated clicking a checkbox cyles through the checkbox states'), True),
-                # T: option in preferences dialog
-        ('recursive_indentlist', 'bool', 'Editing',
-                _('(Un-)Indenting a list item also change any sub-items'), True),
-                # T: option in preferences dialog
-        ('recursive_checklist', 'bool', 'Editing',
-                _('Checking a checkbox also change any sub-items'), False),
-                # T: option in preferences dialog
-        ('auto_reformat', 'bool', 'Editing',
-                _('Reformat wiki markup on the fly'), False),
-                # T: option in preferences dialog
-        ('copy_format', 'choice', 'Editing',
-                _('Default format for copying text to the clipboard'), 'Text', COPY_FORMATS),
-                # T: option in preferences dialog
-        ('file_templates_folder', 'dir', 'Editing',
-                _('Folder with templates for attachment files'), '~/Templates'),
-                # T: option in preferences dialog
+    # key, type, category, label, default
+    ('follow_on_enter', 'bool', 'Interface',
+     _('Use the <Enter> key to follow links\n(If disabled you can still use <Alt><Enter>)'), True),
+    # T: option in preferences dialog
+    ('read_only_cursor', 'bool', 'Interface',
+     _('Show the cursor also for pages that can not be edited'), False),
+    # T: option in preferences dialog
+    ('autolink_camelcase', 'bool', 'Editing',
+     _('Automatically turn "CamelCase" words into links'), True),
+    # T: option in preferences dialog
+    ('autolink_files', 'bool', 'Editing',
+     _('Automatically turn file paths into links'), True),
+    # T: option in preferences dialog
+    ('autoselect', 'bool', 'Editing',
+     _('Automatically select the current word when you apply formatting'), True),
+    # T: option in preferences dialog
+    ('unindent_on_backspace', 'bool', 'Editing',
+     _('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
+    # T: option in preferences dialog
+    ('cycle_checkbox_type', 'bool', 'Editing',
+     _('Repeated clicking a checkbox cyles through the checkbox states'), True),
+    # T: option in preferences dialog
+    ('recursive_indentlist', 'bool', 'Editing',
+     _('(Un-)Indenting a list item also change any sub-items'), True),
+    # T: option in preferences dialog
+    ('recursive_checklist', 'bool', 'Editing',
+     _('Checking a checkbox also change any sub-items'), False),
+    # T: option in preferences dialog
+    ('auto_reformat', 'bool', 'Editing',
+     _('Reformat wiki markup on the fly'), False),
+    # T: option in preferences dialog
+    ('copy_format', 'choice', 'Editing',
+     _('Default format for copying text to the clipboard'), 'Text', COPY_FORMATS),
+    # T: option in preferences dialog
+    ('file_templates_folder', 'dir', 'Editing',
+     _('Folder with templates for attachment files'), '~/Templates'),
+    # T: option in preferences dialog
 )
 
 _is_zim_tag = lambda tag: hasattr(tag, 'zim_type')
@@ -261,10 +261,10 @@ file_re = Re(r'''(
 )\S*$''', re.X | re.U)  # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
 
 markup_re = {'style-strong': Re(r'(\*{2})(.*)\1'),
-        'style-emphasis': Re(r'(\/{2})(.*)\1'),
-        'style-mark': Re(r'(_{2})(.*)\1'),
-        'style-pre': Re(r'(\'{2})(.*)\1'),
-        'style-strike': Re(r'(~{2})(.*)\1')}
+             'style-emphasis': Re(r'(\/{2})(.*)\1'),
+             'style-mark': Re(r'(_{2})(.*)\1'),
+             'style-pre': Re(r'(\'{2})(.*)\1'),
+             'style-strike': Re(r'(~{2})(.*)\1')}
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
@@ -279,10 +279,10 @@ def camelcase(word):
     # - first char needs to be upper case
     # - remainder of the text needs to be mixed case
     if len(word) < 3 \
-    or not unicode.isalpha(word) \
-    or not unicode.isupper(word[0]) \
-    or unicode.islower(word[1:]) \
-    or unicode.isupper(word[1:]):
+            or not unicode.isalpha(word) \
+            or not unicode.isupper(word[0]) \
+            or unicode.islower(word[1:]) \
+            or unicode.isupper(word[1:]):
         return False
 
     # Now do detailed check and check indeed lower case followed by
@@ -539,16 +539,16 @@ class TextBuffer(gtk.TextBuffer):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'insert-text': 'override',
-            'begin-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
-            'end-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
-            'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
-            'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
-            'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
-            'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'insert-text': 'override',
+        'begin-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'end-insert-tree': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'inserted-tree': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object)),
+        'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'clear': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
+        'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
     }
 
     # style attributes
@@ -557,53 +557,53 @@ class TextBuffer(gtk.TextBuffer):
 
     #: text styles supported by the editor
     tag_styles = {
-            'h1': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
-            'h2': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
-            'h3': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
-            'h4': {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
-            'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': pango.STYLE_ITALIC},
-            'h6': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
-            'emphasis': {'style': pango.STYLE_ITALIC},
-            'strong': {'weight': pango.WEIGHT_BOLD},
-            'mark': {'background': 'yellow'},
-            'strike': {'strikethrough': True, 'foreground': 'grey'},
-            'code': {'family': 'monospace'},
-            'pre': {'family': 'monospace', 'wrap-mode': gtk.WRAP_NONE},
-            'sub': {'rise': -3500, 'scale': 0.7},
-            'sup': {'rise': 7500, 'scale': 0.7},
-            'link': {'foreground': 'blue'},
-            'tag': {'foreground': '#ce5c00'},
-            'indent': {},
-            'bullet-list': {},
-            'numbered-list': {},
-            'unchecked-checkbox': {},
-            'checked-checkbox': {},
-            'xchecked-checkbox': {},
-            'migrated-checkbox': {},
-            'find-highlight': {'background': 'magenta', 'foreground': 'white'},
-            'find-match': {'background': '#38d878', 'foreground': 'white'}
+        'h1': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**4},
+        'h2': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**3},
+        'h3': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15**2},
+        'h4': {'weight': pango.WEIGHT_ULTRABOLD, 'scale': 1.15},
+        'h5': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15, 'style': pango.STYLE_ITALIC},
+        'h6': {'weight': pango.WEIGHT_BOLD, 'scale': 1.15},
+        'emphasis': {'style': pango.STYLE_ITALIC},
+        'strong': {'weight': pango.WEIGHT_BOLD},
+        'mark': {'background': 'yellow'},
+        'strike': {'strikethrough': True, 'foreground': 'grey'},
+        'code': {'family': 'monospace'},
+        'pre': {'family': 'monospace', 'wrap-mode': gtk.WRAP_NONE},
+        'sub': {'rise': -3500, 'scale': 0.7},
+        'sup': {'rise': 7500, 'scale': 0.7},
+        'link': {'foreground': 'blue'},
+        'tag': {'foreground': '#ce5c00'},
+        'indent': {},
+        'bullet-list': {},
+        'numbered-list': {},
+        'unchecked-checkbox': {},
+        'checked-checkbox': {},
+        'xchecked-checkbox': {},
+        'migrated-checkbox': {},
+        'find-highlight': {'background': 'magenta', 'foreground': 'white'},
+        'find-match': {'background': '#38d878', 'foreground': 'white'}
     }
     #: tags that can be mapped to named TextTags
     _static_style_tags = (
-            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'emphasis', 'strong', 'mark', 'strike',
-            'code', 'pre',
-            'sub', 'sup'
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'emphasis', 'strong', 'mark', 'strike',
+        'code', 'pre',
+        'sub', 'sup'
     )
 
     tag_attributes = {
-            'weight': PangoConstant(None, prefix='WEIGHT_'),
-            'scale': Float(None),
-            'style': PangoConstant(None, prefix='STYLE_'),
-            'background': AsciiString(None),
-            'foreground': AsciiString(None),
-            'strikethrough': Boolean(None),
-            'family': AsciiString(None),
-            'wrap-mode': GtkConstant(None, prefix='WRAP_'),
-            'indent': Integer(None),
-            'underline': PangoConstant(None, prefix='UNDERLINE_'),
-            'linespacing': Integer(None),
-            'rise': Integer(None),
+        'weight': PangoConstant(None, prefix='WEIGHT_'),
+        'scale': Float(None),
+        'style': PangoConstant(None, prefix='STYLE_'),
+        'background': AsciiString(None),
+        'foreground': AsciiString(None),
+        'strikethrough': Boolean(None),
+        'family': AsciiString(None),
+        'wrap-mode': GtkConstant(None, prefix='WRAP_'),
+        'indent': Integer(None),
+        'underline': PangoConstant(None, prefix='UNDERLINE_'),
+        'linespacing': Integer(None),
+        'rise': Integer(None),
     }  # : Valid properties for a style in tag_styles
 
     def __init__(self, notebook=None, page=None):
@@ -744,7 +744,7 @@ class TextBuffer(gtk.TextBuffer):
         # Check if we are at a bullet or checkbox line
         iter = self.get_iter_at_mark(self.get_insert())
         if not raw and iter.starts_line() \
-        and not tree.get_ends_with_newline():
+                and not tree.get_ends_with_newline():
             bullet = self._get_bullet_at_iter(iter)
             if bullet:
                 self._iter_forward_past_bullet(iter, bullet)
@@ -957,7 +957,7 @@ class TextBuffer(gtk.TextBuffer):
                     self._insert_element_children(element, list_level=list_level, raw=raw)  # recurs
                 else:
                     logger.debug("Unknown tag : %s, %s, %s", element.tag,
-                                            element.attrib, element.text)
+                                 element.attrib, element.text)
                     assert False, 'Unknown tag: %s' % element.tag
 
                 if element.text:
@@ -989,8 +989,8 @@ class TextBuffer(gtk.TextBuffer):
         '''
         tag = self._create_link_tag(text, href, **attrib)
         self._editmode_tags = \
-                filter(_is_not_link_tag,
-                        filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
+            filter(_is_not_link_tag,
+                   filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
         self.insert_at_cursor(text)
         self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1078,8 +1078,8 @@ class TextBuffer(gtk.TextBuffer):
         '''
         tag = self._create_tag_tag(text, **attrib)
         self._editmode_tags = \
-                filter(_is_not_tag_tag,
-                        filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
+            filter(_is_not_tag_tag,
+                   filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
         self.insert_at_cursor(text)
         self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1355,7 +1355,7 @@ class TextBuffer(gtk.TextBuffer):
             newbullet = bullet
 
         if is_numbered_bullet_re.match(newbullet) \
-        or is_numbered_bullet_re.match(bullet):
+                or is_numbered_bullet_re.match(bullet):
             self._renumber_list(line, indent, newbullet)
         # else we had a normal bullet, and no numbered bullet above
 
@@ -1398,7 +1398,7 @@ class TextBuffer(gtk.TextBuffer):
                     newbullet = 'a.'  # switch "1." -> "a."
 
         if is_numbered_bullet_re.match(newbullet) \
-        or is_numbered_bullet_re.match(bullet):
+                or is_numbered_bullet_re.match(bullet):
             self._renumber_list(line, indent, newbullet)
         # else we had a normal bullet, and no numbered bullet above
 
@@ -1475,7 +1475,7 @@ class TextBuffer(gtk.TextBuffer):
             tag = self.get_tag_table().lookup('style-' + name)
             if _is_heading_tag(tag):
                 self._editmode_tags = \
-                        filter(_is_not_indent_tag, self._editmode_tags)
+                    filter(_is_not_indent_tag, self._editmode_tags)
             self._editmode_tags = self._editmode_tags + (tag,)
 
         if not self._insert_tree_in_progress:
@@ -1637,7 +1637,7 @@ class TextBuffer(gtk.TextBuffer):
         @param end: a C{gtk.TextIter}
         '''
         if tag in start.get_tags() \
-        and tag in self.iter_get_zim_tags(end):
+                and tag in self.iter_get_zim_tags(end):
             iter = start.copy()
             if iter.forward_to_tag_toggle(tag):
                 return iter.compare(end) >= 0
@@ -1655,7 +1655,7 @@ class TextBuffer(gtk.TextBuffer):
         '''
         # test right gravity for start iter, but left gravity for end iter
         if tag in start.get_tags() \
-        or tag in self.iter_get_zim_tags(end):
+                or tag in self.iter_get_zim_tags(end):
             return True
         else:
             iter = start.copy()
@@ -1678,7 +1678,7 @@ class TextBuffer(gtk.TextBuffer):
         '''
         # test right gravity for start iter, but left gravity for end iter
         if any(filter(func, start.get_tags())) \
-        or any(filter(func, self.iter_get_zim_tags(end))):
+                or any(filter(func, self.iter_get_zim_tags(end))):
             return True
         else:
             iter = start.copy()
@@ -1778,12 +1778,12 @@ class TextBuffer(gtk.TextBuffer):
                 indent = -12  # offset for first line (bullet)
                 if dir == 'LTR':
                     tag = self.create_tag(name,
-                            left_margin=margin, indent=indent,
-                            **self.tag_styles[stylename])
+                                          left_margin=margin, indent=indent,
+                                          **self.tag_styles[stylename])
                 else:  # RTL
                     tag = self.create_tag(name,
-                            right_margin=margin, indent=indent,
-                            **self.tag_styles[stylename])
+                                          right_margin=margin, indent=indent,
+                                          **self.tag_styles[stylename])
             else:
                 margin = 12 + self.pixels_indent * level
                 # Note: I would think the + 12 is not needed here, but
@@ -1792,12 +1792,12 @@ class TextBuffer(gtk.TextBuffer):
                 # window border
                 if dir == 'LTR':
                     tag = self.create_tag(name,
-                            left_margin=margin,
-                            **self.tag_styles['indent'])
+                                          left_margin=margin,
+                                          **self.tag_styles['indent'])
                 else:  # RTL
                     tag = self.create_tag(name,
-                            right_margin=margin,
-                            **self.tag_styles['indent'])
+                                          right_margin=margin,
+                                          **self.tag_styles['indent'])
 
             tag.zim_type = 'indent'
             tag.zim_tag = 'indent'
@@ -1986,7 +1986,7 @@ class TextBuffer(gtk.TextBuffer):
         # if so insert behind the bullet when you type at start of line
         # FIXME FIXME FIXME - break undo - instead disallow this home position ?
         if not self._insert_tree_in_progress and iter.starts_line() \
-        and not string.endswith('\n'):
+                and not string.endswith('\n'):
             bullet = self._get_bullet_at_iter(iter)
             if bullet:
                 self._iter_forward_past_bullet(iter, bullet)
@@ -1996,8 +1996,8 @@ class TextBuffer(gtk.TextBuffer):
         if string == '\n':  # CHARS_END_OF_LINE
             # Break tags that are not allowed to span over multiple lines
             self._editmode_tags = filter(
-                    lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
-                    self._editmode_tags)
+                lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
+                self._editmode_tags)
             self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
             self.emit('textstyle-changed', None)
             # TODO make this more robust for multiline inserts
@@ -2162,7 +2162,7 @@ class TextBuffer(gtk.TextBuffer):
         pixbuf = iter.get_pixbuf()
         if pixbuf:
             if hasattr(pixbuf, 'zim_type') and pixbuf.zim_type == 'icon' \
-            and pixbuf.zim_attrib['stock'] in (
+                and pixbuf.zim_attrib['stock'] in (
                     STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
                 return bullets[pixbuf.zim_attrib['stock']]
             else:
@@ -2270,7 +2270,7 @@ class TextBuffer(gtk.TextBuffer):
 
             i = 0
             while i < len(tags) and i < len(open_tags) \
-            and tags[i] == open_tags[i][0]:
+                    and tags[i] == open_tags[i][0]:
                 i += 1
 
             # so i is the breakpoint where new stack is different
@@ -2383,7 +2383,7 @@ class TextBuffer(gtk.TextBuffer):
                 if hasattr(anchor, 'manager'):
                     attrib = anchor.manager.get_attrib()
                     if attrib and attrib['type'] == 'table' \
-                    and hasattr(anchor.manager, 'build_parsetree_of_table'):  # fallback should not go here...
+                            and hasattr(anchor.manager, 'build_parsetree_of_table'):  # fallback should not go here...
                         obj = anchor.manager
                         obj.build_parsetree_of_table(builder, iter)
                     elif attrib and attrib['type'] == 'line':
@@ -2430,8 +2430,8 @@ class TextBuffer(gtk.TextBuffer):
                         # For some reason the not is_end check is needed
                         # to prevent an odd corner case infinite loop
                         toggled = filter(_is_zim_tag,
-                                bound.get_toggled_tags(False)
-                                + bound.get_toggled_tags(True))
+                                         bound.get_toggled_tags(False)
+                                         + bound.get_toggled_tags(True))
                     else:
                         bound = end.copy()  # just to be sure..
                         break
@@ -2454,7 +2454,7 @@ class TextBuffer(gtk.TextBuffer):
                     text = iter.get_slice(end)
 
                 if filter(lambda t: t[1] == 'li', open_tags) \
-                and bound.get_line() != iter.get_line():
+                        and bound.get_line() != iter.get_line():
                     # And limit bullets to a single line
                     orig = bound
                     bound = iter.copy()
@@ -2782,8 +2782,8 @@ class TextBuffer(gtk.TextBuffer):
         '''
         bounds = self.get_selection_bounds()
         return bounds \
-                and bounds[0].compare(iter) <= 0 \
-                and bounds[1].compare(iter) >= 0
+            and bounds[0].compare(iter) <= 0 \
+            and bounds[1].compare(iter) >= 0
         # not using iter.in_range to be inclusive of bounds
 
     def unset_selection(self):
@@ -3140,8 +3140,8 @@ class TextBufferList(list):
                 if self[i][self.INDENT_COL] <= level:
                     break
                 elif self[i][self.INDENT_COL] == level + 1 \
-                and self[i][self.BULLET_COL] in CHECKBOXES \
-                and self[i][self.BULLET_COL] != state:
+                        and self[i][self.BULLET_COL] in CHECKBOXES \
+                        and self[i][self.BULLET_COL] != state:
                     consistent = False
                     break
 
@@ -3191,9 +3191,9 @@ class TextFinder(object):
         self.highlight = False
 
         self.highlight_tag = self.buffer.create_tag(
-                None, **self.buffer.tag_styles['find-highlight'])
+            None, **self.buffer.tag_styles['find-highlight'])
         self.match_tag = self.buffer.create_tag(
-                None, **self.buffer.tag_styles['find-match'])
+            None, **self.buffer.tag_styles['find-match'])
 
     def get_state(self):
         '''Get the query and any options. Used to copy the current state
@@ -3316,8 +3316,8 @@ class TextFinder(object):
         self.buffer.select_range(start, end)
 
         self._signals = tuple(
-                self.buffer.connect(s, self._remove_tag)
-                        for s in ('mark-set', 'changed'))
+            self.buffer.connect(s, self._remove_tag)
+            for s in ('mark-set', 'changed'))
 
     def unset_match(self):
         self._remove_tag()
@@ -3325,7 +3325,7 @@ class TextFinder(object):
 
     def _remove_tag(self, *a):
         if len(a) > 2 and isinstance(a[2], gtk.TextMark) \
-        and a[2] is not self.buffer.get_insert():
+                and a[2] is not self.buffer.get_insert():
             # mark-set signal, but not for cursor
             return
 
@@ -3384,9 +3384,9 @@ class TextFinder(object):
                 matches.reverse()
             for match in matches:
                 startiter = self.buffer.get_iter_at_line_offset(
-                        line, match.start())
+                    line, match.start())
                 enditer = self.buffer.get_iter_at_line_offset(
-                        line, match.end())
+                    line, match.end())
                 yield startiter, enditer, match
 
     def replace(self, string):
@@ -3497,24 +3497,24 @@ class TextView(gtk.TextView):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            # New signals
-            'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-            'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object, object)),
-            'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        # New signals
+        'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'end-of-word': (gobject.SIGNAL_RUN_LAST, None, (object, object, object, object, object)),
+        'end-of-line': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
-            # Override clipboard interaction
-            'copy-clipboard': 'override',
-            'cut-clipboard': 'override',
-            'paste-clipboard': 'override',
+        # Override clipboard interaction
+        'copy-clipboard': 'override',
+        'cut-clipboard': 'override',
+        'paste-clipboard': 'override',
 
-            # And some events we want to connect to
-            'motion-notify-event': 'override',
-            'visibility-notify-event': 'override',
-            'button-press-event': 'override',
-            'button-release-event': 'override',
-            'key-press-event': 'override',
+        # And some events we want to connect to
+        'motion-notify-event': 'override',
+        'visibility-notify-event': 'override',
+        'button-press-event': 'override',
+        'button-release-event': 'override',
+        'key-press-event': 'override',
     }
 
     def __init__(self, preferences):
@@ -3629,7 +3629,7 @@ class TextView(gtk.TextView):
         # move cursor into any object that accept a cursor focus
 
         if step_size in (gtk.MOVEMENT_LOGICAL_POSITIONS, gtk.MOVEMENT_VISUAL_POSITIONS) \
-        and count in (1, -1) and not extend_selection:
+                and count in (1, -1) and not extend_selection:
             # logic below only supports 1 char forward or 1 char backward movements
 
             buffer = self.get_buffer()
@@ -3741,7 +3741,7 @@ class TextView(gtk.TextView):
                 return gtk.TextView.do_key_press_event(self, event)
 
         elif (event.keyval in KEYVALS_HOME
-        and not event.state & gtk.gdk.CONTROL_MASK):
+              and not event.state & gtk.gdk.CONTROL_MASK):
             # Smart Home key - can be combined with shift state
             insert = buffer.get_iter_at_mark(buffer.get_insert())
             home, ourhome = self.get_visual_home_positions(insert)
@@ -3759,7 +3759,7 @@ class TextView(gtk.TextView):
             iter = buffer.get_insert_iter()
             home, ourhome = self.get_visual_home_positions(iter)
             if home.starts_line() and iter.compare(ourhome) < 1 \
-            and not filter(_is_pre_tag, iter.get_tags()):
+                    and not filter(_is_pre_tag, iter.get_tags()):
                 row, list = TextBufferList.new_from_line(buffer, iter.get_line())
                 if list and self.preferences['recursive_indentlist']:
                     list.indent(row)
@@ -3768,20 +3768,20 @@ class TextView(gtk.TextView):
                 handled = True
         elif (event.keyval in KEYVALS_LEFT_TAB
                 and not (event.state & KEYSTATES & ~gtk.gdk.SHIFT_MASK)
-        ) or (event.keyval in KEYVALS_BACKSPACE
-                and self.preferences['unindent_on_backspace']
-                and not (event.state & KEYSTATES)
-        ):
+              ) or (event.keyval in KEYVALS_BACKSPACE
+                    and self.preferences['unindent_on_backspace']
+                    and not (event.state & KEYSTATES)
+                    ):
             # Backspace or Ctrl-Tab unindents line
             # note that Shift-Tab give Left_Tab + Shift mask, so allow shift
             iter = buffer.get_iter_at_mark(buffer.get_insert())
             home, ourhome = self.get_visual_home_positions(iter)
             if home.starts_line() and iter.compare(ourhome) < 1 \
-            and not filter(_is_pre_tag, iter.get_tags()):
+                    and not filter(_is_pre_tag, iter.get_tags()):
                 bullet = buffer.get_bullet_at_iter(home)
                 indent = buffer.get_indent(home.get_line())
                 if event.keyval in KEYVALS_BACKSPACE \
-                and bullet and indent == 0 and not iter.equal(home):
+                        and bullet and indent == 0 and not iter.equal(home):
                     # Delete bullet at start of line (if iter not before bullet)
                     buffer.delete(home, ourhome)
                     handled = True
@@ -3812,7 +3812,7 @@ class TextView(gtk.TextView):
                 # As a result you can not "Enter" a 1 character link,
                 # this is by design.
                 if (self.preferences['follow_on_enter']
-                or event.state & gtk.gdk.MOD1_MASK):  # MOD1 == Alt
+                        or event.state & gtk.gdk.MOD1_MASK):  # MOD1 == Alt
                     self.click_link_at_iter(iter)
                 # else do not insert newline, just ignore
                 handled = True
@@ -3824,7 +3824,7 @@ class TextView(gtk.TextView):
             return False
 
         elif (event.keyval in KEYVALS_END_OF_WORD
-        or event.keyval in KEYVALS_ENTER):
+              or event.keyval in KEYVALS_ENTER):
             # Trigger end-of-line and/or end-of-word signals if char was
             # really inserted by parent class.
             #
@@ -3852,9 +3852,9 @@ class TextView(gtk.TextView):
                 if buffer.iter_backward_word_start(start):
                     word = start.get_text(iter)
                     editmode = [t.zim_tag
-                            for t in buffer._editmode_tags
-                            if hasattr(t, 'zim_tag')
-                    ]
+                                for t in buffer._editmode_tags
+                                if hasattr(t, 'zim_tag')
+                                ]
                     self.emit('end-of-word', start, iter, word, char, editmode)
 
                 if event.keyval in KEYVALS_ENTER:
@@ -3914,7 +3914,7 @@ class TextView(gtk.TextView):
             elif multi_line_indent(start, end):
                 level = []
                 buffer.foreach_line_in_selection(
-                        lambda l: level.append(buffer.get_indent(l)))
+                    lambda l: level.append(buffer.get_indent(l)))
                 if level and min(level) > 0:
                     # All lines have some indent
                     return buffer.foreach_line_in_selection(buffer.unindent)
@@ -3941,7 +3941,7 @@ class TextView(gtk.TextView):
                 return False
             else:
                 return end.ends_line() \
-                or end.get_line() > start.get_line()
+                    or end.get_line() > start.get_line()
 
         start, end = buffer.get_selection_bounds()
         with buffer.user_action:
@@ -3959,7 +3959,7 @@ class TextView(gtk.TextView):
                 # do not set handled = False when decrement failed -
                 # LEFT_TAB should not do anything else
             elif event.keyval in KEYVALS_BACKSPACE \
-            and self.preferences['unindent_on_backspace']:
+                    and self.preferences['unindent_on_backspace']:
                 handled = decrement_indent(start, end)
             elif event.keyval in KEYVALS_ASTERISK + (KEYVAL_POUND,):
                 def toggle_bullet(line, newbullet):
@@ -3973,7 +3973,7 @@ class TextView(gtk.TextView):
                 else:
                     buffer.foreach_line_in_selection(toggle_bullet, BULLET)
             elif event.keyval in KEYVALS_GT \
-            and multi_line_indent(start, end):
+                    and multi_line_indent(start, end):
                 def email_quote(line):
                     iter = buffer.get_iter_at_line(line)
                     bound = iter.copy()
@@ -4164,7 +4164,7 @@ class TextView(gtk.TextView):
         #~ print 'WORD >>%s<< CHAR >>%s<<' % (word, char)
 
         if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)) \
-        or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
+                or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
             # DO not auto-format if any zim tags are applied except for indent
             return
 
@@ -4191,7 +4191,7 @@ class TextView(gtk.TextView):
             return True
 
         if (char == ' ' or char == '\t') and start.starts_line() \
-        and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
+                and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
             # format bullet and checkboxes
             line = start.get_line()
             end.forward_char()  # also overwrite the space triggering the action
@@ -4226,7 +4226,7 @@ class TextView(gtk.TextView):
                     matchend = linestart.copy()
                     matchend.forward_chars(re.end())
                     if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchstart)) \
-                    or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchend)):
+                            or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchend)):
                         continue
                     buffer.delete(matchstart, matchend)
                     buffer.insert_with_tags_by_name(matchstart, re[2], style)
@@ -4255,7 +4255,7 @@ class TextView(gtk.TextView):
             mark = buffer.create_mark(None, end)
             buffer.delete(start, end)
             buffer.insert_with_tags_by_name(
-                    buffer.get_iter_at_mark(mark), heading, 'style-h' + str(level))
+                buffer.get_iter_at_mark(mark), heading, 'style-h' + str(level))
             buffer.delete_mark(mark)
         elif IS_LINE(line):
             with buffer.user_action:
@@ -4282,7 +4282,7 @@ class TextView(gtk.TextView):
                 indent = buffer.get_indent(start.get_line())
                 nextlinestart = newlinestart.copy()
                 if nextlinestart.forward_line() \
-                and buffer.get_bullet_at_iter(nextlinestart):
+                        and buffer.get_bullet_at_iter(nextlinestart):
                     nextindent = buffer.get_indent(nextlinestart.get_line())
                     if nextindent >= indent:
                         # we are at the head of a sublist
@@ -4430,20 +4430,20 @@ class UndoStackManager:
                 ('end-user-action', self.do_end_user_action),
         ):
             self.recording_handlers.append(
-                    self.buffer.connect(signal, handler))
+                self.buffer.connect(signal, handler))
 
         for signal, handler in (
                 ('end-user-action', self.do_end_user_action),
         ):
             self.recording_handlers.append(
-                    self.buffer.connect_after(signal, handler))
+                self.buffer.connect_after(signal, handler))
 
         for signal, action in (
                 ('apply-tag', self.ACTION_APPLY_TAG),
                 ('remove-tag', self.ACTION_REMOVE_TAG),
         ):
             self.recording_handlers.append(
-                    self.buffer.connect(signal, self.do_change_tag, action))
+                self.buffer.connect(signal, self.do_change_tag, action))
 
         #~ self.buffer.connect_object('begin-insert-tree',
             #~ self.__class__.block, self)
@@ -4451,7 +4451,7 @@ class UndoStackManager:
             #~ self.__class__.unblock, self)
 
         self.buffer.connect_object('clear',
-                self.__class__.clear, self)
+                                   self.__class__.clear, self)
 
         #~ self.buffer.connect_object('edit-textstyle-changed',
         #~ self.__class__._flush_if_typing, self)
@@ -4537,13 +4537,13 @@ class UndoStackManager:
         #~ print 'INSERT at %i: "%s" (%i)' % (start, text, length)
 
         if length == 1 and not text.isspace() \
-        and self.interactive and not self.group:
+                and self.interactive and not self.group:
             # we can merge
             if self.stack and self.stack[-1].can_merge:
                 previous = self.stack[-1][-1]
                 if previous[0] == self.ACTION_INSERT \
-                and previous[2] == start \
-                and previous[3] is None:
+                        and previous[2] == start \
+                        and previous[3] is None:
                     # so can previous group - let's merge
                     self.group = self.stack.pop()
                     self.group[-1] = (self.ACTION_INSERT, previous[1], end, None)
@@ -4583,7 +4583,7 @@ class UndoStackManager:
                 action, start, end, tree = group[i]
                 if action == self.ACTION_INSERT and tree is None:
                     bounds = (self.buffer.get_iter_at_offset(start),
-                                            self.buffer.get_iter_at_offset(end))
+                              self.buffer.get_iter_at_offset(end))
                     tree = self.buffer.get_parsetree(bounds, raw=True)
                     #~ print 'FLUSH %i to %i\n\t%s' % (start, end, tree.tostring())
                     group[i] = (self.ACTION_INSERT, start, end, tree)
@@ -4619,10 +4619,10 @@ class UndoStackManager:
 
         start, end = start.get_offset(), end.get_offset()
         if self.group \
-        and self.group[-1][0] == self.ACTION_INSERT \
-        and self.group[-1][1] <= start \
-        and self.group[-1][2] >= end \
-        and self.group[-1][3] is None:
+                and self.group[-1][0] == self.ACTION_INSERT \
+                and self.group[-1][1] <= start \
+                and self.group[-1][2] >= end \
+                and self.group[-1][3] is None:
             pass  # for text that is not yet flushed tags will be in the tree
         else:
             if self.undo_count > 0:
@@ -4749,8 +4749,8 @@ class SavePageHandler(object):
         '''
         if not self._autosave_timer:
             self._autosave_timer = gobject.timeout_add(
-                    self.timeout * 1000,  # s -> ms
-                    self.do_try_save_page
+                self.timeout * 1000,  # s -> ms
+                self.do_try_save_page
             )
 
     def cancel_autosave(self):
@@ -4855,8 +4855,8 @@ class SavePageErrorDialog(ErrorDialog):
         msg = _('Could not save page: %s') % page.name
         # T: Heading of error dialog
         desc = unicode(error).encode('utf-8').strip() \
-                        + '\n\n' \
-                        + _('''\
+            + '\n\n' \
+            + _('''\
 To continue you can save a copy of this page or discard
 any changes. If you save a copy changes will be also
 discarded, but you can restore the copy later.''')
@@ -4975,8 +4975,8 @@ class PageView(gtk.VBox):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-            'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 
     }
 
@@ -5037,9 +5037,9 @@ class PageView(gtk.VBox):
         # format actions need some custom hooks
         actiongroup = self.actiongroup
         actiongroup.add_actions(
-                gtk_accelerator_preparse_list(ui_format_actions))
+            gtk_accelerator_preparse_list(ui_format_actions))
         actiongroup.add_toggle_actions(
-                gtk_accelerator_preparse_list(ui_format_toggle_actions))
+            gtk_accelerator_preparse_list(ui_format_toggle_actions))
 
         for name in [a[0] for a in ui_format_actions]:
             action = actiongroup.get_action(name)
@@ -5067,7 +5067,7 @@ class PageView(gtk.VBox):
 
         def assert_not_modified(page, *a):
             if page == self.page \
-            and self.view.get_buffer().get_modified():
+                    and self.view.get_buffer().get_modified():
                 raise AssertionError('BUG: page changed while buffer changed as well')
                 # not using assert here because it could be optimized away
 
@@ -5078,14 +5078,14 @@ class PageView(gtk.VBox):
         self.ui.preferences['GtkInterface'].setdefault('autosave_timeout', 15)  # XXX
         self.ui.preferences['GtkInterface'].setdefault('autosave_use_thread', True)  # XXX
         logger.debug('Autosave interval: %r - use threads: %r',
-                self.ui.preferences['GtkInterface']['autosave_timeout'],  # XXX
-                self.ui.preferences['GtkInterface']['autosave_use_thread']  # XXX
-        )
+                     self.ui.preferences['GtkInterface']['autosave_timeout'],  # XXX
+                     self.ui.preferences['GtkInterface']['autosave_use_thread']  # XXX
+                     )
         self._save_page_handler = SavePageHandler(
-                self, notebook,
-                self.get_page,
-                timeout=self.ui.preferences['GtkInterface']['autosave_timeout'],  # XXX
-                use_thread=self.ui.preferences['GtkInterface']['autosave_use_thread']  # XXX
+            self, notebook,
+            self.get_page,
+            timeout=self.ui.preferences['GtkInterface']['autosave_timeout'],  # XXX
+            use_thread=self.ui.preferences['GtkInterface']['autosave_use_thread']  # XXX
         )
 
         def on_focus_out_event(*a):
@@ -5098,7 +5098,7 @@ class PageView(gtk.VBox):
 
     def on_preferences_changed(self, *a):
         self.view.set_cursor_visible(
-                self.preferences['read_only_cursor'] or not self.readonly)
+            self.preferences['read_only_cursor'] or not self.readonly)
 
     def on_text_style_changed(self, *a):
         '''(Re-)intializes properties for TextView, TextBuffer and
@@ -5268,9 +5268,9 @@ class PageView(gtk.VBox):
             self.set_cursor_pos(cursor)
 
             self._buffer_signals = (
-                    buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
-                    buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
-                    buffer.connect_after('mark-set', self.do_mark_set),
+                buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
+                buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
+                buffer.connect_after('mark-set', self.do_mark_set),
             )
 
             buffer.finder.set_state(*finderstate)  # maintain state
@@ -5394,7 +5394,7 @@ class PageView(gtk.VBox):
 
         self.view.set_editable(not self.readonly)
         self.view.set_cursor_visible(
-                self.preferences['read_only_cursor'] or not self.readonly)
+            self.preferences['read_only_cursor'] or not self.readonly)
 
         self._set_menuitems_sensitive(True)
 
@@ -5406,7 +5406,7 @@ class PageView(gtk.VBox):
             # partly overrule logic in ui.set_readonly()
             for action in self.actiongroup.list_actions():
                 action.set_sensitive(
-                        action.zim_readonly or not self.readonly)
+                    action.zim_readonly or not self.readonly)
 
             # update state for menu items for checkboxes and links
             buffer = self.view.get_buffer()
@@ -5501,7 +5501,7 @@ class PageView(gtk.VBox):
         @param type: the object type handled by this plugin, e.g. "equation"
         '''
         assert not type in self.image_generator_plugins, \
-                'Already have plugin for image type "%s"' % type
+            'Already have plugin for image type "%s"' % type
         self.image_generator_plugins[type] = plugin
         logger.debug('Registered plugin %s for image type "%s"', plugin, type)
 
@@ -5599,7 +5599,7 @@ class PageView(gtk.VBox):
 
             if type == 'page':
                 path = self.ui.notebook.pages.resolve_link(
-                        self.page, HRef.new_from_wiki_link(href)
+                    self.page, HRef.new_from_wiki_link(href)
                 )
                 if new_window:
                     self.ui.open_new_window(path)
@@ -5621,7 +5621,7 @@ class PageView(gtk.VBox):
 
             else:
                 if type == 'mailto' \
-                and not href.startswith('mailto:'):
+                        and not href.startswith('mailto:'):
                     href = 'mailto:' + href
                 self.ui.open_url(href)
         except Exception as error:
@@ -5666,8 +5666,8 @@ class PageView(gtk.VBox):
             item = gtk.MenuItem(label)
             if buffer.get_has_selection():
                 item.connect('activate',
-                        lambda o, f: self.view.do_copy_clipboard(format=f),
-                        format)
+                             lambda o, f: self.view.do_copy_clipboard(format=f),
+                             format)
             else:
                 item.set_sensitive(False)
             copy_as_menu.append(item)
@@ -5687,7 +5687,7 @@ class PageView(gtk.VBox):
 
         if buffer.get_has_selection():
             item.connect('activate',
-                    lambda o: MoveTextDialog(self.ui, self).run())
+                         lambda o: MoveTextDialog(self.ui, self).run())
         else:
             item.set_sensitive(False)
         ###
@@ -5713,7 +5713,7 @@ class PageView(gtk.VBox):
                 type = 'image'
                 file = image['src']
                 if 'type' in image \
-                and image['type'] in self.image_generator_plugins:
+                        and image['type'] in self.image_generator_plugins:
                     plugin = self.image_generator_plugins[image['type']]
                     plugin.do_populate_popup(menu, buffer, iter, image)
                     menu.show_all()
@@ -5759,7 +5759,7 @@ class PageView(gtk.VBox):
         if type == 'page':
             item = gtk.MenuItem(_('Copy _Link'))  # T: context menu item
             path = self.ui.notebook.pages.resolve_link(
-                    self.page, HRef.new_from_wiki_link(link['href'])
+                self.page, HRef.new_from_wiki_link(link['href'])
             )
             item.connect('activate', set_pagelink, path)
         elif type == 'interwiki':
@@ -5811,7 +5811,7 @@ class PageView(gtk.VBox):
             item = gtk.MenuItem(_('Open in New _Window'))
             # T: menu item to open a link
             item.connect(
-                    'activate', lambda o: self.do_link_clicked(link, new_window=True))
+                'activate', lambda o: self.do_link_clicked(link, new_window=True))
             menu.prepend(item)
 
         # open
@@ -5824,7 +5824,7 @@ class PageView(gtk.VBox):
             item.set_sensitive(False)
         else:
             item.connect_object(
-                    'activate', PageView.do_link_clicked, self, link)
+                'activate', PageView.do_link_clicked, self, link)
         menu.prepend(item)
 
         menu.show_all()
@@ -5956,7 +5956,7 @@ class PageView(gtk.VBox):
         buffer = self.view.get_buffer()
 
         if not buffer.get_has_selection() \
-        or (iter and not buffer.iter_in_selection(iter)):
+                or (iter and not buffer.iter_in_selection(iter)):
             if iter:
                 buffer.place_cursor(iter)
             buffer.select_link()
@@ -6012,7 +6012,7 @@ class PageView(gtk.VBox):
             file = adapt_from_newfs(file)
             assert isinstance(file, File)
             if not force \
-            and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
+                    and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
                 raise ValueError('Not an image %s' % file)
 
             src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
@@ -6197,10 +6197,10 @@ class PageView(gtk.VBox):
         else:
             path = dir.user_path or dir.path
             question = (
-                    _('Create folder?'),
-                            # T: Heading in a question dialog for creating a folder
-                    _('The folder\n%s\ndoes not yet exist.\nDo you want to create it now?')
-                            % path
+                _('Create folder?'),
+                # T: Heading in a question dialog for creating a folder
+                _('The folder\n%s\ndoes not yet exist.\nDo you want to create it now?')
+                % path
             )
             # T: Text in a question dialog for creating a folder, %s is the folder path
             create = QuestionDialog(self, question).run()
@@ -6428,7 +6428,7 @@ class InsertDateDialog(Dialog):
 
     def __init__(self, ui, buffer):
         Dialog.__init__(self, ui, _('Insert Date and Time'),  # T: Dialog title
-                button=(_('_Insert'), 'gtk-ok'))  # T: Button label
+                        button=(_('_Insert'), 'gtk-ok'))  # T: Button label
         self.buffer = buffer
         self.date = datetime.now()
 
@@ -6451,7 +6451,7 @@ class InsertDateDialog(Dialog):
         self.view.append_column(column)
         self.view.set_headers_visible(False)
         self.view.connect('row-activated',
-                lambda *a: self.response(gtk.RESPONSE_OK))
+                          lambda *a: self.response(gtk.RESPONSE_OK))
 
         # Add Calendar widget
         from zim.plugins.calendar import Calendar  # FIXME put this in zim.gui.widgets
@@ -6462,9 +6462,9 @@ class InsertDateDialog(Dialog):
         self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
         self.calendar = Calendar()
         self.calendar.display_options(
-                gtk.CALENDAR_SHOW_HEADING |
-                gtk.CALENDAR_SHOW_DAY_NAMES |
-                gtk.CALENDAR_SHOW_WEEK_NUMBERS)
+            gtk.CALENDAR_SHOW_HEADING |
+            gtk.CALENDAR_SHOW_DAY_NAMES |
+            gtk.CALENDAR_SHOW_WEEK_NUMBERS)
         self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
         self.calendar_expander.add(self.calendar)
         self.vbox.pack_start(self.calendar_expander, False)
@@ -6563,7 +6563,7 @@ class InsertImageDialog(FileDialog):
 
     def __init__(self, ui, buffer, notebook, path, file=None):
         FileDialog.__init__(
-                self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
+            self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
         # T: Dialog title
 
         self.buffer = buffer
@@ -6636,13 +6636,13 @@ class EditImageDialog(Dialog):
             src = src[:i]
         href = image_data.get('href', '')
         self.add_form([
-                ('file', 'image', _('Location')),  # T: Input in 'edit image' dialog
-                ('href', 'link', _('Link to'), ui.page),  # T: Input in 'edit image' dialog
-                ('width', 'int', _('Width'), (0, 1)),  # T: Input in 'edit image' dialog
-                ('height', 'int', _('Height'), (0, 1))  # T: Input in 'edit image' dialog
+            ('file', 'image', _('Location')),  # T: Input in 'edit image' dialog
+            ('href', 'link', _('Link to'), ui.page),  # T: Input in 'edit image' dialog
+            ('width', 'int', _('Width'), (0, 1)),  # T: Input in 'edit image' dialog
+            ('height', 'int', _('Height'), (0, 1))  # T: Input in 'edit image' dialog
         ],
-                {'file': src, 'href': href}
-                # range for width and height are set in set_ranges()
+            {'file': src, 'href': href}
+            # range for width and height are set in set_ranges()
         )
         self.form.widgets['file'].set_use_relative_paths(ui.notebook, path)
         # Show relative paths
@@ -6654,13 +6654,13 @@ class EditImageDialog(Dialog):
         self.vbox.add(hbox)
 
         reset_button.connect_object('clicked',
-                self.__class__.reset_dimensions, self)
+                                    self.__class__.reset_dimensions, self)
         #~ self.form.widgets['file'].connect_object('activate',
         #~ self.__class__.reset_dimensions, self)
         self.form.widgets['width'].connect_object('value-changed',
-                self.__class__.do_width_changed, self)
+                                                  self.__class__.do_width_changed, self)
         self.form.widgets['height'].connect_object('value-changed',
-                self.__class__.do_height_changed, self)
+                                                   self.__class__.do_height_changed, self)
 
         # Init ranges based on original
         self.reset_dimensions()
@@ -6744,7 +6744,7 @@ class InsertTextFromFileDialog(FileDialog):
 
     def __init__(self, ui, buffer, notebook, page):
         FileDialog.__init__(
-                self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
+            self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
         # T: Dialog title
         self.load_last_folder()
         self.add_shortcut(notebook, page)
@@ -6776,14 +6776,14 @@ class InsertLinkDialog(Dialog):
             title = _('Insert Link')  # T: Dialog title
 
         Dialog.__init__(self, ui, title,
-                button=(_('_Link'), 'zim-link'))  # T: Dialog button
+                        button=(_('_Link'), 'zim-link'))  # T: Dialog button
 
         self.add_form([
-                ('href', 'link', _('Link to'), pageview.page),  # T: Input in 'insert link' dialog
-                ('text', 'string', _('Text'))  # T: Input in 'insert link' dialog
+            ('href', 'link', _('Link to'), pageview.page),  # T: Input in 'insert link' dialog
+            ('text', 'string', _('Text'))  # T: Input in 'insert link' dialog
         ], {
-                'href': href,
-                'text': text,
+            'href': href,
+            'text': text,
         })
 
         # Hook text entry to copy text from link when apropriate
@@ -6862,7 +6862,7 @@ class InsertLinkDialog(Dialog):
         with buffer.user_action:
             if self._selection_bounds:
                 start, end = map(
-                        buffer.get_iter_at_offset, self._selection_bounds)
+                    buffer.get_iter_at_offset, self._selection_bounds)
                 buffer.delete(start, end)
             buffer.insert_link_at_cursor(text, href)
 
@@ -6877,41 +6877,41 @@ class FindWidget(object):
 
         self.find_entry = InputEntry(allow_whitespace=True)
         self.find_entry.connect_object(
-                'changed', self.__class__.on_find_entry_changed, self)
+            'changed', self.__class__.on_find_entry_changed, self)
         self.find_entry.connect_object(
-                'activate', self.__class__.on_find_entry_activate, self)
+            'activate', self.__class__.on_find_entry_activate, self)
 
         self.next_button = Button(_('_Next'), gtk.STOCK_GO_FORWARD)
         # T: button in find bar and find & replace dialog
         self.next_button.connect_object(
-                'clicked', self.__class__.find_next, self)
+            'clicked', self.__class__.find_next, self)
         self.next_button.set_sensitive(False)
 
         self.previous_button = Button(_('_Previous'), gtk.STOCK_GO_BACK)
         # T: button in find bar and find & replace dialog
         self.previous_button.connect_object(
-                'clicked', self.__class__.find_previous, self)
+            'clicked', self.__class__.find_previous, self)
         self.previous_button.set_sensitive(False)
 
         self.case_option_checkbox = gtk.CheckButton(_('Match _case'))
         # T: checkbox option in find bar and find & replace dialog
         self.case_option_checkbox.connect_object(
-                'toggled', self.__class__.on_find_entry_changed, self)
+            'toggled', self.__class__.on_find_entry_changed, self)
 
         self.word_option_checkbox = gtk.CheckButton(_('Whole _word'))
         # T: checkbox option in find bar and find & replace dialog
         self.word_option_checkbox.connect_object(
-                'toggled', self.__class__.on_find_entry_changed, self)
+            'toggled', self.__class__.on_find_entry_changed, self)
 
         self.regex_option_checkbox = gtk.CheckButton(_('_Regular expression'))
         # T: checkbox option in find bar and find & replace dialog
         self.regex_option_checkbox.connect_object(
-                'toggled', self.__class__.on_find_entry_changed, self)
+            'toggled', self.__class__.on_find_entry_changed, self)
 
         self.highlight_checkbox = gtk.CheckButton(_('_Highlight'))
         # T: checkbox option in find bar and find & replace dialog
         self.highlight_checkbox.connect_object(
-                'toggled', self.__class__.on_highlight_toggled, self)
+            'toggled', self.__class__.on_highlight_toggled, self)
 
     @property
     def _flags(self):
@@ -7014,11 +7014,11 @@ class FindBar(FindWidget, gtk.HBox):
             menu = gtk.Menu()
             item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
             item.connect('toggled',
-                    lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()), self)
+                         lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()), self)
             menu.append(item)
             item = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
             item.connect('toggled',
-                    lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()), self)
+                         lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()), self)
             menu.append(item)
             button = MenuButton(_('Options'), menu)  # T: Options button
             self.pack_start(button, False)
@@ -7065,7 +7065,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 
     def __init__(self, ui, textview):
         Dialog.__init__(self, ui,
-                _('Find and Replace'), buttons=gtk.BUTTONS_CLOSE)  # T: Dialog title
+                        _('Find and Replace'), buttons=gtk.BUTTONS_CLOSE)  # T: Dialog title
         FindWidget.__init__(self, textview)
 
         hbox = gtk.HBox(spacing=12)
@@ -7129,7 +7129,7 @@ class WordCountDialog(Dialog):
 
     def __init__(self, pageview):
         Dialog.__init__(self, pageview.ui,
-                _('Word Count'), buttons=gtk.BUTTONS_CLOSE)  # T: Dialog title
+                        _('Word Count'), buttons=gtk.BUTTONS_CLOSE)  # T: Dialog title
         self.set_resizable(False)
 
         def count(buffer, bounds):
@@ -7217,7 +7217,7 @@ class MoveTextDialog(Dialog):
 
     def __init__(self, ui, pageview):
         Dialog.__init__(self, ui, _('Move Text to Other Page'),  # T: Dialog title
-                button=(_('_Move'), 'gtk-ok'))  # T: Button label
+                        button=(_('_Move'), 'gtk-ok'))  # T: Button label
         self.pageview = pageview
         self.page = self.pageview.page
         assert self.page, 'No source page !?'
@@ -7232,9 +7232,9 @@ class MoveTextDialog(Dialog):
         self.uistate.setdefault('link', True)
         self.uistate.setdefault('open_page', False)
         self.add_form([
-                ('page', 'page', _('Move text to'), self.page),  # T: Input in 'move text' dialog
-                ('link', 'bool', _('Leave link to new page')),  # T: Input in 'move text' dialog
-                ('open_page', 'bool', _('Open new page')),  # T: Input in 'move text' dialog
+            ('page', 'page', _('Move text to'), self.page),  # T: Input in 'move text' dialog
+            ('link', 'bool', _('Leave link to new page')),  # T: Input in 'move text' dialog
+            ('open_page', 'bool', _('Open new page')),  # T: Input in 'move text' dialog
 
         ], self.uistate)
 
@@ -7278,9 +7278,9 @@ class NewFileDialog(Dialog):
     def __init__(self, ui, basename):
         Dialog.__init__(self, ui, _('New File'))  # T: Dialog title
         self.add_form((
-                ('basename', 'string', _('Name')),  # T: input for new file name
+            ('basename', 'string', _('Name')),  # T: input for new file name
         ), {
-                'basename': basename
+            'basename': basename
         })
 
     def show_all(self):

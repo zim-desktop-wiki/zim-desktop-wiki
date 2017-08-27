@@ -68,7 +68,7 @@ def coverage_filter_diff(diff):
     new = Diff()
     for part in diff.parts:
         if  part.file.startswith('zim') \
-        and part.file.endswith('.py'):
+                and part.file.endswith('.py'):
             if not part_covered(part, cov):
                 new.parts.append(part)
             else:

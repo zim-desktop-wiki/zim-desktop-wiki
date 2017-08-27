@@ -30,18 +30,18 @@ BM_ADD_BOOKMARK_KEY = '<alt>0'
 class BookmarksBarPlugin(PluginClass):
 
     plugin_info = {
-    'name': _('BookmarksBar'),  # T: plugin name
-    'description': _('''\
+        'name': _('BookmarksBar'),  # T: plugin name
+        'description': _('''\
 		This plugin provides bar for bookmarks.
 		'''),  # T: plugin description
-    'author': 'Pavel_M',
-    'help': 'Plugins:BookmarksBar', }
+        'author': 'Pavel_M',
+        'help': 'Plugins:BookmarksBar', }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('max_bookmarks', 'int', _('Maximum number of bookmarks'), 15, (5, 20)),  # T: plugin preference
-            ('save', 'bool', _('Save bookmarks'), True),  # T: preferences option
-            ('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False),  # T: preferences option
+        # key, type, label, default
+        ('max_bookmarks', 'int', _('Maximum number of bookmarks'), 15, (5, 20)),  # T: plugin preference
+        ('save', 'bool', _('Save bookmarks'), True),  # T: preferences option
+        ('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False),  # T: preferences option
     )
 
 
@@ -86,7 +86,7 @@ class MainWindowExtension(WindowExtension):
 	'''
 
     uimanager_menu_labels = {
-            'go_bookmarks_menu': _('Book_marks'),  # T: Menu title
+        'go_bookmarks_menu': _('Book_marks'),  # T: Menu title
     }
 
     def __init__(self, plugin, window):
@@ -98,7 +98,7 @@ class MainWindowExtension(WindowExtension):
         # Add a new option to the Index popup menu.
         try:
             self.widget.connectto(self.window.pageindex.treeview,
-                                                      'populate-popup', self.on_populate_popup)
+                                  'populate-popup', self.on_populate_popup)
         except AttributeError:
             logger.error('BookmarksBar: popup menu not initialized.')
 
@@ -184,7 +184,7 @@ class MainWindowExtension(WindowExtension):
             pass
 
     @toggle_action(_('Bookmarks'), stock='zim-add-bookmark',
-                               tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY)  # T: menu item bookmark plugin
+                   tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY)  # T: menu item bookmark plugin
     def toggle_show_bookmarks(self, active):
         '''
         Show/hide the bar with bookmarks.
@@ -261,7 +261,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
         # Delete a bookmark if a page is deleted.
         self.connectto(self.ui.notebook, 'deleted-page',
-                                   lambda obj, path: self.delete(path.name))
+                       lambda obj, path: self.delete(path.name))
 
     def on_open_page(self, ui, page, path):
         '''If a page is present as a bookmark than select it.'''
@@ -440,16 +440,16 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
         # main popup menu
         main_menu = gtk.Menu()
         main_menu_items = (
-                                (_('Remove'), lambda o: self.delete(path)),			# T: menu item
-                            (_('Remove All'), lambda o: self.delete_all(True)),  # T: menu item
-                            ('separator', ''),
-                            ('gtk-copy', lambda o: set_save_bookmark(path)),
-                            ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
-                            ('separator', ''),
-                            (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))),  # T: menu item
-                            ('separator', ''),
-                            (rename_button_text, lambda o: self.rename_bookmark(button)),
-                            (_('Set to Current Page'), lambda o: self.change_bookmark(path)))  # T: menu item
+            (_('Remove'), lambda o: self.delete(path)),			# T: menu item
+            (_('Remove All'), lambda o: self.delete_all(True)),  # T: menu item
+            ('separator', ''),
+            ('gtk-copy', lambda o: set_save_bookmark(path)),
+            ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
+            ('separator', ''),
+            (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))),  # T: menu item
+            ('separator', ''),
+            (rename_button_text, lambda o: self.rename_bookmark(button)),
+            (_('Set to Current Page'), lambda o: self.change_bookmark(path)))  # T: menu item
 
         for name, func in main_menu_items:
             if name == 'separator':

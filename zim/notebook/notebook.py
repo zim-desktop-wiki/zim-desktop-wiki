@@ -45,16 +45,16 @@ class NotebookConfig(INIConfigFile):
         else:
             endofline = 'unix'
         self['Notebook'].define((
-                ('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
-                ('name', String(file.dir.basename)),
-                ('interwiki', String(None)),
-                ('home', ConfigDefinitionByClass(Path('Home'))),
-                ('icon', String(None)),  # XXX should be file, but resolves relative
-                ('document_root', String(None)),  # XXX should be dir, but resolves relative
-                ('shared', Boolean(True)),
-                ('endofline', Choice(endofline, set(('dos', 'unix')))),
-                ('disable_trash', Boolean(False)),
-                ('profile', String(None)),
+            ('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
+            ('name', String(file.dir.basename)),
+            ('interwiki', String(None)),
+            ('home', ConfigDefinitionByClass(Path('Home'))),
+            ('icon', String(None)),  # XXX should be file, but resolves relative
+            ('document_root', String(None)),  # XXX should be dir, but resolves relative
+            ('shared', Boolean(True)),
+            ('endofline', Choice(endofline, set(('dos', 'unix')))),
+            ('disable_trash', Boolean(False)),
+            ('profile', String(None)),
         ))
 
 
@@ -187,29 +187,29 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
     # define signals we want to use - (closure type, return type and arg types)
     __signals__ = {
-            'store-page': (SIGNAL_NORMAL, None, (object,)),
-            'stored-page': (SIGNAL_NORMAL, None, (object,)),
-            'move-page': (SIGNAL_NORMAL, None, (object, object)),
-            'moved-page': (SIGNAL_NORMAL, None, (object, object)),
-            'delete-page': (SIGNAL_NORMAL, None, (object,)),
-            'deleted-page': (SIGNAL_NORMAL, None, (object,)),
-            'page-info-changed': (SIGNAL_NORMAL, None, (object,)),
-            'properties-changed': (SIGNAL_NORMAL, None, ()),
-            'new-page-template': (SIGNAL_NORMAL, None, (object, object)),
+        'store-page': (SIGNAL_NORMAL, None, (object,)),
+        'stored-page': (SIGNAL_NORMAL, None, (object,)),
+        'move-page': (SIGNAL_NORMAL, None, (object, object)),
+        'moved-page': (SIGNAL_NORMAL, None, (object, object)),
+        'delete-page': (SIGNAL_NORMAL, None, (object,)),
+        'deleted-page': (SIGNAL_NORMAL, None, (object,)),
+        'page-info-changed': (SIGNAL_NORMAL, None, (object,)),
+        'properties-changed': (SIGNAL_NORMAL, None, ()),
+        'new-page-template': (SIGNAL_NORMAL, None, (object, object)),
 
-            # Hooks
-            'suggest-link': (SIGNAL_NORMAL, object, (object, object)),
+        # Hooks
+        'suggest-link': (SIGNAL_NORMAL, object, (object, object)),
     }
 
     properties = (
-            ('name', 'string', _('Name')),  # T: label for properties dialog
-            ('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)),  # T: label for properties dialog
-            ('home', 'page', _('Home Page')),  # T: label for properties dialog
-            ('icon', 'image', _('Icon')),  # T: label for properties dialog
-            ('document_root', 'dir', _('Document Root')),  # T: label for properties dialog
-            #~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
-            ('profile', 'string', _('Profile')),  # T: label for properties dialog
-            # 'shared' property is not shown in properties anymore
+        ('name', 'string', _('Name')),  # T: label for properties dialog
+        ('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)),  # T: label for properties dialog
+        ('home', 'page', _('Home Page')),  # T: label for properties dialog
+        ('icon', 'image', _('Icon')),  # T: label for properties dialog
+        ('document_root', 'dir', _('Document Root')),  # T: label for properties dialog
+        #~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
+        ('profile', 'string', _('Profile')),  # T: label for properties dialog
+        # 'shared' property is not shown in properties anymore
     )
 
     @classmethod
@@ -266,8 +266,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
             logger.info('Notebook read-only: %s', dir.path)
 
         self.namespace_properties = HierarchicDict({
-                        'template': 'Default'
-                })
+            'template': 'Default'
+        })
         self._page_cache = weakref.WeakValueDictionary()
 
         self.name = None
@@ -402,7 +402,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
         # return a valid page object.
         assert isinstance(path, Path)
         if path.name in self._page_cache \
-        and self._page_cache[path.name].valid:
+                and self._page_cache[path.name].valid:
             page = self._page_cache[path.name]
             assert isinstance(page, Page)
             page._check_source_etag()
@@ -497,15 +497,15 @@ class Notebook(ConnectorMixin, SignalEmitter):
         self.emit('store-page', page)
         error = threading.Event()
         thread = threading.Thread(
-                target=partial(self._store_page_async_thread_main, page, parsetree, error)
+            target=partial(self._store_page_async_thread_main, page, parsetree, error)
         )
         thread.start()
         pre_modified = page.modified
         op = SimpleAsyncOperation(
-                notebook=self,
-                message='Store page in progress',
-                thread=thread,
-                post_handler=partial(self._store_page_async_finished, page, error, pre_modified)
+            notebook=self,
+            message='Store page in progress',
+            thread=thread,
+            post_handler=partial(self._store_page_async_finished, page, error, pre_modified)
         )
         op.error_event = error
         op.run_on_idle()
@@ -646,10 +646,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
         seen = set()
         for link in list(self.links.list_links_section(newtarget)):
             if link.source.name not in seen \
-            and not (
-                    link.target == newtarget
-                    or link.target.ischild(newtarget)
-            ):
+                    and not (
+                        link.target == newtarget
+                        or link.target.ischild(newtarget)
+                    ):
                 if link.source == newtarget:
                     oldpath = oldtarget
                 else:
@@ -679,7 +679,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
                 if newtarget != oldtarget:
                     try:
                         update = \
-                                newtarget.relname(newroot) != oldtarget.relname(oldroot)
+                            newtarget.relname(newroot) != oldtarget.relname(oldroot)
                     except ValueError:
                         update = True
 
@@ -712,11 +712,11 @@ class Notebook(ConnectorMixin, SignalEmitter):
         parent = oldtarget.parent
         for link in list(self.links.list_floating_links(oldtarget.basename)):
             if link.source.name not in seen \
-            and link.source.ischild(parent) \
-            and not (
-                    link.target == newtarget
-                    or link.target.ischild(newtarget)
-            ):
+                    and link.source.ischild(parent) \
+                    and not (
+                        link.target == newtarget
+                        or link.target.ischild(newtarget)
+                    ):
                 yield link.source
                 self._move_links_in_page(link.source, oldtarget, newtarget)
                 seen.add(link.source.name)
@@ -746,9 +746,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
                 return self._update_link_tag(elt, page, mynewtarget, href)
 
             elif href.rel == HREF_REL_FLOATING \
-            and href.parts()[0] == newtarget.basename \
-            and page.ischild(oldtarget.parent) \
-            and not target.ischild(oldtarget.parent):
+                    and href.parts()[0] == newtarget.basename \
+                    and page.ischild(oldtarget.parent) \
+                    and not target.ischild(oldtarget.parent):
                 # Edge case: an link that was anchored to the moved page,
                 # and now resolves somewhere higher in the tree
                 if href.names == newtarget.basename:
@@ -810,7 +810,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
         if C{update_links} is C{True}
         '''
         logger.debug('Rename %s to "%s" (%s, %s)',
-                path, newbasename, update_heading, update_links)
+                     path, newbasename, update_heading, update_links)
 
         newbasename = Path.makeValidPageName(newbasename)
         newpath = Path(path.namespace + ':' + newbasename)
@@ -962,7 +962,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
                 pass
             else:
                 pages = set(
-                        l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD))
+                    l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD))
 
                 for p in pages:
                     yield p
@@ -988,7 +988,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
             hrefpath = self.pages.lookup_from_user_input(href, page)
             #~ print 'LINK', hrefpath
             if hrefpath == path \
-            or hrefpath.ischild(path):
+                    or hrefpath.ischild(path):
                 # Replace the link by it's text
                 return zim.formats.DocumentFragment(*elt)
             else:
@@ -1089,16 +1089,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
             if file.ischild(attachments_dir):
                 return mydir + file.relpath(attachments_dir)
             elif document_root and notebook_root \
-            and document_root.ischild(notebook_root) \
-            and file.ischild(document_root) \
-            and not attachments_dir.ischild(document_root):
+                    and document_root.ischild(notebook_root) \
+                    and file.ischild(document_root) \
+                    and not attachments_dir.ischild(document_root):
                 # special case when document root is below notebook root
                 # the case where document_root == attachment_folder is
                 # already caught by above if clause
                 return rootdir + file.relpath(document_root)
             elif notebook_root \
-            and file.ischild(notebook_root) \
-            and attachments_dir.ischild(notebook_root):
+                    and file.ischild(notebook_root) \
+                    and attachments_dir.ischild(notebook_root):
                 parent = file.commonparent(attachments_dir)
                 uppath = attachments_dir.relpath(parent)
                 downpath = file.relpath(parent)
@@ -1106,8 +1106,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
                 return updir * up + downpath
         else:
             if document_root and notebook_root \
-            and document_root.ischild(notebook_root) \
-            and file.ischild(document_root):
+                    and document_root.ischild(notebook_root) \
+                    and file.ischild(document_root):
                 # special case when document root is below notebook root
                 return rootdir + file.relpath(document_root)
             elif notebook_root and file.ischild(notebook_root):
@@ -1149,12 +1149,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
     def eval_new_page_template(self, path, template):
         lines = []
         context = {
-                'page': {
-                        'name': path.name,
-                        'basename': path.basename,
-                        'section': path.namespace,
-                        'namespace': path.namespace,  # backward compat
-                }
+            'page': {
+                'name': path.name,
+                'basename': path.basename,
+                'section': path.namespace,
+                'namespace': path.namespace,  # backward compat
+            }
         }
         self.emit('new-page-template', path, template)  # plugin hook
         template.process(lines, context)

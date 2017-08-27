@@ -10,37 +10,37 @@ from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
 info = {
-        'name': 'reST',
-        'desc': 'reST (Octopress)',
-        'mimetype': 'text/x-rst',
-        'extension': 'rst',
-                # No official file extension, but this is often used
-        'native': False,
-        'import': False,
-        'export': True,
-        'usebase': True,
+    'name': 'reST',
+    'desc': 'reST (Octopress)',
+    'mimetype': 'text/x-rst',
+    'extension': 'rst',
+    # No official file extension, but this is often used
+    'native': False,
+    'import': False,
+    'export': True,
+    'usebase': True,
 }
 
 
 class Dumper(TextDumper):
 
     BULLETS = {
-            UNCHECKED_BOX: u'- \u2610',  # ☐
-            XCHECKED_BOX: u'- \u2612',  # ☒
-            CHECKED_BOX: u'- \u2611',  # ☑
-            MIGRATED_BOX: u'- \u25B7',  # ▷
-            BULLET: u'-',
+        UNCHECKED_BOX: u'- \u2610',  # ☐
+        XCHECKED_BOX: u'- \u2612',  # ☒
+        CHECKED_BOX: u'- \u2611',  # ☑
+        MIGRATED_BOX: u'- \u25B7',  # ▷
+        BULLET: u'-',
     }
 
     TAGS = {
-            EMPHASIS: ('*', '*'),
-            STRONG: ('**', '**'),
-            MARK: ('', ''),  # TODO, no directly way to do this in rst
-            STRIKE: ('', ''),  # TODO, no directly way to do this in rst
-            VERBATIM: ("``", "``"),
-            TAG: ('', ''),  # No additional annotation (apart from the visible @)
-            SUBSCRIPT: ('\\ :sub:`', '`\\ '),
-            SUPERSCRIPT: ('\\ :sup:`', '`\\ '),
+        EMPHASIS: ('*', '*'),
+        STRONG: ('**', '**'),
+        MARK: ('', ''),  # TODO, no directly way to do this in rst
+        STRIKE: ('', ''),  # TODO, no directly way to do this in rst
+        VERBATIM: ("``", "``"),
+        TAG: ('', ''),  # No additional annotation (apart from the visible @)
+        SUBSCRIPT: ('\\ :sub:`', '`\\ '),
+        SUPERSCRIPT: ('\\ :sup:`', '`\\ '),
     }
     # TODO tags other than :sub: and :sup: may also need surrounding whitespace, deal with this in post process (join) action ?
     # IDEM for blocks like images and objects, how to enforce empty lines and how to deal with inline images..
@@ -73,7 +73,7 @@ class Dumper(TextDumper):
     def dump_link(self, tag, attrib, strings=None):
         # Use inline url form, putting links at the end is more difficult
         assert 'href' in attrib, \
-                'BUG: link misses href: %s "%s"' % (attrib, strings)
+            'BUG: link misses href: %s "%s"' % (attrib, strings)
         href = self.linker.link(attrib['href'])
         text = u''.join(strings) or href
         return '`%s <%s>`_' % (text, href)

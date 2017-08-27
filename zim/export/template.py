@@ -88,7 +88,7 @@ from zim.environ import environ
 from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
 from zim.formats import ParseTree, ParseTreeBuilder, Visitor, \
-        FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
+    FORMATTEDTEXT, BULLETLIST, LISTITEM, STRONG, LINK, HEADING
 
 from zim.templates import TemplateContextDict
 from zim.templates.functions import ExpressionFunction
@@ -108,11 +108,11 @@ class ExportTemplateContext(dict):
     # new one for each export page
 
     def __init__(self, notebook, linker_factory, dumper_factory,
-            title, content, special=None,
-            home=None, up=None, prevpage=None, nextpage=None,
-            links=None,
-            index_generator=None, index_page=None,
-    ):
+                 title, content, special=None,
+                 home=None, up=None, prevpage=None, nextpage=None,
+                 links=None,
+                 index_generator=None, index_page=None,
+                 ):
         '''Constructor
 
         When exporting one notebook page per export page ("multi file"),
@@ -166,40 +166,40 @@ class ExportTemplateContext(dict):
 
         if special:
             pages = ExportTemplatePageIter(
-                    special=PageListProxy(notebook, special, self._dumper_factory, self._linker_factory),
-                    content=PageListProxy(notebook, content, self._dumper_factory, self._linker_factory)
+                special=PageListProxy(notebook, special, self._dumper_factory, self._linker_factory),
+                content=PageListProxy(notebook, content, self._dumper_factory, self._linker_factory)
             )
         else:
             pages = ExportTemplatePageIter(
-                    content=PageListProxy(notebook, content, self._dumper_factory, self._linker_factory)
+                content=PageListProxy(notebook, content, self._dumper_factory, self._linker_factory)
             )
 
         self.update({
-                # Parameters
-                'generator': {
-                                'name': 'Zim %s' % ZIM_VERSION,
-                                'user': environ['USER'],  # TODO allow user name in prefs ?
-                },
-                'title': title,
-                'navigation': {
-                        'home': _link(home),
-                        'up': _link(up),
-                        'prev': _link(prevpage),
-                        'next': _link(nextpage),
-                },
-                'links': OrderedDict(),  # keep order of links for iteration
-                'pages': pages,
+            # Parameters
+            'generator': {
+                    'name': 'Zim %s' % ZIM_VERSION,
+                    'user': environ['USER'],  # TODO allow user name in prefs ?
+                    },
+            'title': title,
+            'navigation': {
+                'home': _link(home),
+                'up': _link(up),
+                'prev': _link(prevpage),
+                'next': _link(nextpage),
+            },
+            'links': OrderedDict(),  # keep order of links for iteration
+            'pages': pages,
 
-                # Template settings
-                'options': template_options,  # can be modified by template
+            # Template settings
+            'options': template_options,  # can be modified by template
 
-                # Functions
-                #~ 'toc': self.toc_function,
-                'index': self.index_function,
-                'pageindex': self.index_function,  # backward compatibility
-                'uri': self.uri_function,
-                'anchor': self.anchor_function,
-                'resource': self.resource_function,
+            # Functions
+            #~ 'toc': self.toc_function,
+            'index': self.index_function,
+            'pageindex': self.index_function,  # backward compatibility
+            'uri': self.uri_function,
+            'anchor': self.anchor_function,
+            'resource': self.resource_function,
         })
 
         if links:
@@ -285,7 +285,7 @@ class ExportTemplateContext(dict):
         for path in self._index_generator(namespace):
             logger.info(path)
             if self._index_page and collapse \
-            and not path.parent in expanded:
+                    and not path.parent in expanded:
                 continue  # skip since it is not part of current path
             # elif ignore_empty and not (path.hascontent or path.haschildren): - bug,  should be page.hascontent,  page.haschildren
             #	continue # skip since page is empty
@@ -309,8 +309,8 @@ class ExportTemplateContext(dict):
             else:
                 # links to other pages
                 builder.append(LINK,
-                        {'type': 'page', 'href': ':' + path.name},
-                        path.basename)
+                               {'type': 'page', 'href': ':' + path.name},
+                               path.basename)
             builder.end(LISTITEM)
 
         for p in stack:

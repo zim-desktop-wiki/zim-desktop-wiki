@@ -40,7 +40,7 @@ class Exporter(object):
 from zim.notebook.page import Path, Page
 from zim.newfs.mock import MockFile
 from zim.formats import ParseTreeBuilder, \
-        FORMATTEDTEXT, HEADING, BULLETLIST, LISTITEM, LINK
+    FORMATTEDTEXT, HEADING, BULLETLIST, LISTITEM, LINK
 
 
 def createIndexPage(notebook, path, section=None):
@@ -59,7 +59,7 @@ def createIndexPage(notebook, path, section=None):
         for page in pagelist:
             builder.start(LISTITEM)
             builder.append(LINK,
-                    {'type': 'page', 'href': page.name}, page.basename)
+                           {'type': 'page', 'href': page.name}, page.basename)
             builder.end(LISTITEM)
             if page.haschildren:
                 add_namespace(page)  # recurs

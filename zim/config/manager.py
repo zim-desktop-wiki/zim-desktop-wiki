@@ -87,10 +87,10 @@ class ConfigManager(object):
 
         # Backward compatibility for profiles
         if self.profile \
-        and filename in (
-                '<profile>/preferences.conf',
-                '<profile>/style.conf'
-        ):
+                and filename in (
+                    '<profile>/preferences.conf',
+                    '<profile>/style.conf'
+                ):
             backwardfile = self._get_backward_file(filename)
             defaults.extra.insert(0, backwardfile)
 
@@ -221,7 +221,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
     '''
 
     __signals__ = {
-            'changed': (SIGNAL_NORMAL, None, ())
+        'changed': (SIGNAL_NORMAL, None, ())
     }
 
     def __init__(self, file, defaults=None):
@@ -235,7 +235,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 
     def __eq__(self, other):
         return isinstance(other, ConfigFile) \
-                and other.file == self.file
+            and other.file == self.file
 
     def set_files(self, file, defaults=None):
         if self.file:
@@ -354,7 +354,7 @@ class VirtualConfigBackendFile(object):
 
     def exists(self):
         return self._key in self._data \
-                and self._data[self._key] is not None
+            and self._data[self._key] is not None
 
     def touch(self):
         self._data.setdefault(self._key, '')

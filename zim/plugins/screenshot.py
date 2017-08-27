@@ -160,7 +160,7 @@ class MainWindowExtension(WindowExtension):
         notebook = self.window.ui.notebook  # XXX
         page = self.window.ui.page  # XXX
         dialog = InsertScreenshotDialog.unique(self, self.window, notebook, page,
-                                                                                   self.plugin.preferences['screenshot_command'])
+                                               self.plugin.preferences['screenshot_command'])
         dialog.show_all()
 
 
@@ -173,9 +173,9 @@ class InsertScreenshotDialog(Dialog):
         self.screenshot_command = screenshot_command
         if ScreenshotPicker.has_select_cmd(self.screenshot_command):
             self.screen_radio = gtk.RadioButton(None,
-                                                                                    _('Capture whole screen'))  # T: option in 'insert screenshot' dialog
+                                                _('Capture whole screen'))  # T: option in 'insert screenshot' dialog
             self.select_radio = gtk.RadioButton(self.screen_radio,
-                                                                                    _('Select window or region'))  # T: option in 'insert screenshot' dialog
+                                                _('Select window or region'))  # T: option in 'insert screenshot' dialog
             self.vbox.add(self.screen_radio)
             self.vbox.add(self.select_radio)
 
@@ -215,7 +215,7 @@ class InsertScreenshotDialog(Dialog):
                 pageview.insert_image(imgfile, interactive=False, force=True)
             else:
                 ErrorDialog(self.ui,
-                                        _('Some error occurred while running "%s"') % self.screenshot_command).run()
+                            _('Some error occurred while running "%s"') % self.screenshot_command).run()
                 # T: Error message in "insert screenshot" dialog, %s will be replaced by application name
 
         tmpfile.dir.touch()

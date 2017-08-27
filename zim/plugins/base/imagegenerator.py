@@ -18,9 +18,9 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import Action
 from zim.fs import File, Dir
 from zim.gui.widgets import ui_environment, \
-        Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
-        ScrolledTextView, ScrolledSourceView, VPaned, \
-        populate_popup_add_separator
+    Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
+    ScrolledTextView, ScrolledSourceView, VPaned, \
+    populate_popup_add_separator
 
 
 logger = logging.getLogger('zim.plugins')
@@ -65,28 +65,28 @@ class ImageGeneratorPlugin(PluginClass):
         # Construct a new class on run time
         klassname = self.object_type.title() + 'MainWindowExtension'
         insert_action = Action(
-                'insert_%s' % self.object_type,
-                MainWindowExtensionBase.insert_object,
-                self.short_label + '...', readonly=False
+            'insert_%s' % self.object_type,
+            MainWindowExtensionBase.insert_object,
+            self.short_label + '...', readonly=False
         )
         generatorklass = self.lookup_subclass(ImageGeneratorClass)
         assert generatorklass.object_type == self.object_type, \
-                'Object type of ImageGenerator (%s) does not match object type of plugin (%s)' \
-                % (generatorklass.object_type, self.object_type)
+            'Object type of ImageGenerator (%s) does not match object type of plugin (%s)' \
+            % (generatorklass.object_type, self.object_type)
 
         mainwindow_extension_base = \
-                self.lookup_subclass(MainWindowExtensionBase) \
-                or MainWindowExtensionBase
+            self.lookup_subclass(MainWindowExtensionBase) \
+            or MainWindowExtensionBase
 
         klass = type(klassname, (mainwindow_extension_base,), {
-                'object_type': self.object_type,
-                'syntax': self.syntax,
-                'uimanager_xml': uimanager_xml_template % self.object_type,
-                'generator_class': generatorklass,
-                'short_label': self.short_label,
-                'insert_label': self.insert_label,
-                'edit_label': self.edit_label,
-                'insert_%s' % self.object_type: insert_action,
+            'object_type': self.object_type,
+            'syntax': self.syntax,
+            'uimanager_xml': uimanager_xml_template % self.object_type,
+            'generator_class': generatorklass,
+            'short_label': self.short_label,
+            'insert_label': self.insert_label,
+            'edit_label': self.edit_label,
+            'insert_%s' % self.object_type: insert_action,
         })
 
         self.set_extension_class('MainWindow', klass)
@@ -120,9 +120,9 @@ class MainWindowExtensionBase(WindowExtension):
         title = self.insert_label.replace('_', '')
         generator = self.build_generator()
         dialog = ImageGeneratorDialog(
-                self.window, title,
-                generator, syntax=self.syntax,
-                help=self.plugin.plugin_info['help']
+            self.window, title,
+            generator, syntax=self.syntax,
+            help=self.plugin.plugin_info['help']
         )  # XXX ui
         dialog.run()
 
@@ -130,9 +130,9 @@ class MainWindowExtensionBase(WindowExtension):
         title = self.edit_label.replace('_', '')
         generator = self.build_generator()
         dialog = ImageGeneratorDialog(
-                self.window, title,
-                generator, syntax=self.syntax, image=image,
-                help=self.plugin.plugin_info['help']
+            self.window, title,
+            generator, syntax=self.syntax, image=image,
+            help=self.plugin.plugin_info['help']
         )  # XXX ui
         dialog.run()
 
@@ -141,7 +141,7 @@ class MainWindowExtensionBase(WindowExtension):
 
         item = gtk.MenuItem(self.edit_label)
         item.connect('activate',
-                lambda o: self.edit_object(buffer, iter, image))
+                     lambda o: self.edit_object(buffer, iter, image))
         menu.prepend(item)
 
 
@@ -266,17 +266,17 @@ class ImageGeneratorDialog(Dialog):
         # T: button in e.g. equation editor dialog
         self.previewbutton.set_sensitive(False)
         self.previewbutton.connect_object(
-                'clicked', self.__class__.preview, self)
+            'clicked', self.__class__.preview, self)
         hbox.pack_start(self.previewbutton, False)
 
         self.textview.get_buffer().connect('modified-changed',
-                lambda b: self.previewbutton.set_sensitive(b.get_modified()))
+                                           lambda b: self.previewbutton.set_sensitive(b.get_modified()))
 
         self.logbutton = Button(_('View _Log'), stock='gtk-file')
         # T: button in e.g. equation editor dialog
         self.logbutton.set_sensitive(False)
         self.logbutton.connect_object(
-                'clicked', self.__class__.show_log, self)
+            'clicked', self.__class__.show_log, self)
         if generator.uses_log_file:
             hbox.pack_start(self.logbutton, False)
         # else keep hidden
@@ -346,12 +346,12 @@ class ImageGeneratorDialog(Dialog):
 
     def do_response_ok(self):
         if not self.imagefile \
-        or self.textview.get_buffer().get_modified():
+                or self.textview.get_buffer().get_modified():
             self.generate_image()
 
         if not (self.imagefile and self.imagefile.exists()):
             dialog = QuestionDialog(self,
-                    _('An error occurred while generating the image.\nDo you want to save the source text anyway?'))
+                                    _('An error occurred while generating the image.\nDo you want to save the source text anyway?'))
             # T: Question prompt when e.g. equation editor encountered an error generating the image to insert
             if not dialog.run():
                 return False

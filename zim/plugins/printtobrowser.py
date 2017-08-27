@@ -23,8 +23,8 @@ from zim.export.linker import StaticExportLinker
 class PrintToBrowserPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Print to Browser'),  # T: plugin name
-            'description': _('''\
+        'name': _('Print to Browser'),  # T: plugin name
+        'description': _('''\
 This plugin provides a workaround for the lack of
 printing support in zim. It exports the current page
 to html and opens a browser. Assuming the browser
@@ -33,8 +33,8 @@ data to the printer in two steps.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Print to Browser'
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Print to Browser'
     }
 
     def print_to_file(self, notebook, page):
@@ -44,8 +44,8 @@ This is a core plugin shipping with zim.
         linker_factory = partial(StaticExportLinker, notebook, template.resources_dir)
         dumper_factory = zim.formats.get_format('html').Dumper  # XXX
         context = ExportTemplateContext(
-                notebook, linker_factory, dumper_factory,
-                page.basename, [page]
+            notebook, linker_factory, dumper_factory,
+            page.basename, [page]
         )
 
         lines = []

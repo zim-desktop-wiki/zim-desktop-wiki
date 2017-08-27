@@ -170,7 +170,7 @@ def make(filename, outfile):
             msgstr += l
         else:
             print >> sys.stderr, 'Syntax error on %s:%d' % (infile, lno), \
-                  'before:'
+                'before:'
             print >> sys.stderr, l
             sys.exit(1)
     # Add last entry

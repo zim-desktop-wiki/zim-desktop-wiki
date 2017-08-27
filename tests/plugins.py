@@ -29,9 +29,9 @@ class TestPluginClasses(tests.TestCase):
         pluginindex = File('data/manual/Plugins.txt').read()
 
         seen = {
-                'name': set(),
-                'description': set(),
-                'help': set(),
+            'name': set(),
+            'description': set(),
+            'help': set(),
         }
         for name in plugins:
             #~ print '>>', name
@@ -40,16 +40,16 @@ class TestPluginClasses(tests.TestCase):
             # test plugin info
             for key in ('name', 'description', 'author'):
                 self.assertTrue(
-                        klass.plugin_info.get(key),
-                        'Plugin %s misses info field \'%s\'' % (name, key)
+                    klass.plugin_info.get(key),
+                    'Plugin %s misses info field \'%s\'' % (name, key)
                 )
 
             for key in ('name', 'description', 'help'):
                 self.assertIn(key, klass.plugin_info, 'Plugin %s missing "%s"' % (name, key))
                 value = klass.plugin_info[key]
                 self.assertFalse(
-                        value in seen[key],
-                        'Value for \'%s\' in %s seen before - copy-paste error ?' % (key, name)
+                    value in seen[key],
+                    'Value for \'%s\' in %s seen before - copy-paste error ?' % (key, name)
                 )
                 seen[key].add(value)
 
@@ -143,7 +143,7 @@ class TestPlugins(tests.TestCase):
                 self.assertIn(name, manager)
 
                 self.assertFalse(preferences.modified,
-                        'Plugin "%s" modified the preferences while loading' % name)
+                                 'Plugin "%s" modified the preferences while loading' % name)
 
         self.assertTrue(len(manager) > 3)
 

@@ -129,7 +129,7 @@ def start_listening(handler):
     logger.debug('Start listening on: %s', SERVER_ADDRESS)
     try:
         if SERVER_ADDRESS_FAMILY == 'AF_UNIX' \
-        and os.path.exists(SERVER_ADDRESS):
+                and os.path.exists(SERVER_ADDRESS):
             # Clean up old socket (someone should already have checked
             # before whether or not it is functional)
             os.unlink(SERVER_ADDRESS)
@@ -142,8 +142,8 @@ def start_listening(handler):
         if socket is not None:
             # Unix file descriptor
             gobject.io_add_watch(
-                    socket.fileno(), gobject.IO_IN,
-                    partial(_do_accept, listener, handler)
+                socket.fileno(), gobject.IO_IN,
+                partial(_do_accept, listener, handler)
             )
         else:
             # Win32 pipe

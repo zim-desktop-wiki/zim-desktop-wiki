@@ -35,8 +35,8 @@ class ExportLinker(BaseLinker):
     '''
 
     def __init__(self, notebook, layout, source=None, output=None,
-                                            usebase=False, document_root_url=None
-    ):
+                 usebase=False, document_root_url=None
+                 ):
         '''Contructor
         @param notebook: the source L{Notebook} for resolving links
         @param layout: the L{ExportLayout} for resolving target files
@@ -130,14 +130,14 @@ class ExportLinker(BaseLinker):
     def file_object(self, file):
         '''Turn a L{File} object in a relative link or URI'''
         if self.base and self.usebase \
-        and file.ischild(self.layout.relative_root):
+                and file.ischild(self.layout.relative_root):
             relpath = file.relpath(self.base, allowupward=True)
             if not relpath.startswith('.'):
                 relpath = './' + relpath
             return relpath
         elif self.notebook.document_root \
-        and self.document_root_url \
-        and file.ischild(self.notebook.document_root):
+                and self.document_root_url \
+                and file.ischild(self.notebook.document_root):
             relpath = file.relpath(self.notebook.document_root)
             return self.document_root_url + relpath
         else:
@@ -149,7 +149,7 @@ class ExportLinker(BaseLinker):
         try:
             if self.source:
                 path = self.notebook.pages.resolve_link(
-                        self.source, HRef.new_from_wiki_link(link)
+                    self.source, HRef.new_from_wiki_link(link)
                 )
             else:
                 path = self.notebook.pages.lookup_from_user_input(link)

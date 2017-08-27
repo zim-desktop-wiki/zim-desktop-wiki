@@ -53,8 +53,8 @@ class Index(SignalEmitter):
     '''
 
     __signals__ = {
-            'new-update-iter': (None, None, (object,)),
-            'changed': (None, None, ()),
+        'new-update-iter': (None, None, (object,)),
+        'changed': (None, None, ()),
     }
 
     def __init__(self, dbpath, layout):
@@ -118,8 +118,8 @@ class Index(SignalEmitter):
 
     def _db_init(self):
         tables = [r[0] for r in self._db.execute(
-                'SELECT name FROM sqlite_master '
-                'WHERE type="table" and name NOT LIKE "sqlite%"'
+            'SELECT name FROM sqlite_master '
+            'WHERE type="table" and name NOT LIKE "sqlite%"'
         )]
         for table in tables:
             self._db.execute('DROP TABLE %s' % table)
@@ -151,8 +151,8 @@ class Index(SignalEmitter):
     @property
     def is_uptodate(self):
         row = self._db.execute(
-                'SELECT * FROM files WHERE index_status=?',
-                (STATUS_NEED_UPDATE,)
+            'SELECT * FROM files WHERE index_status=?',
+            (STATUS_NEED_UPDATE,)
         ).fetchone()
         return row is None
 
@@ -187,9 +187,9 @@ class Index(SignalEmitter):
         '''
         from .files import STATUS_NEED_UPDATE
         self._db.execute(
-                'UPDATE files SET index_status = ?'
-                'WHERE id IN (SELECT source_file FROM pages)',
-                (STATUS_NEED_UPDATE,)
+            'UPDATE files SET index_status = ?'
+            'WHERE id IN (SELECT source_file FROM pages)',
+            (STATUS_NEED_UPDATE,)
         )
 
     def start_background_check(self, notebook):
@@ -248,22 +248,22 @@ class Index(SignalEmitter):
 
         # cleanup
         self._db.execute(
-                'DELETE FROM links WHERE source=?',
-                (ROOT_ID,)
+            'DELETE FROM links WHERE source=?',
+            (ROOT_ID,)
         )
         self.update_iter.links.cleanup_placeholders(None)
 
         # touch if needed
         row = self._db.execute(
-                'SELECT * FROM pages WHERE name = ?', (path.name,)
+            'SELECT * FROM pages WHERE name = ?', (path.name,)
         ).fetchone()
 
         if row is None:
             pid = self.update_iter.pages.insert_link_placeholder(path)
             self._db.execute(  # Need link to prevent cleanup
-                    'INSERT INTO links(source, target, rel, names) '
-                    'VALUES (?, ?, ?, ?)',
-                    (ROOT_ID, pid, HREF_REL_ABSOLUTE, path.name)
+                'INSERT INTO links(source, target, rel, names) '
+                'VALUES (?, ?, ?, ?)',
+                (ROOT_ID, pid, HREF_REL_ABSOLUTE, path.name)
             )
 
         self._db.commit()
@@ -273,7 +273,7 @@ class Index(SignalEmitter):
 class IndexUpdateIter(SignalEmitter):
 
     __signals__ = {
-            'commit': (None, None, ()),
+        'commit': (None, None, ()),
     }
 
     def __init__(self, db, layout):
@@ -367,10 +367,10 @@ class IndexUpdateOperation(NotebookOperation):
 
     def __init__(self, notebook):
         NotebookOperation.__init__(
-                self,
-                notebook,
-                _('Updating index'),  # T: Title of progressbar dialog
-                self._get_iter(notebook)
+            self,
+            notebook,
+            _('Updating index'),  # T: Title of progressbar dialog
+            self._get_iter(notebook)
         )
 
     def _get_iter(self, notebook):

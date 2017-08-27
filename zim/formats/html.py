@@ -16,14 +16,14 @@ from zim.config.dicts import Choice
 
 
 info = {
-        'name': 'html',
-        'desc': 'HTML',
-        'mimetype': 'text/html',
-        'extension': 'html',
-        'native': False,
-        'import': False,
-        'export': True,
-        'usebase': True,
+    'name': 'html',
+    'desc': 'HTML',
+    'mimetype': 'text/html',
+    'extension': 'html',
+    'native': False,
+    'import': False,
+    'export': True,
+    'usebase': True,
 }
 
 
@@ -40,20 +40,20 @@ def html_encode(text):
 class Dumper(DumperClass):
 
     TAGS = {
-            EMPHASIS: ('<i>', '</i>'),
-            STRONG: ('<b>', '</b>'),
-            MARK: ('<u>', '</u>'),
-            STRIKE: ('<s>', '</s>'),
-            VERBATIM: ('<tt>', '</tt>'),
-            TAG: ('<span class="zim-tag">', '</span>'),
-            SUBSCRIPT: ('<sub>', '</sub>'),
-            SUPERSCRIPT: ('<sup>', '</sup>'),
+        EMPHASIS: ('<i>', '</i>'),
+        STRONG: ('<b>', '</b>'),
+        MARK: ('<u>', '</u>'),
+        STRIKE: ('<s>', '</s>'),
+        VERBATIM: ('<tt>', '</tt>'),
+        TAG: ('<span class="zim-tag">', '</span>'),
+        SUBSCRIPT: ('<sub>', '</sub>'),
+        SUPERSCRIPT: ('<sup>', '</sup>'),
 
     }
 
     TEMPLATE_OPTIONS = {
-            'empty_lines': Choice('default', ('default', 'remove')),
-            'line_breaks': Choice('default', ('default', 'remove')),
+        'empty_lines': Choice('default', ('default', 'remove')),
+        'line_breaks': Choice('default', ('default', 'remove')),
     }
 
     def dump(self, tree):
@@ -69,14 +69,14 @@ class Dumper(DumperClass):
 
         text = html_encode(text)
         if tag not in (VERBATIM_BLOCK, VERBATIM, OBJECT) \
-        and not self.template_options['line_breaks'] == 'remove':
+                and not self.template_options['line_breaks'] == 'remove':
             text = text.replace('\n', '<br>\n')
 
         return text
 
     def text(self, text):
         if self.context[-1].tag == FORMATTEDTEXT \
-        and text.isspace():
+                and text.isspace():
             # Reduce top level empty lines
             if self.template_options['empty_lines'] == 'remove':
                 self.context[-1].text.append('\n')
@@ -155,7 +155,7 @@ class Dumper(DumperClass):
             else:
                 type = '1'
             return self.dump_block(tag, attrib, strings,
-                    _extra='type="%s" start="%s"' % (type, start))
+                                   _extra='type="%s" start="%s"' % (type, start))
         else:
             return self.dump_block(tag, attrib, strings)
 
@@ -189,8 +189,8 @@ class Dumper(DumperClass):
             text = attrib['href']
         title = text.replace('"', '&quot;')
         return [
-                '<a href="%s" title="%s" class="%s">%s</a>'
-                        % (href, title, type, text)]
+            '<a href="%s" title="%s" class="%s">%s</a>'
+            % (href, title, type, text)]
 
     def dump_img(self, tag, attrib, strings=None):
         src = self.linker.img(attrib['src'])

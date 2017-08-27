@@ -15,14 +15,14 @@ dotcmd = ('dot', '-Tpng', '-o')
 class InsertDiagramPlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert Diagram'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Diagram'),  # T: plugin name
+        'description': _('''\
 This plugin provides a diagram editor for zim based on GraphViz.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'help': 'Plugins:Diagram Editor',
-            'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Diagram Editor',
+        'author': 'Jaap Karssenberg',
     }
 
     object_type = 'diagram'

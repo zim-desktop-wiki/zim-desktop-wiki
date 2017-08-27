@@ -145,7 +145,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
         '''
         self.config = config or VirtualConfigManager()
         self._preferences = \
-                self.config.get_config_dict('<profile>/preferences.conf')
+            self.config.get_config_dict('<profile>/preferences.conf')
         self.general_preferences = self._preferences['General']
         self.general_preferences.setdefault('plugins', [])
 
@@ -155,7 +155,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
         self._load_plugins()
 
         self.connectto(self._preferences, 'changed',
-                self.on_preferences_changed)
+                       self.on_preferences_changed)
 
     def __getitem__(self, name):
         return self._plugins[name]
@@ -193,7 +193,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
                 elif candidate.endswith('.py'):
                     plugins.add(candidate[:-3])
                 elif zim.fs.isdir(dir.path + '/' + candidate) \
-                and os.path.exists(dir.path + '/' + candidate + '/__init__.py'):
+                        and os.path.exists(dir.path + '/' + candidate + '/__init__.py'):
                     plugins.add(candidate)
                 else:
                     pass
@@ -388,7 +388,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
     # define signals we want to use - (closure type, return type and arg types)
     __signals__ = {
-            'extension-point-changed': (None, None, (basestring,))
+        'extension-point-changed': (None, None, (basestring,))
     }
 
     plugin_info = {}
@@ -761,7 +761,7 @@ class WindowExtension(ObjectExtension):
             actiongroup = get_gtk_actiongroup(self)
             if hasattr(self, 'uimanager_menu_labels'):
                 actiongroup.add_actions(
-                        sorted((k, None, v) for k, v in self.uimanager_menu_labels.items())
+                    sorted((k, None, v) for k, v in self.uimanager_menu_labels.items())
                 )
             self.window.uimanager.insert_action_group(actiongroup, 0)
             self._uimanager_id = self.window.uimanager.add_ui_from_string(self.uimanager_xml)
@@ -774,12 +774,12 @@ class WindowExtension(ObjectExtension):
     def teardown(self):
         # TODO move uimanager to window
         if hasattr(self, '_uimanager_id') \
-        and self._uimanager_id is not None:
+                and self._uimanager_id is not None:
             self.window.uimanager.remove_ui(self._uimanager_id)
             self._uimanager_id = None
 
         if hasattr(self, 'actiongroup') \
-        and self.actiongroup is not None:
+                and self.actiongroup is not None:
             self.window.uimanager.remove_action_group(self.actiongroup)
 
 
@@ -805,7 +805,7 @@ class DialogExtension(WindowExtension):
         self.window.action_area.pack_end(button, False)  # puts button in right most position
         self._dialog_buttons.append(button)
         buttons = [b for b in self.window.action_area.get_children()
-                if not self.window.action_area.child_get_property(b, 'secondary')]
+                   if not self.window.action_area.child_get_property(b, 'secondary')]
         for b in buttons:
             if b is not button:
                 self.window.action_area.reorder_child(b, -1)  # reshuffle to the right

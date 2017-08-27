@@ -98,16 +98,16 @@ class TestPageTreeStore(tests.TestCase):
                 self.assertTrue(not child is None)
                 parent = treestore.iter_parent(child)
                 self.assertEqual(
-                        treestore.get_indexpath(parent), page)
+                    treestore.get_indexpath(parent), page)
                 childpath = treestore.get_path(child)
                 self.assertEqual(
-                        childpath, tuple(path) + (0,))
+                    childpath, tuple(path) + (0,))
                 n = treestore.iter_n_children(iter)
                 for i in range(1, n):
                     child = treestore.iter_next(child)
                     childpath = treestore.get_path(child)
                     self.assertEqual(
-                            childpath, tuple(path) + (i,))
+                        childpath, tuple(path) + (i,))
                 child = treestore.iter_next(child)
                 self.assertIsNone(child)  # children exhausted
 

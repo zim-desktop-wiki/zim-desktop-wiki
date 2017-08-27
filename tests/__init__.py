@@ -46,20 +46,20 @@ FULL_TEST = False  # : determine whether we mock filesystem tests or not
 
 # This list also determines the order in which tests will executed
 __all__ = [
-        'package', 'translations',
-        'datetimetz', 'utils', 'errors', 'signals', 'actions',
-        'environ', 'fs', 'newfs',
-        'config', 'applications',
-        'parsing', 'tokenparser', 'formats', 'templates', 'objectmanager',
-        'indexers', 'indexviews', 'operations', 'notebook', 'history',
-        'export', 'www', 'search',
-        'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
-        'main', 'plugins',
-        'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
-        'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
-        'quicknote', 'attachmentbrowser', 'insertsymbol',
-        'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-        'arithmetic',
+    'package', 'translations',
+    'datetimetz', 'utils', 'errors', 'signals', 'actions',
+    'environ', 'fs', 'newfs',
+    'config', 'applications',
+    'parsing', 'tokenparser', 'formats', 'templates', 'objectmanager',
+    'indexers', 'indexviews', 'operations', 'notebook', 'history',
+    'export', 'www', 'search',
+    'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
+    'main', 'plugins',
+    'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
+    'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
+    'quicknote', 'attachmentbrowser', 'insertsymbol',
+    'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
+    'arithmetic',
 ]
 
 
@@ -109,15 +109,15 @@ def _setUpEnvironment():
     # like zim.config and any that export constants from it
     system_data_dirs = os.environ.get('XDG_DATA_DIRS')
     os.environ.update({
-            'ZIM_TEST_RUNNING': 'True',
-            'ZIM_TEST_ROOT': os.getcwd(),
-            'TMP': TMPDIR,
-            'REAL_TMP': REAL_TMPDIR,
-            'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
-            'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
-            'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),
-            'XDG_CONFIG_DIRS': os.path.join(TMPDIR, 'config_dir'),
-            'XDG_CACHE_HOME': os.path.join(TMPDIR, 'cache_home')
+        'ZIM_TEST_RUNNING': 'True',
+        'ZIM_TEST_ROOT': os.getcwd(),
+        'TMP': TMPDIR,
+        'REAL_TMP': REAL_TMPDIR,
+        'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
+        'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
+        'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),
+        'XDG_CONFIG_DIRS': os.path.join(TMPDIR, 'config_dir'),
+        'XDG_CACHE_HOME': os.path.join(TMPDIR, 'cache_home')
     })
 
     if os.path.isdir(TMPDIR):
@@ -131,7 +131,7 @@ def _setUpEnvironment():
         # Need these since gtk pixbuf loaders are in /usr/share in
         # some setups, and this parameter is used to find them
         os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
-                (os.environ['XDG_DATA_DIRS'], system_data_dirs))
+            (os.environ['XDG_DATA_DIRS'], system_data_dirs))
 
 if os.environ.get('ZIM_TEST_RUNNING') != 'True':
     # Do this when loaded, but not re-do in sub processes
@@ -242,7 +242,7 @@ class TestCase(unittest.TestCase):
         # string and unicode to be of the same type and thus does not
         # show diffs if the textual content differs
         if type(first) in (str, unicode) \
-        and type(second) in (str, unicode):
+                and type(second) in (str, unicode):
             self.assertMultiLineEqual(first, second, msg)
         else:
             unittest.TestCase.assertEqual(self, first, second, msg)
@@ -338,12 +338,12 @@ class TestCase(unittest.TestCase):
         for name, text in content.items():
             file, folder = layout.map_page(Path(name))
             file.write(
-                    (
-                            'Content-Type: text/x-zim-wiki\n'
-                            'Wiki-Format: %s\n'
-                            'Creation-Date: %s\n\n'
-                    ) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
-                    + text + '\n'
+                (
+                    'Content-Type: text/x-zim-wiki\n'
+                    'Wiki-Format: %s\n'
+                    'Creation-Date: %s\n\n'
+                ) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
+                + text + '\n'
             )
 
         notebook.index.check_and_update()
@@ -674,8 +674,8 @@ def new_notebook(fakedir=None):
     layout = FilesLayout(folder, endofline='unix')
     index = Index(':memory:', layout)
     tables = [r[0] for r in index._db.execute(
-            'SELECT name FROM sqlite_master '
-            'WHERE type="table" and name NOT LIKE "sqlite%"'
+        'SELECT name FROM sqlite_master '
+        'WHERE type="table" and name NOT LIKE "sqlite%"'
     )]
     for table in tables:
         index._db.execute('DROP TABLE %s' % table)
@@ -859,7 +859,7 @@ class CallBackLogger(dict):
             self.setdefault(name, [])
 
             self[name].append(
-                    self._filter_func(name, arg, kwarg)
+                self._filter_func(name, arg, kwarg)
             )
 
         setattr(self, name, cb_method)
@@ -902,8 +902,8 @@ def gtk_get_menu_item(menu, id):
     # 'label' property to store it...
 
     assert id in ids, \
-            'Menu item "%s" not found, we got:\n' % id \
-            + ''.join('- %s \n' % i for i in ids)
+        'Menu item "%s" not found, we got:\n' % id \
+        + ''.join('- %s \n' % i for i in ids)
 
     i = ids.index(id)
     return items[i]

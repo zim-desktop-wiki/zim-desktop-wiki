@@ -49,34 +49,34 @@ def set_basedirs():
         APPDATA = environ['APPDATA']
 
         XDG_DATA_HOME = Dir(
-                environ.get('XDG_DATA_HOME', APPDATA + r'\zim\data'))
+            environ.get('XDG_DATA_HOME', APPDATA + r'\zim\data'))
 
         XDG_DATA_DIRS = map(Dir,
-                environ.get_list('XDG_DATA_DIRS', '~/.local/share/'))  # Backwards compatibility
+                            environ.get_list('XDG_DATA_DIRS', '~/.local/share/'))  # Backwards compatibility
 
         XDG_CONFIG_HOME = Dir(
-                environ.get('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
+            environ.get('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
 
         XDG_CONFIG_DIRS = map(Dir,
-                environ.get_list('XDG_CONFIG_DIRS', '~/.config/'))  # Backwards compatibility
+                              environ.get_list('XDG_CONFIG_DIRS', '~/.config/'))  # Backwards compatibility
 
         XDG_CACHE_HOME = Dir(
-                environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))
+            environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))
     else:
         XDG_DATA_HOME = Dir(
-                environ.get('XDG_DATA_HOME', '~/.local/share/'))
+            environ.get('XDG_DATA_HOME', '~/.local/share/'))
 
         XDG_DATA_DIRS = map(Dir,
-                environ.get_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
+                            environ.get_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
 
         XDG_CONFIG_HOME = Dir(
-                environ.get('XDG_CONFIG_HOME', '~/.config/'))
+            environ.get('XDG_CONFIG_HOME', '~/.config/'))
 
         XDG_CONFIG_DIRS = map(Dir,
-                environ.get_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
+                              environ.get_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
 
         XDG_CACHE_HOME = Dir(
-                environ.get('XDG_CACHE_HOME', '~/.cache'))
+            environ.get('XDG_CACHE_HOME', '~/.cache'))
 
 
 # Call on module initialization to set defaults

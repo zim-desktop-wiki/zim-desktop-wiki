@@ -38,7 +38,7 @@ class TestHistory(tests.TestCase):
         zim.history.MAX_HISTORY = 100
         self.notebook = tests.new_notebook()
         self.pages = [self.notebook.get_page(Path(name))
-                for name in self.notebook.testdata_manifest]
+                      for name in self.notebook.testdata_manifest]
 
     def assertCurrentEquals(self, history, path):
         current = history.get_current()
@@ -251,8 +251,8 @@ class TestHistory(tests.TestCase):
         self.assertEqual(len(uniques), 0)
 
         self.assertEqual(
-                len(list(history.get_history())),
-                2 * len(self.pages))
+            len(list(history.get_history())),
+            2 * len(self.pages))
 
         for page in history.get_history():
             history.set_current(page)
@@ -313,9 +313,9 @@ class TestHistory(tests.TestCase):
         '''Test history can deal with garbage data'''
         uistate = INIConfigFile(VirtualFile([]))
         uistate['History'].input({
-                'list': 'FOOOO',
-                'recent': [["BARRRR", 0]],
-                'cursor': 'Not an integer',
+            'list': 'FOOOO',
+            'recent': [["BARRRR", 0]],
+            'cursor': 'Not an integer',
         })
 
         with tests.LoggingFilter(

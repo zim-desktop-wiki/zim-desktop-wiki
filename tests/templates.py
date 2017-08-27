@@ -46,75 +46,75 @@ class TestExpressionParser(tests.TestCase):
         p = ExpressionParser()
         for text, wanted in (
                 ('x or y', ExpressionOperator(
-                        operator.or_,
-                        ExpressionParameter('x'),
-                        ExpressionParameter('y')
+                    operator.or_,
+                    ExpressionParameter('x'),
+                    ExpressionParameter('y')
                 )),
                 ('x == y', ExpressionOperator(
+                    operator.eq,
+                    ExpressionParameter('x'),
+                    ExpressionParameter('y')
+                )),
+                ('not x', ExpressionUnaryOperator(
+                    operator.not_,
+                    ExpressionParameter('x')
+                )),
+                ('[1, a, True]', ExpressionList([
+                    ExpressionLiteral(1),
+                    ExpressionParameter('a'),
+                    ExpressionLiteral(True),
+                ])),
+                ('[[1, a], [True, False]]', ExpressionList([
+                    ExpressionList([
+                        ExpressionLiteral(1),
+                        ExpressionParameter('a'),
+                    ]),
+                    ExpressionList([
+                        ExpressionLiteral(True),
+                        ExpressionLiteral(False),
+                    ])
+                ])),
+                ('func(1, a)', ExpressionFunctionCall(
+                    ExpressionParameter('func'),
+                    ExpressionList([
+                        ExpressionLiteral(1),
+                        ExpressionParameter('a'),
+                    ])
+                )),
+                ('func([1, a])', ExpressionFunctionCall(
+                    ExpressionParameter('func'),
+                    ExpressionList([
+                        ExpressionList([
+                            ExpressionLiteral(1),
+                            ExpressionParameter('a'),
+                        ])
+                    ])
+                )),
+                ('func(1, func(a))', ExpressionFunctionCall(
+                    ExpressionParameter('func'),
+                    ExpressionList([
+                        ExpressionLiteral(1),
+                        ExpressionFunctionCall(
+                            ExpressionParameter('func'),
+                            ExpressionList([
+                                ExpressionParameter('a'),
+                            ])
+                        )
+                    ])
+                )),
+                ('[func(1, a), x == y]', ExpressionList([
+                    ExpressionFunctionCall(
+                        ExpressionParameter('func'),
+                        ExpressionList([
+                            ExpressionLiteral(1),
+                            ExpressionParameter('a'),
+                        ])
+                    ),
+                    ExpressionOperator(
                         operator.eq,
                         ExpressionParameter('x'),
                         ExpressionParameter('y')
-                )),
-                ('not x', ExpressionUnaryOperator(
-                        operator.not_,
-                        ExpressionParameter('x')
-                )),
-                ('[1, a, True]', ExpressionList([
-                        ExpressionLiteral(1),
-                        ExpressionParameter('a'),
-                        ExpressionLiteral(True),
-                ])),
-                ('[[1, a], [True, False]]', ExpressionList([
-                        ExpressionList([
-                                ExpressionLiteral(1),
-                                ExpressionParameter('a'),
-                        ]),
-                        ExpressionList([
-                                ExpressionLiteral(True),
-                                ExpressionLiteral(False),
-                        ])
-                ])),
-                ('func(1, a)', ExpressionFunctionCall(
-                        ExpressionParameter('func'),
-                        ExpressionList([
-                                ExpressionLiteral(1),
-                                ExpressionParameter('a'),
-                        ])
-                )),
-                ('func([1, a])', ExpressionFunctionCall(
-                        ExpressionParameter('func'),
-                        ExpressionList([
-                                ExpressionList([
-                                        ExpressionLiteral(1),
-                                        ExpressionParameter('a'),
-                                ])
-                        ])
-                )),
-                ('func(1, func(a))', ExpressionFunctionCall(
-                        ExpressionParameter('func'),
-                        ExpressionList([
-                                ExpressionLiteral(1),
-                                ExpressionFunctionCall(
-                                        ExpressionParameter('func'),
-                                        ExpressionList([
-                                                ExpressionParameter('a'),
-                                        ])
-                                )
-                        ])
-                )),
-                ('[func(1, a), x == y]', ExpressionList([
-                        ExpressionFunctionCall(
-                                ExpressionParameter('func'),
-                                ExpressionList([
-                                        ExpressionLiteral(1),
-                                        ExpressionParameter('a'),
-                                ])
-                        ),
-                        ExpressionOperator(
-                                operator.eq,
-                                ExpressionParameter('x'),
-                                ExpressionParameter('y')
-                        )
+                    )
                 ])),
         ):
             self.assertEqual(p.parse(text), wanted)
@@ -123,28 +123,28 @@ class TestExpressionParser(tests.TestCase):
         expr = ExpressionParser().parse('a or b and not c < d and f or x')
         # Read as: '(a or ((b and ((not (c < d)) and f)) or x))'
         wanted = ExpressionOperator(
+            operator.or_,
+            ExpressionParameter('a'),
+            ExpressionOperator(
                 operator.or_,
-                ExpressionParameter('a'),
                 ExpressionOperator(
-                        operator.or_,
-                        ExpressionOperator(
-                                operator.and_,
-                                ExpressionParameter('b'),
-                                ExpressionOperator(
-                                        operator.and_,
-                                        ExpressionUnaryOperator(
-                                                operator.not_,
-                                                ExpressionOperator(
-                                                        operator.lt,
-                                                        ExpressionParameter('c'),
-                                                        ExpressionParameter('d')
-                                                )
-                                        ),
-                                        ExpressionParameter('f')
-                                )
+                    operator.and_,
+                    ExpressionParameter('b'),
+                    ExpressionOperator(
+                        operator.and_,
+                        ExpressionUnaryOperator(
+                            operator.not_,
+                            ExpressionOperator(
+                                operator.lt,
+                                ExpressionParameter('c'),
+                                ExpressionParameter('d')
+                            )
                         ),
-                        ExpressionParameter('x')
-                )
+                        ExpressionParameter('f')
+                    )
+                ),
+                ExpressionParameter('x')
+            )
         )
         #~ print '\nEXPRESSION:', expr
         self.assertEqual(expr, wanted)
@@ -174,29 +174,29 @@ class TestExpression(tests.TestCase):
 
     def runTest(self):
         expr = ExpressionList([
-                ExpressionLiteral('foooo'),
-                ExpressionParameter('foo'),
-                ExpressionParameter('a.b'),
-                ExpressionOperator(
-                        operator.le,
-                        ExpressionParameter('n'),
-                        ExpressionLiteral(2)
-                ),
-                ExpressionFunctionCall(
-                        ExpressionParameter('addone'),
-                        ExpressionList([
-                                ExpressionParameter('n')
-                        ])
-                ),
+            ExpressionLiteral('foooo'),
+            ExpressionParameter('foo'),
+            ExpressionParameter('a.b'),
+            ExpressionOperator(
+                operator.le,
+                ExpressionParameter('n'),
+                ExpressionLiteral(2)
+            ),
+            ExpressionFunctionCall(
+                ExpressionParameter('addone'),
+                ExpressionList([
+                    ExpressionParameter('n')
+                ])
+            ),
         ])
 
         result = expr({
-                'foo': 'FOO',
-                'a': {
-                        'b': 'BAR'
-                },
-                'n': 1,
-                'addone': ExpressionFunction(lambda a: a + 1)
+            'foo': 'FOO',
+            'a': {
+                'b': 'BAR'
+            },
+            'n': 1,
+            'addone': ExpressionFunction(lambda a: a + 1)
         })
 
         wanted = ['foooo', 'FOO', 'BAR', True, 2]
@@ -222,8 +222,8 @@ class TestExpressionFunctionCall(tests.TestCase):
 
         # Test get builtin from dict
         mydict = {
-                'len': ExpressionFunction(lambda o: len(o)),
-                'mylist': ['a', 'b', 'c'],
+            'len': ExpressionFunction(lambda o: len(o)),
+            'mylist': ['a', 'b', 'c'],
         }
         args = ExpressionList([ExpressionParameter('mylist')])
         var = ExpressionParameter('len')
@@ -239,9 +239,9 @@ class TestExpressionFunctionCall(tests.TestCase):
 
         # Test implicit types
         mydict = {
-                'somedict': {'a': 'AAA', 'b': 'BBB', 'c': 'CCC'},
-                'somelist': ['x', 'y', 'z'],
-                'somestring': 'FOOBAR',
+            'somedict': {'a': 'AAA', 'b': 'BBB', 'c': 'CCC'},
+            'somelist': ['x', 'y', 'z'],
+            'somestring': 'FOOBAR',
         }
         args = ExpressionList()  # empty args
         for name, wanted in (
@@ -314,12 +314,12 @@ class TestTemplateBuilderTextBuffer(tests.TestCase):
         #~ print result
 
         self.assertEqual(result, [
-                E('FOO', None, [
-                        u'foo',
-                        E('BAR', None, []),
-                        u'\n\t\tdus\n',
-                        E('BAR', None, []),
-                ])
+            E('FOO', None, [
+                u'foo',
+                E('BAR', None, []),
+                u'\n\t\tdus\n',
+                E('BAR', None, []),
+            ])
         ])
 
 
@@ -368,66 +368,66 @@ Switch:	[% IF foo %]AAA[% ELSE %]BBB[% END %]
 '''
 
     WANTED = [
-            E('TEMPLATE', None, [
-                    E('GET', {'expr': ExpressionParameter('foo')}, []),
-                    '\n',  # whitespace around GET remains intact
-                    E('GET', {'expr': ExpressionParameter('foo')}, []),
-                    '\n',
-                    E('SET', {
-                            'var': ExpressionParameter('bar'),
-                            'expr': ExpressionLiteral('test')
-                    }, []),  # no whitespace here - SET chomps
-                    E('SET', {
-                            'var': ExpressionParameter('bar'),
-                            'expr': ExpressionLiteral('test')
-                    }, []),
-                    '\n',  # only one "\n" here!
-                    # no indenting before block level items like IF
-                    E('IF', {'expr': ExpressionParameter('foo')}, [
-                            '\tDO SOMETHING\n'  # indenting intact
-                    ]),
-                    E('ELIF', {'expr': ExpressionParameter('foo')}, [
-                            'SOMETHING ELSE'  # stripped on both sides
-                    ]),
-                    E('ELSE', None, [
-                            '\tYET SOMETHING ELSE\n'  # indenting intact
-                    ]),
-                    '\nSwitch:\t',
-                    E('IF', {'expr': ExpressionParameter('foo')}, [
-                            'AAA'
-                    ]),
-                    E('ELSE', None, [
-                            'BBB'
-                    ]),
-                    '\n\n',  # two "\n" here because IF .. ELSE is inline
-                    '\n',  # another empty line after block is taken out
-                    # 3 times same loop by different syntax
-                    E('FOR', {
-                            'var': ExpressionParameter('a'),
-                            'expr': ExpressionParameter('b'),
-                    }, [
-                            '\tAAA\n'
-                    ]),
-                    '\n',
-                    E('FOR', {
-                            'var': ExpressionParameter('a'),
-                            'expr': ExpressionParameter('b'),
-                    }, [
-                            '\tAAA\n'
-                    ]),
-                    '\n',
-                    E('FOR', {
-                            'var': ExpressionParameter('a'),
-                            'expr': ExpressionParameter('b'),
-                    }, [
-                            '\tAAA\n'
-                    ]),
-                    '\n',
+        E('TEMPLATE', None, [
+            E('GET', {'expr': ExpressionParameter('foo')}, []),
+            '\n',  # whitespace around GET remains intact
+            E('GET', {'expr': ExpressionParameter('foo')}, []),
+            '\n',
+            E('SET', {
+                'var': ExpressionParameter('bar'),
+                'expr': ExpressionLiteral('test')
+            }, []),  # no whitespace here - SET chomps
+            E('SET', {
+                'var': ExpressionParameter('bar'),
+                'expr': ExpressionLiteral('test')
+            }, []),
+            '\n',  # only one "\n" here!
+            # no indenting before block level items like IF
+            E('IF', {'expr': ExpressionParameter('foo')}, [
+                '\tDO SOMETHING\n'  # indenting intact
             ]),
-            E('BLOCK', {'name': 'bar'}, ['BAR\n']),
-                    # indenting before "[% BLOCK .." and before "BAR" both gone
-            E('BLOCK', {'name': 'foo'}, ['\tFOO\n']),
-                    # indenting intact
+            E('ELIF', {'expr': ExpressionParameter('foo')}, [
+                'SOMETHING ELSE'  # stripped on both sides
+            ]),
+            E('ELSE', None, [
+                '\tYET SOMETHING ELSE\n'  # indenting intact
+            ]),
+            '\nSwitch:\t',
+            E('IF', {'expr': ExpressionParameter('foo')}, [
+                'AAA'
+            ]),
+            E('ELSE', None, [
+                'BBB'
+            ]),
+            '\n\n',  # two "\n" here because IF .. ELSE is inline
+            '\n',  # another empty line after block is taken out
+            # 3 times same loop by different syntax
+            E('FOR', {
+                'var': ExpressionParameter('a'),
+                'expr': ExpressionParameter('b'),
+            }, [
+                '\tAAA\n'
+            ]),
+            '\n',
+            E('FOR', {
+                'var': ExpressionParameter('a'),
+                'expr': ExpressionParameter('b'),
+            }, [
+                '\tAAA\n'
+            ]),
+            '\n',
+            E('FOR', {
+                'var': ExpressionParameter('a'),
+                'expr': ExpressionParameter('b'),
+            }, [
+                '\tAAA\n'
+            ]),
+            '\n',
+        ]),
+        E('BLOCK', {'name': 'bar'}, ['BAR\n']),
+        # indenting before "[% BLOCK .." and before "BAR" both gone
+        E('BLOCK', {'name': 'foo'}, ['\tFOO\n']),
+        # indenting intact
     ]
 
     def runTest(self):
@@ -489,13 +489,13 @@ class TestTemplateProcessor(tests.TestCase):
     def testGetSet(self):
         # test 'GET',  'SET'
         processor = TemplateProcessor([
-                E('TEMPLATE', None, [
-                        E('SET', {
-                                'var': ExpressionParameter('aaa.bbb'),
-                                'expr': ExpressionLiteral('foo')
-                        }),
-                        E('GET', {'expr': ExpressionParameter('aaa.bbb')}),
-                ])
+            E('TEMPLATE', None, [
+                E('SET', {
+                    'var': ExpressionParameter('aaa.bbb'),
+                    'expr': ExpressionLiteral('foo')
+                }),
+                E('GET', {'expr': ExpressionParameter('aaa.bbb')}),
+            ])
         ])
 
         output = []
@@ -511,12 +511,12 @@ class TestTemplateProcessor(tests.TestCase):
     def testIfElifElse(self):
         # test 'IF', 'ELIF', 'ELSE',
         processor = TemplateProcessor([
-                E('TEMPLATE', None, [
-                        E('IF', {'expr': ExpressionParameter('a')}, ['A']),
-                        E('ELIF', {'expr': ExpressionParameter('b')}, ['B']),
-                        E('ELIF', {'expr': ExpressionParameter('c')}, ['C']),
-                        E('ELSE', {}, ['D']),
-                ])
+            E('TEMPLATE', None, [
+                E('IF', {'expr': ExpressionParameter('a')}, ['A']),
+                E('ELIF', {'expr': ExpressionParameter('b')}, ['B']),
+                E('ELIF', {'expr': ExpressionParameter('c')}, ['C']),
+                E('ELSE', {}, ['D']),
+            ])
         ])
 
         for context, wanted in (
@@ -532,17 +532,17 @@ class TestTemplateProcessor(tests.TestCase):
     def testFor(self):
         # test 'FOR'
         processor = TemplateProcessor([
-                E('TEMPLATE', None, [
-                        E('FOR', {
-                                'var': ExpressionParameter('iter'),
-                                'expr': ExpressionParameter('items'),
-                        }, [
-                                E('GET', {'expr': ExpressionParameter('loop.count')}),
-                                ': ',
-                                E('GET', {'expr': ExpressionParameter('iter')}),
-                                '\n',
-                        ])
+            E('TEMPLATE', None, [
+                E('FOR', {
+                    'var': ExpressionParameter('iter'),
+                    'expr': ExpressionParameter('items'),
+                }, [
+                    E('GET', {'expr': ExpressionParameter('loop.count')}),
+                    ': ',
+                    E('GET', {'expr': ExpressionParameter('iter')}),
+                    '\n',
                 ])
+            ])
         ])
 
         context = {'items': ['aaa', 'bbb', 'ccc']}
@@ -554,12 +554,12 @@ class TestTemplateProcessor(tests.TestCase):
     def testInclude(self):
         # test 'INCLUDE',
         processor = TemplateProcessor([
-                E('TEMPLATE', None, [
-                        E('INCLUDE', {'expr': ExpressionParameter('foo')}),
-                        E('INCLUDE', {'expr': ExpressionParameter('foo')}),
-                        E('INCLUDE', {'expr': ExpressionParameter('foo')}),
-                ]),
-                E('BLOCK', {'name': 'foo'}, 'FOO\n'),
+            E('TEMPLATE', None, [
+                E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+                E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+                E('INCLUDE', {'expr': ExpressionParameter('foo')}),
+            ]),
+            E('BLOCK', {'name': 'foo'}, 'FOO\n'),
         ])
 
         lines = []
@@ -589,32 +589,32 @@ class TestTemplateFunctions(tests.TestCase):
         func = build_template_functions()['len']
         self.assertIsInstance(func, ExpressionFunction)
         self.assertEqual(
-                func([1, 2, 3]),
-                3
+            func([1, 2, 3]),
+            3
         )
 
     def testFuncSorted(self):
         func = build_template_functions()['sorted']
         self.assertIsInstance(func, ExpressionFunction)
         self.assertEqual(
-                func(['bbb', 'aaa', 'ccc']),
-                ['aaa', 'bbb', 'ccc']
+            func(['bbb', 'aaa', 'ccc']),
+            ['aaa', 'bbb', 'ccc']
         )
 
     def testFuncReversed(self):
         func = build_template_functions()['reversed']
         self.assertIsInstance(func, ExpressionFunction)
         self.assertEqual(
-                func(['bbb', 'aaa', 'ccc']),
-                ['ccc', 'aaa', 'bbb']
+            func(['bbb', 'aaa', 'ccc']),
+            ['ccc', 'aaa', 'bbb']
         )
 
     def testFuncRange(self):
         func = build_template_functions()['range']
         self.assertIsInstance(func, ExpressionFunction)
         self.assertEqual(
-                func(1, 10),
-                [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            func(1, 10),
+            [1, 2, 3, 4, 5, 6, 7, 8, 9]
         )
 
     def testFuncStrftime(self):
@@ -624,8 +624,8 @@ class TestTemplateFunctions(tests.TestCase):
         self.assertIsInstance(func, ExpressionFunction)
         self.assertTrue(func('%Y %m %d'))
         self.assertEqual(
-                func('%Y %m %d', date(2014, 0o5, 26)),
-                '2014 05 26'
+            func('%Y %m %d', date(2014, 0o5, 26)),
+            '2014 05 26'
         )
 
     def testFuncStrfcal(self):
@@ -635,8 +635,8 @@ class TestTemplateFunctions(tests.TestCase):
         self.assertIsInstance(func, ExpressionFunction)
         self.assertTrue(func('%Y %W'))
         self.assertEqual(
-                func('%Y %W', date(2014, 0o5, 26)),
-                '2014 22'
+            func('%Y %W', date(2014, 0o5, 26)),
+            '2014 22'
         )
 
     def testHTMLEncode(self):
@@ -663,36 +663,36 @@ class TestTemplate(tests.TestCase):
 
         output = []
         templ.process(output, {
-                'title': 'THIS IS THE TITLE',
-                'generator': {
-                        'name': 'ZIM VERSION',
+            'title': 'THIS IS THE TITLE',
+            'generator': {
+                'name': 'ZIM VERSION',
+            },
+            'navigation': {
+                'prev': None,
+                'next': None,
+            },
+            'links': {},
+            'pages': [
+                {  # page
+                    'name': 'page',
+                    'heading': 'HEAD',
+                    'body': 'BODY',
+                    'properties': {
+                        'type': 'PAGE',
+                    },
+                    'backlinks': [
+                        {'name': 'LINK1'},
+                        {'name': 'LINK2'},
+                        {'name': 'LINK3'},
+                    ],
+                    'attachments': [
+                        {'name': 'FILE1', 'basename': 'FILE1', 'size': '1k'},
+                        {'name': 'FILE2', 'basename': 'FILE2', 'size': '1k'},
+                    ],
                 },
-                'navigation': {
-                        'prev': None,
-                        'next': None,
-                },
-                'links': {},
-                'pages': [
-                        {  # page
-                                'name': 'page',
-                                'heading': 'HEAD',
-                                'body': 'BODY',
-                                'properties': {
-                                        'type': 'PAGE',
-                                },
-                                'backlinks': [
-                                        {'name': 'LINK1'},
-                                        {'name': 'LINK2'},
-                                        {'name': 'LINK3'},
-                                ],
-                                'attachments': [
-                                        {'name': 'FILE1', 'basename': 'FILE1', 'size': '1k'},
-                                        {'name': 'FILE2', 'basename': 'FILE2', 'size': '1k'},
-                                ],
-                        },
-                ],
-                'uri': ExpressionFunction(lambda l: "URL:%s" % l['name']),
-                'anchor': ExpressionFunction(lambda l: "ANCHOR:%s" % l['name']),
+            ],
+            'uri': ExpressionFunction(lambda l: "URL:%s" % l['name']),
+            'anchor': ExpressionFunction(lambda l: "ANCHOR:%s" % l['name']),
         })
         #~ print ''.join(output)
 

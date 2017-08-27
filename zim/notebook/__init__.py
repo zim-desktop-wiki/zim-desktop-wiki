@@ -37,21 +37,21 @@ from zim.parsing import url_decode
 
 
 from .info import NotebookInfo, NotebookInfoList, \
-        resolve_notebook, get_notebook_list, get_notebook_info, interwiki_link
+    resolve_notebook, get_notebook_list, get_notebook_info, interwiki_link
 
 from .operations import NotebookOperation, SimpleAsyncOperation, \
-        NotebookOperationOngoing, NotebookState
+    NotebookOperationOngoing, NotebookState
 
 from .notebook import Notebook, TrashNotSupportedError, \
-        PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
+    PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
 
 from .page import Path, Page, \
-        HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
+    HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 from .layout import encode_filename, decode_filename
 
 from .index import IndexNotFoundError, \
-        LINK_DIR_BACKWARD, LINK_DIR_BOTH, LINK_DIR_FORWARD
+    LINK_DIR_BACKWARD, LINK_DIR_BOTH, LINK_DIR_FORWARD
 
 
 def build_notebook(location):
@@ -136,8 +136,8 @@ class ApplicationMountPointHandler(object):
 
     def __call__(self, path):
         if path.path == self.dir.path or path.ischild(self.dir) \
-        and not self.dir.exists() \
-        and self.mount:
+                and not self.dir.exists() \
+                and self.mount:
             from zim.applications import Application
             Application(self.mount).run()
             return path.exists()

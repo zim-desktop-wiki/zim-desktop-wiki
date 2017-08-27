@@ -81,9 +81,9 @@ for f in os.listdir(path.join(GTK_ROOT, "share")):
         distutils.dir_util.copy_tree(path.join(GTK_ROOT, "share", f), path.join(EXE_ROOT, "share", f), update=1)
 
 distutils.dir_util.copy_tree(
-        path.join(GTK_ROOT, "share", "icons", "hicolor"),
-        path.join(EXE_ROOT, "share", "icons", "hicolor"),
-        update=1
+    path.join(GTK_ROOT, "share", "icons", "hicolor"),
+    path.join(EXE_ROOT, "share", "icons", "hicolor"),
+    update=1
 )
 
 for ext in ["*.exe", "*.dll"]:

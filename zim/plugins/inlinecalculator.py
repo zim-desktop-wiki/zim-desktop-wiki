@@ -150,64 +150,64 @@ def ceil(x):
 
 # functions and constants available  within the safe eval construct
 GLOBALS = {
-        '__builtins__': None,  # Don't allow open() etc.
-        # builtins we want to keep
-        'abs': abs,
-        'ord': ord,
-        'chr': unichr,
-        'hex': hex,
-        'oct': oct,
-        'int': int,
-        # direct imports
-        'e': math.e,
-        'pi': math.pi,
-        'atan2': math.atan2,
-        'fmod': math.fmod,
-        'frexp': math.frexp,
-        'hypot': math.hypot,
-        'ldexp': math.ldexp,
-        'modf': math.modf,
-        # other nice-to-have constants
-        'j': cmath.sqrt(-1),
-        # marshall between the math and cmath functions automatically
-        'acos': lambda x: which_call(x, math.acos, cmath.acos),
-        'asin': lambda x: which_call(x, math.asin, cmath.asin),
-        'atan': lambda x: which_call(x, math.atan, cmath.atan),
-        'cos': lambda x: which_call(x, math.cos, cmath.cos),
-        'cosh': lambda x: which_call(x, math.cosh, cmath.cosh),
-        'sin': lambda x: which_call(x, math.sin, cmath.sin),
-        'sinh': lambda x: which_call(x, math.sinh, cmath.sinh),
-        'tan': lambda x: which_call(x, math.tan, cmath.tan),
-        'tanh': lambda x: which_call(x, math.tanh, cmath.tanh),
-        'exp': lambda x: which_call(x, math.exp, cmath.exp),
-        'log10': lambda x: which_call(x, math.log10, cmath.log10, False),
-        'sqrt': lambda x: which_call(x, math.sqrt, cmath.sqrt, False),
-        # functions defined here
-        'degrees': degrees,
-        'radians': radians,
-        'log': log,
-        'real': real,
-        'imag': imag,
-        'sign': sign,
-        'log2': log2,
-        'gcd': gcd,
-        'lcm': lcm,
-        'phase': phase,
-        'conj': conj,
-        'round': round,
-        'floor': floor,
-        'ceil': ceil,
-        # synonyms
-        'mag': abs,
-        'angle': phase,
+    '__builtins__': None,  # Don't allow open() etc.
+    # builtins we want to keep
+    'abs': abs,
+    'ord': ord,
+    'chr': unichr,
+    'hex': hex,
+    'oct': oct,
+    'int': int,
+    # direct imports
+    'e': math.e,
+    'pi': math.pi,
+    'atan2': math.atan2,
+    'fmod': math.fmod,
+    'frexp': math.frexp,
+    'hypot': math.hypot,
+    'ldexp': math.ldexp,
+    'modf': math.modf,
+    # other nice-to-have constants
+    'j': cmath.sqrt(-1),
+    # marshall between the math and cmath functions automatically
+    'acos': lambda x: which_call(x, math.acos, cmath.acos),
+    'asin': lambda x: which_call(x, math.asin, cmath.asin),
+    'atan': lambda x: which_call(x, math.atan, cmath.atan),
+    'cos': lambda x: which_call(x, math.cos, cmath.cos),
+    'cosh': lambda x: which_call(x, math.cosh, cmath.cosh),
+    'sin': lambda x: which_call(x, math.sin, cmath.sin),
+    'sinh': lambda x: which_call(x, math.sinh, cmath.sinh),
+    'tan': lambda x: which_call(x, math.tan, cmath.tan),
+    'tanh': lambda x: which_call(x, math.tanh, cmath.tanh),
+    'exp': lambda x: which_call(x, math.exp, cmath.exp),
+    'log10': lambda x: which_call(x, math.log10, cmath.log10, False),
+    'sqrt': lambda x: which_call(x, math.sqrt, cmath.sqrt, False),
+    # functions defined here
+    'degrees': degrees,
+    'radians': radians,
+    'log': log,
+    'real': real,
+    'imag': imag,
+    'sign': sign,
+    'log2': log2,
+    'gcd': gcd,
+    'lcm': lcm,
+    'phase': phase,
+    'conj': conj,
+    'round': round,
+    'floor': floor,
+    'ceil': ceil,
+    # synonyms
+    'mag': abs,
+    'angle': phase,
 }
 
 
 class ExpressionError(Error):
 
     description = _(
-            'The inline calculator plugin was not able\n'
-            'to evaluate the expression at the cursor.')
+        'The inline calculator plugin was not able\n'
+        'to evaluate the expression at the cursor.')
     # T: error description
 
 
@@ -218,15 +218,15 @@ _multiline_re = re.compile('--+\s+[+-]')
 class InlineCalculatorPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Inline Calculator'),  # T: plugin name
-            'description': _('''\
+        'name': _('Inline Calculator'),  # T: plugin name
+        'description': _('''\
 This plugin allows you to quickly evaluate simple
 mathematical expressions in zim.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Inline Calculator',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Inline Calculator',
     }
 
     #~ plugin_preferences = (
@@ -263,7 +263,7 @@ This is a core plugin shipping with zim.
         postfix = ''
         stripped = line.rstrip()
         if '=' in line \
-        and stripped != line and not stripped.endswith('='):
+                and stripped != line and not stripped.endswith('='):
             i = len(line) - len(stripped)
             postfix = line[-i:]
             line = stripped

@@ -26,7 +26,7 @@ from zim import __version__
 from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
 from zim.notebook import Notebook, Path, \
-        get_notebook_list, resolve_notebook, build_notebook
+    get_notebook_list, resolve_notebook, build_notebook
 
 from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
@@ -152,8 +152,8 @@ class NotebookCommand(Command):
             # T: error message
 
         if len(self.arguments) > 1 \
-        and self.arguments[1] in ('PAGE', '[PAGE]') \
-        and args[1] is not None:
+                and self.arguments[1] in ('PAGE', '[PAGE]') \
+                and args[1] is not None:
             pagename = Path.makeValidPageName(args[1])
             return notebookinfo, Path(pagename)
         else:
@@ -191,10 +191,10 @@ class GuiCommand(NotebookCommand, GtkCommand):
 
     arguments = ('[NOTEBOOK]', '[PAGE]')
     options = (
-            ('list', '', 'show the list with notebooks instead of\nopening the default notebook'),
-            ('geometry=', '', 'window size and position as WxH+X+Y'),
-            ('fullscreen', '', 'start in fullscreen mode'),
-            ('standalone', '', 'start a single instance, no background process'),
+        ('list', '', 'show the list with notebooks instead of\nopening the default notebook'),
+        ('geometry=', '', 'window size and position as WxH+X+Y'),
+        ('fullscreen', '', 'start in fullscreen mode'),
+        ('standalone', '', 'start a single instance, no background process'),
     )
 
     def build_notebook(self, ensure_uptodate=False):
@@ -259,19 +259,19 @@ class GuiCommand(NotebookCommand, GtkCommand):
         gui = None
         for window in gtk.window_list_toplevels():
             if isinstance(window, zim.gui.MainWindow) \
-            and window.ui.notebook.uri == notebook.uri:
+                    and window.ui.notebook.uri == notebook.uri:
                 gui = window.ui  # XXX
                 break
 
         if gui:
             gui.present(
-                    page=page,
-                    **self.get_options('geometry', 'fullscreen'))
+                page=page,
+                **self.get_options('geometry', 'fullscreen'))
         else:
             gui = zim.gui.GtkInterface(
-                    notebook=notebook,
-                    page=page,
-                    **self.get_options('geometry', 'fullscreen')
+                notebook=notebook,
+                page=page,
+                **self.get_options('geometry', 'fullscreen')
             )
             gui.run()
 
@@ -299,9 +299,9 @@ class ServerCommand(NotebookCommand):
 
     arguments = ('NOTEBOOK',)
     options = (
-            ('port=', 'p', 'port number to use (defaults to 8080)'),
-            ('template=', 't', 'name or path of the template to use'),
-            ('standalone', '', 'start a single instance, no background process'),
+        ('port=', 'p', 'port number to use (defaults to 8080)'),
+        ('template=', 't', 'name or path of the template to use'),
+        ('standalone', '', 'start a single instance, no background process'),
     )
 
     def run(self):
@@ -323,9 +323,9 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 
     arguments = ('[NOTEBOOK]',)
     options = (
-            ('port=', 'p', 'port number to use (defaults to 8080)'),
-            ('template=', 't', 'name or path of the template to use'),
-            ('standalone', '', 'start a single instance, no background process'),
+        ('port=', 'p', 'port number to use (defaults to 8080)'),
+        ('template=', 't', 'name or path of the template to use'),
+        ('standalone', '', 'start a single instance, no background process'),
     )
 
     def run(self):
@@ -337,9 +337,9 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
             notebookinfo = self.get_default_or_only_notebook()
 
         window = zim.gui.server.ServerWindow(
-                notebookinfo,
-                public=True,
-                **self.get_options('template', 'port')
+            notebookinfo,
+            public=True,
+            **self.get_options('template', 'port')
         )
         window.show_all()
         return window
@@ -350,23 +350,23 @@ class ExportCommand(NotebookCommand):
 
     arguments = ('NOTEBOOK', '[PAGE]')
     options = (
-            ('format=', '', 'format to use (defaults to \'html\')'),
-            ('template=', '', 'name or path of the template to use'),
-            ('output=', 'o', 'output folder, or output file name'),
-            ('root-url=', '', 'url to use for the document root'),
-            ('index-page=', '', 'index page name'),
-            ('recursive', 'r', 'when exporting a page, also export sub-pages'),
-            ('singlefile', 's', 'export all pages to a single output file'),
-            ('overwrite', 'O', 'overwrite existing file(s)'),
+        ('format=', '', 'format to use (defaults to \'html\')'),
+        ('template=', '', 'name or path of the template to use'),
+        ('output=', 'o', 'output folder, or output file name'),
+        ('root-url=', '', 'url to use for the document root'),
+        ('index-page=', '', 'index page name'),
+        ('recursive', 'r', 'when exporting a page, also export sub-pages'),
+        ('singlefile', 's', 'export all pages to a single output file'),
+        ('overwrite', 'O', 'overwrite existing file(s)'),
     )
 
     def get_exporter(self, page):
         from zim.fs import File, Dir
         from zim.export import \
-                build_mhtml_file_exporter, \
-                build_single_file_exporter, \
-                build_page_exporter, \
-                build_notebook_exporter
+            build_mhtml_file_exporter, \
+            build_single_file_exporter, \
+            build_page_exporter, \
+            build_notebook_exporter
 
         format = self.opts.get('format', 'html')
         if not 'output' in self.opts:
@@ -391,8 +391,8 @@ class ExportCommand(NotebookCommand):
                 raise UsageError(_('Need output file to export MHTML'))  # T: error message for export
 
             exporter = build_mhtml_file_exporter(
-                    output, template,
-                    document_root_url=self.opts.get('root-url'),
+                output, template,
+                document_root_url=self.opts.get('root-url'),
             )
         elif page:
             self.ignore_options('index-page')
@@ -402,13 +402,13 @@ class ExportCommand(NotebookCommand):
 
             if self.opts.get('singlefile'):
                 exporter = build_single_file_exporter(
-                        output, format, template, namespace=page,
-                        document_root_url=self.opts.get('root-url'),
+                    output, format, template, namespace=page,
+                    document_root_url=self.opts.get('root-url'),
                 )
             else:
                 exporter = build_page_exporter(
-                        output, format, template, page,
-                        document_root_url=self.opts.get('root-url'),
+                    output, format, template, page,
+                    document_root_url=self.opts.get('root-url'),
                 )
         else:
             if not output.exists():
@@ -417,9 +417,9 @@ class ExportCommand(NotebookCommand):
                 raise UsageError(_('Need output folder to export full notebook'))  # T: error message for export
 
             exporter = build_notebook_exporter(
-                    output, format, template,
-                    index_page=self.opts.get('index-page'),
-                    document_root_url=self.opts.get('root-url'),
+                output, format, template,
+                index_page=self.opts.get('index-page'),
+                document_root_url=self.opts.get('root-url'),
             )
 
         return exporter
@@ -487,15 +487,15 @@ class IndexCommand(NotebookCommand):
 
 
 commands = {
-        'help': HelpCommand,
-        'version': VersionCommand,
-        'gui': GuiCommand,
-        'manual': ManualCommand,
-        'server': ServerCommand,
-        'servergui': ServerGuiCommand,
-        'export': ExportCommand,
-        'search': SearchCommand,
-        'index': IndexCommand,
+    'help': HelpCommand,
+    'version': VersionCommand,
+    'gui': GuiCommand,
+    'manual': ManualCommand,
+    'server': ServerCommand,
+    'servergui': ServerGuiCommand,
+    'export': ExportCommand,
+    'search': SearchCommand,
+    'index': IndexCommand,
 }
 
 
@@ -568,8 +568,8 @@ class ZimApplication(object):
     @property
     def notebooks(self):
         return frozenset(
-                w.notebook for w in self.toplevels
-                        if hasattr(w, 'notebook')
+            w.notebook for w in self.toplevels
+            if hasattr(w, 'notebook')
         )
 
     def get_mainwindow(self, notebook, _class=None):

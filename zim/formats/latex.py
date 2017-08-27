@@ -20,78 +20,78 @@ logger = logging.getLogger('zim.formats.latex')
 
 
 info = {
-        'name': 'latex',
-        'desc': 'LaTeX',
-        'mimetype': 'application/x-tex',
-        'extension': 'tex',
-        'native': False,
-        'import': False,
-        'export': True,
-        'usebase': True,
+    'name': 'latex',
+    'desc': 'LaTeX',
+    'mimetype': 'application/x-tex',
+    'extension': 'tex',
+    'native': False,
+    'import': False,
+    'export': True,
+    'usebase': True,
 }
 
 
 encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>|\n)')
 encode_dict = {
-        '\\': '$\\backslash$',
-        '&': '\\$',
-        '$': '\\$ ',
-        '^': '\\^{}',
-        '%': '\\%',
-        '#': '\\# ',
-        '_': '\\_',
-        '>': '\\textgreater{}',
-        '<': '\\textless{}',
-        '\n': '\n\n',
+    '\\': '$\\backslash$',
+    '&': '\\$',
+    '$': '\\$ ',
+    '^': '\\^{}',
+    '%': '\\%',
+    '#': '\\# ',
+    '_': '\\_',
+    '>': '\\textgreater{}',
+    '<': '\\textless{}',
+    '\n': '\n\n',
 }
 
 
 class Dumper(TextDumper):
 
     BULLETS = {
-            UNCHECKED_BOX: '\\item[\\Square]',
-            XCHECKED_BOX: '\\item[\\XBox]',
-            CHECKED_BOX: '\\item[\\CheckedBox]',
-            MIGRATED_BOX: '\\item[\\RIGHTarrow]',
-            BULLET: '\\item',
+        UNCHECKED_BOX: '\\item[\\Square]',
+        XCHECKED_BOX: '\\item[\\XBox]',
+        CHECKED_BOX: '\\item[\\CheckedBox]',
+        MIGRATED_BOX: '\\item[\\RIGHTarrow]',
+        BULLET: '\\item',
     }
 
     SECTIONING = {
-            'report': {
-                    1: '\\chapter{%s}',
-                    2: '\\section{%s}',
-                    3: '\\subsection{%s}',
-                    4: '\\subsubsection{%s}',
-                    5: '\\paragraph{%s}'
-            },
-            'article': {
-                    1: '\\section{%s}',
-                    2: '\\subsection{%s}',
-                    3: '\\subsubsection{%s}',
-                    4: '\\paragraph{%s}',
-                    5: '\\subparagraph{%s}'
-            },
-            'book': {
-                    1: '\\part{%s}',
-                    2: '\\chapter{%s}',
-                    3: '\\section{%s}',
-                    4: '\\subsection{%s}',
-                    5: '\\subsubsection{%s}'
-            }
+        'report': {
+            1: '\\chapter{%s}',
+            2: '\\section{%s}',
+            3: '\\subsection{%s}',
+            4: '\\subsubsection{%s}',
+            5: '\\paragraph{%s}'
+        },
+        'article': {
+            1: '\\section{%s}',
+            2: '\\subsection{%s}',
+            3: '\\subsubsection{%s}',
+            4: '\\paragraph{%s}',
+            5: '\\subparagraph{%s}'
+        },
+        'book': {
+            1: '\\part{%s}',
+            2: '\\chapter{%s}',
+            3: '\\section{%s}',
+            4: '\\subsection{%s}',
+            5: '\\subsubsection{%s}'
+        }
     }
 
     TAGS = {
-            EMPHASIS: ('\\emph{', '}'),
-            STRONG: ('\\textbf{', '}'),
-            MARK: ('\\uline{', '}'),
-            STRIKE: ('\\sout{', '}'),
-            TAG: ('', ''),  # No additional annotation (apart from the visible @)
-            SUBSCRIPT: ('$_{', '}$'),
-            SUPERSCRIPT: ('$^{', '}$'),
+        EMPHASIS: ('\\emph{', '}'),
+        STRONG: ('\\textbf{', '}'),
+        MARK: ('\\uline{', '}'),
+        STRIKE: ('\\sout{', '}'),
+        TAG: ('', ''),  # No additional annotation (apart from the visible @)
+        SUBSCRIPT: ('$_{', '}$'),
+        SUPERSCRIPT: ('$^{', '}$'),
     }
 
     TEMPLATE_OPTIONS = {
-            'document_type': Choice('report', ('report', 'article', 'book'))
+        'document_type': Choice('report', ('report', 'article', 'book'))
     }
 
     def dump(self, tree):
@@ -162,7 +162,7 @@ class Dumper(TextDumper):
 
         if self.context[-1].tag == BULLETLIST:
             if 'bullet' in attrib \
-            and attrib['bullet'] in self.BULLETS:
+                    and attrib['bullet'] in self.BULLETS:
                 bullet = self.BULLETS[attrib['bullet']]
             else:
                 bullet = self.BULLETS[BULLET]
@@ -196,13 +196,13 @@ class Dumper(TextDumper):
 
         if 'width' in attrib and not 'height' in attrib:
             options = 'width=%fin, keepaspectratio=true' \
-                            % (float(attrib['width']) / dpi)
+                % (float(attrib['width']) / dpi)
         elif 'height' in attrib and not 'width' in attrib:
             options = 'height=%fin, keepaspectratio=true' \
-                            % (float(attrib['height']) / dpi)
+                % (float(attrib['height']) / dpi)
         elif 'height' in attrib and 'width' in attrib:
             options = 'height=%fin, width=%fin' \
-                            % (float(attrib['height']) / dpi, float(attrib['width']) / dpi)
+                % (float(attrib['height']) / dpi, float(attrib['width']) / dpi)
         else:
             options = ''
 

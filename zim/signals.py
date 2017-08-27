@@ -51,7 +51,7 @@ class SignalHandler(object):
             # instance acces, return bound version
             name = '_bound_' + self._func.__name__
             if not hasattr(instance, name) \
-            or getattr(instance, name) is None:
+                    or getattr(instance, name) is None:
                 bound_obj = BoundSignalHandler(instance, self._func)
                 setattr(instance, name, bound_obj)
 
@@ -176,7 +176,7 @@ class ConnectorMixin(object):
         '''
         key = id(obj)
         if hasattr(self, '_connected_signals') \
-        and key in self._connected_signals:
+                and key in self._connected_signals:
             self._disconnect_from(key)
 
     def disconnect_all(self):
@@ -357,7 +357,7 @@ class BlockSignalsContextManager(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         for signal in self.signals:
             if signal in self.obj._signal_blocks \
-            and self.obj._signal_blocks[signal] > 0:
+                    and self.obj._signal_blocks[signal] > 0:
                 self.obj._signal_blocks[signal] -= 1
 
 

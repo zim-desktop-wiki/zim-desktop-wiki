@@ -160,7 +160,7 @@ some <b>bold</b> text
         links = tree.findall('link')
         hrefs = [e.attrib['href'] for e in links]
         self.assertEqual(hrefs,
-                ['http://cpan.org', 'ftp://foo@test.org', 'user@mail.com'])
+                         ['http://cpan.org', 'ftp://foo@test.org', 'user@mail.com'])
 
         # image data -> tree
 

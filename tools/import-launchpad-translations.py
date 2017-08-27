@@ -31,7 +31,7 @@ def count(prefix, file):
                 check_multiline = True
                 # Can still be start of multiline block ..
         elif check_multiline \
-        and line.startswith('"'):
+                and line.startswith('"'):
             count += 1
             check_multiline = False
         else:

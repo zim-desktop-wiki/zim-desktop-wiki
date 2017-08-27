@@ -11,7 +11,7 @@ from zim.signals import SIGNAL_NORMAL
 
 from .base import IndexerBase, IndexView, IndexNotFoundError
 from .pages import PagesViewInternal, ROOT_PATH, \
-        PageIndexRecord  # , get_treepath_for_indexpath_factory
+    PageIndexRecord  # , get_treepath_for_indexpath_factory
 
 
 class IndexTag(object):
@@ -49,20 +49,20 @@ class IndexTag(object):
 class TagsIndexer(IndexerBase):
 
     __signals__ = {
-            'tag-row-inserted': (SIGNAL_NORMAL, None, (object,)),
-            'tag-row-deleted': (SIGNAL_NORMAL, None, (object,)),
-            'tag-added-to-page': (SIGNAL_NORMAL, None, (object, object)),
-            'tag-removed-from-page': (SIGNAL_NORMAL, None, (object, object)),
+        'tag-row-inserted': (SIGNAL_NORMAL, None, (object,)),
+        'tag-row-deleted': (SIGNAL_NORMAL, None, (object,)),
+        'tag-added-to-page': (SIGNAL_NORMAL, None, (object, object)),
+        'tag-removed-from-page': (SIGNAL_NORMAL, None, (object, object)),
     }
 
     def __init__(self, db, pagesindexer, filesindexer):
         IndexerBase.__init__(self, db)
         self.connectto_all(pagesindexer, (
-                'page-changed', 'page-row-deleted'
+            'page-changed', 'page-row-deleted'
         ))
         self.connectto(filesindexer,
-                'finish-update'
-        )
+                       'finish-update'
+                       )
 
         self.db.executescript('''
 			CREATE TABLE IF NOT EXISTS tags (
@@ -82,12 +82,12 @@ class TagsIndexer(IndexerBase):
 
     def on_page_changed(self, pagesindexer, pagerow, doc):
         oldtags = dict(
-                (r[0], r) for r in self.db.execute(
-                        'SELECT tags.sortkey, tags.name, tags.id FROM tagsources '
-                        'LEFT JOIN tags ON tagsources.tag = tags.id '
-                        'WHERE tagsources.source=?',
-                        (pagerow['id'],)
-                )
+            (r[0], r) for r in self.db.execute(
+                'SELECT tags.sortkey, tags.name, tags.id FROM tagsources '
+                'LEFT JOIN tags ON tagsources.tag = tags.id '
+                'WHERE tagsources.source=?',
+                (pagerow['id'],)
+            )
         )
 
         seen = set()
@@ -100,37 +100,37 @@ class TagsIndexer(IndexerBase):
             else:
                 seen.add(sortkey)
                 row = self.db.execute(
-                        'SELECT name, id FROM tags WHERE sortkey=?', (sortkey,)
+                    'SELECT name, id FROM tags WHERE sortkey=?', (sortkey,)
                 ).fetchone()
                 if not row:
                     # Create new tag
                     self.db.execute(
-                            'INSERT INTO tags(name, sortkey) VALUES (?, ?)',
-                            (name, sortkey)
+                        'INSERT INTO tags(name, sortkey) VALUES (?, ?)',
+                        (name, sortkey)
                     )
                     row = self.db.execute(
-                            'SELECT name, id FROM tags WHERE sortkey=?', (sortkey,)
+                        'SELECT name, id FROM tags WHERE sortkey=?', (sortkey,)
                     ).fetchone()
                     assert row
                     self.emit('tag-row-inserted', row)
 
                 self.db.execute(
-                        'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
-                        (pagerow['id'], row['id'])
+                    'INSERT INTO tagsources(source, tag) VALUES (?, ?)',
+                    (pagerow['id'], row['id'])
                 )
                 self.emit('tag-added-to-page', row, pagerow)
 
         for row in oldtags.values():
             self.emit('tag-removed-from-page', row, pagerow)
             self.db.execute(
-                    'DELETE FROM tagsources WHERE source=? and tag=?',
-                    (pagerow['id'], row['id'])
+                'DELETE FROM tagsources WHERE source=? and tag=?',
+                (pagerow['id'], row['id'])
             )
 
     def on_page_row_deleted(self, pageindexer, row):
         self.db.execute(
-                'DELETE FROM tagsources WHERE source=?',
-                (row['id'],)
+            'DELETE FROM tagsources WHERE source=?',
+            (row['id'],)
         )
 
     def on_finish_update(self, filesindexer):
@@ -141,8 +141,8 @@ class TagsIndexer(IndexerBase):
             self.emit('tag-row-deleted', r)
 
         self.db.execute(
-                'DELETE FROM tags '
-                'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
+            'DELETE FROM tags '
+            'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
         )
 
 
@@ -156,7 +156,7 @@ class TagsView(IndexView):
         if isinstance(tag, IndexTag):
             tag = tag.name
         row = self.db.execute(
-                'SELECT name, id FROM tags WHERE name=?', (tag.lstrip('@'),)
+            'SELECT name, id FROM tags WHERE name=?', (tag.lstrip('@'),)
         ).fetchone()
         if not row:
             raise IndexNotFoundError
@@ -184,8 +184,8 @@ class TagsView(IndexView):
 
     def n_list_all_tags(self):
         r = self.db.execute(
-                'SELECT COUNT(*) '
-                'FROM tags '
+            'SELECT COUNT(*) '
+            'FROM tags '
         ).fetchone()
         return r[0]
 
@@ -243,11 +243,11 @@ class TagsView(IndexView):
     def n_list_tags(self, path):
         page_id = self._pages.get_page_id(path)  # can raise
         r = self.db.execute(
-                'SELECT COUNT(*) '
-                'FROM tagsources '
-                'LEFT JOIN tags ON tagsources.tag=tags.id '
-                'WHERE tagsources.source = ?',
-                (page_id,)
+            'SELECT COUNT(*) '
+            'FROM tagsources '
+            'LEFT JOIN tags ON tagsources.tag=tags.id '
+            'WHERE tagsources.source = ?',
+            (page_id,)
         ).fetchone()
         return r[0]
 
@@ -272,10 +272,10 @@ class TagsView(IndexView):
     def n_list_pages(self, tag):
         tag = self.lookup_by_tagname(tag)
         r = self.db.execute(
-                'SELECT COUNT(*) '
-                'FROM tagsources JOIN pages ON tagsources.source=pages.id '
-                'WHERE tagsources.tag = ?',
-                (tag.id,)
+            'SELECT COUNT(*) '
+            'FROM tagsources JOIN pages ON tagsources.source=pages.id '
+            'WHERE tagsources.tag = ?',
+            (tag.id,)
         ).fetchone()
         return r[0]
 
@@ -300,8 +300,8 @@ class TagsTreeModelBase(PagesTreeModelMixin):
         ids = []
         for tag in self.tags:
             row = self.db.execute(
-                    'SELECT name, id FROM tags WHERE name=?',
-                    (tag.lstrip('@'),)
+                'SELECT name, id FROM tags WHERE name=?',
+                (tag.lstrip('@'),)
             ).fetchone()
             if row:
                 name, id = row
@@ -331,11 +331,11 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 
     def connect_to_updateiter(self, index, update_iter):
         self.connectto_all(update_iter.pages,
-                ('page-row-inserted', 'page-row-changed', 'page-row-deleted')
-        )
+                           ('page-row-inserted', 'page-row-changed', 'page-row-deleted')
+                           )
         self.connectto_all(update_iter.tags,
-                ('tag-row-inserted', 'tag-row-deleted', 'tag-added-to-page', 'tag-removed-from-page')
-        )
+                           ('tag-row-inserted', 'tag-row-deleted', 'tag-added-to-page', 'tag-removed-from-page')
+                           )
 
     def on_tag_row_inserted(self, o, row):
         if row['name'] in self.tags:
@@ -356,14 +356,14 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 			SELECT COUNT(*) FROM tagsources
 			LEFT JOIN pages ON tagsources.source = pages.id
 			WHERE source = ? AND tag ''' + self._tagquery,
-                (pageid,)
-        ).fetchone()
+                                 (pageid,)
+                                 ).fetchone()
         return count == len(self._tagids)
 
     def on_tag_added_to_page(self, o, row, pagerow):
         self.flush_cache()
         if row['name'] in self.tags \
-        and self._matches_all(pagerow['id']):
+                and self._matches_all(pagerow['id']):
             # Without the new tag it did not match, so add to view
             # Find top level entry - ignore possible deeper matches
             for treepath in self._find_all_pages(pagerow['name']):
@@ -376,7 +376,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
     def on_tag_removed_from_page(self, o, row, pagerow):
         self.flush_cache()
         if row['name'] in self.tags \
-        and self._matches_all(pagerow['id']):
+                and self._matches_all(pagerow['id']):
             # Still matches, but no longer after tag is removed
             # Find top level entry - ignore possible deeper matches
             for treepath in self._find_all_pages(pagerow['name']):
@@ -388,7 +388,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 			SELECT COUNT(DISTINCT pages.id) FROM pages
 			INNER JOIN tagsources ON pages.id = tagsources.source
 			WHERE tagsources.tag''' + self._tagquery
-        ).fetchone()
+                             ).fetchone()
         return c
 
     def get_mytreeiter(self, treepath):
@@ -407,8 +407,8 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 					GROUP BY source HAVING count(tag) = ?
 					ORDER BY sortkey, LENGTH(name), name LIMIT 20 OFFSET ?
 				''' % self._tagquery,
-                    (len(self._tagids), offset,)
-            )):
+                                                    (len(self._tagids), offset,)
+                                                    )):
                 mytreepath = (offset + i,)
                 if mytreepath not in self.cache:
                     self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
@@ -444,13 +444,13 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 								GROUP BY source HAVING count(tag) = ?
 							)
 						''' % self._tagquery,
-                            (
-                                    row['sortkey'],
-                                    row['sortkey'], len(row['name']),
-                                    row['sortkey'], len(row['name']), row['name'],
-                                    len(self._tagids)
-                            )
-                    ).fetchone()
+                                              (
+                                                  row['sortkey'],
+                                                  row['sortkey'], len(row['name']),
+                                                  row['sortkey'], len(row['name']), row['name'],
+                                                  len(self._tagids)
+                                              )
+                                              ).fetchone()
                     mytreepath = (offset,)
 
                     if mytreepath not in self.cache:
@@ -484,10 +484,10 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 				SELECT COUNT(*) FROM tags
 				WHERE (sortkey < ? or (sortkey < ? and name < ?))
 			''',
-                (row['sortkey'], row['sortkey'], row['name'])
-        ).fetchone()
+                                  (row['sortkey'], row['sortkey'], row['name'])
+                                  ).fetchone()
         n_children, = self.db.execute(
-                'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
+            'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
         ).fetchone()
         return offset, n_children
 
@@ -537,21 +537,21 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 						SELECT * FROM tags WHERE id in %s
 						ORDER BY sortkey, name LIMIT 1 OFFSET ?
 					''' % (self._tagids,),
-                        (offset,)
+                    (offset,)
                 ).fetchone()
             else:  # Full set
                 row = self.db.execute('''
 						SELECT * FROM tags
 						ORDER BY sortkey, name LIMIT 1 OFFSET ?
 					''',
-                        (offset,)
-                ).fetchone()
+                                      (offset,)
+                                      ).fetchone()
 
             if row is None:
                 return None
             else:
                 n_children, = self.db.execute(
-                        'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
+                    'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
                 ).fetchone()
                 mytreeiter = MyTreeIter(treepath, row, n_children, IS_TAG)
                 self.cache[treepath] = mytreeiter
@@ -570,8 +570,8 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 					WHERE tagsources.tag = ?
 					ORDER BY sortkey, LENGTH(name), name LIMIT 20 OFFSET ?
 				''',
-                    (tag_iter.row['id'], offset,)
-            )):
+                                                    (tag_iter.row['id'], offset,)
+                                                    )):
                 mytreepath = tag_path + (offset + i,)
                 if mytreepath not in self.cache:
                     self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
@@ -601,11 +601,11 @@ class TagsTreeModelMixin(TagsTreeModelBase):
     def _find_tag(self, tag):
         if isinstance(tag, int):
             row = self.db.execute(
-                    'SELECT * FROM tags WHERE id = ?', (tag,)
+                'SELECT * FROM tags WHERE id = ?', (tag,)
             ).fetchone()
         else:
             row = self.db.execute(
-                    'SELECT * FROM tags WHERE name = ?', (tag,)
+                'SELECT * FROM tags WHERE name = ?', (tag,)
             ).fetchone()
 
         if row is None:
@@ -615,12 +615,12 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 				SELECT COUNT(*) FROM tags
 				WHERE (sortkey < ? or (sortkey < ? and name < ?))
 			''',
-                (row['sortkey'], row['sortkey'], row['name'])
-        ).fetchone()
+                                  (row['sortkey'], row['sortkey'], row['name'])
+                                  ).fetchone()
         mytreepath = (offset,)
         if mytreepath not in self.cache:
             n_children = self.db.execute(
-                    'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
+                'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
             )
             myiter = MyTreeIter(mytreepath, row, n_children, IS_TAG)
             self.cache[mytreepath] = myiter
@@ -651,12 +651,12 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 							)
 							ORDER BY sortkey, LENGTH(name), name
 						''',
-                            (tagid,
-                                    row['sortkey'],
-                                    row['sortkey'], len(row['name']),
-                                    row['sortkey'], len(row['name']), row['name']
-                            )
-                    ).fetchone()
+                                              (tagid,
+                                               row['sortkey'],
+                                                  row['sortkey'], len(row['name']),
+                                                  row['sortkey'], len(row['name']), row['name']
+                                               )
+                                              ).fetchone()
 
                     mytreepath = mytreepath + (offset,)
                     if mytreepath not in self.cache:
@@ -674,12 +674,12 @@ class TagsTreeModelMixin(TagsTreeModelBase):
             rows = self.db.execute('''
 				SELECT tag FROM tagsources
 				WHERE source = ? AND tag ''' + self._tagquery,
-                    (pageid,)
-            )
+                                   (pageid,)
+                                   )
         else:
             rows = self.db.execute('''
 				SELECT tag FROM tagsources
 				WHERE source = ?''',
-                    (pageid,)
-            )
+                                   (pageid,)
+                                   )
         return tuple(r[0] for r in rows)

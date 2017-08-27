@@ -29,7 +29,7 @@ class TestPrintToBrowser(tests.TestCase):
 --- +
 ''',
 
-                '''\
+                 '''\
 5.5
  4.3
 3.1

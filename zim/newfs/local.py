@@ -103,7 +103,7 @@ class LocalFSObjectBase(FSObjectBase):
         logger.info('Rename %s to %s', self.path, other.path)
 
         if not FS_CASE_SENSITIVE \
-        and self.path.lower() == other.path.lower():
+                and self.path.lower() == other.path.lower():
             # Rename to other case - need in between step
             other = self.__class__(other, watcher=self.watcher)
             tmp = self.parent().new_file(self.basename)
@@ -174,7 +174,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
             raise FileNotFoundError(self)
 
         names = sorted([n for n in names
-                if n[0] not in ('.', '~') and n[-1] != '~'])
+                        if n[0] not in ('.', '~') and n[-1] != '~'])
         # Ignore hidden files and tmp files
 
         if FS_ENCODING == 'mbcs':
@@ -349,8 +349,8 @@ class LocalFile(LocalFSObjectBase, File):
         try:
             with open(self.encodedpath, 'rU') as fh:
                 return [
-                        l.decode('UTF-8').lstrip(u'\ufeff').replace('\x00', '')
-                                for l in fh]
+                    l.decode('UTF-8').lstrip(u'\ufeff').replace('\x00', '')
+                    for l in fh]
                 # Strip unicode byte order mark
                 # Internally we use Unix line ends - so strip out \r
                 # And remove any NULL byte since they screw up parsing
@@ -453,7 +453,7 @@ def get_tmpdir():
         # Raises OSError if we do not have access anymore
     except OSError:
         raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
-                'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
+                             'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
     else:
         # All OK, so we must be owner of a safe folder now ...
         return dir

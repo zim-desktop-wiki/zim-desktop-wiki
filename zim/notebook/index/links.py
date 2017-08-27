@@ -11,7 +11,7 @@ logger = logging.getLogger('zim.notebook.index')
 
 from zim.utils import natural_sort_key
 from zim.notebook.page import Path, HRef, \
-        HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
+    HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 
 from .base import IndexerBase, IndexView
@@ -68,12 +68,12 @@ class LinksIndexer(IndexerBase):
         self._pages = PagesViewInternal(db)
         self._pagesindexer = pagesindexer
         self.connectto_all(pagesindexer, (
-                'page-row-inserted', 'page-row-changed', 'page-row-deleted',
-                'page-changed'
+            'page-row-inserted', 'page-row-changed', 'page-row-deleted',
+            'page-changed'
         ))
         self.connectto(filesindexer,
-                'finish-update'
-        )
+                       'finish-update'
+                       )
 
         self.db.execute('''
 			CREATE TABLE IF NOT EXISTS links (
@@ -98,8 +98,8 @@ class LinksIndexer(IndexerBase):
         # Drop links for this page and add new ones (don't bother
         # determining delta and updating).
         self.db.execute(
-                'DELETE FROM links WHERE source=?',
-                (row['id'],)
+            'DELETE FROM links WHERE source=?',
+            (row['id'],)
         )
         pagename = Path(row['name'])
         for href in doc.iter_href():
@@ -109,20 +109,20 @@ class LinksIndexer(IndexerBase):
 
             anchorkey = natural_sort_key(href.parts()[0])
             self.db.execute(
-                    'INSERT INTO links(source, target, rel, names, anchorkey) '
-                    'VALUES (?, ?, ?, ?, ?)',
-                    (row['id'], target_id, href.rel, href.names, anchorkey)
+                'INSERT INTO links(source, target, rel, names, anchorkey) '
+                'VALUES (?, ?, ?, ?, ?)',
+                (row['id'], target_id, href.rel, href.names, anchorkey)
             )
 
     def on_page_row_inserted(self, o, row):
         # Placeholders for pages of the same name need to be
         # recalculated, flag links to be checked with same anchorkey.
         self.db.execute(  # TODO turn query into a JOIN
-                'UPDATE links SET needscheck=1 '
-                'WHERE rel=? and anchorkey=? and target in ( '
-                '	SELECT id FROM pages WHERE is_link_placeholder=1 '
-                ')',
-                (HREF_REL_FLOATING, row['sortkey'])
+            'UPDATE links SET needscheck=1 '
+            'WHERE rel=? and anchorkey=? and target in ( '
+            '	SELECT id FROM pages WHERE is_link_placeholder=1 '
+            ')',
+            (HREF_REL_FLOATING, row['sortkey'])
         )
 
     def on_page_row_changed(self, o, newrow, oldrow):
@@ -134,12 +134,12 @@ class LinksIndexer(IndexerBase):
         # Check could result in page being re-created as placeholder
         # at end of db update.
         self.db.execute(
-                'DELETE FROM links WHERE source=?',
-                (row['id'],)
+            'DELETE FROM links WHERE source=?',
+            (row['id'],)
         )
         self.db.execute(
-                'UPDATE links SET needscheck=1, target=? WHERE target=?',
-                (ROOT_ID, row['id'],)
+            'UPDATE links SET needscheck=1, target=? WHERE target=?',
+            (ROOT_ID, row['id'],)
         )  # Need to link somewhere, if target is gone, use ROOT instead
 
     def on_finish_update(self, o):
@@ -163,8 +163,8 @@ class LinksIndexer(IndexerBase):
                 target_id = self._pagesindexer.insert_link_placeholder(targetname)
 
             self.db.execute(
-                    'UPDATE links SET target=?, needscheck=? WHERE source=? and names=?',
-                    (target_id, False, row['source'], row['names'])
+                'UPDATE links SET target=?, needscheck=? WHERE source=? and names=?',
+                (target_id, False, row['source'], row['names'])
             )
 
         # Delete un-used placeholders
@@ -181,7 +181,7 @@ class LinksIndexer(IndexerBase):
 
     def _allow_cleanup(self, row):
         c, = self.db.execute(
-                'SELECT COUNT(*) FROM links WHERE target=?', (row['id'],)
+            'SELECT COUNT(*) FROM links WHERE target=?', (row['id'],)
         ).fetchone()
         return c == 0
 
@@ -212,18 +212,18 @@ class LinksView(IndexView):
     def _list_links(self, page_id, pagename, direction):
         if direction == LINK_DIR_FORWARD:
             c = self.db.execute(
-                    'SELECT DISTINCT source, target FROM links '
-                    'WHERE source = ?', (page_id,)
+                'SELECT DISTINCT source, target FROM links '
+                'WHERE source = ?', (page_id,)
             )
         elif direction == LINK_DIR_BOTH:
             c = self.db.execute(
-                    'SELECT DISTINCT source, target FROM links '
-                    'WHERE source = ? or target = ?', (page_id, page_id)
+                'SELECT DISTINCT source, target FROM links '
+                'WHERE source = ? or target = ?', (page_id, page_id)
             )
         else:
             c = self.db.execute(
-                    'SELECT DISTINCT source, target FROM links '
-                    'WHERE target = ?', (page_id,)
+                'SELECT DISTINCT source, target FROM links '
+                'WHERE target = ?', (page_id,)
             )
 
         for row in c:
@@ -245,22 +245,22 @@ class LinksView(IndexView):
     def _n_list_links(self, page_id, direction):
         if direction == LINK_DIR_FORWARD:
             c = self.db.execute(
-                    'SELECT count(*) FROM links '
-                    'WHERE source=?', (page_id,)
+                'SELECT count(*) FROM links '
+                'WHERE source=?', (page_id,)
             )
         elif direction == LINK_DIR_BOTH:
             c = self.db.execute(
-                    'SELECT count(*) FROM links '
-                    'WHERE source=? or (target=? and source<>?)', (page_id, page_id, ROOT_ID)
-                            # Excluding root here because linking from root
-                            # is used as a hack to create placeholders
+                'SELECT count(*) FROM links '
+                'WHERE source=? or (target=? and source<>?)', (page_id, page_id, ROOT_ID)
+                # Excluding root here because linking from root
+                # is used as a hack to create placeholders
             )
         else:
             c = self.db.execute(
-                    'SELECT count(*) FROM links '
-                    'WHERE target=? and source<>?', (page_id, ROOT_ID)
-                            # Excluding root here because linking from root
-                            # is used as a hack to create placeholders
+                'SELECT count(*) FROM links '
+                'WHERE target=? and source<>?', (page_id, ROOT_ID)
+                # Excluding root here because linking from root
+                # is used as a hack to create placeholders
             )
 
         return c.fetchone()[0]

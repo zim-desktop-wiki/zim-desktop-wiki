@@ -60,7 +60,7 @@ def unescape_quoted_string(string):
     def replace(m):
         return m.group(2) or m.group(3)
     if (string.startswith('"') or string.startswith("'")) \
-    and string[-1] == string[0]:
+            and string[-1] == string[0]:
         string = string[1:-1]
         string = escape_re.sub(replace, string)
     return string

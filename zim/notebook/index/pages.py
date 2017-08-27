@@ -13,7 +13,7 @@ logger = logging.getLogger('zim.notebook.index')
 
 from zim.utils import natural_sort_key
 from zim.notebook.page import Path, HRef, \
-        HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
+    HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 from zim.tokenparser import TokenBuilder
 
 from zim.formats import ParseTreeBuilder
@@ -22,8 +22,8 @@ from .base import *
 
 
 from zim.notebook.layout import \
-FILE_TYPE_PAGE_SOURCE, \
-FILE_TYPE_ATTACHMENT
+    FILE_TYPE_PAGE_SOURCE, \
+    FILE_TYPE_ATTACHMENT
 
 ROOT_PATH = Path(':')
 ROOT_ID = 1  # Constant for the ID of the root namespace in "pages"
@@ -52,17 +52,17 @@ class PagesIndexer(IndexerBase):
     '''
 
     __signals__ = {
-            'page-row-inserted': (None, None, (object,)),
-            'page-row-changed': (None, None, (object, object)),
-            'page-row-deleted': (None, None, (object,)),
-            'page-changed': (None, None, (object, object))
+        'page-row-inserted': (None, None, (object,)),
+        'page-row-changed': (None, None, (object, object)),
+        'page-row-deleted': (None, None, (object,)),
+        'page-changed': (None, None, (object, object))
     }
 
     def __init__(self, db, layout, filesindexer):
         IndexerBase.__init__(self, db)
         self.layout = layout
         self.connectto_all(filesindexer, (
-                'file-row-inserted', 'file-row-changed', 'file-row-deleted'
+            'file-row-inserted', 'file-row-changed', 'file-row-deleted'
         ))
 
         self.db.executescript('''
@@ -83,15 +83,15 @@ class PagesIndexer(IndexerBase):
         row = self.db.execute('SELECT * FROM pages WHERE id == 1').fetchone()
         if row is None:
             c = self.db.execute(
-                    'INSERT INTO pages(parent, name, sortkey, source_file) '
-                    'VALUES (? , ?, ?, ?)',
-                    (0, '', '', 1)
+                'INSERT INTO pages(parent, name, sortkey, source_file) '
+                'VALUES (? , ?, ?, ?)',
+                (0, '', '', 1)
             )
             assert c.lastrowid == 1  # ensure we start empty
 
     def _select(self, pagename):
         return self.db.execute(
-                'SELECT * FROM pages WHERE name=?', (pagename.name,)
+            'SELECT * FROM pages WHERE name=?', (pagename.name,)
         ).fetchone()
 
     # We should not read file contents on db-file-inserted because
@@ -110,8 +110,8 @@ class PagesIndexer(IndexerBase):
             self.insert_page(pagename, filerow['id'])
         elif row['source_file'] is None:
             self.db.execute(
-                    'UPDATE pages SET source_file=?, mtime=?, is_link_placeholder=? WHERE name=?',
-                    (filerow['id'], None, False, pagename.name)
+                'UPDATE pages SET source_file=?, mtime=?, is_link_placeholder=? WHERE name=?',
+                (filerow['id'], None, False, pagename.name)
             )
             self.update_parent(pagename.parent)
             newrow = self._select(pagename)
@@ -148,8 +148,8 @@ class PagesIndexer(IndexerBase):
         if row['source_file'] == filerow['id']:
             if row['n_children'] > 0:
                 self.db.execute(
-                        'UPDATE pages SET source_file=?, mtime=? WHERE name=?',
-                        (None, None, pagename.name)
+                    'UPDATE pages SET source_file=?, mtime=? WHERE name=?',
+                    (None, None, pagename.name)
                 )
                 self.update_parent(pagename, oldrow=row)
                 # checks if any children have sources - else will be removed
@@ -191,9 +191,9 @@ class PagesIndexer(IndexerBase):
         # update table
         sortkey = natural_sort_key(pagename.basename)
         self.db.execute(
-                'INSERT INTO pages(name, sortkey, parent, is_link_placeholder, source_file)'
-                'VALUES (?, ?, ?, ?, ?)',
-                (pagename.name, sortkey, parent_row['id'], is_link_placeholder, file_id)
+            'INSERT INTO pages(name, sortkey, parent, is_link_placeholder, source_file)'
+            'VALUES (?, ?, ?, ?, ?)',
+            (pagename.name, sortkey, parent_row['id'], is_link_placeholder, file_id)
         )
         self.update_parent(pagename.parent)
 
@@ -209,10 +209,10 @@ class PagesIndexer(IndexerBase):
 
         # get new status
         n_children, all_child_are_placeholder = self.db.execute(
-                'SELECT count(*), min(is_link_placeholder) FROM pages WHERE parent=?',
-                        # "min()" works as "any(not is_link_placeholder)"
-                        # because False is "0" in sqlite
-                (row['id'],)
+            'SELECT count(*), min(is_link_placeholder) FROM pages WHERE parent=?',
+            # "min()" works as "any(not is_link_placeholder)"
+            # because False is "0" in sqlite
+            (row['id'],)
         ).fetchone()
         if all_child_are_placeholder is None:
             all_child_are_placeholder = True
@@ -220,16 +220,16 @@ class PagesIndexer(IndexerBase):
         if n_children == 0 and row['source_file'] is None and allow_cleanup(row):
             # cleanup if no longer needed
             self.db.execute(
-                    'UPDATE pages SET n_children=? WHERE id=?',
-                    (n_children, row['id'])
+                'UPDATE pages SET n_children=? WHERE id=?',
+                (n_children, row['id'])
             )
             self.remove_page(parentname, allow_cleanup)  # indirect recurs
         else:
             # update table
             is_placeholder = row['source_file'] is None and all_child_are_placeholder
             self.db.execute(
-                    'UPDATE pages SET n_children=?, is_link_placeholder=? WHERE id=?',
-                    (n_children, is_placeholder, row['id'])
+                'UPDATE pages SET n_children=?, is_link_placeholder=? WHERE id=?',
+                (n_children, is_placeholder, row['id'])
             )
             if bool(row['is_link_placeholder']) is not is_placeholder:
                 self.update_parent(parentname.parent)  # recurs
@@ -241,8 +241,8 @@ class PagesIndexer(IndexerBase):
 
     def update_page(self, pagename, mtime, content):
         self.db.execute(
-                'UPDATE pages SET mtime=? WHERE name=?',
-                (mtime, pagename.name),
+            'UPDATE pages SET mtime=? WHERE name=?',
+            (mtime, pagename.name),
         )
 
         row = self._select(pagename)
@@ -306,7 +306,7 @@ class PagesViewInternal(object):
 
     def get_pagename(self, page_id):
         row = self.db.execute(
-                'SELECT * FROM pages WHERE id=?', (page_id,)
+            'SELECT * FROM pages WHERE id=?', (page_id,)
         ).fetchone()
         if row is None:
             raise IndexConsistencyError('No page for page_id "%r"' % page_id)
@@ -314,7 +314,7 @@ class PagesViewInternal(object):
 
     def get_page_id(self, pagename):
         row = self.db.execute(
-                'SELECT id FROM pages WHERE name=?', (pagename.name,)
+            'SELECT id FROM pages WHERE name=?', (pagename.name,)
         ).fetchone()
         if row is None:
             raise IndexNotFoundError('Page not found in index: %s' % pagename.name)
@@ -354,17 +354,17 @@ class PagesViewInternal(object):
 
             if ignore_link_placeholders:
                 c = self.db.execute(
-                        'SELECT name FROM pages '
-                        'WHERE sortkey=? and is_link_placeholder=0 '
-                        'ORDER BY name DESC',
-                        (anchor_key,)
+                    'SELECT name FROM pages '
+                    'WHERE sortkey=? and is_link_placeholder=0 '
+                    'ORDER BY name DESC',
+                    (anchor_key,)
                 )  # sort longest first
             else:
                 c = self.db.execute(
-                        'SELECT name FROM pages '
-                        'WHERE sortkey=? '
-                        'ORDER BY name DESC',
-                        (anchor_key,)
+                    'SELECT name FROM pages '
+                    'WHERE sortkey=? '
+                    'ORDER BY name DESC',
+                    (anchor_key,)
                 )  # sort longest first
 
             maxdepth = source.name.count(':')
@@ -426,13 +426,13 @@ class PagesViewInternal(object):
         for i, basename in enumerate(names):
             if page_id == ROOT_ID:
                 row = self.db.execute(
-                        'SELECT id, name FROM pages WHERE name=?',
-                        (basename,)
+                    'SELECT id, name FROM pages WHERE name=?',
+                    (basename,)
                 ).fetchone()
             else:
                 row = self.db.execute(
-                        'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
-                        (page_id, "%:" + basename)
+                    'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
+                    (page_id, "%:" + basename)
                 ).fetchone()
 
             if row:  # exact match
@@ -441,9 +441,9 @@ class PagesViewInternal(object):
             else:
                 sortkey = natural_sort_key(basename)
                 row = self.db.execute(
-                        'SELECT id, name FROM pages '
-                        'WHERE parent=? and sortkey=? ORDER BY name',
-                        (page_id, sortkey)
+                    'SELECT id, name FROM pages '
+                    'WHERE parent=? and sortkey=? ORDER BY name',
+                    (page_id, sortkey)
                 ).fetchone()
                 if row:  # case insensitive match
                     pagename = Path(row['name'])
@@ -487,7 +487,7 @@ class PagesView(IndexView):
 
     def lookup_by_pagename(self, pagename):
         r = self.db.execute(
-                'SELECT * FROM pages WHERE name=?', (pagename.name,)
+            'SELECT * FROM pages WHERE name=?', (pagename.name,)
         ).fetchone()
         if r is None:
             raise IndexNotFoundError
@@ -516,7 +516,7 @@ class PagesView(IndexView):
     def n_list_pages(self, path=None):
         page_id = self._pages.get_page_id(path or ROOT_PATH)
         c, = self.db.execute(
-                'SELECT COUNT(*) FROM pages WHERE parent=?', (page_id,)
+            'SELECT COUNT(*) FROM pages WHERE parent=?', (page_id,)
         ).fetchone()
         return c
 
@@ -557,7 +557,7 @@ class PagesView(IndexView):
             raise ValueError('Can\'t use root')
 
         r = self.db.execute(
-                'SELECT parent FROM pages WHERE name=?', (path.name,)
+            'SELECT parent FROM pages WHERE name=?', (path.name,)
         ).fetchone()
         if r is None:
             raise IndexNotFoundError('No such page: %s' % path)
@@ -565,9 +565,9 @@ class PagesView(IndexView):
             parent_id = r[0]
 
         r = self.db.execute(
-                'SELECT * FROM pages WHERE parent=? and sortkey<? and name<? '
-                'ORDER BY sortkey DESC, name DESC LIMIT 1',
-                (parent_id, natural_sort_key(path.basename), path.name)
+            'SELECT * FROM pages WHERE parent=? and sortkey<? and name<? '
+            'ORDER BY sortkey DESC, name DESC LIMIT 1',
+            (parent_id, natural_sort_key(path.basename), path.name)
         ).fetchone()
         if not r:
             parent = self._pages.get_pagename(parent_id)
@@ -575,9 +575,9 @@ class PagesView(IndexView):
         else:
             while r['n_children'] > 0:
                 r = self.db.execute(
-                        'SELECT * FROM pages WHERE parent=? '
-                        'ORDER BY sortkey DESC, name DESC LIMIT 1',
-                        (r['id'],)
+                    'SELECT * FROM pages WHERE parent=? '
+                    'ORDER BY sortkey DESC, name DESC LIMIT 1',
+                    (r['id'],)
                 ).fetchone()
                 if r is None:
                     raise IndexConsistencyError('Missing children')
@@ -598,16 +598,16 @@ class PagesView(IndexView):
             raise ValueError('Can\'t use root')
 
         r = self.db.execute(
-                'SELECT * FROM pages WHERE name=?', (path.name,)
+            'SELECT * FROM pages WHERE name=?', (path.name,)
         ).fetchone()
         if r is None:
             raise IndexNotFoundError('No such page: %s' % path)
 
         if r['n_children'] > 0:
             r = self.db.execute(
-                    'SELECT name FROM pages WHERE parent=? '
-                    'ORDER BY sortkey, name LIMIT 1',
-                    (r['id'],)
+                'SELECT name FROM pages WHERE parent=? '
+                'ORDER BY sortkey, name LIMIT 1',
+                (r['id'],)
             ).fetchone()
             if r is None:
                 raise IndexConsistencyError('Missing children')
@@ -616,9 +616,9 @@ class PagesView(IndexView):
         else:
             while True:
                 n = self.db.execute(
-                        'SELECT * FROM pages WHERE parent=? and sortkey>? and name>? '
-                        'ORDER BY sortkey, name LIMIT 1',
-                        (r['parent'], r['sortkey'], r['name'])
+                    'SELECT * FROM pages WHERE parent=? and sortkey>? and name>? '
+                    'ORDER BY sortkey, name LIMIT 1',
+                    (r['parent'], r['sortkey'], r['name'])
                 ).fetchone()
                 if n is not None:
                     return PageIndexRecord(n)
@@ -626,7 +626,7 @@ class PagesView(IndexView):
                     return None
                 else:
                     r = self.db.execute(
-                            'SELECT * FROM pages WHERE id=?', (r['parent'],)
+                        'SELECT * FROM pages WHERE id=?', (r['parent'],)
                     ).fetchone()
                     if r is None:
                         raise IndexConsistencyError('Missing parent')
@@ -651,7 +651,7 @@ class PagesView(IndexView):
         else:
             source = reference or ROOT_PATH
             id, pagename = self._pages.resolve_link(
-                                                    source, href, ignore_link_placeholders=False)
+                source, href, ignore_link_placeholders=False)
             return pagename
 
     def resolve_link(self, source, href):
@@ -745,8 +745,8 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
     def connect_to_updateiter(self, index, update_iter):
         self.connectto_all(update_iter.pages,
-                ('page-row-inserted', 'page-row-changed', 'page-row-deleted')
-        )
+                           ('page-row-inserted', 'page-row-changed', 'page-row-deleted')
+                           )
 
     def on_page_row_inserted(self, o, row):
         self.flush_cache()
@@ -778,7 +778,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
     def n_children_top(self):
         return self.db.execute(
-                'SELECT COUNT(*) FROM pages WHERE parent=?', (ROOT_ID,)
+            'SELECT COUNT(*) FROM pages WHERE parent=?', (ROOT_ID,)
         ).fetchone()[0]
 
     def get_mytreeiter(self, treepath):
@@ -791,7 +791,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
             parent_id = ROOT_ID
         else:
             parent_iter = self.cache.get(parentpath, None) \
-                                            or self.get_mytreeiter(parentpath)  # recurs
+                or self.get_mytreeiter(parentpath)  # recurs
             if parent_iter:
                 parent_id = parent_iter.row['id']
             else:
@@ -803,8 +803,8 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			SELECT * FROM pages WHERE parent=?
 			ORDER BY sortkey, name LIMIT 20 OFFSET ?
 			''',
-                (parent_id, offset)
-        )):
+                                                (parent_id, offset)
+                                                )):
             mytreepath = parentpath + (offset + i,)
             if mytreepath not in self.cache:
                 self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
@@ -839,7 +839,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
             # Get treepath
             name = ':'.join(names[:i + 1])
             myrow = self.db.execute(
-                    'SELECT * FROM pages WHERE name=?', (name,)
+                'SELECT * FROM pages WHERE name=?', (name,)
             ).fetchone()
             if myrow is None:
                 raise IndexNotFoundError
@@ -850,8 +850,8 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 				WHERE parent=? and (
 					sortkey<? or (sortkey=? and name<?)
 				)''',
-                    (parent_id, sortkey, sortkey, name)
-            ).fetchone()
+                                  (parent_id, sortkey, sortkey, name)
+                                  ).fetchone()
             treepath.append(row[0])
             parent_id = myrow['id']
 
@@ -873,39 +873,39 @@ class TestPagesDBTable(object):
     def assertPagesDBConsistent(self, db):
         for row in db.execute('SELECT * FROM pages'):
             count, = db.execute(
-                    'SELECT count(*) FROM pages WHERE parent=?',
-                    (row['id'],)
+                'SELECT count(*) FROM pages WHERE parent=?',
+                (row['id'],)
             ).fetchone()
             self.assertEqual(row['n_children'], count,
-                    'Count for "%s" is %i while n_children=%i' % (row['name'], row['n_children'], count)
-            )
+                             'Count for "%s" is %i while n_children=%i' % (row['name'], row['n_children'], count)
+                             )
 
             if row['source_file'] is not None:
                 self.assertFalse(row['is_link_placeholder'],
-                        'Placeholder status for %s is wrong (has source itself)' % row['name']
-                )
+                                 'Placeholder status for %s is wrong (has source itself)' % row['name']
+                                 )
             elif not row['is_link_placeholder']:
                 # Check downwards - at least one child that is not a placeholder either
                 child = db.execute(
-                        'SELECT * FROM pages WHERE parent=? and is_link_placeholder=?',
-                        (row['id'], False),
+                    'SELECT * FROM pages WHERE parent=? and is_link_placeholder=?',
+                    (row['id'], False),
                 ).fetchone()
                 self.assertIsNotNone(child,
-                        'Missing child with source for %s' % row['name'])
+                                     'Missing child with source for %s' % row['name'])
 
             if row['id'] > 1:
                 parent = db.execute(
-                        'SELECT * FROM pages WHERE id=?',
-                        (row['id'],)
+                    'SELECT * FROM pages WHERE id=?',
+                    (row['id'],)
                 ).fetchone()
                 self.assertIsNotNone(parent,
-                        'Missing parent for %s' % row['name'])
+                                     'Missing parent for %s' % row['name'])
 
                 if not row['is_link_placeholder']:
                     # Check upwards - parent(s) must not be placeholder either
                     self.assertFalse(parent['is_link_placeholder'],
-                            'Placeholder status for parent of %s is inconcsisten' % row['name']
-                    )
+                                     'Placeholder status for parent of %s is inconcsisten' % row['name']
+                                     )
 
     def assertPagesDBEquals(self, db, pages):
         rows = db.execute('SELECT * FROM pages WHERE id>1').fetchall()

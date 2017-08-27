@@ -65,7 +65,7 @@ class FilesExporterBase(Exporter):
 
         # Copy template resources (can overwrite icons)
         if self.template.resources_dir \
-        and self.template.resources_dir.exists():
+                and self.template.resources_dir.exists():
             if dir.exists():  # Export does overwrite by default
                 dir.remove_children()
                 dir.remove()
@@ -124,24 +124,24 @@ class MultiFileExporter(FilesExporterBase):
             file.remove()  # export does overwrite by default
 
         linker_factory = partial(ExportLinker,
-                notebook=notebook,
-                layout=self.layout,
-                output=file,
-                usebase=self.format.info['usebase'],
-                document_root_url=self.document_root_url
-        )
+                                 notebook=notebook,
+                                 layout=self.layout,
+                                 output=file,
+                                 usebase=self.format.info['usebase'],
+                                 document_root_url=self.document_root_url
+                                 )
         dumper_factory = self.format.Dumper  # XXX
 
         context = ExportTemplateContext(
-                notebook,
-                linker_factory, dumper_factory,
-                title=page.get_title(),
-                content=[page],
-                home=None, up=None,  # TODO
-                prevpage=prevpage, nextpage=nextpage,
-                links={'index': self.index_page},
-                index_generator=pages.index,
-                index_page=page,
+            notebook,
+            linker_factory, dumper_factory,
+            title=page.get_title(),
+            content=[page],
+            home=None, up=None,  # TODO
+            prevpage=prevpage, nextpage=nextpage,
+            links={'index': self.index_page},
+            index_generator=pages.index,
+            index_page=page,
         )
 
         lines = []
@@ -165,24 +165,24 @@ class SingleFileExporter(FilesExporterBase):
         self.export_resources()
 
         linker_factory = partial(ExportLinker,
-                notebook=pages.notebook,
-                layout=self.layout,
-                output=self.layout.file,
-                usebase=self.format.info['usebase'],
-                document_root_url=self.document_root_url
-        )
+                                 notebook=pages.notebook,
+                                 layout=self.layout,
+                                 output=self.layout.file,
+                                 usebase=self.format.info['usebase'],
+                                 document_root_url=self.document_root_url
+                                 )
         dumper_factory = self.format.Dumper  # XXX
 
         context = ExportTemplateContext(
-                pages.notebook,
-                linker_factory, dumper_factory,
-                title=pages.title,  # XXX
-                content=pages,
-                special=None,  # TODO
-                home=None,  # TODO
-                links=None,
-                index_generator=pages.index,
-                index_page=None,
+            pages.notebook,
+            linker_factory, dumper_factory,
+            title=pages.title,  # XXX
+            content=pages,
+            special=None,  # TODO
+            home=None,  # TODO
+            links=None,
+            index_generator=pages.index,
+            index_page=None,
         )
 
         lines = []

@@ -22,8 +22,8 @@ from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
 from zim.notebook.operations import NotebookState
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
-        PageEntry, IconButton, SingleClickTreeView, \
-        ScrolledWindow, ScrolledTextView, VPaned
+    PageEntry, IconButton, SingleClickTreeView, \
+    ScrolledWindow, ScrolledTextView, VPaned
 from zim.utils import natural_sort_key, FunctionThread
 
 
@@ -46,22 +46,22 @@ logger = logging.getLogger('zim.plugins.versioncontrol')
 class VersionControlPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Version Control'),  # T: plugin name
-            'description': _('''\
+        'name': _('Version Control'),  # T: plugin name
+        'description': _('''\
 This plugin adds version control for notebooks.
 
 This plugin supports the Bazaar, Git and Mercurial version control systems.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
-            'help': 'Plugins:Version Control',
+        'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
+        'help': 'Plugins:Version Control',
     }
 
     plugin_preferences = (
-            ('autosave', 'bool', _('Autosave version when the notebook is closed'), False),  # T: Label for plugin preference
-            ('autosave_at_interval', 'bool', _('Autosave version on regular intervals'), False),  # T: Label for plugin preference
-            ('autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)),  # T: Label for plugin preference
+        ('autosave', 'bool', _('Autosave version when the notebook is closed'), False),  # T: Label for plugin preference
+        ('autosave_at_interval', 'bool', _('Autosave version on regular intervals'), False),  # T: Label for plugin preference
+        ('autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)),  # T: Label for plugin preference
     )
 
     @classmethod
@@ -171,19 +171,19 @@ class MainWindowExtension(WindowExtension):
             self._stop_timer()
 
             if self.plugin.preferences['autosave'] \
-            or self.plugin.preferences['autosave_at_interval']:
+                    or self.plugin.preferences['autosave_at_interval']:
                 self.do_save_version()
 
         self.window.ui.connect('quit', on_quit)  # XXX
 
         self.connectto(self.plugin.preferences, 'changed',
-                self.on_preferences_changed)
+                       self.on_preferences_changed)
 
     def on_preferences_changed(self, o, start=False):
         self._stop_timer()
 
         if (start and self.plugin.preferences['autosave']) \
-        or self.plugin.preferences['autosave_at_interval']:
+                or self.plugin.preferences['autosave_at_interval']:
             self.do_save_version_async()
 
         if self.plugin.preferences['autosave_at_interval']:
@@ -192,7 +192,7 @@ class MainWindowExtension(WindowExtension):
     def _start_timer(self):
         timeout = 60000 * self.plugin.preferences['autosave_interval']
         self._autosave_timer = gobject.timeout_add(
-                timeout, self.do_save_version_async)
+            timeout, self.do_save_version_async)
 
     def _stop_timer(self):
         if self._autosave_timer:
@@ -219,8 +219,8 @@ class MainWindowExtension(WindowExtension):
             return
 
         if self._autosave_thread \
-        and not self._autosave_thread.done \
-        and not self._autosave_thread == threading.current_thread():
+                and not self._autosave_thread.done \
+                and not self._autosave_thread == threading.current_thread():
             self._autosave_thread.join()
 
         if not msg:
@@ -252,10 +252,10 @@ class MainWindowExtension(WindowExtension):
     @action(_('_Versions...'))  # T: menu item
     def show_versions(self):
         dialog = VersionsDialog.unique(self, self.window,
-                self.notebook_ext.vcs,
-                self.notebook_ext.notebook,
-                self.window.ui.page  # XXX
-        )
+                                       self.notebook_ext.vcs,
+                                       self.notebook_ext.notebook,
+                                       self.window.ui.page  # XXX
+                                       )
         dialog.present()
 
 
@@ -411,9 +411,9 @@ class VCSBackend(ConnectorMixin):
             # Avoid touching the bazaar repository with zim sources
             # when we write to tests/tmp etc.
             self.connectto_all(FS, (
-                    'path-created',
-                    'path-moved',
-                    'path-deleted'
+                'path-created',
+                'path-moved',
+                'path-deleted'
             ))
 
     @property
@@ -879,9 +879,9 @@ class VersionControlInitDialog(QuestionDialog):
 
     def __init__(self, ui):
         QuestionDialog.__init__(self, ui, (
-                _("Enable Version Control?"),  # T: Question dialog
-                _("Version control is currently not enabled for this notebook.\n"
-                  "Do you want to enable it?")  # T: Detailed question
+            _("Enable Version Control?"),  # T: Question dialog
+            _("Version control is currently not enabled for this notebook.\n"
+              "Do you want to enable it?")  # T: Detailed question
         ))
 
         self.combobox = gtk.combo_box_new_text()
@@ -908,12 +908,12 @@ class SaveVersionDialog(Dialog):
 
     def __init__(self, ui, window_ext, vcs):
         Dialog.__init__(self, ui, _('Save Version'),  # T: dialog title
-                button=(None, 'gtk-save'), help='Plugins:Version Control')
+                        button=(None, 'gtk-save'), help='Plugins:Version Control')
         self.window_ext = window_ext
         self.vcs = vcs
 
         self.vbox.pack_start(
-                gtk.Label(_("Please enter a comment for this version")), False)  # T: Dialog text
+            gtk.Label(_("Please enter a comment for this version")), False)  # T: Dialog text
 
         vpaned = VPaned()
         self.vbox.add(vpaned)
@@ -952,7 +952,7 @@ class VersionsDialog(Dialog):
 
     def __init__(self, ui, vcs, notebook, page=None):
         Dialog.__init__(self, ui, _('Versions'),  # T: dialog title
-                buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
+                        buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
         self.notebook = notebook
         self.vcs = vcs
         self._side_by_side_app = get_side_by_side_app()
@@ -1121,9 +1121,9 @@ state. Or select multiple versions to see changes between those versions.
                 return None  # TODO error message valid page name?
 
             if page \
-            and hasattr(page, 'source') \
-            and isinstance(page.source, File) \
-            and page.source.ischild(self.vcs.root):
+                    and hasattr(page, 'source') \
+                    and isinstance(page.source, File) \
+                    and page.source.ischild(self.vcs.root):
                 return page.source
             else:
                 return None  # TODO error message ?
@@ -1146,8 +1146,8 @@ state. Or select multiple versions to see changes between those versions.
                 _('Do you want to restore page: %(page)s\n'
                   'to saved version: %(version)s ?\n\n'
                   'All changes since the last saved version will be lost !')
-                  % {'page': path.name, 'version': str(version)}
-                  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
+            % {'page': path.name, 'version': str(version)}
+            # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
         )).run():
             self.vcs.revert(file=file, version=version)
             self.ui.reload_page()  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

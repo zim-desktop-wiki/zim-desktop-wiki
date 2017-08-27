@@ -101,21 +101,21 @@ sdfsdf
         #~ print page.get_parsetree().tostring()
 
         with_h1 = [
-                (1, 'Foo'),
-                (2, 'bar'),
-                (2, 'baz'),
-                (3, 'A'),
-                (3, 'B'),
-                (3, 'C'),
-                (2, 'dus'),
+            (1, 'Foo'),
+            (2, 'bar'),
+            (2, 'baz'),
+            (3, 'A'),
+            (3, 'B'),
+            (3, 'C'),
+            (2, 'dus'),
         ]
         without_h1 = [
-                (1, 'bar'),
-                (1, 'baz'),
-                (2, 'A'),
-                (2, 'B'),
-                (2, 'C'),
-                (1, 'dus'),
+            (1, 'bar'),
+            (1, 'baz'),
+            (2, 'A'),
+            (2, 'B'),
+            (2, 'C'),
+            (1, 'dus'),
         ]
 
         # Test basic usage - click some headings
@@ -152,12 +152,12 @@ sdfsdf
         ui.set_readonly(False)
         pageview.set_readonly(False)
         wanted = [
-                (1, 'bar'),
-                (2, 'baz'),
-                (3, 'A'),
-                (3, 'B'),
-                (3, 'C'),
-                (1, 'dus'),
+            (1, 'bar'),
+            (2, 'baz'),
+            (3, 'A'),
+            (3, 'B'),
+            (3, 'C'),
+            (1, 'dus'),
         ]
 
         widget.treeview.get_selection().unselect_all()
@@ -174,12 +174,12 @@ sdfsdf
 
         # Test promote / demote multiple selected
         wanted = [
-                (1, 'bar'),
-                (2, 'baz'),
-                (3, 'A'),
-                (3, 'B'),
-                (3, 'C'),
-                (2, 'dus'),
+            (1, 'bar'),
+            (2, 'baz'),
+            (3, 'A'),
+            (3, 'B'),
+            (3, 'C'),
+            (2, 'dus'),
         ]
 
         widget.treeview.get_selection().unselect_all()

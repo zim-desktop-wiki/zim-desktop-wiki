@@ -162,7 +162,7 @@ class NotebookInfo(object):
         '''
         # **a is added to be future proof of unknown values in the cache
         if isinstance(uri, basestring) \
-        and is_url_re.match(uri) and not uri.startswith('file://'):
+                and is_url_re.match(uri) and not uri.startswith('file://'):
             self.uri = uri
             self.user_path = None
             self.name = name
@@ -312,9 +312,9 @@ class NotebookInfoList(list):
                 n += 1
                 text[i] = '[Notebook %i]\n' % n
             elif line and not line.isspace()  \
-            and not line.lstrip().startswith('[') \
-            and not line.lstrip().startswith('#') \
-            and not '=' in line:
+                    and not line.lstrip().startswith('[') \
+                    and not line.lstrip().startswith('#') \
+                    and not '=' in line:
                 l += 1
                 text[i] = ('%i=' % l) + line
         ###
@@ -331,11 +331,11 @@ class NotebookInfoList(list):
 
             section = config['Notebook %s' % key]
             section.define(
-                    uri=String(None),
-                    name=String(None),
-                    icon=String(None),
-                    mtime=String(None),
-                    interwiki=String(None)
+                uri=String(None),
+                name=String(None),
+                icon=String(None),
+                mtime=String(None),
+                interwiki=String(None)
             )
             if section['uri'] == uri:
                 info = NotebookInfo(**section)
@@ -344,7 +344,7 @@ class NotebookInfoList(list):
             self.append(info)
 
         if 'Default' in config['NotebookList'] \
-        and config['NotebookList']['Default']:
+                and config['NotebookList']['Default']:
             self.set_default(config['NotebookList']['Default'])
 
     def parse_old_format(self, text):
@@ -403,8 +403,8 @@ class NotebookInfoList(list):
             default = None
 
         lines = [
-                '[NotebookList]\n',
-                'Default=%s\n' % (default or '')
+            '[NotebookList]\n',
+            'Default=%s\n' % (default or '')
         ]
         for i, info in enumerate(self):
             n = i + 1
@@ -415,12 +415,12 @@ class NotebookInfoList(list):
             n = i + 1
             uri = info.user_path or info.uri
             lines.extend([
-                    '\n',
-                    '[Notebook %i]\n' % n,
-                    'uri=%s\n' % uri,
-                    'name=%s\n' % info.name,
-                    'interwiki=%s\n' % info.interwiki,
-                    'icon=%s\n' % info.icon_path,
+                '\n',
+                '[Notebook %i]\n' % n,
+                'uri=%s\n' % uri,
+                'name=%s\n' % info.name,
+                'interwiki=%s\n' % info.interwiki,
+                'icon=%s\n' % info.icon_path,
             ])
 
         self.file.writelines(lines)

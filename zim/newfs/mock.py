@@ -191,8 +191,8 @@ class MockFSObjectBase(FSObjectBase):
 
     def isequal(self, other):
         return isinstance(other, self.__class__) \
-                and self._fs is other._fs \
-                and self.path == other.path
+            and self._fs is other._fs \
+            and self.path == other.path
 
     def ctime(self):
         return self._node().ctime

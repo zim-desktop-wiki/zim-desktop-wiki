@@ -13,9 +13,9 @@ from zim.utils import natural_sorted
 
 from zim.notebook import Path
 from zim.gui.widgets import \
-        Dialog, WindowSidePaneWidget, InputEntry, \
-        BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
-        encode_markup_text, decode_markup_text
+    Dialog, WindowSidePaneWidget, InputEntry, \
+    BrowserTreeView, SingleClickTreeView, ScrolledWindow, HPaned, \
+    encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
 
@@ -65,14 +65,14 @@ class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
         self.uistate.setdefault('show_flatlist', False)
 
         self.task_list = TaskListTreeView(
-                tasksview, opener,
-                _parse_task_labels(preferences['labels']),
-                nonactionable_tags=_parse_task_labels(preferences['nonactionable_tags']),
-                filter_actionable=self.uistate['only_show_act'],
-                tag_by_page=preferences['tag_by_page'],
-                use_workweek=preferences['use_workweek'],
-                compact=True,
-                flatlist=self.uistate['show_flatlist'],
+            tasksview, opener,
+            _parse_task_labels(preferences['labels']),
+            nonactionable_tags=_parse_task_labels(preferences['nonactionable_tags']),
+            filter_actionable=self.uistate['only_show_act'],
+            tag_by_page=preferences['tag_by_page'],
+            use_workweek=preferences['use_workweek'],
+            compact=True,
+            flatlist=self.uistate['show_flatlist'],
         )
         self.task_list.connect('populate-popup', self.on_populate_popup)
         self.task_list.set_headers_visible(True)
@@ -80,7 +80,7 @@ class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
         self.filter_entry = InputEntry(placeholder_text=_('Filter'))  # T: label for filtering/searching tasks
         self.filter_entry.set_icon_to_clear()
         filter_cb = DelayedCallback(500,
-                lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
+                                    lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
         self.filter_entry.connect('changed', filter_cb)
 
         self.pack_start(ScrolledWindow(self.task_list))
@@ -91,8 +91,8 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 
     def __init__(self, window, tasksview, preferences):
         Dialog.__init__(self, window, _('Task List'),  # T: dialog title
-                buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
-                defaultwindowsize=(550, 400))
+                        buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
+                        defaultwindowsize=(550, 400))
         self.preferences = preferences
         self.tasksview = tasksview
 
@@ -113,15 +113,15 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
         task_labels = _parse_task_labels(preferences['labels'])
         nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
         self.task_list = TaskListTreeView(
-                self.tasksview, opener,
-                task_labels,
-                nonactionable_tags=nonactionable_tags,
-                filter_actionable=self.uistate['only_show_act'],
-                tag_by_page=preferences['tag_by_page'],
-                use_workweek=preferences['use_workweek'],
-                flatlist=self.uistate['show_flatlist'],
-                sort_column=self.uistate['sort_column'],
-                sort_order=self.uistate['sort_order']
+            self.tasksview, opener,
+            task_labels,
+            nonactionable_tags=nonactionable_tags,
+            filter_actionable=self.uistate['only_show_act'],
+            tag_by_page=preferences['tag_by_page'],
+            use_workweek=preferences['use_workweek'],
+            flatlist=self.uistate['show_flatlist'],
+            sort_column=self.uistate['sort_column'],
+            sort_order=self.uistate['sort_order']
         )
         self.task_list.set_headers_visible(True)
         self.task_list.connect('populate-popup', self.on_populate_popup)
@@ -137,7 +137,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
         filter_entry.set_icon_to_clear()
         hbox.pack_start(filter_entry, False)
         filter_cb = DelayedCallback(500,
-                lambda o: self.task_list.set_filter(filter_entry.get_text()))
+                                    lambda o: self.task_list.set_filter(filter_entry.get_text()))
         filter_entry.connect('changed', filter_cb)
 
         # TODO: use menu button here and add same options as in context menu
@@ -357,13 +357,13 @@ class TaskListTreeView(BrowserTreeView):
     PRIO_SORT_LABEL_COL = 10
 
     def __init__(self,
-            tasksview, opener,
-            task_labels,
-            nonactionable_tags=(),
-            filter_actionable=False, tag_by_page=False, use_workweek=False,
-            compact=False, flatlist=False,
-            sort_column=PRIO_COL, sort_order=gtk.SORT_DESCENDING
-    ):
+                 tasksview, opener,
+                 task_labels,
+                 nonactionable_tags=(),
+                 filter_actionable=False, tag_by_page=False, use_workweek=False,
+                 compact=False, flatlist=False,
+                 sort_column=PRIO_COL, sort_order=gtk.SORT_DESCENDING
+                 ):
         self.real_model = gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
         # VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
         model = self.real_model.filter_new()
@@ -419,7 +419,7 @@ class TaskListTreeView(BrowserTreeView):
         self.set_expander_column(column)
 
         if gtk.gtk_version >= (2, 12) \
-        and gtk.pygtk_version >= (2, 12):
+                and gtk.pygtk_version >= (2, 12):
             # custom tooltip
             self.props.has_tooltip = True
             self.connect("query-tooltip", self._query_tooltip_cb)
@@ -561,7 +561,7 @@ class TaskListTreeView(BrowserTreeView):
                 y, m, d = row['due'].split('-')
                 td = datetime.date(int(y), int(m), int(d)) - today
                 prio_sort_label = \
-                        '!' * min(row['prio'], 3) + ' ' if row['prio'] > 0 else ''
+                    '!' * min(row['prio'], 3) + ' ' if row['prio'] > 0 else ''
                 if td.days < 0:
                     prio_sort_label += '<b><u>OD</u></b>'  # over due
                 elif td.days == 0:
@@ -690,7 +690,7 @@ class TaskListTreeView(BrowserTreeView):
         if visible and self.tag_filter:
             # Any tag should match
             if (_NO_TAGS in self.tag_filter and not tags) \
-            or any(tag in tags for tag in self.tag_filter):
+                    or any(tag in tags for tag in self.tag_filter):
                 visible = True
             else:
                 visible = False

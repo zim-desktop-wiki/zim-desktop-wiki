@@ -68,7 +68,7 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
     __metaclass__ = _MyMeta
 
     __signals__ = {
-            'changed': (SIGNAL_NORMAL, None, ())
+        'changed': (SIGNAL_NORMAL, None, ())
     }
 
     def __init__(self, E=None, **F):
@@ -139,7 +139,7 @@ class ConfigDefinition(object):
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ \
-                and self.allow_empty == other.allow_empty
+            and self.allow_empty == other.allow_empty
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -205,13 +205,13 @@ class ConfigDefinitionByClass(ConfigDefinition):
 
     def __eq__(self, other):
         return ConfigDefinition.__eq__(self, other) \
-                and self.klass == other.klass
+            and self.klass == other.klass
 
     def check(self, value):
         if self._check_allow_empty(value):
             return None
         elif isinstance(value, basestring) \
-        and not self.klass is basestring:
+                and not self.klass is basestring:
             value = self._eval_string(value)
 
         if isinstance(value, self.klass):
@@ -335,7 +335,7 @@ class Choice(ConfigDefinition):
 
     def __eq__(self, other):
         return ConfigDefinition.__eq__(self, other) \
-                and self.choices == other.choices
+            and self.choices == other.choices
 
     def check(self, value):
         if self._check_allow_empty(value):
@@ -343,7 +343,7 @@ class Choice(ConfigDefinition):
         else:
             # Allow options that are not strings (e.g. tuples of strings)
             if isinstance(value, basestring) \
-            and not all(isinstance(t, basestring) for t in self.choices):
+                    and not all(isinstance(t, basestring) for t in self.choices):
                 value = self._eval_string(value)
 
             # HACK to allow for preferences with "choice" item that has
@@ -355,7 +355,7 @@ class Choice(ConfigDefinition):
 
             # convert json list to tuple
             if all(isinstance(t, tuple) for t in self.choices) \
-            and isinstance(value, list):
+                    and isinstance(value, list):
                 value = tuple(value)
 
             if value in choices:
@@ -378,7 +378,7 @@ class Range(Integer):
 
     def __eq__(self, other):
         return ConfigDefinition.__eq__(self, other) \
-                and (self.min, self.max) == (other.min, other.max)
+            and (self.min, self.max) == (other.min, other.max)
 
     def check(self, value):
         value = Integer.check(self, value)
@@ -407,7 +407,7 @@ class Coordinate(ConfigDefinition):
             value = self._eval_string(value)
 
         if self._check_allow_empty(value) \
-        or value == (None, None) and self.allow_empty:
+                or value == (None, None) and self.allow_empty:
             return None
         else:
             if isinstance(value, list):
@@ -427,12 +427,12 @@ value_is_coord = Coordinate  # XXX for backward compatibility
 
 
 _definition_classes = {
-        str: String,
-        unicode: String,
-        basestring: String,
-        int: Integer,
-        float: Float,
-        bool: Boolean,
+    str: String,
+    unicode: String,
+    basestring: String,
+    int: Integer,
+    float: Float,
+    bool: Boolean,
 }
 
 
@@ -453,12 +453,12 @@ def build_config_definition(default=None, check=None, allow_empty=False):
         else:
             return ConfigDefinitionByClass(default, check, allow_empty)
     elif isinstance(check, (set, list)) \
-    or (isinstance(check, tuple) and not isinstance(default, int)):
+            or (isinstance(check, tuple) and not isinstance(default, int)):
         return Choice(default, check, allow_empty)
     elif isinstance(check, tuple) and isinstance(default, int):
         assert len(check) == 2 \
-                and isinstance(check[0], int) \
-                and isinstance(check[1], int)
+            and isinstance(check[0], int) \
+            and isinstance(check[1], int)
         return Range(default, check[0], check[1])
     else:
         raise ValueError('Unrecognized check type')
@@ -510,7 +510,7 @@ class ConfigDict(ControlledDict):
         '''
         if E and isinstance(E, ConfigDict):
             self.define(
-                    (k, E.definitions[k]) for k in E if not k in self
+                (k, E.definitions[k]) for k in E if not k in self
             )
         ControlledDict.update(self, E, **F)
 
@@ -592,7 +592,7 @@ class ConfigDict(ControlledDict):
             if key in self.definitions:
                 if definition != self.definitions[key]:
                     raise AssertionError('Key is already defined with different definition: %s\n%s != %s'
-                            % (key, definition, self.definitions[key]))
+                                         % (key, definition, self.definitions[key]))
                 else:
                     continue
 
@@ -609,8 +609,8 @@ class ConfigDict(ControlledDict):
             value = self.definitions[key].check(value)
         except ValueError as error:
             logger.warn(
-                    'Invalid config value for %s: "%s" - %s',
-                            key, value, error.args[0]
+                'Invalid config value for %s: "%s" - %s',
+                key, value, error.args[0]
             )
             value = self.definitions[key].default
 
@@ -684,8 +684,8 @@ class ConfigDict(ControlledDict):
         value or for a value that doesn't exist yet in the dict.
         '''
         if key in self.definitions \
-        and check is None \
-        and allow_empty is False:
+                and check is None \
+                and allow_empty is False:
             # Real setdefault
             return ControlledDict.setdefault(self, key, default)
         else:
@@ -838,9 +838,9 @@ class INIConfigFile(SectionedConfigDict):
         @returns: an L{FunctionThread} object
         '''
         func = FunctionThread(
-                self.file,
-                self.file.writelines,
-                self.dump())
+            self.file,
+            self.file.writelines,
+            self.dump())
         func.start()
         self.set_modified(False)
         return func

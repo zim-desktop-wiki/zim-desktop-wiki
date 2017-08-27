@@ -112,7 +112,7 @@ class NotebookTreeModel(gtk.ListStore):
     def _append(self, info):
         path = File(info.uri).path
         text = '<b>%s</b>\n<span foreground="#5a5a5a" size="small">%s</span>' % \
-                        (encode_markup_text(info.name), encode_markup_text(path))
+            (encode_markup_text(info.name), encode_markup_text(path))
         # T: Path label in 'open notebook' dialog
 
         if info.icon and File(info.icon).exists():
@@ -298,7 +298,7 @@ class NotebookDialog(Dialog):
         # add notebook list - open notebook on clicking a row
         self.treeview = NotebookTreeView()
         self.treeview.connect(
-                'row-activated', lambda *a: self.response(gtk.RESPONSE_OK))
+            'row-activated', lambda *a: self.response(gtk.RESPONSE_OK))
 
         hbox.add(ScrolledWindow(self.treeview))
 
@@ -406,11 +406,11 @@ class AddNotebookDialog(Dialog):
         # else set below by _changed methods
 
         self.add_form((
-                ('name', 'string', _('Name')),  # T: input field in 'Add Notebook' dialog
-                ('folder', 'dir', _('Folder')),  # T: input field in 'Add Notebook' dialog
+            ('name', 'string', _('Name')),  # T: input field in 'Add Notebook' dialog
+            ('folder', 'dir', _('Folder')),  # T: input field in 'Add Notebook' dialog
         ), {
-                'name': name,
-                'folder': folder,
+            'name': name,
+            'folder': folder,
         })
 
         self.add_help_text(_('''\

@@ -166,15 +166,15 @@ class TestApplicationManager(tests.TestCase):
 
         self.assertTrue(defaults.exists())
         self.assertEqual(defaults.read(),
-                '[Default Applications]\n'
-                'text/plain=test_entry_text-usercreated.desktop\n'
-        )
+                         '[Default Applications]\n'
+                         'text/plain=test_entry_text-usercreated.desktop\n'
+                         )
         self.assertEqual(manager.get_default_application('text/plain'), entry_text)
 
         manager.set_default_application('text/plain', None)
         self.assertEqual(defaults.read(),
-                '[Default Applications]\n'
-        )
+                         '[Default Applications]\n'
+                         )
         self.assertNotEqual(manager.get_default_application('text/plain'), entry_text)
 
         # Test listing
@@ -212,12 +212,12 @@ class TestCustomTools(tests.TestCase):
 
         # add a tool
         properties = {
-                'Name': 'Foo',
-                'Comment': 'Test 1 2 3',
-                'Icon': '',
-                'X-Zim-ExecTool': 'foo %t "quoted"',
-                'X-Zim-ReadOnly': False,
-                'X-Zim-ShowInToolBar': True,
+            'Name': 'Foo',
+            'Comment': 'Test 1 2 3',
+            'Icon': '',
+            'X-Zim-ExecTool': 'foo %t "quoted"',
+            'X-Zim-ReadOnly': False,
+            'X-Zim-ShowInToolBar': True,
         }
         tool = manager.create(**properties)
         self.assertEqual(list(manager), [tool])
@@ -247,12 +247,12 @@ class TestCustomTools(tests.TestCase):
         # add a second tool
         tool1 = tool
         properties = {
-                'Name': 'Foo',
-                'Comment': 'Test 1 2 3',
-                'Icon': None,
-                'X-Zim-ExecTool': 'foo %f',
-                'X-Zim-ReadOnly': False,
-                'X-Zim-ShowInToolBar': True,
+            'Name': 'Foo',
+            'Comment': 'Test 1 2 3',
+            'Icon': None,
+            'X-Zim-ExecTool': 'foo %f',
+            'X-Zim-ReadOnly': False,
+            'X-Zim-ShowInToolBar': True,
         }
         tool = manager.create(**properties)
         self.assertEqual(list(manager), [tool1, tool])
@@ -303,9 +303,9 @@ class TestCustomTools(tests.TestCase):
 
         tool = CustomToolDict()
         tool.update({
-                'Name': 'Test',
-                'Comment': 'Test 1 2 3',
-                'X-Zim-ExecTool': 'foo',
+            'Name': 'Test',
+            'Comment': 'Test 1 2 3',
+            'X-Zim-ExecTool': 'foo',
         })
         for cmd, wanted in (
                 ('foo %f', ('foo', tmpfile)),
@@ -352,7 +352,7 @@ class Foo(object):  # FIXME - this test blocks on full test runs ??
             for item in menu.get_children():
                 if hasattr(item, 'entry'):
                     self.assertFalse(item.entry['Desktop Entry'].get('NoDisplay', False),
-                            msg='Entry %s should not be in menu' % item.entry)
+                                     msg='Entry %s should not be in menu' % item.entry)
 
             def test_configure_applications_dialog(dialog):
                 self.assertIsInstance(dialog, CustomizeOpenWithDialog)
@@ -361,8 +361,8 @@ class Foo(object):  # FIXME - this test blocks on full test runs ??
                 active = dialog.default_combo.get_active()
                 self.assertEqual(active, test_entry)
                 self.assertEqual(
-                        manager.get_default_application(mimetype).key,
-                        test_entry.key
+                    manager.get_default_application(mimetype).key,
+                    test_entry.key
                 )
 
                 # test changing to system default and back
@@ -377,8 +377,8 @@ class Foo(object):  # FIXME - this test blocks on full test runs ??
                 active = dialog.default_combo.get_active()
                 self.assertEqual(active, test_entry)
                 self.assertEqual(
-                        manager.get_default_application(mimetype).key,
-                        test_entry.key
+                    manager.get_default_application(mimetype).key,
+                    test_entry.key
                 )
 
                 # trigger new app dialog and check new default set
@@ -387,8 +387,8 @@ class Foo(object):  # FIXME - this test blocks on full test runs ??
                 active = dialog.default_combo.get_active()
                 self.assertEqual(active.name, 'Test New App Dialog')
                 self.assertEqual(
-                        manager.get_default_application(mimetype).key,
-                        active.key
+                    manager.get_default_application(mimetype).key,
+                    active.key
                 )
 
             def test_new_app_dialog(dialog):

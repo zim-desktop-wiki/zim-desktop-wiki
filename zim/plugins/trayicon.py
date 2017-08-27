@@ -67,22 +67,22 @@ class TrayIconPluginCommand(GtkCommand):
 class TrayIconPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Tray Icon'),  # T: plugin name
-            'description': _('''\
+        'name': _('Tray Icon'),  # T: plugin name
+        'description': _('''\
 This plugin adds a tray icon for quick access.
 
 This plugin depends on Gtk+ version 2.10 or newer.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-            'author': 'Jaap Karssenberg',
-            'help': 'Plugins:Tray Icon',
+        'author': 'Jaap Karssenberg',
+        'help': 'Plugins:Tray Icon',
     }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('classic', 'bool', _('Classic trayicon,\ndo not use new style status icon on Ubuntu'), False),  # T: preferences option
-            ('standalone', 'bool', _('Show a separate icon for each notebook'), False),  # T: preferences option
+        # key, type, label, default
+        ('classic', 'bool', _('Classic trayicon,\ndo not use new style status icon on Ubuntu'), False),  # T: preferences option
+        ('standalone', 'bool', _('Show a separate icon for each notebook'), False),  # T: preferences option
     )
 
     @classmethod
@@ -91,7 +91,7 @@ This is a core plugin shipping with zim.
         return (version_ok, [
                 ('GTK >= 2.10', version_ok, True),
                 ('Unity appindicator', bool(appindicator), False),
-        ])
+                ])
 
     def __init__(self, config=None):
         PluginClass.__init__(self, config)
@@ -241,7 +241,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
     '''Base class for a tray icon based on gtk.StatusIcon'''
 
     __gsignals__ = {
-            'destroy': (gobject.SIGNAL_RUN_LAST, None, ())
+        'destroy': (gobject.SIGNAL_RUN_LAST, None, ())
     }
 
     def __init__(self):
@@ -302,7 +302,7 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
     '''Trayicon using the daemon and based on appindicator'''
 
     __signals__ = {
-            'destroy': (None, None, ())
+        'destroy': (None, None, ())
     }
 
     def __init__(self):
@@ -313,8 +313,8 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 
         if not _GLOBAL_INDICATOR:
             _GLOBAL_INDICATOR = appindicator.Indicator(
-                    'zim-desktop-wiki', 'zim',
-                    appindicator.CATEGORY_APPLICATION_STATUS
+                'zim-desktop-wiki', 'zim',
+                appindicator.CATEGORY_APPLICATION_STATUS
             )
 
         self.appindicator = _GLOBAL_INDICATOR

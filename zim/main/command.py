@@ -46,8 +46,8 @@ class Command(object):
     #: assign a list "[]" in "self.opts" before parse_options is called
 
     default_options = (
-            ('verbose', 'V', 'Verbose output'),
-            ('debug', 'D', 'Debug output'),
+        ('verbose', 'V', 'Verbose output'),
+        ('debug', 'D', 'Debug output'),
     )
 
     def __init__(self, command, pwd=None):
@@ -110,7 +110,7 @@ class Command(object):
             raise UsageError('Command %s takes only %i arguments' % (self.command, len(self.args)))
         else:
             return tuple(self.args) \
-                    + (None,) * (len(self.arguments) - len(self.args))
+                + (None,) * (len(self.arguments) - len(self.args))
 
     def ignore_options(self, *options):
         for option in options:
@@ -142,7 +142,7 @@ class GtkCommand(Command):
     '''
 
     default_options = Command.default_options + (
-            ('standalone', '', 'start a single instance, no background process'),
+        ('standalone', '', 'start a single instance, no background process'),
     )
 
     @property

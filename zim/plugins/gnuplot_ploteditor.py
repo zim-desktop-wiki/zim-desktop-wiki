@@ -14,7 +14,7 @@
 import glob
 
 from zim.plugins.base.imagegenerator import \
-        ImageGeneratorPlugin, ImageGeneratorClass, MainWindowExtensionBase
+    ImageGeneratorPlugin, ImageGeneratorClass, MainWindowExtensionBase
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
@@ -28,12 +28,12 @@ gnuplot_cmd = ('gnuplot',)
 class InsertGnuplotPlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert Gnuplot'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Gnuplot'),  # T: plugin name
+        'description': _('''\
 This plugin provides a plot editor for zim based on Gnuplot.
 '''),  # T: plugin description
-            'help': 'Plugins:Gnuplot Editor',
-            'author': 'Alessandro Magni',
+        'help': 'Plugins:Gnuplot Editor',
+        'author': 'Alessandro Magni',
     }
 
     object_type = 'gnuplot'
@@ -77,8 +77,8 @@ class GnuplotGenerator(ImageGeneratorClass):
         pngfile = File(plotscriptfile.path[:-4] + '.png')
 
         template_vars = {  # they go in the template
-                'gnuplot_script': text,
-                'png_fname': pngfile.path,
+            'gnuplot_script': text,
+            'png_fname': pngfile.path,
         }
         if self.attachment_folder and self.attachment_folder.exists():
             template_vars['attachment_folder'] = self.attachment_folder.path

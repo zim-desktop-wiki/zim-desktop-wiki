@@ -62,7 +62,7 @@ class ServerWindow(gtk.Window):
         self.stop_button.set_sensitive(False)
 
         if gtk.gtk_version >= (2, 10) \
-        and gtk.pygtk_version >= (2, 10):
+                and gtk.pygtk_version >= (2, 10):
             self.link_button = gtk.LinkButton('')
             self.link_button.set_sensitive(False)
         else:
@@ -93,11 +93,11 @@ class ServerWindow(gtk.Window):
         vbox.add(hbox)
 
         table = input_table_factory((
-                (_('Notebook'), self.notebookcombobox, self.open_button),
-                        # T: Field in web server gui
-                (_('Port'), self.portentry),
-                        # T: Field in web server gui for HTTP port (e.g. port 80)
-                self.public_checkbox
+            (_('Notebook'), self.notebookcombobox, self.open_button),
+            # T: Field in web server gui
+            (_('Port'), self.portentry),
+            # T: Field in web server gui for HTTP port (e.g. port 80)
+            self.public_checkbox
         ))
         vbox.add(table)
 
@@ -141,9 +141,9 @@ class ServerWindow(gtk.Window):
             else:
                 self.httpd.timeout = 3  # if no response after 3 sec, drop it
                 self._source_id = glib.io_add_watch(
-                        self.httpd.fileno(),
-                        glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI,  # any event..
-                        self.do_serve_on_io
+                    self.httpd.fileno(),
+                    glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI,  # any event..
+                    self.do_serve_on_io
                 )
             logger.info("Serving HTTP on %s port %i...", self.httpd.server_name, self.httpd.server_port)
         except Exception as error:

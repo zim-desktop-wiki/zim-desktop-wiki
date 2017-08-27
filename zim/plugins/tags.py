@@ -15,12 +15,12 @@ from functools import partial
 from zim.plugins import PluginClass, extends, WindowExtension
 #~ PageTreeIter
 from zim.gui.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
-        NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
+    NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
-        TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
+    TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 from zim.signals import ConnectorMixin
@@ -32,18 +32,18 @@ logger = logging.getLogger('zim.plugins.tags')
 class TagsPlugin(PluginClass):
 
     plugin_info = {
-            'name': _('Tags'),  # T: plugin name
-            'description': _('''\
+        'name': _('Tags'),  # T: plugin name
+        'description': _('''\
 This plugin provides a page index filtered by means of selecting tags in a cloud.
 '''),  # T: plugin description
-            'author': 'Fabian Moser & Jaap Karssenberg',
-            'help': 'Plugins:Tags',
+        'author': 'Fabian Moser & Jaap Karssenberg',
+        'help': 'Plugins:Tags',
     }
 
     plugin_preferences = (
-            # key, type, label, default
-            ('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
-                    # T: option for plugin preferences
+        # key, type, label, default
+        ('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+        # T: option for plugin preferences
     )
 
 
@@ -105,9 +105,9 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
         self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
         self.connectto_all(ui, (  # XXX
-                'open-page',
-                ('start-index-update', lambda o: self.disconnect_model()),
-                ('end-index-update', lambda o: self.reconnect_model()),
+            'open-page',
+            ('start-index-update', lambda o: self.disconnect_model()),
+            ('end-index-update', lambda o: self.reconnect_model()),
         ))
 
         self.reload_model()
@@ -263,7 +263,7 @@ class TagsPageTreeStore(TagsTreeModelMixin, DuplicatePageTreeStore):
                 return iter.n_children
         else:
             if self.show_full_page_name \
-            and column == NAME_COL and len(iter.treepath) == 2:
+                    and column == NAME_COL and len(iter.treepath) == 2:
                 # Show top level pages with full contex
                 # top level tree is tags, so top level pages len(path) is 2
                 return iter.row['name']
@@ -285,7 +285,7 @@ class TaggedPageTreeStore(TaggedPagesTreeModelMixin, DuplicatePageTreeStore):
     def on_get_value(self, iter, column):
         '''Returns the data for a specific column'''
         if self.show_full_page_name \
-        and column == NAME_COL and len(iter.treepath) == 1:
+                and column == NAME_COL and len(iter.treepath) == 1:
             # Show top level pages with full contex
             return iter.row['name']
         else:
@@ -362,8 +362,8 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 
     # define signals we want to use - (closure type, return type and arg types)
     __gsignals__ = {
-            'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-            'sorting-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+        'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+        'sorting-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
     }
 
     def __init__(self, index, sorting='score'):
@@ -386,8 +386,8 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
         self.disconnect_index()  # just to be sure
         self.index = index
         self.connectto_all(self.index.update_iter.tags, (
-                ('tag-row-inserted', self._update),
-                ('tag-row-deleted', self._update),
+            ('tag-row-inserted', self._update),
+            ('tag-row-deleted', self._update),
         ))
         self._update()
 
@@ -406,7 +406,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
         If no tags are selected returns None instead.
         '''
         return [
-                b.indextag for b in self.get_children() if b.get_active()
+            b.indextag for b in self.get_children() if b.get_active()
         ]
 
     def _clear(self):

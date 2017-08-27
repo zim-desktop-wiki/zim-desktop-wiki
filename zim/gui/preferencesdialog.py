@@ -9,7 +9,7 @@ import gtk
 import logging
 
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
-        ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
+    ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
 from zim.gui.applications import CustomizeOpenWithDialog
 
 from zim.plugins import PLUGIN_FOLDER
@@ -93,8 +93,8 @@ class PreferencesDialog(Dialog):
     def _add_font_selection(self, table):
         # need to hardcode this, cannot register it as a preference
         table.add_inputs((
-                ('use_custom_font', 'bool', _('Use a custom font')),
-                # T: option in preferences dialog
+            ('use_custom_font', 'bool', _('Use a custom font')),
+            # T: option in preferences dialog
         ))
         table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
@@ -112,7 +112,7 @@ class PreferencesDialog(Dialog):
             pass
 
         table.widgets['use_custom_font'].connect('toggled',
-                lambda o: self.fontbutton.set_sensitive(o.get_active()))
+                                                 lambda o: self.fontbutton.set_sensitive(o.get_active()))
 
         self.fontbutton.set_size_request(100, -1)
         input_table_factory(((None, self.fontbutton),), table)
@@ -202,12 +202,12 @@ class PluginsTab(gtk.VBox):
         vbox.pack_end(hbox, False)
 
         self.plugin_help_button = \
-                Button(stock=gtk.STOCK_HELP, label=_('_More'))  # T: Button in plugin tab
+            Button(stock=gtk.STOCK_HELP, label=_('_More'))  # T: Button in plugin tab
         self.plugin_help_button.connect('clicked', self.on_help_button_clicked)
         hbox.pack_start(self.plugin_help_button, False)
 
         self.configure_button = \
-                Button(stock=gtk.STOCK_PREFERENCES, label=_('C_onfigure'))  # T: Button in plugin tab
+            Button(stock=gtk.STOCK_PREFERENCES, label=_('C_onfigure'))  # T: Button in plugin tab
         self.configure_button.connect('clicked', self.on_configure_button_clicked)
         hbox.pack_start(self.configure_button, False)
 
@@ -225,15 +225,15 @@ class PluginsTab(gtk.VBox):
         assert hasattr(self.dialog, 'ui')
         open_button = gtk.Button(label=_('Open plugins folder'))
         open_button.connect('clicked',
-                lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
-        )
+                            lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
+                            )
         hbox.pack_start(open_button, False)
 
         if gtk.gtk_version >= (2, 10) \
-        and gtk.pygtk_version >= (2, 10):
+                and gtk.pygtk_version >= (2, 10):
             url_button = gtk.LinkButton(
-                    'http://zim-wiki.org/more_plugins.html',
-                    _('Get more plugins online')  # T: label for button with URL
+                'http://zim-wiki.org/more_plugins.html',
+                _('Get more plugins online')  # T: label for button with URL
             )
             hbox.pack_start(url_button, False)
 
@@ -254,7 +254,7 @@ class PluginsTab(gtk.VBox):
         def insert(text, style=None):
             if style:
                 buffer.insert_with_tags_by_name(
-                        buffer.get_end_iter(), text, style)
+                    buffer.get_end_iter(), text, style)
             else:
                 buffer.insert_at_cursor(text)
 
@@ -278,9 +278,9 @@ class PluginsTab(gtk.VBox):
                     insert(u'\u2022 %s - %s\n' % (text, _('Failed')), 'red')  # T: dependency failed
                 else:
                     insert(u'\u2022 %s - %s (%s)\n' % (text,
-                            _('Failed'),  # T: dependency failed
-                            _('Optional')  # T: optional dependency
-                    ))
+                                                       _('Failed'),  # T: dependency failed
+                                                       _('Optional')  # T: optional dependency
+                                                       ))
         insert('\n')
 
         insert(_('Author') + '\n', 'bold')  # T: Heading in plugins tab of preferences dialog
@@ -365,10 +365,10 @@ class PluginsTreeView(BrowserTreeView):
         cellrenderer = gtk.CellRendererToggle()
         cellrenderer.connect('toggled', lambda o, p: model.do_toggle_path(p))
         self.append_column(
-                gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=1, activatable=2))
+            gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=1, activatable=2))
         # T: Column in plugin tab
         self.append_column(
-                gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=3))
+            gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=3))
         # T: Column in plugin tab
 
 
@@ -380,7 +380,7 @@ class PluginConfigureDialog(Dialog):
 
         label = gtk.Label()
         label.set_markup(
-                '<b>' + _('Options for plugin %s') % plugin.plugin_info['name'] + '</b>')
+            '<b>' + _('Options for plugin %s') % plugin.plugin_info['name'] + '</b>')
         # T: Heading for 'configure plugin' dialog - %s is the plugin name
         self.vbox.add(label)
 

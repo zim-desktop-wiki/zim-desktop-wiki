@@ -130,12 +130,12 @@ class CustomObjectClass(SignalEmitter):
     '''
 
     OBJECT_ATTR = {
-            'type': String('object')
+        'type': String('object')
     }
 
     # define signals we want to use - (closure type, return type and arg types)
     __signals__ = {
-            'modified-changed': (SIGNAL_AFTER, None, ()),
+        'modified-changed': (SIGNAL_AFTER, None, ()),
     }
 
     def __init__(self, attrib, data):

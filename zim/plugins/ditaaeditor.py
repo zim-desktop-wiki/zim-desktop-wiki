@@ -25,14 +25,14 @@ dotcmd = ('ditaa')
 class InsertDitaaPlugin(ImageGeneratorPlugin):
 
     plugin_info = {
-            'name': _('Insert Ditaa'),  # T: plugin name
-            'description': _('''\
+        'name': _('Insert Ditaa'),  # T: plugin name
+        'description': _('''\
 This plugin provides a diagram editor for zim based on Ditaa.
 
 This is a core plugin shipping with zim.
 '''),  # T: plugin description
-    'help': 'Plugins:Ditaa Editor',
-            'author': 'Yao-Po Wang',
+        'help': 'Plugins:Ditaa Editor',
+        'author': 'Yao-Po Wang',
     }
 
     object_type = 'ditaa'

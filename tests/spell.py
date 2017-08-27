@@ -27,13 +27,13 @@ class TestSpell(object):
 
     def setUp(self):
         self._restore = (
-                zim.plugins.spell.gtkspell,
-                zim.plugins.spell.gtkspellcheck
+            zim.plugins.spell.gtkspell,
+            zim.plugins.spell.gtkspellcheck
         )
 
     def tearDown(self):
         zim.plugins.spell.gtkspell, zim.plugins.spell.gtkspellcheck = \
-                self._restore
+            self._restore
 
     def runTest(self, adapterclass):
         with tests.LoggingFilter(logger='zim.plugins.spell'):  # Hide exceptions

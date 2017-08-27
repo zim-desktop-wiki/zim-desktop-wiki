@@ -14,9 +14,9 @@ from zim.notebook import Path
 from zim.notebook.index.base import IndexerBase, IndexView
 from zim.notebook.index.pages import PagesViewInternal
 from zim.formats import get_format, \
-        UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET, TAG, \
-        HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
-        Visitor, VisitorSkip
+    UNCHECKED_BOX, CHECKED_BOX, XCHECKED_BOX, BULLET, TAG, \
+    HEADING, PARAGRAPH, BLOCK, NUMBEREDLIST, BULLETLIST, LISTITEM, STRIKE, \
+    Visitor, VisitorSkip
 from zim.tokenparser import skip_to_end_token, TEXT, END
 
 from zim.plugins.calendar import daterange_from_path
@@ -44,15 +44,15 @@ def _parse_task_labels(string):
         return []
     else:
         return [
-                s.strip()
-                        for s in string.split(',')
-                                if s and not s.isspace()
+            s.strip()
+            for s in string.split(',')
+            if s and not s.isspace()
         ]
 
 
 def _task_labels_re(labels):
     return re.compile(
-            r'^(' + '|'.join(re.escape(l.strip(':')) for l in labels) + r')(?!\w)'
+        r'^(' + '|'.join(re.escape(l.strip(':')) for l in labels) + r')(?!\w)'
     )
 
 
@@ -87,7 +87,7 @@ class TasksIndexer(IndexerBase):
 	''' % PLUGIN_NAME
 
     __signals__ = {
-            'tasklist-changed': (None, None, ()),
+        'tasklist-changed': (None, None, ()),
     }
 
     @classmethod
@@ -100,24 +100,24 @@ class TasksIndexer(IndexerBase):
         IndexerBase.__init__(self, db)
 
         self.parser = TaskParser(
-                task_label_re=_task_labels_re(
-                        _parse_task_labels(
-                                preferences['labels'])),
-                all_checkboxes=preferences['all_checkboxes'],
+            task_label_re=_task_labels_re(
+                _parse_task_labels(
+                    preferences['labels'])),
+            all_checkboxes=preferences['all_checkboxes'],
         )
 
         self.integrate_with_journal = preferences['integrate_with_journal']
         self.included_subtrees = \
-                [n.strip() for n in preferences['included_subtrees'].split()] \
-                        if preferences['included_subtrees'] else None
+            [n.strip() for n in preferences['included_subtrees'].split()] \
+            if preferences['included_subtrees'] else None
         self.excluded_subtrees = \
-                [n.strip() for n in preferences['excluded_subtrees'].split()] \
-                        if preferences['excluded_subtrees'] else None
+            [n.strip() for n in preferences['excluded_subtrees'].split()] \
+            if preferences['excluded_subtrees'] else None
 
         self.db.executescript(self.INIT_SCRIPT)
 
         self.connectto_all(pagesindexer, (
-                'page-changed', 'page-row-deleted'
+            'page-changed', 'page-row-deleted'
         ))
 
     def on_page_changed(self, o, row, doc):
@@ -130,13 +130,13 @@ class TasksIndexer(IndexerBase):
 
         changes = False
         count, = self.db.execute(
-                'SELECT count(*) FROM tasklist WHERE source=?',
-                (row['id'],)
+            'SELECT count(*) FROM tasklist WHERE source=?',
+            (row['id'],)
         ).fetchone()
         if count > 0:
             self.db.execute(
-                    'DELETE FROM tasklist WHERE source=?',
-                    (row['id'],)
+                'DELETE FROM tasklist WHERE source=?',
+                (row['id'],)
             )
             changes = True
 
@@ -160,22 +160,22 @@ class TasksIndexer(IndexerBase):
         for task, children in tasks:
             task[4] = ','.join(sorted(task[4]))  # make tag list a string
             db.execute(
-                    'INSERT INTO tasklist(source, parent, haschildren, hasopenchildren, open, prio, start, due, tags, description)'
-                    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    (pageid, parentid, bool(children), any(c[0][0] for c in children)) + tuple(task)
+                'INSERT INTO tasklist(source, parent, haschildren, hasopenchildren, open, prio, start, due, tags, description)'
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (pageid, parentid, bool(children), any(c[0][0] for c in children)) + tuple(task)
             )
             if children:
                 self._insert_tasks(db, pageid, db.lastrowid, children)  # recurs
 
     def on_page_row_deleted(self, o, row):
         count, = self.db.execute(
-                'SELECT count(*) FROM tasklist WHERE source=?',
-                (row['id'],)
+            'SELECT count(*) FROM tasklist WHERE source=?',
+            (row['id'],)
         ).fetchone()
         if count > 0:
             self.db.execute(
-                    'DELETE FROM tasklist WHERE source=?',
-                    (row['id'],)
+                'DELETE FROM tasklist WHERE source=?',
+                (row['id'],)
             )
             self.emit('tasklist-changed')
 
@@ -252,8 +252,8 @@ class TasksView(IndexView):
 
     def get_task(self, taskid):
         row = self.db.execute(
-                'SELECT * FROM tasklist WHERE id=?',
-                (taskid,)
+            'SELECT * FROM tasklist WHERE id=?',
+            (taskid,)
         ).fetchone()
         return row
 
@@ -284,9 +284,9 @@ class TaskParser(object):
     # immediatly in front of a list.
 
     def __init__(self,
-                    task_label_re=_task_labels_re(['TODO', 'FIXME']),
-                    all_checkboxes=True,
-    ):
+                 task_label_re=_task_labels_re(['TODO', 'FIXME']),
+                 all_checkboxes=True,
+                 ):
         self.task_label_re = task_label_re
         self.all_checkboxes = all_checkboxes  # TODO use this setting
 
@@ -299,7 +299,7 @@ class TaskParser(object):
             isopen, prio, start, due, tags, text = task[0]
             words = text.strip().split()
             if self.task_label_re.match(words[0]) \
-            and all(w.startswith('@') or w == ':' for w in words[1:]):
+                    and all(w.startswith('@') or w == ':' for w in words[1:]):
                 return True
 
         tasks = []
@@ -393,19 +393,19 @@ class TaskParser(object):
                 line = []
                 for t in token_iter:
                     if t[0] in (BULLETLIST, NUMBEREDLIST) \
-                    or t == (END, LISTITEM):
+                            or t == (END, LISTITEM):
                         next_token = t
                         break
                     else:
                         line.append(t)
 
                 if bullet in (CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX)\
-                or self._starts_with_label(line):
+                        or self._starts_with_label(line):
                     fields = self._task_from_tokens(
-                            line,
-                            isopen=(bullet in (BULLET, UNCHECKED_BOX)),
-                            parent=parent,
-                            tags=tags
+                        line,
+                        isopen=(bullet in (BULLET, UNCHECKED_BOX)),
+                        parent=parent,
+                        tags=tags
                     )
                     tasks.append((fields, []))
                     parent_item = tasks[-1]

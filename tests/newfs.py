@@ -150,18 +150,18 @@ class TestFilePath(tests.TestCase):
                 ('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
         ):
             self.assertEqual(
-                    FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True),
-                    P(relpath)
+                FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True),
+                P(relpath)
             )
 
         if os.name == 'nt':
             path1 = r'C:\foo\bar'
             path2 = r'D:\foo\bar\baz'
             self.assertRaises(ValueError,
-                    FilePath(path1).relpath,
-                    FilePath(path2),
-                    allowupward=True
-            )
+                              FilePath(path1).relpath,
+                              FilePath(path2),
+                              allowupward=True
+                              )
 
     def testAbsPath(self):
         f = FilePath(P('/foo/bar/baz'))
@@ -425,10 +425,10 @@ class TestFS(object):
     def testTreeAccess(self):
         root = self.get_root_folder('testTreeAccess')
         data = {
-                P('foo.txt'): 'test 123\n',
-                P('foo/bar.txt'): 'test 123\n',
-                P('a/b/c/test.txt'): 'test 123\n',
-                P('unicode.txt'): u'\u2022 test 123\n',
+            P('foo.txt'): 'test 123\n',
+            P('foo/bar.txt'): 'test 123\n',
+            P('a/b/c/test.txt'): 'test 123\n',
+            P('unicode.txt'): u'\u2022 test 123\n',
         }
 
         for path, text in data.items():
@@ -647,19 +647,19 @@ class TestFS(object):
         with Recorder(root.watcher) as rec:
             file.touch()
             self.assertEqual(rec.calls, [
-                    ('created', 'a'),
-                    ('created', P('a/b')),
-                    ('created', P('a/b/c')),
-                    ('created', P('a/b/c/test.txt')),
+                ('created', 'a'),
+                ('created', P('a/b')),
+                ('created', P('a/b/c')),
+                ('created', P('a/b/c/test.txt')),
             ])
 
         with Recorder(root.watcher) as rec:
             file.remove()
             self.assertEqual(rec.calls, [
-                    ('removed', P('a/b/c/test.txt')),
-                    ('removed', P('a/b/c')),
-                    ('removed', P('a/b')),
-                    ('removed', 'a'),
+                ('removed', P('a/b/c/test.txt')),
+                ('removed', P('a/b/c')),
+                ('removed', P('a/b')),
+                ('removed', 'a'),
             ])
 
         file = root.file('test.txt')
@@ -667,8 +667,8 @@ class TestFS(object):
             file.write('test 1\n')
             file.write('test 2\n')
             self.assertEqual(rec.calls, [
-                    ('created', P('test.txt')),
-                    ('changed', P('test.txt')),
+                ('created', P('test.txt')),
+                ('changed', P('test.txt')),
             ])
 
         copy = root.file('copy.txt')
@@ -677,8 +677,8 @@ class TestFS(object):
             file.copyto(copy)
             file.moveto(move)
             self.assertEqual(rec.calls, [
-                    ('created', P('copy.txt')),
-                    ('moved', P('test.txt'), P('move.txt')),
+                ('created', P('copy.txt')),
+                ('moved', P('test.txt'), P('move.txt')),
             ])
 
         folder = root.folder('test')
@@ -689,8 +689,8 @@ class TestFS(object):
             folder.copyto(copy)
             folder.moveto(move)
             self.assertEqual(rec.calls, [
-                    ('created', P('copy')),
-                    ('moved', P('test'), P('move')),
+                ('created', P('copy')),
+                ('moved', P('test'), P('move')),
             ])
 
 
@@ -933,8 +933,8 @@ class TestFunc(tests.TestCase):
 
     def testCleanFileName(self):
         self.assertEqual(
-                cleanup_filename('foo/%bar\t.txt'),
-                'foo%bar.txt'
+            cleanup_filename('foo/%bar\t.txt'),
+            'foo%bar.txt'
         )
 
 
