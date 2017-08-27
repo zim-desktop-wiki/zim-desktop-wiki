@@ -25,114 +25,112 @@
 from zim.plugins import PluginClass, WindowExtension, extends
 
 try:
-	import gtkosx_application
+    import gtkosx_application
 except ImportError:
-	gtkosx_application = None
+    gtkosx_application = None
 
 
-if False: #pragma: no cover
+if False:  # pragma: no cover
 
-	# This code defines a "mock" object for testing this plugin on systems
-	# that do not actually have "gtkosx_application", should be disabled for
-	# production code.
-	# Switch by setting above statement to "True" or "False"
+    # This code defines a "mock" object for testing this plugin on systems
+    # that do not actually have "gtkosx_application", should be disabled for
+    # production code.
+    # Switch by setting above statement to "True" or "False"
 
-	class MockOSXAppModule(object):
+    class MockOSXAppModule(object):
 
-		@staticmethod
-		def Application():
-			return MockOSXAppObject()
+        @staticmethod
+        def Application():
+            return MockOSXAppObject()
 
-	class MockOSXAppObject(object):
+    class MockOSXAppObject(object):
 
-		def __getattr__(self, name):
-			def method(*a):
-				print ">>> OSX call:", name, a
-			return method
+        def __getattr__(self, name):
+            def method(*a):
+                print ">>> OSX call:", name, a
+            return method
 
-	if gtkosx_application is None:
-		gtkosx_application = MockOSXAppModule
+    if gtkosx_application is None:
+        gtkosx_application = MockOSXAppModule
 
 
 if gtkosx_application:
-	# Global for all notebooks / windows, once per process
-	_global_osx_application = gtkosx_application.Application()
-	_global_items_initialized = False
+    # Global for all notebooks / windows, once per process
+    _global_osx_application = gtkosx_application.Application()
+    _global_items_initialized = False
 else:
-	_global_osx_application = None
-	_global_items_initialized = False
-
+    _global_osx_application = None
+    _global_items_initialized = False
 
 
 class OSXmenubarPlugin(PluginClass):
-	# This object just provides some information for the plugin manager
-	# no real logic happening here.
+    # This object just provides some information for the plugin manager
+    # no real logic happening here.
 
-	plugin_info = {
-		'name': _('macOS Menubar'), # T: plugin name
-		'description': _('This plugin provides a macOS menubar for zim.'), # T: plugin description
-		'author': 'Brecht Machiels, Jaap Karssenberg',
-		'help': 'Plugins:macOS Menubar'
-	}
+    plugin_info = {
+        'name': _('macOS Menubar'),  # T: plugin name
+        'description': _('This plugin provides a macOS menubar for zim.'),  # T: plugin description
+        'author': 'Brecht Machiels, Jaap Karssenberg',
+        'help': 'Plugins:macOS Menubar'
+    }
 
-	@classmethod
-	def check_dependencies(klass):
-		# "is_ok" must be True, else won't be able to select the plugin in
-		# the plugin manager
-		is_ok = gtkosx_application is not None
-		return is_ok, [('gtkosx_application', is_ok, True)]
-
+    @classmethod
+    def check_dependencies(klass):
+        # "is_ok" must be True, else won't be able to select the plugin in
+        # the plugin manager
+        is_ok = gtkosx_application is not None
+        return is_ok, [('gtkosx_application', is_ok, True)]
 
 
 @extends('MainWindow')
 class MainWindowExtension(WindowExtension):
-	# This object is created once for each "main window", this means once for
-	# each notebook opened in zim. If this is the first window, also do
-	# global intialization, else just capture the menubar and keep it ourselves.
-	# We hook to the signal that a window has recieved focus and on that signal
-	# insert the menubar for that window. So may change often when switching
-	# windows.
+    # This object is created once for each "main window", this means once for
+    # each notebook opened in zim. If this is the first window, also do
+    # global intialization, else just capture the menubar and keep it ourselves.
+    # We hook to the signal that a window has recieved focus and on that signal
+    # insert the menubar for that window. So may change often when switching
+    # windows.
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+    def __init__(self, plugin, window):
+        WindowExtension.__init__(self, plugin, window)
 
-		# Define OS X menu bar for this window and remove menubar from winow
-		self.menubar = self.window.menubar
-		self.window._zim_window_main.remove(self.menubar) # XXX - use private arg, should patch Window.remove() instead ...
+        # Define OS X menu bar for this window and remove menubar from winow
+        self.menubar = self.window.menubar
+        self.window._zim_window_main.remove(self.menubar)  # XXX - use private arg, should patch Window.remove() instead ...
 
-		# Hook up to signal for focus change
-		window.connect('notify', self._on_notify)
-		if window.has_toplevel_focus():
-			self.set_menubar()
+        # Hook up to signal for focus change
+        window.connect('notify', self._on_notify)
+        if window.has_toplevel_focus():
+            self.set_menubar()
 
-	def _on_notify(self, window, property, *a):
-		# Check we recieve focus
-		if property.name == 'has-toplevel-focus' \
-		and self.window.has_toplevel_focus():
-			global _global_items_initialized
-			if not _global_items_initialized:
-				self._init_global_items()
-				_global_items_initialized = True # don't repeat for next window
+    def _on_notify(self, window, property, *a):
+        # Check we recieve focus
+        if property.name == 'has-toplevel-focus' \
+                and self.window.has_toplevel_focus():
+            global _global_items_initialized
+            if not _global_items_initialized:
+                self._init_global_items()
+                _global_items_initialized = True  # don't repeat for next window
 
-			self.set_menubar()
+            self.set_menubar()
 
-	def _init_global_items(self):
-		# Define global items - one time action for process
-		global _global_osx_application
+    def _init_global_items(self):
+        # Define global items - one time action for process
+        global _global_osx_application
 
-		_global_osx_application.set_help_menu(self.window.uimanager.get_widget('/menubar/help_menu'))
+        _global_osx_application.set_help_menu(self.window.uimanager.get_widget('/menubar/help_menu'))
 
-		quit = self.window.uimanager.get_widget('/menubar/file_menu/quit')
-		_global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.ui.quit()) # XXX .ui.
+        quit = self.window.uimanager.get_widget('/menubar/file_menu/quit')
+        _global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.ui.quit())  # XXX .ui.
 
-		about = self.window.uimanager.get_widget('/menubar/help_menu/show_about')
-		_global_osx_application.insert_app_menu_item(about, 0)
+        about = self.window.uimanager.get_widget('/menubar/help_menu/show_about')
+        _global_osx_application.insert_app_menu_item(about, 0)
 
-		prefs = self.window.uimanager.get_widget('/menubar/edit_menu/show_preferences')
-		_global_osx_application.insert_app_menu_item(prefs, 1)
+        prefs = self.window.uimanager.get_widget('/menubar/edit_menu/show_preferences')
+        _global_osx_application.insert_app_menu_item(prefs, 1)
 
-	def set_menubar(self):
-		# Window got focus, put out menubar on top
-		global _global_osx_application
-		_global_osx_application.set_menu_bar(self.menubar)
-		_global_osx_application.ready()
+    def set_menubar(self):
+        # Window got focus, put out menubar on top
+        global _global_osx_application
+        _global_osx_application.set_menu_bar(self.menubar)
+        _global_osx_application.ready()

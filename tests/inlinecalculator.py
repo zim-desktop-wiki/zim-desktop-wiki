@@ -10,38 +10,38 @@ from zim.plugins import PluginManager
 @tests.slowTest
 class TestPrintToBrowser(tests.TestCase):
 
-	def runTest(self):
-		'Test InlineCalculator plugin'
-		pluginklass = PluginManager.get_plugin_class('inlinecalculator')
-		plugin = pluginklass()
+    def runTest(self):
+        'Test InlineCalculator plugin'
+        pluginklass = PluginManager.get_plugin_class('inlinecalculator')
+        plugin = pluginklass()
 
-		for text, wanted in (
-			('3 + 4 =', '3 + 4 = 7'),
-			('3 + 4 = 1', '3 + 4 = 7'),
-			('3 + 4 = 1 ', '3 + 4 = 7 '),
-			('10 / 3 =', '10 / 3 = 3.33333333333'), # divide integers to float !
-			('milage: 3 + 4 =', 'milage: 3 + 4 = 7'),
-			('3 + 4 = 7 + 0.5 =  ', '3 + 4 = 7 + 0.5 = 7.5'),
-			('''\
+        for text, wanted in (
+                ('3 + 4 =', '3 + 4 = 7'),
+                ('3 + 4 = 1', '3 + 4 = 7'),
+                ('3 + 4 = 1 ', '3 + 4 = 7 '),
+                ('10 / 3 =', '10 / 3 = 3.33333333333'),  # divide integers to float !
+                ('milage: 3 + 4 =', 'milage: 3 + 4 = 7'),
+                ('3 + 4 = 7 + 0.5 =  ', '3 + 4 = 7 + 0.5 = 7.5'),
+                ('''\
 5.5
  4.3
 3.1
 --- +
 ''',
 
-			'''\
+                 '''\
 5.5
  4.3
 3.1
 --- +
 12.9
 '''			),
-		):
-			result = plugin.process_text(text)
-			self.assertEqual(result, wanted)
+        ):
+            result = plugin.process_text(text)
+            self.assertEqual(result, wanted)
 
-		# Tests from clac.py self test
-		for test in '''\
+        # Tests from clac.py self test
+        for test in '''\
 1+2 == 3
 sqrt(-1) == j
 -2*asin(-1) == pi
@@ -71,11 +71,10 @@ oct(8) == '010'
 2**10-1 == 1023
 # 2**1k == 2**1024
 '''.splitlines():
-			if test.startswith('#'):
-				continue
-			#~ print 'TESTING:', test
-			self.assertTrue(plugin.safe_eval(test))
+            if test.startswith('#'):
+                continue
+            #~ print 'TESTING:', test
+            self.assertTrue(plugin.safe_eval(test))
 
-		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")') # global
-		self.assertRaises(Exception, plugin.process_text, 'self') # local
-
+        self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")')  # global
+        self.assertRaises(Exception, plugin.process_text, 'self')  # local

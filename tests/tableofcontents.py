@@ -15,63 +15,63 @@ from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 @tests.slowTest
 class TestTableOfContents(tests.TestCase):
 
-	def testMainWindowExtensions(self):
-		plugin = ToCPlugin()
+    def testMainWindowExtensions(self):
+        plugin = ToCPlugin()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+        notebook = tests.new_notebook(self.get_tmp_name())
+        ui = setupGtkInterface(self, notebook=notebook)
+        mainwindow = ui._mainwindow  # XXX
 
-		plugin.preferences['floating'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionFloating)
-		plugin.extend(mainwindow)
+        plugin.preferences['floating'] = True
+        self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionFloating)
+        plugin.extend(mainwindow)
 
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionFloating)
+        ext = list(plugin.extensions)
+        self.assertEqual(len(ext), 1)
+        self.assertIsInstance(ext[0], MainWindowExtensionFloating)
 
-		plugin.preferences.changed() # make sure no errors are triggered
-		plugin.preferences['show_h1'] = True
-		plugin.preferences['show_h1'] = False
-		plugin.preferences['pane'] = RIGHT_PANE
-		plugin.preferences['pane'] = LEFT_PANE
+        plugin.preferences.changed()  # make sure no errors are triggered
+        plugin.preferences['show_h1'] = True
+        plugin.preferences['show_h1'] = False
+        plugin.preferences['pane'] = RIGHT_PANE
+        plugin.preferences['pane'] = LEFT_PANE
 
+        plugin.preferences['floating'] = False
+        self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
+        plugin.extend(mainwindow)  # plugin does not remember objects, manager does that
 
-		plugin.preferences['floating'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
+        ext = list(plugin.extensions)
+        self.assertEqual(len(ext), 1)
+        self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
 
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
+        plugin.preferences.changed()  # make sure no errors are triggered
+        plugin.preferences['show_h1'] = True
+        plugin.preferences['show_h1'] = False
+        plugin.preferences['pane'] = RIGHT_PANE
+        plugin.preferences['pane'] = LEFT_PANE
 
-		plugin.preferences.changed() # make sure no errors are triggered
-		plugin.preferences['show_h1'] = True
-		plugin.preferences['show_h1'] = False
-		plugin.preferences['pane'] = RIGHT_PANE
-		plugin.preferences['pane'] = LEFT_PANE
+        plugin.preferences['floating'] = True  # switch back
 
-		plugin.preferences['floating'] = True  # switch back
+    def testToCWidget(self):
+        '''Test Tabel Of Contents plugin'''
+        notebook = tests.new_notebook(self.get_tmp_name())
+        ui = setupGtkInterface(self, notebook=notebook)
+        pageview = ui._mainwindow.pageview  # XXX
 
-	def testToCWidget(self):
-		'''Test Tabel Of Contents plugin'''
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		pageview = ui._mainwindow.pageview # XXX
+        widget = ToCWidget(ui, pageview, ellipsis=False)
 
-		widget = ToCWidget(ui, pageview, ellipsis=False)
+        def get_tree():
+            # Count number of rows in TreeModel
+            model = widget.treeview.get_model()
+            rows = []
 
-		def get_tree():
-			# Count number of rows in TreeModel
-			model = widget.treeview.get_model()
-			rows = []
-			def c(model, path, iter):
-				rows.append((len(path), model[iter][TEXT_COL]))
-			model.foreach(c)
-			return rows
+            def c(model, path, iter):
+                rows.append((len(path), model[iter][TEXT_COL]))
+            model.foreach(c)
+            return rows
 
-		page = ui.notebook.get_page(Path('Test'))
-		page.parse('wiki', '''\
+        page = ui.notebook.get_page(Path('Test'))
+        page.parse('wiki', '''\
 ====== Foo ======
 
 ===== bar =====
@@ -97,121 +97,121 @@ sdfsdfsd
 sdfsdf
 
 ''')
-		ui.notebook.store_page(page)
-		#~ print page.get_parsetree().tostring()
+        ui.notebook.store_page(page)
+        #~ print page.get_parsetree().tostring()
 
-		with_h1 = [
-			(1, 'Foo'),
-			(2, 'bar'),
-			(2, 'baz'),
-			(3, 'A'),
-			(3, 'B'),
-			(3, 'C'),
-			(2, 'dus'),
-		]
-		without_h1 = [
-			(1, 'bar'),
-			(1, 'baz'),
-			(2, 'A'),
-			(2, 'B'),
-			(2, 'C'),
-			(1, 'dus'),
-		]
+        with_h1 = [
+            (1, 'Foo'),
+            (2, 'bar'),
+            (2, 'baz'),
+            (3, 'A'),
+            (3, 'B'),
+            (3, 'C'),
+            (2, 'dus'),
+        ]
+        without_h1 = [
+            (1, 'bar'),
+            (1, 'baz'),
+            (2, 'A'),
+            (2, 'B'),
+            (2, 'C'),
+            (1, 'dus'),
+        ]
 
-		# Test basic usage - click some headings
-		ui.open_page(page)
-		widget.on_open_page(ui, page, page)
-		self.assertEqual(get_tree(), without_h1)
-		widget.on_store_page(ui.notebook, page)
-		self.assertEqual(get_tree(), without_h1)
+        # Test basic usage - click some headings
+        ui.open_page(page)
+        widget.on_open_page(ui, page, page)
+        self.assertEqual(get_tree(), without_h1)
+        widget.on_store_page(ui.notebook, page)
+        self.assertEqual(get_tree(), without_h1)
 
-		widget.set_show_h1(True)
-		self.assertEqual(get_tree(), with_h1)
-		widget.set_show_h1(False)
-		self.assertEqual(get_tree(), without_h1)
+        widget.set_show_h1(True)
+        self.assertEqual(get_tree(), with_h1)
+        widget.set_show_h1(False)
+        self.assertEqual(get_tree(), without_h1)
 
-		column = widget.treeview.get_column(0)
-		model = widget.treeview.get_model()
-		def activate_row(m, path, i):
-			#~ print ">>>", path
-			widget.treeview.row_activated(path, column)
-				# TODO assert something here
+        column = widget.treeview.get_column(0)
+        model = widget.treeview.get_model()
 
-			widget.select_section(pageview.view.get_buffer(), path)
+        def activate_row(m, path, i):
+            #~ print ">>>", path
+            widget.treeview.row_activated(path, column)
+            # TODO assert something here
 
-			menu = gtk.Menu()
-			widget.treeview.get_selection().select_path(path)
-			widget.on_populate_popup(widget.treeview, menu)
-				# TODO assert something here
-			widget.treeview.get_selection().unselect_path(path)
+            widget.select_section(pageview.view.get_buffer(), path)
 
-		model.foreach(activate_row)
+            menu = gtk.Menu()
+            widget.treeview.get_selection().select_path(path)
+            widget.on_populate_popup(widget.treeview, menu)
+            # TODO assert something here
+            widget.treeview.get_selection().unselect_path(path)
 
-		# Test promote / demote
-		ui.set_readonly(False)
-		pageview.set_readonly(False)
-		wanted = [
-			(1, 'bar'),
-			(2, 'baz'),
-			(3, 'A'),
-			(3, 'B'),
-			(3, 'C'),
-			(1, 'dus'),
-		]
+        model.foreach(activate_row)
 
-		widget.treeview.get_selection().unselect_all()
-		widget.treeview.get_selection().select_path((1,)) # "baz"
-		self.assertFalse(widget.on_promote())
-		self.assertTrue(widget.on_demote())
-		self.assertEqual(get_tree(), wanted)
+        # Test promote / demote
+        ui.set_readonly(False)
+        pageview.set_readonly(False)
+        wanted = [
+            (1, 'bar'),
+            (2, 'baz'),
+            (3, 'A'),
+            (3, 'B'),
+            (3, 'C'),
+            (1, 'dus'),
+        ]
 
-		widget.treeview.get_selection().unselect_all()
-		widget.treeview.get_selection().select_path((0, 0)) # "baz"
-		self.assertFalse(widget.on_demote())
-		self.assertTrue(widget.on_promote())
-		self.assertEqual(get_tree(), without_h1)
+        widget.treeview.get_selection().unselect_all()
+        widget.treeview.get_selection().select_path((1,))  # "baz"
+        self.assertFalse(widget.on_promote())
+        self.assertTrue(widget.on_demote())
+        self.assertEqual(get_tree(), wanted)
 
-		# Test promote / demote multiple selected
-		wanted = [
-			(1, 'bar'),
-			(2, 'baz'),
-			(3, 'A'),
-			(3, 'B'),
-			(3, 'C'),
-			(2, 'dus'),
-		]
+        widget.treeview.get_selection().unselect_all()
+        widget.treeview.get_selection().select_path((0, 0))  # "baz"
+        self.assertFalse(widget.on_demote())
+        self.assertTrue(widget.on_promote())
+        self.assertEqual(get_tree(), without_h1)
 
-		widget.treeview.get_selection().unselect_all()
-		for path in (
-			(1,), (1,0), (1,1), (1,2), (2,) # "baz" -> "dus"
-		):
-			widget.treeview.get_selection().select_path(path)
-		self.assertFalse(widget.on_promote())
-		self.assertTrue(widget.on_demote())
-		self.assertEqual(get_tree(), wanted)
+        # Test promote / demote multiple selected
+        wanted = [
+            (1, 'bar'),
+            (2, 'baz'),
+            (3, 'A'),
+            (3, 'B'),
+            (3, 'C'),
+            (2, 'dus'),
+        ]
 
-		widget.treeview.get_selection().unselect_all()
-		for path in (
-			(0,0), (0,0,0), (0,0,1), (0,0,2), (0,1) # "baz" -> "dus"
-		):
-			widget.treeview.get_selection().select_path(path)
-		self.assertFalse(widget.on_demote())
-		self.assertTrue(widget.on_promote())
-		self.assertEqual(get_tree(), without_h1)
+        widget.treeview.get_selection().unselect_all()
+        for path in (
+                (1,), (1, 0), (1, 1), (1, 2), (2,)  # "baz" -> "dus"
+        ):
+            widget.treeview.get_selection().select_path(path)
+        self.assertFalse(widget.on_promote())
+        self.assertTrue(widget.on_demote())
+        self.assertEqual(get_tree(), wanted)
 
-		# Test empty page
-		emptypage = tests.MockObject()
-		widget.on_open_page(ui, emptypage, emptypage)
-		self.assertEqual(get_tree(), [])
-		widget.on_store_page(ui.notebook, emptypage)
-		self.assertEqual(get_tree(), [])
+        widget.treeview.get_selection().unselect_all()
+        for path in (
+                (0, 0), (0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1)  # "baz" -> "dus"
+        ):
+            widget.treeview.get_selection().select_path(path)
+        self.assertFalse(widget.on_demote())
+        self.assertTrue(widget.on_promote())
+        self.assertEqual(get_tree(), without_h1)
 
+        # Test empty page
+        emptypage = tests.MockObject()
+        widget.on_open_page(ui, emptypage, emptypage)
+        self.assertEqual(get_tree(), [])
+        widget.on_store_page(ui.notebook, emptypage)
+        self.assertEqual(get_tree(), [])
 
-		# Test some more pages - any errors ?
-		for path in ui.notebook.pages.walk():
-			page = ui.notebook.get_page(path)
-			widget.on_open_page(ui, page, page)
-			widget.on_store_page(ui.notebook, page)
+        # Test some more pages - any errors ?
+        for path in ui.notebook.pages.walk():
+            page = ui.notebook.get_page(path)
+            widget.on_open_page(ui, page, page)
+            widget.on_store_page(ui.notebook, page)
 
 # TODO check selecting heading in actual PageView
 # especially test selecting a non-existing item to check we don't get infinite loop

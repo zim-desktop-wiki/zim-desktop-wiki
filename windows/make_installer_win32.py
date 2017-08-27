@@ -17,18 +17,18 @@ text = f.read()
 f.close()
 match = re.search(r"^\s*__version__\s*=\s*['\"]([^'\"]+)['\"]\s*$", text, re.MULTILINE)
 if match:
-	ZIM_VERSION = match.group(1)
+    ZIM_VERSION = match.group(1)
 else:
-	raise RuntimeError("Can't parse Zim version from zim/__init__.py .")
+    raise RuntimeError("Can't parse Zim version from zim/__init__.py .")
 
 # NSIS compiler
 
 MAKENSIS = path.join(os.environ["PROGRAMFILES"], r"NSIS\makensis.exe")
 if not path.exists(MAKENSIS):
-	if "PROGRAMFILES(X86)" in os.environ:
-		MAKENSIS = path.join(os.environ["PROGRAMFILES(x86)"], r"NSIS\makensis.exe")
-	if not path.exists(MAKENSIS):
-		raise RuntimeError("Can't find makensis.exe .")
+    if "PROGRAMFILES(X86)" in os.environ:
+        MAKENSIS = path.join(os.environ["PROGRAMFILES(x86)"], r"NSIS\makensis.exe")
+    if not path.exists(MAKENSIS):
+        raise RuntimeError("Can't find makensis.exe .")
 
 # --------------------------------------
 # MAKE INSTALLER
@@ -43,7 +43,8 @@ f.close()
 
 # NSIS script compiles to "dist" folder but compiler won't create it if it's needed
 
-if not path.exists("dist"): os.mkdir("dist")
+if not path.exists("dist"):
+    os.mkdir("dist")
 
 # Run NSIS compiler
 

@@ -11,17 +11,17 @@ import logging
 logger = logging.getLogger('zim.newfs')
 
 
-FS_CASE_SENSITIVE = (os.name != 'nt') #: file system case-sensitive yes or no
+FS_CASE_SENSITIVE = (os.name != 'nt')  # : file system case-sensitive yes or no
 
-FS_SUPPORT_NON_LOCAL_FILE_SHARES = (os.name == 'nt') #: Support \\host\share paths yes or no
+FS_SUPPORT_NON_LOCAL_FILE_SHARES = (os.name == 'nt')  # : Support \\host\share paths yes or no
 
-FS_ENCODING = sys.getfilesystemencoding() #: file system encoding for paths
+FS_ENCODING = sys.getfilesystemencoding()  # : file system encoding for paths
 if FS_ENCODING.upper() in (
-	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US', # some aliases for ascii
-	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987', # aliases for latin1
+        'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US',  # some aliases for ascii
+        'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987',  # aliases for latin1
 ):
-	logger.warn('Filesystem encoding is set to ASCII or Latin1, using UTF-8 instead')
-	FS_ENCODING = 'utf-8'
+    logger.warn('Filesystem encoding is set to ASCII or Latin1, using UTF-8 instead')
+    FS_ENCODING = 'utf-8'
 
 
 from .base import *
@@ -108,52 +108,48 @@ from .helpers import *
 # --> Make it a context manager lock to block checkout during operation etc.
 
 
-
-
-
-
 def localFileOrFolder(path):
-	'''Convenience method that resolves a local C{File} or C{Folder} object'''
-	path = FilePath(path)
-	try:
-		return LocalFolder(path.dirname).child(path.basename)
-	except FileNotFoundError:
-		raise FileNotFoundError(path)
+    '''Convenience method that resolves a local C{File} or C{Folder} object'''
+    path = FilePath(path)
+    try:
+        return LocalFolder(path.dirname).child(path.basename)
+    except FileNotFoundError:
+        raise FileNotFoundError(path)
 
 
 def cleanup_filename(name):
-	'''Removes all characters in 'name' that are not allowed as part
-	of a file name. This function is intended for e.g. config files etc.
-	B{not} for page files in a store.
-	For file system filenames we can not use:
-	'\\', '/', ':', '*', '?', '"', '<', '>', '|'
-	And we also exclude "\\t" and "\\n".
-	@param name: the filename as string
-	@returns: the name with invalid characters removed
-	'''
-	for char in ("/", "\\", ":", "*", "?", '"', "<", ">", "|", "\t", "\n"):
-		name = name.replace(char, '')
-	return name
+    '''Removes all characters in 'name' that are not allowed as part
+    of a file name. This function is intended for e.g. config files etc.
+    B{not} for page files in a store.
+    For file system filenames we can not use:
+    '\\', '/', ':', '*', '?', '"', '<', '>', '|'
+    And we also exclude "\\t" and "\\n".
+    @param name: the filename as string
+    @returns: the name with invalid characters removed
+    '''
+    for char in ("/", "\\", ":", "*", "?", '"', "<", ">", "|", "\t", "\n"):
+        name = name.replace(char, '')
+    return name
 
 
 def format_file_size(bytes):
-	'''Returns a human readable label  for a file size
-	E.g. C{1230} becomes C{"1.23kb"}, idem for "Mb" and "Gb"
-	@param bytes: file size in bytes as integer
-	@returns: size as string
-	'''
-	for unit, label in (
-		(1000000000, 'Gb'),
-		(1000000, 'Mb'),
-		(1000, 'kb'),
-	):
-		if bytes >= unit:
-			size = float(bytes) / unit
-			if size < 10:
-				return "%.2f%s" % (size, label)
-			elif size < 100:
-				return "%.1f%s" % (size, label)
-			else:
-				return "%.0f%s" % (size, label)
-	else:
-		return str(bytes) + 'b'
+    '''Returns a human readable label  for a file size
+    E.g. C{1230} becomes C{"1.23kb"}, idem for "Mb" and "Gb"
+    @param bytes: file size in bytes as integer
+    @returns: size as string
+    '''
+    for unit, label in (
+            (1000000000, 'Gb'),
+            (1000000, 'Mb'),
+            (1000, 'kb'),
+    ):
+        if bytes >= unit:
+            size = float(bytes) / unit
+            if size < 10:
+                return "%.2f%s" % (size, label)
+            elif size < 100:
+                return "%.1f%s" % (size, label)
+            else:
+                return "%.0f%s" % (size, label)
+    else:
+        return str(bytes) + 'b'

@@ -97,10 +97,10 @@ Some generic base classes and functions can be found in L{zim.utils}
 
 # Bunch of meta data, used at least in the about dialog
 __version__ = '0.67'
-__url__='http://www.zim-wiki.org'
+__url__ = 'http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __copyright__ = 'Copyright 2008 - 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
-__license__='''\
+__license__ = '''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -123,89 +123,88 @@ logger = logging.getLogger('zim')
 
 ########################################################################
 
-## Note: all init here must happen before importing any other zim
-##       modules, so can not use zim.fs utilities etc.
-##       therefore ZIM_EXECUTABLE is a string, not an object
+# Note: all init here must happen before importing any other zim
+# modules, so can not use zim.fs utilities etc.
+# therefore ZIM_EXECUTABLE is a string, not an object
 
 
-## Check executable and relative data dir
-## (sys.argv[0] should always be correct, even for compiled exe)
+# Check executable and relative data dir
+# (sys.argv[0] should always be correct, even for compiled exe)
 
 if os.name == "nt":
-	# See notes in zim/fs.py about encoding expected by abspath
-	ZIM_EXECUTABLE = os.path.abspath(
-		unicode(sys.argv[0], sys.getfilesystemencoding())
-	)
+    # See notes in zim/fs.py about encoding expected by abspath
+    ZIM_EXECUTABLE = os.path.abspath(
+        unicode(sys.argv[0], sys.getfilesystemencoding())
+    )
 else:
-	ZIM_EXECUTABLE = unicode(
-		os.path.abspath(sys.argv[0]),
-		sys.getfilesystemencoding()
-	)
+    ZIM_EXECUTABLE = unicode(
+        os.path.abspath(sys.argv[0]),
+        sys.getfilesystemencoding()
+    )
 
 
-## Initialize locale  (needed e.g. for natural_sort)
+# Initialize locale  (needed e.g. for natural_sort)
 locale.setlocale(locale.LC_ALL, '')
 
 
-## Initialize gettext  (maybe make this optional later for module use ?)
+# Initialize gettext  (maybe make this optional later for module use ?)
 
 if os.name == "nt" and not os.environ.get('LANG'):
-	# Set locale config for gettext (other platforms have this by default)
-	# Using LANG because it is lowest prio - do not override other params
-	lang, enc = locale.getlocale()
-	if lang is not None:
-		os.environ['LANG'] = lang + '.' + enc if enc else lang
-		logger.info('Locale set to: %s', os.environ['LANG'])
+    # Set locale config for gettext (other platforms have this by default)
+    # Using LANG because it is lowest prio - do not override other params
+    lang, enc = locale.getlocale()
+    if lang is not None:
+        os.environ['LANG'] = lang + '.' + enc if enc else lang
+        logger.info('Locale set to: %s', os.environ['LANG'])
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
 if not os.name == "nt":
-	_localedir = _localedir.encode(sys.getfilesystemencoding())
+    _localedir = _localedir.encode(sys.getfilesystemencoding())
 
 try:
-	if os.path.isdir(_localedir):
-		# We are running from a source dir - use the locale data included there
-		gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
-	else:
-		# Hope the system knows where to find the data
-		gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+    if os.path.isdir(_localedir):
+        # We are running from a source dir - use the locale data included there
+        gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+    else:
+        # Hope the system knows where to find the data
+        gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
 except:
-	logger.exception('Error loading translation')
-	trans = gettext.NullTranslations()
-	trans.install(unicode=True, names=('_', 'gettext', 'ngettext'))
-
+    logger.exception('Error loading translation')
+    trans = gettext.NullTranslations()
+    trans.install(unicode=True, names=('_', 'gettext', 'ngettext'))
 
 
 ########################################################################
 
-## Now we are allowed to import sub modules
+# Now we are allowed to import sub modules
 
 
-import zim.environ # initializes environment parameters
+import zim.environ  # initializes environment parameters
 import zim.config
 
 # Check if we can find our own data files
 _file = zim.config.data_file('zim.png')
-if not (_file and _file.exists()): #pragma: no cover
-	raise AssertionError(
-		'ERROR: Could not find data files in path: \n'
-		'%s\n'
-		'Try setting XDG_DATA_DIRS'
-			% map(str, zim.config.data_dirs())
-	)
+if not (_file and _file.exists()):  # pragma: no cover
+    raise AssertionError(
+        'ERROR: Could not find data files in path: \n'
+        '%s\n'
+        'Try setting XDG_DATA_DIRS'
+        % map(str, zim.config.data_dirs())
+    )
 
 
 def get_zim_revision():
-	'''Returns multiline string with bazaar revision info, if any.
-	Otherwise a string saying no info was found. Intended for debug
-	logging.
-	'''
-	try:
-		from zim._version import version_info
-		return '''\
+    '''Returns multiline string with bazaar revision info, if any.
+    Otherwise a string saying no info was found. Intended for debug
+    logging.
+    '''
+    try:
+        from zim._version import version_info
+        return '''\
 Zim revision is:
   branch: %(branch_nick)s
   revision: %(revno)s %(revision_id)s
   date: %(date)s''' % version_info
-	except ImportError:
-		return 'No bzr version-info found'
+    except ImportError:
+        return 'No bzr version-info found'

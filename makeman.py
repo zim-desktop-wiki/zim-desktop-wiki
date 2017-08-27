@@ -10,48 +10,48 @@ from time import strftime, gmtime, time
 from locale import setlocale, LC_TIME
 
 from zim import __version__, __url__, \
-	__author__, __copyright__, __license__
+    __author__, __copyright__, __license__
 from zim.main import HelpCommand
 
 
 def get_about():
-	'''Get the tagline and short description from the README'''
-	readme = open('README.txt')
-	lines = []
-	for line in readme:
-		if line.startswith('===') and 'ABOUT' in line:
-			for line in readme:
-				if line.startswith('==='):
-					break
-				else:
-					lines.append(line)
-			break
+    '''Get the tagline and short description from the README'''
+    readme = open('README.txt')
+    lines = []
+    for line in readme:
+        if line.startswith('===') and 'ABOUT' in line:
+            for line in readme:
+                if line.startswith('==='):
+                    break
+                else:
+                    lines.append(line)
+            break
 
-	lines = ''.join(lines).strip().splitlines(True)
-	assert lines and lines[0].startswith('Zim - ')
-	tagline = lines[0][6:].strip()
-	about = ''.join(lines[1:]).strip()
+    lines = ''.join(lines).strip().splitlines(True)
+    assert lines and lines[0].startswith('Zim - ')
+    tagline = lines[0][6:].strip()
+    about = ''.join(lines[1:]).strip()
 
-	return tagline, about
+    return tagline, about
 
 
 def make():
-	'''Generate man page for zim'''
+    '''Generate man page for zim'''
 
-	tagline, about = get_about()
-	try:
-		os.mkdir('man')
-	except OSError:
-		pass # dir already exists
-	setlocale(LC_TIME, "C")
-	manpage = open('man/zim.1', 'w')
-	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y', gmtime(int(os.environ.get('SOURCE_DATE_EPOCH', time())))), __version__))
-	manpage.write('.SH NAME\nzim \\- %s\n\n' % tagline)
-	manpage.write('.SH SYNOPSIS\n%s\n' % HelpCommand.usagehelp.replace('-', r'\-'))
-	manpage.write('.SH DESCRIPTION\n%s\n' % about)
-	manpage.write('.SH OPTIONS\n%s\n' % HelpCommand.optionhelp.replace('-', r'\-'))
-	manpage.write('.SH AUTHOR\n%s\n\n' % __author__)
-	manpage.write( '''\
+    tagline, about = get_about()
+    try:
+        os.mkdir('man')
+    except OSError:
+        pass  # dir already exists
+    setlocale(LC_TIME, "C")
+    manpage = open('man/zim.1', 'w')
+    manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y', gmtime(int(os.environ.get('SOURCE_DATE_EPOCH', time())))), __version__))
+    manpage.write('.SH NAME\nzim \\- %s\n\n' % tagline)
+    manpage.write('.SH SYNOPSIS\n%s\n' % HelpCommand.usagehelp.replace('-', r'\-'))
+    manpage.write('.SH DESCRIPTION\n%s\n' % about)
+    manpage.write('.SH OPTIONS\n%s\n' % HelpCommand.optionhelp.replace('-', r'\-'))
+    manpage.write('.SH AUTHOR\n%s\n\n' % __author__)
+    manpage.write( '''\
 .SH "SEE ALSO"
 The full documentation for
 .B zim
@@ -66,8 +66,8 @@ The website for
 can be found at
 .I %s
 ''' % __url__)
-	manpage.close()
+    manpage.close()
 
 
 if __name__ == '__main__':
-	make()
+    make()
