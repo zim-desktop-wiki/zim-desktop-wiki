@@ -35,12 +35,12 @@ logger = logging.getLogger('zim.gui.pageindex')
 
 NAME_COL = 0  #: Column with short page name (page.basename)
 PATH_COL = 1  #: Column with the zim PageIndexRecord itself
-EMPTY_COL = 2 #: Column to flag if the page is empty or not
-STYLE_COL = 3 #: Column to specify style (based on empty or not)
-FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
-WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
-N_CHILD_COL = 6 #: Column with the number of child pages
-TIP_COL = 7 #: Column with the name to be used in the tooltip
+EMPTY_COL = 2  # : Column to flag if the page is empty or not
+STYLE_COL = 3  # : Column to specify style (based on empty or not)
+FGCOLOR_COL = 4  # : Column to specify color (based on empty or not)
+WEIGHT_COL = 5  # : Column to specify the font weight (open page in bold)
+N_CHILD_COL = 6  # : Column with the number of child pages
+TIP_COL = 7  # : Column with the name to be used in the tooltip
 
 # Check the (undocumented) list of constants in gtk.keysyms to see all names
 KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
@@ -103,19 +103,19 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 	# instead.)
 
 	COLUMN_TYPES = (
-		gobject.TYPE_STRING, # NAME_COL
-		gobject.TYPE_PYOBJECT, # PATH_COL
-		bool, # EMPTY_COL
-		pango.Style, # STYLE_COL
-		gobject.TYPE_STRING, # FGCOLOR_COL
-		int, # WEIGHT_COL
-		gobject.TYPE_STRING, # N_CHILD_COL
-		gobject.TYPE_STRING, # TIP_COL
+		gobject.TYPE_STRING,  # NAME_COL
+		gobject.TYPE_PYOBJECT,  # PATH_COL
+		bool,  # EMPTY_COL
+		pango.Style,  # STYLE_COL
+		gobject.TYPE_STRING,  # FGCOLOR_COL
+		int,  # WEIGHT_COL
+		gobject.TYPE_STRING,  # N_CHILD_COL
+		gobject.TYPE_STRING,  # TIP_COL
 	)
 
 
 	NORMAL_COLOR = None
-	EMPTY_COLOR = 'grey' # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
+	EMPTY_COLOR = 'grey'  # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
 
 	def __init__(self):
 		gtk.GenericTreeModel.__init__(self)
@@ -131,7 +131,7 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 		self.invalidate_iters()
 		self.cache.clear()
 		self._flush_scheduled = False
-		return False # In case we are called from idle signal
+		return False  # In case we are called from idle signal
 
 	def _emit_page_changes(self, path):
 		try:
@@ -167,7 +167,7 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 		return PageIndexRecord(myiter.row)
 
 	def on_get_flags(self):
-		return 0 # no flags
+		return 0  # no flags
 
 	def on_get_n_columns(self):
 		return len(self.COLUMN_TYPES)
@@ -216,7 +216,7 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 		if not self._flush_scheduled:
 			def idle_add():
 				gobject.idle_add(self.flush_cache)
-				return False # delete timeout
+				return False  # delete timeout
 
 			gobject.timeout_add(500, idle_add)
 			self._flush_scheduled = True
@@ -379,7 +379,7 @@ class PageTreeView(BrowserTreeView):
 		'''
 		model = self.get_model()
 		if isinstance(model, gtk.TreeModelFilter):
-			model = model.get_model() # get childmodel
+			model = model.get_model()  # get childmodel
 		model.teardown()
 
 	def set_model(self, model):
@@ -465,7 +465,7 @@ class PageTreeView(BrowserTreeView):
 		if dest_row:
 			treepath, position = dest_row
 		else:
-			dragcontext.finish(False, False, time) # NOK
+			dragcontext.finish(False, False, time)  # NOK
 			return
 		model = self.get_model()
 		iter = model.get_iter(treepath)
@@ -489,17 +489,17 @@ class PageTreeView(BrowserTreeView):
 				logger.debug('Dropped page onto itself')
 			else:
 				logger.debug('Paths have same namespace, no reordering')
-			dragcontext.finish(False, False, time) # NOK
+			dragcontext.finish(False, False, time)  # NOK
 			return
 
 		try:
-			notebook = self.ui.notebook # XXX
+			notebook = self.ui.notebook  # XXX
 			notebook.move_page(source, dest, update_links=True)
 		except:
 			logger.exception('Failed to move page %s -> %s', source, dest)
-			dragcontext.finish(False, False, time) # NOK
+			dragcontext.finish(False, False, time)  # NOK
 		else:
-			dragcontext.finish(True, False, time) # OK
+			dragcontext.finish(True, False, time)  # OK
 
 	def set_current_page(self, path, vivificate=False):
 		'''Select a page in the treeview
@@ -513,10 +513,10 @@ class PageTreeView(BrowserTreeView):
 		#~ print '!! SELECT', path
 		model = self.get_model()
 		if model is None:
-			return None # index not yet initialized ...
+			return None  # index not yet initialized ...
 
-		treepath = model.set_current_page(path) # highlight in model
-		return treepath # can be None
+		treepath = model.set_current_page(path)  # highlight in model
+		return treepath  # can be None
 
 	def select_treepath(self, treepath):
 		'''Select a gtk TreePath in the view

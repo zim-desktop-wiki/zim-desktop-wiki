@@ -73,17 +73,17 @@ class ScrolledHBox(gtk.HBox):
 		'size-allocate': 'override',
 	}
 
-	initial_scroll_timeout = 300 # timeout before starting scrolling on button press
-	scroll_timeout = 150 # timeout between scroll steps
+	initial_scroll_timeout = 300  # timeout before starting scrolling on button press
+	scroll_timeout = 150  # timeout between scroll steps
 
 	def __init__(self, spacing=0, homogeneous=False):
 		gtk.HBox.__init__(self)
 		self.set_spacing(spacing)
 		self.set_homogeneous(homogeneous)
 		self._scroll_timeout = None
-		self._anchor = None # tuple of (direction, n) - used in allocate
-		self._first = None # int for first item - set in allocate
-		self._last = None # int for last item - set in allocate
+		self._anchor = None  # tuple of (direction, n) - used in allocate
+		self._first = None  # int for first item - set in allocate
+		self._last = None  # int for last item - set in allocate
 		self._forw_button = ScrollButton(DIR_FORWARD)
 		self._back_button = ScrollButton(DIR_BACKWARD)
 		for button in (self._forw_button, self._back_button):
@@ -146,7 +146,7 @@ class ScrolledHBox(gtk.HBox):
 		elif i > self._last:
 			self.scroll(DIR_FORWARD, i - self._last)
 		else:
-			pass # child was visible already
+			pass  # child was visible already
 
 	def start_scrolling(self, direction, initial_timeout=False):
 		'''Start continues scrolling. Direction should be either
@@ -162,7 +162,7 @@ class ScrolledHBox(gtk.HBox):
 			self._scroll_timeout = \
 				gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
 
-		return False # make sure we are only called once from a timeout
+		return False  # make sure we are only called once from a timeout
 
 	def stop_scrolling(self):
 		'''Stop continues scrolling. Does not do anything if we were not
@@ -213,7 +213,7 @@ class ScrolledHBox(gtk.HBox):
 		if not children:
 			self._forw_button.set_child_visible(False)
 			self._back_button.set_child_visible(False)
-			return # nothing to render
+			return  # nothing to render
 
 
 
@@ -255,7 +255,7 @@ class ScrolledHBox(gtk.HBox):
 					else:
 						last = i
 						available -= needed
-			else: # DIR_BACKWARD
+			else:  # DIR_BACKWARD
 				# fill items from the direction we came from with last scroll
 				for i in range(index + 1, len(children)):
 					needed = widths[i] + spacing
@@ -299,7 +299,7 @@ class ScrolledHBox(gtk.HBox):
 				child_allocation.width = widths[i]
 				children[i].set_child_visible(True)
 				children[i].size_allocate(child_allocation)
-				child_allocation.x += widths[i] + spacing # set x for next child
+				child_allocation.x += widths[i] + spacing  # set x for next child
 
 			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
@@ -331,7 +331,7 @@ class ScrolledHBox(gtk.HBox):
 				child_allocation.x -= child_allocation.width
 				children[i].set_child_visible(True)
 				children[i].size_allocate(child_allocation)
-				child_allocation.x -= spacing # set x for next child
+				child_allocation.x -= spacing  # set x for next child
 
 			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
@@ -357,7 +357,7 @@ class ScrolledHBox(gtk.HBox):
 		# he can tab to the next widget.
 		if direction in (gtk.DIR_TAB_FORWARD, gtk.DIR_TAB_BACKWARD) \
 		and self.focus_child is not None:
-			return False # Let outer container go to next widget
+			return False  # Let outer container go to next widget
 		else:
 			return gtk.HBox.do_focus(self, direction)
 
@@ -483,7 +483,7 @@ class PathBar(ScrolledHBox):
 	def do_button_release_event(self, button, event):
 		'''Handler for button-release-event, triggers popup menu'''
 		if event.button == 3:
-			button.emit('popup-menu') # FIXME do we need to pass x/y and button ?
+			button.emit('popup-menu')  # FIXME do we need to pass x/y and button ?
 			return True
 
 	def on_button_popup_menu(self, button):
@@ -564,8 +564,8 @@ class NamespacePathBar(PathBar):
 		path = self.history.get_grandchild(current) or current
 		paths = list(path.parents())
 		paths.reverse()
-		paths.pop(0) # remove root
-		paths.append(path) # add leaf
+		paths.pop(0)  # remove root
+		paths.append(path)  # add leaf
 		return paths
 
 

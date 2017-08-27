@@ -29,7 +29,7 @@ class TemplateContextDict(ExpressionDictObject):
 
 	_fmethods = ExpressionDictObject._fmethods + (
 		'pop', 'clear', 'update', 'setdefault', 'items'
-	) # adding methods for mutuable mapping here
+	)  # adding methods for mutuable mapping here
 
 
 class TemplateProcessor(object):
@@ -118,14 +118,14 @@ class TemplateProcessor(object):
 				elif element.tag in ('IF', 'ELIF'):
 					expr = element.attrib['expr']
 					if bool(expr(context)):
-						self.__call__(output, element, context) # recurs
+						self.__call__(output, element, context)  # recurs
 						while i < n \
 						and isinstance(elements[i], SimpleTreeElement) \
 						and elements[i].tag in ('ELIF', 'ELSE'):
 							# Skip subsequent ELIF / ELSE clauses
 							i += 1
 				elif element.tag == 'ELSE':
-					self.__call__(output, element, context) # recurs
+					self.__call__(output, element, context)  # recurs
 				elif element.tag == 'FOR':
 					self._loop(output, element, context)
 				elif element.tag == 'INCLUDE':
@@ -133,7 +133,7 @@ class TemplateProcessor(object):
 					if isinstance(expr, ExpressionParameter):
 						name = expr.name
 						if name in self.blocks:
-							self.__call__(output, self.blocks[name], context) # recurs
+							self.__call__(output, self.blocks[name], context)  # recurs
 						else:
 							raise AssertionError('No such block defined: %s' % name)
 					else:
@@ -165,8 +165,8 @@ class TemplateProcessor(object):
 		myiter = MovingWindowIter(items)
 		for i, items in enumerate(myiter):
 			loop._update(i, myiter)
-			self._set(context, var, items[1]) # set var
-			self.__call__(output, element, context) # recurs
+			self._set(context, var, items[1])  # set var
+			self.__call__(output, element, context)  # recurs
 
 		# restore "loop"
 		context['loop'] = outer

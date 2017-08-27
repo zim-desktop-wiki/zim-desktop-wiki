@@ -80,7 +80,7 @@ class TestNotebookInfoList(tests.TestCase):
 		self.assertEqual(info.uri, dir.uri)
 		self.assertEqual(info.name, 'foo')
 
-		newlist = get_notebook_list() # just to be sure re-laoding works..
+		newlist = get_notebook_list()  # just to be sure re-laoding works..
 		self.assertTrue(len(list) == 1)
 		info = newlist.get_by_name('foo')
 		self.assertEqual(info.uri, dir.uri)
@@ -124,10 +124,10 @@ class TestNotebookInfoList(tests.TestCase):
 		# Check interwiki parsing - included here since it interacts with the notebook list
 		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
 		self.assertEqual(interwiki_link('foo?Foo'), 'zim+' + dir.uri + '?Foo')
-		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
-		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
-		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo') # name
-		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo') # name
+		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo')  # interwiki key
+		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo')  # interwiki key
+		self.assertEqual(interwiki_link('bar?Foo'), 'zim+' + uri1 + '?Foo')  # name
+		self.assertEqual(interwiki_link('Bar?Foo'), 'zim+' + uri1 + '?Foo')  # name
 
 		# Check backward compatibility
 		file = File('tests/data/notebook-list-old-format.list')
@@ -222,7 +222,7 @@ mount=%s %s
 		nbid = None
 		for uri, path in (
 			(self.notebookdir.uri, None),
-			(self.notebookdir.uri, None), # repeat to check uniqueness
+			(self.notebookdir.uri, None),  # repeat to check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
 			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
@@ -256,7 +256,7 @@ class TestNotebook(tests.TestCase):
 		page1 = self.notebook.get_page(Path('Tree:foo'))
 		page2 = self.notebook.get_page(Path('Tree:foo'))
 		self.assertTrue(page1.valid)
-		self.assertTrue(id(page2) == id(page1)) # check usage of weakref
+		self.assertTrue(id(page2) == id(page1))  # check usage of weakref
 		self.notebook.flush_page_cache(Path('Tree:foo'))
 		page3 = self.notebook.get_page(Path('Tree:foo'))
 		self.assertTrue(id(page3) != id(page1))
@@ -275,13 +275,13 @@ class TestNotebook(tests.TestCase):
 		#~ self.assertEqual(page.dump('plain'), text) # object reverted
 		#~ self.assertFalse(page.modified)
 		self.notebook.flush_page_cache(page)
-		page = self.notebook.get_page(page) # new object
+		page = self.notebook.get_page(page)  # new object
 		self.assertEqual(page.dump('plain'), text)
 		page.parse('plain', newtext)
 		self.assertEqual(page.dump('plain'), newtext)
 		self.notebook.store_page(page)
 		self.notebook.flush_page_cache(page)
-		page = self.notebook.get_page(page) # new object
+		page = self.notebook.get_page(page)  # new object
 		self.assertEqual(page.dump('plain'), newtext)
 
 		# ensure storing empty tree works
@@ -328,7 +328,7 @@ class TestNotebook(tests.TestCase):
 			# newpath should exist and look like the old one
 			page = self.notebook.get_page(newpath)
 			self.assertTrue(page.haschildren)
-			text = [l.replace('[[foo:bar]]', '[[+bar]]') for l in text] # fix one updated link
+			text = [l.replace('[[foo:bar]]', '[[+bar]]') for l in text]  # fix one updated link
 			self.assertEqual(page.dump('wiki'), text)
 
 			# oldpath should be deleted
@@ -389,7 +389,7 @@ class TestNotebook(tests.TestCase):
 			':AnotherNewPage:Foo:bar\n'
 			'**bold** [[:AnotherNewPage]]\n')
 
-		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar')) # now should fail silently
+		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar'))  # now should fail silently
 
 		page = self.notebook.get_page(Path('AnotherNewPage'))
 		self.assertFalse(page.haschildren)
@@ -597,7 +597,7 @@ http://foo.org # urls are untouched
 		path = Path('Foo:Bar')
 		dir = self.notebook.dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		self.notebook.do_properties_changed() # parse config
+		self.notebook.do_properties_changed()  # parse config
 		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
@@ -839,8 +839,8 @@ class TestPage(TestPath):
 
 		self.assertRaises(zim.newfs.FileChangedError, page._store)
 
-		### Custom header should be preserved
-		### Also when setting new ParseTree - e.g. after edting
+		# Custom header should be preserved
+		# Also when setting new ParseTree - e.g. after edting
 		file.writelines(lines[0:3] + ['X-Custom-Header: MyTest'] + lines[3:])
 		page = Page(Path('Foo'), False, file, folder)
 		tree = page.get_parsetree()
@@ -955,11 +955,11 @@ class TestPageChangeFile(tests.TestCase):
 			old = file.mtime()
 			file.write(text)
 			while file.mtime() == old:
-				time.sleep(0.01) # new mtime
+				time.sleep(0.01)  # new mtime
 				file.write(text)
 
-		## First we don't keep ref, but change params quick enough
-		## that caching will not have time to clean up
+		# First we don't keep ref, but change params quick enough
+		# that caching will not have time to clean up
 
 		page.parse('wiki', 'Test 123\n')
 		notebook.store_page(page)
@@ -975,7 +975,7 @@ class TestPageChangeFile(tests.TestCase):
 		self.assertEqual(page.dump('wiki'), ['Test 5 6 7 8\n'])
 
 
-		## Repeat but keep refs explicitly
+		# Repeat but keep refs explicitly
 
 		page1 = notebook.get_page(Path('SomeOtherPage'))
 		page1.parse('wiki', 'Test 123\n')
@@ -1053,4 +1053,4 @@ class TestBackgroundSave(tests.TestCase):
 
 		text = page.dump('wiki')
 		self.assertEqual(text[-1], 'test 123\n')
-		self.assertEqual(signals['stored-page'], [(page,)]) # post handler happened as well
+		self.assertEqual(signals['stored-page'], [(page,)])  # post handler happened as well

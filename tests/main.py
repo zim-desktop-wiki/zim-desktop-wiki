@@ -103,13 +103,13 @@ class TestNotebookCommand(tests.TestCase):
 class TestGui(tests.TestCase):
 
 	def setUp(self):
-		config = ConfigManager() # XXX should be passed in
+		config = ConfigManager()  # XXX should be passed in
 		file = config.get_config_file('notebooks.list')
 		file.remove()
 
 	def runTest(self):
 
-		## Without argument should prompt
+		# Without argument should prompt
 		def testAddNotebookDialog(dialog):
 			self.assertIn(dialog.__class__.__name__,
 				('AddNotebookDialog', 'NotebookDialog')
@@ -117,9 +117,9 @@ class TestGui(tests.TestCase):
 
 		cmd = GuiCommand('gui')
 		with tests.DialogContext(testAddNotebookDialog):
-			cmd.run() # Exist without running due to no notebook given in dialog
+			cmd.run()  # Exist without running due to no notebook given in dialog
 
-		### Try again with argument
+		# Try again with argument
 		dir = self.create_tmp_dir()
 		cmd = GuiCommand('gui')
 		cmd.parse_options(dir)
@@ -128,7 +128,7 @@ class TestGui(tests.TestCase):
 		self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
-		self.assertEqual(window.ui.notebook.uri, Dir(dir).uri) # XXX
+		self.assertEqual(window.ui.notebook.uri, Dir(dir).uri)  # XXX
 
 		window2 = cmd.run()
 		self.assertIs(window2, window)
@@ -161,7 +161,7 @@ class TestServer(tests.TestCase):
 		t = threading.Thread(target=cmd.run)
 		t.start()
 		try:
-			time.sleep(3) # give time to startup
+			time.sleep(3)  # give time to startup
 			re = urlopen('http://localhost:8080')
 			self.assertEqual(re.getcode(), 200)
 		finally:
@@ -207,7 +207,7 @@ class TestIPC(tests.TestCase):
 		self.assertRaises(AssertionError, zim.main.ipc.dispatch, 'test', '123')
 			# raises due to sanity check same process
 
-		zim.main.ipc.set_in_main_process(False) # overrule sanity check
+		zim.main.ipc.set_in_main_process(False)  # overrule sanity check
 		t = threading.Thread(target=zim.main.ipc.dispatch, args=('test', '123'))
 		t.start()
 		while t.is_alive():
@@ -258,7 +258,7 @@ class TestZimApplication(tests.TestCase):
 				import gobject
 				import gtk
 				gtk.main_quit()
-				return False # stop timer
+				return False  # stop timer
 
 			def run(self):
 				import gobject

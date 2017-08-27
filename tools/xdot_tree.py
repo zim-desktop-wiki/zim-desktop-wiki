@@ -28,7 +28,7 @@ class Graph(object):
 				text += '\n"%s"' % item
 				text += '\n"%s" -> "%s"' % (module.name, item)
 			else:
-				text += self._code_for_module(item) # recurs
+				text += self._code_for_module(item)  # recurs
 				text += '\n"%s" -> "%s"' % (module.name, item.name)
 		return text
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
 	graph = Graph(ModuleDir('./zim'))
 	window = xdot.DotWindow()
 	window.connect('destroy', lambda o: gtk.main_quit())
-	#print graph.get_dotcode()
+	# print graph.get_dotcode()
 	window.set_dotcode(graph.get_dotcode())
 	window.show_all()
 	gtk.main()

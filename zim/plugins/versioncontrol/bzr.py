@@ -117,7 +117,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 	def init_repo(self):
 		self.init()
 		if not self.test_whoami():
-			self.whoami('zim') # set a dummy user "zim"
+			self.whoami('zim')  # set a dummy user "zim"
 		self.ignore('**/.zim/')
 		self.add('.')
 

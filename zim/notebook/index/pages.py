@@ -26,12 +26,12 @@ FILE_TYPE_PAGE_SOURCE, \
 FILE_TYPE_ATTACHMENT
 
 ROOT_PATH = Path(':')
-ROOT_ID = 1 # Constant for the ID of the root namespace in "pages"
+ROOT_ID = 1  # Constant for the ID of the root namespace in "pages"
 			# (Primary key starts count at 1 and first entry will be root)
 
-PAGE_EXISTS_UNCERTAIN = 0 # e.g. folder with unknown children - not shown to outside world
-PAGE_EXISTS_AS_LINK = 1 # placeholder for link target
-PAGE_EXISTS_HAS_CONTENT = 2 # either has content or children have content
+PAGE_EXISTS_UNCERTAIN = 0  # e.g. folder with unknown children - not shown to outside world
+PAGE_EXISTS_AS_LINK = 1  # placeholder for link target
+PAGE_EXISTS_HAS_CONTENT = 2  # either has content or children have content
 
 
 def emptyParseTree():
@@ -87,7 +87,7 @@ class PagesIndexer(IndexerBase):
 				'VALUES (? , ?, ?, ?)',
 				(0, '', '', 1)
 			)
-			assert c.lastrowid == 1 # ensure we start empty
+			assert c.lastrowid == 1  # ensure we start empty
 
 	def _select(self, pagename):
 		return self.db.execute(
@@ -103,7 +103,7 @@ class PagesIndexer(IndexerBase):
 	def on_file_row_inserted(self, o, filerow):
 		pagename, file_type = self.layout.map_filepath(filerow['path'])
 		if file_type != FILE_TYPE_PAGE_SOURCE:
-			return # nothing to do
+			return  # nothing to do
 
 		row = self._select(pagename)
 		if row is None:
@@ -123,7 +123,7 @@ class PagesIndexer(IndexerBase):
 	def on_file_row_changed(self, o, filerow):
 		pagename, file_type = self.layout.map_filepath(filerow['path'])
 		if file_type != FILE_TYPE_PAGE_SOURCE:
-			return # nothing to do
+			return  # nothing to do
 
 		row = self._select(pagename)
 		assert row is not None
@@ -135,12 +135,12 @@ class PagesIndexer(IndexerBase):
 			tree = format.Parser().parse(file.read())
 			self.update_page(pagename, mtime, tree)
 		else:
-			pass # some conflict file changed
+			pass  # some conflict file changed
 
 	def on_file_row_deleted(self, o, filerow):
 		pagename, file_type = self.layout.map_filepath(filerow['path'])
 		if file_type != FILE_TYPE_PAGE_SOURCE:
-			return # nothing to do
+			return  # nothing to do
 
 		row = self._select(pagename)
 		assert row is not None
@@ -161,7 +161,7 @@ class PagesIndexer(IndexerBase):
 			else:
 				self.remove_page(pagename)
 		else:
-			raise NotImplemented # some conflict removed
+			raise NotImplemented  # some conflict removed
 
 	def insert_page(self, pagename, file_id):
 		return self._insert_page(pagename, False, file_id)
@@ -184,7 +184,7 @@ class PagesIndexer(IndexerBase):
 		# insert parents
 		parent_row = self._select(pagename.parent)
 		if parent_row is None:
-			self._insert_page(pagename.parent, is_link_placeholder) # recurs
+			self._insert_page(pagename.parent, is_link_placeholder)  # recurs
 			parent_row = self._select(pagename.parent)
 			assert parent_row is not None
 
@@ -223,7 +223,7 @@ class PagesIndexer(IndexerBase):
 				'UPDATE pages SET n_children=? WHERE id=?',
 				(n_children, row['id'])
 			)
-			self.remove_page(parentname, allow_cleanup) # indirect recurs
+			self.remove_page(parentname, allow_cleanup)  # indirect recurs
 		else:
 			# update table
 			is_placeholder = row['source_file'] is None and all_child_are_placeholder
@@ -232,7 +232,7 @@ class PagesIndexer(IndexerBase):
 				(n_children, is_placeholder, row['id'])
 			)
 			if bool(row['is_link_placeholder']) is not is_placeholder:
-				self.update_parent(parentname.parent) # recurs
+				self.update_parent(parentname.parent)  # recurs
 
 			# notify others
 			if not parentname.isroot:
@@ -358,18 +358,18 @@ class PagesViewInternal(object):
 					'WHERE sortkey=? and is_link_placeholder=0 '
 					'ORDER BY name DESC',
 					(anchor_key,)
-				) # sort longest first
+				)  # sort longest first
 			else:
 				c = self.db.execute(
 					'SELECT name FROM pages '
 					'WHERE sortkey=? '
 					'ORDER BY name DESC',
 					(anchor_key,)
-				) # sort longest first
+				)  # sort longest first
 
 			maxdepth = source.name.count(':')
-			depth = -1 # level where items were found
-			found = [] # candidates that match the link - these can only differ in case of the basename
+			depth = -1  # level where items were found
+			found = []  # candidates that match the link - these can only differ in case of the basename
 			for name, in c:
 				mydepth = name.count(':')
 				if mydepth > maxdepth:
@@ -377,15 +377,15 @@ class PagesViewInternal(object):
 				elif mydepth < depth:
 					break
 
-				if mydepth > 0: # check whether we have a common parent
+				if mydepth > 0:  # check whether we have a common parent
 					parentname = name.rsplit(':', 1)[0]
 					if start.name.startswith(parentname):
 						depth = mydepth
 						found.append(name)
-				else: # resolve from root namespace
+				else:  # resolve from root namespace
 					found.append(name)
 
-			if found: # try to match case first, else just use first match
+			if found:  # try to match case first, else just use first match
 				parts = href.parts()
 				anchor = parts.pop(0)
 				for name in found:
@@ -435,7 +435,7 @@ class PagesViewInternal(object):
 					(page_id, "%:" + basename)
 				).fetchone()
 
-			if row: # exact match
+			if row:  # exact match
 				pagename = Path(row['name'])
 				page_id = row['id']
 			else:
@@ -445,10 +445,10 @@ class PagesViewInternal(object):
 					'WHERE parent=? and sortkey=? ORDER BY name',
 					(page_id, sortkey)
 				).fetchone()
-				if row: # case insensitive match
+				if row:  # case insensitive match
 					pagename = Path(row['name'])
 					page_id = row['id']
-				else: # no match
+				else:  # no match
 					return None, pagename.child(':'.join(names[i:])), 1
 		else:
 			return page_id, pagename, 2
@@ -463,7 +463,7 @@ class PagesViewInternal(object):
 		):
 			yield PageIndexRecord(row)
 			if row['n_children'] > 0:
-				for child in self.walk(row['id']): # recurs
+				for child in self.walk(row['id']):  # recurs
 					yield child
 
 	def walk_bottomup(self, parent_id):
@@ -473,7 +473,7 @@ class PagesViewInternal(object):
 			(parent_id,)
 		):
 			if row['n_children'] > 0:
-				for child in self.walk_bottomup(row['id']): # recurs
+				for child in self.walk_bottomup(row['id']):  # recurs
 					yield child
 			yield PageIndexRecord(row)
 
@@ -503,7 +503,7 @@ class PagesView(IndexView):
 		if path is None:
 			page_id = ROOT_ID
 		else:
-			page_id = self._pages.get_page_id(path) # can raise
+			page_id = self._pages.get_page_id(path)  # can raise
 		return self._list_pages(page_id)
 
 	def _list_pages(self, page_id):
@@ -532,17 +532,17 @@ class PagesView(IndexView):
 		'''
 		# Need to do this recursive to preserve sorting
 		#              else we could just do "name LIKE parent%"
-		page_id = self._pages.get_page_id(path) if path else ROOT_ID # can raise
+		page_id = self._pages.get_page_id(path) if path else ROOT_ID  # can raise
 		return self._pages.walk(page_id)
 
 	def walk_bottomup(self, path=None):
-		page_id = self._pages.get_page_id(path) if path else ROOT_ID # can raise
+		page_id = self._pages.get_page_id(path) if path else ROOT_ID  # can raise
 		return self._pages.walk_bottomup(page_id)
 
 	def n_all_pages(self):
 		'''Returns to total number of pages in the index'''
 		c, = self.db.execute('SELECT COUNT(*) FROM pages').fetchone()
-		return c - 1 # don't count ROOT
+		return c - 1  # don't count ROOT
 
 	def get_previous(self, path):
 		'''Get the previous path in the index, in the same order that
@@ -675,7 +675,7 @@ class PagesView(IndexView):
 		@param target: a L{Path} object
 		@returns: a L{HRef} object
 		'''
-		if target == source: # weird edge case ..
+		if target == source:  # weird edge case ..
 			return HRef(HREF_REL_FLOATING, target.basename)
 		elif target.ischild(source):
 			return HRef(HREF_REL_RELATIVE, target.relname(source))
@@ -704,7 +704,7 @@ class PagesView(IndexView):
 			return href if pagename == target else None
 
 		relnames = target.parts[len(parentnames):]
-		if not relnames: # Target is direct parent
+		if not relnames:  # Target is direct parent
 			relnames.insert(0, parentnames.pop())
 		href = try_link(relnames)
 		if href is not None:
@@ -716,7 +716,7 @@ class PagesView(IndexView):
 				if href:
 					return href
 			else:
-				return None # no floating link possible
+				return None  # no floating link possible
 
 	def list_recent_changes(self, limit=None, offset=None):
 		assert not (offset and not limit), "Can't use offset without limit"
@@ -731,7 +731,7 @@ class PagesView(IndexView):
 			yield PageIndexRecord(row)
 
 
-IS_PAGE = 1 #: Hint for MyTreeIter
+IS_PAGE = 1  # : Hint for MyTreeIter
 
 class PagesTreeModelMixin(TreeModelMixinBase):
 
@@ -752,20 +752,20 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		for treepath in self._find_all_pages(row['name']):
 			if treepath[-1] == 0 and len(treepath) > 1:
 				self._check_parent_has_child_toggled(treepath)
-			treeiter = self.get_iter(treepath) # not mytreeiter !
+			treeiter = self.get_iter(treepath)  # not mytreeiter !
 			self.emit('row-inserted', treepath, treeiter)
 
 	def _check_parent_has_child_toggled(self, treepath):
 		parent = self.get_mytreeiter(treepath[:-1])
 		if parent.row['n_children'] == 1:
-			treeiter = self.get_iter(parent.treepath) # not mytreeiter !
+			treeiter = self.get_iter(parent.treepath)  # not mytreeiter !
 			self.emit('row-has-child-toggled', parent.treepath, treeiter)
 
 	def on_page_row_changed(self, o, row, oldrow):
 		# no clear cache here - just update row
 		for treepath in self._find_all_pages(row['name']):
-			treeiter = self.get_iter(treepath) # not mytreeiter !
-			self.cache[treepath].row = row # ensure uptodate info
+			treeiter = self.get_iter(treepath)  # not mytreeiter !
+			self.cache[treepath].row = row  # ensure uptodate info
 			self.emit('row-changed', treepath, treeiter)
 
 	def on_page_row_deleted(self, o, row):
@@ -790,7 +790,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			parent_id = ROOT_ID
 		else:
 			parent_iter = self.cache.get(parentpath, None) \
-							or self.get_mytreeiter(parentpath) # recurs
+							or self.get_mytreeiter(parentpath)  # recurs
 			if parent_iter:
 				parent_id = parent_iter.row['id']
 			else:
@@ -808,7 +808,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			if mytreepath not in self.cache:
 				self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
 			else:
-				break # avoid overwriting cache because of ref count
+				break  # avoid overwriting cache because of ref count
 
 		return self.cache.get(treepath, None)
 

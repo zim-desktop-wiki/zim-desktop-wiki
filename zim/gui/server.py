@@ -45,7 +45,7 @@ class ServerWindow(gtk.Window):
 		@param opts: options for L{WWWInterface.__init__()}
 		'''
 		gtk.Window.__init__(self)
-		self.set_title('Zim - ' + _('Web Server')) # T: Window title
+		self.set_title('Zim - ' + _('Web Server'))  # T: Window title
 		self.set_border_width(10)
 		self.interface_opts = opts
 		self.httpd = None
@@ -129,7 +129,7 @@ class ServerWindow(gtk.Window):
 			if not notebook.index.is_uptodate:
 				for info in notebook.index.update_iter():
 					#logger.info('Indexing %s', info)
-					pass # TODO meaningful info for above message
+					pass  # TODO meaningful info for above message
 
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
@@ -138,13 +138,13 @@ class ServerWindow(gtk.Window):
 				# glib io watch conflicts with socket use on windows..
 				# idle handler uses a bit to much CPU for my taste,
 				# timeout every 0.5 sec is better
-				self.httpd.timeout = 0.1 # 100 ms
+				self.httpd.timeout = 0.1  # 100 ms
 				self._source_id = glib.timeout_add(500, self.do_serve_on_poll)
 			else:
-				self.httpd.timeout = 3 # if no response after 3 sec, drop it
+				self.httpd.timeout = 3  # if no response after 3 sec, drop it
 				self._source_id = glib.io_add_watch(
 					self.httpd.fileno(),
-					glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI, # any event..
+					glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI,  # any event..
 					self.do_serve_on_io
 				)
 			logger.info("Serving HTTP on %s port %i...", self.httpd.server_name, self.httpd.server_port)
@@ -162,9 +162,9 @@ class ServerWindow(gtk.Window):
 
 		self.status_label.set_markup('<i>' + _('Server started') + '</i>')
 			# T: Status in web server gui
-		#if self.public_checkbox.get_active():
+		# if self.public_checkbox.get_active():
 		#	url = 'http://%s:%i' % (self.httpd.server_name, self.httpd.server_port)
-		#else:
+		# else:
 		#	url = 'http://localhost:%i' % self.httpd.server_port
 		url = 'http://localhost:%i' % self.httpd.server_port
 		if self.link_button:
@@ -182,11 +182,11 @@ class ServerWindow(gtk.Window):
 		except:
 			logger.exception('Exception while handling IO request:')
 
-		return True # keep event running
+		return True  # keep event running
 
 	def do_serve_on_poll(self):
 		self.httpd.handle_request()
-		return True # keep event running
+		return True  # keep event running
 
 	def stop(self):
 		# Stop server

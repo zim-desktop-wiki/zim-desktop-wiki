@@ -13,7 +13,7 @@ class TestNaturalSorting(tests.TestCase):
 
 	def runTest(self):
 		input = [
-			'a', 'Aa', 'AA', # (these last 2 should be swapped due to case)
+			'a', 'Aa', 'AA',  # (these last 2 should be swapped due to case)
 			'1.1 foo', '10.1.1 bar', '2.1 dus', '1.01 foo',
 			'foo2bar', 'foo10bar', 'foo01bar',
 		]

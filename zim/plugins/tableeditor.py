@@ -99,11 +99,11 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		'author': 'Tobias Haupenthal',
 	}
 
-	global LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL, LINES_BOTH # Hack - to make sure translation is loaded
-	LINES_BOTH = _('with lines') # T: option value
-	LINES_NONE = _('no grid lines') # T: option value
-	LINES_HORIZONTAL = _('horizontal lines') # T: option value
-	LINES_VERTICAL = _('vertical lines') # T: option value
+	global LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL, LINES_BOTH  # Hack - to make sure translation is loaded
+	LINES_BOTH = _('with lines')  # T: option value
+	LINES_NONE = _('no grid lines')  # T: option value
+	LINES_HORIZONTAL = _('horizontal lines')  # T: option value
+	LINES_VERTICAL = _('vertical lines')  # T: option value
 
 
 
@@ -249,7 +249,7 @@ class MainWindowExtension(WindowExtension):
 		rows = [len(headers) * [' ']]
 
 		obj = TableViewObject(attrib, headers, rows, self.plugin.preferences)
-		pageview = self.window.pageview # XXX
+		pageview = self.window.pageview  # XXX
 		pageview.insert_object(obj)
 
 
@@ -276,13 +276,13 @@ class TableViewObject(CustomObjectClass):
 				v = ','.join(map(str, v))
 			_attrib[k] = v
 		CustomObjectClass.__init__(self, _attrib, [header] + rows)
-		self.attrib = {'type': OBJECT_TYPE} # just to be sure
+		self.attrib = {'type': OBJECT_TYPE}  # just to be sure
 
 		self._tableattrib = attrib
 		self._header = header
 		self._rows = rows
 		self._widgets = WeakSet()
-		self._liststore = None # shared model between widgets
+		self._liststore = None  # shared model between widgets
 
 		self.preferences = preferences
 
@@ -391,7 +391,7 @@ class TableViewObject(CustomObjectClass):
 			attrib = {'aligns': self.get_aligns(), 'wraps': self.get_wraps()}
 			widget.on_model_changed(liststore, headers, attrib)
 
-		self.preferences_changed() # reset prefs on widgets
+		self.preferences_changed()  # reset prefs on widgets
 
 	def _update_rows(self, old_rows, id_mapping, nr_cols):
 		''' Old value of cells are used in the new table, but only if its column is not deleted '''
@@ -532,7 +532,7 @@ class TableViewWidget(CustomObjectWidget):
 		# Negotiate how to wrap ..
 		for col in self.treeview.get_columns():
 			cr = col.get_cell_renderers()[0]
-			cr.set_property('wrap-width', -1) # reset size
+			cr.set_property('wrap-width', -1)  # reset size
 
 			#~ col.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
 			#~ col.set_max_width(0)	 # shrink column
@@ -557,7 +557,7 @@ class TableViewWidget(CustomObjectWidget):
 			for col, wrap in zip(self.treeview.get_columns(), wraps):
 				if wrap:
 					cr = col.get_cell_renderers()[0]
-					cr.set_property('wrap-width', wrap_size) # reset size
+					cr.set_property('wrap-width', wrap_size)  # reset size
 
 			# Update request
 			CustomObjectWidget.do_size_request(self, requisition)
@@ -696,7 +696,7 @@ class TableViewWidget(CustomObjectWidget):
 		col_label.set_use_markup(True)
 		col_label.show()
 		col_widget.pack_start(col_label)
-		#col_align.add(col_label)
+		# col_align.add(col_label)
 
 		'''col_entry = InputEntry()
 		col_entry.set_name('treeview-header-entry')
@@ -878,7 +878,7 @@ class TableViewWidget(CustomObjectWidget):
 		new_model = EditTableDialog(self.get_toplevel(), old_model).run()
 
 		if new_model:
-			self.obj.change_model(new_model) # Will call back to change our treeview
+			self.obj.change_model(new_model)  # Will call back to change our treeview
 
 	def on_cell_changed(self, cellrenderer, path, text, liststore, colid):
 		''' Trigger after cell-editing, to transform displayed table cell into right format '''
@@ -1233,6 +1233,6 @@ class EditTableDialog(Dialog):
 	def selection_info(self):
 		''' Info-Popup for selecting a cell before this action can be done '''
 		md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
-								_("Please select a row, before you push the button.")) # T: Popup dialog
+								_("Please select a row, before you push the button."))  # T: Popup dialog
 		md.run()
 		md.destroy()

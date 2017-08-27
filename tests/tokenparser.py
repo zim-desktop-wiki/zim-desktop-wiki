@@ -30,7 +30,7 @@ class TestTokenParser(tests.TestCase):
 		tree = tests.new_parsetree()
 		tb = TokenBuilder()
 		tree.visit(tb)
-		tokens = tb._tokens # using raw tokens
+		tokens = tb._tokens  # using raw tokens
 
 		newtokens = topLevelLists(tokens)
 		testTokenStream(newtokens)

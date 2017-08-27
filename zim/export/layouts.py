@@ -16,7 +16,7 @@ class ExportLayout(object):
 	when exporting. This is the base class that defines the public API.
 	'''
 
-	relative_root = None #: Used by linker to make paths relative
+	relative_root = None  # : Used by linker to make paths relative
 
 	def page_file(self, page):
 		'''Returns the file for a page

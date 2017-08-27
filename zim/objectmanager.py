@@ -14,8 +14,8 @@ from zim.config.dicts import ConfigDict, String
 
 import zim.plugins
 
-## TODO remove singleton contruction, add ref to plugin manager
-##      to allow fallback object widget to have toolbar to load plugin
+# TODO remove singleton contruction, add ref to plugin manager
+# to allow fallback object widget to have toolbar to load plugin
 
 class _ObjectManager(object):
 	'''Manages custom objects.'''
@@ -103,9 +103,9 @@ class _ObjectManager(object):
 		@returns: a 5-tuple of the plugin name, a boolean for the
 		dependency check, the plugin class, or C{None} and the related plugin window_extension
 		'''
-		for name in zim.plugins.PluginManager.list_installed_plugins(): # XXX
+		for name in zim.plugins.PluginManager.list_installed_plugins():  # XXX
 			try:
-				klass = zim.plugins.PluginManager.get_plugin_class(name) # XXX
+				klass = zim.plugins.PluginManager.get_plugin_class(name)  # XXX
 				types = klass.plugin_info.get('object_types')
 				if types and type in types:
 					activatable = klass.check_dependencies_ok()
@@ -116,7 +116,7 @@ class _ObjectManager(object):
 				continue
 		return None
 
-ObjectManager = _ObjectManager() # Singleton object
+ObjectManager = _ObjectManager()  # Singleton object
 
 
 class CustomObjectClass(SignalEmitter):

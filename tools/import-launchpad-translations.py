@@ -17,7 +17,7 @@ def count_translations(file):
 def count(prefix, file):
 	count = 0
 	l = len(prefix)
-	check_multiline = False # track multiline messages
+	check_multiline = False  # track multiline messages
 	for line in file:
 		if line.startswith(prefix):
 			string = line[l:].strip().strip('"')
@@ -43,7 +43,7 @@ def get_lang(name):
 def import_translations_from(archive):
 	tfile = tarfile.open(archive, 'r:gz')
 	names = tfile.getnames()
-	#print names
+	# print names
 
 	potfiles = [n for n in names if n.endswith('.pot')]
 	assert len(potfiles) == 1, 'Multiple template files in this archive !?'

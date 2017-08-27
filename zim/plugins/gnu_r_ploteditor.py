@@ -30,18 +30,18 @@ gnu_r_cmd = ('R',)
 class InsertGNURPlotPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
-		'name': _('Insert GNU R Plot'), # T: plugin name
+		'name': _('Insert GNU R Plot'),  # T: plugin name
 		'description': _('''\
 This plugin provides a plot editor for zim based on GNU R.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'help': 'Plugins:GNU R Plot Editor',
 		'author': 'Lee Braiden',
 	}
 
 	object_type = 'gnu_r_plot'
-	short_label = _('GNU _R Plot') # T: menu item
-	insert_label = _('Insert GNU R Plot') # T: menu item
-	edit_label = _('_Edit GNU R Plot') # T: menu item
+	short_label = _('GNU _R Plot')  # T: menu item
+	insert_label = _('Insert GNU R Plot')  # T: menu item
+	edit_label = _('_Edit GNU R Plot')  # T: menu item
 	syntax = 'r'
 
 	@classmethod
@@ -67,8 +67,8 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		plotscriptfile = self.plotscriptfile
 		pngfile = File(plotscriptfile.path[:-2] + '.png')
 
-		plot_width = 480 # default image width (px)
-		plot_height = 480 # default image height (px)
+		plot_width = 480  # default image width (px)
+		plot_height = 480  # default image height (px)
 
 		# LOOK for image size in comments of the script
 		r = re.search(r"^#\s*WIDTH\s*=\s*([0-9]+)$", text, re.M)
@@ -90,7 +90,7 @@ class GNURPlotGenerator(ImageGeneratorClass):
 		lines = []
 		self.template.process(lines, template_vars)
 		plotscriptfile.writelines(lines)
-		#print '>>>%s<<<' % plotscriptfile.read()
+		# print '>>>%s<<<' % plotscriptfile.read()
 
 		# Call GNU R
 		try:
@@ -98,7 +98,7 @@ class GNURPlotGenerator(ImageGeneratorClass):
 			#~ gnu_r.run(args=('-f', plotscriptfile.basename, ), cwd=plotscriptfile.dir)
 			gnu_r.run(args=('-f', plotscriptfile.basename, '--vanilla'), cwd=plotscriptfile.dir)
 		except:
-			return None, None # Sorry, no log
+			return None, None  # Sorry, no log
 		else:
 			return pngfile, None
 

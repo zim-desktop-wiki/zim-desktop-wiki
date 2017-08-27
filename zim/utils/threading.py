@@ -61,7 +61,7 @@ class FunctionThread(threading.Thread):
 		# Only goal if this callback is to ensure python runs in mainloop
 		# as long as thread is alive - avoid C code blocking for a long time
 		# See comment at threads_init() in zim/main/__init__.py
-		return self.is_alive() # if False, stop event
+		return self.is_alive()  # if False, stop event
 
 	def run(self):
 		try:

@@ -25,20 +25,20 @@ dotcmd = ('ditaa')
 class InsertDitaaPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
-		'name': _('Insert Ditaa'), # T: plugin name
+		'name': _('Insert Ditaa'),  # T: plugin name
 		'description': _('''\
 This plugin provides a diagram editor for zim based on Ditaa.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
         'help': 'Plugins:Ditaa Editor',
 		'author': 'Yao-Po Wang',
 	}
 
 	object_type = 'ditaa'
-	short_label = _('Ditaa') # T: menu item
-	insert_label = _('Insert Ditaa') # T: menu item
-	edit_label = _('_Edit Ditaa') # T: menu item
+	short_label = _('Ditaa')  # T: menu item
+	insert_label = _('Insert Ditaa')  # T: menu item
+	edit_label = _('_Edit Ditaa')  # T: menu item
 	syntax = None
 
 	@classmethod
@@ -59,7 +59,7 @@ class DitaaGenerator(ImageGeneratorClass):
 		ImageGeneratorClass.__init__(self, plugin)
 		self.dotfile = TmpFile(self.scriptname)
 		self.dotfile.touch()
-		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
+		self.pngfile = File(self.dotfile.path[:-4] + '.png')  # len('.dot') == 4
 
 	def generate_image(self, text):
 		# Write to tmp file
@@ -70,7 +70,7 @@ class DitaaGenerator(ImageGeneratorClass):
 			dot = Application(dotcmd)
 			dot.run((self.dotfile, '-o', self.pngfile))
 		except ApplicationError:
-			return None, None # Sorry, no log
+			return None, None  # Sorry, no log
 		else:
 			return self.pngfile, None
 

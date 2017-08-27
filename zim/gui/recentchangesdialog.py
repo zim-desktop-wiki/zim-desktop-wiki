@@ -18,7 +18,7 @@ logger = logging.getLogger('zim.gui.dialogs')
 class RecentChangesDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Recent Changes'), # T: Dialog title
+		Dialog.__init__(self, ui, _('Recent Changes'),  # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE,
 			defaultwindowsize=(400, 300)
 		)
@@ -50,7 +50,7 @@ class RecentChangesTreeView(BrowserTreeView):
 
 		cell_renderer = gtk.CellRendererText()
 
-		column = gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.NAME_COL) # T: Column header
+		column = gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.NAME_COL)  # T: Column header
 		column.set_sort_column_id(self.NAME_COL)
 		column.set_expand(True)
 		self.append_column(column)
@@ -69,9 +69,9 @@ class RecentChangesTreeView(BrowserTreeView):
 					text = _('Yesterday') + datetime.strftime(' %H:%M', dt)
 					# T: label for modified time
 				elif date.year == today.year:
-					text = datetime.strftime('%a %d %b %H:%M', dt) # TODO allow config for format ?
+					text = datetime.strftime('%a %d %b %H:%M', dt)  # TODO allow config for format ?
 				else:
-					text = datetime.strftime('%a %d %b %Y %H:%M', dt) # TODO allow config for format ?
+					text = datetime.strftime('%a %d %b %Y %H:%M', dt)  # TODO allow config for format ?
 			else:
 				text = ''
 
@@ -79,7 +79,7 @@ class RecentChangesTreeView(BrowserTreeView):
 
 		cell_renderer = gtk.CellRendererText()
 		#cell_renderer.set_property('font', 'mono')
-		column = gtk.TreeViewColumn(_('Last Modified'), cell_renderer, text=self.MODIFIED_COL) # T: Column header
+		column = gtk.TreeViewColumn(_('Last Modified'), cell_renderer, text=self.MODIFIED_COL)  # T: Column header
 		column.set_cell_data_func(cell_renderer, render_date)
 		column.set_sort_column_id(self.MODIFIED_COL)
 		self.append_column(column)

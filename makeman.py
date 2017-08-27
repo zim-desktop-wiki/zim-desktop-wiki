@@ -42,7 +42,7 @@ def make():
 	try:
 		os.mkdir('man')
 	except OSError:
-		pass # dir already exists
+		pass  # dir already exists
 	setlocale(LC_TIME, "C")
 	manpage = open('man/zim.1', 'w')
 	manpage.write('.TH ZIM "1" "%s" "zim %s" "User Commands"\n' % (strftime('%B %Y', gmtime(int(os.environ.get('SOURCE_DATE_EPOCH', time())))), __version__))

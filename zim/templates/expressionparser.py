@@ -47,7 +47,7 @@ class ExpressionParser(object):
 		'<=': operator.le,
 		'and': operator.and_,
 		'or': operator.or_,
-		'not': operator.not_, # special case - unary operator
+		'not': operator.not_,  # special case - unary operator
 	}
 
 	tokens = [',', '[', ']', '(', ')'] \
@@ -77,7 +77,7 @@ class ExpressionParser(object):
 		'''
 		tokens = self._tokenize(string)
 		expr = self._parse(tokens)
-		if tokens: # trailing stuff remaining
+		if tokens:  # trailing stuff remaining
 			raise ExpressionSyntaxError('Unexpected text after expression: %s' % tokens)
 		return expr
 
@@ -101,7 +101,7 @@ class ExpressionParser(object):
 		lexpr = self._parse_and(tokens)
 		if tokens and tokens[0] == 'or':
 			tokens.pop(0)
-			rexpr = self._parse(tokens) # recurs
+			rexpr = self._parse(tokens)  # recurs
 			return ExpressionOperator(operator.or_, lexpr, rexpr)
 		else:
 			return lexpr
@@ -111,7 +111,7 @@ class ExpressionParser(object):
 		lexpr = self._parse_not(tokens)
 		if tokens and tokens[0] == 'and':
 			tokens.pop(0)
-			rexpr = self._parse_and(tokens) # recurs
+			rexpr = self._parse_and(tokens)  # recurs
 			return ExpressionOperator(operator.and_, lexpr, rexpr)
 		else:
 			return lexpr

@@ -191,7 +191,7 @@ class TestFS(tests.TestCase):
 			new = file.encodedpath + '.zim-new~'
 			orig = file.encodedpath + '.zim-orig~'
 			bak = file.encodedpath + '.bak~'
-			os.remove(file.encodedpath) # don't clean up folder
+			os.remove(file.encodedpath)  # don't clean up folder
 			open(new, 'w').write('NEW\n')
 			open(orig, 'w').write('ORIG\n')
 			self.assertTrue(file.exists())
@@ -203,7 +203,7 @@ class TestFS(tests.TestCase):
 			self.assertTrue(os.path.isfile(bak))
 
 			bak1 = file.encodedpath + '.bak1~'
-			os.remove(file.encodedpath) # don't clean up folder
+			os.remove(file.encodedpath)  # don't clean up folder
 			open(orig, 'w').write('ORIG 1\n')
 			self.assertFalse(file.exists())
 			with tests.LoggingFilter('zim.fs', ''):
@@ -218,7 +218,7 @@ class TestFS(tests.TestCase):
 		os.chmod(path, 0o444)
 		file = File(path)
 		self.assertRaises(FileWriteError, file.write, 'Overwritten!')
-		os.chmod(path, 0o644) # make it removable again
+		os.chmod(path, 0o644)  # make it removable again
 
 		# with windows line-ends
 		file = open(tmpdir + '/newlines.txt', 'wb')
@@ -289,7 +289,7 @@ class TestFS(tests.TestCase):
 			# we did not touch unique002.txt, so don't want to see it show up here
 
 		file1.rename(dir.file('foo.txt'))
-		self.assertEqual(file1.basename, 'unique.txt') # don't update the object !
+		self.assertEqual(file1.basename, 'unique.txt')  # don't update the object !
 		self.assertEqual(dir.list(), ['foo.txt', 'unique001.txt'])
 
 		file1 = dir.file('foo.txt')
@@ -305,7 +305,7 @@ class TestFS(tests.TestCase):
 		self.assertEqual(dir.file(File((dir, 'foo.txt'))), dir.file('foo.txt'))
 		self.assertEqual(dir.file(FilePath((dir, 'foo.txt'))), dir.file('foo.txt'))
 		self.assertEqual(dir.file(('foo.txt',)), dir.file('foo.txt'))
-		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt')) # not below dir
+		self.assertRaises(PathLookupError, dir.file, File('/foo/bar.txt'))  # not below dir
 
 		self.assertEqual(dir.resolve_file('../foo.txt'), dir.dir.file('foo.txt'))
 		self.assertEqual(dir.resolve_file(File('/foo/bar.txt')), File('/foo/bar.txt'))
@@ -314,12 +314,12 @@ class TestFS(tests.TestCase):
 		self.assertEqual(dir.subdir(Dir((dir, 'bar'))), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(FilePath((dir, 'bar'))), dir.subdir('bar'))
 		self.assertEqual(dir.subdir(('bar',)), dir.subdir('bar'))
-		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar')) # not below dir
+		self.assertRaises(PathLookupError, dir.subdir, Dir('/foo/bar'))  # not below dir
 
 		self.assertEqual(dir.resolve_dir('../bar'), dir.dir.subdir('bar'))
 		self.assertEqual(dir.resolve_dir(Dir('/foo/bar')), Dir('/foo/bar'))
 
-		self.assertRaises(OSError, dir.remove) # dir not empty
+		self.assertRaises(OSError, dir.remove)  # dir not empty
 		self.assertTrue(dir.exists())
 		dir.cleanup()
 		self.assertTrue(dir.exists())
@@ -328,7 +328,7 @@ class TestFS(tests.TestCase):
 		self.assertTrue(dir.exists())
 		dir.remove()
 		self.assertFalse(dir.exists())
-		self.assertEqual(dir.list(), []) # list non-existing dir
+		self.assertEqual(dir.list(), [])  # list non-existing dir
 
 	# TODO skip if no gio available
 	# TODO slow test

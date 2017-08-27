@@ -90,11 +90,11 @@ class MHTMLEncoder(object):
 	def _walk(self, dir):
 		for name in dir.list():
 			file = dir.file(name)
-			if file.exists(): # is file
+			if file.exists():  # is file
 				yield file
 			else:
 				subdir = dir.subdir(name)
-				for child in self._walk(subdir): # recurs
+				for child in self._walk(subdir):  # recurs
 					yield child
 
 	def encode_text_file(self, file, filename, mimetype):
@@ -106,7 +106,7 @@ class MHTMLEncoder(object):
 		charset = email.charset.Charset('utf-8')
 		charset.body_encoding = email.charset.QP
 		msg = email.mime.nonmultipart.MIMENonMultipart('text', subtype, charset='utf-8')
-		if filename: # top level does not have filename
+		if filename:  # top level does not have filename
 			msg['Content-Location'] = filename
 		msg.set_payload(file.read(), charset=charset)
 		return msg

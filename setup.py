@@ -21,8 +21,8 @@ from distutils import dep_util
 
 from zim import __version__, __url__
 
-import msgfmt # also distributed with zim
-import makeman # helper script
+import msgfmt  # also distributed with zim
+import makeman  # helper script
 
 try:
 	version_info = sys.version_info
@@ -63,7 +63,7 @@ def collect_packages():
 
 def get_mopath(pofile):
 	# Function to determine right locale path for a .po file
-	lang = os.path.basename(pofile)[:-3] # len('.po') == 3
+	lang = os.path.basename(pofile)[:-3]  # len('.po') == 3
 	modir = os.path.join(LOCALE_FOLDER, lang, 'LC_MESSAGES')
 	mofile = os.path.join(modir, 'zim.mo')
 	return modir, mofile
@@ -187,7 +187,7 @@ class zim_sdist_class(sdist_class):
 
 	def initialize_options(self):
 		sdist_class.initialize_options(self)
-		self.force_manifest = 1 # always re-generate MANIFEST
+		self.force_manifest = 1  # always re-generate MANIFEST
 
 	def run(self):
 		fix_dist()
@@ -232,7 +232,7 @@ class zim_build_scripts_class(build_scripts_class):
 				if script.endswith('.py'):
 					file = os.path.join(self.build_dir, script)
 					print 'renaming %s to %s' % (file, file[:-3])
-					os.rename(file, file[:-3]) # len('.py') == 3
+					os.rename(file, file[:-3])  # len('.py') == 3
 
 
 class zim_build_class(build_class):
@@ -245,7 +245,7 @@ class zim_build_class(build_class):
 		fix_dist()
 		build_class.run(self)
 
-		## Set default plugins
+		# Set default plugins
 		plugins = []
 		for name in os.listdir('./zim/plugins'):
 			if name.startswith('_') or name == 'base':

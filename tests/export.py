@@ -179,7 +179,7 @@ class TestLinker(tests.TestCase):
 		#
 		#	document_root_url
 
-		## setup environment for interwiki link
+		# setup environment for interwiki link
 		if os.name == 'nt':
 			uri = 'file:///C:/foo'
 		else:
@@ -237,7 +237,7 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertEqual(len(pages), 1)
 		self.assertTrue(all(isinstance(o, PageProxy) for o in pages))
 		self.assertEqual(pages[0]._page, self.content[0])
-		## TODO
+		# TODO
 		# pages
 		#   content
 		#   special
@@ -297,7 +297,7 @@ class TestExportTemplateContext(tests.TestCase):
 		#					.size
 		#
 
-		## TODO
+		# TODO
 		# options		-- dict with template options (for format)
 		#
 		# toc([page])			-- iter of headings in this page or all of pages
@@ -314,14 +314,14 @@ class TestExportTemplateContext(tests.TestCase):
 		# test single page by "IF loop.first and loop.last"
 
 
-		## TODO test all of the attributes / items accesible through the
-		##      context dict are string, expressionfunction, or proxy defined in this module
+		# TODO test all of the attributes / items accesible through the
+		# context dict are string, expressionfunction, or proxy defined in this module
 
-		## TODO test modification of options by template ends up in context
-		##      test setting other local paramters in template does NOT affect context object
-		##      test setting page meta is NOT allowed
+		# TODO test modification of options by template ends up in context
+		# test setting other local paramters in template does NOT affect context object
+		# test setting page meta is NOT allowed
 
-		## TODO list simple template with processor to test looping through pages
+		# TODO list simple template with processor to test looping through pages
 
 
 
@@ -396,7 +396,7 @@ class TestSingleFileExporter(tests.TestCase):
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
-@tests.slowTest # Slow because it uses a tmp file internally
+@tests.slowTest  # Slow because it uses a tmp file internally
 class TestMHTMLExporter(tests.TestCase):
 
 	def runTest(self):
@@ -429,7 +429,7 @@ class TestTemplateOptions(tests.TestCase):
 			exporter.export(selection)
 		result = file.read()
 		#~ print result
-		self.assertIn('\section{Head1}', result) # this implies that document_type "article" was indeed used
+		self.assertIn('\section{Head1}', result)  # this implies that document_type "article" was indeed used
 
 
 @tests.slowTest
@@ -444,7 +444,7 @@ class TestExportFormat(object):
 		for template, file in list_templates(self.format):
 			print 'Testing template: %s' % template
 			notebook = tests.new_notebook(fakedir='/foo')
-			pages = AllPages(notebook) # TODO - sub-section ?
+			pages = AllPages(notebook)  # TODO - sub-section ?
 			exporter = build_notebook_exporter(dir.subdir(template), self.format, template)
 			self.assertIsInstance(exporter, MultiFileExporter)
 
@@ -478,7 +478,7 @@ class TestExportFormatRst(TestExportFormat, tests.TestCase):
 
 
 
-## TODO test all exports templates
+# TODO test all exports templates
 
 
 #~ @tests.slowTest
@@ -545,7 +545,7 @@ class TestExportCommand(tests.TestCase):
 		# Only testing we get a valid exporter, not the full command,
 		# because the command is very slow
 
-		## Full notebook, minimal options
+		# Full notebook, minimal options
 		cmd = ExportCommand('export')
 		cmd.parse_options(self.notebook.path)
 		self.assertRaises(UsageError, cmd.get_exporter, None)
@@ -563,7 +563,7 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNotNone(exp.format)
 		self.assertIsNone(exp.index_page)
 
-		## Full notebook, full options
+		# Full notebook, full options
 		cmd = ExportCommand('export')
 		cmd.parse_options(self.notebook.path,
 			'--format', 'markdown',
@@ -582,7 +582,7 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNotNone(exp.format)
 		self.assertIsNotNone(exp.index_page)
 
-		## Single page
+		# Single page
 		cmd = ExportCommand('export')
 		cmd.parse_options(self.notebook.path, 'Foo:Bar',
 			'--output', self.tmpdir.subdir('output').path,
@@ -623,7 +623,7 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNone(exp.document_root_url)
 		self.assertIsNotNone(exp.format)
 
-		## MHTML exporter
+		# MHTML exporter
 		cmd = ExportCommand('export')
 		cmd.parse_options(self.notebook.path, 'Foo:Bar',
 			'-rs', '--format', 'mhtml',
@@ -672,7 +672,7 @@ class TestExportDialog(tests.TestCase):
 		ui.page = Path('foo')
 		ui.uistate = SectionedConfigDict()
 
-		## Test export all pages
+		# Test export all pages
 		dialog = ExportDialog(ui)
 		dialog.set_page(0)
 
@@ -701,7 +701,7 @@ class TestExportDialog(tests.TestCase):
 		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
-		## Test export single page
+		# Test export single page
 		dialog = ExportDialog(ui)
 		dialog.set_page(0)
 
@@ -729,7 +729,7 @@ class TestExportDialog(tests.TestCase):
 		#~ print dialog.uistate
 		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_file'], File)
-		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well
+		self.assertIsInstance(dialog.uistate['output_folder'], Dir)  # Keep this in state as well
 
 	def testLogging(self):
 		from zim.gui.exportdialog import LogContext

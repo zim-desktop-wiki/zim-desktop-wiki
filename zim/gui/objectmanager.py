@@ -157,7 +157,7 @@ class TextViewWidget(CustomObjectWidget):
 				self.release_cursor(POSITION_END)
 				return None
 
-		return None # let parent handle this signal
+		return None  # let parent handle this signal
 
 
 class FallbackObjectWidget(TextViewWidget):
@@ -171,7 +171,7 @@ class FallbackObjectWidget(TextViewWidget):
 		if plugin:
 			self._add_load_plugin_bar(plugin)
 		else:
-			label = gtk.Label(_("No plugin is available to display this object.")) # T: Label for object manager
+			label = gtk.Label(_("No plugin is available to display this object."))  # T: Label for object manager
 			self.vbox.pack_start(label)
 
 	def _add_load_plugin_bar(self, plugin):

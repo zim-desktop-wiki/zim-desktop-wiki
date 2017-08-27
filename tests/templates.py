@@ -27,7 +27,7 @@ E = SimpleTreeElement
 class TestExpressionParser(tests.TestCase):
 
 	def runTest(self):
-		## Test atoms
+		# Test atoms
 		p = ExpressionParser()
 		for text, wanted in (
 			('True', ExpressionLiteral(True)),
@@ -42,7 +42,7 @@ class TestExpressionParser(tests.TestCase):
 		):
 			self.assertEqual(p.parse(text), wanted)
 
-		## Test compound expressions
+		# Test compound expressions
 		p = ExpressionParser()
 		for text, wanted in (
 			('x or y', ExpressionOperator(
@@ -120,7 +120,7 @@ class TestExpressionParser(tests.TestCase):
 			self.assertEqual(p.parse(text), wanted)
 
 
-		## Test operator precedence
+		# Test operator precedence
 		expr = ExpressionParser().parse('a or b and not c < d and f or x')
 			# Read as: '(a or ((b and ((not (c < d)) and f)) or x))'
 		wanted = ExpressionOperator(
@@ -150,13 +150,13 @@ class TestExpressionParser(tests.TestCase):
 		#~ print '\nEXPRESSION:', expr
 		self.assertEqual(expr, wanted)
 
-		## Invalid syntaxes
+		# Invalid syntaxes
 		p = ExpressionParser()
 		for t in (
-			'x > y > z',	# chaining comparison operators not allowed
-			'x > not y',	# 'not' has higher precendence, can not appear here
-			'not not x',	# double operator
-			'x and and y',	# double operator
+			'x > y > z',  # chaining comparison operators not allowed
+			'x > not y',  # 'not' has higher precendence, can not appear here
+			'not not x',  # double operator
+			'x and and y',  # double operator
 			'[x,,y]',		# double "," - missing element
 			'(1,2)',		# Tuple not supported
 			'1 2',			# Two expressions, instead of one
@@ -244,7 +244,7 @@ class TestExpressionFunctionCall(tests.TestCase):
 			'somelist': ['x', 'y', 'z'],
 			'somestring': 'FOOBAR',
 		}
-		args = ExpressionList() # empty args
+		args = ExpressionList()  # empty args
 		for name, wanted in (
 			('somedict.sorted', ['a', 'b', 'c']),
 			('somelist.len', 3),
@@ -373,27 +373,27 @@ Switch:	[% IF foo %]AAA[% ELSE %]BBB[% END %]
 	WANTED = [
 		E('TEMPLATE', None, [
 			E('GET', {'expr': ExpressionParameter('foo')}, []),
-			'\n', # whitespace around GET remains intact
+			'\n',  # whitespace around GET remains intact
 			E('GET', {'expr': ExpressionParameter('foo')}, []),
 			'\n',
 			E('SET', {
 				'var': ExpressionParameter('bar'),
 				'expr': ExpressionLiteral('test')
-			}, []), # no whitespace here - SET chomps
+			}, []),  # no whitespace here - SET chomps
 			E('SET', {
 				'var': ExpressionParameter('bar'),
 				'expr': ExpressionLiteral('test')
 			}, []),
-			'\n', # only one "\n" here!
+			'\n',  # only one "\n" here!
 			# no indenting before block level items like IF
 			E('IF', {'expr': ExpressionParameter('foo')}, [
-				'\tDO SOMETHING\n' # indenting intact
+				'\tDO SOMETHING\n'  # indenting intact
 			]),
 			E('ELIF', {'expr': ExpressionParameter('foo')}, [
-				'SOMETHING ELSE' # stripped on both sides
+				'SOMETHING ELSE'  # stripped on both sides
 			]),
 			E('ELSE', None, [
-				'\tYET SOMETHING ELSE\n' # indenting intact
+				'\tYET SOMETHING ELSE\n'  # indenting intact
 			]),
 			'\nSwitch:\t',
 			E('IF', {'expr': ExpressionParameter('foo')}, [
@@ -402,8 +402,8 @@ Switch:	[% IF foo %]AAA[% ELSE %]BBB[% END %]
 			E('ELSE', None, [
 				'BBB'
 			]),
-			'\n\n', # two "\n" here because IF .. ELSE is inline
-			'\n', # another empty line after block is taken out
+			'\n\n',  # two "\n" here because IF .. ELSE is inline
+			'\n',  # another empty line after block is taken out
 			# 3 times same loop by different syntax
 			E('FOR', {
 				'var': ExpressionParameter('a'),
@@ -678,7 +678,7 @@ class TestTemplate(tests.TestCase):
 			},
 			'links': {},
 			'pages': [
-				{ # page
+				{  # page
 					'name': 'page',
 					'heading': 'HEAD',
 					'body': 'BODY',
@@ -703,7 +703,7 @@ class TestTemplate(tests.TestCase):
 
 		# TODO assert something
 
-		### Test empty template OK as well
+		# Test empty template OK as well
 		dir = Dir(self.create_tmp_dir())
 		file = dir.file('empty.html')
 

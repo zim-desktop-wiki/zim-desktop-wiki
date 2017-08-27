@@ -18,9 +18,9 @@ from .base import IndexerBase, IndexView
 from .pages import PagesViewInternal, ROOT_ID
 
 
-LINK_DIR_FORWARD = 1 #: Constant for forward links
-LINK_DIR_BACKWARD = 2 #: Constant for backward links
-LINK_DIR_BOTH = 3 #: Constant for links in any direction
+LINK_DIR_FORWARD = 1  # : Constant for forward links
+LINK_DIR_BACKWARD = 2  # : Constant for backward links
+LINK_DIR_BOTH = 3  # : Constant for links in any direction
 
 
 # Links come in 3 flavors:
@@ -118,7 +118,7 @@ class LinksIndexer(IndexerBase):
 	def on_page_row_inserted(self, o, row):
 		# Placeholders for pages of the same name need to be
 		# recalculated, flag links to be checked with same anchorkey.
-		self.db.execute( # TODO turn query into a JOIN
+		self.db.execute(  # TODO turn query into a JOIN
 			'UPDATE links SET needscheck=1 '
 			'WHERE rel=? and anchorkey=? and target in ( '
 			'	SELECT id FROM pages WHERE is_link_placeholder=1 '
@@ -141,7 +141,7 @@ class LinksIndexer(IndexerBase):
 		self.db.execute(
 			'UPDATE links SET needscheck=1, target=? WHERE target=?',
 			(ROOT_ID, row['id'],)
-		) # Need to link somewhere, if target is gone, use ROOT instead
+		)  # Need to link somewhere, if target is gone, use ROOT instead
 
 	def on_finish_update(self, o):
 		# Check for ghost links - warn but still clean them up
@@ -207,7 +207,7 @@ class LinksView(IndexView):
 		@returns: yields L{IndexLink} objects
 		@raises IndexNotFoundError: if C{path} is not found in the index
 		'''
-		page_id = self._pages.get_page_id(pagename) # can raise IndexNotFoundError
+		page_id = self._pages.get_page_id(pagename)  # can raise IndexNotFoundError
 		return self._list_links(page_id, pagename, direction)
 
 	def _list_links(self, page_id, pagename, direction):
@@ -232,7 +232,7 @@ class LinksView(IndexView):
 				source = pagename
 				target = self._pages.get_pagename(row['target'])
 			elif row['source'] == ROOT_ID:
-				continue # hack used to create placeholders
+				continue  # hack used to create placeholders
 			else:
 				source = self._pages.get_pagename(row['source'])
 				target = pagename

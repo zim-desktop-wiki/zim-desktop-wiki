@@ -17,7 +17,7 @@ from zim.gui.widgets import ErrorDialog
 
 
 # Try which of the two bindings is available
-import gtk # ensure gtkspellcheck detects right gtk binding
+import gtk  # ensure gtkspellcheck detects right gtk binding
 try:
 	import gtkspellcheck
 except ImportError:
@@ -63,12 +63,12 @@ and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 class SpellPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Spell Checker'), # T: plugin name
+		'name': _('Spell Checker'),  # T: plugin name
 		'description': _('''\
 Adds spell checking support using gtkspell.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Spell Checker',
 	}
@@ -111,10 +111,10 @@ class MainWindowExtension(WindowExtension):
 
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
-		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER) # XXX
+		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER)  # XXX
 
 	@toggle_action(
-		_('Check _spelling'), # T: menu item
+		_('Check _spelling'),  # T: menu item
 		stock='gtk-spell-check', accelerator='F7'
 	)
 	def toggle_spellcheck(self, active):
@@ -203,7 +203,7 @@ class GtkspellcheckAdapter(object):
 		self._active = False
 
 	def _clean_tag_table(self):
-		## cleanup tag table - else next loading will fail
+		# cleanup tag table - else next loading will fail
 		prefix = 'gtkspellchecker'
 		table = self._textview.get_buffer().get_tag_table()
 		tags = []

@@ -40,26 +40,26 @@ def _get_lilypond_version():
 class InsertScorePlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
-		'name': _('Insert Score'), # T: plugin name
+		'name': _('Insert Score'),  # T: plugin name
 		'description': _('''\
 This plugin provides an score editor for zim based on GNU Lilypond.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'help': 'Plugins:Score Editor',
 		'author': 'Shoban Preeth',
 	}
 
 	plugin_preferences = [
 		# key, type, label, default
-		('include_header', 'string', _('Common include header'), '\include "predefined-guitar-fretboards.ly"'), # T: plugin preference
-		('include_footer', 'string', _('Common include footer'), ''), # T: plugin preference
+		('include_header', 'string', _('Common include header'), '\include "predefined-guitar-fretboards.ly"'),  # T: plugin preference
+		('include_footer', 'string', _('Common include footer'), ''),  # T: plugin preference
 	]
 
 	object_type = 'score'
-	short_label = _('S_core') # T: menu item
-	insert_label = _('Insert Score') # T: menu item
-	edit_label = _('_Edit Score') # T: menu item
+	short_label = _('S_core')  # T: menu item
+	insert_label = _('Insert Score')  # T: menu item
+	edit_label = _('_Edit Score')  # T: menu item
 	syntax = None
 
 	@classmethod
@@ -120,7 +120,7 @@ class ScoreGenerator(ImageGeneratorClass):
 
 		# Call convert-ly to convert document of current version of
 		# Lilypond.
-		clogfile = File(scorefile.path[:-3] + '-convertly.log') # len('.ly) == 3
+		clogfile = File(scorefile.path[:-3] + '-convertly.log')  # len('.ly) == 3
 		try:
 			convertly = Application(convertly_cmd)
 			convertly.run((scorefile.basename,), cwd=scorefile.dir)
@@ -130,14 +130,14 @@ class ScoreGenerator(ImageGeneratorClass):
 
 
 		# Call lilypond to generate image.
-		logfile = File(scorefile.path[:-3] + '.log') # len('.ly') == 3
+		logfile = File(scorefile.path[:-3] + '.log')  # len('.ly') == 3
 		try:
 			lilypond = Application(lilypond_cmd)
 			lilypond.run(('-dlog-file=' + logfile.basename[:-4], scorefile.basename,), cwd=scorefile.dir)
 		except ApplicationError:
 			# log should have details of failure
 			return None, logfile
-		pngfile = File(scorefile.path[:-3] + '.png') # len('.ly') == 3
+		pngfile = File(scorefile.path[:-3] + '.png')  # len('.ly') == 3
 
 		return pngfile, logfile
 

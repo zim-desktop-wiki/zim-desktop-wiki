@@ -51,7 +51,7 @@ except ImportError:
 
 # Run the application and handle some exceptions
 try:
-	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
+	encoding = sys.getfilesystemencoding()  # not 100% sure this is correct
 	argv = [arg.decode(encoding) for arg in sys.argv]
 	exitcode = zim.main.main(*argv)
 	sys.exit(exitcode)
@@ -61,7 +61,7 @@ except zim.main.GetoptError as err:
 except zim.main.UsageError as err:
 	print >>sys.stderr, err.msg
 	sys.exit(1)
-except KeyboardInterrupt: # e.g. <Ctrl>C while --server
+except KeyboardInterrupt:  # e.g. <Ctrl>C while --server
 	print >>sys.stderr, 'Interrupt'
 	sys.exit(1)
 else:

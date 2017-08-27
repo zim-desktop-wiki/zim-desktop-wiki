@@ -37,7 +37,7 @@ class TestEmitter(tests.TestCase):
 
 		emitter.emit('bar', 'test3')
 		self.assertEqual(emitter.state, 'DO bar test3')
-		self.assertEqual(data, ['test2']) # check stopped listening after disconnect
+		self.assertEqual(data, ['test2'])  # check stopped listening after disconnect
 
 
 	def testHook(self):
@@ -58,7 +58,7 @@ class TestEmitter(tests.TestCase):
 
 	def testInheritance(self):
 		emitter = ChildEmitter()
-		emitter.connect('bar', lambda o: 'foo') # no error
+		emitter.connect('bar', lambda o: 'foo')  # no error
 		self.assertRaises(AssertionError, emitter.connect, 'none_existing', lambda o: 'foo')
 		 	# assert non existing raises --> thus previous non-error was really OK
 
@@ -127,7 +127,7 @@ class TestSignalHandler(tests.TestCase):
 	def runTest(self):
 		obj = ClassWithHandler()
 		self.assertEqual(obj.count, 0)
-		self.assertEqual(id(obj.add_one), id(obj.add_one)) # unique instance object
+		self.assertEqual(id(obj.add_one), id(obj.add_one))  # unique instance object
 
 		obj.add_one()
 		self.assertEqual(obj.count, 1)

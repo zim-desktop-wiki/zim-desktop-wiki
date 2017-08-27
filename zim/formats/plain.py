@@ -43,7 +43,7 @@ class Parser(ParserClass):
 			input = fix_line_end(input)
 
 		parser = zim.parser.Parser(
-			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+			Rule(LINK, url_re.r, process=self.parse_url)  # FIXME need .r atribute because url_re is a Re object
 		)
 
 		builder = ParseTreeBuilder(partial=partial)
@@ -218,10 +218,10 @@ class Dumper(DumperClass):
 		return s if isinstance(s, basestring) else ''.join(s)
 
 	def dump_thead(self, tag, attrib, strings):
-		return [strings] # HACK to keep row structure
+		return [strings]  # HACK to keep row structure
 
 	def dump_trow(self, tag, attrib, strings):
-		return [strings] # HACK to keep row structure
+		return [strings]  # HACK to keep row structure
 
 	def dump_th(self, tag, attrib, strings):
 		strings = [s.replace('|', '∣') for s in strings]

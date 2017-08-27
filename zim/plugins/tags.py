@@ -33,10 +33,10 @@ logger = logging.getLogger('zim.plugins.tags')
 class TagsPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Tags'), # T: plugin name
+		'name': _('Tags'),  # T: plugin name
 		'description': _('''\
 This plugin provides a page index filtered by means of selecting tags in a cloud.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Fabian Moser & Jaap Karssenberg',
 		'help': 'Plugins:Tags',
 	}
@@ -54,7 +54,7 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 
-		self.widget = TagsPluginWidget(self.window.ui.notebook.index, self.uistate, self.window.ui) # XXX
+		self.widget = TagsPluginWidget(self.window.ui.notebook.index, self.uistate, self.window.ui)  # XXX
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -85,7 +85,7 @@ class MainWindowExtension(WindowExtension):
 class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
-	def __init__(self, index, uistate, ui): # XXX
+	def __init__(self, index, uistate, ui):  # XXX
 		gtk.VPaned.__init__(self)
 		self.index = index
 		self.uistate = uistate
@@ -97,14 +97,14 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
 		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
 
-		self.treeview = TagsPageTreeView(ui) # XXX
+		self.treeview = TagsPageTreeView(ui)  # XXX
 		self.pack2(ScrolledWindow(self.treeview), shrink=False)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
 		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
-		self.connectto_all(ui, ( # XXX
+		self.connectto_all(ui, (  # XXX
 			'open-page',
 			('start-index-update', lambda o: self.disconnect_model()),
 			('end-index-update', lambda o: self.reconnect_model()),
@@ -148,17 +148,17 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		# Add a popup menu item to switch the treeview mode
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.CheckMenuItem(_('Show full page name')) # T: menu option
+		item = gtk.CheckMenuItem(_('Show full page name'))  # T: menu option
 		item.set_active(self.uistate['show_full_page_name'])
 		item.connect_object('toggled', self.__class__.toggle_show_full_page_name, self)
 		menu.prepend(item)
 
-		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
+		item = gtk.CheckMenuItem(_('Sort pages by tags'))  # T: menu option
 		item.set_active(self.uistate['treeview'] == 'tags')
 		item.connect_object('toggled', self.__class__.toggle_treeview, self)
 		model = self.treeview.get_model()
 		if isinstance(model, TaggedPageTreeStore):
-			item.set_sensitive(False) # with tag selection toggle does nothing
+			item.set_sensitive(False)  # with tag selection toggle does nothing
 		menu.prepend(item)
 
 		menu.show_all()
@@ -318,11 +318,11 @@ class TagsPageTreeView(PageTreeView):
 		#~ print '!! SELECT', path
 		model = self.get_model()
 		if model is None:
-			return None # index not yet initialized ...
+			return None  # index not yet initialized ...
 
 		try:
 			treepath = model.find(path)
-			model.set_current_page(path) # highlight in model
+			model.set_current_page(path)  # highlight in model
 		except IndexNotFoundError:
 			pass
 		else:
@@ -367,7 +367,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 	}
 
 	def __init__(self, index, sorting='score'):
-		gtk.TextView.__init__(self, None) # Create TextBuffer implicitly
+		gtk.TextView.__init__(self, None)  # Create TextBuffer implicitly
 		self.set_name('zim-tags-tagcloud')
 		self.index = None
 
@@ -383,7 +383,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 
 	def connect_index(self, index):
 		'''Connect to an Index object'''
-		self.disconnect_index() # just to be sure
+		self.disconnect_index()  # just to be sure
 		self.index = index
 		self.connectto_all(self.index.update_iter.tags, (
 			('tag-row-inserted', self._update),
@@ -454,7 +454,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 	def do_populate_popup(self, menu):
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.CheckMenuItem(_('Sort alphabetically')) # T: Context menu item for tag cloud
+		item = gtk.CheckMenuItem(_('Sort alphabetically'))  # T: Context menu item for tag cloud
 		item.set_active(self._alphabetically)
 		item.connect('toggled', self._switch_sorting)
 		item.show_all()

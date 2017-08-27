@@ -13,7 +13,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division # We are doing math in this module ...
+from __future__ import division  # We are doing math in this module ...
 
 
 __doc__ = '''
@@ -52,7 +52,7 @@ import re
 renumber = re.compile(r'(-?[0-9][0-9,]*(\.[0-9]*)?%?)|(\.[0-9]+%?)')
 #reidentifier = re.compile( r'[a-zA-Z][a-zA-Z0-9_]*' )
 #rexenclosed = re.compile( r'[0-9.)](x)[^a-zA-Z]' )
-reidentifier = re.compile(r'[^\W\d]\w*', re.U) # letter (but not a number) followed by alpha-numeric
+reidentifier = re.compile(r'[^\W\d]\w*', re.U)  # letter (but not a number) followed by alpha-numeric
 rexenclosed = re.compile(r'[0-9.)](x)[\W\d]', re.U)
 
 class Lexer:
@@ -136,7 +136,7 @@ getcontext().prec = 100
 def safe_eval(expression):
 	'''Safe evaluation of a python expression'''
 	#~ print '>>>', expression
-	GLOBALS = {'__builtins__': None} # Don't allow open() etc.
+	GLOBALS = {'__builtins__': None}  # Don't allow open() etc.
 	try:
 		re = eval(expression, GLOBALS, {'Decimal': Decimal})
 	except Exception as e:
@@ -375,11 +375,11 @@ class Parser:
                 tipoLeft, valorLeft = TypeAndValueOf(rangoLeft)
                 tipoRight, valorRight = TypeAndValueOf(rangoRight)
 
-                if tipoLeft != 'v': # there is something to the left
+                if tipoLeft != 'v':  # there is something to the left
 
                     # perform operations
 
-                    if tipoLeft in 'eaif' and tipoRight in 'vif':# evaluate expression
+                    if tipoLeft in 'eaif' and tipoRight in 'vif':  # evaluate expression
                         try:
                             resultado = str(evaluate(valorLeft,
                                         variables=variables, functions=functions))
@@ -421,10 +421,10 @@ class Parser:
                                     self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                                     variables[valorLeft] = resultado
 
-                    elif tipoLeft == 'n' and tipoRight in 'e': # define a function
+                    elif tipoLeft == 'n' and tipoRight in 'e':  # define a function
                             functions[valorLeft] = str(valorRight)
 
-                    elif tipoLeft == 'n' and tipoRight in 'n': # define an alias
+                    elif tipoLeft == 'n' and tipoRight in 'n':  # define an alias
                             functions[valorLeft] = str(valorRight)
 
 
@@ -543,21 +543,21 @@ def AddCommas(s):
     '''
 
     s = str(s)
-    s = s.replace(',', '')         #remove commas
-    if s[0] in '-+':                #remove sign
+    s = s.replace(',', '')  # remove commas
+    if s[0] in '-+':  # remove sign
             sign = s[0]
             s = s[1:]
     else:
             sign = ''
     if s[-1] == 'L':
-        s = s[:-1]     #remove L suffix
+        s = s[:-1]  # remove L suffix
     pos = s.find('.')
     if pos < 0:
         pos = len(s)
     while pos > 3:
             pos = pos - 3
             s = s[:pos] + ',' + s[pos:]
-    s = sign + s                    #restore sign
+    s = sign + s  # restore sign
     return s
 
 if __name__ == '__main__':

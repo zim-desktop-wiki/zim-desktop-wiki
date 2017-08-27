@@ -29,7 +29,7 @@ logger = logging.getLogger('zim.export')
 class ExportDialog(Assistant):
 
 	def __init__(self, ui):
-		Assistant.__init__(self, ui, _('Export'), # T: dialog title
+		Assistant.__init__(self, ui, _('Export'),  # T: dialog title
 			help=':Help:Export', defaultwindowsize=(400, 325))
 
 		self.append_page(InputPage(self))
@@ -44,14 +44,14 @@ class ExportDialog(Assistant):
 			selection.__class__.__name__)
 		if exporter is None or selection is None:
 			logger.debug('Cancelled - selection')
-			return False # canceled
+			return False  # canceled
 
 		# Run export
 		logging_context = LogContext()
 		with logging_context:
 			op = NotebookOperation(
 				self.ui.notebook,
-				_('Exporting notebook'), # T: Title for progressbar window
+				_('Exporting notebook'),  # T: Title for progressbar window
 				exporter.export_iter(selection)
 			)
 			dialog = ProgressDialog(self, op)
@@ -137,11 +137,11 @@ class ExportDialog(Assistant):
 		dir = Dir(self.uistate['output_folder'])
 		if dir.exists() and len(dir.list()) > 0:
 			ok = QuestionDialog(self, (
-				_('Folder exists: %s') % dir.path, # T: message heading
+				_('Folder exists: %s') % dir.path,  # T: message heading
 				_('Folder already exists and has content, '
 				  'exporting to this folder may overwrite '
 				  'existing files. '
-				  'Do you want to continue?') # T: detailed message, answers are Yes and No
+				  'Do you want to continue?')  # T: detailed message, answers are Yes and No
 			)).run()
 			if not ok:
 				return None
@@ -151,9 +151,9 @@ class ExportDialog(Assistant):
 		file = File(self.uistate['output_file'])
 		if file.exists():
 			ok = QuestionDialog(self, (
-				_('File exists'), # T: message heading
+				_('File exists'),  # T: message heading
 				_('This file already exists.\n'
-				  'Do you want to overwrite it?') # T: detailed message, answers are Yes and No
+				  'Do you want to overwrite it?')  # T: detailed message, answers are Yes and No
 			)).run()
 			if not ok:
 				return None
@@ -163,7 +163,7 @@ class ExportDialog(Assistant):
 class InputPage(AssistantPage):
 	'''Assistant page allowing to select the page(s) for export'''
 
-	title = _('Select the pages to export') # T: title of step in export dialog
+	title = _('Select the pages to export')  # T: title of step in export dialog
 
 	def __init__(self, assistant):
 		AssistantPage.__init__(self, assistant)
@@ -177,8 +177,8 @@ class InputPage(AssistantPage):
 			('selection:page', 'option', _('Single _page')),
 				# T: Option in export dialog to export selection
 			None,
-			('page', 'page', _('Page')), # T: Input field in export dialog
-			('recursive', 'bool', _('Include subpages')), # T: Input field in export dialog
+			('page', 'page', _('Page')),  # T: Input field in export dialog
+			('recursive', 'bool', _('Include subpages')),  # T: Input field in export dialog
 		), {
 			'page': assistant.ui.page,
 			'recursive': True,
@@ -205,7 +205,7 @@ class InputPage(AssistantPage):
 class FormatPage(AssistantPage):
 	'''Assistant page allowing to select the output format and template'''
 
-	title = _('Select the export format') # T: title of step in export dialog
+	title = _('Select the export format')  # T: title of step in export dialog
 
 	CHOICE_OTHER = _('Other...')
 		# T: Option in drop down menu to specify another file
@@ -216,26 +216,26 @@ class FormatPage(AssistantPage):
 	def __init__(self, assistant):
 		AssistantPage.__init__(self, assistant)
 		self.export_formats = zim.formats.list_formats(zim.formats.EXPORT_FORMAT)
-		self.export_formats.insert(1, 'MHTML (Web Page Archive)') # TODO translatable
+		self.export_formats.insert(1, 'MHTML (Web Page Archive)')  # TODO translatable
 
 		self.add_form((
-			('format', 'choice', _('Format'), self.export_formats), # T: Input label in the export dialog
-			('template', 'choice', _('Template'), ()), # T: Input label in the export dialog
+			('format', 'choice', _('Format'), self.export_formats),  # T: Input label in the export dialog
+			('template', 'choice', _('Template'), ()),  # T: Input label in the export dialog
 			('template_file', 'file', None),
 			None,
-			('document_root:absolute', 'option', _('Link files under document root with full file path')), # T: radio option in export dialog
-			('document_root:url', 'option', _('Map document root to URL') + ': '), # T: radio option in export dialog
+			('document_root:absolute', 'option', _('Link files under document root with full file path')),  # T: radio option in export dialog
+			('document_root:url', 'option', _('Map document root to URL') + ': '),  # T: radio option in export dialog
 			('document_root_url', 'string', None),
 		), depends={
 			'document_root_url': 'document_root:url'
 		})
 
-		## Same button appears in edit preferences dialog
+		# Same button appears in edit preferences dialog
 		if gtk.gtk_version >= (2, 10) \
 		and gtk.pygtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
-				_('Get more templates online') # T: label for button with URL
+				_('Get more templates online')  # T: label for button with URL
 			)
 			self.pack_start(url_button, False)
 
@@ -309,7 +309,7 @@ class FormatPage(AssistantPage):
 class OutputPage(AssistantPage):
 	'''Assistant page allowing to select output file or folder'''
 
-	title = _('Select the output file or folder') # T: title of step in export dialog
+	title = _('Select the output file or folder')  # T: title of step in export dialog
 
 	def __init__(self, assistant):
 		AssistantPage.__init__(self, assistant)
@@ -443,7 +443,7 @@ class ExportDoneDialog(MessageDialog):
 		LogFileDialog(self, self.logging_context.file).run()
 
 	def on_open_file(self):
-		self.ui.open_file(self.output) # XXX
+		self.ui.open_file(self.output)  # XXX
 
 
 class LogContext(object):
@@ -456,7 +456,7 @@ class LogContext(object):
 		self.logger = logging.getLogger('zim')
 		self.level = level
 		self.file = TmpFile(basename='export-log.txt', unique=False, persistent=True)
-		self.file.remove() # clean up previous run
+		self.file.remove()  # clean up previous run
 		self.handler = LogHandler(self.file.path)
 		self.handler.setLevel(self.level)
 		self.handler.addFilter(LogFilter(names))
@@ -472,7 +472,7 @@ class LogContext(object):
 		self.logger.removeHandler(self.handler)
 		#~ self.logger.setLevel(self._old_level)
 		self.handler.close()
-		return False # re-raises error
+		return False  # re-raises error
 
 
 class LogFilter(logging.Filter):

@@ -10,7 +10,7 @@ logger = logging.getLogger('zim.notebook')
 
 
 from zim.parsing import link_type
-from zim.formats.wiki import WIKI_FORMAT_VERSION # FIXME hard coded preference for wiki format
+from zim.formats.wiki import WIKI_FORMAT_VERSION  # FIXME hard coded preference for wiki format
 
 
 import zim.formats
@@ -169,7 +169,7 @@ class Path(object):
 		'''Paths are equal when their names are the same'''
 		if isinstance(other, Path):
 			return self.name == other.name
-		else: # e.g. path == None
+		else:  # e.g. path == None
 			return False
 
 	def __ne__(self, other):
@@ -207,7 +207,7 @@ class Path(object):
 		'''C{True} when this Path represents the top level namespace'''
 		return self.name == ''
 
-	def relname(self, path): # TODO make this use HRef !
+	def relname(self, path):  # TODO make this use HRef !
 		'''Get a part of this path relative to a parent path
 
 		@param path: a parent L{Path}
@@ -216,7 +216,7 @@ class Path(object):
 
 		@returns: the part of the path that is relative to C{path}
 		'''
-		if path.name == '': # root path
+		if path.name == '':  # root path
 			return self.name
 		elif self.name.startswith(path.name + ':'):
 			i = len(path.name) + 1
@@ -273,7 +273,7 @@ class Path(object):
 		parts = self.parts
 		other = other.parts
 		if parts[0] != other[0]:
-			return Path(':') # root
+			return Path(':')  # root
 		else:
 			for i in range(min(len(parts), len(other))):
 				if parts[i] == other[i]:
@@ -399,8 +399,8 @@ class Page(Path, SignalEmitter):
 
 		self._readonly = None
 		self._last_etag = None
-		self.format = zim.formats.get_format('wiki') # TODO make configurable
-		self.source = SourceFile(file.path) # XXX
+		self.format = zim.formats.get_format('wiki')  # TODO make configurable
+		self.source = SourceFile(file.path)  # XXX
 		self.source_file = file
 		self.attachments_folder = folder
 
@@ -440,7 +440,7 @@ class Page(Path, SignalEmitter):
 	def _store_tree(self, tree):
 		if tree and tree.hascontent:
 			if self._meta is not None:
-				tree.meta.update(self._meta) # Preserver headers
+				tree.meta.update(self._meta)  # Preserver headers
 			elif self.source_file.exists():
 				# Try getting headers from file
 				try:
@@ -451,8 +451,8 @@ class Page(Path, SignalEmitter):
 					parser = self.format.Parser()
 					tree = parser.parse(text)
 					self._meta = tree.meta
-					tree.meta.update(self._meta) # Preserver headers
-			else: # not self.source_file.exists()
+					tree.meta.update(self._meta)  # Preserver headers
+			else:  # not self.source_file.exists()
 				now = datetime.now()
 				tree.meta['Creation-Date'] = now.isoformat()
 
@@ -479,7 +479,7 @@ class Page(Path, SignalEmitter):
 			self._parsetree = None
 			self.emit('page-changed', True)
 		else:
-			pass # no check
+			pass  # no check
 
 	def exists(self):
 		'''C{True} when the page has either content or children'''

@@ -99,7 +99,7 @@ class TestFilePath(tests.TestCase):
 		if os.name == 'nt':
 			# Absolute paths either have a drive letter, or a host name
 			self.assertRaises(ValueError, FilePath, 'foo/bar')
-			self.assertRaises(ValueError, FilePath, '/foo/bar') # no drive letter
+			self.assertRaises(ValueError, FilePath, '/foo/bar')  # no drive letter
 			self.assertRaises(ValueError, FilePath, 'file:/host/share/foo',)
 			self.assertRaises(ValueError, FilePath, 'file:///host/share/foo',)
 
@@ -256,7 +256,7 @@ class TestFS(object):
 		self.assertTrue(file.size() > 0)
 
 		self.assertEqual(file.mimetype(), 'text/plain')
-		self.assertEqual(file.mimetype(), 'text/plain') # check caching
+		self.assertEqual(file.mimetype(), 'text/plain')  # check caching
 		self.assertFalse(file.isimage())
 
 		file = root.file('image.png')
@@ -298,7 +298,7 @@ class TestFS(object):
 		self.assertEqual(list(file), ['test 123\n'])
 
 		file.touch()
-		self.assertEqual(file.read(), 'test 123\n') # no trucation!
+		self.assertEqual(file.read(), 'test 123\n')  # no trucation!
 
 		mylines = ['lines1\n', 'lines2\n', 'lines3\n']
 		file.writelines(mylines)
@@ -319,9 +319,9 @@ class TestFS(object):
 		# Now write again
 		import time
 		if isinstance(etag1[0], float):
-			time.sleep(0.1) # Ensure mtime change
-		else: # int
-			time.sleep(1) # Ensure mtime change
+			time.sleep(0.1)  # Ensure mtime change
+		else:  # int
+			time.sleep(1)  # Ensure mtime change
 		etag2 = file.writelines_with_etag(['test 567\n'], etag1)
 		self.assertNotEqual(etag2, etag1)
 		self.assertEquals(file.readlines_with_etag(), (['test 567\n'], etag2))
@@ -415,7 +415,7 @@ class TestFS(object):
 			self.assertTrue(folder.exists())
 
 		file2.remove()
-		self.assertFalse(folder.exists()) # cleanup automatically
+		self.assertFalse(folder.exists())  # cleanup automatically
 
 		# Remove all
 		sub = folder.folder('sub1')
@@ -645,7 +645,7 @@ class TestFS(object):
 					self.watcher.disconnect(id)
 
 		root.touch()
-		root.file('sticky.txt').touch() # prevent cleanup
+		root.file('sticky.txt').touch()  # prevent cleanup
 		root.watcher = FileTreeWatcher()
 
 		file = root.file('a/b/c/test.txt')
@@ -779,7 +779,7 @@ class TestLocalFS(tests.TestCase, TestFS):
 		except:
 			pass
 
-		self.assertEqual(file.read(), 'test 123\n') # No truncated on error
+		self.assertEqual(file.read(), 'test 123\n')  # No truncated on error
 
 	def testImageFile(self):
 		file = self.get_package_data('zim.png')
@@ -815,7 +815,7 @@ class TestLocalFS(tests.TestCase, TestFS):
 			self.assertRaises(FileNotWritableError, file.write, 'Overwritten!')
 			self.assertEqual(file.read(), 'test 123\n')
 		finally:
-			os.chmod(file.encodedpath, 0o644) # make it removable again
+			os.chmod(file.encodedpath, 0o644)  # make it removable again
 			file.remove()
 
 	def testFileEncoding(self):
@@ -925,7 +925,7 @@ class TestTmpFile(tests.TestCase):
 		path = file.encodedpath
 		self.assertTrue(os.path.isfile(path))
 		del file
-		self.assertFalse(os.path.isfile(path)) # not persistent
+		self.assertFalse(os.path.isfile(path))  # not persistent
 
 
 class TestFunc(tests.TestCase):

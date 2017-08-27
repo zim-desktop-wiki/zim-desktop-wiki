@@ -44,7 +44,7 @@ def encode_filename(pagename):
 	@returns: the filename as unicode object but with characters
 	incompatble with the filesystem encoding replaced
 	'''
-	assert not '%' in pagename # just to be sure
+	assert not '%' in pagename  # just to be sure
 	if not FS_ENCODING in ('utf-8', 'mbcs'):
 		# if not utf-8 we may not be able to encode all characters
 		# enforce safe encoding, but do not actually encode here
@@ -108,7 +108,7 @@ class FilesLayout(NotebookLayout):
 		'''
 		path = encode_filename(pagename.name)
 		file = self.root.file(path + self.default_extension)
-		file.endofline = self.endofline ## TODO, make this auto-detect for existing files ?
+		file.endofline = self.endofline  # TODO, make this auto-detect for existing files ?
 		folder = self.root.folder(path) if path else self.root
 		return file, folder
 
@@ -134,7 +134,7 @@ class FilesLayout(NotebookLayout):
 			if _SEP in path:
 				path, x = path.rsplit(_SEP, 1)
 			else:
-				path = ':' # ROOT_PATH
+				path = ':'  # ROOT_PATH
 			type = FILE_TYPE_ATTACHMENT
 		if path == ':':
 			return Path(':'), type
@@ -172,11 +172,11 @@ class FilesLayout(NotebookLayout):
 					name = object.basename[:-len(self.default_extension)]
 				else:
 					continue
-			else: # Folder
+			else:  # Folder
 				name = object.basename
 
 			pname = decode_filename(name)
-			if encode_filename(pname) == name: # will reject e.g. whitespace in file name
+			if encode_filename(pname) == name:  # will reject e.g. whitespace in file name
 				names.add(pname)
 
 		return [pagename + basename for basename in sorted(names)]

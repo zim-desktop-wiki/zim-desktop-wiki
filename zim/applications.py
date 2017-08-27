@@ -66,7 +66,7 @@ class Application(object):
 	fall back to first item of C{cmd}
 	'''
 
-	STATUS_OK = 0 #: return code when the command executed succesfully
+	STATUS_OK = 0  # : return code when the command executed succesfully
 
 	def __init__(self, cmd, tryexeccmd=None, encoding=None):
 		'''Constructor
@@ -183,7 +183,7 @@ class Application(object):
 			try:
 				info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 			except AttributeError:
-				info.dwFlags |= 1 # STARTF_USESHOWWINDOW = 0x01
+				info.dwFlags |= 1  # STARTF_USESHOWWINDOW = 0x01
 
 			p = subprocess.Popen(argv,
 				cwd=cwd,
@@ -239,7 +239,7 @@ class Application(object):
 		# FIXME Assume local encoding is respected (!?)
 		text = [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
 		if text and text[-1].endswith('\n') and not stdout.endswith('\n'):
-			text[-1] = text[-1][:-1] # strip additional \n
+			text[-1] = text[-1][:-1]  # strip additional \n
 		return text
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
@@ -296,8 +296,8 @@ class WebBrowser(Application):
 	fallback if no webbrowser is configured.
 	'''
 
-	name = _('Default') + ' (webbrowser)' # T: label for default webbrowser
-	key = 'webbrowser' # Used by zim.gui.applications
+	name = _('Default') + ' (webbrowser)'  # T: label for default webbrowser
+	key = 'webbrowser'  # Used by zim.gui.applications
 
 	def __init__(self, encoding=None):
 		import webbrowser
@@ -305,7 +305,7 @@ class WebBrowser(Application):
 		try:
 			self.controller = webbrowser.get()
 		except webbrowser.Error:
-			pass # webbrowser throws an error when no browser is found
+			pass  # webbrowser throws an error when no browser is found
 
 		self.encoding = encoding or zim.fs.ENCODING
 		if self.encoding == 'mbcs':
@@ -337,8 +337,8 @@ class StartFile(Application):
 	windows to open files and URLs with the default application.
 	'''
 
-	name = _('Default') + ' (os)' # T: label for default application
-	key = 'startfile' # Used by zim.gui.applications
+	name = _('Default') + ' (os)'  # T: label for default application
+	key = 'startfile'  # Used by zim.gui.applications
 
 	def __init__(self):
 		pass

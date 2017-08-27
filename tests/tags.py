@@ -55,9 +55,9 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			self.assertTrue(not treestore.get_column_type(i) is None)
 
 		# Check top level
-		n = treestore.on_iter_n_children(None) # iternal
+		n = treestore.on_iter_n_children(None)  # iternal
 		self.assertTrue(n > 0)
-		n = treestore.iter_n_children(None) # external
+		n = treestore.iter_n_children(None)  # external
 		self.assertTrue(n > 0)
 
 		# Quick check for basic methods
@@ -98,14 +98,14 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			if treestore.iter_has_child(iter):
 				path = path + (0,)
 			else:
-				path = path[:-1] + (path[-1] + 1,) # increase last member
+				path = path[:-1] + (path[-1] + 1,)  # increase last member
 				while path:
 					try:
 						treestore.get_iter(path)
 					except ValueError:
 						path = path[:-1]
 						if len(path):
-							path = path[:-1] + (path[-1] + 1,) # increase last member
+							path = path[:-1] + (path[-1] + 1,)  # increase last member
 					else:
 						break
 
@@ -116,12 +116,12 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		ui.page = Path('foobar')
 		self.assertTrue(self.notebook.get_page(ui.page).exists())
 
-		self.notebook.index.flush() # we want to index ourselves
+		self.notebook.index.flush()  # we want to index ourselves
 		treestore = self.storeclass(self.notebook.index, self.tags)
 		treeview = self.viewclass(ui, treestore)
 
 		# Process signals on by one
-		self.assertEqual(self.notebook.pages.n_all_pages(), 0) # assert we start blank
+		self.assertEqual(self.notebook.pages.n_all_pages(), 0)  # assert we start blank
 		for p in self.notebook.index.update_iter():
 			tests.gtk_process_events()
 		tests.gtk_process_events()
@@ -149,7 +149,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		tests.gtk_process_events()
 
 		# Check if all the signals go OK in delete
-		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
+		for page in reversed(list(self.notebook.pages.walk())):  # delete bottom up
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
 

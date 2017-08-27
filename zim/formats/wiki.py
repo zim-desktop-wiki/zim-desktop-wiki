@@ -91,7 +91,7 @@ class WikiParser(object):
 	def _init_inline_parse(self):
 		# Rules for inline formatting, links and tags
 		return (
-			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+			Rule(LINK, url_re.r, process=self.parse_url)  # FIXME need .r atribute because url_re is a Re object
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
@@ -161,7 +161,7 @@ class WikiParser(object):
 				process=self.parse_object
 			),
 			Rule(HEADING,
-				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
+				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',  # "==== heading ===="
 				process=self.parse_heading
 			),
 			# standard table format
@@ -174,7 +174,7 @@ class WikiParser(object):
 				process=self.parse_table
 			),
 			# line format
-			Rule(LINE, r'(?<=\n)-{5,}(?=\n)', process=self.parse_line) # \n----\n
+			Rule(LINE, r'(?<=\n)-{5,}(?=\n)', process=self.parse_line)  # \n----\n
 
 		)
 		p.process_unmatched = self.parse_para
@@ -217,7 +217,7 @@ class WikiParser(object):
 		for match in param_re.finditer(param):
 			key = match.group(1).lower()
 			value = match.group(2)
-			if value.startswith('"') and len(value) > 1: # Quoted string
+			if value.startswith('"') and len(value) > 1:  # Quoted string
 				value = value[1:-1].replace('""', '"')
 			attrib[key] = value
 
@@ -319,7 +319,7 @@ class WikiParser(object):
 			builder.text(text)
 		else:
 			for block in empty_lines_re.split(text):
-				if not block: # empty string due to split
+				if not block:  # empty string due to split
 					pass
 				elif block.isspace():
 					builder.text(block)
@@ -371,16 +371,16 @@ class WikiParser(object):
 
 			mylevel = len(prefix)
 			if mylevel > level:
-				self.parse_list_lines(builder, lines, level + 1) # recurs
+				self.parse_list_lines(builder, lines, level + 1)  # recurs
 			elif mylevel < level:
 				builder.end(listtype)
 				return
 			else:
 				if listtype == NUMBEREDLIST:
 					attrib = None
-				elif bullet in self.BULLETS: # BULLETLIST
+				elif bullet in self.BULLETS:  # BULLETLIST
 					attrib = {'bullet': self.BULLETS[bullet]}
-				else: # BULLETLIST
+				else:  # BULLETLIST
 					attrib = {'bullet': BULLET}
 				builder.start(LISTITEM, attrib)
 				self.inline_parser(builder, text)
@@ -399,10 +399,10 @@ class WikiParser(object):
 
 	@staticmethod
 	def parse_link(builder, text):
-		text = text.strip('|') # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
+		text = text.strip('|')  # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
 		if '|' in text:
 			href, text = text.split('|', 1)
-			text = text.strip('|') # stuff like "[[foo||bar]]"
+			text = text.strip('|')  # stuff like "[[foo||bar]]"
 		else:
 			href = text
 
@@ -438,7 +438,7 @@ class WikiParser(object):
 
 
 
-wikiparser = WikiParser() #: singleton instance
+wikiparser = WikiParser()  # : singleton instance
 
 
 # FIXME FIXME we are redefining Parser here !
@@ -460,7 +460,7 @@ class Parser(ParserClass):
 				backward = True
 
 		builder = ParseTreeBuilder(partial=partial)
-		wikiparser.backward = backward or self.backward # HACK
+		wikiparser.backward = backward or self.backward  # HACK
 		wikiparser(builder, input)
 
 		parsetree = builder.get_parsetree()
@@ -492,7 +492,7 @@ class Dumper(TextDumper):
 		MARK: ('__', '__'),
 		STRIKE: ('~~', '~~'),
 		VERBATIM: ("''", "''"),
-		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		TAG: ('', ''),  # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('_{', '}'),
 		SUPERSCRIPT: ('^{', '}'),
 	}
@@ -536,7 +536,7 @@ class Dumper(TextDumper):
 
 		if not strings or href == u''.join(strings):
 			if url_re.match(href):
-				return (href,) # no markup needed
+				return (href,)  # no markup needed
 			else:
 				return ('[[', href, ']]')
 		else:
@@ -550,7 +550,7 @@ class Dumper(TextDumper):
 		for k, v in items:
 			if k in ('src', 'alt') or k.startswith('_'):
 				continue
-			elif v: # skip None, "" and 0
+			elif v:  # skip None, "" and 0
 				data = url_encode(unicode(v), mode=URL_ENCODE_DATA)
 				opts.append('%s=%s' % (k, data))
 		if opts:
@@ -601,14 +601,14 @@ class Dumper(TextDumper):
 
 	def dump_th(self, tag, attrib, strings):
 		if not strings:
-			return [''] # force empty cell
+			return ['']  # force empty cell
 		else:
 			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 			return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
 		if not strings:
-			return [''] # force empty cell
+			return ['']  # force empty cell
 		else:
 			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
 			strings = map(lambda s: s.replace('<br>', '\\n'), strings)

@@ -67,22 +67,22 @@ class TrayIconPluginCommand(GtkCommand):
 class TrayIconPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Tray Icon'), # T: plugin name
+		'name': _('Tray Icon'),  # T: plugin name
 		'description': _('''\
 This plugin adds a tray icon for quick access.
 
 This plugin depends on Gtk+ version 2.10 or newer.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Tray Icon',
 	}
 
 	plugin_preferences = (
 		# key, type, label, default
-		('classic', 'bool', _('Classic trayicon,\ndo not use new style status icon on Ubuntu'), False), # T: preferences option
-		('standalone', 'bool', _('Show a separate icon for each notebook'), False), # T: preferences option
+		('classic', 'bool', _('Classic trayicon,\ndo not use new style status icon on Ubuntu'), False),  # T: preferences option
+		('standalone', 'bool', _('Show a separate icon for each notebook'), False),  # T: preferences option
 	)
 
 	@classmethod
@@ -111,12 +111,12 @@ class TrayIconMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.window.ui.hideonclose = True # XXX
+		self.window.ui.hideonclose = True  # XXX
 		plugin.load_trayicon()
 
 	def teardown(self):
 		global GLOBAL_TRAYICON
-		self.window.ui.hideonclose = False # XXX
+		self.window.ui.hideonclose = False  # XXX
 		if GLOBAL_TRAYICON:
 			GLOBAL_TRAYICON.destroy()
 			GLOBAL_TRAYICON = None
@@ -131,7 +131,7 @@ class TrayIconBase(object):
 		'''Returns the main 'tray icon menu'''
 		menu = gtk.Menu()
 
-		item = gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
+		item = gtk.MenuItem(_('_Quick Note...'))  # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quick_note, self)
 		menu.append(item)
 
@@ -147,7 +147,7 @@ class TrayIconBase(object):
 
 		menu.append(gtk.SeparatorMenuItem())
 
-		item = gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
+		item = gtk.MenuItem(_('_Quit'))  # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quit, self)
 		menu.append(item)
 
@@ -160,7 +160,7 @@ class TrayIconBase(object):
 
 		@returns: a list of L{NotebookInfo} objects
 		'''
-		return [] # TODO
+		return []  # TODO
 		#~ for uri in self.server.list_notebooks():
 			#~ info = NotebookInfo(uri)
 			#~ info.active = True
@@ -189,19 +189,19 @@ class TrayIconBase(object):
 
 		for info in notebooks:
 			if not info.active:
-				info.active = False # None -> False
+				info.active = False  # None -> False
 
 		return notebooks
 
 	def populate_menu_with_notebooks(self, menu, notebooks):
 		'''Populate a menu with a list of notebooks'''
 		# TODO put checkbox behind open notebooks ?
-		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item = gtk.MenuItem(_('Notebooks'))  # T: menu item in tray icon menu
 		item.set_sensitive(False)
 		menu.append(item)
 
 		if isinstance(notebooks, NotebookInfoList):
-			notebooks = [info for info in notebooks] # copy
+			notebooks = [info for info in notebooks]  # copy
 
 		notebooks.sort(key=lambda info: info.name)
 
@@ -254,7 +254,7 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 			icon = data_file('zim.png').path
 			self.set_from_file(icon)
 
-		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
+		self.set_tooltip(_('Zim Desktop Wiki'))  # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
@@ -321,7 +321,7 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
 		self.on_notebook_list_changed()
 
-	def on_notebook_list_changed(self): # TODO connect somewhere
+	def on_notebook_list_changed(self):  # TODO connect somewhere
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		self.appindicator.set_menu(menu)

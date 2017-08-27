@@ -36,7 +36,7 @@ class TestParsing(tests.TestCase):
 		today = date.today()
 		year = today.year
 		if today.month > 6:
-			year += 1 # Starting July next year January is closer
+			year += 1  # Starting July next year January is closer
 		self.assertEqual(parse_date('1/1'), (year, 1, 1))
 		self.assertEqual(parse_date('1-1'), (year, 1, 1))
 		self.assertEqual(parse_date('1:1'), (year, 1, 1))
@@ -71,7 +71,7 @@ class TestParsing(tests.TestCase):
 		'''Test encoding and decoding urls'''
 		for url, readable in (
 			('file:///foo/file%25%20%5D', 'file:///foo/file%25 %5D'),
-			('http://foo/bar%20monkey%E2%80%99s', u'http://foo/bar monkey\u2019s'), # Multibyte unicode char
+			('http://foo/bar%20monkey%E2%80%99s', u'http://foo/bar monkey\u2019s'),  # Multibyte unicode char
 
 			# from bug report lp:545712
 			('http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm',
@@ -96,7 +96,7 @@ class TestParsing(tests.TestCase):
 		# from bug report lp:545712
 		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '\xb4\xfa\xb8\xd5\xb0\xcf')
 
-		## test round trip for utf-8
+		# test round trip for utf-8
 		data = u'\u0421\u0430\u0439'
 		encoded = url_encode(data)
 		decoded = url_decode(data)
@@ -116,7 +116,7 @@ class TestParsing(tests.TestCase):
 			('mailto:foo@bar.com', 'mailto'),
 			('mailto:foo.com', 'page'),
 			('foo@bar.com', 'mailto'),
-			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mailto:foo//bar@bar.com', 'mailto'),  # is this a valid mailto uri ?
 			('mid:foo@bar.org', 'mid'),
 			('cid:foo@bar.org', 'cid'),
 			('./foo/bar', 'file'),

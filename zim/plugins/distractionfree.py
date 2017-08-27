@@ -13,33 +13,33 @@ from zim.gui import PATHBAR_NONE, PATHBAR_RECENT
 logger = logging.getLogger('zim.plugins.distractionfree')
 
 
-_minsize = 300 # prevent pageview from disappearing altogether
-_minmargin = 5 # minimum margin to keep from other widgets
+_minsize = 300  # prevent pageview from disappearing altogether
+_minmargin = 5  # minimum margin to keep from other widgets
 
 
 class DistractionFreePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Distraction Free Editing'), # T: plugin name
+		'name': _('Distraction Free Editing'),  # T: plugin name
 		'description': _(
 			'This plugin adds settings that help using zim\n'
 			'as a distraction free editor.\n'
-		), # T: plugin description
+		),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Distraction Free Editing',
 	}
 
 	plugin_preferences = (
 		# key, type, label, default
-		('hide_menubar', 'bool', _('Hide menubar in fullscreen mode'), True), # T: plugin preference
-		('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True), # T: plugin preference
-		('hide_pathbar', 'bool', _('Hide pathbar in fullscreen mode'), True), # T: plugin preference
-		('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True), # T: plugin preference
-		('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)), # T: plugin preference
-		('vmargin', 'int', _('Vertical margin'), 50, (0, 10000)), # T: plugin preference
-		('basecolor', 'color', _('Text background color'), '#babdb6'), # T: plugin preference
-		('textcolor', 'color', _('Text foreground color'), '#2e3436'), # T: plugin preference
-		('bgcolor', 'color', _('Screen background color'), '#2e3436'), # T: plugin preference
+		('hide_menubar', 'bool', _('Hide menubar in fullscreen mode'), True),  # T: plugin preference
+		('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True),  # T: plugin preference
+		('hide_pathbar', 'bool', _('Hide pathbar in fullscreen mode'), True),  # T: plugin preference
+		('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True),  # T: plugin preference
+		('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)),  # T: plugin preference
+		('vmargin', 'int', _('Vertical margin'), 50, (0, 10000)),  # T: plugin preference
+		('basecolor', 'color', _('Text background color'), '#babdb6'),  # T: plugin preference
+		('textcolor', 'color', _('Text foreground color'), '#2e3436'),  # T: plugin preference
+		('bgcolor', 'color', _('Screen background color'), '#2e3436'),  # T: plugin preference
 		#('fgcolor', 'color', _('Screen foreground color'), '#eeeeec'),
 	)
 
@@ -101,12 +101,12 @@ class MainWindowExtension(WindowExtension):
 			self._save_colors(window)
 			self._set_colors(self._custom_colors)
 			window.toggle_panes(False)
-			window.pageview.swindow.set_shadow_type(gtk.SHADOW_NONE) # XXX
+			window.pageview.swindow.set_shadow_type(gtk.SHADOW_NONE)  # XXX
 		elif self._normal_colors:
 			self._set_colors(self._normal_colors)
 			window.toggle_panes(self._show_panes)
 			window.pageview.grab_focus()
-			window.pageview.swindow.set_shadow_type(gtk.SHADOW_IN) # XXX
+			window.pageview.swindow.set_shadow_type(gtk.SHADOW_IN)  # XXX
 		else:
 			pass
 
@@ -120,10 +120,10 @@ class MainWindowExtension(WindowExtension):
 		self._normal_colors = []
 		for state in (
 			gtk.STATE_NORMAL,
-			#gtk.STATE_ACTIVE,
-			#gtk.STATE_PRELIGHT,
-			#gtk.STATE_SELECTED,
-			#gtk.STATE_INSENSITIVE
+			# gtk.STATE_ACTIVE,
+			# gtk.STATE_PRELIGHT,
+			# gtk.STATE_SELECTED,
+			# gtk.STATE_INSENSITIVE
 		):
 			self._normal_colors.append({
 				'base': style.base[gtk.STATE_NORMAL],
@@ -141,13 +141,13 @@ class MainWindowExtension(WindowExtension):
 			'bg': self.preferences['bgcolor'],
 			#'fg': self.preferences['fgcolor'],
 		}
-		#selected = { # like normal, but reverse text and base
+		# selected = { # like normal, but reverse text and base
 		#	'base': self.preferences['textcolor'],
 		#	'text': self.preferences['basecolor'],
 		#	'bg': self.preferences['bgcolor'],
 		#	'fg': self.preferences['fgcolor'],
 		#}
-		#return [normal, normal, normal, selected, normal]
+		# return [normal, normal, normal, selected, normal]
 		return (normal,)
 
 	def _set_colors(self, colors):

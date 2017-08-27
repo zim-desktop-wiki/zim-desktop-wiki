@@ -64,11 +64,11 @@ DEFAULT_ICON_ZOOM = 64
 class AttachmentBrowserPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Attachment Browser'), # T: plugin name
+		'name': _('Attachment Browser'),  # T: plugin name
 		'description': _('''\
 This plugin shows the attachments folder of the current page as an
 icon view at bottom pane.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Thorsten Hackbarth <thorsten.hackbarth@gmx.de>\nJaap Karssenberg <jaap.karssenberg@gmail.com>',
 		'help': 'Plugins:Attachment Browser',
 	}
@@ -91,7 +91,7 @@ icon view at bottom pane.
 @extends('MainWindow')
 class AttachmentBrowserWindowExtension(WindowExtension):
 
-	TAB_NAME = _('Attachments') # T: label for attachment browser pane
+	TAB_NAME = _('Attachments')  # T: label for attachment browser pane
 
 	uimanager_xml = '''
 	<ui>
@@ -120,7 +120,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
 		self.window.statusbar.pack_end(self.statusbar_frame, False)
 
-		self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
+		self.statusbar_button = gtk.ToggleButton('<attachments>')  # translated below
 		button_set_statusbar_style(self.statusbar_button)
 
 		self.statusbar_button.set_use_underline(True)
@@ -158,9 +158,9 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget.show_all()
 
 	@toggle_action(
-		_('Attachment Browser'), # T: Menu item
+		_('Attachment Browser'),  # T: Menu item
 		gtk.STOCK_DIRECTORY,
-		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
+		tooltip=_('Show Attachment Browser')  # T: Toolbar item tooltip
 	)
 	def toggle_attachmentbrowser(self, active):
 		# This toggle is called to focus on our widget
@@ -191,7 +191,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 			self.toggle_attachmentbrowser(False)
 
 	def on_open_page(self, ui, page, path):
-		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_attachemnts_dir()
+		dir = self.window.ui.notebook.get_attachments_dir(page)  # XXX -> page.get_attachemnts_dir()
 		self.widget.iconview.set_folder(dir)
 		self._refresh_statusbar()
 
@@ -199,7 +199,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget.iconview.teardown_folder()
 
 	def _refresh_statusbar(self):
-		model = self.widget.iconview.get_model() # XXX
+		model = self.widget.iconview.get_model()  # XXX
 		n = len(model)
 		self.statusbar_button.set_label(
 			ngettext('%i _Attachment', '%i _Attachments', n) % n)
@@ -225,12 +225,12 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def __init__(self, extension, opener, preferences):
 		gtk.HBox.__init__(self)
-		self.extension = extension # XXX
+		self.extension = extension  # XXX
 		self.opener = opener
 		self.uistate = extension.uistate
 		self.preferences = preferences
 
-		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
+		use_thumbs = self.preferences.setdefault('use_thumbnails', True)  # Hidden setting
 		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
 		self.add(ScrolledWindow(self.iconview, shadow=gtk.SHADOW_NONE))
 
@@ -276,15 +276,15 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_refresh_button(self):
 		self.iconview.refresh()
-		self.extension._refresh_statusbar() # XXX
+		self.extension._refresh_statusbar()  # XXX
 
 	def on_zoom_in(self):
 		self.set_icon_size(
-			min((self.icon_size * 2, THUMB_SIZE_LARGE))) # 16 > 32 > 64 > 128 > 256
+			min((self.icon_size * 2, THUMB_SIZE_LARGE)))  # 16 > 32 > 64 > 128 > 256
 
 	def on_zoom_out(self):
 		self.set_icon_size(
-			max((self.icon_size / 2, MIN_ICON_ZOOM))) # 16 < 32 < 64 < 128 < 256
+			max((self.icon_size / 2, MIN_ICON_ZOOM)))  # 16 < 32 < 64 < 128 < 256
 
 	def set_icon_size(self, icon_size):
 		self.iconview.set_icon_size(icon_size)
@@ -292,7 +292,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.zoomout_button.set_sensitive(False)
 		self.zoomin_button.set_sensitive(icon_size < THUMB_SIZE_LARGE)
 		self.zoomout_button.set_sensitive(icon_size > MIN_ICON_ZOOM)
-		self.icon_size = icon_size # Do this last - avoid store state after fail
+		self.icon_size = icon_size  # Do this last - avoid store state after fail
 
 
 

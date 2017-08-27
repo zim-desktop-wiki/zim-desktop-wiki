@@ -28,18 +28,18 @@ gnuplot_cmd = ('gnuplot',)
 class InsertGnuplotPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
-		'name': _('Insert Gnuplot'), # T: plugin name
+		'name': _('Insert Gnuplot'),  # T: plugin name
 		'description': _('''\
 This plugin provides a plot editor for zim based on Gnuplot.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'help': 'Plugins:Gnuplot Editor',
 		'author': 'Alessandro Magni',
 	}
 
 	object_type = 'gnuplot'
-	short_label = _('Gnuplot') # T: menu item
-	insert_label = _('Insert Gnuplot') # T: menu item
-	edit_label = _('_Edit Gnuplot') # T: menu item
+	short_label = _('Gnuplot')  # T: menu item
+	insert_label = _('Insert Gnuplot')  # T: menu item
+	edit_label = _('_Edit Gnuplot')  # T: menu item
 	syntax = None
 
 	@classmethod
@@ -51,8 +51,8 @@ This plugin provides a plot editor for zim based on Gnuplot.
 class MainWindowExtension(MainWindowExtensionBase):
 
 	def build_generator(self):
-		page = self.window.ui.page # XXX
-		notebook = self.window.ui.notebook # XXX
+		page = self.window.ui.page  # XXX
+		notebook = self.window.ui.notebook  # XXX
 		attachment_folder = notebook.get_attachments_dir(page)
 		#~ print ">>>", notebook, page, attachment_folder
 		return GnuplotGenerator(self.plugin, attachment_folder)
@@ -76,7 +76,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 		plotscriptfile = self.plotscriptfile
 		pngfile = File(plotscriptfile.path[:-4] + '.png')
 
-		template_vars = { # they go in the template
+		template_vars = {  # they go in the template
 			'gnuplot_script': text,
 			'png_fname': pngfile.path,
 		}
@@ -98,7 +98,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 							# you call it as % gnuplot output.plt
 
 		except ApplicationError:
-			return None, None # Sorry - no log
+			return None, None  # Sorry - no log
 		else:
 			return pngfile, None
 

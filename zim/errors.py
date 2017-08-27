@@ -44,7 +44,7 @@ def get_error_msg(error):
 
 	else:
 		# An unexpected error, all other Exception's
-		msg = _('Looks like you found a bug') # T: generic error dialog
+		msg = _('Looks like you found a bug')  # T: generic error dialog
 		return msg, True
 
 
@@ -94,7 +94,7 @@ def exception_handler(debug):
 	# the error itself shows up in the traceback anyway
 	exc_info = sys.exc_info()
 	error = exc_info[1]
-	del exc_info # recommended by manual
+	del exc_info  # recommended by manual
 
 	log_error(error, debug=debug)
 	if use_gtk_errordialog:

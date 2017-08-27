@@ -58,7 +58,7 @@ class QuickNotePluginCommand(GtkCommand):
 		('notebook=', '', 'Select the notebook in the dialog'),
 		('page=', '', 'Fill in full page name'),
 		('section=', '', 'Fill in the page section in the dialog'),
-		('namespace=', '', 'Fill in the page section in the dialog'), # backward compatibility
+		('namespace=', '', 'Fill in the page section in the dialog'),  # backward compatibility
 		('basename=', '', 'Fill in the page name in the dialog'),
 		('append=', '', 'Set whether to append or create new page ("true" or "false")'),
 		('text=', '', 'Provide the text directly'),
@@ -69,7 +69,7 @@ class QuickNotePluginCommand(GtkCommand):
 	)
 
 	def parse_options(self, *args):
-		self.opts['option'] = [] # allow list
+		self.opts['option'] = []  # allow list
 
 		if all(not a.startswith('-') for a in args):
 			# Backward compartibility for options not prefixed by "--"
@@ -134,11 +134,11 @@ class QuickNotePluginCommand(GtkCommand):
 		#   (desktop preventing new window of existing process to hijack focus)
 		# - e.g. capturing stdin requires local process
 		if self.opts.get('help'):
-			print usagehelp # TODO handle this in the base class
+			print usagehelp  # TODO handle this in the base class
 		else:
 			dialog = self.build_dialog()
 			dialog.run()
-		return True # Done - Don't call run() as well
+		return True  # Done - Don't call run() as well
 
 	def run(self):
 		# If called from primary process just run the dialog
@@ -166,13 +166,13 @@ class QuickNotePluginCommand(GtkCommand):
 class QuickNotePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Quick Note'), # T: plugin name
+		'name': _('Quick Note'),  # T: plugin name
 		'description': _('''\
 This plugin adds a dialog to quickly drop some text or clipboard
 content into a zim page.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Quick Note',
 	}
@@ -197,10 +197,10 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
+	@action(_('Quick Note...'), stock='gtk-new')  # T: menu item
 	def show_quick_note(self):
-		ui = self.window.ui # XXX
-		notebook = self.window.ui.notebook # XXX
+		ui = self.window.ui  # XXX
+		notebook = self.window.ui.notebook  # XXX
 		dialog = QuickNoteDialog.unique(self, self.window, notebook)
 		dialog.show()
 
@@ -214,7 +214,7 @@ class QuickNoteDialog(Dialog):
 	):
 		assert page is None, 'TODO'
 
-		manager = ConfigManager() # FIXME should be passed in
+		manager = ConfigManager()  # FIXME should be passed in
 		self.config = manager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
@@ -262,9 +262,9 @@ class QuickNoteDialog(Dialog):
 
 		self.form.add_inputs((
 				('page', 'page', _('Page')),
-				('namespace', 'namespace', _('Page section')), # T: text entry field
-				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
-				('basename', 'string', _('Title')) # T: text entry field
+				('namespace', 'namespace', _('Page section')),  # T: text entry field
+				('new_page', 'bool', _('Create a new page for each note')),  # T: checkbox in Quick Note dialog
+				('basename', 'string', _('Title'))  # T: text entry field
 			))
 		self.form.update({
 				'page': page,
@@ -277,7 +277,7 @@ class QuickNoteDialog(Dialog):
 		self.uistate.setdefault('new_page', True)
 
 		if basename:
-			self.uistate['new_page'] = True # Be consistent with input
+			self.uistate['new_page'] = True  # Be consistent with input
 
 		# Set up the inputs and set page/ namespace to switch on
 		# toggling the checkbox
@@ -301,7 +301,7 @@ class QuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page_check = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+		self.open_page_check = gtk.CheckButton(_('Open _Page'))  # T: Option in quicknote dialog
 			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page_check.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page_check, False)
@@ -469,17 +469,17 @@ class QuickNoteDialog(Dialog):
 
 	def create_new_page(self, notebook, path, text):
 		page = notebook.get_new_page(path)
-		page.parse('wiki', text) # FIXME format hard coded
+		page.parse('wiki', text)  # FIXME format hard coded
 		notebook.store_page(page)
 
 	def append_to_page(self, notebook, path, text):
 		page = notebook.get_page(path)
-		page.parse('wiki', text, append=True) # FIXME format hard coded
+		page.parse('wiki', text, append=True)  # FIXME format hard coded
 		notebook.store_page(page)
 
 	def import_attachments(self, notebook, path, dir):
 		attachments = notebook.get_attachments_dir(path)
-		attachments = Dir(attachments.path) # XXX
+		attachments = Dir(attachments.path)  # XXX
 		for name in dir.list():
 			# FIXME could use list objects, or list_files()
 			file = dir.file(name)

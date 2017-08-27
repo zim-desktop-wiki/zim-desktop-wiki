@@ -152,7 +152,7 @@ class Query(object):
 				if tag_re.match(w):
 					tokens.append(QueryTerm('tag', w[1:]))
 				else:
-					tokens.append(QueryTerm('contentorname', w)) # default keyword
+					tokens.append(QueryTerm('contentorname', w))  # default keyword
 		#~ print tokens
 
 		# Then parse NOT operator out
@@ -165,7 +165,7 @@ class Query(object):
 					token.inverse = True
 					tokens.append(token)
 				else:
-					pass # ignore
+					pass  # ignore
 			else:
 				tokens.append(token)
 		#~ print tokens
@@ -190,7 +190,7 @@ class Query(object):
 					root.append(token)
 			else:
 				assert token in (OPERATOR_AND, OPERATOR_OR)
-				pass # AND is the default, OR should not appear here, ignore silently
+				pass  # AND is the default, OR should not appear here, ignore silently
 
 		#~ print root
 		return root
@@ -301,7 +301,7 @@ class SearchSelection(PageSelection):
 
 		if callback:
 			if group.operator == OPERATOR_AND:
-				cont = callback(None, None) # do not transmit results yet
+				cont = callback(None, None)  # do not transmit results yet
 			else:
 				cont = callback(results, None)
 
@@ -323,7 +323,7 @@ class SearchSelection(PageSelection):
 
 			if callback:
 				if group.operator == OPERATOR_AND:
-					cont = callback(None, None) # do not transmit results yet
+					cont = callback(None, None)  # do not transmit results yet
 				else:
 					cont = callback(results, None)
 
@@ -335,7 +335,7 @@ class SearchSelection(PageSelection):
 		for term in contentterms:
 			if scope and id(scope) == id(results):
 				scope = scope.copy()
-			myscope = scope # local copy here, need to pass full scope to _process_content
+			myscope = scope  # local copy here, need to pass full scope to _process_content
 			if term.keyword == 'contentorname':
 				results, myscope = op_func(results, myscope,
 					self._process_from_index(term, myscope, scoring=10))
@@ -385,11 +385,11 @@ class SearchSelection(PageSelection):
 		# Process keywords we can get from the index, just one term at
 		# a time - leave it up to _process_group to combine them
 		myresults = SearchSelection(None)
-		myresults.scores = self.scores # HACK for callback function
+		myresults.scores = self.scores  # HACK for callback function
 		scoped = False
 
 		if term.keyword in ('name', 'namespace', 'section', 'contentorname'):
-			scoped = True # for these keywords we use scope immediatly
+			scoped = True  # for these keywords we use scope immediatly
 			if scope:
 				generator = iter(scope)
 			else:
@@ -400,7 +400,7 @@ class SearchSelection(PageSelection):
 			elif term.keyword == 'contentorname':
 				# More lax matching for default case
 				regex = self._name_regex('*' + term.string.strip('*') + '*')
-				term.name_regex = regex # needed in _process_content
+				term.name_regex = regex  # needed in _process_content
 			else:
 				regex = self._name_regex(term.string)
 
@@ -445,7 +445,7 @@ class SearchSelection(PageSelection):
 							myresults.add(link.source)
 
 		elif term.keyword == 'tag':
-			tag = term.string.strip('*') # XXX
+			tag = term.string.strip('*')  # XXX
 			try:
 				for path in self.notebook.tags.list_pages(tag):
 					myresults.add(path)
@@ -456,7 +456,7 @@ class SearchSelection(PageSelection):
 
 		# apply scope:
 		if scope and not scoped:
-			myresults &= scope # only keep results that in scope
+			myresults &= scope  # only keep results that in scope
 
 		# Inverse selection
 		if term.inverse:
@@ -515,7 +515,7 @@ class SearchSelection(PageSelection):
 				continue
 
 			if tree is None:
-				continue # Assume need to have content even for negative query
+				continue  # Assume need to have content even for negative query
 
 			path = Path(page.name)
 			if operator == OPERATOR_AND:
@@ -525,9 +525,9 @@ class SearchSelection(PageSelection):
 					myscore = tree.countre(term.content_regex)
 					if term.keyword == 'contentorname' \
 					and term.name_regex.match(path.name):
-						myscore += 1 # effective score going to 11
+						myscore += 1  # effective score going to 11
 
-					if bool(myscore) != term.inverse: # implicit XOR
+					if bool(myscore) != term.inverse:  # implicit XOR
 						score += myscore or 1
 					else:
 						score = 0
@@ -536,15 +536,15 @@ class SearchSelection(PageSelection):
 				if score:
 					results.add(path)
 					self._count_score(path, score)
-			else: # OPERATOR_OR
+			else:  # OPERATOR_OR
 				for term in terms:
 					#~ print '!! Count OR %s' % term
 					score = tree.countre(term.content_regex)
 					if term.keyword == 'contentorname' \
 					and term.name_regex.match(path.name):
-						score += 1 # effective score going to 11
+						score += 1  # effective score going to 11
 
-					if bool(score) != term.inverse: # implicit XOR
+					if bool(score) != term.inverse:  # implicit XOR
 						results.add(path)
 						self._count_score(path, score or 1)
 

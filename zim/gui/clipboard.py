@@ -96,15 +96,15 @@ def pack_urilist(links):
 	for link in links:
 		link = link.encode('utf-8')
 		if is_url_re.match(link):
-			link = url_encode(link, mode=URL_ENCODE_READABLE) # just to be sure
+			link = url_encode(link, mode=URL_ENCODE_READABLE)  # just to be sure
 		text += '%s\r\n' % link
 	return text
 
 
 def unpack_urilist(text):
 	# FIXME be tolerant here for file://path/to/file uris here
-	text = text.strip('\x00') # Found trailing NULL character on windows
-	lines = text.splitlines() # takes care of \r\n
+	text = text.strip('\x00')  # Found trailing NULL character on windows
+	lines = text.splitlines()  # takes care of \r\n
 	return [line.decode('utf-8')
 		for line in lines if line and not line.isspace()]
 		# Just to be sure we also skip empty or whitespace lines
@@ -119,7 +119,7 @@ def textbuffer_register_serialize_formats(buffer, notebook, page):
 		buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
 		for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
 			buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
-		for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
+		for name in IMAGE_TARGET_NAMES:  # FIXME, should we limit the list ?
 			buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
 
 def serialize_parse_tree(register_buf, content_buf, start, end):
@@ -170,7 +170,7 @@ def deserialize_image(register_buf, content_buf, iter, data, create_tags, user_d
 	file = dir.new_file('pasted_image.%s' % extension)
 	logger.debug("Saving image from clipboard to %s", file)
 	pixbuf.save(file.path, format)
-	FS.emit('path-created', file) # notify version control
+	FS.emit('path-created', file)  # notify version control
 
 	# and insert it in the page
 	links = [file.uri]
@@ -239,7 +239,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
 		pixbuf.save(file.path, format)
-		FS.emit('path-created', file) # notify version control
+		FS.emit('path-created', file)  # notify version control
 
 		links = [file.uri]
 		return _link_tree(links, notebook, path)
@@ -277,11 +277,11 @@ def _link_tree(links, notebook, path):
 			builder.append(TAG, {'name': links[i][1:]}, links[i])
 		else:
 			if type == 'page':
-				target = Path(Path.makeValidPageName(link)) # Assume links are always absolute
+				target = Path(Path.makeValidPageName(link))  # Assume links are always absolute
 				href = notebook.pages.create_link(path, target)
 				link = href.to_wiki_link()
 			elif type == 'file':
-				file = File(link) # Assume links are always URIs
+				file = File(link)  # Assume links are always URIs
 				link = notebook.relative_filepath(file, path) or file.uri
 
 			builder.append(LINK, {'href': link}, link)
@@ -384,7 +384,7 @@ class ParseTreeItem(ClipboardItem):
 	targets = (PARSETREE_TARGET,) + HTML_TARGETS + TEXT_TARGETS
 
 	def __init__(self, notebook, path, parsetree, format):
-		self.notebook = notebook # FIXME - should not need to keep this reference - resolve parsetree immediatly
+		self.notebook = notebook  # FIXME - should not need to keep this reference - resolve parsetree immediatly
 		self.path = path
 		self.parsetree = parsetree
 		self.format = format
@@ -592,8 +592,8 @@ class ClipboardManager(object):
 		item = UriItem(uri)
 		self.set(item)
 
-Clipboard = ClipboardManager("CLIPBOARD") #: Singleton object for the default clipboard
-SelectionClipboard = ClipboardManager("PRIMARY") #: Singleton object for the selection clipboard (unix)
+Clipboard = ClipboardManager("CLIPBOARD")  # : Singleton object for the default clipboard
+SelectionClipboard = ClipboardManager("PRIMARY")  # : Singleton object for the selection clipboard (unix)
 
 
 

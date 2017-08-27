@@ -230,10 +230,10 @@ class NotebookOperation(SignalEmitter):
 		if self.notebook._operation_check == self:
 			raise AssertionError('Already running')
 		else:
-			self.notebook._operation_check() # can raise
+			self.notebook._operation_check()  # can raise
 
-		self.notebook._operation_check = self # start blocking
-		gobject.idle_add(self._start) # ensure start happens in main thread
+		self.notebook._operation_check = self  # start blocking
+		gobject.idle_add(self._start)  # ensure start happens in main thread
 
 	def is_running(self):
 		return self.notebook._operation_check == self
@@ -242,18 +242,18 @@ class NotebookOperation(SignalEmitter):
 		self.emit('started')
 		my_iter = iter(self)
 		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
-		return False # run once
+		return False  # run once
 
 	def cancel(self):
 		logger.debug('Operation cancelled')
-		self.notebook._operation_check = NOOP # stop blocking
+		self.notebook._operation_check = NOOP  # stop blocking
 		self.cancelled = True
 		self.emit('finished')
 
 	def __iter__(self):
 		if not self.notebook._operation_check == self:
-			self.notebook._operation_check() # can raise
-			self.notebook._operation_check = self # start blocking
+			self.notebook._operation_check()  # can raise
+			self.notebook._operation_check = self  # start blocking
 
 		try:
 			while self.notebook._operation_check == self:
@@ -266,7 +266,7 @@ class NotebookOperation(SignalEmitter):
 				else:
 					self.emit('step', (None, None, progress))
 				self._block = True
-				yield True # keep going
+				yield True  # keep going
 		except StopIteration:
 			raise
 		except Exception as err:
@@ -276,7 +276,7 @@ class NotebookOperation(SignalEmitter):
 			raise StopIteration
 		finally:
 			if self.notebook._operation_check == self:
-				self.notebook._operation_check = NOOP # stop blocking
+				self.notebook._operation_check = NOOP  # stop blocking
 				self.emit('finished')
 
 
@@ -319,7 +319,7 @@ class SimpleAsyncOperation(NotebookOperation):
 	def _join(self):
 		self._thread.join()
 		for i in self:
-			pass # exhaust iter to call the post-handler
+			pass  # exhaust iter to call the post-handler
 
 
 class NotebookState(object):

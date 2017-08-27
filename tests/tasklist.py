@@ -280,7 +280,7 @@ class TestTaskList(tests.TestCase):
 		lines = text.splitlines()
 		self.assertTrue(len(lines) > 10)
 		self.assertTrue(len(lines[0].split(',')) > 3)
-		self.assertFalse(any('<span' in l for l in lines)) # make sure encoding is removed
+		self.assertFalse(any('<span' in l for l in lines))  # make sure encoding is removed
 
 		# Test tags
 		tags = treeview.get_tags()

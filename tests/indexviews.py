@@ -90,7 +90,7 @@ def new_test_database():
 	return db
 
 
-#class TestMemoryIndex(tests.TestCase):
+# class TestMemoryIndex(tests.TestCase):
 #
 #	def runTest(self):
 #		db = new_test_database()
@@ -199,7 +199,7 @@ class TestPagesView(tests.TestCase):
 
 		# cleaning absolute paths
 		for name, wanted in (
-			('foo:::bar', 'Foo:bar'), # "Foo" exists, so "foo" gets capital
+			('foo:::bar', 'Foo:bar'),  # "Foo" exists, so "foo" gets capital
 			('::foo:bar:', 'Foo:bar'),
 			(':foo', 'Foo'),
 			('/foo', 'Foo'),

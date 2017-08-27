@@ -48,7 +48,7 @@ class TestBookmarksBar(tests.TestCase):
 		self.assertTrue(self.notebook.get_page(self.ui.page).exists())
 
 		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
-		Bar.max_bookmarks = 15 # set maximum number of bookmarks
+		Bar.max_bookmarks = 15  # set maximum number of bookmarks
 
 		# Add paths to the beginning of the bar.
 		for i, path in enumerate(self.PATHS):
@@ -103,7 +103,7 @@ class TestBookmarksBar(tests.TestCase):
 		'''Test bookmark functions: changing, reordering, ranaming.'''
 
 		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
-		Bar.max_bookmarks = 15 # set maximum number of bookmarks
+		Bar.max_bookmarks = 15  # set maximum number of bookmarks
 
 		# Check changing a bookmark.
 		for i, path in enumerate(self.PATHS):

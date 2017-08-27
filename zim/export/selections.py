@@ -12,10 +12,10 @@ from zim.notebook import PageNotFoundError
 class PageSelection(object):
 	'''Base class defining the public API'''
 
-	notebook = None #: The L{Notebook} object
-	prefix = None #: optional L{Path} object with common prefix of pages in the selection, or C{None}
-	name = None #: name used in export template
-	title = None # name used in export template
+	notebook = None  # : The L{Notebook} object
+	prefix = None  # : optional L{Path} object with common prefix of pages in the selection, or C{None}
+	name = None  # : name used in export template
+	title = None  # name used in export template
 
 	def __iter__(self):
 		'''Iterate page objects
@@ -40,7 +40,7 @@ class AllPages(PageSelection):
 	def __init__(self, notebook):
 		self.notebook = notebook
 		self.name = notebook.name
-		self.title = notebook.name # XXX implement notebook.title
+		self.title = notebook.name  # XXX implement notebook.title
 
 	def __iter__(self):
 		for path in self.notebook.pages.walk():
@@ -60,7 +60,7 @@ class SinglePage(PageSelection):
 		self.notebook = notebook
 		self.page = page
 		self.name = self.page.name
-		self.title = self.page.name # XXX implement page.title (use heading)
+		self.title = self.page.name  # XXX implement page.title (use heading)
 		self.prefix = page
 
 	def __iter__(self):

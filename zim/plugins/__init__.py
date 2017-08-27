@@ -109,7 +109,7 @@ logger = logging.getLogger('zim.plugins')
 for dir in data_dirs('plugins'):
 	__path__.append(dir.path)
 
-__path__.append(__path__.pop(0)) # reshuffle real module path to the end
+__path__.append(__path__.pop(0))  # reshuffle real module path to the end
 
 #~ print "PLUGIN PATH:", __path__
 
@@ -184,10 +184,10 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		# List "zim.plugins" sub modules based on __path__ because this
 		# parameter determines what folders will considered when importing
 		# sub-modules of the this package once this module is loaded.
-		plugins = set() # THIS LINE IS REPLACED BY SETUP.PY - DON'T CHANGE IT
+		plugins = set()  # THIS LINE IS REPLACED BY SETUP.PY - DON'T CHANGE IT
 		for dir in __path__:
 			dir = Dir(dir)
-			for candidate in dir.list(): # returns [] if dir does not exist
+			for candidate in dir.list():  # returns [] if dir does not exist
 				if candidate.startswith('_') or candidate == 'base':
 					continue
 				elif candidate.endswith('.py'):
@@ -681,7 +681,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 			yield klass
 			for base in klass.__bases__:
 				if issubclass(base, ObjectExtension):
-					for k in walk(base): # recurs
+					for k in walk(base):  # recurs
 						yield k
 
 		for klass in walk(self.__class__):
@@ -752,7 +752,7 @@ class WindowExtension(ObjectExtension):
 		ObjectExtension.__init__(self, plugin, window)
 		self.window = window
 
-		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate') and window.ui.uistate: # XXX
+		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate') and window.ui.uistate:  # XXX
 			self.uistate = window.ui.uistate[plugin.config_key]
 		else:
 			self.uistate = None
@@ -802,13 +802,13 @@ class DialogExtension(WindowExtension):
 		# other buttons after adding the new one
 		#
 		# TODO: check if this works correctly in RTL configuration
-		self.window.action_area.pack_end(button, False) # puts button in right most position
+		self.window.action_area.pack_end(button, False)  # puts button in right most position
 		self._dialog_buttons.append(button)
 		buttons = [b for b in self.window.action_area.get_children()
 			if not self.window.action_area.child_get_property(b, 'secondary')]
 		for b in buttons:
 			if b is not button:
-				self.window.action_area.reorder_child(b, -1) # reshuffle to the right
+				self.window.action_area.reorder_child(b, -1)  # reshuffle to the right
 
 	def teardown(self):
 		for b in self._dialog_buttons:

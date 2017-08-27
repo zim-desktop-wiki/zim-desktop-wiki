@@ -37,7 +37,7 @@ class FileTreeWatcher(SignalEmitter):
 		'changed': (SIGNAL_NORMAL, None, (object,)),
 		'moved': (SIGNAL_NORMAL, None, (object, object)),
 		'removed': (SIGNAL_NORMAL, None, (object,)),
-	} #: signals supported by this class
+	}  # : signals supported by this class
 
 
 
@@ -139,7 +139,7 @@ class FSObjectMonitor(SignalEmitter):
 			gio.FILE_MONITOR_EVENT_DELETED,
 			gio.FILE_MONITOR_EVENT_MOVED,
 		):
-			self.emit('changed', None, None) # TODO translate otherfile and eventtype
+			self.emit('changed', None, None)  # TODO translate otherfile and eventtype
 
 
 def format_file_size(bytes):

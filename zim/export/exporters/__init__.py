@@ -63,7 +63,7 @@ def createIndexPage(notebook, path, section=None):
 					{'type': 'page', 'href': page.name}, page.basename)
 				builder.end(LISTITEM)
 				if page.haschildren:
-					add_namespace(page) # recurs
+					add_namespace(page)  # recurs
 			builder.end(BULLETLIST)
 
 		builder.start(FORMATTEDTEXT)

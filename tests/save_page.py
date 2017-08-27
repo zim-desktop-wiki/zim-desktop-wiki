@@ -49,7 +49,7 @@ class TestSavePageHandler(tests.TestCase):
 		page.modified = True
 		handler.try_save_page()
 		self.assertEqual(store_page_counter.count, 2)
-		ongoing_operation(notebook)() # effectively a join
+		ongoing_operation(notebook)()  # effectively a join
 		self.assertFalse(page.modified)
 
 		page.modified = True
@@ -83,7 +83,7 @@ class TestSavePageHandler(tests.TestCase):
 		self.assertFalse(handler._error_event and handler._error_event.is_set())
 		with tests.LoggingFilter('zim'):
 			handler.try_save_page()
-			ongoing_operation(notebook)() # effectively a join
+			ongoing_operation(notebook)()  # effectively a join
 		self.assertTrue(handler._error_event and handler._error_event.is_set())
 
 		with tests.LoggingFilter('zim'):
@@ -136,8 +136,8 @@ class TestRaceCodition(tests.TestCase):
 		self.assertTrue(page.modified)
 		pageview._save_page_handler.try_save_page()
 		self.assertTrue(page.modified)
-		pageview.view.get_buffer().set_text('dusss') # edit while save ongoing
+		pageview.view.get_buffer().set_text('dusss')  # edit while save ongoing
 		start_thread_event.set()
 		thread_done_event.wait()
 		with NotebookState(notebook):
-			self.assertTrue(page.modified) # page must still show modified is True
+			self.assertTrue(page.modified)  # page must still show modified is True

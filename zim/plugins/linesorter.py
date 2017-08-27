@@ -21,12 +21,12 @@ logger = logging.getLogger('zim.plugins.linesorter')
 class LineSorterPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Line Sorter'), # T: plugin name
+		'name': _('Line Sorter'),  # T: plugin name
 		'description': _('''\
 This plugin sorts selected lines in alphabetical order.
 If the list is already sorted the order will be reversed
 (A-Z to Z-A).
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'NorfCran',
 		'help': 'Plugins:Line Sorter',
 	}
@@ -51,7 +51,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('_Sort lines'), stock='gtk-sort-ascending') # T: menu item
+	@action(_('_Sort lines'), stock='gtk-sort-ascending')  # T: menu item
 	def sort_selected_lines(self):
 		buffer = self.window.pageview.view.get_buffer()
 		try:
@@ -68,7 +68,7 @@ class MainWindowExtension(WindowExtension):
 		with buffer.user_action:
 			# Get iters for full selection
 			iter_end_line = buffer.get_iter_at_line(last_lineno)
-			iter_end_line.forward_line() # include \n at end of line
+			iter_end_line.forward_line()  # include \n at end of line
 			if iter_end_line.is_end() and not iter_end_line.starts_line():
 				# no \n at end of buffer, insert it
 				buffer.insert(iter_end_line, '\n')
@@ -88,7 +88,7 @@ class MainWindowExtension(WindowExtension):
 
 			# Sort the list of tuples
 			sorted_lines = sorted(lines)
-			if lines == sorted_lines: # reverse if already sorted
+			if lines == sorted_lines:  # reverse if already sorted
 				sorted_lines.reverse()
 			#~ logger.debug("Sorted lines: %s",  sorted_lines)
 
@@ -101,11 +101,11 @@ class MainWindowExtension(WindowExtension):
 	def move_line(self, offset):
 		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
 		buffer = self.window.pageview.view.get_buffer()
-		#get start/end iter
+		# get start/end iter
 		iter_start = buffer.get_iter_at_mark(buffer.get_insert())
 		iter_end = buffer.get_iter_at_mark(buffer.get_selection_bound())
 
-		#get start/end line and calculate target lines
+		# get start/end line and calculate target lines
 		line_start = iter_start.get_line()
 		line_end = iter_end.get_line()
 		target_line = line_start + offset
@@ -116,25 +116,25 @@ class MainWindowExtension(WindowExtension):
 		if target_line < 0 or target_end_line >= last_line:
 			return
 
-		#remember offset of cursor/selection bound
+		# remember offset of cursor/selection bound
 		line_start_offset = iter_start.get_line_offset()
 		line_end_offset = iter_end.get_line_offset()
 		has_selection = buffer.get_has_selection()
 
-		#get bounding iters for deletion and copy tree
+		# get bounding iters for deletion and copy tree
 		start = buffer.get_iter_at_line(line_start)
 		end = buffer.get_iter_at_line(line_end)
 		end.forward_line()
 		tree = buffer.get_parsetree(bounds=(start, end), raw=True)
 
 		with buffer.user_action:
-			#delete lines and insert at target
+			# delete lines and insert at target
 			buffer.delete(start, end)
 			iter = buffer.get_iter_at_line(target_line)
 			buffer.place_cursor(iter)
 			buffer.insert_parsetree_at_cursor(tree)
 
-			#redo selection/place cursor at same position
+			# redo selection/place cursor at same position
 			iter = buffer.get_iter_at_line_offset(target_line, line_start_offset)
 			if has_selection:
 				iter_end = buffer.get_iter_at_line_offset(target_end_line, line_end_offset)
@@ -142,7 +142,7 @@ class MainWindowExtension(WindowExtension):
 			else:
 				buffer.place_cursor(iter)
 
-			#scroll with one line margin on top/bottom
+			# scroll with one line margin on top/bottom
 			scroll_target_iter = buffer.get_iter_at_line(target_line - 1 * (offset < 0 and target_line > 0))
 			self.window.pageview.view.scroll_to_iter(scroll_target_iter, 0)
 

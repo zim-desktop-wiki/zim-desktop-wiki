@@ -82,11 +82,11 @@ class TestTableViewObject(tests.TestCase):
 		preferences = {}
 
 		for headers, rows in (
-			( # Two simple rows
+			(  # Two simple rows
 				['C1', 'C2'],
 				[['a', 'b'], ['q', 'x']]
 			),
-			( # Some empty fields
+			(  # Some empty fields
 				['C1', 'C2'],
 				[['a', ' '], ['q', ' '], [' ', ' ']]
 			),

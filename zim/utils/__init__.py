@@ -24,7 +24,7 @@ class classproperty(object):
 
 
 
-## Functions for dynamic loading of modules and klasses
+# Functions for dynamic loading of modules and klasses
 import inspect
 
 
@@ -80,7 +80,7 @@ def lookup_subclasses(module, klass):
 	return subclasses
 
 
-#### sorting functions
+# sorting functions
 import locale
 import re
 import unicodedata
@@ -111,7 +111,7 @@ def natural_sorted(iter, key=None):
 	@param key: function producing strings for list items
 	@returns: sorted copy of the list
 	'''
-	l = list(iter) # cast to list and implicit copy
+	l = list(iter)  # cast to list and implicit copy
 	natural_sort(l, key=key)
 	return l
 
@@ -137,7 +137,7 @@ def natural_sort_key(string, numeric_padding=5):
 	if isinstance(string, unicode):
 		string = unicodedata.normalize('NFKC', string)
 		# may be done by strxfrm as well, but want to be sure
-	string = string.lower() # sort case insensitive
+	string = string.lower()  # sort case insensitive
 
 	try:
 		bytestring = locale.strxfrm(string)
@@ -251,7 +251,7 @@ class OrderedDict(collections.MutableMapping):
 		return len(self._values)
 
 
-## Special iterator class
+# Special iterator class
 class MovingWindowIter(object):
 	'''Iterator yields a 3-tuple of the previous item, the current item
 	and the next item while iterating a give iterator.

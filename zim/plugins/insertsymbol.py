@@ -20,13 +20,13 @@ VERBATIM_BLOCK = 'pre'
 class InsertSymbolPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Insert Symbol'), # T: plugin name
+		'name': _('Insert Symbol'),  # T: plugin name
 		'description': _('''\
 This plugin adds the 'Insert Symbol' dialog and allows
 auto-formatting typographic characters.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Insert Symbol',
 	}
@@ -85,7 +85,7 @@ class MainWindowExtension(WindowExtension):
 		if not plugin.symbols:
 			plugin.load_file()
 
-	@action(_('Sy_mbol...')) # T: menu item
+	@action(_('Sy_mbol...'))  # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
 		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()
@@ -120,7 +120,7 @@ class MainWindowExtension(WindowExtension):
 		mark = buffer.create_mark(None, end, left_gravity=False)
 		if char == ';':
 			end = end.copy()
-			end.forward_char() # include the ';' in the delete
+			end.forward_char()  # include the ';' in the delete
 			buffer.delete(start, end)
 		else:
 			buffer.delete(start, end)
@@ -135,7 +135,7 @@ class MainWindowExtension(WindowExtension):
 class InsertSymbolDialog(Dialog):
 
 	def __init__(self, ui, plugin, pageview):
-		Dialog.__init__(self, ui, _('Insert Symbol'), # T: Dialog title
+		Dialog.__init__(self, ui, _('Insert Symbol'),  # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
 			defaultwindowsize=(350, 400))
 		self.plugin = plugin
@@ -147,7 +147,7 @@ class InsertSymbolDialog(Dialog):
 		self.vbox.pack_start(self.textentry, False)
 
 		# TODO make this iconview single-click
-		model = gtk.ListStore(str, str) # text, shortcut
+		model = gtk.ListStore(str, str)  # text, shortcut
 		self.iconview = gtk.IconView(model)
 		self.iconview.set_text_column(0)
 		self.iconview.set_column_spacing(0)

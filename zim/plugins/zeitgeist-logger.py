@@ -24,8 +24,8 @@ except:
 class ZeitgeistPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Log events with Zeitgeist'), # T: plugin name
-		'description': _('Pushes events to the Zeitgeist daemon.'), # T: plugin description
+		'name': _('Log events with Zeitgeist'),  # T: plugin name
+		'description': _('Pushes events to the Zeitgeist daemon.'),  # T: plugin description
 		'author': 'Marcel Stimberg',
 		'help': 'Plugins:Log events with Zeitgeist',
 	}
@@ -40,7 +40,7 @@ class ZeitgeistPlugin(PluginClass):
 		try:
 			self.zeitgeist_client = ZeitgeistClient()
 			self.zeitgeist_client.register_data_source('application://zim.desktop',
-			    'Zim', _('Zim Desktop Wiki'), []) # T: short description of zim
+			    'Zim', _('Zim Desktop Wiki'), [])  # T: short description of zim
 		except RuntimeError as e:
 			logger.exception('Loading zeitgeist client failed, will not log events')
 			self.zeitgeist_client = None
@@ -77,7 +77,7 @@ class PageViewExtension(ObjectExtension):
 
 	def __init__(self, plugin, pageview):
 		self.plugin = plugin
-		self.connectto_all(pageview.ui, # XXX - remove ui here, emit from pageview
+		self.connectto_all(pageview.ui,  # XXX - remove ui here, emit from pageview
 			('open-page', 'close-page'), order=SIGNAL_AFTER)
 
 	def on_open_page(self, ui, page, path):

@@ -24,7 +24,7 @@ def get_notebook_list():
 
 	This will load the list from the default X{notebooks.list} file
 	'''
-	config = ConfigManager() # XXX should be passed in
+	config = ConfigManager()  # XXX should be passed in
 	file = config.get_config_file('notebooks.list')
 	return NotebookInfoList(file)
 
@@ -59,7 +59,7 @@ def resolve_notebook(string, pwd=None):
 def _get_path_object(path):
 	if isinstance(path, basestring):
 		file = File(path)
-		if file.exists(): # exists and is a file
+		if file.exists():  # exists and is a file
 			path = file
 		else:
 			path = Dir(path)
@@ -98,7 +98,7 @@ def interwiki_link(link):
 	# Then search all "urls.list" in config and data dirs
 	else:
 		url = None
-		files = XDGConfigFileIter('urls.list') # FIXME, shouldn't this be passed in ?
+		files = XDGConfigFileIter('urls.list')  # FIXME, shouldn't this be passed in ?
 		for file in files:
 			for line in file.readlines():
 				if line.startswith('#') or line.isspace():
@@ -169,7 +169,7 @@ class NotebookInfo(object):
 		else:
 			f = File(uri)
 			self.uri = f.uri
-			self.user_path = f.user_path # set to None when uri is not a file uri
+			self.user_path = f.user_path  # set to None when uri is not a file uri
 			self.name = name or f.basename
 		self.icon_path = icon
 		self.icon = File(icon).uri
@@ -221,8 +221,8 @@ class NotebookInfo(object):
 
 
 class VirtualFile(object):
-	### TODO - proper class for this in zim.fs
-	###        unify with code in config manager
+	# TODO - proper class for this in zim.fs
+	# unify with code in config manager
 
 	def __init__(self, lines):
 		self.lines = lines
@@ -252,7 +252,7 @@ class NotebookInfoList(list):
 		@param file: a L{File} or L{ConfigFile} object for X{notebooks.list}
 		'''
 		self.file = file
-		self.default = None # default notebook
+		self.default = None  # default notebook
 		self.read()
 		try:
 			self.update()
@@ -324,7 +324,7 @@ class NotebookInfoList(list):
 
 		mylist = config['NotebookList']
 		mylist.define(Default=String(None))
-		mylist.define((k, String(None)) for k in mylist._input.keys()) # XXX
+		mylist.define((k, String(None)) for k in mylist._input.keys())  # XXX
 
 		for key, uri in config['NotebookList'].items():
 			if key == 'Default':
@@ -363,8 +363,8 @@ class NotebookInfoList(list):
 		if isinstance(text, basestring):
 			text = text.splitlines(True)
 
-		fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace
-		escaped_re = re.compile(r'\\(.)') # match single escaped char
+		fields_re = re.compile(r'(?:\\.|\S)+')  # match escaped char or non-whitespace
+		escaped_re = re.compile(r'\\(.)')  # match single escaped char
 
 		default = None
 		defaulturi = None
@@ -438,7 +438,7 @@ class NotebookInfoList(list):
 		'''Set the default notebook
 		@param uri: the file uri or file path for the default notebook
 		'''
-		uri = File(uri).uri # e.g. "~/foo" to file:// uri
+		uri = File(uri).uri  # e.g. "~/foo" to file:// uri
 		for info in self:
 			if info.uri == uri:
 				self.default = info

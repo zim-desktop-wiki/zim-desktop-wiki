@@ -49,7 +49,7 @@ class TestGenerator(tests.TestCase):
 
 		# Input OK
 		generator = self.generatorklass(plugin)
-		generator.cleanup() # ensure files did not yet exist
+		generator.cleanup()  # ensure files did not yet exist
 		imagefile, logfile = generator.generate_image(self.validinput)
 		self.assertTrue(imagefile.exists())
 		if generator.uses_log_file:
@@ -215,7 +215,7 @@ class TestDitaaEditor(TestGenerator):
     |       Lots of work      |
     +-------------------------+
 '''
-		self.invalidinput = None # ditaa seems to render anything ...
+		self.invalidinput = None  # ditaa seems to render anything ...
 
 	def runTest(self):
 		'Test Ditaa Editor plugin'

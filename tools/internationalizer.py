@@ -7,21 +7,21 @@ import re
 
 def match_ignore(string):
 	if string.startswith("'''"):
-		return True # ignore docstring etc.
+		return True  # ignore docstring etc.
 	
 	string = string.strip('\'"')
 	if not re.search(r'[a-zA-Z]', string):
-		return True # ignore without any letter
+		return True  # ignore without any letter
 	elif len(string) < 3:
-		return True # ignore 'w' etc.
+		return True  # ignore 'w' etc.
 	elif re.match(r'^</?\w+>$', string):
-		return True # ignore open / close XML tags 
+		return True  # ignore open / close XML tags 
 	elif string.startswith('zim.'):
-		return True # module names
+		return True  # module names
 	elif string.startswith('BUG'):
-		return True # assertion (?)
+		return True  # assertion (?)
 	elif string.startswith('TODO'):
-		return True # assertion (?)
+		return True  # assertion (?)
 	
 	return False
 

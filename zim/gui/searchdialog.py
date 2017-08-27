@@ -23,7 +23,7 @@ class SearchDialog(Dialog):
 	CANCELLED = 2
 
 	def __init__(self, window):
-		Dialog.__init__(self, window, _('Search'), # T: Dialog title
+		Dialog.__init__(self, window, _('Search'),  # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching',
 			defaultwindowsize=(400, 300)
 		)
@@ -31,14 +31,14 @@ class SearchDialog(Dialog):
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
-		hbox.pack_start(gtk.Label(_('Search') + ': '), False) # T: input label
+		hbox.pack_start(gtk.Label(_('Search') + ': '), False)  # T: input label
 		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
 		self.search_button = gtk.Button(stock=gtk.STOCK_FIND)
 		hbox.pack_start(self.search_button, False)
 
 		if gtk.gtk_version >= (2, 20) \
-		and gtk.pygtk_version >= (2, 22): # update in pygtk was later
+		and gtk.pygtk_version >= (2, 22):  # update in pygtk was later
 			self.spinner = gtk.Spinner()
 			hbox.pack_start(self.spinner, False)
 		else:
@@ -51,7 +51,7 @@ class SearchDialog(Dialog):
 		help_text = _(
 			'For advanced search you can use operators like\n'
 			'AND, OR and NOT. See the help page for more details.'
-		) # T: help text for the search dialog
+		)  # T: help text for the search dialog
 		if gtk.gtk_version >= (2, 12) \
 		and gtk.pygtk_version >= (2, 12):
 			self.query_entry.set_tooltip_text(help_text)
@@ -87,7 +87,7 @@ class SearchDialog(Dialog):
 	def _search(self):
 		string = self.query_entry.get_text()
 		if self.namespacecheckbox.get_active():
-			string = 'Section: "%s" ' % self.app_window.ui.page.name + string # XXX
+			string = 'Section: "%s" ' % self.app_window.ui.page.name + string  # XXX
 		#~ print '!! QUERY: ' + string
 
 		self._set_state(self.SEARCHING)
@@ -146,13 +146,13 @@ class SearchResultsTreeView(BrowserTreeView):
 		BrowserTreeView.__init__(self, model)
 		self.app_window = window
 		self.query = None
-		self.selection = SearchSelection(window.ui.notebook) # XXX
+		self.selection = SearchSelection(window.ui.notebook)  # XXX
 		self.cancelled = False
 
 		cell_renderer = gtk.CellRendererText()
 		for name, i in (
-			(_('Page'), 0), # T: Column header search dialog
-			(_('Score'), 1), # T: Column header search dialog
+			(_('Page'), 0),  # T: Column header search dialog
+			(_('Score'), 1),  # T: Column header search dialog
 		):
 			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_sort_column_id(i)
@@ -205,7 +205,7 @@ class SearchResultsTreeView(BrowserTreeView):
 			if path in results:
 				score = results.scores.get(path, row[self.SCORE_COL])
 			else:
-				score = -1 # went missing !??? - technically a bug
+				score = -1  # went missing !??? - technically a bug
 			row[self.SCORE_COL] = score
 			order.append((score, i))
 			seen.add(path)
@@ -219,15 +219,15 @@ class SearchResultsTreeView(BrowserTreeView):
 			order.append((score, i))
 
 		# re-order
-		order.sort() # sort on first item, which is score
-		model.reorder([x[1] for x in order]) # use second item
+		order.sort()  # sort on first item, which is score
+		model.reorder([x[1] for x in order])  # use second item
 
 	def _do_open_page(self, view, path, col):
 		page = Path(self.get_model()[path][0].decode('utf-8'))
-		self.app_window.ui.open_page(page) # XXX
+		self.app_window.ui.open_page(page)  # XXX
 
 		# Popup find dialog with same query
 		if self.query and self.query.simple_match:
 			string = self.query.simple_match
-			string = string.strip('*') # support partial matches
+			string = string.strip('*')  # support partial matches
 			self.app_window.pageview.show_find(string, highlight=True)

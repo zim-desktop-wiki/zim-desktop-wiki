@@ -272,7 +272,7 @@ class ParserError(Error):
 	def __init__(self, msg):
 		Error.__init__(self, msg)
 
-		self.parser_file = _('<Unknown>') # T: placeholder for unknown file name
+		self.parser_file = _('<Unknown>')  # T: placeholder for unknown file name
 		self.parser_text = ''
 		self.parser_line_offset = (0, 0)
 
@@ -361,7 +361,7 @@ class Parser(object):
 		L{SimpleReParser}, so be either a single rule, or a compound
 		rule.)
 		'''
-		self.rules = [] #: sub rules
+		self.rules = []  # : sub rules
 		self.process_unmatched = self._process_unmatched
 		self._re = None
 
@@ -399,7 +399,7 @@ class Parser(object):
 		assert text, 'BUG: processing empty string'
 		if self._re is None:
 			# Generate the regex and cache it for re-use
-			self.rules = tuple(self.rules) # freeze list
+			self.rules = tuple(self.rules)  # freeze list
 			pattern = r'|'.join([
 				r"(?P<rule%i>%s)" % (i, r.pattern)
 					for i, r in enumerate(self.rules)
@@ -417,11 +417,11 @@ class Parser(object):
 				except Exception as error:
 					self._raise_exception(error, text, iter, mstart, builder)
 
-			name = match.lastgroup # named outer group
-			i = int(name[4:]) # name is e.g. "rule1"
+			name = match.lastgroup  # named outer group
+			i = int(name[4:])  # name is e.g. "rule1"
 			groups = [g for g in match.groups() if g is not None]
 			if len(groups) > 1:
-				groups.pop(0) # get rid of named outer group if inner groups are defined
+				groups.pop(0)  # get rid of named outer group if inner groups are defined
 
 			try:
 				self.rules[i].process(builder, *groups)

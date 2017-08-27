@@ -6,7 +6,7 @@
 # Which is copyright 2009 Mark Borgerding and licensed under the GPL version 3
 
 from __future__ import with_statement
-from __future__ import division # We are doing math in this module ...
+from __future__ import division  # We are doing math in this module ...
 
 
 import logging
@@ -82,7 +82,7 @@ def log2(x):
 def gcd(x, y):
 	'greatest common denominator'
 	while x > 0:
-		(x, y) = (y % x, x) # Guido showed me this one on the geek cruise
+		(x, y) = (y % x, x)  # Guido showed me this one on the geek cruise
 	return y
 
 def lcm(x, y):
@@ -132,7 +132,7 @@ def ceil(x):
 
 # functions and constants available  within the safe eval construct
 GLOBALS = {
-	'__builtins__': None, # Don't allow open() etc.
+	'__builtins__': None,  # Don't allow open() etc.
 	# builtins we want to keep
 	'abs': abs,
 	'ord': ord,
@@ -200,13 +200,13 @@ _multiline_re = re.compile('--+\s+[+-]')
 class InlineCalculatorPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Inline Calculator'), # T: plugin name
+		'name': _('Inline Calculator'),  # T: plugin name
 		'description': _('''\
 This plugin allows you to quickly evaluate simple
 mathematical expressions in zim.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Inline Calculator',
 	}
@@ -302,7 +302,7 @@ class MainWindowExtension(WindowExtension):
 		</ui>
 	'''
 
-	@action(_('Evaluate _Math')) # T: menu item
+	@action(_('Evaluate _Math'))  # T: menu item
 	def eval_math(self):
 		'''Action called by the menu item or key binding,
 		will look at the cursor for an expression to evaluate.
@@ -324,7 +324,7 @@ class MainWindowExtension(WindowExtension):
 				cursor.backward_char()
 				line = buffer.get_text(start, end)
 			else:
-				return # silent fail
+				return  # silent fail
 
 		if _multiline_re.match(line):
 			# Search for start of block - iterate back to empty line

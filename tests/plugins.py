@@ -13,8 +13,8 @@ from zim.gui.propertiesdialog import PropertiesDialog
 from tests.gui import setupGtkInterface
 
 
-assert len(zim.plugins.__path__) > 1 # test __path__ magic
-zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
+assert len(zim.plugins.__path__) > 1  # test __path__ magic
+zim.plugins.__path__ = [os.path.abspath('./zim/plugins')]  # set back default search path
 
 
 class TestPluginClasses(tests.TestCase):
@@ -100,7 +100,7 @@ class TestPluginManager(tests.TestCase):
 		self.assertEqual(list(manager), ['calendar'])
 		self.assertEqual(manager['calendar'], obj)
 
-		obj1 = manager.load_plugin('calendar') # redundant call
+		obj1 = manager.load_plugin('calendar')  # redundant call
 		self.assertEqual(obj1, obj)
 		self.assertEqual(len(manager), 1)
 
@@ -109,7 +109,7 @@ class TestPluginManager(tests.TestCase):
 		self.assertEqual(list(manager), [])
 		self.assertRaises(KeyError, manager.__getitem__, 'calendar')
 
-		manager.remove_plugin('calendar') # redundant call
+		manager.remove_plugin('calendar')  # redundant call
 
 	def testLoadNonExistingPlugin(self):
 		manager = PluginManager()
@@ -158,12 +158,12 @@ class TestPlugins(tests.TestCase):
 
 		notebook = tests.new_notebook(self.get_tmp_name())
 		ui = setupGtkInterface(self, notebook=notebook)
-		dialog = PropertiesDialog(ui) # random dialog
+		dialog = PropertiesDialog(ui)  # random dialog
 		for obj in (
 			notebook,
 			notebook.index,
 			ui._mainwindow,				# XXX
-			ui._mainwindow.pageview,	# XXX
+			ui._mainwindow.pageview,  # XXX
 			dialog,
 		):
 			manager.extend(obj)

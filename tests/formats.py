@@ -86,7 +86,7 @@ class TestFormatMixin(object):
 		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
 		result = ''.join(dumper.dump(parttree))
 		#~ print ">>>%s<<<" % result
-		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
+		self.assertFalse(result.endswith('\n'))  # partial should not end with "\n"
 
 		# Parser
 		if not hasattr(self.format, 'Parser'):
@@ -116,7 +116,7 @@ class TestFormatMixin(object):
 		offset = 0
 		for elt in tree._etree.iter():
 			if elt.tag == 'img':
-				elttext = (elt.tail) # img text is optional
+				elttext = (elt.tail)  # img text is optional
 			else:
 				elttext = (elt.text, elt.tail)
 
@@ -177,7 +177,7 @@ class TestParseTree(tests.TestCase):
 		'''Test ParseTree.fromstring() and .tostring()'''
 		tree = ParseTree()
 		r = tree.fromstring(self.xml)
-		self.assertEqual(id(r), id(tree)) # check return value
+		self.assertEqual(id(r), id(tree))  # check return value
 		text = tree.tostring()
 		self.assertEqual(text, self.xml)
 
@@ -632,7 +632,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 
 		html = self.format.Dumper(
 			linker=StubLinker(),
-			template_options={'empty_lines': 'Remove'} # case sensitive
+			template_options={'empty_lines': 'Remove'}  # case sensitive
 		).dump(tree)
 		self.assertEqual(''.join(html),
 			'<h1>head1</h1>\n\n'

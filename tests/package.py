@@ -110,7 +110,7 @@ class TestCoding(tests.TestCase):
 				for basename in files:
 					if basename.endswith('.py'):
 						file = dir.replace('\\', '/') + '/' + basename
-						if file == 'tests/package.py': # skip ourselve
+						if file == 'tests/package.py':  # skip ourselve
 								continue
 						#~ print 'READING', file
 						fh = open(file)
@@ -129,7 +129,7 @@ class TestCoding(tests.TestCase):
 				if os.name == 'nt':
 					file = file.replace('\\', '/')
 				if any(map(file.startswith, allow_gtk)):
-					continue # skip
+					continue  # skip
 				match = import_re.search(code)
 				#~ if match: print '>>>', match.group(0)
 				self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
@@ -234,10 +234,10 @@ class TestDocumentation(tests.TestCase):
 			name = objname + '.' + name
 			if inspect.isclass(member):
 				if member.__module__ != objname:
-					continue # skip imported class
+					continue  # skip imported class
 
 				yield name, member
-				for child in self.walk_code(member, name): # recurs
+				for child in self.walk_code(member, name):  # recurs
 					yield child
 			elif inspect.isfunction(member) \
 			or inspect.ismethod(member):
@@ -247,7 +247,7 @@ class TestDocumentation(tests.TestCase):
 		#~ print 'CHECK docs for', name
 		doc = inspect.getdoc(obj)
 		if not doc:
-			return # For now do not bitch about missing docs..
+			return  # For now do not bitch about missing docs..
 
 		# Check fields
 		fields = self.parseFields(doc, name)

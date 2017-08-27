@@ -21,13 +21,13 @@ import re
 import sys
 import os
 
-#buscaCabeceras=re.compile('(={1:5})([^=]*)(={1:5})')
+# buscaCabeceras=re.compile('(={1:5})([^=]*)(={1:5})')
 def flatten(linkName):
 	'''Changes a zim link, possibly with categories, to a trac link
 
 	it also removes accents and other spanish special characters
 	'''
-	#remove final ':' character and
+	# remove final ':' character and
 	name = linkName[:-1] if linkName[-1] == ':' else linkName
 	return removeSpecialChars(name.replace(':', '_').replace(' ', '_'))
 
@@ -46,7 +46,7 @@ inlineVerbatim = re.compile("''([^']+?)''")
 negrita = re.compile('\*\*([^\*]+?)\*\*')
 italic = re.compile('\/\/([^\/\n\]]+?)\/\/')
 bracketedURL = re.compile('\[\[(http:\/\/[^\|]+)\|([^\|]+?)\]\]')
-#TODO: separar links relativos y absolutos
+# TODO: separar links relativos y absolutos
 simpleRelLink = re.compile('\[\[([^:][^\|]+?)\]\]')
 namedRelLink = re.compile('\[\[([^:][^\|]+?)\|([^\|]+?)\]\]')
 simpleAbsLink = re.compile('\[\[:([^\|]+?)\]\]')
@@ -55,7 +55,7 @@ images = re.compile('([^\{])\{\{\/(.+?)\}\}')
 def translate(nota, prefix1, prefix2):
 	'''Takes a note in zim format and returns a note in trac format
 	'''
-	#duplicate all line breaks
+	# duplicate all line breaks
 	nota = nota.replace('\n', '\n\n')
 	# Headings
 	mm = cabecera.search(nota)
@@ -71,22 +71,22 @@ def translate(nota, prefix1, prefix2):
 	lista.append(nota[lastIndex:])
 	nota = ''.join(lista)
 
-	#inlineVerbatim
+	# inlineVerbatim
 	nota = inlineVerbatim.sub("{{{\\1}}}", nota)
-	#multiline verbatim
-	#TODO
-	#bold
+	# multiline verbatim
+	# TODO
+	# bold
 	nota = negrita.sub("'''\\1'''", nota)
-	#italic
+	# italic
 	nota = italic.sub("''\\1''", nota)
 
-	#bracketedURL
+	# bracketedURL
 	nota = bracketedURL.sub("[\\1 \\2]", nota)
 	#~ #simple links
 	#~ nota=simpleLink.sub("[wiki:\\1]",nota)
 	#~ #named links
 	#~ nota=namedLink.sub("[wiki:\\1 \\2]",nota)
-	#simple relative links
+	# simple relative links
 	mm = simpleRelLink.search(nota)
 	lista = []
 	lastIndex = 0
@@ -111,7 +111,7 @@ def translate(nota, prefix1, prefix2):
 	lista.append(nota[lastIndex:])
 	nota = ''.join(lista)
 
-	#named relativelinks
+	# named relativelinks
 	mm = namedRelLink.search(nota)
 	lista = []
 	lastIndex = 0
@@ -124,7 +124,7 @@ def translate(nota, prefix1, prefix2):
 	lista.append(nota[lastIndex:])
 	nota = ''.join(lista)
 
-	#named absolute links
+	# named absolute links
 	mm = namedAbsLink.search(nota)
 	lista = []
 	lastIndex = 0
@@ -137,10 +137,10 @@ def translate(nota, prefix1, prefix2):
 	lista.append(nota[lastIndex:])
 	nota = ''.join(lista)
 
-	#lists
+	# lists
 	nota = nota.replace('\n* ', '\n * ')
 
-	#images
+	# images
 	nota = images.sub("\\1[[Image(\\2)]]", nota)
 
 	return nota

@@ -132,7 +132,7 @@ class WWWInterface(object):
 			self.template = template
 
 		self.linker_factory = partial(WWWLinker, self.notebook, self.template.resources_dir)
-		self.dumper_factory = get_format('html').Dumper # XXX
+		self.dumper_factory = get_format('html').Dumper  # XXX
 
 		self.plugins = PluginManager(self.config)
 		self.plugins.extend(notebook)
@@ -165,7 +165,7 @@ class WWWInterface(object):
 
 			# cleanup path
 			#~ print 'INPUT', path
-			path = path.replace('\\', '/') # make it windows save
+			path = path.replace('\\', '/')  # make it windows save
 			isdir = path.endswith('/')
 			parts = [p for p in path.split('/') if p and not p == '.']
 			if [p for p in parts if p.startswith('.')]:
@@ -319,7 +319,7 @@ class WWWLinker(ExportLinker):
 		return url_encode('/+resources/%s' % path)
 
 	def resolve_source_file(self, link):
-		return None # not used by HTML anyway
+		return None  # not used by HTML anyway
 
 	def page_object(self, path):
 		'''Turn a L{Path} object in a relative link or URI'''
@@ -360,7 +360,7 @@ def make_server(notebook, port=8080, public=True, **opts):
 	@returns: a C{WSGIServer} object
 	'''
 	import wsgiref.simple_server
-	app = WWWInterface(notebook, **opts) # FIXME make opts explicit
+	app = WWWInterface(notebook, **opts)  # FIXME make opts explicit
 	if public:
 		httpd = wsgiref.simple_server.make_server('', port, app)
 	else:

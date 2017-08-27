@@ -67,7 +67,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 				# set before any test classes are loaded !
 		elif o == '--failfast':
 			failfast = True
-		elif o == '--ff': # --fast --failfast
+		elif o == '--ff':  # --fast --failfast
 			tests.FAST_TEST = True
 			failfast = True
 		elif o == '--full':
@@ -82,7 +82,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 	# Start tracing
 	if coverage:
 		cov = coverage.coverage(source=['zim'], branch=True)
-		cov.erase() # clean up old date set
+		cov.erase()  # clean up old date set
 		cov.exclude('assert ')
 		cov.exclude('raise NotImplementedError')
 		cov.start()
@@ -93,7 +93,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 	logger = logging.getLogger()
 	logger.setLevel(loglevel)
 	logger.addHandler(handler)
-	#logging.captureWarnings(True) # FIXME - make all test pass with this enabled
+	# logging.captureWarnings(True) # FIXME - make all test pass with this enabled
 
 	# Build the test suite
 	loader = unittest.TestLoader()
@@ -114,11 +114,11 @@ On Ubuntu or Debian install package 'python-coverage'.
 		m = re.match(r"'module' object has no attribute '(\w+)'", error.args[0])
 		if m:
 			module = m.group(1)
-			m = __import__('tests.' + module) # should raise ImportError
+			m = __import__('tests.' + module)  # should raise ImportError
 		raise error
 
 	# And run it
-	unittest.installHandler() # Fancy handling for ^C during test
+	unittest.installHandler()  # Fancy handling for ^C during test
 	result = \
 		unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
 

@@ -30,7 +30,7 @@ except ImportError:
 	gtkosx_application = None
 
 
-if False: #pragma: no cover
+if False:  # pragma: no cover
 
 	# This code defines a "mock" object for testing this plugin on systems
 	# that do not actually have "gtkosx_application", should be disabled for
@@ -69,8 +69,8 @@ class OSXmenubarPlugin(PluginClass):
 	# no real logic happening here.
 
 	plugin_info = {
-		'name': _('macOS Menubar'), # T: plugin name
-		'description': _('This plugin provides a macOS menubar for zim.'), # T: plugin description
+		'name': _('macOS Menubar'),  # T: plugin name
+		'description': _('This plugin provides a macOS menubar for zim.'),  # T: plugin description
 		'author': 'Brecht Machiels, Jaap Karssenberg',
 		'help': 'Plugins:macOS Menubar'
 	}
@@ -98,7 +98,7 @@ class MainWindowExtension(WindowExtension):
 
 		# Define OS X menu bar for this window and remove menubar from winow
 		self.menubar = self.window.menubar
-		self.window._zim_window_main.remove(self.menubar) # XXX - use private arg, should patch Window.remove() instead ...
+		self.window._zim_window_main.remove(self.menubar)  # XXX - use private arg, should patch Window.remove() instead ...
 
 		# Hook up to signal for focus change
 		window.connect('notify', self._on_notify)
@@ -112,7 +112,7 @@ class MainWindowExtension(WindowExtension):
 			global _global_items_initialized
 			if not _global_items_initialized:
 				self._init_global_items()
-				_global_items_initialized = True # don't repeat for next window
+				_global_items_initialized = True  # don't repeat for next window
 
 			self.set_menubar()
 
@@ -123,7 +123,7 @@ class MainWindowExtension(WindowExtension):
 		_global_osx_application.set_help_menu(self.window.uimanager.get_widget('/menubar/help_menu'))
 
 		quit = self.window.uimanager.get_widget('/menubar/file_menu/quit')
-		_global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.ui.quit()) # XXX .ui.
+		_global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.ui.quit())  # XXX .ui.
 
 		about = self.window.uimanager.get_widget('/menubar/help_menu/show_about')
 		_global_osx_application.insert_app_menu_item(about, 0)

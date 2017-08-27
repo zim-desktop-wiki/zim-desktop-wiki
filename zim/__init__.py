@@ -123,13 +123,13 @@ logger = logging.getLogger('zim')
 
 ########################################################################
 
-## Note: all init here must happen before importing any other zim
-##       modules, so can not use zim.fs utilities etc.
-##       therefore ZIM_EXECUTABLE is a string, not an object
+# Note: all init here must happen before importing any other zim
+# modules, so can not use zim.fs utilities etc.
+# therefore ZIM_EXECUTABLE is a string, not an object
 
 
-## Check executable and relative data dir
-## (sys.argv[0] should always be correct, even for compiled exe)
+# Check executable and relative data dir
+# (sys.argv[0] should always be correct, even for compiled exe)
 
 if os.name == "nt":
 	# See notes in zim/fs.py about encoding expected by abspath
@@ -143,11 +143,11 @@ else:
 	)
 
 
-## Initialize locale  (needed e.g. for natural_sort)
+# Initialize locale  (needed e.g. for natural_sort)
 locale.setlocale(locale.LC_ALL, '')
 
 
-## Initialize gettext  (maybe make this optional later for module use ?)
+# Initialize gettext  (maybe make this optional later for module use ?)
 
 if os.name == "nt" and not os.environ.get('LANG'):
 	# Set locale config for gettext (other platforms have this by default)
@@ -178,15 +178,15 @@ except:
 
 ########################################################################
 
-## Now we are allowed to import sub modules
+# Now we are allowed to import sub modules
 
 
-import zim.environ # initializes environment parameters
+import zim.environ  # initializes environment parameters
 import zim.config
 
 # Check if we can find our own data files
 _file = zim.config.data_file('zim.png')
-if not (_file and _file.exists()): #pragma: no cover
+if not (_file and _file.exists()):  # pragma: no cover
 	raise AssertionError(
 		'ERROR: Could not find data files in path: \n'
 		'%s\n'

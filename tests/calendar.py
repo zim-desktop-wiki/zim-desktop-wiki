@@ -31,22 +31,22 @@ class TestCalendarFunctions(tests.TestCase):
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
 		start, end = dates_for_week(2012, 17)
-		self.assertEqual(start, dateclass(2012, 4, 23)) # a monday
-		self.assertEqual(end, dateclass(2012, 4, 29)) # a sunday
+		self.assertEqual(start, dateclass(2012, 4, 23))  # a monday
+		self.assertEqual(end, dateclass(2012, 4, 29))  # a sunday
 
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.SUNDAY
 		start, end = dates_for_week(2012, 17)
-		self.assertEqual(start, dateclass(2012, 4, 22)) # a sunday
-		self.assertEqual(end, dateclass(2012, 4, 28)) # a saturday
+		self.assertEqual(start, dateclass(2012, 4, 22))  # a sunday
+		self.assertEqual(end, dateclass(2012, 4, 28))  # a saturday
 
 		start, end = dates_for_week(2013, 1)
-		self.assertEqual(start, dateclass(2012, 12, 30)) # a sunday
-		self.assertEqual(end, dateclass(2013, 1, 5)) # a saturday
+		self.assertEqual(start, dateclass(2012, 12, 30))  # a sunday
+		self.assertEqual(end, dateclass(2013, 1, 5))  # a saturday
 
 		start, end = dates_for_week(2009, 53)
-		self.assertEqual(start, dateclass(2009, 12, 27)) # a sunday
-		self.assertEqual(end, dateclass(2010, 1, 2)) # a saturday
+		self.assertEqual(start, dateclass(2009, 12, 27))  # a sunday
+		self.assertEqual(end, dateclass(2010, 1, 2))  # a saturday
 
 	def testWeekCalendar(self):
 		from zim.plugins.calendar import weekcalendar
@@ -92,8 +92,8 @@ class TestCalendarFunctions(tests.TestCase):
 			zim.datetimetz.MONDAY
 		type, start, end = daterange_from_path(Path('Foo:2012:Week 17'))
 		self.assertEqual(type, 'week')
-		self.assertEqual(start, dateclass(2012, 4, 23)) # a monday
-		self.assertEqual(end, dateclass(2012, 4, 29)) # a sunday
+		self.assertEqual(start, dateclass(2012, 4, 23))  # a monday
+		self.assertEqual(end, dateclass(2012, 4, 29))  # a sunday
 
 		# Month
 		for path in (Path('Foo:2012:04'), Path('Foo:2012:4')):
@@ -118,7 +118,7 @@ class TestCalendarPlugin(tests.TestCase):
 
 		notebook = tests.new_notebook(self.get_tmp_name())
 		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		mainwindow = ui._mainwindow  # XXX
 
 		plugin.preferences['embedded'] = True
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
@@ -128,20 +128,20 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertEqual(len(ext), 1)
 		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
 
-		plugin.preferences.changed() # make sure no errors are triggered
+		plugin.preferences.changed()  # make sure no errors are triggered
 
 		ext[0].go_page_today()
 		self.assertTrue(ui.page.name.startswith('Journal:'))
 
 		plugin.preferences['embedded'] = False
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
+		plugin.extend(mainwindow)  # plugin does not remember objects, manager does that
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
 		self.assertIsInstance(ext[0], MainWindowExtensionDialog)
 
-		plugin.preferences.changed() # make sure no errors are triggered
+		plugin.preferences.changed()  # make sure no errors are triggered
 
 		def test_dialog(dialog):
 			self.assertIsInstance(dialog, CalendarDialog)
@@ -152,7 +152,7 @@ class TestCalendarPlugin(tests.TestCase):
 			ext[0].show_calendar()
 
 
-		plugin.preferences['embedded'] = True # switch back
+		plugin.preferences['embedded'] = True  # switch back
 
 	def testNotebookExtension(self):
 		pluginklass = PluginManager.get_plugin_class('calendar')
@@ -225,7 +225,7 @@ class TestCalendarPlugin(tests.TestCase):
 			tree = notebook.get_template(path)
 			lines = dumper.dump(tree)
 			#~ print lines
-			self.assertTrue(not 'Created' in ''.join(lines)) # No fall back
+			self.assertTrue(not 'Created' in ''.join(lines))  # No fall back
 			if 'Week' in path.name:
 				days = [l for l in lines if l.startswith('=== ')]
 				self.assertEqual(len(days), 7)

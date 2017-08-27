@@ -142,7 +142,7 @@ class ExpressionParameter(Expression):
 		if len(self.parts) > 1:
 			return ExpressionParameter('.'.join(map(str, self.parts[:-1])))
 		else:
-			return lambda d: d # HACK - define proper class for root namespace
+			return lambda d: d  # HACK - define proper class for root namespace
 
 	def pprint(self):
 		return 'PARAM(%s)' % self.name
@@ -258,8 +258,8 @@ class ExpressionFunctionCall(Expression):
 		return (self.param, self.args) == (other.param, other.args)
 
 	def __call__(self, context):
-		## Lookup function:
-		## getitem dict / getattr objects / getattr on wrapper
+		# Lookup function:
+		# getitem dict / getattr objects / getattr on wrapper
 		obj = self.param.parent(context)
 		name = self.param.key
 		try:
@@ -279,7 +279,7 @@ class ExpressionFunctionCall(Expression):
 				else:
 					raise AssertionError('Not a valid function: %s' % self.param.name)
 
-		## Execute function
+		# Execute function
 		if not isinstance(function, ExpressionFunction):
 			# Just being paranoid here, but leave it in to block any mistakes in above lookup
 			raise AssertionError('Not a valid function: %s' % self.param.name)

@@ -136,7 +136,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		"""
 		self.init()
 		self.ignore('\.zim*/*,notebook.fossil')
-		self.add('.') # add all existing files
+		self.add('.')  # add all existing files
 
 	def repo_exists(self):
 		"""Returns True if a repository is already setup, or False

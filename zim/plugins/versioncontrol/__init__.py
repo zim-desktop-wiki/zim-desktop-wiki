@@ -46,22 +46,22 @@ logger = logging.getLogger('zim.plugins.versioncontrol')
 class VersionControlPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Version Control'), # T: plugin name
+		'name': _('Version Control'),  # T: plugin name
 		'description': _('''\
 This plugin adds version control for notebooks.
 
 This plugin supports the Bazaar, Git and Mercurial version control systems.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg & John Drinkwater & Damien Accorsi',
 		'help': 'Plugins:Version Control',
 	}
 
 	plugin_preferences = (
-		('autosave', 'bool', _('Autosave version when the notebook is closed'), False), # T: Label for plugin preference
-		('autosave_at_interval', 'bool', _('Autosave version on regular intervals'), False), # T: Label for plugin preference
-		('autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)), # T: Label for plugin preference
+		('autosave', 'bool', _('Autosave version when the notebook is closed'), False),  # T: Label for plugin preference
+		('autosave_at_interval', 'bool', _('Autosave version on regular intervals'), False),  # T: Label for plugin preference
+		('autosave_interval', 'int', _('Autosave interval in minutes'), 10, (1, 3600)),  # T: Label for plugin preference
 	)
 
 	@classmethod
@@ -70,13 +70,13 @@ This is a core plugin shipping with zim.
 		has_git = VCS.check_dependencies(VCS.GIT)
 		has_hg = VCS.check_dependencies(VCS.HG)
 		has_fossil = VCS.check_dependencies(VCS.FOSSIL)
-		#TODO parameterize the return, so that a new backend will be automatically available
+		# TODO parameterize the return, so that a new backend will be automatically available
 		return has_bzr | has_hg | has_git | has_fossil, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False), ('fossil', has_fossil, False)]
 
 	def extend(self, obj):
 		name = obj.__class__.__name__
 		if name == 'MainWindow':
-			nb = obj.ui.notebook # XXX
+			nb = obj.ui.notebook  # XXX
 			nb_ext = self.get_extension(nb, NotebookExtension)
 			assert nb_ext, 'No notebook extension found for: %s' % nb
 			mw_ext = MainWindowExtension(self, obj, nb_ext)
@@ -129,10 +129,10 @@ def _monitor_thread(thread):
 		if thread.error:
 			error = thread.exc_info[1]
 			logger.error('Error during async commit', exc_info=thread.exc_info)
-			ErrorDialog(None, error, thread.exc_info).run() # XXX None should be window
-		return False # stop signal
+			ErrorDialog(None, error, thread.exc_info).run()  # XXX None should be window
+		return False  # stop signal
 	else:
-		return True # keep handler
+		return True  # keep handler
 
 def monitor_thread(thread):
 	gobject.idle_add(_monitor_thread, thread)
@@ -173,7 +173,7 @@ class MainWindowExtension(WindowExtension):
 			or self.plugin.preferences['autosave_at_interval']:
 				self.do_save_version()
 
-		self.window.ui.connect('quit', on_quit) # XXX
+		self.window.ui.connect('quit', on_quit)  # XXX
 
 		self.connectto(self.plugin.preferences, 'changed',
 			self.on_preferences_changed)
@@ -203,15 +203,15 @@ class MainWindowExtension(WindowExtension):
 
 	def do_save_version_async(self, msg=None):
 		if not self.notebook_ext.vcs:
-			return False # stop timer
+			return False  # stop timer
 
 		if self._autosave_thread and not self._autosave_thread.done:
-			return True # continue time
+			return True  # continue time
 
 		self._autosave_thread = FunctionThread(self.do_save_version, (msg,))
 		self._autosave_thread.start()
 		monitor_thread(self._autosave_thread)
-		return True # continue timer
+		return True  # continue timer
 
 	def do_save_version(self, msg=None):
 		if not self.notebook_ext.vcs:
@@ -232,12 +232,12 @@ class MainWindowExtension(WindowExtension):
 			except NoChangesError:
 				logger.debug('No autosave version needed - no changes')
 
-	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False) # T: menu item
+	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False)  # T: menu item
 	def save_version(self):
 		if not self.notebook_ext.vcs:
 			vcs = VersionControlInitDialog(self.window).run()
 			if vcs is None:
-				return # Canceled
+				return  # Canceled
 
 			self.notebook_ext.init_vcs(vcs)
 			if self.notebook_ext.vcs:
@@ -248,19 +248,19 @@ class MainWindowExtension(WindowExtension):
 		with NotebookState(self.notebook_ext.notebook):
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
-	@action(_('_Versions...')) # T: menu item
+	@action(_('_Versions...'))  # T: menu item
 	def show_versions(self):
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
 			self.notebook_ext.notebook,
-			self.window.ui.page # XXX
+			self.window.ui.page  # XXX
 		)
 		dialog.present()
 
 
 class NoChangesError(Error):
 
-	description = _('There are no changes in this notebook since the last version that was saved') # T: verbose error description
+	description = _('There are no changes in this notebook since the last version that was saved')  # T: verbose error description
 
 	def __init__(self, root):
 		self.msg = _('No changes since last version')
@@ -279,10 +279,10 @@ class VCS(object):
 	"""
 
 	# Enumeration of all available backends
-	BZR = _('Bazaar') # T: option value
-	HG = _('Mercurial') # T: option value
-	GIT = _('Git') # T: option value
-	FOSSIL = _('Fossil') # T: option value
+	BZR = _('Bazaar')  # T: option value
+	HG = _('Mercurial')  # T: option value
+	GIT = _('Git')  # T: option value
+	FOSSIL = _('Fossil')  # T: option value
 
 	@classmethod
 	def detect_in_folder(klass, dir):
@@ -329,8 +329,8 @@ class VCS(object):
 				return 'svn', path
 			elif path.file('.fslckout').exists() or path.file('_FOSSIL_').exists():
 				return 'fossil', path
-			## Commented CVS out since it potentially
-			## conflicts with like-named pages
+			# Commented CVS out since it potentially
+			# conflicts with like-named pages
 			# elif path.subdir('CVS').exists():
 				# return 'cvs', path
 			##
@@ -580,7 +580,7 @@ class VCSBackend(ConnectorMixin):
 
 	def update_staging(self, notebook, page):
 		file, x = notebook.layout.map_page(page)
-		file = File(file.path) # newfs.LocalFile --> File
+		file = File(file.path)  # newfs.LocalFile --> File
 		self.stage(file)
 
 	def stage(self, file):
@@ -746,7 +746,7 @@ class VCSApplicationBase(object):
 		Example: for Mercurial, the content of the method is:
 		  self.root.file('.hgignore').write(file_to_ignore_regexp)
 		"""
-		#TODO: append the rule instead of overwrite the full content
+		# TODO: append the rule instead of overwrite the full content
 		raise NotImplementedError
 
 
@@ -872,7 +872,7 @@ class VCSApplicationBase(object):
 
 def get_side_by_side_app():
 	for dir in data_dirs('helpers/compare_files/'):
-		for name in dir.list(): # XXX need object list
+		for name in dir.list():  # XXX need object list
 			file = dir.file(name)
 			if name.endswith('.desktop') and file.exists():
 				app = DesktopEntryFile(file)
@@ -886,9 +886,9 @@ class VersionControlInitDialog(QuestionDialog):
 
 	def __init__(self, ui):
 		QuestionDialog.__init__(self, ui, (
-			_("Enable Version Control?"), # T: Question dialog
+			_("Enable Version Control?"),  # T: Question dialog
 			_("Version control is currently not enabled for this notebook.\n"
-			  "Do you want to enable it?") # T: Detailed question
+			  "Do you want to enable it?")  # T: Detailed question
 		))
 
 		self.combobox = gtk.combo_box_new_text()
@@ -914,7 +914,7 @@ class VersionControlInitDialog(QuestionDialog):
 class SaveVersionDialog(Dialog):
 
 	def __init__(self, ui, window_ext, vcs):
-		Dialog.__init__(self, ui, _('Save Version'), # T: dialog title
+		Dialog.__init__(self, ui, _('Save Version'),  # T: dialog title
 			button=(None, 'gtk-save'), help='Plugins:Version Control')
 		self.window_ext = window_ext
 		self.vcs = vcs
@@ -958,7 +958,7 @@ class SaveVersionDialog(Dialog):
 class VersionsDialog(Dialog):
 
 	def __init__(self, ui, vcs, notebook, page=None):
-		Dialog.__init__(self, ui, _('Versions'), # T: dialog title
+		Dialog.__init__(self, ui, _('Versions'),  # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
 		self.notebook = notebook
 		self.vcs = vcs
@@ -975,7 +975,7 @@ class VersionsDialog(Dialog):
 		self.vpaned.pack1(vbox, resize=True)
 
 		# Choice between whole notebook or page
-		label = gtk.Label('<b>' + _('Versions') + ':</b>') # section label
+		label = gtk.Label('<b>' + _('Versions') + ':</b>')  # section label
 		label.set_use_markup(True)
 		label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
@@ -997,7 +997,7 @@ class VersionsDialog(Dialog):
 		hbox.pack_start(self.page_entry, False)
 
 		# View annotated button
-		ann_button = gtk.Button(_('View _Annotated')) # T: Button label
+		ann_button = gtk.Button(_('View _Annotated'))  # T: Button label
 		ann_button.connect('clicked', lambda o: self.show_annotated())
 		hbox.pack_start(ann_button, False)
 
@@ -1005,7 +1005,7 @@ class VersionsDialog(Dialog):
 		label = gtk.Label('<i>\n' + _( '''\
 Select a version to see changes between that version and the current
 state. Or select multiple versions to see changes between those versions.
-''' ).strip() + '</i>') # T: Help text in versions dialog
+''' ).strip() + '</i>')  # T: Help text in versions dialog
 		label.set_use_markup(True)
 		#~ label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
@@ -1027,7 +1027,7 @@ state. Or select multiple versions to see changes between those versions.
 		vbox = gtk.VBox(spacing=5)
 		self.vpaned.pack2(vbox, resize=False)
 
-		label = gtk.Label('<b>' + _('Comment') + '</b>') # T: version details
+		label = gtk.Label('<b>' + _('Comment') + '</b>')  # T: version details
 		label.set_use_markup(True)
 		label.set_alignment(0.0, 0.5)
 		vbox.pack_start(label, False)
@@ -1042,7 +1042,7 @@ state. Or select multiple versions to see changes between those versions.
 		vbox.pack_start(buttonbox, False)
 
 		# Restore version button
-		revert_button = gtk.Button(_('_Restore Version')) # T: Button label
+		revert_button = gtk.Button(_('_Restore Version'))  # T: Button label
 		revert_button.connect('clicked', lambda o: self.restore_version())
 		buttonbox.add(revert_button)
 
@@ -1127,7 +1127,7 @@ state. Or select multiple versions to see changes between those versions.
 			if path:
 				page = self.notebook.get_page(path)
 			else:
-				return None # TODO error message valid page name?
+				return None  # TODO error message valid page name?
 
 			if page \
 			and hasattr(page, 'source') \
@@ -1135,7 +1135,7 @@ state. Or select multiple versions to see changes between those versions.
 			and page.source.ischild(self.vcs.root):
 				return page.source
 			else:
-				return None # TODO error message ?
+				return None  # TODO error message ?
 
 	def show_annotated(self):
 		# TODO check for gannotated
@@ -1151,7 +1151,7 @@ state. Or select multiple versions to see changes between those versions.
 		version = self.versionlist.get_versions()[0]
 		assert not file is None
 		if QuestionDialog(self, (
-			_('Restore page to saved version?'), # T: Confirmation question
+			_('Restore page to saved version?'),  # T: Confirmation question
 			_('Do you want to restore page: %(page)s\n'
 			  'to saved version: %(version)s ?\n\n'
 			  'All changes since the last saved version will be lost !')
@@ -1159,7 +1159,7 @@ state. Or select multiple versions to see changes between those versions.
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 		)).run():
 			self.vcs.revert(file=file, version=version)
-			self.ui.reload_page() # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+			self.ui.reload_page()  # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 			# TODO trigger vcs autosave here?
 
 	def show_changes(self):
@@ -1224,9 +1224,9 @@ class VersionsTreeView(SingleClickTreeView):
 
 		cell_renderer = gtk.CellRendererText()
 		for name, i in (
-			(_('Rev'), self.REV_COL), # T: Column header versions dialog
-			(_('Date'), self.DATE_COL), # T: Column header versions dialog
-			(_('Author'), self.USER_COL), # T: Column header versions dialog
+			(_('Rev'), self.REV_COL),  # T: Column header versions dialog
+			(_('Date'), self.DATE_COL),  # T: Column header versions dialog
+			(_('Author'), self.USER_COL),  # T: Column header versions dialog
 		):
 			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
 			if i == self.REV_COL:
@@ -1244,13 +1244,13 @@ class VersionsTreeView(SingleClickTreeView):
 
 	def load_versions(self, versions):
 		model = self.get_model()
-		model.clear() # Empty for when we update
+		model.clear()  # Empty for when we update
 		model.set_sort_column_id(self.REV_SORT_COL, gtk.SORT_DESCENDING)
 			# By default sort by rev
 
 		for version in versions:
 			#~ print version
-			key = natural_sort_key(version[0]) # key for REV_SORT_COL
+			key = natural_sort_key(version[0])  # key for REV_SORT_COL
 			model.append((key,) + tuple(version))
 
 	def get_versions(self):

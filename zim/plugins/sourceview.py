@@ -52,11 +52,11 @@ OBJECT_TYPE = 'code'
 class SourceViewPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Source View'), # T: plugin name
+		'name': _('Source View'),  # T: plugin name
 		'description': _('''\
 This plugin allows inserting 'Code Blocks' in the page. These will be
 shown as emdedded widgets with syntax highlighting, line numbers etc.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
 		'object_types': (OBJECT_TYPE, ),
@@ -85,7 +85,7 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
-		ObjectManager.register_object(OBJECT_TYPE, self.create_object) # register the plugin in the main init so it works for a non-gui export
+		ObjectManager.register_object(OBJECT_TYPE, self.create_object)  # register the plugin in the main init so it works for a non-gui export
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def teardown(self):
@@ -120,25 +120,25 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 
-	@action(_('Code Block'), readonly=False) # T: menu item
+	@action(_('Code Block'), readonly=False)  # T: menu item
 	def insert_sourceview(self):
 		'''Inserts new SourceView'''
-		lang = InsertCodeBlockDialog(self.window.ui).run() # XXX
+		lang = InsertCodeBlockDialog(self.window.ui).run()  # XXX
 		if not lang:
-			return # dialog cancelled
+			return  # dialog cancelled
 		else:
 			obj = self.plugin.create_object({'type': OBJECT_TYPE, 'lang': lang}, '')
-			pageview = self.window.pageview # XXX
+			pageview = self.window.pageview  # XXX
 			pageview.insert_object(obj)
 
 
 class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Insert Code Block')) # T: dialog title
+		Dialog.__init__(self, ui, _('Insert Code Block'))  # T: dialog title
 		names = sorted(LANGUAGES, key=lambda k: k.lower())
 		self.add_form(
-			(('lang', 'choice', _('Syntax'), names),) # T: input label
+			(('lang', 'choice', _('Syntax'), names),)  # T: input label
 		)
 
 		# Set previous used language
@@ -160,7 +160,7 @@ class InsertCodeBlockDialog(Dialog):
 			self.uistate['lang'] = LANGUAGES[name]
 			return True
 		else:
-			return False # no syntax selected
+			return False  # no syntax selected
 
 
 class SourceViewObject(CustomObjectClass):
@@ -219,7 +219,7 @@ class SourceViewObject(CustomObjectClass):
 		if self.buffer:
 			bounds = self.buffer.get_bounds()
 			text = self.buffer.get_text(bounds[0], bounds[1])
-			text += '\n' # Make sure we always have a trailing \n
+			text += '\n'  # Make sure we always have a trailing \n
 			return text
 		else:
 			return self._data
@@ -238,19 +238,19 @@ class SourceViewObject(CustomObjectClass):
 				sh_map = {'dosbatch': 'dos'}
 				sh_lang = sh_map[self._attrib['lang']] if self._attrib['lang'] in sh_map else self._attrib['lang']
 				# TODO: some template instruction to be able to use other highlighters as well?
-				output = ['<pre><code class="%s">' % html_encode(sh_lang)] # for syntaxhigligther
+				output = ['<pre><code class="%s">' % html_encode(sh_lang)]  # for syntaxhigligther
 				'''' class="brush: language;" works with SyntaxHighlighter 2.0.278, 3 & 4
 				output = ['<pre class="brush: %s;">' % html_encode(sh_lang)] # for syntaxhigligther
 				'''
 			else:
 				output = ['<pre>\n']
 			data = self.get_data()
-			data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
-			#if self._attrib['linenumbers']:
+			data = html_encode(data)  # XXX currently dumper gives encoded lines - NOK
+			# if self._attrib['linenumbers']:
 			#	for i, l in enumerate(data.splitlines(1)):
 			#		output.append('%i&nbsp;' % (i+1) + l)
-			#else:
-			output.append(data) # ignoring numbering for html - syntaxhighlighter takes care of that
+			# else:
+			output.append(data)  # ignoring numbering for html - syntaxhighlighter takes care of that
 			if self._attrib['lang']:
 				output.append('</code></pre>\n')
 			else:

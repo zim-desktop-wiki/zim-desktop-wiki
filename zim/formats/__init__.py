@@ -95,7 +95,7 @@ except:
 
 try:
 	import xml.etree.cElementTree as ElementTreeModule
-except:  #pragma: no cover
+except:  # pragma: no cover
 	logger.warn('Could not load cElementTree, defaulting to ElementTree')
 	import xml.etree.ElementTree as ElementTreeModule
 
@@ -103,20 +103,20 @@ except:  #pragma: no cover
 EXPORT_FORMAT = 1
 IMPORT_FORMAT = 2
 NATIVE_FORMAT = 4
-TEXT_FORMAT = 8 # Used for "Copy As" menu - these all prove "text/plain" mimetype
+TEXT_FORMAT = 8  # Used for "Copy As" menu - these all prove "text/plain" mimetype
 
 UNCHECKED_BOX = 'unchecked-box'
 CHECKED_BOX = 'checked-box'
 XCHECKED_BOX = 'xchecked-box'
 MIGRATED_BOX = 'migrated-box'
-BULLET = '*' # FIXME make this 'bullet'
+BULLET = '*'  # FIXME make this 'bullet'
 
 FORMATTEDTEXT = 'zim-tree'
 FRAGMENT = 'zim-tree'
 
 HEADING = 'h'
 PARAGRAPH = 'p'
-VERBATIM_BLOCK = 'pre' # should be same as verbatim
+VERBATIM_BLOCK = 'pre'  # should be same as verbatim
 BLOCK = 'div'
 
 IMAGE = 'img'
@@ -126,7 +126,7 @@ BULLETLIST = 'ul'
 NUMBEREDLIST = 'ol'
 LISTITEM = 'li'
 
-EMPHASIS = 'emphasis' # TODO change to "em" to be in line with html
+EMPHASIS = 'emphasis'  # TODO change to "em" to be in line with html
 STRONG = 'strong'
 MARK = 'mark'
 VERBATIM = 'code'
@@ -171,9 +171,9 @@ def increase_list_iter(listiter):
 		try:
 			i = _letters.index(listiter)
 			return _letters[i + 1]
-		except ValueError: # listiter is not a letter
+		except ValueError:  # listiter is not a letter
 			return None
-		except IndexError: # wrap to start of list
+		except IndexError:  # wrap to start of list
 			return _letters[0]
 
 def encode_xml(text):
@@ -310,7 +310,7 @@ class ParseTree(object):
 		parser.feed(string)
 		root = parser.close()
 		self._etree._setroot(root)
-		return self # allow ParseTree().fromstring(..)
+		return self  # allow ParseTree().fromstring(..)
 
 	def tostring(self):
 		'''Serialize the tree to a XML representation'''
@@ -344,7 +344,7 @@ class ParseTree(object):
 		'''Generator for links in the text
 		@returns: yields a list of unique L{HRef} objects
 		'''
-		from zim.notebook.page import HRef # XXX
+		from zim.notebook.page import HRef  # XXX
 		seen = set()
 		for elt in itertools.chain(
 			self._etree.getiterator(LINK),
@@ -430,7 +430,7 @@ class ParseTree(object):
 				if level == -1 or mylevel <= level:
 					root.remove(first)
 					if first.tail and not first.tail.isspace():
-						root.text = first.tail # Keep trailing text
+						root.text = first.tail  # Keep trailing text
 					return first.text, mylevel
 				else:
 					return None, None
@@ -537,15 +537,15 @@ class ParseTree(object):
 			if element.tail:
 				return element.tail.endswith('\n')
 			elif element.tag in ('li', 'h'):
-				return True # implicit newline
+				return True  # implicit newline
 			else:
 				children = element.getchildren()
 				if children:
-					return self._get_element_ends_with_newline(children[-1]) # recurs
+					return self._get_element_ends_with_newline(children[-1])  # recurs
 				elif element.text:
 					return element.text.endswith('\n')
 				else:
-					return False # empty element like image
+					return False  # empty element like image
 
 	def visit(self, visitor):
 		'''Visit all nodes of this tree
@@ -562,12 +562,12 @@ class ParseTree(object):
 
 	def _visit(self, visitor, node):
 		try:
-			if len(node): # Has children
+			if len(node):  # Has children
 				visitor.start(node.tag, node.attrib)
 				if node.text:
 					visitor.text(node.text)
 				for child in node:
-					self._visit(visitor, child) # recurs
+					self._visit(visitor, child)  # recurs
 					if child.tail:
 						visitor.text(child.tail)
 				visitor.end(node.tag)
@@ -581,7 +581,7 @@ class ParseTree(object):
 		@returns: a L{Node} object or C{None}
 		'''
 		for elt in self.findall(tag):
-			return elt # return first
+			return elt  # return first
 		else:
 			return None
 
@@ -629,7 +629,7 @@ class ParseTree(object):
 				else:
 					replacements.append((i, child, replacement))
 			elif len(child):
-				self._replace(child, tag, func) # recurs
+				self._replace(child, tag, func)  # recurs
 			else:
 				pass
 
@@ -638,7 +638,7 @@ class ParseTree(object):
 			self._do_replace(elt, replacements)
 
 	def _do_replace(self, elt, replacements):
-		offset = 0 # offset due to replacements
+		offset = 0  # offset due to replacements
 		for i, child, node in replacements:
 			i += offset
 			if node is None or len(node) == 0:
@@ -705,8 +705,8 @@ class ParseTree(object):
 					yield obj
 
 	def _get_object(self, elt):
-		## TODO optimize using self._object_cache or new API for
-		## passing on objects in the tree
+		# TODO optimize using self._object_cache or new API for
+		# passing on objects in the tree
 		type = elt.attrib.get('type')
 		if elt.tag == OBJECT and type:
 			return ObjectManager.get_object(type, elt.attrib, elt.text)
@@ -795,7 +795,7 @@ class ParseTreeBuilder(Builder):
 	def __init__(self, partial=False, _parsetree_roundtrip=False):
 		self.partial = partial
 		self._b = ElementTreeModule.TreeBuilder()
-		self.stack = [] #: keeps track of current open elements
+		self.stack = []  # : keeps track of current open elements
 		self._last_char = None
 		self._parsetree_roundtrip = _parsetree_roundtrip
 
@@ -896,11 +896,11 @@ class OldParseTreeBuilder(object):
 
 	def __init__(self, remove_newlines_after_li=True):
 		assert remove_newlines_after_li, 'TODO'
-		self._stack = [] # stack of elements for open tags
-		self._last = None # last element opened or closed
-		self._data = [] # buffer with data
-		self._tail = False # True if we are after an end tag
-		self._seen_eol = 2 # track line ends on flushed data
+		self._stack = []  # stack of elements for open tags
+		self._last = None  # last element opened or closed
+		self._data = []  # buffer with data
+		self._tail = False  # True if we are after an end tag
+		self._seen_eol = 2  # track line ends on flushed data
 			# starts with "2" so check is ok for first top level element
 
 	def start(self, tag, attrib=None):
@@ -1120,7 +1120,7 @@ class ParserClass(object):
 				if k in ('width', 'height', 'type', 'href'):
 					if len(v) > 0:
 						value = url_decode(v, mode=URL_ENCODE_DATA)
-						attrib[str(k)] = value # str to avoid unicode key
+						attrib[str(k)] = value  # str to avoid unicode key
 				else:
 					logger.warn('Unknown attribute "%s" in "%s"', k, url)
 			return attrib
@@ -1174,9 +1174,9 @@ class DumperClass(Visitor):
 	when a tag is serialized.
 	'''
 
-	TAGS = {} #: dict mapping formatting tags to 2-tuples of a prefix and a postfix string
+	TAGS = {}  # : dict mapping formatting tags to 2-tuples of a prefix and a postfix string
 
-	TEMPLATE_OPTIONS = {} #: dict mapping ConfigDefinitions for template options
+	TEMPLATE_OPTIONS = {}  # : dict mapping ConfigDefinitions for template options
 
 	def __init__(self, linker=None, template_options=None):
 		self.linker = linker
@@ -1197,7 +1197,7 @@ class DumperClass(Visitor):
 		if len(self.context) != 1:
 			raise AssertionError('Unclosed tags on tree: %s' % self.context[-1].tag)
 		#~ import pprint; pprint.pprint(self._text)
-		return self.get_lines() # FIXME - maybe just return text ?
+		return self.get_lines()  # FIXME - maybe just return text ?
 
 	def get_lines(self):
 		'''Return the dumped content as a list of lines
@@ -1207,7 +1207,7 @@ class DumperClass(Visitor):
 
 	def start(self, tag, attrib=None):
 		if attrib:
-			attrib = attrib.copy() # Ensure dumping does not change tree
+			attrib = attrib.copy()  # Ensure dumping does not change tree
 		self.context.append(DumperContextElement(tag, attrib, []))
 
 	def text(self, text):
@@ -1255,7 +1255,7 @@ class DumperClass(Visitor):
 				strings = [self.encode_text(tag, text)]
 		else:
 			if attrib:
-				attrib = attrib.copy() # Ensure dumping does not change tree
+				attrib = attrib.copy()  # Ensure dumping does not change tree
 
 			try:
 				method = getattr(self, 'dump_' + tag)
@@ -1466,7 +1466,7 @@ class Node(list):
 		if elt.text:
 			obj.append(elt.text)
 		for child in elt:
-			subnode = klass.new_from_etree(child) # recurs
+			subnode = klass.new_from_etree(child)  # recurs
 			obj.append(subnode)
 			if child.tail:
 				obj.append(child.tail)

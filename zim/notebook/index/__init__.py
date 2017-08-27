@@ -134,7 +134,7 @@ class Index(SignalEmitter):
 			INSERT INTO zim_index VALUES ('db_version', %r)
 		''' % DB_VERSION)
 
-		self._update_iter_init() # Force re-init of all tables
+		self._update_iter_init()  # Force re-init of all tables
 		self._db.commit()
 
 	def get_property(self, key):
@@ -221,7 +221,7 @@ class Index(SignalEmitter):
 						filesindexer.delete_folder(node_id)
 				else:
 					raise TypeError
-			else: # file.exists():
+			else:  # file.exists():
 				if isinstance(file, File):
 					filesindexer.interactive_add_file(file)
 				elif isinstance(file, Folder):
@@ -260,7 +260,7 @@ class Index(SignalEmitter):
 
 		if row is None:
 			pid = self.update_iter.pages.insert_link_placeholder(path)
-			self._db.execute( # Need link to prevent cleanup
+			self._db.execute(  # Need link to prevent cleanup
 				'INSERT INTO links(source, target, rel, names) '
 				'VALUES (?, ?, ?, ?)',
 				(ROOT_ID, pid, HREF_REL_ABSOLUTE, path.name)
@@ -342,7 +342,7 @@ class BackgroundCheck(object):
 						logger.debug('BackgroundCheck found out-of-date')
 						break
 					else:
-						yield True # Continue loop
+						yield True  # Continue loop
 				except StopIteration:
 					logger.debug('BackgroundCheck finished')
 					break
@@ -353,13 +353,13 @@ class BackgroundCheck(object):
 
 def on_out_of_date_found(notebook, background_check):
 	op = IndexUpdateOperation(notebook)
-	op.connect('finished', lambda *a: background_check.start()) # continue checking
+	op.connect('finished', lambda *a: background_check.start())  # continue checking
 		# TODO ensure robust in case operation gives error
 	try:
 		op.run_on_idle()
 	except NotebookOperationOngoing:
 		other_op = ongoing_operation(notebook)
-		other_op.connect('finished', lambda *a: background_check.start()) # continue checking
+		other_op.connect('finished', lambda *a: background_check.start())  # continue checking
 			# TODO ensure robust in case operation gives error
 
 
@@ -369,7 +369,7 @@ class IndexUpdateOperation(NotebookOperation):
 		NotebookOperation.__init__(
 			self,
 			notebook,
-			_('Updating index'), # T: Title of progressbar dialog
+			_('Updating index'),  # T: Title of progressbar dialog
 			self._get_iter(notebook)
 		)
 

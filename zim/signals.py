@@ -226,8 +226,8 @@ class SignalEmitterMeta(type):
 			if hasattr(cls, name):
 				order = cls.__signals__[signal][0]
 				if not order in (SIGNAL_RUN_FIRST, SIGNAL_RUN_LAST):
-					order = SIGNAL_RUN_LAST # for backward compatibility, fallback to this default
-				closure = getattr(cls, name) # unbound version!
+					order = SIGNAL_RUN_LAST  # for backward compatibility, fallback to this default
+				closure = getattr(cls, name)  # unbound version!
 				cls._signal_closures.append((signal, order, closure))
 
 		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
@@ -250,7 +250,7 @@ class SignalEmitter(object):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	# E.g. {signal: (SIGNAL_RUN_LAST, None, (object, object))}
-	__signals__ = {} #: signals supported by this class
+	__signals__ = {}  # : signals supported by this class
 
 	def __new__(cls, *arg, **kwarg):
 		# New instance: init attributes for signal handling
@@ -258,7 +258,7 @@ class SignalEmitter(object):
 
 		obj._signal_handlers = {}
 		obj._signal_blocks = {}
-		obj._signal_count = 0 # ensure signals execute in order of connecting
+		obj._signal_count = 0  # ensure signals execute in order of connecting
 
 		for signal, order, closure in obj._signal_closures:
 			obj._signal_handlers[signal] = [(order, 0, closure)]
@@ -330,7 +330,7 @@ class SignalEmitter(object):
 			logger.warning('Signal args do not match spec for %s::%s', self.__class__.__name__, signal)
 
 		if self._signal_blocks.get(signal):
-			return # ignore emit
+			return  # ignore emit
 
 		return_first = self.__signals__[signal][1] is not None
 		for c, i, handler in self._signal_handlers.get(signal, []):
@@ -412,7 +412,7 @@ class DelayedCallback(object):
 		def callback():
 			self.timer_id = None
 			self.cb_func(*arg, **kwarg)
-			return False # destroy timeout
+			return False  # destroy timeout
 
 		self.timer_id = gobject.timeout_add(self.timeout, callback)
 

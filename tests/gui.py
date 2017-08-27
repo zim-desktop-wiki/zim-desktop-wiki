@@ -48,7 +48,7 @@ def setupGtkInterface(test, klass=None, notebook=None):
 
 	ui = klass(config=config, notebook=notebook)
 
-	ui._mainwindow.init_uistate() # XXX
+	ui._mainwindow.init_uistate()  # XXX
 	ui.open_page(Path('Test:foo:bar'))
 
 	return ui
@@ -78,7 +78,7 @@ class TestDialogs(tests.TestCase):
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = tests.MockObject()
 		mainwindow.ui = self.ui
-		mainwindow.ui.uistate = {} # XXX needed to let Dialog what real ui object is ...
+		mainwindow.ui.uistate = {}  # XXX needed to let Dialog what real ui object is ...
 
 		for name, path in (
 			(':new', ':new'),
@@ -93,7 +93,7 @@ class TestDialogs(tests.TestCase):
 			self.assertEqual(self.ui.mock_calls[-2], ('open_page', Path(path)))
 			page = self.ui.notebook.get_page(Path(path))
 			self.assertTrue(page.exists())
-			page.modified = False # HACK so we can clean up
+			page.modified = False  # HACK so we can clean up
 			self.ui.notebook.delete_page(page)
 
 		for name, path in (
@@ -109,7 +109,7 @@ class TestDialogs(tests.TestCase):
 			self.assertEqual(self.ui.mock_calls[-2], ('open_page', Path(path)))
 			page = self.ui.notebook.get_page(Path(path))
 			self.assertTrue(page.exists())
-			page.modified = False # HACK so we can clean up
+			page.modified = False  # HACK so we can clean up
 			self.ui.notebook.delete_page(page)
 
 		dialog = zim.gui.NewPageDialog(mainwindow)
@@ -140,13 +140,13 @@ class TestDialogs(tests.TestCase):
 
 	def testMovePageDialog(self):
 		'''Test MovePageDialog'''
-		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar')) # Path has backlinks
+		dialog = zim.gui.MovePageDialog(self.ui, path=Path('Test:foo:bar'))  # Path has backlinks
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('New')
 		dialog.assert_response_ok()
 
-		dialog = zim.gui.MovePageDialog(self.ui, path=Path('TaskList')) # No links to this path
+		dialog = zim.gui.MovePageDialog(self.ui, path=Path('TaskList'))  # No links to this path
 		self.assertFalse(dialog.form['update'])
 		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		dialog.form['parent'] = Path('foo')
@@ -154,14 +154,14 @@ class TestDialogs(tests.TestCase):
 
 	def testRenamePageDialog(self):
 		'''Test RenamePageDialog'''
-		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar')) # Has backlinks
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('Test:foo:bar'))  # Has backlinks
 		self.assertTrue(dialog.form['update'])
 		self.assertTrue(dialog.form.widgets['update'].get_property('sensitive'))
-		self.assertFalse(dialog.form['head']) # There is no heading
+		self.assertFalse(dialog.form['head'])  # There is no heading
 		dialog.form['name'] = 'New'
 		dialog.assert_response_ok()
 
-		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('TaskList')) # No links to this path
+		dialog = zim.gui.RenamePageDialog(self.ui, path=Path('TaskList'))  # No links to this path
 		self.assertFalse(dialog.form['update'])
 		self.assertFalse(dialog.form.widgets['update'].get_property('sensitive'))
 		self.assertFalse(dialog.form['head'])
@@ -202,7 +202,7 @@ class TestDialogs(tests.TestCase):
 
 		dialog.assert_response_ok()
 
-	@tests.expectedFailure # XXX - something weird going on with the filechooser here
+	@tests.expectedFailure  # XXX - something weird going on with the filechooser here
 	def testAttachFileDialog(self):
 		'''Test AttachFileDialog'''
 		tmp_dir = self.create_tmp_dir('testAttachFileDialog')
@@ -221,7 +221,7 @@ class TestDialogs(tests.TestCase):
 		tests.gtk_process_events()
 		dialog.assert_response_ok()
 
-		self.assertTrue(file.exists()) # No move or delete happened
+		self.assertTrue(file.exists())  # No move or delete happened
 		self.assertTrue(newfile.exists())
 		self.assertTrue(newfile.compare(file))
 
@@ -231,7 +231,7 @@ class TestDialogs(tests.TestCase):
 		self.ui.notebook = tests.new_notebook()
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = tests.MockObject()
-		mainwindow.ui = self.ui # XXX
+		mainwindow.ui = self.ui  # XXX
 
 		dialog = SearchDialog(mainwindow)
 		dialog.query_entry.set_text('Foo')
@@ -247,7 +247,7 @@ class TestDialogs(tests.TestCase):
 		from zim.gui.customtools import CustomToolManagerDialog
 		from zim.gui.customtools import EditCustomToolDialog
 
-		## CustomToolManager dialog
+		# CustomToolManager dialog
 		dialog = CustomToolManagerDialog(self.ui)
 		properties = {
 			'Name': 'Foo',
@@ -261,7 +261,7 @@ class TestDialogs(tests.TestCase):
 		dialog.listview.refresh()
 		dialog.destroy()
 
-		## Edit custom tool dialog
+		# Edit custom tool dialog
 		dialog = EditCustomToolDialog(self.ui)
 		input = {
 			'Name': 'Foo',
@@ -294,7 +294,7 @@ class TestDialogs(tests.TestCase):
 			'interwiki': None,
 			'home': Path('Home'),
 			'icon': './icon.png',
-			'document_root': File('/foo').path, # win32 save test
+			'document_root': File('/foo').path,  # win32 save test
 			'profile': None,
 		}
 		config2 = {
@@ -302,7 +302,7 @@ class TestDialogs(tests.TestCase):
 			'interwiki': 'FooBar',
 			'home': Path('HomeSweetHome'),
 			'icon': './picture.png',
-			'document_root': File('/bar').path, # win32 save test
+			'document_root': File('/bar').path,  # win32 save test
 			'profile': 'foo',
 		}
 		notebook.save_properties(**config1)
@@ -345,7 +345,7 @@ class TestDialogs(tests.TestCase):
 		self.ui.plugins = gui.plugins
 		self.ui.config = gui.config
 
-		## Test get/set simple value
+		# Test get/set simple value
 		self.assertEquals(self.ui.preferences['GtkInterface']['toggle_on_ctrlspace'], False)
 		dialog = PreferencesDialog(self.ui)
 		self.assertEquals(dialog.forms['Interface']['toggle_on_ctrlspace'], False)
@@ -357,7 +357,7 @@ class TestDialogs(tests.TestCase):
 		dialog.assert_response_ok()
 		self.assertEquals(self.ui.preferences['GtkInterface']['toggle_on_ctrlspace'], True)
 
-		## Test font button
+		# Test font button
 		text_style = gui.config.get_config_dict('<profile>/style.conf')
 		text_style['TextView']['font'] = 'Sans 12'
 		dialog = PreferencesDialog(self.ui)
@@ -374,14 +374,14 @@ class TestDialogs(tests.TestCase):
 		self.assertEqual(text_style['TextView']['font'], None)
 		self.assertFalse(any(['use_custom_font' in d for d in self.ui.preferences.values()]))
 
-		## Plugin Config dialog
+		# Plugin Config dialog
 		from zim.plugins.calendar import CalendarPlugin
 		plugin = CalendarPlugin()
 		pref_dialog = PreferencesDialog(self.ui)
 		dialog = PluginConfigureDialog(pref_dialog, plugin)
 		dialog.assert_response_ok()
 
-		## Try plugins + cancel
+		# Try plugins + cancel
 		pref_dialog = PreferencesDialog(self.ui)
 		treeview = pref_dialog.plugins_tab.treeview
 		for name in self.ui.plugins.list_installed_plugins():
@@ -395,7 +395,7 @@ class TestDialogs(tests.TestCase):
 			if wasactive:
 				self.assertEqual(model[iter][1], False)
 			else:
-				self.assertEqual(model[iter][1], model[iter][2]) # active matched activatable
+				self.assertEqual(model[iter][1], model[iter][2])  # active matched activatable
 
 		pref_dialog.do_response_cancel()
 
@@ -465,7 +465,7 @@ class TestGtkInterface(tests.TestCase):
 	def testMainWindow(self):
 		'''Test main window'''
 		path = Path('Test:foo:bar')
-		window = self.ui._mainwindow # XXX
+		window = self.ui._mainwindow  # XXX
 
 		self.assertTrue(window.uistate['show_menubar'])
 		window.toggle_menubar()
@@ -559,26 +559,26 @@ class TestGtkInterface(tests.TestCase):
 			self.ui.open_page_back()
 			self.assertEqual(self.ui.page, path)
 		self.ui.open_page_back()
-		self.assertEqual(self.ui.page, path) # not changed
+		self.assertEqual(self.ui.page, path)  # not changed
 
 		for path in history[1:]:
 			self.ui.open_page_forward()
 			self.assertEqual(self.ui.page, path)
 		self.ui.open_page_forward()
-		self.assertEqual(self.ui.page, path) # not changed
+		self.assertEqual(self.ui.page, path)  # not changed
 
 		# check upward and downward
 		for path in (Path('Test:foo:'), Path('Test:')):
 			self.ui.open_page_parent()
 			self.assertEqual(self.ui.page, path)
 		self.ui.open_page_parent()
-		self.assertEqual(self.ui.page, path) # not changed
+		self.assertEqual(self.ui.page, path)  # not changed
 
 		for path in (Path('Test:foo:'), Path('Test:foo:bar')):
 			self.ui.open_page_child()
 			self.assertEqual(self.ui.page, path)
 		self.ui.open_page_child()
-		self.assertEqual(self.ui.page, path) # not changed
+		self.assertEqual(self.ui.page, path)  # not changed
 
 		# previous and next
 		self.ui.open_page_previous()
@@ -592,11 +592,11 @@ class TestGtkInterface(tests.TestCase):
 		self.ui.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.ui.page.exists())
 		self.assertIsNone(self.ui.page.get_parsetree())
-		self.assertTrue(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
+		self.assertTrue(self.ui._mainwindow.pageview._showing_template)  # XXX check HACK
 		self.ui.save_page()
 		self.assertTrue(self.ui.page.exists())
 		self.assertIsNotNone(self.ui.page.get_parsetree())
-		self.assertFalse(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
+		self.assertFalse(self.ui._mainwindow.pageview._showing_template)  # XXX check HACK
 
 	def testPageMove(self):
 		oldpath, newpath = Path('Movers:Stator:Mover'), Path('Movers:Mover')
@@ -687,7 +687,7 @@ class TestClickLink(tests.TestCase):
 					self.mock_method(method, None)
 
 		self.ui = setupGtkInterface(self, klass=MyMock)
-		self.ui._mainwindow.pageview.page = Path('foo') # XXX
+		self.ui._mainwindow.pageview.page = Path('foo')  # XXX
 
 	def runTest(self):
 		self.assertRaises(AssertionError, self.ui.open_url, 'foo@bar.com')
@@ -703,7 +703,7 @@ class TestClickLink(tests.TestCase):
 			('mailto:foo@bar.com', 'mailto'),
 			('mailto:foo.com', 'page'),
 			('foo@bar.com', 'mailto'),
-			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mailto:foo//bar@bar.com', 'mailto'),  # is this a valid mailto uri ?
 			('mid:foo@bar.org', 'mid'),
 			('cid:foo@bar.org', 'cid'),
 			('./foo/bar', 'file'),
@@ -718,7 +718,7 @@ class TestClickLink(tests.TestCase):
 		):
 			#~ print ">> LINK %s (%s)" % (href, type)
 			#~ self.ui.open_url(href)
-			self.ui._mainwindow.pageview.do_link_clicked({'href': href}) # XXX
+			self.ui._mainwindow.pageview.do_link_clicked({'href': href})  # XXX
 			msg = "Clicked: \"%s\" resulted in: \"%s\"" % (href, self.ui.mock_calls[-1])
 			if type == 'notebook':
 				self.assertTrue(self.ui.mock_calls[-1][0] == 'open_notebook', msg=msg)
@@ -732,7 +732,7 @@ class TestClickLink(tests.TestCase):
 				self.assertTrue(self.ui.mock_calls[-1][0] == '_open_with_filebrowser', msg=msg)
 			else:
 				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_webbrowser', '_open_with'), msg=msg)
-			self.ui.mock_calls = [] # reset
+			self.ui.mock_calls = []  # reset
 
 		# Some more tests that may not be covered above
 		for href, type in (
@@ -749,7 +749,7 @@ class TestClickLink(tests.TestCase):
 				self.assertTrue(self.ui.mock_calls[-1][0] == '_open_with_webbrowser', msg=msg)
 			elif type == 'mailto':
 				self.assertTrue(self.ui.mock_calls[-1][0] in ('_open_with_emailclient', '_open_with'), msg=msg)
-			self.ui.mock_calls = [] # reset
+			self.ui.mock_calls = []  # reset
 
 		# TODO test plugin with custom handler
 
@@ -772,7 +772,7 @@ class TestNotebookComboBox(tests.TestCase):
 		model = NotebookTreeModel(notebooklist)
 
 		combobox = NotebookComboBox(model)
-		self.assertEqual(combobox.get_notebook(), notebooklist[1].uri) # default
+		self.assertEqual(combobox.get_notebook(), notebooklist[1].uri)  # default
 
 		combobox.set_active(-1)
 		self.assertEqual(combobox.get_notebook(), None)
@@ -821,7 +821,7 @@ class TestNotebookDialog(tests.TestCase):
 		def testNotebookDialog(dialog):
 			self.assertTrue(isinstance(dialog, NotebookDialog))
 			selection = dialog.treeview.get_selection()
-			selection.select_path((0,)) # select first and only notebook
+			selection.select_path((0,))  # select first and only notebook
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(testNotebookDialog):
@@ -845,7 +845,7 @@ class TestNotebookDialog(tests.TestCase):
 			dialog.combobox.set_active(0)
 
 			selection = dialog.treeview.get_selection()
-			selection.select_path((1,)) # select newly added notebook
+			selection.select_path((1,))  # select newly added notebook
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(testAddNotebook):
@@ -869,7 +869,7 @@ class TestNotebookDialog(tests.TestCase):
 			self.assertTrue(isinstance(dialog, NotebookDialog))
 			dialog.combobox.set_active(-1)
 			selection = dialog.treeview.get_selection()
-			selection.select_path((1,)) # select newly added notebook
+			selection.select_path((1,))  # select newly added notebook
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(unsetDefault):

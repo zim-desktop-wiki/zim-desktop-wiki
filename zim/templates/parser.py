@@ -109,15 +109,15 @@ class TemplateParser(object):
 	#
 	# Keywords are case sensitive: must be upper case
 
-	_set_token_re = re.compile(r'^([\w\.]+)\s*=\s*(.*)$') # var = expr
+	_set_token_re = re.compile(r'^([\w\.]+)\s*=\s*(.*)$')  # var = expr
 
-	_token_with_expr_re = re.compile(r'^(\w+)\s+(.*)$') # TOKEN expr
+	_token_with_expr_re = re.compile(r'^(\w+)\s+(.*)$')  # TOKEN expr
 
-	_for_in_token_re = re.compile(r'^(\w+)\s+IN\s+(.*)$') # name IN expr
+	_for_in_token_re = re.compile(r'^(\w+)\s+IN\s+(.*)$')  # name IN expr
 
-	_for_is_token_re = re.compile(r'^(\w+)\s*=\s*(.*)$') # name = expr
+	_for_is_token_re = re.compile(r'^(\w+)\s*=\s*(.*)$')  # name = expr
 
-	_block_token_re = re.compile(r'^\w+$') # name
+	_block_token_re = re.compile(r'^\w+$')  # name
 
 	_tokens_with_expr = (
 		'GET', 'SET',
@@ -125,7 +125,7 @@ class TemplateParser(object):
 		'FOR', 'FOREACH',
 		'BLOCK', 'INCLUDE',
 		'END'
-	)	# These tokens take an argument
+	)  # These tokens take an argument
 
 	_tokens_without_expr = ('ELSE', 'END')
 		# These tokens do not take an argument
@@ -133,11 +133,11 @@ class TemplateParser(object):
 	_tokens_with_end = (
 		'IF', 'ELIF', 'ELSIF', 'ELSE',
 		'FOR', 'FOREACH', 'BLOCK',
-	)	# These tokens start a block that is delimited by END
+	)  # These tokens start a block that is delimited by END
 
 	_tokens_with_line_chomp = _tokens_with_end + (
 		'END', 'INCLUDE'
-	)	# For these tokens strip whitespace of token is on it's own line
+	)  # For these tokens strip whitespace of token is on it's own line
 
 	_tokens_with_default_chomp = ('SET',)
 		# For these tokens always strip whitespace left and right
@@ -210,15 +210,15 @@ class TemplateParser(object):
 		return text_parser
 
 	def _process_token(self, builder, text):
-		rchomp = text.startswith('-') # rstrip prev text
-		lchomp = text.endswith('-') # lstrip next text
+		rchomp = text.startswith('-')  # rstrip prev text
+		lchomp = text.endswith('-')  # lstrip next text
 		text = text.strip('-').strip()
 
 		m = self._token_with_expr_re.match(text)
 		if m and m.group(1) in self._tokens_with_expr:
 			token = m.group(1)
 			expr = m.group(2).strip()
-			assert expr, 'Missing expression' # Should never occur if regexp is strict
+			assert expr, 'Missing expression'  # Should never occur if regexp is strict
 		elif text in self._tokens_without_expr:
 			token = text
 			expr = None
@@ -267,7 +267,7 @@ class TemplateParser(object):
 	def _process_token_elif(self, b, t, e):
 		if not (self._stack and self._stack[-1] in ('IF', 'ELIF')):
 			raise AssertionError('Expected IF statement instead of ELIF')
-		b.end(self._stack.pop()) # raises if unmatched
+		b.end(self._stack.pop())  # raises if unmatched
 		e = self.expr_parser.parse(e)
 		b.start('ELIF', {'expr': e})
 		self._stack.append('ELIF')
@@ -277,7 +277,7 @@ class TemplateParser(object):
 	def _process_token_else(self, b, t, e):
 		if not (self._stack and self._stack[-1] in ('IF', 'ELIF')):
 			raise AssertionError('Unexpected ELSE statement')
-		b.end(self._stack.pop()) # raises if unmatched
+		b.end(self._stack.pop())  # raises if unmatched
 		b.start('ELSE')
 		self._stack.append('ELSE')
 
@@ -308,4 +308,4 @@ class TemplateParser(object):
 	def _process_token_end(self, b, t, e):
 		if not self._stack:
 			raise AssertionError('Unexpected END statement')
-		b.end(self._stack.pop()) # raises if unmatched
+		b.end(self._stack.pop())  # raises if unmatched

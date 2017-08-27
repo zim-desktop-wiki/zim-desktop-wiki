@@ -146,7 +146,7 @@ class ExportTemplateContext(dict):
 		@param index_page: the current page to show in the index if any
 		'''
 		# TODO get rid of need of notebook here!
-		template_options = TemplateContextDict({}) # can be modified by template
+		template_options = TemplateContextDict({})  # can be modified by template
 		self._content = content
 		self._linker_factory = linker_factory
 		self._dumper_factory = partial(dumper_factory, template_options=template_options)
@@ -178,7 +178,7 @@ class ExportTemplateContext(dict):
 			# Parameters
 			'generator': {
 					'name': 'Zim %s' % ZIM_VERSION,
-					'user': environ['USER'], # TODO allow user name in prefs ?
+					'user': environ['USER'],  # TODO allow user name in prefs ?
 			},
 			'title': title,
 			'navigation': {
@@ -187,16 +187,16 @@ class ExportTemplateContext(dict):
 				'prev': _link(prevpage),
 				'next': _link(nextpage),
 			},
-			'links': OrderedDict(), # keep order of links for iteration
+			'links': OrderedDict(),  # keep order of links for iteration
 			'pages': pages,
 
 			# Template settings
-			'options': template_options, # can be modified by template
+			'options': template_options,  # can be modified by template
 
 			# Functions
 			#~ 'toc': self.toc_function,
 			'index': self.index_function,
-			'pageindex': self.index_function, # backward compatibility
+			'pageindex': self.index_function,  # backward compatibility
 			'uri': self.uri_function,
 			'anchor': self.anchor_function,
 			'resource': self.resource_function,
@@ -287,8 +287,8 @@ class ExportTemplateContext(dict):
 			logger.info(path)
 			if self._index_page and collapse \
 			and not path.parent in expanded:
-				continue # skip since it is not part of current path
-			#elif ignore_empty and not (path.hascontent or path.haschildren): - bug,  should be page.hascontent,  page.haschildren
+				continue  # skip since it is not part of current path
+			# elif ignore_empty and not (path.hascontent or path.haschildren): - bug,  should be page.hascontent,  page.haschildren
 			#	continue # skip since page is empty
 
 			if not stack:
@@ -442,7 +442,7 @@ class ParseTreeProxy(object):
 				return ''
 		except:
 			logger.exception('Exception exporting page: %s', self._page.name)
-			raise # will result in a "no such parameter" kind of error
+			raise  # will result in a "no such parameter" kind of error
 
 	@property
 	def content(self):
@@ -454,14 +454,14 @@ class ParseTreeProxy(object):
 				return ''
 		except:
 			logger.exception('Exception exporting page: %s', self._page.name)
-			raise # will result in a "no such parameter" kind of error
+			raise  # will result in a "no such parameter" kind of error
 
 	def _split_head(self):
 		if not hasattr(self, '_severed_head'):
 			if self._tree:
 				tree = self._tree.copy()
 				head, level = tree.pop_heading()
-				self._severed_head = (head, tree) # head can be None here
+				self._severed_head = (head, tree)  # head can be None here
 			else:
 				self._severed_head = (None, None)
 
@@ -479,9 +479,9 @@ class PageProxy(ParseTreeProxy):
 
 		self.name = self._page.name
 		self.section = self._page.namespace
-		self.namespace = self._page.namespace # backward compat
+		self.namespace = self._page.namespace  # backward compat
 		self.basename = self._page.basename
-		self.properties = {} # undocumented field kept for backward compat
+		self.properties = {}  # undocumented field kept for backward compat
 
 	@property
 	def title(self):
@@ -502,7 +502,7 @@ class PageProxy(ParseTreeProxy):
 			for link in links:
 				yield NotebookPathProxy(link.target)
 		except IndexNotFoundError:
-			pass # XXX needed for index_page and other specials because they do not exist in the index
+			pass  # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
 	def backlinks(self):
@@ -511,7 +511,7 @@ class PageProxy(ParseTreeProxy):
 			for link in links:
 				yield NotebookPathProxy(link.source)
 		except IndexNotFoundError:
-			pass # XXX needed for index_page and other specials because they do not exist in the index
+			pass  # XXX needed for index_page and other specials because they do not exist in the index
 
 	@property
 	def attachments(self):
@@ -519,14 +519,14 @@ class PageProxy(ParseTreeProxy):
 			source_dir = self._notebook.get_attachments_dir(self._page)
 			try:
 				for file in source_dir.list_files():
-					if file.exists(): # is file
+					if file.exists():  # is file
 						href = './' + file.basename
 						dest_file = self._linker.resolve_dest_file(href)
 						yield FileProxy(file, dest_file=dest_file, relpath=href)
 			except FileNotFoundError:
 				pass
 		except IndexNotFoundError:
-			pass # XXX needed for index_page and other specials because they do not exist in the index
+			pass  # XXX needed for index_page and other specials because they do not exist in the index
 
 class HeadingProxy(ParseTreeProxy):
 
@@ -564,7 +564,7 @@ class NotebookPathProxy(object):
 		self.name = path.name
 		self.basename = path.basename
 		self.section = path.namespace
-		self.namespace = path.namespace # backward compat
+		self.namespace = path.namespace  # backward compat
 
 
 class UriProxy(object):

@@ -18,19 +18,19 @@ diagcmd = ('seqdiag', '-o')
 class InsertSequenceDiagramPlugin(ImageGeneratorPlugin):
 
 	plugin_info = {
-		'name': _('Insert Sequence Diagram'), # T: plugin name
+		'name': _('Insert Sequence Diagram'),  # T: plugin name
 		'description': _('''\
 This plugin provides a sequence diagram editor for zim based on seqdiag.
 It allows easy editing of sequence diagrams.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'help': 'Plugins:Sequence Diagram Editor',
 		'author': 'Greg Warner',
 	}
 
 	object_type = 'seqdiagram'
-	short_label = _('Sequence Diagram') # T: menu item
-	insert_label = _('Insert Sequence Diagram') # T: menu item
-	edit_label = _('_Edit Sequence Diagram') # T: menu item
+	short_label = _('Sequence Diagram')  # T: menu item
+	insert_label = _('Insert Sequence Diagram')  # T: menu item
+	edit_label = _('_Edit Sequence Diagram')  # T: menu item
 	syntax = None
 
 	@classmethod
@@ -51,7 +51,7 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 		ImageGeneratorClass.__init__(self, plugin)
 		self.diagfile = TmpFile(self.scriptname)
 		self.diagfile.touch()
-		self.pngfile = File(self.diagfile.path[:-5] + '.png') # len('.diag') == 5
+		self.pngfile = File(self.diagfile.path[:-5] + '.png')  # len('.diag') == 5
 
 	def generate_image(self, text):
 		# Write to tmp file
@@ -62,7 +62,7 @@ class SequenceDiagramGenerator(ImageGeneratorClass):
 			diag = Application(diagcmd)
 			diag.run((self.pngfile, self.diagfile))
 		except ApplicationError:
-			return None, None # Sorry, no log
+			return None, None  # Sorry, no log
 		else:
 			return self.pngfile, None
 

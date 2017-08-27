@@ -33,9 +33,9 @@ import ast
 
 
 if sys.version_info >= (2, 6):
-	import json # in standard lib since 2.6
-else: #pragma: no cover
-	import simplejson as json # extra dependency
+	import json  # in standard lib since 2.6
+else:  # pragma: no cover
+	import simplejson as json  # extra dependency
 
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
@@ -135,7 +135,7 @@ class ConfigDefinition(object):
 			allow_empty = True
 		self.allow_empty = allow_empty
 
-		self.default = self.check(default) # ensure that default follows check
+		self.default = self.check(default)  # ensure that default follows check
 
 	def __eq__(self, other):
 		return self.__class__ == other.__class__ \
@@ -425,7 +425,7 @@ class Coordinate(ConfigDefinition):
 			else:
 				raise ValueError('Value should be a coordinate (tuple of 2 integers)')
 
-value_is_coord = Coordinate # XXX for backward compatibility
+value_is_coord = Coordinate  # XXX for backward compatibility
 
 
 _definition_classes = {
@@ -447,7 +447,7 @@ def build_config_definition(default=None, check=None, allow_empty=False):
 	elif check is None:
 		check = default.__class__
 
-	if isinstance(check, (type, types.ClassType)): # is a class
+	if isinstance(check, (type, types.ClassType)):  # is a class
 		if issubclass(check, ConfigDefinition):
 			return check(default, allow_empty=allow_empty)
 		elif check in _definition_classes:
@@ -523,7 +523,7 @@ class ConfigDict(ControlledDict):
 		keys in the dict, but want to preserve all of them when
 		writing back to a file.
 		'''
-		return dict(self.all_items()) # FIXME should be OrderedDict, but causes test errors
+		return dict(self.all_items())  # FIXME should be OrderedDict, but causes test errors
 
 	def all_items(self):
 		# Like items() but returns both defined values and input values
@@ -575,7 +575,7 @@ class ConfigDict(ControlledDict):
 			if key in self.definitions:
 				self._set_input(key, value)
 			else:
-				self._input[key] = value # validated later
+				self._input[key] = value  # validated later
 				if key not in self._keys:
 					self._keys.append(key)
 
@@ -704,7 +704,7 @@ class SectionedConfigDict(ControlledDict):
 	'''
 
 	def __setitem__(self, k, v):
-		assert isinstance(v, (ControlledDict, list)) # FIXME shouldn't we get rid of the list option here ?
+		assert isinstance(v, (ControlledDict, list))  # FIXME shouldn't we get rid of the list option here ?
 		ControlledDict.__setitem__(self, k, v)
 
 	def __getitem__(self, k):
@@ -824,7 +824,7 @@ class INIConfigFile(SectionedConfigDict):
 					logger.warn('Parameter outside section: %s', line)
 				else:
 					key, string = line.split('=', 1)
-					values.append((str(key.rstrip()), string.lstrip())) # key is not unicode
+					values.append((str(key.rstrip()), string.lstrip()))  # key is not unicode
 			else:
 				logger.warn('Could not parse line: %s', line)
 		else:
@@ -908,7 +908,7 @@ class HierarchicDict(object):
 
 	def __getitem__(self, k):
 		if not isinstance(k, basestring):
-			k = k.name # assume zim path
+			k = k.name  # assume zim path
 		return HierarchicDictFrame(self.dict, k)
 
 
@@ -934,7 +934,7 @@ class HierarchicDictFrame(object):
 		while parts:
 			yield ':'.join(parts)
 			parts.pop()
-		yield '' # top level namespace
+		yield ''  # top level namespace
 
 	def get(self, k, default=None):
 		try:

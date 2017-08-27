@@ -29,7 +29,7 @@ import zim.plugins.versioncontrol.fossil
 # because sources are probably under change control already - want to
 # avoid mixing up the files
 def get_tmp_dir(name):
-	if 'REAL_TMP' in os.environ: # Set in tests/__init__.py
+	if 'REAL_TMP' in os.environ:  # Set in tests/__init__.py
 		dir = Dir(os.environ['REAL_TMP'])
 	else:
 		dir = Dir(tempfile.gettempdir())
@@ -44,7 +44,7 @@ def get_tmp_dir(name):
 	return dir
 
 
-WIKITEXT = File('tests/data/formats/wiki.txt').read() # Contains some unicode
+WIKITEXT = File('tests/data/formats/wiki.txt').read()  # Contains some unicode
 UTF8_COMMENT = u'Commit \u03b1\u03b2\u03b3'
 
 
@@ -90,7 +90,7 @@ class TestMainWindowExtension(tests.TestCase):
 		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
 		notebook = tests.new_files_notebook(dir)
 		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		mainwindow = ui._mainwindow  # XXX
 		plugin.extend(notebook)
 		plugin.extend(mainwindow)
 
@@ -100,7 +100,7 @@ class TestMainWindowExtension(tests.TestCase):
 		window_ext = plugin.get_extension(mainwindow, MainWindowExtension)
 		self.assertIsInstance(window_ext, MainWindowExtension)
 
-		## init & save version
+		# init & save version
 		self.assertIsNone(notebook_ext.vcs)
 
 		def init(dialog):
@@ -117,7 +117,7 @@ class TestMainWindowExtension(tests.TestCase):
 		window_ext._autosave_thread.join()
 		self.assertFalse(notebook_ext.vcs.modified)
 
-		## save version again
+		# save version again
 		page = notebook.get_page(Path('Foo'))
 		page.parse('wiki', 'foo!')
 		notebook.store_page(page)
@@ -131,11 +131,11 @@ class TestMainWindowExtension(tests.TestCase):
 
 		self.assertFalse(notebook_ext.vcs.modified)
 
-		## show versions
+		# show versions
 		with tests.DialogContext(VersionsDialog):
 			window_ext.show_versions()
 
-		## auto-save
+		# auto-save
 		plugin.preferences['autosave'] = True
 
 		page = notebook.get_page(Path('Fooooo'))
@@ -161,7 +161,7 @@ class TestVersionsDialog(tests.TestCase):
 			self.assertTrue(app.tryexec)
 
 	def testDialog(self):
-		pass # TODO test other dialog functions
+		pass  # TODO test other dialog functions
 
 
 class VersionControlBackendTests(object):
@@ -435,12 +435,12 @@ second
 test
 ''' )
 
-#john@joran:/tmp/test_versioncontrol/versioncontrol_TestGit$ git annotate -t foo/bar/bar.txt
-#09be0483        (John Drinkwater        1309533637 +0100        1)second
-#526fb2b5        (John Drinkwater        1309533637 +0100        2)baz
-#john@joran:/tmp/test_versioncontrol/versioncontrol_TestGit$ git blame -s foo/bar/bar.txt
-#09be0483 1) second
-#526fb2b5 2) baz
+# john@joran:/tmp/test_versioncontrol/versioncontrol_TestGit$ git annotate -t foo/bar/bar.txt
+# 09be0483        (John Drinkwater        1309533637 +0100        1)second
+# 526fb2b5        (John Drinkwater        1309533637 +0100        2)baz
+# john@joran:/tmp/test_versioncontrol/versioncontrol_TestGit$ git blame -s foo/bar/bar.txt
+# 09be0483 1) second
+# 526fb2b5 2) baz
 
 		annotated = vcs.get_annotated(file)
 		lines = []
@@ -478,12 +478,12 @@ test
 
 #		file.rename(root.file('bar.txt'))
 #		diff = vcs.get_diff()
-#john@joran:~/code/zim/TEST$ git diff
-#diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
-#deleted file mode 100644
+# john@joran:~/code/zim/TEST$ git diff
+# diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
+# deleted file mode 100644
 #…
 
-#john@joran:~/code/zim/TEST$ git commit -a -m "Moved test 4"
+# john@joran:~/code/zim/TEST$ git commit -a -m "Moved test 4"
 #[master b099d98] Moved test 4
 # 1 files changed, 0 insertions(+), 0 deletions(-)
 # rename foo/bar/{bar.txt => boo.txt} (100%)

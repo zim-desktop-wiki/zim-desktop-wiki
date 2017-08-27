@@ -89,21 +89,21 @@ class TestFileEntry(tests.TestCase):
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			(dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), File('/test.txt').path), # win32 save
+			(File('/test.txt'), File('/test.txt').path),  # win32 save
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), os_native_path(text))
 			self.assertEqual(entry.get_file(), file)
 
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		self.notebook.do_properties_changed() # parse config
+		self.notebook.do_properties_changed()  # parse config
 		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 
 		for file, text in (
 			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
 			(dir.file('Foo/Bar/test.txt'), os_native_path('./test.txt')),
-			(File('/test.txt'), File('/test.txt').uri), # win32 save
+			(File('/test.txt'), File('/test.txt').uri),  # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
 			entry.set_file(file)
@@ -115,7 +115,7 @@ class TestFileEntry(tests.TestCase):
 		for file, text in (
 			(home.file('zim-test.txt'), os_native_path('~/zim-test.txt')),
 			(dir.file('Foo/Bar/test.txt'), os_native_path('./Foo/Bar/test.txt')),
-			(File('/test.txt'), File('/test.txt').uri), # win32 save
+			(File('/test.txt'), File('/test.txt').uri),  # win32 save
 			(doc_root.file('test.txt'), '/test.txt'),
 		):
 			entry.set_file(file)
@@ -127,7 +127,7 @@ class TestFileEntry(tests.TestCase):
 		for file, text in (
 			(home.file('zim-test.txt'), '~/zim-test.txt'),
 			#~ (dir.file('Foo/Bar/test.txt'), './test.txt'),
-			(File('/test.txt'), File('/test.txt').path), # win32 save
+			(File('/test.txt'), File('/test.txt').path),  # win32 save
 		):
 			entry.set_file(file)
 			self.assertEqual(entry.get_text(), text)
@@ -141,7 +141,7 @@ class TestPageEntry(tests.TestCase):
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content={
 			'Test:foo': 'test 123',
-			'Test:link': '[[:Placeholder]]', # link
+			'Test:link': '[[:Placeholder]]',  # link
 			'Test:foo:bar': 'test 123',
 			'Test:bar': 'test 123',
 			'Bar': 'test 123'
@@ -180,7 +180,7 @@ class TestPageEntry(tests.TestCase):
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Bar'))
 
-		## Test completion
+		# Test completion
 		def get_completions(entry):
 			completion = entry.get_completion()
 			model = completion.get_model()
@@ -218,12 +218,12 @@ class TestNamespaceEntry(TestPageEntry):
 
 		entry.do_focus_in_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
 		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
+		self.assertEqual(entry.get_text(), '')  # No '<Top>' or something !
 		self.assertEqual(entry.get_path(), Path(':'))
 
 		entry.do_focus_out_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
 		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
+		self.assertEqual(entry.get_text(), '')  # No '<Top>' or something !
 		self.assertEqual(entry.get_path(), Path(':'))
 
 		TestPageEntry.runTest(self)
@@ -237,7 +237,7 @@ class TestLinkEntry(TestPageEntry, TestFileEntry):
 		'''Test LinkEntry widget'''
 		TestPageEntry.runTest(self)
 
-		self.notebook.dir = Dir(self.notebook.layout.root.path) # XXX
+		self.notebook.dir = Dir(self.notebook.layout.root.path)  # XXX
 		TestFileEntry.runTest(self)
 
 
@@ -265,7 +265,7 @@ class TestInputForm(tests.TestCase):
 			'check': True,
 			'width': 1,
 			'app': 'foo',
-			'page': ':foo:bar:Baz', # explicit string input
+			'page': ':foo:bar:Baz',  # explicit string input
 			'namespace': ':foo:bar:Baz',
 			#~ 'link': '+Baz',
 			'file': '/foo/bar',
@@ -279,7 +279,7 @@ class TestInputForm(tests.TestCase):
 			'check': False,
 			'width': 3,
 			'app': 'bar',
-			'page': Path(':Dus:Baz'), # explicit Path input
+			'page': Path(':Dus:Baz'),  # explicit Path input
 			'namespace': Path(':Dus:Baz'),
 			#~ 'link': ':Foo',
 			'file': '/foo/bar/baz',
@@ -328,9 +328,9 @@ class TestInputForm(tests.TestCase):
 @tests.slowTest
 @tests.expectedFailure
 class TestFileDialog(tests.TestCase):
-	## Something weird in how the filechooser works internally
-	## need a lot of gtk_process_events() to get it work OK in test
-	## and still it fails at random :(
+	# Something weird in how the filechooser works internally
+	# need a lot of gtk_process_events() to get it work OK in test
+	# and still it fails at random :(
 
 	def runTest(self):
 		tmp_dir = Dir(self.create_tmp_dir())

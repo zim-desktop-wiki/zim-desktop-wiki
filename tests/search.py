@@ -20,9 +20,9 @@ class TestSearchRegex(tests.TestCase):
 			('*foo*', r'\b\S*foo\S*\b'),
 			('foo$', r'\bfoo\$'),
 			('foo bar', r'\bfoo\ bar\b'),
-			('汉字', u'\汉\字'), # re.escape add extra "\"
+			('汉字', u'\汉\字'),  # re.escape add extra "\"
 		):
-			#print '>>', word, regex
+			# print '>>', word, regex
 			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
 
 
@@ -144,7 +144,7 @@ class TestSearch(tests.TestCase):
 		query = Query('LinksFrom: "Linking:Dus:Ja"')
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
-		query = Query('Links: "Linking:Dus:Ja"') # alias for LinksFrom
+		query = Query('Links: "Linking:Dus:Ja"')  # alias for LinksFrom
 		self.assertTrue(query.root.operator == OPERATOR_AND)
 		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Linking:Dus:Ja')])
 		results.search(query, callback=self.callback_check)
@@ -220,9 +220,9 @@ class TestUnicode(tests.TestCase):
 		path = Path(u'Öffnungszeiten')
 
 		for string in (
-			u'*zeiten', # no unicode - just check test case
+			u'*zeiten',  # no unicode - just check test case
 			u'Öffnungszeiten',
-			u'öffnungszeiten', # case insensitive version
+			u'öffnungszeiten',  # case insensitive version
 			u'content:Öffnungszeiten',
 			u'content:öffnungszeiten',
 			u'name:Öffnungszeiten',

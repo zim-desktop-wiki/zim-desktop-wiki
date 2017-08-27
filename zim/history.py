@@ -215,7 +215,7 @@ class History(gobject.GObject):
 		@emits: changed
 		'''
 		if self._history and self._history[self._current] == path:
-			pass # prevent duplicate entries in a row
+			pass  # prevent duplicate entries in a row
 		else:
 			# drop forward stack
 			while len(self._history) - 1 > self._current:
@@ -329,7 +329,7 @@ class History(gobject.GObject):
 		if child == path:
 			return None
 		else:
-			return Path(child.name) # Force normal Path
+			return Path(child.name)  # Force normal Path
 
 	def get_state(self, path):
 		'''Looks through the history and recent pages to the last

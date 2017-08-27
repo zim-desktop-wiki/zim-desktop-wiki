@@ -29,7 +29,7 @@ logger = logging.getLogger('zim.gui.notebookdialog')
 OPEN_COL = 0   # column with boolean if notebook is open already
 NAME_COL = 1   # column with notebook name
 TEXT_COL = 2   # column with a formatted containing name and path
-PIXBUF_COL = 3 # column containing the notebook icon
+PIXBUF_COL = 3  # column containing the notebook icon
 INFO_COL = 4   # column with the NotebookInfo object
 
 
@@ -50,7 +50,7 @@ def prompt_notebook():
 			list.write()
 			return NotebookInfo(dir.uri, name=fields['name'])
 		else:
-			return None # User canceled the dialog ?
+			return None  # User canceled the dialog ?
 	else:
 		# Multiple notebooks defined and no default
 		return NotebookDialog(ui=None).run()
@@ -107,7 +107,7 @@ class NotebookTreeModel(gtk.ListStore):
 		info.update()
 		self._append(info)
 		self.write()
-		return len(self) - 1 # iter
+		return len(self) - 1  # iter
 
 	def _append(self, info):
 		path = File(info.uri).path
@@ -144,7 +144,7 @@ class NotebookTreeModel(gtk.ListStore):
 	def write(self):
 		'''Save the notebook list.'''
 		if self._loading:
-			return # ignore signals while first populating the list
+			return  # ignore signals while first populating the list
 
 		list = [row[INFO_COL] for row in self]
 		self.notebooklist[:] = list
@@ -278,7 +278,7 @@ class NotebookDialog(Dialog):
 	'''
 
 	def __init__(self, ui, callback=None):
-		Dialog.__init__(self, ui, _('Open Notebook')) # T: dialog title
+		Dialog.__init__(self, ui, _('Open Notebook'))  # T: dialog title
 		# TODO set button to "OPEN" instead of "OK"
 		self.callback = callback
 		self.set_default_size(500, 400)
@@ -287,7 +287,7 @@ class NotebookDialog(Dialog):
 		# show some art work in an otherwise boring dialog
 		path = data_file('globe_banner_small.png').path
 		image = gtk.Image()
-		image.set_from_file(path) # new_from_file not in 2.6
+		image.set_from_file(path)  # new_from_file not in 2.6
 		align = gtk.Alignment(0, 0.5, 0, 0)
 		align.add(image)
 		self.vbox.pack_start(align, False)
@@ -341,7 +341,7 @@ class NotebookDialog(Dialog):
 
 	def do_response_ok(self):
 		model, iter = self.treeview.get_selection().get_selected()
-		model.write() # List will be read by open_notebook again..
+		model.write()  # List will be read by open_notebook again..
 		if iter is None:
 			return False
 		else:
@@ -390,9 +390,9 @@ class NotebookDialog(Dialog):
 class AddNotebookDialog(Dialog):
 
 	def __init__(self, ui, name=None, folder=None):
-		Dialog.__init__(self, ui, _('Add Notebook')) # T: Dialog window title
+		Dialog.__init__(self, ui, _('Add Notebook'))  # T: Dialog window title
 
-		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
+		label = gtk.Label(_('Please select a name and a folder for the notebook.'))  # T: Label in Add Notebook dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
@@ -407,8 +407,8 @@ class AddNotebookDialog(Dialog):
 		# else set below by _changed methods
 
 		self.add_form((
-			('name', 'string', _('Name')), # T: input field in 'Add Notebook' dialog
-			('folder', 'dir', _('Folder')), # T: input field in 'Add Notebook' dialog
+			('name', 'string', _('Name')),  # T: input field in 'Add Notebook' dialog
+			('folder', 'dir', _('Folder')),  # T: input field in 'Add Notebook' dialog
 		), {
 			'name': name,
 			'folder': folder,
@@ -417,7 +417,7 @@ class AddNotebookDialog(Dialog):
 		self.add_help_text(_('''\
 To create a new notebook you need to select an empty folder.
 Of course you can also select an existing zim notebook folder.
-''')) # T: help text in the 'Add Notebook' dialog
+'''))  # T: help text in the 'Add Notebook' dialog
 
 		# Hook entries to copy name when appropriate
 		self._block_update = False
@@ -454,7 +454,7 @@ Of course you can also select an existing zim notebook folder.
 			folder = self.form['folder']
 			if folder and folder.exists():
 				info = get_notebook_info(folder)
-				if info: # None when no config found
+				if info:  # None when no config found
 					self._block_update = True
 					self.form['name'] = info.name
 					self._block_update = False

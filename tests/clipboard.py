@@ -55,7 +55,7 @@ class TestClipboard(tests.TestCase):
 		self.notebook = tests.new_notebook(fakedir=path)
 
 	def testCopyPasteText(self):
-		text = u'test **123** \u2022' # text with non-ascii character
+		text = u'test **123** \u2022'  # text with non-ascii character
 		Clipboard.set_text(text)
 		result = Clipboard.get_text()
 		self.assertEqual(result, text)
@@ -146,7 +146,7 @@ some <b>bold</b> text
 		rel_path = link.get('href')
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file)
 
-		file = File('./data/zim.png') # image file
+		file = File('./data/zim.png')  # image file
 		set_clipboard_uris(file.uri)
 		tree = Clipboard.get_parsetree(self.notebook, page)
 		img = tree.find('img')
@@ -166,7 +166,7 @@ some <b>bold</b> text
 		# image data -> tree
 
 		inner = self.notebook.get_attachments_dir
-		self.notebook.get_attachments_dir = lambda p: LocalFolder(inner(p).path) # fixture to ensure local folder used
+		self.notebook.get_attachments_dir = lambda p: LocalFolder(inner(p).path)  # fixture to ensure local folder used
 
 		page = self.notebook.get_page(Path('Test:wiki'))
 		file = File('./data/zim.png')

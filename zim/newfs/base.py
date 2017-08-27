@@ -102,13 +102,13 @@ def _split_file_url(url):
 	if scheme not in ('file', 'smb'):
 		raise ValueError('Not a file URL: %s' % url)
 
-	if path.startswith('/localhost/'): # exact 2 '/' before 'localhost'
+	if path.startswith('/localhost/'):  # exact 2 '/' before 'localhost'
 		path = path[11:]
 		isshare = False
-	elif scheme == 'smb' or re.match('^/\w', path): # exact 2 '/' before 'localhost'
+	elif scheme == 'smb' or re.match('^/\w', path):  # exact 2 '/' before 'localhost'
 		isshare = True
 	else:
-		isshare = False # either 'file:/' or 'file:///'
+		isshare = False  # either 'file:/' or 'file:///'
 
 	return path.strip('/').split('/'), isshare
 
@@ -126,7 +126,7 @@ def _splitnormpath(path):
 				path = _os_expanduser(path)
 			else:
 				makeroot = path.startswith('/')
-			makeshare = re.match(r'^\\\\\w', path) is not None # exact 2 "\"
+			makeshare = re.match(r'^\\\\\w', path) is not None  # exact 2 "\"
 			path = re.split(r'[/\\]+', path.strip('/\\'))
 	else:
 		makeshare = False
@@ -148,7 +148,7 @@ def _splitnormpath(path):
 	if not names:
 		raise ValueError('path reduces to empty string')
 	elif makeshare:
-		names[0] = '\\\\' + names[0] # UNC host needs leading "\\"
+		names[0] = '\\\\' + names[0]  # UNC host needs leading "\\"
 	elif makeroot and os.name != 'nt' and names[0][0] != '/':
 		names[0] = '/' + names[0]
 
@@ -167,15 +167,15 @@ if os.name == 'nt':
 		# first element must be either drive letter or UNC host
 		if not re.match(r'^(\w:|\\\\\w)', names[0]):
 			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
-		elif re.match(r'^\w:$', names[0]): # Drive letter - e.g. file:///C:/foo
+		elif re.match(r'^\w:$', names[0]):  # Drive letter - e.g. file:///C:/foo
 			return 'file:///' + names[0] + '/' + url_encode('/'.join(names[1:]))
-		elif re.match(r'^\\\\\w+$', names[0]): # UNC path - e.g. file://host/share
+		elif re.match(r'^\\\\\w+$', names[0]):  # UNC path - e.g. file://host/share
 			return 'file://' + url_encode(names[0].strip('\\') + '/' + '/'.join(names[1:]))
 
 else:
 	def _joinabspath(names):
 		if names[0].startswith('\\\\'):
-			return '\\'.join(names) # Windows share drive
+			return '\\'.join(names)  # Windows share drive
 		elif names[0].startswith('/'):
 			return '/'.join(names)
 		else:
@@ -207,11 +207,11 @@ else:
 				raise ValueError('BUG: invalid filename %s' % path)
 				#~ raise Error, 'BUG: invalid filename %s' % path
 		else:
-			return path # assume encoding is correct
+			return path  # assume encoding is correct
 
 	def _decode_path(path):
 		if isinstance(path, unicode):
-			return path # assume encoding is correct
+			return path  # assume encoding is correct
 		else:
 			try:
 				return path.decode(FS_ENCODING)
@@ -252,8 +252,8 @@ def _os_expanduser(path):
 		parts = path.replace('\\', '/').strip('/').split('/')
 		if parts[0] == '~':
 			path = _SEP.join([home] + parts[1:])
-		else: # ~user
-			dir = os.path.dirname(home) # /home or similar ?
+		else:  # ~user
+			dir = os.path.dirname(home)  # /home or similar ?
 			path = _SEP.join([dir, parts[0][1:]] + parts[1:])
 
 	return path
@@ -370,7 +370,7 @@ class FilePath(object):
 
 	def commonparent(self, other):
 		if self.pathnames[0] != other.pathnames[0]:
-			return None # also prevent other drives and other shares
+			return None  # also prevent other drives and other shares
 		elif self.ischild(other):
 			return other
 		elif other.ischild(self):
@@ -518,7 +518,7 @@ class Folder(FSObjectBase):
 		trypath = path
 		while i < 1000:
 			try:
-				file = self.child(trypath) # this way we catch both exiting files and folders
+				file = self.child(trypath)  # this way we catch both exiting files and folders
 			except FileNotFoundError:
 				return factory(trypath)
 			else:
@@ -536,7 +536,7 @@ class Folder(FSObjectBase):
 		check the dir is actually what you think it is before calling this.
 		'''
 		for child in self:
-			assert child.path.startswith(self.path) # just to be real sure
+			assert child.path.startswith(self.path)  # just to be real sure
 			if isinstance(child, Folder):
 				child.remove_children()
 			else:
@@ -562,45 +562,45 @@ except ImportError:
 	if os.name != 'nt':
 		logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
 	else:
-		pass # Ignore this error on Windows; doesn't come with xdg.Mime
+		pass  # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
 
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
 	# Gleaned from gtk.gdk.get_formats()
-	'bmp', # image/bmp
-	'gif', # image/gif
-	'icns', # image/x-icns
-	'ico', # image/x-icon
-	'cur', # image/x-icon
-	'jp2', # image/jp2
-	'jpc', # image/jp2
-	'jpx', # image/jp2
-	'j2k', # image/jp2
-	'jpf', # image/jp2
-	'jpeg', # image/jpeg
-	'jpe', # image/jpeg
-	'jpg', # image/jpeg
-	'pcx', # image/x-pcx
-	'png', # image/png
-	'pnm', # image/x-portable-anymap
-	'pbm', # image/x-portable-anymap
-	'pgm', # image/x-portable-anymap
-	'ppm', # image/x-portable-anymap
-	'ras', # image/x-cmu-raster
-	'tga', # image/x-tga
-	'targa', # image/x-tga
-	'tiff', # image/tiff
-	'tif', # image/tiff
-	'wbmp', # image/vnd.wap.wbmp
-	'xbm', # image/x-xbitmap
-	'xpm', # image/x-xpixmap
-	'wmf', # image/x-wmf
-	'apm', # image/x-wmf
-	'svg', # image/svg+xml
-	'svgz', # image/svg+xml
-	'svg.gz', # image/svg+xml
+	'bmp',  # image/bmp
+	'gif',  # image/gif
+	'icns',  # image/x-icns
+	'ico',  # image/x-icon
+	'cur',  # image/x-icon
+	'jp2',  # image/jp2
+	'jpc',  # image/jp2
+	'jpx',  # image/jp2
+	'j2k',  # image/jp2
+	'jpf',  # image/jp2
+	'jpeg',  # image/jpeg
+	'jpe',  # image/jpeg
+	'jpg',  # image/jpeg
+	'pcx',  # image/x-pcx
+	'png',  # image/png
+	'pnm',  # image/x-portable-anymap
+	'pbm',  # image/x-portable-anymap
+	'pgm',  # image/x-portable-anymap
+	'ppm',  # image/x-portable-anymap
+	'ras',  # image/x-cmu-raster
+	'tga',  # image/x-tga
+	'targa',  # image/x-tga
+	'tiff',  # image/tiff
+	'tif',  # image/tiff
+	'wbmp',  # image/vnd.wap.wbmp
+	'xbm',  # image/x-xbitmap
+	'xpm',  # image/x-xpixmap
+	'wmf',  # image/x-wmf
+	'apm',  # image/x-wmf
+	'svg',  # image/svg+xml
+	'svgz',  # image/svg+xml
+	'svg.gz',  # image/svg+xml
 )
 
 
@@ -715,7 +715,7 @@ class File(FSObjectBase):
 		return self._read_with_etag(self.readlines)
 
 	def _read_with_etag(self, func):
-		mtime = self.mtime() # Get before read!
+		mtime = self.mtime()  # Get before read!
 		content = func()
 		etag = (mtime, _md5(content))
 		return content, etag

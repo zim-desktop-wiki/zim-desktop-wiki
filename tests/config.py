@@ -58,11 +58,11 @@ class EnvironmentConfigContext(EnvironmentContext):
 
 	def __enter__(self):
 		EnvironmentContext.__enter__(self)
-		zim.config.set_basedirs() # refresh
+		zim.config.set_basedirs()  # refresh
 
 	def __exit__(self, *exc_info):
 		EnvironmentContext.__exit__(self, *exc_info)
-		zim.config.set_basedirs() # refresh
+		zim.config.set_basedirs()  # refresh
 
 
 class TestDirsTestSetup(tests.TestCase):
@@ -95,7 +95,7 @@ class TestXDGDirs(tests.TestCase):
 	def testValid(self):
 		'''Test config environment is valid'''
 		for var in (
-			ZIM_DATA_DIR,	# should always be set when running as test
+			ZIM_DATA_DIR,  # should always be set when running as test
 			XDG_DATA_HOME,
 			XDG_CONFIG_HOME,
 			XDG_CACHE_HOME
@@ -189,7 +189,7 @@ class TestControlledDict(tests.TestCase):
 		self.assertFalse(mydict['section'].modified)
 		self.assertFalse(mydict.modified)
 
-		mydict['section'] = ControlledDict() # nested dict
+		mydict['section'] = ControlledDict()  # nested dict
 		mydict['section']['dus'] = 'FOO!'
 		self.assertTrue(mydict['section'].modified)
 		self.assertTrue(mydict.modified)
@@ -216,10 +216,10 @@ class TestControlledDict(tests.TestCase):
 		self.assertEqual(counter, [1])
 
 		mydict.update({'a': 'b', 'c': 'd', 'e': 'f'})
-		self.assertEqual(counter, [2]) # signal only emitted once
+		self.assertEqual(counter, [2])  # signal only emitted once
 
 		mydict['section']['foo'] = 'zzz'
-		self.assertEqual(counter, [3]) # recursive signal
+		self.assertEqual(counter, [3])  # recursive signal
 		mydict.set_modified(False)
 
 		v = mydict.pop('nu')
@@ -314,7 +314,7 @@ class TestConfigDefinitions(tests.TestCase):
 	def testChoice(self):
 		definition = Choice('xxx', ('xxx', 'foo', 'bar'))
 		self.assertEqual(definition.check('foo'), 'foo')
-		self.assertEqual(definition.check('Foo'), 'foo') # case independent
+		self.assertEqual(definition.check('Foo'), 'foo')  # case independent
 		self.assertRaises(ValueError, definition.check, 'YYY')
 		self.assertRaises(ValueError, definition.check, '')
 		self.assertRaises(ValueError, definition.check, None)
@@ -322,7 +322,7 @@ class TestConfigDefinitions(tests.TestCase):
 		definition = Choice('xxx', ('xxx', 'foo', 'bar'), allow_empty=True)
 		self.assertRaises(ValueError, definition.check, 'YYY')
 		self.assertEqual(definition.check('foo'), 'foo')
-		self.assertEqual(definition.check('Foo'), 'foo') # case independent
+		self.assertEqual(definition.check('Foo'), 'foo')  # case independent
 		self.assertEqual(definition.check(''), None)
 		self.assertEqual(definition.check(None), None)
 
@@ -625,7 +625,7 @@ class TestXDGConfigDirsIter(tests.TestCase):
 		with EnvironmentConfigContext({
 			'XDG_CONFIG_HOME': path
 		}):
-			zim.config.set_basedirs() # refresh
+			zim.config.set_basedirs()  # refresh
 			self.assertIn(zimdir, list(iter))
 
 
@@ -730,7 +730,7 @@ foo=myprofile
 	def runTest(self):
 		manager = self.manager
 
-		## Test basic file
+		# Test basic file
 		file = manager.get_config_file('foo.conf')
 		self.assertIsInstance(file, ConfigFile)
 		self.assertEquals(file.read(), 'FOO!\n')
@@ -738,7 +738,7 @@ foo=myprofile
 		newfile = manager.get_config_file('foo.conf')
 		self.assertEqual(id(file), id(newfile))
 
-		## Test basic dict
+		# Test basic dict
 		dict = manager.get_config_dict('<profile>/dict.conf')
 		self.assertIsInstance(dict, INIConfigFile)
 		dict['FOO'].setdefault('foo', 'xxx')
@@ -761,7 +761,7 @@ newkey=ja
 ''')
 
 
-		## Test profile switch
+		# Test profile switch
 		changed_counter = tests.Counter()
 		dict['FOO'].connect('changed', changed_counter)
 
@@ -783,7 +783,7 @@ newkey=ja
 		self.assertEqual(dict['FOO']['bar'], 'test123')
 
 
-		## Test profile backward compatibility
+		# Test profile backward compatibility
 		manager.set_profile('oldprofile')
 		self.assertEqual(changed_counter.count, 2)
 

@@ -17,14 +17,14 @@ logger = logging.getLogger('zim.config')
 
 
 
-## Initialize config paths
+# Initialize config paths
 
-ZIM_DATA_DIR = None #: 'data' dir relative to script file (when running from source), L{Dir} or C{None}
-XDG_DATA_HOME = None #: L{Dir} for XDG data home
-XDG_DATA_DIRS = None #: list of L{Dir} objects for XDG data dirs path
-XDG_CONFIG_HOME = None #: L{Dir} for XDG config home
-XDG_CONFIG_DIRS = None #: list of L{Dir} objects for XDG config dirs path
-XDG_CACHE_HOME = None #: L{Dir} for XDG cache home
+ZIM_DATA_DIR = None  # : 'data' dir relative to script file (when running from source), L{Dir} or C{None}
+XDG_DATA_HOME = None  # : L{Dir} for XDG data home
+XDG_DATA_DIRS = None  # : list of L{Dir} objects for XDG data dirs path
+XDG_CONFIG_HOME = None  # : L{Dir} for XDG config home
+XDG_CONFIG_DIRS = None  # : list of L{Dir} objects for XDG config dirs path
+XDG_CACHE_HOME = None  # : L{Dir} for XDG cache home
 
 def set_basedirs():
 	'''This method sets the global configuration paths for according to the
@@ -52,13 +52,13 @@ def set_basedirs():
 			environ.get('XDG_DATA_HOME', APPDATA + r'\zim\data'))
 
 		XDG_DATA_DIRS = map(Dir,
-			environ.get_list('XDG_DATA_DIRS', '~/.local/share/')) # Backwards compatibility
+			environ.get_list('XDG_DATA_DIRS', '~/.local/share/'))  # Backwards compatibility
 
 		XDG_CONFIG_HOME = Dir(
 			environ.get('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
 
 		XDG_CONFIG_DIRS = map(Dir,
-			environ.get_list('XDG_CONFIG_DIRS', '~/.config/')) # Backwards compatibility
+			environ.get_list('XDG_CONFIG_DIRS', '~/.config/'))  # Backwards compatibility
 
 		XDG_CACHE_HOME = Dir(
 			environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))

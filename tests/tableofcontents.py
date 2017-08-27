@@ -20,7 +20,7 @@ class TestTableOfContents(tests.TestCase):
 
 		notebook = tests.new_notebook(self.get_tmp_name())
 		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		mainwindow = ui._mainwindow  # XXX
 
 		plugin.preferences['floating'] = True
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionFloating)
@@ -30,7 +30,7 @@ class TestTableOfContents(tests.TestCase):
 		self.assertEqual(len(ext), 1)
 		self.assertIsInstance(ext[0], MainWindowExtensionFloating)
 
-		plugin.preferences.changed() # make sure no errors are triggered
+		plugin.preferences.changed()  # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
 		plugin.preferences['show_h1'] = False
 		plugin.preferences['pane'] = RIGHT_PANE
@@ -39,13 +39,13 @@ class TestTableOfContents(tests.TestCase):
 
 		plugin.preferences['floating'] = False
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
+		plugin.extend(mainwindow)  # plugin does not remember objects, manager does that
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
 		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
 
-		plugin.preferences.changed() # make sure no errors are triggered
+		plugin.preferences.changed()  # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
 		plugin.preferences['show_h1'] = False
 		plugin.preferences['pane'] = RIGHT_PANE
@@ -57,7 +57,7 @@ class TestTableOfContents(tests.TestCase):
 		'''Test Tabel Of Contents plugin'''
 		notebook = tests.new_notebook(self.get_tmp_name())
 		ui = setupGtkInterface(self, notebook=notebook)
-		pageview = ui._mainwindow.pageview # XXX
+		pageview = ui._mainwindow.pageview  # XXX
 
 		widget = ToCWidget(ui, pageview, ellipsis=False)
 
@@ -160,13 +160,13 @@ sdfsdf
 		]
 
 		widget.treeview.get_selection().unselect_all()
-		widget.treeview.get_selection().select_path((1,)) # "baz"
+		widget.treeview.get_selection().select_path((1,))  # "baz"
 		self.assertFalse(widget.on_promote())
 		self.assertTrue(widget.on_demote())
 		self.assertEqual(get_tree(), wanted)
 
 		widget.treeview.get_selection().unselect_all()
-		widget.treeview.get_selection().select_path((0, 0)) # "baz"
+		widget.treeview.get_selection().select_path((0, 0))  # "baz"
 		self.assertFalse(widget.on_demote())
 		self.assertTrue(widget.on_promote())
 		self.assertEqual(get_tree(), without_h1)
@@ -183,7 +183,7 @@ sdfsdf
 
 		widget.treeview.get_selection().unselect_all()
 		for path in (
-			(1,), (1, 0), (1, 1), (1, 2), (2,) # "baz" -> "dus"
+			(1,), (1, 0), (1, 1), (1, 2), (2,)  # "baz" -> "dus"
 		):
 			widget.treeview.get_selection().select_path(path)
 		self.assertFalse(widget.on_promote())
@@ -192,7 +192,7 @@ sdfsdf
 
 		widget.treeview.get_selection().unselect_all()
 		for path in (
-			(0, 0), (0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1) # "baz" -> "dus"
+			(0, 0), (0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1)  # "baz" -> "dus"
 		):
 			widget.treeview.get_selection().select_path(path)
 		self.assertFalse(widget.on_demote())

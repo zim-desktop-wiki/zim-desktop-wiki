@@ -66,7 +66,7 @@ LOCAL_THUMB_STORAGE_NORMAL = XDG_CACHE_HOME.subdir('thumbnails/normal')
 LOCAL_THUMB_STORAGE_LARGE = XDG_CACHE_HOME.subdir('thumbnails/large')
 LOCAL_THUMB_STORAGE_FAIL = XDG_CACHE_HOME.subdir('thumbnails/fail/zim-%s' % zim.__version__)
 
-## XXX zim.fs --> zim.newfs
+# XXX zim.fs --> zim.newfs
 LOCAL_THUMB_STORAGE_NORMAL = LocalFolder(LOCAL_THUMB_STORAGE_NORMAL.path)
 LOCAL_THUMB_STORAGE_LARGE = LocalFolder(LOCAL_THUMB_STORAGE_LARGE.path)
 LOCAL_THUMB_STORAGE_FAIL = LocalFolder(LOCAL_THUMB_STORAGE_FAIL.path)
@@ -93,7 +93,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		raise ThumbnailCreatorFailure
 
 	tmpfile = thumbfile.parent().file('zim-thumb.new~')
-	options = { # no unicode allowed in options!
+	options = {  # no unicode allowed in options!
 		'tEXt::Thumb::URI': str(file.uri),
 		'tEXt::Thumb::MTime': str(int(file.mtime())),
 	}
@@ -157,23 +157,23 @@ class ThumbnailQueue(object):
 		import time
 		try:
 			while self._running.is_set():
-				time.sleep(0.1) # give other threads a change as well
+				time.sleep(0.1)  # give other threads a change as well
 				file, size, mtime = self._in_queue.get_nowait()
 				self._in_queue.task_done()
 
 				try:
 					if mtime and file.mtime() == mtime:
-						self._count -= 1 # skip
+						self._count -= 1  # skip
 					else:
 						mtime = file.mtime()
 						thumbfile, pixbuf = self._thumbmanager.get_thumbnail(file, size)
 						if thumbfile and pixbuf:
 							self._out_queue.put_nowait((file, size, thumbfile, pixbuf, mtime))
 						else:
-							self._count -= 1 # skip
+							self._count -= 1  # skip
 				except:
 					logger.exception('Exception in thumbnail queue')
-					self._count -= 1 # drop
+					self._count -= 1  # drop
 		except Queue.Empty:
 			pass
 		finally:
@@ -203,8 +203,8 @@ class ThumbnailQueue(object):
 				except Queue.Empty:
 					pass
 
-		with self._count_lock: # nothing in or out while locked!
-			self._running.clear() # stop thread from competing with us
+		with self._count_lock:  # nothing in or out while locked!
+			self._running.clear()  # stop thread from competing with us
 			_clear_queue(self._in_queue)
 
 			if self._thread and self._thread.is_alive():
@@ -260,7 +260,7 @@ class ThumbnailManager(object):
 			if mtime and int(mtime) == int(file.mtime()):
 				return thumbfile, pixbuf
 			else:
-				pass # according to spec recreate when option is missing
+				pass  # according to spec recreate when option is missing
 
 		if create:
 			try:

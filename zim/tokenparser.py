@@ -155,12 +155,12 @@ def _changeList(tokeniter):
 				if not listend == (END, LISTITEM):
 					raise AssertionError
 				newtokens.append(t)
-				newtokens.extend(_changeList(tokeniter)) # recurs
+				newtokens.extend(_changeList(tokeniter))  # recurs
 				newtokens.append(listend)
 			else:
 				# edge case, list skipped a level without LISTITEM -- remove
 				# one nesting level by recursing while dropping start and end
-				newtokens.extend(_changeList(tokeniter)) # recurs
+				newtokens.extend(_changeList(tokeniter))  # recurs
 				if not newtokens.pop() == (END, t[0]):
 					raise AssertionError
 		else:
@@ -217,7 +217,7 @@ def _reverseChangeList(tokeniter):
 	newtokens = []
 	for t in tokeniter:
 		if t[0] in (NUMBEREDLIST, BULLETLIST):
-			listtokens = _reverseChangeList(tokeniter) # recurs
+			listtokens = _reverseChangeList(tokeniter)  # recurs
 			liend = next(tokeniter)
 			if not liend == (END, LISTITEM):
 				raise AssertionError

@@ -35,8 +35,8 @@ _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
 _date_re = re.compile('[<>] ?' + _raw_parse_date_re.pattern + '|\[d:.+\]')
 	# "<" and ">" prefixes for dates, "[d: ...]" for backward compatibility
 
-_MAX_DUE_DATE = '9999' # Constant for empty due date - value chosen for sorting properties
-_NO_TAGS = '__no_tags__' # Constant that serves as the "no tags" tag - _must_ be lower case
+_MAX_DUE_DATE = '9999'  # Constant for empty due date - value chosen for sorting properties
+_NO_TAGS = '__no_tags__'  # Constant that serves as the "no tags" tag - _must_ be lower case
 
 
 
@@ -160,14 +160,14 @@ class TasksIndexer(IndexerBase):
 	def _insert_tasks(self, db, pageid, parentid, tasks):
 		# Helper function to insert tasks in table
 		for task, children in tasks:
-			task[4] = ','.join(sorted(task[4])) # make tag list a string
+			task[4] = ','.join(sorted(task[4]))  # make tag list a string
 			db.execute(
 				'INSERT INTO tasklist(source, parent, haschildren, hasopenchildren, open, prio, start, due, tags, description)'
 				'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
 				(pageid, parentid, bool(children), any(c[0][0] for c in children)) + tuple(task)
 			)
 			if children:
-				self._insert_tasks(db, pageid, db.lastrowid, children) # recurs
+				self._insert_tasks(db, pageid, db.lastrowid, children)  # recurs
 
 	def on_page_row_deleted(self, o, row):
 		count, = self.db.execute(
@@ -290,7 +290,7 @@ class TaskParser(object):
 			all_checkboxes=True,
 	):
 		self.task_label_re = task_label_re
-		self.all_checkboxes = all_checkboxes # TODO use this setting
+		self.all_checkboxes = all_checkboxes  # TODO use this setting
 
 	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE):
 
@@ -315,7 +315,7 @@ class TaskParser(object):
 					tasks.append(task)
 			elif t[0] == PARAGRAPH:
 				paratasks = self._parse_paragraph(token_iter, defaults)
-				check_list_heading = (len(paratasks) == 1) # Para should be single line -- ### TODO that is not strictly tested here!
+				check_list_heading = (len(paratasks) == 1)  # Para should be single line -- ### TODO that is not strictly tested here!
 				tasks.extend(paratasks)
 			elif t[0] in (BULLETLIST, NUMBEREDLIST):
 				tags = []
@@ -329,7 +329,7 @@ class TaskParser(object):
 				check_list_heading = False
 			else:
 				check_list_heading = False
-				continue # Skip other toplevel content
+				continue  # Skip other toplevel content
 
 		return tasks
 
@@ -379,7 +379,7 @@ class TaskParser(object):
 		while True:
 			line = _next_line()
 			if not line:
-				break # end of PARAGRAPH
+				break  # end of PARAGRAPH
 			elif self._starts_with_label(line):
 				fields = self._task_from_tokens(line, parent=defaults)
 				tasks.append((fields, []))
@@ -418,12 +418,12 @@ class TaskParser(object):
 				if next_token[0] in (BULLETLIST, NUMBEREDLIST):
 					# Sub-list
 					if parent_item:
-						mytasks = self._parse_list(token_iter, parent=parent_item[0], tags=parent_item[0][4]) # recurs
+						mytasks = self._parse_list(token_iter, parent=parent_item[0], tags=parent_item[0][4])  # recurs
 						parent_item[-1].extend(mytasks)
 						if any(t[0][0] for t in mytasks):
-							parent_item[0][0] = True # Force parent open if any child is
+							parent_item[0][0] = True  # Force parent open if any child is
 					else:
-						mytasks = self._parse_list(token_iter, parent=parent) # recurs
+						mytasks = self._parse_list(token_iter, parent=parent)  # recurs
 						tasks.extend(mytasks)
 
 					next_token = next(token_iter)
@@ -441,7 +441,7 @@ class TaskParser(object):
 		# Collect text and returns task
 
 		text = []
-		tags = set(tags) # copy
+		tags = set(tags)  # copy
 
 		token_iter = iter(tokens)
 		for t in token_iter:
@@ -452,7 +452,7 @@ class TaskParser(object):
 			elif t[0] == STRIKE:
 				skip_to_end_token(token_iter, STRIKE)
 			else:
-				pass # ignore all other markup
+				pass  # ignore all other markup
 
 		return self._task_from_text(''.join(text), isopen, tags, parent)
 
@@ -461,13 +461,13 @@ class TaskParser(object):
 
 		prio = text.count('!')
 		if prio == 0 and parent:
-			prio = parent[1] # inherit prio
+			prio = parent[1]  # inherit prio
 
-		start = parent[2] if parent else 0 # inherit start date
-		due = parent[3] if parent else _MAX_DUE_DATE # inherit due date
+		start = parent[2] if parent else 0  # inherit start date
+		due = parent[3] if parent else _MAX_DUE_DATE  # inherit due date
 		for string in _date_re.findall(text):
 			try:
-				if string.startswith('[d:'): # backward compat
+				if string.startswith('[d:'):  # backward compat
 					date = old_parse_date(string[3:-1].strip())
 					if date:
 						(year, month, day) = date

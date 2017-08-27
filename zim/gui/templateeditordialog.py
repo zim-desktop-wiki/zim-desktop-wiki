@@ -39,7 +39,7 @@ class TemplateEditorDialog(Dialog):
 		vbbox.set_layout(gtk.BUTTONBOX_START)
 		hbox.pack_start(vbbox, False)
 
-		view_button = Button(stock='gtk-file', label=_('_View')) # T: button label
+		view_button = Button(stock='gtk-file', label=_('_View'))  # T: button label
 		view_button.connect('clicked', self.on_view)
 
 		copy_button = Button(stock='gtk-copy')
@@ -55,7 +55,7 @@ class TemplateEditorDialog(Dialog):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
 
-		browse_button = Button(_('Browse')) # T: button label
+		browse_button = Button(_('Browse'))  # T: button label
 		browse_button.connect('clicked', self.on_browse)
 		self.add_extra_button(browse_button)
 
@@ -63,12 +63,12 @@ class TemplateEditorDialog(Dialog):
 		self._delete_button = delete_button
 		self.on_selection_changed()
 
-		## Same button appears in export dialog
+		# Same button appears in export dialog
 		if gtk.gtk_version >= (2, 10) \
 		and gtk.pygtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'http://zim-wiki.org/more_templates.html',
-				_('Get more templates online') # T: label for button with URL
+				_('Get more templates online')  # T: label for button with URL
 			)
 			self.vbox.pack_start(url_button, False)
 
@@ -90,7 +90,7 @@ class TemplateEditorDialog(Dialog):
 		# Open the file, witout waiting for editor to return
 		custom, default = self.view.get_selected()
 		if custom is None:
-			return # Should not have been sensitive
+			return  # Should not have been sensitive
 
 		if custom.exists():
 			self.ui.open_file(custom)
@@ -102,7 +102,7 @@ class TemplateEditorDialog(Dialog):
 		# Create a new template in this category
 		custom, default = self.view.get_selected()
 		if custom is None:
-			return # Should not have been sensitive
+			return  # Should not have been sensitive
 
 		if custom.exists():
 			source = custom
@@ -122,7 +122,7 @@ class TemplateEditorDialog(Dialog):
 	def on_edit(self, *a):
 		custom, default = self.view.get_selected()
 		if custom is None:
-			return # Should not have been sensitive
+			return  # Should not have been sensitive
 
 		if not custom.exists():
 			# Copy default
@@ -135,7 +135,7 @@ class TemplateEditorDialog(Dialog):
 		# Only delete custom, may result in reset to default
 		custom, default = self.view.get_selected()
 		if custom is None or not custom.exists():
-			return # Should not have been sensitive
+			return  # Should not have been sensitive
 
 		try:
 			custom.trash()
@@ -153,7 +153,7 @@ class TemplateEditorDialog(Dialog):
 class PromptNameDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Copy Template')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Copy Template'))  # T: Dialog title
 		self.add_form([
 			('name', 'string', _('Name')),
 				# T: Input label for the new name when copying a template
@@ -199,7 +199,7 @@ class TemplateListView(BrowserTreeView):
 			parent = model.append(None, (category, None, None))
 			for name, basename in list_templates(category):
 				base = XDG_DATA_HOME.file(('zim', 'templates', category, basename))
-				default = data_file(('templates', category, basename)) # None if not existing
+				default = data_file(('templates', category, basename))  # None if not existing
 				#~ print '>>>', name, base, default
 				model.append(parent, (name, base, default))
 

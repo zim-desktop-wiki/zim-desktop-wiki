@@ -141,13 +141,13 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		Build a .gitignore file including the file_to_ignore_content
 		"""
-		#TODO: append the rule instead of overwrite the full content
+		# TODO: append the rule instead of overwrite the full content
 		self.root.file('.gitignore').write(file_to_ignore_regexp)
 
 	def init_repo(self):
 		self.init()
 		self.ignore(".zim/\n")
-		self.add('.') # add all existing files
+		self.add('.')  # add all existing files
 
 	def repo_exists(self):
 		return self.root.subdir('.git').exists() or self.root.file('.git').exists()

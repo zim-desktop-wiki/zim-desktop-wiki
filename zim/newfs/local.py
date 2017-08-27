@@ -73,7 +73,7 @@ class LocalFSObjectBase(FSObjectBase):
 		if self.exists():
 			return os.access(self.encodedpath, os.W_OK)
 		else:
-			return self.parent().iswritable() # recurs
+			return self.parent().iswritable()  # recurs
 
 	def isequal(self, other):
 		# Do NOT assume paths are the same - could be hard link
@@ -100,7 +100,7 @@ class LocalFSObjectBase(FSObjectBase):
 		if not isinstance(other, LocalFSObjectBase):
 			raise NotImplementedError('TODO: support cross object type move')
 
-		assert not other.path == self.path # case sensitive
+		assert not other.path == self.path  # case sensitive
 		logger.info('Rename %s to %s', self.path, other.path)
 
 		if not FS_CASE_SENSITIVE \
@@ -262,12 +262,12 @@ elif sys.platform == 'win32':
 	_MoveFileEx.restype = ctypes.c_bool
 	def _replace_file(src, dst):
 		try:
-			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
+			if not _MoveFileEx(src, dst, 1):  # MOVEFILE_REPLACE_EXISTING
 				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
-			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
+			if not _MoveFileEx(src, dst, 1):  # MOVEFILE_REPLACE_EXISTING
 				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 else:
 	_replace_file = os.rename
@@ -369,7 +369,7 @@ class LocalFile(LocalFSObjectBase, File):
 				text = text.replace('\n', '\r\n')
 			mode = 'wb'
 		else:
-			mode = 'w' # trust newlines to be handled
+			mode = 'w'  # trust newlines to be handled
 
 		with self._write_decoration():
 			with AtomicWriteContext(self, mode=mode) as fh:
@@ -382,7 +382,7 @@ class LocalFile(LocalFSObjectBase, File):
 				lines = map(lambda l: l.replace('\n', '\r\n'), lines)
 			mode = 'wb'
 		else:
-			mode = 'w' # trust newlines to be handled
+			mode = 'w'  # trust newlines to be handled
 
 		with self._write_decoration():
 			with AtomicWriteContext(self, mode=mode) as fh:
@@ -449,8 +449,8 @@ def get_tmpdir():
 	dir = LocalFolder(tempfile.gettempdir()).folder('zim-%s' % name)
 
 	try:
-		dir.touch(mode=0o700) # Limit to single user
-		os.chmod(dir.encodedpath, 0o700) # Limit to single user when dir already existed
+		dir.touch(mode=0o700)  # Limit to single user
+		os.chmod(dir.encodedpath, 0o700)  # Limit to single user when dir already existed
 			# Raises OSError if not allowed to chmod
 		os.listdir(dir.encodedpath)
 			# Raises OSError if we do not have access anymore

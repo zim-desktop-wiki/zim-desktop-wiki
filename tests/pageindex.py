@@ -68,7 +68,7 @@ class TestPageTreeStore(tests.TestCase):
 			npages += 1
 			names = page.name.split(':')
 			if len(names) > len(path):
-				path.append(0) # always increment by one
+				path.append(0)  # always increment by one
 			elif len(names) < len(path):
 				while len(names) < len(path):
 					path.pop()
@@ -109,7 +109,7 @@ class TestPageTreeStore(tests.TestCase):
 					self.assertEqual(
 						childpath, tuple(path) + (i,))
 				child = treestore.iter_next(child)
-				self.assertIsNone(child) # children exhausted
+				self.assertIsNone(child)  # children exhausted
 
 			else:
 				self.assertTrue(not treestore.iter_has_child(iter))
@@ -118,7 +118,7 @@ class TestPageTreeStore(tests.TestCase):
 				child = treestore.iter_nth_child(iter, 0)
 				self.assertTrue(child is None)
 
-		self.assertTrue(npages > 10) # double check sanity of walk() method
+		self.assertTrue(npages > 10)  # double check sanity of walk() method
 
 
 class TestPageTreeView(tests.TestCase):

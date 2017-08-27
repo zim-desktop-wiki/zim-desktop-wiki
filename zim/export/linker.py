@@ -121,10 +121,10 @@ class ExportLinker(BaseLinker):
 		try:
 			file = self.layout.page_file(path)
 		except PathLookupError:
-			return '' # Link outside of current export ?
+			return ''  # Link outside of current export ?
 		else:
 			if file == self.output:
-				return '#' + path.name # single page layout ?
+				return '#' + path.name  # single page layout ?
 			else:
 				return self.file_object(file)
 
@@ -182,7 +182,7 @@ class ExportLinker(BaseLinker):
 				file = File(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
-				filename = '/' + filename # make absolute on Unix
+				filename = '/' + filename  # make absolute on Unix
 			file = File(filename)
 		else:
 			if self.source:
@@ -190,7 +190,7 @@ class ExportLinker(BaseLinker):
 			else:
 				dir = self.layout.relative_root
 
-			file = File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
+			file = File((dir.path, filename))  # XXX LocalDir --> File -- will need get_abspath to resolve
 
 		return file
 
@@ -203,7 +203,7 @@ class ExportLinker(BaseLinker):
 	def _link_interwiki(self, link):
 		href = interwiki_link(link)
 		if href and href != link:
-			return self.link(href) # recurs
+			return self.link(href)  # recurs
 		else:
 			logger.warn('No URL found for interwiki link "%s"', link)
 			return None
@@ -216,7 +216,7 @@ class ExportLinker(BaseLinker):
 			link, path = link.split('?')
 			# FIXME: code below is not robust because we don't know the
 			# storage mode of linked notebook...
-			path = url_decode(path) # was already encoded by interwiki_link()
+			path = url_decode(path)  # was already encoded by interwiki_link()
 			path = encode_filename(path).replace(' ', '_')
 			return link + '/' + url_encode(path) + '.txt'
 		else:

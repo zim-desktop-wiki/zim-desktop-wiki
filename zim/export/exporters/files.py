@@ -35,7 +35,7 @@ class FilesExporterBase(Exporter):
 		'''
 		self.layout = layout
 		self.template = template
-		self.format = get_format(format) # XXX
+		self.format = get_format(format)  # XXX
 		self.document_root_url = document_root_url
 
 	def export_attachments_iter(self, notebook, page):
@@ -44,13 +44,13 @@ class FilesExporterBase(Exporter):
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
 		assert isinstance(target, Dir)
-		target = LocalFolder(target.path) # XXX convert
+		target = LocalFolder(target.path)  # XXX convert
 		try:
 			for file in source.list_files():
 					yield file
 					targetfile = target.file(file.basename)
 					if targetfile.exists():
-						targetfile.remove() # Export does overwrite by default
+						targetfile.remove()  # Export does overwrite by default
 					file.copyto(targetfile)
 		except FileNotFoundError:
 			pass
@@ -67,7 +67,7 @@ class FilesExporterBase(Exporter):
 		# Copy template resources (can overwrite icons)
 		if self.template.resources_dir \
 		and self.template.resources_dir.exists():
-			if dir.exists(): # Export does overwrite by default
+			if dir.exists():  # Export does overwrite by default
 				dir.remove_children()
 				dir.remove()
 			self.template.resources_dir.copyto(dir)
@@ -122,7 +122,7 @@ class MultiFileExporter(FilesExporterBase):
 
 		file = self.layout.page_file(page)
 		if file.exists():
-			file.remove() # export does overwrite by default
+			file.remove()  # export does overwrite by default
 
 		linker_factory = partial(ExportLinker,
 			notebook=notebook,
@@ -131,14 +131,14 @@ class MultiFileExporter(FilesExporterBase):
 			usebase=self.format.info['usebase'],
 			document_root_url=self.document_root_url
 		)
-		dumper_factory = self.format.Dumper # XXX
+		dumper_factory = self.format.Dumper  # XXX
 
 		context = ExportTemplateContext(
 			notebook,
 			linker_factory, dumper_factory,
 			title=page.get_title(),
 			content=[page],
-			home=None, up=None, # TODO
+			home=None, up=None,  # TODO
 			prevpage=prevpage, nextpage=nextpage,
 			links={'index': self.index_page},
 			index_generator=pages.index,
@@ -172,14 +172,14 @@ class SingleFileExporter(FilesExporterBase):
 			usebase=self.format.info['usebase'],
 			document_root_url=self.document_root_url
 		)
-		dumper_factory = self.format.Dumper # XXX
+		dumper_factory = self.format.Dumper  # XXX
 
 		context = ExportTemplateContext(
 			pages.notebook,
 			linker_factory, dumper_factory,
-			title=pages.title, # XXX
+			title=pages.title,  # XXX
 			content=pages,
-			special=None, # TODO
+			special=None,  # TODO
 			home=None,  # TODO
 			links=None,
 			index_generator=pages.index,
@@ -189,7 +189,7 @@ class SingleFileExporter(FilesExporterBase):
 		lines = []
 		self.template.process(lines, context)
 		if self.layout.file.exists():
-			self.layout.file.remove() # export does overwrite by default
+			self.layout.file.remove()  # export does overwrite by default
 		self.layout.file.writelines(lines)
 
 		# TODO incremental write to save memory on large notebooks...

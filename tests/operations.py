@@ -66,7 +66,7 @@ def mock_gtk_iter(notebook):
 
 class TestNotebookOperation(tests.TestCase):
 
-	## TODO add signal monitor to check step and finished emitted
+	# TODO add signal monitor to check step and finished emitted
 
 	def testIterator(self):
 		nb = MockNotebook()

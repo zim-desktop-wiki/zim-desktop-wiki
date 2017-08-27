@@ -37,14 +37,14 @@ from .gui import TaskListDialog, TaskListWidget
 class TaskListPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Task List'), # T: plugin name
+		'name': _('Task List'),  # T: plugin name
 		'description': _('''\
 This plugin adds a dialog showing all open tasks in
 this notebook. Open tasks can be either open checkboxes
 or items marked with tags like "TODO" or "FIXME".
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Task List'
 	}
@@ -101,7 +101,7 @@ class NotebookExtension(ObjectExtension):
 
 		self.index = notebook.index
 		if self.index.get_property(TasksIndexer.PLUGIN_NAME) != TasksIndexer.PLUGIN_DB_FORMAT:
-			self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT) # XXX
+			self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT)  # XXX
 			self.index.flag_reindex()
 
 		self.indexer = TasksIndexer.new_from_index(self.index, plugin.preferences)
@@ -130,7 +130,7 @@ class NotebookExtension(ObjectExtension):
 
 	def teardown(self):
 		self.indexer.disconnect_all()
-		self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT) # XXX
+		self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT)  # XXX
 		self.index.set_property(TasksIndexer.PLUGIN_NAME, None)
 
 
@@ -160,11 +160,11 @@ class MainWindowExtension(WindowExtension):
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-	@action(_('Task List'), stock='zim-task-list', readonly=True) # T: menu item
+	@action(_('Task List'), stock='zim-task-list', readonly=True)  # T: menu item
 	def show_task_list(self):
 		# TODO: add check + dialog for index probably_up_to_date
 
-		index = self.window.ui.notebook.index # XXX
+		index = self.window.ui.notebook.index  # XXX
 		tasksview = TasksView.new_from_index(index)
 		dialog = TaskListDialog.unique(self, self.window, tasksview, self.plugin.preferences)
 		dialog.present()
@@ -188,7 +188,7 @@ class MainWindowExtension(WindowExtension):
 				self._widget = None
 
 	def _init_widget(self):
-		index = self.window.ui.notebook.index # XXX
+		index = self.window.ui.notebook.index  # XXX
 		tasksview = TasksView.new_from_index(index)
 		opener = self.window.get_resource_opener()
 		uistate = self.window.ui.uistate['TaskListSidePane']
@@ -201,9 +201,9 @@ class MainWindowExtension(WindowExtension):
 			# Don't really care about the delay, but want to
 			# make it less blocking - now it is at least on idle
 
-		### XXX HACK to get dependency to connect to
-		###   -- no access to plugin, so can;t use get_extension()
-		##    -- duplicat of this snippet in TaskListDialog
+		# XXX HACK to get dependency to connect to
+		# -- no access to plugin, so can;t use get_extension()
+		# -- duplicat of this snippet in TaskListDialog
 		for e in self.window.ui.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)

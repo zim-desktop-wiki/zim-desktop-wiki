@@ -64,7 +64,7 @@ key = zim.__version__ + '-' + _m.hexdigest()[:8]
 
 if sys.platform == 'win32':
 	# Windows named pipe
-	userstring = zim.fs.get_tmpdir().basename # "zim-$USER" without unicode!
+	userstring = zim.fs.get_tmpdir().basename  # "zim-$USER" without unicode!
 	SERVER_ADDRESS = '\\\\.\\pipe\\%s-%s-primary' % (userstring, key)
 	SERVER_ADDRESS_FAMILY = 'AF_PIPE'
 	from multiprocessing.connection import PipeListener
@@ -176,7 +176,7 @@ def _do_accept(listener, handler, *a):
 			# Throw back into the main thread -- assuming gtk main running
 			def callback():
 				handler(*args)
-				return False # delete signal
+				return False  # delete signal
 			gobject.idle_add(callback)
 
 			conn.send('OK')

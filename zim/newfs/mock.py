@@ -47,7 +47,7 @@ def os_native_path(unixpath):
 	assert isinstance(unixpath, basestring)
 	if os.name == 'nt' and not is_url_re.match(unixpath):
 		if unixpath.startswith('/'):
-			unixpath = 'M:' + unixpath # arbitrary drive letter, should be OK for mock
+			unixpath = 'M:' + unixpath  # arbitrary drive letter, should be OK for mock
 		return unixpath.replace('/', '\\')
 	else:
 		return unixpath
@@ -70,7 +70,7 @@ class MockFSNode(object):
 		if self.isdir:
 			new = {}
 			for name, node in self.data.items():
-				new[name] = MockFSNode(node.deepcopy_data()) # recurs
+				new[name] = MockFSNode(node.deepcopy_data())  # recurs
 				new[name].ctime = node.ctime
 				new[name].mtime = node.mtime
 			return new
@@ -83,7 +83,7 @@ class MockFSNode(object):
 		old = self.mtime
 		self.mtime = time.time()
 		if old and "%.2f" % self.mtime == "%.2f" % old:
-			self.mtime += 0.01 # Hack to make tests pass ..
+			self.mtime += 0.01  # Hack to make tests pass ..
 		if self.ctime is None:
 			self.ctime = self.mtime
 		self.size = len(self.data) if self.data else 0
@@ -122,13 +122,13 @@ class MockFS(MockFSNode):
 	def touch(self, names, data):
 		# Walk nodes below and create new where needed
 		if not names:
-			return self # toplevel always exists
+			return self  # toplevel always exists
 
 		node = self
 		for i, name in enumerate(names[:-1]):
 			parent = node
 			if not name in parent.data:
-				parent.data[name] = MockFSNode({}) # new folder
+				parent.data[name] = MockFSNode({})  # new folder
 				parent.on_changed()
 			node = parent.data[name]
 			if not node.isdir:
@@ -153,7 +153,7 @@ class MockFSObjectBase(FSObjectBase):
 
 	def __init__(self, path, watcher=None, _fs=None):
 		if isinstance(path, basestring):
-			path = os_native_path(path) # make test syntax easier
+			path = os_native_path(path)  # make test syntax easier
 		FSObjectBase.__init__(self, path, watcher=watcher)
 		if not _fs:
 			_fs = MockFS()
@@ -342,7 +342,7 @@ class MockFile(MockFSObjectBase, File):
 		assert endofline in ('dos', 'unix')
 		MockFSObjectBase.__init__(self, path, watcher=watcher, _fs=_fs)
 		self._mimetype = None
-		self.endofline = endofline # attribute not used in this mock ..
+		self.endofline = endofline  # attribute not used in this mock ..
 
 	def _node(self):
 		node = self._fs.stat(self.pathnames)

@@ -25,8 +25,8 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 
 
 def new_parsetree_from_text(text):
-	## FIXME had to wrap my own here becase of stupid
-	## resolve_images - get rid of that
+	# FIXME had to wrap my own here becase of stupid
+	# resolve_images - get rid of that
 	tree = tests.new_parsetree_from_text(text)
 	notebook = tests.new_notebook(fakedir='/foo')
 	page = notebook.get_page(Path('Foo'))
@@ -68,7 +68,7 @@ class TestLines(tests.TestCase):
 		# Check formatting.
 		string = 'text... \n{}\n text... \n'
 		input = string.format('-' * 4)
-		check_text(input, input) # doesn't format
+		check_text(input, input)  # doesn't format
 		for i in range(30):
 			if i < 5:
 				output = string.format('-' * i)
@@ -140,7 +140,7 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 		#~ print tree.tostring()
 		#~ print result1.tostring()
 		reftree = tree.copy()
-		reftree.unresolve_images() # needed to make compare succeed
+		reftree.unresolve_images()  # needed to make compare succeed
 		self.assertEqual(result1.tostring(), reftree.tostring())
 
 		# Compare we are stable when loading raw tree again
@@ -213,7 +213,7 @@ grrr
 		self.assertEqual(tree.tostring(), wanted)
 
 		# Test pasting some simple text
-		buffer.set_parsetree(tree) # reset without errors
+		buffer.set_parsetree(tree)  # reset without errors
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><strong>Bold</strong></zim-tree>'''
@@ -237,9 +237,9 @@ grrr
 <p><ul><li bullet="*">Foo<strong>Bold</strong></li><li bullet="*"><strong>Bold</strong>Bar</li></ul></p></zim-tree>'''
 		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(15)
-		iter.forward_chars(5) # position after "* Foo"
+		iter.forward_chars(5)  # position after "* Foo"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
-		iter = buffer.get_iter_at_line(16) # position before bullet "* Bar"
+		iter = buffer.get_iter_at_line(16)  # position before bullet "* Bar"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
 		tree = buffer.get_parsetree()
 		self.assertTrue(buffer.get_modified())
@@ -274,7 +274,7 @@ grrr
 <p><ul><li bullet="*">Foo<strong>Bold</strong></li><li bullet="*"><strong>Bold</strong>Bar</li></ul></p></zim-tree>'''
 		pastetree = tests.new_parsetree_from_xml(input)
 		iter = buffer.get_iter_at_line(4)
-		iter.forward_chars(3) # position after "baz"
+		iter.forward_chars(3)  # position after "baz"
 		buffer.insert_parsetree(iter, pastetree, interactive=True)
 		tree = buffer.get_parsetree()
 		self.assertTrue(buffer.get_modified())
@@ -294,10 +294,10 @@ grrr
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
-		iter = buffer.get_iter_at_line(2) # iter *before* checkbox
+		iter = buffer.get_iter_at_line(2)  # iter *before* checkbox
 		buffer.insert(iter, 'foo ')
-		#print buffer.get_parsetree(raw=True).tostring()
-		#print buffer.get_parsetree().tostring()
+		# print buffer.get_parsetree(raw=True).tostring()
+		# print buffer.get_parsetree().tostring()
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), wanted)
 
@@ -309,7 +309,7 @@ grrr
 </zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
-		iter = buffer.get_iter_at_line(2) # iter before checkbox
+		iter = buffer.get_iter_at_line(2)  # iter before checkbox
 		bound = iter.copy()
 		bound.forward_char()
 		buffer.select_range(iter, bound)
@@ -352,19 +352,19 @@ grrr
 		tree = buffer.get_parsetree()
 		self.assertEqual(tree.tostring(), input)
 
-		iter = buffer.get_iter_at_line(2) # before h2
+		iter = buffer.get_iter_at_line(2)  # before h2
 		bound = iter.copy()
-		iter.backward_chars(2) # after h1
+		iter.backward_chars(2)  # after h1
 		buffer.delete(iter, bound)
 
-		iter = buffer.get_iter_at_line(2) # list item 0
+		iter = buffer.get_iter_at_line(2)  # list item 0
 		bound = iter.copy()
-		bound.forward_chars(2) # Behind bullet
+		bound.forward_chars(2)  # Behind bullet
 		buffer.delete(iter, bound)
 
-		iter = buffer.get_iter_at_line(4) # list item 1
+		iter = buffer.get_iter_at_line(4)  # list item 1
 		bound = iter.copy()
-		bound.forward_chars(2) # Behind bullet
+		bound.forward_chars(2)  # Behind bullet
 		buffer.delete(iter, bound)
 
 		#~ print buffer.get_parsetree().tostring()
@@ -390,7 +390,7 @@ Tja
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input) # just a sanity check
+		self.assertEqual(tree.tostring(), input)  # just a sanity check
 
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -404,11 +404,11 @@ Tja
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		buffer.toggle_checkbox(2, recursive=True) # Bar
-		buffer.toggle_checkbox(3, recursive=True) # Bar 1
+		buffer.toggle_checkbox(2, recursive=True)  # Bar
+		buffer.toggle_checkbox(3, recursive=True)  # Bar 1
 			# After first click all children become checked
 			# After second click one becomes xchecked
-		buffer.place_cursor(buffer.get_iter_at_line(1)) # Foo
+		buffer.place_cursor(buffer.get_iter_at_line(1))  # Foo
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX)
 			# Like <Shift><F12> on first list item line
 		tree = buffer.get_parsetree(raw=True)
@@ -426,8 +426,8 @@ Tja
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		start = buffer.get_iter_at_line(2) # Bar
-		end = buffer.get_iter_at_line(6) # Bar 3
+		start = buffer.get_iter_at_line(2)  # Bar
+		end = buffer.get_iter_at_line(6)  # Bar 3
 		end.forward_to_line_end()
 		buffer.select_range(start, end)
 		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recursive=True)
@@ -447,8 +447,8 @@ Tja
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		start = buffer.get_iter_at_line(3) # Bar 1
-		end = buffer.get_iter_at_line(7) # Baz (before checkbox !)
+		start = buffer.get_iter_at_line(3)  # Bar 1
+		end = buffer.get_iter_at_line(7)  # Baz (before checkbox !)
 		buffer.delete(start, end)
 		tree = buffer.get_parsetree(raw=True)
 		#~ print tree.tostring()
@@ -482,7 +482,7 @@ Tja
 		buffer = TextBuffer()
 		buffer.set_parsetree(tree)
 
-		iter = buffer.get_iter_at_offset(7) # middle of "bbb"
+		iter = buffer.get_iter_at_offset(7)  # middle of "bbb"
 		buffer.place_cursor(iter)
 		buffer.select_word()
 
@@ -503,7 +503,7 @@ aaa <link href="xxx">bbb</link> ccc
 
 		buffer = TextBuffer()
 		buffer.set_parsetree(tree)
-		buffer.place_cursor(buffer.get_iter_at_offset(7)) # middle of link
+		buffer.place_cursor(buffer.get_iter_at_offset(7))  # middle of link
 
 		self.assertIsNone(buffer.get_has_link_selection())
 		data = buffer.select_link()
@@ -542,9 +542,9 @@ class TestUndoStackManager(tests.TestCase):
 			#~ pprint.pprint(
 				#~ [(a[0], a[1], a[2], tostring(a[3])) for a in group] )
 			for action in group:
-				self.assertEqual(action[1], i) # assert undo stack is continous
+				self.assertEqual(action[1], i)  # assert undo stack is continous
 				i = action[2]
-		self.assertTrue(len(undomanager.stack) > 10) # check we recorded something
+		self.assertTrue(len(undomanager.stack) > 10)  # check we recorded something
 
 		# Now we iterate through the tree to verify we get a proper
 		# state at every step of the stack, then we redo to check we
@@ -552,7 +552,7 @@ class TestUndoStackManager(tests.TestCase):
 		buffertree1 = buffer.get_parsetree(raw=True)
 
 		while undomanager.undo():
-			_ = buffer.get_parsetree() # just check for no warnings
+			_ = buffer.get_parsetree()  # just check for no warnings
 
 		emptytree = buffer.get_parsetree(raw=True)
 		self.assertEqual(emptytree.tostring(),
@@ -560,7 +560,7 @@ class TestUndoStackManager(tests.TestCase):
 
 		with FilterNoSuchImageWarning():
 			while undomanager.redo():
-				_ = buffer.get_parsetree() # just check for no warnings
+				_ = buffer.get_parsetree()  # just check for no warnings
 
 		buffertree2 = buffer.get_parsetree(raw=True)
 		self.assertEqual(buffertree2.tostring(), buffertree1.tostring())
@@ -583,9 +583,9 @@ class TestUndoStackManager(tests.TestCase):
 		#~ import pprint
 		#~ undomanager.flush_insert()
 		#~ pprint.pprint(undomanager.stack)
-		self.assertTrue(len(undomanager.stack) == 5) # 3 words, 2 spaces
+		self.assertTrue(len(undomanager.stack) == 5)  # 3 words, 2 spaces
 		for group in undomanager.stack:
-			self.assertTrue(len(group) == 1) # merge was sucessfull
+			self.assertTrue(len(group) == 1)  # merge was sucessfull
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr baz</zim-tree>")
 
@@ -650,7 +650,7 @@ class TestUndoStackManager(tests.TestCase):
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo barr</zim-tree>")
 
-		undomanager.undo() # here we undo fold of 4 undos above
+		undomanager.undo()  # here we undo fold of 4 undos above
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo baz</zim-tree>")
 		undomanager.undo()
@@ -744,7 +744,7 @@ FooBaz Foo Bar
 </zim-tree>''')
 		buffer.set_parsetree(tree)
 
-		finder.find('Foo(\w*)', FIND_REGEX) # not case sensitive!
+		finder.find('Foo(\w*)', FIND_REGEX)  # not case sensitive!
 		finder.find_next()
 		self.assertSelection(buffer, 0, 4, 'FooBar')
 
@@ -789,12 +789,12 @@ Tja
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input) # just a sanity check
+		self.assertEqual(tree.tostring(), input)  # just a sanity check
 
 		undomanager = UndoStackManager(buffer)
 
 		# check list initializes properly
-		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
+		row, list = TextBufferList.new_from_line(buffer, 3)  # Bar 1
 		self.assertEqual(list.firstline, 1)
 		self.assertEqual(list.lastline, 7)
 		self.assertEqual(row, 2)
@@ -809,11 +809,11 @@ Tja
 		])
 
 		# Exercise indenting
-		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
+		row, list = TextBufferList.new_from_line(buffer, 3)  # Bar 1
 		self.assertFalse(list.can_indent(row))
 		self.assertFalse(list.indent(row))
 
-		row, list = TextBufferList.new_from_line(buffer, 2) # Bar
+		row, list = TextBufferList.new_from_line(buffer, 2)  # Bar
 		self.assertTrue(list.can_indent(row))
 		self.assertTrue(list.indent(row))
 		self.assertFalse(list.can_indent(row))
@@ -833,11 +833,11 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		row, list = TextBufferList.new_from_line(buffer, 7) # Baz
+		row, list = TextBufferList.new_from_line(buffer, 7)  # Baz
 		self.assertFalse(list.can_unindent(row))
 		self.assertFalse(list.unindent(row))
 
-		row, list = TextBufferList.new_from_line(buffer, 3) # Bar 1
+		row, list = TextBufferList.new_from_line(buffer, 3)  # Bar 1
 		self.assertTrue(list.can_unindent(row))
 		self.assertTrue(list.unindent(row))
 
@@ -856,7 +856,7 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		for line in (2, 5, 6): # Bar, Bar 2 & Bar 3
+		for line in (2, 5, 6):  # Bar, Bar 2 & Bar 3
 			row, list = TextBufferList.new_from_line(buffer, line)
 			self.assertTrue(list.can_unindent(row))
 			self.assertTrue(list.unindent(row))
@@ -902,12 +902,12 @@ Tja
 		tree = tests.new_parsetree_from_xml(input)
 		buffer.set_parsetree(tree)
 		tree = buffer.get_parsetree(raw=True)
-		self.assertEqual(tree.tostring(), input) # just a sanity check
+		self.assertEqual(tree.tostring(), input)  # just a sanity check
 
 		undomanager = UndoStackManager(buffer)
 
 
-		row, list = TextBufferList.new_from_line(buffer, 2) # Bar
+		row, list = TextBufferList.new_from_line(buffer, 2)  # Bar
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -925,9 +925,9 @@ Tja
 		self.assertEqual(tree.tostring(), wanted)
 
 		list.set_bullet(row, UNCHECKED_BOX)
-		row = list.get_row_at_line(3) # Bar 1
+		row = list.get_row_at_line(3)  # Bar 1
 		list.set_bullet(row, XCHECKED_BOX)
-		row = list.get_row_at_line(5) # Bar 2
+		row = list.get_row_at_line(5)  # Bar 2
 		list.set_bullet(row, UNCHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -944,7 +944,7 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		row = list.get_row_at_line(5) # Bar 2
+		row = list.get_row_at_line(5)  # Bar 2
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -961,7 +961,7 @@ Tja
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		row = list.get_row_at_line(4) # Bar 1.1
+		row = list.get_row_at_line(4)  # Bar 1.1
 		list.set_bullet(row, UNCHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -979,7 +979,7 @@ Tja
 		self.assertEqual(tree.tostring(), wanted)
 
 		wantedpre1 = wanted
-		row = list.get_row_at_line(4) # Bar 1.1
+		row = list.get_row_at_line(4)  # Bar 1.1
 		list.set_bullet(row, CHECKED_BOX)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -998,7 +998,7 @@ Tja
 
 		# Test indenting / unindenting the whole list
 		wantedpre = wanted
-		row = list.get_row_at_line(1) # Foo
+		row = list.get_row_at_line(1)  # Foo
 		list.indent(row)
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -1075,11 +1075,11 @@ Tja
 <li bullet="C." indent="1"> E</li>
 </zim-tree>'''
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
-		buffer.renumber_list(1) # top of list: A.
+		buffer.renumber_list(1)  # top of list: A.
 		self.assertBufferEquals(buffer, wanted)
 
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
-		buffer.renumber_list(2) # middle of list: 3.
+		buffer.renumber_list(2)  # middle of list: 3.
 		self.assertBufferEquals(buffer, wanted)
 
 		input = '''\
@@ -1102,7 +1102,7 @@ Tja
 </zim-tree>'''
 
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
-		buffer.renumber_list(5) # after sub list: "*"
+		buffer.renumber_list(5)  # after sub list: "*"
 		self.assertBufferEquals(buffer, wanted)
 
 		input = '''\
@@ -1120,7 +1120,7 @@ Tja
 <li bullet="C." indent="1"> C</li>
 </zim-tree>'''
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
-		buffer.renumber_list(2) # middle of list: B.
+		buffer.renumber_list(2)  # middle of list: B.
 		self.assertBufferEquals(buffer, wanted)
 
 		input = '''\
@@ -1138,7 +1138,7 @@ Tja
 <li bullet="*" indent="1"> C</li>
 </zim-tree>'''
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
-		buffer.renumber_list(2) # middle of list: B.
+		buffer.renumber_list(2)  # middle of list: B.
 		self.assertBufferEquals(buffer, wanted)
 
 		input = '''\
@@ -1156,7 +1156,7 @@ Tja
 <li bullet="*" indent="1"> C</li>
 </zim-tree>'''
 		buffer.set_parsetree(tests.new_parsetree_from_xml(input))
-		buffer.renumber_list(2) # middle of list: B.
+		buffer.renumber_list(2)  # middle of list: B.
 		self.assertBufferEquals(buffer, wanted)
 
 		# Renumber behavior after changing indenting:
@@ -1200,7 +1200,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="C." indent="1"> D</li>
 </zim-tree>'''
-		indent(buffer, 3) # new sub-list -- reset style and numbering
+		indent(buffer, 3)  # new sub-list -- reset style and numbering
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1211,7 +1211,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="2." indent="2"> D</li>
 </zim-tree>'''
-		indent(buffer, 4) # add to existing sub list
+		indent(buffer, 4)  # add to existing sub list
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1222,7 +1222,7 @@ Tja
 <li bullet="1." indent="3"> C</li>
 <li bullet="2." indent="3"> D</li>
 </zim-tree>'''
-		indent(buffer, 2) # top of existing sub list
+		indent(buffer, 2)  # top of existing sub list
 		self.assertBufferEquals(buffer, wanted)
 
 		prev = wanted
@@ -1234,7 +1234,7 @@ Tja
 <li bullet="1." indent="3"> C</li>
 <li bullet="a." indent="4"> D</li>
 </zim-tree>'''
-		indent(buffer, 4) # yet another new sub level
+		indent(buffer, 4)  # yet another new sub level
 		self.assertBufferEquals(buffer, wanted)
 
 		unindent(buffer, 4)
@@ -1248,7 +1248,7 @@ Tja
 <li bullet="1." indent="2"> C</li>
 <li bullet="2." indent="2"> D</li>
 </zim-tree>'''
-		unindent(buffer, 2) # renumber both levels
+		unindent(buffer, 2)  # renumber both levels
 		self.assertBufferEquals(buffer, wanted)
 
 		wanted = '''\
@@ -1335,9 +1335,9 @@ def press(widget, sequence):
 		if not isinstance(key, (int, long)):
 			event.string = key
 
-		#gtk.main_do_event(event)
-		#assert widget.event(event) # Returns True if event was handled
-		#while gtk.events_pending():
+		# gtk.main_do_event(event)
+		# assert widget.event(event) # Returns True if event was handled
+		# while gtk.events_pending():
 		#	gtk.main_iteration()
 		widget.emit('key-press-event', event)
 
@@ -1431,8 +1431,8 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 		self.assertEqual(tree.tostring(), wanted)
 
 		# selection + * to toggle bullets
-		start = buffer.get_iter_at_line(1) # before foo
-		end = buffer.get_iter_at_line(4) # empty line !
+		start = buffer.get_iter_at_line(1)  # before foo
+		end = buffer.get_iter_at_line(4)  # empty line !
 		buffer.select_range(start, end)
 		press(view, '*')
 		wanted = '''\
@@ -1446,8 +1446,8 @@ foo
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		start = buffer.get_iter_at_line(1) # before foo
-		end = buffer.get_iter_at_line(4) # empty line !
+		start = buffer.get_iter_at_line(1)  # before foo
+		end = buffer.get_iter_at_line(4)  # empty line !
 		buffer.select_range(start, end)
 		press(view, '*')
 		wanted = '''\
@@ -1462,9 +1462,9 @@ foo
 		self.assertEqual(tree.tostring(), wanted)
 
 		iter = buffer.get_iter_at_line(1)
-		iter.forward_to_line_end() # behind "foo"
+		iter.forward_to_line_end()  # behind "foo"
 		buffer.place_cursor(iter)
-		press(view, '\n') # because foo has children, insert indent 1 instead of 0
+		press(view, '\n')  # because foo has children, insert indent 1 instead of 0
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
@@ -1480,7 +1480,7 @@ foo
 
 
 		# Test unindenting and test backspace can remove line end
-		press(view, (KEYVALS_BACKSPACE[0],)) # unindent
+		press(view, (KEYVALS_BACKSPACE[0],))  # unindent
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
@@ -1493,11 +1493,11 @@ foo
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		press(view, (KEYVALS_LEFT_TAB[0],)) # Check <Shift><Tab> does not fall through to Tab when indent fails
+		press(view, (KEYVALS_LEFT_TAB[0],))  # Check <Shift><Tab> does not fall through to Tab when indent fails
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
 
-		press(view, (KEYVALS_BACKSPACE[0],)) # delete bullet at once
+		press(view, (KEYVALS_BACKSPACE[0],))  # delete bullet at once
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">aaa
@@ -1563,7 +1563,7 @@ foo
 
 		# paste replacing selection
 		buffer.set_text('foo bar baz')
-		buffer.select_range(*buffer.get_bounds()) # select all
+		buffer.select_range(*buffer.get_bounds())  # select all
 		with FilterNoSuchImageWarning():
 			textview.emit('paste-clipboard')
 		result = buffer.get_parsetree()
@@ -1573,7 +1573,7 @@ foo
 		# copy
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())
-		buffer.select_range(*buffer.get_bounds()) # select all
+		buffer.select_range(*buffer.get_bounds())  # select all
 		textview.emit('copy-clipboard')
 		result = Clipboard.get_parsetree(notebook, page)
 		self.assertIsNotNone(result)
@@ -1583,7 +1583,7 @@ foo
 		# copy partial
 		# line 33, offset 6 to 28 "try these **bold**, //italic//" in roundtrip page
 		wanted_tree = "<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\"><p>try these <strong>bold</strong>, <emphasis>italic</emphasis></p></zim-tree>"
-		wanted_text = "try these bold, italic" # no newline !
+		wanted_text = "try these bold, italic"  # no newline !
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())
 		start = buffer.get_iter_at_line_offset(33, 6)
@@ -1598,7 +1598,7 @@ foo
 		# cut
 		Clipboard.clear()
 		self.assertIsNone(Clipboard.get_parsetree())
-		buffer.select_range(*buffer.get_bounds()) # select all
+		buffer.select_range(*buffer.get_bounds())  # select all
 		textview.emit('cut-clipboard')
 		result = Clipboard.get_parsetree(notebook, page)
 		self.assertIsNotNone(result)
@@ -1614,7 +1614,7 @@ foo
 
 		def get_context_menu():
 			buffer = pageview.view.get_buffer()
-			buffer.select_range(*buffer.get_bounds()) # select all
+			buffer.select_range(*buffer.get_bounds())  # select all
 			return pageview.view.get_popup()
 
 		def click(id):
@@ -1695,21 +1695,21 @@ Baz
 		self.assertSelection(buffer, 0, 5, '123')
 
 		pageview.autoselect()
-		self.assertSelection(buffer, 0, 5, '123') # no change
+		self.assertSelection(buffer, 0, 5, '123')  # no change
 
 		buffer.place_cursor(buffer.get_iter_at_offset(33))
 		pageview.autoselect()
-		self.assertFalse(buffer.get_has_selection()) # middle of whitespace
+		self.assertFalse(buffer.get_has_selection())  # middle of whitespace
 
 		# select line (with / without previous selection)
 		buffer.place_cursor(buffer.get_iter_at_offset(6))
 		pageview.autoselect()
 		self.assertSelection(buffer, 0, 5, '123')
 		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # extended
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo')  # extended
 
 		pageview.autoselect(selectline=True)
-		self.assertSelection(buffer, 0, 0, 'Test 123. foo') # no change
+		self.assertSelection(buffer, 0, 0, 'Test 123. foo')  # no change
 
 		buffer.place_cursor(buffer.get_iter_at_offset(6))
 		self.assertFalse(buffer.get_has_selection())
@@ -1753,11 +1753,11 @@ class TestPageviewDialogs(tests.TestCase):
 
 	def testVarious(self):
 		'''Test input/output of various pageview dialogs'''
-		## Insert Date dialog
+		# Insert Date dialog
 		ui = MockUI()
 		buffer = MockBuffer()
 		ui.notebook.mock_method('suggest_link', Path(':suggested_link'))
-		ui.config = ConfigManager() # need dates.list
+		ui.config = ConfigManager()  # need dates.list
 
 		dialog = InsertDateDialog(ui, buffer)
 		dialog.linkbutton.set_active(False)
@@ -1771,7 +1771,7 @@ class TestPageviewDialogs(tests.TestCase):
 		dialog.assert_response_ok()
 		self.assertEqual(buffer.mock_calls[-1][0], 'insert_link_at_cursor')
 
-		## Insert Image dialog
+		# Insert Image dialog
 		ui = MockUI()
 		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
@@ -1782,7 +1782,7 @@ class TestPageviewDialogs(tests.TestCase):
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_image_at_cursor')
 
-		## Edit Image dialog
+		# Edit Image dialog
 		ui = MockUI()
 		file = File('data/zim.png')
 		ui.notebook.mock_method('resolve_file', file)
@@ -1805,13 +1805,13 @@ class TestPageviewDialogs(tests.TestCase):
 		iter = buffer.get_iter_at_offset(0)
 		imagedata = buffer.get_image_data(iter)
 		self.assertEqual(imagedata, {
-			'src': './data/zim.png', # preserve relative path
+			'src': './data/zim.png',  # preserve relative path
 			'_src_file': file,
 			'height': 24,
 		})
 		self.assertEqual(type(imagedata['height']).__name__, 'int')
 
-		## Insert text from file dialog
+		# Insert text from file dialog
 		ui = MockUI()
 		ui.notebook.dir = Dir(self.get_tmp_name())
 		buffer = MockBuffer()
@@ -1820,7 +1820,7 @@ class TestPageviewDialogs(tests.TestCase):
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
 
-		## Find And Replace dialog
+		# Find And Replace dialog
 		ui = MockUI()
 		textview = TextView({})
 		buffer = textview.get_buffer()
@@ -1839,12 +1839,12 @@ dus bar foooobar
 dus bar bazzz baz
 ''')
 
-		## Word Count dialog
+		# Word Count dialog
 		pageview = tests.MockObject()
 		pageview.view = textview
 		pageview.ui = MockUI()
 		dialog = WordCountDialog(pageview)
-		dialog.destroy() # nothing to test really
+		dialog.destroy()  # nothing to test really
 
 	def testInsertLinkDialog(self):
 		# Insert Link dialog
@@ -1977,7 +1977,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		start, end = buffer.get_bounds()
 		xml = buffer.serialize(buffer, 'text/x-zim-parsetree', start, end)
 		tree.unresolve_images()
-		tree._etree.getroot().attrib['partial'] = True # HACK
+		tree._etree.getroot().attrib['partial'] = True  # HACK
 		self.assertEqual(xml, tree.tostring())
 
 	def testDeserializeParseTree(self):
@@ -2001,7 +2001,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()
-		self.assertIn('http://wikipedia.com', xml) # FIXME: should use tree api
+		self.assertIn('http://wikipedia.com', xml)  # FIXME: should use tree api
 
 		# internal uris
 		iter = buffer.get_insert_iter()
@@ -2010,7 +2010,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()
-		self.assertIn('Foo:Bar', xml) # FIXME: should use tree api
+		self.assertIn('Foo:Bar', xml)  # FIXME: should use tree api
 
 	def testDeserializeImageData(self):
 		#folder = self.setUpFolder('imagedata', mock=tests.MOCK_NEVER)
@@ -2027,4 +2027,4 @@ class TestDragAndDropFunctions(tests.TestCase):
 
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()
-		self.assertIn("pasted_image.png", xml) # FIXME: should use tree api to get image
+		self.assertIn("pasted_image.png", xml)  # FIXME: should use tree api to get image

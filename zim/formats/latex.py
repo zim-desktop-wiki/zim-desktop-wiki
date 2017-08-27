@@ -85,7 +85,7 @@ class Dumper(TextDumper):
 		STRONG: ('\\textbf{', '}'),
 		MARK: ('\\uline{', '}'),
 		STRIKE: ('\\sout{', '}'),
-		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		TAG: ('', ''),  # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('$_{', '}$'),
 		SUPERSCRIPT: ('$^{', '}$'),
 	}
@@ -111,7 +111,7 @@ class Dumper(TextDumper):
 	def dump_pre(self, tag, attrib, strings):
 		indent = int(attrib.get('indent', 0))
 		text = u''.join(strings)
-		text = text.replace('\n\n', '\n') # remove newlines introduces by encode_text
+		text = text.replace('\n\n', '\n')  # remove newlines introduces by encode_text
 		strings = text.splitlines(True)
 		if indent:
 			strings = self.prefix_lines('    ' * indent, strings)
@@ -139,7 +139,7 @@ class Dumper(TextDumper):
 	def dump_ol(self, tag, attrib, strings):
 		start = attrib.get('start', 1)
 		if os.name == 'nt':
-			start = start.encode('utf-8') # Weird locale dependent behavior
+			start = start.encode('utf-8')  # Weird locale dependent behavior
 		if start in string.lowercase:
 			type = 'a'
 			start = string.lowercase.index(start) + 1
@@ -209,7 +209,7 @@ class Dumper(TextDumper):
 
 		imagepath = self.linker.img(attrib['src'])
 		if imagepath.startswith('file://'):
-			imagepath = File(imagepath).path # avoid URIs here
+			imagepath = File(imagepath).path  # avoid URIs here
 		image = '\\includegraphics[%s]{%s}' % (options, imagepath)
 
 		if 'href' in attrib:

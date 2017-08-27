@@ -15,7 +15,7 @@ class TextTree(object):
 			if isinstance(item, basestring):
 				strings.append(ps1 + item + '\n')
 			else:
-				substrings = self.tostrings(item) # recurs
+				substrings = self.tostrings(item)  # recurs
 				strings.append(ps1 + substrings.pop(0))
 				strings.extend([ps2 + s for s in substrings])
 

@@ -102,7 +102,7 @@ def build_notebook(location):
 	if file:
 		path = file.relpath(dir)
 		if '.' in path:
-			path, _ = path.rsplit('.', 1) # remove extension
+			path, _ = path.rsplit('.', 1)  # remove extension
 		path = path.replace('/', ':')
 		page = Path(path)
 
@@ -114,12 +114,12 @@ def build_notebook(location):
 def mount_notebook(filepath):
 	from zim.config import ConfigManager, String
 
-	config = ConfigManager() # XXX should be passed in
+	config = ConfigManager()  # XXX should be passed in
 	configdict = config.get_config_dict('automount.conf')
 
 	groups = sorted([k for k in configdict.keys() if k.startswith('Path')])
 	for group in groups:
-		path = group[4:].strip() # len('Path') = 4
+		path = group[4:].strip()  # len('Path') = 4
 		dir = Dir(path)
 		if filepath.path == dir.path or filepath.ischild(dir):
 			configdict[group].define(mount=String(None))

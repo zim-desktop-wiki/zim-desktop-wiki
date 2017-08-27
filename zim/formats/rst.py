@@ -25,20 +25,20 @@ info = {
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX: u'- \u2610', # ☐
-		XCHECKED_BOX: u'- \u2612', # ☒
-		CHECKED_BOX: u'- \u2611', # ☑
-		MIGRATED_BOX: u'- \u25B7', # ▷
+		UNCHECKED_BOX: u'- \u2610',  # ☐
+		XCHECKED_BOX: u'- \u2612',  # ☒
+		CHECKED_BOX: u'- \u2611',  # ☑
+		MIGRATED_BOX: u'- \u25B7',  # ▷
 		BULLET: u'-',
 	}
 
 	TAGS = {
 		EMPHASIS: ('*', '*'),
 		STRONG: ('**', '**'),
-		MARK: ('', ''), # TODO, no directly way to do this in rst
-		STRIKE: ('', ''), # TODO, no directly way to do this in rst
+		MARK: ('', ''),  # TODO, no directly way to do this in rst
+		STRIKE: ('', ''),  # TODO, no directly way to do this in rst
 		VERBATIM: ("``", "``"),
-		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		TAG: ('', ''),  # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('\\ :sub:`', '`\\ '),
 		SUPERSCRIPT: ('\\ :sup:`', '`\\ '),
 	}
@@ -86,7 +86,7 @@ class Dumper(TextDumper):
 		for k, v in items:
 			if k == 'src' or k.startswith('_'):
 				continue
-			elif v: # skip None, "" and 0
+			elif v:  # skip None, "" and 0
 				text += '   :%s: %s\n' % (k, v)
 
 		return text + '\n'

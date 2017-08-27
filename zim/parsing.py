@@ -111,21 +111,21 @@ def unescape_quoted_string(string):
 # So checking ranges makes sure utf-8 is really outside of ascii set,
 # and does not e.g. include "%".
 
-URL_ENCODE_DATA = 0 # all
-URL_ENCODE_PATH = 1	# all except '/'
-URL_ENCODE_READABLE = 2 # only space and utf-8
+URL_ENCODE_DATA = 0  # all
+URL_ENCODE_PATH = 1  # all except '/'
+URL_ENCODE_READABLE = 2  # only space and utf-8
 
-_url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]') # unreserved
-_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]') # unreserved + /
+_url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]')  # unreserved
+_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]')  # unreserved + /
 
 def _url_encode(match):
 	return '%%%02X' % ord(match.group(0))
 
 def _url_encode_readable(match):
 	i = ord(match.group(0))
-	if i == 32 or i > 127: # space or utf-8
+	if i == 32 or i > 127:  # space or utf-8
 		return '%%%02X' % i
-	else: # do not encode
+	else:  # do not encode
 		return match.group(0)
 
 def url_encode(url, mode=URL_ENCODE_PATH):
@@ -143,7 +143,7 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 
 	The encoded URL is returned as an ASCII string.
 	'''
-	url = url.encode('utf-8') # unicode -> utf-8, so encode one byte at a time
+	url = url.encode('utf-8')  # unicode -> utf-8, so encode one byte at a time
 
 	if mode == URL_ENCODE_DATA:
 		return _url_encode_re.sub(_url_encode, url)
@@ -162,9 +162,9 @@ def _url_decode(match):
 
 def _url_decode_readable(match):
 	i = int(match.group(1), 16)
-	if i == 32 or i > 127: # space or utf-8
+	if i == 32 or i > 127:  # space or utf-8
 		return chr(i)
-	else: # do not decode
+	else:  # do not decode
 		return match.group(0)
 
 def url_decode(url, mode=URL_ENCODE_PATH):
@@ -182,7 +182,7 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 
 	The result is returned as a unicode string.
 	'''
-	url = url.encode('utf-8') # in case url is already unicode
+	url = url.encode('utf-8')  # in case url is already unicode
 	try:
 		if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
 			return _url_decode_re.sub(_url_decode, url).decode('utf-8')
@@ -221,7 +221,7 @@ def parse_date(string):
 		if len(d) == 4:
 			y, m, d = d, m, y
 		if not d:
-			return None # yyyy-mm not supported
+			return None  # yyyy-mm not supported
 
 		if not y:
 			# Guess year, based on time delta
@@ -259,7 +259,7 @@ class Re(object):
 	# TODO, mimic complete interface for regex object including
 	#       split, findall, finditer, etc.
 
-	__slots__ = ('r', 'p', 'm') # regex, pattern and match objects
+	__slots__ = ('r', 'p', 'm')  # regex, pattern and match objects
 
 	def __init__(self, pattern, flags=0):
 		'''Constructor takes same arguments as re.compile()'''
@@ -363,7 +363,7 @@ is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
 is_interwiki_keyword_re = re.compile('^\w[\w\+\-\.]*$', re.U)
 
 
-_classes = {'c': r'[^\s"<>\']'} # limit the character class a bit
+_classes = {'c': r'[^\s"<>\']'}  # limit the character class a bit
 url_re = Re(r'''(
 	\b \w[\w\+\-\.]+:// %(c)s* \[ %(c)s+ \] (?: %(c)s+ [\w/] )?  |
 	\b \w[\w\+\-\.]+:// %(c)s+ [\w/]                             |

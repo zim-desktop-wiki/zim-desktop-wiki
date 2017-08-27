@@ -69,7 +69,7 @@ def list_template_categories():
 	categories = set()
 	for dir in dirs:
 		for name in dir.list():
-			## TODO list_objects would help here + a filter like type=Dir
+			# TODO list_objects would help here + a filter like type=Dir
 			if dir.subdir(name).isdir():
 				categories.add(name)
 
@@ -88,8 +88,8 @@ def list_templates(category):
 	path.reverse()
 	for dir in path:
 		for basename in dir.list():
-			if dir.file(basename).exists(): # is a file
-				name = basename.rsplit('.', 1)[0] # robust if no '.' in basename
+			if dir.file(basename).exists():  # is a file
+				name = basename.rsplit('.', 1)[0]  # robust if no '.' in basename
 				templates.add((name, basename))
 	return sorted(templates)
 
@@ -108,10 +108,10 @@ def get_template(category, template):
 		file = None
 		for dir in data_dirs(('templates', category)):
 			for basename in dir.list():
-				name = basename.rsplit('.')[0] # robust if no '.' in basename
+				name = basename.rsplit('.')[0]  # robust if no '.' in basename
 				if basename == template or name == template:
 					file = dir.file(basename)
-					if file.exists(): # is a file
+					if file.exists():  # is a file
 						break
 			if file and file.exists():
 				break
@@ -177,8 +177,8 @@ class Template(SignalEmitter):
 		processing the template
 		@emits: process
 		'''
-		context = TemplateContextDict(dict(context)) # COPY to keep changes local
-		context.update(self.template_functions) # set builtins
+		context = TemplateContextDict(dict(context))  # COPY to keep changes local
+		context.update(self.template_functions)  # set builtins
 		self.emit('process', output, context)
 
 	def do_process(self, output, context):

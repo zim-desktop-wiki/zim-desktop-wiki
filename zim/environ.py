@@ -53,7 +53,7 @@ class Environ(collections.MutableMapping):
 		except KeyError:
 			return default
 		else:
-			if not v or v.isspace(): # existing but empty is edge case in environ
+			if not v or v.isspace():  # existing but empty is edge case in environ
 				return default
 			else:
 				return v
@@ -77,10 +77,10 @@ class Environ(collections.MutableMapping):
 			return v
 
 
-environ = Environ() # Singleton
+environ = Environ()  # Singleton
 
 
-## Check environment
+# Check environment
 
 if os.name == 'nt':
 	# Windows specific environment variables

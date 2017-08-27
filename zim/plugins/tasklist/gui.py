@@ -77,7 +77,7 @@ class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		self.task_list.connect('populate-popup', self.on_populate_popup)
 		self.task_list.set_headers_visible(True)
 
-		self.filter_entry = InputEntry(placeholder_text=_('Filter')) # T: label for filtering/searching tasks
+		self.filter_entry = InputEntry(placeholder_text=_('Filter'))  # T: label for filtering/searching tasks
 		self.filter_entry.set_icon_to_clear()
 		filter_cb = DelayedCallback(500,
 			lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
@@ -90,7 +90,7 @@ class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 	def __init__(self, window, tasksview, preferences):
-		Dialog.__init__(self, window, _('Task List'), # T: dialog title
+		Dialog.__init__(self, window, _('Task List'),  # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=(550, 400))
 		self.preferences = preferences
@@ -132,7 +132,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
-		hbox.pack_start(gtk.Label(_('Filter') + ': '), False) # T: Input label
+		hbox.pack_start(gtk.Label(_('Filter') + ': '), False)  # T: Input label
 		filter_entry = InputEntry()
 		filter_entry.set_icon_to_clear()
 		hbox.pack_start(filter_entry, False)
@@ -177,9 +177,9 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			# make it less blocking - should be async preferably
 			# now it is at least on idle
 
-		### XXX HACK to get dependency to connect to
-		###   -- no access to plugin, so can;t use get_extension()
-		##    -- duplicat of this snippet in MainWindowExtension
+		# XXX HACK to get dependency to connect to
+		# -- no access to plugin, so can;t use get_extension()
+		# -- duplicat of this snippet in MainWindowExtension
 		for e in window.ui.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
@@ -215,7 +215,7 @@ class TagListTreeView(SingleClickTreeView):
 	_type_untagged = 3
 
 	def __init__(self, task_list, task_labels):
-		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
+		model = gtk.ListStore(str, int, int, int)  # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 		self.task_list = task_list
@@ -228,11 +228,11 @@ class TagListTreeView(SingleClickTreeView):
 		cr1 = gtk.CellRendererText()
 		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
 		column.pack_start(cr1, True)
-		column.set_attributes(cr1, text=0, weight=3) # tag name, weight
+		column.set_attributes(cr1, text=0, weight=3)  # tag name, weight
 
 		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)
-		column.set_attributes(cr2, text=1) # number of tasks
+		column.set_attributes(cr2, text=1)  # number of tasks
 
 		self.set_row_separator_func(lambda m, i: m[i][2] == self._type_separator)
 
@@ -272,7 +272,7 @@ class TagListTreeView(SingleClickTreeView):
 
 	def refresh(self, task_list):
 		self._block_selection_change = True
-		selected = [(row[0], row[2]) for row in self._get_selected()] # remember name and type
+		selected = [(row[0], row[2]) for row in self._get_selected()]  # remember name and type
 
 		# Rebuild model
 		model = self.get_model()
@@ -281,10 +281,10 @@ class TagListTreeView(SingleClickTreeView):
 		model.clear()
 
 		n_all = self.task_list.get_n_tasks()
-		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
+		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD))  # T: "tag" for showing all tasks
 
 		used_labels = self.task_list.get_labels()
-		for label in self.task_labels: # explicitly keep sorting from preferences
+		for label in self.task_labels:  # explicitly keep sorting from preferences
 			if label in used_labels:
 				model.append((label, used_labels[label], self._type_label, pango.WEIGHT_BOLD))
 
@@ -294,7 +294,7 @@ class TagListTreeView(SingleClickTreeView):
 			model.append((_('Untagged'), n_untagged, self._type_untagged, pango.WEIGHT_NORMAL))
 			# T: label in tasklist plugins for tasks without a tag
 
-		model.append(('', 0, self._type_separator, 0)) # separator
+		model.append(('', 0, self._type_separator, 0))  # separator
 
 		for tag in natural_sorted(tags):
 			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
@@ -317,16 +317,16 @@ class TagListTreeView(SingleClickTreeView):
 			self.task_list.set_tag_filter(tags, labels)
 
 
-HIGH_COLOR = '#EF5151' # red (derived from Tango style guide - #EF2929)
-MEDIUM_COLOR = '#FCB956' # orange ("idem" - #FCAF3E)
-ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
+HIGH_COLOR = '#EF5151'  # red (derived from Tango style guide - #EF2929)
+MEDIUM_COLOR = '#FCB956'  # orange ("idem" - #FCAF3E)
+ALERT_COLOR = '#FCEB65'  # yellow ("idem" - #FCE94F)
 # FIXME: should these be configurable ?
 
-COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
+COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR]  # index 0..3
 
 def days_to_str(days):
 	if days > 290:
-			return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
+			return '%iy' % round(float(days) / 365)  # round up to 1 year from ~10 months
 	elif days > 25:
 			return '%im' % round(float(days) / 30)
 	elif days > 10:
@@ -343,8 +343,8 @@ class TaskListTreeView(BrowserTreeView):
 	#
 	# idem for flat list vs tree
 
-	VIS_COL = 0 # visible
-	ACT_COL = 1 # actionable
+	VIS_COL = 0  # visible
+	ACT_COL = 1  # actionable
 	PRIO_COL = 2
 	START_COL = 3
 	DUE_COL = 4
@@ -413,7 +413,7 @@ class TaskListTreeView(BrowserTreeView):
 		if compact:
 			column.set_min_width(100)
 		else:
-			column.set_min_width(300) # don't let this column get too small
+			column.set_min_width(300)  # don't let this column get too small
 		self.append_column(column)
 		self.set_expander_column(column)
 
@@ -498,11 +498,11 @@ class TaskListTreeView(BrowserTreeView):
 			prev = tag
 
 		# Set view
-		self._eval_filter() # keep current selection
+		self._eval_filter()  # keep current selection
 		self.expand_all()
 
 	def _clear(self):
-		self.real_model.clear() # flush
+		self.real_model.clear()  # flush
 		self._tags = {}
 		self._labels = {}
 
@@ -561,9 +561,9 @@ class TaskListTreeView(BrowserTreeView):
 				prio_sort_label = \
 					'!' * min(row['prio'], 3) + ' ' if row['prio'] > 0 else ''
 				if td.days < 0:
-						prio_sort_label += '<b><u>OD</u></b>' # over due
+						prio_sort_label += '<b><u>OD</u></b>'  # over due
 				elif td.days == 0:
-						prio_sort_label += '<u>TD</u>' # today
+						prio_sort_label += '<u>TD</u>'  # today
 				else:
 						prio_sort_label += days_to_str(td.days)
 			else:
@@ -571,11 +571,11 @@ class TaskListTreeView(BrowserTreeView):
 
 			# Format description
 			desc = _date_re.sub('', row['description'], count=1)
-			desc = re.sub('\s*!+\s*', ' ', desc) # get rid of exclamation marks
+			desc = re.sub('\s*!+\s*', ' ', desc)  # get rid of exclamation marks
 			desc = encode_markup_text(desc)
 			if actionable:
-				desc = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', desc) # highlight tags - same color as used in pageview
-				desc = task_label_re.sub(r'<b>\1</b>', desc) # highlight labels
+				desc = _tag_re.sub(r'<span color="#ce5c00">@\1</span>', desc)  # highlight tags - same color as used in pageview
+				desc = task_label_re.sub(r'<b>\1</b>', desc)  # highlight labels
 			else:
 				desc = r'<span color="darkgrey">%s</span>' % desc
 
@@ -586,7 +586,7 @@ class TaskListTreeView(BrowserTreeView):
 			myiter = self.real_model.append(iter, modelrow)
 
 			if row['haschildren'] and not self.flatlist:
-				self._append_tasks(row, myiter, path_cache) # recurs
+				self._append_tasks(row, myiter, path_cache)  # recurs
 
 	def set_filter_actionable(self, filter):
 		'''Set filter state for non-actionable items
@@ -682,7 +682,7 @@ class TaskListTreeView(BrowserTreeView):
 				if label in description:
 					break
 			else:
-				visible = False # no label found
+				visible = False  # no label found
 
 		if visible and self.tag_filter:
 			# Any tag should match
@@ -706,7 +706,7 @@ class TaskListTreeView(BrowserTreeView):
 		return visible
 
 	def do_focus_in_event(self, event):
-		#print ">>>", self._today, datetime.date.today()
+		# print ">>>", self._today, datetime.date.today()
 		if self._today != datetime.date.today():
 			self.refresh()
 
@@ -745,11 +745,11 @@ class TaskListTreeView(BrowserTreeView):
 
 		text = [task, '\n']
 		if start and start > today:
-			text += ['<b>', _('Start'), ':</b> ', start, '\n'] # T: start date for task
+			text += ['<b>', _('Start'), ':</b> ', start, '\n']  # T: start date for task
 		if due != _MAX_DUE_DATE:
-			text += ['<b>', _('Due'), ':</b> ', due, '\n'] # T: due date for task
+			text += ['<b>', _('Due'), ':</b> ', due, '\n']  # T: due date for task
 
-		text += ['<b>', _('Page'), ':</b> ', encode_markup_text(page)] # T: page label
+		text += ['<b>', _('Page'), ':</b> ', encode_markup_text(page)]  # T: page label
 
 		tooltip.set_markup(''.join(text))
 		return True
@@ -852,7 +852,7 @@ class TaskListTreeView(BrowserTreeView):
 		rows = []
 
 		def collect(model, path, iter):
-			indent = len(path) - 1 # path is tuple with indexes
+			indent = len(path) - 1  # path is tuple with indexes
 
 			row = model[iter]
 			prio = row[self.PRIO_COL]

@@ -16,8 +16,8 @@ from zim.config import INIConfigFile
 
 
 class VirtualFile(object):
-	### TODO - proper class for this in zim.fs
-	###        unify with code in config manager
+	# TODO - proper class for this in zim.fs
+	# unify with code in config manager
 
 	def __init__(self, lines):
 		self.lines = lines
@@ -119,7 +119,7 @@ class TestHistory(tests.TestCase):
 		path = Path(current.name)
 		for j in range(5):
 			history.append(path)
-		self.assertHistoryEquals(history, self.pages) # history does not store duplicates
+		self.assertHistoryEquals(history, self.pages)  # history does not store duplicates
 		self.assertEquals(history.get_current(), current)
 
 		# Test dropping forward stack
@@ -127,10 +127,10 @@ class TestHistory(tests.TestCase):
 		path1 = historylist[10]
 		path2 = historylist[0]
 		history.set_current(path1)
-		self.assertEquals(history.get_current(), path1) # rewind
-		self.assertHistoryEquals(history, self.pages) # no change
+		self.assertEquals(history.get_current(), path1)  # rewind
+		self.assertHistoryEquals(history, self.pages)  # no change
 
-		history.append(path2) # new path - drop forward stack
+		history.append(path2)  # new path - drop forward stack
 		i = len(pages) - 10
 		wanted = self.pages[:i] + [path2]
 		self.assertHistoryEquals(history, wanted)
@@ -166,7 +166,7 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(unique[0], history.get_current())
 		self.assertEqual(len(unique), len(self.pages))
 
-		unique = set([page.name for page in unique]) # collapse doubles
+		unique = set([page.name for page in unique])  # collapse doubles
 		self.assertEqual(len(unique), len(self.pages))
 
 		zim.history.MAX_RECENT = 3

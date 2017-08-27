@@ -123,7 +123,7 @@ class MainWindowExtensionBase(WindowExtension):
 			self.window, title,
 			generator, syntax=self.syntax,
 			help=self.plugin.plugin_info['help']
-		) # XXX ui
+		)  # XXX ui
 		dialog.run()
 
 	def edit_object(self, buffer, iter, image):
@@ -133,7 +133,7 @@ class MainWindowExtensionBase(WindowExtension):
 			self.window, title,
 			generator, syntax=self.syntax, image=image,
 			help=self.plugin.plugin_info['help']
-		) # XXX ui
+		)  # XXX ui
 		dialog.run()
 
 	def do_populate_popup(self, menu, buffer, iter, image):
@@ -150,11 +150,11 @@ class ImageGeneratorClass(object):
 	L{ImageGeneratorDialog}
 	'''
 
-	uses_log_file = True #: set to C{False} for subclasses that do not generate a log
+	uses_log_file = True  # : set to C{False} for subclasses that do not generate a log
 
-	object_type = None #: generator type, e.g. "equation"
-	scriptname = None #: basename of the source files, e.g. "equation.tex"
-	imagename = None #: basename of the resulting image files, e.g. "equation.png"
+	object_type = None  # : generator type, e.g. "equation"
+	scriptname = None  # : basename of the source files, e.g. "equation.tex"
+	imagename = None  # : basename of the resulting image files, e.g. "equation.png"
 
 	def __init__(self, plugin):
 		self.plugin = plugin
@@ -283,7 +283,7 @@ class ImageGeneratorDialog(Dialog):
 
 		self._existing_file = None
 		if image:
-			file = image['_src_file'] # FIXME ?
+			file = image['_src_file']  # FIXME ?
 			textfile = self._stitch_fileextension(file, self.generator.scriptname)
 			self._existing_file = textfile
 			self.imageview.set_file(file)
@@ -336,7 +336,7 @@ class ImageGeneratorDialog(Dialog):
 	def preview(self):
 		'''Action for the "Preview" button'''
 		self.generate_image()
-		self.imageview.set_file(self.imagefile) # if None sets broken image
+		self.imageview.set_file(self.imagefile)  # if None sets broken image
 		self.logbutton.set_sensitive(not self.logfile is None)
 
 	def show_log(self):
@@ -359,8 +359,8 @@ class ImageGeneratorDialog(Dialog):
 		if self._existing_file:
 			textfile = self._existing_file
 		else:
-			page = self.app_window.ui.page # XXX
-			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
+			page = self.app_window.ui.page  # XXX
+			dir = self.app_window.ui.notebook.get_attachments_dir(page)  # XXX
 			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write(self.generator.process_input(self.get_text()))
@@ -372,7 +372,7 @@ class ImageGeneratorDialog(Dialog):
 			imgfile.remove()
 
 		if self._existing_file:
-			self.app_window.ui.reload_page() # XXX
+			self.app_window.ui.reload_page()  # XXX
 		else:
 			pageview = self.app_window.pageview
 			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)

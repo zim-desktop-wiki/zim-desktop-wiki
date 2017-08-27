@@ -167,52 +167,52 @@ except ImportError:
 	if os.name != 'nt':
 		logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
 	else:
-		pass # Ignore this error on Windows; doesn't come with xdg.Mime
+		pass  # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
 
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
 	# Gleaned from gtk.gdk.get_formats()
-	'bmp', # image/bmp
-	'gif', # image/gif
-	'icns', # image/x-icns
-	'ico', # image/x-icon
-	'cur', # image/x-icon
-	'jp2', # image/jp2
-	'jpc', # image/jp2
-	'jpx', # image/jp2
-	'j2k', # image/jp2
-	'jpf', # image/jp2
-	'jpeg', # image/jpeg
-	'jpe', # image/jpeg
-	'jpg', # image/jpeg
-	'pcx', # image/x-pcx
-	'png', # image/png
-	'pnm', # image/x-portable-anymap
-	'pbm', # image/x-portable-anymap
-	'pgm', # image/x-portable-anymap
-	'ppm', # image/x-portable-anymap
-	'ras', # image/x-cmu-raster
-	'tga', # image/x-tga
-	'targa', # image/x-tga
-	'tiff', # image/tiff
-	'tif', # image/tiff
-	'wbmp', # image/vnd.wap.wbmp
-	'xbm', # image/x-xbitmap
-	'xpm', # image/x-xpixmap
-	'wmf', # image/x-wmf
-	'apm', # image/x-wmf
-	'svg', # image/svg+xml
-	'svgz', # image/svg+xml
-	'svg.gz', # image/svg+xml
+	'bmp',  # image/bmp
+	'gif',  # image/gif
+	'icns',  # image/x-icns
+	'ico',  # image/x-icon
+	'cur',  # image/x-icon
+	'jp2',  # image/jp2
+	'jpc',  # image/jp2
+	'jpx',  # image/jp2
+	'j2k',  # image/jp2
+	'jpf',  # image/jp2
+	'jpeg',  # image/jpeg
+	'jpe',  # image/jpeg
+	'jpg',  # image/jpeg
+	'pcx',  # image/x-pcx
+	'png',  # image/png
+	'pnm',  # image/x-portable-anymap
+	'pbm',  # image/x-portable-anymap
+	'pgm',  # image/x-portable-anymap
+	'ppm',  # image/x-portable-anymap
+	'ras',  # image/x-cmu-raster
+	'tga',  # image/x-tga
+	'targa',  # image/x-tga
+	'tiff',  # image/tiff
+	'tif',  # image/tiff
+	'wbmp',  # image/vnd.wap.wbmp
+	'xbm',  # image/x-xbitmap
+	'xpm',  # image/x-xpixmap
+	'wmf',  # image/x-wmf
+	'apm',  # image/x-wmf
+	'svg',  # image/svg+xml
+	'svgz',  # image/svg+xml
+	'svg.gz',  # image/svg+xml
 )
 
 
-ENCODING = sys.getfilesystemencoding() #: file system encoding for paths
+ENCODING = sys.getfilesystemencoding()  # : file system encoding for paths
 if ENCODING.upper() in (
-	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US', # some aliases for ascii
-	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987', # aliases for latin1
+	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US',  # some aliases for ascii
+	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987',  # aliases for latin1
 ):
 	logger.warn('Filesystem encoding is set to ASCII or Latin1, using UTF-8 instead')
 	ENCODING = 'utf-8'
@@ -241,12 +241,12 @@ else:
 			except UnicodeEncodeError:
 				raise Error('BUG: invalid filename %s' % path)
 		else:
-			return path # assume encoding is correct
+			return path  # assume encoding is correct
 
 
 	def decode(path):
 		if isinstance(path, unicode):
-			return path # assume encoding is correct
+			return path  # assume encoding is correct
 		else:
 			try:
 				return path.decode(ENCODING)
@@ -319,8 +319,8 @@ def expanduser(path):
 		parts = path.replace('\\', '/').strip('/').split('/')
 		if parts[0] == '~':
 			path = '/'.join([home] + parts[1:])
-		else: # ~user
-			dir = os.path.basename(home) # /home or similar ?
+		else:  # ~user
+			dir = os.path.basename(home)  # /home or similar ?
 			path = '/'.join([dir, parts[0][1:]] + parts[1:])
 
 	return path
@@ -342,8 +342,8 @@ def get_tmpdir():
 	dir = Dir((root, 'zim-%s' % user))
 
 	try:
-		dir.touch(mode=0o700) # Limit to single user
-		os.chmod(dir.path, 0o700) # Limit to single user when dir already existed
+		dir.touch(mode=0o700)  # Limit to single user
+		os.chmod(dir.path, 0o700)  # Limit to single user when dir already existed
 			# Raises OSError if not allowed to chmod
 		os.listdir(dir.path)
 			# Raises OSError if we do not have access anymore
@@ -467,7 +467,7 @@ def _md5(content):
 
 class PathLookupError(Error):
 	'''Error raised when there is an error finding the specified path'''
-	pass # TODO description
+	pass  # TODO description
 
 
 class FileWriteError(Error):
@@ -475,7 +475,7 @@ class FileWriteError(Error):
 	permissions or e.g. because it is detected the file changed on
 	disk.
 	'''
-	pass # TODO description
+	pass  # TODO description
 
 
 class FileNotFoundError(PathLookupError):
@@ -593,7 +593,7 @@ class UnixPath(object):
 					# os.path.join is too intelligent for it's own good
 					# just join with the path separator.
 			else:
-				path = unicode(path) # make sure we can decode
+				path = unicode(path)  # make sure we can decode
 		except UnicodeDecodeError:
 			raise Error('BUG: invalid input, file names should be in ascii, or given as unicode')
 
@@ -602,7 +602,7 @@ class UnixPath(object):
 		elif path.startswith('~'):
 			path = expanduser(path)
 
-		self._set_path(path) # overloaded in WindowsPath
+		self._set_path(path)  # overloaded in WindowsPath
 
 	def serialize_zim_config(self):
 		'''Returns the file path as string for serializing the object'''
@@ -671,17 +671,17 @@ class UnixPath(object):
 	@property
 	def basename(self):
 		'''Basename property'''
-		return os.path.basename(self.path) # encoding safe
+		return os.path.basename(self.path)  # encoding safe
 
 	@property
 	def dirname(self):
 		'''Dirname property'''
-		return os.path.dirname(self.path) # encoding safe
+		return os.path.dirname(self.path)  # encoding safe
 
 	@property
 	def user_path(self):
 		'''User_path property'''
-		dir = Dir('~') # FIXME: Should we cache this folder somewhere ?
+		dir = Dir('~')  # FIXME: Should we cache this folder somewhere ?
 		if self.ischild(dir):
 			return '~/' + self.relpath(dir)
 		else:
@@ -695,7 +695,7 @@ class UnixPath(object):
 	@property
 	def dir(self):
 		'''Returns a L{Dir} object for the parent dir'''
-		path = os.path.dirname(self.path) # encoding safe
+		path = os.path.dirname(self.path)  # encoding safe
 		return Dir(path)
 
 	def monitor(self):
@@ -718,7 +718,7 @@ class UnixPath(object):
 		if self.exists():
 			return os.access(self.encodedpath, os.W_OK)
 		else:
-			return self.dir.iswritable() # recurs
+			return self.dir.iswritable()  # recurs
 
 	def _stat(self):
 		return os.stat(self.encodedpath)
@@ -786,12 +786,12 @@ class UnixPath(object):
 		@raises AssertionError: when C{allowupward} is C{False} and
 		C{reference} is not a parent folder
 		'''
-		sep = os.path.sep # '/' or '\'
+		sep = os.path.sep  # '/' or '\'
 		refdir = reference.path + sep
 		if allowupward and not self.path.startswith(refdir):
 			parent = self.commonparent(reference)
 			if parent is None:
-				return None # maybe on different drive under win32
+				return None  # maybe on different drive under win32
 
 			i = len(parent.path)
 			j = refdir[i:].strip(sep).count(sep) + 1
@@ -812,8 +812,8 @@ class UnixPath(object):
 		@returns: a L{Dir} object for the common parent folder, or
 		C{None} when there is no common parent
 		'''
-		path = os.path.commonprefix((self.path, other.path)) # encoding safe
-		i = path.rfind(os.path.sep) # win32 save...
+		path = os.path.commonprefix((self.path, other.path))  # encoding safe
+		i = path.rfind(os.path.sep)  # win32 save...
 		if i >= 0:
 			return Dir(path[:i + 1])
 		else:
@@ -914,7 +914,7 @@ class WindowsPath(UnixPath):
 		if re.match(r'^[/\\]+[A-Za-z]:[/\\]', path):
 			path = path.lstrip('/').lstrip('\\')
 		self.path = os.path.abspath(path)
-		self.encodedpath = self.path # so encodedpath in unicode
+		self.encodedpath = self.path  # so encodedpath in unicode
 
 	@property
 	def uri(self):
@@ -998,9 +998,9 @@ class Dir(FilePath):
 			files = []
 			for file in os.listdir(self.encodedpath):
 				if file.startswith('.') and not includehidden:
-					continue # skip hidden files
+					continue  # skip hidden files
 				elif (file.endswith('~') or file.startswith('~')) and not includetmp:
-					continue # skip temporary files
+					continue  # skip temporary files
 				else:
 					files.append(file)
 			return files
@@ -1074,7 +1074,7 @@ class Dir(FilePath):
 		try:
 			os.removedirs(self.encodedpath)
 		except OSError:
-			return False # probably dir not empty
+			return False  # probably dir not empty
 		else:
 			return True
 
@@ -1114,7 +1114,7 @@ class Dir(FilePath):
 			for item in source.list():
 				child = FilePath((source, item))
 				if child.isdir():
-					copy_dir(Dir(child), target.subdir(item)) # recur
+					copy_dir(Dir(child), target.subdir(item))  # recur
 				else:
 					child = File(child)
 					child.copyto(target)
@@ -1444,11 +1444,11 @@ class UnixFile(FilePath):
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
-				raise FileWriteError(_('File is not writable: %s') % self.path) # T: Error message
+				raise FileWriteError(_('File is not writable: %s') % self.path)  # T: Error message
 			elif not self.exists():
 				self.dir.touch()
 			else:
-				pass # exists and writable
+				pass  # exists and writable
 
 		mode += 'b'
 		if mode == 'wb':
@@ -1629,9 +1629,9 @@ class UnixFile(FilePath):
 		'''Returns C{True} when this file has changed on disk'''
 		if not (self._mtime and self._md5):
 			if os.path.isfile(self.encodedpath):
-				return True # may well been just created
+				return True  # may well been just created
 			else:
-				return False # ??
+				return False  # ??
 		elif not os.path.isfile(self.encodedpath):
 			return True
 		else:
@@ -1757,7 +1757,7 @@ class WindowsFile(UnixFile):
 
 	def __init__(self, path, checkoverwrite=False, endofline=None):
 		UnixFile.__init__(self, path, checkoverwrite, endofline)
-		self._recover() # just to be sure
+		self._recover()  # just to be sure
 
 	def exists(self):
 		orig = self.encodedpath + '.zim-orig~'
@@ -1767,7 +1767,7 @@ class WindowsFile(UnixFile):
 			# if both new and orig exists, we can recover
 
 	def open(self, mode='r'):
-		self._recover() # just to be sure
+		self._recover()  # just to be sure
 		return UnixFile.open(self, mode)
 
 	def _on_write(self):
@@ -1786,12 +1786,12 @@ class WindowsFile(UnixFile):
 			orig = self.encodedpath + '.zim-orig~'
 			if os.path.isfile(orig):
 				os.remove(orig)
-			self._rename(self.encodedpath, orig) # Step 2.
+			self._rename(self.encodedpath, orig)  # Step 2.
 			self._rename(tmp, self.encodedpath)  # Step 3.
 			try:
-				os.remove(orig) # Step 4.
+				os.remove(orig)  # Step 4.
 			except OSError:
-				pass # If it fails we try again on next write
+				pass  # If it fails we try again on next write
 		else:
 			self._rename(tmp, self.encodedpath)
 
@@ -1821,7 +1821,7 @@ class WindowsFile(UnixFile):
 		# Try and recover the file after errors in writing the file,
 		# see comment in class header.
 		if os.path.isfile(self.encodedpath):
-			return # no recovery needed
+			return  # no recovery needed
 
 		orig = self.encodedpath + '.zim-orig~'
 		new = self.encodedpath + '.zim-new~'
@@ -1912,18 +1912,18 @@ elif sys.platform == 'win32':
 	_MoveFileEx.restype = ctypes.c_bool
 	def _replace_file(src, dst):
 		try:
-			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
+			if not _MoveFileEx(src, dst, 1):  # MOVEFILE_REPLACE_EXISTING
 				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
-			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
+			if not _MoveFileEx(src, dst, 1):  # MOVEFILE_REPLACE_EXISTING
 				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 else:
 	_replace_file = os.rename
 
 
-### TODO filter Dir.list directly for hidden files
+# TODO filter Dir.list directly for hidden files
 if os.name != 'nt':
 	def is_hidden_file(file):
 			return file.basename.startswith('.')
@@ -2004,4 +2004,4 @@ class FSObjectMonitor(SignalEmitter):
 			gio.FILE_MONITOR_EVENT_DELETED,
 			gio.FILE_MONITOR_EVENT_MOVED,
 		):
-			self.emit('changed', None, None) # TODO translate otherfile and eventtype
+			self.emit('changed', None, None)  # TODO translate otherfile and eventtype

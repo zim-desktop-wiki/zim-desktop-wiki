@@ -33,8 +33,8 @@ from .thumbnailer import ThumbnailQueue, ThumbnailManager, \
 	THUMB_SIZE_NORMAL, THUMB_SIZE_LARGE
 
 
-MIN_THUMB_SIZE = 64 # don't render thumbs when icon size is smaller than this
-MAX_ICON_SIZE = 128 # never render icons larger than this - thumbs go up
+MIN_THUMB_SIZE = 64  # don't render thumbs when icon size is smaller than this
+MAX_ICON_SIZE = 128  # never render icons larger than this - thumbs go up
 
 
 def render_file_icon(widget, size):
@@ -88,7 +88,7 @@ class FileBrowserIconView(gtk.IconView):
 		self._mtime = None
 
 		gtk.IconView.__init__(self,
-			gtk.ListStore(str, gtk.gdk.Pixbuf, object)) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+			gtk.ListStore(str, gtk.gdk.Pixbuf, object))  # BASENAME_COL, PIXBUF_COL, MTIME_COL
 		self.set_text_column(BASENAME_COL)
 		self.set_pixbuf_column(PIXBUF_COL)
 		self.set_icon_size(icon_size)
@@ -119,7 +119,7 @@ class FileBrowserIconView(gtk.IconView):
 			self._sensitive_color = self.style.base[gtk.STATE_NORMAL]
 			self._insensitive_color = self.style.base[gtk.STATE_INSENSITIVE]
 			self._update_state()
-			self.disconnect(self._expose_event_id) # only need this once
+			self.disconnect(self._expose_event_id)  # only need this once
 
 		self._expose_event_id = self.connect('expose-event', _init_base_color)
 		self.connect('button-press-event', self.on_button_press_event)
@@ -131,7 +131,7 @@ class FileBrowserIconView(gtk.IconView):
 		self.refresh(icon_size_changed=True)
 
 	def set_folder(self, folder):
-		self.teardown_folder() # clears _thumbnailer and _monitor
+		self.teardown_folder()  # clears _thumbnailer and _monitor
 		self.folder = folder
 
 		self.refresh()
@@ -142,11 +142,11 @@ class FileBrowserIconView(gtk.IconView):
 
 	def refresh(self, icon_size_changed=False):
 		if self.folder is None:
-			return # Not yet initialized
+			return  # Not yet initialized
 		else:
 			try:
 				self._mtime = self.folder.mtime()
-			except FileNotFoundError: # folder went missing?
+			except FileNotFoundError:  # folder went missing?
 				self.teardown_folder()
 				self._update_state()
 				return
@@ -169,7 +169,7 @@ class FileBrowserIconView(gtk.IconView):
 		model.clear()
 
 		# Cache for mime icons - speed up lookup
-		min_icon_size = min((self.icon_size, MAX_ICON_SIZE)) # Avoid huge icons
+		min_icon_size = min((self.icon_size, MAX_ICON_SIZE))  # Avoid huge icons
 		file_icon = render_file_icon(self, min_icon_size)
 		mime_cache = {}
 		def my_get_mime_icon(file):
@@ -188,7 +188,7 @@ class FileBrowserIconView(gtk.IconView):
 			pixbuf, mtime = cache.pop(file.basename, (None, None))
 			if show_thumbs and file.isimage():
 				if not pixbuf:
-					pixbuf = my_get_mime_icon(file) # temporary icon
+					pixbuf = my_get_mime_icon(file)  # temporary icon
 					mtime = None
 
 				if icon_size_changed:
@@ -199,14 +199,14 @@ class FileBrowserIconView(gtk.IconView):
 				pixbuf = my_get_mime_icon(file)
 				mtime = None
 			else:
-				pass # re-use from cache
+				pass  # re-use from cache
 
 			model.append((file.basename, pixbuf, mtime))
 
 		self._set_orientation_and_size(max_text)
 
 		if not self._thumbnailer.queue_empty():
-			self._thumbnailer.start() # delay till here - else reduces our speed on loading
+			self._thumbnailer.start()  # delay till here - else reduces our speed on loading
 			self._idle_event_id = \
 				gobject.idle_add(self._on_check_thumbnail_queue)
 
@@ -227,13 +227,13 @@ class FileBrowserIconView(gtk.IconView):
 		cont = not self._thumbnailer.queue_empty()
 		if not cont:
 			self._idle_event_id = None
-		return cont # if False event is stopped
+		return cont  # if False event is stopped
 
 	def _set_orientation_and_size(self, max_text_length):
 		# Set item width to force wrapping text for long items
 		# Set to icon size + some space for padding etc.
 		# And set orientation etc.
-		text_size = max_text_length * 13 # XXX assume 13x per char
+		text_size = max_text_length * 13  # XXX assume 13x per char
 		icon_size = self.icon_size
 
 		if icon_size < 64:
@@ -292,7 +292,7 @@ class FileBrowserIconView(gtk.IconView):
 	def _on_folder_changed(self, *a):
 		try:
 			changed = self.folder and self.folder.mtime() != self._mtime
-		except OSError: # folder went missing?
+		except OSError:  # folder went missing?
 			changed = True
 
 		if changed:
@@ -332,14 +332,14 @@ class FileBrowserIconView(gtk.IconView):
 		file = self.folder.file(store[iter][BASENAME_COL])
 		file = File(file)
 
-		item = gtk.MenuItem(_('Open With...')) # T: menu item
+		item = gtk.MenuItem(_('Open With...'))  # T: menu item
 		menu.prepend(item)
 
 		window = self.get_toplevel()
-		submenu = OpenWithMenu(window, file) # XXX any widget should do to find window
+		submenu = OpenWithMenu(window, file)  # XXX any widget should do to find window
 		item.set_submenu(submenu)
 
-		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
+		item = gtk.MenuItem(_('_Open'))  # T: menu item to open file or folder
 		item.connect('activate', lambda o: self.opener.open_file(file))
 		menu.prepend(item)
 
@@ -359,7 +359,7 @@ class FileBrowserIconView(gtk.IconView):
 			mdate = datetime.datetime.fromtimestamp(file.mtime()).strftime('%c')
 			# TODO: fix datetime format
 		else:
-			mdate = _('Unknown') # T: unspecified value for file modification time
+			mdate = _('Unknown')  # T: unspecified value for file modification time
 		size = format_file_size(file.size())
 
 		thumbfile, pixbuf = thumbman.get_thumbnail(file, THUMB_SIZE_LARGE)
@@ -369,12 +369,12 @@ class FileBrowserIconView(gtk.IconView):
 		mtype = file.mimetype()
 		mtype_desc = get_mime_description(mtype)
 		if mtype_desc:
-			mtype_desc = mtype_desc + " (%s)" % mtype # E.g. "PDF document (application/pdf)"
+			mtype_desc = mtype_desc + " (%s)" % mtype  # E.g. "PDF document (application/pdf)"
 
-		f_label = _('Name') # T: label for file name
-		t_label = _('Type') # T: label for file type
-		s_label = _('Size') # T: label for file size
-		m_label = _('Modified') # T: label for file modification date
+		f_label = _('Name')  # T: label for file name
+		t_label = _('Type')  # T: label for file type
+		s_label = _('Size')  # T: label for file size
+		m_label = _('Modified')  # T: label for file modification date
 		tooltip.set_markup(
 			"%s\n\n<b>%s:</b> %s\n<b>%s:</b> %s\n<b>%s:</b>\n%s" % (
 				name,
@@ -410,16 +410,16 @@ class FileBrowserIconView(gtk.IconView):
 		elif action == gtk.gdk.ACTION_ASK:
 			menu = gtk.Menu()
 
-			item = gtk.MenuItem(_('_Move Here')) # T: popup menu action on drag-drop of a file
+			item = gtk.MenuItem(_('_Move Here'))  # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._move_files(files))
 			menu.append(item)
 
-			item = gtk.MenuItem(_('_Copy Here')) # T: popup menu action on drag-drop of a file
+			item = gtk.MenuItem(_('_Copy Here'))  # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._copy_files(files))
 			menu.append(item)
 
 			menu.append(gtk.SeparatorMenuItem())
-			item = gtk.MenuItem(_('Cancel')) # T: popup menu action on drag-drop of a file
+			item = gtk.MenuItem(_('Cancel'))  # T: popup menu action on drag-drop of a file
 			# cancel action needs no action
 			menu.append(item)
 

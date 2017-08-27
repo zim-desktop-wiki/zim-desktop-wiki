@@ -95,7 +95,7 @@ class Dumper(DumperClass):
 			start = '<' + h + ' dir=\'rtl\'>'
 		else:
 			start = '<' + h + '>'
-		self._isrtl = None # reset
+		self._isrtl = None  # reset
 		end = '</' + h + '>\n'
 		strings.insert(0, start)
 		strings.append(end)
@@ -110,7 +110,7 @@ class Dumper(DumperClass):
 		start = '<' + tag
 		if self._isrtl:
 			start += ' dir=\'rtl\''
-		self._isrtl = None # reset
+		self._isrtl = None  # reset
 
 		if 'indent' in attrib:
 			level = int(attrib['indent'])
@@ -170,7 +170,7 @@ class Dumper(DumperClass):
 			start += ' dir=\'rtl\'>'
 		else:
 			start += '>'
-		self._isrtl = None # reset
+		self._isrtl = None  # reset
 
 		strings.insert(0, start)
 

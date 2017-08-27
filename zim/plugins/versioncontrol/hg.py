@@ -8,7 +8,7 @@ from __future__ import with_statement
 import os
 import logging
 
-import xml.etree.ElementTree # needed to compile with cElementTree
+import xml.etree.ElementTree  # needed to compile with cElementTree
 import xml.etree.cElementTree as ET
 
 
@@ -30,7 +30,7 @@ class HGApplicationBackend(VCSApplicationBase):
 			# which will force user name to be auto-setup
 
 	def get_mandatory_params(self):
-		return ['--noninteractive'] # force hg to run in non-interactive mode
+		return ['--noninteractive']  # force hg to run in non-interactive mode
 		                            # which will force user name to be auto-setup
 
 	def build_revision_arguments(self, versions):
@@ -125,7 +125,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		       separated by a\n char
 		@returns: nothing
 		"""
-		#TODO: append the rule instead of overwrite the full content
+		# TODO: append the rule instead of overwrite the full content
 		self.root.file('.hgignore').write(file_to_ignore_regexp)
 
 
@@ -139,7 +139,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		"""
 		self.init()
 		self.ignore('\.zim*$\n')
-		self.add('.') # add all existing files
+		self.add('.')  # add all existing files
 
 	def repo_exists(self):
 		"""Returns True if a repository is already setup, or False

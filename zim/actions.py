@@ -44,7 +44,7 @@ def gtk_accelerator_preparse(code, force=False):
 	@returns: same or modified accelerator code
 	'''
 	if not code:
-		return code # tolerate None ...
+		return code  # tolerate None ...
 
 	m = _accelerator_preparse_re.search(code)
 	if m:
@@ -127,13 +127,13 @@ class Action(ActionMethod):
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
 		if defaults:
-			return len(defaults) == len(args) - 1 # -1 for "self"
+			return len(defaults) == len(args) - 1  # -1 for "self"
 		else:
-			return len(args) == 1 # self
+			return len(args) == 1  # self
 
 	def __get__(self, instance, klass):
 		if instance is None:
-			return self # class access
+			return self  # class access
 
 		# instance acces, return bound method
 		def func(*args, **kwargs):
@@ -200,11 +200,11 @@ class ToggleAction(Action):
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
-		return len(args) == 2 # (self, active)
+		return len(args) == 2  # (self, active)
 
 	def __get__(self, instance, klass):
 		if instance is None:
-			return self # class access
+			return self  # class access
 
 		if not instance in self._state:
 			self._state[instance] = self._init
@@ -214,7 +214,7 @@ class ToggleAction(Action):
 			if active is None:
 				active = not self._state[instance]
 			elif active == self._state[instance]:
-				return # nothing to do
+				return  # nothing to do
 
 			self.func(instance, active)
 
@@ -289,11 +289,11 @@ class RadioAction(ActionMethod):
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
-		return len(args) == 2 # (self, key)
+		return len(args) == 2  # (self, key)
 
 	def __get__(self, instance, klass):
 		if instance is None:
-			return self # class access
+			return self  # class access
 
 		# instance acces, return bound method
 		def func(key):
@@ -368,6 +368,6 @@ def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
 	else:
 		gaction = gtk.Action(*attr)
 
-	gaction.zim_readonly = action.readonly # HACK
+	gaction.zim_readonly = action.readonly  # HACK
 	action.connect_actionable(obj, gaction)
 	actiongroup.add_action_with_accel(gaction, accel)

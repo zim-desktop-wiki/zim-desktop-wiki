@@ -31,30 +31,30 @@ def is_dir(path):
 class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 
 	FILES = tuple(map(os_native_path, (
-		'foo.txt', # page with children
+		'foo.txt',  # page with children
 		'foo/',
 		'foo/test.png',
 		'foo/sub1.txt',
 		'foo/sub2.txt',
 
-		'bar.txt', # page without children
-		'bar/', # empty folder
+		'bar.txt',  # page without children
+		'bar/',  # empty folder
 
-		'foo-bar.txt', # page without children
+		'foo-bar.txt',  # page without children
 
-		'baz/', # page nested 2 folders deep
+		'baz/',  # page nested 2 folders deep
 		'baz/dus/',
 		'baz/dus/ja.txt',
 
-		'argh/', # not a page
+		'argh/',  # not a page
 		'argh/somefile.pdf',
 	)))
 	FILES_UPDATE = tuple(map(os_native_path, (
-		'tmp.txt', # page with child
+		'tmp.txt',  # page with child
 		'tmp/',
 		'tmp/foo.txt',
 
-		'new/', # nested page
+		'new/',  # nested page
 		'new/page.txt',
 	)))
 	FILES_CHANGE = (
@@ -161,14 +161,14 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 
 	FILES = tuple(map(os_native_path, (
-		'foo.txt', # page with children
+		'foo.txt',  # page with children
 		'foo/test.png',
 		'foo/sub1.txt',
 		'foo/sub2.txt',
-		'bar.txt', # page without children
-		'foo-bar.txt', # page without children
-		'baz/dus/ja.txt', # page nested 2 folders deep
-		'argh/somefile.pdf', # not a page
+		'bar.txt',  # page without children
+		'foo-bar.txt',  # page without children
+		'baz/dus/ja.txt',  # page nested 2 folders deep
+		'argh/somefile.pdf',  # not a page
 	)))
 	PAGES = (
 		'foo',
@@ -180,7 +180,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		'baz:dus',
 		'baz:dus:ja',
 	)
-	CONTENT = ( # These have a file
+	CONTENT = (  # These have a file
 		'foo',
 		'foo:sub1',
 		'foo:sub2',
@@ -188,7 +188,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 		'foo-bar',
 		'baz:dus:ja',
 	)
-	NAMESPACES = ( # These have also a folder
+	NAMESPACES = (  # These have also a folder
 		'foo',
 		'baz',
 		'baz:dus',
@@ -322,7 +322,7 @@ class TestLinksIndexer(tests.TestCase):
 				(i, name, natural_sort_key(name))
 			)
 
-		## Test PagesViewInternal methods
+		# Test PagesViewInternal methods
 		iview = PagesViewInternal(db)
 		i, pn = iview.resolve_pagename(Path(''), ['foo'])
 		self.assertEqual((i, pn), (3, Path('Foo')))
@@ -330,7 +330,7 @@ class TestLinksIndexer(tests.TestCase):
 		i, pn = iview.resolve_link(Path('Foo'), HRef.new_from_wiki_link('Bar'))
 		self.assertEqual((i, pn), (2, Path('Bar')))
 
-		## Test the actual indexer
+		# Test the actual indexer
 		pageindexer = tests.MaskedObject(pi, 'connect')
 		indexer = LinksIndexer(db, pageindexer, tests.MockObject())
 

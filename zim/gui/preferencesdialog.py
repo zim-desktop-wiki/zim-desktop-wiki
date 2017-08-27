@@ -19,8 +19,8 @@ logger = logging.getLogger('zim.gui.preferencesdialog')
 
 
 # define section labels here so xgettext can fing them
-_label = _('Interface') # T: Tab in preferences dialog
-_label = _('Editing') # T: Tab in preferences dialog
+_label = _('Interface')  # T: Tab in preferences dialog
+_label = _('Editing')  # T: Tab in preferences dialog
 
 
 class PreferencesDialog(Dialog):
@@ -30,7 +30,7 @@ class PreferencesDialog(Dialog):
 	'''
 
 	def __init__(self, ui, default_tab=None, select_plugin=None):
-		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Preferences'))  # T: Dialog title
 		gtknotebook = gtk.Notebook()
 		self.vbox.add(gtknotebook)
 		# saves a list of loaded plugins to be used later
@@ -100,7 +100,7 @@ class PreferencesDialog(Dialog):
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
 		self.fontbutton = gtk.FontButton()
-		self.fontbutton.set_use_font(True) # preview in button
+		self.fontbutton.set_use_font(True)  # preview in button
 		self.fontbutton.set_sensitive(False)
 		text_style = self.ui.config.get_config_dict('<profile>/style.conf')
 		try:
@@ -144,7 +144,7 @@ class PreferencesDialog(Dialog):
 			for section in newpreferences:
 				self.ui.preferences[section].update(newpreferences[section])
 
-		self.ui.preferences.emit('changed') # delayed emission
+		self.ui.preferences.emit('changed')  # delayed emission
 
 		return True
 
@@ -164,7 +164,7 @@ class PreferencesDialog(Dialog):
 				elif name not in self.p_save_loaded and name in now_loaded:
 					self.ui.plugins.remove_plugin(name)
 
-		self.ui.preferences.emit('changed') # delayed emission
+		self.ui.preferences.emit('changed')  # delayed emission
 
 		return True
 
@@ -203,21 +203,21 @@ class PluginsTab(gtk.VBox):
 		vbox.pack_end(hbox, False)
 
 		self.plugin_help_button = \
-			Button(stock=gtk.STOCK_HELP, label=_('_More')) # T: Button in plugin tab
+			Button(stock=gtk.STOCK_HELP, label=_('_More'))  # T: Button in plugin tab
 		self.plugin_help_button.connect('clicked', self.on_help_button_clicked)
 		hbox.pack_start(self.plugin_help_button, False)
 
 		self.configure_button = \
-			Button(stock=gtk.STOCK_PREFERENCES, label=_('C_onfigure')) # T: Button in plugin tab
+			Button(stock=gtk.STOCK_PREFERENCES, label=_('C_onfigure'))  # T: Button in plugin tab
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
 		hbox.pack_start(self.configure_button, False)
 
 		try:
 			self.treeselection.select_path(0)
 		except:
-			pass # maybe loading plugins failed
+			pass  # maybe loading plugins failed
 
-		## Add buttons to get and install new plugins
+		# Add buttons to get and install new plugins
 		hbox = gtk.HButtonBox()
 		hbox.set_border_width(5)
 		hbox.set_layout(gtk.BUTTONBOX_START)
@@ -234,7 +234,7 @@ class PluginsTab(gtk.VBox):
 		and gtk.pygtk_version >= (2, 10):
 			url_button = gtk.LinkButton(
 				'http://zim-wiki.org/more_plugins.html',
-				_('Get more plugins online') # T: label for button with URL
+				_('Get more plugins online')  # T: label for button with URL
 			)
 			hbox.pack_start(url_button, False)
 
@@ -259,32 +259,32 @@ class PluginsTab(gtk.VBox):
 			else:
 				buffer.insert_at_cursor(text)
 
-		buffer.delete(*buffer.get_bounds()) # clear
-		insert(_('Name') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		buffer.delete(*buffer.get_bounds())  # clear
+		insert(_('Name') + '\n', 'bold')  # T: Heading in plugins tab of preferences dialog
 		insert(klass.plugin_info['name'].strip() + '\n\n')
-		insert(_('Description') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		insert(_('Description') + '\n', 'bold')  # T: Heading in plugins tab of preferences dialog
 		insert(klass.plugin_info['description'].strip() + '\n\n')
-		insert(_('Dependencies') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		insert(_('Dependencies') + '\n', 'bold')  # T: Heading in plugins tab of preferences dialog
 
 		check, dependencies = klass.check_dependencies()
 		if not(dependencies):
-			insert(_('No dependencies') + '\n') # T: label in plugin info in preferences dialog
+			insert(_('No dependencies') + '\n')  # T: label in plugin info in preferences dialog
 		else:
 			# Construct dependency list, missing dependencies are marked red
 			for dependency in dependencies:
 				text, ok, required = dependency
 				if ok:
-					insert(u'\u2022 %s - %s\n' % (text, _('OK'))) # T: dependency is OK
+					insert(u'\u2022 %s - %s\n' % (text, _('OK')))  # T: dependency is OK
 				elif required:
-					insert(u'\u2022 %s - %s\n' % (text, _('Failed')), 'red') # T: dependency failed
+					insert(u'\u2022 %s - %s\n' % (text, _('Failed')), 'red')  # T: dependency failed
 				else:
 					insert(u'\u2022 %s - %s (%s)\n' % (text,
-						_('Failed'), # T: dependency failed
-						_('Optional') # T: optional dependency
+						_('Failed'),  # T: dependency failed
+						_('Optional')  # T: optional dependency
 					))
 		insert('\n')
 
-		insert(_('Author') + '\n', 'bold') # T: Heading in plugins tab of preferences dialog
+		insert(_('Author') + '\n', 'bold')  # T: Heading in plugins tab of preferences dialog
 		insert(klass.plugin_info['author'].strip())
 
 		self.configure_button.set_sensitive(active and bool(klass.plugin_preferences))
@@ -292,7 +292,7 @@ class PluginsTab(gtk.VBox):
 
 	def on_help_button_clicked(self, button):
 		klass = self.plugins.get_plugin_class(self._current_plugin)
-		self.dialog.ui.show_help(klass.plugin_info['help']) # XXX
+		self.dialog.ui.show_help(klass.plugin_info['help'])  # XXX
 
 	def on_configure_button_clicked(self, button):
 		plugin = self.plugins[self._current_plugin]
@@ -301,19 +301,19 @@ class PluginsTab(gtk.VBox):
 	def select_plugin(self, name):
 		model = self.treeview.get_model()
 		def find(model, path, iter):
-			if name in model[iter]: # either key or localized name
+			if name in model[iter]:  # either key or localized name
 				self.treeview.scroll_to_cell(path)
 				self.treeview.set_cursor(path)
 				self.do_selection_changed(self.treeselection)
 				return True
-			return False # keep the foreach going
+			return False  # keep the foreach going
 		model.foreach(find)
 
 
 class PluginsTreeModel(gtk.ListStore):
 
 	def __init__(self, plugins):
-		#columns are: key, active, activatable, name, klass
+		# columns are: key, active, activatable, name, klass
 		gtk.ListStore.__init__(self, str, bool, bool, str, object)
 		self.plugins = plugins
 
@@ -325,7 +325,7 @@ class PluginsTreeModel(gtk.ListStore):
 				allplugins.append((name, key, klass))
 			except:
 				logger.exception('Could not load plugin %s', key)
-		allplugins.sort() # sort by translated name
+		allplugins.sort()  # sort by translated name
 
 		for name, key, klass in allplugins:
 			active = key in self.plugins
@@ -376,7 +376,7 @@ class PluginsTreeView(BrowserTreeView):
 class PluginConfigureDialog(Dialog):
 
 	def __init__(self, dialog, plugin):
-		Dialog.__init__(self, dialog, _('Configure Plugin')) # T: Dialog title
+		Dialog.__init__(self, dialog, _('Configure Plugin'))  # T: Dialog title
 		self.plugin = plugin
 
 		label = gtk.Label()
@@ -394,10 +394,10 @@ class PluginConfigureDialog(Dialog):
 			if len(pref) == 4:
 				key, type, label, default = pref
 				check = None
-				self.plugin.preferences.setdefault(key, default) # just to be sure
+				self.plugin.preferences.setdefault(key, default)  # just to be sure
 			else:
 				key, type, label, default, check = pref
-				self.plugin.preferences.setdefault(key, default, check=check) # just to be sure
+				self.plugin.preferences.setdefault(key, default, check=check)  # just to be sure
 
 			if type in ('int', 'choice'):
 				fields.append((key, type, label, check))

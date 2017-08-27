@@ -209,7 +209,7 @@ def _read_comment_from(file):
 		#~ print "FALLBACK", fallback
 		if fallback:
 			fallback.sort()
-			return fallback[-1][1] # longest match
+			return fallback[-1][1]  # longest match
 		else:
 			return None
 
@@ -251,18 +251,18 @@ class ApplicationManager(object):
 		@param mimetype: the mime-type of the file (e.g. "text/html")
 		@returns: an L{Application} object or C{None}
 		'''
-		## Based on logic from xdg-mime defapp_generic()
-		## Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
+		# Based on logic from xdg-mime defapp_generic()
+		# Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
 		##
-		## Considered calling xdg-mime directly with code below as fallback.
-		## But xdg-mime has only a special case for KDE, all others are generic.
-		## Our purpose is to be able to set defaults ourselves and read them back.
-		## If we fail we fallback to opening files with the file browser which
-		## defaults to xdg-open. So even if the system does not support the
-		## generic implementation, it will behave sanely and fall back to system
-		## defaults.
+		# Considered calling xdg-mime directly with code below as fallback.
+		# But xdg-mime has only a special case for KDE, all others are generic.
+		# Our purpose is to be able to set defaults ourselves and read them back.
+		# If we fail we fallback to opening files with the file browser which
+		# defaults to xdg-open. So even if the system does not support the
+		# generic implementation, it will behave sanely and fall back to system
+		# defaults.
 
-		## TODO: optimize for being called very often ?
+		# TODO: optimize for being called very often ?
 
 		for dir in _application_dirs():
 			default_file = dir.file('defaults.list')
@@ -293,10 +293,10 @@ class ApplicationManager(object):
 		@param mimetype: the mime-type of the file (e.g. "text/html")
 		@param application: an L{Application} object or C{None}
 		'''
-		## Based on logic from xdg-mime make_default_generic()
-		## Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
+		# Based on logic from xdg-mime make_default_generic()
+		# Obtained from http://portland.freedesktop.org/wiki/ (2012-05-31)
 		##
-		## See comment in get_default_application()
+		# See comment in get_default_application()
 
 		if application is not None:
 			if not isinstance(application, basestring):
@@ -348,7 +348,7 @@ class ApplicationManager(object):
 			return StartFile()
 		elif os.name == 'darwin':
 			app = Application('open')
-		else: # linux and friends
+		else:  # linux and friends
 			app = Application('xdg-open')
 
 		if app.tryexec():
@@ -367,7 +367,7 @@ class ApplicationManager(object):
 			return StartFile()
 		elif os.name == 'darwin':
 			app = Application('open')
-		else: # linux and friends
+		else:  # linux and friends
 			app = Application('xdg-email')
 
 		if app.tryexec():
@@ -418,7 +418,7 @@ class ApplicationManager(object):
 		if mimetype in ('x-scheme-handler/http', 'x-scheme-handler/https'):
 			# Since "x-scheme-handler" is not in the standard, some browsers
 			# only identify themselves with "text/html".
-			for entry in klass.list_applications('text/html', nodisplay): # recurs
+			for entry in klass.list_applications('text/html', nodisplay):  # recurs
 				basename = entry.key + '.desktop'
 				if not basename in seen:
 					entries.append(entry)
@@ -446,7 +446,7 @@ class String(BaseString):
 
 
 class LocaleString(BaseString):
-	pass # utf8 already supported by default
+	pass  # utf8 already supported by default
 
 
 class Boolean(BaseBoolean):
@@ -512,7 +512,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 
 	@property
 	def key(self):
-		return '__anon__' # no mapping to .desktop file
+		return '__anon__'  # no mapping to .desktop file
 
 	def isvalid(self):
 		'''Check if all the fields that are required according to the
@@ -651,7 +651,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 
 		return tuple(cmd)
 
-	_cmd = parse_exec # To hook into Application.spawn and Application.run
+	_cmd = parse_exec  # To hook into Application.spawn and Application.run
 
 	def update(self, E=(), **F):
 		'''Same as C{dict.update()}'''
@@ -669,7 +669,7 @@ class DesktopEntryFile(DesktopEntryDict, INIConfigFile):
 
 	@property
 	def key(self):
-		return self.file.basename[:-8] # len('.desktop') is 8
+		return self.file.basename[:-8]  # len('.desktop') is 8
 
 
 class OpenWithMenu(gtk.Menu):
@@ -774,7 +774,7 @@ class CustomizeOpenWithDialog(Dialog):
 		self.default_combo.connect('changed', self.on_default_changed)
 		hbox = gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
-		hbox.pack_start(gtk.Label(_('Default') + ':'), False) # T: label for default application
+		hbox.pack_start(gtk.Label(_('Default') + ':'), False)  # T: label for default application
 		hbox.pack_start(self.default_combo)
 
 		# Button to add new
@@ -805,7 +805,7 @@ class CustomizeOpenWithDialog(Dialog):
 				combo.append(app)
 
 		if default:
-			combo.append(sysdefault) # append to end
+			combo.append(sysdefault)  # append to end
 
 		combo.set_active(0)
 		combo.handler_unblock_by_func(self.on_default_changed)
@@ -826,7 +826,7 @@ class CustomizeOpenWithDialog(Dialog):
 class SystemDefault(object):
 	'''Stub object that can be used in L{ApplicationComboBox}'''
 
-	name = _('System Default') # T: Label for default application handler
+	name = _('System Default')  # T: Label for default application handler
 
 
 
@@ -837,7 +837,7 @@ class ApplicationComboBox(gtk.ComboBox):
 	ICON_COL = 2
 
 	def __init__(self):
-		model = gtk.ListStore(str, object, gtk.gdk.Pixbuf) # NAME_COL, APP_COL, ICON_COL
+		model = gtk.ListStore(str, object, gtk.gdk.Pixbuf)  # NAME_COL, APP_COL, ICON_COL
 		gtk.ComboBox.__init__(self, model)
 
 		cell = gtk.CellRendererPixbuf()
@@ -861,7 +861,7 @@ class ApplicationComboBox(gtk.ComboBox):
 		else:
 			pixbuf = self.render_icon(gtk.STOCK_EXECUTE, gtk.ICON_SIZE_MENU)
 
-		model.append((application.name, application, pixbuf)) # NAME_COL, APP_COL, ICON_COL
+		model.append((application.name, application, pixbuf))  # NAME_COL, APP_COL, ICON_COL
 
 	def get_active(self):
 		model = self.get_model()
@@ -884,13 +884,13 @@ class AddApplicationDialog(Dialog):
 		@param mimetype: mime-type for which we want to create a new
 		application
 		'''
-		Dialog.__init__(self, ui, _('Add Application')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Add Application'))  # T: Dialog title
 		self.mimetype = mimetype
 		self.add_text(_mimetype_dialog_text(mimetype))
 		self.add_form((
-			('name', 'string', _('Name')), # T: Field in 'custom command' dialog
-			('exec', 'string', _('Command')), # T: Field in 'custom command' dialog
-			('default', 'bool', _('Make default application')), # T: Field in 'custom command' dialog
+			('name', 'string', _('Name')),  # T: Field in 'custom command' dialog
+			('exec', 'string', _('Command')),  # T: Field in 'custom command' dialog
+			('default', 'bool', _('Make default application')),  # T: Field in 'custom command' dialog
 		))
 		self.form['default'] = True
 
@@ -934,7 +934,7 @@ class CustomToolManager(object):
 	'''
 
 	def __init__(self):
-		self.config = ConfigManager() # XXX should be passed in
+		self.config = ConfigManager()  # XXX should be passed in
 		self.names = []
 		self.tools = {}
 		self._read_list()
@@ -1167,7 +1167,7 @@ class CustomToolDict(DesktopEntryDict):
 
 		return tuple(cmd)
 
-	_cmd = parse_exec # To hook into Application.spawn and Application.run
+	_cmd = parse_exec  # To hook into Application.spawn and Application.run
 
 	def run(self, args, cwd=None):
 		self._tmpfile = None
@@ -1205,4 +1205,4 @@ class CustomTool(CustomToolDict, INIConfigFile):
 
 	@property
 	def key(self):
-		return self.file.basename[:-8] # len('.desktop') is 8
+		return self.file.basename[:-8]  # len('.desktop') is 8

@@ -19,7 +19,7 @@ class TestPrintToBrowser(tests.TestCase):
 			('3 + 4 =', '3 + 4 = 7'),
 			('3 + 4 = 1', '3 + 4 = 7'),
 			('3 + 4 = 1 ', '3 + 4 = 7 '),
-			('10 / 3 =', '10 / 3 = 3.33333333333'), # divide integers to float !
+			('10 / 3 =', '10 / 3 = 3.33333333333'),  # divide integers to float !
 			('milage: 3 + 4 =', 'milage: 3 + 4 = 7'),
 			('3 + 4 = 7 + 0.5 =  ', '3 + 4 = 7 + 0.5 = 7.5'),
 			('''\
@@ -76,6 +76,6 @@ oct(8) == '010'
 			#~ print 'TESTING:', test
 			self.assertTrue(plugin.safe_eval(test))
 
-		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")') # global
-		self.assertRaises(Exception, plugin.process_text, 'self') # local
+		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")')  # global
+		self.assertRaises(Exception, plugin.process_text, 'self')  # local
 

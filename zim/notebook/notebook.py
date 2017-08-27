@@ -49,8 +49,8 @@ class NotebookConfig(INIConfigFile):
 			('name', String(file.dir.basename)),
 			('interwiki', String(None)),
 			('home', ConfigDefinitionByClass(Path('Home'))),
-			('icon', String(None)), # XXX should be file, but resolves relative
-			('document_root', String(None)), # XXX should be dir, but resolves relative
+			('icon', String(None)),  # XXX should be file, but resolves relative
+			('document_root', String(None)),  # XXX should be dir, but resolves relative
 			('shared', Boolean(True)),
 			('endofline', Choice(endofline, set(('dos', 'unix')))),
 			('disable_trash', Boolean(False)),
@@ -116,25 +116,25 @@ class PageError(Error):
 
 
 class PageNotFoundError(PageError):
-	_msg = _('No such page: %s') # T: message for PageNotFoundError
+	_msg = _('No such page: %s')  # T: message for PageNotFoundError
 
 
 class PageNotAllowedError(PageNotFoundError):
-	_msg = _('Page not allowed: %s') # T: message for PageNotAllowedError
+	_msg = _('Page not allowed: %s')  # T: message for PageNotAllowedError
 	description = _('This page name cannot be used due to technical limitations of the storage')
 			# T: description for PageNotAllowedError
 
 
 class PageExistsError(Error):
-	_msg = _('Page already exists: %s') # T: message for PageExistsError
+	_msg = _('Page already exists: %s')  # T: message for PageExistsError
 
 
 class PageReadOnlyError(Error):
-	_msg = _('Can not modify page: %s') # T: error message for read-only pages
+	_msg = _('Can not modify page: %s')  # T: error message for read-only pages
 
 
 class IndexNotUptodateError(Error):
-	pass # TODO description here?
+	pass  # TODO description here?
 
 
 def assert_index_uptodate(method):
@@ -202,13 +202,13 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	}
 
 	properties = (
-		('name', 'string', _('Name')), # T: label for properties dialog
-		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
-		('home', 'page', _('Home Page')), # T: label for properties dialog
-		('icon', 'image', _('Icon')), # T: label for properties dialog
-		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
+		('name', 'string', _('Name')),  # T: label for properties dialog
+		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)),  # T: label for properties dialog
+		('home', 'page', _('Home Page')),  # T: label for properties dialog
+		('icon', 'image', _('Icon')),  # T: label for properties dialog
+		('document_root', 'dir', _('Document Root')),  # T: label for properties dialog
 		#~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
-		('profile', 'string', _('Profile')), # T: label for properties dialog
+		('profile', 'string', _('Profile')),  # T: label for properties dialog
 		# 'shared' property is not shown in properties anymore
 	)
 
@@ -244,7 +244,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		folder = LocalFolder(dir.path)
 		layout = FilesLayout(folder, endofline)
-		cache_dir.touch() # must exist for index to work
+		cache_dir.touch()  # must exist for index to work
 		index = Index(cache_dir.file('index.db').path, layout)
 
 		nb = klass(dir, cache_dir, config, folder, layout, index)
@@ -252,7 +252,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		return nb
 
 	def __init__(self, dir, cache_dir, config, folder, layout, index):
-		self.dir = dir # TODO remove
+		self.dir = dir  # TODO remove
 		self.folder = folder
 		self.cache_dir = cache_dir
 		self.config = config
@@ -260,7 +260,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.index = index
 		self._operation_check = NOOP
 
-		self.readonly = not _iswritable(dir) if dir else None # XXX
+		self.readonly = not _iswritable(dir) if dir else None  # XXX
 
 		if self.readonly:
 			logger.info('Notebook read-only: %s', dir.path)
@@ -312,7 +312,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@property
 	def profile(self):
 		'''The 'profile' property for this notebook'''
-		return self.config['Notebook'].get('profile') or None # avoid returning ''
+		return self.config['Notebook'].get('profile') or None  # avoid returning ''
 
 	@notebook_state
 	def save_properties(self, **properties):
@@ -325,7 +325,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		@emits: properties-changed
 		'''
-		dir = Dir(self.layout.root.path) # XXX
+		dir = Dir(self.layout.root.path)  # XXX
 
 		# Check if icon is relative
 		icon = properties.get('icon')
@@ -355,17 +355,17 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.config['Notebook'].update(properties)
 		self.emit('properties-changed')
 
-		if hasattr(self.config, 'write'): # Check needed for tests
+		if hasattr(self.config, 'write'):  # Check needed for tests
 			self.config.write()
 
 	def do_properties_changed(self):
 		config = self.config['Notebook']
-		dir = Dir(self.layout.root.path) # XXX
+		dir = Dir(self.layout.root.path)  # XXX
 
 		self.name = config['name']
 		icon, document_root = _resolve_relative_config(dir, config)
 		if icon:
-			self.icon = icon.path # FIXME rewrite to use File object
+			self.icon = icon.path  # FIXME rewrite to use File object
 		else:
 			self.icon = None
 		self.document_root = document_root
@@ -595,7 +595,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		newfile, newfolder = self.layout.map_page(newpath)
 		if file.path.lower() == newfile.path.lower():
 			if newfile.isequal(file) or newfolder.isequal(folder):
-				pass # renaming on case-insensitive filesystem
+				pass  # renaming on case-insensitive filesystem
 			elif newfile.exists() or newfolder.exists():
 				raise PageExistsError(newpath)
 		elif newfile.exists() or newfolder.exists():
@@ -766,7 +766,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.store_page(page)
 
 	def _update_link_tag(self, elt, source, target, oldhref):
-		if oldhref.rel == HREF_REL_ABSOLUTE: # prefer to keep absolute links
+		if oldhref.rel == HREF_REL_ABSOLUTE:  # prefer to keep absolute links
 			newhref = HRef(HREF_REL_ABSOLUTE, target.name)
 		else:
 			newhref = self.pages.create_link(source, target)
@@ -1042,9 +1042,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		else:
 			if path:
 				dir = self.get_attachments_dir(path)
-				return File((dir.path, filename)) # XXX LocalDir --> File -- will need get_abspath to resolve
+				return File((dir.path, filename))  # XXX LocalDir --> File -- will need get_abspath to resolve
 			else:
-				dir = Dir(self.layout.root.path) # XXX
+				dir = Dir(self.layout.root.path)  # XXX
 				return File((dir, filename))
 
 	def relative_filepath(self, file, path=None):
@@ -1075,9 +1075,9 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		relative path was found
 		'''
 		from zim.newfs import LocalFile, LocalFolder
-		file = LocalFile(file.path) # XXX
+		file = LocalFile(file.path)  # XXX
 		notebook_root = self.layout.root
-		document_root = LocalFolder(self.document_root.path) if self.document_root else None# XXX
+		document_root = LocalFolder(self.document_root.path) if self.document_root else None  # XXX
 
 		rootdir = '/'
 		mydir = '.' + os.sep
@@ -1154,10 +1154,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				'name': path.name,
 				'basename': path.basename,
 				'section': path.namespace,
-				'namespace': path.namespace, # backward compat
+				'namespace': path.namespace,  # backward compat
 			}
 		}
-		self.emit('new-page-template', path, template) # plugin hook
+		self.emit('new-page-template', path, template)  # plugin hook
 		template.process(lines, context)
 
 		parser = zim.formats.get_parser('wiki')

@@ -125,7 +125,7 @@ class NotebookCommand(Command):
 		else:
 			return None
 
-		return resolve_notebook(uri, pwd=self.pwd) # None if not found
+		return resolve_notebook(uri, pwd=self.pwd)  # None if not found
 
 	def get_notebook_argument(self):
 		'''Get the notebook and page arguments for this command
@@ -140,7 +140,7 @@ class NotebookCommand(Command):
 		notebook = args[0]
 
 		if notebook is None:
-			if self.arguments[0] == 'NOTEBOOK': # not optional
+			if self.arguments[0] == 'NOTEBOOK':  # not optional
 				raise NotebookLookupError(_('Please specify a notebook'))
 					# T: Error when looking up a notebook
 			else:
@@ -176,12 +176,12 @@ class NotebookCommand(Command):
 		notebookinfo, page = self.get_notebook_argument() 	# can raise NotebookLookupError
 		if not notebookinfo:
 			raise NotebookLookupError(_('Please specify a notebook'))
-		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+		notebook, uripage = build_notebook(notebookinfo)  # can raise FileNotFound
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
 			for info in notebook.index.update_iter():
 				#logger.info('Indexing %s', info)
-				pass # TODO meaningful info for above message
+				pass  # TODO meaningful info for above message
 
 		return notebook, page or uripage
 
@@ -226,24 +226,24 @@ class GuiCommand(NotebookCommand, GtkCommand):
 					notebookinfo = prompt_notebook_list()
 
 		if notebookinfo is None:
-			return None, None # Cancelled prompt
+			return None, None  # Cancelled prompt
 
 		try:
-			notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+			notebook, uripage = build_notebook(notebookinfo)  # can raise FileNotFound
 		except FileNotFoundError:
 			if used_default:
 				# Default notebook went missing? Fallback to dialog to allow changing it
 				notebookinfo = prompt_notebook_list()
 				if notebookinfo is None:
-					return None, None # Cancelled prompt
-				notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
+					return None, None  # Cancelled prompt
+				notebook, uripage = build_notebook(notebookinfo)  # can raise FileNotFound
 			else:
 				raise
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
 			for info in notebook.index.update_iter():
 				#logger.info('Indexing %s', info)
-				pass # TODO meaningful info for above message
+				pass  # TODO meaningful info for above message
 
 		return notebook, page or uripage
 
@@ -260,7 +260,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		for window in gtk.window_list_toplevels():
 			if isinstance(window, zim.gui.MainWindow) \
 			and window.ui.notebook.uri == notebook.uri:
-				gui = window.ui # XXX
+				gui = window.ui  # XXX
 				break
 
 		if gui:
@@ -275,7 +275,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			)
 			gui.run()
 
-		return gui._mainwindow # XXX
+		return gui._mainwindow  # XXX
 
 
 class ManualCommand(GuiCommand):
@@ -287,7 +287,7 @@ class ManualCommand(GuiCommand):
 
 	def run(self):
 		from zim.config import data_dir
-		self.arguments = ('NOTEBOOK', '[PAGE]') # HACK
+		self.arguments = ('NOTEBOOK', '[PAGE]')  # HACK
 		self.args.insert(0, data_dir('manual').path)
 		return GuiCommand.run(self)
 
@@ -370,7 +370,7 @@ class ExportCommand(NotebookCommand):
 
 		format = self.opts.get('format', 'html')
 		if not 'output' in self.opts:
-			raise UsageError(_('Output location needed for export')) # T: error in export command
+			raise UsageError(_('Output location needed for export'))  # T: error in export command
 		output = Dir(self.opts['output'])
 		if not output.isdir():
 			output = File(self.opts.get('output'))
@@ -388,7 +388,7 @@ class ExportCommand(NotebookCommand):
 		if format == 'mhtml':
 			self.ignore_options('index-page')
 			if output.isdir():
-				raise UsageError(_('Need output file to export MHTML')) # T: error message for export
+				raise UsageError(_('Need output file to export MHTML'))  # T: error message for export
 
 			exporter = build_mhtml_file_exporter(
 				output, template,
@@ -414,7 +414,7 @@ class ExportCommand(NotebookCommand):
 			if not output.exists():
 				output = Dir(output.path)
 			elif not output.isdir():
-				raise UsageError(_('Need output folder to export full notebook')) # T: error message for export
+				raise UsageError(_('Need output folder to export full notebook'))  # T: error message for export
 
 			exporter = build_notebook_exporter(
 				output, format, template,
@@ -484,7 +484,7 @@ class IndexCommand(NotebookCommand):
 		notebook.index.flush()
 		for info in notebook.index.update_iter():
 			#logger.info('Indexing %s', info)
-			pass # TODO meaningful info for above message
+			pass  # TODO meaningful info for above message
 
 
 commands = {
@@ -536,7 +536,7 @@ def build_command(args, pwd=None):
 			args.pop(0)
 			cmd = 'help'
 		else:
-			cmd = 'gui' # default
+			cmd = 'gui'  # default
 
 		klass = commands[cmd]
 
@@ -577,7 +577,7 @@ class ZimApplication(object):
 	def get_mainwindow(self, notebook, _class=None):
 		'''Returns an existing L{MainWindow} for C{notebook} or C{None}'''
 		from zim.gui import MainWindow
-		_class = _class or MainWindow # test seam
+		_class = _class or MainWindow  # test seam
 		for w in self.toplevels:
 			if isinstance(w, _class) and w.notebook.uri == notebook.uri:
 				return w
@@ -623,7 +623,7 @@ class ZimApplication(object):
 		@param kwargs: optional arguments for L{build_command}
 		'''
 		cmd = build_command(args, **kwargs)
-		self._run_cmd(cmd, args) # test seam
+		self._run_cmd(cmd, args)  # test seam
 
 	def _run_cmd(self, cmd, args):
 		self._setup_logging(cmd)
@@ -650,7 +650,7 @@ class ZimApplication(object):
 					return
 
 				if not self._standalone and self._try_dispatch(args, cmd.pwd):
-					pass # We are done
+					pass  # We are done
 				else:
 					self._running = True
 					self._run_main_loop(cmd)
@@ -707,7 +707,7 @@ class ZimApplication(object):
 					toplevel.destroy()
 				except:
 					logger.exception('Exception while destroying window')
-					self.remove_window(toplevel) # force removal
+					self.remove_window(toplevel)  # force removal
 
 			# start main again if toplevels remaining ..
 
@@ -721,7 +721,7 @@ class ZimApplication(object):
 		else:
 			level = logging.WARN
 
-		root = logging.getLogger() # root
+		root = logging.getLogger()  # root
 		if level < root.getEffectiveLevel():
 			root.setLevel(level)
 
@@ -834,7 +834,7 @@ class ZimApplication(object):
 				pass
 
 
-ZIM_APPLICATION = ZimApplication() # Singleton per process
+ZIM_APPLICATION = ZimApplication()  # Singleton per process
 
 
 def main(*argv):

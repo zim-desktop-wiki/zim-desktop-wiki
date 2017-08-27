@@ -85,7 +85,7 @@ class ConfigManager(object):
 			file = basedirs.XDG_CONFIG_HOME.file('zim/' + path)
 			defaults = XDGConfigFileIter(basepath)
 
-		## Backward compatibility for profiles
+		# Backward compatibility for profiles
 		if self.profile \
 		and filename in (
 			'<profile>/preferences.conf',
@@ -127,8 +127,8 @@ class ConfigManager(object):
 
 		return self._config_dicts[filename]
 
-	#def get_all_config_files(filename)  - iterate multiple values ?
-	#def get_config_section(filename, section): - return section
+	# def get_all_config_files(filename)  - iterate multiple values ?
+	# def get_config_section(filename, section): - return section
 
 
 def VirtualConfigManager(**data):
@@ -163,7 +163,7 @@ class XDGConfigDirsIter(object):
 	'''
 
 	def __iter__(self):
-		from . import data_dirs # XXX
+		from . import data_dirs  # XXX
 		yield basedirs.XDG_CONFIG_HOME.subdir(('zim'))
 		for dir in basedirs.XDG_CONFIG_DIRS:
 			yield dir.subdir(('zim'))
@@ -251,7 +251,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		#~ self.emit('changed')
 
 	def check_has_changed_on_disk(self):
-		return True # we do not emit the signal if it is not real...
+		return True  # we do not emit the signal if it is not real...
 
 	@property
 	def basename(self):
@@ -268,7 +268,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 				default.copyto(self.file)
 				break
 			else:
-				self.file.touch() # create empty file
+				self.file.touch()  # create empty file
 
 	def read(self, fail=False):
 		'''Read the base file or first default file

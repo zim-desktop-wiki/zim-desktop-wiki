@@ -33,7 +33,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		mainwindow.pageview = pageview
 		mainwindow.uimanager = tests.MockObject()
 
-		mainwindow.ui = tests.MockObject() # XXX
+		mainwindow.ui = tests.MockObject()  # XXX
 		mainwindow.ui.uistate = SectionedConfigDict()
 
 		plugin.extend(mainwindow, 'MainWindow')
@@ -56,27 +56,27 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		self.assertEqual(text, r'\alpha ')
 		pageview.undo()
 		text = buffer.get_text(*buffer.get_bounds())
-		self.assertEqual(text, r'\alpha') # no trailing space
+		self.assertEqual(text, r'\alpha')  # no trailing space
 
 		# insert on end-of-word with ;
 		buffer.clear()
 		press(textview, r'\alpha;')
 		text = buffer.get_text(*buffer.get_bounds())
-		self.assertEqual(text, ALPHA) # no trailing space
+		self.assertEqual(text, ALPHA)  # no trailing space
 
 		# no insert in code or pre section
 		buffer.clear()
 		pageview.toggle_format(VERBATIM)
 		press(textview, r'\alpha ')
 		text = buffer.get_text(*buffer.get_bounds())
-		self.assertEqual(text, r'\alpha ') # no replace
+		self.assertEqual(text, r'\alpha ')  # no replace
 
 		# test dialog
 		def check_dialog(dialog):
 			self.assertIsInstance(dialog, InsertSymbolDialog)
-			dialog.iconview.item_activated((9,)) # path for 10th item in symbol list
-			dialog.iconview.item_activated((10,)) # path for 11th item in symbol list
-			dialog.iconview.item_activated((11,)) # path for 12th item in symbol list
+			dialog.iconview.item_activated((9,))  # path for 10th item in symbol list
+			dialog.iconview.item_activated((10,))  # path for 11th item in symbol list
+			dialog.iconview.item_activated((11,))  # path for 12th item in symbol list
 			dialog.assert_response_ok()
 
 		buffer.clear()

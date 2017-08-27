@@ -76,7 +76,7 @@ class FilesIndexer(SignalEmitter):
 				' VALUES (?, ? , ?, ?)',
 				(0, '.', TYPE_FOLDER, STATUS_NEED_UPDATE)
 			)
-			assert c.lastrowid == 1 # ensure we start empty
+			assert c.lastrowid == 1  # ensure we start empty
 
 	def update_iter(self):
 		'''Generator function for the actual update'''
@@ -99,7 +99,7 @@ class FilesIndexer(SignalEmitter):
 
 			if row:
 				node_id, path, node_type = row
-				#print ">> UPDATE", node_id, path, node_type
+				# print ">> UPDATE", node_id, path, node_type
 			else:
 				break
 
@@ -118,7 +118,7 @@ class FilesIndexer(SignalEmitter):
 						self.delete_file(node_id)
 			except:
 				logger.exception('Error while indexing: %s', path)
-				self.db.execute( # avoid looping
+				self.db.execute(  # avoid looping
 					'UPDATE files SET index_status = ? WHERE id = ?',
 					(STATUS_UPTODATE, node_id)
 				)
@@ -171,7 +171,7 @@ class FilesIndexer(SignalEmitter):
 			'SELECT id FROM files WHERE path=?', (path,)
 		).fetchone()
 		if r is None:
-			parent_id = self._add_parent(folder.parent()) # recurs
+			parent_id = self._add_parent(folder.parent())  # recurs
 			self.db.execute(
 				'INSERT INTO files(path, node_type, index_status, parent) '
 				'VALUES (?, ?, ?, ?)',
@@ -202,7 +202,7 @@ class FilesIndexer(SignalEmitter):
 		):
 			children[childpath] = (child_id, mtime)
 
-		mtime = folder.mtime() # get mtime before getting contents
+		mtime = folder.mtime()  # get mtime before getting contents
 		for child in folder:
 			path = child.relpath(self.folder)
 			if path in children:
@@ -210,7 +210,7 @@ class FilesIndexer(SignalEmitter):
 				if child.mtime() == child_mtime:
 					self.set_node_uptodate(child_id, child_mtime)
 				else:
-					pass # leave the STATUS_NEED_UPDATE for next loop
+					pass  # leave the STATUS_NEED_UPDATE for next loop
 			else:
 				# new child
 				node_type = TYPE_FILE if isinstance(child, File) else TYPE_FOLDER
@@ -259,7 +259,7 @@ class FilesIndexer(SignalEmitter):
 			(node_id,)
 		):
 			if child_type == TYPE_FOLDER:
-				self.delete_folder(child_id) # recurs
+				self.delete_folder(child_id)  # recurs
 			else:
 				self.delete_file(child_id)
 
@@ -289,7 +289,7 @@ class FilesIndexChecker(object):
 			if row is None:
 				file = file.parent()
 			else:
-				break # continue with this file or folder
+				break  # continue with this file or folder
 
 		# Queue check
 		if recursive and file == self.folder:
@@ -341,11 +341,11 @@ class FilesIndexChecker(object):
 				#~ logger.debug('Check %s', row['path'])
 				node_id, path, node_type, mtime, check = row
 			else:
-				break # done
+				break  # done
 
 			if check == STATUS_NEED_UPDATE:
 				yield True
-				continue # let updater handle this first
+				continue  # let updater handle this first
 
 			try:
 				if node_type == TYPE_FOLDER:
@@ -354,7 +354,7 @@ class FilesIndexChecker(object):
 					obj = self.folder.file(path)
 
 				if not obj.exists():
-					check = STATUS_CHECK # update will drop children, no need to recurs anymore
+					check = STATUS_CHECK  # update will drop children, no need to recurs anymore
 					new_status = STATUS_NEED_UPDATE
 
 				else:
@@ -372,7 +372,7 @@ class FilesIndexChecker(object):
 
 			except:
 				logger.exception('Error while indexing: %s', path)
-				self.db.execute( # avoid looping
+				self.db.execute(  # avoid looping
 					'UPDATE files SET index_status = ? WHERE id = ?',
 					(STATUS_NEED_UPDATE, node_id)
 				)

@@ -42,8 +42,8 @@ class TestQuickNotePlugin(tests.TestCase):
 
 		# Clipboard input
 		text = 'foo bar baz\ndus 123'
-		SelectionClipboard.clipboard.clear() # just to be sure
-		SelectionClipboard.clipboard.set_text('') # HACK to clear it
+		SelectionClipboard.clipboard.clear()  # just to be sure
+		SelectionClipboard.clipboard.set_text('')  # HACK to clear it
 		Clipboard.set_text(text)
 		self.assertRun(('input=clipboard',), text)
 		self.assertRun(('--input', 'clipboard',), text)

@@ -36,13 +36,13 @@ class TestSpell(object):
 			self._restore
 
 	def runTest(self, adapterclass):
-		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
+		with tests.LoggingFilter(logger='zim.plugins.spell'):  # Hide exceptions
 			ui = setupGtkInterface(self)
 			plugin = ui.plugins.load_plugin('spell')
-			plugin.extend(ui._mainwindow) # XXX
-			ext = plugin.get_extension(ui._mainwindow, zim.plugins.spell.MainWindowExtension) # XXX
+			plugin.extend(ui._mainwindow)  # XXX
+			ext = plugin.get_extension(ui._mainwindow, zim.plugins.spell.MainWindowExtension)  # XXX
 
-			self.assertIs(ext._adapter, adapterclass) # ensure switching library worked
+			self.assertIs(ext._adapter, adapterclass)  # ensure switching library worked
 
 			ext.toggle_spellcheck()
 			ext.toggle_spellcheck()

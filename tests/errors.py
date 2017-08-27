@@ -95,7 +95,7 @@ class TestExceptionHandler(tests.TestCase):
 
 	def testExceptionHandler(self):
 
-		## Handle unexpected error or bug
+		# Handle unexpected error or bug
 		try:
 			raise AssertionError('My AssertionError')
 		except:
@@ -113,7 +113,7 @@ class TestExceptionHandler(tests.TestCase):
 			assert False
 
 
-		## Show caught bug
+		# Show caught bug
 		try:
 			raise AssertionError('My AssertionError')
 		except Exception as error:
@@ -131,7 +131,7 @@ class TestExceptionHandler(tests.TestCase):
 			assert False
 
 
-		## Handle normal application error
+		# Handle normal application error
 		try:
 			raise zim.errors.Error('My normal Error')
 		except:
@@ -155,7 +155,7 @@ class TestExceptionHandler(tests.TestCase):
 			assert False
 
 
-		## Handle normal IOError
+		# Handle normal IOError
 		try:
 			open('/some/non/existing/file/').read()
 		except:

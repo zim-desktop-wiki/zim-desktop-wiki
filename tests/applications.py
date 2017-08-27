@@ -53,8 +53,8 @@ class TestApplications(tests.TestCase):
 		for app, args, wanted in (
 			# Test cases should be compliant with spec
 			('foo %f', (), ('foo',)),
-			('foo %f %i', (), ('foo',)), # no icon set
-			('foo %f %k', (), ('foo', '')), # no source set
+			('foo %f %i', (), ('foo',)),  # no icon set
+			('foo %f %k', (), ('foo', '')),  # no source set
 			('foo %f %c', (), ('foo', 'Foo')),
 			('foo', ('bar',), ('foo', 'bar')),
 			('foo', ('bar baz',), ('foo', 'bar baz')),
@@ -76,7 +76,7 @@ class TestApplications(tests.TestCase):
 				wanted = replace(wanted, '/foo/bar', r'C:\foo\bar')
 				wanted = replace(wanted, 'file:///foo/bar', r'file:///C:/foo/bar')
 
-			#print app, args
+			# print app, args
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)
 			self.assertEqual(result, wanted)
@@ -94,7 +94,7 @@ class TestApplications(tests.TestCase):
 		):
 			if os.name == 'nt':
 				wanted = replace(wanted, '/foo.desktop', r'C:\foo.desktop')
-			#print app, args
+			# print app, args
 			entry['Desktop Entry']['Exec'] = app
 			result = entry.parse_exec(args)
 			self.assertEqual(result, wanted)
@@ -144,7 +144,7 @@ class TestApplicationManager(tests.TestCase):
 		#~ print XDG_DATA_HOME, XDG_DATA_DIRS
 		manager = ApplicationManager()
 
-		## Test Create & Get
+		# Test Create & Get
 		entry_text = manager.create('text/plain', 'Test_Entry_Text', 'test_text 123', NoDisplay=False)
 		entry_html = manager.create('text/html', 'Test_Entry_HTML', 'test_html %u', NoDisplay=False)
 		entry_url = manager.create('x-scheme-handler/ssh', 'Test_Entry_SSH', 'test_ssh %u', NoDisplay=False)
@@ -153,7 +153,7 @@ class TestApplicationManager(tests.TestCase):
 			self.assertEqual(manager.get_application(entry.key), entry)
 			self.assertFalse(entry['Desktop Entry']['NoDisplay'])
 
-		## Test Set & Get Default
+		# Test Set & Get Default
 		defaults = XDG_DATA_HOME.file('applications/defaults.list')
 		self.assertFalse(defaults.exists())
 
@@ -161,8 +161,8 @@ class TestApplicationManager(tests.TestCase):
 		self.assertIsInstance(default, (None.__class__, DesktopEntryFile))
 			# system default or None
 
-		manager.set_default_application('text/plain', entry_html) # create
-		manager.set_default_application('text/plain', entry_text) # update
+		manager.set_default_application('text/plain', entry_html)  # create
+		manager.set_default_application('text/plain', entry_text)  # update
 
 		self.assertTrue(defaults.exists())
 		self.assertEqual(defaults.read(),
@@ -177,7 +177,7 @@ class TestApplicationManager(tests.TestCase):
 		)
 		self.assertNotEqual(manager.get_default_application('text/plain'), entry_text)
 
-		## Test listing
+		# Test listing
 		#~ print manager.list_applications('text/plain')
 		applications = manager.list_applications('text/plain')
 		self.assertGreaterEqual(len(applications), 1)
@@ -194,7 +194,7 @@ class TestApplicationManager(tests.TestCase):
 		self.assertGreaterEqual(len(applications), 1)
 		self.assertIn(entry_url, applications)
 
-		## Increase coverage
+		# Increase coverage
 		self.assertIsInstance(manager.get_application('webbrowser'), WebBrowser)
 		self.assertIsInstance(manager.get_application('startfile'), StartFile)
 		self.assertIsNone(manager.get_application('non_existing_application'))
@@ -230,7 +230,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertFalse(tool.isreadonly)
 		self.assertTrue(tool.showintoolbar)
 		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
-		self.assertEqual(tool.showincontextmenu, 'Text') # Auto generated
+		self.assertEqual(tool.showincontextmenu, 'Text')  # Auto generated
 
 		# test file saved correctly
 		#~ from pprint import pprint
@@ -265,7 +265,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertFalse(tool.isreadonly)
 		self.assertTrue(tool.showintoolbar)
 		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
-		self.assertEqual(tool.showincontextmenu, 'Page') # Auto generated
+		self.assertEqual(tool.showincontextmenu, 'Page')  # Auto generated
 
 		# switch order
 		i = manager.index(tool)
@@ -314,7 +314,7 @@ class TestCustomTools(tests.TestCase):
 			('foo %s', ('foo', page.source.path)),
 			('foo %p', ('foo', 'Test:Foo')),
 			('foo %n', ('foo', dir.path)),
-			('foo %D', ('foo', '')), # no document root
+			('foo %D', ('foo', '')),  # no document root
 			('foo %t', ('foo', 'FooBar')),
 			('foo %T', ('foo', '**FooBar**')),
 		):
@@ -324,7 +324,7 @@ class TestCustomTools(tests.TestCase):
 
 
 #~ class TestOpenWithMenu(tests.TestCase):
-class Foo(object): # FIXME - this test blocks on full test runs ??
+class Foo(object):  # FIXME - this test blocks on full test runs ??
 
 	def runTest(self):
 		# Create some custom entries - should NOT appear in menu
@@ -399,7 +399,7 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 				dialog.form['default'] = True
 				entry = dialog.assert_response_ok()
 				self.assertTrue(entry.file.exists())
-				self.assertTrue(entry.nodisplay) # implied by default = True
+				self.assertTrue(entry.nodisplay)  # implied by default = True
 
 				manager = ApplicationManager()
 				self.assertEqual(manager.get_default_application(mimetype), entry)

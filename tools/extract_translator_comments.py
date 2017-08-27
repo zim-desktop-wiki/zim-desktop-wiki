@@ -15,7 +15,7 @@ def get_file(file):
 
 def extract_comment(file, line):
 	lines = get_file(file)
-	line -= 1 # list is 0 based
+	line -= 1  # list is 0 based
 	match = comment_re.search(lines[line])
 	if match:
 		# comment on same line

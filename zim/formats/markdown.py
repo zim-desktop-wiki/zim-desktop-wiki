@@ -38,20 +38,20 @@ class Dumper(TextDumper):
 	# are different
 
 	BULLETS = {
-		UNCHECKED_BOX: u'* \u2610', # ☐
-		XCHECKED_BOX: u'* \u2612', # ☒
-		CHECKED_BOX: u'* \u2611', # ☑
-		MIGRATED_BOX: u'* \u25B7', # ▷
+		UNCHECKED_BOX: u'* \u2610',  # ☐
+		XCHECKED_BOX: u'* \u2612',  # ☒
+		CHECKED_BOX: u'* \u2611',  # ☑
+		MIGRATED_BOX: u'* \u25B7',  # ▷
 		BULLET: u'*',
 	}
 
 	TAGS = {
 		EMPHASIS: ('*', '*'),
 		STRONG: ('**', '**'),
-		MARK: ('__', '__'), # OPEN ISSUE: not availalbe in pandoc
+		MARK: ('__', '__'),  # OPEN ISSUE: not availalbe in pandoc
 		STRIKE: ('~~', '~~'),
 		VERBATIM: ("``", "``"),
-		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		TAG: ('', ''),  # No additional annotation (apart from the visible @)
 		SUBSCRIPT: ('~', '~'),
 		SUPERSCRIPT: ('^', '^'),
 	}

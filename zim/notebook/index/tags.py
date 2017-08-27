@@ -11,7 +11,7 @@ from zim.signals import SIGNAL_NORMAL
 
 from .base import IndexerBase, IndexView, IndexNotFoundError
 from .pages import PagesViewInternal, ROOT_PATH, \
-	PageIndexRecord  #, get_treepath_for_indexpath_factory
+	PageIndexRecord  # , get_treepath_for_indexpath_factory
 
 
 class IndexTag(object):
@@ -226,7 +226,7 @@ class TagsView(IndexView):
 		@returns: yields L{IndexTag} objects
 		@raises IndexNotFoundError: if C{path} is not found in the index
 		'''
-		page_id = self._pages.get_page_id(path) # can raise
+		page_id = self._pages.get_page_id(path)  # can raise
 		return self._list_tags(page_id)
 
 	def _list_tags(self, page_id):
@@ -241,7 +241,7 @@ class TagsView(IndexView):
 			yield IndexTag(*row)
 
 	def n_list_tags(self, path):
-		page_id = self._pages.get_page_id(path) # can raise
+		page_id = self._pages.get_page_id(path)  # can raise
 		r = self.db.execute(
 			'SELECT COUNT(*) '
 			'FROM tagsources '
@@ -283,7 +283,7 @@ class TagsView(IndexView):
 from .pages import IS_PAGE, PagesTreeModelMixin, MyTreeIter
 
 assert IS_PAGE == 1
-IS_TAG = 2 #: Hint for MyTreeIter
+IS_TAG = 2  # : Hint for MyTreeIter
 
 
 class TagsTreeModelBase(PagesTreeModelMixin):
@@ -316,7 +316,7 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 			self._tagquery = ' in %s' % (self._tagids,)
 
 	def _emit_children_inserted(self, pageid, treepath):
-		treeiter = self.get_iter(treepath) # not mytreeiter !
+		treeiter = self.get_iter(treepath)  # not mytreeiter !
 		self.emit('row-has-child-toggled', treepath, treeiter)
 		for row in self.db.execute(
 			'SELECT id, name, n_children FROM pages WHERE parent = ?',
@@ -324,10 +324,10 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 		):
 			for childtreepath in self._find_all_pages(row['name']):
 				if childtreepath[:-1] == treepath:
-					treeiter = self.get_iter(childtreepath) # not mytreeiter !
+					treeiter = self.get_iter(childtreepath)  # not mytreeiter !
 					self.emit('row-inserted', childtreepath, treeiter)
 					if row['n_children'] > 0:
-						self._emit_children_inserted(row['id'], childtreepath) # recurs
+						self._emit_children_inserted(row['id'], childtreepath)  # recurs
 
 	def connect_to_updateiter(self, index, update_iter):
 		self.connectto_all(update_iter.pages,
@@ -369,7 +369,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 			# Find top level entry - ignore possible deeper matches
 			for treepath in self._find_all_pages(pagerow['name']):
 				if len(treepath) == 1:
-					treeiter = self.get_iter(treepath) # not mytreeiter !
+					treeiter = self.get_iter(treepath)  # not mytreeiter !
 					self.emit('row-inserted', treepath, treeiter)
 					if pagerow['n_children'] > 0:
 						self._emit_children_inserted(pagerow['id'], treepath)
@@ -499,13 +499,13 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 			# emit row-insert for toplevel tag if needed
 			if n_children == 1:
 				treepath = (offset,)
-				treeiter = self.get_iter(treepath) # not mytreeiter !
+				treeiter = self.get_iter(treepath)  # not mytreeiter !
 				self.emit('row-inserted', treepath, treeiter)
 
 			# emit row-inserted 2nd level - recurs for children
 			for treepath in self._find_all_pages(pagerow['name']):
 				if treepath[0] == offset:
-					treeiter = self.get_iter(treepath) # not mytreeiter !
+					treeiter = self.get_iter(treepath)  # not mytreeiter !
 					self.emit('row-inserted', treepath, treeiter)
 					if pagerow['n_children'] > 0:
 						self._emit_children_inserted(pagerow['id'], treepath)
@@ -531,16 +531,16 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 		if treepath in self.cache:
 			return self.cache[treepath]
 
-		if len(treepath) == 1: # Toplevel tag
+		if len(treepath) == 1:  # Toplevel tag
 			offset, = treepath
-			if self._tagids: # Selection
+			if self._tagids:  # Selection
 				row = self.db.execute('''
 						SELECT * FROM tags WHERE id in %s
 						ORDER BY sortkey, name LIMIT 1 OFFSET ?
 					''' % (self._tagids,),
 					(offset,)
 				).fetchone()
-			else: # Full set
+			else:  # Full set
 				row = self.db.execute('''
 						SELECT * FROM tags
 						ORDER BY sortkey, name LIMIT 1 OFFSET ?
@@ -558,9 +558,9 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 				self.cache[treepath] = mytreeiter
 				return mytreeiter
 
-		elif len(treepath) == 2: # Top level page below tag
+		elif len(treepath) == 2:  # Top level page below tag
 			tag_path = treepath[:-1]
-			tag_iter = self.get_mytreeiter(tag_path) # recurs
+			tag_iter = self.get_mytreeiter(tag_path)  # recurs
 			if not tag_iter:
 				return None
 

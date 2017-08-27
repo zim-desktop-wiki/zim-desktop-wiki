@@ -60,26 +60,26 @@ and gtk.pygtk_version >= (2, 10):
 
 
 MENU_ACTIONS = (
-	('file_menu', None, _('_File')), # T: Menu title
-	('edit_menu', None, _('_Edit')), # T: Menu title
-	('view_menu', None, _('_View')), # T: Menu title
-	('insert_menu', None, _('_Insert')), # T: Menu title
-	('search_menu', None, _('_Search')), # T: Menu title
-	('format_menu', None, _('For_mat')), # T: Menu title
-	('tools_menu', None, _('_Tools')), # T: Menu title
-	('go_menu', None, _('_Go')), # T: Menu title
-	('help_menu', None, _('_Help')), # T: Menu title
-	('pathbar_menu', None, _('P_athbar')), # T: Menu title
-	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
-	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
+	('file_menu', None, _('_File')),  # T: Menu title
+	('edit_menu', None, _('_Edit')),  # T: Menu title
+	('view_menu', None, _('_View')),  # T: Menu title
+	('insert_menu', None, _('_Insert')),  # T: Menu title
+	('search_menu', None, _('_Search')),  # T: Menu title
+	('format_menu', None, _('For_mat')),  # T: Menu title
+	('tools_menu', None, _('_Tools')),  # T: Menu title
+	('go_menu', None, _('_Go')),  # T: Menu title
+	('help_menu', None, _('_Help')),  # T: Menu title
+	('pathbar_menu', None, _('P_athbar')),  # T: Menu title
+	('toolbar_menu', None, _('_Toolbar')),  # T: Menu title
+	('checkbox_menu', None, _('_Checkbox')),  # T: Menu title
 )
 
 
-PATHBAR_NONE = 'none' #: Constant for no pathbar
-PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
-PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathbar
-PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
-PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
+PATHBAR_NONE = 'none'  # : Constant for no pathbar
+PATHBAR_RECENT = 'recent'  # : Constant for the recent pages pathbar
+PATHBAR_RECENT_CHANGED = 'recent_changed'  # : Constant for the recent pages pathbar
+PATHBAR_HISTORY = 'history'  # : Constant for the history pathbar
+PATHBAR_PATH = 'path'  # : Constant for the namespace pathbar
 PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
 
 TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
@@ -120,7 +120,7 @@ def load_zim_stock_icons():
 	for dir in data_dirs(('pixmaps')):
 		for file in dir.list('*.png'):
 			# not all installs have svg support, so only check png for now..
-			name = 'zim-' + file[:-4] # e.g. checked-box.png -> zim-checked-box
+			name = 'zim-' + file[:-4]  # e.g. checked-box.png -> zim-checked-box
 			icon_theme = gtk.icon_theme_get_default()
 			try:
 			    pixbuf = icon_theme.load_icon(name, 24, 0)
@@ -145,7 +145,7 @@ def schedule_on_idle(function, args=()):
 	'''
 	def callback():
 		function(*args)
-		return False # delete signal
+		return False  # delete signal
 	gobject.idle_add(callback)
 
 
@@ -260,7 +260,7 @@ class GtkInterface(gobject.GObject):
 		self.notebook = notebook
 
 		self.config = config or ConfigManager(profile=notebook.profile)
-		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
+		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')  # preferences attrib should just be one section
 		self.preferences['General'].setdefault('plugins',
 			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'osx_menubar'])
 
@@ -300,10 +300,10 @@ class GtkInterface(gobject.GObject):
 		self.do_preferences_changed()
 
 		self._init_notebook(self.notebook)
-		if page and isinstance(page, basestring): # IPC call
+		if page and isinstance(page, basestring):  # IPC call
 			page = self.notebook.pages.lookup_from_user_input(page)
 
-		self._first_page = page # XXX HACK - if we call open_page here, plugins are not yet initialized
+		self._first_page = page  # XXX HACK - if we call open_page here, plugins are not yet initialized
 
 	def _init_notebook(self, notebook):
 		if notebook.cache_dir:
@@ -336,8 +336,8 @@ class GtkInterface(gobject.GObject):
 		self.history = History(notebook, self.uistate)
 		self.on_notebook_properties_changed(notebook)
 		notebook.connect('properties-changed', self.on_notebook_properties_changed)
-		notebook.connect('deleted-page', move_away) # after action
-		notebook.connect('moved-page', follow) # after action
+		notebook.connect('deleted-page', move_away)  # after action
+		notebook.connect('moved-page', follow)  # after action
 
 		def on_page_info_changed(notebook, page):
 			if self.page and page == self.page:
@@ -408,7 +408,7 @@ class GtkInterface(gobject.GObject):
 			# put a small delay to ensure window is shown before we start
 			def start_background_check():
 				self.notebook.index.start_background_check(self.notebook)
-				return False # only run once
+				return False  # only run once
 			gobject.timeout_add(500, start_background_check)
 
 		self._mainwindow.pageview.grab_focus()
@@ -458,7 +458,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		self._mainwindow.hide()
 
-	@action(_('_Close'), 'gtk-close', '<Primary>W', readonly=True) # T: Menu item
+	@action(_('_Close'), 'gtk-close', '<Primary>W', readonly=True)  # T: Menu item
 	def close(self):
 		'''Menu action for close. Will hide when L{hideonclose} is set,
 		calls L{quit()} otherwise.
@@ -468,7 +468,7 @@ class GtkInterface(gobject.GObject):
 		else:
 			self._mainwindow.destroy()
 
-	@action(_('_Quit'), 'gtk-quit', '<Primary>Q') # T: Menu item
+	@action(_('_Quit'), 'gtk-quit', '<Primary>Q')  # T: Menu item
 	def quit(self):
 		'''Menu action for quit.
 		@emits: quit
@@ -524,7 +524,7 @@ class GtkInterface(gobject.GObject):
 				self._path_context = None
 
 		# Parse items and add to menu
-		seen_item = False # use to track empty parts
+		seen_item = False  # use to track empty parts
 		for line in xml[start + 1:end]:
 			if line.startswith('<separator'):
 				if seen_item:
@@ -569,7 +569,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		if not self.readonly and self.page:
 			# Save any modification now - will not be allowed after switch
-			self._mainwindow.pageview.save_changes() # XXX
+			self._mainwindow.pageview.save_changes()  # XXX
 
 		for group in self._mainwindow.uimanager.get_action_groups():
 			for action in group.list_actions():
@@ -673,7 +673,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		return self._path_context or self.page
 
-	@action(_('_Open Another Notebook...'), 'gtk-open', '<Primary>O') # T: Menu item
+	@action(_('_Open Another Notebook...'), 'gtk-open', '<Primary>O')  # T: Menu item
 	def show_open_notebook(self):
 		'''Show the L{NotebookDialog} dialog'''
 		from zim.gui.notebookdialog import NotebookDialog
@@ -697,7 +697,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				ZIM_APPLICATION.run('--gui', uri)
 
-	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
+	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J')  # T: Menu item
 	def open_page(self, path=None):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
@@ -719,7 +719,7 @@ class GtkInterface(gobject.GObject):
 		if isinstance(path, Page) and path.valid:
 			page = path
 		else:
-			page = self.notebook.get_page(path) # can raise
+			page = self.notebook.get_page(path)  # can raise
 
 		if self.page and id(self.page) == id(page):
 			# Check ID to enable reload_page but catch all other
@@ -778,8 +778,8 @@ class GtkInterface(gobject.GObject):
 		return not page.modified
 
 	def do_close_page(self, page):
-		self._mainwindow.pageview.save_changes() # XXX - should connect to signal instead of call here
-		self.notebook.wait_for_store_page_async() # XXX - should not be needed - hide in notebook/page class - how?
+		self._mainwindow.pageview.save_changes()  # XXX - should connect to signal instead of call here
+		self.notebook.wait_for_store_page_async()  # XXX - should not be needed - hide in notebook/page class - how?
 
 		current = self.history.get_current()
 		if current == page:
@@ -798,13 +798,13 @@ class GtkInterface(gobject.GObject):
 			# short time when going back and forward in the history
 			if not hasattr(self.uistate, '_delayed_async_write'):
 				self.uistate._delayed_async_write = \
-					DelayedCallback(2000, save_uistate_cb) # 2 sec
+					DelayedCallback(2000, save_uistate_cb)  # 2 sec
 			self.uistate._delayed_async_write()
 
 	@action(
-		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
+		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'),  # T: Menu item
 		accelerator='<alt>Left', alt_accelerator=('XF86Back' if os.name != 'nt' else None)
-	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
+	)  # The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
 		@returns: C{True} if succesful
@@ -814,9 +814,9 @@ class GtkInterface(gobject.GObject):
 			self.open_page(record)
 
 	@action(
-		_('_Forward'), 'gtk-go-forward', tooltip=_('Go page forward'), # T: Menu item
+		_('_Forward'), 'gtk-go-forward', tooltip=_('Go page forward'),  # T: Menu item
 		accelerator='<alt>Right', alt_accelerator=('XF86Forward' if os.name != 'nt' else None)
-	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
+	)  # The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
 		@returns: C{True} if succesful
@@ -825,7 +825,7 @@ class GtkInterface(gobject.GObject):
 		if not record is None:
 			self.open_page(record)
 
-	@action(_('_Parent'), 'gtk-go-up', '<alt>Up', tooltip=_('Go to parent page')) # T: Menu item
+	@action(_('_Parent'), 'gtk-go-up', '<alt>Up', tooltip=_('Go to parent page'))  # T: Menu item
 	def open_page_parent(self):
 		'''Menu action to open the parent page
 		@returns: C{True} if succesful
@@ -834,7 +834,7 @@ class GtkInterface(gobject.GObject):
 		if namespace:
 			self.open_page(Path(namespace))
 
-	@action(_('_Child'), 'gtk-go-down', '<alt>Down', tooltip=_('Go to child page')) # T: Menu item
+	@action(_('_Child'), 'gtk-go-down', '<alt>Down', tooltip=_('Go to child page'))  # T: Menu item
 	def open_page_child(self):
 		'''Menu action to open a child page. Either takes the last child
 		from the history, or the first child.
@@ -850,7 +850,7 @@ class GtkInterface(gobject.GObject):
 				child = self.notebook.pages.get_next(path)
 				self.open_page(child)
 
-	@action(_('_Previous in index'), accelerator='<alt>Page_Up', tooltip=_('Go to previous page')) # T: Menu item
+	@action(_('_Previous in index'), accelerator='<alt>Page_Up', tooltip=_('Go to previous page'))  # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
 		@returns: C{True} if succesful
@@ -859,7 +859,7 @@ class GtkInterface(gobject.GObject):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Next in index'), accelerator='<alt>Page_Down', tooltip=_('Go to next page')) # T: Menu item
+	@action(_('_Next in index'), accelerator='<alt>Page_Down', tooltip=_('Go to next page'))  # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
 		@returns: C{True} if succesful
@@ -868,12 +868,12 @@ class GtkInterface(gobject.GObject):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Home'), 'gtk-home', '<alt>Home', tooltip=_('Go home')) # T: Menu item
+	@action(_('_Home'), 'gtk-home', '<alt>Home', tooltip=_('Go home'))  # T: Menu item
 	def open_page_home(self):
 		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
 
-	@action(_('_New Page...'), 'gtk-new', '<Primary>N', readonly=False) # T: Menu item
+	@action(_('_New Page...'), 'gtk-new', '<Primary>N', readonly=False)  # T: Menu item
 	def new_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog},
 
@@ -884,7 +884,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		NewPageDialog(self._mainwindow, path=self._get_path_context()).run()
 
-	@action(_('New S_ub Page...'), 'gtk-new', '<shift><Primary>N', readonly=False) # T: Menu item
+	@action(_('New S_ub Page...'), 'gtk-new', '<shift><Primary>N', readonly=False)  # T: Menu item
 	def new_sub_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog}.
 		Like L{new_page()} but forces a child page of the current
@@ -927,9 +927,9 @@ class GtkInterface(gobject.GObject):
 		if use_template:
 			parsetree = self.notebook.get_template(page)
 			page.set_parsetree(parsetree)
-			page.parse('wiki', text, append=True) # FIXME format hard coded
+			page.parse('wiki', text, append=True)  # FIXME format hard coded
 		else:
-			page.parse('wiki', text) # FIXME format hard coded
+			page.parse('wiki', text)  # FIXME format hard coded
 
 		self.notebook.store_page(page)
 
@@ -975,11 +975,11 @@ class GtkInterface(gobject.GObject):
 		if isinstance(name, Path):
 			name = name.name
 		path = self.notebook.pages.lookup_from_user_input(name)
-		page = self.notebook.get_page(path) # can raise
-		page.parse('wiki', text, append=True) # FIXME format hard coded
+		page = self.notebook.get_page(path)  # can raise
+		page.parse('wiki', text, append=True)  # FIXME format hard coded
 		self.notebook.store_page(page)
 
-	@action(_('Open in New _Window')) # T: Menu item
+	@action(_('Open in New _Window'))  # T: Menu item
 	def open_new_window(self, page=None):
 		'''Menu action to open a page in a secondary L{PageWindow}
 		@param page: the page L{Path}, deafults to current selected
@@ -988,7 +988,7 @@ class GtkInterface(gobject.GObject):
 			page = self._get_path_context()
 		PageWindow(self, page).show_all()
 
-	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
+	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False)  # T: Menu item
 	def save_page(self):
 		'''Menu action to save the current page.
 
@@ -996,25 +996,25 @@ class GtkInterface(gobject.GObject):
 		while saving a page. If that dialog is cancelled by the user,
 		the page may not be saved after all.
 		'''
-		self._mainwindow.pageview.save_changes(write_if_not_modified=True) # XXX
+		self._mainwindow.pageview.save_changes(write_if_not_modified=True)  # XXX
 
-	@action(_('Save A _Copy...')) # T: Menu item
+	@action(_('Save A _Copy...'))  # T: Menu item
 	def save_copy(self):
 		'''Menu action to show a L{SaveCopyDialog}'''
 		SaveCopyDialog(self).run()
 
-	@action(_('E_xport...')) # T: Menu item
+	@action(_('E_xport...'))  # T: Menu item
 	def show_export(self):
 		'''Menu action to show an L{ExportDialog}'''
 		from zim.gui.exportdialog import ExportDialog
 
 		if not self.notebook.index.is_uptodate:
 			if not self.reload_index(update_only=True):
-				return # Cancelled
+				return  # Cancelled
 
 		ExportDialog(self).run()
 
-	@action(_('_Send To...')) # T: Menu item
+	@action(_('_Send To...'))  # T: Menu item
 	def email_page(self):
 		'''Menu action to open an email containing the current page.
 		Encodes the current page as "mailto:" URI and calls L{open_url()}
@@ -1027,12 +1027,12 @@ class GtkInterface(gobject.GObject):
 		)
 		self.open_url(url)
 
-	@action(_('_Import Page...'), readonly=False) # T: Menu item
+	@action(_('_Import Page...'), readonly=False)  # T: Menu item
 	def import_page(self):
 		'''Menu action to show an L{ImportPageDialog}'''
 		ImportPageDialog(self).run()
 
-	@action(_('_Move Page...'), readonly=False) # T: Menu item
+	@action(_('_Move Page...'), readonly=False)  # T: Menu item
 	def move_page(self, path=None):
 		'''Menu action to show the L{MovePageDialog}
 		@param path: a L{Path} object, or C{None} to move to current
@@ -1040,14 +1040,14 @@ class GtkInterface(gobject.GObject):
 		'''
 		if not self.notebook.index.is_uptodate:
 			if not self.reload_index(update_only=True):
-				return # Cancelled
+				return  # Cancelled
 
 		if path is None:
 			path = self._get_path_context()
 
 		MovePageDialog(self, path).run()
 
-	@action(_('_Rename Page...'), accelerator='F2', readonly=False) # T: Menu item
+	@action(_('_Rename Page...'), accelerator='F2', readonly=False)  # T: Menu item
 	def rename_page(self, path=None):
 		'''Menu action to show the L{RenamePageDialog}
 		@param path: a L{Path} object, or C{None} for the current
@@ -1055,14 +1055,14 @@ class GtkInterface(gobject.GObject):
 		'''
 		if not self.notebook.index.is_uptodate:
 			if not self.reload_index(update_only=True):
-				return # Cancelled
+				return  # Cancelled
 
 		if path is None:
 			path = self._get_path_context()
 
 		RenamePageDialog(self, path).run()
 
-	@action(_('_Delete Page'), readonly=False) # T: Menu item
+	@action(_('_Delete Page'), readonly=False)  # T: Menu item
 	def delete_page(self, path=None):
 		'''Delete a page by either trashing it, or permanent deletion
 		after confirmation of a L{DeletePageDialog}. When trashing the
@@ -1079,12 +1079,12 @@ class GtkInterface(gobject.GObject):
 
 		if not self.notebook.index.is_uptodate:
 			if not self.reload_index(update_only=True):
-				return # Cancelled
+				return  # Cancelled
 
 		update_links = self.preferences['GtkInterface']['remove_links_on_delete']
 		op = NotebookOperation(
 			self.notebook,
-			_('Removing Links'), # T: Title of progressbar dialog
+			_('Removing Links'),  # T: Title of progressbar dialog
 			self.notebook.trash_page_iter(path, update_links)
 		)
 		dialog = ProgressDialog(self, op)
@@ -1094,13 +1094,13 @@ class GtkInterface(gobject.GObject):
 			logger.info('Trash not supported: %s', op.exception.msg)
 			DeletePageDialog(self, path).run()
 
-	@action(_('Proper_ties'), 'gtk-properties') # T: Menu item
+	@action(_('Proper_ties'), 'gtk-properties')  # T: Menu item
 	def show_properties(self):
 		'''Menu action to show the L{PropertiesDialog}'''
 		from zim.gui.propertiesdialog import PropertiesDialog
 		PropertiesDialog(self).run()
 
-	@action(_('_Search...'), 'gtk-find', '<shift><Primary>F') # T: Menu item
+	@action(_('_Search...'), 'gtk-find', '<shift><Primary>F')  # T: Menu item
 	def show_search(self, query=None):
 		'''Menu action to show the L{SearchDialog}
 		@param query: the search query to show
@@ -1115,12 +1115,12 @@ class GtkInterface(gobject.GObject):
 		if query is not None:
 			dialog.search(query)
 
-	@action(_('Search this section'), 'gtk-find') # T: Menu item for search a sub-set of the notebook
+	@action(_('Search this section'), 'gtk-find')  # T: Menu item for search a sub-set of the notebook
 	def show_search_section(self, page=None):
 		page = self._get_path_context() if page is None else page
 		self.show_search(query='Section: "%s"' % page.name)
 
-	@action(_('Search _Backlinks...')) # T: Menu item
+	@action(_('Search _Backlinks...'))  # T: Menu item
 	def show_search_backlinks(self, page=None):
 		'''Menu action to show the L{SearchDialog} with a query for
 		backlinks
@@ -1128,25 +1128,25 @@ class GtkInterface(gobject.GObject):
 		page = self._get_path_context() if page is None else page
 		self.show_search(query='LinksTo: "%s"' % page.name)
 
-	@action(_('Recent Changes...')) # T: Menu item
+	@action(_('Recent Changes...'))  # T: Menu item
 	def show_recent_changes(self):
 		'''Menu action to show the L{RecentChangesDialog}'''
 		from .recentchangesdialog import RecentChangesDialog
 		dialog = RecentChangesDialog.unique(self, self)
 		dialog.present()
 
-	@action(_('Copy _Location'), accelerator='<shift><Primary>L') # T: Menu item
+	@action(_('Copy _Location'), accelerator='<shift><Primary>L')  # T: Menu item
 	def copy_location(self):
 		'''Menu action to copy the current page name to the clipboard'''
 		Clipboard.set_pagelink(self.notebook, self.page)
 
-	@action(_('_Templates')) # T: Menu item
+	@action(_('_Templates'))  # T: Menu item
 	def show_templateeditor(self):
 		'''Menu action to show the L{TemplateEditorDialog}'''
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		TemplateEditorDialog(self).run()
 
-	@action(_('Pr_eferences'), 'gtk-preferences') # T: Menu item
+	@action(_('Pr_eferences'), 'gtk-preferences')  # T: Menu item
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
@@ -1160,16 +1160,16 @@ class GtkInterface(gobject.GObject):
 		self._mainwindow.uimanager.set_add_tearoffs(
 			self.preferences['GtkInterface']['tearoff_menus'])
 
-	@action(_('_Reload'), 'gtk-refresh', '<Primary>R') # T: Menu item
+	@action(_('_Reload'), 'gtk-refresh', '<Primary>R')  # T: Menu item
 	def reload_page(self):
 		'''Menu action to reload the current page. Will first try
 		to save any unsaved changes, then reload the page from disk.
 		'''
-		self._mainwindow.pageview.save_changes() # XXX
+		self._mainwindow.pageview.save_changes()  # XXX
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
 
-	@action(_('Attach _File'), 'zim-attachment', tooltip=_('Attach external file'), readonly=False) # T: Menu item
+	@action(_('Attach _File'), 'zim-attachment', tooltip=_('Attach external file'), readonly=False)  # T: Menu item
 	def attach_file(self, path=None):
 		'''Menu action to show the L{AttachFileDialog}
 		@param path: a L{Path} object, or C{None} for the current
@@ -1201,7 +1201,7 @@ class GtkInterface(gobject.GObject):
 			dialog = PromptExistingFileDialog(self, dest)
 			dest = dialog.run()
 			if dest is None:
-				return None	# dialog was cancelled
+				return None  # dialog was cancelled
 
 		file.copyto(dest)
 		return dest
@@ -1249,7 +1249,7 @@ class GtkInterface(gobject.GObject):
 		if not file.exists():
 			raise NoSuchFileError(file)
 
-		if isinstance(file, File): # File
+		if isinstance(file, File):  # File
 			manager = ApplicationManager()
 			if mimetype is None:
 				entry = manager.get_default_application(file.get_mimetype())
@@ -1264,7 +1264,7 @@ class GtkInterface(gobject.GObject):
 				self._open_with(entry, file, callback)
 			else:
 				self._open_with_filebrowser(file, callback)
-		else: # Dir
+		else:  # Dir
 			self._open_with_filebrowser(file, callback)
 
 	def open_url(self, url):
@@ -1286,7 +1286,7 @@ class GtkInterface(gobject.GObject):
 				if handled:
 					return
 			else:
-				pass # handled below
+				pass  # handled below
 		elif is_win32_share_re.match(url):
 			url = normalize_win32_share(url)
 			if os.name == 'nt':
@@ -1347,9 +1347,9 @@ class GtkInterface(gobject.GObject):
 		try:
 			entry.spawn((uri,), callback=callback)
 		except NotImplementedError:
-			entry.spawn((uri,)) # E.g. webbrowser module
+			entry.spawn((uri,))  # E.g. webbrowser module
 
-	@action(_('Open Attachments _Folder'), 'gtk-open') # T: Menu item
+	@action(_('Open Attachments _Folder'), 'gtk-open')  # T: Menu item
 	def open_attachments_folder(self):
 		'''Menu action to open the attachment folder for the current page'''
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -1358,10 +1358,10 @@ class GtkInterface(gobject.GObject):
 				# T: Error message
 			ErrorDialog(self, error).run()
 		else:
-			dir = Dir(dir.path) # XXX
+			dir = Dir(dir.path)  # XXX
 			self.open_dir(dir)
 
-	@action(_('Open _Notebook Folder'), 'gtk-open') # T: Menu item
+	@action(_('Open _Notebook Folder'), 'gtk-open')  # T: Menu item
 	def open_notebook_folder(self):
 		'''Menu action to open the notebook folder'''
 		if self.notebook.dir:
@@ -1371,14 +1371,14 @@ class GtkInterface(gobject.GObject):
 		else:
 			assert False, 'BUG: notebook has neither dir or file'
 
-	@action(_('Open _Document Root'), 'gtk-open') # T: Menu item
+	@action(_('Open _Document Root'), 'gtk-open')  # T: Menu item
 	def open_document_root(self):
 		'''Menu action to open the document root folder'''
 		dir = self.notebook.document_root
 		if dir:
 			self.open_dir(dir)
 
-	@action(_('Open _Document Folder'), 'gtk-open') # T: Menu item
+	@action(_('Open _Document Folder'), 'gtk-open')  # T: Menu item
 	def open_document_folder(self):
 		'''Menu action to open a sub-foldel of the document root folder
 		for the current page
@@ -1391,7 +1391,7 @@ class GtkInterface(gobject.GObject):
 		dir = Dir([dir, dirpath])
 		self.open_dir(dir)
 
-	@action(_('Edit _Source'), 'gtk-edit', readonly=False) # T: Menu item
+	@action(_('Edit _Source'), 'gtk-edit', readonly=False)  # T: Menu item
 	def edit_page_source(self, page=None):
 		'''Menu action to edit the page source in an external editor.
 		See L{edit_file} for details.
@@ -1410,7 +1410,7 @@ class GtkInterface(gobject.GObject):
 			ErrorDialog(self, 'This page does not have a source file').run()
 			return
 
-		self._mainwindow.pageview.save_changes() # XXX
+		self._mainwindow.pageview.save_changes()  # XXX
 		self.edit_file(self.page.source, istextfile=True)
 		if page == self.page:
 			self.reload_page()
@@ -1440,10 +1440,10 @@ class GtkInterface(gobject.GObject):
 		is text or not.
 		@param dialog: the dialog that is spawning this action
 		'''
-		## FIXME force using real text editor, even when file has not
-		## text mimetype. This now goes wrong when editing e.g. a html
-		## template when the editor is "xdg-open" on linux or default
-		## os.startfile() on windows...
+		# FIXME force using real text editor, even when file has not
+		# text mimetype. This now goes wrong when editing e.g. a html
+		# template when the editor is "xdg-open" on linux or default
+		# os.startfile() on windows...
 
 		if not file.exists():
 			raise NoSuchFileError(file)
@@ -1477,20 +1477,20 @@ class GtkInterface(gobject.GObject):
 					# Try again
 					self.open_file(file, mimetype='text/plain', callback=check_close_dialog)
 				else:
-					return # Dialog was cancelled, no default set, ...
+					return  # Dialog was cancelled, no default set, ...
 		else:
 			self.open_file(file, callback=check_close_dialog)
 
 		dialog.run()
 
-	@action(_('Start _Web Server')) # T: Menu item
+	@action(_('Start _Web Server'))  # T: Menu item
 	def show_server_gui(self):
 		'''Menu action to show the server interface from
 		L{zim.gui.server}. Spawns a new zim instance for the server.
 		'''
 		ZIM_APPLICATION.run('--server', '--gui', self.notebook.uri)
 
-	@action(_('Update Index'), readonly=False) # T: Menu item
+	@action(_('Update Index'), readonly=False)  # T: Menu item
 	def reload_index(self, update_only=False):
 		'''Check the notebook for changes and update the index.
 		Shows an progressbar while updateing.
@@ -1509,7 +1509,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				# ongoing op was update only but we want check, so try again
 				if not dialog.cancelled:
-					self.reload_index() # recurs
+					self.reload_index()  # recurs
 				else:
 					return False
 
@@ -1524,7 +1524,7 @@ class GtkInterface(gobject.GObject):
 
 			return not dialog.cancelled
 
-	@action(_('Custom _Tools'), 'gtk-preferences') # T: Menu item
+	@action(_('Custom _Tools'), 'gtk-preferences')  # T: Menu item
 	def manage_custom_tools(self):
 		'''Menu action to show the L{CustomToolManagerDialog}'''
 		from zim.gui.customtools import CustomToolManagerDialog
@@ -1622,15 +1622,15 @@ class GtkInterface(gobject.GObject):
 			elif tool.replaceselection:
 				output = tool.pipe(args, cwd=cwd)
 				logger.debug('Replace output with %s', output)
-				pageview = self._mainwindow.pageview # XXX
-				buffer = pageview.view.get_buffer() # XXX
+				pageview = self._mainwindow.pageview  # XXX
+				buffer = pageview.view.get_buffer()  # XXX
 				if buffer.get_has_selection():
 					start, end = buffer.get_selection_bounds()
 					with buffer.user_action:
 						buffer.delete(start, end)
 						buffer.insert_at_cursor(''.join(output))
 				else:
-					pass # error here ??
+					pass  # error here ??
 			else:
 				tool.run(args, cwd=cwd)
 				self.reload_page()
@@ -1640,7 +1640,7 @@ class GtkInterface(gobject.GObject):
 		except Exception as error:
 			ErrorDialog(self, error).run()
 
-	@action(_('_Contents'), 'gtk-help', 'F1') # T: Menu item
+	@action(_('_Contents'), 'gtk-help', 'F1')  # T: Menu item
 	def show_help(self, page=None):
 		'''Menu action to show the user manual. Will start a new zim
 		instance showing the notebook with the manual.
@@ -1651,28 +1651,28 @@ class GtkInterface(gobject.GObject):
 		else:
 			ZIM_APPLICATION.run('--manual')
 
-	@action(_('_FAQ')) # T: Menu item
+	@action(_('_FAQ'))  # T: Menu item
 	def show_help_faq(self):
 		'''Menu action to show the 'FAQ' page in the user manual'''
 		self.show_help('FAQ')
 
-	@action(_('_Keybindings')) # T: Menu item
+	@action(_('_Keybindings'))  # T: Menu item
 	def show_help_keys(self):
 		'''Menu action to show the 'Key Bindings' page in the user manual'''
 		self.show_help('Help:Key Bindings')
 
-	@action(_('_Bugs')) # T: Menu item
+	@action(_('_Bugs'))  # T: Menu item
 	def show_help_bugs(self):
 		'''Menu action to show the 'Bugs' page in the user manual'''
 		self.show_help('Bugs')
 
-	@action(_('_About'), 'gtk-about') # T: Menu item
+	@action(_('_About'), 'gtk-about')  # T: Menu item
 	def show_about(self):
 		'''Menu action to show the "about" dialog'''
 		gtk.about_dialog_set_url_hook(lambda d, l: self.open_url(l))
 		gtk.about_dialog_set_email_hook(lambda d, l: self.open_url(l))
 		dialog = gtk.AboutDialog()
-		try: # since gtk 2.12
+		try:  # since gtk 2.12
 			dialog.set_program_name('Zim')
 		except AttributeError:
 			pass
@@ -1704,11 +1704,11 @@ class ResourceOpener(object):
 
 	def open_page(self, path, new_window=False):
 		if new_window:
-			self.window.ui.open_new_window(path) # XXX
+			self.window.ui.open_new_window(path)  # XXX
 		else:
-			self.window.ui.open_page(path) # XXX
+			self.window.ui.open_page(path)  # XXX
 
-		return self.window.pageview # XXX
+		return self.window.pageview  # XXX
 
 	def open_dir(self, dir):
 		self.window.ui.open_dir(dir)
@@ -1753,7 +1753,7 @@ class MainWindow(Window):
 		self.isfullscreen = False
 		self.ui = ui
 
-		self.preferences = preferences # XXX should be just prefernces dict - use "config" otherwise
+		self.preferences = preferences  # XXX should be just prefernces dict - use "config" otherwise
 		self.preferences.connect('changed', self.do_preferences_changed)
 
 		ui.connect('open-page', self.on_open_page)
@@ -1770,9 +1770,9 @@ class MainWindow(Window):
 		# hide or destroy the window.
 		def do_delete_event(*a):
 			logger.debug('Action: close (delete-event)')
-			self.hide() # look more responsive
+			self.hide()  # look more responsive
 			ui.close()
-			return True # Do not destroy - let close() handle it
+			return True  # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
 
 		# init uimanager
@@ -1798,7 +1798,7 @@ class MainWindow(Window):
 		self.add_bar(self.toolbar, TOP)
 
 		self.pageindex = PageIndex(ui)
-		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
+		self.add_tab(_('Index'), self.pageindex, LEFT_PANE)  # T: Label for pageindex tab
 
 		self.pageindex.treeview.connect('insert-link',
 			lambda v, p: self.pageview.insert_links([p]))
@@ -1807,7 +1807,7 @@ class MainWindow(Window):
 		self.pathbar_box = gtk.HBox()
 		self.add_widget(self.pathbar_box, (TOP_PANE, TOP))
 
-		self.pageview = PageView(ui, ui.notebook) # XXX
+		self.pageview = PageView(ui, ui.notebook)  # XXX
 		self.pageview.connect_after(
 			'textstyle-changed', self.on_textview_textstyle_changed)
 		self.pageview.view.connect_after(
@@ -1871,7 +1871,7 @@ class MainWindow(Window):
 		self.preferences['GtkInterface'].setdefault('mouse_nav_button_forw', 9)
 
 		# Finish uimanager
-		group = get_gtk_actiongroup(ui) # XXX
+		group = get_gtk_actiongroup(ui)  # XXX
 		self.uimanager.insert_action_group(group, 0)
 
 		group = get_gtk_actiongroup(self.pageview)
@@ -1889,13 +1889,13 @@ class MainWindow(Window):
 		return self.ui.notebook
 
 	def destroy(self):
-		self.ui.close_page(self.ui.page) # XXX
-		self.pageview.save_changes() # XXX probably dubble of close_page, just to be sure
+		self.ui.close_page(self.ui.page)  # XXX
+		self.pageview.save_changes()  # XXX probably dubble of close_page, just to be sure
 		if self.ui.page.modified:
-			return # Do not quit if page not saved
-		self.pageview.page.set_ui_object(None) # XXX
+			return  # Do not quit if page not saved
+		self.pageview.page.set_ui_object(None)  # XXX
 
-		self.hide() # look more responsive
+		self.hide()  # look more responsive
 		self.ui.notebook.index.stop_background_check()
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
@@ -1906,7 +1906,7 @@ class MainWindow(Window):
 
 		self.ui._mainwindow = None
 
-		Window.destroy(self) # gtk destroy & will also emit destroy signal
+		Window.destroy(self)  # gtk destroy & will also emit destroy signal
 
 	def do_update_statusbar(self, *a):
 		page = self.pageview.get_page()
@@ -1916,7 +1916,7 @@ class MainWindow(Window):
 		if page.modified:
 			label += '*'
 		if self.ui.readonly or page.readonly:
-			label += ' [' + _('readonly') + ']' # T: page status in statusbar
+			label += ' [' + _('readonly') + ']'  # T: page status in statusbar
 		self.statusbar.pop(0)
 		self.statusbar.push(0, label)
 
@@ -1944,7 +1944,7 @@ class MainWindow(Window):
 					w, h = self.uistate['windowsize']
 					self.resize(w, h)
 				if self.uistate['windowpos']:
-					x, y = self.uistate['windowpos'] # Should we use _windowpos?
+					x, y = self.uistate['windowpos']  # Should we use _windowpos?
 					self.move(x, y)
 
 			if wasfullscreen != self.isfullscreen:
@@ -1965,14 +1965,14 @@ class MainWindow(Window):
 			# Hidden param, disabled because it causes problems with
 			# several international layouts (space mistaken for alt-space,
 			# see bug lp:620315)
-			group.connect_group( # <Alt><Space>
+			group.connect_group(  # <Alt><Space>
 				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['GtkInterface']['toggle_on_ctrlspace']:
-			group.connect_group( # <Primary><Space>
+			group.connect_group(  # <Primary><Space>
 				space, PRIMARY_MODIFIER_MASK, gtk.ACCEL_VISIBLE,
 				self.toggle_sidepane_focus)
 
@@ -2021,7 +2021,7 @@ class MainWindow(Window):
 		else:
 			self.uistate['show_menubar'] = show
 
-	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
+	@toggle_action(_('_Toolbar'), init=True)  # T: Menu item
 	def toggle_toolbar(self, show):
 		'''Menu action to toggle the visibility of the tool bar'''
 		if show:
@@ -2041,7 +2041,7 @@ class MainWindow(Window):
 		menu = self.uimanager.get_widget('/toolbar_popup')
 		menu.popup(None, None, None, button, 0)
 
-	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
+	@toggle_action(_('_Statusbar'), init=True)  # T: Menu item
 	def toggle_statusbar(self, show):
 		'''Menu action to toggle the visibility of the status bar'''
 		if show:
@@ -2056,7 +2056,7 @@ class MainWindow(Window):
 		else:
 			self.uistate['show_statusbar'] = show
 
-	@toggle_action(_('_Fullscreen'), 'gtk-fullscreen', 'F11', init=False) # T: Menu item
+	@toggle_action(_('_Fullscreen'), 'gtk-fullscreen', 'F11', init=False)  # T: Menu item
 	def toggle_fullscreen(self, show):
 		'''Menu action to toggle the fullscreen state of the window'''
 		if show:
@@ -2076,7 +2076,7 @@ class MainWindow(Window):
 		if visible != action.get_active():
 			action.set_active(visible)
 
-	@toggle_action(_('_Side Panes'), 'gtk-index', 'F9', tooltip=_('Show Side Panes'), init=True) # T: Menu item
+	@toggle_action(_('_Side Panes'), 'gtk-index', 'F9', tooltip=_('Show Side Panes'), init=True)  # T: Menu item
 	def toggle_panes(self, show):
 		'''Menu action to toggle the visibility of the all panes
 		@param show: when C{True} or C{False} force the visibility,
@@ -2122,7 +2122,7 @@ class MainWindow(Window):
 			self.toggle_panes(True)
 			self._sidepane_autoclose = True
 
-		return True # stop
+		return True  # stop
 
 	@radio_action(
 		radio_option(PATHBAR_NONE, _('_None')),
@@ -2170,9 +2170,9 @@ class MainWindow(Window):
 			self.uistate['pathbar_type'] = type
 
 	@radio_action(
-		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')), # T: Menu item
-		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')), # T: Menu item
-		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')), # T: Menu item
+		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')),  # T: Menu item
+		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')),  # T: Menu item
+		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')),  # T: Menu item
 	)
 	def set_toolbar_style(self, style):
 		'''Set the toolbar style
@@ -2193,9 +2193,9 @@ class MainWindow(Window):
 		self.preferences['GtkInterface']['toolbar_style'] = style
 
 	@radio_action(
-		radio_option(TOOLBAR_ICONS_LARGE, _('_Large Icons')), # T: Menu item
-		radio_option(TOOLBAR_ICONS_SMALL, _('_Small Icons')), # T: Menu item
-		radio_option(TOOLBAR_ICONS_TINY, _('_Tiny Icons')), # T: Menu item
+		radio_option(TOOLBAR_ICONS_LARGE, _('_Large Icons')),  # T: Menu item
+		radio_option(TOOLBAR_ICONS_SMALL, _('_Small Icons')),  # T: Menu item
+		radio_option(TOOLBAR_ICONS_TINY, _('_Tiny Icons')),  # T: Menu item
 	)
 	def set_toolbar_icon_size(self, size):
 		'''Set the toolbar style
@@ -2215,7 +2215,7 @@ class MainWindow(Window):
 
 		self.preferences['GtkInterface']['toolbar_size'] = size
 
-	@toggle_action(_('Notebook _Editable'), 'gtk-edit', tooltip=_('Toggle notebook editable'), init=True) # T: menu item
+	@toggle_action(_('Notebook _Editable'), 'gtk-edit', tooltip=_('Toggle notebook editable'), init=True)  # T: menu item
 	def toggle_readonly(self, readonly):
 		'''Menu action to toggle the read-only state of the application'''
 		self.ui.set_readonly(readonly)
@@ -2272,9 +2272,9 @@ class MainWindow(Window):
 		self.preferences['GtkInterface'].setdefault('toolbar_size', None,
 			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
 
-		self._set_widgets_visable() # toggle what panes are visible
+		self._set_widgets_visable()  # toggle what panes are visible
 
-		Window.init_uistate(self) # takes care of sidepane positions etc
+		Window.init_uistate(self)  # takes care of sidepane positions etc
 
 		if self.preferences['GtkInterface']['toolbar_style'] is not None:
 			self.set_toolbar_style(self.preferences['GtkInterface']['toolbar_style'])
@@ -2364,7 +2364,7 @@ class MainWindow(Window):
 			self.uistate['windowsize'] = self.get_size()
 			self.uistate['windowmaximized'] = self.maximized
 
-		Window.save_uistate(self) # takes care of sidepane positions etc.
+		Window.save_uistate(self)  # takes care of sidepane positions etc.
 
 	def get_resource_opener(self):
 		return ResourceOpener(self)
@@ -2405,7 +2405,7 @@ class MainWindow(Window):
 
 		self.pageview.grab_focus()
 
-		#TODO: set toggle_readonly insensitive when page is readonly
+		# TODO: set toggle_readonly insensitive when page is readonly
 
 	def on_close_page(self, ui, page):
 		self.save_uistate()
@@ -2429,7 +2429,7 @@ class MainWindow(Window):
 		self.statusbar.pop(1)
 
 	def do_button_press_event(self, event):
-		## Try to capture buttons for navigation
+		# Try to capture buttons for navigation
 		if event.button > 3:
 			if event.button == self.preferences['GtkInterface']['mouse_nav_button_back']:
 				self.ui.open_page_back()
@@ -2446,7 +2446,7 @@ gobject.type_register(MainWindow)
 class BackLinksMenuButton(MenuButton):
 
 	def __init__(self, ui, status_bar_style=False):
-		label = '%i _Backlinks...' % 0 # Translated above
+		label = '%i _Backlinks...' % 0  # Translated above
 		MenuButton.__init__(self, label, gtk.Menu(), status_bar_style)
 		self.ui = ui
 
@@ -2504,12 +2504,12 @@ class OpenPageDialog(Dialog):
 	'''
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Jump to'), # T: Dialog title
+		Dialog.__init__(self, ui, _('Jump to'),  # T: Dialog title
 			button=(None, gtk.STOCK_JUMP_TO),
 		)
 
 		self.add_form(
-			[('page', 'page', _('Jump to Page'), ui.page)] # T: Label for page input
+			[('page', 'page', _('Jump to Page'), ui.page)]  # T: Label for page input
 		)
 
 	def do_response_ok(self):
@@ -2529,9 +2529,9 @@ class NewPageDialog(Dialog):
 
 	def __init__(self, window, path=None, subpage=False):
 		if subpage:
-			title = _('New Sub Page') # T: Dialog title
+			title = _('New Sub Page')  # T: Dialog title
 		else:
-			title = _('New Page') # T: Dialog title
+			title = _('New Page')  # T: Dialog title
 
 		Dialog.__init__(self, window, title,
 			help_text=_(
@@ -2545,20 +2545,20 @@ class NewPageDialog(Dialog):
 		self.path = path or window.ui.page
 
 		key = self.path or ''
-		default = window.ui.notebook.namespace_properties[key]['template'] # XXX
+		default = window.ui.notebook.namespace_properties[key]['template']  # XXX
 		templates = [t[0] for t in list_templates('wiki')]
 		if not default in templates:
 			templates.insert(0, default)
 
 		self.add_form([
-			('page', 'page', _('Page Name'), self.path), # T: Input label
-			('template', 'choice', _('Page Template'), templates) # T: Choice label
+			('page', 'page', _('Page Name'), self.path),  # T: Input label
+			('template', 'choice', _('Page Template'), templates)  # T: Choice label
 		])
 		self.form['template'] = default
 		# TODO: reset default when page input changed -
 		# especially if namespace has other template
 
-		self.form.set_default_activate('page') # close dialog on <Enter> immediatly, do not select template
+		self.form.set_default_activate('page')  # close dialog on <Enter> immediatly, do not select template
 
 		if subpage:
 			self.form.widgets['page'].subpaths_only = True
@@ -2568,7 +2568,7 @@ class NewPageDialog(Dialog):
 		if not path:
 			return False
 
-		page = self.ui.notebook.get_page(path) # can raise PageNotFoundError
+		page = self.ui.notebook.get_page(path)  # can raise PageNotFoundError
 		if page.exists():
 			raise PageExistsError(path)
 
@@ -2576,8 +2576,8 @@ class NewPageDialog(Dialog):
 		tree = self.ui.notebook.eval_new_page_template(page, template)
 		page.set_parsetree(tree)
 		self.app_window.ui.open_page(page)
-		self.app_window.pageview.set_cursor_pos(-1) # HACK set position to end of template
-		self.app_window.ui.save_page() # Save new page directly
+		self.app_window.pageview.set_cursor_pos(-1)  # HACK set position to end of template
+		self.app_window.ui.save_page()  # Save new page directly
 		return True
 
 
@@ -2612,8 +2612,8 @@ class ImportPageDialog(FileDialog):
 	# TODO how to properly detect file types for other formats ?
 
 	def __init__(self, ui):
-		FileDialog.__init__(self, ui, _('Import Page')) # T: Dialog title
-		self.add_filter(_('Text Files'), '*.txt') # T: File filter for '*.txt'
+		FileDialog.__init__(self, ui, _('Import Page'))  # T: Dialog title
+		self.add_filter(_('Text Files'), '*.txt')  # T: File filter for '*.txt'
 		self.add_shortcut(ui.notebook, ui.page)
 
 		# TODO add input for namespace, format
@@ -2641,7 +2641,7 @@ class MovePageDialog(Dialog):
 
 	def __init__(self, ui, path):
 		assert path, 'Need a page here'
-		Dialog.__init__(self, ui, _('Move Page')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Move Page'))  # T: Dialog title
 		self.path = path
 
 		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
@@ -2674,11 +2674,11 @@ class MovePageDialog(Dialog):
 		parent = self.form['parent']
 		update = self.form['update']
 		newpath = parent + self.path.basename
-		self.hide() # hide this dialog before showing the progressbar
+		self.hide()  # hide this dialog before showing the progressbar
 
 		op = NotebookOperation(
 			self.ui.notebook,
-			_('Updating Links'), # T: label for progress dialog
+			_('Updating Links'),  # T: label for progress dialog
 			self.ui.notebook.move_page_iter(self.path, newpath, update)
 		)
 		dialog = ProgressDialog(self, op)
@@ -2691,7 +2691,7 @@ class RenamePageDialog(Dialog):
 
 	def __init__(self, ui, path):
 		assert path, 'Need a page here'
-		Dialog.__init__(self, ui, _('Rename Page')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Rename Page'))  # T: Dialog title
 		self.path = path
 		page = self.ui.notebook.get_page(self.path)
 
@@ -2734,11 +2734,11 @@ class RenamePageDialog(Dialog):
 		name = self.form['name']
 		head = self.form['head']
 		update = self.form['update']
-		self.hide() # hide this dialog before showing the progressbar
+		self.hide()  # hide this dialog before showing the progressbar
 
 		op = NotebookOperation(
 			self.ui.notebook,
-			_('Updating Links'), # T: label for progress dialog
+			_('Updating Links'),  # T: label for progress dialog
 			self.ui.notebook.rename_page_iter(self.path, name, head, update)
 		)
 		dialog = ProgressDialog(self, op)
@@ -2751,7 +2751,7 @@ class DeletePageDialog(Dialog):
 
 	def __init__(self, ui, path):
 		assert path, 'Need a page here'
-		Dialog.__init__(self, ui, _('Delete Page')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Delete Page'))  # T: Dialog title
 		self.path = path
 
 		hbox = gtk.HBox(spacing=12)
@@ -2832,7 +2832,7 @@ class DeletePageDialog(Dialog):
 
 		op = NotebookOperation(
 			self.ui.notebook,
-			_('Removing Links'), # T: Title of progressbar dialog
+			_('Removing Links'),  # T: Title of progressbar dialog
 			self.ui.notebook.delete_page_iter(self.path, update_links)
 		)
 		dialog = ProgressDialog(self, op)
@@ -2845,7 +2845,7 @@ class AttachFileDialog(FileDialog):
 
 	def __init__(self, window, notebook, path):
 		assert path, 'Need a page here'
-		FileDialog.__init__(self, window, _('Attach File'), multiple=True) # T: Dialog title
+		FileDialog.__init__(self, window, _('Attach File'), multiple=True)  # T: Dialog title
 		self.add_shortcut(notebook, path)
 		self.load_last_folder()
 
@@ -2879,14 +2879,14 @@ class AttachFileDialog(FileDialog):
 		for i, file in enumerate(files):
 			file = self.ui.do_attach_file(self.path, file)
 			if file is None:
-				return False # overwrite dialog was canceled
+				return False  # overwrite dialog was canceled
 
 			pageview = self.app_window.pageview
 			buffer = pageview.view.get_buffer()
 			if self.uistate['insert_attached_images'] and file.isimage():
 				try:
 					pageview.insert_image(file, interactive=False)
-				except ValueError: # image type not supported?
+				except ValueError:  # image type not supported?
 					logger.info('Could not insert image: %s', file)
 					pageview.insert_links([file])
 			else:

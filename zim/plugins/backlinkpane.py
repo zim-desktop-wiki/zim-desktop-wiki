@@ -17,13 +17,13 @@ from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populat
 class BackLinksPanePlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('BackLinks Pane'), # T: plugin name
+		'name': _('BackLinks Pane'),  # T: plugin name
 		'description': _('''\
 This plugin adds an extra widget showing a list of pages
 linking to the current page.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:BackLinks Pane',
 	}
@@ -43,11 +43,11 @@ class MainWindowExtension(WindowExtension):
 
 		opener = self.window.get_resource_opener()
 		self.widget = BackLinksWidget(opener)
-		if self.window.ui.page: # XXX
-			ui = self.window.ui # XXX
-			page = self.window.ui.page # XXX
+		if self.window.ui.page:  # XXX
+			ui = self.window.ui  # XXX
+			page = self.window.ui.page  # XXX
 			self.on_open_page(ui, page, page)
-		self.connectto(self.window.ui, 'open-page') # XXX
+		self.connectto(self.window.ui, 'open-page')  # XXX
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -67,7 +67,7 @@ class MainWindowExtension(WindowExtension):
 		self.widget.show_all()
 
 	def on_open_page(self, ui, page, path):
-		self.widget.set_page(self.window.ui.notebook, page) # XXX
+		self.widget.set_page(self.window.ui.notebook, page)  # XXX
 
 	def teardown(self):
 		self.window.remove(self.widget)
@@ -109,9 +109,9 @@ class BackLinksWidget(gtk.ScrolledWindow):
 			#~ model.append(None, (link.source, text))
 			model.append((link.source, text))
 
-		## TODO make hierarchy by link type ?
-		## use link.type attribute
-		#self.treeview.expand_all()
+		# TODO make hierarchy by link type ?
+		# use link.type attribute
+		# self.treeview.expand_all()
 
 	def on_link_activated(self, treeview, path, column):
 		model = treeview.get_model()
@@ -155,4 +155,4 @@ class LinksTreeModel(gtk.ListStore):
 
 	def __init__(self):
 		#~ gtk.TreeStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
-		gtk.ListStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
+		gtk.ListStore.__init__(self, object, str)  # PAGE_COL, TEXT_COL

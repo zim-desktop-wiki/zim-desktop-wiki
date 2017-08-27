@@ -21,14 +21,14 @@ logger = logging.getLogger('zim.gui')
 class CustomToolManagerDialog(Dialog):
 
 	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Custom Tools'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
+		Dialog.__init__(self, ui, _('Custom Tools'), buttons=gtk.BUTTONS_CLOSE)  # T: Dialog title
 		self.set_help(':Help:Custom Tools')
 		self.manager = CustomToolManager()
 
 		self.add_help_text(_(
 			'You can configure custom tools that will appear\n'
 			'in the tool menu and in the tool bar or context menus.'
-		)) # T: help text in "Custom Tools" dialog
+		))  # T: help text in "Custom Tools" dialog
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.add(hbox)
@@ -46,7 +46,7 @@ class CustomToolManagerDialog(Dialog):
 			(gtk.STOCK_GO_UP, self.__class__.on_move, -1),
 			(gtk.STOCK_GO_DOWN, self.__class__.on_move, 1),
 		):
-			button = IconButton(stock) # TODO tooltips for icon button
+			button = IconButton(stock)  # TODO tooltips for icon button
 			if data:
 				button.connect_object('clicked', handler, self, data)
 			else:
@@ -134,7 +134,7 @@ class CustomToolList(gtk.TreeView):
 class EditCustomToolDialog(Dialog):
 
 	def __init__(self, ui, tool=None):
-		Dialog.__init__(self, ui, _('Edit Custom Tool')) # T: Dialog title
+		Dialog.__init__(self, ui, _('Edit Custom Tool'))  # T: Dialog title
 		self.set_help(':Help:Custom Tools')
 		self.vbox.set_spacing(12)
 
@@ -154,9 +154,9 @@ class EditCustomToolDialog(Dialog):
 			replaceselection = False
 
 		self.add_form((
-			('Name', 'string', _('Name')), # T: Input in "Edit Custom Tool" dialog
-			('Comment', 'string', _('Description')), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ExecTool', 'string', _('Command')), # T: Input in "Edit Custom Tool" dialog
+			('Name', 'string', _('Name')),  # T: Input in "Edit Custom Tool" dialog
+			('Comment', 'string', _('Description')),  # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ExecTool', 'string', _('Command')),  # T: Input in "Edit Custom Tool" dialog
 		), {
 			'Name': name,
 			'Comment': comment,
@@ -170,7 +170,7 @@ class EditCustomToolDialog(Dialog):
 				self.iconbutton.set_file(File(tool.icon))
 			except Exception as error:
 				logger.exception('Could not load: %s', tool.icon)
-		label = gtk.Label(_('Icon') + ':') # T: Input in "Edit Custom Tool" dialog
+		label = gtk.Label(_('Icon') + ':')  # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()
 		i = self.form.get_property('n-rows')
@@ -179,9 +179,9 @@ class EditCustomToolDialog(Dialog):
 		hbox.pack_start(self.iconbutton, False)
 
 		self.form.add_inputs((
-			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ReplaceSelection', 'bool', _('Output should replace current selection')), # T: Input in "Edit Custom Tool" dialog
-			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')), # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')),  # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ReplaceSelection', 'bool', _('Output should replace current selection')),  # T: Input in "Edit Custom Tool" dialog
+			('X-Zim-ShowInToolBar', 'bool', _('Show in the toolbar')),  # T: Input in "Edit Custom Tool" dialog
 		))
 		self.form.update({
 			'X-Zim-ReadOnly': readonly,
@@ -202,7 +202,7 @@ in the command when it is executed:
 <b>%t</b> the selected text or word under cursor
 <b>%T</b> the selected text including wiki formatting
 </tt>
-''') ) # T: Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
+''') )  # T: Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 
 	def do_response_ok(self):
 		fields = self.form.copy()

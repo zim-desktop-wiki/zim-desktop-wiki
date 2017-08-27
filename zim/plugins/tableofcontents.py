@@ -40,7 +40,7 @@ def find_heading(buffer, heading):
 			if buffer.finder.find_next():
 				iter = buffer.get_insert_iter()
 				if iter.get_offset() == start:
-					return None # break infinite loop
+					return None  # break infinite loop
 			else:
 				return None
 
@@ -63,13 +63,13 @@ def select_heading(buffer, heading):
 class ToCPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Table of Contents'), # T: plugin name
+		'name': _('Table of Contents'),  # T: plugin name
 		'description': _('''\
 This plugin adds an extra widget showing a table of
 contents for the current page.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Table Of Contents',
 	}
@@ -103,7 +103,7 @@ class MainWindowExtensionEmbedded(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.widget = SidePaneToC(self.window.ui, self.window.pageview) # XXX
+		self.widget = SidePaneToC(self.window.ui, self.window.pageview)  # XXX
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -135,7 +135,7 @@ class MainWindowExtensionFloating(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.widget = FloatingToC(self.window.ui, self.window.pageview) # XXX
+		self.widget = FloatingToC(self.window.ui, self.window.pageview)  # XXX
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -173,7 +173,7 @@ class ToCTreeView(BrowserTreeView):
 class ToCTreeModel(gtk.TreeStore):
 
 	def __init__(self):
-		gtk.TreeStore.__init__(self, str) # TEXT_COL
+		gtk.TreeStore.__init__(self, str)  # TEXT_COL
 
 	def populate(self, parsetree, show_h1):
 		self.clear()
@@ -186,11 +186,11 @@ class ToCTreeModel(gtk.TreeStore):
 		and headings \
 		and headings[0][0] == 1 \
 		and all(h[0] > 1 for h in headings[1:]):
-			headings.pop(0) # do not show first heading
+			headings.pop(0)  # do not show first heading
 
 		stack = [(-1, None)]
 		for level, text in headings:
-			assert level > -1 # just to be sure
+			assert level > -1  # just to be sure
 			while stack[-1][0] >= level:
 				stack.pop()
 			parent = stack[-1][1]
@@ -398,7 +398,7 @@ class SidePaneToC(ToCWidget):
 		ToCWidget.__init__(self, ui, pageview, ellipsis=True)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
-		self.set_size_request(-1, 200) # Fixed Height
+		self.set_size_request(-1, 200)  # Fixed Height
 
 
 class FloatingToC(TableVBox, ConnectorMixin):
@@ -432,7 +432,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		self.pack_start(self._head_event_box, False)
 		self.pack_start(self.widget)
 
-		## Add self to textview
+		# Add self to textview
 		# Need to wrap in event box to make widget visible
 		# probably because Containers normally don't have their own
 		# gdk window. So would paint directly on background window.
@@ -491,8 +491,8 @@ class FloatingToC(TableVBox, ConnectorMixin):
 
 		if self.widget.get_property('visible'):
 			tree_w, tree_h = self.widget.treeview.size_request()
-			tree_h = max(tree_h, head_h) # always show empty space if no content
-			tree_w += 1 # Allow minimal frame for scrolledwindow
+			tree_h = max(tree_h, head_h)  # always show empty space if no content
+			tree_w += 1  # Allow minimal frame for scrolledwindow
 			tree_h += 1
 			total_w = max(head_w, tree_w) + 2 * border
 			total_h = head_h + tree_h + 2 * border + spacing
@@ -558,7 +558,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 			y = self.TEXTVIEW_OFFSET
 			self.textview.move_child(self._event_box, x, y)
 		else:
-			pass # Textview not yet initialized (?)
+			pass  # Textview not yet initialized (?)
 
 # Need to register classes defining gobject signals
 gobject.type_register(FloatingToC)

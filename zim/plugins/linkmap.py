@@ -19,7 +19,7 @@ from zim.inc import xdot
 class LinkMapPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('Link Map'), # T: plugin name
+		'name': _('Link Map'),  # T: plugin name
 		'description': _('''\
 This plugin provides a dialog with a graphical
 representation of the linking structure of the
@@ -27,7 +27,7 @@ notebook. It can be used as a kind of "mind map"
 showing how pages relate.
 
 This is a core plugin shipping with zim.
-'''), # T: plugin description
+'''),  # T: plugin description
 		'author': 'Jaap Karssenberg',
 		'help': 'Plugins:Link Map',
 	}
@@ -79,7 +79,7 @@ class LinkMap(object):
 			'  size="6,6";',
 			#~ '  node [shape=box, style="rounded,filled", color="#204a87", fillcolor="#729fcf"];',
 			'  node [shape=note, style="filled", color="#204a87", fillcolor="#729fcf"];',
-			'  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name), # special node
+			'  "%s" [color="#4e9a06", fillcolor="#8ae234", URL="%s"]' % (self.path.name, self.path.name),  # special node
 		]
 
 		seen = set()
@@ -94,7 +94,7 @@ class LinkMap(object):
 
 		dotcode.append('}')
 
-		#print '\n'.join(dotcode)+'\n'
+		# print '\n'.join(dotcode)+'\n'
 		return '\n'.join(dotcode) + '\n'
 
 
@@ -114,9 +114,9 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Show Link Map'), stock='zim-linkmap') # T: menu item
+	@action(_('Show Link Map'), stock='zim-linkmap')  # T: menu item
 	def show_linkmap(self):
-		linkmap = LinkMap(self.window.ui.notebook, self.window.ui.page) # XXX
+		linkmap = LinkMap(self.window.ui.notebook, self.window.ui.page)  # XXX
 		dialog = LinkMapDialog(self.window, linkmap, self.window.get_resource_opener())
 		dialog.show_all()
 

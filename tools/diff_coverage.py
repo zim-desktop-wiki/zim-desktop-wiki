@@ -34,7 +34,7 @@ class Diff(object):
 			if line.startswith('+++ '):
 				file = line[4:].split()[0]
 				if file.startswith('b/'):
-					file = file[2:] # git has a/ b/ prefixes for old and new file
+					file = file[2:]  # git has a/ b/ prefixes for old and new file
 			elif line.startswith('@@'):
 				assert file is not None
 				head = line
@@ -46,7 +46,7 @@ class Diff(object):
 						part.append(line)
 				yield DiffPart(file, head, part)
 			else:
-				pass # any other line with info, not part of a diff block
+				pass  # any other line with info, not part of a diff block
 
 
 class DiffPart(object):

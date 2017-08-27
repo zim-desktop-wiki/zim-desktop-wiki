@@ -37,12 +37,12 @@ else:
 	import unittest
 	from unittest import skip, skipIf, skipUnless, expectedFailure
 
-__unittest = 1 # needed to get stack trace OK for class TestCase
+__unittest = 1  # needed to get stack trace OK for class TestCase
 
 gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
-FAST_TEST = False #: determines whether we skip slow tests or not
-FULL_TEST = False #: determine whether we mock filesystem tests or not
+FAST_TEST = False  # : determines whether we skip slow tests or not
+FULL_TEST = False  # : determine whether we mock filesystem tests or not
 
 # This list also determines the order in which tests will executed
 __all__ = [
@@ -139,7 +139,7 @@ if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	_setUpEnvironment()
 
 
-## Setup special logging for tests
+# Setup special logging for tests
 
 class UncaughtWarningError(AssertionError):
 	pass
@@ -184,7 +184,7 @@ def zim_pyfiles():
 			_zim_pyfiles.extend([d + '/' + f for f in files if f.endswith('.py')])
 		_zim_pyfiles.sort()
 	for file in _zim_pyfiles:
-		yield file # shallow copy
+		yield file  # shallow copy
 
 
 def slowTest(obj):
@@ -215,10 +215,10 @@ def slowTest(obj):
 		return obj
 
 
-MOCK_ALWAYS_MOCK = 'mock' #: Always choose mock folder, alwasy fast
-MOCK_DEFAULT_MOCK = 'default_mock' #: By default use mock, but sometimes at random use real fs or at --full
-MOCK_DEFAULT_REAL = 'default_real' #: By default use real fs, mock oly for --fast
-MOCK_ALWAYS_REAL = 'real' #: always use real fs -- not recommended unless test fails for mock
+MOCK_ALWAYS_MOCK = 'mock'  # : Always choose mock folder, alwasy fast
+MOCK_DEFAULT_MOCK = 'default_mock'  # : By default use mock, but sometimes at random use real fs or at --full
+MOCK_DEFAULT_REAL = 'default_real'  # : By default use real fs, mock oly for --fast
+MOCK_ALWAYS_REAL = 'real'  # : always use real fs -- not recommended unless test fails for mock
 
 import random
 
@@ -233,12 +233,12 @@ class TestCase(unittest.TestCase):
 	@classmethod
 	def tearDownClass(cls):
 		if gtk is not None:
-			gtk_process_events() # flush any pending events / warnings
+			gtk_process_events()  # flush any pending events / warnings
 
 	def assertEqual(self, first, second, msg=None):
-		## HACK to work around "feature" in unittest - it does not consider
-		## string and unicode to be of the same type and thus does not
-		## show diffs if the textual content differs
+		# HACK to work around "feature" in unittest - it does not consider
+		# string and unicode to be of the same type and thus does not
+		# show diffs if the textual content differs
 		if type(first) in (str, unicode) \
 		and type(second) in (str, unicode):
 			self.assertMultiLineEqual(first, second, msg)
@@ -270,7 +270,7 @@ class TestCase(unittest.TestCase):
 				use_mock = True
 			else:
 				use_mock = False
-		else: # MOCK_DEFAULT_MOCK:
+		else:  # MOCK_DEFAULT_MOCK:
 			if FULL_TEST:
 				use_mock = False
 			elif FAST_TEST:
@@ -289,7 +289,7 @@ class TestCase(unittest.TestCase):
 			if os.path.exists(path):
 				logger.debug('Clear tmp folder: %s', path)
 				shutil.rmtree(path)
-				assert not os.path.exists(path) # make real sure
+				assert not os.path.exists(path)  # make real sure
 			folder = LocalFolder(path)
 
 		assert not folder.exists()
@@ -357,7 +357,7 @@ class TestCase(unittest.TestCase):
 		cls.clear_tmp_dir(name)
 		path = cls._get_tmp_name(name)
 		os.makedirs(path)
-		assert os.path.exists(path) # make real sure
+		assert os.path.exists(path)  # make real sure
 		return path
 
 	@classmethod
@@ -376,7 +376,7 @@ class TestCase(unittest.TestCase):
 		path = cls._get_tmp_name(name)
 		if os.path.exists(path):
 			shutil.rmtree(path)
-		assert not os.path.exists(path) # make real sure
+		assert not os.path.exists(path)  # make real sure
 
 	@classmethod
 	def _get_tmp_name(cls, name):
@@ -493,11 +493,11 @@ class DialogContext(object):
 
 		handler = self.stack.pop(0)
 
-		if isinstance(handler, (type, types.ClassType)): # is a class
+		if isinstance(handler, (type, types.ClassType)):  # is a class
 			if not isinstance(dialog, handler):
 				raise AssertionError('Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__))
 			dialog.assert_response_ok()
-		else: # assume a function
+		else:  # assume a function
 			handler(dialog)
 
 	def __exit__(self, *error):
@@ -510,7 +510,7 @@ class DialogContext(object):
 		if self.stack and not has_error:
 			raise AssertionError('%i expected dialog(s) not run' % len(self.stack))
 
-		return False # Raise any errors again outside context
+		return False  # Raise any errors again outside context
 
 
 class TestData(object):
@@ -526,7 +526,7 @@ class TestData(object):
 			name = node.attrib['name']
 			text = unicode(node.text.lstrip('\n'))
 			if os.name == 'nt' and isinstance(name, unicode):
-				pass # XXX No idea what goes wrong, but names are messed up
+				pass  # XXX No idea what goes wrong, but names are messed up
 			else:
 				test_data.append((name, text))
 
@@ -535,7 +535,7 @@ class TestData(object):
 	def __iter__(self):
 		'''Yield the test data as 2 tuple (pagename, text)'''
 		for name, text in self._test_data:
-			yield name, text # shallow copy
+			yield name, text  # shallow copy
 
 	def items(self):
 		return list(self)
@@ -548,7 +548,7 @@ class TestData(object):
 		assert False, 'Could not find data for page: %s' % pagename
 
 
-WikiTestData = TestData('wiki') #: singleton to be used by various tests
+WikiTestData = TestData('wiki')  # : singleton to be used by various tests
 
 FULL_NOTEBOOK = WikiTestData
 
@@ -639,7 +639,7 @@ def new_notebook(fakedir=None):
 	from zim.newfs.mock import MockFolder, clone_mock_object, os_native_path
 
 	global _notebook_data
-	if not _notebook_data: # run this one time only
+	if not _notebook_data:  # run this one time only
 		templfolder = MockFolder('/mock/notebook')
 		layout = FilesLayout(templfolder, endofline='unix')
 
@@ -885,7 +885,7 @@ def gtk_process_events(*a):
 	assert gtk is not None
 	while gtk.events_pending():
 		gtk.main_iteration(block=False)
-	return True # continue
+	return True  # continue
 
 
 def gtk_get_menu_item(menu, id):

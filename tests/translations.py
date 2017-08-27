@@ -79,7 +79,7 @@ class TranslationMessage(object):
 	def _check_format_strings(self):
 		wanted = sorted(self._format_string_re.findall(self.msgid))
 		if not wanted:
-			return True # no string format used
+			return True  # no string format used
 
 		for msg in [self.msgid_plural] + self.msgstr:
 			if msg and not msg == '""':
