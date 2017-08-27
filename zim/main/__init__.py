@@ -660,7 +660,8 @@ class ZimApplication(object):
 	def _run_main_loop(self, cmd):
 		# Run for the 1st gtk command in a primary process,
 		# but can still be standalone process
-		import gtk, gobject
+		import gtk
+		import gobject
 
 		#######################################################################
 		# WARNING: commented out "gobject.threads_init()" because it leads to
