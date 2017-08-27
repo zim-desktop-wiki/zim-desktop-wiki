@@ -815,8 +815,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 	def find(self, path):
 		if path.isroot:
 			raise ValueError
-		treepaths = self._find_all_pages(path.name)
-		treepaths.sort()
+		treepaths = sorted(self._find_all_pages(path.name))
 		try:
 			return treepaths[0]
 		except IndexError:

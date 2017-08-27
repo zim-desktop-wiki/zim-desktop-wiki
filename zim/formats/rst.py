@@ -82,8 +82,7 @@ class Dumper(TextDumper):
 		src = self.linker.img(attrib['src'])
 		text = '.. image:: %s\n' % src
 
-		items = attrib.items()
-		items.sort() # unit tests don't like random output
+		items = sorted(attrib.items())
 		for k, v in items:
 			if k == 'src' or k.startswith('_'):
 				continue

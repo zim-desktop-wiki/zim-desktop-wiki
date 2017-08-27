@@ -174,10 +174,9 @@ class LocalFolder(LocalFSObjectBase, Folder):
 		except OSError:
 			raise FileNotFoundError(self)
 
-		names = [ n for n in names
-			if n[0] not in ('.', '~') and n[-1] != '~' ]
+		names = sorted([ n for n in names
+			if n[0] not in ('.', '~') and n[-1] != '~' ])
 			# Ignore hidden files and tmp files
-		names.sort()
 
 		if FS_ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively

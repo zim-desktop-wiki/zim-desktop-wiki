@@ -595,7 +595,7 @@ class ParseError(Exception):
         self.col = col
 
     def __str__(self):
-        return ':'.join([str(part) for part in (self.filename, self.line, self.col, self.msg) if part != None])
+        return ':'.join([str(part) for part in (self.filename, self.line, self.col, self.msg) if part is not None])
 
 
 class Scanner:

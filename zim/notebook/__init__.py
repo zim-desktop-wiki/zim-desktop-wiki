@@ -117,8 +117,7 @@ def mount_notebook(filepath):
 	config = ConfigManager() # XXX should be passed in
 	configdict = config.get_config_dict('automount.conf')
 
-	groups = [k for k in configdict.keys() if k.startswith('Path')]
-	groups.sort() # make order predictable for nested paths
+	groups = sorted([k for k in configdict.keys() if k.startswith('Path')])
 	for group in groups:
 		path = group[4:].strip() # len('Path') = 4
 		dir = Dir(path)

@@ -60,9 +60,8 @@ def generate ():
     Return the generated output.
     """
     global MESSAGES
-    keys = MESSAGES.keys()
+    keys = sorted(MESSAGES.keys())
     # the keys are sorted in the .mo file
-    keys.sort()
     offsets = []
     ids = strs = ''
     for _id in keys:

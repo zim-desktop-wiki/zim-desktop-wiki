@@ -115,10 +115,10 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		if self.is_modified():
 			params = ['commit', '-a']
-			if msg!='' and msg!=None:
+			if msg!='' and msg is not None:
 				params.append('-m')
 				params.append(msg)
-			if path!='' and path!=None:
+			if path!='' and path is not None:
 				params.append('--')
 				params.append(path)
 			return self.run(params)
@@ -132,7 +132,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		revision_args = self.build_revision_arguments(versions)
 		revision_args = self.build_revision_arguments(revision_args, is_for_diff=True)
-		if path==None:
+		if path is None:
 			return self.pipe(['diff', '--no-ext-diff'] + revision_args)
 		else:
 			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', path])

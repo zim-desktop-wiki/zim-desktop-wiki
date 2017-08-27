@@ -546,8 +546,7 @@ class Dumper(TextDumper):
 		src = attrib['src']
 		alt = attrib.get('alt')
 		opts = []
-		items = attrib.items()
-		items.sort() # unit tests don't like random output
+		items = sorted(attrib.items())
 		for k, v in items:
 			if k in ('src', 'alt') or k.startswith('_'):
 				continue

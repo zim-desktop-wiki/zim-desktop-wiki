@@ -46,8 +46,7 @@ if __name__ == '__main__':
 	from timeit import Timer
 	reps = 5
 	passes = 1000
-	funcs = [n for n in dir() if n.startswith('time')]
-	funcs.sort()
+	funcs = sorted([n for n in dir() if n.startswith('time')])
 
 	print "Rep: %i, Passes: %i" % (reps, passes)
 	print "Plan: %s" % ', '.join(funcs)

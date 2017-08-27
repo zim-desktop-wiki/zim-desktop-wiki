@@ -25,14 +25,14 @@ logger = logging.getLogger('zim.plugins.insertsymbol')
 # helper functions
 def dip(x):
 	'demote, if possible, a complex to scalar'
-	if type(x) == complex and x.imag == 0:
+	if isinstance(x, complex) and x.imag == 0:
 		return x.real
 	else:
 		return x
 
 def which_call(x, mathfunc, cmathfunc, allowNegative=True):
 	x=dip(x)
-	if type(x) == complex or (allowNegative == False and x<0):
+	if isinstance(x, complex) or (allowNegative == False and x<0):
 		return cmathfunc(x)
 	else:
 		return mathfunc(x)
@@ -47,21 +47,21 @@ def radians(x):
 
 def log(x,b=math.e):
 	'log(x[, base]) -> the logarithm of x to the given base.\nIf the base not specified, returns the natural logarithm (base e) of x.'
-	if type(x) == complex or x<0:
+	if isinstance(x, complex) or x<0:
 		return dip( cmath.log(x) / cmath.log(b) )
 	else:
 		return math.log(x)/math.log(b)
 
 def real(x):
 	'return just the real portion'
-	if type(x) == complex:
+	if isinstance(x, complex):
 		return x.real
 	else:
 		return x
 
 def imag(x):
 	'return just the imaginary portion'
-	if type(x) == complex:
+	if isinstance(x, complex):
 		return x.imag
 	else:
 		return 0
@@ -96,7 +96,7 @@ def phase(z):
 
 def cpx(x):
 	'convert a number or tuple to a complex'
-	if type(x) == tuple:
+	if isinstance(x, tuple):
 		return complex( x[0] , x[1] )
 	else:
 		return complex(x)
@@ -108,7 +108,7 @@ def conj( x ):
 
 def complexify(x,func ):
 	'call func on the real and imaginary portions, creating a complex from the respective results'
-	if type(x) == complex and x.imag != 0:
+	if isinstance(x, complex) and x.imag != 0:
 		return dip( complex( func(x.real) , func(x.imag) ) )
 	else:
 		return func(x)
@@ -116,7 +116,7 @@ def complexify(x,func ):
 # overwrite the built-in math functions that don't handle complex
 def round(x):
 	'nearest integer'
-	if type(x) == complex:
+	if isinstance(x, complex):
 		return complexify( x , round )
 	else:
 		return math.floor(x+.5)
