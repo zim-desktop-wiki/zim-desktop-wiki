@@ -207,7 +207,8 @@ class TestPagesView(tests.TestCase):
 			(':Foo (Bar)', 'Foo (Bar)'),
 			('non-existing-page', 'non-existing-page'),
 			# TODO more ambigous test cases
-		): self.assertEqual(
+		):
+			self.assertEqual(
 			pages.lookup_from_user_input(name), Path(wanted) )
 
 		# resolving relative paths

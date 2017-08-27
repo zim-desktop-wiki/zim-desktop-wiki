@@ -656,10 +656,14 @@ class File(FSObjectBase):
 				self._mimetype = str(mimetype)
 			else:
 				mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
-				if encoding == 'gzip': return 'application/x-gzip'
-				elif encoding == 'bzip2': return 'application/x-bzip2'
-				elif encoding == 'compress': return 'application/x-compress'
-				else: self._mimetype = mimetype or 'application/octet-stream'
+				if encoding == 'gzip':
+					return 'application/x-gzip'
+				elif encoding == 'bzip2':
+					return 'application/x-bzip2'
+				elif encoding == 'compress':
+					return 'application/x-compress'
+				else:
+					self._mimetype = mimetype or 'application/octet-stream'
 
 		return self._mimetype
 

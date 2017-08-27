@@ -100,13 +100,17 @@ class Dumper(DumperClass):
 	def dump_h(self, tag, attrib, strings):
 		# Markdown style headers
 		level = int(attrib['level'])
-		if level < 1:   level = 1
-		elif level > 5: level = 5
+		if level < 1:
+			level = 1
+		elif level > 5:
+			level = 5
 
 		if level in (1, 2):
 			# setext-style headers for lvl 1 & 2
-			if level == 1: char = '='
-			else: char = '-'
+			if level == 1:
+				char = '='
+			else:
+				char = '-'
 			heading = u''.join(strings)
 			underline = char * len(heading)
 			return [heading + '\n', underline]

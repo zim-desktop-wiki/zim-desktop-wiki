@@ -44,7 +44,8 @@ class PreferencesDialog(Dialog):
 			# From GTK Doc: Note that due to historical reasons, GtkNotebook refuses
 			# to switch to a page unless the child widget is visible.
 			vbox.show()
-			if category == default_tab: gtknotebook.set_current_page(index)
+			if category == default_tab:
+				gtknotebook.set_current_page(index)
 
 			fields = []
 			values = {}
@@ -304,7 +305,7 @@ class PluginsTab(gtk.VBox):
 				self.treeview.scroll_to_cell(path)
 				self.treeview.set_cursor(path)
 				self.do_selection_changed(self.treeselection)
-				return True;
+				return True
 			return False # keep the foreach going
 		model.foreach(find)
 

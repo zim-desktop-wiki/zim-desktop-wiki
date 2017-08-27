@@ -261,14 +261,20 @@ class TestCase(unittest.TestCase):
 		'''
 		path = cls._get_tmp_name(name)
 
-		if mock == MOCK_ALWAYS_MOCK: use_mock = True
-		elif mock == MOCK_ALWAYS_REAL: use_mock = False
+		if mock == MOCK_ALWAYS_MOCK:
+			use_mock = True
+		elif mock == MOCK_ALWAYS_REAL:
+			use_mock = False
 		elif mock == MOCK_DEFAULT_REAL:
-			if FAST_TEST: use_mock = True
-			else: use_mock = False
+			if FAST_TEST:
+				use_mock = True
+			else:
+				use_mock = False
 		else: # MOCK_DEFAULT_MOCK:
-			if FULL_TEST: use_mock = False
-			elif FAST_TEST: use_mock = True
+			if FULL_TEST:
+				use_mock = False
+			elif FAST_TEST:
+				use_mock = True
 			elif random.random() < 0.2:
 				logger.info("Random dice throw: use real file system")
 				use_mock = False

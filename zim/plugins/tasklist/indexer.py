@@ -201,8 +201,10 @@ class TasksView(IndexView):
 		all top level tasks
 		@returns: a list of tasks at this level as sqlite Row objects
 		'''
-		if parent: parentid = parent['id']
-		else: parentid = 0
+		if parent:
+			parentid = parent['id']
+		else:
+			parentid = 0
 
 		# Sort:
 		#  started tasks by prio, due date, page + id to keep order in page

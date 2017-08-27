@@ -87,7 +87,8 @@ class TestFS(tests.TestCase):
 		drive, p = os.path.splitdrive(path.path)
 		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
 		dirs = []
-		for d in path: dirs.append(d)
+		for d in path:
+			dirs.append(d)
 		wanted = map(lambda p: Dir(os.path.abspath(drive+p)),
 					['/foo', '/foo/bar', '/foo/bar/baz'])
 		self.assertEqual(dirs, wanted)

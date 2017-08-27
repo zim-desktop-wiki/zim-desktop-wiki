@@ -600,10 +600,14 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 
 		cmd = split_quoted_strings(self['Desktop Entry']['Exec'])
 		if args is None or len(args) == 0:
-			if '%f' in cmd: cmd.remove('%f')
-			elif '%F' in cmd: cmd.remove('%F')
-			elif '%u' in cmd: cmd.remove('%u')
-			elif '%U' in cmd: cmd.remove('%U')
+			if '%f' in cmd:
+				cmd.remove('%f')
+			elif '%F' in cmd:
+				cmd.remove('%F')
+			elif '%u' in cmd:
+				cmd.remove('%u')
+			elif '%U' in cmd:
+				cmd.remove('%U')
 		elif '%f' in cmd:
 			assert len(args) == 1, 'application takes one file name'
 			i = cmd.index('%f')

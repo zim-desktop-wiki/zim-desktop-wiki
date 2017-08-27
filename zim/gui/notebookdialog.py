@@ -429,9 +429,11 @@ Of course you can also select an existing zim notebook folder.
 	def on_name_changed(self, o, interactive=True):
 		# When name is changed, update folder accordingly
 		# unless the folder was set explicitly already
-		if self._block_update: return
+		if self._block_update:
+			return
 		self._name_set = self._name_set or interactive
-		if self._folder_set: return
+		if self._folder_set:
+			return
 
 		name = self.form.widgets['name'].get_text()
 		folder = self.form.widgets['folder'].get_text()
@@ -443,7 +445,8 @@ Of course you can also select an existing zim notebook folder.
 
 	def on_folder_changed(self, o, interactive=True):
 		# When folder is changed, update name accordingly
-		if self._block_update: return
+		if self._block_update:
+			return
 		self._folder_set = self._folder_set or interactive
 
 		# Check notebook info (even when name was set already)
@@ -458,7 +461,8 @@ Of course you can also select an existing zim notebook folder.
 					return
 
 		# Else use basename unless the name was set explicitly already
-		if self._name_set: return
+		if self._name_set:
+			return
 
 		folder = self.form.widgets['folder'].get_text().strip('/\\')
 		self._block_update = True

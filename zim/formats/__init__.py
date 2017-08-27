@@ -199,8 +199,10 @@ def canonical_name(name):
 	name = name.lower()
 	if ' ' in name:
 		name, _ = name.split(' ', 1)
-	if name == 'text': return 'plain'
-	else: return name
+	if name == 'text':
+		return 'plain'
+	else:
+		return name
 
 
 def get_format(name):
@@ -998,8 +1000,10 @@ class OldParseTreeBuilder(object):
 		# Fix trailing newlines
 		if text:
 			m = count_eol_re.search(text)
-			if m: self._seen_eol = len(m.group(0))
-			else: self._seen_eol = 0
+			if m:
+				self._seen_eol = len(m.group(0))
+			else:
+				self._seen_eol = 0
 
 		if need_eol > self._seen_eol:
 			text += '\n' * (need_eol - self._seen_eol)

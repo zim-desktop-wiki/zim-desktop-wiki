@@ -61,8 +61,10 @@ class LinkMap(object):
 				yield link
 				seen.add(key)
 
-				if link.source == path: other = link.target
-				else: other = link.source
+				if link.source == path:
+					other = link.target
+				else:
+					other = link.source
 				if depth > 0:
 					for link in self._links(other, depth-1, seen):
 						yield link

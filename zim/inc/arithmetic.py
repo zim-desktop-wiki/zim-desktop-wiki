@@ -549,9 +549,11 @@ def AddCommas( s ):
             s = s[1:]
     else:
             sign = ''
-    if s[-1] == 'L': s = s[:-1]     #remove L suffix
+    if s[-1] == 'L':
+        s = s[:-1]     #remove L suffix
     pos = s.find( '.')
-    if pos < 0: pos = len(s)
+    if pos < 0:
+        pos = len(s)
     while pos > 3:
             pos = pos - 3
             s = s[:pos] + ',' + s[pos:]

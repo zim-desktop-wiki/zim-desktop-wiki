@@ -54,8 +54,10 @@ class Dumper(TextDumper):
 	def dump_h(self, tag, attrib, strings):
 		# Underlined headings
 		level = int(attrib['level'])
-		if level < 1:   level = 1
-		elif level > 4: level = 4
+		if level < 1:
+			level = 1
+		elif level > 4:
+			level = 4
 		char = self.HEADING_UNDERLINE[level-1]
 		heading = u''.join(strings)
 		underline = char * len(heading)

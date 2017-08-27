@@ -623,11 +623,16 @@ class UnixPath(object):
 		# Spec is file:/// or file://host/
 		# But file:/ is sometimes used by non-compliant apps
 		# Windows uses file:///C:/ which is compliant
-		if uri.startswith('file:///'): uri = uri[7:]
-		elif uri.startswith('file://localhost/'): uri = uri[16:]
-		elif uri.startswith('file://'): assert False, 'Can not handle non-local file uris'
-		elif uri.startswith('file:/'): uri = uri[5:]
-		else: assert False, 'Not a file uri: %s' % uri
+		if uri.startswith('file:///'):
+			uri = uri[7:]
+		elif uri.startswith('file://localhost/'):
+			uri = uri[16:]
+		elif uri.startswith('file://'):
+			assert False, 'Can not handle non-local file uris'
+		elif uri.startswith('file:/'):
+			uri = uri[5:]
+		else:
+			assert False, 'Not a file uri: %s' % uri
 		return url_decode(uri)
 
 	def _set_path(self, path):
@@ -1397,22 +1402,30 @@ class UnixFile(FilePath):
 			return str(mimetype)
 		else:
 			mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
-			if encoding == 'gzip': return 'application/x-gzip'
-			elif encoding == 'bzip': return 'application/x-bzip'
-			elif encoding == 'compress': return 'application/x-compress'
-			else: return mimetype or 'application/octet-stream'
+			if encoding == 'gzip':
+				return 'application/x-gzip'
+			elif encoding == 'bzip':
+				return 'application/x-bzip'
+			elif encoding == 'compress':
+				return 'application/x-compress'
+			else:
+				return mimetype or 'application/octet-stream'
 
 	def get_endofline(self):
 		'''Get the end-of-line character(s) used for writing this file.
 		@returns: the end-of-line character(s)
 		'''
 		if self.endofline is None:
-			if isinstance(self, WindowsPath): return '\r\n'
-			else: return '\n'
+			if isinstance(self, WindowsPath):
+				return '\r\n'
+			else:
+				return '\n'
 		else:
 			assert self.endofline in ('unix', 'dos')
-			if self.endofline == 'dos': return '\r\n'
-			else: return '\n'
+			if self.endofline == 'dos':
+				return '\r\n'
+			else:
+				return '\n'
 
 	def open(self, mode='r'):
 		'''Open an IO object for reading or writing. The stream will

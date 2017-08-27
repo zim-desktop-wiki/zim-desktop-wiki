@@ -172,7 +172,8 @@ class WWWInterface(object):
 				# exclude .. and all hidden files from possible paths
 				raise WebPathNotValidError()
 			path = '/' + '/'.join(parts)
-			if isdir and not path == '/': path += '/'
+			if isdir and not path == '/':
+				path += '/'
 			#~ print 'PATH', path
 
 			if not path:

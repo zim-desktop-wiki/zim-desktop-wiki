@@ -49,7 +49,7 @@ class TestParsing(tests.TestCase):
 
 	def testRe(self):
 		'''Test parsing Re class'''
-		string = 'foo bar baz';
+		string = 'foo bar baz'
 		re = Re('f(oo)\s*(bar)')
 		if re.match(string):
 			self.assertEquals(len(re), 3)

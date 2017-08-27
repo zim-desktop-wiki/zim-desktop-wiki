@@ -410,8 +410,10 @@ class SearchSelection(PageSelection):
 					myresults.add(path)
 
 		elif term.keyword in ('linksfrom', 'linksto'):
-			if term.keyword == 'linksfrom': dir = LINK_DIR_FORWARD
-			else: dir = LINK_DIR_BACKWARD
+			if term.keyword == 'linksfrom':
+				dir = LINK_DIR_FORWARD
+			else:
+				dir = LINK_DIR_BACKWARD
 
 			if term.string.endswith('*'):
 				recurs = True

@@ -1758,13 +1758,20 @@ class TextBuffer(gtk.TextBuffer):
 		tag = self.get_tag_table().lookup(name)
 		if tag is None:
 			if bullet:
-				if bullet == BULLET: stylename = 'bullet-list'
-				elif bullet == CHECKED_BOX: stylename = 'checked-checkbox'
-				elif bullet == UNCHECKED_BOX: stylename = 'unchecked-checkbox'
-				elif bullet == XCHECKED_BOX: stylename = 'xchecked-checkbox'
-				elif bullet == MIGRATED_BOX: stylename = 'migrated-checkbox'
-				elif is_numbered_bullet_re.match(bullet): stylename = 'numbered-list'
-				else: raise AssertionError, 'BUG: Unkown bullet type'
+				if bullet == BULLET:
+					stylename = 'bullet-list'
+				elif bullet == CHECKED_BOX:
+					stylename = 'checked-checkbox'
+				elif bullet == UNCHECKED_BOX:
+					stylename = 'unchecked-checkbox'
+				elif bullet == XCHECKED_BOX:
+					stylename = 'xchecked-checkbox'
+				elif bullet == MIGRATED_BOX:
+					stylename = 'migrated-checkbox'
+				elif is_numbered_bullet_re.match(bullet):
+					stylename = 'numbered-list'
+				else:
+					raise AssertionError, 'BUG: Unkown bullet type'
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
 				if dir == 'LTR':
@@ -1850,7 +1857,8 @@ class TextBuffer(gtk.TextBuffer):
 		bullet = self.get_bullet(line)
 		ok = self._set_indent(line, level, bullet)
 
-		if ok: self.set_modified(True)
+		if ok:
+			self.set_modified(True)
 		return ok
 
 	def update_indent_tag(self, line, bullet):
@@ -2812,7 +2820,8 @@ class TextBuffer(gtk.TextBuffer):
 		@param iter: a C{gtk.TextIter} for the insert location
 		@param default_editable: default state of the L{TextView}
 		'''
-		if not default_editable: return
+		if not default_editable:
+			return
 
 		if iter is None:
 			iter = self.get_iter_at_mark(self.get_insert())
@@ -3732,8 +3741,10 @@ class TextView(gtk.TextView):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)
-			if insert.equal(ourhome): iter = home
-			else: iter = ourhome
+			if insert.equal(ourhome):
+				iter = home
+			else:
+				iter = ourhome
 			if event.state & gtk.gdk.SHIFT_MASK:
 				buffer.move_mark_by_name('insert', iter)
 			else:
@@ -3860,8 +3871,10 @@ class TextView(gtk.TextView):
 		#   Shift-Space scrolls one page up
 		handled = True
 		if event.keyval in KEYVALS_SPACE:
-			if event.state & gtk.gdk.SHIFT_MASK: i = -1
-			else: i = 1
+			if event.state & gtk.gdk.SHIFT_MASK:
+				i = -1
+			else:
+				i = 1
 			self.emit('move-cursor', gtk.MOVEMENT_PAGES, i, False)
 		else:
 			handled = False
@@ -4512,7 +4525,8 @@ class UndoStackManager:
 		# Do not use length argument, it gives length in bytes, not characters
 		text = text.decode('utf-8')
 		length = len(text)
-		if self.undo_count > 0: self.flush_redo_stack()
+		if self.undo_count > 0:
+			self.flush_redo_stack()
 
 		start = iter.get_offset()
 		end = start + length
@@ -4538,8 +4552,10 @@ class UndoStackManager:
 
 	def do_insert_pixbuf(self, buffer, iter, pixbuf):
 		# Handle insert pixbuf event
-		if self.undo_count > 0: self.flush_redo_stack()
-		elif self.insert_pending: self.flush_insert()
+		if self.undo_count > 0:
+			self.flush_redo_stack()
+		elif self.insert_pending:
+			self.flush_insert()
 
 		start = iter.get_offset()
 		end = start + 1
@@ -4580,8 +4596,10 @@ class UndoStackManager:
 
 	def do_delete_range(self, buffer, start, end):
 		# Handle deleting text
-		if self.undo_count > 0: self.flush_redo_stack()
-		elif self.insert_pending: self.flush_insert()
+		if self.undo_count > 0:
+			self.flush_redo_stack()
+		elif self.insert_pending:
+			self.flush_insert()
 
 		bounds = (start, end)
 		tree = self.buffer.get_parsetree(bounds, raw=True)
@@ -4603,8 +4621,10 @@ class UndoStackManager:
 		and self.group[-1][3] is None:
 			pass # for text that is not yet flushed tags will be in the tree
 		else:
-			if self.undo_count > 0: self.flush_redo_stack()
-			elif self.insert_pending: self.flush_insert()
+			if self.undo_count > 0:
+				self.flush_redo_stack()
+			elif self.insert_pending:
+				self.flush_insert()
 
 			#~ print 'TAG CHANGED', start, end, tag
 			self.group.append((action, start, end, tag))
@@ -4615,7 +4635,8 @@ class UndoStackManager:
 		if self.group:
 			self.stack.append(self.group)
 			self.group = UndoActionGroup()
-		if self.insert_pending: self.flush_insert()
+		if self.insert_pending:
+			self.flush_insert()
 
 		#~ import pprint
 		#~ pprint.pprint( self.stack )
@@ -6070,8 +6091,10 @@ class PageView(gtk.VBox):
 					continue # not a file
 			links[i] = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 
-		if len(links) == 1: sep = ' '
-		else: sep = '\n'
+		if len(links) == 1:
+			sep = ' '
+		else:
+			sep = '\n'
 
 		buffer = self.view.get_buffer()
 		with buffer.user_action:
@@ -6208,9 +6231,12 @@ class PageView(gtk.VBox):
 		name = action.get_name()
 		logger.debug('Action: %s (toggle_format action)', name)
 		self._current_toggle_action = name
-		if name.startswith('apply_format_'): style = name[13:]
-		elif name.startswith('toggle_format_'): style = name[14:]
-		else: assert False, "BUG: don't known this action"
+		if name.startswith('apply_format_'):
+			style = name[13:]
+		elif name.startswith('toggle_format_'):
+			style = name[14:]
+		else:
+			assert False, "BUG: don't known this action"
 		self.toggle_format(style)
 		self._current_toggle_action = None
 
@@ -6559,7 +6585,8 @@ class InsertImageDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 
 		if not gtk.gdk.pixbuf_get_file_info(file.path):
 			ErrorDialog(self, _('File type not supported: %s' % file.get_mimetype())).run()
@@ -6665,7 +6692,8 @@ class EditImageDialog(Dialog):
 			self._ratio = float(w)/ h
 
 	def do_width_changed(self):
-		if self._block: return
+		if self._block:
+			return
 		self._image_data.pop('height', None)
 		self._image_data['width'] = int(self.form['width'])
 		h = int(float(self._image_data['width']) / self._ratio)
@@ -6674,7 +6702,8 @@ class EditImageDialog(Dialog):
 		self._block = False
 
 	def do_height_changed(self):
-		if self._block: return
+		if self._block:
+			return
 		self._image_data.pop('width', None)
 		self._image_data['height'] = int(self.form['height'])
 		w = int(self._ratio * float(self._image_data['height']))
@@ -6720,7 +6749,8 @@ class InsertTextFromFileDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 		parser = get_format('plain').Parser()
 		tree = parser.parse(file.readlines())
 		self.buffer.insert_parsetree_at_cursor(tree)
@@ -6737,8 +6767,10 @@ class InsertLinkDialog(Dialog):
 		self.pageview = pageview
 		href, text = self._get_link_from_buffer()
 
-		if href: title = _('Edit Link') # T: Dialog title
-		else: title = _('Insert Link') # T: Dialog title
+		if href:
+			title = _('Edit Link') # T: Dialog title
+		else:
+			title = _('Insert Link') # T: Dialog title
 
 		Dialog.__init__(self, ui, title,
 			button=(_('_Link'), 'zim-link') )  # T: Dialog button
@@ -6793,7 +6825,8 @@ class InsertLinkDialog(Dialog):
 
 	def on_href_changed(self, o):
 		# Check if we can also update text
-		if not self._copy_text: return
+		if not self._copy_text:
+			return
 
 		self._copy_text = False # block on_text_changed()
 		self.form['text'] = self.form['href']
@@ -6801,7 +6834,8 @@ class InsertLinkDialog(Dialog):
 
 	def on_text_changed(self, o):
 		# Check if we should stop updating text
-		if not self._copy_text: return
+		if not self._copy_text:
+			return
 
 		self._copy_text = self.form['href'] == self.form['text']
 

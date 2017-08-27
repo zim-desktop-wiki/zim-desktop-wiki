@@ -338,11 +338,13 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 		)
 
 	def on_tag_row_inserted(self, o, row):
-		if row['name'] in self.tags: self._update_ids()
+		if row['name'] in self.tags:
+			self._update_ids()
 		# Don't emit further, view did not yet change
 
 	def on_tag_row_deleted(self, o, row):
-		if row['name'] in self.tags: self._update_ids()
+		if row['name'] in self.tags:
+			self._update_ids()
 		# Don't emit further, view already changed
 
 

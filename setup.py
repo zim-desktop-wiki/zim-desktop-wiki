@@ -71,10 +71,12 @@ def get_mopath(pofile):
 
 def include_file(file):
 	# Check to exclude hidden and temp files
-	if file.startswith('.'): return False
+	if file.startswith('.'):
+		return False
 	else:
 		for ext in ('~', '.bak', '.swp', '.pyc'):
-			if file.endswith(ext): return False
+			if file.endswith(ext):
+				return False
 	return True
 
 

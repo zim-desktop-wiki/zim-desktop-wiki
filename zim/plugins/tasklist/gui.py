@@ -276,7 +276,8 @@ class TagListTreeView(SingleClickTreeView):
 
 		# Rebuild model
 		model = self.get_model()
-		if model is None: return
+		if model is None:
+				return
 		model.clear()
 
 		n_all = self.task_list.get_n_tasks()
@@ -324,10 +325,14 @@ ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
 COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
 
 def days_to_str(days):
-	if days > 290:  return '%iy' % round(float(days)/365) # round up to 1 year from ~10 months
-	elif days > 25: return '%im' % round(float(days)/30)
-	elif days > 10: return '%iw' % round(float(days)/7)
-	else:           return '%id' % days
+	if days > 290:
+			return '%iy' % round(float(days)/365) # round up to 1 year from ~10 months
+	elif days > 25:
+			return '%im' % round(float(days)/30)
+	elif days > 10:
+			return '%iw' % round(float(days)/7)
+	else:
+			return '%id' % days
 
 
 class TaskListTreeView(BrowserTreeView):
@@ -440,11 +445,15 @@ class TaskListTreeView(BrowserTreeView):
 				cell.set_property('text', date)
 				# TODO allow strftime here
 
-			if date <= today: color = HIGH_COLOR
-			elif date <= tomorrow: color = MEDIUM_COLOR
-			elif date <= dayafter: color = ALERT_COLOR
+			if date <= today:
+					color = HIGH_COLOR
+			elif date <= tomorrow:
+					color = MEDIUM_COLOR
+			elif date <= dayafter:
+					color = ALERT_COLOR
 				# "<=" because tomorrow and/or dayafter can be after the weekend
-			else: color = None
+			else:
+					color = None
 			cell.set_property('cell-background', color)
 
 		if not compact:
@@ -551,9 +560,12 @@ class TaskListTreeView(BrowserTreeView):
 				td = datetime.date(int(y), int(m), int(d)) - today
 				prio_sort_label = \
 					'!' * min(row['prio'], 3) + ' ' if row['prio'] > 0 else ''
-				if td.days < 0:     prio_sort_label += '<b><u>OD</u></b>' # over due
-				elif td.days == 0:  prio_sort_label += '<u>TD</u>' # today
-				else:               prio_sort_label += days_to_str(td.days)
+				if td.days < 0:
+						prio_sort_label += '<b><u>OD</u></b>' # over due
+				elif td.days == 0:
+						prio_sort_label += '<u>TD</u>' # today
+				else:
+						prio_sort_label += days_to_str(td.days)
 			else:
 				prio_sort_label = '!' * min(row['prio'], 3)
 
@@ -804,15 +816,23 @@ class TaskListTreeView(BrowserTreeView):
 		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
 		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
 		for indent, prio, desc, date, page in self.get_visible_data():
-			if prio >= 3: prio = '<td class="high">%s</td>' % prio
-			elif prio == 2: prio = '<td class="medium">%s</td>' % prio
-			elif prio == 1: prio = '<td class="alert">%s</td>' % prio
-			else: prio = '<td>%s</td>' % prio
+			if prio >= 3:
+					prio = '<td class="high">%s</td>' % prio
+			elif prio == 2:
+					prio = '<td class="medium">%s</td>' % prio
+			elif prio == 1:
+					prio = '<td class="alert">%s</td>' % prio
+			else:
+					prio = '<td>%s</td>' % prio
 
-			if date and date <= today: date = '<td class="high">%s</td>' % date
-			elif date == tomorrow: date = '<td class="medium">%s</td>' % date
-			elif date == dayafter: date = '<td class="alert">%s</td>' % date
-			else: date = '<td>%s</td>' % date
+			if date and date <= today:
+					date = '<td class="high">%s</td>' % date
+			elif date == tomorrow:
+					date = '<td class="medium">%s</td>' % date
+			elif date == dayafter:
+					date = '<td class="alert">%s</td>' % date
+			else:
+					date = '<td>%s</td>' % date
 
 			desc = '<td>%s%s</td>' % ('&nbsp;' * (4 * indent), desc)
 			page = '<td>%s</td>' % page

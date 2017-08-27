@@ -122,8 +122,10 @@ class Dumper(TextDumper):
 
 	def dump_h(self, tag, attrib, strings):
 		level = int(attrib['level'])
-		if level < 1: level = 1
-		elif level > 5: level = 5
+		if level < 1:
+			level = 1
+		elif level > 5:
+			level = 5
 
 		text = u''.join(strings)
 		return [self.SECTIONING[self.document_type][level] % text]

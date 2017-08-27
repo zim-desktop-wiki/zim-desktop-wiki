@@ -40,8 +40,10 @@ class NotebookConfig(INIConfigFile):
 
 	def __init__(self, file):
 		INIConfigFile.__init__(self, file)
-		if os.name == 'nt': endofline = 'dos'
-		else: endofline = 'unix'
+		if os.name == 'nt':
+			endofline = 'dos'
+		else:
+			endofline = 'unix'
 		self['Notebook'].define((
 			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
 			('name', String(file.dir.basename)),

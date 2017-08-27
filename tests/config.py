@@ -75,12 +75,14 @@ class TestDirsTestSetup(tests.TestCase):
 			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
 			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
 			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
-		): self.assertEqual(getattr(zim.config, k), Dir(v))
+		):
+			self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
 			#~ ('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
 			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
+		):
+			self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
 
 		self.assertEqual(
 			zim.config.XDG_DATA_DIRS[0],
@@ -97,12 +99,14 @@ class TestXDGDirs(tests.TestCase):
 			XDG_DATA_HOME,
 			XDG_CONFIG_HOME,
 			XDG_CACHE_HOME
-		): self.assertTrue(isinstance(var, Dir))
+		):
+			self.assertTrue(isinstance(var, Dir))
 
 		for var in (
 			XDG_DATA_DIRS,
 			XDG_CONFIG_DIRS,
-		): self.assertTrue(isinstance(var, list) and isinstance(var[0], Dir))
+		):
+			self.assertTrue(isinstance(var, list) and isinstance(var[0], Dir))
 
 		self.assertEqual(ZIM_DATA_DIR, Dir('./data'))
 		self.assertTrue(ZIM_DATA_DIR.file('zim.png').exists())
@@ -126,12 +130,14 @@ class TestXDGDirs(tests.TestCase):
 				('XDG_DATA_HOME', '~/.local/share'),
 				('XDG_CONFIG_HOME', '~/.config'),
 				('XDG_CACHE_HOME', '~/.cache')
-			): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
 			for k, v in (
 				('XDG_DATA_DIRS', '/usr/share:/usr/local/share'),
 				('XDG_CONFIG_DIRS', '/etc/xdg'),
-			): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 	def testCorrect(self):
 		'''Test config environemnt with non-default basedir paths'''
@@ -151,12 +157,14 @@ class TestXDGDirs(tests.TestCase):
 				('XDG_DATA_HOME', '/foo/data/home'),
 				('XDG_CONFIG_HOME', '/foo/config/home'),
 				('XDG_CACHE_HOME', '/foo/cache')
-			): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
 			for k, v in (
 				('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
 				('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-			): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 
 class TestControlledDict(tests.TestCase):

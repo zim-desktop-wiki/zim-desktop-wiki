@@ -333,7 +333,8 @@ def rotate_pixbuf(pixbuf):
 
 	# Values for orientation seen in some random snippet in gtkpod
 	o = pixbuf.get_option('orientation')
-	if o: o = int(o)
+	if o:
+		o = int(o)
 	if o == 3: # 180 degrees
 		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_UPSIDEDOWN)
 	elif o == 6: # 270 degrees
@@ -376,8 +377,10 @@ def _do_sync_widget_state(widget, a, subject):
 
 
 def _do_sync_widget_state_check_active(widget, *a):
-	if len(a) == 1: subject = a[0]
-	else: subject = a[1]
+	if len(a) == 1:
+		subject = a[0]
+	else:
+		subject = a[1]
 	_do_sync_widget_state(widget, '', subject)
 	subject.set_sensitive(widget.get_active())
 
@@ -1786,8 +1789,10 @@ class FileEntry(FSPathEntry):
 		'''
 		FSPathEntry.__init__(self)
 		self.file_type_hint = 'file'
-		if new: self.action = gtk.FILE_CHOOSER_ACTION_SAVE
-		else: self.action = gtk.FILE_CHOOSER_ACTION_OPEN
+		if new:
+			self.action = gtk.FILE_CHOOSER_ACTION_SAVE
+		else:
+			self.action = gtk.FILE_CHOOSER_ACTION_OPEN
 
 		if file:
 			self.set_file(file)
@@ -2424,7 +2429,8 @@ class MinimizedTabs(object):
 			button = gtk.Button(label=text)
 			button.set_relief(gtk.RELIEF_NONE)
 			button.connect('clicked', self._on_click, text)
-			if self._angle != 0: button.get_child().set_angle(self._angle)
+			if self._angle != 0:
+				button.get_child().set_angle(self._angle)
 			self.pack_start(button, False)
 
 	def _on_click(self, b, text):
@@ -3052,8 +3058,10 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		# TODO set Ok button as default widget
 		# see gtk.Window.set_default()
 
-		if help_text: self.add_help_text(help_text)
-		if help: self.set_help(help)
+		if help_text:
+			self.add_help_text(help_text)
+		if help:
+			self.set_help(help)
 
 	def destroy(self):
 		self.disconnect_all()

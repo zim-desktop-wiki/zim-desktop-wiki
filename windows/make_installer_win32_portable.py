@@ -43,7 +43,8 @@ f.close()
 
 # NSIS script compiles to "dist" folder but compiler won't create it if it's needed
 
-if not path.exists("dist"): os.mkdir("dist")
+if not path.exists("dist"):
+	os.mkdir("dist")
 
 # Run NSIS compiler
 

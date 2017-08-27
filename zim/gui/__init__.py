@@ -1074,7 +1074,8 @@ class GtkInterface(gobject.GObject):
 		'''
 		if path is None:
 			path = self._get_path_context()
-			if not path: return
+			if not path:
+				return
 
 		if not self.notebook.index.is_uptodate:
 			if not self.reload_index(update_only=True):
@@ -2411,8 +2412,10 @@ class MainWindow(Window):
 
 	def on_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
-		if state: text = 'OVR'
-		else: text = 'INS'
+		if state:
+			text = 'OVR'
+		else:
+			text = 'INS'
 		self.statusbar_insert_label.set_text(text)
 
 	def on_textview_textstyle_changed(self, view, style):
@@ -2525,8 +2528,10 @@ class NewPageDialog(Dialog):
 	'''
 
 	def __init__(self, window, path=None, subpage=False):
-		if subpage: title = _('New Sub Page') # T: Dialog title
-		else: title = _('New Page') # T: Dialog title
+		if subpage:
+			title = _('New Sub Page') # T: Dialog title
+		else:
+			title = _('New Page') # T: Dialog title
 
 		Dialog.__init__(self, window, title,
 			help_text=_(
@@ -2593,7 +2598,8 @@ class SaveCopyDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 		format = 'wiki'
 		logger.info("Saving a copy of %s using format '%s'", self.page, format)
 		lines = self.page.dump(format)
@@ -2614,7 +2620,8 @@ class ImportPageDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 
 		basename = file.basename
 		if basename.endswith('.txt'):

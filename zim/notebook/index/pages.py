@@ -553,7 +553,8 @@ class PagesView(IndexView):
 		'''
 		# Find last (grand)child of previous item with same parent
 		# If no previous item, yield parent
-		if path.isroot: raise ValueError, 'Can\'t use root'
+		if path.isroot:
+			raise ValueError, 'Can\'t use root'
 
 		r = self.db.execute(
 			'SELECT parent FROM pages WHERE name=?', (path.name,)
@@ -593,7 +594,8 @@ class PagesView(IndexView):
 		# If item has children, yield first child
 		# Else find next item with same parent
 		# If no next item, find next item for parent
-		if path.isroot: raise ValueError, 'Can\'t use root'
+		if path.isroot:
+			raise ValueError, 'Can\'t use root'
 
 		r = self.db.execute(
 			'SELECT * FROM pages WHERE name=?', (path.name,)

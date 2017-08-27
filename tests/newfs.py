@@ -317,7 +317,7 @@ class TestFS(object):
 		self.assertEquals(file.read_with_etag(), ('test 123\n', etag1))
 
 		# Now write again
-		import time;
+		import time
 		if isinstance(etag1[0], float):
 			time.sleep(0.1) # Ensure mtime change
 		else: # int

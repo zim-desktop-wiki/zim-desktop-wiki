@@ -129,8 +129,10 @@ class ScrolledHBox(gtk.HBox):
 		else:
 			assert False
 
-		if index > max: index = max
-		elif index < 0: index = 0
+		if index > max:
+			index = max
+		elif index < 0:
+			index = 0
 
 		self._anchor = (direction, index)
 		self.queue_resize()
@@ -370,12 +372,16 @@ class ScrollButton(gtk.Button):
 		self.direction = direction
 		if self.get_direction() != gtk.TEXT_DIR_RTL:
 			# Left to Right
-			if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_RIGHT
-			else: arrow_dir = gtk.ARROW_LEFT
+			if direction == DIR_FORWARD:
+				arrow_dir = gtk.ARROW_RIGHT
+			else:
+				arrow_dir = gtk.ARROW_LEFT
 		else:
 			# Right to Left
-			if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_LEFT
-			else: arrow_dir = gtk.ARROW_RIGHT
+			if direction == DIR_FORWARD:
+				arrow_dir = gtk.ARROW_LEFT
+			else:
+				arrow_dir = gtk.ARROW_RIGHT
 
 		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
 		self.set_relief(gtk.RELIEF_NONE)
