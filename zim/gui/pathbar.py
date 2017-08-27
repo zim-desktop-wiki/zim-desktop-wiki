@@ -11,6 +11,7 @@ from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
 from zim.gui.widgets import encode_markup_text
+from functools import reduce
 
 logger = logging.getLogger('zim.gui')
 

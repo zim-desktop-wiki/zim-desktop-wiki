@@ -185,7 +185,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 				self.connectto(e, 'tasklist-changed', callback)
 				break
 		else:
-			raise AssertionError, 'Could not find tasklist notebook extension'
+			raise AssertionError('Could not find tasklist notebook extension')
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()

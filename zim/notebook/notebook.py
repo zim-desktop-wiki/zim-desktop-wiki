@@ -140,7 +140,7 @@ class IndexNotUptodateError(Error):
 def assert_index_uptodate(method):
 	def wrapper(notebook, *arg, **kwarg):
 		if not notebook.index.is_uptodate:
-			raise IndexNotUptodateError, 'Index not up to date'
+			raise IndexNotUptodateError('Index not up to date')
 		return method(notebook, *arg, **kwarg)
 
 	return wrapper
@@ -930,7 +930,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		logger.debug('Trash page: %s', path)
 
 		if self.config['Notebook']['disable_trash']:
-			raise TrashNotSupportedError, 'disable_trash is set'
+			raise TrashNotSupportedError('disable_trash is set')
 
 		self.emit('delete-page', path)
 

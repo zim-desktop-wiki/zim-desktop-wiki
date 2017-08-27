@@ -66,13 +66,13 @@ def parse_date(date):
 		elif len(string) == 7: # yyyywwD
 			return Day.new_from_weeknumber(int(string[:4]), int(string[4:6]), int(string[6]))
 		else:
-			raise ValueError, 'Could not parse: %s' % date
+			raise ValueError('Could not parse: %s' % date)
 	elif len(string) == 6: # yyyymm
 		return Month(int(string[:4]), int(string[4:]))
 	elif len(string) == 8: # yyyymmdd
 		return Day(int(string[:4]), int(string[4:6]), int(string[6:]))
 	else:
-		raise ValueError, 'Could not parse: %s' % date
+		raise ValueError('Could not parse: %s' % date)
 
 
 class DateRange(object):
@@ -86,7 +86,7 @@ class Day(DateRange, datetime.date):
 	@classmethod
 	def new_from_weeknumber(cls, year, week, weekday):
 		if not (isinstance(weekday, int) and 0 <= weekday <= 7):
-			raise ValueError, 'Not a weekday: %i (must be between 0 and 7)' % weekday
+			raise ValueError('Not a weekday: %i (must be between 0 and 7)' % weekday)
 
 		start, end = dates_for_week(year, week)
 		if start.isoweekday() == 1: # monday

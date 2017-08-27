@@ -441,7 +441,7 @@ class String(BaseString):
 		value = BaseString.check(self, value)
 		if isinstance(value, unicode) \
 		and value.encode('utf-8') != value:
-			raise ValueError, 'ASCII string required'
+			raise ValueError('ASCII string required')
 		return value
 
 
@@ -576,7 +576,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 			theme = gtk.icon_theme_get_default()
 			try:
 				pixbuf = theme.load_icon(icon.encode('utf-8'), w, 0)
-			except Exception, error:
+			except Exception as error:
 				#~ logger.exception('Foo')
 				return None
 			return pixbuf
@@ -1119,7 +1119,7 @@ class CustomToolDict(DesktopEntryDict):
 
 	def parse_exec(self, args=None):
 		if not (isinstance(args, tuple) and len(args) == 3):
-			raise AssertionError, 'Custom commands needs 3 arguments'
+			raise AssertionError('Custom commands needs 3 arguments')
 			# assert statement could be optimized away
 		notebook, page, pageview = args
 

@@ -239,7 +239,7 @@ else:
 			try:
 				return path.encode(ENCODING)
 			except UnicodeEncodeError:
-				raise Error, 'BUG: invalid filename %s' % path
+				raise Error('BUG: invalid filename %s' % path)
 		else:
 			return path # assume encoding is correct
 
@@ -251,7 +251,7 @@ else:
 			try:
 				return path.decode(ENCODING)
 			except UnicodeDecodeError:
-				raise Error, 'BUG: invalid filename %s' % path
+				raise Error('BUG: invalid filename %s' % path)
 
 
 def isabs(path):
@@ -342,15 +342,14 @@ def get_tmpdir():
 	dir = Dir((root, 'zim-%s' % user))
 
 	try:
-		dir.touch(mode=0700) # Limit to single user
-		os.chmod(dir.path, 0700) # Limit to single user when dir already existed
+		dir.touch(mode=0o700) # Limit to single user
+		os.chmod(dir.path, 0o700) # Limit to single user when dir already existed
 			# Raises OSError if not allowed to chmod
 		os.listdir(dir.path)
 			# Raises OSError if we do not have access anymore
 	except OSError:
-		raise AssertionError, \
-			'Either you are not the owner of "%s" or the permissions are un-safe.\n' \
-			'If you can not resolve this, try setting $TMP to a different location.' % dir.path
+		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n' \
+			'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
 	else:
 		# All OK, so we must be owner of a safe folder now ...
 		return dir
@@ -596,7 +595,7 @@ class UnixPath(object):
 			else:
 				path = unicode(path) # make sure we can decode
 		except UnicodeDecodeError:
-			raise Error, 'BUG: invalid input, file names should be in ascii, or given as unicode'
+			raise Error('BUG: invalid input, file names should be in ascii, or given as unicode')
 
 		if path.startswith('file:/'):
 			path = self._parse_uri(path)
@@ -800,7 +799,7 @@ class UnixPath(object):
 			path = '../' * j
 		else:
 			if not self.path.startswith(refdir):
-				raise AssertionError, 'Not a parent folder'
+				raise AssertionError('Not a parent folder')
 			path = ''
 
 		i = len(reference.path)
@@ -847,7 +846,7 @@ class UnixPath(object):
 		logger.info('Rename %s to %s', self, newpath)
 		newpath = adapt_from_newfs(newpath)
 		if self.path == newpath.path:
-			raise AssertionError, 'Renaming %s to itself !?' % self.path
+			raise AssertionError('Renaming %s to itself !?' % self.path)
 
 		with FS.get_async_lock(self):
 			# Do we also need a lock for newpath (could be the same as lock for self) ?
@@ -861,7 +860,7 @@ class UnixPath(object):
 					shutil.move(tmpdir.encodedpath, newpath.encodedpath)
 				else:
 					# Needed because shutil.move() has different behavior for this case
-					raise AssertionError, 'Folder already exists: %s' % newpath.path
+					raise AssertionError('Folder already exists: %s' % newpath.path)
 			else:
 				# normal case
 				newpath.dir.touch()
@@ -879,26 +878,26 @@ class UnixPath(object):
 		user
 		'''
 		if not gio:
-			raise TrashNotSupportedError, 'gio not imported'
+			raise TrashNotSupportedError('gio not imported')
 
 		if self.exists():
 			logger.info('Move %s to trash' % self)
 			f = gio.File(uri=self.uri)
 			try:
 				ok = f.trash()
-			except gobject.GError, error:
+			except gobject.GError as error:
 				if error.code == gio.ERROR_CANCELLED \
 				or (os.name == 'nt' and error.code == 0):
 					# code 0 observed on windows for cancel
 					logger.info('Trash operation cancelled')
-					raise TrashCancelledError, 'Trashing cancelled'
+					raise TrashCancelledError('Trashing cancelled')
 				elif error.code == gio.ERROR_NOT_SUPPORTED:
-					raise TrashNotSupportedError, 'Trashing failed'
+					raise TrashNotSupportedError('Trashing failed')
 				else:
 					raise error
 			else:
 				if not ok:
-					raise TrashNotSupportedError, 'Trashing failed'
+					raise TrashNotSupportedError('Trashing failed')
 			return True
 		else:
 			return False
@@ -1053,7 +1052,7 @@ class Dir(FilePath):
 				os.makedirs(self.encodedpath, mode=mode)
 			else:
 				os.makedirs(self.encodedpath)
-		except OSError, e:
+		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
 
@@ -1136,7 +1135,7 @@ class Dir(FilePath):
 		'''
 		file = self.resolve_file(path)
 		if not file.path.startswith(self.path):
-			raise PathLookupError, '%s is not below %s' % (file, self)
+			raise PathLookupError('%s is not below %s' % (file, self))
 		return file
 
 	def resolve_file(self, path):
@@ -1203,7 +1202,7 @@ class Dir(FilePath):
 
 		dir = self.resolve_dir(path)
 		if not dir.path.startswith(self.path):
-			raise PathLookupError, '%s is not below %s' % (dir, self)
+			raise PathLookupError('%s is not below %s' % (dir, self))
 		return dir
 
 	def resolve_dir(self, path):
@@ -1445,7 +1444,7 @@ class UnixFile(FilePath):
 		assert mode in ('r', 'w')
 		if mode == 'w':
 			if not self.iswritable():
-				raise FileWriteError, _('File is not writable: %s') % self.path # T: Error message
+				raise FileWriteError(_('File is not writable: %s') % self.path) # T: Error message
 			elif not self.exists():
 				self.dir.touch()
 			else:
@@ -1475,7 +1474,7 @@ class UnixFile(FilePath):
 		# block moving it :)
 		tmp = self.encodedpath + '.zim-new~'
 		if not os.path.isfile(tmp):
-			raise AssertionError, 'BUG: File should exist: %s' % tmp
+			raise AssertionError('BUG: File should exist: %s' % tmp)
 
 		os.rename(tmp, self.encodedpath)
 		logger.debug('Wrote %s', self)
@@ -1513,7 +1512,7 @@ class UnixFile(FilePath):
 					# And remove any NULL byte since they screw up parsing
 			except IOError:
 				raise FileNotFoundError(self)
-			except UnicodeDecodeError, error:
+			except UnicodeDecodeError as error:
 				raise FileUnicodeError(self, error)
 
 		return text
@@ -1536,7 +1535,7 @@ class UnixFile(FilePath):
 					# And remove any NULL byte since they screw up parsing
 			except IOError:
 				raise FileNotFoundError(self)
-			except UnicodeDecodeError, error:
+			except UnicodeDecodeError as error:
 				raise FileUnicodeError(self, error)
 
 		return lines
@@ -1622,7 +1621,7 @@ class UnixFile(FilePath):
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
 				if self._md5 != _md5(self.open('r').read()):
-					raise FileWriteError, _('File changed on disk: %s') % self.path
+					raise FileWriteError(_('File changed on disk: %s') % self.path)
 						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
 
@@ -1781,7 +1780,7 @@ class WindowsFile(UnixFile):
 		# temporarily locked by e.g. a virus scanner.
 		tmp = self.encodedpath + '.zim-new~'
 		if not os.path.isfile(tmp):
-			raise AssertionError, 'BUG: File should exist: %s' % tmp
+			raise AssertionError('BUG: File should exist: %s' % tmp)
 
 		if os.path.isfile(self.encodedpath):
 			orig = self.encodedpath + '.zim-orig~'
@@ -1806,7 +1805,7 @@ class WindowsFile(UnixFile):
 		while True:
 			try:
 				os.rename(src, dst)
-			except WindowsError, error:
+			except WindowsError as error:
 				if error.errno == 13 and i < 10:
 					# errno 13 means locked by other process
 					i += 1
@@ -1914,12 +1913,12 @@ elif sys.platform == 'win32':
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError, 'Could not replace "%s" -> "%s"' % (src, dst)
+				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError, 'Could not replace "%s" -> "%s"' % (src, dst)
+				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 else:
 	_replace_file = os.rename
 

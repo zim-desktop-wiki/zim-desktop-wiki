@@ -127,7 +127,7 @@ class WWWInterface(object):
 			from zim.templates import get_template
 			self.template = get_template('html', template)
 			if not self.template:
-				raise AssertionError, 'Could not find html template: %s' % template
+				raise AssertionError('Could not find html template: %s' % template)
 		else:
 			self.template = template
 
@@ -235,7 +235,7 @@ class WWWInterface(object):
 						raise WebPageNotFoundError(path)
 				except PageNotFoundError:
 					raise WebPageNotFoundError(path)
-		except Exception, error:
+		except Exception as error:
 			headerlist = []
 			headers = Headers(headerlist)
 			headers.add_header('Content-Type', 'text/plain', charset='utf-8')

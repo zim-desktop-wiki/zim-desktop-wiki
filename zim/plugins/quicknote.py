@@ -109,7 +109,7 @@ class QuickNotePluginCommand(GtkCommand):
 					SelectionClipboard.get_text() \
 					or Clipboard.get_text()
 			else:
-				raise AssertionError, 'Unknown input type: %s' % self.opts['input']
+				raise AssertionError('Unknown input type: %s' % self.opts['input'])
 		else:
 			text = self.opts.get('text')
 
@@ -121,7 +121,7 @@ class QuickNotePluginCommand(GtkCommand):
 				from zim.parsing import url_decode, URL_ENCODE_DATA
 				text = url_decode(text, mode=URL_ENCODE_DATA)
 			else:
-				raise AssertionError, 'Unknown encoding: %s' % self.opts['encoding']
+				raise AssertionError('Unknown encoding: %s' % self.opts['encoding'])
 
 		if text and not isinstance(text, unicode):
 			text = text.decode('utf-8')

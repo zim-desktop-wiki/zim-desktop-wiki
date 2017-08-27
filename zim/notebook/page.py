@@ -101,7 +101,7 @@ class Path(object):
 		if not name.strip(':') \
 		or _pagename_reduce_colon_re.search(name) \
 		or _pagename_invalid_char_re.search(name):
-			raise AssertionError, 'Not a valid page name: %s' % name
+			raise AssertionError('Not a valid page name: %s' % name)
 
 	@staticmethod
 	def makeValidPageName(name):
@@ -118,7 +118,7 @@ class Path(object):
 		try:
 			Path.assertValidPageName(newname)
 		except AssertionError:
-			raise ValueError, 'Not a valid page name: %s (was: %s)' % (newname, name)
+			raise ValueError('Not a valid page name: %s (was: %s)' % (newname, name))
 		return newname
 
 	def __init__(self, name):
@@ -143,7 +143,7 @@ class Path(object):
 		try:
 			self.name = unicode(self.name)
 		except UnicodeDecodeError:
-			raise ValueError, 'BUG: invalid input, page names should be in ascii, or given as unicode'
+			raise ValueError('BUG: invalid input, page names should be in ascii, or given as unicode')
 
 	@classmethod
 	def new_from_zim_config(klass, string):
@@ -222,7 +222,7 @@ class Path(object):
 			i = len(path.name)+1
 			return self.name[i:].strip(':')
 		else:
-			raise ValueError, '"%s" is not below "%s"' % (self, path)
+			raise ValueError('"%s" is not below "%s"' % (self, path))
 
 	@property
 	def parent(self):
@@ -343,10 +343,10 @@ class SourceFile(zim.fs.File):
 		return False
 
 	def write(self, *a):
-		raise AssertionError, 'Not writeable'
+		raise AssertionError('Not writeable')
 
 	def writelines(self, *a):
-		raise AssertionError, 'Not writeable'
+		raise AssertionError('Not writeable')
 
 
 class Page(Path, SignalEmitter):
@@ -539,7 +539,7 @@ class Page(Path, SignalEmitter):
 		assert self.valid, 'BUG: page object became invalid'
 
 		if self.readonly:
-			raise PageReadOnlyError, self
+			raise PageReadOnlyError(self)
 
 		if self._ui_object:
 			self._ui_object.set_parsetree(tree)

@@ -111,7 +111,7 @@ class MockFS(MockFSNode):
 		for i, name in enumerate(names):
 			parent = node
 			if not parent.isdir:
-				raise AssertionError, 'Not a folder: %s' % _SEP.join(names[:i+1])
+				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i+1]))
 			else:
 				try:
 					node = parent.data[name]
@@ -132,7 +132,7 @@ class MockFS(MockFSNode):
 				parent.on_changed()
 			node = parent.data[name]
 			if not node.isdir:
-				raise AssertionError, 'Not a folder: %s' % _SEP.join(names[:i+1])
+				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i+1]))
 
 		parent, basename = node, names[-1]
 		if basename not in parent.data:
@@ -174,7 +174,7 @@ class MockFSObjectBase(FSObjectBase):
 	def parent(self):
 		dirname = self.dirname
 		if dirname is None:
-			raise ValueError, 'Can not get parent of root'
+			raise ValueError('Can not get parent of root')
 		else:
 			return MockFolder(dirname, watcher=self.watcher, _fs=self._fs)
 
@@ -205,7 +205,7 @@ class MockFSObjectBase(FSObjectBase):
 			other = other.file(self.basename)
 
 		if not isinstance(other, MockFSObjectBase):
-			raise NotImplementedError, 'TODO: support cross object type move'
+			raise NotImplementedError('TODO: support cross object type move')
 
 		self._mock_copyto(other)
 		self._remove(removechildren=True)
@@ -271,7 +271,7 @@ class MockFolder(MockFSObjectBase, Folder):
 	def _node(self):
 		node = self._fs.stat(self.pathnames)
 		if not node.isdir:
-			raise AssertionError, 'Not a folder: %s' % self.path
+			raise AssertionError('Not a folder: %s' % self.path)
 		return node
 
 	def exists(self):
@@ -289,7 +289,7 @@ class MockFolder(MockFSObjectBase, Folder):
 
 			node = self._fs.touch(self.pathnames, {})
 			if not node.isdir:
-				raise AssertionError, 'Not a folder: %s' % self.path
+				raise AssertionError('Not a folder: %s' % self.path)
 
 			if self.watcher:
 				self.watcher.emit('created', self)
@@ -347,7 +347,7 @@ class MockFile(MockFSObjectBase, File):
 	def _node(self):
 		node = self._fs.stat(self.pathnames)
 		if node.isdir:
-			raise AssertionError, 'Not a file: %s' % self.path
+			raise AssertionError('Not a file: %s' % self.path)
 		return node
 
 	def size(self):

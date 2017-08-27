@@ -900,4 +900,4 @@ class MockUI(tests.MockObject):
 		if hasattr(GtkInterface, name):
 			return tests.MockObject.__getattr__(self, name)
 		else:
-			raise AttributeError, 'GtkInterface does not have a method: %s' % name
+			raise AttributeError('GtkInterface does not have a method: %s' % name)

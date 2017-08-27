@@ -64,10 +64,10 @@ class TemplateProcessor(object):
 			elif item.tag == 'BLOCK':
 				self.blocks[item.get('name')] = item
 			else:
-				raise AssertionError, 'Unknown tag: %s' % item.tag
+				raise AssertionError('Unknown tag: %s' % item.tag)
 
 		if self.main is None:
-			raise AssertionError, 'Missing main part of template'
+			raise AssertionError('Missing main part of template')
 
 	def process(self, output, context):
 		'''Execute the template once
@@ -89,13 +89,13 @@ class TemplateProcessor(object):
 			and isinstance(namespace, TemplateContextDict):
 				namespace = namespace.get(name)
 			else:
-				raise AssertionError, 'Can not assign: %s' % var.name
+				raise AssertionError('Can not assign: %s' % var.name)
 
 		if namespace is not None \
 		and isinstance(namespace, TemplateContextDict):
 			namespace[var.key] = value
 		else:
-			raise AssertionError, 'Can not assign: %s' % var.name
+			raise AssertionError('Can not assign: %s' % var.name)
 
 	def __call__(self, output, elements, context):
 		n = len(elements)
@@ -135,11 +135,11 @@ class TemplateProcessor(object):
 						if name in self.blocks:
 							self.__call__(output, self.blocks[name], context) # recurs
 						else:
-							raise AssertionError, 'No such block defined: %s' % name
+							raise AssertionError('No such block defined: %s' % name)
 					else:
-						raise AssertionError, 'TODO also allow files from template resources'
+						raise AssertionError('TODO also allow files from template resources')
 				else:
-					raise AssertionError, 'Unknown instruction: %s' % element.tag
+					raise AssertionError('Unknown instruction: %s' % element.tag)
 			except:
 				raise
 
@@ -148,7 +148,7 @@ class TemplateProcessor(object):
 		expr = element.attrib['expr']
 		items = expr(context)
 		if not isinstance(items, collections.Iterable):
-			raise TypeError, 'Can not iterate over: %s' % items
+			raise TypeError('Can not iterate over: %s' % items)
 		elif not isinstance(items, collections.Sized):
 			# cast to list to ensure we have a len()
 			items = list(items)

@@ -228,7 +228,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 		"""
 		try:
 			self.run(['whoami'])
-		except ApplicationError, e:
+		except ApplicationError as e:
 			return False
 		else:
 			return True

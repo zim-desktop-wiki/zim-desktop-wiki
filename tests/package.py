@@ -37,7 +37,7 @@ class TestBzr(tests.TestCase):
 	def runTest(self):
 		unknown = subprocess.check_output(['bzr', 'ls', '-u'])
 		if unknown:
-			raise AssertionError, 'File unknown to bzr - need to be added or ignored:\n' + unknown
+			raise AssertionError('File unknown to bzr - need to be added or ignored:\n' + unknown)
 		else:
 			pass
 
@@ -48,7 +48,7 @@ class TestGit(tests.TestCase):
 	def runTest(self):
 		unknown = subprocess.check_output(['git', 'clean', '-dn'])
 		if unknown:
-			raise AssertionError, 'File unknown to git - need to be added or ignored:\n' + unknown
+			raise AssertionError('File unknown to git - need to be added or ignored:\n' + unknown)
 		else:
 			pass
 

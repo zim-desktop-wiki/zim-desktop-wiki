@@ -139,7 +139,7 @@ def safe_eval(expression):
 	GLOBALS = {'__builtins__': None} # Don't allow open() etc.
 	try:
 		re = eval(expression, GLOBALS, {'Decimal': Decimal})
-	except Exception, e:
+	except Exception as e:
 		#~ print e
 		raise
 

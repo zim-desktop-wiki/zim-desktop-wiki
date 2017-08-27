@@ -227,7 +227,7 @@ class TestTagPluginWidget(tests.TestCase):
 				button.clicked()
 				break
 		else:
-			raise AssertionError, 'No button for @tags ?'
+			raise AssertionError('No button for @tags ?')
 
 		selected = cloud.get_tag_filter()
 		self.assertEqual(selected, [tag])

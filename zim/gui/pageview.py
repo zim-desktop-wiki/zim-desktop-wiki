@@ -343,7 +343,7 @@ class ConfigDefinitionConstant(String):
 			if hasattr(self._module, value):
 				return getattr(self._module, value)
 			else:
-				raise ValueError, 'No such constant: PANGO_%s' % value
+				raise ValueError('No such constant: PANGO_%s' % value)
 		else:
 			return value
 
@@ -1771,7 +1771,7 @@ class TextBuffer(gtk.TextBuffer):
 				elif is_numbered_bullet_re.match(bullet):
 					stylename = 'numbered-list'
 				else:
-					raise AssertionError, 'BUG: Unkown bullet type'
+					raise AssertionError('BUG: Unkown bullet type')
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
 				if dir == 'LTR':
@@ -2732,11 +2732,11 @@ class TextBuffer(gtk.TextBuffer):
 		# Gtk TextBuffer returns iter of last line for lines past the
 		# end of the buffer
 		if line < 0:
-			raise ValueError, 'Negative line number: %i' % line
+			raise ValueError('Negative line number: %i' % line)
 		else:
 			iter = gtk.TextBuffer.get_iter_at_line(self, line)
 			if iter.get_line() != line:
-				raise ValueError, 'Line number beyond the end of the buffer: %i' % line
+				raise ValueError('Line number beyond the end of the buffer: %i' % line)
 			return iter
 
 	def get_line_bounds(self, line):
@@ -4757,9 +4757,9 @@ class SavePageHandler(object):
 
 	def _assert_can_save_page(self, page):
 		if self.pageview.readonly:
-			raise AssertionError, 'BUG: can not save page when UI is read-only'
+			raise AssertionError('BUG: can not save page when UI is read-only')
 		elif page.readonly:
-			raise AssertionError, 'BUG: can not save read-only page'
+			raise AssertionError('BUG: can not save read-only page')
 
 	def save_page_now(self, dialog_timeout=False):
 		'''Save the page in the foregound
@@ -4792,7 +4792,7 @@ class SavePageHandler(object):
 					#~ assert False, "TEST"
 					self.notebook.store_page(page)
 
-				except Exception, error:
+				except Exception as error:
 					logger.exception('Failed to save page: %s', page.name)
 					SavePageErrorDialog(self.pageview, error, page, dialog_timeout).run()
 
@@ -5063,7 +5063,7 @@ class PageView(gtk.VBox):
 		def assert_not_modified(page, *a):
 			if page == self.page \
 			and self.view.get_buffer().get_modified():
-				raise AssertionError, 'BUG: page changed while buffer changed as well'
+				raise AssertionError('BUG: page changed while buffer changed as well')
 				# not using assert here because it could be optimized away
 
 		for s in ('store-page', 'delete-page', 'move-page'):
@@ -5154,7 +5154,7 @@ class PageView(gtk.VBox):
 
 			try:
 				if not tag in TextBuffer.tag_styles:
-					raise AssertionError, 'No such tag: %s' % tag
+					raise AssertionError('No such tag: %s' % tag)
 
 				attrib = dict(i for i in section.items() if i[1] is not None)
 				if 'linespacing' in attrib:
@@ -5163,7 +5163,7 @@ class PageView(gtk.VBox):
 				#~ print 'TAG', tag, attrib
 				testtag = testbuffer.create_tag('style-'+tag, **attrib)
 				if not testtag:
-					raise AssertionError, 'Could not create tag: %s' % tag
+					raise AssertionError('Could not create tag: %s' % tag)
 			except:
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:
@@ -5253,7 +5253,7 @@ class PageView(gtk.VBox):
 			self.set_parsetree(tree, template)
 			if not self.secondary:
 				page.set_ui_object(self) # only after successful set tree in buffer
-		except Exception, error:
+		except Exception as error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self.set_readonly()
 			self.set_sensitive(False)
@@ -5619,7 +5619,7 @@ class PageView(gtk.VBox):
 				and not href.startswith('mailto:'):
 					href = 'mailto:' + href
 				self.ui.open_url(href)
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
@@ -6010,7 +6010,7 @@ class PageView(gtk.VBox):
 			assert isinstance(file, File)
 			if not force \
 			and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
-				raise ValueError, 'Not an image %s' % file
+				raise ValueError('Not an image %s' % file)
 
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)

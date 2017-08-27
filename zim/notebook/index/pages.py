@@ -174,7 +174,7 @@ class PagesIndexer(IndexerBase):
 		assert row is not None
 
 		if not row['is_link_placeholder']:
-			raise AssertionError, 'Not a placeholder'
+			raise AssertionError('Not a placeholder')
 		else:
 			self.remove_page(pagename)
 
@@ -254,7 +254,7 @@ class PagesIndexer(IndexerBase):
 
 		row = self._select(pagename)
 		if row['n_children'] > 0:
-			raise AssertionError, 'Page has child pages'
+			raise AssertionError('Page has child pages')
 
 		self.emit('page-row-deleted', row)
 		self.db.execute('DELETE FROM pages WHERE name=?', (pagename.name,))
@@ -309,7 +309,7 @@ class PagesViewInternal(object):
 			'SELECT * FROM pages WHERE id=?', (page_id,)
 		).fetchone()
 		if row is None:
-			raise IndexConsistencyError, 'No page for page_id "%r"' % page_id
+			raise IndexConsistencyError('No page for page_id "%r"' % page_id)
 		return PageIndexRecord(row)
 
 	def get_page_id(self, pagename):
@@ -317,7 +317,7 @@ class PagesViewInternal(object):
 			'SELECT id FROM pages WHERE name=?', (pagename.name,)
 		).fetchone()
 		if row is None:
-			raise IndexNotFoundError, 'Page not found in index: %s' % pagename.name
+			raise IndexNotFoundError('Page not found in index: %s' % pagename.name)
 		return row['id']
 
 	def resolve_link(self, source, href, ignore_link_placeholders=True):
@@ -554,13 +554,13 @@ class PagesView(IndexView):
 		# Find last (grand)child of previous item with same parent
 		# If no previous item, yield parent
 		if path.isroot:
-			raise ValueError, 'Can\'t use root'
+			raise ValueError('Can\'t use root')
 
 		r = self.db.execute(
 			'SELECT parent FROM pages WHERE name=?', (path.name,)
 		).fetchone()
 		if r is None:
-			raise IndexNotFoundError, 'No such page: %s' % path
+			raise IndexNotFoundError('No such page: %s' % path)
 		else:
 			parent_id = r[0]
 
@@ -580,7 +580,7 @@ class PagesView(IndexView):
 					(r['id'],)
 				).fetchone()
 				if r is None:
-					raise IndexConsistencyError, 'Missing children'
+					raise IndexConsistencyError('Missing children')
 			else:
 				return PageIndexRecord(r)
 
@@ -595,13 +595,13 @@ class PagesView(IndexView):
 		# Else find next item with same parent
 		# If no next item, find next item for parent
 		if path.isroot:
-			raise ValueError, 'Can\'t use root'
+			raise ValueError('Can\'t use root')
 
 		r = self.db.execute(
 			'SELECT * FROM pages WHERE name=?', (path.name,)
 		).fetchone()
 		if r is None:
-			raise IndexNotFoundError, 'No such page: %s' % path
+			raise IndexNotFoundError('No such page: %s' % path)
 
 		if r['n_children'] > 0:
 			r = self.db.execute(
@@ -610,7 +610,7 @@ class PagesView(IndexView):
 				(r['id'],)
 			).fetchone()
 			if r is None:
-				raise IndexConsistencyError, 'Missing children'
+				raise IndexConsistencyError('Missing children')
 			else:
 				return PageIndexRecord(r)
 		else:
@@ -629,7 +629,7 @@ class PagesView(IndexView):
 						'SELECT * FROM pages WHERE id=?', (r['parent'],)
 					).fetchone()
 					if r is None:
-						raise IndexConsistencyError, 'Missing parent'
+						raise IndexConsistencyError('Missing parent')
 
 	def lookup_from_user_input(self, name, reference=None):
 		'''Lookup a pagename based on user input
@@ -647,7 +647,7 @@ class PagesView(IndexView):
 		# Only accidental that we treat user input as links ... ;)
 		href = HRef.new_from_wiki_link(name)
 		if reference is None and href.rel == HREF_REL_RELATIVE:
-			raise ValueError, 'Got relative page name without parent: %s' % name
+			raise ValueError('Got relative page name without parent: %s' % name)
 		else:
 			source = reference or ROOT_PATH
 			id, pagename = self._pages.resolve_link(
@@ -819,14 +819,14 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		try:
 			return treepaths[0]
 		except IndexError:
-			raise IndexNotFoundError, path
+			raise IndexNotFoundError(path)
 
 	def find_all(self, path):
 		if path.isroot:
 			raise ValueError
 		treepaths = self._find_all_pages(path.name)
 		if not treepaths:
-			raise IndexNotFoundError, path
+			raise IndexNotFoundError(path)
 		else:
 			return treepaths
 

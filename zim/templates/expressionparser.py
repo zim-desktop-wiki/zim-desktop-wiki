@@ -78,7 +78,7 @@ class ExpressionParser(object):
 		tokens = self._tokenize(string)
 		expr = self._parse(tokens)
 		if tokens: # trailing stuff remaining
-			raise ExpressionSyntaxError, 'Unexpected text after expression: %s' % tokens
+			raise ExpressionSyntaxError('Unexpected text after expression: %s' % tokens)
 		return expr
 
 	def _tokenize(self, string):
@@ -119,7 +119,7 @@ class ExpressionParser(object):
 	def _parse_not(self, tokens):
 		# Handle "not ..."
 		if not tokens:
-			raise ExpressionSyntaxError, 'Unexpected end of expression'
+			raise ExpressionSyntaxError('Unexpected end of expression')
 		if tokens[0] == 'not':
 			tokens.pop(0)
 			rexpr = self._parse_comparison(tokens)
@@ -141,12 +141,12 @@ class ExpressionParser(object):
 	def _parse_statement(self, tokens):
 		# Handle: param, func call or literal
 		if not tokens:
-			raise ExpressionSyntaxError, 'Unexpected end of expression'
+			raise ExpressionSyntaxError('Unexpected end of expression')
 		if tokens[0] == '[':
 			return self._parse_list(tokens)
 		elif tokens[0] in self.tokens \
 		or tokens[0] in ('or', 'and', 'not'):
-			raise ExpressionSyntaxError, 'Unexpected token: "%s"' % tokens[0]
+			raise ExpressionSyntaxError('Unexpected token: "%s"' % tokens[0])
 		elif self._param_re.match(tokens[0]) \
 		and not tokens[0] in ('True', 'False', 'None'):
 			param = ExpressionParameter(tokens.pop(0))
@@ -160,7 +160,7 @@ class ExpressionParser(object):
 			try:
 				value = ast.literal_eval(text)
 			except SyntaxError:
-				raise ExpressionSyntaxError, 'Invalid literal: %s' % text
+				raise ExpressionSyntaxError('Invalid literal: %s' % text)
 			else:
 				return ExpressionLiteral(value)
 
@@ -173,11 +173,11 @@ class ExpressionParser(object):
 			item = self._parse(tokens)
 			if tokens and tokens[0] != delim:
 				if tokens.pop(0) != ',':
-					raise ExpressionSyntaxError, 'Expected: ","'
+					raise ExpressionSyntaxError('Expected: ","')
 			expr.append(item)
 
 		if not tokens or tokens[0] != delim:
-			raise ExpressionSyntaxError, 'Missing: "%s"' % delim
+			raise ExpressionSyntaxError('Missing: "%s"' % delim)
 		else:
 			tokens.pop(0)
 

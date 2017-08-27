@@ -278,7 +278,7 @@ class FilesIndexChecker(object):
 		if file is None:
 			file = self.folder
 		elif not (file == self.folder or file.ischild(self.folder)):
-			raise ValueError, 'file must be child of %s' % self.folder
+			raise ValueError('file must be child of %s' % self.folder)
 
 		# If path is not indexed, find parent that is
 		while not file == self.folder:

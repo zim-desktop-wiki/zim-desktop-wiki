@@ -42,7 +42,7 @@ def split_quoted_strings(string, unescape=True, strict=True):
 		string = string[i:].lstrip()
 
 	if string and strict:
-		raise ValueError, 'Unmatched quote'
+		raise ValueError('Unmatched quote')
 	elif string:
 		words += string.split()
 

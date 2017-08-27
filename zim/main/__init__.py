@@ -141,14 +141,14 @@ class NotebookCommand(Command):
 
 		if notebook is None:
 			if self.arguments[0] == 'NOTEBOOK': # not optional
-				raise NotebookLookupError, _('Please specify a notebook')
+				raise NotebookLookupError(_('Please specify a notebook'))
 					# T: Error when looking up a notebook
 			else:
 				return None, None
 
 		notebookinfo = resolve_notebook(notebook, pwd=self.pwd)
 		if not notebookinfo:
-			raise NotebookLookupError, _('Could not find notebook: %s') % notebook
+			raise NotebookLookupError(_('Could not find notebook: %s') % notebook)
 				# T: error message
 
 		if len(self.arguments) > 1 \
@@ -175,7 +175,7 @@ class NotebookCommand(Command):
 		# mounting is attempted by zim.notebook.build_notebook()
 		notebookinfo, page = self.get_notebook_argument() 	# can raise NotebookLookupError
 		if not notebookinfo:
-			raise NotebookLookupError, _('Please specify a notebook')
+			raise NotebookLookupError(_('Please specify a notebook'))
 		notebook, uripage = build_notebook(notebookinfo) # can raise FileNotFound
 
 		if ensure_uptodate and not notebook.index.is_uptodate:
@@ -370,7 +370,7 @@ class ExportCommand(NotebookCommand):
 
 		format = self.opts.get('format', 'html')
 		if not 'output' in self.opts:
-			raise UsageError, _('Output location needed for export') # T: error in export command
+			raise UsageError(_('Output location needed for export')) # T: error in export command
 		output = Dir(self.opts['output'])
 		if not output.isdir():
 			output = File(self.opts.get('output'))
@@ -379,16 +379,16 @@ class ExportCommand(NotebookCommand):
 		if output.exists() and not self.opts.get('overwrite'):
 			if output.isdir():
 				if len(output.list()) > 0:
-					raise Error, _('Output folder exists and not empty, specify "--overwrite" to force export')  # T: error message for export
+					raise Error(_('Output folder exists and not empty, specify "--overwrite" to force export'))  # T: error message for export
 				else:
 					pass
 			else:
-				raise Error, _('Output file exists, specify "--overwrite" to force export')  # T: error message for export
+				raise Error(_('Output file exists, specify "--overwrite" to force export'))  # T: error message for export
 
 		if format == 'mhtml':
 			self.ignore_options('index-page')
 			if output.isdir():
-				raise UsageError, _('Need output file to export MHTML') # T: error message for export
+				raise UsageError(_('Need output file to export MHTML')) # T: error message for export
 
 			exporter = build_mhtml_file_exporter(
 				output, template,
@@ -414,7 +414,7 @@ class ExportCommand(NotebookCommand):
 			if not output.exists():
 				output = Dir(output.path)
 			elif not output.isdir():
-				raise UsageError, _('Need output folder to export full notebook') # T: error message for export
+				raise UsageError(_('Need output folder to export full notebook')) # T: error message for export
 
 			exporter = build_notebook_exporter(
 				output, format, template,
@@ -466,7 +466,7 @@ class SearchCommand(NotebookCommand):
 			logger.info('Searching for: %s', query)
 			query = Query(query)
 		else:
-			raise ValueError, 'Empty query'
+			raise ValueError('Empty query')
 
 		selection = SearchSelection(notebook)
 		selection.search(query)
@@ -512,7 +512,7 @@ def build_command(args, pwd=None):
 		try:
 			cmd = args.pop(0)
 		except IndexError:
-			raise UsageError, 'Missing plugin name'
+			raise UsageError('Missing plugin name')
 
 		try:
 			mod = get_module('zim.plugins.' + cmd)
@@ -522,7 +522,7 @@ def build_command(args, pwd=None):
 				logger.exception('Error while loading: zim.plugins.%s.Command', cmd)
 				# Can't use following because log level not yet set:
 				# logger.debug('Error while loading: zim.plugins.%s.Command', cmd, exc_info=sys.exc_info())
-			raise UsageError, 'Could not load commandline command for plugin "%s"' % cmd
+			raise UsageError('Could not load commandline command for plugin "%s"' % cmd)
 	else:
 		if args and args[0].startswith('--') and args[0][2:] in commands:
 			cmd = args.pop(0)[2:]
@@ -772,7 +772,7 @@ class ZimApplication(object):
 	def _try_dispatch(self, args, pwd):
 		try:
 			_ipc_dispatch(pwd, *args)
-		except AssertionError, err:
+		except AssertionError as err:
 			logger.debug('Got error in dispatch: %s', str(err))
 			return False
 		except Exception:

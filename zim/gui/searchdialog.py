@@ -93,7 +93,7 @@ class SearchDialog(Dialog):
 		self._set_state(self.SEARCHING)
 		try:
 			self.results_treeview.search(string)
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self, error).run()
 
 		if not self.results_treeview.cancelled:

@@ -810,12 +810,12 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file = root.file('read-only-file.txt')
 		file.write('test 123\n')
 
-		os.chmod(file.encodedpath, 0444)
+		os.chmod(file.encodedpath, 0o444)
 		try:
 			self.assertRaises(FileNotWritableError, file.write, 'Overwritten!')
 			self.assertEqual(file.read(), 'test 123\n')
 		finally:
-			os.chmod(file.encodedpath, 0644) # make it removable again
+			os.chmod(file.encodedpath, 0o644) # make it removable again
 			file.remove()
 
 	def testFileEncoding(self):

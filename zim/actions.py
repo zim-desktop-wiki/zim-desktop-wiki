@@ -246,7 +246,7 @@ class ToggleAction(Action):
 			logger.debug('Action: %s(%s)', self.name, active)
 			try:
 				self.__get__(instance, instance.__class__)()
-			except Exception, error:
+			except Exception as error:
 				zim.errors.exception_handler(
 					'Exception during toggle action: %s(%s)' % (self.name, active))
 
@@ -298,7 +298,7 @@ class RadioAction(ActionMethod):
 		# instance acces, return bound method
 		def func(key):
 			if not key in self.keys:
-				raise ValueError, 'Invalid key: %s' % key
+				raise ValueError('Invalid key: %s' % key)
 			self.func(instance, key)
 
 			# Update state and notify actionables

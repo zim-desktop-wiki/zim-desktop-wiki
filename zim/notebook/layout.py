@@ -157,7 +157,7 @@ class FilesLayout(NotebookLayout):
 		if file.path.endswith(self.default_extension):
 			return self.default_format
 		else:
-			raise AssertionError, 'Unknown file type for page: %s' % file
+			raise AssertionError('Unknown file type for page: %s' % file)
 
 	def index_list_children(self, pagename):
 		# Convenience method - remove if no longer used by the index

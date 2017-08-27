@@ -430,7 +430,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 			n = ':'.join(names[:i+1])
 			row = self.db.execute('SELECT * FROM pages WHERE name=?', (n,)).fetchone()
 			if row is None:
-				raise IndexNotFoundError, name
+				raise IndexNotFoundError(name)
 			else:
 				if self._matches_all(row['id']):
 					offset, = self.db.execute('''
@@ -589,7 +589,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 		if treepaths:
 			return treepaths[0]
 		else:
-			raise IndexNotFoundError, path.name
+			raise IndexNotFoundError(path.name)
 
 	def find_all(self, path):
 		if isinstance(path, IndexTag):
@@ -637,7 +637,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 			n = ':'.join(names[:i+1])
 			row = self.db.execute('SELECT * FROM pages WHERE name=?', (n,)).fetchone()
 			if row is None:
-				raise IndexNotFoundError, name
+				raise IndexNotFoundError(name)
 			else:
 				for tagid in self._matching_tag_ids(row['id']):
 					mytreepath = self._find_tag(tagid)

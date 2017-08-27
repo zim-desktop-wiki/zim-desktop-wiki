@@ -375,7 +375,7 @@ class VCS(object):
 		@returns: a C{VCSBackend} instance setup with the required backend
 		"""
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
-			raise AssertionError, 'Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir)
+			raise AssertionError('Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir))
 
 		vcs_backend_klass = VCS.get_backend(vcs)
 		return VCSBackend(vcs_dir, vcs_backend_klass(vcs_dir, notebook_dir))
@@ -604,7 +604,7 @@ class VCSApplicationBase(object):
 		(must be equal to or below vcs_dir)
 		"""
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
-			raise AssertionError, 'Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir)
+			raise AssertionError('Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir))
 		self._app = self.build_bin_application_instance()
 		self.root = vcs_dir
 		self.notebook_dir = notebook_dir

@@ -193,7 +193,7 @@ class TasksView(IndexView):
 		try:
 			db.execute('SELECT * FROM tasklist LIMIT 1')
 		except sqlite3.OperationalError:
-			raise ValueError, 'No tasklist in index'
+			raise ValueError('No tasklist in index')
 
 	def list_open_tasks(self, parent=None):
 		'''List tasks

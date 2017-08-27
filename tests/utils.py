@@ -132,7 +132,7 @@ class TestFunctionThread(tests.TestCase):
 		###
 
 		def error(*args):
-			raise AssertionError, 'FOO'
+			raise AssertionError('FOO')
 
 		# Function raises, no lock
 		func = FunctionThread(error, ('a', 'b', 'c'))

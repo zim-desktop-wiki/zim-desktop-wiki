@@ -70,7 +70,7 @@ mydir = os.path.abspath(os.path.dirname(__file__))
 for file in glob.glob(mydir + '/*.py'):
 	name = os.path.basename(file)[:-3]
 	if name != '__init__' and not name in __all__:
-		raise AssertionError, 'Test missing in __all__: %s' % name
+		raise AssertionError('Test missing in __all__: %s' % name)
 
 # get our own data dir
 DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
@@ -155,7 +155,7 @@ class TestLoggingHandler(logging.Handler):
 
 	def emit(self, record):
 		if record.levelno >= logging.WARNING:
-			raise UncaughtWarningError, self.format(record)
+			raise UncaughtWarningError(self.format(record))
 		else:
 			pass
 
@@ -167,7 +167,7 @@ try:
 except UncaughtWarningError:
 	pass
 else:
-	raise AssertionError, 'Raising errors on warning fails'
+	raise AssertionError('Raising errors on warning fails')
 
 ###
 
@@ -489,13 +489,13 @@ class DialogContext(object):
 	def _callback(self, dialog):
 		#~ print '>>>', dialog
 		if not self.stack:
-			raise AssertionError, 'Unexpected dialog run: %s' % dialog
+			raise AssertionError('Unexpected dialog run: %s' % dialog)
 
 		handler = self.stack.pop(0)
 
 		if isinstance(handler, (type, types.ClassType)): # is a class
 			if not isinstance(dialog, handler):
-				raise AssertionError, 'Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__)
+				raise AssertionError('Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__))
 			dialog.assert_response_ok()
 		else: # assume a function
 			handler(dialog)
@@ -508,7 +508,7 @@ class DialogContext(object):
 
 		has_error = bool([e for e in error if e is not None])
 		if self.stack and not has_error:
-			raise AssertionError, '%i expected dialog(s) not run' % len(self.stack)
+			raise AssertionError('%i expected dialog(s) not run' % len(self.stack))
 
 		return False # Raise any errors again outside context
 
@@ -877,7 +877,7 @@ class MaskedObject(object):
 		if name in self.__names:
 			return getattr(self.__obj, name)
 		else:
-			raise AttributeError, 'Acces to \'%s\' not allowed' % name
+			raise AttributeError('Acces to \'%s\' not allowed' % name)
 
 
 def gtk_process_events(*a):

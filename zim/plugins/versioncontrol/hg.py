@@ -175,7 +175,7 @@ class HGApplicationBackend(VCSApplicationBase):
 		versions = []
 		xml = ET.fromstring(''.join(log_op_output))
 		if not (xml and xml.tag == 'log'):
-			raise AssertionError, 'Could not parse log'
+			raise AssertionError('Could not parse log')
 		for entry in xml:
 			rev = entry.attrib['revision']
 			date = entry.findtext('date')

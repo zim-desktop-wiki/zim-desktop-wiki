@@ -228,7 +228,7 @@ class NotebookOperation(SignalEmitter):
 		assert gobject, "No mainloop available to run this operation"
 
 		if self.notebook._operation_check == self:
-			raise AssertionError, 'Already running'
+			raise AssertionError('Already running')
 		else:
 			self.notebook._operation_check() # can raise
 
@@ -269,7 +269,7 @@ class NotebookOperation(SignalEmitter):
 				yield True # keep going
 		except StopIteration:
 			raise
-		except Exception, err:
+		except Exception as err:
 			logger.exception('Error in operation:')
 			self.cancelled = True
 			self.exception = err
@@ -312,7 +312,7 @@ class SimpleAsyncOperation(NotebookOperation):
 
 	def cancel(self):
 		if self._thread == threading.current_thread():
-			raise AssertionError, 'Can not cancel from thread'
+			raise AssertionError('Can not cancel from thread')
 		self._join()
 		NotebookOperation.cancel(self)
 

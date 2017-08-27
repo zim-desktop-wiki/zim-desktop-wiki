@@ -279,14 +279,14 @@ class ThumbnailManager(object):
 		@raises ThumbnailCreatorFailure: if creation fails unexpectedly
 		'''
 		if not isinstance(file, LocalFile):
-			raise None, None
+			raise None(None)
 
 		thumbfile = self.get_thumbnail_file(file, size)
 		thumbsize = THUMB_SIZE_NORMAL if size <= THUMB_SIZE_NORMAL else THUMB_SIZE_LARGE
 
-		thumbfile.parent().touch(mode=0700)
+		thumbfile.parent().touch(mode=0o700)
 		pixbuf = self._thumbnailcreator(file, thumbfile, thumbsize)
-		os.chmod(thumbfile.encodedpath, 0600)
+		os.chmod(thumbfile.encodedpath, 0o600)
 
 		if not pixbuf:
 			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)

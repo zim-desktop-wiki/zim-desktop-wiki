@@ -215,10 +215,10 @@ class TestFS(tests.TestCase):
 		# test read-only
 		path = tmpdir+'/read-only-file.txt'
 		open(path, 'w').write('test 123')
-		os.chmod(path, 0444)
+		os.chmod(path, 0o444)
 		file = File(path)
 		self.assertRaises(FileWriteError, file.write, 'Overwritten!')
-		os.chmod(path, 0644) # make it removable again
+		os.chmod(path, 0o644) # make it removable again
 
 		# with windows line-ends
 		file = open(tmpdir+'/newlines.txt', 'wb')

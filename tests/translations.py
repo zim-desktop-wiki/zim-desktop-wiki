@@ -54,8 +54,7 @@ class TranslationMessage(object):
 				elif type.startswith('msgstr'):
 					self.msgstr.append(msg)
 				else:
-					raise AssertionError, \
-					'Could not parse line: %s %s' % (type, msg)
+					raise AssertionError('Could not parse line: %s %s' % (type, msg))
 
 		assert self.msgid, 'No msgid found'
 		assert self.msgstr, 'No msgstr found'
@@ -121,9 +120,8 @@ class TranslationFile(object):
 				text = ''.join(buffer)
 				message = TranslationMessage(msgidlineno, text)
 				self.messages.append(message)
-			except AssertionError, error:
-				raise AssertionError, \
-				'Error while parsing %s msgid on line %i\n' % (self.file, msgidlineno) + error.message
+			except AssertionError as error:
+				raise AssertionError('Error while parsing %s msgid on line %i\n' % (self.file, msgidlineno) + error.message)
 
 		for line in open(file):
 			lineno += 1
@@ -166,12 +164,10 @@ class TranslationFile(object):
 	def assertValid(self):
 		for message in self.messages:
 			if self.nplural and not message.check_nplural(self.nplural):
-				raise AssertionError, \
-				'Number of plural forms NOK in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid
+				raise AssertionError('Number of plural forms NOK in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid)
 
 			if not message.check_format_strings():
-				raise AssertionError, \
-				'Error with format strings in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid
+				raise AssertionError('Error with format strings in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid)
 
 
 

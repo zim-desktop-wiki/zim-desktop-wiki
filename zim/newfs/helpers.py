@@ -54,28 +54,28 @@ class TrashHelper(object):
 		user
 		'''
 		if not gio:
-			raise TrashNotSupportedError, 'gio not imported'
+			raise TrashNotSupportedError('gio not imported')
 		elif not isinstance(file, LocalFSObjectBase):
-			raise TrashNotSupportedError, 'cannot trash a non-local file or folder'
+			raise TrashNotSupportedError('cannot trash a non-local file or folder')
 
 		if file.exists():
 			logger.info('Move %s to trash' % file)
 			f = gio.File(uri=file.uri)
 			try:
 				ok = f.trash()
-			except gobject.GError, error:
+			except gobject.GError as error:
 				if error.code == gio.ERROR_CANCELLED \
 				or (os.name == 'nt' and error.code == 0):
 					# code 0 observed on windows for cancel
 					logger.info('Trash operation cancelled')
-					raise TrashCancelledError, 'Trashing cancelled'
+					raise TrashCancelledError('Trashing cancelled')
 				elif error.code == gio.ERROR_NOT_SUPPORTED:
-					raise TrashNotSupportedError, 'Trashing failed'
+					raise TrashNotSupportedError('Trashing failed')
 				else:
 					raise error
 			else:
 				if not ok:
-					raise TrashNotSupportedError, 'Trashing failed'
+					raise TrashNotSupportedError('Trashing failed')
 			file._cleanup()
 			return True
 		else:

@@ -148,7 +148,7 @@ class ServerWindow(gtk.Window):
 					self.do_serve_on_io
 				)
 			logger.info("Serving HTTP on %s port %i...", self.httpd.server_name, self.httpd.server_port)
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self, error).run()
 			return
 
@@ -176,7 +176,7 @@ class ServerWindow(gtk.Window):
 		try:
 			if event & glib.IO_HUP:
 				self.stop()
-				raise Exception, 'Socket disconnected'
+				raise Exception('Socket disconnected')
 			else:
 				self.httpd.handle_request()
 		except:

@@ -168,7 +168,7 @@ class EditCustomToolDialog(Dialog):
 		if tool and tool.icon and tool.icon != gtk.STOCK_EXECUTE:
 			try:
 				self.iconbutton.set_file(File(tool.icon))
-			except Exception, error:
+			except Exception as error:
 				logger.exception('Could not load: %s', tool.icon)
 		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)

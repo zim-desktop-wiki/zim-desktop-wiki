@@ -242,7 +242,7 @@ class SimpleTreeBuilder(Builder):
 
 	def get_root(self):
 		if not len(self.stack) == 1:
-			raise AssertionError, 'Did not finish processing'
+			raise AssertionError('Did not finish processing')
 		return self.root
 
 	# Builder interface
@@ -255,7 +255,7 @@ class SimpleTreeBuilder(Builder):
 	def end(self, tag):
 		element = self.stack.pop()
 		if element.tag != tag:
-			raise AssertionError, 'Unmatched %s at end of %s' % (element.tag, tag)
+			raise AssertionError('Unmatched %s at end of %s' % (element.tag, tag))
 
 	def text(self, text):
 		self.stack[-1].append(text)
@@ -414,7 +414,7 @@ class Parser(object):
 			if mstart > iter:
 				try:
 					self.process_unmatched(builder, text[iter:mstart])
-				except Exception, error:
+				except Exception as error:
 					self._raise_exception(error, text, iter, mstart, builder)
 
 			name = match.lastgroup # named outer group
@@ -425,7 +425,7 @@ class Parser(object):
 
 			try:
 				self.rules[i].process(builder, *groups)
-			except Exception, error:
+			except Exception as error:
 				self._raise_exception(error, text, mstart, mend, builder, self.rules[i])
 
 			iter = mend
@@ -435,7 +435,7 @@ class Parser(object):
 			if iter < end:
 				try:
 					self.process_unmatched(builder, text[iter:])
-				except Exception, error:
+				except Exception as error:
 					self._raise_exception(error, text, iter, end, builder)
 
 	parse = __call__

@@ -510,7 +510,7 @@ class GtkInterface(gobject.GObject):
 					break
 
 		if start is None or end is None:
-			raise ValueError, 'No such popup in uimanager: %s' % name
+			raise ValueError('No such popup in uimanager: %s' % name)
 
 		# Wrapper to set path context
 		def wrapper(menuitem, action):
@@ -552,7 +552,7 @@ class GtkInterface(gobject.GObject):
 
 						break
 				else:
-					raise AssertionError, 'BUG: could not find action for "%s"' % actionname
+					raise AssertionError('BUG: could not find action for "%s"' % actionname)
 
 				menu.append(item)
 				seen_item = True
@@ -560,7 +560,7 @@ class GtkInterface(gobject.GObject):
 			or line.startswith('</placeholder'):
 				pass
 			else:
-				raise AssertionError, 'BUG: Could not parse: ' + line
+				raise AssertionError('BUG: Could not parse: ' + line)
 
 	def set_readonly(self, readonly):
 		'''Set the read-only state of the interface
@@ -727,7 +727,7 @@ class GtkInterface(gobject.GObject):
 			return
 		elif self.page:
 			if not self.close_page(self.page):
-				raise AssertionError, 'Could not close page'
+				raise AssertionError('Could not close page')
 				# assert statement could be optimized away
 
 		self.notebook.index.touch_current_page_placeholder(path)
@@ -1187,7 +1187,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		dir = self.notebook.get_attachments_dir(path)
 		if dir is None:
-			raise Error, '%s does not have an attachments dir' % path
+			raise Error('%s does not have an attachments dir' % path)
 
 		dest = dir.file(file.basename)
 
@@ -1247,7 +1247,7 @@ class GtkInterface(gobject.GObject):
 			file = Dir(file.path)
 
 		if not file.exists():
-			raise NoSuchFileError, file
+			raise NoSuchFileError(file)
 
 		if isinstance(file, File): # File
 			manager = ApplicationManager()
@@ -1256,7 +1256,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				entry = manager.get_default_application(mimetype)
 				if entry is None:
-					raise ApplicationLookupError, 'No Application found for: %s' % mimetype
+					raise ApplicationLookupError('No Application found for: %s' % mimetype)
 					# Do not go to fallback, we can not force
 					# mimetype for fallback
 
@@ -1293,7 +1293,7 @@ class GtkInterface(gobject.GObject):
 				return self._open_with_filebrowser(url)
 			# else consider as a x-scheme-handler/smb type URI
 		elif not is_uri_re.match(url):
-			raise AssertionError, 'Not an URL: %s' % url
+			raise AssertionError('Not an URL: %s' % url)
 
 		# Default handlers
 		if url.startswith('zim+'):
@@ -1446,7 +1446,7 @@ class GtkInterface(gobject.GObject):
 		## os.startfile() on windows...
 
 		if not file.exists():
-			raise NoSuchFileError, file
+			raise NoSuchFileError(file)
 
 		oldmtime = file.mtime()
 
@@ -1637,7 +1637,7 @@ class GtkInterface(gobject.GObject):
 				self.notebook.index.start_background_check(self.notebook)
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self, error).run()
 
 	@action(_('_Contents'), 'gtk-help', 'F1') # T: Menu item
@@ -2856,7 +2856,7 @@ class AttachFileDialog(FileDialog):
 		if dir is None:
 			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
 				# T: Error dialog - %s is the full page name
-			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
+			raise Exception('Page "%s" does not have a folder for attachments' % self.path)
 
 		self.uistate.setdefault('insert_attached_images', True)
 		checkbox = gtk.CheckButton(_('Insert images as link'))

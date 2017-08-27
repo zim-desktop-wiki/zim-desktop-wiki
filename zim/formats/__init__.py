@@ -80,6 +80,7 @@ from zim.config import data_file, ConfigDict
 from zim.objectmanager import ObjectManager
 
 import zim.plugins
+from functools import reduce
 
 
 logger = logging.getLogger('zim.formats')
@@ -668,7 +669,7 @@ class ParseTree(object):
 				if tail:
 					self._insert_text(elt, i, tail)
 			else:
-				raise TypeError, 'BUG: invalid replacement result'
+				raise TypeError('BUG: invalid replacement result')
 
 	@staticmethod
 	def _node_to_etree(node):
@@ -825,7 +826,7 @@ class ParseTreeBuilder(Builder):
 
 	def end(self, tag):
 		if tag != self.stack[-1]:
-			raise AssertionError, 'Unmatched tag closed: %s' % tag
+			raise AssertionError('Unmatched tag closed: %s' % tag)
 
 		if tag in BLOCK_LEVEL and not self._parsetree_roundtrip:
 			if self._last_char is not None and not self.partial:
@@ -1194,7 +1195,7 @@ class DumperClass(Visitor):
 		self.context = [DumperContextElement(None, None, self._text)]
 		tree.visit(self)
 		if len(self.context) != 1:
-			raise AssertionError, 'Unclosed tags on tree: %s' % self.context[-1].tag
+			raise AssertionError('Unclosed tags on tree: %s' % self.context[-1].tag)
 		#~ import pprint; pprint.pprint(self._text)
 		return self.get_lines() # FIXME - maybe just return text ?
 
@@ -1217,7 +1218,7 @@ class DumperClass(Visitor):
 
 	def end(self, tag):
 		if not tag or tag != self.context[-1].tag:
-			raise AssertionError, 'Unexpected tag closed: %s' % tag
+			raise AssertionError('Unexpected tag closed: %s' % tag)
 		_, attrib, strings = self.context.pop()
 
 		if tag in self.TAGS:
@@ -1231,7 +1232,7 @@ class DumperClass(Visitor):
 			try:
 				method = getattr(self, 'dump_'+tag)
 			except AttributeError:
-				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+				raise AssertionError('BUG: Unknown tag: %s' % tag)
 
 			strings = method(tag, attrib, strings)
 			#~ try:
@@ -1259,7 +1260,7 @@ class DumperClass(Visitor):
 			try:
 				method = getattr(self, 'dump_'+tag)
 			except AttributeError:
-				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+				raise AssertionError('BUG: Unknown tag: %s' % tag)
 
 			if text is None:
 				strings = method(tag, attrib, [])

@@ -629,7 +629,7 @@ class TestTemplateFunctions(tests.TestCase):
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertTrue(func('%Y %m %d'))
 		self.assertEqual(
-			func('%Y %m %d', date(2014, 05, 26)),
+			func('%Y %m %d', date(2014, 0o5, 26)),
 			'2014 05 26'
 		)
 
@@ -640,7 +640,7 @@ class TestTemplateFunctions(tests.TestCase):
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertTrue(func('%Y %W'))
 		self.assertEqual(
-			func('%Y %W', date(2014, 05, 26)),
+			func('%Y %W', date(2014, 0o5, 26)),
 			'2014 22'
 		)
 

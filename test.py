@@ -106,7 +106,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 				suite.addTest(test)
 		else:
 			suite = tests.load_tests(loader, None, None)
-	except AttributeError, error:
+	except AttributeError as error:
 		# HACK: unittest raises and attribute errors if import of test script
 		# fails try to catch this and show the import error instead - else raise
 		# original error

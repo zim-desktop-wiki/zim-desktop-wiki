@@ -267,7 +267,7 @@ This is a core plugin shipping with zim.
 				operator = line.strip()[-1]
 				break
 		else:
-			raise ExpressionError, _('Could not parse expression')
+			raise ExpressionError(_('Could not parse expression'))
 				# T: error message
 
 		sep = ' %s ' % operator
@@ -282,9 +282,9 @@ This is a core plugin shipping with zim.
 		'''Safe evaluation of a python expression'''
 		try:
 			return eval(expression, GLOBALS, {})
-		except Exception, error:
+		except Exception as error:
 			msg = '%s: %s' % (error.__class__.__name__, error)
-			raise ExpressionError, msg
+			raise ExpressionError(msg)
 
 
 @extends('MainWindow')

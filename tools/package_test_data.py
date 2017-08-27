@@ -41,7 +41,7 @@ def package(dir, file):
 
 def extract(file, dir):
 	if dir.exists():
-		raise Exception, 'dir exists alread'
+		raise Exception('dir exists alread')
 	assert False, 'TODO'
 
 

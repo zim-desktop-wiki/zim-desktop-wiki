@@ -275,7 +275,7 @@ def gtk_combobox_set_active_text(combobox, text):
 		if value[0] == text:
 			return combobox.set_active(i)
 	else:
-		raise ValueError, text
+		raise ValueError(text)
 
 
 def gtk_notebook_get_active_tab(nb):
@@ -304,7 +304,7 @@ def gtk_notebook_set_active_tab(nb, label):
 			nb.set_current_page(num)
 			break
 	else:
-		raise ValueError, 'No such tab: %s' % label
+		raise ValueError('No such tab: %s' % label)
 
 
 class TextBuffer(gtk.TextBuffer):
@@ -1299,7 +1299,7 @@ class InputForm(gtk.Table):
 
 	def __getitem__(self, key):
 		if not key in self._keys:
-			raise KeyError, key
+			raise KeyError(key)
 		elif key in self.widgets:
 			widget = self.widgets[key]
 			if isinstance(widget, LinkEntry):
@@ -1330,7 +1330,7 @@ class InputForm(gtk.Table):
 				else:
 					return widget.get_color().to_string()
 			else:
-				raise TypeError, widget.__class__.name
+				raise TypeError(widget.__class__.name)
 		else:
 			# Group of RadioButtons
 			for name, widget in self._get_radiogroup(key):
@@ -1342,7 +1342,7 @@ class InputForm(gtk.Table):
 
 	def __setitem__(self, key, value):
 		if not key in self._keys:
-			raise KeyError, key
+			raise KeyError(key)
 		elif key in self.widgets:
 			widget = self.widgets[key]
 			if isinstance(widget, LinkEntry):
@@ -1379,7 +1379,7 @@ class InputForm(gtk.Table):
 				color = gtk.gdk.color_parse(value)
 				widget.set_color(color)
 			else:
-				raise TypeError, widget.__class__.name
+				raise TypeError(widget.__class__.name)
 		else:
 			# RadioButton
 			widget = self.widgets[key + ':' + value]
@@ -2496,7 +2496,7 @@ class ConfigDefinitionPaneToggle(ConfigDefinition):
 		and all(e in self.window._zim_window_sidepanes for e in value):
 			return value
 		else:
-			raise ValueError, 'Unknown pane names in: %s' % value
+			raise ValueError('Unknown pane names in: %s' % value)
 
 
 class ConfigDefinitionPaneState(ConfigDefinitionByClass):
@@ -2516,7 +2516,7 @@ class ConfigDefinitionPaneState(ConfigDefinitionByClass):
 		and (value[2] is None or isinstance(value[2], basestring)):
 			return value
 		else:
-			raise ValueError, 'Value is not a valid pane state'
+			raise ValueError('Value is not a valid pane state')
 
 
 class Window(gtkwindowclass):
@@ -2719,7 +2719,7 @@ class Window(gtkwindowclass):
 					self.set_pane_state(key, False)
 				break
 		else:
-			raise ValueError, 'Widget not found in this window'
+			raise ValueError('Widget not found in this window')
 
 	def init_uistate(self):
 		assert self.uistate
@@ -2887,7 +2887,7 @@ class Window(gtkwindowclass):
 			return False
 
 	def pack_start(self, *a):
-		raise NotImplementedError, "Use add() instead"
+		raise NotImplementedError("Use add() instead")
 
 	def show(self):
 		self.show_all()
@@ -3194,7 +3194,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@raises AssertionError: if L{do_response_ok} returns C{False}
 		'''
 		if not (self._no_ok_action or self.do_response_ok() is True):
-			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
+			raise AssertionError('%s.do_response_ok() did not return True' % self.__class__.__name__)
 		self.save_uistate()
 		self.destroy()
 		return self.result
@@ -3209,7 +3209,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			logger.debug('Dialog response OK')
 			try:
 				destroy = self.do_response_ok()
-			except Exception, error:
+			except Exception as error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
 			else:
@@ -3219,7 +3219,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			logger.debug('Dialog response CANCEL')
 			try:
 				destroy = self.do_response_cancel()
-			except Exception, error:
+			except Exception as error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
 			else:
@@ -3651,7 +3651,7 @@ class FileDialog(Dialog):
 		'''
 		ok = self.filechooser.set_current_folder_uri(dir.uri)
 		if not ok:
-			raise AssertionError, 'Could not set folder: %s' % dir.uri
+			raise AssertionError('Could not set folder: %s' % dir.uri)
 
 	def load_last_folder(self):
 		self.uistate.setdefault('last_folder_uri', None, check=basestring)
@@ -3690,14 +3690,14 @@ class FileDialog(Dialog):
 		'''
 		ok = self.filechooser.set_uri(file.uri)
 		if not ok:
-			raise AssertionError, 'Could not set file: %s' % file.uri
+			raise AssertionError('Could not set file: %s' % file.uri)
 
 	def get_file(self):
 		'''Get the current selected file
 		@returns: a L{File} object or C{None}.
 		'''
 		if self.filechooser.get_select_multiple():
-			raise AssertionError, 'Multiple files selected, use get_files() instead'
+			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
 		return File(uri.decode('utf-8')) if uri else None
@@ -3716,7 +3716,7 @@ class FileDialog(Dialog):
 		@returns: a L{Dir} object or C{None}
 		'''
 		if self.filechooser.get_select_multiple():
-			raise AssertionError, 'Multiple files selected, use get_files() instead'
+			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
 		return Dir(uri.decode('utf-8')) if uri else None
@@ -4059,7 +4059,7 @@ class Assistant(Dialog):
 		self._uistate.update(self.uistate)
 
 		if not self.do_response_ok() is True:
-			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
+			raise AssertionError('%s.do_response_ok() did not return True' % self.__class__.__name__)
 		self.save_uistate()
 		self.destroy()
 		return self.result

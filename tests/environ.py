@@ -83,7 +83,7 @@ class TestEnviron(tests.TestCase):
 			if dir.exists():
 				break
 		else:
-			raise AssertionError, 'No existing dirs found in PATH: %s' % path
+			raise AssertionError('No existing dirs found in PATH: %s' % path)
 
 	def testHomeAndUser(self):
 		user = environ.get('USER')

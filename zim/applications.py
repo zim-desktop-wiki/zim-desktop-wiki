@@ -318,11 +318,11 @@ class WebBrowser(Application):
 		'''This method is not supported by this class
 		@raises NotImplementedError: always
 		'''
-		raise NotImplementedError, 'WebBrowser can not run in foreground'
+		raise NotImplementedError('WebBrowser can not run in foreground')
 
 	def spawn(self, args, callback=None):
 		if callback:
-			raise NotImplementedError, 'WebBrowser can not handle callback'
+			raise NotImplementedError('WebBrowser can not handle callback')
 
 		for url in args:
 			if isinstance(url, (zim.fs.File, zim.fs.Dir)):
@@ -350,7 +350,7 @@ class StartFile(Application):
 		'''This method is not supported by this class
 		@raises NotImplementedError: always
 		'''
-		raise NotImplementedError, 'StartFile can not run in foreground'
+		raise NotImplementedError('StartFile can not run in foreground')
 
 	def spawn(self, args, callback=None):
 		if callback:
