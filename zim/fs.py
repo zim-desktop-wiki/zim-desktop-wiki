@@ -348,7 +348,7 @@ def get_tmpdir():
 		os.listdir(dir.path)
 			# Raises OSError if we do not have access anymore
 	except OSError:
-		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n' \
+		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
 			'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
 	else:
 		# All OK, so we must be owner of a safe folder now ...

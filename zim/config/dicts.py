@@ -594,7 +594,7 @@ class ConfigDict(ControlledDict):
 		for key, definition in items:
 			if key in self.definitions:
 				if definition != self.definitions[key]:
-					raise AssertionError('Key is already defined with different definition: %s\n%s != %s' \
+					raise AssertionError('Key is already defined with different definition: %s\n%s != %s'
 						% (key, definition, self.definitions[key]))
 				else:
 					continue
