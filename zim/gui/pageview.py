@@ -596,6 +596,7 @@ class TextBuffer(gtk.TextBuffer):
 		'background': AsciiString(None),
 		'foreground': AsciiString(None),
 		'strikethrough': Boolean(None),
+		'font': AsciiString(None),
 		'family': AsciiString(None),
 		'wrap-mode': GtkConstant(None, prefix='WRAP_'),
 		'indent': Integer(None),
