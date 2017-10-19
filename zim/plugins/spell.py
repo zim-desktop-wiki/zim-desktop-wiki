@@ -170,9 +170,21 @@ class GtkspellcheckAdapter(object):
 		self._textview = textview
 		self._checker = None
 		self._active = False
+
+		import re
+		parsed_version = tuple(map(int, re.findall('\d+', gtkspellcheck.__version__)))
+		if parsed_version >= (4, 0, 3):
+			self.on_new_buffer = self._on_new_buffer_initialize
+		else:
+			self.on_new_buffer = self._on_new_buffer_reattach
+			logger.warning(
+				'Using gtkspellcheck %s. Versions before 4.0.3 might cause memory leak.',
+				gtkspellcheck.__version__
+			)
+
 		self.enable()
 
-	def on_new_buffer(self):
+	def _on_new_buffer_reattach(self):
 		if self._checker:
 			# wanted to use checker.buffer_initialize() here,
 			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
@@ -181,6 +193,10 @@ class GtkspellcheckAdapter(object):
 				self.enable()
 			else:
 				self.detach()
+
+	def _on_new_buffer_initialize(self):
+		if self._checker:
+			self._checker.buffer_initialize()
 
 	def enable(self):
 		if self._checker:

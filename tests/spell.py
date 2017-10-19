@@ -48,13 +48,14 @@ class TestSpell(object):
 			ext.toggle_spellcheck()
 			ext.toggle_spellcheck()
 
-			ui.open_page(Path('Foo'))
-			ui.open_page(Path('Bar'))
-			ext.toggle_spellcheck()
-
-			ui.open_page(Path('Foo'))
-			ui.open_page(Path('Bar'))
-			ext.toggle_spellcheck()
+			import resource
+			start_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+			for i in range(4):
+				ui.open_page(Path('Foo'))
+				ui.open_page(Path('Bar'))
+				ext.toggle_spellcheck()
+			end_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+			self.assertTrue(end_rss - start_rss < 10240, 'switching pages leaks RAM')
 
 			# TODO check it actually shows on screen ...
 
