@@ -157,10 +157,14 @@ class ImageGeneratorClass(object):
 	object_type = None #: generator type, e.g. "equation"
 	scriptname = None #: basename of the source files, e.g. "equation.tex"
 	imagename = None #: basename of the resulting image files, e.g. "equation.png"
+	page = None #: the wiki page that the generator is currently being applied to
 
 	def __init__(self, plugin):
 		self.plugin = plugin
 		self.page = None
+
+	def set_page(self, page):
+		self.page = page
 
 	def set_page(self, page):
 		self.page = page
