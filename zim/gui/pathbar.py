@@ -7,6 +7,8 @@ import gtk
 import gobject
 import logging
 
+from collections import Counter
+
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
@@ -387,6 +389,8 @@ class ScrollButton(gtk.Button):
 		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
 		self.set_relief(gtk.RELIEF_NONE)
 
+def _last_two_segments(name):
+	return ":".join(name.split(':')[-2:]);
 
 class PathBar(ScrolledHBox):
 	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
@@ -423,8 +427,16 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 		self._selected = None
 
+		basenames = list(map(lambda x: x.basename, self.get_paths()))
+		basenameCounts = Counter(basenames);
+
 		for path in self.get_paths():
-			button = gtk.ToggleButton(label=path.basename)
+			if basenameCounts[path.basename] > 1 :
+				label = _last_two_segments(path.name)
+			else:
+				label = path.basename
+
+			button = gtk.ToggleButton(label=label)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
