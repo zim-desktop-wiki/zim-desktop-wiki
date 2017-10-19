@@ -81,7 +81,7 @@ from zim.plugins.tasklist.dates import *
 class TestDateParsing(tests.TestCase):
 
 	def testParsing(self):
-		date = datetime.date(2017, 03, 27)
+		date = datetime.date(2017, 0o3, 27)
 		for text in (
 			'2017-03-27', '2017-03',
 			'2017-W13', '2017-W13-1',
@@ -110,11 +110,11 @@ class TestDateParsing(tests.TestCase):
 
 	def testWeekNumer(self):
 		self.assertEqual(
-			Day(2017, 03, 27),
+			Day(2017, 0o3, 27),
 			Day.new_from_weeknumber(2017, 13, 1)
 		)
 		self.assertEqual(
-			Day(2017, 03, 27).weekformat(),
+			Day(2017, 0o3, 27).weekformat(),
 			('2017-W13-1')
 		)
 		self.assertEqual(

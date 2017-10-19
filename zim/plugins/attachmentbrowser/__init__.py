@@ -284,7 +284,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_zoom_out(self):
 		self.set_icon_size(
-			max((self.icon_size/2, MIN_ICON_ZOOM))) # 16 < 32 < 64 < 128 < 256
+			max((self.icon_size / 2, MIN_ICON_ZOOM))) # 16 < 32 < 64 < 128 < 256
 
 	def set_icon_size(self, icon_size):
 		self.iconview.set_icon_size(icon_size)

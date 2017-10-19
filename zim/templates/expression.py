@@ -99,7 +99,7 @@ class ExpressionParameter(Expression):
 		self.name = name
 		self.parts = name.split('.')
 		if any(n.startswith('_') for n in self.parts):
-			raise ValueError, 'Invalid parameter name: %s' % name
+			raise ValueError('Invalid parameter name: %s' % name)
 
 		for i in range(len(self.parts)):
 			try:
@@ -124,13 +124,13 @@ class ExpressionParameter(Expression):
 					value = getattr(value, p)
 			except (IndexError, KeyError, AttributeError):
 				# We got right type, but data is not there
-				logger.warning('No such parameter: %s', '.'.join(map(str, self.parts[:i+1])))
+				logger.warning('No such parameter: %s', '.'.join(map(str, self.parts[:i + 1])))
 				return None
 
 			if inspect.ismethod(value) \
 			or inspect.isfunction(value) \
 			or inspect.isbuiltin(value):
-				raise AssertionError, 'Can not access parameter: %s' % self.name
+				raise AssertionError('Can not access parameter: %s' % self.name)
 
 		return value
 
@@ -277,12 +277,12 @@ class ExpressionFunctionCall(Expression):
 				and isinstance(getattr(wrapper, name), ExpressionFunction):
 					function = getattr(wrapper, name)
 				else:
-					raise AssertionError, 'Not a valid function: %s' % self.param.name
+					raise AssertionError('Not a valid function: %s' % self.param.name)
 
 		## Execute function
 		if not isinstance(function, ExpressionFunction):
 			# Just being paranoid here, but leave it in to block any mistakes in above lookup
-			raise AssertionError, 'Not a valid function: %s' % self.param.name
+			raise AssertionError('Not a valid function: %s' % self.param.name)
 
 		args = self.args(context)
 		return function(*args)

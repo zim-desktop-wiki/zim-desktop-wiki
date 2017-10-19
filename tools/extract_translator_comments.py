@@ -22,7 +22,7 @@ def extract_comment(file, line):
 		return match.group(1)
 	else:
 		# search next line(s) for a comment
-		i = line+1
+		i = line + 1
 		while i < len(lines):
 			if '_(' in lines[i] or 'gettext(' in lines[i]:
 				break
@@ -41,7 +41,7 @@ def extract_comments(sources):
 		if comment and comment not in comments:
 			comments.append(comment)
 	if comments:
-		return ' | \n'.join(['#. '+c for c in comments])+'\n'
+		return ' | \n'.join(['#. ' + c for c in comments]) + '\n'
 	else:
 		print 'No translator comment for:'
 		for file, line in sources:

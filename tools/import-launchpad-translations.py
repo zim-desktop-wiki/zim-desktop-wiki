@@ -22,7 +22,7 @@ def count(prefix, file):
 		if line.startswith(prefix):
 			string = line[l:].strip().strip('"')
 			if string:
-				count +=1
+				count += 1
 				check_multiline = False
 			else:
 				check_multiline = True

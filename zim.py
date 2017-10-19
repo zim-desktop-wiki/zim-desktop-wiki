@@ -55,10 +55,10 @@ try:
 	argv = [arg.decode(encoding) for arg in sys.argv]
 	exitcode = zim.main.main(*argv)
 	sys.exit(exitcode)
-except zim.main.GetoptError, err:
-	print >>sys.stderr, sys.argv[0]+':', err
+except zim.main.GetoptError as err:
+	print >>sys.stderr, sys.argv[0] + ':', err
 	sys.exit(1)
-except zim.main.UsageError, err:
+except zim.main.UsageError as err:
 	print >>sys.stderr, err.msg
 	sys.exit(1)
 except KeyboardInterrupt: # e.g. <Ctrl>C while --server

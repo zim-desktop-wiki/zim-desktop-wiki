@@ -149,7 +149,7 @@ class ConfigDefinition(object):
 			if self.allow_empty:
 				return True
 			else:
-				raise ValueError, 'Value not allowed to be empty'
+				raise ValueError('Value not allowed to be empty')
 		else:
 			return False
 
@@ -190,7 +190,7 @@ class ConfigDefinitionByClass(ConfigDefinition):
 	'''
 	# TODO fully get rid of this class and replace by specialized classes
 
-	__slots__= ('klass',)
+	__slots__ = ('klass',)
 
 	def __init__(self, default, klass=None, allow_empty=False):
 		if klass is None:
@@ -225,15 +225,15 @@ class ConfigDefinitionByClass(ConfigDefinition):
 				return self.klass.new_from_zim_config(value)
 			except:
 				logger.debug('Error while converting %s to %s', value, self.klass, exc_info=1)
-				raise ValueError, 'Can not convert %s to %s' % (value, self.klass)
+				raise ValueError('Can not convert %s to %s' % (value, self.klass))
 		else:
-			raise ValueError, 'Value should be of type: %s' % self.klass.__name__
+			raise ValueError('Value should be of type: %s' % self.klass.__name__)
 
 	def tostring(self, value):
 		if hasattr(value, 'serialize_zim_config'):
 			return value.serialize_zim_config()
 		else:
-			return json.dumps(value, separators=(',',':'))
+			return json.dumps(value, separators=(',', ':'))
 				# specify separators for compact encoding
 
 
@@ -248,7 +248,7 @@ class Boolean(ConfigDefinition):
 		elif value in ('True', 'true', 'False', 'false'):
 			return value in ('True', 'true')
 		else:
-			raise ValueError, 'Must be True or False'
+			raise ValueError('Must be True or False')
 
 
 class String(ConfigDefinition):
@@ -269,7 +269,7 @@ class String(ConfigDefinition):
 		elif hasattr(value, 'serialize_zim_config'):
 			return value.serialize_zim_config()
 		else:
-			raise ValueError, 'Must be string'
+			raise ValueError('Must be string')
 
 	def tostring(self, value):
 		if value is None:
@@ -299,7 +299,7 @@ class Integer(ConfigDefinition):
 			try:
 				return int(value)
 			except:
-				raise ValueError, 'Must be integer'
+				raise ValueError('Must be integer')
 
 
 class Float(ConfigDefinition):
@@ -314,7 +314,7 @@ class Float(ConfigDefinition):
 			try:
 				return float(value)
 			except:
-				raise ValueError, 'Must be integer'
+				raise ValueError('Must be integer')
 
 
 class Choice(ConfigDefinition):
@@ -363,7 +363,7 @@ class Choice(ConfigDefinition):
 			elif isinstance(value, basestring) and value.lower() in choices:
 				return value.lower()
 			else:
-				raise ValueError, 'Value should be one of %s' % unicode(choices)
+				raise ValueError('Value should be one of %s' % unicode(choices))
 
 
 class Range(Integer):
@@ -389,7 +389,7 @@ class Range(Integer):
 		elif self.min <= value <= self.max:
 			return value
 		else:
-			raise ValueError, 'Value should be between %i and %i' % (self.min, self.max)
+			raise ValueError('Value should be between %i and %i' % (self.min, self.max))
 
 
 class Coordinate(ConfigDefinition):
@@ -401,7 +401,7 @@ class Coordinate(ConfigDefinition):
 
 	def __init__(self, default, allow_empty=False):
 		if default == (None, None):
-			allow_empty=True
+			allow_empty = True
 		ConfigDefinition.__init__(self, default, allow_empty)
 
 	def check(self, value):
@@ -423,7 +423,7 @@ class Coordinate(ConfigDefinition):
 			):
 				return value
 			else:
-				raise ValueError, 'Value should be a coordinate (tuple of 2 integers)'
+				raise ValueError('Value should be a coordinate (tuple of 2 integers)')
 
 value_is_coord = Coordinate # XXX for backward compatibility
 
@@ -443,11 +443,11 @@ def build_config_definition(default=None, check=None, allow_empty=False):
 	based on a default value an/or a check.
 	'''
 	if default is None and check is None:
-		raise AssertionError, 'At least provide either a default or a check'
+		raise AssertionError('At least provide either a default or a check')
 	elif check is None:
 		check = default.__class__
 
-	if isinstance(check, (type, types.ClassType)): # is a class
+	if isinstance(check, (type, type)): # is a class
 		if issubclass(check, ConfigDefinition):
 			return check(default, allow_empty=allow_empty)
 		elif check in _definition_classes:
@@ -463,7 +463,7 @@ def build_config_definition(default=None, check=None, allow_empty=False):
 			and isinstance(check[1], int)
 		return Range(default, check[0], check[1])
 	else:
-		raise ValueError, 'Unrecognized check type'
+		raise ValueError('Unrecognized check type')
 
 
 
@@ -541,8 +541,8 @@ class ConfigDict(ControlledDict):
 		if k in self.definitions:
 			try:
 				v = self.definitions[k].check(v)
-			except ValueError, error:
-				raise ValueError, 'Invalid config value for %s: "%s" - %s' % (k, v, error.args[0])
+			except ValueError as error:
+				raise ValueError('Invalid config value for %s: "%s" - %s' % (k, v, error.args[0]))
 			else:
 				ControlledDict.__setitem__(self, k, v)
 		else:
@@ -594,9 +594,8 @@ class ConfigDict(ControlledDict):
 		for key, definition in items:
 			if key in self.definitions:
 				if definition != self.definitions[key]:
-					raise AssertionError, \
-						'Key is already defined with different definition: %s\n%s != %s' \
-						% (key, definition, self.definitions[key])
+					raise AssertionError('Key is already defined with different definition: %s\n%s != %s'
+						% (key, definition, self.definitions[key]))
 				else:
 					continue
 
@@ -611,7 +610,7 @@ class ConfigDict(ControlledDict):
 	def _set_input(self, key, value):
 		try:
 			value = self.definitions[key].check(value)
-		except ValueError, error:
+		except ValueError as error:
 			logger.warn(
 				'Invalid config value for %s: "%s" - %s',
 					key, value, error.args[0]

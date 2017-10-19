@@ -275,7 +275,7 @@ def gtk_combobox_set_active_text(combobox, text):
 		if value[0] == text:
 			return combobox.set_active(i)
 	else:
-		raise ValueError, text
+		raise ValueError(text)
 
 
 def gtk_notebook_get_active_tab(nb):
@@ -304,7 +304,7 @@ def gtk_notebook_set_active_tab(nb, label):
 			nb.set_current_page(num)
 			break
 	else:
-		raise ValueError, 'No such tab: %s' % label
+		raise ValueError('No such tab: %s' % label)
 
 
 class TextBuffer(gtk.TextBuffer):
@@ -333,7 +333,8 @@ def rotate_pixbuf(pixbuf):
 
 	# Values for orientation seen in some random snippet in gtkpod
 	o = pixbuf.get_option('orientation')
-	if o: o = int(o)
+	if o:
+		o = int(o)
 	if o == 3: # 180 degrees
 		return pixbuf.rotate_simple(gtk.gdk.PIXBUF_ROTATE_UPSIDEDOWN)
 	elif o == 6: # 270 degrees
@@ -376,8 +377,10 @@ def _do_sync_widget_state(widget, a, subject):
 
 
 def _do_sync_widget_state_check_active(widget, *a):
-	if len(a) == 1: subject = a[0]
-	else: subject = a[1]
+	if len(a) == 1:
+		subject = a[0]
+	else:
+		subject = a[1]
 	_do_sync_widget_state(widget, '', subject)
 	subject.set_sensitive(widget.get_active())
 
@@ -440,12 +443,12 @@ def input_table_factory(inputs, table=None):
 
 	for input in inputs:
 		if input is None:
-			table.attach(gtk.Label(' '), 0,1, i,i+1, xoptions=gtk.FILL)
+			table.attach(gtk.Label(' '), 0, 1, i, i + 1, xoptions=gtk.FILL)
 			# HACK: force empty row to have height of label
 		elif isinstance(input, basestring):
 			label = gtk.Label()
 			label.set_markup(input)
-			table.attach(label, 0,4, i,i+1)
+			table.attach(label, 0, 4, i, i + 1)
 				# see column below about col span for single widget case
 		elif isinstance(input, tuple):
 			text = input[0]
@@ -453,21 +456,21 @@ def input_table_factory(inputs, table=None):
 				label = gtk.Label(text + ':')
 				label.set_alignment(0.0, 0.5)
 			else:
-				label = gtk.Label(' '*4) # minimum label width
+				label = gtk.Label(' ' * 4) # minimum label width
 
-			table.attach(label, 0,1, i,i+1, xoptions=gtk.FILL)
+			table.attach(label, 0, 1, i, i + 1, xoptions=gtk.FILL)
 			_sync_widget_state(input[1], label)
 
 			for j, widget in enumerate(input[1:]):
 				if isinstance(widget, gtk.Entry):
-					table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL|gtk.EXPAND)
+					table.attach(widget, j + 1, j + 2, i, i + 1, xoptions=gtk.FILL | gtk.EXPAND)
 				else:
-					table.attach(widget, j+1,j+2, i,i+1, xoptions=gtk.FILL)
+					table.attach(widget, j + 1, j + 2, i, i + 1, xoptions=gtk.FILL)
 				if j > 0:
 					_sync_widget_state(input[1], widget)
 		else:
 			widget = input
-			table.attach(widget, 0,4, i,i+1)
+			table.attach(widget, 0, 4, i, i + 1)
 				# We span 4 columns here so in case these widgets are
 				# the widest in the tables (e.g. checkbox + label)
 				# they don't force expanded size on first 3 columns
@@ -1296,7 +1299,7 @@ class InputForm(gtk.Table):
 
 	def __getitem__(self, key):
 		if not key in self._keys:
-			raise KeyError, key
+			raise KeyError(key)
 		elif key in self.widgets:
 			widget = self.widgets[key]
 			if isinstance(widget, LinkEntry):
@@ -1327,7 +1330,7 @@ class InputForm(gtk.Table):
 				else:
 					return widget.get_color().to_string()
 			else:
-				raise TypeError, widget.__class__.name
+				raise TypeError(widget.__class__.name)
 		else:
 			# Group of RadioButtons
 			for name, widget in self._get_radiogroup(key):
@@ -1339,7 +1342,7 @@ class InputForm(gtk.Table):
 
 	def __setitem__(self, key, value):
 		if not key in self._keys:
-			raise KeyError, key
+			raise KeyError(key)
 		elif key in self.widgets:
 			widget = self.widgets[key]
 			if isinstance(widget, LinkEntry):
@@ -1376,7 +1379,7 @@ class InputForm(gtk.Table):
 				color = gtk.gdk.color_parse(value)
 				widget.set_color(color)
 			else:
-				raise TypeError, widget.__class__.name
+				raise TypeError(widget.__class__.name)
 		else:
 			# RadioButton
 			widget = self.widgets[key + ':' + value]
@@ -1648,8 +1651,8 @@ class InputEntry(gtk.Entry):
 			attr = pango.AttrList()
 			end = len(self.placeholder_text.encode('utf-8'))
 			attr.insert(pango.AttrStyle(pango.STYLE_ITALIC, 0, end))
-			c = 65535/16*8
-			attr.insert(pango.AttrForeground(c,c,c, 0, end))
+			c = 65535 / 16 * 8
+			attr.insert(pango.AttrForeground(c, c, c, 0, end))
 				# TODO make color configurable, now just solid grey
 			layout.set_attributes(attr)
 			# The layout is reset when new text is set, so
@@ -1786,8 +1789,10 @@ class FileEntry(FSPathEntry):
 		'''
 		FSPathEntry.__init__(self)
 		self.file_type_hint = 'file'
-		if new: self.action = gtk.FILE_CHOOSER_ACTION_SAVE
-		else: self.action = gtk.FILE_CHOOSER_ACTION_OPEN
+		if new:
+			self.action = gtk.FILE_CHOOSER_ACTION_SAVE
+		else:
+			self.action = gtk.FILE_CHOOSER_ACTION_OPEN
 
 		if file:
 			self.set_file(file)
@@ -1845,7 +1850,7 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 		# normalization could be done elsewhere, but keep together
 
 	model = completion.get_model()
-	text  = model.get_value(iter, column)
+	text = model.get_value(iter, column)
 	if text is not None:
 		text = unicodedata.normalize('NFKD', text.decode('utf-8'))
 		return text.lower().startswith(key)
@@ -1921,7 +1926,7 @@ class PageEntry(InputEntry):
 
 		@param path: L{Path} object
 		'''
-		self.set_text(':'+path.name)
+		self.set_text(':' + path.name)
 
 	def get_path(self):
 		'''Get the path shown in the widget.
@@ -2011,7 +2016,7 @@ class PageEntry(InputEntry):
 
 		if ':' in text:
 			i = text.rfind(':')
-			prefix = text[:i+1] # can still start with "+"
+			prefix = text[:i + 1] # can still start with "+"
 			if prefix == ':':
 				path = Path(':')
 			else: # resolve page
@@ -2053,7 +2058,7 @@ class PageEntry(InputEntry):
 		lowertext = text.lower()
 		try:
 			for p in self.notebook.pages.list_pages(path):
-				string = prefix+p.basename
+				string = prefix + p.basename
 				if string.lower().startswith(lowertext):
 					model.append((string, string))
 		except IndexNotFoundError:
@@ -2424,7 +2429,8 @@ class MinimizedTabs(object):
 			button = gtk.Button(label=text)
 			button.set_relief(gtk.RELIEF_NONE)
 			button.connect('clicked', self._on_click, text)
-			if self._angle != 0: button.get_child().set_angle(self._angle)
+			if self._angle != 0:
+				button.get_child().set_angle(self._angle)
 			self.pack_start(button, False)
 
 	def _on_click(self, b, text):
@@ -2490,7 +2496,7 @@ class ConfigDefinitionPaneToggle(ConfigDefinition):
 		and all(e in self.window._zim_window_sidepanes for e in value):
 			return value
 		else:
-			raise ValueError, 'Unknown pane names in: %s' % value
+			raise ValueError('Unknown pane names in: %s' % value)
 
 
 class ConfigDefinitionPaneState(ConfigDefinitionByClass):
@@ -2510,7 +2516,7 @@ class ConfigDefinitionPaneState(ConfigDefinitionByClass):
 		and (value[2] is None or isinstance(value[2], basestring)):
 			return value
 		else:
-			raise ValueError, 'Value is not a valid pane state'
+			raise ValueError('Value is not a valid pane state')
 
 
 class Window(gtkwindowclass):
@@ -2713,7 +2719,7 @@ class Window(gtkwindowclass):
 					self.set_pane_state(key, False)
 				break
 		else:
-			raise ValueError, 'Widget not found in this window'
+			raise ValueError('Widget not found in this window')
 
 	def init_uistate(self):
 		assert self.uistate
@@ -2881,7 +2887,7 @@ class Window(gtkwindowclass):
 			return False
 
 	def pack_start(self, *a):
-		raise NotImplementedError, "Use add() instead"
+		raise NotImplementedError("Use add() instead")
 
 	def show(self):
 		self.show_all()
@@ -2998,7 +3004,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		gtk.Dialog.__init__(
 			self, parent=get_window(ui),
 			title=format_title(title),
-			flags=gtk.DIALOG_NO_SEPARATOR|gtk.DIALOG_DESTROY_WITH_PARENT,
+			flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
 		if hasattr(ui, 'ui') and hasattr(ui.ui, 'uistate'):
 				ui = ui.ui # HACK - we get other window instead.. - avoid triggering Mock objects in test ...
@@ -3052,8 +3058,10 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		# TODO set Ok button as default widget
 		# see gtk.Window.set_default()
 
-		if help_text: self.add_help_text(help_text)
-		if help: self.set_help(help)
+		if help_text:
+			self.add_help_text(help_text)
+		if help:
+			self.set_help(help)
 
 	def destroy(self):
 		self.disconnect_all()
@@ -3186,7 +3194,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@raises AssertionError: if L{do_response_ok} returns C{False}
 		'''
 		if not (self._no_ok_action or self.do_response_ok() is True):
-			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
+			raise AssertionError('%s.do_response_ok() did not return True' % self.__class__.__name__)
 		self.save_uistate()
 		self.destroy()
 		return self.result
@@ -3201,7 +3209,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			logger.debug('Dialog response OK')
 			try:
 				destroy = self.do_response_ok()
-			except Exception, error:
+			except Exception as error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
 			else:
@@ -3211,7 +3219,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			logger.debug('Dialog response CANCEL')
 			try:
 				destroy = self.do_response_cancel()
-			except Exception, error:
+			except Exception as error:
 				ErrorDialog(self.ui, error).run()
 				destroy = False
 			else:
@@ -3527,7 +3535,7 @@ class MessageDialog(gtk.MessageDialog):
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
 			message_format=msg,
-			flags=gtk.DIALOG_MODAL|gtk.DIALOG_DESTROY_WITH_PARENT,
+			flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
 		if text:
 			self.format_secondary_text(text)
@@ -3643,7 +3651,7 @@ class FileDialog(Dialog):
 		'''
 		ok = self.filechooser.set_current_folder_uri(dir.uri)
 		if not ok:
-			raise AssertionError, 'Could not set folder: %s' % dir.uri
+			raise AssertionError('Could not set folder: %s' % dir.uri)
 
 	def load_last_folder(self):
 		self.uistate.setdefault('last_folder_uri', None, check=basestring)
@@ -3682,14 +3690,14 @@ class FileDialog(Dialog):
 		'''
 		ok = self.filechooser.set_uri(file.uri)
 		if not ok:
-			raise AssertionError, 'Could not set file: %s' % file.uri
+			raise AssertionError('Could not set file: %s' % file.uri)
 
 	def get_file(self):
 		'''Get the current selected file
 		@returns: a L{File} object or C{None}.
 		'''
 		if self.filechooser.get_select_multiple():
-			raise AssertionError, 'Multiple files selected, use get_files() instead'
+			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
 		return File(uri.decode('utf-8')) if uri else None
@@ -3708,7 +3716,7 @@ class FileDialog(Dialog):
 		@returns: a L{Dir} object or C{None}
 		'''
 		if self.filechooser.get_select_multiple():
-			raise AssertionError, 'Multiple files selected, use get_files() instead'
+			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
 		return Dir(uri.decode('utf-8')) if uri else None
@@ -3802,7 +3810,7 @@ class ProgressDialog(gtk.Dialog):
 		self.set_default_size(300, 0)
 
 		label = gtk.Label()
-		label.set_markup('<b>'+encode_markup_text(op.message)+'</b>')
+		label.set_markup('<b>' + encode_markup_text(op.message) + '</b>')
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
@@ -3849,7 +3857,7 @@ class ProgressDialog(gtk.Dialog):
 		if msg is None:
 			self.msg_label.set_text('')
 		else:
-			self.msg_label.set_markup('<i>'+encode_markup_text(str(msg))+'</i>')
+			self.msg_label.set_markup('<i>' + encode_markup_text(str(msg)) + '</i>')
 
 	def on_finished(self, op):
 		self.cancelled = op.cancelled
@@ -3999,7 +4007,7 @@ class Assistant(Dialog):
 		label.set_markup('<b>' + page.title + '</b>')
 		hbox.pack_start(label, False)
 		label = gtk.Label()
-		label.set_markup('<b>(%i/%i)</b>' % (self._page+1, len(self._pages)))
+		label.set_markup('<b>(%i/%i)</b>' % (self._page + 1, len(self._pages)))
 		hbox.pack_end(label, False)
 
 		# Add actual page
@@ -4051,7 +4059,7 @@ class Assistant(Dialog):
 		self._uistate.update(self.uistate)
 
 		if not self.do_response_ok() is True:
-			raise AssertionError, '%s.do_response_ok() did not return True' % self.__class__.__name__
+			raise AssertionError('%s.do_response_ok() did not return True' % self.__class__.__name__)
 		self.save_uistate()
 		self.destroy()
 		return self.result
@@ -4284,13 +4292,13 @@ class ImageView(gtk.Layout):
 			if hsrc <= wwin and hsrc <= hwin:
 				# image fits in the screen - no scaling
 				wimg, himg = wsrc, hsrc
-			elif (float(wwin)/wsrc) < (float(hwin)/hsrc):
+			elif (float(wwin) / wsrc) < (float(hwin) / hsrc):
 				# Fit by width
 				wimg = wwin
-				himg = int(hsrc * float(wwin)/wsrc)
+				himg = int(hsrc * float(wwin) / wsrc)
 			else:
 				# Fit by height
-				wimg = int(wsrc * float(hwin)/hsrc)
+				wimg = int(wsrc * float(hwin) / hsrc)
 				himg = hwin
 		else:
 			assert False, 'BUG: unknown scaling type'
@@ -4309,7 +4317,7 @@ class ImageView(gtk.Layout):
 			# Generate checkerboard background while scaling
 			pixbuf = self._pixbuf.composite_color_simple(
 				wimg, himg, gtk.gdk.INTERP_NEAREST,
-				255, 16, self._lightgrey.pixel, self._darkgrey.pixel )
+				255, 16, self._lightgrey.pixel, self._darkgrey.pixel)
 
 		# And align the image in the layout
 		wvirt = max((wwin, wimg))
@@ -4317,7 +4325,7 @@ class ImageView(gtk.Layout):
 		#~ print 'Virtual', (wvirt, hvirt)
 		self._image.set_from_pixbuf(pixbuf)
 		self.set_size(wvirt, hvirt)
-		self.move(self._image, (wvirt-wimg)/2, (hvirt-himg)/2)
+		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)
 
 		return False # We could be called by a timeout event
 
@@ -4373,7 +4381,7 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
 		self._no_ok_action = False
 
-		self.form.widgets['name'].connect('focus-in-event',	self._on_focus)
+		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
 
 	def _on_focus(self, widget, event):
 		# filename length without suffix
@@ -4436,15 +4444,15 @@ class TableBoxMixin(object):
 				event.window, gtk.STATE_ACTIVE, gtk.SHADOW_NONE, None, self, None,
 				child.allocation.x - border - line,
 				child.allocation.y - border - line,
-				child.allocation.width + 2*border + 2*line,
-				child.allocation.height + 2*border + 2*line,
+				child.allocation.width + 2 * border + 2 * line,
+				child.allocation.height + 2 * border + 2 * line,
 			)
 			self.style.paint_flat_box(
 				event.window, gtk.STATE_NORMAL, gtk.SHADOW_NONE, None, self, None,
 				child.allocation.x - border,
 				child.allocation.y - border,
-				child.allocation.width + 2*border,
-				child.allocation.height + 2*border,
+				child.allocation.width + 2 * border,
+				child.allocation.height + 2 * border,
 			)
 		gtk.Container.propagate_expose(self, child, event)
 

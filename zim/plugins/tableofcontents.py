@@ -179,7 +179,7 @@ class ToCTreeModel(gtk.TreeStore):
 		self.clear()
 		headings = []
 		for heading in parsetree.findall(HEADING):
-			headings.append( (int(heading.attrib['level']), heading.gettext()) )
+			headings.append((int(heading.attrib['level']), heading.gettext()))
 
 
 		if not show_h1 \
@@ -267,7 +267,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		starttext = model[path][TEXT_COL].decode('utf-8')
 
-		nextpath = path[:-1] + (path[-1]+1,)
+		nextpath = path[:-1] + (path[-1] + 1,)
 		if nextpath in model:
 			endtext = model[nextpath][TEXT_COL].decode('utf-8')
 		else:
@@ -515,7 +515,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 	def do_size_allocate(self, allocation):
 		# Need to overload this one as well, to make sure we get what
 		# we wanted
-		self.allocation=allocation
+		self.allocation = allocation
 
 		border = self.get_border_width()
 		spacing = self.get_spacing()
@@ -525,13 +525,13 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		self._head_event_box.size_allocate(gtk.gdk.Rectangle(
 			x=allocation.x + border,
 			y=allocation.y + border,
-			width=allocation.width - 2*border,
+			width=allocation.width - 2 * border,
 			height=head_height
 		))
 
 		if self.widget.get_property('visible'):
-			body_w = allocation.width - 2*border
-			body_h = allocation.height - 2*border - spacing - head_height
+			body_w = allocation.width - 2 * border
+			body_h = allocation.height - 2 * border - spacing - head_height
 
 			h_policy = gtk.POLICY_ALWAYS if tree_w > body_w else gtk.POLICY_NEVER
 			self.widget.set_policy(h_policy, gtk.POLICY_AUTOMATIC)

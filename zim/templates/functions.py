@@ -49,7 +49,7 @@ def template_strftime(format, date=None):
 		elif isinstance(date, (datetime.date, datetime.datetime)):
 			string = datetime.strftime(format, date)
 		else:
-			raise Error, 'Not a datetime object: %s' % date
+			raise Error('Not a datetime object: %s' % date)
 
 		# strftime returns locale as understood by the C api
 		# unfortunately there is no guarantee we can actually

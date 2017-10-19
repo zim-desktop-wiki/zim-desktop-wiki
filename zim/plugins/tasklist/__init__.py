@@ -209,7 +209,7 @@ class MainWindowExtension(WindowExtension):
 				self.connectto(e, 'tasklist-changed', callback)
 				break
 		else:
-			raise AssertionError, 'Could not find tasklist notebook extension'
+			raise AssertionError('Could not find tasklist notebook extension')
 
 	def teardown(self):
 		if self._widget:

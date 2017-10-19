@@ -55,7 +55,7 @@ class TestHistory(tests.TestCase):
 		paths = list(paths)
 		paths.reverse()
 
-		self.assertTrue(any(isinstance(p, klass) for p in paths),  'All should have klass: %s' % klass)
+		self.assertTrue(any(isinstance(p, klass) for p in paths), 'All should have klass: %s' % klass)
 		self.assertEqual([p.name for p in paths], [p.name for p in wanted])
 
 	def testState(self):
@@ -89,7 +89,7 @@ class TestHistory(tests.TestCase):
 			# overrule this logic.
 
 		# walk backwards
-		for i in range(2, len(self.pages)+1):
+		for i in range(2, len(self.pages) + 1):
 			prev = history.get_previous()
 			self.assertFalse(prev is None)
 			self.assertEqual(prev.name, self.pages[-i].name)
@@ -254,7 +254,7 @@ class TestHistory(tests.TestCase):
 
 		self.assertEqual(
 			len(list(history.get_history())),
-			2 * len(self.pages)  )
+			2 * len(self.pages))
 
 		for page in history.get_history():
 			history.set_current(page)

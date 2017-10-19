@@ -54,7 +54,7 @@ class TestEditTableExtension(tests.TestCase):
 	def testChangeTable(self):
 		attrib = {'aligns': 'normal,normal', 'wraps': '0,0'}
 		header = ['h1', 'h2']
-		rows = [['t1', 't2'],]
+		rows = [['t1', 't2'], ]
 		obj = TableViewObject(attrib, header, rows, {})
 		widget = obj.get_widget()
 
@@ -84,11 +84,11 @@ class TestTableViewObject(tests.TestCase):
 		for headers, rows in (
 			( # Two simple rows
 				['C1', 'C2'],
-				[ ['a', 'b'], ['q', 'x'] ]
+				[['a', 'b'], ['q', 'x']]
 			),
 			( # Some empty fields
 				['C1', 'C2'],
-				[ ['a', ' '], ['q', ' '], [' ', ' '] ]
+				[['a', ' '], ['q', ' '], [' ', ' ']]
 			),
 		):
 			obj = TableViewObject(attrib, headers, rows, preferences)

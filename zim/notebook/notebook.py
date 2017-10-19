@@ -40,8 +40,10 @@ class NotebookConfig(INIConfigFile):
 
 	def __init__(self, file):
 		INIConfigFile.__init__(self, file)
-		if os.name == 'nt': endofline = 'dos'
-		else: endofline = 'unix'
+		if os.name == 'nt':
+			endofline = 'dos'
+		else:
+			endofline = 'unix'
 		self['Notebook'].define((
 			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
 			('name', String(file.dir.basename)),
@@ -138,7 +140,7 @@ class IndexNotUptodateError(Error):
 def assert_index_uptodate(method):
 	def wrapper(notebook, *arg, **kwarg):
 		if not notebook.index.is_uptodate:
-			raise IndexNotUptodateError, 'Index not up to date'
+			raise IndexNotUptodateError('Index not up to date')
 		return method(notebook, *arg, **kwarg)
 
 	return wrapper
@@ -741,7 +743,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			elif target == oldtarget:
 				return self._update_link_tag(elt, page, newtarget, href)
 			elif target.ischild(oldtarget):
-				mynewtarget = newtarget.child( target.relname(oldtarget) )
+				mynewtarget = newtarget.child(target.relname(oldtarget))
 				return self._update_link_tag(elt, page, mynewtarget, href)
 
 			elif href.rel == HREF_REL_FLOATING \
@@ -928,7 +930,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		logger.debug('Trash page: %s', path)
 
 		if self.config['Notebook']['disable_trash']:
-			raise TrashNotSupportedError, 'disable_trash is set'
+			raise TrashNotSupportedError('disable_trash is set')
 
 		self.emit('delete-page', path)
 
@@ -961,7 +963,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				pass
 			else:
 				pages = set(
-					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD) )
+					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD))
 
 				for p in pages:
 					yield p
@@ -1034,7 +1036,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			return dir.file(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
-				filename = '/'+filename
+				filename = '/' + filename
 				# make absolute on Unix
 			return File(filename)
 		else:
@@ -1102,7 +1104,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
-				return updir*up + downpath
+				return updir * up + downpath
 		else:
 			if document_root and notebook_root \
 			and document_root.ischild(notebook_root) \

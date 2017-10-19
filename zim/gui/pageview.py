@@ -85,7 +85,7 @@ ObjectManager.register_object('line', LineObject)
 def IS_LINE(line):
 	'''Function used for line autoformatting.'''
 	length = len(line)
-	return (line == '-'*length) and (length > 4)
+	return (line == '-' * length) and (length > 4)
 
 
 STOCK_CHECKED_BOX = 'zim-checked-box'
@@ -153,7 +153,7 @@ KEYVAL_POUND = gtk.gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = gtk.gdk.CONTROL_MASK |gtk.gdk.META_MASK| gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
+KEYSTATES = gtk.gdk.CONTROL_MASK | gtk.gdk.META_MASK | gtk.gdk.SHIFT_MASK | gtk.gdk.MOD1_MASK
 
 MENU_ACTIONS = (
 	# name, stock id, label
@@ -258,11 +258,11 @@ file_re = Re(r'''(
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
 
-markup_re = {'style-strong' : Re(r'(\*{2})(.*)\1'),
-	'style-emphasis' : Re(r'(\/{2})(.*)\1'),
-	'style-mark' : Re(r'(_{2})(.*)\1'),
-	'style-pre' : Re(r'(\'{2})(.*)\1'),
-	'style-strike' : Re(r'(~{2})(.*)\1')}
+markup_re = {'style-strong': Re(r'(\*{2})(.*)\1'),
+	'style-emphasis': Re(r'(\/{2})(.*)\1'),
+	'style-mark': Re(r'(_{2})(.*)\1'),
+	'style-pre': Re(r'(\'{2})(.*)\1'),
+	'style-strike': Re(r'(~{2})(.*)\1')}
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
@@ -294,7 +294,7 @@ def camelcase(word):
 
 	count = 0
 	for i in range(1, len(word)):
-		if not upper[i-1] and upper[i]:
+		if not upper[i - 1] and upper[i]:
 			return True
 	else:
 		return False
@@ -343,7 +343,7 @@ class ConfigDefinitionConstant(String):
 			if hasattr(self._module, value):
 				return getattr(self._module, value)
 			else:
-				raise ValueError, 'No such constant: PANGO_%s' % value
+				raise ValueError('No such constant: PANGO_%s' % value)
 		else:
 			return value
 
@@ -567,8 +567,8 @@ class TextBuffer(gtk.TextBuffer):
 		'strike': {'strikethrough': True, 'foreground': 'grey'},
 		'code': {'family': 'monospace'},
 		'pre': {'family': 'monospace', 'wrap-mode': gtk.WRAP_NONE},
-		'sub': {'rise': -3500, 'scale':0.7},
-		'sup': {'rise': 7500, 'scale':0.7},
+		'sub': {'rise': -3500, 'scale': 0.7},
+		'sup': {'rise': 7500, 'scale': 0.7},
 		'link': {'foreground': 'blue'},
 		'tag': {'foreground': '#ce5c00'},
 		'indent': {},
@@ -621,7 +621,7 @@ class TextBuffer(gtk.TextBuffer):
 		self.finder = TextFinder(self)
 
 		for name in self._static_style_tags:
-			tag = self.create_tag('style-'+name, **self.tag_styles[name])
+			tag = self.create_tag('style-' + name, **self.tag_styles[name])
 			tag.zim_type = 'style'
 			if name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
 				# This is needed to get proper output in get_parse_tree
@@ -772,7 +772,7 @@ class TextBuffer(gtk.TextBuffer):
 				self._do_lines_merged(enditer)
 
 			# Fix text direction of indent tags
-			for line in range(startiter.get_line(), enditer.get_line()+1):
+			for line in range(startiter.get_line(), enditer.get_line() + 1):
 				iter = self.get_iter_at_line(line)
 				tags = filter(_is_indent_tag, iter.get_tags())
 				if tags:
@@ -842,7 +842,7 @@ class TextBuffer(gtk.TextBuffer):
 			# Inserts a newline if we are not at the beginning of a line
 			# makes pasting a tree halfway in a line more sane
 			if not raw:
-				iter = self.get_iter_at_mark( self.get_insert() )
+				iter = self.get_iter_at_mark(self.get_insert())
 				if not iter.starts_line():
 					self.insert_at_cursor('\n')
 
@@ -946,7 +946,7 @@ class TextBuffer(gtk.TextBuffer):
 				# Text styles
 				if element.tag == 'h':
 					force_line_start()
-					tag = 'h'+str(element.attrib['level'])
+					tag = 'h' + str(element.attrib['level'])
 					self.set_textstyle(tag)
 				elif element.tag in self._static_style_tags:
 					self.set_textstyle(element.tag)
@@ -988,7 +988,7 @@ class TextBuffer(gtk.TextBuffer):
 		tag = self._create_link_tag(text, href, **attrib)
 		self._editmode_tags = \
 			filter(_is_not_link_tag,
-				filter(_is_not_style_tag, self._editmode_tags) ) + (tag,)
+				filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1077,7 +1077,7 @@ class TextBuffer(gtk.TextBuffer):
 		tag = self._create_tag_tag(text, **attrib)
 		self._editmode_tags = \
 			filter(_is_not_tag_tag,
-				filter(_is_not_style_tag, self._editmode_tags) ) + (tag,)
+				filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1470,7 +1470,7 @@ class TextBuffer(gtk.TextBuffer):
 		self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
 
 		if not name is None:
-			tag = self.get_tag_table().lookup('style-'+name)
+			tag = self.get_tag_table().lookup('style-' + name)
 			if _is_heading_tag(tag):
 				self._editmode_tags = \
 					filter(_is_not_indent_tag, self._editmode_tags)
@@ -1617,7 +1617,7 @@ class TextBuffer(gtk.TextBuffer):
 					text = start.get_text(end)
 					if '\n' in text:
 						name = 'pre'
-				tag = self.get_tag_table().lookup('style-'+name)
+				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
 				self.remove_textstyle_tags(start, end)
 				if not had_tag:
@@ -1745,7 +1745,7 @@ class TextBuffer(gtk.TextBuffer):
 		tags = filter(_is_indent_tag, iter.get_tags())
 		if tags:
 			assert len(tags) == 1, 'BUG: overlapping indent tags'
-			return int( tags[0].zim_attrib['indent'] )
+			return int(tags[0].zim_attrib['indent'])
 		else:
 			return 0
 
@@ -1758,13 +1758,20 @@ class TextBuffer(gtk.TextBuffer):
 		tag = self.get_tag_table().lookup(name)
 		if tag is None:
 			if bullet:
-				if bullet == BULLET: stylename = 'bullet-list'
-				elif bullet == CHECKED_BOX: stylename = 'checked-checkbox'
-				elif bullet == UNCHECKED_BOX: stylename = 'unchecked-checkbox'
-				elif bullet == XCHECKED_BOX: stylename = 'xchecked-checkbox'
-				elif bullet == MIGRATED_BOX: stylename = 'migrated-checkbox'
-				elif is_numbered_bullet_re.match(bullet): stylename = 'numbered-list'
-				else: raise AssertionError, 'BUG: Unkown bullet type'
+				if bullet == BULLET:
+					stylename = 'bullet-list'
+				elif bullet == CHECKED_BOX:
+					stylename = 'checked-checkbox'
+				elif bullet == UNCHECKED_BOX:
+					stylename = 'unchecked-checkbox'
+				elif bullet == XCHECKED_BOX:
+					stylename = 'xchecked-checkbox'
+				elif bullet == MIGRATED_BOX:
+					stylename = 'migrated-checkbox'
+				elif is_numbered_bullet_re.match(bullet):
+					stylename = 'numbered-list'
+				else:
+					raise AssertionError('BUG: Unkown bullet type')
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
 				if dir == 'LTR':
@@ -1850,7 +1857,8 @@ class TextBuffer(gtk.TextBuffer):
 		bullet = self.get_bullet(line)
 		ok = self._set_indent(line, level, bullet)
 
-		if ok: self.set_modified(True)
+		if ok:
+			self.set_modified(True)
 		return ok
 
 	def update_indent_tag(self, line, bullet):
@@ -1905,7 +1913,7 @@ class TextBuffer(gtk.TextBuffer):
 		@returns: C{True} if successful
 		'''
 		level = self.get_indent(line)
-		return self.set_indent(line, level+1, interactive)
+		return self.set_indent(line, level + 1, interactive)
 
 	def unindent(self, line, interactive=False):
 		'''Decrease the indent level for a given line
@@ -1919,7 +1927,7 @@ class TextBuffer(gtk.TextBuffer):
 		@returns: C{True} if successful
 		'''
 		level = self.get_indent(line)
-		return self.set_indent(line, level-1, interactive)
+		return self.set_indent(line, level - 1, interactive)
 
 	def foreach_line_in_selection(self, func, *args, **kwarg):
 		'''Convenience function to call a function for each line that
@@ -2420,7 +2428,7 @@ class TextBuffer(gtk.TextBuffer):
 						# to prevent an odd corner case infinite loop
 						toggled = filter(_is_zim_tag,
 							bound.get_toggled_tags(False)
-							+ bound.get_toggled_tags(True) )
+							+ bound.get_toggled_tags(True))
 					else:
 						bound = end.copy() # just to be sure..
 						break
@@ -2724,11 +2732,11 @@ class TextBuffer(gtk.TextBuffer):
 		# Gtk TextBuffer returns iter of last line for lines past the
 		# end of the buffer
 		if line < 0:
-			raise ValueError, 'Negative line number: %i' % line
+			raise ValueError('Negative line number: %i' % line)
 		else:
 			iter = gtk.TextBuffer.get_iter_at_line(self, line)
 			if iter.get_line() != line:
-				raise ValueError, 'Line number beyond the end of the buffer: %i' % line
+				raise ValueError('Line number beyond the end of the buffer: %i' % line)
 			return iter
 
 	def get_line_bounds(self, line):
@@ -2812,7 +2820,8 @@ class TextBuffer(gtk.TextBuffer):
 		@param iter: a C{gtk.TextIter} for the insert location
 		@param default_editable: default state of the L{TextView}
 		'''
-		if not default_editable: return
+		if not default_editable:
+			return
 
 		if iter is None:
 			iter = self.get_iter_at_mark(self.get_insert())
@@ -2905,7 +2914,7 @@ class TextBufferList(list):
 		# find end of list
 		end = line
 		lastline = textbuffer.get_end_iter().get_line()
-		for myline in range(end, lastline+1, 1):
+		for myline in range(end, lastline + 1, 1):
 			if textbuffer.get_bullet(myline) is None:
 				break # TODO skip lines with whitespace
 			else:
@@ -2927,7 +2936,7 @@ class TextBufferList(list):
 		self.buffer = textbuffer
 		self.firstline = firstline
 		self.lastline = lastline
-		for line in range(firstline, lastline+1):
+		for line in range(firstline, lastline + 1):
 			bullet = self.buffer.get_bullet(line)
 			indent = self.buffer.get_indent(line)
 			if bullet:
@@ -2974,7 +2983,7 @@ class TextBufferList(list):
 			return True
 		else:
 			parents = self._parents(row)
-			if row-1 in parents:
+			if row - 1 in parents:
 				return False # we are first child
 			else:
 				return True
@@ -3038,7 +3047,7 @@ class TextBufferList(list):
 					break
 		else:
 			# Indent children
-			for i in range(row+1, len(self)):
+			for i in range(row + 1, len(self)):
 				if self[i][self.INDENT_COL] > level:
 					self._indent_row(i, step)
 				else:
@@ -3103,7 +3112,7 @@ class TextBufferList(list):
 
 		# First synchronize down
 		level = self[row][self.INDENT_COL]
-		for i in range(row+1, len(self)):
+		for i in range(row + 1, len(self)):
 			if self[i][self.INDENT_COL] > level:
 				if self[i][self.BULLET_COL] == UNCHECKED_BOX:
 					self._change_bullet_type(i, state)
@@ -3124,10 +3133,10 @@ class TextBufferList(list):
 
 			consistent = True
 			level = self[parent][self.INDENT_COL]
-			for i in range(parent+1, len(self)):
+			for i in range(parent + 1, len(self)):
 				if self[i][self.INDENT_COL] <= level:
 					break
-				elif self[i][self.INDENT_COL] == level+1 \
+				elif self[i][self.INDENT_COL] == level + 1 \
 				and self[i][self.BULLET_COL] in CHECKBOXES \
 				and self[i][self.BULLET_COL] != state:
 					consistent = False
@@ -3178,9 +3187,9 @@ class TextFinder(object):
 		self.highlight = False
 
 		self.highlight_tag = self.buffer.create_tag(
-			None, **self.buffer.tag_styles['find-highlight'] )
+			None, **self.buffer.tag_styles['find-highlight'])
 		self.match_tag = self.buffer.create_tag(
-			None, **self.buffer.tag_styles['find-match'] )
+			None, **self.buffer.tag_styles['find-match'])
 
 	def get_state(self):
 		'''Get the query and any options. Used to copy the current state
@@ -3304,7 +3313,7 @@ class TextFinder(object):
 
 		self._signals = tuple(
 			self.buffer.connect(s, self._remove_tag)
-				for s in ('mark-set', 'changed') )
+				for s in ('mark-set', 'changed'))
 
 	def unset_match(self):
 		self._remove_tag()
@@ -3357,7 +3366,7 @@ class TextFinder(object):
 		# of TextIter's for begin and end of the match as well as the
 		# match object.
 		assert self.regex
-		for line in range(firstline, lastline+step, step):
+		for line in range(firstline, lastline + step, step):
 			start = self.buffer.get_iter_at_line(line)
 			if start.ends_line():
 				continue
@@ -3371,9 +3380,9 @@ class TextFinder(object):
 				matches.reverse()
 			for match in matches:
 				startiter = self.buffer.get_iter_at_line_offset(
-					line, match.start() )
+					line, match.start())
 				enditer = self.buffer.get_iter_at_line_offset(
-					line, match.end() )
+					line, match.end())
 				yield startiter, enditer, match
 
 	def replace(self, string):
@@ -3405,7 +3414,7 @@ class TextFinder(object):
 					self.buffer.insert_at_cursor(string)
 
 				start = self.buffer.get_iter_at_offset(offset)
-				end = self.buffer.get_iter_at_offset(offset+len(string))
+				end = self.buffer.get_iter_at_offset(offset + len(string))
 				self.buffer.select_range(start, end)
 
 				return True
@@ -3732,8 +3741,10 @@ class TextView(gtk.TextView):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)
-			if insert.equal(ourhome): iter = home
-			else: iter = ourhome
+			if insert.equal(ourhome):
+				iter = home
+			else:
+				iter = ourhome
 			if event.state & gtk.gdk.SHIFT_MASK:
 				buffer.move_mark_by_name('insert', iter)
 			else:
@@ -3860,8 +3871,10 @@ class TextView(gtk.TextView):
 		#   Shift-Space scrolls one page up
 		handled = True
 		if event.keyval in KEYVALS_SPACE:
-			if event.state & gtk.gdk.SHIFT_MASK: i = -1
-			else: i = 1
+			if event.state & gtk.gdk.SHIFT_MASK:
+				i = -1
+			else:
+				i = 1
 			self.emit('move-cursor', gtk.MOVEMENT_PAGES, i, False)
 		else:
 			handled = False
@@ -3897,7 +3910,7 @@ class TextView(gtk.TextView):
 			elif multi_line_indent(start, end):
 				level = []
 				buffer.foreach_line_in_selection(
-					lambda l: level.append(buffer.get_indent(l)) )
+					lambda l: level.append(buffer.get_indent(l)))
 				if level and min(level) > 0:
 					# All lines have some indent
 					return buffer.foreach_line_in_selection(buffer.unindent)
@@ -4202,17 +4215,17 @@ class TextView(gtk.TextView):
 			handled = False
 			linestart = buffer.get_iter_at_line(end.get_line())
 			partial_line = linestart.get_slice(end)
-			for style,re in markup_re.items():
-				if not re.search(partial_line) == None:
+			for style, re in markup_re.items():
+				if not re.search(partial_line) is None:
 					matchstart = linestart.copy()
 					matchstart.forward_chars(re.start())
 					matchend = linestart.copy()
 					matchend.forward_chars(re.end())
-					if filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchstart)) \
-					or filter(_is_not_indent_tag,buffer.iter_get_zim_tags(matchend)):
+					if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchstart)) \
+					or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchend)):
 						continue
-					buffer.delete(matchstart,matchend)
-					buffer.insert_with_tags_by_name(matchstart,re[2],style)
+					buffer.delete(matchstart, matchend)
+					buffer.insert_with_tags_by_name(matchstart, re[2], style)
 					handled_here = True
 					break
 		else:
@@ -4233,12 +4246,12 @@ class TextView(gtk.TextView):
 		#~ print 'LINE >>%s<<' % line
 
 		if heading_re.match(line):
-			level = len(heading_re[1])-1
+			level = len(heading_re[1]) - 1
 			heading = heading_re[2]
 			mark = buffer.create_mark(None, end)
 			buffer.delete(start, end)
 			buffer.insert_with_tags_by_name(
-				buffer.get_iter_at_mark(mark), heading, 'style-h'+str(level))
+				buffer.get_iter_at_mark(mark), heading, 'style-h' + str(level))
 			buffer.delete_mark(mark)
 		elif IS_LINE(line):
 			with buffer.user_action:
@@ -4413,20 +4426,20 @@ class UndoStackManager:
 			('end-user-action', self.do_end_user_action),
 		):
 			self.recording_handlers.append(
-				self.buffer.connect(signal, handler) )
+				self.buffer.connect(signal, handler))
 
 		for signal, handler in (
 			('end-user-action', self.do_end_user_action),
 		):
 			self.recording_handlers.append(
-				self.buffer.connect_after(signal, handler) )
+				self.buffer.connect_after(signal, handler))
 
 		for signal, action in (
 			('apply-tag', self.ACTION_APPLY_TAG),
 			('remove-tag', self.ACTION_REMOVE_TAG),
 		):
 			self.recording_handlers.append(
-				self.buffer.connect(signal, self.do_change_tag, action) )
+				self.buffer.connect(signal, self.do_change_tag, action))
 
 		#~ self.buffer.connect_object('begin-insert-tree',
 			#~ self.__class__.block, self)
@@ -4512,7 +4525,8 @@ class UndoStackManager:
 		# Do not use length argument, it gives length in bytes, not characters
 		text = text.decode('utf-8')
 		length = len(text)
-		if self.undo_count > 0: self.flush_redo_stack()
+		if self.undo_count > 0:
+			self.flush_redo_stack()
 
 		start = iter.get_offset()
 		end = start + length
@@ -4538,8 +4552,10 @@ class UndoStackManager:
 
 	def do_insert_pixbuf(self, buffer, iter, pixbuf):
 		# Handle insert pixbuf event
-		if self.undo_count > 0: self.flush_redo_stack()
-		elif self.insert_pending: self.flush_insert()
+		if self.undo_count > 0:
+			self.flush_redo_stack()
+		elif self.insert_pending:
+			self.flush_insert()
 
 		start = iter.get_offset()
 		end = start + 1
@@ -4580,8 +4596,10 @@ class UndoStackManager:
 
 	def do_delete_range(self, buffer, start, end):
 		# Handle deleting text
-		if self.undo_count > 0: self.flush_redo_stack()
-		elif self.insert_pending: self.flush_insert()
+		if self.undo_count > 0:
+			self.flush_redo_stack()
+		elif self.insert_pending:
+			self.flush_insert()
 
 		bounds = (start, end)
 		tree = self.buffer.get_parsetree(bounds, raw=True)
@@ -4603,8 +4621,10 @@ class UndoStackManager:
 		and self.group[-1][3] is None:
 			pass # for text that is not yet flushed tags will be in the tree
 		else:
-			if self.undo_count > 0: self.flush_redo_stack()
-			elif self.insert_pending: self.flush_insert()
+			if self.undo_count > 0:
+				self.flush_redo_stack()
+			elif self.insert_pending:
+				self.flush_insert()
 
 			#~ print 'TAG CHANGED', start, end, tag
 			self.group.append((action, start, end, tag))
@@ -4615,7 +4635,8 @@ class UndoStackManager:
 		if self.group:
 			self.stack.append(self.group)
 			self.group = UndoActionGroup()
-		if self.insert_pending: self.flush_insert()
+		if self.insert_pending:
+			self.flush_insert()
 
 		#~ import pprint
 		#~ pprint.pprint( self.stack )
@@ -4724,7 +4745,7 @@ class SavePageHandler(object):
 		'''
 		if not self._autosave_timer:
 			self._autosave_timer = gobject.timeout_add(
-				self.timeout*1000, # s -> ms
+				self.timeout * 1000, # s -> ms
 				self.do_try_save_page
 			)
 
@@ -4736,9 +4757,9 @@ class SavePageHandler(object):
 
 	def _assert_can_save_page(self, page):
 		if self.pageview.readonly:
-			raise AssertionError, 'BUG: can not save page when UI is read-only'
+			raise AssertionError('BUG: can not save page when UI is read-only')
 		elif page.readonly:
-			raise AssertionError, 'BUG: can not save read-only page'
+			raise AssertionError('BUG: can not save read-only page')
 
 	def save_page_now(self, dialog_timeout=False):
 		'''Save the page in the foregound
@@ -4771,7 +4792,7 @@ class SavePageHandler(object):
 					#~ assert False, "TEST"
 					self.notebook.store_page(page)
 
-				except Exception, error:
+				except Exception as error:
 					logger.exception('Failed to save page: %s', page.name)
 					SavePageErrorDialog(self.pageview, error, page, dialog_timeout).run()
 
@@ -5042,7 +5063,7 @@ class PageView(gtk.VBox):
 		def assert_not_modified(page, *a):
 			if page == self.page \
 			and self.view.get_buffer().get_modified():
-				raise AssertionError, 'BUG: page changed while buffer changed as well'
+				raise AssertionError('BUG: page changed while buffer changed as well')
 				# not using assert here because it could be optimized away
 
 		for s in ('store-page', 'delete-page', 'move-page'):
@@ -5133,16 +5154,16 @@ class PageView(gtk.VBox):
 
 			try:
 				if not tag in TextBuffer.tag_styles:
-					raise AssertionError, 'No such tag: %s' % tag
+					raise AssertionError('No such tag: %s' % tag)
 
 				attrib = dict(i for i in section.items() if i[1] is not None)
 				if 'linespacing' in attrib:
 					attrib['pixels-below-lines'] = attrib.pop('linespacing')
 
 				#~ print 'TAG', tag, attrib
-				testtag = testbuffer.create_tag('style-'+tag, **attrib)
+				testtag = testbuffer.create_tag('style-' + tag, **attrib)
 				if not testtag:
-					raise AssertionError, 'Could not create tag: %s' % tag
+					raise AssertionError('Could not create tag: %s' % tag)
 			except:
 				logger.exception('Exception while parsing tag: %s:', tag)
 			else:
@@ -5232,7 +5253,7 @@ class PageView(gtk.VBox):
 			self.set_parsetree(tree, template)
 			if not self.secondary:
 				page.set_ui_object(self) # only after successful set tree in buffer
-		except Exception, error:
+		except Exception as error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
 			self.set_readonly()
 			self.set_sensitive(False)
@@ -5243,7 +5264,7 @@ class PageView(gtk.VBox):
 
 			self._buffer_signals = (
 				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
-				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o) ),
+				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
 				buffer.connect_after('mark-set', self.do_mark_set),
 			)
 
@@ -5524,7 +5545,7 @@ class PageView(gtk.VBox):
 
 		# set toolbar toggles
 		if style:
-			style_toggle = 'toggle_format_'+style
+			style_toggle = 'toggle_format_' + style
 		else:
 			style_toggle = None
 
@@ -5598,13 +5619,13 @@ class PageView(gtk.VBox):
 				and not href.startswith('mailto:'):
 					href = 'mailto:' + href
 				self.ui.open_url(href)
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self.ui, error).run()
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
 		if not buffer.get_has_selection():
-			iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+			iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 			if iter.get_line_offset() == 1:
 				iter.backward_char() # if clicked on right half of image, iter is after the image
 			bullet = buffer.get_bullet_at_iter(iter)
@@ -5667,7 +5688,7 @@ class PageView(gtk.VBox):
 		###
 
 
-		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
 		link = buffer.get_link_data(iter)
@@ -5807,7 +5828,7 @@ class PageView(gtk.VBox):
 
 	def _checkbox_do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
-		iter = buffer.get_iter_at_mark( buffer.get_mark('zim-popup-menu') )
+		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 		line = iter.get_line()
 
 		menu.prepend(gtk.SeparatorMenuItem())
@@ -5989,7 +6010,7 @@ class PageView(gtk.VBox):
 			assert isinstance(file, File)
 			if not force \
 			and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
-				raise ValueError, 'Not an image %s' % file
+				raise ValueError('Not an image %s' % file)
 
 			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
@@ -6070,8 +6091,10 @@ class PageView(gtk.VBox):
 					continue # not a file
 			links[i] = self.ui.notebook.relative_filepath(file, self.page) or file.uri
 
-		if len(links) == 1: sep = ' '
-		else: sep = '\n'
+		if len(links) == 1:
+			sep = ' '
+		else:
+			sep = '\n'
 
 		buffer = self.view.get_buffer()
 		with buffer.user_action:
@@ -6208,9 +6231,12 @@ class PageView(gtk.VBox):
 		name = action.get_name()
 		logger.debug('Action: %s (toggle_format action)', name)
 		self._current_toggle_action = name
-		if name.startswith('apply_format_'): style = name[13:]
-		elif name.startswith('toggle_format_'): style = name[14:]
-		else: assert False, "BUG: don't known this action"
+		if name.startswith('apply_format_'):
+			style = name[13:]
+		elif name.startswith('toggle_format_'):
+			style = name[14:]
+		else:
+			assert False, "BUG: don't known this action"
 		self.toggle_format(style)
 		self._current_toggle_action = None
 
@@ -6330,28 +6356,28 @@ class PageView(gtk.VBox):
 	@action(_('_Zoom In'), 'gtk-zoom-in', '<Primary>plus', alt_accelerator='<Primary>equal') # T: Menu item
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
-		self._zoom_increase_decrease_font_size( +1 )
+		self._zoom_increase_decrease_font_size(+1)
 
 	@action(_('Zoom _Out'), 'gtk-zoom-out', '<Primary>minus') # T: Menu item
 	def zoom_out(self):
 		'''Menu action to decrease the font size'''
-		self._zoom_increase_decrease_font_size( -1 )
+		self._zoom_increase_decrease_font_size(-1)
 
-	def _zoom_increase_decrease_font_size(self,plus_or_minus):
+	def _zoom_increase_decrease_font_size(self, plus_or_minus):
 		style = self.text_style
 		if self.text_style['TextView']['font']:
 			font = pango.FontDescription(self.text_style['TextView']['font'])
 		else:
-			logger.debug( 'Switching to custom font implicitly because of zoom action' )
+			logger.debug('Switching to custom font implicitly because of zoom action')
 			font = self.view.style.font_desc
 			self.text_style['TextView']['font'] = font.to_string()
 
 		font_size = font.get_size()
-		if font_size <= 1*1024 and plus_or_minus < 0:
+		if font_size <= 1 * 1024 and plus_or_minus < 0:
 			return
 		else:
 			font_size_new = font_size + plus_or_minus * 1024
-			font.set_size( font_size_new )
+			font.set_size(font_size_new)
 		self.text_style['TextView']['font'] = font.to_string()
 		self.view.modify_font(font)
 
@@ -6367,7 +6393,7 @@ class PageView(gtk.VBox):
 		default_font = widget.style.font_desc
 
 		font = pango.FontDescription(self.text_style['TextView']['font'])
-		font.set_size( default_font.get_size() )
+		font.set_size(default_font.get_size())
 
 		if font.to_string() == default_font.to_string():
 			self.text_style['TextView']['font'] = None
@@ -6399,7 +6425,7 @@ class InsertDateDialog(Dialog):
 
 	def __init__(self, ui, buffer):
 		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
-			button=(_('_Insert'), 'gtk-ok') )  # T: Button label
+			button=(_('_Insert'), 'gtk-ok'))  # T: Button label
 		self.buffer = buffer
 		self.date = datetime.now()
 
@@ -6409,7 +6435,7 @@ class InsertDateDialog(Dialog):
 
 		## Add format list box
 		label = gtk.Label()
-		label.set_markup('<b>'+_("Format")+'</b>') # T: label in "insert date" dialog
+		label.set_markup('<b>' + _("Format") + '</b>') # T: label in "insert date" dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start((label), False)
 
@@ -6422,12 +6448,12 @@ class InsertDateDialog(Dialog):
 		self.view.append_column(column)
 		self.view.set_headers_visible(False)
 		self.view.connect('row-activated',
-			lambda *a: self.response(gtk.RESPONSE_OK) )
+			lambda *a: self.response(gtk.RESPONSE_OK))
 
 		## Add Calendar widget
 		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
 
-		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>'+_("_Calendar")+'</b>')
+		self.calendar_expander = gtk.expander_new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
 			# T: expander label in "insert date" dialog
 		self.calendar_expander.set_use_markup(True)
 		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
@@ -6435,7 +6461,7 @@ class InsertDateDialog(Dialog):
 		self.calendar.display_options(
 			gtk.CALENDAR_SHOW_HEADING |
 			gtk.CALENDAR_SHOW_DAY_NAMES |
-			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS)
 		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
 		self.calendar_expander.add(self.calendar)
 		self.vbox.pack_start(self.calendar_expander, False)
@@ -6559,7 +6585,8 @@ class InsertImageDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 
 		if not gtk.gdk.pixbuf_get_file_info(file.path):
 			ErrorDialog(self, _('File type not supported: %s' % file.get_mimetype())).run()
@@ -6605,7 +6632,7 @@ class EditImageDialog(Dialog):
 			i = src.find('?')
 			src = src[:i]
 		href = image_data.get('href', '')
-		self.add_form( [
+		self.add_form([
 			('file', 'image', _('Location')), # T: Input in 'edit image' dialog
 			('href', 'link', _('Link to'), ui.page), # T: Input in 'edit image' dialog
 			('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
@@ -6657,15 +6684,16 @@ class EditImageDialog(Dialog):
 			width.set_sensitive(True)
 			height.set_sensitive(True)
 			self._block = True
-			width.set_range(0, 4*w)
+			width.set_range(0, 4 * w)
 			width.set_value(w)
-			height.set_range(0, 4*w)
+			height.set_range(0, 4 * w)
 			height.set_value(h)
 			self._block = False
-			self._ratio = float(w)/ h
+			self._ratio = float(w) / h
 
 	def do_width_changed(self):
-		if self._block: return
+		if self._block:
+			return
 		self._image_data.pop('height', None)
 		self._image_data['width'] = int(self.form['width'])
 		h = int(float(self._image_data['width']) / self._ratio)
@@ -6674,7 +6702,8 @@ class EditImageDialog(Dialog):
 		self._block = False
 
 	def do_height_changed(self):
-		if self._block: return
+		if self._block:
+			return
 		self._image_data.pop('width', None)
 		self._image_data['height'] = int(self.form['height'])
 		w = int(self._ratio * float(self._image_data['height']))
@@ -6720,7 +6749,8 @@ class InsertTextFromFileDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 		parser = get_format('plain').Parser()
 		tree = parser.parse(file.readlines())
 		self.buffer.insert_parsetree_at_cursor(tree)
@@ -6737,11 +6767,13 @@ class InsertLinkDialog(Dialog):
 		self.pageview = pageview
 		href, text = self._get_link_from_buffer()
 
-		if href: title = _('Edit Link') # T: Dialog title
-		else: title = _('Insert Link') # T: Dialog title
+		if href:
+			title = _('Edit Link') # T: Dialog title
+		else:
+			title = _('Insert Link') # T: Dialog title
 
 		Dialog.__init__(self, ui, title,
-			button=(_('_Link'), 'zim-link') )  # T: Dialog button
+			button=(_('_Link'), 'zim-link'))  # T: Dialog button
 
 		self.add_form([
 			('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
@@ -6749,7 +6781,7 @@ class InsertLinkDialog(Dialog):
 		], {
 			'href': href,
 			'text': text,
-		} )
+		})
 
 		# Hook text entry to copy text from link when apropriate
 		self.form.widgets['href'].connect('changed', self.on_href_changed)
@@ -6793,7 +6825,8 @@ class InsertLinkDialog(Dialog):
 
 	def on_href_changed(self, o):
 		# Check if we can also update text
-		if not self._copy_text: return
+		if not self._copy_text:
+			return
 
 		self._copy_text = False # block on_text_changed()
 		self.form['text'] = self.form['href']
@@ -6801,7 +6834,8 @@ class InsertLinkDialog(Dialog):
 
 	def on_text_changed(self, o):
 		# Check if we should stop updating text
-		if not self._copy_text: return
+		if not self._copy_text:
+			return
 
 		self._copy_text = self.form['href'] == self.form['text']
 
@@ -6957,7 +6991,7 @@ class FindBar(FindWidget, gtk.HBox):
 		gtk.HBox.__init__(self, spacing=5)
 		FindWidget.__init__(self, textview)
 
-		self.pack_start(gtk.Label(_('Find')+': '), False)
+		self.pack_start(gtk.Label(_('Find') + ': '), False)
 			# T: label for input in find bar on bottom of page
 		self.pack_start(self.find_entry, False)
 		self.pack_start(self.previous_button, False)
@@ -6981,7 +7015,7 @@ class FindBar(FindWidget, gtk.HBox):
 			menu.append(item)
 			item = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
 			item.connect('toggled',
-				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()),self)
+				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()), self)
 			menu.append(item)
 			button = MenuButton(_('Options'), menu) # T: Options button
 			self.pack_start(button, False)
@@ -7038,7 +7072,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		vbox = gtk.VBox(spacing=5)
 		hbox.pack_start(vbox, False)
 
-		label = gtk.Label(_('Find what')+': ')
+		label = gtk.Label(_('Find what') + ': ')
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
@@ -7048,7 +7082,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		vbox.add(self.regex_option_checkbox)
 		vbox.add(self.highlight_checkbox)
 
-		label = gtk.Label(_('Replace with')+': ')
+		label = gtk.Label(_('Replace with') + ': ')
 			# T: input label in find & replace dialog
 		label.set_alignment(0.0, 0.5)
 		vbox.add(label)
@@ -7137,50 +7171,50 @@ class WordCountDialog(Dialog):
 		plabel = gtk.Label(_('Page')) # T: label in word count dialog
 		alabel = gtk.Label(_('Paragraph')) # T: label in word count dialog
 		slabel = gtk.Label(_('Selection')) # T: label in word count dialog
-		wlabel = gtk.Label('<b>'+_('Words')+'</b>:') # T: label in word count dialog
-		llabel = gtk.Label('<b>'+_('Lines')+'</b>:') # T: label in word count dialog
-		clabel = gtk.Label('<b>'+_('Characters')+'</b>:') # T: label in word count dialog
-		dlabel = gtk.Label('<b>'+_('Characters excluding spaces')+'</b>:') # T: label in word count dialog
+		wlabel = gtk.Label('<b>' + _('Words') + '</b>:') # T: label in word count dialog
+		llabel = gtk.Label('<b>' + _('Lines') + '</b>:') # T: label in word count dialog
+		clabel = gtk.Label('<b>' + _('Characters') + '</b>:') # T: label in word count dialog
+		dlabel = gtk.Label('<b>' + _('Characters excluding spaces') + '</b>:') # T: label in word count dialog
 
 		for label in (wlabel, llabel, clabel, dlabel):
 			label.set_use_markup(True)
 			label.set_alignment(0.0, 0.5)
 
 		# Heading
-		table.attach(plabel, 1,2, 0,1)
-		table.attach(alabel, 2,3, 0,1)
-		table.attach(slabel, 3,4, 0,1)
+		table.attach(plabel, 1, 2, 0, 1)
+		table.attach(alabel, 2, 3, 0, 1)
+		table.attach(slabel, 3, 4, 0, 1)
 
 		# Lines
-		table.attach(llabel, 0,1, 1,2)
-		table.attach(gtk.Label(str(buffercount[0])), 1,2, 1,2)
-		table.attach(gtk.Label(str(paracount[0])), 2,3, 1,2)
-		table.attach(gtk.Label(str(selectioncount[0])), 3,4, 1,2)
+		table.attach(llabel, 0, 1, 1, 2)
+		table.attach(gtk.Label(str(buffercount[0])), 1, 2, 1, 2)
+		table.attach(gtk.Label(str(paracount[0])), 2, 3, 1, 2)
+		table.attach(gtk.Label(str(selectioncount[0])), 3, 4, 1, 2)
 
 		# Words
-		table.attach(wlabel, 0,1, 2,3)
-		table.attach(gtk.Label(str(buffercount[1])), 1,2, 2,3)
-		table.attach(gtk.Label(str(paracount[1])), 2,3, 2,3)
-		table.attach(gtk.Label(str(selectioncount[1])), 3,4, 2,3)
+		table.attach(wlabel, 0, 1, 2, 3)
+		table.attach(gtk.Label(str(buffercount[1])), 1, 2, 2, 3)
+		table.attach(gtk.Label(str(paracount[1])), 2, 3, 2, 3)
+		table.attach(gtk.Label(str(selectioncount[1])), 3, 4, 2, 3)
 
 		# Characters
-		table.attach(clabel, 0,1, 3,4)
-		table.attach(gtk.Label(str(buffercount[2])), 1,2, 3,4)
-		table.attach(gtk.Label(str(paracount[2])), 2,3, 3,4)
-		table.attach(gtk.Label(str(selectioncount[2])), 3,4, 3,4)
+		table.attach(clabel, 0, 1, 3, 4)
+		table.attach(gtk.Label(str(buffercount[2])), 1, 2, 3, 4)
+		table.attach(gtk.Label(str(paracount[2])), 2, 3, 3, 4)
+		table.attach(gtk.Label(str(selectioncount[2])), 3, 4, 3, 4)
 
 		# Characters excluding spaces
-		table.attach(dlabel, 0,1, 4,5)
-		table.attach(gtk.Label(str(buffercount[3])), 1,2, 4,5)
-		table.attach(gtk.Label(str(paracount[3])), 2,3, 4,5)
-		table.attach(gtk.Label(str(selectioncount[3])), 3,4, 4,5)
+		table.attach(dlabel, 0, 1, 4, 5)
+		table.attach(gtk.Label(str(buffercount[3])), 1, 2, 4, 5)
+		table.attach(gtk.Label(str(paracount[3])), 2, 3, 4, 5)
+		table.attach(gtk.Label(str(selectioncount[3])), 3, 4, 4, 5)
 
 
 class MoveTextDialog(Dialog):
 
 	def __init__(self, ui, pageview):
 		Dialog.__init__(self, ui, _('Move Text to Other Page'), # T: Dialog title
-			button=(_('_Move'), 'gtk-ok') )  # T: Button label
+			button=(_('_Move'), 'gtk-ok'))  # T: Button label
 		self.pageview = pageview
 		self.page = self.pageview.page
 		assert self.page, 'No source page !?'
@@ -7199,7 +7233,7 @@ class MoveTextDialog(Dialog):
 			('link', 'bool', _('Leave link to new page')), # T: Input in 'move text' dialog
 			('open_page', 'bool', _('Open new page')), # T: Input in 'move text' dialog
 
-		], self.uistate )
+		], self.uistate)
 
 	def do_response_ok(self):
 		newpage = self.form['page']

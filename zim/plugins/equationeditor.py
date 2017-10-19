@@ -90,5 +90,5 @@ class EquationGenerator(ImageGeneratorClass):
 
 	def cleanup(self):
 		path = self.texfile.path
-		for path in glob.glob(path[:-4]+'.*'):
+		for path in glob.glob(path[:-4] + '.*'):
 			File(path).remove()

@@ -106,7 +106,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 				suite.addTest(test)
 		else:
 			suite = tests.load_tests(loader, None, None)
-	except AttributeError, error:
+	except AttributeError as error:
 		# HACK: unittest raises and attribute errors if import of test script
 		# fails try to catch this and show the import error instead - else raise
 		# original error
@@ -114,7 +114,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 		m = re.match(r"'module' object has no attribute '(\w+)'", error.args[0])
 		if m:
 			module = m.group(1)
-			m = __import__('tests.'+module) # should raise ImportError
+			m = __import__('tests.' + module) # should raise ImportError
 		raise error
 
 	# And run it

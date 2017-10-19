@@ -255,12 +255,14 @@ class TestZimApplication(tests.TestCase):
 				self.hasrun = False
 
 			def _quit(self, *a):
-				import gobject, gtk
+				import gobject
+				import gtk
 				gtk.main_quit()
 				return False # stop timer
 
 			def run(self):
-				import gobject, gtk
+				import gobject
+				import gtk
 				self.hasrun = True
 				gobject.timeout_add(500, self._quit)
 				return gtk.Window()

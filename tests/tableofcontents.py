@@ -183,7 +183,7 @@ sdfsdf
 
 		widget.treeview.get_selection().unselect_all()
 		for path in (
-			(1,), (1,0), (1,1), (1,2), (2,) # "baz" -> "dus"
+			(1,), (1, 0), (1, 1), (1, 2), (2,) # "baz" -> "dus"
 		):
 			widget.treeview.get_selection().select_path(path)
 		self.assertFalse(widget.on_promote())
@@ -192,7 +192,7 @@ sdfsdf
 
 		widget.treeview.get_selection().unselect_all()
 		for path in (
-			(0,0), (0,0,0), (0,0,1), (0,0,2), (0,1) # "baz" -> "dus"
+			(0, 0), (0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1) # "baz" -> "dus"
 		):
 			widget.treeview.get_selection().select_path(path)
 		self.assertFalse(widget.on_demote())

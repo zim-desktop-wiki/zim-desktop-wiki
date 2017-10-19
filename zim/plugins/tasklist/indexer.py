@@ -104,7 +104,7 @@ class TasksIndexer(IndexerBase):
 		self.parser = TaskParser(
 			task_label_re=_task_labels_re(
 				_parse_task_labels(
-					preferences['labels'] )),
+					preferences['labels'])),
 			all_checkboxes=preferences['all_checkboxes'],
 		)
 
@@ -193,7 +193,7 @@ class TasksView(IndexView):
 		try:
 			db.execute('SELECT * FROM tasklist LIMIT 1')
 		except sqlite3.OperationalError:
-			raise ValueError, 'No tasklist in index'
+			raise ValueError('No tasklist in index')
 
 	def list_open_tasks(self, parent=None):
 		'''List tasks
@@ -201,13 +201,15 @@ class TasksView(IndexView):
 		all top level tasks
 		@returns: a list of tasks at this level as sqlite Row objects
 		'''
-		if parent: parentid = parent['id']
-		else: parentid = 0
+		if parent:
+			parentid = parent['id']
+		else:
+			parentid = 0
 
 		# Sort:
 		#  started tasks by prio, due date, page + id to keep order in page
 		#  not-started tasks by start date, ...
-		today = str( datetime.date.today() )
+		today = str(datetime.date.today())
 		for row in self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
@@ -232,7 +234,7 @@ class TasksView(IndexView):
 		# Sort:
 		#  started tasks by prio, due date, page + id to keep order in page
 		#  not-started tasks by start date, ...
-		today = str( datetime.date.today() )
+		today = str(datetime.date.today())
 		for row in self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id

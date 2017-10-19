@@ -351,7 +351,7 @@ class TestLinksIndexer(tests.TestCase):
 			(r['source'], r['target'])
 				for r in db.execute('SELECT * FROM links')
 		)
-		self.assertEqual(links, [(3,2), (3,4)])
+		self.assertEqual(links, [(3, 2), (3, 4)])
 
 		###
 		pageindexer.setObjectAccess('remove_page')

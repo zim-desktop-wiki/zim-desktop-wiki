@@ -100,7 +100,7 @@ class FolderNotEmptyError(Error):
 def _split_file_url(url):
 	scheme, path = url.replace('\\', '/').split(':/', 1)
 	if scheme not in ('file', 'smb'):
-		raise ValueError, 'Not a file URL: %s' % url
+		raise ValueError('Not a file URL: %s' % url)
 
 	if path.startswith('/localhost/'): # exact 2 '/' before 'localhost'
 		path = path[11:]
@@ -146,7 +146,7 @@ def _splitnormpath(path):
 			names.append(name)
 
 	if not names:
-		raise ValueError, 'path reduces to empty string'
+		raise ValueError('path reduces to empty string')
 	elif makeshare:
 		names[0] = '\\\\' + names[0] # UNC host needs leading "\\"
 	elif makeroot and os.name != 'nt' and names[0][0] != '/':
@@ -159,14 +159,14 @@ if os.name == 'nt':
 	def _joinabspath(names):
 		# first element must be either drive letter or UNC host
 		if not re.match(r'^(\w:|\\\\\w)', names[0]):
-			raise ValueError, 'Not an absolute path: %s' % '\\'.join(names)
+			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
 		else:
 			return '\\'.join(names)
 
 	def _joinuri(names):
 		# first element must be either drive letter or UNC host
 		if not re.match(r'^(\w:|\\\\\w)', names[0]):
-			raise ValueError, 'Not an absolute path: %s' % '\\'.join(names)
+			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
 		elif re.match(r'^\w:$', names[0]): # Drive letter - e.g. file:///C:/foo
 			return 'file:///' + names[0] + '/' + url_encode('/'.join(names[1:]))
 		elif re.match(r'^\\\\\w+$', names[0]): # UNC path - e.g. file://host/share
@@ -179,7 +179,7 @@ else:
 		elif names[0].startswith('/'):
 			return '/'.join(names)
 		else:
-			raise ValueError, 'Not an absolute path: %s' % '/'.join(names)
+			raise ValueError('Not an absolute path: %s' % '/'.join(names))
 
 	def _joinuri(names):
 		if names[0][0] == '/':
@@ -204,7 +204,7 @@ else:
 			try:
 				return path.encode(FS_ENCODING)
 			except UnicodeEncodeError:
-				raise ValueError, 'BUG: invalid filename %s' % path
+				raise ValueError('BUG: invalid filename %s' % path)
 				#~ raise Error, 'BUG: invalid filename %s' % path
 		else:
 			return path # assume encoding is correct
@@ -216,7 +216,7 @@ else:
 			try:
 				return path.decode(FS_ENCODING)
 			except UnicodeDecodeError:
-				raise ValueError, 'BUG: invalid filename %s' % path
+				raise ValueError('BUG: invalid filename %s' % path)
 				#~ raise Error, 'BUG: invalid filename %s' % path
 
 
@@ -283,7 +283,7 @@ class FilePath(object):
 			self.pathnames = path.pathnames
 			self.path = path.path
 		else:
-			raise TypeError, 'Cannot convert %r to a FilePath' % path
+			raise TypeError('Cannot convert %r to a FilePath' % path)
 
 		self.islocal = not self.pathnames[0].startswith('\\\\')
 
@@ -333,7 +333,7 @@ class FilePath(object):
 		assert path
 		names = _splitnormpath(path)
 		if not names or names[0] == '..':
-			raise ValueError, 'Relative path not below parent: %s' % path
+			raise ValueError('Relative path not below parent: %s' % path)
 		return FilePath(self.pathnames + names)
 
 	def get_abspath(self, path):
@@ -358,14 +358,14 @@ class FilePath(object):
 		if allowupward and not self.ischild(start):
 			parent = self.commonparent(start)
 			if parent is None:
-				raise ValueError, 'No common parent between %s and %s' % (self.path, start.path)
+				raise ValueError('No common parent between %s and %s' % (self.path, start.path))
 			relpath = self.relpath(parent)
 			level_up = len(start.pathnames) - len(parent.pathnames)
 			return (('..' + _SEP) * level_up) + relpath
 		else:
 			names = start.pathnames
 			if not self.pathnames[:len(names)] == names:
-				raise ValueError, 'Not a parent path: %s' % start.path
+				raise ValueError('Not a parent path: %s' % start.path)
 			return _SEP.join(self.pathnames[len(names):])
 
 	def commonparent(self, other):
@@ -377,7 +377,7 @@ class FilePath(object):
 			return self
 		else:
 			for i in range(1, len(self.pathnames)):
-				if self.pathnames[:i+1] != other.pathnames[:i+1]:
+				if self.pathnames[:i + 1] != other.pathnames[:i + 1]:
 					return FilePath(self.pathnames[:i])
 
 
@@ -391,7 +391,7 @@ class FSObjectBase(FilePath):
 	def __init__(self, path, watcher=None):
 		FilePath.__init__(self, path)
 		if not FS_SUPPORT_NON_LOCAL_FILE_SHARES and not self.islocal:
-			raise ValueError, 'File system does not support non-local files'
+			raise ValueError('File system does not support non-local files')
 
 		self.watcher = watcher
 
@@ -454,7 +454,7 @@ class Folder(FSObjectBase):
 	'''
 
 	def __init__(self, path):
-		raise NotImplementedError, 'This class is not meant to be instantiated directly'
+		raise NotImplementedError('This class is not meant to be instantiated directly')
 
 	def __iter__(self):
 		raise NotImplementedError
@@ -526,7 +526,7 @@ class Folder(FSObjectBase):
 				i += 1
 				trypath = pattern % i
 		else:
-			raise Exception, 'Could not find new file for: %s' % path
+			raise Exception('Could not find new file for: %s' % path)
 
 	def remove_children(self):
 		'''Recursively remove everything below this folder .
@@ -623,7 +623,7 @@ class File(FSObjectBase):
 	'''
 
 	def __init__(self, path, endofline=_EOL):
-		raise NotImplementedError, 'This class is not meant to be instantiated directly'
+		raise NotImplementedError('This class is not meant to be instantiated directly')
 
 	def __iter__(self):
 		return iter(self.readlines())
@@ -656,10 +656,14 @@ class File(FSObjectBase):
 				self._mimetype = str(mimetype)
 			else:
 				mimetype, encoding = mimetypes.guess_type(self.path, strict=False)
-				if encoding == 'gzip': return 'application/x-gzip'
-				elif encoding == 'bzip2': return 'application/x-bzip2'
-				elif encoding == 'compress': return 'application/x-compress'
-				else: self._mimetype = mimetype or 'application/octet-stream'
+				if encoding == 'gzip':
+					return 'application/x-gzip'
+				elif encoding == 'bzip2':
+					return 'application/x-bzip2'
+				elif encoding == 'compress':
+					return 'application/x-compress'
+				else:
+					self._mimetype = mimetype or 'application/octet-stream'
 
 		return self._mimetype
 
@@ -747,7 +751,7 @@ class File(FSObjectBase):
 			else:
 				return True
 		else:
-			raise AssertionError, 'Invalid etag: %r' % etag
+			raise AssertionError('Invalid etag: %r' % etag)
 
 	def _copyto(self, other):
 		if other.exists():

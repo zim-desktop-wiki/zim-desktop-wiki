@@ -279,9 +279,9 @@ class ExportTemplateContext(dict):
 		stack = []
 
 		if isinstance(namespace, PageProxy):
-			namespace=Path(namespace.name)
+			namespace = Path(namespace.name)
 		elif isinstance(namespace, str):
-			namespace=Path(namespace)
+			namespace = Path(namespace)
 
 		for path in self._index_generator(namespace):
 			logger.info(path)
@@ -310,7 +310,7 @@ class ExportTemplateContext(dict):
 			else:
 				# links to other pages
 				builder.append(LINK,
-					{'type': 'page', 'href': ':'+path.name},
+					{'type': 'page', 'href': ':' + path.name},
 					path.basename)
 			builder.end(LISTITEM)
 
@@ -520,7 +520,7 @@ class PageProxy(ParseTreeProxy):
 			try:
 				for file in source_dir.list_files():
 					if file.exists(): # is file
-						href = './'+file.basename
+						href = './' + file.basename
 						dest_file = self._linker.resolve_dest_file(href)
 						yield FileProxy(file, dest_file=dest_file, relpath=href)
 			except FileNotFoundError:

@@ -25,22 +25,22 @@ info = {
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX:	u'- \u2610', # ☐
-		XCHECKED_BOX:	u'- \u2612', # ☒
-		CHECKED_BOX:	u'- \u2611', # ☑
-		MIGRATED_BOX:	u'- \u25B7', # ▷
-		BULLET:		u'-',
+		UNCHECKED_BOX: u'- \u2610', # ☐
+		XCHECKED_BOX: u'- \u2612', # ☒
+		CHECKED_BOX: u'- \u2611', # ☑
+		MIGRATED_BOX: u'- \u25B7', # ▷
+		BULLET: u'-',
 	}
 
 	TAGS = {
-		EMPHASIS:	('*', '*'),
-		STRONG:		('**', '**'),
-		MARK:		('', ''), # TODO, no directly way to do this in rst
-		STRIKE:		('', ''), # TODO, no directly way to do this in rst
-		VERBATIM:	("``", "``"),
-		TAG:		('', ''), # No additional annotation (apart from the visible @)
-		SUBSCRIPT:	('\\ :sub:`', '`\\ '),
-		SUPERSCRIPT:	('\\ :sup:`', '`\\ '),
+		EMPHASIS: ('*', '*'),
+		STRONG: ('**', '**'),
+		MARK: ('', ''), # TODO, no directly way to do this in rst
+		STRIKE: ('', ''), # TODO, no directly way to do this in rst
+		VERBATIM: ("``", "``"),
+		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		SUBSCRIPT: ('\\ :sub:`', '`\\ '),
+		SUPERSCRIPT: ('\\ :sup:`', '`\\ '),
 	}
 	# TODO tags other than :sub: and :sup: may also need surrounding whitespace, deal with this in post process (join) action ?
 	# IDEM for blocks like images and objects, how to enforce empty lines and how to deal with inline images..
@@ -54,9 +54,11 @@ class Dumper(TextDumper):
 	def dump_h(self, tag, attrib, strings):
 		# Underlined headings
 		level = int(attrib['level'])
-		if level < 1:   level = 1
-		elif level > 4: level = 4
-		char = self.HEADING_UNDERLINE[level-1]
+		if level < 1:
+			level = 1
+		elif level > 4:
+			level = 4
+		char = self.HEADING_UNDERLINE[level - 1]
 		heading = u''.join(strings)
 		underline = char * len(heading)
 		return [heading + '\n', underline]
@@ -80,8 +82,7 @@ class Dumper(TextDumper):
 		src = self.linker.img(attrib['src'])
 		text = '.. image:: %s\n' % src
 
-		items = attrib.items()
-		items.sort() # unit tests don't like random output
+		items = sorted(attrib.items())
 		for k, v in items:
 			if k == 'src' or k.startswith('_'):
 				continue
@@ -112,7 +113,7 @@ class Dumper(TextDumper):
 			table += [rowline(line) for line in row]
 			table.append(rowsep('-'))
 
-		return map(lambda line: line+"\n", table)
+		return map(lambda line: line + "\n", table)
 
 	def dump_th(self, tag, attrib, strings):
 		strings = [s.replace('|', '∣') for s in strings]
@@ -123,4 +124,4 @@ class Dumper(TextDumper):
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):
-		return '\n{}\n'.format('*'*5)
+		return '\n{}\n'.format('*' * 5)

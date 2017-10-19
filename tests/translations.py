@@ -54,8 +54,7 @@ class TranslationMessage(object):
 				elif type.startswith('msgstr'):
 					self.msgstr.append(msg)
 				else:
-					raise AssertionError, \
-					'Could not parse line: %s %s' % (type, msg)
+					raise AssertionError('Could not parse line: %s %s' % (type, msg))
 
 		assert self.msgid, 'No msgid found'
 		assert self.msgstr, 'No msgstr found'
@@ -78,13 +77,13 @@ class TranslationMessage(object):
 			return self._check_format_strings()
 
 	def _check_format_strings(self):
-		wanted = sorted( self._format_string_re.findall(self.msgid) )
+		wanted = sorted(self._format_string_re.findall(self.msgid))
 		if not wanted:
 			return True # no string format used
 
 		for msg in [self.msgid_plural] + self.msgstr:
 			if msg and not msg == '""':
-				got = sorted( self._format_string_re.findall(msg) )
+				got = sorted(self._format_string_re.findall(msg))
 				if not got == wanted:
 					return False
 		else:
@@ -121,9 +120,8 @@ class TranslationFile(object):
 				text = ''.join(buffer)
 				message = TranslationMessage(msgidlineno, text)
 				self.messages.append(message)
-			except AssertionError, error:
-				raise AssertionError, \
-				'Error while parsing %s msgid on line %i\n' % (self.file, msgidlineno) + error.message
+			except AssertionError as error:
+				raise AssertionError('Error while parsing %s msgid on line %i\n' % (self.file, msgidlineno) + error.message)
 
 		for line in open(file):
 			lineno += 1
@@ -140,7 +138,7 @@ class TranslationFile(object):
 		plural_forms = self.headers['Plural-Forms']
 		m = re.search(r'nplurals=(\d+);', plural_forms)
 		if m:
-			self.nplural = int( m.group(1) )
+			self.nplural = int(m.group(1))
 		else:
 			self.nplural = None
 
@@ -166,12 +164,10 @@ class TranslationFile(object):
 	def assertValid(self):
 		for message in self.messages:
 			if self.nplural and not message.check_nplural(self.nplural):
-				raise AssertionError, \
-				'Number of plural forms NOK in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid
+				raise AssertionError('Number of plural forms NOK in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid)
 
 			if not message.check_format_strings():
-				raise AssertionError, \
-				'Error with format strings in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid
+				raise AssertionError('Error with format strings in %s msgid on line %i\n' % (self.file, message.lineno) + message.msgid)
 
 
 

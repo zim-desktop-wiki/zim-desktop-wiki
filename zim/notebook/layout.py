@@ -157,7 +157,7 @@ class FilesLayout(NotebookLayout):
 		if file.path.endswith(self.default_extension):
 			return self.default_format
 		else:
-			raise AssertionError, 'Unknown file type for page: %s' % file
+			raise AssertionError('Unknown file type for page: %s' % file)
 
 	def index_list_children(self, pagename):
 		# Convenience method - remove if no longer used by the index
@@ -179,7 +179,7 @@ class FilesLayout(NotebookLayout):
 			if encode_filename(pname) == name: # will reject e.g. whitespace in file name
 				names.add(pname)
 
-		return [pagename+basename for basename in sorted(names)]
+		return [pagename + basename for basename in sorted(names)]
 
 
 class FilesAttachmentFolder(object):

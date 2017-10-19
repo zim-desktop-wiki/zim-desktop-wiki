@@ -184,7 +184,7 @@ class TemplateParser(object):
 				%%\]--\>			# end of instruction
 				[^\S\n]*\n			# whitespace and end of line
 				''' % line_tokens,
-				process=self._process_token )
+				process=self._process_token)
 			| Rule('X-Text-Token', r'''
 				^[^\S\n]*			# whitespace at line start
 				\[%%				# start of instruction
@@ -199,13 +199,13 @@ class TemplateParser(object):
 				%%\]				# end of instruction
 				[^\S\n]*\n			# whitespace and end of line
 				''' % line_tokens,
-				process=self._process_token )
+				process=self._process_token)
 			| Rule('X-Inline-XML-Token',
 				r'\<\!--\[%(-?\s.*?\s-?)%\]--\>',
-				process=self._process_token )
+				process=self._process_token)
 			| Rule('X-Inline-Text-Token',
 				r'\[%(-?\s.*?\s-?)%\]',
-				process=self._process_token )
+				process=self._process_token)
 		)
 		return text_parser
 
@@ -257,7 +257,7 @@ class TemplateParser(object):
 			e = self.expr_parser.parse(m.group(2))
 			b.append(t, {'var': v, 'expr': e})
 		else:
-			raise AssertionError, 'Invalid syntax for SET, expected assignment'
+			raise AssertionError('Invalid syntax for SET, expected assignment')
 
 	def _process_token_if(self, b, t, e):
 		e = self.expr_parser.parse(e)
@@ -266,7 +266,7 @@ class TemplateParser(object):
 
 	def _process_token_elif(self, b, t, e):
 		if not (self._stack and self._stack[-1] in ('IF', 'ELIF')):
-			raise AssertionError, 'Expected IF statement instead of ELIF'
+			raise AssertionError('Expected IF statement instead of ELIF')
 		b.end(self._stack.pop()) # raises if unmatched
 		e = self.expr_parser.parse(e)
 		b.start('ELIF', {'expr': e})
@@ -276,7 +276,7 @@ class TemplateParser(object):
 
 	def _process_token_else(self, b, t, e):
 		if not (self._stack and self._stack[-1] in ('IF', 'ELIF')):
-			raise AssertionError, 'Unexpected ELSE statement'
+			raise AssertionError('Unexpected ELSE statement')
 		b.end(self._stack.pop()) # raises if unmatched
 		b.start('ELSE')
 		self._stack.append('ELSE')
@@ -293,19 +293,19 @@ class TemplateParser(object):
 			self._stack.append('FOR')
 		else:
 			if t == 'FOR':
-				raise AssertionError, 'Invalid syntax in FOR, expected "IN"'
+				raise AssertionError('Invalid syntax in FOR, expected "IN"')
 			else:
-				raise AssertionError, 'Invalid syntax in FOREACH, expected "IN" or "="'
+				raise AssertionError('Invalid syntax in FOREACH, expected "IN" or "="')
 
 	_process_token_foreach = _process_token_for
 
 	def _process_token_block(self, b, t, e):
 		if not self._block_token_re.match(e):
-			raise AssertionError, 'Invalid syntax in BLOCK, expected name'
+			raise AssertionError('Invalid syntax in BLOCK, expected name')
 		b.start('BLOCK', {'name': e})
 		self._stack.append('BLOCK')
 
 	def _process_token_end(self, b, t, e):
 		if not self._stack:
-			raise AssertionError, 'Unexpected END statement'
+			raise AssertionError('Unexpected END statement')
 		b.end(self._stack.pop()) # raises if unmatched

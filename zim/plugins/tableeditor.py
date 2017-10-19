@@ -58,7 +58,7 @@ SYNTAX_WIKI_PANGO2 = [
 COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],  # T: alignment option
 					  'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],  # T: alignment option
 					  'right': ['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')],  # T: alignment option
-					  'normal': ['normal', None, _('Unspecified')],}  # T: alignment option
+					  'normal': ['normal', None, _('Unspecified')], }  # T: alignment option
 
 
 def reg_replace(string):
@@ -275,7 +275,7 @@ class TableViewObject(CustomObjectClass):
 			if isinstance(v, list):
 				v = ','.join(map(str, v))
 			_attrib[k] = v
-		CustomObjectClass.__init__(self, _attrib, [header]+rows)
+		CustomObjectClass.__init__(self, _attrib, [header] + rows)
 		self.attrib = {'type': OBJECT_TYPE} # just to be sure
 
 		self._tableattrib = attrib
@@ -307,7 +307,7 @@ class TableViewObject(CustomObjectClass):
 
 	def _get_liststore(self, reset=False):
 		if reset or not self._liststore:
-			cols = [str]*len(self._header)
+			cols = [str] * len(self._header)
 			self._liststore = gtk.ListStore(*cols)
 			for trow in self._rows:
 				self._liststore.append(trow)
@@ -397,7 +397,7 @@ class TableViewObject(CustomObjectClass):
 		''' Old value of cells are used in the new table, but only if its column is not deleted '''
 		new_rows = []
 		for oldrow in old_rows:
-				newrow = [' ']*nr_cols
+				newrow = [' '] * nr_cols
 				for v, k in id_mapping.iteritems():
 					newrow[v] = oldrow[k]
 				new_rows.append(newrow)
@@ -618,7 +618,7 @@ class TableViewWidget(CustomObjectWidget):
 				tooltips.set_tip(button, tooltip)
 				toolbar.insert(button, pos)
 
-		toolbar.set_size_request(300,-1)
+		toolbar.set_size_request(300, -1)
 		toolbar.set_icon_size(gtk.ICON_SIZE_MENU)
 
 		return toolbar
@@ -692,7 +692,7 @@ class TableViewWidget(CustomObjectWidget):
 		col_widget.show()
 
 
-		col_label = gtk.Label('<u>'+title+'</u>')
+		col_label = gtk.Label('<u>' + title + '</u>')
 		col_label.set_use_markup(True)
 		col_label.show()
 		col_widget.pack_start(col_label)
@@ -738,7 +738,7 @@ class TableViewWidget(CustomObjectWidget):
 		Displays a context-menu on right button click
 		Opens the link of a tablecell on CTRL pressed and left button click
 		'''
-		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 1 and event.get_state() &  gtk.gdk.CONTROL_MASK:
+		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 1 and event.get_state() & gtk.gdk.CONTROL_MASK:
 			# With CTRL + LEFT-Mouse-Click link of cell is opened
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
@@ -796,7 +796,7 @@ class TableViewWidget(CustomObjectWidget):
 		# Set default sorting.
 		model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
 
-		row = len(self.treeview.get_columns())*['']
+		row = len(self.treeview.get_columns()) * ['']
 		path = model.insert_after(treeiter, row)
 		self.obj.set_modified(True)
 
@@ -1141,7 +1141,7 @@ class EditTableDialog(Dialog):
 	def do_response_ok(self):
 		''' Dialog Window is closed with "OK" '''
 		self.autosave_title_cell()
-		self.result = [[m[0], m[1], m[2],m[3]] for m in self.treeview.get_model()]
+		self.result = [[m[0], m[1], m[2], m[3]] for m in self.treeview.get_model()]
 		return True
 
 	def do_response_cancel(self):
@@ -1192,7 +1192,7 @@ class EditTableDialog(Dialog):
 		self.autosave_title_cell()
 		(model, treeiter) = self.treeview.get_selection().get_selected()
 		if not treeiter:  # preselect first entry
-			path = model.iter_n_children(None)-1
+			path = model.iter_n_children(None) - 1
 			treeiter = model.get_iter(path)
 		newiter = model.insert_after(treeiter, self.default_column_item)
 		self.treeview.set_cursor_on_cell(model.get_path(newiter), self.treeview.get_column(0), start_editing=True)

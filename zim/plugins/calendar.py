@@ -71,7 +71,7 @@ def daterange_from_path(path):
 		if month == 12:
 			end_date = datetime.date(year, 12, 31)
 		else:
-			end_date = datetime.date(year, month+1, 1) + datetime.timedelta(-1)
+			end_date = datetime.date(year, month + 1, 1) + datetime.timedelta(-1)
 	elif year_path_re.match(path.name):
 		type = 'year'
 		year = int(path.name.rsplit(':', 1)[-1])
@@ -377,7 +377,8 @@ class Calendar(gtk.Calendar):
 	def get_date(self):
 		'''Get the datetime object for the selected date'''
 		year, month, day = gtk.Calendar.get_date(self)
-		if day == 0: day = 1
+		if day == 0:
+			day = 1
 
 		try:
 			date = datetime.date(year, month + 1, day)
@@ -421,14 +422,14 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 			# Ideally we only need 1 timer per day at 00:00, but not
 			# callback for that
 		self.connect('destroy',
-			lambda o: gobject.source_remove(o._timer_id) )
+			lambda o: gobject.source_remove(o._timer_id))
 			# Clear reference, else we get a new timer for every dialog
 
 		self.calendar = Calendar()
 		self.calendar.display_options(
 			gtk.CALENDAR_SHOW_HEADING |
 			gtk.CALENDAR_SHOW_DAY_NAMES |
-			gtk.CALENDAR_SHOW_WEEK_NUMBERS )
+			gtk.CALENDAR_SHOW_WEEK_NUMBERS)
 		self.calendar.connect('activate', self.on_calendar_activate)
 		self.calendar.connect('month-changed', self.on_month_changed)
 		self.on_month_changed(self.calendar)
@@ -514,7 +515,7 @@ class CalendarDialog(Dialog):
 		self.vbox.add(self.calendar_widget)
 
 		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
-		button.connect('clicked', self.do_today )
+		button.connect('clicked', self.do_today)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)
 		self.dateshown = datetime.date.today()

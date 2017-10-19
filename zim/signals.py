@@ -125,7 +125,7 @@ class ConnectorMixin(object):
 			name = "on_" + signal.replace('-', '_')
 			handler = getattr(self, name)
 			if handler is None:
-				raise NotImplementedError, 'No method "%s"' % name
+				raise NotImplementedError('No method "%s"' % name)
 
 		if order == SIGNAL_AFTER:
 			i = obj.connect_after(signal, handler)

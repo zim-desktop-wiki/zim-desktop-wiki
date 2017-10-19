@@ -191,14 +191,14 @@ class TestExpression(tests.TestCase):
 			),
 		])
 
-		result = expr( {
+		result = expr({
 			'foo': 'FOO',
 			'a': {
 				'b': 'BAR'
 			},
 			'n': 1,
-			'addone': ExpressionFunction(lambda a: a+1)
-		} )
+			'addone': ExpressionFunction(lambda a: a + 1)
+		})
 
 		wanted = ['foooo', 'FOO', 'BAR', True, 2]
 		self.assertEqual(result, wanted)
@@ -473,11 +473,11 @@ class TestTemplateLoopState(tests.TestCase):
 
 			self.assertEqual(loop.size, 3)
 			self.assertEqual(loop.max, 2)
-			self.assertEqual(loop.prev, None if i == 0 else items[i-1])
+			self.assertEqual(loop.prev, None if i == 0 else items[i - 1])
 			self.assertEqual(loop.current, items[i])
-			self.assertEqual(loop.next, None if i == 2 else items[i+1])
+			self.assertEqual(loop.next, None if i == 2 else items[i + 1])
 			self.assertEqual(loop.index, i)
-			self.assertEqual(loop.count, i+1)
+			self.assertEqual(loop.count, i + 1)
 			self.assertEqual(loop.first, True if i == 0 else False)
 			self.assertEqual(loop.last, True if i == 2 else False)
 			self.assertEqual(loop.parity, 'odd' if i % 2 else 'even')
@@ -629,7 +629,7 @@ class TestTemplateFunctions(tests.TestCase):
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertTrue(func('%Y %m %d'))
 		self.assertEqual(
-			func('%Y %m %d', date(2014, 05, 26)),
+			func('%Y %m %d', date(2014, 0o5, 26)),
 			'2014 05 26'
 		)
 
@@ -640,7 +640,7 @@ class TestTemplateFunctions(tests.TestCase):
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertTrue(func('%Y %W'))
 		self.assertEqual(
-			func('%Y %W', date(2014, 05, 26)),
+			func('%Y %W', date(2014, 0o5, 26)),
 			'2014 22'
 		)
 

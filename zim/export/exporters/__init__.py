@@ -67,7 +67,7 @@ def createIndexPage(notebook, path, section=None):
 			builder.end(BULLETLIST)
 
 		builder.start(FORMATTEDTEXT)
-		builder.append(HEADING, {'level':1}, 'Index of %s\n' % title)
+		builder.append(HEADING, {'level': 1}, 'Index of %s\n' % title)
 		add_namespace(section)
 		builder.end(FORMATTEDTEXT)
 

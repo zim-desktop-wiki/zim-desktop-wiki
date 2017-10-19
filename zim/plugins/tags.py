@@ -344,7 +344,7 @@ class TagCloudItem(gtk.ToggleButton):
 			# Make button text bold when active
 			label = self.get_child()
 			if self.get_active():
-				label.set_markup('<b>'+label.get_text()+'</b>')
+				label.set_markup('<b>' + label.get_text() + '</b>')
 			else:
 				label.set_text(label.get_text())
 					# get_text() gives string without markup

@@ -246,7 +246,7 @@ class ToggleAction(Action):
 			logger.debug('Action: %s(%s)', self.name, active)
 			try:
 				self.__get__(instance, instance.__class__)()
-			except Exception, error:
+			except Exception as error:
 				zim.errors.exception_handler(
 					'Exception during toggle action: %s(%s)' % (self.name, active))
 
@@ -281,7 +281,7 @@ class RadioAction(ActionMethod):
 		self.func = func
 		self.keys = [opt[0] for opt in radio_options]
 		self._entries = tuple(
-			(name+'_'+opt[0],) + opt[1:] + (i,)
+			(name + '_' + opt[0],) + opt[1:] + (i,)
 				for i, opt in enumerate(radio_options)
 		)
 		self._state = weakref.WeakKeyDictionary()
@@ -298,7 +298,7 @@ class RadioAction(ActionMethod):
 		# instance acces, return bound method
 		def func(key):
 			if not key in self.keys:
-				raise ValueError, 'Invalid key: %s' % key
+				raise ValueError('Invalid key: %s' % key)
 			self.func(instance, key)
 
 			# Update state and notify actionables
@@ -313,7 +313,7 @@ class RadioAction(ActionMethod):
 		try:
 			name = current.get_name()
 			assert name.startswith(self.name + '_')
-			key = name[len(self.name)+1:]
+			key = name[len(self.name) + 1:]
 			if instance in self._state and key == self._state[instance]:
 				pass
 			else:
@@ -321,7 +321,7 @@ class RadioAction(ActionMethod):
 				self.__get__(instance, instance.__class__)(key)
 		except:
 			zim.errors.exception_handler(
-				'Exception during action: %s(%s)' % (self.name, key) )
+				'Exception during action: %s(%s)' % (self.name, key))
 
 
 

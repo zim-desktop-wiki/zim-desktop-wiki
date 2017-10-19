@@ -137,7 +137,7 @@ class TestNotebookInfoList(tests.TestCase):
 				('~/Notes', '/home/user/code/zim.debug', '/home/user/Foo Bar')
 		])
 		self.assertEqual(list.default,
-			NotebookInfo(Dir('/home/user/code/zim.debug').uri) )
+			NotebookInfo(Dir('/home/user/code/zim.debug').uri))
 
 
 @tests.slowTest
@@ -363,7 +363,7 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(Path('SomePageWithLinks'))
 		page.parse('wiki',
 			'[[:AnotherNewPage:Foo:bar]]\n'
-			'**bold** [[:AnotherNewPage]]\n' )
+			'**bold** [[:AnotherNewPage]]\n')
 		self.notebook.store_page(page)
 
 		page = self.notebook.get_page(Path('AnotherNewPage'))
@@ -387,7 +387,7 @@ class TestNotebook(tests.TestCase):
 		content = page.dump('wiki')
 		self.assertEqual(''.join(content),
 			':AnotherNewPage:Foo:bar\n'
-			'**bold** [[:AnotherNewPage]]\n' )
+			'**bold** [[:AnotherNewPage]]\n')
 
 		self.notebook.delete_page(Path('AnotherNewPage:Foo:bar')) # now should fail silently
 
@@ -408,7 +408,7 @@ class TestNotebook(tests.TestCase):
 		content = page.dump('wiki')
 		self.assertEqual(''.join(content),
 			':AnotherNewPage:Foo:bar\n'
-			'**bold** :AnotherNewPage\n' )
+			'**bold** :AnotherNewPage\n')
 
 
 		#~ print '\n==== DB ===='
@@ -759,7 +759,7 @@ class TestPage(TestPath):
 		self.assertEqual(links, [
 			('page', 'foo:bar', {}),
 			('page', 'bar', {}),
-		] )
+		])
 
 		tags = list(page.get_tags())
 		self.assertEqual(tags, [

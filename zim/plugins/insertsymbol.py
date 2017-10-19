@@ -42,7 +42,8 @@ This is a core plugin shipping with zim.
 		file = self.config.get_config_file('symbols.list')
 		for line in file.readlines():
 			line = line.strip()
-			if not line or line.startswith('#'): continue
+			if not line or line.startswith('#'):
+				continue
 			try:
 				if '#' in line:
 					line, _ = line.split('#', 1)
@@ -136,7 +137,7 @@ class InsertSymbolDialog(Dialog):
 	def __init__(self, ui, plugin, pageview):
 		Dialog.__init__(self, ui, _('Insert Symbol'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
-			defaultwindowsize=(350, 400) )
+			defaultwindowsize=(350, 400))
 		self.plugin = plugin
 		self.pageview = pageview
 		if not plugin.symbols:
@@ -173,16 +174,19 @@ class InsertSymbolDialog(Dialog):
 			model.append((symbol, shortcut))
 
 	def on_query_tooltip(self, iconview, x, y, keyboard, tooltip):
-		if keyboard: return False
+		if keyboard:
+			return False
 
 		x, y = iconview.convert_widget_to_bin_window_coords(x, y)
 		path = iconview.get_path_at_pos(x, y)
-		if path is None: return False
+		if path is None:
+			return False
 
 		model = iconview.get_model()
 		iter = model.get_iter(path)
 		text = model.get_value(iter, 1)
-		if not text: return False
+		if not text:
+			return False
 
 		tooltip.set_text(text)
 		return True

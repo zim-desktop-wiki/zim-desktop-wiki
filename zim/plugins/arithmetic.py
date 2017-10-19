@@ -50,5 +50,5 @@ class MainWindowExtension(WindowExtension):
 
 		# parse and return modified text
 		parser = ParserGTK()
-		parser.parse( buf )
+		parser.parse(buf)
 

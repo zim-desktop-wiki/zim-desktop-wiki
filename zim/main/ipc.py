@@ -111,14 +111,14 @@ def dispatch(*args):
 			re = conn.recv()
 		else:
 			re = 'No response'
-	except Exception, e:
+	except Exception as e:
 		if hasattr(e, 'errno') and e.errno == 2:
-			raise AssertionError, 'No such file or directory'
+			raise AssertionError('No such file or directory')
 		else:
-			raise AssertionError, 'Connection failed'
+			raise AssertionError('Connection failed')
 	else:
 		if re != 'OK':
-			raise AssertionError, 'Error in response: %s' % re
+			raise AssertionError('Error in response: %s' % re)
 
 
 def start_listening(handler):

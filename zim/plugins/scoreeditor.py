@@ -114,7 +114,7 @@ class ScoreGenerator(ImageGeneratorClass):
 			'version': version or '',
 			'include_header': self.include_header or '',
 			'include_footer': self.include_footer or '',
-		} )
+		})
 		scorefile.writelines(lines)
 		#~ print '>>>%s<<<' % scorefile.read()
 
@@ -143,5 +143,5 @@ class ScoreGenerator(ImageGeneratorClass):
 
 	def cleanup(self):
 		path = self.scorefile.path
-		for path in glob.glob(path[:-3]+'*'):
+		for path in glob.glob(path[:-3] + '*'):
 			File(path).remove()

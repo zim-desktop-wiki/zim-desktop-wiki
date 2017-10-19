@@ -240,7 +240,7 @@ class ImageGeneratorDialog(Dialog):
 		@param syntax: optional syntax name (as understood by gtksourceview)
 		@param opt: any other arguments to pass to the L{Dialog} constructor
 		'''
-		Dialog.__init__(self, window, title, defaultwindowsize=(450,300), **opt)
+		Dialog.__init__(self, window, title, defaultwindowsize=(450, 300), **opt)
 		self.app_window = window
 		self.generator = generator
 		self.imagefile = None
@@ -363,7 +363,7 @@ class ImageGeneratorDialog(Dialog):
 			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
 			textfile = dir.new_file(self.generator.scriptname)
 
-		textfile.write( self.generator.process_input(self.get_text()) )
+		textfile.write(self.generator.process_input(self.get_text()))
 
 		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
 		if self.imagefile and self.imagefile.exists():

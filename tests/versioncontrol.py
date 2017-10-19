@@ -280,7 +280,7 @@ bar
 		for line in annotated:
 			# get rid of user name
 			ann, text = line.split('|')
-			lines.append(ann[0]+' |'+text)
+			lines.append(ann[0] + ' |' + text)
 		self.assertEqual(''.join(lines), '''\
 1 | foo
 2 | baz
@@ -413,15 +413,15 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 
 		versions = vcs.list_versions()
 
-		self.assertTrue(isinstance(versions,list))
+		self.assertTrue(isinstance(versions, list))
 		#~ print 'VERSIONS>>', versions
 		self.assertTrue(len(versions) == 3)
-		self.assertTrue(isinstance(versions[0],tuple))
+		self.assertTrue(isinstance(versions[0], tuple))
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertTrue(isinstance(versions[0][0],basestring))
-		self.assertTrue(isinstance(versions[0][1],basestring))
-		self.assertTrue(isinstance(versions[0][2],basestring))
-		self.assertTrue(isinstance(versions[0][3],basestring))
+		self.assertTrue(isinstance(versions[0][0], basestring))
+		self.assertTrue(isinstance(versions[0][1], basestring))
+		self.assertTrue(isinstance(versions[0][2], basestring))
+		self.assertTrue(isinstance(versions[0][3], basestring))
 		self.assertEqual(versions[0][3], u'test 1\n')
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][3], u'test 2\n')
@@ -447,7 +447,7 @@ test
 		for line in annotated:
 			# get rid of commit hash, its unique
 			commit, num, text = line.split(' ')
-			lines.append(num+' '+text)
+			lines.append(num + ' ' + text)
 		self.assertEqual(''.join(lines), '''\
 1) second
 2) baz
@@ -574,7 +574,7 @@ bar
 		for line in annotated:
 			# get rid of user name
 			ann, text = line.split(':')
-			lines.append(ann[0]+':'+text)
+			lines.append(ann[0] + ':' + text)
 		self.assertEqual(''.join(lines), '''\
 0: foo
 1: baz
@@ -631,7 +631,7 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		subdir = root.subdir('foo/bar')
 		file = subdir.file('baz.txt')
 		file.write('foo\nbar\n')
-		vcs.on_path_created(None,file)
+		vcs.on_path_created(None, file)
 		self.assertEqual(''.join(vcs.get_status()),
 			'ADDED      foo/bar/baz.txt\n'
 		)
@@ -639,7 +639,7 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 
 		file = subdir.file('bar.txt')
 		file.write('second\ntest\n')
-		vcs.on_path_created(None,file)
+		vcs.on_path_created(None, file)
 
 		self.assertEqual(''.join(vcs.get_status()),
 			'ADDED      foo/bar/bar.txt\n'
@@ -649,15 +649,15 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 
 		versions = vcs.list_versions()
 
-		self.assertTrue(isinstance(versions,list))
+		self.assertTrue(isinstance(versions, list))
 		#~ print 'VERSIONS>>', versions
 		self.assertTrue(len(versions) == 3)
-		self.assertTrue(isinstance(versions[0],tuple))
+		self.assertTrue(isinstance(versions[0], tuple))
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertTrue(isinstance(versions[0][0],basestring))
-		self.assertTrue(isinstance(versions[0][1],basestring))
-		self.assertTrue(isinstance(versions[0][2],basestring))
-		self.assertTrue(isinstance(versions[0][3],basestring))
+		self.assertTrue(isinstance(versions[0][0], basestring))
+		self.assertTrue(isinstance(versions[0][1], basestring))
+		self.assertTrue(isinstance(versions[0][2], basestring))
+		self.assertTrue(isinstance(versions[0][3], basestring))
 		self.assertEqual(versions[0][3], u'test 2 ')
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][3], u'test 1 ')
@@ -718,7 +718,7 @@ Index: foo/bar/bar.txt
 		for line in annotated:
 			# get rid of commit hash, its unique
 			commit, date, num, text = line.split(None, 4)
-			lines.append(num+' '+text)
+			lines.append(num + ' ' + text)
 
 		self.assertEqual('\n'.join(lines), '''\
 1: second

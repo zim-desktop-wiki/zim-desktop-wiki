@@ -71,7 +71,7 @@ class TestThumbnailManager(tests.TestCase):
 		):
 			thumbfile = manager.get_thumbnail_file(file, size)
 			self.assertEqual(thumbfile, wanted)
-			self.assertTrue(len(thumbfile.basename) == 32+4) # lenght hexdigest according to spec + ".png"
+			self.assertTrue(len(thumbfile.basename) == 32 + 4) # lenght hexdigest according to spec + ".png"
 
 	def removeThumbnail(self, manager, file):
 		# Remove and assert thumbnail does not exist
@@ -105,9 +105,9 @@ class TestThumbnailManager(tests.TestCase):
 		if os.name != 'nt': # Windows support chmod() is limitted
 			import stat
 			mode = os.stat(thumbfile.encodedpath).st_mode
-			self.assertEqual(stat.S_IMODE(mode), 0600)
+			self.assertEqual(stat.S_IMODE(mode), 0o600)
 			mode = os.stat(thumbfile.parent().parent().encodedpath).st_mode # thumnails dir
-			self.assertEqual(stat.S_IMODE(mode), 0700)
+			self.assertEqual(stat.S_IMODE(mode), 0o700)
 
 		# Change mtime to make thumbfile invalid
 		oldmtime = file.mtime()

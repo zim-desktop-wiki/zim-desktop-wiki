@@ -83,7 +83,7 @@ def coverage_filter_diff(diff):
 def part_covered(part, cov):
 	f, l, missing, r = cov.analysis(part.file)
 	start, end = part.range()
-	return not any(l >= start and l<= end for l in missing)
+	return not any(l >= start and l <= end for l in missing)
 
 
 if __name__ == '__main__':

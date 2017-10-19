@@ -58,7 +58,7 @@ def lookup_subclass(module, klass):
 	'''
 	subclasses = lookup_subclasses(module, klass)
 	if len(subclasses) > 1:
-		raise AssertionError, 'BUG: Multiple subclasses found of type: %s' % klass
+		raise AssertionError('BUG: Multiple subclasses found of type: %s' % klass)
 	elif subclasses:
 		return subclasses[0]
 	else:

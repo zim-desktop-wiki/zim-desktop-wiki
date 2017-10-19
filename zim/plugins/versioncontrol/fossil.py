@@ -92,12 +92,12 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		Runs: fossil commit -m {{MSG}} {{PATH}}
 		"""
 		params = ['commit']
-		if msg!='' and msg!=None:
+		if msg != '' and msg is not None:
 			params.append('-m')
 			params.append(msg)
 		# To minimize interaction
 		params.append('--no-warnings')
-		if path!='' and path!=None:
+		if path != '' and path is not None:
 			params.append(path)
 		return self.run(params)
 
@@ -109,7 +109,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			fossil diff {{REVISION_ARGS}} {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
-		if path==None:
+		if path is None:
 			return self.pipe(['diff'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
@@ -164,7 +164,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		@returns: True if the repo is not up-to-date, or False
 		"""
 		# If status return an empty answer, this means the local repo is up-to-date
-		return ''.join( self.status() ).strip() != ''
+		return ''.join(self.status()).strip() != ''
 
 	def log(self, path=None):
 		"""

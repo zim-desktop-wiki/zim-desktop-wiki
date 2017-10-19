@@ -26,10 +26,10 @@ class Graph(object):
 		for item in module.items():
 			if isinstance(item, basestring):
 				text += '\n"%s"' % item
-				text +='\n"%s" -> "%s"' % (module.name, item)
+				text += '\n"%s" -> "%s"' % (module.name, item)
 			else:
 				text += self._code_for_module(item) # recurs
-				text +='\n"%s" -> "%s"' % (module.name, item.name)
+				text += '\n"%s" -> "%s"' % (module.name, item.name)
 		return text
 
 

@@ -21,7 +21,7 @@ logger = logging.getLogger('zim.formats.latex')
 
 info = {
 	'name': 'latex',
-	'desc':	'LaTeX',
+	'desc': 'LaTeX',
 	'mimetype': 'application/x-tex',
 	'extension': 'tex',
 	'native': False,
@@ -49,49 +49,49 @@ encode_dict = {
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX : '\\item[\\Square]',
-		XCHECKED_BOX  : '\\item[\\XBox]',
-		CHECKED_BOX   : '\\item[\\CheckedBox]',
-		MIGRATED_BOX  : '\\item[\\RIGHTarrow]',
-		BULLET        : '\\item',
+		UNCHECKED_BOX: '\\item[\\Square]',
+		XCHECKED_BOX: '\\item[\\XBox]',
+		CHECKED_BOX: '\\item[\\CheckedBox]',
+		MIGRATED_BOX: '\\item[\\RIGHTarrow]',
+		BULLET: '\\item',
 	}
 
 	SECTIONING = {
 		'report': {
-			1:'\\chapter{%s}',
-			2:'\\section{%s}',
-			3:'\\subsection{%s}',
-			4:'\\subsubsection{%s}',
-			5:'\\paragraph{%s}'
+			1: '\\chapter{%s}',
+			2: '\\section{%s}',
+			3: '\\subsection{%s}',
+			4: '\\subsubsection{%s}',
+			5: '\\paragraph{%s}'
 		},
 		'article': {
-			1:'\\section{%s}',
-			2:'\\subsection{%s}',
-			3:'\\subsubsection{%s}',
-			4:'\\paragraph{%s}',
-			5:'\\subparagraph{%s}'
+			1: '\\section{%s}',
+			2: '\\subsection{%s}',
+			3: '\\subsubsection{%s}',
+			4: '\\paragraph{%s}',
+			5: '\\subparagraph{%s}'
 		},
 		'book': {
-			1:'\\part{%s}',
-			2:'\\chapter{%s}',
-			3:'\\section{%s}',
-			4:'\\subsection{%s}',
-			5:'\\subsubsection{%s}'
+			1: '\\part{%s}',
+			2: '\\chapter{%s}',
+			3: '\\section{%s}',
+			4: '\\subsection{%s}',
+			5: '\\subsubsection{%s}'
 		}
 	}
 
 	TAGS = {
-		EMPHASIS:		('\\emph{', '}'),
-		STRONG:			('\\textbf{', '}'),
-		MARK:			('\\uline{', '}'),
-		STRIKE:			('\\sout{', '}'),
-		TAG:			('', ''), # No additional annotation (apart from the visible @)
-		SUBSCRIPT:		('$_{', '}$'),
-		SUPERSCRIPT:	('$^{', '}$'),
+		EMPHASIS: ('\\emph{', '}'),
+		STRONG: ('\\textbf{', '}'),
+		MARK: ('\\uline{', '}'),
+		STRIKE: ('\\sout{', '}'),
+		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		SUBSCRIPT: ('$_{', '}$'),
+		SUPERSCRIPT: ('$^{', '}$'),
 	}
 
 	TEMPLATE_OPTIONS = {
-		'document_type': Choice('report', ('report', 'article','book'))
+		'document_type': Choice('report', ('report', 'article', 'book'))
 	}
 
 	def dump(self, tree):
@@ -122,8 +122,10 @@ class Dumper(TextDumper):
 
 	def dump_h(self, tag, attrib, strings):
 		level = int(attrib['level'])
-		if level < 1: level = 1
-		elif level > 5: level = 5
+		if level < 1:
+			level = 1
+		elif level > 5:
+			level = 5
 
 		text = u''.join(strings)
 		return [self.SECTIONING[self.document_type][level] % text]
@@ -150,7 +152,7 @@ class Dumper(TextDumper):
 
 		strings.insert(0, '\\begin{enumerate}[%s]\n' % type)
 		if start > 1:
-			strings.insert(1, '\setcounter{enumi}{%i}\n' % (start-1))
+			strings.insert(1, '\setcounter{enumi}{%i}\n' % (start - 1))
 		strings.append('\\end{enumerate}\n')
 
 		return TextDumper.dump_ol(self, tag, attrib, strings)
@@ -195,13 +197,13 @@ class Dumper(TextDumper):
 
 		if 'width' in attrib and not 'height' in attrib:
 			options = 'width=%fin, keepaspectratio=true' \
-					% ( float(attrib['width']) / dpi )
+					% (float(attrib['width']) / dpi)
 		elif 'height' in attrib and not 'width' in attrib:
 			options = 'height=%fin, keepaspectratio=true' \
-					% ( float(attrib['height']) / dpi )
+					% (float(attrib['height']) / dpi)
 		elif 'height' in attrib and 'width' in attrib:
 			options = 'height=%fin, width=%fin' \
-					% ( float(attrib['height']) / dpi, float(attrib['width']) / dpi )
+					% (float(attrib['height']) / dpi, float(attrib['width']) / dpi)
 		else:
 			options = ''
 
@@ -231,7 +233,7 @@ class Dumper(TextDumper):
 		text = u''.join(strings)
 		for delim in '+*|$&%!-_':
 			if not delim in text:
-				return ['\\lstinline'+delim+text+delim]
+				return ['\\lstinline' + delim + text + delim]
 		else:
 			assert False, 'Found no suitable delimiter for verbatim text: %s' % element
 
@@ -259,7 +261,7 @@ class Dumper(TextDumper):
 		table += [rowline(row) for row in rows[1:]]
 
 		table.append('\end{tabular}')
-		return map(lambda line: line+"\n", table)
+		return map(lambda line: line + "\n", table)
 
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n\\hrule\n'

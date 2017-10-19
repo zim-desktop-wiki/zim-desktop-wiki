@@ -94,7 +94,7 @@ class FilesIndexer(SignalEmitter):
 				'SELECT id, path, node_type FROM files'
 				' WHERE index_status = ? AND path LIKE ?'
 				' ORDER BY node_type, id',
-				(STATUS_NEED_UPDATE, prefix+'%')
+				(STATUS_NEED_UPDATE, prefix + '%')
 			).fetchone()
 
 			if row:
@@ -278,7 +278,7 @@ class FilesIndexChecker(object):
 		if file is None:
 			file = self.folder
 		elif not (file == self.folder or file.ischild(self.folder)):
-			raise ValueError, 'file must be child of %s' % self.folder
+			raise ValueError('file must be child of %s' % self.folder)
 
 		# If path is not indexed, find parent that is
 		while not file == self.folder:

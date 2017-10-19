@@ -92,7 +92,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 	def __init__(self, window, tasksview, preferences):
 		Dialog.__init__(self, window, _('Task List'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
-			defaultwindowsize=(550, 400) )
+			defaultwindowsize=(550, 400))
 		self.preferences = preferences
 		self.tasksview = tasksview
 
@@ -132,7 +132,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
-		hbox.pack_start(gtk.Label(_('Filter')+': '), False) # T: Input label
+		hbox.pack_start(gtk.Label(_('Filter') + ': '), False) # T: Input label
 		filter_entry = InputEntry()
 		filter_entry.set_icon_to_clear()
 		hbox.pack_start(filter_entry, False)
@@ -185,7 +185,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 				self.connectto(e, 'tasklist-changed', callback)
 				break
 		else:
-			raise AssertionError, 'Could not find tasklist notebook extension'
+			raise AssertionError('Could not find tasklist notebook extension')
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -276,7 +276,8 @@ class TagListTreeView(SingleClickTreeView):
 
 		# Rebuild model
 		model = self.get_model()
-		if model is None: return
+		if model is None:
+				return
 		model.clear()
 
 		n_all = self.task_list.get_n_tasks()
@@ -324,10 +325,14 @@ ALERT_COLOR = '#FCEB65' # yellow ("idem" - #FCE94F)
 COLORS = [None, ALERT_COLOR, MEDIUM_COLOR, HIGH_COLOR] # index 0..3
 
 def days_to_str(days):
-	if days > 290:  return '%iy' % round(float(days)/365) # round up to 1 year from ~10 months
-	elif days > 25: return '%im' % round(float(days)/30)
-	elif days > 10: return '%iw' % round(float(days)/7)
-	else:           return '%id' % days
+	if days > 290:
+			return '%iy' % round(float(days) / 365) # round up to 1 year from ~10 months
+	elif days > 25:
+			return '%im' % round(float(days) / 30)
+	elif days > 10:
+			return '%iw' % round(float(days) / 7)
+	else:
+			return '%id' % days
 
 
 class TaskListTreeView(BrowserTreeView):
@@ -429,9 +434,9 @@ class TaskListTreeView(BrowserTreeView):
 		else:
 			delta1, delta2 = 1, 2
 
-		today    = str( datetime.date.today() )
-		tomorrow = str( datetime.date.today() + datetime.timedelta(days=delta1))
-		dayafter = str( datetime.date.today() + datetime.timedelta(days=delta2))
+		today = str(datetime.date.today())
+		tomorrow = str(datetime.date.today() + datetime.timedelta(days=delta1))
+		dayafter = str(datetime.date.today() + datetime.timedelta(days=delta2))
 		def render_date(col, cell, model, i):
 			date = model.get_value(i, self.DUE_COL)
 			if date == _MAX_DUE_DATE:
@@ -440,11 +445,15 @@ class TaskListTreeView(BrowserTreeView):
 				cell.set_property('text', date)
 				# TODO allow strftime here
 
-			if date <= today: color = HIGH_COLOR
-			elif date <= tomorrow: color = MEDIUM_COLOR
-			elif date <= dayafter: color = ALERT_COLOR
+			if date <= today:
+					color = HIGH_COLOR
+			elif date <= tomorrow:
+					color = MEDIUM_COLOR
+			elif date <= dayafter:
+					color = ALERT_COLOR
 				# "<=" because tomorrow and/or dayafter can be after the weekend
-			else: color = None
+			else:
+					color = None
 			cell.set_property('cell-background', color)
 
 		if not compact:
@@ -543,7 +552,7 @@ class TaskListTreeView(BrowserTreeView):
 				actionable = False
 				y, m, d = row['start'].split('-')
 				td = datetime.date(int(y), int(m), int(d)) - today
-				prio_sort_label = '>'+ days_to_str(td.days)
+				prio_sort_label = '>' + days_to_str(td.days)
 				if row['prio'] > 0:
 					prio_sort_label += ' ' + '!' * min(row['prio'], 3)
 			elif row['due'] < _MAX_DUE_DATE:
@@ -551,9 +560,12 @@ class TaskListTreeView(BrowserTreeView):
 				td = datetime.date(int(y), int(m), int(d)) - today
 				prio_sort_label = \
 					'!' * min(row['prio'], 3) + ' ' if row['prio'] > 0 else ''
-				if td.days < 0:     prio_sort_label += '<b><u>OD</u></b>' # over due
-				elif td.days == 0:  prio_sort_label += '<u>TD</u>' # today
-				else:               prio_sort_label += days_to_str(td.days)
+				if td.days < 0:
+						prio_sort_label += '<b><u>OD</u></b>' # over due
+				elif td.days == 0:
+						prio_sort_label += '<u>TD</u>' # today
+				else:
+						prio_sort_label += days_to_str(td.days)
 			else:
 				prio_sort_label = '!' * min(row['prio'], 3)
 
@@ -700,7 +712,7 @@ class TaskListTreeView(BrowserTreeView):
 
 	def do_row_activated(self, path, column):
 		model = self.get_model()
-		page = Path( model[path][self.PAGE_COL] )
+		page = Path(model[path][self.PAGE_COL])
 		text = self._get_raw_text(model[path])
 
 		pageview = self.opener.open_page(page)
@@ -729,7 +741,7 @@ class TaskListTreeView(BrowserTreeView):
 		due = model[iter][self.DUE_COL]
 		page = model[iter][self.PAGE_COL]
 
-		today    = str( datetime.date.today() )
+		today = str(datetime.date.today())
 
 		text = [task, '\n']
 		if start and start > today:
@@ -800,19 +812,27 @@ class TaskListTreeView(BrowserTreeView):
 <tr><th>Prio</th><th>Task</th><th>Date</th><th>Page</th></tr>
 ''' % (HIGH_COLOR, MEDIUM_COLOR, ALERT_COLOR)
 
-		today    = str( datetime.date.today() )
-		tomorrow = str( datetime.date.today() + datetime.timedelta(days=1))
-		dayafter = str( datetime.date.today() + datetime.timedelta(days=2))
+		today = str(datetime.date.today())
+		tomorrow = str(datetime.date.today() + datetime.timedelta(days=1))
+		dayafter = str(datetime.date.today() + datetime.timedelta(days=2))
 		for indent, prio, desc, date, page in self.get_visible_data():
-			if prio >= 3: prio = '<td class="high">%s</td>' % prio
-			elif prio == 2: prio = '<td class="medium">%s</td>' % prio
-			elif prio == 1: prio = '<td class="alert">%s</td>' % prio
-			else: prio = '<td>%s</td>' % prio
+			if prio >= 3:
+					prio = '<td class="high">%s</td>' % prio
+			elif prio == 2:
+					prio = '<td class="medium">%s</td>' % prio
+			elif prio == 1:
+					prio = '<td class="alert">%s</td>' % prio
+			else:
+					prio = '<td>%s</td>' % prio
 
-			if date and date <= today: date = '<td class="high">%s</td>' % date
-			elif date == tomorrow: date = '<td class="medium">%s</td>' % date
-			elif date == dayafter: date = '<td class="alert">%s</td>' % date
-			else: date = '<td>%s</td>' % date
+			if date and date <= today:
+					date = '<td class="high">%s</td>' % date
+			elif date == tomorrow:
+					date = '<td class="medium">%s</td>' % date
+			elif date == dayafter:
+					date = '<td class="alert">%s</td>' % date
+			else:
+					date = '<td>%s</td>' % date
 
 			desc = '<td>%s%s</td>' % ('&nbsp;' * (4 * indent), desc)
 			page = '<td>%s</td>' % page
