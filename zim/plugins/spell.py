@@ -4,6 +4,7 @@
 
 '''Spell check plugin based on gtkspell'''
 
+import re
 import locale
 import logging
 
@@ -107,11 +108,26 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self._adapter = GtkspellcheckAdapter if gtkspellcheck else GtkspellAdapter
-
+		self._adapter = self._choose_adapter()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
 		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER) # XXX
+
+	def _choose_adapter(self):
+		if gtkspellcheck:
+			version = tuple(
+				map(int, re.findall('\d+', gtkspellcheck.__version__))
+			)
+			if version >= (4, 0, 3):
+				return GtkspellcheckAdapter
+			else:
+				logger.warning(
+					'Using gtkspellcheck %s. Versions before 4.0.3 might cause memory leak.',
+					gtkspellcheck.__version__
+				)
+				return OldGtkspellcheckAdapter
+		else:
+			return GtkspellAdapter
 
 	@toggle_action(
 		_('Check _spelling'), # T: menu item
@@ -170,17 +186,12 @@ class GtkspellcheckAdapter(object):
 		self._textview = textview
 		self._checker = None
 		self._active = False
+
 		self.enable()
 
 	def on_new_buffer(self):
 		if self._checker:
-			# wanted to use checker.buffer_initialize() here,
-			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
-			if self._active:
-				self.detach()
-				self.enable()
-			else:
-				self.detach()
+			self._checker.buffer_initialize()
 
 	def enable(self):
 		if self._checker:
@@ -213,6 +224,18 @@ class GtkspellcheckAdapter(object):
 			if name and name.startswith(prefix):
 				table.remove(tag)
 
+
+class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
+
+	def on_new_buffer(self):
+		if self._checker:
+			# wanted to use checker.buffer_initialize() here,
+			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
+			if self._active:
+				self.detach()
+				self.enable()
+			else:
+				self.detach()
 
 
 class GtkspellAdapter(object):
