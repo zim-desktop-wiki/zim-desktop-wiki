@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.notebook module.'''
 
@@ -445,153 +445,6 @@ class TestNotebook(tests.TestCase):
 		page = self.notebook.get_page(Path('Test:Foo'))
 		self.assertTrue(page.hascontent)
 
-	def testUpdateLinks(self):
-		'''Test logic for updating links on move'''
-
-		# update the page that was moved itself
-		# moving from Dus:Baz to foo:bar:Baz or renaming to Dus:Bar
-		# while updating links in Dus:Ja
-		text = u'''\
-http://foo.org # urls are untouched
-[[:Hmmm:OK]] # link way outside move
-[[Baz:Ja]] # relative link that does not need change on move, but does on rename
-[[Ja]] # relative link that needs updating on move, but not on rename
-[[Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
-[[:foo:bar:Dus]] # Link that could be made relative, but isn't
-'''
-		wanted1 = u'''\
-http://foo.org # urls are untouched
-[[:Hmmm:OK]] # link way outside move
-[[Baz:Ja]] # relative link that does not need change on move, but does on rename
-[[Dus:Ja]] # relative link that needs updating on move, but not on rename
-[[Dus:Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
-[[:foo:bar:Dus]] # Link that could be made relative, but isn't
-'''
-		wanted2 = u'''\
-http://foo.org # urls are untouched
-[[:Hmmm:OK]] # link way outside move
-[[+Ja]] # relative link that does not need change on move, but does on rename
-[[Ja]] # relative link that needs updating on move, but not on rename
-[[Ja|Grrr]] # relative link that needs updating on move, but not on rename - with name
-[[:foo:bar:Dus]] # Link that could be made relative, but isn't
-'''
-
-		linkingtext = u'''\
-http://foo.org # urls are untouched
-[[:Hmmm:OK]] # link way outside move
-[[Baz:Ja]] # relative link that needs updating
-[[Baz:Ja|Grr]] # relative link that needs updating - with name
-[[Dus:Foo]] # relative link that does not need updating
-[[:Dus:Baz]] # absolute link that needs updating
-[[:Dus:Baz:Hmm]] # absolute link that needs updating
-[[:Dus:Baz:Hmm:Ja]] # absolute link that needs updating
-'''
-		linkingwanted1 = u'''\
-http://foo.org # urls are untouched
-[[:Hmmm:OK]] # link way outside move
-[[foo:bar:Baz:Ja]] # relative link that needs updating
-[[foo:bar:Baz:Ja|Grr]] # relative link that needs updating - with name
-[[Dus:Foo]] # relative link that does not need updating
-[[:foo:bar:Baz]] # absolute link that needs updating
-[[:foo:bar:Baz:Hmm]] # absolute link that needs updating
-[[:foo:bar:Baz:Hmm:Ja]] # absolute link that needs updating
-'''
-		linkingwanted2 = u'''\
-http://foo.org # urls are untouched
-[[:Hmmm:OK]] # link way outside move
-[[Bar:Ja]] # relative link that needs updating
-[[Bar:Ja|Grr]] # relative link that needs updating - with name
-[[Dus:Foo]] # relative link that does not need updating
-[[:Dus:Bar]] # absolute link that needs updating
-[[:Dus:Bar:Hmm]] # absolute link that needs updating
-[[:Dus:Bar:Hmm:Ja]] # absolute link that needs updating
-'''
-
-		# move Dus:Baz -> foo:bar:Baz
-		oldpage = self.notebook.get_page(Path('Dus:Baz'))
-		oldpage.parse('wiki', text)
-		self.notebook.store_page(oldpage)
-
-		linking = self.notebook.get_page(Path('Dus:Ja'))
-		linking.parse('wiki', linkingtext)
-		self.notebook.store_page(linking)
-
-		self.notebook.move_page(Path('Dus:Baz'), Path('foo:bar:Baz'))
-
-		newpage = self.notebook.get_page(Path('foo:bar:Baz'))
-		self.assertEqual(u''.join(newpage.dump('wiki')), wanted1)
-
-		linking = self.notebook.get_page(Path('Dus:Ja'))
-		self.assertEqual(u''.join(linking.dump('wiki')), linkingwanted1)
-
-
-		# rename Dus:Baz -> Dus:Bar
-		oldpage = self.notebook.get_page(Path('Dus:Baz'))
-		oldpage.parse('wiki', text)
-		self.notebook.store_page(oldpage)
-
-		linking = self.notebook.get_page(Path('Dus:Ja'))
-		linking.parse('wiki', linkingtext)
-		self.notebook.store_page(linking)
-
-		self.notebook.rename_page(Path('Dus:Baz'), 'Bar', update_heading=False)
-
-		newpage = self.notebook.get_page(Path('Dus:Bar'))
-		self.assertEqual(u''.join(newpage.dump('wiki')), wanted2)
-
-		linking = self.notebook.get_page(Path('Dus:Ja'))
-		self.assertEqual(u''.join(linking.dump('wiki')), linkingwanted2)
-
-
-		# now test move on full notebook with more pages
-		def links(source, target):
-			#~ print '===='
-			for link in self.notebook.links.list_links(source, LINK_DIR_FORWARD):
-				#~ print 'FOUND LINK', link
-				if link.target == target:
-					return True
-			else:
-				return False
-
-		path = Path('Linking:Dus:Ja')
-		newpath = Path('Linking:Hmm:Ok')
-
-		self.assertTrue(links(path, Path('Linking:Dus')))
-		self.assertTrue(links(path, Path('Linking:Foo:Bar')))
-		self.assertTrue(links(Path('Linking:Foo:Bar'), path))
-		self.assertFalse(links(Path('Linking:Foo:Bar'), newpath))
-
-		self.notebook.move_page(path, newpath, update_links=True)
-
-		self.assertTrue(links(newpath, Path('Linking:Dus')))
-		self.assertTrue(links(newpath, Path('Linking:Foo:Bar')))
-		self.assertTrue(links(Path('Linking:Foo:Bar'), newpath))
-
-
-		# Yet another test based on bug #lp:617933 - no changes and all cross refs preserved
-		parent = self.notebook.get_page(Path('TheParent'))
-		child1 = self.notebook.get_page(Path('TheParent:FirstChild'))
-		child2 = self.notebook.get_page(Path('TheParent:SecondChild'))
-
-		parent.parse('wiki', 'Loves [[+FirstChild]] and [[+SecondChild]]\n')
-		child1.parse('wiki', 'Hates the [[SecondChild]]\n')
-		child2.parse('wiki', 'Loves the [[FirstChild]]\n')
-
-		self.notebook.store_page(parent)
-		self.notebook.store_page(child1)
-		self.notebook.store_page(child2)
-
-		self.notebook.rename_page(Path('TheParent'), 'NewName', update_heading=False)
-
-		parent = self.notebook.get_page(Path('NewName'))
-		child1 = self.notebook.get_page(Path('NewName:FirstChild'))
-		child2 = self.notebook.get_page(Path('NewName:SecondChild'))
-
-		self.assertEqual(u''.join(parent.dump('wiki')), 'Loves [[+FirstChild]] and [[+SecondChild]]\n')
-		self.assertEqual(u''.join(child1.dump('wiki')), 'Hates the [[SecondChild]]\n')
-		self.assertEqual(u''.join(child2.dump('wiki')), 'Loves the [[FirstChild]]\n')
-
-
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
 		path = Path('Foo:Bar')
@@ -676,6 +529,208 @@ http://foo.org # urls are untouched
 			#~ r = self.store.resolve_name(link, namespace=namespace)
 			#~ print 'RESULT %s' % r
 			#~ self.assertEqual(r, name)
+
+
+class DeadLinks(object):
+
+	def __init__(self, notebook):
+		self.notebook = notebook
+
+	def __iter__(self):
+		db = self.notebook.links.db
+		pages = self.notebook.links._pages
+		for row in db.execute('''
+			SELECT links.source, links.rel, links.names FROM links JOIN pages
+			ON links.target = pages.id
+			WHERE pages.is_link_placeholder = 1
+		'''):
+			page = pages.get_pagename(row['source'])
+			href = HRef(row['rel'], row['names'])
+			yield page, href
+
+
+class TestUpdateLinksOnMovePage(tests.TestCase):
+
+	def assertDoesLink(self, notebook, page1, page2):
+		page1, page2 = Path(page1), Path(page2)
+		self.assertIn(
+			page2,
+			[link.target for link in notebook.links.list_links(page1)]
+		)
+
+	def assertNoDeadLinks(self, notebook):
+		deadlinks = DeadLinks(notebook)
+		self.assertEqual(
+			list(deadlinks),
+			[]
+		)
+
+	def testRelativeLink(self):
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'B': '[[A]]'
+		})
+		self.assertDoesLink(notebook, 'B', 'A')
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B'))
+		self.assertEqual(B.dump('wiki'), ['[[C]]\n'])
+		self.assertDoesLink(notebook, 'B', 'C')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkOnceRemoved(self):
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'B:B1': '[[A]]'
+		})
+		self.assertDoesLink(notebook, 'B:B1', 'A')
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B:B1'))
+		self.assertEqual(B.dump('wiki'), ['[[C]]\n'])
+		self.assertDoesLink(notebook, 'B:B1', 'C')
+		self.assertNoDeadLinks(notebook)
+
+	def testAbsoluteLink(self):
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'B:B1': '[[:A]]'
+		})
+		self.assertDoesLink(notebook, 'B:B1', 'A')
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B:B1'))
+		self.assertEqual(B.dump('wiki'), ['[[:C]]\n'])
+		self.assertDoesLink(notebook, 'B:B1', 'C')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkToChildPage(self):
+		notebook = self.setUpNotebook(content={
+			'A:A1': 'test 123',
+			'B:B1': '[[A:A1]]'
+		})
+		self.assertDoesLink(notebook, 'B:B1', 'A:A1')
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B:B1'))
+		self.assertEqual(B.dump('wiki'), ['[[C:A1]]\n'])
+		self.assertDoesLink(notebook, 'B:B1', 'C:A1')
+		self.assertNoDeadLinks(notebook)
+
+	def testAbsoluteLinkToChildPage(self):
+		notebook = self.setUpNotebook(content={
+			'A:A1': 'test 123',
+			'B:B1': '[[:A:A1]]'
+		})
+		self.assertDoesLink(notebook, 'B:B1', 'A:A1')
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B:B1'))
+		self.assertEqual(B.dump('wiki'), ['[[:C:A1]]\n'])
+		self.assertDoesLink(notebook, 'B:B1', 'C:A1')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkWithFallback(self):
+		# relative link that can resolve higher up as well
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'B:A': 'test 123',
+			'B:B1': '[[A]]'
+		})
+		self.assertDoesLink(notebook, 'B:B1', 'B:A')
+		notebook.move_page(Path('B:A'), Path('C'))
+		B = notebook.get_page(Path('B:B1'))
+		self.assertEqual(B.dump('wiki'), ['[[C]]\n'])
+		self.assertDoesLink(notebook, 'B:B1', 'C')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkFromMovedPageNotChangedIfNotNeeded(self):
+		notebook = self.setUpNotebook(content={
+			'A': '[[B]]',
+			'B': 'test 123',
+		})
+		self.assertDoesLink(notebook, 'A', 'B')
+		notebook.move_page(Path('A'), Path('C:C1'))
+		B = notebook.get_page(Path('C:C1'))
+		self.assertEqual(B.dump('wiki'), ['[[B]]\n'])
+		self.assertDoesLink(notebook, 'C:C1', 'B')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkFromMovedPageChangedIfNeeded(self):
+		notebook = self.setUpNotebook(content={
+			'A': '[[B]]',
+			'B': 'test 123',
+			'C:B': 'test 123'
+		})
+		self.assertDoesLink(notebook, 'A', 'B')
+		notebook.move_page(Path('A'), Path('C:C1'))
+		B = notebook.get_page(Path('C:C1'))
+		self.assertEqual(B.dump('wiki'), ['[[:B]]\n'])
+		self.assertDoesLink(notebook, 'C:C1', 'B')
+		self.assertNoDeadLinks(notebook)
+
+	def testAbsoluteLinkFromMovedPageNotChanged(self):
+		notebook = self.setUpNotebook(content={
+			'A': '[[:B]]',
+			'B': 'test 123',
+			'C:B': 'test 123'
+		})
+		self.assertDoesLink(notebook, 'A', 'B')
+		notebook.move_page(Path('A'), Path('C:C1'))
+		B = notebook.get_page(Path('C:C1'))
+		self.assertEqual(B.dump('wiki'), ['[[:B]]\n'])
+		self.assertDoesLink(notebook, 'C:C1', 'B')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkWithinMovedPageNotChanged(self):
+		notebook = self.setUpNotebook(content={
+			'TheParent': 'Loves [[+FirstChild]] and [[+SecondChild]]\n',
+			'TheParent:FirstChild': 'Hates the [[SecondChild]]\n',
+			'TheParent:SecondChild': 'Loves the [[FirstChild]]\n',
+		})
+
+		notebook.rename_page(Path('TheParent'), 'NewName', update_heading=False)
+
+		for name, want in (
+			('NewName', 'Loves [[+FirstChild]] and [[+SecondChild]]\n'),
+			('NewName:FirstChild', 'Hates the [[SecondChild]]\n'),
+			('NewName:SecondChild', 'Loves the [[FirstChild]]\n'),
+		):
+			page = notebook.get_page(Path(name))
+			self.assertEqual(page.dump('wiki'), [want, '\n'])
+
+		self.assertNoDeadLinks(notebook)
+
+	def testTextNotChangedForLinkWithText(self):
+		# XXX - this test belongs at place where interface for changing links it tested
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'B': '[[A|Text]]'
+		})
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B'))
+		self.assertEqual(B.dump('wiki'), ['[[C|Text]]\n'])
+
+	def testOtherLinksNotChanged(self):
+		# XXX - this test belongs at place where interface for changing links it tested
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'B': '[[A]]\nhttp://example.com\nwp?example\nmailto:user@example.com\n'
+		})
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B'))
+		self.assertEqual(
+			B.dump('wiki'),
+			'[[C]]\nhttp://example.com\nwp?example\nmailto:user@example.com\n\n'.splitlines(True)
+		)
+
+	def testMultipleLinksOnePage(self):
+		# XXX - this test belongs at place where interface for changing links it tested
+		notebook = self.setUpNotebook(content={
+			'A': 'test 123',
+			'A:A1': 'test 123',
+			'B': '[[A]]\n[[:A]]\n[[D]]\n[[A:A1]]',
+			'D': 'test 123',
+		})
+		notebook.move_page(Path('A'), Path('C'))
+		B = notebook.get_page(Path('B'))
+		self.assertEqual(B.dump('wiki'), '[[C]]\n[[:C]]\n[[D]]\n[[C:A1]]\n'.splitlines(True))
+		self.assertNoDeadLinks(notebook)
 
 
 class TestPath(tests.TestCase):

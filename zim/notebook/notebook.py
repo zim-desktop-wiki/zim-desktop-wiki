@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2017s Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from __future__ import with_statement
@@ -747,16 +747,19 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				return self._update_link_tag(elt, page, mynewtarget, href)
 
 			elif href.rel == HREF_REL_FLOATING \
-			and href.parts()[0] == newtarget.basename \
-			and page.ischild(oldtarget.parent) \
-			and not target.ischild(oldtarget.parent):
-				# Edge case: an link that was anchored to the moved page,
-				# and now resolves somewhere higher in the tree
-				if href.names == newtarget.basename:
-					return self._update_link_tag(elt, page, newtarget, href)
-				else:
-					mynewtarget = newtarget.child(':'.join(href.parts[1:]))
-					return self._update_link_tag(elt, page, mynewtarget, href)
+			and href.parts()[0] == oldtarget.basename \
+			and page.ischild(oldtarget.parent):
+				targetrecord = self.pages.lookup_by_pagename(target)
+				if not target.ischild(oldtarget.parent) \
+				or not targetrecord.exists():
+					# An link that was anchored to the moved page,
+					# but now resolves somewhere higher in the tree
+					# Or a link that no longer resolves
+					if href.names == newtarget.basename:
+						return self._update_link_tag(elt, page, newtarget, href)
+					else:
+						mynewtarget = newtarget.child(':'.join(href.parts()[1:]))
+						return self._update_link_tag(elt, page, mynewtarget, href)
 
 			else:
 				raise zim.formats.VisitorSkip
