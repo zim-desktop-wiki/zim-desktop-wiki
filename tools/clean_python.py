@@ -35,7 +35,7 @@ class CleanupTask(object):
         """
         git_cmd = ["git", "diff", "--name-only"]
         complproc = subprocess.run(git_cmd, stdout=subprocess.PIPE, check=True)
-        if complproc.stdout is None:
+        if not complproc.stdout or complproc.stdout.isspace():
             print("Not commiting anything because nothing changed in cleanup "
                   "task %s" % self._name)
             return
@@ -149,6 +149,8 @@ def _get_tests():
 
 
 def main():
+    subprocess.run(['make', 'clean'])
+
     cleaners = _get_tests()
 
     for cleaner in cleaners:
