@@ -57,7 +57,8 @@ class TestTableOfContents(tests.TestCase):
 		'''Test Tabel Of Contents plugin'''
 		notebook = self.setUpNotebook()
 		ui = setupGtkInterface(self, notebook=notebook)
-		pageview = ui._mainwindow.pageview # XXX
+		window = ui._mainwindow
+		pageview = window.pageview
 
 		widget = ToCWidget(ui, pageview, ellipsis=False)
 
@@ -119,8 +120,8 @@ sdfsdf
 		]
 
 		# Test basic usage - click some headings
-		ui.open_page(page)
-		widget.on_open_page(ui, page, page)
+		window.open_page(page)
+		widget.on_page_changed(window, page)
 		self.assertEqual(get_tree(), without_h1)
 		widget.on_store_page(ui.notebook, page)
 		self.assertEqual(get_tree(), without_h1)
@@ -148,7 +149,7 @@ sdfsdf
 		model.foreach(activate_row)
 
 		# Test promote / demote
-		ui.set_readonly(False)
+		ui._mainwindow.toggle_readonly(False)
 		pageview.set_readonly(False)
 		wanted = [
 			(1, 'bar'),
@@ -201,7 +202,7 @@ sdfsdf
 
 		# Test empty page
 		emptypage = tests.MockObject()
-		widget.on_open_page(ui, emptypage, emptypage)
+		widget.on_page_changed(window, emptypage)
 		self.assertEqual(get_tree(), [])
 		widget.on_store_page(ui.notebook, emptypage)
 		self.assertEqual(get_tree(), [])
@@ -210,7 +211,7 @@ sdfsdf
 		# Test some more pages - any errors ?
 		for path in ui.notebook.pages.walk():
 			page = ui.notebook.get_page(path)
-			widget.on_open_page(ui, page, page)
+			widget.on_page_changed(window, page)
 			widget.on_store_page(ui.notebook, page)
 
 # TODO check selecting heading in actual PageView

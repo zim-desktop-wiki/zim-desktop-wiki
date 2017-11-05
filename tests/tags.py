@@ -111,9 +111,10 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 
 	def testTreeView(self):
-		ui = MockUI()
+		ui = tests.MockObject()
 		ui.notebook = self.notebook
 		ui.page = Path('foobar')
+		ui._mainwindow = tests.MockObject()
 		self.assertTrue(self.notebook.get_page(ui.page).exists())
 
 		self.notebook.index.flush() # we want to index ourselves
@@ -190,8 +191,10 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
-		ui = MockUI()
+		ui = tests.MockObject()
 		ui.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		ui.page = None
+		ui._mainwindow = tests.MockObject()
 		uistate = ConfigDict()
 		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
 
@@ -242,10 +245,3 @@ class TestTagPluginWidget(tests.TestCase):
 		cloud._switch_sorting(mockaction)
 		mockaction.get_active = lambda: False
 		cloud._switch_sorting(mockaction)
-
-
-
-class MockUI(tests.MockObject):
-
-	page = None
-	notebook = None

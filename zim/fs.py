@@ -125,7 +125,7 @@ import logging
 import threading
 
 
-from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
+from zim.errors import Error
 from zim.parsing import url_encode, url_decode, URL_ENCODE_READABLE
 from zim.signals import SignalEmitter, SIGNAL_AFTER
 
@@ -149,13 +149,10 @@ gio = None
 try:
 	import gobject
 	import gio
-	if not gio.File.trash:
-		gio = None
 except ImportError:
 	pass
 
 if not gio:
-	logger.info("Trashing of files not supported, could not import 'gio'")
 	logger.info('No file monitor support - changes will go undetected')
 
 
@@ -867,40 +864,6 @@ class UnixPath(object):
 				shutil.move(self.encodedpath, newpath.encodedpath)
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
-
-	def trash(self):
-		'''Trash a file or folder by moving it to the system trashcan
-		if supported. Depends on the C{gio} library.
-		@returns: C{True} when succesful
-		@raises TrashNotSupportedError: if trashing is not supported
-		or failed.
-		@raises TrashCancelledError: if trashing was cancelled by the
-		user
-		'''
-		if not gio:
-			raise TrashNotSupportedError('gio not imported')
-
-		if self.exists():
-			logger.info('Move %s to trash' % self)
-			f = gio.File(uri=self.uri)
-			try:
-				ok = f.trash()
-			except gobject.GError as error:
-				if error.code == gio.ERROR_CANCELLED \
-				or (os.name == 'nt' and error.code == 0):
-					# code 0 observed on windows for cancel
-					logger.info('Trash operation cancelled')
-					raise TrashCancelledError('Trashing cancelled')
-				elif error.code == gio.ERROR_NOT_SUPPORTED:
-					raise TrashNotSupportedError('Trashing failed')
-				else:
-					raise error
-			else:
-				if not ok:
-					raise TrashNotSupportedError('Trashing failed')
-			return True
-		else:
-			return False
 
 
 class WindowsPath(UnixPath):

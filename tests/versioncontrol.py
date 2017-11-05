@@ -148,7 +148,7 @@ class TestMainWindowExtension(tests.TestCase):
 		notebook.store_page(page)
 
 		self.assertTrue(notebook_ext.vcs.modified)
-		ui.emit('quit')
+		mainwindow.emit('close')
 		self.assertFalse(notebook_ext.vcs.modified)
 
 

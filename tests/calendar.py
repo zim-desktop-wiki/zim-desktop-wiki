@@ -146,7 +146,7 @@ class TestCalendarPlugin(tests.TestCase):
 		def test_dialog(dialog):
 			self.assertIsInstance(dialog, CalendarDialog)
 			dialog.do_today('xxx')
-			ui.open_page(Path('foo'))
+			mainwindow.open_page(Path('foo'))
 
 		with tests.DialogContext(test_dialog):
 			ext[0].show_calendar()

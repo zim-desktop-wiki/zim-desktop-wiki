@@ -24,9 +24,10 @@ class TestBookmarksBar(tests.TestCase):
 
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		self.ui = MockUI()
+		self.ui = tests.MockObject()
 		self.ui.notebook = self.notebook
 		self.ui.page = Path('Test:foo')
+		self.ui._mainwindow = tests.MockObject()
 
 		self.PATHS = ('Parent:Daughter:Granddaughter',
 				 'Test:tags', 'Test:foo', 'Books')
@@ -83,8 +84,10 @@ class TestBookmarksBar(tests.TestCase):
 		'''Check deleting a bookmark after deleting a page in the notebook.'''
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		ui = MockUI()
+		ui = tests.MockObject()
 		ui.notebook = notebook
+		ui.page = None
+		ui._mainwindow = tests.MockObject()
 		self.uistate['bookmarks'] = list(self.PATHS)
 
 		Bar = BookmarkBar(ui, self.uistate, get_page_func = lambda: '')
@@ -275,8 +278,3 @@ class TestBookmarksBar(tests.TestCase):
 			preferences_changed(True, 15)
 			self.assertEqual(self.uistate['bookmarks'], list(self.PATHS[:i + 1]))
 		self.assertEqual(self.uistate['bookmarks'], list(self.PATHS))
-
-
-class MockUI(tests.MockObject):
-	page = None
-	notebook = None

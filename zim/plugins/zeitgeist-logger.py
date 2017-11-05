@@ -7,7 +7,7 @@
 import gio
 import logging
 import sys
-from zim.plugins import PluginClass, ObjectExtension, extends
+from zim.plugins import PluginClass, ObjectExtension, WindowExtension, extends
 from zim.signals import SIGNAL_AFTER
 from zim.fs import File
 
@@ -72,21 +72,25 @@ class ZeitgeistPlugin(PluginClass):
 		self.zeitgeist_client.insert_event(event)
 
 
-@extends('PageView')
-class PageViewExtension(ObjectExtension):
+@extends('MainWindow')
+class MainWindowExtension(WindowExtension):
 
-	def __init__(self, plugin, pageview):
-		self.plugin = plugin
-		self.connectto_all(pageview.ui, # XXX - remove ui here, emit from pageview
-			('open-page', 'close-page'), order=SIGNAL_AFTER)
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.connectto(window, 'page-changed')
+		self.page = None
 
-	def on_open_page(self, ui, page, path):
-		logger.debug("Opened page: %s", page.name)
+	def on_page_changed(self, page):
+		if self.page is not None:
+			self.plugin.create_and_send_event(self.page, Interpretation.LEAVE_EVENT)
+
 		self.plugin.create_and_send_event(page, Interpretation.ACCESS_EVENT)
+		self.page = page
 
-	def on_close_page(self, ui, page):
-		logger.debug("Left page: %s", page.name)
-		self.plugin.create_and_send_event(page, Interpretation.LEAVE_EVENT)
+	def destroy(self):
+		if self.page is not None:
+			self.plugin.create_and_send_event(self.page, Interpretation.LEAVE_EVENT)
+			self.page = None
 
 
 @extends('Notebook')

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the page index widget which is normally shown
 in the side pane of the main window. L{PageIndex} is the main widget
@@ -26,6 +26,7 @@ from zim.gui.clipboard import \
 	Clipboard, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist, unpack_urilist
+from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 
 from zim.actions import PRIMARY_MODIFIER_MASK
 
@@ -403,7 +404,7 @@ class PageTreeView(BrowserTreeView):
 			self.emit('page-activated', path)
 
 	def do_page_activated(self, path):
-		self.ui.open_page(path)
+		self.ui._mainwindow.open_page(path)
 
 	def do_key_press_event(self, event):
 		# Keybindings for the treeview:
@@ -431,7 +432,15 @@ class PageTreeView(BrowserTreeView):
 	def do_initialize_popup(self, menu):
 		# TODO get path first and determine what menu options are valid
 		path = self.get_selected_path() or Path(':')
-		self.ui.populate_popup('page_popup', menu, path)
+
+		uiactions = UIActions(
+			self,
+			self.ui._mainwindow.notebook, # XXX
+			path,
+			self.ui._mainwindow.config, # XXX
+			self.ui._mainwindow.navigation, # XXX
+		)
+		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 
 		populate_popup_add_separator(menu)
 		item = gtk.ImageMenuItem('gtk-copy')
@@ -552,40 +561,38 @@ class PageIndex(gtk.ScrolledWindow):
 	@ivar treeview: the L{PageTreeView}
 	'''
 
-	def __init__(self, ui):
+	def __init__(self, window):
 		'''Constructor
 
-		@param ui: the main L{GtkInterface} object
+		@param window: a L{MainWindow} object
 		'''
 		gtk.ScrolledWindow.__init__(self)
-		self.ui = ui
 
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 
-		self.treeview = PageTreeView(ui)
+		self.treeview = PageTreeView(window.ui) # XXX
 		self.add(self.treeview)
 
 		# Set model and connect to index
-		assert self.ui.notebook, 'BUG: need notebook at initialization'
-		index = self.ui.notebook.index
+		index = window.notebook.index
 
 		model = PageTreeStore(index)
 		self.treeview.set_model(model)
 
 		# Connect to ui signals
-		ui.connect('open-page', self.on_open_page)
-		ui.connect('start-index-update', lambda o: self.disconnect_model())
-		ui.connect('end-index-update', lambda o: self.reload_model())
+		#window.ui.connect('start-index-update', lambda o: self.disconnect_model())
+		#window.ui.connect('end-index-update', lambda o: self.reload_model())
+
+		window.connect('page-changed', self.on_page_changed)
 
 		# Select current page, if any
-		if self.ui.page:
-			self.on_open_page(self.ui, self.ui, page, self.ui, page)
+		if window.page:
+			self.on_page_changed(window, window.page)
 
-	def on_open_page(self, ui, page, path):
-		treepath = self.treeview.set_current_page(Path(path.name), vivificate=True)
-			# Force reloading Path - stale PageIndexRecord will not be checked later
-		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
+	def on_page_changed(self, window, page):
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
 		if treepath and expand:
 			self.treeview.select_treepath(treepath)
 
@@ -616,7 +623,6 @@ class PageIndex(gtk.ScrolledWindow):
 		reloading the index to get rid of out-of-sync model errors
 		without need to close the app first.
 		'''
+		ui = self.treeview.ui # XXX
 		model = PageTreeStore(self.ui.notebook.index)
 		self.treeview.set_model(model)
-		if self.ui.page:
-			self.on_open_page(self.ui, self.ui.page, self.ui.page)

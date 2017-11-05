@@ -109,7 +109,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('sort_column', 0)
 		self.uistate.setdefault('sort_order', int(gtk.SORT_DESCENDING))
 
-		opener = window.get_resource_opener()
+		opener = window.navigation
 		task_labels = _parse_task_labels(preferences['labels'])
 		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
 		self.task_list = TaskListTreeView(

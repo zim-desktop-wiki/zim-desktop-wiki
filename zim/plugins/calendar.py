@@ -244,7 +244,7 @@ class MainWindowExtension(WindowExtension):
 	def go_page_today(self):
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(today)
-		self.window.ui.open_page(path) # XXX
+		self.window.open_page(path)
 
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this
@@ -301,7 +301,7 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.opener = window.get_resource_opener()
+		self.opener = window.navigation
 
 		notebook = window.ui.notebook # XXX
 		model = CalendarWidgetModel(self.plugin, notebook)
@@ -311,7 +311,7 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 		self.connectto(self.widget, 'date-activated')
-		self.connectto(self.window.ui, 'open-page') # XXX
+		self.connectto(self.window, 'page-changed')
 
 	def on_preferences_changed(self, preferences):
 		if self.widget is None:
@@ -325,12 +325,12 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		self.widget.show_all()
 
 	@SignalHandler
-	def on_open_page(self, ui, page, path):
-		self.widget.set_page(path)
+	def on_page_changed(self, ui, page):
+		self.widget.set_page(page)
 
 	def on_date_activated(self, widget, date):
 		path = self.plugin.path_from_date(date)
-		with self.on_open_page.blocked():
+		with self.on_page_changed.blocked():
 			self.opener.open_page(path)
 
 	def teardown(self):
@@ -507,7 +507,7 @@ class CalendarDialog(Dialog):
 		Dialog.__init__(self, window, _('Calendar'), buttons=gtk.BUTTONS_CLOSE) # T: dialog title
 		self.set_resizable(False)
 		self.plugin = plugin
-		self.opener = window.get_resource_opener()
+		self.opener = window.navigation
 
 		notebook = window.ui.notebook # XXX
 		model = CalendarWidgetModel(self.plugin, notebook)
@@ -521,15 +521,15 @@ class CalendarDialog(Dialog):
 		self.dateshown = datetime.date.today()
 
 		self.connectto(self.calendar_widget, 'date-activated')
-		self.connectto(window.ui, 'open-page') # XXX
+		self.connectto(window, 'page-changed')
 
 	def on_date_activated(self, widget, date):
 		path = self.plugin.path_from_date(date)
-		with self.on_open_page.blocked():
+		with self.on_page_changed.blocked():
 			self.opener.open_page(path)
 
 	@SignalHandler
-	def on_open_page(self, ui, page, path):
+	def on_page_changed(self, ui, page):
 		self.calendar_widget.set_page(page)
 
 	def do_today(self, event):

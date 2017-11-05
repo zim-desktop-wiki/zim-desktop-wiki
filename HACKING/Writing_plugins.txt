@@ -22,3 +22,11 @@ Each plugin should have it's own page in the user manual that explains what it d
 
 ===== Unit testing =====
 As stated in the guidelines [[Test Suite|unittesting]] is good. Please try to write some test cases for your plugin before proposing it to be included in the main package. Other developers may not use your plugin, so if it breaks later on it may go undetected unless there is a test case for it.
+
+===== How to .. =====
+
+==== Let a plugin handle a specific URL scheme ====
+The PageView object defines a signal "''activate-link''". An extension object can connect to this signal and check the link that is being opened. If it matches the URL scheme of interest you can handle it and return ''True'' to let the PageView know it should not try to open this link itself. (Return ''True'' here stops further emission of the signal, so it never reaches the ddefault handler.)
+
+==== Trigger a menu action automatically from a plugin ====
+The MainWindow object has an attribute "actions" that functions as a proxy to all actions that are available in the menu bar. So a "WindowExtension" can call e.g. ''window.actions.show_help()'' to open the manual.

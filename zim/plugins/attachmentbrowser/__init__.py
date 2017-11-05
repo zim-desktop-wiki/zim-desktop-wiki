@@ -44,6 +44,7 @@ import gtk
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import toggle_action
 
+from zim.gui.applications import open_folder_prompt_create
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
 	IconButton, ScrolledWindow, button_set_statusbar_style, \
@@ -131,18 +132,16 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.statusbar_frame.show_all()
 
 		# Init browser widget
-		opener = self.window.get_resource_opener()
+		opener = self.window.navigation
 		self.widget = AttachmentBrowserPluginWidget(self, opener, self.preferences)
 			# FIXME FIXME FIXME - get rid of ui object here
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-		# XXX
-		if self.window.ui.page:
-			self.on_open_page(self.window.ui, self.window.ui.page, self.window.ui.page)
-		self.connectto(self.window.ui, 'open-page')
-		self.connectto(self.window.ui, 'close-page')
+		if self.window.page:
+			self.on_page_changed(self.window, self.window.page)
+		self.connectto(self.window, 'page-changed')
 
 		self.connectto(self.window, 'pane-state-changed')
 
@@ -190,13 +189,11 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		else:
 			self.toggle_attachmentbrowser(False)
 
-	def on_open_page(self, ui, page, path):
-		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_attachemnts_dir()
-		self.widget.iconview.set_folder(dir)
+	def on_page_changed(self, window, page):
+		self.widget.iconview.set_folder(
+			window.notebook.get_attachments_dir(page)
+		)
 		self._refresh_statusbar()
-
-	def on_close_page(self, ui, page):
-		self.widget.iconview.teardown_folder()
 
 	def _refresh_statusbar(self):
 		model = self.widget.iconview.get_model() # XXX
@@ -213,6 +210,8 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 			self.window.statusbar.remove(self.statusbar_frame)
 		self.widget = None
 
+	def destroy(self):
+		self.widget.iconview.teardown_folder()
 
 
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
@@ -270,8 +269,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
-		from zim.fs import Dir
-		self.opener.open_dir(Dir(self.iconview.folder.path))
+		open_folder_prompt_create(self, self.iconview.folder)
 		self.iconview.refresh()
 
 	def on_refresh_button(self):
@@ -293,6 +291,3 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.zoomin_button.set_sensitive(icon_size < THUMB_SIZE_LARGE)
 		self.zoomout_button.set_sensitive(icon_size > MIN_ICON_ZOOM)
 		self.icon_size = icon_size # Do this last - avoid store state after fail
-
-
-

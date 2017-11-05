@@ -7,6 +7,8 @@
 # This plugin uses an icon from Tango Desktop Project (http://tango.freedesktop.org/)
 # (the Tango base icon theme is released to the Public Domain).
 
+from __future__ import with_statement
+
 import gobject
 import gtk
 import pango
@@ -15,7 +17,7 @@ from zim.actions import toggle_action, action
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path
 from zim.gui.widgets import TOP, TOP_PANE
-from zim.signals import ConnectorMixin
+from zim.signals import ConnectorMixin, SignalHandler
 from zim.gui.pathbar import ScrolledHBox
 from zim.gui.clipboard import Clipboard
 
@@ -178,7 +180,7 @@ class MainWindowExtension(WindowExtension):
 	def _open_bookmark(self, number):
 		number -= 1
 		try:
-			self.window.ui.open_page(Path(self.widget.paths[number]))
+			self.window.open_page(Path(self.widget.paths[number]))
 		except IndexError:
 			pass
 
@@ -256,20 +258,21 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 					logger.error('BookmarksBar: Error while loading path_names.')
 
 		# Look for new pages to mark corresponding bookmarks in the bar.
-		self.connectto(self.ui, 'open-page', self.on_open_page)
+		self.connectto(self.ui._mainwindow, 'page-changed')
 
 		# Delete a bookmark if a page is deleted.
 		self.connectto(self.ui.notebook, 'deleted-page',
 					   lambda obj, path: self.delete(path.name))
 
-	def on_open_page(self, ui, page, path):
+	def on_page_changed(self, window, page):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
-		for button in self.container.get_children()[2:]:
-			if button.zim_path == pagename:
-				button.set_active(True)
-			else:
-				button.set_active(False)
+		with self.on_bookmark_clicked.blocked():
+			for button in self.container.get_children()[2:]:
+				if button.zim_path == pagename:
+					button.set_active(True)
+				else:
+					button.set_active(False)
 
 	def add_new_page(self, page = None):
 		'''
@@ -465,10 +468,10 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		main_menu.popup(None, None, None, 3, 0)
 		return True
 
-
+	@SignalHandler
 	def on_bookmark_clicked(self, button):
 		'''Open page if a bookmark is clicked.'''
-		self.ui.open_page(Path(button.zim_path))
+		self.ui._mainwindow.open_page(Path(button.zim_path))
 
 	def on_preferences_changed(self, preferences):
 		'''Plugin preferences were changed.'''

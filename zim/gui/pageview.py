@@ -29,7 +29,7 @@ import zim.formats
 
 from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
-from zim.config import String, Float, Integer, Boolean
+from zim.config import String, Float, Integer, Boolean, Choice
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
@@ -42,7 +42,7 @@ from zim.gui.widgets import ui_environment, \
 	Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator
-from zim.gui.applications import OpenWithMenu
+from zim.gui.applications import OpenWithMenu, open_url, open_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
@@ -4932,7 +4932,9 @@ discarded, but you can restore the copy later.''')
 			ErrorDialog.run(self)
 
 
-class PageView(gtk.VBox):
+from zim.signals import GSignalEmitterMixin
+
+class PageView(GSignalEmitterMixin, gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
 	a L{FindBar}. Also adds menu items and in general integrates
 	the TextView with the rest of the application.
@@ -4960,6 +4962,8 @@ class PageView(gtk.VBox):
 	@signal: C{modified-changed ()}: emitted when the page is edited
 	@signal: C{textstyle-changed (style)}:
 	Emitted when textstyle at the cursor changes
+	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
+	stops emission after the first handler returns C{True}
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -4973,7 +4977,10 @@ class PageView(gtk.VBox):
 	__gsignals__ = {
 		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+	}
 
+	__signals__ = {
+		'activate-link': (gobject.SIGNAL_RUN_LAST, bool, (object, object))
 	}
 
 	def __init__(self, ui, notebook, secondary=False):
@@ -4985,6 +4992,7 @@ class PageView(gtk.VBox):
 		widget
 		'''
 		gtk.VBox.__init__(self)
+		GSignalEmitterMixin.__init__(self)
 		self.ui = ui
 
 		self._buffer_signals = ()
@@ -5003,13 +5011,26 @@ class PageView(gtk.VBox):
 		self.preferences = self.ui.preferences['PageView']
 		if not self.secondary:
 			# HACK avoid registering a second time
-			self.ui.register_preferences('PageView', ui_preferences)
+			self.preferences.define(
+				follow_on_enter=Boolean(True),
+				read_only_cursor=Boolean(False),
+				autolink_camelcase=Boolean(True),
+				autolink_files=Boolean(True),
+				autoselect=Boolean(True),
+				unindent_on_backspace=Boolean(True),
+				cycle_checkbox_type=Boolean(True),
+				recursive_indentlist=Boolean(True),
+				recursive_checklist=Boolean(False),
+				auto_reformat=Boolean(False),
+				copy_format=Choice('Text', COPY_FORMATS),
+				file_templates_folder=String('~/Templates'),
+			)
 
 		self.view = TextView(preferences=self.preferences)
 		self.swindow = ScrolledWindow(self.view)
 		self.add(self.swindow)
 
-		self.view.connect_object('link-clicked', PageView.do_link_clicked, self)
+		self.view.connect_object('link-clicked', PageView.activate_link, self)
 		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
@@ -5055,8 +5076,6 @@ class PageView(gtk.VBox):
 		self.text_style = self.ui.config.get_config_dict('<profile>/style.conf')
 		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
 		self.on_text_style_changed()
-
-		self.ui.connect_object('readonly-changed', PageView.set_readonly, self)
 
 		# Connect to notebook
 		assert self.ui.notebook, 'BUG: need notebook at initialization'
@@ -5399,7 +5418,7 @@ class PageView(gtk.VBox):
 		sensitivities set due to cursor position, readonly state etc.
 		'''
 		if sensitive:
-			# partly overrule logic in ui.set_readonly()
+			# partly overrule logic in window.toggle_readonly()
 			for action in self.actiongroup.list_actions():
 				action.set_sensitive(
 					action.zim_readonly or not self.readonly)
@@ -5488,6 +5507,16 @@ class PageView(gtk.VBox):
 		buffer.select_word()
 		return self.get_selection(format)
 
+	def replace_selection(self, text):
+		buffer = self.view.get_buffer()
+		if buffer.get_has_selection():
+			start, end = buffer.get_selection_bounds()
+			with buffer.user_action:
+				buffer.delete(start, end)
+				buffer.insert_at_cursor(''.join(output))
+		else:
+			raise AssertionError
+
 	def register_image_generator_plugin(self, plugin, type):
 		'''Register a plugin for C{self.image_generator_plugins}
 
@@ -5570,58 +5599,66 @@ class PageView(gtk.VBox):
 
 		#~ print '<<<'
 
-	def do_link_clicked(self, link, new_window=False):
-		assert isinstance(link, dict)
-		href = link['href']
-		href = normalize_file_uris(href)
+	def activate_link(self, link, new_window=False):
+		if not isinstance(link, basestring):
+			link = link['href']
+
+		href = normalize_file_uris(link)
 			# can translate file:// -> smb:// so do before link_type()
 			# FIXME implement function in notebook to resolve any link
 			#       type and take care of this stuff ?
-		type = link_type(href)
-		logger.debug('Link clicked: %s: %s' % (type, link['href']))
+		logger.debug('Activate link: %s', link)
 
-		try:
-			if type == 'interwiki':
-				oldhref = href
-				href = interwiki_link(href)
-				if href:
-					# could be file, url, or notebook
-					type = link_type(href)
-				else:
-					if '?' in oldhref:
-						oldhref, p = oldhref.split('?', 1)
-					raise Error(_('No such wiki defined: %s') % oldhref)
+		if link_type(link) == 'interwiki':
+			target = interwiki_link(link)
+			if target is not None:
+				link = target
+			else:
+				name = link.split('?')[0]
+				error = Error(_('No such wiki defined: %s') % name)
 					# T: error when unknown interwiki link is clicked
+				return ErrorDialog(self, error).run()
 
-			if type == 'page':
-				path = self.ui.notebook.pages.resolve_link(
-					self.page, HRef.new_from_wiki_link(href)
-				)
-				if new_window:
-					self.ui.open_new_window(path)
-				else:
-					self.ui.open_page(path)
-			elif type == 'file':
-				path = self.ui.notebook.resolve_file(href, self.page)
-				self.ui.open_file(path)
-			elif type == 'notebook':
-				if href.startswith('zim+'):
-					uri, pagename = href[4:], None
-					if '?' in href:
-						uri, pagename = href.split('?', 1)
+		hints = {'new_window': new_window}
+		self.emit_return_first('activate-link', link, hints)
 
-					self.ui.open_notebook(uri, pagename)
+	def do_activate_link(self, link, hints):
+		type = link_type(link)
 
-				else:
-					self.ui.open_notebook(FilePath(href).uri)
+		if type == 'page':
+			path = self.ui.notebook.pages.resolve_link(
+				self.page, HRef.new_from_wiki_link(link)
+			)
+			if hints.get('new_window', False):
+				self.ui.open_new_window(path)
+			else:
+				self.ui._mainwindow.open_page(path)
+		elif type == 'file':
+			path = self.ui.notebook.resolve_file(link, self.page)
+			self._open_file(path)
+		elif type == 'notebook':
+			if link.startswith('zim+'):
+				uri, pagename = link[4:], None
+				if '?' in link:
+					uri, pagename = link.split('?', 1)
+
+				self.ui.open_notebook(uri, pagename)
 
 			else:
-				if type == 'mailto' \
-				and not href.startswith('mailto:'):
-					href = 'mailto:' + href
-				self.ui.open_url(href)
-		except Exception as error:
-			ErrorDialog(self.ui, error).run()
+				self.ui.open_notebook(FilePath(link).uri)
+
+		else:
+			if type == 'mailto' and not link.startswith('mailto:'):
+				link = 'mailto:' + link  # Enforce proper URI form
+			self._open_url(link)
+
+		return True # handled
+
+	def _open_file(self, path):  # Test seam
+		open_file(path)
+
+	def _open_url(self, path):  # Test seam
+		open_url(path)
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
@@ -5809,7 +5846,7 @@ class PageView(gtk.VBox):
 			item = gtk.MenuItem(_('Open in New _Window'))
 				# T: menu item to open a link
 			item.connect(
-				'activate', lambda o: self.do_link_clicked(link, new_window=True))
+				'activate', lambda o: self.activate_link(link, new_window=True))
 			menu.prepend(item)
 
 		# open
@@ -5822,7 +5859,7 @@ class PageView(gtk.VBox):
 			item.set_sensitive(False)
 		else:
 			item.connect_object(
-				'activate', PageView.do_link_clicked, self, link)
+				'activate', PageView.activate_link, self, link)
 		menu.prepend(item)
 
 		menu.show_all()
@@ -5848,7 +5885,17 @@ class PageView(gtk.VBox):
 		menu.show_all()
 
 	def do_reload_page(self):
-		self.ui.reload_page()
+		self.ui._mainwindow.reload_page()
+
+	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
+	def save_page(self):
+		'''Menu action to save the current page.
+
+		Can result in a L{SavePageErrorDialog} when there is an error
+		while saving a page. If that dialog is cancelled by the user,
+		the page may not be saved after all.
+		'''
+		self.save_changes(write_if_not_modified=True) # XXX
 
 	@action(_('_Undo'), 'gtk-undo', '<Primary>Z', readonly=False) # T: Menu item
 	def undo(self):
@@ -6611,6 +6658,42 @@ class InsertImageDialog(FileDialog):
 		return True
 
 
+class AttachFileDialog(FileDialog):
+
+	def __init__(self, widget, notebook, path, pageview=None):
+		assert path, 'Need a page here'
+		FileDialog.__init__(self, widget, _('Attach File'), multiple=True) # T: Dialog title
+		self.notebook = notebook
+		self.path = path
+		self.pageview = pageview
+
+		self.add_shortcut(notebook, path)
+		self.load_last_folder()
+
+		dir = notebook.get_attachments_dir(path)
+		if dir is None:
+			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
+				# T: Error dialog - %s is the full page name
+			raise Exception('Page "%s" does not have a folder for attachments' % self.path)
+
+		self.uistate.setdefault('insert_attached_images', True)
+		checkbox = gtk.CheckButton(_('Insert images as link'))
+			# T: checkbox in the "Attach File" dialog
+		checkbox.set_active(not self.uistate['insert_attached_images'])
+		self.filechooser.set_extra_widget(checkbox)
+
+	def do_response_ok(self):
+		files = self.get_files()
+		if not files:
+			return False
+
+		self.save_last_folder()
+
+		# Similar code in zim.gui.pageview.InsertImageDialog
+		checkbox = self.filechooser.get_extra_widget()
+		self.uistate['insert_attached_images'] = not checkbox.get_active()
+
+
 class EditImageDialog(Dialog):
 	'''Dialog to edit properties of an embedded image'''
 
@@ -7266,7 +7349,7 @@ class MoveTextDialog(Dialog):
 		# Show page
 		self.uistate['open_page'] = self.form['open_page']
 		if self.form['open_page']:
-			self.ui.open_page(newpage)
+			self.ui._mainwindow.open_page(newpage)
 
 		return True
 

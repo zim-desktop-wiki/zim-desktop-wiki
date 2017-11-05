@@ -108,6 +108,7 @@ class TestGui(tests.TestCase):
 		file.remove()
 
 	def runTest(self):
+		from zim.gui.mainwindow import MainWindow
 
 		## Without argument should prompt
 		def testAddNotebookDialog(dialog):
@@ -123,14 +124,16 @@ class TestGui(tests.TestCase):
 		dir = self.create_tmp_dir()
 		cmd = GuiCommand('gui')
 		cmd.parse_options(dir)
-		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
-			window = cmd.run()
+		with tests.WindowContext(MainWindow):
+			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+				window = cmd.run()
 		self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 		self.assertEqual(window.ui.notebook.uri, Dir(dir).uri) # XXX
 
-		window2 = cmd.run()
+		with tests.WindowContext(MainWindow):
+			window2 = cmd.run()
 		self.assertIs(window2, window)
 			# Ensure repeated calling gives unique window
 
@@ -142,9 +145,12 @@ class TestGui(tests.TestCase):
 class TestManual(tests.TestCase):
 
 	def runTest(self):
+		from zim.gui.mainwindow import MainWindow
+
 		cmd = ManualCommand('manual')
-		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
-			window = cmd.run()
+		with tests.WindowContext(MainWindow):
+			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+				window = cmd.run()
 		self.addCleanup(window.destroy)
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 

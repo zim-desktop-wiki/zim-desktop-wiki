@@ -9,6 +9,7 @@ import os
 from zim.plugins import *
 from zim.fs import File
 
+from zim.config import VirtualConfigManager
 from zim.gui.propertiesdialog import PropertiesDialog
 from tests.gui import setupGtkInterface
 
@@ -158,7 +159,7 @@ class TestPlugins(tests.TestCase):
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		ui = setupGtkInterface(self, notebook=notebook)
-		dialog = PropertiesDialog(ui) # random dialog
+		dialog = PropertiesDialog(ui, VirtualConfigManager(), notebook) # random dialog
 		for obj in (
 			notebook,
 			notebook.index,

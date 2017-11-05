@@ -26,11 +26,6 @@ class TestPageTreeStore(tests.TestCase):
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
-		ui = MockUI()
-		ui.notebook = notebook
-		ui.page = Path('Test:foo')
-		self.assertTrue(notebook.get_page(ui.page).exists())
-
 		treestore = PageTreeStore(notebook.index)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 8)
@@ -129,6 +124,7 @@ class TestPageTreeView(tests.TestCase):
 
 	def setUp(self):
 		self.ui = tests.MockObject()
+		self.ui._mainwindow = tests.MockObject() # XXX
 		self.ui.page = Path('Test')
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.ui.notebook = self.notebook
@@ -152,6 +148,12 @@ class TestPageTreeView(tests.TestCase):
 		self.treeview.emit('copy')
 
 	def testContextMenu(self):
+		from zim.config import VirtualConfigManager
+
+		self.ui._mainwindow.notebook = self.notebook # XXX
+		self.ui._mainwindow.config = VirtualConfigManager() # XXX
+		self.ui._mainwindow.navigation = tests.MockObject() # XXX
+
 		menu = self.treeview.get_popup()
 
 		# Check these do not cause errors - how to verify state ?

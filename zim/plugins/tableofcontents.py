@@ -211,8 +211,8 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.add(self.treeview)
 
-		# XXX remove ui - use signals from pageview for this
-		self.connectto(ui, 'open-page')
+		# XXX remove ui / window - use signals from pageview for this
+		self.connectto(ui._mainwindow, 'page-changed')
 		self.connectto(ui.notebook, 'store-page')
 
 		self.pageview = pageview
@@ -225,7 +225,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			if self.pageview.page:
 				self.load_page(self.pageview.page)
 
-	def on_open_page(self, ui, page, path):
+	def on_page_changed(self, window, page):
 		self.load_page(page)
 
 	def on_store_page(self, notebook, page):

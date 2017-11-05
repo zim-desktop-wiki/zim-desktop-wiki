@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains utilities to work with external applications
 it is based on the Freedesktop.org (XDG) Desktop Entry specification
@@ -9,10 +9,6 @@ with some additional logic based on status quo on Gnome / XFCE.
 The main class is the L{DesktopEntryFile} which maps the application
 definition in a specific desktop entry. Typically these are not
 constructed directly, but requested through the L{ApplicationManager}.
-
-Similar there is the L{CustomTool} class, which defines a custom tool
-defined within zim, and the L{CustomToolManager} to manage these
-definitions.
 
 Also there is the L{OpenWithMenu} which is the widget to render a menu
 with available applications for a specific file plus a dialog so the
@@ -30,7 +26,7 @@ from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
 	data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
-from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
+from zim.gui.widgets import ui_environment, Dialog, ErrorDialog, MessageDialog
 
 
 logger = logging.getLogger('zim.gui.applications')
@@ -428,6 +424,240 @@ class ApplicationManager(object):
 			entries = [e for e in entries if not e.nodisplay]
 
 		return entries
+
+
+from zim.errors import Error
+from zim.parsing import is_win32_share_re, is_url_re, is_uri_re
+
+from zim.fs import adapt_from_newfs, normalize_win32_share
+from zim.newfs import FileNotFoundError
+
+from zim.gui.widgets import QuestionDialog
+
+
+class NoApplicationFoundError(Error):
+	'''Exception raised when an application was not found'''
+	pass
+
+
+def open_file(widget, file, mimetype=None, callback=None):
+	'''Open a file or folder
+
+	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param file: a L{File} or L{Folder} object
+	@param mimetype: optionally specify the mimetype to force a
+	specific application to open this file
+	@param callback: callback function to be passed on to
+	L{Application.spawn()} (if the application supports a
+	callback, otherwise it is ignored silently)
+
+	@raises FileNotFoundError: if C{file} does not exist
+	@raises NoApplicationFoundError: if a specific mimetype was
+	given, but no default application is known for this mimetype
+	(will not use fallback in this case - fallback would
+	ignore the specified mimetype)
+	'''
+	logger.debug('open_file(%s, %s)', file, mimetype)
+	file = adapt_from_newfs(file)
+	assert isinstance(file, (File, Dir))
+	if isinstance(file, (File)) and file.isdir():
+		file = Dir(file.path)
+
+	if not file.exists():
+		raise FileNotFoundError(file)
+
+	if isinstance(file, File): # File
+		manager = ApplicationManager()
+		if mimetype is None:
+			entry = manager.get_default_application(file.get_mimetype())
+			if entry is not None:
+				_open_with(widget, entry, file, callback)
+			else:
+				_open_with_filebrowser(widget, file, callback)
+
+		else:
+			entry = manager.get_default_application(mimetype)
+			if entry is not None:
+				_open_with(widget, entry, file, callback)
+			else:
+				raise NoApplicationFoundError('No Application found for: %s' % mimetype)
+				# Do not go to fallback, we can not force
+				# mimetype for fallback
+	else: # Dir
+		_open_with_filebrowser(widget, file, callback)
+
+
+def open_folder_prompt_create(widget, folder):
+	'''Open a folder and prompts to create it if it doesn't exist yet.
+	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param folder: a L{Folder} object
+	'''
+	try:
+		open_folder(widget, folder)
+	except FileNotFoundError:
+		if QuestionDialog(widget, (
+			_('Create folder?'),
+				# T: Heading in a question dialog for creating a folder
+			_('The folder "%s" does not yet exist.\nDo you want to create it now?') % folder.basename
+				# T: Text in a question dialog for creating a folder, %s will be the folder base name
+		)).run():
+			folder.touch()
+			open_folder(widget, folder)
+
+
+def open_folder(widget, folder):
+	'''Open a folder.
+	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param folder: a L{Folder} object
+	@raises FileNotFoundError: if C{folder} does not exist
+	see L{open_folder_prompt_create} for alternative behavior when folder
+	does not exist.
+	'''
+	dir = adapt_from_newfs(folder)
+	open_file(widget, dir)
+
+
+def open_url(widget, url):
+	'''Open an URL (or URI) in the web browser or other relevant
+	program. The application is determined based on the URL / URI
+	scheme. Unkown schemes and "file://" URIs are opened with the
+	webbrowser.
+	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param url: an URL or URI as string
+	'''
+	logger.debug('open_url(%s)', url)
+	assert isinstance(url, basestring)
+
+	if is_win32_share_re.match(url):
+		url = normalize_win32_share(url)
+		if os.name == 'nt':
+			return _open_with_filebrowser(widget, url)
+		# else consider as a x-scheme-handler/smb type URI below
+	elif not is_uri_re.match(url):
+		raise ValueError('Not an URL: %s' % url)
+	else:
+		pass
+
+	if url.startswith('file:/'):
+		# Special case, force to browser (and not use open_file())
+		# even though the result may be the same if the browser is
+		# dispatched through xdg-open, gnome-open, ...)
+		_open_with_webbrowser(widget, url)
+	elif url.startswith('outlook:') and hasattr(os, 'startfile'):
+		# Special case for outlook folder paths on windows
+		os.startfile(url)
+	else:
+		from zim.gui.applications import get_mimetype
+		manager = ApplicationManager()
+		type = get_mimetype(url) # Supports "x-scheme-handler/... for URL schemes"
+		logger.debug('Got type "%s" for "%s"', type, url)
+		entry = manager.get_default_application(type)
+		if entry:
+			_open_with(widget, entry, url)
+		elif url.startswith('mailto:'):
+			_open_with_emailclient(widget, url)
+		else:
+			_open_with_webbrowser(widget, url)
+
+
+def _open_with(widget, entry, uri, callback=None):
+	def check_error(status):
+		if status != 0:
+				ErrorDialog(widget, _('Could not open: %s') % uri).run()
+				# T: error when external application fails
+
+	if callback is None:
+		callback = check_error
+
+	try:
+		entry.spawn((uri,), callback=callback)
+	except NotImplementedError:
+		entry.spawn((uri,)) # E.g. webbrowser module
+
+
+def _open_with_filebrowser(widget, file, callback=None):
+	entry = ApplicationManager.get_fallback_filebrowser()
+	_open_with(widget, entry, file, callback)
+
+
+def _open_with_emailclient(widget, uri):
+	entry = ApplicationManager.get_fallback_emailclient()
+	_open_with(widget, entry, uri)
+
+
+def _open_with_webbrowser(widget, url):
+	entry = ApplicationManager.get_fallback_webbrowser()
+	_open_with(widget, entry, url)
+
+
+def edit_config_file(widget, configfile):
+	'''Edit a config file in an external editor.
+	See L{edit_file()} for details.
+	@param widget: a C{gtk} widget to use as parent for dialogs or C{None}
+	@param configfile: a L{ConfigFile} object
+	'''
+	configfile.touch()
+	edit_file(wiconfigfile.file, istextfile=True)
+
+
+def edit_file(widget, file, istextfile=None):
+	'''Edit a file with and external application.
+
+	This method will show a dialog to block the interface while the
+	external application is running. The dialog is closed
+	automatically when the application exits _after_ modifying the
+	file. If the file is unmodified the user needs to click the
+	"Done" button in the dialog because we can not know if the
+	application was really done or just forked to another process.
+
+	@param widget: a C{gtk} widget to use as parent for dialogs or C{None}
+	@param file: a L{File} object
+	@param istextfile: if C{True} the text editor is used, otherwise
+	we ask the file browser for the correct application. When
+	C{None} we check the mimetype of the file to determine if it
+	is text or not.
+	'''
+	## FIXME force using real text editor, even when file has not
+	## text mimetype. This now goes wrong when editing e.g. a html
+	## template when the editor is "xdg-open" on linux or default
+	## os.startfile() on windows...
+
+	if not file.exists():
+		raise FileNotFoundError(file)
+
+	oldmtime = file.mtime()
+
+	dialog = MessageDialog(widget, (
+		_('Editing file: %s') % file.basename,
+			# T: main text for dialog for editing external files
+		_('You are editing a file in an external application. You can close this dialog when you are done')
+			# T: description for dialog for editing external files
+	))
+
+	def check_close_dialog(status):
+		if status != 0:
+			dialog.destroy()
+			ErrorDialog(widget, _('Could not open: %s') % file.basename).run()
+				# T: error when external application fails
+		else:
+			newmtime = file.mtime()
+			if newmtime != oldmtime:
+				dialog.destroy()
+
+	if istextfile:
+		try:
+			open_file(widget, file, mimetype='text/plain', callback=check_close_dialog)
+		except NoApplicationFoundError:
+			app = AddApplicationDialog(window, 'text/plain').run()
+			if app:
+				# Try again
+				open_file(widget, file, mimetype='text/plain', callback=check_close_dialog)
+			else:
+				return # Dialog was cancelled, no default set, ...
+	else:
+		open_file(widget, file, callback=check_close_dialog)
+
+	dialog.run()
 
 
 from zim.config import String as BaseString
@@ -917,292 +1147,3 @@ class AddApplicationDialog(Dialog):
 
 		self.result = application
 		return True
-
-
-class CustomToolManager(object):
-	'''Manager for dealing with the desktop files which are used to
-	store custom tools.
-
-	Custom tools are external commands that are intended to show in the
-	"Tools" menu in zim (and optionally in the tool bar). They are
-	defined as desktop entry files in a special folder (typically
-	"~/.local/share/zim/customtools") and use several non standard keys.
-	See L{CustomTool} for details.
-
-	This object is iterable and maintains a specific order for tools
-	to be shown in in the user interface.
-	'''
-
-	def __init__(self):
-		self.config = ConfigManager() # XXX should be passed in
-		self.names = []
-		self.tools = {}
-		self._read_list()
-
-	def _read_list(self):
-		file = self.config.get_config_file('customtools/customtools.list')
-		seen = set()
-		for line in file.readlines():
-			name = line.strip()
-			if not name in seen:
-				seen.add(name)
-				self.names.append(name)
-
-	def _write_list(self):
-		file = self.config.get_config_file('customtools/customtools.list')
-		file.writelines([name + '\n' for name in self.names])
-
-	def __iter__(self):
-		for name in self.names:
-			tool = self.get_tool(name)
-			if tool and tool.isvalid():
-				yield tool
-
-	def get_tool(self, name):
-		'''Get a L{CustomTool} by name.
-		@param name: the tool name
-		@returns: a L{CustomTool} object
-		'''
-		if not name in self.tools:
-			file = self.config.get_config_file('customtools/%s.desktop' % name)
-			tool = CustomTool(file)
-			self.tools[name] = tool
-
-		return self.tools[name]
-
-	def create(self, Name, **properties):
-		'''Create a new custom tool
-
-		@param Name: the name to show in the Tools menu
-		@param properties: properties for the custom tool, e.g.:
-		  - Comment
-		  - Icon
-		  - X-Zim-ExecTool
-		  - X-Zim-ReadOnly
-		  - X-Zim-ShowInToolBar
-
-		@returns: a new L{CustomTool} object.
-		'''
-		properties['Type'] = 'X-Zim-CustomTool'
-		dir = XDG_CONFIG_HOME.subdir('zim/customtools')
-		tool = _create_application(dir, Name, '', klass=CustomTool, NoDisplay=False, **properties)
-		self.tools[tool.key] = tool
-		self.names.append(tool.key)
-		self._write_list()
-
-		return tool
-
-	def delete(self, tool):
-		'''Remove a custom tool from the list and delete the definition
-		file.
-		@param tool: a custom tool name or L{CustomTool} object
-		'''
-		if not isinstance(tool, CustomTool):
-			tool = self.get_tool(tool)
-		tool.file.remove()
-		self.tools.pop(tool.key)
-		self.names.remove(tool.key)
-		self._write_list()
-
-	def index(self, tool):
-		'''Get the position of a specific tool in the list.
-		@param tool: a custom tool name or L{CustomTool} object
-		@returns: an integer for the position
-		'''
-		if isinstance(tool, CustomTool):
-			tool = tool.key
-		return self.names.index(tool)
-
-	def reorder(self, tool, i):
-		'''Change the position of a tool in the list.
-		@param tool: a custom tool name or L{CustomTool} object
-		@param i: the new position as integer
-		'''
-		if not 0 <= i < len(self.names):
-			return
-
-		if isinstance(tool, CustomTool):
-			tool = tool.key
-
-		j = self.names.index(tool)
-		self.names.pop(j)
-		self.names.insert(i, tool)
-		# Insert before i. If i was before old position indeed before
-		# old item at that position. However if i was after old position
-		# if shifted due to the pop(), now it inserts after the old item.
-		# This is intended behavior to make all moves possible.
-		self._write_list()
-
-
-
-from zim.config import Choice
-
-class CustomToolDict(DesktopEntryDict):
-	'''This is a specialized desktop entry type that is used for
-	custom tools for the "Tools" menu in zim. It uses a non-standard
-	Exec spec with zim specific escapes for "X-Zim-ExecTool".
-
-	The following fields are expanded:
-		- C{%f} for source file as tmp file current page
-		- C{%d} for attachment directory
-		- C{%s} for real source file (if any)
-		- C{%n} for notebook location (file or directory)
-		- C{%D} for document root
-		- C{%t} for selected text or word under cursor
-		- C{%T} for the selected text including wiki formatting
-
-	Other additional keys are:
-		- C{X-Zim-ReadOnly} - boolean
-		- C{X-Zim-ShowInToolBar} - boolean
-		- C{X-Zim-ShowInContextMenu} - 'None', 'Text' or 'Page'
-
-	These tools should always be executed with 3 arguments: notebook,
-	page & pageview.
-	'''
-
-	_definitions = DesktopEntryDict._definitions + (
-			('X-Zim-ExecTool', String(None)),
-			('X-Zim-ReadOnly', Boolean(True)),
-			('X-Zim-ShowInToolBar', Boolean(False)),
-			('X-Zim-ShowInContextMenu', Choice(None, ('Text', 'Page'))),
-			('X-Zim-ReplaceSelection', Boolean(False)),
-	)
-
-	def isvalid(self):
-		'''Check if all required fields are set.
-		@returns: C{True} if all required fields are set
-		'''
-		entry = self['Desktop Entry']
-		if entry.get('Type') == 'X-Zim-CustomTool' \
-		and entry.get('Version') == 1.0 \
-		and entry.get('Name') \
-		and entry.get('X-Zim-ExecTool') \
-		and not entry.get('X-Zim-ReadOnly') is None \
-		and not entry.get('X-Zim-ShowInToolBar') is None \
-		and 'X-Zim-ShowInContextMenu' in entry:
-			return True
-		else:
-			logger.error('Invalid custom tool entry: %s %s', self.key, entry)
-			return False
-
-	def get_pixbuf(self, size):
-		pixbuf = DesktopEntryDict.get_pixbuf(self, size)
-		if pixbuf is None:
-			pixbuf = gtk.Label().render_icon(gtk.STOCK_EXECUTE, size)
-			# FIXME hack to use arbitrary widget to render icon
-		return pixbuf
-
-	@property
-	def icon(self):
-		return self['Desktop Entry'].get('Icon') or gtk.STOCK_EXECUTE
-			# get('Icon', gtk.STOCK_EXECUTE) still returns empty string if key exists but no value
-
-	@property
-	def execcmd(self):
-		return self['Desktop Entry']['X-Zim-ExecTool']
-
-	@property
-	def isreadonly(self):
-		return self['Desktop Entry']['X-Zim-ReadOnly']
-
-	@property
-	def showintoolbar(self):
-		return self['Desktop Entry']['X-Zim-ShowInToolBar']
-
-	@property
-	def showincontextmenu(self):
-		return self['Desktop Entry']['X-Zim-ShowInContextMenu']
-
-	@property
-	def replaceselection(self):
-		return self['Desktop Entry']['X-Zim-ReplaceSelection']
-
-	def parse_exec(self, args=None):
-		if not (isinstance(args, tuple) and len(args) == 3):
-			raise AssertionError('Custom commands needs 3 arguments')
-			# assert statement could be optimized away
-		notebook, page, pageview = args
-
-		cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
-		if '%f' in cmd:
-			self._tmpfile = TmpFile('tmp-page-source.txt')
-			self._tmpfile.writelines(page.dump('wiki'))
-			cmd[cmd.index('%f')] = self._tmpfile.path
-
-		if '%d' in cmd:
-			dir = notebook.get_attachments_dir(page)
-			if dir:
-				cmd[cmd.index('%d')] = dir.path
-			else:
-				cmd[cmd.index('%d')] = ''
-
-		if '%s' in cmd:
-			if hasattr(page, 'source') and isinstance(page.source, File):
-				cmd[cmd.index('%s')] = page.source.path
-			else:
-				cmd[cmd.index('%s')] = ''
-
-		if '%p' in cmd:
-			cmd[cmd.index('%p')] = page.name
-
-		if '%n' in cmd:
-			cmd[cmd.index('%n')] = File(notebook.uri).path
-
-		if '%D' in cmd:
-			dir = notebook.document_root
-			if dir:
-				cmd[cmd.index('%D')] = dir.path
-			else:
-				cmd[cmd.index('%D')] = ''
-
-		if '%t' in cmd:
-			text = pageview.get_selection() or pageview.get_word()
-			cmd[cmd.index('%t')] = text or ''
-			# FIXME - need to substitute this in arguments + url encoding
-
-		if '%T' in cmd:
-			text = pageview.get_selection(format='wiki') or pageview.get_word(format='wiki')
-			cmd[cmd.index('%T')] = text or ''
-			# FIXME - need to substitute this in arguments + url encoding
-
-		return tuple(cmd)
-
-	_cmd = parse_exec # To hook into Application.spawn and Application.run
-
-	def run(self, args, cwd=None):
-		self._tmpfile = None
-		Application.run(self, args, cwd=cwd)
-		if self._tmpfile:
-			notebook, page, pageview = args
-			page.parse('wiki', self._tmpfile.readlines())
-			notebook.store_page(page)
-			self._tmpfile = None
-
-	def update(self, E=(), **F):
-		self['Desktop Entry'].update(E, **F)
-
-		# Set sane default for X-Zim-ShowInContextMenus
-		if not (E and 'X-Zim-ShowInContextMenu' in E) \
-		and not 'X-Zim-ShowInContextMenu' in F:
-			cmd = split_quoted_strings(self['Desktop Entry']['X-Zim-ExecTool'])
-			if any(c in cmd for c in ['%f', '%d', '%s']):
-				context = 'Page'
-			elif '%t' in cmd:
-				context = 'Text'
-			else:
-				context = None
-			self['Desktop Entry']['X-Zim-ShowInContextMenu'] = context
-
-
-class CustomTool(CustomToolDict, INIConfigFile):
-	'''Class representing a file defining a custom tool, see
-	L{CustomToolDict} for the API documentation.
-	'''
-
-	def __init__(self, file):
-		CustomToolDict.__init__(self)
-		INIConfigFile.__init__(self, file)
-
-	@property
-	def key(self):
-		return self.file.basename[:-8] # len('.desktop') is 8

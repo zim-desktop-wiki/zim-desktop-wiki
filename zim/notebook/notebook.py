@@ -21,7 +21,8 @@ import zim.formats
 from zim.fs import File, Dir
 from zim.newfs import LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
-from zim.errors import Error, TrashNotSupportedError
+from zim.errors import Error
+from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
@@ -354,7 +355,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.config['Notebook'].update(properties)
 		self.emit('properties-changed')
 
-		if hasattr(self.config, 'write'): # Check needed for tests
+		if hasattr(self.config, 'write'): # XXX Check needed for tests
 			self.config.write()
 
 	def do_properties_changed(self):
@@ -377,7 +378,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		register handlers to add suggestions using the 'C{suggest-link}'
 		signal.
 		'''
-		return self.emit('suggest-link', source, word)
+		return self.emit_return_first('suggest-link', source, word)
 
 	def get_page(self, path):
 		'''Get a L{Page} object for a given path
@@ -568,7 +569,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		logger.debug('Move page %s to %s', path, newpath)
 
 		self.emit('move-page', path, newpath)
-		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		try:
+			n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		except IndexNotFoundError:
+			raise PageNotFoundError(path)
 		self._move_file_and_folder(path, newpath)
 		self.flush_page_cache(path)
 		self.emit('moved-page', path, newpath)

@@ -26,6 +26,10 @@ from zim.environ import environ
 logger = logging.getLogger('zim.applications')
 
 
+TEST_MODE = False
+TEST_MODE_RUN_CB = None
+
+
 def _main_is_frozen():
 	# Detect whether we are running py2exe compiled version
 	return hasattr(sys, 'frozen') and sys.frozen
@@ -89,6 +93,10 @@ class Application(object):
 		self.encoding = encoding or zim.fs.ENCODING
 		if self.encoding == 'mbcs':
 			self.encoding = 'utf-8'
+
+	def __eq__(self, other):
+		return (self.cmd, self.tryexeccmd, self.encoding) \
+			== (other.cmd, other.tryexeccmd, other.encoding)
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
@@ -177,6 +185,10 @@ class Application(object):
 		'''
 		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
+		if TEST_MODE:
+			TEST_MODE_RUN_CB(argv)
+			return None
+
 		if os.name == 'nt':
 			# http://code.activestate.com/recipes/409002/
 			info = subprocess.STARTUPINFO()
@@ -224,6 +236,9 @@ class Application(object):
 		'''
 		cwd, argv = self._checkargs(cwd, args)
 		logger.info('Running: %s (cwd: %s)', argv, cwd)
+		if TEST_MODE:
+			return TEST_MODE_RUN_CB(argv)
+
 		p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stdout, stderr = p.communicate(input)
 		# TODO: handle ApplicationERror here as well ?
@@ -270,6 +285,10 @@ class Application(object):
 			# without this flag child is reaped automatically -> no zombies
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
+		if TEST_MODE:
+			TEST_MODE_RUN_CB(argv)
+			return None
+
 		try:
 			pid, stdin, stdout, stderr = \
 				gobject.spawn_async(argv, flags=flags, **opts)
@@ -329,7 +348,11 @@ class WebBrowser(Application):
 				url = url.uri
 			url = url.encode(self.encoding)
 			logger.info('Opening in webbrowser: %s', url)
-			self.controller.open(url)
+
+			if TEST_MODE:
+				TEST_MODE_RUN_CB((self.__class__.__name__, url))
+			else:
+				self.controller.open(url)
 
 
 class StartFile(Application):
@@ -367,4 +390,7 @@ class StartFile(Application):
 				path = os.path.normpath(unicode(arg))
 
 			logger.info('Opening with os.startfile: %s', path)
-			os.startfile(path)
+			if TEST_MODE:
+				TEST_MODE_RUN_CB((self.__class__.__name__, url))
+			else:
+				os.startfile(path)

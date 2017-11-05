@@ -20,7 +20,9 @@ except:
 
 import zim.plugins.spell
 
-from tests.gui import setupGtkInterface, Path
+from tests.gui import setupGtkInterface
+
+from zim.notebook import Path
 
 
 class TestSpell(object):
@@ -38,9 +40,11 @@ class TestSpell(object):
 	def runTest(self, adapterclass):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
 			ui = setupGtkInterface(self)
+			window = ui._mainwindow
+
 			plugin = ui.plugins.load_plugin('spell')
-			plugin.extend(ui._mainwindow) # XXX
-			ext = plugin.get_extension(ui._mainwindow, zim.plugins.spell.MainWindowExtension) # XXX
+			plugin.extend(window)
+			ext = plugin.get_extension(window, zim.plugins.spell.MainWindowExtension)
 
 			self.assertIs(ext._adapter, adapterclass) # ensure switching library worked
 
@@ -48,12 +52,12 @@ class TestSpell(object):
 			ext.toggle_spellcheck()
 			ext.toggle_spellcheck()
 
-			ui.open_page(Path('Foo'))
-			ui.open_page(Path('Bar'))
+			window.open_page(Path('Foo'))
+			window.open_page(Path('Bar'))
 			ext.toggle_spellcheck()
 
-			ui.open_page(Path('Foo'))
-			ui.open_page(Path('Bar'))
+			window.open_page(Path('Foo'))
+			window.open_page(Path('Bar'))
 			ext.toggle_spellcheck()
 
 			# TODO check it actually shows on screen ...

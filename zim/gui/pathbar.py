@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import gtk
 import gobject
 import logging
 
-from collections import Counter
-
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
 from zim.gui.widgets import encode_markup_text
+from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from functools import reduce
 
 logger = logging.getLogger('zim.gui')
@@ -389,8 +388,6 @@ class ScrollButton(gtk.Button):
 		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
 		self.set_relief(gtk.RELIEF_NONE)
 
-def _last_two_segments(name):
-	return ":".join(name.split(':')[-2:]);
 
 class PathBar(ScrolledHBox):
 	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
@@ -403,7 +400,7 @@ class PathBar(ScrolledHBox):
 		self._selected = None
 		if history:
 			self.set_history(history)
-		self.ui.connect_after('open-page', self._after_open_page)
+		self.ui._mainwindow.connect_after('page-changed', self.on_page_changed)
 
 	def set_history(self, history):
 		self.history = history
@@ -411,13 +408,13 @@ class PathBar(ScrolledHBox):
 		self._update()
 		self._select(history.get_current())
 
-	def _after_open_page(self, ui, page, path):
+	def on_page_changed(self, ui, page):
 		# Since we connect after open page, update has likely been done
 		# already from the history 'changed' signal - if not trigger it here.
-		self._select(path)
+		self._select(page)
 		if self._selected is None:
 			self._update()
-			self._select(path)
+			self._select(page)
 
 	def _update(self):
 		if self.history is None:
@@ -427,16 +424,8 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 		self._selected = None
 
-		basenames = list(map(lambda x: x.basename, self.get_paths()))
-		basenameCounts = Counter(basenames);
-
 		for path in self.get_paths():
-			if basenameCounts[path.basename] > 1 :
-				label = _last_two_segments(path.name)
-			else:
-				label = path.basename
-
-			button = gtk.ToggleButton(label=label)
+			button = gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
@@ -490,7 +479,7 @@ class PathBar(ScrolledHBox):
 			set_active(self._selected, True)
 
 	def on_button_clicked(self, button):
-		self.ui.open_page(button.zim_path)
+		self.ui._mainwindow.open_page(button.zim_path) # XXX
 
 	def do_button_release_event(self, button, event):
 		'''Handler for button-release-event, triggers popup menu'''
@@ -500,7 +489,14 @@ class PathBar(ScrolledHBox):
 
 	def on_button_popup_menu(self, button):
 		menu = gtk.Menu()
-		self.ui.populate_popup('page_popup', menu, button.zim_path)
+		uiactions = UIActions(
+			self,
+			self.ui._mainwindow.notebook, # XXX
+			button.zim_path,
+			self.ui._mainwindow.navigation, # XXX
+			self.ui._mainwindow.preferences # XXX
+		)
+		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 		menu.popup(None, None, None, 3, 0)
 		return True
 

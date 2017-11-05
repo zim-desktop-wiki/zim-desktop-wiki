@@ -169,14 +169,12 @@ class MainWindowExtension(WindowExtension):
 		else:
 			self.on_preferences_changed(None, start=True)
 
-		def on_quit(o):
-			self._stop_timer()
-
+		def on_close(o):
 			if self.plugin.preferences['autosave'] \
 			or self.plugin.preferences['autosave_at_interval']:
 				self.do_save_version()
 
-		self.window.ui.connect('quit', on_quit) # XXX
+		self.window.connect('close', on_close)
 
 		self.connectto(self.plugin.preferences, 'changed',
 			self.on_preferences_changed)
@@ -190,6 +188,9 @@ class MainWindowExtension(WindowExtension):
 
 		if self.plugin.preferences['autosave_at_interval']:
 			self._start_timer()
+
+	def destroy(self):
+		self._stop_timer()
 
 	def _start_timer(self):
 		timeout = 60000 * self.plugin.preferences['autosave_interval']
@@ -1162,7 +1163,7 @@ state. Or select multiple versions to see changes between those versions.
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 		)).run():
 			self.vcs.revert(file=file, version=version)
-			self.ui.reload_page() # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+			self.ui._mainwindow.reload_page() # XXX
 			# TODO trigger vcs autosave here?
 
 	def show_changes(self):

@@ -123,7 +123,7 @@ class MainWindowExtension(WindowExtension):
 		_global_osx_application.set_help_menu(self.window.uimanager.get_widget('/menubar/help_menu'))
 
 		quit = self.window.uimanager.get_widget('/menubar/file_menu/quit')
-		_global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.ui.quit()) # XXX .ui.
+		_global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.quit())
 
 		about = self.window.uimanager.get_widget('/menubar/help_menu/show_about')
 		_global_osx_application.insert_app_menu_item(about, 0)

@@ -140,7 +140,7 @@ class TestCoding(tests.TestCase):
 			self.assertFalse('gtk.Entry(' in code, '%s uses gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
 			self.assertFalse('get_visible(' in code, '%s uses get_visible() - use get_property() instead' % file)
 			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
-			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use set_property() instead' % file)
+			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use get_property() instead' % file)
 			#~ self.assertFalse('connect_object(' in code, '%s uses connect_object() - use connect() instead to prevent reference leaking' % file)
 			self.assertFalse('gtk.HPaned(' in code, '%s uses gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
 			self.assertFalse('gtk.VPaned(' in code, '%s uses gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
@@ -286,7 +286,7 @@ class TestDocumentation(tests.TestCase):
 		# Check signature for @signal
 		if 'signal' in fields:
 			for spec in fields['signal']:
-				# e.g.  "C{open-page (L{Page}, L{Path})}: Emitted when opening"
+				# e.g.  "C{signal-name (L{Page}, L{Path})}: Emitted when opening"
 				if not re.match('^C\{[\w-]+ \(.*?\)\}:', spec):
 					self.fail('Signal description in %s does not follow templates\n'
 					'Is: %s\nShould be like "C{signal-name (arg1, arg2)}: description"'

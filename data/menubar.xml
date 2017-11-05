@@ -170,7 +170,7 @@
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='open_page_home'/>
-			<menuitem action='open_page'/>
+			<menuitem action='show_jump_to'/>
 		</menu>
 		<menu action='help_menu'>
 			<menuitem action='show_help'/>
@@ -223,8 +223,7 @@
 		<menuitem action='set_toolbar_icon_size_tiny'/>
 	</popup>
 	<popup name='page_popup'>
-		<menuitem action='new_page'/>
-		<menuitem action='new_sub_page'/>
+		<menuitem action='new_page_here'/>
 		<separator/>
 		<menuitem action='open_new_window'/>
 		<separator/>

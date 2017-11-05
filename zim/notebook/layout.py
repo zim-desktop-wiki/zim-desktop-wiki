@@ -185,14 +185,14 @@ class FilesLayout(NotebookLayout):
 class FilesAttachmentFolder(object):
 
 	def __init__(self, folder, default_extension):
-		self._folder = folder
+		self._inner_fs_object = folder
 		self._default_extension = default_extension
 
 	def __getattr__(self, name):
-		return getattr(self._folder, name)
+		return getattr(self._inner_fs_object, name)
 
 	def __iter__(self):
-		for obj in self._folder:
+		for obj in self._inner_fs_object:
 			if isinstance(obj, File) \
 			and not obj.basename.endswith(self._default_extension) \
 			and not obj.basename.endswith('.zim'):

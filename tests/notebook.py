@@ -1098,3 +1098,14 @@ class TestBackgroundSave(tests.TestCase):
 		text = page.dump('wiki')
 		self.assertEqual(text[-1], 'test 123\n')
 		self.assertEqual(signals['stored-page'], [(page,)]) # post handler happened as well
+
+
+class AttachmentsFolderIsinstance(tests.TestCase):
+
+	def runTest(self):
+		from zim.newfs import Folder
+		folder = self.setUpFolder()
+		layout = FilesLayout(folder)
+		afolder = layout.get_attachments_folder(Path('Test'))
+		self.assertIsInstance(afolder, Folder)
+		self.assertIsInstance(afolder, folder.__class__)  # Either LocalFolder or MockFolder

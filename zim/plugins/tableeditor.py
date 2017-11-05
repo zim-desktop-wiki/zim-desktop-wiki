@@ -228,8 +228,8 @@ class MainWindowExtension(WindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 
 		# reload tables on current page after plugin activation
-		if self.window.ui.page:
-			self.window.ui.reload_page()
+		if self.window.page:
+			self.window.reload_page()
 
 	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):

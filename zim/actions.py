@@ -137,7 +137,7 @@ class Action(ActionMethod):
 
 		# instance acces, return bound method
 		def func(*args, **kwargs):
-			self.func(instance, *args, **kwargs)
+			return self.func(instance, *args, **kwargs)
 
 		return func
 

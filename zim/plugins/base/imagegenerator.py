@@ -114,9 +114,9 @@ class MainWindowExtensionBase(WindowExtension):
 		pageview.unregister_image_generator_plugin(self)
 
 	def build_generator(self):
-		generator=self.generator_class(self.plugin)
+		generator = self.generator_class(self.plugin)
 		generator.set_page(self.window.pageview.page)
-		return generator;
+		return generator
 
 	def insert_object(self):
 		title = self.insert_label.replace('_', '')
@@ -211,7 +211,7 @@ class ImageGeneratorClass(object):
 		@implementation: Not mandatory to be implemented by subclass.
 		It defaults to the empty string.
 		'''
-		return '';
+		return ''
 
 	def filter_input(self, text):
 		'''Filter contents of script file before displaying in textarea
@@ -388,7 +388,7 @@ class ImageGeneratorDialog(Dialog):
 			imgfile.remove()
 
 		if self._existing_file:
-			self.app_window.ui.reload_page() # XXX
+			self.app_window.reload_page() # XXX
 		else:
 			pageview = self.app_window.pageview
 			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)

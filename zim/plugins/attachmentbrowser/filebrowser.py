@@ -22,7 +22,7 @@ from zim.newfs import LocalFile, FileNotFoundError
 from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
 from zim.gui.applications import get_mime_icon, get_mime_description, \
-	OpenWithMenu
+	OpenWithMenu, open_file
 
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -301,12 +301,10 @@ class FileBrowserIconView(gtk.IconView):
 			self.emit('folder-changed')
 
 	def on_item_activated(self, iconview, path):
-		from zim.fs import File
 		store = iconview.get_model()
 		iter = store.get_iter(path)
-		file = self.folder.file(store[iter][BASENAME_COL])
-		file = File(file)
-		self.opener.open_file(file)
+		filename = self.folder.file(store[iter][BASENAME_COL])
+		open_file(self, file)
 
 	def on_button_press_event(self, iconview, event):
 		# print 'on_button_press_event'
@@ -326,11 +324,9 @@ class FileBrowserIconView(gtk.IconView):
 
 	def do_populate_popup(self, menu, pathinfo):
 		# print "do_populate_popup"
-		from zim.fs import File
 		store = self.get_model()
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
-		file = File(file)
 
 		item = gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
@@ -340,7 +336,7 @@ class FileBrowserIconView(gtk.IconView):
 		item.set_submenu(submenu)
 
 		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
-		item.connect('activate', lambda o: self.opener.open_file(file))
+		item.connect('activate', lambda o: open_file(self, file))
 		menu.prepend(item)
 
 		menu.show_all()
@@ -443,4 +439,3 @@ class FileBrowserIconView(gtk.IconView):
 			file.copyto(newfile)
 
 		self.refresh()
-

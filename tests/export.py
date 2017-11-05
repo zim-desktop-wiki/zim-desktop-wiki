@@ -378,7 +378,7 @@ class TestMultiFileExporter(tests.TestCase):
 class TestSingleFileExporter(tests.TestCase):
 
 	def runTest(self):
-		folder =  self.setUpFolder()
+		folder = self.setUpFolder()
 		file = folder.file('export.html')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
@@ -394,7 +394,7 @@ class TestSingleFileExporter(tests.TestCase):
 class TestMHTMLExporter(tests.TestCase):
 
 	def runTest(self):
-		dir =  Dir(self.create_tmp_dir())
+		dir = Dir(self.create_tmp_dir())
 		file = dir.file('export.mht')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
@@ -600,12 +600,10 @@ class TestExportDialog(tests.TestCase):
 		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
 		ui = tests.MockObject()
-		ui.notebook = notebook
-		ui.page = Path('foo')
 		ui.uistate = SectionedConfigDict()
 
 		## Test export all pages
-		dialog = ExportDialog(ui)
+		dialog = ExportDialog(ui, notebook, Path('foo'))
 		dialog.set_page(0)
 
 		page = dialog.get_page()
@@ -633,7 +631,7 @@ class TestExportDialog(tests.TestCase):
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
 		## Test export single page
-		dialog = ExportDialog(ui)
+		dialog = ExportDialog(ui, notebook, Path('foo'))
 		dialog.set_page(0)
 
 		page = dialog.get_page()

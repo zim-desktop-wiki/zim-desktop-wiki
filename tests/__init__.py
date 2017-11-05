@@ -37,7 +37,6 @@ else:
 	import unittest
 	from unittest import skip, skipIf, skipUnless, expectedFailure
 
-__unittest = 1 # needed to get stack trace OK for class TestCase
 
 gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
 
@@ -46,15 +45,23 @@ FULL_TEST = False #: determine whether we mock filesystem tests or not
 
 # This list also determines the order in which tests will executed
 __all__ = [
+	# Packaging etc.
 	'package', 'translations',
+	# Basic libraries
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
 	'environ', 'fs', 'newfs',
 	'config', 'applications',
-	'parsing', 'tokenparser', 'formats', 'templates', 'objectmanager',
+	'parsing', 'tokenparser',
+	# Notebook components
+	'formats', 'templates', 'objectmanager',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
-	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
+	# GUI
+	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard',
+	'mainwindow', 'uiactions', 'gui', 'notebookdialog', 'preferencesdialog',
+	'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
+	# Plugins
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
@@ -245,16 +252,6 @@ class TestCase(unittest.TestCase):
 		if gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
-	def assertEqual(self, first, second, msg=None):
-		## HACK to work around "feature" in unittest - it does not consider
-		## string and unicode to be of the same type and thus does not
-		## show diffs if the textual content differs
-		if type(first) in (str, unicode) \
-		and type(second) in (str, unicode):
-			self.assertMultiLineEqual(first, second, msg)
-		else:
-			unittest.TestCase.assertEqual(self, first, second, msg)
-
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
 		@param name: basename for the folder, uses test name if C{None}
@@ -302,7 +299,8 @@ class TestCase(unittest.TestCase):
 		@param name: basename for the folder, uses test name if C{None}
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
 		@param content: dictionary where the keys are page names and the
-		values the page content.
+		values the page content. If a tuple or list is given, pages are created
+		with default text. L{Path} objects are allowed instead of page names
 		@param folder: determine the folder to be used, only needed in special
 		cases where the folder must be outside of the project folder, like
 		when testing version control logic
@@ -337,9 +335,13 @@ class TestCase(unittest.TestCase):
 			cache_dir.touch()
 			index = Index(cache_dir.file('index.db').path, layout)
 
+		if isinstance(content, (list, tuple)):
+			content = dict((p, 'test 123') for p in content)
+
 		notebook = Notebook(cache_dir, config, folder, layout, index)
 		for name, text in content.items():
-			file, folder = layout.map_page(Path(name))
+			path = Path(name) if isinstance(name, basestring) else name
+			file, folder = layout.map_page(path)
 			file.write(
 				(
 					'Content-Type: text/x-zim-wiki\n'
@@ -477,22 +479,61 @@ class DialogContext(object):
 
 		handler = self.stack.pop(0)
 
-		if isinstance(handler, (type, type)): # is a class
-			if not isinstance(dialog, handler):
-				raise AssertionError('Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__))
-			dialog.assert_response_ok()
+		if isinstance(handler, type): # is a class
+			self._default_handler(handler, dialog)
 		else: # assume a function
 			handler(dialog)
 
+	def _default_handler(self, cls, dialog):
+		if not isinstance(dialog, cls):
+			raise AssertionError('Expected dialog of class %s, but got %s instead' % (cls, dialog.__class__))
+		dialog.assert_response_ok()
+
 	def __exit__(self, *error):
-		#~ print 'ERROR', error
 		import zim.gui.widgets
 		zim.gui.widgets.TEST_MODE = self.old_test_mode
 		zim.gui.widgets.TEST_MODE_RUN_CB = self.old_callback
 
-		has_error = bool([e for e in error if e is not None])
+		has_error = any(error)
 		if self.stack and not has_error:
 			raise AssertionError('%i expected dialog(s) not run' % len(self.stack))
+
+		return False # Raise any errors again outside context
+
+
+class WindowContext(DialogContext):
+
+	def _default_handler(self, cls, window):
+		if not isinstance(window, cls):
+			raise AssertionError('Expected window of class %s, but got %s instead' % (cls, dialog.__class__))
+
+
+class ApplicationContext(object):
+
+	def __init__(self, *callbacks):
+		self.stack = list(callbacks)
+
+	def __enter__(self):
+		import zim.applications
+		self.old_test_mode = zim.applications.TEST_MODE
+		self.old_callback = zim.applications.TEST_MODE_RUN_CB
+		zim.applications.TEST_MODE = True
+		zim.applications.TEST_MODE_RUN_CB = self._callback
+
+	def _callback(self, cmd):
+		if not self.stack:
+			raise AssertionError('Unexpected application run: %s' % cmd)
+
+		handler = self.stack.pop(0)
+		return handler(cmd) # need to return for pipe()
+
+	def __exit__(self, *error):
+		import zim.gui.widgets
+		zim.applications.TEST_MODE = self.old_test_mode
+		zim.applications.TEST_MODE_RUN_CB = self.old_callback
+
+		if self.stack and not any(error):
+			raise AssertionError('%i expected command(s) not run' % len(self.stack))
 
 		return False # Raise any errors again outside context
 

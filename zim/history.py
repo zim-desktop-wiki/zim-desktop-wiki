@@ -64,15 +64,8 @@ class HistoryList(list):
 
 	def __getitem__(self, i):
 		path = list.__getitem__(self, i)
-		if i == 0:
-			path.is_first = True
-			path.is_last = False
-		elif i == len(self) - 1:
-			path.is_first = False
-			path.is_last = True
-		else:
-			path.is_first = False
-			path.is_last = False
+		path.is_first = (i == 0)
+		path.is_last = (i == len(self) - 1)
 		return path
 
 	def index(self, path):

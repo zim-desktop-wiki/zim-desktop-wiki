@@ -50,7 +50,6 @@ class TestAction(tests.TestCase):
 		obj = TestClass()
 		re = obj.test_action()
 		self.assertEqual(output, ['OK'])
-		self.assertIsNone(re) # do not allow return value for actions!
 
 		gtk_group = get_gtk_actiongroup(obj)
 		gtk_action = gtk_group.get_action('test_action')
@@ -78,7 +77,6 @@ class TestToggleAction(tests.TestCase):
 		obj = TestClass()
 		re = obj.test_action()
 		self.assertEqual(output, [True])
-		self.assertIsNone(re) # do not allow return value for actions!
 
 		obj.test_action()
 		self.assertEqual(output, [True, False])
@@ -116,7 +114,6 @@ class TestRadioAction(tests.TestCase):
 
 		obj = TestClass()
 		re = obj.test_action('AAA')
-		self.assertIsNone(re) # do not allow return value for actions!
 
 		obj.test_action('BBB')
 		self.assertEqual(output, ['AAA', 'BBB'])

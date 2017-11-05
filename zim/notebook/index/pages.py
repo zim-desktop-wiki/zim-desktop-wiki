@@ -349,8 +349,8 @@ class PagesViewInternal(object):
 				# Check if we are anchored in non-existing part
 				keys = map(natural_sort_key, relnames)
 				if anchor_key in keys:
-					i = [c for c, k in enumerate(keys) if k == anchorkey][-1]
-					return self.resolve_pagename(db, root, relnames[:i] + href.parts()[1:])
+					i = [c for c, k in enumerate(keys) if k == anchor_key][-1]
+					return self.resolve_pagename(start, relnames[:i] + href.parts()[1:])
 
 			if ignore_link_placeholders:
 				c = self.db.execute(

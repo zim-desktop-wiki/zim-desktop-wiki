@@ -464,6 +464,9 @@ class Page(Path, SignalEmitter):
 			self._last_etag = None
 			self._meta = None
 
+	def check_source_changed(self):
+		self._check_source_etag()
+
 	def _check_source_etag(self):
 		if (
 			self._last_etag

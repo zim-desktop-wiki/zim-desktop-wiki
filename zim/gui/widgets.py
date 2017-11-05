@@ -1926,6 +1926,8 @@ class PageEntry(InputEntry):
 
 		@param path: L{Path} object
 		'''
+		if self.subpaths_only:
+			assert path.ischild(self.notebookpath)
 		self.set_text(':' + path.name)
 
 	def get_path(self):
@@ -1944,7 +1946,7 @@ class PageEntry(InputEntry):
 			self.set_input_valid(False)
 			return None
 		else:
-			if self.subpaths_only and not name.startswith('+'):
+			if self.subpaths_only and name[0] not in ('+', ':'):
 				name = '+' + name
 
 			try:
@@ -1953,6 +1955,8 @@ class PageEntry(InputEntry):
 						name, reference=self.notebookpath
 					)
 				else:
+					if name.startswith('+') and self.notebookpath:
+						name = self.notebookpath.name + ':' + name[1:]
 					name = Path.makeValidPageName(name)
 					path = Path(name)
 			except ValueError:
@@ -2906,7 +2910,11 @@ class Window(gtkwindowclass):
 			gtkwindowclass.show_all(self)
 
 	def present(self):
-		if not TEST_MODE:
+		self.show_all()
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
 			gtkwindowclass.present(self)
 
 # Need to register classes defining gobject signals
@@ -3135,8 +3143,8 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		last entry widget will immediatly call L{response_ok()}. Set to
 		C{False} if more forms will follow in the same dialog.
 		'''
-		if hasattr(self.ui, 'notebook'):
-			notebook = self.ui.notebook
+		if hasattr(self, 'notebook'):
+			notebook = self.notebook
 		else:
 			notebook = None
 		self.form = InputForm(inputs, values, depends, notebook)
@@ -3148,6 +3156,39 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	#}
 
 	#{ Interaction methods
+
+	def set_input(self, **fields):
+		'''Method used in test suite to set "interactive" inputs
+		@param fields: key value pairs of inputs to set
+		@raises KeyError: if a key is not recognized
+		@raises ValueError: if the value is of the wrong type and cannot be
+		converted by the widget
+		@raises AssertionError: if a key is recognized, but the input is
+		not enabled for interactive input - e.g. widget insensitive or hidden
+		'''
+		if hasattr(self, 'form'):
+			for key, value in fields.items():
+				if key in self.form:
+					assert self.get_input_enabled(key)
+					self.form[key] = value
+				else:
+					raise KeyError('No such input field: %s' % key)
+		else:
+			raise NotImplementedError
+
+	def get_input(self, key):
+		'''Method used in test suite to get "interactive" inputs'''
+		if hasattr(self, 'form'):
+			if not key in self.form:
+				raise KeyError('No such input field: %s' % key)
+			else:
+				return self.form[key]
+		else:
+			raise NotImplementedError
+
+	def get_input_enabled(self, key):
+		return self.form.widgets[key].get_property('sensitive') \
+			and not self.form.widgets[key].get_property('no-show-all')
 
 	def run(self):
 		'''Wrapper for C{gtk.Dialog.run()}, also calls C{show_all()}
@@ -3451,6 +3492,9 @@ class ErrorDialog(gtk.MessageDialog):
 		'''
 		return True
 
+	def assert_response_ok(self):
+		assert self.do_response_ok()
+
 
 class QuestionDialog(gtk.MessageDialog):
 	'''Convenience class to prompt the user with Yes/No answer type
@@ -3476,7 +3520,7 @@ class QuestionDialog(gtk.MessageDialog):
 			text = None
 		self.question = question
 
-		self.response = None
+		self.answer = None
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO,
@@ -3488,7 +3532,13 @@ class QuestionDialog(gtk.MessageDialog):
 		self.connect('response', self.__class__.do_response)
 
 	def do_response(self, id):
-		self.response = id
+		self.answer = id
+
+	def answer_yes(self):
+		self.response(gtk.RESPONSE_YES)
+
+	def answer_no(self):
+		self.response(gtk.RESPONSE_NO)
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.
@@ -3502,7 +3552,7 @@ class QuestionDialog(gtk.MessageDialog):
 		else:
 			gtk.MessageDialog.run(self)
 		self.destroy()
-		answer = self.response == gtk.RESPONSE_YES
+		answer = self.answer == gtk.RESPONSE_YES
 		logger.debug('A: %s', answer)
 		return answer
 
@@ -3530,7 +3580,6 @@ class MessageDialog(gtk.MessageDialog):
 		else:
 			text = None
 
-		self.response = None
 		gtk.MessageDialog.__init__(
 			self, parent=get_window(ui),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
@@ -3692,6 +3741,10 @@ class FileDialog(Dialog):
 		if not ok:
 			raise AssertionError('Could not set file: %s' % file.uri)
 
+		if TEST_MODE:
+			self._file = file
+			# HACK - for some reason the filechooser doesn't work in test mode
+
 	def get_file(self):
 		'''Get the current selected file
 		@returns: a L{File} object or C{None}.
@@ -3700,14 +3753,25 @@ class FileDialog(Dialog):
 			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
-		return File(uri.decode('utf-8')) if uri else None
+		if uri:
+			return File(uri.decode('utf-8'))
+		elif TEST_MODE and hasattr(self, '_file') and self._file:
+			return self._file
+		else:
+			return None
 
 	def get_files(self):
 		'''Get list of selected file. Assumes the dialog was created
 		with C{multiple=True}.
 		@returns: a list of L{File} objects
 		'''
-		return [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
+		files = [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
+		if files:
+			return files
+		elif TEST_MODE and hasattr(self, '_file') and self._file:
+			return [self._file]
+		else:
+			return []
 
 	def get_dir(self):
 		'''Get the the current selected dir. Assumes the dialog was
@@ -3831,13 +3895,12 @@ class ProgressDialog(gtk.Dialog):
 			gtk.Dialog.show_all(self)
 
 	def run(self):
-		if not self.op.is_running():
-			self.op.run_on_idle()
-
 		if TEST_MODE: # Avoid flashing on screen
-			while gtk.events_pending():
-				gtk.main_iteration(block=False)
+			for i in self.op:
+				pass
 		else:
+			if not self.op.is_running():
+				self.op.run_on_idle()
 			self.show_all()
 			gtk.Dialog.run(self)
 
@@ -4131,7 +4194,7 @@ class AssistantPage(gtk.VBox):
 		@param values: initial values for the inputs
 		@param depends: dict with dependencies between inputs
 		'''
-		self.form = InputForm(inputs, values, depends, notebook=self.assistant.ui.notebook)
+		self.form = InputForm(inputs, values, depends, notebook=self.assistant.notebook)
 		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
 		self.pack_start(self.form, False)
 		self.check_input_valid()
@@ -4331,86 +4394,6 @@ class ImageView(gtk.Layout):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ImageView)
-
-
-class PromptExistingFileDialog(Dialog):
-	'''Dialog that is used e.g. when a file should be attached to zim,
-	but a file with the same name already exists in the attachment
-	directory. This Dialog allows to suggest a new name or overwrite
-	the existing one.
-
-	For this dialog C{run()} will return either the original file
-	(for overwrite), a new file, or None when the dialog was canceled.
-	'''
-
-	def __init__(self, ui, file):
-		'''Constructor
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
-		@param file: a L{File} object for an existing file
-		'''
-		Dialog.__init__(self, ui, _('File Exists'), buttons=None) # T: Dialog title
-		self.add_help_text( _('''\
-A file with the name <b>"%s"</b> already exists.
-You can use another name or overwrite the existing file.''' % file.basename),
-		) # T: Dialog text in 'new filename' dialog
-		self.old_file = file
-		self.dir = file.dir
-
-		suggested_filename = file.dir.new_file(file.basename).basename
-		self.add_form((
-				('name', 'string', _('Filename')), # T: Input label
-			), {
-				'name': suggested_filename
-			}
-		)
-		self.form.widgets['name'].set_check_func(self._check_valid)
-
-		# all buttons are defined in this class, to get the ordering right
-		# [show folder]      [overwrite] [cancel] [ok]
-		button = gtk.Button(_('_Browse')) # T: Button label
-		button.connect('clicked', self.do_show_folder)
-		self.action_area.add(button)
-		self.action_area.set_child_secondary(button, True)
-
-		button = gtk.Button(_('Overwrite')) # T: Button label
-		button.connect('clicked', self.do_response_overwrite)
-		self.add_action_widget(button, gtk.RESPONSE_NONE)
-
-		self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-		self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
-		self._no_ok_action = False
-
-		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
-
-	def _on_focus(self, widget, event):
-		# filename length without suffix
-		length = len(os.path.splitext(widget.get_text())[0])
-		widget.select_region(0, length)
-
-	def _check_valid(self, filename):
-		# Only valid when same dir and does not yet exist
-		file = self.dir.file(filename)
-		return file.dir == self.dir and not file.exists()
-
-	def do_show_folder(self, *a):
-		self.ui.open_file(self.dir)
-
-	def do_response_overwrite(self, *a):
-		logger.info('Overwriting %s', self.old_file.path)
-		self.result = self.old_file
-
-	def do_response_ok(self):
-		if not self.form.widgets['name'].get_input_valid():
-			return False
-
-		newfile = self.dir.file(self.form['name'])
-		logger.info('Selected %s', newfile.path)
-		assert newfile.dir == self.dir # just to be real sure
-		assert not newfile.exists() # just to be real sure
-		self.result = newfile
-		return True
-
 
 
 class TableBoxMixin(object):

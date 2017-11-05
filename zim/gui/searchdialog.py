@@ -22,12 +22,12 @@ class SearchDialog(Dialog):
 	SEARCHING = 1
 	CANCELLED = 2
 
-	def __init__(self, window):
-		Dialog.__init__(self, window, _('Search'), # T: Dialog title
+	def __init__(self, widget, notebook, page, navigation):
+		Dialog.__init__(self, widget, _('Search'), # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching',
 			defaultwindowsize=(400, 300)
 		)
-		self.app_window = window
+		self.page = page
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
@@ -61,13 +61,14 @@ class SearchDialog(Dialog):
 
 		self.namespacecheckbox = gtk.CheckButton(_('Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
-		self.vbox.pack_start(self.namespacecheckbox, False)
+		if page is not None:
+			self.vbox.pack_start(self.namespacecheckbox, False)
 
 		# TODO advanced query editor
 		# TODO checkbox _('Match c_ase')
 		# TODO checkbox _('Whole _word')
 
-		self.results_treeview = SearchResultsTreeView(self.app_window)
+		self.results_treeview = SearchResultsTreeView(notebook, navigation)
 		self.vbox.add(ScrolledWindow(self.results_treeview))
 
 		self.search_button.connect_object('clicked', self.__class__._search, self)
@@ -87,7 +88,8 @@ class SearchDialog(Dialog):
 	def _search(self):
 		string = self.query_entry.get_text()
 		if self.namespacecheckbox.get_active():
-			string = 'Section: "%s" ' % self.app_window.ui.page.name + string # XXX
+			assert self.page is not None
+			string = 'Section: "%s" ' % self.page.name + string
 		#~ print '!! QUERY: ' + string
 
 		self._set_state(self.SEARCHING)
@@ -140,13 +142,13 @@ class SearchResultsTreeView(BrowserTreeView):
 	SCORE_COL = 1
 	PATH_COL = 2
 
-	def __init__(self, window):
+	def __init__(self, notebook, navigation):
 		model = gtk.ListStore(str, int, object)
 			# NAME_COL, SCORE_COL, PATH_COL
 		BrowserTreeView.__init__(self, model)
-		self.app_window = window
+		self.navigation = navigation
 		self.query = None
-		self.selection = SearchSelection(window.ui.notebook) # XXX
+		self.selection = SearchSelection(notebook)
 		self.cancelled = False
 
 		cell_renderer = gtk.CellRendererText()
@@ -166,7 +168,8 @@ class SearchResultsTreeView(BrowserTreeView):
 		self.connect('row-activated', self._do_open_page)
 		self.connect('destroy', self.__class__._cancel)
 
-	def _cancel(self): self.cancelled = True
+	def _cancel(self):
+		self.cancelled = True
 
 	def search(self, query):
 		query = query.strip()
@@ -224,10 +227,10 @@ class SearchResultsTreeView(BrowserTreeView):
 
 	def _do_open_page(self, view, path, col):
 		page = Path(self.get_model()[path][0].decode('utf-8'))
-		self.app_window.ui.open_page(page) # XXX
+		pageview = self.navigation.open_page(page)
 
 		# Popup find dialog with same query
-		if self.query and self.query.simple_match:
+		if pageview and self.query and self.query.simple_match:
 			string = self.query.simple_match
 			string = string.strip('*') # support partial matches
-			self.app_window.pageview.show_find(string, highlight=True)
+			pageview.show_find(string, highlight=True)

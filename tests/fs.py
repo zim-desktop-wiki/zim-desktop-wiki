@@ -446,31 +446,6 @@ class TestSymlinks(tests.TestCase):
 		self.assertEqual(targetdir.list(), ['foo.txt'])
 
 
-@tests.slowTest
-@tests.skipUnless(zim.fs.gio, 'Trashing not supported, \'gio\' is missing')
-class TestTrash(tests.TestCase):
-
-	def runTest(self):
-		'''Test trashing files and folders'''
-		root = Dir(self.create_tmp_dir())
-		file = root.file('test.txt')
-		file.touch()
-		self.assertTrue(file.exists())
-		self.assertTrue(file.trash())
-		self.assertFalse(file.exists())
-		dir = root.subdir('test')
-		dir.touch()
-		self.assertTrue(dir.exists())
-		self.assertTrue(dir.trash())
-		self.assertFalse(dir.exists())
-
-		# fails silent if file does not exist
-		self.assertFalse(file.trash())
-		self.assertFalse(dir.trash())
-
-		# How can we cause gio to give an error and test that case ??
-
-
 from utils import FunctionThread
 
 @tests.slowTest

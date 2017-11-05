@@ -41,13 +41,12 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 
-		opener = self.window.get_resource_opener()
+		opener = self.window.navigation
 		self.widget = BackLinksWidget(opener)
-		if self.window.ui.page: # XXX
-			ui = self.window.ui # XXX
-			page = self.window.ui.page # XXX
-			self.on_open_page(ui, page, page)
-		self.connectto(self.window.ui, 'open-page') # XXX
+
+		if self.window.page is not None:
+			self.on_page_changed(self.window, self.window.page)
+		self.connectto(self.window, 'page-changed')
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -66,8 +65,8 @@ class MainWindowExtension(WindowExtension):
 		self.widget.show_all()
 		self.widget.show_all()
 
-	def on_open_page(self, ui, page, path):
-		self.widget.set_page(self.window.ui.notebook, page) # XXX
+	def on_page_changed(self, window, page):
+		self.widget.set_page(window.notebook, page)
 
 	def teardown(self):
 		self.window.remove(self.widget)

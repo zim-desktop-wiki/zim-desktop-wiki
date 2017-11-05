@@ -190,7 +190,7 @@ class MainWindowExtension(WindowExtension):
 	def _init_widget(self):
 		index = self.window.ui.notebook.index # XXX
 		tasksview = TasksView.new_from_index(index)
-		opener = self.window.get_resource_opener()
+		opener = self.window.navigation
 		uistate = self.window.ui.uistate['TaskListSidePane']
 		self._widget = TaskListWidget(tasksview, opener, self.plugin.preferences, uistate)
 

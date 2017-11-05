@@ -384,9 +384,27 @@ class FilePath(object):
 
 _HOME = FilePath('~')
 
+class FSObjectMeta(type):
+	'''This meta class allows implementing wrappers for file and folder objects
+	with C{isinstance()} checking the wrapped class as well as the wrapper.
+	Main use case is filtered version of folder object where e.g.
+	C{isinstance(folder, LocalFolder)} is used to check whether the underlying
+	resources exist external to the application.
+	'''
+
+	def __instancecheck__(cls, instance):
+		if instance.__class__ == cls or issubclass(instance.__class__, cls):
+			return True
+		elif hasattr(instance, '_inner_fs_object') and isinstance(instance._inner_fs_object, cls):
+			return True
+		else:
+			return False
+
 
 class FSObjectBase(FilePath):
 	'''Base class for L{File} and L{Folder}'''
+
+	__metaclass__ = FSObjectMeta
 
 	def __init__(self, path, watcher=None):
 		FilePath.__init__(self, path)

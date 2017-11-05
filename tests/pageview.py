@@ -1745,6 +1745,73 @@ Baz
 		text = buffer.get_text(*buffer.get_bounds())
 		self.assertEqual(text, wantedtext)
 
+	def testLinkClicked(self):
+		from functools import partial
+		pageview = setUpPageView(self.setUpNotebook())
+		pageview.page = Path('foo')
+
+		catches = []
+		def catch_method(*a):
+			catches.append(a)
+
+		pageview.ui._mainwindow.open_page = partial(catch_method, 'page')
+		pageview.ui.open_notebook = partial(catch_method, 'notebook')
+		pageview._open_file = partial(catch_method, 'file')
+		pageview._open_url = partial(catch_method, 'url')
+
+		# Note: same list of test uris is testing in tests.parsing as well
+		for href, type in (
+			('zim+file://foo/bar?dus.txt', 'notebook'),
+			('file:///foo/bar', 'file'),
+			('http://foo/bar', 'http'),
+			('http://192.168.168.100', 'http'),
+			('file+ssh://foo/bar', 'file+ssh'),
+			('mailto:foo@bar.com', 'mailto'),
+			('mailto:foo.com', 'page'),
+			('foo@bar.com', 'mailto'),
+			('mailto:foo//bar@bar.com', 'mailto'), # is this a valid mailto uri ?
+			('mid:foo@bar.org', 'mid'),
+			('cid:foo@bar.org', 'cid'),
+			('./foo/bar', 'file'),
+			('/foo/bar', 'file'),
+			('~/foo', 'file'),
+			('C:\\foo', 'file'),
+			('wp?foo', 'http'),
+			('http://foo?bar', 'http'),
+			('\\\\host\\foo\\bar', 'smb'),
+			('foo', 'page'),
+			('foo:bar', 'page'),
+		):
+			pageview.activate_link(href)
+			msg = "Clicked: \"%s\" resulted in: \"%s\"" % (href, catches[-1])
+			if type in ('page', 'notebook', 'file'):
+				self.assertTrue(catches[-1][0] == type, msg=msg)
+			else:
+				self.assertTrue(catches[-1][0] == 'url', msg=msg)
+				if type != 'smb':
+					self.assertTrue(catches[-1][1].startswith(type), msg=msg)
+
+	def testPluginCanHandleURL(self):
+		pageview = setUpPageView(self.setUpNotebook())
+
+		def mock_default(*a):
+			raise AssertionError('Default handler reached')
+
+		pageview.do_activate_link = mock_default
+
+		def myhandler(o, link, hints):
+			if link.startswith('myurl://'):
+				return True
+
+		id = pageview.connect('activate-link', myhandler)
+
+		with self.assertRaisesRegexp(AssertionError, 'Default handler reached'):
+			pageview.activate_link('foo')
+
+		pageview.activate_link('myurl://foo') # No raise
+
+		pageview.disconnect(id)
+
 
 class TestPageviewDialogs(tests.TestCase):
 

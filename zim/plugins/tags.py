@@ -104,23 +104,23 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
 		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
-		self.connectto_all(ui, ( # XXX
-			'open-page',
-			('start-index-update', lambda o: self.disconnect_model()),
-			('end-index-update', lambda o: self.reconnect_model()),
-		))
+		#self.connectto_all(ui, ( # XXX
+		#	('start-index-update', lambda o: self.disconnect_model()),
+		#	('end-index-update', lambda o: self.reconnect_model()),
+		#))
+		self.connectto(ui._mainwindow, 'page-changed') # XXX
 
 		self.reload_model()
 
-	def on_open_page(self, ui, page, path):
+	def on_page_changed(self, window, page):
 		expand = True
-		treepath = self.treeview.set_current_page(path, vivificate=True)
-		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
 		if treepath and expand:
 			# change selection only if necessary
 			selected_path = self.treeview.get_selected_path()
-			if path == selected_path:
-				logger.debug('Already selected: "%s"', path)
+			if page == selected_path:
+				logger.debug('Already selected: "%s"', page)
 			else:
 				self.treeview.select_treepath(treepath)
 
