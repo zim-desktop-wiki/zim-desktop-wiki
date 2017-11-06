@@ -772,7 +772,6 @@ class WindowExtension(ObjectExtension):
 		self.destroy()
 
 	def teardown(self):
-		# TODO move uimanager to window
 		if hasattr(self, '_uimanager_id') \
 		and self._uimanager_id is not None:
 			self.window.uimanager.remove_ui(self._uimanager_id)

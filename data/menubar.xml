@@ -58,13 +58,6 @@
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_panes'/>
 			<menuitem action='show_all_panes'/>
-			<menu action='pathbar_menu'>
-				<menuitem action='set_pathbar_none'/>
-				<menuitem action='set_pathbar_recent'/>
-				<menuitem action='set_pathbar_recent_changed'/>
-				<menuitem action='set_pathbar_history'/>
-				<menuitem action='set_pathbar_path'/>
-			</menu>
 			<menu action='toolbar_menu'>
 				<menuitem action='set_toolbar_style_icons_and_text'/>
 				<menuitem action='set_toolbar_style_icons_only'/>

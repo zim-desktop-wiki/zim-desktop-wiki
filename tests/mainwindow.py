@@ -98,17 +98,6 @@ class TestTogglingState(tests.TestCase):
 		window.toggle_panes()
 		self.assertTrue(window.uistate['left_pane'][0])
 
-		self.assertEqual(window.uistate['pathbar_type'], zim.gui.PATHBAR_RECENT)
-		for style in (
-			zim.gui.PATHBAR_NONE,
-			zim.gui.PATHBAR_HISTORY,
-			zim.gui.PATHBAR_PATH,
-			zim.gui.PATHBAR_RECENT,
-		):
-			window.set_pathbar(style)
-			self.assertEqual(window.uistate['pathbar_type'], style)
-			# TODO specific test for pathbar to exercize history, add / move / remove pages etc.
-
 		# note: no default style here - system default unknown
 		for style in (
 			zim.gui.TOOLBAR_ICONS_AND_TEXT,

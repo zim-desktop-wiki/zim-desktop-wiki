@@ -18,8 +18,8 @@ from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path
 from zim.gui.widgets import TOP, TOP_PANE
 from zim.signals import ConnectorMixin, SignalHandler
-from zim.gui.pathbar import ScrolledHBox
 from zim.gui.clipboard import Clipboard
+from zim.plugins.pathbar import ScrolledHBox
 
 import logging
 logger = logging.getLogger('zim.plugins.bookmarksbar')

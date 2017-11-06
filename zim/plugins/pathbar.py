@@ -7,19 +7,130 @@ import gtk
 import gobject
 import logging
 
+from functools import reduce
+
+from zim.plugins import PluginClass, WindowExtension, extends
+from zim.actions import radio_action, radio_option
+from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
+from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
-from zim.gui.widgets import encode_markup_text
-from zim.gui.uiactions import UIActions, PAGE_ACTIONS
-from functools import reduce
+
 
 logger = logging.getLogger('zim.gui')
+
+
+class PathBarPlugin(PluginClass):
+
+	plugin_info = {
+		'name': _('PathBar'), # T: plugin name
+		'description': _('''\
+This plugin adds a "path bar" to the top of the window.
+This "path bar" can show the noteobok path for the current page,
+recent visited pages or recent edited pages.
+'''), # T: plugin description
+		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:PathBar',
+	}
+
+
+PATHBAR_NONE = 'none' #: Constant for no pathbar
+PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
+PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathbar
+PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
+PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
+PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
+
+
+@extends('MainWindow')
+class PathBarMainWindowExtension(WindowExtension):
+	'''Extension used to add calendar dialog to mainwindow'''
+
+	uimanager_xml = '''
+	<ui>
+	<menubar name='menubar'>
+		<menu action='view_menu'>
+			<placeholder name='plugin_items'>
+			<menu action='pathbar_menu'>
+				<menuitem action='set_pathbar_none'/>
+				<menuitem action='set_pathbar_recent'/>
+				<menuitem action='set_pathbar_recent_changed'/>
+				<menuitem action='set_pathbar_history'/>
+				<menuitem action='set_pathbar_path'/>
+			</menu>
+			</placeholder>
+		</menu>
+	</menubar>
+	</ui>
+	'''
+
+	uimanager_menu_labels = {
+		'pathbar_menu': _('P_athbar'), # T: Menu title
+	}
+
+	_klasses = {
+		PATHBAR_NONE: None,
+		# other classes are added below where they are defined
+	}
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		self.pathbar = None
+		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
+		self.set_pathbar(self.uistate['pathbar_type'])
+		self.connectto(window, 'page-changed')
+
+	def on_page_changed(self, window, page):
+		if self.pathbar is not None:
+			self.pathbar.set_page(page)
+
+	def teardown(self):
+		if self.pathbar is not None:
+			self.window.remove(self.pathbar)
+
+	@radio_action(
+		radio_option(PATHBAR_NONE, _('_None')),
+		radio_option(PATHBAR_RECENT, _('_Recent pages')),
+		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
+		radio_option(PATHBAR_HISTORY, _('_History')),
+		radio_option(PATHBAR_PATH, _('_Page Hierarchy'))
+	)
+	def set_pathbar(self, type):
+		'''Set the pathbar type
+
+		@param type: the type of pathbar, one of:
+			- C{PATHBAR_NONE} to hide the pathbar
+			- C{PATHBAR_RECENT} to show recent pages
+			- C{PATHBAR_RECENT_CHANGED} to show recently changed pagesF
+			- C{PATHBAR_HISTORY} to show the history
+			- C{PATHBAR_PATH} to show the namespace path
+		'''
+		if self.pathbar is not None:
+			try:
+				self.window.remove(self.pathbar)
+			except ValueError:
+				pass
+			self.pathbar = None
+
+		klass = self._klasses[type]
+		if klass is not None:
+			self.pathbar = klass(
+				self.window.ui.history, # XXX
+				self.window.notebook,
+				self.window.config,
+				self.window.navigation
+			)
+			self.pathbar.set_page(self.window.page)
+			self.pathbar.show_all()
+			self.window.add_widget(self.pathbar, (TOP_PANE, TOP))
+
+		self.uistate['pathbar_type'] = type
+
 
 # Constants
 DIR_FORWARD = 1
 DIR_BACKWARD = -1
-
 
 class ScrolledHBox(gtk.HBox):
 	'''This class provides a widget that behaves like a HBox when there is
@@ -393,33 +504,27 @@ class PathBar(ScrolledHBox):
 	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
 	with a list of ToggleButtons representing zim Path objects'''
 
-	def __init__(self, ui, history=None, spacing=0, homogeneous=False):
+	def __init__(self, history, notebook, config, navigation, spacing=0, homogeneous=False):
 		ScrolledHBox.__init__(self, spacing, homogeneous)
-		self.ui = ui
-		self.history = None
-		self._selected = None
-		if history:
-			self.set_history(history)
-		self.ui._mainwindow.connect_after('page-changed', self.on_page_changed)
-
-	def set_history(self, history):
 		self.history = history
-		self.history.connect('changed', lambda o: self._update())
+		self.notebook = notebook
+		self.config = config
+		self.navigation = navigation
+		self._selected = None
 		self._update()
-		self._select(history.get_current())
+		self.history.connect('changed', self.on_history_changed)
 
-	def on_page_changed(self, ui, page):
-		# Since we connect after open page, update has likely been done
-		# already from the history 'changed' signal - if not trigger it here.
+	def set_page(self, page):
 		self._select(page)
-		if self._selected is None:
+		if self._selected is None: # See if we missed an update
 			self._update()
 			self._select(page)
 
-	def _update(self):
-		if self.history is None:
-			return
+	def on_history_changed(self, history):
+		self._update()
+		self._select(history.get_current())
 
+	def _update(self):
 		for button in self.get_children()[2:]:
 			self.remove(button)
 		self._selected = None
@@ -479,7 +584,7 @@ class PathBar(ScrolledHBox):
 			set_active(self._selected, True)
 
 	def on_button_clicked(self, button):
-		self.ui._mainwindow.open_page(button.zim_path) # XXX
+		self.navigation.open_page(button.zim_path)
 
 	def do_button_release_event(self, button, event):
 		'''Handler for button-release-event, triggers popup menu'''
@@ -491,10 +596,10 @@ class PathBar(ScrolledHBox):
 		menu = gtk.Menu()
 		uiactions = UIActions(
 			self,
-			self.ui._mainwindow.notebook, # XXX
+			self.notebook,
 			button.zim_path,
-			self.ui._mainwindow.navigation, # XXX
-			self.ui._mainwindow.preferences # XXX
+			self.config,
+			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 		menu.popup(None, None, None, 3, 0)
@@ -507,12 +612,6 @@ class PathBar(ScrolledHBox):
 		data = pack_urilist((path.name,))
 		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
 
-	def get_selected_path(self):
-		'''Returns path currently selected or None'''
-		if self._selected:
-			return self._selected.zim_path
-		else:
-			return None
 
 class HistoryPathBar(PathBar):
 
@@ -525,6 +624,8 @@ class HistoryPathBar(PathBar):
 		paths = list(self.history.get_history())
 		paths.reverse()
 		return paths
+
+PathBarMainWindowExtension._klasses[PATHBAR_HISTORY] = HistoryPathBar
 
 
 class RecentPathBar(PathBar):
@@ -540,12 +641,14 @@ class RecentPathBar(PathBar):
 		paths.reverse()
 		return paths
 
+PathBarMainWindowExtension._klasses[PATHBAR_RECENT] = RecentPathBar
+
 
 class RecentChangesPathBar(PathBar):
 
 	def __init__(self, *arg, **kwarg):
 		PathBar.__init__(self, *arg, **kwarg)
-		self.ui.notebook.connect_after('stored-page', self.on_stored_page)
+		self.notebook.connect_after('stored-page', self.on_stored_page)
 
 	def on_stored_page(self, *a):
 		self._update()
@@ -555,7 +658,9 @@ class RecentChangesPathBar(PathBar):
 
 	def get_paths(self):
 		return reversed(list(
-				self.ui.notebook.pages.list_recent_changes(limit=10)))
+				self.notebook.pages.list_recent_changes(limit=10)))
+
+PathBarMainWindowExtension._klasses[PATHBAR_RECENT_CHANGED] = RecentChangesPathBar
 
 
 class NamespacePathBar(PathBar):
@@ -576,8 +681,11 @@ class NamespacePathBar(PathBar):
 		paths.append(path) # add leaf
 		return paths
 
+PathBarMainWindowExtension._klasses[PATHBAR_PATH] = NamespacePathBar
+
 
 ############################
+# Allow testing visuals of scrolled box
 
 class TestPath(object):
 
@@ -585,16 +693,23 @@ class TestPath(object):
 		self.name = name
 		self.basename = name
 
+
+class MockHistory(object):
+
+	def connect(self, *a):
+		pass
+
+
 class TestPathBar(PathBar):
 
 	def __init__(self):
-		PathBar.__init__(self, None, None)
-		self.history = 'XXX'
+		PathBar.__init__(self, MockHistory(), None, None, None)
 		self._update()
 
 	def get_paths(self):
 		for path in ('foo', 'bar', 'baz', 'looooooongggggggg item here', 'dus', 'ja', 'hmm'):
 			yield TestPath(path)
+
 
 if __name__ == '__main__':
 	window = gtk.Window()

@@ -62,6 +62,7 @@ __all__ = [
 	'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
 	# Plugins
+	'pathbar',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',

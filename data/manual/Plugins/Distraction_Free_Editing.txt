@@ -11,7 +11,7 @@ This plugin adds settings that help using zim as a distraction free editor.
 See also: [[Usage:Creative Writing]]
 
 ===== Options =====
-The options **Hide menubar in fullscreen mode**, **Hide toolbar in fullscreen mode**, **Hide pathbar in fullscreen mode** and **Hide statusbar in fullscreen mode** toggle the visibility of the various widgets in fullscreen mode. (If the the menubar is not hidden, you can also toggle these elements using the "View" menu.)
+The options **Hide menubar in fullscreen mode**, **Hide toolbar in fullscreen mode** and **Hide statusbar in fullscreen mode** toggle the visibility of the various widgets in fullscreen mode. (If the the menubar is not hidden, you can also toggle these elements using the "View" menu.)
 
 The option **Maximum page width** sets the maximum width of the pageview in pixels and the option **Vertical margin** sets a margin in pixels along the top and bottom of the screen.
 
@@ -26,7 +26,7 @@ Useful keybindings to use in this mode:
 	''<F9>'' to toggle side pane visibility
 	''Shift<f9>'' to show all side panes
 	''<Ctrl><Space>'' optionally to temporarily access the index and hide it again
-	
+
 Of course all other keybindings keep working, but less discoverable when the menubar is hidden.
 
 **Note:** by default zim already hides the toolbar, the statusbar and the pathbar in fullscreen mode, but you can toggle them on again. If they are visible in fullscreen mode and you want to hide them, you first will need to show the menubar and hide them from there.

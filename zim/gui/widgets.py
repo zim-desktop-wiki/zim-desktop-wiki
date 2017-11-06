@@ -2704,6 +2704,22 @@ class Window(gtkwindowclass):
 		else:
 			raise KeyError
 
+	def get_widget(self, position):
+		key, pos = position
+		if key in (TOP_PANE, BOTTOM_PANE):
+			if key == TOP_PANE and pos == TOP:
+				# Special case for top widget outside of pane
+				# used especially for PathBar
+				return self._zim_window_central_vbox.get_children()[0]
+					# FIXME: not guaranteed to return a widget added with
+					#        add_widget()
+			else:
+				raise NotImplementedError
+		elif key in (LEFT_PANE, RIGHT_PANE):
+			raise NotImplementedError
+		else:
+			raise KeyError
+
 	def remove(self, widget):
 		'''Remove widget from any pane
 		@param widget: the widget to remove

@@ -28,18 +28,9 @@ from zim.gui.widgets import \
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
 from zim.gui.customtools import CustomToolManagerUI
-from zim.gui.pathbar import NamespacePathBar, RecentPathBar, RecentChangesPathBar, HistoryPathBar
 from zim.gui.pageindex import PageIndex
 from zim.gui.pageview import PageView
 
-
-
-PATHBAR_NONE = 'none' #: Constant for no pathbar
-PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
-PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathbar
-PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
-PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
-PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
 
 TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
 TOOLBAR_ICONS_ONLY = 'icons_only'
@@ -61,7 +52,6 @@ MENU_ACTIONS = (
 	('tools_menu', None, _('_Tools')), # T: Menu title
 	('go_menu', None, _('_Go')), # T: Menu title
 	('help_menu', None, _('_Help')), # T: Menu title
-	('pathbar_menu', None, _('P_athbar')), # T: Menu title
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
 )
@@ -81,15 +71,12 @@ def schedule_on_idle(function, args=()):
 
 
 class MainWindow(Window):
-	'''This class implements the main window of the application. It
-	contains the main L{PageView} and the side pane with a L{PageIndex}.
-	Also includes the menubar, toolbar, L{PathBar}, statusbar etc.
+	'''This class implements the main window of the application
 
 	@ivar uimanager: the C{gtk.UIManager}
 
 	@ivar pageview: the L{PageView} object
 	@ivar pageindex: the L{PageIndex} object
-	@ivar pathbar: the L{PathBar} object
 
 	@signal: C{fullscreen-changed ()}: emitted when switching to or from fullscreen state
 	'''
@@ -167,10 +154,6 @@ class MainWindow(Window):
 
 		self.pageindex.treeview.connect('insert-link',
 			lambda v, p: self.pageview.insert_links([p]))
-
-		self.pathbar = None
-		self.pathbar_box = gtk.HBox()
-		self.add_widget(self.pathbar_box, (TOP_PANE, TOP))
 
 		self.pageview = PageView(ui, ui.notebook) # XXX
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
@@ -505,51 +488,6 @@ class MainWindow(Window):
 		return True # stop
 
 	@radio_action(
-		radio_option(PATHBAR_NONE, _('_None')),
-		radio_option(PATHBAR_RECENT, _('_Recent pages')),
-		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
-		radio_option(PATHBAR_HISTORY, _('_History')),
-		radio_option(PATHBAR_PATH, _('_Page Hierarchy'))
-	)
-	def set_pathbar(self, type):
-		'''Set the pathbar type
-
-		@param type: the type of pathbar, one of:
-			- C{PATHBAR_NONE} to hide the pathbar
-			- C{PATHBAR_RECENT} to show recent pages
-			- C{PATHBAR_RECENT_CHANGED} to show recently changed pagesF
-			- C{PATHBAR_HISTORY} to show the history
-			- C{PATHBAR_PATH} to show the namespace path
-		'''
-		if type == PATHBAR_NONE:
-			self.pathbar_box.hide()
-			klass = None
-		elif type == PATHBAR_HISTORY:
-			klass = HistoryPathBar
-		elif type == PATHBAR_RECENT:
-			klass = RecentPathBar
-		elif type == PATHBAR_RECENT_CHANGED:
-			klass = RecentChangesPathBar
-		elif type == PATHBAR_PATH:
-			klass = NamespacePathBar
-		else:
-			assert False, 'BUG: Unknown pathbar type %s' % type
-
-		if not type == PATHBAR_NONE:
-			if not (self.pathbar and self.pathbar.__class__ == klass):
-				for child in self.pathbar_box.get_children():
-					self.pathbar_box.remove(child)
-				self.pathbar = klass(self.ui)
-				self.pathbar.set_history(self.ui.history)
-				self.pathbar_box.add(self.pathbar)
-			self.pathbar_box.show_all()
-
-		if self.isfullscreen:
-			self.uistate['pathbar_type_fullscreen'] = type
-		else:
-			self.uistate['pathbar_type'] = type
-
-	@radio_action(
 		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')), # T: Menu item
 		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')), # T: Menu item
@@ -632,7 +570,6 @@ class MainWindow(Window):
 		# Initialize all the uistate parameters
 		# delayed till show or show_all because all this needs real
 		# uistate to be in place and plugins to be loaded
-		# also pathbar needs history in place
 		# Run between loading plugins and actually presenting the window to the user
 		self.uistate = self.ui.uistate['MainWindow']
 
@@ -660,8 +597,6 @@ class MainWindow(Window):
 		self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('show_statusbar_fullscreen', False)
-		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
-		self.uistate.setdefault('pathbar_type_fullscreen', PATHBAR_NONE, PATHBAR_TYPES)
 
 		# For these two "None" means system default, but we don't know what that default is :(
 		self.preferences.setdefault('toolbar_style', None,
@@ -756,12 +691,10 @@ class MainWindow(Window):
 			self.toggle_menubar(self.uistate['show_menubar_fullscreen'])
 			self.toggle_toolbar(self.uistate['show_toolbar_fullscreen'])
 			self.toggle_statusbar(self.uistate['show_statusbar_fullscreen'])
-			self.set_pathbar(self.uistate['pathbar_type_fullscreen'])
 		else:
 			self.toggle_menubar(self.uistate['show_menubar'])
 			self.toggle_toolbar(self.uistate['show_toolbar'])
 			self.toggle_statusbar(self.uistate['show_statusbar'])
-			self.set_pathbar(self.uistate['pathbar_type'])
 
 	def save_uistate(self):
 		if not self.isfullscreen:
