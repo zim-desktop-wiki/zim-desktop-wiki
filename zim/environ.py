@@ -98,15 +98,11 @@ if os.name == 'nt':
 	if not 'APPDATA' in environ or not environ['APPDATA']:
 		environ['APPDATA'] = environ['HOME'] + '\\Application Data'
 
-assert isdir(environ['HOME']), \
-	'ERROR: environment variable $HOME not set correctly value is "%s"'
+if not isdir(environ['HOME']):
+	logger.error('Environment variable $HOME does not point to an existing folder: %s', environ['HOME'])
 	# using our own environ here to ensure encoding
 
 if not 'USER' in environ or not environ['USER']:
 	# E.g. Maemo doesn't define $USER
 	environ['USER'] = os.path.basename(environ['HOME'])
 	logger.info('Environment variable $USER was not set, set to "%s"', environ['USER'])
-
-
-
-
