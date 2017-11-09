@@ -177,7 +177,7 @@ class MainWindow(Window):
 
 		# and build the widget for backlinks
 		self.statusbar_backlinks_button = \
-			BackLinksMenuButton(self.ui, status_bar_style=True)
+			BackLinksMenuButton(self.notebook, self.open_page, status_bar_style=True)
 		frame = gtk.Frame()
 		frame.set_shadow_type(gtk.SHADOW_IN)
 		self.statusbar.pack_end(frame, False)
@@ -772,7 +772,7 @@ class MainWindow(Window):
 		#TODO: set toggle_readonly insensitive when page is readonly
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
-		self.update_backlinks_button()
+		self.statusbar_backlinks_button.set_page(self.page)
 
 	def do_page_info_changed(self, notebook, page):
 		if page == self.page:
@@ -792,18 +792,6 @@ class MainWindow(Window):
 		child = self.actiongroup.get_action('open_page_child')
 		parent.set_sensitive(len(self.page.namespace) > 0)
 		child.set_sensitive(self.page.haschildren)
-
-	def update_backlinks_button(self):
-		try:
-			n = self.notebook.links.n_list_links(self.page, LINK_DIR_BACKWARD)
-		except IndexNotFoundError:
-			n = 0
-
-		label = self.statusbar_backlinks_button.label
-		label.set_text_with_mnemonic(
-			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
-			# T: Label for button with backlinks in statusbar
-		self.statusbar_backlinks_button.set_sensitive(n > 0)
 
 	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def show_jump_to(self):
@@ -914,25 +902,36 @@ class Actions(object):
 
 class BackLinksMenuButton(MenuButton):
 
-	def __init__(self, ui, status_bar_style=False):
-		label = '%i _Backlinks...' % 0 # Translated above
-		MenuButton.__init__(self, label, gtk.Menu(), status_bar_style)
-		self.ui = ui
+	def __init__(self, notebook, open_page, status_bar_style=False):
+		MenuButton.__init__(self, '-backlinks-', gtk.Menu(), status_bar_style)
+		self.notebook = notebook
+		self.open_page = open_page
+		self.set_sensitive(False)
+
+	def set_page(self, page):
+		self.page = page
+		try:
+			n = self.notebook.links.n_list_links(self.page, LINK_DIR_BACKWARD)
+		except IndexNotFoundError:
+			n = 0
+
+		self.label.set_text_with_mnemonic(
+			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
+			# T: Label for button with backlinks in statusbar
+		self.set_sensitive(n > 0)
 
 	def popup_menu(self, event=None):
 		# Create menu on the fly
 		self.menu = gtk.Menu()
 		notebook = self.notebook
-		links = list(notebook.links.list_links(self.ui.page, LINK_DIR_BACKWARD))
+		links = list(notebook.links.list_links(self.page, LINK_DIR_BACKWARD))
 		if not links:
 			return
 
-		self.menu.add(gtk.TearoffMenuItem())
-			# TODO: hook tearoff to trigger search dialog
 		links.sort(key=lambda a: a.source.name)
 		for link in links:
 			item = gtk.MenuItem(link.source.name)
-			item.connect_object('activate', self.ui._mainwindow.open_page, link.source)
+			item.connect_object('activate', self.open_page, link.source)
 			self.menu.add(item)
 
 		MenuButton.popup_menu(self, event)
