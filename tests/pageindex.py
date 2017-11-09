@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -11,7 +11,26 @@ from zim.notebook import Path
 from zim.notebook.index.pages import MyTreeIter, IndexNotFoundError
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
-from zim.gui.pageindex import *
+from zim.plugins.pageindex import *
+
+
+#from zim.gui.mainwindow import MainWindow
+from tests.gui import newSetupGtkInterface
+
+def MainWindow(test):
+	gui = newSetupGtkInterface(test)
+	return gui._mainwindow
+
+
+class TestPageIndexPlugin(tests.TestCase):
+
+	def runTest(self):
+		plugin = PageIndexPlugin()
+		window = MainWindow(self)
+		plugin.extend(window)
+		extension = plugin.get_extension(window, PageIndexMainWindowExtension)
+		self.assertIsNotNone(extension)
+
 
 
 class TestPageTreeStore(tests.TestCase):

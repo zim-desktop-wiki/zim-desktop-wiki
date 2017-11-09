@@ -92,6 +92,10 @@ class TestTogglingState(tests.TestCase):
 		window.toggle_statusbar()
 		self.assertTrue(window.uistate['show_statusbar'])
 
+		mywidget = MockSidePane()
+		mywidget.show_all()
+		window.add_tab('Test', mywidget, LEFT_PANE)
+
 		self.assertTrue(window.uistate['left_pane'][0])
 		window.toggle_panes()
 		self.assertFalse(window.uistate['left_pane'][0])
@@ -126,6 +130,11 @@ class TestTogglingState(tests.TestCase):
 		#~ self.assertTrue(ui.readonly)
 		#~ self.assertTrue(window.uistate['readonly'])
 
+
+import gtk
+from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE
+class MockSidePane(gtk.VBox, WindowSidePaneWidget):
+	pass
 
 
 class TestSavingPages(tests.TestCase):

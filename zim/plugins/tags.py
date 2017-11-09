@@ -13,8 +13,7 @@ import logging
 from functools import partial
 
 from zim.plugins import PluginClass, extends, WindowExtension
-#~ PageTreeIter
-from zim.gui.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
+from zim.plugins.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError

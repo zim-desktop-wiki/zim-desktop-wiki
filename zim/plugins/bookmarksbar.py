@@ -96,11 +96,11 @@ class MainWindowExtension(WindowExtension):
 		self.widget.show_all()
 
 		# Add a new option to the Index popup menu.
-		try:
-			self.widget.connectto(self.window.pageindex.treeview,
-								  'populate-popup', self.on_populate_popup)
-		except AttributeError:
-			logger.error('BookmarksBar: popup menu not initialized.')
+		#try:
+		#	self.widget.connectto(self.window.pageindex.treeview,
+		#						  'populate-popup', self.on_populate_popup)
+		#except AttributeError:
+		#	logger.error('BookmarksBar: popup menu not initialized.')
 
 		# Show/hide bookmarks.
 		self.uistate.setdefault('show_bar', True)

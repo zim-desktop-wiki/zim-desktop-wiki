@@ -134,8 +134,11 @@ class GtkInterface(object):
 			remove_links_on_delete=Boolean(True),
 			always_use_last_cursor_pos=Boolean(True),
 		)
-		self.preferences['General'].setdefault('plugins',
-			['calendar', 'insertsymbol', 'printtobrowser', 'versioncontrol', 'osx_menubar'])
+		self.preferences['General'].setdefault('plugins',[
+			'pageindex', 'pathbar',
+			'calendar', 'insertsymbol', 'printtobrowser',
+			'versioncontrol', 'osx_menubar'
+		])
 
 		self.plugins = PluginManager(self.config)
 		self.plugins.extend(notebook)
@@ -158,12 +161,6 @@ class GtkInterface(object):
 			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		# Init UI
-		self._mainwindow = MainWindow(self, self.notebook, self.config, fullscreen, geometry)
-		self._mainwindow._uiactions._plugins = self.plugins # XXX HACK around ugly dependency XXX
-		def on_page_changed(o, page):
-			self.page = page
-		self._mainwindow.connect('page-changed', on_page_changed)
-
 		if notebook.cache_dir:
 			# may not exist during tests
 			from zim.config import INIConfigFile
@@ -172,6 +169,12 @@ class GtkInterface(object):
 		else:
 			from zim.config import SectionedConfigDict
 			self.uistate = SectionedConfigDict()
+
+		self._mainwindow = MainWindow(self, self.notebook, self.config, fullscreen, geometry)
+		self._mainwindow._uiactions._plugins = self.plugins # XXX HACK around ugly dependency XXX
+		def on_page_changed(o, page):
+			self.page = page
+		self._mainwindow.connect('page-changed', on_page_changed)
 
 		self.history = History(notebook, self.uistate)
 

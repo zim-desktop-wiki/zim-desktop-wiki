@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -2231,8 +2231,9 @@ class WindowSidePane(gtk.VBox):
 		'close': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self):
+	def __init__(self, position):
 		gtk.VBox.__init__(self)
+		self.key = position
 
 		# Add bar with label and close button
 		self.topbar = gtk.HBox()
@@ -2575,10 +2576,10 @@ class Window(gtkwindowclass):
 		self._zim_window_top_paned = VPaned()
 		self._zim_window_bottom_paned = VPaned()
 
-		self._zim_window_left_pane = WindowSidePane()
-		self._zim_window_right_pane = WindowSidePane()
-		self._zim_window_top_pane = WindowSidePane()
-		self._zim_window_bottom_pane = WindowSidePane()
+		self._zim_window_left_pane = WindowSidePane(LEFT_PANE)
+		self._zim_window_right_pane = WindowSidePane(RIGHT_PANE)
+		self._zim_window_top_pane = WindowSidePane(TOP_PANE)
+		self._zim_window_bottom_pane = WindowSidePane(BOTTOM_PANE)
 
 		self._zim_window_left_minimized = VMinimizedTabs(self._zim_window_left_pane)
 		self._zim_window_right_minimized = VMinimizedTabs(self._zim_window_right_pane, angle=270)
@@ -2755,7 +2756,7 @@ class Window(gtkwindowclass):
 			self.set_pane_state(key, *self.uistate[key])
 
 	def save_uistate(self):
-		assert self.uistate
+		assert self.uistate is not None
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			if key in self.uistate:
 				self.uistate[key] = self.get_pane_state(key)
@@ -2859,7 +2860,7 @@ class Window(gtkwindowclass):
 			for pane in panes:
 				self.set_pane_state(pane, True)
 		else:
-			self.uistate['toggle_panes'] = self.get_visible_panes()
+			self.uistate['toggle_panes'] = [p.key for p in self.get_visible_panes()]
 			for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 				self.set_pane_state(pane, False)
 
@@ -2870,21 +2871,21 @@ class Window(gtkwindowclass):
 
 	def get_visible_panes(self):
 		'''Returns a list of panes that are visible'''
-		panes = []
-		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane, mini = self._zim_window_sidepanes[key]
-			if not pane.is_empty() and pane.get_property('visible'):
-				panes.append(key)
-		return panes
+		return filter(
+			lambda p: not p.is_empty() and p.get_property('visible'),
+			self._panes()
+		)
 
 	def get_used_panes(self):
 		'''Returns a list of panes that are in use (i.e. not empty)'''
-		panes = []
-		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane, mini = self._zim_window_sidepanes[key]
-			if not pane.is_empty():
-				panes.append(key)
-		return panes
+		return filter(
+			lambda p: not p.is_empty(),
+			self._panes()
+		)
+
+	def _panes(self):
+		return [self._zim_window_sidepanes[key][1]
+				for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)]
 
 	def do_set_focus(self, widget):
 		# keep track of last sidepane widget that had focus..
@@ -2898,7 +2899,14 @@ class Window(gtkwindowclass):
 
 		return gtkwindowclass.do_set_focus(self, widget)
 
-	def focus_last_sidepane(self):
+	def focus_sidepane(self):
+		try:
+			self.focus_last_focussed_sidepane() \
+				or self.get_visible_panes()[0].grab_focus()
+		except IndexError:
+			pass
+
+	def focus_last_focussed_sidepane(self):
 		if self._last_sidepane_focus \
 		and self._last_sidepane_focus.get_property('visible'):
 			self._last_sidepane_focus.grab_focus()

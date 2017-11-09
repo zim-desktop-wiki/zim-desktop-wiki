@@ -2,13 +2,6 @@
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''This module contains the page index widget which is normally shown
-in the side pane of the main window. L{PageIndex} is the main widget
-which contains a L{PageTreeView} which is the actual list view widget.
-The L{PageTreeStore} is our custom data model which connects to the
-L{index<Index>} to get the page list data and maps it to the TreeView API.
-'''
-
 import gobject
 import gtk
 import pango
@@ -19,16 +12,15 @@ from functools import partial
 from zim.notebook import Path
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError
 
-from zim.gui.widgets import ui_environment, BrowserTreeView, \
-	populate_popup_add_separator, encode_markup_text, \
-	ErrorDialog
-from zim.gui.clipboard import \
-	Clipboard, \
-	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
-	pack_urilist, unpack_urilist
-from zim.gui.uiactions import UIActions, PAGE_ACTIONS
-
+from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import PRIMARY_MODIFIER_MASK
+
+from zim.gui.widgets import ui_environment, BrowserTreeView, ScrolledWindow, \
+	populate_popup_add_separator, encode_markup_text, ErrorDialog, \
+	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
+from zim.gui.clipboard import Clipboard, pack_urilist, unpack_urilist, \
+	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET
+from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 
 
 logger = logging.getLogger('zim.gui.pageindex')
@@ -48,12 +40,90 @@ KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
 KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
 
 
-#~ import gc
-#~ gc.set_debug(gc.DEBUG_LEAK)
-#~ gc.set_debug(gc.DEBUG_STATS)
+class PageIndexPlugin(PluginClass):
 
-# TODO split in a base class to be used by e.g. Tags as well and
-# a subclass combining the base with the mixin
+	plugin_info = {
+		'name': _('Page Index'), # T: plugin name
+		'description': _('''\
+This plugin adds the page index pane to the main window.
+'''), # T: plugin description
+		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:PageIndex',
+	}
+
+	plugin_preferences = (
+		# key, type, label, default
+		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS),
+			# T: preferences option
+	)
+
+
+@extends('MainWindow')
+class PageIndexMainWindowExtension(WindowExtension):
+
+	def __init__(self, plugin, window):
+		WindowExtension.__init__(self, plugin, window)
+		index = window.notebook.index
+		model = PageTreeStore(index)
+		self.treeview = PageTreeView(window.ui) # XXX
+		self.treeview.set_model(model)
+		self.widget = PageIndexWidget(self.treeview)
+
+		# Connect to ui signals
+		#window.ui.connect('start-index-update', lambda o: self.disconnect_model())
+		#window.ui.connect('end-index-update', lambda o: self.reload_model())
+
+		self.on_preferences_changed(plugin.preferences)
+		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+		if window.page:
+			self.on_page_changed(window, window.page)
+		self.connectto(window, 'page-changed')
+
+		# self.pageindex.treeview.connect('insert-link',
+		# 	lambda v, p: self.pageview.insert_links([p]))
+
+
+	def on_preferences_changed(self, preferences):
+		try:
+			self.window.remove(self.widget)
+		except ValueError:
+			pass
+		self.window.add_tab(_('Index'), self.widget, preferences['pane'])
+										# T: tab label for side pane
+		self.widget.show_all()
+
+	def on_page_changed(self, window, page):
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
+		if treepath and expand:
+			self.treeview.select_treepath(treepath)
+
+	def disconnect_model(self):
+		'''Stop the widget from listening to the index. Used e.g. to
+		unhook the model before reloading the index, thus avoiding
+		many signals to be processed by both the model and the view.
+		Typically should be followed by L{reload_model()} to get the
+		view in sync with the index again.
+		'''
+		self.treeview.disconnect_index()
+
+	def reload_model(self):
+		'''Re-initialize the treeview model. This is called when
+		reloading the index to get rid of out-of-sync model errors
+		without need to close the app first.
+		'''
+		ui = self.treeview.ui # XXX
+		model = PageTreeStore(self.ui.notebook.index)
+		self.treeview.set_model(model)
+
+
+class PageIndexWidget(gtk.VBox, WindowSidePaneWidget):
+
+	def __init__(self, treeview):
+		gtk.VBox.__init__(self)
+		self.pack_start(ScrolledWindow(treeview))
+
 
 class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
 	'''Custom gtk TreeModel that is integrated closely with the L{Index}
@@ -552,77 +622,3 @@ class PageTreeView(BrowserTreeView):
 
 # Need to register classes defining gobject signals
 gobject.type_register(PageTreeView)
-
-
-class PageIndex(gtk.ScrolledWindow):
-	'''This is the main widget to display a page index.
-	It contains a L{PageTreeView} within a scrolled window.
-
-	@ivar treeview: the L{PageTreeView}
-	'''
-
-	def __init__(self, window):
-		'''Constructor
-
-		@param window: a L{MainWindow} object
-		'''
-		gtk.ScrolledWindow.__init__(self)
-
-		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		self.set_shadow_type(gtk.SHADOW_IN)
-
-		self.treeview = PageTreeView(window.ui) # XXX
-		self.add(self.treeview)
-
-		# Set model and connect to index
-		index = window.notebook.index
-
-		model = PageTreeStore(index)
-		self.treeview.set_model(model)
-
-		# Connect to ui signals
-		#window.ui.connect('start-index-update', lambda o: self.disconnect_model())
-		#window.ui.connect('end-index-update', lambda o: self.reload_model())
-
-		window.connect('page-changed', self.on_page_changed)
-
-		# Select current page, if any
-		if window.page:
-			self.on_page_changed(window, window.page)
-
-	def on_page_changed(self, window, page):
-		treepath = self.treeview.set_current_page(page, vivificate=True)
-		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
-		if treepath and expand:
-			self.treeview.select_treepath(treepath)
-
-	def is_focus(self):
-		return self.treeview.is_focus()
-
-	def grab_focus(self):
-		return self.treeview.grab_focus()
-
-	def get_selected_path(self):
-		'''Get the selected notebook path
-
-		@returns: a L{PageIndexRecord} or C{None} if there was no selection
-		'''
-		return self.treeview.get_selected_path()
-
-	def disconnect_model(self):
-		'''Stop the widget from listening to the index. Used e.g. to
-		unhook the model before reloading the index, thus avoiding
-		many signals to be processed by both the model and the view.
-		Typically should be followed by L{reload_model()} to get the
-		view in sync with the index again.
-		'''
-		self.treeview.disconnect_index()
-
-	def reload_model(self):
-		'''Re-initialize the treeview model. This is called when
-		reloading the index to get rid of out-of-sync model errors
-		without need to close the app first.
-		'''
-		ui = self.treeview.ui # XXX
-		model = PageTreeStore(self.ui.notebook.index)
-		self.treeview.set_model(model)

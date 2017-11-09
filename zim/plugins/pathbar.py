@@ -24,7 +24,7 @@ logger = logging.getLogger('zim.gui')
 class PathBarPlugin(PluginClass):
 
 	plugin_info = {
-		'name': _('PathBar'), # T: plugin name
+		'name': _('Path Bar'), # T: plugin name
 		'description': _('''\
 This plugin adds a "path bar" to the top of the window.
 This "path bar" can show the noteobok path for the current page,

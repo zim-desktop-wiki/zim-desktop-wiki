@@ -56,13 +56,13 @@ __all__ = [
 	'formats', 'templates', 'objectmanager',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
-	# GUI
-	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard',
-	'mainwindow', 'uiactions', 'gui', 'notebookdialog', 'preferencesdialog',
-	'searchdialog', 'customtools', 'templateeditordialog',
+	# Core application
+	'widgets', 'pageview', 'save_page', 'clipboard', 'uiactions',
+	'mainwindow',  'gui', 'notebookdialog',
+	'preferencesdialog', 'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
 	# Plugins
-	'pathbar',
+	'pathbar', 'pageindex',
 	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',

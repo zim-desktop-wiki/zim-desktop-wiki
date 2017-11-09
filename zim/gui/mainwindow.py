@@ -28,7 +28,7 @@ from zim.gui.widgets import \
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
 from zim.gui.customtools import CustomToolManagerUI
-from zim.gui.pageindex import PageIndex
+
 from zim.gui.pageview import PageView
 
 
@@ -71,15 +71,6 @@ def schedule_on_idle(function, args=()):
 
 
 class MainWindow(Window):
-	'''This class implements the main window of the application
-
-	@ivar uimanager: the C{gtk.UIManager}
-
-	@ivar pageview: the L{PageView} object
-	@ivar pageindex: the L{PageIndex} object
-
-	@signal: C{fullscreen-changed ()}: emitted when switching to or from fullscreen state
-	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
@@ -102,6 +93,8 @@ class MainWindow(Window):
 		'''
 		Window.__init__(self)
 		self.ui = ui
+		self.uistate = self.ui.uistate['MainWindow']
+
 		self.notebook = notebook
 		self.isfullscreen = False
 		self.navigation = NavigationModel(self)
@@ -148,12 +141,6 @@ class MainWindow(Window):
 		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
 		self.add_bar(self.menubar, TOP)
 		self.add_bar(self.toolbar, TOP)
-
-		self.pageindex = PageIndex(self)
-		self.add_tab(_('Index'), self.pageindex, LEFT_PANE) # T: Label for pageindex tab
-
-		self.pageindex.treeview.connect('insert-link',
-			lambda v, p: self.pageview.insert_links([p]))
 
 		self.pageview = PageView(ui, ui.notebook) # XXX
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
@@ -450,7 +437,7 @@ class MainWindow(Window):
 		self._block_toggle_panes = False
 
 		if show:
-			self.focus_last_sidepane() or self.pageindex.grab_focus()
+			self.focus_sidepane()
 		else:
 			self.pageview.grab_focus()
 
@@ -474,7 +461,7 @@ class MainWindow(Window):
 		if action.get_active():
 			# side pane open
 			if self.pageview.view.is_focus():
-				self.focus_last_sidepane() or self.pageindex.grab_focus()
+				self.focus_sidepane()
 			else:
 				if self._sidepane_autoclose:
 					self.toggle_panes(False)
@@ -551,19 +538,7 @@ class MainWindow(Window):
 		self.uistate['readonly'] = readonly
 		self.emit('readonly-changed', readonly)
 
-	def show(self):
-		self.uistate = self.ui.uistate['MainWindow']
-			# HACK - else we wont initialize in show()
-		Window.show(self)
-
-	def show_all(self):
-		self.uistate = self.ui.uistate['MainWindow']
-			# HACK - else we wont initialize in show()
-		Window.show_all(self)
-
 	def present(self):
-		self.uistate = self.ui.uistate['MainWindow']
-			# HACK - else we wont initialize in show()
 		Window.present(self)
 
 	def init_uistate(self):
@@ -571,7 +546,6 @@ class MainWindow(Window):
 		# delayed till show or show_all because all this needs real
 		# uistate to be in place and plugins to be loaded
 		# Run between loading plugins and actually presenting the window to the user
-		self.uistate = self.ui.uistate['MainWindow']
 
 		if not self._geometry_set:
 			# Ignore this if an explicit geometry was specified to the constructor
