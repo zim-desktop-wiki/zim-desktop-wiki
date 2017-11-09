@@ -11,7 +11,8 @@ import pango
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
-from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
+from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
+	WindowSidePaneWidget
 
 
 class BackLinksPanePlugin(PluginClass):
@@ -60,8 +61,7 @@ class MainWindowExtension(WindowExtension):
 		except ValueError:
 			pass
 
-		self.window.add_tab(_('BackLinks'), self.widget, preferences['pane'])
-			# T: widget label
+		self.window.add_tab('backlinkspane', self.widget, preferences['pane'])
 		self.widget.show_all()
 		self.widget.show_all()
 
@@ -77,7 +77,9 @@ class MainWindowExtension(WindowExtension):
 PAGE_COL = 0
 TEXT_COL = 1
 
-class BackLinksWidget(gtk.ScrolledWindow):
+class BackLinksWidget(gtk.ScrolledWindow, WindowSidePaneWidget):
+
+	title = _('BackLinks') # T: widget label
 
 	def __init__(self, opener):
 		gtk.ScrolledWindow.__init__(self)

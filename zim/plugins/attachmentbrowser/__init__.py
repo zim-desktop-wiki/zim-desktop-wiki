@@ -47,7 +47,7 @@ from zim.actions import toggle_action
 from zim.gui.applications import open_folder_prompt_create
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
-	IconButton, ScrolledWindow, button_set_statusbar_style, \
+	IconButton, ScrolledWindow, \
 	WindowSidePaneWidget, uistate_property
 
 
@@ -92,7 +92,7 @@ icon view at bottom pane.
 @extends('MainWindow')
 class AttachmentBrowserWindowExtension(WindowExtension):
 
-	TAB_NAME = _('Attachments') # T: label for attachment browser pane
+	TAB_KEY = 'attachmentbrowser'
 
 	uimanager_xml = '''
 	<ui>
@@ -116,21 +116,6 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.preferences = plugin.preferences
 		self._monitor = None
 
-		# Init statusbar button
-		self.statusbar_frame = gtk.Frame()
-		self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
-		self.window.statusbar.pack_end(self.statusbar_frame, False)
-
-		self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
-		button_set_statusbar_style(self.statusbar_button)
-
-		self.statusbar_button.set_use_underline(True)
-		self.__class__.toggle_attachmentbrowser.connect_actionable(
-			self, self.statusbar_button)
-
-		self.statusbar_frame.add(self.statusbar_button)
-		self.statusbar_frame.show_all()
-
 		# Init browser widget
 		opener = self.window.navigation
 		self.widget = AttachmentBrowserPluginWidget(self, opener, self.preferences)
@@ -153,7 +138,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(self.TAB_NAME, self.widget, preferences['pane'])
+		self.window.add_tab(self.TAB_KEY, self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	@toggle_action(
@@ -168,14 +153,14 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		visible, size, tab = self.window.get_pane_state(self.preferences['pane'])
 
 		if active:
-			if not (visible and tab == self.TAB_NAME):
+			if not (visible and tab == self.TAB_KEY):
 				self.window.set_pane_state(
 					self.preferences['pane'], True,
-					activetab=self.TAB_NAME,
+					activetab=self.TAB_KEY,
 					grab_focus=True)
 			# else pass
 		else:
-			if visible and tab == self.TAB_NAME:
+			if visible and tab == self.TAB_KEY:
 				self.window.set_pane_state(
 					self.preferences['pane'], False)
 			# else pass
@@ -184,23 +169,15 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		if pane != self.preferences['pane']:
 			return
 
-		if visible and active == self.TAB_NAME:
+		if visible and active == self.TAB_KEY:
 			self.toggle_attachmentbrowser(True)
 		else:
 			self.toggle_attachmentbrowser(False)
 
 	def on_page_changed(self, window, page):
-		self.widget.iconview.set_folder(
+		self.widget.set_folder(
 			window.notebook.get_attachments_dir(page)
 		)
-		self._refresh_statusbar()
-
-	def _refresh_statusbar(self):
-		model = self.widget.iconview.get_model() # XXX
-		n = len(model)
-		self.statusbar_button.set_label(
-			ngettext('%i _Attachment', '%i _Attachments', n) % n)
-			# T: Label for the statusbar, %i is the number of attachments for the current page
 
 	def teardown(self):
 		self.widget.iconview.teardown_folder()
@@ -215,10 +192,11 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 
 
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
-
 	'''Wrapper aroung the L{FileBrowserIconView} that adds the buttons
 	for zoom / open folder / etc. ...
 	'''
+
+	title = _('Attachments') # T: label for attachment browser pane
 
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_ZOOM)
 
@@ -228,6 +206,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.opener = opener
 		self.uistate = extension.uistate
 		self.preferences = preferences
+		self._close_button = None
 
 		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
 		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
@@ -255,16 +234,26 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		self.set_icon_size(self.icon_size)
 
-		self.iconview.connect('folder-changed', lambda o: self.extension._refresh_statusbar())
+		self.iconview.connect('folder-changed', lambda o: self.update_title())
 
-	def embed_closebutton(self, button):
-		if button:
+	def set_folder(self, folder):
+		self.iconview.set_folder(folder)
+		self.update_title()
+
+	def update_title(self):
+		n = len(self.iconview.get_model())
+		self.set_title(ngettext('%i Attachment', '%i Attachments', n) % n)
+		# T: Label for the statusbar, %i is the number of attachments for the current page
+
+	def set_embeded_closebutton(self, button):
+		if self._close_button:
+			self.buttonbox.remove(self._close_button)
+
+		if button is not None:
 			self.buttonbox.pack_start(button, False)
 			self.buttonbox.reorder_child(button, 0)
-		else:
-			for widget in self.buttonbox.get_children():
-				if hasattr(widget, 'window_close_button'):
-					self.buttonbox.remove(widget)
+
+		self._close_button = button
 		return True
 
 	def on_open_folder(self, o):
@@ -274,7 +263,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 	def on_refresh_button(self):
 		self.iconview.refresh()
-		self.extension._refresh_statusbar() # XXX
+		self.update_title()
 
 	def on_zoom_in(self):
 		self.set_icon_size(

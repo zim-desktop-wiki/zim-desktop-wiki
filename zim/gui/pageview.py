@@ -39,7 +39,7 @@ from zim.formats import get_format, increase_list_iter, \
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
 from zim.gui.widgets import ui_environment, \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
-	Button, CloseButton, MenuButton, BrowserTreeView, InputEntry, \
+	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu, open_url, open_file
@@ -7107,7 +7107,7 @@ class FindBar(FindWidget, gtk.HBox):
 			self.pack_start(self.case_option_checkbox, False)
 			self.pack_start(self.highlight_checkbox, False)
 
-		close_button = CloseButton()
+		close_button = IconButton(gtk.STOCK_CLOSE, relief=False, size=gtk.ICON_SIZE_MENU)
 		close_button.connect_object('clicked', self.__class__.hide, self)
 		self.pack_end(close_button, False)
 

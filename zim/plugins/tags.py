@@ -20,7 +20,8 @@ from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
-from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
+	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 from zim.signals import ConnectorMixin
 
@@ -72,7 +73,7 @@ class MainWindowExtension(WindowExtension):
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(_('Tags'), self.widget, preferences['pane'])
+		self.window.add_tab('tags', self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	def teardown(self):
@@ -81,8 +82,10 @@ class MainWindowExtension(WindowExtension):
 		self.widget = None
 
 
-class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
+class TagsPluginWidget(ConnectorMixin, gtk.VPaned, WindowSidePaneWidget):
 	'''Widget combining a tag cloud and a tag based page treeview'''
+
+	title = _('Tags') # T: title for sidepane tab
 
 	def __init__(self, index, uistate, ui): # XXX
 		gtk.VPaned.__init__(self)

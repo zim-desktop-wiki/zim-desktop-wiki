@@ -58,6 +58,8 @@ class TaskListWidgetMixin(object):
 
 class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
+	title = _('Tasks') # T: tab label for side pane
+
 	def __init__(self, tasksview, opener, preferences, uistate):
 		gtk.VBox.__init__(self)
 		self.uistate = uistate

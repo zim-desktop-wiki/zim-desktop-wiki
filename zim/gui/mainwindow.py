@@ -183,6 +183,8 @@ class MainWindow(Window):
 		self.statusbar.pack_end(frame, False)
 		frame.add(self.statusbar_backlinks_button)
 
+		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
+
 		# add a second statusbar widget - somehow the corner grip
 		# does not render properly after the pack_end for the first one
 		#~ statusbar2 = gtk.Statusbar()

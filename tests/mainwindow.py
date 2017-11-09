@@ -134,7 +134,7 @@ class TestTogglingState(tests.TestCase):
 import gtk
 from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE
 class MockSidePane(gtk.VBox, WindowSidePaneWidget):
-	pass
+	title = 'MockSidePane'
 
 
 class TestSavingPages(tests.TestCase):

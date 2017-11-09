@@ -415,6 +415,8 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		self.label_event.connect("button_press_event", lambda w, e: self.go_today())
 		self.label_box.add(self.label_event)
 
+		self._close_button = None
+
 		self._refresh_label()
 		self._timer_id = \
 			gobject.timeout_add(300000, self._refresh_label)
@@ -439,13 +441,14 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		self.select_date(datetime.date.today())
 		self.calendar.emit('activate')
 
-	def embed_closebutton(self, button):
-		if button:
+	def set_embeded_closebutton(self, button):
+		if self._close_button:
+			self.label_box.remove(self._close_button)
+
+		if button is not None:
 			self.label_box.pack_end(button, False)
-		else:
-			for widget in self.label_box.get_children():
-				if not widget == self.label_event:
-					self.label_box.remove(widget)
+
+		self._close_button = button
 		return True
 
 	def _refresh_label(self, *a):

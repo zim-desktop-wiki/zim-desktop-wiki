@@ -14,7 +14,8 @@ import datetime
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.notebook import Path
 from zim.formats import HEADING
-from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, TableVBox
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, TableVBox, \
+	WindowSidePaneWidget
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 from zim.signals import ConnectorMixin
 
@@ -117,9 +118,7 @@ class MainWindowExtensionEmbedded(WindowExtension):
 		except ValueError:
 			pass
 
-		self.window.add_tab(
-			_('ToC'), self.widget, preferences['pane'])
-			# T: widget label
+		self.window.add_tab('tableofcontents', self.widget, preferences['pane'])
 		self.widget.show_all()
 
 		self.widget.set_show_h1(preferences['show_h1'])
@@ -392,7 +391,9 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			self.pageview.toggle_format('h' + str(level))
 
 
-class SidePaneToC(ToCWidget):
+class SidePaneToC(ToCWidget, WindowSidePaneWidget):
+
+	title = _('ToC') # T: widget label
 
 	def __init__(self, ui, pageview):
 		ToCWidget.__init__(self, ui, pageview, ellipsis=True)

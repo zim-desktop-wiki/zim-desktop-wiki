@@ -89,8 +89,7 @@ class PageIndexMainWindowExtension(WindowExtension):
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(_('Index'), self.widget, preferences['pane'])
-										# T: tab label for side pane
+		self.window.add_tab('pageindex', self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	def on_page_changed(self, window, page):
@@ -119,6 +118,8 @@ class PageIndexMainWindowExtension(WindowExtension):
 
 
 class PageIndexWidget(gtk.VBox, WindowSidePaneWidget):
+
+	title = _('Index')	# T: tab label for side pane
 
 	def __init__(self, treeview):
 		gtk.VBox.__init__(self)

@@ -179,8 +179,7 @@ class MainWindowExtension(WindowExtension):
 					self.window.remove(self._widget)
 				except ValueError:
 					pass
-			self.window.add_tab(_('Tasks'), self._widget, preferences['pane'])
-											# T: tab label for side pane
+			self.window.add_tab('tasklist', self._widget, preferences['pane'])
 			self._widget.show_all()
 		else:
 			if self._widget:
