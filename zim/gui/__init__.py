@@ -137,8 +137,14 @@ class GtkInterface(object):
 		self.preferences['General'].setdefault('plugins',[
 			'pageindex', 'pathbar',
 			'calendar', 'insertsymbol', 'printtobrowser',
-			'versioncontrol', 'osx_menubar'
+			'versioncontrol', # 'osx_menubar'
 		])
+
+		# Upgrade plugin list
+		self.preferences['General'].setdefault('plugins_list_version', 'none')
+		if self.preferences['General']['plugins_list_version'] != '0.68':
+			self.preferences['General']['plugins'].extend(['pageindex', 'pathbar'])
+			self.preferences['General']['plugins_list_version'] = '0.68'
 
 		self.plugins = PluginManager(self.config)
 		self.plugins.extend(notebook)
