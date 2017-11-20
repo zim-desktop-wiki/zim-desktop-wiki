@@ -54,7 +54,12 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 
-		self.widget = TagsPluginWidget(self.window.ui.notebook.index, self.uistate, self.window.ui) # XXX
+		self.widget = TagsPluginWidget(
+			window.notebook,
+			window.config,
+			window.navigation,
+			self.uistate
+		)
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -64,6 +69,13 @@ class MainWindowExtension(WindowExtension):
 		def update_uistate(*a):
 			self.uistate['vpane_pos'] = self.widget.get_position()
 		self.widget.connect('notify::position', update_uistate)
+
+		#self.connectto_all(ui, ( # XXX
+		#	('start-index-update', lambda o: self.disconnect_model()),
+		#	('end-index-update', lambda o: self.reconnect_model()),
+		#))
+		self.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+
 
 	def on_preferences_changed(self, preferences):
 		if self.widget is None:
@@ -87,9 +99,10 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned, WindowSidePaneWidget):
 
 	title = _('Tags') # T: title for sidepane tab
 
-	def __init__(self, index, uistate, ui): # XXX
+	def __init__(self, notebook, config, navigation, uistate):
 		gtk.VPaned.__init__(self)
-		self.index = index
+		self.notebook = notebook
+		self.index = notebook.index
 		self.uistate = uistate
 
 		self.uistate.setdefault('treeview', 'tags', set(['tagged', 'tags']))
@@ -99,31 +112,21 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned, WindowSidePaneWidget):
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
 		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
 
-		self.treeview = TagsPageTreeView(ui) # XXX
+		self.treeview = TagsPageTreeView(notebook, config, navigation)
 		self.pack2(ScrolledWindow(self.treeview), shrink=False)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
 		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
-		#self.connectto_all(ui, ( # XXX
-		#	('start-index-update', lambda o: self.disconnect_model()),
-		#	('end-index-update', lambda o: self.reconnect_model()),
-		#))
-		self.connectto(ui._mainwindow, 'page-changed') # XXX
-
 		self.reload_model()
 
-	def on_page_changed(self, window, page):
-		expand = True
+	def set_page(self, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
+		expand = self.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
 		if treepath and expand:
-			# change selection only if necessary
 			selected_path = self.treeview.get_selected_path()
-			if page == selected_path:
-				logger.debug('Already selected: "%s"', page)
-			else:
+			if page != selected_path:
 				self.treeview.select_treepath(treepath)
 
 	def toggle_treeview(self):

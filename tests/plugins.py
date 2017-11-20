@@ -11,8 +11,8 @@ from zim.fs import File
 
 from zim.config import VirtualConfigManager
 from zim.gui.propertiesdialog import PropertiesDialog
-from tests.gui import setupGtkInterface
 
+from tests.mainwindow import setUpMainWindow
 
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
@@ -158,13 +158,13 @@ class TestPlugins(tests.TestCase):
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		ui = setupGtkInterface(self, notebook=notebook)
-		dialog = PropertiesDialog(ui, VirtualConfigManager(), notebook) # random dialog
+		mainwindow = setUpMainWindow(notebook)
+		dialog = PropertiesDialog(None, VirtualConfigManager(), notebook) # random dialog
 		for obj in (
 			notebook,
 			notebook.index,
-			ui._mainwindow,				# XXX
-			ui._mainwindow.pageview,	# XXX
+			mainwindow,
+			mainwindow.pageview,
 			dialog,
 		):
 			manager.extend(obj)

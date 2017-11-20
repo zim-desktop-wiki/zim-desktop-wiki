@@ -6,6 +6,8 @@ from __future__ import with_statement
 
 import tests
 
+from tests.mainwindow import setUpMainWindow
+
 import os
 import gtk
 
@@ -19,7 +21,6 @@ from zim.gui.clipboard import Clipboard
 
 import zim.gui
 
-from tests.gui import setupGtkInterface
 
 from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 
@@ -150,9 +151,7 @@ class TestUIActions(tests.TestCase):
 
 	def testOpenNewWindow(self):
 		### XXX setup ui object XXX ###
-		from tests.gui import newSetupGtkInterface
-		ui = newSetupGtkInterface(self, notebook=self.notebook)
-		self.uiactions.widget.ui = ui
+		self.uiactions.widget = setUpMainWindow(self.notebook)
 		###############################
 
 		def pagewindow(window):
@@ -163,9 +162,7 @@ class TestUIActions(tests.TestCase):
 
 	def testOpenNewWindowWithPage(self):
 		### XXX setup ui object XXX ###
-		from tests.gui import newSetupGtkInterface
-		ui = newSetupGtkInterface(self, notebook=self.notebook)
-		self.uiactions.widget.ui = ui
+		self.uiactions.widget = setUpMainWindow(self.notebook)
 		###############################
 
 		page = self.notebook.get_page(Path('OtherPage'))

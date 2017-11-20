@@ -116,7 +116,7 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('Show Link Map'), stock='zim-linkmap') # T: menu item
 	def show_linkmap(self):
-		linkmap = LinkMap(self.window.ui.notebook, self.window.ui.page) # XXX
+		linkmap = LinkMap(self.window.notebook, self.window.page)
 		dialog = LinkMapDialog(self.window, linkmap, self.window.navigation)
 		dialog.show_all()
 

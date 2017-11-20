@@ -65,13 +65,13 @@ class PageIndexMainWindowExtension(WindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 		index = window.notebook.index
 		model = PageTreeStore(index)
-		self.treeview = PageTreeView(window.ui) # XXX
+		self.treeview = PageTreeView(window.notebook, window.config, window.navigation)
 		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
 
 		# Connect to ui signals
-		#window.ui.connect('start-index-update', lambda o: self.disconnect_model())
-		#window.ui.connect('end-index-update', lambda o: self.reload_model())
+		#window.connect('start-index-update', lambda o: self.disconnect_model())
+		#window.connect('end-index-update', lambda o: self.reload_model())
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -82,7 +82,6 @@ class PageIndexMainWindowExtension(WindowExtension):
 
 		# self.pageindex.treeview.connect('insert-link',
 		# 	lambda v, p: self.pageview.insert_links([p]))
-
 
 	def on_preferences_changed(self, preferences):
 		try:
@@ -112,8 +111,7 @@ class PageIndexMainWindowExtension(WindowExtension):
 		reloading the index to get rid of out-of-sync model errors
 		without need to close the app first.
 		'''
-		ui = self.treeview.ui # XXX
-		model = PageTreeStore(self.ui.notebook.index)
+		model = PageTreeStore(self.window.notebook.index)
 		self.treeview.set_model(model)
 
 
@@ -400,15 +398,12 @@ class PageTreeView(BrowserTreeView):
 		'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self, ui, model=None):
-		'''Constructor
-
-		@param ui: the L{GtkInterface} object
-		@param model: a L{PageTreeStore} object
-		'''
+	def __init__(self, notebook, config, navigation, model=None):
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
-		self.ui = ui
+		self.notebook = notebook
+		self.config = config
+		self.navigation = navigation
 
 		column = gtk.TreeViewColumn('_pages_')
 		self.append_column(column)
@@ -454,19 +449,6 @@ class PageTreeView(BrowserTreeView):
 			model = model.get_model() # get childmodel
 		model.teardown()
 
-	def set_model(self, model):
-		'''Set a new model for the view.
-
-		@param model: a new TreeModel object
-		'''
-		BrowserTreeView.set_model(self, model)
-		model.connect('row-inserted', self.on_row_inserted)
-
-	def on_row_inserted(self, model, treepath, iter):
-		path = model.get_indexpath(iter)
-		if path and path == self.ui.page:
-			self.select_treepath(treepath)
-
 	def do_row_activated(self, treepath, column):
 		model = self.get_model()
 		iter = model.get_iter(treepath)
@@ -475,7 +457,7 @@ class PageTreeView(BrowserTreeView):
 			self.emit('page-activated', path)
 
 	def do_page_activated(self, path):
-		self.ui._mainwindow.open_page(path)
+		self.navigation.open_page(path)
 
 	def do_key_press_event(self, event):
 		# Keybindings for the treeview:
@@ -506,10 +488,10 @@ class PageTreeView(BrowserTreeView):
 
 		uiactions = UIActions(
 			self,
-			self.ui._mainwindow.notebook, # XXX
+			self.notebook,
 			path,
-			self.ui._mainwindow.config, # XXX
-			self.ui._mainwindow.navigation, # XXX
+			self.config,
+			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 
@@ -525,7 +507,7 @@ class PageTreeView(BrowserTreeView):
 		#~ print '!! copy location'
 		page = self.get_selected_path()
 		if page:
-			Clipboard.set_pagelink(self.ui.notebook, page)
+			Clipboard.set_pagelink(self.notebook, page)
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
 		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
@@ -573,8 +555,7 @@ class PageTreeView(BrowserTreeView):
 			return
 
 		try:
-			notebook = self.ui.notebook # XXX
-			notebook.move_page(source, dest, update_links=True)
+			self.notebook.move_page(source, dest, update_links=True)
 		except:
 			logger.exception('Failed to move page %s -> %s', source, dest)
 			dragcontext.finish(False, False, time) # NOK

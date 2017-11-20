@@ -13,20 +13,17 @@ from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
 from zim.plugins.pageindex import *
 
+from zim.config import VirtualConfigManager
 
-#from zim.gui.mainwindow import MainWindow
-from tests.gui import newSetupGtkInterface
 
-def MainWindow(test):
-	gui = newSetupGtkInterface(test)
-	return gui._mainwindow
+from tests.mainwindow import setUpMainWindow
 
 
 class TestPageIndexPlugin(tests.TestCase):
 
 	def runTest(self):
 		plugin = PageIndexPlugin()
-		window = MainWindow(self)
+		window = setUpMainWindow(self.setUpNotebook())
 		plugin.extend(window)
 		extension = plugin.get_extension(window, PageIndexMainWindowExtension)
 		self.assertIsNotNone(extension)
@@ -142,13 +139,11 @@ class TestPageTreeView(tests.TestCase):
 	# view attached in TestPageTreeStore
 
 	def setUp(self):
-		self.ui = tests.MockObject()
-		self.ui._mainwindow = tests.MockObject() # XXX
-		self.ui.page = Path('Test')
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		self.ui.notebook = self.notebook
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
 		self.model = PageTreeStore(self.notebook.index)
-		self.treeview = PageTreeView(self.ui, self.model)
+		self.treeview = PageTreeView(self.notebook, config, navigation, model=self.model)
 		treepath = self.treeview.set_current_page(Path('Test'))
 		assert treepath is not None
 		self.treeview.select_treepath(treepath)
@@ -167,12 +162,6 @@ class TestPageTreeView(tests.TestCase):
 		self.treeview.emit('copy')
 
 	def testContextMenu(self):
-		from zim.config import VirtualConfigManager
-
-		self.ui._mainwindow.notebook = self.notebook # XXX
-		self.ui._mainwindow.config = VirtualConfigManager() # XXX
-		self.ui._mainwindow.navigation = tests.MockObject() # XXX
-
 		menu = self.treeview.get_popup()
 
 		# Check these do not cause errors - how to verify state ?

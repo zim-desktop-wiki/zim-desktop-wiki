@@ -91,8 +91,10 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.widget = BookmarkBar(self.window.ui, self.uistate,
+		self.widget = BookmarkBar(window.notebook, window.navigation, self.uistate,
 					  self.window.pageview.get_page)
+		self.widget.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+
 		self.widget.show_all()
 
 		# Add a new option to the Index popup menu.
@@ -135,7 +137,7 @@ class MainWindowExtension(WindowExtension):
 			item = gtk.SeparatorMenuItem()
 			menu.prepend(item)
 			item = gtk.MenuItem(_('Add Bookmark')) # T: menu item bookmark plugin
-			page = self.window.ui.notebook.get_page(path)
+			page = self.window.notebook.get_page(path)
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
 			menu.show_all()
@@ -207,10 +209,11 @@ class MainWindowExtension(WindowExtension):
 
 class BookmarkBar(gtk.HBox, ConnectorMixin):
 
-	def __init__(self, ui, uistate, get_page_func):
+	def __init__(self, notebook, navigation, uistate, get_page_func):
 		gtk.HBox.__init__(self)
 
-		self.ui = ui
+		self.notebook = notebook
+		self.navigation = navigation
 		self.uistate = uistate
 		self.save_flag = False # if True save bookmarks in config
 		self.add_bookmarks_to_beginning = False # add new bookmarks to the end of the bar
@@ -239,7 +242,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		# Add pages from config to the bar.
 		for path in self.uistate['bookmarks']:
-			page = self.ui.notebook.get_page(Path(path))
+			page = self.notebook.get_page(Path(path))
 			if page.exists() and (page.name not in self.paths):
 				self.paths.append(page.name)
 
@@ -257,14 +260,11 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				except:
 					logger.error('BookmarksBar: Error while loading path_names.')
 
-		# Look for new pages to mark corresponding bookmarks in the bar.
-		self.connectto(self.ui._mainwindow, 'page-changed')
-
 		# Delete a bookmark if a page is deleted.
-		self.connectto(self.ui.notebook, 'deleted-page',
+		self.connectto(self.notebook, 'deleted-page',
 					   lambda obj, path: self.delete(path.name))
 
-	def on_page_changed(self, window, page):
+	def set_page(self, page):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
 		with self.on_bookmark_clicked.blocked():
@@ -448,7 +448,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				    ('gtk-copy', lambda o: set_save_bookmark(path)),
 				    ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
 				    ('separator', ''),
-				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
+				    (_('Open in New Window'), lambda o: self.navigation.open_page(Path(path), new_window=True)), # T: menu item
 				    ('separator', ''),
 				    (rename_button_text, lambda o: self.rename_bookmark(button)),
 				    (_('Set to Current Page'), lambda o: self.change_bookmark(path))) # T: menu item
@@ -471,7 +471,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 	@SignalHandler
 	def on_bookmark_clicked(self, button):
 		'''Open page if a bookmark is clicked.'''
-		self.ui._mainwindow.open_page(Path(button.zim_path))
+		self.navigation.open_page(Path(button.zim_path))
 
 	def on_preferences_changed(self, preferences):
 		'''Plugin preferences were changed.'''

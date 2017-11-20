@@ -13,7 +13,7 @@ from zim.notebook.index.tags import MyTreeIter, IS_PAGE, IS_TAG
 from zim.plugins.pageindex import FGCOLOR_COL, \
 	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
 	# Explicitly don't import * from pageindex, make clear what we re-use
-from zim.config import ConfigDict
+from zim.config import ConfigDict, VirtualConfigManager
 from zim.plugins.tags import *
 
 
@@ -111,15 +111,11 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 
 	def testTreeView(self):
-		ui = tests.MockObject()
-		ui.notebook = self.notebook
-		ui.page = Path('foobar')
-		ui._mainwindow = tests.MockObject()
-		self.assertTrue(self.notebook.get_page(ui.page).exists())
-
 		self.notebook.index.flush() # we want to index ourselves
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
 		treestore = self.storeclass(self.notebook.index, self.tags)
-		treeview = self.viewclass(ui, treestore)
+		treeview = self.viewclass(self.notebook, config, navigation, treestore)
 
 		# Process signals on by one
 		self.assertEqual(self.notebook.pages.n_all_pages(), 0) # assert we start blank
@@ -191,19 +187,18 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
-		ui = tests.MockObject()
-		ui.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		ui.page = None
-		ui._mainwindow = tests.MockObject()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
 		uistate = ConfigDict()
-		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
+		widget = TagsPluginWidget(notebook, config, navigation, uistate)
 
 		# Excersize all model switches and check we still have a sane state
 		widget.toggle_treeview()
 		widget.toggle_treeview()
 
 		path = Path('Test:tags')
-		ui.notebook.pages.lookup_by_pagename(path)
+		notebook.pages.lookup_by_pagename(path)
 		treepath = widget.treeview.get_model().find(path)
 
 		widget.disconnect_model()

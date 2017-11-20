@@ -20,9 +20,9 @@ except:
 
 import zim.plugins.spell
 
-from tests.gui import setupGtkInterface
-
 from zim.notebook import Path
+
+from tests.mainwindow import setUpMainWindow
 
 
 class TestSpell(object):
@@ -39,10 +39,9 @@ class TestSpell(object):
 
 	def runTest(self, adapterclass):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
-			ui = setupGtkInterface(self)
-			window = ui._mainwindow
+			window = setUpMainWindow(self.setUpNotebook())
 
-			plugin = ui.plugins.load_plugin('spell')
+			plugin = window.ui.plugins.load_plugin('spell') # XXX
 			plugin.extend(window)
 			ext = plugin.get_extension(window, zim.plugins.spell.MainWindowExtension)
 

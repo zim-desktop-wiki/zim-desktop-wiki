@@ -164,7 +164,7 @@ class MainWindowExtension(WindowExtension):
 	def show_task_list(self):
 		# TODO: add check + dialog for index probably_up_to_date
 
-		index = self.window.ui.notebook.index # XXX
+		index = self.window.notebook.index
 		tasksview = TasksView.new_from_index(index)
 		dialog = TaskListDialog.unique(self, self.window, tasksview, self.plugin.preferences)
 		dialog.present()
@@ -187,7 +187,7 @@ class MainWindowExtension(WindowExtension):
 				self._widget = None
 
 	def _init_widget(self):
-		index = self.window.ui.notebook.index # XXX
+		index = self.window.notebook.index
 		tasksview = TasksView.new_from_index(index)
 		opener = self.window.navigation
 		uistate = self.window.ui.uistate['TaskListSidePane']
@@ -203,7 +203,7 @@ class MainWindowExtension(WindowExtension):
 		### XXX HACK to get dependency to connect to
 		###   -- no access to plugin, so can;t use get_extension()
 		##    -- duplicat of this snippet in TaskListDialog
-		for e in self.window.ui.notebook.__zim_extension_objects__:
+		for e in self.window.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
 				break

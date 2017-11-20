@@ -20,7 +20,7 @@ from zim.plugins.calendar import NotebookExtension, \
 	MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
 	CalendarDialog
 
-from tests.gui import setupGtkInterface
+from tests.mainwindow import setUpMainWindow
 
 
 class TestCalendarFunctions(tests.TestCase):
@@ -117,8 +117,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin = pluginklass()
 
 		notebook = self.setUpNotebook()
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['embedded'] = True
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
@@ -131,7 +130,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin.preferences.changed() # make sure no errors are triggered
 
 		ext[0].go_page_today()
-		self.assertTrue(ui.page.name.startswith('Journal:'))
+		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 
 		plugin.preferences['embedded'] = False
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)

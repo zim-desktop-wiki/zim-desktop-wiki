@@ -733,7 +733,7 @@ class WindowExtension(ObjectExtension):
 
 	@ivar window: the C{gtk.Window}
 
-	@ivar uistate: a L{ConfigDict} o store the extensions ui state or
+	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
 	C{None} if the window does not maintain ui state
 
 	The "uistate" is the per notebook state of the interface, it is

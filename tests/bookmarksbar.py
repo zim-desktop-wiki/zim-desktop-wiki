@@ -23,16 +23,11 @@ logger = logging.getLogger('zim.plugins.bookmarksbar')
 class TestBookmarksBar(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		self.ui = tests.MockObject()
-		self.ui.notebook = self.notebook
-		self.ui.page = Path('Test:foo')
-		self.ui._mainwindow = tests.MockObject()
-
-		self.PATHS = ('Parent:Daughter:Granddaughter',
-				 'Test:tags', 'Test:foo', 'Books')
+		self.PATHS = ('Parent:Daughter:Granddaughter', 'Test:tags', 'Test:foo', 'Books')
 		self.LEN_PATHS = len(self.PATHS)
 		self.PATHS_NAMES = {self.PATHS[0]: 'name 1', self.PATHS[1]: 'name 2', self.PATHS[2]: 'name 3'}
+
+		self.notebook = self.setUpNotebook(content=self.PATHS)
 
 		self.uistate = ConfigDict()
 		self.uistate.setdefault('bookmarks', [])
@@ -42,10 +37,8 @@ class TestBookmarksBar(tests.TestCase):
 
 	def testGeneral(self):
 		'''Test general functions: add, delete bookmarks.'''
-
-		self.assertTrue(self.notebook.get_page(self.ui.page).exists())
-
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		navigation = tests.MockObject()
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		Bar.max_bookmarks = 15 # set maximum number of bookmarks
 
 		# Add paths to the beginning of the bar.
@@ -82,18 +75,12 @@ class TestBookmarksBar(tests.TestCase):
 
 	def testDeletePages(self):
 		'''Check deleting a bookmark after deleting a page in the notebook.'''
-
-		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		ui = tests.MockObject()
-		ui.notebook = notebook
-		ui.page = None
-		ui._mainwindow = tests.MockObject()
 		self.uistate['bookmarks'] = list(self.PATHS)
-
-		Bar = BookmarkBar(ui, self.uistate, get_page_func = lambda: '')
+		navigation = tests.MockObject()
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		for i, path in enumerate(self.PATHS):
 			self.assertTrue(path in Bar.paths)
-			notebook.delete_page(Path(path))
+			self.notebook.delete_page(Path(path))
 			self.assertTrue(path not in Bar.paths)
 			self.assertEqual(len(Bar.paths), self.LEN_PATHS - i - 1)
 		self.assertEqual(Bar.paths, [])
@@ -101,8 +88,8 @@ class TestBookmarksBar(tests.TestCase):
 
 	def testFunctions(self):
 		'''Test bookmark functions: changing, reordering, ranaming.'''
-
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		navigation = tests.MockObject()
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		Bar.max_bookmarks = 15 # set maximum number of bookmarks
 
 		# Check changing a bookmark.
@@ -205,7 +192,8 @@ class TestBookmarksBar(tests.TestCase):
 		max number of bookmarks.'''
 
 		# Check short page names.
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		navigation = tests.MockObject()
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		self.uistate['show_full_page_name'] = False
 		for path in self.PATHS:
 			Bar._add_new(path)
@@ -224,25 +212,23 @@ class TestBookmarksBar(tests.TestCase):
 		# Check save option.
 		self.uistate['bookmarks'] = list(self.PATHS)
 		self.uistate['bookmarks_names'] = dict(self.PATHS_NAMES)
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		self.assertEqual(Bar.paths, list(self.PATHS))
 		self.assertEqual(Bar.paths_names, self.PATHS_NAMES)
 
 		self.uistate['bookmarks'] = []
 		self.uistate['bookmarks_names'] = {}
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		self.assertEqual(Bar.paths, [])
 		self.assertEqual(Bar.paths_names, {})
 
 		# Get pages to check max number of bookmarks.
-		pagelist = set(self.notebook.pages.list_pages())
-		_enhanced_pagelist = set()
-		for page in pagelist:
-			_enhanced_pagelist.update(set(self.notebook.pages.list_pages(page)))
-			if len(_enhanced_pagelist) > 20:
-				break
-		pagelist.update(_enhanced_pagelist)
-		pagelist = [a.name for a in pagelist if a.exists()]
+		pagelist = []
+		for path in [Path('Page %i' % i) for i in range(25)]:
+			page = self.notebook.get_page(path)
+			page.parse('wiki', 'TEst 123')
+			self.notebook.store_page(page)
+			pagelist.append(path.name)
 		self.assertTrue(len(pagelist) > 20)
 
 		def preferences_changed(save, max_b):
@@ -253,7 +239,7 @@ class TestBookmarksBar(tests.TestCase):
 
 		# Check that more than max bookmarks can be loaded at start.
 		self.uistate['bookmarks'] = pagelist
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		self.assertEqual(pagelist, Bar.paths)
 		preferences_changed(True, 5)
 		self.assertEqual(pagelist, Bar.paths)
@@ -261,7 +247,7 @@ class TestBookmarksBar(tests.TestCase):
 
 		# Set maximum number of bookmarks.
 		self.uistate['bookmarks'] = []
-		Bar = BookmarkBar(self.ui, self.uistate, get_page_func = lambda: '')
+		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		for max_bookmarks in (5, 10, 15, 20):
 			preferences_changed(False, max_bookmarks)
 			for page in pagelist:

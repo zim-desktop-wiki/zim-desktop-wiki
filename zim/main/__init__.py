@@ -259,7 +259,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		gui = None
 		for window in gtk.window_list_toplevels():
 			if isinstance(window, zim.gui.MainWindow) \
-			and window.ui.notebook.uri == notebook.uri:
+			and window.notebook.uri == notebook.uri:
 				gui = window.ui # XXX
 				break
 

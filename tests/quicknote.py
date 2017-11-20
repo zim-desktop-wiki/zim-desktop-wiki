@@ -5,7 +5,6 @@
 from __future__ import with_statement
 
 import tests
-from tests.gui import setupGtkInterface
 
 import os
 

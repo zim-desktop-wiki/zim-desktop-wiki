@@ -375,8 +375,8 @@ class ImageGeneratorDialog(Dialog):
 		if self._existing_file:
 			textfile = self._existing_file
 		else:
-			page = self.app_window.ui.page # XXX
-			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
+			page = self.app_window.page
+			dir = self.app_window.notebook.get_attachments_dir(page)
 			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write(self.generator.process_input(self.get_text()))

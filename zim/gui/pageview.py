@@ -4974,6 +4974,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	__gsignals__ = {
 		'modified-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
 		'textstyle-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'page-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	__signals__ = {
@@ -5293,6 +5294,8 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			self.undostack = UndoStackManager(buffer)
 			self.set_sensitive(True)
 			self._update_readonly()
+
+			self.emit('page-changed', self.page)
 
 	def get_page(self):
 		'''Get the current page

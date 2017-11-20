@@ -4,13 +4,31 @@
 
 import tests
 
-from tests.gui import newSetupGtkInterface, setupGtkInterface
-
 from zim.notebook import Path
+from zim.config import VirtualConfigManager
+from zim.gui.mainwindow import MainWindow
 
 import zim.gui
 
 is_sensitive = lambda w: w.get_property('sensitive')
+
+
+def setUpMainWindow(notebook, path='Test'):
+	config = VirtualConfigManager()
+	prefs = config.get_config_dict('<profile>/preferences.conf')
+	prefs['General'].input(plugins=['calendar', 'insertsymbol', 'printtobrowser'])
+		# version control interferes with source folder, leave other default plugins
+
+	ui = zim.gui.GtkInterface(config=config, notebook=notebook)
+	mainwindow = ui._mainwindow
+	mainwindow.init_uistate() # XXX
+
+	if path is not None:
+		if isinstance(path, basestring):
+			path = Path(path)
+		mainwindow.open_page(path)
+
+	return mainwindow
 
 
 class TestHistoryNavigation(tests.TestCase):
@@ -19,9 +37,8 @@ class TestHistoryNavigation(tests.TestCase):
 		pages = [Path('page1'), Path('page2'), Path('page3'), Path('page4')]
 		notebook = self.setUpNotebook(content=pages)
 
-		ui = newSetupGtkInterface(self, notebook=notebook)
-		window = ui._mainwindow # XXX
-		history = ui.history
+		window = setUpMainWindow(notebook, path=None)
+		history = window.ui.history # XXX
 		historylist = history._history # XXX
 
 		back_action = window.actiongroup.get_action('open_page_back')
@@ -67,12 +84,9 @@ class TestUpDownNavigation(tests.TestCase):
 
 class TestTogglingState(tests.TestCase):
 
-	def setUp(self):
-		self.ui = setupGtkInterface(self)
-
 	def runTest(self):
 		path = Path('Test:foo:bar')
-		window = self.ui._mainwindow # XXX
+		window = setUpMainWindow(self.setUpNotebook(), path)
 
 		self.assertTrue(window.uistate['show_menubar'])
 		window.toggle_menubar()
@@ -140,25 +154,25 @@ class MockSidePane(gtk.VBox, WindowSidePaneWidget):
 class TestSavingPages(tests.TestCase):
 
 	def setUp(self):
-		self.ui = setupGtkInterface(self)
+		self.mainwindow = setUpMainWindow(self.setUpNotebook())
 
 	def testSave(self):
 		'''Test saving a page from the interface'''
-		self.ui._mainwindow.toggle_readonly(False)
-		self.ui._mainwindow.open_page(Path('Non-exsiting:page'))
-		self.assertFalse(self.ui.page.exists())
-		self.assertIsNone(self.ui.page.get_parsetree())
-		self.assertTrue(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
-		self.ui._mainwindow.pageview.save_page()
-		self.assertTrue(self.ui.page.exists())
-		self.assertIsNotNone(self.ui.page.get_parsetree())
-		self.assertFalse(self.ui._mainwindow.pageview._showing_template) # XXX check HACK
+		self.mainwindow.toggle_readonly(False)
+		self.mainwindow.open_page(Path('Non-exsiting:page'))
+		self.assertFalse(self.mainwindow.page.exists())
+		self.assertIsNone(self.mainwindow.page.get_parsetree())
+		self.assertTrue(self.mainwindow.pageview._showing_template) # XXX check HACK
+		self.mainwindow.pageview.save_page()
+		self.assertTrue(self.mainwindow.page.exists())
+		self.assertIsNotNone(self.mainwindow.page.get_parsetree())
+		self.assertFalse(self.mainwindow.pageview._showing_template) # XXX check HACK
 
 	def testClosePage(self):
 		# Specific bug found when trying to close the page while auto-save
 		# in progress, test it here
-		self.ui._mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
-		self.ui._mainwindow.pageview._save_page_handler.try_save_page()
-		self.assertTrue(self.ui.page.modified)
-		self.ui._mainwindow.destroy()
-		self.assertFalse(self.ui.page.modified)
+		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.mainwindow.pageview._save_page_handler.try_save_page()
+		self.assertTrue(self.mainwindow.page.modified)
+		self.mainwindow.destroy()
+		self.assertFalse(self.mainwindow.page.modified)

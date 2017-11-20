@@ -162,7 +162,7 @@ class MainWindowExtension(WindowExtension):
 		try:
 			checker = self._adapter(textview, lang)
 		except:
-			ErrorDialog(self.window.ui, (
+			ErrorDialog(self.window, (
 				_('Could not load spell checking'),
 					# T: error message
 				_('This could mean you don\'t have the proper\ndictionaries installed')

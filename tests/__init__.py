@@ -58,7 +58,7 @@ __all__ = [
 	'export', 'www', 'search',
 	# Core application
 	'widgets', 'pageview', 'save_page', 'clipboard', 'uiactions',
-	'mainwindow',  'gui', 'notebookdialog',
+	'mainwindow', 'notebookdialog',
 	'preferencesdialog', 'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
 	# Plugins

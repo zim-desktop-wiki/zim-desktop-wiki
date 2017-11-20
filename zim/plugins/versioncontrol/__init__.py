@@ -76,7 +76,7 @@ This is a core plugin shipping with zim.
 	def extend(self, obj):
 		name = obj.__class__.__name__
 		if name == 'MainWindow':
-			nb = obj.ui.notebook # XXX
+			nb = obj.notebook
 			nb_ext = self.get_extension(nb, NotebookExtension)
 			assert nb_ext, 'No notebook extension found for: %s' % nb
 			mw_ext = MainWindowExtension(self, obj, nb_ext)
@@ -257,7 +257,7 @@ class MainWindowExtension(WindowExtension):
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
 			self.notebook_ext.notebook,
-			self.window.ui.page # XXX
+			self.window.page
 		)
 		dialog.present()
 
@@ -961,8 +961,8 @@ class SaveVersionDialog(Dialog):
 
 class VersionsDialog(Dialog):
 
-	def __init__(self, ui, vcs, notebook, page=None):
-		Dialog.__init__(self, ui, _('Versions'), # T: dialog title
+	def __init__(self, parent, vcs, notebook, page=None):
+		Dialog.__init__(self, parent, _('Versions'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
 		self.notebook = notebook
 		self.vcs = vcs
@@ -1163,8 +1163,8 @@ state. Or select multiple versions to see changes between those versions.
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 		)).run():
 			self.vcs.revert(file=file, version=version)
-			self.ui._mainwindow.reload_page() # XXX
-			# TODO trigger vcs autosave here?
+			page = self.notebook.get_page(path)
+			page.check_source_changed()
 
 	def show_changes(self):
 		# TODO check for gdiff

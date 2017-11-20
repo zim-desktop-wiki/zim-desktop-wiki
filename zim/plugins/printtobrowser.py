@@ -73,9 +73,8 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('_Print to Browser'), 'gtk-print', '<Primary>P') # T: menu item
 	def print_to_browser(self, page=None):
-		notebook = self.window.ui.notebook # XXX
-		if page is None:
-			page = self.window.ui.page # XXX
+		notebook = self.window.notebook
+		page = page or self.window.page
 		file = self.plugin.print_to_file(notebook, page)
 		open_url(self.window, 'file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the

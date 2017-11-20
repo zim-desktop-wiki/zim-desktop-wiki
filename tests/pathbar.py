@@ -9,19 +9,14 @@ from zim.plugins.pathbar import *
 from zim.history import History
 from zim.notebook import Path
 
-#from zim.gui.mainwindow import MainWindow
-from tests.gui import newSetupGtkInterface
-
-def MainWindow(test):
-	gui = newSetupGtkInterface(test)
-	return gui._mainwindow
+from tests.mainwindow import setUpMainWindow
 
 
 class TestPluginExtendsMainWindow(tests.TestCase):
 
 	def runTest(self):
 		plugin = PathBarPlugin()
-		window = MainWindow(self)
+		window = setUpMainWindow(self.setUpNotebook())
 		plugin.extend(window)
 		extension = plugin.get_extension(window, PathBarMainWindowExtension)
 		self.assertIsNotNone(extension)

@@ -252,16 +252,8 @@ class MockWindow(tests.MockObject):
 
 	def __init__(self, dir):
 		tests.MockObject.__init__(self)
-		self.ui = MockUI(dir)
-		self.ui.uistate = None
 		self.uimanager = tests.MockObject()
 		self.pageview = tests.MockObject()
 		self.mock_method('connect', None)
-
-
-class MockUI(tests.MockObject):
-
-	def __init__(self, dir):
-		tests.MockObject.__init__(self)
 		self.notebook = tests.MockObject()
 		self.notebook.mock_method('get_attachments_dir', dir)

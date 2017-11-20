@@ -303,8 +303,7 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 		self.opener = window.navigation
 
-		notebook = window.ui.notebook # XXX
-		model = CalendarWidgetModel(self.plugin, notebook)
+		model = CalendarWidgetModel(self.plugin, window.notebook)
 		self.widget = CalendarWidget(model)
 
 		self.on_preferences_changed(plugin.preferences)
@@ -512,8 +511,7 @@ class CalendarDialog(Dialog):
 		self.plugin = plugin
 		self.opener = window.navigation
 
-		notebook = window.ui.notebook # XXX
-		model = CalendarWidgetModel(self.plugin, notebook)
+		model = CalendarWidgetModel(self.plugin, window.notebook)
 		self.calendar_widget = CalendarWidget(model)
 		self.vbox.add(self.calendar_widget)
 

@@ -104,7 +104,7 @@ class MainWindowExtensionEmbedded(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.widget = SidePaneToC(self.window.ui, self.window.pageview) # XXX
+		self.widget = SidePaneToC(self.window.pageview)
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -134,7 +134,7 @@ class MainWindowExtensionFloating(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.widget = FloatingToC(self.window.ui, self.window.pageview) # XXX
+		self.widget = FloatingToC(self.window.pageview)
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -201,7 +201,7 @@ class ToCTreeModel(gtk.TreeStore):
 
 class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
-	def __init__(self, ui, pageview, ellipsis, show_h1=False):
+	def __init__(self, pageview, ellipsis, show_h1=False):
 		gtk.ScrolledWindow.__init__(self)
 		self.show_h1 = show_h1
 
@@ -210,9 +210,8 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.add(self.treeview)
 
-		# XXX remove ui / window - use signals from pageview for this
-		self.connectto(ui._mainwindow, 'page-changed')
-		self.connectto(ui.notebook, 'store-page')
+		self.connectto(pageview, 'page-changed')
+		self.connectto(pageview.notebook, 'store-page')
 
 		self.pageview = pageview
 		if self.pageview.page:
@@ -395,8 +394,8 @@ class SidePaneToC(ToCWidget, WindowSidePaneWidget):
 
 	title = _('ToC') # T: widget label
 
-	def __init__(self, ui, pageview):
-		ToCWidget.__init__(self, ui, pageview, ellipsis=True)
+	def __init__(self, pageview):
+		ToCWidget.__init__(self, pageview, ellipsis=True)
 		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 		self.set_shadow_type(gtk.SHADOW_IN)
 		self.set_size_request(-1, 200) # Fixed Height
@@ -410,7 +409,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 
 	TEXTVIEW_OFFSET = 5
 
-	def __init__(self, ui, pageview):
+	def __init__(self, pageview):
 		TableVBox.__init__(self)
 
 		hscroll = gtk.HScrollbar(gtk.Adjustment())
@@ -419,7 +418,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		self.head = gtk.Label(_('ToC'))
 		self.head.set_padding(5, 1)
 
-		self.widget = ToCWidget(ui, pageview, ellipsis=False)
+		self.widget = ToCWidget(pageview, ellipsis=False)
 		self.widget.set_shadow_type(gtk.SHADOW_NONE)
 		self.widget.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 			# Setting horizontal scroll automatic as well

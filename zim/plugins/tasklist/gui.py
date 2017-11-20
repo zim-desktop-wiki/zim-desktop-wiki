@@ -182,7 +182,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		### XXX HACK to get dependency to connect to
 		###   -- no access to plugin, so can;t use get_extension()
 		##    -- duplicat of this snippet in MainWindowExtension
-		for e in window.ui.notebook.__zim_extension_objects__:
+		for e in window.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
 				break

@@ -7,7 +7,7 @@ from __future__ import with_statement
 
 import tests
 
-from tests.gui import setupGtkInterface
+from tests.mainwindow import setUpMainWindow
 
 import os
 import tempfile
@@ -94,8 +94,7 @@ class TestMainWindowExtension(tests.TestCase):
 			#content=tests.FULL_NOTEBOOK,
 			folder=LocalFolder(dir.path)
 		)
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		mainwindow = setUpMainWindow(notebook)
 		plugin.extend(notebook)
 		plugin.extend(mainwindow)
 
