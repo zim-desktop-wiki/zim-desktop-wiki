@@ -212,7 +212,7 @@ class InsertScreenshotDialog(Dialog):
 				imgfile = imgdir.new_file(name)
 				tmpfile.rename(imgfile)
 				pageview = self.app_window.pageview
-				pageview.insert_image(imgfile, interactive=False, force=True)
+				pageview.insert_image(imgfile)
 			else:
 				ErrorDialog(self.ui,
 							_('Some error occurred while running "%s"') % self.screenshot_command).run()

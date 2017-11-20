@@ -101,7 +101,7 @@ class MainWindow(Window):
 		self.page = None
 
 		self.config = config
-		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')['GtkInterface'] # XXX
+		self.preferences = config.preferences['GtkInterface']
 		self.preferences.connect('changed', self.do_preferences_changed)
 
 		self._block_toggle_panes = False
@@ -142,7 +142,7 @@ class MainWindow(Window):
 		self.add_bar(self.menubar, TOP)
 		self.add_bar(self.toolbar, TOP)
 
-		self.pageview = PageView(ui, ui.notebook) # XXX
+		self.pageview = PageView(self.notebook, config, self.navigation)
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
 		self.pageview.connect_after(
 			'textstyle-changed', self.on_textview_textstyle_changed)
@@ -945,6 +945,7 @@ class PageWindow(Window):
 	def __init__(self, ui, page):
 		Window.__init__(self)
 		self.ui = ui
+		self.navigation = NavigationModel(ui._mainwindow)
 
 		self.set_title(page.name + ' - Zim')
 		if ui.notebook.icon:
@@ -963,7 +964,7 @@ class PageWindow(Window):
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(ui, ui.notebook, secondary=True)
+		self.pageview = PageView(ui.notebook, ui.config, self.navigation, secondary=True)
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 

@@ -539,6 +539,34 @@ class ApplicationContext(object):
 		return False # Raise any errors again outside context
 
 
+class ZimApplicationContext(object):
+
+	def __init__(self, *callbacks):
+		self.stack = list(callbacks)
+
+	def __enter__(self):
+		from zim.main import ZIM_APPLICATION
+		self.apps_obj = ZIM_APPLICATION
+		self.old_run = ZIM_APPLICATION._run_cmd
+		ZIM_APPLICATION._run_cmd = self._callback
+
+	def _callback(self, cmd, args):
+		if not self.stack:
+			raise AssertionError('Unexpected command run: %s %r' % (cmd, args))
+
+		handler = self.stack.pop(0)
+		handler(cmd, args)
+
+	def __exit__(self, *error):
+		self.apps_obj._run_cmd = self.old_run
+
+		if self.stack and not any(error):
+			raise AssertionError('%i expected command(s) not run' % len(self.stack))
+
+		return False # Raise any errors again outside context
+
+
+
 class TestData(object):
 	'''Wrapper for a set of test data in tests/data'''
 

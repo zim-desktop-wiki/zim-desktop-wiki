@@ -80,7 +80,7 @@
 		<menu action='insert_menu'>
 			<menuitem action='insert_date'/>
 			<separator/>
-			<menuitem action='insert_image'/>
+			<menuitem action='show_insert_image'/>
 			<menuitem action='insert_bullet_list'/>
 			<menuitem action='insert_numbered_list'/>
 			<menuitem action='insert_checkbox_list'/>

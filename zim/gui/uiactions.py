@@ -786,28 +786,29 @@ class AttachFileDialog(FileDialog):
 		self.save_last_folder()
 
 		for i, file in enumerate(files):
-			file = self.attach_file(self.path, file)
+			file = attach_file(self, self.notebook, self.path, file)
 			if file is None:
 				return False # overwrite dialog was canceled
 
 		return True
 
-	def attach_file(self, path, file, force_overwrite=False):
-		folder = self.notebook.get_attachments_dir(path)
-		if folder is None:
-			raise Error('%s does not have an attachments dir' % path)
 
-		dest = folder.file(file.basename)
-		if dest.exists() and not force_overwrite:
-			dialog = PromptExistingFileDialog(self, dest)
-			dest = dialog.run()
-			if dest is None:
-				return None	# dialog was cancelled
-			elif dest.exists():
-				dest.remove()
+def attach_file(widget, notebook, path, file, force_overwrite=False):
+	folder = notebook.get_attachments_dir(path)
+	if folder is None:
+		raise Error('%s does not have an attachments dir' % path)
 
-		file.copyto(dest)
-		return dest
+	dest = folder.file(file.basename)
+	if dest.exists() and not force_overwrite:
+		dialog = PromptExistingFileDialog(widget, dest)
+		dest = dialog.run()
+		if dest is None:
+			return None	# dialog was cancelled
+		elif dest.exists():
+			dest.remove()
+
+	file.copyto(dest)
+	return dest
 
 
 class PromptExistingFileDialog(Dialog):

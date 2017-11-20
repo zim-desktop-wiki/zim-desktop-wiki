@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -42,9 +42,10 @@ from zim.gui.widgets import ui_environment, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator
-from zim.gui.applications import OpenWithMenu, open_url, open_file
+from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
+from zim.gui.uiactions import attach_file
 from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
 from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
@@ -504,9 +505,6 @@ class TextBuffer(gtk.TextBuffer):
 	@ivar user_action: A L{UserActionContext} context manager
 	@ivar finder: A L{TextFinder} for this buffer
 
-	@signal: C{reload-page ()}:
-	Emitted when plugin is activated and current page should be reloaded
-	to display object properly
 	@signal: C{begin-insert-tree ()}:
 	Emitted at the begin of a complex insert
 	@signal: C{end-insert-tree ()}:
@@ -546,7 +544,6 @@ class TextBuffer(gtk.TextBuffer):
 		'undo-save-cursor': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 		'insert-object': (gobject.SIGNAL_RUN_LAST, None, (object, object)),
 		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'reload-page': (gobject.SIGNAL_RUN_LAST, None, (object,)),
 	}
 
 	# style attributes
@@ -4983,32 +4980,35 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		'activate-link': (gobject.SIGNAL_RUN_LAST, bool, (object, object))
 	}
 
-	def __init__(self, ui, notebook, secondary=False):
+	def __init__(self, notebook, config, navigation, secondary=False):
 		'''Constructor
-
-		@param ui: the L{GtkInterface} object
 		@param notebook: the L{Notebook} object
+		@param config: L{ConfigManager} object
+		@param navigation: L{NavigationModel} object
 		@param secondary: C{True} if this widget is part of a secondary
 		widget
 		'''
 		gtk.VBox.__init__(self)
 		GSignalEmitterMixin.__init__(self)
-		self.ui = ui
 
 		self._buffer_signals = ()
+		self.notebook = notebook
 		self.page = None
+		self.config = config
+		self.navigation = navigation
 		self.readonly = True
-		self._widget_readonly = False
+		self._readonly_set = False
+		self._readonly_set_error = False
 		self.secondary = secondary
 		if self.secondary:
-			self._widget_readonly = True
+			self._readonly_set = True # HACK
 		self.undostack = None
 		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
 		self._change_counter = 0
 
-		self.preferences = self.ui.preferences['PageView']
+		self.preferences = config.preferences['PageView']
 		if not self.secondary:
 			# HACK avoid registering a second time
 			self.preferences.define(
@@ -5073,12 +5073,9 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed()
 
-		self.text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		self.text_style = config.get_config_dict('<profile>/style.conf')
 		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
 		self.on_text_style_changed()
-
-		# Connect to notebook
-		assert self.ui.notebook, 'BUG: need notebook at initialization'
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
@@ -5087,20 +5084,21 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 				# not using assert here because it could be optimized away
 
 		for s in ('store-page', 'delete-page', 'move-page'):
-			self.ui.notebook.connect(s, assert_not_modified)
+			self.notebook.connect(s, assert_not_modified)
 
 		# Setup saving
-		self.ui.preferences['GtkInterface'].setdefault('autosave_timeout', 15) # XXX
-		self.ui.preferences['GtkInterface'].setdefault('autosave_use_thread', True) # XXX
+		if_preferences = config.preferences['GtkInterface']
+		if_preferences.setdefault('autosave_timeout', 15)
+		if_preferences.setdefault('autosave_use_thread', True)
 		logger.debug('Autosave interval: %r - use threads: %r',
-			self.ui.preferences['GtkInterface']['autosave_timeout'], # XXX
-			self.ui.preferences['GtkInterface']['autosave_use_thread'] # XXX
+			if_preferences['autosave_timeout'],
+			if_preferences['autosave_use_thread']
 		)
 		self._save_page_handler = SavePageHandler(
 			self, notebook,
 			self.get_page,
-			timeout=self.ui.preferences['GtkInterface']['autosave_timeout'], # XXX
-			use_thread=self.ui.preferences['GtkInterface']['autosave_use_thread'] # XXX
+			timeout=if_preferences['autosave_timeout'],
+			use_thread=if_preferences['autosave_use_thread']
 		)
 
 		def on_focus_out_event(*a):
@@ -5253,16 +5251,17 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		self._prev_buffer.clear()
 
 		# now create the new buffer
+		self._readonly_set_error = False
 		try:
 			self.page = page
-			buffer = TextBuffer(self.ui.notebook, self.page)
+			buffer = TextBuffer(self.notebook, self.page)
 			self.view.set_buffer(buffer)
 			tree = page.get_parsetree()
 
 			if tree is None:
 				# TODO check read-only
 				template = True
-				tree = self.ui.notebook.get_template(page)
+				tree = self.notebook.get_template(page)
 				if cursor is None:
 					cursor = -1
 			else:
@@ -5275,9 +5274,10 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 				page.set_ui_object(self) # only after successful set tree in buffer
 		except Exception as error:
 			# Maybe corrupted parse tree - prevent page to be edited or saved back
-			self.set_readonly()
+			self._readonly_set_error = True
+			self._update_readonly()
 			self.set_sensitive(False)
-			ErrorDialog(self.ui, error).run()
+			ErrorDialog(self, error).run()
 		else:
 			# Finish hooking up the new page
 			self.set_cursor_pos(cursor)
@@ -5291,8 +5291,8 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			buffer.finder.set_state(*finderstate) # maintain state
 
 			self.undostack = UndoStackManager(buffer)
-			self.set_readonly() # initialize menu state
 			self.set_sensitive(True)
+			self._update_readonly()
 
 	def get_page(self):
 		'''Get the current page
@@ -5377,19 +5377,18 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		'''
 		buffer = self.view.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
-		tree.resolve_images(self.ui.notebook, self.page)
+		tree.resolve_images(self.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 		self._showing_template = istemplate
 
-	def set_readonly(self, readonly=None):
+	def set_readonly(self, readonly):
 		'''Set the widget read-only or not
 
 		Sets the read-only state but also update menu items etc. to
 		reflect the new state.
 
-		@param readonly: C{True} or C{False} to set the read-only state,
-		C{None} to check read-only state of the current page.
+		@param readonly: C{True} or C{False} to set the read-only state
 
 		Effective read-only state seen in the C{self.readonly} attribute
 		is in fact C{True} (so read-only) when either the widget itself
@@ -5397,21 +5396,19 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		C{False} here may not immediatly change C{self.readonly} if
 		a read-only page is loaded.
 		'''
-		if not readonly is None:
-			self._widget_readonly = readonly
+		self._readonly_set = readonly
+		self._update_readonly()
 
-		if self._widget_readonly:
-			self.readonly = True
-		elif self.page:
-			self.readonly = self.page.readonly or self.ui.readonly
-		else:
-			self.readonly = self.ui.readonly
-
+	def _update_readonly(self):
+		self.readonly = self._readonly_set \
+			or self._readonly_set_error \
+			or self.page is None \
+			or self.notebook.readonly \
+			or self.page.readonly
 		self.view.set_editable(not self.readonly)
 		self.view.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
-
-		self._set_menuitems_sensitive(True)
+		self._set_menuitems_sensitive(True) # XXX not sure why this is here
 
 	def _set_menuitems_sensitive(self, sensitive):
 		'''Batch update global menu sensitivity while respecting
@@ -5626,39 +5623,32 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		type = link_type(link)
 
 		if type == 'page':
-			path = self.ui.notebook.pages.resolve_link(
+			path = self.notebook.pages.resolve_link(
 				self.page, HRef.new_from_wiki_link(link)
 			)
-			if hints.get('new_window', False):
-				self.ui.open_new_window(path)
-			else:
-				self.ui._mainwindow.open_page(path)
+			self.navigation.open_page(path, new_window=hints.get('new_window', False))
 		elif type == 'file':
-			path = self.ui.notebook.resolve_file(link, self.page)
-			self._open_file(path)
+			path = self.notebook.resolve_file(link, self.page)
+			open_file(self, path)
 		elif type == 'notebook':
+			from zim.main import ZIM_APPLICATION
+
 			if link.startswith('zim+'):
 				uri, pagename = link[4:], None
-				if '?' in link:
-					uri, pagename = link.split('?', 1)
+				if '?' in uri:
+					uri, pagename = uri.split('?', 1)
 
-				self.ui.open_notebook(uri, pagename)
+				ZIM_APPLICATION.run('--gui', uri, pagename)
 
 			else:
-				self.ui.open_notebook(FilePath(link).uri)
+				ZIM_APPLICATION.run('--gui', FilePath(link).uri)
 
 		else:
 			if type == 'mailto' and not link.startswith('mailto:'):
 				link = 'mailto:' + link  # Enforce proper URI form
-			self._open_url(link)
+			open_url(self, link)
 
 		return True # handled
-
-	def _open_file(self, path):  # Test seam
-		open_file(path)
-
-	def _open_url(self, path):  # Test seam
-		open_url(path)
 
 	def do_populate_popup(self, menu):
 		buffer = self.view.get_buffer()
@@ -5677,7 +5667,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	def _default_do_populate_popup(self, menu):
 		# Add custom tool
 		# FIXME need way to (deep)copy widgets in the menu
-		#~ toolmenu = self.ui.uimanager.get_widget('/text_popup')
+		#~ toolmenu = uimanager.get_widget('/text_popup')
 		#~ tools = [tool for tool in toolmenu.get_children()
 					#~ if not isinstance(tool, gtk.SeparatorMenuItem)]
 		#~ print '>>> TOOLS', tools
@@ -5720,7 +5710,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 
 		if buffer.get_has_selection():
 			item.connect('activate',
-				lambda o: MoveTextDialog(self.ui, self).run())
+				lambda o: MoveTextDialog(self, self.notebook, self.page, buffer, self.navigation).run())
 		else:
 			item.set_sensitive(False)
 		###
@@ -5756,7 +5746,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 				return # No link or image
 
 		if file:
-			file = self.ui.notebook.resolve_file(file, self.page)
+			file = self.notebook.resolve_file(file, self.page)
 
 
 		menu.prepend(gtk.SeparatorMenuItem())
@@ -5779,8 +5769,8 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 
 		# copy
 		def set_pagelink(o, path):
-			Clipboard.set_pagelink(self.ui.notebook, path)
-			SelectionClipboard.set_pagelink(self.ui.notebook, path)
+			Clipboard.set_pagelink(self.notebook, path)
+			SelectionClipboard.set_pagelink(self.notebook, path)
 
 		def set_interwikilink(o, data):
 			href, url = data
@@ -5793,7 +5783,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 
 		if type == 'page':
 			item = gtk.MenuItem(_('Copy _Link')) # T: context menu item
-			path = self.ui.notebook.pages.resolve_link(
+			path = self.notebook.pages.resolve_link(
 				self.page, HRef.new_from_wiki_link(link['href'])
 			)
 			item.connect('activate', set_pagelink, path)
@@ -5818,7 +5808,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			menu.prepend(item)
 			dir = file.dir
 			if dir.exists():
-				item.connect('activate', lambda o: self.ui.open_file(dir))
+				item.connect('activate', lambda o: open_file(self, dir))
 			else:
 				item.set_sensitive(False)
 
@@ -5826,7 +5816,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 				# T: menu item for sub menu with applications
 			menu.prepend(item)
 			if file.exists():
-				submenu = OpenWithMenu(self.ui, file)
+				submenu = OpenWithMenu(self, file)
 				item.set_submenu(submenu)
 			else:
 				item.set_sensitive(False)
@@ -5835,7 +5825,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			# open with menu beased on that url type
 			item = gtk.MenuItem(_('Open With...'))
 			menu.prepend(item)
-			submenu = OpenWithMenu(self.ui, link['href'])
+			submenu = OpenWithMenu(self, link['href'])
 			if submenu.get_children():
 				item.set_submenu(submenu)
 			else:
@@ -5883,9 +5873,6 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			menu.prepend(item)
 
 		menu.show_all()
-
-	def do_reload_page(self):
-		self.ui._mainwindow.reload_page()
 
 	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
 	def save_page(self):
@@ -5976,7 +5963,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		if buffer.get_link_tag(iter):
-			return InsertLinkDialog(self.ui, self).run()
+			return InsertLinkDialog(self, self).run()
 
 		image = buffer.get_image_data(iter)
 		if not image:
@@ -5988,7 +5975,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 				plugin = self.image_generator_plugins[image['type']]
 				plugin.edit_object(buffer, iter, image)
 			else:
-				EditImageDialog(self.ui, buffer, self.page).run()
+				EditImageDialog(self, buffer, self.notebook, self.page).run()
 		else:
 			return False
 
@@ -6013,7 +6000,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	@action(_('_Date and Time...'), accelerator='<Primary>D', readonly=False) # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
-		InsertDateDialog(self.ui, self.view.get_buffer()).run()
+		InsertDateDialog(self, self.view.get_buffer(), self.notebook, self.page, self.config).run()
 
 	def insert_object(self, obj):
 		buffer = self.view.get_buffer()
@@ -6035,33 +6022,22 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			buffer.insert_at_cursor('\n')
 
 	@action(_('_Image...'), readonly=False) # T: Menu item
-	def insert_image(self, file=None, type=None, interactive=True, force=False):
+	def show_insert_image(self, file=None):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
-
-		@param file: image file to insert (shown in the dialog when
-		interactive)
-		@param type: image type, used by image generator plugins
-		@param interactive: when C{True} show the dialog, when C{False}
-		image is inserted directly
-		@param force: when C{True} the image will be inserted
-		even if it doesn't exist (or it isn't an image)
-
-		@raises ValueError: if file does not exist or is not a supported image
-		type
+		@param file: optinal file to suggest in the dialog
 		'''
-		if interactive:
-			InsertImageDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page, file).run()
-		else:
-			# Check if file is supported, otherwise unsupported file
-			# results in broken image icon
-			file = adapt_from_newfs(file)
-			assert isinstance(file, File)
-			if not force \
-			and not (file.exists() and gtk.gdk.pixbuf_get_file_info(file.path)):
-				raise ValueError('Not an image %s' % file)
+		InsertImageDialog(self, self.view.get_buffer(), self.notebook, self.page, file).run()
 
-			src = self.ui.notebook.relative_filepath(file, self.page) or file.uri
-			self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
+	def insert_image(self, file, type=None):
+		'''Insert a image
+		@param file: the image file to insert. If C{file} does not exist or
+		isn't an image, a "broken image" icon will be shown
+		@param type: image type, used by image generator plugins
+		'''
+		file = adapt_from_newfs(file)
+		assert isinstance(file, File)
+		src = self.notebook.relative_filepath(file, self.page) or file.uri
+		self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 
 	@action(_('Bulle_t List'), readonly=False) # T: Menu item
 	def insert_bullet_list(self):
@@ -6112,7 +6088,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	@action(_('Text From _File...'), readonly=False) # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self.ui, self.view.get_buffer(), self.ui.notebook, self.page).run()
+		InsertTextFromFileDialog(self, self.view.get_buffer(), self.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -6137,7 +6113,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 					file = File(links[i])
 				else:
 					continue # not a file
-			links[i] = self.ui.notebook.relative_filepath(file, self.page) or file.uri
+			links[i] = self.notebook.relative_filepath(file, self.page) or file.uri
 
 		if len(links) == 1:
 			sep = ' '
@@ -6156,7 +6132,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	@action(_('_Link...'), 'zim-link', '<Primary>L', tooltip=_('Insert Link'), readonly=False) # T: Menu item
 	def insert_link(self):
 		'''Menu item to show the L{InsertLinkDialog}'''
-		InsertLinkDialog(self.ui, self).run()
+		InsertLinkDialog(self, self).run()
 
 	def _update_new_file_submenu(self, action):
 		dir = self.preferences['file_templates_folder']
@@ -6209,27 +6185,27 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 				menu.show_all()
 
 	def insert_new_file(self, template, basename=None):
-		dir = self.ui.notebook.get_attachments_dir(self.page)
+		dir = self.notebook.get_attachments_dir(self.page)
 
 		if not basename:
-			basename = NewFileDialog(self.ui, template.basename).run()
+			basename = NewFileDialog(self, template.basename).run()
 			if basename is None:
 				return # cancelled
 
 		file = dir.new_file(basename)
 		template.copyto(file)
 
-		# Same logic as in zim.gui.AttachFileDialog
+		# Same logic as in AttachFileDialog
 		# TODO - incorporate in the insert_links function ?
 		if file.isimage():
-			ok = self.insert_image(file, interactive=False)
+			ok = self.insert_image(file)
 			if not ok: # image type not supported?
 				logger.info('Could not insert image: %s', file)
 				self.insert_links([file])
 		else:
 			self.insert_links([file])
 
-		#~ self.ui.open_file(file) # FIXME should this be optional ?
+		#~ open_file(self, file) # FIXME should this be optional ?
 
 	@action(_('File _Templates...'), 'gtk-directory') # T: Menu item in "Insert > New File Attachment" submenu
 	def open_file_templates_folder(self):
@@ -6239,7 +6215,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			dir = Dir(dir)
 
 		if dir.exists():
-			self.ui.open_file(dir)
+			open_file(self, dir)
 		else:
 			path = dir.user_path or dir.path
 			question = (
@@ -6252,7 +6228,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 			create = QuestionDialog(self, question).run()
 			if create:
 				dir.touch()
-				self.ui.open_file(dir)
+				open_file(self, dir)
 
 	@action(_('_Clear Formatting'), accelerator='<Primary>9', readonly=False) # T: Menu item
 	def clear_formatting(self):
@@ -6392,7 +6368,7 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	@action(_('_Replace...'), 'gtk-find-and-replace', '<Primary>H', readonly=False) # T: Menu item
 	def show_find_and_replace(self):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
-		dialog = FindAndReplaceDialog.unique(self, self.ui, self.view)
+		dialog = FindAndReplaceDialog.unique(self, self, self.view)
 		dialog.set_from_buffer()
 		dialog.present()
 
@@ -6471,10 +6447,13 @@ class InsertDateDialog(Dialog):
 	FORMAT_COL = 0 # format string
 	DATE_COL = 1 # strfime rendering of the format
 
-	def __init__(self, ui, buffer):
-		Dialog.__init__(self, ui, _('Insert Date and Time'), # T: Dialog title
+	def __init__(self, parent, buffer, notebook, page, config):
+		Dialog.__init__(self, parent, _('Insert Date and Time'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok'))  # T: Button label
 		self.buffer = buffer
+		self.notebook = notebook
+		self.page = page
+		self.config = config
 		self.date = datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
@@ -6533,7 +6512,7 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		file = self.ui.config.get_config_file('<profile>/dates.list') # XXX
+		file = self.config.get_config_file('<profile>/dates.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -6569,7 +6548,7 @@ class InsertDateDialog(Dialog):
 		model.foreach(update_date)
 
 		link = date.strftime('%Y-%m-%d') # YYYY-MM-DD
-		self.link = self.ui.notebook.suggest_link(self.ui.page, link)
+		self.link = self.notebook.suggest_link(self.page, link)
 		self.linkbutton.set_sensitive(not self.link is None)
 
 	#def run(self):
@@ -6585,16 +6564,17 @@ class InsertDateDialog(Dialog):
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
-		file = self.ui.config.get_config_file('<profile>/dates.list') # XXX
-		if self.ui.edit_config_file(file):
+		file = self.config.get_config_file('<profile>/dates.list') # XXX
+		if edit_config_file(self, file):
 			self.load_file()
 
 	def do_response_ok(self):
 		model, iter = self.view.get_selection().get_selected()
-		if not iter:
-			return False
+		if iter:
+			text = model[iter][self.DATE_COL]
+		else:
+			text = model[0][self.DATE_COL]
 
-		text = model[iter][self.DATE_COL]
 		if self.link and self.linkbutton.get_active():
 			self.buffer.insert_link_at_cursor(text, self.link.name)
 		else:
@@ -6606,9 +6586,9 @@ class InsertDateDialog(Dialog):
 class InsertImageDialog(FileDialog):
 	'''Dialog to insert an image in the page'''
 
-	def __init__(self, ui, buffer, notebook, path, file=None):
+	def __init__(self, parent, buffer, notebook, path, file=None):
 		FileDialog.__init__(
-			self, ui, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
+			self, parent, _('Insert Image'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
 
 		self.buffer = buffer
@@ -6643,13 +6623,13 @@ class InsertImageDialog(FileDialog):
 
 		self.save_last_folder()
 
-		# Similar code in zim.gui.AttachFileDialog
+		# Similar code in AttachFileDialog
 		checkbox = self.filechooser.get_extra_widget()
 		self.uistate['attach_inserted_images'] = checkbox.get_active()
 		if self.uistate['attach_inserted_images']:
-			dir = self.ui.notebook.get_attachments_dir(self.path)
-			if not file.dir == dir:
-				file = self.ui.do_attach_file(self.path, file)
+			folder = self.notebook.get_attachments_dir(self.path)
+			if not file.ischild(folder):
+				file = attach_file(self, self.notebook, self.path, file)
 				if file is None:
 					return False # Cancelled overwrite dialog
 
@@ -6660,9 +6640,9 @@ class InsertImageDialog(FileDialog):
 
 class AttachFileDialog(FileDialog):
 
-	def __init__(self, widget, notebook, path, pageview=None):
+	def __init__(self, parent, notebook, path, pageview=None):
 		assert path, 'Need a page here'
-		FileDialog.__init__(self, widget, _('Attach File'), multiple=True) # T: Dialog title
+		FileDialog.__init__(self, parent, _('Attach File'), multiple=True) # T: Dialog title
 		self.notebook = notebook
 		self.path = path
 		self.pageview = pageview
@@ -6672,7 +6652,7 @@ class AttachFileDialog(FileDialog):
 
 		dir = notebook.get_attachments_dir(path)
 		if dir is None:
-			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
+			ErrorDialog(self, _('Page "%s" does not have a folder for attachments') % self.path)
 				# T: Error dialog - %s is the full page name
 			raise Exception('Page "%s" does not have a folder for attachments' % self.path)
 
@@ -6697,9 +6677,10 @@ class AttachFileDialog(FileDialog):
 class EditImageDialog(Dialog):
 	'''Dialog to edit properties of an embedded image'''
 
-	def __init__(self, ui, buffer, path):
-		Dialog.__init__(self, ui, _('Edit Image')) # T: Dialog title
+	def __init__(self, parent, buffer, notebook, path):
+		Dialog.__init__(self, parent, _('Edit Image')) # T: Dialog title
 		self.buffer = buffer
+		self.notebook = notebook
 		self.path = path
 
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
@@ -6718,14 +6699,14 @@ class EditImageDialog(Dialog):
 		href = image_data.get('href', '')
 		self.add_form([
 			('file', 'image', _('Location')), # T: Input in 'edit image' dialog
-			('href', 'link', _('Link to'), ui.page), # T: Input in 'edit image' dialog
+			('href', 'link', _('Link to'), path), # T: Input in 'edit image' dialog
 			('width', 'int', _('Width'), (0, 1)), # T: Input in 'edit image' dialog
 			('height', 'int', _('Height'), (0, 1)) # T: Input in 'edit image' dialog
 		],
 			{'file': src, 'href': href}
 			# range for width and height are set in set_ranges()
 		)
-		self.form.widgets['file'].set_use_relative_paths(ui.notebook, path)
+		self.form.widgets['file'].set_use_relative_paths(notebook, path)
 			# Show relative paths
 
 		reset_button = gtk.Button(_('_Reset Size'))
@@ -6798,7 +6779,7 @@ class EditImageDialog(Dialog):
 	def do_response_ok(self):
 		file = self.form['file']
 		attrib = self._image_data
-		attrib['src'] = self.ui.notebook.relative_filepath(file, self.path) or file.uri
+		attrib['src'] = self.notebook.relative_filepath(file, self.path) or file.uri
 
 		href = self.form['href']
 		if href:
@@ -6806,9 +6787,7 @@ class EditImageDialog(Dialog):
 			if type == 'file':
 				# Try making the path relative
 				linkfile = self.form.widgets['href'].get_file()
-				page = self.ui.page
-				notebook = self.ui.notebook
-				href = notebook.relative_filepath(linkfile, page) or linkfile.uri
+				href = self.notebook.relative_filepath(linkfile, self.page) or linkfile.uri
 			attrib['href'] = href
 
 		iter = self.buffer.get_iter_at_offset(self._iter)
@@ -6823,9 +6802,9 @@ class EditImageDialog(Dialog):
 class InsertTextFromFileDialog(FileDialog):
 	'''Dialog to insert text from an external file into the page'''
 
-	def __init__(self, ui, buffer, notebook, page):
+	def __init__(self, parent, buffer, notebook, page):
 		FileDialog.__init__(
-			self, ui, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
+			self, parent, _('Insert Text From File'), gtk.FILE_CHOOSER_ACTION_OPEN)
 			# T: Dialog title
 		self.load_last_folder()
 		self.add_shortcut(notebook, page)
@@ -6847,7 +6826,7 @@ class InsertLinkDialog(Dialog):
 	an existing link
 	'''
 
-	def __init__(self, ui, pageview):
+	def __init__(self, parent, pageview):
 		self.pageview = pageview
 		href, text = self._get_link_from_buffer()
 
@@ -6856,7 +6835,7 @@ class InsertLinkDialog(Dialog):
 		else:
 			title = _('Insert Link') # T: Dialog title
 
-		Dialog.__init__(self, ui, title,
+		Dialog.__init__(self, parent, title,
 			button=(_('_Link'), 'zim-link'))  # T: Dialog button
 
 		self.add_form([
@@ -6934,7 +6913,7 @@ class InsertLinkDialog(Dialog):
 			# Try making the path relative
 			file = self.form.widgets['href'].get_file()
 			page = self.pageview.page
-			notebook = self.ui.notebook
+			notebook = self.notebook
 			href = notebook.relative_filepath(file, page) or file.uri
 
 		text = self.form['text'] or href
@@ -7144,8 +7123,8 @@ gobject.type_register(FindBar)
 class FindAndReplaceDialog(FindWidget, Dialog):
 	'''Dialog for find and replace'''
 
-	def __init__(self, ui, textview):
-		Dialog.__init__(self, ui,
+	def __init__(self, parent, textview):
+		Dialog.__init__(self, parent,
 			_('Find and Replace'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
 		FindWidget.__init__(self, textview)
 
@@ -7188,6 +7167,16 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		all_button.connect_object('clicked', self.__class__.replace_all, self)
 		self.bbox.add(all_button)
 
+	def set_input(self, **inputs):
+		# Hide implementation for test cases
+		for key, value in inputs.items():
+			if key == 'query':
+				self.find_entry.set_text(value)
+			elif key == 'replacement':
+				self.replace_entry.set_text(value)
+			else:
+				raise ValueError
+
 	def replace(self):
 		string = self.replace_entry.get_text()
 		buffer = self.textview.get_buffer()
@@ -7209,7 +7198,7 @@ class WordCountDialog(Dialog):
 	'''Dialog showing line, word, and character counts'''
 
 	def __init__(self, pageview):
-		Dialog.__init__(self, pageview.ui,
+		Dialog.__init__(self, pageview,
 			_('Word Count'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
 		self.set_resizable(False)
 
@@ -7296,14 +7285,15 @@ class WordCountDialog(Dialog):
 
 class MoveTextDialog(Dialog):
 
-	def __init__(self, ui, pageview):
-		Dialog.__init__(self, ui, _('Move Text to Other Page'), # T: Dialog title
+	def __init__(self, pageview, notebook, page, buffer, navigation):
+		assert buffer.get_has_selection(), 'No Selection present'
+		Dialog.__init__(self, pageview, _('Move Text to Other Page'), # T: Dialog title
 			button=(_('_Move'), 'gtk-ok'))  # T: Button label
 		self.pageview = pageview
-		self.page = self.pageview.page
-		assert self.page, 'No source page !?'
-		buffer = self.pageview.view.get_buffer()
-		assert buffer.get_has_selection(), 'No Selection present'
+		self.notebook = notebook
+		self.page = page
+		self.buffer = buffer
+		self.navigation = navigation
 		self.text = self.pageview.get_selection(format='wiki')
 		assert self.text # just to be sure
 		start, end = buffer.get_selection_bounds()
@@ -7313,7 +7303,7 @@ class MoveTextDialog(Dialog):
 		self.uistate.setdefault('link', True)
 		self.uistate.setdefault('open_page', False)
 		self.add_form([
-			('page', 'page', _('Move text to'), self.page), # T: Input in 'move text' dialog
+			('page', 'page', _('Move text to'), page), # T: Input in 'move text' dialog
 			('link', 'bool', _('Leave link to new page')), # T: Input in 'move text' dialog
 			('open_page', 'bool', _('Open new page')), # T: Input in 'move text' dialog
 
@@ -7325,39 +7315,42 @@ class MoveTextDialog(Dialog):
 			return False
 
 		try:
-			newpage = self.ui.notebook.get_page(newpage)
+			newpage = self.notebook.get_page(newpage)
 		except PageNotFoundError:
 			return False
 
 		# Copy text
 		if newpage.exists():
-			self.ui.append_text_to_page(newpage.name, self.text)
+			newpage.parse('wiki', self.text, append=True) # FIXME: probably should use parsetree here instead
+			self.notebook.store_page(newpage)
 		else:
-			newpage = self.ui.new_page_from_text(self.text, name=newpage.name, use_template=True)
+			template = self.notebook.get_template(newpage)
+			newpage.set_parsetree(template)
+			newpage.parse('wiki', self.text) # FIXME: probably should use parsetree here instead
+			self.notebook.store_page(newpage)
 
 		# Delete text (after copy was succesfull..)
-		buffer = self.pageview.view.get_buffer()
-		bounds = map(buffer.get_iter_at_offset, self.bounds)
-		buffer.delete(*bounds)
+		bounds = map(self.buffer.get_iter_at_offset, self.bounds)
+		self.buffer.delete(*bounds)
 
 		# Insert Link
 		self.uistate['link'] = self.form['link']
 		if self.form['link']:
 			href = self.form.widgets['page'].get_text() # TODO add method to Path "get_link" which gives rel path formatted correctly
-			buffer.insert_link_at_cursor(href, href)
+			self.buffer.insert_link_at_cursor(href, href)
 
 		# Show page
 		self.uistate['open_page'] = self.form['open_page']
 		if self.form['open_page']:
-			self.ui._mainwindow.open_page(newpage)
+			self.navigation.open_page(newpage)
 
 		return True
 
 
 class NewFileDialog(Dialog):
 
-	def __init__(self, ui, basename):
-		Dialog.__init__(self, ui, _('New File')) # T: Dialog title
+	def __init__(self, parent, basename):
+		Dialog.__init__(self, parent, _('New File')) # T: Dialog title
 		self.add_form((
 			('basename', 'string', _('Name')), # T: input for new file name
 		), {

@@ -49,6 +49,10 @@ class ConfigManager(object):
 		self._dir = dir
 		self._dirs = dirs
 
+	@property
+	def preferences(self):
+		return self.get_config_dict('<profile>/preferences.conf')
+
 	def set_profile(self, profile):
 		'''Set the profile to use for the configuration
 		@param profile: the profile name or C{None}

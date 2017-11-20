@@ -13,7 +13,7 @@ class NavigationModel(object):
 
 	def open_page(self, path, new_window=False):
 		if new_window:
-			self.window.ui.open_new_window(path) # XXX
+			self.window._uiactions.open_new_window(path) # XXX uiactions should call us, not other way around
 		else:
 			self.window.open_page(path)
 

@@ -65,38 +65,6 @@ class TestQuickNotePlugin(tests.TestCase):
 	# TODO: other commandline args
 	# TODO: widget interaction - autcomplete etc.
 
-	@tests.slowTest
-	def testUIInterface(self):
-		# test ui.new_page_from_text()
-
-		name = 'foo:new page quicknote'
-		text = '''\
-======= New Page =======
-Test 1 2 3
-
-attachment {{./zim16.png}}
-'''
-		wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><h level="1">New Page</h>
-<p>Test 1 2 3
-</p>
-<p>attachment <img src="./zim16.png" />
-</p></zim-tree>'''
-
-		dirname = self.create_tmp_dir(name='import_source')
-		File('./icons/zim16.png').copyto(Dir(dirname))
-
-		ui = setupGtkInterface(self)
-		path = ui.new_page_from_text(text, name, attachments=dirname)
-		page = ui.notebook.get_page(path)
-		attachments = ui.notebook.get_attachments_dir(path)
-
-		self.assertEqual(page.get_parsetree().tostring(), wanted)
-		self.assertIn('zim16.png', Dir(attachments.path).list())
-		#~ self.assertIn('zim16.png', attachments.list_names())
-
-
 	#~ @tests.slowTest
 	#~ def testAppend(self):
 		#~ # test ui.append_text_to_page()

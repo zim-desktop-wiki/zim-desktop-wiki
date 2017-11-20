@@ -391,7 +391,7 @@ class ImageGeneratorDialog(Dialog):
 			self.app_window.reload_page() # XXX
 		else:
 			pageview = self.app_window.pageview
-			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)
+			pageview.insert_image(imgfile, type=self.generator.object_type)
 
 		if self.logfile and self.logfile.exists():
 			self.logfile.remove()
