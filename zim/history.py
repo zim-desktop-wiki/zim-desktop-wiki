@@ -110,7 +110,7 @@ class History(SignalEmitter):
 	# to the current page.
 	#
 	# Note that the cursor position is set directly into the HistoryPath object
-	# in the GtkInterface do_close_page event
+	# in the do_close_page event
 	#
 	# FIXME: if we also store the cursor in the recent pages it gets
 	# remembered longer

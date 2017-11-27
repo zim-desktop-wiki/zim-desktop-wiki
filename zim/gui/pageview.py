@@ -4940,7 +4940,6 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 	is a class attribute loading the data from the config file is
 	delayed till the first object is constructed
 
-	@ivar ui: the main L{GtkInterface} object
 	@ivar page: L{Page} object for the current page displayed in the widget
 	@ivar readonly: C{True} when the widget is read-only, see
 	L{set_readonly()} for details
@@ -5010,22 +5009,20 @@ class PageView(GSignalEmitterMixin, gtk.VBox):
 		self._change_counter = 0
 
 		self.preferences = config.preferences['PageView']
-		if not self.secondary:
-			# HACK avoid registering a second time
-			self.preferences.define(
-				follow_on_enter=Boolean(True),
-				read_only_cursor=Boolean(False),
-				autolink_camelcase=Boolean(True),
-				autolink_files=Boolean(True),
-				autoselect=Boolean(True),
-				unindent_on_backspace=Boolean(True),
-				cycle_checkbox_type=Boolean(True),
-				recursive_indentlist=Boolean(True),
-				recursive_checklist=Boolean(False),
-				auto_reformat=Boolean(False),
-				copy_format=Choice('Text', COPY_FORMATS),
-				file_templates_folder=String('~/Templates'),
-			)
+		self.preferences.define(
+			follow_on_enter=Boolean(True),
+			read_only_cursor=Boolean(False),
+			autolink_camelcase=Boolean(True),
+			autolink_files=Boolean(True),
+			autoselect=Boolean(True),
+			unindent_on_backspace=Boolean(True),
+			cycle_checkbox_type=Boolean(True),
+			recursive_indentlist=Boolean(True),
+			recursive_checklist=Boolean(False),
+			auto_reformat=Boolean(False),
+			copy_format=Choice('Text', COPY_FORMATS),
+			file_templates_folder=String('~/Templates'),
+		)
 
 		self.view = TextView(preferences=self.preferences)
 		self.swindow = ScrolledWindow(self.view)

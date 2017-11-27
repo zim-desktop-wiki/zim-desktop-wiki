@@ -148,8 +148,13 @@ class UIActions(object):
 		@param page: the page L{Path}, deafults to current selected
 		'''
 		from zim.gui.mainwindow import PageWindow
-		ui = self.widget.ui # XXX
-		PageWindow(ui, page or self.page).present()
+
+		PageWindow(
+			self.notebook,
+			page or self.page,
+			self.config,
+			self.navigation
+		).present()
 
 	@action(_('Save A _Copy...')) # T: Menu item
 	def save_copy(self):
@@ -270,9 +275,7 @@ class UIActions(object):
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
-		if not hasattr(self, '_plugins'):
-			raise NotImplementedError('HACK broken')
-		PreferencesDialog(self.widget, self.config, self._plugins).run()
+		PreferencesDialog(self.widget, self.config).run()
 
 		# Loading plugins can modify the index state
 		if not self.notebook.index.is_uptodate:

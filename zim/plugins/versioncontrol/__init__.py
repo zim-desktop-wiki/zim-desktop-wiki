@@ -888,8 +888,8 @@ def get_side_by_side_app():
 
 class VersionControlInitDialog(QuestionDialog):
 
-	def __init__(self, ui):
-		QuestionDialog.__init__(self, ui, (
+	def __init__(self, parent):
+		QuestionDialog.__init__(self, parent, (
 			_("Enable Version Control?"), # T: Question dialog
 			_("Version control is currently not enabled for this notebook.\n"
 			  "Do you want to enable it?") # T: Detailed question
@@ -917,8 +917,8 @@ class VersionControlInitDialog(QuestionDialog):
 
 class SaveVersionDialog(Dialog):
 
-	def __init__(self, ui, window_ext, vcs):
-		Dialog.__init__(self, ui, _('Save Version'), # T: dialog title
+	def __init__(self, parent, window_ext, vcs):
+		Dialog.__init__(self, parent, _('Save Version'), # T: dialog title
 			button=(None, 'gtk-save'), help='Plugins:Version Control')
 		self.window_ext = window_ext
 		self.vcs = vcs
@@ -1199,8 +1199,8 @@ state. Or select multiple versions to see changes between those versions.
 
 class TextDialog(Dialog):
 
-	def __init__(self, ui, title, lines):
-		Dialog.__init__(self, ui, title, buttons=gtk.BUTTONS_CLOSE)
+	def __init__(self, parent, title, lines):
+		Dialog.__init__(self, parent, title, buttons=gtk.BUTTONS_CLOSE)
 		self.set_default_size(600, 300)
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		window, textview = ScrolledTextView(''.join(lines), monospace=True)

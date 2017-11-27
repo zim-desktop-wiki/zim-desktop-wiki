@@ -118,7 +118,7 @@ class TestGui(tests.TestCase):
 
 		cmd = GuiCommand('gui')
 		with tests.DialogContext(testAddNotebookDialog):
-			cmd.run() # Exist without running due to no notebook given in dialog
+			cmd.run() # Exits without running due to no notebook given in dialog
 
 		### Try again with argument
 		dir = self.create_tmp_dir()
@@ -127,10 +127,11 @@ class TestGui(tests.TestCase):
 		with tests.WindowContext(MainWindow):
 			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
 				window = cmd.run()
-		self.addCleanup(window.destroy)
+				self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
-		self.assertEqual(window.ui.notebook.uri, Dir(dir).uri) # XXX
+		self.assertEqual(window.notebook.uri, Dir(dir).uri) # XXX
+		self.assertGreaterEqual(window.__zim_extension_objects__, 3)
 
 		with tests.WindowContext(MainWindow):
 			window2 = cmd.run()
@@ -151,7 +152,8 @@ class TestManual(tests.TestCase):
 		with tests.WindowContext(MainWindow):
 			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
 				window = cmd.run()
-		self.addCleanup(window.destroy)
+				self.addCleanup(window.destroy)
+
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 
 

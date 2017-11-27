@@ -6,28 +6,22 @@ import tests
 
 from zim.notebook import Path
 from zim.config import VirtualConfigManager
-from zim.gui.mainwindow import MainWindow
+from zim.plugins import PluginManager
 
-import zim.gui
+from zim.gui.mainwindow import *
+
 
 is_sensitive = lambda w: w.get_property('sensitive')
 
 
 def setUpMainWindow(notebook, path='Test'):
+	if isinstance(path, basestring):
+		path = Path(path)
+
 	config = VirtualConfigManager()
-	prefs = config.get_config_dict('<profile>/preferences.conf')
-	prefs['General'].input(plugins=['calendar', 'insertsymbol', 'printtobrowser'])
-		# version control interferes with source folder, leave other default plugins
-
-	ui = zim.gui.GtkInterface(config=config, notebook=notebook)
-	mainwindow = ui._mainwindow
+	mainwindow = MainWindow(notebook, config, page=path)
+	mainwindow.__pluginmanager__ = PluginManager(config)
 	mainwindow.init_uistate() # XXX
-
-	if path is not None:
-		if isinstance(path, basestring):
-			path = Path(path)
-		mainwindow.open_page(path)
-
 	return mainwindow
 
 
@@ -37,8 +31,8 @@ class TestHistoryNavigation(tests.TestCase):
 		pages = [Path('page1'), Path('page2'), Path('page3'), Path('page4')]
 		notebook = self.setUpNotebook(content=pages)
 
-		window = setUpMainWindow(notebook, path=None)
-		history = window.ui.history # XXX
+		window = setUpMainWindow(notebook, path=pages[0])
+		history = window.history
 		historylist = history._history # XXX
 
 		back_action = window.actiongroup.get_action('open_page_back')
@@ -47,9 +41,9 @@ class TestHistoryNavigation(tests.TestCase):
 		# Setup history
 		self.assertFalse(is_sensitive(back_action))
 		self.assertFalse(is_sensitive(forward_action))
-		for i, p in enumerate(pages):
+		for i, p in enumerate(pages[1:]):
 			window.open_page(p)
-			self.assertEqual(is_sensitive(back_action), i > 0)
+			self.assertTrue(is_sensitive(back_action))
 			self.assertFalse(is_sensitive(forward_action))
 
 		self.assertEqual([p.name for p in historylist], [p.name for p in pages])
@@ -118,31 +112,21 @@ class TestTogglingState(tests.TestCase):
 
 		# note: no default style here - system default unknown
 		for style in (
-			zim.gui.TOOLBAR_ICONS_AND_TEXT,
-			zim.gui.TOOLBAR_ICONS_ONLY,
-			zim.gui.TOOLBAR_TEXT_ONLY,
+			TOOLBAR_ICONS_AND_TEXT,
+			TOOLBAR_ICONS_ONLY,
+			TOOLBAR_TEXT_ONLY,
 		):
 			window.set_toolbar_style(style)
 			self.assertEqual(window.preferences['toolbar_style'], style)
 
 		# note: no default style here - system default unknown
 		for size in (
-			zim.gui.TOOLBAR_ICONS_LARGE,
-			zim.gui.TOOLBAR_ICONS_SMALL,
-			zim.gui.TOOLBAR_ICONS_TINY,
+			TOOLBAR_ICONS_LARGE,
+			TOOLBAR_ICONS_SMALL,
+			TOOLBAR_ICONS_TINY,
 		):
 			window.set_toolbar_icon_size(size)
 			self.assertEqual(window.preferences['toolbar_size'], size)
-
-		# FIXME: test fails because "readonly" not active because notebook was already readonly, so action never activatable
-		#~ self.assertTrue(ui.readonly)
-		#~ self.assertTrue(window.uistate['readonly'])
-		#~ window.toggle_readonly()
-		#~ self.assertFalse(ui.readonly)
-		#~ self.assertFalse(window.uistate['readonly'])
-		#~ window.toggle_readonly()
-		#~ self.assertTrue(ui.readonly)
-		#~ self.assertTrue(window.uistate['readonly'])
 
 
 import gtk

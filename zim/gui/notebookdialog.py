@@ -42,7 +42,7 @@ def prompt_notebook():
 	list = get_notebook_list()
 	if len(list) == 0:
 		logger.debug('First time usage - prompt for notebook folder')
-		fields = AddNotebookDialog(ui=None).run()
+		fields = AddNotebookDialog(None).run()
 		if fields:
 			dir = Dir(fields['folder'])
 			init_notebook(dir, name=fields['name'])
@@ -53,7 +53,7 @@ def prompt_notebook():
 			return None # User canceled the dialog ?
 	else:
 		# Multiple notebooks defined and no default
-		return NotebookDialog(ui=None).run()
+		return NotebookDialog(None).run()
 
 
 class NotebookTreeModel(gtk.ListStore):
@@ -277,8 +277,8 @@ class NotebookDialog(Dialog):
 	which will be called with the path for the selected notebook.
 	'''
 
-	def __init__(self, ui, callback=None):
-		Dialog.__init__(self, ui, _('Open Notebook')) # T: dialog title
+	def __init__(self, parent, callback=None):
+		Dialog.__init__(self, parent, _('Open Notebook')) # T: dialog title
 		# TODO set button to "OPEN" instead of "OK"
 		self.callback = callback
 		self.set_default_size(500, 400)
@@ -383,8 +383,8 @@ class NotebookDialog(Dialog):
 
 class AddNotebookDialog(Dialog):
 
-	def __init__(self, ui, name=None, folder=None):
-		Dialog.__init__(self, ui, _('Add Notebook')) # T: Dialog window title
+	def __init__(self, parent, name=None, folder=None):
+		Dialog.__init__(self, parent, _('Add Notebook')) # T: Dialog window title
 
 		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
 		label.set_alignment(0.0, 0.5)

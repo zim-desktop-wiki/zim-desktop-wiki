@@ -150,9 +150,7 @@ class TestUIActions(tests.TestCase):
 		self.assertEqual(page.dump('plain'), ['import test 123\n'])
 
 	def testOpenNewWindow(self):
-		### XXX setup ui object XXX ###
 		self.uiactions.widget = setUpMainWindow(self.notebook)
-		###############################
 
 		def pagewindow(window):
 			window.pageview.page == self.page
@@ -161,9 +159,7 @@ class TestUIActions(tests.TestCase):
 			self.uiactions.open_new_window()
 
 	def testOpenNewWindowWithPage(self):
-		### XXX setup ui object XXX ###
 		self.uiactions.widget = setUpMainWindow(self.notebook)
-		###############################
 
 		page = self.notebook.get_page(Path('OtherPage'))
 		self.assertNotEqual(page, self.page)
@@ -511,11 +507,8 @@ class TestUIActions(tests.TestCase):
 		from zim.gui.preferencesdialog import PreferencesDialog
 		from zim.plugins import PluginManager
 
-		with self.assertRaises(NotImplementedError):
-			# XXX HACK - guard against broken hack
-			self.uiactions.show_preferences()
-
-		self.uiactions._plugins = PluginManager(self.uiactions.config)
+		self.uiactions.widget = gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager(self.uiactions.config)
 
 		with tests.DialogContext(PreferencesDialog):
 			self.uiactions.show_preferences()

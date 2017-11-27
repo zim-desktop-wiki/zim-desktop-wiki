@@ -180,18 +180,3 @@ class TestPlugins(tests.TestCase):
 			self.assertNotIn(name, manager)
 
 		self.assertTrue(len(manager) == 0)
-
-
-
-from tests.pageview import setUpPageView
-from zim.config import ConfigDict
-
-class MockWindow(tests.MockObject):
-
-	def __init__(self, notebook):
-		tests.MockObject.__init__(self)
-
-		self.pageview = setUpPageView(notebook)
-		self.uimanager = tests.MockObject()
-		self.ui = tests.MockObject()
-		self.ui.uistate = ConfigDict()

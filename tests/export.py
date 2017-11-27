@@ -8,6 +8,8 @@ import tests
 
 import os
 
+import gtk
+
 from functools import partial
 
 from zim.config import data_file, SectionedConfigDict
@@ -599,11 +601,12 @@ class TestExportDialog(tests.TestCase):
 		dir = Dir(self.create_tmp_dir())
 		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
-		ui = tests.MockObject()
-		ui.uistate = SectionedConfigDict()
+		window = gtk.Window()
+		window.config = tests.MockObject()
+		window.config.uistate = SectionedConfigDict()
 
 		## Test export all pages
-		dialog = ExportDialog(ui, notebook, Path('foo'))
+		dialog = ExportDialog(window, notebook, Path('foo'))
 		dialog.set_page(0)
 
 		page = dialog.get_page()
@@ -627,11 +630,11 @@ class TestExportDialog(tests.TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 
 		#~ print dialog.uistate
-		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertEqual(dialog.uistate, window.config.uistate['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
 		## Test export single page
-		dialog = ExportDialog(ui, notebook, Path('foo'))
+		dialog = ExportDialog(window, notebook, Path('foo'))
 		dialog.set_page(0)
 
 		page = dialog.get_page()
@@ -655,7 +658,7 @@ class TestExportDialog(tests.TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 
 		#~ print dialog.uistate
-		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertEqual(dialog.uistate, window.config.uistate['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_file'], OldFile)
 		self.assertIsInstance(dialog.uistate['output_folder'], OldDir) # Keep this in state as well
 

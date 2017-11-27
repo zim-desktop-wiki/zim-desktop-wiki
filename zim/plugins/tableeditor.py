@@ -228,8 +228,8 @@ class MainWindowExtension(WindowExtension):
 		WindowExtension.__init__(self, plugin, window)
 
 		# reload tables on current page after plugin activation
-		if self.window.page:
-			self.window.reload_page()
+		#if self.window.page:
+		#	self.window.reload_page()
 
 	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
 	def insert_table(self):
@@ -1007,15 +1007,15 @@ class EditTableDialog(Dialog):
 		'''
 		id, title, wrapped, align, alignicon, aligntext = range(6)
 
-	def __init__(self, ui, tablemodel=None):
+	def __init__(self, parent, tablemodel=None):
 		'''
 		Constructor, which intializes the dialog window
-		:param ui:
+		:param parent:
 		:param tablemodel: list of row-data
 		:return:
 		'''
 		title = _('Insert Table') if tablemodel is None else _('Edit Table')  # T: Dialog title
-		Dialog.__init__(self, ui, title)
+		Dialog.__init__(self, parent, title)
 
 		# Prepare treeview in which all columns of the table are listed
 		self.creation_mode = tablemodel is None

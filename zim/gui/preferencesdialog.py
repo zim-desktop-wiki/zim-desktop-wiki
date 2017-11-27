@@ -9,13 +9,13 @@ import gtk
 import logging
 
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
-	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
+	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window
 from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create
 
 from zim.plugins import PLUGIN_FOLDER
 from zim.config import String
 
-from zim.gui import ui_preferences as interface_preferences
+from zim.gui.mainwindow import ui_preferences as interface_preferences
 from zim.gui.pageview import ui_preferences as pageview_preferences
 
 
@@ -28,18 +28,14 @@ _label = _('Editing') # T: Tab in preferences dialog
 
 
 class PreferencesDialog(Dialog):
-	'''Preferences dialog consisting of tabs with various options and
-	a tab with plugins. Options are not defined here, but need to be
-	registered using GtkInterface.register_preferences().
-	'''
 
-	def __init__(self, widget, config, plugins, default_tab=None, select_plugin=None):
+	def __init__(self, widget, config, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, widget, _('Preferences')) # T: Dialog title
 		self.config = config
 		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')
 
 		# saves a list of loaded plugins to be used later
-		self.plugins = plugins
+		self.plugins = get_window(widget).__pluginmanager__ # XXX
 		self.p_save_loaded = list(self.plugins)
 
 		# Dynamic tabs
@@ -242,7 +238,6 @@ class PluginsTab(gtk.VBox):
 		hbox.set_layout(gtk.BUTTONBOX_START)
 		self.pack_start(hbox, False)
 
-		assert hasattr(self.dialog, 'ui')
 		open_button = gtk.Button(label=_('Open plugins folder'))
 		open_button.connect('clicked',
 			lambda o: open_folder_prompt_create(o, PLUGIN_FOLDER)
@@ -460,7 +455,7 @@ class StylesTab(gtk.VBox):
 
 class StylesTreeModel(gtk.ListStore):
 
-	def __init__(self, ui):
+	def __init__(self):
 		#'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
 		# 'family', 'wrap-mode', 'indent', 'underline'
 		gtk.ListStore.__init__(self, bool, str, object)

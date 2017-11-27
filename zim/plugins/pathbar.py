@@ -116,7 +116,7 @@ class PathBarMainWindowExtension(WindowExtension):
 		klass = self._klasses[type]
 		if klass is not None:
 			self.pathbar = klass(
-				self.window.ui.history, # XXX
+				self.window.history,
 				self.window.notebook,
 				self.window.config,
 				self.window.navigation

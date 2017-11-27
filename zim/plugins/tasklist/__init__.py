@@ -190,8 +190,7 @@ class MainWindowExtension(WindowExtension):
 		index = self.window.notebook.index
 		tasksview = TasksView.new_from_index(index)
 		opener = self.window.navigation
-		uistate = self.window.ui.uistate['TaskListSidePane']
-		self._widget = TaskListWidget(tasksview, opener, self.plugin.preferences, uistate)
+		self._widget = TaskListWidget(tasksview, opener, self.plugin.preferences, self.uistate)
 
 		def on_tasklist_changed(o):
 			self._widget.task_list.refresh()

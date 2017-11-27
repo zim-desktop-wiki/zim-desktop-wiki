@@ -10,12 +10,12 @@ import gtk
 logger = logging.getLogger('zim.gui')
 
 
-from zim.config import data_file, value_is_coord, ConfigDict
+from zim.config import data_file, value_is_coord, ConfigDict, INIConfigFile, Boolean
 from zim.signals import DelayedCallback
 
 from zim.notebook import Path, Page, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
-from zim.history import HistoryPath
+from zim.history import History, HistoryPath
 
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
 	PRIMARY_MODIFIER_STRING, PRIMARY_MODIFIER_MASK
@@ -40,8 +40,6 @@ TOOLBAR_ICONS_LARGE = 'large'
 TOOLBAR_ICONS_SMALL = 'small'
 TOOLBAR_ICONS_TINY = 'tiny'
 
-
-
 MENU_ACTIONS = (
 	('file_menu', None, _('_File')), # T: Menu title
 	('edit_menu', None, _('_Edit')), # T: Menu title
@@ -54,6 +52,19 @@ MENU_ACTIONS = (
 	('help_menu', None, _('_Help')), # T: Menu title
 	('toolbar_menu', None, _('_Toolbar')), # T: Menu title
 	('checkbox_menu', None, _('_Checkbox')), # T: Menu title
+)
+
+#: Preferences for the user interface
+ui_preferences = (
+	# key, type, category, label, default
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),
+		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
+		# default value is False because this is mapped to switch between
+		# char sets in certain international key mappings
+	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
+		# T: Option in the preferences dialog
+	('always_use_last_cursor_pos', 'bool', 'Interface', _('Always use last cursor position when opening a page'), True),
+		# T: Option in the preferences dialog
 )
 
 
@@ -81,28 +92,39 @@ class MainWindow(Window):
 		'close': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self, ui, notebook, config, fullscreen=False, geometry=None):
+	def __init__(self, notebook, config, page=None, fullscreen=False, geometry=None):
 		'''Constructor
-		@param ui: the L{GtkInterFace}
 		@param notebook: the L{Notebook} to show in this window
 		@param config: a C{ConfigManager} object
+		@param page: a C{Path} object to open
 		@param fullscreen: if C{True} the window is shown fullscreen,
 		if C{None} the previous state is restored
 		@param geometry: the window geometry as string in format
 		"C{WxH+X+Y}", if C{None} the previous state is restored
 		'''
 		Window.__init__(self)
-		self.ui = ui
-		self.uistate = self.ui.uistate['MainWindow']
-
 		self.notebook = notebook
+		self.page = None # will be set later by open_page
 		self.isfullscreen = False
 		self.navigation = NavigationModel(self)
-		self.page = None
+		self.hideonclose = False
 
 		self.config = config
 		self.preferences = config.preferences['GtkInterface']
+		self.preferences.define(
+			toggle_on_ctrlspace=Boolean(False),
+			remove_links_on_delete=Boolean(True),
+			always_use_last_cursor_pos=Boolean(True),
+		)
 		self.preferences.connect('changed', self.do_preferences_changed)
+
+		# Hidden setting to force the gtk bell off. Otherwise it
+		# can bell every time you reach the begin or end of the text
+		# buffer. Especially specific gtk version on windows.
+		# See bug lp:546920
+		self.preferences.setdefault('gtk_bell', False)
+		if not self.preferences['gtk_bell']:
+			gtk.rc_parse_string('gtk-error-bell = 0')
 
 		self._block_toggle_panes = False
 		self._sidepane_autoclose = False
@@ -118,6 +140,13 @@ class MainWindow(Window):
 			self.close()
 			return True # Do not destroy - let close() handle it
 		self.connect('delete-event', do_delete_event)
+
+		# setup uistate
+		if not hasattr(config, 'uistate'):
+			config.uistate = INIConfigFile(notebook.cache_dir.file('state.conf'))
+		self.uistate = self.config.uistate['MainWindow']
+
+		self.history = History(notebook, config.uistate)
 
 		# init uimanager
 		self.uimanager = gtk.UIManager()
@@ -254,6 +283,16 @@ class MainWindow(Window):
 
 		notebook.connect('moved-page', follow) # after action
 
+		# init page
+		page = page or self.history.get_current()
+		if page:
+			page = notebook.get_page(page)
+			self.open_page(page)
+		else:
+			self.open_page_home()
+
+		self.pageview.grab_focus()
+
 	@action(_('_Close'), 'gtk-close', '<Primary>W', readonly=True) # T: Menu item
 	def close(self):
 		'''Menu action for close. Will hide when L{hideonclose} is set,
@@ -262,7 +301,7 @@ class MainWindow(Window):
 		'''
 		self.hide() # look more responsive
 		self.emit('close')
-		if not self.ui.hideonclose: # XXX
+		if not self.hideonclose: # XXX
 			self.destroy()
 
 	def destroy(self):
@@ -276,11 +315,8 @@ class MainWindow(Window):
 		while gtk.events_pending():
 			gtk.main_iteration(block=False)
 
-		if self.ui.uistate.modified and hasattr(self.ui.uistate, 'write'):
-			# during tests we may have a config dict without config file
-			self.ui.uistate.write()
-
-		self.ui._mainwindow = None
+		if self.config.uistate.modified:
+			self.config.uistate.write()
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
@@ -291,7 +327,7 @@ class MainWindow(Window):
 		label = page.name
 		if page.modified:
 			label += '*'
-		if self.ui.readonly or page.readonly:
+		if self.notebook.readonly or page.readonly:
 			label += ' [' + _('readonly') + ']' # T: page status in statusbar
 		self.statusbar.pop(0)
 		self.statusbar.push(0, label)
@@ -540,9 +576,6 @@ class MainWindow(Window):
 		self.uistate['readonly'] = readonly
 		self.emit('readonly-changed', readonly)
 
-	def present(self):
-		Window.present(self)
-
 	def init_uistate(self):
 		# Initialize all the uistate parameters
 		# delayed till show or show_all because all this needs real
@@ -641,7 +674,7 @@ class MainWindow(Window):
 		self.toolbar.insert(item, -1)
 
 		# Load accelmap config and setup saving it
-		accelmap = self.ui.config.get_config_file('accelmap').file
+		accelmap = self.config.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
 			gtk.accel_map_load(accelmap.path)
@@ -744,6 +777,8 @@ class MainWindow(Window):
 			self.page.cursor = self.pageview.get_cursor_pos()
 			self.page.scroll = self.pageview.get_scroll_pos()
 
+			self.save_uistate()
+
 		logger.info('Open page: %s (%s)', page, path)
 		self.page = page
 		self._uiactions.page = page
@@ -754,20 +789,19 @@ class MainWindow(Window):
 		self.notebook.index.check_async(self.notebook, paths, recursive=False)
 
 		if isinstance(path, HistoryPath):
-			self.ui.history.set_current(path)
+			self.history.set_current(path)
 			cursor = path.cursor # can still be None
 		else:
-			self.ui.history.append(page)
+			self.history.append(page)
 			cursor = None
 
 		if cursor is None and self.preferences['always_use_last_cursor_pos']:
-			cursor, _ = self.ui.history.get_state(page)
+			cursor, _ = self.history.get_state(page)
 
 		self.pageview.set_page(page, cursor)
 
 		self.emit('page-changed', page)
 
-		self.save_uistate()
 		self.pageview.grab_focus()
 
 	def do_page_changed(self, page):
@@ -781,7 +815,7 @@ class MainWindow(Window):
 			self.update_buttons_hierarchy()
 
 	def update_buttons_history(self):
-		historyrecord = self.ui.history.get_current()
+		historyrecord = self.history.get_current()
 
 		back = self.actiongroup.get_action('open_page_back')
 		back.set_sensitive(not historyrecord.is_first)
@@ -797,7 +831,7 @@ class MainWindow(Window):
 
 	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def show_jump_to(self):
-		return OpenPageDialog(self).run()
+		return OpenPageDialog(self, self.page, self.open_page).run()
 
 	@action(
 		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
@@ -807,7 +841,7 @@ class MainWindow(Window):
 		'''Menu action to open the previous page from the history
 		@returns: C{True} if succesful
 		'''
-		record = self.ui.history.get_previous()
+		record = self.history.get_previous()
 		if not record is None:
 			self.open_page(record)
 
@@ -819,7 +853,7 @@ class MainWindow(Window):
 		'''Menu action to open the next page from the history
 		@returns: C{True} if succesful
 		'''
-		record = self.ui.history.get_next()
+		record = self.history.get_next()
 		if not record is None:
 			self.open_page(record)
 
@@ -841,7 +875,7 @@ class MainWindow(Window):
 		path = self.notebook.pages.lookup_by_pagename(self.page)
 			# Force refresh "haschildren" ...
 		if path.haschildren:
-			record = self.ui.history.get_child(path)
+			record = self.history.get_child(path)
 			if not record is None:
 				self.open_page(record)
 			else:
@@ -942,29 +976,29 @@ class BackLinksMenuButton(MenuButton):
 class PageWindow(Window):
 	'''Secondary window, showing a single page'''
 
-	def __init__(self, ui, page):
+	def __init__(self, notebook, page, config, navigation):
 		Window.__init__(self)
-		self.ui = ui
-		self.navigation = NavigationModel(ui._mainwindow)
+		self.navigation = navigation
 
 		self.set_title(page.name + ' - Zim')
-		if ui.notebook.icon:
-			try:
-				self.set_icon_from_file(ui.notebook.icon)
-			except gobject.GError:
-				logger.exception('Could not load icon %s', ui.notebook.icon)
+		#if ui.notebook.icon:
+		#	try:
+		#		self.set_icon_from_file(ui.notebook.icon)
+		#	except gobject.GError:
+		#		logger.exception('Could not load icon %s', ui.notebook.icon)
 
+		page = notebook.get_page(page)
 
-		page = ui.notebook.get_page(page)
+		if hasattr(config, 'uistate'):
+			self.uistate = config.uistate['PageWindow']
+		else:
+			self.uistate = ConfigDict()
 
-		self.uistate = ui.uistate['PageWindow']
-			# TODO remember for separate windows separately
-			# e.g. use PageWindow1, PageWindow2, etc
 		self.uistate.setdefault('windowsize', (500, 400), check=value_is_coord)
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(ui.notebook, ui.config, self.navigation, secondary=True)
+		self.pageview = PageView(notebook, config, navigation, secondary=True)
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 
@@ -974,19 +1008,19 @@ class OpenPageDialog(Dialog):
 	Prompts for a page name and navigate to that page on 'Ok'.
 	'''
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Jump to'), # T: Dialog title
+	def __init__(self, parent, page, callback):
+		Dialog.__init__(self, parent, _('Jump to'), # T: Dialog title
 			button=(None, gtk.STOCK_JUMP_TO),
 		)
+		self.callback = callback
 
 		self.add_form(
-			[('page', 'page', _('Jump to Page'), ui.page)] # T: Label for page input
+			[('page', 'page', _('Jump to Page'), page)] # T: Label for page input
 		)
 
 	def do_response_ok(self):
 		path = self.form['page']
-		if path:
-			self.ui._mainwindow.open_page(path)
-			return True
-		else:
+		if not path:
 			return False
+		self.callback(path)
+		return True

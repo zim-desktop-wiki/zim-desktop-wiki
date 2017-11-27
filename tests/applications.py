@@ -214,10 +214,6 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 			self.assertTrue(entry['Desktop Entry']['NoDisplay'])
 				# do not show custom items in menus
 
-		# Mock main ui object
-		ui = tests.MockObject()
-		ui.windows = []
-
 		# Check menu
 		for obj, mimetype, test_entry in (
 			(File('README.txt'), 'text/plain', entry_text),
@@ -225,7 +221,7 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 		):
 			manager.set_default_application(mimetype, test_entry)
 
-			menu = OpenWithMenu(ui, obj)
+			menu = OpenWithMenu(None, obj)
 			self.assertEqual(menu.mimetype, mimetype)
 			for item in menu.get_children():
 				if hasattr(item, 'entry'):

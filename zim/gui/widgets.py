@@ -2141,19 +2141,9 @@ def format_title(title):
 def get_window(widget):
 	if widget and hasattr(widget, 'get_toplevel'):
 		window = widget.get_toplevel()
-			# GtkInterface also implements get_toplevel
 		return window if isinstance(window, gtk.Window) else None
 	else:
 		return None
-
-
-def register_window(window):
-	'''Register this instance with the zim application, if not done
-	so already.
-	'''
-	if  hasattr(window, 'ui') \
-	and hasattr(window.ui, 'register_new_window'):
-		window.ui.register_new_window(window)
 
 
 class uistate_property(object):
@@ -2939,7 +2929,6 @@ class Window(gtkwindowclass):
 		# This is important for state of e.g. panes to work correctly
 		if not self._registered:
 			self._registered = True
-			register_window(self)
 			if hasattr(self, 'uistate'):
 				self.init_uistate()
 
@@ -2975,7 +2964,6 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	sub-classes can use the L{ConnectorMixin} methods and all callbacks
 	will be cleaned up after the dialog.
 
-	@ivar ui: parent C{gtk.Window} or C{GtkInterface}
 	@ivar vbox: C{gtk.VBox} for main widgets of the dialog
 	@ivar form: L{InputForm} added by C{add_form()}
 	@ivar uistate: L{ConfigDict} to store state of the dialog, persistent
@@ -2995,7 +2983,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 		Typically you can use this as::
 
-			dialog = MyDialog.unique(ui, somearg)
+			dialog = MyDialog.unique(parent, somearg)
 			dialog.present()
 
 		@param handler: the object constructing the dialog
@@ -3020,15 +3008,15 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		setattr(handler, attr, weakref.ref(dialog))
 		return dialog
 
-	def __init__(self, ui, title,
+	def __init__(self, parent, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, help=None,
 			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent gtk widget or C{None}. Only used to
+		set the dialog on top of the right parent window
 		@param title: the dialog title
 		@param buttons: a constant controlling what kind of buttons the
 		dialog will have. One of:
@@ -3042,19 +3030,13 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@param help_text: set the help text, see L{add_help_text()}
 		@param help: pagename for a manual page, see L{set_help()}
 		@param defaultwindowsize: default window size in pixels
-
-		@note: some sub-classes expect C{self.ui} to always be a
-		L{GtkInterface}
 		'''
+		window = get_window(parent)
 		gtk.Dialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=window,
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
-		if hasattr(ui, 'ui') and hasattr(ui.ui, 'uistate'):
-				ui = ui.ui # HACK - we get other window instead.. - avoid triggering Mock objects in test ...
-
-		self.ui = ui
 		self.result = None
 		self._registered = False
 		if not ui_environment['smallscreen']:
@@ -3063,10 +3045,8 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 		if hasattr(self, 'uistate'):
 			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
-		elif hasattr(ui, 'uistate') \
-		and isinstance(ui.uistate, zim.config.SectionedConfigDict):
-			key = self.__class__.__name__
-			self.uistate = ui.uistate[key]
+		elif hasattr(window, 'config') and hasattr(window.config, 'uistate'):
+			self.uistate = window.config.uistate[self.__class__.__name__]
 		else:
 			self.uistate = zim.config.ConfigDict()
 
@@ -3135,7 +3115,6 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		Setting this will add a "help" button to the dialog.
 		@param pagename: the manual page name
 		'''
-		#~ assert hasattr(self.ui, 'show_help'), 'Need ui object to open help'
 		self.help_page = pagename
 		button = gtk.Button(stock=gtk.STOCK_HELP)
 		button.connect_object('clicked', self.__class__.show_help, self)
@@ -3147,8 +3126,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@param page: the manual page, if C{None} the page as set with
 		L{set_help()} is used
 		'''
-		self.ui.show_help(page or self.help_page)
-			# recurses until gui.show_help is reached
+		ZIM_APPLICATION.run('--manual', page or self.help_page)
 
 	def add_help_text(self, text):
 		'''Adds a label with an info icon in front of it. Intended for
@@ -3254,8 +3232,14 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	def show_all(self):
 		logger.debug('Opening dialog "%s"', self.title)
 		if not self._registered:
-			register_window(self)
 			self._registered = True
+
+			### HACK to find plugins - don't use getattr to explicitly break when hack changes ###
+			parent = self.get_property('transient-for')
+			if parent and parent.__class__.__name__ == 'MainWindow':
+				parent.__pluginmanager__.extend(self)
+			###
+
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
@@ -3288,7 +3272,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			try:
 				destroy = self.do_response_ok()
 			except Exception as error:
-				ErrorDialog(self.ui, error).run()
+				ErrorDialog(self, error).run()
 				destroy = False
 			else:
 				if not destroy:
@@ -3298,7 +3282,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			try:
 				destroy = self.do_response_cancel()
 			except Exception as error:
-				ErrorDialog(self.ui, error).run()
+				ErrorDialog(self, error).run()
 				destroy = False
 			else:
 				if not destroy:
@@ -3385,13 +3369,12 @@ class ErrorDialog(gtk.MessageDialog):
 	care of that.
 	'''
 
-	def __init__(self, ui, error, exc_info=None, do_logging=True,
+	def __init__(self, parent, error, exc_info=None, do_logging=True,
 				buttons=gtk.BUTTONS_CLOSE
 	):
 		'''Constructor
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param error: the actual error, either an C{Exception} object
 		(including instances of L{zim.errors.Error}), a string with the
@@ -3428,7 +3411,7 @@ class ErrorDialog(gtk.MessageDialog):
 		msg, show_trace = zim.errors.get_error_msg(error)
 
 		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=get_window(parent),
 			type=gtk.MESSAGE_ERROR, buttons=buttons,
 			message_format=msg
 		)
@@ -3540,11 +3523,10 @@ class QuestionDialog(gtk.MessageDialog):
 	Note that message dialogs do not have a title.
 	'''
 
-	def __init__(self, ui, question):
+	def __init__(self, parent, question):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param question: a question that can be answered by 'yes' or
 		'no', either as sring or a 2-tuple of the actual question and
@@ -3559,7 +3541,7 @@ class QuestionDialog(gtk.MessageDialog):
 
 		self.answer = None
 		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=get_window(parent),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO,
 			message_format=question
 		)
@@ -3601,11 +3583,10 @@ class MessageDialog(gtk.MessageDialog):
 	Note that message dialogs do not have a title.
 	'''
 
-	def __init__(self, ui, msg):
+	def __init__(self, parent, msg):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param msg: the message either as sring or a 2-tuple of the
 		actual question and a longer explanation as strings. Using a
@@ -3618,7 +3599,7 @@ class MessageDialog(gtk.MessageDialog):
 			text = None
 
 		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=get_window(parent),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
 			message_format=msg,
 			flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -3664,14 +3645,13 @@ class FileDialog(Dialog):
 	dir(s) based on the arguments given during construction.
 	'''
 
-	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
+	def __init__(self, parent, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, help=None, multiple=False,
 		):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param title: the dialog title
 
@@ -3696,7 +3676,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 
-		Dialog.__init__(self, ui, title, defaultwindowsize=(500, 400),
+		Dialog.__init__(self, parent, title, defaultwindowsize=(500, 400),
 			buttons=buttons, button=button, help_text=help_text, help=help)
 
 		self.filechooser = gtk.FileChooserWidget()
@@ -3887,21 +3867,20 @@ class FileDialog(Dialog):
 class ProgressDialog(gtk.Dialog):
 	'''Dialog to show a progress bar for a operation'''
 
-	def __init__(self, ui, op):
+	def __init__(self, parent, op):
 		'''Constructor
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent gtk widget or C{None}. Only used to
+		set the dialog on top of the right parent window
 		@param op: operation that supports a "step" signal, a "finished" signal
 		and a "run_on_idle" method - see L{NotebookOperation} for the default
 		implementation
 		'''
-		self.ui = ui
 		self.op = op
 		self._total = None
 		self.cancelled = False
 		gtk.Dialog.__init__(
 			# no title - see HIG about message dialogs
-			self, parent=get_window(self.ui),
+			self, parent=get_window(parent),
 			title='',
 			flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_MODAL,
 			buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
@@ -3976,8 +3955,8 @@ gobject.type_register(ProgressDialog)
 class LogFileDialog(Dialog):
 	'''Simple dialog to show a log file'''
 
-	def __init__(self, ui, file):
-		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
+	def __init__(self, parent, file):
+		Dialog.__init__(self, parent, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
 			# T: dialog title for log view dialog - e.g. for Equation Editor
 		self.set_default_size(600, 300)
 		window, textview = ScrolledTextView(file.read(), monospace=True)
@@ -4002,15 +3981,14 @@ class Assistant(Dialog):
 	e.g. by overloading the L{previous_page()} and L{next_page()} methods.
 	'''
 
-	def __init__(self, ui, title, **options):
+	def __init__(self, parent, title, **options):
 		'''Constructor
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 		@param title: dialog title
 		@param options: other dialog options, see L{Dialog.__init__()}
 		'''
-		Dialog.__init__(self, ui, title, **options)
+		Dialog.__init__(self, parent, title, **options)
 		self.set_border_width(5)
 		self._pages = []
 		self._page = -1

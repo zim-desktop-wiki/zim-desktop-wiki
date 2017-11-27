@@ -8,6 +8,11 @@ specific commandline commands and an singleton application object that
 takes core of the process life cycle.
 '''
 
+# TODO:
+# - implement weakvalue dict to ensure uniqueness of notebook objects
+# - make config and plugin management application global
+
+
 import os
 import sys
 import logging
@@ -249,33 +254,89 @@ class GuiCommand(NotebookCommand, GtkCommand):
 
 	def run(self):
 		import gtk
-		import zim.gui
+
+		from zim.gui.mainwindow import MainWindow
+
+		windows = [
+			w for w in gtk.window_list_toplevels()
+				if isinstance(w, MainWindow)
+		]
+
+		if len(windows) == 0:
+			logger.debug('Gtk version is %s' % str(gtk.gtk_version))
+			logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
 		notebook, page = self.build_notebook()
 		if notebook is None:
 			logger.debug('NotebookDialog cancelled - exit')
 			return
 
-		gui = None
-		for window in gtk.window_list_toplevels():
-			if isinstance(window, zim.gui.MainWindow) \
-			and window.notebook.uri == notebook.uri:
-				gui = window.ui # XXX
-				break
-
-		if gui:
-			gui.present(
-				page=page,
-				**self.get_options('geometry', 'fullscreen'))
+		for window in windows:
+			if window.notebook.uri == notebook.uri:
+				self._present_window(window, page)
+				return window
 		else:
-			gui = zim.gui.GtkInterface(
-				notebook=notebook,
-				page=page,
-				**self.get_options('geometry', 'fullscreen')
-			)
-			gui.run()
+			return self._run_new_window(notebook, page)
 
-		return gui._mainwindow # XXX
+	def _present_window(self, window, page):
+		window.present()
+
+		if page:
+			window.open_page(page)
+
+		geometry = self.opts.get('geometry', None)
+		if geometry is not None:
+			window.parse_geometry(geometry)
+
+		if self.opts.get('fullscreen', False):
+			window.toggle_fullscreen(True)
+
+	def _run_new_window(self, notebook, page):
+		import gobject
+
+		from zim.gui.mainwindow import MainWindow
+		from zim.config import ConfigManager
+		from zim.plugins import PluginManager
+
+		config = ConfigManager()
+		preferences = config.preferences['General']
+		preferences.setdefault('plugins', [
+			'pageindex', 'pathbar',
+			'calendar', 'insertsymbol', 'printtobrowser',
+			'versioncontrol', # 'osx_menubar'
+		])
+
+		# Upgrade plugin list
+		preferences.setdefault('plugins_list_version', 'none')
+		if preferences['plugins_list_version'] != '0.68':
+			preferences['plugins'].extend(['pageindex', 'pathbar'])
+			preferences['plugins_list_version'] = '0.68'
+
+		pluginmanager = PluginManager(config)
+		pluginmanager.extend(notebook)
+
+		window = MainWindow(
+			notebook,
+			config,
+			page=page,
+			**self.get_options('geometry', 'fullscreen')
+		)
+		pluginmanager.extend(window)
+		pluginmanager.extend(window.pageview)
+		window.__pluginmanager__ = pluginmanager # HACK to allow dialogs to find it
+		window.present()
+
+		if not window.notebook.index.is_uptodate:
+			window._uiactions.reload_index(update_only=True) # XXX
+		else:
+			# Start a lightweight background check of the index
+			# put a small delay to ensure window is shown before we start
+			def start_background_check():
+				notebook.index.start_background_check(notebook)
+				return False # only run once
+			gobject.timeout_add(500, start_background_check)
+
+		return window
 
 
 class ManualCommand(GuiCommand):
@@ -426,15 +487,14 @@ class ExportCommand(NotebookCommand):
 
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
-		from zim.plugins import PluginManager
 		from zim.config import ConfigManager
+		from zim.plugins import PluginManager
 
 		notebook, page = self.build_notebook()
 
 		# load plugins, needed so the the proper export functions would work from CLI
 		config = ConfigManager(profile=notebook.profile)
 		plugins = PluginManager(config)
-		plugins.extend(notebook.index)
 		plugins.extend(notebook)
 
 		notebook.index.check_and_update()
@@ -576,7 +636,7 @@ class ZimApplication(object):
 
 	def get_mainwindow(self, notebook, _class=None):
 		'''Returns an existing L{MainWindow} for C{notebook} or C{None}'''
-		from zim.gui import MainWindow
+		from zim.gui.mainwindow import MainWindow
 		_class = _class or MainWindow # test seam
 		for w in self.toplevels:
 			if isinstance(w, _class) and w.notebook.uri == notebook.uri:

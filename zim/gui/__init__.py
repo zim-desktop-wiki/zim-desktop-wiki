@@ -2,66 +2,20 @@
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-'''This module contains the Gtk user interface for zim.
-The main widgets and dialogs are separated out in sub-modules.
-Included here are the main class for the zim GUI L{GtkInterface}, which
-contains most action handlers and the main window class L{MainWindow},
-as well as a number of dialogs.
-
-If you want to extend the user interface, also see L{zim.gui.widgets}
-for common base classes for widgets and dialogs.
-'''
-
-from __future__ import with_statement
-
-import os
-import re
 import logging
-import gobject
-import gtk
-import webbrowser
-
-
-from zim.fs import File, Dir, adapt_from_newfs
-from zim.newfs import FileNotFoundError
-from zim.errors import Error
-from zim.environ import environ
-from zim.notebook import Notebook, NotebookInfo, Path, Page, build_notebook, encode_filename
-from zim.notebook.index import IndexUpdateOperation, IndexCheckAndUpdateOperation
-from zim.notebook.operations import NotebookOperation, ongoing_operation
-from zim.actions import PRIMARY_MODIFIER_STRING
-from zim.config import data_file, data_dirs, ConfigDict, ConfigManager, Boolean
-from zim.plugins import PluginManager
-from zim.history import History, HistoryPath
-from zim.templates import get_template
-
-from zim.gui.clipboard import Clipboard
-
-from zim.gui.mainwindow import * # XXX
 
 logger = logging.getLogger('zim.gui')
 
+
+import gtk
+import webbrowser
 
 if gtk.gtk_version >= (2, 10) \
 and gtk.pygtk_version >= (2, 10):
 	gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
 
 
-
-#: Preferences for the user interface
-ui_preferences = (
-	# key, type, category, label, default
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),
-		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
-		# default value is False because this is mapped to switch between
-		# char sets in certain international key mappings
-	('remove_links_on_delete', 'bool', 'Interface', _('Remove links when deleting pages'), True),
-		# T: Option in the preferences dialog
-	('always_use_last_cursor_pos', 'bool', 'Interface', _('Always use last cursor position when opening a page'), True),
-		# T: Option in the preferences dialog
-)
-
-
+from zim.config import data_dirs
 
 # Load custom application icons as stock
 def load_zim_stock_icons():
@@ -88,191 +42,5 @@ def load_zim_stock_icons():
 			except Exception:
 				logger.exception('Got exception while loading application icons')
 
+
 load_zim_stock_icons()
-
-
-class GtkInterface(object):
-	'''Deprecated class
-
-	@ivar preferences: L{ConfigSectionsDict} for global preferences, maps to
-	the X{preferences.conf} config file.
-	@ivar uistate: L{ConfigSectionsDict} for current state of the user interface,
-	maps to the X{state.conf} config file per notebook.
-	@ivar notebook: The L{Notebook} object
-	@ivar page: The L{Page} object for the current page in the
-	main window
-	@ivar readonly: When C{True} the whole interface is read-only
-	@ivar hideonclose: When C{True} the application will hide itself
-	instead of closing when the main window is closed, typically used
-	in combination with the background server process and the
-	L{tray icon plugin<zim.plugins.trayicon>}
-	@ivar history: the L{History} object
-	@ivar preferences_register: a L{ConfigDict} with preferences to show
-	in the preferences dialog, see L{register_preferences()} to add
-	to more preferences
-	'''
-
-	def __init__(self, notebook, page=None, config=None,
-		fullscreen=False, geometry=None):
-		'''Constructor
-
-		@param config: a C{ConfigManager} object
-		@param notebook: a L{Notebook} object
-		@param page: a L{Path} object
-		@param fullscreen: if C{True} open fullscreen
-		@param geometry: window geometry as string in format "C{WxH+X+Y}"
-		'''
-		assert isinstance(notebook, Notebook)
-
-		logger.debug('Opening notebook: %s', notebook)
-		self.notebook = notebook
-
-		self.config = config or ConfigManager(profile=notebook.profile)
-		self.preferences = self.config.get_config_dict('<profile>/preferences.conf') ### preferences attrib should just be one section
-		self.preferences['GtkInterface'].define(
-			toggle_on_ctrlspace=Boolean(False),
-			remove_links_on_delete=Boolean(True),
-			always_use_last_cursor_pos=Boolean(True),
-		)
-		self.preferences['General'].setdefault('plugins',[
-			'pageindex', 'pathbar',
-			'calendar', 'insertsymbol', 'printtobrowser',
-			'versioncontrol', # 'osx_menubar'
-		])
-
-		# Upgrade plugin list
-		self.preferences['General'].setdefault('plugins_list_version', 'none')
-		if self.preferences['General']['plugins_list_version'] != '0.68':
-			self.preferences['General']['plugins'].extend(['pageindex', 'pathbar'])
-			self.preferences['General']['plugins_list_version'] = '0.68'
-
-		self.plugins = PluginManager(self.config)
-		self.plugins.extend(notebook)
-
-		self.page = None
-		self.history = None
-		self.readonly = False
-		self.hideonclose = False
-
-		logger.debug('Gtk version is %s' % str(gtk.gtk_version))
-		logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
-
-
-		# Hidden setting to force the gtk bell off. Otherwise it
-		# can bell every time you reach the begin or end of the text
-		# buffer. Especially specific gtk version on windows.
-		# See bug lp:546920
-		self.preferences['GtkInterface'].setdefault('gtk_bell', False)
-		if not self.preferences['GtkInterface']['gtk_bell']:
-			gtk.rc_parse_string('gtk-error-bell = 0')
-
-		# Init UI
-		if notebook.cache_dir:
-			# may not exist during tests
-			from zim.config import INIConfigFile
-			self.uistate = INIConfigFile(
-				notebook.cache_dir.file('state.conf'))
-		else:
-			from zim.config import SectionedConfigDict
-			self.uistate = SectionedConfigDict()
-
-		self._mainwindow = MainWindow(self, self.notebook, self.config, fullscreen, geometry)
-		self._mainwindow._uiactions._plugins = self.plugins # XXX HACK around ugly dependency XXX
-		def on_page_changed(o, page):
-			self.page = page
-		self._mainwindow.connect('page-changed', on_page_changed)
-
-		self.history = History(notebook, self.uistate)
-
-		if page and isinstance(page, basestring): # IPC call
-			page = self.notebook.pages.lookup_from_user_input(page)
-
-		self._first_page = page # XXX HACK - if we call open_page here, plugins are not yet initialized
-
-	def run(self):
-		'''Final initialization and show mainwindow'''
-		assert self.notebook is not None
-
-		if self._first_page is None:
-			self._first_page = self.history.get_current()
-
-		# And here we go!
-		self._mainwindow.present()
-
-		# HACK: Delay opening first page till after show_all() -- else plugins are not initialized
-		#       FIXME need to do extension & initialization of uistate earlier
-		if self._first_page:
-			self._mainwindow.open_page(self._first_page)
-			del self._first_page
-		else:
-			self._mainwindow.open_page_home()
-
-		if not self.notebook.index.is_uptodate:
-			# Show dialog, do fast foreground update
-			self._mainwindow._uiactions.reload_index(update_only=True)
-		else:
-			# Start a lightweight background check of the index
-			# put a small delay to ensure window is shown before we start
-			def start_background_check():
-				self.notebook.index.start_background_check(self.notebook)
-				return False # only run once
-			gobject.timeout_add(500, start_background_check)
-
-		self._mainwindow.pageview.grab_focus()
-
-	def get_toplevel(self):
-		return self._mainwindow
-
-	def present(self, page=None, fullscreen=None, geometry=None):
-		'''Present the mainwindow. Typically used to bring back a
-		the application after it was hidden. Also used for remote
-		calls.
-
-		@param page: a L{Path} object or page path as string
-		@param fullscreen: if C{True} the window is shown fullscreen,
-		if C{None} the previous state is restored
-		@param geometry: the window geometry as string in format
-		"C{WxH+X+Y}", if C{None} the previous state is restored
-		'''
-		self._mainwindow.present()
-
-		if page:
-			if isinstance(page, basestring):
-				page = Path(page)
-			self._mainwindow.open_page(page)
-
-		if geometry:
-			self._mainwindow.parse_geometry(geometry)
-		elif fullscreen:
-			self._mainwindow.toggle_fullscreen(True)
-
-	def toggle_present(self):
-		'''Present main window if it is not on top, but hide if it is.
-		Used by the L{trayicon plugin<zim.plugins.trayicon>} to toggle
-		visibility of the window.
-		'''
-		if self._mainwindow.is_active():
-			self._mainwindow.hide()
-		else:
-			self._mainwindow.present()
-
-	def hide(self):
-		'''Hide the main window. Note that this is not the same as
-		minimize, when minimized there is still an icon in the task
-		bar, if hidden there is no visible trace of the application and
-		it can not be accessed by the user anymore until L{present()}
-		has been called.
-		'''
-		self._mainwindow.hide()
-
-	def register_new_window(self, window):
-		'''Register a new window for the application.
-		Called by windows and dialogs to register themselves. Used e.g.
-		by plugins that want to add some widget to specific windows.
-		'''
-		#~ print 'WINDOW:', window
-		self.plugins.extend(window)
-
-		# HACK
-		if hasattr(window, 'pageview'):
-			self.plugins.extend(window.pageview)

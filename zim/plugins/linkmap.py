@@ -123,8 +123,8 @@ class MainWindowExtension(WindowExtension):
 
 class LinkMapDialog(Dialog):
 
-	def __init__(self, ui, linkmap, opener):
-		Dialog.__init__(self, ui, 'LinkMap',
+	def __init__(self, parent, linkmap, opener):
+		Dialog.__init__(self, parent, 'LinkMap',
 			defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
 		self.linkmap = linkmap
 		self.opener = opener

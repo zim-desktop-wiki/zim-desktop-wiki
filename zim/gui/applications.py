@@ -988,13 +988,13 @@ def _mimetype_dialog_text(mimetype):
 
 class CustomizeOpenWithDialog(Dialog):
 
-	def __init__(self, ui, mimetype):
+	def __init__(self, parent, mimetype):
 		'''Constructor
-		@param ui: the parent window or C{GtkInterface} object
+		@param parent: the parent window or C{None}
 		@param mimetype: mime-type for which we want to create a new
 		application
 		'''
-		Dialog.__init__(self, ui, _('Configure Applications'),  # T: Dialog title
+		Dialog.__init__(self, parent, _('Configure Applications'),  # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Help:Default Applications')
 		self.mimetype = mimetype
 		self.add_text(_mimetype_dialog_text(mimetype))
@@ -1108,13 +1108,13 @@ class AddApplicationDialog(Dialog):
 	L{ApplicationManager.create()}.
 	'''
 
-	def __init__(self, ui, mimetype):
+	def __init__(self, parent, mimetype):
 		'''Constructor
-		@param ui: the parent window or C{GtkInterface} object
+		@param parent: the parent window or C{None}
 		@param mimetype: mime-type for which we want to create a new
 		application
 		'''
-		Dialog.__init__(self, ui, _('Add Application')) # T: Dialog title
+		Dialog.__init__(self, parent, _('Add Application')) # T: Dialog title
 		self.mimetype = mimetype
 		self.add_text(_mimetype_dialog_text(mimetype))
 		self.add_form((

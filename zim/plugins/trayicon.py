@@ -111,12 +111,12 @@ class TrayIconMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.window.ui.hideonclose = True # XXX
+		self.window.hideonclose = True
 		plugin.load_trayicon()
 
 	def teardown(self):
 		global GLOBAL_TRAYICON
-		self.window.ui.hideonclose = False # XXX
+		self.window.hideonclose = False
 		if GLOBAL_TRAYICON:
 			GLOBAL_TRAYICON.destroy()
 			GLOBAL_TRAYICON = None

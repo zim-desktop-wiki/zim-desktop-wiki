@@ -63,8 +63,3 @@ class TestQuickNotePlugin(tests.TestCase):
 
 	# TODO: other commandline args
 	# TODO: widget interaction - autcomplete etc.
-
-	#~ @tests.slowTest
-	#~ def testAppend(self):
-		#~ # test ui.append_text_to_page()
-		#~ pass

@@ -32,9 +32,6 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		mainwindow.pageview = pageview
 		mainwindow.uimanager = tests.MockObject()
 
-		mainwindow.ui = tests.MockObject() # XXX
-		mainwindow.ui.uistate = SectionedConfigDict()
-
 		plugin.extend(mainwindow, 'MainWindow')
 
 		print '\n!! Two GtkWarnings expected here for gdk display !!'

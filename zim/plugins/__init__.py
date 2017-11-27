@@ -89,6 +89,7 @@ from zim.actions import action, toggle_action, get_gtk_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
 from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
+from zim.config import SectionedConfigDict
 
 
 logger = logging.getLogger('zim.plugins')
@@ -752,8 +753,8 @@ class WindowExtension(ObjectExtension):
 		ObjectExtension.__init__(self, plugin, window)
 		self.window = window
 
-		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate') and window.ui.uistate: # XXX
-			self.uistate = window.ui.uistate[plugin.config_key]
+		if hasattr(window, 'config') and hasattr(window.config, 'uistate'):
+			self.uistate = window.config.uistate[plugin.config_key]
 		else:
 			self.uistate = None
 

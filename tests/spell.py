@@ -41,7 +41,7 @@ class TestSpell(object):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
 			window = setUpMainWindow(self.setUpNotebook())
 
-			plugin = window.ui.plugins.load_plugin('spell') # XXX
+			plugin = zim.plugins.spell.SpellPlugin()
 			plugin.extend(window)
 			ext = plugin.get_extension(window, zim.plugins.spell.MainWindowExtension)
 

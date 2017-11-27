@@ -12,40 +12,45 @@ from zim.config import VirtualConfigManager
 from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
 
 
+def MyWindow(config):
+	import gtk
+	window = gtk.Window()
+	window.__pluginmanager__ = PluginManager(config)
+	return window
+
+
 class TestPreferencesDialog(tests.TestCase):
 
 	def testSetSimpleValue(self):
 		config = VirtualConfigManager()
-		plugins = PluginManager(config=config)
 		preferences = config.get_config_dict('<profile>/preferences.conf')
 
-		dialog = PreferencesDialog(None, config, plugins)
+		dialog = PreferencesDialog(MyWindow(config), config)
 		self.assertEquals(dialog.forms['Interface']['toggle_on_ctrlspace'], False)
 		dialog.assert_response_ok()
 		self.assertEquals(preferences['GtkInterface']['toggle_on_ctrlspace'], False)
 
-		dialog = PreferencesDialog(None, config, plugins)
+		dialog = PreferencesDialog(MyWindow(config), config)
 		dialog.forms['Interface']['toggle_on_ctrlspace'] = True
 		dialog.assert_response_ok()
 		self.assertEquals(preferences['GtkInterface']['toggle_on_ctrlspace'], True)
 
 	def testChangeFont(self):
 		config = VirtualConfigManager()
-		plugins = PluginManager(config=config)
 		preferences = config.get_config_dict('<profile>/preferences.conf')
 
 		text_style = config.get_config_dict('<profile>/style.conf')
 		text_style['TextView'].setdefault('font', None, basestring)
 		text_style['TextView']['font'] = 'Sans 12'
 
-		dialog = PreferencesDialog(None, config, plugins)
+		dialog = PreferencesDialog(MyWindow(config), config)
 		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.assert_response_ok()
 		self.assertEqual(text_style['TextView']['font'], 'Sans 12')
 		self.assertFalse(any(['use_custom_font' in d for d in preferences.values()]))
 
 		text_style['TextView']['font'] = 'Sans 12'
-		dialog = PreferencesDialog(None, config, plugins)
+		dialog = PreferencesDialog(MyWindow(config), config)
 		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.forms['Interface']['use_custom_font'] = False
 		dialog.assert_response_ok()
@@ -54,19 +59,19 @@ class TestPreferencesDialog(tests.TestCase):
 
 	def testConfigurePlugin(self):
 		config = VirtualConfigManager()
-		plugins = PluginManager(config=config)
 
 		from zim.plugins.calendar import CalendarPlugin
 		plugin = CalendarPlugin()
 
-		pref_dialog = PreferencesDialog(None, config, plugins)
+		window = MyWindow(config)
+		pref_dialog = PreferencesDialog(window, config)
 		dialog = PluginConfigureDialog(pref_dialog, plugin)
 		dialog.assert_response_ok()
 
 		## Try plugins + cancel
-		pref_dialog = PreferencesDialog(None, config, plugins)
+		pref_dialog = PreferencesDialog(MyWindow(config), config)
 		treeview = pref_dialog.plugins_tab.treeview
-		for name in plugins.list_installed_plugins():
+		for name in window.__pluginmanager__.list_installed_plugins():
 			pref_dialog.plugins_tab.select_plugin(name)
 			model, iter = treeview.get_selection().get_selected()
 			self.assertEqual(model[iter][0], name)

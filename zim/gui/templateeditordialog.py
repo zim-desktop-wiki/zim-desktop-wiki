@@ -155,8 +155,8 @@ class TemplateEditorDialog(Dialog):
 
 class PromptNameDialog(Dialog):
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Copy Template')) # T: Dialog title
+	def __init__(self, parent):
+		Dialog.__init__(self, parent, _('Copy Template')) # T: Dialog title
 		self.add_form([
 			('name', 'string', _('Name')),
 				# T: Input label for the new name when copying a template
