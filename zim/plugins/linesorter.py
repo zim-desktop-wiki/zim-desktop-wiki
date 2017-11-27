@@ -9,7 +9,7 @@ import gtk
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
-from zim.gui.widgets import ui_environment, MessageDialog
+from zim.gui.widgets import MessageDialog
 from zim.utils import natural_sort_key
 
 

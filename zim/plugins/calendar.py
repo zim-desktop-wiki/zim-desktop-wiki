@@ -18,7 +18,7 @@ from zim.actions import action
 from zim.signals import SignalHandler
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
-from zim.gui.widgets import ui_environment, Dialog, Button, \
+from zim.gui.widgets import Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError

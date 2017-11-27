@@ -17,7 +17,7 @@ import logging
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import Action
 from zim.fs import File, Dir
-from zim.gui.widgets import ui_environment, \
+from zim.gui.widgets import \
 	Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
 	ScrolledTextView, ScrolledSourceView, VPaned, \
 	populate_popup_add_separator

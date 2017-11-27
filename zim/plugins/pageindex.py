@@ -15,7 +15,7 @@ from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, Index
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import PRIMARY_MODIFIER_MASK
 
-from zim.gui.widgets import ui_environment, BrowserTreeView, ScrolledWindow, \
+from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
 	populate_popup_add_separator, encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
 from zim.gui.clipboard import Clipboard, pack_urilist, unpack_urilist, \

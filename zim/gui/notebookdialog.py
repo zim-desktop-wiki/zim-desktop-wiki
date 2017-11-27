@@ -21,7 +21,7 @@ import zim.main
 from zim.fs import File, Dir
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import ui_environment, Dialog, IconButton, encode_markup_text, ScrolledWindow
+from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow
 
 logger = logging.getLogger('zim.gui.notebookdialog')
 

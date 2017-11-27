@@ -11,7 +11,7 @@ from zim.actions import action
 from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
-from zim.gui.widgets import ui_environment, Dialog, IconButton
+from zim.gui.widgets import Dialog, IconButton
 from zim.inc import xdot
 
 

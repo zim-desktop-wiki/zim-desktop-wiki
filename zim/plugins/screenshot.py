@@ -13,7 +13,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
 from zim.fs import TmpFile
 from zim.applications import Application
-from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
+from zim.gui.widgets import Dialog, ErrorDialog
 
 
 PLATFORM = os.name

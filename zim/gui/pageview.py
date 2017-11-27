@@ -37,7 +37,7 @@ from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
 from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
-from zim.gui.widgets import ui_environment, \
+from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
@@ -106,8 +106,6 @@ bullets = {}
 for bullet in bullet_types:
 	bullets[bullet_types[bullet]] = bullet
 
-# E.g. Maemo devices have no hardware [] keys,
-# so allow () to be used for the same purpose
 autoformat_bullets = {
 	'*': BULLET,
 	'[]': UNCHECKED_BOX,
@@ -7059,32 +7057,9 @@ class FindBar(FindWidget, gtk.HBox):
 		self.pack_start(self.find_entry, False)
 		self.pack_start(self.previous_button, False)
 		self.pack_start(self.next_button, False)
-		if ui_environment['smallscreen']:
-			# E.g. Maemo Nxx0 devices have not enough space for so many
-			# widgets, so let's put options in a menu button.
-			# FIXME need to rewrite this hack to integrate nicely with
-			# the FindWidget base class
-			# FIXME ideally behavior would switch on the fly based on
-			# actual screensize - we can detect when these widgets
-			# fit or not by using "x_size, y_size = mywidget.window.get_size()"
-			# or "mywidget.get_allocation().width" to get the widgets and window size
-			# and probably re-draw when the screensize or windowsize changes
-			# by listening to window resize events.
-			# Alternatively we can always put options in this menu
-			menu = gtk.Menu()
-			item = gtk.CheckMenuItem(self.case_option_checkbox.get_label())
-			item.connect('toggled',
-				lambda sender, me: me.case_option_checkbox.set_active(sender.get_active()), self)
-			menu.append(item)
-			item = gtk.CheckMenuItem(self.highlight_checkbox.get_label())
-			item.connect('toggled',
-				lambda sender, me: me.highlight_checkbox.set_active(sender.get_active()), self)
-			menu.append(item)
-			button = MenuButton(_('Options'), menu) # T: Options button
-			self.pack_start(button, False)
-		else:
-			self.pack_start(self.case_option_checkbox, False)
-			self.pack_start(self.highlight_checkbox, False)
+		self.pack_start(self.case_option_checkbox, False)
+		self.pack_start(self.highlight_checkbox, False)
+		# TODO allow box to shrink further by putting buttons in menu
 
 		close_button = IconButton(gtk.STOCK_CLOSE, relief=False, size=gtk.ICON_SIZE_MENU)
 		close_button.connect_object('clicked', self.__class__.hide, self)

@@ -76,18 +76,6 @@ KEYVALS_SLASH = (
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
 
 
-# UI Environment config. Would properly belong in zim.gui.__init__
-# but defined here to avoid unnecessary dependencies on zim.gui
-ui_environment = {
-	'platform': None, # platform name to trigger platform specific optimizations
-	'maxscreensize': None, # max screensize _if_ fixed by the platform
-	'smallscreen': False, # trigger optimizations for small screens
-}
-
-
-gtkwindowclass = gtk.Window
-
-
 def encode_markup_text(text):
 	'''Encode text such that it can be used in a piece of markup text
 	without causing errors. Needed for all places where e.g. a label
@@ -2516,7 +2504,7 @@ class ConfigDefinitionPaneState(ConfigDefinitionByClass):
 			raise ValueError('Value is not a valid pane state')
 
 
-class Window(gtkwindowclass):
+class Window(gtk.Window):
 	'''Sub-class of C{gtk.Window} that will take care of hooking
 	the window into the application framework and adds entry points
 	so plugins can add side panes etc. It will divide the window
@@ -2554,7 +2542,7 @@ class Window(gtkwindowclass):
 	}
 
 	def __init__(self):
-		gtkwindowclass.__init__(self)
+		gtk.Window.__init__(self)
 		self._registered = False
 		self._last_sidepane_focus = None
 
@@ -2579,7 +2567,7 @@ class Window(gtkwindowclass):
 		self._zim_window_bottom_minimized = HMinimizedTabs(self._zim_window_bottom_pane)
 
 		# put it all together ...
-		gtkwindowclass.add(self, self._zim_window_main)
+		gtk.Window.add(self, self._zim_window_main)
 		self._zim_window_main.add(self._zim_window_central_hbox)
 		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False)
 		self._zim_window_central_hbox.add(self._zim_window_left_paned)
@@ -2900,7 +2888,7 @@ class Window(gtkwindowclass):
 					break
 				parent = parent.get_parent()
 
-		return gtkwindowclass.do_set_focus(self, widget)
+		return gtk.Window.do_set_focus(self, widget)
 
 	def focus_sidepane(self):
 		try:
@@ -2933,7 +2921,7 @@ class Window(gtkwindowclass):
 				self.init_uistate()
 
 		if not TEST_MODE:
-			gtkwindowclass.show_all(self)
+			gtk.Window.show_all(self)
 
 	def present(self):
 		self.show_all()
@@ -2941,7 +2929,7 @@ class Window(gtkwindowclass):
 			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
 			TEST_MODE_RUN_CB(self)
 		else:
-			gtkwindowclass.present(self)
+			gtk.Window.present(self)
 
 # Need to register classes defining gobject signals
 gobject.type_register(Window)
@@ -3039,9 +3027,8 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		)
 		self.result = None
 		self._registered = False
-		if not ui_environment['smallscreen']:
-			self.set_border_width(10)
-			self.vbox.set_spacing(5)
+		self.set_border_width(10)
+		self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
 			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
