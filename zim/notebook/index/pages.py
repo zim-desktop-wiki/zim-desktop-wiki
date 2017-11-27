@@ -544,6 +544,26 @@ class PagesView(IndexView):
 		c, = self.db.execute('SELECT COUNT(*) FROM pages').fetchone()
 		return c - 1 # don't count ROOT
 
+	def get_has_previous_has_next(self, path):
+		if path.isroot:
+			raise ValueError('Can\'t use root')
+
+		r = self.db.execute(
+			'SELECT * FROM pages WHERE parent=? '
+			'ORDER BY sortkey ASC, name ASC LIMIT 1',
+			(ROOT_ID,)
+		).fetchone()
+		is_first = (r['name'] == path.name) if r else True
+
+		r = self.db.execute(
+			'SELECT * FROM pages WHERE parent=? '
+			'ORDER BY sortkey DESC, name DESC LIMIT 1',
+			(ROOT_ID,)
+		).fetchone()
+		is_last = (r['name'] == path.name) if r else True
+
+		return not is_first, not is_last
+
 	def get_previous(self, path):
 		'''Get the previous path in the index, in the same order that
 		L{walk()} will yield them

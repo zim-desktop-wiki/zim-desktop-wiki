@@ -2,6 +2,8 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from __future__ import with_statement
+
 import tests
 
 from zim.notebook import Path
@@ -71,9 +73,113 @@ class TestHistoryNavigation(tests.TestCase):
 
 class TestUpDownNavigation(tests.TestCase):
 
-	@tests.expectedFailure
+	def testUpDown(self):
+		pages = (
+			'A',
+			'A:B',
+			'A:B:C',
+			'D',
+		)
+		window = setUpMainWindow(self.setUpNotebook(content=pages), path='A')
+		child_action = window.actiongroup.get_action('open_page_child')
+		parent_action = window.actiongroup.get_action('open_page_parent')
+		historylist = window.history._history # XXX
+
+		while is_sensitive(child_action):
+			window.open_page_child()
+
+		self.assertEqual([p.name for p in historylist], ['A', 'A:B', 'A:B:C'])
+
+		while is_sensitive(parent_action):
+			window.open_page_parent()
+
+		self.assertEqual([p.name for p in historylist], ['A', 'A:B', 'A:B:C', 'A:B', 'A'])
+
+	def testDownHistory(self):
+		pages = (
+			'A',
+			'A:B',
+			'A:C'
+		)
+		window = setUpMainWindow(self.setUpNotebook(content=pages), path='A')
+
+		self.assertEqual(window.page, Path('A'))
+		window.open_page_child()
+		self.assertEqual(window.page, Path('A:B'))
+
+		window.open_page(Path('A:C'))
+		window.open_page(Path('A'))
+
+		self.assertEqual(window.page, Path('A'))
+		window.open_page_child()
+		self.assertEqual(window.page, Path('A:C'))
+
+
+class TestPreviousNextNavigation(tests.TestCase):
+
 	def runTest(self):
-		raise NotImplementedError
+		pages = (
+			'A',
+			'A:B1',
+			'A:B2',
+			'B',
+		)
+		window = setUpMainWindow(self.setUpNotebook(content=pages), path='A')
+		next_action = window.actiongroup.get_action('open_page_next')
+		previous_action = window.actiongroup.get_action('open_page_previous')
+		historylist = window.history._history # XXX
+
+		while is_sensitive(next_action):
+			window.open_page_next()
+
+		self.assertEqual([p.name for p in historylist], list(pages))
+
+		while is_sensitive(previous_action):
+			window.open_page_previous()
+
+		self.assertEqual([p.name for p in historylist], list(pages) + ['A:B2', 'A:B1', 'A'])
+
+
+class TestActions(tests.TestCase):
+
+	def testJumpToPage(self):
+		window = setUpMainWindow(self.setUpNotebook(content=('A', 'B')), path='A')
+
+		def jump(dialog):
+			dialog.set_input(page='B')
+			dialog.assert_response_ok()
+
+		self.assertEqual(window.page, Path('A'))
+		with tests.DialogContext(jump):
+			window.show_jump_to()
+
+		self.assertEqual(window.page, Path('B'))
+
+	def testOpenHome(self):
+		window = setUpMainWindow(self.setUpNotebook(), path='A')
+
+		self.assertEqual(window.page, Path('A'))
+		window.open_page_home()
+		self.assertEqual(window.page, Path('Home'))
+
+	def testReloadPage(self):
+		window = setUpMainWindow(self.setUpNotebook(), path='A')
+
+		page1 = window.page
+		window.reload_page()
+		page2 = window.page
+		self.assertEqual(page1, Path('A'))
+		self.assertEqual(page2, Path('A'))
+		self.assertNotEqual(id(page1), id(page2))
+
+
+import gtk
+
+from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE
+
+
+class MockSidePaneWidget(gtk.VBox, WindowSidePaneWidget):
+	title = 'MockSidePaneWidget'
 
 
 class TestTogglingState(tests.TestCase):
@@ -100,7 +206,7 @@ class TestTogglingState(tests.TestCase):
 		window.toggle_statusbar()
 		self.assertTrue(window.uistate['show_statusbar'])
 
-		mywidget = MockSidePane()
+		mywidget = MockSidePaneWidget()
 		mywidget.show_all()
 		window.add_tab('Test', mywidget, LEFT_PANE)
 
@@ -128,11 +234,9 @@ class TestTogglingState(tests.TestCase):
 			window.set_toolbar_icon_size(size)
 			self.assertEqual(window.preferences['toolbar_size'], size)
 
-
-import gtk
-from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE
-class MockSidePane(gtk.VBox, WindowSidePaneWidget):
-	title = 'MockSidePane'
+		# ..
+		window.toggle_fullscreen()
+		window.toggle_fullscreen()
 
 
 class TestSavingPages(tests.TestCase):
@@ -152,7 +256,16 @@ class TestSavingPages(tests.TestCase):
 		self.assertIsNotNone(self.mainwindow.page.get_parsetree())
 		self.assertFalse(self.mainwindow.pageview._showing_template) # XXX check HACK
 
-	def testClosePage(self):
+	def testClose(self):
+		# Specific bug found when trying to close the page while auto-save
+		# in progress, test it here
+		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.mainwindow.pageview._save_page_handler.try_save_page()
+		self.assertTrue(self.mainwindow.page.modified)
+		self.mainwindow.close()
+		self.assertFalse(self.mainwindow.page.modified)
+
+	def testCloseByDestroy(self):
 		# Specific bug found when trying to close the page while auto-save
 		# in progress, test it here
 		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')

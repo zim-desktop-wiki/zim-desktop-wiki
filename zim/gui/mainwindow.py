@@ -158,7 +158,6 @@ class MainWindow(Window):
 			</toolbar>
 		</ui>
 		''')
-		self.actions = Actions(self.uimanager)
 
 		# setup the window layout
 		from zim.gui.widgets import TOP, BOTTOM, TOP_PANE, LEFT_PANE
@@ -829,6 +828,12 @@ class MainWindow(Window):
 		parent.set_sensitive(len(self.page.namespace) > 0)
 		child.set_sensitive(self.page.haschildren)
 
+		previous = self.actiongroup.get_action('open_page_previous')
+		next = self.actiongroup.get_action('open_page_next')
+		has_prev, has_next = self.notebook.pages.get_has_previous_has_next(self.page)
+		previous.set_sensitive(has_prev)
+		next.set_sensitive(has_next)
+
 	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
 	def show_jump_to(self):
 		return OpenPageDialog(self, self.page, self.open_page).run()
@@ -918,22 +923,6 @@ class MainWindow(Window):
 
 # Need to register classes defining gobject signals or overloading methods
 gobject.type_register(MainWindow)
-
-
-class Actions(object):
-	# TODO: improve by re-using objects from zim/actions.py
-	#       also allow as proxy for sensitivity etc. and allow arguments
-
-	def __init__(self, uimanager):
-		self._uimanager = uimanager
-
-	def __getattr__(self, name):
-		for group in self._uimanager.get_action_groups():
-			action = group.get_action(name)
-			if action:
-				return lambda: action.activate()
-		else:
-			raise AttributeError('Action not found: %s' % name)
 
 
 class BackLinksMenuButton(MenuButton):
