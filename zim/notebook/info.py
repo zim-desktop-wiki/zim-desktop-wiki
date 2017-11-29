@@ -344,6 +344,8 @@ class NotebookInfoList(list):
 				info = NotebookInfo(uri)
 			self.append(info)
 
+		self.sort(key=lambda notebook: notebook.name)
+
 		if 'Default' in config['NotebookList'] \
 		and config['NotebookList']['Default']:
 			self.set_default(config['NotebookList']['Default'])
