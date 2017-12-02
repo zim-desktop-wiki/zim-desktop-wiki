@@ -34,7 +34,7 @@ def _os_lrmdir(path):
 	try:
 		os.rmdir(path)
 	except OSError:
-		if os.path.islink(path) and os.path.isdir(path):
+		if os.path.islink(path) and os.path.isdir(path) and not os.listdir(path):
 			os.unlink(path)
 		else:
 			raise
