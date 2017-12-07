@@ -27,7 +27,7 @@ class TestInputEntry(tests.TestCase):
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), '')
 
-		# test unicode nd whitespace
+		# test unicode and whitespace
 		entry.set_text(u'\u2022 foo   ')
 		text = entry.get_text()
 		self.assertTrue(isinstance(text, unicode))
@@ -216,14 +216,8 @@ class TestNamespaceEntry(TestPageEntry):
 		entry = self.entry
 		entry.set_text('')
 
-		entry.do_focus_in_event(Gdk.Event(Gdk.FOCUS_CHANGE))
 		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
-		self.assertEqual(entry.get_path(), Path(':'))
-
-		entry.do_focus_out_event(Gdk.Event(Gdk.FOCUS_CHANGE))
-		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
+		self.assertEqual(entry.get_text(), '')
 		self.assertEqual(entry.get_path(), Path(':'))
 
 		TestPageEntry.runTest(self)

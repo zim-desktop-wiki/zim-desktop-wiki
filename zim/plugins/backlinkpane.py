@@ -37,7 +37,7 @@ This is a core plugin shipping with zim.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class BackLinksPaneMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
@@ -145,15 +145,10 @@ class LinksTreeView(BrowserTreeView):
 		cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column = Gtk.TreeViewColumn('_page_', cell_renderer, text=TEXT_COL)
 		self.append_column(column)
-
-		if Gtk.gtk_version >= (2, 12, 0) \
-		and Gtk.pygtk_version >= (2, 12, 0):
-			self.set_tooltip_column(TEXT_COL)
+		self.set_tooltip_column(TEXT_COL)
 
 
-#~ class LinksTreeModel(Gtk.TreeStore):
 class LinksTreeModel(Gtk.ListStore):
 
 	def __init__(self):
-		#~ GObject.GObject.__init__(self, object, str) # PAGE_COL, TEXT_COL
-		GObject.GObject.__init__(self, object, str) # PAGE_COL, TEXT_COL
+		Gtk.ListStore.__init__(self, object, str) # PAGE_COL, TEXT_COL

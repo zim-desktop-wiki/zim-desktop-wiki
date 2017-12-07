@@ -42,7 +42,7 @@ class DistractionFreePlugin(PluginClass):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class DistractionFreeMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)

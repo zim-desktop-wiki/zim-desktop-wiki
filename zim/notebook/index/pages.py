@@ -452,7 +452,7 @@ class PagesViewInternal(object):
 					pagename = Path(row['name'])
 					page_id = row['id']
 				else: # no match
-					return None, pagename.get_child()(':'.join(names[i:])), 1
+					return None, pagename.child(':'.join(names[i:])), 1
 		else:
 			return page_id, pagename, 2
 
@@ -757,6 +757,12 @@ class PagesView(IndexView):
 			yield PageIndexRecord(row)
 
 
+try:
+	from gi.repository import Gtk
+except ImportError:
+	Gtk = None
+
+
 IS_PAGE = 1 #: Hint for MyTreeIter
 
 class PagesTreeModelMixin(TreeModelMixinBase):
@@ -791,7 +797,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		# no clear cache here - just update row
 		for treepath in self._find_all_pages(row['name']):
 			treeiter = self.get_iter(treepath) # not mytreeiter !
-			self.cache[treepath].row = row # ensure uptodate info
+			self.cache[tuple(treepath)].row = row # ensure uptodate info
 			self.emit('row-changed', treepath, treeiter)
 
 	def on_page_row_deleted(self, o, row):
@@ -807,6 +813,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		).fetchone()[0]
 
 	def get_mytreeiter(self, treepath):
+		treepath = tuple(treepath) # used to cache
 		if treepath in self.cache:
 			return self.cache[treepath]
 
@@ -830,15 +837,24 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			''',
 			(parent_id, offset)
 		)):
-			mytreepath = parentpath + (offset + i,)
+			mytreepath = tuple(parentpath) + (offset + i,)
 			if mytreepath not in self.cache:
-				self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+				self.cache[mytreepath] = MyTreeIter(
+					Gtk.TreePath(mytreepath),
+					row,
+					row['n_children'],
+					IS_PAGE
+				)
 			else:
 				break # avoid overwriting cache because of ref count
 
 		return self.cache.get(treepath, None)
 
 	def find(self, path):
+		'''Returns the C{Gtk.TreePath} for a notebook page L{Path}
+		If the L{Path} appears multiple times returns the first occurence
+		@raises IndexNotFoundError: if path not found
+		'''
 		if path.isroot:
 			raise ValueError
 		treepaths = sorted(self._find_all_pages(path.name))
@@ -848,6 +864,10 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			raise IndexNotFoundError(path)
 
 	def find_all(self, path):
+		'''Returns a list of C{Gtk.TreePath} for a notebook page L{Path}
+		Returns all occurences in the treeview
+		@raises IndexNotFoundError: if path not found
+		'''
 		if path.isroot:
 			raise ValueError
 		treepaths = self._find_all_pages(path.name)
@@ -884,10 +904,15 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 				# Update cache (avoid overwriting because of ref count)
 				mytreepath = tuple(treepath)
 				if mytreepath not in self.cache:
-					myiter = MyTreeIter(mytreepath, myrow, myrow['n_children'], IS_PAGE)
+					myiter = MyTreeIter(
+						Gtk.TreePath(mytreepath),
+						myrow,
+						myrow['n_children'],
+						IS_PAGE
+					)
 					self.cache[mytreepath] = myiter
 
-		return [tuple(treepath)]
+		return [Gtk.TreePath(treepath)]
 
 
 ########################################################################

@@ -126,7 +126,7 @@ class QuickNotePluginCommand(GtkCommand):
 				raise AssertionError('Unknown encoding: %s' % self.opts['encoding'])
 
 		if text and not isinstance(text, unicode):
-			text = text.decode('utf-8')
+			text = text.decode('UTF-8')
 
 		return text
 
@@ -185,7 +185,7 @@ This is a core plugin shipping with zim.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class QuickNoteMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -233,7 +233,7 @@ class QuickNoteDialog(Dialog):
 			namespace = namespace or self.config['Namespaces'][notebook]
 
 		self.form = InputForm()
-		self.vbox.pack_start(self.form, False)
+		self.vbox.pack_start(self.form, False, True, 0)
 
 		# TODO dropdown could use an option "Other..."
 		label = Gtk.Label(label=_('Notebook') + ': ')
@@ -304,7 +304,7 @@ class QuickNoteDialog(Dialog):
 		self.open_page_check = Gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
 			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page_check.set_active(self.uistate['open_page'])
-		self.action_area.pack_start(self.open_page_check, False)
+		self.action_area.pack_start(self.open_page_check, False, True, 0)
 		self.action_area.set_child_secondary(self.open_page_check, True)
 
 		# Add the main textview and hook up the basename field to
@@ -408,8 +408,8 @@ class QuickNoteDialog(Dialog):
 		if not self._title_set_manually:
 			# Automatically generate a (valid) page name
 			self._updating_title = True
-			bounds = buffer.get_bounds()
-			title = buffer.get_text(*bounds).strip()[:50]
+			start, end = buffer.get_bounds()
+			title = start.get_text(end).decode('UTF-8').strip()[:50]
 				# Cut off at 50 characters to prevent using a whole paragraph
 			title = title.replace(':', '')
 			if '\n' in title:
@@ -423,8 +423,8 @@ class QuickNoteDialog(Dialog):
 
 	def do_response_ok(self):
 		buffer = self.textview.get_buffer()
-		bounds = buffer.get_bounds()
-		text = buffer.get_text(*bounds)
+		start, end = buffer.get_bounds()
+		text = start.get_text(end).decode('UTF-8')
 
 		# HACK: change "[]" at start of line into "[ ]" so checkboxes get inserted correctly
 		text = re.sub(r'(?m)^(\s*)\[\](\s)', r'\1[ ]\2', text)

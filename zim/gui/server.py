@@ -18,9 +18,9 @@ used to start/stop the WWW server.
 
 
 from gi.repository import Gtk
-import glib
-import sys
+from gi.repository import GObject
 
+import sys
 import logging
 
 from zim.www import make_server
@@ -61,12 +61,8 @@ class ServerWindow(Gtk.Window):
 		self.stop_button.connect('clicked', lambda o: self.stop())
 		self.stop_button.set_sensitive(False)
 
-		if Gtk.gtk_version >= (2, 10) \
-		and Gtk.pygtk_version >= (2, 10):
-			self.link_button = Gtk.LinkButton('')
-			self.link_button.set_sensitive(False)
-		else:
-			self.link_button = None
+		self.link_button = Gtk.LinkButton('')
+		self.link_button.set_sensitive(False)
 
 		self.notebookcombobox = NotebookComboBox(current=notebookinfo)
 		self.open_button = IconButton('gtk-index')
@@ -88,9 +84,9 @@ class ServerWindow(Gtk.Window):
 		self.add(vbox)
 
 		hbox = Gtk.HBox(spacing=12)
-		hbox.pack_start(self.start_button, False)
-		hbox.pack_start(self.stop_button, False)
-		hbox.pack_start(self.status_label, False)
+		hbox.pack_start(self.start_button, False, True, 0)
+		hbox.pack_start(self.stop_button, False, True, 0)
+		hbox.pack_start(self.status_label, False, True, 0)
 		vbox.add(hbox)
 
 		table = input_table_factory((
@@ -104,7 +100,7 @@ class ServerWindow(Gtk.Window):
 
 		if self.link_button:
 			hbox = Gtk.HBox()
-			hbox.pack_end(self.link_button, False)
+			hbox.pack_end(self.link_button, False, True, 0)
 			vbox.add(hbox)
 
 
@@ -135,16 +131,16 @@ class ServerWindow(Gtk.Window):
 			public = self.public_checkbox.get_active()
 			self.httpd = make_server(notebook, port, public, **self.interface_opts)
 			if sys.platform == 'win32':
-				# glib io watch conflicts with socket use on windows..
+				# GObject io watch conflicts with socket use on windows..
 				# idle handler uses a bit to much CPU for my taste,
 				# timeout every 0.5 sec is better
 				self.httpd.timeout = 0.1 # 100 ms
-				self._source_id = glib.timeout_add(500, self.do_serve_on_poll)
+				self._source_id = GObject.timeout_add(500, self.do_serve_on_poll)
 			else:
 				self.httpd.timeout = 3 # if no response after 3 sec, drop it
-				self._source_id = glib.io_add_watch(
+				self._source_id = GObject.io_add_watch(
 					self.httpd.fileno(),
-					glib.IO_IN | glib.IO_OUT | glib.IO_ERR | glib.IO_HUP | glib.IO_PRI, # any event..
+					GObject.IO_IN | GObject.IO_OUT | GObject.IO_ERR | GObject.IO_HUP | GObject.IO_PRI, # any event..
 					self.do_serve_on_io
 				)
 			logger.info("Serving HTTP on %s port %i...", self.httpd.server_name, self.httpd.server_port)
@@ -174,7 +170,7 @@ class ServerWindow(Gtk.Window):
 
 	def do_serve_on_io(self, fd, event):
 		try:
-			if event & glib.IO_HUP:
+			if event & GObject.IO_HUP:
 				self.stop()
 				raise Exception('Socket disconnected')
 			else:
@@ -192,7 +188,7 @@ class ServerWindow(Gtk.Window):
 		# Stop server
 		logger.debug('Stop server')
 		if self._source_id is not None:
-			glib.source_remove(self._source_id)
+			GObject.source_remove(self._source_id)
 			self._source_id = None
 
 		if self.httpd:

@@ -8,7 +8,7 @@ try:
 	from gi.repository import Gio
 	from gi.repository import GObject
 except ImportError:
-	gio = None
+	Gio = None
 
 
 import os
@@ -67,8 +67,8 @@ class TrashHelper(object):
 		@raises TrashCancelledError: if trashing was cancelled by the
 		user
 		'''
-		if not gio:
-			raise TrashNotSupportedError('gio not imported')
+		if not Gio:
+			raise TrashNotSupportedError('Gio not imported')
 		elif not isinstance(file, LocalFSObjectBase):
 			raise TrashNotSupportedError('cannot trash a non-local file or folder')
 
@@ -110,10 +110,10 @@ class FSObjectMonitor(SignalEmitter):
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
 		and self._gio_file_monitor is None \
-		and gio:
+		and Gio:
 			try:
 				file = Gio.File.new_for_uri(self.path.uri)
-				self._gio_file_monitor = file.monitor()
+				self._gio_file_monitor = file.monitor(0, None)
 				self._gio_file_monitor.connect('changed', self._on_changed)
 			except:
 				logger.exception('Error while setting up file monitor')

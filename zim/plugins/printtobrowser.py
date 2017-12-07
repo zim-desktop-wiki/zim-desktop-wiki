@@ -57,7 +57,7 @@ This is a core plugin shipping with zim.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class PrintToBrowserMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -87,7 +87,7 @@ class TaskListDialogExtension(DialogExtension):
 	def __init__(self, plugin, window):
 		DialogExtension.__init__(self, plugin, window)
 
-		button = Gtk.Button(stock='gtk-print')
+		button = Gtk.Button.new_with_mnemonic(_('_Print')) # T: Button label
 		button.connect('clicked', self.on_print_tasklist)
 		self.add_dialog_button(button)
 

@@ -49,7 +49,7 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class TagsMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
@@ -333,15 +333,12 @@ class TagsPageTreeView(PageTreeView):
 		else:
 			return treepath
 
-# Need to register classes defining gobject signals
-GObject.type_register(TagsPageTreeView)
-
 
 class TagCloudItem(Gtk.ToggleButton):
 	'''Button item used on the tag cloud widget'''
 
 	def __init__(self, indextag):
-		GObject.GObject.__init__(self, indextag.name, use_underline=False)
+		Gtk.ToggleButton.__init__(self, indextag.name, use_underline=False)
 		self.set_relief(Gtk.ReliefStyle.NONE)
 		self.indextag = indextag
 
@@ -372,7 +369,7 @@ class TagCloudWidget(ConnectorMixin, Gtk.TextView):
 	}
 
 	def __init__(self, index, sorting='score'):
-		GObject.GObject.__init__(self, None) # Create TextBuffer implicitly
+		GObject.GObject.__init__(self)
 		self.set_name('zim-tags-tagcloud')
 		self.index = None
 
@@ -472,6 +469,3 @@ class TagCloudWidget(ConnectorMixin, Gtk.TextView):
 			self.emit('sorting-changed', 'alpha')
 		else:
 			self.emit('sorting-changed', 'score')
-
-# Need to register classes defining gobject signals
-GObject.type_register(TagCloudWidget)

@@ -30,39 +30,30 @@ class SearchDialog(Dialog):
 		self.page = page
 
 		hbox = Gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False)
-		hbox.pack_start(Gtk.Label(_('Search', True, True, 0) + ': '), False) # T: input label
+		self.vbox.pack_start(hbox, False, True, 0)
+		hbox.pack_start(Gtk.Label(_('Search') + ': '), False, True, 0) # T: input label
 		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
-		self.search_button = Gtk.Button(stock=Gtk.STOCK_FIND)
-		hbox.pack_start(self.search_button, False)
+		self.search_button = Gtk.Button.new_with_mnemonic(_('_Find')) # T: Button label
+		hbox.pack_start(self.search_button, False, True, 0)
 
-		if Gtk.gtk_version >= (2, 20) \
-		and Gtk.pygtk_version >= (2, 22): # update in pygtk was later
-			self.spinner = Gtk.Spinner()
-			hbox.pack_start(self.spinner, False)
-		else:
-			self.spinner = None
+		self.spinner = Gtk.Spinner()
+		hbox.pack_start(self.spinner, False, True, 0)
 
-		self.cancel_button = Gtk.Button(stock=Gtk.STOCK_STOP)
-		hbox.pack_start(self.cancel_button, False)
+		self.cancel_button = Gtk.Button.new_with_mnemonic(_('_Cancel')) # T: Button label
+		hbox.pack_start(self.cancel_button, False, True, 0)
 		self._set_state(self.READY)
 
 		help_text = _(
 			'For advanced search you can use operators like\n'
 			'AND, OR and NOT. See the help page for more details.'
 		) # T: help text for the search dialog
-		if Gtk.gtk_version >= (2, 12) \
-		and Gtk.pygtk_version >= (2, 12):
-			self.query_entry.set_tooltip_text(help_text)
-		else:
-			tooltips = Gtk.Tooltips()
-			tooltips.set_tip(self.query_entry, help_text)
+		self.query_entry.set_tooltip_text(help_text)
 
 		self.namespacecheckbox = Gtk.CheckButton(_('Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
 		if page is not None:
-			self.vbox.pack_start(self.namespacecheckbox, False)
+			self.vbox.pack_start(self.namespacecheckbox, False, True, 0)
 
 		# TODO advanced query editor
 		# TODO checkbox _('Match c_ase')
@@ -110,7 +101,7 @@ class SearchDialog(Dialog):
 		# TODO set cursor for treeview part
 		# TODO set label or something ?
 		def hide(button):
-			button.hide_all()
+			button.hide()
 			button.set_no_show_all(True)
 
 		def show(button):
@@ -190,7 +181,7 @@ class SearchResultsTreeView(BrowserTreeView):
 			self._update_results(results)
 
 		while Gtk.events_pending():
-			Gtk.main_iteration(block=False)
+			Gtk.main_iteration_do(False)
 
 		return not self.cancelled
 
@@ -222,11 +213,11 @@ class SearchResultsTreeView(BrowserTreeView):
 			order.append((score, i))
 
 		# re-order
-		order.sort() # sort on first item, which is score
-		model.reorder([x[1] for x in order]) # use second item
+		#order.sort() # sort on first item, which is score
+		#model.reorder([x[1] for x in order]) # use second item
 
 	def _do_open_page(self, view, path, col):
-		page = Path(self.get_model()[path][0].decode('utf-8'))
+		page = Path(self.get_model()[path][0].decode('UTF-8'))
 		pageview = self.navigation.open_page(page)
 
 		# Popup find dialog with same query

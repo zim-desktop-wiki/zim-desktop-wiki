@@ -195,8 +195,8 @@ class FallbackObject(CustomObjectClass):
 
 	def get_data(self):
 		if self.buffer:
-			bounds = self.buffer.get_bounds()
-			return self.buffer.get_text(bounds[0], bounds[1])
+			start, end = self.buffer.get_bounds()
+			return start.get_text(end).decode('UTF-8')
 		else:
 			return self._data
 
@@ -215,4 +215,3 @@ class FallbackObject(CustomObjectClass):
 	def set_label(self, label):
 		'''Sets label at the top area of widget.'''
 		self.label.set_text(label)
-

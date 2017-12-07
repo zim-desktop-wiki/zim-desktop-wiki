@@ -8,7 +8,9 @@ from __future__ import with_statement
 import tests
 
 try:
-	import gtkspell
+	import gi
+	gi.require_version('GtkSpell', '3.0')
+	from gi.repository import GtkSpell as gtkspell
 except:
 	gtkspell = None
 
@@ -39,25 +41,25 @@ class TestSpell(object):
 
 	def runTest(self, adapterclass):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
-			window = setUpMainWindow(self.setUpNotebook())
+			window = setUpMainWindow(self.setUpNotebook(content=('Test', 'Foo', 'Bar')))
 
 			plugin = zim.plugins.spell.SpellPlugin()
 			plugin.extend(window)
-			ext = plugin.get_extension(window, zim.plugins.spell.MainWindowExtension)
+			ext = plugin.get_extension(window, zim.plugins.spell.SpellMainWindowExtension)
 
-			self.assertIs(ext._adapter, adapterclass) # ensure switching library worked
+			self.assertIs(ext._adapter_cls, adapterclass) # ensure switching library worked
 
 			ext.toggle_spellcheck()
 			ext.toggle_spellcheck()
-			ext.toggle_spellcheck()
-
-			window.open_page(Path('Foo'))
-			window.open_page(Path('Bar'))
 			ext.toggle_spellcheck()
 
 			window.open_page(Path('Foo'))
 			window.open_page(Path('Bar'))
 			ext.toggle_spellcheck()
+
+			window.open_page(Path('Foo'))
+			window.open_page(Path('Bar'))
+			#ext.toggle_spellcheck()
 
 			# TODO check it actually shows on screen ...
 

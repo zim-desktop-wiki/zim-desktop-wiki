@@ -39,7 +39,7 @@ class RecentChangesDialog(Dialog):
 			model.append((rec.name, rec.mtime))
 
 	def on_row_activated(self, view, path, col):
-		page = Path(view.get_model()[path][view.NAME_COL].decode('utf-8'))
+		page = Path(view.get_model()[path][view.NAME_COL].decode('UTF-8'))
 		self.navigation.open_page(page)
 
 
@@ -49,7 +49,7 @@ class RecentChangesTreeView(BrowserTreeView):
 	MODIFIED_COL = 1
 
 	def __init__(self):
-		model = Gtk.ListStore(str, str)
+		model = Gtk.ListStore(str, float)
 			# NAME_COL, MODIFIED_COL
 		BrowserTreeView.__init__(self, model)
 
@@ -65,7 +65,7 @@ class RecentChangesTreeView(BrowserTreeView):
 		def render_date(col, cell, model, i):
 			mtime = model.get_value(i, self.MODIFIED_COL)
 			if mtime:
-				dt = datetime.datetime.fromtimestamp(float(mtime))
+				dt = datetime.datetime.fromtimestamp(mtime)
 				date = dt.date()
 				if date == today:
 					text = _('Today') + datetime.strftime(' %H:%M', dt)
@@ -84,7 +84,7 @@ class RecentChangesTreeView(BrowserTreeView):
 
 		cell_renderer = Gtk.CellRendererText()
 		#cell_renderer.set_property('font', 'mono')
-		column = Gtk.TreeViewColumn(_('Last Modified'), cell_renderer, text=self.MODIFIED_COL) # T: Column header
+		column = Gtk.TreeViewColumn(_('Last Modified'), cell_renderer) # T: Column header
 		column.set_cell_data_func(cell_renderer, render_date)
 		column.set_sort_column_id(self.MODIFIED_COL)
 		self.append_column(column)

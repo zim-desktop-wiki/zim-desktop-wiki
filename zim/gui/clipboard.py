@@ -10,6 +10,9 @@ straight forward API.
 '''
 
 from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+
 import logging
 
 from zim.fs import File, Dir, FS
@@ -40,15 +43,28 @@ PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
 PAGELIST_TARGET = (PAGELIST_TARGET_NAME, 0, PAGELIST_TARGET_ID)
 
 IMAGE_TARGET_ID = 6
-IMAGE_TARGETS = tuple(Gtk.target_list_add_image_targets(info=IMAGE_TARGET_ID))
-	# According to docs we should provide list as arg to this function,
-	# but seems docs are not correct
+IMAGE_TARGETS = tuple(
+	(name, 0, IMAGE_TARGET_ID) for name in [
+		'image/png', 'image/x-wmf', 'application/x-navi-animation',
+		'image/bmp', 'image/x-bmp', 'image/x-MS-bmp', 'image/gif',
+		'image/x-icns', 'image/x-icon', 'image/x-ico', 'image/x-win-bitmap',
+		'image/vnd.microsoft.icon', 'application/ico', 'image/ico',
+		'image/icon', 'text/ico', 'image/jpeg', 'image/x-portable-anymap',
+		'image/x-portable-bitmap', 'image/x-portable-graymap',
+		'image/x-portable-pixmap', 'image/x-quicktime', 'image/qtif',
+		'image/svg+xml', 'image/svg', 'image/svg-xml',
+		'image/vnd.adobe.svg+xml', 'text/xml-svg', 'image/svg+xml-compressed',
+		'image/x-tga', 'image/tiff', 'image/x-xbitmap', 'image/x-xpixmap'
+	] # TODO - check any win32 specific types to be added
+)
+#IMAGE_TARGETS = tuple(Gtk.target_list_add_image_targets(info=IMAGE_TARGET_ID))
 IMAGE_TARGET_NAMES = tuple([target[0] for target in IMAGE_TARGETS])
 
 # Add image format names as well, seen these being used by MS Office
 for format in GdkPixbuf.Pixbuf.get_formats():
-	if format['mime_types'][0] in IMAGE_TARGET_NAMES:
-		for n in (format['name'], format['name'].upper()):
+	if format.get_mime_types()[0] in IMAGE_TARGET_NAMES:
+		name = format.get_name()
+		for n in (name, name.upper()):
 			IMAGE_TARGET_NAMES += (n,)
 			IMAGE_TARGETS += ((n, 0, IMAGE_TARGET_ID),)
 
@@ -56,7 +72,8 @@ for format in GdkPixbuf.Pixbuf.get_formats():
 #~ print IMAGE_TARGET_NAMES
 
 URI_TARGET_ID = 7
-URI_TARGETS = tuple(Gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
+URI_TARGETS = (('text/uri-list', 0, URI_TARGET_ID),)
+#URI_TARGETS = tuple(Gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 URI_TARGET_NAMES = tuple([target[0] for target in URI_TARGETS])
@@ -67,7 +84,13 @@ HTML_TARGET_NAMES = ('text/html', 'HTML Format')
 HTML_TARGETS = tuple([(name, 0, HTML_TARGET_ID) for name in HTML_TARGET_NAMES])
 
 TEXT_TARGET_ID = 9
-TEXT_TARGETS = tuple(Gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
+TEXT_TARGETS = tuple(
+	(name, 0, TEXT_TARGET_ID) for name in [
+		'UTF8_STRING', 'COMPOUND_TEXT', 'TEXT', 'STRING',
+		'text/plain;charset=utf-8', 'text/plain'
+	]
+)
+#TEXT_TARGETS = tuple(Gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
@@ -105,7 +128,7 @@ def unpack_urilist(text):
 	# FIXME be tolerant here for file://path/to/file uris here
 	text = text.strip('\x00') # Found trailing NULL character on windows
 	lines = text.splitlines() # takes care of \r\n
-	return [line.decode('utf-8')
+	return [line.decode('UTF-8')
 		for line in lines if line and not line.isspace()]
 		# Just to be sure we also skip empty or whitespace lines
 
@@ -114,34 +137,33 @@ def unpack_urilist(text):
 
 
 def textbuffer_register_serialize_formats(buffer, notebook, page):
-	if Gtk.pygtk_version >= (2, 10):
-		buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
-		buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
-		for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
-			buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
-		for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
-			buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
+	buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
+	buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
+	for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
+		buffer.register_deserialize_format(name, deserialize_urilist, (notebook, page))
+	for name in IMAGE_TARGET_NAMES: # FIXME, should we limit the list ?
+		buffer.register_deserialize_format(name, deserialize_image, (name, notebook, page))
 
-def serialize_parse_tree(register_buf, content_buf, start, end):
+def serialize_parse_tree(register_buf, content_buf, start, end, user_data):
 	tree = content_buf.get_parsetree((start, end))
 	xml = tree.tostring().encode('utf-8')
 	return xml
 
-def deserialize_parse_tree(register_buf, content_buf, iter, data, create_tags, user_data):
+def deserialize_parse_tree(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	notebook, path = user_data
 	tree = ParseTree().fromstring(data)
 	tree.resolve_images(notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
-def deserialize_urilist(register_buf, content_buf, iter, data, create_tags, user_data):
+def deserialize_urilist(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	notebook, path = user_data
 	links = unpack_urilist(data)
 	tree = _link_tree(links, notebook, path)
 	content_buf.insert_parsetree(iter, tree, interactive=True)
 	return True
 
-def deserialize_image(register_buf, content_buf, iter, data, create_tags, user_data):
+def deserialize_image(register_buf, content_buf, iter, data, length, create_tags, user_data):
 	# Implementation note: we follow gtk_selection_get_pixbuf() in usage of
 	# Gtk.PixbufLoader to capture clipboard data in a pixbuf object.
 	# We could skip this, but it allows for on-the-fly conversion of the data
@@ -169,7 +191,7 @@ def deserialize_image(register_buf, content_buf, iter, data, create_tags, user_d
 
 	file = dir.new_file('pasted_image.%s' % extension)
 	logger.debug("Saving image from clipboard to %s", file)
-	pixbuf.save(file.path, format)
+	pixbuf.savev(file.path, format, [], [])
 	FS.emit('path-created', file) # notify version control
 
 	# and insert it in the page
@@ -213,7 +235,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		# try to catch this situation by a check here
 		text = selectiondata.get_text()
 		if text:
-			return get_format('plain').Parser().parse(text.decode('utf-8'), partial=True)
+			return get_format('plain').Parser().parse(text.decode('UTF-8'), partial=True)
 		else:
 			return None
 	elif targetname in IMAGE_TARGET_NAMES:
@@ -298,11 +320,11 @@ def _get_image_info(targetname):
 	# in available pixbuf writers for this type and return the
 	# format name and file extension
 	for format in GdkPixbuf.Pixbuf.get_formats():
-		if targetname == format['name'] \
-		or targetname == format['name'].upper() \
-		or targetname in format['mime_types']:
-			if format['is_writable']:
-				return format['name'], format['extensions'][0]
+		name = format.get_name()
+		mimetypes = format.get_mime_types()
+		if targetname in (name, name.upper()) or targetname in mimetypes:
+			if format.is_writable():
+				return name, format.get_extensions()[0]
 			else:
 				return None, None
 	else:
@@ -329,7 +351,8 @@ class TextItem(ClipboardItem):
 		self.text = text
 
 	def set(self, clipboard, clear_func):
-		clipboard.set_text(self.text)
+		text = self.text.encode('UTF-8')
+		clipboard.set_text(text, len(text))
 
 
 class UriItem(ClipboardItem):
@@ -354,9 +377,9 @@ class UriItem(ClipboardItem):
 			selectiondata.set_uris((self.uri,))
 		else:
 			if isinstance(self.obj, (File, Dir)):
-				selectiondata.set_text(self.obj.user_path)
+				selectiondata.set_text(self.obj.user_path, len(self.obj.user_path))
 			else:
-				selectiondata.set_text(self.uri)
+				selectiondata.set_text(self.uri, len(self.uri))
 
 
 class InterWikiLinkItem(UriItem):
@@ -423,7 +446,7 @@ class ParseTreeItem(ClipboardItem):
 					linker=StaticExportLinker(self.notebook, source=self.path))
 
 			text = ''.join(dumper.dump(self.parsetree)).encode('utf-8')
-			selectiondata.set_text(text)
+			selectiondata.set_text(text, len(text))
 		else:
 			assert False, 'Unknown target id %i' % id
 
@@ -457,7 +480,7 @@ class PageLinkItem(ClipboardItem):
 			text = pack_urilist((link,))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
-			selectiondata.set_text(self.path.name)
+			selectiondata.set_text(self.path.name, len(self.path.name))
 		else:
 			assert False, 'Unknown target id %i' % id
 
@@ -468,13 +491,14 @@ class ClipboardManager(object):
 	zim gui modules.
 	'''
 
-	def __init__(self, atom):
+	def __init__(self, name):
 		'''Constructor
-		@param atom: clipboard name, can be either "CLIPBOARD" or "PRIMARY",
+		@param name: clipboard name, can be either "CLIPBOARD" or "PRIMARY",
 		see C{Gtk.Clipboard} for details.
 		'''
-		assert atom in ('CLIPBOARD', 'PRIMARY')
-		self.clipboard = Gtk.Clipboard(selection=atom)
+		assert name in ('CLIPBOARD', 'PRIMARY')
+		atom = Gdk.SELECTION_CLIPBOARD if name == 'CLIPBOARD' else Gdk.SELECTION_PRIMARY
+		self.clipboard = Gtk.Clipboard.get(atom)
 		self.store = None
 		self._i_am_owner = False
 
@@ -514,7 +538,7 @@ class ClipboardManager(object):
 		'''
 		text = self.clipboard.wait_for_text()
 		if isinstance(text, basestring):
-			text = text.decode('utf-8')
+			text = text.decode('UTF-8')
 		return text
 
 	def set_parsetree(self, notebook, path, parsetree, format='plain'):

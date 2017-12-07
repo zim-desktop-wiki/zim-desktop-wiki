@@ -92,7 +92,7 @@ class Application(object):
 		self.tryexeccmd = tryexeccmd
 		self.encoding = encoding or zim.fs.ENCODING
 		if self.encoding == 'mbcs':
-			self.encoding = 'utf-8'
+			self.encoding = 'UTF-8'
 
 	def __eq__(self, other):
 		return (self.cmd, self.tryexeccmd, self.encoding) \
@@ -252,7 +252,7 @@ class Application(object):
 
 		# Explicit newline conversion, e.g. on windows \r\n -> \n
 		# FIXME Assume local encoding is respected (!?)
-		text = [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
+		text = [unicode(line + '\n', encoding=self.encoding, errors='replace') for line in stdout.splitlines()]
 		if text and text[-1].endswith('\n') and not stdout.endswith('\n'):
 			text[-1] = text[-1][:-1] # strip additional \n
 		return text

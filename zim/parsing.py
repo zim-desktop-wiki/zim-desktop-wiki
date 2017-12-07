@@ -185,9 +185,9 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 	url = url.encode('utf-8') # in case url is already unicode
 	try:
 		if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
-			return _url_decode_re.sub(_url_decode, url).decode('utf-8')
+			return _url_decode_re.sub(_url_decode, url).decode('UTF-8')
 		elif mode == URL_ENCODE_READABLE:
-			return _url_decode_re.sub(_url_decode_readable, url).decode('utf-8')
+			return _url_decode_re.sub(_url_decode_readable, url).decode('UTF-8')
 		else:
 			assert False, 'BUG: Unknown url encoding mode'
 	except UnicodeDecodeError:

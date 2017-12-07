@@ -18,9 +18,11 @@ import types
 import glob
 
 try:
+	import gi
+	gi.require_version('Gtk', '3.0')
 	from gi.repository import Gtk
 except ImportError:
-	gtk = None
+	Gtk = None
 
 
 if sys.version_info < (2, 7, 0):
@@ -250,7 +252,7 @@ class TestCase(unittest.TestCase):
 
 	@classmethod
 	def tearDownClass(cls):
-		if gtk is not None:
+		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
@@ -373,11 +375,6 @@ class TestCase(unittest.TestCase):
 			name = cls.__name__ + '_' + name
 		else:
 			name = cls.__name__
-
-		if os.name == 'nt':
-			name = unicode(name)
-		else:
-			name = name.encode(sys.getfilesystemencoding())
 
 		return os.path.join(TMPDIR, name)
 
@@ -831,9 +828,9 @@ class MaskedObject(object):
 
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
-	assert gtk is not None
+	assert Gtk is not None
 	while Gtk.events_pending():
-		Gtk.main_iteration(block=False)
+		Gtk.main_iteration()
 	return True # continue
 
 

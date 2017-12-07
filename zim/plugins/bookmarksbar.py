@@ -46,7 +46,7 @@ class BookmarksBarPlugin(PluginClass):
 	)
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class BookmarksBarMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -225,11 +225,11 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings'))
 		self.plus_button.connect('clicked', lambda o: self.add_new_page())
 		self.plus_button.connect('button-release-event', self.do_plus_button_popup_menu)
-		self.pack_start(self.plus_button, expand = False)
+		self.pack_start(self.plus_button, False, False, 0)
 
 		# Create widget for bookmarks.
-		self.container = ScrolledHBox()
-		self.pack_start(self.container, expand = True)
+		self.scrolledbox = ScrolledHBox()
+		self.pack_start(self.scrolledbox, True, False, 0)
 
 		# Toggle between full/short page names.
 		self.uistate.setdefault('show_full_page_name', False)
@@ -268,7 +268,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
 		with self.on_bookmark_clicked.blocked():
-			for button in self.container.get_children()[2:]:
+			for button in self.scrolledbox.get_children()[2:]:
 				if button.zim_path == pagename:
 					button.set_active(True)
 				else:
@@ -505,8 +505,8 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 	def _reload_bar(self):
 		'''Reload bar with bookmarks.'''
-		for button in self.container.get_children()[2:]:
-			self.container.remove(button)
+		for button in self.scrolledbox.get_children()[2:]:
+			self.scrolledbox.remove(button)
 
 		page = self._get_page()
 		if page:
@@ -530,7 +530,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			button.connect('clicked', self.on_bookmark_clicked)
 			button.connect('button-release-event', self.do_bookmarks_popup_menu)
 			button.show()
-			self.container.add(button)
+			self.scrolledbox.add(button)
 
 		# 'Disable' plus_button if max bookmarks is reached.
 		if self.max_bookmarks and (len(self.paths) >= self.max_bookmarks):

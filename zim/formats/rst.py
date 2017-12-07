@@ -116,11 +116,11 @@ class Dumper(TextDumper):
 		return map(lambda line: line + "\n", table)
 
 	def dump_th(self, tag, attrib, strings):
-		strings = [s.replace('|', '∣') for s in strings]
+		#strings = [s.replace('|', '∣') for s in strings] # 2nd "|" is UTF char
 		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		strings = [s.replace('|', '∣') for s in strings]
+		#strings = [s.replace('|', '∣') for s in strings] # 2nd "|" is UTF char
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):

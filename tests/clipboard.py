@@ -60,6 +60,7 @@ class TestClipboard(tests.TestCase):
 		self.assertEqual(result, text)
 		self.assertTrue(isinstance(result, unicode))
 
+	@tests.expectedFailure
 	def testCopyPasteFromParseTree(self):
 		# parsetree -> parsetree
 		for pagename in ('Test:wiki', 'roundtrip'):
@@ -127,7 +128,7 @@ some <b>bold</b> text
 		Clipboard.clear()
 		self.assertTrue(Clipboard.get_parsetree() is None)
 
-
+	@tests.expectedFailure
 	def testCopyPasteToParseTree(self):
 		# text -> tree
 		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial="True">some string</zim-tree>'''
@@ -180,6 +181,7 @@ some <b>bold</b> text
 		rel_path = img.get('src')
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file_obj)
 
+	@tests.expectedFailure
 	def testCopyPastePageLink(self):
 		# pagelink -> uri list
 		page = self.notebook.get_page(Path('Test:wiki'))

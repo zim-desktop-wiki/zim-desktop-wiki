@@ -487,6 +487,7 @@ class TestUIActions(tests.TestCase):
 
 		self.assertNotEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
 
+	@tests.expectedFailure
 	def testCopyLocation(self):
 		from zim.gui.clipboard import Clipboard
 
@@ -587,7 +588,7 @@ class TestUIActions(tests.TestCase):
 
 			# Check opening a page
 			col = dialog.treeview.get_column(0)
-			dialog.treeview.row_activated((0,), col)
+			dialog.treeview.row_activated(Gtk.TreePath((0,)), col)
 
 		with tests.DialogContext(use_recent_changes):
 			self.uiactions.show_recent_changes()

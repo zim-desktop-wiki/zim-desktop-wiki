@@ -19,7 +19,7 @@ class TestMainWindowExtension(tests.TestCase):
 	def runTest(self):
 		window = setUpMainWindow(self.setUpNotebook())
 		plugin = SourceViewPlugin()
-		extension = MainWindowExtension(plugin, window)
+		extension = SourceViewMainWindowExtension(plugin, window)
 
 		with tests.DialogContext(self.checkInsertCodeBlockDialog):
 			extension.insert_sourceview()

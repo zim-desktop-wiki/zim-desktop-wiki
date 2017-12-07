@@ -141,7 +141,7 @@ logger = logging.getLogger('zim.notebook')
 try:
 	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 from zim.signals import SignalEmitter
@@ -225,7 +225,7 @@ class NotebookOperation(SignalEmitter):
 		May raise L{NotebookOperationOngoing} if another operation is
 		already ongoing.
 		'''
-		assert gobject, "No mainloop available to run this operation"
+		assert GObject, "No mainloop available to run this operation"
 
 		if self.notebook._operation_check == self:
 			raise AssertionError('Already running')

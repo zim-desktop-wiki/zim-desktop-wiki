@@ -130,7 +130,7 @@ This is a core plugin shipping with zim.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class ScreenshotMainWindowExtension(WindowExtension):
 	uimanager_xml = '''
 	<ui>
 		<menubar name='menubar'>

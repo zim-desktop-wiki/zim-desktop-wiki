@@ -27,7 +27,7 @@ http://pp.com.mx/python/arithmetic.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class ArithmeticMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -51,4 +51,3 @@ class MainWindowExtension(WindowExtension):
 		# parse and return modified text
 		parser = ParserGTK()
 		parser.parse(buf)
-

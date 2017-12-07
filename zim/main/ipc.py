@@ -30,7 +30,7 @@ from multiprocessing.connection import Client, SocketListener
 try:
 	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 import zim

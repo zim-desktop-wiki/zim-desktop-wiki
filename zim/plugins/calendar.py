@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import Gdk
 
 import re
 
@@ -18,7 +19,7 @@ from zim.actions import action
 from zim.signals import SignalHandler
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
-from zim.gui.widgets import Dialog, Button, \
+from zim.gui.widgets import Dialog, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
@@ -119,9 +120,9 @@ Also adds a calendar widget to access these pages.
 
 	def on_preferences_changed(self, preferences):
 		if preferences['embedded']:
-			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
+			self.set_extension_class('MainWindow', JournalMainWindowExtensionEmbedded)
 		else:
-			self.set_extension_class('MainWindow', MainWindowExtensionDialog)
+			self.set_extension_class('MainWindow', JournalMainWindowExtensionDialog)
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
@@ -135,11 +136,11 @@ Also adds a calendar widget to access these pages.
 		elif self.preferences['granularity'] == YEAR:
 			path = date.strftime('%Y')
 
-		return self.preferences['namespace'].get_child()(path)
+		return self.preferences['namespace'].child(path)
 
 	def path_for_month_from_date(self, date):
 		'''Returns the namespace path for a certain month'''
-		return self.preferences['namespace'].get_child()(date.strftime('%Y:%m'))
+		return self.preferences['namespace'].child(date.strftime('%Y:%m'))
 
 	def date_from_path(self, path):
 		'''Returns the date for a specific path or C{None}'''
@@ -237,7 +238,7 @@ class NotebookExtension(ObjectExtension):
 			self._initialized_namespace = None
 
 
-class MainWindowExtension(WindowExtension):
+class JournalMainWindowExtension(WindowExtension):
 	'''Base class for our mainwindow extensions'''
 
 	@action(_('To_day'), accelerator='<Alt>D') # T: menu item
@@ -252,7 +253,7 @@ class MainWindowExtension(WindowExtension):
 
 
 @extends('MainWindow', autoload=False)
-class MainWindowExtensionDialog(MainWindowExtension):
+class JournalMainWindowExtensionDialog(JournalMainWindowExtension):
 	'''Extension used to add calendar dialog to mainwindow'''
 
 	uimanager_xml = '''
@@ -284,7 +285,7 @@ class MainWindowExtensionDialog(MainWindowExtension):
 
 
 @extends('MainWindow', autoload=False)
-class MainWindowExtensionEmbedded(MainWindowExtension):
+class JournalMainWindowExtensionEmbedded(JournalMainWindowExtension):
 	'''Extension used for calendar widget embedded in side pane'''
 
 	uimanager_xml = '''
@@ -390,9 +391,6 @@ class Calendar(Gtk.Calendar):
 				raise
 		return date
 
-# Need to register classes defining gobject signals
-GObject.type_register(Calendar)
-
 
 class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
@@ -406,7 +404,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		self.model = model
 
 		self.label_box = Gtk.HBox()
- 		self.pack_start(self.label_box, False)
+ 		self.pack_start(self.label_box, False, True, 0)
 
 		self.label = Gtk.Label()
 		self.label_event = Gtk.EventBox()
@@ -427,14 +425,15 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 			# Clear reference, else we get a new timer for every dialog
 
 		self.calendar = Calendar()
-		self.calendar.display_options(
-			Gtk.CALENDAR_SHOW_HEADING |
-			Gtk.CALENDAR_SHOW_DAY_NAMES |
-			Gtk.CALENDAR_SHOW_WEEK_NUMBERS)
+		self.calendar.set_display_options(
+			Gtk.CalendarDisplayOptions.SHOW_HEADING |
+			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
+			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS
+		)
 		self.calendar.connect('activate', self.on_calendar_activate)
 		self.calendar.connect('month-changed', self.on_month_changed)
 		self.on_month_changed(self.calendar)
-		self.pack_start(self.calendar, False)
+		self.pack_start(self.calendar, False, True, 0)
 
 	def go_today(self):
 		self.select_date(datetime.date.today())
@@ -445,7 +444,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 			self.label_box.remove(self._close_button)
 
 		if button is not None:
-			self.label_box.pack_end(button, False)
+			self.label_box.pack_end(button, False, True, 0)
 
 		self._close_button = button
 		return True
@@ -481,9 +480,6 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 	def select_date(self, date):
 		self.calendar.select_date(date)
 
-# Need to register classes defining gobject signals
-GObject.type_register(CalendarWidget)
-
 
 class CalendarWidgetModel(object):
 
@@ -515,7 +511,7 @@ class CalendarDialog(Dialog):
 		self.calendar_widget = CalendarWidget(model)
 		self.vbox.add(self.calendar_widget)
 
-		button = Button(_('_Today'), Gtk.STOCK_JUMP_TO) # T: button label
+		button = Gtk.Button.new_with_mnemonic(_('_Today')) # T: button label
 		button.connect('clicked', self.do_today)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)

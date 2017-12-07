@@ -9,7 +9,7 @@ try:
 	from gi.repository import Gtk
 	from gi.repository import Pango
 except:
-	gtk = None
+	Gtk = None
 
 try:
 	from zim.gui.widgets import Dialog, ScrolledWindow
@@ -25,9 +25,11 @@ import logging
 logger = logging.getLogger('zim.pugin.sourceview')
 
 try:
+	import gi
+	gi.require_version('GtkSource', '3.0')
 	from gi.repository import GtkSource
 except:
-	gtksourceview2 = None
+	GtkSource = None
 
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
@@ -36,7 +38,7 @@ from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
-if gtksourceview2:
+if GtkSource:
 	lm = GtkSource.LanguageManager()
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
@@ -80,8 +82,8 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 	@classmethod
 	def check_dependencies(klass):
-		check = gtk is None or not gtksourceview2 is None
-		return check, [('gtksourceview2', check, True)]
+		check = Gtk is None or not GtkSource is None
+		return check, [('GtkSourceView', check, True)]
 
 	def __init__(self, config=None):
 		PluginClass.__init__(self, config)
@@ -103,7 +105,7 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class SourceViewMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 		<ui>
@@ -217,8 +219,8 @@ class SourceViewObject(CustomObjectClass):
 	def get_data(self):
 		'''Returns data as text.'''
 		if self.buffer:
-			bounds = self.buffer.get_bounds()
-			text = self.buffer.get_text(bounds[0], bounds[1])
+			start, end = self.buffer.get_bounds()
+			text = start.get_text(end)
 			text += '\n' # Make sure we always have a trailing \n
 			return text
 		else:
@@ -286,7 +288,8 @@ class SourceViewWidget(TextViewWidget):
 		self.buffer = buffer
 		self.obj = obj
 
-		self.view = GtkSource.View(self.buffer)
+		self.view = GtkSource.View()
+		self.view.set_buffer(self.buffer)
 		self.view.modify_font(Pango.FontDescription('monospace'))
 		self.view.set_auto_indent(True)
 		self.view.set_smart_home_end(True)

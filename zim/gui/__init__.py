@@ -6,14 +6,11 @@ import logging
 
 logger = logging.getLogger('zim.gui')
 
+import gi
+gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk
-import webbrowser
-
-if Gtk.gtk_version >= (2, 10) \
-and Gtk.pygtk_version >= (2, 10):
-	Gtk.link_button_set_uri_hook(lambda o, url: webbrowser.open(url))
-
+from gi.repository import GdkPixbuf
 
 from zim.config import data_dirs
 

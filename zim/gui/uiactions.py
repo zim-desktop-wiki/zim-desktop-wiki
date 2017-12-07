@@ -2,9 +2,11 @@
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import logging
-
 from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import GdkPixbuf
+
+import logging
 
 logger = logging.getLogger('zim.gui')
 
@@ -487,7 +489,7 @@ class NewPageDialog(Dialog):
 			('page', 'page', _('Page Name'), path), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
-		self.form.widgets['page'].insert_text(prefix)
+		self.form.widgets['page'].insert_text(prefix, 0)
 		self.form['template'] = default
 		# TODO: reset default when page input changed -
 		# especially if namespace has other template
@@ -703,10 +705,10 @@ class DeletePageDialog(Dialog):
 		self.vbox.add(hbox)
 
 		img = Gtk.Image.new_from_stock(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
-		hbox.pack_start(img, False)
+		hbox.pack_start(img, False, True, 0)
 
 		vbox = Gtk.VBox(spacing=5)
-		hbox.pack_start(vbox, False)
+		hbox.pack_start(vbox, False, True, 0)
 
 		label = Gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
@@ -714,7 +716,7 @@ class DeletePageDialog(Dialog):
 		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
 		label.set_markup('<b>' + short + '</b>\n\n' + long)
-		vbox.pack_start(label, False)
+		vbox.pack_start(label, False, True, 0)
 
 		# TODO use expander here
 		dir = self.notebook.get_attachments_dir(self.path)
@@ -844,12 +846,12 @@ You can use another name or overwrite the existing file.''' % file.basename),
 
 		# all buttons are defined in this class, to get the ordering right
 		# [show folder]      [overwrite] [cancel] [ok]
-		button = Gtk.Button(_('_Browse')) # T: Button label
+		button = Gtk.Button.new_with_mnemonic(_('_Browse')) # T: Button label
 		button.connect('clicked', self.do_show_folder)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-		button = Gtk.Button(_('Overwrite')) # T: Button label
+		button = Gtk.Button.new_with_mnemonic(_('Overwrite')) # T: Button label
 		button.connect('clicked', self.do_response_overwrite)
 		self.add_action_widget(button, Gtk.ResponseType.NONE)
 
@@ -891,8 +893,8 @@ You can use another name or overwrite the existing file.''' % file.basename),
 class MyAboutDialog(Gtk.AboutDialog):
 
 	def __init__(self):
-		Gtk.about_dialog_set_url_hook(lambda d, l: open_url(l))
-		Gtk.about_dialog_set_email_hook(lambda d, l: open_url(l))
+		#Gtk.about_dialog_set_url_hook(lambda d, l: open_url(l))
+		#Gtk.about_dialog_set_email_hook(lambda d, l: open_url(l))
 
 		GObject.GObject.__init__(self)
 

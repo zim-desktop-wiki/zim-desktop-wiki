@@ -48,6 +48,8 @@ import threading
 import Queue
 
 from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+
 
 import logging
 
@@ -89,7 +91,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	'''
 	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)) \
 	or (os.name == 'nt' and file.basename.endswith('.svg')):
-		# .svg causes segfaults on windows, even if svg support enabled 
+		# .svg causes segfaults on windows, even if svg support enabled
 		raise ThumbnailCreatorFailure
 
 	tmpfile = thumbfile.parent().file('zim-thumb.new~')
@@ -97,10 +99,15 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		'tEXt::Thumb::URI': str(file.uri),
 		'tEXt::Thumb::MTime': str(int(file.mtime())),
 	}
+	optionskeys = []
+	optionsvalues = []
+	for k, v in options.items():
+		optionskeys.append(k)
+		optionsvalues.append(v)
 	try:
 		pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.encodedpath, thumbsize, thumbsize)
 		pixbuf = rotate_pixbuf(pixbuf)
-		pixbuf.save(tmpfile.encodedpath, 'png', options)
+		pixbuf.savev(tmpfile.encodedpath, 'png', optionskeys, optionsvalues)
 		_atomic_rename(tmpfile.encodedpath, thumbfile.encodedpath)
 	except:
 		raise ThumbnailCreatorFailure

@@ -72,7 +72,7 @@ def decode_filename(filename):
 	if FS_ENCODING != 'utf-8':
 		filename = filename.encode('utf-8')
 		filename = _url_decode_re.sub(_url_decode, filename)
-		filename = filename.decode('utf-8')
+		filename = filename.decode('UTF-8')
 	return filename.replace('\\', ':').replace('/', ':').replace('_', ' ')
 
 

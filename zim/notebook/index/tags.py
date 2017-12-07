@@ -323,7 +323,7 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 			(pageid,)
 		):
 			for childtreepath in self._find_all_pages(row['name']):
-				if childtreepath[:-1] == treepath:
+				if Gtk.TreePath(childtreepath[:-1]) == treepath:
 					treeiter = self.get_iter(childtreepath) # not mytreeiter !
 					self.emit('row-inserted', childtreepath, treeiter)
 					if row['n_children'] > 0:
@@ -347,6 +347,11 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 			self._update_ids()
 		# Don't emit further, view already changed
 
+
+try:
+	from gi.repository import Gtk
+except ImportError:
+	Gtk = None
 
 
 class TaggedPagesTreeModelMixin(TagsTreeModelBase):
@@ -396,6 +401,7 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 		# Since we derive from PagesTreeModelMixin, we only need to manage the
 		# top level. For lower levels the parent class will manage,
 		# as long as we make sure the parent treepath is in the cache
+		treepath = tuple(treepath) # used to cache
 		if treepath in self.cache:
 			return self.cache[treepath]
 
@@ -412,7 +418,12 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 			)):
 				mytreepath = (offset + i,)
 				if mytreepath not in self.cache:
-					self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+					self.cache[mytreepath] = MyTreeIter(
+						Gtk.TreePath(mytreepath),
+						row,
+						row['n_children'],
+						IS_PAGE
+					)
 				else:
 					break
 
@@ -455,10 +466,15 @@ class TaggedPagesTreeModelMixin(TagsTreeModelBase):
 					mytreepath = (offset,)
 
 					if mytreepath not in self.cache:
-						myiter = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+						myiter = MyTreeIter(
+							Gtk.TreePath(mytreepath),
+							row,
+							row['n_children'],
+							IS_PAGE
+						)
 						self.cache[mytreepath] = myiter
 
-					treepaths.append(mytreepath + pagetreepath[i + 1:])
+					treepaths.append(Gtk.TreePath(mytreepath + tuple(pagetreepath[i + 1:])))
 
 		treepaths.sort()
 		return treepaths
@@ -528,6 +544,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 		# Since we derive from PagesTreeModelMixin, we only need to manage the
 		# two highest levels. For lower levels the parent class will manage,
 		# as long as we make sure the parent treepath is in the cache
+		treepath = tuple(treepath) # used to cache
 		if treepath in self.cache:
 			return self.cache[treepath]
 
@@ -554,7 +571,7 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 				n_children, = self.db.execute(
 					'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
 				).fetchone()
-				mytreeiter = MyTreeIter(treepath, row, n_children, IS_TAG)
+				mytreeiter = MyTreeIter(Gtk.TreePath(treepath), row, n_children, IS_TAG)
 				self.cache[treepath] = mytreeiter
 				return mytreeiter
 
@@ -575,7 +592,12 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 			)):
 				mytreepath = tag_path + (offset + i,)
 				if mytreepath not in self.cache:
-					self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+					self.cache[mytreepath] = MyTreeIter(
+						Gtk.TreePath(mytreepath),
+						row,
+						row['n_children'],
+						IS_PAGE
+					)
 				else:
 					break
 
@@ -623,9 +645,9 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 			n_children = self.db.execute(
 				'SELECT COUNT(*) FROM tagsources WHERE tag = ?', (row['id'],)
 			)
-			myiter = MyTreeIter(mytreepath, row, n_children, IS_TAG)
+			myiter = MyTreeIter(Gtk.TreePath(mytreepath), row, n_children, IS_TAG)
 			self.cache[mytreepath] = myiter
-		return mytreepath
+		return Gtk.TreePath(mytreepath)
 
 	def _find_all_pages(self, name):
 		# multiple top levels, below remainder is always the same
@@ -659,12 +681,12 @@ class TagsTreeModelMixin(TagsTreeModelBase):
 						)
 					).fetchone()
 
-					mytreepath = mytreepath + (offset,)
+					mytreepath = tuple(mytreepath) + (offset,)
 					if mytreepath not in self.cache:
-						myiter = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+						myiter = MyTreeIter(Gtk.TreePath(mytreepath), row, row['n_children'], IS_PAGE)
 						self.cache[mytreepath] = myiter
 
-					treepaths.append(mytreepath + pagetreepath[i + 1:])
+					treepaths.append(Gtk.TreePath(mytreepath + tuple(pagetreepath[i + 1:])))
 
 		treepaths.sort()
 		return treepaths

@@ -12,8 +12,11 @@ from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
 from zim.gui.widgets import Dialog, IconButton
-from zim.inc import xdot
 
+try:
+	from zim.inc import xdot
+except ImportError:
+	xdot = None
 
 
 class LinkMapPlugin(PluginClass):
@@ -34,8 +37,9 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
+		has_xdot = xdot is not None
 		has_graphviz = Application(('fdp',)).tryexec()
-		return has_graphviz, [('GraphViz', has_graphviz, True)]
+		return has_xdot and has_graphviz, [('GraphViz', has_graphviz, True)]
 
 
 class LinkMap(object):
@@ -100,7 +104,7 @@ class LinkMap(object):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class LinkMapMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -139,7 +143,7 @@ class LinkMapDialog(Dialog):
 		hbox.add(self.xdotview)
 
 		vbox = Gtk.VBox()
-		hbox.pack_start(vbox, False)
+		hbox.pack_start(vbox, False, True, 0)
 		for stock, method in (
 			(Gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
 			(Gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
@@ -148,7 +152,7 @@ class LinkMapDialog(Dialog):
 		):
 			button = IconButton(stock)
 			button.connect('clicked', method)
-			vbox.pack_start(button, False)
+			vbox.pack_start(button, False, True, 0)
 
 	def on_node_clicked(self, widget, name, event):
 		self.opener.open_page(Path(name))

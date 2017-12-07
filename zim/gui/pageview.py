@@ -20,7 +20,10 @@ import logging
 
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 from gi.repository import Pango
+
 import re
 import string
 import zim.datetimetz as datetime
@@ -36,10 +39,10 @@ from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
 	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
-from zim.actions import get_gtk_actiongroup, gtk_accelerator_preparse_list, action, toggle_action
+from zim.actions import get_gtk_actiongroup, action, toggle_action
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
-	Button, IconButton, MenuButton, BrowserTreeView, InputEntry, \
+	IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
 	rotate_pixbuf, populate_popup_add_separator
 from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
@@ -60,9 +63,6 @@ logger = logging.getLogger('zim.gui.pageview')
 
 class LineSeparator(CustomObjectWidget):
 	'''Class to create a separation line.'''
-	__gsignals__ = {
-		'size-request': 'override',
-	}
 
 	def __init__(self):
 		CustomObjectWidget.__init__(self)
@@ -70,6 +70,7 @@ class LineSeparator(CustomObjectWidget):
 		self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
 		# Set size of the line.
 		self.vbox.set_size_request(self._textview_width, height = 3)
+
 
 class LineObject(CustomObjectClass):
 	'''Class to work with 'LineSeparator' objects.'''
@@ -152,7 +153,7 @@ KEYVAL_POUND = Gdk.unicode_to_keyval(ord('#'))
 # States that influence keybindings - we use this to explicitly
 # exclude other states. E.g. MOD2_MASK seems to be set when either
 # numlock or fn keys are active, resulting in keybindings failing
-KEYSTATES = Gdk.ModifierType.CONTROL_MASK | Gdk.EventMask.META_MASK | Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.MOD1_MASK
+KEYSTATES = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.META_MASK | Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.MOD1_MASK
 
 MENU_ACTIONS = (
 	# name, stock id, label
@@ -323,9 +324,11 @@ class AsciiString(String):
 			return value
 
 
+
 class ConfigDefinitionConstant(String):
 
-	def __init__(self, default, prefix=None):
+	def __init__(self, default, group, prefix):
+		self.group = group
 		self.prefix = prefix
 		String.__init__(self, default=default)
 
@@ -333,16 +336,16 @@ class ConfigDefinitionConstant(String):
 		value = String.check(self, value)
 		if isinstance(value, basestring):
 			value = value.upper()
-			if value.startswith(self._module_prefix):
-				value = value[len(self._module_prefix):] # e.g. PANGO_WEIGHT_BOLD --> WEIGHT_BOLD
+			for prefix in (self.prefix, self.prefix.split('_', 1)[1]):
+				# e.g. PANGO_WEIGHT_BOLD --> BOLD but also WEIGHT_BOLD --> BOLD
+				if value.startswith(prefix):
+					value = value[len(prefix):]
+				value = value.lstrip('_')
 
-			if self.prefix and not value.startswith(self.prefix):
-				value = self.prefix + value # e.g. ITALIC --> STYLE_ITALIC
-
-			if hasattr(self._module, value):
-				return getattr(self._module, value)
+			if hasattr(self.group, value):
+				return getattr(self.group, value)
 			else:
-				raise ValueError('No such constant: PANGO_%s' % value)
+				raise ValueError('No such constant: %s_%s' % (self.prefix, value))
 		else:
 			return value
 
@@ -352,17 +355,6 @@ class ConfigDefinitionConstant(String):
 		else:
 			return str(value)
 
-
-class PangoConstant(ConfigDefinitionConstant):
-
-	_module = pango
-	_module_prefix = 'PANGO_'
-
-
-class GtkConstant(ConfigDefinitionConstant):
-
-	_module = gtk
-	_module_prefix = 'GTK_'
 
 
 class UserActionContext(object):
@@ -585,17 +577,17 @@ class TextBuffer(Gtk.TextBuffer):
 	)
 
 	tag_attributes = {
-		'weight': PangoConstant(None, prefix='WEIGHT_'),
+		'weight': ConfigDefinitionConstant(None, Pango.Weight, 'PANGO_WEIGHT'),
 		'scale': Float(None),
-		'style': PangoConstant(None, prefix='STYLE_'),
+		'style': ConfigDefinitionConstant(None, Pango.Style, 'PANGO_STYLE'),
 		'background': AsciiString(None),
 		'foreground': AsciiString(None),
 		'strikethrough': Boolean(None),
 		'font': AsciiString(None),
 		'family': AsciiString(None),
-		'wrap-mode': GtkConstant(None, prefix='WRAP_'),
+		'wrap-mode': ConfigDefinitionConstant(None, Gtk.WrapMode, 'GTK_WRAP'),
 		'indent': Integer(None),
-		'underline': PangoConstant(None, prefix='UNDERLINE_'),
+		'underline': ConfigDefinitionConstant(None, Pango.Underline, 'PANGO_UNDERLINE'),
 		'linespacing': Integer(None),
 		'rise': Integer(None),
 	} #: Valid properties for a style in tag_styles
@@ -630,6 +622,8 @@ class TextBuffer(Gtk.TextBuffer):
 		self._editmode_tags = ()
 
 		textbuffer_register_serialize_formats(self, notebook, page)
+
+		self.connect_after('delete-range', self.__class__.do_post_delete_range)
 
 	#~ def do_begin_user_action(self):
 		#~ print '>>>> USER ACTION'
@@ -1035,7 +1029,7 @@ class TextBuffer(Gtk.TextBuffer):
 			if link['href'] is None:
 				# Copy text content as href
 				start, end = self.get_tag_bounds(iter, tag)
-				link['href'] = start.get_text(end)
+				link['href'] = start.get_text(end).decode('UTF-8')
 			return link
 		else:
 			return None
@@ -1121,7 +1115,7 @@ class TextBuffer(Gtk.TextBuffer):
 			end = iter.copy()
 			if not end.ends_tag(tag):
 				end.forward_to_tag_toggle(tag)
-			attrib['name'] = start.get_text(end).lstrip('@').strip()
+			attrib['name'] = start.get_text(end).decode('UTF-8').lstrip('@').strip()
 			return attrib
 		else:
 			return None
@@ -1610,7 +1604,7 @@ class TextBuffer(Gtk.TextBuffer):
 			with self.user_action:
 				start, end = self.get_selection_bounds()
 				if name == 'code':
-					text = start.get_text(end)
+					text = start.get_text(end).decode('UTF-8')
 					if '\n' in text:
 						name = 'pre'
 				tag = self.get_tag_table().lookup('style-' + name)
@@ -1795,7 +1789,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
-			tag.zim_attrib = {'indent': level}
+			tag.zim_attrib = {'indent': level, '_bullet': (bullet is not None)}
 		return tag
 
 	def _find_base_dir(self, line):
@@ -1804,7 +1798,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# FIXME: anyway to actually find out what the TextView will render ??
 		while line >= 0:
 			start, end = self.get_line_bounds(line)
-			text = self.get_slice(start, end)
+			text = start.get_slice(start).decode('UTF-8')
 			if not text or text.isspace():
 				break
 
@@ -1887,7 +1881,7 @@ class TextBuffer(Gtk.TextBuffer):
 		if filter(_is_heading_tag, start.get_tags()):
 			return level == 0 # False if you try to indent a header
 
-		if level > 0 or bullet:
+		if level > 0 or bullet is not None:
 			# For bullets there is a 0-level tag, otherwise 0 means None
 			if dir is None:
 				dir = self._find_base_dir(line)
@@ -2016,7 +2010,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# And finally apply current text style
 		# Note: looks like parent call modified the position of the TextIter object
 		# since it is still valid and now matched the end of the inserted string
-		length = len(unicode(string))
+		length = len(string.decode('UTF-8'))
 			# default function argument gives byte length :S
 		start = iter.copy()
 		start.backward_chars(length)
@@ -2061,8 +2055,8 @@ class TextBuffer(Gtk.TextBuffer):
 		for tag in filter(_is_indent_tag, self._editmode_tags):
 			self.apply_tag(tag, start, iter)
 
-	def do_delete_range(self, start, end):
-		# Wrap actual delete to hook _do_lines_merged and do some logic
+	def do_post_delete_range(self, start, end):
+		# Post handler to hook _do_lines_merged and do some logic
 		# when deleting bullets
 		#
 		# Implementation detail:
@@ -2073,35 +2067,36 @@ class TextBuffer(Gtk.TextBuffer):
 		# off, we do NOT touch the editmode. However we do set a flag
 		# that edit mode needs to be checked at the end of the user
 		# action.
+		#
+		# Note that 'start' and 'end' refer to the same postion here ...
 
-		line = start.get_line()
-		if start.starts_line():
-			bullet = self._get_bullet_at_iter(start)
-		else:
-			bullet = None
+		if (
+			(
+				not start.starts_line()
+				and filter(_is_line_based_tag, start.get_toggled_tags(True))
+			) or (
+				not start.ends_line()
+				and filter(_is_line_based_tag, start.get_toggled_tags(False))
+			)
+		):
+			self._do_lines_merged(start)
 
-		multiline = start.get_line() != end.get_line()
-		with self.user_action: # FIXME why is this wrapper here !? - undo functions ??
-			if multiline:
-				Gtk.TextBuffer.do_delete_range(self, start, end)
-				self._do_lines_merged(start)
+		bullet = self._get_bullet_at_iter(start)
+		if bullet is not None:
+			if start.starts_line():
+				self._check_renumber.append(start.get_line())
 			else:
-				Gtk.TextBuffer.do_delete_range(self, start, end)
-
-			if bullet and not self._get_bullet_at_iter(start):
+				# Clean up the redundant bullet
+				bound = start.copy()
+				self._iter_forward_past_bullet(bound, bullet)
+				self.delete(start, bound)
+		elif start.starts_line():
+			indent_tags = filter(_is_indent_tag, start.get_tags())
+			if indent_tags and indent_tags[0].zim_attrib['_bullet']:
 				# had a bullet, but no longer (implies we are start of
 				# line - case where we are not start of line is
 				# handled by _do_lines_merged by extending the indent tag)
 				self.update_indent_tag(start.get_line(), None)
-			elif start.starts_line() and self._get_bullet_at_iter(start):
-				# did not have a bullet but has one now
-				self._check_renumber.append(start.get_line())
-			elif multiline and self.get_bullet(start.get_line()):
-				# we deleted some lines, and although not at start of
-				# line, this line does have a bullet - so check if
-				# we need to renumber
-				self._check_renumber.append(start.get_line())
-			# else we don't have anything to do with bullet lists
 
 		self._check_edit_mode = True
 
@@ -2166,7 +2161,7 @@ class TextBuffer(Gtk.TextBuffer):
 			if not self.iter_forward_word_end(bound):
 				return None # empty line or whitespace at start of line
 
-			text = iter.get_slice(bound)
+			text = iter.get_slice(bound).decode('UTF-8')
 			if text.startswith(u'\u2022'):
 				return BULLET
 			elif is_numbered_bullet_re.match(text):
@@ -2203,7 +2198,7 @@ class TextBuffer(Gtk.TextBuffer):
 			# Skip whitespace as well
 			bound = iter.copy()
 			bound.forward_char()
-			while iter.get_text(bound) == ' ':
+			while iter.get_text(bound).decode('UTF-8') == ' ':
 				if iter.forward_char():
 					bound.forward_char()
 				else:
@@ -2277,10 +2272,11 @@ class TextBuffer(Gtk.TextBuffer):
 				for tag in tags[i:]:
 					t, attrib = tag.zim_tag, tag.zim_attrib
 					if t == 'indent':
+						attrib = attrib.copy() # break ref with tree
+						del attrib['_bullet']
 						bullet = self._get_bullet_at_iter(iter)
 						if bullet:
 							t = 'li'
-							attrib = attrib.copy() # break ref with tree
 							attrib['bullet'] = bullet
 							self._iter_forward_past_bullet(iter, bullet, raw=raw)
 						elif not raw and not iter.starts_line():
@@ -2355,7 +2351,6 @@ class TextBuffer(Gtk.TextBuffer):
 					continue
 
 				if pixbuf.zim_type == 'icon':
-					#~ raise AssertionError, 'BUG: Checkbox outside of indent ?'
 					logger.warn('BUG: Checkbox outside of indent ?')
 				elif pixbuf.zim_type == 'image':
 					attrib = pixbuf.zim_attrib.copy()
@@ -2431,7 +2426,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 				# But limit slice to first pixbuf or any embeddded widget
 
-				text = iter.get_slice(bound)
+				text = iter.get_slice(bound).decode('UTF-8')
 				if text.startswith(PIXBUF_CHR):
 					text = text[1:] # special case - we see this char, but get_pixbuf already returned None, so skip it
 
@@ -2444,7 +2439,7 @@ class TextBuffer(Gtk.TextBuffer):
 				# And limit to end
 				if bound.compare(end) == 1:
 					bound = end.copy()
-					text = iter.get_slice(end)
+					text = iter.get_slice(end).decode('UTF-8')
 
 				if filter(lambda t: t[1] == 'li', open_tags) \
 				and bound.get_line() != iter.get_line():
@@ -2453,7 +2448,7 @@ class TextBuffer(Gtk.TextBuffer):
 					bound = iter.copy()
 					bound.forward_line()
 					assert bound.compare(orig) < 1
-					text = iter.get_slice(bound).rstrip('\n')
+					text = iter.get_slice(bound).decode('UTF-8').rstrip('\n')
 					builder.data(text)
 					break_tags('li')
 					builder.data('\n') # add to tail
@@ -2541,26 +2536,26 @@ class TextBuffer(Gtk.TextBuffer):
 		if not bounds:
 			return False
 
-		text = bounds[0].get_text(bounds[1])
+		text = bounds[0].get_text(bounds[1]).decode('UTF-8')
 		if not text or text.isspace():
 			return False
 
 		start, end = bounds[0].copy(), bounds[1].copy()
 		iter = start.copy()
 		iter.forward_char()
-		text = start.get_text(iter)
+		text = start.get_text(iter).decode('UTF-8')
 		while text and text.isspace():
 			start.forward_char()
 			iter.forward_char()
-			text = start.get_text(iter)
+			text = start.get_text(iter).decode('UTF-8')
 
 		iter = end.copy()
 		iter.backward_char()
-		text = iter.get_text(end)
+		text = iter.get_text(end).decode('UTF-8')
 		while text and text.isspace():
 			end.backward_char()
 			iter.backward_char()
-			text = iter.get_text(end)
+			text = iter.get_text(end).decode('UTF-8')
 
 		if (start.equal(bounds[0]) and end.equal(bounds[1])):
 			return False
@@ -2682,7 +2677,7 @@ class TextBuffer(Gtk.TextBuffer):
 			else:
 				bound = iter.copy()
 				bound.backward_char()
-				char = bound.get_slice(iter)
+				char = bound.get_slice(iter).decode('UTF-8')
 				if char == PIXBUF_CHR or char.isspace():
 					break # whitespace or pixbuf before start iter
 				else:
@@ -2710,7 +2705,7 @@ class TextBuffer(Gtk.TextBuffer):
 			else:
 				bound = iter.copy()
 				bound.forward_char()
-				char = bound.get_slice(iter)
+				char = bound.get_slice(iter).decode('UTF-8')
 				if char == PIXBUF_CHR or char.isspace():
 					break # whitespace or pixbuf after iter
 				else:
@@ -2854,9 +2849,6 @@ class TextBuffer(Gtk.TextBuffer):
 			self.place_cursor(iter)
 			parsetree.resolve_images(self.notebook, self.page)
 			self.insert_parsetree_at_cursor(parsetree, interactive=True)
-
-# Need to register classes defining gobject signals
-GObject.type_register(TextBuffer)
 
 
 class TextBufferList(list):
@@ -3369,7 +3361,7 @@ class TextFinder(object):
 
 			end = start.copy()
 			end.forward_to_line_end()
-			text = start.get_slice(end)
+			text = start.get_slice(end).decode('UTF-8')
 			matches = self.regex.finditer(text)
 			if step == -1:
 				matches = list(matches)
@@ -3441,22 +3433,24 @@ class TextFinder(object):
 
 		with self.buffer.user_action:
 			with self.buffer.tmp_cursor():
-				for start, end, string in matches:
-					start = self.buffer.get_iter_at_offset(start)
-					end = self.buffer.get_iter_at_offset(end)
+				for startoff, endoff, string in matches:
+					start = self.buffer.get_iter_at_offset(startoff)
+					end = self.buffer.get_iter_at_offset(endoff)
 					if start.get_child_anchor() is not None:
 						self._replace_in_widget(start, self.regex, string, True)
 					else:
 						self.buffer.select_range(start, end) # ensure editmode logic is used
 						self.buffer.delete(start, end)
+
+						start = self.buffer.get_iter_at_offset(startoff)
 						self.buffer.insert(start, string)
 
 		self._update_highlight()
 
 
-CURSOR_TEXT = Gdk.Cursor.new(Gdk.XTERM) #: the C{Gdk.Cursor} for normal text
-CURSOR_LINK = Gdk.Cursor.new(Gdk.HAND2) #: the C{Gdk.Cursor} for links
-CURSOR_WIDGET = Gdk.Cursor.new(Gdk.CursorType.LEFT_PTR) #: the C{Gdk.Cursor} for widgets and objects
+CURSOR_TEXT = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'text')
+CURSOR_LINK = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'pointer')
+CURSOR_WIDGET = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), 'default')
 
 
 class TextView(Gtk.TextView):
@@ -3502,11 +3496,10 @@ class TextView(Gtk.TextView):
 		'paste-clipboard': 'override',
 
 		# And some events we want to connect to
-		'motion-notify-event': 'override',
-		'visibility-notify-event': 'override',
-		'button-press-event': 'override',
-		'button-release-event': 'override',
-		'key-press-event': 'override',
+		#'visibility-notify-event': 'override',
+		#'button-press-event': 'override',
+		#'button-release-event': 'override',
+		#'key-press-event': 'override',
 	}
 
 	def __init__(self, preferences):
@@ -3517,7 +3510,8 @@ class TextView(Gtk.TextView):
 		@todo: make sure code sets proper defaults for preferences
 		& document preferences used
 		'''
-		GObject.GObject.__init__(self, TextBuffer(None, None))
+		GObject.GObject.__init__(self)
+		self.set_buffer(TextBuffer(None, None))
 		self.set_name('zim-pageview')
 		self.set_size_request(24, 24)
 		self._cursor = CURSOR_TEXT
@@ -3530,6 +3524,7 @@ class TextView(Gtk.TextView):
 
 		self._object_size_request = (-1, -1)
 		self.connect_after('size-allocate', self.__class__.on_size_allocate)
+		self.connect_after('motion-notify-event', self.__class__.on_motion_notify_event)
 
 	def set_buffer(self, buffer):
 		buffer.connect('insert-object', self.on_insert_object)
@@ -3560,7 +3555,7 @@ class TextView(Gtk.TextView):
 		self._object_widgets.add(widget)
 		widget.show_all()
 
-	def on_size_allocate(self, allocation):
+	def on_size_allocate(self, *a):
 		# Update size request for widgets
 		request = self._get_object_size_request()
 		if request != self._object_size_request:
@@ -3602,14 +3597,12 @@ class TextView(Gtk.TextView):
 		#~ # Method that echos drag data types - only enable for debugging
 		#~ print context.targets
 
-	def do_motion_notify_event(self, event):
+	def on_motion_notify_event(self, event):
 		# Update the cursor type when the mouse moves
-		cont = Gtk.TextView.do_motion_notify_event(self, event)
 		x, y = event.get_coords()
 		x, y = int(x), int(y) # avoid some strange DeprecationWarning
 		coords = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
 		self.update_cursor(coords)
-		return cont # continue emit ?
 
 	def do_visibility_notify_event(self, event):
 		# Update the cursor type when the window visibility changed
@@ -3708,32 +3701,57 @@ class TextView(Gtk.TextView):
 			mark = buffer.create_mark('zim-popup-menu', iter, True)
 
 	def do_key_press_event(self, event):
-		# This method defines extra key bindings. It also triggers
-		# end-of-word and end-of-line signals.
-		#
-		# Calls in read-only mode or selection mode are dispatched to two
-		# methods below.
+		ok, keyval = event.get_keyval()
+		#print 'KEY %s (%r)' % (Gdk.keyval_name(keyval), keyval)
+		event_state = event.get_state()
+		#print 'STATE %s' % event_state
 
-		handled = False
+		run_post, handled = self._do_key_press_event(keyval, event_state)
+		if not handled:
+			handled = Gtk.TextView.do_key_press_event(self, event)
+
+		if run_post and handled:
+			self._post_key_press_event(keyval)
+
+		return handled
+
+	def test_key_press_event(self, keyval, event_state=0):
+		run_post, handled = self._do_key_press_event(keyval, event_state)
+
+		if not handled:
+			if keyval in KEYVALS_BACKSPACE:
+				self.emit('backspace')
+			else:
+				if keyval in KEYVALS_ENTER:
+					char = '\n'
+				elif keyval in KEYVALS_TAB:
+					char = '\t'
+				else:
+					char = unichr(Gdk.keyval_to_unicode(keyval))
+
+				self.emit('insert-at-cursor', char)
+			handled = True
+
+		if run_post and handled:
+			self._post_key_press_event(keyval)
+
+		return handled
+
+	def _do_key_press_event(self, keyval, event_state):
 		buffer = self.get_buffer()
-		#~ print 'KEY %s (%i)' % (Gdk.keyval_name(event.keyval), event.keyval)
-		#~ print 'STATE %s' % event.get_state()
-
 		if not self.get_editable():
 			# Dispatch read-only mode
-			if self._do_key_press_event_readonly(event):
-				return True
-			else:
-				return Gtk.TextView.do_key_press_event(self, event)
+			return False, self._do_key_press_event_readonly(keyval, event_state)
 		elif buffer.get_has_selection():
 			# Dispatch selection mode
-			if self._do_key_press_event_selection(event):
-				return True
-			else:
-				return Gtk.TextView.do_key_press_event(self, event)
+			return False, self._do_key_press_event_selection(keyval, event_state)
+		else:
+			return True, self._do_key_press_event_default(keyval, event_state)
 
-		elif (event.keyval in KEYVALS_HOME
-		and not event.get_state() & Gdk.ModifierType.CONTROL_MASK):
+	def _do_key_press_event_default(self, keyval, event_state):
+		buffer = self.get_buffer()
+		if (keyval in KEYVALS_HOME
+		and not event_state & Gdk.ModifierType.CONTROL_MASK):
 			# Smart Home key - can be combined with shift state
 			insert = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(insert)
@@ -3741,12 +3759,12 @@ class TextView(Gtk.TextView):
 				iter = home
 			else:
 				iter = ourhome
-			if event.get_state() & Gdk.ModifierType.SHIFT_MASK:
+			if event_state & Gdk.ModifierType.SHIFT_MASK:
 				buffer.move_mark_by_name('insert', iter)
 			else:
 				buffer.place_cursor(iter)
-			handled = True
-		elif event.keyval in KEYVALS_TAB and not (event.get_state() & KEYSTATES):
+			return True
+		elif keyval in KEYVALS_TAB and not (event_state & KEYSTATES):
 			# Tab at start of line indents
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
@@ -3757,44 +3775,43 @@ class TextView(Gtk.TextView):
 					list.indent(row)
 				else:
 					buffer.indent(iter.get_line(), interactive=True)
-				handled = True
-		elif (event.keyval in KEYVALS_LEFT_TAB
-			and not (event.get_state() & KEYSTATES & ~Gdk.ModifierType.SHIFT_MASK)
-		) or (event.keyval in KEYVALS_BACKSPACE
+				return True
+		elif (keyval in KEYVALS_LEFT_TAB
+			and not (event_state & KEYSTATES & ~Gdk.ModifierType.SHIFT_MASK)
+		) or (keyval in KEYVALS_BACKSPACE
 			and self.preferences['unindent_on_backspace']
-			and not (event.get_state() & KEYSTATES)
+			and not (event_state & KEYSTATES)
 		):
 			# Backspace or Ctrl-Tab unindents line
 			# note that Shift-Tab give Left_Tab + Shift mask, so allow shift
+			default = True if keyval in KEYVALS_LEFT_TAB else False
+				# Prevent <Shift><Tab> to insert a Tab if unindent fails
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
 			and not filter(_is_pre_tag, iter.get_tags()):
 				bullet = buffer.get_bullet_at_iter(home)
 				indent = buffer.get_indent(home.get_line())
-				if event.keyval in KEYVALS_BACKSPACE \
+				if keyval in KEYVALS_BACKSPACE \
 				and bullet and indent == 0 and not iter.equal(home):
 					# Delete bullet at start of line (if iter not before bullet)
 					buffer.delete(home, ourhome)
-					handled = True
+					return True
 				elif indent == 0 or indent is None:
 					# Nothing to unindent
-					pass
+					return default
 				elif bullet:
 					# Unindent list maybe recursive
 					row, list = TextBufferList.new_from_line(buffer, iter.get_line())
 					if list and self.preferences['recursive_indentlist']:
-						handled = list.unindent(row)
+						return bool(list.unindent(row)) or default
 					else:
-						handled = buffer.unindent(iter.get_line(), interactive=True)
+						return bool(buffer.unindent(iter.get_line(), interactive=True)) or default
 				else:
 					# Unindent normal text
-					handled = buffer.unindent(iter.get_line(), interactive=True)
+					return bool(buffer.unindent(iter.get_line(), interactive=True)) or default
 
-			if event.keyval in KEYVALS_LEFT_TAB:
-				handled = True # Prevent <Shift><Tab> to insert a Tab if unindent fails
-
-		elif event.keyval in KEYVALS_ENTER:
+		elif keyval in KEYVALS_ENTER:
 			# Enter can trigger links
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			tag = buffer.get_link_tag(iter)
@@ -3804,79 +3821,74 @@ class TextView(Gtk.TextView):
 				# As a result you can not "Enter" a 1 character link,
 				# this is by design.
 				if (self.preferences['follow_on_enter']
-				or event.get_state() & Gdk.ModifierType.MOD1_MASK): # MOD1 == Alt
+				or event_state & Gdk.ModifierType.MOD1_MASK): # MOD1 == Alt
 					self.click_link_at_iter(iter)
 				# else do not insert newline, just ignore
-				handled = True
-
-		if handled:
-			return True # end of event chain
-		elif not Gtk.TextView.do_key_press_event(self, event):
-			# Parent class also has no handler for this key
-			return False
-
-		elif (event.keyval in KEYVALS_END_OF_WORD
-		or event.keyval in KEYVALS_ENTER):
-			# Trigger end-of-line and/or end-of-word signals if char was
-			# really inserted by parent class.
-			#
-			# We do it this way because in some cases e.g. a space is not
-			# inserted but is used to select an option in an input mode e.g.
-			# to select between various Chinese characters. See lp:460438
-			insert = buffer.get_iter_at_mark(buffer.get_insert())
-			mark = buffer.create_mark(None, insert, left_gravity=False)
-			iter = insert.copy()
-			iter.backward_char()
-
-			if event.keyval in KEYVALS_ENTER:
-				char = '\n'
-			elif event.keyval in KEYVALS_TAB:
-				char = '\t'
-			else:
-				char = unichr(Gdk.keyval_to_unicode(event.keyval))
-
-			if iter.get_text(insert) != char:
 				return True
 
-			with buffer.user_action:
-				buffer.emit('undo-save-cursor', insert)
-				start = iter.copy()
-				if buffer.iter_backward_word_start(start):
-					word = start.get_text(iter)
-					editmode = [t.zim_tag
-						for t in buffer._editmode_tags
-						if hasattr(t, 'zim_tag')
-					]
-					self.emit('end-of-word', start, iter, word, char, editmode)
+	def _post_key_press_event(self, keyval):
+		# Trigger end-of-line and/or end-of-word signals if char was
+		# really inserted by parent class.
+		#
+		# We do it this way because in some cases e.g. a space is not
+		# inserted but is used to select an option in an input mode e.g.
+		# to select between various Chinese characters. See lp:460438
 
-				if event.keyval in KEYVALS_ENTER:
-					# iter may be invalid by now because of end-of-word
-					iter = buffer.get_iter_at_mark(mark)
-					iter.backward_char()
-					self.emit('end-of-line', iter)
+		if not (keyval in KEYVALS_END_OF_WORD or keyval in KEYVALS_ENTER):
+			return
 
-			buffer.place_cursor(buffer.get_iter_at_mark(mark))
-			self.scroll_mark_onscreen(mark)
-			buffer.delete_mark(mark)
+		buffer = self.get_buffer()
+		insert = buffer.get_iter_at_mark(buffer.get_insert())
+		mark = buffer.create_mark(None, insert, left_gravity=False)
+		iter = insert.copy()
+		iter.backward_char()
 
-		return True
+		if keyval in KEYVALS_ENTER:
+			char = '\n'
+		elif keyval in KEYVALS_TAB:
+			char = '\t'
+		else:
+			char = unichr(Gdk.keyval_to_unicode(keyval))
 
-	def _do_key_press_event_readonly(self, event):
+		if iter.get_text(insert).decode('UTF-8') != char:
+			return
+
+		with buffer.user_action:
+			buffer.emit('undo-save-cursor', insert)
+			start = iter.copy()
+			if buffer.iter_backward_word_start(start):
+				word = start.get_text(iter).decode('UTF-8')
+				editmode = [t.zim_tag
+					for t in buffer._editmode_tags
+					if hasattr(t, 'zim_tag')
+				]
+				self.emit('end-of-word', start, iter, word, char, editmode)
+
+			if keyval in KEYVALS_ENTER:
+				# iter may be invalid by now because of end-of-word
+				iter = buffer.get_iter_at_mark(mark)
+				iter.backward_char()
+				self.emit('end-of-line', iter)
+
+		buffer.place_cursor(buffer.get_iter_at_mark(mark))
+		self.scroll_mark_onscreen(mark)
+		buffer.delete_mark(mark)
+
+	def _do_key_press_event_readonly(self, keyval, event_state):
 		# Key bindings in read-only mode:
 		#   Space scrolls one page
 		#   Shift-Space scrolls one page up
-		handled = True
-		if event.keyval in KEYVALS_SPACE:
-			if event.get_state() & Gdk.ModifierType.SHIFT_MASK:
+		if keyval in KEYVALS_SPACE:
+			if event_state & Gdk.ModifierType.SHIFT_MASK:
 				i = -1
 			else:
 				i = 1
 			self.emit('move-cursor', Gtk.MovementStep.PAGES, i, False)
+			return True
 		else:
-			handled = False
-		return handled
+			return False
 
-	def _do_key_press_event_selection(self, event):
+	def _do_key_press_event_selection(self, keyval, event_state):
 		# Key bindings when there is an active selections:
 		#   Tab indents whole selection
 		#   Shift-Tab and optionally Backspace unindent whole selection
@@ -3937,7 +3949,7 @@ class TextView(Gtk.TextView):
 
 		start, end = buffer.get_selection_bounds()
 		with buffer.user_action:
-			if event.keyval in KEYVALS_TAB:
+			if keyval in KEYVALS_TAB:
 				if selection_in_pre_block(start, end):
 					# Handle indent in pre differently
 					prepend_tab = lambda l: buffer.insert(buffer.get_iter_at_line(l), '\t')
@@ -3946,31 +3958,31 @@ class TextView(Gtk.TextView):
 					buffer.foreach_line_in_selection(buffer.indent)
 				else:
 					handled = False
-			elif event.keyval in KEYVALS_LEFT_TAB:
+			elif keyval in KEYVALS_LEFT_TAB:
 				decrement_indent(start, end)
 					# do not set handled = False when decrement failed -
 					# LEFT_TAB should not do anything else
-			elif event.keyval in KEYVALS_BACKSPACE \
+			elif keyval in KEYVALS_BACKSPACE \
 			and self.preferences['unindent_on_backspace']:
 				handled = decrement_indent(start, end)
-			elif event.keyval in KEYVALS_ASTERISK + (KEYVAL_POUND,):
+			elif keyval in KEYVALS_ASTERISK + (KEYVAL_POUND,):
 				def toggle_bullet(line, newbullet):
 					bullet = buffer.get_bullet(line)
 					if not bullet and not buffer.get_line_is_empty(line):
 						buffer.set_bullet(line, newbullet)
 					elif bullet == newbullet: # FIXME broken for numbered list
 						buffer.set_bullet(line, None)
-				if event.keyval == KEYVAL_POUND:
+				if keyval == KEYVAL_POUND:
 					buffer.foreach_line_in_selection(toggle_bullet, NUMBER_BULLET)
 				else:
 					buffer.foreach_line_in_selection(toggle_bullet, BULLET)
-			elif event.keyval in KEYVALS_GT \
+			elif keyval in KEYVALS_GT \
 			and multi_line_indent(start, end):
 				def email_quote(line):
 					iter = buffer.get_iter_at_line(line)
 					bound = iter.copy()
 					bound.forward_char()
-					if iter.get_text(bound) == '>':
+					if iter.get_text(bound).decode('UTF-8') == '>':
 						buffer.insert(iter, '>')
 					else:
 						buffer.insert(iter, '> ')
@@ -3988,7 +4000,8 @@ class TextView(Gtk.TextView):
 		'''
 		x, y = self.get_pointer()
 		x, y = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
-		return self.get_iter_at_location(x, y), (x, y)
+		ok, iter = self.get_iter_at_location(x, y)
+		return iter, (x, y)
 
 	def _get_pixbuf_at_pointer(self, iter, coords):
 		'''Returns the pixbuf that is under the mouse or C{None}. The
@@ -4031,7 +4044,7 @@ class TextView(Gtk.TextView):
 		if coords is None:
 			iter, coords = self._get_pointer_location()
 		else:
-			iter = self.get_iter_at_location(*coords)
+			ok, iter = self.get_iter_at_location(*coords)
 
 		link = None
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
@@ -4139,7 +4152,7 @@ class TextView(Gtk.TextView):
 			self.get_buffer().iter_forward_past_bullet(ourhome)
 			bound = ourhome.copy()
 			bound.forward_char()
-			while ourhome.get_text(bound) in (' ', '\t'):
+			while ourhome.get_text(bound).decode('UTF-8') in (' ', '\t'):
 				if ourhome.forward_char():
 					bound.forward_char()
 				else:
@@ -4210,7 +4223,7 @@ class TextView(Gtk.TextView):
 		elif self.preferences['auto_reformat']:
 			handled = False
 			linestart = buffer.get_iter_at_line(end.get_line())
-			partial_line = linestart.get_slice(end)
+			partial_line = linestart.get_slice(end).decode('UTF-8')
 			for style, re in markup_re.items():
 				if not re.search(partial_line) is None:
 					matchstart = linestart.copy()
@@ -4238,7 +4251,7 @@ class TextView(Gtk.TextView):
 		if end.starts_line():
 			return # empty line
 		start = buffer.get_iter_at_line(end.get_line())
-		line = start.get_text(end)
+		line = start.get_text(end).decode('UTF-8')
 		#~ print 'LINE >>%s<<' % line
 
 		if heading_re.match(line):
@@ -4292,10 +4305,6 @@ class TextView(Gtk.TextView):
 				buffer.set_indent(newline, indent)
 
 			buffer.update_editmode() # also updates indent tag
-
-
-# Need to register classes defining gobject signals
-GObject.type_register(TextView)
 
 
 class UndoActionGroup(list):
@@ -4519,7 +4528,7 @@ class UndoStackManager:
 	def do_insert_text(self, buffer, iter, text, length):
 		# Handle insert text event
 		# Do not use length argument, it gives length in bytes, not characters
-		text = text.decode('utf-8')
+		text = text.decode('UTF-8')
 		length = len(text)
 		if self.undo_count > 0:
 			self.flush_redo_stack()
@@ -4867,7 +4876,7 @@ discarded, but you can restore the copy later.''')
 		self.timer_label.show()
 		self.vbox.add(self.timer_label)
 
-		cancel_button = Gtk.Button(stock=Gtk.STOCK_CANCEL)
+		cancel_button = Gtk.Button.new_with_mnemonic(_('_Cancel')) # T: Button label
 		self.add_action_widget(cancel_button, Gtk.ResponseType.CANCEL)
 
 		self._done = False
@@ -4885,12 +4894,12 @@ discarded, but you can restore the copy later.''')
 			if SaveCopyDialog(self, page=self.page).run():
 				discard(self)
 
-		discard_button = Gtk.Button(_('_Discard Changes'))
+		discard_button = Gtk.Button.new_with_mnemonic(_('_Discard Changes'))
 			# T: Button in error dialog
 		discard_button.connect_object('clicked', discard, self)
 		self.add_action_widget(discard_button, Gtk.ResponseType.OK)
 
-		save_button = Button(label=_('_Save Copy'), stock=Gtk.STOCK_SAVE_AS)
+		save_button = Gtk.Button.new_with_mnemonic(_('_Save Copy'))
 			# T: Button in error dialog
 		save_button.connect_object('clicked', save, self)
 		self.add_action_widget(save_button, Gtk.ResponseType.OK)
@@ -5031,7 +5040,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.view)
-		self.pack_end(self.find_bar, False)
+		self.pack_end(self.find_bar, False, True, 0)
 		self.find_bar.hide()
 
 		## setup GUI actions
@@ -5049,10 +5058,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# format actions need some custom hooks
 		actiongroup = self.actiongroup
-		actiongroup.add_actions(
-			gtk_accelerator_preparse_list(ui_format_actions))
-		actiongroup.add_toggle_actions(
-			gtk_accelerator_preparse_list(ui_format_toggle_actions))
+		actiongroup.add_actions(ui_format_actions)
+		actiongroup.add_toggle_actions(ui_format_toggle_actions)
 
 		for name in [a[0] for a in ui_format_actions]:
 			action = actiongroup.get_action(name)
@@ -5117,7 +5124,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		# TODO: reload buffer on style changed to make change visible
 		#       now it is only visible on next page load
 
-		self.text_style['TextView'].define(bullet_icon_size=GtkConstant('ICON_SIZE_MENU'))
+		self.text_style['TextView'].define(
+			bullet_icon_size=ConfigDefinitionConstant(
+				'GTK_ICON_SIZE_MENU',
+				Gtk.IconSize,
+				'GTK_ICON_SIZE'
+			)
+		)
 
 		self.text_style['TextView'].setdefault('indent', TextBuffer.pixels_indent)
 		self.text_style['TextView'].setdefault('tabs', None, int)
@@ -5244,6 +5257,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
 		self._buffer_signals = ()
+		start, end = self._prev_buffer.get_bounds()
 		self._prev_buffer.clear()
 
 		# now create the new buffer
@@ -5459,7 +5473,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def scroll_cursor_on_screen(self):
 		buffer = self.view.get_buffer()
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	def set_scroll_pos(self, pos):
 		pass # FIXME set scroll position
@@ -5485,7 +5499,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				lines = dumper.dump(tree)
 				return ''.join(lines)
 			else:
-				return bounds[0].get_text(bounds[1])
+				return bounds[0].get_text(bounds[1]).decode('UTF-8')
 		else:
 			return None
 
@@ -5912,7 +5926,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Delete'), 'gtk-delete', readonly=False) # T: Menu item
 	def delete(self):
 		'''Menu action for delete'''
-		self.view.emit('delete-from-cursor', Gtk.DELETE_CHARS, 1)
+		self.view.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
 
 	@action(_('Un-check Checkbox'), STOCK_UNCHECKED_BOX, '', readonly=False) # T: Menu item
 	def uncheck_checkbox(self):
@@ -6330,7 +6344,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.hide_find() # remove previous highlighting etc.
 		buffer = self.view.get_buffer()
 		buffer.finder.find(string, flags)
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	@action(_('_Find...'), 'gtk-find', '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
 	def show_find(self, string=None, flags=0, highlight=False):
@@ -6414,7 +6428,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			return
 
 		widget = TextView({}) # Get new widget
-		default_font = widget.style.font_desc
+		style = widget.get_style_context()
+		default_font = style.get_property(Gtk.STYLE_PROPERTY_FONT, Gtk.StateFlags.NORMAL)
 
 		font = Pango.FontDescription(self.text_style['TextView']['font'])
 		font.set_size(default_font.get_size())
@@ -6429,16 +6444,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.text_style.write()
 
 
-# Need to register classes defining gobject signals
-GObject.type_register(PageView)
-
-
 class ObjectAnchor(Gtk.TextChildAnchor):
 	def __init__(self, manager):
 		self.manager = manager
 		GObject.GObject.__init__(self)
-
-GObject.type_register(ObjectAnchor)
 
 
 class InsertDateDialog(Dialog):
@@ -6448,8 +6457,12 @@ class InsertDateDialog(Dialog):
 	DATE_COL = 1 # strfime rendering of the format
 
 	def __init__(self, parent, buffer, notebook, page, config):
-		Dialog.__init__(self, parent, _('Insert Date and Time'), # T: Dialog title
-			button=(_('_Insert'), 'gtk-ok'))  # T: Button label
+		Dialog.__init__(
+			self,
+			parent,
+			_('Insert Date and Time'), # T: Dialog title
+			button=_('_Insert') # T: Button label
+		)
 		self.buffer = buffer
 		self.notebook = notebook
 		self.page = page
@@ -6464,7 +6477,7 @@ class InsertDateDialog(Dialog):
 		label = Gtk.Label()
 		label.set_markup('<b>' + _("Format") + '</b>') # T: label in "insert date" dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start((label, True, True, 0), False)
+		self.vbox.pack_start(label, True, True, 0)
 
 		model = Gtk.ListStore(str, str) # FORMAT_COL, DATE_COL
 		self.view = BrowserTreeView(model)
@@ -6480,26 +6493,26 @@ class InsertDateDialog(Dialog):
 		## Add Calendar widget
 		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
 
-		self.calendar_expander = Gtk.expander_new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
+		self.calendar_expander = Gtk.Expander.new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
 			# T: expander label in "insert date" dialog
 		self.calendar_expander.set_use_markup(True)
 		self.calendar_expander.set_expanded(self.uistate['calendar_expanded'])
 		self.calendar = Calendar()
-		self.calendar.display_options(
-			Gtk.CALENDAR_SHOW_HEADING |
-			Gtk.CALENDAR_SHOW_DAY_NAMES |
-			Gtk.CALENDAR_SHOW_WEEK_NUMBERS)
+		self.calendar.set_display_options(
+			Gtk.CalendarDisplayOptions.SHOW_HEADING |
+			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
+			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS)
 		self.calendar.connect('day-selected', lambda c: self.set_date(c.get_date()))
 		self.calendar_expander.add(self.calendar)
-		self.vbox.pack_start(self.calendar_expander, False)
+		self.vbox.pack_start(self.calendar_expander, False, True, 0)
 
 		## Add Link checkbox and Edit button
 		self.linkbutton = Gtk.CheckButton(_('_Link to date'))
 			# T: check box in InsertDate dialog
 		self.linkbutton.set_active(self.uistate['linkdate'])
-		self.vbox.pack_start(self.linkbutton, False)
+		self.vbox.pack_start(self.linkbutton, False, True, 0)
 
-		button = Gtk.Button(stock=Gtk.STOCK_EDIT)
+		button = Gtk.Button.new_with_mnemonic(_('_Edit')) # T: Button label
 		button.connect('clicked', self.on_edit)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 1)
@@ -6709,10 +6722,10 @@ class EditImageDialog(Dialog):
 		self.form.widgets['file'].set_use_relative_paths(notebook, path)
 			# Show relative paths
 
-		reset_button = Gtk.Button(_('_Reset Size'))
+		reset_button = Gtk.Button.new_with_mnemonic(_('_Reset Size'))
 			# T: Button in 'edit image' dialog
 		hbox = Gtk.HBox()
-		hbox.pack_end(reset_button, False)
+		hbox.pack_end(reset_button, False, True, 0)
 		self.vbox.add(hbox)
 
 		reset_button.connect_object('clicked',
@@ -6835,8 +6848,7 @@ class InsertLinkDialog(Dialog):
 		else:
 			title = _('Insert Link') # T: Dialog title
 
-		Dialog.__init__(self, parent, title,
-			button=(_('_Link'), 'zim-link'))  # T: Dialog button
+		Dialog.__init__(self, parent, title, button=_('_Link'))  # T: Dialog button
 
 		self.add_form([
 			('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
@@ -6869,7 +6881,7 @@ class InsertLinkDialog(Dialog):
 
 		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
-			text = buffer.get_text(start, end)
+			text = start.get_text(end).decode('UTF-8')
 			self._selection_bounds = (start.get_offset(), end.get_offset())
 				# Interaction in the dialog causes buffer to loose selection
 				# maybe due to clipboard focus !??
@@ -6941,13 +6953,13 @@ class FindWidget(object):
 		self.find_entry.connect_object(
 			'activate', self.__class__.on_find_entry_activate, self)
 
-		self.next_button = Button(_('_Next'), Gtk.STOCK_GO_FORWARD)
+		self.next_button = Gtk.Button.new_with_mnemonic(_('_Next'))
 			# T: button in find bar and find & replace dialog
 		self.next_button.connect_object(
 			'clicked', self.__class__.find_next, self)
 		self.next_button.set_sensitive(False)
 
-		self.previous_button = Button(_('_Previous'), Gtk.STOCK_GO_BACK)
+		self.previous_button = Gtk.Button.new_with_mnemonic(_('_Previous'))
 			# T: button in find bar and find & replace dialog
 		self.previous_button.connect_object(
 			'clicked', self.__class__.find_previous, self)
@@ -6993,7 +7005,7 @@ class FindWidget(object):
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			start, end = bounds
-			string = start.get_slice(end)
+			string = start.get_slice(end).decode('UTF-8')
 		self.find(string, flags, highlight)
 
 	def on_find_entry_changed(self):
@@ -7010,7 +7022,7 @@ class FindWidget(object):
 			button.set_sensitive(ok)
 
 		if ok:
-			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+			self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
@@ -7035,13 +7047,13 @@ class FindWidget(object):
 	def find_next(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_next()
-		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 		self.textview.grab_focus()
 
 	def find_previous(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_previous()
-		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN)
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 		self.textview.grab_focus()
 
 
@@ -7051,21 +7063,22 @@ class FindBar(FindWidget, Gtk.HBox):
 	# TODO use smaller buttons ?
 
 	def __init__(self, textview):
-		GObject.GObject.__init__(self, spacing=5)
+		GObject.GObject.__init__(self)
+		self.set_spacing(5)
 		FindWidget.__init__(self, textview)
 
-		self.pack_start(Gtk.Label(_('Find', True, True, 0) + ': '), False)
+		self.pack_start(Gtk.Label(_('Find') + ': '), False, True, 0)
 			# T: label for input in find bar on bottom of page
-		self.pack_start(self.find_entry, False)
-		self.pack_start(self.previous_button, False)
-		self.pack_start(self.next_button, False)
-		self.pack_start(self.case_option_checkbox, False)
-		self.pack_start(self.highlight_checkbox, False)
+		self.pack_start(self.find_entry, False, True, 0)
+		self.pack_start(self.previous_button, False, True, 0)
+		self.pack_start(self.next_button, False, True, 0)
+		self.pack_start(self.case_option_checkbox, False, True, 0)
+		self.pack_start(self.highlight_checkbox, False, True, 0)
 		# TODO allow box to shrink further by putting buttons in menu
 
 		close_button = IconButton(Gtk.STOCK_CLOSE, relief=False, size=Gtk.IconSize.MENU)
 		close_button.connect_object('clicked', self.__class__.hide, self)
-		self.pack_end(close_button, False)
+		self.pack_end(close_button, False, True, 0)
 
 	def grab_focus(self):
 		self.find_entry.grab_focus()
@@ -7087,14 +7100,12 @@ class FindBar(FindWidget, Gtk.HBox):
 		self.textview.grab_focus()
 
 	def do_key_press_event(self, event):
-		if event.keyval == KEYVAL_ESC:
+		ok, keyval = event.get_keyval()
+		if keyval == KEYVAL_ESC:
 			self.hide()
 			return True
 		else:
 			return Gtk.HBox.do_key_press_event(self, event)
-
-# Need to register classes defining gobject signals
-GObject.type_register(FindBar)
 
 
 class FindAndReplaceDialog(FindWidget, Dialog):
@@ -7110,7 +7121,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		self.vbox.add(hbox)
 
 		vbox = Gtk.VBox(spacing=5)
-		hbox.pack_start(vbox, False)
+		hbox.pack_start(vbox, False, True, 0)
 
 		label = Gtk.Label(label=_('Find what') + ': ')
 			# T: input label in find & replace dialog
@@ -7134,12 +7145,12 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		self.bbox.add(self.next_button)
 		self.bbox.add(self.previous_button)
 
-		replace_button = Button(_('_Replace'), Gtk.STOCK_FIND_AND_REPLACE)
+		replace_button = Gtk.Button.new_with_mnemonic(_('_Replace'))
 			# T: Button in search & replace dialog
 		replace_button.connect_object('clicked', self.__class__.replace, self)
 		self.bbox.add(replace_button)
 
-		all_button = Button(_('Replace _All'), Gtk.STOCK_FIND_AND_REPLACE)
+		all_button = Gtk.Button.new_with_mnemonic(_('Replace _All'))
 			# T: Button in search & replace dialog
 		all_button.connect_object('clicked', self.__class__.replace_all, self)
 		self.bbox.add(all_button)
@@ -7184,7 +7195,7 @@ class WordCountDialog(Dialog):
 			lines = end.get_line() - start.get_line() + 1
 			chars = end.get_offset() - start.get_offset()
 
-			strings = start.get_text(end).strip().split()
+			strings = start.get_text(end).decode('UTF-8').strip().split()
 			non_space_chars = sum(len(s) for s in strings)
 
 			words = 0
@@ -7264,8 +7275,12 @@ class MoveTextDialog(Dialog):
 
 	def __init__(self, pageview, notebook, page, buffer, navigation):
 		assert buffer.get_has_selection(), 'No Selection present'
-		Dialog.__init__(self, pageview, _('Move Text to Other Page'), # T: Dialog title
-			button=(_('_Move'), 'gtk-ok'))  # T: Button label
+		Dialog.__init__(
+			self,
+			pageview,
+			_('Move Text to Other Page'), # T: Dialog title
+			button=_('_Move')  # T: Button label
+		)
 		self.pageview = pageview
 		self.notebook = notebook
 		self.page = page

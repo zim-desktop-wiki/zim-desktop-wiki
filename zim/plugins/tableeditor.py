@@ -15,9 +15,12 @@
 
 from gi.repository import GObject
 from gi.repository import Gtk
-import logging
-import re
+from gi.repository import Gdk
 from gi.repository import Pango
+
+import re
+import logging
+
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
@@ -144,7 +147,7 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		:param tabledata: XML - formated as a zim-tree table-object
 		:return: tuple of header-list and list of row lists -  ([h1,h2],[[r11,r12],[r21,r22])
 		'''
-		header = map(lambda head: head.text.decode('utf-8'), tabledata.findall('thead/th'))
+		header = map(lambda head: head.text.decode('UTF-8'), tabledata.findall('thead/th'))
 		header = map(CellFormatReplacer.zim_to_cell, header)
 
 		rows = []
@@ -201,7 +204,7 @@ class CellFormatReplacer:
 		return text
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class TableEditorMainWindowExtension(WindowExtension):
 	'''
 	Connector between the zim application with its toolbar and menu and the tableview-object
 	In GTK there is no native table symbol. So this image is needed: data/pixmaps/insert-table.png
@@ -410,13 +413,13 @@ class TableViewObject(CustomObjectClass):
 			bound = iter.copy()
 			bound.backward_char()
 			char_before_table = bound.get_slice(iter)
-			need_newline_infront = char_before_table.decode('utf-8') != "\n".decode('utf-8')
+			need_newline_infront = char_before_table.decode('UTF-8') != "\n".decode('UTF-8')
 			bound = iter.copy()
 			bound.forward_char()
 			iter2 = bound.copy()
 			bound.forward_char()
 			char_after_table = iter2.get_slice(bound)
-			need_newline_behind = char_after_table.decode('utf-8') != "\n".decode('utf-8')
+			need_newline_behind = char_after_table.decode('UTF-8') != "\n".decode('UTF-8')
 			#
 
 			headers, rows, attrib = self.get_data()
@@ -444,18 +447,14 @@ class TableViewObject(CustomObjectClass):
 
 
 GTK_GRIDLINES = {
-	LINES_BOTH: Gtk.TREE_VIEW_GRID_LINES_BOTH,
-	LINES_NONE: Gtk.TREE_VIEW_GRID_LINES_NONE,
-	LINES_HORIZONTAL: Gtk.TREE_VIEW_GRID_LINES_HORIZONTAL,
-	LINES_VERTICAL: Gtk.TREE_VIEW_GRID_LINES_VERTICAL,
+	LINES_BOTH: Gtk.TreeViewGridLines.BOTH,
+	LINES_NONE: Gtk.TreeViewGridLines.NONE,
+	LINES_HORIZONTAL: Gtk.TreeViewGridLines.HORIZONTAL,
+	LINES_VERTICAL: Gtk.TreeViewGridLines.VERTICAL,
 }
 
 
 class TableViewWidget(CustomObjectWidget):
-
-	__gsignals__ = {
-		'size-request': 'override',
-	}
 
 	def __init__(self, obj, liststore, headers, attrs):
 		'''
@@ -505,14 +504,14 @@ class TableViewWidget(CustomObjectWidget):
 		self.treeview.connect('move-cursor', self.on_move_cursor)
 
 		# Set options
-		self.treeview.set_grid_lines(Gtk.TREE_VIEW_GRID_LINES_BOTH)
+		self.treeview.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
 		self.treeview.set_receives_default(True)
 		self.treeview.set_size_request(-1, -1)
 		self.treeview.set_border_width(2)
 
 		# disable interactive column search
 		self.treeview.set_enable_search(False)
-		Gtk.binding_entry_remove(Gtk.TreeView, Gdk.KEY_f, Gdk.ModifierType.CONTROL_MASK)
+		#Gtk.binding_entry_remove(Gtk.TreeView, Gdk.KEY_f, Gdk.ModifierType.CONTROL_MASK)
 		self.treeview.set_search_column(-1)
 
 	def on_model_changed(self, liststore, headers, attrs):
@@ -524,7 +523,7 @@ class TableViewWidget(CustomObjectWidget):
 		self.scroll_win.add(self.treeview)
 		self.scroll_win.show_all()
 
-	def do_size_request(self, requisition):
+	def old_do_size_request(self, requisition): # TODO - FIX this behavior
 		wraps = self.obj.get_wraps()
 		if not any(wraps):
 			return CustomObjectWidget.do_size_request(self, requisition)
@@ -594,7 +593,6 @@ class TableViewWidget(CustomObjectWidget):
 		toolbar.set_style(Gtk.ToolbarStyle.ICONS)
 		toolbar.set_border_width(1)
 
-		tooltips = Gtk.Tooltips()
 		for pos, stock, handler, data, tooltip in (
 			(0, Gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: tooltip on mouse hover
 			(1, Gtk.STOCK_DELETE, self.on_delete_row, None, _('Remove row')),  # T: tooltip on mouse hover
@@ -615,7 +613,7 @@ class TableViewWidget(CustomObjectWidget):
 					button.connect('clicked', handler, data)
 				else:
 					button.connect('clicked', handler)
-				tooltips.set_tip(button, tooltip)
+				button.set_tooltip_text(tooltip)
 				toolbar.insert(button, pos)
 
 		toolbar.set_size_request(300, -1)
@@ -1031,7 +1029,7 @@ class EditTableDialog(Dialog):
 		self.treeview = self._prepare_treeview_with_headcolumn_list(liststore)
 		hbox = Gtk.HBox(spacing=5)
 		hbox.set_size_request(300, 300)
-		self.vbox.pack_start(hbox, False)
+		self.vbox.pack_start(hbox, False, True, 0)
 		header_scrolled_area = ScrolledWindow(self.treeview)
 		header_scrolled_area.set_size_request(200, -1)
 		hbox.add(header_scrolled_area)
@@ -1040,7 +1038,7 @@ class EditTableDialog(Dialog):
 		self.show_all()
 		if self.creation_mode:  # preselect first entry
 			path = self.treeview.get_model().get_path(self.treeview.get_model().get_iter_first())
-			self.treeview.set_cursor_on_cell(path, self.treeview.get_column(0), start_editing=True)
+			self.treeview.set_cursor_on_cell(path, self.treeview.get_column(0), None, True)
 
 
 	def _prepare_liststore(self, tablemodel):
@@ -1120,7 +1118,6 @@ class EditTableDialog(Dialog):
 		:return: vbox-panel
 		'''
 		vbox = Gtk.VBox(spacing=5)
-		tooltips = Gtk.Tooltips()
 		for stock, handler, data, tooltip in (
 			(Gtk.STOCK_ADD, self.on_add_new_column, None, _('Add column')),  # T: hoover tooltip
 			(Gtk.STOCK_DELETE, self.on_delete_column, None, _('Remove column')),  # T: hoover tooltip
@@ -1132,8 +1129,8 @@ class EditTableDialog(Dialog):
 				button.connect('clicked', handler, data)
 			else:
 				button.connect('clicked', handler)
-			tooltips.set_tip(button, tooltip)
-			vbox.pack_start(button, False)
+			button.set_tooltip_text(tooltip)
+			vbox.pack_start(button, False, True, 0)
 
 		vbox.show_all()
 		return vbox

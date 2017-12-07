@@ -140,6 +140,7 @@ def natural_sort_key(string, numeric_padding=5):
 	string = string.lower() # sort case insensitive
 
 	try:
+		string = string.encode('UTF-8') # XXX known issue in python2, fixed in python3
 		bytestring = locale.strxfrm(string)
 			# 8-bit byte string - enode to hex -- in pyton3 check if byte data type is handled better by sqlite3 and others
 	except MemoryError:

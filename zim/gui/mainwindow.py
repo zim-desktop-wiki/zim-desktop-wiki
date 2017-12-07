@@ -6,6 +6,7 @@ import os
 import logging
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import Gdk
 
 logger = logging.getLogger('zim.gui')
 
@@ -20,7 +21,7 @@ from zim.history import History, HistoryPath
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
 	PRIMARY_MODIFIER_STRING, PRIMARY_MODIFIER_MASK
 from zim.gui.widgets import \
-	Button, MenuButton, \
+	MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, \
 	ScrolledTextView
@@ -192,7 +193,7 @@ class MainWindow(Window):
 		def statusbar_element(string, size):
 			frame = Gtk.Frame()
 			frame.set_shadow_type(Gtk.ShadowType.IN)
-			self.statusbar.pack_end(frame, False)
+			self.statusbar.pack_end(frame, False, True, 0)
 			label = Gtk.Label(label=string)
 			label.set_size_request(size, 10)
 			label.set_alignment(0.1, 0.5)
@@ -208,7 +209,7 @@ class MainWindow(Window):
 			BackLinksMenuButton(self.notebook, self.open_page, status_bar_style=True)
 		frame = Gtk.Frame()
 		frame.set_shadow_type(Gtk.ShadowType.IN)
-		self.statusbar.pack_end(frame, False)
+		self.statusbar.pack_end(frame, False, True, 0)
 		frame.add(self.statusbar_backlinks_button)
 
 		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
@@ -217,7 +218,7 @@ class MainWindow(Window):
 		# does not render properly after the pack_end for the first one
 		#~ statusbar2 = Gtk.Statusbar()
 		#~ statusbar2.set_size_request(25, 10)
-		#~ hbox.pack_end(statusbar2, False)
+		#~ hbox.pack_end(statusbar2, False, True, 0)
 
 		self.do_preferences_changed()
 
@@ -312,7 +313,7 @@ class MainWindow(Window):
 		self.hide() # look more responsive
 		self.notebook.index.stop_background_check()
 		while Gtk.events_pending():
-			Gtk.main_iteration(block=False)
+			Gtk.main_iteration_do(False)
 
 		if self.config.uistate.modified:
 			self.config.uistate.write()
@@ -383,7 +384,7 @@ class MainWindow(Window):
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['toggle_on_ctrlspace']:
-			group.connect_group( # <Primary><Space>
+			group.connect( # <Primary><Space>
 				space, PRIMARY_MODIFIER_MASK, Gtk.AccelFlags.VISIBLE,
 				self.toggle_sidepane_focus)
 
@@ -658,12 +659,10 @@ class MainWindow(Window):
 
 		from zim.gui.widgets import InputEntry
 		entry = InputEntry(placeholder_text=_('Search'))
-		if Gtk.gtk_version >= (2, 16) \
-		and Gtk.pygtk_version >= (2, 16):
-			entry.set_icon_from_stock(Gtk.EntryIconPosition.SECONDARY, Gtk.STOCK_FIND)
-			entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
-			entry.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY, _('Search Pages...'))
-				# T: label in search entry
+		entry.set_icon_from_stock(Gtk.EntryIconPosition.SECONDARY, Gtk.STOCK_FIND)
+		entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
+		entry.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY, _('Search Pages...'))
+			# T: label in search entry
 		inline_search = lambda e, *a: self._uiactions.show_search(query=e.get_text() or None)
 		entry.connect('activate', inline_search)
 		entry.connect('icon-release', inline_search)
@@ -693,6 +692,8 @@ class MainWindow(Window):
 		delayed_save_uistate_cb = DelayedCallback(2000, save_uistate_cb) # 2 sec
 		self.uistate.connect('changed', delayed_save_uistate_cb)
 
+		self.do_update_statusbar()
+
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
 		if self.isfullscreen:
@@ -706,8 +707,8 @@ class MainWindow(Window):
 
 	def save_uistate(self):
 		if not self.isfullscreen:
-			self.uistate['windowpos'] = self.get_position()
-			self.uistate['windowsize'] = self.get_size()
+			self.uistate['windowpos'] = tuple(self.get_position())
+			self.uistate['windowsize'] = tuple(self.get_size())
 			self.uistate['windowmaximized'] = self.maximized
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
@@ -921,10 +922,6 @@ class MainWindow(Window):
 		self.open_page(self.notebook.get_page(self.page))
 
 
-# Need to register classes defining gobject signals or overloading methods
-GObject.type_register(MainWindow)
-
-
 class BackLinksMenuButton(MenuButton):
 
 	def __init__(self, notebook, open_page, status_bar_style=False):
@@ -999,7 +996,7 @@ class OpenPageDialog(Dialog):
 
 	def __init__(self, parent, page, callback):
 		Dialog.__init__(self, parent, _('Jump to'), # T: Dialog title
-			button=(None, Gtk.STOCK_JUMP_TO),
+			button=Gtk.STOCK_JUMP_TO,
 		)
 		self.callback = callback
 

@@ -143,16 +143,12 @@ def adapt_from_newfs(file):
 		return file
 
 
-#: gobject and gio libraries are imported for optional features, like trash
-gobject = None
-gio = None
 try:
-	from gi.repository import GObject
 	from gi.repository import Gio
 except ImportError:
-	pass
+	Gio = None
 
-if not gio:
+if not Gio:
 	logger.info('No file monitor support - changes will go undetected')
 
 
@@ -1924,7 +1920,7 @@ class FSObjectMonitor(SignalEmitter):
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
 		and self._gio_file_monitor is None \
-		and gio:
+		and Gio:
 			try:
 				file = Gio.File.new_for_uri(self.path.uri)
 				self._gio_file_monitor = file.monitor()

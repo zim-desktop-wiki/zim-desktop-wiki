@@ -11,13 +11,13 @@ from gi.repository import Gtk
 from zim.fs import Dir
 
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorClass, ImageGeneratorDialog, MainWindowExtensionBase
+	ImageGeneratorClass, ImageGeneratorDialog, ImageGeneratorMainWindowExtensionBase
 
 from zim.plugins.equationeditor import InsertEquationPlugin, EquationGenerator
 from zim.plugins.diagrameditor import InsertDiagramPlugin, DiagramGenerator
 from zim.plugins.gnu_r_ploteditor import InsertGNURPlotPlugin, GNURPlotGenerator
 from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin, GnuplotGenerator
-from zim.plugins.gnuplot_ploteditor import MainWindowExtension as GnuplotMainWindowExtension
+from zim.plugins.gnuplot_ploteditor import GnuplotMainWindowExtension
 from zim.plugins.scoreeditor import InsertScorePlugin, ScoreGenerator
 from zim.plugins.ditaaeditor import InsertDitaaPlugin, DitaaGenerator
 from zim.plugins.sequencediagrameditor import InsertSequenceDiagramPlugin, SequenceDiagramGenerator
@@ -34,7 +34,7 @@ class TestGenerator(tests.TestCase):
 		plugin = self.pluginklass()
 
 		extensionklass = plugin.extension_classes['MainWindow']
-		self.assertTrue(issubclass(extensionklass, MainWindowExtensionBase))
+		self.assertTrue(issubclass(extensionklass, ImageGeneratorMainWindowExtensionBase))
 
 		attachment_dir = Dir(self.create_tmp_dir())
 		extension = extensionklass(plugin, MockWindow(attachment_dir))

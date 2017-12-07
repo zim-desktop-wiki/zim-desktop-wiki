@@ -135,7 +135,7 @@ class NotebookExtension(ObjectExtension):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class TaskListMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 		<ui>

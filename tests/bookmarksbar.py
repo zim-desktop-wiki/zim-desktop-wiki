@@ -38,110 +38,110 @@ class TestBookmarksBar(tests.TestCase):
 	def testGeneral(self):
 		'''Test general functions: add, delete bookmarks.'''
 		navigation = tests.MockObject()
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
-		Bar.max_bookmarks = 15 # set maximum number of bookmarks
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		bar.max_bookmarks = 15 # set maximum number of bookmarks
 
 		# Add paths to the beginning of the bar.
 		for i, path in enumerate(self.PATHS):
-			Bar._add_new(path, add_bookmarks_to_beginning = True)
-			self.assertEqual(len(Bar.paths), i + 1)
-		self.assertTrue(Bar.paths == list(reversed(self.PATHS)))
+			bar._add_new(path, add_bookmarks_to_beginning = True)
+			self.assertEqual(len(bar.paths), i + 1)
+		self.assertTrue(bar.paths == list(reversed(self.PATHS)))
 
 		# Add paths to the end of the bar.
-		Bar.paths = []
+		bar.paths = []
 		for i, path in enumerate(self.PATHS):
-			Bar._add_new(path, add_bookmarks_to_beginning = False)
-			self.assertEqual(len(Bar.paths), i + 1)
-		self.assertEqual(Bar.paths, list(self.PATHS))
+			bar._add_new(path, add_bookmarks_to_beginning = False)
+			self.assertEqual(len(bar.paths), i + 1)
+		self.assertEqual(bar.paths, list(self.PATHS))
 
 		# Check that the same path can't be added to the bar.
-		Bar._add_new(self.PATHS[0])
-		Bar._add_new(self.PATHS[1])
-		self.assertEqual(Bar.paths, list(self.PATHS))
+		bar._add_new(self.PATHS[0])
+		bar._add_new(self.PATHS[1])
+		self.assertEqual(bar.paths, list(self.PATHS))
 
 		# Delete paths from the bar.
-		for i, button in enumerate(Bar.container.get_children()[2:]):
+		for i, button in enumerate(bar.scrolledbox.get_children()[2:]):
 			path = button.zim_path
-			self.assertTrue(path in Bar.paths)
-			Bar.delete(button.zim_path)
-			self.assertEqual(len(Bar.paths), self.LEN_PATHS - i - 1)
-			self.assertTrue(path not in Bar.paths)
-		self.assertEqual(Bar.paths, [])
+			self.assertTrue(path in bar.paths)
+			bar.delete(button.zim_path)
+			self.assertEqual(len(bar.paths), self.LEN_PATHS - i - 1)
+			self.assertTrue(path not in bar.paths)
+		self.assertEqual(bar.paths, [])
 
 		# Delete all bookmarks from the bar.
-		Bar.delete_all()
-		self.assertEqual(Bar.paths, [])
+		bar.delete_all()
+		self.assertEqual(bar.paths, [])
 
 
 	def testDeletePages(self):
 		'''Check deleting a bookmark after deleting a page in the notebook.'''
 		self.uistate['bookmarks'] = list(self.PATHS)
 		navigation = tests.MockObject()
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		for i, path in enumerate(self.PATHS):
-			self.assertTrue(path in Bar.paths)
+			self.assertTrue(path in bar.paths)
 			self.notebook.delete_page(Path(path))
-			self.assertTrue(path not in Bar.paths)
-			self.assertEqual(len(Bar.paths), self.LEN_PATHS - i - 1)
-		self.assertEqual(Bar.paths, [])
+			self.assertTrue(path not in bar.paths)
+			self.assertEqual(len(bar.paths), self.LEN_PATHS - i - 1)
+		self.assertEqual(bar.paths, [])
 
 
 	def testFunctions(self):
 		'''Test bookmark functions: changing, reordering, ranaming.'''
 		navigation = tests.MockObject()
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
-		Bar.max_bookmarks = 15 # set maximum number of bookmarks
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		bar.max_bookmarks = 15 # set maximum number of bookmarks
 
 		# Check changing a bookmark.
 		for i, path in enumerate(self.PATHS):
-			Bar._add_new(path, add_bookmarks_to_beginning = False)
+			bar._add_new(path, add_bookmarks_to_beginning = False)
 
-		self.assertTrue('Test' not in Bar.paths)
-		self.assertTrue('Books' in Bar.paths)
-		Bar.change_bookmark('Books', 'Books')
-		self.assertEqual(Bar.paths, list(self.PATHS))
-		Bar.change_bookmark('Books', 'Test')
-		self.assertTrue('Test' in Bar.paths)
-		self.assertTrue('Books' not in Bar.paths)
+		self.assertTrue('Test' not in bar.paths)
+		self.assertTrue('Books' in bar.paths)
+		bar.change_bookmark('Books', 'Books')
+		self.assertEqual(bar.paths, list(self.PATHS))
+		bar.change_bookmark('Books', 'Test')
+		self.assertTrue('Test' in bar.paths)
+		self.assertTrue('Books' not in bar.paths)
 		_result = [a if a != 'Books' else 'Test' for a in self.PATHS]
-		self.assertEqual(Bar.paths, _result)
+		self.assertEqual(bar.paths, _result)
 
-		Bar.change_bookmark('Test', 'Books')
-		self.assertEqual(Bar.paths, list(self.PATHS))
+		bar.change_bookmark('Test', 'Books')
+		self.assertEqual(bar.paths, list(self.PATHS))
 
 		# Check reordering bookmarks.
 		new_paths = ('1', '2', '3', '4', '5')
 
-		Bar.paths = list(new_paths)
-		Bar.move_bookmark(new_paths[2], new_paths[2], 'left')
-		self.assertEqual(Bar.paths, list(new_paths))
-		Bar.move_bookmark(new_paths[3], new_paths[3], 'right')
-		self.assertEqual(Bar.paths, list(new_paths))
-		Bar.move_bookmark('3', '1', 'left')
-		self.assertEqual(Bar.paths, ['3', '1', '2', '4', '5'])
-		Bar.move_bookmark('5', '1', 'left')
-		self.assertEqual(Bar.paths, ['3', '5', '1', '2', '4'])
-		Bar.move_bookmark('5', '1', 'right')
-		self.assertEqual(Bar.paths, ['3', '1', '5', '2', '4'])
-		Bar.move_bookmark('3', '4', 'right')
-		self.assertEqual(Bar.paths, ['1', '5', '2', '4', '3'])
-		Bar.move_bookmark('5', '4', '-')
-		self.assertEqual(Bar.paths, ['1', '5', '2', '4', '3'])
+		bar.paths = list(new_paths)
+		bar.move_bookmark(new_paths[2], new_paths[2], 'left')
+		self.assertEqual(bar.paths, list(new_paths))
+		bar.move_bookmark(new_paths[3], new_paths[3], 'right')
+		self.assertEqual(bar.paths, list(new_paths))
+		bar.move_bookmark('3', '1', 'left')
+		self.assertEqual(bar.paths, ['3', '1', '2', '4', '5'])
+		bar.move_bookmark('5', '1', 'left')
+		self.assertEqual(bar.paths, ['3', '5', '1', '2', '4'])
+		bar.move_bookmark('5', '1', 'right')
+		self.assertEqual(bar.paths, ['3', '1', '5', '2', '4'])
+		bar.move_bookmark('3', '4', 'right')
+		self.assertEqual(bar.paths, ['1', '5', '2', '4', '3'])
+		bar.move_bookmark('5', '4', '-')
+		self.assertEqual(bar.paths, ['1', '5', '2', '4', '3'])
 
 		# Check rename_bookmark and save options.
-		preferences_changed = lambda save: Bar.on_preferences_changed({'save': save,
+		preferences_changed = lambda save: bar.on_preferences_changed({'save': save,
 				'add_bookmarks_to_beginning': False,
 				'max_bookmarks': 15})
 
 		new_path_names = {new_paths[0]: '11', new_paths[1]: '22', new_paths[2]: '33'}
-		Bar.paths = list(new_paths)
+		bar.paths = list(new_paths)
 		preferences_changed(True)
-		Bar._reload_bar()
+		bar._reload_bar()
 
 		def rename_check(label, path, paths_names, path_names_uistate):
 			self.assertEqual(button.get_label(), label)
 			self.assertEqual(button.zim_path, path)
-			self.assertEqual(Bar.paths_names, paths_names)
+			self.assertEqual(bar.paths_names, paths_names)
 			self.assertEqual(self.uistate['bookmarks_names'], path_names_uistate)
 
 		button = Gtk.Button(label = new_paths[0], use_underline = False)
@@ -149,42 +149,42 @@ class TestBookmarksBar(tests.TestCase):
 		rename_check(new_paths[0], new_paths[0], {}, {})
 
 		Clipboard.set_text('new name')
-		Bar.rename_bookmark(button)
+		bar.rename_bookmark(button)
 		rename_check('new name', new_paths[0], {new_paths[0]: 'new name'}, {new_paths[0]: 'new name'})
 		preferences_changed(False)
 		rename_check('new name', new_paths[0], {new_paths[0]: 'new name'}, {})
 		preferences_changed(True)
 		rename_check('new name', new_paths[0], {new_paths[0]: 'new name'}, {new_paths[0]: 'new name'})
-		Bar.rename_bookmark(button)
+		bar.rename_bookmark(button)
 		rename_check(new_paths[0], new_paths[0], {}, {})
 
 		# Check delete with renaming.
 		preferences_changed(True)
 		paths_names_copy = dict(new_path_names)
-		Bar.paths_names = dict(new_path_names)
+		bar.paths_names = dict(new_path_names)
 		for key in new_path_names:
-			Bar.delete(key)
+			bar.delete(key)
 			del paths_names_copy[key]
-			self.assertEqual(Bar.paths_names, paths_names_copy)
-			self.assertEqual(self.uistate['bookmarks_names'], Bar.paths_names)
+			self.assertEqual(bar.paths_names, paths_names_copy)
+			self.assertEqual(self.uistate['bookmarks_names'], bar.paths_names)
 
 		# Check delete all with renaming.
-		Bar.paths_names = dict(new_path_names)
-		Bar.delete_all()
-		self.assertEqual(Bar.paths_names, {})
+		bar.paths_names = dict(new_path_names)
+		bar.delete_all()
+		self.assertEqual(bar.paths_names, {})
 		self.assertEqual(self.uistate['bookmarks_names'], {})
 
 		# Check change bookmark with renaming.
 		new_path_names = {new_paths[0]: '11', new_paths[1]: '22', new_paths[2]: '33'}
 
-		Bar.paths = list(new_paths)
-		Bar.paths_names = dict(new_path_names)
+		bar.paths = list(new_paths)
+		bar.paths_names = dict(new_path_names)
 		paths_names_copy = dict(new_path_names)
 		_name = paths_names_copy.pop(new_paths[0])
 		paths_names_copy['new path'] = _name
-		Bar.change_bookmark(new_paths[0], 'new path')
-		self.assertEqual(Bar.paths_names, paths_names_copy)
-		self.assertEqual(Bar.paths, ['new path'] + list(new_paths[1:]))
+		bar.change_bookmark(new_paths[0], 'new path')
+		self.assertEqual(bar.paths_names, paths_names_copy)
+		self.assertEqual(bar.paths, ['new path'] + list(new_paths[1:]))
 
 
 	def testPreferences(self):
@@ -193,34 +193,34 @@ class TestBookmarksBar(tests.TestCase):
 
 		# Check short page names.
 		navigation = tests.MockObject()
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		self.uistate['show_full_page_name'] = False
 		for path in self.PATHS:
-			Bar._add_new(path)
-		self.assertEqual(Bar.paths, list(self.PATHS))
-		for i, button in enumerate(Bar.container.get_children()[2:]):
+			bar._add_new(path)
+		self.assertEqual(bar.paths, list(self.PATHS))
+		for i, button in enumerate(bar.scrolledbox.get_children()[2:]):
 			self.assertEqual(self.PATHS[i], button.zim_path)
 			self.assertEqual(Path(self.PATHS[i]).basename, button.get_label())
 
 		# Show full page names.
-		Bar.toggle_show_full_page_name()
-		self.assertEqual(Bar.paths, list(self.PATHS))
-		for i, button in enumerate(Bar.container.get_children()[2:]):
+		bar.toggle_show_full_page_name()
+		self.assertEqual(bar.paths, list(self.PATHS))
+		for i, button in enumerate(bar.scrolledbox.get_children()[2:]):
 			self.assertEqual(self.PATHS[i], button.zim_path)
 			self.assertEqual(self.PATHS[i], button.get_label())
 
 		# Check save option.
 		self.uistate['bookmarks'] = list(self.PATHS)
 		self.uistate['bookmarks_names'] = dict(self.PATHS_NAMES)
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
-		self.assertEqual(Bar.paths, list(self.PATHS))
-		self.assertEqual(Bar.paths_names, self.PATHS_NAMES)
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		self.assertEqual(bar.paths, list(self.PATHS))
+		self.assertEqual(bar.paths_names, self.PATHS_NAMES)
 
 		self.uistate['bookmarks'] = []
 		self.uistate['bookmarks_names'] = {}
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
-		self.assertEqual(Bar.paths, [])
-		self.assertEqual(Bar.paths_names, {})
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		self.assertEqual(bar.paths, [])
+		self.assertEqual(bar.paths_names, {})
 
 		# Get pages to check max number of bookmarks.
 		pagelist = []
@@ -232,34 +232,34 @@ class TestBookmarksBar(tests.TestCase):
 		self.assertTrue(len(pagelist) > 20)
 
 		def preferences_changed(save, max_b):
-			Bar.on_preferences_changed({
+			bar.on_preferences_changed({
 				'save': save,
 				'add_bookmarks_to_beginning': False,
 				'max_bookmarks': max_b})
 
 		# Check that more than max bookmarks can be loaded at start.
 		self.uistate['bookmarks'] = pagelist
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
-		self.assertEqual(pagelist, Bar.paths)
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		self.assertEqual(pagelist, bar.paths)
 		preferences_changed(True, 5)
-		self.assertEqual(pagelist, Bar.paths)
+		self.assertEqual(pagelist, bar.paths)
 		self.assertEqual(pagelist, self.uistate['bookmarks'])
 
 		# Set maximum number of bookmarks.
 		self.uistate['bookmarks'] = []
-		Bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
+		bar = BookmarkBar(self.notebook, navigation, self.uistate, get_page_func = lambda: '')
 		for max_bookmarks in (5, 10, 15, 20):
 			preferences_changed(False, max_bookmarks)
 			for page in pagelist:
-				Bar._add_new(page)
-			self.assertEqual(len(Bar.paths), max_bookmarks)
-			self.assertEqual(Bar.paths, pagelist[:max_bookmarks])
-			Bar.delete_all()
+				bar._add_new(page)
+			self.assertEqual(len(bar.paths), max_bookmarks)
+			self.assertEqual(bar.paths, pagelist[:max_bookmarks])
+			bar.delete_all()
 
 		# Check 'save' option in preferences.
 		for i, path in enumerate(self.PATHS):
 			preferences_changed(False, 15)
-			Bar._add_new(path)
+			bar._add_new(path)
 			self.assertEqual(self.uistate['bookmarks'], [])
 			preferences_changed(True, 15)
 			self.assertEqual(self.uistate['bookmarks'], list(self.PATHS[:i + 1]))

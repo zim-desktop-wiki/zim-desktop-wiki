@@ -19,6 +19,7 @@ import os
 import logging
 from gi.repository import Gtk
 from gi.repository import GObject
+from gi.repository import GdkPixbuf
 
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
@@ -130,18 +131,18 @@ def get_mimetype(obj):
 try:
 	from gi.repository import Gio
 except ImportError:
-	gio = None
+	Gio = None
 
 _last_warning_missing_icon = None
 	# used to surpress redundant logging
 
 def get_mime_icon(file, size):
-	if not gio:
+	if not Gio:
 		return None
 
 	try:
 		f = Gio.File.new_for_uri(file.uri)
-		info = f.query_info('standard::*')
+		info = f.query_info('standard::*', Gio.FileQueryInfoFlags.NONE, None)
 		icon = info.get_icon()
 	except:
 		logger.exception('Failed to query info for file: %s', file)
@@ -795,7 +796,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		if isinstance(icon, File):
 			icon = icon.path
 
-		w, h = Gtk.icon_size_lookup(size)
+		ok, w, h = Gtk.icon_size_lookup(size)
 
 		if '/' in icon or '\\' in icon:
 			if zim.fs.isfile(icon):
@@ -954,7 +955,7 @@ class OpenWithMenu(Gtk.Menu):
 		CustomizeOpenWithDialog(self._window, mimetype=mimetype).run()
 
 
-class DesktopEntryMenuItem(Gtk.ImageMenuItem):
+class DesktopEntryMenuItem(Gtk.MenuItem):
 	'''Single menu item for the L{OpenWithMenu}. Displays the application
 	name and the icon.
 	'''
@@ -964,15 +965,10 @@ class DesktopEntryMenuItem(Gtk.ImageMenuItem):
 
 		@param entry: the L{DesktopEntryFile}
 		'''
-		text = _('Open with "%s"') % entry.name
+		GObject.GObject.__init__(self)
+		self.set_label(_('Open with "%s"') % entry.name)
 			# T: menu item to open a file with an application, %s is the app name
-		GObject.GObject.__init__(self, text)
 		self.entry = entry
-
-		if hasattr(entry, 'get_pixbuf'):
-			pixbuf = entry.get_pixbuf(Gtk.IconSize.MENU)
-			if pixbuf:
-				self.set_image(Gtk.image_new_from_pixbuf(pixbuf))
 
 
 def _mimetype_dialog_text(mimetype):
@@ -1004,11 +1000,11 @@ class CustomizeOpenWithDialog(Dialog):
 		self.default_combo.connect('changed', self.on_default_changed)
 		hbox = Gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
-		hbox.pack_start(Gtk.Label(_('Default', True, True, 0) + ':'), False) # T: label for default application
+		hbox.pack_start(Gtk.Label(_('Default') + ':'), False, True, 0) # T: label for default application
 		hbox.pack_start(self.default_combo, True, True, 0)
 
 		# Button to add new
-		button = Gtk.Button(_('Add Application'))
+		button = Gtk.Button.new_with_mnemonic(_('Add Application'))
 			# T: Button for adding a new application to the 'open with' menu
 		button.connect('clicked', self.on_add_application)
 		self.add_extra_button(button)
@@ -1067,8 +1063,10 @@ class ApplicationComboBox(Gtk.ComboBox):
 	ICON_COL = 2
 
 	def __init__(self):
-		model = Gtk.ListStore(str, object, GdkPixbuf.Pixbuf) # NAME_COL, APP_COL, ICON_COL
-		GObject.GObject.__init__(self, model)
+		GObject.GObject.__init__(self)
+		self.set_model(
+			Gtk.ListStore(str, object, GdkPixbuf.Pixbuf) # NAME_COL, APP_COL, ICON_COL
+		)
 
 		cell = Gtk.CellRendererPixbuf()
 		self.pack_start(cell, False)

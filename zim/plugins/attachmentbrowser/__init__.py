@@ -39,6 +39,7 @@
 import logging
 
 from gi.repository import Gtk
+from gi.repository import GObject
 
 
 from zim.plugins import PluginClass, WindowExtension, extends
@@ -46,7 +47,7 @@ from zim.actions import toggle_action
 
 from zim.gui.applications import open_folder_prompt_create
 
-from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
+from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \
 	IconButton, ScrolledWindow, \
 	WindowSidePaneWidget, uistate_property
 
@@ -213,22 +214,22 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		self.add(ScrolledWindow(self.iconview, shadow=Gtk.ShadowType.NONE))
 
 		self.buttonbox = Gtk.VBox()
-		self.pack_end(self.buttonbox, False)
+		self.pack_end(self.buttonbox, False, True, 0)
 
 		open_folder_button = IconButton(Gtk.STOCK_OPEN, relief=False)
 		open_folder_button.connect('clicked', self.on_open_folder)
-		self.buttonbox.pack_start(open_folder_button, False)
+		self.buttonbox.pack_start(open_folder_button, False, True, 0)
 
 		refresh_button = IconButton(Gtk.STOCK_REFRESH, relief=False)
 		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
-		self.buttonbox.pack_start(refresh_button, False)
+		self.buttonbox.pack_start(refresh_button, False, True, 0)
 
 		zoomin = IconButton(Gtk.STOCK_ZOOM_IN, relief=False)
 		zoomout = IconButton(Gtk.STOCK_ZOOM_OUT, relief=False)
 		zoomin.connect('clicked', lambda o: self.on_zoom_in())
 		zoomout.connect('clicked', lambda o: self.on_zoom_out())
-		self.buttonbox.pack_end(zoomout, False)
-		self.buttonbox.pack_end(zoomin, False)
+		self.buttonbox.pack_end(zoomout, False, True, 0)
+		self.buttonbox.pack_end(zoomin, False, True, 0)
 		self.zoomin_button = zoomin
 		self.zoomout_button = zoomout
 
@@ -250,7 +251,7 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 			self.buttonbox.remove(self._close_button)
 
 		if button is not None:
-			self.buttonbox.pack_start(button, False)
+			self.buttonbox.pack_start(button, False, True, 0)
 			self.buttonbox.reorder_child(button, 0)
 
 		self._close_button = button

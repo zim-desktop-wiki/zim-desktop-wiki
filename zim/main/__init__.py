@@ -259,13 +259,9 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		from zim.gui.mainwindow import MainWindow
 
 		windows = [
-			w for w in Gtk.window_list_toplevels()
+			w for w in Gtk.Window.list_toplevels()
 				if isinstance(w, MainWindow)
 		]
-
-		if len(windows) == 0:
-			logger.debug('Gtk version is %s' % str(Gtk.gtk_version))
-			logger.debug('Pygtk version is %s' % str(Gtk.pygtk_version))
 
 		notebook, page = self.build_notebook()
 		if notebook is None:

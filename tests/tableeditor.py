@@ -19,7 +19,7 @@ class TestMainWindowExtension(tests.TestCase):
 		window = setUpMainWindow(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 
 		plugin = TableEditorPlugin()
-		extension = MainWindowExtension(plugin, window)
+		extension = TableEditorMainWindowExtension(plugin, window)
 
 		with tests.DialogContext(self.checkInsertTableDialog):
 			extension.insert_table()

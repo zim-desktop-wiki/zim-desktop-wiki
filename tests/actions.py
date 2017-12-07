@@ -5,6 +5,7 @@
 import tests
 
 from gi.repository import Gtk
+from gi.repository import Gdk
 
 from zim.actions import *
 
@@ -19,18 +20,10 @@ class TestPrimaryKeyBinding(tests.TestCase):
 			"<primary>A",
 			"<PRIMARY>a"
 		):
-			#~ print ">>", accel, gtk_accelerator_preparse(accel)
-			keyval, mod = Gtk.accelerator_parse(
-				gtk_accelerator_preparse(accel)
-			)
+			#~ print ">>", accel, accel
+			keyval, mod = Gtk.accelerator_parse(accel)
 			self.assertEqual(keyval, 97)
-			self.assertIn(mod, (Gdk.ModifierType.CONTROL_MASK, Gdk.EventMask.META_MASK))
-
-		for accel in (
-			"<Shift>A", "<Control>A", "<Alt>A",
-			'', None,
-		):
-			self.assertEqual(gtk_accelerator_preparse(accel), accel)
+			self.assertIn(mod, (Gdk.ModifierType.CONTROL_MASK, Gdk.ModifierType.META_MASK))
 
 
 class TestAction(tests.TestCase):

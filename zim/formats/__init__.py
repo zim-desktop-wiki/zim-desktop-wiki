@@ -90,7 +90,7 @@ logger = logging.getLogger('zim.formats')
 try:
 	from gi.repository import Pango
 except:
-	pango = None
+	Pango = None
 	logger.warn('Could not load pango - RTL scripts may look bad')
 
 try:
@@ -181,6 +181,7 @@ def encode_xml(text):
 	@param text: label text as string
 	@returns: encoded text
 	'''
+	text = unicode(text).encode('UTF-8')
 	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace("'", '&apos;')
 
 
@@ -319,7 +320,7 @@ class ParseTree(object):
 		# Parent dies when we have attributes that are not a string
 		for element in self._etree.getiterator('*'):
 			for key in element.attrib.keys():
-				element.attrib[key] = str(element.attrib[key])
+				element.attrib[key] = unicode(element.attrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
@@ -1325,7 +1326,7 @@ class DumperClass(Visitor):
 		@returns: C{True} if C{text} starts with characters in a
 		RTL script, or C{None} if direction is not determined.
 		'''
-		if pango is None:
+		if Pango is None:
 			return None
 
 		# It seems the find_base_dir() function is not documented in the
@@ -1337,10 +1338,10 @@ class DumperClass(Visitor):
 		# contains punctuation but no real characters.
 
 		dir = Pango.find_base_dir(text, len(text))
-		if dir == Pango.DIRECTION_NEUTRAL:
+		if dir == Pango.Direction.NEUTRAL:
 			return None
 		else:
-			return dir == Pango.DIRECTION_RTL
+			return dir == Pango.Direction.RTL
 
 
 class BaseLinker(object):

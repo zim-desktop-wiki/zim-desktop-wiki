@@ -388,7 +388,7 @@ class TestFS(object):
 		# Test child()
 		wanted = {'bar': Folder, 'bar.txt': File, 'foo': Folder, 'foo.txt': File}
 		for name in folder.list_names():
-			child = folder.get_child()(name)
+			child = folder.child(name)
 			self.assertIsInstance(child, wanted[name])
 
 		# Test new_file()
@@ -758,11 +758,11 @@ class TestLocalFS(tests.TestCase, TestFS):
 
 	def get_test_data(self, path):
 		cwd = LocalFolder(os.getcwd())
-		return LocalFolder(cwd.get_abspath(r'./tests/data')).get_child()(path)
+		return LocalFolder(cwd.get_abspath(r'./tests/data')).child(path)
 
 	def get_package_data(self, path):
 		cwd = LocalFolder(os.getcwd())
-		return LocalFolder(cwd.get_abspath(r'./data')).get_child()(path)
+		return LocalFolder(cwd.get_abspath(r'./data')).child(path)
 
 	def testAtomicWriteContext(self):
 		file = self.get_root_folder('testAtomicWriteContext').file('test.txt')
@@ -944,12 +944,12 @@ class TestFunc(tests.TestCase):
 try:
 	from gi.repository import Gio
 except ImportError:
-	gio = None
+	Gio = None
 
 from zim.newfs.helpers import TrashHelper
 
 @tests.slowTest
-@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):

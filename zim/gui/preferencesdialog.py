@@ -6,9 +6,11 @@ from __future__ import with_statement
 
 from gi.repository import Pango
 from gi.repository import Gtk
+from gi.repository import GObject
+
 import logging
 
-from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
+from zim.gui.widgets import Dialog, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window
 from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create
 
@@ -77,7 +79,7 @@ class PreferencesDialog(Dialog):
 
 			form = InputForm(fields, values)
 			form.preferences_sections = sections
-			vbox.pack_start(form, False)
+			vbox.pack_start(form, False, True, 0)
 			self.forms[category] = form
 
 			if category == 'Interface':
@@ -187,7 +189,8 @@ class PreferencesDialog(Dialog):
 class PluginsTab(Gtk.VBox):
 
 	def __init__(self, dialog, plugins):
-		GObject.GObject.__init__(self, spacing=5)
+		GObject.GObject.__init__(self)
+		self.set_spacing(5)
 		self.dialog = dialog
 		self.plugins = plugins
 
@@ -201,7 +204,7 @@ class PluginsTab(Gtk.VBox):
 		self.treeselection = self.treeview.get_selection()
 		self.treeselection.connect('changed', self.do_selection_changed)
 		swindow = ScrolledWindow(self.treeview, hpolicy=Gtk.PolicyType.NEVER)
-		self.hbox.pack_start(swindow, False)
+		self.hbox.pack_start(swindow, False, True, 0)
 
 		vbox = Gtk.VBox()
 		self.hbox.add(vbox)
@@ -212,20 +215,20 @@ class PluginsTab(Gtk.VBox):
 		self.textbuffer = textview.get_buffer()
 		self.textbuffer.create_tag('bold', weight=Pango.Weight.BOLD)
 		self.textbuffer.create_tag('red', foreground='#FF0000')
-		vbox.pack_start(swindow, True)
+		vbox.pack_start(swindow, True, True, 0)
 
 		hbox = Gtk.HBox(spacing=5)
-		vbox.pack_end(hbox, False)
+		vbox.pack_end(hbox, False, True, 0)
 
 		self.plugin_help_button = \
-			Button(stock=Gtk.STOCK_HELP, label=_('_More')) # T: Button in plugin tab
+			Gtk.Button.new_with_mnemonic(_('_More')) # T: Button in plugin tab
 		self.plugin_help_button.connect('clicked', self.on_help_button_clicked)
-		hbox.pack_start(self.plugin_help_button, False)
+		hbox.pack_start(self.plugin_help_button, False, True, 0)
 
 		self.configure_button = \
-			Button(stock=Gtk.STOCK_PREFERENCES, label=_('C_onfigure')) # T: Button in plugin tab
+			Gtk.Button.new_with_mnemonic(_('C_onfigure')) # T: Button in plugin tab
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
-		hbox.pack_start(self.configure_button, False)
+		hbox.pack_start(self.configure_button, False, True, 0)
 
 		try:
 			self.treeselection.select_path(0)
@@ -236,21 +239,19 @@ class PluginsTab(Gtk.VBox):
 		hbox = Gtk.HButtonBox()
 		hbox.set_border_width(5)
 		hbox.set_layout(Gtk.ButtonBoxStyle.START)
-		self.pack_start(hbox, False)
+		self.pack_start(hbox, False, True, 0)
 
-		open_button = Gtk.Button(label=_('Open plugins folder'))
+		open_button = Gtk.Button.new_with_mnemonic(_('Open plugins folder'))
 		open_button.connect('clicked',
 			lambda o: open_folder_prompt_create(o, PLUGIN_FOLDER)
 		)
-		hbox.pack_start(open_button, False)
+		hbox.pack_start(open_button, False, True, 0)
 
-		if Gtk.gtk_version >= (2, 10) \
-		and Gtk.pygtk_version >= (2, 10):
-			url_button = Gtk.LinkButton(
-				'http://zim-wiki.org/more_plugins.html',
-				_('Get more plugins online') # T: label for button with URL
-			)
-			hbox.pack_start(url_button, False)
+		url_button = Gtk.LinkButton(
+			'http://zim-wiki.org/more_plugins.html',
+			_('Get more plugins online') # T: label for button with URL
+		)
+		hbox.pack_start(url_button, False, True, 0)
 
 
 	def do_selection_changed(self, selection):
@@ -330,7 +331,7 @@ class PluginsTreeModel(Gtk.ListStore):
 
 	def __init__(self, plugins):
 		#columns are: key, active, activatable, name, klass
-		GObject.GObject.__init__(self, str, bool, bool, str, object)
+		Gtk.ListStore.__init__(self, str, bool, bool, str, object)
 		self.plugins = plugins
 
 		allplugins = []
@@ -436,11 +437,11 @@ class ApplicationsTab(Gtk.VBox):
 		self.set_border_width(5)
 		self.dialog = dialog
 
-		button = Gtk.Button(_('Set default text editor'))
+		button = Gtk.Button.new_with_mnemonic(_('Set default text editor'))
 			# T: button in preferences dialog to change default text editor
 		button.connect('clicked', self.on_set_texteditor)
 
-		self.pack_start(button, False)
+		self.pack_start(button, False, True, 0)
 
 	def on_set_texteditor(self, o):
 		CustomizeOpenWithDialog(self.dialog, 'text/plain').run()
@@ -458,7 +459,7 @@ class StylesTreeModel(Gtk.ListStore):
 	def __init__(self):
 		#'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
 		# 'family', 'wrap-mode', 'indent', 'underline'
-		GObject.GObject.__init__(self, bool, str, object)
+		Gtk.ListStore.__init__(self, bool, str, object)
 
 
 class KeyBindingsTab(Gtk.VBox):

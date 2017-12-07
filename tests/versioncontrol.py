@@ -101,8 +101,8 @@ class TestMainWindowExtension(tests.TestCase):
 		notebook_ext = plugin.get_extension(notebook, NotebookExtension)
 		self.assertIsInstance(notebook_ext, NotebookExtension)
 
-		window_ext = plugin.get_extension(mainwindow, MainWindowExtension)
-		self.assertIsInstance(window_ext, MainWindowExtension)
+		window_ext = plugin.get_extension(mainwindow, VersionControlMainWindowExtension)
+		self.assertIsInstance(window_ext, VersionControlMainWindowExtension)
 
 		## init & save version
 		self.assertIsNone(notebook_ext.vcs)
@@ -111,7 +111,7 @@ class TestMainWindowExtension(tests.TestCase):
 			self.assertIsInstance(dialog, VersionControlInitDialog)
 			choice = dialog.combobox.get_active_text()
 			self.assertTrue(choice and not choice.isspace())
-			dialog.emit('response', Gtk.ResponseType.YES)
+			dialog.answer_yes()
 
 		with tests.DialogContext(init, SaveVersionDialog):
 			window_ext.save_version()

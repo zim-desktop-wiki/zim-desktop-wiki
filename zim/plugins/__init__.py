@@ -781,6 +781,7 @@ class WindowExtension(ObjectExtension):
 		if hasattr(self, 'actiongroup') \
 		and self.actiongroup is not None:
 			self.window.uimanager.remove_action_group(self.actiongroup)
+			self.actiongroup = None
 
 
 class DialogExtension(WindowExtension):
@@ -802,7 +803,7 @@ class DialogExtension(WindowExtension):
 		# other buttons after adding the new one
 		#
 		# TODO: check if this works correctly in RTL configuration
-		self.window.action_area.pack_end(button, False) # puts button in right most position
+		self.window.action_area.pack_end(button, False, True, 0) # puts button in right most position
 		self._dialog_buttons.append(button)
 		buttons = [b for b in self.window.action_area.get_children()
 			if not self.window.action_area.child_get_property(b, 'secondary')]

@@ -10,6 +10,10 @@ from __future__ import with_statement
 
 
 from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import GdkPixbuf
+
+
 import logging
 
 from functools import partial
@@ -522,7 +526,7 @@ class CustomToolManagerDialog(Dialog):
 		hbox.add(self.listview)
 
 		vbox = Gtk.VBox(spacing=5)
-		hbox.pack_start(vbox, False)
+		hbox.pack_start(vbox, False, True, 0)
 
 		for stock, handler, data in (
 			(Gtk.STOCK_ADD, self.__class__.on_add, None),
@@ -536,7 +540,7 @@ class CustomToolManagerDialog(Dialog):
 				button.connect_object('clicked', handler, self, data)
 			else:
 				button.connect_object('clicked', handler, self)
-			vbox.pack_start(button, False)
+			vbox.pack_start(button, False, True, 0)
 
 	def on_add(self):
 		properties = EditCustomToolDialog(self).run()
@@ -669,7 +673,7 @@ class EditCustomToolDialog(Dialog):
 		i = self.form.get_property('n-rows')
 		self.form.attach(label, 0, 1, i, i + 1, xoptions=0)
 		self.form.attach(hbox, 1, 2, i, i + 1)
-		hbox.pack_start(self.iconbutton, False)
+		hbox.pack_start(self.iconbutton, False, True, 0)
 
 		self.form.add_inputs((
 			('X-Zim-ReadOnly', 'bool', _('Command does not modify data')), # T: Input in "Edit Custom Tool" dialog

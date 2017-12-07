@@ -26,7 +26,11 @@ and L{TextBuffer}
 
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import Pango
+from gi.repository import GdkPixbuf
+
+
 import logging
 import sys
 import os
@@ -36,9 +40,11 @@ import unicodedata
 import locale
 
 try:
+	import gi
+	gi.require_version('GtkSource', '3.0')
 	from gi.repository import GtkSource
 except ImportError:
-	gtksourceview2 = None
+	GtkSource = None
 
 import zim
 
@@ -137,7 +143,7 @@ def gtk_window_set_default_icon():
 
 	if len(iconlist) < 3:
 		logger.warn('Could not find all icon sizes for the application icon')
-	Gtk.window_set_default_icon_list(*iconlist)
+	Gtk.Window.set_default_icon_list(iconlist)
 
 
 
@@ -187,7 +193,8 @@ def ScrolledTextView(text=None, monospace=False, **kwarg):
 	@param kwarg: arguments passed on to L{ScrolledWindow}
 	@returns: a 2-tuple of the scrolled window and the textview
 	'''
-	textview = Gtk.TextView(TextBuffer())
+	textview = Gtk.TextView()
+	textview.set_buffer(TextBuffer())
 	textview.set_editable(False)
 	textview.set_left_margin(5)
 	textview.set_right_margin(5)
@@ -211,7 +218,7 @@ def ScrolledSourceView(text=None, syntax=None):
 	language. If None, no syntax highlighting will be enabled.
 	@returns: a 2-tuple of a window and a view.
 	'''
-	if gtksourceview2:
+	if GtkSource:
 		gsvbuf = GtkSource.Buffer()
 		if syntax:
 			gsvbuf.set_highlight_syntax(True)
@@ -219,7 +226,8 @@ def ScrolledSourceView(text=None, syntax=None):
 			gsvbuf.set_language(language_manager.get_language(syntax))
 		if text:
 			gsvbuf.set_text(text)
-		textview = GtkSource.View(gsvbuf)
+		textview = GtkSource.View()
+		textview.set_buffer(gsvbuf)
 		textview.set_property("show-line-numbers", True)
 		textview.set_property("auto-indent", True)
 		font = Pango.FontDescription('Monospace')
@@ -282,13 +290,13 @@ class TextBuffer(Gtk.TextBuffer):
 	def get_text(self, start, end, include_hidden_chars=True):
 		text = Gtk.TextBuffer.get_text(self, start, end, include_hidden_chars)
 		if text:
-			text = text.decode('utf-8')
+			text = text.decode('UTF-8')
 		return text
 
 	def get_slice(self, start, end, include_hidden_chars=True):
 		text = Gtk.TextBuffer.get_slice(self, start, end, include_hidden_chars)
 		if text:
-			text = text.decode('utf-8')
+			text = text.decode('UTF-8')
 		return text
 
 
@@ -325,7 +333,7 @@ def help_text_factory(text):
 
 	image = Gtk.Image.new_from_stock(Gtk.STOCK_INFO, Gtk.IconSize.BUTTON)
 	image.set_alignment(0.5, 0.0)
-	hbox.pack_start(image, False)
+	hbox.pack_start(image, False, True, 0)
 
 	label = Gtk.Label(label=text)
 	label.set_use_markup(True)
@@ -449,38 +457,6 @@ def input_table_factory(inputs, table=None):
 	return table
 
 
-class Button(Gtk.Button):
-	'''Sub-class of C{Gtk.Button} which changes the constructor to
-	allow specifying a stock icon I{and} a label at the same time.
-	'''
-
-	def __init__(self, label=None, stock=None, use_underline=True, status_bar_style=False):
-		'''Constructor
-
-		If both C{label} and C{stock} are given the button will have
-		a stock icon but a custom label (for the default C{Gtk.Button}
-		class this is an "either or" choice). If only stock or only
-		label is given, it falls back to the default behavior.
-
-		@param label: text for the button
-		@param stock: constant for a stock item
-		@param use_underline: if C{True} a "_" in the label will
-		@param status_bar_style: when C{True} all padding and border
-		underline the next character
-		'''
-		if label is None or stock is None:
-			GObject.GObject.__init__(self, label=label, stock=stock)
-		else:
-			GObject.GObject.__init__(self, label=label)
-			icon = Gtk.Image.new_from_stock(stock, Gtk.IconSize.BUTTON)
-			self.set_image(icon)
-
-		self.set_use_underline(use_underline)
-
-		if status_bar_style:
-			button_set_statusbar_style(self)
-
-
 class IconButton(Gtk.Button):
 	'''Button with a stock icon, but no label.'''
 
@@ -550,9 +526,6 @@ class IconChooserButton(Gtk.Button):
 		'''
 		return self.file
 
-# Need to register classes defining / overriding gobject signals
-GObject.type_register(IconChooserButton)
-
 
 class SingleClickTreeView(Gtk.TreeView):
 	'''Sub-class of C{Gtk.TreeView} that implements single-click
@@ -564,16 +537,7 @@ class SingleClickTreeView(Gtk.TreeView):
 		'populate-popup': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
-	mask = Gdk.ModifierType.SHIFT_MASK | Gdk.EventMask.META_MASK
-
-	# backwards compatibility
-	if Gtk.gtk_version < (2, 12) \
-	and Gtk.pygtk_version >= (2, 12):
-		def set_rubber_banding(self, enable):
-			pass
-
-		def is_rubber_banding_active(self):
-			return False
+	mask = Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.META_MASK
 
 	def do_button_press_event(self, event):
 		# Implement hook for context menu
@@ -608,7 +572,7 @@ class SingleClickTreeView(Gtk.TreeView):
 		# this needs to be done on button release to avoid conflict with
 		# selections, drag-n-drop, etc.
 
-		if event.type == Gdk.BUTTON_RELEASE \
+		if event.type == Gdk.EventType.BUTTON_RELEASE \
 		and event.button == 1 and not event.get_state() & self.mask \
 		and not self.is_rubber_banding_active():
 			x, y = map(int, event.get_coords())
@@ -692,9 +656,6 @@ class SingleClickTreeView(Gtk.TreeView):
 		cr.set_property('foreground', 'darkgrey')
 		return cr
 
-# Need to register classes defining / overriding gobject signals
-GObject.type_register(SingleClickTreeView)
-
 
 class BrowserTreeView(SingleClickTreeView):
 	'''Sub-class of C{Gtk.TreeView} that is intended for hierarchic
@@ -709,10 +670,12 @@ class BrowserTreeView(SingleClickTreeView):
 
 	# TODO some global option to restore to double click navigation ?
 
-	def __init__(self, *arg):
+	def __init__(self, model=None):
 		'''Constructor, all arguments are passed to C{Gtk.TreeView}'''
-		GObject.GObject.__init__(self, *arg)
+		GObject.GObject.__init__(self)
 		self.get_selection().set_mode(Gtk.SelectionMode.BROWSE)
+		if model:
+			self.set_model(model)
 
 	def do_key_press_event(self, event):
 		# Keybindings for the treeview:
@@ -742,9 +705,6 @@ class BrowserTreeView(SingleClickTreeView):
 			return True
 		else:
 			return Gtk.TreeView.do_key_press_event(self, event)
-
-# Need to register classes defining / overriding gobject signals
-GObject.type_register(BrowserTreeView)
 
 
 def button_set_statusbar_style(button):
@@ -798,8 +758,8 @@ class MenuButton(Gtk.HBox):
 		else:
 			arrow = Gtk.Arrow(Gtk.ArrowType.UP, Gtk.ShadowType.NONE)
 			widget = Gtk.HBox(spacing=3)
-			widget.pack_start(self.label, False)
-			widget.pack_start(arrow, False)
+			widget.pack_start(self.label, False, True, 0)
+			widget.pack_start(arrow, False, True, 0)
 
 
 		self.button.add(widget)
@@ -853,10 +813,6 @@ class MenuButton(Gtk.HBox):
 		self.button.handler_block(self._clicked_signal)
 		self.button.set_active(False)
 		self.button.handler_unblock(self._clicked_signal)
-
-
-# Need to register classes defining / overriding gobject signals
-GObject.type_register(MenuButton)
 
 
 class PanedClass(object):
@@ -1050,7 +1006,7 @@ class InputForm(Gtk.Table):
 
 			elif type == 'option':
 				assert ':' in name, 'BUG: options should have name of the form "group:key"'
-				key, _ = name.rsplit(':', 1)
+				key, x = name.rsplit(':', 1)
 					# using rsplit to assure another ':' in the
 					# group name is harmless
 				group = self._get_radiogroup(key)
@@ -1083,7 +1039,7 @@ class InputForm(Gtk.Table):
 				#~ assert self.notebook
 				entry = LinkEntry(self.notebook, path=extra)
 				# FIXME use inline icon for newer versions of Gtk
-				button = Gtk.Button('_Browse')
+				button = Gtk.Button.new_with_mnemonic(_('_Browse')) # T: Button label
 				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
 				widgets.append((label, entry, button))
 
@@ -1107,7 +1063,7 @@ class InputForm(Gtk.Table):
 				entry.file_type_hint = type
 
 				# FIXME use inline icon for newer versions of Gtk
-				button = Gtk.Button('_Browse')
+				button = Gtk.Button.new_with_mnemonic(_('_Browse')) # T: Button label
 				button.connect_object('clicked', entry.__class__.popup_dialog, entry)
 				widgets.append((label, entry, button))
 
@@ -1135,7 +1091,7 @@ class InputForm(Gtk.Table):
 			self._widgets.append(name)
 			if ':' in name:
 				# radio button - only add group once
-				group, _ = name.split(':', 1)
+				group, x = name.split(':', 1)
 				if not group in self._keys:
 					self._keys.append(group)
 			else:
@@ -1216,15 +1172,7 @@ class InputForm(Gtk.Table):
 
 	def focus_next(self):
 		'''Focus the next input in the form'''
-		if Gtk.gtk_version >=  (2, 14) \
-		and Gtk.pygtk_version >= (2, 14):
-			widget = self.get_focus_child()
-		else:
-			for w in self.widgets.values():
-				if w.is_focus:
-					widget = w
-					break
-
+		widget = self.get_focus_child()
 		if widget:
 			return self._focus_next(widget)
 		else:
@@ -1280,26 +1228,21 @@ class InputForm(Gtk.Table):
 				if hasattr(widget, 'zim_key_mapping'):
 					label = widget.get_active_text()
 					if label:
-						label = label.decode('utf-8')
+						label = label.decode('UTF-8')
 					return widget.zim_key_mapping.get(label) or label
 				else:
 					return widget.get_active_text()
 			elif isinstance(widget, Gtk.SpinButton):
 				return int(widget.get_value())
 			elif isinstance(widget, Gtk.ColorButton):
-				if Gtk.gtk_version > (2, 14) \
-				and Gtk.pygtk_version >= (2, 14):
-					# This version supposedly gives compacter values
-					return str(widget.get_color())
-				else:
-					return widget.get_color().to_string()
+				return str(widget.get_color())
 			else:
 				raise TypeError(widget.__class__.name)
 		else:
 			# Group of RadioButtons
 			for name, widget in self._get_radiogroup(key):
 				if widget.get_active():
-					_, name = name.rsplit(':', 1)
+					x, name = name.rsplit(':', 1)
 						# using rsplit to assure another ':' in the
 						# group name is harmless
 					return name
@@ -1383,9 +1326,6 @@ class InputForm(Gtk.Table):
 
 	#}
 
-# Need to register classes defining / overriding gobject signals
-GObject.type_register(InputForm)
-
 
 class InputEntry(Gtk.Entry):
 	'''Sub-class of C{Gtk.Entry} with support for highlighting
@@ -1440,19 +1380,16 @@ class InputEntry(Gtk.Entry):
 		or even string containing only whitespace. If C{False} all
 		whitespace is stripped.
 		'''
-		# NOTE: when porting to Gtk3 use Gtk.Entry.set_placeholder_text()
-		# and remove our own implementation
 		GObject.GObject.__init__(self)
 		self._normal_color = None
 		self.allow_empty = allow_empty
 		self.show_empty_invalid = show_empty_invalid
 		self.allow_whitespace = allow_whitespace
-		self.placeholder_text = placeholder_text
-		self._placeholder_text_shown = False
+		self.set_placeholder_text(placeholder_text)
 		self.check_func = check_func
 		self._input_valid = False
-		self.do_changed() # Initialize state
-		self.connect('changed', self.__class__.do_changed)
+		self.update_input_valid()
+		self.connect('changed', self.__class__.update_input_valid)
 
 		def _init_base_color(*a):
 			# This is handled on expose event, because style does not
@@ -1461,14 +1398,14 @@ class InputEntry(Gtk.Entry):
 				self._normal_color = self.style.base[Gtk.StateType.NORMAL]
 				self._set_base_color(self.get_input_valid())
 
-		self.connect('expose-event', _init_base_color)
+		#self.connect('expose-event', _init_base_color)
 
 	def set_check_func(self, check_func):
 		'''Set a function to check whether input is valid or not
 		@param check_func: the function
 		'''
 		self.check_func = check_func
-		self.do_changed()
+		self.emit('changed')
 
 	def set_icon(self, icon, cb_func, tooltip=None):
 		'''Add an icon in the entry widget behind the text
@@ -1481,13 +1418,8 @@ class InputEntry(Gtk.Entry):
 		@returns: C{True} if succesful, C{False} if not supported
 		by Gtk version
 
-		@requires: Gtk >= 2.16
 		@todo: add argument to set tooltip on the icon
 		'''
-		if Gtk.gtk_version < (2, 16) \
-		and Gtk.pygtk_version >= (2, 16):
-			return False
-
 		self.set_property('secondary-icon-stock', icon)
 		if tooltip:
 			self.set_property('secondary-icon-tooltip-text', tooltip)
@@ -1509,13 +1441,7 @@ class InputEntry(Gtk.Entry):
 
 		@returns: C{True} if succesful, C{False} if not supported
 		by Gtk version
-
-		@requires: Gtk >= 2.16
 		'''
-		if Gtk.gtk_version < (2, 16) \
-		and Gtk.pygtk_version >= (2, 16):
-			return False
-
 		self.set_icon(Gtk.STOCK_CLEAR, self.clear, _('Clear'))
 			# T: tooltip for the inline icon to clear a text entry widget
 
@@ -1533,28 +1459,13 @@ class InputEntry(Gtk.Entry):
 		but with UTF-8 decoding and whitespace stripped.
 		@returns: string
 		'''
-		if self._placeholder_text_shown:
-			return ''
-
 		text = Gtk.Entry.get_text(self)
 		if not text:
 			return ''
 		elif self.allow_whitespace:
-			return text.decode('utf-8')
+			return text.decode('UTF-8')
 		else:
-			return text.decode('utf-8').strip()
-
-	def set_text(self, text):
-		'''Wrapper for C{Gtk.Entry.set_text()}.
-		@param text: string
-		'''
-		if not text \
-		and not self.get_property('has-focus'):
-			Gtk.Entry.set_text(self, text)
-			self._show_placeholder_text()
-		else:
-			self._hide_placeholder_text()
-			Gtk.Entry.set_text(self, text)
+			return text.decode('UTF-8').strip()
 
 	def get_input_valid(self):
 		'''Get the valid state.
@@ -1574,8 +1485,8 @@ class InputEntry(Gtk.Entry):
 		if valid == self._input_valid:
 			return
 
-		if self._normal_color:
-			self._set_base_color(valid)
+		#if self._normal_color:
+		#	self._set_base_color(valid)
 		# else: not yet initialized
 
 		self._input_valid = valid
@@ -1592,51 +1503,12 @@ class InputEntry(Gtk.Entry):
 		'''Clear the text in the entry'''
 		self.set_text('')
 
-	def do_expose_event(self, event):
-		Gtk.Entry.do_expose_event(self, event)
-		if not self.get_property('has-focus'):
-			self._show_placeholder_text()
-
-	def do_focus_in_event(self, event):
-		self._hide_placeholder_text()
-		Gtk.Entry.do_focus_in_event(self, event)
-
-	def do_focus_out_event(self, event):
-		Gtk.Entry.do_focus_out_event(self, event)
-		self._show_placeholder_text()
-
-	def _show_placeholder_text(self):
-		if not self.get_text() \
-		and self.placeholder_text:
-			self._placeholder_text_shown = True
-			Gtk.Entry.set_text(self, self.placeholder_text)
-
-			layout = self.get_layout()
-			attr = Pango.AttrList()
-			end = len(self.placeholder_text.encode('utf-8'))
-			attr.insert(Pango.AttrStyle(Pango.Style.ITALIC, 0, end))
-			c = 65535 / 16 * 8
-			attr.insert(Pango.AttrForeground(c, c, c, 0, end))
-				# TODO make color configurable, now just solid grey
-			layout.set_attributes(attr)
-			# The layout is reset when new text is set, so
-			# no need to "unset" the style at _hide_placeholder_text()
-
-	def _hide_placeholder_text(self):
-		if self._placeholder_text_shown:
-			Gtk.Entry.set_text(self, '')
-			self._placeholder_text_shown = False
-
-	def do_changed(self):
+	def update_input_valid(self):
 		text = self.get_text() or ''
 		if self.check_func:
 			self.set_input_valid(self.check_func(text))
 		else:
 			self.set_input_valid(bool(text) or self.allow_empty)
-
-
-# Need to register classes defining / overriding gobject signals
-GObject.type_register(InputEntry)
 
 
 class FSPathEntry(InputEntry):
@@ -1790,7 +1662,7 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 	if key is None:
 		return False
 
-	key = key.decode('utf-8').lower()
+	key = key.decode('UTF-8').lower()
 	key = unicodedata.normalize('NFKD', key)
 		# decode utf-8 because we are called by gtk function
 		# normalization could be done elsewhere, but keep together
@@ -1798,7 +1670,7 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 	model = completion.get_model()
 	text = model.get_value(iter, column)
 	if text is not None:
-		text = unicodedata.normalize('NFKD', text.decode('utf-8'))
+		text = unicodedata.normalize('NFKD', text.decode('UTF-8'))
 		return key in text.lower()
 	else:
 		return False
@@ -1808,7 +1680,7 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 	if key is None:
 		return False
 
-	key = key.decode('utf-8').lower()
+	key = key.decode('UTF-8').lower()
 	key = unicodedata.normalize('NFKD', key)
 		# decode utf-8 because we are called by gtk function
 		# normalization could be done elsewhere, but keep together
@@ -1816,7 +1688,7 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 	model = completion.get_model()
 	text = model.get_value(iter, column)
 	if text is not None:
-		text = unicodedata.normalize('NFKD', text.decode('utf-8'))
+		text = unicodedata.normalize('NFKD', text.decode('UTF-8'))
 		return text.lower().startswith(key)
 	else:
 		return False
@@ -1902,7 +1774,7 @@ class PageEntry(InputEntry):
 
 		@returns: a L{Path} object or C{None} is no valid path was entered
 		'''
-		name = self.get_text().decode('utf-8').strip()
+		name = self.get_text().decode('UTF-8').strip()
 		if self._allow_select_root and (name == ':' or not name):
 			self.set_input_valid(True)
 			return Path(':')
@@ -1938,7 +1810,7 @@ class PageEntry(InputEntry):
 						return None
 				return path
 
-	def do_changed(self):
+	def update_input_valid(self):
 		# Update valid state
 		text = self.get_text()
 
@@ -2095,7 +1967,7 @@ class LinkEntry(PageEntry, FileEntry):
 
 	def get_path(self):
 		# Check we actually got a valid path
-		text = self.get_text().decode('utf-8').strip()
+		text = self.get_text()
 		if text:
 			type = link_type(text)
 			if type == 'page':
@@ -2105,15 +1977,15 @@ class LinkEntry(PageEntry, FileEntry):
 		else:
 			return None
 
-	def do_changed(self):
+	def update_input_valid(self):
 		# Switch between path completion and file completion
-		text = self.get_text().decode('utf-8').strip()
+		text = self.get_text()
 		if text:
 			type = link_type(text)
 			if type == 'page':
-				PageEntry.do_changed(self)
+				PageEntry.update_input_valid(self)
 			#~ elif type == 'file':
-				#~ FileEntry.do_changed(self)
+				#~ FileEntry.update_input_valid(self)
 			else:
 				self.set_input_valid(True)
 		else:
@@ -2201,15 +2073,14 @@ class WindowSidePane(Gtk.VBox):
 
 		# Add bar with label and close button
 		self.topbar = Gtk.HBox()
-		self.topbar.pack_end(self._close_button(, True, True, 0), False)
-		self.pack_start(self.topbar, False)
+		self.topbar.pack_end(self._close_button(), True, True, 0)
+		self.pack_start(self.topbar, False, True, 0)
 
 		# Add notebook
 		self.notebook = Gtk.Notebook()
 		self.notebook.set_show_border(False)
-		if Gtk.gtk_version >= (2, 22) and Gtk.pygtk_version >= (2, 22):
-			button = self._close_button()
-			self.notebook.set_action_widget(button, Gtk.PACK_END)
+		button = self._close_button()
+		self.notebook.set_action_widget(button, Gtk.PackType.END)
 
 		self.add(self.notebook)
 
@@ -2260,8 +2131,7 @@ class WindowSidePane(Gtk.VBox):
 
 	def _show_topbar_for_widget(self, widget):
 		self.notebook.set_show_tabs(True)
-		if Gtk.gtk_version >= (2, 22) and Gtk.pygtk_version >= (2, 22):
-			_hide(self.notebook.get_action_widget(Gtk.PACK_END))
+		_hide(self.notebook.get_action_widget(Gtk.PackType.END))
 
 		self._set_topbar_label(Gtk.Label(label=''))
 		if isinstance(widget, WindowSidePaneWidget) \
@@ -2272,16 +2142,14 @@ class WindowSidePane(Gtk.VBox):
 
 	def _show_empty_topbar(self):
 		self.notebook.set_show_tabs(False)
-		if Gtk.gtk_version >= (2, 22) and Gtk.pygtk_version >= (2, 22):
-			_hide(self.notebook.get_action_widget(Gtk.PACK_END))
+		_hide(self.notebook.get_action_widget(Gtk.PackType.END))
 
 		self._set_topbar_label(Gtk.Label(label=''))
 		_show(self.topbar)
 
 	def _show_single_tab(self):
 		self.notebook.set_show_tabs(False)
-		if Gtk.gtk_version >= (2, 22) and Gtk.pygtk_version >= (2, 22):
-			_hide(self.notebook.get_action_widget(Gtk.PACK_END))
+		_hide(self.notebook.get_action_widget(Gtk.PackType.END))
 
 		child = self.notebook.get_nth_page(0)
 		self._set_topbar_label(child.get_title_label())
@@ -2294,15 +2162,12 @@ class WindowSidePane(Gtk.VBox):
 	def _show_multiple_tabs(self):
 		self.notebook.set_show_tabs(True)
 		self._set_topbar_label(Gtk.Label(label=''))
-		if Gtk.gtk_version >= (2, 22) and Gtk.pygtk_version >= (2, 22):
-			# Show close button next to notebook tabs
-			_show(self.notebook.get_action_widget(Gtk.PACK_END))
-			_hide(self.topbar)
-		else:
-			_show(self.topbar)
+		# Show close button next to notebook tabs
+		_show(self.notebook.get_action_widget(Gtk.PackType.END))
+		_hide(self.topbar)
 
 	def add_widget(self, widget, position):
-		self.pack_start(widget, False)
+		self.pack_start(widget, False, True, 0)
 		if position == TOP:
 			# shuffle above notebook, below close bar
 			self.reorder_child(widget, 1)
@@ -2361,9 +2226,6 @@ class WindowSidePane(Gtk.VBox):
 		else:
 			return Gtk.VBox.do_key_press_event(self, event)
 
-# Need to register classes defining gobject signals
-GObject.type_register(WindowSidePane)
-
 
 class MinimizedTabs(object):
 
@@ -2381,7 +2243,7 @@ class MinimizedTabs(object):
 
 		if self._angle in (90, 270): # Hack to introduce some empty space
 			label = Gtk.Label(label=' ')
-			self.pack_start(label, False)
+			self.pack_start(label, False, True, 0)
 
 		ipages = range(notebook.get_n_pages())
 		if self._angle == 90:
@@ -2398,7 +2260,7 @@ class MinimizedTabs(object):
 			button.connect('clicked', self._on_click, child.tab_key)
 			if self._angle != 0:
 				button.get_child().set_angle(self._angle)
-			self.pack_start(button, False)
+			self.pack_start(button, False, True, 0)
 			button.show_all()
 
 	def _on_click(self, b, text):
@@ -2413,7 +2275,8 @@ class HMinimizedTabs(Gtk.HBox, MinimizedTabs):
 	}
 
 	def __init__(self, sidepane, angle=0):
-		GObject.GObject.__init__(self, spacing=12)
+		GObject.GObject.__init__(self)
+		self.set_spacing(12)
 		MinimizedTabs.__init__(self, sidepane, angle)
 
 
@@ -2425,12 +2288,9 @@ class VMinimizedTabs(Gtk.VBox, MinimizedTabs):
 	}
 
 	def __init__(self, sidepane, angle=90):
-		GObject.GObject.__init__(self, spacing=12)
+		GObject.GObject.__init__(self)
+		self.set_spacing(12)
 		MinimizedTabs.__init__(self, sidepane, angle)
-
-# Need to register classes defining gobject signals
-GObject.type_register(HMinimizedTabs)
-GObject.type_register(VMinimizedTabs)
 
 
 class WindowSidePaneWidget(object):
@@ -2569,16 +2429,16 @@ class Window(Gtk.Window):
 		# put it all together ...
 		Gtk.Window.add(self, self._zim_window_main)
 		self._zim_window_main.add(self._zim_window_central_hbox)
-		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False)
+		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False, True, 0)
 		self._zim_window_central_hbox.add(self._zim_window_left_paned)
-		self._zim_window_central_hbox.pack_start(self._zim_window_right_minimized, False)
+		self._zim_window_central_hbox.pack_start(self._zim_window_right_minimized, False, True, 0)
 		self._zim_window_left_paned.pack1(self._zim_window_left_pane, resize=False)
 		self._zim_window_left_paned.pack2(self._zim_window_right_paned, resize=True)
 		self._zim_window_right_paned.pack1(self._zim_window_central_vbox, resize=True)
 		self._zim_window_right_paned.pack2(self._zim_window_right_pane, resize=False)
-		self._zim_window_central_vbox.pack_start(self._zim_window_top_minimized, False)
+		self._zim_window_central_vbox.pack_start(self._zim_window_top_minimized, False, True, 0)
 		self._zim_window_central_vbox.add(self._zim_window_top_paned)
-		self._zim_window_central_vbox.pack_start(self._zim_window_bottom_minimized, False)
+		self._zim_window_central_vbox.pack_start(self._zim_window_bottom_minimized, False, True, 0)
 		self._zim_window_top_paned.pack1(self._zim_window_top_pane, resize=False)
 		self._zim_window_top_paned.pack2(self._zim_window_bottom_paned, resize=True)
 		self._zim_window_bottom_paned.pack2(self._zim_window_bottom_pane, resize=True)
@@ -2632,7 +2492,7 @@ class Window(Gtk.Window):
 		@param widget: gtk widget for the bar
 		@param position: C{TOP} or C{BOTTOM}
 		'''
-		self._zim_window_main.pack_start(widget, False)
+		self._zim_window_main.pack_start(widget, False, True, 0)
 
 		if position == TOP:
 			# reshuffle widget to go above main widgets but
@@ -2650,7 +2510,7 @@ class Window(Gtk.Window):
 		frame.set_shadow_type(Gtk.ShadowType.IN)
 		self._zim_window_bottom_minimized.reparent(frame)
 		self._zim_window_bottom_minimized.status_bar_style = True
-		statusbar.pack_end(frame, False)
+		statusbar.pack_end(frame, False, True, 0)
 		frame.show_all()
 
 	def add_tab(self, key, widget, pane):
@@ -2682,7 +2542,7 @@ class Window(Gtk.Window):
 			if key == TOP_PANE and pos == TOP:
 				# Special case for top widget outside of pane
 				# used especially for PathBar
-				self._zim_window_central_vbox.pack_start(widget, False)
+				self._zim_window_central_vbox.pack_start(widget, False, True, 0)
 				self._zim_window_central_vbox.reorder_child(widget, 0)
 			else:
 				raise NotImplementedError
@@ -2931,9 +2791,6 @@ class Window(Gtk.Window):
 		else:
 			Gtk.Window.present(self)
 
-# Need to register classes defining gobject signals
-GObject.type_register(Window)
-
 
 class Dialog(Gtk.Dialog, ConnectorMixin):
 	'''Sub-class of C{Gtk.Dialog} with a number of convenience methods
@@ -3012,19 +2869,19 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 			  of constructing the buttons themselves
 			- C{Gtk.ButtonsType.OK_CANCEL}: Render Ok and Cancel
 			- C{Gtk.ButtonsType.CLOSE}: Only set a Close button
-		@param button: a 2-tuple of a label and a stock item to use
-		instead of the default 'Ok' button (either stock or label
-		can be None).
+		@param button: a label to use instead of the default 'Ok' button
 		@param help_text: set the help text, see L{add_help_text()}
 		@param help: pagename for a manual page, see L{set_help()}
 		@param defaultwindowsize: default window size in pixels
 		'''
 		window = get_window(parent)
-		GObject.GObject.__init__(
-			self, parent=window,
-			title=format_title(title),
-			flags=Gtk.DialogFlags.NO_SEPARATOR | Gtk.DialogFlags.DESTROY_WITH_PARENT,
-		)
+		GObject.GObject.__init__(self)
+		self.set_transient_for(window)
+		self.set_title(title)
+
+		self.destroyed = True
+		self.connect('destroy', self.__class__.on_destroy)
+
 		self.result = None
 		self._registered = False
 		self.set_border_width(10)
@@ -3051,8 +2908,9 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 			self.set_default_size(w, h)
 
 		self._no_ok_action = False
-		if not button is None:
-			button = Button(*button)
+		if button is not None:
+			assert isinstance(button, basestring), 'Usage of string + stock id deprecated'
+			button = Gtk.Button.new_with_mnemonic(button)
 
 		if buttons is None or buttons == Gtk.ButtonsType.NONE:
 			self._no_ok_action = True
@@ -3075,13 +2933,9 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		if help:
 			self.set_help(help)
 
-	def destroy(self):
+	def on_destroy(self):
 		self.disconnect_all()
-		Gtk.Dialog.destroy(self)
-
-	@property
-	def destroyed(self): return not self.has_user_ref_count
-		# Returns True when dialog has been destroyed
+		self.destroyed = True
 
 	#{ Layout methods
 
@@ -3093,7 +2947,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		@param pack_start: if C{True} pack to the left (towards the
 		middle of the dialog), if C{False} pack to the right.
 		'''
-		self.action_area.pack_start(button, False)
+		self.action_area.pack_start(button, False, True, 0)
 		if pack_start:
 			self.action_area.reorder_child(button, 0)
 
@@ -3103,7 +2957,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		@param pagename: the manual page name
 		'''
 		self.help_page = pagename
-		button = Gtk.Button(stock=Gtk.STOCK_HELP)
+		button = Gtk.Button.new_with_mnemonic(_('_Help')) # T: Button label
 		button.connect_object('clicked', self.__class__.show_help, self)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
@@ -3121,7 +2975,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		@param text: help text
 		'''
 		hbox = help_text_factory(text)
-		self.vbox.pack_start(hbox, False)
+		self.vbox.pack_start(hbox, False, True, 0)
 
 	def add_text(self, text):
 		'''Adds a label to the dialog
@@ -3131,7 +2985,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		label = Gtk.Label(label=text)
 		label.set_use_markup(True)
 		label.set_alignment(0.0, 0.0)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
 	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
 		'''Convenience method to construct a form with input widgets and
@@ -3152,7 +3006,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		self.form = InputForm(inputs, values, depends, notebook)
 		if trigger_response:
 			self.form.connect('last-activated', lambda o: self.response_ok())
-		self.vbox.pack_start(self.form, False)
+		self.vbox.pack_start(self.form, False, True, 0)
 		return self.form
 
 	#}
@@ -3217,7 +3071,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		self.show_all()
 
 	def show_all(self):
-		logger.debug('Opening dialog "%s"', self.title)
+		logger.debug('Opening dialog "%s"', self.get_title())
 		if not self._registered:
 			self._registered = True
 
@@ -3288,7 +3142,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 
 		if destroy:
 			self.destroy()
-			logger.debug('Closed dialog "%s"', self.title[:-6])
+			logger.debug('Closed dialog "%s"', self.get_title())
 
 	def do_response_ok(self):
 		'''Handler called when the user clicks the "OK" button (or
@@ -3328,9 +3182,6 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		pass
 
 	#}
-
-# Need to register classes defining gobject signals
-GObject.type_register(Dialog)
 
 
 class ErrorDialog(Gtk.MessageDialog):
@@ -3397,11 +3248,15 @@ class ErrorDialog(Gtk.MessageDialog):
 		self.do_logging = do_logging
 		msg, show_trace = zim.errors.get_error_msg(error)
 
-		GObject.GObject.__init__(
-			self, parent=get_window(parent),
-			type=Gtk.MessageType.ERROR, buttons=buttons,
-			message_format=msg
+		Gtk.MessageDialog.__init__(
+			self,
+			message_type=Gtk.MessageType.ERROR,
+			buttons=buttons,
+			text=msg
 		)
+		self.set_transient_for(get_window(parent))
+		self.set_modal(True)
+
 
 		if isinstance(error, zim.errors.Error):
 			self.showing_trace = False # used in test
@@ -3434,6 +3289,7 @@ class ErrorDialog(Gtk.MessageDialog):
 		result of C{sys.exc_info()}
 		@returns: debug log as string
 		'''
+		from gi.repository import GObject
 		import zim
 		import traceback
 
@@ -3450,9 +3306,7 @@ class ErrorDialog(Gtk.MessageDialog):
 			'Locale: %s %s\n' % locale.getdefaultlocale() + \
 			'FS encoding: %s\n' % zim.fs.ENCODING + \
 			'Python: %s\n' % str(tuple(sys.version_info)) + \
-			'Gtk: %s\n' % str(Gtk.gtk_version) + \
-			'Pygtk: %s\n' % str(Gtk.pygtk_version)
-
+			'PyGObject: %s\n' % str(GObject.pygobject_version)
 
 		text += zim.get_zim_revision() + '\n'
 
@@ -3528,10 +3382,12 @@ class QuestionDialog(Gtk.MessageDialog):
 
 		self.answer = None
 		GObject.GObject.__init__(
-			self, parent=get_window(parent),
-			type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.YES_NO,
-			message_format=question
+			self,
+			message_type=Gtk.MessageType.QUESTION,
+			buttons=Gtk.ButtonsType.YES_NO,
+			text=question
 		)
+		self.set_transient_for(get_window(parent))
 		if text:
 			self.format_secondary_text(text)
 
@@ -3585,12 +3441,14 @@ class MessageDialog(Gtk.MessageDialog):
 		else:
 			text = None
 
-		GObject.GObject.__init__(
-			self, parent=get_window(parent),
-			type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.OK,
-			message_format=msg,
-			flags=Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+		Gtk.MessageDialog.__init__(
+			self,
+			type=Gtk.MessageType.QUESTION,
+			text=msg,
 		)
+		self.set_transient_for(get_window(parent))
+		self.set_modal(True)
+		self.add_button(Gtk.STOCK_OK, Gtk.ButtonsType.OK)
 		if text:
 			self.format_secondary_text(text)
 
@@ -3602,7 +3460,7 @@ class MessageDialog(Gtk.MessageDialog):
 		@param pack_start: if C{True} pack to the left (towards the
 		middle of the dialog), if C{False} pack to the right.
 		'''
-		self.action_area.pack_start(button, False)
+		self.action_area.pack_start(button, False, True, 0)
 		if pack_start:
 			self.action_area.reorder_child(button, 0)
 
@@ -3658,9 +3516,9 @@ class FileDialog(Dialog):
 		'''
 		if button is None:
 			if action == Gtk.FileChooserAction.OPEN:
-				button = (None, Gtk.STOCK_OPEN)
+				button = Gtk.STOCK_OPEN
 			elif action == Gtk.FileChooserAction.SAVE:
-				button = (None, Gtk.STOCK_SAVE)
+				button = Gtk.STOCK_SAVE
 			# else Ok will do
 
 		Dialog.__init__(self, parent, title, defaultwindowsize=(500, 400),
@@ -3758,7 +3616,7 @@ class FileDialog(Dialog):
 
 		uri = self.filechooser.get_uri()
 		if uri:
-			return File(uri.decode('utf-8'))
+			return File(uri.decode('UTF-8'))
 		elif TEST_MODE and hasattr(self, '_file') and self._file:
 			return self._file
 		else:
@@ -3769,7 +3627,7 @@ class FileDialog(Dialog):
 		with C{multiple=True}.
 		@returns: a list of L{File} objects
 		'''
-		files = [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
+		files = [File(uri.decode('UTF-8')) for uri in self.filechooser.get_uris()]
 		if files:
 			return files
 		elif TEST_MODE and hasattr(self, '_file') and self._file:
@@ -3787,7 +3645,7 @@ class FileDialog(Dialog):
 			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
-		return Dir(uri.decode('utf-8')) if uri else None
+		return Dir(uri.decode('UTF-8')) if uri else None
 
 	def _add_filter_all(self):
 		filter = Gtk.FileFilter()
@@ -3865,13 +3723,10 @@ class ProgressDialog(Gtk.Dialog):
 		self.op = op
 		self._total = None
 		self.cancelled = False
-		GObject.GObject.__init__(
-			# no title - see HIG about message dialogs
-			self, parent=get_window(parent),
-			title='',
-			flags=Gtk.DialogFlags.NO_SEPARATOR | Gtk.DialogFlags.MODAL,
-			buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-		)
+		GObject.GObject.__init__(self)
+		self.set_transient_for(get_window(parent))
+		self.set_modal(True)
+		self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 		self.set_default_size(300, 0)
@@ -3879,15 +3734,15 @@ class ProgressDialog(Gtk.Dialog):
 		label = Gtk.Label()
 		label.set_markup('<b>' + encode_markup_text(op.message) + '</b>')
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
 		self.progressbar = Gtk.ProgressBar()
-		self.vbox.pack_start(self.progressbar, False)
+		self.vbox.pack_start(self.progressbar, False, True, 0)
 
 		self.msg_label = Gtk.Label()
 		self.msg_label.set_alignment(0.0, 0.5)
 		self.msg_label.set_ellipsize(Pango.EllipsizeMode.START)
-		self.vbox.pack_start(self.msg_label, False)
+		self.vbox.pack_start(self.msg_label, False, True, 0)
 
 		self.op.connect('step', self.on_step)
 		self.op.connect('finished', self.on_finished)
@@ -3933,10 +3788,6 @@ class ProgressDialog(Gtk.Dialog):
 		logger.debug('ProgressDialog %s cancelled', self.op.message)
 		self.op.cancel()
 		self.cancelled = True
-
-
-# Need to register classes defining gobject signals
-GObject.type_register(ProgressDialog)
 
 
 class LogFileDialog(Dialog):
@@ -3989,11 +3840,11 @@ class Assistant(Dialog):
 		self.ok_button = buttons[0] # HACK: not sure this order fixed
 		self.ok_button.set_no_show_all(True)
 
-		self.back_button = Gtk.Button(stock=Gtk.STOCK_GO_BACK)
+		self.back_button = Gtk.Button.new_with_mnemonic(_('_Back')) # T: Button label
 		self.back_button.connect_object('clicked', self.__class__.previous_page, self)
 		self.action_area.add(self.back_button)
 
-		self.forw_button = Gtk.Button(stock=Gtk.STOCK_GO_FORWARD)
+		self.forw_button = Gtk.Button.new_with_mnemonic(_('_Forward')) # T: Button label
 		self.forw_button.set_no_show_all(True)
 		self.forw_button.connect_object('clicked', self.__class__.next_page, self)
 		self.action_area.add(self.forw_button)
@@ -4058,22 +3909,23 @@ class Assistant(Dialog):
 			ebox.modify_fg(Gtk.StateType.NORMAL, self.style.fg[Gtk.StateType.SELECTED])
 			ebox.modify_bg(Gtk.StateType.NORMAL, self.style.bg[Gtk.StateType.SELECTED])
 			self.disconnect(self._expose_event_id)
-			return False # propagate
+			#return False # propagate
 
-		self._expose_event_id = \
-			self.connect_after('expose-event', _set_heading_color)
+		#_set_heading_color()
+		#self._expose_event_id = \
+		#	self.connect_after('expose-event', _set_heading_color)
 
 		hbox = Gtk.HBox()
 		hbox.set_border_width(5)
 		ebox.add(hbox)
-		self.vbox.pack_start(ebox, False)
+		self.vbox.pack_start(ebox, False, True, 0)
 
 		label = Gtk.Label()
 		label.set_markup('<b>' + page.title + '</b>')
-		hbox.pack_start(label, False)
+		hbox.pack_start(label, False, True, 0)
 		label = Gtk.Label()
 		label.set_markup('<b>(%i/%i)</b>' % (self._page + 1, len(self._pages)))
-		hbox.pack_end(label, False)
+		hbox.pack_end(label, False, True, 0)
 
 		# Add actual page
 		self.vbox.add(page)
@@ -4198,7 +4050,7 @@ class AssistantPage(Gtk.VBox):
 		'''
 		self.form = InputForm(inputs, values, depends, notebook=self.assistant.notebook)
 		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
-		self.pack_start(self.form, False)
+		self.pack_start(self.form, False, True, 0)
 		self.check_input_valid()
 		return self.form
 
@@ -4227,9 +4079,6 @@ class AssistantPage(Gtk.VBox):
 			self._input_valid = valid
 			self.emit('input-valid-changed')
 
-# Need to register classes defining gobject signals
-GObject.type_register(AssistantPage)
-
 
 class ImageView(Gtk.Layout):
 	'''Widget to show an image, scales the image and sets proper
@@ -4243,14 +4092,12 @@ class ImageView(Gtk.Layout):
 		'size-allocate': 'override',
 	}
 
-	def __init__(self, bgcolor='#FFF', checkerboard=True):
+	def __init__(self, bgcolor='#FFF'):
 		'''Constructor
 		@param bgcolor: background color as color hex code, (e.g. "#FFF")
-		@param checkerboard: if C{True} a checkerboard is drawn behind
-		transparent images, if C{False} it is just the background color.
 		'''
 		GObject.GObject.__init__(self)
-		self.set_flags(Gtk.CAN_FOCUS)
+		self.set_can_focus(True)
 		self.scaling = self.SCALE_FIT
 		self.factor = 1
 
@@ -4260,13 +4107,7 @@ class ImageView(Gtk.Layout):
 		self._image = Gtk.Image() # pixbuf is set for the image in _render()
 		self.add(self._image)
 
-		colormap = self._image.get_colormap()
-		self._lightgrey = colormap.alloc_color('#666')
-		self._darkgrey = colormap.alloc_color('#999')
-
-		if bgcolor:
-			self.set_bgcolor(bgcolor)
-		self.checkerboard = checkerboard
+		self.set_bgcolor(bgcolor)
 
 	def set_bgcolor(self, bgcolor):
 		'''Set background color
@@ -4276,13 +4117,6 @@ class ImageView(Gtk.Layout):
 		color = Gdk.color_parse(bgcolor)
 			# Gdk.Color(spec) only for gtk+ >= 2.14
 		self.modify_bg(Gtk.StateType.NORMAL, color)
-
-	def set_checkerboard(self, checkerboard):
-		'''Set checkerboard for transparent images
-		@param checkerboard: if C{True} a checkerboard is drawn behind
-		transparent images, if C{False} it is just the background color.
-		'''
-		self.checkerboard = checkerboard
 
 	def set_scaling(self, scaling, factor=1):
 		'''Set the scaling
@@ -4372,17 +4206,10 @@ class ImageView(Gtk.Layout):
 		# Scale pixbuf to new size
 		wimg = max(wimg, 1)
 		himg = max(himg, 1)
-		if not self.checkerboard or not self._pixbuf.get_has_alpha():
-			if (wimg, himg) == (wsrc, hsrc):
-				pixbuf = self._pixbuf
-			else:
-				pixbuf = self._pixbuf.scale_simple(
-							wimg, himg, GdkPixbuf.InterpType.NEAREST)
+		if (wimg, himg) == (wsrc, hsrc):
+			pixbuf = self._pixbuf
 		else:
-			# Generate checkerboard background while scaling
-			pixbuf = self._pixbuf.composite_color_simple(
-				wimg, himg, GdkPixbuf.InterpType.NEAREST,
-				255, 16, self._lightgrey.pixel, self._darkgrey.pixel)
+			pixbuf = self._pixbuf.scale_simple(wimg, himg, GdkPixbuf.InterpType.NEAREST)
 
 		# And align the image in the layout
 		wvirt = max((wwin, wimg))
@@ -4393,9 +4220,6 @@ class ImageView(Gtk.Layout):
 		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)
 
 		return False # We could be called by a timeout event
-
-# Need to register classes defining gobject signals
-GObject.type_register(ImageView)
 
 
 class TableBoxMixin(object):
@@ -4452,9 +4276,6 @@ class TableVBox(TableBoxMixin, Gtk.VBox):
 		GObject.GObject.__init__(self)
 		TableBoxMixin.__init__(self)
 
-# Need to register classes defining gobject signals
-GObject.type_register(TableVBox)
-
 
 class TableHBox(TableBoxMixin, Gtk.HBox):
 	'''This is a C{Gtk.HBox} except that it draws a fine line between
@@ -4465,6 +4286,3 @@ class TableHBox(TableBoxMixin, Gtk.HBox):
 	def __init__(self):
 		GObject.GObject.__init__(self)
 		TableBoxMixin.__init__(self)
-
-# Need to register classes defining gobject signals
-GObject.type_register(TableHBox)

@@ -14,7 +14,7 @@ logger = logging.getLogger('zim.notebook.index')
 try:
 	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 from zim.newfs import LocalFile, File, Folder, FileNotFoundError
@@ -164,7 +164,7 @@ class Index(SignalEmitter):
 		return self.update_iter.check_and_update_iter()
 
 	def check_async(self, notebook, paths, recursive=False):
-		assert gobject, 'async operation requires gobject mainloop'
+		assert GObject, 'async operation requires gobject mainloop'
 		for path in paths:
 			file, folder = self.layout.map_page(path)
 			self._checker.queue_check(file, recursive=recursive)

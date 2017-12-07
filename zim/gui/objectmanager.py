@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
-# Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from gi.repository import Gtk
 from gi.repository import GObject
+from gi.repository import Gdk
 
 from zim.objectmanager import ObjectManager
 
@@ -43,8 +44,6 @@ class CustomObjectWidget(Gtk.EventBox):
 
 		'grab-cursor': (GObject.SignalFlags.RUN_LAST, None, (int,)),
 		'release-cursor': (GObject.SignalFlags.RUN_LAST, None, (int,)),
-
-		'size-request': 'override',
 	}
 
 	def __init__(self):
@@ -57,18 +56,24 @@ class CustomObjectWidget(Gtk.EventBox):
 
 	def do_realize(self):
 		Gtk.EventBox.do_realize(self)
-		self.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
+		window = self.get_parent_window()
+		window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
 
 	def on_textview_size_changed(self, textview, width, height):
 		self._textview_width = width
-		self.queue_resize()
+		def callback():
+			self.queue_resize()
+			return False # delete signal
+		GObject.idle_add(callback)
 
-	def do_size_request(self, requisition):
-		Gtk.EventBox.do_size_request(self, requisition)
+	def do_get_preferred_width(self):
+		minimum, natural = self.vbox.get_preferred_width()
 
-		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
-		if self._textview_width > requisition.width:
-			requisition.width = self._textview_width
+		#print "Widget requests: %i..%i textview: %i" % (minimum, natural, self._textview_width)
+		if self._textview_width > minimum:
+			natural = self._textview_width
+
+		return minimum, natural
 
 	def has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be
@@ -90,9 +95,6 @@ class CustomObjectWidget(Gtk.EventBox):
 	def release_cursor(self, position):
 		'''Emits the release-cursor signal'''
 		self.emit('release-cursor', position)
-
-GObject.type_register(CustomObjectWidget)
-
 
 
 class TextViewWidget(CustomObjectWidget):
@@ -184,14 +186,14 @@ class FallbackObjectWidget(TextViewWidget):
 
 		#~ if activatable: # and False:
 			# Plugin can be enabled
-			#~ button = Gtk.Button(_("Enable plugin")) # T: Label for object manager
+			#~ button = Gtk.Button.new_with_mnemonic(_("Enable plugin")) # T: Label for object manager
 			#~ def load_plugin(button):
 				#~ xxx.plugins.load_plugin(key)
 				#~ xxx.mainwindow.reload_page()
 			#~ button.connect("clicked", load_plugin)
 		#~ else:
 			# Plugin has some unresolved dependencies
-			#~ button = Gtk.Button(_("Show plugin details")) # T: Label for object manager
+			#~ button = Gtk.Button.new_with_mnemonic(_("Show plugin details")) # T: Label for object manager
 			#~ def plugin_info(button):
 				#~ from zim.gui.preferencesdialog import PreferencesDialog
 				#~ dialog = PreferencesDialog(self, "Plugins", select_plugin=name)

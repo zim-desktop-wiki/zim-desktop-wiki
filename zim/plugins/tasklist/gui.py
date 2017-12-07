@@ -3,6 +3,7 @@
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
+from gi.repository import GObject
 from gi.repository import Pango
 
 import logging
@@ -85,8 +86,8 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 			lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
 		self.filter_entry.connect('changed', filter_cb)
 
-		self.pack_start(ScrolledWindow(self.task_list, True, True, 0))
-		self.pack_end(self.filter_entry, False)
+		self.pack_start(ScrolledWindow(self.task_list), True, True, 0)
+		self.pack_end(self.filter_entry, False, True, 0)
 
 
 class TaskListDialog(TaskListWidgetMixin, Dialog):
@@ -99,7 +100,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.tasksview = tasksview
 
 		hbox = Gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False)
+		self.vbox.pack_start(hbox, False, True, 0)
 		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
@@ -134,10 +135,10 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
-		hbox.pack_start(Gtk.Label(_('Filter', True, True, 0) + ': '), False) # T: Input label
+		hbox.pack_start(Gtk.Label(_('Filter') + ': '), False, True, 0) # T: Input label
 		filter_entry = InputEntry()
 		filter_entry.set_icon_to_clear()
-		hbox.pack_start(filter_entry, False)
+		hbox.pack_start(filter_entry, False, True, 0)
 		filter_cb = DelayedCallback(500,
 			lambda o: self.task_list.set_filter(filter_entry.get_text()))
 		filter_entry.connect('changed', filter_cb)
@@ -155,11 +156,11 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.act_toggle.set_active(self.uistate['only_show_act'])
 		self.act_toggle.connect('toggled', on_show_active_toggle)
 		self.uistate.connect('changed', lambda o: self.act_toggle.set_active(self.uistate['only_show_act']))
-		hbox.pack_start(self.act_toggle, False)
+		hbox.pack_start(self.act_toggle, False, True, 0)
 
 		# Statistics label
 		self.statistics_label = Gtk.Label()
-		hbox.pack_end(self.statistics_label, False)
+		hbox.pack_end(self.statistics_label, False, True, 0)
 
 		def set_statistics():
 			total = self.task_list.get_n_tasks()
@@ -248,7 +249,7 @@ class TagListTreeView(SingleClickTreeView):
 		tags = []
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
-				tags.append(row[0].decode('utf-8'))
+				tags.append(row[0].decode('UTF-8'))
 			elif row[2] == self._type_untagged:
 				tags.append(_NO_TAGS)
 		return tags or None
@@ -258,7 +259,7 @@ class TagListTreeView(SingleClickTreeView):
 		labels = []
 		for row in self._get_selected():
 			if row[2] == self._type_label:
-				labels.append(row[0].decode('utf-8'))
+				labels.append(row[0].decode('UTF-8'))
 		return labels or None
 
 	def _get_selected(self):
@@ -387,7 +388,7 @@ class TaskListTreeView(BrowserTreeView):
 		self.flatlist = flatlist
 
 		# Add some rendering for the Prio column
-		def render_prio(col, cell, model, i):
+		def render_prio(col, cell, model, i, data):
 			prio = model.get_value(i, self.PRIO_COL)
 			text = model.get_value(i, self.PRIO_SORT_LABEL_COL)
 			if text.startswith('>'):
@@ -419,11 +420,9 @@ class TaskListTreeView(BrowserTreeView):
 		self.append_column(column)
 		self.set_expander_column(column)
 
-		if Gtk.gtk_version >= (2, 12) \
-		and Gtk.pygtk_version >= (2, 12):
-			# custom tooltip
-			self.props.has_tooltip = True
-			self.connect("query-tooltip", self._query_tooltip_cb)
+		# custom tooltip
+		self.props.has_tooltip = True
+		self.connect("query-tooltip", self._query_tooltip_cb)
 
 		# Rendering of the Date column
 		day_of_week = datetime.date.today().isoweekday()
@@ -674,8 +673,8 @@ class TaskListTreeView(BrowserTreeView):
 		if not modelrow[self.ACT_COL] and self.filter_actionable:
 			visible = False
 
-		description = modelrow[self.DESC_COL].decode('utf-8').lower()
-		pagename = modelrow[self.PAGE_COL].decode('utf-8').lower()
+		description = modelrow[self.DESC_COL].decode('UTF-8').lower()
+		pagename = modelrow[self.PAGE_COL].decode('UTF-8').lower()
 		tags = [t.lower() for t in modelrow[self.TAGS_COL]]
 
 		if visible and self.label_filter:
@@ -737,7 +736,10 @@ class TaskListTreeView(BrowserTreeView):
 		if not context:
 			return False
 
-		model, path, iter = context
+		model, iter = context.model, context.iter
+		if not (model and iter):
+			return
+
 		task = model[iter][self.DESC_COL]
 		start = model[iter][self.START_COL]
 		due = model[iter][self.DUE_COL]
@@ -858,9 +860,9 @@ class TaskListTreeView(BrowserTreeView):
 
 			row = model[iter]
 			prio = row[self.PRIO_COL]
-			desc = row[self.DESC_COL].decode('utf-8')
+			desc = row[self.DESC_COL].decode('UTF-8')
 			date = row[self.DUE_COL]
-			page = row[self.PAGE_COL].decode('utf-8')
+			page = row[self.PAGE_COL].decode('UTF-8')
 
 			if date == _MAX_DUE_DATE:
 				date = ''
@@ -871,7 +873,3 @@ class TaskListTreeView(BrowserTreeView):
 		model.foreach(collect)
 
 		return rows
-
-# Need to register classes defining gobject signals
-#~ GObject.type_register(TaskListTreeView)
-# NOTE: enabling this line causes this treeview to have wrong theming under default ubuntu them !???

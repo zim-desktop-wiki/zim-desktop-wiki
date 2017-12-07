@@ -536,7 +536,7 @@ class Folder(FSObjectBase):
 		trypath = path
 		while i < 1000:
 			try:
-				file = self.get_child()(trypath) # this way we catch both exiting files and folders
+				file = self.child(trypath) # this way we catch both exiting files and folders
 			except FileNotFoundError:
 				return factory(trypath)
 			else:

@@ -1060,10 +1060,10 @@ class TestPageChangeFile(tests.TestCase):
 try:
 	from gi.repository import Gio
 except ImportError:
-	gio = None
+	Gio = None
 
 @tests.slowTest
-@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):

@@ -36,12 +36,12 @@ If the list is already sorted the order will be reversed
 class NoSelectionError(Error):
 
 	def __init__(self):
-		Error.__init__(self,  _('Please select more than one line of text'))
+		Error.__init__(self, _('Please select more than one line of text'))
 			# T: Error message for linesorter plugin
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class LineSorterMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -106,7 +106,7 @@ class MainWindowExtension(WindowExtension):
 			lines = []
 			for line_nr in range(first_lineno, last_lineno + 1):
 				start, end = buffer.get_line_bounds(line_nr)
-				text = buffer.get_text(start, end)
+				text = start.get_text(end).decode('UTF-8')
 				tree = buffer.get_parsetree(bounds=(start, end))
 				lines.append((natural_sort_key(text), tree))
 			#~ logger.debug("Content of selected lines (text, tree): %s", lines)

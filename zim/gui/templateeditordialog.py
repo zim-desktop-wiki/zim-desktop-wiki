@@ -9,7 +9,7 @@ from zim.newfs import LocalFile
 from zim.newfs.helpers import TrashHelper, TrashNotSupportedError
 from zim.config import XDG_DATA_HOME, data_file
 from zim.templates import list_template_categories, list_templates
-from zim.gui.widgets import Dialog, BrowserTreeView, Button, ScrolledWindow
+from zim.gui.widgets import Dialog, BrowserTreeView, ScrolledWindow
 from zim.gui.applications import open_folder_prompt_create, open_file, edit_file
 
 
@@ -28,7 +28,7 @@ class TemplateEditorDialog(Dialog):
 		label.set_markup('<b>' + _('Templates') + '</b>')
 			# T: Section in dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
 		hbox = Gtk.HBox()
 		self.vbox.add(hbox)
@@ -39,25 +39,25 @@ class TemplateEditorDialog(Dialog):
 
 		vbbox = Gtk.VButtonBox()
 		vbbox.set_layout(Gtk.ButtonBoxStyle.START)
-		hbox.pack_start(vbbox, False)
+		hbox.pack_start(vbbox, False, True, 0)
 
-		view_button = Button(stock='gtk-file', label=_('_View')) # T: button label
+		view_button = Gtk.Button.new_with_mnemonic(_('_View')) # T: button label
 		view_button.connect('clicked', self.on_view)
 
-		copy_button = Button(stock='gtk-copy')
+		copy_button = Gtk.Button.new_with_label(_('_Copy')) # T: Button label
 		copy_button.connect('clicked', self.on_copy)
 
-		edit_button = Button(stock='gtk-edit')
+		edit_button = Gtk.Button.new_with_label(_('_Edit')) # T: Button label
 		edit_button.connect('clicked', self.on_edit)
 
-		delete_button = Gtk.Button(stock='gtk-remove')
+		delete_button = Gtk.Button.new_with_mnemonic(_('_Remove')) # T: Button label
 		delete_button.connect('clicked', self.on_delete)
 
 		for b in (view_button, copy_button, edit_button, delete_button):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
 
-		browse_button = Button(_('Browse')) # T: button label
+		browse_button = Gtk.Button.new_with_mnemonic(_('Browse')) # T: button label
 		browse_button.connect('clicked', self.on_browse)
 		self.add_extra_button(browse_button)
 
@@ -66,13 +66,11 @@ class TemplateEditorDialog(Dialog):
 		self.on_selection_changed()
 
 		## Same button appears in export dialog
-		if Gtk.gtk_version >= (2, 10) \
-		and Gtk.pygtk_version >= (2, 10):
-			url_button = Gtk.LinkButton(
-				'http://zim-wiki.org/more_templates.html',
-				_('Get more templates online') # T: label for button with URL
-			)
-			self.vbox.pack_start(url_button, False)
+		url_button = Gtk.LinkButton(
+			'http://zim-wiki.org/more_templates.html',
+			_('Get more templates online') # T: label for button with URL
+		)
+		self.vbox.pack_start(url_button, False, True, 0)
 
 	def on_selection_changed(self, *a):
 		# Set sensitivity of the buttons

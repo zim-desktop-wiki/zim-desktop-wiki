@@ -23,7 +23,7 @@ if not ElementTreeModule.__name__.endswith('cElementTree'):
 class TestFormatMixin(object):
 	'''Mixin for testing formats, uses data in C{tests/data/formats/}'''
 
-	reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
+	reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n').encode('UTF-8')
 
 	reference_data = {
 		'wiki': 'wiki.txt',
@@ -269,7 +269,7 @@ class TestParseTree(tests.TestCase):
 
 	def testGetObjects(self):
 		xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
-		tree = tests.new_parsetree_from_xml(xml)
+		tree = tests.new_parsetree_from_xml(xml.encode('UTF-8'))
 		objects = list(tree.get_objects())
 		self.assertTrue(len(objects) >= 2)
 

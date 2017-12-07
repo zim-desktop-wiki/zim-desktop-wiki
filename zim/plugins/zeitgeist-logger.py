@@ -73,7 +73,7 @@ class ZeitgeistPlugin(PluginClass):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class ZeitGeistMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)

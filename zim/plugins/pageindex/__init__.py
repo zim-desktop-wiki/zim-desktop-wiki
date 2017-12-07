@@ -4,7 +4,11 @@
 
 from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import Pango
+
+from .generictreemodel import GenericTreeModel
+
 import logging
 
 from functools import partial
@@ -121,17 +125,17 @@ class PageIndexWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	def __init__(self, treeview):
 		GObject.GObject.__init__(self)
-		self.pack_start(ScrolledWindow(treeview, True, True, 0))
+		self.pack_start(ScrolledWindow(treeview), True, True, 0)
 
 
-class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
+class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 	'''Custom gtk TreeModel that is integrated closely with the L{Index}
 	object of the notebook. This model is mostly an API layer translating
 	between the C{Gtk.TreeView} and the zim L{Index} interfaces. It
 	fetches data on the fly when requested and only keeps a very
 	limited cache in memory. This allows scaling to very large notebooks.
 
-	This custom model is based on C{Gtk.GenericTreeModel} which takes
+	This custom model is based on C{GenericTreeModel} which takes
 	care of the C library wrapper. See the documentation there to
 	get the fine details of the API.
 
@@ -175,20 +179,20 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 	COLUMN_TYPES = (
 		GObject.TYPE_STRING, # NAME_COL
 		GObject.TYPE_PYOBJECT, # PATH_COL
-		bool, # EMPTY_COL
+		GObject.TYPE_BOOLEAN, # EMPTY_COL
 		Pango.Style, # STYLE_COL
 		GObject.TYPE_STRING, # FGCOLOR_COL
-		int, # WEIGHT_COL
+		GObject.TYPE_INT, # WEIGHT_COL
 		GObject.TYPE_STRING, # N_CHILD_COL
 		GObject.TYPE_STRING, # TIP_COL
 	)
 
 
-	NORMAL_COLOR = None
+	NORMAL_COLOR = 'black' # FIXME set based on style
 	EMPTY_COLOR = 'grey' # FIXME set based on style.text[Gtk.StateType.INSENSITIVE]
 
 	def __init__(self):
-		GObject.GObject.__init__(self)
+		GenericTreeModel.__init__(self)
 		self.current_page = None
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
@@ -209,6 +213,7 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 		except IndexNotFoundError:
 			return None
 		else:
+			treepath = Gtk.TreePath(treepath)
 			treeiter = self.get_iter(treepath)
 			self.emit('row-changed', treepath, treeiter)
 			return treepath
@@ -247,7 +252,6 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 		return self.COLUMN_TYPES[i]
 
 	def on_get_value(self, iter, column):
-		#~ print '>> on_get_value', iter, column
 		if column == NAME_COL:
 			return iter.row['name'].split(':')[-1]
 		elif column == TIP_COL:
@@ -273,13 +277,11 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 			else:
 				return Pango.Weight.NORMAL
 		elif column == N_CHILD_COL:
-			return iter.n_children or ''
+			return str(iter.n_children) if iter.n_children > 0 else ''
 				# don't display "0" to keep look bit clean
 
 	def on_get_iter(self, treepath):
 		'''Returns an MyTreeIter for a gtk TreePath or None'''
-		#~ print '>> on_get_iter', treepath
-
 		# Schedule a flush with some timeout to try to take advantage
 		# of known cache for repeated requests. Cache can grow very fast
 		# on scroll, so don't make the time constant to large.
@@ -315,7 +317,7 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 		if iter is None:
 			treepath = (0,)
 		else:
-			treepath = iter.treepath + (0,)
+			treepath = tuple(iter.treepath) + (0,)
 		return self.on_get_iter(treepath)
 
 	def on_iter_has_child(self, iter):
@@ -340,7 +342,7 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 		if iter is None:
 			treepath = (n,)
 		else:
-			treepath = iter.treepath + (n,)
+			treepath = tuple(iter.treepath) + (n,)
 		return self.on_get_iter(treepath)
 
 	def on_iter_parent(self, iter):
@@ -351,23 +353,6 @@ class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDe
 			return self.on_get_iter(treepath)
 		else:
 			return None
-
-
-	# Compatibility for older version of GenericTreeModel
-	if not hasattr(Gtk.GenericTreeModel, 'create_tree_iter'):
-		logger.warn('Using work around for older version of GenericTreeModel - may hurt performance')
-		def create_tree_iter(self, indexpath):
-			# Use GenericTreeModel API to wrap the iter
-			return self.get_iter(iter.treepath)
-
-	if not hasattr(Gtk.GenericTreeModel, 'get_user_data'):
-		def get_user_data(self, treeiter):
-			# Use GenericTreeModel API to unwrap the iter
-			treepath = self.get_path(treeiter)
-			return self.cache[treepath]
-
-# Need to register classes defining gobject signals or overloading methods
-GObject.type_register(PageTreeStoreBase)
 
 
 class PageTreeStore(PagesTreeModelMixin, PageTreeStoreBase):
@@ -418,9 +403,7 @@ class PageTreeView(BrowserTreeView):
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
-		if Gtk.gtk_version >= (2, 12) \
-		and Gtk.pygtk_version >= (2, 12):
-			self.set_tooltip_column(TIP_COL)
+		self.set_tooltip_column(TIP_COL)
 
 		self.set_headers_visible(False)
 
@@ -601,6 +584,3 @@ class PageTreeView(BrowserTreeView):
 			return None
 		else:
 			return model.get_indexpath(iter)
-
-# Need to register classes defining gobject signals
-GObject.type_register(PageTreeView)

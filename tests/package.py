@@ -119,10 +119,8 @@ class TestCoding(tests.TestCase):
 
 	def testWrongDependencies(self):
 		'''Check clean dependencies'''
-		#~ for klass in ('gobject', 'gtk', 'gio'): # TODO get rid of gobject as well
-
 		allow_gtk = ('zim/gui/', 'zim/inc/', 'zim/plugins/', 'tests/')
-		for klass in ('gtk', 'gio'):
+		for klass in ('Gtk', 'Gio'): # TODO: add GObject as well
 			import_re = re.compile(r'^(import|from)\s+%s' % klass, re.M)
 				# only match global imports - allow import in limitted scope
 			for file, code in self.list_code():
@@ -192,7 +190,7 @@ class TestCoding(tests.TestCase):
 		# assume python itself warns us for changes in the middle of a block
 		white = re.compile(r'^(\s*)')
 		for file, code in self.list_code():
-			if file.startswith('zim/inc/'):
+			if file.startswith('zim/inc/') or file.endswith('generictreemodel.py'):
 				continue
 			lineno = 0
 			start_block = False

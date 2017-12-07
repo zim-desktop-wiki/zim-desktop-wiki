@@ -16,7 +16,7 @@ class PropertiesDialog(Dialog):
 		label.set_markup('<b>' + _('Notebook Properties') + '</b>')
 			# T: Section in notebook dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
 		self.add_form(
 			notebook.properties,

@@ -237,7 +237,7 @@ class MockFSObjectBase(FSObjectBase):
 
 		if other.isequal(self):
 			if other.path == self.path:
-				raise ValueError, 'Cannot move file or folder to self'
+				raise ValueError('Cannot move file or folder to self')
 
 			# case_sensitive must be False
 			parentnode = self._fs.stat(self.pathnames[:-1])

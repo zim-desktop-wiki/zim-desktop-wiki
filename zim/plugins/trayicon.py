@@ -87,9 +87,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		version_ok = (Gtk.gtk_version >= (2, 10, 0) and Gtk.pygtk_version >= (2, 10, 0))
-		return (version_ok, [
-			('GTK >= 2.10', version_ok, True),
+		return (True, [
 			('Unity appindicator', bool(appindicator), False),
 		])
 
@@ -256,7 +254,7 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 			icon = data_file('zim.png').path
 			self.set_from_file(icon)
 
-		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
+		self.set_tooltip_text(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
@@ -290,9 +288,6 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 	def destroy(self):
 		self.set_property('visible', False)
 		self.emit('destroy')
-
-# Need to register classes overriding gobject signals
-GObject.type_register(StatusIconTrayIcon)
 
 
 _GLOBAL_INDICATOR = None

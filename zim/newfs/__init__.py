@@ -64,7 +64,7 @@ from .helpers import *
 
 # Key is that we always use objects to signal file vs folder,
 # get rid of all uses of "isdir" because it shows a constructor issue.
-# Instead use "folder.get_child()(path)" to get either file or folder.
+# Instead use "folder.child(path)" to get either file or folder.
 # Also no common FS object, just construct the parent folder first
 #
 # When instatiating you need to use specific LocalFolder or LocalFile
@@ -116,7 +116,7 @@ def localFileOrFolder(path):
 	'''Convenience method that resolves a local C{File} or C{Folder} object'''
 	path = FilePath(path)
 	try:
-		return LocalFolder(path.dirname).get_child()(path.basename)
+		return LocalFolder(path.dirname).child(path.basename)
 	except FileNotFoundError:
 		raise FileNotFoundError(path)
 

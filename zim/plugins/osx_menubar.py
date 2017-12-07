@@ -85,7 +85,7 @@ class OSXmenubarPlugin(PluginClass):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class OSXMenuBarMainWindowExtension(WindowExtension):
 	# This object is created once for each "main window", this means once for
 	# each notebook opened in zim. If this is the first window, also do
 	# global intialization, else just capture the menubar and keep it ourselves.

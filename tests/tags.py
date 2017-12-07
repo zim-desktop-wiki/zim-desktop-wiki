@@ -64,18 +64,18 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		myiter = treestore.on_get_iter((0,))
 		self.assertIsInstance(myiter, MyTreeIter)
 		self.assertEqual(myiter.hint, self.toplevel)
-		self.assertEqual(myiter.treepath, (0,))
-		self.assertEqual(treestore.on_get_path(myiter), (0,))
+		self.assertEqual(myiter.treepath, Gtk.TreePath((0,)))
+		self.assertEqual(treestore.on_get_path(myiter), Gtk.TreePath((0,)))
 
 		treeiter = treestore.get_iter((0,))
 		path = treestore.get_indexpath(treeiter)
-		self.assertEqual(treestore.find(path), (0,))
+		self.assertEqual(treestore.find(path), Gtk.TreePath((0,)))
 
 		basename = treestore.on_get_value(myiter, 0)
 		self.assertTrue(len(basename) > 0)
 
 		iter2 = treestore.on_iter_children(None)
-		self.assertEqual(iter2.treepath, (0,))
+		self.assertEqual(iter2.treepath, Gtk.TreePath((0,)))
 
 		self.assertTrue(treestore.on_get_iter((20, 20, 20, 20, 20)) is None)
 		self.assertRaises(IndexNotFoundError, treestore.find, Path('nonexisting'))
@@ -92,7 +92,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			prevpath = path
 
 			iter = treestore.get_iter(path)
-			self.assertEqual(treestore.get_path(iter), tuple(path))
+			self.assertEqual(treestore.get_path(iter), Gtk.TreePath(path))
 
 			# Determine how to continue
 			if treestore.iter_has_child(iter):
@@ -149,6 +149,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
+		print "---------"
 
 
 @tests.slowTest

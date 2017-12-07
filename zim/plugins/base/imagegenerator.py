@@ -18,7 +18,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import Action
 from zim.fs import File, Dir
 from zim.gui.widgets import \
-	Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
+	Dialog, ImageView, QuestionDialog, LogFileDialog, \
 	ScrolledTextView, ScrolledSourceView, VPaned, \
 	populate_popup_add_separator
 
@@ -65,7 +65,7 @@ class ImageGeneratorPlugin(PluginClass):
 		klassname = self.object_type.title() + 'MainWindowExtension'
 		insert_action = Action(
 			'insert_%s' % self.object_type,
-			MainWindowExtensionBase.insert_object,
+			ImageGeneratorMainWindowExtensionBase.insert_object,
 			self.short_label + '...', readonly=False
 		)
 		generatorklass = self.lookup_subclass(ImageGeneratorClass)
@@ -75,8 +75,8 @@ class ImageGeneratorPlugin(PluginClass):
 
 
 		mainwindow_extension_base = \
-			self.lookup_subclass(MainWindowExtensionBase) \
-			or MainWindowExtensionBase
+			self.lookup_subclass(ImageGeneratorMainWindowExtensionBase) \
+			or ImageGeneratorMainWindowExtensionBase
 
 		klass = type(klassname, (mainwindow_extension_base,), {
 			'object_type': self.object_type,
@@ -93,7 +93,7 @@ class ImageGeneratorPlugin(PluginClass):
 
 
 @extends('MainWindow', autoload=False)
-class MainWindowExtensionBase(WindowExtension):
+class ImageGeneratorMainWindowExtensionBase(WindowExtension):
 
 	object_type = None
 	syntax = None
@@ -264,7 +264,7 @@ class ImageGeneratorDialog(Dialog):
 		self.vpane.set_position(150)
 		self.vbox.add(self.vpane)
 
-		self.imageview = ImageView(bgcolor='#FFF', checkerboard=False)
+		self.imageview = ImageView(bgcolor='#FFF')
 		self.vpane.pack1(self.imageview, resize=True)
 		# TODO scrolled window and option to zoom in / real size
 
@@ -274,25 +274,25 @@ class ImageGeneratorDialog(Dialog):
 		self.vpane.pack2(window, resize=False)
 
 		hbox = Gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False)
+		self.vbox.pack_start(hbox, False, True, 0)
 
-		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh')
+		self.previewbutton = Gtk.Button.new_with_mnemonic(_('_Preview'))
 			# T: button in e.g. equation editor dialog
 		self.previewbutton.set_sensitive(False)
 		self.previewbutton.connect_object(
 			'clicked', self.__class__.preview, self)
-		hbox.pack_start(self.previewbutton, False)
+		hbox.pack_start(self.previewbutton, False, True, 0)
 
 		self.textview.get_buffer().connect('modified-changed',
 			lambda b: self.previewbutton.set_sensitive(b.get_modified()))
 
-		self.logbutton = Button(_('View _Log'), stock='gtk-file')
+		self.logbutton = Gtk.Button.new_with_mnemonic(_('View _Log'))
 			# T: button in e.g. equation editor dialog
 		self.logbutton.set_sensitive(False)
 		self.logbutton.connect_object(
 			'clicked', self.__class__.show_log, self)
 		if generator.uses_log_file:
-			hbox.pack_start(self.logbutton, False)
+			hbox.pack_start(self.logbutton, False, True, 0)
 		# else keep hidden
 
 		if image:
@@ -327,8 +327,8 @@ class ImageGeneratorDialog(Dialog):
 		@returns: text as string
 		'''
 		buffer = self.textview.get_buffer()
-		bounds = buffer.get_bounds()
-		return buffer.get_text(*bounds)
+		start, end = buffer.get_bounds()
+		return start.get_text(end)
 
 	def generate_image(self):
 		'''Update the image based on the text in the text buffer'''

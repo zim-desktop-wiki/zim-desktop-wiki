@@ -10,8 +10,10 @@
 
 import datetime
 
-from gi.repository import GObject
 from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 
 import logging
 
@@ -87,27 +89,27 @@ class FileBrowserIconView(Gtk.IconView):
 		self._monitor = None
 		self._mtime = None
 
-		GObject.GObject.__init__(self,
-			Gtk.ListStore(str, GdkPixbuf.Pixbuf, object)) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+		GObject.GObject.__init__(self)
+		self.set_model(
+			Gtk.ListStore(str, GdkPixbuf.Pixbuf, object) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+		)
 		self.set_text_column(BASENAME_COL)
 		self.set_pixbuf_column(PIXBUF_COL)
 		self.set_icon_size(icon_size)
 
 		self.enable_model_drag_source(
 			Gdk.ModifierType.BUTTON1_MASK,
-			URI_TARGETS,
+			[Gtk.TargetEntry.new(*t) for t in URI_TARGETS],
 			Gdk.DragAction.LINK | Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 		self.enable_model_drag_dest(
-			URI_TARGETS,
+			[Gtk.TargetEntry.new(*t) for t in URI_TARGETS],
 			Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 		self.connect('drag-data-get', self.on_drag_data_get)
 		self.connect('drag-data-received', self.on_drag_data_received)
 
-		if Gtk.gtk_version >= (2, 12) \
-		and Gtk.pygtk_version >= (2, 12):
-			# custom tooltip
-			self.props.has_tooltip = True
-			self.connect("query-tooltip", self._query_tooltip_cb)
+		# custom tooltip
+		self.props.has_tooltip = True
+		self.connect("query-tooltip", self._query_tooltip_cb)
 
 		# Store colors
 		self._sensitive_color = None
@@ -121,7 +123,8 @@ class FileBrowserIconView(Gtk.IconView):
 			self._update_state()
 			self.disconnect(self._expose_event_id) # only need this once
 
-		self._expose_event_id = self.connect('expose-event', _init_base_color)
+		#self._expose_event_id = self.connect('expose-event', _init_base_color)
+			# NOTE: when re-enabling the above, also enable occurences of _update_state
 		self.connect('button-press-event', self.on_button_press_event)
 		self.connect('item-activated', self.on_item_activated)
 
@@ -148,10 +151,11 @@ class FileBrowserIconView(Gtk.IconView):
 				self._mtime = self.folder.mtime()
 			except FileNotFoundError: # folder went missing?
 				self.teardown_folder()
-				self._update_state()
+				#self._update_state()
 				return
 			else:
-				self._update_state()
+				pass
+				#self._update_state()
 
 		#~ import time
 		#~ print "start", time.time()
@@ -246,13 +250,13 @@ class FileBrowserIconView(Gtk.IconView):
 				# Single row
 				self.set_item_width(icon_size + text_size)
 
-			self.set_orientation(Gtk.Orientation.HORIZONTAL)
+			self.set_item_orientation(Gtk.Orientation.HORIZONTAL)
 			self.set_row_spacing(0)
 			self.set_column_spacing(0)
 		else:
 			# Text below the icons
 			self.set_item_width(max((icon_size + 12, 96)))
-			self.set_orientation(Gtk.Orientation.VERTICAL)
+			self.set_item_orientation(Gtk.Orientation.VERTICAL)
 			self.set_row_spacing(3)
 			self.set_column_spacing(3)
 
@@ -347,7 +351,9 @@ class FileBrowserIconView(Gtk.IconView):
 			return False
 
 		thumbman = ThumbnailManager()
-		model, path, iter = context
+		model, path, iter = context.model, context.path, context.iter
+		if not (model and iter):
+			return
 		name = model[iter][BASENAME_COL]
 		file = self.folder.file(name)
 		mtime = file.mtime()

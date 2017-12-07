@@ -25,63 +25,16 @@ import zim.errors
 logger = logging.getLogger('zim')
 
 
-# We want to switch between <Control> for linux and windows and
-# <Command> for OS X. The gtk solution is to use the abstract <Primary>
-# modifier key. Unfortunately, this is not supported in gtk before
-# version gtk_version 2.24.7. Therefore we try to detect whether this
-# abstract key is supported or not, and if not, we fall back to <Control>.
-#
-# Secondary use of the PRIMARY_MODIFIER constant is that it can be
-# shown in user menus.
 
-_accelerator_preparse_re = re.compile('(?i)<Primary>')
-
-def gtk_accelerator_preparse(code, force=False):
-	'''Pre-parse the accelerator code to change <Primary> into
-	<Control> or <Command> if <Primary> is not supported.
-	@param code: accelerator code
-	@param force: if C{True} <Primary> is replaced even if not needed
-	@returns: same or modified accelerator code
-	'''
-	if not code:
-		return code # tolerate None ...
-
-	m = _accelerator_preparse_re.search(code)
-	if m:
-		from gi.repository import Gtk
-		x, mod = Gtk.accelerator_parse('<Primary>')
-		if not mod:
-			# <Primary> is not supported - anyway to detect OS X?
-			return _accelerator_preparse_re.sub('<Control>', code)
-		elif force:
-			if mod == Gdk.EventMask.META_MASK:
-				return _accelerator_preparse_re.sub('<Command>', code)
-			else:
-				return _accelerator_preparse_re.sub('<Control>', code)
-		else:
-			return code
-	else:
-		return code
-
-try:
+def _get_modifier_mask():
+	import gi
+	gi.require_version('Gtk', '3.0')
 	from gi.repository import Gtk
-	PRIMARY_MODIFIER_STRING = gtk_accelerator_preparse('<primary>', force=True)
-	PRIMARY_MODIFIER_MASK = Gdk.EventMask.META_MASK if PRIMARY_MODIFIER_STRING == '<Command>' else Gdk.ModifierType.CONTROL_MASK
-except ImportError:
-	PRIMARY_MODIFIER_STRING = None
-	PRIMARY_MODIFIER_MASK = None
+	x, mod = Gtk.accelerator_parse('<Primary>')
+	return mod
 
-
-# FIXME - temporary helper method - remove it again when all users are refactored
-def gtk_accelerator_preparse_list(actions):
-	myactions = []
-	for action in actions:
-		if len(action) > 3:
-			a = list(action)
-			a[3] = gtk_accelerator_preparse(a[3])
-			action = tuple(a)
-		myactions.append(action)
-	return myactions
+PRIMARY_MODIFIER_STRING = '<Primary>'
+PRIMARY_MODIFIER_MASK = _get_modifier_mask()
 
 
 class ActionMethod(object):
@@ -121,8 +74,8 @@ class Action(ActionMethod):
 		self.func = func
 		self._attr = (self.name, label, tooltip, stock)
 		self._alt_attr = (self.name + '_alt1', label, tooltip, stock)
-		self._accel = gtk_accelerator_preparse(accelerator)
-		self._alt_accel = gtk_accelerator_preparse(alt_accelerator)
+		self._accel = accelerator
+		self._alt_accel = alt_accelerator
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)

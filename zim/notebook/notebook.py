@@ -746,7 +746,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			elif target == oldtarget:
 				return self._update_link_tag(elt, page, newtarget, href)
 			elif target.ischild(oldtarget):
-				mynewtarget = newtarget.get_child()(target.relname(oldtarget))
+				mynewtarget = newtarget.child(target.relname(oldtarget))
 				return self._update_link_tag(elt, page, mynewtarget, href)
 
 			elif href.rel == HREF_REL_FLOATING \
@@ -761,7 +761,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 					if href.names == newtarget.basename:
 						return self._update_link_tag(elt, page, newtarget, href)
 					else:
-						mynewtarget = newtarget.get_child()(':'.join(href.parts()[1:]))
+						mynewtarget = newtarget.child(':'.join(href.parts()[1:]))
 						return self._update_link_tag(elt, page, mynewtarget, href)
 
 			else:
