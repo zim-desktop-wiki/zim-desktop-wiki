@@ -582,6 +582,20 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNotNone(exp.format)
 		self.assertIsNotNone(exp.index_page)
 
+
+		## Full notebook, single page
+		cmd = ExportCommand('export')
+		cmd.parse_options(self.notebook.path,
+			'--format', 'markdown',
+			'--template', './tests/data/TestTemplate.html',
+			'--output', self.tmpdir.file('output.md').path,
+			'-s'
+		)
+		exp = cmd.get_exporter(None)
+		self.assertIsInstance(exp, SingleFileExporter)
+		self.assertIsInstance(exp.layout, SingleFileLayout)
+		self.assertIsInstance(exp.layout.file, File)
+
 		## Single page
 		cmd = ExportCommand('export')
 		cmd.parse_options(self.notebook.path, 'Foo:Bar',

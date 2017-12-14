@@ -27,6 +27,7 @@ from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
 from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
+from zim.formats import get_format
 
 from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
@@ -394,22 +395,26 @@ class ExportCommand(NotebookCommand):
 				output, template,
 				document_root_url=self.opts.get('root-url'),
 			)
+		elif self.opts.get('singlefile'):
+			self.ignore_options('index-page')
+			if output.exists() and output.isdir():
+				ext = get_format(format).info['extension']
+				output = output.file(page.basename) + '.' + ext
+
+			exporter = build_single_file_exporter(
+				output, format, template, namespace=page,
+				document_root_url=self.opts.get('root-url'),
+			)
 		elif page:
 			self.ignore_options('index-page')
 			if output.exists() and output.isdir():
-				ext = 'html'
+				ext = get_format(format).info['extension']
 				output = output.file(page.basename) + '.' + ext
 
-			if self.opts.get('singlefile'):
-				exporter = build_single_file_exporter(
-					output, format, template, namespace=page,
-					document_root_url=self.opts.get('root-url'),
-				)
-			else:
-				exporter = build_page_exporter(
-					output, format, template, page,
-					document_root_url=self.opts.get('root-url'),
-				)
+			exporter = build_page_exporter(
+				output, format, template, page,
+				document_root_url=self.opts.get('root-url'),
+			)
 		else:
 			if not output.exists():
 				output = Dir(output.path)
