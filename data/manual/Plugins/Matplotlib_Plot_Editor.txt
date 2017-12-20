@@ -1,0 +1,88 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2016-08-04T10:52:09+02:00
+
+====== Matplotlib Plot Editor ======
+Created jeudi 04 août 2016
+
+Matplotlib is a wonderful python library in order to create wonderful plots. This plugin integrate a python editor to allows the user to create matplotlib plots.
+
+===== Dependencies =====
+* python (as zim uses python this dependecy should be already satisfied
+* matplotlib
+* numpy
+
+On debian/ubuntu like:
+{{{code: lang="sh" linenumbers="True"
+sudo apt-get install python-matplotlib python-numpy
+}}}
+
+or depending on your linux version/distro
+{{{code: lang="sh" linenumbers="True"
+sudo apt-get install python2-matplotlib python2-numpy
+}}}
+
+
+with pip
+{{{code: lang="sh" linenumbers="True"
+pip install matplotlib numpy
+}}}
+
+
+===== Basic syntax =====
+The basic syntax is python code. Documentation can be found at  https://docs.python.org/2/
+The matplotlib library documentation can be found http://matplotlib.org/
+
+The plugin load autamaticaly the following libraries 
+{{{code: lang="python" linenumbers="True"
+import matplotlib.pyplot as plt
+import numpy as np
+}}}
+
+
+===== Exemples =====
+Exemples are usually more usefull than thousand words.
+
+==== The basic ====
+{{{code: lang="python" linenumbers="True"
+x = np.linspace(0,np.pi*5,100)
+y = np.sin(x)
+
+plt.plot(x,y)
+}}}
+
+{{./matplotlib_plot.png?type=matplotlib_plot}}
+
+===== Change Figure size =====
+The default figure size is 6 × 4.5
+It can be changed as follow:
+{{{code: lang="python" linenumbers="True"
+fig = plt.figure(figsize=(4,3))
+x = np.linspace(0,np.pi*5,100)
+y = np.sin(x)
+
+plt.plot(x,y)
+}}}
+
+{{./matplotlib_plot001.png?type=matplotlib_plot}}
+
+===== Subplots =====
+Matplotlib can also perform subplots. 
+{{{code: lang="python" linenumbers="True"
+import matplotlib.cbook as cbook
+
+w, h = 512, 512
+
+datafile = cbook.get_sample_data('ct.raw.gz', asfileobj=True)
+s = datafile.read()
+A = np.fromstring(s, np.uint16).astype(float)
+A *= 1.0 / max(A)
+A.shape = w, h
+
+fig, (ax1,ax2) = plt.subplots(1,2,figsize=(10,5))
+ax1.imshow(A)
+ax1.axhline(h/2,color='w')
+ax2.plot(A[h/2,:])
+}}}
+
+{{./matplotlib_plot002.png?type=matplotlib_plot}}
