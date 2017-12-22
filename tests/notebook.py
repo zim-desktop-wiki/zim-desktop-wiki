@@ -773,13 +773,15 @@ class TestPath(tests.TestCase):
 
 class TestHRefFromWikiLink(tests.TestCase):
 
-	def runtTest(self):
+	def runTest(self):
 		for link, rel, names, properlink in (
 			('Foo:::Bar', HREF_REL_FLOATING, 'Foo:Bar', 'Foo:Bar'),
 			(':Foo:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
 			(':<Foo>:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
 			('+Foo:Bar', HREF_REL_RELATIVE, 'Foo:Bar', '+Foo:Bar'),
 			('Child2:AAA', HREF_REL_FLOATING, 'Child2:AAA', 'Child2:AAA'),
+			('Foo Bar', HREF_REL_FLOATING, 'Foo Bar', 'Foo Bar'),
+			('Foo_Bar', HREF_REL_FLOATING, 'Foo Bar', 'Foo Bar'),
 		):
 			href = HRef.new_from_wiki_link(link)
 			self.assertEqual(href.rel, rel)

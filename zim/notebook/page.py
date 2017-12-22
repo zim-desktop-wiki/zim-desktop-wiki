@@ -115,6 +115,7 @@ class Path(object):
 		'''
 		newname = _pagename_reduce_colon_re.sub(':', name.strip(':'))
 		newname = _pagename_invalid_char_re.sub('', newname)
+		newname = newname.replace('_', ' ')
 		try:
 			Path.assertValidPageName(newname)
 		except AssertionError:
