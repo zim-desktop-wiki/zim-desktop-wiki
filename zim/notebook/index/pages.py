@@ -431,7 +431,7 @@ class PagesViewInternal(object):
 				).fetchone()
 			else:
 				row = self.db.execute(
-					'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
+					'SELECT id, name FROM pages WHERE parent=? and name=?',
 					(page_id, "%:" + basename)
 				).fetchone()
 

@@ -338,8 +338,8 @@ class TestNotebook(tests.TestCase):
 				# Can still have remaining placeholders
 
 		# Test moving a page below it's own namespace
-		oldpath = Path('Test:Bar')
-		newpath = Path('Test:Bar:newsubpage')
+		oldpath = Path('Test:Section')
+		newpath = Path('Test:Section:newsubpage')
 
 		page = self.notebook.get_page(oldpath)
 		page.parse('wiki', 'Test 123')
@@ -439,11 +439,13 @@ class TestNotebook(tests.TestCase):
 
 		self.assertFalse(copy.valid)
 
+	def testCaseSensitiveMove(self):
+		from zim.notebook.index import LINK_DIR_BACKWARD
 		self.notebook.rename_page(Path('Test:foo'), 'Foo')
-		page = self.notebook.get_page(Path('Test:foo'))
-		self.assertFalse(page.hascontent)
-		page = self.notebook.get_page(Path('Test:Foo'))
-		self.assertTrue(page.hascontent)
+
+		pages = list(self.notebook.pages.list_pages(Path('Test')))
+		self.assertNotIn(Path('Test:foo'), pages)
+		self.assertIn(Path('Test:Foo'), pages)
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
@@ -529,6 +531,25 @@ class TestNotebook(tests.TestCase):
 			#~ r = self.store.resolve_name(link, namespace=namespace)
 			#~ print 'RESULT %s' % r
 			#~ self.assertEqual(r, name)
+
+
+class TestNotebookCaseInsensitiveFileSystem(TestNotebook):
+
+	def setUp(self):
+		TestNotebook.setUp(self)
+		fs = self.notebook.folder._fs
+		fs.set_case_sensitive(False)
+
+	def testReallyCaseInsensitive(self):
+		page1 = self.notebook.get_page(Path('PAGE'))
+		page2 = self.notebook.get_page(Path('page'))
+		file1 = page1.source_file
+		file2 = page2.source_file
+		self.assertNotEqual(file1.path, file2.path)
+		self.assertTrue(file1.isequal(file2))
+
+		file1.write('TEST 123')
+		self.assertEqual(file2.read(), 'TEST 123')
 
 
 class DeadLinks(object):
