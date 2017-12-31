@@ -1131,6 +1131,42 @@ class TextBuffer(gtk.TextBuffer):
 		else:
 			return None
 
+	def _idle_update_image(self, preview_pixbuf, pixbuf):
+		pixbuf.zim_type = preview_pixbuf.zim_type
+		pixbuf.zim_attrib = preview_pixbuf.zim_attrib
+
+		logging.debug('Inserting real image: %s', preview_pixbuf.zim_attrib['_src_file'])
+
+		iter = self.get_iter_at_mark(preview_pixbuf.zim_mark)
+		self.delete_mark(preview_pixbuf.zim_mark)
+		if not preview_pixbuf is iter.get_pixbuf():
+			logging.warning('Loaded image has already been deleted: %s', pixbuf.zim_attrib['_src_file'])
+			return
+
+		next_iter = iter.copy()
+		next_iter.forward_char()
+		self.delete(iter, next_iter)
+
+		self.insert_pixbuf(iter, pixbuf)
+
+	def _thread_load_image(self, preview_pixbuf):
+		attrib = preview_pixbuf.zim_attrib
+		src = preview_pixbuf.zim_attrib['src']
+		file = preview_pixbuf.zim_attrib['_src_file']
+
+		logging.debug('Loading image: %s', file)
+
+		if 'width' in attrib or 'height' in attrib:
+			w = int(attrib.get('width', -1))
+			h = int(attrib.get('height', -1))
+			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, w, h)
+		else:
+			pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		pixbuf = rotate_pixbuf(pixbuf)
+
+		# Finally, insert the real thing
+		gobject.idle_add(self._idle_update_image, preview_pixbuf, pixbuf)
+
 	def insert_image(self, iter, file, src, **attrib):
 		'''Insert an image in the buffer
 
@@ -1148,26 +1184,26 @@ class TextBuffer(gtk.TextBuffer):
 		#~ '''
 		if isinstance(file, basestring):
 			file = File(file)
-		try:
-			if 'width' in attrib or 'height' in attrib:
-				w = int(attrib.get('width', -1))
-				h = int(attrib.get('height', -1))
-				pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.path, w, h)
-			else:
-				pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
-			pixbuf = rotate_pixbuf(pixbuf)
-		except:
-			#~ logger.exception('Could not load image: %s', file)
-			logger.warn('No such image: %s', file)
-			widget = gtk.HBox() # Need *some* widget here...
-			pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
-			pixbuf = pixbuf.copy() # need unique instance to set zim_attrib
+
+		logger.debug('Inserting placeholder for image: %s', file)
+		widget = gtk.HBox() # Need *some* widget here...
+		pixbuf = widget.render_icon(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_DIALOG)
+		pixbuf = pixbuf.copy() # need unique instance to set zim_attrib
+		if 'width' in attrib and 'height' in attrib:
+			pixbuf = pixbuf.scale_simple(attrib['width'], attrib['height'], gtk.gdk.INTERP_NEAREST)
 
 		pixbuf.zim_type = 'image'
 		pixbuf.zim_attrib = attrib
 		pixbuf.zim_attrib['src'] = src
 		pixbuf.zim_attrib['_src_file'] = file
+		pixbuf.zim_mark = gtk.TextMark(None, True)
+		pixbuf.zim_mark.set_visible(False)
+		# Insert a mark for loading
+		self.add_mark(pixbuf.zim_mark, iter)
 		self.insert_pixbuf(iter, pixbuf)
+
+		thread = threading.Thread(target=self._thread_load_image, args=(pixbuf,))
+		thread.start()
 
 	def insert_image_at_cursor(self, file, src, **attrib):
 		'''Insert an image in the buffer
