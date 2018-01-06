@@ -53,7 +53,10 @@ except ImportError:
 try:
 	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
 	argv = [arg.decode(encoding) for arg in sys.argv]
-	exitcode = zim.main.main(*argv)
+	if __name__ == '__main__':
+		import signal
+		signal.signal(signal.SIGINT, signal.SIG_DFL)
+		exitcode = zim.main.main(*argv)
 	sys.exit(exitcode)
 except zim.main.GetoptError as err:
 	print >>sys.stderr, sys.argv[0] + ':', err
