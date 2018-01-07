@@ -5854,11 +5854,13 @@ class PageView(gtk.VBox):
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
+		self.scroll_cursor_on_screen()
 
 	@action(_('_Redo'), 'gtk-redo', '<Primary><shift>Z', alt_accelerator='<Primary>Y', readonly=False) # T: Menu item
 	def redo(self):
 		'''Menu action to redo a single step'''
 		self.undostack.redo()
+		self.scroll_cursor_on_screen()
 
 	@action(_('Cu_t'), 'gtk-cut', '<Primary>X', readonly=False) # T: Menu item
 	def cut(self):
