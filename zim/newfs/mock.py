@@ -242,6 +242,7 @@ class MockFSObjectBase(FSObjectBase):
 			# case_sensitive must be False
 			parentnode = self._fs.stat(self.pathnames[:-1])
 			parentnode.data[other.basename] = parentnode.data.pop(self.basename)
+			parentnode.on_changed()
 			if self.watcher:
 				self.watcher.emit('moved', self, other)
 		else:
