@@ -7,6 +7,8 @@
 # This plugin uses an icon from Tango Desktop Project (http://tango.freedesktop.org/)
 # (the Tango base icon theme is released to the Public Domain).
 
+from __future__ import with_statement
+
 import gobject
 import gtk
 import pango
@@ -15,9 +17,9 @@ from zim.actions import toggle_action, action
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path
 from zim.gui.widgets import TOP, TOP_PANE
-from zim.signals import ConnectorMixin
-from zim.gui.pathbar import ScrolledHBox
+from zim.signals import ConnectorMixin, SignalHandler
 from zim.gui.clipboard import Clipboard
+from zim.plugins.pathbar import ScrolledHBox
 
 import logging
 logger = logging.getLogger('zim.plugins.bookmarksbar')
@@ -89,16 +91,18 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.widget = BookmarkBar(self.window.ui, self.uistate,
+		self.widget = BookmarkBar(window.notebook, window.navigation, self.uistate,
 					  self.window.pageview.get_page)
+		self.widget.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+
 		self.widget.show_all()
 
 		# Add a new option to the Index popup menu.
-		try:
-			self.widget.connectto(self.window.pageindex.treeview,
-								  'populate-popup', self.on_populate_popup)
-		except AttributeError:
-			logger.error('BookmarksBar: popup menu not initialized.')
+		#try:
+		#	self.widget.connectto(self.window.pageindex.treeview,
+		#						  'populate-popup', self.on_populate_popup)
+		#except AttributeError:
+		#	logger.error('BookmarksBar: popup menu not initialized.')
 
 		# Show/hide bookmarks.
 		self.uistate.setdefault('show_bar', True)
@@ -133,7 +137,7 @@ class MainWindowExtension(WindowExtension):
 			item = gtk.SeparatorMenuItem()
 			menu.prepend(item)
 			item = gtk.MenuItem(_('Add Bookmark')) # T: menu item bookmark plugin
-			page = self.window.ui.notebook.get_page(path)
+			page = self.window.notebook.get_page(path)
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
 			menu.show_all()
@@ -178,7 +182,7 @@ class MainWindowExtension(WindowExtension):
 	def _open_bookmark(self, number):
 		number -= 1
 		try:
-			self.window.ui.open_page(Path(self.widget.paths[number]))
+			self.window.open_page(Path(self.widget.paths[number]))
 		except IndexError:
 			pass
 
@@ -205,10 +209,11 @@ class MainWindowExtension(WindowExtension):
 
 class BookmarkBar(gtk.HBox, ConnectorMixin):
 
-	def __init__(self, ui, uistate, get_page_func):
+	def __init__(self, notebook, navigation, uistate, get_page_func):
 		gtk.HBox.__init__(self)
 
-		self.ui = ui
+		self.notebook = notebook
+		self.navigation = navigation
 		self.uistate = uistate
 		self.save_flag = False # if True save bookmarks in config
 		self.add_bookmarks_to_beginning = False # add new bookmarks to the end of the bar
@@ -237,7 +242,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		# Add pages from config to the bar.
 		for path in self.uistate['bookmarks']:
-			page = self.ui.notebook.get_page(Path(path))
+			page = self.notebook.get_page(Path(path))
 			if page.exists() and (page.name not in self.paths):
 				self.paths.append(page.name)
 
@@ -255,21 +260,19 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				except:
 					logger.error('BookmarksBar: Error while loading path_names.')
 
-		# Look for new pages to mark corresponding bookmarks in the bar.
-		self.connectto(self.ui, 'open-page', self.on_open_page)
-
 		# Delete a bookmark if a page is deleted.
-		self.connectto(self.ui.notebook, 'deleted-page',
+		self.connectto(self.notebook, 'deleted-page',
 					   lambda obj, path: self.delete(path.name))
 
-	def on_open_page(self, ui, page, path):
+	def set_page(self, page):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
-		for button in self.container.get_children()[2:]:
-			if button.zim_path == pagename:
-				button.set_active(True)
-			else:
-				button.set_active(False)
+		with self.on_bookmark_clicked.blocked():
+			for button in self.container.get_children()[2:]:
+				if button.zim_path == pagename:
+					button.set_active(True)
+				else:
+					button.set_active(False)
 
 	def add_new_page(self, page = None):
 		'''
@@ -445,7 +448,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				    ('gtk-copy', lambda o: set_save_bookmark(path)),
 				    ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
 				    ('separator', ''),
-				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
+				    (_('Open in New Window'), lambda o: self.navigation.open_page(Path(path), new_window=True)), # T: menu item
 				    ('separator', ''),
 				    (rename_button_text, lambda o: self.rename_bookmark(button)),
 				    (_('Set to Current Page'), lambda o: self.change_bookmark(path))) # T: menu item
@@ -465,10 +468,10 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		main_menu.popup(None, None, None, 3, 0)
 		return True
 
-
+	@SignalHandler
 	def on_bookmark_clicked(self, button):
 		'''Open page if a bookmark is clicked.'''
-		self.ui.open_page(Path(button.zim_path))
+		self.navigation.open_page(Path(button.zim_path))
 
 	def on_preferences_changed(self, preferences):
 		'''Plugin preferences were changed.'''

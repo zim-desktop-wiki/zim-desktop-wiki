@@ -17,24 +17,30 @@ logger = logging.getLogger('zim.gui.dialogs')
 
 class RecentChangesDialog(Dialog):
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Recent Changes'), # T: Dialog title
+	def __init__(self, widget, notebook, navigation):
+		Dialog.__init__(self, widget, _('Recent Changes'), # T: Dialog title
 			buttons=gtk.BUTTONS_CLOSE,
 			defaultwindowsize=(400, 300)
 		)
+		self.notebook = notebook
+		self.navigation = navigation
 
-		self.treeview = RecentChangesTreeView(ui)
+		self.treeview = RecentChangesTreeView()
 		self.vbox.add(ScrolledWindow(self.treeview))
+		self.treeview.connect('row-activated', self.on_row_activated)
 
 		self.update()
-		self.ui.notebook.connect_after('stored-page', lambda *a: self.update())
+		self.notebook.connect_after('stored-page', lambda *a: self.update())
 
 	def update(self):
 		model = self.treeview.get_model()
 		model.clear()
-		for rec in self.ui.notebook.pages.list_recent_changes(limit=50):
+		for rec in self.notebook.pages.list_recent_changes(limit=50):
 			model.append((rec.name, rec.mtime))
 
+	def on_row_activated(self, view, path, col):
+		page = Path(view.get_model()[path][view.NAME_COL].decode('utf-8'))
+		self.navigation.open_page(page)
 
 
 class RecentChangesTreeView(BrowserTreeView):
@@ -42,11 +48,10 @@ class RecentChangesTreeView(BrowserTreeView):
 	NAME_COL = 0
 	MODIFIED_COL = 1
 
-	def __init__(self, ui):
+	def __init__(self):
 		model = gtk.ListStore(str, str)
 			# NAME_COL, MODIFIED_COL
 		BrowserTreeView.__init__(self, model)
-		self.ui = ui
 
 		cell_renderer = gtk.CellRendererText()
 
@@ -83,10 +88,3 @@ class RecentChangesTreeView(BrowserTreeView):
 		column.set_cell_data_func(cell_renderer, render_date)
 		column.set_sort_column_id(self.MODIFIED_COL)
 		self.append_column(column)
-
-
-		self.connect('row-activated', self._do_open_page)
-
-	def _do_open_page(self, view, path, col):
-		page = Path(self.get_model()[path][self.NAME_COL].decode('utf-8'))
-		self.ui.open_page(page)

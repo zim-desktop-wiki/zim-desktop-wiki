@@ -11,7 +11,8 @@ import pango
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
-from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator
+from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
+	WindowSidePaneWidget
 
 
 class BackLinksPanePlugin(PluginClass):
@@ -41,13 +42,12 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 
-		opener = self.window.get_resource_opener()
+		opener = self.window.navigation
 		self.widget = BackLinksWidget(opener)
-		if self.window.ui.page: # XXX
-			ui = self.window.ui # XXX
-			page = self.window.ui.page # XXX
-			self.on_open_page(ui, page, page)
-		self.connectto(self.window.ui, 'open-page') # XXX
+
+		if self.window.page is not None:
+			self.on_page_changed(self.window, self.window.page)
+		self.connectto(self.window, 'page-changed')
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -61,13 +61,12 @@ class MainWindowExtension(WindowExtension):
 		except ValueError:
 			pass
 
-		self.window.add_tab(_('BackLinks'), self.widget, preferences['pane'])
-			# T: widget label
+		self.window.add_tab('backlinkspane', self.widget, preferences['pane'])
 		self.widget.show_all()
 		self.widget.show_all()
 
-	def on_open_page(self, ui, page, path):
-		self.widget.set_page(self.window.ui.notebook, page) # XXX
+	def on_page_changed(self, window, page):
+		self.widget.set_page(window.notebook, page)
 
 	def teardown(self):
 		self.window.remove(self.widget)
@@ -78,7 +77,9 @@ class MainWindowExtension(WindowExtension):
 PAGE_COL = 0
 TEXT_COL = 1
 
-class BackLinksWidget(gtk.ScrolledWindow):
+class BackLinksWidget(gtk.ScrolledWindow, WindowSidePaneWidget):
+
+	title = _('BackLinks') # T: widget label
 
 	def __init__(self, opener):
 		gtk.ScrolledWindow.__init__(self)

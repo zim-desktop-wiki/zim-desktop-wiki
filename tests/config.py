@@ -618,7 +618,7 @@ class TestXDGConfigDirsIter(tests.TestCase):
 		# environment take effect immediately
 		iter = XDGConfigDirsIter()
 
-		path = self.get_tmp_name()
+		path = '/non-existing/dir'
 		zimdir = Dir(path).subdir('zim')
 		self.assertNotIn(zimdir, list(iter))
 

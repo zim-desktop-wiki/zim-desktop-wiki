@@ -6,7 +6,7 @@
 # framework. It setups the environment properly and defines some
 # commandline options for running tests.
 #
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
 import sys
@@ -79,14 +79,6 @@ On Ubuntu or Debian install package 'python-coverage'.
 		else:
 			assert False, 'Unkown option: %s' % o
 
-	# Start tracing
-	if coverage:
-		cov = coverage.coverage(source=['zim'], branch=True)
-		cov.erase() # clean up old date set
-		cov.exclude('assert ')
-		cov.exclude('raise NotImplementedError')
-		cov.start()
-
 	# Set logging handler (don't use basicConfig here, we already installed stuff)
 	handler = logging.StreamHandler()
 	handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
@@ -94,6 +86,14 @@ On Ubuntu or Debian install package 'python-coverage'.
 	logger.setLevel(loglevel)
 	logger.addHandler(handler)
 	#logging.captureWarnings(True) # FIXME - make all test pass with this enabled
+
+	# Start tracing - before importing the tests
+	if coverage:
+		cov = coverage.coverage(source=['zim'], branch=True)
+		cov.erase() # clean up old date set
+		cov.exclude('assert ')
+		cov.exclude('raise NotImplementedError')
+		cov.start()
 
 	# Build the test suite
 	loader = unittest.TestLoader()
@@ -122,6 +122,11 @@ On Ubuntu or Debian install package 'python-coverage'.
 	result = \
 		unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
 
+	# Stop tracing
+	if coverage:
+		cov.stop()
+		cov.save()
+
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)
 	mylib = os.path.abspath('./zim')
@@ -134,12 +139,13 @@ On Ubuntu or Debian install package 'python-coverage'.
 					'Module %s was loaded from %s' % (module, file)
 
 	test_report(result, 'test_report.html')
-	print '\nWrote test report to test_report.html\n'
+	print '\nWrote test report to test_report.html'
 
-	# Stop tracing
-	if coverage:
-		cov.stop()
-		cov.save()
+	# print timings
+	with open('test_times.csv', 'w') as out:
+		for name, time in sorted(tests.TIMINGS, reverse=True, key=lambda t: t[1]):
+			out.write("%s,%f\n" % (name, time))
+		print "Wrote test_times.csv"
 
 	# Create coverage output if asked to do so
 	if covreport:

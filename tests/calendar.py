@@ -20,7 +20,7 @@ from zim.plugins.calendar import NotebookExtension, \
 	MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
 	CalendarDialog
 
-from tests.gui import setupGtkInterface
+from tests.mainwindow import setUpMainWindow
 
 
 class TestCalendarFunctions(tests.TestCase):
@@ -116,9 +116,8 @@ class TestCalendarPlugin(tests.TestCase):
 		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		notebook = self.setUpNotebook()
+		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['embedded'] = True
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
@@ -131,7 +130,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin.preferences.changed() # make sure no errors are triggered
 
 		ext[0].go_page_today()
-		self.assertTrue(ui.page.name.startswith('Journal:'))
+		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 
 		plugin.preferences['embedded'] = False
 		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)
@@ -146,7 +145,7 @@ class TestCalendarPlugin(tests.TestCase):
 		def test_dialog(dialog):
 			self.assertIsInstance(dialog, CalendarDialog)
 			dialog.do_today('xxx')
-			ui.open_page(Path('foo'))
+			mainwindow.open_page(Path('foo'))
 
 		with tests.DialogContext(test_dialog):
 			ext[0].show_calendar()
@@ -158,7 +157,7 @@ class TestCalendarPlugin(tests.TestCase):
 		pluginklass = PluginManager.get_plugin_class('calendar')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
 
 		ext = list(plugin.extensions)
@@ -209,7 +208,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin = pluginklass()
 		plugin.preferences['namespace'] = Path('Calendar')
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
 
 		dumper = get_dumper('wiki')

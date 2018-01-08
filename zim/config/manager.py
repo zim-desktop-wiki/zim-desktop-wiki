@@ -49,6 +49,10 @@ class ConfigManager(object):
 		self._dir = dir
 		self._dirs = dirs
 
+	@property
+	def preferences(self):
+		return self.get_config_dict('<profile>/preferences.conf')
+
 	def set_profile(self, profile):
 		'''Set the profile to use for the configuration
 		@param profile: the profile name or C{None}
@@ -242,13 +246,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 			self.disconnect_from(self.file)
 		self.file = file
 		self.defaults = defaults or []
-		#~ self.connectto(self.file, 'changed', self.on_file_changed)
 		self.emit('changed')
-
-	#~ def on_file_changed(self, file, *a):
-		#~ print "CONF FILE changed:", file
-		# TODO verify etag (we didn't write ourselves)
-		#~ self.emit('changed')
 
 	def check_has_changed_on_disk(self):
 		return True # we do not emit the signal if it is not real...
@@ -256,6 +254,10 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	@property
 	def basename(self):
 		return self.file.basename
+
+	def exists(self):
+		return self.file.exists() or \
+			any(default.exists() for default in self.defaults)
 
 	def touch(self):
 		'''Ensure the custom file in the home folder exists. Either by
@@ -309,16 +311,18 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	def write(self, text):
 		'''Write base file, see L{File.write()}'''
 		self.file.write(text)
+		self.emit('changed')
 
 	def writelines(self, lines):
 		'''Write base file, see L{File.writelines()}'''
 		self.file.writelines(lines)
+		self.emit('changed')
 
 	def remove(self):
 		'''Remove user file, leaves default files in place'''
 		if self.file.exists():
 			return self.file.remove()
-
+		self.emit('changed')
 
 
 class VirtualConfigBackend(object):
@@ -388,6 +392,3 @@ class VirtualConfigBackendFile(object):
 
 	def remove(self):
 		del self._data[self._key]
-
-
-

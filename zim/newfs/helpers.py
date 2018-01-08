@@ -11,14 +11,14 @@ except ImportError:
 	gio = None
 
 
-from zim.signals import SignalEmitter, SIGNAL_NORMAL
-from zim.errors import TrashNotSupportedError, TrashNotSupportedError
-
 import os
 import logging
 
 logger = logging.getLogger('zim.newfs.helpers')
 
+
+from zim.signals import SignalEmitter, SIGNAL_NORMAL
+from zim.errors import Error
 
 from .local import LocalFSObjectBase
 
@@ -39,6 +39,20 @@ class FileTreeWatcher(SignalEmitter):
 		'removed': (SIGNAL_NORMAL, None, (object,)),
 	} #: signals supported by this class
 
+
+class TrashNotSupportedError(Error):
+	'''Error raised when trashing is not supported and delete should
+	be used instead
+	'''
+	pass
+
+
+class TrashCancelledError(Error):
+	'''Error raised when a trashing operation is cancelled. (E.g. on
+	windows the system will prompt the user with a confirmation
+	dialog which has a Cancel button.)
+	'''
+	pass
 
 
 class TrashHelper(object):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -74,18 +74,6 @@ KEYVALS_SLASH = (
 	gtk.gdk.unicode_to_keyval(ord('\\')),
 	gtk.gdk.unicode_to_keyval(ord('/')), gtk.gdk.keyval_from_name('KP_Divide'))
 KEYVAL_ESC = gtk.gdk.keyval_from_name('Escape')
-
-
-# UI Environment config. Would properly belong in zim.gui.__init__
-# but defined here to avoid unnecessary dependencies on zim.gui
-ui_environment = {
-	'platform': None, # platform name to trigger platform specific optimizations
-	'maxscreensize': None, # max screensize _if_ fixed by the platform
-	'smallscreen': False, # trigger optimizations for small screens
-}
-
-
-gtkwindowclass = gtk.Window
 
 
 def encode_markup_text(text):
@@ -278,15 +266,6 @@ def gtk_combobox_set_active_text(combobox, text):
 		raise ValueError(text)
 
 
-def gtk_notebook_get_active_tab(nb):
-	'''Returns the label of the active tab or C{None}'''
-	widget = gtk_notebook_get_active_page(nb)
-	if widget:
-		return nb.get_tab_label_text(widget)
-	else:
-		return None
-
-
 def gtk_notebook_get_active_page(nb):
 	'''Returns the active child widget or C{None}'''
 	num = nb.get_current_page()
@@ -295,16 +274,6 @@ def gtk_notebook_get_active_page(nb):
 	else:
 		return None
 
-
-def gtk_notebook_set_active_tab(nb, label):
-	'''Set active tab by the label of the tab'''
-	for child in nb.get_children():
-		if nb.get_tab_label_text(child) == label:
-			num = nb.page_num(child)
-			nb.set_current_page(num)
-			break
-	else:
-		raise ValueError('No such tab: %s' % label)
 
 
 class TextBuffer(gtk.TextBuffer):
@@ -529,11 +498,6 @@ class IconButton(gtk.Button):
 		self.set_alignment(0.5, 0.5)
 		if not relief:
 			self.set_relief(gtk.RELIEF_NONE)
-
-
-def CloseButton():
-	'''Constructs a close button for panes and bars'''
-	return IconButton(gtk.STOCK_CLOSE, relief=False, size=gtk.ICON_SIZE_MENU)
 
 
 class IconChooserButton(gtk.Button):
@@ -1766,7 +1730,7 @@ class FSPathEntry(InputEntry):
 			page = self.notebook.get_page(self.notebookpath)
 			dialog.set_current_dir(page.source.dir)
 		elif self.notebook:
-			dialog.set_current_dir(self.notebook.dir)
+			dialog.set_current_dir(self.notebook.folder)
 
 
 		file = dialog.run()
@@ -1926,6 +1890,8 @@ class PageEntry(InputEntry):
 
 		@param path: L{Path} object
 		'''
+		if self.subpaths_only:
+			assert path.ischild(self.notebookpath)
 		self.set_text(':' + path.name)
 
 	def get_path(self):
@@ -1944,7 +1910,7 @@ class PageEntry(InputEntry):
 			self.set_input_valid(False)
 			return None
 		else:
-			if self.subpaths_only and not name.startswith('+'):
+			if self.subpaths_only and name[0] not in ('+', ':'):
 				name = '+' + name
 
 			try:
@@ -1953,6 +1919,8 @@ class PageEntry(InputEntry):
 						name, reference=self.notebookpath
 					)
 				else:
+					if name.startswith('+') and self.notebookpath:
+						name = self.notebookpath.name + ':' + name[1:]
 					name = Path.makeValidPageName(name)
 					path = Path(name)
 			except ValueError:
@@ -2161,19 +2129,9 @@ def format_title(title):
 def get_window(widget):
 	if widget and hasattr(widget, 'get_toplevel'):
 		window = widget.get_toplevel()
-			# GtkInterface also implements get_toplevel
 		return window if isinstance(window, gtk.Window) else None
 	else:
 		return None
-
-
-def register_window(window):
-	'''Register this instance with the zim application, if not done
-	so already.
-	'''
-	if  hasattr(window, 'ui') \
-	and hasattr(window.ui, 'register_new_window'):
-		window.ui.register_new_window(window)
 
 
 class uistate_property(object):
@@ -2220,6 +2178,16 @@ WIDGET_POSITIONS = (
 )
 
 
+def _hide(widget):
+	widget.hide()
+	widget.set_no_show_all(True)
+
+
+def _show(widget):
+	widget.set_no_show_all(False)
+	widget.show_all()
+
+
 class WindowSidePane(gtk.VBox):
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -2227,22 +2195,19 @@ class WindowSidePane(gtk.VBox):
 		'close': (gobject.SIGNAL_RUN_LAST, None, ()),
 	}
 
-	def __init__(self):
+	def __init__(self, position):
 		gtk.VBox.__init__(self)
+		self.key = position
 
 		# Add bar with label and close button
 		self.topbar = gtk.HBox()
-		self.topbar.label = gtk.Label()
-		self.topbar.label.set_alignment(0.03, 0.5)
-		self.topbar.pack_start(self.topbar.label)
 		self.topbar.pack_end(self._close_button(), False)
 		self.pack_start(self.topbar, False)
 
 		# Add notebook
 		self.notebook = gtk.Notebook()
 		self.notebook.set_show_border(False)
-		if gtk.gtk_version >= (2, 22) \
-		and gtk.pygtk_version >= (2, 22):
+		if gtk.gtk_version >= (2, 22) and gtk.pygtk_version >= (2, 22):
 			button = self._close_button()
 			self.notebook.set_action_widget(button, gtk.PACK_END)
 
@@ -2250,95 +2215,91 @@ class WindowSidePane(gtk.VBox):
 
 		self._update_topbar()
 
+	_arrow_directions = {
+		TOP_PANE: gtk.ARROW_UP,
+		BOTTOM_PANE: gtk.ARROW_DOWN,
+		LEFT_PANE: gtk.ARROW_LEFT,
+		RIGHT_PANE: gtk.ARROW_RIGHT,
+	}
+
 	def _close_button(self):
-		button = CloseButton()
+		arrow = gtk.Arrow(self._arrow_directions[self.key], gtk.SHADOW_NONE)
+		button = gtk.Button()
+		button.add(arrow)
+		button.set_alignment(0.5, 0.5)
+		button.set_relief(gtk.RELIEF_NONE)
 		button.connect('clicked', lambda o: self.emit('close'))
 		return button
 
 	def _update_topbar(self):
 		children = self.get_children()
-		assert children[0] == self.topbar
 		n_pages = self.notebook.get_n_pages()
 
-		# remove close button if any
-		for widget in children:
-			if isinstance(widget, WindowSidePaneWidget):
-				widget.embed_closebutton(None)
-		for widget in self.notebook.get_children():
-			if isinstance(widget, WindowSidePaneWidget):
-				widget.embed_closebutton(None)
-
-		# Option 1: widget above notebook or no tabs in notebook
-		# Show topbar without title, show tabs in notebook
-		# (or embed close button in widget)
-		if children[1] != self.notebook or n_pages == 0:
-			embedded = False
-			if children[1] != self.notebook \
-			and isinstance(children[1], WindowSidePaneWidget):
-				# see if we can embed the close button in the widget
-				button = self._close_button()
-				embedded = children[1].embed_closebutton(button)
-
-			if not embedded:
-				self.topbar.label.set_text('') # no title
-				self.topbar.set_no_show_all(False)
-				self.topbar.show_all()
-			else:
-				self.topbar.set_no_show_all(True)
-				self.topbar.hide()
-
-			self.notebook.set_show_tabs(True)
-			if gtk.gtk_version >= (2, 22) \
-			and gtk.pygtk_version >= (2, 22):
-				button = self.notebook.get_action_widget(gtk.PACK_END)
-				button.set_no_show_all(True)
-				button.hide()
-
-			# TODO: for widget + single tab case add another title bar ?
-
-		# Option 2: notebook with single tab
-		# hide tabs, use topbar to show tab label
-		# (or embed close button in notebook tab)
-		elif n_pages == 1:
-			self.notebook.set_show_tabs(False)
-			child = self.notebook.get_nth_page(0)
-			title = self.notebook.get_tab_label_text(child)
-			self.topbar.label.set_text(title)
-			if gtk.gtk_version >= (2, 22) \
-			and gtk.pygtk_version >= (2, 22):
-				button = self.notebook.get_action_widget(gtk.PACK_END)
-				button.set_no_show_all(True)
-				button.hide()
-
-			embedded = False
+		for child in children + self.notebook.get_children():
 			if isinstance(child, WindowSidePaneWidget):
-				# see if we can embed the close button in the widget
-				button = self._close_button()
-				embedded = child.embed_closebutton(button)
+				child.set_embeded_closebutton(None)
 
-			if not embedded:
-				self.topbar.set_no_show_all(False)
-				self.topbar.show_all()
-			else:
-				self.topbar.set_no_show_all(True)
-				self.topbar.hide()
+		assert children[0] == self.topbar
 
-		# Option 3: notebook with multiple tabs
-		# show tabs, no text in topbar
-		# If possible put close button next to tabs
+		if children[1] != self.notebook:
+			self._show_topbar_for_widget(children[1])
+		elif n_pages == 0:
+			self._show_empty_topbar()
+		elif n_pages == 1:
+			self._show_single_tab()
 		else:
-			self.notebook.set_show_tabs(True)
-			self.topbar.label.set_text('') # no title
-			if gtk.gtk_version >= (2, 22) \
-			and gtk.pygtk_version >= (2, 22):
-				button = self.notebook.get_action_widget(gtk.PACK_END)
-				button.set_no_show_all(False)
-				button.show_all()
-				self.topbar.set_no_show_all(True)
-				self.topbar.hide()
-			else:
-				self.topbar.set_no_show_all(False)
-				self.topbar.show_all()
+			self._show_multiple_tabs()
+
+	def _set_topbar_label(self, label):
+		assert isinstance(label, gtk.Label)
+		label.set_alignment(0.03, 0.5)
+		for child in self.topbar.get_children():
+			if isinstance(child, gtk.Label):
+				child.destroy()
+		self.topbar.pack_start(label)
+
+	def _show_topbar_for_widget(self, widget):
+		self.notebook.set_show_tabs(True)
+		if gtk.gtk_version >= (2, 22) and gtk.pygtk_version >= (2, 22):
+			_hide(self.notebook.get_action_widget(gtk.PACK_END))
+
+		self._set_topbar_label(gtk.Label(''))
+		if isinstance(widget, WindowSidePaneWidget) \
+			and widget.set_embeded_closebutton(self._close_button()):
+				_hide(self.topbar)
+		else:
+			_show(self.topbar)
+
+	def _show_empty_topbar(self):
+		self.notebook.set_show_tabs(False)
+		if gtk.gtk_version >= (2, 22) and gtk.pygtk_version >= (2, 22):
+			_hide(self.notebook.get_action_widget(gtk.PACK_END))
+
+		self._set_topbar_label(gtk.Label(''))
+		_show(self.topbar)
+
+	def _show_single_tab(self):
+		self.notebook.set_show_tabs(False)
+		if gtk.gtk_version >= (2, 22) and gtk.pygtk_version >= (2, 22):
+			_hide(self.notebook.get_action_widget(gtk.PACK_END))
+
+		child = self.notebook.get_nth_page(0)
+		self._set_topbar_label(child.get_title_label())
+		if isinstance(child, WindowSidePaneWidget) \
+			and child.set_embeded_closebutton(self._close_button()):
+				_hide(self.topbar)
+		else:
+			_show(self.topbar)
+
+	def _show_multiple_tabs(self):
+		self.notebook.set_show_tabs(True)
+		self._set_topbar_label(gtk.Label(''))
+		if gtk.gtk_version >= (2, 22) and gtk.pygtk_version >= (2, 22):
+			# Show close button next to notebook tabs
+			_show(self.notebook.get_action_widget(gtk.PACK_END))
+			_hide(self.topbar)
+		else:
+			_show(self.topbar)
 
 	def add_widget(self, widget, position):
 		self.pack_start(widget, False)
@@ -2347,8 +2308,11 @@ class WindowSidePane(gtk.VBox):
 			self.reorder_child(widget, 1)
 		self._update_topbar()
 
-	def add_tab(self, title, widget):
-		self.notebook.append_page(widget, tab_label=gtk.Label(title))
+	def add_tab(self, key, widget):
+		assert isinstance(widget, WindowSidePaneWidget)
+		assert widget.title is not None
+		widget.tab_key = key
+		self.notebook.append_page(widget, widget.get_title_label())
 		self._update_topbar()
 
 	def remove(self, widget):
@@ -2404,8 +2368,8 @@ gobject.type_register(WindowSidePane)
 class MinimizedTabs(object):
 
 	def __init__(self, sidepane, angle):
+		self.status_bar_style = False
 		assert angle in (0, 90, 270)
-		self.on_click_cb = lambda i: None
 		self._angle = angle
 		self._update(sidepane.notebook)
 		for signal in ('page-added', 'page-reordered', 'page-removed'):
@@ -2425,13 +2389,17 @@ class MinimizedTabs(object):
 
 		for i in ipages:
 			child = notebook.get_nth_page(i)
-			text = notebook.get_tab_label_text(child)
-			button = gtk.Button(label=text)
-			button.set_relief(gtk.RELIEF_NONE)
-			button.connect('clicked', self._on_click, text)
+			button = gtk.Button()
+			button.add(child.get_title_label())
+			if self.status_bar_style:
+				button_set_statusbar_style(button)
+			else:
+				button.set_relief(gtk.RELIEF_NONE)
+			button.connect('clicked', self._on_click, child.tab_key)
 			if self._angle != 0:
 				button.get_child().set_angle(self._angle)
 			self.pack_start(button, False)
+			button.show_all()
 
 	def _on_click(self, b, text):
 		self.emit('clicked', text)
@@ -2470,13 +2438,30 @@ class WindowSidePaneWidget(object):
 	L{WindowSidePane}
 	'''
 
-	def embed_closebutton(self, button):
+	def get_title_label(self):
+		label = gtk.Label(self.title)
+		if not hasattr(self, '_title_labels'):
+			self._title_labels = set()
+		self._title_labels.add(label)
+		label.connect('destroy', self._drop_label)
+		return label
+
+	def _drop_label(self, label):
+		if hasattr(self, '_title_labels'):
+			self._title_labels.remove(label)
+
+	def set_title(self, text):
+		self.title = text
+		if hasattr(self, '_title_labels'):
+			for label in self._title_labels:
+				label.set_text(text)
+
+	def set_embeded_closebutton(self, button):
 		'''Embed a button in the widget to close the side pane
-		@param button: an L{IconButton} or C{None} to un-set
+		@param button: a button widget or C{None} to unset
 		@returns: C{True} if supported and succesful
 		'''
 		return False
-
 
 
 from zim.config import ConfigDefinition, ConfigDefinitionByClass
@@ -2519,7 +2504,7 @@ class ConfigDefinitionPaneState(ConfigDefinitionByClass):
 			raise ValueError('Value is not a valid pane state')
 
 
-class Window(gtkwindowclass):
+class Window(gtk.Window):
 	'''Sub-class of C{gtk.Window} that will take care of hooking
 	the window into the application framework and adds entry points
 	so plugins can add side panes etc. It will divide the window
@@ -2557,7 +2542,7 @@ class Window(gtkwindowclass):
 	}
 
 	def __init__(self):
-		gtkwindowclass.__init__(self)
+		gtk.Window.__init__(self)
 		self._registered = False
 		self._last_sidepane_focus = None
 
@@ -2571,10 +2556,10 @@ class Window(gtkwindowclass):
 		self._zim_window_top_paned = VPaned()
 		self._zim_window_bottom_paned = VPaned()
 
-		self._zim_window_left_pane = WindowSidePane()
-		self._zim_window_right_pane = WindowSidePane()
-		self._zim_window_top_pane = WindowSidePane()
-		self._zim_window_bottom_pane = WindowSidePane()
+		self._zim_window_left_pane = WindowSidePane(LEFT_PANE)
+		self._zim_window_right_pane = WindowSidePane(RIGHT_PANE)
+		self._zim_window_top_pane = WindowSidePane(TOP_PANE)
+		self._zim_window_bottom_pane = WindowSidePane(BOTTOM_PANE)
 
 		self._zim_window_left_minimized = VMinimizedTabs(self._zim_window_left_pane)
 		self._zim_window_right_minimized = VMinimizedTabs(self._zim_window_right_pane, angle=270)
@@ -2582,7 +2567,7 @@ class Window(gtkwindowclass):
 		self._zim_window_bottom_minimized = HMinimizedTabs(self._zim_window_bottom_pane)
 
 		# put it all together ...
-		gtkwindowclass.add(self, self._zim_window_main)
+		gtk.Window.add(self, self._zim_window_main)
 		self._zim_window_main.add(self._zim_window_central_hbox)
 		self._zim_window_central_hbox.pack_start(self._zim_window_left_minimized, False)
 		self._zim_window_central_hbox.add(self._zim_window_left_paned)
@@ -2660,17 +2645,25 @@ class Window(gtkwindowclass):
 			# Force to ignore the bars in keyboard navigation
 			# items in the bars are all accesible by accelerators
 
-	def add_tab(self, title, widget, pane):
+	def move_bottom_minimized_tabs_to_statusbar(self, statusbar):
+		frame = gtk.Frame()
+		frame.set_shadow_type(gtk.SHADOW_IN)
+		self._zim_window_bottom_minimized.reparent(frame)
+		self._zim_window_bottom_minimized.status_bar_style = True
+		statusbar.pack_end(frame, False)
+		frame.show_all()
+
+	def add_tab(self, key, widget, pane):
 		'''Add a tab in one of the panes.
-		@param title: string with title to put in the tab
+		@param key: string that is used to identify this tab in the window state
 		@param widget: the gtk widget to show in the tab
 		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		'''
-		key = pane
-		paned, pane, mini = self._zim_window_sidepanes[key]
-		pane.add_tab(title, widget)
-		self.set_pane_state(key, True)
+		pane_key = pane
+		paned, pane, mini = self._zim_window_sidepanes[pane_key]
+		pane.add_tab(key, widget)
+		self.set_pane_state(pane_key, True)
 
 	def add_widget(self, widget, position):
 		'''Add a widget in one of the panes outside of the tabs
@@ -2697,6 +2690,22 @@ class Window(gtkwindowclass):
 			paned, pane, mini = self._zim_window_sidepanes[key]
 			pane.add_widget(widget, pos)
 			self.set_pane_state(key, True)
+		else:
+			raise KeyError
+
+	def get_widget(self, position):
+		key, pos = position
+		if key in (TOP_PANE, BOTTOM_PANE):
+			if key == TOP_PANE and pos == TOP:
+				# Special case for top widget outside of pane
+				# used especially for PathBar
+				return self._zim_window_central_vbox.get_children()[0]
+					# FIXME: not guaranteed to return a widget added with
+					#        add_widget()
+			else:
+				raise NotImplementedError
+		elif key in (LEFT_PANE, RIGHT_PANE):
+			raise NotImplementedError
 		else:
 			raise KeyError
 
@@ -2735,7 +2744,7 @@ class Window(gtkwindowclass):
 			self.set_pane_state(key, *self.uistate[key])
 
 	def save_uistate(self):
-		assert self.uistate
+		assert self.uistate is not None
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			if key in self.uistate:
 				self.uistate[key] = self.get_pane_state(key)
@@ -2746,7 +2755,7 @@ class Window(gtkwindowclass):
 		@param pane: can be one of: C{LEFT_PANE}, C{RIGHT_PANE},
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		@returns: a 3-tuple of visibility (boolean),
-		pane size (integer), and active tab (label).
+		pane size (integer), and active tab (string).
 		'''
 		# FIXME revert calculate size instead of position for left
 		# and bottom widget
@@ -2754,7 +2763,8 @@ class Window(gtkwindowclass):
 		paned, pane, mini = self._zim_window_sidepanes[key]
 		if pane.get_property('visible'):
 			position = paned.get_position()
-			active = gtk_notebook_get_active_tab(pane.notebook)
+			widget = gtk_notebook_get_active_page(pane.notebook)
+			active = widget.tab_key if widget else None
 			return (True, position, active)
 		else:
 			return pane.zim_pane_state
@@ -2767,22 +2777,22 @@ class Window(gtkwindowclass):
 		C{TOP_PANE} or C{BOTTOM_PANE}.
 		@param visible: C{True} to show the pane, C{False} to hide
 		@param size: size of the side pane
-		@param activetab: label of the active tab in the notebook or None
+		@param activetab: key of the active tab in the notebook or None
 		(fails silently if tab is not found)
 		@param grab_focus: if C{True} active tab will grab focus
 		'''
 		# FIXME get parent widget size and subtract to get position
-		# for left and botton notebook
+		# for left and bottom notebook
 		# FIXME enforce size <  parent widget and > 0
-		key = pane
-		paned, pane, mini = self._zim_window_sidepanes[key]
+		pane_key = pane
+		paned, pane, mini = self._zim_window_sidepanes[pane_key]
 		if pane.get_property('visible') == visible \
 		and size is None and activetab is None:
 			if grab_focus:
 				pane.grab_focus()
 			return # nothing else to do
 
-		oldstate = self.get_pane_state(key)
+		oldstate = self.get_pane_state(pane_key)
 		if size is None:
 			size = oldstate[1]
 		if activetab is None:
@@ -2797,10 +2807,12 @@ class Window(gtkwindowclass):
 				pane.show_all()
 				paned.set_position(position)
 				if activetab is not None:
-					try:
-						gtk_notebook_set_active_tab(pane.notebook, activetab)
-					except ValueError:
-						pass
+					nb = pane.notebook
+					for child in nb.get_children():
+						if child.tab_key == activetab:
+							num = nb.page_num(child)
+							nb.set_current_page(num)
+							break
 
 				if grab_focus:
 					pane.grab_focus()
@@ -2813,7 +2825,7 @@ class Window(gtkwindowclass):
 			mini.show_all()
 
 		pane.zim_pane_state = (visible, size, activetab)
-		self.emit('pane-state-changed', key, visible, activetab)
+		self.emit('pane-state-changed', pane_key, visible, activetab)
 
 	def toggle_panes(self, show=None):
 		'''Toggle between showing and not showing panes.
@@ -2839,7 +2851,7 @@ class Window(gtkwindowclass):
 			for pane in panes:
 				self.set_pane_state(pane, True)
 		else:
-			self.uistate['toggle_panes'] = self.get_visible_panes()
+			self.uistate['toggle_panes'] = [p.key for p in self.get_visible_panes()]
 			for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 				self.set_pane_state(pane, False)
 
@@ -2850,21 +2862,21 @@ class Window(gtkwindowclass):
 
 	def get_visible_panes(self):
 		'''Returns a list of panes that are visible'''
-		panes = []
-		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane, mini = self._zim_window_sidepanes[key]
-			if not pane.is_empty() and pane.get_property('visible'):
-				panes.append(key)
-		return panes
+		return filter(
+			lambda p: not p.is_empty() and p.get_property('visible'),
+			self._panes()
+		)
 
 	def get_used_panes(self):
 		'''Returns a list of panes that are in use (i.e. not empty)'''
-		panes = []
-		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
-			paned, pane, mini = self._zim_window_sidepanes[key]
-			if not pane.is_empty():
-				panes.append(key)
-		return panes
+		return filter(
+			lambda p: not p.is_empty(),
+			self._panes()
+		)
+
+	def _panes(self):
+		return [self._zim_window_sidepanes[key][1]
+				for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE)]
 
 	def do_set_focus(self, widget):
 		# keep track of last sidepane widget that had focus..
@@ -2876,9 +2888,16 @@ class Window(gtkwindowclass):
 					break
 				parent = parent.get_parent()
 
-		return gtkwindowclass.do_set_focus(self, widget)
+		return gtk.Window.do_set_focus(self, widget)
 
-	def focus_last_sidepane(self):
+	def focus_sidepane(self):
+		try:
+			self.focus_last_focussed_sidepane() \
+				or self.get_visible_panes()[0].grab_focus()
+		except IndexError:
+			pass
+
+	def focus_last_focussed_sidepane(self):
 		if self._last_sidepane_focus \
 		and self._last_sidepane_focus.get_property('visible'):
 			self._last_sidepane_focus.grab_focus()
@@ -2898,16 +2917,19 @@ class Window(gtkwindowclass):
 		# This is important for state of e.g. panes to work correctly
 		if not self._registered:
 			self._registered = True
-			register_window(self)
 			if hasattr(self, 'uistate'):
 				self.init_uistate()
 
 		if not TEST_MODE:
-			gtkwindowclass.show_all(self)
+			gtk.Window.show_all(self)
 
 	def present(self):
-		if not TEST_MODE:
-			gtkwindowclass.present(self)
+		self.show_all()
+		if TEST_MODE:
+			assert TEST_MODE_RUN_CB, 'Dialog run without test callback'
+			TEST_MODE_RUN_CB(self)
+		else:
+			gtk.Window.present(self)
 
 # Need to register classes defining gobject signals
 gobject.type_register(Window)
@@ -2930,7 +2952,6 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	sub-classes can use the L{ConnectorMixin} methods and all callbacks
 	will be cleaned up after the dialog.
 
-	@ivar ui: parent C{gtk.Window} or C{GtkInterface}
 	@ivar vbox: C{gtk.VBox} for main widgets of the dialog
 	@ivar form: L{InputForm} added by C{add_form()}
 	@ivar uistate: L{ConfigDict} to store state of the dialog, persistent
@@ -2950,7 +2971,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 
 		Typically you can use this as::
 
-			dialog = MyDialog.unique(ui, somearg)
+			dialog = MyDialog.unique(parent, somearg)
 			dialog.present()
 
 		@param handler: the object constructing the dialog
@@ -2975,15 +2996,15 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		setattr(handler, attr, weakref.ref(dialog))
 		return dialog
 
-	def __init__(self, ui, title,
+	def __init__(self, parent, title,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, help=None,
 			defaultwindowsize=(-1, -1)
 		):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent gtk widget or C{None}. Only used to
+		set the dialog on top of the right parent window
 		@param title: the dialog title
 		@param buttons: a constant controlling what kind of buttons the
 		dialog will have. One of:
@@ -2997,31 +3018,22 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@param help_text: set the help text, see L{add_help_text()}
 		@param help: pagename for a manual page, see L{set_help()}
 		@param defaultwindowsize: default window size in pixels
-
-		@note: some sub-classes expect C{self.ui} to always be a
-		L{GtkInterface}
 		'''
+		window = get_window(parent)
 		gtk.Dialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=window,
 			title=format_title(title),
 			flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_DESTROY_WITH_PARENT,
 		)
-		if hasattr(ui, 'ui') and hasattr(ui.ui, 'uistate'):
-				ui = ui.ui # HACK - we get other window instead.. - avoid triggering Mock objects in test ...
-
-		self.ui = ui
 		self.result = None
 		self._registered = False
-		if not ui_environment['smallscreen']:
-			self.set_border_width(10)
-			self.vbox.set_spacing(5)
+		self.set_border_width(10)
+		self.vbox.set_spacing(5)
 
 		if hasattr(self, 'uistate'):
 			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
-		elif hasattr(ui, 'uistate') \
-		and isinstance(ui.uistate, zim.config.SectionedConfigDict):
-			key = self.__class__.__name__
-			self.uistate = ui.uistate[key]
+		elif hasattr(window, 'config') and hasattr(window.config, 'uistate'):
+			self.uistate = window.config.uistate[self.__class__.__name__]
 		else:
 			self.uistate = zim.config.ConfigDict()
 
@@ -3090,7 +3102,6 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		Setting this will add a "help" button to the dialog.
 		@param pagename: the manual page name
 		'''
-		#~ assert hasattr(self.ui, 'show_help'), 'Need ui object to open help'
 		self.help_page = pagename
 		button = gtk.Button(stock=gtk.STOCK_HELP)
 		button.connect_object('clicked', self.__class__.show_help, self)
@@ -3102,8 +3113,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		@param page: the manual page, if C{None} the page as set with
 		L{set_help()} is used
 		'''
-		self.ui.show_help(page or self.help_page)
-			# recurses until gui.show_help is reached
+		ZIM_APPLICATION.run('--manual', page or self.help_page)
 
 	def add_help_text(self, text):
 		'''Adds a label with an info icon in front of it. Intended for
@@ -3135,8 +3145,8 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 		last entry widget will immediatly call L{response_ok()}. Set to
 		C{False} if more forms will follow in the same dialog.
 		'''
-		if hasattr(self.ui, 'notebook'):
-			notebook = self.ui.notebook
+		if hasattr(self, 'notebook'):
+			notebook = self.notebook
 		else:
 			notebook = None
 		self.form = InputForm(inputs, values, depends, notebook)
@@ -3148,6 +3158,39 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	#}
 
 	#{ Interaction methods
+
+	def set_input(self, **fields):
+		'''Method used in test suite to set "interactive" inputs
+		@param fields: key value pairs of inputs to set
+		@raises KeyError: if a key is not recognized
+		@raises ValueError: if the value is of the wrong type and cannot be
+		converted by the widget
+		@raises AssertionError: if a key is recognized, but the input is
+		not enabled for interactive input - e.g. widget insensitive or hidden
+		'''
+		if hasattr(self, 'form'):
+			for key, value in fields.items():
+				if key in self.form:
+					assert self.get_input_enabled(key)
+					self.form[key] = value
+				else:
+					raise KeyError('No such input field: %s' % key)
+		else:
+			raise NotImplementedError
+
+	def get_input(self, key):
+		'''Method used in test suite to get "interactive" inputs'''
+		if hasattr(self, 'form'):
+			if not key in self.form:
+				raise KeyError('No such input field: %s' % key)
+			else:
+				return self.form[key]
+		else:
+			raise NotImplementedError
+
+	def get_input_enabled(self, key):
+		return self.form.widgets[key].get_property('sensitive') \
+			and not self.form.widgets[key].get_property('no-show-all')
 
 	def run(self):
 		'''Wrapper for C{gtk.Dialog.run()}, also calls C{show_all()}
@@ -3176,8 +3219,14 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 	def show_all(self):
 		logger.debug('Opening dialog "%s"', self.title)
 		if not self._registered:
-			register_window(self)
 			self._registered = True
+
+			### HACK to find plugins - don't use getattr to explicitly break when hack changes ###
+			parent = self.get_property('transient-for')
+			if parent and parent.__class__.__name__ == 'MainWindow':
+				parent.__pluginmanager__.extend(self)
+			###
+
 		if not TEST_MODE:
 			gtk.Dialog.show_all(self)
 
@@ -3210,7 +3259,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			try:
 				destroy = self.do_response_ok()
 			except Exception as error:
-				ErrorDialog(self.ui, error).run()
+				ErrorDialog(self, error).run()
 				destroy = False
 			else:
 				if not destroy:
@@ -3220,7 +3269,7 @@ class Dialog(gtk.Dialog, ConnectorMixin):
 			try:
 				destroy = self.do_response_cancel()
 			except Exception as error:
-				ErrorDialog(self.ui, error).run()
+				ErrorDialog(self, error).run()
 				destroy = False
 			else:
 				if not destroy:
@@ -3307,13 +3356,12 @@ class ErrorDialog(gtk.MessageDialog):
 	care of that.
 	'''
 
-	def __init__(self, ui, error, exc_info=None, do_logging=True,
+	def __init__(self, parent, error, exc_info=None, do_logging=True,
 				buttons=gtk.BUTTONS_CLOSE
 	):
 		'''Constructor
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param error: the actual error, either an C{Exception} object
 		(including instances of L{zim.errors.Error}), a string with the
@@ -3350,7 +3398,7 @@ class ErrorDialog(gtk.MessageDialog):
 		msg, show_trace = zim.errors.get_error_msg(error)
 
 		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=get_window(parent),
 			type=gtk.MESSAGE_ERROR, buttons=buttons,
 			message_format=msg
 		)
@@ -3451,6 +3499,9 @@ class ErrorDialog(gtk.MessageDialog):
 		'''
 		return True
 
+	def assert_response_ok(self):
+		assert self.do_response_ok()
+
 
 class QuestionDialog(gtk.MessageDialog):
 	'''Convenience class to prompt the user with Yes/No answer type
@@ -3459,11 +3510,10 @@ class QuestionDialog(gtk.MessageDialog):
 	Note that message dialogs do not have a title.
 	'''
 
-	def __init__(self, ui, question):
+	def __init__(self, parent, question):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param question: a question that can be answered by 'yes' or
 		'no', either as sring or a 2-tuple of the actual question and
@@ -3476,9 +3526,9 @@ class QuestionDialog(gtk.MessageDialog):
 			text = None
 		self.question = question
 
-		self.response = None
+		self.answer = None
 		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=get_window(parent),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_YES_NO,
 			message_format=question
 		)
@@ -3488,7 +3538,13 @@ class QuestionDialog(gtk.MessageDialog):
 		self.connect('response', self.__class__.do_response)
 
 	def do_response(self, id):
-		self.response = id
+		self.answer = id
+
+	def answer_yes(self):
+		self.response(gtk.RESPONSE_YES)
+
+	def answer_no(self):
+		self.response(gtk.RESPONSE_NO)
 
 	def run(self):
 		'''Runs the dialog and destroys it directly.
@@ -3502,7 +3558,7 @@ class QuestionDialog(gtk.MessageDialog):
 		else:
 			gtk.MessageDialog.run(self)
 		self.destroy()
-		answer = self.response == gtk.RESPONSE_YES
+		answer = self.answer == gtk.RESPONSE_YES
 		logger.debug('A: %s', answer)
 		return answer
 
@@ -3514,11 +3570,10 @@ class MessageDialog(gtk.MessageDialog):
 	Note that message dialogs do not have a title.
 	'''
 
-	def __init__(self, ui, msg):
+	def __init__(self, parent, msg):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param msg: the message either as sring or a 2-tuple of the
 		actual question and a longer explanation as strings. Using a
@@ -3530,9 +3585,8 @@ class MessageDialog(gtk.MessageDialog):
 		else:
 			text = None
 
-		self.response = None
 		gtk.MessageDialog.__init__(
-			self, parent=get_window(ui),
+			self, parent=get_window(parent),
 			type=gtk.MESSAGE_QUESTION, buttons=gtk.BUTTONS_OK,
 			message_format=msg,
 			flags=gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -3578,14 +3632,13 @@ class FileDialog(Dialog):
 	dir(s) based on the arguments given during construction.
 	'''
 
-	def __init__(self, ui, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
+	def __init__(self, parent, title, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 			buttons=gtk.BUTTONS_OK_CANCEL, button=None,
 			help_text=None, help=None, multiple=False,
 		):
 		'''Constructor.
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 
 		@param title: the dialog title
 
@@ -3610,7 +3663,7 @@ class FileDialog(Dialog):
 				button = (None, gtk.STOCK_SAVE)
 			# else Ok will do
 
-		Dialog.__init__(self, ui, title, defaultwindowsize=(500, 400),
+		Dialog.__init__(self, parent, title, defaultwindowsize=(500, 400),
 			buttons=buttons, button=button, help_text=help_text, help=help)
 
 		self.filechooser = gtk.FileChooserWidget()
@@ -3672,7 +3725,7 @@ class FileDialog(Dialog):
 	def add_shortcut(self, notebook, path=None):
 		'''Add shortcuts for the notebook folder and page folder'''
 		try:
-			self.filechooser.add_shortcut_folder(notebook.dir.path)
+			self.filechooser.add_shortcut_folder(notebook.folder.path)
 		except:
 			pass # GError on doubles ..
 
@@ -3692,6 +3745,10 @@ class FileDialog(Dialog):
 		if not ok:
 			raise AssertionError('Could not set file: %s' % file.uri)
 
+		if TEST_MODE:
+			self._file = file
+			# HACK - for some reason the filechooser doesn't work in test mode
+
 	def get_file(self):
 		'''Get the current selected file
 		@returns: a L{File} object or C{None}.
@@ -3700,14 +3757,25 @@ class FileDialog(Dialog):
 			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
-		return File(uri.decode('utf-8')) if uri else None
+		if uri:
+			return File(uri.decode('utf-8'))
+		elif TEST_MODE and hasattr(self, '_file') and self._file:
+			return self._file
+		else:
+			return None
 
 	def get_files(self):
 		'''Get list of selected file. Assumes the dialog was created
 		with C{multiple=True}.
 		@returns: a list of L{File} objects
 		'''
-		return [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
+		files = [File(uri.decode('utf-8')) for uri in self.filechooser.get_uris()]
+		if files:
+			return files
+		elif TEST_MODE and hasattr(self, '_file') and self._file:
+			return [self._file]
+		else:
+			return []
 
 	def get_dir(self):
 		'''Get the the current selected dir. Assumes the dialog was
@@ -3786,21 +3854,20 @@ class FileDialog(Dialog):
 class ProgressDialog(gtk.Dialog):
 	'''Dialog to show a progress bar for a operation'''
 
-	def __init__(self, ui, op):
+	def __init__(self, parent, op):
 		'''Constructor
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent gtk widget or C{None}. Only used to
+		set the dialog on top of the right parent window
 		@param op: operation that supports a "step" signal, a "finished" signal
 		and a "run_on_idle" method - see L{NotebookOperation} for the default
 		implementation
 		'''
-		self.ui = ui
 		self.op = op
 		self._total = None
 		self.cancelled = False
 		gtk.Dialog.__init__(
 			# no title - see HIG about message dialogs
-			self, parent=get_window(self.ui),
+			self, parent=get_window(parent),
 			title='',
 			flags=gtk.DIALOG_NO_SEPARATOR | gtk.DIALOG_MODAL,
 			buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
@@ -3831,13 +3898,12 @@ class ProgressDialog(gtk.Dialog):
 			gtk.Dialog.show_all(self)
 
 	def run(self):
-		if not self.op.is_running():
-			self.op.run_on_idle()
-
 		if TEST_MODE: # Avoid flashing on screen
-			while gtk.events_pending():
-				gtk.main_iteration(block=False)
+			for i in self.op:
+				pass
 		else:
+			if not self.op.is_running():
+				self.op.run_on_idle()
 			self.show_all()
 			gtk.Dialog.run(self)
 
@@ -3876,8 +3942,8 @@ gobject.type_register(ProgressDialog)
 class LogFileDialog(Dialog):
 	'''Simple dialog to show a log file'''
 
-	def __init__(self, ui, file):
-		Dialog.__init__(self, ui, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
+	def __init__(self, parent, file):
+		Dialog.__init__(self, parent, _('Log file'), buttons=gtk.BUTTONS_CLOSE)
 			# T: dialog title for log view dialog - e.g. for Equation Editor
 		self.set_default_size(600, 300)
 		window, textview = ScrolledTextView(file.read(), monospace=True)
@@ -3902,15 +3968,14 @@ class Assistant(Dialog):
 	e.g. by overloading the L{previous_page()} and L{next_page()} methods.
 	'''
 
-	def __init__(self, ui, title, **options):
+	def __init__(self, parent, title, **options):
 		'''Constructor
 
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
+		@param parent: either a parent window or dialog or C{None}
 		@param title: dialog title
 		@param options: other dialog options, see L{Dialog.__init__()}
 		'''
-		Dialog.__init__(self, ui, title, **options)
+		Dialog.__init__(self, parent, title, **options)
 		self.set_border_width(5)
 		self._pages = []
 		self._page = -1
@@ -4131,7 +4196,7 @@ class AssistantPage(gtk.VBox):
 		@param values: initial values for the inputs
 		@param depends: dict with dependencies between inputs
 		'''
-		self.form = InputForm(inputs, values, depends, notebook=self.assistant.ui.notebook)
+		self.form = InputForm(inputs, values, depends, notebook=self.assistant.notebook)
 		self.form.connect('input-valid-changed', lambda o: self.check_input_valid())
 		self.pack_start(self.form, False)
 		self.check_input_valid()
@@ -4331,86 +4396,6 @@ class ImageView(gtk.Layout):
 
 # Need to register classes defining gobject signals
 gobject.type_register(ImageView)
-
-
-class PromptExistingFileDialog(Dialog):
-	'''Dialog that is used e.g. when a file should be attached to zim,
-	but a file with the same name already exists in the attachment
-	directory. This Dialog allows to suggest a new name or overwrite
-	the existing one.
-
-	For this dialog C{run()} will return either the original file
-	(for overwrite), a new file, or None when the dialog was canceled.
-	'''
-
-	def __init__(self, ui, file):
-		'''Constructor
-		@param ui: either a parent window or dialog or the main
-		C{GtkInterface} object
-		@param file: a L{File} object for an existing file
-		'''
-		Dialog.__init__(self, ui, _('File Exists'), buttons=None) # T: Dialog title
-		self.add_help_text( _('''\
-A file with the name <b>"%s"</b> already exists.
-You can use another name or overwrite the existing file.''' % file.basename),
-		) # T: Dialog text in 'new filename' dialog
-		self.old_file = file
-		self.dir = file.dir
-
-		suggested_filename = file.dir.new_file(file.basename).basename
-		self.add_form((
-				('name', 'string', _('Filename')), # T: Input label
-			), {
-				'name': suggested_filename
-			}
-		)
-		self.form.widgets['name'].set_check_func(self._check_valid)
-
-		# all buttons are defined in this class, to get the ordering right
-		# [show folder]      [overwrite] [cancel] [ok]
-		button = gtk.Button(_('_Browse')) # T: Button label
-		button.connect('clicked', self.do_show_folder)
-		self.action_area.add(button)
-		self.action_area.set_child_secondary(button, True)
-
-		button = gtk.Button(_('Overwrite')) # T: Button label
-		button.connect('clicked', self.do_response_overwrite)
-		self.add_action_widget(button, gtk.RESPONSE_NONE)
-
-		self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-		self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
-		self._no_ok_action = False
-
-		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
-
-	def _on_focus(self, widget, event):
-		# filename length without suffix
-		length = len(os.path.splitext(widget.get_text())[0])
-		widget.select_region(0, length)
-
-	def _check_valid(self, filename):
-		# Only valid when same dir and does not yet exist
-		file = self.dir.file(filename)
-		return file.dir == self.dir and not file.exists()
-
-	def do_show_folder(self, *a):
-		self.ui.open_file(self.dir)
-
-	def do_response_overwrite(self, *a):
-		logger.info('Overwriting %s', self.old_file.path)
-		self.result = self.old_file
-
-	def do_response_ok(self):
-		if not self.form.widgets['name'].get_input_valid():
-			return False
-
-		newfile = self.dir.file(self.form['name'])
-		logger.info('Selected %s', newfile.path)
-		assert newfile.dir == self.dir # just to be real sure
-		assert not newfile.exists() # just to be real sure
-		self.result = newfile
-		return True
-
 
 
 class TableBoxMixin(object):

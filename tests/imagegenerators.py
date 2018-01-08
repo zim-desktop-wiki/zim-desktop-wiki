@@ -36,8 +36,8 @@ class TestGenerator(tests.TestCase):
 		extensionklass = plugin.extension_classes['MainWindow']
 		self.assertTrue(issubclass(extensionklass, MainWindowExtensionBase))
 
-		dir = Dir(self.get_tmp_name())
-		extension = extensionklass(plugin, MockWindow(dir))
+		attachment_dir = Dir(self.create_tmp_dir())
+		extension = extensionklass(plugin, MockWindow(attachment_dir))
 
 		generator = extension.build_generator()
 		self.assertIsInstance(generator, ImageGeneratorClass)
@@ -252,16 +252,8 @@ class MockWindow(tests.MockObject):
 
 	def __init__(self, dir):
 		tests.MockObject.__init__(self)
-		self.ui = MockUI(dir)
-		self.ui.uistate = None
 		self.uimanager = tests.MockObject()
 		self.pageview = tests.MockObject()
 		self.mock_method('connect', None)
-
-
-class MockUI(tests.MockObject):
-
-	def __init__(self, dir):
-		tests.MockObject.__init__(self)
 		self.notebook = tests.MockObject()
 		self.notebook.mock_method('get_attachments_dir', dir)

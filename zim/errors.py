@@ -148,20 +148,3 @@ class Error(Exception):
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.msg)
-
-
-# Defined here because these errors are not specific to files, but can
-# occur in different storage models as well
-
-class TrashNotSupportedError(Error):
-	'''Error raised when trashing is not supported and delete should
-	be used instead
-	'''
-	pass
-
-class TrashCancelledError(Error):
-	'''Error raised when a trashign operation is cancelled. (E.g. on
-	windows the system will prompt the user with a confirmation
-	dialog which has a Cancel button.)
-	'''
-	pass

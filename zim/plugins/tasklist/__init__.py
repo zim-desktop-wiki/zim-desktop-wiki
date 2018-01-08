@@ -164,7 +164,7 @@ class MainWindowExtension(WindowExtension):
 	def show_task_list(self):
 		# TODO: add check + dialog for index probably_up_to_date
 
-		index = self.window.ui.notebook.index # XXX
+		index = self.window.notebook.index
 		tasksview = TasksView.new_from_index(index)
 		dialog = TaskListDialog.unique(self, self.window, tasksview, self.plugin.preferences)
 		dialog.present()
@@ -179,8 +179,7 @@ class MainWindowExtension(WindowExtension):
 					self.window.remove(self._widget)
 				except ValueError:
 					pass
-			self.window.add_tab(_('Tasks'), self._widget, preferences['pane'])
-											# T: tab label for side pane
+			self.window.add_tab('tasklist', self._widget, preferences['pane'])
 			self._widget.show_all()
 		else:
 			if self._widget:
@@ -188,11 +187,10 @@ class MainWindowExtension(WindowExtension):
 				self._widget = None
 
 	def _init_widget(self):
-		index = self.window.ui.notebook.index # XXX
+		index = self.window.notebook.index
 		tasksview = TasksView.new_from_index(index)
-		opener = self.window.get_resource_opener()
-		uistate = self.window.ui.uistate['TaskListSidePane']
-		self._widget = TaskListWidget(tasksview, opener, self.plugin.preferences, uistate)
+		opener = self.window.navigation
+		self._widget = TaskListWidget(tasksview, opener, self.plugin.preferences, self.uistate)
 
 		def on_tasklist_changed(o):
 			self._widget.task_list.refresh()
@@ -204,7 +202,7 @@ class MainWindowExtension(WindowExtension):
 		### XXX HACK to get dependency to connect to
 		###   -- no access to plugin, so can;t use get_extension()
 		##    -- duplicat of this snippet in TaskListDialog
-		for e in self.window.ui.notebook.__zim_extension_objects__:
+		for e in self.window.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
 				break

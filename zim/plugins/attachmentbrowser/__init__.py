@@ -44,9 +44,10 @@ import gtk
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import toggle_action
 
+from zim.gui.applications import open_folder_prompt_create
 
 from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
-	IconButton, ScrolledWindow, button_set_statusbar_style, \
+	IconButton, ScrolledWindow, \
 	WindowSidePaneWidget, uistate_property
 
 
@@ -91,7 +92,7 @@ icon view at bottom pane.
 @extends('MainWindow')
 class AttachmentBrowserWindowExtension(WindowExtension):
 
-	TAB_NAME = _('Attachments') # T: label for attachment browser pane
+	TAB_KEY = 'attachmentbrowser'
 
 	uimanager_xml = '''
 	<ui>
@@ -115,34 +116,17 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.preferences = plugin.preferences
 		self._monitor = None
 
-		# Init statusbar button
-		self.statusbar_frame = gtk.Frame()
-		self.statusbar_frame.set_shadow_type(gtk.SHADOW_IN)
-		self.window.statusbar.pack_end(self.statusbar_frame, False)
-
-		self.statusbar_button = gtk.ToggleButton('<attachments>') # translated below
-		button_set_statusbar_style(self.statusbar_button)
-
-		self.statusbar_button.set_use_underline(True)
-		self.__class__.toggle_attachmentbrowser.connect_actionable(
-			self, self.statusbar_button)
-
-		self.statusbar_frame.add(self.statusbar_button)
-		self.statusbar_frame.show_all()
-
 		# Init browser widget
-		opener = self.window.get_resource_opener()
+		opener = self.window.navigation
 		self.widget = AttachmentBrowserPluginWidget(self, opener, self.preferences)
 			# FIXME FIXME FIXME - get rid of ui object here
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-		# XXX
-		if self.window.ui.page:
-			self.on_open_page(self.window.ui, self.window.ui.page, self.window.ui.page)
-		self.connectto(self.window.ui, 'open-page')
-		self.connectto(self.window.ui, 'close-page')
+		if self.window.page:
+			self.on_page_changed(self.window, self.window.page)
+		self.connectto(self.window, 'page-changed')
 
 		self.connectto(self.window, 'pane-state-changed')
 
@@ -154,7 +138,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(self.TAB_NAME, self.widget, preferences['pane'])
+		self.window.add_tab(self.TAB_KEY, self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	@toggle_action(
@@ -169,14 +153,14 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		visible, size, tab = self.window.get_pane_state(self.preferences['pane'])
 
 		if active:
-			if not (visible and tab == self.TAB_NAME):
+			if not (visible and tab == self.TAB_KEY):
 				self.window.set_pane_state(
 					self.preferences['pane'], True,
-					activetab=self.TAB_NAME,
+					activetab=self.TAB_KEY,
 					grab_focus=True)
 			# else pass
 		else:
-			if visible and tab == self.TAB_NAME:
+			if visible and tab == self.TAB_KEY:
 				self.window.set_pane_state(
 					self.preferences['pane'], False)
 			# else pass
@@ -185,25 +169,15 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		if pane != self.preferences['pane']:
 			return
 
-		if visible and active == self.TAB_NAME:
+		if visible and active == self.TAB_KEY:
 			self.toggle_attachmentbrowser(True)
 		else:
 			self.toggle_attachmentbrowser(False)
 
-	def on_open_page(self, ui, page, path):
-		dir = self.window.ui.notebook.get_attachments_dir(page) # XXX -> page.get_attachemnts_dir()
-		self.widget.iconview.set_folder(dir)
-		self._refresh_statusbar()
-
-	def on_close_page(self, ui, page):
-		self.widget.iconview.teardown_folder()
-
-	def _refresh_statusbar(self):
-		model = self.widget.iconview.get_model() # XXX
-		n = len(model)
-		self.statusbar_button.set_label(
-			ngettext('%i _Attachment', '%i _Attachments', n) % n)
-			# T: Label for the statusbar, %i is the number of attachments for the current page
+	def on_page_changed(self, window, page):
+		self.widget.set_folder(
+			window.notebook.get_attachments_dir(page)
+		)
 
 	def teardown(self):
 		self.widget.iconview.teardown_folder()
@@ -213,13 +187,16 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 			self.window.statusbar.remove(self.statusbar_frame)
 		self.widget = None
 
+	def destroy(self):
+		self.widget.iconview.teardown_folder()
 
 
 class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
-
 	'''Wrapper aroung the L{FileBrowserIconView} that adds the buttons
 	for zoom / open folder / etc. ...
 	'''
+
+	title = _('Attachments') # T: label for attachment browser pane
 
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_ZOOM)
 
@@ -229,6 +206,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.opener = opener
 		self.uistate = extension.uistate
 		self.preferences = preferences
+		self._close_button = None
 
 		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
 		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
@@ -256,27 +234,36 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		self.set_icon_size(self.icon_size)
 
-		self.iconview.connect('folder-changed', lambda o: self.extension._refresh_statusbar())
+		self.iconview.connect('folder-changed', lambda o: self.update_title())
 
-	def embed_closebutton(self, button):
-		if button:
+	def set_folder(self, folder):
+		self.iconview.set_folder(folder)
+		self.update_title()
+
+	def update_title(self):
+		n = len(self.iconview.get_model())
+		self.set_title(ngettext('%i Attachment', '%i Attachments', n) % n)
+		# T: Label for the statusbar, %i is the number of attachments for the current page
+
+	def set_embeded_closebutton(self, button):
+		if self._close_button:
+			self.buttonbox.remove(self._close_button)
+
+		if button is not None:
 			self.buttonbox.pack_start(button, False)
 			self.buttonbox.reorder_child(button, 0)
-		else:
-			for widget in self.buttonbox.get_children():
-				if hasattr(widget, 'window_close_button'):
-					self.buttonbox.remove(widget)
+
+		self._close_button = button
 		return True
 
 	def on_open_folder(self, o):
 		# Callback for the "open folder" button
-		from zim.fs import Dir
-		self.opener.open_dir(Dir(self.iconview.folder.path))
+		open_folder_prompt_create(self, self.iconview.folder)
 		self.iconview.refresh()
 
 	def on_refresh_button(self):
 		self.iconview.refresh()
-		self.extension._refresh_statusbar() # XXX
+		self.update_title()
 
 	def on_zoom_in(self):
 		self.set_icon_size(
@@ -293,6 +280,3 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 		self.zoomin_button.set_sensitive(icon_size < THUMB_SIZE_LARGE)
 		self.zoomout_button.set_sensitive(icon_size > MIN_ICON_ZOOM)
 		self.icon_size = icon_size # Do this last - avoid store state after fail
-
-
-

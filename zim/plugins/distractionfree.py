@@ -7,8 +7,6 @@ import logging
 
 from zim.plugins import PluginClass, WindowExtension, extends
 
-from zim.gui import PATHBAR_NONE, PATHBAR_RECENT
-
 
 logger = logging.getLogger('zim.plugins.distractionfree')
 
@@ -33,7 +31,6 @@ class DistractionFreePlugin(PluginClass):
 		# key, type, label, default
 		('hide_menubar', 'bool', _('Hide menubar in fullscreen mode'), True), # T: plugin preference
 		('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True), # T: plugin preference
-		('hide_pathbar', 'bool', _('Hide pathbar in fullscreen mode'), True), # T: plugin preference
 		('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True), # T: plugin preference
 		('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)), # T: plugin preference
 		('vmargin', 'int', _('Vertical margin'), 50, (0, 10000)), # T: plugin preference
@@ -66,18 +63,11 @@ class MainWindowExtension(WindowExtension):
 		# Set show menubar & Update margins
 		show_menubar = not preferences['hide_menubar']
 		show_toolbar = not preferences['hide_toolbar']
-		show_pathbar = not preferences['hide_pathbar']
 		show_statusbar = not preferences['hide_statusbar']
 		if self.window.isfullscreen:
 			self.window.toggle_menubar(show_menubar)
 			self.window.toggle_toolbar(show_toolbar)
 			self.window.toggle_statusbar(show_statusbar)
-
-			if show_pathbar \
-			and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
-				self.window.set_pathbar(PATHBAR_RECENT)
-			elif not show_pathbar:
-				self.window.set_pathbar(PATHBAR_NONE)
 
 			textview = self.window.pageview.view
 			self.on_size_allocate(textview, textview.get_allocation())
@@ -85,15 +75,6 @@ class MainWindowExtension(WindowExtension):
 			self.window.uistate['show_menubar_fullscreen'] = show_menubar
 			self.window.uistate['show_toolbar_fullscreen'] = show_toolbar
 			self.window.uistate['show_statusbar_fullscreen'] = show_statusbar
-
-			if show_pathbar \
-			and self.window.uistate['pathbar_type_fullscreen'] == PATHBAR_NONE:
-				self.window.uistate['pathbar_type_fullscreen'] = PATHBAR_RECENT
-			elif not show_pathbar:
-				self.window.uistate['pathbar_type_fullscreen'] = PATHBAR_NONE
-
-		# TODO - would be nice to be able to toggle hide/show for pathbar without need to set type
-		#        allow hiding container or seperate widget from "model"
 
 	def on_fullscreen_changed(self, window):
 		if window.isfullscreen:
@@ -240,4 +221,3 @@ class MainWindowExtension(WindowExtension):
 		self._set_margins(0, 0, 0, 0)
 		if self._normal_colors:
 			self._set_colors(self._normal_colors)
-

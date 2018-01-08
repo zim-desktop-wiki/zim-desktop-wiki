@@ -408,7 +408,7 @@ class ParseTree(object):
 			root = self._etree.getroot()
 			heading = ElementTreeModule.Element('h', {'level': level})
 			heading.text = text
-			heading.tail = root.text
+			heading.tail = '\n' + (root.text or '')
 			root.text = None
 			root.insert(0, heading)
 

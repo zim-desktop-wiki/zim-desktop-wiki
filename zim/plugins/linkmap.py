@@ -11,7 +11,7 @@ from zim.actions import action
 from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
-from zim.gui.widgets import ui_environment, Dialog, IconButton
+from zim.gui.widgets import Dialog, IconButton
 from zim.inc import xdot
 
 
@@ -116,15 +116,15 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('Show Link Map'), stock='zim-linkmap') # T: menu item
 	def show_linkmap(self):
-		linkmap = LinkMap(self.window.ui.notebook, self.window.ui.page) # XXX
-		dialog = LinkMapDialog(self.window, linkmap, self.window.get_resource_opener())
+		linkmap = LinkMap(self.window.notebook, self.window.page)
+		dialog = LinkMapDialog(self.window, linkmap, self.window.navigation)
 		dialog.show_all()
 
 
 class LinkMapDialog(Dialog):
 
-	def __init__(self, ui, linkmap, opener):
-		Dialog.__init__(self, ui, 'LinkMap',
+	def __init__(self, parent, linkmap, opener):
+		Dialog.__init__(self, parent, 'LinkMap',
 			defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
 		self.linkmap = linkmap
 		self.opener = opener

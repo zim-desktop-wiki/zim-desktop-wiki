@@ -201,9 +201,7 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
 	def show_quick_note(self):
-		ui = self.window.ui # XXX
-		notebook = self.window.ui.notebook # XXX
-		dialog = QuickNoteDialog.unique(self, self.window, notebook)
+		dialog = QuickNoteDialog.unique(self, self.window, self.window.notebook)
 		dialog.show()
 
 

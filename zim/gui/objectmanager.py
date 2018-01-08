@@ -186,17 +186,17 @@ class FallbackObjectWidget(TextViewWidget):
 			# Plugin can be enabled
 			#~ button = gtk.Button(_("Enable plugin")) # T: Label for object manager
 			#~ def load_plugin(button):
-				#~ self.ui.plugins.load_plugin(key)
-				#~ self.ui.reload_page()
+				#~ xxx.plugins.load_plugin(key)
+				#~ xxx.mainwindow.reload_page()
 			#~ button.connect("clicked", load_plugin)
 		#~ else:
 			# Plugin has some unresolved dependencies
 			#~ button = gtk.Button(_("Show plugin details")) # T: Label for object manager
 			#~ def plugin_info(button):
 				#~ from zim.gui.preferencesdialog import PreferencesDialog
-				#~ dialog = PreferencesDialog(self.ui, "Plugins", select_plugin=name)
+				#~ dialog = PreferencesDialog(self, "Plugins", select_plugin=name)
 				#~ dialog.run()
-				#~ self.ui.reload_page()
+				#~ xxx.mainwindow.reload_page()
 			#~ button.connect("clicked", plugin_info)
 
 		#~ hbox.pack_start(button)

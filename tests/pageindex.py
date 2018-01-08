@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -11,7 +11,23 @@ from zim.notebook import Path
 from zim.notebook.index.pages import MyTreeIter, IndexNotFoundError
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
-from zim.gui.pageindex import *
+from zim.plugins.pageindex import *
+
+from zim.config import VirtualConfigManager
+
+
+from tests.mainwindow import setUpMainWindow
+
+
+class TestPageIndexPlugin(tests.TestCase):
+
+	def runTest(self):
+		plugin = PageIndexPlugin()
+		window = setUpMainWindow(self.setUpNotebook())
+		plugin.extend(window)
+		extension = plugin.get_extension(window, PageIndexMainWindowExtension)
+		self.assertIsNotNone(extension)
+
 
 
 class TestPageTreeStore(tests.TestCase):
@@ -24,12 +40,7 @@ class TestPageTreeStore(tests.TestCase):
 		# Hooking up the treeview as well just to see if we get any errors
 		# From the order the signals are generated.
 
-		notebook = tests.new_notebook()
-
-		ui = MockUI()
-		ui.notebook = notebook
-		ui.page = Path('Test:foo')
-		self.assertTrue(notebook.get_page(ui.page).exists())
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		treestore = PageTreeStore(notebook.index)
 		self.assertEqual(treestore.get_flags(), 0)
@@ -128,12 +139,11 @@ class TestPageTreeView(tests.TestCase):
 	# view attached in TestPageTreeStore
 
 	def setUp(self):
-		self.ui = tests.MockObject()
-		self.ui.page = Path('Test')
-		self.notebook = tests.new_notebook()
-		self.ui.notebook = self.notebook
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
 		self.model = PageTreeStore(self.notebook.index)
-		self.treeview = PageTreeView(self.ui, self.model)
+		self.treeview = PageTreeView(self.notebook, config, navigation, model=self.model)
 		treepath = self.treeview.set_current_page(Path('Test'))
 		assert treepath is not None
 		self.treeview.select_treepath(treepath)

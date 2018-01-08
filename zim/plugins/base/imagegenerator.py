@@ -17,7 +17,7 @@ import logging
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import Action
 from zim.fs import File, Dir
-from zim.gui.widgets import ui_environment, \
+from zim.gui.widgets import \
 	Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
 	ScrolledTextView, ScrolledSourceView, VPaned, \
 	populate_popup_add_separator
@@ -114,9 +114,9 @@ class MainWindowExtensionBase(WindowExtension):
 		pageview.unregister_image_generator_plugin(self)
 
 	def build_generator(self):
-		generator=self.generator_class(self.plugin)
+		generator = self.generator_class(self.plugin)
 		generator.set_page(self.window.pageview.page)
-		return generator;
+		return generator
 
 	def insert_object(self):
 		title = self.insert_label.replace('_', '')
@@ -211,7 +211,7 @@ class ImageGeneratorClass(object):
 		@implementation: Not mandatory to be implemented by subclass.
 		It defaults to the empty string.
 		'''
-		return '';
+		return ''
 
 	def filter_input(self, text):
 		'''Filter contents of script file before displaying in textarea
@@ -375,8 +375,8 @@ class ImageGeneratorDialog(Dialog):
 		if self._existing_file:
 			textfile = self._existing_file
 		else:
-			page = self.app_window.ui.page # XXX
-			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
+			page = self.app_window.page
+			dir = self.app_window.notebook.get_attachments_dir(page)
 			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write(self.generator.process_input(self.get_text()))
@@ -388,10 +388,10 @@ class ImageGeneratorDialog(Dialog):
 			imgfile.remove()
 
 		if self._existing_file:
-			self.app_window.ui.reload_page() # XXX
+			self.app_window.reload_page() # XXX
 		else:
 			pageview = self.app_window.pageview
-			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)
+			pageview.insert_image(imgfile, type=self.generator.object_type)
 
 		if self.logfile and self.logfile.exists():
 			self.logfile.remove()

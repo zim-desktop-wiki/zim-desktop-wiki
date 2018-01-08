@@ -42,7 +42,7 @@ class TestSearchRegex(tests.TestCase):
 class TestSearch(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = tests.new_notebook()
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def callback_check(self, selection, path):
 		self.assertIsInstance(selection, (SearchSelection, type(None)))
@@ -204,8 +204,7 @@ class TestSearch(tests.TestCase):
 class TestSearchFiles(TestSearch):
 
 	def setUp(self):
-		path = self.create_tmp_dir()
-		self.notebook = tests.new_files_notebook(path)
+		self.notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL, content=tests.FULL_NOTEBOOK)
 
 	def runTest(self):
 		'''Test search API with file based notebook'''

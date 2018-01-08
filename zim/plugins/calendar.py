@@ -18,7 +18,7 @@ from zim.actions import action
 from zim.signals import SignalHandler
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
-from zim.gui.widgets import ui_environment, Dialog, Button, \
+from zim.gui.widgets import Dialog, Button, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
@@ -244,7 +244,7 @@ class MainWindowExtension(WindowExtension):
 	def go_page_today(self):
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(today)
-		self.window.ui.open_page(path) # XXX
+		self.window.open_page(path)
 
 	# TODO: hook to the pageview end-of-word signal and link dates
 	#       add a preference for this
@@ -301,17 +301,16 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self.opener = window.get_resource_opener()
+		self.opener = window.navigation
 
-		notebook = window.ui.notebook # XXX
-		model = CalendarWidgetModel(self.plugin, notebook)
+		model = CalendarWidgetModel(self.plugin, window.notebook)
 		self.widget = CalendarWidget(model)
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 		self.connectto(self.widget, 'date-activated')
-		self.connectto(self.window.ui, 'open-page') # XXX
+		self.connectto(self.window, 'page-changed')
 
 	def on_preferences_changed(self, preferences):
 		if self.widget is None:
@@ -325,12 +324,12 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		self.widget.show_all()
 
 	@SignalHandler
-	def on_open_page(self, ui, page, path):
-		self.widget.set_page(path)
+	def on_page_changed(self, ui, page):
+		self.widget.set_page(page)
 
 	def on_date_activated(self, widget, date):
 		path = self.plugin.path_from_date(date)
-		with self.on_open_page.blocked():
+		with self.on_page_changed.blocked():
 			self.opener.open_page(path)
 
 	def teardown(self):
@@ -415,6 +414,8 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		self.label_event.connect("button_press_event", lambda w, e: self.go_today())
 		self.label_box.add(self.label_event)
 
+		self._close_button = None
+
 		self._refresh_label()
 		self._timer_id = \
 			gobject.timeout_add(300000, self._refresh_label)
@@ -439,13 +440,14 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 		self.select_date(datetime.date.today())
 		self.calendar.emit('activate')
 
-	def embed_closebutton(self, button):
-		if button:
+	def set_embeded_closebutton(self, button):
+		if self._close_button:
+			self.label_box.remove(self._close_button)
+
+		if button is not None:
 			self.label_box.pack_end(button, False)
-		else:
-			for widget in self.label_box.get_children():
-				if not widget == self.label_event:
-					self.label_box.remove(widget)
+
+		self._close_button = button
 		return True
 
 	def _refresh_label(self, *a):
@@ -507,10 +509,9 @@ class CalendarDialog(Dialog):
 		Dialog.__init__(self, window, _('Calendar'), buttons=gtk.BUTTONS_CLOSE) # T: dialog title
 		self.set_resizable(False)
 		self.plugin = plugin
-		self.opener = window.get_resource_opener()
+		self.opener = window.navigation
 
-		notebook = window.ui.notebook # XXX
-		model = CalendarWidgetModel(self.plugin, notebook)
+		model = CalendarWidgetModel(self.plugin, window.notebook)
 		self.calendar_widget = CalendarWidget(model)
 		self.vbox.add(self.calendar_widget)
 
@@ -521,15 +522,15 @@ class CalendarDialog(Dialog):
 		self.dateshown = datetime.date.today()
 
 		self.connectto(self.calendar_widget, 'date-activated')
-		self.connectto(window.ui, 'open-page') # XXX
+		self.connectto(window, 'page-changed')
 
 	def on_date_activated(self, widget, date):
 		path = self.plugin.path_from_date(date)
-		with self.on_open_page.blocked():
+		with self.on_page_changed.blocked():
 			self.opener.open_page(path)
 
 	@SignalHandler
-	def on_open_page(self, ui, page, path):
+	def on_page_changed(self, ui, page):
 		self.calendar_widget.set_page(page)
 
 	def do_today(self, event):

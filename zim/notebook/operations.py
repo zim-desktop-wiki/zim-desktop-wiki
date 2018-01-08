@@ -239,7 +239,6 @@ class NotebookOperation(SignalEmitter):
 		return self.notebook._operation_check == self
 
 	def _start(self):
-		self.emit('started')
 		my_iter = iter(self)
 		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
 		return False # run once
@@ -255,6 +254,7 @@ class NotebookOperation(SignalEmitter):
 			self.notebook._operation_check() # can raise
 			self.notebook._operation_check = self # start blocking
 
+		self.emit('started')
 		try:
 			while self.notebook._operation_check == self:
 				# while covers cancelled, but also any other op overwriting the "lock"
@@ -270,10 +270,9 @@ class NotebookOperation(SignalEmitter):
 		except StopIteration:
 			raise
 		except Exception as err:
-			logger.exception('Error in operation:')
 			self.cancelled = True
 			self.exception = err
-			raise StopIteration
+			raise
 		finally:
 			if self.notebook._operation_check == self:
 				self.notebook._operation_check = NOOP # stop blocking

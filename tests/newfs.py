@@ -707,10 +707,10 @@ class TestMockFS(tests.TestCase, TestFS):
 
 	@tests.slowTest
 	def testCrossFSCopy(self):
-		rootpath = self.create_tmp_dir('folder_test')
+		root = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 
 		# File
-		lfile = LocalFile(rootpath + _SEP + 'file.txt')
+		lfile = root.file('file.txt')
 		mfile = MockFile('/mock/file.txt')
 
 		mfile.write('foo 123')
@@ -728,7 +728,7 @@ class TestMockFS(tests.TestCase, TestFS):
 		self.assertEqual(mfile.mtime(), lfile.mtime())
 
 		# Folder
-		lfolder = LocalFolder(rootpath + _SEP + 'folder')
+		lfolder = root.folder('folder')
 		mfolder = MockFolder('/mock/folder')
 
 		for path in ('file1.txt', 'file2.txt', 'subfolder/file3.txt'):
@@ -751,12 +751,10 @@ class TestMockFS(tests.TestCase, TestFS):
 @tests.slowTest
 class TestLocalFS(tests.TestCase, TestFS):
 
-	@classmethod
-	def setUpClass(cls):
-		cls._rootpath = cls.create_tmp_dir('folder_test')
-
 	def get_root_folder(self, name):
-		return LocalFolder(self._rootpath + _SEP + name)
+		folder = self.setUpFolder(name=name, mock=tests.MOCK_ALWAYS_REAL)
+		assert isinstance(folder, LocalFolder)
+		return folder
 
 	def get_test_data(self, path):
 		cwd = LocalFolder(os.getcwd())
@@ -955,7 +953,7 @@ from zim.newfs.helpers import TrashHelper
 class TestTrash(tests.TestCase):
 
 	def runTest(self):
-		root = LocalFolder(self.create_tmp_dir())
+		root = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		helper = TrashHelper()
 
 		file = root.file('test.txt')

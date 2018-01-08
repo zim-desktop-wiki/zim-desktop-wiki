@@ -103,6 +103,5 @@ if not isdir(environ['HOME']):
 	# using our own environ here to ensure encoding
 
 if not 'USER' in environ or not environ['USER']:
-	# E.g. Maemo doesn't define $USER
 	environ['USER'] = os.path.basename(environ['HOME'])
 	logger.info('Environment variable $USER was not set, set to "%s"', environ['USER'])

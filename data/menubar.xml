@@ -58,13 +58,6 @@
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_panes'/>
 			<menuitem action='show_all_panes'/>
-			<menu action='pathbar_menu'>
-				<menuitem action='set_pathbar_none'/>
-				<menuitem action='set_pathbar_recent'/>
-				<menuitem action='set_pathbar_recent_changed'/>
-				<menuitem action='set_pathbar_history'/>
-				<menuitem action='set_pathbar_path'/>
-			</menu>
 			<menu action='toolbar_menu'>
 				<menuitem action='set_toolbar_style_icons_and_text'/>
 				<menuitem action='set_toolbar_style_icons_only'/>
@@ -87,7 +80,7 @@
 		<menu action='insert_menu'>
 			<menuitem action='insert_date'/>
 			<separator/>
-			<menuitem action='insert_image'/>
+			<menuitem action='show_insert_image'/>
 			<menuitem action='insert_bullet_list'/>
 			<menuitem action='insert_numbered_list'/>
 			<menuitem action='insert_checkbox_list'/>
@@ -170,7 +163,7 @@
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='open_page_home'/>
-			<menuitem action='open_page'/>
+			<menuitem action='show_jump_to'/>
 		</menu>
 		<menu action='help_menu'>
 			<menuitem action='show_help'/>
@@ -223,8 +216,7 @@
 		<menuitem action='set_toolbar_icon_size_tiny'/>
 	</popup>
 	<popup name='page_popup'>
-		<menuitem action='new_page'/>
-		<menuitem action='new_sub_page'/>
+		<menuitem action='new_page_here'/>
 		<separator/>
 		<menuitem action='open_new_window'/>
 		<separator/>

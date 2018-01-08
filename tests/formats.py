@@ -337,7 +337,7 @@ class TestWikiFormat(TestTextFormat):
 
 	def setUp(self):
 		self.format = get_format('wiki')
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
 
 	def testUnicodeBullet(self):
@@ -586,7 +586,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('html')
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
 
 	def testEncoding(self):

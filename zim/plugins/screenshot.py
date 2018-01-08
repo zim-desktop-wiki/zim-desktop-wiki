@@ -13,7 +13,7 @@ from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
 from zim.fs import TmpFile
 from zim.applications import Application
-from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
+from zim.gui.widgets import Dialog, ErrorDialog
 
 
 PLATFORM = os.name
@@ -157,8 +157,8 @@ class MainWindowExtension(WindowExtension):
 
 	@action(_('_Screenshot...'))  # T: menu item for insert screenshot plugin
 	def insert_screenshot(self):
-		notebook = self.window.ui.notebook  # XXX
-		page = self.window.ui.page  # XXX
+		notebook = self.window.notebook
+		page = self.window.page
 		dialog = InsertScreenshotDialog.unique(self, self.window, notebook, page,
 											   self.plugin.preferences['screenshot_command'])
 		dialog.show_all()
@@ -212,9 +212,9 @@ class InsertScreenshotDialog(Dialog):
 				imgfile = imgdir.new_file(name)
 				tmpfile.rename(imgfile)
 				pageview = self.app_window.pageview
-				pageview.insert_image(imgfile, interactive=False, force=True)
+				pageview.insert_image(imgfile)
 			else:
-				ErrorDialog(self.ui,
+				ErrorDialog(self,
 							_('Some error occurred while running "%s"') % self.screenshot_command).run()
 				# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
 

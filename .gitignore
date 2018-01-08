@@ -1,7 +1,5 @@
 # Zim specific
 **/.zim
-tests/tmp/
-test_report.html
 locale/
 man/
 html/
@@ -11,6 +9,8 @@ windows/build/
 windows/version-and-date.nsi
 zim/_version.py
 MANIFEST
+tests/tmp/
+test_*
 coverage/
 
 # Temporary files to be ignored

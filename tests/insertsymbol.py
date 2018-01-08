@@ -6,7 +6,7 @@ from __future__ import with_statement
 
 import tests
 
-from tests.pageview import setUpPageView, press, UndoStackManager
+from tests.pageview import setUpPageView, press
 
 from zim.config import SectionedConfigDict, ConfigManager
 
@@ -24,17 +24,13 @@ class TestInsertSymbolPlugin(tests.TestCase):
 	def runTest(self):
 		plugin = InsertSymbolPlugin(ConfigManager())
 
-		pageview = setUpPageView()
+		pageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 		textview = pageview.view
 		buffer = textview.get_buffer()
-		pageview.undostack = UndoStackManager(buffer)
 
 		mainwindow = tests.MockObject()
 		mainwindow.pageview = pageview
 		mainwindow.uimanager = tests.MockObject()
-
-		mainwindow.ui = tests.MockObject() # XXX
-		mainwindow.ui.uistate = SectionedConfigDict()
 
 		plugin.extend(mainwindow, 'MainWindow')
 
@@ -46,17 +42,17 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		textview.realize()
 
 		# insert on end-of-word with space
-		press(textview, r'\alpha ')
-		text = buffer.get_text(*buffer.get_bounds())
-		self.assertEqual(text, ALPHA + ' ')
+		press(textview, '\\alpha ')
+		text = buffer.get_text(*buffer.get_bounds()).decode('UTF-8')
+		self.assertEqual(text, ALPHA + ' \n')
 
 		# Check undo - first undo replace, then the insert space
 		pageview.undo()
 		text = buffer.get_text(*buffer.get_bounds())
-		self.assertEqual(text, r'\alpha ')
+		self.assertEqual(text, '\\alpha \n')
 		pageview.undo()
 		text = buffer.get_text(*buffer.get_bounds())
-		self.assertEqual(text, r'\alpha') # no trailing space
+		self.assertEqual(text, '\\alpha\n') # no trailing space
 
 		# insert on end-of-word with ;
 		buffer.clear()

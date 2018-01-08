@@ -8,7 +8,7 @@ import logging
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
 from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
-
+from zim.gui.applications import edit_config_file
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
 
@@ -134,8 +134,8 @@ class MainWindowExtension(WindowExtension):
 
 class InsertSymbolDialog(Dialog):
 
-	def __init__(self, ui, plugin, pageview):
-		Dialog.__init__(self, ui, _('Insert Symbol'), # T: Dialog title
+	def __init__(self, parent, plugin, pageview):
+		Dialog.__init__(self, parent, _('Insert Symbol'), # T: Dialog title
 			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
 			defaultwindowsize=(350, 400))
 		self.plugin = plugin
@@ -201,8 +201,8 @@ class InsertSymbolDialog(Dialog):
 		self.textentry.set_position(pos + len(text))
 
 	def on_edit(self, button):
-		file = self.ui.config.get_config_file('symbols.list')
-		if self.ui.edit_config_file(file):
+		file = self.plugin.config.get_config_file('symbols.list')
+		if edit_config_file(self, file):
 			self.plugin.load_file()
 			self.load_symbols()
 

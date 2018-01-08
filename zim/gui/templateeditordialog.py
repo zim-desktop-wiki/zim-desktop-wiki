@@ -5,10 +5,12 @@
 
 import gtk
 
-from zim.fs import TrashNotSupportedError
+from zim.newfs import LocalFile
+from zim.newfs.helpers import TrashHelper, TrashNotSupportedError
 from zim.config import XDG_DATA_HOME, data_file
 from zim.templates import list_template_categories, list_templates
 from zim.gui.widgets import Dialog, BrowserTreeView, Button, ScrolledWindow
+from zim.gui.applications import open_folder_prompt_create, open_file, edit_file
 
 
 class TemplateEditorDialog(Dialog):
@@ -16,8 +18,8 @@ class TemplateEditorDialog(Dialog):
 	Allows edit, delete, and create new templates. Uses external editor.
 	'''
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui,
+	def __init__(self, parent):
+		Dialog.__init__(self, parent,
 			_('Templates'), help='Help:Templates', buttons=gtk.BUTTONS_CLOSE,
 			defaultwindowsize=(400, 450))
 			# T: Dialog title
@@ -93,10 +95,10 @@ class TemplateEditorDialog(Dialog):
 			return # Should not have been sensitive
 
 		if custom.exists():
-			self.ui.open_file(custom)
+			open_file(self, custom)
 		else:
 			assert default and default.exists()
-			self.ui.open_file(default)
+			open_file(self, default)
 
 	def on_copy(self, *a):
 		# Create a new template in this category
@@ -111,6 +113,7 @@ class TemplateEditorDialog(Dialog):
 			source = default
 
 		name = PromptNameDialog(self).run()
+		assert name is not None
 		_, ext = custom.basename.rsplit('.', 1)
 		basename = name + '.' + ext
 		newfile = custom.dir.file(basename)
@@ -128,7 +131,7 @@ class TemplateEditorDialog(Dialog):
 			# Copy default
 			default.copyto(custom)
 
-		self.ui.edit_file(custom, istextfile=True, dialog=self)
+		edit_file(self, custom, istextfile=True)
 		self.view.refresh()
 
 	def on_delete(self, *a):
@@ -138,7 +141,7 @@ class TemplateEditorDialog(Dialog):
 			return # Should not have been sensitive
 
 		try:
-			custom.trash()
+			TrashHelper().trash(LocalFile(custom.path))
 		except TrashNotSupportedError:
 			# TODO warnings
 			custom.remove()
@@ -147,13 +150,13 @@ class TemplateEditorDialog(Dialog):
 
 	def on_browse(self, *a):
 		dir = XDG_DATA_HOME.subdir(('zim', 'templates'))
-		self.ui.open_dir(dir)
+		open_folder_prompt_create(self, dir)
 
 
 class PromptNameDialog(Dialog):
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Copy Template')) # T: Dialog title
+	def __init__(self, parent):
+		Dialog.__init__(self, parent, _('Copy Template')) # T: Dialog title
 		self.add_form([
 			('name', 'string', _('Name')),
 				# T: Input label for the new name when copying a template
@@ -191,6 +194,9 @@ class TemplateListView(BrowserTreeView):
 			return None, None
 		else:
 			return model[iter][self.FILE_COL], model[iter][self.DEFAULT_COL]
+
+	def select(self, path):
+		self.get_selection().select_path(path)
 
 	def refresh(self):
 		model = self.get_model()

@@ -9,9 +9,10 @@ import os
 from zim.plugins import *
 from zim.fs import File
 
+from zim.config import VirtualConfigManager
 from zim.gui.propertiesdialog import PropertiesDialog
-from tests.gui import setupGtkInterface
 
+from tests.mainwindow import setUpMainWindow
 
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
@@ -156,14 +157,14 @@ class TestPlugins(tests.TestCase):
 			# If "False" the check while loading the plugins is not valid
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		dialog = PropertiesDialog(ui) # random dialog
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		mainwindow = setUpMainWindow(notebook)
+		dialog = PropertiesDialog(None, VirtualConfigManager(), notebook) # random dialog
 		for obj in (
 			notebook,
 			notebook.index,
-			ui._mainwindow,				# XXX
-			ui._mainwindow.pageview,	# XXX
+			mainwindow,
+			mainwindow.pageview,
 			dialog,
 		):
 			manager.extend(obj)
@@ -179,18 +180,3 @@ class TestPlugins(tests.TestCase):
 			self.assertNotIn(name, manager)
 
 		self.assertTrue(len(manager) == 0)
-
-
-
-from tests.pageview import setUpPageView
-from zim.config import ConfigDict
-
-class MockWindow(tests.MockObject):
-
-	def __init__(self):
-		tests.MockObject.__init__(self)
-
-		self.pageview = setUpPageView()
-		self.uimanager = tests.MockObject()
-		self.ui = tests.MockObject()
-		self.ui.uistate = ConfigDict()

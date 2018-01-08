@@ -185,10 +185,10 @@ class TestBuildNotebook(tests.TestCase):
 	# Test including automount and uniqueness !
 
 	def setUp(self):
-		self.tmpdir = Dir(self.get_tmp_name())
-		self.notebookdir = self.tmpdir.subdir('notebook')
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.notebookdir = folder.folder('notebook')
 
-		script = self.tmpdir.file('mount.py')
+		script = folder.file('mount.py')
 		script.write('''\
 import os
 import sys
@@ -225,12 +225,11 @@ mount=%s %s
 			(self.notebookdir.uri, None), # repeat to check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
-			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
 		):
 			#~ print ">>", uri
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info)
-			self.assertEqual(nb.dir, self.notebookdir)
+			self.assertEqual(nb.folder.path, self.notebookdir.path)
 			self.assertEqual(p, path)
 			if nbid is None:
 				nbid = id(nb)
@@ -245,8 +244,7 @@ mount=%s %s
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def testAPI(self):
 		'''Test various notebook methods'''
@@ -449,8 +447,10 @@ class TestNotebook(tests.TestCase):
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
+		from zim.fs import adapt_from_newfs, Dir
+		dir = Dir(self.notebook.folder.path) # XXX
+
 		path = Path('Foo:Bar')
-		dir = self.notebook.dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
 		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
@@ -943,28 +943,10 @@ class TestPage(TestPath):
 
 class TestMovePageNewNotebook(tests.TestCase):
 
-	def setUp(self):
-		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_MOCK)
-		layout = FilesLayout(folder, endofline='unix')
-		index = Index(':memory:', layout)
-
-		### XXX - Big HACK here - Get better classes for this - XXX ###
-		dir = VirtualConfigBackend()
-		file = dir.file('notebook.zim')
-		file.dir = dir
-		file.dir.basename = 'Unnamed Notebook'
-		###
-		config = NotebookConfig(file)
-
-		dir = None
-		cache_dir = None
-		self.notebook = Notebook(dir, cache_dir, config, folder, layout, index)
-		index.check_and_update()
-
 	def runTest(self):
 		'''Try populating a notebook from scratch'''
 		# Based on bug lp:511481 - should reproduce bug with updating links to child pages
-		notebook = self.notebook
+		notebook = self.setUpNotebook()
 
 		for name, text in (
 			('page1', 'Foo bar\n'),
@@ -973,7 +955,7 @@ class TestMovePageNewNotebook(tests.TestCase):
 			('page3', 'Hmm\n'),
 		):
 			path = Path(name)
-			page = self.notebook.get_page(path)
+			page = notebook.get_page(path)
 			page.parse('wiki', text)
 			notebook.store_page(page)
 
@@ -1085,7 +1067,14 @@ except ImportError:
 class TestTrash(tests.TestCase):
 
 	def runTest(self):
-		notebook = tests.new_files_notebook(self.create_tmp_dir())
+		notebook = self.setUpNotebook(
+			mock=tests.MOCK_ALWAYS_REAL,
+			content={
+				'TrashMe': 'Test 123\n',
+				'TrashMe:sub1': 'Test 345\n',
+				'TrashMe:sub2': 'Test 345\n',
+			}
+		)
 		page = notebook.get_page(Path('TrashMe'))
 		self.assertTrue(page.exists())
 
@@ -1132,3 +1121,14 @@ class TestBackgroundSave(tests.TestCase):
 		text = page.dump('wiki')
 		self.assertEqual(text[-1], 'test 123\n')
 		self.assertEqual(signals['stored-page'], [(page,)]) # post handler happened as well
+
+
+class AttachmentsFolderIsinstance(tests.TestCase):
+
+	def runTest(self):
+		from zim.newfs import Folder
+		folder = self.setUpFolder()
+		layout = FilesLayout(folder)
+		afolder = layout.get_attachments_folder(Path('Test'))
+		self.assertIsInstance(afolder, Folder)
+		self.assertIsInstance(afolder, folder.__class__)  # Either LocalFolder or MockFolder

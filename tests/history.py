@@ -36,9 +36,8 @@ class TestHistory(tests.TestCase):
 
 	def setUp(self):
 		zim.history.MAX_HISTORY = 100
-		self.notebook = tests.new_notebook()
-		self.pages = [self.notebook.get_page(Path(name))
-			for name in self.notebook.testdata_manifest]
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.pages = [p for p in self.notebook.pages.walk()]
 
 	def assertCurrentEquals(self, history, path):
 		current = history.get_current()

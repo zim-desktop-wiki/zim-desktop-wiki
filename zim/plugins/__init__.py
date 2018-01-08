@@ -89,6 +89,7 @@ from zim.actions import action, toggle_action, get_gtk_actiongroup
 from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
 
 from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
+from zim.config import SectionedConfigDict
 
 
 logger = logging.getLogger('zim.plugins')
@@ -733,7 +734,7 @@ class WindowExtension(ObjectExtension):
 
 	@ivar window: the C{gtk.Window}
 
-	@ivar uistate: a L{ConfigDict} o store the extensions ui state or
+	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
 	C{None} if the window does not maintain ui state
 
 	The "uistate" is the per notebook state of the interface, it is
@@ -752,8 +753,8 @@ class WindowExtension(ObjectExtension):
 		ObjectExtension.__init__(self, plugin, window)
 		self.window = window
 
-		if hasattr(window, 'ui') and hasattr(window.ui, 'uistate') and window.ui.uistate: # XXX
-			self.uistate = window.ui.uistate[plugin.config_key]
+		if hasattr(window, 'config') and hasattr(window.config, 'uistate'):
+			self.uistate = window.config.uistate[plugin.config_key]
 		else:
 			self.uistate = None
 
@@ -772,7 +773,6 @@ class WindowExtension(ObjectExtension):
 		self.destroy()
 
 	def teardown(self):
-		# TODO move uimanager to window
 		if hasattr(self, '_uimanager_id') \
 		and self._uimanager_id is not None:
 			self.window.uimanager.remove_ui(self._uimanager_id)

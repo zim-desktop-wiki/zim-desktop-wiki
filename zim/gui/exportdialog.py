@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -18,6 +18,7 @@ from zim.notebook.operations import NotebookOperation
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressDialog, ErrorDialog, QuestionDialog, \
 	MessageDialog, LogFileDialog, Button
+from zim.gui.applications import open_file
 
 from zim.export import *
 from zim.export.selections import *
@@ -28,11 +29,12 @@ logger = logging.getLogger('zim.export')
 
 class ExportDialog(Assistant):
 
-	def __init__(self, ui):
-		Assistant.__init__(self, ui, _('Export'), # T: dialog title
+	def __init__(self, widget, notebook, page=None):
+		Assistant.__init__(self, widget, _('Export'), # T: dialog title
 			help=':Help:Export', defaultwindowsize=(400, 325))
+		self.notebook = notebook
 
-		self.append_page(InputPage(self))
+		self.append_page(InputPage(self, page))
 		self.append_page(FormatPage(self))
 		self.append_page(OutputPage(self))
 
@@ -50,7 +52,7 @@ class ExportDialog(Assistant):
 		logging_context = LogContext()
 		with logging_context:
 			op = NotebookOperation(
-				self.ui.notebook,
+				self.notebook,
 				_('Exporting notebook'), # T: Title for progressbar window
 				exporter.export_iter(selection)
 			)
@@ -70,13 +72,13 @@ class ExportDialog(Assistant):
 
 	def get_selection(self):
 		if self.uistate['selection'] == 'all':
-			return AllPages(self.ui.notebook)
+			return AllPages(self.notebook)
 		else:
 			path = self.uistate['selected_page']
 			if self.uistate['selection_recursive']:
-				return SubPages(self.ui.notebook, path)
+				return SubPages(self.notebook, path)
 			else:
-				return SinglePage(self.ui.notebook, path)
+				return SinglePage(self.notebook, path)
 
 	def get_exporter(self):
 		#~ import pprint
@@ -165,7 +167,7 @@ class InputPage(AssistantPage):
 
 	title = _('Select the pages to export') # T: title of step in export dialog
 
-	def __init__(self, assistant):
+	def __init__(self, assistant, page=None):
 		AssistantPage.__init__(self, assistant)
 
 		self.add_form((
@@ -180,7 +182,7 @@ class InputPage(AssistantPage):
 			('page', 'page', _('Page')), # T: Input field in export dialog
 			('recursive', 'bool', _('Include subpages')), # T: Input field in export dialog
 		), {
-			'page': assistant.ui.page,
+			'page': page,
 			'recursive': True,
 		},
 		depends={
@@ -273,7 +275,7 @@ class FormatPage(AssistantPage):
 							o.get_active_text() == self.CHOICE_OTHER))
 
 		# Check if we have a document root - if not disable all options
-		docroot = assistant.ui.notebook.document_root
+		docroot = assistant.notebook.document_root
 		if not docroot:
 			for widget in self.form.widgets:
 				if widget.startswith('document_root:'):
@@ -443,7 +445,7 @@ class ExportDoneDialog(MessageDialog):
 		LogFileDialog(self, self.logging_context.file).run()
 
 	def on_open_file(self):
-		self.ui.open_file(self.output) # XXX
+		open_file(self.output)
 
 
 class LogContext(object):

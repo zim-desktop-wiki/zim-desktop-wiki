@@ -123,7 +123,7 @@ class MainWindowExtension(WindowExtension):
 	@action(_('Code Block'), readonly=False) # T: menu item
 	def insert_sourceview(self):
 		'''Inserts new SourceView'''
-		lang = InsertCodeBlockDialog(self.window.ui).run() # XXX
+		lang = InsertCodeBlockDialog(self.window).run() # XXX
 		if not lang:
 			return # dialog cancelled
 		else:
@@ -134,8 +134,8 @@ class MainWindowExtension(WindowExtension):
 
 class InsertCodeBlockDialog(Dialog):
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Insert Code Block')) # T: dialog title
+	def __init__(self, parent):
+		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
 		names = sorted(LANGUAGES, key=lambda k: k.lower())
 		self.add_form(
 			(('lang', 'choice', _('Syntax'), names),) # T: input label

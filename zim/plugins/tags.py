@@ -13,15 +13,15 @@ import logging
 from functools import partial
 
 from zim.plugins import PluginClass, extends, WindowExtension
-#~ PageTreeIter
-from zim.gui.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
+from zim.plugins.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
 	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
-from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
+	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
 from zim.signals import ConnectorMixin
 
@@ -54,7 +54,12 @@ class MainWindowExtension(WindowExtension):
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
 
-		self.widget = TagsPluginWidget(self.window.ui.notebook.index, self.uistate, self.window.ui) # XXX
+		self.widget = TagsPluginWidget(
+			window.notebook,
+			window.config,
+			window.navigation,
+			self.uistate
+		)
 
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -65,6 +70,13 @@ class MainWindowExtension(WindowExtension):
 			self.uistate['vpane_pos'] = self.widget.get_position()
 		self.widget.connect('notify::position', update_uistate)
 
+		#self.connectto_all(ui, ( # XXX
+		#	('start-index-update', lambda o: self.disconnect_model()),
+		#	('end-index-update', lambda o: self.reconnect_model()),
+		#))
+		self.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+
+
 	def on_preferences_changed(self, preferences):
 		if self.widget is None:
 			return
@@ -73,7 +85,7 @@ class MainWindowExtension(WindowExtension):
 			self.window.remove(self.widget)
 		except ValueError:
 			pass
-		self.window.add_tab(_('Tags'), self.widget, preferences['pane'])
+		self.window.add_tab('tags', self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	def teardown(self):
@@ -82,12 +94,15 @@ class MainWindowExtension(WindowExtension):
 		self.widget = None
 
 
-class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
+class TagsPluginWidget(ConnectorMixin, gtk.VPaned, WindowSidePaneWidget):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
-	def __init__(self, index, uistate, ui): # XXX
+	title = _('Tags') # T: title for sidepane tab
+
+	def __init__(self, notebook, config, navigation, uistate):
 		gtk.VPaned.__init__(self)
-		self.index = index
+		self.notebook = notebook
+		self.index = notebook.index
 		self.uistate = uistate
 
 		self.uistate.setdefault('treeview', 'tags', set(['tagged', 'tags']))
@@ -97,31 +112,21 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned):
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
 		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
 
-		self.treeview = TagsPageTreeView(ui) # XXX
+		self.treeview = TagsPageTreeView(notebook, config, navigation)
 		self.pack2(ScrolledWindow(self.treeview), shrink=False)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.tagcloud.connect('selection-changed', self.on_cloud_selection_changed)
 		self.tagcloud.connect('sorting-changed', self.on_cloud_sortin_changed)
 
-		self.connectto_all(ui, ( # XXX
-			'open-page',
-			('start-index-update', lambda o: self.disconnect_model()),
-			('end-index-update', lambda o: self.reconnect_model()),
-		))
-
 		self.reload_model()
 
-	def on_open_page(self, ui, page, path):
-		expand = True
-		treepath = self.treeview.set_current_page(path, vivificate=True)
-		expand = ui.notebook.namespace_properties[path.name].get('auto_expand_in_index', True)
+	def set_page(self, page):
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		expand = self.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
 		if treepath and expand:
-			# change selection only if necessary
 			selected_path = self.treeview.get_selected_path()
-			if path == selected_path:
-				logger.debug('Already selected: "%s"', path)
-			else:
+			if page != selected_path:
 				self.treeview.select_treepath(treepath)
 
 	def toggle_treeview(self):

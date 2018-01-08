@@ -76,7 +76,7 @@ This is a core plugin shipping with zim.
 	def extend(self, obj):
 		name = obj.__class__.__name__
 		if name == 'MainWindow':
-			nb = obj.ui.notebook # XXX
+			nb = obj.notebook
 			nb_ext = self.get_extension(nb, NotebookExtension)
 			assert nb_ext, 'No notebook extension found for: %s' % nb
 			mw_ext = MainWindowExtension(self, obj, nb_ext)
@@ -92,18 +92,21 @@ class NotebookExtension(ObjectExtension):
 		ObjectExtension.__init__(self, plugin, notebook)
 		self.plugin = plugin
 		self.notebook = notebook
+		self.vcs = None
 		self.detect_vcs()
 
 	def _get_notebook_dir(self):
-		if self.notebook.dir:
-			return self.notebook.dir
-		elif self.notebook.file:
-			return self.notebook.file.dir
-		else:
-			assert False, 'Notebook is not based on a file or folder'
+		from zim.fs import adapt_from_newfs, Dir
+		dir = adapt_from_newfs(self.notebook.folder)
+		assert isinstance(dir, Dir), 'Notebook not based on LocalFolder'
+		return dir
 
 	def detect_vcs(self):
-		dir = self._get_notebook_dir()
+		try:
+			dir = self._get_notebook_dir()
+		except AssertionError:
+			return
+
 		self.vcs = VCS.detect_in_folder(dir)
 
 	def init_vcs(self, vcs):
@@ -161,14 +164,12 @@ class MainWindowExtension(WindowExtension):
 		else:
 			self.on_preferences_changed(None, start=True)
 
-		def on_quit(o):
-			self._stop_timer()
-
+		def on_close(o):
 			if self.plugin.preferences['autosave'] \
 			or self.plugin.preferences['autosave_at_interval']:
 				self.do_save_version()
 
-		self.window.ui.connect('quit', on_quit) # XXX
+		self.window.connect('close', on_close)
 
 		self.connectto(self.plugin.preferences, 'changed',
 			self.on_preferences_changed)
@@ -182,6 +183,9 @@ class MainWindowExtension(WindowExtension):
 
 		if self.plugin.preferences['autosave_at_interval']:
 			self._start_timer()
+
+	def destroy(self):
+		self._stop_timer()
 
 	def _start_timer(self):
 		timeout = 60000 * self.plugin.preferences['autosave_interval']
@@ -248,7 +252,7 @@ class MainWindowExtension(WindowExtension):
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
 			self.notebook_ext.notebook,
-			self.window.ui.page # XXX
+			self.window.page
 		)
 		dialog.present()
 
@@ -867,8 +871,8 @@ def get_side_by_side_app():
 
 class VersionControlInitDialog(QuestionDialog):
 
-	def __init__(self, ui):
-		QuestionDialog.__init__(self, ui, (
+	def __init__(self, parent):
+		QuestionDialog.__init__(self, parent, (
 			_("Enable Version Control?"), # T: Question dialog
 			_("Version control is currently not enabled for this notebook.\n"
 			  "Do you want to enable it?") # T: Detailed question
@@ -896,8 +900,8 @@ class VersionControlInitDialog(QuestionDialog):
 
 class SaveVersionDialog(Dialog):
 
-	def __init__(self, ui, window_ext, vcs):
-		Dialog.__init__(self, ui, _('Save Version'), # T: dialog title
+	def __init__(self, parent, window_ext, vcs):
+		Dialog.__init__(self, parent, _('Save Version'), # T: dialog title
 			button=(None, 'gtk-save'), help='Plugins:Version Control')
 		self.window_ext = window_ext
 		self.vcs = vcs
@@ -941,8 +945,8 @@ class SaveVersionDialog(Dialog):
 
 class VersionsDialog(Dialog):
 
-	def __init__(self, ui, vcs, notebook, page=None):
-		Dialog.__init__(self, ui, _('Versions'), # T: dialog title
+	def __init__(self, parent, vcs, notebook, page=None):
+		Dialog.__init__(self, parent, _('Versions'), # T: dialog title
 			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
 		self.notebook = notebook
 		self.vcs = vcs
@@ -1143,8 +1147,8 @@ state. Or select multiple versions to see changes between those versions.
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 		)).run():
 			self.vcs.revert(file=file, version=version)
-			self.ui.reload_page() # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-			# TODO trigger vcs autosave here?
+			page = self.notebook.get_page(path)
+			page.check_source_changed()
 
 	def show_changes(self):
 		# TODO check for gdiff
@@ -1179,8 +1183,8 @@ state. Or select multiple versions to see changes between those versions.
 
 class TextDialog(Dialog):
 
-	def __init__(self, ui, title, lines):
-		Dialog.__init__(self, ui, title, buttons=gtk.BUTTONS_CLOSE)
+	def __init__(self, parent, title, lines):
+		Dialog.__init__(self, parent, title, buttons=gtk.BUTTONS_CLOSE)
 		self.set_default_size(600, 300)
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		window, textview = ScrolledTextView(''.join(lines), monospace=True)

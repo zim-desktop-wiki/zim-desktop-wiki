@@ -7,13 +7,14 @@ from __future__ import with_statement
 
 import tests
 
-from tests.gui import setupGtkInterface
+from tests.mainwindow import setUpMainWindow
 
 import os
 import tempfile
 import gtk
 
 from zim.fs import File, Dir
+from zim.newfs import LocalFolder
 from zim.applications import Application
 from zim.notebook import Path
 
@@ -88,9 +89,12 @@ class TestMainWindowExtension(tests.TestCase):
 		plugin = VersionControlPlugin()
 
 		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
-		notebook = tests.new_files_notebook(dir)
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		notebook = self.setUpNotebook(
+			mock=tests.MOCK_ALWAYS_REAL,
+			#content=tests.FULL_NOTEBOOK,
+			folder=LocalFolder(dir.path)
+		)
+		mainwindow = setUpMainWindow(notebook)
 		plugin.extend(notebook)
 		plugin.extend(mainwindow)
 
@@ -143,7 +147,7 @@ class TestMainWindowExtension(tests.TestCase):
 		notebook.store_page(page)
 
 		self.assertTrue(notebook_ext.vcs.modified)
-		ui.emit('quit')
+		mainwindow.emit('close')
 		self.assertFalse(notebook_ext.vcs.modified)
 
 

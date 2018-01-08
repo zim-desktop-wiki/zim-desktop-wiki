@@ -111,7 +111,7 @@ class MainWindowExtension(WindowExtension):
 		self._adapter = self._choose_adapter()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
-		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER) # XXX
+		self.connectto(self.window, 'page-changed', order=SIGNAL_AFTER)
 
 	def _choose_adapter(self):
 		if gtkspellcheck:
@@ -149,8 +149,8 @@ class MainWindowExtension(WindowExtension):
 
 		self.uistate['active'] = active
 
-	def on_open_page(self, ui, page, record):
-		textview = self.window.pageview.view
+	def on_page_changed(self, window, page):
+		textview = window.pageview.view
 		checker = getattr(textview, '_gtkspell', None)
 		if checker:
 			checker.on_new_buffer()
@@ -162,7 +162,7 @@ class MainWindowExtension(WindowExtension):
 		try:
 			checker = self._adapter(textview, lang)
 		except:
-			ErrorDialog(self.window.ui, (
+			ErrorDialog(self.window, (
 				_('Could not load spell checking'),
 					# T: error message
 				_('This could mean you don\'t have the proper\ndictionaries installed')

@@ -51,8 +51,8 @@ This plugin provides a plot editor for zim based on Gnuplot.
 class MainWindowExtension(MainWindowExtensionBase):
 
 	def build_generator(self):
-		page = self.window.ui.page # XXX
-		notebook = self.window.ui.notebook # XXX
+		page = self.window.page
+		notebook = self.window.notebook
 		attachment_folder = notebook.get_attachments_dir(page)
 		#~ print ">>>", notebook, page, attachment_folder
 		return GnuplotGenerator(self.plugin, attachment_folder)

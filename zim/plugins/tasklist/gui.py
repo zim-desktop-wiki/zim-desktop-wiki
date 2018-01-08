@@ -58,6 +58,8 @@ class TaskListWidgetMixin(object):
 
 class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
+	title = _('Tasks') # T: tab label for side pane
+
 	def __init__(self, tasksview, opener, preferences, uistate):
 		gtk.VBox.__init__(self)
 		self.uistate = uistate
@@ -109,7 +111,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('sort_column', 0)
 		self.uistate.setdefault('sort_order', int(gtk.SORT_DESCENDING))
 
-		opener = window.get_resource_opener()
+		opener = window.navigation
 		task_labels = _parse_task_labels(preferences['labels'])
 		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
 		self.task_list = TaskListTreeView(
@@ -180,7 +182,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		### XXX HACK to get dependency to connect to
 		###   -- no access to plugin, so can;t use get_extension()
 		##    -- duplicat of this snippet in MainWindowExtension
-		for e in window.ui.notebook.__zim_extension_objects__:
+		for e in window.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
 				break

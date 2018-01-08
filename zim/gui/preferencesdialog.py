@@ -9,10 +9,14 @@ import gtk
 import logging
 
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
-	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory
-from zim.gui.applications import CustomizeOpenWithDialog
+	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window
+from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create
 
 from zim.plugins import PLUGIN_FOLDER
+from zim.config import String
+
+from zim.gui.mainwindow import ui_preferences as interface_preferences
+from zim.gui.pageview import ui_preferences as pageview_preferences
 
 
 logger = logging.getLogger('zim.gui.preferencesdialog')
@@ -24,21 +28,23 @@ _label = _('Editing') # T: Tab in preferences dialog
 
 
 class PreferencesDialog(Dialog):
-	'''Preferences dialog consisting of tabs with various options and
-	a tab with plugins. Options are not defined here, but need to be
-	registered using GtkInterface.register_preferences().
-	'''
 
-	def __init__(self, ui, default_tab=None, select_plugin=None):
-		Dialog.__init__(self, ui, _('Preferences')) # T: Dialog title
-		gtknotebook = gtk.Notebook()
-		self.vbox.add(gtknotebook)
+	def __init__(self, widget, config, default_tab=None, select_plugin=None):
+		Dialog.__init__(self, widget, _('Preferences')) # T: Dialog title
+		self.config = config
+		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')
+
 		# saves a list of loaded plugins to be used later
-		self.p_save_loaded = list(self.ui.plugins)
+		self.plugins = get_window(widget).__pluginmanager__ # XXX
+		self.p_save_loaded = list(self.plugins)
 
 		# Dynamic tabs
+		gtknotebook = gtk.Notebook()
+		self.vbox.add(gtknotebook)
 		self.forms = {}
-		for category, preferences in ui.preferences_register.items():
+
+		############################### needs rewrite to make defintion more robust
+		for category in ('Interface', 'Editing'):
 			vbox = gtk.VBox()
 			index = gtknotebook.append_page(vbox, gtk.Label(_(category)))
 			# From GTK Doc: Note that due to historical reasons, GtkNotebook refuses
@@ -50,16 +56,24 @@ class PreferencesDialog(Dialog):
 			fields = []
 			values = {}
 			sections = {}
-			for p in preferences:
-				if len(p) == 4:
-					section, key, type, label = p
-					fields.append((key, type, label))
-				else:
-					section, key, type, label, check = p
-					fields.append((key, type, label, check))
 
-				values[key] = ui.preferences[section][key]
-				sections[key] = section
+			for section, preferences in (
+				('GtkInterface', interface_preferences),
+				('PageView', pageview_preferences)
+			):
+				for p in filter(lambda p: p[2] == category, preferences):
+					# key, type, category, label, default, (check)
+					if len(p) == 5:
+						key, type, cat, label, default = p
+						self.preferences[section].setdefault(key, default)
+						fields.append((key, type, label))
+					else:
+						key, type, cat, label, default, check = p
+						self.preferences[section].setdefault(key, default, check)
+						fields.append((key, type, label, check))
+
+					values[key] = self.preferences[section][key]
+					sections[key] = section
 
 			form = InputForm(fields, values)
 			form.preferences_sections = sections
@@ -76,7 +90,7 @@ class PreferencesDialog(Dialog):
 		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label(_('Key bindings')))
 
 		# Plugins tab
-		self.plugins_tab = PluginsTab(self, self.ui.plugins)
+		self.plugins_tab = PluginsTab(self, self.plugins)
 		plugins_tab_index = gtknotebook.append_page(self.plugins_tab, gtk.Label(_('Plugins')))
 				# T: Heading in preferences dialog
 		self.plugins_tab.show()
@@ -102,7 +116,7 @@ class PreferencesDialog(Dialog):
 		self.fontbutton = gtk.FontButton()
 		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
-		text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		text_style = self.config.get_config_dict('<profile>/style.conf')
 		try:
 			font = text_style['TextView']['font']
 			if font:
@@ -135,36 +149,37 @@ class PreferencesDialog(Dialog):
 		else:
 			font = None
 
-		text_style = self.ui.config.get_config_dict('<profile>/style.conf')
+		text_style = self.config.get_config_dict('<profile>/style.conf')
+		text_style['TextView'].define(font=String(None))
 		text_style['TextView']['font'] = font
 		#
 
-		with self.ui.preferences.block_signals('changed'):
+		with self.preferences.block_signals('changed'):
 			# note we do not block signal on section dicts
 			for section in newpreferences:
-				self.ui.preferences[section].update(newpreferences[section])
+				self.preferences[section].update(newpreferences[section])
 
-		self.ui.preferences.emit('changed') # delayed emission
+		self.preferences.emit('changed') # delayed emission
 
 		return True
 
 	def do_response_cancel(self):
 		# Obtain an updated list of loaded plugins
-		now_loaded = list(self.ui.plugins)
+		now_loaded = list(self.plugins)
 
 		# Restore previous situation if the user changed something
 		# in this dialog session
-		with self.ui.preferences.block_signals('changed'):
-			for name in self.ui.plugins.list_installed_plugins():
+		with self.preferences.block_signals('changed'):
+			for name in self.plugins.list_installed_plugins():
 				if name in self.p_save_loaded and name not in now_loaded:
 					try:
-						self.ui.plugins.load_plugin(name)
+						self.plugins.load_plugin(name)
 					except:
 						logger.exception('Could not restore plugin: %s', name)
 				elif name not in self.p_save_loaded and name in now_loaded:
-					self.ui.plugins.remove_plugin(name)
+					self.plugins.remove_plugin(name)
 
-		self.ui.preferences.emit('changed') # delayed emission
+		self.preferences.emit('changed') # delayed emission
 
 		return True
 
@@ -223,10 +238,9 @@ class PluginsTab(gtk.VBox):
 		hbox.set_layout(gtk.BUTTONBOX_START)
 		self.pack_start(hbox, False)
 
-		assert hasattr(self.dialog, 'ui')
 		open_button = gtk.Button(label=_('Open plugins folder'))
 		open_button.connect('clicked',
-			lambda o: self.dialog.ui.open_dir(PLUGIN_FOLDER)
+			lambda o: open_folder_prompt_create(o, PLUGIN_FOLDER)
 		)
 		hbox.pack_start(open_button, False)
 
@@ -292,7 +306,9 @@ class PluginsTab(gtk.VBox):
 
 	def on_help_button_clicked(self, button):
 		klass = self.plugins.get_plugin_class(self._current_plugin)
-		self.dialog.ui.show_help(klass.plugin_info['help']) # XXX
+		page = klass.plugin_info['help']
+		if page:
+			ZIM_APPLICATION.run('--manual', page)
 
 	def on_configure_button_clicked(self, button):
 		plugin = self.plugins[self._current_plugin]
@@ -439,7 +455,7 @@ class StylesTab(gtk.VBox):
 
 class StylesTreeModel(gtk.ListStore):
 
-	def __init__(self, ui):
+	def __init__(self):
 		#'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
 		# 'family', 'wrap-mode', 'indent', 'underline'
 		gtk.ListStore.__init__(self, bool, str, object)
