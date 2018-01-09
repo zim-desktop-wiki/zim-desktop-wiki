@@ -108,11 +108,6 @@ class NotebookExtension(ObjectExtension):
 			return
 
 		self.vcs = VCS.detect_in_folder(dir)
-		if self.vcs and self.vcs.use_staging:
-			# HACK - FIXME use proper FS signals here
-			# git requires changes to be added to staging, bzr does not
-			# so add a hook for when page is written, to update staging.
-			self.connectto(self.notebook, 'stored-page', self.vcs.update_staging)
 
 	def init_vcs(self, vcs):
 		dir = self._get_notebook_dir()
@@ -422,10 +417,6 @@ class VCSBackend(ConnectorMixin):
 			))
 
 	@property
-	def use_staging(self):
-		return self._app.use_staging
-
-	@property
 	def vcs(self):
 		return self._app
 
@@ -582,14 +573,9 @@ class VCSBackend(ConnectorMixin):
 			version = self.vcs.cat(file, version)
 		return version
 
-	def update_staging(self, notebook, page):
-		file, x = notebook.layout.map_page(page)
-		file = File(file.path) # newfs.LocalFile --> File
-		self.stage(file)
-
-	def stage(self, file):
+	def stage(self):
 		with self.lock:
-			self.vcs.stage(file)
+			self.vcs.stage()
 
 
 class VCSApplicationBase(object):
@@ -856,10 +842,7 @@ class VCSApplicationBase(object):
 		raise NotImplementedError
 
 	def stage(self):
-		"""Fixme - to be documented
-		Usefull for git, runs:
-		  git add -u
-		  git add -A
+		"""Prepares the repo for a commit. Used, for example, by git to stage changes so that the status message in SaveVersionDialog shows what will be committed.
 
 		@implementation: optional to be implemented in child class
 		"""
@@ -943,6 +926,7 @@ class SaveVersionDialog(Dialog):
 		label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
 
+		self.vcs.stage()
 		status = self.vcs.get_status()
 		window, textview = ScrolledTextView(text=''.join(status), monospace=True)
 		vbox.add(window)

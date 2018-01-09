@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim filesystem module.'''
 
@@ -903,13 +903,10 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertFalse(linkedfile.exists())
 		self.assertTrue(targetfile.exists())
 		self.assertTrue(targetfile.read(), 'foobar\n')
-		for child in dir:
-			child.remove()
-		self.assertRaises(FileNotFoundError, dir.list_names)
+
+		# Test linked dir is treated like any other
+		self.assertRaises(FolderNotEmptyError, linkeddir.remove)
 		self.assertTrue(targetdir.exists())
-		self.assertEqual(targetdir.list_names(), ['foo.txt'])
-
-
 
 
 class TestTmpFile(tests.TestCase):

@@ -142,7 +142,6 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		self.assertFilesDBConsistent(db)
 		self.assertFilesDBEquals(db, self.FILES)
 
-
 	def create_files(self, files):
 		for name in files:
 			if is_dir(name):
@@ -156,6 +155,42 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 				self.root.folder(name).remove()
 			else:
 				self.root.child(name).remove()
+
+
+class TestFilesIndexerWithCaseInsensitiveFilesytem(tests.TestCase, TestFilesDBTable):
+
+	def runTest(self):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_MOCK)
+		folder._fs.set_case_sensitive(False)
+
+		db = sqlite3.connect(':memory:')
+		db.row_factory = sqlite3.Row
+		indexer = FilesIndexer(db, folder)
+
+		def check_and_update_all():
+			checker = FilesIndexChecker(indexer.db, indexer.folder)
+			checker.queue_check()
+			for out_of_date in checker.check_iter():
+				if out_of_date:
+					for i in indexer.update_iter():
+						pass
+			indexer.db.commit()
+
+		for name in ('aaa.txt', 'bbb.txt', 'ccc.txt'):
+			folder.file(name).write('Test 123\n')
+
+		check_and_update_all()
+		self.assertFilesDBConsistent(db)
+		self.assertFilesDBEquals(db, ('aaa.txt', 'bbb.txt', 'ccc.txt'))
+
+		mtime = folder.mtime()
+		folder.file('aaa.txt').moveto(folder.file('AAA.txt'))
+		self.assertEqual(list(folder.list_names()), ['AAA.txt', 'bbb.txt', 'ccc.txt'])
+		self.assertNotEqual(folder.mtime(), mtime)
+
+		check_and_update_all()
+		self.assertFilesDBConsistent(db)
+		self.assertFilesDBEquals(db, ('AAA.txt', 'bbb.txt', 'ccc.txt'))
 
 
 class TestPagesIndexer(TestPagesDBTable, tests.TestCase):

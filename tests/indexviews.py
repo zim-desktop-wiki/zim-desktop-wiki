@@ -72,22 +72,30 @@ TREEPATHS_TAGS_12 = (
 )
 
 _SQL = None
-def new_test_database():
-	global _SQL
-	if _SQL is None:
-		folder = MockFolder('/mock/notebook/')
-		indexer = buildUpdateIter(folder)
-		for path, text in FILES:
-			folder.file(path).write(text)
-		indexer.check_and_update()
-		lines = list(indexer.db.iterdump())
-		_SQL = '\n'.join(lines)
-		indexer.db.close()
+def new_test_database(files=FILES):
+	if files == FILES:
+		global _SQL
+		if _SQL is None:
+			_SQL = _get_sql(FILES)
+		sql = _SQL
+	else:
+		sql = _get_sql(files)
 
 	db = sqlite3.Connection(':memory:')
 	db.row_factory = sqlite3.Row
-	db.executescript(_SQL)
+	db.executescript(sql)
 	return db
+
+
+def _get_sql(files):
+	folder = MockFolder('/mock/notebook/')
+	indexer = buildUpdateIter(folder)
+	for path, text in files:
+		folder.file(path).write(text)
+	indexer.check_and_update()
+	lines = list(indexer.db.iterdump())
+	indexer.db.close()
+	return '\n'.join(lines)
 
 
 #class TestMemoryIndex(tests.TestCase):
@@ -122,33 +130,55 @@ class TestPagesView(tests.TestCase):
 		db = new_test_database()
 		pages = PagesView(db)
 
-		pagelist = [p.name for p in pages.walk()]
-		self.assertIn('Bar', pagelist)
-		self.assertIn('Foo', pagelist)
-		self.assertIn('Foo:Child1:GrandChild1', pagelist)
-		self.assertNotIn('', pagelist)
+		names = [p.name for p in pages.walk()]
+		self.assertIn('Bar', names)
+		self.assertIn('Foo', names)
+		self.assertIn('Foo:Child1:GrandChild1', names)
+		self.assertNotIn('', names)
 
-		self.assertEqual(len(pagelist), pages.n_all_pages())
+		self.assertEqual(len(names), pages.n_all_pages())
 
-		last = len(pagelist) - 1
-		for i, name in enumerate(pagelist):
+		last = len(names) - 1
+		for i, name in enumerate(names):
 			p = pages.get_previous(Path(name))
 			if i > 0:
 				self.assertIsNotNone(p, 'Missing prev for %s' % name)
-				self.assertEqual(p.name, pagelist[i - 1])
+				self.assertEqual(p.name, names[i - 1])
 			else:
 				self.assertIsNone(p)
 
 			n = pages.get_next(Path(name))
 			if i < last:
 				self.assertIsNotNone(n, 'Missing next for %s' % name)
-				self.assertEqual(n.name, pagelist[i + 1])
+				self.assertEqual(n.name, names[i + 1])
 			else:
 				self.assertIsNone(n)
 
 		section = Path('Foo')
 		for page in pages.walk(section):
 			self.assertTrue(page.ischild(section))
+
+	def testPreviousAndNext(self):
+		# Mix of caps and small letters to trigger issues with sorting
+		names = ('AAA', 'BBB', 'ccc', 'ddd', 'EEE', 'FFF', 'ggg', 'hhh')
+		db = new_test_database((name + '.txt', 'Test 123\n') for name in names)
+		pages = PagesView(db)
+
+		last = len(names) - 1
+		for i, name in enumerate(names):
+			p = pages.get_previous(Path(name))
+			if i > 0:
+				self.assertIsNotNone(p, 'Missing prev for %s' % name)
+				self.assertEqual(p.name, names[i - 1])
+			else:
+				self.assertIsNone(p)
+
+			n = pages.get_next(Path(name))
+			if i < last:
+				self.assertIsNotNone(n, 'Missing next for %s' % name)
+				self.assertEqual(n.name, names[i + 1])
+			else:
+				self.assertIsNone(n)
 
 	def testRecentChanges(self):
 		db = new_test_database()

@@ -77,6 +77,8 @@ class PagesIndexer(IndexerBase):
 
 				source_file INTEGER REFERENCES files(id),
 				is_link_placeholder BOOLEAN DEFAULT 0
+
+				CONSTRAINT no_self_ref CHECK (parent <> id)
 			);
 			CREATE UNIQUE INDEX IF NOT EXISTS pages_name ON pages(name)
 		''')
@@ -253,6 +255,7 @@ class PagesIndexer(IndexerBase):
 		# allow_cleanup is used by LinksIndexer when cleaning up placeholders
 
 		row = self._select(pagename)
+		assert row['id'] != 1, 'BUG: can\'t delete notebook root'
 		if row['n_children'] > 0:
 			raise AssertionError('Page has child pages')
 
@@ -431,7 +434,7 @@ class PagesViewInternal(object):
 				).fetchone()
 			else:
 				row = self.db.execute(
-					'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
+					'SELECT id, name FROM pages WHERE parent=? and name=?',
 					(page_id, "%:" + basename)
 				).fetchone()
 
@@ -584,10 +587,12 @@ class PagesView(IndexView):
 		else:
 			parent_id = r[0]
 
-		r = self.db.execute(
-			'SELECT * FROM pages WHERE parent=? and sortkey<? and name<? '
-			'ORDER BY sortkey DESC, name DESC LIMIT 1',
-			(parent_id, natural_sort_key(path.basename), path.name)
+		sortkey = natural_sort_key(path.basename)
+		r = self.db.execute('''
+			SELECT * FROM pages WHERE parent=? and (
+				sortkey<? or (sortkey=? and name<?)
+			) ORDER BY sortkey DESC, name DESC LIMIT 1''',
+			(parent_id, sortkey, sortkey, path.name)
 		).fetchone()
 		if not r:
 			parent = self._pages.get_pagename(parent_id)
@@ -635,10 +640,11 @@ class PagesView(IndexView):
 				return PageIndexRecord(r)
 		else:
 			while True:
-				n = self.db.execute(
-					'SELECT * FROM pages WHERE parent=? and sortkey>? and name>? '
-					'ORDER BY sortkey, name LIMIT 1',
-					(r['parent'], r['sortkey'], r['name'])
+				n = self.db.execute('''
+					SELECT * FROM pages WHERE parent=? and (
+						sortkey>? or (sortkey=? and name>?)
+					) ORDER BY sortkey, name LIMIT 1''',
+					(r['parent'], r['sortkey'], r['sortkey'], r['name'])
 				).fetchone()
 				if n is not None:
 					return PageIndexRecord(n)

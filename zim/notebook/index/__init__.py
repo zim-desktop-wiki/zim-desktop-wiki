@@ -199,44 +199,60 @@ class Index(SignalEmitter):
 		self.background_check.stop()
 
 	def update_file(self, file):
+		if not file.exists():
+			return self.remove_file(file)
+
 		path = file.relpath(self.layout.root)
-		filesindexer = self.update_iter.files
 		row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
-		if row is None and not file.exists():
-			pass
+
+		filesindexer = self.update_iter.files
+		filesindexer.emit('start-update')
+
+		if row:
+			node_id = row[0]
+			if isinstance(file, File):
+				filesindexer.update_file(node_id, file)
+			elif isinstance(file, Folder):
+				filesindexer.update_folder(node_id, file)
+			else:
+				raise TypeError
 		else:
-			filesindexer.emit('start-update')
+			if isinstance(file, File):
+				filesindexer.interactive_add_file(file)
+			elif isinstance(file, Folder):
+				filesindexer.interactive_add_folder(file)
+			else:
+				raise TypeError
 
-			if row:
-				node_id = row[0]
-				if isinstance(file, File):
-					if file.exists():
-						filesindexer.update_file(node_id, file)
-					else:
-						filesindexer.delete_file(node_id)
-				elif isinstance(file, Folder):
-					if file.exists():
-						filesindexer.update_folder(node_id, file)
-					else:
-						filesindexer.delete_folder(node_id)
-				else:
-					raise TypeError
-			else: # file.exists():
-				if isinstance(file, File):
-					filesindexer.interactive_add_file(file)
-				elif isinstance(file, Folder):
-					filesindexer.interactive_add_folder(file)
-				else:
-					raise TypeError
+		filesindexer.emit('finish-update')
+		self._db.commit()
+		self.on_commit(None)
 
-			filesindexer.emit('finish-update')
-			self._db.commit()
-			self.on_commit(None)
+	def remove_file(self, file):
+		path = file.relpath(self.layout.root)
+		row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
+		if row is None:
+			return
+
+		filesindexer = self.update_iter.files
+		filesindexer.emit('start-update')
+
+		node_id = row[0]
+		if isinstance(file, File):
+			filesindexer.delete_file(node_id)
+		elif isinstance(file, Folder):
+			filesindexer.delete_folder(node_id)
+		else:
+			raise TypeError
+
+		filesindexer.emit('finish-update')
+		self._db.commit()
+		self.on_commit(None)
 
 	def file_moved(self, oldfile, newfile):
 		# TODO: make this more efficient, specific for moved folders
 		#       by supporting moved pages in indexers
-		self.update_file(oldfile)
+		self.remove_file(oldfile)
 		self.update_file(newfile)
 
 	def touch_current_page_placeholder(self, path):

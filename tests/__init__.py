@@ -67,7 +67,7 @@ __all__ = [
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-	'arithmetic',
+	'arithmetic', 'linesorter'
 ]
 
 
@@ -317,6 +317,7 @@ class TestCase(unittest.TestCase):
 
 		if folder is None:
 			folder = self.setUpFolder(name, mock)
+		folder.touch() # Must exist for sane notebook
 		cache_dir = folder.folder('.zim')
 		layout = FilesLayout(folder, endofline='unix')
 

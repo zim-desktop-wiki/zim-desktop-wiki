@@ -7,7 +7,7 @@ import gtk
 import re
 from datetime import date as dateclass
 
-from zim.fs import Dir
+from zim.fs import Dir, isabs
 
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.main import GtkCommand
@@ -96,8 +96,10 @@ class QuickNotePluginCommand(GtkCommand):
 				self.opts['append'].lower() == 'true'
 
 		if self.opts.get('attachments', None):
-			self.opts['attachments'] = \
-				Dir((self.pwd, self.opts['attachments']))
+			if isabs(self.opts['attachments']):
+				self.opts['attachments'] = Dir(self.opts['attachments'])
+			else:
+				self.opts['attachments'] = Dir((self.pwd, self.opts['attachments']))
 
 	def get_text(self):
 		if 'input' in self.opts:

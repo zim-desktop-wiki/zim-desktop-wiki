@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from __future__ import with_statement
 
@@ -339,7 +339,7 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
 		subdir = root.subdir('foo/bar')
 		file = subdir.file('baz.txt')
 		file.write('foo\nbar\n')
-		vcs.stage(file)
+		vcs.stage()
 		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
 			'A  .gitignore\n'
 			'A  foo/bar/baz.txt\n'
@@ -354,7 +354,7 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
 
 		file = subdir.file('bar.txt')
 		file.write('second\ntest\n')
-		vcs.stage(file)
+		vcs.stage()
 
 		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
 			'A  foo/bar/bar.txt\n'

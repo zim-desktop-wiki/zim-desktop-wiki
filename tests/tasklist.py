@@ -127,7 +127,7 @@ Edge case with wrongly nested list
 
 class TestTaskParser(tests.TestCase):
 
-	def runTest(self):
+	def testAllCheckboxes(self):
 		from zim.plugins.tasklist.indexer import TaskParser
 
 		from zim.parsing import parse_date
@@ -224,6 +224,67 @@ class TestTaskParser(tests.TestCase):
 		testTokenStream(tokens)
 
 		parser = TaskParser()
+		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
+			tasks = parser.parse(tokens)
+
+		#~ import pprint; pprint.pprint(tasks)
+		self.assertEqual(tasks, wanted)
+
+	def testLabelledCheckboxes(self):
+		from zim.plugins.tasklist.indexer import TaskParser
+
+		from zim.parsing import parse_date
+		NO_DATE = '9999'
+
+		def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
+			# Generate a task tuple
+			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
+			if tags:
+				tags = set(unicode(tags).split(','))
+			else:
+				tags = set()
+			return [open, prio, start, due, tags, unicode(desc)]
+
+		mydate = '%04i-%02i-%02i' % parse_date('11/12')
+
+		wanted = [
+			(t('TODO: test heading with label'), []),
+			(t('A'), []),
+			(t('B'), []),
+			(t('C'), []),
+			(t('FIXME: dus'), []),
+
+			# this time does not inherit due-date from non-task:
+			(t('TODO: BAR !!!', prio=3), []),
+
+			(t('Some more tasks !!!', prio=3, tags='home'), [
+				(t('Foo !', prio=1, tags='home'), []),
+				(t('Bar', prio=3, tags='home'), []),
+			]),
+			(t('TODO: dus'), []),
+			(t('FIXME: jaja - TODO !! @FIXME', prio=2, tags='FIXME'), []),
+			(t('TODO: dus - list item'), []),
+			(t('FIXME: jaja - TODO !! @FIXME - list item', prio=2, tags='FIXME'), []),
+			(t('A', tags='someday'), []),
+			(t('B', tags='someday'), [
+				(t('B-1', tags='someday'), []),
+			]),
+			(t('C', tags='someday'), []),
+			(t('main task', tags='home'), [
+				(t('do this', open=False, tags='home'), []),
+				(t('Next: do that', tags='home'), []),
+				(t('Next: do something else', tags='home'), []),
+			]),
+		]
+
+
+		tree = WikiParser().parse(WIKI_TEXT)
+		tb = TokenBuilder()
+		tree.visit(tb)
+		tokens = tb.tokens
+		testTokenStream(tokens)
+
+		parser = TaskParser(all_checkboxes=False)
 		with tests.LoggingFilter('zim.plugins.tasklist', 'Invalid date format'):
 			tasks = parser.parse(tokens)
 

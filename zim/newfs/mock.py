@@ -55,13 +55,14 @@ def os_native_path(unixpath):
 
 class MockFSNode(object):
 
-	__slots__ = ('ctime', 'mtime', 'size', 'data', 'isdir')
+	__slots__ = ('ctime', 'mtime', 'size', 'data', 'isdir', 'case_sensitive')
 
-	def __init__(self, data):
+	def __init__(self, data, case_sensitive=True):
 		assert isinstance(data, (basestring, dict))
 		self.ctime = None
 		self.mtime = None
 		self.size = None
+		self.case_sensitive = case_sensitive
 		self.isdir = isinstance(data, dict)
 		self.data = data
 		self.on_changed()
@@ -73,9 +74,28 @@ class MockFSNode(object):
 				new[name] = MockFSNode(node.deepcopy_data()) # recurs
 				new[name].ctime = node.ctime
 				new[name].mtime = node.mtime
+				new[name].case_sensitive = node.case_sensitive
 			return new
 		else:
 			return self.data
+
+	def set_case_sensitive(self, case_sensitive):
+		self.case_sensitive = case_sensitive
+		if self.isdir:
+			for child in self.data.values():
+				child.set_case_sensitive(case_sensitive)
+
+	def get_child(self, name):
+		if self.isdir:
+			try:
+				return self.data[name]
+			except:
+				if not self.case_sensitive:
+					for childname, child in self.data.items():
+						if childname.lower() == name.lower():
+							return child
+
+				raise
 
 	def on_changed(self):
 		# Called after change of data attribute to update
@@ -114,7 +134,7 @@ class MockFS(MockFSNode):
 				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
 			else:
 				try:
-					node = parent.data[name]
+					node = parent.get_child(name)
 				except KeyError:
 					raise FileNotFoundError(_SEP.join(names))
 		return node
@@ -127,16 +147,19 @@ class MockFS(MockFSNode):
 		node = self
 		for i, name in enumerate(names[:-1]):
 			parent = node
-			if not name in parent.data:
-				parent.data[name] = MockFSNode({}) # new folder
+			try:
+				node = parent.get_child(name)
+			except KeyError:
+				parent.data[name] = MockFSNode({}, case_sensitive=self.case_sensitive) # new folder
 				parent.on_changed()
-			node = parent.data[name]
+				node = parent.data[name]
+
 			if not node.isdir:
 				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
 
 		parent, basename = node, names[-1]
 		if basename not in parent.data:
-			parent.data[basename] = MockFSNode(data)
+			parent.data[basename] = MockFSNode(data, case_sensitive=self.case_sensitive)
 			parent.on_changed()
 
 		return parent.data[basename]
@@ -190,9 +213,14 @@ class MockFSObjectBase(FSObjectBase):
 		return True
 
 	def isequal(self, other):
-		return isinstance(other, self.__class__) \
-			and self._fs is other._fs \
-			and self.path == other.path
+		if self._fs.case_sensitive:
+			return isinstance(other, self.__class__) \
+				and self._fs is other._fs \
+				and self.path == other.path
+		else:
+			return isinstance(other, self.__class__) \
+				and self._fs is other._fs \
+				and self.path.lower() == other.path.lower()
 
 	def ctime(self):
 		return self._node().ctime
@@ -207,12 +235,24 @@ class MockFSObjectBase(FSObjectBase):
 		if not isinstance(other, MockFSObjectBase):
 			raise NotImplementedError('TODO: support cross object type move')
 
-		self._mock_copyto(other)
-		self._remove(removechildren=True)
-		if self.watcher:
-			self.watcher.emit('moved', self, other)
+		if other.isequal(self):
+			if other.path == self.path:
+				raise ValueError, 'Cannot move file or folder to self'
 
-		self._cleanup()
+			# case_sensitive must be False
+			parentnode = self._fs.stat(self.pathnames[:-1])
+			parentnode.data[other.basename] = parentnode.data.pop(self.basename)
+			parentnode.on_changed()
+			if self.watcher:
+				self.watcher.emit('moved', self, other)
+		else:
+			self._mock_copyto(other)
+			self._remove(removechildren=True)
+			if self.watcher:
+				self.watcher.emit('moved', self, other)
+
+			self._cleanup()
+
 		return other
 
 	def copyto(self, other):
@@ -231,7 +271,7 @@ class MockFSObjectBase(FSObjectBase):
 
 	def _mock_copyto(self, other):
 		assert other._fs is self._fs
-		assert not other.path == self.path
+		assert not other.isequal(self) # Takes into account case_sensitive
 
 		if isinstance(self, File):
 			assert isinstance(other, File)
