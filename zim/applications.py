@@ -242,6 +242,25 @@ class Application(object):
 			text[-1] = text[-1][:-1] # strip additional \n
 		return text
 
+	def _child_watch_idle_cb(self, status, callback, data):
+		if data is None:
+			callback(status)
+		else:
+			callback(status, data)
+
+		return False
+
+	def _child_watch_cb(self, pid, status, data):
+		# Note that we run the callback from an idle handler. This prevents
+		# an odd crash in the bindings where objects appear to be cleaned up
+		# in the wrong moment.
+		# This trick should become obsolete with a move to the GObject
+		# Introspection based python bindings.
+		callback, data = data
+		gobject.idle_add(self._child_watch_idle_cb, status, callback, data)
+
+		return False
+
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
 		'''Start the application in the background and return immediately.
 		This is used to start an external in parallel with zim that is
@@ -282,12 +301,7 @@ class Application(object):
 			logger.debug('Process started with PID: %i', pid)
 			if callback:
 				# child watch does implicit reaping -> no zombies
-				if data is None:
-					gobject.child_watch_add(pid,
-						lambda pid, status: callback(status))
-				else:
-					gobject.child_watch_add(pid,
-						lambda pid, status, data: callback(status, data), data)
+				gobject.child_watch_add(pid, self._child_watch_cb, (callback, data))
 			return pid
 
 
