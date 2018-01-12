@@ -5,8 +5,8 @@
 
 from __future__ import with_statement
 
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 
 import os
 import logging
@@ -133,7 +133,7 @@ def _monitor_thread(thread):
 		return True # keep handler
 
 def monitor_thread(thread):
-	gobject.idle_add(_monitor_thread, thread)
+	GObject.idle_add(_monitor_thread, thread)
 
 
 @extends('MainWindow')
@@ -189,12 +189,12 @@ class MainWindowExtension(WindowExtension):
 
 	def _start_timer(self):
 		timeout = 60000 * self.plugin.preferences['autosave_interval']
-		self._autosave_timer = gobject.timeout_add(
+		self._autosave_timer = GObject.timeout_add(
 			timeout, self.do_save_version_async)
 
 	def _stop_timer(self):
 		if self._autosave_timer:
-			gobject.source_remove(self._autosave_timer)
+			GObject.source_remove(self._autosave_timer)
 			self._autosave_timer = None
 
 	def teardown(self):
@@ -878,15 +878,15 @@ class VersionControlInitDialog(QuestionDialog):
 			  "Do you want to enable it?") # T: Detailed question
 		))
 
-		self.combobox = gtk.combo_box_new_text()
+		self.combobox = Gtk.ComboBoxText()
 		for option in (VCS.BZR, VCS.GIT, VCS.HG, VCS.FOSSIL):
 			if VCS.check_dependencies(option):
 				self.combobox.append_text(option)
 		self.combobox.set_active(0)
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		hbox.pack_end(self.combobox, False)
-		hbox.pack_end(gtk.Label(_('Backend') + ':'), False)
+		hbox.pack_end(Gtk.Label(_('Backend', True, True, 0) + ':'), False)
 			# T: option to chose versioncontrol backend
 		self.vbox.pack_start(hbox, False)
 		hbox.show_all()
@@ -907,7 +907,7 @@ class SaveVersionDialog(Dialog):
 		self.vcs = vcs
 
 		self.vbox.pack_start(
-			gtk.Label(_("Please enter a comment for this version")), False)  # T: Dialog text
+			Gtk.Label(_("Please enter a comment for this version", True, True, 0)), False)  # T: Dialog text
 
 		vpaned = VPaned()
 		self.vbox.add(vpaned)
@@ -917,10 +917,10 @@ class SaveVersionDialog(Dialog):
 		self.textview.set_editable(True)
 		vpaned.add1(window)
 
-		vbox = gtk.VBox()
+		vbox = Gtk.VBox()
 		vpaned.add2(vbox)
 
-		label = gtk.Label('<b>' + _('Details') + '</b>')
+		label = Gtk.Label(label='<b>' + _('Details') + '</b>')
 			# T: section for version details in "save version" dialog
 		label.set_use_markup(True)
 		label.set_alignment(0, 0.5)
@@ -947,7 +947,7 @@ class VersionsDialog(Dialog):
 
 	def __init__(self, parent, vcs, notebook, page=None):
 		Dialog.__init__(self, parent, _('Versions'), # T: dialog title
-			buttons=gtk.BUTTONS_CLOSE, help='Plugins:Version Control')
+			buttons=Gtk.ButtonsType.CLOSE, help='Plugins:Version Control')
 		self.notebook = notebook
 		self.vcs = vcs
 		self._side_by_side_app = get_side_by_side_app()
@@ -959,24 +959,24 @@ class VersionsDialog(Dialog):
 		self.vpaned.set_position(self.uistate['vpanepos'])
 		self.vbox.add(self.vpaned)
 
-		vbox = gtk.VBox(spacing=5)
+		vbox = Gtk.VBox(spacing=5)
 		self.vpaned.pack1(vbox, resize=True)
 
 		# Choice between whole notebook or page
-		label = gtk.Label('<b>' + _('Versions') + ':</b>') # section label
+		label = Gtk.Label(label='<b>' + _('Versions') + ':</b>') # section label
 		label.set_use_markup(True)
 		label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False)
 
-		self.notebook_radio = gtk.RadioButton(None, _('Complete _notebook'))
+		self.notebook_radio = Gtk.RadioButton(None, _('Complete _notebook'))
 			# T: Option in versions dialog to show version for complete notebook
-		self.page_radio = gtk.RadioButton(self.notebook_radio, _('_Page') + ':')
+		self.page_radio = Gtk.RadioButton(self.notebook_radio, _('_Page') + ':')
 			# T: Option in versions dialog to show version for single page
-		#~ recursive_box = gtk.CheckButton('Recursive')
+		#~ recursive_box = Gtk.CheckButton('Recursive')
 		vbox.pack_start(self.notebook_radio, False)
 
 		# Page entry
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		vbox.pack_start(hbox, False)
 		hbox.pack_start(self.page_radio, False)
 		self.page_entry = PageEntry(self.notebook)
@@ -985,12 +985,12 @@ class VersionsDialog(Dialog):
 		hbox.pack_start(self.page_entry, False)
 
 		# View annotated button
-		ann_button = gtk.Button(_('View _Annotated')) # T: Button label
+		ann_button = Gtk.Button(_('View _Annotated')) # T: Button label
 		ann_button.connect('clicked', lambda o: self.show_annotated())
 		hbox.pack_start(ann_button, False)
 
 		# Help text
-		label = gtk.Label('<i>\n' + _( '''\
+		label = Gtk.Label(label='<i>\n' + _( '''\
 Select a version to see changes between that version and the current
 state. Or select multiple versions to see changes between those versions.
 ''' ).strip() + '</i>') # T: Help text in versions dialog
@@ -1005,17 +1005,17 @@ state. Or select multiple versions to see changes between those versions.
 		vbox.add(scrolled)
 
 		col = self.uistate.setdefault('sortcol', self.versionlist.REV_SORT_COL)
-		order = self.uistate.setdefault('sortorder', gtk.SORT_DESCENDING)
+		order = self.uistate.setdefault('sortorder', Gtk.SortType.DESCENDING)
 		try:
 			self.versionlist.get_model().set_sort_column_id(col, order)
 		except:
 			logger.exception('Invalid sort column: %s %s', col, order)
 
 		# -----
-		vbox = gtk.VBox(spacing=5)
+		vbox = Gtk.VBox(spacing=5)
 		self.vpaned.pack2(vbox, resize=False)
 
-		label = gtk.Label('<b>' + _('Comment') + '</b>') # T: version details
+		label = Gtk.Label(label='<b>' + _('Comment') + '</b>') # T: version details
 		label.set_use_markup(True)
 		label.set_alignment(0.0, 0.5)
 		vbox.pack_start(label, False)
@@ -1025,23 +1025,23 @@ state. Or select multiple versions to see changes between those versions.
 		self.comment_textview = textview
 		vbox.add(window)
 
-		buttonbox = gtk.HButtonBox()
-		buttonbox.set_layout(gtk.BUTTONBOX_END)
+		buttonbox = Gtk.HButtonBox()
+		buttonbox.set_layout(Gtk.ButtonBoxStyle.END)
 		vbox.pack_start(buttonbox, False)
 
 		# Restore version button
-		revert_button = gtk.Button(_('_Restore Version')) # T: Button label
+		revert_button = Gtk.Button(_('_Restore Version')) # T: Button label
 		revert_button.connect('clicked', lambda o: self.restore_version())
 		buttonbox.add(revert_button)
 
 		# Notebook Changes button
-		diff_button = gtk.Button(_('Show _Changes'))
+		diff_button = Gtk.Button(_('Show _Changes'))
 			# T: button in versions dialog for diff
 		diff_button.connect('clicked', lambda o: self.show_changes())
 		buttonbox.add(diff_button)
 
 		# Compare page button
-		comp_button = gtk.Button(_('_Side by Side'))
+		comp_button = Gtk.Button(_('_Side by Side'))
 			# T: button in versions dialog for side by side comparison
 		comp_button.connect('clicked', lambda o: self.show_side_by_side())
 		buttonbox.add(comp_button)
@@ -1184,7 +1184,7 @@ state. Or select multiple versions to see changes between those versions.
 class TextDialog(Dialog):
 
 	def __init__(self, parent, title, lines):
-		Dialog.__init__(self, parent, title, buttons=gtk.BUTTONS_CLOSE)
+		Dialog.__init__(self, parent, title, buttons=Gtk.ButtonsType.CLOSE)
 		self.set_default_size(600, 300)
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		window, textview = ScrolledTextView(''.join(lines), monospace=True)
@@ -1203,20 +1203,20 @@ class VersionsTreeView(SingleClickTreeView):
 	MSG_COL = 4
 
 	def __init__(self):
-		model = gtk.ListStore(str, str, str, str, str)
+		model = Gtk.ListStore(str, str, str, str, str)
 			# REV_SORT_COL, REV_COL, DATE_COL, USER_COL, MSG_COL
-		gtk.TreeView.__init__(self, model)
+		GObject.GObject.__init__(self, model)
 
-		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 		self.set_rubber_banding(True)
 
-		cell_renderer = gtk.CellRendererText()
+		cell_renderer = Gtk.CellRendererText()
 		for name, i in (
 			(_('Rev'), self.REV_COL), # T: Column header versions dialog
 			(_('Date'), self.DATE_COL), # T: Column header versions dialog
 			(_('Author'), self.USER_COL), # T: Column header versions dialog
 		):
-			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
+			column = Gtk.TreeViewColumn(name, cell_renderer, text=i)
 			if i == self.REV_COL:
 				column.set_sort_column_id(self.REV_SORT_COL)
 			else:
@@ -1227,13 +1227,13 @@ class VersionsTreeView(SingleClickTreeView):
 
 			self.append_column(column)
 
-		model.set_sort_column_id(self.REV_SORT_COL, gtk.SORT_DESCENDING)
+		model.set_sort_column_id(self.REV_SORT_COL, Gtk.SortType.DESCENDING)
 			# By default sort by rev
 
 	def load_versions(self, versions):
 		model = self.get_model()
 		model.clear() # Empty for when we update
-		model.set_sort_column_id(self.REV_SORT_COL, gtk.SORT_DESCENDING)
+		model.set_sort_column_id(self.REV_SORT_COL, Gtk.SortType.DESCENDING)
 			# By default sort by rev
 
 		for version in versions:

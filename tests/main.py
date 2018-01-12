@@ -263,17 +263,17 @@ class TestZimApplication(tests.TestCase):
 				self.hasrun = False
 
 			def _quit(self, *a):
-				import gobject
-				import gtk
-				gtk.main_quit()
+				from gi.repository import GObject
+				from gi.repository import Gtk
+				Gtk.main_quit()
 				return False # stop timer
 
 			def run(self):
-				import gobject
-				import gtk
+				from gi.repository import GObject
+				from gi.repository import Gtk
 				self.hasrun = True
-				gobject.timeout_add(500, self._quit)
-				return gtk.Window()
+				GObject.timeout_add(500, self._quit)
+				return Gtk.Window()
 
 		cmd = MockCmd()
 		self.assertFalse(cmd.hasrun)

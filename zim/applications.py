@@ -13,7 +13,7 @@ import os
 import logging
 import subprocess
 
-import gobject
+from gi.repository import GObject
 
 import zim.fs
 import zim.errors
@@ -279,9 +279,9 @@ class Application(object):
 		cwd, argv = self._checkargs(cwd, args)
 		opts = {}
 
-		flags = gobject.SPAWN_SEARCH_PATH
+		flags = GObject.SPAWN_SEARCH_PATH
 		if callback:
-			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
+			flags |= GObject.SPAWN_DO_NOT_REAP_CHILD
 			# without this flag child is reaped automatically -> no zombies
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
@@ -291,8 +291,8 @@ class Application(object):
 
 		try:
 			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=flags, **opts)
-		except gobject.GError:
+				GObject.spawn_async(argv, flags=flags, **opts)
+		except GObject.GError:
 			from zim.gui.widgets import ErrorDialog
 			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
 				#~ # T: error when application failed to start
@@ -302,10 +302,10 @@ class Application(object):
 			if callback:
 				# child watch does implicit reaping -> no zombies
 				if data is None:
-					gobject.child_watch_add(pid,
+					GObject.child_watch_add(pid,
 						lambda pid, status: callback(status))
 				else:
-					gobject.child_watch_add(pid,
+					GObject.child_watch_add(pid,
 						lambda pid, status, data: callback(status, data), data)
 			return pid
 

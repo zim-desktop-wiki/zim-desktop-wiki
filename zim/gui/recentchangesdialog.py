@@ -2,8 +2,8 @@
 
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import logging
 
 import zim.datetimetz as datetime
@@ -19,7 +19,7 @@ class RecentChangesDialog(Dialog):
 
 	def __init__(self, widget, notebook, navigation):
 		Dialog.__init__(self, widget, _('Recent Changes'), # T: Dialog title
-			buttons=gtk.BUTTONS_CLOSE,
+			buttons=Gtk.ButtonsType.CLOSE,
 			defaultwindowsize=(400, 300)
 		)
 		self.notebook = notebook
@@ -49,13 +49,13 @@ class RecentChangesTreeView(BrowserTreeView):
 	MODIFIED_COL = 1
 
 	def __init__(self):
-		model = gtk.ListStore(str, str)
+		model = Gtk.ListStore(str, str)
 			# NAME_COL, MODIFIED_COL
 		BrowserTreeView.__init__(self, model)
 
-		cell_renderer = gtk.CellRendererText()
+		cell_renderer = Gtk.CellRendererText()
 
-		column = gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.NAME_COL) # T: Column header
+		column = Gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.NAME_COL) # T: Column header
 		column.set_sort_column_id(self.NAME_COL)
 		column.set_expand(True)
 		self.append_column(column)
@@ -82,9 +82,9 @@ class RecentChangesTreeView(BrowserTreeView):
 
 			cell.set_property('text', text)
 
-		cell_renderer = gtk.CellRendererText()
+		cell_renderer = Gtk.CellRendererText()
 		#cell_renderer.set_property('font', 'mono')
-		column = gtk.TreeViewColumn(_('Last Modified'), cell_renderer, text=self.MODIFIED_COL) # T: Column header
+		column = Gtk.TreeViewColumn(_('Last Modified'), cell_renderer, text=self.MODIFIED_COL) # T: Column header
 		column.set_cell_data_func(cell_renderer, render_date)
 		column.set_sort_column_id(self.MODIFIED_COL)
 		self.append_column(column)

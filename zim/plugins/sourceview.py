@@ -6,8 +6,8 @@
 # This plugin can work without GUI for just the export
 # Be nice about gtk, since it may not be present in a server CLI only version
 try:
-	import gtk
-	import pango
+	from gi.repository import Gtk
+	from gi.repository import Pango
 except:
 	gtk = None
 
@@ -25,7 +25,7 @@ import logging
 logger = logging.getLogger('zim.pugin.sourceview')
 
 try:
-	import gtksourceview2
+	from gi.repository import GtkSource
 except:
 	gtksourceview2 = None
 
@@ -37,7 +37,7 @@ from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
 if gtksourceview2:
-	lm = gtksourceview2.LanguageManager()
+	lm = GtkSource.LanguageManager()
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
@@ -183,7 +183,7 @@ class SourceViewObject(CustomObjectClass):
 
 	def get_widget(self):
 		if not self.buffer:
-			self.buffer = gtksourceview2.Buffer()
+			self.buffer = GtkSource.Buffer()
 			self.buffer.set_text(self._data)
 			self.buffer.connect('modified-changed', self.on_modified_changed)
 			self.buffer.set_highlight_matching_brackets(True)
@@ -232,7 +232,7 @@ class SourceViewObject(CustomObjectClass):
 				<script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/highlight.min.js"></script>
 				<script>hljs.initHighlightingOnLoad();</script>
 				Map GtkSourceView language ids match with Highlight.js language ids.
-				http://packages.ubuntu.com/precise/all/libgtksourceview2.0-common/filelist
+				http://packages.ubuntu.com/precise/all/libGtkSource.0-common/filelist
 				http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
                 '''
 				sh_map = {'dosbatch': 'dos'}
@@ -286,8 +286,8 @@ class SourceViewWidget(TextViewWidget):
 		self.buffer = buffer
 		self.obj = obj
 
-		self.view = gtksourceview2.View(self.buffer)
-		self.view.modify_font(pango.FontDescription('monospace'))
+		self.view = GtkSource.View(self.buffer)
+		self.view.modify_font(Pango.FontDescription('monospace'))
 		self.view.set_auto_indent(True)
 		self.view.set_smart_home_end(True)
 		self.view.set_highlight_current_line(True)
@@ -296,8 +296,8 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_tab_width(4)
 
 		# simple toolbar
-		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
-		#~ lang_selector = gtk.combo_box_new_text()
+		#~ bar = Gtk.HBox() # FIXME: use Gtk.Toolbar stuff
+		#~ lang_selector = Gtk.ComboBoxText()
 		#~ lang_selector.append_text('(None)')
 		#~ for l in lang_names: lang_selector.append_text(l)
 		#~ try:
@@ -309,7 +309,7 @@ class SourceViewWidget(TextViewWidget):
 		#~ lang_selector.connect('changed', self.on_lang_changed)
 		#~ bar.pack_start(lang_selector, False, False)
 
-		#~ line_numbers = gtk.ToggleButton('Line numbers')
+		#~ line_numbers = Gtk.ToggleButton('Line numbers')
 		#~ try:
 			#~ line_numbers.set_active(self._attrib['linenumbers']=='true')
 			#~ self.show_line_numbers(self._attrib['linenumbers'], False)
@@ -324,9 +324,9 @@ class SourceViewWidget(TextViewWidget):
 
 		# Pack everything
 		#~ self.vbox.pack_start(bar, False, False)
-		win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
+		win = ScrolledWindow(self.view, Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER, Gtk.ShadowType.NONE)
 			# only horizontal scroll
-		self.vbox.pack_start(win)
+		self.vbox.pack_start(win, True, True, 0)
 
 		# Hook up signals
 		self._init_signals()
@@ -350,12 +350,12 @@ class SourceViewWidget(TextViewWidget):
 		#~ self.show_line_numbers(button.get_active())
 
 	def on_populate_popup(self, view, menu):
-		menu.prepend(gtk.SeparatorMenuItem())
+		menu.prepend(Gtk.SeparatorMenuItem())
 
 		def activate_linenumbers(item):
 			self.obj.show_line_numbers(item.get_active())
 
-		item = gtk.CheckMenuItem(_('Show Line Numbers'))
+		item = Gtk.CheckMenuItem(_('Show Line Numbers'))
 			# T: preference option for sourceview plugin
 		item.set_active(self.obj._attrib['linenumbers'])
 		item.set_sensitive(self.view.get_editable())
@@ -366,11 +366,11 @@ class SourceViewWidget(TextViewWidget):
 		def activate_lang(item):
 			self.obj.set_language(item.zim_sourceview_languageid)
 
-		item = gtk.MenuItem(_('Syntax'))
+		item = Gtk.MenuItem(_('Syntax'))
 		item.set_sensitive(self.view.get_editable())
-		submenu = gtk.Menu()
+		submenu = Gtk.Menu()
 		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
-			langitem = gtk.MenuItem(lang)
+			langitem = Gtk.MenuItem(lang)
 			langitem.connect('activate', activate_lang)
 			langitem.zim_sourceview_languageid = LANGUAGES[lang]
 			submenu.append(langitem)

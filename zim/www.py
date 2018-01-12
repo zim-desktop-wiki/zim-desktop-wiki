@@ -22,7 +22,7 @@ the standalone server.
 import sys
 import socket
 import logging
-import gobject
+from gi.repository import GObject
 
 from functools import partial
 

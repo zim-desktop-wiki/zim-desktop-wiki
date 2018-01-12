@@ -17,7 +17,7 @@ used to start/stop the WWW server.
 #       by the browser :(
 
 
-import gtk
+from gi.repository import Gtk
 import glib
 import sys
 
@@ -34,7 +34,7 @@ from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 logger = logging.getLogger('zim.gui.server')
 
 
-class ServerWindow(gtk.Window):
+class ServerWindow(Gtk.Window):
 
 	def __init__(self, notebookinfo=None, port=8080, public=True, **opts):
 		'''Constructor
@@ -44,7 +44,7 @@ class ServerWindow(gtk.Window):
 		computers - if C{False} can only connect from localhost
 		@param opts: options for L{WWWInterface.__init__()}
 		'''
-		gtk.Window.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_title('Zim - ' + _('Web Server')) # T: Window title
 		self.set_border_width(10)
 		self.interface_opts = opts
@@ -52,7 +52,7 @@ class ServerWindow(gtk.Window):
 		self._source_id = None
 
 		# Widgets
-		self.status_label = gtk.Label()
+		self.status_label = Gtk.Label()
 		self.status_label.set_markup('<i>' + _('Server not started') + '</i>')
 			# T: Status in web server gui
 		self.start_button = IconButton('gtk-media-play')
@@ -61,9 +61,9 @@ class ServerWindow(gtk.Window):
 		self.stop_button.connect('clicked', lambda o: self.stop())
 		self.stop_button.set_sensitive(False)
 
-		if gtk.gtk_version >= (2, 10) \
-		and gtk.pygtk_version >= (2, 10):
-			self.link_button = gtk.LinkButton('')
+		if Gtk.gtk_version >= (2, 10) \
+		and Gtk.pygtk_version >= (2, 10):
+			self.link_button = Gtk.LinkButton('')
 			self.link_button.set_sensitive(False)
 		else:
 			self.link_button = None
@@ -72,22 +72,22 @@ class ServerWindow(gtk.Window):
 		self.open_button = IconButton('gtk-index')
 		self.open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
 
-		self.portentry = gtk.SpinButton()
+		self.portentry = Gtk.SpinButton()
 		self.portentry.set_numeric(True)
 		self.portentry.set_range(80, 10000)
 		self.portentry.set_increments(1, 80)
 		self.portentry.set_value(port)
 
-		self.public_checkbox = gtk.CheckButton(label=_('Allow public access'))
+		self.public_checkbox = Gtk.CheckButton(label=_('Allow public access'))
 			# T: Checkbox in web server gui
 		self.public_checkbox.set_active(public)
 
 
 		# Build the interface
-		vbox = gtk.VBox()
+		vbox = Gtk.VBox()
 		self.add(vbox)
 
-		hbox = gtk.HBox(spacing=12)
+		hbox = Gtk.HBox(spacing=12)
 		hbox.pack_start(self.start_button, False)
 		hbox.pack_start(self.stop_button, False)
 		hbox.pack_start(self.status_label, False)
@@ -103,7 +103,7 @@ class ServerWindow(gtk.Window):
 		vbox.add(table)
 
 		if self.link_button:
-			hbox = gtk.HBox()
+			hbox = Gtk.HBox()
 			hbox.pack_end(self.link_button, False)
 			vbox.add(hbox)
 
@@ -218,4 +218,4 @@ def main(notebookinfo=None, port=8080, public=True, **opts):
 	gtk_window_set_default_icon()
 	window = ServerWindow(notebookinfo, port, public, **opts)
 	window.show_all()
-	gtk.main()
+	Gtk.main()

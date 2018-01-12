@@ -8,7 +8,7 @@ import tests
 
 import os
 
-import gtk
+from gi.repository import Gtk
 
 from functools import partial
 
@@ -615,7 +615,7 @@ class TestExportDialog(tests.TestCase):
 		dir = Dir(self.create_tmp_dir())
 		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
-		window = gtk.Window()
+		window = Gtk.Window()
 		window.config = tests.MockObject()
 		window.config.uistate = SectionedConfigDict()
 

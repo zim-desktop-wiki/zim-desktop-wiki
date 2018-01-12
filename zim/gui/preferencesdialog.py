@@ -4,8 +4,8 @@
 
 from __future__ import with_statement
 
-import pango
-import gtk
+from gi.repository import Pango
+from gi.repository import Gtk
 import logging
 
 from zim.gui.widgets import Dialog, Button, BrowserTreeView, \
@@ -39,14 +39,14 @@ class PreferencesDialog(Dialog):
 		self.p_save_loaded = list(self.plugins)
 
 		# Dynamic tabs
-		gtknotebook = gtk.Notebook()
+		gtknotebook = Gtk.Notebook()
 		self.vbox.add(gtknotebook)
 		self.forms = {}
 
 		############################### needs rewrite to make defintion more robust
 		for category in ('Interface', 'Editing'):
-			vbox = gtk.VBox()
-			index = gtknotebook.append_page(vbox, gtk.Label(_(category)))
+			vbox = Gtk.VBox()
+			index = gtknotebook.append_page(vbox, Gtk.Label(label=_(category)))
 			# From GTK Doc: Note that due to historical reasons, GtkNotebook refuses
 			# to switch to a page unless the child widget is visible.
 			vbox.show()
@@ -84,14 +84,14 @@ class PreferencesDialog(Dialog):
 				self._add_font_selection(form)
 
 		# Styles tab
-		#~ gtknotebook.append_page(StylesTab(self), gtk.Label(_('Styles')))
+		#~ gtknotebook.append_page(StylesTab(self), Gtk.Label(label=_('Styles')))
 
 		# Keybindings tab
-		#~ gtknotebook.append_page(KeyBindingsTab(self), gtk.Label(_('Key bindings')))
+		#~ gtknotebook.append_page(KeyBindingsTab(self), Gtk.Label(label=_('Key bindings')))
 
 		# Plugins tab
 		self.plugins_tab = PluginsTab(self, self.plugins)
-		plugins_tab_index = gtknotebook.append_page(self.plugins_tab, gtk.Label(_('Plugins')))
+		plugins_tab_index = gtknotebook.append_page(self.plugins_tab, Gtk.Label(label=_('Plugins')))
 				# T: Heading in preferences dialog
 		self.plugins_tab.show()
 		#~ print default_tab, index
@@ -101,7 +101,7 @@ class PreferencesDialog(Dialog):
 					self.plugins_tab.select_plugin(select_plugin)
 
 		# Applications tab
-		gtknotebook.append_page(ApplicationsTab(self), gtk.Label(_('Applications')))
+		gtknotebook.append_page(ApplicationsTab(self), Gtk.Label(label=_('Applications')))
 			# T: Heading in preferences dialog
 
 
@@ -113,7 +113,7 @@ class PreferencesDialog(Dialog):
 		))
 		table.preferences_sections['use_custom_font'] = 'GtkInterface'
 
-		self.fontbutton = gtk.FontButton()
+		self.fontbutton = Gtk.FontButton()
 		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
 		text_style = self.config.get_config_dict('<profile>/style.conf')
@@ -184,14 +184,14 @@ class PreferencesDialog(Dialog):
 		return True
 
 
-class PluginsTab(gtk.VBox):
+class PluginsTab(Gtk.VBox):
 
 	def __init__(self, dialog, plugins):
-		gtk.VBox.__init__(self, spacing=5)
+		GObject.GObject.__init__(self, spacing=5)
 		self.dialog = dialog
 		self.plugins = plugins
 
-		self.hbox = gtk.HBox(self, spacing=12)
+		self.hbox = Gtk.HBox(self, spacing=12)
 		self.hbox.set_border_width(5)
 		self.add(self.hbox)
 
@@ -200,30 +200,30 @@ class PluginsTab(gtk.VBox):
 		self.treeview = PluginsTreeView(self.plugins)
 		self.treeselection = self.treeview.get_selection()
 		self.treeselection.connect('changed', self.do_selection_changed)
-		swindow = ScrolledWindow(self.treeview, hpolicy=gtk.POLICY_NEVER)
+		swindow = ScrolledWindow(self.treeview, hpolicy=Gtk.PolicyType.NEVER)
 		self.hbox.pack_start(swindow, False)
 
-		vbox = gtk.VBox()
+		vbox = Gtk.VBox()
 		self.hbox.add(vbox)
 
 		# Textview with scrollbars to show plugins info. Required by small screen devices
 		swindow, textview = ScrolledTextView()
 		textview.set_cursor_visible(False)
 		self.textbuffer = textview.get_buffer()
-		self.textbuffer.create_tag('bold', weight=pango.WEIGHT_BOLD)
+		self.textbuffer.create_tag('bold', weight=Pango.Weight.BOLD)
 		self.textbuffer.create_tag('red', foreground='#FF0000')
 		vbox.pack_start(swindow, True)
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		vbox.pack_end(hbox, False)
 
 		self.plugin_help_button = \
-			Button(stock=gtk.STOCK_HELP, label=_('_More')) # T: Button in plugin tab
+			Button(stock=Gtk.STOCK_HELP, label=_('_More')) # T: Button in plugin tab
 		self.plugin_help_button.connect('clicked', self.on_help_button_clicked)
 		hbox.pack_start(self.plugin_help_button, False)
 
 		self.configure_button = \
-			Button(stock=gtk.STOCK_PREFERENCES, label=_('C_onfigure')) # T: Button in plugin tab
+			Button(stock=Gtk.STOCK_PREFERENCES, label=_('C_onfigure')) # T: Button in plugin tab
 		self.configure_button.connect('clicked', self.on_configure_button_clicked)
 		hbox.pack_start(self.configure_button, False)
 
@@ -233,20 +233,20 @@ class PluginsTab(gtk.VBox):
 			pass # maybe loading plugins failed
 
 		## Add buttons to get and install new plugins
-		hbox = gtk.HButtonBox()
+		hbox = Gtk.HButtonBox()
 		hbox.set_border_width(5)
-		hbox.set_layout(gtk.BUTTONBOX_START)
+		hbox.set_layout(Gtk.ButtonBoxStyle.START)
 		self.pack_start(hbox, False)
 
-		open_button = gtk.Button(label=_('Open plugins folder'))
+		open_button = Gtk.Button(label=_('Open plugins folder'))
 		open_button.connect('clicked',
 			lambda o: open_folder_prompt_create(o, PLUGIN_FOLDER)
 		)
 		hbox.pack_start(open_button, False)
 
-		if gtk.gtk_version >= (2, 10) \
-		and gtk.pygtk_version >= (2, 10):
-			url_button = gtk.LinkButton(
+		if Gtk.gtk_version >= (2, 10) \
+		and Gtk.pygtk_version >= (2, 10):
+			url_button = Gtk.LinkButton(
 				'http://zim-wiki.org/more_plugins.html',
 				_('Get more plugins online') # T: label for button with URL
 			)
@@ -326,11 +326,11 @@ class PluginsTab(gtk.VBox):
 		model.foreach(find)
 
 
-class PluginsTreeModel(gtk.ListStore):
+class PluginsTreeModel(Gtk.ListStore):
 
 	def __init__(self, plugins):
 		#columns are: key, active, activatable, name, klass
-		gtk.ListStore.__init__(self, str, bool, bool, str, object)
+		GObject.GObject.__init__(self, str, bool, bool, str, object)
 		self.plugins = plugins
 
 		allplugins = []
@@ -379,13 +379,13 @@ class PluginsTreeView(BrowserTreeView):
 		model = PluginsTreeModel(plugins)
 		self.set_model(model)
 
-		cellrenderer = gtk.CellRendererToggle()
+		cellrenderer = Gtk.CellRendererToggle()
 		cellrenderer.connect('toggled', lambda o, p: model.do_toggle_path(p))
 		self.append_column(
-			gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=1, activatable=2))
+			Gtk.TreeViewColumn(_('Enabled'), cellrenderer, active=1, activatable=2))
 			# T: Column in plugin tab
 		self.append_column(
-			gtk.TreeViewColumn(_('Plugin'), gtk.CellRendererText(), text=3))
+			Gtk.TreeViewColumn(_('Plugin'), Gtk.CellRendererText(), text=3))
 			# T: Column in plugin tab
 
 
@@ -395,7 +395,7 @@ class PluginConfigureDialog(Dialog):
 		Dialog.__init__(self, dialog, _('Configure Plugin')) # T: Dialog title
 		self.plugin = plugin
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup(
 			'<b>' + _('Options for plugin %s') % plugin.plugin_info['name'] + '</b>')
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
@@ -429,14 +429,14 @@ class PluginConfigureDialog(Dialog):
 		return True
 
 
-class ApplicationsTab(gtk.VBox):
+class ApplicationsTab(Gtk.VBox):
 
 	def __init__(self, dialog):
-		gtk.VBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_border_width(5)
 		self.dialog = dialog
 
-		button = gtk.Button(_('Set default text editor'))
+		button = Gtk.Button(_('Set default text editor'))
 			# T: button in preferences dialog to change default text editor
 		button.connect('clicked', self.on_set_texteditor)
 
@@ -446,26 +446,26 @@ class ApplicationsTab(gtk.VBox):
 		CustomizeOpenWithDialog(self.dialog, 'text/plain').run()
 
 
-class StylesTab(gtk.VBox):
+class StylesTab(Gtk.VBox):
 
 	def __init__(self, dialog):
-		gtk.VBox.__init__(self)
-		self.add(gtk.Label('TODO add treeview with styles'))
+		GObject.GObject.__init__(self)
+		self.add(Gtk.Label(label='TODO add treeview with styles'))
 
 
-class StylesTreeModel(gtk.ListStore):
+class StylesTreeModel(Gtk.ListStore):
 
 	def __init__(self):
 		#'weight', 'scale', 'style', 'background', 'foreground', 'strikethrough',
 		# 'family', 'wrap-mode', 'indent', 'underline'
-		gtk.ListStore.__init__(self, bool, str, object)
+		GObject.GObject.__init__(self, bool, str, object)
 
 
-class KeyBindingsTab(gtk.VBox):
+class KeyBindingsTab(Gtk.VBox):
 
 	def __init__(self, dialog):
-		gtk.VBox.__init__(self)
-		self.add(gtk.Label('TODO add treeview with accelerators'))
+		GObject.GObject.__init__(self)
+		self.add(Gtk.Label(label='TODO add treeview with accelerators'))
 
 #~ Build editable treeview of menu items + accelerators
 #~
@@ -484,21 +484,21 @@ class KeyBindingsTab(gtk.VBox):
 #~
 #~ To get the accelerator:
 #~ accel_path = menuitem.get_accel_path() (make sure this is not the mnemonic..)
-#~ key, mod = gtk.accel_map_lookup_entry(accel_path)
+#~ key, mod = Gtk.AccelMap.lookup_entry(accel_path)
 #~
 #~ To get / set accelerator labels in the UI use:
-#~ gtk.accelerator_name() to get a name to display
+#~ Gtk.accelerator_name() to get a name to display
 #~
 #~ To parse name set by user
-#~ gtk.accelerator_parse()
-#~ gtk.accelerator_valid()
+#~ Gtk.accelerator_parse()
+#~ Gtk.accelerator_valid()
 #~
 #~ To change the accelerator:
 #~ Maybe first unlock path in accel_map and unlock the actiongroup..
-#~ gtk.accel_map.change_entry(accel_path, key, mods, replace=True)
+#~ Gtk.accel_map.change_entry(accel_path, key, mods, replace=True)
 #~ check return value
 #~
 #~ To get updates for ui use:
-#~ gtk.accel_map_get().connect('changed', func(o, accel_path, key, mods))
+#~ Gtk.AccelMap.get().connect('changed', func(o, accel_path, key, mods))
 #~ This way we also get any accelerators that were deleted as result of
 #~ replace=True

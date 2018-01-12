@@ -4,7 +4,7 @@
 #
 # Some general advice for building PyGTK-based Windows .EXEs can be
 # found here:
-# http://www.no-ack.org/2010/09/complete-guide-to-py2exe-for-pygtk.html
+# http://www.no-ack.org/2010/09/complete-guide-to-py2exe-for-pyGtk.html
 # --------------------------------------------------------------------
 
 import os

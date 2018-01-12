@@ -55,11 +55,11 @@ class MyTreeIter(object):
 
 
 class TreeModelMixinBase(ConnectorMixin):
-	'''This class can be used as mixin class for C{gtk.TreeModel}
+	'''This class can be used as mixin class for C{Gtk.TreeModel}
 	implementations that use data from the index.
 
 	Treepaths are simply tuples with integers. This Mixin assumes L{MyTreeIter}
-	objects for iters. (Which should not be confused with C{gtk.TreeIter} as
+	objects for iters. (Which should not be confused with C{Gtk.TreeIter} as
 	used by the interface!)
 	'''
 

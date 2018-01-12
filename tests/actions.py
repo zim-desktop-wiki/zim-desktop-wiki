@@ -4,7 +4,7 @@
 
 import tests
 
-import gtk
+from gi.repository import Gtk
 
 from zim.actions import *
 
@@ -20,11 +20,11 @@ class TestPrimaryKeyBinding(tests.TestCase):
 			"<PRIMARY>a"
 		):
 			#~ print ">>", accel, gtk_accelerator_preparse(accel)
-			keyval, mod = gtk.accelerator_parse(
+			keyval, mod = Gtk.accelerator_parse(
 				gtk_accelerator_preparse(accel)
 			)
 			self.assertEqual(keyval, 97)
-			self.assertIn(mod, (gtk.gdk.CONTROL_MASK, gtk.gdk.META_MASK))
+			self.assertIn(mod, (Gdk.ModifierType.CONTROL_MASK, Gdk.EventMask.META_MASK))
 
 		for accel in (
 			"<Shift>A", "<Control>A", "<Alt>A",
@@ -53,7 +53,7 @@ class TestAction(tests.TestCase):
 
 		gtk_group = get_gtk_actiongroup(obj)
 		gtk_action = gtk_group.get_action('test_action')
-		self.assertIsInstance(gtk_action, gtk.Action)
+		self.assertIsInstance(gtk_action, Gtk.Action)
 		self.assertEqual(gtk_group.list_actions(), [gtk_action])
 
 		gtk_action.activate()
@@ -87,7 +87,7 @@ class TestToggleAction(tests.TestCase):
 
 		gtk_group = get_gtk_actiongroup(obj)
 		gtk_action = gtk_group.get_action('test_action')
-		self.assertIsInstance(gtk_action, gtk.ToggleAction)
+		self.assertIsInstance(gtk_action, Gtk.ToggleAction)
 		self.assertEqual(gtk_group.list_actions(), [gtk_action])
 
 		self.assertEqual(gtk_action.get_active(), True) # correct init state
@@ -127,6 +127,6 @@ class TestRadioAction(tests.TestCase):
 		)
 
 		gtk_action = gtk_group.get_action('test_action_AAA')
-		self.assertIsInstance(gtk_action, gtk.RadioAction)
+		self.assertIsInstance(gtk_action, Gtk.RadioAction)
 		gtk_action.activate()
 		self.assertEqual(output, ['AAA', 'BBB', 'AAA'])

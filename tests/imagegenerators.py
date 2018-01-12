@@ -6,7 +6,7 @@ from __future__ import with_statement
 
 import tests
 
-import gtk
+from gi.repository import Gtk
 
 from zim.fs import Dir
 
@@ -83,7 +83,7 @@ class TestGenerator(tests.TestCase):
 		if self.invalidinput is not None:
 			def ok_store(dialog):
 				# Click OK in the "Store Anyway" question dialog
-				dialog.do_response(gtk.RESPONSE_YES)
+				dialog.do_response(Gtk.ResponseType.YES)
 
 			with tests.DialogContext(ok_store):
 				dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
@@ -92,7 +92,7 @@ class TestGenerator(tests.TestCase):
 
 		# Check menu
 		#~ plugin = self.pluginklass(MockUI())
-		#~ menu = gtk.Menu()
+		#~ menu = Gtk.Menu()
 		#~ plugin.do_populate_popup(menu, buffer, iter, image)
 
 

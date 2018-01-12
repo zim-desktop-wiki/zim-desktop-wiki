@@ -4,8 +4,8 @@
 
 import tests
 
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.notebook import Path
 from zim.notebook.index.pages import MyTreeIter, IndexNotFoundError
@@ -94,10 +94,10 @@ class TestPageTreeStore(tests.TestCase):
 			self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename)
 			self.assertEqual(treestore.get_value(iter, PATH_COL), page)
 			if treestore.get_value(iter, EMPTY_COL):
-				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_ITALIC)
+				self.assertEqual(treestore.get_value(iter, STYLE_COL), Pango.Style.ITALIC)
 				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
 			else:
-				self.assertEqual(treestore.get_value(iter, STYLE_COL), pango.STYLE_NORMAL)
+				self.assertEqual(treestore.get_value(iter, STYLE_COL), Pango.Style.NORMAL)
 				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 			self.assertEqual(treestore.get_path(iter), tuple(path))
 

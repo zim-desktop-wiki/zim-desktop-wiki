@@ -9,7 +9,7 @@ functionality, which works similar to the clipboard, but has a less
 straight forward API.
 '''
 
-import gtk
+from gi.repository import Gtk
 import logging
 
 from zim.fs import File, Dir, FS
@@ -33,20 +33,20 @@ PARSETREE_TARGET = (PARSETREE_TARGET_NAME, 0, PARSETREE_TARGET_ID)
 INTERNAL_PAGELIST_TARGET_ID = 2
 INTERNAL_PAGELIST_TARGET_NAME = 'text/x-zim-page-list-internal'
 INTERNAL_PAGELIST_TARGET = \
-	(INTERNAL_PAGELIST_TARGET_NAME, gtk.TARGET_SAME_APP, INTERNAL_PAGELIST_TARGET_ID)
+	(INTERNAL_PAGELIST_TARGET_NAME, Gtk.TargetFlags.SAME_APP, INTERNAL_PAGELIST_TARGET_ID)
 
 PAGELIST_TARGET_ID = 3
 PAGELIST_TARGET_NAME = 'text/x-zim-page-list'
 PAGELIST_TARGET = (PAGELIST_TARGET_NAME, 0, PAGELIST_TARGET_ID)
 
 IMAGE_TARGET_ID = 6
-IMAGE_TARGETS = tuple(gtk.target_list_add_image_targets(info=IMAGE_TARGET_ID))
+IMAGE_TARGETS = tuple(Gtk.target_list_add_image_targets(info=IMAGE_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 IMAGE_TARGET_NAMES = tuple([target[0] for target in IMAGE_TARGETS])
 
 # Add image format names as well, seen these being used by MS Office
-for format in gtk.gdk.pixbuf_get_formats():
+for format in GdkPixbuf.Pixbuf.get_formats():
 	if format['mime_types'][0] in IMAGE_TARGET_NAMES:
 		for n in (format['name'], format['name'].upper()):
 			IMAGE_TARGET_NAMES += (n,)
@@ -56,7 +56,7 @@ for format in gtk.gdk.pixbuf_get_formats():
 #~ print IMAGE_TARGET_NAMES
 
 URI_TARGET_ID = 7
-URI_TARGETS = tuple(gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
+URI_TARGETS = tuple(Gtk.target_list_add_uri_targets(info=URI_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 URI_TARGET_NAMES = tuple([target[0] for target in URI_TARGETS])
@@ -67,7 +67,7 @@ HTML_TARGET_NAMES = ('text/html', 'HTML Format')
 HTML_TARGETS = tuple([(name, 0, HTML_TARGET_ID) for name in HTML_TARGET_NAMES])
 
 TEXT_TARGET_ID = 9
-TEXT_TARGETS = tuple(gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
+TEXT_TARGETS = tuple(Gtk.target_list_add_text_targets(info=TEXT_TARGET_ID))
 	# According to docs we should provide list as arg to this function,
 	# but seems docs are not correct
 TEXT_TARGET_NAMES = tuple([target[0] for target in TEXT_TARGETS])
@@ -114,7 +114,7 @@ def unpack_urilist(text):
 
 
 def textbuffer_register_serialize_formats(buffer, notebook, page):
-	if gtk.pygtk_version >= (2, 10):
+	if Gtk.pygtk_version >= (2, 10):
 		buffer.register_serialize_format('text/x-zim-parsetree', serialize_parse_tree)
 		buffer.register_deserialize_format('text/x-zim-parsetree', deserialize_parse_tree, (notebook, page))
 		for name in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) + URI_TARGET_NAMES:
@@ -143,13 +143,13 @@ def deserialize_urilist(register_buf, content_buf, iter, data, create_tags, user
 
 def deserialize_image(register_buf, content_buf, iter, data, create_tags, user_data):
 	# Implementation note: we follow gtk_selection_get_pixbuf() in usage of
-	# gtk.PixbufLoader to capture clipboard data in a pixbuf object.
+	# Gtk.PixbufLoader to capture clipboard data in a pixbuf object.
 	# We could skip this, but it allows for on-the-fly conversion of the data
 	# type.
 	mimetype, notebook, path = user_data
 
 	# capture image
-	loader = gtk.gdk.PixbufLoader()
+	loader = GdkPixbuf.PixbufLoader()
 	loader.write(data)
 	loader.close()
 	pixbuf = loader.get_pixbuf()
@@ -192,7 +192,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 	to save the image to the correct attachment folder and return a
 	parsetree with the correct image link.
 
-	@param selectiondata: a C{gtk.SelectionData} object
+	@param selectiondata: a C{Gtk.SelectionData} object
 	@param notebook: a L{Notebook} object
 	@param path: a L{Path} object
 
@@ -297,7 +297,7 @@ def _get_image_info(targetname):
 	# Target name for images is supposed to be mimetype, we check
 	# in available pixbuf writers for this type and return the
 	# format name and file extension
-	for format in gtk.gdk.pixbuf_get_formats():
+	for format in GdkPixbuf.Pixbuf.get_formats():
 		if targetname == format['name'] \
 		or targetname == format['name'].upper() \
 		or targetname in format['mime_types']:
@@ -314,7 +314,7 @@ class ClipboardItem(object):
 
 	def set(self, clipboard, clear_func):
 		'''Put this item on the clipboard
-		@param clipboard: a C{gtk.Clipboard} objet
+		@param clipboard: a C{Gtk.Clipboard} objet
 		@param clear_func: function to be passed to the clipboard as
 		callback on clearing the data
 		@implementation: must be implemented by sub-classes
@@ -395,8 +395,8 @@ class ParseTreeItem(ClipboardItem):
 
 	def _get(self, clipboard, selectiondata, id, *a):
 		'''Callback to get the data in a specific format
-		@param clipboard: a C{gtk.Clipboard} objet
-		@param selectiondata: a C{gtk.SelectionData} object to set the data on
+		@param clipboard: a C{Gtk.Clipboard} objet
+		@param selectiondata: a C{Gtk.SelectionData} object to set the data on
 		@param id: target id for the requested data format
 		@param a: any additional arguments are discarded
 		'''
@@ -443,8 +443,8 @@ class PageLinkItem(ClipboardItem):
 
 	def _get(self, clipboard, selectiondata, id, *a):
 		'''Callback to get the data in a specific format
-		@param clipboard: a C{gtk.Clipboard} objet
-		@param selectiondata: a C{gtk.SelectionData} object to set the data on
+		@param clipboard: a C{Gtk.Clipboard} objet
+		@param selectiondata: a C{Gtk.SelectionData} object to set the data on
 		@param id: target id for the requested data format
 		@param a: any additional arguments are discarded
 		'''
@@ -464,17 +464,17 @@ class PageLinkItem(ClipboardItem):
 
 class ClipboardManager(object):
 	'''Interface to the clipboard for copy and paste.
-	Replacement for gtk.Clipboard(), to be used everywhere in the
+	Replacement for Gtk.Clipboard(), to be used everywhere in the
 	zim gui modules.
 	'''
 
 	def __init__(self, atom):
 		'''Constructor
 		@param atom: clipboard name, can be either "CLIPBOARD" or "PRIMARY",
-		see C{gtk.Clipboard} for details.
+		see C{Gtk.Clipboard} for details.
 		'''
 		assert atom in ('CLIPBOARD', 'PRIMARY')
-		self.clipboard = gtk.Clipboard(selection=atom)
+		self.clipboard = Gtk.Clipboard(selection=atom)
 		self.store = None
 		self._i_am_owner = False
 

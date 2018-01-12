@@ -62,7 +62,7 @@ class TestEditTableExtension(tests.TestCase):
 		with tests.DialogContext(self.checkUpdateTableDialog):
 			widget.on_change_columns(None)
 
-		self.assertTrue(isinstance(widget.treeview, gtk.TreeView))
+		self.assertTrue(isinstance(widget.treeview, Gtk.TreeView))
 
 
 class TestTableFunctions(tests.TestCase):

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import gtk
+from gi.repository import Gtk
 import tokenize
 import token
 import re
@@ -28,47 +28,47 @@ def match_ignore(string):
 ignore_functions = ('setdefault', 'connect', 'connect_after', 'connect_object', 'get_property', 'emit', 'info', 'debug', 'warn', 'exception', 'get_action') 
 
 
-class Internationalizer(gtk.Window):
+class Internationalizer(Gtk.Window):
 
 	def __init__(self):
 	#~ def __init__(self, dir):
-		gtk.Window.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_title('Internationalizer')
 		self.set_default_size(500, 500)
 		#~ self.dir = dir
 
-		vbox = gtk.VBox()
+		vbox = Gtk.VBox()
 		self.add(vbox)
 
-		self.status_label = gtk.Label()
+		self.status_label = Gtk.Label()
 		vbox.pack_start(self.status_label, False)
 
-		hbox = gtk.HBox()
+		hbox = Gtk.HBox()
 		vbox.add(hbox)
-		scrollwindow = gtk.ScrolledWindow()
+		scrollwindow = Gtk.ScrolledWindow()
 		hbox.add(scrollwindow)
 
-		self.textview = gtk.TextView()
+		self.textview = Gtk.TextView()
 		self.textview.set_left_margin(12)
 		self.textview.set_right_margin(5)
 		scrollwindow.add(self.textview)
 
-		bbox = gtk.HButtonBox()
+		bbox = Gtk.HButtonBox()
 		vbox.pack_start(bbox, False)
 
-		savebutton = gtk.Button(stock='gtk-save')
+		savebutton = Gtk.Button(stock='gtk-save')
 		savebutton.connect_object('clicked', self.__class__.save_file, self)
 		bbox.add(savebutton)
 
-		reloadbutton = gtk.Button(stock='gtk-refresh')
+		reloadbutton = Gtk.Button(stock='gtk-refresh')
 		reloadbutton.connect_object('clicked', self.__class__.reload_file, self)
 		bbox.add(reloadbutton)
 
-		nextbutton = gtk.Button(stock='gtk-forward')
+		nextbutton = Gtk.Button(stock='gtk-forward')
 		nextbutton.connect_object('clicked', self.__class__.next_tag, self)
 		bbox.add(nextbutton)
 
-		applybutton = gtk.Button(stock='gtk-apply')
+		applybutton = Gtk.Button(stock='gtk-apply')
 		applybutton.connect_object('clicked', self.__class__.apply_mark, self)
 		bbox.add(applybutton)
 
@@ -77,7 +77,7 @@ class Internationalizer(gtk.Window):
 		if self.textview.get_buffer().get_modified():
 			self.save_file()
 		self.file = file
-		buffer = gtk.TextBuffer()
+		buffer = Gtk.TextBuffer()
 		print 'Reading %s' % self.file
 		buffer.set_text(open(self.file).read())
 		self.textview.set_buffer(buffer)
@@ -203,5 +203,5 @@ if __name__ == '__main__':
 	app = Internationalizer()
 	app.open_file(sys.argv[1])
 	app.show_all()
-	app.connect('destroy', lambda o: gtk.main_quit())
-	gtk.main()
+	app.connect('destroy', lambda o: Gtk.main_quit())
+	Gtk.main()

@@ -4,7 +4,7 @@
 
 '''Plugin showing a map of links between pages based on GraphViz'''
 
-import gtk
+from gi.repository import Gtk
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
@@ -125,11 +125,11 @@ class LinkMapDialog(Dialog):
 
 	def __init__(self, parent, linkmap, opener):
 		Dialog.__init__(self, parent, 'LinkMap',
-			defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
+			defaultwindowsize=(400, 400), buttons=Gtk.ButtonsType.CLOSE)
 		self.linkmap = linkmap
 		self.opener = opener
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		self.vbox.add(hbox)
 
 		self.xdotview = xdot.DotWidget()
@@ -138,13 +138,13 @@ class LinkMapDialog(Dialog):
 		self.xdotview.connect('clicked', self.on_node_clicked)
 		hbox.add(self.xdotview)
 
-		vbox = gtk.VBox()
+		vbox = Gtk.VBox()
 		hbox.pack_start(vbox, False)
 		for stock, method in (
-			(gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
-			(gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
-			(gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
-			(gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
+			(Gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
+			(Gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
+			(Gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
+			(Gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
 		):
 			button = IconButton(stock)
 			button.connect('clicked', method)

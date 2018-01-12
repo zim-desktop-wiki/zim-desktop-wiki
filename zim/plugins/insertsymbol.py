@@ -2,7 +2,7 @@
 
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 import logging
 
 from zim.plugins import PluginClass, extends, WindowExtension
@@ -147,20 +147,20 @@ class InsertSymbolDialog(Dialog):
 		self.vbox.pack_start(self.textentry, False)
 
 		# TODO make this iconview single-click
-		model = gtk.ListStore(str, str) # text, shortcut
-		self.iconview = gtk.IconView(model)
+		model = Gtk.ListStore(str, str) # text, shortcut
+		self.iconview = Gtk.IconView(model)
 		self.iconview.set_text_column(0)
 		self.iconview.set_column_spacing(0)
 		self.iconview.set_row_spacing(0)
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
+		if Gtk.gtk_version >= (2, 12) \
+		and Gtk.pygtk_version >= (2, 12):
 			self.iconview.set_property('has-tooltip', True)
 			self.iconview.connect('query-tooltip', self.on_query_tooltip)
 		self.iconview.connect('item-activated', self.on_activated)
 
 		self.vbox.add(ScrolledWindow(self.iconview))
 
-		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button = Gtk.Button(stock=Gtk.STOCK_EDIT)
 		button.connect('clicked', self.on_edit)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)

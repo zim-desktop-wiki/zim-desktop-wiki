@@ -62,7 +62,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertEqual(tool.comment, 'Test 1 2 3')
 		self.assertFalse(tool.isreadonly)
 		self.assertTrue(tool.showintoolbar)
-		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
+		self.assertTrue(tool.get_pixbuf(Gtk.IconSize.MENU))
 		self.assertEqual(tool.showincontextmenu, 'Text') # Auto generated
 
 		# test file saved correctly
@@ -97,7 +97,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertEqual(tool.comment, 'Test 1 2 3')
 		self.assertFalse(tool.isreadonly)
 		self.assertTrue(tool.showintoolbar)
-		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
+		self.assertTrue(tool.get_pixbuf(Gtk.IconSize.MENU))
 		self.assertEqual(tool.showincontextmenu, 'Page') # Auto generated
 
 		# switch order
@@ -162,8 +162,8 @@ class TestCustomToolsUI(tests.TestCase):
 		notebook = self.setUpNotebook(content=('test',))
 		page = notebook.get_page(Path('test'))
 
-		self.uimanager = gtk.UIManager()
-		group = gtk.ActionGroup('test')
+		self.uimanager = Gtk.UIManager()
+		group = Gtk.ActionGroup('test')
 		group.add_actions([('tools_menu', None, '_Tools')])
 		self.uimanager.insert_action_group(group)
 

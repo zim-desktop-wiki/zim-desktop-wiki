@@ -5,7 +5,7 @@
 
 import weakref
 import logging
-import gobject
+from gi.repository import GObject
 import os
 
 from functools import partial
@@ -405,7 +405,7 @@ class SignalEmitter(object):
 
 
 class GSignalEmitterMixin(object):
-	'''Implements a subset of L{SignalEmitter} to extend C{gobject.GObject}
+	'''Implements a subset of L{SignalEmitter} to extend C{GObject.GObject}
 	classes with methods to use signals as callbacks.
 	'''
 
@@ -434,17 +434,17 @@ class GSignalEmitterMixin(object):
 		if signal in self._signal_hooks:
 			return self._signals_inner.connect(signal, *args)
 		else:
-			return gobject.GObject.connect(self, signal, *args)
+			return GObject.GObject.connect(self, signal, *args)
 
 	def connect_after(self, signal, *args):
 		if signal in self._signal_hooks:
 			return self._signals_inner.connect_after(signal, *args)
 		else:
-			return gobject.GObject.connect_after(self, signal, *args)
+			return GObject.GObject.connect_after(self, signal, *args)
 
 	def disconnect(self, id):
 		self._signals_inner.disconnect(id) \
-			or gobject.GObject.disconnect(self, id)
+			or GObject.GObject.disconnect(self, id)
 
 	def emit_return_first(self, signal, *args):
 		return self._signals_inner.emit_return_first(signal, *args)
@@ -511,7 +511,7 @@ class DelayedCallback(object):
 
 	def __call__(self, *arg, **kwarg):
 		if self.timer_id:
-			gobject.source_remove(self.timer_id)
+			GObject.source_remove(self.timer_id)
 			self.timer_id = None
 
 		def callback():
@@ -519,11 +519,11 @@ class DelayedCallback(object):
 			self.cb_func(*arg, **kwarg)
 			return False # destroy timeout
 
-		self.timer_id = gobject.timeout_add(self.timeout, callback)
+		self.timer_id = GObject.timeout_add(self.timeout, callback)
 
 	def __del__(self):
 		if self.timer_id:
-			gobject.source_remove(self.timer_id)
+			GObject.source_remove(self.timer_id)
 
 	def cancel(self):
 		'''Cancel the scheduled callback'''

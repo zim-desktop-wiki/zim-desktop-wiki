@@ -4,9 +4,9 @@
 
 from __future__ import with_statement
 
-import gobject
-import gtk
-import pango
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.notebook import Path, LINK_DIR_BACKWARD
@@ -77,14 +77,14 @@ class MainWindowExtension(WindowExtension):
 PAGE_COL = 0
 TEXT_COL = 1
 
-class BackLinksWidget(gtk.ScrolledWindow, WindowSidePaneWidget):
+class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 
 	title = _('BackLinks') # T: widget label
 
 	def __init__(self, opener):
-		gtk.ScrolledWindow.__init__(self)
-		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		self.set_shadow_type(gtk.SHADOW_IN)
+		GObject.GObject.__init__(self)
+		self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+		self.set_shadow_type(Gtk.ShadowType.IN)
 
 		self.opener = opener
 
@@ -122,7 +122,7 @@ class BackLinksWidget(gtk.ScrolledWindow, WindowSidePaneWidget):
 	def on_populate_popup(self, treeview, menu):
 		populate_popup_add_separator(menu)
 
-		item = gtk.MenuItem(_('Open in New _Window'))
+		item = Gtk.MenuItem(_('Open in New _Window'))
 		item.connect('activate', self.on_open_new_window, treeview)
 		menu.append(item)
 
@@ -141,19 +141,19 @@ class LinksTreeView(BrowserTreeView):
 		BrowserTreeView.__init__(self, LinksTreeModel())
 		self.set_headers_visible(False)
 
-		cell_renderer = gtk.CellRendererText()
-		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('_page_', cell_renderer, text=TEXT_COL)
+		cell_renderer = Gtk.CellRendererText()
+		cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
+		column = Gtk.TreeViewColumn('_page_', cell_renderer, text=TEXT_COL)
 		self.append_column(column)
 
-		if gtk.gtk_version >= (2, 12, 0) \
-		and gtk.pygtk_version >= (2, 12, 0):
+		if Gtk.gtk_version >= (2, 12, 0) \
+		and Gtk.pygtk_version >= (2, 12, 0):
 			self.set_tooltip_column(TEXT_COL)
 
 
-#~ class LinksTreeModel(gtk.TreeStore):
-class LinksTreeModel(gtk.ListStore):
+#~ class LinksTreeModel(Gtk.TreeStore):
+class LinksTreeModel(Gtk.ListStore):
 
 	def __init__(self):
-		#~ gtk.TreeStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
-		gtk.ListStore.__init__(self, object, str) # PAGE_COL, TEXT_COL
+		#~ GObject.GObject.__init__(self, object, str) # PAGE_COL, TEXT_COL
+		GObject.GObject.__init__(self, object, str) # PAGE_COL, TEXT_COL

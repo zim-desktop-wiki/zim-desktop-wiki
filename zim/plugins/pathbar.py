@@ -3,8 +3,8 @@
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import logging
 
 from functools import reduce
@@ -132,7 +132,7 @@ class PathBarMainWindowExtension(WindowExtension):
 DIR_FORWARD = 1
 DIR_BACKWARD = -1
 
-class ScrolledHBox(gtk.HBox):
+class ScrolledHBox(Gtk.HBox):
 	'''This class provides a widget that behaves like a HBox when there is
 	enough space to render all child widgets. When space is limited it
 	shows arrow buttons on the left and on the right to allow scrolling
@@ -177,8 +177,8 @@ class ScrolledHBox(gtk.HBox):
 	# with the widgets that are scrolled one should use "get_children()[2:]".
 	# Not sure if there is a cleaner way to do this
 
-	# Actually wanted to inherit from gtk.Box instead of gtk.HBox, but seems
-	# we can not call gtk.Box.__init__() to instantiate the object.
+	# Actually wanted to inherit from Gtk.Box instead of Gtk.HBox, but seems
+	# we can not call GObject.GObject.__init__() to instantiate the object.
 
 	__gsignals__ = {
 		'size-request': 'override',
@@ -189,7 +189,7 @@ class ScrolledHBox(gtk.HBox):
 	scroll_timeout = 150 # timeout between scroll steps
 
 	def __init__(self, spacing=0, homogeneous=False):
-		gtk.HBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_spacing(spacing)
 		self.set_homogeneous(homogeneous)
 		self._scroll_timeout = None
@@ -203,7 +203,7 @@ class ScrolledHBox(gtk.HBox):
 			button.connect('button-press-event', self._on_button_press)
 			button.connect('button-release-event', self._on_button_release)
 			button.connect('clicked', self._on_button_clicked)
-		# TODO looks like gtk.widget_push_composite_child is intended
+		# TODO looks like Gtk.widget_push_composite_child is intended
 		# to flag internal children versus normal children
 		# use this property + define forall to have sane API for these buttons
 
@@ -268,11 +268,11 @@ class ScrolledHBox(gtk.HBox):
 		self.stop_scrolling()
 		if initial_timeout:
 			self._scroll_timeout = \
-				gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
+				GObject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
 				# indirect recurs
 		else:
 			self._scroll_timeout = \
-				gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
+				GObject.timeout_add(self.scroll_timeout, self.scroll, direction)
 
 		return False # make sure we are only called once from a timeout
 
@@ -281,7 +281,7 @@ class ScrolledHBox(gtk.HBox):
 		scrolling.
 		'''
 		if not self._scroll_timeout is None:
-			gobject.source_remove(self._scroll_timeout)
+			GObject.source_remove(self._scroll_timeout)
 			self._scroll_timeout = None
 
 	def do_size_request(self, requisition):
@@ -319,7 +319,7 @@ class ScrolledHBox(gtk.HBox):
 		#~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
 		#~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
 
-		gtk.HBox.do_size_allocate(self, allocation)
+		Gtk.HBox.do_size_allocate(self, allocation)
 
 		children = self.get_children()[2:]
 		if not children:
@@ -390,9 +390,9 @@ class ScrolledHBox(gtk.HBox):
 		# Allocate children
 		y = allocation.y + border
 		h = allocation.height - 2 * border
-		child_allocation = gtk.gdk.Rectangle(y=y, height=h)
+		child_allocation = (y=y, height=h)
 			# y and height are the same for all
-		if not self.get_direction() == gtk.TEXT_DIR_RTL:
+		if not self.get_direction() == Gtk.TextDirection.RTL:
 			# Left to Right
 			child_allocation.x = allocation.x + border
 
@@ -467,37 +467,37 @@ class ScrolledHBox(gtk.HBox):
 		# (so do not "sub-navigate" with <Ctrl><Tab>).
 		# Otherwise the user has to tab through all buttons before
 		# he can tab to the next widget.
-		if direction in (gtk.DIR_TAB_FORWARD, gtk.DIR_TAB_BACKWARD) \
+		if direction in (Gtk.DIR_TAB_FORWARD, Gtk.DIR_TAB_BACKWARD) \
 		and self.focus_child is not None:
 			return False # Let outer container go to next widget
 		else:
-			return gtk.HBox.do_focus(self, direction)
+			return Gtk.HBox.do_focus(self, direction)
 
 # Need to register classes defining gobject signals
-gobject.type_register(ScrolledHBox)
+GObject.type_register(ScrolledHBox)
 
 
-class ScrollButton(gtk.Button):
+class ScrollButton(Gtk.Button):
 	'''Arrow buttons used by ScrolledHBox'''
 
 	def __init__(self, direction):
-		gtk.Button.__init__(self)
+		GObject.GObject.__init__(self)
 		self.direction = direction
-		if self.get_direction() != gtk.TEXT_DIR_RTL:
+		if self.get_direction() != Gtk.TextDirection.RTL:
 			# Left to Right
 			if direction == DIR_FORWARD:
-				arrow_dir = gtk.ARROW_RIGHT
+				arrow_dir = Gtk.ArrowType.RIGHT
 			else:
-				arrow_dir = gtk.ARROW_LEFT
+				arrow_dir = Gtk.ArrowType.LEFT
 		else:
 			# Right to Left
 			if direction == DIR_FORWARD:
-				arrow_dir = gtk.ARROW_LEFT
+				arrow_dir = Gtk.ArrowType.LEFT
 			else:
-				arrow_dir = gtk.ARROW_RIGHT
+				arrow_dir = Gtk.ArrowType.RIGHT
 
-		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
-		self.set_relief(gtk.RELIEF_NONE)
+		self.add(Gtk.Arrow(arrow_dir, Gtk.ShadowType.OUT))
+		self.set_relief(Gtk.ReliefStyle.NONE)
 
 
 class PathBar(ScrolledHBox):
@@ -530,25 +530,25 @@ class PathBar(ScrolledHBox):
 		self._selected = None
 
 		for path in self.get_paths():
-			button = gtk.ToggleButton(label=path.basename)
+			button = Gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
 			button.connect('popup-menu', self.on_button_popup_menu)
 			button.connect('button-release-event', self.do_button_release_event)
 			button.connect('drag-data-get', self.on_drag_data_get)
-			button.drag_source_set(gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-				gtk.gdk.ACTION_LINK)
+			button.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
+				Gdk.DragAction.LINK)
 			button.show()
 			self.add(button)
 
 		# FIXME tooltips seem not to work - not sure why
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
+		if Gtk.gtk_version >= (2, 12) \
+		and Gtk.pygtk_version >= (2, 12):
 			for button in self.get_children()[2:]:
 				button.set_tooltip_text(button.zim_path.name)
 		else:
-			tooltips = gtk.Tooltips()
+			tooltips = Gtk.Tooltips()
 			for button in self.get_children()[2:]:
 				tooltips.set_tip(button, button.zim_path.name)
 
@@ -593,7 +593,7 @@ class PathBar(ScrolledHBox):
 			return True
 
 	def on_button_popup_menu(self, button):
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 		uiactions = UIActions(
 			self,
 			self.notebook,
@@ -712,8 +712,8 @@ class TestPathBar(PathBar):
 
 
 if __name__ == '__main__':
-	window = gtk.Window()
-	window.connect('destroy', lambda o: gtk.main_quit())
+	window = Gtk.Window()
+	window.connect('destroy', lambda o: Gtk.main_quit())
 	window.add(TestPathBar())
 	window.show_all()
-	gtk.main()
+	Gtk.main()

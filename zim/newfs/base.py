@@ -536,7 +536,7 @@ class Folder(FSObjectBase):
 		trypath = path
 		while i < 1000:
 			try:
-				file = self.child(trypath) # this way we catch both exiting files and folders
+				file = self.get_child()(trypath) # this way we catch both exiting files and folders
 			except FileNotFoundError:
 				return factory(trypath)
 			else:
@@ -586,7 +586,7 @@ except ImportError:
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
-	# Gleaned from gtk.gdk.get_formats()
+	# Gleaned from Gdk.get_formats()
 	'bmp', # image/bmp
 	'gif', # image/gif
 	'icns', # image/x-icns
@@ -650,7 +650,7 @@ class File(FSObjectBase):
 		'''Check if this is an image file. Convenience method that
 		works even when no real mime-type suport is available.
 		If this method returns C{True} it is no guarantee
-		this image type is actually supported by gtk.
+		this image type is actually supported by Gtk.
 		@returns: C{True} when this is an image file
 		'''
 		# Quick shortcut to be able to load images in the gui even if

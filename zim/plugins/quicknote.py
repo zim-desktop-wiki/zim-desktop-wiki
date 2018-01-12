@@ -2,7 +2,7 @@
 
 # Copyright 2010-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 
 import re
 from datetime import date as dateclass
@@ -236,9 +236,9 @@ class QuickNoteDialog(Dialog):
 		self.vbox.pack_start(self.form, False)
 
 		# TODO dropdown could use an option "Other..."
-		label = gtk.Label(_('Notebook') + ': ')
+		label = Gtk.Label(label=_('Notebook') + ': ')
 		label.set_alignment(0.0, 0.5)
-		self.form.attach(label, 0, 1, 0, 1, xoptions=gtk.FILL)
+		self.form.attach(label, 0, 1, 0, 1, xoptions=Gtk.AttachOptions.FILL)
 			# T: Field to select Notebook from drop down list
 		self.notebookcombobox = NotebookComboBox(current=notebook)
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
@@ -301,7 +301,7 @@ class QuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page_check = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+		self.open_page_check = Gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
 			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page_check.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page_check, False)
@@ -363,7 +363,7 @@ class QuickNoteDialog(Dialog):
 			logger.debug('Notebook for autocomplete unset')
 
 	def do_response(self, id):
-		if id == gtk.RESPONSE_DELETE_EVENT:
+		if id == Gtk.ResponseType.DELETE_EVENT:
 			if self.textview.get_buffer().get_modified():
 				ok = QuestionDialog(self, _('Discard note?')).run()
 					# T: confirm closing quick note dialog

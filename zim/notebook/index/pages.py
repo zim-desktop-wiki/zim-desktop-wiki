@@ -452,7 +452,7 @@ class PagesViewInternal(object):
 					pagename = Path(row['name'])
 					page_id = row['id']
 				else: # no match
-					return None, pagename.child(':'.join(names[i:])), 1
+					return None, pagename.get_child()(':'.join(names[i:])), 1
 		else:
 			return page_id, pagename, 2
 

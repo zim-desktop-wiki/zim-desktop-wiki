@@ -11,7 +11,7 @@ text to an image.
 '''
 
 
-import gtk
+from gi.repository import Gtk
 import logging
 
 from zim.plugins import PluginClass, WindowExtension, extends
@@ -141,7 +141,7 @@ class MainWindowExtensionBase(WindowExtension):
 	def do_populate_popup(self, menu, buffer, iter, image):
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.MenuItem(self.edit_label)
+		item = Gtk.MenuItem(self.edit_label)
 		item.connect('activate',
 			lambda o: self.edit_object(buffer, iter, image))
 		menu.prepend(item)
@@ -273,7 +273,7 @@ class ImageGeneratorDialog(Dialog):
 		self.textview.set_editable(True)
 		self.vpane.pack2(window, resize=False)
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 
 		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh')

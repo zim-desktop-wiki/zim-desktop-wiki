@@ -31,12 +31,12 @@ import colorsys
 import time
 import re
 
-import gobject
-import gtk
-import gtk.gdk
-import gtk.keysyms
+from gi.repository import GObject
+from gi.repository import Gtk
+import Gtk.gdk
+import Gtk.keysyms
 import cairo
-import pango
+from gi.repository import Pango
 import pangocairo
 
 
@@ -125,9 +125,9 @@ class TextShape(Shape):
             pangocairo.context_set_font_options(context, fo)
 
             # set font
-            font = pango.FontDescription()
+            font = Pango.FontDescription()
             font.set_family(self.pen.fontname)
-            font.set_absolute_size(self.pen.fontsize * pango.SCALE)
+            font.set_absolute_size(self.pen.fontsize * Pango.SCALE)
             layout.set_font_description(font)
 
             # set text
@@ -141,8 +141,8 @@ class TextShape(Shape):
         descent = 2 # XXX get descender from font metrics
 
         width, height = layout.get_size()
-        width = float(width) / pango.SCALE
-        height = float(height) / pango.SCALE
+        width = float(width) / Pango.SCALE
+        height = float(height) / Pango.SCALE
         # we know the width that dot thinks this text should have
         # we do not necessarily have a font with the same metrics
         # scale it so that the text fits inside its box
@@ -507,7 +507,7 @@ class XDotAttrParser:
             return r, g, b, a
         else:
             try:
-                color = gtk.gdk.color_parse(c)
+                color = Gdk.color_parse(c)
             except ValueError:
                 sys.stderr.write("unknown color '%s'\n" % c)
                 return fallback
@@ -1084,12 +1084,12 @@ class Animation(object):
         self.timeout_id = None
 
     def start(self):
-        self.timeout_id = gobject.timeout_add(int(self.step * 1000), self.tick)
+        self.timeout_id = GObject.timeout_add(int(self.step * 1000), self.tick)
 
     def stop(self):
         self.dot_widget.animation = NoAnimation(self.dot_widget)
         if self.timeout_id is not None:
-            gobject.source_remove(self.timeout_id)
+            GObject.source_remove(self.timeout_id)
             self.timeout_id = None
 
     def tick(self):
@@ -1211,17 +1211,17 @@ class NullAction(DragAction):
         if item is None:
             item = dot_widget.get_jump(event.x, event.y)
         if item is not None:
-            dot_widget.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
+            dot_widget.window.set_cursor(Gdk.Cursor.new(Gdk.HAND2))
             dot_widget.set_highlight(item.highlight)
         else:
-            dot_widget.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+            dot_widget.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
             dot_widget.set_highlight(None)
 
 
 class PanAction(DragAction):
 
     def start(self):
-        self.dot_widget.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.FLEUR))
+        self.dot_widget.window.set_cursor(Gdk.Cursor.new(Gdk.FLEUR))
 
     def drag(self, deltax, deltay):
         self.dot_widget.x += deltax / self.dot_widget.zoom_ratio
@@ -1229,7 +1229,7 @@ class PanAction(DragAction):
         self.dot_widget.queue_draw()
 
     def stop(self):
-        self.dot_widget.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+        self.dot_widget.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
 
     abort = stop
 
@@ -1276,27 +1276,27 @@ class ZoomAreaAction(DragAction):
         self.dot_widget.queue_draw()
 
 
-class DotWidget(gtk.DrawingArea):
+class DotWidget(Gtk.DrawingArea):
     """PyGTK widget that draws dot graphs."""
 
     __gsignals__ = {
         'expose-event': 'override',
-        'clicked': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_STRING, gtk.gdk.Event))
+        'clicked': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, Gdk.Event))
     }
 
     filter = 'dot'
 
     def __init__(self):
-        gtk.DrawingArea.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.graph = Graph()
 
-        self.set_flags(gtk.CAN_FOCUS)
+        self.set_flags(Gtk.CAN_FOCUS)
 
-        self.add_events(gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK)
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
         self.connect("button-press-event", self.on_area_button_press)
         self.connect("button-release-event", self.on_area_button_release)
-        self.add_events(gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.POINTER_MOTION_HINT_MASK | gtk.gdk.BUTTON_RELEASE_MASK)
+        self.add_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.POINTER_MOTION_HINT_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK)
         self.connect("motion-notify-event", self.on_area_motion_notify)
         self.connect("scroll-event", self.on_area_scroll_event)
         self.connect("size-allocate", self.on_area_size_allocate)
@@ -1327,9 +1327,9 @@ class DotWidget(gtk.DrawingArea):
         )
         xdotcode = p.communicate(dotcode)[0]
         if p.returncode != 0:
-            dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+            dialog = Gtk.MessageDialog(type=Gtk.MessageType.ERROR,
                                        message_format=xdotcode,
-                                       buttons=gtk.BUTTONS_OK)
+                                       buttons=Gtk.ButtonsType.OK)
             dialog.set_title('Dot Viewer')
             dialog.run()
             dialog.destroy()
@@ -1338,9 +1338,9 @@ class DotWidget(gtk.DrawingArea):
         try:
             self.set_xdotcode(xdotcode)
         except ParseError as ex:
-            dialog = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+            dialog = Gtk.MessageDialog(type=Gtk.MessageType.ERROR,
                                        message_format=str(ex),
-                                       buttons=gtk.BUTTONS_OK)
+                                       buttons=Gtk.ButtonsType.OK)
             dialog.set_title('Dot Viewer')
             dialog.run()
             dialog.destroy()
@@ -1452,42 +1452,42 @@ class DotWidget(gtk.DrawingArea):
     POS_INCREMENT = 100
 
     def on_key_press_event(self, widget, event):
-        if event.keyval == gtk.keysyms.Left:
+        if event.keyval == Gdk.KEY_Left:
             self.x -= self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
-        if event.keyval == gtk.keysyms.Right:
+        if event.keyval == Gdk.KEY_Right:
             self.x += self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
-        if event.keyval == gtk.keysyms.Up:
+        if event.keyval == Gdk.KEY_Up:
             self.y -= self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
-        if event.keyval == gtk.keysyms.Down:
+        if event.keyval == Gdk.KEY_Down:
             self.y += self.POS_INCREMENT / self.zoom_ratio
             self.queue_draw()
             return True
-        if event.keyval == gtk.keysyms.Page_Up:
+        if event.keyval == Gdk.KEY_Page_Up:
             self.zoom_image(self.zoom_ratio * self.ZOOM_INCREMENT)
             self.queue_draw()
             return True
-        if event.keyval == gtk.keysyms.Page_Down:
+        if event.keyval == Gdk.KEY_Page_Down:
             self.zoom_image(self.zoom_ratio / self.ZOOM_INCREMENT)
             self.queue_draw()
             return True
-        if event.keyval == gtk.keysyms.Escape:
+        if event.keyval == Gdk.KEY_Escape:
             self.drag_action.abort()
             self.drag_action = NullAction(self)
             return True
         return False
 
     def get_drag_action(self, event):
-        state = event.state
+        state = event.get_state()
         if event.button in (1, 2): # left or middle button
-            if state & gtk.gdk.META_MASK:
+            if state & Gdk.EventMask.META_MASK:
                 return ZoomAction
-            elif state & gtk.gdk.SHIFT_MASK:
+            elif state & Gdk.ModifierType.SHIFT_MASK:
                 return ZoomAreaAction
             else:
                 return PanAction
@@ -1505,7 +1505,7 @@ class DotWidget(gtk.DrawingArea):
         return False
 
     def is_click(self, event, click_fuzz=4, click_timeout=1.0):
-        assert event.type == gtk.gdk.BUTTON_RELEASE
+        assert event.type == Gdk.BUTTON_RELEASE
         if self.presstime is None:
             # got a button release without seeing the press?
             return False
@@ -1535,11 +1535,11 @@ class DotWidget(gtk.DrawingArea):
         return False
 
     def on_area_scroll_event(self, area, event):
-        if event.direction == gtk.gdk.SCROLL_UP:
+        if event.direction == Gdk.ScrollDirection.UP:
             self.zoom_image(self.zoom_ratio * self.ZOOM_INCREMENT,
                             pos=(event.x, event.y))
             return True
-        if event.direction == gtk.gdk.SCROLL_DOWN:
+        if event.direction == Gdk.ScrollDirection.DOWN:
             self.zoom_image(self.zoom_ratio / self.ZOOM_INCREMENT,
                             pos=(event.x, event.y))
             return True
@@ -1576,7 +1576,7 @@ class DotWidget(gtk.DrawingArea):
         return self.graph.get_jump(x, y)
 
 
-class DotWindow(gtk.Window):
+class DotWindow(Gtk.Window):
 
     ui = '''
     <ui>
@@ -1592,7 +1592,7 @@ class DotWindow(gtk.Window):
     '''
 
     def __init__(self):
-        gtk.Window.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.graph = Graph()
 
@@ -1600,29 +1600,29 @@ class DotWindow(gtk.Window):
 
         window.set_title('Dot Viewer')
         window.set_default_size(512, 512)
-        vbox = gtk.VBox()
+        vbox = Gtk.VBox()
         window.add(vbox)
 
         self.widget = DotWidget()
 
         # Create a UIManager instance
-        uimanager = self.uimanager = gtk.UIManager()
+        uimanager = self.uimanager = Gtk.UIManager()
 
         # Add the accelerator group to the toplevel window
         accelgroup = uimanager.get_accel_group()
         window.add_accel_group(accelgroup)
 
         # Create an ActionGroup
-        actiongroup = gtk.ActionGroup('Actions')
+        actiongroup = Gtk.ActionGroup('Actions')
         self.actiongroup = actiongroup
 
         # Create actions
         actiongroup.add_actions((
-            ('Open', gtk.STOCK_OPEN, None, None, None, self.on_open),
-            ('ZoomIn', gtk.STOCK_ZOOM_IN, None, None, None, self.widget.on_zoom_in),
-            ('ZoomOut', gtk.STOCK_ZOOM_OUT, None, None, None, self.widget.on_zoom_out),
-            ('ZoomFit', gtk.STOCK_ZOOM_FIT, None, None, None, self.widget.on_zoom_fit),
-            ('Zoom100', gtk.STOCK_ZOOM_100, None, None, None, self.widget.on_zoom_100),
+            ('Open', Gtk.STOCK_OPEN, None, None, None, self.on_open),
+            ('ZoomIn', Gtk.STOCK_ZOOM_IN, None, None, None, self.widget.on_zoom_in),
+            ('ZoomOut', Gtk.STOCK_ZOOM_OUT, None, None, None, self.widget.on_zoom_out),
+            ('ZoomFit', Gtk.STOCK_ZOOM_FIT, None, None, None, self.widget.on_zoom_fit),
+            ('Zoom100', Gtk.STOCK_ZOOM_100, None, None, None, self.widget.on_zoom_100),
         ))
 
         # Add the actiongroup to the uimanager
@@ -1635,7 +1635,7 @@ class DotWindow(gtk.Window):
         toolbar = uimanager.get_widget('/ToolBar')
         vbox.pack_start(toolbar, False)
 
-        vbox.pack_start(self.widget)
+        vbox.pack_start(self.widget, True, True, 0)
 
         self.set_focus(self.widget)
 
@@ -1660,30 +1660,30 @@ class DotWindow(gtk.Window):
             self.set_dotcode(fp.read(), filename)
             fp.close()
         except IOError as ex:
-            dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+            dlg = Gtk.MessageDialog(type=Gtk.MessageType.ERROR,
                                     message_format=str(ex),
-                                    buttons=gtk.BUTTONS_OK)
+                                    buttons=Gtk.ButtonsType.OK)
             dlg.set_title('Dot Viewer')
             dlg.run()
             dlg.destroy()
 
     def on_open(self, action):
-        chooser = gtk.FileChooserDialog(title="Open dot File",
-                                        action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                        buttons=(gtk.STOCK_CANCEL,
-                                                 gtk.RESPONSE_CANCEL,
-                                                 gtk.STOCK_OPEN,
-                                                 gtk.RESPONSE_OK))
-        chooser.set_default_response(gtk.RESPONSE_OK)
-        filter = gtk.FileFilter()
+        chooser = Gtk.FileChooserDialog(title="Open dot File",
+                                        action=Gtk.FileChooserAction.OPEN,
+                                        buttons=(Gtk.STOCK_CANCEL,
+                                                 Gtk.ResponseType.CANCEL,
+                                                 Gtk.STOCK_OPEN,
+                                                 Gtk.ResponseType.OK))
+        chooser.set_default_response(Gtk.ResponseType.OK)
+        filter = Gtk.FileFilter()
         filter.set_name("Graphviz dot files")
         filter.add_pattern("*.dot")
         chooser.add_filter(filter)
-        filter = gtk.FileFilter()
+        filter = Gtk.FileFilter()
         filter.set_name("All files")
         filter.add_pattern("*")
         chooser.add_filter(filter)
-        if chooser.run() == gtk.RESPONSE_OK:
+        if chooser.run() == Gtk.ResponseType.OK:
             filename = chooser.get_filename()
             chooser.destroy()
             self.open_file(filename)
@@ -1708,14 +1708,14 @@ def main():
         parser.error('incorrect number of arguments')
 
     win = DotWindow()
-    win.connect('destroy', gtk.main_quit)
+    win.connect('destroy', Gtk.main_quit)
     win.set_filter(options.filter)
     if len(args) >= 1:
         if args[0] == '-':
             win.set_dotcode(sys.stdin.read())
         else:
             win.open_file(args[0])
-    gtk.main()
+    Gtk.main()
 
 
 if __name__ == '__main__':

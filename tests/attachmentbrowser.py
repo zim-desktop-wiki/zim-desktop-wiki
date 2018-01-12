@@ -34,10 +34,10 @@ class TestThumbnailCreators(tests.TestCase):
 
 				self.assertFalse(thumbfile.exists())
 				pixbuf = creator(file, thumbfile, THUMB_SIZE_NORMAL)
-				self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+				self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 				self.assertTrue(thumbfile.exists())
 
-				pixbuf = gtk.gdk.pixbuf_new_from_file(thumbfile.encodedpath)
+				pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbfile.encodedpath)
 				self.assertEqual(pixbuf.get_option('tEXt::Thumb::URI'), file.uri)
 				self.assertTrue(pixbuf.get_option('tEXt::Thumb::URI').startswith('file:///'))
 					# Specific requirement of spec to use file:/// and not file://localhost/
@@ -96,11 +96,11 @@ class TestThumbnailManager(tests.TestCase):
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		if os.name != 'nt': # Windows support chmod() is limitted
 			import stat
@@ -119,14 +119,14 @@ class TestThumbnailManager(tests.TestCase):
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		# ensure next call to get_thumbnail cannot call create_thumbnail
 		manager.create_thumbnail = None
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		# Test remove
 		self.removeThumbnail(manager, file)
@@ -164,7 +164,7 @@ class TestThumbnailQueue(tests.TestCase):
 				seen.add(file)
 				self.assertEqual(size, 64)
 				self.assertTrue(thumbfile.exists())
-				self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+				self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 				self.assertEqual(mtime, file.mtime())
 
 		self.assertEqual(seen, pixmaps)

@@ -4,7 +4,7 @@
 
 '''Plugin to serve as work-around for the lack of printing support'''
 
-import gtk
+from gi.repository import Gtk
 
 from functools import partial
 
@@ -87,7 +87,7 @@ class TaskListDialogExtension(DialogExtension):
 	def __init__(self, plugin, window):
 		DialogExtension.__init__(self, plugin, window)
 
-		button = gtk.Button(stock='gtk-print')
+		button = Gtk.Button(stock='gtk-print')
 		button.connect('clicked', self.on_print_tasklist)
 		self.add_dialog_button(button)
 

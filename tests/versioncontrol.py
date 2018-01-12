@@ -11,7 +11,7 @@ from tests.mainwindow import setUpMainWindow
 
 import os
 import tempfile
-import gtk
+from gi.repository import Gtk
 
 from zim.fs import File, Dir
 from zim.newfs import LocalFolder
@@ -111,7 +111,7 @@ class TestMainWindowExtension(tests.TestCase):
 			self.assertIsInstance(dialog, VersionControlInitDialog)
 			choice = dialog.combobox.get_active_text()
 			self.assertTrue(choice and not choice.isspace())
-			dialog.emit('response', gtk.RESPONSE_YES)
+			dialog.emit('response', Gtk.ResponseType.YES)
 
 		with tests.DialogContext(init, SaveVersionDialog):
 			window_ext.save_version()

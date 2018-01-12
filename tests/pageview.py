@@ -1320,23 +1320,23 @@ Tja
 def press(widget, sequence):
 	#~ print 'PRESS', sequence
 	for key in sequence:
-		event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
+		event = Gdk.Event(Gdk.KEY_PRESS)
 		if isinstance(key, (int, long)):
 			event.keyval = int(key)
 		elif key == '\n':
-			event.keyval = int(gtk.gdk.keyval_from_name('Return'))
+			event.keyval = int(Gdk.keyval_from_name('Return'))
 		elif key == '\t':
-			event.keyval = int(gtk.gdk.keyval_from_name('Tab'))
+			event.keyval = int(Gdk.keyval_from_name('Tab'))
 		else:
-			event.keyval = int(gtk.gdk.unicode_to_keyval(ord(key)))
+			event.keyval = int(Gdk.unicode_to_keyval(ord(key)))
 
 		if not isinstance(key, (int, long)):
 			event.string = key
 
-		#gtk.main_do_event(event)
+		#Gtk.main_do_event(event)
 		#assert widget.event(event) # Returns True if event was handled
-		#while gtk.events_pending():
-		#	gtk.main_iteration()
+		#while Gtk.events_pending():
+		#	Gtk.main_iteration()
 		widget.emit('key-press-event', event)
 
 
@@ -1356,7 +1356,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 		undomanager = UndoStackManager(buffer)
 
 		# Need a window to get the widget realized
-		window = gtk.Window()
+		window = Gtk.Window()
 		window.add(view)
 		view.realize()
 		#~ window.show_all()
@@ -2328,7 +2328,7 @@ class TestAutolink(tests.TestCase):
 		)
 
 
-@tests.skipIf(gtk.pygtk_version < (2, 10), 'old pygtk, no serialization formats')
+@tests.skipIf(Gtk.pygtk_version < (2, 10), 'old pygtk, no serialization formats')
 class TestDragAndDropFunctions(tests.TestCase):
 
 	def testSerializeParseTree(self):

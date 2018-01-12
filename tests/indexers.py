@@ -154,7 +154,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 			if is_dir(name):
 				self.root.folder(name).remove()
 			else:
-				self.root.child(name).remove()
+				self.root.get_child()(name).remove()
 
 
 class TestFilesIndexerWithCaseInsensitiveFilesytem(tests.TestCase, TestFilesDBTable):

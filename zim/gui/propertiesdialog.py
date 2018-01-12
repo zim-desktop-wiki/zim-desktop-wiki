@@ -2,7 +2,7 @@
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 from zim.gui.widgets import Dialog
 
 class PropertiesDialog(Dialog):
@@ -12,7 +12,7 @@ class PropertiesDialog(Dialog):
 		self.notebook = notebook
 		self.config = config
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup('<b>' + _('Notebook Properties') + '</b>')
 			# T: Section in notebook dialog
 		label.set_alignment(0.0, 0.5)

@@ -3,7 +3,7 @@
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gtk
+from gi.repository import Gtk
 
 from zim.newfs import LocalFile
 from zim.newfs.helpers import TrashHelper, TrashNotSupportedError
@@ -20,25 +20,25 @@ class TemplateEditorDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent,
-			_('Templates'), help='Help:Templates', buttons=gtk.BUTTONS_CLOSE,
+			_('Templates'), help='Help:Templates', buttons=Gtk.ButtonsType.CLOSE,
 			defaultwindowsize=(400, 450))
 			# T: Dialog title
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup('<b>' + _('Templates') + '</b>')
 			# T: Section in dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)
 
-		hbox = gtk.HBox()
+		hbox = Gtk.HBox()
 		self.vbox.add(hbox)
 
 		self.view = TemplateListView()
 		self.view.connect('row-activated', self.on_selection_changed)
 		hbox.add(ScrolledWindow(self.view))
 
-		vbbox = gtk.VButtonBox()
-		vbbox.set_layout(gtk.BUTTONBOX_START)
+		vbbox = Gtk.VButtonBox()
+		vbbox.set_layout(Gtk.ButtonBoxStyle.START)
 		hbox.pack_start(vbbox, False)
 
 		view_button = Button(stock='gtk-file', label=_('_View')) # T: button label
@@ -50,7 +50,7 @@ class TemplateEditorDialog(Dialog):
 		edit_button = Button(stock='gtk-edit')
 		edit_button.connect('clicked', self.on_edit)
 
-		delete_button = gtk.Button(stock='gtk-remove')
+		delete_button = Gtk.Button(stock='gtk-remove')
 		delete_button.connect('clicked', self.on_delete)
 
 		for b in (view_button, copy_button, edit_button, delete_button):
@@ -66,9 +66,9 @@ class TemplateEditorDialog(Dialog):
 		self.on_selection_changed()
 
 		## Same button appears in export dialog
-		if gtk.gtk_version >= (2, 10) \
-		and gtk.pygtk_version >= (2, 10):
-			url_button = gtk.LinkButton(
+		if Gtk.gtk_version >= (2, 10) \
+		and Gtk.pygtk_version >= (2, 10):
+			url_button = Gtk.LinkButton(
 				'http://zim-wiki.org/more_templates.html',
 				_('Get more templates online') # T: label for button with URL
 			)
@@ -176,13 +176,13 @@ class TemplateListView(BrowserTreeView):
 
 	def __init__(self):
 		BrowserTreeView.__init__(self)
-		model = gtk.TreeStore(str, object, object)
+		model = Gtk.TreeStore(str, object, object)
 			# BASENAME_COL, FILE_COL, DEFAULT_COL
 		self.set_model(model)
 		self.set_headers_visible(False)
 
-		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('_template_', cell_renderer, text=self.BASENAME_COL)
+		cell_renderer = Gtk.CellRendererText()
+		column = Gtk.TreeViewColumn('_template_', cell_renderer, text=self.BASENAME_COL)
 		self.append_column(column)
 
 		self.refresh()

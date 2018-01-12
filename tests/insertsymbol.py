@@ -36,7 +36,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 
 		print '\n!! Two GtkWarnings expected here for gdk display !!'
 		# Need a window to get the widget realized
-		window = gtk.Window()
+		window = Gtk.Window()
 		window.add(pageview)
 		pageview.realize()
 		textview.realize()

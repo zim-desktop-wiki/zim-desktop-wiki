@@ -9,7 +9,7 @@ commands.
 from __future__ import with_statement
 
 
-import gtk
+from gi.repository import Gtk
 import logging
 
 from functools import partial
@@ -228,14 +228,14 @@ class CustomToolDict(DesktopEntryDict):
 	def get_pixbuf(self, size):
 		pixbuf = DesktopEntryDict.get_pixbuf(self, size)
 		if pixbuf is None:
-			pixbuf = gtk.Label().render_icon(gtk.STOCK_EXECUTE, size)
+			pixbuf = Gtk.Label().render_icon(Gtk.STOCK_EXECUTE, size)
 			# FIXME hack to use arbitrary widget to render icon
 		return pixbuf
 
 	@property
 	def icon(self):
-		return self['Desktop Entry'].get('Icon') or gtk.STOCK_EXECUTE
-			# get('Icon', gtk.STOCK_EXECUTE) still returns empty string if key exists but no value
+		return self['Desktop Entry'].get('Icon') or Gtk.STOCK_EXECUTE
+			# get('Icon', Gtk.STOCK_EXECUTE) still returns empty string if key exists but no value
 
 	@property
 	def execcmd(self):
@@ -371,7 +371,7 @@ class CustomToolManagerUI(object):
 
 	def __init__(self, uimanager, config, pageview):
 		'''Constructor
-		@param uimanager: a C{gtk.UIManager}
+		@param uimanager: a C{Gtk.UIManager}
 		@param config: a L{ConfigManager}
 		@param pageview: either a L{PageView} or a L{StubPageView}
 		'''
@@ -387,7 +387,7 @@ class CustomToolManagerUI(object):
 		self.pageview = pageview
 
 		self._manager = CustomToolManager(config)
-		self._iconfactory = gtk.IconFactory()
+		self._iconfactory = Gtk.IconFactory()
 		self._iconfactory.add_default()
 		self._ui_id = None
 		self._actiongroup = None
@@ -420,8 +420,8 @@ class CustomToolManagerUI(object):
 				# Assume icon is a file path
 				icon = 'zim-custom-tool' + tool.key
 				try:
-					pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_LARGE_TOOLBAR)
-					self._iconfactory.add(icon, gtk.IconSet(pixbuf=pixbuf))
+					pixbuf = tool.get_pixbuf(Gtk.IconSize.LARGE_TOOLBAR)
+					self._iconfactory.add(icon, Gtk.IconSet(pixbuf=pixbuf))
 				except Exception:
 					logger.exception('Got exception while loading application icons')
 					icon = None
@@ -430,7 +430,7 @@ class CustomToolManagerUI(object):
 				(tool.key, icon, tool.name, '', tool.comment, self._action_handler)
 			)
 
-		group = gtk.ActionGroup('custom_tools')
+		group = Gtk.ActionGroup('custom_tools')
 		group.add_actions(actions)
 		return group
 
@@ -506,7 +506,7 @@ class CustomToolManagerUI(object):
 class CustomToolManagerDialog(Dialog):
 
 	def __init__(self, parent, config):
-		Dialog.__init__(self, parent, _('Custom Tools'), buttons=gtk.BUTTONS_CLOSE) # T: Dialog title
+		Dialog.__init__(self, parent, _('Custom Tools'), buttons=Gtk.ButtonsType.CLOSE) # T: Dialog title
 		self.set_help(':Help:Custom Tools')
 		self.manager = CustomToolManager(config)
 
@@ -515,21 +515,21 @@ class CustomToolManagerDialog(Dialog):
 			'in the tool menu and in the tool bar or context menus.'
 		)) # T: help text in "Custom Tools" dialog
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		self.vbox.add(hbox)
 
 		self.listview = CustomToolList(self.manager)
 		hbox.add(self.listview)
 
-		vbox = gtk.VBox(spacing=5)
+		vbox = Gtk.VBox(spacing=5)
 		hbox.pack_start(vbox, False)
 
 		for stock, handler, data in (
-			(gtk.STOCK_ADD, self.__class__.on_add, None),
-			(gtk.STOCK_EDIT, self.__class__.on_edit, None),
-			(gtk.STOCK_DELETE, self.__class__.on_delete, None),
-			(gtk.STOCK_GO_UP, self.__class__.on_move, -1),
-			(gtk.STOCK_GO_DOWN, self.__class__.on_move, 1),
+			(Gtk.STOCK_ADD, self.__class__.on_add, None),
+			(Gtk.STOCK_EDIT, self.__class__.on_edit, None),
+			(Gtk.STOCK_DELETE, self.__class__.on_delete, None),
+			(Gtk.STOCK_GO_UP, self.__class__.on_move, -1),
+			(Gtk.STOCK_GO_DOWN, self.__class__.on_move, 1),
 		):
 			button = IconButton(stock) # TODO tooltips for icon button
 			if data:
@@ -569,29 +569,29 @@ class CustomToolManagerDialog(Dialog):
 			self.listview.select(i + step)
 
 
-class CustomToolList(gtk.TreeView):
+class CustomToolList(Gtk.TreeView):
 
 	PIXBUF_COL = 0
 	TEXT_COL = 1
 	NAME_COL = 2
 
 	def __init__(self, manager):
-		gtk.TreeView.__init__(self)
+		GObject.GObject.__init__(self)
 		self.manager = manager
 
-		model = gtk.ListStore(gtk.gdk.Pixbuf, str, str)
+		model = Gtk.ListStore(GdkPixbuf.Pixbuf, str, str)
 				# PIXBUF_COL, TEXT_COL, NAME_COL
 		self.set_model(model)
 		self.set_headers_visible(False)
 
-		self.get_selection().set_mode(gtk.SELECTION_BROWSE)
+		self.get_selection().set_mode(Gtk.SelectionMode.BROWSE)
 
-		cr = gtk.CellRendererPixbuf()
-		column = gtk.TreeViewColumn('_pixbuf_', cr, pixbuf=self.PIXBUF_COL)
+		cr = Gtk.CellRendererPixbuf()
+		column = Gtk.TreeViewColumn('_pixbuf_', cr, pixbuf=self.PIXBUF_COL)
 		self.append_column(column)
 
-		cr = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('_text_', cr, markup=self.TEXT_COL)
+		cr = Gtk.CellRendererText()
+		column = Gtk.TreeViewColumn('_text_', cr, markup=self.TEXT_COL)
 		self.append_column(column)
 
 		self.refresh()
@@ -619,7 +619,7 @@ class CustomToolList(gtk.TreeView):
 		model = self.get_model()
 		model.clear()
 		for tool in self.manager:
-			pixbuf = tool.get_pixbuf(gtk.ICON_SIZE_MENU)
+			pixbuf = tool.get_pixbuf(Gtk.IconSize.MENU)
 			text = '<b>%s</b>\n%s' % (encode_markup_text(tool.name), encode_markup_text(tool.comment))
 			model.append((pixbuf, text, tool.key))
 
@@ -657,15 +657,15 @@ class EditCustomToolDialog(Dialog):
 		}, trigger_response=False)
 
 		# FIXME need ui builder to take care of this as well
-		self.iconbutton = IconChooserButton(stock=gtk.STOCK_EXECUTE)
-		if tool and tool.icon and tool.icon != gtk.STOCK_EXECUTE:
+		self.iconbutton = IconChooserButton(stock=Gtk.STOCK_EXECUTE)
+		if tool and tool.icon and tool.icon != Gtk.STOCK_EXECUTE:
 			try:
 				self.iconbutton.set_file(File(tool.icon))
 			except Exception as error:
 				logger.exception('Could not load: %s', tool.icon)
-		label = gtk.Label(_('Icon') + ':') # T: Input in "Edit Custom Tool" dialog
+		label = Gtk.Label(label=_('Icon') + ':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
-		hbox = gtk.HBox()
+		hbox = Gtk.HBox()
 		i = self.form.get_property('n-rows')
 		self.form.attach(label, 0, 1, i, i + 1, xoptions=0)
 		self.form.attach(hbox, 1, 2, i, i + 1)

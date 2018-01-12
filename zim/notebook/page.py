@@ -178,8 +178,8 @@ class Path(object):
 		return not self.__eq__(other)
 
 	def __add__(self, name):
-		'''C{path + name} is an alias for C{path.child(name)}'''
-		return self.child(name)
+		'''C{path + name} is an alias for C{path.get_child()(name)}'''
+		return self.get_child()(name)
 
 	@property
 	def parts(self):

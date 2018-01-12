@@ -47,7 +47,7 @@ import time
 import threading
 import Queue
 
-import gtk
+from gi.repository import Gtk
 
 import logging
 
@@ -84,7 +84,7 @@ class ThumbnailCreatorFailure(ValueError):
 from zim.newfs.local import _replace_file as _atomic_rename
 
 def pixbufThumbnailCreator(file, thumbfile, thumbsize):
-	'''Thumbnailer implementation that uses the C{gtk.gdk.Pixbuf}
+	'''Thumbnailer implementation that uses the C{GdkPixbuf.Pixbuf}
 	functions to create the thumbnail.
 	'''
 	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)) \
@@ -98,7 +98,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		'tEXt::Thumb::MTime': str(int(file.mtime())),
 	}
 	try:
-		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.encodedpath, thumbsize, thumbsize)
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.encodedpath, thumbsize, thumbsize)
 		pixbuf = rotate_pixbuf(pixbuf)
 		pixbuf.save(tmpfile.encodedpath, 'png', options)
 		_atomic_rename(tmpfile.encodedpath, thumbfile.encodedpath)
@@ -255,7 +255,7 @@ class ThumbnailManager(object):
 		thumbfile = self.get_thumbnail_file(file, size)
 		if thumbfile.exists():
 			# Check the thumbnail is valid
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(thumbfile.encodedpath, size, size)
 			mtime = pixbuf.get_option('tEXt::Thumb::MTime')
 			if mtime and int(mtime) == int(file.mtime()):
 				return thumbfile, pixbuf
@@ -289,11 +289,11 @@ class ThumbnailManager(object):
 		os.chmod(thumbfile.encodedpath, 0o600)
 
 		if not pixbuf:
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(thumbfile.encodedpath, size, size)
 		elif thumbsize != size:
 			w, h = pixbuf.get_width(), pixbuf.get_height()
 			sw, sh = (size, int(size * float(h) / w)) if (w > h) else (int(size * float(w) / h), size)
-			pixbuf = pixbuf.scale_simple(sw, sh, gtk.gdk.INTERP_NEAREST)
+			pixbuf = pixbuf.scale_simple(sw, sh, GdkPixbuf.InterpType.NEAREST)
 
 		return thumbfile, pixbuf
 

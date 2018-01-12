@@ -73,7 +73,7 @@ are added to the search path for C{zim.plugins}.
 from __future__ import with_statement
 
 
-import gobject
+from gi.repository import GObject
 import types
 import os
 import sys
@@ -712,7 +712,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 
 
 class WindowExtension(ObjectExtension):
-	'''Base class for extending gtk windows based on C{gtk.Window}
+	'''Base class for extending gtk windows based on C{Gtk.Window}
 
 	The main use of this base class it that it helps adding menu items
 	to the menubar and/or toolbar of the window (if it has any). To do this you need
@@ -730,9 +730,9 @@ class WindowExtension(ObjectExtension):
 	and toolbar. Is is a piece of XML that defines the position of the
 	now menu and toolbar items. Each new item should have a name
 	corresponding with a "action" method defined in the same class.
-	See documentation of C{gtk.UIManager} for the XML definition.
+	See documentation of C{Gtk.UIManager} for the XML definition.
 
-	@ivar window: the C{gtk.Window}
+	@ivar window: the C{Gtk.Window}
 
 	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
 	C{None} if the window does not maintain ui state
@@ -748,7 +748,7 @@ class WindowExtension(ObjectExtension):
 	def __init__(self, plugin, window):
 		'''Constructor
 		@param plugin: the plugin object to which this extension belongs
-		@param window: the C{gtk.Window} being extended
+		@param window: the C{Gtk.Window} being extended
 		'''
 		ObjectExtension.__init__(self, plugin, window)
 		self.window = window
@@ -784,7 +784,7 @@ class WindowExtension(ObjectExtension):
 
 
 class DialogExtension(WindowExtension):
-	'''Base class for extending gtk dialogs based on C{gtk.Dialog}'''
+	'''Base class for extending gtk dialogs based on C{Gtk.Dialog}'''
 
 	def __init__(self, plugin, window):
 		assert hasattr(window, 'action_area'), 'Not a dialog: %s' % window
@@ -795,7 +795,7 @@ class DialogExtension(WindowExtension):
 		'''Add a new button to the bottom area of the dialog
 		The button is placed left of the standard buttons like the
 		"OK" / "Cancel" or "Close" button of the dialog.
-		@param button: a C{gtk.Button} or similar widget
+		@param button: a C{Gtk.Button} or similar widget
 		'''
 		# This logic adds the button to the action area and places
 		# it left of the left most primary button by reshuffling all

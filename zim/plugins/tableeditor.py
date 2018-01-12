@@ -13,11 +13,11 @@
 # 				ideas: save everytime the whole table OR save a tuple (position in textview, row, column)
 
 
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 import logging
 import re
-import pango
+from gi.repository import Pango
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
@@ -55,9 +55,9 @@ SYNTAX_WIKI_PANGO2 = [
 ]
 
 # Possible alignments in edit-table-dialog
-COLUMNS_ALIGNMENTS = {'left': ['left', gtk.STOCK_JUSTIFY_LEFT, _('Left')],  # T: alignment option
-					  'center': ['center', gtk.STOCK_JUSTIFY_CENTER, _('Center')],  # T: alignment option
-					  'right': ['right', gtk.STOCK_JUSTIFY_RIGHT, _('Right')],  # T: alignment option
+COLUMNS_ALIGNMENTS = {'left': ['left', Gtk.STOCK_JUSTIFY_LEFT, _('Left')],  # T: alignment option
+					  'center': ['center', Gtk.STOCK_JUSTIFY_CENTER, _('Center')],  # T: alignment option
+					  'right': ['right', Gtk.STOCK_JUSTIFY_RIGHT, _('Right')],  # T: alignment option
 					  'normal': ['normal', None, _('Unspecified')], }  # T: alignment option
 
 
@@ -308,7 +308,7 @@ class TableViewObject(CustomObjectClass):
 	def _get_liststore(self, reset=False):
 		if reset or not self._liststore:
 			cols = [str] * len(self._header)
-			self._liststore = gtk.ListStore(*cols)
+			self._liststore = Gtk.ListStore(*cols)
 			for trow in self._rows:
 				self._liststore.append(trow)
 			self._liststore.connect('row-changed', self.on_modified_changed)
@@ -444,10 +444,10 @@ class TableViewObject(CustomObjectClass):
 
 
 GTK_GRIDLINES = {
-	LINES_BOTH: gtk.TREE_VIEW_GRID_LINES_BOTH,
-	LINES_NONE: gtk.TREE_VIEW_GRID_LINES_NONE,
-	LINES_HORIZONTAL: gtk.TREE_VIEW_GRID_LINES_HORIZONTAL,
-	LINES_VERTICAL: gtk.TREE_VIEW_GRID_LINES_VERTICAL,
+	LINES_BOTH: Gtk.TREE_VIEW_GRID_LINES_BOTH,
+	LINES_NONE: Gtk.TREE_VIEW_GRID_LINES_NONE,
+	LINES_HORIZONTAL: Gtk.TREE_VIEW_GRID_LINES_HORIZONTAL,
+	LINES_VERTICAL: Gtk.TREE_VIEW_GRID_LINES_VERTICAL,
 }
 
 
@@ -462,7 +462,7 @@ class TableViewWidget(CustomObjectWidget):
 		This is a group of GTK Gui elements which are directly displayed within the wiki textarea
 		On initilizing also some signals are registered and a toolbar is initialized
 		:param obj: a Table-View-Object
-		:param liststore: a gtk.ListStore object
+		:param liststore: a Gtk.ListStore object
 		:param headers: list of titles
 		:param attrs: table settings, like alignment and wrapping
 		:return:
@@ -475,7 +475,7 @@ class TableViewWidget(CustomObjectWidget):
 
 		# used here
 		self.obj = obj
-		self._timer = None  # NONE or number of current gobject.timer, which is running
+		self._timer = None  # NONE or number of current GObject.timer, which is running
 		self._keep_toolbar_open = False  # a cell is currently edited, toolbar should not be hidden
 		self._cellinput_canceled = None  # cell changes should be skipped
 		self._toolbar_enabled = True  # sets if toolbar should be shown beneath a selected table
@@ -490,9 +490,9 @@ class TableViewWidget(CustomObjectWidget):
 		self._init_treeview(liststore, headers, attrs)
 
 		# package gui elements
-		self.vbox.pack_end(self.toolbar)
-		self.scroll_win = ScrolledWindow(self.treeview, gtk.POLICY_NEVER, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
-		self.vbox.pack_start(self.scroll_win)
+		self.vbox.pack_end(self.toolbar, True, True, 0)
+		self.scroll_win = ScrolledWindow(self.treeview, Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER, Gtk.ShadowType.NONE)
+		self.vbox.pack_start(self.scroll_win, True, True, 0)
 
 	def _init_treeview(self, liststore, headers, attrs):
 		# Actual gtk table object
@@ -505,14 +505,14 @@ class TableViewWidget(CustomObjectWidget):
 		self.treeview.connect('move-cursor', self.on_move_cursor)
 
 		# Set options
-		self.treeview.set_grid_lines(gtk.TREE_VIEW_GRID_LINES_BOTH)
+		self.treeview.set_grid_lines(Gtk.TREE_VIEW_GRID_LINES_BOTH)
 		self.treeview.set_receives_default(True)
 		self.treeview.set_size_request(-1, -1)
 		self.treeview.set_border_width(2)
 
 		# disable interactive column search
 		self.treeview.set_enable_search(False)
-		gtk.binding_entry_remove(gtk.TreeView, gtk.keysyms.f, gtk.gdk.CONTROL_MASK)
+		Gtk.binding_entry_remove(Gtk.TreeView, Gdk.KEY_f, Gdk.ModifierType.CONTROL_MASK)
 		self.treeview.set_search_column(-1)
 
 	def on_model_changed(self, liststore, headers, attrs):
@@ -534,10 +534,10 @@ class TableViewWidget(CustomObjectWidget):
 			cr = col.get_cell_renderers()[0]
 			cr.set_property('wrap-width', -1) # reset size
 
-			#~ col.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
+			#~ col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)  # allow column shrinks
 			#~ col.set_max_width(0)	 # shrink column
 			#~ col.set_max_width(-1)  # reset value
-			#~ col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)  # reset value
+			#~ col.set_sizing(Gtk.TreeViewColumnSizing.GROW_ONLY)  # reset value
 
 		CustomObjectWidget.do_size_request(self, requisition)
 
@@ -569,7 +569,7 @@ class TableViewWidget(CustomObjectWidget):
 
 		self._keep_toolbar_open = False
 		if self._timer:
-			gobject.source_remove(self._timer)
+			GObject.source_remove(self._timer)
 		if self._toolbar_enabled:
 			toolbar.show()
 
@@ -585,32 +585,32 @@ class TableViewWidget(CustomObjectWidget):
 					toolbar.hide()
 			return False
 
-		self._timer = gobject.timeout_add(500, receive_alarm)
+		self._timer = GObject.timeout_add(500, receive_alarm)
 
 	def create_toolbar(self):
 		'''This function creates a toolbar which is displayed next to the table'''
-		toolbar = gtk.Toolbar()
-		toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
-		toolbar.set_style(gtk.TOOLBAR_ICONS)
+		toolbar = Gtk.Toolbar()
+		toolbar.set_orientation(Gtk.Orientation.HORIZONTAL)
+		toolbar.set_style(Gtk.ToolbarStyle.ICONS)
 		toolbar.set_border_width(1)
 
-		tooltips = gtk.Tooltips()
+		tooltips = Gtk.Tooltips()
 		for pos, stock, handler, data, tooltip in (
-			(0, gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: tooltip on mouse hover
-			(1, gtk.STOCK_DELETE, self.on_delete_row, None, _('Remove row')),  # T: tooltip on mouse hover
-			(2, gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),  # T: tooltip on mouse hover
+			(0, Gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: tooltip on mouse hover
+			(1, Gtk.STOCK_DELETE, self.on_delete_row, None, _('Remove row')),  # T: tooltip on mouse hover
+			(2, Gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),  # T: tooltip on mouse hover
 			(3, None, None, None, None),
-			(4, gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),  # T: tooltip on mouse hover
-			(5, gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),  # T: tooltip on mouse hover
+			(4, Gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),  # T: tooltip on mouse hover
+			(5, Gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),  # T: tooltip on mouse hover
 			(6, None, None, None, None),
-			(7, gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns')),  # T: tooltip on mouse hover
+			(7, Gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns')),  # T: tooltip on mouse hover
 			(8, None, None, None, None),
-			(9, gtk.STOCK_HELP, self.on_open_help, None, _('Open help')),  # T: tooltip on mouse hover
+			(9, Gtk.STOCK_HELP, self.on_open_help, None, _('Open help')),  # T: tooltip on mouse hover
 		):
 			if stock is None:
-				toolbar.insert(gtk.SeparatorToolItem(), pos)
+				toolbar.insert(Gtk.SeparatorToolItem(), pos)
 			else:
-				button = gtk.ToolButton(stock)
+				button = Gtk.ToolButton(stock)
 				if data:
 					button.connect('clicked', handler, data)
 				else:
@@ -619,7 +619,7 @@ class TableViewWidget(CustomObjectWidget):
 				toolbar.insert(button, pos)
 
 		toolbar.set_size_request(300, -1)
-		toolbar.set_icon_size(gtk.ICON_SIZE_MENU)
+		toolbar.set_icon_size(Gtk.IconSize.MENU)
 
 		return toolbar
 
@@ -641,17 +641,17 @@ class TableViewWidget(CustomObjectWidget):
 		:param headers: a list of title values for the column-headers
 		:param rows: a list of list of cells, for the table body
 		:param attrs: some more attributes, which define the layout of a column
-		:return: gtk.treeview
+		:return: Gtk.treeview
 		'''
-		treeview = gtk.TreeView(liststore)
+		treeview = Gtk.TreeView(liststore)
 
 		# Set default sorting function.
 		liststore.set_default_sort_func(lambda *a: 0)
 
 		for i, headcol in enumerate(headers):
-			cell = gtk.CellRendererText()
-			tview_column = gtk.TreeViewColumn(headcol, cell)
-			tview_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)  # allow column shrinks
+			cell = Gtk.CellRendererText()
+			tview_column = Gtk.TreeViewColumn(headcol, cell)
+			tview_column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)  # allow column shrinks
 			treeview.append_column(tview_column)
 
 			# set title as label
@@ -673,7 +673,7 @@ class TableViewWidget(CustomObjectWidget):
 
 			# set wrap mode, wrap-size is set elsewhere
 			if attrs['wraps'][i]:
-				cell.set_property('wrap-mode', pango.WRAP_WORD)
+				cell.set_property('wrap-mode', Pango.WrapMode.WORD)
 
 			# callbacks after an action
 			cell.connect('edited', self.on_cell_changed, treeview.get_model(), i)
@@ -688,20 +688,20 @@ class TableViewWidget(CustomObjectWidget):
 	@staticmethod
 	def create_headerlabel(title):
 		''' Sets options for the treeview header'''
-		col_widget = gtk.VBox()
+		col_widget = Gtk.VBox()
 		col_widget.show()
 
 
-		col_label = gtk.Label('<u>' + title + '</u>')
+		col_label = Gtk.Label(label='<u>' + title + '</u>')
 		col_label.set_use_markup(True)
 		col_label.show()
-		col_widget.pack_start(col_label)
+		col_widget.pack_start(col_label, True, True, 0)
 		#col_align.add(col_label)
 
 		'''col_entry = InputEntry()
 		col_entry.set_name('treeview-header-entry')
 		col_entry.show()
-		col_widget.pack_start(col_entry)'''
+		col_widget.pack_start(col_entry, True, True, 0)'''
 
 		return col_widget
 
@@ -738,7 +738,7 @@ class TableViewWidget(CustomObjectWidget):
 		Displays a context-menu on right button click
 		Opens the link of a tablecell on CTRL pressed and left button click
 		'''
-		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 1 and event.get_state() & gtk.gdk.CONTROL_MASK:
+		if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 1 and event.get_state() & Gdk.ModifierType.CONTROL_MASK:
 			# With CTRL + LEFT-Mouse-Click link of cell is opened
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
@@ -746,32 +746,32 @@ class TableViewWidget(CustomObjectWidget):
 				self.emit('link-clicked', {'href': unicode(linkvalue)})
 			return
 
-		if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+		if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
 			# Right button opens context menu
 			self._keep_toolbar_open = True
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			linkitem_is_activated = (linkvalue is not None)
 
-			menu = gtk.Menu()
+			menu = Gtk.Menu()
 
 			for stock, handler, data, tooltip in (
-				(gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: menu item
-				(gtk.STOCK_DELETE, self.on_delete_row, None, _('Delete row')),  # T: menu item
-				(gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),  # T: menu item
+				(Gtk.STOCK_ADD, self.on_add_row, None, _('Add row')),  # T: menu item
+				(Gtk.STOCK_DELETE, self.on_delete_row, None, _('Delete row')),  # T: menu item
+				(Gtk.STOCK_COPY, self.on_clone_row, None, _('Clone row')),  # T: menu item
 				(None, None, None, None),  # T: menu item
-				(gtk.STOCK_JUMP_TO, self.on_open_link, linkvalue, _('Open cell content link')),  # T: menu item
+				(Gtk.STOCK_JUMP_TO, self.on_open_link, linkvalue, _('Open cell content link')),  # T: menu item
 				(None, None, None, None),
-				(gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),  # T: menu item
-				(gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),  # T: menu item
+				(Gtk.STOCK_GO_UP, self.on_move_row, -1, _('Row up')),  # T: menu item
+				(Gtk.STOCK_GO_DOWN, self.on_move_row, 1, _('Row down')),  # T: menu item
 				(None, None, None, None),
-				(gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns'))  # T: menu item
+				(Gtk.STOCK_PREFERENCES, self.on_change_columns, None, _('Change columns'))  # T: menu item
 			):
 
 				if stock is None:
-					menu.append(gtk.SeparatorMenuItem())
+					menu.append(Gtk.SeparatorMenuItem())
 				else:
-					item = gtk.ImageMenuItem(stock)
+					item = Gtk.ImageMenuItem(stock)
 					item.set_always_show_image(True)
 					item.set_label(_(tooltip))
 					if data:
@@ -794,7 +794,7 @@ class TableViewWidget(CustomObjectWidget):
 			return
 
 		# Set default sorting.
-		model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
+		model.set_sort_column_id(-1, Gtk.SortType.ASCENDING)
 
 		row = len(self.treeview.get_columns()) * ['']
 		path = model.insert_after(treeiter, row)
@@ -825,7 +825,7 @@ class TableViewWidget(CustomObjectWidget):
 			model.remove(treeiter)
 			self.obj.set_modified(True)
 		else:
-			md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+			md = Gtk.MessageDialog(None, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE,
 									_("The table must consist of at least on row!\n No deletion done."))
 									# T: Popup dialog
 			md.run()
@@ -846,7 +846,7 @@ class TableViewWidget(CustomObjectWidget):
 		newiter = model.get_iter((newpos,))
 
 		# Set default sorting.
-		model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
+		model.set_sort_column_id(-1, Gtk.SortType.ASCENDING)
 
 		# Change values of two rows.
 		for col in range(model.get_n_columns()):
@@ -926,7 +926,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def selection_info(self):
 		''' Info-Popup for selecting a cell before this action can be done '''
-		md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+		md = Gtk.MessageDialog(None, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE,
 								_("Please select a row, before you push the button."))
 		# T:
 		md.run()
@@ -1019,7 +1019,7 @@ class EditTableDialog(Dialog):
 
 		# Prepare treeview in which all columns of the table are listed
 		self.creation_mode = tablemodel is None
-		self.default_column_item = [-1, "", 0, "left", gtk.STOCK_JUSTIFY_LEFT, _("Left")]
+		self.default_column_item = [-1, "", 0, "left", Gtk.STOCK_JUSTIFY_LEFT, _("Left")]
 		# currently edited cell - tuple (editable, path, colid) save it on exit
 		self.currently_edited = None
 
@@ -1029,7 +1029,7 @@ class EditTableDialog(Dialog):
 
 		liststore = self._prepare_liststore(tablemodel)
 		self.treeview = self._prepare_treeview_with_headcolumn_list(liststore)
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		hbox.set_size_request(300, 300)
 		self.vbox.pack_start(hbox, False)
 		header_scrolled_area = ScrolledWindow(self.treeview)
@@ -1051,7 +1051,7 @@ class EditTableDialog(Dialog):
 		'''
 		first_column_item = list(self.default_column_item)
 		first_column_item[1] = _("Column 1")   # T: Initial data for column title in table
-		liststore = gtk.ListStore(int, str, int, str, str, str)
+		liststore = Gtk.ListStore(int, str, int, str, str, str)
 
 		# each table column is displayed in a new row
 		if tablemodel is None:
@@ -1070,42 +1070,42 @@ class EditTableDialog(Dialog):
 		:param liststore: model for current treeview
 		:return: the treeview
 		'''
-		treeview = gtk.TreeView(liststore)
+		treeview = Gtk.TreeView(liststore)
 
 		# 1. Column - Title
-		cell = gtk.CellRendererText()
+		cell = Gtk.CellRendererText()
 		cell.set_property('editable', True)
-		column = gtk.TreeViewColumn(_('Title'), cell, text=self.Col.title)
+		column = Gtk.TreeViewColumn(_('Title'), cell, text=self.Col.title)
 		column.set_min_width(120)
 		treeview.append_column(column)
 		cell.connect('edited', self.on_cell_changed, liststore, self.Col.title)
 		cell.connect('editing-started', self.on_cell_editing_started, liststore, self.Col.title)
 
 		# 2. Column - Wrap Line
-		cell = gtk.CellRendererToggle()
+		cell = Gtk.CellRendererToggle()
 		cell.connect('toggled', self.on_wrap_toggled, liststore, self.Col.wrapped)
-		column = gtk.TreeViewColumn(_('Auto\nWrap'), cell)  # T: table header
+		column = Gtk.TreeViewColumn(_('Auto\nWrap'), cell)  # T: table header
 		treeview.append_column(column)
 		column.add_attribute(cell, 'active', self.Col.wrapped)
 
 		# 3. Column - Alignment
-		store = gtk.ListStore(str, str, str)
+		store = Gtk.ListStore(str, str, str)
 		store.append(COLUMNS_ALIGNMENTS['left'])
 		store.append(COLUMNS_ALIGNMENTS['center'])
 		store.append(COLUMNS_ALIGNMENTS['right'])
 
-		column = gtk.TreeViewColumn(_('Align'))  # T: table header
-		cellicon = gtk.CellRendererPixbuf()
-		column.pack_start(cellicon)
+		column = Gtk.TreeViewColumn(_('Align'))  # T: table header
+		cellicon = Gtk.CellRendererPixbuf()
+		column.pack_start(cellicon, True)
 		column.add_attribute(cellicon, 'stock-id', self.Col.alignicon)
 
-		cell = gtk.CellRendererCombo()
+		cell = Gtk.CellRendererCombo()
 		cell.set_property('model', store)
 		cell.set_property('has-entry', False)
 		cell.set_property('text-column', 2)
 		cell.set_property('width', 50)
 		cell.set_property('editable', True)
-		column.pack_start(cell)
+		column.pack_start(cell, True)
 		column.add_attribute(cell, 'text', self.Col.aligntext)
 		cell.connect('changed', self.on_alignment_changed, liststore)
 		treeview.append_column(column)
@@ -1119,13 +1119,13 @@ class EditTableDialog(Dialog):
 		- move up / move down row
 		:return: vbox-panel
 		'''
-		vbox = gtk.VBox(spacing=5)
-		tooltips = gtk.Tooltips()
+		vbox = Gtk.VBox(spacing=5)
+		tooltips = Gtk.Tooltips()
 		for stock, handler, data, tooltip in (
-			(gtk.STOCK_ADD, self.on_add_new_column, None, _('Add column')),  # T: hoover tooltip
-			(gtk.STOCK_DELETE, self.on_delete_column, None, _('Remove column')),  # T: hoover tooltip
-			(gtk.STOCK_GO_UP, self.on_move_column, -1, _('Move column ahead')),  # T: hoover tooltip
-			(gtk.STOCK_GO_DOWN, self.on_move_column, 1, _('Move column backward')),  # T: hoover tooltip
+			(Gtk.STOCK_ADD, self.on_add_new_column, None, _('Add column')),  # T: hoover tooltip
+			(Gtk.STOCK_DELETE, self.on_delete_column, None, _('Remove column')),  # T: hoover tooltip
+			(Gtk.STOCK_GO_UP, self.on_move_column, -1, _('Move column ahead')),  # T: hoover tooltip
+			(Gtk.STOCK_GO_DOWN, self.on_move_column, 1, _('Move column backward')),  # T: hoover tooltip
 		):
 			button = IconButton(stock)
 			if data:
@@ -1206,7 +1206,7 @@ class EditTableDialog(Dialog):
 			if len(model) > 1:
 				model.remove(treeiter)
 			else:
-				md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+				md = Gtk.MessageDialog(None, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE,
 										_("A table needs to have at least one column."))  # T: popup dialog
 				md.run()
 				md.destroy()
@@ -1232,7 +1232,7 @@ class EditTableDialog(Dialog):
 
 	def selection_info(self):
 		''' Info-Popup for selecting a cell before this action can be done '''
-		md = gtk.MessageDialog(None, gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING, gtk.BUTTONS_CLOSE,
+		md = Gtk.MessageDialog(None, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.WARNING, Gtk.ButtonsType.CLOSE,
 								_("Please select a row, before you push the button.")) # T: Popup dialog
 		md.run()
 		md.destroy()

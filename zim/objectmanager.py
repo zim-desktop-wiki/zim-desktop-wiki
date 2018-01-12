@@ -180,11 +180,11 @@ class FallbackObject(CustomObjectClass):
 		self.buffer = None
 
 	def get_widget(self):
-		import gtk
+		from gi.repository import Gtk
 		from zim.gui.objectmanager import FallbackObjectWidget
 
 		if not self.buffer:
-			self.buffer = gtk.TextBuffer()
+			self.buffer = Gtk.TextBuffer()
 			self.buffer.set_text(self._data)
 			self.buffer.connect('modified-changed', self.on_modified_changed)
 			self.buffer.set_modified(False)

@@ -1058,7 +1058,7 @@ class TestPageChangeFile(tests.TestCase):
 
 
 try:
-	import gio
+	from gi.repository import Gio
 except ImportError:
 	gio = None
 

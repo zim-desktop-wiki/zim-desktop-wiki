@@ -4,7 +4,7 @@
 
 import logging
 
-import gtk
+from gi.repository import Gtk
 
 logger = logging.getLogger('zim.gui')
 
@@ -78,14 +78,14 @@ class UIActions(object):
 	def populate_menu_with_actions(self, scope, menu):
 		assert scope == PAGE_ACTIONS
 
-		uimanager = gtk.UIManager()
+		uimanager = Gtk.UIManager()
 		group = get_gtk_actiongroup(self)
 		uimanager.insert_action_group(group, 0)
 		xml = _get_xml_for_menu(scope + '_popup')
 		uimanager.add_ui_from_string(xml)
 
 		tmp_menu = uimanager.get_widget('/' + scope + '_popup')
-		assert isinstance(tmp_menu, gtk.Menu)
+		assert isinstance(tmp_menu, Gtk.Menu)
 		for item in tmp_menu.get_children():
 			item.reparent(menu)
 
@@ -254,8 +254,8 @@ class UIActions(object):
 		'''Menu action for quit.
 		@emits: quit
 		'''
-		if gtk.main_level() > 0:
-			gtk.main_quit()
+		if Gtk.main_level() > 0:
+			Gtk.main_quit()
 		# We expect the application to call "destroy" on all windows once
 		# it is bumped out of the main loop
 
@@ -554,7 +554,7 @@ class ImportPageDialog(FileDialog):
 class SaveCopyDialog(FileDialog):
 
 	def __init__(self, widget, notebook, page):
-		FileDialog.__init__(self, widget, _('Save Copy'), gtk.FILE_CHOOSER_ACTION_SAVE)
+		FileDialog.__init__(self, widget, _('Save Copy'), Gtk.FileChooserAction.SAVE)
 			# T: Dialog title of file save dialog
 		self.page = page
 		self.filechooser.set_current_name(page.name + '.txt')
@@ -583,7 +583,7 @@ class RenamePageDialog(Dialog):
 		self.path = path
 		page = self.notebook.get_page(self.path)
 
-		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
+		self.vbox.add(Gtk.Label(label=_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
 
 		try:
@@ -645,7 +645,7 @@ class MovePageDialog(Dialog):
 		self.notebook = notebook
 		self.path = path
 
-		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
+		self.vbox.add(Gtk.Label(label=_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
 
 		try:
@@ -699,16 +699,16 @@ class DeletePageDialog(Dialog):
 		self.path = path
 		self.update_links = update_links
 
-		hbox = gtk.HBox(spacing=12)
+		hbox = Gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
 
-		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
+		img = Gtk.Image.new_from_stock(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
 		hbox.pack_start(img, False)
 
-		vbox = gtk.VBox(spacing=5)
+		vbox = Gtk.VBox(spacing=5)
 		hbox.pack_start(vbox, False)
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
 		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
@@ -730,7 +730,7 @@ class DeletePageDialog(Dialog):
 		if n > 0:
 			string = '<b>' + string + '</b>'
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup('\n' + string + ':')
 		self.vbox.add(label)
 		window, textview = ScrolledTextView(text, monospace=True)
@@ -844,17 +844,17 @@ You can use another name or overwrite the existing file.''' % file.basename),
 
 		# all buttons are defined in this class, to get the ordering right
 		# [show folder]      [overwrite] [cancel] [ok]
-		button = gtk.Button(_('_Browse')) # T: Button label
+		button = Gtk.Button(_('_Browse')) # T: Button label
 		button.connect('clicked', self.do_show_folder)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-		button = gtk.Button(_('Overwrite')) # T: Button label
+		button = Gtk.Button(_('Overwrite')) # T: Button label
 		button.connect('clicked', self.do_response_overwrite)
-		self.add_action_widget(button, gtk.RESPONSE_NONE)
+		self.add_action_widget(button, Gtk.ResponseType.NONE)
 
-		self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-		self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+		self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+		self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
 		self._no_ok_action = False
 
 		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
@@ -888,13 +888,13 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		return True
 
 
-class MyAboutDialog(gtk.AboutDialog):
+class MyAboutDialog(Gtk.AboutDialog):
 
 	def __init__(self):
-		gtk.about_dialog_set_url_hook(lambda d, l: open_url(l))
-		gtk.about_dialog_set_email_hook(lambda d, l: open_url(l))
+		Gtk.about_dialog_set_url_hook(lambda d, l: open_url(l))
+		Gtk.about_dialog_set_email_hook(lambda d, l: open_url(l))
 
-		gtk.AboutDialog.__init__(self)
+		GObject.GObject.__init__(self)
 
 		try: # since gtk 2.12
 			self.set_program_name('Zim')
@@ -906,7 +906,7 @@ class MyAboutDialog(gtk.AboutDialog):
 		self.set_comments(_('A desktop wiki'))
 			# T: General description of zim itself
 		file = data_file('zim.png')
-		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 		self.set_logo(pixbuf)
 		self.set_copyright(zim.__copyright__)
 		self.set_license(zim.__license__)

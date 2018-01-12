@@ -4,7 +4,7 @@
 
 from __future__ import with_statement
 
-import gtk
+from gi.repository import Gtk
 
 import logging
 
@@ -233,9 +233,9 @@ class FormatPage(AssistantPage):
 		})
 
 		## Same button appears in edit preferences dialog
-		if gtk.gtk_version >= (2, 10) \
-		and gtk.pygtk_version >= (2, 10):
-			url_button = gtk.LinkButton(
+		if Gtk.gtk_version >= (2, 10) \
+		and Gtk.pygtk_version >= (2, 10):
+			url_button = Gtk.LinkButton(
 				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
 				_('Get more templates online') # T: label for button with URL
 			)

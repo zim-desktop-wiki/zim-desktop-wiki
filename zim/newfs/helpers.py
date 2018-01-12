@@ -5,8 +5,8 @@
 '''Helper classes for file system related functions'''
 
 try:
-	import gio
-	import gobject
+	from gi.repository import Gio
+	from gi.repository import GObject
 except ImportError:
 	gio = None
 
@@ -74,16 +74,16 @@ class TrashHelper(object):
 
 		if file.exists():
 			logger.info('Move %s to trash' % file)
-			f = gio.File(uri=file.uri)
+			f = Gio.File.new_for_uri(file.uri)
 			try:
 				ok = f.trash()
-			except gobject.GError as error:
-				if error.code == gio.ERROR_CANCELLED \
+			except GObject.GError as error:
+				if error.code == Gio.ERROR_CANCELLED \
 				or (os.name == 'nt' and error.code == 0):
 					# code 0 observed on windows for cancel
 					logger.info('Trash operation cancelled')
 					raise TrashCancelledError('Trashing cancelled')
-				elif error.code == gio.ERROR_NOT_SUPPORTED:
+				elif error.code == Gio.ERROR_NOT_SUPPORTED:
 					raise TrashNotSupportedError('Trashing failed')
 				else:
 					raise error
@@ -112,7 +112,7 @@ class FSObjectMonitor(SignalEmitter):
 		and self._gio_file_monitor is None \
 		and gio:
 			try:
-				file = gio.File(uri=self.path.uri)
+				file = Gio.File.new_for_uri(self.path.uri)
 				self._gio_file_monitor = file.monitor()
 				self._gio_file_monitor.connect('changed', self._on_changed)
 			except:
@@ -148,10 +148,10 @@ class FSObjectMonitor(SignalEmitter):
 
 		#~ print 'MONITOR:', self, event_type
 		if event_type in (
-			gio.FILE_MONITOR_EVENT_CREATED,
-			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
-			gio.FILE_MONITOR_EVENT_DELETED,
-			gio.FILE_MONITOR_EVENT_MOVED,
+			Gio.FileMonitorEvent.CREATED,
+			Gio.FileMonitorEvent.CHANGES_DONE_HINT,
+			Gio.FileMonitorEvent.DELETED,
+			Gio.FileMonitorEvent.MOVED,
 		):
 			self.emit('changed', None, None) # TODO translate otherfile and eventtype
 

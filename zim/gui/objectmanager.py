@@ -4,8 +4,8 @@
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 
 from zim.objectmanager import ObjectManager
 
@@ -16,10 +16,10 @@ from zim.gui.widgets import ScrolledTextView, ScrolledWindow, TableVBox
 POSITION_BEGIN = 1
 POSITION_END = 2
 
-class CustomObjectWidget(gtk.EventBox):
+class CustomObjectWidget(Gtk.EventBox):
 	'''Base class & contained for custom object widget
 
-	We derive from a C{gtk.EventBox} because we want to re-set the
+	We derive from a C{Gtk.EventBox} because we want to re-set the
 	default cursor for the area of the object widget. For this the
 	widget needs it's own window for drawing.
 
@@ -37,18 +37,18 @@ class CustomObjectWidget(gtk.EventBox):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'link-clicked': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'link-enter': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'link-leave': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'link-clicked': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'link-enter': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'link-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 
-		'grab-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
-		'release-cursor': (gobject.SIGNAL_RUN_LAST, None, (int,)),
+		'grab-cursor': (GObject.SignalFlags.RUN_LAST, None, (int,)),
+		'release-cursor': (GObject.SignalFlags.RUN_LAST, None, (int,)),
 
 		'size-request': 'override',
 	}
 
 	def __init__(self):
-		gtk.EventBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_border_width(5)
 		self._has_cursor = False
 		self.vbox = TableVBox()
@@ -56,15 +56,15 @@ class CustomObjectWidget(gtk.EventBox):
 		self._textview_width = -1
 
 	def do_realize(self):
-		gtk.EventBox.do_realize(self)
-		self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.ARROW))
+		Gtk.EventBox.do_realize(self)
+		self.window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
 
 	def on_textview_size_changed(self, textview, width, height):
 		self._textview_width = width
 		self.queue_resize()
 
 	def do_size_request(self, requisition):
-		gtk.EventBox.do_size_request(self, requisition)
+		Gtk.EventBox.do_size_request(self, requisition)
 
 		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
 		if self._textview_width > requisition.width:
@@ -91,7 +91,7 @@ class CustomObjectWidget(gtk.EventBox):
 		'''Emits the release-cursor signal'''
 		self.emit('release-cursor', position)
 
-gobject.type_register(CustomObjectWidget)
+GObject.type_register(CustomObjectWidget)
 
 
 
@@ -105,10 +105,10 @@ class TextViewWidget(CustomObjectWidget):
 		self.buffer = buffer
 
 		win, self.view = ScrolledTextView(monospace=True,
-			hpolicy=gtk.POLICY_AUTOMATIC, vpolicy=gtk.POLICY_NEVER, shadow=gtk.SHADOW_NONE)
+			hpolicy=Gtk.PolicyType.AUTOMATIC, vpolicy=Gtk.PolicyType.NEVER, shadow=Gtk.ShadowType.NONE)
 		self.view.set_buffer(buffer)
 		self.view.set_editable(True)
-		self.vbox.pack_start(win)
+		self.vbox.pack_start(win, True, True, 0)
 
 		self._init_signals()
 
@@ -171,27 +171,27 @@ class FallbackObjectWidget(TextViewWidget):
 		if plugin:
 			self._add_load_plugin_bar(plugin)
 		else:
-			label = gtk.Label(_("No plugin is available to display this object.")) # T: Label for object manager
-			self.vbox.pack_start(label)
+			label = Gtk.Label(label=_("No plugin is available to display this object.")) # T: Label for object manager
+			self.vbox.pack_start(label, True, True, 0)
 
 	def _add_load_plugin_bar(self, plugin):
 		key, name, activatable, klass, _winextension = plugin
 
-		hbox = gtk.HBox(False, 5)
-		label = gtk.Label(_("Plugin %s is required to display this object.") % name)
+		hbox = Gtk.HBox(False, 5)
+		label = Gtk.Label(label=_("Plugin %s is required to display this object.") % name)
 			# T: Label for object manager
-		hbox.pack_start(label)
+		hbox.pack_start(label, True, True, 0)
 
 		#~ if activatable: # and False:
 			# Plugin can be enabled
-			#~ button = gtk.Button(_("Enable plugin")) # T: Label for object manager
+			#~ button = Gtk.Button(_("Enable plugin")) # T: Label for object manager
 			#~ def load_plugin(button):
 				#~ xxx.plugins.load_plugin(key)
 				#~ xxx.mainwindow.reload_page()
 			#~ button.connect("clicked", load_plugin)
 		#~ else:
 			# Plugin has some unresolved dependencies
-			#~ button = gtk.Button(_("Show plugin details")) # T: Label for object manager
+			#~ button = Gtk.Button(_("Show plugin details")) # T: Label for object manager
 			#~ def plugin_info(button):
 				#~ from zim.gui.preferencesdialog import PreferencesDialog
 				#~ dialog = PreferencesDialog(self, "Plugins", select_plugin=name)
@@ -199,8 +199,8 @@ class FallbackObjectWidget(TextViewWidget):
 				#~ xxx.mainwindow.reload_page()
 			#~ button.connect("clicked", plugin_info)
 
-		#~ hbox.pack_start(button)
-		self.vbox.pack_start(hbox)
+		#~ hbox.pack_start(button, True, True, 0)
+		self.vbox.pack_start(hbox, True, True, 0)
 		self.vbox.reorder_child(hbox, 0)
 
 

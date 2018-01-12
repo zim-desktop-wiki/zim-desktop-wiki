@@ -13,8 +13,8 @@ from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
 
 
 def MyWindow(config):
-	import gtk
-	window = gtk.Window()
+	from gi.repository import Gtk
+	window = Gtk.Window()
 	window.__pluginmanager__ = PluginManager(config)
 	return window
 

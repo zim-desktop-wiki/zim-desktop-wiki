@@ -14,7 +14,7 @@ logger = logging.getLogger('threading')
 
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
 	gobject = None
 
@@ -55,7 +55,7 @@ class FunctionThread(threading.Thread):
 			self.lock.acquire()
 		threading.Thread.start(self)
 		if gobject:
-			gobject.idle_add(self._monitor_on_idle)
+			GObject.idle_add(self._monitor_on_idle)
 
 	def _monitor_on_idle(self):
 		# Only goal if this callback is to ensure python runs in mainloop

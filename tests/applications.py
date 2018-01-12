@@ -9,7 +9,7 @@ import tests
 
 import os
 import sys
-import gtk
+from gi.repository import Gtk
 
 from zim.gui.applications import *
 from zim.notebook import Path
@@ -27,7 +27,7 @@ class TestXDGMimeInfo(tests.TestCase):
 		for i, filename in enumerate(dir.list()):
 			file = dir.file(filename)
 			icon = get_mime_icon(file, 128)
-			self.assertIsInstance(icon, gtk.gdk.Pixbuf)
+			self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
 			desc = get_mime_description(file.get_mimetype())
 			self.assertIsInstance(desc, basestring)
 			self.assertTrue(len(desc) > 5)

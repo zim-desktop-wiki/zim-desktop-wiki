@@ -6,7 +6,7 @@ from __future__ import with_statement
 
 import tests
 
-import gtk
+from gi.repository import Gtk
 
 from zim.newfs import LocalFolder, LocalFile
 from zim.config import XDG_DATA_HOME
@@ -72,7 +72,7 @@ class TestTemplateEditor(tests.TestCase):
 			want = LocalFile(XDG_DATA_HOME.file('zim/templates/html/foo_test.html').path)
 			self.assertEqual(got, want)
 
-		with tests.DialogContext(gtk.MessageDialog):
+		with tests.DialogContext(Gtk.MessageDialog):
 			with tests.ApplicationContext(open_file):
 				dialog.on_edit()
 

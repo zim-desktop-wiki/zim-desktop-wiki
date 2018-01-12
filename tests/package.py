@@ -137,13 +137,13 @@ class TestCoding(tests.TestCase):
 	def testWrongMethod(self):
 		'''Check for a couple of constructs to be avoided'''
 		for file, code in self.list_code():
-			self.assertFalse('gtk.Entry(' in code, '%s uses gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
+			self.assertFalse('Gtk.Entry(' in code, '%s uses Gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
 			self.assertFalse('get_visible(' in code, '%s uses get_visible() - use get_property() instead' % file)
 			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
 			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use get_property() instead' % file)
 			#~ self.assertFalse('connect_object(' in code, '%s uses connect_object() - use connect() instead to prevent reference leaking' % file)
-			self.assertFalse('gtk.HPaned(' in code, '%s uses gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
-			self.assertFalse('gtk.VPaned(' in code, '%s uses gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
+			self.assertFalse('Gtk.HPaned(' in code, '%s uses Gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
+			self.assertFalse('Gtk.VPaned(' in code, '%s uses Gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
 
 			if not file.endswith('pageview.py'):
 				self.assertFalse('string.letters' in code, '%s uses string.letters - this can case locale dependent issues' % file)
@@ -151,10 +151,10 @@ class TestCoding(tests.TestCase):
 				self.assertFalse('srting.uppercase' in code, '%s uses string.uppercase - this can case locale dependent issues' % file)
 
 			if not file.endswith('widgets.py'):
-				self.assertFalse('gtk.ScrolledWindow(' in code, '%s uses gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)
+				self.assertFalse('Gtk.ScrolledWindow(' in code, '%s uses Gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)
 
 			if not file.endswith('clipboard.py'):
-				self.assertFalse('gtk.Clipboard(' in code, '%s uses gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
+				self.assertFalse('Gtk.Clipboard(' in code, '%s uses Gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
 
 			if not file.endswith('config.py'):
 				self.assertFalse('os.environ\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)

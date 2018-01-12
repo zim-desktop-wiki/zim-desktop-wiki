@@ -2,8 +2,8 @@
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 
 import logging
 
@@ -87,7 +87,7 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		version_ok = (gtk.gtk_version >= (2, 10, 0) and gtk.pygtk_version >= (2, 10, 0))
+		version_ok = (Gtk.gtk_version >= (2, 10, 0) and Gtk.pygtk_version >= (2, 10, 0))
 		return (version_ok, [
 			('GTK >= 2.10', version_ok, True),
 			('Unity appindicator', bool(appindicator), False),
@@ -129,25 +129,25 @@ class TrayIconBase(object):
 
 	def get_trayicon_menu(self):
 		'''Returns the main 'tray icon menu'''
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 
-		item = gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quick_note, self)
 		menu.append(item)
 
-		menu.append(gtk.SeparatorMenuItem())
+		menu.append(Gtk.SeparatorMenuItem())
 
 		notebooks = self.list_all_notebooks()
 		self.populate_menu_with_notebooks(menu, notebooks)
 
-		item = gtk.MenuItem('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
+		item = Gtk.MenuItem('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
 			# T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_open_notebook, self)
 		menu.append(item)
 
-		menu.append(gtk.SeparatorMenuItem())
+		menu.append(Gtk.SeparatorMenuItem())
 
-		item = gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quit, self)
 		menu.append(item)
 
@@ -196,7 +196,7 @@ class TrayIconBase(object):
 	def populate_menu_with_notebooks(self, menu, notebooks):
 		'''Populate a menu with a list of notebooks'''
 		# TODO put checkbox behind open notebooks ?
-		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
 		item.set_sensitive(False)
 		menu.append(item)
 
@@ -207,11 +207,11 @@ class TrayIconBase(object):
 
 		for info in notebooks:
 			#~ print '>>>', info
-			item = gtk.MenuItem('  ' + info.name)
+			item = Gtk.MenuItem('  ' + info.name)
 				# Hack - using '  ' to indent visually
 			if info.active:
 				child = item.get_child()
-				if isinstance(child, gtk.Label):
+				if isinstance(child, Gtk.Label):
 					# FIXME this doesn't seem to work in Ubuntu menu :(
 					child.set_markup('  <b>' + info.name + '</b>')
 						# Hack - using '  ' to indent visually
@@ -226,8 +226,8 @@ class TrayIconBase(object):
 
 	def do_quit(self):
 		'''Quit zim.'''
-		if gtk.main_level() > 0:
-			gtk.main_quit()
+		if Gtk.main_level() > 0:
+			Gtk.main_quit()
 
 	def do_open_notebook(self):
 		'''Opens the notebook dialogs'''
@@ -239,17 +239,17 @@ class TrayIconBase(object):
 		ZIM_APPLICATION.run('--plugin', 'quicknote')
 
 
-class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
-	'''Base class for a tray icon based on gtk.StatusIcon'''
+class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
+	'''Base class for a tray icon based on Gtk.StatusIcon'''
 
 	__gsignals__ = {
-		'destroy': (gobject.SIGNAL_RUN_LAST, None, ())
+		'destroy': (GObject.SignalFlags.RUN_LAST, None, ())
 	}
 
 	def __init__(self):
-		gtk.StatusIcon.__init__(self)
+		GObject.GObject.__init__(self)
 
-		icon_theme = gtk.icon_theme_get_default()
+		icon_theme = Gtk.IconTheme.get_default()
 		if icon_theme.has_icon('zim-panel'):
 		    self.set_from_icon_name('zim-panel')
 		else:
@@ -276,23 +276,23 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 			self.do_popup_menu_notebooks(open_notebooks)
 
 	def do_popup_menu_notebooks(self, list, button=1, activate_time=0):
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 		self.populate_menu_with_notebooks(menu, list)
 		menu.show_all()
-		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
+		menu.popup(None, None, Gtk.status_icon_position_menu, button, activate_time, self)
 
 	def do_popup_menu(self, button=3, activate_time=0):
 		#~ print '>>', button, activate_time
 		menu = self.get_trayicon_menu()
 		menu.show_all()
-		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
+		menu.popup(None, None, Gtk.status_icon_position_menu, button, activate_time, self)
 
 	def destroy(self):
 		self.set_property('visible', False)
 		self.emit('destroy')
 
 # Need to register classes overriding gobject signals
-gobject.type_register(StatusIconTrayIcon)
+GObject.type_register(StatusIconTrayIcon)
 
 
 _GLOBAL_INDICATOR = None

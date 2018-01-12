@@ -6,7 +6,7 @@
 
 import tests
 
-import gtk
+from gi.repository import Gtk
 import zim.formats
 
 from zim.gui.clipboard import *
@@ -14,14 +14,14 @@ from zim.gui.clipboard import *
 
 def get_clipboard_contents(format):
 	'''Convenience function to get data from clipboard'''
-	myclipboard = gtk.Clipboard()
+	myclipboard = Gtk.Clipboard()
 	selection = myclipboard.wait_for_contents(format)
 	return selection.data
 
 
 def set_clipboard_uris(*uris):
 	'''Convenience function to put a file on the clipboard'''
-	myclipboard = gtk.Clipboard()
+	myclipboard = Gtk.Clipboard()
 	targets = [('text/uri-list', 0, 0)]
 
 	def my_get_data(clipboard, selectiondata, id, file):
@@ -35,11 +35,11 @@ def set_clipboard_uris(*uris):
 
 def set_clipboard_image(file):
 	'''Convenience function to put image data on the clipboard'''
-	myclipboard = gtk.Clipboard()
+	myclipboard = Gtk.Clipboard()
 	targets = [('image/png', 0, 0)]
 
 	def my_get_data(clipboard, selectiondata, id, file):
-		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 		selectiondata.set_pixbuf(pixbuf)
 
 	def my_clear_data(*a):

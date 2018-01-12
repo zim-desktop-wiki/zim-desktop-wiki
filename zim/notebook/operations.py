@@ -139,7 +139,7 @@ logger = logging.getLogger('zim.notebook')
 
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
 	gobject = None
 
@@ -233,14 +233,14 @@ class NotebookOperation(SignalEmitter):
 			self.notebook._operation_check() # can raise
 
 		self.notebook._operation_check = self # start blocking
-		gobject.idle_add(self._start) # ensure start happens in main thread
+		GObject.idle_add(self._start) # ensure start happens in main thread
 
 	def is_running(self):
 		return self.notebook._operation_check == self
 
 	def _start(self):
 		my_iter = iter(self)
-		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+		GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
 		return False # run once
 
 	def cancel(self):

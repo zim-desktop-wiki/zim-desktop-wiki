@@ -4,9 +4,9 @@
 
 from __future__ import with_statement
 
-import gobject
-import gtk
-import pango
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 
 import re
 import datetime
@@ -25,9 +25,9 @@ _is_heading = lambda iter: bool(filter(_is_heading_tag, iter.get_tags()))
 
 def find_heading(buffer, heading):
 	'''Find a heading
-	@param buffer: the C{gtk.TextBuffer}
+	@param buffer: the C{Gtk.TextBuffer}
 	@param heading: text of the heading
-	@returns: a C{gtk.TextIter} for the new cursor position or C{None}
+	@returns: a C{Gtk.TextIter} for the new cursor position or C{None}
 	'''
 	regex = "^%s$" % re.escape(heading)
 	with buffer.tmp_cursor():
@@ -156,23 +156,23 @@ class ToCTreeView(BrowserTreeView):
 	def __init__(self, ellipsis):
 		BrowserTreeView.__init__(self, ToCTreeModel())
 		self.set_headers_visible(False)
-		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 			# Allow select multiple
 
-		cell_renderer = gtk.CellRendererText()
+		cell_renderer = Gtk.CellRendererText()
 		if ellipsis:
-			cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn('_heading_', cell_renderer, text=TEXT_COL)
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+			cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
+		column = Gtk.TreeViewColumn('_heading_', cell_renderer, text=TEXT_COL)
+		column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
 			# Without this sizing, column width only grows and never shrinks
 		self.append_column(column)
 
 
 
-class ToCTreeModel(gtk.TreeStore):
+class ToCTreeModel(Gtk.TreeStore):
 
 	def __init__(self):
-		gtk.TreeStore.__init__(self, str) # TEXT_COL
+		GObject.GObject.__init__(self, str) # TEXT_COL
 
 	def populate(self, parsetree, show_h1):
 		self.clear()
@@ -199,10 +199,10 @@ class ToCTreeModel(gtk.TreeStore):
 
 
 
-class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
+class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 	def __init__(self, pageview, ellipsis, show_h1=False):
-		gtk.ScrolledWindow.__init__(self)
+		GObject.GObject.__init__(self)
 		self.show_h1 = show_h1
 
 		self.treeview = ToCTreeView(ellipsis)
@@ -243,7 +243,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 		self.select_heading(path)
 
 	def select_heading(self, path):
-		'''Returns a C{gtk.TextIter} for a C{gtk.TreePath} pointing to a heading
+		'''Returns a C{Gtk.TextIter} for a C{Gtk.TreePath} pointing to a heading
 		or C{None}.
 		'''
 		model = self.treeview.get_model()
@@ -259,8 +259,8 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 
 	def select_section(self, buffer, path):
 		'''Select all text between two headings
-		@param buffer: the C{gtk.TextBuffer} to select in
-		@param path: the C{gtk.TreePath} for the heading of the section
+		@param buffer: the C{Gtk.TextBuffer} to select in
+		@param path: the C{Gtk.TreePath} for the heading of the section
 		'''
 		model = self.treeview.get_model()
 		starttext = model[path][TEXT_COL].decode('utf-8')
@@ -298,7 +298,7 @@ class ToCWidget(ConnectorMixin, gtk.ScrolledWindow):
 			(_('Promote'), can_promote, self.on_promote),
 				# T: action to raise level of heading in the text
 		):
-			item = gtk.MenuItem(text)
+			item = Gtk.MenuItem(text)
 			menu.prepend(item)
 			if sensitive:
 				item.connect('activate', handler)
@@ -396,8 +396,8 @@ class SidePaneToC(ToCWidget, WindowSidePaneWidget):
 
 	def __init__(self, pageview):
 		ToCWidget.__init__(self, pageview, ellipsis=True)
-		self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-		self.set_shadow_type(gtk.SHADOW_IN)
+		self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+		self.set_shadow_type(Gtk.ShadowType.IN)
 		self.set_size_request(-1, 200) # Fixed Height
 
 
@@ -412,25 +412,25 @@ class FloatingToC(TableVBox, ConnectorMixin):
 	def __init__(self, pageview):
 		TableVBox.__init__(self)
 
-		hscroll = gtk.HScrollbar(gtk.Adjustment())
+		hscroll = Gtk.HScrollbar(Gtk.Adjustment())
 		self._hscroll_height = hscroll.size_request()[1]
 
-		self.head = gtk.Label(_('ToC'))
+		self.head = Gtk.Label(label=_('ToC'))
 		self.head.set_padding(5, 1)
 
 		self.widget = ToCWidget(pageview, ellipsis=False)
-		self.widget.set_shadow_type(gtk.SHADOW_NONE)
-		self.widget.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+		self.widget.set_shadow_type(Gtk.ShadowType.NONE)
+		self.widget.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 			# Setting horizontal scroll automatic as well
 			# makes the scrollbars visible at all times once they are shown once
 			# custom control implemented below
 
-		self._head_event_box = gtk.EventBox()
+		self._head_event_box = Gtk.EventBox()
 		self._head_event_box.add(self.head)
 		self._head_event_box.connect('button-release-event', self.on_toggle)
 
 		self.pack_start(self._head_event_box, False)
-		self.pack_start(self.widget)
+		self.pack_start(self.widget, True, True, 0)
 
 		## Add self to textview
 		# Need to wrap in event box to make widget visible
@@ -441,10 +441,10 @@ class FloatingToC(TableVBox, ConnectorMixin):
 			self.textview.allocation.width,
 			self.textview.allocation.height
 		)
-		self._event_box = gtk.EventBox()
+		self._event_box = Gtk.EventBox()
 		self._event_box.add(self)
 
-		self.textview.add_child_in_window(self._event_box, gtk.TEXT_WINDOW_WIDGET, 0, 0)
+		self.textview.add_child_in_window(self._event_box, Gtk.TextWindowType.WIDGET, 0, 0)
 		self.connectto(self.textview,
 			'size-allocate',
 			handler=self.on_size_allocate_textview,
@@ -478,7 +478,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		# scrolled window. If we limit the size, assume the scrolled
 		# window to take care of it
 
-		text_window = self.textview.get_window(gtk.TEXT_WINDOW_WIDGET)
+		text_window = self.textview.get_window(Gtk.TextWindowType.WIDGET)
 		if text_window is None:
 			# Textview not yet initialized (?)
 			return TableVBox.do_size_request(self, requisition)
@@ -522,7 +522,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		head_height = self.head.get_child_requisition()[1]
 		tree_w, tree_h = self.widget.treeview.get_child_requisition()
 
-		self._head_event_box.size_allocate(gtk.gdk.Rectangle(
+		self._head_event_box.size_allocate((
 			x=allocation.x + border,
 			y=allocation.y + border,
 			width=allocation.width - 2 * border,
@@ -533,10 +533,10 @@ class FloatingToC(TableVBox, ConnectorMixin):
 			body_w = allocation.width - 2 * border
 			body_h = allocation.height - 2 * border - spacing - head_height
 
-			h_policy = gtk.POLICY_ALWAYS if tree_w > body_w else gtk.POLICY_NEVER
-			self.widget.set_policy(h_policy, gtk.POLICY_AUTOMATIC)
+			h_policy = Gtk.PolicyType.ALWAYS if tree_w > body_w else Gtk.PolicyType.NEVER
+			self.widget.set_policy(h_policy, Gtk.PolicyType.AUTOMATIC)
 
-			self.widget.size_allocate(gtk.gdk.Rectangle(
+			self.widget.size_allocate((
 				x=allocation.x + border,
 				y=allocation.y + border + head_height + spacing,
 				width=body_w,
@@ -551,7 +551,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		self._text_view_allocation = new_allocation
 
 	def update_position(self, *a):
-		text_window = self.textview.get_window(gtk.TEXT_WINDOW_WIDGET)
+		text_window = self.textview.get_window(Gtk.TextWindowType.WIDGET)
 		if text_window is not None:
 			text_x, text_y, text_w, text_h, text_z = text_window.get_geometry()
 			x = text_w - self.allocation.width - self.TEXTVIEW_OFFSET
@@ -561,4 +561,4 @@ class FloatingToC(TableVBox, ConnectorMixin):
 			pass # Textview not yet initialized (?)
 
 # Need to register classes defining gobject signals
-gobject.type_register(FloatingToC)
+GObject.type_register(FloatingToC)

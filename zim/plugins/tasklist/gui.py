@@ -2,8 +2,8 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import Pango
 
 import logging
 import re
@@ -28,17 +28,17 @@ from .indexer import _MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_lab
 class TaskListWidgetMixin(object):
 
 		def on_populate_popup(self, o, menu):
-			sep = gtk.SeparatorMenuItem()
+			sep = Gtk.SeparatorMenuItem()
 			menu.append(sep)
 
-			item = gtk.CheckMenuItem(_('Show Tasks as Flat List'))
+			item = Gtk.CheckMenuItem(_('Show Tasks as Flat List'))
 				# T: Checkbox in task list - hides parent items
 			item.set_active(self.uistate['show_flatlist'])
 			item.connect('toggled', self.on_show_flatlist_toggle)
 			item.show_all()
 			menu.append(item)
 
-			item = gtk.CheckMenuItem(_('Only Show Active Tasks'))
+			item = Gtk.CheckMenuItem(_('Only Show Active Tasks'))
 				# T: Checkbox in task list - this options hides tasks that are not yet started
 			item.set_active(self.uistate['only_show_act'])
 			item.connect('toggled', self.on_show_active_toggle)
@@ -56,12 +56,12 @@ class TaskListWidgetMixin(object):
 			self.task_list.set_flatlist(active)
 
 
-class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
+class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 	title = _('Tasks') # T: tab label for side pane
 
 	def __init__(self, tasksview, opener, preferences, uistate):
-		gtk.VBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.uistate = uistate
 		self.uistate.setdefault('only_show_act', False)
 		self.uistate.setdefault('show_flatlist', False)
@@ -85,7 +85,7 @@ class TaskListWidget(gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 			lambda o: self.task_list.set_filter(self.filter_entry.get_text()))
 		self.filter_entry.connect('changed', filter_cb)
 
-		self.pack_start(ScrolledWindow(self.task_list))
+		self.pack_start(ScrolledWindow(self.task_list, True, True, 0))
 		self.pack_end(self.filter_entry, False)
 
 
@@ -93,12 +93,12 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 	def __init__(self, window, tasksview, preferences):
 		Dialog.__init__(self, window, _('Task List'), # T: dialog title
-			buttons=gtk.BUTTONS_CLOSE, help=':Plugins:Task List',
+			buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=(550, 400))
 		self.preferences = preferences
 		self.tasksview = tasksview
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
 		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
@@ -109,7 +109,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('only_show_act', False)
 		self.uistate.setdefault('show_flatlist', False)
 		self.uistate.setdefault('sort_column', 0)
-		self.uistate.setdefault('sort_order', int(gtk.SORT_DESCENDING))
+		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
 		opener = window.navigation
 		task_labels = _parse_task_labels(preferences['labels'])
@@ -134,7 +134,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane.add1(ScrolledWindow(self.tag_list))
 
 		# Filter input
-		hbox.pack_start(gtk.Label(_('Filter') + ': '), False) # T: Input label
+		hbox.pack_start(Gtk.Label(_('Filter', True, True, 0) + ': '), False) # T: Input label
 		filter_entry = InputEntry()
 		filter_entry.set_icon_to_clear()
 		hbox.pack_start(filter_entry, False)
@@ -150,7 +150,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 				self.uistate['only_show_act'] = active
 				self.task_list.set_filter_actionable(active)
 
-		self.act_toggle = gtk.CheckButton(_('Only Show Active Tasks'))
+		self.act_toggle = Gtk.CheckButton(_('Only Show Active Tasks'))
 			# T: Checkbox in task list - this options hides tasks that are not yet started
 		self.act_toggle.set_active(self.uistate['only_show_act'])
 		self.act_toggle.connect('toggled', on_show_active_toggle)
@@ -158,7 +158,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		hbox.pack_start(self.act_toggle, False)
 
 		# Statistics label
-		self.statistics_label = gtk.Label()
+		self.statistics_label = Gtk.Label()
 		hbox.pack_end(self.statistics_label, False)
 
 		def set_statistics():
@@ -200,7 +200,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		else:
 			# if it is unsorted, just use the defaults
 			self.uistate['sort_column'] = TaskListTreeView.PRIO_COL
-			self.uistate['sort_order'] = gtk.SORT_ASCENDING
+			self.uistate['sort_order'] = Gtk.SortType.ASCENDING
 
 		Dialog.do_response(self, response)
 
@@ -217,18 +217,18 @@ class TagListTreeView(SingleClickTreeView):
 	_type_untagged = 3
 
 	def __init__(self, task_list, task_labels):
-		model = gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
+		model = Gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
-		self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 		self.task_list = task_list
 		self.task_labels = task_labels
 
-		column = gtk.TreeViewColumn(_('Tags'))
+		column = Gtk.TreeViewColumn(_('Tags'))
 			# T: Column header for tag list in Task List dialog
 		self.append_column(column)
 
-		cr1 = gtk.CellRendererText()
-		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
+		cr1 = Gtk.CellRendererText()
+		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=0, weight=3) # tag name, weight
 
@@ -283,23 +283,23 @@ class TagListTreeView(SingleClickTreeView):
 		model.clear()
 
 		n_all = self.task_list.get_n_tasks()
-		model.append((_('All Tasks'), n_all, self._type_label, pango.WEIGHT_BOLD)) # T: "tag" for showing all tasks
+		model.append((_('All Tasks'), n_all, self._type_label, Pango.Weight.BOLD)) # T: "tag" for showing all tasks
 
 		used_labels = self.task_list.get_labels()
 		for label in self.task_labels: # explicitly keep sorting from preferences
 			if label in used_labels:
-				model.append((label, used_labels[label], self._type_label, pango.WEIGHT_BOLD))
+				model.append((label, used_labels[label], self._type_label, Pango.Weight.BOLD))
 
 		tags = self.task_list.get_tags()
 		if _NO_TAGS in tags:
 			n_untagged = tags.pop(_NO_TAGS)
-			model.append((_('Untagged'), n_untagged, self._type_untagged, pango.WEIGHT_NORMAL))
+			model.append((_('Untagged'), n_untagged, self._type_untagged, Pango.Weight.NORMAL))
 			# T: label in tasklist plugins for tasks without a tag
 
 		model.append(('', 0, self._type_separator, 0)) # separator
 
 		for tag in natural_sorted(tags):
-			model.append((tag, tags[tag], self._type_tag, pango.WEIGHT_NORMAL))
+			model.append((tag, tags[tag], self._type_tag, Pango.Weight.NORMAL))
 
 		# Restore selection
 		def reselect(model, path, iter):
@@ -363,13 +363,13 @@ class TaskListTreeView(BrowserTreeView):
 		nonactionable_tags=(),
 		filter_actionable=False, tag_by_page=False, use_workweek=False,
 		compact=False, flatlist=False,
-		sort_column=PRIO_COL, sort_order=gtk.SORT_DESCENDING
+		sort_column=PRIO_COL, sort_order=Gtk.SortType.DESCENDING
 	):
-		self.real_model = gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
+		self.real_model = Gtk.TreeStore(bool, bool, int, str, str, object, str, str, int, int, str)
 			# VIS_COL, ACT_COL, PRIO_COL, START_COL, DUE_COL, TAGS_COL, DESC_COL, PAGE_COL, TASKID_COL, PRIO_SORT_COL, PRIO_SORT_LABEL_COL
 		model = self.real_model.filter_new()
 		model.set_visible_column(self.VIS_COL)
-		model = gtk.TreeModelSort(model)
+		model = Gtk.TreeModelSort(model)
 		model.set_sort_column_id(sort_column, sort_order)
 		BrowserTreeView.__init__(self, model)
 
@@ -398,16 +398,16 @@ class TaskListTreeView(BrowserTreeView):
 			cell.set_property('markup', text)
 			cell.set_property('cell-background', bg)
 
-		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('!', cell_renderer)
+		cell_renderer = Gtk.CellRendererText()
+		column = Gtk.TreeViewColumn('!', cell_renderer)
 		column.set_cell_data_func(cell_renderer, render_prio)
 		column.set_sort_column_id(self.PRIO_SORT_COL)
 		self.append_column(column)
 
 		# Rendering for task description column
-		cell_renderer = gtk.CellRendererText()
-		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
-		column = gtk.TreeViewColumn(_('Task'), cell_renderer, markup=self.DESC_COL)
+		cell_renderer = Gtk.CellRendererText()
+		cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
+		column = Gtk.TreeViewColumn(_('Task'), cell_renderer, markup=self.DESC_COL)
 				# T: Column header Task List dialog
 		column.set_resizable(True)
 		column.set_sort_column_id(self.DESC_COL)
@@ -419,8 +419,8 @@ class TaskListTreeView(BrowserTreeView):
 		self.append_column(column)
 		self.set_expander_column(column)
 
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
+		if Gtk.gtk_version >= (2, 12) \
+		and Gtk.pygtk_version >= (2, 12):
 			# custom tooltip
 			self.props.has_tooltip = True
 			self.connect("query-tooltip", self._query_tooltip_cb)
@@ -459,8 +459,8 @@ class TaskListTreeView(BrowserTreeView):
 			cell.set_property('cell-background', color)
 
 		if not compact:
-			cell_renderer = gtk.CellRendererText()
-			column = gtk.TreeViewColumn(_('Date'), cell_renderer)
+			cell_renderer = Gtk.CellRendererText()
+			column = Gtk.TreeViewColumn(_('Date'), cell_renderer)
 				# T: Column header Task List dialog
 			column.set_cell_data_func(cell_renderer, render_date)
 			column.set_sort_column_id(self.DUE_COL)
@@ -468,8 +468,8 @@ class TaskListTreeView(BrowserTreeView):
 
 		# Rendering for page name column
 		if not compact:
-			cell_renderer = gtk.CellRendererText()
-			column = gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.PAGE_COL)
+			cell_renderer = Gtk.CellRendererText()
+			column = Gtk.TreeViewColumn(_('Page'), cell_renderer, text=self.PAGE_COL)
 					# T: Column header Task List dialog
 			column.set_sort_column_id(self.PAGE_COL)
 			self.append_column(column)
@@ -726,7 +726,7 @@ class TaskListTreeView(BrowserTreeView):
 		return row['description']
 
 	def do_initialize_popup(self, menu):
-		item = gtk.ImageMenuItem('gtk-copy')
+		item = Gtk.ImageMenuItem('gtk-copy')
 		item.connect('activate', self.copy_to_clipboard)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)
@@ -873,5 +873,5 @@ class TaskListTreeView(BrowserTreeView):
 		return rows
 
 # Need to register classes defining gobject signals
-#~ gobject.type_register(TaskListTreeView)
+#~ GObject.type_register(TaskListTreeView)
 # NOTE: enabling this line causes this treeview to have wrong theming under default ubuntu them !???

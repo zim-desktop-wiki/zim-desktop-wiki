@@ -216,12 +216,12 @@ class TestNamespaceEntry(TestPageEntry):
 		entry = self.entry
 		entry.set_text('')
 
-		entry.do_focus_in_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
+		entry.do_focus_in_event(Gdk.Event(Gdk.FOCUS_CHANGE))
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
 		self.assertEqual(entry.get_path(), Path(':'))
 
-		entry.do_focus_out_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
+		entry.do_focus_out_event(Gdk.Event(Gdk.FOCUS_CHANGE))
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
 		self.assertEqual(entry.get_path(), Path(':'))
@@ -384,7 +384,7 @@ class TestFileDialog(tests.TestCase):
 		folder = tmp_dir.subdir('folder1')
 		self.assertTrue(folder.exists())
 
-		dialog = FileDialog(None, 'Test', action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		dialog = FileDialog(None, 'Test', action=Gtk.FileChooserAction.SELECT_FOLDER)
 		assert dialog.filechooser.select_uri(folder.uri)
 		tests.gtk_process_events()
 		assert dialog.filechooser.select_uri(folder.uri)

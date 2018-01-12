@@ -147,8 +147,8 @@ def adapt_from_newfs(file):
 gobject = None
 gio = None
 try:
-	import gobject
-	import gio
+	from gi.repository import GObject
+	from gi.repository import Gio
 except ImportError:
 	pass
 
@@ -170,7 +170,7 @@ except ImportError:
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
-	# Gleaned from gtk.gdk.get_formats()
+	# Gleaned from Gdk.get_formats()
 	'bmp', # image/bmp
 	'gif', # image/gif
 	'icns', # image/x-icns
@@ -1340,7 +1340,7 @@ class UnixFile(FilePath):
 		'''Check if this is an image file. Convenience method that
 		works even when no real mime-type suport is available.
 		If this method returns C{True} it is no guarantee
-		this image type is actually supported by gtk.
+		this image type is actually supported by Gtk.
 		@returns: C{True} when this is an image file
 		'''
 
@@ -1926,7 +1926,7 @@ class FSObjectMonitor(SignalEmitter):
 		and self._gio_file_monitor is None \
 		and gio:
 			try:
-				file = gio.File(uri=self.path.uri)
+				file = Gio.File.new_for_uri(self.path.uri)
 				self._gio_file_monitor = file.monitor()
 				self._gio_file_monitor.connect('changed', self._on_changed)
 			except:
@@ -1962,9 +1962,9 @@ class FSObjectMonitor(SignalEmitter):
 
 		#~ print 'MONITOR:', self, event_type
 		if event_type in (
-			gio.FILE_MONITOR_EVENT_CREATED,
-			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
-			gio.FILE_MONITOR_EVENT_DELETED,
-			gio.FILE_MONITOR_EVENT_MOVED,
+			Gio.FileMonitorEvent.CREATED,
+			Gio.FileMonitorEvent.CHANGES_DONE_HINT,
+			Gio.FileMonitorEvent.DELETED,
+			Gio.FileMonitorEvent.MOVED,
 		):
 			self.emit('changed', None, None) # TODO translate otherfile and eventtype

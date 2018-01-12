@@ -2,10 +2,10 @@
 
 '''Interactively dumps clipboard contents to stdout'''
 
-import gtk
+from gi.repository import Gtk
 import sys
 
-clipboard = gtk.Clipboard()
+clipboard = Gtk.Clipboard()
 targets = clipboard.wait_for_targets()
 
 print "=" * 80

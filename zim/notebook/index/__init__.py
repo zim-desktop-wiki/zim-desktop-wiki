@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger('zim.notebook.index')
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
 	gobject = None
 
@@ -340,7 +340,7 @@ class BackgroundCheck(object):
 	def start(self):
 		if not self.running:
 			my_iter = iter(self.on_idle_iter())
-			gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+			GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
 			self.running = True
 
 	def stop(self):

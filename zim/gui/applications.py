@@ -17,8 +17,8 @@ user can define a new command on the fly.
 
 import os
 import logging
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
@@ -128,7 +128,7 @@ def get_mimetype(obj):
 
 
 try:
-	import gio
+	from gi.repository import Gio
 except ImportError:
 	gio = None
 
@@ -140,7 +140,7 @@ def get_mime_icon(file, size):
 		return None
 
 	try:
-		f = gio.File(uri=file.uri)
+		f = Gio.File.new_for_uri(file.uri)
 		info = f.query_info('standard::*')
 		icon = info.get_icon()
 	except:
@@ -149,9 +149,9 @@ def get_mime_icon(file, size):
 
 	global _last_warning_missing_icon
 
-	if isinstance(icon, gio.ThemedIcon):
+	if isinstance(icon, Gio.ThemedIcon):
 		names = icon.get_names()
-		icon_theme = gtk.icon_theme_get_default()
+		icon_theme = Gtk.IconTheme.get_default()
 		try:
 			icon_info = icon_theme.choose_icon(names, size, 0)
 			if icon_info:
@@ -161,7 +161,7 @@ def get_mime_icon(file, size):
 					logger.debug('Missing icons in icon theme: %s', names)
 					_last_warning_missing_icon = names
 				return None
-		except gobject.GError:
+		except GObject.GError:
 			logger.exception('Could not load icon for file: %s', file)
 			return None
 	else:
@@ -443,7 +443,7 @@ class NoApplicationFoundError(Error):
 def open_file(widget, file, mimetype=None, callback=None):
 	'''Open a file or folder
 
-	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
 	@param file: a L{File} or L{Folder} object
 	@param mimetype: optionally specify the mimetype to force a
 	specific application to open this file
@@ -489,7 +489,7 @@ def open_file(widget, file, mimetype=None, callback=None):
 
 def open_folder_prompt_create(widget, folder):
 	'''Open a folder and prompts to create it if it doesn't exist yet.
-	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
 	@param folder: a L{Folder} object
 	'''
 	try:
@@ -507,7 +507,7 @@ def open_folder_prompt_create(widget, folder):
 
 def open_folder(widget, folder):
 	'''Open a folder.
-	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
 	@param folder: a L{Folder} object
 	@raises FileNotFoundError: if C{folder} does not exist
 	see L{open_folder_prompt_create} for alternative behavior when folder
@@ -522,7 +522,7 @@ def open_url(widget, url):
 	program. The application is determined based on the URL / URI
 	scheme. Unkown schemes and "file://" URIs are opened with the
 	webbrowser.
-	@param widget: parent for new dialogs, C{gtk.Widget} or C{None}
+	@param widget: parent for new dialogs, C{Gtk.Widget} or C{None}
 	@param url: an URL or URI as string
 	'''
 	logger.debug('open_url(%s)', url)
@@ -784,7 +784,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		return split_quoted_strings(self['Desktop Entry']['Exec'])
 
 	def get_pixbuf(self, size):
-		'''Get the application icon as a C{gtk.gdk.Pixbuf}.
+		'''Get the application icon as a C{GdkPixbuf.Pixbuf}.
 		@param size: the icon size as gtk constant
 		@returns: a pixbuf object or C{None}
 		'''
@@ -795,15 +795,15 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		if isinstance(icon, File):
 			icon = icon.path
 
-		w, h = gtk.icon_size_lookup(size)
+		w, h = Gtk.icon_size_lookup(size)
 
 		if '/' in icon or '\\' in icon:
 			if zim.fs.isfile(icon):
-				return gtk.gdk.pixbuf_new_from_file_at_size(icon, w, h)
+				return GdkPixbuf.Pixbuf.new_from_file_at_size(icon, w, h)
 			else:
 				return None
 		else:
-			theme = gtk.icon_theme_get_default()
+			theme = Gtk.IconTheme.get_default()
 			try:
 				pixbuf = theme.load_icon(icon.encode('utf-8'), w, 0)
 			except Exception as error:
@@ -902,8 +902,8 @@ class DesktopEntryFile(DesktopEntryDict, INIConfigFile):
 		return self.file.basename[:-8] # len('.desktop') is 8
 
 
-class OpenWithMenu(gtk.Menu):
-	'''Sub-class of C{gtk.Menu} implementing an "Open With..." menu with
+class OpenWithMenu(Gtk.Menu):
+	'''Sub-class of C{Gtk.Menu} implementing an "Open With..." menu with
 	applications to open a specific file. Also has an item
 	"Customize...", which opens a L{CustomizeOpenWithDialog}
 	and allows the user to add custom commands.
@@ -921,7 +921,7 @@ class OpenWithMenu(gtk.Menu):
 		known. Providing this arguments prevents redundant lookups of
 		the type (which is slow).
 		'''
-		gtk.Menu.__init__(self)
+		GObject.GObject.__init__(self)
 		self._window = widget.get_toplevel()
 		self.file = file
 		if mimetype is None:
@@ -935,14 +935,14 @@ class OpenWithMenu(gtk.Menu):
 			item.connect('activate', self.on_activate)
 
 		if not self.get_children():
-			item = gtk.MenuItem(_('No Applications Found'))
+			item = Gtk.MenuItem(_('No Applications Found'))
 				# T: message when no applications in "Open With" menu
 			item.set_sensitive(False)
 			self.append(item)
 
-		self.append(gtk.SeparatorMenuItem())
+		self.append(Gtk.SeparatorMenuItem())
 
-		item = gtk.MenuItem(self.CUSTOMIZE)
+		item = Gtk.MenuItem(self.CUSTOMIZE)
 		item.connect('activate', self.on_activate_customize, mimetype)
 		self.append(item)
 
@@ -954,7 +954,7 @@ class OpenWithMenu(gtk.Menu):
 		CustomizeOpenWithDialog(self._window, mimetype=mimetype).run()
 
 
-class DesktopEntryMenuItem(gtk.ImageMenuItem):
+class DesktopEntryMenuItem(Gtk.ImageMenuItem):
 	'''Single menu item for the L{OpenWithMenu}. Displays the application
 	name and the icon.
 	'''
@@ -966,13 +966,13 @@ class DesktopEntryMenuItem(gtk.ImageMenuItem):
 		'''
 		text = _('Open with "%s"') % entry.name
 			# T: menu item to open a file with an application, %s is the app name
-		gtk.ImageMenuItem.__init__(self, text)
+		GObject.GObject.__init__(self, text)
 		self.entry = entry
 
 		if hasattr(entry, 'get_pixbuf'):
-			pixbuf = entry.get_pixbuf(gtk.ICON_SIZE_MENU)
+			pixbuf = entry.get_pixbuf(Gtk.IconSize.MENU)
 			if pixbuf:
-				self.set_image(gtk.image_new_from_pixbuf(pixbuf))
+				self.set_image(Gtk.image_new_from_pixbuf(pixbuf))
 
 
 def _mimetype_dialog_text(mimetype):
@@ -995,20 +995,20 @@ class CustomizeOpenWithDialog(Dialog):
 		application
 		'''
 		Dialog.__init__(self, parent, _('Configure Applications'),  # T: Dialog title
-			buttons=gtk.BUTTONS_CLOSE, help='Help:Default Applications')
+			buttons=Gtk.ButtonsType.CLOSE, help='Help:Default Applications')
 		self.mimetype = mimetype
 		self.add_text(_mimetype_dialog_text(mimetype))
 
 		# Combo to set default
 		self.default_combo = ApplicationComboBox()
 		self.default_combo.connect('changed', self.on_default_changed)
-		hbox = gtk.HBox(spacing=12)
+		hbox = Gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
-		hbox.pack_start(gtk.Label(_('Default') + ':'), False) # T: label for default application
-		hbox.pack_start(self.default_combo)
+		hbox.pack_start(Gtk.Label(_('Default', True, True, 0) + ':'), False) # T: label for default application
+		hbox.pack_start(self.default_combo, True, True, 0)
 
 		# Button to add new
-		button = gtk.Button(_('Add Application'))
+		button = Gtk.Button(_('Add Application'))
 			# T: Button for adding a new application to the 'open with' menu
 		button.connect('clicked', self.on_add_application)
 		self.add_extra_button(button)
@@ -1060,22 +1060,22 @@ class SystemDefault(object):
 
 
 
-class ApplicationComboBox(gtk.ComboBox):
+class ApplicationComboBox(Gtk.ComboBox):
 
 	NAME_COL = 0
 	APP_COL = 1
 	ICON_COL = 2
 
 	def __init__(self):
-		model = gtk.ListStore(str, object, gtk.gdk.Pixbuf) # NAME_COL, APP_COL, ICON_COL
-		gtk.ComboBox.__init__(self, model)
+		model = Gtk.ListStore(str, object, GdkPixbuf.Pixbuf) # NAME_COL, APP_COL, ICON_COL
+		GObject.GObject.__init__(self, model)
 
-		cell = gtk.CellRendererPixbuf()
+		cell = Gtk.CellRendererPixbuf()
 		self.pack_start(cell, False)
 		cell.set_property('xpad', 5)
 		self.add_attribute(cell, 'pixbuf', self.ICON_COL)
 
-		cell = gtk.CellRendererText()
+		cell = Gtk.CellRendererText()
 		self.pack_start(cell, True)
 		cell.set_property('xalign', 0.0)
 		cell.set_property('xpad', 5)
@@ -1087,9 +1087,9 @@ class ApplicationComboBox(gtk.ComboBox):
 	def append(self, application):
 		model = self.get_model()
 		if hasattr(application, 'get_pixbuf'):
-			pixbuf = application.get_pixbuf(gtk.ICON_SIZE_MENU)
+			pixbuf = application.get_pixbuf(Gtk.IconSize.MENU)
 		else:
-			pixbuf = self.render_icon(gtk.STOCK_EXECUTE, gtk.ICON_SIZE_MENU)
+			pixbuf = self.render_icon(Gtk.STOCK_EXECUTE, Gtk.IconSize.MENU)
 
 		model.append((application.name, application, pixbuf)) # NAME_COL, APP_COL, ICON_COL
 

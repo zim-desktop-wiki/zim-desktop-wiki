@@ -4,8 +4,8 @@
 
 import tests
 
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.notebook import Path
 from zim.notebook.index import Index
@@ -208,7 +208,7 @@ class TestTagPluginWidget(tests.TestCase):
 		treepath = widget.treeview.get_model().find(path)
 
 		# Check signals
-		widget.treeview.emit('populate-popup', gtk.Menu())
+		widget.treeview.emit('populate-popup', Gtk.Menu())
 		widget.treeview.emit('insert-link', path)
 
 		# Toggles in popup
@@ -234,7 +234,7 @@ class TestTagPluginWidget(tests.TestCase):
 		self.assertEqual(model.tags, [tag.name])
 
 		# check menu and sorting of tag cloud
-		cloud.emit('populate-popup', gtk.Menu())
+		cloud.emit('populate-popup', Gtk.Menu())
 		mockaction = tests.MockObject()
 		mockaction.get_active = lambda: True
 		cloud._switch_sorting(mockaction)

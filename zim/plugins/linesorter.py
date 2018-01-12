@@ -5,7 +5,7 @@
 
 from __future__ import with_statement
 
-import gtk
+from gi.repository import Gtk
 
 from zim.errors import Error
 from zim.plugins import PluginClass, extends, WindowExtension

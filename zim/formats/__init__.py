@@ -88,7 +88,7 @@ logger = logging.getLogger('zim.formats')
 # Needed to determine RTL, but may not be available
 # if gtk bindings are not installed
 try:
-	import pango
+	from gi.repository import Pango
 except:
 	pango = None
 	logger.warn('Could not load pango - RTL scripts may look bad')
@@ -1331,16 +1331,16 @@ class DumperClass(Visitor):
 		# It seems the find_base_dir() function is not documented in the
 		# python language bindings. The Gtk C code shows the signature:
 		#
-		#     pango.find_base_dir(text, length)
+		#     Pango.find_base_dir(text, length)
 		#
 		# It either returns a direction, or NEUTRAL if e.g. text only
 		# contains punctuation but no real characters.
 
-		dir = pango.find_base_dir(text, len(text))
-		if dir == pango.DIRECTION_NEUTRAL:
+		dir = Pango.find_base_dir(text, len(text))
+		if dir == Pango.DIRECTION_NEUTRAL:
 			return None
 		else:
-			return dir == pango.DIRECTION_RTL
+			return dir == Pango.DIRECTION_RTL
 
 
 class BaseLinker(object):

@@ -2,7 +2,7 @@
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 import logging
 
 from zim.plugins import PluginClass, WindowExtension, extends
@@ -82,12 +82,12 @@ class MainWindowExtension(WindowExtension):
 			self._save_colors(window)
 			self._set_colors(self._custom_colors)
 			window.toggle_panes(False)
-			window.pageview.swindow.set_shadow_type(gtk.SHADOW_NONE) # XXX
+			window.pageview.swindow.set_shadow_type(Gtk.ShadowType.NONE) # XXX
 		elif self._normal_colors:
 			self._set_colors(self._normal_colors)
 			window.toggle_panes(self._show_panes)
 			window.pageview.grab_focus()
-			window.pageview.swindow.set_shadow_type(gtk.SHADOW_IN) # XXX
+			window.pageview.swindow.set_shadow_type(Gtk.ShadowType.IN) # XXX
 		else:
 			pass
 
@@ -100,17 +100,17 @@ class MainWindowExtension(WindowExtension):
 		style = window.pageview.view.rc_get_style()
 		self._normal_colors = []
 		for state in (
-			gtk.STATE_NORMAL,
-			#gtk.STATE_ACTIVE,
-			#gtk.STATE_PRELIGHT,
-			#gtk.STATE_SELECTED,
-			#gtk.STATE_INSENSITIVE
+			Gtk.StateType.NORMAL,
+			#Gtk.StateType.ACTIVE,
+			#Gtk.StateType.PRELIGHT,
+			#Gtk.StateType.SELECTED,
+			#Gtk.StateType.INSENSITIVE
 		):
 			self._normal_colors.append({
-				'base': style.base[gtk.STATE_NORMAL],
-				'text': style.text[gtk.STATE_NORMAL],
-				'bg': style.bg[gtk.STATE_NORMAL],
-				#'fg': style.fg[gtk.STATE_NORMAL],
+				'base': style.base[Gtk.StateType.NORMAL],
+				'text': style.text[Gtk.StateType.NORMAL],
+				'bg': style.bg[Gtk.StateType.NORMAL],
+				#'fg': style.fg[Gtk.StateType.NORMAL],
 			})
 
 	@property
@@ -132,7 +132,7 @@ class MainWindowExtension(WindowExtension):
 		return (normal,)
 
 	def _set_colors(self, colors):
-		# See gtk.RcStyle docs for all values in RC file
+		# See Gtk.RcStyle docs for all values in RC file
 		rc = 'style "zim-colors"\n{\n'
 		for i, state in enumerate((
 			'NORMAL',
@@ -152,8 +152,8 @@ class MainWindowExtension(WindowExtension):
 		rc += '}\nwidget "*.zim-pageview" style "zim-colors"\n'
 
 		logger.debug('Parse RC: >>>\n%s<<<', rc)
-		gtk.rc_parse_string(rc)
-		gtk.rc_reset_styles(gtk.settings_get_default())
+		Gtk.rc_parse_string(rc)
+		Gtk.rc_reset_styles(Gtk.Settings.get_default())
 
 	def on_size_allocate(self, textview, allocation):
 		# Here we play with textview margin windows to position text
@@ -163,7 +163,7 @@ class MainWindowExtension(WindowExtension):
 			return
 
 		# Screen geometry
-		screen = gtk.gdk.screen_get_default()
+		screen = Gdk.Screen.get_default()
 		root_window = screen.get_root_window()
 		mouse_x, mouse_y, mouse_mods = root_window.get_pointer()
 		current_monitor_number = screen.get_monitor_at_point(mouse_x, mouse_y)
@@ -210,10 +210,10 @@ class MainWindowExtension(WindowExtension):
 
 	def _set_margins(self, left, right, top, bottom):
 		textview = self.window.pageview.view
-		textview.set_border_window_size(gtk.TEXT_WINDOW_LEFT, left)
-		textview.set_border_window_size(gtk.TEXT_WINDOW_RIGHT, right)
-		textview.set_border_window_size(gtk.TEXT_WINDOW_TOP, top)
-		textview.set_border_window_size(gtk.TEXT_WINDOW_BOTTOM, bottom)
+		textview.set_border_window_size(Gtk.TextWindowType.LEFT, left)
+		textview.set_border_window_size(Gtk.TextWindowType.RIGHT, right)
+		textview.set_border_window_size(Gtk.TextWindowType.TOP, top)
+		textview.set_border_window_size(Gtk.TextWindowType.BOTTOM, bottom)
 
 	def teardown(self):
 		# show at least menubar again, set margins to zero & restore colors

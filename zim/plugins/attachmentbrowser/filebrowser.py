@@ -10,8 +10,8 @@
 
 import datetime
 
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 
 import logging
 
@@ -41,26 +41,26 @@ def render_file_icon(widget, size):
 	# Sizes defined in gtk source,
 	# gtkiconfactory.c for gtk+ 2.18.9
 	#
-	#	(gtk.ICON_SIZE_MENU, 16),
-	#	(gtk.ICON_SIZE_BUTTON, 20),
-	#	(gtk.ICON_SIZE_SMALL_TOOLBAR, 18),
-	#	(gtk.ICON_SIZE_LARGE_TOOLBAR, 24),
-	#	(gtk.ICON_SIZE_DND, 32),
-	#	(gtk.ICON_SIZE_DIALOG, 48),
+	#	(Gtk.IconSize.MENU, 16),
+	#	(Gtk.IconSize.BUTTON, 20),
+	#	(Gtk.IconSize.SMALL_TOOLBAR, 18),
+	#	(Gtk.IconSize.LARGE_TOOLBAR, 24),
+	#	(Gtk.IconSize.DND, 32),
+	#	(Gtk.IconSize.DIALOG, 48),
 	#
 	# We expect sizes in list: 16, 32, 64, 128
 	# But only give back 16 or 32, bigger icons
 	# do not look good
 	assert size in (16, 32, 64, 128)
 	if size == 16:
-		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_MENU)
+		pixbuf = widget.render_icon(Gtk.STOCK_FILE, Gtk.IconSize.MENU)
 	else:
-		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_DND)
+		pixbuf = widget.render_icon(Gtk.STOCK_FILE, Gtk.IconSize.DND)
 
 	# Not sure how much sizes depend on theming,
 	# so we scale down if needed, do not scale up
 	if pixbuf.get_width() > size or pixbuf.get_height() > size:
-		return pixbuf.scale_simple(size, size, gtk.gdk.INTERP_BILINEAR)
+		return pixbuf.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
 	else:
 		return pixbuf
 
@@ -70,11 +70,11 @@ BASENAME_COL = 0
 PIXBUF_COL = 1
 MTIME_COL = 2
 
-class FileBrowserIconView(gtk.IconView):
+class FileBrowserIconView(Gtk.IconView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'folder_changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'folder_changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True):
@@ -87,24 +87,24 @@ class FileBrowserIconView(gtk.IconView):
 		self._monitor = None
 		self._mtime = None
 
-		gtk.IconView.__init__(self,
-			gtk.ListStore(str, gtk.gdk.Pixbuf, object)) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+		GObject.GObject.__init__(self,
+			Gtk.ListStore(str, GdkPixbuf.Pixbuf, object)) # BASENAME_COL, PIXBUF_COL, MTIME_COL
 		self.set_text_column(BASENAME_COL)
 		self.set_pixbuf_column(PIXBUF_COL)
 		self.set_icon_size(icon_size)
 
 		self.enable_model_drag_source(
-			gtk.gdk.BUTTON1_MASK,
+			Gdk.ModifierType.BUTTON1_MASK,
 			URI_TARGETS,
-			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
+			Gdk.DragAction.LINK | Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 		self.enable_model_drag_dest(
 			URI_TARGETS,
-			gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
+			Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 		self.connect('drag-data-get', self.on_drag_data_get)
 		self.connect('drag-data-received', self.on_drag_data_received)
 
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
+		if Gtk.gtk_version >= (2, 12) \
+		and Gtk.pygtk_version >= (2, 12):
 			# custom tooltip
 			self.props.has_tooltip = True
 			self.connect("query-tooltip", self._query_tooltip_cb)
@@ -116,8 +116,8 @@ class FileBrowserIconView(gtk.IconView):
 		def _init_base_color(*a):
 			# This is handled on expose event, because style does not
 			# yet reflect theming on construction
-			self._sensitive_color = self.style.base[gtk.STATE_NORMAL]
-			self._insensitive_color = self.style.base[gtk.STATE_INSENSITIVE]
+			self._sensitive_color = self.style.base[Gtk.StateType.NORMAL]
+			self._insensitive_color = self.style.base[Gtk.StateType.INSENSITIVE]
 			self._update_state()
 			self.disconnect(self._expose_event_id) # only need this once
 
@@ -158,7 +158,7 @@ class FileBrowserIconView(gtk.IconView):
 
 		self._thumbnailer.clear_queue()
 		if self._idle_event_id:
-			gobject.source_remove(self._idle_event_id)
+			GObject.source_remove(self._idle_event_id)
 			self._idle_event_id = None
 
 		# Get cache, clear model
@@ -208,7 +208,7 @@ class FileBrowserIconView(gtk.IconView):
 		if not self._thumbnailer.queue_empty():
 			self._thumbnailer.start() # delay till here - else reduces our speed on loading
 			self._idle_event_id = \
-				gobject.idle_add(self._on_check_thumbnail_queue)
+				GObject.idle_add(self._on_check_thumbnail_queue)
 
 		#~ print "stop ", time.time()
 
@@ -246,13 +246,13 @@ class FileBrowserIconView(gtk.IconView):
 				# Single row
 				self.set_item_width(icon_size + text_size)
 
-			self.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+			self.set_orientation(Gtk.Orientation.HORIZONTAL)
 			self.set_row_spacing(0)
 			self.set_column_spacing(0)
 		else:
 			# Text below the icons
 			self.set_item_width(max((icon_size + 12, 96)))
-			self.set_orientation(gtk.ORIENTATION_VERTICAL)
+			self.set_orientation(Gtk.Orientation.VERTICAL)
 			self.set_row_spacing(3)
 			self.set_column_spacing(3)
 
@@ -263,10 +263,10 @@ class FileBrowserIconView(gtk.IconView):
 		# insensitive also blocks drag & drop.
 		if self.folder is None or not self.folder.exists():
 			self.modify_base(
-				gtk.STATE_NORMAL, self._insensitive_color)
+				Gtk.StateType.NORMAL, self._insensitive_color)
 		else:
 			self.modify_base(
-				gtk.STATE_NORMAL, self._sensitive_color)
+				Gtk.StateType.NORMAL, self._sensitive_color)
 
 	def teardown_folder(self):
 		try:
@@ -279,7 +279,7 @@ class FileBrowserIconView(gtk.IconView):
 			self._monitor = None
 
 		if self._idle_event_id:
-			gobject.source_remove(self._idle_event_id)
+			GObject.source_remove(self._idle_event_id)
 			self._idle_event_id = None
 
 		try:
@@ -309,7 +309,7 @@ class FileBrowserIconView(gtk.IconView):
 	def on_button_press_event(self, iconview, event):
 		# print 'on_button_press_event'
 		if event.button == 3:
-			popup_menu = gtk.Menu()
+			popup_menu = Gtk.Menu()
 			x = int(event.x)
 			y = int(event.y)
 			time = event.time
@@ -328,14 +328,14 @@ class FileBrowserIconView(gtk.IconView):
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
 
-		item = gtk.MenuItem(_('Open With...')) # T: menu item
+		item = Gtk.MenuItem(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
 		window = self.get_toplevel()
 		submenu = OpenWithMenu(window, file) # XXX any widget should do to find window
 		item.set_submenu(submenu)
 
-		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
+		item = Gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
 		item.connect('activate', lambda o: open_file(self, file))
 		menu.prepend(item)
 
@@ -401,28 +401,28 @@ class FileBrowserIconView(gtk.IconView):
 		action = dragcontext.action
 		logger.debug('Drag received %s, %s', action, files)
 
-		if action == gtk.gdk.ACTION_MOVE:
+		if action == Gdk.DragAction.MOVE:
 			self._move_files(files)
-		elif action == gtk.gdk.ACTION_ASK:
-			menu = gtk.Menu()
+		elif action == Gdk.DragAction.ASK:
+			menu = Gtk.Menu()
 
-			item = gtk.MenuItem(_('_Move Here')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem(_('_Move Here')) # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._move_files(files))
 			menu.append(item)
 
-			item = gtk.MenuItem(_('_Copy Here')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem(_('_Copy Here')) # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._copy_files(files))
 			menu.append(item)
 
-			menu.append(gtk.SeparatorMenuItem())
-			item = gtk.MenuItem(_('Cancel')) # T: popup menu action on drag-drop of a file
+			menu.append(Gtk.SeparatorMenuItem())
+			item = Gtk.MenuItem(_('Cancel')) # T: popup menu action on drag-drop of a file
 			# cancel action needs no action
 			menu.append(item)
 
 			menu.show_all()
 			menu.popup(None, None, None, 1, time)
 		else:
-			# Assume gtk.gdk.ACTION_COPY or gtk.gdk.ACTION_DEFAULT
+			# Assume Gdk.DragAction.COPY or Gdk.DragAction.DEFAULT
 			# on windows we get "0" which is not mapped to any action
 			self._copy_files(files)
 

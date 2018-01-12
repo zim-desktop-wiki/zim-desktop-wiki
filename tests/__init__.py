@@ -18,7 +18,7 @@ import types
 import glob
 
 try:
-	import gtk
+	from gi.repository import Gtk
 except ImportError:
 	gtk = None
 
@@ -832,20 +832,20 @@ class MaskedObject(object):
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
 	assert gtk is not None
-	while gtk.events_pending():
-		gtk.main_iteration(block=False)
+	while Gtk.events_pending():
+		Gtk.main_iteration(block=False)
 	return True # continue
 
 
 def gtk_get_menu_item(menu, id):
-	'''Get a menu item from a C{gtk.Menu}
-	@param menu: a C{gtk.Menu}
+	'''Get a menu item from a C{Gtk.Menu}
+	@param menu: a C{Gtk.Menu}
 	@param id: either the menu item label or the stock id
-	@returns: a C{gtk.MenuItem} or C{None}
+	@returns: a C{Gtk.MenuItem} or C{None}
 	'''
 	items = menu.get_children()
 	ids = [i.get_property('label') for i in items]
-		# gtk.ImageMenuItems that have a stock id happen to use the
+		# Gtk.ImageMenuItems that have a stock id happen to use the
 		# 'label' property to store it...
 
 	assert id in ids, \
@@ -858,7 +858,7 @@ def gtk_get_menu_item(menu, id):
 
 def gtk_activate_menu_item(menu, id):
 	'''Trigger the 'click' action an a menu item
-	@param menu: a C{gtk.Menu}
+	@param menu: a C{Gtk.Menu}
 	@param id: either the menu item label or the stock id
 	'''
 	item = gtk_get_menu_item(menu, id)

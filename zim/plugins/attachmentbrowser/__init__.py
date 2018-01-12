@@ -38,7 +38,7 @@
 
 import logging
 
-import gtk
+from gi.repository import Gtk
 
 
 from zim.plugins import PluginClass, WindowExtension, extends
@@ -143,7 +143,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 
 	@toggle_action(
 		_('Attachment Browser'), # T: Menu item
-		gtk.STOCK_DIRECTORY,
+		Gtk.STOCK_DIRECTORY,
 		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
 	)
 	def toggle_attachmentbrowser(self, active):
@@ -191,7 +191,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget.iconview.teardown_folder()
 
 
-class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
+class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 	'''Wrapper aroung the L{FileBrowserIconView} that adds the buttons
 	for zoom / open folder / etc. ...
 	'''
@@ -201,7 +201,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_ZOOM)
 
 	def __init__(self, extension, opener, preferences):
-		gtk.HBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.extension = extension # XXX
 		self.opener = opener
 		self.uistate = extension.uistate
@@ -210,21 +210,21 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
 		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
-		self.add(ScrolledWindow(self.iconview, shadow=gtk.SHADOW_NONE))
+		self.add(ScrolledWindow(self.iconview, shadow=Gtk.ShadowType.NONE))
 
-		self.buttonbox = gtk.VBox()
+		self.buttonbox = Gtk.VBox()
 		self.pack_end(self.buttonbox, False)
 
-		open_folder_button = IconButton(gtk.STOCK_OPEN, relief=False)
+		open_folder_button = IconButton(Gtk.STOCK_OPEN, relief=False)
 		open_folder_button.connect('clicked', self.on_open_folder)
 		self.buttonbox.pack_start(open_folder_button, False)
 
-		refresh_button = IconButton(gtk.STOCK_REFRESH, relief=False)
+		refresh_button = IconButton(Gtk.STOCK_REFRESH, relief=False)
 		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
 		self.buttonbox.pack_start(refresh_button, False)
 
-		zoomin = IconButton(gtk.STOCK_ZOOM_IN, relief=False)
-		zoomout = IconButton(gtk.STOCK_ZOOM_OUT, relief=False)
+		zoomin = IconButton(Gtk.STOCK_ZOOM_IN, relief=False)
+		zoomout = IconButton(Gtk.STOCK_ZOOM_OUT, relief=False)
 		zoomin.connect('clicked', lambda o: self.on_zoom_in())
 		zoomout.connect('clicked', lambda o: self.on_zoom_out())
 		self.buttonbox.pack_end(zoomout, False)

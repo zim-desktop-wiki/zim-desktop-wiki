@@ -4,8 +4,8 @@
 
 # Tests: search gui.TestDialogs.testSearchDialog
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import logging
 
 from zim.notebook import Path
@@ -24,27 +24,27 @@ class SearchDialog(Dialog):
 
 	def __init__(self, widget, notebook, page, navigation):
 		Dialog.__init__(self, widget, _('Search'), # T: Dialog title
-			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching',
+			buttons=Gtk.ButtonsType.CLOSE, help='Help:Searching',
 			defaultwindowsize=(400, 300)
 		)
 		self.page = page
 
-		hbox = gtk.HBox(spacing=5)
+		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
-		hbox.pack_start(gtk.Label(_('Search') + ': '), False) # T: input label
+		hbox.pack_start(Gtk.Label(_('Search', True, True, 0) + ': '), False) # T: input label
 		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
-		self.search_button = gtk.Button(stock=gtk.STOCK_FIND)
+		self.search_button = Gtk.Button(stock=Gtk.STOCK_FIND)
 		hbox.pack_start(self.search_button, False)
 
-		if gtk.gtk_version >= (2, 20) \
-		and gtk.pygtk_version >= (2, 22): # update in pygtk was later
-			self.spinner = gtk.Spinner()
+		if Gtk.gtk_version >= (2, 20) \
+		and Gtk.pygtk_version >= (2, 22): # update in pygtk was later
+			self.spinner = Gtk.Spinner()
 			hbox.pack_start(self.spinner, False)
 		else:
 			self.spinner = None
 
-		self.cancel_button = gtk.Button(stock=gtk.STOCK_STOP)
+		self.cancel_button = Gtk.Button(stock=Gtk.STOCK_STOP)
 		hbox.pack_start(self.cancel_button, False)
 		self._set_state(self.READY)
 
@@ -52,14 +52,14 @@ class SearchDialog(Dialog):
 			'For advanced search you can use operators like\n'
 			'AND, OR and NOT. See the help page for more details.'
 		) # T: help text for the search dialog
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
+		if Gtk.gtk_version >= (2, 12) \
+		and Gtk.pygtk_version >= (2, 12):
 			self.query_entry.set_tooltip_text(help_text)
 		else:
-			tooltips = gtk.Tooltips()
+			tooltips = Gtk.Tooltips()
 			tooltips.set_tip(self.query_entry, help_text)
 
-		self.namespacecheckbox = gtk.CheckButton(_('Limit search to the current page and sub-pages'))
+		self.namespacecheckbox = Gtk.CheckButton(_('Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
 		if page is not None:
 			self.vbox.pack_start(self.namespacecheckbox, False)
@@ -143,7 +143,7 @@ class SearchResultsTreeView(BrowserTreeView):
 	PATH_COL = 2
 
 	def __init__(self, notebook, navigation):
-		model = gtk.ListStore(str, int, object)
+		model = Gtk.ListStore(str, int, object)
 			# NAME_COL, SCORE_COL, PATH_COL
 		BrowserTreeView.__init__(self, model)
 		self.navigation = navigation
@@ -151,18 +151,18 @@ class SearchResultsTreeView(BrowserTreeView):
 		self.selection = SearchSelection(notebook)
 		self.cancelled = False
 
-		cell_renderer = gtk.CellRendererText()
+		cell_renderer = Gtk.CellRendererText()
 		for name, i in (
 			(_('Page'), 0), # T: Column header search dialog
 			(_('Score'), 1), # T: Column header search dialog
 		):
-			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
+			column = Gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_sort_column_id(i)
 			if i == 0:
 				column.set_expand(True)
 			self.append_column(column)
 
-		model.set_sort_column_id(1, gtk.SORT_DESCENDING)
+		model.set_sort_column_id(1, Gtk.SortType.DESCENDING)
 			# By default sort by score
 
 		self.connect('row-activated', self._do_open_page)
@@ -189,8 +189,8 @@ class SearchResultsTreeView(BrowserTreeView):
 		if results is not None:
 			self._update_results(results)
 
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
+		while Gtk.events_pending():
+			Gtk.main_iteration(block=False)
 
 		return not self.cancelled
 

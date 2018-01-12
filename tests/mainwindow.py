@@ -173,12 +173,12 @@ class TestActions(tests.TestCase):
 		self.assertNotEqual(id(page1), id(page2))
 
 
-import gtk
+from gi.repository import Gtk
 
 from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE
 
 
-class MockSidePaneWidget(gtk.VBox, WindowSidePaneWidget):
+class MockSidePaneWidget(Gtk.VBox, WindowSidePaneWidget):
 	title = 'MockSidePaneWidget'
 
 

@@ -2,9 +2,9 @@
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gobject
-import gtk
-import pango
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 import logging
 
 from functools import partial
@@ -35,9 +35,9 @@ WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
 N_CHILD_COL = 6 #: Column with the number of child pages
 TIP_COL = 7 #: Column with the name to be used in the tooltip
 
-# Check the (undocumented) list of constants in gtk.keysyms to see all names
-KEYVAL_C = gtk.gdk.unicode_to_keyval(ord('c'))
-KEYVAL_L = gtk.gdk.unicode_to_keyval(ord('l'))
+# Check the (undocumented) list of constants in Gtk.keysyms to see all names
+KEYVAL_C = Gdk.unicode_to_keyval(ord('c'))
+KEYVAL_L = Gdk.unicode_to_keyval(ord('l'))
 
 
 class PageIndexPlugin(PluginClass):
@@ -115,23 +115,23 @@ class PageIndexMainWindowExtension(WindowExtension):
 		self.treeview.set_model(model)
 
 
-class PageIndexWidget(gtk.VBox, WindowSidePaneWidget):
+class PageIndexWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	title = _('Index')	# T: tab label for side pane
 
 	def __init__(self, treeview):
-		gtk.VBox.__init__(self)
-		self.pack_start(ScrolledWindow(treeview))
+		GObject.GObject.__init__(self)
+		self.pack_start(ScrolledWindow(treeview, True, True, 0))
 
 
-class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDest):
+class PageTreeStoreBase(Gtk.GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 	'''Custom gtk TreeModel that is integrated closely with the L{Index}
 	object of the notebook. This model is mostly an API layer translating
-	between the C{gtk.TreeView} and the zim L{Index} interfaces. It
+	between the C{Gtk.TreeView} and the zim L{Index} interfaces. It
 	fetches data on the fly when requested and only keeps a very
 	limited cache in memory. This allows scaling to very large notebooks.
 
-	This custom model is based on C{gtk.GenericTreeModel} which takes
+	This custom model is based on C{Gtk.GenericTreeModel} which takes
 	care of the C library wrapper. See the documentation there to
 	get the fine details of the API.
 
@@ -144,12 +144,12 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 
 	For all the methods with a name starting with C{on_} the "iter"
 	argument is a L{MyTreeIter}. The GenericTreeModel in turn
-	wraps these in C{gtk.TreeIter} object. So e.g. the implementation
+	wraps these in C{Gtk.TreeIter} object. So e.g. the implementation
 	of C{get_iter()} calls C{on_get_iter()} and wraps the
-	L{MyTreeIter} object into a C{gtk.TreeIter}.
+	L{MyTreeIter} object into a C{Gtk.TreeIter}.
 	'''
 
-	# We inherit from gtk.TreeDragSource and gtk.TreeDragDest even though
+	# We inherit from Gtk.TreeDragSource and Gtk.TreeDragDest even though
 	# we do not actually implement them. Somehow this is needed to get
 	# the TreeView to understand we support drag-and-drop even though
 	# actual work is implemented in the treeview itself.
@@ -173,22 +173,22 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 	# instead.)
 
 	COLUMN_TYPES = (
-		gobject.TYPE_STRING, # NAME_COL
-		gobject.TYPE_PYOBJECT, # PATH_COL
+		GObject.TYPE_STRING, # NAME_COL
+		GObject.TYPE_PYOBJECT, # PATH_COL
 		bool, # EMPTY_COL
-		pango.Style, # STYLE_COL
-		gobject.TYPE_STRING, # FGCOLOR_COL
+		Pango.Style, # STYLE_COL
+		GObject.TYPE_STRING, # FGCOLOR_COL
 		int, # WEIGHT_COL
-		gobject.TYPE_STRING, # N_CHILD_COL
-		gobject.TYPE_STRING, # TIP_COL
+		GObject.TYPE_STRING, # N_CHILD_COL
+		GObject.TYPE_STRING, # TIP_COL
 	)
 
 
 	NORMAL_COLOR = None
-	EMPTY_COLOR = 'grey' # FIXME set based on style.text[gtk.STATE_INSENSITIVE]
+	EMPTY_COLOR = 'grey' # FIXME set based on style.text[Gtk.StateType.INSENSITIVE]
 
 	def __init__(self):
-		gtk.GenericTreeModel.__init__(self)
+		GObject.GObject.__init__(self)
 		self.current_page = None
 		self.set_property('leak-references', False)
 			# We do our own memory management, thank you very much
@@ -228,9 +228,9 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 			return None
 
 	def get_indexpath(self, treeiter):
-		'''Get an L{PageIndexRecord} for a C{gtk.TreeIter}
+		'''Get an L{PageIndexRecord} for a C{Gtk.TreeIter}
 
-		@param treeiter: a C{gtk.TreeIter}
+		@param treeiter: a C{Gtk.TreeIter}
 		@returns: an L{PageIndexRecord} object
 		'''
 		myiter = self.get_user_data(treeiter)
@@ -259,9 +259,9 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 			return iter.row['is_link_placeholder']
 		elif column == STYLE_COL:
 			if iter.row['is_link_placeholder']:
-				return pango.STYLE_ITALIC
+				return Pango.Style.ITALIC
 			else:
-				return pango.STYLE_NORMAL
+				return Pango.Style.NORMAL
 		elif column == FGCOLOR_COL:
 			if iter.row['is_link_placeholder']:
 				return self.EMPTY_COLOR
@@ -269,9 +269,9 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 				return self.NORMAL_COLOR
 		elif column == WEIGHT_COL:
 			if self.current_page and iter.row['name'] == self.current_page.name:
-				return pango.WEIGHT_BOLD
+				return Pango.Weight.BOLD
 			else:
-				return pango.WEIGHT_NORMAL
+				return Pango.Weight.NORMAL
 		elif column == N_CHILD_COL:
 			return iter.n_children or ''
 				# don't display "0" to keep look bit clean
@@ -285,10 +285,10 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 		# on scroll, so don't make the time constant to large.
 		if not self._flush_scheduled:
 			def idle_add():
-				gobject.idle_add(self.flush_cache)
+				GObject.idle_add(self.flush_cache)
 				return False # delete timeout
 
-			gobject.timeout_add(500, idle_add)
+			GObject.timeout_add(500, idle_add)
 			self._flush_scheduled = True
 
 		return self.get_mytreeiter(treepath)
@@ -354,20 +354,20 @@ class PageTreeStoreBase(gtk.GenericTreeModel, gtk.TreeDragSource, gtk.TreeDragDe
 
 
 	# Compatibility for older version of GenericTreeModel
-	if not hasattr(gtk.GenericTreeModel, 'create_tree_iter'):
+	if not hasattr(Gtk.GenericTreeModel, 'create_tree_iter'):
 		logger.warn('Using work around for older version of GenericTreeModel - may hurt performance')
 		def create_tree_iter(self, indexpath):
 			# Use GenericTreeModel API to wrap the iter
 			return self.get_iter(iter.treepath)
 
-	if not hasattr(gtk.GenericTreeModel, 'get_user_data'):
+	if not hasattr(Gtk.GenericTreeModel, 'get_user_data'):
 		def get_user_data(self, treeiter):
 			# Use GenericTreeModel API to unwrap the iter
 			treepath = self.get_path(treeiter)
 			return self.cache[treepath]
 
 # Need to register classes defining gobject signals or overloading methods
-gobject.type_register(PageTreeStoreBase)
+GObject.type_register(PageTreeStoreBase)
 
 
 class PageTreeStore(PagesTreeModelMixin, PageTreeStoreBase):
@@ -393,9 +393,9 @@ class PageTreeView(BrowserTreeView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'page-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'insert-link': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'copy': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'page-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'insert-link': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'copy': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	def __init__(self, notebook, config, navigation, model=None):
@@ -405,11 +405,11 @@ class PageTreeView(BrowserTreeView):
 		self.config = config
 		self.navigation = navigation
 
-		column = gtk.TreeViewColumn('_pages_')
+		column = Gtk.TreeViewColumn('_pages_')
 		self.append_column(column)
 
-		cr1 = gtk.CellRendererText()
-		cr1.set_property('ellipsize', pango.ELLIPSIZE_END)
+		cr1 = Gtk.CellRendererText()
+		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
 			style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
@@ -418,8 +418,8 @@ class PageTreeView(BrowserTreeView):
 		column.pack_start(cr2, False)
 		column.set_attributes(cr2, text=N_CHILD_COL, weight=WEIGHT_COL)
 
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
+		if Gtk.gtk_version >= (2, 12) \
+		and Gtk.pygtk_version >= (2, 12):
 			self.set_tooltip_column(TIP_COL)
 
 		self.set_headers_visible(False)
@@ -428,11 +428,11 @@ class PageTreeView(BrowserTreeView):
 		self.set_search_column(0)
 
 		self.enable_model_drag_source(
-			gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_MOVE)
+			Gdk.ModifierType.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
+			Gdk.DragAction.LINK | Gdk.DragAction.MOVE)
 		self.enable_model_drag_dest(
 			(INTERNAL_PAGELIST_TARGET,),
-			gtk.gdk.ACTION_MOVE)
+			Gdk.DragAction.MOVE)
 
 		if model:
 			self.set_model(model)
@@ -445,7 +445,7 @@ class PageTreeView(BrowserTreeView):
 		L{set_model()} to get the view in sync with the index again.
 		'''
 		model = self.get_model()
-		if isinstance(model, gtk.TreeModelFilter):
+		if isinstance(model, Gtk.TreeModelFilter):
 			model = model.get_model() # get childmodel
 		model.teardown()
 
@@ -467,9 +467,9 @@ class PageTreeView(BrowserTreeView):
 		# implemented in the BrowserTreeView parent class
 		# And MainWindow hooks Esc to close side pane
 		handled = False
-		#~ print 'KEY %s (%i)' % (gtk.gdk.keyval_name(event.keyval), event.keyval)
+		#~ print 'KEY %s (%i)' % (Gdk.keyval_name(event.keyval), event.keyval)
 
-		if event.state & PRIMARY_MODIFIER_MASK:
+		if event.get_state() & PRIMARY_MODIFIER_MASK:
 			if event.keyval == KEYVAL_C:
 				self.emit('copy')
 				handled = True
@@ -496,7 +496,7 @@ class PageTreeView(BrowserTreeView):
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 
 		populate_popup_add_separator(menu)
-		item = gtk.ImageMenuItem('gtk-copy')
+		item = Gtk.ImageMenuItem('gtk-copy')
 		item.connect('activate', lambda o: self.do_copy())
 		menu.append(item)
 		menu.show_all()
@@ -533,15 +533,15 @@ class PageTreeView(BrowserTreeView):
 		iter = model.get_iter(treepath)
 		path = model.get_indexpath(iter)
 
-		if position == gtk.TREE_VIEW_DROP_BEFORE:
+		if position == Gtk.TreeViewDropPosition.BEFORE:
 			logger.debug('Dropped %s before %s', source, path)
 			dest = path.parent + source.basename
-		elif position == gtk.TREE_VIEW_DROP_AFTER:
+		elif position == Gtk.TreeViewDropPosition.AFTER:
 			logger.debug('Dropped %s after %s', source, path)
 			dest = path.parent + source.basename
 		else:
-			# gtk.TREE_VIEW_DROP_INTO_OR_BEFORE
-			# or gtk.TREE_VIEW_DROP_INTO_OR_AFTER
+			# Gtk.TreeViewDropPosition.INTO_OR_BEFORE
+			# or Gtk.TreeViewDropPosition.INTO_OR_AFTER
 			logger.debug('Dropped %s into %s', source, path)
 			dest = path + source.basename
 
@@ -603,4 +603,4 @@ class PageTreeView(BrowserTreeView):
 			return model.get_indexpath(iter)
 
 # Need to register classes defining gobject signals
-gobject.type_register(PageTreeView)
+GObject.type_register(PageTreeView)

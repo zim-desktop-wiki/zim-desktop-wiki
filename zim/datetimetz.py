@@ -74,7 +74,7 @@ class LocalTimezone(tzinfo):
 
 
 # Initialize setting for first day of the week. This is locale
-# dependent, and the gtk.Calendar widget already has good code to find it out.
+# dependent, and the Gtk.Calendar widget already has good code to find it out.
 # Unfortunately, the widget keeps that data private *%#*$()()*) !
 
 MONDAY = 0 # iso calendar starts week at Monday

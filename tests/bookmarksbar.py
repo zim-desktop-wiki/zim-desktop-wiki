@@ -9,7 +9,7 @@
 
 
 import tests
-import gtk
+from gi.repository import Gtk
 
 from zim.notebook import Path
 from zim.plugins.bookmarksbar import *
@@ -144,7 +144,7 @@ class TestBookmarksBar(tests.TestCase):
 			self.assertEqual(Bar.paths_names, paths_names)
 			self.assertEqual(self.uistate['bookmarks_names'], path_names_uistate)
 
-		button = gtk.Button(label = new_paths[0], use_underline = False)
+		button = Gtk.Button(label = new_paths[0], use_underline = False)
 		button.zim_path = new_paths[0]
 		rename_check(new_paths[0], new_paths[0], {}, {})
 
