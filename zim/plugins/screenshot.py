@@ -27,7 +27,7 @@ UNTESTED:
 """
 COMMAND = 'import'
 SUPPORTED_COMMANDS_BY_PLATFORM = dict([
-	('posix', ('import', 'scrot')),
+	('posix', ('import', 'scrot', 'spectacle')),
 	('nt', ('boxcutter',)),
 ])
 SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[PLATFORM]
@@ -40,6 +40,11 @@ class ScreenshotPicker(object):
 		('scrot', {
 			'select': ('--select', '--border'),
 			'full': ('--multidisp',),
+			'delay': '-d',
+		}),
+		('spectacle', {
+			'select': ('--background', '--region', '--output'),
+			'full': ('--background','--fullscreen'),
 			'delay': '-d',
 		}),
 		('import', {
