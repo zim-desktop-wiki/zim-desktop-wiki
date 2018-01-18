@@ -22,6 +22,7 @@ PLATFORM = os.name
 TESTED:
 	- import (imagemagick)
 	- scrot
+	- spectacle
 UNTESTED:
 	- boxcutter (windows, http://keepnote.org/boxcutter/)
 """
@@ -108,6 +109,7 @@ This is a core plugin shipping with zim.
 	plugin_preferences = (
 		# key, type, label, default
 		('screenshot_command', 'choice', _('Screenshot Command'), COMMAND, SUPPORTED_COMMANDS), # T: plugin preference
+		('show_icon_toolbar', 'bool', _('Show Icon in toolbar'), True),
 	)
 	screenshot_cmd = COMMAND
 
@@ -145,8 +147,14 @@ class MainWindowExtension(WindowExtension):
 				</placeholder>
 			</menu>
 		</menubar>
+            <toolbar name='toolbar'>
+				<placeholder name='plugin_items'>
+					<toolitem action='insert_screenshot'/>
+				</placeholder>
+			</toolbar>
 	</ui>
 	'''
+
 	screenshot_command = COMMAND
 	plugin = None
 
@@ -160,10 +168,10 @@ class MainWindowExtension(WindowExtension):
 		if preferences['screenshot_command']:
 			self.screenshot_command = preferences['screenshot_command']
 
-	@action(_('_Screenshot...'))  # T: menu item for insert screenshot plugin
+	@action(_('_screenshot...'), stock='gtk-execute')  # t: menu item for insert screenshot plugin
 	def insert_screenshot(self):
-		notebook = self.window.ui.notebook  # XXX
-		page = self.window.ui.page  # XXX
+		notebook = self.window.ui.notebook  # xxx
+		page = self.window.ui.page  # xxx
 		dialog = InsertScreenshotDialog.unique(self, self.window, notebook, page,
 											   self.plugin.preferences['screenshot_command'])
 		dialog.show_all()
