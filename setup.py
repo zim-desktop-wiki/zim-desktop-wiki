@@ -87,7 +87,7 @@ def collect_data_files():
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
 		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
-		('share/metainfo', ['xdg/org.zim-wiki.Zim.metainfo.xml']),
+		('share/metainfo', ['xdg/org.zim_wiki.Zim.metainfo.xml']),
 	]
 
 	# xdg/hicolor -> PREFIX/share/icons/hicolor
