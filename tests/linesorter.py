@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -38,7 +37,7 @@ class TestLineSorterWindowExtension(tests.TestCase):
 
 	def get_text(self):
 		start, end = self.buffer.get_bounds()
-		return start.get_text(end).decode('UTF-8')
+		return start.get_text(end)
 
 	def testSortLines(self):
 		self.set_text('A line\nC line\nB line\n0 trailing text\n')

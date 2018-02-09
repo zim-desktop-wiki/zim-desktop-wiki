@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -134,18 +133,14 @@ def natural_sort_key(string, numeric_padding=5):
 	templ = '%0' + str(numeric_padding) + 'i'
 	string.strip()
 	string = _num_re.sub(lambda m: templ % int(m.group()), string)
-	if isinstance(string, str):
-		string = unicodedata.normalize('NFKC', string)
-		# may be done by strxfrm as well, but want to be sure
 	string = string.lower() # sort case insensitive
 
 	try:
-		string = string.encode('UTF-8') # XXX known issue in python2, fixed in python3
 		bytestring = locale.strxfrm(string)
 			# 8-bit byte string - enode to hex -- in pyton3 check if byte data type is handled better by sqlite3 and others
 	except MemoryError:
 		# Known python issue :(
-		bytestring = string.encode('utf-8')
+		bytestring = string
 
 	key = ''.join(["%02x" % ord(c) for c in bytestring])
 	return key
@@ -287,11 +282,11 @@ class MovingWindowIter(object):
 
 		discard, prev, current = self.items
 		try:
-			next = next(self._iter)
+			mynext = next(self._iter)
 		except StopIteration:
 			self.last = True
 			self.items = (prev, current, None)
 		else:
-			self.items = (prev, current, next)
+			self.items = (prev, current, mynext)
 
 		return self.items

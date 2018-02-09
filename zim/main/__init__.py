@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -340,7 +339,7 @@ class ManualCommand(GuiCommand):
 	'''Like L{GuiCommand} but always opens the manual'''
 
 	arguments = ('[PAGE]',)
-	options = [t for t in GuiCommand.options if t[0] != 'list']
+	options = tuple(t for t in GuiCommand.options if t[0] != 'list')
 		# exclude --list
 
 	def run(self):

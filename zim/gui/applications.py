@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -192,7 +191,7 @@ def _read_comment_from(file):
 	xmlns = "{http://www.w3.org/XML/1998/namespace}"
 	xml = et.parse(file.path)
 	fallback = []
-	#~ print "FIND COMMENT", file, mylang
+	#~ print("FIND COMMENT", file, mylang)
 	for elt in xml.getroot():
 		if elt.tag.endswith('comment'):
 			lang = elt.attrib.get(xmlns + 'lang', '')
@@ -203,7 +202,7 @@ def _read_comment_from(file):
 			else:
 				pass
 	else:
-		#~ print "FALLBACK", fallback
+		#~ print("FALLBACK", fallback)
 		if fallback:
 			fallback.sort()
 			return fallback[-1][1] # longest match
@@ -670,9 +669,13 @@ class String(BaseString):
 	def check(self, value):
 		# Only ascii chars allowed in these keys
 		value = BaseString.check(self, value)
-		if isinstance(value, str) \
-		and value.encode('utf-8') != value:
-			raise ValueError('ASCII string required')
+		if isinstance(value, str):
+			try:
+				x = value.encode('ascii')
+			except UnicodeEncodeError:
+				raise ValueError('ASCII string required')
+			else:
+				pass
 		return value
 
 
@@ -737,9 +740,6 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 	def __init__(self):
 		SectionedConfigDict.__init__(self)
 		self['Desktop Entry'].define(self._definitions)
-		self.encoding = zim.fs.ENCODING
-		if self.encoding == 'mbcs':
-			self.encoding = 'utf-8'
 
 	@property
 	def key(self):
@@ -806,7 +806,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		else:
 			theme = Gtk.IconTheme.get_default()
 			try:
-				pixbuf = theme.load_icon(icon.encode('utf-8'), w, 0)
+				pixbuf = theme.load_icon(icon, w, 0)
 			except Exception as error:
 				#~ logger.exception('Foo')
 				return None

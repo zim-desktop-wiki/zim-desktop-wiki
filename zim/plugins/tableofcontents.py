@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012, 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -252,7 +251,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		or C{None}.
 		'''
 		model = self.treeview.get_model()
-		text = model[path][TEXT_COL].decode('UTF-8')
+		text = model[path][TEXT_COL]
 
 		textview = self.pageview.view
 		buffer = textview.get_buffer()
@@ -268,7 +267,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		@param path: the C{Gtk.TreePath} for the heading of the section
 		'''
 		model = self.treeview.get_model()
-		starttext = model[path][TEXT_COL].decode('UTF-8')
+		starttext = model[path][TEXT_COL]
 
 		nextpath = Gtk.TreePath(path[:-1] + [path[-1] + 1])
 		try:
@@ -276,7 +275,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		except ValueError:
 			endtext = None
 		else:
-			endtext = model[aiter][TEXT_COL].decode('UTF-8')
+			endtext = model[aiter][TEXT_COL]
 
 		textview = self.pageview.view
 		buffer = textview.get_buffer()

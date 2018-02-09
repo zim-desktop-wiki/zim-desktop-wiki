@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # gnuplot_ploteditor.py
 #
@@ -54,7 +53,7 @@ class GnuplotMainWindowExtension(ImageGeneratorMainWindowExtensionBase):
 		page = self.window.page
 		notebook = self.window.notebook
 		attachment_folder = notebook.get_attachments_dir(page)
-		#~ print ">>>", notebook, page, attachment_folder
+		#~ print(">>>", notebook, page, attachment_folder)
 		return GnuplotGenerator(self.plugin, attachment_folder)
 
 
@@ -89,7 +88,7 @@ class GnuplotGenerator(ImageGeneratorClass):
 		lines = []
 		self.template.process(lines, template_vars)
 		plotscriptfile.writelines(lines)
-		#~ print '>>>\n%s<<<' % plotscriptfile.read()
+		#~ print('>>>\n%s<<<' % plotscriptfile.read())
 
 		# Call Gnuplot
 		try:

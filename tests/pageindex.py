@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -75,7 +74,7 @@ class TestPageTreeStore(tests.TestCase):
 		npages = 0
 		path = []
 		for page in notebook.pages.walk():
-			#~ print '>>', page
+			#~ print('>>', page)
 			npages += 1
 			names = page.name.split(':')
 			if len(names) > len(path):
@@ -86,12 +85,12 @@ class TestPageTreeStore(tests.TestCase):
 				path[-1] += 1
 			else:
 				path[-1] += 1
-			#~ print '>>', page, path
+			#~ print('>>', page, path)
 			iter = treestore.get_iter(tuple(path))
 			indexpath = treestore.get_indexpath(iter)
-			#~ print '>>>', indexpath
+			#~ print('>>>', indexpath)
 			self.assertEqual(indexpath, page)
-			self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename.encode('UTF-8'))
+			self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename)
 			self.assertEqual(treestore.get_value(iter, PATH_COL), page)
 			if treestore.get_value(iter, EMPTY_COL):
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), Pango.Style.ITALIC)

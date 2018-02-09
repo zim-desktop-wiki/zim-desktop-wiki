@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -147,7 +146,7 @@ class TestExpressionParser(tests.TestCase):
 				ExpressionParameter('x')
 			)
 		)
-		#~ print '\nEXPRESSION:', expr
+		#~ print('\nEXPRESSION:', expr)
 		self.assertEqual(expr, wanted)
 
 		## Invalid syntaxes
@@ -475,7 +474,7 @@ class TestTemplateLoopState(tests.TestCase):
 			self.assertEqual(loop.max, 2)
 			self.assertEqual(loop.prev, None if i == 0 else items[i - 1])
 			self.assertEqual(loop.current, items[i])
-			self.assertEqual(loop.__next__, None if i == 2 else items[i + 1])
+			self.assertEqual(loop.next, None if i == 2 else items[i + 1])
 			self.assertEqual(loop.index, i)
 			self.assertEqual(loop.count, i + 1)
 			self.assertEqual(loop.first, True if i == 0 else False)
@@ -581,7 +580,7 @@ class TestTemplateList(tests.TestCase):
 
 		for cat in categories:
 			templates = list_templates(cat)
-			#~ print '>>', cat, templates
+			#~ print('>>', cat, templates)
 			self.assertGreater(len(templates), 0)
 			for name, filename in templates:
 				template = get_template(cat, name)
@@ -618,7 +617,7 @@ class TestTemplateFunctions(tests.TestCase):
 		func = build_template_functions()['range']
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(
-			func(1, 10),
+			list(func(1, 10)),
 			[1, 2, 3, 4, 5, 6, 7, 8, 9]
 		)
 
@@ -699,7 +698,7 @@ class TestTemplate(tests.TestCase):
 			'uri': ExpressionFunction(lambda l: "URL:%s" % l['name']),
 			'anchor': ExpressionFunction(lambda l: "ANCHOR:%s" % l['name']),
 		})
-		#~ print ''.join(output)
+		#~ print(''.join(output))
 
 		# TODO assert something
 

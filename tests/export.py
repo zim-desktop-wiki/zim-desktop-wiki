@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -691,7 +690,7 @@ class TestExportDialog(tests.TestCase):
 
 		file = log_context.file
 		self.assertTrue(file.exists())
-		#~ print ">>>\n", file.read(), "\n<<<"
+		#~ print(">>>\n", file.read(), "\n<<<")
 		self.assertTrue('Test export warning' in file.read())
 		self.assertFalse('Test export debug' in file.read())
 		self.assertFalse('Test foo' in file.read())

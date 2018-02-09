@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -62,11 +61,11 @@ class ExportDialog(Assistant):
 		if op.cancelled:
 			return False
 		else:
-			#~ print '>>> %s E: %i, W: %i' % (
+			#~ print('>>> %s E: %i, W: %i' % ()
 				#~ logging_context.file.path,
 				#~ logging_context.handler.n_error, logging_context.handler.n_warning)
 			#~ print logging_context.file.read()
-			#~ print '---'
+			#~ print('---')
 			ExportDoneDialog(self, logging_context, output).run()
 			return True
 

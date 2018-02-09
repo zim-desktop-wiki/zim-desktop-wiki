@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -713,9 +712,9 @@ class DeletePageDialog(Dialog):
 		label = Gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
+		longmsg = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
-		label.set_markup('<b>' + short + '</b>\n\n' + int)
+		label.set_markup('<b>' + short + '</b>\n\n' + longmsg)
 		vbox.pack_start(label, False, True, 0)
 
 		# TODO use expander here

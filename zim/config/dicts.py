@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -30,13 +29,7 @@ import logging
 import types
 import collections
 import ast
-
-
-if sys.version_info >= (2, 6):
-	import json # in standard lib since 2.6
-else: #pragma: no cover
-	import simplejson as json # extra dependency
-
+import json
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
 from zim.utils import OrderedDict, FunctionThread
@@ -50,7 +43,7 @@ from .basedirs import XDG_CONFIG_HOME
 logger = logging.getLogger('zim.config')
 
 
-class _MyMeta(SignalEmitter.__metaclass__, OrderedDict.__metaclass__):
+class _MyMeta(type(SignalEmitter), type(OrderedDict)):
 	# Combine meta classes to resolve conflict
 	pass
 
@@ -427,8 +420,6 @@ value_is_coord = Coordinate # XXX for backward compatibility
 
 
 _definition_classes = {
-	str: String,
-	str: String,
 	str: String,
 	int: Integer,
 	float: Float,

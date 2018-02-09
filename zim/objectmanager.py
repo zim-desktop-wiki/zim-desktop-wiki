@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -196,7 +195,7 @@ class FallbackObject(CustomObjectClass):
 	def get_data(self):
 		if self.buffer:
 			start, end = self.buffer.get_bounds()
-			return start.get_text(end).decode('UTF-8')
+			return start.get_text(end)
 		else:
 			return self._data
 

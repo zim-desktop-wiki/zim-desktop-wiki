@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -23,7 +22,7 @@ if not ElementTreeModule.__name__.endswith('cElementTree'):
 class TestFormatMixin(object):
 	'''Mixin for testing formats, uses data in C{tests/data/formats/}'''
 
-	reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n').encode('UTF-8')
+	reference_xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
 
 	reference_data = {
 		'wiki': 'wiki.txt',
@@ -75,7 +74,7 @@ class TestFormatMixin(object):
 		linker = StubLinker(Dir('tests/data/formats'))
 		dumper = self.format.Dumper(linker=linker)
 		result = ''.join(dumper.dump(reftree))
-		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
+		#~ print('\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n')
 		self.assertMultiLineEqual(result, wanted)
 		self.assertNoTextMissing(result, reftree)
 
@@ -85,7 +84,7 @@ class TestFormatMixin(object):
 		# partial dumper
 		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
 		result = ''.join(dumper.dump(parttree))
-		#~ print ">>>%s<<<" % result
+		#~ print(">>>%s<<<" % result)
 		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
 
 		# Parser
@@ -101,7 +100,7 @@ class TestFormatMixin(object):
 				# Quick check that we got back *something*
 			string = ''.join(dumper.dump(result))
 				# now we may have loss of formatting, but text should all be there
-				#~ print '\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n'
+				#~ print('\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n')
 			self.assertNoTextMissing(string, reftree)
 
 	_nonalpha_re = re.compile('\W')
@@ -132,7 +131,7 @@ class TestFormatMixin(object):
 					continue
 
 				for piece in wanted.strip().split():
-					#~ print "| >>%s<< @ offset %i" % (piece, offset)
+					#~ print("| >>%s<< @ offset %i" % (piece, offset))
 					try:
 						start = text.index(piece, offset)
 					except ValueError:
@@ -269,7 +268,7 @@ class TestParseTree(tests.TestCase):
 
 	def testGetObjects(self):
 		xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
-		tree = tests.new_parsetree_from_xml(xml.encode('UTF-8'))
+		tree = tests.new_parsetree_from_xml(xml)
 		objects = list(tree.get_objects())
 		self.assertTrue(len(objects) >= 2)
 
@@ -412,12 +411,12 @@ test 4 5 6
 				wanted = text
 
 			tree = self.format.Parser().parse(text)
-			#~ print '>>>\n' + tree.tostring() + '\n<<<'
+			#~ print('>>>\n' + tree.tostring() + '\n<<<')
 			self.assertEqual(tree.tostring(), xml)
 
 			lines = self.format.Dumper().dump(tree)
 			result = ''.join(lines)
-			#~ print '>>>\n' + result + '<<<'
+			#~ print('>>>\n' + result + '<<<')
 			self.assertEqual(result, wanted)
 
 
@@ -806,9 +805,8 @@ grrr
    .
 </zim-tree>'''
 
-		# For some reason this does not work with cElementTree.XMLBuilder ...
-		from xml.etree.ElementTree import XMLTreeBuilder
-		builder = XMLTreeBuilder(target=OldParseTreeBuilder())
+		from xml.etree.ElementTree import XMLParser
+		builder = XMLParser(target=OldParseTreeBuilder())
 		builder.feed(input)
 		root = builder.close()
 		tree = ParseTree(root)

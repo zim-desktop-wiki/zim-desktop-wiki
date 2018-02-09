@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
 # Copyright 2012-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -138,14 +137,12 @@ class Dumper(TextDumper):
 
 	def dump_ol(self, tag, attrib, strings):
 		start = attrib.get('start', 1)
-		if os.name == 'nt':
-			start = start.encode('utf-8') # Weird locale dependent behavior
-		if start in string.lowercase:
+		if start in string.ascii_lowercase:
 			type = 'a'
-			start = string.lowercase.index(start) + 1
-		elif start in string.uppercase:
+			start = string.ascii_lowercase.index(start) + 1
+		elif start in string.ascii_uppercase:
 			type = 'A'
-			start = string.uppercase.index(start) + 1
+			start = string.ascii_uppercase.index(start) + 1
 		else:
 			type = '1'
 			start = int(start)

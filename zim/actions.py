@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 

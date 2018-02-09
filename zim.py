@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This script is a wrapper around zim.main.main() for running zim as
 # an application.
@@ -10,13 +10,10 @@ import os
 
 # Check if we run the correct python version
 try:
-	version_info = sys.version_info
-	assert version_info >= (2, 6)
-	assert version_info < (3, 0)
+	assert sys.version_info >= (3, 2)
 except:
-	print('ERROR: zim needs python >= 2.6   (but < 3.0)', file=sys.stderr)
+	print('zim needs python >= 3.2', file=sys.stderr)
 	sys.exit(1)
-
 
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
 # See http://www.py2exe.org/index.cgi/StderrLog
@@ -51,9 +48,7 @@ except ImportError:
 
 # Run the application and handle some exceptions
 try:
-	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
-	argv = [arg.decode(encoding) for arg in sys.argv]
-	exitcode = zim.main.main(*argv)
+	exitcode = zim.main.main(*sys.argv)
 	sys.exit(exitcode)
 except zim.main.GetoptError as err:
 	print(sys.argv[0] + ':', err, file=sys.stderr)

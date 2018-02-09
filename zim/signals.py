@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -275,7 +274,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 
 	def __new__(cls, *arg, **kwarg):
 		# New instance: init attributes for signal handling
-		obj = super(SignalEmitter, cls).__new__(cls, *arg, **kwarg)
+		obj = super(SignalEmitter, cls).__new__(cls)
 
 		obj._signal_handlers = {}
 		obj._signal_blocks = {}

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -25,11 +25,9 @@ import msgfmt # also distributed with zim
 import makeman # helper script
 
 try:
-	version_info = sys.version_info
-	assert version_info >= (2, 6)
-	assert version_info < (3, 0)
+	assert sys.version_info >= (3, 2)
 except:
-	print('zim needs python >= 2.6   (but < 3.0)', file=sys.stderr)
+	print('zim needs python >= 3.2', file=sys.stderr)
 	sys.exit(1)
 
 
@@ -57,7 +55,7 @@ def collect_packages():
 		if '__init__.py' in files:
 			package = '.'.join(dir.split(os.sep))
 			packages.append(package)
-	#~ print 'Pakages: ', packages
+	#~ print('Pakages: ', packages)
 	return packages
 
 
@@ -132,7 +130,7 @@ def collect_data_files():
 		data_files.append((target, [mofile]))
 
 	#~ import pprint
-	#~ print 'Data files: '
+	#~ print('Data files: ')
 	#~ pprint.pprint(data_files)
 	return data_files
 
@@ -147,7 +145,7 @@ def fix_dist():
 	makeman.make()
 
 	# Add the changelog to the manual
-	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
+	# print('copying CHANGELOG.txt -> data/manual/Changelog.txt')
 	# shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
 
 	# Copy the zim icons a couple of times
@@ -218,7 +216,7 @@ class zim_build_trans_class(cmd.Command):
 				print('compiling %s' % mofile)
 				msgfmt.make(pofile, mofile)
 			else:
-				#~ print 'skipping %s - up to date' % mofile
+				#~ print('skipping %s - up to date' % mofile)
 				pass
 
 
@@ -310,10 +308,6 @@ class zim_install_class(install_class):
 
 # Distutils parameters, and main function
 
-dependencies = ['gobject', 'gtk', 'xdg']
-if version_info == (2, 5):
-	dependencies.append('simplejson')
-
 if build_target == 'maemo':
 	scripts = ['zim.py', 'maemo/modest-mailto.sh']
 else:
@@ -366,7 +360,7 @@ setup(
 	scripts = scripts,
 	packages = collect_packages(),
 	data_files = collect_data_files(),
-	requires = dependencies,
+	requires = ['gi', 'xdg'],
 
 	**py2exeoptions
 )

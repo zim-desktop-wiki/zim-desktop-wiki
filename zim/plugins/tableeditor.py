@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Author: Tobias Haupenthal
 # Plugin created: 2015
@@ -147,13 +146,13 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		:param tabledata: XML - formated as a zim-tree table-object
 		:return: tuple of header-list and list of row lists -  ([h1,h2],[[r11,r12],[r21,r22])
 		'''
-		header = [head.text.decode('UTF-8') for head in tabledata.findall('thead/th')]
+		header = [head.text for head in tabledata.findall('thead/th')]
 		header = list(map(CellFormatReplacer.zim_to_cell, header))
 
 		rows = []
 		for trow in tabledata.findall('trow'):
 			row = trow.findall('td')
-			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
+			row = [ElementTree.tostring(r, 'unicode').replace('<td>', '').replace('</td>', '') for r in row]
 			row = list(map(CellFormatReplacer.zim_to_cell, row))
 			rows.append(row)
 		return header, rows
@@ -410,17 +409,17 @@ class TableViewObject(CustomObjectClass):
 			bound = iter.copy()
 			bound.backward_char()
 			char_before_table = bound.get_slice(iter)
-			need_newline_infront = char_before_table.decode('UTF-8') != "\n".decode('UTF-8')
+			need_newline_infront = char_before_table != "\n"
 			bound = iter.copy()
 			bound.forward_char()
 			iter2 = bound.copy()
 			bound.forward_char()
 			char_after_table = iter2.get_slice(bound)
-			need_newline_behind = char_after_table.decode('UTF-8') != "\n".decode('UTF-8')
+			need_newline_behind = char_after_table != "\n"
 			#
 
 			headers, rows, attrib = self.get_data()
-			#~ print "Table data:", headers, rows, attrib
+			#~ print("Table data:", headers, rows, attrib)
 
 
 			if need_newline_infront:
@@ -537,7 +536,7 @@ class TableViewWidget(CustomObjectWidget):
 
 		CustomObjectWidget.do_size_request(self, requisition)
 
-		#~ print "Widget requests: %i textview: %i" % (requisition.width, self._textview_width)
+		#~ print("Widget requests: %i textview: %i" % (requisition.width, self._textview_width))
 		if requisition.width > self._textview_width:
 			# Figure out width of fixed cols
 			fixed = 0
@@ -549,7 +548,7 @@ class TableViewWidget(CustomObjectWidget):
 			wrap_size = (self._textview_width - fixed) // nwrap
 
 			# Set width for wrappable cols
-			#~ print "Fixed, nwrap, wrap_size", (fixed, nwrap, wrap_size)
+			#~ print("Fixed, nwrap, wrap_size", (fixed, nwrap, wrap_size))
 			for col, wrap in zip(self.treeview.get_columns(), wraps):
 				if wrap:
 					cr = col.get_cell_renderers()[0]

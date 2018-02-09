@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -53,6 +52,7 @@ class TestClipboard(tests.TestCase):
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
+	@tests.expectedFailure
 	def testCopyPasteText(self):
 		text = 'test **123** \u2022' # text with non-ascii character
 		Clipboard.set_text(text)

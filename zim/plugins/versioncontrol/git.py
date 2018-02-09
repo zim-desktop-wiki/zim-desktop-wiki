@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2010,2011 John Drinkwater <john@nextraweb.com>
@@ -20,7 +19,7 @@ class GITApplicationBackend(VCSApplicationBase):
 
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('git',), encoding='utf-8')
+		return Application(('git',))
 
 	def build_revision_arguments(self, versions, is_for_diff=False):
 		"""Build a list including required string/int for running an VCS command

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -151,9 +150,6 @@ BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITE
 
 
 
-from zim.tokenparser import TokenBuilder
-
-
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 def increase_list_iter(listiter):
@@ -181,7 +177,6 @@ def encode_xml(text):
 	@param text: label text as string
 	@returns: encoded text
 	'''
-	text = str(text).encode('UTF-8')
 	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace("'", '&apos;')
 
 
@@ -210,7 +205,7 @@ def canonical_name(name):
 def get_format(name):
 	'''Returns the module object for a specific format.'''
 	# If this method is removes, class names in formats/*.py can be made more explicit
-	#~ print 'DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()'
+	#~ print('DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()')
 	return get_format_module(name)
 
 
@@ -307,7 +302,7 @@ class ParseTree(object):
 
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
-		parser = ElementTreeModule.XMLTreeBuilder()
+		parser = ElementTreeModule.XMLParser()
 		parser.feed(string)
 		root = parser.close()
 		self._etree._setroot(root)
@@ -324,7 +319,7 @@ class ParseTree(object):
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
-		ElementTreeModule.ElementTree.write(self._etree, xml, 'utf-8')
+		ElementTreeModule.ElementTree.write(self._etree, xml, 'unicode')
 		return xml.getvalue()
 
 	def copy(self):
@@ -337,6 +332,8 @@ class ParseTree(object):
 			raise
 
 	def iter_tokens(self):
+		from zim.tokenparser import TokenBuilder
+
 		tb = TokenBuilder()
 		self.visit(tb)
 		return tb.tokens
@@ -379,7 +376,7 @@ class ParseTree(object):
 
 		if children:
 			first = children[0]
-			if first.tag == 'h' and first.attrib['level'] >= level:
+			if first.tag == 'h' and int(first.attrib['level']) >= level:
 				return first
 		return None
 
@@ -913,7 +910,7 @@ class OldParseTreeBuilder(object):
 			self._flush(need_eol=1)
 		else:
 			self._flush()
-		#~ print 'START', tag
+		#~ print('START', tag)
 
 		if tag == 'h':
 			if not (attrib and 'level' in attrib):
@@ -948,7 +945,7 @@ class OldParseTreeBuilder(object):
 			self._flush(need_eol=1)
 		else:
 			self._flush()
-		#~ print 'END', tag
+		#~ print('END', tag)
 
 		self._last = self._stack[-1]
 		assert self._last.tag == tag, \
@@ -996,7 +993,7 @@ class OldParseTreeBuilder(object):
 	def _flush(self, need_eol=0):
 		# need_eol makes sure previous data ends with \n
 
-		#~ print 'DATA:', self._data
+		#~ print('DATA:', self._data)
 		text = ''.join(self._data)
 
 		# Fix trailing newlines
@@ -1239,7 +1236,7 @@ class DumperClass(Visitor):
 			#~ try:
 				#~ u''.join(strings)
 			#~ except:
-				#~ print "BUG: %s returned %s" % ('dump_'+tag, strings)
+				#~ print("BUG: %s returned %s" % ('dump_'+tag, strings))
 
 		if strings is not None:
 			self.context[-1].text.extend(strings)
@@ -1691,7 +1688,6 @@ class TableParser():
 		:param row: tuple of cells
 		:param maxwidths: list of column length
 		:param aligns:  list of alignments
-		:param x:  point-separator
 		:param y: space-separator
 		:return: a textline
 		'''
@@ -1702,7 +1698,7 @@ class TableParser():
 			elif align == 'right':
 				(lspace, rspace) = (maxwidth - len(val) + 1, 1)
 			elif align == 'center':
-				lspace = (maxwidth - len(val)) / 2 + 1
+				lspace = (maxwidth - len(val)) // 2 + 1
 				rspace = (maxwidth - lspace - len(val) + 2)
 			else:
 				(lspace, rspace) = (1, maxwidth - len(val) + 1)

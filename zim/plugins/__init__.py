@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -81,8 +80,7 @@ import logging
 import inspect
 import collections
 
-import zim.fs
-from zim.fs import Dir
+from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
 from zim.actions import action, toggle_action, get_gtk_actiongroup
@@ -112,7 +110,7 @@ for dir in data_dirs('plugins'):
 
 __path__.append(__path__.pop(0)) # reshuffle real module path to the end
 
-#~ print "PLUGIN PATH:", __path__
+#~ print("PLUGIN PATH:", __path__)
 
 
 PLUGIN_FOLDER = XDG_DATA_HOME.subdir('zim/plugins')
@@ -186,16 +184,16 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		# parameter determines what folders will considered when importing
 		# sub-modules of the this package once this module is loaded.
 		plugins = set() # THIS LINE IS REPLACED BY SETUP.PY - DON'T CHANGE IT
-		for dir in __path__:
-			dir = Dir(dir)
-			for candidate in dir.list(): # returns [] if dir does not exist
-				if candidate.startswith('_') or candidate == 'base':
+		for folder in [f for f in map(LocalFolder, __path__) if f.exists()]:
+			for child in folder:
+				name = child.basename
+				if name.startswith('_') or name == 'base':
 					continue
-				elif candidate.endswith('.py'):
-					plugins.add(candidate[:-3])
-				elif zim.fs.isdir(dir.path + '/' + candidate) \
-				and os.path.exists(dir.path + '/' + candidate + '/__init__.py'):
-					plugins.add(candidate)
+				elif isinstance(child, LocalFile) and name.endswith('.py'):
+					plugins.add(name[:-3])
+				elif isinstance(child, LocalFolder) \
+					and child.file('__init__.py').exists():
+						plugins.add(name)
 				else:
 					pass
 
@@ -452,11 +450,11 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 				if len(pref) == 4:
 					key, type, label, default = pref
 					self.preferences.setdefault(key, default)
-					#~ print ">>>>", key, default, '--', self.preferences[key]
+					#~ print(">>>>", key, default, '--', self.preferences[key])
 				else:
 					key, type, label, default, check = pref
 					self.preferences.setdefault(key, default, check=check)
-					#~ print ">>>>", key, default, check, '--', self.preferences[key]
+					#~ print(">>>>", key, default, check, '--', self.preferences[key])
 
 		self.load_extensions_classes()
 

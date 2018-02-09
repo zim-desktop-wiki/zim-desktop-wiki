@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -149,7 +148,7 @@ class TestCustomTools(tests.TestCase):
 			('foo %t', ('foo', 'FooBar')),
 			('foo %T', ('foo', '**FooBar**')),
 		):
-			#~ print '>>>', cmd
+			#~ print('>>>', cmd)
 			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
 			self.assertEqual(tool.parse_exec(args), wanted)
 

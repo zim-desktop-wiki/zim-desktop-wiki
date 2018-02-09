@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -14,10 +13,9 @@ import logging
 logger = logging.getLogger('zim.newfs')
 
 
-from . import FS_ENCODING, FS_SUPPORT_NON_LOCAL_FILE_SHARES
+from . import FS_SUPPORT_NON_LOCAL_FILE_SHARES
 
 from zim.errors import Error
-from zim.environ import environ
 from zim.parsing import url_encode
 
 
@@ -188,67 +186,13 @@ else:
 			return 'file:///' + url_encode('/'.join(names))
 
 
-
-if FS_ENCODING == 'mbcs':
-	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
-	# so here we just convert everything to unicode strings
-	def _encode_path(path):
-		return path if isinstance(path, str) else str(path)
-
-	_decode_path = _encode_path
-
-else:
-	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
-	def _encode_path(path):
-		if isinstance(path, str):
-			try:
-				return path.encode(FS_ENCODING)
-			except UnicodeEncodeError:
-				raise ValueError('BUG: invalid filename %s' % path)
-				#~ raise Error, 'BUG: invalid filename %s' % path
-		else:
-			return path # assume encoding is correct
-
-	def _decode_path(path):
-		if isinstance(path, str):
-			return path # assume encoding is correct
-		else:
-			try:
-				return path.decode(FS_ENCODING)
-			except UnicodeDecodeError:
-				raise ValueError('BUG: invalid filename %s' % path)
-				#~ raise Error, 'BUG: invalid filename %s' % path
-
-
-
 def _os_expanduser(path):
-	'''Wrapper for C{os.path.expanduser()} to get encoding right'''
 	assert path.startswith('~')
-	if FS_ENCODING == 'mbcs':
-		# This method is an exception in that it does not handle unicode
-		# directly. This will cause and error when user name contains
-		# non-ascii characters. See bug report lp:988041.
-		# But also mbcs encoding does not handle all characters,
-		# so only encode home part
-		parts = path.replace('\\', '/').strip('/').split('/')
-			# parts[0] now is "~" or "~user"
-
-		if isinstance(path, str):
-			part = parts[0].encode('mbcs')
-			part = os.path.expanduser(part)
-			parts[0] = part.decode('mbcs')
-		else:
-			# assume it is compatible
-			parts[0] = os.path.expanduser(parts[0])
-
-		path = _SEP.join(parts)
-	else:
-		# Let encode() handle the unicode encoding
-		path = _decode_path(os.path.expanduser(_encode_path(path)))
+	path = os.path.expanduser(path)
 
 	if path.startswith('~'):
 		# expansion failed - do a simple fallback
-		home = environ['HOME']
+		home = os.environ['HOME']
 		parts = path.replace('\\', '/').strip('/').split('/')
 		if parts[0] == '~':
 			path = _SEP.join([home] + parts[1:])
@@ -627,8 +571,7 @@ def _md5(content):
 
 	m = hashlib.md5()
 	for l in content:
-		l = l.encode('UTF-8') if isinstance(l, str) else l
-		m.update(l)
+		m.update(l.encode('UTF-8'))
 	return m.digest()
 
 

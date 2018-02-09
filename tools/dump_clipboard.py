@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''Interactively dumps clipboard contents to stdout'''
 

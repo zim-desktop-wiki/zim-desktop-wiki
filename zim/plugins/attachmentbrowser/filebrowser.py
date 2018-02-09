@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
 #           2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -158,7 +157,7 @@ class FileBrowserIconView(Gtk.IconView):
 				#self._update_state()
 
 		#~ import time
-		#~ print "start", time.time()
+		#~ print("start", time.time())
 
 		self._thumbnailer.clear_queue()
 		if self._idle_event_id:
@@ -214,7 +213,7 @@ class FileBrowserIconView(Gtk.IconView):
 			self._idle_event_id = \
 				GObject.idle_add(self._on_check_thumbnail_queue)
 
-		#~ print "stop ", time.time()
+		#~ print("stop ", time.time())
 
 	def _on_check_thumbnail_queue(self):
 		file, size, thumbfile, pixbuf, mtime = \
@@ -311,7 +310,7 @@ class FileBrowserIconView(Gtk.IconView):
 		open_file(self, file)
 
 	def on_button_press_event(self, iconview, event):
-		# print 'on_button_press_event'
+		# print('on_button_press_event')
 		if event.button == 3:
 			popup_menu = Gtk.Menu()
 			x = int(event.x)
@@ -327,7 +326,7 @@ class FileBrowserIconView(Gtk.IconView):
 		return False
 
 	def do_populate_popup(self, menu, pathinfo):
-		# print "do_populate_popup"
+		# print("do_populate_popup")
 		store = self.get_model()
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])

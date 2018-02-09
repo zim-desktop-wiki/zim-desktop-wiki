@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -204,7 +203,7 @@ class TrayIconBase(object):
 		notebooks.sort(key=lambda info: info.name)
 
 		for info in notebooks:
-			#~ print '>>>', info
+			#~ print('>>>', info)
 			item = Gtk.MenuItem('  ' + info.name)
 				# Hack - using '  ' to indent visually
 			if info.active:
@@ -280,7 +279,7 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 		menu.popup(None, None, Gtk.status_icon_position_menu, button, activate_time, self)
 
 	def do_popup_menu(self, button=3, activate_time=0):
-		#~ print '>>', button, activate_time
+		#~ print('>>', button, activate_time)
 		menu = self.get_trayicon_menu()
 		menu.show_all()
 		menu.popup(None, None, Gtk.status_icon_position_menu, button, activate_time, self)

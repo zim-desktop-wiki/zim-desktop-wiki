@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -34,7 +33,7 @@ def get_tmp_dir(name):
 		dir = Dir(os.environ['REAL_TMP'])
 	else:
 		dir = Dir(tempfile.gettempdir())
-	#~ print "TMPDIR:", dir
+	#~ print("TMPDIR:", dir)
 
 	dir = dir.subdir('test_versioncontrol').subdir(name)
 	if dir.exists():
@@ -264,7 +263,7 @@ added:
 ''' )
 
 		versions = vcs.list_versions()
-		#~ print 'VERSIONS>>', versions
+		#~ print('VERSIONS>>', versions)
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
 		self.assertEqual(versions[0][0], '1')
@@ -290,7 +289,7 @@ bar
 2 | baz
 ''' )
 
-		#~ print 'TODO - test moving a file'
+		#~ print('TODO - test moving a file')
 		file.rename(root.file('bar.txt'))
 		diff = vcs.get_diff()
 		diff = ''.join(filter(ignorelines, diff))
@@ -418,7 +417,7 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 		versions = vcs.list_versions()
 
 		self.assertTrue(isinstance(versions, list))
-		#~ print 'VERSIONS>>', versions
+		#~ print('VERSIONS>>', versions)
 		self.assertTrue(len(versions) == 3)
 		self.assertTrue(isinstance(versions[0], tuple))
 		self.assertTrue(len(versions[0]) == 4)
@@ -557,7 +556,7 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 ''' )
 
 		versions = vcs.list_versions()
-		#~ print 'VERSIONS>>', versions
+		#~ print('VERSIONS>>', versions)
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
 		self.assertEqual(versions[0][0], str(0))
@@ -584,7 +583,7 @@ bar
 1: baz
 ''' )
 
-		#~ print 'TODO - test moving a file'
+		#~ print('TODO - test moving a file')
 		file.rename(root.file('bar.txt'))
 
 		diff = vcs.get_diff()
@@ -654,7 +653,7 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		versions = vcs.list_versions()
 
 		self.assertTrue(isinstance(versions, list))
-		#~ print 'VERSIONS>>', versions
+		#~ print('VERSIONS>>', versions)
 		self.assertTrue(len(versions) == 3)
 		self.assertTrue(isinstance(versions[0], tuple))
 		self.assertTrue(len(versions[0]) == 4)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -673,8 +672,8 @@ class TaskListTreeView(BrowserTreeView):
 		if not modelrow[self.ACT_COL] and self.filter_actionable:
 			visible = False
 
-		description = modelrow[self.DESC_COL].decode('UTF-8').lower()
-		pagename = modelrow[self.PAGE_COL].decode('UTF-8').lower()
+		description = modelrow[self.DESC_COL].lower()
+		pagename = modelrow[self.PAGE_COL].lower()
 		tags = [t.lower() for t in modelrow[self.TAGS_COL]]
 
 		if visible and self.label_filter:
@@ -860,9 +859,9 @@ class TaskListTreeView(BrowserTreeView):
 
 			row = model[iter]
 			prio = row[self.PRIO_COL]
-			desc = row[self.DESC_COL].decode('UTF-8')
+			desc = row[self.DESC_COL]
 			date = row[self.DUE_COL]
-			page = row[self.PAGE_COL].decode('UTF-8')
+			page = row[self.PAGE_COL]
 
 			if date == _MAX_DUE_DATE:
 				date = ''

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Pavel_M <plprgt@gmail.com>,
 # released under the GNU GPL version 3.
@@ -317,7 +316,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 		if path in self.paths:
 			self.paths.remove(path)
 			self.paths_names.pop(path, None)
-		        self._reload_bar()
+			self._reload_bar()
 
 	def delete_all(self, ask_confirmation = False):
 		'''
@@ -461,7 +460,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 					item = Gtk.ImageMenuItem(name)
 				else:
 					item = Gtk.MenuItem(name)
-			        item.connect('activate', func)
+					item.connect('activate', func)
 			main_menu.append(item)
 
 		main_menu.show_all()

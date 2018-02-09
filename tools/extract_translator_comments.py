@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import re
 
@@ -8,7 +8,7 @@ comment_re = re.compile(r'\s+#\s+T:\s+(.+)\s*$')
 
 def get_file(file):
 	if not file in source_files:
-		#~ print 'Extracting comments from', file
+		#~ print('Extracting comments from', file)
 		source_files[file] = open(file).readlines()
 		source_files[file].append('')
 	return source_files[file]

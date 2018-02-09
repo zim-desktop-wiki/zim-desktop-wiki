@@ -88,3 +88,8 @@ ENV/
 
 # mkdocs documentation
 /site
+
+# debian pybuild
+.pybuild/
+debian/python-module-stampdir/
+

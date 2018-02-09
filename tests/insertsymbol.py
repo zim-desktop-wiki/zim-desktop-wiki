@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -43,24 +42,24 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		# insert on end-of-word with space
 		press(textview, '\\alpha ')
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 		self.assertEqual(text, ALPHA + ' \n')
 
 		# Check undo - first undo replace, then the insert space
 		pageview.undo()
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 		self.assertEqual(text, '\\alpha \n')
 		pageview.undo()
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 		self.assertEqual(text, '\\alpha\n') # no trailing space
 
 		# insert on end-of-word with ;
 		buffer.clear()
 		press(textview, r'\alpha;')
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 		self.assertEqual(text, ALPHA) # no trailing space
 
 		# no insert in code or pre section
@@ -68,7 +67,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		pageview.toggle_format(VERBATIM)
 		press(textview, r'\alpha ')
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 		self.assertEqual(text, r'\alpha ') # no replace
 
 		# test dialog
@@ -84,5 +83,5 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		with tests.DialogContext(check_dialog):
 			mainwindow_ext.insert_symbol()
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 		self.assertEqual(text, EACUTE + ECIRC + EGRAVE)

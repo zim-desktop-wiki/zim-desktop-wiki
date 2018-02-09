@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 
 import tests
-
-from tests.environ import EnvironmentContext
 
 import os
 
@@ -15,7 +12,6 @@ from zim.newfs.mock import os_native_path
 from zim.config import *
 from zim.notebook import Path
 
-import zim.environ
 import zim.config
 
 
@@ -50,19 +46,41 @@ class FilterInvalidConfigWarning(tests.LoggingFilter):
 		tests.LoggingFilter.__init__(self, 'zim.config', 'Invalid config value')
 
 
-class EnvironmentConfigContext(EnvironmentContext):
-	# Here we use zim.environ rather than os.environ
-	# to make sure encoding etc. is correct
+class EnvironmentConfigContext(object):
+	'''Context manager to be able to run test cases for
+	environment parameters and restore the previous values on
+	exit or error.
+	'''
+	environ = os.environ
 
-	environ = zim.environ.environ
+	def __init__(self, environ_context):
+		self.environ_context = environ_context
+		self.environ_backup = {}
+		self.environ = os.environ
 
 	def __enter__(self):
-		EnvironmentContext.__enter__(self)
+		for k, v in self.environ_context.items():
+			self.environ_backup[k] = self.environ.get(k)
+			if v:
+				self.environ[k] = v
+			elif k in self.environ:
+				del self.environ[k]
+			else:
+				pass
+
 		zim.config.set_basedirs() # refresh
 
 	def __exit__(self, *exc_info):
-		EnvironmentContext.__exit__(self, *exc_info)
+		for k, v in self.environ_backup.items():
+			if v:
+				self.environ[k] = v
+			elif k in self.environ:
+				del self.environ[k]
+			else:
+				pass
+
 		zim.config.set_basedirs() # refresh
+		return False # Raise
 
 
 class TestDirsTestSetup(tests.TestCase):

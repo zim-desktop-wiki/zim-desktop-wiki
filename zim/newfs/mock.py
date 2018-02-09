@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -58,7 +57,7 @@ class MockFSNode(object):
 	__slots__ = ('ctime', 'mtime', 'size', 'data', 'isdir', 'case_sensitive')
 
 	def __init__(self, data, case_sensitive=True):
-		assert isinstance(data, (str, dict))
+		assert isinstance(data, (bytes, dict))
 		self.ctime = None
 		self.mtime = None
 		self.size = None
@@ -397,24 +396,26 @@ class MockFile(MockFSObjectBase, File):
 		return self._node().data
 
 	def read(self):
-		return self._node().data
+		return self._node().data.decode('UTF-8')
 
 	def readlines(self):
 		return self.read().splitlines(True)
 
-	def write(self, text):
-		assert isinstance(text, str)
+	def write_binary(self, data):
+		assert isinstance(data, bytes)
 
 		with self._write_decoration():
 			try:
 				node = self._node()
 			except FileNotFoundError:
-				self._fs.touch(self.pathnames, text)
+				self._fs.touch(self.pathnames, data)
 			else:
-				node.data = text
+				node.data = data
 				node.on_changed()
 
-	write_binary = write
+	def write(self, text):
+		assert isinstance(text, str)
+		self.write_binary(text.encode('UTF-8'))
 
 	def writelines(self, lines):
 		self.write(''.join(lines))

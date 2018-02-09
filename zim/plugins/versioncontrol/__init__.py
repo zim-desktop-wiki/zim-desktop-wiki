@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
@@ -405,7 +404,7 @@ class VCSBackend(ConnectorMixin):
 		@param vcs_specific_app: a backend object
 		"""
 		self._root = dir
-		self._lock = FS.get_async_lock(self._root)
+		self._lock = threading.Lock() # TODO: sync with notebook operations logic
 		self._app = vcs_specific_app
 		if not TEST_MODE:
 			# Avoid touching the bazaar repository with zim sources
@@ -415,6 +414,7 @@ class VCSBackend(ConnectorMixin):
 				'path-moved',
 				'path-deleted'
 			))
+		# TODO: change block above with newfs monitor
 
 	@property
 	def vcs(self):
@@ -941,7 +941,7 @@ class SaveVersionDialog(Dialog):
 		# notebook.lock already set by plugin.save_version()
 		buffer = self.textview.get_buffer()
 		start, end = buffer.get_bounds()
-		msg = start.get_text(end).decode('UTF-8').strip()
+		msg = start.get_text(end).strip()
 		if msg:
 			self.window_ext.do_save_version_async(msg)
 			return True

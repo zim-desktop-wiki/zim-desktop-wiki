@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010 Fabian Moser
 # Copyright 2011-2017 Jaap Karssenberg
@@ -320,7 +319,7 @@ class TagsPageTreeView(PageTreeView):
 
 		@returns: a gtk TreePath (tuple of intergers) or C{None}
 		'''
-		#~ print '!! SELECT', path
+		#~ print('!! SELECT', path)
 		model = self.get_model()
 		if model is None:
 			return None # index not yet initialized ...

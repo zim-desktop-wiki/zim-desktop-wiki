@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''Tool to replace a string in a whole bunch of files'''
 

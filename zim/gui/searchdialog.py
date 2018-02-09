@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -81,7 +80,7 @@ class SearchDialog(Dialog):
 		if self.namespacecheckbox.get_active():
 			assert self.page is not None
 			string = 'Section: "%s" ' % self.page.name + string
-		#~ print '!! QUERY: ' + string
+		#~ print('!! QUERY: ' + string)
 
 		self._set_state(self.SEARCHING)
 		try:
@@ -176,7 +175,7 @@ class SearchResultsTreeView(BrowserTreeView):
 
 	def _search_callback(self, results, path):
 		# Returning False will cancel the search
-		#~ print '!! CB', path
+		#~ print('!! CB', path)
 		if results is not None:
 			self._update_results(results)
 
@@ -217,7 +216,7 @@ class SearchResultsTreeView(BrowserTreeView):
 		#model.reorder([x[1] for x in order]) # use second item
 
 	def _do_open_page(self, view, path, col):
-		page = Path(self.get_model()[path][0].decode('UTF-8'))
+		page = Path(self.get_model()[path][0])
 		pageview = self.navigation.open_page(page)
 
 		# Popup find dialog with same query

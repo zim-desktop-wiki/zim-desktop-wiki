@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -581,7 +580,7 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		#~ print "Dumping table: %s, %s" % (attrib, strings)
+		#~ print("Dumping table: %s, %s" % (attrib, strings))
 		n = len(strings[0])
 		assert all(len(s) == n for s in strings), strings
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -25,22 +24,11 @@ except ImportError:
 	Gtk = None
 
 
-if sys.version_info < (2, 7, 0):
-	try:
-		import unittest2 as unittest
-		from unittest2 import skip, skipIf, skipUnless, expectedFailure
-	except ImportError:
-		print('''\
-For python versions < 2.7 the 'unittest2' module is needed to run
-the test suite. On Ubuntu or Debian install package 'python-unittest2'.
-''', file=sys.stderr)
-		sys.exit(1)
-else:
-	import unittest
-	from unittest import skip, skipIf, skipUnless, expectedFailure
+import unittest
+from unittest import skip, skipIf, skipUnless, expectedFailure
 
 
-gettext.install('zim', str=True, names=('_', 'gettext', 'ngettext'))
+gettext.install('zim', names=('_', 'gettext', 'ngettext'))
 
 FAST_TEST = False #: determines whether we skip slow tests or not
 FULL_TEST = False #: determine whether we mock filesystem tests or not
@@ -51,7 +39,7 @@ __all__ = [
 	'package', 'translations',
 	# Basic libraries
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
-	'environ', 'fs', 'newfs',
+	'fs', 'newfs',
 	'config', 'applications',
 	'parsing', 'tokenparser',
 	# Notebook components
@@ -93,10 +81,6 @@ TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# dir we have conflict with bazaar controls, this is worked around
 	# by a config mode switch in the bazaar backend of the version
 	# control plugin
-if os.name == 'nt':
-	TMPDIR = str(TMPDIR)
-else:
-	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
 
 # also get the default tmpdir and put a copy in the env
 REAL_TMPDIR = tempfile.gettempdir()
@@ -472,7 +456,7 @@ class DialogContext(object):
 		zim.gui.widgets.TEST_MODE_RUN_CB = self._callback
 
 	def _callback(self, dialog):
-		#~ print '>>>', dialog
+		#~ print('>>>', dialog)
 		if not self.stack:
 			raise AssertionError('Unexpected dialog run: %s' % dialog)
 
@@ -640,9 +624,9 @@ def new_parsetree_from_text(text, format='wiki'):
 
 def new_parsetree_from_xml(xml):
 	# For some reason this does not work with cElementTree.XMLBuilder ...
-	from xml.etree.ElementTree import XMLTreeBuilder
+	from xml.etree.ElementTree import XMLParser
 	from zim.formats import ParseTree
-	builder = XMLTreeBuilder()
+	builder = XMLParser()
 	builder.feed(xml)
 	root = builder.close()
 	return ParseTree(root)

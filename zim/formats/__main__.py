@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -55,4 +54,4 @@ if __name__ == '__main__':
 		linker = StubLinker(source_dir=source_dir)
 		dumper = get_dumper(outputformat, linker=linker)
 		lines = dumper.dump(tree)
-		sys.stdout.write(''.join(lines).encode('utf-8'))
+		sys.stdout.write(''.join(lines))

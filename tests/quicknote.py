@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -24,7 +23,8 @@ class TestQuickNotePlugin(tests.TestCase):
 
 		self.assertIsInstance(dialog, QuickNoteDialog)
 		buffer = dialog.textview.get_buffer()
-		result = buffer.get_text(*buffer.get_bounds())
+		start, end = buffer.get_bounds()
+		result = start.get_text(end)
 		self.assertTrue(text in result)
 
 	def testMain(self):

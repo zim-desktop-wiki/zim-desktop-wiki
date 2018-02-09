@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -197,7 +196,6 @@ class InsertSymbolDialog(Dialog):
 		model = iconview.get_model()
 		iter = model.get_iter(path)
 		text = model.get_value(iter, 0)
-		text = text.decode('UTF-8')
 		pos = self.textentry.get_position()
 		self.textentry.insert_text(text, pos)
 		self.textentry.set_position(pos + len(text))

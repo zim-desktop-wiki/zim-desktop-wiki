@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 
 def extract_deps(file):
-	#~ print 'Extracting from %s' % file
+	#~ print('Extracting from %s' % file)
 	deps = set()
 	for line in open(file).readlines():
 		line = line.strip()

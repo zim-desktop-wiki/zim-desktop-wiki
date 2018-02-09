@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012,2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -37,7 +36,7 @@ class TestThumbnailCreators(tests.TestCase):
 				self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 				self.assertTrue(thumbfile.exists())
 
-				pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbfile.encodedpath)
+				pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbfile.path)
 				self.assertEqual(pixbuf.get_option('tEXt::Thumb::URI'), file.uri)
 				self.assertTrue(pixbuf.get_option('tEXt::Thumb::URI').startswith('file:///'))
 					# Specific requirement of spec to use file:/// and not file://localhost/
@@ -60,7 +59,7 @@ class TestThumbnailManager(tests.TestCase):
 		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		file = folder.file('./foo-\u00e8\u00e1\u00f1.png') # non-existing path with unicode name
 		self.assertTrue('%C3%A8%C3%A1%C3%B1' in file.uri) # utf encoded!
-		basename = hashlib.md5(file.uri).hexdigest() + '.png'
+		basename = hashlib.md5(file.uri.encode('ascii')).hexdigest() + '.png'
 
 		for file, size, wanted in (
 			(file, 28, LOCAL_THUMB_STORAGE_NORMAL.file(basename)),
@@ -104,14 +103,14 @@ class TestThumbnailManager(tests.TestCase):
 
 		if os.name != 'nt': # Windows support chmod() is limitted
 			import stat
-			mode = os.stat(thumbfile.encodedpath).st_mode
+			mode = os.stat(thumbfile.path).st_mode
 			self.assertEqual(stat.S_IMODE(mode), 0o600)
-			mode = os.stat(thumbfile.parent().parent().encodedpath).st_mode # thumnails dir
+			mode = os.stat(thumbfile.parent().parent().path).st_mode # thumnails dir
 			self.assertEqual(stat.S_IMODE(mode), 0o700)
 
 		# Change mtime to make thumbfile invalid
 		oldmtime = file.mtime()
-		os.utime(file.encodedpath, None)
+		os.utime(file.path, None)
 		self.assertNotEqual(file.mtime(), oldmtime)
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64, create=False)
@@ -148,7 +147,7 @@ class TestThumbnailQueue(tests.TestCase):
 		for basename in dir.list_names():
 			if not basename.endswith('.svg'):
 				file = dir.file(basename)
-				pixmaps.add(file)
+				pixmaps.add(file.path)
 				queue.queue_thumbnail_request(file, 64)
 
 		self.assertFalse(queue.queue_empty())
@@ -161,7 +160,7 @@ class TestThumbnailQueue(tests.TestCase):
 			while i > 0:
 				i -= 1
 				file, size, thumbfile, pixbuf, mtime = queue.get_ready_thumbnail(block=True)
-				seen.add(file)
+				seen.add(file.path)
 				self.assertEqual(size, 64)
 				self.assertTrue(thumbfile.exists())
 				self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
@@ -171,7 +170,8 @@ class TestThumbnailQueue(tests.TestCase):
 
 		# Test clear
 		self.assertTrue(queue.queue_empty())
-		for file in pixmaps:
+		for path in pixmaps:
+			file = LocalFile(path)
 			queue.queue_thumbnail_request(file, 64)
 		self.assertFalse(queue.queue_empty())
 		queue.start()
@@ -192,7 +192,7 @@ class TestThumbnailQueue(tests.TestCase):
 		self.assertTrue(file.isimage())
 
 		for creator in creator_with_failure, creator_with_error:
-			#~ print ">>", creator.__name__
+			#~ print(">>", creator.__name__)
 			queue = ThumbnailQueue(creator)
 			queue.queue_thumbnail_request(file, 64)
 

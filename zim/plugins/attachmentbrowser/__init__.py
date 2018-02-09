@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
 #           2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>

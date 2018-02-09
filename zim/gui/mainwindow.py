@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -333,8 +332,8 @@ class MainWindow(Window):
 		self.statusbar.push(0, label)
 
 	def do_window_state_event(self, event):
-		#~ print 'window-state changed:', event.changed_mask
-		#~ print 'window-state new state:', event.new_window_state
+		#~ print('window-state changed:', event.changed_mask)
+		#~ print('window-state new state:', event.new_window_state)
 
 		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
 			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)

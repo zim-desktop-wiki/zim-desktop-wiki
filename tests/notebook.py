@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -226,7 +225,7 @@ mount=%s %s
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
 		):
-			#~ print ">>", uri
+			#~ print(">>", uri)
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info)
 			self.assertEqual(nb.folder.path, self.notebookdir.path)
@@ -409,7 +408,7 @@ class TestNotebook(tests.TestCase):
 			'**bold** :AnotherNewPage\n')
 
 
-		#~ print '\n==== DB ===='
+		#~ print('\n==== DB ====')
 		#~ self.notebook.index.update()
 		#~ cursor = self.notebook.index.db.cursor()
 		#~ cursor.execute('select * from pages')
@@ -506,7 +505,7 @@ class TestNotebook(tests.TestCase):
 
 	#~ def testResolveName(self):
 		#~ '''Test store.resolve_name().'''
-		#~ print '\n'+'='*10+'\nSTORE: %s' % self.store
+		#~ print('\n'+'='*10+'\nSTORE: %s' % self.store)
 #~
 		#~ # First make sure basic list function is working
 		#~ def list_pages(name):
@@ -527,9 +526,9 @@ class TestNotebook(tests.TestCase):
 			#~ ('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
 			#~ # FIXME more ambigous test data
 		#~ ):
-			#~ print '-'*10+'\nLINK %s (%s)' % (link, namespace)
+			#~ print('-'*10+'\nLINK %s (%s)' % (link, namespace))
 			#~ r = self.store.resolve_name(link, namespace=namespace)
-			#~ print 'RESULT %s' % r
+			#~ print('RESULT %s' % r)
 			#~ self.assertEqual(r, name)
 
 

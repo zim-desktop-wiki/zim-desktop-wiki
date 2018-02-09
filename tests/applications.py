@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -82,7 +81,7 @@ class TestApplications(tests.TestCase):
 			self.assertEqual(result, wanted)
 
 			cwd, argv = entry._checkargs(None, args)
-			self.assertEqual(tuple(a.decode(zim.fs.ENCODING) for a in argv), wanted)
+			self.assertEqual(argv, wanted)
 
 		entry['Desktop Entry']['Icon'] = 'xxx'
 		entry.file = File('/foo.desktop')
@@ -102,15 +101,13 @@ class TestApplications(tests.TestCase):
 	def testPythonCmd(self):
 		app = Application('foo.py')
 		cwd, argv = app._checkargs(None, ())
-		exe = argv[0].decode(zim.fs.ENCODING)
-		cmd = argv[1].decode(zim.fs.ENCODING)
-		self.assertEqual(exe, sys.executable)
-		self.assertEqual(cmd, 'foo.py')
+		self.assertEqual(argv[0], sys.executable)
+		self.assertEqual(argv[1], 'foo.py')
 
 		sys.frozen = True
 		try:
 			cwd, argv = app._checkargs(None, ())
-			self.assertEqual(argv, ['foo.py'])
+			self.assertEqual(argv, ('foo.py',))
 		except:
 			del sys.frozen
 			raise

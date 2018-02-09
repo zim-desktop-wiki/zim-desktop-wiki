@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -132,7 +131,7 @@ sdfsdf
 		column = widget.treeview.get_column(0)
 		model = widget.treeview.get_model()
 		def activate_row(m, path, i):
-			#~ print ">>>", path
+			#~ print(">>>", path)
 			widget.treeview.row_activated(path, column)
 				# TODO assert something here
 

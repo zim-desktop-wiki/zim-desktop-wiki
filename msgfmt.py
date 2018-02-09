@@ -169,7 +169,7 @@ def make(filename, outfile):
         elif section == STR:
             msgstr += l
         else:
-            print('Syntax error on %s:%d' % (infile, lno), \
+            print('Syntax error on %s:%d' % (infile, lno),
                   'before:', file=sys.stderr)
             print(l, file=sys.stderr)
             sys.exit(1)

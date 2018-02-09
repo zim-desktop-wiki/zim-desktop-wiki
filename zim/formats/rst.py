@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Yao-Po Wang <blue119@gmail.com>
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>

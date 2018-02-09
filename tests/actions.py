@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -20,7 +19,7 @@ class TestPrimaryKeyBinding(tests.TestCase):
 			"<primary>A",
 			"<PRIMARY>a"
 		):
-			#~ print ">>", accel, accel
+			#~ print(">>", accel, accel)
 			keyval, mod = Gtk.accelerator_parse(accel)
 			self.assertEqual(keyval, 97)
 			self.assertIn(mod, (Gdk.ModifierType.CONTROL_MASK, Gdk.ModifierType.META_MASK))

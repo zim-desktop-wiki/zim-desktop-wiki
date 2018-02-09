@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>

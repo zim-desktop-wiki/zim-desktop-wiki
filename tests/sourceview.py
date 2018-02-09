@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -48,5 +47,5 @@ def foo(a, b):
 		tree = ParseTree().fromstring(xml)
 		dumper = HtmlDumper(StubLinker())
 		html = dumper.dump(tree)
-		#~ print '>>', html
+		#~ print('>>', html)
 		self.assertIn('\tprint "FOO", a &gt;= b\n', html)

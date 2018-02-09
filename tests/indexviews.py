@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -259,8 +258,8 @@ class TestPagesView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
 
 		model = PagesTreeModelMixin(mockindex)
 
@@ -340,10 +339,9 @@ class TestTagsView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
- 		mockindex.update_iter.tags = tests.MockObject()
-
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter.tags = tests.MockObject()
 		model = TaggedPagesTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 
 		# Test all pages
@@ -371,9 +369,9 @@ class TestTagsView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
- 		mockindex.update_iter.tags = tests.MockObject()
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter.tags = tests.MockObject()
 
 		model = TagsTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 		tags = TagsView(db)

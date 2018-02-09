@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -316,15 +315,15 @@ class ScrolledHBox(Gtk.HBox):
 		width += 2 * border
 		height += 2 * border
 
-		#~ print "Requesting WxH: %i x %i" % (width, height)
+		#~ print("Requesting WxH: %i x %i" % (width, height))
 		return width, height
 
 	def do_size_allocate(self, allocation):
 		# Assign the available space to the child widgets
 		# See discussion of allocation algorithm above
 
-		#~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
-		#~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
+		#~ print("Allocated WxH: %i x %i" % (allocation.width, allocation.height))
+		#~ print("At X,Y: %i, %i" % (allocation.x, allocation.y))
 
 		Gtk.HBox.do_size_allocate(self, allocation)
 

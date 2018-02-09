@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Pavel_M <plprgt@gmail.com>,
 # released under the GNU GPL version 3.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -146,7 +145,7 @@ class FSObjectMonitor(SignalEmitter):
 		# For Dir objects, the event will refer to files contained in
 		# the dir.
 
-		#~ print 'MONITOR:', self, event_type
+		#~ print('MONITOR:', self, event_type)
 		if event_type in (
 			Gio.FileMonitorEvent.CREATED,
 			Gio.FileMonitorEvent.CHANGES_DONE_HINT,

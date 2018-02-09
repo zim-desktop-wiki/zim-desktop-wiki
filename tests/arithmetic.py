@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2016 Joachim Trouverie <joachim.trouverie@linoame.fr>
 # This is the test for Arithmetic plugin.

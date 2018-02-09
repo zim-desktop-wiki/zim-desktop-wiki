@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -70,6 +69,8 @@ From template base::
 Test in a template for single page export use: "IF loop.first and loop.last"
 '''
 
+import os
+
 from functools import partial
 
 import logging
@@ -83,7 +84,6 @@ import zim.datetimetz as datetime
 
 from zim.utils import OrderedDict
 from zim.fs import format_file_size
-from zim.environ import environ
 
 from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
@@ -178,7 +178,7 @@ class ExportTemplateContext(dict):
 			# Parameters
 			'generator': {
 					'name': 'Zim %s' % ZIM_VERSION,
-					'user': environ['USER'], # TODO allow user name in prefs ?
+					'user': os.environ['USER'], # TODO allow user name in prefs ?
 			},
 			'title': title,
 			'navigation': {
@@ -254,7 +254,7 @@ class ExportTemplateContext(dict):
 		#~ if not tree:
 			#~ return ''
 
-		#~ print "!!!", tree.tostring()
+		#~ print("!!!", tree.tostring())
 		#~ dumper = self.get_dumper(None)
 		#~ return ''.join(dumper.dump(tree))
 
@@ -322,7 +322,7 @@ class ExportTemplateContext(dict):
 		if not tree:
 			return ''
 
-		#~ print "!!!", tree.tostring()
+		#~ print("!!!", tree.tostring())
 		dumper = self.get_dumper(None)
 		return ''.join(dumper.dump(tree))
 

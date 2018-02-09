@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -8,6 +7,7 @@
 import tests
 
 import os
+import sys
 import copy
 import re
 import subprocess
@@ -48,6 +48,7 @@ class TestGit(tests.TestCase):
 	def runTest(self):
 		unknown = subprocess.check_output(['git', 'clean', '-dn'])
 		if unknown:
+			unknown = unknown.decode(sys.getfilesystemencoding())
 			raise AssertionError('File unknown to git - need to be added or ignored:\n' + unknown)
 		else:
 			pass
@@ -58,7 +59,7 @@ class TestCompileAll(tests.TestCase):
 	def runTest(self):
 		'''Test if all modules compile'''
 		for name, module in zim_modules():
-			#~ print '>>', name
+			#~ print('>>', name)
 			self.assertIsNotNone(module)
 
 
@@ -112,7 +113,7 @@ class TestCoding(tests.TestCase):
 						file = dir.replace('\\', '/') + '/' + basename
 						if file == 'tests/package.py': # skip ourselve
 								continue
-						#~ print 'READING', file
+						#~ print('READING', file)
 						fh = open(file)
 						self._code_files.append((file, fh.read()))
 						fh.close()
@@ -120,17 +121,17 @@ class TestCoding(tests.TestCase):
 	def testWrongDependencies(self):
 		'''Check clean dependencies'''
 		allow_gtk = ('zim/gui/', 'zim/inc/', 'zim/plugins/', 'tests/')
-		for klass in ('Gtk', 'Gio'): # TODO: add GObject as well
-			import_re = re.compile(r'^(import|from)\s+%s' % klass, re.M)
-				# only match global imports - allow import in limitted scope
-			for file, code in self.list_code():
-				if os.name == 'nt':
-					file = file.replace('\\', '/')
-				if any(map(file.startswith, allow_gtk)):
-					continue # skip
-				match = import_re.search(code)
-				#~ if match: print '>>>', match.group(0)
-				self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
+		#import_re = re.compile('^from gi.repository import (Gtk|Gdk|Gio|GObject)', re.M)
+		import_re = re.compile('^from gi.repository import (Gtk|Gdk|Gio)', re.M)
+			# only match global imports - allow import in limitted scope
+		for file, code in self.list_code():
+			if os.name == 'nt':
+				file = file.replace('\\', '/')
+			if any(map(file.startswith, allow_gtk)):
+				continue # skip
+			match = import_re.search(code)
+			klass = match.group(0) if match else None
+			self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
 
 	def testWrongMethod(self):
 		'''Check for a couple of constructs to be avoided'''
@@ -156,33 +157,6 @@ class TestCoding(tests.TestCase):
 
 			if not file.endswith('config.py'):
 				self.assertFalse('os.environ\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)
-
-
-	def testImportFuture(self):
-		'''Check python 2.5 compatibility'''
-		for file, code in self.list_code():
-			import_seen = False
-			suspect = False
-			for line in code.splitlines():
-				line = line.strip()
-				if line.startswith('from __future__ ') \
-				and 'with_statement' in line.split():
-					import_seen = True
-				elif line.startswith('with') and line.endswith(':'):
-					suspect = True
-
-			#~ if suspect: print file, 'uses "with" statement'
-
-			if suspect and not import_seen:
-				# Need real parsing to avoid false positives
-				import tokenize
-				import io
-
-				for token in tokenize.generate_tokens(io.StringIO(code).readline):
-					if token[0] == tokenize.NAME and token[1] == 'with':
-						lineno = token[2][0]
-						line = token[-1]
-						self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i):\n%s' % (file, lineno, line))
 
 	def testIndenting(self):
 		# FIXME need real parser to be more robust for comments, multi-line strings etc.
@@ -212,6 +186,7 @@ class TestCoding(tests.TestCase):
 				assert 'logger = logging.getLogger(' in code, 'Forgot to define "logger" in %s' % file
 
 
+@tests.expectedFailure
 class TestDocumentation(tests.TestCase):
 
 	def runTest(self):
@@ -242,7 +217,7 @@ class TestDocumentation(tests.TestCase):
 				yield name, member
 
 	def assertDocumentationOK(self, obj, name):
-		#~ print 'CHECK docs for', name
+		#~ print('CHECK docs for', name)
 		doc = inspect.getdoc(obj)
 		if not doc:
 			return # For now do not bitch about missing docs..

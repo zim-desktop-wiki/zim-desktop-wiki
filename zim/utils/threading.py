@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -51,7 +50,7 @@ class FunctionThread(threading.Thread):
 		self.exc_info = (None, None, None)
 
 	def start(self):
-		if self.lock:
+		if self.lock is not None:
 			self.lock.acquire()
 		threading.Thread.start(self)
 		if GObject:
@@ -71,5 +70,5 @@ class FunctionThread(threading.Thread):
 			self.exc_info = sys.exc_info()
 		finally:
 			self.done = True
-			if self.lock:
+			if self.lock is not None:
 				self.lock.release()

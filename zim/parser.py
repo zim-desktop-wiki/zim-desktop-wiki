@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -72,7 +71,7 @@ def convert_space_to_tab(text, tabstop=4):
 	pattern = '(?m)^(\t*)((?:%s)+)' % spaces
 	text = re.sub(
 		pattern,
-		lambda m: m.group(1) + '\t' * (len(m.group(2)) / tabstop),
+		lambda m: m.group(1) + '\t' * (len(m.group(2)) // tabstop),
 		text
 	)
 	# Specify "(?m)" instead of re.M since "flags" keyword is not
@@ -404,7 +403,7 @@ class Parser(object):
 				r"(?P<rule%i>%s)" % (i, r.pattern)
 					for i, r in enumerate(self.rules)
 			])
-			#~ print 'PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...'
+			#~ print('PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...')
 			self._re = re.compile(pattern, re.U | re.M | re.X)
 
 		iter = 0

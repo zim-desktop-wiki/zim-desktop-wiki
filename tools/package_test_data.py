@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 
@@ -51,5 +51,5 @@ if __name__ == '__main__':
 	elif len(sys.argv) == 4 and sys.argv[1] == '--extract':
 		extract(File(sys.argv[2]), Dir(sys.argv[3]))
 	else:
-		print('usage: %s --package DIR FILE\n' \
+		print('usage: %s --package DIR FILE\n'
 		      '       %s --extract FILE DIR' % (sys.argv[0], sys.argv[0]))

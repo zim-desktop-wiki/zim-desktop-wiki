@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -101,7 +100,7 @@ PARSETREE_ACCEPT_TARGETS = (
         INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET,
 ) + IMAGE_TARGETS + URI_TARGETS + TEXT_TARGETS
 PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_TARGETS])
-#~ print 'ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES
+#~ print('ACCEPT', PARSETREE_ACCEPT_TARGET_NAMES)
 
 
 
@@ -117,7 +116,6 @@ PARSETREE_ACCEPT_TARGET_NAMES = tuple([target[0] for target in PARSETREE_ACCEPT_
 def pack_urilist(links):
 	text = ''
 	for link in links:
-		link = link.encode('utf-8')
 		if is_url_re.match(link):
 			link = url_encode(link, mode=URL_ENCODE_READABLE) # just to be sure
 		text += '%s\r\n' % link
@@ -128,8 +126,7 @@ def unpack_urilist(text):
 	# FIXME be tolerant here for file://path/to/file uris here
 	text = text.strip('\x00') # Found trailing NULL character on windows
 	lines = text.splitlines() # takes care of \r\n
-	return [line.decode('UTF-8')
-		for line in lines if line and not line.isspace()]
+	return [line for line in lines if line and not line.isspace()]
 		# Just to be sure we also skip empty or whitespace lines
 
 # TODO: Probably the serialize formats can replace custom copy/paste
@@ -146,7 +143,7 @@ def textbuffer_register_serialize_formats(buffer, notebook, page):
 
 def serialize_parse_tree(register_buf, content_buf, start, end, user_data):
 	tree = content_buf.get_parsetree((start, end))
-	xml = tree.tostring().encode('utf-8')
+	xml = tree.tostring()
 	return xml
 
 def deserialize_parse_tree(register_buf, content_buf, iter, data, length, create_tags, user_data):
@@ -233,9 +230,9 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 		# plain text parser should highlight urls etc.
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
 		# try to catch this situation by a check here
-		text = selectiondata.get_text()
+		text = str(selectiondata.get_text())
 		if text:
-			return get_format('plain').Parser().parse(text.decode('UTF-8'), partial=True)
+			return get_format('plain').Parser().parse(text, partial=True)
 		else:
 			return None
 	elif targetname in IMAGE_TARGET_NAMES:
@@ -271,8 +268,8 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 
 def _link_tree(links, notebook, path):
 	# Convert a list of links (of any type) into a parsetree
-	#~ print 'LINKS: ', links
-	#~ print 'NOTEBOOK and PATH:', notebook, path
+	#~ print('LINKS: ', links)
+	#~ print('NOTEBOOK and PATH:', notebook, path)
 	builder = ParseTreeBuilder()
 	builder.start(FORMATTEDTEXT)
 	for i in range(len(links)):
@@ -351,8 +348,7 @@ class TextItem(ClipboardItem):
 		self.text = text
 
 	def set(self, clipboard, clear_func):
-		text = self.text.encode('UTF-8')
-		clipboard.set_text(text, len(text))
+		clipboard.set_text(self.text, len(self.text))
 
 
 class UriItem(ClipboardItem):
@@ -395,7 +391,7 @@ class InterWikiLinkItem(UriItem):
 		logger.debug("Clipboard requests data as '%s', we have an interwiki link", selectiondata.target)
 		if id == PARSETREE_TARGET_ID:
 			tree = _link_tree((self.interwiki_href,), None, None)
-			xml = tree.tostring().encode('utf-8')
+			xml = tree.tostring()
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
 		else:
 			UriItem._get(self, clipboard, selectiondata, id, *a)
@@ -426,18 +422,18 @@ class ParseTreeItem(ClipboardItem):
 		logger.debug("Clipboard requests data as '%s', we have a parsetree", selectiondata.target)
 		if id == PARSETREE_TARGET_ID:
 			# TODO make links absolute (?)
-			xml = self.parsetree.tostring().encode('utf-8')
+			xml = self.parsetree.tostring()
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
 		elif id == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))
 			html = ''.join(dumper.dump(self.parsetree))
 			html = wrap_html(html, target=selectiondata.target)
-			#~ print 'PASTING: >>>%s<<<' % html
+			#~ print('PASTING: >>>%s<<<' % html)
 			selectiondata.set(selectiondata.target, 8, html)
 		elif id == TEXT_TARGET_ID:
 			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
-			#~ print ">>>>", self.format, parsetree.tostring()
+			#~ print(">>>>", self.format, parsetree.tostring())
 
 			if self.format in ('wiki', 'plain'):
 				dumper = get_format(self.format).Dumper()
@@ -445,7 +441,7 @@ class ParseTreeItem(ClipboardItem):
 				dumper = get_format(self.format).Dumper(
 					linker=StaticExportLinker(self.notebook, source=self.path))
 
-			text = ''.join(dumper.dump(self.parsetree)).encode('utf-8')
+			text = ''.join(dumper.dump(self.parsetree))
 			selectiondata.set_text(text, len(text))
 		else:
 			assert False, 'Unknown target id %i' % id
@@ -537,8 +533,6 @@ class ClipboardManager(object):
 		instead
 		'''
 		text = self.clipboard.wait_for_text()
-		if isinstance(text, str):
-			text = text.decode('UTF-8')
 		return text
 
 	def set_parsetree(self, notebook, path, parsetree, format='plain'):
@@ -631,7 +625,6 @@ HTML_HEAD = '''\
 
 def wrap_html(html, target):
 	'''Function to wrap html with appropriate headers based on target type'''
-	html = html.encode('utf-8')
 	if target == 'HTML Format':
 		return Win32HtmlFormat.encode(html, head=HTML_HEAD)
 	else:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -18,8 +17,7 @@ care of converting specific object types, proper utf-8 encoding etc.
 
 The remaining classes are various widgets used in the gui:
 L{Button}, L{IconButton}, L{IconChooserButton}, L{MenuButton},
-L{ImageView}, L{SingleClickTreeView}, L{BrowserTreeView},
-and L{TextBuffer}
+L{ImageView}, L{SingleClickTreeView} and L{BrowserTreeView}.
 
 @newfield requires: Requires
 '''
@@ -194,7 +192,6 @@ def ScrolledTextView(text=None, monospace=False, **kwarg):
 	@returns: a 2-tuple of the scrolled window and the textview
 	'''
 	textview = Gtk.TextView()
-	textview.set_buffer(TextBuffer())
 	textview.set_editable(False)
 	textview.set_left_margin(5)
 	textview.set_right_margin(5)
@@ -281,23 +278,6 @@ def gtk_notebook_get_active_page(nb):
 		return nb.get_nth_page(num)
 	else:
 		return None
-
-
-
-class TextBuffer(Gtk.TextBuffer):
-	'''Sub-class of C{Gtk.TextBuffer} that handles utf-8 decoding'''
-
-	def get_text(self, start, end, include_hidden_chars=True):
-		text = Gtk.TextBuffer.get_text(self, start, end, include_hidden_chars)
-		if text:
-			text = text.decode('UTF-8')
-		return text
-
-	def get_slice(self, start, end, include_hidden_chars=True):
-		text = Gtk.TextBuffer.get_slice(self, start, end, include_hidden_chars)
-		if text:
-			text = text.decode('UTF-8')
-		return text
 
 
 def rotate_pixbuf(pixbuf):
@@ -684,7 +664,7 @@ class BrowserTreeView(SingleClickTreeView):
 		#  Right expand sub items
 		#  Left collapse sub items
 		handled = True
-		#~ print 'KEY %s (%i)' % (Gdk.keyval_name(event.keyval), event.keyval)
+		#~ print('KEY %s (%i)' % (Gdk.keyval_name(event.keyval), event.keyval))
 
 		if event.keyval in KEYVALS_ASTERISK:
 			self.expand_all()
@@ -1140,7 +1120,7 @@ class InputForm(Gtk.Table):
 
 	def _check_input_valid(self, *a):
 		# Called by signals when widget state changes
-		#~ print '-'*42
+		#~ print('-'*42)
 		valid = []
 		for name in self._widgets:
 			widget = self.widgets[name]
@@ -1148,8 +1128,8 @@ class InputForm(Gtk.Table):
 			and widget.get_property('visible') \
 			and widget.get_property('sensitive'):
 				valid.append(self.widgets[name].get_input_valid())
-				#~ print '>', name, valid[-1]
-		#~ print '=', all(valid)
+				#~ print('>', name, valid[-1])
+		#~ print('=', all(valid))
 
 		valid = all(valid)
 		if self._input_valid != valid:
@@ -1227,8 +1207,6 @@ class InputForm(Gtk.Table):
 			elif isinstance(widget, Gtk.ComboBox):
 				if hasattr(widget, 'zim_key_mapping'):
 					label = widget.get_active_text()
-					if label:
-						label = label.decode('UTF-8')
 					return widget.zim_key_mapping.get(label) or label
 				else:
 					return widget.get_active_text()
@@ -1463,9 +1441,9 @@ class InputEntry(Gtk.Entry):
 		if not text:
 			return ''
 		elif self.allow_whitespace:
-			return text.decode('UTF-8')
+			return text
 		else:
-			return text.decode('UTF-8').strip()
+			return text.strip()
 
 	def get_input_valid(self):
 		'''Get the valid state.
@@ -1662,15 +1640,9 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 	if key is None:
 		return False
 
-	key = key.decode('UTF-8').lower()
-	key = unicodedata.normalize('NFKD', key)
-		# decode utf-8 because we are called by gtk function
-		# normalization could be done elsewhere, but keep together
-
 	model = completion.get_model()
 	text = model.get_value(iter, column)
 	if text is not None:
-		text = unicodedata.normalize('NFKD', text.decode('UTF-8'))
 		return key in text.lower()
 	else:
 		return False
@@ -1680,15 +1652,9 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 	if key is None:
 		return False
 
-	key = key.decode('UTF-8').lower()
-	key = unicodedata.normalize('NFKD', key)
-		# decode utf-8 because we are called by gtk function
-		# normalization could be done elsewhere, but keep together
-
 	model = completion.get_model()
 	text = model.get_value(iter, column)
 	if text is not None:
-		text = unicodedata.normalize('NFKD', text.decode('UTF-8'))
 		return text.lower().startswith(key)
 	else:
 		return False
@@ -1774,7 +1740,7 @@ class PageEntry(InputEntry):
 
 		@returns: a L{Path} object or C{None} is no valid path was entered
 		'''
-		name = self.get_text().decode('UTF-8').strip()
+		name = self.get_text().strip()
 		if self._allow_select_root and (name == ':' or not name):
 			self.set_input_valid(True)
 			return Path(':')
@@ -3298,7 +3264,7 @@ class ErrorDialog(Gtk.MessageDialog):
 		text = 'This is zim %s\n' % zim.__version__ + \
 			'Platform: %s\n' % os.name + \
 			'Locale: %s %s\n' % locale.getdefaultlocale() + \
-			'FS encoding: %s\n' % zim.fs.ENCODING + \
+			'FS encoding: %s\n' % sys.getfilesystemencoding() + \
 			'Python: %s\n' % str(tuple(sys.version_info)) + \
 			'PyGObject: %s\n' % str(GObject.pygobject_version)
 
@@ -3610,7 +3576,7 @@ class FileDialog(Dialog):
 
 		uri = self.filechooser.get_uri()
 		if uri:
-			return File(uri.decode('UTF-8'))
+			return File(uri)
 		elif TEST_MODE and hasattr(self, '_file') and self._file:
 			return self._file
 		else:
@@ -3621,7 +3587,7 @@ class FileDialog(Dialog):
 		with C{multiple=True}.
 		@returns: a list of L{File} objects
 		'''
-		files = [File(uri.decode('UTF-8')) for uri in self.filechooser.get_uris()]
+		files = [File(uri) for uri in self.filechooser.get_uris()]
 		if files:
 			return files
 		elif TEST_MODE and hasattr(self, '_file') and self._file:
@@ -3639,7 +3605,7 @@ class FileDialog(Dialog):
 			raise AssertionError('Multiple files selected, use get_files() instead')
 
 		uri = self.filechooser.get_uri()
-		return Dir(uri.decode('UTF-8')) if uri else None
+		return Dir(uri) if uri else None
 
 	def _add_filter_all(self):
 		filter = Gtk.FileFilter()
@@ -4175,8 +4141,8 @@ class ImageView(Gtk.Layout):
 		wwin, hwin = allocation.width, allocation.height
 		wsrc, hsrc = self._pixbuf.get_width(), self._pixbuf.get_height()
 		self._render_size = (wwin, hwin)
-		#~ print 'Allocated', (wwin, hwin),
-		#~ print 'Source', (wsrc, hsrc)
+		#~ print('Allocated', (wwin, hwin),)
+		#~ print('Source', (wsrc, hsrc))
 
 		if self.scaling == self.SCALE_STATIC:
 			wimg = self.factor * wsrc
@@ -4195,7 +4161,7 @@ class ImageView(Gtk.Layout):
 				himg = hwin
 		else:
 			assert False, 'BUG: unknown scaling type'
-		#~ print 'Image', (wimg, himg)
+		#~ print('Image', (wimg, himg))
 
 		# Scale pixbuf to new size
 		wimg = max(wimg, 1)
@@ -4208,7 +4174,7 @@ class ImageView(Gtk.Layout):
 		# And align the image in the layout
 		wvirt = max((wwin, wimg))
 		hvirt = max((hwin, himg))
-		#~ print 'Virtual', (wvirt, hvirt)
+		#~ print('Virtual', (wvirt, hvirt))
 		self._image.set_from_pixbuf(pixbuf)
 		self.set_size(wvirt, hvirt)
 		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -86,7 +85,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		path = (0,)
 		prevpath = None
 		while path:
-			#~ print 'PATH', path
+			#~ print('PATH', path)
 			assert path != prevpath, 'Prevent infinite loop'
 			nitems += 1
 			prevpath = path

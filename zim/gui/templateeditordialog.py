@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -204,7 +203,7 @@ class TemplateListView(BrowserTreeView):
 			for name, basename in list_templates(category):
 				base = XDG_DATA_HOME.file(('zim', 'templates', category, basename))
 				default = data_file(('templates', category, basename)) # None if not existing
-				#~ print '>>>', name, base, default
+				#~ print('>>>', name, base, default)
 				model.append(parent, (name, base, default))
 
 		self.expand_all()

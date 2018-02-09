@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Greg Warner <gdwarner@gmail.com>
 # (Pretty much copied from diagrameditor.py)

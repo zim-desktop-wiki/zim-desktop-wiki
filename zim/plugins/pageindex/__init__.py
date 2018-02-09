@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -200,8 +199,8 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 	def flush_cache(self):
 		# Drop references and free memory
-		#~ print '!! Freeing %i refs' % len(self._cache)
-		#~ print '=' * 60
+		#~ print('!! Freeing %i refs' % len(self._cache))
+		#~ print('=' * 60)
 		self.invalidate_iters()
 		self.cache.clear()
 		self._flush_scheduled = False
@@ -248,7 +247,7 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 		return len(self.COLUMN_TYPES)
 
 	def on_get_column_type(self, i):
-		#~ print '>> on_get_column_type', index
+		#~ print('>> on_get_column_type', index)
 		return self.COLUMN_TYPES[i]
 
 	def on_get_value(self, iter, column):
@@ -297,13 +296,13 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 	def on_get_path(self, iter):
 		'''Returns a gtk TreePath for an indexpath'''
-		#~ print '>> on_get_path', iter
+		#~ print('>> on_get_path', iter)
 		return iter.treepath
 
 	def on_iter_next(self, iter):
 		'''Returns the PageIndexRecord for the next row on the same level or None'''
 		# Only within one namespace, so not the same as index.get_next()
-		#~ print '>> on_iter_next', iter
+		#~ print('>> on_iter_next', iter)
 		treepath = list(iter.treepath)
 		treepath[-1] += 1
 		treepath = tuple(treepath)
@@ -313,7 +312,7 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 		'''Returns an PageIndexRecord for the first child below path or None.
 		If path is None returns the PageIndexRecord for first top level item.
 		'''
-		#~ print '>> on_iter_children', iter
+		#~ print('>> on_iter_children', iter)
 		if iter is None:
 			treepath = (0,)
 		else:
@@ -328,7 +327,7 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 		'''Returns the number of children in a namespace. When iter
 		is None the number of pages in the root namespace is given.
 		'''
-		#~ print '>> on_iter_n_children', iter
+		#~ print('>> on_iter_n_children', iter)
 		if iter is None:
 			return self.n_children_top()
 		else:
@@ -338,7 +337,7 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 		'''Returns the nth child or None. If iter is C{None} the
 		nth item in the root namespace is returned.
 		'''
-		#~ print '>> on_iter_nth_child', iter, n
+		#~ print('>> on_iter_nth_child', iter, n)
 		if iter is None:
 			treepath = (n,)
 		else:
@@ -347,7 +346,7 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 	def on_iter_parent(self, iter):
 		'''Returns an indexpath for parent node or None'''
-		#~ print '>> on_iter_parent', iter
+		#~ print('>> on_iter_parent', iter)
 		treepath = iter.treepath[:-1]
 		if len(treepath) > 0:
 			return self.on_get_iter(treepath)
@@ -450,7 +449,7 @@ class PageTreeView(BrowserTreeView):
 		# implemented in the BrowserTreeView parent class
 		# And MainWindow hooks Esc to close side pane
 		handled = False
-		#~ print 'KEY %s (%i)' % (Gdk.keyval_name(event.keyval), event.keyval)
+		#~ print('KEY %s (%i)' % (Gdk.keyval_name(event.keyval), event.keyval))
 
 		if event.get_state() & PRIMARY_MODIFIER_MASK:
 			if event.keyval == KEYVAL_C:
@@ -458,7 +457,7 @@ class PageTreeView(BrowserTreeView):
 				handled = True
 			elif event.keyval == KEYVAL_L:
 				path = self.get_selected_path()
-				#~ print '!! insert-link', path
+				#~ print('!! insert-link', path)
 				self.emit('insert-link', path)
 				handled = True
 
@@ -487,7 +486,7 @@ class PageTreeView(BrowserTreeView):
 		self.populate_popup_expand_collapse(menu)
 
 	def do_copy(self):
-		#~ print '!! copy location'
+		#~ print('!! copy location')
 		page = self.get_selected_path()
 		if page:
 			Clipboard.set_pagelink(self.notebook, page)
@@ -554,7 +553,7 @@ class PageTreeView(BrowserTreeView):
 
 		@returns: a gtk TreePath (tuple of intergers) or C{None}
 		'''
-		#~ print '!! SELECT', path
+		#~ print('!! SELECT', path)
 		model = self.get_model()
 		if model is None:
 			return None # index not yet initialized ...

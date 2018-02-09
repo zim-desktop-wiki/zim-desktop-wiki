@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 NorfCran <norfcran@gmail.com>
 # License:  same as zim (gpl)
@@ -106,7 +105,7 @@ class LineSorterMainWindowExtension(WindowExtension):
 			lines = []
 			for line_nr in range(first_lineno, last_lineno + 1):
 				start, end = buffer.get_line_bounds(line_nr)
-				text = start.get_text(end).decode('UTF-8')
+				text = start.get_text(end)
 				tree = buffer.get_parsetree(bounds=(start, end))
 				lines.append((natural_sort_key(text), tree))
 			#~ logger.debug("Content of selected lines (text, tree): %s", lines)

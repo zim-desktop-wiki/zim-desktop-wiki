@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -94,13 +93,13 @@ class TestParsing(tests.TestCase):
 		self.assertEqual(url_encode('foo?bar/baz', mode=URL_ENCODE_DATA), 'foo%3Fbar%2Fbaz')
 		self.assertEqual(url_decode('foo%3Fbar%2Fbaz', mode=URL_ENCODE_DATA), 'foo?bar/baz')
 		# from bug report lp:545712
-		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '\xb4\xfa\xb8\xd5\xb0\xcf')
+		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '%B4%FA%B8%D5%B0%CF')
 
 		## test round trip for utf-8
 		data = '\u0421\u0430\u0439'
 		encoded = url_encode(data)
 		decoded = url_decode(data)
-		#~ print "DATA, ENCODED, DECODED:", (data, encoded, decoded)
+		#~ print("DATA, ENCODED, DECODED:", (data, encoded, decoded))
 		self.assertEqual(decoded, data)
 		self.assertEqual(url_decode(encoded), data)
 		self.assertEqual(url_encode(decoded), encoded)
@@ -129,7 +128,7 @@ class TestParsing(tests.TestCase):
 			('foo', 'page'),
 			('foo:bar', 'page'),
 		):
-			#~ print '>>', href
+			#~ print('>>', href)
 			self.assertEqual(link_type(href), type)
 
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -75,7 +74,7 @@ class TestFilesIndexer(tests.TestCase, TestFilesDBTable):
 		indexer = FilesIndexer(db, self.root)
 
 		def cb_filter_func(name, o, a):
-			#~ print '>>', name
+			#~ print('>>', name)
 			if name in ('start-update', 'finish-update'):
 				self.assertFalse(a)
 				return ()

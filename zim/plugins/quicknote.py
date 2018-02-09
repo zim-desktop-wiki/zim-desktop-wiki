@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -118,16 +117,14 @@ class QuickNotePluginCommand(GtkCommand):
 		if text and 'encoding' in self.opts:
 			if self.opts['encoding'] == 'base64':
 				import base64
-				text = base64.b64decode(text)
+				text = base64.b64decode(text).decode('UTF-8')
 			elif self.opts['encoding'] == 'url':
 				from zim.parsing import url_decode, URL_ENCODE_DATA
 				text = url_decode(text, mode=URL_ENCODE_DATA)
 			else:
 				raise AssertionError('Unknown encoding: %s' % self.opts['encoding'])
 
-		if text and not isinstance(text, str):
-			text = text.decode('UTF-8')
-
+		assert isinstance(text, str), '%r is not decoded' % text
 		return text
 
 	def run_local(self):
@@ -409,7 +406,7 @@ class QuickNoteDialog(Dialog):
 			# Automatically generate a (valid) page name
 			self._updating_title = True
 			start, end = buffer.get_bounds()
-			title = start.get_text(end).decode('UTF-8').strip()[:50]
+			title = start.get_text(end).strip()[:50]
 				# Cut off at 50 characters to prevent using a whole paragraph
 			title = title.replace(':', '')
 			if '\n' in title:
@@ -424,7 +421,7 @@ class QuickNoteDialog(Dialog):
 	def do_response_ok(self):
 		buffer = self.textview.get_buffer()
 		start, end = buffer.get_bounds()
-		text = start.get_text(end).decode('UTF-8')
+		text = start.get_text(end)
 
 		# HACK: change "[]" at start of line into "[ ]" so checkboxes get inserted correctly
 		text = re.sub(r'(?m)^(\s*)\[\](\s)', r'\1[ ]\2', text)

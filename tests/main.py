@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -18,7 +17,6 @@ import time
 
 
 from zim.fs import Dir, File, FS
-from zim.environ import environ
 
 from zim.main import *
 
@@ -131,7 +129,7 @@ class TestGui(tests.TestCase):
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 		self.assertEqual(window.notebook.uri, Dir(dir).uri) # XXX
-		self.assertGreaterEqual(window.__zim_extension_objects__, 3)
+		self.assertGreaterEqual(len(window.__zim_extension_objects__), 3)
 
 		with tests.WindowContext(MainWindow):
 			window2 = cmd.run()

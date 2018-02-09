@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -39,7 +38,7 @@ class RecentChangesDialog(Dialog):
 			model.append((rec.name, rec.mtime))
 
 	def on_row_activated(self, view, path, col):
-		page = Path(view.get_model()[path][view.NAME_COL].decode('UTF-8'))
+		page = Path(view.get_model()[path][view.NAME_COL])
 		self.navigation.open_page(page)
 
 

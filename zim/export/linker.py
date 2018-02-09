@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -80,7 +79,7 @@ class ExportLinker(BaseLinker):
 			href = getattr(self, methodname)(link)
 		else:
 			href = link
-		#~ print "Linker:", link, '-->', href, '(%s)' % type
+		#~ print("Linker:", link, '-->', href, '(%s)' % type)
 		return href
 
 	def img(self, src):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -130,17 +129,7 @@ logger = logging.getLogger('zim')
 
 ## Check executable and relative data dir
 ## (sys.argv[0] should always be correct, even for compiled exe)
-
-if os.name == "nt":
-	# See notes in zim/fs.py about encoding expected by abspath
-	ZIM_EXECUTABLE = os.path.abspath(
-		str(sys.argv[0], sys.getfilesystemencoding())
-	)
-else:
-	ZIM_EXECUTABLE = str(
-		os.path.abspath(sys.argv[0]),
-		sys.getfilesystemencoding()
-	)
+ZIM_EXECUTABLE = os.path.abspath(sys.argv[0])
 
 
 ## Initialize locale  (needed e.g. for natural_sort)
@@ -159,29 +148,50 @@ if os.name == "nt" and not os.environ.get('LANG'):
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
-if not os.name == "nt":
-	_localedir = _localedir.encode(sys.getfilesystemencoding())
 
 try:
 	if os.path.isdir(_localedir):
 		# We are running from a source dir - use the locale data included there
-		gettext.install('zim', _localedir, str=True, names=('_', 'gettext', 'ngettext'))
+		gettext.install('zim', _localedir, names=('_', 'gettext', 'ngettext'))
 	else:
 		# Hope the system knows where to find the data
-		gettext.install('zim', None, str=True, names=('_', 'gettext', 'ngettext'))
+		gettext.install('zim', None, names=('_', 'gettext', 'ngettext'))
 except:
 	logger.exception('Error loading translation')
 	trans = gettext.NullTranslations()
-	trans.install(str=True, names=('_', 'gettext', 'ngettext'))
+	trans.install(names=('_', 'gettext', 'ngettext'))
 
+
+## Check environment
+
+if os.name == 'nt':
+	# Windows specific environment variables
+	# os.environ does not support setdefault() ...
+	if not 'USER' in os.environ or not os.environ['USER']:
+		os.environ['USER'] = os.environ['USERNAME']
+
+	if not 'HOME' in os.environ or not os.environ['HOME']:
+		if 'USERPROFILE' in os.environ:
+			os.environ['HOME'] = os.environ['USERPROFILE']
+		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
+			os.environ['HOME'] = \
+				os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
+
+	if not 'APPDATA' in os.environ or not os.environ['APPDATA']:
+		os.environ['APPDATA'] = os.environ['HOME'] + '\\Application Data'
+
+if not os.path.isdir(os.environ['HOME']):
+	logger.error('Environment variable $HOME does not point to an existing folder: %s', os.environ['HOME'])
+
+if not 'USER' in os.environ or not os.environ['USER']:
+	os.environ['USER'] = os.path.basename(os.environ['HOME'])
+	logger.info('Environment variable $USER was not set, set to "%s"', os.environ['USER'])
 
 
 ########################################################################
 
 ## Now we are allowed to import sub modules
 
-
-import zim.environ # initializes environment parameters
 import zim.config
 
 # Check if we can find our own data files

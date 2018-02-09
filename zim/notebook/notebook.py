@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -993,7 +992,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				raise zim.formats.VisitorSkip
 
 			hrefpath = self.pages.lookup_from_user_input(href, page)
-			#~ print 'LINK', hrefpath
+			#~ print('LINK', hrefpath)
 			if hrefpath == path \
 			or hrefpath.ischild(path):
 				# Replace the link by it's text

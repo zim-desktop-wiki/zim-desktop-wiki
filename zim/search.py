@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -404,7 +403,7 @@ class SearchSelection(PageSelection):
 			else:
 				regex = self._name_regex(term.string)
 
-			#~ print '!! REGEX: ' + regex.pattern
+			#~ print('!! REGEX: ' + regex.pattern)
 			for path in generator:
 				if regex.match(path.name):
 					myresults.add(path)
@@ -507,7 +506,7 @@ class SearchSelection(PageSelection):
 			results = SearchSelection(None)
 
 		for page in generator:
-			#~ print '!! Search content', page
+			#~ print('!! Search content', page)
 			try:
 				tree = page.get_parsetree()
 			except:
@@ -521,7 +520,7 @@ class SearchSelection(PageSelection):
 			if operator == OPERATOR_AND:
 				score = 0
 				for term in terms:
-					#~ print '!! Count AND %s' % term
+					#~ print('!! Count AND %s' % term)
 					myscore = tree.countre(term.content_regex)
 					if term.keyword == 'contentorname' \
 					and term.name_regex.match(path.name):
@@ -538,7 +537,7 @@ class SearchSelection(PageSelection):
 					self._count_score(path, score)
 			else: # OPERATOR_OR
 				for term in terms:
-					#~ print '!! Count OR %s' % term
+					#~ print('!! Count OR %s' % term)
 					score = tree.countre(term.content_regex)
 					if term.keyword == 'contentorname' \
 					and term.name_regex.match(path.name):
@@ -596,8 +595,6 @@ class SearchSelection(PageSelection):
 		# Build a regex for a content search term, expands wildcards
 		# and sets case sensitivity. Tries to guess if we look for
 		# whole word or not.
-		if not isinstance(string, str):
-			string = string.decode('UTF-8')
 
 		# Build regex - first expand wildcards
 		parts = string.split('*')
@@ -615,7 +612,7 @@ class SearchSelection(PageSelection):
 		and not '\u4e00' <= string[-1] <= '\u9fff':
 			regex = regex + r'\b'
 
-		#~ print 'SEARCH REGEX: >>%s<<' % regex
+		#~ print('SEARCH REGEX: >>%s<<' % regex)
 		if case:
 			return re.compile(regex, re.U)
 		else:

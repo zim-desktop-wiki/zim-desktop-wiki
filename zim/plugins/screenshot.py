@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2014 Andri Kusumah

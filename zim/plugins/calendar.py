@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -404,7 +403,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		self.model = model
 
 		self.label_box = Gtk.HBox()
- 		self.pack_start(self.label_box, False, True, 0)
+		self.pack_start(self.label_box, False, True, 0)
 
 		self.label = Gtk.Label()
 		self.label_event = Gtk.EventBox()

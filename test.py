@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# -*- coding: utf-8 -*-
 
 # This is a wrapper script to run tests using the unittest
 # framework. It setups the environment properly and defines some

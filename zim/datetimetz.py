@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -246,18 +245,13 @@ def strftime(format, date):
 		else:
 			return code # ignore unsupported codes
 
-	format = re.sub(r'\%.', replacefunc, format)
-	string = date.strftime(str(format)) # str() needed for python 2.5 compatibility strftime
-	lang, enc = locale.getlocale()
-	if enc is not None:
-		string = string.decode(enc) # decode local specific output to unicode
-	return string
-
+	format = re.sub('\%.', replacefunc, format)
+	return date.strftime(format)
 
 
 if __name__ == '__main__': #pragma: no cover
 	import gettext
-	gettext.install('zim', None, str=True, names=('_', 'gettext', 'ngettext'))
+	gettext.install('zim', None, names=('_', 'gettext', 'ngettext'))
 	init_first_day_of_week()
 
 	if FIRST_DAY_OF_WEEK == SUNDAY:

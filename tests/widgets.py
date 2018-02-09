@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -318,11 +317,11 @@ class TestInputForm(tests.TestCase):
 
 
 @tests.slowTest
-@tests.expectedFailure
 class TestFileDialog(tests.TestCase):
 	## Something weird in how the filechooser works internally
 	## need a lot of gtk_process_events() to get it work OK in test
 	## and still it fails at random :(
+	## Maybe fixes in Gtk3 - let's see if we encounter more failures
 
 	def runTest(self):
 		tmp_dir = Dir(self.create_tmp_dir())
