@@ -42,6 +42,6 @@ class TestTokenParser(tests.TestCase):
 			else:
 				return t
 
-		revtokens = map(correct_none_attrib, revtokens)
+		revtokens = list(map(correct_none_attrib, revtokens))
 
 		self.assertEqual(revtokens, tokens)

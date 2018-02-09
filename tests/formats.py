@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.formats module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -17,7 +17,7 @@ from zim.templates import Template
 
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
-	print 'WARNING: using ElementTree instead of cElementTree'
+	print('WARNING: using ElementTree instead of cElementTree')
 
 
 class TestFormatMixin(object):
@@ -36,7 +36,7 @@ class TestFormatMixin(object):
 
 	def testFormatInfo(self):
 		for key in ('name', 'desc', 'mimetype', 'extension'):
-			self.assertIsInstance(self.format.info[key], basestring,
+			self.assertIsInstance(self.format.info[key], str,
 				msg='Invalid key "%s" in format info' % key)
 
 		for key in ('native', 'import', 'export'):
@@ -112,7 +112,7 @@ class TestFormatMixin(object):
 		is preserved.
 		'''
 		# TODO how to handle objects ??
-		assert isinstance(text, basestring)
+		assert isinstance(text, str)
 		offset = 0
 		for elt in tree._etree.iter():
 			if elt.tag == 'img':
@@ -342,13 +342,13 @@ class TestWikiFormat(TestTextFormat):
 
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
-		input = u'''\
+		input = '''\
 A list
 • foo
 	• bar
 	• baz
 '''
-		text = u'''\
+		text = '''\
 A list
 * foo
 	* bar
@@ -374,7 +374,7 @@ A list
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''
-		input = u'''\
+		input = '''\
 test 1 2 3
 
 	Some Verbatim block
@@ -382,7 +382,7 @@ test 1 2 3
 
 test 4 5 6
 '''
-		wanted = u'''\
+		wanted = '''\
 test 1 2 3
 
 \'''

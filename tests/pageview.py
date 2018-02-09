@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -107,7 +107,7 @@ class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
 	def assertBufferEquals(self, buffer, wanted):
-		if not isinstance(wanted, basestring):
+		if not isinstance(wanted, str):
 			wanted = tree.tostring()
 		raw = '<zim-tree raw="True">' in wanted
 		tree = buffer.get_parsetree(raw=raw)
@@ -324,7 +324,7 @@ grrr
 
 		# Check how robust we are for placeholder utf8 character
 		buffer = TextBuffer()
-		buffer.insert_at_cursor(u'foo \uFFFC bar')
+		buffer.insert_at_cursor('foo \uFFFC bar')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><p>foo  bar
@@ -623,7 +623,7 @@ class TestUndoStackManager(tests.TestCase):
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
-		start, end = map(buffer.get_iter_at_offset, (5, 10))
+		start, end = list(map(buffer.get_iter_at_offset, (5, 10)))
 		with buffer.user_action:
 			buffer.delete(start, end)
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
@@ -1325,7 +1325,7 @@ Tja
 def press(widget, sequence):
 	#~ print 'PRESS', sequence
 	for key in sequence:
-		if isinstance(key, (int, long)):
+		if isinstance(key, int):
 			keyval = int(key)
 		elif key == '\n':
 			keyval = int(Gdk.keyval_from_name('Return'))
@@ -1534,7 +1534,7 @@ foo
 		textview = TextView(self.preferences)
 		textview.set_buffer(buffer)
 
-		print '** HACK for cleaning up parsetree'
+		print('** HACK for cleaning up parsetree')
 		def cleanup(parsetree):
 			# FIXME - HACK - dump and parse as wiki first to work
 			# around glitches in pageview parsetree dumper
@@ -1749,7 +1749,7 @@ Baz
 
 		for href in ('foo', 'foo:bar', 'mailto:foo.com'):
 			pageview.activate_link(href)
-			self.assertEquals(
+			self.assertEqual(
 				pageview.navigation.mock_calls[-1],
 				('open_page', Path(href), {'new_window': False})
 			)
@@ -1802,7 +1802,7 @@ Baz
 
 		id = pageview.connect('activate-link', myhandler)
 
-		with self.assertRaisesRegexp(AssertionError, 'Default handler reached'):
+		with self.assertRaisesRegex(AssertionError, 'Default handler reached'):
 			pageview.activate_link('foo')
 
 		pageview.activate_link('myurl://foo') # No raise
@@ -2254,20 +2254,20 @@ class TestCamelCase(tests.TestCase):
 	def testLatin(self):
 		for text in (
 			'CamelCase', 'AbbA',
-			u'ĚěščřžýáíéúůŮěščřžýáíéúů'
+			'ĚěščřžýáíéúůŮěščřžýáíéúů'
 		):
 			self.assertTrue(
-				camelcase(unicode(text)),
+				camelcase(str(text)),
 				msg='"%s" should be CamelCase' % text
 			)
 
 		for text in (
 			'A', 'AAAA', 'aaaa', 'Aaaaa', 'AAAAaaa', 'aAAAAA', 'aaaAAA',
 			'123', 'A123A123',
-			u'ĚŠČŘŽÝÁÍÉÚŮ', u'ěščřžýáíéúů',
+			'ĚŠČŘŽÝÁÍÉÚŮ', 'ěščřžýáíéúů',
 		):
 			self.assertFalse(
-				camelcase(unicode(text)),
+				camelcase(str(text)),
 				msg='"%s" should NOT be CamelCase' % text
 			)
 
@@ -2275,23 +2275,23 @@ class TestCamelCase(tests.TestCase):
 		# Arabic text should never be CamelCase,
 		# letters test as neither upper not lower case
 		for text in (
-			u'سلام',
-			u'کهکشان',
-			u'روزانه',
-			u'ذائقه',
-			u'آبادی',
-			u'انشاء',
-			u'محَبّت',
-			u'اَعْداد',
-			u'حتماً',
-			u'ماوراء‌الطبیعه',
-			u'پشتک‌وارو',
-			u'راه‌راه',
-			u' یاپ کارزنبرگ',
+			'سلام',
+			'کهکشان',
+			'روزانه',
+			'ذائقه',
+			'آبادی',
+			'انشاء',
+			'محَبّت',
+			'اَعْداد',
+			'حتماً',
+			'ماوراء‌الطبیعه',
+			'پشتک‌وارو',
+			'راه‌راه',
+			' یاپ کارزنبرگ',
 		):
-			assert isinstance(text, unicode)
+			assert isinstance(text, str)
 			self.assertFalse(
-				camelcase(unicode(text)),
+				camelcase(str(text)),
 				msg='"%s" should NOT be CamelCase' % text
 			)
 
@@ -2300,9 +2300,9 @@ class TestAutolink(tests.TestCase):
 
 	def runTest(self):
 		test = (
-			u'ВаняИванов',		# CamelCase
-			u'+ВаняИванов',		# page match
-			u'ВаняИванов:foo', 	# page match
+			'ВаняИванов',		# CamelCase
+			'+ВаняИванов',		# page match
+			'ВаняИванов:foo', 	# page match
 		)
 		view = TextView({'autolink_files': True, 'autolink_camelcase': True})
 		buffer = view.get_buffer()

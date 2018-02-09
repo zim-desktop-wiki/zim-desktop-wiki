@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.templates module.'''
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -318,9 +318,9 @@ class TestTemplateBuilderTextBuffer(tests.TestCase):
 
 		self.assertEqual(result, [
 			E('FOO', None, [
-				u'foo',
+				'foo',
 				E('BAR', None, []),
-				u'\n\t\tdus\n',
+				'\n\t\tdus\n',
 				E('BAR', None, []),
 			])
 		])
@@ -475,7 +475,7 @@ class TestTemplateLoopState(tests.TestCase):
 			self.assertEqual(loop.max, 2)
 			self.assertEqual(loop.prev, None if i == 0 else items[i - 1])
 			self.assertEqual(loop.current, items[i])
-			self.assertEqual(loop.next, None if i == 2 else items[i + 1])
+			self.assertEqual(loop.__next__, None if i == 2 else items[i + 1])
 			self.assertEqual(loop.index, i)
 			self.assertEqual(loop.count, i + 1)
 			self.assertEqual(loop.first, True if i == 0 else False)

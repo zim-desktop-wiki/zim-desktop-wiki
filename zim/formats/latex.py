@@ -110,7 +110,7 @@ class Dumper(TextDumper):
 
 	def dump_pre(self, tag, attrib, strings):
 		indent = int(attrib.get('indent', 0))
-		text = u''.join(strings)
+		text = ''.join(strings)
 		text = text.replace('\n\n', '\n') # remove newlines introduces by encode_text
 		strings = text.splitlines(True)
 		if indent:
@@ -127,7 +127,7 @@ class Dumper(TextDumper):
 		elif level > 5:
 			level = 5
 
-		text = u''.join(strings)
+		text = ''.join(strings)
 		return [self.SECTIONING[self.document_type][level] % text]
 
 	def dump_ul(self, tag, attrib, strings):
@@ -222,7 +222,7 @@ class Dumper(TextDumper):
 		href = self.linker.link(attrib['href'])
 		href = url_encode(href, URL_ENCODE_READABLE)
 		if strings:
-			text = u''.join(strings)
+			text = ''.join(strings)
 		else:
 			text = href
 		return ['\\href{%s}{%s}' % (href, text)]
@@ -230,7 +230,7 @@ class Dumper(TextDumper):
 	def dump_code(self, tag, attrib, strings):
 		# Here we try several possible delimiters for the inline verb
 		# command of LaTeX
-		text = u''.join(strings)
+		text = ''.join(strings)
 		for delim in '+*|$&%!-_':
 			if not delim in text:
 				return ['\\lstinline' + delim + text + delim]
@@ -245,7 +245,7 @@ class Dumper(TextDumper):
 
 		aligns, _wraps = TableParser.get_options(attrib)
 		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\hline'
-		aligns = map(lambda a: 'l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l', aligns)
+		aligns = ['l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l' for a in aligns]
 
 		for i, row in enumerate(rows):
 			for j, (cell, align) in enumerate(zip(row, aligns)):
@@ -261,7 +261,7 @@ class Dumper(TextDumper):
 		table += [rowline(row) for row in rows[1:]]
 
 		table.append('\end{tabular}')
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n\\hrule\n'

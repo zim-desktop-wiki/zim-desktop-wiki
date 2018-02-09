@@ -49,7 +49,7 @@ def data_dirs(path=None):
 	'''
 	zimpath = ['zim']
 	if path:
-		if isinstance(path, basestring):
+		if isinstance(path, str):
 			path = [path]
 		assert not path[0] == 'zim'
 		zimpath.extend(path)

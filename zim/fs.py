@@ -113,7 +113,7 @@ moved or deleted. This is stored in L{zim.fs.FS}.
 # the dir object
 
 
-from __future__ import with_statement
+
 
 import os
 import re
@@ -215,20 +215,20 @@ if ENCODING == 'mbcs':
 	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
 	# so here we just convert everything to unicode strings
 	def encode(path):
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			return path
 		else:
-			return unicode(path)
+			return str(path)
 
 	def decode(path):
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			return path
 		else:
-			return unicode(path)
+			return str(path)
 else:
 	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
 	def encode(path):
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			try:
 				return path.encode(ENCODING)
 			except UnicodeEncodeError:
@@ -238,7 +238,7 @@ else:
 
 
 	def decode(path):
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			return path # assume encoding is correct
 		else:
 			try:
@@ -291,7 +291,7 @@ def expanduser(path):
 		parts = path.replace('\\', '/').strip('/').split('/')
 			# parts[0] now is "~" or "~user"
 
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			part = parts[0].encode('mbcs')
 			part = os.path.expanduser(part)
 			parts[0] = part.decode('mbcs')
@@ -445,15 +445,15 @@ def format_file_size(bytes):
 def _md5(content):
 	import hashlib
 	m = hashlib.md5()
-	if isinstance(content, unicode):
+	if isinstance(content, str):
 		m.update(content.encode('utf-8'))
-	elif isinstance(content, basestring):
+	elif isinstance(content, str):
 		m.update(content)
 	else:
 		for l in content:
-			if isinstance(l, unicode):
+			if isinstance(l, str):
 				m.update(l.encode('utf-8'))
-			elif isinstance(l, basestring):
+			elif isinstance(l, str):
 				m.update(l)
 	return m.digest()
 
@@ -496,7 +496,7 @@ class FileUnicodeError(Error):
 			# T: message for FileUnicodeError (%s is the file name)
 		self.description = _('This usually means the file contains invalid characters')
 			# T: message for FileUnicodeError
-		self.description += '\n\n' + _('Details') + ':\n' + unicode(error)
+		self.description += '\n\n' + _('Details') + ':\n' + str(error)
 			# T: label for detailed error
 
 
@@ -580,13 +580,13 @@ class UnixPath(object):
 
 		try:
 			if isinstance(path, (list, tuple)):
-				path = map(unicode, path)
+				path = list(map(str, path))
 					# Flatten objects - strings should be unicode or ascii already
 				path = os.path.sep.join(path)
 					# os.path.join is too intelligent for it's own good
 					# just join with the path separator.
 			else:
-				path = unicode(path) # make sure we can decode
+				path = str(path) # make sure we can decode
 		except UnicodeDecodeError:
 			raise Error('BUG: invalid input, file names should be in ascii, or given as unicode')
 
@@ -928,9 +928,9 @@ class Dir(FilePath):
 		files = []
 		if ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively
-			assert isinstance(self.encodedpath, unicode)
+			assert isinstance(self.encodedpath, str)
 			for file in self._list(includehidden, includetmp):
-				if isinstance(file, unicode):
+				if isinstance(file, str):
 					files.append(file)
 				else:
 					logger.warn('Ignoring file: "%s" invalid file name', file)
@@ -938,7 +938,7 @@ class Dir(FilePath):
 			# If filesystem does not handle unicode natively and path for
 			# os.listdir(path) is _not_ a unicode object, the result will
 			# be a list of byte strings. We can decode them ourselves.
-			assert not isinstance(self.encodedpath, unicode)
+			assert not isinstance(self.encodedpath, str)
 			for file in self._list(includehidden, includetmp):
 				try:
 					files.append(file.decode(ENCODING))
@@ -947,7 +947,7 @@ class Dir(FilePath):
 
 		if glob:
 			expr = _glob_to_regex(glob)
-			files = filter(expr.match, files)
+			files = list(filter(expr.match, files))
 
 		files.sort()
 		return files
@@ -1107,8 +1107,8 @@ class Dir(FilePath):
 		L{FilePath} object.
 		@returns: a L{File} object
 		'''
-		assert isinstance(path, (FilePath, basestring, list, tuple))
-		if isinstance(path, basestring):
+		assert isinstance(path, (FilePath, str, list, tuple))
+		if isinstance(path, str):
 			return File((self.path, path))
 		elif isinstance(path, (list, tuple)):
 			return File((self.path,) + tuple(path))
@@ -1174,8 +1174,8 @@ class Dir(FilePath):
 		L{FilePath} object.
 		@returns: a L{Dir} object
 		'''
-		assert isinstance(path, (FilePath, basestring, list, tuple))
-		if isinstance(path, basestring):
+		assert isinstance(path, (FilePath, str, list, tuple))
+		if isinstance(path, str):
 			return Dir((self.path, path))
 		elif isinstance(path, (list, tuple)):
 			return Dir((self.path,) + tuple(path))
@@ -1248,7 +1248,7 @@ class FilteredDir(Dir):
 	def list(self, includehidden=False, includetmp=False, raw=False):
 		files = Dir.list(self, includehidden, includetmp)
 		if not raw:
-			files = filter(self.filter, files)
+			files = list(filter(self.filter, files))
 		return files
 
 
@@ -1465,7 +1465,7 @@ class UnixFile(FilePath):
 				file = self.open('r')
 				content = file.read()
 				self._checkoverwrite(content)
-				return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
+				return content.lstrip('\ufeff').replace('\r', '').replace('\x00', '')
 					# Strip unicode byte order mark
 					# Internally we use Unix line ends - so strip out \r
 					# And remove any NULL byte since they screw up parsing
@@ -1488,7 +1488,7 @@ class UnixFile(FilePath):
 				file = self.open('r')
 				lines = file.readlines()
 				self._checkoverwrite(lines)
-				return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
+				return [line.lstrip('\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
 					# Strip unicode byte order mark
 					# Internally we use Unix line ends - so strip out \r
 					# And remove any NULL byte since they screw up parsing

@@ -134,10 +134,10 @@ logger = logging.getLogger('zim')
 if os.name == "nt":
 	# See notes in zim/fs.py about encoding expected by abspath
 	ZIM_EXECUTABLE = os.path.abspath(
-		unicode(sys.argv[0], sys.getfilesystemencoding())
+		str(sys.argv[0], sys.getfilesystemencoding())
 	)
 else:
-	ZIM_EXECUTABLE = unicode(
+	ZIM_EXECUTABLE = str(
 		os.path.abspath(sys.argv[0]),
 		sys.getfilesystemencoding()
 	)
@@ -165,14 +165,14 @@ if not os.name == "nt":
 try:
 	if os.path.isdir(_localedir):
 		# We are running from a source dir - use the locale data included there
-		gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+		gettext.install('zim', _localedir, str=True, names=('_', 'gettext', 'ngettext'))
 	else:
 		# Hope the system knows where to find the data
-		gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+		gettext.install('zim', None, str=True, names=('_', 'gettext', 'ngettext'))
 except:
 	logger.exception('Error loading translation')
 	trans = gettext.NullTranslations()
-	trans.install(unicode=True, names=('_', 'gettext', 'ngettext'))
+	trans.install(str=True, names=('_', 'gettext', 'ngettext'))
 
 
 
@@ -191,7 +191,7 @@ if not (_file and _file.exists()): #pragma: no cover
 		'ERROR: Could not find data files in path: \n'
 		'%s\n'
 		'Try setting XDG_DATA_DIRS'
-			% map(str, zim.config.data_dirs())
+			% list(map(str, zim.config.data_dirs()))
 	)
 
 

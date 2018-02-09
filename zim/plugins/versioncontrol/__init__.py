@@ -3,7 +3,7 @@
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -1170,7 +1170,7 @@ state. Or select multiple versions to see changes between those versions.
 		if not (file and versions):
 			raise AssertionError
 
-		files = map(lambda v: self._get_tmp_file(file, v), versions)
+		files = [self._get_tmp_file(file, v) for v in versions]
 		if len(files) == 1:
 			tmp = TmpFile(file.basename + '--CURRENT', persistent=True)
 				# need to be persistent, else it is cleaned up before application spawned

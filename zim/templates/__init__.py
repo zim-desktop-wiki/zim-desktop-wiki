@@ -100,7 +100,7 @@ def get_template(category, template):
 	the template if a template name is given
 	@param template: the template name or file path
 	'''
-	assert isinstance(template, basestring)
+	assert isinstance(template, str)
 
 	if is_path_re.match(template):
 		file = File(template)

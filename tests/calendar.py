@@ -2,7 +2,7 @@
 
 # Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 

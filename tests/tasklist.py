@@ -2,7 +2,7 @@
 
 # Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -137,10 +137,10 @@ class TestTaskParser(tests.TestCase):
 			# Generate a task tuple
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
 			if tags:
-				tags = set(unicode(tags).split(','))
+				tags = set(str(tags).split(','))
 			else:
 				tags = set()
-			return [open, prio, start, due, tags, unicode(desc)]
+			return [open, prio, start, due, tags, str(desc)]
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
@@ -240,10 +240,10 @@ class TestTaskParser(tests.TestCase):
 			# Generate a task tuple
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
 			if tags:
-				tags = set(unicode(tags).split(','))
+				tags = set(str(tags).split(','))
 			else:
 				tags = set()
-			return [open, prio, start, due, tags, unicode(desc)]
+			return [open, prio, start, due, tags, str(desc)]
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 

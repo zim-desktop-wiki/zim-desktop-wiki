@@ -2,13 +2,13 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
 import sys
 import os
-from cStringIO import StringIO
+from io import StringIO
 import logging
 import wsgiref.validate
 import wsgiref.handlers
@@ -85,8 +85,8 @@ class TestWWWInterface(tests.TestCase):
 				# but use unicode instead for os API.
 				# However wsgiref.validate fails on unicode param
 				# in environmnet.
-				for k, v in handler.os_environ.items():
-					if isinstance(v, unicode):
+				for k, v in list(handler.os_environ.items()):
+					if isinstance(v, str):
 						handler.os_environ[k] = v.encode('utf-8')
 
 			handler.run(validator)

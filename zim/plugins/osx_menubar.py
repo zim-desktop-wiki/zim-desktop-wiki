@@ -47,7 +47,7 @@ if False: #pragma: no cover
 
 		def __getattr__(self, name):
 			def method(*a):
-				print ">>> OSX call:", name, a
+				print(">>> OSX call:", name, a)
 			return method
 
 	if gtkosx_application is None:

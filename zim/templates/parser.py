@@ -32,7 +32,7 @@ class TemplateBuilderTextBuffer(BuilderTextBuffer):
 		BuilderTextBuffer.text(self, text)
 
 	def flush(self):
-		text = u''.join(self.buffer)
+		text = ''.join(self.buffer)
 
 		if text and self._lstrip_pending:
 			text = self._lstrip(text)
@@ -47,7 +47,7 @@ class TemplateBuilderTextBuffer(BuilderTextBuffer):
 		'''Do an rstrip on last piece of text up to and including
 		newline
 		'''
-		text = u''.join(self.buffer)
+		text = ''.join(self.buffer)
 		if text:
 			self.buffer = [self._rstrip(text)]
 

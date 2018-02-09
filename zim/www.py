@@ -27,7 +27,7 @@ from gi.repository import GObject
 from functools import partial
 
 from wsgiref.headers import Headers
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
@@ -81,7 +81,7 @@ You tried to open a page that does not exist.
 '''
 
 	def __init__(self, page):
-		if not isinstance(page, basestring):
+		if not isinstance(page, str):
 			page = page.name
 		WWWError.__init__(self, 'No such page: %s' % page, status='404')
 
@@ -123,7 +123,7 @@ class WWWInterface(object):
 		if template is None:
 			template = 'Default'
 
-		if isinstance(template, basestring):
+		if isinstance(template, str):
 			from zim.templates import get_template
 			self.template = get_template('html', template)
 			if not self.template:
@@ -181,7 +181,7 @@ class WWWInterface(object):
 			elif path == '/favicon.ico':
 				path = '/+resources/favicon.ico'
 			else:
-				path = urllib.unquote(path)
+				path = urllib.parse.unquote(path)
 
 			if path == '/':
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -248,7 +248,7 @@ class WWWInterface(object):
 					for key, value in error.headers:
 						headers.add_header(key, value)
 				start_response(error.status, headerlist)
-				content = unicode(error).splitlines(True)
+				content = str(error).splitlines(True)
 			# TODO also handle template errors as special here
 			else:
 				# Unexpected error - maybe a bug, do not expose output on bugs

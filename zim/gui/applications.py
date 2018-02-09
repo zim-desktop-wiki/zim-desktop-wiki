@@ -296,7 +296,7 @@ class ApplicationManager(object):
 		## See comment in get_default_application()
 
 		if application is not None:
-			if not isinstance(application, basestring):
+			if not isinstance(application, str):
 				application = application.key
 
 			if not application.endswith('.desktop'):
@@ -527,7 +527,7 @@ def open_url(widget, url):
 	@param url: an URL or URI as string
 	'''
 	logger.debug('open_url(%s)', url)
-	assert isinstance(url, basestring)
+	assert isinstance(url, str)
 
 	if is_win32_share_re.match(url):
 		url = normalize_win32_share(url)
@@ -670,7 +670,7 @@ class String(BaseString):
 	def check(self, value):
 		# Only ascii chars allowed in these keys
 		value = BaseString.check(self, value)
-		if isinstance(value, unicode) \
+		if isinstance(value, str) \
 		and value.encode('utf-8') != value:
 			raise ValueError('ASCII string required')
 		return value
@@ -826,7 +826,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 				if isinstance(arg, (File, Dir)):
 					uris.append(arg.uri)
 				else:
-					uris.append(unicode(arg))
+					uris.append(str(arg))
 			return uris
 
 		cmd = split_quoted_strings(self['Desktop Entry']['Exec'])
@@ -842,11 +842,11 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		elif '%f' in cmd:
 			assert len(args) == 1, 'application takes one file name'
 			i = cmd.index('%f')
-			cmd[i] = unicode(args[0])
+			cmd[i] = str(args[0])
 		elif '%F' in cmd:
 			i = cmd.index('%F')
-			for arg in reversed(map(unicode, args)):
-				cmd.insert(i, unicode(arg))
+			for arg in reversed(list(map(str, args))):
+				cmd.insert(i, str(arg))
 			cmd.remove('%F')
 		elif '%u' in cmd:
 			assert len(args) == 1, 'application takes one url'
@@ -855,10 +855,10 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		elif '%U' in cmd:
 			i = cmd.index('%U')
 			for arg in reversed(uris(args)):
-				cmd.insert(i, unicode(arg))
+				cmd.insert(i, str(arg))
 			cmd.remove('%U')
 		else:
-			cmd.extend(map(unicode, args))
+			cmd.extend(list(map(str, args)))
 
 		if '%i' in cmd:
 			if 'Icon' in self['Desktop Entry'] \

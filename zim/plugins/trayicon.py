@@ -218,7 +218,7 @@ class TrayIconBase(object):
 
 	def do_activate_notebook(self, uri):
 		'''Open a specific notebook.'''
-		if not isinstance(uri, basestring):
+		if not isinstance(uri, str):
 			uri = uri.uri
 		ZIM_APPLICATION.run('--gui', uri)
 

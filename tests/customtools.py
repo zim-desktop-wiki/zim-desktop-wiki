@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -306,7 +306,7 @@ class TestCustomToolDialog(tests.TestCase):
 
 		tool = manager.get_tool('Add')
 		self.assertIsNotNone(tool)
-		for key, value in mytool.items():
+		for key, value in list(mytool.items()):
 			self.assertEqual(tool['Desktop Entry'][key], value)
 
 	@tests.expectedFailure # Fails because of select_by_name fails - listview initialized ?

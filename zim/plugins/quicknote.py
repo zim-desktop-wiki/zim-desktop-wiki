@@ -125,7 +125,7 @@ class QuickNotePluginCommand(GtkCommand):
 			else:
 				raise AssertionError('Unknown encoding: %s' % self.opts['encoding'])
 
-		if text and not isinstance(text, unicode):
+		if text and not isinstance(text, str):
 			text = text.decode('UTF-8')
 
 		return text
@@ -136,7 +136,7 @@ class QuickNotePluginCommand(GtkCommand):
 		#   (desktop preventing new window of existing process to hijack focus)
 		# - e.g. capturing stdin requires local process
 		if self.opts.get('help'):
-			print usagehelp # TODO handle this in the base class
+			print(usagehelp) # TODO handle this in the base class
 		else:
 			dialog = self.build_dialog()
 			dialog.run()
@@ -223,13 +223,13 @@ class QuickNoteDialog(Dialog):
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
 
-		if notebook and not isinstance(notebook, basestring):
+		if notebook and not isinstance(notebook, str):
 			notebook = notebook.uri
 
-		self.uistate.setdefault('lastnotebook', None, basestring)
+		self.uistate.setdefault('lastnotebook', None, str)
 		if self.uistate['lastnotebook']:
 			notebook = notebook or self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None, basestring)
+			self.config['Namespaces'].setdefault(notebook, None, str)
 			namespace = namespace or self.config['Namespaces'][notebook]
 
 		self.form = InputForm()
@@ -339,7 +339,7 @@ class QuickNoteDialog(Dialog):
 			return
 
 		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None, basestring)
+		self.config['Namespaces'].setdefault(notebook, None, str)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.form['namespace'] = namespace
@@ -349,7 +349,7 @@ class QuickNoteDialog(Dialog):
 	def _set_autocomplete(self, notebook):
 		if notebook:
 			try:
-				if isinstance(notebook, basestring):
+				if isinstance(notebook, str):
 					notebook = NotebookInfo(notebook)
 				obj, x = build_notebook(notebook)
 				self.form.widgets['namespace'].notebook = obj

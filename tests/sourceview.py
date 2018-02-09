@@ -2,7 +2,7 @@
 
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -31,7 +31,7 @@ class TestMainWindowExtension(tests.TestCase):
 
 	def checkInsertCodeBlockDialog(self, dialog):
 		self.assertIsInstance(dialog, InsertCodeBlockDialog)
-		dialog.form['lang'] = LANGUAGES.keys()[0]
+		dialog.form['lang'] = list(LANGUAGES.keys())[0]
 		dialog.assert_response_ok()
 
 

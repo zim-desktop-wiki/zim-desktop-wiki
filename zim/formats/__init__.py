@@ -181,7 +181,7 @@ def encode_xml(text):
 	@param text: label text as string
 	@returns: encoded text
 	'''
-	text = unicode(text).encode('UTF-8')
+	text = str(text).encode('UTF-8')
 	return text.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;').replace("'", '&apos;')
 
 
@@ -315,12 +315,12 @@ class ParseTree(object):
 
 	def tostring(self):
 		'''Serialize the tree to a XML representation'''
-		from cStringIO import StringIO
+		from io import StringIO
 
 		# Parent dies when we have attributes that are not a string
 		for element in self._etree.getiterator('*'):
-			for key in element.attrib.keys():
-				element.attrib[key] = unicode(element.attrib[key])
+			for key in list(element.attrib.keys()):
+				element.attrib[key] = str(element.attrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
@@ -333,7 +333,7 @@ class ParseTree(object):
 		try:
 			return ParseTree().fromstring(xml)
 		except:
-			print ">>>", xml, "<<<"
+			print(">>>", xml, "<<<")
 			raise
 
 	def iter_tokens(self):
@@ -660,7 +660,7 @@ class ParseTree(object):
 				elt.remove(child)
 				offset -= 1
 				for item in node:
-					if isinstance(item, basestring):
+					if isinstance(item, str):
 						self._insert_text(elt, i, item)
 					else:
 						assert isinstance(item, Element)
@@ -985,7 +985,7 @@ class OldParseTreeBuilder(object):
 			return self._stack.pop()
 
 	def data(self, text):
-		assert isinstance(text, basestring)
+		assert isinstance(text, str)
 		self._data.append(text)
 
 	def append(self, tag, text):
@@ -1204,7 +1204,7 @@ class DumperClass(Visitor):
 		'''Return the dumped content as a list of lines
 		Should only be called after closing the top level element
 		'''
-		return u''.join(self._text).splitlines(1)
+		return ''.join(self._text).splitlines(1)
 
 	def start(self, tag, attrib=None):
 		if attrib:
@@ -1294,16 +1294,16 @@ class DumperClass(Visitor):
 		@param strings: a list of pieces of text
 		@returns: a new list of lines, each starting with prefix
 		'''
-		lines = u''.join(strings).splitlines(1)
+		lines = ''.join(strings).splitlines(1)
 		return [prefix + l for l in lines]
 
 	def dump_object(self, tag, attrib, strings=None):
 		'''Dumps object using proper ObjectManager'''
 		format = str(self.__class__.__module__).split('.')[-1]
 		if 'type' in attrib:
-			obj = ObjectManager.get_object(attrib['type'], attrib, u''.join(strings))
+			obj = ObjectManager.get_object(attrib['type'], attrib, ''.join(strings))
 			output = obj.dump(format, self, self.linker)
-			if isinstance(output, basestring):
+			if isinstance(output, str):
 				return [output]
 			elif output is not None:
 				return output
@@ -1498,12 +1498,12 @@ class Node(list):
 		@returns: string
 		'''
 		strings = self._gettext()
-		return u''.join(strings)
+		return ''.join(strings)
 
 	def _gettext(self):
 		strings = []
 		for item in self:
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				strings.append(item)
 			else:
 				strings.extend(item._gettext())
@@ -1511,7 +1511,7 @@ class Node(list):
 
 	def toxml(self):
 		strings = self._toxml()
-		return u''.join(strings)
+		return ''.join(strings)
 
 	def _toxml(self):
 		strings = []
@@ -1524,7 +1524,7 @@ class Node(list):
 			strings.append("<%s>" % self.tag)
 
 		for item in self:
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				strings.append(encode_xml(item))
 			else:
 				strings.extend(item._toxml())
@@ -1535,12 +1535,12 @@ class Node(list):
 	__repr__ = toxml
 
 	def visit(self, visitor):
-		if len(self) == 1 and isinstance(self[0], basestring):
+		if len(self) == 1 and isinstance(self[0], str):
 			visitor.append(self.tag, self.attrib, self[0])
 		else:
 			visitor.start(self.tag, self.attrib)
 			for item in self:
-				if isinstance(item, basestring):
+				if isinstance(item, str):
 					visitor.text(item)
 				else:
 					item.visit(visitor)
@@ -1572,7 +1572,7 @@ class TableParser():
 		:param lines: 2-dim multiline rows
 		:return: the number of characters of the longest cell-value by column
 		'''
-		widths = [max(map(len, line)) for line in zip(*lines)]
+		widths = [max(list(map(len, line))) for line in zip(*lines)]
 		return widths
 
 	@staticmethod
@@ -1583,7 +1583,7 @@ class TableParser():
 		:return: the number of characters of the longest cell-value by column
 		'''
 		lines = reduce(lambda x, y: x + y, lines)
-		widths = [max(map(len, line)) for line in zip(*lines)]
+		widths = [max(list(map(len, line))) for line in zip(*lines)]
 		return widths
 
 	@staticmethod
@@ -1595,10 +1595,10 @@ class TableParser():
 		:param strings: format like (('c11a \n c11b', 'c12a \n c12b'), ('c21', 'c22a \n 22b'))
 		:return: format like (((c11a, c12a), (c11b, c12b)), ((c21, c22a), ('', c22b)))
 		'''
-		multi_rows = [map(lambda cell: cell.split("\n"), row) for row in rows]
+		multi_rows = [[cell.split("\n") for cell in row] for row in rows]
 
 		# grouping by line, not by row
-		strings = [map(lambda *line: map(lambda val: val if val is not None else '', line), *row) for row in multi_rows]
+		strings = [list(map(lambda *line: [val if val is not None else '' for val in line], *row)) for row in multi_rows]
 		return strings
 
 	@staticmethod
@@ -1609,7 +1609,7 @@ class TableParser():
 		:return: tuple of attributes
 		'''
 		aligns = attrib['aligns'].split(',')
-		wraps = map(int, attrib['wraps'].split(','))
+		wraps = list(map(int, attrib['wraps'].split(',')))
 
 		return aligns, wraps
 
@@ -1623,7 +1623,7 @@ class TableParser():
 		:param y: line-separator
 		:return: a textline
 		'''
-		return x + x.join(map(lambda width: (width + 2) * y, maxwidths)) + x
+		return x + x.join([(width + 2) * y for width in maxwidths]) + x
 
 	@staticmethod
 	def headsep(maxwidths, aligns, x='|', y='-'):
@@ -1725,7 +1725,7 @@ def parse_header_lines(text):
 
 	@returns: the text minus the headers and a dict with the headers
 	'''
-	assert isinstance(text, basestring)
+	assert isinstance(text, str)
 	meta = OrderedDict()
 	match = _is_header_re.match(text)
 	pos = 0
@@ -1762,7 +1762,7 @@ def dump_header_lines(*headers):
 
 	for h in headers:
 		if hasattr(h, 'items'):
-			for k, v in h.items():
+			for k, v in list(h.items()):
 				append(k, v)
 		else:
 			for k, v in h:

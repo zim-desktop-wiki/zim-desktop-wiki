@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.notebook module.'''
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -36,7 +36,7 @@ class TestNotebookInfo(tests.TestCase):
 				# specifically ensure the "?" does not get url encoded
 		):
 			if os.name == 'nt':
-				if isinstance(location, basestring):
+				if isinstance(location, str):
 					location = location.replace('///', '///C:/')
 				uri = uri.replace('///', '///C:/')
 			info = NotebookInfo(location)
@@ -54,7 +54,7 @@ class TestNotebookInfoList(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(self.create_tmp_dir(u'some_utf8_here_\u0421\u0430\u0439'))
+		root = Dir(self.create_tmp_dir('some_utf8_here_\u0421\u0430\u0439'))
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()

@@ -228,7 +228,7 @@ class NotebookComboBox(Gtk.ComboBox):
 		@param append: if C{True} the notebook will appended to the list
 		if it was not listed yet.
 		'''
-		if isinstance(uri, basestring):
+		if isinstance(uri, str):
 			assert uri.startswith('file://')
 		else:
 			assert hasattr(uri, 'uri')

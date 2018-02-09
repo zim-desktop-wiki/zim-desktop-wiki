@@ -63,7 +63,7 @@ class FileUnicodeError(Error):
 			# T: message for FileUnicodeError (%s is the file name)
 		self.description = _('This usually means the file contains invalid characters')
 			# T: message for FileUnicodeError
-		self.description += '\n\n' + _('Details') + ':\n' + unicode(error)
+		self.description += '\n\n' + _('Details') + ':\n' + str(error)
 			# T: label for detailed error
 
 
@@ -116,7 +116,7 @@ def _split_file_url(url):
 def _splitnormpath(path):
 	# Takes either string or list of names and returns a normalized tuple
 	# Keeps leading "/" or "\\" to distinguish absolute paths
-	if isinstance(path, basestring):
+	if isinstance(path, str):
 		if is_url_re.match(path):
 			makeroot = True
 			path, makeshare = _split_file_url(path)
@@ -193,14 +193,14 @@ if FS_ENCODING == 'mbcs':
 	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
 	# so here we just convert everything to unicode strings
 	def _encode_path(path):
-		return path if isinstance(path, unicode) else unicode(path)
+		return path if isinstance(path, str) else str(path)
 
 	_decode_path = _encode_path
 
 else:
 	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
 	def _encode_path(path):
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			try:
 				return path.encode(FS_ENCODING)
 			except UnicodeEncodeError:
@@ -210,7 +210,7 @@ else:
 			return path # assume encoding is correct
 
 	def _decode_path(path):
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			return path # assume encoding is correct
 		else:
 			try:
@@ -233,7 +233,7 @@ def _os_expanduser(path):
 		parts = path.replace('\\', '/').strip('/').split('/')
 			# parts[0] now is "~" or "~user"
 
-		if isinstance(path, unicode):
+		if isinstance(path, str):
 			part = parts[0].encode('mbcs')
 			part = os.path.expanduser(part)
 			parts[0] = part.decode('mbcs')
@@ -276,7 +276,7 @@ class FilePath(object):
 	__slots__ = ('path', 'pathnames', 'islocal')
 
 	def __init__(self, path):
-		if isinstance(path, (tuple, list, basestring)):
+		if isinstance(path, (tuple, list, str)):
 			self.pathnames = _splitnormpath(path)
 			self.path = _joinabspath(self.pathnames)
 		elif isinstance(path, FilePath):
@@ -401,10 +401,8 @@ class FSObjectMeta(type):
 			return False
 
 
-class FSObjectBase(FilePath):
+class FSObjectBase(FilePath, metaclass=FSObjectMeta):
 	'''Base class for L{File} and L{Folder}'''
-
-	__metaclass__ = FSObjectMeta
 
 	def __init__(self, path, watcher=None):
 		FilePath.__init__(self, path)
@@ -624,12 +622,12 @@ IMAGE_EXTENSIONS = (
 
 def _md5(content):
 	# Provide encoded content to avoid double work
-	if isinstance(content, basestring):
+	if isinstance(content, str):
 		content = (content,)
 
 	m = hashlib.md5()
 	for l in content:
-		l = l.encode('UTF-8') if isinstance(l, unicode) else l
+		l = l.encode('UTF-8') if isinstance(l, str) else l
 		m.update(l)
 	return m.digest()
 

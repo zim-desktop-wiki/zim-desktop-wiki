@@ -130,8 +130,8 @@ class UIActions(object):
 		@param location: notebook location as uri or object with "uri" attribute
 		@param pagename: optional page name
 		'''
-		assert isinstance(location, basestring) or hasattr(location, 'uri')
-		assert pagename is None or isinstance(pagename, basestring)
+		assert isinstance(location, str) or hasattr(location, 'uri')
+		assert pagename is None or isinstance(pagename, str)
 
 		uri = location.uri if hasattr(location, 'uri') else location
 		if pagename:
@@ -715,7 +715,7 @@ class DeletePageDialog(Dialog):
 			# T: Heading in 'delete page' dialog - %s is the page name
 		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
-		label.set_markup('<b>' + short + '</b>\n\n' + long)
+		label.set_markup('<b>' + short + '</b>\n\n' + int)
 		vbox.pack_start(label, False, True, 0)
 
 		# TODO use expander here

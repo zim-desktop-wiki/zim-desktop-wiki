@@ -78,7 +78,7 @@ class Internationalizer(Gtk.Window):
 			self.save_file()
 		self.file = file
 		buffer = Gtk.TextBuffer()
-		print 'Reading %s' % self.file
+		print('Reading %s' % self.file)
 		buffer.set_text(open(self.file).read())
 		self.textview.set_buffer(buffer)
 
@@ -100,15 +100,15 @@ class Internationalizer(Gtk.Window):
 			return iter
 
 		for start, end in translated:
-			start, end = map(get_iter, (start, end))
+			start, end = list(map(get_iter, (start, end)))
 			buffer.apply_tag_by_name('translated', start, end)
 
 		for start, end in untranslated:
-			start, end = map(get_iter, (start, end))
+			start, end = list(map(get_iter, (start, end)))
 			buffer.apply_tag_by_name('untranslated', start, end)
 
 		for start, end in notsure:
-			start, end = map(get_iter, (start, end))
+			start, end = list(map(get_iter, (start, end)))
 			buffer.apply_tag_by_name('notsure', start, end)
 
 		buffer.place_cursor(buffer.get_iter_at_offset(0))
@@ -150,7 +150,7 @@ class Internationalizer(Gtk.Window):
 	def save_file(self):
 		buffer = self.textview.get_buffer()
 		content = buffer.get_text(*buffer.get_bounds())
-		print 'Writing %s' % self.file
+		print('Writing %s' % self.file)
 		open(self.file, 'w').write(content)
 
 	def reload_file(self):

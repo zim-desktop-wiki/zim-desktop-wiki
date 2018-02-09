@@ -83,11 +83,11 @@ class Application(object):
 		@param encoding: the encoding to use for commandline args
 		if known, else falls back to system default
 		'''
-		if isinstance(cmd, basestring):
+		if isinstance(cmd, str):
 			cmd = split_quoted_strings(cmd)
 		else:
 			assert isinstance(cmd, (tuple, list))
-		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)
+		assert tryexeccmd is None or isinstance(tryexeccmd, str)
 		self.cmd = tuple(cmd)
 		self.tryexeccmd = tryexeccmd
 		self.encoding = encoding or zim.fs.ENCODING
@@ -140,7 +140,7 @@ class Application(object):
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes
 		if args:
-			return self.cmd + tuple(map(unicode, args))
+			return self.cmd + tuple(map(str, args))
 		else:
 			return self.cmd
 
@@ -172,7 +172,7 @@ class Application(object):
 
 		argv = [a.encode(self.encoding) for a in argv]
 		if cwd:
-			cwd = unicode(cwd).encode(zim.fs.ENCODING)
+			cwd = str(cwd).encode(zim.fs.ENCODING)
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
@@ -252,7 +252,7 @@ class Application(object):
 
 		# Explicit newline conversion, e.g. on windows \r\n -> \n
 		# FIXME Assume local encoding is respected (!?)
-		text = [unicode(line + '\n', encoding=self.encoding, errors='replace') for line in stdout.splitlines()]
+		text = [str(line + '\n', encoding=self.encoding, errors='replace') for line in stdout.splitlines()]
 		if text and text[-1].endswith('\n') and not stdout.endswith('\n'):
 			text[-1] = text[-1][:-1] # strip additional \n
 		return text
@@ -384,10 +384,10 @@ class StartFile(Application):
 				path = os.path.normpath(arg.path)
 			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
 				# URL or e.g. mailto: or outlook: URI
-				path = unicode(arg)
+				path = str(arg)
 			else:
 				# must be file
-				path = os.path.normpath(unicode(arg))
+				path = os.path.normpath(str(arg))
 
 			logger.info('Opening with os.startfile: %s', path)
 			if TEST_MODE:

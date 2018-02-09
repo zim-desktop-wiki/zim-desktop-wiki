@@ -146,7 +146,7 @@ class InsertCodeBlockDialog(Dialog):
 		# Set previous used language
 		self.uistate.define(lang=String(None))
 		if 'lang' in self.uistate:
-			for name, id in LANGUAGES.items():
+			for name, id in list(LANGUAGES.items()):
 				if self.uistate['lang'] == id:
 					try:
 						self.form['lang'] = name

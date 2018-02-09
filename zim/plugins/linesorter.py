@@ -3,7 +3,7 @@
 # Copyright 2011 NorfCran <norfcran@gmail.com>
 # License:  same as zim (gpl)
 
-from __future__ import with_statement
+
 
 from gi.repository import Gtk
 

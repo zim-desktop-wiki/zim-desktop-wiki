@@ -2,7 +2,7 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from gi.repository import Pango
 from gi.repository import Gtk
@@ -63,7 +63,7 @@ class PreferencesDialog(Dialog):
 				('GtkInterface', interface_preferences),
 				('PageView', pageview_preferences)
 			):
-				for p in filter(lambda p: p[2] == category, preferences):
+				for p in [p for p in preferences if p[2] == category]:
 					# key, type, category, label, default, (check)
 					if len(p) == 5:
 						key, type, cat, label, default = p
@@ -137,8 +137,8 @@ class PreferencesDialog(Dialog):
 	def do_response_ok(self):
 		# Get dynamic tabs
 		newpreferences = {}
-		for form in self.forms.values():
-			for key, value in form.items():
+		for form in list(self.forms.values()):
+			for key, value in list(form.items()):
 				section = form.preferences_sections[key]
 				if not section in newpreferences:
 					newpreferences[section] = {}
@@ -289,11 +289,11 @@ class PluginsTab(Gtk.VBox):
 			for dependency in dependencies:
 				text, ok, required = dependency
 				if ok:
-					insert(u'\u2022 %s - %s\n' % (text, _('OK'))) # T: dependency is OK
+					insert('\u2022 %s - %s\n' % (text, _('OK'))) # T: dependency is OK
 				elif required:
-					insert(u'\u2022 %s - %s\n' % (text, _('Failed')), 'red') # T: dependency failed
+					insert('\u2022 %s - %s\n' % (text, _('Failed')), 'red') # T: dependency failed
 				else:
-					insert(u'\u2022 %s - %s (%s)\n' % (text,
+					insert('\u2022 %s - %s (%s)\n' % (text,
 						_('Failed'), # T: dependency failed
 						_('Optional') # T: optional dependency
 					))

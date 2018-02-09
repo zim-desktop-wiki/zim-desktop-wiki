@@ -54,11 +54,11 @@ class TestClipboard(tests.TestCase):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def testCopyPasteText(self):
-		text = u'test **123** \u2022' # text with non-ascii character
+		text = 'test **123** \u2022' # text with non-ascii character
 		Clipboard.set_text(text)
 		result = Clipboard.get_text()
 		self.assertEqual(result, text)
-		self.assertTrue(isinstance(result, unicode))
+		self.assertTrue(isinstance(result, str))
 
 	@tests.expectedFailure
 	def testCopyPasteFromParseTree(self):

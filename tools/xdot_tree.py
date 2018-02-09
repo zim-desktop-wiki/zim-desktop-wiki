@@ -23,8 +23,8 @@ class Graph(object):
 
 	def _code_for_module(self, module):
 		text = '"%s" [shape=ellips]' % module.name
-		for item in module.items():
-			if isinstance(item, basestring):
+		for item in list(module.items()):
+			if isinstance(item, str):
 				text += '\n"%s"' % item
 				text += '\n"%s" -> "%s"' % (module.name, item)
 			else:

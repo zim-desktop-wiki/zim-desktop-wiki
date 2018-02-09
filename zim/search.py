@@ -501,7 +501,7 @@ class SearchSelection(PageSelection):
 						pass
 			generator = page_generator()
 		else:
-			generator = map(self.notebook.get_page, self.notebook.pages.walk())
+			generator = list(map(self.notebook.get_page, self.notebook.pages.walk()))
 
 		if results is None:
 			results = SearchSelection(None)
@@ -596,7 +596,7 @@ class SearchSelection(PageSelection):
 		# Build a regex for a content search term, expands wildcards
 		# and sets case sensitivity. Tries to guess if we look for
 		# whole word or not.
-		if not isinstance(string, unicode):
+		if not isinstance(string, str):
 			string = string.decode('UTF-8')
 
 		# Build regex - first expand wildcards
@@ -608,11 +608,11 @@ class SearchSelection(PageSelection):
 		# charaters. Chinese is treated special because it does not use
 		# whitespace as word delimiter.
 		if re.search(r'^[\*\w]', string, re.U) \
-		and not u'\u4e00' <= string[0] <= u'\u9fff':
+		and not '\u4e00' <= string[0] <= '\u9fff':
 			regex = r'\b' + regex
 
 		if re.search(r'[\*\w]$', string, re.U) \
-		and not u'\u4e00' <= string[-1] <= u'\u9fff':
+		and not '\u4e00' <= string[-1] <= '\u9fff':
 			regex = regex + r'\b'
 
 		#~ print 'SEARCH REGEX: >>%s<<' % regex

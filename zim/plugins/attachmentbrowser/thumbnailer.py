@@ -38,14 +38,14 @@
 #
 # File.uri is already encoded, don't do anything else here
 
-from __future__ import with_statement
+
 
 
 import os
 import hashlib
 import time
 import threading
-import Queue
+import queue
 
 from gi.repository import Gtk
 from gi.repository import GdkPixbuf
@@ -101,7 +101,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	}
 	optionskeys = []
 	optionsvalues = []
-	for k, v in options.items():
+	for k, v in list(options.items()):
 		optionskeys.append(k)
 		optionsvalues.append(v)
 	try:
@@ -124,8 +124,8 @@ class ThumbnailQueue(object):
 
 	def __init__(self, thumbnailcreator=pixbufThumbnailCreator):
 		self._thread = None
-		self._in_queue = Queue.Queue()
-		self._out_queue = Queue.Queue()
+		self._in_queue = queue.Queue()
+		self._out_queue = queue.Queue()
 		self._thumbmanager = ThumbnailManager(thumbnailcreator)
 		self._count = 0
 		self._count_lock = threading.Lock()
@@ -181,7 +181,7 @@ class ThumbnailQueue(object):
 				except:
 					logger.exception('Exception in thumbnail queue')
 					self._count -= 1 # drop
-		except Queue.Empty:
+		except queue.Empty:
 			pass
 		finally:
 			self._running.clear()
@@ -198,7 +198,7 @@ class ThumbnailQueue(object):
 				assert self._count > 0
 				self._count -= 1
 				return file, size, thumbfile, pixbuf, mtime
-			except Queue.Empty:
+			except queue.Empty:
 				return (None, None, None, None, None)
 
 	def clear_queue(self):
@@ -207,7 +207,7 @@ class ThumbnailQueue(object):
 					while True:
 						queue.get_nowait()
 						queue.task_done()
-				except Queue.Empty:
+				except queue.Empty:
 					pass
 
 		with self._count_lock: # nothing in or out while locked!

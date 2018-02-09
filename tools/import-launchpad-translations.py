@@ -48,7 +48,7 @@ def import_translations_from(archive):
 	potfiles = [n for n in names if n.endswith('.pot')]
 	assert len(potfiles) == 1, 'Multiple template files in this archive !?'
 	total = count_messages(tfile.extractfile(potfiles[0]))
-	print '%i messages in catalogue' % total
+	print('%i messages in catalogue' % total)
 
 	pofiles = []
 	for name in [n for n in names if n.endswith('.po')]:
@@ -65,14 +65,14 @@ def import_translations_from(archive):
 			files.append(('translations/%s.po' % lang, file))
 		else:
 			status = ''
-		print '%-6s %i translated (%i%%) %s' % (lang, n, perc, status)
+		print('%-6s %i translated (%i%%) %s' % (lang, n, perc, status))
 
 	for path, file in files:
-		print 'Writing %s' % path
+		print('Writing %s' % path)
 		open(path, 'w').writelines(file)
 
-	print '\nPlease check `bzr st` for newly added translations and update CHANGELOG'
-	print 'You need to run `./setup.py build_trans` to use the newly imported po files'
+	print('\nPlease check `bzr st` for newly added translations and update CHANGELOG')
+	print('You need to run `./setup.py build_trans` to use the newly imported po files')
 
 if __name__ == '__main__':
 	assert len(sys.argv) == 2 and sys.argv[1].endswith('.tar.gz')

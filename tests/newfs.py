@@ -4,7 +4,7 @@
 
 '''Test cases for the zim filesystem module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -85,9 +85,9 @@ class TestFilePath(tests.TestCase):
 		self.assertEqual(mypath.basename, 'bar')
 		self.assertEqual(mypath.dirname, P('/foo'))
 
-		mypath = FilePath(P(u'/foo/\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'))
-		self.assertEqual(mypath.basename, u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439')
-		self.assertIsInstance(mypath.basename, unicode)
+		mypath = FilePath(P('/foo/\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'))
+		self.assertEqual(mypath.basename, '\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439')
+		self.assertIsInstance(mypath.basename, str)
 
 		path = FilePath(P('/foo'))
 		self.assertIsNotNone(path.path)
@@ -247,12 +247,12 @@ class TestFS(object):
 
 		for f in (file, folder):
 			self.assertTrue(f.exists())
-			self.assertIsInstance(f.ctime(), (int, float, long))
-			self.assertIsInstance(f.mtime(), (int, float, long))
+			self.assertIsInstance(f.ctime(), (int, float, int))
+			self.assertIsInstance(f.mtime(), (int, float, int))
 			self.assertGreaterEqual(f.mtime(), f.ctime())
 
 		file.write('test123\n')
-		self.assertIsInstance(file.size(), (int, float, long))
+		self.assertIsInstance(file.size(), (int, float, int))
 		self.assertTrue(file.size() > 0)
 
 		self.assertEqual(file.mimetype(), 'text/plain')
@@ -283,7 +283,7 @@ class TestFS(object):
 
 	def testFileAccess(self):
 		# File access: read, write, touch, remove -- including unicode in path
-		file = self.get_root_folder('testFileAccess').file(u'test-αβγ.txt')
+		file = self.get_root_folder('testFileAccess').file('test-αβγ.txt')
 		self.assertFalse(file.exists())
 		self.assertRaises(FileNotFoundError, file.read)
 
@@ -314,7 +314,7 @@ class TestFS(object):
 		# Check we can write without reading
 		file = root.file('test.txt')
 		etag1 = file.write_with_etag('test 123\n', None)
-		self.assertEquals(file.read_with_etag(), ('test 123\n', etag1))
+		self.assertEqual(file.read_with_etag(), ('test 123\n', etag1))
 
 		# Now write again
 		import time
@@ -324,28 +324,28 @@ class TestFS(object):
 			time.sleep(1) # Ensure mtime change
 		etag2 = file.writelines_with_etag(['test 567\n'], etag1)
 		self.assertNotEqual(etag2, etag1)
-		self.assertEquals(file.readlines_with_etag(), (['test 567\n'], etag2))
+		self.assertEqual(file.readlines_with_etag(), (['test 567\n'], etag2))
 
 		# Check raises without etag
 		self.assertRaises(FileChangedError, file.write_with_etag, 'foo!', etag1)
 		self.assertRaises(AssertionError, file.write_with_etag, 'foo!', None)
-		self.assertEquals(file.readlines_with_etag(), (['test 567\n'], etag2))
+		self.assertEqual(file.readlines_with_etag(), (['test 567\n'], etag2))
 
 		# Check md5 fallback
 		etag2x = (-1, etag2[1])
 		etag3 = file.write_with_etag('test 890\n', etag2x)
-		self.assertEquals(file.read_with_etag(), ('test 890\n', etag3))
+		self.assertEqual(file.read_with_etag(), ('test 890\n', etag3))
 
 		# Check edge case where file goes missing after read or write
 		file.remove()
 		self.assertFalse(file.exists())
 		etag4 = file.write_with_etag('test 890\n', etag3)
-		self.assertEquals(file.read_with_etag(), ('test 890\n', etag4))
+		self.assertEqual(file.read_with_etag(), ('test 890\n', etag4))
 
 	def testFolderAccess(self):
 		# Folder access: list, touch, remove, file, folder, child -- including unicode in path
 
-		folder = self.get_root_folder('testFolderAccess').folder(u'test-αβγ')
+		folder = self.get_root_folder('testFolderAccess').folder('test-αβγ')
 
 		# Start empty
 		self.assertFalse(folder.exists())
@@ -433,14 +433,14 @@ class TestFS(object):
 			P('foo.txt'): 'test 123\n',
 			P('foo/bar.txt'): 'test 123\n',
 			P('a/b/c/test.txt'): 'test 123\n',
-			P('unicode.txt'): u'\u2022 test 123\n',
+			P('unicode.txt'): '\u2022 test 123\n',
 		}
 
-		for path, text in data.items():
+		for path, text in list(data.items()):
 			root.file(path).write(text)
 
 		# Direct access
-		for path, text in data.items():
+		for path, text in list(data.items()):
 			file = root.file(path)
 			self.assertTrue(file.exists())
 			self.assertEqual(file.read(), text)
@@ -784,7 +784,7 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertTrue(file.isimage())
 		self.assertIn(file.mimetype(), ('image/png', 'image/x-png'))
 		blob = file.read_binary()
-		self.assertNotIsInstance(blob, unicode)
+		self.assertNotIsInstance(blob, str)
 		with open(file.encodedpath, 'rb') as fh:
 			raw = fh.read()
 		self.assertEqual(blob, raw)

@@ -2,7 +2,7 @@
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from gi.repository import Gtk
 
@@ -284,7 +284,7 @@ class FormatPage(AssistantPage):
 		self.uistate.setdefault('format', 'HTML')
 		self.uistate.setdefault('template', 'Default')
 		self.uistate.setdefault('template_file', '')
-		self.uistate.setdefault('document_root', 'absolute', check=set(('absolute', 'url')))
+		self.uistate.setdefault('document_root', 'absolute', check={'absolute', 'url'})
 		self.uistate.setdefault('document_root_url', '')
 
 		try:

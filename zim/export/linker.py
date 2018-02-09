@@ -73,7 +73,7 @@ class ExportLinker(BaseLinker):
 		context of this linker
 		'''
 		# Determines the link type and dispatches any of the "link_*" methods
-		assert isinstance(link, basestring)
+		assert isinstance(link, str)
 		type = link_type(link)
 		methodname = '_link_' + type
 		if hasattr(self, methodname):

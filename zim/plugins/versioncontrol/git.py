@@ -4,7 +4,7 @@
 # Copyright 2010,2011 John Drinkwater <john@nextraweb.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -47,7 +47,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			if isinstance(versions, (tuple, list)):
 				assert 1 <= len(versions) <= 2
 				if len(versions) == 2:
-					return map(str, versions)
+					return list(map(str, versions))
 				else:
 					versions = versions[0]
 
@@ -186,7 +186,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			elif line.startswith('Date: '):
 				date = line[7:].strip()
 				seenmsg = True
-				msg = u''
+				msg = ''
 			elif seenmsg and line.startswith(' '):
 				msg += line[4:]
 

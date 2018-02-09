@@ -6,7 +6,7 @@
 commands.
 '''
 
-from __future__ import with_statement
+
 
 
 from gi.repository import Gtk

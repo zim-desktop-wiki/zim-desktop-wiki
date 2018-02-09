@@ -4,7 +4,7 @@
 
 '''Test cases for the zim.fs module.'''
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -89,8 +89,7 @@ class TestFS(tests.TestCase):
 		dirs = []
 		for d in path:
 			dirs.append(d)
-		wanted = map(lambda p: Dir(os.path.abspath(drive + p)),
-					['/foo', '/foo/bar', '/foo/bar/baz'])
+		wanted = [Dir(os.path.abspath(drive + p)) for p in ['/foo', '/foo/bar', '/foo/bar/baz']]
 		self.assertEqual(dirs, wanted)
 
 		for path1, path2, common in (
@@ -137,7 +136,7 @@ class TestFS(tests.TestCase):
 		self.assertIsNotNone(path.serialize_zim_config())
 
 		# Test unicode compat
-		string = u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
+		string = '\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'
 		path = FilePath(string)
 		self.assertTrue(path.path.endswith(string))
 		#~ self.assertRaises(Error, Path, string.encode('utf-8'))
@@ -368,7 +367,7 @@ class TestFileOverwrite(tests.TestCase):
 		# Check we can write without reading
 		file = File(self.path, checkoverwrite=True)
 		file.write('bar')
-		self.assertEquals(file.read(), 'bar')
+		self.assertEqual(file.read(), 'bar')
 
 		# Check edge case where file goes missing after read or write
 		os.remove(file.encodedpath)
@@ -376,7 +375,7 @@ class TestFileOverwrite(tests.TestCase):
 		self.assertTrue(file.check_has_changed_on_disk())
 		with FilterFileMissingWarning():
 			file.write('bar')
-		self.assertEquals(file.read(), 'bar')
+		self.assertEqual(file.read(), 'bar')
 		self.assertFalse(file.check_has_changed_on_disk())
 
 		# Check overwrite error when content changed
@@ -385,7 +384,7 @@ class TestFileOverwrite(tests.TestCase):
 		with FilterOverWriteWarning():
 			self.assertRaises(FileWriteError, file.write, 'foo')
 			self.assertTrue(file.check_has_changed_on_disk())
-		self.assertEquals(file.read(), 'XXX')
+		self.assertEqual(file.read(), 'XXX')
 
 		# Check md5 check passes
 		file = File(self.path, checkoverwrite=True)
@@ -394,7 +393,7 @@ class TestFileOverwrite(tests.TestCase):
 			# modify mtime but keep content the same
 		with FilterOverWriteWarning():
 			file.write('foo')
-		self.assertEquals(file.read(), 'foo')
+		self.assertEqual(file.read(), 'foo')
 
 
 @tests.slowTest
@@ -446,7 +445,7 @@ class TestSymlinks(tests.TestCase):
 		self.assertEqual(targetdir.list(), ['foo.txt'])
 
 
-from utils import FunctionThread
+from .utils import FunctionThread
 
 @tests.slowTest
 class TestIOFunctionThread(tests.TestCase):

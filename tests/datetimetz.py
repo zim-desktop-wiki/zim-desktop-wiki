@@ -3,7 +3,7 @@
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -29,36 +29,36 @@ class TestDateTimeZ(tests.TestCase):
 		# now()
 		dt = datetime.now()
 		s = dt.isoformat()
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = dt.strftime("%z")
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = dt.strftime("%Z")
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		# strftime
 		s = datetime.strftime('%a', dt)
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = datetime.strftime('%%', dt)
 		self.assertEqual(s, '%')
 
 		s = datetime.strftime('%u', dt)
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = datetime.strftime('%V', dt)
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		# strfcal
 		s = datetime.strfcal('%w', dt)
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = datetime.strfcal('%W', dt)
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = datetime.strfcal('%Y', dt)
-		self.assertTrue(isinstance(s, basestring) and len(s) > 0)
+		self.assertTrue(isinstance(s, str) and len(s) > 0)
 
 		s = datetime.strfcal('%%', dt)
 		self.assertEqual(s, '%')
@@ -105,7 +105,7 @@ class TestDateParsing(tests.TestCase):
 		):
 			m = date_re.match(text)
 			if m:
-				print '>>', m.group(0)
+				print('>>', m.group(0))
 			self.assertIsNone(m, 'Did unexpectedly match: %s' % text)
 
 	def testWeekNumer(self):

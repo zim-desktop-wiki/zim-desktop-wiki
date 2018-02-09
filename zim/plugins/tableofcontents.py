@@ -2,7 +2,7 @@
 
 # Copyright 2012, 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -26,7 +26,7 @@ from zim.signals import ConnectorMixin
 
 
 # FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
-_is_heading = lambda iter: bool(filter(_is_heading_tag, iter.get_tags()))
+_is_heading = lambda iter: bool(list(filter(_is_heading_tag, iter.get_tags())))
 
 def find_heading(buffer, heading):
 	'''Find a heading
@@ -349,7 +349,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		or any(len(p) >= 6 for p in paths):
 			return False
 
-		paths = map(tuple, paths)
+		paths = list(map(tuple, paths))
 		for p in paths:
 			if p[-1] == 0 and not p[:-1] in paths:
 					return False

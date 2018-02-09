@@ -3,7 +3,7 @@
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -172,7 +172,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 				date = line[11:].strip()
 			elif line.startswith('message:'):
 				seenmsg = True
-				msg = u''
+				msg = ''
 			elif seenmsg and line.startswith('  '):
 				msg += line[2:]
 

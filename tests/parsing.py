@@ -14,21 +14,21 @@ class TestParsing(tests.TestCase):
 		string = r'''"foo bar", "\"foooo bar\"" dusss ja'''
 		list = ['foo bar', ',', '"foooo bar"', 'dusss', 'ja']
 		result = split_quoted_strings(string)
-		self.assertEquals(result, list)
+		self.assertEqual(result, list)
 		list = ['"foo bar"', ',', r'"\"foooo bar\""', 'dusss', 'ja']
 		result = split_quoted_strings(string, unescape=False)
-		self.assertEquals(result, list)
+		self.assertEqual(result, list)
 
 		string = r'''"foo bar", False, True'''
 		list = ['foo bar', ',', 'False', ',', 'True']
 		result = split_quoted_strings(string)
-		self.assertEquals(result, list)
+		self.assertEqual(result, list)
 
 		self.assertRaises(ValueError, split_quoted_strings, "If you don't mind me asking")
 		string = "If you don't mind me asking"
 		list = ["If", "you", "don", "'t", "mind", "me", "asking"]
 		result = split_quoted_strings(string, strict=False)
-		self.assertEquals(result, list)
+		self.assertEqual(result, list)
 
 	def testParseDate(self):
 		'''Test parsing dates'''
@@ -52,10 +52,10 @@ class TestParsing(tests.TestCase):
 		string = 'foo bar baz'
 		re = Re('f(oo)\s*(bar)')
 		if re.match(string):
-			self.assertEquals(len(re), 3)
-			self.assertEquals(re[0], 'foo bar')
-			self.assertEquals(re[1], 'oo')
-			self.assertEquals(re[2], 'bar')
+			self.assertEqual(len(re), 3)
+			self.assertEqual(re[0], 'foo bar')
+			self.assertEqual(re[1], 'oo')
+			self.assertEqual(re[2], 'bar')
 		else:
 			assert False, 'fail'
 
@@ -71,7 +71,7 @@ class TestParsing(tests.TestCase):
 		'''Test encoding and decoding urls'''
 		for url, readable in (
 			('file:///foo/file%25%20%5D', 'file:///foo/file%25 %5D'),
-			('http://foo/bar%20monkey%E2%80%99s', u'http://foo/bar monkey\u2019s'), # Multibyte unicode char
+			('http://foo/bar%20monkey%E2%80%99s', 'http://foo/bar monkey\u2019s'), # Multibyte unicode char
 
 			# from bug report lp:545712
 			('http://www.moneydj.com/e/newage/JAVA%B4%FA%B8%D5%B0%CF.htm',
@@ -86,7 +86,7 @@ class TestParsing(tests.TestCase):
 
 		for path, encoded in (
 			('/foo/file% ]', '/foo/file%25%20%5D'),
-			(u'/foo/bar monkey\u2019s', '/foo/bar%20monkey%E2%80%99s'),
+			('/foo/bar monkey\u2019s', '/foo/bar%20monkey%E2%80%99s'),
 		):
 			self.assertEqual(url_encode(path, mode=URL_ENCODE_PATH), encoded)
 			self.assertEqual(url_decode(encoded, mode=URL_ENCODE_PATH), path)
@@ -97,7 +97,7 @@ class TestParsing(tests.TestCase):
 		self.assertEqual(url_decode('%B4%FA%B8%D5%B0%CF', mode=URL_ENCODE_DATA), '\xb4\xfa\xb8\xd5\xb0\xcf')
 
 		## test round trip for utf-8
-		data = u'\u0421\u0430\u0439'
+		data = '\u0421\u0430\u0439'
 		encoded = url_encode(data)
 		decoded = url_decode(data)
 		#~ print "DATA, ENCODED, DECODED:", (data, encoded, decoded)
@@ -223,9 +223,9 @@ class TestBuilderTextBuffer(tests.TestCase):
 		E = SimpleTreeElement
 		self.assertEqual(builder.get_root(), [
 			E('FOO', None, [
-				u'aaa\nbbb\nccc\n',
+				'aaa\nbbb\nccc\n',
 				E('BAR', None, []),
-				u'ddd\neee',
+				'ddd\neee',
 			])
 		])
 

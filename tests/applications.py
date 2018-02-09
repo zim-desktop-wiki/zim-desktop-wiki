@@ -2,7 +2,7 @@
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -29,7 +29,7 @@ class TestXDGMimeInfo(tests.TestCase):
 			icon = get_mime_icon(file, 128)
 			self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
 			desc = get_mime_description(file.get_mimetype())
-			self.assertIsInstance(desc, basestring)
+			self.assertIsInstance(desc, str)
 			self.assertTrue(len(desc) > 5)
 
 		self.assertTrue(i > 3)

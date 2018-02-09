@@ -88,7 +88,7 @@ class MultiFileExporter(FilesExporterBase):
 		'''
 		FilesExporterBase.__init__(self, layout, template, format, document_root_url)
 		if index_page:
-			if isinstance(index_page, basestring):
+			if isinstance(index_page, str):
 				self.index_page = Path(Path.makeValidPageName(index_page))
 			else:
 				self.index_page = index_page

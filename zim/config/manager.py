@@ -2,7 +2,7 @@
 
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from weakref import WeakValueDictionary
 
@@ -57,10 +57,10 @@ class ConfigManager(object):
 		'''Set the profile to use for the configuration
 		@param profile: the profile name or C{None}
 		'''
-		assert profile is None or isinstance(profile, basestring)
+		assert profile is None or isinstance(profile, str)
 		if profile != self.profile:
 			self.profile = profile
-			for path, conffile in self._config_files.items():
+			for path, conffile in list(self._config_files.items()):
 				if path.startswith('<profile>/'):
 					file, defaults = self._get_file(path)
 					conffile.set_files(file, defaults)

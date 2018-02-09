@@ -68,13 +68,13 @@ class TestMetaData(tests.TestCase):
 		import zim
 		revision = zim.get_zim_revision()
 			# This call could fail if bazaar revision format changed
-		self.assertTrue(isinstance(revision, basestring))
+		self.assertTrue(isinstance(revision, str))
 
 		# Check desktop file
 		try:
 			subprocess.check_call(['desktop-file-validate', 'xdg/zim.desktop'])
 		except OSError:
-			print "Could not run desktop-file-validate"
+			print("Could not run desktop-file-validate")
 
 
 #~ @tests.slowTest
@@ -176,9 +176,9 @@ class TestCoding(tests.TestCase):
 			if suspect and not import_seen:
 				# Need real parsing to avoid false positives
 				import tokenize
-				import StringIO
+				import io
 
-				for token in tokenize.generate_tokens(StringIO.StringIO(code).readline):
+				for token in tokenize.generate_tokens(io.StringIO(code).readline):
 					if token[0] == tokenize.NAME and token[1] == 'with':
 						lineno = token[2][0]
 						line = token[-1]
@@ -257,8 +257,8 @@ class TestDocumentation(tests.TestCase):
 		or inspect.ismethod(obj):
 			# For now we do not complain about missing docs, just mismatches
 			documented = set(
-				fields.get('param', {}).keys() +
-				fields.get('keyword', {}).keys()
+				list(fields.get('param', {}).keys()) +
+				list(fields.get('keyword', {}).keys())
 			)
 			if documented:
 				(args, varargs, keywords, defaults) = inspect.getargspec(obj)
@@ -270,7 +270,7 @@ class TestDocumentation(tests.TestCase):
 				if keywords:
 					defined.add(keywords)
 
-				if set(defined) != set(('arg', 'kwarg')):
+				if set(defined) != {'arg', 'kwarg'}:
 					# ignore mismatched due to generic decorators
 
 					self.assertEqual(documented, defined,
@@ -346,7 +346,7 @@ class TestDocumentation(tests.TestCase):
 
 
 	def assertSignalSpecOK(self, obj, file):
-		for name, spec in obj.__signals__.items():
+		for name, spec in list(obj.__signals__.items()):
 			self.assertTrue(
 				isinstance(spec, tuple) and len(spec) == 3 and isinstance(spec[2], tuple),
 				msg='Signal spec is malformed for %s::%s in %s' % (obj.__name__, name, file)

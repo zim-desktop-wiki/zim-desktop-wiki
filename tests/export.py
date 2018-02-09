@@ -2,7 +2,7 @@
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -226,9 +226,9 @@ class TestExportTemplateContext(tests.TestCase):
 			return param(self.context)
 
 		# Test context setup
-		self.assertIsInstance(get('generator.name'), basestring)
+		self.assertIsInstance(get('generator.name'), str)
 		self.assertTrue(get('generator.name').startswith('Zim'))
-		self.assertIsInstance(get('generator.user'), basestring)
+		self.assertIsInstance(get('generator.user'), str)
 
 		self.assertEqual(get('title'), 'Test Export')
 
@@ -262,8 +262,8 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertEqual(get('mypage.basename'), 'foo')
 
 		self.assertEqual(get('mypage.heading'), 'Foo')
-		self.assertIsInstance(get('mypage.content'), basestring)
-		self.assertIsInstance(get('mypage.body'), basestring)
+		self.assertIsInstance(get('mypage.content'), str)
+		self.assertIsInstance(get('mypage.body'), str)
 		#TODO self.assertIsInstance(get('mypage.meta'), dict)
 
 
@@ -285,9 +285,9 @@ class TestExportTemplateContext(tests.TestCase):
 		self.context['h2'] = headings[1]
 		self.assertEqual(get('h1.level'), 1)
 		self.assertEqual(get('h2.level'), 2)
-		self.assertIsInstance(get('h1.heading'), basestring)
-		self.assertIsInstance(get('h1.body'), basestring)
-		self.assertIsInstance(get('h1.content'), basestring)
+		self.assertIsInstance(get('h1.heading'), str)
+		self.assertIsInstance(get('h1.body'), str)
+		self.assertIsInstance(get('h1.content'), str)
 
 		# Test FileProxy
 		#				file
@@ -434,7 +434,7 @@ class TestExportFormat(object):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		i = 0
-		print ''
+		print('')
 		for template, file in list_templates(self.format):
 			#print 'Testing template: %s' % template
 			pages = AllPages(notebook) # TODO - sub-section ?

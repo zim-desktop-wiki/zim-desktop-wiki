@@ -29,7 +29,7 @@ try:
 	assert version_info >= (2, 6)
 	assert version_info < (3, 0)
 except:
-	print >> sys.stderr, 'zim needs python >= 2.6   (but < 3.0)'
+	print('zim needs python >= 2.6   (but < 3.0)', file=sys.stderr)
 	sys.exit(1)
 
 
@@ -39,7 +39,7 @@ except:
 build_target = os.environ.get('ZIM_BUILD_TARGET')
 assert build_target in (None, 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
 if build_target == 'maemo':
-	print 'Building for Maemo...'
+	print('Building for Maemo...')
 
 
 # Some constants
@@ -109,14 +109,14 @@ def collect_data_files():
 			dirs.remove('.zim')
 		target = os.path.join('share', 'zim', dir[5:])
 		if files:
-			files = filter(include_file, files)
+			files = list(filter(include_file, files))
 			files = [os.path.join(dir, f) for f in files]
 			data_files.append((target, files))
 
 	if build_target == 'maemo':
 		# Remove default .desktop files and replace with our set
 		prefix = os.path.join('share', 'zim', 'applications')
-		for i in reversed(range(len(data_files))):
+		for i in reversed(list(range(len(data_files)))):
 			if data_files[i][0].startswith(prefix):
 				data_files.pop(i)
 
@@ -140,7 +140,7 @@ def collect_data_files():
 def fix_dist():
 	# Try to update version info
 	if os.path.exists('.bzr/'):
-		print 'updating bzr version-info...'
+		print('updating bzr version-info...')
 		os.system('bzr version-info --format python > zim/_version.py')
 
 	# Generate man page
@@ -215,7 +215,7 @@ class zim_build_trans_class(cmd.Command):
 				os.makedirs(modir)
 
 			if not os.path.isfile(mofile) or dep_util.newer(pofile, mofile):
-				print 'compiling %s' % mofile
+				print('compiling %s' % mofile)
 				msgfmt.make(pofile, mofile)
 			else:
 				#~ print 'skipping %s - up to date' % mofile
@@ -231,7 +231,7 @@ class zim_build_scripts_class(build_scripts_class):
 			for script in self.scripts:
 				if script.endswith('.py'):
 					file = os.path.join(self.build_dir, script)
-					print 'renaming %s to %s' % (file, file[:-3])
+					print('renaming %s to %s' % (file, file[:-3]))
 					os.rename(file, file[:-3]) # len('.py') == 3
 
 
@@ -262,7 +262,7 @@ class zim_build_class(build_class):
 
 
 		file = os.path.join(self.build_lib, 'zim', 'plugins', '__init__.py')
-		print 'Setting plugin list in %s' % file
+		print('Setting plugin list in %s' % file)
 		assert os.path.isfile(file)
 		fh = open(file)
 		lines = fh.readlines()
@@ -303,7 +303,7 @@ class zim_install_class(install_class):
 				('update-desktop-database',),
 				('update-mime-database', mimedir),
 			):
-				print 'Trying: ' + ' '.join(cmd)
+				print('Trying: ' + ' '.join(cmd))
 				subprocess.call(cmd)
 
 

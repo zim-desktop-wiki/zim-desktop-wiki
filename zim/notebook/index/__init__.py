@@ -3,7 +3,7 @@
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 
 import sqlite3
@@ -352,7 +352,7 @@ class BackgroundCheck(object):
 			logger.debug('BackgroundCheck started')
 			while self.running:
 				try:
-					needsupdate = check_iter.next()
+					needsupdate = next(check_iter)
 					if needsupdate:
 						self.callback()
 						logger.debug('BackgroundCheck found out-of-date')

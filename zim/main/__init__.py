@@ -98,17 +98,17 @@ Try 'zim --manual' for more help.
 '''
 
 	def run(self):
-		print self.usagehelp
-		print self.optionhelp  # TODO - generate from commands
+		print(self.usagehelp)
+		print(self.optionhelp)  # TODO - generate from commands
 
 
 class VersionCommand(Command):
 	'''Class implementing the C{--version} command'''
 
 	def run(self):
-		print 'zim %s\n' % zim.__version__
-		print zim.__copyright__, '\n'
-		print zim.__license__
+		print('zim %s\n' % zim.__version__)
+		print(zim.__copyright__, '\n')
+		print(zim.__license__)
 
 
 class NotebookLookupError(Error):
@@ -340,7 +340,7 @@ class ManualCommand(GuiCommand):
 	'''Like L{GuiCommand} but always opens the manual'''
 
 	arguments = ('[PAGE]',)
-	options = filter(lambda t: t[0] != 'list', GuiCommand.options)
+	options = [t for t in GuiCommand.options if t[0] != 'list']
 		# exclude --list
 
 	def run(self):
@@ -532,7 +532,7 @@ class SearchCommand(NotebookCommand):
 		selection = SearchSelection(notebook)
 		selection.search(query)
 		for path in sorted(selection, key=lambda p: p.name):
-			print path.name
+			print(path.name)
 
 
 class IndexCommand(NotebookCommand):
@@ -649,8 +649,8 @@ class ZimApplication(object):
 		'''Present notebook and page in a mainwindow, may not return for
 		standalone processes.
 		'''
-		uri = notebook if isinstance(notebook, basestring) else notebook.uri
-		pagename = page if isinstance(page, basestring) else page.name
+		uri = notebook if isinstance(notebook, str) else notebook.uri
+		pagename = page if isinstance(page, str) else page.name
 		self.run('--gui', uri, pagename)
 
 	def add_window(self, window):

@@ -156,7 +156,7 @@ class ExportTemplateContext(dict):
 		self.linker = linker_factory()
 
 		def _link(l):
-			if isinstance(l, basestring):
+			if isinstance(l, str):
 				return UriProxy(l)
 			elif isinstance(l, Path):
 				return NotebookPathProxy(l)
@@ -203,7 +203,7 @@ class ExportTemplateContext(dict):
 		})
 
 		if links:
-			for k, l in links.items():
+			for k, l in list(links.items()):
 				l = _link(l)
 				self['links'][k] = l
 
@@ -335,7 +335,7 @@ class ExportTemplateContext(dict):
 		elif isinstance(link, FilePathProxy):
 			file = link._dest_file or link._file
 			return self.linker.file_object(file)
-		elif isinstance(link, basestring):
+		elif isinstance(link, str):
 			return self.linker.link(link)
 		else:
 			return None
@@ -437,7 +437,7 @@ class ParseTreeProxy(object):
 			head, body = self._split_head()
 			if body:
 				lines = self._dumper.dump(body)
-				return u''.join(lines)
+				return ''.join(lines)
 			else:
 				return ''
 		except:
@@ -449,7 +449,7 @@ class ParseTreeProxy(object):
 		try:
 			if self._tree:
 				lines = self._dumper.dump(self._tree)
-				return u''.join(lines)
+				return ''.join(lines)
 			else:
 				return ''
 		except:

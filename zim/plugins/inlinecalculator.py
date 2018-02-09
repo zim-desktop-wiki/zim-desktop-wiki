@@ -5,8 +5,8 @@
 # Inspired by and partially based on code from clac.py,
 # Which is copyright 2009 Mark Borgerding and licensed under the GPL version 3
 
-from __future__ import with_statement
-from __future__ import division # We are doing math in this module ...
+
+ # We are doing math in this module ...
 
 
 import logging
@@ -136,7 +136,7 @@ GLOBALS = {
 	# builtins we want to keep
 	'abs': abs,
 	'ord': ord,
-	'chr': unichr,
+	'chr': chr,
 	'hex': hex,
 	'oct': oct,
 	'int': int,

@@ -4,7 +4,7 @@
 
 '''Test cases for the base zim module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -12,7 +12,7 @@ import tests
 from tests.config import EnvironmentConfigContext, ConfigManager
 
 import sys
-import cStringIO as StringIO
+import io as StringIO
 import threading
 import time
 
@@ -41,7 +41,7 @@ class capture_stdout:
 class TestParseCommand(tests.TestCase):
 
 	def runTest(self):
-		for command, klass in zim.main.commands.items():
+		for command, klass in list(zim.main.commands.items()):
 			obj = zim.main.build_command(['--%s' % command])
 			self.assertIsInstance(obj, klass)
 
@@ -161,7 +161,7 @@ class TestManual(tests.TestCase):
 class TestServer(tests.TestCase):
 
 	def runTest(self):
-		from urllib import urlopen
+		from urllib.request import urlopen
 
 		dir = self.create_tmp_dir()
 		cmd = ServerCommand('server')
@@ -308,7 +308,7 @@ class TestZimApplication(tests.TestCase):
 		app.add_window(w1)
 		app.add_window(w2)
 
-		self.assertEqual(set(app.toplevels), set([w1, w2]))
-		self.assertEqual(app.notebooks, set([n1, n2]))
+		self.assertEqual(set(app.toplevels), {w1, w2})
+		self.assertEqual(app.notebooks, {n1, n2})
 		self.assertEqual(app.get_mainwindow(n1, _class=MockWindow), w1)
 		self.assertEqual(app.get_mainwindow(MockNotebook('foo'), _class=MockWindow), w1)

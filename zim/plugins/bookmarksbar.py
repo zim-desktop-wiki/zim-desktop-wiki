@@ -7,7 +7,7 @@
 # This plugin uses an icon from Tango Desktop Project (http://tango.freedesktop.org/)
 # (the Tango base icon theme is released to the Public Domain).
 
-from __future__ import with_statement
+
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -252,7 +252,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 		self._convert_path_name = lambda a: ' '.join(a[:25].split())
 
 		# Add alternative bookmark names from config.
-		for path, name in self.uistate['bookmarks_names'].iteritems():
+		for path, name in self.uistate['bookmarks_names'].items():
 			if path in self.paths:
 				try:
 					name = self._convert_path_name(name)

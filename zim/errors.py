@@ -141,7 +141,7 @@ class Error(Exception):
 		return msg.encode('utf-8')
 
 	def __unicode__(self):
-		msg = u'' + self.msg.strip()
+		msg = '' + self.msg.strip()
 		if self.description:
 			msg += '\n\n' + self.description.strip() + '\n'
 		return msg

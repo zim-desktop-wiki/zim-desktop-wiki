@@ -361,7 +361,7 @@ class UriItem(ClipboardItem):
 	targets = URI_TARGETS + TEXT_TARGETS
 
 	def __init__(self, obj):
-		if isinstance(obj, basestring):
+		if isinstance(obj, str):
 			self.uri = obj
 			self.obj = None
 		else:
@@ -537,7 +537,7 @@ class ClipboardManager(object):
 		instead
 		'''
 		text = self.clipboard.wait_for_text()
-		if isinstance(text, basestring):
+		if isinstance(text, str):
 			text = text.decode('UTF-8')
 		return text
 

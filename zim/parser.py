@@ -52,7 +52,7 @@ def fix_line_end(text):
 	# HACK this char is recognized as line end by splitlines()
 	# but not matched by \n in a regex. Hope there are no other
 	# exceptions like it (crosses fingers)
-	text = text.replace(u'\u2028', '\n')
+	text = text.replace('\u2028', '\n')
 
 	# Fix line end
 	if not text.endswith('\n'):
@@ -140,7 +140,7 @@ class BuilderTextBuffer(Builder):
 	# Interface to handle text buffer
 
 	def get_text(self):
-		return u''.join(self.buffer)
+		return ''.join(self.buffer)
 
 	def set_text(self, text):
 		self.buffer = [text]
@@ -149,7 +149,7 @@ class BuilderTextBuffer(Builder):
 		self.buffer = []
 
 	def flush(self):
-		text = u''.join(self.buffer)
+		text = ''.join(self.buffer)
 		if text:
 			self.builder.text(text)
 		self.buffer = []
@@ -220,7 +220,7 @@ class SimpleTreeElement(list):
 			for item in self:
 				if isinstance(item, SimpleTreeElement):
 					lines.append(item.pprint(level=level + 1))
-				elif isinstance(item, basestring):
+				elif isinstance(item, str):
 					for line in item.splitlines(True):
 						lines.append(prefix + '  %r\n' % line)
 				else:

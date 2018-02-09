@@ -49,7 +49,7 @@ This is a core plugin shipping with zim.
 					line, _ = line.split('#', 1)
 					line = line.strip()
 				shortcut, code = line.split()
-				symbol = unichr(int(code))
+				symbol = chr(int(code))
 				if not shortcut in self.symbols:
 					self.symbols[shortcut] = symbol
 					self.symbol_order.append(shortcut)

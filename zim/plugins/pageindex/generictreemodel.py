@@ -255,7 +255,7 @@ class GenericTreeModel(GObject.GObject, Gtk.TreeModel):
     def do_get_value(self, iter, column):
         """Internal method."""
         value = self.on_get_value(self.get_user_data(iter), column)
-        return value.encode('UTF-8') if isinstance(value, unicode) else value # Python 2 adoption for Gtk ...
+        return value.encode('UTF-8') if isinstance(value, str) else value # Python 2 adoption for Gtk ...
 
     @handle_exception((False, None))
     def do_iter_children(self, parent):

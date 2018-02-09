@@ -2,7 +2,7 @@
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -31,7 +31,7 @@ logger = logging.getLogger('zim.plugins.calendar')
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
 
 
-KEYVALS_ENTER = map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
+KEYVALS_ENTER = list(map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter')))
 KEYVALS_SPACE = (Gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}:\d{2}$')
@@ -51,7 +51,7 @@ def daterange_from_path(path):
 	'''
 	if date_path_re.match(path.name):
 		type = 'day'
-		year, month, day = map(int, path.name.rsplit(':', 3)[-3:])
+		year, month, day = list(map(int, path.name.rsplit(':', 3)[-3:]))
 		try:
 			date = datetime.date(year, month, day)
 		except ValueError:
@@ -60,11 +60,11 @@ def daterange_from_path(path):
 	elif week_path_re.match(path.name):
 		type = 'week'
 		year, week = path.name.rsplit(':', 2)[-2:]
-		year, week = map(int, (year, week[5:])) # Assumes "Week XX" string
+		year, week = list(map(int, (year, week[5:]))) # Assumes "Week XX" string
 		date, end_date = dates_for_week(year, week)
 	elif month_path_re.match(path.name):
 		type = 'month'
-		year, month = map(int, path.name.rsplit(':', 2)[-2:])
+		year, month = list(map(int, path.name.rsplit(':', 2)[-2:]))
 		try:
 			date = datetime.date(year, month, 1)
 		except ValueError:
@@ -189,7 +189,7 @@ class NotebookExtension(ObjectExtension):
 		#~ 	return Path(text)
 		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
 			year, month, day = text.split('-')
-			year, month, day = map(int, (year, month, day))
+			year, month, day = list(map(int, (year, month, day)))
 			date = datetime.date(year, month, day)
 			return self.plugin.path_from_date(date)
 		# TODO other formats

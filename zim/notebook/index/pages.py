@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 from datetime import datetime
@@ -350,7 +350,7 @@ class PagesViewInternal(object):
 
 			if relnames:
 				# Check if we are anchored in non-existing part
-				keys = map(natural_sort_key, relnames)
+				keys = list(map(natural_sort_key, relnames))
 				if anchor_key in keys:
 					i = [c for c, k in enumerate(keys) if k == anchor_key][-1]
 					return self.resolve_pagename(start, relnames[:i] + href.parts()[1:])

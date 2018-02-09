@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 from zim.utils import natural_sort_key
@@ -120,7 +120,7 @@ class TagsIndexer(IndexerBase):
 				)
 				self.emit('tag-added-to-page', row, pagerow)
 
-		for row in oldtags.values():
+		for row in list(oldtags.values()):
 			self.emit('tag-removed-from-page', row, pagerow)
 			self.db.execute(
 				'DELETE FROM tagsources WHERE source=? and tag=?',
@@ -290,7 +290,7 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 
 	def __init__(self, index, tags=None):
 		PagesTreeModelMixin.__init__(self, index)
-		assert tags is None or all(isinstance(t, basestring) for t in tags)
+		assert tags is None or all(isinstance(t, str) for t in tags)
 		self.tags = tags or ()
 		self._tagids = None
 		self._update_ids()

@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -322,7 +322,7 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 
 		self.assertPagesDBEquals(db, [])
 		self.assertEqual(signals['page-row-inserted'], [])
-		self.assertEqual(set(signals['page-row-changed']), set(['foo']))
+		self.assertEqual(set(signals['page-row-changed']), {'foo'})
 						 # "foo" has source that is deleted before children
 		self.assertEqual(set(signals['page-row-deleted']), set(self.PAGES))
 		self.assertEqual(signals['page-changed'], ['foo'])

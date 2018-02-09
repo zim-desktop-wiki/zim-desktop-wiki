@@ -26,8 +26,8 @@ from zim.formats import *
 
 if __name__ == '__main__':
 	if len(sys.argv) not in (2, 3, 4):
-			print 'Usage: python -m zim.formats format [format] [source_dir]'
-			print '\tWill read from stdin and output to stdout'
+			print('Usage: python -m zim.formats format [format] [source_dir]')
+			print('\tWill read from stdin and output to stdout')
 			sys.exit(1)
 
 

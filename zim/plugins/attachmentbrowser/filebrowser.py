@@ -396,7 +396,7 @@ class FileBrowserIconView(Gtk.IconView):
 		if paths:
 			model = self.get_model()
 			path_to_uri = lambda p: self.folder.file(model[p][BASENAME_COL]).uri
-			uris = map(path_to_uri, paths)
+			uris = list(map(path_to_uri, paths))
 			data = pack_urilist(uris)
 			selectiondata.set(URI_TARGET_NAMES[0], 8, data)
 

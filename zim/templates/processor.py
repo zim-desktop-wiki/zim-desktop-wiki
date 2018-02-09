@@ -104,12 +104,12 @@ class TemplateProcessor(object):
 			try:
 				element = elements[i]
 				i += 1
-				if isinstance(element, basestring):
+				if isinstance(element, str):
 					output.append(element)
 				elif element.tag == 'GET':
 					expr = element.attrib['expr']
 					value = expr(context)
-					output.append(unicode(value))
+					output.append(str(value))
 				elif element.tag == 'SET':
 					var = element.attrib['var']
 					expr = element.attrib['expr']

@@ -257,12 +257,12 @@ def strftime(format, date):
 
 if __name__ == '__main__': #pragma: no cover
 	import gettext
-	gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+	gettext.install('zim', None, str=True, names=('_', 'gettext', 'ngettext'))
 	init_first_day_of_week()
 
 	if FIRST_DAY_OF_WEEK == SUNDAY:
-		print 'First day of week: Sunday'
+		print('First day of week: Sunday')
 	else:
-		print 'First day of week: Monday'
-	print 'Now:', now().isoformat(), strftime("%z, %Z", now())
-	print 'Calendar:', strfcal('day %w of week %W %Y', now())
+		print('First day of week: Monday')
+	print('Now:', now().isoformat(), strftime("%z, %Z", now()))
+	print('Calendar:', strfcal('day %w of week %W %Y', now()))

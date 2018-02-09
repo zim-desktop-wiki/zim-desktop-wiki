@@ -51,7 +51,7 @@ class ExpressionParser(object):
 	}
 
 	tokens = [',', '[', ']', '(', ')'] \
-		+ [k for k in operators.keys() if not k.isalnum()]
+		+ [k for k in list(operators.keys()) if not k.isalnum()]
 		# Only inluding NON-alphanumeric operators here
 
 	_param_re = re.compile(r'^[^\W\d_]\w*(\.[^\W_]\w*)*$')
@@ -60,7 +60,7 @@ class ExpressionParser(object):
 		# FIXME for generic use make this configurable / subclass template specific version
 
 	def __init__(self):
-		tokens = map(re.escape, self.tokens)
+		tokens = list(map(re.escape, self.tokens))
 		self._word_re = re.compile(
 			r'''(
 				'(\\'|[^'])*' |  # single quoted word

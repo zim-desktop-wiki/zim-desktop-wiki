@@ -2,7 +2,7 @@
 
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -34,7 +34,7 @@ class EnvironmentContext(object):
 		self.environ_backup = {}
 
 	def __enter__(self):
-		for k, v in self.environ_context.items():
+		for k, v in list(self.environ_context.items()):
 			self.environ_backup[k] = self.environ.get(k)
 			if v:
 				self.environ[k] = v
@@ -44,7 +44,7 @@ class EnvironmentContext(object):
 				pass
 
 	def __exit__(self, *exc_info):
-		for k, v in self.environ_backup.items():
+		for k, v in list(self.environ_backup.items()):
 			if v:
 				self.environ[k] = v
 			elif k in self.environ:

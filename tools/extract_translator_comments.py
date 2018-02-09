@@ -43,9 +43,9 @@ def extract_comments(sources):
 	if comments:
 		return ' | \n'.join(['#. ' + c for c in comments]) + '\n'
 	else:
-		print 'No translator comment for:'
+		print('No translator comment for:')
 		for file, line in sources:
-			print '\t%s line %s' % (file, line)
+			print('\t%s line %s' % (file, line))
 		return ''
 
 def add_comments(file):

@@ -291,7 +291,7 @@ class ExpressionFunctionCall(Expression):
 		'''Find a suitable wrapper that exposes safe methods for
 		a given object
 		'''
-		if isinstance(obj, basestring):
+		if isinstance(obj, str):
 			return ExpressionStringObject(obj)
 		elif isinstance(obj, (dict, collections.Mapping)):
 			return ExpressionDictObject(obj)

@@ -97,7 +97,7 @@ class Path(object):
 		@param name: a string
 		@raises AssertionError: if the name is not valid
 		'''
-		assert isinstance(name, basestring)
+		assert isinstance(name, str)
 		if not name.strip(':') \
 		or _pagename_reduce_colon_re.search(name) \
 		or _pagename_invalid_char_re.search(name):
@@ -142,7 +142,7 @@ class Path(object):
 			self.name = name.strip(':')
 
 		try:
-			self.name = unicode(self.name)
+			self.name = str(self.name)
 		except UnicodeDecodeError:
 			raise ValueError('BUG: invalid input, page names should be in ascii, or given as unicode')
 
@@ -595,7 +595,7 @@ class Page(Path, SignalEmitter):
 
 		@returns: text as a list of lines or an empty list
 		'''
-		if isinstance(format, basestring):
+		if isinstance(format, str):
 			format = zim.formats.get_format(format)
 
 		if not linker is None:
@@ -619,7 +619,7 @@ class Page(Path, SignalEmitter):
 		@param append: if C{True} the text is appended instead of
 		replacing current content.
 		'''
-		if isinstance(format, basestring):
+		if isinstance(format, str):
 			format = zim.formats.get_format(format)
 
 		if append:

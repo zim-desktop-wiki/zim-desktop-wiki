@@ -2,7 +2,7 @@
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -13,10 +13,10 @@ from zim.config import SectionedConfigDict, ConfigManager
 from zim.plugins.insertsymbol import *
 
 
-ALPHA = unichr(945)
-EACUTE = unichr(201)
-ECIRC = unichr(202)
-EGRAVE = unichr(200)
+ALPHA = chr(945)
+EACUTE = chr(201)
+ECIRC = chr(202)
+EGRAVE = chr(200)
 
 
 class TestInsertSymbolPlugin(tests.TestCase):

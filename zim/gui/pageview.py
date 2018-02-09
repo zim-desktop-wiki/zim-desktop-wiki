@@ -14,7 +14,7 @@ L{TextView}.
 @todo: for documentation group functions in more logical order
 '''
 
-from __future__ import with_statement
+
 
 import logging
 
@@ -129,16 +129,16 @@ is_numbered_bullet_re = re.compile('^(\d+|\w|#)\.$')
 	#: This regular expression is used to test whether a bullet belongs to a numbered list or not
 
 # Check the (undocumented) list of constants in Gtk.keysyms to see all names
-KEYVALS_HOME = map(Gdk.keyval_from_name, ('Home', 'KP_Home'))
-KEYVALS_ENTER = map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
-KEYVALS_BACKSPACE = map(Gdk.keyval_from_name, ('BackSpace',))
-KEYVALS_TAB = map(Gdk.keyval_from_name, ('Tab', 'KP_Tab'))
-KEYVALS_LEFT_TAB = map(Gdk.keyval_from_name, ('ISO_Left_Tab',))
+KEYVALS_HOME = list(map(Gdk.keyval_from_name, ('Home', 'KP_Home')))
+KEYVALS_ENTER = list(map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter')))
+KEYVALS_BACKSPACE = list(map(Gdk.keyval_from_name, ('BackSpace',)))
+KEYVALS_TAB = list(map(Gdk.keyval_from_name, ('Tab', 'KP_Tab')))
+KEYVALS_LEFT_TAB = list(map(Gdk.keyval_from_name, ('ISO_Left_Tab',)))
 
 #~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
 CHARS_END_OF_WORD = ('\t', ' ', ')', '>', ';')
-KEYVALS_END_OF_WORD = map(
-	Gdk.unicode_to_keyval, map(ord, CHARS_END_OF_WORD)) + KEYVALS_TAB
+KEYVALS_END_OF_WORD = list(map(
+	Gdk.unicode_to_keyval, list(map(ord, CHARS_END_OF_WORD)))) + KEYVALS_TAB
 
 KEYVALS_ASTERISK = (
 	Gdk.unicode_to_keyval(ord('*')), Gdk.keyval_from_name('KP_Multiply'))
@@ -239,7 +239,7 @@ _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
 _is_tag_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'tag'
 _is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
 
-PIXBUF_CHR = u'\uFFFC'
+PIXBUF_CHR = '\uFFFC'
 
 # Minimal distance from mark to window border after scroll_to_mark()
 SCROLL_TO_MARK_MARGIN = 0.2
@@ -277,18 +277,18 @@ def camelcase(word):
 	# - first char needs to be upper case
 	# - remainder of the text needs to be mixed case
 	if len(word) < 3 \
-	or not unicode.isalpha(word) \
-	or not unicode.isupper(word[0]) \
-	or unicode.islower(word[1:]) \
-	or unicode.isupper(word[1:]):
+	or not str.isalpha(word) \
+	or not str.isupper(word[0]) \
+	or str.islower(word[1:]) \
+	or str.isupper(word[1:]):
 		return False
 
 	# Now do detailed check and check indeed lower case followed by
 	# upper case and exclude e.g. "AAbb"
 	# Also check that check that string does not contain letters that
 	# are neither upper or lower case (e.g. some Arabic letters)
-	upper = map(unicode.isupper, word)
-	lower = map(unicode.islower, word)
+	upper = list(map(str.isupper, word))
+	lower = list(map(str.islower, word))
 	if not all(upper[i] or lower[i] for i in range(len(word))):
 		return False
 
@@ -318,7 +318,7 @@ class AsciiString(String):
 
 	def check(self, value):
 		value = String.check(self, value)
-		if isinstance(value, basestring):
+		if isinstance(value, str):
 			return str(value)
 		else:
 			return value
@@ -334,7 +334,7 @@ class ConfigDefinitionConstant(String):
 
 	def check(self, value):
 		value = String.check(self, value)
-		if isinstance(value, basestring):
+		if isinstance(value, str):
 			value = value.upper()
 			for prefix in (self.prefix, self.prefix.split('_', 1)[1]):
 				# e.g. PANGO_WEIGHT_BOLD --> BOLD but also WEIGHT_BOLD --> BOLD
@@ -726,7 +726,7 @@ class TextBuffer(Gtk.TextBuffer):
 		root = tree._etree.getroot() # HACK - switch to new interface !
 		assert root.tag == 'zim-tree'
 		raw = root.attrib.get('raw')
-		if isinstance(raw, basestring):
+		if isinstance(raw, str):
 			raw = (raw != 'False')
 
 		# Check if we are at a bullet or checkbox line
@@ -764,7 +764,7 @@ class TextBuffer(Gtk.TextBuffer):
 			# Fix text direction of indent tags
 			for line in range(startiter.get_line(), enditer.get_line() + 1):
 				iter = self.get_iter_at_line(line)
-				tags = filter(_is_indent_tag, iter.get_tags())
+				tags = list(filter(_is_indent_tag, iter.get_tags()))
 				if tags:
 					dir = self._find_base_dir(line)
 					if dir == 'RTL':
@@ -809,14 +809,14 @@ class TextBuffer(Gtk.TextBuffer):
 			# middle of a indented line.
 			# In contrast to the normal set_indent we treat level=None
 			# and level=0 as different cases.
-			self._editmode_tags = filter(_is_not_indent_tag, self._editmode_tags)
+			self._editmode_tags = list(filter(_is_not_indent_tag, self._editmode_tags))
 			if level is None:
 				return # Nothing more to do
 
 			iter = self.get_insert_iter()
 			if not iter.starts_line():
 				# Check existing indent - may have bullet type while we have not
-				tags = filter(_is_indent_tag, self.iter_get_zim_tags(iter))
+				tags = list(filter(_is_indent_tag, self.iter_get_zim_tags(iter)))
 				assert len(tags) <= 1, 'BUG: overlapping indent tags'
 				if tags and int(tags[0].zim_attrib['indent']) == level:
 					self._editmode_tags += (tags[0],)
@@ -977,8 +977,8 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		tag = self._create_link_tag(text, href, **attrib)
 		self._editmode_tags = \
-			filter(_is_not_link_tag,
-				filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
+			list(filter(_is_not_link_tag,
+				list(filter(_is_not_style_tag, self._editmode_tags)))) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -986,7 +986,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''Creates an anonymouse TextTag for a link'''
 		if isinstance(href, File):
 			href = href.uri
-		assert isinstance(href, basestring)
+		assert isinstance(href, str)
 
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.set_priority(0) # force links to be below styles
@@ -1066,8 +1066,8 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		tag = self._create_tag_tag(text, **attrib)
 		self._editmode_tags = \
-			filter(_is_not_tag_tag,
-				filter(_is_not_style_tag, self._editmode_tags)) + (tag,)
+			list(filter(_is_not_tag_tag,
+				list(filter(_is_not_style_tag, self._editmode_tags)))) + (tag,)
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1135,7 +1135,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		#~ If there is a property 'alt' in attrib we try to set a tooltip.
 		#~ '''
-		if isinstance(file, basestring):
+		if isinstance(file, str):
 			file = File(file)
 		try:
 			if 'width' in attrib or 'height' in attrib:
@@ -1271,7 +1271,7 @@ class TextBuffer(Gtk.TextBuffer):
 			insert = self.get_insert_iter()
 			assert insert.starts_line(), 'BUG: bullet not at line start'
 
-			if not filter(_is_indent_tag, self._editmode_tags):
+			if not list(filter(_is_indent_tag, self._editmode_tags)):
 				# Without indent get_parsetree will not recognize
 				# the icon as a bullet item. This will mess up
 				# undo stack. If 'raw' we assume indent tag is set
@@ -1283,9 +1283,9 @@ class TextBuffer(Gtk.TextBuffer):
 		with self.user_action:
 			if bullet == BULLET:
 				if raw:
-					self.insert_at_cursor(u'\u2022')
+					self.insert_at_cursor('\u2022')
 				else:
-					self.insert_at_cursor(u'\u2022 ')
+					self.insert_at_cursor('\u2022 ')
 			elif bullet in bullet_types:
 				# Insert icon
 				stock = bullet_types[bullet]
@@ -1457,13 +1457,13 @@ class TextBuffer(Gtk.TextBuffer):
 		This style will be applied to text inserted at the cursor.
 		Use C{set_textstyle(None)} to reset to normal text.
 		'''
-		self._editmode_tags = filter(_is_not_style_tag, self._editmode_tags)
+		self._editmode_tags = list(filter(_is_not_style_tag, self._editmode_tags))
 
 		if not name is None:
 			tag = self.get_tag_table().lookup('style-' + name)
 			if _is_heading_tag(tag):
 				self._editmode_tags = \
-					filter(_is_not_indent_tag, self._editmode_tags)
+					list(filter(_is_not_indent_tag, self._editmode_tags))
 			self._editmode_tags = self._editmode_tags + (tag,)
 
 		if not self._insert_tree_in_progress:
@@ -1476,7 +1476,7 @@ class TextBuffer(Gtk.TextBuffer):
 		This style may change as soon as the cursor position changes,
 		so only relevant for current cursor position.
 		'''
-		tags = filter(_is_style_tag, self._editmode_tags)
+		tags = list(filter(_is_style_tag, self._editmode_tags))
 		if tags:
 			assert len(tags) == 1, 'BUG: can not have multiple text styles'
 			return tags[0].get_property('name')[6:] # len('style-') == 6
@@ -1497,7 +1497,7 @@ class TextBuffer(Gtk.TextBuffer):
 		if bounds:
 			# For selection we set editmode based on left hand side and looking forward
 			# so counting tags that apply to start of selection
-			tags = filter(_is_zim_tag, bounds[0].get_tags())
+			tags = list(filter(_is_zim_tag, bounds[0].get_tags()))
 		else:
 			# Otherwise base editmode on cursor position (looking backward)
 			iter = self.get_insert_iter()
@@ -1543,12 +1543,12 @@ class TextBuffer(Gtk.TextBuffer):
 		# line will result in two indent formatted \n characters.
 		# The start of the new line is in between and has continuous
 		# indent formatting.
-		start_tags = filter(_is_zim_tag, iter.get_toggled_tags(True))
-		tags = filter(_is_zim_tag, iter.get_tags())
+		start_tags = list(filter(_is_zim_tag, iter.get_toggled_tags(True)))
+		tags = list(filter(_is_zim_tag, iter.get_tags()))
 		for tag in start_tags:
 			if tag in tags:
 				tags.remove(tag)
-		end_tags = filter(_is_zim_tag, iter.get_toggled_tags(False))
+		end_tags = list(filter(_is_zim_tag, iter.get_toggled_tags(False)))
 		# So now we have 3 separate sets with tags ending here,
 		# starting here and being continuous here. Result will be
 		# continuous tags and ending tags but logic for line based
@@ -1556,8 +1556,8 @@ class TextBuffer(Gtk.TextBuffer):
 		# tags ending here.
 
 		if iter.starts_line():
-			tags += filter(_is_line_based_tag, start_tags)
-			tags += filter(_is_not_line_based_tag, end_tags)
+			tags += list(filter(_is_line_based_tag, start_tags))
+			tags += list(filter(_is_not_line_based_tag, end_tags))
 		elif iter.ends_line():
 			# Force only use tags from the left in order to prevent tag
 			# from next line "spilling over" (should not happen, since
@@ -1571,8 +1571,8 @@ class TextBuffer(Gtk.TextBuffer):
 			# HACK: We assume line based tags are mutually exclusive
 			# if this assumption breaks down need to check by tag type
 			tags += end_tags
-			if not filter(_is_line_based_tag, tags):
-				tags += filter(_is_line_based_tag, start_tags)
+			if not list(filter(_is_line_based_tag, tags)):
+				tags += list(filter(_is_line_based_tag, start_tags))
 
 		tags.sort(key=lambda tag: tag.get_priority())
 		return tags
@@ -1732,7 +1732,7 @@ class TextBuffer(Gtk.TextBuffer):
 		@returns: a number for the indenting level
 		'''
 		iter = self.get_iter_at_line(line)
-		tags = filter(_is_indent_tag, iter.get_tags())
+		tags = list(filter(_is_indent_tag, iter.get_tags()))
 		if tags:
 			assert len(tags) == 1, 'BUG: overlapping indent tags'
 			return int(tags[0].zim_attrib['indent'])
@@ -1873,12 +1873,12 @@ class TextBuffer(Gtk.TextBuffer):
 		# Common code between set_indent() and update_indent_tag()
 		start, end = self.get_line_bounds(line)
 
-		tags = filter(_is_indent_tag, start.get_tags())
+		tags = list(filter(_is_indent_tag, start.get_tags()))
 		if tags:
 			assert len(tags) == 1, 'BUG: overlapping indent tags'
 			self.remove_tag(tags[0], start, end)
 
-		if filter(_is_heading_tag, start.get_tags()):
+		if list(filter(_is_heading_tag, start.get_tags())):
 			return level == 0 # False if you try to indent a header
 
 		if level > 0 or bullet is not None:
@@ -1956,12 +1956,12 @@ class TextBuffer(Gtk.TextBuffer):
 		#~ print 'INSERT', string
 
 		def end_or_protect_tags(string, length):
-			tags = filter(_is_tag_tag, self._editmode_tags)
+			tags = list(filter(_is_tag_tag, self._editmode_tags))
 			if tags:
 				if iter.ends_tag(tags[0]):
 					# End tags if end-of-word char is typed at end of a tag
 					# without this you can not insert text behind a tag e.g. at the end of a line
-					self._editmode_tags = filter(_is_not_tag_tag, self._editmode_tags)
+					self._editmode_tags = list(filter(_is_not_tag_tag, self._editmode_tags))
 				else:
 					# Forbid breaking a tag
 					return '', 0
@@ -1983,10 +1983,8 @@ class TextBuffer(Gtk.TextBuffer):
 		# Check current formatting
 		if string == '\n': # CHARS_END_OF_LINE
 			# Break tags that are not allowed to span over multiple lines
-			self._editmode_tags = filter(
-				lambda tag: _is_pre_tag(tag) or _is_not_style_tag(tag),
-				self._editmode_tags)
-			self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
+			self._editmode_tags = [tag for tag in self._editmode_tags if _is_pre_tag(tag) or _is_not_style_tag(tag)]
+			self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags))
 			self.emit('textstyle-changed', None)
 			# TODO make this more robust for multiline inserts
 
@@ -1995,9 +1993,9 @@ class TextBuffer(Gtk.TextBuffer):
 		elif string in CHARS_END_OF_WORD:
 			# Break links if end-of-word char is typed at end of a link
 			# without this you can not insert text behind a link e.g. at the end of a line
-			links = filter(_is_link_tag, self._editmode_tags)
+			links = list(filter(_is_link_tag, self._editmode_tags))
 			if links and iter.ends_tag(links[0]):
-				self._editmode_tags = filter(_is_not_link_tag, self._editmode_tags)
+				self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags))
 				# TODO this should go into the TextView, not here
 				# Now it goes OK only because we only check single char inserts, but would break
 				# for multi char inserts from the view - fixing that here breaks insert parsetree
@@ -2073,10 +2071,10 @@ class TextBuffer(Gtk.TextBuffer):
 		if (
 			(
 				not start.starts_line()
-				and filter(_is_line_based_tag, start.get_toggled_tags(True))
+				and list(filter(_is_line_based_tag, start.get_toggled_tags(True)))
 			) or (
 				not start.ends_line()
-				and filter(_is_line_based_tag, start.get_toggled_tags(False))
+				and list(filter(_is_line_based_tag, start.get_toggled_tags(False)))
 			)
 		):
 			self._do_lines_merged(start)
@@ -2091,7 +2089,7 @@ class TextBuffer(Gtk.TextBuffer):
 				self._iter_forward_past_bullet(bound, bullet)
 				self.delete(start, bound)
 		elif start.starts_line():
-			indent_tags = filter(_is_indent_tag, start.get_tags())
+			indent_tags = list(filter(_is_indent_tag, start.get_tags()))
 			if indent_tags and indent_tags[0].zim_attrib['_bullet']:
 				# had a bullet, but no longer (implies we are start of
 				# line - case where we are not start of line is
@@ -2162,7 +2160,7 @@ class TextBuffer(Gtk.TextBuffer):
 				return None # empty line or whitespace at start of line
 
 			text = iter.get_slice(bound).decode('UTF-8')
-			if text.startswith(u'\u2022'):
+			if text.startswith('\u2022'):
 				return BULLET
 			elif is_numbered_bullet_re.match(text):
 				return text
@@ -2282,7 +2280,7 @@ class TextBuffer(Gtk.TextBuffer):
 						elif not raw and not iter.starts_line():
 							# Indent not visible if it does not start at begin of line
 							t = '_ignore_'
-						elif len(filter(lambda t: t.zim_tag == 'pre', tags[i:])):
+						elif len([t for t in tags[i:] if t.zim_tag == 'pre']):
 							# Indent of 'pre' blocks handled in subsequent iteration
 							continue_attrib.update(attrib)
 							continue
@@ -2332,7 +2330,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		# And now the actual loop going through the buffer
 		iter = start.copy()
-		set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
+		set_tags(iter, list(filter(_is_zim_tag, iter.get_tags())))
 		while iter.compare(end) == -1:
 			pixbuf = iter.get_pixbuf()
 			anchor = iter.get_child_anchor()
@@ -2341,10 +2339,10 @@ class TextBuffer(Gtk.TextBuffer):
 					# Reset all tags - and let set_tags parse the bullet
 					if open_tags:
 						break_tags(open_tags[0][1])
-					set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+					set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 				else:
 					pass # reset all tags except indenting
-					set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+					set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 
 				pixbuf = iter.get_pixbuf() # iter may have moved
 				if pixbuf is None:
@@ -2363,7 +2361,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 			# embedded widget
 			elif anchor:
-				set_tags(iter, filter(_is_indent_tag, iter.get_tags()))
+				set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 				anchor = iter.get_child_anchor() # iter may have moved
 
 				if anchor is None:
@@ -2406,7 +2404,7 @@ class TextBuffer(Gtk.TextBuffer):
 					# This is part of the HACK for bullets in
 					# set_tags()
 
-				set_tags(iter, filter(_is_zim_tag, iter.get_tags()))
+				set_tags(iter, list(filter(_is_zim_tag, iter.get_tags())))
 				if not iter.equal(copy): # iter moved
 					continue
 
@@ -2417,9 +2415,9 @@ class TextBuffer(Gtk.TextBuffer):
 					if not bound.is_end() and bound.forward_to_tag_toggle(None):
 						# For some reason the not is_end check is needed
 						# to prevent an odd corner case infinite loop
-						toggled = filter(_is_zim_tag,
+						toggled = list(filter(_is_zim_tag,
 							bound.get_toggled_tags(False)
-							+ bound.get_toggled_tags(True))
+							+ bound.get_toggled_tags(True)))
 					else:
 						bound = end.copy() # just to be sure..
 						break
@@ -2441,7 +2439,7 @@ class TextBuffer(Gtk.TextBuffer):
 					bound = end.copy()
 					text = iter.get_slice(end).decode('UTF-8')
 
-				if filter(lambda t: t[1] == 'li', open_tags) \
+				if [t for t in open_tags if t[1] == 'li'] \
 				and bound.get_line() != iter.get_line():
 					# And limit bullets to a single line
 					orig = bound
@@ -3221,7 +3219,7 @@ class TextFinder(object):
 		return self._find_next(iter)
 
 	def _parse_query(self, string, flags):
-		assert isinstance(string, basestring)
+		assert isinstance(string, str)
 		self.string = string
 		self.flags = flags
 
@@ -3727,7 +3725,7 @@ class TextView(Gtk.TextView):
 				elif keyval in KEYVALS_TAB:
 					char = '\t'
 				else:
-					char = unichr(Gdk.keyval_to_unicode(keyval))
+					char = chr(Gdk.keyval_to_unicode(keyval))
 
 				self.emit('insert-at-cursor', char)
 			handled = True
@@ -3769,7 +3767,7 @@ class TextView(Gtk.TextView):
 			iter = buffer.get_insert_iter()
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
-			and not filter(_is_pre_tag, iter.get_tags()):
+			and not list(filter(_is_pre_tag, iter.get_tags())):
 				row, list = TextBufferList.new_from_line(buffer, iter.get_line())
 				if list and self.preferences['recursive_indentlist']:
 					list.indent(row)
@@ -3789,7 +3787,7 @@ class TextView(Gtk.TextView):
 			iter = buffer.get_iter_at_mark(buffer.get_insert())
 			home, ourhome = self.get_visual_home_positions(iter)
 			if home.starts_line() and iter.compare(ourhome) < 1 \
-			and not filter(_is_pre_tag, iter.get_tags()):
+			and not list(filter(_is_pre_tag, iter.get_tags())):
 				bullet = buffer.get_bullet_at_iter(home)
 				indent = buffer.get_indent(home.get_line())
 				if keyval in KEYVALS_BACKSPACE \
@@ -3848,7 +3846,7 @@ class TextView(Gtk.TextView):
 		elif keyval in KEYVALS_TAB:
 			char = '\t'
 		else:
-			char = unichr(Gdk.keyval_to_unicode(keyval))
+			char = chr(Gdk.keyval_to_unicode(keyval))
 
 		if iter.get_text(insert).decode('UTF-8') != char:
 			return
@@ -3929,7 +3927,7 @@ class TextView(Gtk.TextView):
 
 		def selection_in_pre_block(start, end):
 			# Checks if there are any tag changes within the selection
-			if filter(_is_pre_tag, start.get_tags()):
+			if list(filter(_is_pre_tag, start.get_tags())):
 				toggle = start.copy()
 				toggle.forward_to_tag_toggle(None)
 				return toggle.compare(end) < 0
@@ -4168,8 +4166,8 @@ class TextView(Gtk.TextView):
 		handled = True
 		#~ print 'WORD >>%s<< CHAR >>%s<<' % (word, char)
 
-		if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start)) \
-		or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end)):
+		if list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start))) \
+		or list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end))):
 			# DO not auto-format if any zim tags are applied except for indent
 			return
 
@@ -4224,14 +4222,14 @@ class TextView(Gtk.TextView):
 			handled = False
 			linestart = buffer.get_iter_at_line(end.get_line())
 			partial_line = linestart.get_slice(end).decode('UTF-8')
-			for style, re in markup_re.items():
+			for style, re in list(markup_re.items()):
 				if not re.search(partial_line) is None:
 					matchstart = linestart.copy()
 					matchstart.forward_chars(re.start())
 					matchend = linestart.copy()
 					matchend.forward_chars(re.end())
-					if filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchstart)) \
-					or filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchend)):
+					if list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchstart))) \
+					or list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchend))):
 						continue
 					buffer.delete(matchstart, matchend)
 					buffer.insert_with_tags_by_name(matchstart, re[2], style)
@@ -4580,7 +4578,7 @@ class UndoStackManager:
 		requests.
 		'''
 		def _flush_group(group):
-			for i in reversed(range(len(group))):
+			for i in reversed(list(range(len(group)))):
 				action, start, end, tree = group[i]
 				if action == self.ACTION_INSERT and tree is None:
 					bounds = (self.buffer.get_iter_at_offset(start),
@@ -4593,7 +4591,7 @@ class UndoStackManager:
 			return True
 
 		if _flush_group(self.group):
-			for i in reversed(range(len(self.stack))):
+			for i in reversed(list(range(len(self.stack)))):
 				if not _flush_group(self.stack[i]):
 					break
 
@@ -4856,7 +4854,7 @@ class SavePageErrorDialog(ErrorDialog):
 	def __init__(self, pageview, error, page, timeout=False):
 		msg = _('Could not save page: %s') % page.name
 			# T: Heading of error dialog
-		desc = unicode(error).encode('utf-8').strip() \
+		desc = str(error).encode('utf-8').strip() \
 				+ '\n\n' \
 				+ _('''\
 To continue you can save a copy of this page or discard
@@ -5137,8 +5135,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Don't set a default for 'tabs' as not to break pages that
 			# were created before this setting was introduced.
 		self.text_style['TextView'].setdefault('linespacing', 3)
-		self.text_style['TextView'].setdefault('font', None, basestring)
-		self.text_style['TextView'].setdefault('justify', None, basestring)
+		self.text_style['TextView'].setdefault('font', None, str)
+		self.text_style['TextView'].setdefault('justify', None, str)
 		#~ print self.text_style['TextView']
 
 		# Set properties for TextVIew
@@ -5172,7 +5170,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# Load TextTags
 		testbuffer = Gtk.TextBuffer()
-		for key in [k for k in self.text_style.keys() if k.startswith('Tag ')]:
+		for key in [k for k in list(self.text_style.keys()) if k.startswith('Tag ')]:
 			section = self.text_style[key]
 			defs = [(k, TextBuffer.tag_attributes[k])
 				for k in section._input if k in TextBuffer.tag_attributes]
@@ -5183,7 +5181,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				if not tag in TextBuffer.tag_styles:
 					raise AssertionError('No such tag: %s' % tag)
 
-				attrib = dict(i for i in section.items() if i[1] is not None)
+				attrib = dict(i for i in list(section.items()) if i[1] is not None)
 				if 'linespacing' in attrib:
 					attrib['pixels-below-lines'] = attrib.pop('linespacing')
 
@@ -5544,7 +5542,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@param plugin: the plugin object
 		'''
-		for type, obj in self.image_generator_plugins.items():
+		for type, obj in list(self.image_generator_plugins.items()):
 			if obj == plugin:
 				self.image_generator_plugins.pop(type)
 				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
@@ -5609,7 +5607,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		#~ print '<<<'
 
 	def activate_link(self, link, new_window=False):
-		if not isinstance(link, basestring):
+		if not isinstance(link, str):
 			link = link['href']
 
 		href = normalize_file_uris(link)
@@ -6150,7 +6148,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def _update_new_file_submenu(self, action):
 		dir = self.preferences['file_templates_folder']
-		if isinstance(dir, basestring):
+		if isinstance(dir, str):
 			dir = Dir(dir)
 
 		items = []
@@ -6225,7 +6223,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def open_file_templates_folder(self):
 		'''Menu action to open the templates folder'''
 		dir = self.preferences['file_templates_folder']
-		if isinstance(dir, basestring):
+		if isinstance(dir, str):
 			dir = Dir(dir)
 
 		if dir.exists():
@@ -6609,7 +6607,7 @@ class InsertImageDialog(FileDialog):
 		self.path = path
 
 		self.uistate.setdefault('attach_inserted_images', False)
-		self.uistate.setdefault('last_image_folder', None, check=basestring)
+		self.uistate.setdefault('last_image_folder', None, check=str)
 
 		self.add_shortcut(notebook, path)
 		self.add_filter_images()
@@ -6933,8 +6931,8 @@ class InsertLinkDialog(Dialog):
 		buffer = self.pageview.view.get_buffer()
 		with buffer.user_action:
 			if self._selection_bounds:
-				start, end = map(
-					buffer.get_iter_at_offset, self._selection_bounds)
+				start, end = list(map(
+					buffer.get_iter_at_offset, self._selection_bounds))
 				buffer.delete(start, end)
 			buffer.insert_link_at_cursor(text, href)
 
@@ -7157,7 +7155,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 
 	def set_input(self, **inputs):
 		# Hide implementation for test cases
-		for key, value in inputs.items():
+		for key, value in list(inputs.items()):
 			if key == 'query':
 				self.find_entry.set_text(value)
 			elif key == 'replacement':
@@ -7322,7 +7320,7 @@ class MoveTextDialog(Dialog):
 			self.notebook.store_page(newpage)
 
 		# Delete text (after copy was succesfull..)
-		bounds = map(self.buffer.get_iter_at_offset, self.bounds)
+		bounds = list(map(self.buffer.get_iter_at_offset, self.bounds))
 		self.buffer.delete(*bounds)
 
 		# Insert Link

@@ -4,7 +4,7 @@
 
 '''Local file system object'''
 
-from __future__ import with_statement
+
 
 import sys
 import os
@@ -180,14 +180,14 @@ class LocalFolder(LocalFSObjectBase, Folder):
 
 		if FS_ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively
-			assert isinstance(self.encodedpath, unicode)
-			assert all(isinstance(n, unicode) for n in names)
+			assert isinstance(self.encodedpath, str)
+			assert all(isinstance(n, str) for n in names)
 			return names
 		else:
 			# If filesystem does not handle unicode natively and path for
 			# os.listdir(path) is _not_ a unicode object, the result will
 			# be a list of byte strings. We can decode them ourselves.
-			assert not isinstance(self.encodedpath, unicode)
+			assert not isinstance(self.encodedpath, str)
 			encnames = []
 			for n in names:
 				try:
@@ -337,7 +337,7 @@ class LocalFile(LocalFSObjectBase, File):
 				except UnicodeDecodeError as err:
 					raise FileUnicodeError(self, err)
 				else:
-					return text.lstrip(u'\ufeff').replace('\x00', '')
+					return text.lstrip('\ufeff').replace('\x00', '')
 					# Strip unicode byte order mark
 					# Internally we use Unix line ends - so strip out \r
 					# And remove any NULL byte since they screw up parsing
@@ -351,7 +351,7 @@ class LocalFile(LocalFSObjectBase, File):
 		try:
 			with open(self.encodedpath, 'rU') as fh:
 				return [
-					l.decode('UTF-8').lstrip(u'\ufeff').replace('\x00', '')
+					l.decode('UTF-8').lstrip('\ufeff').replace('\x00', '')
 						for l in fh]
 						# Strip unicode byte order mark
 						# Internally we use Unix line ends - so strip out \r
@@ -376,10 +376,10 @@ class LocalFile(LocalFSObjectBase, File):
 				fh.write(text)
 
 	def writelines(self, lines):
-		lines = map(lambda l: l.encode('UTF-8'), lines)
+		lines = [l.encode('UTF-8') for l in lines]
 		if self.endofline != _EOL:
 			if self.endofline == 'dos':
-				lines = map(lambda l: l.replace('\n', '\r\n'), lines)
+				lines = [l.replace('\n', '\r\n') for l in lines]
 			mode = 'wb'
 		else:
 			mode = 'w' # trust newlines to be handled

@@ -4,7 +4,7 @@ import sys
 import os
 
 if len(sys.argv) != 4:
-	print 'Usage: %s directory with depth' % sys.argv[0]
+	print('Usage: %s directory with depth' % sys.argv[0])
 	sys.exit(1)
 
 root, width, depth = sys.argv[1:]
@@ -36,7 +36,7 @@ def populate_level(path, j):
         myname = name % (j, i)
         
         file = path + myname + '.txt'
-        print '>', file
+        print('>', file)
         fh = open(file, 'w')
         fh.write(content)
         fh.close()
@@ -49,5 +49,5 @@ def populate_level(path, j):
 d = populate_level(root, 0)
 f = d * width
 
-print 'Total %i files %i directories' % (f, d)
-print 'Done'
+print('Total %i files %i directories' % (f, d))
+print('Done')

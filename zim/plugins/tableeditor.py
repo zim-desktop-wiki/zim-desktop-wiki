@@ -147,14 +147,14 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		:param tabledata: XML - formated as a zim-tree table-object
 		:return: tuple of header-list and list of row lists -  ([h1,h2],[[r11,r12],[r21,r22])
 		'''
-		header = map(lambda head: head.text.decode('UTF-8'), tabledata.findall('thead/th'))
-		header = map(CellFormatReplacer.zim_to_cell, header)
+		header = [head.text.decode('UTF-8') for head in tabledata.findall('thead/th')]
+		header = list(map(CellFormatReplacer.zim_to_cell, header))
 
 		rows = []
 		for trow in tabledata.findall('trow'):
 			row = trow.findall('td')
 			row = [ElementTree.tostring(r, 'utf-8').replace('<td>', '').replace('</td>', '') for r in row]
-			row = map(CellFormatReplacer.zim_to_cell, row)
+			row = list(map(CellFormatReplacer.zim_to_cell, row))
 			rows.append(row)
 		return header, rows
 
@@ -274,7 +274,7 @@ class TableViewObject(CustomObjectClass):
 		:param preferences: optionally some preferences
 		'''
 		_attrib = {}
-		for k, v in attrib.iteritems():
+		for k, v in attrib.items():
 			if isinstance(v, list):
 				v = ','.join(map(str, v))
 			_attrib[k] = v
@@ -301,7 +301,7 @@ class TableViewObject(CustomObjectClass):
 
 	def get_wraps(self):
 		''' get the list of wrap-attributes '''
-		return map(int, self._attrib['wraps'].split(','))
+		return list(map(int, self._attrib['wraps'].split(',')))
 
 	def set_wraps(self, data):
 		''' Set list of wrap attributes for the current table. Each item belongs to a column.'''
@@ -350,10 +350,7 @@ class TableViewObject(CustomObjectClass):
 		else:
 			rows = []
 			for treerow in self._liststore:
-				rows.append(map(
-					lambda cell: CellFormatReplacer.cell_to_input(cell, True),
-					treerow
-				))
+				rows.append([CellFormatReplacer.cell_to_input(cell, True) for cell in treerow])
 
 		return headers, rows, attrs
 
@@ -401,7 +398,7 @@ class TableViewObject(CustomObjectClass):
 		new_rows = []
 		for oldrow in old_rows:
 				newrow = [' '] * nr_cols
-				for v, k in id_mapping.iteritems():
+				for v, k in id_mapping.items():
 					newrow[v] = oldrow[k]
 				new_rows.append(newrow)
 		return new_rows
@@ -741,7 +738,7 @@ class TableViewWidget(CustomObjectWidget):
 			cellvalue = self.fetch_cell_by_event(event, treeview)
 			linkvalue = self.get_linkurl(cellvalue)
 			if linkvalue:
-				self.emit('link-clicked', {'href': unicode(linkvalue)})
+				self.emit('link-clicked', {'href': str(linkvalue)})
 			return
 
 		if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
@@ -858,7 +855,7 @@ class TableViewWidget(CustomObjectWidget):
 
 	def on_open_link(self, action, link):
 		''' Context menu: Open a link, which is written in a cell '''
-		self.emit('link-clicked', {'href': unicode(link)})
+		self.emit('link-clicked', {'href': str(link)})
 
 	def on_open_help(self, action):
 		''' Context menu: Open help '''
@@ -1003,7 +1000,7 @@ class EditTableDialog(Dialog):
 		- wrapped: 0/1 should text be wrapped over multiple lines
 		- align, alignicon, aligntext:	english-keyword, GTK-ICON, translated-keyword for alignments
 		'''
-		id, title, wrapped, align, alignicon, aligntext = range(6)
+		id, title, wrapped, align, alignicon, aligntext = list(range(6))
 
 	def __init__(self, parent, tablemodel=None):
 		'''

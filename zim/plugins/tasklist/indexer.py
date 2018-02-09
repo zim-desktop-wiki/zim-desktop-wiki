@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import logging
 import re
@@ -483,5 +483,5 @@ class TaskParser(object):
 			except ValueError:
 				logger.warn('Invalid date format in task: %s', string)
 
-		return [isopen, prio, start, due, tags, unicode(text.strip())]
+		return [isopen, prio, start, due, tags, str(text.strip())]
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc

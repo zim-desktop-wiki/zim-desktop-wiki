@@ -3,7 +3,7 @@
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -35,7 +35,7 @@ Some description
 here
 '''
 		self.assertEqual(str(StubError(6)), wanted)
-		self.assertEqual(unicode(StubError(6)), wanted)
+		self.assertEqual(str(StubError(6)), wanted)
 		self.assertEqual(repr(StubError(6)), '<StubError: Error 6>')
 
 

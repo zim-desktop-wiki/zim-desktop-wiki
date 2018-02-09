@@ -28,45 +28,45 @@ class TestInputEntry(tests.TestCase):
 		self.assertEqual(entry.get_text(), '')
 
 		# test unicode and whitespace
-		entry.set_text(u'\u2022 foo   ')
+		entry.set_text('\u2022 foo   ')
 		text = entry.get_text()
-		self.assertTrue(isinstance(text, unicode))
-		self.assertEqual(text, u'\u2022 foo')
+		self.assertTrue(isinstance(text, str))
+		self.assertEqual(text, '\u2022 foo')
 		self.assertTrue(entry.get_input_valid())
 
 		# test set invalid + change
 		entry.set_input_valid(False)
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
+		entry.set_text('foo bar')
 		self.assertTrue(entry.get_input_valid())
 
 		# test invalid but now with allow_empty=False
 		entry = InputEntry(allow_empty=False)
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
+		entry.set_text('foo bar')
 		self.assertTrue(entry.get_input_valid())
-		entry.set_text(u'')
+		entry.set_text('')
 		self.assertFalse(entry.get_input_valid())
 
 		# and with a function
 		entry = InputEntry(check_func=lambda text: text.startswith('a'))
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
+		entry.set_text('foo bar')
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'aa foo bar')
+		entry.set_text('aa foo bar')
 		self.assertTrue(entry.get_input_valid())
-		entry.set_text(u'')
+		entry.set_text('')
 		self.assertFalse(entry.get_input_valid())
 
 		# and with placeholder text
 		entry = InputEntry(allow_empty=False, placeholder_text='PLACEHOLDER')
-		self.assertEqual(entry.get_text(), u'')
+		self.assertEqual(entry.get_text(), '')
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
-		self.assertEqual(entry.get_text(), u'foo bar')
+		entry.set_text('foo bar')
+		self.assertEqual(entry.get_text(), 'foo bar')
 		self.assertTrue(entry.get_input_valid())
-		entry.set_text(u'')
-		self.assertEqual(entry.get_text(), u'')
+		entry.set_text('')
+		self.assertEqual(entry.get_text(), '')
 		self.assertFalse(entry.get_input_valid())
 
 
@@ -282,12 +282,12 @@ class TestInputForm(tests.TestCase):
 		def assertEqual(U, V):
 			self.assertEqual(set(U.keys()), set(V.keys()))
 
-			for k, v in V.items():
-				if isinstance(U[k], Path) and isinstance(v, basestring):
+			for k, v in list(V.items()):
+				if isinstance(U[k], Path) and isinstance(v, str):
 					v = Path(v)
-				elif isinstance(U[k], File) and isinstance(v, basestring):
+				elif isinstance(U[k], File) and isinstance(v, str):
 					v = File(v)
-				elif isinstance(U[k], Dir) and isinstance(v, basestring):
+				elif isinstance(U[k], Dir) and isinstance(v, str):
 					v = Dir(v)
 
 				self.assertEqual(U[k], v)

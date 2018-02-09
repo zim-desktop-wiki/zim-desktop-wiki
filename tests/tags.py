@@ -149,7 +149,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
-		print "---------"
+		print("---------")
 
 
 @tests.slowTest

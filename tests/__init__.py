@@ -4,7 +4,7 @@
 
 '''Zim test suite'''
 
-from __future__ import with_statement
+
 
 
 import os
@@ -30,17 +30,17 @@ if sys.version_info < (2, 7, 0):
 		import unittest2 as unittest
 		from unittest2 import skip, skipIf, skipUnless, expectedFailure
 	except ImportError:
-		print >>sys.stderr, '''\
+		print('''\
 For python versions < 2.7 the 'unittest2' module is needed to run
 the test suite. On Ubuntu or Debian install package 'python-unittest2'.
-'''
+''', file=sys.stderr)
 		sys.exit(1)
 else:
 	import unittest
 	from unittest import skip, skipIf, skipUnless, expectedFailure
 
 
-gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
+gettext.install('zim', str=True, names=('_', 'gettext', 'ngettext'))
 
 FAST_TEST = False #: determines whether we skip slow tests or not
 FULL_TEST = False #: determine whether we mock filesystem tests or not
@@ -94,7 +94,7 @@ TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# by a config mode switch in the bazaar backend of the version
 	# control plugin
 if os.name == 'nt':
-	TMPDIR = unicode(TMPDIR)
+	TMPDIR = str(TMPDIR)
 else:
 	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
 
@@ -343,8 +343,8 @@ class TestCase(unittest.TestCase):
 			content = dict((p, 'test 123') for p in content)
 
 		notebook = Notebook(cache_dir, config, folder, layout, index)
-		for name, text in content.items():
-			path = Path(name) if isinstance(name, basestring) else name
+		for name, text in list(content.items()):
+			path = Path(name) if isinstance(name, str) else name
 			file, folder = layout.map_page(path)
 			file.write(
 				(
@@ -363,7 +363,7 @@ class TestCase(unittest.TestCase):
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
-		print "Deprecated: TestCase.create_tmp_dir()"
+		print("Deprecated: TestCase.create_tmp_dir()")
 		folder = self.setUpFolder(name=name, mock=MOCK_ALWAYS_REAL)
 		folder.touch()
 		return folder.path
@@ -576,8 +576,8 @@ class TestData(object):
 		test_data = []
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
-			text = unicode(node.text.lstrip('\n'))
-			if os.name == 'nt' and isinstance(name, unicode):
+			text = str(node.text.lstrip('\n'))
+			if os.name == 'nt' and isinstance(name, str):
 				pass # XXX No idea what goes wrong, but names are messed up
 			else:
 				test_data.append((name, text))
@@ -775,7 +775,7 @@ class SignalLogger(dict):
 		self.disconnect()
 
 	def clear(self):
-		for signal, seen in self.items():
+		for signal, seen in list(self.items()):
 			seen[:] = []
 
 	def disconnect(self):

@@ -312,7 +312,7 @@ class Re(object):
 		'''
 		result = []
 		for item in list:
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				pos = 0
 				for m in self.p.finditer(item):
 					start, end = m.span()

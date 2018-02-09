@@ -105,8 +105,8 @@ class TagsPluginWidget(ConnectorMixin, Gtk.VPaned, WindowSidePaneWidget):
 		self.index = notebook.index
 		self.uistate = uistate
 
-		self.uistate.setdefault('treeview', 'tags', set(['tagged', 'tags']))
-		self.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
+		self.uistate.setdefault('treeview', 'tags', {'tagged', 'tags'})
+		self.uistate.setdefault('tagcloud_sorting', 'score', {'alpha', 'score'})
 		self.uistate.setdefault('show_full_page_name', True)
 
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])

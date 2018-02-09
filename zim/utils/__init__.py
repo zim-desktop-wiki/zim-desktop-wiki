@@ -134,7 +134,7 @@ def natural_sort_key(string, numeric_padding=5):
 	templ = '%0' + str(numeric_padding) + 'i'
 	string.strip()
 	string = _num_re.sub(lambda m: templ % int(m.group()), string)
-	if isinstance(string, unicode):
+	if isinstance(string, str):
 		string = unicodedata.normalize('NFKC', string)
 		# may be done by strxfrm as well, but want to be sure
 	string = string.lower() # sort case insensitive
@@ -226,7 +226,7 @@ class OrderedDict(collections.MutableMapping):
 	def __repr__(self):
 		return '<%s:\n%s\n>' % (
 			self.__class__.__name__,
-			',\n'.join('  %r: %r' % (k, v) for k, v in self.items())
+			',\n'.join('  %r: %r' % (k, v) for k, v in list(self.items()))
 		)
 
 	def __getitem__(self, k):
@@ -269,7 +269,7 @@ class MovingWindowIter(object):
 	def __init__(self, iterable):
 		self._iter = iter(iterable)
 		try:
-			first = self._iter.next()
+			first = next(self._iter)
 		except StopIteration:
 			# empty list
 			self.last = True
@@ -281,13 +281,13 @@ class MovingWindowIter(object):
 	def __iter__(self):
 		return self
 
-	def next(self):
+	def __next__(self):
 		if self.last:
 			raise StopIteration
 
 		discard, prev, current = self.items
 		try:
-			next = self._iter.next()
+			next = next(self._iter)
 		except StopIteration:
 			self.last = True
 			self.items = (prev, current, None)

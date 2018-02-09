@@ -28,7 +28,7 @@ class Environ(collections.MutableMapping):
 			return v
 
 	def __setitem__(self, k, v):
-		if isinstance(v, unicode):
+		if isinstance(v, str):
 			v = v.encode(ENCODING)
 		os.environ[k] = v
 
@@ -68,7 +68,7 @@ class Environ(collections.MutableMapping):
 		v = self.get(k, default)
 		if v is None:
 			return []
-		elif isinstance(v, basestring):
+		elif isinstance(v, str):
 			if sep is None:
 				sep = os.pathsep
 			return v.split(sep)

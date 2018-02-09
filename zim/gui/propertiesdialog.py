@@ -24,7 +24,7 @@ class PropertiesDialog(Dialog):
 		)
 		self.form.widgets['icon'].set_use_relative_paths(self.notebook)
 		if self.notebook.readonly:
-			for widget in self.form.widgets.values():
+			for widget in list(self.form.widgets.values()):
 				widget.set_sensitive(False)
 
 	def do_response_ok(self):
@@ -34,7 +34,7 @@ class PropertiesDialog(Dialog):
 			# XXX this should be part of notebook.save_properties
 			# which means notebook should also own a ref to the ConfigManager
 			if 'profile' in properties and properties['profile'] != self.notebook.profile:
-				assert isinstance(properties['profile'], (basestring, type(None)))
+				assert isinstance(properties['profile'], (str, type(None)))
 				self.config.set_profile(properties['profile'])
 
 			self.notebook.save_properties(**properties)

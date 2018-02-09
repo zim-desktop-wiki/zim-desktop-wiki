@@ -35,7 +35,7 @@ def write_notebook(dir, pages):
 		p = notebook.get_page(path)
 		p.parse('wiki', content)
 		notebook.store_page(p)
-		print "Wrote", p.source.path
+		print("Wrote", p.source.path)
 
 
 if __name__ == '__main__':

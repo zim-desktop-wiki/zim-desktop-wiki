@@ -70,7 +70,7 @@ C{$XDG_DATA_HOME/zim/plugins} and all C{$XDG_DATA_DIRS/zim/plugins}
 are added to the search path for C{zim.plugins}.
 '''
 
-from __future__ import with_statement
+
 
 
 from gi.repository import GObject
@@ -241,7 +241,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		@returns: the plugin object
 		@raises Exception: when loading the plugin failed
 		'''
-		assert isinstance(name, basestring)
+		assert isinstance(name, str)
 		if name in self._plugins:
 			return self._plugins[name]
 
@@ -389,7 +389,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__signals__ = {
-		'extension-point-changed': (None, None, (basestring,))
+		'extension-point-changed': (None, None, (str,))
 	}
 
 	plugin_info = {}
@@ -625,7 +625,7 @@ def extends(eklass, autoload=True):
 	automatically. This is used for extensions that are loaded on run
 	time using C{PluginClass.set_extension_class()}.
 	'''
-	if isinstance(eklass, basestring):
+	if isinstance(eklass, str):
 		name = eklass
 	else:
 		name = eklass.__name__
@@ -762,7 +762,7 @@ class WindowExtension(ObjectExtension):
 			actiongroup = get_gtk_actiongroup(self)
 			if hasattr(self, 'uimanager_menu_labels'):
 				actiongroup.add_actions(
-					sorted((k, None, v) for k, v in self.uimanager_menu_labels.items())
+					sorted((k, None, v) for k, v in list(self.uimanager_menu_labels.items()))
 				)
 			self.window.uimanager.insert_action_group(actiongroup, 0)
 			self._uimanager_id = self.window.uimanager.add_ui_from_string(self.uimanager_xml)

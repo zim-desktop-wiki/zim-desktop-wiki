@@ -19,9 +19,9 @@ FILE_TYPE_ATTACHMENT = 2
 def _url_encode_on_error(error):
 	string = error.object
 	section = string[error.start:error.end].encode('utf-8')
-	replace = u''
+	replace = ''
 	for char in section:
-		replace += u'%%%02X' % ord(char)
+		replace += '%%%02X' % ord(char)
 	return replace, error.end
 
 codecs.register_error('urlencode', _url_encode_on_error)

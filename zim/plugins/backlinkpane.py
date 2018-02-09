@@ -2,7 +2,7 @@
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from gi.repository import GObject
 from gi.repository import Gtk

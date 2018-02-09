@@ -422,7 +422,7 @@ def input_table_factory(inputs, table=None):
 		if input is None:
 			table.attach(Gtk.Label(label=' '), 0, 1, i, i + 1, xoptions=Gtk.AttachOptions.FILL)
 			# HACK: force empty row to have height of label
-		elif isinstance(input, basestring):
+		elif isinstance(input, str):
 			label = Gtk.Label()
 			label.set_markup(input)
 			table.attach(label, 0, 4, i, i + 1)
@@ -546,7 +546,7 @@ class SingleClickTreeView(Gtk.TreeView):
 		and event.button == 3:
 			# Check selection state - item under cursor should be selected
 			# see do_button_release_event for comments
-			x, y = map(int, event.get_coords())
+			x, y = list(map(int, event.get_coords()))
 			info = self.get_path_at_pos(x, y)
 			selection = self.get_selection()
 			if x > 0 and y > 0 and not info is None:
@@ -575,7 +575,7 @@ class SingleClickTreeView(Gtk.TreeView):
 		if event.type == Gdk.EventType.BUTTON_RELEASE \
 		and event.button == 1 and not event.get_state() & self.mask \
 		and not self.is_rubber_banding_active():
-			x, y = map(int, event.get_coords())
+			x, y = list(map(int, event.get_coords()))
 				# map to int to suppress deprecation warning :S
 				# note that get_coords() gives back (0, 0) when cursor
 				# is outside the treeview window (e.g. drag & drop that
@@ -743,7 +743,7 @@ class MenuButton(Gtk.HBox):
 		is removed so the button fits in the status bar
 		'''
 		GObject.GObject.__init__(self)
-		if isinstance(label, basestring):
+		if isinstance(label, str):
 			self.label = Gtk.Label()
 			self.label.set_markup_with_mnemonic(label)
 		else:
@@ -907,7 +907,7 @@ class InputForm(Gtk.Table):
 			self.add_inputs(inputs)
 
 		if depends:
-			for k, v in depends.items():
+			for k, v in list(depends.items()):
 				self.depends(k, v)
 
 		if values:
@@ -991,7 +991,7 @@ class InputForm(Gtk.Table):
 			if not input:
 				widgets.append(None)
 				continue
-			elif isinstance(input, basestring):
+			elif isinstance(input, str):
 				widgets.append(input)
 				continue
 
@@ -1185,7 +1185,7 @@ class InputForm(Gtk.Table):
 		if widget is None:
 			i = 0
 		else:
-			for k, v in self.widgets.items():
+			for k, v in list(self.widgets.items()):
 				if v == widget:
 					i = self._widgets.index(k) + 1
 					break
@@ -1253,7 +1253,7 @@ class InputForm(Gtk.Table):
 		elif key in self.widgets:
 			widget = self.widgets[key]
 			if isinstance(widget, LinkEntry):
-				assert isinstance(value, basestring)
+				assert isinstance(value, str)
 				widget.set_text(value)
 			elif isinstance(widget, (PageEntry, NamespaceEntry)):
 				if isinstance(value, Path):
@@ -1272,7 +1272,7 @@ class InputForm(Gtk.Table):
 				widget.set_active(value)
 			elif isinstance(widget, Gtk.ComboBox):
 				if hasattr(widget, 'zim_key_mapping'):
-					for key, v in widget.zim_key_mapping.items():
+					for key, v in list(widget.zim_key_mapping.items()):
 						if v == value:
 							gtk_combobox_set_active_text(widget, key)
 							break
@@ -1311,7 +1311,7 @@ class InputForm(Gtk.Table):
 		original value.
 		@param map: a dict with new values for the widgets
 		'''
-		for key, value in map.items():
+		for key, value in list(map.items()):
 			if key in self._keys:
 				self[key] = value
 
@@ -2245,7 +2245,7 @@ class MinimizedTabs(object):
 			label = Gtk.Label(label=' ')
 			self.pack_start(label, False, True, 0)
 
-		ipages = range(notebook.get_n_pages())
+		ipages = list(range(notebook.get_n_pages()))
 		if self._angle == 90:
 			ipages = reversed(ipages) # keep order the same in reading direction
 
@@ -2334,7 +2334,7 @@ class ConfigDefinitionPaneToggle(ConfigDefinition):
 
 	def check(self, value):
 		# Must be list of valid pane names
-		if isinstance(value, basestring):
+		if isinstance(value, str):
 			value = self._eval_string(value)
 
 		if isinstance(value, (tuple, list)) \
@@ -2358,7 +2358,7 @@ class ConfigDefinitionPaneState(ConfigDefinitionByClass):
 		and len(value) == 3 \
 		and isinstance(value[0], bool) \
 		and isinstance(value[1], int) \
-		and (value[2] is None or isinstance(value[2], basestring)):
+		and (value[2] is None or isinstance(value[2], str)):
 			return value
 		else:
 			raise ValueError('Value is not a valid pane state')
@@ -2470,7 +2470,7 @@ class Window(Gtk.Window):
 			visible, size, active = self.get_pane_state(key)
 			self.emit('pane-state-changed', key, visible, active)
 
-		for key, value in self._zim_window_sidepanes.items():
+		for key, value in list(self._zim_window_sidepanes.items()):
 			paned, pane, minimized = value
 			pane.set_no_show_all(True)
 			pane.connect('close', lambda o, k: self.set_pane_state(k, False), key)
@@ -2722,17 +2722,11 @@ class Window(Gtk.Window):
 
 	def get_visible_panes(self):
 		'''Returns a list of panes that are visible'''
-		return filter(
-			lambda p: not p.is_empty() and p.get_property('visible'),
-			self._panes()
-		)
+		return [p for p in self._panes() if not p.is_empty() and p.get_property('visible')]
 
 	def get_used_panes(self):
 		'''Returns a list of panes that are in use (i.e. not empty)'''
-		return filter(
-			lambda p: not p.is_empty(),
-			self._panes()
-		)
+		return [p for p in self._panes() if not p.is_empty()]
 
 	def _panes(self):
 		return [self._zim_window_sidepanes[key][1]
@@ -2909,7 +2903,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 
 		self._no_ok_action = False
 		if button is not None:
-			assert isinstance(button, basestring), 'Usage of string + stock id deprecated'
+			assert isinstance(button, str), 'Usage of string + stock id deprecated'
 			button = Gtk.Button.new_with_mnemonic(button)
 
 		if buttons is None or buttons == Gtk.ButtonsType.NONE:
@@ -3023,7 +3017,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		not enabled for interactive input - e.g. widget insensitive or hidden
 		'''
 		if hasattr(self, 'form'):
-			for key, value in fields.items():
+			for key, value in list(fields.items()):
 				if key in self.form:
 					assert self.get_input_enabled(key)
 					self.form[key] = value
@@ -3241,7 +3235,7 @@ class ErrorDialog(Gtk.MessageDialog):
 				msg, description = error
 				error = zim.errors.Error(msg, description)
 			else:
-				msg = unicode(error)
+				msg = str(error)
 				error = zim.errors.Error(msg)
 
 		self.error = error
@@ -3319,7 +3313,7 @@ class ErrorDialog(Gtk.MessageDialog):
 		else:
 			text += '<Could not extract stack trace>\n'
 
-		text += self.error.__class__.__name__ + ': ' + unicode(self.error)
+		text += self.error.__class__.__name__ + ': ' + str(self.error)
 
 		del exc_info # recommended by manual
 
@@ -3565,7 +3559,7 @@ class FileDialog(Dialog):
 			raise AssertionError('Could not set folder: %s' % dir.uri)
 
 	def load_last_folder(self):
-		self.uistate.setdefault('last_folder_uri', None, check=basestring)
+		self.uistate.setdefault('last_folder_uri', None, check=str)
 		if self.uistate['last_folder_uri']:
 			uri = self.uistate['last_folder_uri']
 			ok = self.filechooser.set_current_folder_uri(uri)

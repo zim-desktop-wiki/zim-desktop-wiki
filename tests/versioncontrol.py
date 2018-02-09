@@ -2,7 +2,7 @@
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -46,7 +46,7 @@ def get_tmp_dir(name):
 
 
 WIKITEXT = File('tests/data/formats/wiki.txt').read() # Contains some unicode
-UTF8_COMMENT = u'Commit \u03b1\u03b2\u03b3'
+UTF8_COMMENT = 'Commit \u03b1\u03b2\u03b3'
 
 
 @tests.slowTest
@@ -160,7 +160,7 @@ class TestVersionsDialog(tests.TestCase):
 			self.assertIsNotNone(app)
 
 		if app is None:
-			print '\nCould not find an application for side-by-side comparison'
+			print('\nCould not find an application for side-by-side comparison')
 		else:
 			self.assertTrue(app.tryexec)
 
@@ -268,10 +268,10 @@ added:
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
 		self.assertEqual(versions[0][0], '1')
-		self.assertEqual(versions[0][3], u'test 1\n')
+		self.assertEqual(versions[0][3], 'test 1\n')
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][0], '2')
-		self.assertEqual(versions[1][3], u'test 2\n')
+		self.assertEqual(versions[1][3], 'test 2\n')
 
 		lines = vcs.get_version(file, version=1)
 		self.assertEqual(''.join(lines), '''\
@@ -302,11 +302,11 @@ bar
 		file.write(WIKITEXT)
 		diff = vcs.get_diff()
 		diff = ''.join(diff)
-		self.assertIsInstance(diff, unicode)
+		self.assertIsInstance(diff, str)
 		vcs.commit(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
-		self.assertIsInstance(versions[-1][-1], unicode)
+		self.assertIsInstance(versions[-1][-1], str)
 
 		### Test delete ###
 		file.remove()
@@ -422,15 +422,15 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 		self.assertTrue(len(versions) == 3)
 		self.assertTrue(isinstance(versions[0], tuple))
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertTrue(isinstance(versions[0][0], basestring))
-		self.assertTrue(isinstance(versions[0][1], basestring))
-		self.assertTrue(isinstance(versions[0][2], basestring))
-		self.assertTrue(isinstance(versions[0][3], basestring))
-		self.assertEqual(versions[0][3], u'test 1\n')
+		self.assertTrue(isinstance(versions[0][0], str))
+		self.assertTrue(isinstance(versions[0][1], str))
+		self.assertTrue(isinstance(versions[0][2], str))
+		self.assertTrue(isinstance(versions[0][3], str))
+		self.assertEqual(versions[0][3], 'test 1\n')
 		self.assertTrue(len(versions[1]) == 4)
-		self.assertEqual(versions[1][3], u'test 2\n')
+		self.assertEqual(versions[1][3], 'test 2\n')
 		self.assertTrue(len(versions[2]) == 4)
-		self.assertEqual(versions[2][3], u'test 3\n')
+		self.assertEqual(versions[2][3], 'test 3\n')
 
 		# slightly different, we check the 2nd file
 		lines = vcs.get_version(file, version='HEAD^')
@@ -462,11 +462,11 @@ test
 		file.write(WIKITEXT)
 		diff = vcs.get_diff()
 		diff = ''.join(diff)
-		self.assertIsInstance(diff, unicode)
+		self.assertIsInstance(diff, str)
 		vcs.commit(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertIn(UTF8_COMMENT, versions[-1][-1])
-		self.assertIsInstance(versions[-1][-1], unicode)
+		self.assertIsInstance(versions[-1][-1], str)
 
 		### Test delete ###
 		file.remove()
@@ -561,10 +561,10 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		self.assertTrue(len(versions) == 2)
 		self.assertTrue(len(versions[0]) == 4)
 		self.assertEqual(versions[0][0], str(0))
-		self.assertEqual(versions[0][3], u'test 1')
+		self.assertEqual(versions[0][3], 'test 1')
 		self.assertTrue(len(versions[1]) == 4)
 		self.assertEqual(versions[1][0], str(1))
-		self.assertEqual(versions[1][3], u'test 2')
+		self.assertEqual(versions[1][3], 'test 2')
 
 
 		lines = vcs.get_version(file, version=0)
@@ -603,11 +603,11 @@ rename to bar.txt
 		file.write(WIKITEXT)
 		diff = vcs.get_diff()
 		diff = ''.join(diff)
-		self.assertIsInstance(diff, unicode)
+		self.assertIsInstance(diff, str)
 		vcs.commit(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
-		self.assertIsInstance(versions[-1][-1], unicode)
+		self.assertIsInstance(versions[-1][-1], str)
 
 		### Test delete ###
 		file.remove()
@@ -658,13 +658,13 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		self.assertTrue(len(versions) == 3)
 		self.assertTrue(isinstance(versions[0], tuple))
 		self.assertTrue(len(versions[0]) == 4)
-		self.assertTrue(isinstance(versions[0][0], basestring))
-		self.assertTrue(isinstance(versions[0][1], basestring))
-		self.assertTrue(isinstance(versions[0][2], basestring))
-		self.assertTrue(isinstance(versions[0][3], basestring))
-		self.assertEqual(versions[0][3], u'test 2 ')
+		self.assertTrue(isinstance(versions[0][0], str))
+		self.assertTrue(isinstance(versions[0][1], str))
+		self.assertTrue(isinstance(versions[0][2], str))
+		self.assertTrue(isinstance(versions[0][3], str))
+		self.assertEqual(versions[0][3], 'test 2 ')
 		self.assertTrue(len(versions[1]) == 4)
-		self.assertEqual(versions[1][3], u'test 1 ')
+		self.assertEqual(versions[1][3], 'test 1 ')
 
 		# slightly different, we check the 2nd file
 		lines = vcs.get_version(file, version=versions[0][0])
@@ -732,11 +732,11 @@ Index: foo/bar/bar.txt
 		file.write(WIKITEXT)
 		diff = vcs.get_diff()
 		diff = ''.join(diff)
-		self.assertIsInstance(diff, unicode)
+		self.assertIsInstance(diff, str)
 		vcs.commit(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertIn(UTF8_COMMENT, versions[0][-1])
-		self.assertIsInstance(versions[0][-1], unicode)
+		self.assertIsInstance(versions[0][-1], str)
 
 		### Test delete ###
 		file.remove()
