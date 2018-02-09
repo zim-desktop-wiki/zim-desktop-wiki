@@ -3370,9 +3370,9 @@ class ErrorDialog(gtk.MessageDialog):
 			text = self.get_debug_text(exc_info)
 			window, textview = ScrolledTextView(text, monospace=True)
 			window.set_size_request(350, 200)
+			self.set_resizable(True)
 			self.vbox.add(window)
-			self.vbox.show_all()
-			# TODO use an expander here ?
+			self.vbox.show_all()			
 		else:
 			self.showing_trace = False # used in test
 			pass
