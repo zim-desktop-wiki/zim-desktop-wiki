@@ -44,9 +44,11 @@ class ScreenshotPicker(object):
 			'delay': '-d',
 		}),
 		('spectacle', {
-			'select': ('--background', '--region', '--output'),
-			'full': ('--background','--fullscreen', '--output'),
+			'select': ('--background', '--region'),
+			'full': ('--background','--fullscreen'),
 			'delay': '-d',
+			'delay_factor': 1000,
+			'output': '--output',
 		}),
 		('import', {
 			'select': ('-silent',),
@@ -68,7 +70,13 @@ class ScreenshotPicker(object):
 		self.final_cmd_options += self.cmd_options[cmd][screenshot_mode]
 
 		if str(delay).isdigit() and int(delay) > 0 and self.cmd_options[cmd]['delay'] is not None:
-			self.final_cmd_options += (self.cmd_options[cmd]['delay'], str(delay))
+			delay_factor = 1
+                        if self.cmd_options[cmd].has_key('delay_factor'):
+			    delay_factor =  self.cmd_options[cmd]['delay_factor']
+			self.final_cmd_options += (self.cmd_options[cmd]['delay'], str(int(delay) * int(delay_factor)))
+                if self.cmd_options[cmd].has_key('output'):
+			self.final_cmd_options += (self.cmd_options[cmd]['output'], )
+
 
 	@classmethod
 	def select_cmd(cls, cmd=None):
@@ -110,7 +118,7 @@ This is a core plugin shipping with zim.
 		# key, type, label, default
 		('screenshot_command', 'choice', _('Screenshot Command'), COMMAND, SUPPORTED_COMMANDS), # T: plugin preference
 		('default_selection_mode', 'choice', _('Default choice'), 'Fullscreen', ['Fullscreen', 'Window or Region']),
-		('default_delay', 'int', _('Default delay'), 0, [0,120]),
+		('default_delay', 'int', _('Default delay'), 0, (0,120)),
 		('hide_dialog', 'bool', _('Hide options dialog'), False),
 	)
 	screenshot_cmd = COMMAND
