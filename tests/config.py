@@ -110,7 +110,7 @@ class TestDirsTestSetup(tests.TestCase):
 
 class TestXDGDirs(tests.TestCase):
 
-	def testValid(self):
+	def testAllValid(self):
 		'''Test config environment is valid'''
 		for var in (
 			ZIM_DATA_DIR,	# should always be set when running as test
@@ -135,13 +135,13 @@ class TestXDGDirs(tests.TestCase):
 				[d.subdir(['foo', 'bar']) for d in data_dirs()])
 
 	@tests.skipIf(os.name == 'nt', 'No standard defaults for windows')
-	def testCorrect(self):
+	def testDefaults(self):
 		'''Test default basedir paths'''
 		with EnvironmentConfigContext({
 			'XDG_DATA_HOME': None,
-			'XDG_DATA_DIRS': None,
+			'XDG_DATA_DIRS': '   ',
 			'XDG_CONFIG_HOME': None,
-			'XDG_CONFIG_DIRS': None,
+			'XDG_CONFIG_DIRS': '',
 			'XDG_CACHE_HOME': None,
 		}):
 			for k, v in (
@@ -157,11 +157,11 @@ class TestXDGDirs(tests.TestCase):
 			):
 				self.assertEqual(getattr(zim.config.basedirs, k), list(map(Dir, v.split(':'))))
 
-	def testCorrect(self):
+	def testIntializedEnvironment(self):
 		'''Test config environemnt with non-default basedir paths'''
 		my_environ = {
 			'XDG_DATA_HOME': '/foo/data/home',
-			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2',
+			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2   ',
 			'XDG_CONFIG_HOME': '/foo/config/home',
 			'XDG_CONFIG_DIRS': '/foo/config/dir1:/foo/config/dir2',
 			'XDG_CACHE_HOME': '/foo/cache',

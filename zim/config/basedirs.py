@@ -14,13 +14,12 @@ from zim.fs import File, Dir
 logger = logging.getLogger('zim.config')
 
 
-def _split_environ_list(value):
+def _split_environ_dir_list(value, default=()):
 	if isinstance(value, str):
-		return value.split(os.pathsep)
-	elif value is None:
-		return []
-	else:
-		raise ValueError
+		value = value.strip()
+
+	paths = value.split(os.pathsep) if value else default
+	return [Dir(p) for p in paths]
 
 
 ## Initialize config paths
@@ -57,14 +56,14 @@ def set_basedirs():
 		XDG_DATA_HOME = Dir(
 			os.environ.get('XDG_DATA_HOME', APPDATA + r'\zim\data'))
 
-		XDG_DATA_DIRS = list(map(Dir,
-			_split_environ_list(os.environ.get('XDG_DATA_DIRS', '~/.local/share/')))) # Backwards compatibility
+		XDG_DATA_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_DATA_DIRS'), ('~/.local/share/',)) # Backwards compatibility
 
 		XDG_CONFIG_HOME = Dir(
 			os.environ.get('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
 
-		XDG_CONFIG_DIRS = list(map(Dir,
-			_split_environ_list(os.environ.get('XDG_CONFIG_DIRS', '~/.config/')))) # Backwards compatibility
+		XDG_CONFIG_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_CONFIG_DIRS'), ('~/.config/',)) # Backwards compatibility
 
 		XDG_CACHE_HOME = Dir(
 			os.environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))
@@ -72,14 +71,14 @@ def set_basedirs():
 		XDG_DATA_HOME = Dir(
 			os.environ.get('XDG_DATA_HOME', '~/.local/share/'))
 
-		XDG_DATA_DIRS = list(map(Dir,
-			_split_environ_list(os.environ.get('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))))
+		XDG_DATA_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_DATA_DIRS'), ('/usr/share/', '/usr/local/share/'))
 
 		XDG_CONFIG_HOME = Dir(
 			os.environ.get('XDG_CONFIG_HOME', '~/.config/'))
 
-		XDG_CONFIG_DIRS = list(map(Dir,
-			_split_environ_list(os.environ.get('XDG_CONFIG_DIRS', ('/etc/xdg/',)))))
+		XDG_CONFIG_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_CONFIG_DIRS'), ('/etc/xdg/',))
 
 		XDG_CACHE_HOME = Dir(
 			os.environ.get('XDG_CACHE_HOME', '~/.cache'))
