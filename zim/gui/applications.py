@@ -114,8 +114,10 @@ def get_mimetype(obj):
 	@param obj: a L{File} object, or an URL
 	@returns: mimetype or C{None}
 	'''
-	if isinstance(obj, File):
-		return obj.get_mimetype()
+
+	for method in ('get_mimetype', 'mimetype'): # zim.fs.File, newfs
+		if hasattr(obj, method):
+			return getattr(obj, method)()
 	else:
 		scheme = uri_scheme(obj)
 		if scheme in (None, 'file'):

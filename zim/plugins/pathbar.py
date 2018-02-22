@@ -600,7 +600,7 @@ class PathBar(ScrolledHBox):
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
-		menu.popup(None, None, None, 3, 0)
+		menu.popup_at_pointer(None)
 		return True
 
 	def on_drag_data_get(self, button, context, selectiondata, info, time):

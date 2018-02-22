@@ -534,16 +534,14 @@ class SingleClickTreeView(Gtk.TreeView):
 				if not selection.path_is_selected(path):
 					selection.unselect_all()
 					selection.select_path(path)
-				# else the clcik was on a already selected path
+				# else the click was on a already selected path
 			else:
 				# click outside area with items ?
 				selection.unselect_all()
 
 			# Pop menu
 			menu = self.get_popup()
-			if menu:
-				menu.show_all()
-				menu.popup(None, None, None, 3, event.get_time())
+			menu.popup_at_pointer(event)
 		else:
 			return Gtk.TreeView.do_button_press_event(self, event)
 
@@ -781,13 +779,7 @@ class MenuButton(Gtk.HBox):
 		self.button.handler_unblock(self._clicked_signal)
 		self.menu.connect('deactivate', self._deactivate_menu)
 		self.menu.show_all()
-		self.menu.popup(None, None, self._position_menu, button, time)
-
-	def _position_menu(self, menu):
-		x, y = self.eventbox.window.get_origin()
-		w, h = menu.get_toplevel().size_request()
-		y -= h # make the menu pop above the button
-		return x, y, False
+		self.menu.popup_at_widget(self, Gdk.Gravity.NORTH_WEST, Gdk.Gravity.SOUTH_WEST, event)
 
 	def _deactivate_menu(self, menu):
 		self.button.handler_block(self._clicked_signal)

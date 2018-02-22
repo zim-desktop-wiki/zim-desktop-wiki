@@ -777,7 +777,7 @@ class TableViewWidget(CustomObjectWidget):
 					menu.append(item)
 
 			menu.show_all()
-			menu.popup(None, None, None, event.button, event.time)
+			menu.popup_at_pointer(event)
 
 	def on_add_row(self, action):
 		''' Context menu: Add a row '''

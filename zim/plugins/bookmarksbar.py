@@ -335,7 +335,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			item.connect('activate', lambda o: _delete_all())
 			menu.append(item)
 			menu.show_all()
-			menu.popup(None, None, None, 3, 0)
+			menu.popup_at_pointer(None)
 		else:
 			_delete_all()
 
@@ -417,7 +417,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			item.connect('activate', lambda o: self.toggle_show_full_page_name())
 			menu.append(item)
 			menu.show_all()
-			menu.popup(None, None, None, 3, 0)
+			menu.popup_at_pointer(None)
 			return True
 
 	def do_bookmarks_popup_menu(self, button, event):
@@ -464,7 +464,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			main_menu.append(item)
 
 		main_menu.show_all()
-		main_menu.popup(None, None, None, 3, 0)
+		main_menu.popup_at_pointer(None)
 		return True
 
 	@SignalHandler

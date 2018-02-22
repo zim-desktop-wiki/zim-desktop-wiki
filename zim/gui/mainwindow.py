@@ -426,7 +426,7 @@ class MainWindow(Window):
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
 		menu = self.uimanager.get_widget('/toolbar_popup')
-		menu.popup(None, None, None, button, 0)
+		menu.popup_at_pointer()
 
 	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
 	def toggle_statusbar(self, show):

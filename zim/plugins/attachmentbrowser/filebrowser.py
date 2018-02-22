@@ -319,7 +319,7 @@ class FileBrowserIconView(Gtk.IconView):
 			pathinfo = iconview.get_path_at_pos(x, y)
 			if pathinfo is not None:
 				iconview.grab_focus()
-				popup_menu.popup(None, None, None, event.button, time)
+				popup_menu.popup_at_pointer(event)
 				self.do_populate_popup(popup_menu, pathinfo)
 					# FIXME should use a signal here
 				return True
@@ -338,7 +338,7 @@ class FileBrowserIconView(Gtk.IconView):
 		submenu = OpenWithMenu(window, file) # XXX any widget should do to find window
 		item.set_submenu(submenu)
 
-		item = Gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Open')) # T: menu item to open file or folder
 		item.connect('activate', lambda o: open_file(self, file))
 		menu.prepend(item)
 
@@ -425,7 +425,7 @@ class FileBrowserIconView(Gtk.IconView):
 			menu.append(item)
 
 			menu.show_all()
-			menu.popup(None, None, None, 1, time)
+			menu.popup_at_pointer(None)
 		else:
 			# Assume Gdk.DragAction.COPY or Gdk.DragAction.DEFAULT
 			# on windows we get "0" which is not mapped to any action

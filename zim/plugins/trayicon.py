@@ -276,13 +276,13 @@ class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
 		menu = Gtk.Menu()
 		self.populate_menu_with_notebooks(menu, list)
 		menu.show_all()
-		menu.popup(None, None, Gtk.status_icon_position_menu, button, activate_time, self)
+		menu.popup(None, None, Gtk.status_icon_position_menu, self, button, activate_time)
 
 	def do_popup_menu(self, button=3, activate_time=0):
 		#~ print('>>', button, activate_time)
 		menu = self.get_trayicon_menu()
 		menu.show_all()
-		menu.popup(None, None, Gtk.status_icon_position_menu, button, activate_time, self)
+		menu.popup(None, None, Gtk.status_icon_position_menu, self, button, activate_time)
 
 	def destroy(self):
 		self.set_property('visible', False)
