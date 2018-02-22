@@ -103,7 +103,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane = HPaned()
 		self.uistate.setdefault('hpane_pos', 75)
 		self.hpane.set_position(self.uistate['hpane_pos'])
-		self.vbox.add(self.hpane)
+		self.vbox.pack_start(self.hpane, True, True, 0)
 
 		# Task list
 		self.uistate.setdefault('only_show_act', False)
@@ -248,7 +248,7 @@ class TagListTreeView(SingleClickTreeView):
 		tags = []
 		for row in self._get_selected():
 			if row[2] == self._type_tag:
-				tags.append(row[0].decode('UTF-8'))
+				tags.append(row[0])
 			elif row[2] == self._type_untagged:
 				tags.append(_NO_TAGS)
 		return tags or None
@@ -258,14 +258,14 @@ class TagListTreeView(SingleClickTreeView):
 		labels = []
 		for row in self._get_selected():
 			if row[2] == self._type_label:
-				labels.append(row[0].decode('UTF-8'))
+				labels.append(row[0])
 		return labels or None
 
 	def _get_selected(self):
 		selection = self.get_selection()
 		if selection:
 			model, paths = selection.get_selected_rows()
-			if not paths or (0,) in paths:
+			if not paths or any(p == Gtk.TreePath(0) for p in paths):
 				return []
 			else:
 				return [model[path] for path in paths]
@@ -437,7 +437,7 @@ class TaskListTreeView(BrowserTreeView):
 		today = str(datetime.date.today())
 		tomorrow = str(datetime.date.today() + datetime.timedelta(days=delta1))
 		dayafter = str(datetime.date.today() + datetime.timedelta(days=delta2))
-		def render_date(col, cell, model, i):
+		def render_date(col, cell, model, i, data):
 			date = model.get_value(i, self.DUE_COL)
 			if date == _MAX_DUE_DATE:
 				cell.set_property('text', '')

@@ -2919,6 +2919,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		@param page: the manual page, if C{None} the page as set with
 		L{set_help()} is used
 		'''
+		from zim.main import ZIM_APPLICATION
 		ZIM_APPLICATION.run('--manual', page or self.help_page)
 
 	def add_help_text(self, text):
