@@ -631,8 +631,7 @@ class WindowsPath(UnixPath):
 	'''
 
 	def _set_path(self, path):
-		# For windows unicode is supported natively,
-		# but may need to strip leading / for absolute paths
+		# Strip leading / for absolute paths
 		if re.match(r'^[/\\]+[A-Za-z]:[/\\]', path):
 			path = path.lstrip('/').lstrip('\\')
 		self.path = os.path.abspath(path)
@@ -996,7 +995,7 @@ class FilteredDir(Dir):
 		return files
 
 
-class UnixFile(FilePath):
+class File(FilePath):
 	'''Class representing a single file.
 
 	This class implements much more complex logic than the default
@@ -1331,69 +1330,6 @@ class UnixFile(FilePath):
 		# TODO: can be more efficient, e.g. by checking stat size first
 		# also wonder if MD5 is needed here ... could just compare text
 		return _md5(self.read()) == _md5(other.read())
-
-
-class WindowsFile(UnixFile):
-	'''Class representing a single file on windows. See L{UnixFile}
-	for API documentation.
-	'''
-
-	# For the "atomic" write on Windows we use .zim-new~ and .zim-orig~.
-	# When writing a new file, the sequence is the same as on Unix: we
-	# write a tmp file and move it into place. However on windows the
-	# rename() function does not allow replacing an existing file, so
-	# there is no atomic operation to move the tmp file into place.
-	# What we do instead:
-	#
-	# 1. Write file.zim-new~
-	# 2. Move file to file.zim-orig~
-	# 3. Move file.zim-new~ to file
-	# 4. Remove file.zim-orig~
-	#
-	# But now we have to consider recovering the file if any of these
-	# steps fails:
-	#   * If we have .zim-new~ and the actual file either step 1 or 2
-	#     failed, in this case the .zim-new~ file can be corrupted, so
-	#     keep the file itself
-	#   * If we have .zim-new~ and .zim-orig~ but the actual file is
-	#     missing, step 3 failed. We use .zim-new~ because probably
-	#     step 1 succeeded.
-	#   * If we have the actual file and .zim-orig~ step 4 failed, we
-	#     can throw away the .zim-orig~ file.
-	#   * If we only have a .zim-orig~ file step 4 failed, was not
-	#     recovered and maybe the file was removed (remove cleans up the
-	#     .zim-new~). So we can not recover - file does not exist.
-	#   * If only have a .zim-new~ file maybe writing a new file failed,
-	#     the .zim-new~ file can be corrupted - so we can not recover
-	#   * If we have all 3 files some combination of actions happened,
-	#     keep using the actual file.
-	#
-	# So this results in two rules:
-	#
-	# 1. if the actual file exists, use it
-	# 2. if the actual file does no exist but both .zim-new~ and .zim-orig~
-	#    exist, use the .zim-new~ file.
-	#
-	# In any other cases we can not recover. What we can do is make a backup
-	# of .zim-orig~ for future manual recovery.
-
-	def __init__(self, path, checkoverwrite=False, endofline=None):
-		UnixFile.__init__(self, path, checkoverwrite, endofline)
-		self._recover() # just to be sure
-
-	def exists(self):
-		orig = self.path + '.zim-orig~'
-		new = self.path + '.zim-new~'
-		return os.path.isfile(self.path) or \
-			(os.path.isfile(new) and os.path.isfile(orig))
-			# if both new and orig exists, we can recover
-
-
-# Determine which base class to use for files
-if os.name == 'nt':
-	File = WindowsFile
-else:
-	File = UnixFile
 
 
 class TmpFile(File):

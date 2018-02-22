@@ -434,7 +434,7 @@ class VCSBackend(ConnectorMixin):
 		TODO add specific ignore patterns in the _ignored_vcs_specific method
 		for now we just hardcode zim specific logic
 
-		@param path: a L{UnixFile} object representing the file path to check
+		@param path: a L{File} object representing the file path to check
 		@returns: True if the path should be ignored or False
 		"""
 		return '.zim' in path.split() or self.vcs._ignored(path)
@@ -458,7 +458,7 @@ class VCSBackend(ConnectorMixin):
 		Note: the VCS operation is asynchronous
 
 		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param path: the L{UnixFile} object representing the newly created file or folder
+		@param path: the L{File} object representing the newly created file or folder
 		@returns: nothing
 		"""
 		if path.ischild(self.root) and not self._ignored(path):
@@ -470,8 +470,8 @@ class VCSBackend(ConnectorMixin):
 		Note: the VCS operation is asynchronous
 
 		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param oldpath: the L{UnixFile} object representing the old path of the file or folder
-		@param newpath: the L{UnixFile} object representing the new path of the file or folder
+		@param oldpath: the L{File} object representing the old path of the file or folder
+		@param newpath: the L{File} object representing the new path of the file or folder
 		@returns: nothing
 		"""
 		if newpath.ischild(self.root) and not self._ignored(newpath):
@@ -488,7 +488,7 @@ class VCSBackend(ConnectorMixin):
 		Note: the VCS operation is asynchronous
 
 		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param path: the L{UnixFile} object representing the path of the file or folder to delete
+		@param path: the L{File} object representing the path of the file or folder to delete
 		@returns: nothing
 		"""
 		if path.ischild(self.root) and not self._ignored(path):
@@ -514,7 +514,7 @@ class VCSBackend(ConnectorMixin):
 	def get_diff(self, versions=None, file=None):
 		"""Returns the diff operation result of a repo or file
 		@param versions: couple of version numbers (integer)
-		@param file: L{UnixFile} object of the file to check, or None
+		@param file: L{File} object of the file to check, or None
 		@returns: the diff result
 		"""
 		with self.lock:
@@ -524,7 +524,7 @@ class VCSBackend(ConnectorMixin):
 
 	def get_annotated(self, file, version=None):
 		"""Returns the annotated version of a file
-		@param file: L{UnixFile} object of the file to check, or None
+		@param file: L{File} object of the file to check, or None
 		@param version: required version number (integer) or None
 		@returns: the annotated version of the file result
 		"""
@@ -557,7 +557,7 @@ class VCSBackend(ConnectorMixin):
 	def list_versions(self, file=None):
 		"""Returns a list of all versions, for a file or for the entire repo
 
-		@param file: a L{UnixFile} object representing the path to the file, or None
+		@param file: a L{File} object representing the path to the file, or None
 		@returns: a list of tuples (revision (int), date, user (str), msg (str))
 		"""
 		# TODO see if we can get this directly from bzrlib as well
