@@ -452,8 +452,9 @@ class UIActions(object):
 	@action(_('_About'), 'gtk-about') # T: Menu item
 	def show_about(self):
 		'''Menu action to show the "about" dialog'''
-		dialog = MyAboutDialog()
+		dialog = MyAboutDialog(self.widget)
 		dialog.run()
+		dialog.destroy()
 
 
 class NewPageDialog(Dialog):
@@ -891,18 +892,13 @@ You can use another name or overwrite the existing file.''' % file.basename),
 
 class MyAboutDialog(Gtk.AboutDialog):
 
-	def __init__(self):
-		#Gtk.about_dialog_set_url_hook(lambda d, l: open_url(l))
-		#Gtk.about_dialog_set_email_hook(lambda d, l: open_url(l))
+	def __init__(self, parent):
+		import zim
 
 		GObject.GObject.__init__(self)
+		self.set_transient_for(parent.get_toplevel())
 
-		try: # since gtk 2.12
-			self.set_program_name('Zim')
-		except AttributeError:
-			pass
-
-		import zim
+		self.set_program_name('Zim')
 		self.set_version(zim.__version__)
 		self.set_comments(_('A desktop wiki'))
 			# T: General description of zim itself
@@ -915,3 +911,6 @@ class MyAboutDialog(Gtk.AboutDialog):
 		self.set_translator_credits(_('translator-credits'))
 			# T: This string needs to be translated with names of the translators for this language
 		self.set_website(zim.__url__)
+
+	def do_activate_link(self, uri):
+		open_url(self, uri)
