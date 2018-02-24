@@ -733,6 +733,10 @@ class MenuButton(Gtk.HBox):
 		if status_bar_style:
 			button_set_statusbar_style(self.button)
 			widget = self.label
+			statusbar_backlink_style = self.button.get_style_context()
+			statusbar_css_provider = Gtk.CssProvider()
+			statusbar_backlink_style.add_provider(statusbar_css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+			statusbar_css_provider.load_from_data(b"#zim-statusbar-button {padding: 0px;}")
 		else:
 			arrow = Gtk.Arrow(Gtk.ArrowType.UP, Gtk.ShadowType.NONE)
 			widget = Gtk.HBox(spacing=3)
