@@ -182,12 +182,9 @@ class MainWindow(Window):
 		self.add(self.pageview)
 
 		# create statusbar
-		hbox = Gtk.HBox(spacing=0)
-		self.add_bar(hbox, BOTTOM)
-
 		self.statusbar = Gtk.Statusbar()
 		self.statusbar.push(0, '<page>')
-		hbox.add(self.statusbar)
+		self.add_bar(self.statusbar, BOTTOM)
 
 		def statusbar_element(string, size):
 			frame = Gtk.Frame()
@@ -212,12 +209,6 @@ class MainWindow(Window):
 		frame.add(self.statusbar_backlinks_button)
 
 		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
-
-		# add a second statusbar widget - somehow the corner grip
-		# does not render properly after the pack_end for the first one
-		#~ statusbar2 = Gtk.Statusbar()
-		#~ statusbar2.set_size_request(25, 10)
-		#~ hbox.pack_end(statusbar2, False, True, 0)
 
 		self.do_preferences_changed()
 
