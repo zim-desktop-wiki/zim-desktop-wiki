@@ -687,16 +687,10 @@ class BrowserTreeView(SingleClickTreeView):
 
 def button_set_statusbar_style(button):
 	# Set up a style for the statusbar variant to decrease spacing of the button
-	Gtk.rc_parse_string('''\
-style "zim-statusbar-button-style"
-{
-	GtkWidget::focus-padding = 0
-	GtkWidget::focus-line-width = 0
-	xthickness = 0
-	ythickness = 0
-}
-widget "*.zim-statusbar-button" style "zim-statusbar-button-style"
-''')
+	css_provider = Gtk.CssProvider()
+	css_provider.load_from_data(b"#zim-statusbar-button {padding: 0px;}")
+	button_style = button.get_style_context()
+	button_style.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 	button.set_name('zim-statusbar-button')
 	button.set_relief(Gtk.ReliefStyle.NONE)
 
