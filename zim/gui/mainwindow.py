@@ -185,6 +185,7 @@ class MainWindow(Window):
 		self.statusbar = Gtk.Statusbar()
 		self.statusbar.push(0, '<page>')
 		self.add_bar(self.statusbar, BOTTOM)
+		self.statusbar.set_property('margin', 0)
 
 		def statusbar_element(string, size):
 			frame = Gtk.Frame()
