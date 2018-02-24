@@ -3207,6 +3207,7 @@ class ErrorDialog(Gtk.MessageDialog):
 			buttons=buttons,
 			text=msg
 		)
+		self.set_resizable(True)
 		self.set_transient_for(get_window(parent))
 		self.set_modal(True)
 
@@ -3226,6 +3227,7 @@ class ErrorDialog(Gtk.MessageDialog):
 			text = self.get_debug_text(exc_info)
 			window, textview = ScrolledTextView(text, monospace=True)
 			window.set_size_request(350, 200)
+			window.set_property('expand', True)
 			self.vbox.add(window)
 			self.vbox.show_all()
 			# TODO use an expander here ?
