@@ -331,7 +331,7 @@ class FileBrowserIconView(Gtk.IconView):
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
 
-		item = Gtk.MenuItem(_('Open With...')) # T: menu item
+		item = Gtk.MenuItem.new_with_mnemonic(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
 		window = self.get_toplevel()
@@ -411,16 +411,16 @@ class FileBrowserIconView(Gtk.IconView):
 		elif action == Gdk.DragAction.ASK:
 			menu = Gtk.Menu()
 
-			item = Gtk.MenuItem(_('_Move Here')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Move Here')) # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._move_files(files))
 			menu.append(item)
 
-			item = Gtk.MenuItem(_('_Copy Here')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Copy Here')) # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._copy_files(files))
 			menu.append(item)
 
 			menu.append(Gtk.SeparatorMenuItem())
-			item = Gtk.MenuItem(_('Cancel')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem.new_with_mnemonic(_('Cancel')) # T: popup menu action on drag-drop of a file
 			# cancel action needs no action
 			menu.append(item)
 

@@ -609,9 +609,9 @@ class SingleClickTreeView(Gtk.TreeView):
 		@param menu: the C{Gtk.Menu} object for the popup
 		@param prepend: if C{False} append, if C{True} prepend
 		'''
-		expand = Gtk.MenuItem(_("Expand _All")) # T: menu item in context menu
+		expand = Gtk.MenuItem.new_with_mnemonic(_("Expand _All")) # T: menu item in context menu
 		expand.connect_object('activate', self.__class__.expand_all, self)
-		collapse = Gtk.MenuItem(_("_Collapse All")) # T: menu item in context menu
+		collapse = Gtk.MenuItem.new_with_mnemonic(_("_Collapse All")) # T: menu item in context menu
 		collapse.connect_object('activate', self.__class__.collapse_all, self)
 
 		populate_popup_add_separator(menu, prepend=prepend)
