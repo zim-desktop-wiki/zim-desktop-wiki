@@ -135,7 +135,7 @@ class BookmarksBarMainWindowExtension(WindowExtension):
 		if path:
 			item = Gtk.SeparatorMenuItem()
 			menu.prepend(item)
-			item = Gtk.MenuItem(_('Add Bookmark')) # T: menu item bookmark plugin
+			item = Gtk.MenuItem.new_with_mnemonic(_('Add Bookmark')) # T: menu item bookmark plugin
 			page = self.window.notebook.get_page(path)
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
@@ -331,7 +331,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 		if ask_confirmation:
 			# Prevent accidental deleting of all bookmarks.
 			menu = Gtk.Menu()
-			item = Gtk.MenuItem(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
+			item = Gtk.MenuItem.new_with_mnemonic(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
 			item.connect('activate', lambda o: _delete_all())
 			menu.append(item)
 			menu.show_all()

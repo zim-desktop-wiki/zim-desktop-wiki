@@ -121,7 +121,7 @@ class BackLinksWidget(Gtk.ScrolledWindow, WindowSidePaneWidget):
 	def on_populate_popup(self, treeview, menu):
 		populate_popup_add_separator(menu)
 
-		item = Gtk.MenuItem(_('Open in New _Window'))
+		item = Gtk.MenuItem.new_with_mnemonic(_('Open in New _Window'))
 		item.connect('activate', self.on_open_new_window, treeview)
 		menu.append(item)
 
