@@ -23,18 +23,19 @@ def load_zim_stock_icons():
 	factory = Gtk.IconFactory()
 	factory.add_default()
 	for dir in data_dirs(('pixmaps')):
-		for file in dir.list('*.png'):
+		for basename in dir.list('*.png'):
 			# not all installs have svg support, so only check png for now..
-			name = 'zim-' + file[:-4] # e.g. checked-box.png -> zim-checked-box
+			name = 'zim-' + basename[:-4] # e.g. checked-box.png -> zim-checked-box
 			icon_theme = Gtk.IconTheme.get_default()
 			try:
-			    pixbuf = icon_theme.load_icon(name, 24, 0)
+				pixbuf = icon_theme.load_icon(name, 24, 0)
 			except:
-			    pixbuf = GdkPixbuf.Pixbuf.new_from_file(str(dir + file))
+				path = dir.file(basename).path
+				pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
 
 			try:
-			    set = Gtk.IconSet(pixbuf)
-			    factory.add(name, set)
+				set = Gtk.IconSet(pixbuf)
+				factory.add(name, set)
 			except Exception:
 				logger.exception('Got exception while loading application icons')
 

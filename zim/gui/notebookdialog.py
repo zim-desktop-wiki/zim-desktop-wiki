@@ -35,6 +35,14 @@ PIXBUF_COL = 3 # column containing the notebook icon
 INFO_COL = 4   # column with the NotebookInfo object
 
 
+def _run_dialog_with_mainloop(dialog):
+	# Apparently Gtk.Dialog.run() does not work outside of a main loop
+	dialog.show_all()
+	dialog.present()
+	dialog.connect("response", lambda *a: Gtk.main_quit())
+	Gtk.main()
+	return dialog.result
+
 def prompt_notebook():
 	'''Prompts the NotebookDialog and returns the result or None.
 	As a special case for first time usage it immediately prompts for
@@ -44,7 +52,7 @@ def prompt_notebook():
 	list = get_notebook_list()
 	if len(list) == 0:
 		logger.debug('First time usage - prompt for notebook folder')
-		fields = AddNotebookDialog(None).run()
+		fields = _run_dialog_with_mainloop(AddNotebookDialog(None))
 		if fields:
 			dir = Dir(fields['folder'])
 			init_notebook(dir, name=fields['name'])
@@ -55,7 +63,7 @@ def prompt_notebook():
 			return None # User canceled the dialog ?
 	else:
 		# Multiple notebooks defined and no default
-		return NotebookDialog(None).run()
+		return _run_dialog_with_mainloop(NotebookDialog(None))
 
 
 class NotebookTreeModel(Gtk.ListStore):
