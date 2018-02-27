@@ -2031,7 +2031,7 @@ class WindowSidePane(Gtk.VBox):
 
 		# Add bar with label and close button
 		self.topbar = Gtk.HBox()
-		self.topbar.pack_end(self._close_button(), True, True, 0)
+		self.topbar.pack_end(self._close_button(), False, True, 0)
 		self.pack_start(self.topbar, False, True, 0)
 
 		# Add notebook
