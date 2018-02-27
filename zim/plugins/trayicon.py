@@ -128,7 +128,7 @@ class TrayIconBase(object):
 		'''Returns the main 'tray icon menu'''
 		menu = Gtk.Menu()
 
-		item = Gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Quick Note...')) # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quick_note, self)
 		menu.append(item)
 
@@ -137,14 +137,14 @@ class TrayIconBase(object):
 		notebooks = self.list_all_notebooks()
 		self.populate_menu_with_notebooks(menu, notebooks)
 
-		item = Gtk.MenuItem('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
+		item = Gtk.MenuItem.new_with_mnemonic('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
 			# T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_open_notebook, self)
 		menu.append(item)
 
 		menu.append(Gtk.SeparatorMenuItem())
 
-		item = Gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Quit')) # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quit, self)
 		menu.append(item)
 
@@ -193,7 +193,7 @@ class TrayIconBase(object):
 	def populate_menu_with_notebooks(self, menu, notebooks):
 		'''Populate a menu with a list of notebooks'''
 		# TODO put checkbox behind open notebooks ?
-		item = Gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem.new_with_mnemonic(_('Notebooks')) # T: menu item in tray icon menu
 		item.set_sensitive(False)
 		menu.append(item)
 

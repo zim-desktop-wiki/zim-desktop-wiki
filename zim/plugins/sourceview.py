@@ -368,7 +368,7 @@ class SourceViewWidget(TextViewWidget):
 		def activate_lang(item):
 			self.obj.set_language(item.zim_sourceview_languageid)
 
-		item = Gtk.MenuItem(_('Syntax'))
+		item = Gtk.MenuItem.new_with_mnemonic(_('Syntax'))
 		item.set_sensitive(self.view.get_editable())
 		submenu = Gtk.Menu()
 		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):

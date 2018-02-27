@@ -5703,14 +5703,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				item.set_sensitive(False)
 			copy_as_menu.append(item)
 
-		item = Gtk.MenuItem(_('Copy _As...')) # T: menu item for context menu of editor
+		item = Gtk.MenuItem.new_with_mnemonic(_('Copy _As...')) # T: menu item for context menu of editor
 		item.set_submenu(copy_as_menu)
 		item.show_all()
 		menu.insert(item, 2) # position after Copy in the standard menu - may not be robust...
 			# FIXME get code from test to seek stock item
 
 		### Move text to new page ###
-		item = Gtk.MenuItem(_('Move Selected Text...'))
+		item = Gtk.MenuItem.new_with_mnemonic(_('Move Selected Text...'))
 			# T: Context menu item for pageview to move selected text to new/other page
 		item.show_all() # FIXME should not be needed here
 		menu.insert(item, 7) # position after Copy in the standard menu - may not be robust...
@@ -5761,16 +5761,16 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# remove link
 		if link:
-			item = Gtk.MenuItem(_('_Remove Link'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Remove Link'))
 			item.connect('activate', lambda o: self.remove_link(iter=iter))
 			item.set_sensitive(not self.readonly)
 			menu.prepend(item)
 
 		# edit
 		if type == 'image':
-			item = Gtk.MenuItem(_('_Edit Properties')) # T: menu item in context menu for image
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Edit Properties')) # T: menu item in context menu for image
 		else:
-			item = Gtk.MenuItem(_('_Edit Link')) # T: menu item in context menu
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Edit Link')) # T: menu item in context menu
 		item.connect('activate', lambda o: self.edit_object(iter=iter))
 		item.set_sensitive(not self.readonly)
 		menu.prepend(item)
@@ -5790,20 +5790,20 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			SelectionClipboard.set_uri(uri)
 
 		if type == 'page':
-			item = Gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
 			path = self.notebook.pages.resolve_link(
 				self.page, HRef.new_from_wiki_link(link['href'])
 			)
 			item.connect('activate', set_pagelink, path)
 		elif type == 'interwiki':
-			item = Gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
 			url = interwiki_link(link['href'])
 			item.connect('activate', set_interwikilink, (link['href'], url))
 		elif type == 'mailto':
-			item = Gtk.MenuItem(_('Copy Email Address')) # T: context menu item
+			item = Gtk.MenuItem.new_with_mnemonic(_('Copy Email Address')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])
 		else:
-			item = Gtk.MenuItem(_('Copy _Link')) # T: context menu item
+			item = Gtk.MenuItem.new_with_mnemonic(_('Copy _Link')) # T: context menu item
 			item.connect('activate', set_uri, file or link['href'])
 		menu.prepend(item)
 
@@ -5811,7 +5811,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# open with & open folder
 		if type in ('file', 'image') and file:
-			item = Gtk.MenuItem(_('Open Folder'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('Open Folder'))
 				# T: menu item to open containing folder of files
 			menu.prepend(item)
 			dir = file.dir
@@ -5820,7 +5820,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			else:
 				item.set_sensitive(False)
 
-			item = Gtk.MenuItem(_('Open With...'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('Open With...'))
 				# T: menu item for sub menu with applications
 			menu.prepend(item)
 			if file.exists():
@@ -5831,7 +5831,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		elif type not in ('page', 'notebook', 'interwiki', 'file', 'image'): # urls etc.
 			# FIXME: for interwiki inspect final link and base
 			# open with menu beased on that url type
-			item = Gtk.MenuItem(_('Open With...'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('Open With...'))
 			menu.prepend(item)
 			submenu = OpenWithMenu(self, link['href'])
 			if submenu.get_children():
@@ -5841,7 +5841,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		# open in new window
 		if type == 'page':
-			item = Gtk.MenuItem(_('Open in New _Window'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('Open in New _Window'))
 				# T: menu item to open a link
 			item.connect(
 				'activate', lambda o: self.activate_link(link, new_window=True))
@@ -5851,7 +5851,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if type == 'image':
 			link = {'href': file.uri}
 
-		item = Gtk.MenuItem(_('_Open'))
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Open'))
 			# T: menu item to open a link or file
 		if file and not file.exists():
 			item.set_sensitive(False)
