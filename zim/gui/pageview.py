@@ -4900,7 +4900,8 @@ you save a copy, changes to buffer will be also discarded, but you can restore t
 		def discard_disk(self):  
                         logger.debug('allowing to overwrite the file')
 			text, page._last_etag = page.source_file.read_with_etag()
-                        page._store_last_lines(page.format.Dumper().dump(self.get_parsetree(),file_output=True))
+                        #page._store_last_lines(page.format.Dumper().dump(self.get_parsetree(),file_output=True)) #below fix by Irq3000 fixes discard issue
+                        page._store_last_lines(page.format.Dumper().dump(page.get_parsetree(),file_output=True))
                         pageview.view.get_buffer().set_modified(True)        
                         self._done = True
 
