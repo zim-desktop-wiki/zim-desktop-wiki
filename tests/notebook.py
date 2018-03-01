@@ -792,6 +792,31 @@ class TestPath(tests.TestCase):
 	# TODO test operators on paths > < + - >= <= == !=
 
 
+class TestShortestUniqueNames(tests.TestCase):
+
+	def runTest(self):
+		from zim.notebook.page import shortest_unique_names
+		paths = [
+			Path('Test'),
+			Path('Foo'),
+			Path('2017:03:01'),
+			Path('2018:03:01'),
+			Path('2018:02:01'),
+			Path('Foo:Bar'),
+			Path('Dus:Foo')
+		]
+		wanted = [
+			'Test',
+			'Foo',
+			'2017:03:01',
+			'2018:03:01',
+			'02:01',
+			'Bar',
+			'Dus:Foo'
+		]
+		self.assertEqual(shortest_unique_names(paths), wanted)
+
+
 class TestHRefFromWikiLink(tests.TestCase):
 
 	def runTest(self):
