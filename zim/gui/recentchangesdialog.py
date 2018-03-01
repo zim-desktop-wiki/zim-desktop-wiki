@@ -88,5 +88,5 @@ class RecentChangesTreeView(BrowserTreeView):
 		self.connect('row-activated', self._do_open_page)
 
 	def _do_open_page(self, view, path, col):
-		page = Path( self.get_model()[path][self.NAME_COL].decode('utf-8') )
+		page = Path(self.get_model()[path][self.NAME_COL].decode('utf-8'))
 		self.ui.open_page(page)

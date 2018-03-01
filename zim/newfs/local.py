@@ -34,7 +34,7 @@ def _os_lrmdir(path):
 	try:
 		os.rmdir(path)
 	except OSError:
-		if os.path.islink(path) and os.path.isdir(path):
+		if os.path.islink(path) and os.path.isdir(path) and not os.listdir(path):
 			os.unlink(path)
 		else:
 			raise
@@ -59,7 +59,7 @@ class LocalFSObjectBase(FSObjectBase):
 	def parent(self):
 		dirname = self.dirname
 		if dirname is None:
-			raise ValueError, 'Can not get parent of root'
+			raise ValueError('Can not get parent of root')
 		else:
 			return LocalFolder(dirname, watcher=self.watcher)
 
@@ -98,7 +98,7 @@ class LocalFSObjectBase(FSObjectBase):
 			assert isinstance(other, Folder)
 
 		if not isinstance(other, LocalFSObjectBase):
-			raise NotImplementedError, 'TODO: support cross object type move'
+			raise NotImplementedError('TODO: support cross object type move')
 
 		assert not other.path == self.path # case sensitive
 		logger.info('Rename %s to %s', self.path, other.path)
@@ -138,7 +138,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 					os.mkdir(self.encodedpath, mode)
 				else:
 					os.mkdir(self.encodedpath)
-			except OSError, e:
+			except OSError as e:
 				if e.errno != errno.EEXIST:
 					raise
 			else:
@@ -174,10 +174,9 @@ class LocalFolder(LocalFSObjectBase, Folder):
 		except OSError:
 			raise FileNotFoundError(self)
 
-		names = [ n for n in names
-			if n[0] not in ('.', '~') and n[-1] != '~' ]
+		names = sorted([n for n in names
+			if n[0] not in ('.', '~') and n[-1] != '~'])
 			# Ignore hidden files and tmp files
-		names.sort()
 
 		if FS_ENCODING == 'mbcs':
 			# We are running on windows and os.listdir will handle unicode natively
@@ -237,7 +236,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 			try:
 				_os_lrmdir(self.encodedpath)
 			except OSError:
-				raise FolderNotEmptyError, 'Folder not empty: %s' % self.path
+				raise FolderNotEmptyError('Folder not empty: %s' % self.path)
 			else:
 				if self.watcher:
 					self.watcher.emit('removed', self)
@@ -264,12 +263,12 @@ elif sys.platform == 'win32':
 	def _replace_file(src, dst):
 		try:
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError, 'Could not replace "%s" -> "%s"' % (src, dst)
+				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 		except:
 			# Sometimes it fails - we play stupid and try again...
 			time.sleep(0.5)
 			if not _MoveFileEx(src, dst, 1): # MOVEFILE_REPLACE_EXISTING
-				raise OSError, 'Could not replace "%s" -> "%s"' % (src, dst)
+				raise OSError('Could not replace "%s" -> "%s"' % (src, dst))
 else:
 	_replace_file = os.rename
 
@@ -335,7 +334,7 @@ class LocalFile(LocalFSObjectBase, File):
 			with open(self.encodedpath, 'rU') as fh:
 				try:
 					text = fh.read().decode('UTF-8')
-				except UnicodeDecodeError, err:
+				except UnicodeDecodeError as err:
 					raise FileUnicodeError(self, err)
 				else:
 					return text.lstrip(u'\ufeff').replace('\x00', '')
@@ -353,7 +352,7 @@ class LocalFile(LocalFSObjectBase, File):
 			with open(self.encodedpath, 'rU') as fh:
 				return [
 					l.decode('UTF-8').lstrip(u'\ufeff').replace('\x00', '')
-						for l in fh ]
+						for l in fh]
 						# Strip unicode byte order mark
 						# Internally we use Unix line ends - so strip out \r
 						# And remove any NULL byte since they screw up parsing
@@ -450,15 +449,14 @@ def get_tmpdir():
 	dir = LocalFolder(tempfile.gettempdir()).folder('zim-%s' % name)
 
 	try:
-		dir.touch(mode=0700) # Limit to single user
-		os.chmod(dir.encodedpath, 0700) # Limit to single user when dir already existed
+		dir.touch(mode=0o700) # Limit to single user
+		os.chmod(dir.encodedpath, 0o700) # Limit to single user when dir already existed
 			# Raises OSError if not allowed to chmod
 		os.listdir(dir.encodedpath)
 			# Raises OSError if we do not have access anymore
 	except OSError:
-		raise AssertionError, \
-			'Either you are not the owner of "%s" or the permissions are un-safe.\n' \
-			'If you can not resolve this, try setting $TMP to a different location.' % dir.path
+		raise AssertionError('Either you are not the owner of "%s" or the permissions are un-safe.\n'
+			'If you can not resolve this, try setting $TMP to a different location.' % dir.path)
 	else:
 		# All OK, so we must be owner of a safe folder now ...
 		return dir

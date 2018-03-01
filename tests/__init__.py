@@ -59,7 +59,7 @@ __all__ = [
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-	'arithmetic',
+	'arithmetic', 'linesorter'
 ]
 
 
@@ -70,7 +70,7 @@ mydir = os.path.abspath(os.path.dirname(__file__))
 for file in glob.glob(mydir + '/*.py'):
 	name = os.path.basename(file)[:-3]
 	if name != '__init__' and not name in __all__:
-		raise AssertionError, 'Test missing in __all__: %s' % name
+		raise AssertionError('Test missing in __all__: %s' % name)
 
 # get our own data dir
 DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
@@ -97,7 +97,7 @@ def load_tests(loader, tests, pattern):
 	The parameters 'tests' and 'pattern' are ignored.
 	'''
 	suite = unittest.TestSuite()
-	for name in ['tests.'+name for name in __all__ ]:
+	for name in ['tests.' + name for name in __all__]:
 		test = loader.loadTestsFromName(name)
 		suite.addTest(test)
 	return suite
@@ -131,7 +131,7 @@ def _setUpEnvironment():
 		# Need these since gtk pixbuf loaders are in /usr/share in
 		# some setups, and this parameter is used to find them
 		os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
-			(os.environ['XDG_DATA_DIRS'], system_data_dirs) )
+			(os.environ['XDG_DATA_DIRS'], system_data_dirs))
 
 if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	# Do this when loaded, but not re-do in sub processes
@@ -155,7 +155,7 @@ class TestLoggingHandler(logging.Handler):
 
 	def emit(self, record):
 		if record.levelno >= logging.WARNING:
-			raise UncaughtWarningError, self.format(record)
+			raise UncaughtWarningError(self.format(record))
 		else:
 			pass
 
@@ -167,7 +167,7 @@ try:
 except UncaughtWarningError:
 	pass
 else:
-	raise AssertionError, 'Raising errors on warning fails'
+	raise AssertionError('Raising errors on warning fails')
 
 ###
 
@@ -181,7 +181,7 @@ def zim_pyfiles():
 	'''Returns a list with file paths for all the zim python files'''
 	if not _zim_pyfiles:
 		for d, dirs, files in os.walk('zim'):
-			_zim_pyfiles.extend([d+'/'+f for f in files if f.endswith('.py')])
+			_zim_pyfiles.extend([d + '/' + f for f in files if f.endswith('.py')])
 		_zim_pyfiles.sort()
 	for file in _zim_pyfiles:
 		yield file # shallow copy
@@ -261,14 +261,20 @@ class TestCase(unittest.TestCase):
 		'''
 		path = cls._get_tmp_name(name)
 
-		if mock == MOCK_ALWAYS_MOCK: use_mock = True
-		elif mock == MOCK_ALWAYS_REAL: use_mock = False
+		if mock == MOCK_ALWAYS_MOCK:
+			use_mock = True
+		elif mock == MOCK_ALWAYS_REAL:
+			use_mock = False
 		elif mock == MOCK_DEFAULT_REAL:
-			if FAST_TEST: use_mock = True
-			else: use_mock = False
+			if FAST_TEST:
+				use_mock = True
+			else:
+				use_mock = False
 		else: # MOCK_DEFAULT_MOCK:
-			if FULL_TEST: use_mock = False
-			elif FAST_TEST: use_mock = True
+			if FULL_TEST:
+				use_mock = False
+			elif FAST_TEST:
+				use_mock = True
 			elif random.random() < 0.2:
 				logger.info("Random dice throw: use real file system")
 				use_mock = False
@@ -483,13 +489,13 @@ class DialogContext(object):
 	def _callback(self, dialog):
 		#~ print '>>>', dialog
 		if not self.stack:
-			raise AssertionError, 'Unexpected dialog run: %s' % dialog
+			raise AssertionError('Unexpected dialog run: %s' % dialog)
 
 		handler = self.stack.pop(0)
 
-		if isinstance(handler, (type, types.ClassType)): # is a class
+		if isinstance(handler, (type, type)): # is a class
 			if not isinstance(dialog, handler):
-				raise AssertionError, 'Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__)
+				raise AssertionError('Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__))
 			dialog.assert_response_ok()
 		else: # assume a function
 			handler(dialog)
@@ -502,7 +508,7 @@ class DialogContext(object):
 
 		has_error = bool([e for e in error if e is not None])
 		if self.stack and not has_error:
-			raise AssertionError, '%i expected dialog(s) not run' % len(self.stack)
+			raise AssertionError('%i expected dialog(s) not run' % len(self.stack))
 
 		return False # Raise any errors again outside context
 
@@ -513,13 +519,13 @@ class TestData(object):
 	def __init__(self, format):
 		assert format == 'wiki', 'TODO: add other formats'
 		root = os.environ['ZIM_TEST_ROOT']
-		tree = etree.ElementTree(file=root+'/tests/data/notebook-wiki.xml')
+		tree = etree.ElementTree(file=root + '/tests/data/notebook-wiki.xml')
 
 		test_data = []
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
 			text = unicode(node.text.lstrip('\n'))
-			if os.name =='nt' and isinstance(name, unicode):
+			if os.name == 'nt' and isinstance(name, unicode):
 				pass # XXX No idea what goes wrong, but names are messed up
 			else:
 				test_data.append((name, text))
@@ -871,7 +877,7 @@ class MaskedObject(object):
 		if name in self.__names:
 			return getattr(self.__obj, name)
 		else:
-			raise AttributeError, 'Acces to \'%s\' not allowed' % name
+			raise AttributeError('Acces to \'%s\' not allowed' % name)
 
 
 def gtk_process_events(*a):

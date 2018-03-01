@@ -23,8 +23,8 @@ import logging
 logger = logging.getLogger('zim.plugins.bookmarksbar')
 
 # Keyboard shortcut constants.
-BM_TOGGLE_BAR_KEY ='F4'
-BM_ADD_BOOKMARK_KEY ='<alt>0'
+BM_TOGGLE_BAR_KEY = 'F4'
+BM_ADD_BOOKMARK_KEY = '<alt>0'
 
 class BookmarksBarPlugin(PluginClass):
 
@@ -34,7 +34,7 @@ class BookmarksBarPlugin(PluginClass):
 		This plugin provides bar for bookmarks.
 		'''), # T: plugin description
 	'author': 'Pavel_M',
-	'help': 'Plugins:BookmarksBar',}
+	'help': 'Plugins:BookmarksBar', }
 
 	plugin_preferences = (
 		# key, type, label, default
@@ -364,7 +364,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		:param first, second: strings corresponding to Path.name.
 		:param direction: move 'first' bookmark to the 'left' or 'right' of the 'second'.
 		'''
-		if (first == second) or (direction not in ('left','right')):
+		if (first == second) or (direction not in ('left', 'right')):
 			return False
 
 		if (first in self.paths) and (second in self.paths):
@@ -426,7 +426,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		path = button.zim_path
 
 		_button_width = button.size_request()[0]
-		direction = 'left' if (int(event.x) <= _button_width/2) else 'right'
+		direction = 'left' if (int(event.x) <= _button_width / 2) else 'right'
 
 		def set_save_bookmark(path):
 			self._saved_bookmark = path
@@ -448,7 +448,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
 				    ('separator', ''),
 				    (rename_button_text, lambda o: self.rename_bookmark(button)),
-				    (_('Set to Current Page'), lambda o: self.change_bookmark(path)) ) # T: menu item
+				    (_('Set to Current Page'), lambda o: self.change_bookmark(path))) # T: menu item
 
 		for name, func in main_menu_items:
 			if name == 'separator':

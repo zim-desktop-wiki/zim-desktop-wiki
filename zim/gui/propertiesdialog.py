@@ -10,7 +10,7 @@ class PropertiesDialog(Dialog):
 	def __init__(self, ui):
 		Dialog.__init__(self, ui, _('Properties'), help='Help:Properties') # T: Dialog title
 		label = gtk.Label()
-		label.set_markup('<b>'+_('Notebook Properties')+'</b>')
+		label.set_markup('<b>' + _('Notebook Properties') + '</b>')
 			# T: Section in notebook dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)

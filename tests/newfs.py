@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim filesystem module.'''
 
@@ -68,7 +68,7 @@ class TestFilePath(tests.TestCase):
 		# all variants should give equal result in constructor
 		testpath = P('/foo/bar')
 		testpathnames = ('/foo', 'bar') if os.name != 'nt' else ('C:', 'foo', 'bar')
-		testuri =  'file:///foo/bar' if os.name != 'nt' else 'file:///C:/foo/bar'
+		testuri = 'file:///foo/bar' if os.name != 'nt' else 'file:///C:/foo/bar'
 		for p in (
 			testpath, testpathnames, testuri,
 			testpath + '///', P('/foo/./bar/../bar'),
@@ -154,7 +154,7 @@ class TestFilePath(tests.TestCase):
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
 		):
 			self.assertEqual(
-				FilePath(P(path1)).relpath(FilePath(P(path2)), 	allowupward=True),
+				FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True),
 				P(relpath)
 			)
 
@@ -317,7 +317,7 @@ class TestFS(object):
 		self.assertEquals(file.read_with_etag(), ('test 123\n', etag1))
 
 		# Now write again
-		import time;
+		import time
 		if isinstance(etag1[0], float):
 			time.sleep(0.1) # Ensure mtime change
 		else: # int
@@ -810,12 +810,12 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file = root.file('read-only-file.txt')
 		file.write('test 123\n')
 
-		os.chmod(file.encodedpath, 0444)
+		os.chmod(file.encodedpath, 0o444)
 		try:
 			self.assertRaises(FileNotWritableError, file.write, 'Overwritten!')
 			self.assertEqual(file.read(), 'test 123\n')
 		finally:
-			os.chmod(file.encodedpath, 0644) # make it removable again
+			os.chmod(file.encodedpath, 0o644) # make it removable again
 			file.remove()
 
 	def testFileEncoding(self):
@@ -905,13 +905,10 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertFalse(linkedfile.exists())
 		self.assertTrue(targetfile.exists())
 		self.assertTrue(targetfile.read(), 'foobar\n')
-		for child in dir:
-			child.remove()
-		self.assertRaises(FileNotFoundError, dir.list_names)
+
+		# Test linked dir is treated like any other
+		self.assertRaises(FolderNotEmptyError, linkeddir.remove)
 		self.assertTrue(targetdir.exists())
-		self.assertEqual(targetdir.list_names(), ['foo.txt'])
-
-
 
 
 class TestTmpFile(tests.TestCase):

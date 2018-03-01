@@ -75,12 +75,14 @@ class TestDirsTestSetup(tests.TestCase):
 			('XDG_DATA_HOME', os.path.join(tests.TMPDIR, 'data_home')),
 			('XDG_CONFIG_HOME', os.path.join(tests.TMPDIR, 'config_home')),
 			('XDG_CACHE_HOME', os.path.join(tests.TMPDIR, 'cache_home'))
-		): self.assertEqual(getattr(zim.config, k), Dir(v))
+		):
+			self.assertEqual(getattr(zim.config, k), Dir(v))
 
 		for k, v in (
 			#~ ('XDG_DATA_DIRS', os.path.join(tests.TMPDIR, 'data_dir')),
 			('XDG_CONFIG_DIRS', os.path.join(tests.TMPDIR, 'config_dir')),
-		): self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
+		):
+			self.assertEqual(getattr(zim.config, k), map(Dir, v.split(os.pathsep)))
 
 		self.assertEqual(
 			zim.config.XDG_DATA_DIRS[0],
@@ -97,12 +99,14 @@ class TestXDGDirs(tests.TestCase):
 			XDG_DATA_HOME,
 			XDG_CONFIG_HOME,
 			XDG_CACHE_HOME
-		): self.assertTrue(isinstance(var, Dir))
+		):
+			self.assertTrue(isinstance(var, Dir))
 
 		for var in (
 			XDG_DATA_DIRS,
 			XDG_CONFIG_DIRS,
-		): self.assertTrue(isinstance(var, list) and isinstance(var[0], Dir))
+		):
+			self.assertTrue(isinstance(var, list) and isinstance(var[0], Dir))
 
 		self.assertEqual(ZIM_DATA_DIR, Dir('./data'))
 		self.assertTrue(ZIM_DATA_DIR.file('zim.png').exists())
@@ -126,12 +130,14 @@ class TestXDGDirs(tests.TestCase):
 				('XDG_DATA_HOME', '~/.local/share'),
 				('XDG_CONFIG_HOME', '~/.config'),
 				('XDG_CACHE_HOME', '~/.cache')
-			): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
 			for k, v in (
 				('XDG_DATA_DIRS', '/usr/share:/usr/local/share'),
 				('XDG_CONFIG_DIRS', '/etc/xdg'),
-			): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 	def testCorrect(self):
 		'''Test config environemnt with non-default basedir paths'''
@@ -151,12 +157,14 @@ class TestXDGDirs(tests.TestCase):
 				('XDG_DATA_HOME', '/foo/data/home'),
 				('XDG_CONFIG_HOME', '/foo/config/home'),
 				('XDG_CACHE_HOME', '/foo/cache')
-			): self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), Dir(v))
 
 			for k, v in (
 				('XDG_DATA_DIRS', '/foo/data/dir1:/foo/data/dir2'),
 				('XDG_CONFIG_DIRS', '/foo/config/dir1:/foo/config/dir2'),
-			): self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
+			):
+				self.assertEqual(getattr(zim.config.basedirs, k), map(Dir, v.split(':')))
 
 
 class TestControlledDict(tests.TestCase):
@@ -240,7 +248,7 @@ class TestConfigDefinitions(tests.TestCase):
 
 	def testConfigDefinitionByClass(self):
 		for value, klass in (
-			([1,2,3], list),
+			([1, 2, 3], list),
 			(Path('foo'), Path),
 		):
 			definition = build_config_definition(value)
@@ -248,12 +256,12 @@ class TestConfigDefinitions(tests.TestCase):
 			self.assertEqual(definition.klass, klass)
 
 		# Test input by json struct
-		definition = ConfigDefinitionByClass([1,2,3])
-		self.assertEqual(definition.check('[true,200,null]'), [True,200,None])
+		definition = ConfigDefinitionByClass([1, 2, 3])
+		self.assertEqual(definition.check('[true,200,null]'), [True, 200, None])
 
 		# Test converting to tuple
-		definition = ConfigDefinitionByClass((1,2,3))
-		self.assertEqual(definition.check([5,6,7]), (5,6,7))
+		definition = ConfigDefinitionByClass((1, 2, 3))
+		self.assertEqual(definition.check([5, 6, 7]), (5, 6, 7))
 
 		# Test new_from_zim_config
 		definition = ConfigDefinitionByClass(Path('foo'))
@@ -319,8 +327,8 @@ class TestConfigDefinitions(tests.TestCase):
 		self.assertEqual(definition.check(None), None)
 
 		# test list conversion
-		definition = Choice((1,2), ((1,2), (3,4), (5,6)))
-		self.assertEqual(definition.check([3,4]), (3,4))
+		definition = Choice((1, 2), ((1, 2), (3, 4), (5, 6)))
+		self.assertEqual(definition.check([3, 4]), (3, 4))
 
 		# test hack for preferences with label
 		pref = [
@@ -342,17 +350,17 @@ class TestConfigDefinitions(tests.TestCase):
 		self.assertRaises(ValueError, definition.check, None)
 
 	def testCoordinate(self):
-		definition = Coordinate((1,2))
-		self.assertEqual(definition.check((2,3)), (2,3))
-		self.assertEqual(definition.check([2,3]), (2,3))
+		definition = Coordinate((1, 2))
+		self.assertEqual(definition.check((2, 3)), (2, 3))
+		self.assertEqual(definition.check([2, 3]), (2, 3))
 		self.assertRaises(ValueError, definition.check, 'XXX')
-		self.assertRaises(ValueError, definition.check, (1,2,3))
-		self.assertRaises(ValueError, definition.check, (1,'XXX'))
+		self.assertRaises(ValueError, definition.check, (1, 2, 3))
+		self.assertRaises(ValueError, definition.check, (1, 'XXX'))
 		self.assertRaises(ValueError, definition.check, ('XXX', 2))
 		self.assertRaises(ValueError, definition.check, '')
 		self.assertRaises(ValueError, definition.check, None)
 
-		definition = Coordinate((1,2), allow_empty=True)
+		definition = Coordinate((1, 2), allow_empty=True)
 		self.assertEqual(definition.check(''), None)
 		self.assertEqual(definition.check(None), None)
 
@@ -765,7 +773,7 @@ newkey=ja
 		self.assertFalse('myprofile' in newfile.file.path)
 
 		newfile = manager.get_config_file('<profile>/dict.conf')
-		self.assertMatchPath(newfile.file, self.prefix+'/profiles/myprofile/dict.conf')
+		self.assertMatchPath(newfile.file, self.prefix + '/profiles/myprofile/dict.conf')
 
 		newdict = manager.get_config_dict('<profile>/dict.conf')
 		self.assertEqual(id(newdict), id(dict))
@@ -780,14 +788,14 @@ newkey=ja
 		self.assertEqual(changed_counter.count, 2)
 
 		conffile = manager.get_config_file('<profile>/preferences.conf')
-		file, defaults  = conffile.file, list(conffile.defaults)
-		self.assertMatchPath(file, self.prefix+'/profiles/oldprofile/preferences.conf')
-		self.assertMatchPath(defaults[0], self.prefix+'/profiles/oldprofile.conf')
+		file, defaults = conffile.file, list(conffile.defaults)
+		self.assertMatchPath(file, self.prefix + '/profiles/oldprofile/preferences.conf')
+		self.assertMatchPath(defaults[0], self.prefix + '/profiles/oldprofile.conf')
 
 		conffile = manager.get_config_file('<profile>/style.conf')
-		file, defaults  = conffile.file, list(conffile.defaults)
-		self.assertMatchPath(file, self.prefix+'/profiles/oldprofile/style.conf')
-		self.assertMatchPath(defaults[0], self.prefix+'/styles/oldprofile.conf')
+		file, defaults = conffile.file, list(conffile.defaults)
+		self.assertMatchPath(file, self.prefix + '/profiles/oldprofile/style.conf')
+		self.assertMatchPath(defaults[0], self.prefix + '/styles/oldprofile.conf')
 
 
 class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):

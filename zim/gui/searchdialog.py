@@ -31,7 +31,7 @@ class SearchDialog(Dialog):
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False)
-		hbox.pack_start(gtk.Label(_('Search')+': '), False) # T: input label
+		hbox.pack_start(gtk.Label(_('Search') + ': '), False) # T: input label
 		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
 		self.search_button = gtk.Button(stock=gtk.STOCK_FIND)
@@ -93,7 +93,7 @@ class SearchDialog(Dialog):
 		self._set_state(self.SEARCHING)
 		try:
 			self.results_treeview.search(string)
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self, error).run()
 
 		if not self.results_treeview.cancelled:
@@ -223,7 +223,7 @@ class SearchResultsTreeView(BrowserTreeView):
 		model.reorder([x[1] for x in order]) # use second item
 
 	def _do_open_page(self, view, path, col):
-		page = Path( self.get_model()[path][0].decode('utf-8') )
+		page = Path(self.get_model()[path][0].decode('utf-8'))
 		self.app_window.ui.open_page(page) # XXX
 
 		# Popup find dialog with same query

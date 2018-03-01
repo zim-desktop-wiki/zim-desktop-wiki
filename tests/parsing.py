@@ -49,7 +49,7 @@ class TestParsing(tests.TestCase):
 
 	def testRe(self):
 		'''Test parsing Re class'''
-		string = 'foo bar baz';
+		string = 'foo bar baz'
 		re = Re('f(oo)\s*(bar)')
 		if re.match(string):
 			self.assertEquals(len(re), 3)
@@ -65,7 +65,7 @@ class TestParsing(tests.TestCase):
 		buffer += ['test 123\n test !', 'fooo bar\n', 'duss']
 		self.assertEqual(
 			buffer.get_lines(),
-			['test 123\n', ' test !fooo bar\n', 'duss\n'] )
+			['test 123\n', ' test !fooo bar\n', 'duss\n'])
 
 	def testURLEncoding(self):
 		'''Test encoding and decoding urls'''

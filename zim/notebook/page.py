@@ -5,6 +5,7 @@
 
 import re
 import logging
+import itertools
 
 logger = logging.getLogger('zim.notebook')
 
@@ -37,6 +38,42 @@ re.UNICODE)
 	# This pattern matches a non-alphanumber at start or after the ':'
 	# seperator. It also matches any invalid character.
 	# The UNICODE flag is used to make the alphanumber check international.
+
+
+def shortest_unique_names(paths):
+	'''Returns the shortest unique name for each path in paths
+	@param paths: list of L{Path} objects
+	@returns: list of strings
+	'''
+	by_basename = {}
+	for path in paths:
+		basename = path.basename
+		mylist = by_basename.setdefault(basename, [])
+		mylist.append(path)
+
+	result = []
+	for path in paths:
+		basename = path.basename
+		conflicts = by_basename[basename]
+		if len(conflicts) == 1:
+			result.append(path.basename)
+		else:
+			conflicts.remove(path)
+			conflicts.insert(0, path) # shuffle path of interest to front
+			reverse_paths = [reversed(p.name.split(':')) for p in conflicts]
+			names = []
+			for parts in itertools.izip_longest(*reverse_paths):
+				if parts[0] is None:
+					break
+				elif parts[0] not in parts[1:]:
+					names.append(parts[0])
+					break
+				else:
+					names.append(parts[0])
+
+			result.append(':'.join(reversed(names)))
+
+	return result
 
 
 class Path(object):
@@ -103,7 +140,7 @@ class Path(object):
 		if not name.strip(':') \
 		or _pagename_reduce_colon_re.search(name) \
 		or _pagename_invalid_char_re.search(name):
-			raise AssertionError, 'Not a valid page name: %s' % name
+			raise AssertionError('Not a valid page name: %s' % name)
 
 	@staticmethod
 	def makeValidPageName(name):
@@ -117,10 +154,11 @@ class Path(object):
 		'''
 		newname = _pagename_reduce_colon_re.sub(':', name.strip(':'))
 		newname = _pagename_invalid_char_re.sub('', newname)
+		newname = newname.replace('_', ' ')
 		try:
 			Path.assertValidPageName(newname)
 		except AssertionError:
-			raise ValueError, 'Not a valid page name: %s (was: %s)' % (newname, name)
+			raise ValueError('Not a valid page name: %s (was: %s)' % (newname, name))
 		return newname
 
 	def __init__(self, name):
@@ -145,14 +183,14 @@ class Path(object):
 		try:
 			self.name = unicode(self.name)
 		except UnicodeDecodeError:
-			raise ValueError, 'BUG: invalid input, page names should be in ascii, or given as unicode'
+			raise ValueError('BUG: invalid input, page names should be in ascii, or given as unicode')
 
 	@classmethod
 	def new_from_zim_config(klass, string):
 		'''Returns a new object based on the string representation for
 		that path.
 		'''
-		return klass( klass.makeValidPageName(string) )
+		return klass(klass.makeValidPageName(string))
 
 	def serialize_zim_config(self):
 		'''Returns the name for serializing this path'''
@@ -221,10 +259,10 @@ class Path(object):
 		if path.name == '': # root path
 			return self.name
 		elif self.name.startswith(path.name + ':'):
-			i = len(path.name)+1
+			i = len(path.name) + 1
 			return self.name[i:].strip(':')
 		else:
-			raise ValueError, '"%s" is not below "%s"' % (self, path)
+			raise ValueError('"%s" is not below "%s"' % (self, path))
 
 	@property
 	def parent(self):
@@ -254,7 +292,7 @@ class Path(object):
 		@param basename: the relative name for the child
 		@returns: a new L{Path} object
 		'''
-		return Path(self.name+':'+basename)
+		return Path(self.name + ':' + basename)
 
 	def ischild(self, parent):
 		'''Check of this path is a child of a given path
@@ -345,10 +383,10 @@ class SourceFile(zim.fs.File):
 		return False
 
 	def write(self, *a):
-		raise AssertionError, 'Not writeable'
+		raise AssertionError('Not writeable')
 
 	def writelines(self, *a):
-		raise AssertionError, 'Not writeable'
+		raise AssertionError('Not writeable')
 
 
 class Page(Path, SignalEmitter):
@@ -667,7 +705,7 @@ class Page(Path, SignalEmitter):
 		assert self.valid, 'BUG: page object became invalid'
 
 		if self.readonly:
-			raise PageReadOnlyError, self
+			raise PageReadOnlyError(self)
 
 		if self._ui_object:
 			self._ui_object.set_parsetree(tree)

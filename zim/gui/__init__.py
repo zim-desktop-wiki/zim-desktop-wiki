@@ -96,7 +96,7 @@ ui_preferences = (
 	# key, type, category, label, default
 	('tearoff_menus', 'bool', 'Interface', _('Add \'tearoff\' strips to the menus'), False),
 		# T: Option in the preferences dialog
-	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING+'<Space>'), False),
+	('toggle_on_ctrlspace', 'bool', 'Interface', _('Use %s to switch to the side pane') % (PRIMARY_MODIFIER_STRING + '<Space>'), False),
 		# T: Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 		# default value is False because this is mapped to switch between
 		# char sets in certain international key mappings
@@ -120,12 +120,12 @@ def load_zim_stock_icons():
 	for dir in data_dirs(('pixmaps')):
 		for file in dir.list('*.png'):
 			# not all installs have svg support, so only check png for now..
-			name = 'zim-'+file[:-4] # e.g. checked-box.png -> zim-checked-box
+			name = 'zim-' + file[:-4] # e.g. checked-box.png -> zim-checked-box
 			icon_theme = gtk.icon_theme_get_default()
 			try:
 			    pixbuf = icon_theme.load_icon(name, 24, 0)
 			except:
-			    pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir+file))
+			    pixbuf = gtk.gdk.pixbuf_new_from_file(str(dir + file))
 
 			try:
 			    set = gtk.IconSet(pixbuf)
@@ -310,7 +310,7 @@ class GtkInterface(gobject.GObject):
 			# may not exist during tests
 			from zim.config import INIConfigFile
 			self.uistate = INIConfigFile(
-				notebook.cache_dir.file('state.conf') )
+				notebook.cache_dir.file('state.conf'))
 		else:
 			from zim.config import SectionedConfigDict
 			self.uistate = SectionedConfigDict()
@@ -510,7 +510,7 @@ class GtkInterface(gobject.GObject):
 					break
 
 		if start is None or end is None:
-			raise ValueError, 'No such popup in uimanager: %s' % name
+			raise ValueError('No such popup in uimanager: %s' % name)
 
 		# Wrapper to set path context
 		def wrapper(menuitem, action):
@@ -525,7 +525,7 @@ class GtkInterface(gobject.GObject):
 
 		# Parse items and add to menu
 		seen_item = False # use to track empty parts
-		for line in xml[start+1:end]:
+		for line in xml[start + 1:end]:
 			if line.startswith('<separator'):
 				if seen_item:
 					item = gtk.SeparatorMenuItem()
@@ -552,7 +552,7 @@ class GtkInterface(gobject.GObject):
 
 						break
 				else:
-					raise AssertionError, 'BUG: could not find action for "%s"' % actionname
+					raise AssertionError('BUG: could not find action for "%s"' % actionname)
 
 				menu.append(item)
 				seen_item = True
@@ -560,7 +560,7 @@ class GtkInterface(gobject.GObject):
 			or line.startswith('</placeholder'):
 				pass
 			else:
-				raise AssertionError, 'BUG: Could not parse: ' + line
+				raise AssertionError('BUG: Could not parse: ' + line)
 
 	def set_readonly(self, readonly):
 		'''Set the read-only state of the interface
@@ -727,7 +727,7 @@ class GtkInterface(gobject.GObject):
 			return
 		elif self.page:
 			if not self.close_page(self.page):
-				raise AssertionError, 'Could not close page'
+				raise AssertionError('Could not close page')
 				# assert statement could be optimized away
 
 		self.notebook.index.touch_current_page_placeholder(path)
@@ -1074,7 +1074,8 @@ class GtkInterface(gobject.GObject):
 		'''
 		if path is None:
 			path = self._get_path_context()
-			if not path: return
+			if not path:
+				return
 
 		if not self.notebook.index.is_uptodate:
 			if not self.reload_index(update_only=True):
@@ -1157,7 +1158,7 @@ class GtkInterface(gobject.GObject):
 
 	def do_preferences_changed(self, *a):
 		self._mainwindow.uimanager.set_add_tearoffs(
-			self.preferences['GtkInterface']['tearoff_menus'] )
+			self.preferences['GtkInterface']['tearoff_menus'])
 
 	@action(_('_Reload'), 'gtk-refresh', '<Primary>R') # T: Menu item
 	def reload_page(self):
@@ -1188,7 +1189,7 @@ class GtkInterface(gobject.GObject):
 		'''
 		dir = self.notebook.get_attachments_dir(path)
 		if dir is None:
-			raise Error, '%s does not have an attachments dir' % path
+			raise Error('%s does not have an attachments dir' % path)
 
 		dest = dir.file(file.basename)
 
@@ -1248,7 +1249,7 @@ class GtkInterface(gobject.GObject):
 			file = Dir(file.path)
 
 		if not file.exists():
-			raise NoSuchFileError, file
+			raise NoSuchFileError(file)
 
 		if isinstance(file, File): # File
 			manager = ApplicationManager()
@@ -1257,7 +1258,7 @@ class GtkInterface(gobject.GObject):
 			else:
 				entry = manager.get_default_application(mimetype)
 				if entry is None:
-					raise ApplicationLookupError, 'No Application found for: %s' % mimetype
+					raise ApplicationLookupError('No Application found for: %s' % mimetype)
 					# Do not go to fallback, we can not force
 					# mimetype for fallback
 
@@ -1294,7 +1295,7 @@ class GtkInterface(gobject.GObject):
 				return self._open_with_filebrowser(url)
 			# else consider as a x-scheme-handler/smb type URI
 		elif not is_uri_re.match(url):
-			raise AssertionError, 'Not an URL: %s' % url
+			raise AssertionError('Not an URL: %s' % url)
 
 		# Default handlers
 		if url.startswith('zim+'):
@@ -1447,7 +1448,7 @@ class GtkInterface(gobject.GObject):
 		## os.startfile() on windows...
 
 		if not file.exists():
-			raise NoSuchFileError, file
+			raise NoSuchFileError(file)
 
 		oldmtime = file.mtime()
 
@@ -1457,7 +1458,7 @@ class GtkInterface(gobject.GObject):
 				# T: main text for dialog for editing external files
 			_('You are editing a file in an external application. You can close this dialog when you are done')
 				# T: description for dialog for editing external files
-		) )
+		))
 
 		def check_close_dialog(status):
 			if status != 0:
@@ -1638,7 +1639,7 @@ class GtkInterface(gobject.GObject):
 				self.notebook.index.start_background_check(self.notebook)
 				# TODO instead of using run, use spawn and show dialog
 				# with cancel button. Dialog blocks ui.
-		except Exception, error:
+		except Exception as error:
 			ErrorDialog(self, error).run()
 
 	@action(_('_Contents'), 'gtk-help', 'F1') # T: Menu item
@@ -1917,7 +1918,7 @@ class MainWindow(Window):
 		if page.modified:
 			label += '*'
 		if self.ui.readonly or page.readonly:
-			label += ' ['+_('readonly')+']' # T: page status in statusbar
+			label += ' [' + _('readonly') + ']' # T: page status in statusbar
 		self.statusbar.pop(0)
 		self.statusbar.push(0, label)
 
@@ -1950,7 +1951,7 @@ class MainWindow(Window):
 
 			if wasfullscreen != self.isfullscreen:
 				self.emit('fullscreen-changed')
-				schedule_on_idle(lambda : self.pageview.scroll_cursor_on_screen())
+				schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
 					# HACK to have this scroll done after all updates to
 					# the gui are done...
 
@@ -2413,8 +2414,10 @@ class MainWindow(Window):
 
 	def on_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
-		if state: text = 'OVR'
-		else: text = 'INS'
+		if state:
+			text = 'OVR'
+		else:
+			text = 'INS'
 		self.statusbar_insert_label.set_text(text)
 
 	def on_textview_textstyle_changed(self, view, style):
@@ -2527,8 +2530,10 @@ class NewPageDialog(Dialog):
 	'''
 
 	def __init__(self, window, path=None, subpage=False):
-		if subpage: title = _('New Sub Page') # T: Dialog title
-		else: title = _('New Page') # T: Dialog title
+		if subpage:
+			title = _('New Sub Page') # T: Dialog title
+		else:
+			title = _('New Page') # T: Dialog title
 
 		Dialog.__init__(self, window, title,
 			help_text=_(
@@ -2595,7 +2600,8 @@ class SaveCopyDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 		format = 'wiki'
 		logger.info("Saving a copy of %s using format '%s'", self.page, format)
 		lines = self.page.dump(format)
@@ -2616,7 +2622,8 @@ class ImportPageDialog(FileDialog):
 
 	def do_response_ok(self):
 		file = self.get_file()
-		if file is None: return False
+		if file is None:
+			return False
 
 		basename = file.basename
 		if basename.endswith('.txt'):
@@ -2694,7 +2701,7 @@ class RenamePageDialog(Dialog):
 			# T: label in 'rename page' dialog - %s is the page name
 
 		try:
-			i = self.ui.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD )
+			i = self.ui.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)
 		except IndexNotFoundError:
 			i = 0
 
@@ -2763,7 +2770,7 @@ class DeletePageDialog(Dialog):
 			# T: Heading in 'delete page' dialog - %s is the page name
 		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
-		label.set_markup('<b>'+short+'</b>\n\n'+long)
+		label.set_markup('<b>' + short + '</b>\n\n' + long)
 		vbox.pack_start(label, False)
 
 		try:
@@ -2798,10 +2805,10 @@ class DeletePageDialog(Dialog):
 		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
 			# T: label in the DeletePage dialog to warn user of attachments being deleted
 		if n > 0:
-			string = '<b>'+string+'</b>'
+			string = '<b>' + string + '</b>'
 
 		label = gtk.Label()
-		label.set_markup('\n'+string+':')
+		label.set_markup('\n' + string + ':')
 		self.vbox.add(label)
 		window, textview = ScrolledTextView(text, monospace=True)
 		window.set_size_request(250, 200)
@@ -2851,7 +2858,7 @@ class AttachFileDialog(FileDialog):
 		if dir is None:
 			ErrorDialog(_('Page "%s" does not have a folder for attachments') % self.path)
 				# T: Error dialog - %s is the full page name
-			raise Exception, 'Page "%s" does not have a folder for attachments' % self.path
+			raise Exception('Page "%s" does not have a folder for attachments' % self.path)
 
 		self.uistate.setdefault('insert_attached_images', True)
 		checkbox = gtk.CheckButton(_('Insert images as link'))

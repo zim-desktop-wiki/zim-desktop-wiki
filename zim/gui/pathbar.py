@@ -11,6 +11,9 @@ from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
 from zim.gui.widgets import encode_markup_text
+from zim.notebook.page import shortest_unique_names
+
+from functools import reduce
 
 logger = logging.getLogger('zim.gui')
 
@@ -115,7 +118,7 @@ class ScrolledHBox(gtk.HBox):
 		# returning boolean also controls timeout behavior
 
 		index = None
-		max = len(self.get_children()[2:])-1
+		max = len(self.get_children()[2:]) - 1
 		if direction == DIR_FORWARD:
 			if self._last == max:
 				return False
@@ -129,8 +132,10 @@ class ScrolledHBox(gtk.HBox):
 		else:
 			assert False
 
-		if index > max: index = max
-		elif index < 0: index = 0
+		if index > max:
+			index = max
+		elif index < 0:
+			index = 0
 
 		self._anchor = (direction, index)
 		self.queue_resize()
@@ -214,7 +219,7 @@ class ScrolledHBox(gtk.HBox):
 
 
 
-		direction, index = self._anchor or (DIR_FORWARD, len(children)-1)
+		direction, index = self._anchor or (DIR_FORWARD, len(children) - 1)
 		assert 0 <= index <= len(children)
 		assert direction in (DIR_FORWARD, DIR_BACKWARD)
 			# default (DIR_FORWARD, -1) should show the last item (right most)
@@ -227,7 +232,7 @@ class ScrolledHBox(gtk.HBox):
 		total = reduce(int.__add__, widths) + len(widths) * spacing + 2 * border
 		if total <= allocation.width:
 			show_scroll_buttons = False
-			first, last = 0, len(children)-1
+			first, last = 0, len(children) - 1
 		else:
 			# determine which children to show
 			show_scroll_buttons = True
@@ -237,7 +242,7 @@ class ScrolledHBox(gtk.HBox):
 				available -= button.get_child_requisition()[0] + spacing
 			if direction == DIR_FORWARD:
 				# fill items from the direction we came from with last scroll
-				for i in range(index-1, -1, -1):
+				for i in range(index - 1, -1, -1):
 					needed = widths[i] + spacing
 					if needed > available:
 						break
@@ -245,7 +250,7 @@ class ScrolledHBox(gtk.HBox):
 						first = i
 						available -= needed
 				# see if there is any space to fill items on the other side
-				for i in range(index+1, len(children), 1):
+				for i in range(index + 1, len(children), 1):
 					needed = widths[i] + spacing
 					if needed > available:
 						break
@@ -254,7 +259,7 @@ class ScrolledHBox(gtk.HBox):
 						available -= needed
 			else: # DIR_BACKWARD
 				# fill items from the direction we came from with last scroll
-				for i in range(index+1, len(children)):
+				for i in range(index + 1, len(children)):
 					needed = widths[i] + spacing
 					if needed > available:
 						break
@@ -262,7 +267,7 @@ class ScrolledHBox(gtk.HBox):
 						last = i
 						available -= needed
 				# see if there is any space to fill items on the other side
-				for i in range(index-1, -1, -1):
+				for i in range(index - 1, -1, -1):
 					needed = widths[i] + spacing
 					if needed > available:
 						break
@@ -274,7 +279,7 @@ class ScrolledHBox(gtk.HBox):
 
 		# Allocate children
 		y = allocation.y + border
-		h = allocation.height - 2*border
+		h = allocation.height - 2 * border
 		child_allocation = gtk.gdk.Rectangle(y=y, height=h)
 			# y and height are the same for all
 		if not self.get_direction() == gtk.TEXT_DIR_RTL:
@@ -292,13 +297,13 @@ class ScrolledHBox(gtk.HBox):
 				# Reserve the space, even if hidden
 				child_allocation.x += self._back_button.get_child_requisition()[0] + spacing
 
-			for i in range(first, last+1):
+			for i in range(first, last + 1):
 				child_allocation.width = widths[i]
 				children[i].set_child_visible(True)
 				children[i].size_allocate(child_allocation)
 				child_allocation.x += widths[i] + spacing # set x for next child
 
-			if show_scroll_buttons and last != len(children)-1:
+			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
 				child_allocation.width = self._forw_button.get_child_requisition()[0]
 				child_allocation.x = allocation.x + allocation.width - child_allocation.width - border
@@ -323,14 +328,14 @@ class ScrolledHBox(gtk.HBox):
 					# Reserve the space, even if hidden
 					child_allocation.x = self._back_button.get_child_requisition()[0] + spacing
 
-			for i in range(first, last+1):
+			for i in range(first, last + 1):
 				child_allocation.width = widths[i]
 				child_allocation.x -= child_allocation.width
 				children[i].set_child_visible(True)
 				children[i].size_allocate(child_allocation)
 				child_allocation.x -= spacing # set x for next child
 
-			if show_scroll_buttons and last != len(children)-1:
+			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
 				child_allocation.width = self._forw_button.get_child_requisition()[0]
 				child_allocation.x = allocation.x + border
@@ -343,7 +348,7 @@ class ScrolledHBox(gtk.HBox):
 		# Hide remaining children
 		for child in children[0:first]:
 			child.set_child_visible(False)
-		for child in children[last+1:]:
+		for child in children[last + 1:]:
 			child.set_child_visible(False)
 
 	def do_focus(self, direction):
@@ -370,12 +375,16 @@ class ScrollButton(gtk.Button):
 		self.direction = direction
 		if self.get_direction() != gtk.TEXT_DIR_RTL:
 			# Left to Right
-			if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_RIGHT
-			else: arrow_dir = gtk.ARROW_LEFT
+			if direction == DIR_FORWARD:
+				arrow_dir = gtk.ARROW_RIGHT
+			else:
+				arrow_dir = gtk.ARROW_LEFT
 		else:
 			# Right to Left
-			if direction == DIR_FORWARD: arrow_dir = gtk.ARROW_LEFT
-			else: arrow_dir = gtk.ARROW_RIGHT
+			if direction == DIR_FORWARD:
+				arrow_dir = gtk.ARROW_LEFT
+			else:
+				arrow_dir = gtk.ARROW_RIGHT
 
 		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
 		self.set_relief(gtk.RELIEF_NONE)
@@ -416,8 +425,9 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 		self._selected = None
 
-		for path in self.get_paths():
-			button = gtk.ToggleButton(label=path.basename)
+		paths = self.get_paths()
+		for path, label in zip(paths, shortest_unique_names(paths)):
+			button = gtk.ToggleButton(label=label)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
@@ -451,7 +461,7 @@ class PathBar(ScrolledHBox):
 			button.set_active(active)
 			label = button.get_child()
 			if active:
-				label.set_markup('<b>'+encode_markup_text(label.get_text())+'</b>')
+				label.set_markup('<b>' + encode_markup_text(label.get_text()) + '</b>')
 			else:
 				label.set_text(label.get_text())
 					# get_text() gives string without markup
@@ -540,7 +550,7 @@ class RecentChangesPathBar(PathBar):
 
 	def get_paths(self):
 		return reversed(list(
-				self.ui.notebook.pages.list_recent_changes(limit=10) ))
+				self.ui.notebook.pages.list_recent_changes(limit=10)))
 
 
 class NamespacePathBar(PathBar):

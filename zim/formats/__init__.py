@@ -80,6 +80,7 @@ from zim.config import data_file, ConfigDict
 from zim.objectmanager import ObjectManager
 
 import zim.plugins
+from functools import reduce
 
 
 logger = logging.getLogger('zim.formats')
@@ -144,7 +145,7 @@ TABLEROW = 'trow'
 TABLEDATA = 'td'
 
 LINE = 'line'
-LINE_TEXT = '-'*20
+LINE_TEXT = '-' * 20
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
@@ -169,7 +170,7 @@ def increase_list_iter(listiter):
 	except ValueError:
 		try:
 			i = _letters.index(listiter)
-			return _letters[i+1]
+			return _letters[i + 1]
 		except ValueError: # listiter is not a letter
 			return None
 		except IndexError: # wrap to start of list
@@ -185,7 +186,7 @@ def encode_xml(text):
 
 def list_formats(type):
 	if type == EXPORT_FORMAT:
-		return ['HTML','LaTeX', 'Markdown (pandoc)', 'RST (sphinx)']
+		return ['HTML', 'LaTeX', 'Markdown (pandoc)', 'RST (sphinx)']
 	elif type == TEXT_FORMAT:
 		return ['Text', 'Wiki', 'Markdown (pandoc)', 'RST (sphinx)']
 	else:
@@ -199,8 +200,10 @@ def canonical_name(name):
 	name = name.lower()
 	if ' ' in name:
 		name, _ = name.split(' ', 1)
-	if name == 'text': return 'plain'
-	else: return name
+	if name == 'text':
+		return 'plain'
+	else:
+		return name
 
 
 def get_format(name):
@@ -449,7 +452,7 @@ class ParseTree(object):
 			while path and path[-1][0] >= level:
 				path.pop()
 			if not path:
-				newlevel = offset+1
+				newlevel = offset + 1
 			else:
 				newlevel = path[-1][1] + 1
 			if newlevel > max:
@@ -666,7 +669,7 @@ class ParseTree(object):
 				if tail:
 					self._insert_text(elt, i, tail)
 			else:
-				raise TypeError, 'BUG: invalid replacement result'
+				raise TypeError('BUG: invalid replacement result')
 
 	@staticmethod
 	def _node_to_etree(node):
@@ -681,7 +684,7 @@ class ParseTree(object):
 			else:
 				elt.text = text
 		else:
-			prev = elt[i-1]
+			prev = elt[i - 1]
 			if prev.tail:
 				prev.tail += text
 			else:
@@ -823,7 +826,7 @@ class ParseTreeBuilder(Builder):
 
 	def end(self, tag):
 		if tag != self.stack[-1]:
-			raise AssertionError, 'Unmatched tag closed: %s' % tag
+			raise AssertionError('Unmatched tag closed: %s' % tag)
 
 		if tag in BLOCK_LEVEL and not self._parsetree_roundtrip:
 			if self._last_char is not None and not self.partial:
@@ -998,8 +1001,10 @@ class OldParseTreeBuilder(object):
 		# Fix trailing newlines
 		if text:
 			m = count_eol_re.search(text)
-			if m: self._seen_eol = len(m.group(0))
-			else: self._seen_eol = 0
+			if m:
+				self._seen_eol = len(m.group(0))
+			else:
+				self._seen_eol = 0
 
 		if need_eol > self._seen_eol:
 			text += '\n' * (need_eol - self._seen_eol)
@@ -1017,7 +1022,7 @@ class OldParseTreeBuilder(object):
 		and text.startswith('\n'):
 			text = text[1:]
 			if not text.strip('\n'):
-				self._seen_eol -=1
+				self._seen_eol -= 1
 
 		if text:
 			assert not self._last is None, 'data seen before root element'
@@ -1106,9 +1111,9 @@ class ParserClass(object):
 		i = url.find('?')
 		if i > 0:
 			attrib = {'src': url[:i]}
-			for option in url[i+1:].split('&'):
+			for option in url[i + 1:].split('&'):
 				if option.find('=') == -1:
-					logger.warn('Mal-formed options in "%s"' , url)
+					logger.warn('Mal-formed options in "%s"', url)
 					break
 
 				k, v = option.split('=', 1)
@@ -1190,7 +1195,7 @@ class DumperClass(Visitor):
 		self.context = [DumperContextElement(None, None, self._text)]
 		tree.visit(self)
 		if len(self.context) != 1:
-			raise AssertionError, 'Unclosed tags on tree: %s' % self.context[-1].tag
+			raise AssertionError('Unclosed tags on tree: %s' % self.context[-1].tag)
 		#~ import pprint; pprint.pprint(self._text)
 		return self.get_lines() # FIXME - maybe just return text ?
 
@@ -1213,7 +1218,7 @@ class DumperClass(Visitor):
 
 	def end(self, tag):
 		if not tag or tag != self.context[-1].tag:
-			raise AssertionError, 'Unexpected tag closed: %s' % tag
+			raise AssertionError('Unexpected tag closed: %s' % tag)
 		_, attrib, strings = self.context.pop()
 
 		if tag in self.TAGS:
@@ -1225,9 +1230,9 @@ class DumperClass(Visitor):
 			pass
 		else:
 			try:
-				method = getattr(self, 'dump_'+tag)
+				method = getattr(self, 'dump_' + tag)
 			except AttributeError:
-				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+				raise AssertionError('BUG: Unknown tag: %s' % tag)
 
 			strings = method(tag, attrib, strings)
 			#~ try:
@@ -1253,9 +1258,9 @@ class DumperClass(Visitor):
 				attrib = attrib.copy() # Ensure dumping does not change tree
 
 			try:
-				method = getattr(self, 'dump_'+tag)
+				method = getattr(self, 'dump_' + tag)
 			except AttributeError:
-				raise AssertionError, 'BUG: Unknown tag: %s' % tag
+				raise AssertionError('BUG: Unknown tag: %s' % tag)
 
 			if text is None:
 				strings = method(tag, attrib, [])
@@ -1576,7 +1581,7 @@ class TableParser():
 		:param lines: 3-dim multiline rows
 		:return: the number of characters of the longest cell-value by column
 		'''
-		lines = reduce(lambda x, y: x+y, lines)
+		lines = reduce(lambda x, y: x + y, lines)
 		widths = [max(map(len, line)) for line in zip(*lines)]
 		return widths
 
@@ -1617,7 +1622,7 @@ class TableParser():
 		:param y: line-separator
 		:return: a textline
 		'''
-		return x + x.join(map(lambda width: (width+2) * y, maxwidths)) + x
+		return x + x.join(map(lambda width: (width + 2) * y, maxwidths)) + x
 
 	@staticmethod
 	def headsep(maxwidths, aligns, x='|', y='-'):
@@ -1659,7 +1664,7 @@ class TableParser():
 		cells = []
 		for val, wrap in zip(row, wraps):
 			if wrap == 1:
-				val = val[:-1]+'<'
+				val = val[:-1] + '<'
 			cells.append(val)
 		return x + x.join(cells) + x
 
@@ -1725,7 +1730,7 @@ def parse_header_lines(text):
 	pos = 0
 	while match:
 		header = match.group(1)
-		value  = match.group(2)
+		value = match.group(2)
 		pos = match.end()
 
 		meta[header] = value.strip()

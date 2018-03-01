@@ -53,12 +53,12 @@ class MockNotebook(object):
 
 
 def mock_iterator(notebook):
-	for i in 0,1,2:
+	for i in 0, 1, 2:
 		notebook.test('Test %i' % i)
 		yield i
 
 def mock_gtk_iter(notebook):
-	for i in 0,1,2:
+	for i in 0, 1, 2:
 		notebook.test('Test %i' % i)
 		yield i
 	gtk.main_quit()
@@ -158,7 +158,7 @@ import threading
 
 def mock_thread_main(notebook, lock):
 	with lock:
-		for i in 0,1,2:
+		for i in 0, 1, 2:
 			notebook.test('Test %i' % i)
 
 

@@ -58,21 +58,21 @@ def parse_date(date):
 	if 'W' in string:
 		string = string.replace('WK', '').replace('W', '').replace('.', '')
 		if len(string) == 4: # yyww
-			return Week(int(string[:2])+2000, int(string[2:4]))
+			return Week(int(string[:2]) + 2000, int(string[2:4]))
 		elif len(string) == 5: # yywwD
-			return Day.new_from_weeknumber(int(string[:2])+2000, int(string[2:4]), int(string[4]))
+			return Day.new_from_weeknumber(int(string[:2]) + 2000, int(string[2:4]), int(string[4]))
 		elif len(string) == 6: # yyyyww
 			return Week(int(string[:4]), int(string[4:]))
 		elif len(string) == 7: # yyyywwD
 			return Day.new_from_weeknumber(int(string[:4]), int(string[4:6]), int(string[6]))
 		else:
-			raise ValueError, 'Could not parse: %s' % date
+			raise ValueError('Could not parse: %s' % date)
 	elif len(string) == 6: # yyyymm
 		return Month(int(string[:4]), int(string[4:]))
 	elif len(string) == 8: # yyyymmdd
 		return Day(int(string[:4]), int(string[4:6]), int(string[6:]))
 	else:
-		raise ValueError, 'Could not parse: %s' % date
+		raise ValueError('Could not parse: %s' % date)
 
 
 class DateRange(object):
@@ -86,7 +86,7 @@ class Day(DateRange, datetime.date):
 	@classmethod
 	def new_from_weeknumber(cls, year, week, weekday):
 		if not (isinstance(weekday, int) and 0 <= weekday <= 7):
-			raise ValueError, 'Not a weekday: %i (must be between 0 and 7)' % weekday
+			raise ValueError('Not a weekday: %i (must be between 0 and 7)' % weekday)
 
 		start, end = dates_for_week(year, week)
 		if start.isoweekday() == 1: # monday
@@ -138,7 +138,7 @@ class Month(DateRange):
 
 	@property
 	def last_day(self):
-		return datetime.date(self.year, self.month+1, 1) - datetime.timedelta(days=1)
+		return datetime.date(self.year, self.month + 1, 1) - datetime.timedelta(days=1)
 
 	def __str__(self):
 		return '%s-%s' % (self.year, self.month)

@@ -166,7 +166,7 @@ class NotebookTreeView(gtk.TreeView):
 		column = gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)
 		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
-		column.set_fixed_width(w*2)
+		column.set_fixed_width(w * 2)
 		self.append_column(column)
 
 		cell_renderer = gtk.CellRendererText()
@@ -288,7 +288,7 @@ class NotebookDialog(Dialog):
 		path = data_file('globe_banner_small.png').path
 		image = gtk.Image()
 		image.set_from_file(path) # new_from_file not in 2.6
-		align = gtk.Alignment(0,0.5, 0,0)
+		align = gtk.Alignment(0, 0.5, 0, 0)
 		align.add(image)
 		self.vbox.pack_start(align, False)
 
@@ -327,7 +327,7 @@ class NotebookDialog(Dialog):
 		clear_button.connect('clicked', lambda o: self.combobox.set_active(-1))
 
 		hbox = gtk.HBox(spacing=5)
-		hbox.pack_start(gtk.Label(_('Default notebook')+': '), False)
+		hbox.pack_start(gtk.Label(_('Default notebook') + ': '), False)
 			# T: Input label in 'open notebook' dialog
 		hbox.pack_start(self.combobox, False)
 		hbox.pack_start(clear_button, False)
@@ -429,9 +429,11 @@ Of course you can also select an existing zim notebook folder.
 	def on_name_changed(self, o, interactive=True):
 		# When name is changed, update folder accordingly
 		# unless the folder was set explicitly already
-		if self._block_update: return
+		if self._block_update:
+			return
 		self._name_set = self._name_set or interactive
-		if self._folder_set: return
+		if self._folder_set:
+			return
 
 		name = self.form.widgets['name'].get_text()
 		folder = self.form.widgets['folder'].get_text()
@@ -443,7 +445,8 @@ Of course you can also select an existing zim notebook folder.
 
 	def on_folder_changed(self, o, interactive=True):
 		# When folder is changed, update name accordingly
-		if self._block_update: return
+		if self._block_update:
+			return
 		self._folder_set = self._folder_set or interactive
 
 		# Check notebook info (even when name was set already)
@@ -458,7 +461,8 @@ Of course you can also select an existing zim notebook folder.
 					return
 
 		# Else use basename unless the name was set explicitly already
-		if self._name_set: return
+		if self._name_set:
+			return
 
 		folder = self.form.widgets['folder'].get_text().strip('/\\')
 		self._block_update = True

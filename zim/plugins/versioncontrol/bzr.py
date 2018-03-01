@@ -17,8 +17,6 @@ logger = logging.getLogger('zim.vcs.bzr')
 
 class BZRApplicationBackend(VCSApplicationBase):
 
-	use_staging = False
-
 	@classmethod
 	def build_bin_application_instance(cls):
 		return Application(('bzr',))
@@ -39,8 +37,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 		if isinstance(versions, (tuple, list)):
 			assert 1 <= len(versions) <= 2
 			if len(versions) == 2:
-				versions = map(int, versions)
-				versions.sort()
+				versions = sorted(map(int, versions))
 				return ['-r', '%i..%i' % tuple(versions)]
 			else:
 				versions = versions[0]
@@ -87,10 +84,10 @@ class BZRApplicationBackend(VCSApplicationBase):
 		Runs: bzr commit -m {{MSG}} {{PATH}}
 		"""
 		params = ['commit']
-		if msg!='' and msg!=None:
+		if msg != '' and msg is not None:
 			params.append('-m')
 			params.append(msg)
-		if path!='' and path!=None:
+		if path != '' and path is not None:
 			params.append(path)
 		return self.run(params)
 
@@ -102,7 +99,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 			bzr diff {{REVISION_ARGS}} {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
-		if path==None:
+		if path is None:
 			return self.pipe(['diff'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
@@ -229,7 +226,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 		"""
 		try:
 			self.run(['whoami'])
-		except ApplicationError, e:
+		except ApplicationError as e:
 			return False
 		else:
 			return True

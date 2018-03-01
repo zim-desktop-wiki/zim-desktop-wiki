@@ -88,11 +88,11 @@ class TestMovingWindowIterBuffer(tests.TestCase):
 			if i == 0:
 				self.assertEqual(t, (None, mylist[0], mylist[1]))
 				self.assertFalse(myiter.last)
-			elif i == n-1:
+			elif i == n - 1:
 				self.assertEqual(t, (mylist[-2], mylist[-1], None))
 				self.assertTrue(myiter.last)
 			else:
-				self.assertEqual(t, (mylist[i-1], mylist[i], mylist[i+1]))
+				self.assertEqual(t, (mylist[i - 1], mylist[i], mylist[i + 1]))
 				self.assertFalse(myiter.last)
 
 		self.assertEqual(seen, mylist)
@@ -132,7 +132,7 @@ class TestFunctionThread(tests.TestCase):
 		###
 
 		def error(*args):
-			raise AssertionError, 'FOO'
+			raise AssertionError('FOO')
 
 		# Function raises, no lock
 		func = FunctionThread(error, ('a', 'b', 'c'))

@@ -25,7 +25,7 @@ Foooo Bar!
 
 TODO: insert random links here
 '''
-content += ('la la laaa'*20 + '\n') * 10
+content += ('la la laaa' * 20 + '\n') * 10
 
 def populate_level(path, j):
     path += os.path.sep
@@ -42,7 +42,7 @@ def populate_level(path, j):
         fh.close()
         
         if j < depth:
-            d += populate_level(path + myname, j+1)
+            d += populate_level(path + myname, j + 1)
 
     return d
 

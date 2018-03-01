@@ -45,7 +45,7 @@ class Command(object):
 		#: For options that can appear multiple times,
 		#: assign a list "[]" in "self.opts" before parse_options is called
 
-	default_options	 = (
+	default_options = (
 		('verbose', 'V', 'Verbose output'),
 		('debug', 'D', 'Debug output'),
 	)
@@ -105,9 +105,9 @@ class Command(object):
 		'''
 		minimum = len([a for a in self.arguments if not a.startswith('[')])
 		if len(self.args) < minimum:
-			raise UsageError, 'Command %s takes %i arguments' % (self.command, minimum)
+			raise UsageError('Command %s takes %i arguments' % (self.command, minimum))
 		elif len(self.args) > len(self.arguments):
-			raise UsageError, 'Command %s takes only %i arguments' % (self.command, len(self.args))
+			raise UsageError('Command %s takes only %i arguments' % (self.command, len(self.args)))
 		else:
 			return tuple(self.args) \
 				+ (None,) * (len(self.arguments) - len(self.args))
@@ -141,7 +141,7 @@ class GtkCommand(Command):
 	done by the application object.
 	'''
 
-	default_options	 = Command.default_options + (
+	default_options = Command.default_options + (
 		('standalone', '', 'start a single instance, no background process'),
 	)
 

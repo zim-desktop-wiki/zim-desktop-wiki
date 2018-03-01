@@ -362,10 +362,10 @@ class PageTreeView(BrowserTreeView):
 
 		self.enable_model_drag_source(
 			gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_MOVE )
+			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_MOVE)
 		self.enable_model_drag_dest(
 			(INTERNAL_PAGELIST_TARGET,),
-			gtk.gdk.ACTION_MOVE )
+			gtk.gdk.ACTION_MOVE)
 
 		if model:
 			self.set_model(model)
@@ -580,7 +580,7 @@ class PageIndex(gtk.ScrolledWindow):
 
 		# Select current page, if any
 		if self.ui.page:
-			self.on_open_page(self.ui, self.ui,page, self.ui,page)
+			self.on_open_page(self.ui, self.ui, page, self.ui, page)
 
 	def on_open_page(self, ui, page, path):
 		treepath = self.treeview.set_current_page(Path(path.name), vivificate=True)

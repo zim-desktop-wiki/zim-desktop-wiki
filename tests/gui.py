@@ -767,7 +767,7 @@ class TestNotebookComboBox(tests.TestCase):
 			NotebookInfo('file:///test/bar', name='Bar')
 		])
 		notebooklist.default = notebooklist[1]
-		notebooklist.write = lambda : None
+		notebooklist.write = lambda: None
 
 		model = NotebookTreeModel(notebooklist)
 
@@ -900,4 +900,4 @@ class MockUI(tests.MockObject):
 		if hasattr(GtkInterface, name):
 			return tests.MockObject.__getattr__(self, name)
 		else:
-			raise AttributeError, 'GtkInterface does not have a method: %s' % name
+			raise AttributeError('GtkInterface does not have a method: %s' % name)

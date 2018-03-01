@@ -7,7 +7,7 @@ import gtk
 import re
 from datetime import date as dateclass
 
-from zim.fs import Dir
+from zim.fs import Dir, isabs
 
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.main import GtkCommand
@@ -96,8 +96,10 @@ class QuickNotePluginCommand(GtkCommand):
 				self.opts['append'].lower() == 'true'
 
 		if self.opts.get('attachments', None):
-			self.opts['attachments'] = \
-				Dir((self.pwd, self.opts['attachments']))
+			if isabs(self.opts['attachments']):
+				self.opts['attachments'] = Dir(self.opts['attachments'])
+			else:
+				self.opts['attachments'] = Dir((self.pwd, self.opts['attachments']))
 
 	def get_text(self):
 		if 'input' in self.opts:
@@ -109,7 +111,7 @@ class QuickNotePluginCommand(GtkCommand):
 					SelectionClipboard.get_text() \
 					or Clipboard.get_text()
 			else:
-				raise AssertionError, 'Unknown input type: %s' % self.opts['input']
+				raise AssertionError('Unknown input type: %s' % self.opts['input'])
 		else:
 			text = self.opts.get('text')
 
@@ -121,7 +123,7 @@ class QuickNotePluginCommand(GtkCommand):
 				from zim.parsing import url_decode, URL_ENCODE_DATA
 				text = url_decode(text, mode=URL_ENCODE_DATA)
 			else:
-				raise AssertionError, 'Unknown encoding: %s' % self.opts['encoding']
+				raise AssertionError('Unknown encoding: %s' % self.opts['encoding'])
 
 		if text and not isinstance(text, unicode):
 			text = text.decode('utf-8')
@@ -236,13 +238,13 @@ class QuickNoteDialog(Dialog):
 		self.vbox.pack_start(self.form, False)
 
 		# TODO dropdown could use an option "Other..."
-		label = gtk.Label(_('Notebook')+': ')
+		label = gtk.Label(_('Notebook') + ': ')
 		label.set_alignment(0.0, 0.5)
-		self.form.attach(label, 0,1, 0,1, xoptions=gtk.FILL)
+		self.form.attach(label, 0, 1, 0, 1, xoptions=gtk.FILL)
 			# T: Field to select Notebook from drop down list
 		self.notebookcombobox = NotebookComboBox(current=notebook)
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
-		self.form.attach(self.notebookcombobox, 1,2, 0,1)
+		self.form.attach(self.notebookcombobox, 1, 2, 0, 1)
 
 		self._init_inputs(namespace, basename, append, text, template_options)
 
@@ -260,18 +262,18 @@ class QuickNoteDialog(Dialog):
 		else:
 			page = namespace or basename
 
-		self.form.add_inputs( (
+		self.form.add_inputs((
 				('page', 'page', _('Page')),
 				('namespace', 'namespace', _('Page section')), # T: text entry field
 				('new_page', 'bool', _('Create a new page for each note')), # T: checkbox in Quick Note dialog
 				('basename', 'string', _('Title')) # T: text entry field
-			) )
+			))
 		self.form.update({
 				'page': page,
 				'namespace': namespace,
 				'new_page': True,
 				'basename': basename,
-			} )
+			})
 
 		self.uistate.setdefault('open_page', True)
 		self.uistate.setdefault('new_page', True)
@@ -451,7 +453,7 @@ class QuickNoteDialog(Dialog):
 				return False
 
 			path = self.form['page']
-			self.append_to_page(notebook, path, '\n------\n'+text)
+			self.append_to_page(notebook, path, '\n------\n' + text)
 
 		if self.attachments:
 			self.import_attachments(notebook, path, self.attachments)

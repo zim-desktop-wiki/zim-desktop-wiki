@@ -105,8 +105,8 @@ def unpack_urilist(text):
 	# FIXME be tolerant here for file://path/to/file uris here
 	text = text.strip('\x00') # Found trailing NULL character on windows
 	lines = text.splitlines() # takes care of \r\n
-	return [ line.decode('utf-8')
-		for line in lines if line and not line.isspace() ]
+	return [line.decode('utf-8')
+		for line in lines if line and not line.isspace()]
 		# Just to be sure we also skip empty or whitespace lines
 
 # TODO: Probably the serialize formats can replace custom copy/paste
@@ -407,8 +407,8 @@ class ParseTreeItem(ClipboardItem):
 			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
 		elif id == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
-				linker=StaticExportLinker(self.notebook, source=self.path) )
-			html = ''.join( dumper.dump(self.parsetree) )
+				linker=StaticExportLinker(self.notebook, source=self.path))
+			html = ''.join(dumper.dump(self.parsetree))
 			html = wrap_html(html, target=selectiondata.target)
 			#~ print 'PASTING: >>>%s<<<' % html
 			selectiondata.set(selectiondata.target, 8, html)
@@ -420,9 +420,9 @@ class ParseTreeItem(ClipboardItem):
 				dumper = get_format(self.format).Dumper()
 			else:
 				dumper = get_format(self.format).Dumper(
-					linker=StaticExportLinker(self.notebook, source=self.path) )
+					linker=StaticExportLinker(self.notebook, source=self.path))
 
-			text = ''.join( dumper.dump(self.parsetree) ).encode('utf-8')
+			text = ''.join(dumper.dump(self.parsetree)).encode('utf-8')
 			selectiondata.set_text(text)
 		else:
 			assert False, 'Unknown target id %i' % id
@@ -689,9 +689,9 @@ class Win32HtmlFormat:
 		lenPrefix = len(dummyPrefix)
 
 		prefix = klass.MARKER_BLOCK_OUTPUT % (
-			lenPrefix, len(html)+lenPrefix,
-			fragmentStart+lenPrefix, fragmentEnd+lenPrefix,
-			selectionStart+lenPrefix, selectionEnd+lenPrefix,
+			lenPrefix, len(html) + lenPrefix,
+			fragmentStart + lenPrefix, fragmentEnd + lenPrefix,
+			selectionStart + lenPrefix, selectionEnd + lenPrefix,
 			source
 		)
 		return prefix + html

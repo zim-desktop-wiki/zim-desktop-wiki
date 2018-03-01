@@ -104,7 +104,7 @@ class TasksIndexer(IndexerBase):
 		self.parser = TaskParser(
 			task_label_re=_task_labels_re(
 				_parse_task_labels(
-					preferences['labels'] )),
+					preferences['labels'])),
 			all_checkboxes=preferences['all_checkboxes'],
 		)
 
@@ -193,7 +193,7 @@ class TasksView(IndexView):
 		try:
 			db.execute('SELECT * FROM tasklist LIMIT 1')
 		except sqlite3.OperationalError:
-			raise ValueError, 'No tasklist in index'
+			raise ValueError('No tasklist in index')
 
 	def list_open_tasks(self, parent=None):
 		'''List tasks
@@ -201,13 +201,15 @@ class TasksView(IndexView):
 		all top level tasks
 		@returns: a list of tasks at this level as sqlite Row objects
 		'''
-		if parent: parentid = parent['id']
-		else: parentid = 0
+		if parent:
+			parentid = parent['id']
+		else:
+			parentid = 0
 
 		# Sort:
 		#  started tasks by prio, due date, page + id to keep order in page
 		#  not-started tasks by start date, ...
-		today = str( datetime.date.today() )
+		today = str(datetime.date.today())
 		for row in self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
@@ -232,7 +234,7 @@ class TasksView(IndexView):
 		# Sort:
 		#  started tasks by prio, due date, page + id to keep order in page
 		#  not-started tasks by start date, ...
-		today = str( datetime.date.today() )
+		today = str(datetime.date.today())
 		for row in self.db.execute('''
 			SELECT tasklist.* FROM tasklist
 			LEFT JOIN pages ON tasklist.source = pages.id
@@ -288,7 +290,7 @@ class TaskParser(object):
 			all_checkboxes=True,
 	):
 		self.task_label_re = task_label_re
-		self.all_checkboxes = all_checkboxes # TODO use this setting
+		self.all_checkboxes = all_checkboxes
 
 	def parse(self, tokens, default_start_date=0, default_due_date=_MAX_DUE_DATE):
 
@@ -317,12 +319,14 @@ class TaskParser(object):
 				tasks.extend(paratasks)
 			elif t[0] in (BULLETLIST, NUMBEREDLIST):
 				tags = []
+				check_labels = not self.all_checkboxes
 				if check_list_heading:
 					if _is_list_heading(tasks[-1]):
 						heading = tasks.pop()
 						isopen, prio, start, due, tags, text = heading[0]
+						check_labels = check_labels and not self.task_label_re.match(''.join(text))
 
-				listtasks = self._parse_list(token_iter, tags=tags, parent=defaults)
+				listtasks = self._parse_list(token_iter, tags=tags, parent=defaults, check_labels=check_labels)
 				tasks.extend(listtasks)
 				check_list_heading = False
 			else:
@@ -384,7 +388,7 @@ class TaskParser(object):
 
 		return tasks
 
-	def _parse_list(self, token_iter, parent=None, tags=[]):
+	def _parse_list(self, token_iter, parent=None, tags=[], check_labels=False):
 		tasks = []
 
 		for t in token_iter:
@@ -399,7 +403,7 @@ class TaskParser(object):
 					else:
 						line.append(t)
 
-				if bullet in (CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX)\
+				if (not check_labels and bullet in (CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX))\
 				or self._starts_with_label(line):
 					fields = self._task_from_tokens(
 						line,
@@ -416,12 +420,12 @@ class TaskParser(object):
 				if next_token[0] in (BULLETLIST, NUMBEREDLIST):
 					# Sub-list
 					if parent_item:
-						mytasks = self._parse_list(token_iter, parent=parent_item[0], tags=parent_item[0][4]) # recurs
+						mytasks = self._parse_list(token_iter, parent=parent_item[0], tags=parent_item[0][4], check_labels=check_labels) # recurs
 						parent_item[-1].extend(mytasks)
 						if any(t[0][0] for t in mytasks):
 							parent_item[0][0] = True # Force parent open if any child is
 					else:
-						mytasks = self._parse_list(token_iter, parent=parent) # recurs
+						mytasks = self._parse_list(token_iter, parent=parent, check_labels=check_labels) # recurs
 						tasks.extend(mytasks)
 
 					next_token = next(token_iter)

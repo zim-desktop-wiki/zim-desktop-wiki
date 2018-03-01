@@ -12,7 +12,7 @@ def replace_in_dir(root, old, new):
 			if subdir.startswith('.'):
 				dirs.remove(subdir)
 		for file in files:
-			total += replace_in_file(dir+'/'+file, old, new)
+			total += replace_in_file(dir + '/' + file, old, new)
 	print '%i total in %s' % (total, root)
 
 def replace_in_file(file, old, new):

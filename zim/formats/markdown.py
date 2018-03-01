@@ -38,22 +38,22 @@ class Dumper(TextDumper):
 	# are different
 
 	BULLETS = {
-		UNCHECKED_BOX:	u'* \u2610', # ☐
-		XCHECKED_BOX:	u'* \u2612', # ☒
-		CHECKED_BOX:	u'* \u2611', # ☑
-		MIGRATED_BOX:	u'* \u25B7', # ▷
-		BULLET:			u'*',
+		UNCHECKED_BOX: u'* \u2610', # ☐
+		XCHECKED_BOX: u'* \u2612', # ☒
+		CHECKED_BOX: u'* \u2611', # ☑
+		MIGRATED_BOX: u'* \u25B7', # ▷
+		BULLET: u'*',
 	}
 
 	TAGS = {
-		EMPHASIS:		('*', '*'),
-		STRONG:			('**', '**'),
-		MARK:			('__', '__'), # OPEN ISSUE: not availalbe in pandoc
-		STRIKE:			('~~', '~~'),
-		VERBATIM:		("``", "``"),
-		TAG:			('', ''), # No additional annotation (apart from the visible @)
-		SUBSCRIPT:		('~', '~'),
-		SUPERSCRIPT:	('^', '^'),
+		EMPHASIS: ('*', '*'),
+		STRONG: ('**', '**'),
+		MARK: ('__', '__'), # OPEN ISSUE: not availalbe in pandoc
+		STRIKE: ('~~', '~~'),
+		VERBATIM: ("``", "``"),
+		TAG: ('', ''), # No additional annotation (apart from the visible @)
+		SUBSCRIPT: ('~', '~'),
+		SUPERSCRIPT: ('^', '^'),
 	}
 
 	def dump(self, tree):
@@ -122,7 +122,7 @@ class Dumper(TextDumper):
 		table += [rowline(rows[0])]
 		table.append(headsep)
 		table += [rowline(row) for row in rows[1:]]
-		return map(lambda line: line+"\n", table)
+		return map(lambda line: line + "\n", table)
 
 	def dump_th(self, tag, attrib, strings):
 		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
@@ -133,4 +133,4 @@ class Dumper(TextDumper):
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):
-		return '\n{}\n'.format('*'*5)
+		return '\n{}\n'.format('*' * 5)

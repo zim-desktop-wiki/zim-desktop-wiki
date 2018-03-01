@@ -88,7 +88,7 @@ class FileBrowserIconView(gtk.IconView):
 		self._mtime = None
 
 		gtk.IconView.__init__(self,
-			gtk.ListStore(str, gtk.gdk.Pixbuf, object) ) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+			gtk.ListStore(str, gtk.gdk.Pixbuf, object)) # BASENAME_COL, PIXBUF_COL, MTIME_COL
 		self.set_text_column(BASENAME_COL)
 		self.set_pixbuf_column(PIXBUF_COL)
 		self.set_icon_size(icon_size)
@@ -96,10 +96,10 @@ class FileBrowserIconView(gtk.IconView):
 		self.enable_model_drag_source(
 			gtk.gdk.BUTTON1_MASK,
 			URI_TARGETS,
-			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE )
+			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
 		self.enable_model_drag_dest(
 			URI_TARGETS,
-			gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE )
+			gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
 		self.connect('drag-data-get', self.on_drag_data_get)
 		self.connect('drag-data-received', self.on_drag_data_received)
 
@@ -197,7 +197,7 @@ class FileBrowserIconView(gtk.IconView):
 					self._thumbnailer.queue_thumbnail_request(file, self.icon_size, mtime)
 			elif pixbuf is None or icon_size_changed:
 				pixbuf = my_get_mime_icon(file)
-				mtime  = None
+				mtime = None
 			else:
 				pass # re-use from cache
 
@@ -241,7 +241,7 @@ class FileBrowserIconView(gtk.IconView):
 			if icon_size > 16 and max_text_length > 15:
 				# Wrap text over 2 rows
 				self.set_item_width(
-					icon_size + int((text_size+1) / 2) )
+					icon_size + int((text_size + 1) / 2))
 			else:
 				# Single row
 				self.set_item_width(icon_size + text_size)
@@ -311,7 +311,7 @@ class FileBrowserIconView(gtk.IconView):
 	def on_button_press_event(self, iconview, event):
 		# print 'on_button_press_event'
 		if event.button == 3:
-			popup_menu=gtk.Menu()
+			popup_menu = gtk.Menu()
 			x = int(event.x)
 			y = int(event.y)
 			time = event.time

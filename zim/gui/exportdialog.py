@@ -141,8 +141,8 @@ class ExportDialog(Assistant):
 				_('Folder already exists and has content, '
 				  'exporting to this folder may overwrite '
 				  'existing files. '
-				  'Do you want to continue?' ) # T: detailed message, answers are Yes and No
-			) ).run()
+				  'Do you want to continue?') # T: detailed message, answers are Yes and No
+			)).run()
 			if not ok:
 				return None
 		return dir
@@ -153,8 +153,8 @@ class ExportDialog(Assistant):
 			ok = QuestionDialog(self, (
 				_('File exists'), # T: message heading
 				_('This file already exists.\n'
-				  'Do you want to overwrite it?' ) # T: detailed message, answers are Yes and No
-			) ).run()
+				  'Do you want to overwrite it?') # T: detailed message, answers are Yes and No
+			)).run()
 			if not ok:
 				return None
 		return file
@@ -186,7 +186,7 @@ class InputPage(AssistantPage):
 		depends={
 			'page': 'selection:page',
 			'recursive': 'selection:page',
-		} )
+		})
 		self.form.widgets['page'].existing_only = True
 
 	def init_uistate(self):
@@ -224,11 +224,11 @@ class FormatPage(AssistantPage):
 			('template_file', 'file', None),
 			None,
 			('document_root:absolute', 'option', _('Link files under document root with full file path')), # T: radio option in export dialog
-			('document_root:url', 'option', _('Map document root to URL')+': '), # T: radio option in export dialog
+			('document_root:url', 'option', _('Map document root to URL') + ': '), # T: radio option in export dialog
 			('document_root_url', 'string', None),
 		), depends={
 			'document_root_url': 'document_root:url'
-		} )
+		})
 
 		## Same button appears in edit preferences dialog
 		if gtk.gtk_version >= (2, 10) \
@@ -270,7 +270,7 @@ class FormatPage(AssistantPage):
 		self.form.widgets['template_file'].set_sensitive(False)
 		self.form.widgets['template'].connect('changed',
 			lambda o: self.form.widgets['template_file'].set_sensitive(
-							o.get_active_text() == self.CHOICE_OTHER) )
+							o.get_active_text() == self.CHOICE_OTHER))
 
 		# Check if we have a document root - if not disable all options
 		docroot = assistant.ui.notebook.document_root
@@ -329,7 +329,7 @@ class OutputPage(AssistantPage):
 				# T: Label for file selection in export dialog
 		), depends={
 			'index': 'folder',
-		} )
+		})
 
 		for widget in self.form.widgets:
 			self.form.widgets[widget].set_no_show_all(True)
@@ -372,9 +372,9 @@ class OutputPage(AssistantPage):
 		if self.uistate['output_file'] \
 		and isinstance(self.uistate['output_file'], File):
 			dir = self.uistate['output_file'].dir
-			file = dir.file(encode_filename(basename  + '.' + ext))
+			file = dir.file(encode_filename(basename + '.' + ext))
 		else:
-			file = File('~/' + encode_filename(basename  + '.' + ext))
+			file = File('~/' + encode_filename(basename + '.' + ext))
 		self.uistate['output_file'] = file
 
 		self.form['file'] = self.uistate['output_file']
@@ -460,7 +460,7 @@ class LogContext(object):
 		self.handler = LogHandler(self.file.path)
 		self.handler.setLevel(self.level)
 		self.handler.addFilter(LogFilter(names))
-		self.handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s') )
+		self.handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
 
 	def __enter__(self):
 		#~ self._old_level = self.logger.getEffectiveLevel()

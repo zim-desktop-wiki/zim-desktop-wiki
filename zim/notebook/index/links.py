@@ -252,7 +252,7 @@ class LinksView(IndexView):
 		elif direction == LINK_DIR_BOTH:
 			c = self.db.execute(
 				'SELECT count(*) FROM links '
-				'WHERE source=? or (target=? and source<>?)' , (page_id, page_id, ROOT_ID)
+				'WHERE source=? or (target=? and source<>?)', (page_id, page_id, ROOT_ID)
 					# Excluding root here because linking from root
 					# is used as a hack to create placeholders
 			)

@@ -118,11 +118,11 @@ def get_template(category, template):
 		else:
 			file = File(template)
 			if not file.exists():
-				raise PathLookupError, _('Could not find template "%s"') % template
+				raise PathLookupError(_('Could not find template "%s"') % template)
 					# T: Error message in template lookup
 
 	if not file.exists():
-		raise PathLookupError, _('No such file: %s') % file
+		raise PathLookupError(_('No such file: %s') % file)
 			# T: Error message in template lookup
 
 	logger.info('Loading template from: %s', file)
@@ -157,7 +157,7 @@ class Template(SignalEmitter):
 		self.filename = file.path
 		try:
 			self.parts = TemplateParser().parse(file.read())
-		except Exception, error:
+		except Exception as error:
 			error.parser_file = file
 			raise
 

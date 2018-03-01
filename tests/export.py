@@ -361,7 +361,7 @@ class TestPageSelections(tests.TestCase):
 class TestMultiFileExporter(tests.TestCase):
 
 	def runTest(self):
-		dir =  Dir(self.create_tmp_dir())
+		dir = Dir(self.create_tmp_dir())
 		#~ dir =  VirtualDir('/test')
 		notebook = tests.new_notebook(fakedir='/foo')
 		pages = AllPages(notebook)
@@ -371,18 +371,18 @@ class TestMultiFileExporter(tests.TestCase):
 		exporter.export(pages)
 
 		file = exporter.layout.page_file(Path('roundtrip'))
-		text =  file.read()
+		text = file.read()
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 		file = exporter.layout.page_file(Path('Index'))
-		text =  file.read()
+		text = file.read()
 		self.assertIn('<li><a href="./roundtrip.html" title="roundtrip" class="page">roundtrip</a></li>', text)
 
 
 class TestSingleFileExporter(tests.TestCase):
 
 	def runTest(self):
-		dir =  Dir(self.create_tmp_dir())
+		dir = Dir(self.create_tmp_dir())
 		#~ dir =  VirtualDir('/test')
 		file = dir.file('export.html')
 		notebook = tests.new_notebook(fakedir='/foo')
@@ -392,7 +392,7 @@ class TestSingleFileExporter(tests.TestCase):
 		self.assertIsInstance(exporter, SingleFileExporter)
 		exporter.export(pages)
 
-		text =  file.read()
+		text = file.read()
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
@@ -400,7 +400,7 @@ class TestSingleFileExporter(tests.TestCase):
 class TestMHTMLExporter(tests.TestCase):
 
 	def runTest(self):
-		dir =  Dir(self.create_tmp_dir())
+		dir = Dir(self.create_tmp_dir())
 		#~ dir =  VirtualDir('/test')
 		file = dir.file('export.mht')
 		notebook = tests.new_notebook(fakedir='/foo')
@@ -410,14 +410,14 @@ class TestMHTMLExporter(tests.TestCase):
 		self.assertIsInstance(exporter, MHTMLExporter)
 		exporter.export(pages)
 
-		text =  file.read()
+		text = file.read()
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
 class TestTemplateOptions(tests.TestCase):
 
 	def runTest(self):
-		dir =  Dir(self.create_tmp_dir())
+		dir = Dir(self.create_tmp_dir())
 		file = dir.file('test.tex')
 		page = Path('roundtrip')
 		exporter = build_page_exporter(file, 'latex', 'Article', page)
@@ -436,7 +436,7 @@ class TestTemplateOptions(tests.TestCase):
 class TestExportFormat(object):
 
 	def runTest(self):
-		dir =  Dir(self.create_tmp_dir())
+		dir = Dir(self.create_tmp_dir())
 		#~ dir =  VirtualDir('/test')
 
 		i = 0
@@ -452,7 +452,7 @@ class TestExportFormat(object):
 				exporter.export(pages)
 
 			file = exporter.layout.page_file(Path('roundtrip'))
-			text =  file.read()
+			text = file.read()
 			self.assertIn('Lorem ipsum dolor sit amet', text)
 
 			i += 1
@@ -581,6 +581,20 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNotNone(exp.document_root_url)
 		self.assertIsNotNone(exp.format)
 		self.assertIsNotNone(exp.index_page)
+
+
+		## Full notebook, single page
+		cmd = ExportCommand('export')
+		cmd.parse_options(self.notebook.path,
+			'--format', 'markdown',
+			'--template', './tests/data/TestTemplate.html',
+			'--output', self.tmpdir.file('output.md').path,
+			'-s'
+		)
+		exp = cmd.get_exporter(None)
+		self.assertIsInstance(exp, SingleFileExporter)
+		self.assertIsInstance(exp.layout, SingleFileLayout)
+		self.assertIsInstance(exp.layout.file, File)
 
 		## Single page
 		cmd = ExportCommand('export')

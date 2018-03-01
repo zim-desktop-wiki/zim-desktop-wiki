@@ -70,7 +70,7 @@ class CustomObjectWidget(gtk.EventBox):
 		if self._textview_width > requisition.width:
 			requisition.width = self._textview_width
 
-	def	has_cursor(self):
+	def has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be
 		used by the TextView to determine if the cursor should go
 		"into" the object or just jump from the position before to the
@@ -79,7 +79,7 @@ class CustomObjectWidget(gtk.EventBox):
 		'''
 		return self._has_cursor
 
-	def	set_has_cursor(self, has_cursor):
+	def set_has_cursor(self, has_cursor):
 		'''See has_cursor()'''
 		self._has_cursor = has_cursor
 

@@ -42,7 +42,7 @@ def split_quoted_strings(string, unescape=True, strict=True):
 		string = string[i:].lstrip()
 
 	if string and strict:
-		raise ValueError, 'Unmatched quote'
+		raise ValueError('Unmatched quote')
 	elif string:
 		words += string.split()
 
@@ -218,7 +218,8 @@ def parse_date(string):
 	m = _parse_date_re.search(string)
 	if m:
 		d, m, y = m.groups()
-		if len(d) == 4: y, m, d = d, m, y
+		if len(d) == 4:
+			y, m, d = d, m, y
 		if not d:
 			return None # yyyy-mm not supported
 
@@ -232,8 +233,10 @@ def parse_date(string):
 				y = today.year
 		else:
 			y = int(y)
-			if   y < 50:   y += 2000
-			elif y < 1000: y += 1900
+			if y < 50:
+				y += 2000
+			elif y < 1000:
+				y += 1900
 
 		return tuple(map(int, (y, m, d)))
 	else:
@@ -278,7 +281,7 @@ class Re(object):
 	def __len__(self):
 		if self.m is None:
 			return 0
-		return len(self.m.groups())+1
+		return len(self.m.groups()) + 1
 
 	def __getitem__(self, i):
 		if self.m is None:
@@ -324,14 +327,14 @@ class Re(object):
 				result.append(item)
 		return result
 
-	def start(self,group=0):
+	def start(self, group=0):
 		'''Return the indices of the start of the substring matched by group;
 		group defaults to zero (meaning the whole matched substring). Return -1 if
 		group exists but did not contribute to the match. See re.matchobject for
 		details'''
 		return self.m.start(group)
 
-	def end(self,group=0):
+	def end(self, group=0):
 		'''Return the indices of the end of the substring matched by group;
 		group defaults to zero (meaning the whole matched substring). Return -1 if
 		group exists but did not contribute to the match. See re.matchobject for
@@ -390,19 +393,26 @@ def link_type(link):
 	# More strict than uri_scheme() because page links conflict with
 	# URIs without "//" or without "@"
 	if is_url_re.match(link):
-		if link.startswith('zim+'): type = 'notebook'
-		else: type = is_url_re[1]
-	elif is_email_re.match(link): type = 'mailto'
+		if link.startswith('zim+'):
+			type = 'notebook'
+		else:
+			type = is_url_re[1]
+	elif is_email_re.match(link):
+		type = 'mailto'
 	elif '@' in link and (
 		link.startswith('mid:') or
 		link.startswith('cid:')
 	):
 		return link[:3]
 		# email message uris, see RFC 2392
-	elif is_win32_share_re.match(link): type = 'smb'
-	elif is_path_re.match(link): type = 'file'
-	elif is_interwiki_re.match(link): type = 'interwiki'
-	else: type = 'page'
+	elif is_win32_share_re.match(link):
+		type = 'smb'
+	elif is_path_re.match(link):
+		type = 'file'
+	elif is_interwiki_re.match(link):
+		type = 'interwiki'
+	else:
+		type = 'page'
 	return type
 
 

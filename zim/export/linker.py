@@ -182,7 +182,7 @@ class ExportLinker(BaseLinker):
 				file = File(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
-				filename = '/'+filename # make absolute on Unix
+				filename = '/' + filename # make absolute on Unix
 			file = File(filename)
 		else:
 			if self.source:

@@ -140,7 +140,7 @@ class TrayIconBase(object):
 		notebooks = self.list_all_notebooks()
 		self.populate_menu_with_notebooks(menu, notebooks)
 
-		item = gtk.MenuItem('  '+_('_Other...'))  # Hack - using '  ' to indent visually
+		item = gtk.MenuItem('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
 			# T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_open_notebook, self)
 		menu.append(item)
@@ -220,6 +220,8 @@ class TrayIconBase(object):
 
 	def do_activate_notebook(self, uri):
 		'''Open a specific notebook.'''
+		if not isinstance(uri, basestring):
+			uri = uri.uri
 		ZIM_APPLICATION.run('--gui', uri)
 
 	def do_quit(self):

@@ -23,7 +23,7 @@ class TemplateEditorDialog(Dialog):
 			# T: Dialog title
 
 		label = gtk.Label()
-		label.set_markup('<b>'+_('Templates')+'</b>')
+		label.set_markup('<b>' + _('Templates') + '</b>')
 			# T: Section in dialog
 		label.set_alignment(0.0, 0.5)
 		self.vbox.pack_start(label, False)

@@ -114,7 +114,9 @@ class MainWindowExtensionBase(WindowExtension):
 		pageview.unregister_image_generator_plugin(self)
 
 	def build_generator(self):
-		return self.generator_class(self.plugin)
+		generator=self.generator_class(self.plugin)
+		generator.set_page(self.window.pageview.page)
+		return generator;
 
 	def insert_object(self):
 		title = self.insert_label.replace('_', '')
@@ -158,6 +160,10 @@ class ImageGeneratorClass(object):
 
 	def __init__(self, plugin):
 		self.plugin = plugin
+		self.page = None
+
+	def set_page(self, page):
+		self.page = page
 
 	def generate_image(self, text):
 		'''Generate an image for a user input
@@ -198,6 +204,14 @@ class ImageGeneratorClass(object):
 		It defaults to user input.
 		'''
 		return text
+
+	def get_default_text(self):
+		'''Provides a template or starting point for the user to begin editing.
+
+		@implementation: Not mandatory to be implemented by subclass.
+		It defaults to the empty string.
+		'''
+		return '';
 
 	def filter_input(self, text):
 		'''Filter contents of script file before displaying in textarea
@@ -240,7 +254,7 @@ class ImageGeneratorDialog(Dialog):
 		@param syntax: optional syntax name (as understood by gtksourceview)
 		@param opt: any other arguments to pass to the L{Dialog} constructor
 		'''
-		Dialog.__init__(self, window, title, defaultwindowsize=(450,300), **opt)
+		Dialog.__init__(self, window, title, defaultwindowsize=(450, 300), **opt)
 		self.app_window = window
 		self.generator = generator
 		self.imagefile = None
@@ -281,13 +295,15 @@ class ImageGeneratorDialog(Dialog):
 			hbox.pack_start(self.logbutton, False)
 		# else keep hidden
 
-		self._existing_file = None
 		if image:
 			file = image['_src_file'] # FIXME ?
 			textfile = self._stitch_fileextension(file, self.generator.scriptname)
 			self._existing_file = textfile
 			self.imageview.set_file(file)
 			self.set_text(self.generator.filter_input(textfile.read()))
+		else:
+			self._existing_file = None
+			self.set_text(self.generator.filter_input(self.generator.get_default_text()))
 
 		self.textview.grab_focus()
 
@@ -363,7 +379,7 @@ class ImageGeneratorDialog(Dialog):
 			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
 			textfile = dir.new_file(self.generator.scriptname)
 
-		textfile.write( self.generator.process_input(self.get_text()) )
+		textfile.write(self.generator.process_input(self.get_text()))
 
 		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
 		if self.imagefile and self.imagefile.exists():
@@ -385,5 +401,3 @@ class ImageGeneratorDialog(Dialog):
 	def destroy(self):
 		self.generator.cleanup()
 		Dialog.destroy(self)
-
-

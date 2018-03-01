@@ -102,7 +102,7 @@ import threading
 class TestRaceCodition(tests.TestCase):
 
 	def runTest(self):
-		notebook = self.setUpNotebook(content = {'test': 'test123\n' })
+		notebook = self.setUpNotebook(content = {'test': 'test123\n'})
 		pageview = setUpPageView(notebook=notebook)
 
 		# Install wrapper with events

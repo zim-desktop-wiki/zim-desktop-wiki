@@ -35,7 +35,7 @@ if not path.exists(GTK_ROOT):
 
 VC90_DLL = glob.glob(r"C:\Windows\winsxs\x86_microsoft.vc90.crt*9.0.21022.8*")
 VC90_MANIFEST = glob.glob(r"C:\Windows\winsxs\Manifests\x86_microsoft.vc90.crt*9.0.21022.8*.manifest")
-if VC90_DLL == None or VC90_MANIFEST == None:
+if VC90_DLL is None or VC90_MANIFEST is None:
 	raise RuntimeError("Can't find VC 9.0 runtime DLL.")
 VC90_DLL = VC90_DLL[0]
 VC90_MANIFEST = VC90_MANIFEST[0]
@@ -93,7 +93,7 @@ for ext in ["*.exe", "*.dll"]:
 		if \
 			path.isfile(file) and \
 			( not path.exists(path.join(EXE_ROOT, b)) ) and \
-			( b not in ["gtk-demo.exe"] ):
+			(b not in ["gtk-demo.exe"]):
 
 			shutil.copy(file, EXE_ROOT)
 

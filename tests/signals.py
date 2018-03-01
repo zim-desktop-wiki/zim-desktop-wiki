@@ -53,7 +53,7 @@ class TestEmitter(tests.TestCase):
 		emitter = FancyEmitter()
 		self.assertIsNone(emitter.state)
 
-		emitter.connect('foo', lambda o,a: None)
+		emitter.connect('foo', lambda o, a: None)
 		self.assertEqual(emitter.state, 'SETUP foo')
 
 	def testInheritance(self):
@@ -65,14 +65,14 @@ class TestEmitter(tests.TestCase):
 	def testRunSequence(self):
 		emitter = ChildEmitter()
 
-		emitter.connect('last', lambda o,l: l.append('NORMAL'))
-		emitter.connect_after('last', lambda o,l: l.append('AFTER'))
+		emitter.connect('last', lambda o, l: l.append('NORMAL'))
+		emitter.connect_after('last', lambda o, l: l.append('AFTER'))
 		seq = []
 		emitter.emit('last', seq)
 		self.assertEqual(seq, ['NORMAL', 'CLOSURE', 'AFTER'])
 
-		emitter.connect('first', lambda o,l: l.append('NORMAL'))
-		emitter.connect_after('first', lambda o,l: l.append('AFTER'))
+		emitter.connect('first', lambda o, l: l.append('NORMAL'))
+		emitter.connect_after('first', lambda o, l: l.append('AFTER'))
 		seq = []
 		emitter.emit('first', seq)
 		self.assertEqual(seq, ['CLOSURE', 'NORMAL', 'AFTER'])

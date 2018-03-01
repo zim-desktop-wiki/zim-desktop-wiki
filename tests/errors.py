@@ -97,7 +97,7 @@ class TestExceptionHandler(tests.TestCase):
 
 		## Handle unexpected error or bug
 		try:
-			raise AssertionError, 'My AssertionError'
+			raise AssertionError('My AssertionError')
 		except:
 			myfilter = CatchAllLogging()
 			with myfilter:
@@ -115,8 +115,8 @@ class TestExceptionHandler(tests.TestCase):
 
 		## Show caught bug
 		try:
-			raise AssertionError, 'My AssertionError'
-		except Exception, error:
+			raise AssertionError('My AssertionError')
+		except Exception as error:
 			myfilter = CatchAllLogging()
 			with myfilter:
 				zim.errors.show_error(error)

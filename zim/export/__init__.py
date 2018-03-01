@@ -71,7 +71,6 @@ def build_single_file_exporter(file, format, template, namespace=None, **opts):
 	from zim.export.exporters.files import SingleFileExporter
 
 	template = get_template(format, template)
-	ext = get_format(format).info['extension']
 	layout = SingleFileLayout(file)
 	return SingleFileExporter(layout, template, format, **opts)
 
@@ -84,7 +83,3 @@ def build_mhtml_file_exporter(file, template, **opts):
 
 	template = get_template('html', template)
 	return MHTMLExporter(file, template, **opts)
-
-
-
-

@@ -76,15 +76,15 @@ class TestPluginClasses(tests.TestCase):
 
 			# test dependencies data
 			dep = klass.check_dependencies()
-			self.assertTrue(isinstance(dep,tuple))
+			self.assertTrue(isinstance(dep, tuple))
 			check, dep = dep
-			self.assertTrue(isinstance(check,bool))
-			self.assertTrue(isinstance(dep,list))
+			self.assertTrue(isinstance(check, bool))
+			self.assertTrue(isinstance(dep, list))
 			for i in range(len(dep)):
-				self.assertTrue(isinstance(dep[i],tuple))
-				self.assertTrue(isinstance(dep[i][0],str))
-				self.assertTrue(isinstance(dep[i][1],bool))
-				self.assertTrue(isinstance(dep[i][2],bool))
+				self.assertTrue(isinstance(dep[i], tuple))
+				self.assertTrue(isinstance(dep[i][0], str))
+				self.assertTrue(isinstance(dep[i][1], bool))
+				self.assertTrue(isinstance(dep[i][2], bool))
 
 
 class TestPluginManager(tests.TestCase):

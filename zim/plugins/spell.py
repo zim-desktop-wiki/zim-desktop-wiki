@@ -4,6 +4,7 @@
 
 '''Spell check plugin based on gtkspell'''
 
+import re
 import locale
 import logging
 
@@ -36,7 +37,7 @@ else:
 # See https://github.com/koehlma/pygtkspellcheck/issues/22
 if gtkspellcheck \
 and hasattr(gtkspellcheck.SpellChecker, '_LanguageList') \
-and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker') :
+and hasattr(gtkspellcheck.SpellChecker._LanguageList, 'from_broker'):
 	from pylocales import code_to_name
 
 	orig_from_broker = gtkspellcheck.SpellChecker._LanguageList.from_broker
@@ -107,11 +108,26 @@ class MainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self._adapter = GtkspellcheckAdapter if gtkspellcheck else GtkspellAdapter
-
+		self._adapter = self._choose_adapter()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
 		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER) # XXX
+
+	def _choose_adapter(self):
+		if gtkspellcheck:
+			version = tuple(
+				map(int, re.findall('\d+', gtkspellcheck.__version__))
+			)
+			if version >= (4, 0, 3):
+				return GtkspellcheckAdapter
+			else:
+				logger.warning(
+					'Using gtkspellcheck %s. Versions before 4.0.3 might cause memory leak.',
+					gtkspellcheck.__version__
+				)
+				return OldGtkspellcheckAdapter
+		else:
+			return GtkspellAdapter
 
 	@toggle_action(
 		_('Check _spelling'), # T: menu item
@@ -151,7 +167,7 @@ class MainWindowExtension(WindowExtension):
 					# T: error message
 				_('This could mean you don\'t have the proper\ndictionaries installed')
 					# T: error message explanation
-			) ).run()
+			)).run()
 		else:
 			textview._gtkspell = checker
 
@@ -170,17 +186,12 @@ class GtkspellcheckAdapter(object):
 		self._textview = textview
 		self._checker = None
 		self._active = False
+
 		self.enable()
 
 	def on_new_buffer(self):
 		if self._checker:
-			# wanted to use checker.buffer_initialize() here,
-			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
-			if self._active:
-				self.detach()
-				self.enable()
-			else:
-				self.detach()
+			self._checker.buffer_initialize()
 
 	def enable(self):
 		if self._checker:
@@ -204,7 +215,7 @@ class GtkspellcheckAdapter(object):
 
 	def _clean_tag_table(self):
 		## cleanup tag table - else next loading will fail
-		prefix='gtkspellchecker'
+		prefix = 'gtkspellchecker'
 		table = self._textview.get_buffer().get_tag_table()
 		tags = []
 		table.foreach(lambda tag, data: tags.append(tag))
@@ -213,6 +224,18 @@ class GtkspellcheckAdapter(object):
 			if name and name.startswith(prefix):
 				table.remove(tag)
 
+
+class OldGtkspellcheckAdapter(GtkspellcheckAdapter):
+
+	def on_new_buffer(self):
+		if self._checker:
+			# wanted to use checker.buffer_initialize() here,
+			# but gives issue, see https://github.com/koehlma/pygtkspellcheck/issues/24
+			if self._active:
+				self.detach()
+				self.enable()
+			else:
+				self.detach()
 
 
 class GtkspellAdapter(object):

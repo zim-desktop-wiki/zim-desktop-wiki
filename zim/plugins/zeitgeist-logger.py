@@ -41,7 +41,7 @@ class ZeitgeistPlugin(PluginClass):
 			self.zeitgeist_client = ZeitgeistClient()
 			self.zeitgeist_client.register_data_source('application://zim.desktop',
 			    'Zim', _('Zim Desktop Wiki'), []) # T: short description of zim
-		except RuntimeError, e:
+		except RuntimeError as e:
 			logger.exception('Loading zeitgeist client failed, will not log events')
 			self.zeitgeist_client = None
 
@@ -67,7 +67,7 @@ class ZeitgeistPlugin(PluginClass):
 		event = Event.new_for_values(actor='application://zim.desktop',
 		                             interpretation=event_type,
 		                             manifestation=Manifestation.USER_ACTIVITY,
-		                             subjects=[subject,])
+		                             subjects=[subject, ])
 
 		self.zeitgeist_client.insert_event(event)
 

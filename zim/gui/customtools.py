@@ -28,7 +28,7 @@ class CustomToolManagerDialog(Dialog):
 		self.add_help_text(_(
 			'You can configure custom tools that will appear\n'
 			'in the tool menu and in the tool bar or context menus.'
-		) ) # T: help text in "Custom Tools" dialog
+		)) # T: help text in "Custom Tools" dialog
 
 		hbox = gtk.HBox(spacing=5)
 		self.vbox.add(hbox)
@@ -81,7 +81,7 @@ class CustomToolManagerDialog(Dialog):
 			i = self.manager.index(name)
 			self.manager.reorder(name, i + step)
 			self.listview.refresh()
-			self.listview.select(i+step)
+			self.listview.select(i + step)
 
 
 class CustomToolList(gtk.TreeView):
@@ -168,14 +168,14 @@ class EditCustomToolDialog(Dialog):
 		if tool and tool.icon and tool.icon != gtk.STOCK_EXECUTE:
 			try:
 				self.iconbutton.set_file(File(tool.icon))
-			except Exception, error:
+			except Exception as error:
 				logger.exception('Could not load: %s', tool.icon)
-		label = gtk.Label(_('Icon')+':') # T: Input in "Edit Custom Tool" dialog
+		label = gtk.Label(_('Icon') + ':') # T: Input in "Edit Custom Tool" dialog
 		label.set_alignment(0.0, 0.5)
 		hbox = gtk.HBox()
 		i = self.form.get_property('n-rows')
-		self.form.attach(label, 0,1, i,i+1, xoptions=0)
-		self.form.attach(hbox, 1,2, i,i+1)
+		self.form.attach(label, 0, 1, i, i + 1, xoptions=0)
+		self.form.attach(hbox, 1, 2, i, i + 1)
 		hbox.pack_start(self.iconbutton, False)
 
 		self.form.add_inputs((

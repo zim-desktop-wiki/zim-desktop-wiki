@@ -192,8 +192,8 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 					continue
 				elif candidate.endswith('.py'):
 					plugins.add(candidate[:-3])
-				elif zim.fs.isdir(dir.path+'/'+candidate) \
-				and os.path.exists(dir.path+'/'+candidate+'/__init__.py'):
+				elif zim.fs.isdir(dir.path + '/' + candidate) \
+				and os.path.exists(dir.path + '/' + candidate + '/__init__.py'):
 					plugins.add(candidate)
 				else:
 					pass
@@ -247,7 +247,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		logger.debug('Loading plugin: %s', name)
 		klass = self.get_plugin_class(name)
 		if not klass.check_dependencies_ok():
-			raise AssertionError, 'Dependencies failed for plugin %s' % name
+			raise AssertionError('Dependencies failed for plugin %s' % name)
 
 		plugin = klass(self.config)
 		self.connectto(plugin, 'extension-point-changed')
@@ -532,7 +532,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		@emits: extension-point-changed
 		'''
 		if extends in self.extension_classes:
-			raise AssertionError, 'Extension point %s already in use' % name
+			raise AssertionError('Extension point %s already in use' % name)
 		self.extension_classes[extends] = klass
 		self.emit('extension-point-changed', extends)
 
@@ -583,9 +583,9 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		if len(exts) == 1:
 			return exts[0]
 		elif len(exts) > 1:
-			raise AssertionError, 'BUG: multiple extensions found of class: %s' % klass
+			raise AssertionError('BUG: multiple extensions found of class: %s' % klass)
 		else:
-			raise ValueError, 'No extension of class: %s' % klass
+			raise ValueError('No extension of class: %s' % klass)
 
 	def destroy(self):
 		'''Destroy the plugin object and all extensions

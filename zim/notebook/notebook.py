@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2017s Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from __future__ import with_statement
@@ -40,8 +40,10 @@ class NotebookConfig(INIConfigFile):
 
 	def __init__(self, file):
 		INIConfigFile.__init__(self, file)
-		if os.name == 'nt': endofline = 'dos'
-		else: endofline = 'unix'
+		if os.name == 'nt':
+			endofline = 'dos'
+		else:
+			endofline = 'unix'
 		self['Notebook'].define((
 			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
 			('name', String(file.dir.basename)),
@@ -138,7 +140,7 @@ class IndexNotUptodateError(Error):
 def assert_index_uptodate(method):
 	def wrapper(notebook, *arg, **kwarg):
 		if not notebook.index.is_uptodate:
-			raise IndexNotUptodateError, 'Index not up to date'
+			raise IndexNotUptodateError('Index not up to date')
 		return method(notebook, *arg, **kwarg)
 
 	return wrapper
@@ -741,20 +743,23 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			elif target == oldtarget:
 				return self._update_link_tag(elt, page, newtarget, href)
 			elif target.ischild(oldtarget):
-				mynewtarget = newtarget.child( target.relname(oldtarget) )
+				mynewtarget = newtarget.child(target.relname(oldtarget))
 				return self._update_link_tag(elt, page, mynewtarget, href)
 
 			elif href.rel == HREF_REL_FLOATING \
-			and href.parts()[0] == newtarget.basename \
-			and page.ischild(oldtarget.parent) \
-			and not target.ischild(oldtarget.parent):
-				# Edge case: an link that was anchored to the moved page,
-				# and now resolves somewhere higher in the tree
-				if href.names == newtarget.basename:
-					return self._update_link_tag(elt, page, newtarget, href)
-				else:
-					mynewtarget = newtarget.child(':'.join(href.parts[1:]))
-					return self._update_link_tag(elt, page, mynewtarget, href)
+			and href.parts()[0] == oldtarget.basename \
+			and page.ischild(oldtarget.parent):
+				targetrecord = self.pages.lookup_by_pagename(target)
+				if not target.ischild(oldtarget.parent) \
+				or not targetrecord.exists():
+					# An link that was anchored to the moved page,
+					# but now resolves somewhere higher in the tree
+					# Or a link that no longer resolves
+					if href.names == newtarget.basename:
+						return self._update_link_tag(elt, page, newtarget, href)
+					else:
+						mynewtarget = newtarget.child(':'.join(href.parts()[1:]))
+						return self._update_link_tag(elt, page, mynewtarget, href)
 
 			else:
 				raise zim.formats.VisitorSkip
@@ -928,7 +933,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		logger.debug('Trash page: %s', path)
 
 		if self.config['Notebook']['disable_trash']:
-			raise TrashNotSupportedError, 'disable_trash is set'
+			raise TrashNotSupportedError('disable_trash is set')
 
 		self.emit('delete-page', path)
 
@@ -961,7 +966,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				pass
 			else:
 				pages = set(
-					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD) )
+					l.source for l in self.links.list_links_section(path, LINK_DIR_BACKWARD))
 
 				for p in pages:
 					yield p
@@ -1034,7 +1039,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			return dir.file(filename)
 		elif is_win32_path_re.match(filename):
 			if not filename.startswith('/'):
-				filename = '/'+filename
+				filename = '/' + filename
 				# make absolute on Unix
 			return File(filename)
 		else:
@@ -1102,7 +1107,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				uppath = attachments_dir.relpath(parent)
 				downpath = file.relpath(parent)
 				up = 1 + uppath.count('/')
-				return updir*up + downpath
+				return updir * up + downpath
 		else:
 			if document_root and notebook_root \
 			and document_root.ischild(notebook_root) \

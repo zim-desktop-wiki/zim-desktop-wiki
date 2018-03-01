@@ -2,6 +2,7 @@
 **/.zim
 tests/tmp/
 test_report.html
+test_times.csv
 locale/
 man/
 html/
@@ -13,6 +14,7 @@ zim/_version.py
 MANIFEST
 coverage/
 
+
 # Temporary files to be ignored
 *.bak
 *.tmp
@@ -22,6 +24,7 @@ coverage/
 __pycache__/
 *.py[cod]
 *$py.class
+.pybuild/
 
 # C extensions
 *.so

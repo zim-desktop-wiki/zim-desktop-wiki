@@ -34,7 +34,7 @@ class TestBookmarksBar(tests.TestCase):
 		self.PATHS = ('Parent:Daughter:Granddaughter',
 				 'Test:tags', 'Test:foo', 'Books')
 		self.LEN_PATHS = len(self.PATHS)
-		self.PATHS_NAMES = {self.PATHS[0]:'name 1', self.PATHS[1]:'name 2', self.PATHS[2]:'name 3'}
+		self.PATHS_NAMES = {self.PATHS[0]: 'name 1', self.PATHS[1]: 'name 2', self.PATHS[2]: 'name 3'}
 
 		self.uistate = ConfigDict()
 		self.uistate.setdefault('bookmarks', [])
@@ -123,7 +123,7 @@ class TestBookmarksBar(tests.TestCase):
 		self.assertEqual(Bar.paths, list(self.PATHS))
 
 		# Check reordering bookmarks.
-		new_paths = ('1','2','3','4','5')
+		new_paths = ('1', '2', '3', '4', '5')
 
 		Bar.paths = list(new_paths)
 		Bar.move_bookmark(new_paths[2], new_paths[2], 'left')
@@ -131,22 +131,22 @@ class TestBookmarksBar(tests.TestCase):
 		Bar.move_bookmark(new_paths[3], new_paths[3], 'right')
 		self.assertEqual(Bar.paths, list(new_paths))
 		Bar.move_bookmark('3', '1', 'left')
-		self.assertEqual(Bar.paths, ['3','1','2','4','5'])
+		self.assertEqual(Bar.paths, ['3', '1', '2', '4', '5'])
 		Bar.move_bookmark('5', '1', 'left')
-		self.assertEqual(Bar.paths, ['3','5','1','2','4'])
+		self.assertEqual(Bar.paths, ['3', '5', '1', '2', '4'])
 		Bar.move_bookmark('5', '1', 'right')
-		self.assertEqual(Bar.paths, ['3','1','5','2','4'])
+		self.assertEqual(Bar.paths, ['3', '1', '5', '2', '4'])
 		Bar.move_bookmark('3', '4', 'right')
-		self.assertEqual(Bar.paths, ['1','5','2','4','3'])
+		self.assertEqual(Bar.paths, ['1', '5', '2', '4', '3'])
 		Bar.move_bookmark('5', '4', '-')
-		self.assertEqual(Bar.paths, ['1','5','2','4','3'])
+		self.assertEqual(Bar.paths, ['1', '5', '2', '4', '3'])
 
 		# Check rename_bookmark and save options.
 		preferences_changed = lambda save: Bar.on_preferences_changed({'save': save,
 				'add_bookmarks_to_beginning': False,
 				'max_bookmarks': 15})
 
-		new_path_names = {new_paths[0]:'11', new_paths[1]:'22', new_paths[2]:'33'}
+		new_path_names = {new_paths[0]: '11', new_paths[1]: '22', new_paths[2]: '33'}
 		Bar.paths = list(new_paths)
 		preferences_changed(True)
 		Bar._reload_bar()
@@ -163,11 +163,11 @@ class TestBookmarksBar(tests.TestCase):
 
 		Clipboard.set_text('new name')
 		Bar.rename_bookmark(button)
-		rename_check('new name', new_paths[0], {new_paths[0]:'new name'}, {new_paths[0]:'new name'})
+		rename_check('new name', new_paths[0], {new_paths[0]: 'new name'}, {new_paths[0]: 'new name'})
 		preferences_changed(False)
-		rename_check('new name', new_paths[0], {new_paths[0]:'new name'}, {})
+		rename_check('new name', new_paths[0], {new_paths[0]: 'new name'}, {})
 		preferences_changed(True)
-		rename_check('new name', new_paths[0], {new_paths[0]:'new name'}, {new_paths[0]:'new name'})
+		rename_check('new name', new_paths[0], {new_paths[0]: 'new name'}, {new_paths[0]: 'new name'})
 		Bar.rename_bookmark(button)
 		rename_check(new_paths[0], new_paths[0], {}, {})
 
@@ -188,7 +188,7 @@ class TestBookmarksBar(tests.TestCase):
 		self.assertEqual(self.uistate['bookmarks_names'], {})
 
 		# Check change bookmark with renaming.
-		new_path_names = {new_paths[0]:'11', new_paths[1]:'22', new_paths[2]:'33'}
+		new_path_names = {new_paths[0]: '11', new_paths[1]: '22', new_paths[2]: '33'}
 
 		Bar.paths = list(new_paths)
 		Bar.paths_names = dict(new_path_names)
@@ -238,7 +238,7 @@ class TestBookmarksBar(tests.TestCase):
 		pagelist = set(self.notebook.pages.list_pages())
 		_enhanced_pagelist = set()
 		for page in pagelist:
-			_enhanced_pagelist.update( set(self.notebook.pages.list_pages(page)) )
+			_enhanced_pagelist.update(set(self.notebook.pages.list_pages(page)))
 			if len(_enhanced_pagelist) > 20:
 				break
 		pagelist.update(_enhanced_pagelist)
@@ -276,7 +276,7 @@ class TestBookmarksBar(tests.TestCase):
 			Bar._add_new(path)
 			self.assertEqual(self.uistate['bookmarks'], [])
 			preferences_changed(True, 15)
-			self.assertEqual(self.uistate['bookmarks'], list(self.PATHS[:i+1]))
+			self.assertEqual(self.uistate['bookmarks'], list(self.PATHS[:i + 1]))
 		self.assertEqual(self.uistate['bookmarks'], list(self.PATHS))
 
 
