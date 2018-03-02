@@ -12,6 +12,7 @@ from zim.notebook import Path
 from zim.gui.widgets import Dialog, BrowserTreeView, InputEntry, ErrorDialog, ScrolledWindow
 from zim.search import *
 
+from zim.formats import ParseTree
 
 logger = logging.getLogger('zim.gui.searchdialog')
 
@@ -164,9 +165,28 @@ class SearchResultsTreeView(BrowserTreeView):
 			# By default sort by score
 
 		self.connect('row-activated', self._do_open_page)
+		self.connect('button_press_event', self._clicked)
 		self.connect('destroy', self.__class__._cancel)
 
 	def _cancel(self): self.cancelled = True
+
+	def _clicked(self, tv, event):
+		pos_path = self.get_path_at_pos(int(event.x), int(event.y))
+		buffer = self.app_window.pageview.view.get_buffer()
+		# paste link at current cursor if middle click
+		if event.button == 2 and pos_path is not None:
+			path, col, cellx, celly = pos_path
+			page = Path(self.get_model()[path][0].decode('utf-8'))
+			# make link
+			xml = """<?xml version='1.0' encoding='utf-8'?>""" + \
+			   """<zim-tree partial="True">""" + \
+			   '<link href=":%(path)s">:%(disp)s</link> ' + \
+			   '</zim-tree>'
+			dispdict = {'path': page, 'disp': page}
+			link = ParseTree().fromstring(xml % dispdict)
+			# insert into current page
+			buffer.insert_parsetree_at_cursor(link)
+			self.window.get_parent().destroy()
 
 	def search(self, query):
 		query = query.strip()
