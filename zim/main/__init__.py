@@ -299,7 +299,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		preferences.setdefault('plugins', [
 			'pageindex', 'pathbar',
 			'calendar', 'insertsymbol', 'printtobrowser',
-			'versioncontrol', # 'osx_menubar'
+			'versioncontrol'
 		])
 
 		# Upgrade plugin list
