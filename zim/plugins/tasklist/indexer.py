@@ -18,9 +18,9 @@ from zim.formats import get_format, \
 	Visitor, VisitorSkip
 from zim.tokenparser import skip_to_end_token, TEXT, END
 
-from zim.plugins.calendar import daterange_from_path
+from zim.plugins.journal import daterange_from_path
 	# TODO instead of just importing this function we should define
-	#      an interface or hook to call the calendar plugin object
+	#      an interface or hook to call the journal plugin object
 
 logger = logging.getLogger('zim.plugins.tasklist')
 

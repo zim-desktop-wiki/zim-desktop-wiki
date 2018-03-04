@@ -96,21 +96,21 @@ class TestPluginManager(tests.TestCase):
 		self.assertEqual(len(manager), 0)
 		self.assertEqual(list(manager), [])
 
-		obj = manager.load_plugin('calendar')
+		obj = manager.load_plugin('journal')
 		self.assertEqual(len(manager), 1)
-		self.assertEqual(list(manager), ['calendar'])
-		self.assertEqual(manager['calendar'], obj)
+		self.assertEqual(list(manager), ['journal'])
+		self.assertEqual(manager['journal'], obj)
 
-		obj1 = manager.load_plugin('calendar') # redundant call
+		obj1 = manager.load_plugin('journal') # redundant call
 		self.assertEqual(obj1, obj)
 		self.assertEqual(len(manager), 1)
 
-		manager.remove_plugin('calendar')
+		manager.remove_plugin('journal')
 		self.assertEqual(len(manager), 0)
 		self.assertEqual(list(manager), [])
-		self.assertRaises(KeyError, manager.__getitem__, 'calendar')
+		self.assertRaises(KeyError, manager.__getitem__, 'journal')
 
-		manager.remove_plugin('calendar') # redundant call
+		manager.remove_plugin('journal') # redundant call
 
 	def testLoadNonExistingPlugin(self):
 		manager = PluginManager()
@@ -118,8 +118,8 @@ class TestPluginManager(tests.TestCase):
 
 	def testProfileSwitch(self):
 		# Two lists of plugins without dependencies - with some overlap
-		list_a = ['attachmentbrowser', 'backlinkpane', 'calendar', 'distractionfree', 'insertsymbol']
-		list_b = ['calendar', 'distractionfree', 'insertsymbol', 'printtobrowser', 'quicknote']
+		list_a = ['attachmentbrowser', 'backlinkpane', 'distractionfree', 'insertsymbol', 'journal']
+		list_b = ['distractionfree', 'insertsymbol', 'journal', 'printtobrowser', 'quicknote']
 
 		manager = PluginManager()
 		for name in list_a:

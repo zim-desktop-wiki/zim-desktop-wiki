@@ -59,8 +59,8 @@ class TestPreferencesDialog(tests.TestCase):
 	def testConfigurePlugin(self):
 		config = VirtualConfigManager()
 
-		from zim.plugins.calendar import CalendarPlugin
-		plugin = CalendarPlugin()
+		from zim.plugins.journal import JournalPlugin
+		plugin = JournalPlugin()
 
 		window = MyWindow(config)
 		pref_dialog = PreferencesDialog(window, config)

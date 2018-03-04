@@ -229,7 +229,7 @@ def parse_date(string):
 		- C{yyyy-mm?-dd?}
 
 	Where '-' can be replaced by any separator. Any preceding or
-	trailing text will be ignored (so we can parse calendar page names
+	trailing text will be ignored (so we can parse journal page names
 	correctly).
 
 	TODO: Some setting to prefer US dates with mm-dd instead of dd-mm

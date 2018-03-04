@@ -46,7 +46,6 @@ PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_H
 
 @extends('MainWindow')
 class PathBarMainWindowExtension(WindowExtension):
-	'''Extension used to add calendar dialog to mainwindow'''
 
 	uimanager_xml = '''
 	<ui>

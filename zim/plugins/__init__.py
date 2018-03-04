@@ -203,7 +203,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 	def get_plugin_class(klass, name):
 		'''Get the plugin class for a given name
 
-		@param name: the plugin name (e.g. "calendar")
+		@param name: the plugin module name
 		@returns: the plugin class object
 		'''
 		modname = 'zim.plugins.' + name

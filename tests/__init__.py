@@ -53,7 +53,7 @@ __all__ = [
 	'main', 'plugins',
 	# Plugins
 	'pathbar', 'pageindex',
-	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
+	'journal', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',

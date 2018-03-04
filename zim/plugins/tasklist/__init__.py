@@ -16,7 +16,7 @@
 #      tab in properties, link to open that from plugin prefs ?
 
 # TODO: test coverage for the start date label (and due with "<")
-# TODO: test coverage for start / due date from calendar page
+# TODO: test coverage for start / due date from journal page
 # TODO: test coverage for sorting in list_open_tasks
 # TODO: test coverage include / exclude sections
 # TODO: update manual

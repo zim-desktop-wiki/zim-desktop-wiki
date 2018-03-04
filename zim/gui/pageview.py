@@ -6488,7 +6488,7 @@ class InsertDateDialog(Dialog):
 			lambda *a: self.response(Gtk.ResponseType.OK))
 
 		## Add Calendar widget
-		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
+		from zim.plugins.journal import Calendar # FIXME put this in zim.gui.widgets
 
 		self.calendar_expander = Gtk.Expander.new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
 			# T: expander label in "insert date" dialog

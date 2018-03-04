@@ -298,14 +298,18 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		preferences = config.preferences['General']
 		preferences.setdefault('plugins', [
 			'pageindex', 'pathbar',
-			'calendar', 'insertsymbol', 'printtobrowser',
-			'versioncontrol'
+			'journal', 'insertsymbol', 'printtobrowser',
+			'versioncontrol',
 		])
 
 		# Upgrade plugin list
 		preferences.setdefault('plugins_list_version', 'none')
 		if preferences['plugins_list_version'] != '0.68':
 			preferences['plugins'].extend(['pageindex', 'pathbar'])
+			if 'calendar' in preferences['plugins']:
+				preferences['plugins'].remove('calendar')
+				preferences['plugins'].append('journal')
+				config.preferences['JournalPlugin'] = config.preferences['CalendarPlugin']
 			preferences['plugins_list_version'] = '0.68'
 
 		pluginmanager = PluginManager(config)

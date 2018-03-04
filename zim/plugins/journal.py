@@ -24,7 +24,7 @@ from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
 
-logger = logging.getLogger('zim.plugins.calendar')
+logger = logging.getLogger('zim.plugins.journal')
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
@@ -78,11 +78,11 @@ def daterange_from_path(path):
 		date = datetime.date(year, 1, 1)
 		end_date = datetime.date(year, 12, 31)
 	else:
-		return None # Not a calendar path
+		return None # Not a journal path
 	return type, date, end_date
 
 
-class CalendarPlugin(PluginClass):
+class JournalPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Journal'), # T: plugin name
@@ -124,7 +124,7 @@ Also adds a calendar widget to access these pages.
 			self.set_extension_class('MainWindow', JournalMainWindowExtensionDialog)
 
 	def path_from_date(self, date):
-		'''Returns the path for a calendar page for a specific date'''
+		'''Returns the path for a journal page for a specific date'''
 		if self.preferences['granularity'] == DAY:
 			path = date.strftime('%Y:%m:%d')
 		elif self.preferences['granularity'] == WEEK:
@@ -168,7 +168,7 @@ def dateRangeTemplateFunction(start, end):
 @extends('Notebook')
 class NotebookExtension(ObjectExtension):
 	'''Extend notebook by setting special page template for
-	the calendar namespace and by adding a hook to suggests links
+	the journal namespace and by adding a hook to suggests links
 	for dates.
 	'''
 
@@ -211,7 +211,7 @@ class NotebookExtension(ObjectExtension):
 		Sets parameters in the template dict to be used in the template.
 		'''
 		type, start, end = daterange
-		context['calendar_plugin'] = {
+		context['journal_plugin'] = {
 			'page_type': type,
 			'date': start,
 			'start_date': start,

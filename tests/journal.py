@@ -15,7 +15,7 @@ from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
 
-from zim.plugins.calendar import NotebookExtension, \
+from zim.plugins.journal import NotebookExtension, \
 	JournalMainWindowExtensionDialog, JournalMainWindowExtensionEmbedded, \
 	CalendarDialog
 
@@ -25,7 +25,7 @@ from tests.mainwindow import setUpMainWindow
 class TestCalendarFunctions(tests.TestCase):
 
 	def testDatesForWeeks(self):
-		from zim.plugins.calendar import dates_for_week
+		from zim.plugins.journal import dates_for_week
 
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
@@ -48,7 +48,7 @@ class TestCalendarFunctions(tests.TestCase):
 		self.assertEqual(end, dateclass(2010, 1, 2)) # a saturday
 
 	def testWeekCalendar(self):
-		from zim.plugins.calendar import weekcalendar
+		from zim.plugins.journal import weekcalendar
 		sunday = dateclass(2012, 4, 22)
 		monday = dateclass(2012, 4, 23)
 		nextsunday = dateclass(2012, 4, 29)
@@ -77,7 +77,7 @@ class TestCalendarFunctions(tests.TestCase):
 
 
 	def testDateRangeFromPath(self):
-		from zim.plugins.calendar import daterange_from_path
+		from zim.plugins.journal import daterange_from_path
 
 		# Day
 		for path in (Path('Foo:2012:04:27'), Path('Foo:2012:4:27')):
@@ -109,10 +109,10 @@ class TestCalendarFunctions(tests.TestCase):
 
 
 @tests.slowTest
-class TestCalendarPlugin(tests.TestCase):
+class TestJournalPlugin(tests.TestCase):
 
 	def testMainWindowExtensions(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
 
 		notebook = self.setUpNotebook()
@@ -153,7 +153,7 @@ class TestCalendarPlugin(tests.TestCase):
 		plugin.preferences['embedded'] = True # switch back
 
 	def testNotebookExtension(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
 
 		notebook = self.setUpNotebook()
@@ -171,7 +171,7 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertIsNone(link)
 
 	def testNamespace(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
 		today = dateclass.today()
 		for namespace in (Path('Calendar'), Path(':')):
@@ -183,7 +183,7 @@ class TestCalendarPlugin(tests.TestCase):
 			self.assertTrue(isinstance(date, dateclass))
 			self.assertEqual(date, today)
 
-		from zim.plugins.calendar import DAY, WEEK, MONTH, YEAR
+		from zim.plugins.journal import DAY, WEEK, MONTH, YEAR
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
 		plugin.preferences['namespace'] = Path('Calendar')
@@ -203,7 +203,7 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertEqual(path.name, 'Calendar:2012:04')
 
 	def testTemplate(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
 		plugin.preferences['namespace'] = Path('Calendar')
 
