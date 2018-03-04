@@ -37,10 +37,14 @@ INFO_COL = 4   # column with the NotebookInfo object
 
 def _run_dialog_with_mainloop(dialog):
 	# Apparently Gtk.Dialog.run() does not work outside of a main loop
-	dialog.show_all()
-	dialog.present()
-	dialog.connect("response", lambda *a: Gtk.main_quit())
-	Gtk.main()
+	from zim.gui.widgets import TEST_MODE, TEST_MODE_RUN_CB
+	if TEST_MODE and TEST_MODE_RUN_CB:
+		TEST_MODE_RUN_CB(dialog)
+	else:
+		dialog.show_all()
+		dialog.present()
+		dialog.connect("response", lambda *a: Gtk.main_quit())
+		Gtk.main()
 	return dialog.result
 
 def prompt_notebook():
