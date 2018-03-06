@@ -7,7 +7,7 @@
 from gi.repository import Gtk
 
 from zim.errors import Error
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 from zim.gui.widgets import MessageDialog
 from zim.utils import natural_sort_key
@@ -39,8 +39,7 @@ class NoSelectionError(Error):
 			# T: Error message for linesorter plugin
 
 
-@extends('MainWindow')
-class LineSorterMainWindowExtension(WindowExtension):
+class LineSorterMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>

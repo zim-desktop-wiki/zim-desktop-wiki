@@ -13,7 +13,7 @@ from gi.repository import Gtk
 from gi.repository import Pango
 
 from zim.actions import toggle_action, action
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.notebook import Path
 from zim.gui.widgets import TOP, TOP_PANE
 from zim.signals import ConnectorMixin, SignalHandler
@@ -44,8 +44,7 @@ class BookmarksBarPlugin(PluginClass):
 		('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False), # T: preferences option
 	)
 
-@extends('MainWindow')
-class BookmarksBarMainWindowExtension(WindowExtension):
+class BookmarksBarMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -89,7 +88,7 @@ class BookmarksBarMainWindowExtension(WindowExtension):
 	}
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.widget = BookmarkBar(window.notebook, window.navigation, self.uistate,
 					  self.window.pageview.get_page)
 		self.widget.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))

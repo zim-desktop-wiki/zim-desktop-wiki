@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('zim.plugins.tableofcontents')
 
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.notebook import Path
 from zim.formats import HEADING
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
@@ -89,69 +89,42 @@ This is a core plugin shipping with zim.
 	)
 	# TODO disable pane setting if not embedded
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
-		self.on_preferences_changed(self.preferences)
-		self.preferences.connect('changed', self.on_preferences_changed)
 
-	def on_preferences_changed(self, preferences):
-		if preferences['floating']:
-			self.set_extension_class('MainWindow', ToCMainWindowExtensionFloating)
-		else:
-			self.set_extension_class('MainWindow', ToCMainWindowExtensionEmbedded)
-
-
-@extends('MainWindow', autoload=False)
-class ToCMainWindowExtensionEmbedded(WindowExtension):
+class ToCMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.tocwidget = SidePaneToC(self.window.pageview)
-
+		MainWindowExtension.__init__(self, plugin, window)
+		self.tocwidget = None
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
-		if self.tocwidget is None:
-			return
+		if self.tocwidget is not None:
+			try:
+				self.window.remove(self.tocwidget)
+			except ValueError:
+				pass
 
+		widgetclass = FloatingToC if preferences['floating'] else SidePaneToC
+		if not isinstance(self.tocwidget, widgetclass):
+			self.tocwidget = widgetclass(self.window.pageview)
+			self.tocwidget.show_all()
+
+		self.tocwidget.set_show_h1(preferences['show_h1'])
+
+		if isinstance(self.tocwidget, SidePaneToC):
+			self.window.add_tab('tableofcontents', self.tocwidget, preferences['pane'])
+
+	def teardown(self):
 		try:
 			self.window.remove(self.tocwidget)
 		except ValueError:
 			pass
-
-		self.window.add_tab('tableofcontents', self.tocwidget, preferences['pane'])
-		self.tocwidget.show_all()
-
-		self.tocwidget.set_show_h1(preferences['show_h1'])
-
-	def teardown(self):
-		self.window.remove(self.tocwidget)
 		self.tocwidget.disconnect_all()
 		self.tocwidget = None
 
 
-@extends('MainWindow', autoload=False)
-class ToCMainWindowExtensionFloating(WindowExtension):
-
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.tocwidget = FloatingToC(self.window.pageview)
-
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
-	def on_preferences_changed(self, preferences):
-		self.tocwidget.set_show_h1(preferences['show_h1'])
-
-	def teardown(self):
-		self.tocwidget.disconnect_all()
-		self.tocwidget.destroy()
-
-
-
 TEXT_COL = 0
-
 
 class ToCTreeView(BrowserTreeView):
 

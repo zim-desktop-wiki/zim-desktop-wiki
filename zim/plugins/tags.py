@@ -11,7 +11,7 @@ import logging
 
 from functools import partial
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.plugins.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
 	NAME_COL, PATH_COL, EXISTS_COL, STYLE_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
@@ -47,11 +47,10 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 	)
 
 
-@extends('MainWindow')
-class TagsMainWindowExtension(WindowExtension):
+class TagsMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 
 		self.widget = TagsPluginWidget(
 			window.notebook,

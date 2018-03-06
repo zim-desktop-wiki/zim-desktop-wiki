@@ -15,9 +15,7 @@ from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
 
-from zim.plugins.journal import NotebookExtension, \
-	JournalMainWindowExtensionDialog, JournalMainWindowExtensionEmbedded, \
-	CalendarDialog
+from zim.plugins.journal import NotebookExtension, CalendarDialog
 
 from tests.mainwindow import setUpMainWindow
 
@@ -119,25 +117,14 @@ class TestJournalPlugin(tests.TestCase):
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['embedded'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], JournalMainWindowExtensionEmbedded)
 		plugin.extend(mainwindow)
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], JournalMainWindowExtensionEmbedded)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 
-		ext[0].go_page_today()
+		list(plugin.extensions)[0].go_page_today()
 		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 
 		plugin.preferences['embedded'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], JournalMainWindowExtensionDialog)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], JournalMainWindowExtensionDialog)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 
@@ -147,7 +134,7 @@ class TestJournalPlugin(tests.TestCase):
 			mainwindow.open_page(Path('foo'))
 
 		with tests.DialogContext(test_dialog):
-			ext[0].show_calendar()
+			list(plugin.extensions)[0].show_calendar()
 
 
 		plugin.preferences['embedded'] = True # switch back

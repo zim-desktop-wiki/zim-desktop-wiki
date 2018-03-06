@@ -8,7 +8,7 @@ from platform import os
 
 from gi.repository import Gtk
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 from zim.fs import TmpFile
 from zim.applications import Application
@@ -128,8 +128,7 @@ This is a core plugin shipping with zim.
 		return is_ok, cmds
 
 
-@extends('MainWindow')
-class ScreenshotMainWindowExtension(WindowExtension):
+class ScreenshotMainWindowExtension(MainWindowExtension):
 	uimanager_xml = '''
 	<ui>
 		<menubar name='menubar'>
@@ -145,7 +144,7 @@ class ScreenshotMainWindowExtension(WindowExtension):
 	plugin = None
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 		self.plugin = plugin

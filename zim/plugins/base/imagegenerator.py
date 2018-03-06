@@ -13,7 +13,7 @@ text to an image.
 from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import Action
 from zim.fs import File, Dir
 from zim.gui.widgets import \
@@ -88,11 +88,10 @@ class ImageGeneratorPlugin(PluginClass):
 			'insert_%s' % self.object_type: insert_action,
 		})
 
-		self.set_extension_class('MainWindow', klass)
+		self.extension_classes['MainWindow'] = klass
 
 
-@extends('MainWindow', autoload=False)
-class ImageGeneratorMainWindowExtensionBase(WindowExtension):
+class ImageGeneratorMainWindowExtensionBase(MainWindowExtension):
 
 	object_type = None
 	syntax = None
@@ -103,7 +102,7 @@ class ImageGeneratorMainWindowExtensionBase(WindowExtension):
 	generator_class = None
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 
 		pageview = self.window.pageview
 		pageview.register_image_generator_plugin(self, self.object_type)

@@ -1,5 +1,5 @@
 
-# Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''API documentation of the zim plugin framework.
 
@@ -18,13 +18,11 @@ act as decorators for specific objects that appear in the application.
 They will be instantiated automatically whenever the target object is
 created. The extension object then has direct access to the API of the
 object that is being extended. Typical classes to extend in a plugin
-are e.g. the L{MainWindow}, the L{PageView}, the L{Notebook} and the
-L{Index} classes.
+are e.g. the L{MainWindow}, the L{PageView} and the L{Notebook} classes.
 
-To define a new extension, you can either write a direct sub-class of
-L{ObjectExtension} or use the L{WindowExtension} or L{DialogExtension}
-classes as base. E.g. the L{WindowExtension} has functions to easily
-add menu items in the main window menu bar.
+To define an extension, you need to subclass the extension class that relates
+to the object you want to extend. E.g. the L{MainWindowExtension}, the
+L{PageViewExtension} or the L{NotebookExtension}.
 
 Each extension object that is instantiated is linked to the plugin object
 that it belongs to. So it can access functions of the plugin object and
@@ -32,27 +30,8 @@ it can use the plugin object to find other extension objects if it
 needs to cooperate. All extension classes defined in the same module
 file as the plugin object are automatically linked to the plugin.
 
-Not every object in the application can be extended. Only objects that
-are send to the plugin manager will be available. However all windows
-and dialogs and all "main" objects in the application should be
-available (or made available by a patch if they are not yet extendable).
-Short lived objects like individual pages, files, etc. will typically
-not be extended. To do something with them you need to extend the object
-that creates them.
-
 See the various standard plugins for examples how to define a plugin
-object and use extensions. E.g. L{zim.plugins.printtobrowser} and
-L{zim.plugins.screenshot} are simple plugins that illustrate how to add
-a single function to zim.
-
-A special case are the so-called "image generator" plugins. These are
-plugins like the equation editor (see L{zim.plugins.equationeditor})
-that use an external tool with a specialized language (e.g. latex)
-to generate images that can be inserted in zim. Since there are multiple
-of these plugins, a base plugin has been defined that does most of the
-work. The only thing needed to define a new plugin of this type is a
-plugin object (derived from L{ImageGeneratorPlugin}) and an object that
-knows how to generate the image (derived from L{ImageGeneratorClass})
+object and use extensions.
 
 Some plugins also want to add commandline options, such that they can
 be called directly with "zim --plugin PLUGIN_NAME [OPTIONS]", an example
@@ -62,7 +41,6 @@ define a class that derives from the L{Command} class (see L{zim.command}).
 Also defined here is the L{PluginManager} class. This class is the
 interface towards the rest of the application to load/unload plugins and
 to let plugins extend specific application objects.
-
 
 To allow plugins to be installed locally, the
 C{$XDG_DATA_HOME/zim/plugins} and all C{$XDG_DATA_DIRS/zim/plugins}
@@ -84,10 +62,9 @@ from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
 from zim.actions import action, toggle_action, get_gtk_actiongroup
-from zim.utils import classproperty, get_module, lookup_subclass, WeakSet
+from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
 
 from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
-from zim.config import SectionedConfigDict
 
 
 logger = logging.getLogger('zim.plugins')
@@ -249,7 +226,6 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			raise AssertionError('Dependencies failed for plugin %s' % name)
 
 		plugin = klass(self.config)
-		self.connectto(plugin, 'extension-point-changed')
 		self._plugins[name] = plugin
 
 		for obj in self._extendables:
@@ -304,16 +280,8 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			self._foreach(lambda p: p.extend(obj))
 			self._extendables.add(obj)
 
-	def on_extension_point_changed(self, plugin, name):
-		for obj in self._extendables:
-			if obj.__class__.__name__ == name:
-				try:
-					plugin.extend(obj)
-				except:
-					logger.exception('Exception in plugin: %s', name)
 
-
-class PluginClass(ConnectorMixin, SignalEmitter):
+class PluginClass(ConnectorMixin):
 	'''Base class for plugins objects.
 
 	To be recognized as a plugin, a submodule of "zim.plugins" needs to
@@ -380,16 +348,9 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 	in the plugin module
 
 	@ivar extensions: a set with extension objects loaded by this plugin.
-
-	@signal: C{extension-point-changed (name)}: emitted when extension
-	point C{name} changes
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
-	__signals__ = {
-		'extension-point-changed': (None, None, (str,))
-	}
-
 	plugin_info = {}
 
 	plugin_preferences = ()
@@ -474,90 +435,35 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		Called directly by the constructor.
 		'''
 		self.extension_classes = {}
-		for extends, klass in self.discover_extensions_classes():
-			self.add_extension_class(extends, klass)
+		for klass in self.discover_extensions_classes():
+			extends = klass.__extends__
+			if extends in self.extension_classes:
+				raise AssertionError('Extension point %s already in use' % name)
+			self.extension_classes[extends] = klass
 
 	@classmethod
 	def discover_extensions_classes(pluginklass):
-		'''Find extension classes in same module as the plugin
-		object class.
-		@returns: yields 2-tuple of the name of the object class to be
-		extended (as set by the L{extends} decorator) and the extension
-		class object
-		'''
-		# Any class with the "__extends__" field will be added
-		# (Being subclass of ObjectExtension is optional)
+		'''Yields a list of extension classes defined in the same module as the plugin'''
 		module = get_module(pluginklass.__module__)
-		for n, klass in inspect.getmembers(module, inspect.isclass):
-			if hasattr(klass, '__extends__') and klass.__extends__:
-				yield klass.__extends__, klass
+		for klass in lookup_subclasses(module, ExtensionBase):
+			yield klass
 
-	def set_extension_class(self, extends, klass):
-		'''Set the extension class for a specific target object class
-
-		This method can be used to dynamically set extension classes
-		on run time. E.g. of the extension class depends on a preference.
-		If another extension class was already defined for the same
-		target object, it is removed.
-
-		When the plugin is managed by a L{PluginManager} and that
-		manager is aware of objects of the target class, extensions
-		will immediatly be instantiated for those objects.
-
-		@param extends: class name of the to-be-extended object
-		@param klass: the extension class
-
-		@emits: extension-point-changed
-		'''
-		if extends in self.extension_classes:
-			if self.extension_classes[extends] == klass:
-				pass
-			else:
-				self.remove_extension_class(extends)
-				self.add_extension_class(extends, klass)
-		else:
-			self.add_extension_class(extends, klass)
-
-	def add_extension_class(self, extends, klass):
-		'''Add an extension class for a specific target object class
-
-		When the plugin is managed by a L{PluginManager} and that
-		manager is aware of objects of the target class, extensions
-		will immediatly be instantiated for those objects.
-
-		@param extends: class name of the to-be-extended object
-		@param klass: the extension class
-
-		@emits: extension-point-changed
-		'''
-		if extends in self.extension_classes:
-			raise AssertionError('Extension point %s already in use' % name)
-		self.extension_classes[extends] = klass
-		self.emit('extension-point-changed', extends)
-
-	def remove_extension_class(self, extends):
-		'''Remove the extension class for a specific target object class
-		Will result in all extension objects for this object class to be destroyed.
-		@param extends: class name of the to-be-extended object
-		'''
-		klass = self.extension_classes.pop(extends)
-		for obj in self.extensions:
-			if isinstance(obj, klass):
-				obj.destroy()
-
-	def extend(self, obj, _name=None):
+	def extend(self, obj):
 		'''This method will look through the extensions defined for this
 		plugin and construct a new extension object if a match is found
 		for C{obj}.
 		@param obj: the object to be extended
-		@param _name: lookup name to use when extending the object.
-		To be used for testing only. Normally the class name of C{obj}
-		is used.
 		'''
-		name = _name or obj.__class__.__name__
+		name = obj.__class__.__name__
 		if name in self.extension_classes:
-			ext = self.extension_classes[name](self, obj)
-			self.extensions.add(ext)
+			try:
+				ext = self.extension_classes[name](self, obj)
+			except ExtensionNotApplicable:
+				pass
+			except:
+				logger.exception('Failed loading extension %s for plugin %s', self.extension_classes[name], self)
+			else:
+				self.extensions.add(ext)
 
 	def get_extensions(self, obj):
 		'''Look up any extensions for C{obj} managed by this plugin
@@ -611,49 +517,16 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 		pass
 
 
-def extends(eklass, autoload=True):
-	'''Class decorator to define extension classes
-	Use this decorator to add extensions to the plugin.
-
-	@param eklass: either a class or a class name for the class to be
-	extended by this extension. When the plugin gets an object of this
-	class a new extension object will be constructed.
-
-	@param autoload: When C{False} this extension is not loaded
-	automatically. This is used for extensions that are loaded on run
-	time using C{PluginClass.set_extension_class()}.
+class ExtensionNotApplicable(ValueError):
+	'''Exception that can be raised from an extension constructor to
+	abort loading the extension.
 	'''
-	if isinstance(eklass, str):
-		name = eklass
-	else:
-		name = eklass.__name__
-
-	def inner(myklass):
-		if autoload:
-			myklass.__extends__ = name
-		# else: do nothing for now
-		return myklass
-
-	return inner
+	pass
 
 
-class ObjectExtension(SignalEmitter, ConnectorMixin):
-	'''Base class for all object extensions
-	Extension objects should derive from this class and use the
-	L{extends()} class decorator to define their target class.
-	Extension objects act as a kind of decorators for their target class
-	and can use the API of the target class object to add all kind of
-	functionality.
-
-	Typical target classes is the main window in the user interface
-	or a specific dialog in the applicaiton. For these the
-	L{WindowExtension} and L{DialogExtension} base classes are available.
-
-	Other objects that are typically exted are the Notebook and Index
-	classes. For these you use this base class directly.
-
+class ExtensionBase(SignalEmitter, ConnectorMixin):
+	'''Base class for all extensions classes
 	@ivar plugin: the plugin object to which this extension belongs
-	@ivar obj: the object being extended
 	'''
 
 	__signals__ = {}
@@ -664,7 +537,6 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 		@param obj: the object being extended
 		'''
 		self.plugin = plugin
-		self.obj = obj
 
 		# Make sure extension has same lifetime as object being extended
 		if not hasattr(obj, '__zim_extension_objects__'):
@@ -679,7 +551,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 		def walk(klass):
 			yield klass
 			for base in klass.__bases__:
-				if issubclass(base, ObjectExtension):
+				if issubclass(base, ExtensionBase):
 					for k in walk(base): # recurs
 						yield k
 
@@ -698,7 +570,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 			pass
 
 		self.plugin.extensions.discard(self)
-			# HACK avoid waiting for garbage collection to take place
+			# Avoid waiting for garbage collection to take place
 
 	def teardown(self):
 		'''Remove changes made by B{this} class from the extended object
@@ -709,13 +581,24 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 		self.disconnect_all()
 
 
-class WindowExtension(ObjectExtension):
-	'''Base class for extending gtk windows based on C{Gtk.Window}
+class NotebookExtension(ExtensionBase):
+	'''Base class for extending the notebook
 
-	The main use of this base class it that it helps adding menu items
-	to the menubar and/or toolbar of the window (if it has any). To do this you need
-	to define a class attribute "uimanager_xml" and define "action"
-	methods in the class.
+	@ivar notebook: the L{Notebook} object
+	'''
+
+	__extends__ = 'Notebook'
+
+	def __init__(self, plugin, notebook):
+		ExtensionBase.__init__(self, plugin, notebook)
+		self.notebook = notebook
+
+
+class MainWindowExtension(ExtensionBase):
+	'''Base class for extending the L{MainWindow}
+
+	Menu and toolbar actions can be defined by defining an action method
+	and specifying where in the menu this should be placed.
 
 	An action method is any object method of the extension method that
 	is decorated by the L{action()} or L{toggle_action()} decorators
@@ -730,10 +613,9 @@ class WindowExtension(ObjectExtension):
 	corresponding with a "action" method defined in the same class.
 	See documentation of C{Gtk.UIManager} for the XML definition.
 
-	@ivar window: the C{Gtk.Window}
+	@ivar window: the L{MainWindow}
 
 	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
-	C{None} if the window does not maintain ui state
 
 	The "uistate" is the per notebook state of the interface, it is
 	intended for stuff like the last folder opened by the user or the
@@ -743,20 +625,20 @@ class WindowExtension(ObjectExtension):
 	(To access the preference use C{plugin.preferences}.)
 	'''
 
+	__extends__ = 'MainWindow'
+
+	uimanager_xml = None
+
 	def __init__(self, plugin, window):
 		'''Constructor
 		@param plugin: the plugin object to which this extension belongs
 		@param window: the C{Gtk.Window} being extended
 		'''
-		ObjectExtension.__init__(self, plugin, window)
+		ExtensionBase.__init__(self, plugin, window)
 		self.window = window
+		self.uistate = window.config.uistate[plugin.config_key]
 
-		if hasattr(window, 'config') and hasattr(window.config, 'uistate'):
-			self.uistate = window.config.uistate[plugin.config_key]
-		else:
-			self.uistate = None
-
-		if hasattr(self, 'uimanager_xml'):
+		if self.uimanager_xml is not None:
 			actiongroup = get_gtk_actiongroup(self)
 			if hasattr(self, 'uimanager_menu_labels'):
 				actiongroup.add_actions(
@@ -782,13 +664,34 @@ class WindowExtension(ObjectExtension):
 			self.actiongroup = None
 
 
-class DialogExtension(WindowExtension):
-	'''Base class for extending gtk dialogs based on C{Gtk.Dialog}'''
+class DialogExtension(ExtensionBase):
+	'''Base class for extending Gtk dialogs based on C{Gtk.Dialog}
 
-	def __init__(self, plugin, window):
-		assert hasattr(window, 'action_area'), 'Not a dialog: %s' % window
-		WindowExtension.__init__(self, plugin, window)
+	The class attribute C{__dialog_class_name__} must be set to select the
+	dialog to be extended.
+
+	@ivar dialog: the C{Gtk.Dialog} object
+	'''
+
+	__dialog_class_name__ = None
+
+	@classproperty
+	def __extends__(cls):
+		return cls.__dialog_class_name__
+
+	def __init__(self, plugin, dialog):
+		assert self.__dialog_class_name__ is not None, 'Class attribute must be set to'
+		if dialog.__class__.__name__ != self.__dialog_class_name__:
+			raise ExtensionNotApplicable()
+
+		ExtensionBase.__init__(self, plugin, dialog)
+		self.dialog = dialog
 		self._dialog_buttons = []
+
+		self.connectto(dialog, 'destroy')
+
+	def on_destroy(self, dialog):
+		self.destroy()
 
 	def add_dialog_button(self, button):
 		'''Add a new button to the bottom area of the dialog
@@ -801,14 +704,14 @@ class DialogExtension(WindowExtension):
 		# other buttons after adding the new one
 		#
 		# TODO: check if this works correctly in RTL configuration
-		self.window.action_area.pack_end(button, False, True, 0) # puts button in right most position
+		self.dialog.action_area.pack_end(button, False, True, 0) # puts button in right most position
 		self._dialog_buttons.append(button)
-		buttons = [b for b in self.window.action_area.get_children()
-			if not self.window.action_area.child_get_property(b, 'secondary')]
+		buttons = [b for b in self.dialog.action_area.get_children()
+			if not self.dialog.action_area.child_get_property(b, 'secondary')]
 		for b in buttons:
 			if b is not button:
-				self.window.action_area.reorder_child(b, -1) # reshuffle to the right
+				self.dialog.action_area.reorder_child(b, -1) # reshuffle to the right
 
 	def teardown(self):
 		for b in self._dialog_buttons:
-			self.window.action_area.remove(b)
+			self.dialog.action_area.remove(b)

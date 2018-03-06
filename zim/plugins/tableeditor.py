@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger('zim.plugin.tableeditor')
 
 from zim.actions import action
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String
@@ -202,8 +202,8 @@ class CellFormatReplacer:
 			text = pattern[1].sub(replace[0], text)
 		return text
 
-@extends('MainWindow')
-class TableEditorMainWindowExtension(WindowExtension):
+
+class TableEditorMainWindowExtension(MainWindowExtension):
 	'''
 	Connector between the zim application with its toolbar and menu and the tableview-object
 	In GTK there is no native table symbol. So this image is needed: data/pixmaps/insert-table.png
@@ -227,7 +227,7 @@ class TableEditorMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		''' Constructor '''
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 
 		# reload tables on current page after plugin activation
 		#if self.window.page:

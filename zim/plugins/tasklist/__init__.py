@@ -23,7 +23,7 @@
 
 
 
-from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
+from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
 from zim.actions import action
 from zim.config import StringAllowEmpty
 from zim.signals import DelayedCallback
@@ -85,16 +85,14 @@ This is a core plugin shipping with zim.
 		# so hide them in the configuration dialog instead
 
 
-@extends('Notebook')
-class NotebookExtension(ObjectExtension):
+class TaskListNotebookExtension(NotebookExtension):
 
 	__signals__ = {
 		'tasklist-changed': (None, None, ()),
 	}
 
 	def __init__(self, plugin, notebook):
-		ObjectExtension.__init__(self, plugin, notebook)
-		self.notebook = notebook
+		NotebookExtension.__init__(self, plugin, notebook)
 
 		self._parser_key = self._get_parser_key()
 
@@ -133,8 +131,7 @@ class NotebookExtension(ObjectExtension):
 		self.index.set_property(TasksIndexer.PLUGIN_NAME, None)
 
 
-@extends('MainWindow')
-class TaskListMainWindowExtension(WindowExtension):
+class TaskListMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 		<ui>
@@ -154,7 +151,7 @@ class TaskListMainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self._widget = None
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)

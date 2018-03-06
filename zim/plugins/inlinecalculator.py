@@ -13,7 +13,7 @@ import re
 import math
 import cmath
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 from zim.errors import Error
 
@@ -286,8 +286,7 @@ This is a core plugin shipping with zim.
 			raise ExpressionError(msg)
 
 
-@extends('MainWindow')
-class InlineCalculatorMainWindowExtension(WindowExtension):
+class InlineCalculatorMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 		<ui>

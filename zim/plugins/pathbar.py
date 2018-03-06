@@ -9,7 +9,7 @@ import logging
 
 from functools import reduce
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import radio_action, radio_option
 from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
 from zim.notebook.page import shortest_unique_names
@@ -44,8 +44,7 @@ PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
 PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
 
 
-@extends('MainWindow')
-class PathBarMainWindowExtension(WindowExtension):
+class PathBarMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -75,7 +74,7 @@ class PathBarMainWindowExtension(WindowExtension):
 	}
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.pathbar = None
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
 		self.set_pathbar(self.uistate['pathbar_type'])

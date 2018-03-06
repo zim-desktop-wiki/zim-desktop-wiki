@@ -30,7 +30,7 @@ try:
 except:
 	GtkSource = None
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
@@ -103,8 +103,7 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 			obj.preferences_changed()
 
 
-@extends('MainWindow')
-class SourceViewMainWindowExtension(WindowExtension):
+class SourceViewMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 		<ui>
@@ -119,7 +118,7 @@ class SourceViewMainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 
 	@action(_('Code Block'), readonly=False) # T: menu item
 	def insert_sourceview(self):

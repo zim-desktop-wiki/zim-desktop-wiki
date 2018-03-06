@@ -12,7 +12,7 @@ import logging
 import threading
 
 from zim.fs import FS, File, TmpFile
-from zim.plugins import PluginClass, extends, WindowExtension, ObjectExtension
+from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
 from zim.actions import action
 from zim.signals import ConnectorMixin
 from zim.errors import Error
@@ -76,7 +76,7 @@ This is a core plugin shipping with zim.
 		name = obj.__class__.__name__
 		if name == 'MainWindow':
 			nb = obj.notebook
-			nb_ext = self.get_extension(nb, NotebookExtension)
+			nb_ext = self.get_extension(nb, VersionControlNotebookExtension)
 			assert nb_ext, 'No notebook extension found for: %s' % nb
 			mw_ext = VersionControlMainWindowExtension(self, obj, nb_ext)
 			self.extensions.add(mw_ext)
@@ -84,13 +84,10 @@ This is a core plugin shipping with zim.
 			PluginClass.extend(self, obj)
 
 
-@extends('Notebook')
-class NotebookExtension(ObjectExtension):
+class VersionControlNotebookExtension(NotebookExtension):
 
 	def __init__(self, plugin, notebook):
-		ObjectExtension.__init__(self, plugin, notebook)
-		self.plugin = plugin
-		self.notebook = notebook
+		NotebookExtension.__init__(self, plugin, notebook)
 		self.vcs = None
 		self.detect_vcs()
 
@@ -135,8 +132,7 @@ def monitor_thread(thread):
 	GObject.idle_add(_monitor_thread, thread)
 
 
-@extends('MainWindow')
-class VersionControlMainWindowExtension(WindowExtension):
+class VersionControlMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -152,7 +148,7 @@ class VersionControlMainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window, notebook_ext):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.notebook_ext = notebook_ext
 		self._autosave_thread = None
 		self._autosave_timer = None

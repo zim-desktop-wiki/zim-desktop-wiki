@@ -4,7 +4,7 @@
 from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.applications import edit_config_file
@@ -63,8 +63,7 @@ This is a core plugin shipping with zim.
 			yield symbol, shortcut
 
 
-@extends('MainWindow')
-class InsertSymbolMainWindowExtension(WindowExtension):
+class InsertSymbolMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -79,7 +78,7 @@ class InsertSymbolMainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.connectto(window.pageview.view, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()

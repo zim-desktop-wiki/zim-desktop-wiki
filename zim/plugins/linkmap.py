@@ -8,7 +8,7 @@ import ast
 
 from gi.repository import Gtk
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
@@ -107,9 +107,7 @@ class LinkMap(object):
 		return '\n'.join(dotcode) + '\n'
 
 
-
-@extends('MainWindow')
-class LinkMapMainWindowExtension(WindowExtension):
+class LinkMapMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>

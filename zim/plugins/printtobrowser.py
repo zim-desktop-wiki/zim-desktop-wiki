@@ -9,7 +9,7 @@ from functools import partial
 
 
 from zim.fs import TmpFile
-from zim.plugins import PluginClass, WindowExtension, DialogExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension, DialogExtension
 from zim.actions import action
 
 import zim.templates
@@ -55,8 +55,7 @@ This is a core plugin shipping with zim.
 		return file
 
 
-@extends('MainWindow')
-class PrintToBrowserMainWindowExtension(WindowExtension):
+class PrintToBrowserMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -80,20 +79,21 @@ class PrintToBrowserMainWindowExtension(WindowExtension):
 			# file browser which can have unexpected results
 
 
-@extends('TaskListDialog')
 class TaskListDialogExtension(DialogExtension):
 
-	def __init__(self, plugin, window):
-		DialogExtension.__init__(self, plugin, window)
+	__dialog_class_name__ = 'TaskListDialog'
+
+	def __init__(self, plugin, dialog):
+		DialogExtension.__init__(self, plugin, dialog)
 
 		button = Gtk.Button.new_with_mnemonic(_('_Print')) # T: Button label
 		button.connect('clicked', self.on_print_tasklist)
 		self.add_dialog_button(button)
 
 	def on_print_tasklist(self, o):
-		html = self.window.task_list.get_visible_data_as_html()
+		html = self.dialog.task_list.get_visible_data_as_html()
 		file = TmpFile('print-to-browser.html', persistent=True, unique=False)
 		file.write(html)
-		open_url(self.window, 'file://%s' % file) # XXX
+		open_url(self.dialog, 'file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results

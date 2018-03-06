@@ -7,7 +7,7 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Pango
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
@@ -35,11 +35,10 @@ This is a core plugin shipping with zim.
 	)
 
 
-@extends('MainWindow')
-class BackLinksPaneMainWindowExtension(WindowExtension):
+class BackLinksPaneMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 
 		opener = self.window.navigation
 		self.widget = BackLinksWidget(opener)

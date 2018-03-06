@@ -4,7 +4,7 @@
 
 from zim.inc.arithmetic import ParserGTK
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import action
 
 
@@ -26,8 +26,7 @@ http://pp.com.mx/python/arithmetic.
 	#~ )
 
 
-@extends('MainWindow')
-class ArithmeticMainWindowExtension(WindowExtension):
+class ArithmeticMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>

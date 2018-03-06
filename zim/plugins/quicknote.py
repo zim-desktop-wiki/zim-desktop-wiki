@@ -8,7 +8,7 @@ from datetime import date as dateclass
 
 from zim.fs import Dir, isabs
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.main import GtkCommand
 from zim.actions import action
 from zim.config import data_file, ConfigManager
@@ -181,8 +181,7 @@ This is a core plugin shipping with zim.
 	#~ )
 
 
-@extends('MainWindow')
-class QuickNoteMainWindowExtension(WindowExtension):
+class QuickNoteMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>

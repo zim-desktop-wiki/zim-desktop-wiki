@@ -250,8 +250,12 @@ seqdiag {
 class MockWindow(tests.MockObject):
 
 	def __init__(self, dir):
+		from zim.config.dicts import SectionedConfigDict
+		
 		tests.MockObject.__init__(self)
 		self.uimanager = tests.MockObject()
+		self.config = tests.MockObject()
+		self.config.uistate = SectionedConfigDict()
 		self.pageview = tests.MockObject()
 		self.mock_method('connect', None)
 		self.notebook = tests.MockObject()

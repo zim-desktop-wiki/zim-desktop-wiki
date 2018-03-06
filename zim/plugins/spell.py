@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger('zim.plugins.spell')
 
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.signals import SIGNAL_AFTER
 from zim.actions import toggle_action
 from zim.gui.widgets import ErrorDialog
@@ -86,8 +86,7 @@ This is a core plugin shipping with zim.
 		]
 
 
-@extends('MainWindow')
-class SpellMainWindowExtension(WindowExtension):
+class SpellMainWindowExtension(MainWindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -107,7 +106,7 @@ class SpellMainWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self._adapter_cls = self._choose_adapter_cls()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])

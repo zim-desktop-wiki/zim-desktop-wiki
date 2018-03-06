@@ -6,7 +6,7 @@ from gi.repository import Gdk
 from gi.repository import GObject
 import logging
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 
 from zim.signals import SIGNAL_AFTER
 from zim.gui.widgets import widget_set_css
@@ -44,11 +44,10 @@ class DistractionFreePlugin(PluginClass):
 	)
 
 
-@extends('MainWindow')
-class DistractionFreeMainWindowExtension(WindowExtension):
+class DistractionFreeMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
 		self._show_panes = True
 		self._bar_state = None

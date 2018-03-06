@@ -41,7 +41,7 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.actions import toggle_action
 
 from zim.gui.applications import open_folder_prompt_create
@@ -89,8 +89,7 @@ icon view at bottom pane.
 		#~ return [("ImageMagick",Application(('convert',None)).tryexec())]
 
 
-@extends('MainWindow')
-class AttachmentBrowserWindowExtension(WindowExtension):
+class AttachmentBrowserWindowExtension(MainWindowExtension):
 
 	TAB_KEY = 'attachmentbrowser'
 
@@ -112,7 +111,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 	'''
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
 		self._monitor = None
 

@@ -21,12 +21,13 @@ class TestTableOfContents(tests.TestCase):
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['floating'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], ToCMainWindowExtensionFloating)
 		plugin.extend(mainwindow)
 
+		## floating
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], ToCMainWindowExtensionFloating)
+		self.assertIsInstance(ext[0], ToCMainWindowExtension)
+		self.assertIsInstance(ext[0].tocwidget, FloatingToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -34,14 +35,9 @@ class TestTableOfContents(tests.TestCase):
 		plugin.preferences['pane'] = RIGHT_PANE
 		plugin.preferences['pane'] = LEFT_PANE
 
-
+		### embedded
 		plugin.preferences['floating'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], ToCMainWindowExtensionEmbedded)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], ToCMainWindowExtensionEmbedded)
+		self.assertIsInstance(ext[0].tocwidget, SidePaneToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True

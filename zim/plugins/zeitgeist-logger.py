@@ -6,7 +6,7 @@
 from gi.repository import Gio
 import logging
 import sys
-from zim.plugins import PluginClass, ObjectExtension, WindowExtension, extends
+from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
 from zim.signals import SIGNAL_AFTER
 from zim.fs import File
 
@@ -71,11 +71,10 @@ class ZeitgeistPlugin(PluginClass):
 		self.zeitgeist_client.insert_event(event)
 
 
-@extends('MainWindow')
-class ZeitGeistMainWindowExtension(WindowExtension):
+class ZeitGeistMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.connectto(window, 'page-changed')
 		self.page = None
 
@@ -92,11 +91,10 @@ class ZeitGeistMainWindowExtension(WindowExtension):
 			self.page = None
 
 
-@extends('Notebook')
-class NotebookExtension(ObjectExtension):
+class ZeitgeistNotebookExtension(NotebookExtension):
 
 	def __init__(self, plugin, notebook):
-		self.plugin = plugin
+		NotebookExtension.__init__(self, plugin, notebook)
 		self.connectto_all(notebook,
 			('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
 

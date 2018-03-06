@@ -5,7 +5,8 @@
 
 import tests
 
-from tests.pageview import setUpPageView, press
+from tests.mainwindow import setUpMainWindow
+from tests.pageview import press
 
 from zim.config import SectionedConfigDict, ConfigManager
 
@@ -23,19 +24,14 @@ class TestInsertSymbolPlugin(tests.TestCase):
 	def runTest(self):
 		plugin = InsertSymbolPlugin(ConfigManager())
 
-		pageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
+		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': ''}), path='Test')
+		pageview = mainwindow.pageview
 		textview = pageview.view
 		buffer = textview.get_buffer()
 
-		mainwindow = tests.MockObject()
-		mainwindow.pageview = pageview
-		mainwindow.uimanager = tests.MockObject()
+		plugin.extend(mainwindow)
 
-		plugin.extend(mainwindow, 'MainWindow')
-
-		# Need a window to get the widget realized
-		window = Gtk.Window()
-		window.add(pageview)
+		# Widget needs to be realized
 		pageview.realize()
 		textview.realize()
 

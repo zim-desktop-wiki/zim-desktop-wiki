@@ -6,7 +6,7 @@ from gi.repository import Gtk
 
 import logging
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass, MainWindowExtension
 from zim.config import data_file, ConfigManager
 from zim.main import GtkCommand
 from zim.signals import SignalEmitter
@@ -103,11 +103,10 @@ This is a core plugin shipping with zim.
 		set_global_trayicon(self.preferences['classic'])
 
 
-@extends('MainWindow')
-class TrayIconMainWindowExtension(WindowExtension):
+class TrayIconMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.window.hideonclose = True
 		plugin.load_trayicon()
 
