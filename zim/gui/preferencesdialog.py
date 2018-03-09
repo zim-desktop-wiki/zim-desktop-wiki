@@ -41,7 +41,7 @@ class PreferencesDialog(Dialog):
 
 		# Dynamic tabs
 		gtknotebook = Gtk.Notebook()
-		self.vbox.add(gtknotebook)
+		self.vbox.pack_start(gtknotebook, True, True, 0)
 		self.forms = {}
 
 		############################### needs rewrite to make defintion more robust
