@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -2825,7 +2825,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		self.set_transient_for(window)
 		self.set_title(title)
 
-		self.destroyed = True
+		self.destroyed = False
 		self.connect('destroy', self.__class__.on_destroy)
 
 		self.result = None

@@ -1,5 +1,5 @@
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the notebook dialog which is used for the
 "open another notebook" action and which is shown if you start zim without
@@ -310,7 +310,7 @@ class NotebookDialog(Dialog):
 
 		# split between treeview and vbuttonbox
 		hbox = Gtk.HBox(spacing=12)
-		self.vbox.add(hbox)
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		# add notebook list - open notebook on clicking a row
 		self.treeview = NotebookTreeView()
