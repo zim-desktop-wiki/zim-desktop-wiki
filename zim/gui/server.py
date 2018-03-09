@@ -86,7 +86,7 @@ class ServerWindow(Gtk.Window):
 		hbox.pack_start(self.start_button, False, True, 0)
 		hbox.pack_start(self.stop_button, False, True, 0)
 		hbox.pack_start(self.status_label, False, True, 0)
-		vbox.add(hbox)
+		vbox.pack_start(hbox, False, False, 0)
 
 		table = input_table_factory((
 			(_('Notebook'), self.notebookcombobox, self.open_button),
@@ -95,12 +95,12 @@ class ServerWindow(Gtk.Window):
 				# T: Field in web server gui for HTTP port (e.g. port 80)
 			self.public_checkbox
 		))
-		vbox.add(table)
+		vbox.pack_start(table, False, False, 0)
 
 		if self.link_button:
 			hbox = Gtk.HBox()
 			hbox.pack_end(self.link_button, False, True, 0)
-			vbox.add(hbox)
+			vbox.pack_start(hbox, False, False, 0)
 
 
 	def open_notebook(self, notebook):
