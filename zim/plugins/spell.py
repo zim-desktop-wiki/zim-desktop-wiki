@@ -26,7 +26,7 @@ except ImportError:
 		import gi
 		gi.require_version('GtkSpell', '3.0')
 		from gi.repository import GtkSpell as gtkspell
-	except ImportError:
+	except:
 		gtkspell = None
 else:
 	gtkspell = None

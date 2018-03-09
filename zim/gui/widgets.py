@@ -41,7 +41,7 @@ try:
 	import gi
 	gi.require_version('GtkSource', '3.0')
 	from gi.repository import GtkSource
-except ImportError:
+except:
 	GtkSource = None
 
 import zim
