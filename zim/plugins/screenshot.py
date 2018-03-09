@@ -15,7 +15,6 @@ from zim.fs import TmpFile
 from zim.applications import Application
 from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 
-import logging
 PLATFORM = os.name
 
 """
@@ -192,8 +191,6 @@ class MainWindowExtension(WindowExtension):
                     dialog = InsertScreenshotDialog.unique(self, self.notebook, self.plugin.preferences['screenshot_command'], self.plugin.preferences['default_selection_mode'], self.make_screenshot)
                     dialog.show_all()
 	def make_screenshot(self, selection_mode, delay):
-		logger = logging.getLogger()
-		logger.info('Make Screenshot')
 		tmpfile = TmpFile('insert-screenshot.png')
 		options = ScreenshotPicker.get_cmd_options(self.screenshot_command, selection_mode, str(delay))
                 cmd = (self.screenshot_command,) + options
