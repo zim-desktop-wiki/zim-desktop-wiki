@@ -906,7 +906,7 @@ class SaveVersionDialog(Dialog):
 			self,
 			parent,
 			_('Save Version'), # T: dialog title
-			button=Gtk.STOCK_SAVE,
+			button=_('_Save'), # T: button label
 			help='Plugins:Version Control'
 		)
 		self.window_ext = window_ext

@@ -987,7 +987,7 @@ class OpenPageDialog(Dialog):
 
 	def __init__(self, parent, page, callback):
 		Dialog.__init__(self, parent, _('Jump to'), # T: Dialog title
-			button=Gtk.STOCK_JUMP_TO,
+			button=_('_Jump'), # T: Button label
 		)
 		self.callback = callback
 

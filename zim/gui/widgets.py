@@ -80,6 +80,9 @@ KEYVALS_SLASH = (
 KEYVAL_ESC = Gdk.keyval_from_name('Escape')
 
 
+CANCEL_STR = _('_Cancel') # T: Button label
+OK_STR = _('_OK') # T: Button label
+
 def encode_markup_text(text):
 	'''Encode text such that it can be used in a piece of markup text
 	without causing errors. Needed for all places where e.g. a label
@@ -2861,13 +2864,13 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		if buttons is None or buttons == Gtk.ButtonsType.NONE:
 			self._no_ok_action = True
 		elif buttons == Gtk.ButtonsType.OK_CANCEL:
-			self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+			self.add_button(CANCEL_STR, Gtk.ResponseType.CANCEL) # T: Button label
 			if button:
 				self.add_action_widget(button, Gtk.ResponseType.OK)
 			else:
-				self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+				self.add_button(OK_STR, Gtk.ResponseType.OK) # T: Button label
 		elif buttons == Gtk.ButtonsType.CLOSE:
-			self.add_button(Gtk.STOCK_CLOSE, Gtk.ResponseType.OK)
+			self.add_button(_('_Close'), Gtk.ResponseType.OK) # T: Button label
 			self._no_ok_action = True
 		else:
 			assert False, 'BUG: unknown button type'
@@ -3397,7 +3400,7 @@ class MessageDialog(Gtk.MessageDialog):
 		)
 		self.set_transient_for(get_window(parent))
 		self.set_modal(True)
-		self.add_button(Gtk.STOCK_OK, Gtk.ButtonsType.OK)
+		self.add_button(OK_STR, Gtk.ButtonsType.OK) # T: Button label
 		if text:
 			self.format_secondary_text(text)
 
@@ -3465,9 +3468,9 @@ class FileDialog(Dialog):
 		'''
 		if button is None:
 			if action == Gtk.FileChooserAction.OPEN:
-				button = Gtk.STOCK_OPEN
+				button = _('_Open') # T: Button label
 			elif action == Gtk.FileChooserAction.SAVE:
-				button = Gtk.STOCK_SAVE
+				button = _('_Save') # T: Button label
 			# else Ok will do
 
 		Dialog.__init__(self, parent, title, defaultwindowsize=(500, 400),
@@ -3675,7 +3678,7 @@ class ProgressDialog(Gtk.Dialog):
 		GObject.GObject.__init__(self)
 		self.set_transient_for(get_window(parent))
 		self.set_modal(True)
-		self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+		self.add_button(CANCEL_STR, Gtk.ResponseType.CANCEL) # T: Button label
 		self.set_border_width(10)
 		self.vbox.set_spacing(5)
 		self.set_default_size(300, 0)

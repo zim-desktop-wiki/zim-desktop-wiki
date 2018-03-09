@@ -855,8 +855,8 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		button.connect('clicked', self.do_response_overwrite)
 		self.add_action_widget(button, Gtk.ResponseType.NONE)
 
-		self.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-		self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+		self.add_button(_('_Cancel'), Gtk.ResponseType.CANCEL) # T: Button label
+		self.add_button(_('_OK'), Gtk.ResponseType.OK) # T: Button label
 		self._no_ok_action = False
 
 		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
