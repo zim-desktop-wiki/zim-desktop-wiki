@@ -124,11 +124,11 @@ class Dumper(DumperClass):
 		if 'indent' in attrib:
 			# top level list with specified indent
 			prefix = '\t' * int(attrib['indent'])
-			return self.prefix_lines('\t', strings)
+			return self.prefix_lines(prefix, strings)
 		elif self.context[-1].tag in (BULLETLIST, NUMBEREDLIST):
 			# indent sub list
 			prefix = '\t'
-			return self.prefix_lines('\t', strings)
+			return self.prefix_lines(prefix, strings)
 		else:
 			# top level list, no indent
 			return strings
