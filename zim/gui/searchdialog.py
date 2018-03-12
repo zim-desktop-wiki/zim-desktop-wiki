@@ -59,7 +59,7 @@ class SearchDialog(Dialog):
 		# TODO checkbox _('Whole _word')
 
 		self.results_treeview = SearchResultsTreeView(notebook, navigation)
-		self.vbox.add(ScrolledWindow(self.results_treeview))
+		self.vbox.pack_start(ScrolledWindow(self.results_treeview), True, True, 0)
 
 		self.search_button.connect_object('clicked', self.__class__._search, self)
 		self.cancel_button.connect_object('clicked', self.__class__._cancel, self)
