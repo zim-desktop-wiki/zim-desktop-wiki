@@ -983,7 +983,7 @@ class InputForm(Gtk.Table):
 					group = None # we are the first widget
 				else:
 					group = group[0][1] # link first widget in group
-				widgets.append(Gtk.RadioButton(group=group, label=label))
+				widgets.append(Gtk.RadioButton.new_with_mnemonic_from_widget(group, label))
 
 			elif type == 'int':
 				button = Gtk.SpinButton()
@@ -3778,7 +3778,7 @@ class Assistant(Dialog):
 		@param title: dialog title
 		@param options: other dialog options, see L{Dialog.__init__()}
 		'''
-		Dialog.__init__(self, parent, title, **options)
+		Dialog.__init__(self, parent, title, buttons=None, **options)
 		self.set_border_width(5)
 		self._pages = []
 		self._page = -1
@@ -3786,18 +3786,15 @@ class Assistant(Dialog):
 		self.uistate = self._uistate.copy()
 		# Use temporary state, so we can cancel the wizard
 
-		buttons = [b for b in self.action_area.get_children()
-			if not self.action_area.child_get_property(b, 'secondary')]
-		#~ print [b.get_label() for b in buttons]
-		self.ok_button = buttons[0] # HACK: not sure this order fixed
-		self.ok_button.set_no_show_all(True)
+		self._no_ok_action = False
+		self.add_button(CANCEL_STR, Gtk.ResponseType.CANCEL) # T: Button label
+		self.ok_button = self.add_button(OK_STR, Gtk.ResponseType.OK) # T: Button label
 
 		self.back_button = Gtk.Button.new_with_mnemonic(_('_Back')) # T: Button label
 		self.back_button.connect_object('clicked', self.__class__.previous_page, self)
 		self.action_area.add(self.back_button)
 
 		self.forw_button = Gtk.Button.new_with_mnemonic(_('_Forward')) # T: Button label
-		self.forw_button.set_no_show_all(True)
 		self.forw_button.connect_object('clicked', self.__class__.next_page, self)
 		self.action_area.add(self.forw_button)
 
@@ -3844,7 +3841,7 @@ class Assistant(Dialog):
 
 		# Remove previous page
 		for child in self.vbox.get_children():
-			if not isinstance(child, Gtk.ButtonBox):
+			if isinstance(child, (AssistantPage, Gtk.EventBox)):
 				self.vbox.remove(child)
 
 		self._page = i
@@ -3886,11 +3883,11 @@ class Assistant(Dialog):
 
 		self.back_button.set_sensitive(self._page > 0)
 		if self._page < len(self._pages) - 1:
-			self.forw_button.show()
-			self.ok_button.hide()
+			_hide(self.ok_button)
+			_show(self.forw_button)
 		else:
-			self.forw_button.hide()
-			self.ok_button.show()
+			_hide(self.forw_button)
+			_show(self.ok_button)
 
 		self._update_valid()
 
