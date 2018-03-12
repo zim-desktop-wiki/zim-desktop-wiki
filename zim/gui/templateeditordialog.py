@@ -30,11 +30,11 @@ class TemplateEditorDialog(Dialog):
 		self.vbox.pack_start(label, False, True, 0)
 
 		hbox = Gtk.HBox()
-		self.vbox.add(hbox)
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		self.view = TemplateListView()
 		self.view.connect('row-activated', self.on_selection_changed)
-		hbox.add(ScrolledWindow(self.view))
+		hbox.pack_start(ScrolledWindow(self.view), True, True, 0)
 
 		vbbox = Gtk.VButtonBox()
 		vbbox.set_layout(Gtk.ButtonBoxStyle.START)
@@ -43,10 +43,10 @@ class TemplateEditorDialog(Dialog):
 		view_button = Gtk.Button.new_with_mnemonic(_('_View')) # T: button label
 		view_button.connect('clicked', self.on_view)
 
-		copy_button = Gtk.Button.new_with_label(_('_Copy')) # T: Button label
+		copy_button = Gtk.Button.new_with_mnemonic(_('_Copy')) # T: Button label
 		copy_button.connect('clicked', self.on_copy)
 
-		edit_button = Gtk.Button.new_with_label(_('_Edit')) # T: Button label
+		edit_button = Gtk.Button.new_with_mnemonic(_('_Edit')) # T: Button label
 		edit_button.connect('clicked', self.on_edit)
 
 		delete_button = Gtk.Button.new_with_mnemonic(_('_Remove')) # T: Button label
