@@ -61,7 +61,7 @@ import collections
 from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
-from zim.actions import action, toggle_action, get_gtk_actiongroup
+from zim.actions import action, toggle_action, get_gtk_actiongroup, get_actions, RadioAction
 from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
 
 from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
@@ -594,6 +594,63 @@ class NotebookExtension(ExtensionBase):
 		self.notebook = notebook
 
 
+def _uimanager_xml(action, actiongroup, defaultmenu):
+	menuhint = defaultmenu
+	if action.menuhints:
+		if 'accelonly' in action.menuhints:
+			return None
+		elif action.menuhints[0] in \
+			('notebook', 'page', 'edit', 'insert', 'view', 'tools', 'go'):
+				menuhint = action.menuhints[0]
+
+	if menuhint in ('notebook', 'page'):
+		menu_name = 'file_menu'
+		placeholder_name = menuhint + '_plugin_items'
+	else:
+		menu_name = menuhint + '_menu'
+		placeholder_name = 'plugin_items'
+
+	if isinstance(action, RadioAction):
+		submenu_name = action.name + '_menu'
+		submenu_label = action.menulabel
+		actiongroup.add_actions(((submenu_name, None, submenu_label),))
+		item_names = [e[0] for e in action._entries]
+		item = '\n'.join(
+			['<menu action=\'%s\'>' % submenu_name] +
+			[
+				'<menuitem action=\'%s\'/>' % n for n in item_names
+			] +
+			['</menu>']
+		)
+	else:
+		item = '<menuitem action=\'%s\'/>' % action.name
+
+	ui = '''\
+	<ui>
+	<menubar name='menubar'>
+		<menu action='%s'>
+			<placeholder name='%s'>
+			%s
+			</placeholder>
+		</menu>
+	</menubar>
+	</ui>
+	''' % (menu_name, placeholder_name, item)
+
+	if not isinstance(action, RadioAction) and menuhint in ('view', 'insert') \
+		and (action.icon or action.verb_icon):
+			ui = ui.replace('</ui>', '''\
+	<toolbar name='toolbar'>
+		<placeholder name='%s'>
+		%s
+		</placeholder>
+	</toolbar>
+	</ui>
+	''' % (menuhint + '_plugin_items', item.replace('menuitem', 'toolitem')))
+
+	return ui
+
+
 class MainWindowExtension(ExtensionBase):
 	'''Base class for extending the L{MainWindow}
 
@@ -606,12 +663,6 @@ class MainWindowExtension(ExtensionBase):
 	to correcponding menu item or presses the corresponding key binding.
 	The decorator is used to define the text to display in the menu
 	and the key binding.
-
-	The "uimanager_xml" is used to specify the layout of the menubar
-	and toolbar. Is is a piece of XML that defines the position of the
-	now menu and toolbar items. Each new item should have a name
-	corresponding with a "action" method defined in the same class.
-	See documentation of C{Gtk.UIManager} for the XML definition.
 
 	@ivar window: the L{MainWindow}
 
@@ -627,8 +678,6 @@ class MainWindowExtension(ExtensionBase):
 
 	__extends__ = 'MainWindow'
 
-	uimanager_xml = None
-
 	def __init__(self, plugin, window):
 		'''Constructor
 		@param plugin: the plugin object to which this extension belongs
@@ -638,14 +687,17 @@ class MainWindowExtension(ExtensionBase):
 		self.window = window
 		self.uistate = window.config.uistate[plugin.config_key]
 
-		if self.uimanager_xml is not None:
+		actions = get_actions(self)
+		if actions:
 			actiongroup = get_gtk_actiongroup(self)
-			if hasattr(self, 'uimanager_menu_labels'):
-				actiongroup.add_actions(
-					sorted((k, None, v) for k, v in list(self.uimanager_menu_labels.items()))
-				)
 			self.window.uimanager.insert_action_group(actiongroup, 0)
-			self._uimanager_id = self.window.uimanager.add_ui_from_string(self.uimanager_xml)
+			self._uimanager_ids = []
+			for name, action in actions:
+				xml = _uimanager_xml(action, actiongroup, 'tools')
+				if xml is not None:
+					self._uimanager_ids.append(
+						self.window.uimanager.add_ui_from_string(xml)
+					)
 
 		self.connectto(window, 'destroy')
 
@@ -653,10 +705,10 @@ class MainWindowExtension(ExtensionBase):
 		self.destroy()
 
 	def teardown(self):
-		if hasattr(self, '_uimanager_id') \
-		and self._uimanager_id is not None:
-			self.window.uimanager.remove_ui(self._uimanager_id)
-			self._uimanager_id = None
+		if hasattr(self, '_uimanager_ids'):
+			for ui_id in self._uimanager_ids:
+				self.window.uimanager.remove_ui(ui_id)
+			self._uimanager_ids = []
 
 		if hasattr(self, 'actiongroup') \
 		and self.actiongroup is not None:

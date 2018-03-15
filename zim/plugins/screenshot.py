@@ -129,17 +129,7 @@ This is a core plugin shipping with zim.
 
 
 class ScreenshotMainWindowExtension(MainWindowExtension):
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='insert_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='insert_screenshot'/>
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
+
 	screenshot_command = COMMAND
 	plugin = None
 
@@ -153,7 +143,7 @@ class ScreenshotMainWindowExtension(MainWindowExtension):
 		if preferences['screenshot_command']:
 			self.screenshot_command = preferences['screenshot_command']
 
-	@action(_('_Screenshot...'))  # T: menu item for insert screenshot plugin
+	@action(_('_Screenshot...'), menuhints='insert')  # T: menu item for insert screenshot plugin
 	def insert_screenshot(self):
 		notebook = self.window.notebook
 		page = self.window.page

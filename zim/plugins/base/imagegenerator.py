@@ -24,18 +24,6 @@ from zim.gui.widgets import \
 
 logger = logging.getLogger('zim.plugins')
 
-uimanager_xml_template = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_%s'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
-
 class ImageGeneratorPlugin(PluginClass):
 	'''Base class for image generator plugins
 
@@ -65,7 +53,7 @@ class ImageGeneratorPlugin(PluginClass):
 		insert_action = Action(
 			'insert_%s' % self.object_type,
 			ImageGeneratorMainWindowExtensionBase.insert_object,
-			self.short_label + '...', readonly=False
+			self.short_label + '...', menuhints='insert'
 		)
 		generatorklass = self.lookup_subclass(ImageGeneratorClass)
 		assert generatorklass.object_type == self.object_type, \
@@ -80,7 +68,6 @@ class ImageGeneratorPlugin(PluginClass):
 		klass = type(klassname, (mainwindow_extension_base,), {
 			'object_type': self.object_type,
 			'syntax': self.syntax,
-			'uimanager_xml': uimanager_xml_template % self.object_type,
 			'generator_class': generatorklass,
 			'short_label': self.short_label,
 			'insert_label': self.insert_label,
@@ -95,7 +82,6 @@ class ImageGeneratorMainWindowExtensionBase(MainWindowExtension):
 
 	object_type = None
 	syntax = None
-	uimanager_xml = None
 	short_label = None
 	insert_label = None
 	edit_label = None

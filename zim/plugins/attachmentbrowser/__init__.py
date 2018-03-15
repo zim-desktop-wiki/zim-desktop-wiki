@@ -93,23 +93,6 @@ class AttachmentBrowserWindowExtension(MainWindowExtension):
 
 	TAB_KEY = 'attachmentbrowser'
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='view_menu'>
-				<placeholder name="plugin_items">
-					<menuitem action="toggle_attachmentbrowser" />
-				</placeholder>
-			</menu>
-		</menubar>
-		<toolbar name='toolbar'>
-			<placeholder name='tools'>
-				<toolitem action='toggle_attachmentbrowser'/>
-			</placeholder>
-		</toolbar>
-	</ui>
-	'''
-
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
@@ -140,11 +123,6 @@ class AttachmentBrowserWindowExtension(MainWindowExtension):
 		self.window.add_tab(self.TAB_KEY, self.widget, preferences['pane'])
 		self.widget.show_all()
 
-	@toggle_action(
-		_('Attachment Browser'), # T: Menu item
-		Gtk.STOCK_DIRECTORY,
-		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
-	)
 	def toggle_attachmentbrowser(self, active):
 		# This toggle is called to focus on our widget
 		# but also after the fact when we detect focus changed

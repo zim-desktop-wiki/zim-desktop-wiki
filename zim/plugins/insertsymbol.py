@@ -65,25 +65,13 @@ This is a core plugin shipping with zim.
 
 class InsertSymbolMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_symbol'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.connectto(window.pageview.view, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()
 
-	@action(_('Sy_mbol...')) # T: menu item
+	@action(_('Sy_mbol...'), menuhints='insert') # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
 		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()

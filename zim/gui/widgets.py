@@ -2676,7 +2676,7 @@ class Window(Gtk.Window):
 			for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 				self.set_pane_state(pane, False)
 
-	@action(_('_All Panes'), accelerator='<Primary>F9', tooltip=_('Show All Panes')) # T: Menu item
+	@action(_('_All Panes'), accelerator='<Primary>F9') # T: Menu item
 	def show_all_panes(self):
 		for pane in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			self.set_pane_state(pane, True)

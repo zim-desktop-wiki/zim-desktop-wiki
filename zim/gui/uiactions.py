@@ -90,7 +90,7 @@ class UIActions(object):
 		for item in tmp_menu.get_children():
 			item.reparent(menu)
 
-	@action(_('_New Page...'), 'gtk-new', '<Primary>N', readonly=False) # T: Menu item
+	@action(_('_New Page...'), '<Primary>N', menuhints='notebook:edit') # T: Menu item
 	def new_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog},
 
@@ -101,7 +101,7 @@ class UIActions(object):
 		'''
 		NewPageDialog(self.widget, self.navigation, self.notebook, path=self.page).run()
 
-	@action(_('New S_ub Page...'), 'gtk-new', '<shift><Primary>N', readonly=False) # T: Menu item
+	@action(_('New S_ub Page...'), '<shift><Primary>N', menuhints='notebook:edit') # T: Menu item
 	def new_sub_page(self):
 		'''Menu action to create a new page, shows the L{NewPageDialog}.
 		Like L{new_page()} but forces a child page of the current
@@ -109,7 +109,7 @@ class UIActions(object):
 		'''
 		NewPageDialog(self.widget, self.navigation, self.notebook, path=self.page, subpage=True).run()
 
-	@action(_('_New Page...'), 'gtk-new', None, readonly=False) # T: Menu item
+	@action(_('_New Page...'), menuhints='notebook:edit') # T: Menu item
 	def new_page_here(self):
 		# Variant used for popup menu, context can either be page or notebook
 		if self.page is None or self.page.isroot:
@@ -118,7 +118,7 @@ class UIActions(object):
 			prefix = ':%s:' % self.page.name
 			NewPageDialog(self.widget, self.navigation, self.notebook, prefix=prefix).run()
 
-	@action(_('_Open Another Notebook...'), 'gtk-open', '<Primary>O') # T: Menu item
+	@action(_('_Open Another Notebook...'), '<Primary>O') # T: Menu item
 	def show_open_notebook(self):
 		'''Show the L{NotebookDialog} dialog'''
 		from zim.gui.notebookdialog import NotebookDialog
@@ -138,7 +138,7 @@ class UIActions(object):
 		else:
 			ZIM_APPLICATION.run('--gui', uri)
 
-	@action(_('_Import Page...'), readonly=False) # T: Menu item
+	@action(_('_Import Page...'), menuhints='notebook:edit') # T: Menu item
 	def import_page(self):
 		'''Menu action to show an L{ImportPageDialog}'''
 		ImportPageDialog(self.widget, self.navigation, self.notebook, self.page).run()
@@ -182,7 +182,7 @@ class UIActions(object):
 		)
 		_callback(self.widget, url)
 
-	@action(_('_Rename Page...'), accelerator='F2', readonly=False) # T: Menu item
+	@action(_('_Rename Page...'), accelerator='F2', menuhints='notebook:edit') # T: Menu item
 	def rename_page(self, path=None):
 		'''Menu action to show the L{RenamePageDialog}
 		@param path: a L{Path} object, or C{None} for the current
@@ -191,7 +191,7 @@ class UIActions(object):
 		if self.ensure_index_uptodate():
 			RenamePageDialog(self.widget, self.notebook, path or self.page).run()
 
-	@action(_('_Move Page...'), readonly=False) # T: Menu item
+	@action(_('_Move Page...'), menuhints='notebook:edit') # T: Menu item
 	def move_page(self, path=None):
 		'''Menu action to show the L{MovePageDialog}
 		@param path: a L{Path} object, or C{None} to move to current
@@ -200,7 +200,7 @@ class UIActions(object):
 		if self.ensure_index_uptodate():
 			MovePageDialog(self.widget, self.notebook, path or self.page).run()
 
-	@action(_('_Delete Page'), readonly=False) # T: Menu item
+	@action(_('_Delete Page'), menuhints='notebook:edit') # T: Menu item
 	def delete_page(self, path=None):
 		'''Delete a page by either trashing it, or permanent deletion after
 		confirmation of a L{DeletePageDialog}. When trashing the update behavior
@@ -244,13 +244,13 @@ class UIActions(object):
 			logger.info('Trash not supported: %s', op.exception.msg)
 			DeletePageDialog(self.widget, self.notebook, path, update_links=update_links).run()
 
-	@action(_('Proper_ties'), 'gtk-properties') # T: Menu item
+	@action(_('Proper_ties')) # T: Menu item
 	def show_properties(self):
 		'''Menu action to show the L{PropertiesDialog}'''
 		from zim.gui.propertiesdialog import PropertiesDialog
 		PropertiesDialog(self.widget, self.config, self.notebook).run()
 
-	@action(_('_Quit'), 'gtk-quit', '<Primary>Q') # T: Menu item
+	@action(_('_Quit'), '<Primary>Q') # T: Menu item
 	def quit(self):
 		'''Menu action for quit.
 		@emits: quit
@@ -272,7 +272,7 @@ class UIActions(object):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		TemplateEditorDialog(self.widget).run()
 
-	@action(_('Pr_eferences'), 'gtk-preferences') # T: Menu item
+	@action(_('Pr_eferences')) # T: Menu item
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
@@ -282,7 +282,7 @@ class UIActions(object):
 		if not self.notebook.index.is_uptodate:
 			self.reload_index(update_only=True)
 
-	@action(_('_Search...'), 'gtk-find', '<shift><Primary>F') # T: Menu item
+	@action(_('_Search...'), '<shift><Primary>F') # T: Menu item
 	def show_search(self, query=None):
 		'''Menu action to show the L{SearchDialog}
 		@param query: the search query to show
@@ -297,7 +297,7 @@ class UIActions(object):
 		if query is not None:
 			dialog.search(query)
 
-	@action(_('Search this section'), 'gtk-find') # T: Menu item for search a sub-set of the notebook
+	@action(_('Search this section')) # T: Menu item for search a sub-set of the notebook
 	def show_search_section(self, page=None):
 		page = page or self.page
 		self.show_search(query='Section: "%s"' % page.name)
@@ -317,7 +317,7 @@ class UIActions(object):
 		dialog = RecentChangesDialog.unique(self, self.widget, self.notebook, self.navigation)
 		dialog.present()
 
-	@action(_('Attach _File'), 'zim-attachment', tooltip=_('Attach external file'), readonly=False) # T: Menu item
+	@action(_('Attach _File'), verb_icon='zim-attachment', menuhints='notebook:edit') # T: Menu item
 	def attach_file(self, path=None):
 		'''Menu action to show the L{AttachFileDialog}
 		@param path: a L{Path} object, or C{None} for the current
@@ -325,7 +325,7 @@ class UIActions(object):
 		'''
 		AttachFileDialog(self.widget, self.notebook, path or self.page).run()
 
-	@action(_('Open Attachments _Folder'), 'gtk-open') # T: Menu item
+	@action(_('Open Attachments _Folder')) # T: Menu item
 	def open_attachments_folder(self):
 		'''Menu action to open the attachment folder for the current page'''
 		dir = self.notebook.get_attachments_dir(self.page)
@@ -336,12 +336,12 @@ class UIActions(object):
 		else:
 			open_folder_prompt_create(self.widget, dir)
 
-	@action(_('Open _Notebook Folder'), 'gtk-open') # T: Menu item
+	@action(_('Open _Notebook Folder')) # T: Menu item
 	def open_notebook_folder(self):
 		'''Menu action to open the notebook folder'''
 		open_folder(self.widget, self.notebook.folder)
 
-	@action(_('Open _Document Root'), 'gtk-open') # T: Menu item
+	@action(_('Open _Document Root')) # T: Menu item
 	def open_document_root(self):
 		'''Menu action to open the document root folder'''
 		# TODO: should be insensitive if document_root is not defined
@@ -353,7 +353,7 @@ class UIActions(object):
 		else:
 			open_folder_prompt_create(self.widget, dir)
 
-	@action(_('Edit _Source'), 'gtk-edit', readonly=False) # T: Menu item
+	@action(_('Edit _Source'), menuhints='tools:edit') # T: Menu item
 	def edit_page_source(self, page=None):
 		'''Menu action to edit the page source in an external editor.
 		See L{edit_file} for details.
@@ -384,7 +384,7 @@ class UIActions(object):
 		else:
 			return True
 
-	@action(_('Update Index'), readonly=False) # T: Menu item
+	@action(_('Update Index')) # T: Menu item
 	def reload_index(self, update_only=False):
 		'''Check the notebook for changes and update the index.
 		Shows an progressbar while updateing.
@@ -417,13 +417,13 @@ class UIActions(object):
 
 			return not dialog.cancelled
 
-	@action(_('Custom _Tools'), 'gtk-preferences') # T: Menu item
+	@action(_('Custom _Tools')) # T: Menu item
 	def manage_custom_tools(self):
 		'''Menu action to show the L{CustomToolManagerDialog}'''
 		from zim.gui.customtools import CustomToolManagerDialog
 		CustomToolManagerDialog(self.widget, self.config).run()
 
-	@action(_('_Contents'), 'gtk-help', 'F1') # T: Menu item
+	@action(_('_Contents'), 'F1') # T: Menu item
 	def show_help(self, page=None):
 		'''Menu action to show the user manual. Will start a new zim
 		instance showing the notebook with the manual.
@@ -449,7 +449,7 @@ class UIActions(object):
 		'''Menu action to show the 'Bugs' page in the user manual'''
 		self.show_help('Bugs')
 
-	@action(_('_About'), 'gtk-about') # T: Menu item
+	@action(_('_About')) # T: Menu item
 	def show_about(self):
 		'''Menu action to show the "about" dialog'''
 		dialog = MyAboutDialog(self.widget)

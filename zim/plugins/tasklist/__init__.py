@@ -133,30 +133,13 @@ class TaskListNotebookExtension(NotebookExtension):
 
 class TaskListMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-		<ui>
-			<menubar name='menubar'>
-				<menu action='view_menu'>
-					<placeholder name="plugin_items">
-						<menuitem action="show_task_list" />
-					</placeholder>
-				</menu>
-			</menubar>
-			<toolbar name='toolbar'>
-				<placeholder name='tools'>
-					<toolitem action='show_task_list'/>
-				</placeholder>
-			</toolbar>
-		</ui>
-	'''
-
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self._widget = None
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-	@action(_('Task List'), stock='zim-task-list', readonly=True) # T: menu item
+	@action(_('Task List'), icon='zim-task-list', menuhints='view') # T: menu item
 	def show_task_list(self):
 		# TODO: add check + dialog for index probably_up_to_date
 

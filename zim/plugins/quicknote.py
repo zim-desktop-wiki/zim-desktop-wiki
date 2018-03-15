@@ -183,19 +183,7 @@ This is a core plugin shipping with zim.
 
 class QuickNoteMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='file_menu'>
-				<placeholder name="open_items">
-					<menuitem action="show_quick_note" />
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
-	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
+	@action(_('Quick Note...'), menuhints='notebook') # T: menu item
 	def show_quick_note(self):
 		dialog = QuickNoteDialog.unique(self, self.window, self.window.notebook)
 		dialog.show()

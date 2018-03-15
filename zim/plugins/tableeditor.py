@@ -204,36 +204,12 @@ class CellFormatReplacer:
 
 
 class TableEditorMainWindowExtension(MainWindowExtension):
-	'''
-	Connector between the zim application with its toolbar and menu and the tableview-object
-	In GTK there is no native table symbol. So this image is needed: data/pixmaps/insert-table.png
-	'''
-	uimanager_xml = '''
-		<ui>
-		<menubar name='menubar'>
-			<menu action='insert_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='insert_table'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		<toolbar name='toolbar'>
-				<placeholder name='format'>
-					<toolitem action='insert_table'/>
-				</placeholder>
-			</toolbar>
-		</ui>
-	'''
 
 	def __init__(self, plugin, window):
 		''' Constructor '''
 		MainWindowExtension.__init__(self, plugin, window)
 
-		# reload tables on current page after plugin activation
-		#if self.window.page:
-		#	self.window.reload_page()
-
-	@action(_('Table'), stock='zim-insert-table', readonly=False)  # T: menu item
+	@action(_('Table'), verb_icon='zim-insert-table', menuhints='insert')  # T: menu item
 	def insert_table(self):
 		'''Run the EditTableDialog'''
 		col_model = EditTableDialog(self.window).run()

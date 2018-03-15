@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from gi.repository import Gtk
@@ -46,28 +46,6 @@ PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_H
 
 class PathBarMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='view_menu'>
-			<placeholder name='plugin_items'>
-			<menu action='pathbar_menu'>
-				<menuitem action='set_pathbar_none'/>
-				<menuitem action='set_pathbar_recent'/>
-				<menuitem action='set_pathbar_recent_changed'/>
-				<menuitem action='set_pathbar_history'/>
-				<menuitem action='set_pathbar_path'/>
-			</menu>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
-	uimanager_menu_labels = {
-		'pathbar_menu': _('P_athbar'), # T: Menu title
-	}
-
 	_klasses = {
 		PATHBAR_NONE: None,
 		# other classes are added below where they are defined
@@ -89,11 +67,13 @@ class PathBarMainWindowExtension(MainWindowExtension):
 			self.window.remove(self.pathbar)
 
 	@radio_action(
+		_('P_athbar'), # T: Menu title
 		radio_option(PATHBAR_NONE, _('_None')),
 		radio_option(PATHBAR_RECENT, _('_Recent pages')),
 		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
 		radio_option(PATHBAR_HISTORY, _('_History')),
-		radio_option(PATHBAR_PATH, _('_Page Hierarchy'))
+		radio_option(PATHBAR_PATH, _('_Page Hierarchy')),
+		menuhints='view'
 	)
 	def set_pathbar(self, type):
 		'''Set the pathbar type

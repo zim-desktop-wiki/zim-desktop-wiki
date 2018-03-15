@@ -288,18 +288,6 @@ This is a core plugin shipping with zim.
 
 class InlineCalculatorMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-		<ui>
-		<menubar name='menubar'>
-			<menu action='tools_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='eval_math'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		</ui>
-	'''
-
 	@action(_('Evaluate _Math')) # T: menu item
 	def eval_math(self):
 		'''Action called by the menu item or key binding,

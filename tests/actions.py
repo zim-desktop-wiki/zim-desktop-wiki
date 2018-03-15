@@ -95,6 +95,7 @@ class TestRadioAction(tests.TestCase):
 		class TestClass(object):
 
 			@radio_action(
+				'My radio action',
 				radio_option('AAA', 'Do A'),
 				radio_option('BBB', 'Do B')
 			)

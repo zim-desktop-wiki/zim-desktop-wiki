@@ -232,41 +232,19 @@ class CalendarNotebookExtension(NotebookExtension):
 class JournalMainWindowExtension(MainWindowExtension):
 	'''Extension used to add calendar dialog to mainwindow'''
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='go_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='go_page_today'/>
-			</placeholder>
-		</menu>
-		<menu action='view_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='show_calendar'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='show_calendar'/>
-		</placeholder>
-	</toolbar>
-	</ui>
-	'''
-
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.calendar_widget = CalendarWidget(plugin, window.notebook, window)
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-	@action(_('To_day'), accelerator='<Alt>D') # T: menu item
+	@action(_('To_day'), accelerator='<Alt>D', menuhints='go') # T: menu item
 	def go_page_today(self):
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(today)
 		self.window.open_page(path)
 
-	@action(_('Calen_dar'), stock='zim-calendar', tooltip=_('Show calendar')) # T: menu item
+	@action(_('Calen_dar'), icon='zim-calendar', menuhints='view') # T: menu item
 	def show_calendar(self):
 		dialog = CalendarDialog.unique(self, self.plugin, self.window)
 		dialog.present()

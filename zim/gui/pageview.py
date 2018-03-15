@@ -5883,7 +5883,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		menu.show_all()
 
-	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
+	@action(_('_Save'), '<Primary>S', menuhints='edit') # T: Menu item
 	def save_page(self):
 		'''Menu action to save the current page.
 
@@ -5893,45 +5893,45 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		self.save_changes(write_if_not_modified=True) # XXX
 
-	@action(_('_Undo'), 'gtk-undo', '<Primary>Z', readonly=False) # T: Menu item
+	@action(_('_Undo'), '<Primary>Z', menuhints='edit') # T: Menu item
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
 		self.scroll_cursor_on_screen()
 
-	@action(_('_Redo'), 'gtk-redo', '<Primary><shift>Z', alt_accelerator='<Primary>Y', readonly=False) # T: Menu item
+	@action(_('_Redo'), '<Primary><shift>Z', alt_accelerator='<Primary>Y', menuhints='edit') # T: Menu item
 	def redo(self):
 		'''Menu action to redo a single step'''
 		self.undostack.redo()
 		self.scroll_cursor_on_screen()
 
-	@action(_('Cu_t'), 'gtk-cut', '<Primary>X', readonly=False) # T: Menu item
+	@action(_('Cu_t'), '<Primary>X', menuhints='edit') # T: Menu item
 	def cut(self):
 		'''Menu action for cut to clipboard'''
 		self.view.emit('cut-clipboard')
 
-	@action(_('_Copy'), 'gtk-copy', '<Primary>C', readonly=False) # T: Menu item
+	@action(_('_Copy'), '<Primary>C', menuhints='edit') # T: Menu item
 	def copy(self):
 		'''Menu action for copy to clipboard'''
 		self.view.emit('copy-clipboard')
 
-	@action(_('_Paste'), 'gtk-paste', '<Primary>V', readonly=False) # T: Menu item
+	@action(_('_Paste'), '<Primary>V', menuhints='edit') # T: Menu item
 	def paste(self):
 		'''Menu action for paste from clipboard'''
 		self.view.emit('paste-clipboard')
 
-	@action(_('_Delete'), 'gtk-delete', readonly=False) # T: Menu item
+	@action(_('_Delete'), menuhints='edit') # T: Menu item
 	def delete(self):
 		'''Menu action for delete'''
 		self.view.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
 
-	@action(_('Un-check Checkbox'), STOCK_UNCHECKED_BOX, '', readonly=False) # T: Menu item
+	@action(_('Un-check Checkbox'), verb_icon=STOCK_UNCHECKED_BOX, menuhints='edit') # T: Menu item
 	def uncheck_checkbox(self):
 		buffer = self.view.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(UNCHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'V\''), STOCK_CHECKED_BOX, 'F12', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'V\''), 'F12', verb_icon=STOCK_CHECKED_BOX, menuhints='edit') # T: Menu item
 	def toggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
@@ -5940,7 +5940,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'X\''), STOCK_XCHECKED_BOX, '<shift>F12', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'X\''), '<shift>F12', verb_icon=STOCK_XCHECKED_BOX, menuhints='edit') # T: Menu item
 	def xtoggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
@@ -5949,7 +5949,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'>\''), STOCK_MIGRATED_BOX, '', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'>\''), verb_icon=STOCK_MIGRATED_BOX, menuhints='edit') # T: Menu item
 	def migrate_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
@@ -5958,7 +5958,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(MIGRATED_BOX, recurs)
 
-	@action(_('_Edit Link or Object...'), 'gtk-properties', '<Primary>E', readonly=False) # T: Menu item
+	@action(_('_Edit Link or Object...'), '<Primary>E', menuhints='edit') # T: Menu item
 	def edit_object(self, iter=None):
 		'''Menu action to trigger proper edit dialog for the current
 		object at the cursor
@@ -5990,7 +5990,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			return False
 
-	@action(_('_Remove Link'), readonly=False) # T: Menu item
+	@action(_('_Remove Link'), menuhints='edit') # T: Menu item
 	def remove_link(self, iter=None):
 		'''Menu action to remove link object at the current cursor position
 
@@ -6008,7 +6008,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if bounds:
 			buffer.remove_link(*bounds)
 
-	@action(_('_Date and Time...'), accelerator='<Primary>D', readonly=False) # T: Menu item
+	@action(_('_Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self, self.view.get_buffer(), self.notebook, self.page, self.config).run()
@@ -6018,7 +6018,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
 
-	@action(_('Horizontal _Line'), readonly=False) # T: Menu item for Insert menu
+	@action(_('Horizontal _Line'), menuhints='insert') # T: Menu item for Insert menu
 	def insert_line(self):
 		'''
                 This function is called from menu action.
@@ -6032,7 +6032,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Add newline after line separator widget.
 			buffer.insert_at_cursor('\n')
 
-	@action(_('_Image...'), readonly=False) # T: Menu item
+	@action(_('_Image...'), menuhints='insert') # T: Menu item
 	def show_insert_image(self, file=None):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 		@param file: optinal file to suggest in the dialog
@@ -6050,17 +6050,17 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
 		self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
 
-	@action(_('Bulle_t List'), readonly=False) # T: Menu item
+	@action(_('Bulle_t List'), menuhints='insert') # T: Menu item
 	def insert_bullet_list(self):
 		'''Menu action insert a bullet item at the cursor'''
 		self._start_bullet(BULLET)
 
-	@action(_('_Numbered List'), readonly=False) # T: Menu item
+	@action(_('_Numbered List'), menuhints='insert') # T: Menu item
 	def insert_numbered_list(self):
 		'''Menu action insert a numbered list item at the cursor'''
 		self._start_bullet(NUMBER_BULLET)
 
-	@action(_('Checkbo_x List'), readonly=False) # T: Menu item
+	@action(_('Checkbo_x List'), menuhints='insert') # T: Menu item
 	def insert_checkbox_list(self):
 		'''Menu action insert an open checkbox at the cursor'''
 		self._start_bullet(UNCHECKED_BOX)
@@ -6077,17 +6077,17 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			iter.forward_to_line_end()
 			buffer.place_cursor(iter)
 
-	@action(_('Bulle_t List'), readonly=False) # T: Menu item,
+	@action(_('Bulle_t List'), menuhints='edit') # T: Menu item,
 	def apply_format_bullet_list(self):
 		'''Menu action to format selection as bullet list'''
 		self._apply_bullet(BULLET)
 
-	@action(_('_Numbered List'), readonly=False) # T: Menu item,
+	@action(_('_Numbered List'), menuhints='edit') # T: Menu item,
 	def apply_format_numbered_list(self):
 		'''Menu action to format selection as numbered list'''
 		self._apply_bullet(NUMBER_BULLET)
 
-	@action(_('Checkbo_x List'), readonly=False) # T: Menu item,
+	@action(_('Checkbo_x List'), menuhints='edit') # T: Menu item,
 	def apply_format_checkbox_list(self):
 		'''Menu action to format selection as checkbox list'''
 		self._apply_bullet(UNCHECKED_BOX)
@@ -6096,7 +6096,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer = self.view.get_buffer()
 		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
 
-	@action(_('Text From _File...'), readonly=False) # T: Menu item
+	@action(_('Text From _File...'), menuhints='insert') # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
 		InsertTextFromFileDialog(self, self.view.get_buffer(), self.notebook, self.page).run()
@@ -6140,7 +6140,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				buffer.insert_link_at_cursor(link, link)
 				buffer.insert_at_cursor(sep)
 
-	@action(_('_Link...'), 'zim-link', '<Primary>L', tooltip=_('Insert Link'), readonly=False) # T: Menu item
+	@action(_('_Link...'), '<Primary>L', verb_icon='zim-link', menuhints='insert') # T: Menu item
 	def insert_link(self):
 		'''Menu item to show the L{InsertLinkDialog}'''
 		InsertLinkDialog(self, self).run()
@@ -6218,7 +6218,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		#~ open_file(self, file) # FIXME should this be optional ?
 
-	@action(_('File _Templates...'), 'gtk-directory') # T: Menu item in "Insert > New File Attachment" submenu
+	@action(_('File _Templates...')) # T: Menu item in "Insert > New File Attachment" submenu
 	def open_file_templates_folder(self):
 		'''Menu action to open the templates folder'''
 		dir = self.preferences['file_templates_folder']
@@ -6241,7 +6241,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				dir.touch()
 				open_file(self, dir)
 
-	@action(_('_Clear Formatting'), accelerator='<Primary>9', readonly=False) # T: Menu item
+	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit') # T: Menu item
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
 		buffer = self.view.get_buffer()
@@ -6343,7 +6343,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer.finder.find(string, flags)
 		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
-	@action(_('_Find...'), 'gtk-find', '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
+	@action(_('_Find...'), '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
 	def show_find(self, string=None, flags=0, highlight=False):
 		'''Show the L{FindBar} widget
 
@@ -6376,7 +6376,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.show()
 		self.find_bar.find_previous()
 
-	@action(_('_Replace...'), 'gtk-find-and-replace', '<Primary>H', readonly=False) # T: Menu item
+	@action(_('_Replace...'), '<Primary>H', menuhints='edit') # T: Menu item
 	def show_find_and_replace(self):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
 		dialog = FindAndReplaceDialog.unique(self, self, self.view)
@@ -6388,12 +6388,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
-	@action(_('_Zoom In'), 'gtk-zoom-in', '<Primary>plus', alt_accelerator='<Primary>equal') # T: Menu item
+	@action(_('_Zoom In'), '<Primary>plus', alt_accelerator='<Primary>equal') # T: Menu item
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
 		self._zoom_increase_decrease_font_size(+1)
 
-	@action(_('Zoom _Out'), 'gtk-zoom-out', '<Primary>minus') # T: Menu item
+	@action(_('Zoom _Out'), '<Primary>minus') # T: Menu item
 	def zoom_out(self):
 		'''Menu action to decrease the font size'''
 		self._zoom_increase_decrease_font_size(-1)
@@ -6418,7 +6418,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.text_style.write()
 
-	@action(_('_Normal Size'), 'gtk-zoom-100', '<Primary>0') # T: Menu item to reset zoom
+	@action(_('_Normal Size'), '<Primary>0') # T: Menu item to reset zoom
 	def zoom_reset(self):
 		'''Menu action to reset the font size'''
 		if not self.text_style['TextView']['font']:

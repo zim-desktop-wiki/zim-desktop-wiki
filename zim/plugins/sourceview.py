@@ -105,22 +105,10 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 class SourceViewMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-		<ui>
-		<menubar name='menubar'>
-			<menu action='insert_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='insert_sourceview'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		</ui>
-	'''
-
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 
-	@action(_('Code Block'), readonly=False) # T: menu item
+	@action(_('Code Block'), menuhints='insert') # T: menu item
 	def insert_sourceview(self):
 		'''Inserts new SourceView'''
 		lang = InsertCodeBlockDialog(self.window).run() # XXX

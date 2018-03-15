@@ -28,18 +28,6 @@ http://pp.com.mx/python/arithmetic.
 
 class ArithmeticMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='tools_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='calculate'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
 	@action(_('_Arithmetic'), accelerator='F5') # T: menu item
 	def calculate(self):
 		"""Perform arithmetic operations"""

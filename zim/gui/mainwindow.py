@@ -284,7 +284,7 @@ class MainWindow(Window):
 
 		self.pageview.grab_focus()
 
-	@action(_('_Close'), 'gtk-close', '<Primary>W', readonly=True) # T: Menu item
+	@action(_('_Close'), '<Primary>W') # T: Menu item
 	def close(self):
 		'''Menu action for close. Will hide when L{hideonclose} is set,
 		otherwise destroys window, which could result in the application
@@ -405,7 +405,7 @@ class MainWindow(Window):
 
 		self.uistate['show_statusbar'] = show
 
-	@toggle_action(_('_Fullscreen'), 'gtk-fullscreen', 'F11', init=False) # T: Menu item
+	@toggle_action(_('_Fullscreen'), 'F11', icon='gtk-fullscreen', init=False) # T: Menu item
 	def toggle_fullscreen(self, show):
 		'''Menu action to toggle the fullscreen state of the window'''
 		if show:
@@ -423,7 +423,7 @@ class MainWindow(Window):
 		if visible != action.get_active():
 			action.set_active(visible)
 
-	@toggle_action(_('_Side Panes'), 'gtk-index', 'F9', tooltip=_('Show Side Panes'), init=True) # T: Menu item
+	@toggle_action(_('_Side Panes'), 'F9', icon='gtk-index', init=True) # T: Menu item
 	def toggle_panes(self, show):
 		'''Menu action to toggle the visibility of the all panes
 		@param show: when C{True} or C{False} force the visibility,
@@ -472,6 +472,7 @@ class MainWindow(Window):
 		return True # stop
 
 	@radio_action(
+		None,
 		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')), # T: Menu item
 		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')), # T: Menu item
@@ -495,6 +496,7 @@ class MainWindow(Window):
 		self.preferences['toolbar_style'] = style
 
 	@radio_action(
+		None,
 		radio_option(TOOLBAR_ICONS_LARGE, _('_Large Icons')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_SMALL, _('_Small Icons')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_TINY, _('_Tiny Icons')), # T: Menu item
@@ -517,7 +519,7 @@ class MainWindow(Window):
 
 		self.preferences['toolbar_size'] = size
 
-	@toggle_action(_('Notebook _Editable'), 'gtk-edit', tooltip=_('Toggle notebook editable'), init=True) # T: menu item
+	@toggle_action(_('Notebook _Editable'), icon='gtk-edit', init=True) # T: menu item
 	def toggle_readonly(self, readonly):
 		'''Menu action to toggle the read-only state of the application
 		@emits: readonly-changed
@@ -779,12 +781,12 @@ class MainWindow(Window):
 		previous.set_sensitive(has_prev)
 		next.set_sensitive(has_next)
 
-	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
+	@action(_('_Jump To...'), '<Primary>J') # T: Menu item
 	def show_jump_to(self):
 		return OpenPageDialog(self, self.page, self.open_page).run()
 
 	@action(
-		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
+		_('_Back'), verb_icon='gtk-go-back', # T: Menu item
 		accelerator='<alt>Left', alt_accelerator=('XF86Back' if os.name != 'nt' else None)
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_back(self):
@@ -796,7 +798,7 @@ class MainWindow(Window):
 			self.open_page(record)
 
 	@action(
-		_('_Forward'), 'gtk-go-forward', tooltip=_('Go page forward'), # T: Menu item
+		_('_Forward'), verb_icon='gtk-go-forward', # T: Menu item
 		accelerator='<alt>Right', alt_accelerator=('XF86Forward' if os.name != 'nt' else None)
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_forward(self):
@@ -807,7 +809,7 @@ class MainWindow(Window):
 		if not record is None:
 			self.open_page(record)
 
-	@action(_('_Parent'), 'gtk-go-up', '<alt>Up', tooltip=_('Go to parent page')) # T: Menu item
+	@action(_('_Parent'), '<alt>Up') # T: Menu item
 	def open_page_parent(self):
 		'''Menu action to open the parent page
 		@returns: C{True} if succesful
@@ -816,7 +818,7 @@ class MainWindow(Window):
 		if namespace:
 			self.open_page(Path(namespace))
 
-	@action(_('_Child'), 'gtk-go-down', '<alt>Down', tooltip=_('Go to child page')) # T: Menu item
+	@action(_('_Child'), '<alt>Down') # T: Menu item
 	def open_page_child(self):
 		'''Menu action to open a child page. Either takes the last child
 		from the history, or the first child.
@@ -832,7 +834,7 @@ class MainWindow(Window):
 				child = self.notebook.pages.get_next(path)
 				self.open_page(child)
 
-	@action(_('_Previous in index'), accelerator='<alt>Page_Up', tooltip=_('Go to previous page')) # T: Menu item
+	@action(_('_Previous in index'), accelerator='<alt>Page_Up') # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
 		@returns: C{True} if succesful
@@ -841,7 +843,7 @@ class MainWindow(Window):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Next in index'), accelerator='<alt>Page_Down', tooltip=_('Go to next page')) # T: Menu item
+	@action(_('_Next in index'), accelerator='<alt>Page_Down') # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
 		@returns: C{True} if succesful
@@ -850,12 +852,12 @@ class MainWindow(Window):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Home'), 'gtk-home', '<alt>Home', tooltip=_('Go home')) # T: Menu item
+	@action(_('_Home'), '<alt>Home', icon='gtk-home') # T: Menu item
 	def open_page_home(self):
 		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
 
-	@action(_('_Reload'), 'gtk-refresh', '<Primary>R') # T: Menu item
+	@action(_('_Reload'), '<Primary>R') # T: Menu item
 	def reload_page(self):
 		'''Menu action to reload the current page. Will first try
 		to save any unsaved changes, then reload the page from disk.

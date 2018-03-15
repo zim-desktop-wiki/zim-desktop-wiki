@@ -41,22 +41,6 @@ class NoSelectionError(Error):
 
 class LineSorterMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='edit_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='remove_line'/>
-					<menuitem action='duplicate_line'/>
-					<menuitem action='move_line_up'/>
-					<menuitem action='move_line_down'/>
-					<menuitem action='sort_selected_lines'/>
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
 	def _get_selected_lines(self, buffer):
 		try:
 			start, end = buffer.get_selection_bounds()
@@ -81,7 +65,7 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 
 		return start, end
 
-	@action(_('_Sort lines'), stock='gtk-sort-ascending') # T: menu item
+	@action(_('_Sort lines'), menuhints='edit') # T: menu item
 	def sort_selected_lines(self):
 		buffer = self.window.pageview.view.get_buffer()
 		first_lineno, last_lineno = self._get_selected_lines(buffer)
@@ -167,19 +151,19 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 				buffer.place_cursor(iter)
 
 
-	@action(_('_Move Line Up'), accelerator='<Primary>Up', readonly=False)  # T: Menu item
+	@action(_('_Move Line Up'), accelerator='<Primary>Up', menuhints='edit')  # T: Menu item
 	def move_line_up(self):
 		'''Menu action to move line up'''
 		self.move_line(-1)
 
 
-	@action(_('_Move Line Down'), accelerator='<Primary>Down', readonly=False)  # T: Menu item
+	@action(_('_Move Line Down'), accelerator='<Primary>Down', menuhints='edit')  # T: Menu item
 	def move_line_down(self):
 		'''Menu action to move line down'''
 		self.move_line(1)
 
 
-	@action(_('_Duplicate Line'), accelerator='<Primary><Shift>D', readonly=False)  # T: Menu item
+	@action(_('_Duplicate Line'), accelerator='<Primary><Shift>D', menuhints='edit')  # T: Menu item
 	def duplicate_line(self):
 		'''Menu action to dublicate line'''
 		buffer = self.window.pageview.view.get_buffer()
@@ -189,7 +173,7 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 			buffer.insert_parsetree(end, tree)
 
 
-	@action(_('_Remove Line'), accelerator='<Primary><Shift>K', readonly=False)  # T: Menu item
+	@action(_('_Remove Line'), accelerator='<Primary><Shift>K', menuhints='edit')  # T: Menu item
 	def remove_line(self):
 		'''Menu action to remove line at the current cursor position'''
 		buffer = self.window.pageview.view.get_buffer()

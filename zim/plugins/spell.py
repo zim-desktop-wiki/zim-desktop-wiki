@@ -88,23 +88,6 @@ This is a core plugin shipping with zim.
 
 class SpellMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='tools_menu'>
-				<placeholder name='page_tools'>
-					<menuitem action='toggle_spellcheck'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		<toolbar name='toolbar'>
-			<placeholder name='tools'>
-				<toolitem action='toggle_spellcheck'/>
-			</placeholder>
-		</toolbar>
-	</ui>
-	'''
-
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 		self._adapter_cls = self._choose_adapter_cls()
@@ -128,10 +111,7 @@ class SpellMainWindowExtension(MainWindowExtension):
 		else:
 			return GtkspellAdapter
 
-	@toggle_action(
-		_('Check _spelling'), # T: menu item
-		stock='gtk-spell-check', accelerator='F7'
-	)
+	@toggle_action(_('Check _spelling'), accelerator='F7') # T: menu item
 	def toggle_spellcheck(self, active):
 		textview = self.window.pageview.view
 		checker = getattr(textview, '_gtkspell', None)

@@ -109,19 +109,7 @@ class LinkMap(object):
 
 class LinkMapMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='view_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='show_linkmap'/>
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
-	@action(_('Link Map'), stock='zim-linkmap') # T: menu item
+	@action(_('Link Map'), icon='zim-linkmap', menuhints='view') # T: menu item
 	def show_linkmap(self):
 		linkmap = LinkMap(self.window.notebook, self.window.page)
 		dialog = LinkMapDialog(self.window, linkmap, self.window.navigation)

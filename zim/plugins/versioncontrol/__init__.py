@@ -134,19 +134,6 @@ def monitor_thread(thread):
 
 class VersionControlMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='file_menu'>
-			<placeholder name='versioning_actions'>
-				<menuitem action='save_version'/>
-				<menuitem action='show_versions'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
 	def __init__(self, plugin, window, notebook_ext):
 		MainWindowExtension.__init__(self, plugin, window)
 		self.notebook_ext = notebook_ext
@@ -226,7 +213,7 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 			except NoChangesError:
 				logger.debug('No autosave version needed - no changes')
 
-	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False) # T: menu item
+	@action(_('S_ave Version...'), '<Primary><shift>S', menuhints='notebook:edit') # T: menu item
 	def save_version(self):
 		if not self.notebook_ext.vcs:
 			vcs = VersionControlInitDialog(self.window).run()
@@ -242,7 +229,7 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 		with NotebookState(self.notebook_ext.notebook):
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
-	@action(_('_Versions...')) # T: menu item
+	@action(_('_Versions...'), menuhints='notebook') # T: menu item
 	def show_versions(self):
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,

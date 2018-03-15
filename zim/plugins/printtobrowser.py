@@ -57,19 +57,7 @@ This is a core plugin shipping with zim.
 
 class PrintToBrowserMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='file_menu'>
-				<placeholder name='print_actions'>
-					<menuitem action='print_to_browser'/>
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
-	@action(_('_Print to Browser'), 'gtk-print', '<Primary>P') # T: menu item
+	@action(_('_Print to Browser'), accelerator='<Primary>P', menuhints='page') # T: menu item
 	def print_to_browser(self, page=None):
 		notebook = self.window.notebook
 		page = page or self.window.page

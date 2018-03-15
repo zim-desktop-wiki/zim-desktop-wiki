@@ -1,5 +1,5 @@
 
-# Copyright 2013-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Action interface classes.
 
@@ -40,21 +40,21 @@ class ActionMethod(object):
 	pass
 
 
-def action(label, stock=None, accelerator='', tooltip='', readonly=True, alt_accelerator=None):
+def action(label, accelerator='', icon=None, verb_icon=None, menuhints='', alt_accelerator=None):
 	'''Decorator to turn a method into an L{Action} object
 	Methods decorated with this decorator can have keyword arguments
 	but no positional arguments.
-	@param label: the label used e.g for the menu item
-	@param stock: stock item to define the icon
+	@param label: the label used e.g for the menu item (can use "_" for mnemonics)
 	@param accelerator: accelerator key description
-	@param tooltip: tooltip text, if C{None} will default to C{label}
-	@param readonly: if C{True} this action should also be available
-	for readonly notebooks
+	@param icon: name of a "noun" icon - used together with the label. Only use
+	this for "things and places", not for actions or commands, and only if the
+	icon makes the item easier to recognize.
+	@param verb_icon: name of a "verb" icon - only used for compact menu views
+	@param menuhints: string with hints for menu placement and sensitivity
 	@param alt_accelerator: alternative accelerator key binding
 	'''
-	# TODO see where "readonly" should go
 	def _action(function):
-		return Action(function.__name__, function, label, stock, accelerator, tooltip, readonly, alt_accelerator)
+		return Action(function.__name__, function, label, icon, verb_icon, accelerator, alt_accelerator, menuhints)
 
 	return _action
 
@@ -62,19 +62,18 @@ def action(label, stock=None, accelerator='', tooltip='', readonly=True, alt_acc
 class Action(ActionMethod):
 	'''Action, used by the L{action} decorator'''
 
-	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True, alt_accelerator=None):
-		assert not (stock and '<' in stock), 'Looks like stock contains accelerator: %s %s' % (name, stock)
+	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', alt_accelerator=None, menuhints=''):
 		assert self._assert_args(func), '%s() has incompatible argspec' % func.__name__
-		if not tooltip:
-			tooltip = label.replace('_', '')
-
+		tooltip = label.replace('_', '')
 		self.name = name
-		self.readonly = readonly
 		self.func = func
-		self._attr = (self.name, label, tooltip, stock)
-		self._alt_attr = (self.name + '_alt1', label, tooltip, stock)
+		self._attr = (self.name, label, tooltip, icon or verb_icon)
+		self._alt_attr = (self.name + '_alt1', label, tooltip, icon or verb_icon)
 		self._accel = accelerator
 		self._alt_accel = alt_accelerator
+		self.icon = icon
+		self.verb_icon = verb_icon
+		self.menuhints = menuhints.split(':')
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -112,7 +111,7 @@ class Action(ActionMethod):
 				'Exception during action: %s' % self.name)
 
 
-def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, init=False):
+def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, menuhints=''):
 	'''Decorator to turn a method into an L{ToggleAction} object
 
 	The decorated method should be defined as:
@@ -123,17 +122,17 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, 
 	parameter. In this case the wrapper determines how to toggle the
 	state and calls the inner function with the new state.
 
-	@param label: the label used e.g for the menu item
-	@param stock: stock item to define the icon
+	@param label: the label used e.g for the menu item (can use "_" for mnemonics)
 	@param accelerator: accelerator key description
-	@param tooltip: tooltip text, if C{None} will default to C{label}
-	@param readonly: if C{True} this action should also be available
-	for readonly notebooks
+	@param icon: name of a "noun" icon - used together with the label. Only use
+	this for "things and places", not for actions or commands, and only if the
+	icon makes the item easier to recognize.
+	@param verb_icon: name of a "verb" icon - only used for compact menu views
 	@param init: initial state of the toggle
+	@param menuhints: string with hints for menu placement and sensitivity
 	'''
-	# TODO see where "readonly" should go
 	def _toggle_action(function):
-		return ToggleAction(function.__name__, function, label, stock, accelerator, tooltip, readonly, init)
+		return ToggleAction(function.__name__, function, label, icon, verb_icon, accelerator, init, menuhints)
 
 	return _toggle_action
 
@@ -141,11 +140,11 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, 
 class ToggleAction(Action):
 	'''Toggle action, used by the L{toggle_action} decorator'''
 
-	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True, init=False):
+	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', init=False, menuhints=''):
 		# The ToggleAction instance lives in the client class object;
 		# using weakkeydict to store instance attributes per
 		# client object
-		Action.__init__(self, name, func, label, stock, accelerator, tooltip, readonly)
+		Action.__init__(self, name, func, label, icon, verb_icon, accelerator, menuhints=menuhints)
 		self._init = init
 		self._state = weakref.WeakKeyDictionary()
 		self._proxies = weakref.WeakKeyDictionary()
@@ -215,16 +214,17 @@ class ToggleAction(Action):
 			actionable.set_active(active)
 
 
-def radio_action(*radio_options):
+def radio_action(menulabel, *radio_options, menuhints=''):
 	def _action(function):
-		return RadioAction(function.__name__, function, radio_options)
+		return RadioAction(function.__name__, function, menulabel, radio_options, menuhints)
 
 	return _action
 
 
-def radio_option(key, label, stock=None, accelerator='', tooltip=''):
-	return (key, stock, label, accelerator, tooltip)
-		# switching stock & label to match actiongroup.add_radio_actions()
+def radio_option(key, label, accelerator=''):
+	tooltip = label.replace('_', '')
+	return (key, None, label, accelerator, tooltip)
+		# tuple must match spec for actiongroup.add_radio_actions()
 
 
 def gtk_radioaction_set_current(g_radio_action, key):
@@ -237,12 +237,13 @@ def gtk_radioaction_set_current(g_radio_action, key):
 
 class RadioAction(ActionMethod):
 
-	def __init__(self, name, func, radio_options):
+	def __init__(self, name, func, menulabel, radio_options, menuhints=''):
 		# The RadioAction instance lives in the client class object;
 		# using weakkeydict to store instance attributes per
 		# client object
 		self.name = name
 		self.func = func
+		self.menulabel = menulabel
 		self.keys = [opt[0] for opt in radio_options]
 		self._entries = tuple(
 			(name + '_' + opt[0],) + opt[1:] + (i,)
@@ -250,6 +251,7 @@ class RadioAction(ActionMethod):
 		)
 		self._state = weakref.WeakKeyDictionary()
 		self._proxies = weakref.WeakKeyDictionary()
+		self.menuhints = menuhints.split(':')
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -288,6 +290,9 @@ class RadioAction(ActionMethod):
 				'Exception during action: %s(%s)' % (self.name, key))
 
 
+def get_actions(obj):
+	return inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionMethod))
+
 
 def get_gtk_actiongroup(obj):
 	'''Return a C{Gtk.ActionGroup} for an object using L{Action}
@@ -305,7 +310,7 @@ def get_gtk_actiongroup(obj):
 
 	obj.actiongroup = Gtk.ActionGroup(obj.__class__.__name__)
 
-	for name, action in inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionMethod)):
+	for name, action in get_actions(obj):
 		if isinstance(action, RadioAction):
 			obj.actiongroup.add_radio_actions(action._entries)
 			gaction = obj.actiongroup.get_action(action._entries[0][0])
@@ -332,6 +337,8 @@ def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
 	else:
 		gaction = Gtk.Action(*attr)
 
-	gaction.zim_readonly = action.readonly # HACK
+	gaction.zim_readonly = not bool(
+		'edit' in action.menuhints or 'insert' in action.menuhints
+	)
 	action.connect_actionable(obj, gaction)
 	actiongroup.add_action_with_accel(gaction, accel)
