@@ -425,7 +425,7 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 		self._selected = None
 
-		paths = self.get_paths()
+		paths = list(self.get_paths())
 		for path, label in zip(paths, shortest_unique_names(paths)):
 			button = gtk.ToggleButton(label=label)
 			button.set_use_underline(False)
