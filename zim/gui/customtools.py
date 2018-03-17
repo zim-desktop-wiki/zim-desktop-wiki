@@ -519,10 +519,10 @@ class CustomToolManagerDialog(Dialog):
 		)) # T: help text in "Custom Tools" dialog
 
 		hbox = Gtk.HBox(spacing=5)
-		self.vbox.add(hbox)
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		self.listview = CustomToolList(self.manager)
-		hbox.add(self.listview)
+		hbox.pack_start(self.listview, True, True, 0)
 
 		vbox = Gtk.VBox(spacing=5)
 		hbox.pack_start(vbox, False, True, 0)
