@@ -4,7 +4,7 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-=== 0.68-rc1 - Mon 08 Jan 2018 ===
+=== 0.68 - Sat 17 Mar 2018 ===
 * Critical fix for updating links on move page and rename page
 * Critical fix for rename page and indexing on case-insensitive file systems
   (like windows)
