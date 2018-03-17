@@ -943,7 +943,7 @@ class BackLinksMenuButton(MenuButton):
 
 		links.sort(key=lambda a: a.source.name)
 		for link in links:
-			item = Gtk.MenuItem(link.source.name)
+			item = Gtk.MenuItem.new_with_mnemonic(link.source.name)
 			item.connect_object('activate', self.open_page, link.source)
 			self.menu.add(item)
 

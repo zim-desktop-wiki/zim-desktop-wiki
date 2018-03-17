@@ -372,7 +372,7 @@ class SourceViewWidget(TextViewWidget):
 		item.set_sensitive(self.view.get_editable())
 		submenu = Gtk.Menu()
 		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
-			langitem = Gtk.MenuItem(lang)
+			langitem = Gtk.MenuItem.new_with_mnemonic(lang)
 			langitem.connect('activate', activate_lang)
 			langitem.zim_sourceview_languageid = LANGUAGES[lang]
 			submenu.append(langitem)

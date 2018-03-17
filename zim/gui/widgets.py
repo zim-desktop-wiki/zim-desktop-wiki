@@ -3750,7 +3750,7 @@ class LogFileDialog(Dialog):
 			# T: dialog title for log view dialog - e.g. for Equation Editor
 		self.set_default_size(600, 300)
 		window, textview = ScrolledTextView(file.read(), monospace=True)
-		self.vbox.add(window)
+		self.vbox.pack_start(window, True, True, 0)
 
 
 
@@ -4037,10 +4037,6 @@ class ImageView(Gtk.Layout):
 	SCALE_FIT = 1 #: scale image with the window (if the image is bigger)
 	SCALE_STATIC = 2 #: use scaling factor
 
-	__gsignals__ = {
-		'size-allocate': 'override',
-	}
-
 	def __init__(self, bgcolor='#FFF'):
 		'''Constructor
 		@param bgcolor: background color as color hex code, (e.g. "#FFF")
@@ -4057,6 +4053,7 @@ class ImageView(Gtk.Layout):
 		self.add(self._image)
 
 		self.set_bgcolor(bgcolor)
+		self.connect('size-allocate', self.__class__.on_size_allocate)
 
 	def set_bgcolor(self, bgcolor):
 		'''Set background color
@@ -4106,30 +4103,37 @@ class ImageView(Gtk.Layout):
 		self._pixbuf = pixbuf
 		self._render()
 
-	def do_size_allocate(self, allocation):
-		Gtk.Layout.do_size_allocate(self, allocation)
-
+	def on_size_allocate(self, allocation):
 		# remove timer if any
 		if self._render_timeout:
 			GObject.source_remove(self._render_timeout)
+			self._render_timeout = None
 
-		if not self._pixbuf \
-		or (allocation.width, allocation.height) == self._render_size:
+		size = (allocation.width, allocation.height)
+		if size == self._render_size or not self._pixbuf:
 			pass # no update of rendering needed
 		else:
-			# set new timer for 100ms
-			self._render_timeout = GObject.timeout_add(100, self._render)
+			def render_on_timeout(size):
+				self._render_size = size
+				try:
+					self._render()
+				except:
+					logger.exception('Exception while rendering image')
+
+				return False
+
+			self._render_timeout = GObject.timeout_add(100, render_on_timeout, size)
 
 	def _render(self):
 		# remove timer if any
 		if self._render_timeout:
 			GObject.source_remove(self._render_timeout)
+			self._render_timeout = None
 
 		# Determine what size we want to render the image
-		allocation = self.allocation
+		allocation = self.get_allocation()
 		wwin, hwin = allocation.width, allocation.height
 		wsrc, hsrc = self._pixbuf.get_width(), self._pixbuf.get_height()
-		self._render_size = (wwin, hwin)
 		#~ print('Allocated', (wwin, hwin),)
 		#~ print('Source', (wsrc, hsrc))
 
@@ -4167,8 +4171,6 @@ class ImageView(Gtk.Layout):
 		self._image.set_from_pixbuf(pixbuf)
 		self.set_size(wvirt, hvirt)
 		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)
-
-		return False # We could be called by a timeout event
 
 
 class TableBoxMixin(object):

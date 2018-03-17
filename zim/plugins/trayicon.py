@@ -204,7 +204,7 @@ class TrayIconBase(object):
 
 		for info in notebooks:
 			#~ print('>>>', info)
-			item = Gtk.MenuItem('  ' + info.name)
+			item = Gtk.MenuItem.new_with_mnemonic('  ' + info.name)
 				# Hack - using '  ' to indent visually
 			if info.active:
 				child = item.get_child()

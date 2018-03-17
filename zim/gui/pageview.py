@@ -5694,7 +5694,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				continue # Covered by default Copy action
 
 			format = zim.formats.canonical_name(label)
-			item = Gtk.MenuItem(label)
+			item = Gtk.MenuItem.new_with_mnemonic(label)
 			if buffer.get_has_selection():
 				item.connect('activate',
 					lambda o, f: self.view.do_copy_clipboard(format=f),
@@ -6161,14 +6161,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 					if '.' in name:
 						name, x = name.rsplit('.', 1)
 					name = name.replace('_', ' ')
-					item = Gtk.MenuItem(name)
+					item = Gtk.MenuItem.new_with_mnemonic(name)
 						# TODO mimetype icon would be nice to have
 					item.connect('activate', handler, file)
 					item.zim_new_file_action = True
 					items.append(item)
 
 		if not items:
-			item = Gtk.MenuItem(_('No templates installed'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('No templates installed'))
 				# T: message when no file templates are found in ~/Templates
 			item.set_sensitive(False)
 			item.zim_new_file_action = True

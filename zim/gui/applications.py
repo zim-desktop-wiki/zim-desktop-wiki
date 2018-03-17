@@ -938,14 +938,14 @@ class OpenWithMenu(Gtk.Menu):
 			item.connect('activate', self.on_activate)
 
 		if not self.get_children():
-			item = Gtk.MenuItem(_('No Applications Found'))
+			item = Gtk.MenuItem.new_with_mnemonic(_('No Applications Found'))
 				# T: message when no applications in "Open With" menu
 			item.set_sensitive(False)
 			self.append(item)
 
 		self.append(Gtk.SeparatorMenuItem())
 
-		item = Gtk.MenuItem(self.CUSTOMIZE)
+		item = Gtk.MenuItem.new_with_mnemonic(self.CUSTOMIZE)
 		item.connect('activate', self.on_activate_customize, mimetype)
 		self.append(item)
 

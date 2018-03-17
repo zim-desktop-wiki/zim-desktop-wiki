@@ -18,7 +18,7 @@ from zim.actions import Action
 from zim.fs import File, Dir
 from zim.gui.widgets import \
 	Dialog, ImageView, QuestionDialog, LogFileDialog, \
-	ScrolledTextView, ScrolledSourceView, VPaned, \
+	ScrolledWindow, ScrolledTextView, ScrolledSourceView, VPaned, \
 	populate_popup_add_separator
 
 
@@ -140,7 +140,7 @@ class ImageGeneratorMainWindowExtensionBase(WindowExtension):
 	def do_populate_popup(self, menu, buffer, iter, image):
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = Gtk.MenuItem(self.edit_label)
+		item = Gtk.MenuItem.new_with_mnemonic(self.edit_label)
 		item.connect('activate',
 			lambda o: self.edit_object(buffer, iter, image))
 		menu.prepend(item)
@@ -261,10 +261,12 @@ class ImageGeneratorDialog(Dialog):
 
 		self.vpane = VPaned()
 		self.vpane.set_position(150)
-		self.vbox.add(self.vpane)
+		self.vbox.pack_start(self.vpane, True, True, 0)
 
 		self.imageview = ImageView(bgcolor='#FFF')
-		self.vpane.pack1(self.imageview, resize=True)
+		swin = ScrolledWindow(self.imageview)
+		swin.set_size_request(200, 50)
+		self.vpane.pack1(swin, resize=True)
 		# TODO scrolled window and option to zoom in / real size
 
 		window, textview = ScrolledSourceView(syntax=syntax)

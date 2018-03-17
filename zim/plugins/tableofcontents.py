@@ -304,7 +304,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 			(_('Promote'), can_promote, self.on_promote),
 				# T: action to raise level of heading in the text
 		):
-			item = Gtk.MenuItem(text)
+			item = Gtk.MenuItem.new_with_mnemonic(text)
 			menu.prepend(item)
 			if sensitive:
 				item.connect('activate', handler)

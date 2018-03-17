@@ -459,7 +459,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 				if 'gtk-' in name:
 					item = Gtk.ImageMenuItem(name)
 				else:
-					item = Gtk.MenuItem(name)
+					item = Gtk.MenuItem.new_with_mnemonic(name)
 					item.connect('activate', func)
 			main_menu.append(item)
 
