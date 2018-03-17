@@ -6473,11 +6473,11 @@ class InsertDateDialog(Dialog):
 		label = Gtk.Label()
 		label.set_markup('<b>' + _("Format") + '</b>') # T: label in "insert date" dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, True, True, 0)
+		self.vbox.pack_start(label, False, False, 0)
 
 		model = Gtk.ListStore(str, str) # FORMAT_COL, DATE_COL
 		self.view = BrowserTreeView(model)
-		self.vbox.add(ScrolledWindow(self.view))
+		self.vbox.pack_start(ScrolledWindow(self.view), True, True, 0)
 
 		cell_renderer = Gtk.CellRendererText()
 		column = Gtk.TreeViewColumn('_date_', cell_renderer, text=1)

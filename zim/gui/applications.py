@@ -599,7 +599,7 @@ def edit_config_file(widget, configfile):
 	@param configfile: a L{ConfigFile} object
 	'''
 	configfile.touch()
-	edit_file(wiconfigfile.file, istextfile=True)
+	edit_file(widget, configfile.file, istextfile=True)
 
 
 def edit_file(widget, file, istextfile=None):
