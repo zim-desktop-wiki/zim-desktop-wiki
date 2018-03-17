@@ -25,7 +25,7 @@ class RecentChangesDialog(Dialog):
 		self.navigation = navigation
 
 		self.treeview = RecentChangesTreeView()
-		self.vbox.add(ScrolledWindow(self.treeview))
+		self.vbox.pack_start(ScrolledWindow(self.treeview), True, True, 0)
 		self.treeview.connect('row-activated', self.on_row_activated)
 
 		self.update()
@@ -61,7 +61,7 @@ class RecentChangesTreeView(BrowserTreeView):
 
 		today = datetime.date.today()
 		yesterday = today - datetime.timedelta(days=1)
-		def render_date(col, cell, model, i):
+		def render_date(col, cell, model, i, data):
 			mtime = model.get_value(i, self.MODIFIED_COL)
 			if mtime:
 				dt = datetime.datetime.fromtimestamp(mtime)
