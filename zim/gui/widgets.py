@@ -1565,7 +1565,7 @@ class FSPathEntry(InputEntry):
 		path = FSPathEntry.get_path(self) # overloaded in LinkEntry
 		if path:
 			dialog.set_file(path)
-		elif self.notebookpath:
+		elif self.notebook and self.notebookpath:
 			page = self.notebook.get_page(self.notebookpath)
 			dialog.set_current_dir(page.source.dir)
 		elif self.notebook:
