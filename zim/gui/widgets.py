@@ -4112,6 +4112,7 @@ class ImageView(Gtk.Layout):
 		# remove timer if any
 		if self._render_timeout:
 			GObject.source_remove(self._render_timeout)
+			self._render_timeout = None
 
 		if not self._pixbuf \
 		or (allocation.width, allocation.height) == self._render_size:
@@ -4124,10 +4125,11 @@ class ImageView(Gtk.Layout):
 		# remove timer if any
 		if self._render_timeout:
 			GObject.source_remove(self._render_timeout)
+			self._render_timeout = None
 
 		# Determine what size we want to render the image
-		allocation = self.allocation
-		wwin, hwin = allocation.width, allocation.height
+		wwin = self.get_property('width')
+		hwin = self.get_property('height')
 		wsrc, hsrc = self._pixbuf.get_width(), self._pixbuf.get_height()
 		self._render_size = (wwin, hwin)
 		#~ print('Allocated', (wwin, hwin),)
