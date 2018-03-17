@@ -171,9 +171,9 @@ class InsertScreenshotDialog(Dialog):
 		self.app_window = window
 		self.screenshot_command = screenshot_command
 		if ScreenshotPicker.has_select_cmd(self.screenshot_command):
-			self.screen_radio = Gtk.RadioButton(None,
+			self.screen_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(None,
 												_('Capture whole screen'))  # T: option in 'insert screenshot' dialog
-			self.select_radio = Gtk.RadioButton(self.screen_radio,
+			self.select_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(self.screen_radio,
 												_('Select window or region'))  # T: option in 'insert screenshot' dialog
 			self.vbox.add(self.screen_radio)
 			self.vbox.add(self.select_radio)

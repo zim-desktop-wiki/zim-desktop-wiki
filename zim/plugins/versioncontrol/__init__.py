@@ -974,9 +974,9 @@ class VersionsDialog(Dialog):
 		label.set_alignment(0, 0.5)
 		vbox.pack_start(label, False, True, 0)
 
-		self.notebook_radio = Gtk.RadioButton(None, _('Complete _notebook'))
+		self.notebook_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(None, _('Complete _notebook'))
 			# T: Option in versions dialog to show version for complete notebook
-		self.page_radio = Gtk.RadioButton(self.notebook_radio, _('_Page') + ':')
+		self.page_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(self.notebook_radio, _('_Page') + ':')
 			# T: Option in versions dialog to show version for single page
 		#~ recursive_box = Gtk.CheckButton('Recursive')
 		vbox.pack_start(self.notebook_radio, False, True, 0)
