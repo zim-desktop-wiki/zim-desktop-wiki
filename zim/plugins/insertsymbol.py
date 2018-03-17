@@ -149,17 +149,18 @@ class InsertSymbolDialog(Dialog):
 		self.textentry = InputEntry()
 		self.vbox.pack_start(self.textentry, False, True, 0)
 
-		# TODO make this iconview single-click
 		model = Gtk.ListStore(str, str) # text, shortcut
 		self.iconview = Gtk.IconView(model)
 		self.iconview.set_text_column(0)
 		self.iconview.set_column_spacing(0)
 		self.iconview.set_row_spacing(0)
 		self.iconview.set_property('has-tooltip', True)
+		self.iconview.set_property('activate-on-single-click', True)
 		self.iconview.connect('query-tooltip', self.on_query_tooltip)
 		self.iconview.connect('item-activated', self.on_activated)
 
-		self.vbox.add(ScrolledWindow(self.iconview))
+		swindow = ScrolledWindow(self.iconview)
+		self.vbox.pack_start(swindow, True, True, 0)
 
 		button = Gtk.Button.new_with_mnemonic(_('_Edit')) # T: Button label
 		button.connect('clicked', self.on_edit)
