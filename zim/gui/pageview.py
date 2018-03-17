@@ -7117,7 +7117,7 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		self.vbox.add(hbox)
 
 		vbox = Gtk.VBox(spacing=5)
-		hbox.pack_start(vbox, False, True, 0)
+		hbox.pack_start(vbox, True, True, 0)
 
 		label = Gtk.Label(label=_('Find what') + ': ')
 			# T: input label in find & replace dialog
@@ -7136,8 +7136,10 @@ class FindAndReplaceDialog(FindWidget, Dialog):
 		self.replace_entry = InputEntry(allow_whitespace=True)
 		vbox.add(self.replace_entry)
 
-		self.bbox = Gtk.VButtonBox()
-		hbox.add(self.bbox)
+		self.bbox = Gtk.ButtonBox(orientation=Gtk.Orientation.VERTICAL)
+		self.bbox.set_layout(Gtk.ButtonBoxStyle.START)
+		self.bbox.set_spacing(5)
+		hbox.pack_start(self.bbox, False, False, 0)
 		self.bbox.add(self.next_button)
 		self.bbox.add(self.previous_button)
 
