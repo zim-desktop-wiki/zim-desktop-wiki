@@ -1028,8 +1028,8 @@ class EditTableDialog(Dialog):
 		self.vbox.pack_start(hbox, False, True, 0)
 		header_scrolled_area = ScrolledWindow(self.treeview)
 		header_scrolled_area.set_size_request(200, -1)
-		hbox.add(header_scrolled_area)
-		hbox.add(self._button_box())
+		hbox.pack_start(header_scrolled_area, True, True, 0)
+		hbox.pack_start(self._button_box(), False, False, 0)
 
 		self.show_all()
 		if self.creation_mode:  # preselect first entry
