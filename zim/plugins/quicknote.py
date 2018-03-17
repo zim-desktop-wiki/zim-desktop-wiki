@@ -298,7 +298,7 @@ class QuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page_check = Gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+		self.open_page_check = Gtk.CheckButton.new_with_mnemonic(_('Open _Page')) # T: Option in quicknote dialog
 			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page_check.set_active(self.uistate['open_page'])
 		self.action_area.pack_start(self.open_page_check, False, True, 0)
@@ -309,7 +309,7 @@ class QuickNoteDialog(Dialog):
 		window, textview = ScrolledTextView()
 		self.textview = textview
 		self.textview.set_editable(True)
-		self.vbox.add(window)
+		self.vbox.pack_start(window, True, True, 0)
 
 		self.form.widgets['basename'].connect('changed', self.on_title_changed)
 		self.textview.get_buffer().connect('changed', self.on_text_changed)

@@ -49,7 +49,7 @@ class SearchDialog(Dialog):
 		) # T: help text for the search dialog
 		self.query_entry.set_tooltip_text(help_text)
 
-		self.namespacecheckbox = Gtk.CheckButton(_('Limit search to the current page and sub-pages'))
+		self.namespacecheckbox = Gtk.CheckButton.new_with_mnemonic(_('Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
 		if page is not None:
 			self.vbox.pack_start(self.namespacecheckbox, False, True, 0)

@@ -6503,7 +6503,7 @@ class InsertDateDialog(Dialog):
 		self.vbox.pack_start(self.calendar_expander, False, True, 0)
 
 		## Add Link checkbox and Edit button
-		self.linkbutton = Gtk.CheckButton(_('_Link to date'))
+		self.linkbutton = Gtk.CheckButton.new_with_mnemonic(_('_Link to date'))
 			# T: check box in InsertDate dialog
 		self.linkbutton.set_active(self.uistate['linkdate'])
 		self.vbox.pack_start(self.linkbutton, False, True, 0)
@@ -6610,7 +6610,7 @@ class InsertImageDialog(FileDialog):
 		self.add_shortcut(notebook, path)
 		self.add_filter_images()
 
-		checkbox = Gtk.CheckButton(_('Attach image first'))
+		checkbox = Gtk.CheckButton.new_with_mnemonic(_('Attach image first'))
 			# T: checkbox in the "Insert Image" dialog
 		checkbox.set_active(self.uistate['attach_inserted_images'])
 		self.filechooser.set_extra_widget(checkbox)
@@ -6666,7 +6666,7 @@ class AttachFileDialog(FileDialog):
 			raise Exception('Page "%s" does not have a folder for attachments' % self.path)
 
 		self.uistate.setdefault('insert_attached_images', True)
-		checkbox = Gtk.CheckButton(_('Insert images as link'))
+		checkbox = Gtk.CheckButton.new_with_mnemonic(_('Insert images as link'))
 			# T: checkbox in the "Attach File" dialog
 		checkbox.set_active(not self.uistate['insert_attached_images'])
 		self.filechooser.set_extra_widget(checkbox)
@@ -6961,22 +6961,22 @@ class FindWidget(object):
 			'clicked', self.__class__.find_previous, self)
 		self.previous_button.set_sensitive(False)
 
-		self.case_option_checkbox = Gtk.CheckButton(_('Match _case'))
+		self.case_option_checkbox = Gtk.CheckButton.new_with_mnemonic(_('Match _case'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.case_option_checkbox.connect_object(
 			'toggled', self.__class__.on_find_entry_changed, self)
 
-		self.word_option_checkbox = Gtk.CheckButton(_('Whole _word'))
+		self.word_option_checkbox = Gtk.CheckButton.new_with_mnemonic(_('Whole _word'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.word_option_checkbox.connect_object(
 			'toggled', self.__class__.on_find_entry_changed, self)
 
-		self.regex_option_checkbox = Gtk.CheckButton(_('_Regular expression'))
+		self.regex_option_checkbox = Gtk.CheckButton.new_with_mnemonic(_('_Regular expression'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.regex_option_checkbox.connect_object(
 			'toggled', self.__class__.on_find_entry_changed, self)
 
-		self.highlight_checkbox = Gtk.CheckButton(_('_Highlight'))
+		self.highlight_checkbox = Gtk.CheckButton.new_with_mnemonic(_('_Highlight'))
 			# T: checkbox option in find bar and find & replace dialog
 		self.highlight_checkbox.connect_object(
 			'toggled', self.__class__.on_highlight_toggled, self)

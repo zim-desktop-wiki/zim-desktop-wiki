@@ -73,7 +73,7 @@ class ServerWindow(Gtk.Window):
 		self.portentry.set_increments(1, 80)
 		self.portentry.set_value(port)
 
-		self.public_checkbox = Gtk.CheckButton(label=_('Allow public access'))
+		self.public_checkbox = Gtk.CheckButton.new_with_mnemonic(_('Allow public access'))
 			# T: Checkbox in web server gui
 		self.public_checkbox.set_active(public)
 

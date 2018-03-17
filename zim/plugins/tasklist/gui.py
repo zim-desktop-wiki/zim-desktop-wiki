@@ -150,7 +150,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 				self.uistate['only_show_act'] = active
 				self.task_list.set_filter_actionable(active)
 
-		self.act_toggle = Gtk.CheckButton(_('Only Show Active Tasks'))
+		self.act_toggle = Gtk.CheckButton.new_with_mnemonic(_('Only Show Active Tasks'))
 			# T: Checkbox in task list - this options hides tasks that are not yet started
 		self.act_toggle.set_active(self.uistate['only_show_act'])
 		self.act_toggle.connect('toggled', on_show_active_toggle)

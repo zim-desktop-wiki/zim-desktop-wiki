@@ -971,7 +971,7 @@ class InputForm(Gtk.Table):
 				extra = None
 
 			if type == 'bool':
-				widgets.append(Gtk.CheckButton(label=label))
+				widgets.append(Gtk.CheckButton.new_with_mnemonic(label))
 
 			elif type == 'option':
 				assert ':' in name, 'BUG: options should have name of the form "group:key"'
