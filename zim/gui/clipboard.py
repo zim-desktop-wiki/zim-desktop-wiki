@@ -119,12 +119,12 @@ def pack_urilist(links):
 		if is_url_re.match(link):
 			link = url_encode(link, mode=URL_ENCODE_READABLE) # just to be sure
 		text += '%s\r\n' % link
-	return text
+	return text.encode()
 
 
 def unpack_urilist(text):
 	# FIXME be tolerant here for file://path/to/file uris here
-	text = text.strip('\x00') # Found trailing NULL character on windows
+	text = text.strip(b'\x00').decode() # Found trailing NULL character on windows
 	lines = text.splitlines() # takes care of \r\n
 	return [line for line in lines if line and not line.isspace()]
 		# Just to be sure we also skip empty or whitespace lines
