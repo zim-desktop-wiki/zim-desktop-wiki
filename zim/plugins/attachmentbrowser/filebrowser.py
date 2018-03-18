@@ -390,20 +390,20 @@ class FileBrowserIconView(Gtk.IconView):
 
 	# TODO - test drag and drop
 	def on_drag_data_get(self, iconview, dragcontext, selectiondata, info, time):
-		assert selectiondata.target in URI_TARGET_NAMES
+		assert selectiondata.get_target().name() in URI_TARGET_NAMES
 		paths = self.get_selected_items()
 		if paths:
 			model = self.get_model()
 			path_to_uri = lambda p: self.folder.file(model[p][BASENAME_COL]).uri
 			uris = list(map(path_to_uri, paths))
 			data = pack_urilist(uris)
-			selectiondata.set(URI_TARGET_NAMES[0], 8, data)
+			selectiondata.set(selectiondata.get_target(), 8, data)
 
 	def on_drag_data_received(self, iconview, dragcontext, x, y, selectiondata, info, time):
-		assert selectiondata.target in URI_TARGET_NAMES
-		names = unpack_urilist(selectiondata.data)
+		assert selectiondata.get_target().name() in URI_TARGET_NAMES
+		names = unpack_urilist(selectiondata.get_data())
 		files = [LocalFile(uri) for uri in names if uri.startswith('file://')]
-		action = dragcontext.action
+		action = dragcontext.get_selected_action()
 		logger.debug('Drag received %s, %s', action, files)
 
 		if action == Gdk.DragAction.MOVE:

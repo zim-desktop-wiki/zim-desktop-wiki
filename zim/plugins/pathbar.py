@@ -604,11 +604,11 @@ class PathBar(ScrolledHBox):
 		return True
 
 	def on_drag_data_get(self, button, context, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		path = button.zim_path
 		logger.debug('Drag data requested from PathBar, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+		selectiondata.set(selectiondata.get_target(), 8, data)
 
 
 class HistoryPathBar(PathBar):
