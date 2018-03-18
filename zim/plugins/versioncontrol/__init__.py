@@ -884,11 +884,12 @@ class VersionControlInitDialog(QuestionDialog):
 				self.combobox.append_text(option)
 		self.combobox.set_active(0)
 
-		hbox = Gtk.HBox(spacing=5)
-		hbox.pack_end(self.combobox, False, True, 0)
-		hbox.pack_end(Gtk.Label(_('Backend') + ':'), False, True, 0)
+		hbox = Gtk.Box(spacing=5)
+		hbox.add(Gtk.Label(_('Backend') + ':'))
+		hbox.add(self.combobox)
 			# T: option to chose versioncontrol backend
-		self.vbox.pack_start(hbox, False, True, 0)
+		hbox.set_halign(Gtk.Align.CENTER)
+		self.vbox.pack_start(hbox, False, False, 0)
 		hbox.show_all()
 
 	def run(self):
@@ -916,7 +917,7 @@ class SaveVersionDialog(Dialog):
 		self.vbox.pack_start(label, False, True, 0)
 
 		vpaned = VPaned()
-		self.vbox.add(vpaned)
+		self.vbox.pack_start(vpaned, True, True, 0)
 
 		window, self.textview = ScrolledTextView(_('Saved version from zim'))
 			# T: default version comment in the "save version" dialog
@@ -963,7 +964,7 @@ class VersionsDialog(Dialog):
 
 		self.vpaned = VPaned()
 		self.vpaned.set_position(self.uistate['vpanepos'])
-		self.vbox.add(self.vpaned)
+		self.vbox.pack_start(self.vpaned, True, True, 0)
 
 		vbox = Gtk.VBox(spacing=5)
 		self.vpaned.pack1(vbox, resize=True)
@@ -1194,7 +1195,7 @@ class TextDialog(Dialog):
 		self.set_default_size(600, 300)
 		self.uistate.setdefault('windowsize', (600, 500), check=value_is_coord)
 		window, textview = ScrolledTextView(''.join(lines), monospace=True)
-		self.vbox.add(window)
+		self.vbox.pack_start(window, True, True, 0)
 
 
 class VersionsTreeView(SingleClickTreeView):
