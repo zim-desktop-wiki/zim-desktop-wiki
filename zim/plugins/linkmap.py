@@ -3,6 +3,9 @@
 
 '''Plugin showing a map of links between pages based on GraphViz'''
 
+import re
+import ast
+
 from gi.repository import Gtk
 
 from zim.plugins import PluginClass, extends, WindowExtension
@@ -13,7 +16,7 @@ from zim.fs import Dir
 from zim.gui.widgets import Dialog, IconButton
 
 try:
-	from zim.inc import xdot
+	import xdot
 except ImportError:
 	xdot = None
 
@@ -38,7 +41,10 @@ This is a core plugin shipping with zim.
 	def check_dependencies(klass):
 		has_xdot = xdot is not None
 		has_graphviz = Application(('fdp',)).tryexec()
-		return has_xdot and has_graphviz, [('GraphViz', has_graphviz, True)]
+		return has_xdot and has_graphviz, [
+			('xdot', has_xdot, True),
+			('GraphViz', has_graphviz, True)
+		]
 
 
 class LinkMap(object):
@@ -97,7 +103,7 @@ class LinkMap(object):
 
 		dotcode.append('}')
 
-		#print '\n'.join(dotcode)+'\n'
+		#print( '\n'.join(dotcode)+'\n')
 		return '\n'.join(dotcode) + '\n'
 
 
@@ -117,7 +123,7 @@ class LinkMapMainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Show Link Map'), stock='zim-linkmap') # T: menu item
+	@action(_('Link Map'), stock='zim-linkmap') # T: menu item
 	def show_linkmap(self):
 		linkmap = LinkMap(self.window.notebook, self.window.page)
 		dialog = LinkMapDialog(self.window, linkmap, self.window.navigation)
@@ -133,7 +139,7 @@ class LinkMapDialog(Dialog):
 		self.opener = opener
 
 		hbox = Gtk.HBox(spacing=5)
-		self.vbox.add(hbox)
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		self.xdotview = xdot.DotWidget()
 		self.xdotview.set_filter('fdp')
@@ -142,7 +148,7 @@ class LinkMapDialog(Dialog):
 		hbox.add(self.xdotview)
 
 		vbox = Gtk.VBox()
-		hbox.pack_start(vbox, False, True, 0)
+		hbox.pack_start(vbox, False, False, 0)
 		for stock, method in (
 			(Gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
 			(Gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
@@ -154,18 +160,7 @@ class LinkMapDialog(Dialog):
 			vbox.pack_start(button, False, True, 0)
 
 	def on_node_clicked(self, widget, name, event):
+		if re.match('b\'.*?\'$', name):
+			# Bug in dotcode ? URLS come in as strings containing byte representation
+			name = ast.literal_eval(name).decode('UTF-8')
 		self.opener.open_page(Path(name))
-
-# And a bit of debug code...
-
-if __name__ == '__main__':
-	import sys
-	import zim
-	import zim.notebook
-	import gui
-	notebook = zim.notebook.build_notebook(Dir(sys.argv[1]))
-	path = notebook.pages.lookup_from_user_input(sys.argv[2])
-	linkmap = LinkMap(notebook, path)
-	dialog = LinkMapDialog(None, linkmap, None)
-	dialog.show_all()
-	dialog.run()
