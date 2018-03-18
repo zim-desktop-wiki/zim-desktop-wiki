@@ -299,7 +299,7 @@ class TaggedPageTreeStore(TaggedPagesTreeModelMixin, DuplicatePageTreeStore):
 class TagsPageTreeView(PageTreeView):
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		model, iter = self.get_selection().get_selected()
 		path = model.get_indexpath(iter)
 		if isinstance(path, IndexTag):
@@ -308,7 +308,7 @@ class TagsPageTreeView(PageTreeView):
 			link = path.name
 		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
 		data = pack_urilist((link,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+		selectiondata.set(selectiondata.get_target(), 8, data)
 
 	def set_current_page(self, path, vivificate=False):
 		'''Set the current page in the treeview
