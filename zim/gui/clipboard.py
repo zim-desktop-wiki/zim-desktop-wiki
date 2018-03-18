@@ -219,18 +219,18 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 	'''
 	# TODO: check relative linking for all parsetrees !!!
 
-	targetname = str(selectiondata.target)
+	targetname = selectiondata.get_target().name()
 	if targetname == PARSETREE_TARGET_NAME:
-		return ParseTree().fromstring(selectiondata.data)
+		return ParseTree().fromstring(selectiondata.get_data())
 	elif targetname in (INTERNAL_PAGELIST_TARGET_NAME, PAGELIST_TARGET_NAME) \
 	or targetname in URI_TARGET_NAMES:
-		links = unpack_urilist(selectiondata.data)
+		links = selectiondata.get_uris()
 		return _link_tree(links, notebook, path)
 	elif targetname in TEXT_TARGET_NAMES:
 		# plain text parser should highlight urls etc.
 		# FIXME some apps drop text/uri-list as a text/plain mimetype
 		# try to catch this situation by a check here
-		text = str(selectiondata.get_text())
+		text = selectiondata.get_text()
 		if text:
 			return get_format('plain').Parser().parse(text, partial=True)
 		else:
@@ -257,7 +257,7 @@ def parsetree_from_selectiondata(selectiondata, notebook=None, path=None):
 
 		file = dir.new_file('pasted_image.%s' % extension)
 		logger.debug("Saving image from clipboard to %s", file)
-		pixbuf.save(file.path, format)
+		pixbuf.savev(file.path, format, [], [])
 		FS.emit('path-created', file) # notify version control
 
 		links = [file.uri]
@@ -563,17 +563,17 @@ class ClipboardManager(object):
 
 		@returns: a L{ParseTree} or C{None}
 		'''
-		targets = self.clipboard.wait_for_targets()
+		(has_data, targets) = self.clipboard.wait_for_targets()
 		logger.debug('Targets available for paste: %s, we want parsetree', targets)
 
-		if targets is None:
+		if not has_data:
 			return None
 
-		targets = [n for n in PARSETREE_ACCEPT_TARGET_NAMES if n in targets]
+		targets = [n for n in targets if n.name() in PARSETREE_ACCEPT_TARGET_NAMES]
 			# Filter and sort by PARSETREE_ACCEPT_TARGET_NAMES
 
 		if targets:
-			name = targets[0]
+			name = targets[0]  # TODO why choose 1st index?
 			logger.debug('Requesting data for %s', name)
 			selectiondata = self.clipboard.wait_for_contents(name)
 			if selectiondata:
