@@ -30,7 +30,8 @@ class TestMainWindowExtension(tests.TestCase):
 
 	def checkInsertCodeBlockDialog(self, dialog):
 		self.assertIsInstance(dialog, InsertCodeBlockDialog)
-		dialog.form['lang'] = list(LANGUAGES.keys())[0]
+		iter = dialog.combobox.get_model().get_iter('5:0')
+		dialog.combobox.set_active_iter(iter)
 		dialog.assert_response_ok()
 
 

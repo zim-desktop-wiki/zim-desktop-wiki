@@ -137,26 +137,47 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
-		names = sorted(LANGUAGES, key=lambda k: k.lower())
-		self.add_form(
-			(('lang', 'choice', _('Syntax'), names),) # T: input label
-		)
-
-		# Set previous used language
 		self.uistate.define(lang=String(None))
-		if 'lang' in self.uistate:
-			for name, id in list(LANGUAGES.items()):
-				if self.uistate['lang'] == id:
-					try:
-						self.form['lang'] = name
-					except ValueError:
-						pass
+		defaultlang = self.uistate['lang']
 
-					break
+		menu = {}
+		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
+			key = l[0].upper()
+			if not key in menu:
+				menu[key] = []
+			menu[key].append(l)
+
+		model = Gtk.TreeStore(str)
+		defaultiter = None
+		for key in sorted(menu):
+			iter = model.append(None, [key])
+			for lang in menu[key]:
+				myiter = model.append(iter, [lang])
+				if LANGUAGES[lang] == defaultlang:
+					defaultiter = myiter
+
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		hbox.set_spacing(5)
+		label = Gtk.Label(_('Syntax') +':') # T: input label
+		hbox.add(label)
+
+		combobox = Gtk.ComboBox.new_with_model(model)
+		renderer_text = Gtk.CellRendererText()
+		combobox.pack_start(renderer_text, True)
+		combobox.add_attribute(renderer_text, "text", 0)
+		if defaultiter is not None:
+			combobox.set_active_iter(defaultiter)
+		hbox.add(combobox)
+		self.combobox = combobox
+
+		self.vbox.add(hbox)
 
 	def do_response_ok(self):
-		name = self.form['lang']
-		if name:
+		model = self.combobox.get_model()
+		iter = self.combobox.get_active_iter()
+
+		if iter is not None:
+			name = model[iter][0]
 			self.result = LANGUAGES[name]
 			self.uistate['lang'] = LANGUAGES[name]
 			return True
@@ -235,7 +256,7 @@ class SourceViewObject(CustomObjectClass):
 				Map GtkSourceView language ids match with Highlight.js language ids.
 				http://packages.ubuntu.com/precise/all/libGtkSource.0-common/filelist
 				http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
-                '''
+				'''
 				sh_map = {'dosbatch': 'dos'}
 				sh_lang = sh_map[self._attrib['lang']] if self._attrib['lang'] in sh_map else self._attrib['lang']
 				# TODO: some template instruction to be able to use other highlighters as well?
