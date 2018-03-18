@@ -719,13 +719,13 @@ class DeletePageDialog(Dialog):
 		vbox.pack_start(label, False, True, 0)
 
 		# TODO use expander here
+		page = self.notebook.get_page(self.path)
+		text = page.source_file.path + '\n'
+		n = 1
 		dir = self.notebook.get_attachments_dir(self.path)
 		if dir.exists():
-			text = self._get_file_tree_as_text(dir)
-			n = len([l for l in text.splitlines() if not l.endswith('/')])
-		else:
-			text = ''
-			n = 0
+			text += self._get_file_tree_as_text(dir)
+			n = len([l for l in text.splitlines() if l.strip() and not l.endswith('/')])
 
 		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
 			# T: label in the DeletePage dialog to warn user of attachments being deleted
@@ -736,8 +736,8 @@ class DeletePageDialog(Dialog):
 		label.set_markup('\n' + string + ':')
 		self.vbox.add(label)
 		window, textview = ScrolledTextView(text, monospace=True)
-		window.set_size_request(250, 200)
-		self.vbox.add(window)
+		window.set_size_request(250, 100)
+		self.vbox.pack_start(window, True, True, 0)
 
 	def _get_file_tree_as_text(self, dir):
 		'''Returns an overview of files and folders below this dir
@@ -748,8 +748,8 @@ class DeletePageDialog(Dialog):
 		from zim.newfs import Folder
 		text = ''
 		for child in dir.walk():
-			path = child.relpath(self)
-			if isinstance(child, (Folder, Dir)):
+			path = child.relpath(dir)
+			if isinstance(child, Folder):
 				path += '/'
 			text += path + '\n'
 		return text
