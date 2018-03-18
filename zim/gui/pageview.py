@@ -4886,8 +4886,8 @@ discarded, but you can restore the copy later.''')
 			self._done = True
 
 		def save(self):
-			from zim.gui import SaveCopyDialog
-			if SaveCopyDialog(self, page=self.page).run():
+			from zim.gui.uiactions import SaveCopyDialog
+			if SaveCopyDialog(self, pageview.notebook, page).run():
 				discard(self)
 
 		discard_button = Gtk.Button.new_with_mnemonic(_('_Discard Changes'))
