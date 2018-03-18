@@ -492,16 +492,19 @@ class PageTreeView(BrowserTreeView):
 			Clipboard.set_pagelink(self.notebook, page)
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		model, iter = self.get_selection().get_selected()
 		path = model.get_indexpath(iter)
 		logger.debug('Drag data requested, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+		selectiondata.set(selectiondata.get_target(), 8, data.encode())
 
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
-		names = unpack_urilist(selectiondata.data)
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
+		# FIXME: selectiondata.get_data() always returns an empty string
+		# See https://github.com/jaap-karssenberg/zim-desktop-wiki/issues/385
+		data_str = selectiondata.get_data().decode()
+		names = unpack_urilist(data_str)
 		assert len(names) == 1
 		source = Path(names[0])
 
