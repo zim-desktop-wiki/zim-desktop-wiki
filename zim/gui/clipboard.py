@@ -388,7 +388,8 @@ class InterWikiLinkItem(UriItem):
 		self.interwiki_href = href
 
 	def _get(self, clipboard, selectiondata, id, *a):
-		logger.debug("Clipboard requests data as '%s', we have an interwiki link", selectiondata.target)
+		logger.debug("Clipboard requests data as '%s', we have an interwiki link",
+					selectiondata.get_target().name())
 		if id == PARSETREE_TARGET_ID:
 			tree = _link_tree((self.interwiki_href,), None, None)
 			xml = tree.tostring()
@@ -419,7 +420,8 @@ class ParseTreeItem(ClipboardItem):
 		@param id: target id for the requested data format
 		@param a: any additional arguments are discarded
 		'''
-		logger.debug("Clipboard requests data as '%s', we have a parsetree", selectiondata.target)
+		logger.debug("Clipboard requests data as '%s', we have a parsetree",
+					selectiondata.get_target().name())
 		if id == PARSETREE_TARGET_ID:
 			# TODO make links absolute (?)
 			xml = self.parsetree.tostring()
@@ -428,9 +430,9 @@ class ParseTreeItem(ClipboardItem):
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))
 			html = ''.join(dumper.dump(self.parsetree))
-			html = wrap_html(html, target=selectiondata.target)
+			html = wrap_html(html, target=selectiondata.get_target().name())
 			#~ print('PASTING: >>>%s<<<' % html)
-			selectiondata.set(selectiondata.target, 8, html)
+			selectiondata.set(selectiondata.get_target(), 8, html)
 		elif id == TEXT_TARGET_ID:
 			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
 			#~ print(">>>>", self.format, parsetree.tostring())
@@ -467,7 +469,8 @@ class PageLinkItem(ClipboardItem):
 		@param id: target id for the requested data format
 		@param a: any additional arguments are discarded
 		'''
-		logger.debug("Clipboard requests data as '%s', we have a pagelink", selectiondata.target)
+		logger.debug("Clipboard requests data as '%s', we have a pagelink",
+					selectiondata.get_target().name())
 		if id == INTERNAL_PAGELIST_TARGET_ID:
 			text = pack_urilist((self.path.name,))
 			selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, text)
