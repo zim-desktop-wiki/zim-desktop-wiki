@@ -4,6 +4,7 @@
 
 import re
 import logging
+import itertools
 
 logger = logging.getLogger('zim.notebook')
 
@@ -34,6 +35,42 @@ re.UNICODE)
 	# This pattern matches a non-alphanumber at start or after the ':'
 	# seperator. It also matches any invalid character.
 	# The UNICODE flag is used to make the alphanumber check international.
+
+
+def shortest_unique_names(paths):
+	'''Returns the shortest unique name for each path in paths
+	@param paths: list of L{Path} objects
+	@returns: list of strings
+	'''
+	by_basename = {}
+	for path in paths:
+		basename = path.basename
+		mylist = by_basename.setdefault(basename, [])
+		mylist.append(path)
+
+	result = []
+	for path in paths:
+		basename = path.basename
+		conflicts = by_basename[basename]
+		if len(conflicts) == 1:
+			result.append(path.basename)
+		else:
+			conflicts.remove(path)
+			conflicts.insert(0, path) # shuffle path of interest to front
+			reverse_paths = [reversed(p.name.split(':')) for p in conflicts]
+			names = []
+			for parts in itertools.zip_longest(*reverse_paths):
+				if parts[0] is None:
+					break
+				elif parts[0] not in parts[1:]:
+					names.append(parts[0])
+					break
+				else:
+					names.append(parts[0])
+
+			result.append(':'.join(reversed(names)))
+
+	return result
 
 
 class Path(object):

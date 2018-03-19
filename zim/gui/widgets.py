@@ -3232,7 +3232,7 @@ class ErrorDialog(Gtk.MessageDialog):
 			window.set_property('expand', True)
 			self.vbox.add(window)
 			self.vbox.show_all()
-			# TODO use an expander here ?
+			self.set_resizable(True)
 		else:
 			self.showing_trace = False # used in test
 			pass
