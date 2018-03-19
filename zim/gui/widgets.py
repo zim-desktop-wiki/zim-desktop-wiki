@@ -688,13 +688,18 @@ class BrowserTreeView(SingleClickTreeView):
 			return Gtk.TreeView.do_key_press_event(self, event)
 
 
+def widget_set_css(widget, name, css):
+	text = '#%s {%s}' % (name, css)
+	css_provider = Gtk.CssProvider()
+	css_provider.load_from_data(text.encode('UTF-8'))
+	widget_style = widget.get_style_context()
+	widget_style.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+	widget.set_name(name)
+
+
 def button_set_statusbar_style(button):
 	# Set up a style for the statusbar variant to decrease spacing of the button
-	css_provider = Gtk.CssProvider()
-	css_provider.load_from_data(b"#zim-statusbar-button {padding: 0px;}")
-	button_style = button.get_style_context()
-	button_style.add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-	button.set_name('zim-statusbar-button')
+	widget_set_css(button, 'zim-statusbar-button', 'padding: 0px')
 	button.set_relief(Gtk.ReliefStyle.NONE)
 
 
@@ -4171,69 +4176,3 @@ class ImageView(Gtk.Layout):
 		self._image.set_from_pixbuf(pixbuf)
 		self.set_size(wvirt, hvirt)
 		self.move(self._image, (wvirt - wimg) / 2, (hvirt - himg) / 2)
-
-
-class TableBoxMixin(object):
-
-	# Tried to implement somthing like this from scratch,
-	# but found that I need to inherit from a concrete Gtk.Container
-	# implementation because I couldn't figure out how to override
-	# / implement the forall() method from python
-
-	BORDER = 0
-	LINE = 1
-
-	def __init__(self):
-		self.set_border_width(self.BORDER + self.LINE)
-		self.set_spacing(2 * self.BORDER + self.LINE)
-		self.set_redraw_on_allocate(True)
-
-	def do_expose_event(self, event):
-		self.foreach(self._expose_child, event)
-		return True
-
-	def _expose_child(self, child, event):
-		# Draw box around child, then draw child
-		# Widget must ensure there is space arount the child
-
-		line = self.LINE
-		border = self.BORDER
-
-		if child.is_drawable():
-			self.style.paint_flat_box(
-				event.window, Gtk.StateType.ACTIVE, Gtk.ShadowType.NONE, None, self, None,
-				child.allocation.x - border - line,
-				child.allocation.y - border - line,
-				child.allocation.width + 2 * border + 2 * line,
-				child.allocation.height + 2 * border + 2 * line,
-			)
-			self.style.paint_flat_box(
-				event.window, Gtk.StateType.NORMAL, Gtk.ShadowType.NONE, None, self, None,
-				child.allocation.x - border,
-				child.allocation.y - border,
-				child.allocation.width + 2 * border,
-				child.allocation.height + 2 * border,
-			)
-		Gtk.Container.propagate_expose(self, child, event)
-
-
-class TableVBox(TableBoxMixin, Gtk.VBox):
-	'''This is a C{Gtk.VBox} except that it draws a fine line between
-	the items in the box. This makes it look like a table.
-	Used to render widgets in the pageview.
-	'''
-
-	def __init__(self):
-		GObject.GObject.__init__(self)
-		TableBoxMixin.__init__(self)
-
-
-class TableHBox(TableBoxMixin, Gtk.HBox):
-	'''This is a C{Gtk.HBox} except that it draws a fine line between
-	the items in the box. This makes it look like a table.
-	Used to render widgets in the pageview.
-	'''
-
-	def __init__(self):
-		GObject.GObject.__init__(self)
-		TableBoxMixin.__init__(self)

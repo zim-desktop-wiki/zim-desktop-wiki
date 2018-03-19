@@ -68,7 +68,7 @@ class LineSeparator(CustomObjectWidget):
 		# Set color of the line.
 		self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
 		# Set size of the line.
-		self.vbox.set_size_request(self._textview_width, height = 3)
+		self.vbox.set_size_request(-1, 3)
 
 
 class LineObject(CustomObjectClass):
@@ -3519,7 +3519,7 @@ class TextView(Gtk.TextView):
 		self.set_wrap_mode(Gtk.WrapMode.WORD)
 		self.preferences = preferences
 
-		self._object_size_request = (-1, -1)
+		self._object_wrap_width = -1
 		self.connect_after('size-allocate', self.__class__.on_size_allocate)
 		self.connect_after('motion-notify-event', self.__class__.on_motion_notify_event)
 
@@ -3546,7 +3546,8 @@ class TextView(Gtk.TextView):
 		for signal in ('link-clicked', 'link-enter', 'link-leave'):
 			widget_connect(signal)
 
-		widget.on_textview_size_changed(self, *self._object_size_request)
+		widget.set_textview_wrap_width(self._object_wrap_width)
+			# TODO - compute indenting
 
 		self.add_child_at_anchor(widget, anchor)
 		self._object_widgets.add(widget)
@@ -3554,22 +3555,22 @@ class TextView(Gtk.TextView):
 
 	def on_size_allocate(self, *a):
 		# Update size request for widgets
-		request = self._get_object_size_request()
-		if request != self._object_size_request:
+		wrap_width = self._get_object_wrap_width()
+		if wrap_width != self._object_wrap_width:
 			for widget in self._object_widgets:
-				widget.on_textview_size_changed(self, *request)
-			self._object_size_request = request
+				widget.set_textview_wrap_width(wrap_width)
+					# TODO - compute indenting
+			self._object_wrap_width = wrap_width
 
-	def _get_object_size_request(self):
-		# TODO - take into account indent level per widget anchor...
+	def _get_object_wrap_width(self):
 		text_window = self.get_window(Gtk.TextWindowType.TEXT)
 		if text_window:
-			width, height = text_window.get_geometry()[2:4]
+			width = text_window.get_geometry()[2]
 			hmargin = self.get_left_margin() + self.get_right_margin() + 5
 				# the +5 is arbitrary, but without it we show a scrollbar anyway ..
-			return width - hmargin, -1
+			return width - hmargin
 		else:
-			return 500, -1 # arbitrary default
+			return -1
 
 	def do_copy_clipboard(self, format=None):
 		# Overriden to force usage of our Textbuffer.copy_clipboard

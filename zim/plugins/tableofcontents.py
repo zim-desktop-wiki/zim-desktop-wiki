@@ -18,8 +18,8 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.notebook import Path
 from zim.formats import HEADING
-from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, TableVBox, \
-	WindowSidePaneWidget
+from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
+	WindowSidePaneWidget, widget_set_css
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 from zim.signals import ConnectorMixin
 
@@ -411,16 +411,15 @@ class SidePaneToC(ToCWidget, WindowSidePaneWidget):
 		self.set_size_request(-1, 200) # Fixed Height
 
 
-class FloatingToC(TableVBox, ConnectorMixin):
+class FloatingToC(Gtk.VBox, ConnectorMixin):
 
 	# This class does all the work to keep the floating window in
 	# the right place, and with the right size
-	# Depends on TableVBox to draw nice line border around it
 
 	TEXTVIEW_OFFSET = 5
 
 	def __init__(self, pageview):
-		TableVBox.__init__(self)
+		Gtk.VBox.__init__(self)
 
 		hscroll = Gtk.HScrollbar(Gtk.Adjustment())
 		self._hscroll_height = hscroll.size_request().height
@@ -441,6 +440,9 @@ class FloatingToC(TableVBox, ConnectorMixin):
 
 		self.pack_start(self._head_event_box, False, True, 0)
 		self.pack_start(self.tocwidget, True, True, 0)
+
+		widget_set_css(self, 'zim-toc-widget', 'border: 1px solid @text_color')
+		widget_set_css(self.head, 'zim-toc-head', 'border-bottom: 1px solid @text_color')
 
 		## Add self to textview
 		# Need to wrap in event box to make widget visible
@@ -473,7 +475,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 
 	def destroy(self):
 		self._event_box.destroy()
-		TableVBox.destroy(self)
+		Gtk.VBox.destroy(self)
 
 	def on_toggle(self, *a):
 		self.tocwidget.set_property('visible',
@@ -489,7 +491,7 @@ class FloatingToC(TableVBox, ConnectorMixin):
 		text_window = self.textview.get_window(Gtk.TextWindowType.WIDGET)
 		if text_window is None:
 			# Textview not yet initialized (?)
-			return TableVBox.do_size_request(self, requisition)
+			return Gtk.VBox.do_size_request(self, requisition)
 
 		text_x, text_y, text_w, text_h = text_window.get_geometry()
 

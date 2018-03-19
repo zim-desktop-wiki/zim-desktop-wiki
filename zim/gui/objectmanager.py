@@ -9,12 +9,13 @@ from gi.repository import Gdk
 
 from zim.objectmanager import ObjectManager
 
-from zim.gui.widgets import ScrolledTextView, ScrolledWindow, TableVBox
+from zim.gui.widgets import ScrolledTextView, ScrolledWindow, widget_set_css
 
 
 # Constants for grab-focus-cursor and release-focus-cursor
 POSITION_BEGIN = 1
 POSITION_END = 2
+
 
 class CustomObjectWidget(Gtk.EventBox):
 	'''Base class & contained for custom object widget
@@ -22,9 +23,6 @@ class CustomObjectWidget(Gtk.EventBox):
 	We derive from a C{Gtk.EventBox} because we want to re-set the
 	default cursor for the area of the object widget. For this the
 	widget needs it's own window for drawing.
-
-	Child widgets should be added to the C{vbox} attribute. This attribute
-	is a L{TableVBox} which draws 1px borders around it's child elements.
 
 	@signal: C{link-clicked (link)}: To be emitted when the user clicks a link
 	@signal: C{link-enter (link)}: To be emitted when the mouse pointer enters a link
@@ -47,32 +45,24 @@ class CustomObjectWidget(Gtk.EventBox):
 
 	def __init__(self):
 		GObject.GObject.__init__(self)
-		self.set_border_width(5)
+		self.set_border_width(3)
 		self._has_cursor = False
-		self.vbox = TableVBox()
+		self.vbox = Gtk.VBox()
 		self.add(self.vbox)
-		self._textview_width = -1
+		widget_set_css(self.vbox, 'zim-pageview-object', 'border: 1px solid @text_color')
 
 	def do_realize(self):
 		Gtk.EventBox.do_realize(self)
 		window = self.get_parent_window()
 		window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
 
-	def on_textview_size_changed(self, textview, width, height):
-		self._textview_width = width
-		def callback():
-			self.queue_resize()
+	def set_textview_wrap_width(self, width):
+		def callback(width):
+			minimum, natural = self.vbox.get_preferred_width()
+			width = natural if width == -1 else max(width, minimum)
+			self.set_size_request(width, -1)
 			return False # delete signal
-		GObject.idle_add(callback)
-
-	def do_get_preferred_width(self):
-		minimum, natural = self.vbox.get_preferred_width()
-
-		#print "Widget requests: %i..%i textview: %i" % (minimum, natural, self._textview_width)
-		if self._textview_width > minimum:
-			natural = self._textview_width
-
-		return minimum, natural
+		GObject.idle_add(callback, width)
 
 	def has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be
