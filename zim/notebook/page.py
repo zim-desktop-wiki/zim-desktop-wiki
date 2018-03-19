@@ -150,6 +150,9 @@ class Path(object):
 		@returns: a string
 		@raises ValueError: when the result would be an empty string
 		'''
+		if isinstance(name, str):
+			logger.debug('name "%s" was not Unicode in makeValidPageName' % name)
+			name = name.decode('utf-8')
 		newname = _pagename_reduce_colon_re.sub(':', name.strip(':'))
 		newname = _pagename_invalid_char_re.sub('', newname)
 		newname = newname.replace('_', ' ')

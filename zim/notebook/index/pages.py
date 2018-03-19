@@ -424,6 +424,9 @@ class PagesViewInternal(object):
 		pagename = parent
 		page_id = self.get_page_id(parent)
 		for i, basename in enumerate(names):
+			if isinstance(basename, str):
+				logger.debug('basename "%s" was not Unicode in _resolve_pagename' % basename)
+				basename = basename.decode('utf-8')
 			if page_id == ROOT_ID:
 				row = self.db.execute(
 					'SELECT id, name FROM pages WHERE name=?',
