@@ -18,7 +18,6 @@ from zim.notebook import Path
 from zim.signals import ConnectorMixin, SignalHandler
 
 from zim.gui.mainwindow import MainWindowExtension
-from zim.gui.widgets import TOP, TOP_PANE
 from zim.gui.clipboard import Clipboard
 
 from zim.plugins.pathbar import ScrolledHBox
@@ -88,7 +87,7 @@ class BookmarksBarMainWindowExtension(MainWindowExtension):
 
 	def show_widget(self):
 		'''Show Bar.'''
-		self.window.add_widget(self.widget, (TOP_PANE, TOP))
+		self.window.add_center_bar(self.widget)
 
 	def on_populate_popup(self, treeview, menu):
 		'''Add 'Add Bookmark' option to the Index popup menu.'''

@@ -22,7 +22,7 @@ class TestPluginExtendsMainWindow(tests.TestCase):
 
 		for ptype in PATHBAR_TYPES:
 			extension.set_pathbar(ptype)
-			pathbar = window.get_widget((TOP_PANE, TOP))
+			pathbar = window._zim_window_central_vbox.get_children()[0]
 			if ptype == PATHBAR_NONE:
 				self.assertNotIsInstance(pathbar, PathBar)
 			else:

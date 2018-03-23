@@ -14,7 +14,7 @@ from zim.actions import radio_action, radio_option
 from zim.notebook.page import shortest_unique_names
 
 from zim.gui.mainwindow import MainWindowExtension
-from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
+from zim.gui.widgets import encode_markup_text
 from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -104,7 +104,7 @@ class PathBarMainWindowExtension(MainWindowExtension):
 			)
 			self.pathbar.set_page(self.window.page)
 			self.pathbar.show_all()
-			self.window.add_widget(self.pathbar, (TOP_PANE, TOP))
+			self.window.add_center_bar(self.pathbar)
 
 		self.uistate['pathbar_type'] = type
 

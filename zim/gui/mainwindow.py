@@ -120,7 +120,7 @@ class ActionExtensionBase(ExtensionBase):
 	@staticmethod
 	def _uimanager_xml(action, actiongroup, defaultmenu):
 		from zim.actions import RadioAction
-		
+
 		menuhint = defaultmenu
 		if action.menuhints:
 			if 'accelonly' in action.menuhints:
@@ -296,16 +296,13 @@ class MainWindow(Window):
 		</ui>
 		''')
 
-		# setup the window layout
-		from zim.gui.widgets import TOP, BOTTOM, TOP_PANE, LEFT_PANE
-
 		# setup menubar and toolbar
 		self.add_accel_group(self.uimanager.get_accel_group())
 		self.menubar = self.uimanager.get_widget('/menubar')
 		self.toolbar = self.uimanager.get_widget('/toolbar')
 		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
-		self.add_bar(self.menubar, TOP)
-		self.add_bar(self.toolbar, TOP)
+		self.add_bar(self.menubar)
+		self.add_bar(self.toolbar)
 
 		self.pageview = PageView(self.notebook, config, self.navigation)
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
@@ -321,7 +318,7 @@ class MainWindow(Window):
 		# create statusbar
 		self.statusbar = Gtk.Statusbar()
 		self.statusbar.push(0, '<page>')
-		self.add_bar(self.statusbar, BOTTOM)
+		self.add_bar(self.statusbar, start=False)
 		self.statusbar.set_property('margin', 0)
 
 		def statusbar_element(string, size):

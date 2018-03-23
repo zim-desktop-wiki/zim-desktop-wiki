@@ -1987,27 +1987,17 @@ class uistate_property(object):
 # Some constants used to position widgets in the window panes
 # These are named rather than numbered because they also appear
 # in plugin preferences as options and as uistate keys
-TOP = 'top' #: Top frame position in window
-BOTTOM = 'bottom'#: Bottom frame position in window
 
 LEFT_PANE = 'left_pane' #: Left pane position in window
 RIGHT_PANE = 'right_pane' #: Right pane position in window
 TOP_PANE = 'top_pane' #: Top pane position in window
 BOTTOM_PANE = 'bottom_pane' #: Bottom pane position in window
 
-
 PANE_POSITIONS = (
 	(LEFT_PANE, _('Left Side Pane')), # T: Option for placement of plugin widgets
 	(RIGHT_PANE, _('Right Side Pane')), # T: Option for placement of plugin widgets
 	(BOTTOM_PANE, _('Bottom Pane')), # T: Option for placement of plugin widgets
 	(TOP_PANE, _('Top Pane')), # T: Option for placement of plugin widgets
-)
-
-WIDGET_POSITIONS = (
-	((LEFT_PANE, TOP), _('Top Left')), # T: Option for placement of plugin widgets
-	((LEFT_PANE, BOTTOM), _('Bottom Left')), # T: Option for placement of plugin widgets
-	((RIGHT_PANE, TOP), _('Top Right')), # T: Option for placement of plugin widgets
-	((RIGHT_PANE, BOTTOM), _('Bottom Right')), # T: Option for placement of plugin widgets
 )
 
 
@@ -2073,9 +2063,7 @@ class WindowSidePane(Gtk.VBox):
 
 		assert children[0] == self.topbar
 
-		if children[1] != self.notebook:
-			self._show_topbar_for_widget(children[1])
-		elif n_pages == 0:
+		if n_pages == 0:
 			self._show_empty_topbar()
 		elif n_pages == 1:
 			self._show_single_tab()
@@ -2089,17 +2077,6 @@ class WindowSidePane(Gtk.VBox):
 			if isinstance(child, Gtk.Label):
 				child.destroy()
 		self.topbar.pack_start(label, True, True, 0)
-
-	def _show_topbar_for_widget(self, widget):
-		self.notebook.set_show_tabs(True)
-		_hide(self.notebook.get_action_widget(Gtk.PackType.END))
-
-		self._set_topbar_label(Gtk.Label(label=''))
-		if isinstance(widget, WindowSidePaneWidget) \
-			and widget.set_embeded_closebutton(self._close_button()):
-				_hide(self.topbar)
-		else:
-			_show(self.topbar)
 
 	def _show_empty_topbar(self):
 		self.notebook.set_show_tabs(False)
@@ -2127,13 +2104,6 @@ class WindowSidePane(Gtk.VBox):
 		_show(self.notebook.get_action_widget(Gtk.PackType.END))
 		_hide(self.topbar)
 
-	def add_widget(self, widget, position):
-		self.pack_start(widget, False, True, 0)
-		if position == TOP:
-			# shuffle above notebook, below close bar
-			self.reorder_child(widget, 1)
-		self._update_topbar()
-
 	def add_tab(self, key, widget):
 		assert isinstance(widget, WindowSidePaneWidget)
 		assert widget.title is not None
@@ -2142,12 +2112,7 @@ class WindowSidePane(Gtk.VBox):
 		self._update_topbar()
 
 	def remove(self, widget):
-		# Note: try box.remove() except .. causes GErrors here :(
-		if widget in self.get_children():
-			Gtk.VBox.remove(self, widget)
-			self._update_topbar()
-			return True
-		elif widget in self.notebook.get_children():
+		if widget in self.notebook.get_children():
 			self.notebook.remove(widget)
 			self._update_topbar()
 			return True
@@ -2155,13 +2120,7 @@ class WindowSidePane(Gtk.VBox):
 			return False
 
 	def is_empty(self):
-		children = self.get_children()
-		if len(children) == 2:
-			assert children[0] == self.topbar
-			assert children[1] == self.notebook
-			return children[1].get_n_pages() == 0 # check for tabs
-		else:
-			return False # some widget in the pane
+		return self.notebook.get_n_pages() == 0
 
 	def grab_focus(self):
 		if self.is_empty():
@@ -2174,11 +2133,6 @@ class WindowSidePane(Gtk.VBox):
 			self.notebook.set_current_page(0)
 			widget = self.notebook.get_nth_page(0)
 			widget.grab_focus()
-		else:
-			for widget in self.get_children():
-				if widget != self.topbar and widget != self.notebook:
-					widget.grab_focus()
-					break
 
 	def do_key_press_event(self, event):
 		if event.keyval == KEYVAL_ESC:
@@ -2447,15 +2401,15 @@ class Window(Gtk.Window):
 		'''
 		self._zim_window_bottom_paned.pack1(widget, resize=True)
 
-	def add_bar(self, widget, position):
+	def add_bar(self, widget, start=True):
 		'''Add a bar to top or bottom of the window. Used e.g. to add
 		menu-, tool- & status-bars.
 		@param widget: gtk widget for the bar
-		@param position: C{TOP} or C{BOTTOM}
+		@param start: if C{True} add to top of window, else to bottom
 		'''
 		self._zim_window_main.pack_start(widget, False, True, 0)
 
-		if position == TOP:
+		if start:
 			# reshuffle widget to go above main widgets but
 			# below earlier added bars
 			i = self._zim_window_main.child_get_property(
@@ -2465,6 +2419,14 @@ class Window(Gtk.Window):
 		#self._zim_window_main.set_focus_chain([self._zim_window_left_paned])
 			# Force to ignore the bars in keyboard navigation
 			# items in the bars are all accesible by accelerators
+
+	def add_center_bar(self, widget):
+		'''Add a widget in the central part of the window above the
+		page.
+		@param widget: the gtk widget to show in the tab
+		'''
+		self._zim_window_central_vbox.pack_start(widget, False, True, 0)
+		self._zim_window_central_vbox.reorder_child(widget, 0)
 
 	def move_bottom_minimized_tabs_to_statusbar(self, statusbar):
 		frame = Gtk.Frame()
@@ -2485,50 +2447,6 @@ class Window(Gtk.Window):
 		paned, pane, mini = self._zim_window_sidepanes[pane_key]
 		pane.add_tab(key, widget)
 		self.set_pane_state(pane_key, True)
-
-	def add_widget(self, widget, position):
-		'''Add a widget in one of the panes outside of the tabs
-
-		@param widget: the gtk widget to show in the tab
-		@param position: a 2-tuple of a pane and a position in the pane.
-		First element can be either C{LEFT_PANE} or C{RIGHT_PANE}
-		(C{TOP_PANE} and C{BOTTOM_PANE} are not supported).
-		Second element  can be either C{TOP}, or C{BOTTOM}.
-
-		@note: Placing a widget in C{TOP_PANE}, C{TOP}, is supported as
-		a special case, but should not be used by plugins.
-		'''
-		key, pos = position
-		if key in (TOP_PANE, BOTTOM_PANE):
-			if key == TOP_PANE and pos == TOP:
-				# Special case for top widget outside of pane
-				# used especially for PathBar
-				self._zim_window_central_vbox.pack_start(widget, False, True, 0)
-				self._zim_window_central_vbox.reorder_child(widget, 0)
-			else:
-				raise NotImplementedError
-		elif key in (LEFT_PANE, RIGHT_PANE):
-			paned, pane, mini = self._zim_window_sidepanes[key]
-			pane.add_widget(widget, pos)
-			self.set_pane_state(key, True)
-		else:
-			raise KeyError
-
-	def get_widget(self, position):
-		key, pos = position
-		if key in (TOP_PANE, BOTTOM_PANE):
-			if key == TOP_PANE and pos == TOP:
-				# Special case for top widget outside of pane
-				# used especially for PathBar
-				return self._zim_window_central_vbox.get_children()[0]
-					# FIXME: not guaranteed to return a widget added with
-					#        add_widget()
-			else:
-				raise NotImplementedError
-		elif key in (LEFT_PANE, RIGHT_PANE):
-			raise NotImplementedError
-		else:
-			raise KeyError
 
 	def remove(self, widget):
 		'''Remove widget from any pane
