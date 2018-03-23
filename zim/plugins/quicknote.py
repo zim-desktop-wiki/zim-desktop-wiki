@@ -8,19 +8,19 @@ from datetime import date as dateclass
 
 from zim.fs import Dir, isabs
 
-from zim.plugins import PluginClass, MainWindowExtension
-from zim.main import GtkCommand
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.config import data_file, ConfigManager
 from zim.notebook import Path, Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
+from zim.templates import get_template
+from zim.main import GtkCommand, ZIM_APPLICATION
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
-from zim.templates import get_template
-
-from zim.main import ZIM_APPLICATION
 
 
 import logging

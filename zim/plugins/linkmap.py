@@ -8,11 +8,13 @@ import ast
 
 from gi.repository import Gtk
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog, IconButton
 
 try:

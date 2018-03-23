@@ -12,18 +12,21 @@ import logging
 import threading
 
 from zim.fs import FS, File, TmpFile
-from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.signals import ConnectorMixin
 from zim.errors import Error
 from zim.applications import Application
 from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
+from zim.notebook import NotebookExtension
 from zim.notebook.operations import NotebookState
+from zim.utils import natural_sort_key, FunctionThread
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
 	ScrolledWindow, ScrolledTextView, VPaned
-from zim.utils import natural_sort_key, FunctionThread
 
 
 if os.environ.get('ZIM_TEST_RUNNING'):

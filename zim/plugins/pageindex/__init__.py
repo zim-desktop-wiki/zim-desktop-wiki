@@ -15,9 +15,10 @@ from functools import partial
 from zim.notebook import Path
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import PRIMARY_MODIFIER_MASK
 
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
 	populate_popup_add_separator, encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS

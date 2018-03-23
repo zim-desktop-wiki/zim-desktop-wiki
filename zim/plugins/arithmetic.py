@@ -4,8 +4,9 @@
 
 from zim.inc.arithmetic import ParserGTK
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
+from zim.gui.mainwindow import MainWindowExtension
 
 
 class ArithmeticPlugin(PluginClass):

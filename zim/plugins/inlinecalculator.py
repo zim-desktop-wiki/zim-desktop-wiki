@@ -13,9 +13,11 @@ import re
 import math
 import cmath
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.errors import Error
+
+from zim.gui.mainwindow import MainWindowExtension
 
 
 logger = logging.getLogger('zim.plugins.insertsymbol')

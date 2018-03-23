@@ -6,12 +6,13 @@ from gi.repository import Gtk
 
 import logging
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.config import data_file, ConfigManager
 from zim.main import GtkCommand
 from zim.signals import SignalEmitter
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 
+from zim.gui.mainwindow import MainWindowExtension
 
 # Try if we are on Ubunutu with app-indicator support
 try:

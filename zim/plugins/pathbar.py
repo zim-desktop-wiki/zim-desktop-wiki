@@ -9,10 +9,12 @@ import logging
 
 from functools import reduce
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import radio_action, radio_option
-from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
 from zim.notebook.page import shortest_unique_names
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
 from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \

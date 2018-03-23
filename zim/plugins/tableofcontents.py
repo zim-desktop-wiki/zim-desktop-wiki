@@ -13,13 +13,15 @@ import logging
 logger = logging.getLogger('zim.plugins.tableofcontents')
 
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
+from zim.signals import ConnectorMixin, DelayedCallback
 from zim.notebook import Path
 from zim.formats import HEADING
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget, widget_set_css
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
-from zim.signals import ConnectorMixin, DelayedCallback
 
 
 # FIXME, these methods should be supported by pageview - need anchors - now it is a HACK

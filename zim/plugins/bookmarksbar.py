@@ -13,11 +13,14 @@ from gi.repository import Gtk
 from gi.repository import Pango
 
 from zim.actions import toggle_action, action
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import TOP, TOP_PANE
 from zim.signals import ConnectorMixin, SignalHandler
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import TOP, TOP_PANE
 from zim.gui.clipboard import Clipboard
+
 from zim.plugins.pathbar import ScrolledHBox
 
 import logging

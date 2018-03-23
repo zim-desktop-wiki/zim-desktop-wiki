@@ -11,7 +11,8 @@ import logging
 
 from functools import partial
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
+from zim.signals import ConnectorMixin
 from zim.plugins.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
 	NAME_COL, PATH_COL, EXISTS_COL, STYLE_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
@@ -19,10 +20,11 @@ from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
 	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
-from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.plugins.tags')

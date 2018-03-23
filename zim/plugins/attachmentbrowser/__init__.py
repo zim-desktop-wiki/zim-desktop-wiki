@@ -41,9 +41,10 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import toggle_action
 
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.applications import open_folder_prompt_create
 
 from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \

@@ -7,9 +7,11 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Pango
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget
 

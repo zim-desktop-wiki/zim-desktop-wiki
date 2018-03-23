@@ -23,16 +23,18 @@ import logging
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
+from zim.plugins import PluginClass
 from zim.actions import action
-from zim.plugins import PluginClass, MainWindowExtension
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String
 from zim.main import ZIM_APPLICATION
-from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
-from zim.gui.objectmanager import CustomObjectWidget
 from zim.formats import ElementTreeModule as ElementTree
 from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
+from zim.gui.objectmanager import CustomObjectWidget
 
 
 OBJECT_TYPE = 'table'

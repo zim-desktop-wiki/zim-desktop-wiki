@@ -13,16 +13,19 @@ from functools import partial
 
 import logging
 
-from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.signals import SignalHandler, ConnectorMixin
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
-from zim.gui.widgets import Dialog, \
-	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
-from zim.notebook import Path
+from zim.notebook import Path, NotebookExtension
 from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import Dialog, \
+	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
+
 
 logger = logging.getLogger('zim.plugins.journal')
 

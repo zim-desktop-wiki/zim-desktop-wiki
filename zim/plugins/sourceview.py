@@ -2,6 +2,11 @@
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+import logging
+
+logger = logging.getLogger('zim.pugin.sourceview')
+
+
 # This plugin can work without GUI for just the export
 # Be nice about gtk, since it may not be present in a server CLI only version
 try:
@@ -11,31 +16,23 @@ except:
 	Gtk = None
 
 try:
-	from zim.gui.widgets import Dialog, ScrolledWindow
-	from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
-except:
-	class Dialog():
-		pass
-	class TextViewWidget():
-		pass
-
-import logging
-
-logger = logging.getLogger('zim.pugin.sourceview')
-
-try:
 	import gi
 	gi.require_version('GtkSource', '3.0')
 	from gi.repository import GtkSource
 except:
 	GtkSource = None
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.utils import WeakSet
 from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import Dialog, ScrolledWindow
+from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
+
 
 if GtkSource:
 	lm = GtkSource.LanguageManager()

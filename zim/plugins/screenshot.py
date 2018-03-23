@@ -8,10 +8,12 @@ from platform import os
 
 from gi.repository import Gtk
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.fs import TmpFile
 from zim.applications import Application
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog, ErrorDialog
 
 

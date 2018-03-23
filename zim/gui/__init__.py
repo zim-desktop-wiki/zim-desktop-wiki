@@ -13,6 +13,7 @@ from gi.repository import GdkPixbuf
 
 from zim.config import data_dirs
 
+
 # Load custom application icons as stock
 def load_zim_stock_icons():
 	'''Function to load zim custom stock icons for Gtk. Will load all

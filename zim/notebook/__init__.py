@@ -41,7 +41,7 @@ from .info import NotebookInfo, NotebookInfoList, \
 from .operations import NotebookOperation, SimpleAsyncOperation, \
 	NotebookOperationOngoing, NotebookState
 
-from .notebook import Notebook, TrashNotSupportedError, \
+from .notebook import Notebook, NotebookExtension, TrashNotSupportedError, \
 	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
 
 from .page import Path, Page, \

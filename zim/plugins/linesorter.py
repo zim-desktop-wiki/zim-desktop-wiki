@@ -7,10 +7,12 @@
 from gi.repository import Gtk
 
 from zim.errors import Error
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
-from zim.gui.widgets import MessageDialog
 from zim.utils import natural_sort_key
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import MessageDialog
 
 
 import logging

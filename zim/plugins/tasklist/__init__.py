@@ -23,10 +23,13 @@
 
 
 
-from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.config import StringAllowEmpty
 from zim.signals import DelayedCallback
+from zim.notebook import NotebookExtension
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS
 
 from .indexer import TasksIndexer, TasksView

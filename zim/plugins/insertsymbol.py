@@ -4,8 +4,10 @@
 from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.applications import edit_config_file
 

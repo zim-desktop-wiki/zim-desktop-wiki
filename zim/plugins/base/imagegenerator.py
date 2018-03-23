@@ -13,9 +13,11 @@ text to an image.
 from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.actions import Action
 from zim.fs import File, Dir
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import \
 	Dialog, ImageView, QuestionDialog, LogFileDialog, \
 	ScrolledWindow, ScrolledTextView, ScrolledSourceView, VPaned, \

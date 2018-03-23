@@ -8,9 +8,9 @@ from gi.repository import Gtk
 from functools import partial
 
 
-from zim.fs import TmpFile
-from zim.plugins import PluginClass, MainWindowExtension, DialogExtension
+from zim.plugins import PluginClass, DialogExtension
 from zim.actions import action
+from zim.fs import TmpFile
 
 import zim.templates
 import zim.formats
@@ -18,6 +18,7 @@ import zim.formats
 from zim.export.template import ExportTemplateContext
 from zim.export.linker import StaticExportLinker
 
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.applications import open_url
 
 

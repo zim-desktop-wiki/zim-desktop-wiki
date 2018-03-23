@@ -6,7 +6,8 @@ from gi.repository import Gdk
 from gi.repository import GObject
 import logging
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
+from zim.gui.mainwindow import MainWindowExtension
 
 from zim.signals import SIGNAL_AFTER
 from zim.gui.widgets import widget_set_css

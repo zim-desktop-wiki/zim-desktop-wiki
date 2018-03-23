@@ -3,12 +3,18 @@
 
 '''Push events to the Zeitgeist daemon'''
 
-from gi.repository import Gio
 import logging
 import sys
-from zim.plugins import PluginClass, NotebookExtension, MainWindowExtension
+
+from gi.repository import Gio
+
+from zim.plugins import PluginClass
+from zim.notebook import NotebookExtension
 from zim.signals import SIGNAL_AFTER
 from zim.fs import File
+
+from zim.gui.mainwindow import MainWindowExtension
+
 
 logger = logging.getLogger('zim.plugins.zeitgeist')
 

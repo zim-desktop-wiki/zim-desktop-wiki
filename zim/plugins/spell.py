@@ -10,9 +10,11 @@ import logging
 logger = logging.getLogger('zim.plugins.spell')
 
 
-from zim.plugins import PluginClass, MainWindowExtension
+from zim.plugins import PluginClass
 from zim.signals import SIGNAL_AFTER
 from zim.actions import toggle_action
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import ErrorDialog
 
 
