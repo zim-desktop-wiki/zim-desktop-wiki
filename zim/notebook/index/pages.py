@@ -1,5 +1,5 @@
 
-# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 
@@ -773,6 +773,24 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 	# Signals use "find_all" instead of "find" to allow for subclasses that
 	# have multiple entries, like models for tags
 
+	def __init__(self, index, root=None, reverse=False):
+		TreeModelMixinBase.__init__(self, index)
+		self._REVERSE = reverse
+		if root is None:
+			self._MY_ROOT_NAME = ''
+			self._MY_ROOT_NAME_C = ''
+			self._MY_ROOT_ID = ROOT_ID
+		else:
+			self._MY_ROOT_NAME = root.name
+			self._MY_ROOT_NAME_C = root.name + ':'
+			self._set_root_id()
+
+	def _set_root_id(self):
+		myrow = self.db.execute(
+			'SELECT * FROM pages WHERE name=?', (self._MY_ROOT_NAME,)
+		).fetchone()
+		self._MY_ROOT_ID = myrow['id'] if myrow else None
+
 	def connect_to_updateiter(self, index, update_iter):
 		self.connectto_all(update_iter.pages,
 			('page-row-inserted', 'page-row-changed', 'page-row-deleted')
@@ -780,11 +798,14 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def on_page_row_inserted(self, o, row):
 		self.flush_cache()
-		for treepath in self._find_all_pages(row['name']):
-			if treepath[-1] == 0 and len(treepath) > 1:
-				self._check_parent_has_child_toggled(treepath)
-			treeiter = self.get_iter(treepath) # not mytreeiter !
-			self.emit('row-inserted', treepath, treeiter)
+		if row['name'] == self._MY_ROOT_NAME:
+			self._set_root_id()
+		else:
+			for treepath in self._find_all_pages(row['name']):
+				if treepath[-1] == 0 and len(treepath) > 1:
+					self._check_parent_has_child_toggled(treepath)
+				treeiter = self.get_iter(treepath) # not mytreeiter !
+				self.emit('row-inserted', treepath, treeiter)
 
 	def _check_parent_has_child_toggled(self, treepath):
 		parent = self.get_mytreeiter(treepath[:-1])
@@ -801,17 +822,26 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def on_page_row_deleted(self, o, row):
 		self.flush_cache()
-		for treepath in self._find_all_pages(row['name']):
-			if treepath[-1] == 0 and len(treepath) > 1:
-				self._check_parent_has_child_toggled(treepath)
-			self.emit('row-deleted', treepath)
+		if row['name'] == self._MY_ROOT_NAME:
+			self._MY_ROOT_ID = None
+		else:
+			for treepath in self._find_all_pages(row['name']):
+				if treepath[-1] == 0 and len(treepath) > 1:
+					self._check_parent_has_child_toggled(treepath)
+				self.emit('row-deleted', treepath)
 
 	def n_children_top(self):
-		return self.db.execute(
-			'SELECT COUNT(*) FROM pages WHERE parent=?', (ROOT_ID,)
-		).fetchone()[0]
+		if self._MY_ROOT_ID is None:
+			return 0
+		else:
+			return self.db.execute(
+				'SELECT COUNT(*) FROM pages WHERE parent=?', (self._MY_ROOT_ID,)
+			).fetchone()[0]
 
 	def get_mytreeiter(self, treepath):
+		if self._MY_ROOT_ID is None:
+			return None
+
 		treepath = tuple(treepath) # used to cache
 		if treepath in self.cache:
 			return self.cache[treepath]
@@ -819,7 +849,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		# Find parent
 		parentpath = treepath[:-1]
 		if not parentpath:
-			parent_id = ROOT_ID
+			parent_id = self._MY_ROOT_ID
 		else:
 			parent_iter = self.cache.get(parentpath, None) \
 							or self.get_mytreeiter(parentpath) # recurs
@@ -830,12 +860,21 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 		# Now cache a slice at the target level
 		offset = treepath[-1]
-		for i, row in enumerate(self.db.execute('''
-			SELECT * FROM pages WHERE parent=?
-			ORDER BY sortkey, name LIMIT 20 OFFSET ?
-			''',
-			(parent_id, offset)
-		)):
+		if self._REVERSE:
+			rows = self.db.execute('''
+				SELECT * FROM pages WHERE parent=?
+				ORDER BY sortkey DESC, name DESC LIMIT 20 OFFSET ?
+				''',
+				(parent_id, offset)
+			)
+		else:
+			rows = self.db.execute('''
+				SELECT * FROM pages WHERE parent=?
+				ORDER BY sortkey ASC, name ASC LIMIT 20 OFFSET ?
+				''',
+				(parent_id, offset)
+			)
+		for i, row in enumerate(rows):
 			mytreepath = tuple(parentpath) + (offset + i,)
 			if mytreepath not in self.cache:
 				self.cache[mytreepath] = MyTreeIter(
@@ -876,12 +915,16 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			return treepaths
 
 	def _find_all_pages(self, name, update_cache=True):
-		parent_id = ROOT_ID
-		names = name.split(':')
+		if self._MY_ROOT_ID is None or \
+			not name.startswith(self._MY_ROOT_NAME_C):
+				return []
+
+		parent_id = self._MY_ROOT_ID
+		names = name[len(self._MY_ROOT_NAME_C):].split(':')
 		treepath = []
 		for i, basename in enumerate(names):
 			# Get treepath
-			name = ':'.join(names[:i + 1])
+			name = self._MY_ROOT_NAME_C + ':'.join(names[:i + 1])
 			myrow = self.db.execute(
 				'SELECT * FROM pages WHERE name=?', (name,)
 			).fetchone()
@@ -889,13 +932,22 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 				raise IndexNotFoundError
 
 			sortkey = myrow['sortkey']
-			row = self.db.execute('''
-				SELECT COUNT(*) FROM pages
-				WHERE parent=? and (
-					sortkey<? or (sortkey=? and name<?)
-				)''',
-				(parent_id, sortkey, sortkey, name)
-			).fetchone()
+			if self._REVERSE:
+				row = self.db.execute('''
+					SELECT COUNT(*) FROM pages
+					WHERE parent=? and (
+						sortkey>? or (sortkey=? and name>?)
+					)''',
+					(parent_id, sortkey, sortkey, name)
+				).fetchone()
+			else:
+				row = self.db.execute('''
+					SELECT COUNT(*) FROM pages
+					WHERE parent=? and (
+						sortkey<? or (sortkey=? and name<?)
+					)''',
+					(parent_id, sortkey, sortkey, name)
+				).fetchone()
 			treepath.append(row[0])
 			parent_id = myrow['id']
 

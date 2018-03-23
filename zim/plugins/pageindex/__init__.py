@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -341,8 +341,8 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 class PageTreeStore(PagesTreeModelMixin, PageTreeStoreBase):
 
-	def __init__(self, index):
-		PagesTreeModelMixin.__init__(self, index)
+	def __init__(self, index, root=None, reverse=False):
+		PagesTreeModelMixin.__init__(self, index, root, reverse)
 		PageTreeStoreBase.__init__(self)
 
 

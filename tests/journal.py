@@ -15,7 +15,7 @@ from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
 
-from zim.plugins.journal import NotebookExtension, CalendarDialog
+from zim.plugins.journal import NotebookExtension
 
 from tests.mainwindow import setUpMainWindow
 
@@ -116,28 +116,12 @@ class TestJournalPlugin(tests.TestCase):
 		notebook = self.setUpNotebook()
 		mainwindow = setUpMainWindow(notebook)
 
-		plugin.preferences['embedded'] = True
 		plugin.extend(mainwindow)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 
 		list(plugin.extensions)[0].go_page_today()
 		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
-
-		plugin.preferences['embedded'] = False
-
-		plugin.preferences.changed() # make sure no errors are triggered
-
-		def test_dialog(dialog):
-			self.assertIsInstance(dialog, CalendarDialog)
-			dialog.do_today('xxx')
-			mainwindow.open_page(Path('foo'))
-
-		with tests.DialogContext(test_dialog):
-			list(plugin.extensions)[0].show_calendar()
-
-
-		plugin.preferences['embedded'] = True # switch back
 
 	def testNotebookExtension(self):
 		pluginklass = PluginManager.get_plugin_class('journal')

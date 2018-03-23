@@ -1,6 +1,5 @@
 
-# Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from gi.repository import GObject
@@ -23,8 +22,10 @@ from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
 
 from zim.gui.mainwindow import MainWindowExtension
-from zim.gui.widgets import Dialog, \
-	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
+from zim.gui.widgets import ScrolledWindow, \
+	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
+
+from zim.plugins.pageindex import PageTreeStore, PageTreeView
 
 
 logger = logging.getLogger('zim.plugins.journal')
@@ -112,13 +113,11 @@ Also adds a calendar widget to access these pages.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('embedded', 'bool', _('Show calendar in sidepane'), False), # T: preferences option
-		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
+		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
 		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
 		('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True), # T: preferences option
 	)
-	# TODO disable pane setting if not embedded
 
 	def path_from_date(self, date):
 		'''Returns the path for a journal page for a specific date'''
@@ -247,11 +246,6 @@ class JournalMainWindowExtension(MainWindowExtension):
 		path = self.plugin.path_from_date(today)
 		self.window.open_page(path)
 
-	@action(_('Calen_dar'), icon='zim-calendar', menuhints='view') # T: menu item
-	def show_calendar(self):
-		dialog = CalendarDialog.unique(self, self.plugin, self.window)
-		dialog.present()
-
 	def on_preferences_changed(self, preferences):
 		if self.calendar_widget is None:
 			return
@@ -261,9 +255,8 @@ class JournalMainWindowExtension(MainWindowExtension):
 		except ValueError:
 			pass
 
-		if preferences['embedded']:
-			self.window.add_widget(self.calendar_widget, preferences['pane'])
-			self.calendar_widget.show_all()
+		self.window.add_tab('journal', self.calendar_widget, preferences['pane'])
+		self.calendar_widget.show_all()
 
 	def teardown(self):
 		self.calendar_widget.disconnect_all()
@@ -336,6 +329,8 @@ class CalendarWidget(Gtk.VBox, ConnectorMixin, WindowSidePaneWidget):
 		'date-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
+	title = _('Journal') # T: side pane title
+
 	def __init__(self, plugin, notebook, window):
 		GObject.GObject.__init__(self)
 		self.plugin = plugin
@@ -346,10 +341,11 @@ class CalendarWidget(Gtk.VBox, ConnectorMixin, WindowSidePaneWidget):
 		self.pack_start(self.label_box, False, True, 0)
 
 		self.label = Gtk.Label()
-		self.label_event = Gtk.EventBox()
-		self.label_event.add(self.label)
-		self.label_event.connect("button_press_event", lambda w, e: self.go_today())
-		self.label_box.add(self.label_event)
+		button = Gtk.Button()
+		button.add(self.label)
+		button.set_relief(Gtk.ReliefStyle.NONE)
+		button.connect('clicked', lambda b: self.go_today())
+		self.label_box.add(button)
 
 		self._close_button = None
 
@@ -374,11 +370,22 @@ class CalendarWidget(Gtk.VBox, ConnectorMixin, WindowSidePaneWidget):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False, True, 0)
 
+		index = window.notebook.index
+		model = PageTreeStore(index, root=Path('Journal'), reverse=True)
+		self.treeview = PageTreeView(window.notebook, window.config, window.navigation)
+		self.treeview.set_model(model)
+		self.pack_start(ScrolledWindow(self.treeview), True, True, 0)
+
 		self.connectto(self.window, 'page-changed')
+		self.connectto(self.window, 'page-changed', self.on_page_changed_treeview)
 
 	@SignalHandler
 	def on_page_changed(self, window, page):
 		self.set_page(page)
+
+	def on_page_changed_treeview(self, window, page):
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		self.treeview.select_treepath(treepath)
 
 	def do_date_activated(self, date):
 		path = self.plugin.path_from_date(date)
@@ -447,26 +454,3 @@ class CalendarWidgetModel(object):
 						yield dates[1]
 		except IndexNotFoundError:
 			pass
-
-
-class CalendarDialog(Dialog):
-
-	def __init__(self, plugin, window):
-		Dialog.__init__(self, window, _('Calendar'), buttons=Gtk.ButtonsType.CLOSE) # T: dialog title
-		self.set_resizable(False)
-		self.plugin = plugin
-
-		self.calendar_widget = CalendarWidget(plugin, window.notebook, window)
-		self.vbox.add(self.calendar_widget)
-
-		button = Gtk.Button.new_with_mnemonic(_('_Today')) # T: button label
-		button.connect('clicked', self.do_today)
-		self.action_area.add(button)
-		self.action_area.reorder_child(button, 0)
-		self.dateshown = datetime.date.today()
-
-	def do_today(self, event):
-		self.calendar_widget.go_today()
-
-	def do_destroy(self):
-		self.calendar_widget.disconnect_all()
