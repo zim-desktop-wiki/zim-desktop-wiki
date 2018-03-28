@@ -129,7 +129,7 @@ class TestGui(tests.TestCase):
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 		self.assertEqual(window.notebook.uri, Dir(dir).uri) # XXX
-		self.assertGreaterEqual(len(window.__zim_extension_objects__), 3)
+		self.assertGreaterEqual(len(window.pageview.__zim_extension_objects__), 3)
 
 		with tests.WindowContext(MainWindow):
 			window2 = cmd.run()

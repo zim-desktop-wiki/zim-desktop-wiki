@@ -13,7 +13,7 @@ from zim.actions import action
 from zim.fs import TmpFile
 from zim.applications import Application
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ErrorDialog
 
 
@@ -130,13 +130,13 @@ This is a core plugin shipping with zim.
 		return is_ok, cmds
 
 
-class ScreenshotMainWindowExtension(MainWindowExtension):
+class ScreenshotPageViewExtension(PageViewExtension):
 
 	screenshot_command = COMMAND
 	plugin = None
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 		self.plugin = plugin
@@ -147,9 +147,9 @@ class ScreenshotMainWindowExtension(MainWindowExtension):
 
 	@action(_('_Screenshot...'), menuhints='insert')  # T: menu item for insert screenshot plugin
 	def insert_screenshot(self):
-		notebook = self.window.notebook
-		page = self.window.page
-		dialog = InsertScreenshotDialog.unique(self, self.window, notebook, page,
+		notebook = self.pageview.notebook
+		page = self.pageview.page
+		dialog = InsertScreenshotDialog.unique(self, self.pageview, notebook, page,
 											   self.plugin.preferences['screenshot_command'])
 		dialog.show_all()
 
@@ -157,9 +157,9 @@ class ScreenshotMainWindowExtension(MainWindowExtension):
 class InsertScreenshotDialog(Dialog):
 	screenshot_command = COMMAND
 
-	def __init__(self, window, notebook, page, screenshot_command):
-		Dialog.__init__(self, window, _('Insert Screenshot'))  # T: dialog title
-		self.app_window = window
+	def __init__(self, pageview, notebook, page, screenshot_command):
+		Dialog.__init__(self, pageview, _('Insert Screenshot'))  # T: dialog title
+		self.pageview = pageview
 		self.screenshot_command = screenshot_command
 		if ScreenshotPicker.has_select_cmd(self.screenshot_command):
 			self.screen_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(None,
@@ -201,7 +201,7 @@ class InsertScreenshotDialog(Dialog):
 				imgdir = self.notebook.get_attachments_dir(self.page)
 				imgfile = imgdir.new_file(name)
 				tmpfile.rename(imgfile)
-				pageview = self.app_window.pageview
+				pageview = self.pageview
 				pageview.insert_image(imgfile)
 			else:
 				ErrorDialog(self,

@@ -23,8 +23,8 @@ class TestPageIndexPlugin(tests.TestCase):
 	def runTest(self):
 		plugin = PageIndexPlugin()
 		window = setUpMainWindow(self.setUpNotebook())
-		plugin.extend(window)
-		extension = plugin.get_extension(window, PageIndexMainWindowExtension)
+		plugin.extend(window.pageview)
+		extension = plugin.get_extension(window.pageview, PageIndexPageViewExtension)
 		self.assertIsNotNone(extension)
 
 

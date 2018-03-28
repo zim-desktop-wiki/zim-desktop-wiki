@@ -18,7 +18,7 @@ import zim.formats
 from zim.export.template import ExportTemplateContext
 from zim.export.linker import StaticExportLinker
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.applications import open_url
 
 
@@ -56,14 +56,14 @@ This is a core plugin shipping with zim.
 		return file
 
 
-class PrintToBrowserMainWindowExtension(MainWindowExtension):
+class PrintToBrowserPageViewExtension(PageViewExtension):
 
 	@action(_('_Print to Browser'), accelerator='<Primary>P', menuhints='page') # T: menu item
 	def print_to_browser(self, page=None):
-		notebook = self.window.notebook
-		page = page or self.window.page
+		notebook = self.pageview.notebook
+		page = page or self.pageview.page
 		file = self.plugin.print_to_file(notebook, page)
-		open_url(self.window, 'file://%s' % file) # XXX
+		open_url(self.pageview, 'file://%s' % file) # XXX
 			# Try to force web browser here - otherwise it goes to the
 			# file browser which can have unexpected results
 

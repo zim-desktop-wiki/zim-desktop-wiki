@@ -29,7 +29,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 		textview = pageview.view
 		buffer = textview.get_buffer()
 
-		plugin.extend(mainwindow)
+		plugin.extend(pageview)
 
 		# Widget needs to be realized
 		pageview.realize()
@@ -75,9 +75,9 @@ class TestInsertSymbolPlugin(tests.TestCase):
 			dialog.assert_response_ok()
 
 		buffer.clear()
-		mainwindow_ext = plugin.get_extension(mainwindow, InsertSymbolMainWindowExtension)
+		pageview_ext = plugin.get_extension(pageview, InsertSymbolPageViewExtension)
 		with tests.DialogContext(check_dialog):
-			mainwindow_ext.insert_symbol()
+			pageview_ext.insert_symbol()
 		start, end = buffer.get_bounds()
 		text = start.get_text(end)
 		self.assertEqual(text, EACUTE + ECIRC + EGRAVE)

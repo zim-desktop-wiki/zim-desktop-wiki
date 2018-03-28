@@ -14,19 +14,19 @@ from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 @tests.slowTest
 class TestTableOfContents(tests.TestCase):
 
-	def testMainWindowExtensions(self):
+	def testPageViewExtensions(self):
 		plugin = ToCPlugin()
 
 		notebook = self.setUpNotebook()
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['floating'] = True
-		plugin.extend(mainwindow)
+		plugin.extend(mainwindow.pageview)
 
 		## floating
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], ToCMainWindowExtension)
+		self.assertIsInstance(ext[0], ToCPageViewExtension)
 		self.assertIsInstance(ext[0].tocwidget, FloatingToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered

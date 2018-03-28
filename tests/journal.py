@@ -116,7 +116,7 @@ class TestJournalPlugin(tests.TestCase):
 		notebook = self.setUpNotebook()
 		mainwindow = setUpMainWindow(notebook)
 
-		plugin.extend(mainwindow)
+		plugin.extend(mainwindow.pageview)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 

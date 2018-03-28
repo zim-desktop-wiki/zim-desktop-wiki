@@ -5,18 +5,20 @@
 
 import tests
 
+from tests.mainwindow import setUpMainWindow
+
 from gi.repository import Gtk
 
 from zim.fs import Dir
 
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorClass, ImageGeneratorDialog, ImageGeneratorMainWindowExtensionBase
+	ImageGeneratorClass, ImageGeneratorDialog, ImageGeneratorPageViewExtensionBase
 
 from zim.plugins.equationeditor import InsertEquationPlugin, EquationGenerator
 from zim.plugins.diagrameditor import InsertDiagramPlugin, DiagramGenerator
 from zim.plugins.gnu_r_ploteditor import InsertGNURPlotPlugin, GNURPlotGenerator
 from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin, GnuplotGenerator
-from zim.plugins.gnuplot_ploteditor import GnuplotMainWindowExtension
+from zim.plugins.gnuplot_ploteditor import GnuplotPageViewExtension
 from zim.plugins.scoreeditor import InsertScorePlugin, ScoreGenerator
 from zim.plugins.ditaaeditor import InsertDitaaPlugin, DitaaGenerator
 from zim.plugins.sequencediagrameditor import InsertSequenceDiagramPlugin, SequenceDiagramGenerator
@@ -32,11 +34,15 @@ class TestGenerator(tests.TestCase):
 	def _test_generator(self):
 		plugin = self.pluginklass()
 
-		extensionklass = plugin.extension_classes['MainWindow']
-		self.assertTrue(issubclass(extensionklass, ImageGeneratorMainWindowExtensionBase))
+		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
+		mainwindow = setUpMainWindow(notebook)
 
-		attachment_dir = Dir(self.create_tmp_dir())
-		extension = extensionklass(plugin, MockWindow(attachment_dir))
+		extensionklass = plugin.extension_classes['PageView']
+		self.assertTrue(issubclass(extensionklass, ImageGeneratorPageViewExtensionBase))
+
+		extension = extensionklass(plugin, mainwindow.pageview)
 
 		generator = extension.build_generator()
 		self.assertIsInstance(generator, ImageGeneratorClass)
@@ -73,8 +79,7 @@ class TestGenerator(tests.TestCase):
 				self.assertIsNone(logfile)
 
 		# Dialog OK
-		attachment_dir = Dir(self.create_tmp_dir())
-		dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
+		dialog = self.dialogklass(mainwindow.pageview, '<title>', generator)
 		dialog.set_text(self.validinput)
 		dialog.assert_response_ok()
 
@@ -84,10 +89,11 @@ class TestGenerator(tests.TestCase):
 				# Click OK in the "Store Anyway" question dialog
 				dialog.do_response(Gtk.ResponseType.YES)
 
-			with tests.DialogContext(ok_store):
-				dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
-				dialog.set_text(self.invalidinput)
-				dialog.assert_response_ok()
+			with tests.LoggingFilter('zim.gui.pageview', 'No such image:'):
+				with tests.DialogContext(ok_store):
+					dialog = self.dialogklass(mainwindow.pageview, '<title>', generator)
+					dialog.set_text(self.invalidinput)
+					dialog.assert_response_ok()
 
 		# Check menu
 		#~ plugin = self.pluginklass(MockUI())
@@ -243,20 +249,3 @@ seqdiag {
 	def runTest(self):
 		'Test Sequence Diagram Editor plugin'
 		TestGenerator._test_generator(self)
-
-
-
-
-class MockWindow(tests.MockObject):
-
-	def __init__(self, dir):
-		from zim.config.dicts import SectionedConfigDict
-		
-		tests.MockObject.__init__(self)
-		self.uimanager = tests.MockObject()
-		self.config = tests.MockObject()
-		self.config.uistate = SectionedConfigDict()
-		self.pageview = tests.MockObject()
-		self.mock_method('connect', None)
-		self.notebook = tests.MockObject()
-		self.notebook.mock_method('get_attachments_dir', dir)

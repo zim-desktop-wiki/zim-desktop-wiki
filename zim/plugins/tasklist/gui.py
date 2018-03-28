@@ -181,7 +181,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 		### XXX HACK to get dependency to connect to
 		###   -- no access to plugin, so can;t use get_extension()
-		##    -- duplicat of this snippet in MainWindowExtension
+		##    -- duplicat of this snippet in PageViewExtension
 		for e in window.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
@@ -724,7 +724,7 @@ class TaskListTreeView(BrowserTreeView):
 		return row['description']
 
 	def do_initialize_popup(self, menu):
-		item = Gtk.ImageMenuItem('gtk-copy')
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
 		item.connect('activate', self.copy_to_clipboard)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)

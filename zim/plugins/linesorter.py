@@ -11,7 +11,7 @@ from zim.plugins import PluginClass
 from zim.actions import action
 from zim.utils import natural_sort_key
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import MessageDialog
 
 
@@ -41,7 +41,7 @@ class NoSelectionError(Error):
 			# T: Error message for linesorter plugin
 
 
-class LineSorterMainWindowExtension(MainWindowExtension):
+class LineSorterPageViewExtension(PageViewExtension):
 
 	def _get_selected_lines(self, buffer):
 		try:
@@ -69,7 +69,7 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 
 	@action(_('_Sort lines'), menuhints='edit') # T: menu item
 	def sort_selected_lines(self):
-		buffer = self.window.pageview.view.get_buffer()
+		buffer = self.pageview.view.get_buffer()
 		first_lineno, last_lineno = self._get_selected_lines(buffer)
 		if first_lineno == last_lineno:
 			raise NoSelectionError()
@@ -109,7 +109,7 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 
 	def move_line(self, offset):
 		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
-		buffer = self.window.pageview.view.get_buffer()
+		buffer = self.pageview.view.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 
 		# do nothing if target is before begin or after end of document
@@ -168,7 +168,7 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 	@action(_('_Duplicate Line'), accelerator='<Primary><Shift>D', menuhints='edit')  # T: Menu item
 	def duplicate_line(self):
 		'''Menu action to dublicate line'''
-		buffer = self.window.pageview.view.get_buffer()
+		buffer = self.pageview.view.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 		tree = buffer.get_parsetree(bounds=(start, end))
 		with buffer.user_action:
@@ -178,7 +178,7 @@ class LineSorterMainWindowExtension(MainWindowExtension):
 	@action(_('_Remove Line'), accelerator='<Primary><Shift>K', menuhints='edit')  # T: Menu item
 	def remove_line(self):
 		'''Menu action to remove line at the current cursor position'''
-		buffer = self.window.pageview.view.get_buffer()
+		buffer = self.pageview.view.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 		buffer.delete(start, end)
 		buffer.set_modified(True)

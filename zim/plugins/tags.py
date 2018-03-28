@@ -21,7 +21,7 @@ from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
 	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
@@ -49,15 +49,15 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 	)
 
 
-class TagsMainWindowExtension(MainWindowExtension):
+class TagsPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 
 		self.widget = TagsPluginWidget(
-			window.notebook,
-			window.config,
-			window.navigation,
+			pageview.notebook,
+			plugin.config,
+			self.navigation,
 			self.uistate
 		)
 
@@ -74,22 +74,16 @@ class TagsMainWindowExtension(MainWindowExtension):
 		#	('start-index-update', lambda o: self.disconnect_model()),
 		#	('end-index-update', lambda o: self.reconnect_model()),
 		#))
-		self.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+		self.connectto(pageview, 'page-changed', lambda o, p: self.widget.set_page(p))
 
 
 	def on_preferences_changed(self, preferences):
-		if self.widget is None:
-			return
-
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-		self.window.add_tab('tags', self.widget, preferences['pane'])
+		self.remove_tab(self.widget)
+		self.add_tab('tags', self.widget, preferences['pane'])
 		self.widget.show_all()
 
 	def teardown(self):
-		self.window.remove(self.widget)
+		self.remove_tab(self.widget)
 		self.widget.disconnect_all()
 		self.widget = None
 

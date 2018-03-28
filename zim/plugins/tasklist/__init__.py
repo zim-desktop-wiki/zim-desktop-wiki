@@ -29,7 +29,7 @@ from zim.config import StringAllowEmpty
 from zim.signals import DelayedCallback
 from zim.notebook import NotebookExtension
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS
 
 from .indexer import TasksIndexer, TasksView
@@ -134,10 +134,10 @@ class TaskListNotebookExtension(NotebookExtension):
 		self.index.set_property(TasksIndexer.PLUGIN_NAME, None)
 
 
-class TaskListMainWindowExtension(MainWindowExtension):
+class TaskListPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 		self._widget = None
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
@@ -146,9 +146,9 @@ class TaskListMainWindowExtension(MainWindowExtension):
 	def show_task_list(self):
 		# TODO: add check + dialog for index probably_up_to_date
 
-		index = self.window.notebook.index
+		index = self.pageview.notebook.index
 		tasksview = TasksView.new_from_index(index)
-		dialog = TaskListDialog.unique(self, self.window, tasksview, self.plugin.preferences)
+		dialog = TaskListDialog.unique(self, self.pageview, tasksview, self.plugin.preferences)
 		dialog.present()
 
 	def on_preferences_changed(self, preferences):
@@ -157,22 +157,18 @@ class TaskListMainWindowExtension(MainWindowExtension):
 				self._init_widget()
 			else:
 				self._widget.task_list.refresh()
-				try:
-					self.window.remove(self._widget)
-				except ValueError:
-					pass
-			self.window.add_tab('tasklist', self._widget, preferences['pane'])
+				self.remove_tab(self._widget)
+			self.add_tab('tasklist', self._widget, preferences['pane'])
 			self._widget.show_all()
 		else:
 			if self._widget:
-				self.window.remove(self._widget)
+				self.remove_tab(self._widget)
 				self._widget = None
 
 	def _init_widget(self):
-		index = self.window.notebook.index
+		index = self.pageview.notebook.index
 		tasksview = TasksView.new_from_index(index)
-		opener = self.window.navigation
-		self._widget = TaskListWidget(tasksview, opener, self.plugin.preferences, self.uistate)
+		self._widget = TaskListWidget(tasksview, self.navigation, self.plugin.preferences, self.uistate)
 
 		def on_tasklist_changed(o):
 			self._widget.task_list.refresh()
@@ -184,7 +180,7 @@ class TaskListMainWindowExtension(MainWindowExtension):
 		### XXX HACK to get dependency to connect to
 		###   -- no access to plugin, so can;t use get_extension()
 		##    -- duplicat of this snippet in TaskListDialog
-		for e in self.window.notebook.__zim_extension_objects__:
+		for e in self.pageview.notebook.__zim_extension_objects__:
 			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
 				self.connectto(e, 'tasklist-changed', callback)
 				break
@@ -193,5 +189,5 @@ class TaskListMainWindowExtension(MainWindowExtension):
 
 	def teardown(self):
 		if self._widget:
-			self.window.remove(self._widget)
+			self.remove_tab(self._widget)
 			self._widget = None

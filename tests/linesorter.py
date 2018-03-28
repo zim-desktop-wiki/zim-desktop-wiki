@@ -8,7 +8,7 @@ import tests
 
 from tests.mainwindow import setUpMainWindow
 
-from zim.plugins.linesorter import LineSorterPlugin, LineSorterMainWindowExtension, NoSelectionError
+from zim.plugins.linesorter import LineSorterPlugin, LineSorterPageViewExtension, NoSelectionError
 from zim.gui.pageview import PageView
 
 
@@ -17,7 +17,7 @@ class TestLineSorterWindowExtension(tests.TestCase):
 	def setUp(self):
 		plugin = LineSorterPlugin()
 		window = setUpMainWindow(self.setUpNotebook())
-		self.extension = LineSorterMainWindowExtension(plugin, window)
+		self.extension = LineSorterPageViewExtension(plugin, window.pageview)
 		self.buffer = window.pageview.view.get_buffer()
 
 	def set_text(self, text):

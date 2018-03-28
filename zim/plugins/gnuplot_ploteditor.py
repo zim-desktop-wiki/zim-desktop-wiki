@@ -13,7 +13,7 @@
 import glob
 
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorPlugin, ImageGeneratorClass, ImageGeneratorMainWindowExtensionBase
+	ImageGeneratorPlugin, ImageGeneratorClass, ImageGeneratorPageViewExtensionBase
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
@@ -47,11 +47,11 @@ This plugin provides a plot editor for zim based on Gnuplot.
 		return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
 
 
-class GnuplotMainWindowExtension(ImageGeneratorMainWindowExtensionBase):
+class GnuplotPageViewExtension(ImageGeneratorPageViewExtensionBase):
 
 	def build_generator(self):
-		page = self.window.page
-		notebook = self.window.notebook
+		page = self.pageview.page
+		notebook = self.pageview.notebook
 		attachment_folder = notebook.get_attachments_dir(page)
 		#~ print(">>>", notebook, page, attachment_folder)
 		return GnuplotGenerator(self.plugin, attachment_folder)

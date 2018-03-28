@@ -14,7 +14,7 @@ from zim.plugins import PluginClass
 from zim.signals import SIGNAL_AFTER
 from zim.actions import toggle_action
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import ErrorDialog
 
 
@@ -88,14 +88,14 @@ This is a core plugin shipping with zim.
 		]
 
 
-class SpellMainWindowExtension(MainWindowExtension):
+class SpellPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 		self._adapter_cls = self._choose_adapter_cls()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
-		self.connectto(self.window, 'page-changed', order=SIGNAL_AFTER)
+		self.connectto(self.pageview, 'page-changed', order=SIGNAL_AFTER)
 
 	def _choose_adapter_cls(self):
 		if gtkspellcheck:
@@ -115,7 +115,7 @@ class SpellMainWindowExtension(MainWindowExtension):
 
 	@toggle_action(_('Check _spelling'), accelerator='F7') # T: menu item
 	def toggle_spellcheck(self, active):
-		textview = self.window.pageview.view
+		textview = self.pageview.view
 		checker = getattr(textview, '_gtkspell', None)
 
 		if active:
@@ -130,20 +130,20 @@ class SpellMainWindowExtension(MainWindowExtension):
 
 		self.uistate['active'] = active
 
-	def on_page_changed(self, window, page):
-		textview = window.pageview.view
+	def on_page_changed(self, pageview, page):
+		textview = pageview.view
 		checker = getattr(textview, '_gtkspell', None)
 		if checker:
 			checker.on_new_buffer()
 
 	def setup(self):
-		textview = self.window.pageview.view
+		textview = self.pageview.view
 		lang = self.plugin.preferences['language'] or locale.getdefaultlocale()[0]
 		logger.debug('Spellcheck language: %s', lang)
 		#try:
 		checker = self._adapter_cls(textview, lang)
 		#except:
-		#	ErrorDialog(self.window, (
+		#	ErrorDialog(self.pageview, (
 		#		_('Could not load spell checking'),
 		#			# T: error message
 		#		_('This could mean you don\'t have the proper\ndictionaries installed')
@@ -153,7 +153,7 @@ class SpellMainWindowExtension(MainWindowExtension):
 		textview._gtkspell = checker
 
 	def teardown(self):
-		textview = self.window.pageview.view
+		textview = self.pageview.view
 		if hasattr(textview, '_gtkspell') \
 		and textview._gtkspell is not None:
 			textview._gtkspell.detach()

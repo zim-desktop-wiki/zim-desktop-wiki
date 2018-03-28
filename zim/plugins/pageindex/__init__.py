@@ -18,7 +18,7 @@ from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, Index
 from zim.plugins import PluginClass
 from zim.actions import PRIMARY_MODIFIER_MASK
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
 	populate_popup_add_separator, encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
@@ -61,13 +61,13 @@ This plugin adds the page index pane to the main window.
 	)
 
 
-class PageIndexMainWindowExtension(MainWindowExtension):
+class PageIndexPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
-		index = window.notebook.index
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		index = pageview.notebook.index
 		model = PageTreeStore(index)
-		self.treeview = PageTreeView(window.notebook, window.config, window.navigation)
+		self.treeview = PageTreeView(pageview.notebook, plugin.config, self.navigation)
 		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
 
@@ -78,24 +78,20 @@ class PageIndexMainWindowExtension(MainWindowExtension):
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
-		if window.page:
-			self.on_page_changed(window, window.page)
-		self.connectto(window, 'page-changed')
+		self.on_page_changed(pageview, pageview.page)
+		self.connectto(pageview, 'page-changed')
 
 		# self.pageindex.treeview.connect('insert-link',
 		# 	lambda v, p: self.pageview.insert_links([p]))
 
 	def on_preferences_changed(self, preferences):
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-		self.window.add_tab('pageindex', self.widget, preferences['pane'])
+		self.remove_tab(self.widget)
+		self.add_tab('pageindex', self.widget, preferences['pane'])
 		self.widget.show_all()
 
-	def on_page_changed(self, window, page):
+	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
+		expand = pageview.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
 		if treepath and expand:
 			self.treeview.select_treepath(treepath)
 
@@ -113,7 +109,7 @@ class PageIndexMainWindowExtension(MainWindowExtension):
 		reloading the index to get rid of out-of-sync model errors
 		without need to close the app first.
 		'''
-		model = PageTreeStore(self.window.notebook.index)
+		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
 
 
@@ -463,7 +459,7 @@ class PageTreeView(BrowserTreeView):
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 
 		populate_popup_add_separator(menu)
-		item = Gtk.ImageMenuItem('gtk-copy')
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
 		item.connect('activate', lambda o: self.do_copy())
 		menu.append(item)
 		menu.show_all()

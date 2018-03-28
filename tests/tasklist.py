@@ -335,7 +335,7 @@ class TestTaskList(tests.TestCase):
 
 		# Copy tasklist -> csv
 		from zim.gui.clipboard import Clipboard
-		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		tests.gtk_activate_menu_item(menu, _('_Copy'))
 		text = Clipboard.get_text()
 		lines = text.splitlines()
 		self.assertTrue(len(lines) > 10)

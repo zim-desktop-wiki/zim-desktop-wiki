@@ -4933,6 +4933,58 @@ discarded, but you can restore the copy later.''')
 			ErrorDialog.run(self)
 
 
+from zim.plugins import ExtensionBase
+from zim.gui.actionextension import ActionExtensionBase
+from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
+
+
+class PageViewExtension(ActionExtensionBase):
+	'''Base class for extensions that want to interact with the "page view",
+	which is the primary editor view of the application.
+
+	This extension class will collect actions defined with the C{@action},
+	C{@toggle_action} or C{@radio_action} decorators and add them to the window.
+
+	This extension class also supports showing side panes that are visible as
+	part of the "decoration" of the editor view.
+
+	@ivar pageview: the L{PageView} object
+	@ivar navigation: a L{NavigationModel} model
+	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
+
+	The "uistate" is the per notebook state of the interface, it is
+	intended for stuff like the last folder opened by the user or the
+	size of a dialog after resizing. It is stored in the X{state.conf}
+	file in the notebook cache folder. It differs from the preferences,
+	which are stored globally and dictate the behavior of the application.
+	(To access the preference use C{plugin.preferences}.)
+	'''
+
+	__extends__ = 'PageView'
+
+	def __init__(self, plugin, pageview):
+		ExtensionBase.__init__(self, plugin, pageview)
+		self.pageview = pageview
+		window = pageview.get_toplevel()
+		if hasattr(window, 'uimanager'):
+			self._add_actions(window.uimanager)
+		self.navigation = window.navigation
+		self.uistate = window.config.uistate[plugin.config_key]
+
+	def add_tab(self, key, widget, pane):
+		window = self.pageview.get_toplevel()
+		window.add_tab(key, widget, pane)
+
+	def remove_tab(self, widget):
+		window = self.pageview.get_toplevel()
+		try:
+			window.remove(widget)
+		except ValueError:
+			return False
+		else:
+			return True
+
+
 from zim.signals import GSignalEmitterMixin
 
 class PageView(GSignalEmitterMixin, Gtk.VBox):
@@ -6049,6 +6101,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		assert isinstance(file, File)
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
 		self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
+
+	def reload_image(self, file):
+		## XXX - HACK, needs actual lookup of the image object and reload it
+		#        will be easy to implement when images are objects
+		window = self.get_toplevel()
+		window.reload_page()
 
 	@action(_('Bulle_t List'), menuhints='insert') # T: Menu item
 	def insert_bullet_list(self):

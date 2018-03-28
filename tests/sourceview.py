@@ -13,12 +13,12 @@ from zim.formats.html import Dumper as HtmlDumper
 from zim.plugins.sourceview import *
 
 
-class TestMainWindowExtension(tests.TestCase):
+class TestPageViewExtension(tests.TestCase):
 
 	def runTest(self):
 		window = setUpMainWindow(self.setUpNotebook())
 		plugin = SourceViewPlugin()
-		extension = SourceViewMainWindowExtension(plugin, window)
+		extension = SourceViewPageViewExtension(plugin, window.pageview)
 
 		with tests.DialogContext(self.checkInsertCodeBlockDialog):
 			extension.insert_sourceview()

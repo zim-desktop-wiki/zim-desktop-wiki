@@ -43,8 +43,8 @@ class TestSpell(object):
 			window = setUpMainWindow(self.setUpNotebook(content=('Test', 'Foo', 'Bar')))
 
 			plugin = zim.plugins.spell.SpellPlugin()
-			plugin.extend(window)
-			ext = plugin.get_extension(window, zim.plugins.spell.SpellMainWindowExtension)
+			plugin.extend(window.pageview)
+			ext = plugin.get_extension(window.pageview, zim.plugins.spell.SpellPageViewExtension)
 
 			self.assertIs(ext._adapter_cls, adapterclass) # ensure switching library worked
 

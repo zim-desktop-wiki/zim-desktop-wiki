@@ -12,13 +12,13 @@ from tests.mainwindow import setUpMainWindow
 from tests.pageview import setUpPageView
 
 
-class TestMainWindowExtension(tests.TestCase):
+class TestPageViewExtension(tests.TestCase):
 
 	def runTest(self):
 		window = setUpMainWindow(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 
 		plugin = TableEditorPlugin()
-		extension = TableEditorMainWindowExtension(plugin, window)
+		extension = TableEditorPageViewExtension(plugin, window.pageview)
 
 		with tests.DialogContext(self.checkInsertTableDialog):
 			extension.insert_table()

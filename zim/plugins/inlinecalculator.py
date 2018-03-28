@@ -17,7 +17,7 @@ from zim.plugins import PluginClass
 from zim.actions import action
 from zim.errors import Error
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
@@ -288,14 +288,14 @@ This is a core plugin shipping with zim.
 			raise ExpressionError(msg)
 
 
-class InlineCalculatorMainWindowExtension(MainWindowExtension):
+class InlineCalculatorPageViewExtension(PageViewExtension):
 
 	@action(_('Evaluate _Math')) # T: menu item
 	def eval_math(self):
 		'''Action called by the menu item or key binding,
 		will look at the cursor for an expression to evaluate.
 		'''
-		buffer = self.window.pageview.view.get_buffer()
+		buffer = self.pageview.view.get_buffer()
 			# XXX- way to long chain of objects here
 
 		# FIXME: what do we do for selections ?

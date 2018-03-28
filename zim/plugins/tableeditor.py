@@ -32,7 +32,7 @@ from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree
 from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
 from zim.gui.objectmanager import CustomObjectWidget
 
@@ -205,16 +205,12 @@ class CellFormatReplacer:
 		return text
 
 
-class TableEditorMainWindowExtension(MainWindowExtension):
-
-	def __init__(self, plugin, window):
-		''' Constructor '''
-		MainWindowExtension.__init__(self, plugin, window)
+class TableEditorPageViewExtension(PageViewExtension):
 
 	@action(_('Table'), verb_icon='zim-insert-table', menuhints='insert')  # T: menu item
 	def insert_table(self):
 		'''Run the EditTableDialog'''
-		col_model = EditTableDialog(self.window).run()
+		col_model = EditTableDialog(self.pageview).run()
 		if not col_model:
 			return
 
@@ -229,7 +225,7 @@ class TableEditorMainWindowExtension(MainWindowExtension):
 		rows = [len(headers) * [' ']]
 
 		obj = TableViewObject(attrib, headers, rows, self.plugin.preferences)
-		pageview = self.window.pageview # XXX
+		pageview = self.pageview
 		pageview.insert_object(obj)
 
 

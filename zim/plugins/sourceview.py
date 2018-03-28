@@ -29,7 +29,7 @@ from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow
 from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
 
@@ -100,21 +100,17 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 			obj.preferences_changed()
 
 
-class SourceViewMainWindowExtension(MainWindowExtension):
-
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
+class SourceViewPageViewExtension(PageViewExtension):
 
 	@action(_('Code Block'), menuhints='insert') # T: menu item
 	def insert_sourceview(self):
 		'''Inserts new SourceView'''
-		lang = InsertCodeBlockDialog(self.window).run() # XXX
+		lang = InsertCodeBlockDialog(self.pageview).run() # XXX
 		if not lang:
 			return # dialog cancelled
 		else:
 			obj = self.plugin.create_object({'type': OBJECT_TYPE, 'lang': lang}, '')
-			pageview = self.window.pageview # XXX
-			pageview.insert_object(obj)
+			pageview = self.pageview.insert_object(obj)
 
 
 class InsertCodeBlockDialog(Dialog):

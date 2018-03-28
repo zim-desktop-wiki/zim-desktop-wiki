@@ -18,7 +18,7 @@ from zim.signals import ConnectorMixin, DelayedCallback
 from zim.notebook import Path
 from zim.formats import HEADING
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget, widget_set_css
 from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
@@ -92,36 +92,30 @@ This is a core plugin shipping with zim.
 	# TODO disable pane setting if not embedded
 
 
-class ToCMainWindowExtension(MainWindowExtension):
+class ToCPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 		self.tocwidget = None
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
 		if self.tocwidget is not None:
-			try:
-				self.window.remove(self.tocwidget)
-			except ValueError:
-				pass
+			self.remove_tab(self.tocwidget)
 
 		widgetclass = FloatingToC if preferences['floating'] else SidePaneToC
 		if not isinstance(self.tocwidget, widgetclass):
-			self.tocwidget = widgetclass(self.window.pageview)
+			self.tocwidget = widgetclass(self.pageview)
 			self.tocwidget.show_all()
 
 		self.tocwidget.set_show_h1(preferences['show_h1'])
 
 		if isinstance(self.tocwidget, SidePaneToC):
-			self.window.add_tab('tableofcontents', self.tocwidget, preferences['pane'])
+			self.add_tab('tableofcontents', self.tocwidget, preferences['pane'])
 
 	def teardown(self):
-		try:
-			self.window.remove(self.tocwidget)
-		except ValueError:
-			pass
+		self.remove_tab(self.tocwidget)
 		self.tocwidget.disconnect_all()
 		self.tocwidget = None
 
@@ -207,7 +201,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 			if self.pageview.page:
 				self.load_page(self.pageview.page)
 
-	def on_page_changed(self, window, page):
+	def on_page_changed(self, pageview, page):
 		self.load_page(page)
 
 	def on_store_page(self, notebook, page):

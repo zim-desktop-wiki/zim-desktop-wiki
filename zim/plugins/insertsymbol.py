@@ -7,7 +7,7 @@ import logging
 from zim.plugins import PluginClass
 from zim.actions import action
 
-from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.applications import edit_config_file
 
@@ -65,18 +65,18 @@ This is a core plugin shipping with zim.
 			yield symbol, shortcut
 
 
-class InsertSymbolMainWindowExtension(MainWindowExtension):
+class InsertSymbolPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		MainWindowExtension.__init__(self, plugin, window)
-		self.connectto(window.pageview.view, 'end-of-word')
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		self.connectto(pageview.view, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()
 
 	@action(_('Sy_mbol...'), menuhints='insert') # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
-		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()
+		InsertSymbolDialog(self.pageview, self.plugin, self.pageview).run()
 
 	def on_end_of_word(self, textview, start, end, word, char, editmode):
 		'''Handler for the end-of-word signal from the textview'''
