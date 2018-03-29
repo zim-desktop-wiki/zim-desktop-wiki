@@ -295,7 +295,7 @@ class InlineCalculatorPageViewExtension(PageViewExtension):
 		'''Action called by the menu item or key binding,
 		will look at the cursor for an expression to evaluate.
 		'''
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 			# XXX- way to long chain of objects here
 
 		# FIXME: what do we do for selections ?

@@ -58,7 +58,7 @@ class TestLines(tests.TestCase):
 		'''Test lines formatting.'''
 
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 
 		def check_text(input, result):
 			buffer.set_text(input)
@@ -1607,9 +1607,9 @@ foo
 		pageview.set_page(page)
 
 		def get_context_menu():
-			buffer = pageview.view.get_buffer()
+			buffer = pageview.textview.get_buffer()
 			buffer.select_range(*buffer.get_bounds()) # select all
-			return pageview.view.get_popup()
+			return pageview.textview.get_popup()
 
 		def click(id):
 			menu = get_context_menu()
@@ -1664,7 +1664,7 @@ class TestPageView(tests.TestCase, TestCaseMixin):
 
 	def testGetSelection(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.set_text('''\
 Foo bar
 Baz
@@ -1680,7 +1680,7 @@ Baz
 		# This test indirectly tests select_word, select_line and strip_selection
 
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.set_text('''Test 123. foo\nline with spaces    \n\n''')
 
 		# select word (with / without previous selection)
@@ -1726,7 +1726,7 @@ Baz
 
 	def testInsertLinks(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.set_text('''Test 123\n''')
 
 		buffer.place_cursor(buffer.get_end_iter())
@@ -1813,7 +1813,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testSavePage(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
 		pageview.save_page()
 		lines = pageview.page.source_file.readlines()
@@ -1821,7 +1821,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testUndoRedo(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		with buffer.user_action:
 			buffer.insert_at_cursor('test')
 		with buffer.user_action:
@@ -1877,7 +1877,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testDelete(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
 		buffer.place_cursor(buffer.get_iter_at_offset(1))
 		self.assertEqual(get_text(buffer), 'test 123\n')
@@ -1944,14 +1944,14 @@ class TestPageViewActions(tests.TestCase):
 
 	def testRemoveLink(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(2))
 		pageview.remove_link()
 		self.assertEqual(pageview.page.dump('wiki'), ['link\n'])
 
 	def testRemoveLinkWithIter(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[[link]] foo\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(8))
 		iter = buffer.get_iter_at_offset(2)
 		pageview.remove_link(iter)
@@ -1959,7 +1959,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testRemoveLinkWithSelection(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		begin = buffer.get_iter_at_offset(2)
 		end = buffer.get_iter_at_offset(4)
 		buffer.select_range(begin, end)
@@ -1976,7 +1976,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testInsertLine(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.place_cursor(buffer.get_iter_at_offset(9))
 		pageview.insert_line()
 		self.assertEqual(pageview.page.dump('wiki'), ['test 123\n', '--------------------\n'])
@@ -1998,27 +1998,27 @@ class TestPageViewActions(tests.TestCase):
 	def testInsertBulletList(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		pageview.insert_bullet_list()
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
 		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n', '\n'])
 
 	def testInsertNumberedList(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		pageview.insert_numbered_list()
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
 		self.assertEqual(pageview.page.dump('wiki'), ['1. test 123\n', '\n'])
 
 	def testInsertCheckBoxList(self):
 		pageview = setUpPageView(self.setUpNotebook())
 		pageview.insert_checkbox_list()
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffer.insert_at_cursor('test 123')
 		self.assertEqual(pageview.page.dump('wiki'), ['[ ] test 123\n', '\n'])
 
 	def testApplyBulletList(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		begin = buffer.get_iter_at_offset(0)
 		end = buffer.get_iter_at_offset(8)
 		buffer.select_range(begin, end)
@@ -2027,7 +2027,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testApplyNumberedList(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		begin = buffer.get_iter_at_offset(0)
 		end = buffer.get_iter_at_offset(8)
 		buffer.select_range(begin, end)
@@ -2036,7 +2036,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testApplyCheckBoxList(self):
 		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		begin = buffer.get_iter_at_offset(0)
 		end = buffer.get_iter_at_offset(8)
 		buffer.select_range(begin, end)
@@ -2090,7 +2090,7 @@ class TestPageViewActions(tests.TestCase):
 
 	def testClearFormatting(self):
 		pageview = setUpPageView(self.setUpNotebook(), '**test 123**\n')
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		begin = buffer.get_iter_at_offset(0)
 		end = buffer.get_iter_at_offset(8)
 		buffer.select_range(begin, end)
@@ -2232,7 +2232,7 @@ dus bar bazzz baz
 
 		## Word Count dialog
 		pageview = tests.MockObject()
-		pageview.view = textview
+		pageview.textview = textview
 		dialog = WordCountDialog(pageview)
 		dialog.destroy() # nothing to test really
 
@@ -2240,11 +2240,11 @@ dus bar bazzz baz
 		# Insert Link dialog
 		pageview = tests.MockObject()
 		pageview.page = Path('Test:foo:bar')
-		pageview.view = TextView({})
+		pageview.textview = TextView({})
 		dialog = InsertLinkDialog(None, pageview)
 		dialog.form.widgets['href'].set_text('Foo')
 		dialog.assert_response_ok()
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		self.assertEqual(get_text(buffer), 'Foo')
 
 

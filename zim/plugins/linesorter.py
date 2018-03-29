@@ -69,7 +69,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 
 	@action(_('_Sort lines'), menuhints='edit') # T: menu item
 	def sort_selected_lines(self):
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		first_lineno, last_lineno = self._get_selected_lines(buffer)
 		if first_lineno == last_lineno:
 			raise NoSelectionError()
@@ -109,7 +109,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 
 	def move_line(self, offset):
 		'''Move line at the current cursor position #offset lines down (up if offset is negative) '''
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 
 		# do nothing if target is before begin or after end of document
@@ -168,7 +168,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 	@action(_('_Duplicate Line'), accelerator='<Primary><Shift>D', menuhints='edit')  # T: Menu item
 	def duplicate_line(self):
 		'''Menu action to dublicate line'''
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 		tree = buffer.get_parsetree(bounds=(start, end))
 		with buffer.user_action:
@@ -178,7 +178,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 	@action(_('_Remove Line'), accelerator='<Primary><Shift>K', menuhints='edit')  # T: Menu item
 	def remove_line(self):
 		'''Menu action to remove line at the current cursor position'''
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		start, end = self._get_iters_one_or_more_lines(buffer)
 		buffer.delete(start, end)
 		buffer.set_modified(True)

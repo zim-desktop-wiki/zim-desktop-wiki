@@ -69,7 +69,7 @@ class InsertSymbolPageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
-		self.connectto(pageview.view, 'end-of-word')
+		self.connectto(pageview.textview, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()
 
@@ -202,7 +202,7 @@ class InsertSymbolDialog(Dialog):
 
 	def do_response_ok(self):
 		text = self.textentry.get_text()
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		buffer = textview.get_buffer()
 		buffer.insert_at_cursor(text)
 		return True

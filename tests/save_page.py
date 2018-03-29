@@ -120,7 +120,7 @@ class TestRaceCodition(tests.TestCase):
 		pageview.set_page(page)
 		pageview.readonly = False
 
-		pageview.view.get_buffer().set_text('foo')
+		pageview.textview.get_buffer().set_text('foo')
 		self.assertTrue(page.modified)
 		pageview._save_page_handler.try_save_page()
 		self.assertTrue(page.modified)
@@ -132,11 +132,11 @@ class TestRaceCodition(tests.TestCase):
 		# Test2 - with race condition
 		start_thread_event.clear()
 		thread_done_event.clear()
-		pageview.view.get_buffer().set_text('bar')
+		pageview.textview.get_buffer().set_text('bar')
 		self.assertTrue(page.modified)
 		pageview._save_page_handler.try_save_page()
 		self.assertTrue(page.modified)
-		pageview.view.get_buffer().set_text('dusss') # edit while save ongoing
+		pageview.textview.get_buffer().set_text('dusss') # edit while save ongoing
 		start_thread_event.set()
 		thread_done_event.wait()
 		with NotebookState(notebook):

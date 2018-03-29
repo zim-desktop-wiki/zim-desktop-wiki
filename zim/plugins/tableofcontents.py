@@ -228,7 +228,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		model = self.treeview.get_model()
 		text = model[path][TEXT_COL]
 
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		buffer = textview.get_buffer()
 		if select_heading(buffer, text):
 			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
@@ -252,7 +252,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		else:
 			endtext = model[aiter][TEXT_COL]
 
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		buffer = textview.get_buffer()
 		start = find_heading(buffer, starttext)
 		if endtext:
@@ -419,7 +419,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		# Need to wrap in event box to make widget visible
 		# probably because Containers normally don't have their own
 		# gdk window. So would paint directly on background window.
-		self.textview = pageview.view
+		self.textview = pageview.textview
 		self._event_box = Gtk.EventBox()
 		self._event_box.add(self)
 

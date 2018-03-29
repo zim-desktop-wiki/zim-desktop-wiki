@@ -26,7 +26,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 
 		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': ''}), path='Test')
 		pageview = mainwindow.pageview
-		textview = pageview.view
+		textview = pageview.textview
 		buffer = textview.get_buffer()
 
 		plugin.extend(pageview)

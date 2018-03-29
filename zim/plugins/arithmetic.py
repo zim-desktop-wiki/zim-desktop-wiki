@@ -35,7 +35,7 @@ class ArithmeticPageViewExtension(PageViewExtension):
 		"""Perform arithmetic operations"""
 
 		# get the buffer
-		buf = self.pageview.view.get_buffer() # XXX
+		buf = self.pageview.textview.get_buffer() # XXX
 
 		# parse and return modified text
 		parser = ParserGTK()

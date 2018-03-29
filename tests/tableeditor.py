@@ -108,7 +108,7 @@ class TestTableViewObject(tests.TestCase):
 			# re-construct from serialized version
 			newpageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 			newpageview.set_parsetree(tree)
-			buffer = newpageview.view.get_buffer()
+			buffer = newpageview.textview.get_buffer()
 			buffer.place_cursor(buffer.get_iter_at_offset(1))
 			newobj = buffer.get_object_at_cursor()
 			self.assertIsInstance(newobj, TableViewObject)

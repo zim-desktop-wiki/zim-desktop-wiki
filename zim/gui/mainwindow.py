@@ -216,10 +216,10 @@ class MainWindow(Window):
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
 		self.pageview.connect_after(
 			'textstyle-changed', self.on_textview_textstyle_changed)
-		self.pageview.view.connect_after(
+		self.pageview.textview.connect_after(
 			'toggle-overwrite', self.on_textview_toggle_overwrite)
-		self.pageview.view.connect('link-enter', self.on_link_enter)
-		self.pageview.view.connect('link-leave', self.on_link_leave)
+		self.pageview.textview.connect('link-enter', self.on_link_enter)
+		self.pageview.textview.connect('link-leave', self.on_link_leave)
 
 		self.add(self.pageview)
 
@@ -485,7 +485,7 @@ class MainWindow(Window):
 
 	def do_set_focus(self, widget):
 		Window.do_set_focus(self, widget)
-		if widget == self.pageview.view \
+		if widget == self.pageview.textview \
 		and self._sidepane_autoclose:
 			# Sidepane open and should close automatically
 			self.toggle_panes(False)
@@ -499,7 +499,7 @@ class MainWindow(Window):
 		action = self.actiongroup.get_action('toggle_panes')
 		if action.get_active():
 			# side pane open
-			if self.pageview.view.is_focus():
+			if self.pageview.textview.is_focus():
 				self.focus_sidepane()
 			else:
 				if self._sidepane_autoclose:

@@ -131,7 +131,7 @@ sdfsdf
 			widget.treeview.row_activated(path, column)
 				# TODO assert something here
 
-			widget.select_section(pageview.view.get_buffer(), path)
+			widget.select_section(pageview.textview.get_buffer(), path)
 
 			menu = Gtk.Menu()
 			widget.treeview.get_selection().select_path(path)

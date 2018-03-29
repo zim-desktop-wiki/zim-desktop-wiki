@@ -115,7 +115,7 @@ class SpellPageViewExtension(PageViewExtension):
 
 	@toggle_action(_('Check _spelling'), accelerator='F7') # T: menu item
 	def toggle_spellcheck(self, active):
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		checker = getattr(textview, '_gtkspell', None)
 
 		if active:
@@ -131,13 +131,13 @@ class SpellPageViewExtension(PageViewExtension):
 		self.uistate['active'] = active
 
 	def on_page_changed(self, pageview, page):
-		textview = pageview.view
+		textview = pageview.textview
 		checker = getattr(textview, '_gtkspell', None)
 		if checker:
 			checker.on_new_buffer()
 
 	def setup(self):
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		lang = self.plugin.preferences['language'] or locale.getdefaultlocale()[0]
 		logger.debug('Spellcheck language: %s', lang)
 		#try:
@@ -153,7 +153,7 @@ class SpellPageViewExtension(PageViewExtension):
 		textview._gtkspell = checker
 
 	def teardown(self):
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		if hasattr(textview, '_gtkspell') \
 		and textview._gtkspell is not None:
 			textview._gtkspell.detach()

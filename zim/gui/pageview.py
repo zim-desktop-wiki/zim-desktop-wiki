@@ -5080,15 +5080,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			file_templates_folder=String('~/Templates'),
 		)
 
-		self.view = TextView(preferences=self.preferences)
-		self.swindow = ScrolledWindow(self.view)
+		self.textview = TextView(preferences=self.preferences)
+		self.swindow = ScrolledWindow(self.textview)
 		self.add(self.swindow)
 
-		self.view.connect_object('link-clicked', PageView.activate_link, self)
-		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
+		self.textview.connect_object('link-clicked', PageView.activate_link, self)
+		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
-		self.find_bar = FindBar(textview=self.view)
+		self.find_bar = FindBar(textview=self.textview)
 		self.pack_end(self.find_bar, False, True, 0)
 		self.find_bar.hide()
 
@@ -5131,7 +5131,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
-			and self.view.get_buffer().get_modified():
+			and self.textview.get_buffer().get_modified():
 				raise AssertionError('BUG: page changed while buffer changed as well')
 				# not using assert here because it could be optimized away
 
@@ -5156,13 +5156,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		def on_focus_out_event(*a):
 			self._save_page_handler.try_save_page()
 			return False # don't block the event
-		self.view.connect('focus-out-event', on_focus_out_event)
+		self.textview.connect('focus-out-event', on_focus_out_event)
 
 	def grab_focus(self):
-		self.view.grab_focus()
+		self.textview.grab_focus()
 
 	def on_preferences_changed(self, *a):
-		self.view.set_cursor_visible(
+		self.textview.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
 	def on_text_style_changed(self, *a):
@@ -5196,22 +5196,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			tabarray.set_tab(0, Pango.TabAlign.LEFT, self.text_style['TextView']['tabs'])
 				# We just set the size for one tab, apparently this gets
 				# copied automaticlly when a new tab is created by the textbuffer
-			self.view.set_tabs(tabarray)
+			self.textview.set_tabs(tabarray)
 
 		if self.text_style['TextView']['linespacing']:
-			self.view.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
+			self.textview.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
 
 		if self.text_style['TextView']['font']:
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
-			self.view.modify_font(font)
+			self.textview.modify_font(font)
 		else:
-			self.view.modify_font(None)
+			self.textview.modify_font(None)
 
 		if self.text_style['TextView']['justify']:
 			try:
 				const = self.text_style['TextView']['justify']
 				assert hasattr(gtk, const), 'No such constant: Gtk.%s' % const
-				self.view.set_justification(getattr(gtk, const))
+				self.textview.set_justification(getattr(gtk, const))
 			except:
 				logger.exception('Exception while setting justification:')
 
@@ -5252,7 +5252,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		# mainwindow is initialized.
 		def set_actiongroup_sensitive(window, widget):
 			#~ print('!! FOCUS SET:', widget)
-			sensitive = widget is self.view
+			sensitive = widget is self.textview
 			self._set_menuitems_sensitive(sensitive)
 
 		window = self.get_toplevel()
@@ -5294,12 +5294,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.undostack.block()
 			self.undostack = None
 
-		self._prev_buffer = self.view.get_buffer()
+		self._prev_buffer = self.textview.get_buffer()
 		finderstate = self._prev_buffer.finder.get_state()
 
-		for child in self.view.get_children():
+		for child in self.textview.get_children():
 			if isinstance(child, CustomObjectWidget):
-				self.view.remove(child)
+				self.textview.remove(child)
 				if hasattr(child, "_zim_objmanager"):
 					del child._zim_objmanager
 
@@ -5314,7 +5314,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.notebook, self.page)
-			self.view.set_buffer(buffer)
+			self.textview.set_buffer(buffer)
 			tree = page.get_parsetree()
 
 			if tree is None:
@@ -5389,7 +5389,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param write_if_not_modified: If C{True} page will be written
 		even if there are no changes in the widget.
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if write_if_not_modified or buffer.get_modified():
 			self._save_page_handler.save_page_now()
 		self._save_page_handler.wait_for_store_page_async()
@@ -5398,7 +5398,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Clear the buffer'''
 		# Called e.g. by "discard changes" maybe due to an exception in
 		# buffer.get_parse_tree() - so just drop everything...
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.clear()
 		buffer.set_modified(False)
 		self._showing_template = False
@@ -5415,7 +5415,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if self._showing_template:
 			return None
 		else:
-			buffer = self.view.get_buffer()
+			buffer = self.textview.get_buffer()
 			if not hasattr(self, '_parsetree') or buffer.get_modified():
 				self._parsetree = buffer.get_parsetree()
 				buffer.set_modified(False)
@@ -5436,7 +5436,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param istemplate: C{True} when the tree is a page template
 		instead of the page content
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
 		tree.resolve_images(self.notebook, self.page)
 		buffer.set_parsetree(tree)
@@ -5466,8 +5466,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			or self.page is None \
 			or self.notebook.readonly \
 			or self.page.readonly
-		self.view.set_editable(not self.readonly)
-		self.view.set_cursor_visible(
+		self.textview.set_editable(not self.readonly)
+		self.textview.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 		self._set_menuitems_sensitive(True) # XXX not sure why this is here
 
@@ -5482,7 +5482,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 					action.zim_readonly or not self.readonly)
 
 			# update state for menu items for checkboxes and links
-			buffer = self.view.get_buffer()
+			buffer = self.textview.get_buffer()
 			iter = buffer.get_insert_iter()
 			mark = buffer.get_insert()
 			self.do_mark_set(buffer, iter, mark)
@@ -5500,7 +5500,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		As a special case when the cursor position is C{-1} the cursor
 		is set at the end of the buffer.
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if pos < 0:
 			start, end = buffer.get_bounds()
 			iter = end
@@ -5516,13 +5516,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@returns: the cursor position as an integer offset from the
 		start of the buffer
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		return iter.get_offset()
 
 	def scroll_cursor_on_screen(self):
-		buffer = self.view.get_buffer()
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+		buffer = self.textview.get_buffer()
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	def set_scroll_pos(self, pos):
 		pass # FIXME set scroll position
@@ -5539,7 +5539,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@returns: text selection or C{None}
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			if format:
@@ -5561,12 +5561,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@returns: current word or C{None}
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.select_word()
 		return self.get_selection(format)
 
 	def replace_selection(self, text):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
 			with buffer.user_action:
@@ -5712,7 +5712,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		return True # handled
 
 	def do_populate_popup(self, menu):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if not buffer.get_has_selection():
 			iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 			if iter.get_line_offset() == 1:
@@ -5737,7 +5737,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			#~ for tool in tools:
 				#~ tool.reparent(menu)
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 
 		### Copy As option ###
 		default = self.preferences['copy_format'].lower()
@@ -5750,7 +5750,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item = Gtk.MenuItem.new_with_mnemonic(label)
 			if buffer.get_has_selection():
 				item.connect('activate',
-					lambda o, f: self.view.do_copy_clipboard(format=f),
+					lambda o, f: self.textview.do_copy_clipboard(format=f),
 					format)
 			else:
 				item.set_sensitive(False)
@@ -5916,7 +5916,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		menu.show_all()
 
 	def _checkbox_do_populate_popup(self, menu):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 		line = iter.get_line()
 
@@ -5960,26 +5960,26 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('Cu_t'), '<Primary>X', menuhints='edit') # T: Menu item
 	def cut(self):
 		'''Menu action for cut to clipboard'''
-		self.view.emit('cut-clipboard')
+		self.textview.emit('cut-clipboard')
 
 	@action(_('_Copy'), '<Primary>C', menuhints='edit') # T: Menu item
 	def copy(self):
 		'''Menu action for copy to clipboard'''
-		self.view.emit('copy-clipboard')
+		self.textview.emit('copy-clipboard')
 
 	@action(_('_Paste'), '<Primary>V', menuhints='edit') # T: Menu item
 	def paste(self):
 		'''Menu action for paste from clipboard'''
-		self.view.emit('paste-clipboard')
+		self.textview.emit('paste-clipboard')
 
 	@action(_('_Delete'), menuhints='edit') # T: Menu item
 	def delete(self):
 		'''Menu action for delete'''
-		self.view.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
+		self.textview.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
 
 	@action(_('Un-check Checkbox'), verb_icon=STOCK_UNCHECKED_BOX, menuhints='edit') # T: Menu item
 	def uncheck_checkbox(self):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(UNCHECKED_BOX, recurs)
 
@@ -5988,7 +5988,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recurs)
 
@@ -5997,7 +5997,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
 
@@ -6006,7 +6006,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(MIGRATED_BOX, recurs)
 
@@ -6020,7 +6020,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@param iter: C{TextIter} for an alternative cursor position
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if iter:
 			buffer.place_cursor(iter)
 
@@ -6048,7 +6048,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@param iter: C{TextIter} for an alternative cursor position
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 
 		if not buffer.get_has_selection() \
 		or (iter and not buffer.iter_in_selection(iter)):
@@ -6063,10 +6063,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
-		InsertDateDialog(self, self.view.get_buffer(), self.notebook, self.page, self.config).run()
+		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page, self.config).run()
 
 	def insert_object(self, obj):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
 
@@ -6078,7 +6078,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		obj = ObjectManager.get_object('line', None, None)
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(obj)
 			# Add newline after line separator widget.
@@ -6089,7 +6089,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 		@param file: optinal file to suggest in the dialog
 		'''
-		InsertImageDialog(self, self.view.get_buffer(), self.notebook, self.page, file).run()
+		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
 
 	def insert_image(self, file, type=None):
 		'''Insert a image
@@ -6100,7 +6100,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		file = adapt_from_newfs(file)
 		assert isinstance(file, File)
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
-		self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
+		self.textview.get_buffer().insert_image_at_cursor(file, src, type=type)
 
 	def reload_image(self, file):
 		## XXX - HACK, needs actual lookup of the image object and reload it
@@ -6124,7 +6124,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._start_bullet(UNCHECKED_BOX)
 
 	def _start_bullet(self, bullet_type):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		line = buffer.get_insert_iter().get_line()
 
 		with buffer.user_action:
@@ -6151,13 +6151,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._apply_bullet(UNCHECKED_BOX)
 
 	def _apply_bullet(self, bullet_type):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
 
 	@action(_('Text From _File...'), menuhints='insert') # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self, self.view.get_buffer(), self.notebook, self.page).run()
+		InsertTextFromFileDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -6189,7 +6189,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			sep = '\n'
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		with buffer.user_action:
 			if buffer.get_has_selection():
 				start, end = buffer.get_selection_bounds()
@@ -6302,7 +6302,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit') # T: Menu item
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 		selected = self.autoselect()
 
@@ -6348,7 +6348,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@param format: the format style name (e.g. "h1", "strong" etc.)
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		selected = False
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
@@ -6378,7 +6378,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if not self.preferences['autoselect']:
 			return False
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if buffer.get_has_selection():
 			if selectline:
 				start, end = buffer.get_selection_bounds()
@@ -6397,9 +6397,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param flags: options for find behavior, see L{TextFinder.find()}
 		'''
 		self.hide_find() # remove previous highlighting etc.
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.finder.find(string, flags)
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	@action(_('_Find...'), '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
 	def show_find(self, string=None, flags=0, highlight=False):
@@ -6412,7 +6412,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.show()
 		if string:
 			self.find_bar.find(string, flags, highlight)
-			self.view.grab_focus()
+			self.textview.grab_focus()
 		else:
 			self.find_bar.set_from_buffer()
 			self.find_bar.grab_focus()
@@ -6420,7 +6420,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def hide_find(self):
 		'''Hide the L{FindBar} widget'''
 		self.find_bar.hide()
-		self.view.grab_focus()
+		self.textview.grab_focus()
 
 	@action(_('Find Ne_xt'), accelerator='<Primary>G', alt_accelerator='F3') # T: Menu item
 	def find_next(self):
@@ -6437,7 +6437,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Replace...'), '<Primary>H', menuhints='edit') # T: Menu item
 	def show_find_and_replace(self):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
-		dialog = FindAndReplaceDialog.unique(self, self, self.view)
+		dialog = FindAndReplaceDialog.unique(self, self, self.textview)
 		dialog.set_from_buffer()
 		dialog.present()
 
@@ -6462,7 +6462,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
 		else:
 			logger.debug('Switching to custom font implicitly because of zoom action')
-			font = self.view.style.font_desc
+			font = self.textview.style.font_desc
 			self.text_style['TextView']['font'] = font.to_string()
 
 		font_size = font.get_size()
@@ -6472,7 +6472,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			font_size_new = font_size + plus_or_minus * 1024
 			font.set_size(font_size_new)
 		self.text_style['TextView']['font'] = font.to_string()
-		self.view.modify_font(font)
+		self.textview.modify_font(font)
 
 		self.text_style.write()
 
@@ -6491,10 +6491,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if font.equal(default_font):
 			self.text_style['TextView']['font'] = None
-			self.view.modify_font(None)
+			self.textview.modify_font(None)
 		else:
 			self.text_style['TextView']['font'] = font.to_string()
-			self.view.modify_font(font)
+			self.textview.modify_font(font)
 
 		self.text_style.write()
 
@@ -6925,7 +6925,7 @@ class InsertLinkDialog(Dialog):
 		# Get link and text from the text buffer
 		href, text = '', ''
 
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		if buffer.get_has_selection():
 			buffer.strip_selection()
 			link = buffer.get_has_link_selection()
@@ -6985,7 +6985,7 @@ class InsertLinkDialog(Dialog):
 
 		text = self.form['text'] or href
 
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		with buffer.user_action:
 			if self._selection_bounds:
 				start, end = list(map(
@@ -7269,7 +7269,7 @@ class WordCountDialog(Dialog):
 
 			return lines, words, chars, non_space_chars
 
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffercount = count(buffer, buffer.get_bounds())
 		insert = buffer.get_iter_at_mark(buffer.get_insert())
 		start = buffer.get_iter_at_line(insert.get_line())

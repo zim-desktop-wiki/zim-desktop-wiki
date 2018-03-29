@@ -258,7 +258,7 @@ class TestSavingPages(tests.TestCase):
 	def testClose(self):
 		# Specific bug found when trying to close the page while auto-save
 		# in progress, test it here
-		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.mainwindow.pageview.textview.get_buffer().insert_at_cursor('...')
 		self.mainwindow.pageview._save_page_handler.try_save_page()
 		self.assertTrue(self.mainwindow.page.modified)
 		self.mainwindow.close()
@@ -267,7 +267,7 @@ class TestSavingPages(tests.TestCase):
 	def testCloseByDestroy(self):
 		# Specific bug found when trying to close the page while auto-save
 		# in progress, test it here
-		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.mainwindow.pageview.textview.get_buffer().insert_at_cursor('...')
 		self.mainwindow.pageview._save_page_handler.try_save_page()
 		self.assertTrue(self.mainwindow.page.modified)
 		self.mainwindow.destroy()

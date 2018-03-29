@@ -18,7 +18,7 @@ class TestLineSorterWindowExtension(tests.TestCase):
 		plugin = LineSorterPlugin()
 		window = setUpMainWindow(self.setUpNotebook())
 		self.extension = LineSorterPageViewExtension(plugin, window.pageview)
-		self.buffer = window.pageview.view.get_buffer()
+		self.buffer = window.pageview.textview.get_buffer()
 
 	def set_text(self, text):
 		self.buffer.set_text(text)
