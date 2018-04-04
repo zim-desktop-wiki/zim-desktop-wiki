@@ -14,4 +14,4 @@ Obvious future improvement would be to have a page "type" and apply different co
 
 Another future improvement would be the ability to directly add nodes to the link map. This would allow the map to be used in the style of a "mind map" basically drawing a graph of related nodes and then, per node fill in any extra information in the page for that node.
 
-**Dependencies:** This plugin requires GraphViz to be installed. In specific the "dot" command should be available in the system path.
+**Dependencies:** This plugin requires GraphViz to be installed as well as the "xdot" program.

@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-04-28 22:03+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2018-02-10 05:23+0000\n"
+"Last-Translator: Luis F. Uceta <Unknown>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2017-07-10 08:13+0000\n"
-"X-Generator: Launchpad (build 18419)\n"
+"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
+"X-Generator: Launchpad (build 18571)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -38,7 +38,7 @@ msgstr ""
 #: zim/applications.py:278
 #, python-format
 msgid "Failed running: %s"
-msgstr "Error al completar el %s"
+msgstr "No se pudo ejecutar %s"
 
 #. label for default webbrowser |
 #. label for default application
@@ -483,7 +483,7 @@ msgstr "_Barra de herramientas"
 #. Menu title
 #: zim/gui/__init__.py:74
 msgid "_Checkbox"
-msgstr ""
+msgstr "_Casilla"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:97
@@ -869,6 +869,7 @@ msgstr ""
 "  Juan Ignacio Pucheu https://launchpad.net/~jpucheu\n"
 "  Lex https://launchpad.net/~lex-exe\n"
 "  Lisandro https://launchpad.net/~correo-lisandrodemarchi\n"
+"  Luis F. Uceta https://launchpad.net/~uzluisf\n"
 "  Mariano Draghi https://launchpad.net/~chaghi\n"
 "  Mariano Esteban https://launchpad.net/~mesteban\n"
 "  Monkey https://launchpad.net/~monkey-libre\n"
@@ -937,7 +938,7 @@ msgstr "_Historial"
 
 #: zim/gui/__init__.py:2125
 msgid "_Page Hierarchy"
-msgstr ""
+msgstr "_Jerarquía de Página"
 
 #. Menu item
 #: zim/gui/__init__.py:2166
@@ -1480,23 +1481,23 @@ msgstr "_Abrir"
 #. popup menu menuitem
 #: zim/gui/pageview.py:5811
 msgid "Check Checkbox '>'"
-msgstr ""
+msgstr "Seleccionar Casilla '>'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:5812
 msgid "Check Checkbox 'X'"
-msgstr ""
+msgstr "Seleccionar Casilla 'X'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:5813
 msgid "Check Checkbox 'V'"
-msgstr ""
+msgstr "Seleccionar Casilla 'V'"
 
 #. popup menu menuitem |
 #. Menu item
 #: zim/gui/pageview.py:5814 zim/gui/pageview.py:5856
 msgid "Un-check Checkbox"
-msgstr ""
+msgstr "Deseleccionar Casilla"
 
 #. Menu item
 #: zim/gui/pageview.py:5826
@@ -1541,7 +1542,7 @@ msgstr "Alternar cruz"
 #. Menu item
 #: zim/gui/pageview.py:5880
 msgid "Toggle Checkbox '>'"
-msgstr ""
+msgstr "Alternar estado de Casilla '>'"
 
 #. Menu item
 #: zim/gui/pageview.py:5889
@@ -1556,7 +1557,7 @@ msgstr "_Fecha y hora..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:5949
 msgid "Horizontal _Line"
-msgstr ""
+msgstr "Línea_Horizontal"
 
 #. Menu item
 #: zim/gui/pageview.py:5963
@@ -2476,7 +2477,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/bookmarksbar.py:32
 msgid "BookmarksBar"
-msgstr ""
+msgstr "Barra de Marcadores"
 
 #. plugin description
 #: zim/plugins/bookmarksbar.py:33
@@ -2490,7 +2491,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:41
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "Máximo número de marcadores"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:42
@@ -2505,7 +2506,7 @@ msgstr "Añadir nuevos marcadores al inicio de la barra"
 #. Menu title
 #: zim/plugins/bookmarksbar.py:87
 msgid "Book_marks"
-msgstr ""
+msgstr "Marcadores"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:135 zim/plugins/bookmarksbar.py:197
@@ -2518,7 +2519,7 @@ msgstr "Añadir marcador"
 #: zim/plugins/bookmarksbar.py:166 zim/plugins/bookmarksbar.py:170
 #: zim/plugins/bookmarksbar.py:174
 msgid "_Run bookmark"
-msgstr ""
+msgstr "_Ejecutar marcador"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:185
@@ -2527,7 +2528,7 @@ msgstr "Marcadores"
 
 #: zim/plugins/bookmarksbar.py:220
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "Agregar marcador/Mostrar configuraciones"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:332
@@ -2758,7 +2759,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/ditaaeditor.py:39
 msgid "Ditaa"
-msgstr ""
+msgstr "Ditaa"
 
 #. menu item
 #: zim/plugins/ditaaeditor.py:41
@@ -2828,7 +2829,7 @@ msgstr "Esta extensión provee un editor de gráficos basado en GNU R.\n"
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:42
 msgid "GNU _R Plot"
-msgstr ""
+msgstr "GNU _R Plot"
 
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:44
@@ -2926,22 +2927,22 @@ msgstr "Por favor, seleccione más de una línea de texto primero."
 #. Menu item
 #: zim/plugins/linesorter.py:150
 msgid "_Move Line Up"
-msgstr ""
+msgstr "_Mueva Línea hacia arriba"
 
 #. Menu item
 #: zim/plugins/linesorter.py:156
 msgid "_Move Line Down"
-msgstr ""
+msgstr "_Mueva Línea hacia abajo"
 
 #. Menu item
 #: zim/plugins/linesorter.py:162
 msgid "_Duplicate Line"
-msgstr ""
+msgstr "_Duplicar Línea"
 
 #. Menu item
 #: zim/plugins/linesorter.py:174
 msgid "_Remove Line"
-msgstr ""
+msgstr "_Remover Línea"
 
 #. plugin name
 #: zim/plugins/linkmap.py:22
@@ -2974,12 +2975,12 @@ msgstr "Mostrar Mapa de Enlaces"
 #. plugin name
 #: zim/plugins/osx_menubar.py:72
 msgid "macOS Menubar"
-msgstr ""
+msgstr "Barra de Menú macOS"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
+msgstr "Este plugin provee zim con una barra de menú macOS."
 
 #. plugin name
 #: zim/plugins/printtobrowser.py:26
@@ -3158,7 +3159,7 @@ msgstr "Ocurrió un error al ejecutar «%s»"
 #: zim/plugins/sequencediagrameditor.py:21
 #: zim/plugins/sequencediagrameditor.py:32
 msgid "Insert Sequence Diagram"
-msgstr ""
+msgstr "Insertar Diagrama de Secuencia"
 
 #. plugin description
 #: zim/plugins/sequencediagrameditor.py:22
@@ -3166,6 +3167,9 @@ msgid ""
 "This plugin provides a sequence diagram editor for zim based on seqdiag.\n"
 "It allows easy editing of sequence diagrams.\n"
 msgstr ""
+"Este plugin provee zim con un editor de diagrama de sequencia basado en "
+"seqdiag.\n"
+"Permite editar diagramas de sequencias fácilmente.\n"
 
 #. menu item
 #: zim/plugins/sequencediagrameditor.py:31
@@ -3310,6 +3314,9 @@ msgid ""
 "Exporting them to various formats (i.e. HTML/LaTeX) completes the feature "
 "set.\n"
 msgstr ""
+"Con este plugin, puedes insertar una 'Tabla' en la página wiki. Las tablas "
+"serán mostradas como widgets GTK TreeView. \n"
+"También pueden ser exportadas en varios formatos (i.e.HTML/LaTeX).\n"
 
 #. option value
 #: zim/plugins/tableeditor.py:103
@@ -3457,7 +3464,7 @@ msgstr "Eliminar columna"
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:1127
 msgid "Move column ahead"
-msgstr ""
+msgstr "Mover columna hacia adelante"
 
 #. hoover tooltip
 #: zim/plugins/tableeditor.py:1128
@@ -3546,12 +3553,12 @@ msgstr "Ordenar alfabéticamente"
 #. Checkbox in task list - hides parent items
 #: zim/plugins/tasklist/gui.py:34
 msgid "Show Tasks as Flat List"
-msgstr ""
+msgstr "Mostrar Tareas como un Lista Plana"
 
 #. Checkbox in task list - this options hides tasks that are not yet started
 #: zim/plugins/tasklist/gui.py:41 zim/plugins/tasklist/gui.py:145
 msgid "Only Show Active Tasks"
-msgstr ""
+msgstr "Mostrar Sólo Tareas Activas"
 
 #. label for filtering/searching tasks |
 #. Input label
@@ -3599,12 +3606,12 @@ msgstr "Fecha"
 #. start date for task
 #: zim/plugins/tasklist/gui.py:729
 msgid "Start"
-msgstr ""
+msgstr "Iniciar"
 
 #. due date for task
 #: zim/plugins/tasklist/gui.py:731
 msgid "Due"
-msgstr ""
+msgstr "Fecha límite"
 
 #. plugin description
 #: zim/plugins/tasklist/__init__.py:41
@@ -3653,12 +3660,12 @@ msgstr "como fecha de fin de las tareas"
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:63
 msgid "Section(s) to index"
-msgstr ""
+msgstr "Sección(es) a índice"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:65
 msgid "Section(s) to ignore"
-msgstr ""
+msgstr "Sección(es) para ignorar"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:71
@@ -3820,7 +3827,7 @@ msgstr "Git"
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:285
 msgid "Fossil"
-msgstr ""
+msgstr "Fósil"
 
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:889
@@ -3960,29 +3967,29 @@ msgstr "No se pudo encontrar la plantilla \"%s\""
 
 #: data/templates/wiki/Default.txt:2 data/templates/wiki/Journal.txt:22
 msgid "Created"
-msgstr ""
+msgstr "Creado"
 
 #: data/templates/html/Default.html:46 data/templates/html/Default.html:48
 #: data/templates/html/Default_with_index.html:55
 #: data/templates/html/Default_with_index.html:57
 msgid "Prev"
-msgstr ""
+msgstr "Previo"
 
 #: data/templates/html/Default.html:58 data/templates/html/Default.html:60
 #: data/templates/html/Default_with_index.html:67
 #: data/templates/html/Default_with_index.html:69
 msgid "Next"
-msgstr ""
+msgstr "Siguiente"
 
 #: data/templates/html/Default.html:82
 #: data/templates/html/Default_with_index.html:97
 msgid "Backlinks:"
-msgstr ""
+msgstr "Enlazado por:"
 
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
-msgstr ""
+msgstr "Adjuntos"
 
 #~ msgid "Slow file system"
 #~ msgstr "Sistema de archivos lento"

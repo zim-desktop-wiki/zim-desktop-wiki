@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -13,8 +12,8 @@ from zim.gui.preferencesdialog import PreferencesDialog, PluginConfigureDialog
 
 
 def MyWindow(config):
-	import gtk
-	window = gtk.Window()
+	from gi.repository import Gtk
+	window = Gtk.Window()
 	window.__pluginmanager__ = PluginManager(config)
 	return window
 
@@ -26,36 +25,36 @@ class TestPreferencesDialog(tests.TestCase):
 		preferences = config.get_config_dict('<profile>/preferences.conf')
 
 		dialog = PreferencesDialog(MyWindow(config), config)
-		self.assertEquals(dialog.forms['Interface']['toggle_on_ctrlspace'], False)
+		self.assertEqual(dialog.forms['Interface']['toggle_on_ctrlspace'], False)
 		dialog.assert_response_ok()
-		self.assertEquals(preferences['GtkInterface']['toggle_on_ctrlspace'], False)
+		self.assertEqual(preferences['GtkInterface']['toggle_on_ctrlspace'], False)
 
 		dialog = PreferencesDialog(MyWindow(config), config)
 		dialog.forms['Interface']['toggle_on_ctrlspace'] = True
 		dialog.assert_response_ok()
-		self.assertEquals(preferences['GtkInterface']['toggle_on_ctrlspace'], True)
+		self.assertEqual(preferences['GtkInterface']['toggle_on_ctrlspace'], True)
 
 	def testChangeFont(self):
 		config = VirtualConfigManager()
 		preferences = config.get_config_dict('<profile>/preferences.conf')
 
 		text_style = config.get_config_dict('<profile>/style.conf')
-		text_style['TextView'].setdefault('font', None, basestring)
+		text_style['TextView'].setdefault('font', None, str)
 		text_style['TextView']['font'] = 'Sans 12'
 
 		dialog = PreferencesDialog(MyWindow(config), config)
-		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
+		self.assertEqual(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.assert_response_ok()
 		self.assertEqual(text_style['TextView']['font'], 'Sans 12')
-		self.assertFalse(any(['use_custom_font' in d for d in preferences.values()]))
+		self.assertFalse(any(['use_custom_font' in d for d in list(preferences.values())]))
 
 		text_style['TextView']['font'] = 'Sans 12'
 		dialog = PreferencesDialog(MyWindow(config), config)
-		self.assertEquals(dialog.forms['Interface']['use_custom_font'], True)
+		self.assertEqual(dialog.forms['Interface']['use_custom_font'], True)
 		dialog.forms['Interface']['use_custom_font'] = False
 		dialog.assert_response_ok()
 		self.assertEqual(text_style['TextView']['font'], None)
-		self.assertFalse(any(['use_custom_font' in d for d in preferences.values()]))
+		self.assertFalse(any(['use_custom_font' in d for d in list(preferences.values())]))
 
 	def testConfigurePlugin(self):
 		config = VirtualConfigManager()

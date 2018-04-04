@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -180,11 +179,11 @@ class FallbackObject(CustomObjectClass):
 		self.buffer = None
 
 	def get_widget(self):
-		import gtk
+		from gi.repository import Gtk
 		from zim.gui.objectmanager import FallbackObjectWidget
 
 		if not self.buffer:
-			self.buffer = gtk.TextBuffer()
+			self.buffer = Gtk.TextBuffer()
 			self.buffer.set_text(self._data)
 			self.buffer.connect('modified-changed', self.on_modified_changed)
 			self.buffer.set_modified(False)
@@ -195,8 +194,8 @@ class FallbackObject(CustomObjectClass):
 
 	def get_data(self):
 		if self.buffer:
-			bounds = self.buffer.get_bounds()
-			return self.buffer.get_text(bounds[0], bounds[1])
+			start, end = self.buffer.get_bounds()
+			return start.get_text(end)
 		else:
 			return self._data
 
@@ -215,4 +214,3 @@ class FallbackObject(CustomObjectClass):
 	def set_label(self, label):
 		'''Sets label at the top area of widget.'''
 		self.label.set_text(label)
-

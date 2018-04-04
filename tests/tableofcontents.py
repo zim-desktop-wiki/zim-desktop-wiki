@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 
 import tests
 
@@ -22,12 +21,12 @@ class TestTableOfContents(tests.TestCase):
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['floating'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionFloating)
+		self.assertEqual(plugin.extension_classes['MainWindow'], ToCMainWindowExtensionFloating)
 		plugin.extend(mainwindow)
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionFloating)
+		self.assertIsInstance(ext[0], ToCMainWindowExtensionFloating)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -37,12 +36,12 @@ class TestTableOfContents(tests.TestCase):
 
 
 		plugin.preferences['floating'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
+		self.assertEqual(plugin.extension_classes['MainWindow'], ToCMainWindowExtensionEmbedded)
 		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
+		self.assertIsInstance(ext[0], ToCMainWindowExtensionEmbedded)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -132,13 +131,13 @@ sdfsdf
 		column = widget.treeview.get_column(0)
 		model = widget.treeview.get_model()
 		def activate_row(m, path, i):
-			#~ print ">>>", path
+			#~ print(">>>", path)
 			widget.treeview.row_activated(path, column)
 				# TODO assert something here
 
 			widget.select_section(pageview.view.get_buffer(), path)
 
-			menu = gtk.Menu()
+			menu = Gtk.Menu()
 			widget.treeview.get_selection().select_path(path)
 			widget.on_populate_popup(widget.treeview, menu)
 				# TODO assert something here

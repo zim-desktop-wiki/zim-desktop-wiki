@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
 
 import os
 import sys
-import gtk
+from gi.repository import Gtk
 
 from zim.gui.applications import *
 from zim.notebook import Path
@@ -27,9 +26,9 @@ class TestXDGMimeInfo(tests.TestCase):
 		for i, filename in enumerate(dir.list()):
 			file = dir.file(filename)
 			icon = get_mime_icon(file, 128)
-			self.assertIsInstance(icon, gtk.gdk.Pixbuf)
+			self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
 			desc = get_mime_description(file.get_mimetype())
-			self.assertIsInstance(desc, basestring)
+			self.assertIsInstance(desc, str)
 			self.assertTrue(len(desc) > 5)
 
 		self.assertTrue(i > 3)
@@ -82,7 +81,7 @@ class TestApplications(tests.TestCase):
 			self.assertEqual(result, wanted)
 
 			cwd, argv = entry._checkargs(None, args)
-			self.assertEqual(tuple(a.decode(zim.fs.ENCODING) for a in argv), wanted)
+			self.assertEqual(argv, wanted)
 
 		entry['Desktop Entry']['Icon'] = 'xxx'
 		entry.file = File('/foo.desktop')
@@ -102,15 +101,13 @@ class TestApplications(tests.TestCase):
 	def testPythonCmd(self):
 		app = Application('foo.py')
 		cwd, argv = app._checkargs(None, ())
-		exe = argv[0].decode(zim.fs.ENCODING)
-		cmd = argv[1].decode(zim.fs.ENCODING)
-		self.assertEqual(exe, sys.executable)
-		self.assertEqual(cmd, 'foo.py')
+		self.assertEqual(argv[0], sys.executable)
+		self.assertEqual(argv[1], 'foo.py')
 
 		sys.frozen = True
 		try:
 			cwd, argv = app._checkargs(None, ())
-			self.assertEqual(argv, ['foo.py'])
+			self.assertEqual(argv, ('foo.py',))
 		except:
 			del sys.frozen
 			raise

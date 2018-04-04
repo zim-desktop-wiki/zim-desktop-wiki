@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-04-28 22:05+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2018-03-10 17:26+0000\n"
+"Last-Translator: Mukli Krisztián <Unknown>\n"
 "Language-Team: Zim <msv@titok.info>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2017-07-10 08:13+0000\n"
-"X-Generator: Launchpad (build 18419)\n"
+"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
+"X-Generator: Launchpad (build 18571)\n"
 "Language: hu\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -94,7 +94,7 @@ msgstr "Fájl nem írható: %s"
 #: zim/fs.py:1612
 #, python-format
 msgid "File changed on disk: %s"
-msgstr "Az alábbi fájl megváltozott időközben: %s"
+msgstr "Az alábbi fájl megváltozott: %s"
 
 #. label to customize 'open with' menu
 #: zim/gui/applications.py:678
@@ -104,7 +104,7 @@ msgstr "Testreszabás..."
 #. message when no applications in "Open With" menu
 #: zim/gui/applications.py:704
 msgid "No Applications Found"
-msgstr "Nem találtam alkalmazásokat"
+msgstr "Alkalmazások nem találhatóak"
 
 #. menu item to open a file with an application, %s is the app name
 #: zim/gui/applications.py:733
@@ -2465,7 +2465,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:41
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "Könyvjelzők maximális száma"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:42
@@ -2480,7 +2480,7 @@ msgstr "Új könyvjelző hozzáadása az eszköztár elejéhez."
 #. Menu title
 #: zim/plugins/bookmarksbar.py:87
 msgid "Book_marks"
-msgstr ""
+msgstr "_Könyvjelzők"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:135 zim/plugins/bookmarksbar.py:197
@@ -2493,7 +2493,7 @@ msgstr "Könyvjelző hozzáadása"
 #: zim/plugins/bookmarksbar.py:166 zim/plugins/bookmarksbar.py:170
 #: zim/plugins/bookmarksbar.py:174
 msgid "_Run bookmark"
-msgstr ""
+msgstr "Könyvjelző _futtatása"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:185
@@ -2502,7 +2502,7 @@ msgstr "Könyvjelzők"
 
 #: zim/plugins/bookmarksbar.py:220
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "Könyvjelző hozzáadása/Beállítások megjelenítése"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:332
@@ -2898,22 +2898,22 @@ msgstr "Jelölj ki több sort."
 #. Menu item
 #: zim/plugins/linesorter.py:150
 msgid "_Move Line Up"
-msgstr ""
+msgstr "Sor mozgatása fel"
 
 #. Menu item
 #: zim/plugins/linesorter.py:156
 msgid "_Move Line Down"
-msgstr ""
+msgstr "Sor mozgatása le"
 
 #. Menu item
 #: zim/plugins/linesorter.py:162
 msgid "_Duplicate Line"
-msgstr ""
+msgstr "Sor duplikálása"
 
 #. Menu item
 #: zim/plugins/linesorter.py:174
 msgid "_Remove Line"
-msgstr ""
+msgstr "Sor eltávolítása"
 
 #. plugin name
 #: zim/plugins/linkmap.py:22
@@ -2945,12 +2945,12 @@ msgstr "Hivatkozás-térkép"
 #. plugin name
 #: zim/plugins/osx_menubar.py:72
 msgid "macOS Menubar"
-msgstr ""
+msgstr "macOS Menubar"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
+msgstr "Ez a plugin macOS menüt ad a Zimhez."
 
 #. plugin name
 #: zim/plugins/printtobrowser.py:26

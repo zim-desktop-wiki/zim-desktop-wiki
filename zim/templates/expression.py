@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -291,7 +290,7 @@ class ExpressionFunctionCall(Expression):
 		'''Find a suitable wrapper that exposes safe methods for
 		a given object
 		'''
-		if isinstance(obj, basestring):
+		if isinstance(obj, str):
 			return ExpressionStringObject(obj)
 		elif isinstance(obj, (dict, collections.Mapping)):
 			return ExpressionDictObject(obj)

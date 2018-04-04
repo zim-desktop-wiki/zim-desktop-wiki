@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-04-28 22:01+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2018-01-09 19:58+0000\n"
+"Last-Translator: jo cun <cipher2@163.com>\n"
 "Language-Team: Simplified Chinese <zh_CN@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Launchpad-Export-Date: 2017-07-10 08:12+0000\n"
-"X-Generator: Launchpad (build 18419)\n"
+"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
+"X-Generator: Launchpad (build 18571)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -313,7 +313,7 @@ msgstr "选择导出的格式"
 #. Option in drop down menu to specify another file
 #: zim/gui/exportdialog.py:210
 msgid "Other..."
-msgstr "其他..."
+msgstr "其它..."
 
 #. Input label in the export dialog |
 #. label in "insert date" dialog
@@ -329,7 +329,7 @@ msgstr "模板"
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:226
 msgid "Link files under document root with full file path"
-msgstr "对文档目录下的文件使用完整路径链接"
+msgstr ""
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:227
@@ -381,7 +381,7 @@ msgstr "出现了 %(n_error)i 个错误和 %(n_warning)i 个警告, 请查看日
 #: zim/gui/exportdialog.py:420
 #, python-format
 msgid "%i errors occurred, see log"
-msgstr "出现 %i 个错误"
+msgstr "出现 %i 个错误，请查看日志"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:423
@@ -846,6 +846,7 @@ msgstr ""
 "  ben https://launchpad.net/~duyujie\n"
 "  forget https://launchpad.net/~yangchguo\n"
 "  hutushen222 https://launchpad.net/~hutushen222\n"
+"  jo cun https://launchpad.net/~cipher2\n"
 "  lhquark https://launchpad.net/~lhquark\n"
 "  piugkni zhang https://launchpad.net/~flamefist-163\n"
 "  qinghao https://launchpad.net/~qingxianhao\n"

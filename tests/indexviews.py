@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
+
+from gi.repository import Gtk
 
 import sqlite3
 
@@ -72,22 +73,30 @@ TREEPATHS_TAGS_12 = (
 )
 
 _SQL = None
-def new_test_database():
-	global _SQL
-	if _SQL is None:
-		folder = MockFolder('/mock/notebook/')
-		indexer = buildUpdateIter(folder)
-		for path, text in FILES:
-			folder.file(path).write(text)
-		indexer.check_and_update()
-		lines = list(indexer.db.iterdump())
-		_SQL = '\n'.join(lines)
-		indexer.db.close()
+def new_test_database(files=FILES):
+	if files == FILES:
+		global _SQL
+		if _SQL is None:
+			_SQL = _get_sql(FILES)
+		sql = _SQL
+	else:
+		sql = _get_sql(files)
 
 	db = sqlite3.Connection(':memory:')
 	db.row_factory = sqlite3.Row
-	db.executescript(_SQL)
+	db.executescript(sql)
 	return db
+
+
+def _get_sql(files):
+	folder = MockFolder('/mock/notebook/')
+	indexer = buildUpdateIter(folder)
+	for path, text in files:
+		folder.file(path).write(text)
+	indexer.check_and_update()
+	lines = list(indexer.db.iterdump())
+	indexer.db.close()
+	return '\n'.join(lines)
 
 
 #class TestMemoryIndex(tests.TestCase):
@@ -122,33 +131,55 @@ class TestPagesView(tests.TestCase):
 		db = new_test_database()
 		pages = PagesView(db)
 
-		pagelist = [p.name for p in pages.walk()]
-		self.assertIn('Bar', pagelist)
-		self.assertIn('Foo', pagelist)
-		self.assertIn('Foo:Child1:GrandChild1', pagelist)
-		self.assertNotIn('', pagelist)
+		names = [p.name for p in pages.walk()]
+		self.assertIn('Bar', names)
+		self.assertIn('Foo', names)
+		self.assertIn('Foo:Child1:GrandChild1', names)
+		self.assertNotIn('', names)
 
-		self.assertEqual(len(pagelist), pages.n_all_pages())
+		self.assertEqual(len(names), pages.n_all_pages())
 
-		last = len(pagelist) - 1
-		for i, name in enumerate(pagelist):
+		last = len(names) - 1
+		for i, name in enumerate(names):
 			p = pages.get_previous(Path(name))
 			if i > 0:
 				self.assertIsNotNone(p, 'Missing prev for %s' % name)
-				self.assertEqual(p.name, pagelist[i - 1])
+				self.assertEqual(p.name, names[i - 1])
 			else:
 				self.assertIsNone(p)
 
 			n = pages.get_next(Path(name))
 			if i < last:
 				self.assertIsNotNone(n, 'Missing next for %s' % name)
-				self.assertEqual(n.name, pagelist[i + 1])
+				self.assertEqual(n.name, names[i + 1])
 			else:
 				self.assertIsNone(n)
 
 		section = Path('Foo')
 		for page in pages.walk(section):
 			self.assertTrue(page.ischild(section))
+
+	def testPreviousAndNext(self):
+		# Mix of caps and small letters to trigger issues with sorting
+		names = ('AAA', 'BBB', 'ccc', 'ddd', 'EEE', 'FFF', 'ggg', 'hhh')
+		db = new_test_database((name + '.txt', 'Test 123\n') for name in names)
+		pages = PagesView(db)
+
+		last = len(names) - 1
+		for i, name in enumerate(names):
+			p = pages.get_previous(Path(name))
+			if i > 0:
+				self.assertIsNotNone(p, 'Missing prev for %s' % name)
+				self.assertEqual(p.name, names[i - 1])
+			else:
+				self.assertIsNone(p)
+
+			n = pages.get_next(Path(name))
+			if i < last:
+				self.assertIsNotNone(n, 'Missing next for %s' % name)
+				self.assertEqual(n.name, names[i + 1])
+			else:
+				self.assertIsNone(n)
 
 	def testRecentChanges(self):
 		db = new_test_database()
@@ -227,8 +258,8 @@ class TestPagesView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
 
 		model = PagesTreeModelMixin(mockindex)
 
@@ -236,9 +267,9 @@ class TestPagesView(tests.TestCase):
 		for name, treepath in TREEPATHS:
 			myiter = model.get_mytreeiter(treepath)
 			self.assertEqual(myiter.row['name'], name)
-			self.assertEqual(myiter.treepath, treepath)
+			self.assertEqual(myiter.treepath, Gtk.TreePath(treepath))
 			my_treepath = model.find(Path(name))
-			self.assertEqual(my_treepath, treepath)
+			self.assertEqual(my_treepath, Gtk.TreePath(treepath))
 
 		# Test non-existing
 		p = model.get_mytreeiter((1, 2, 3, 4, 5))
@@ -308,20 +339,19 @@ class TestTagsView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
- 		mockindex.update_iter.tags = tests.MockObject()
-
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter.tags = tests.MockObject()
 		model = TaggedPagesTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 
 		# Test all pages
 		for name, treepath in TREEPATHS_TAGGED_12:
 			myiter = model.get_mytreeiter(treepath)
 			self.assertEqual(myiter.row['name'], name)
-			self.assertEqual(myiter.treepath, treepath)
+			self.assertEqual(myiter.treepath, Gtk.TreePath(treepath))
 
 			my_treepaths = model.find_all(Path(name))
-			self.assertIn(treepath, my_treepaths)
+			self.assertIn(Gtk.TreePath(treepath), my_treepaths)
 			for treepath in my_treepaths:
 				myiter = model.get_mytreeiter(treepath)
 				self.assertEqual(myiter.row['name'], name)
@@ -339,9 +369,9 @@ class TestTagsView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
- 		mockindex.update_iter.tags = tests.MockObject()
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter.tags = tests.MockObject()
 
 		model = TagsTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 		tags = TagsView(db)
@@ -350,14 +380,14 @@ class TestTagsView(tests.TestCase):
 		for name, treepath in TREEPATHS_TAGS_12:
 			myiter = model.get_mytreeiter(treepath)
 			self.assertEqual(myiter.row['name'], name)
-			self.assertEqual(myiter.treepath, treepath)
+			self.assertEqual(myiter.treepath, Gtk.TreePath(treepath))
 			if len(treepath) == 1:
 				tag = tags.lookup_by_tagname(name)
 				my_treepaths = model.find_all(tag)
 			else:
 				my_treepaths = model.find_all(Path(name))
 
-			self.assertIn(treepath, my_treepaths)
+			self.assertIn(Gtk.TreePath(treepath), my_treepaths)
 			for treepath in my_treepaths:
 				myiter = model.get_mytreeiter(treepath)
 				self.assertEqual(myiter.row['name'], name)

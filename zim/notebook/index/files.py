@@ -17,6 +17,7 @@ logger = logging.getLogger('zim.notebook.index')
 STATUS_UPTODATE = 0
 STATUS_CHECK = 1
 STATUS_NEED_UPDATE = 2
+STATUS_NEED_DELETION = 3
 
 TYPE_FOLDER = 1
 TYPE_FILE = 2
@@ -67,6 +68,8 @@ class FilesIndexer(SignalEmitter):
 			mtime TIMESTAMP,
 
 			index_status INTEGER DEFAULT 3
+
+			CONSTRAINT no_self_ref CHECK (parent <> id)
 		);
 		''')
 		row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
@@ -192,7 +195,7 @@ class FilesIndexer(SignalEmitter):
 		logger.debug('Index folder: %s', folder)
 		self.db.execute(
 			'UPDATE files SET index_status = ? WHERE parent = ?',
-			(STATUS_NEED_UPDATE, node_id)
+			(STATUS_NEED_DELETION, node_id)
 		)
 
 		children = {}
@@ -210,7 +213,10 @@ class FilesIndexer(SignalEmitter):
 				if child.mtime() == child_mtime:
 					self.set_node_uptodate(child_id, child_mtime)
 				else:
-					pass # leave the STATUS_NEED_UPDATE for next loop
+					self.db.execute(
+						'UPDATE files SET index_status = ? WHERE id = ?',
+						(STATUS_NEED_UPDATE, child_id)
+					)
 			else:
 				# new child
 				node_type = TYPE_FILE if isinstance(child, File) else TYPE_FOLDER
@@ -230,6 +236,16 @@ class FilesIndexer(SignalEmitter):
 						' VALUES (?, ?, ?, ?)',
 						(path, node_type, STATUS_NEED_UPDATE, node_id),
 					)
+
+		# Clean up nodes not found in listing
+		for child_id, child_type in self.db.execute(
+			'SELECT id, node_type FROM files WHERE parent=? AND index_status=?',
+			(node_id, STATUS_NEED_DELETION)
+		):
+			if child_type == TYPE_FOLDER:
+				self.delete_folder(child_id)
+			else:
+				self.delete_file(child_id)
 
 		self.set_node_uptodate(node_id, mtime)
 
@@ -254,6 +270,7 @@ class FilesIndexer(SignalEmitter):
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
 
 	def delete_folder(self, node_id):
+		assert node_id != 1, 'BUG: notebook folder went missing ?'
 		for child_id, child_type in self.db.execute(
 			'SELECT id, node_type FROM files WHERE parent == ?',
 			(node_id,)

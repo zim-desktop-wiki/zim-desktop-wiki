@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -19,7 +18,7 @@ class TestMainWindowExtension(tests.TestCase):
 	def runTest(self):
 		window = setUpMainWindow(self.setUpNotebook())
 		plugin = SourceViewPlugin()
-		extension = MainWindowExtension(plugin, window)
+		extension = SourceViewMainWindowExtension(plugin, window)
 
 		with tests.DialogContext(self.checkInsertCodeBlockDialog):
 			extension.insert_sourceview()
@@ -31,7 +30,8 @@ class TestMainWindowExtension(tests.TestCase):
 
 	def checkInsertCodeBlockDialog(self, dialog):
 		self.assertIsInstance(dialog, InsertCodeBlockDialog)
-		dialog.form['lang'] = LANGUAGES.keys()[0]
+		iter = dialog.combobox.get_model().get_iter('5:0')
+		dialog.combobox.set_active_iter(iter)
 		dialog.assert_response_ok()
 
 
@@ -48,5 +48,5 @@ def foo(a, b):
 		tree = ParseTree().fromstring(xml)
 		dumper = HtmlDumper(StubLinker())
 		html = dumper.dump(tree)
-		#~ print '>>', html
+		#~ print('>>', html)
 		self.assertIn('\tprint "FOO", a &gt;= b\n', html)

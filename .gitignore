@@ -1,5 +1,8 @@
 # Zim specific
 **/.zim
+tests/tmp/
+test_report.html
+test_times.csv
 locale/
 man/
 html/
@@ -13,6 +16,7 @@ tests/tmp/
 test_*
 coverage/
 
+
 # Temporary files to be ignored
 *.bak
 *.tmp
@@ -22,6 +26,7 @@ coverage/
 __pycache__/
 *.py[cod]
 *$py.class
+.pybuild/
 
 # C extensions
 *.so
@@ -88,3 +93,7 @@ ENV/
 
 # mkdocs documentation
 /site
+
+# debian pybuild
+.pybuild/
+debian/python-module-stampdir/

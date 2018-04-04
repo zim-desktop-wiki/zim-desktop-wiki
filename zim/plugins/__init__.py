@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -70,10 +69,10 @@ C{$XDG_DATA_HOME/zim/plugins} and all C{$XDG_DATA_DIRS/zim/plugins}
 are added to the search path for C{zim.plugins}.
 '''
 
-from __future__ import with_statement
 
 
-import gobject
+
+from gi.repository import GObject
 import types
 import os
 import sys
@@ -81,8 +80,7 @@ import logging
 import inspect
 import collections
 
-import zim.fs
-from zim.fs import Dir
+from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
 from zim.actions import action, toggle_action, get_gtk_actiongroup
@@ -112,7 +110,7 @@ for dir in data_dirs('plugins'):
 
 __path__.append(__path__.pop(0)) # reshuffle real module path to the end
 
-#~ print "PLUGIN PATH:", __path__
+#~ print("PLUGIN PATH:", __path__)
 
 
 PLUGIN_FOLDER = XDG_DATA_HOME.subdir('zim/plugins')
@@ -186,16 +184,16 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		# parameter determines what folders will considered when importing
 		# sub-modules of the this package once this module is loaded.
 		plugins = set() # THIS LINE IS REPLACED BY SETUP.PY - DON'T CHANGE IT
-		for dir in __path__:
-			dir = Dir(dir)
-			for candidate in dir.list(): # returns [] if dir does not exist
-				if candidate.startswith('_') or candidate == 'base':
+		for folder in [f for f in map(LocalFolder, __path__) if f.exists()]:
+			for child in folder:
+				name = child.basename
+				if name.startswith('_') or name == 'base':
 					continue
-				elif candidate.endswith('.py'):
-					plugins.add(candidate[:-3])
-				elif zim.fs.isdir(dir.path + '/' + candidate) \
-				and os.path.exists(dir.path + '/' + candidate + '/__init__.py'):
-					plugins.add(candidate)
+				elif isinstance(child, LocalFile) and name.endswith('.py'):
+					plugins.add(name[:-3])
+				elif isinstance(child, LocalFolder) \
+					and child.file('__init__.py').exists():
+						plugins.add(name)
 				else:
 					pass
 
@@ -241,7 +239,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		@returns: the plugin object
 		@raises Exception: when loading the plugin failed
 		'''
-		assert isinstance(name, basestring)
+		assert isinstance(name, str)
 		if name in self._plugins:
 			return self._plugins[name]
 
@@ -389,7 +387,7 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__signals__ = {
-		'extension-point-changed': (None, None, (basestring,))
+		'extension-point-changed': (None, None, (str,))
 	}
 
 	plugin_info = {}
@@ -452,11 +450,11 @@ class PluginClass(ConnectorMixin, SignalEmitter):
 				if len(pref) == 4:
 					key, type, label, default = pref
 					self.preferences.setdefault(key, default)
-					#~ print ">>>>", key, default, '--', self.preferences[key]
+					#~ print(">>>>", key, default, '--', self.preferences[key])
 				else:
 					key, type, label, default, check = pref
 					self.preferences.setdefault(key, default, check=check)
-					#~ print ">>>>", key, default, check, '--', self.preferences[key]
+					#~ print(">>>>", key, default, check, '--', self.preferences[key])
 
 		self.load_extensions_classes()
 
@@ -625,7 +623,7 @@ def extends(eklass, autoload=True):
 	automatically. This is used for extensions that are loaded on run
 	time using C{PluginClass.set_extension_class()}.
 	'''
-	if isinstance(eklass, basestring):
+	if isinstance(eklass, str):
 		name = eklass
 	else:
 		name = eklass.__name__
@@ -712,7 +710,7 @@ class ObjectExtension(SignalEmitter, ConnectorMixin):
 
 
 class WindowExtension(ObjectExtension):
-	'''Base class for extending gtk windows based on C{gtk.Window}
+	'''Base class for extending gtk windows based on C{Gtk.Window}
 
 	The main use of this base class it that it helps adding menu items
 	to the menubar and/or toolbar of the window (if it has any). To do this you need
@@ -730,9 +728,9 @@ class WindowExtension(ObjectExtension):
 	and toolbar. Is is a piece of XML that defines the position of the
 	now menu and toolbar items. Each new item should have a name
 	corresponding with a "action" method defined in the same class.
-	See documentation of C{gtk.UIManager} for the XML definition.
+	See documentation of C{Gtk.UIManager} for the XML definition.
 
-	@ivar window: the C{gtk.Window}
+	@ivar window: the C{Gtk.Window}
 
 	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
 	C{None} if the window does not maintain ui state
@@ -748,7 +746,7 @@ class WindowExtension(ObjectExtension):
 	def __init__(self, plugin, window):
 		'''Constructor
 		@param plugin: the plugin object to which this extension belongs
-		@param window: the C{gtk.Window} being extended
+		@param window: the C{Gtk.Window} being extended
 		'''
 		ObjectExtension.__init__(self, plugin, window)
 		self.window = window
@@ -762,7 +760,7 @@ class WindowExtension(ObjectExtension):
 			actiongroup = get_gtk_actiongroup(self)
 			if hasattr(self, 'uimanager_menu_labels'):
 				actiongroup.add_actions(
-					sorted((k, None, v) for k, v in self.uimanager_menu_labels.items())
+					sorted((k, None, v) for k, v in list(self.uimanager_menu_labels.items()))
 				)
 			self.window.uimanager.insert_action_group(actiongroup, 0)
 			self._uimanager_id = self.window.uimanager.add_ui_from_string(self.uimanager_xml)
@@ -781,10 +779,11 @@ class WindowExtension(ObjectExtension):
 		if hasattr(self, 'actiongroup') \
 		and self.actiongroup is not None:
 			self.window.uimanager.remove_action_group(self.actiongroup)
+			self.actiongroup = None
 
 
 class DialogExtension(WindowExtension):
-	'''Base class for extending gtk dialogs based on C{gtk.Dialog}'''
+	'''Base class for extending gtk dialogs based on C{Gtk.Dialog}'''
 
 	def __init__(self, plugin, window):
 		assert hasattr(window, 'action_area'), 'Not a dialog: %s' % window
@@ -795,14 +794,14 @@ class DialogExtension(WindowExtension):
 		'''Add a new button to the bottom area of the dialog
 		The button is placed left of the standard buttons like the
 		"OK" / "Cancel" or "Close" button of the dialog.
-		@param button: a C{gtk.Button} or similar widget
+		@param button: a C{Gtk.Button} or similar widget
 		'''
 		# This logic adds the button to the action area and places
 		# it left of the left most primary button by reshuffling all
 		# other buttons after adding the new one
 		#
 		# TODO: check if this works correctly in RTL configuration
-		self.window.action_area.pack_end(button, False) # puts button in right most position
+		self.window.action_area.pack_end(button, False, True, 0) # puts button in right most position
 		self._dialog_buttons.append(button)
 		buttons = [b for b in self.window.action_area.get_children()
 			if not self.window.action_area.child_get_property(b, 'secondary')]

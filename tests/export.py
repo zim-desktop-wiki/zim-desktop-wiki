@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
 import os
 
-import gtk
+from gi.repository import Gtk
 
 from functools import partial
 
@@ -226,9 +225,9 @@ class TestExportTemplateContext(tests.TestCase):
 			return param(self.context)
 
 		# Test context setup
-		self.assertIsInstance(get('generator.name'), basestring)
+		self.assertIsInstance(get('generator.name'), str)
 		self.assertTrue(get('generator.name').startswith('Zim'))
-		self.assertIsInstance(get('generator.user'), basestring)
+		self.assertIsInstance(get('generator.user'), str)
 
 		self.assertEqual(get('title'), 'Test Export')
 
@@ -262,8 +261,8 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertEqual(get('mypage.basename'), 'foo')
 
 		self.assertEqual(get('mypage.heading'), 'Foo')
-		self.assertIsInstance(get('mypage.content'), basestring)
-		self.assertIsInstance(get('mypage.body'), basestring)
+		self.assertIsInstance(get('mypage.content'), str)
+		self.assertIsInstance(get('mypage.body'), str)
 		#TODO self.assertIsInstance(get('mypage.meta'), dict)
 
 
@@ -285,9 +284,9 @@ class TestExportTemplateContext(tests.TestCase):
 		self.context['h2'] = headings[1]
 		self.assertEqual(get('h1.level'), 1)
 		self.assertEqual(get('h2.level'), 2)
-		self.assertIsInstance(get('h1.heading'), basestring)
-		self.assertIsInstance(get('h1.body'), basestring)
-		self.assertIsInstance(get('h1.content'), basestring)
+		self.assertIsInstance(get('h1.heading'), str)
+		self.assertIsInstance(get('h1.body'), str)
+		self.assertIsInstance(get('h1.content'), str)
 
 		# Test FileProxy
 		#				file
@@ -434,7 +433,7 @@ class TestExportFormat(object):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		i = 0
-		print ''
+		print('')
 		for template, file in list_templates(self.format):
 			#print 'Testing template: %s' % template
 			pages = AllPages(notebook) # TODO - sub-section ?
@@ -519,6 +518,20 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsNotNone(exp.format)
 		self.assertIsNotNone(exp.index_page)
 
+
+		## Full notebook, single page
+		cmd = ExportCommand('export')
+		cmd.parse_options(self.notebook.path,
+			'--format', 'markdown',
+			'--template', './tests/data/TestTemplate.html',
+			'--output', self.tmpdir.file('output.md').path,
+			'-s'
+		)
+		exp = cmd.get_exporter(None)
+		self.assertIsInstance(exp, SingleFileExporter)
+		self.assertIsInstance(exp.layout, SingleFileLayout)
+		self.assertIsInstance(exp.layout.file, File)
+
 		## Single page
 		cmd = ExportCommand('export')
 		cmd.parse_options(self.notebook.path, 'Foo:Bar',
@@ -601,7 +614,7 @@ class TestExportDialog(tests.TestCase):
 		dir = Dir(self.create_tmp_dir())
 		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
-		window = gtk.Window()
+		window = Gtk.Window()
 		window.config = tests.MockObject()
 		window.config.uistate = SectionedConfigDict()
 
@@ -677,7 +690,7 @@ class TestExportDialog(tests.TestCase):
 
 		file = log_context.file
 		self.assertTrue(file.exists())
-		#~ print ">>>\n", file.read(), "\n<<<"
+		#~ print(">>>\n", file.read(), "\n<<<")
 		self.assertTrue('Test export warning' in file.read())
 		self.assertFalse('Test export debug' in file.read())
 		self.assertFalse('Test foo' in file.read())

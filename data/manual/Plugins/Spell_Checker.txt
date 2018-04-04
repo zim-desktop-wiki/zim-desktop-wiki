@@ -11,8 +11,7 @@ To install "''gtkspellcheck''":
 * On Ubuntu or Debian systems installing the package "python-gtkspellcheck" will meet these dependencies.
 
 To install "''gtkspell''":
-* On Ubuntu or Debian systems installing the package "python-gtkspell" (or "python-gnome2-extras" on older releases) will meet these dependencies.
-* On Fedora systems, installing the package "gnome-python2-gtkspell" will meet these dependencies.
+* On Ubuntu or Debian systems installing the package "gir1.2-gtkspell3" will meet these dependencies.
 
 
 ===== Options =====

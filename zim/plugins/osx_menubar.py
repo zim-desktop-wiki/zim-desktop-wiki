@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -47,7 +46,7 @@ if False: #pragma: no cover
 
 		def __getattr__(self, name):
 			def method(*a):
-				print ">>> OSX call:", name, a
+				print(">>> OSX call:", name, a)
 			return method
 
 	if gtkosx_application is None:
@@ -85,7 +84,7 @@ class OSXmenubarPlugin(PluginClass):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class OSXMenuBarMainWindowExtension(WindowExtension):
 	# This object is created once for each "main window", this means once for
 	# each notebook opened in zim. If this is the first window, also do
 	# global intialization, else just capture the menubar and keep it ourselves.

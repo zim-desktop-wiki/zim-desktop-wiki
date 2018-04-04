@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2014 Andri Kusumah
@@ -7,7 +6,7 @@
 import time
 from platform import os
 
-import gtk
+from gi.repository import Gtk
 
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import action
@@ -130,7 +129,7 @@ This is a core plugin shipping with zim.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class ScreenshotMainWindowExtension(WindowExtension):
 	uimanager_xml = '''
 	<ui>
 		<menubar name='menubar'>
@@ -172,9 +171,9 @@ class InsertScreenshotDialog(Dialog):
 		self.app_window = window
 		self.screenshot_command = screenshot_command
 		if ScreenshotPicker.has_select_cmd(self.screenshot_command):
-			self.screen_radio = gtk.RadioButton(None,
+			self.screen_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(None,
 												_('Capture whole screen'))  # T: option in 'insert screenshot' dialog
-			self.select_radio = gtk.RadioButton(self.screen_radio,
+			self.select_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(self.screen_radio,
 												_('Select window or region'))  # T: option in 'insert screenshot' dialog
 			self.vbox.add(self.screen_radio)
 			self.vbox.add(self.select_radio)
@@ -182,15 +181,15 @@ class InsertScreenshotDialog(Dialog):
 		self.notebook = notebook
 		self.page = page
 		if ScreenshotPicker.has_delay_cmd(self.screenshot_command):
-			hbox = gtk.HBox()
+			hbox = Gtk.HBox()
 			self.vbox.add(hbox)
-			hbox.add(gtk.Label(_('Delay') + ': '))  # T: input in 'insert screenshot' dialog
-			self.time_spin = gtk.SpinButton()
+			hbox.add(Gtk.Label(label=_('Delay') + ': '))  # T: input in 'insert screenshot' dialog
+			self.time_spin = Gtk.SpinButton()
 			self.time_spin.set_range(0, 99)
 			self.time_spin.set_increments(1, 5)
 			self.time_spin.set_value(0)
 			hbox.add(self.time_spin)
-			hbox.add(gtk.Label(' ' + _('seconds')))  # T: label behind timer
+			hbox.add(Gtk.Label(label=' ' + _('seconds')))  # T: label behind timer
 
 	def do_response_ok(self):
 		tmpfile = TmpFile('insert-screenshot.png')

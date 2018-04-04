@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -19,7 +18,7 @@ class TestPrintToBrowser(tests.TestCase):
 			('3 + 4 =', '3 + 4 = 7'),
 			('3 + 4 = 1', '3 + 4 = 7'),
 			('3 + 4 = 1 ', '3 + 4 = 7 '),
-			('10 / 3 =', '10 / 3 = 3.33333333333'), # divide integers to float !
+			('10 / 3 =', '10 / 3 = 3.3333333333333335'), # divide integers to float !
 			('milage: 3 + 4 =', 'milage: 3 + 4 = 7'),
 			('3 + 4 = 7 + 0.5 =  ', '3 + 4 = 7 + 0.5 = 7.5'),
 			('''\
@@ -63,8 +62,8 @@ angle( exp( j*pi ) ) == pi
 # log(-1)**2 == -1*pow(pi,2)
 round( degrees(phase( e**(2j)))) == 115
 # sum( [ round(42 * exp(j*2*x*pi/4)) for x in range(4)] ) == 0
-oct(8) == '010'
-0x42-042-42 == -10
+oct(8) == '0o10'
+0x42-0o42-42 == -10
 # 1k == 1024
 # 1m == 2**20
 # 1g == 2**30
@@ -73,9 +72,8 @@ oct(8) == '010'
 '''.splitlines():
 			if test.startswith('#'):
 				continue
-			#~ print 'TESTING:', test
+			# print('TESTING:', test)
 			self.assertTrue(plugin.safe_eval(test))
 
 		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")') # global
 		self.assertRaises(Exception, plugin.process_text, 'self') # local
-

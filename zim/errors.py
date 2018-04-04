@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -137,11 +136,7 @@ class Error(Exception):
 			# else use class attribute
 
 	def __str__(self):
-		msg = self.__unicode__()
-		return msg.encode('utf-8')
-
-	def __unicode__(self):
-		msg = u'' + self.msg.strip()
+		msg = '' + self.msg.strip()
 		if self.description:
 			msg += '\n\n' + self.description.strip() + '\n'
 		return msg

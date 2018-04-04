@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -47,30 +46,30 @@ class TestOrderedDict(tests.TestCase):
 
 		self.assertIsInstance(repr(mydict), str)
 
-		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict.items()), items)
 		self.assertEqual(list(mydict), [i[0] for i in items])
-		self.assertEqual(mydict.keys(), [i[0] for i in items])
+		self.assertEqual(list(mydict.keys()), [i[0] for i in items])
 
 		mydict['bar'] = 'X'
 		mydict.setdefault('foo', 'dus')
 		items = [('foo', 1), ('bar', 'X'), ('baz', 3)]
-		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict.items()), items)
 		self.assertEqual(list(mydict), [i[0] for i in items])
-		self.assertEqual(mydict.keys(), [i[0] for i in items])
+		self.assertEqual(list(mydict.keys()), [i[0] for i in items])
 
 		del mydict['bar']
 		mydict['bar'] = 'Y'
 		items = [('foo', 1), ('baz', 3), ('bar', 'Y')]
-		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict.items()), items)
 		self.assertEqual(list(mydict), [i[0] for i in items])
-		self.assertEqual(mydict.keys(), [i[0] for i in items])
+		self.assertEqual(list(mydict.keys()), [i[0] for i in items])
 
 		mydict.pop('foo')
 		mydict.setdefault('foo', 'dus')
 		items = [('baz', 3), ('bar', 'Y'), ('foo', 'dus')]
-		self.assertEqual(mydict.items(), items)
+		self.assertEqual(list(mydict.items()), items)
 		self.assertEqual(list(mydict), [i[0] for i in items])
-		self.assertEqual(mydict.keys(), [i[0] for i in items])
+		self.assertEqual(list(mydict.keys()), [i[0] for i in items])
 
 
 class TestMovingWindowIterBuffer(tests.TestCase):

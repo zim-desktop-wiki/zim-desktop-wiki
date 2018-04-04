@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -48,10 +47,10 @@ if __name__ == '__main__':
 	passes = 1000
 	funcs = sorted([n for n in dir() if n.startswith('time')])
 
-	print "Rep: %i, Passes: %i" % (reps, passes)
-	print "Plan: %s" % ', '.join(funcs)
-	print ''
-	print "Func\tMin\tMax\tAvg [msec/pass]"
+	print("Rep: %i, Passes: %i" % (reps, passes))
+	print("Plan: %s" % ', '.join(funcs))
+	print('')
+	print("Func\tMin\tMax\tAvg [msec/pass]")
 
 	for func in funcs:
 		setupcode = "from __main__ import setup, %s; setup()" % func
@@ -61,12 +60,12 @@ if __name__ == '__main__':
 		try:
 			result = t.repeat(reps, passes)
 		except:
-			print "FAILED running %s" % func
+			print("FAILED running %s" % func)
 			t.print_exc()
 		else:
-			print "%s\t%.2f\t%.2f\t%.2f" % (
+			print("%s\t%.2f\t%.2f\t%.2f" % (
 				func,
 				(1E+3 * min(result) / passes),
 				(1E+3 * max(result) / passes),
 				(1E+3 * sum(result) / (reps * passes)),
-			)
+			))

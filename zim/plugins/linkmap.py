@@ -1,10 +1,12 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin showing a map of links between pages based on GraphViz'''
 
-import gtk
+import re
+import ast
+
+from gi.repository import Gtk
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.actions import action
@@ -12,8 +14,11 @@ from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
 from zim.gui.widgets import Dialog, IconButton
-from zim.inc import xdot
 
+try:
+	import xdot
+except ImportError:
+	xdot = None
 
 
 class LinkMapPlugin(PluginClass):
@@ -34,8 +39,12 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
+		has_xdot = xdot is not None
 		has_graphviz = Application(('fdp',)).tryexec()
-		return has_graphviz, [('GraphViz', has_graphviz, True)]
+		return has_xdot and has_graphviz, [
+			('xdot', has_xdot, True),
+			('GraphViz', has_graphviz, True)
+		]
 
 
 class LinkMap(object):
@@ -94,13 +103,13 @@ class LinkMap(object):
 
 		dotcode.append('}')
 
-		#print '\n'.join(dotcode)+'\n'
+		#print( '\n'.join(dotcode)+'\n')
 		return '\n'.join(dotcode) + '\n'
 
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class LinkMapMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -114,7 +123,7 @@ class MainWindowExtension(WindowExtension):
 	</ui>
 	'''
 
-	@action(_('Show Link Map'), stock='zim-linkmap') # T: menu item
+	@action(_('Link Map'), stock='zim-linkmap') # T: menu item
 	def show_linkmap(self):
 		linkmap = LinkMap(self.window.notebook, self.window.page)
 		dialog = LinkMapDialog(self.window, linkmap, self.window.navigation)
@@ -125,12 +134,12 @@ class LinkMapDialog(Dialog):
 
 	def __init__(self, parent, linkmap, opener):
 		Dialog.__init__(self, parent, 'LinkMap',
-			defaultwindowsize=(400, 400), buttons=gtk.BUTTONS_CLOSE)
+			defaultwindowsize=(400, 400), buttons=Gtk.ButtonsType.CLOSE)
 		self.linkmap = linkmap
 		self.opener = opener
 
-		hbox = gtk.HBox(spacing=5)
-		self.vbox.add(hbox)
+		hbox = Gtk.HBox(spacing=5)
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		self.xdotview = xdot.DotWidget()
 		self.xdotview.set_filter('fdp')
@@ -138,31 +147,20 @@ class LinkMapDialog(Dialog):
 		self.xdotview.connect('clicked', self.on_node_clicked)
 		hbox.add(self.xdotview)
 
-		vbox = gtk.VBox()
-		hbox.pack_start(vbox, False)
+		vbox = Gtk.VBox()
+		hbox.pack_start(vbox, False, False, 0)
 		for stock, method in (
-			(gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
-			(gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
-			(gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
-			(gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
+			(Gtk.STOCK_ZOOM_IN, self.xdotview.on_zoom_in),
+			(Gtk.STOCK_ZOOM_OUT, self.xdotview.on_zoom_out),
+			(Gtk.STOCK_ZOOM_FIT, self.xdotview.on_zoom_fit),
+			(Gtk.STOCK_ZOOM_100, self.xdotview.on_zoom_100),
 		):
 			button = IconButton(stock)
 			button.connect('clicked', method)
-			vbox.pack_start(button, False)
+			vbox.pack_start(button, False, True, 0)
 
 	def on_node_clicked(self, widget, name, event):
+		if re.match('b\'.*?\'$', name):
+			# Bug in dotcode ? URLS come in as strings containing byte representation
+			name = ast.literal_eval(name).decode('UTF-8')
 		self.opener.open_page(Path(name))
-
-# And a bit of debug code...
-
-if __name__ == '__main__':
-	import sys
-	import zim
-	import zim.notebook
-	import gui
-	notebook = zim.notebook.build_notebook(Dir(sys.argv[1]))
-	path = notebook.pages.lookup_from_user_input(sys.argv[2])
-	linkmap = LinkMap(notebook, path)
-	dialog = LinkMapDialog(None, linkmap, None)
-	dialog.show_all()
-	dialog.run()

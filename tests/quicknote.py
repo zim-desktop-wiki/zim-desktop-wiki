@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -24,7 +23,8 @@ class TestQuickNotePlugin(tests.TestCase):
 
 		self.assertIsInstance(dialog, QuickNoteDialog)
 		buffer = dialog.textview.get_buffer()
-		result = buffer.get_text(*buffer.get_bounds())
+		start, end = buffer.get_bounds()
+		result = start.get_text(end)
 		self.assertTrue(text in result)
 
 	def testMain(self):
@@ -42,7 +42,7 @@ class TestQuickNotePlugin(tests.TestCase):
 		# Clipboard input
 		text = 'foo bar baz\ndus 123'
 		SelectionClipboard.clipboard.clear() # just to be sure
-		SelectionClipboard.clipboard.set_text('') # HACK to clear it
+		SelectionClipboard.clipboard.set_text('', -1) # HACK to clear it
 		Clipboard.set_text(text)
 		self.assertRun(('input=clipboard',), text)
 		self.assertRun(('--input', 'clipboard',), text)

@@ -31,7 +31,7 @@ If "**Make default application**" is enabled the new application will become the
 
 
 ===== Technical Details =====
-Zim uses the XDG Desktop Entry spec to store and retrieve application informations. The default application per mimetype is stored in a file in the XDG_DATA_HOME folder, typically ''~/local/share/applications/defaults.list'' . This file with defaults is not part of the spec, but it seems to be in line with the implementation for the Gnome and KDE desktop environments.
+Zim uses the XDG Desktop Entry spec to store and retrieve application informations. The default application per mimetype is stored in a file in the XDG_DATA_HOME folder, typically ''~/.local/share/applications/defaults.list'' . This file with defaults is not part of the spec, but it seems to be in line with the implementation for the Gnome and KDE desktop environments.
 
 To populate the "//Open With...//" menu zim searches the ''XDG_DATA_HOME/share/applications/'' and ''XDG_DATA_DIRS/share/applications/'' folders for ''.desktop'' files that list the specific mimetype. As an optimization we assume a file "''mimeinfo.cache''" to be present that lists applications entries by mimetype
 

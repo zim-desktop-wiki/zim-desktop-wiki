@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 from datetime import datetime
@@ -77,6 +76,8 @@ class PagesIndexer(IndexerBase):
 
 				source_file INTEGER REFERENCES files(id),
 				is_link_placeholder BOOLEAN DEFAULT 0
+
+				CONSTRAINT no_self_ref CHECK (parent <> id)
 			);
 			CREATE UNIQUE INDEX IF NOT EXISTS pages_name ON pages(name)
 		''')
@@ -253,6 +254,7 @@ class PagesIndexer(IndexerBase):
 		# allow_cleanup is used by LinksIndexer when cleaning up placeholders
 
 		row = self._select(pagename)
+		assert row['id'] != 1, 'BUG: can\'t delete notebook root'
 		if row['n_children'] > 0:
 			raise AssertionError('Page has child pages')
 
@@ -347,7 +349,7 @@ class PagesViewInternal(object):
 
 			if relnames:
 				# Check if we are anchored in non-existing part
-				keys = map(natural_sort_key, relnames)
+				keys = list(map(natural_sort_key, relnames))
 				if anchor_key in keys:
 					i = [c for c, k in enumerate(keys) if k == anchor_key][-1]
 					return self.resolve_pagename(start, relnames[:i] + href.parts()[1:])
@@ -431,7 +433,7 @@ class PagesViewInternal(object):
 				).fetchone()
 			else:
 				row = self.db.execute(
-					'SELECT id, name FROM pages WHERE parent=? and name LIKE ?',
+					'SELECT id, name FROM pages WHERE parent=? and name=?',
 					(page_id, "%:" + basename)
 				).fetchone()
 
@@ -584,10 +586,12 @@ class PagesView(IndexView):
 		else:
 			parent_id = r[0]
 
-		r = self.db.execute(
-			'SELECT * FROM pages WHERE parent=? and sortkey<? and name<? '
-			'ORDER BY sortkey DESC, name DESC LIMIT 1',
-			(parent_id, natural_sort_key(path.basename), path.name)
+		sortkey = natural_sort_key(path.basename)
+		r = self.db.execute('''
+			SELECT * FROM pages WHERE parent=? and (
+				sortkey<? or (sortkey=? and name<?)
+			) ORDER BY sortkey DESC, name DESC LIMIT 1''',
+			(parent_id, sortkey, sortkey, path.name)
 		).fetchone()
 		if not r:
 			parent = self._pages.get_pagename(parent_id)
@@ -635,10 +639,11 @@ class PagesView(IndexView):
 				return PageIndexRecord(r)
 		else:
 			while True:
-				n = self.db.execute(
-					'SELECT * FROM pages WHERE parent=? and sortkey>? and name>? '
-					'ORDER BY sortkey, name LIMIT 1',
-					(r['parent'], r['sortkey'], r['name'])
+				n = self.db.execute('''
+					SELECT * FROM pages WHERE parent=? and (
+						sortkey>? or (sortkey=? and name>?)
+					) ORDER BY sortkey, name LIMIT 1''',
+					(r['parent'], r['sortkey'], r['sortkey'], r['name'])
 				).fetchone()
 				if n is not None:
 					return PageIndexRecord(n)
@@ -751,6 +756,12 @@ class PagesView(IndexView):
 			yield PageIndexRecord(row)
 
 
+try:
+	from gi.repository import Gtk
+except ImportError:
+	Gtk = None
+
+
 IS_PAGE = 1 #: Hint for MyTreeIter
 
 class PagesTreeModelMixin(TreeModelMixinBase):
@@ -785,7 +796,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		# no clear cache here - just update row
 		for treepath in self._find_all_pages(row['name']):
 			treeiter = self.get_iter(treepath) # not mytreeiter !
-			self.cache[treepath].row = row # ensure uptodate info
+			self.cache[tuple(treepath)].row = row # ensure uptodate info
 			self.emit('row-changed', treepath, treeiter)
 
 	def on_page_row_deleted(self, o, row):
@@ -801,6 +812,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		).fetchone()[0]
 
 	def get_mytreeiter(self, treepath):
+		treepath = tuple(treepath) # used to cache
 		if treepath in self.cache:
 			return self.cache[treepath]
 
@@ -824,15 +836,24 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			''',
 			(parent_id, offset)
 		)):
-			mytreepath = parentpath + (offset + i,)
+			mytreepath = tuple(parentpath) + (offset + i,)
 			if mytreepath not in self.cache:
-				self.cache[mytreepath] = MyTreeIter(mytreepath, row, row['n_children'], IS_PAGE)
+				self.cache[mytreepath] = MyTreeIter(
+					Gtk.TreePath(mytreepath),
+					row,
+					row['n_children'],
+					IS_PAGE
+				)
 			else:
 				break # avoid overwriting cache because of ref count
 
 		return self.cache.get(treepath, None)
 
 	def find(self, path):
+		'''Returns the C{Gtk.TreePath} for a notebook page L{Path}
+		If the L{Path} appears multiple times returns the first occurence
+		@raises IndexNotFoundError: if path not found
+		'''
 		if path.isroot:
 			raise ValueError
 		treepaths = sorted(self._find_all_pages(path.name))
@@ -842,6 +863,10 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			raise IndexNotFoundError(path)
 
 	def find_all(self, path):
+		'''Returns a list of C{Gtk.TreePath} for a notebook page L{Path}
+		Returns all occurences in the treeview
+		@raises IndexNotFoundError: if path not found
+		'''
 		if path.isroot:
 			raise ValueError
 		treepaths = self._find_all_pages(path.name)
@@ -878,10 +903,15 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 				# Update cache (avoid overwriting because of ref count)
 				mytreepath = tuple(treepath)
 				if mytreepath not in self.cache:
-					myiter = MyTreeIter(mytreepath, myrow, myrow['n_children'], IS_PAGE)
+					myiter = MyTreeIter(
+						Gtk.TreePath(mytreepath),
+						myrow,
+						myrow['n_children'],
+						IS_PAGE
+					)
 					self.cache[mytreepath] = myiter
 
-		return [tuple(treepath)]
+		return [Gtk.TreePath(treepath)]
 
 
 ########################################################################

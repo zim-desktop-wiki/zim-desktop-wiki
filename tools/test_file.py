@@ -48,7 +48,7 @@ def get_test_names(file):
 
 def run_tests(pwd, names):
 	argv = [os.path.join(pwd, 'test.py')] + names
-	print ' '.join(argv)
+	print(' '.join(argv))
 	return subprocess.call(argv, cwd=pwd)
 
 

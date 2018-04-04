@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -117,7 +116,7 @@ def mount_notebook(filepath):
 	config = ConfigManager() # XXX should be passed in
 	configdict = config.get_config_dict('automount.conf')
 
-	groups = sorted([k for k in configdict.keys() if k.startswith('Path')])
+	groups = sorted([k for k in list(configdict.keys()) if k.startswith('Path')])
 	for group in groups:
 		path = group[4:].strip() # len('Path') = 4
 		dir = Dir(path)

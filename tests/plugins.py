@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -14,6 +13,7 @@ from zim.gui.propertiesdialog import PropertiesDialog
 
 from tests.mainwindow import setUpMainWindow
 
+import zim.plugins
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
 
@@ -35,7 +35,7 @@ class TestPluginClasses(tests.TestCase):
 			'help': set(),
 		}
 		for name in plugins:
-			#~ print '>>', name
+			#~ print('>>', name)
 			klass = PluginManager.get_plugin_class(name)
 
 			# test plugin info
@@ -174,7 +174,7 @@ class TestPlugins(tests.TestCase):
 				# Checking for exceptions and infinite recursion
 
 		for name in manager:
-			#~ print "REMOVE:", name
+			#~ print("REMOVE:", name)
 			self.assertIsInstance(manager[name], PluginClass)
 			manager.remove_plugin(name)
 			self.assertNotIn(name, manager)

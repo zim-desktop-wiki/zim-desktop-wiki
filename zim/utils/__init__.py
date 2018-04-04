@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -134,9 +133,6 @@ def natural_sort_key(string, numeric_padding=5):
 	templ = '%0' + str(numeric_padding) + 'i'
 	string.strip()
 	string = _num_re.sub(lambda m: templ % int(m.group()), string)
-	if isinstance(string, unicode):
-		string = unicodedata.normalize('NFKC', string)
-		# may be done by strxfrm as well, but want to be sure
 	string = string.lower() # sort case insensitive
 
 	try:
@@ -144,7 +140,7 @@ def natural_sort_key(string, numeric_padding=5):
 			# 8-bit byte string - enode to hex -- in pyton3 check if byte data type is handled better by sqlite3 and others
 	except MemoryError:
 		# Known python issue :(
-		bytestring = string.encode('utf-8')
+		bytestring = string
 
 	key = ''.join(["%02x" % ord(c) for c in bytestring])
 	return key
@@ -225,7 +221,7 @@ class OrderedDict(collections.MutableMapping):
 	def __repr__(self):
 		return '<%s:\n%s\n>' % (
 			self.__class__.__name__,
-			',\n'.join('  %r: %r' % (k, v) for k, v in self.items())
+			',\n'.join('  %r: %r' % (k, v) for k, v in list(self.items()))
 		)
 
 	def __getitem__(self, k):
@@ -268,7 +264,7 @@ class MovingWindowIter(object):
 	def __init__(self, iterable):
 		self._iter = iter(iterable)
 		try:
-			first = self._iter.next()
+			first = next(self._iter)
 		except StopIteration:
 			# empty list
 			self.last = True
@@ -280,17 +276,17 @@ class MovingWindowIter(object):
 	def __iter__(self):
 		return self
 
-	def next(self):
+	def __next__(self):
 		if self.last:
 			raise StopIteration
 
 		discard, prev, current = self.items
 		try:
-			next = self._iter.next()
+			mynext = next(self._iter)
 		except StopIteration:
 			self.last = True
 			self.items = (prev, current, None)
 		else:
-			self.items = (prev, current, next)
+			self.items = (prev, current, mynext)
 
 		return self.items

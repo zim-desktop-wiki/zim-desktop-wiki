@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
+
+from gi.repository import Gtk
 
 from zim.notebook import Path
 
@@ -26,7 +27,7 @@ class testSearchDialog(tests.TestCase):
 		self.assertTrue(len(model) > 3)
 
 		col = dialog.results_treeview.get_column(0)
-		dialog.results_treeview.row_activated((0,), col)
+		dialog.results_treeview.row_activated(Gtk.TreePath((0,)), col)
 
 	def testResultsInSection(self):
 		# Results with "only search in section" enabled
@@ -43,7 +44,7 @@ class testSearchDialog(tests.TestCase):
 		self.assertTrue(len(model) > 1)
 
 		col = dialog.results_treeview.get_column(0)
-		dialog.results_treeview.row_activated((0,), col)
+		dialog.results_treeview.row_activated(Gtk.TreePath((0,)), col)
 
 	@tests.expectedFailure
 	def testCancelSearch(self):

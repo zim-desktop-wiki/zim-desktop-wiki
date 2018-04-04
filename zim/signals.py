@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import weakref
 import logging
-import gobject
+from gi.repository import GObject
 import os
 
 from functools import partial
@@ -168,7 +167,7 @@ class ConnectorMixin(object):
 		'''
 		default = (None, handler, order)
 		for signal in signals:
-			if isinstance(signal, basestring):
+			if isinstance(signal, str):
 				self.connectto(obj, signal, handler, order)
 			else:
 				arg = signal + default[len(signal):]
@@ -190,7 +189,7 @@ class ConnectorMixin(object):
 		destroy this object.
 		'''
 		if hasattr(self, '_connected_signals'):
-			for key in self._connected_signals.keys():
+			for key in list(self._connected_signals.keys()):
 				try:
 					self._disconnect_from(key)
 				except:
@@ -217,7 +216,7 @@ class SignalEmitterMeta(type):
 		if name != 'SignalEmitter':
 			for base in bases:
 				if issubclass(base, SignalEmitter):
-					for key, value in base.__signals__.items():
+					for key, value in list(base.__signals__.items()):
 						cls.__signals__.setdefault(key, value)
 
 		#  2/ set list of closures to be initialized per instance
@@ -235,7 +234,7 @@ class SignalEmitterMeta(type):
 		super(SignalEmitterMeta, cls).__init__(name, bases, dct)
 
 
-class SignalEmitter(object):
+class SignalEmitter(object, metaclass=SignalEmitterMeta):
 	'''Replacement for C{GObject} to make objects emit signals.
 	API should be (mostly) compatible with API offered by GObject.
 
@@ -269,20 +268,13 @@ class SignalEmitter(object):
 	we implement a sub-set here.)
 	'''
 
-	# NOTE: we only keep SIGNAL_RUN_FIRST and SIGNAL_RUN_LAST in the signal
-	# spec to keep the spec compatible with gtk's __gsignals__. Would be more
-	# pythonic to set this flag using a decorator on the method.
-	# After all, signals without matching method don't even care for this flag.
-
-	__metaclass__ = SignalEmitterMeta
-
 	# define signals we want to use - (closure type, return type and arg types)
 	# E.g. {signal: (SIGNAL_RUN_LAST, None, (object, object))}
 	__signals__ = {} #: signals supported by this class
 
 	def __new__(cls, *arg, **kwarg):
 		# New instance: init attributes for signal handling
-		obj = super(SignalEmitter, cls).__new__(cls, *arg, **kwarg)
+		obj = super(SignalEmitter, cls).__new__(cls)
 
 		obj._signal_handlers = {}
 		obj._signal_blocks = {}
@@ -334,9 +326,9 @@ class SignalEmitter(object):
 		pass
 
 	def disconnect(self, handlerid):
-		for signal, handlers in self._signal_handlers.items():
+		for signal, handlers in list(self._signal_handlers.items()):
 			# unique id, so when we find it, stop searching
-			ids = map(id, handlers)
+			ids = list(map(id, handlers))
 			try:
 				i = ids.index(handlerid)
 			except ValueError:
@@ -405,19 +397,19 @@ class SignalEmitter(object):
 
 
 class GSignalEmitterMixin(object):
-	'''Implements a subset of L{SignalEmitter} to extend C{gobject.GObject}
+	'''Implements a subset of L{SignalEmitter} to extend C{GObject.GObject}
 	classes with methods to use signals as callbacks.
 	'''
 
 	def __init__(self):
 		self._signal_hooks = [
-			s for s, k in self.__signals__.items()
+			s for s, k in list(self.__signals__.items())
 				if k[1] is not None
 		]
 		clsname = self.__class__.__name__ + 'SignalEmitter'
 		signals = dict(
 			(k, (SIGNAL_RUN_FIRST,) + v[1:])
-				for k, v in self.__signals__.items() if k in self._signal_hooks
+				for k, v in list(self.__signals__.items()) if k in self._signal_hooks
 		)
 		innercls = type(clsname, (SignalEmitter,), {'__signals__': signals})
 		self._signals_inner = innercls()
@@ -434,17 +426,17 @@ class GSignalEmitterMixin(object):
 		if signal in self._signal_hooks:
 			return self._signals_inner.connect(signal, *args)
 		else:
-			return gobject.GObject.connect(self, signal, *args)
+			return GObject.GObject.connect(self, signal, *args)
 
 	def connect_after(self, signal, *args):
 		if signal in self._signal_hooks:
 			return self._signals_inner.connect_after(signal, *args)
 		else:
-			return gobject.GObject.connect_after(self, signal, *args)
+			return GObject.GObject.connect_after(self, signal, *args)
 
 	def disconnect(self, id):
 		self._signals_inner.disconnect(id) \
-			or gobject.GObject.disconnect(self, id)
+			or GObject.GObject.disconnect(self, id)
 
 	def emit_return_first(self, signal, *args):
 		return self._signals_inner.emit_return_first(signal, *args)
@@ -511,7 +503,7 @@ class DelayedCallback(object):
 
 	def __call__(self, *arg, **kwarg):
 		if self.timer_id:
-			gobject.source_remove(self.timer_id)
+			GObject.source_remove(self.timer_id)
 			self.timer_id = None
 
 		def callback():
@@ -519,11 +511,11 @@ class DelayedCallback(object):
 			self.cb_func(*arg, **kwarg)
 			return False # destroy timeout
 
-		self.timer_id = gobject.timeout_add(self.timeout, callback)
+		self.timer_id = GObject.timeout_add(self.timeout, callback)
 
 	def __del__(self):
 		if self.timer_id:
-			gobject.source_remove(self.timer_id)
+			GObject.source_remove(self.timer_id)
 
 	def cancel(self):
 		'''Cancel the scheduled callback'''

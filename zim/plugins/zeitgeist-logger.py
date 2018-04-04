@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Marcel Stimberg <stimberg@users.sourceforge.net>
 
 '''Push events to the Zeitgeist daemon'''
 
-import gio
+from gi.repository import Gio
 import logging
 import sys
 from zim.plugins import PluginClass, ObjectExtension, WindowExtension, extends
@@ -54,7 +53,7 @@ class ZeitgeistPlugin(PluginClass):
 			return
 
 		uri = page.source.uri
-		origin = gio.File(uri).get_parent().get_uri()
+		origin = Gio.File(uri).get_parent().get_uri()
 		text = _('Wiki page: %s') % page.name
 			# T: label for how zim pages show up in the recent files menu, %s is the page name
 
@@ -73,7 +72,7 @@ class ZeitgeistPlugin(PluginClass):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class ZeitGeistMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)

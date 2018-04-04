@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Gdk
 import logging
 
 from functools import reduce
@@ -12,6 +12,7 @@ from functools import reduce
 from zim.plugins import PluginClass, WindowExtension, extends
 from zim.actions import radio_action, radio_option
 from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
+from zim.notebook.page import shortest_unique_names
 from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -132,7 +133,7 @@ class PathBarMainWindowExtension(WindowExtension):
 DIR_FORWARD = 1
 DIR_BACKWARD = -1
 
-class ScrolledHBox(gtk.HBox):
+class ScrolledHBox(Gtk.HBox):
 	'''This class provides a widget that behaves like a HBox when there is
 	enough space to render all child widgets. When space is limited it
 	shows arrow buttons on the left and on the right to allow scrolling
@@ -177,11 +178,10 @@ class ScrolledHBox(gtk.HBox):
 	# with the widgets that are scrolled one should use "get_children()[2:]".
 	# Not sure if there is a cleaner way to do this
 
-	# Actually wanted to inherit from gtk.Box instead of gtk.HBox, but seems
-	# we can not call gtk.Box.__init__() to instantiate the object.
+	# Actually wanted to inherit from Gtk.Box instead of Gtk.HBox, but seems
+	# we can not call GObject.GObject.__init__() to instantiate the object.
 
 	__gsignals__ = {
-		'size-request': 'override',
 		'size-allocate': 'override',
 	}
 
@@ -189,7 +189,7 @@ class ScrolledHBox(gtk.HBox):
 	scroll_timeout = 150 # timeout between scroll steps
 
 	def __init__(self, spacing=0, homogeneous=False):
-		gtk.HBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_spacing(spacing)
 		self.set_homogeneous(homogeneous)
 		self._scroll_timeout = None
@@ -203,7 +203,7 @@ class ScrolledHBox(gtk.HBox):
 			button.connect('button-press-event', self._on_button_press)
 			button.connect('button-release-event', self._on_button_release)
 			button.connect('clicked', self._on_button_clicked)
-		# TODO looks like gtk.widget_push_composite_child is intended
+		# TODO looks like Gtk.widget_push_composite_child is intended
 		# to flag internal children versus normal children
 		# use this property + define forall to have sane API for these buttons
 
@@ -268,11 +268,11 @@ class ScrolledHBox(gtk.HBox):
 		self.stop_scrolling()
 		if initial_timeout:
 			self._scroll_timeout = \
-				gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
+				GObject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
 				# indirect recurs
 		else:
 			self._scroll_timeout = \
-				gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
+				GObject.timeout_add(self.scroll_timeout, self.scroll, direction)
 
 		return False # make sure we are only called once from a timeout
 
@@ -281,45 +281,52 @@ class ScrolledHBox(gtk.HBox):
 		scrolling.
 		'''
 		if not self._scroll_timeout is None:
-			gobject.source_remove(self._scroll_timeout)
+			GObject.source_remove(self._scroll_timeout)
 			self._scroll_timeout = None
 
-	def do_size_request(self, requisition):
+	def do_get_preferred_width(self):
+		w, h = self._old_size_request()
+		return w, w
+
+	def do_get_preferred_height(self):
+		w, h = self._old_size_request()
+		return h, h
+
+	def _old_size_request(self):
 		# Determine minimum size needed and store it in requisition
 		# Minimum size should be enough to render the largest child with
 		# scroll buttons on both sides + spacing + border
 
-		child_wh_tuples = [c.size_request() for c in self.get_children()[2:]]
-		if child_wh_tuples:
-			width = max([c[0] for c in child_wh_tuples])
-			height = max([c[1] for c in child_wh_tuples])
+		child_requisitions = [c.size_request() for c in self.get_children()[2:]]
+		if child_requisitions:
+			width = max([c.width for c in child_requisitions])
+			height = max([c.height for c in child_requisitions])
 		else:
 			width = 0
 			height = 0
 
 		spacing = self.get_spacing()
 		for button in (self._forw_button, self._back_button):
-			w, h = button.size_request()
-			if h > height:
-				height = h
-			width += w + spacing
+			req = button.size_request()
+			if req.height > height:
+				height = req.height
+			width += req.width + spacing
 
 		border = self.get_border_width()
 		width += 2 * border
 		height += 2 * border
 
-		#~ print "Requesting WxH: %i x %i" % (width, height)
-		requisition.height = height
-		requisition.width = width
+		#~ print("Requesting WxH: %i x %i" % (width, height))
+		return width, height
 
 	def do_size_allocate(self, allocation):
 		# Assign the available space to the child widgets
 		# See discussion of allocation algorithm above
 
-		#~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
-		#~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
+		#~ print("Allocated WxH: %i x %i" % (allocation.width, allocation.height))
+		#~ print("At X,Y: %i, %i" % (allocation.x, allocation.y))
 
-		gtk.HBox.do_size_allocate(self, allocation)
+		Gtk.HBox.do_size_allocate(self, allocation)
 
 		children = self.get_children()[2:]
 		if not children:
@@ -338,7 +345,7 @@ class ScrolledHBox(gtk.HBox):
 		spacing = self.get_spacing()
 		border = self.get_border_width()
 
-		widths = [c.get_child_requisition()[0] for c in children]
+		widths = [c.get_child_requisition().width for c in children]
 		total = reduce(int.__add__, widths) + len(widths) * spacing + 2 * border
 		if total <= allocation.width:
 			show_scroll_buttons = False
@@ -349,7 +356,7 @@ class ScrolledHBox(gtk.HBox):
 			first, last = index, index
 			available = allocation.width - widths[index]
 			for button in (self._forw_button, self._back_button):
-				available -= button.get_child_requisition()[0] + spacing
+				available -= button.get_child_requisition().width + spacing
 			if direction == DIR_FORWARD:
 				# fill items from the direction we came from with last scroll
 				for i in range(index - 1, -1, -1):
@@ -387,17 +394,16 @@ class ScrolledHBox(gtk.HBox):
 
 		self._first, self._last = first, last
 
-		# Allocate children
-		y = allocation.y + border
-		h = allocation.height - 2 * border
-		child_allocation = gtk.gdk.Rectangle(y=y, height=h)
-			# y and height are the same for all
-		if not self.get_direction() == gtk.TEXT_DIR_RTL:
+		# Allocate children - y and height are the same for all
+		child_allocation = Gdk.Rectangle()
+		child_allocation.y = allocation.y + border
+		child_allocation.height = allocation.height - 2 * border
+		if not self.get_direction() == Gtk.TextDirection.RTL:
 			# Left to Right
 			child_allocation.x = allocation.x + border
 
 			if show_scroll_buttons and first != 0:
-				child_allocation.width = self._back_button.get_child_requisition()[0]
+				child_allocation.width = self._back_button.get_child_requisition().width
 				self._back_button.set_child_visible(True)
 				self._back_button.size_allocate(child_allocation)
 			else:
@@ -405,7 +411,7 @@ class ScrolledHBox(gtk.HBox):
 
 			if show_scroll_buttons:
 				# Reserve the space, even if hidden
-				child_allocation.x += self._back_button.get_child_requisition()[0] + spacing
+				child_allocation.x += self._back_button.get_child_requisition().width + spacing
 
 			for i in range(first, last + 1):
 				child_allocation.width = widths[i]
@@ -415,7 +421,7 @@ class ScrolledHBox(gtk.HBox):
 
 			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
-				child_allocation.width = self._forw_button.get_child_requisition()[0]
+				child_allocation.width = self._forw_button.get_child_requisition().width
 				child_allocation.x = allocation.x + allocation.width - child_allocation.width - border
 				self._forw_button.set_child_visible(True)
 				self._forw_button.size_allocate(child_allocation)
@@ -427,7 +433,7 @@ class ScrolledHBox(gtk.HBox):
 			child_allocation.x = allocation.x + allocation.width - border
 
 			if show_scroll_buttons and first != 0:
-				child_allocation.width = self._back_button.get_child_requisition()[0]
+				child_allocation.width = self._back_button.get_child_requisition().width
 				child_allocation.x -= child_allocation.width
 				self._back_button.set_child_visible(True)
 				self._back_button.size_allocate(child_allocation)
@@ -436,7 +442,7 @@ class ScrolledHBox(gtk.HBox):
 				self._back_button.set_child_visible(False)
 				if show_scroll_buttons:
 					# Reserve the space, even if hidden
-					child_allocation.x = self._back_button.get_child_requisition()[0] + spacing
+					child_allocation.x = self._back_button.get_child_requisition().width + spacing
 
 			for i in range(first, last + 1):
 				child_allocation.width = widths[i]
@@ -447,7 +453,7 @@ class ScrolledHBox(gtk.HBox):
 
 			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
-				child_allocation.width = self._forw_button.get_child_requisition()[0]
+				child_allocation.width = self._forw_button.get_child_requisition().width
 				child_allocation.x = allocation.x + border
 				self._forw_button.set_child_visible(True)
 				self._forw_button.size_allocate(child_allocation)
@@ -467,37 +473,34 @@ class ScrolledHBox(gtk.HBox):
 		# (so do not "sub-navigate" with <Ctrl><Tab>).
 		# Otherwise the user has to tab through all buttons before
 		# he can tab to the next widget.
-		if direction in (gtk.DIR_TAB_FORWARD, gtk.DIR_TAB_BACKWARD) \
+		if direction in (Gtk.DIR_TAB_FORWARD, Gtk.DIR_TAB_BACKWARD) \
 		and self.focus_child is not None:
 			return False # Let outer container go to next widget
 		else:
-			return gtk.HBox.do_focus(self, direction)
-
-# Need to register classes defining gobject signals
-gobject.type_register(ScrolledHBox)
+			return Gtk.HBox.do_focus(self, direction)
 
 
-class ScrollButton(gtk.Button):
+class ScrollButton(Gtk.Button):
 	'''Arrow buttons used by ScrolledHBox'''
 
 	def __init__(self, direction):
-		gtk.Button.__init__(self)
+		GObject.GObject.__init__(self)
 		self.direction = direction
-		if self.get_direction() != gtk.TEXT_DIR_RTL:
+		if self.get_direction() != Gtk.TextDirection.RTL:
 			# Left to Right
 			if direction == DIR_FORWARD:
-				arrow_dir = gtk.ARROW_RIGHT
+				arrow_dir = Gtk.ArrowType.RIGHT
 			else:
-				arrow_dir = gtk.ARROW_LEFT
+				arrow_dir = Gtk.ArrowType.LEFT
 		else:
 			# Right to Left
 			if direction == DIR_FORWARD:
-				arrow_dir = gtk.ARROW_LEFT
+				arrow_dir = Gtk.ArrowType.LEFT
 			else:
-				arrow_dir = gtk.ARROW_RIGHT
+				arrow_dir = Gtk.ArrowType.RIGHT
 
-		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
-		self.set_relief(gtk.RELIEF_NONE)
+		self.add(Gtk.Arrow(arrow_dir, Gtk.ShadowType.OUT))
+		self.set_relief(Gtk.ReliefStyle.NONE)
 
 
 class PathBar(ScrolledHBox):
@@ -529,28 +532,25 @@ class PathBar(ScrolledHBox):
 			self.remove(button)
 		self._selected = None
 
-		for path in self.get_paths():
-			button = gtk.ToggleButton(label=path.basename)
+		paths = list(self.get_paths())
+		for path, label in zip(paths, shortest_unique_names(paths)):
+			button = Gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
 			button.connect('popup-menu', self.on_button_popup_menu)
 			button.connect('button-release-event', self.do_button_release_event)
 			button.connect('drag-data-get', self.on_drag_data_get)
-			button.drag_source_set(gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-				gtk.gdk.ACTION_LINK)
+			button.drag_source_set(
+				Gdk.ModifierType.BUTTON1_MASK,
+				(Gtk.TargetEntry.new(*INTERNAL_PAGELIST_TARGET),),
+				Gdk.DragAction.LINK
+			)
 			button.show()
 			self.add(button)
 
-		# FIXME tooltips seem not to work - not sure why
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			for button in self.get_children()[2:]:
-				button.set_tooltip_text(button.zim_path.name)
-		else:
-			tooltips = gtk.Tooltips()
-			for button in self.get_children()[2:]:
-				tooltips.set_tip(button, button.zim_path.name)
+		for button in self.get_children()[2:]:
+			button.set_tooltip_text(button.zim_path.name)
 
 	def get_paths(self):
 		'''To be implemented by the sub class, should return a list
@@ -593,7 +593,7 @@ class PathBar(ScrolledHBox):
 			return True
 
 	def on_button_popup_menu(self, button):
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 		uiactions = UIActions(
 			self,
 			self.notebook,
@@ -602,15 +602,15 @@ class PathBar(ScrolledHBox):
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
-		menu.popup(None, None, None, 3, 0)
+		menu.popup_at_pointer(None)
 		return True
 
 	def on_drag_data_get(self, button, context, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		path = button.zim_path
 		logger.debug('Drag data requested from PathBar, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+		selectiondata.set(selectiondata.get_target(), 8, data)
 
 
 class HistoryPathBar(PathBar):
@@ -712,8 +712,8 @@ class TestPathBar(PathBar):
 
 
 if __name__ == '__main__':
-	window = gtk.Window()
-	window.connect('destroy', lambda o: gtk.main_quit())
+	window = Gtk.Window()
+	window.connect('destroy', lambda o: Gtk.main_quit())
 	window.add(TestPathBar())
 	window.show_all()
-	gtk.main()
+	Gtk.main()

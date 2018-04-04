@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
 
-from __future__ import with_statement
+
 
 
 import os
@@ -18,27 +17,18 @@ import types
 import glob
 
 try:
-	import gtk
+	import gi
+	gi.require_version('Gtk', '3.0')
+	from gi.repository import Gtk
 except ImportError:
-	gtk = None
+	Gtk = None
 
 
-if sys.version_info < (2, 7, 0):
-	try:
-		import unittest2 as unittest
-		from unittest2 import skip, skipIf, skipUnless, expectedFailure
-	except ImportError:
-		print >>sys.stderr, '''\
-For python versions < 2.7 the 'unittest2' module is needed to run
-the test suite. On Ubuntu or Debian install package 'python-unittest2'.
-'''
-		sys.exit(1)
-else:
-	import unittest
-	from unittest import skip, skipIf, skipUnless, expectedFailure
+import unittest
+from unittest import skip, skipIf, skipUnless, expectedFailure
 
 
-gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
+gettext.install('zim', names=('_', 'gettext', 'ngettext'))
 
 FAST_TEST = False #: determines whether we skip slow tests or not
 FULL_TEST = False #: determine whether we mock filesystem tests or not
@@ -49,7 +39,7 @@ __all__ = [
 	'package', 'translations',
 	# Basic libraries
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
-	'environ', 'fs', 'newfs',
+	'fs', 'newfs',
 	'config', 'applications',
 	'parsing', 'tokenparser',
 	# Notebook components
@@ -67,7 +57,7 @@ __all__ = [
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
-	'arithmetic',
+	'arithmetic', 'linesorter'
 ]
 
 
@@ -91,10 +81,6 @@ TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# dir we have conflict with bazaar controls, this is worked around
 	# by a config mode switch in the bazaar backend of the version
 	# control plugin
-if os.name == 'nt':
-	TMPDIR = unicode(TMPDIR)
-else:
-	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
 
 # also get the default tmpdir and put a copy in the env
 REAL_TMPDIR = tempfile.gettempdir()
@@ -250,7 +236,7 @@ class TestCase(unittest.TestCase):
 
 	@classmethod
 	def tearDownClass(cls):
-		if gtk is not None:
+		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
@@ -317,6 +303,7 @@ class TestCase(unittest.TestCase):
 
 		if folder is None:
 			folder = self.setUpFolder(name, mock)
+		folder.touch() # Must exist for sane notebook
 		cache_dir = folder.folder('.zim')
 		layout = FilesLayout(folder, endofline='unix')
 
@@ -340,8 +327,8 @@ class TestCase(unittest.TestCase):
 			content = dict((p, 'test 123') for p in content)
 
 		notebook = Notebook(cache_dir, config, folder, layout, index)
-		for name, text in content.items():
-			path = Path(name) if isinstance(name, basestring) else name
+		for name, text in list(content.items()):
+			path = Path(name) if isinstance(name, str) else name
 			file, folder = layout.map_page(path)
 			file.write(
 				(
@@ -360,7 +347,7 @@ class TestCase(unittest.TestCase):
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
-		print "Deprecated: TestCase.create_tmp_dir()"
+		print("Deprecated: TestCase.create_tmp_dir()")
 		folder = self.setUpFolder(name=name, mock=MOCK_ALWAYS_REAL)
 		folder.touch()
 		return folder.path
@@ -372,11 +359,6 @@ class TestCase(unittest.TestCase):
 			name = cls.__name__ + '_' + name
 		else:
 			name = cls.__name__
-
-		if os.name == 'nt':
-			name = unicode(name)
-		else:
-			name = name.encode(sys.getfilesystemencoding())
 
 		return os.path.join(TMPDIR, name)
 
@@ -474,7 +456,7 @@ class DialogContext(object):
 		zim.gui.widgets.TEST_MODE_RUN_CB = self._callback
 
 	def _callback(self, dialog):
-		#~ print '>>>', dialog
+		#~ print('>>>', dialog)
 		if not self.stack:
 			raise AssertionError('Unexpected dialog run: %s' % dialog)
 
@@ -578,8 +560,8 @@ class TestData(object):
 		test_data = []
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
-			text = unicode(node.text.lstrip('\n'))
-			if os.name == 'nt' and isinstance(name, unicode):
+			text = str(node.text.lstrip('\n'))
+			if os.name == 'nt' and isinstance(name, str):
 				pass # XXX No idea what goes wrong, but names are messed up
 			else:
 				test_data.append((name, text))
@@ -642,9 +624,9 @@ def new_parsetree_from_text(text, format='wiki'):
 
 def new_parsetree_from_xml(xml):
 	# For some reason this does not work with cElementTree.XMLBuilder ...
-	from xml.etree.ElementTree import XMLTreeBuilder
+	from xml.etree.ElementTree import XMLParser
 	from zim.formats import ParseTree
-	builder = XMLTreeBuilder()
+	builder = XMLParser()
 	builder.feed(xml)
 	root = builder.close()
 	return ParseTree(root)
@@ -777,7 +759,7 @@ class SignalLogger(dict):
 		self.disconnect()
 
 	def clear(self):
-		for signal, seen in self.items():
+		for signal, seen in list(self.items()):
 			seen[:] = []
 
 	def disconnect(self):
@@ -830,21 +812,21 @@ class MaskedObject(object):
 
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
-	assert gtk is not None
-	while gtk.events_pending():
-		gtk.main_iteration(block=False)
+	assert Gtk is not None
+	while Gtk.events_pending():
+		Gtk.main_iteration()
 	return True # continue
 
 
 def gtk_get_menu_item(menu, id):
-	'''Get a menu item from a C{gtk.Menu}
-	@param menu: a C{gtk.Menu}
+	'''Get a menu item from a C{Gtk.Menu}
+	@param menu: a C{Gtk.Menu}
 	@param id: either the menu item label or the stock id
-	@returns: a C{gtk.MenuItem} or C{None}
+	@returns: a C{Gtk.MenuItem} or C{None}
 	'''
 	items = menu.get_children()
 	ids = [i.get_property('label') for i in items]
-		# gtk.ImageMenuItems that have a stock id happen to use the
+		# Gtk.ImageMenuItems that have a stock id happen to use the
 		# 'label' property to store it...
 
 	assert id in ids, \
@@ -857,7 +839,7 @@ def gtk_get_menu_item(menu, id):
 
 def gtk_activate_menu_item(menu, id):
 	'''Trigger the 'click' action an a menu item
-	@param menu: a C{gtk.Menu}
+	@param menu: a C{Gtk.Menu}
 	@param id: either the menu item label or the stock id
 	'''
 	item = gtk_get_menu_item(menu, id)

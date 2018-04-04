@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Pablo Angulo
 
@@ -161,7 +160,7 @@ def processPath(pathin, pathout, prefix1, prefix2=''):
 			fichero.write(nota_out)
 			fichero.close()
 		elif os.path.isdir(fullPath):
-			print pathin, archivo, fullPath
+			print(pathin, archivo, fullPath)
 
 			processPath(fullPath, pathout, prefix1, prefix2 + removeSpecialChars(archivo) + "_")
 

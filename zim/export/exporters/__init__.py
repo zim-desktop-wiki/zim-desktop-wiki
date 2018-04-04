@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -72,7 +71,7 @@ def createIndexPage(notebook, path, section=None):
 		builder.end(FORMATTEDTEXT)
 
 		tree = builder.get_parsetree()
-		#~ print "!!!", tree.tostring()
+		#~ print("!!!", tree.tostring())
 
 		indexpage = Page(path, False, MockFile('/index'), None)
 		indexpage.set_parsetree(tree)

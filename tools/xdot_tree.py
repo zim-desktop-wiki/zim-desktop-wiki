@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import gtk
+from gi.repository import Gtk
 import sys
 
 sys.path.insert(0, '.')
@@ -23,8 +23,8 @@ class Graph(object):
 
 	def _code_for_module(self, module):
 		text = '"%s" [shape=ellips]' % module.name
-		for item in module.items():
-			if isinstance(item, basestring):
+		for item in list(module.items()):
+			if isinstance(item, str):
 				text += '\n"%s"' % item
 				text += '\n"%s" -> "%s"' % (module.name, item)
 			else:
@@ -36,8 +36,8 @@ class Graph(object):
 if __name__ == '__main__':
 	graph = Graph(ModuleDir('./zim'))
 	window = xdot.DotWindow()
-	window.connect('destroy', lambda o: gtk.main_quit())
+	window.connect('destroy', lambda o: Gtk.main_quit())
 	#print graph.get_dotcode()
 	window.set_dotcode(graph.get_dotcode())
 	window.show_all()
-	gtk.main()
+	Gtk.main()

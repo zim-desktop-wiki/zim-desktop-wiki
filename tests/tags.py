@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.notebook import Path
 from zim.notebook.index import Index
@@ -64,18 +63,18 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		myiter = treestore.on_get_iter((0,))
 		self.assertIsInstance(myiter, MyTreeIter)
 		self.assertEqual(myiter.hint, self.toplevel)
-		self.assertEqual(myiter.treepath, (0,))
-		self.assertEqual(treestore.on_get_path(myiter), (0,))
+		self.assertEqual(myiter.treepath, Gtk.TreePath((0,)))
+		self.assertEqual(treestore.on_get_path(myiter), Gtk.TreePath((0,)))
 
 		treeiter = treestore.get_iter((0,))
 		path = treestore.get_indexpath(treeiter)
-		self.assertEqual(treestore.find(path), (0,))
+		self.assertEqual(treestore.find(path), Gtk.TreePath((0,)))
 
 		basename = treestore.on_get_value(myiter, 0)
 		self.assertTrue(len(basename) > 0)
 
 		iter2 = treestore.on_iter_children(None)
-		self.assertEqual(iter2.treepath, (0,))
+		self.assertEqual(iter2.treepath, Gtk.TreePath((0,)))
 
 		self.assertTrue(treestore.on_get_iter((20, 20, 20, 20, 20)) is None)
 		self.assertRaises(IndexNotFoundError, treestore.find, Path('nonexisting'))
@@ -86,13 +85,13 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		path = (0,)
 		prevpath = None
 		while path:
-			#~ print 'PATH', path
+			#~ print('PATH', path)
 			assert path != prevpath, 'Prevent infinite loop'
 			nitems += 1
 			prevpath = path
 
 			iter = treestore.get_iter(path)
-			self.assertEqual(treestore.get_path(iter), tuple(path))
+			self.assertEqual(treestore.get_path(iter), Gtk.TreePath(path))
 
 			# Determine how to continue
 			if treestore.iter_has_child(iter):
@@ -149,6 +148,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
+		print("---------")
 
 
 @tests.slowTest
@@ -208,7 +208,7 @@ class TestTagPluginWidget(tests.TestCase):
 		treepath = widget.treeview.get_model().find(path)
 
 		# Check signals
-		widget.treeview.emit('populate-popup', gtk.Menu())
+		widget.treeview.emit('populate-popup', Gtk.Menu())
 		widget.treeview.emit('insert-link', path)
 
 		# Toggles in popup
@@ -234,7 +234,7 @@ class TestTagPluginWidget(tests.TestCase):
 		self.assertEqual(model.tags, [tag.name])
 
 		# check menu and sorting of tag cloud
-		cloud.emit('populate-popup', gtk.Menu())
+		cloud.emit('populate-popup', Gtk.Menu())
 		mockaction = tests.MockObject()
 		mockaction.get_active = lambda: True
 		cloud._switch_sorting(mockaction)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Pavel_M <plprgt@gmail.com>,
 # released under the GNU GPL version 3.
@@ -7,11 +6,11 @@
 # This plugin uses an icon from Tango Desktop Project (http://tango.freedesktop.org/)
 # (the Tango base icon theme is released to the Public Domain).
 
-from __future__ import with_statement
 
-import gobject
-import gtk
-import pango
+
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.actions import toggle_action, action
 from zim.plugins import PluginClass, extends, WindowExtension
@@ -46,7 +45,7 @@ class BookmarksBarPlugin(PluginClass):
 	)
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class BookmarksBarMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -134,9 +133,9 @@ class MainWindowExtension(WindowExtension):
 		'''Add 'Add Bookmark' option to the Index popup menu.'''
 		path = treeview.get_selected_path()
 		if path:
-			item = gtk.SeparatorMenuItem()
+			item = Gtk.SeparatorMenuItem()
 			menu.prepend(item)
-			item = gtk.MenuItem(_('Add Bookmark')) # T: menu item bookmark plugin
+			item = Gtk.MenuItem.new_with_mnemonic(_('Add Bookmark')) # T: menu item bookmark plugin
 			page = self.window.notebook.get_page(path)
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
@@ -207,10 +206,10 @@ class MainWindowExtension(WindowExtension):
 		self.widget.add_new_page()
 
 
-class BookmarkBar(gtk.HBox, ConnectorMixin):
+class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 	def __init__(self, notebook, navigation, uistate, get_page_func):
-		gtk.HBox.__init__(self)
+		GObject.GObject.__init__(self)
 
 		self.notebook = notebook
 		self.navigation = navigation
@@ -221,15 +220,15 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		self._get_page = get_page_func # function to get current page
 
 		# Create button to add new bookmarks.
-		self.plus_button = IconsButton(gtk.STOCK_ADD, gtk.STOCK_REMOVE, relief = False)
+		self.plus_button = IconsButton(Gtk.STOCK_ADD, Gtk.STOCK_REMOVE, relief = False)
 		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings'))
 		self.plus_button.connect('clicked', lambda o: self.add_new_page())
 		self.plus_button.connect('button-release-event', self.do_plus_button_popup_menu)
-		self.pack_start(self.plus_button, expand = False)
+		self.pack_start(self.plus_button, False, False, 0)
 
 		# Create widget for bookmarks.
-		self.container = ScrolledHBox()
-		self.pack_start(self.container, expand = True)
+		self.scrolledbox = ScrolledHBox()
+		self.pack_start(self.scrolledbox, True, False, 0)
 
 		# Toggle between full/short page names.
 		self.uistate.setdefault('show_full_page_name', False)
@@ -252,7 +251,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		self._convert_path_name = lambda a: ' '.join(a[:25].split())
 
 		# Add alternative bookmark names from config.
-		for path, name in self.uistate['bookmarks_names'].iteritems():
+		for path, name in self.uistate['bookmarks_names'].items():
 			if path in self.paths:
 				try:
 					name = self._convert_path_name(name)
@@ -268,7 +267,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
 		with self.on_bookmark_clicked.blocked():
-			for button in self.container.get_children()[2:]:
+			for button in self.scrolledbox.get_children()[2:]:
 				if button.zim_path == pagename:
 					button.set_active(True)
 				else:
@@ -317,7 +316,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		if path in self.paths:
 			self.paths.remove(path)
 			self.paths_names.pop(path, None)
-		        self._reload_bar()
+			self._reload_bar()
 
 	def delete_all(self, ask_confirmation = False):
 		'''
@@ -331,12 +330,12 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		if ask_confirmation:
 			# Prevent accidental deleting of all bookmarks.
-			menu = gtk.Menu()
-			item = gtk.MenuItem(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
+			menu = Gtk.Menu()
+			item = Gtk.MenuItem.new_with_mnemonic(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
 			item.connect('activate', lambda o: _delete_all())
 			menu.append(item)
 			menu.show_all()
-			menu.popup(None, None, None, 3, 0)
+			menu.popup_at_pointer(None)
 		else:
 			_delete_all()
 
@@ -412,13 +411,13 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 	def do_plus_button_popup_menu(self, button, event):
 		'''Handler for button-release-event, triggers popup menu for plus button.'''
 		if event.button == 3:
-			menu = gtk.Menu()
-			item = gtk.CheckMenuItem(_('Show full Page Name')) # T: menu item for context menu
+			menu = Gtk.Menu()
+			item = Gtk.CheckMenuItem(_('Show full Page Name')) # T: menu item for context menu
 			item.set_active(self.uistate['show_full_page_name'])
 			item.connect('activate', lambda o: self.toggle_show_full_page_name())
 			menu.append(item)
 			menu.show_all()
-			menu.popup(None, None, None, 3, 0)
+			menu.popup_at_pointer(None)
 			return True
 
 	def do_bookmarks_popup_menu(self, button, event):
@@ -440,7 +439,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			rename_button_text = _('Back to Original Name') # T: button label
 
 		# main popup menu
-		main_menu = gtk.Menu()
+		main_menu = Gtk.Menu()
 		main_menu_items = (
 					(_('Remove'), lambda o: self.delete(path)),			# T: menu item
 				    (_('Remove All'), lambda o: self.delete_all(True)),	# T: menu item
@@ -455,17 +454,17 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		for name, func in main_menu_items:
 			if name == 'separator':
-				item = gtk.SeparatorMenuItem()
+				item = Gtk.SeparatorMenuItem()
 			else:
 				if 'gtk-' in name:
-					item = gtk.ImageMenuItem(name)
+					item = Gtk.ImageMenuItem(name)
 				else:
-					item = gtk.MenuItem(name)
-			        item.connect('activate', func)
+					item = Gtk.MenuItem.new_with_mnemonic(name)
+					item.connect('activate', func)
 			main_menu.append(item)
 
 		main_menu.show_all()
-		main_menu.popup(None, None, None, 3, 0)
+		main_menu.popup_at_pointer(None)
 		return True
 
 	@SignalHandler
@@ -505,8 +504,8 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 	def _reload_bar(self):
 		'''Reload bar with bookmarks.'''
-		for button in self.container.get_children()[2:]:
-			self.container.remove(button)
+		for button in self.scrolledbox.get_children()[2:]:
+			self.scrolledbox.remove(button)
 
 		page = self._get_page()
 		if page:
@@ -521,7 +520,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				name = self._get_short_page_name(path)
 			else:
 				name = path
-			button = gtk.ToggleButton(label = name, use_underline = False)
+			button = Gtk.ToggleButton(label = name, use_underline = False)
 			button.set_tooltip_text(path)
 			button.zim_path = path
 			if path == pagename:
@@ -530,7 +529,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			button.connect('clicked', self.on_bookmark_clicked)
 			button.connect('button-release-event', self.do_bookmarks_popup_menu)
 			button.show()
-			self.container.add(button)
+			self.scrolledbox.add(button)
 
 		# 'Disable' plus_button if max bookmarks is reached.
 		if self.max_bookmarks and (len(self.paths) >= self.max_bookmarks):
@@ -544,7 +543,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			self.uistate['bookmarks_names'] = self.paths_names
 
 
-class IconsButton(gtk.Button):
+class IconsButton(Gtk.Button):
 	'''
 	Need a button which can change icons.
 	Use this instead of set_sensitive to show 'disabled'/'enabled' state
@@ -552,7 +551,7 @@ class IconsButton(gtk.Button):
 	For using only with one icon look for the standard IconButton from widgets.py.
 	'''
 
-	def __init__(self, stock_enabled, stock_disabled, relief=True, size=gtk.ICON_SIZE_BUTTON):
+	def __init__(self, stock_enabled, stock_disabled, relief=True, size=Gtk.IconSize.BUTTON):
 		'''
 		:param stock_enabled: the stock item for enabled state,
 		:param stock_disabled: the stock item for disabled state,
@@ -560,15 +559,15 @@ class IconsButton(gtk.Button):
 		edge and will be flat against the background,
 		:param size: the icons size
 		'''
-		gtk.Button.__init__(self)
-		self.stock_enabled = gtk.image_new_from_stock(stock_enabled, size)
-		self.stock_disabled = gtk.image_new_from_stock(stock_disabled, size)
+		GObject.GObject.__init__(self)
+		self.stock_enabled = Gtk.Image.new_from_stock(stock_enabled, size)
+		self.stock_disabled = Gtk.Image.new_from_stock(stock_disabled, size)
 		self.add(self.stock_enabled)
 		self._enabled_state = True
 
 		self.set_alignment(0.5, 0.5)
 		if not relief:
-			self.set_relief(gtk.RELIEF_NONE)
+			self.set_relief(Gtk.ReliefStyle.NONE)
 
 	def change_state(self, active = 'default'):
 		'''
@@ -597,4 +596,4 @@ class IconsButton(gtk.Button):
 			self.change_state()
 			return False
 		self.change_state()
-		gobject.timeout_add(300, change_icon)
+		GObject.timeout_add(300, change_icon)

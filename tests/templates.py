@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.templates module.'''
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -147,7 +146,7 @@ class TestExpressionParser(tests.TestCase):
 				ExpressionParameter('x')
 			)
 		)
-		#~ print '\nEXPRESSION:', expr
+		#~ print('\nEXPRESSION:', expr)
 		self.assertEqual(expr, wanted)
 
 		## Invalid syntaxes
@@ -318,9 +317,9 @@ class TestTemplateBuilderTextBuffer(tests.TestCase):
 
 		self.assertEqual(result, [
 			E('FOO', None, [
-				u'foo',
+				'foo',
 				E('BAR', None, []),
-				u'\n\t\tdus\n',
+				'\n\t\tdus\n',
 				E('BAR', None, []),
 			])
 		])
@@ -581,7 +580,7 @@ class TestTemplateList(tests.TestCase):
 
 		for cat in categories:
 			templates = list_templates(cat)
-			#~ print '>>', cat, templates
+			#~ print('>>', cat, templates)
 			self.assertGreater(len(templates), 0)
 			for name, filename in templates:
 				template = get_template(cat, name)
@@ -618,7 +617,7 @@ class TestTemplateFunctions(tests.TestCase):
 		func = build_template_functions()['range']
 		self.assertIsInstance(func, ExpressionFunction)
 		self.assertEqual(
-			func(1, 10),
+			list(func(1, 10)),
 			[1, 2, 3, 4, 5, 6, 7, 8, 9]
 		)
 
@@ -699,7 +698,7 @@ class TestTemplate(tests.TestCase):
 			'uri': ExpressionFunction(lambda l: "URL:%s" % l['name']),
 			'anchor': ExpressionFunction(lambda l: "ANCHOR:%s" % l['name']),
 		})
-		#~ print ''.join(output)
+		#~ print(''.join(output))
 
 		# TODO assert something
 

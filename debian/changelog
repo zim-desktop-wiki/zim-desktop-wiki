@@ -1,3 +1,15 @@
+zim (0.68) UNRELEASED; urgency=low
+
+  * Update to release 0.68
+
+ -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Sat, 17 Mar 2018 12:00:00 +0200
+
+zim (0.68~rc1) UNRELEASED; urgency=low
+
+  * Update to release 0.68~rc1
+
+ -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 08 Jan 2018 20:33:00 +0200
+
 zim (0.67) UNRELEASED; urgency=low
 
   * Update to release 0.67
@@ -60,37 +72,37 @@ zim (0.59) quantal; urgency=low
 
 zim (0.58) quantal; urgency=low
 
-  * Updated to release 0.58 
+  * Updated to release 0.58
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Sat, 15 Dec 2012 18:14:16 +0100
 
 zim (0.57) precise; urgency=low
 
-  * Updated to release 0.57 
+  * Updated to release 0.57
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 08 Oct 2012 20:53:16 +0200
 
 zim (0.56) oneiric; urgency=low
 
-  * Updated to release 0.56 
+  * Updated to release 0.56
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 02 Apr 2012 21:59:56 +0200
 
 zim (0.55) oneiric; urgency=low
 
-  * Updated to release 0.55 
+  * Updated to release 0.55
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Tue, 28 Feb 2012 21:20:31 +0100
 
 zim (0.54) oneiric; urgency=low
 
-  * Updated to release 0.54 
+  * Updated to release 0.54
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Thu, 22 Dec 2011 22:37:29 +0100
 
 zim (0.53) oneiric; urgency=low
 
-  * Updated to release 0.53 
+  * Updated to release 0.53
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 19 Sep 2011 21:40:44 +0200
 
@@ -108,7 +120,7 @@ zim (0.51) maverick; urgency=low
 
 zim (0.50) maverick; urgency=low
 
-  * Updated to release 0.50 
+  * Updated to release 0.50
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 14 Feb 2011 21:51:43 +0100
 
@@ -120,13 +132,13 @@ zim (0.49ubuntu1) natty; urgency=low
 
 zim (0.49) maverick; urgency=low
 
-  * Updated to release 0.49 
+  * Updated to release 0.49
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Tue, 02 Nov 2010 21:06:53 +0100
 
 zim (0.48) lucid; urgency=low
 
-  * Updated to release 0.48 
+  * Updated to release 0.48
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Thu, 22 Jul 2010 23:10:41 +0200
 
@@ -138,7 +150,7 @@ zim (0.47) lucid; urgency=low
 
 zim (0.46) karmic; urgency=low
 
-  * Update to release 0.46 
+  * Update to release 0.46
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Wed, 24 Mar 2010 22:00:44 +0100
 
@@ -150,13 +162,13 @@ zim (0.45) karmic; urgency=low
 
 zim (0.44) karmic; urgency=low
 
-  * Updated to release 0.44 
+  * Updated to release 0.44
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Thu, 18 Feb 2010 19:07:28 +0100
 
 zim (0.43) karmic; urgency=low
 
-  * Updated to release 0.43 
+  * Updated to release 0.43
 
  -- Jaap Karssenberg <jaap.karssenberg@gmail.com>  Mon, 18 Jan 2010 00:57:45 +0100
 
