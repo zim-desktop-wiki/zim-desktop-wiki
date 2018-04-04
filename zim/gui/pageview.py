@@ -205,7 +205,7 @@ ui_preferences = (
 		_('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
 		# T: option in preferences dialog
 	('cycle_checkbox_type', 'bool', 'Editing',
-		_('Repeated clicking a checkbox cyles through the checkbox states'), True),
+		_('Repeated clicking a checkbox cycles through the checkbox states'), True),
 		# T: option in preferences dialog
 	('recursive_indentlist', 'bool', 'Editing',
 		_('(Un-)Indenting a list item also change any sub-items'), True),
@@ -2740,7 +2740,7 @@ class TextBuffer(Gtk.TextBuffer):
 		return start, end
 
 	def get_line_is_empty(self, line):
-		'''Check for empty lins
+		'''Check for empty lines
 
 		@param line: the line number
 		@returns: C{True} if the line only contains whitespace
@@ -2998,7 +2998,7 @@ class TextBufferList(list):
 		          * item C
 
 		@param row: the row id
-		@returns: C{True} if succesfull
+		@returns: C{True} if successfulll
 		'''
 		if not self.can_indent(row):
 			return False
@@ -3010,7 +3010,7 @@ class TextBufferList(list):
 		'''Un-indent a list item and it's children
 
 		@param row: the row id
-		@returns: C{True} if succesfull
+		@returns: C{True} if successfulll
 		'''
 		if not self.can_unindent(row):
 			return False
@@ -3026,7 +3026,7 @@ class TextBufferList(list):
 			# Indent the whole list
 			for i in range(1, len(self)):
 				if self[i][self.INDENT_COL] >= level:
-					# double check implicit assumtion that first item is at lowest level
+					# double check implicit assumption that first item is at lowest level
 					self._indent_row(i, step)
 				else:
 					break
@@ -5311,7 +5311,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
-		# but do not set page.moified False again when buffer goes
+		# but do not set page.modified False again when buffer goes
 		# back to un-modified. Reason is that we use the buffer modified
 		# state to track if we already requested the parse tree (see
 		# get_parsetree()) while page modified is used to track need
@@ -5402,7 +5402,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		Effective read-only state seen in the C{self.readonly} attribute
 		is in fact C{True} (so read-only) when either the widget itself
 		OR the current page is read-only. So setting read-only to
-		C{False} here may not immediatly change C{self.readonly} if
+		C{False} here may not immediately change C{self.readonly} if
 		a read-only page is loaded.
 		'''
 		self._readonly_set = readonly
@@ -5831,7 +5831,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				item.set_sensitive(False)
 		elif type not in ('page', 'notebook', 'interwiki', 'file', 'image'): # urls etc.
 			# FIXME: for interwiki inspect final link and base
-			# open with menu beased on that url type
+			# open with menu based on that url type
 			item = Gtk.MenuItem.new_with_mnemonic(_('Open With...'))
 			menu.prepend(item)
 			submenu = OpenWithMenu(self, link['href'])
@@ -6035,7 +6035,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Image...'), readonly=False) # T: Menu item
 	def show_insert_image(self, file=None):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
-		@param file: optinal file to suggest in the dialog
+		@param file: optional file to suggest in the dialog
 		'''
 		InsertImageDialog(self, self.view.get_buffer(), self.notebook, self.page, file).run()
 
@@ -6104,7 +6104,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
 
-		Inserts the links seperated by newlines. Intended e.g. for
+		Inserts the links separated by newlines. Intended e.g. for
 		drag-and-drop or copy-paste actions of e.g. files from a
 		file browser.
 
@@ -7320,7 +7320,7 @@ class MoveTextDialog(Dialog):
 			newpage.parse('wiki', self.text) # FIXME: probably should use parsetree here instead
 			self.notebook.store_page(newpage)
 
-		# Delete text (after copy was succesfull..)
+		# Delete text (after copy was successfulll..)
 		bounds = list(map(self.buffer.get_iter_at_offset, self.bounds))
 		self.buffer.delete(*bounds)
 

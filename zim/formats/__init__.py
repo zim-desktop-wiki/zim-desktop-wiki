@@ -27,8 +27,8 @@ Supported tags:
 	- pre for verbatim paragraphs (no further parsing in these blocks)
 	- em for emphasis, rendered italic by default
 	- strong for strong emphasis, rendered bold by default
-	- mark for highlighted text, renderd with background color or underlined
-	- strike for text that is removed, usually renderd as strike through
+	- mark for highlighted text, rendered with background color or underlined
+	- strike for text that is removed, usually rendered as strike through
 	- code for inline verbatim text
 	- ul for bullet and checkbox lists
 	- ol for numbered lists
@@ -1586,7 +1586,7 @@ class TableParser():
 	@staticmethod
 	def convert_to_multiline_cells(rows):
 		'''
-		Each cell of a list of list is splitted by "\n" and a 3-dimensional list is returned,
+		Each cell in a list of rows is split by "\n" and a 3-dimensional list is returned,
 		whereas each tuple represents a line and multiple lines represents a row and multiple rows represents the table
 		c11a = Cell in Row 1 in Column 1 in first = a line
 		:param strings: format like (('c11a \n c11b', 'c12a \n c12b'), ('c21', 'c22a \n 22b'))
@@ -1631,7 +1631,7 @@ class TableParser():
 		:param aligns:  list of alignments
 		:param x: point-separator
 		:param y: line-separator
-		:return: a textline
+		:return: a text line
 		'''
 		cells = []
 		for width, align in zip(maxwidths, aligns):

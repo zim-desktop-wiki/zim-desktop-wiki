@@ -851,7 +851,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def find(self, path):
 		'''Returns the C{Gtk.TreePath} for a notebook page L{Path}
-		If the L{Path} appears multiple times returns the first occurence
+		If the L{Path} appears multiple times returns the first occurrence
 		@raises IndexNotFoundError: if path not found
 		'''
 		if path.isroot:
@@ -864,7 +864,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def find_all(self, path):
 		'''Returns a list of C{Gtk.TreePath} for a notebook page L{Path}
-		Returns all occurences in the treeview
+		Returns all occurrences in the treeview
 		@raises IndexNotFoundError: if path not found
 		'''
 		if path.isroot:
@@ -953,7 +953,7 @@ class TestPagesDBTable(object):
 				if not row['is_link_placeholder']:
 					# Check upwards - parent(s) must not be placeholder either
 					self.assertFalse(parent['is_link_placeholder'],
-						'Placeholder status for parent of %s is inconcsisten' % row['name']
+						'Placeholder status for parent of %s is inconsistent' % row['name']
 					)
 
 	def assertPagesDBEquals(self, db, pages):

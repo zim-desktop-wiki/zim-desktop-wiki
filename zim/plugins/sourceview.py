@@ -56,7 +56,7 @@ class SourceViewPlugin(PluginClass):
 		'name': _('Source View'), # T: plugin name
 		'description': _('''\
 This plugin allows inserting 'Code Blocks' in the page. These will be
-shown as emdedded widgets with syntax highlighting, line numbers etc.
+shown as embedded widgets with syntax highlighting, line numbers etc.
 '''), # T: plugin description
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
@@ -230,7 +230,7 @@ class SourceViewObject(CustomObjectClass):
 			widget.set_preferences(self.preferences)
 
 	def on_modified_changed(self, buffer):
-		# Sourceview changed, set change on oject, reset state of
+		# Sourceview changed, set change on object, reset state of
 		# sourceview buffer so we get a new signal with next change
 		if buffer.get_modified():
 			self.set_modified(True)

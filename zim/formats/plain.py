@@ -42,7 +42,7 @@ class Parser(ParserClass):
 			input = fix_line_end(input)
 
 		parser = zim.parser.Parser(
-			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r attribute because url_re is a Re object
 		)
 
 		builder = ParseTreeBuilder(partial=partial)

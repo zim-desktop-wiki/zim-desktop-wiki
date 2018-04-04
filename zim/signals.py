@@ -50,7 +50,7 @@ class SignalHandler(object):
 			# class access
 			return self
 		else:
-			# instance acces, return bound version
+			# instance access, return bound version
 			name = '_bound_' + self._func.__name__
 			if not hasattr(instance, name) \
 			or getattr(instance, name) is None:
@@ -245,7 +245,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 	spec for the signal.
 
 	When a signal is emitted all handlers are called one by one and exceptions
-	in a handleer are intercepted. If the class defines a method
+	in a handler are intercepted. If the class defines a method
 	C{do_signalname()} (where "signalname" is the name of the signal with "-"
 	replaced by "_") this is considered a default handler that is automatically
 	connected. The C{SIGNAL_RUN_FIRST} and C{SIGNAL_RUN_LAST} flags in the
@@ -290,7 +290,7 @@ class SignalEmitter(object, metaclass=SignalEmitterMeta):
 
 		Note that connecting makes a hard reference to the connected
 		object. So connecting an bound method will prevent the
-		object the method belongs to to be destroyed untill the
+		object the method belongs to to be destroyed until the
 		signal is disconnected.
 
 		@param signal: the signal name

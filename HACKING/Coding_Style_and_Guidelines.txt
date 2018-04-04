@@ -15,7 +15,7 @@ See the python style guide for best practices. Some items to keep in mind:
 
 **Other general guidelines**
 * Writing test cases is good, full test coverage is better.  Run "./test.py --cover" to get a coverage report.
-* Wait with loading modules and constructing widgets untill they are  really needed, this should keep startup speed reasonable
+* Wait with loading modules and constructing widgets until they are  really needed, this should keep startup speed reasonable
 * Try to do slow operations that could be done asynchronous using the idle event or a thread, e.g loading the side pane index, or a list with search results, or even running an external command to check in a new version  of a file.
 
 **Source code formatting**

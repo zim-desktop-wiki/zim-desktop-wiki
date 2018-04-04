@@ -157,8 +157,8 @@ class TestXDGDirs(tests.TestCase):
 			):
 				self.assertEqual(getattr(zim.config.basedirs, k), list(map(Dir, v.split(':'))))
 
-	def testIntializedEnvironment(self):
-		'''Test config environemnt with non-default basedir paths'''
+	def testInitializedEnvironment(self):
+		'''Test config environment with non-default basedir paths'''
 		my_environ = {
 			'XDG_DATA_HOME': '/foo/data/home',
 			'XDG_DATA_DIRS': '/foo/data/dir1:/foo/data/dir2   ',

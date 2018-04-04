@@ -316,8 +316,8 @@ class Choice(ConfigDefinition):
 	__slots__ = ('choices',)
 
 	# TODO - this class needs a type for the choices
-	#        could be simply commen type of list items, but we get
-	#        bitten because we allow tuples as needed for preferences
+	#        could be simply common type of list items, but we get
+	#        beaten because we allow tuples as needed for preferences
 	#        with label --> make that a dedicated feature
 
 	def __init__(self, default, choices, allow_empty=False):
@@ -338,7 +338,7 @@ class Choice(ConfigDefinition):
 				value = self._eval_string(value)
 
 			# HACK to allow for preferences with "choice" item that has
-			# a list of tuples as argumnet
+			# a list of tuples as argument
 			if all(isinstance(t, tuple) for t in self.choices):
 				choices = list(self.choices) + [t[0] for t in self.choices]
 			else:
@@ -569,7 +569,7 @@ class ConfigDict(ControlledDict):
 					self._keys.append(key)
 
 	def define(self, E=None, **F):
-		'''Set one or more defintions for this config dict
+		'''Set one or more definitions for this config dict
 		Can cause error log when values prior given to C{input()} do
 		not match the definition.
 		'''
@@ -689,7 +689,7 @@ class ConfigDict(ControlledDict):
 
 class SectionedConfigDict(ControlledDict):
 	'''Dict with multiple sections of config values
-	Sections are auto-vivicated when a non-existing item is retrieved.
+	Sections are handled automatically when a non-existing item is retrieved.
 	'''
 
 	def __setitem__(self, k, v):
@@ -707,7 +707,7 @@ class SectionedConfigDict(ControlledDict):
 
 class INIConfigFile(SectionedConfigDict):
 	'''Dict to represent a configuration file in "ini-style". Since the
-	ini-file is devided in section this is represented as a dict of
+	ini-file is divided in section this is represented as a dict of
 	dicts. This class represents the top-level with a key for each
 	section. The values are in turn L{ConfigDict}s which contain the
 	key value pairs in that section.
@@ -867,7 +867,7 @@ class INIConfigFile(SectionedConfigDict):
 
 
 class HierarchicDict(object):
-	'''This class implements a data store that behaves as a hierarchig
+	'''This class implements a data store that behaves as a hierarchic
 	dict of dicts. Each key in this object is considered a hierarchic
 	path (the path separator is ':' for obvious reasons). The dict for
 	each key will "inherit" all values from parent paths. However
@@ -880,8 +880,8 @@ class HierarchicDict(object):
 	There is a special member dict stored under the key "__defaults__"
 	which has the top-level fallback properties.
 
-	Child dicts are auto-vivicated, so this object only implements
-	C{__getitem__()} but no C{__setitem__()}.
+	This object only implements
+	C{__getitem__()}, but no C{__setitem__()}.
 	'''
 	# Note that all the magic is actually implemented by HierarchicDictFrame
 

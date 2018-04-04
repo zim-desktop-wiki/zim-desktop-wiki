@@ -9,7 +9,7 @@ This list of pages can show:
 * **Recent Pages:** like "history" but without doubles
 * **Recently Changed Pages:** pages in order of there last modified timestamp
 * **History:** the browsing history for this window
-* **Page Hierachy:** e.g. "''Projects''", "''CustomerA''" and "''MyProject''" for a page named "''Projects:CustomerA:MyProject''" 
+* **Page Hierarchy:** e.g. "''Projects''", "''CustomerA''" and "''MyProject''" for a page named "''Projects:CustomerA:MyProject''"
 
 The content can be changed via the "Pathbar" sub-menu in the "View" menu.
 

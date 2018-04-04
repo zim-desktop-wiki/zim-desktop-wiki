@@ -111,7 +111,7 @@ class TestCoding(tests.TestCase):
 				for basename in files:
 					if basename.endswith('.py'):
 						file = dir.replace('\\', '/') + '/' + basename
-						if file == 'tests/package.py': # skip ourselve
+						if file == 'tests/package.py': # skip ourselves
 								continue
 						#~ print('READING', file)
 						fh = open(file)
@@ -123,7 +123,7 @@ class TestCoding(tests.TestCase):
 		allow_gtk = ('zim/gui/', 'zim/inc/', 'zim/plugins/', 'tests/')
 		#import_re = re.compile('^from gi.repository import (Gtk|Gdk|Gio|GObject)', re.M)
 		import_re = re.compile('^from gi.repository import (Gtk|Gdk|Gio)', re.M)
-			# only match global imports - allow import in limitted scope
+			# only match global imports - allow import in limited scope
 		for file, code in self.list_code():
 			if os.name == 'nt':
 				file = file.replace('\\', '/')
@@ -146,8 +146,8 @@ class TestCoding(tests.TestCase):
 
 			if not file.endswith('pageview.py'):
 				self.assertFalse('string.letters' in code, '%s uses string.letters - this can case locale dependent issues' % file)
-				self.assertFalse('srting.lowercase' in code, '%s uses string.lowercase - this can case locale dependent issues' % file)
-				self.assertFalse('srting.uppercase' in code, '%s uses string.uppercase - this can case locale dependent issues' % file)
+				self.assertFalse('string.lowercase' in code, '%s uses string.lowercase - this can case locale dependent issues' % file)
+				self.assertFalse('string.uppercase' in code, '%s uses string.uppercase - this can case locale dependent issues' % file)
 
 			if not file.endswith('widgets.py'):
 				self.assertFalse('Gtk.ScrolledWindow(' in code, '%s uses Gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)

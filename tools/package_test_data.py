@@ -21,7 +21,7 @@ def package(dir, file):
 	if file.exists():
 		file.remove()
 	fh = file.open('w')
-	fh.write('<?xml version="1.0" econding="utf-8"?>\n')
+	fh.write('<?xml version="1.0" enconding="utf-8"?>\n')
 	fh.write('<!-- this file is NOT in store.xml format -->\n')
 	fh.write('<pagelist>\n')
 	source = zim.stores.files.Store(None, Path(':'), dir=dir)
@@ -41,7 +41,7 @@ def package(dir, file):
 
 def extract(file, dir):
 	if dir.exists():
-		raise Exception('dir exists alread')
+		raise Exception('dir exists already')
 	assert False, 'TODO'
 
 

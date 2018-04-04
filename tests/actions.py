@@ -12,15 +12,15 @@ from zim.actions import *
 class TestPrimaryKeyBinding(tests.TestCase):
 
 	def runTest(self):
-		for accel in ( # Ctrl-A or Command-A
+		for accelerator in ( # Ctrl-A or Command-A
 			"<Control>a",
 			"<Meta>a",
 			"<Primary>A",
 			"<primary>A",
 			"<PRIMARY>a"
 		):
-			#~ print(">>", accel, accel)
-			keyval, mod = Gtk.accelerator_parse(accel)
+			#~ print(">>", accelerator, accelerator)
+			keyval, mod = Gtk.accelerator_parse(accelerator)
 			self.assertEqual(keyval, 97)
 			self.assertIn(mod, (Gdk.ModifierType.CONTROL_MASK, Gdk.ModifierType.META_MASK))
 

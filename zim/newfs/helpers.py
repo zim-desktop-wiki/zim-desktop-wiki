@@ -60,7 +60,7 @@ class TrashHelper(object):
 		'''Trash a file or folder by moving it to the system trashcan
 		if supported. Depends on the C{gio} library.
 		@param file: a C{LocalFile} object
-		@returns: C{True} when succesful
+		@returns: C{True} when successful
 		@raises TrashNotSupportedError: if trashing is not supported
 		or failed.
 		@raises TrashCancelledError: if trashing was cancelled by the

@@ -72,8 +72,8 @@ class Lexer:
 
         x can be a name or an operator
 
-        x preceeded and followed by a digit is taken as if
-        preceeded and followed by a space.  i.e 5x3
+        x preceded and followed by a digit is taken as if
+        preceded and followed by a space.  i.e 5x3
         is seen as 5 x 3.
         '''
         while self.offset < len(self.text):
@@ -195,7 +195,7 @@ def evaluate(expression_text, UseDigitGrouping = True, variables = {}, functions
                                        UseDigitGrouping = False,
                                        variables=variables, functions=functions)))
                 else:
-                    # recurrent relation wihout initial value
+                    # recurrent relation without initial value
                     expression.append('0')
             else:
                 expression.append(name + ' undefined')
@@ -299,7 +299,7 @@ class Parser:
         self.variables = {}
 
     def parse(self, text):
-        'Find expresions in text, return it with results.'
+        'Find expressions in text, return it with results.'
 
         lines = text.splitlines()
 
@@ -322,7 +322,7 @@ class Parser:
         lines[i] = lines[i][:start] + text + lines[i][end:]
 
     def parseLine(self, i, lines, variables={}, functions={}):
-            'Find and evaluate expresions in line i.'
+            'Find and evaluate expressions in line i.'
 
             # get line
             line = self.readLine(i, lines)
@@ -334,7 +334,7 @@ class Parser:
             while mEqualSignAct:
 
                 # Determine LeftActStart,
-                # the larger of mEqualSignPrev, mSeparLeft, mColonLeft, beginofline
+                # the larger of mEqualSignPrev, mSeparLeft, mColonLeft, mBeginOfLine
                 LeftStarts = []
                 LeftStarts.append(mEqualSignPrev.end())
 
@@ -378,8 +378,7 @@ class Parser:
                 if tipoLeft != 'v': # there is something to the left
 
                     # perform operations
-
-                    if tipoLeft in 'eaif' and tipoRight in 'vif':# evaluate expression
+                    if tipoLeft in 'eaif' and tipoRight in 'vif': # evaluate expression
                         try:
                             resultado = str(evaluate(valorLeft,
                                         variables=variables, functions=functions))

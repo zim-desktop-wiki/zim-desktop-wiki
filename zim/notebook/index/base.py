@@ -82,7 +82,7 @@ class TreeModelMixinBase(ConnectorMixin):
 		Typically each signal should also flush the cache using
 		C{self.cache.clear()}.
 
-		@implementation: must be implemented by subclass
+		@implementation: must be implemented by a subclass
 		'''
 		raise NotImplementedError
 
@@ -95,15 +95,15 @@ class TreeModelMixinBase(ConnectorMixin):
 		raise NotImplementedError
 
 	def get_mytreeiter(self, treepath):
-		'''Returens a C{treeiter} object for C{treepath} or C{None}
-		@implementation: must be implemented by subclass
+		'''Returns a C{treeiter} object for C{treepath} or C{None}
+		@implementation: must be implemented by a subclass
 		'''
 		raise NotImplementedError
 
 	def find(self, obj):
 		'''Return the treepath for a index object like a L{Path} or L{IndexTag}
 		@raises IndexNotFoundError: if C{indexpath} is not found
-		@implementation: must be implemented by subclass
+		@implementation: must be implemented by a subclass
 		'''
 		raise NotImplementedError
 

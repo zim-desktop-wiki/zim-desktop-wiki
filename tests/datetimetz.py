@@ -107,7 +107,7 @@ class TestDateParsing(tests.TestCase):
 				print('>>', m.group(0))
 			self.assertIsNone(m, 'Did unexpectedly match: %s' % text)
 
-	def testWeekNumer(self):
+	def testWeekNumber(self):
 		self.assertEqual(
 			Day(2017, 3, 27),
 			Day.new_from_weeknumber(2017, 13, 1)

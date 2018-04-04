@@ -768,7 +768,7 @@ class Dir(FilePath):
 		'''Remove this foldder and any empty parent folders. If the
 		folder does not exist, still check for empty parent folders.
 		Fails silently if the folder is not empty.
-		@returns: C{True} when succesful (so C{False} means it still exists).
+		@returns: C{True} when successfull (so C{False} means it still exists).
 		'''
 		if not self.exists():
 			return True

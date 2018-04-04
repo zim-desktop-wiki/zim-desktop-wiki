@@ -160,7 +160,7 @@ class TestPageTreeView(tests.TestCase):
 		self.treeview.emit('insert-link', path)
 		#self.treeview.emit('copy')
 
-	def testContextMenuExpandCollaps(self):
+	def testContextMenuExpandCollapse(self):
 		menu = self.treeview.get_popup()
 
 		# Check these do not cause errors - how to verify state ?

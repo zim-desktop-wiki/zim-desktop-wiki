@@ -4,7 +4,7 @@ Creation-Date: 2014-07-31T21:07:55+02:00
 
 ====== Gtk and GObject and signals ======
 
-Zim is build on top of pygtk and pygobject. However, the classes outside the 'gui' namespace are not allowed to use the gtk libraries, and should work when only gobject is available. This potentially allows zim to run without a graphical interface, also it gives a strict boundry between UI and data layers in the class hierarchy. The exception are modules in the 'plugin' namespace, which can of course package their own UI components. However, these should check on initialization if we are running in graphical mode or not.
+Zim is build on top of pygtk and pygobject. However, the classes outside the 'gui' namespace are not allowed to use the gtk libraries, and should work when only gobject is available. This potentially allows zim to run without a graphical interface, also it gives a strict boundary between UI and data layers in the class hierarchy. The exception are modules in the 'plugin' namespace, which can of course package their own UI components. However, these should check on initialization if we are running in graphical mode or not.
 
 Zim should be able to run at systems with at least Gtk+ version 2.6, however up to date systems can be  expected to have at least Gtk+ version 2.20 or newer. Therefore Gtk+ 2.20 is required to use all functionality. This means that you can use features not available for Gtk < 2.20 but you should wrap them in a block that checks the Gtk version first. Critical functions that can not be disabled should not rely on Gtk > 2.6. Note that the Gtk API documentation specifies what version a function was introduced (if not specified it can be assumed to be present in all 2.x versions).
 
