@@ -260,7 +260,7 @@ class TestDocumentation(tests.TestCase):
 		if 'signal' in fields:
 			for spec in fields['signal']:
 				# e.g.  "C{signal-name (L{Page}, L{Path})}: Emitted when opening"
-				if not re.match('^C\{[\w-]+ \(.*?\)\}:', spec):
+				if not re.match('^C{[\w-]+ \(.*?\)\}:', spec):
 					self.fail('Signal description in %s does not follow templates\n'
 					'Is: %s\nShould be like "C{signal-name (arg1, arg2)}: description"'
 					% (name, spec)

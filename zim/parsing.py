@@ -116,8 +116,8 @@ URL_ENCODE_DATA = 0 # all
 URL_ENCODE_PATH = 1	# all except '/'
 URL_ENCODE_READABLE = 2 # only space and utf-8
 
-_url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]') # unreserved
-_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]') # unreserved + /
+_url_encode_re = re.compile(r'[^A-Za-z0-9\-_.!~*\'()]') # unreserved
+_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_.!~*\'()/]') # unreserved + /
 
 
 def _url_encode_on_error(error):
@@ -380,7 +380,7 @@ is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# smb://host/share
 is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
 	# identifier "?" path
-is_interwiki_keyword_re = re.compile('^\w[\w\+\-\.]*$', re.U)
+is_interwiki_keyword_re = re.compile('^\w[\w+\-.]*$', re.U)
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit

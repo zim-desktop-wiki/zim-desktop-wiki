@@ -49,7 +49,7 @@ param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
 	# matches parameter list for objects
 	# allow name="foo bar" and name=Foo
 
-empty_lines_re = re.compile(r'((?:^[\ \t]*\n)+)', re.M | re.U)
+empty_lines_re = re.compile(r'((?:^[ \t]*\n)+)', re.M | re.U)
 	# match multiple empty lines
 
 unindented_line_re = re.compile('^\S', re.M)
