@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import re
 
@@ -8,7 +8,7 @@ comment_re = re.compile(r'\s+#\s+T:\s+(.+)\s*$')
 
 def get_file(file):
 	if not file in source_files:
-		#~ print 'Extracting comments from', file
+		#~ print('Extracting comments from', file)
 		source_files[file] = open(file).readlines()
 		source_files[file].append('')
 	return source_files[file]
@@ -43,9 +43,9 @@ def extract_comments(sources):
 	if comments:
 		return ' | \n'.join(['#. ' + c for c in comments]) + '\n'
 	else:
-		print 'No translator comment for:'
+		print('No translator comment for:')
 		for file, line in sources:
-			print '\t%s line %s' % (file, line)
+			print('\t%s line %s' % (file, line))
 		return ''
 
 def add_comments(file):

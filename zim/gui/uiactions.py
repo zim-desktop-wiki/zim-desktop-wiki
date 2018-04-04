@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import logging
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import GdkPixbuf
 
-import gtk
+import logging
 
 logger = logging.getLogger('zim.gui')
 
@@ -78,14 +79,14 @@ class UIActions(object):
 	def populate_menu_with_actions(self, scope, menu):
 		assert scope == PAGE_ACTIONS
 
-		uimanager = gtk.UIManager()
+		uimanager = Gtk.UIManager()
 		group = get_gtk_actiongroup(self)
 		uimanager.insert_action_group(group, 0)
 		xml = _get_xml_for_menu(scope + '_popup')
 		uimanager.add_ui_from_string(xml)
 
 		tmp_menu = uimanager.get_widget('/' + scope + '_popup')
-		assert isinstance(tmp_menu, gtk.Menu)
+		assert isinstance(tmp_menu, Gtk.Menu)
 		for item in tmp_menu.get_children():
 			item.reparent(menu)
 
@@ -128,8 +129,8 @@ class UIActions(object):
 		@param location: notebook location as uri or object with "uri" attribute
 		@param pagename: optional page name
 		'''
-		assert isinstance(location, basestring) or hasattr(location, 'uri')
-		assert pagename is None or isinstance(pagename, basestring)
+		assert isinstance(location, str) or hasattr(location, 'uri')
+		assert pagename is None or isinstance(pagename, str)
 
 		uri = location.uri if hasattr(location, 'uri') else location
 		if pagename:
@@ -254,8 +255,8 @@ class UIActions(object):
 		'''Menu action for quit.
 		@emits: quit
 		'''
-		if gtk.main_level() > 0:
-			gtk.main_quit()
+		if Gtk.main_level() > 0:
+			Gtk.main_quit()
 		# We expect the application to call "destroy" on all windows once
 		# it is bumped out of the main loop
 
@@ -451,8 +452,9 @@ class UIActions(object):
 	@action(_('_About'), 'gtk-about') # T: Menu item
 	def show_about(self):
 		'''Menu action to show the "about" dialog'''
-		dialog = MyAboutDialog()
+		dialog = MyAboutDialog(self.widget)
 		dialog.run()
+		dialog.destroy()
 
 
 class NewPageDialog(Dialog):
@@ -487,7 +489,7 @@ class NewPageDialog(Dialog):
 			('page', 'page', _('Page Name'), path), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
-		self.form.widgets['page'].insert_text(prefix)
+		self.form.widgets['page'].insert_text(prefix, 0)
 		self.form['template'] = default
 		# TODO: reset default when page input changed -
 		# especially if namespace has other template
@@ -554,7 +556,7 @@ class ImportPageDialog(FileDialog):
 class SaveCopyDialog(FileDialog):
 
 	def __init__(self, widget, notebook, page):
-		FileDialog.__init__(self, widget, _('Save Copy'), gtk.FILE_CHOOSER_ACTION_SAVE)
+		FileDialog.__init__(self, widget, _('Save Copy'), Gtk.FileChooserAction.SAVE)
 			# T: Dialog title of file save dialog
 		self.page = page
 		self.filechooser.set_current_name(page.name + '.txt')
@@ -583,7 +585,7 @@ class RenamePageDialog(Dialog):
 		self.path = path
 		page = self.notebook.get_page(self.path)
 
-		self.vbox.add(gtk.Label(_('Rename page "%s"') % self.path.name))
+		self.vbox.add(Gtk.Label(label=_('Rename page "%s"') % self.path.name))
 			# T: label in 'rename page' dialog - %s is the page name
 
 		try:
@@ -645,7 +647,7 @@ class MovePageDialog(Dialog):
 		self.notebook = notebook
 		self.path = path
 
-		self.vbox.add(gtk.Label(_('Move page "%s"') % self.path.name))
+		self.vbox.add(Gtk.Label(label=_('Move page "%s"') % self.path.name))
 			# T: Heading in 'move page' dialog - %s is the page name
 
 		try:
@@ -699,43 +701,43 @@ class DeletePageDialog(Dialog):
 		self.path = path
 		self.update_links = update_links
 
-		hbox = gtk.HBox(spacing=12)
+		hbox = Gtk.HBox(spacing=12)
 		self.vbox.add(hbox)
 
-		img = gtk.image_new_from_stock(gtk.STOCK_DIALOG_WARNING, gtk.ICON_SIZE_DIALOG)
-		hbox.pack_start(img, False)
+		img = Gtk.Image.new_from_stock(Gtk.STOCK_DIALOG_WARNING, Gtk.IconSize.DIALOG)
+		hbox.pack_start(img, False, True, 0)
 
-		vbox = gtk.VBox(spacing=5)
-		hbox.pack_start(vbox, False)
+		vbox = Gtk.VBox(spacing=5)
+		hbox.pack_start(vbox, False, True, 0)
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		short = _('Delete page "%s"?') % self.path.basename
 			# T: Heading in 'delete page' dialog - %s is the page name
-		long = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
+		longmsg = _('Page "%s" and all of it\'s\nsub-pages and attachments will be deleted') % self.path.name
 			# T: Text in 'delete page' dialog - %s is the page name
-		label.set_markup('<b>' + short + '</b>\n\n' + long)
-		vbox.pack_start(label, False)
+		label.set_markup('<b>' + short + '</b>\n\n' + longmsg)
+		vbox.pack_start(label, False, True, 0)
 
 		# TODO use expander here
+		page = self.notebook.get_page(self.path)
+		text = page.source_file.path + '\n'
+		n = 1
 		dir = self.notebook.get_attachments_dir(self.path)
 		if dir.exists():
-			text = self._get_file_tree_as_text(dir)
-			n = len([l for l in text.splitlines() if not l.endswith('/')])
-		else:
-			text = ''
-			n = 0
+			text += self._get_file_tree_as_text(dir)
+			n = len([l for l in text.splitlines() if l.strip() and not l.endswith('/')])
 
 		string = ngettext('%i file will be deleted', '%i files will be deleted', n) % n
 			# T: label in the DeletePage dialog to warn user of attachments being deleted
 		if n > 0:
 			string = '<b>' + string + '</b>'
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup('\n' + string + ':')
 		self.vbox.add(label)
 		window, textview = ScrolledTextView(text, monospace=True)
-		window.set_size_request(250, 200)
-		self.vbox.add(window)
+		window.set_size_request(250, 100)
+		self.vbox.pack_start(window, True, True, 0)
 
 	def _get_file_tree_as_text(self, dir):
 		'''Returns an overview of files and folders below this dir
@@ -746,8 +748,8 @@ class DeletePageDialog(Dialog):
 		from zim.newfs import Folder
 		text = ''
 		for child in dir.walk():
-			path = child.relpath(self)
-			if isinstance(child, (Folder, Dir)):
+			path = child.relpath(dir)
+			if isinstance(child, Folder):
 				path += '/'
 			text += path + '\n'
 		return text
@@ -844,17 +846,17 @@ You can use another name or overwrite the existing file.''' % file.basename),
 
 		# all buttons are defined in this class, to get the ordering right
 		# [show folder]      [overwrite] [cancel] [ok]
-		button = gtk.Button(_('_Browse')) # T: Button label
+		button = Gtk.Button.new_with_mnemonic(_('_Browse')) # T: Button label
 		button.connect('clicked', self.do_show_folder)
 		self.action_area.add(button)
 		self.action_area.set_child_secondary(button, True)
 
-		button = gtk.Button(_('Overwrite')) # T: Button label
+		button = Gtk.Button.new_with_mnemonic(_('Overwrite')) # T: Button label
 		button.connect('clicked', self.do_response_overwrite)
-		self.add_action_widget(button, gtk.RESPONSE_NONE)
+		self.add_action_widget(button, Gtk.ResponseType.NONE)
 
-		self.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-		self.add_button(gtk.STOCK_OK, gtk.RESPONSE_OK)
+		self.add_button(_('_Cancel'), Gtk.ResponseType.CANCEL) # T: Button label
+		self.add_button(_('_OK'), Gtk.ResponseType.OK) # T: Button label
 		self._no_ok_action = False
 
 		self.form.widgets['name'].connect('focus-in-event', self._on_focus)
@@ -888,25 +890,20 @@ You can use another name or overwrite the existing file.''' % file.basename),
 		return True
 
 
-class MyAboutDialog(gtk.AboutDialog):
+class MyAboutDialog(Gtk.AboutDialog):
 
-	def __init__(self):
-		gtk.about_dialog_set_url_hook(lambda d, l: open_url(l))
-		gtk.about_dialog_set_email_hook(lambda d, l: open_url(l))
-
-		gtk.AboutDialog.__init__(self)
-
-		try: # since gtk 2.12
-			self.set_program_name('Zim')
-		except AttributeError:
-			pass
-
+	def __init__(self, parent):
 		import zim
+
+		GObject.GObject.__init__(self)
+		self.set_transient_for(parent.get_toplevel())
+
+		self.set_program_name('Zim')
 		self.set_version(zim.__version__)
 		self.set_comments(_('A desktop wiki'))
 			# T: General description of zim itself
 		file = data_file('zim.png')
-		pixbuf = gtk.gdk.pixbuf_new_from_file(file.path)
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file(file.path)
 		self.set_logo(pixbuf)
 		self.set_copyright(zim.__copyright__)
 		self.set_license(zim.__license__)
@@ -914,3 +911,6 @@ class MyAboutDialog(gtk.AboutDialog):
 		self.set_translator_credits(_('translator-credits'))
 			# T: This string needs to be translated with names of the translators for this language
 		self.set_website(zim.__url__)
+
+	def do_activate_link(self, uri):
+		open_url(self, uri)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -32,6 +31,7 @@ from zim.utils import get_module, lookup_subclass
 from zim.errors import Error
 from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
+from zim.formats import get_format
 
 from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
@@ -97,17 +97,17 @@ Try 'zim --manual' for more help.
 '''
 
 	def run(self):
-		print self.usagehelp
-		print self.optionhelp  # TODO - generate from commands
+		print(self.usagehelp)
+		print(self.optionhelp)  # TODO - generate from commands
 
 
 class VersionCommand(Command):
 	'''Class implementing the C{--version} command'''
 
 	def run(self):
-		print 'zim %s\n' % zim.__version__
-		print zim.__copyright__, '\n'
-		print zim.__license__
+		print('zim %s\n' % zim.__version__)
+		print(zim.__copyright__, '\n')
+		print(zim.__license__)
 
 
 class NotebookLookupError(Error):
@@ -253,18 +253,14 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		return notebook, page or uripage
 
 	def run(self):
-		import gtk
+		from gi.repository import Gtk
 
 		from zim.gui.mainwindow import MainWindow
 
 		windows = [
-			w for w in gtk.window_list_toplevels()
+			w for w in Gtk.Window.list_toplevels()
 				if isinstance(w, MainWindow)
 		]
-
-		if len(windows) == 0:
-			logger.debug('Gtk version is %s' % str(gtk.gtk_version))
-			logger.debug('Pygtk version is %s' % str(gtk.pygtk_version))
 
 		notebook, page = self.build_notebook()
 		if notebook is None:
@@ -292,7 +288,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			window.toggle_fullscreen(True)
 
 	def _run_new_window(self, notebook, page):
-		import gobject
+		from gi.repository import GObject
 
 		from zim.gui.mainwindow import MainWindow
 		from zim.config import ConfigManager
@@ -334,7 +330,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			def start_background_check():
 				notebook.index.start_background_check(notebook)
 				return False # only run once
-			gobject.timeout_add(500, start_background_check)
+			GObject.timeout_add(500, start_background_check)
 
 		return window
 
@@ -343,7 +339,7 @@ class ManualCommand(GuiCommand):
 	'''Like L{GuiCommand} but always opens the manual'''
 
 	arguments = ('[PAGE]',)
-	options = filter(lambda t: t[0] != 'list', GuiCommand.options)
+	options = tuple(t for t in GuiCommand.options if t[0] != 'list')
 		# exclude --list
 
 	def run(self):
@@ -455,22 +451,26 @@ class ExportCommand(NotebookCommand):
 				output, template,
 				document_root_url=self.opts.get('root-url'),
 			)
+		elif self.opts.get('singlefile'):
+			self.ignore_options('index-page')
+			if output.exists() and output.isdir():
+				ext = get_format(format).info['extension']
+				output = output.file(page.basename) + '.' + ext
+
+			exporter = build_single_file_exporter(
+				output, format, template, namespace=page,
+				document_root_url=self.opts.get('root-url'),
+			)
 		elif page:
 			self.ignore_options('index-page')
 			if output.exists() and output.isdir():
-				ext = 'html'
+				ext = get_format(format).info['extension']
 				output = output.file(page.basename) + '.' + ext
 
-			if self.opts.get('singlefile'):
-				exporter = build_single_file_exporter(
-					output, format, template, namespace=page,
-					document_root_url=self.opts.get('root-url'),
-				)
-			else:
-				exporter = build_page_exporter(
-					output, format, template, page,
-					document_root_url=self.opts.get('root-url'),
-				)
+			exporter = build_page_exporter(
+				output, format, template, page,
+				document_root_url=self.opts.get('root-url'),
+			)
 		else:
 			if not output.exists():
 				output = Dir(output.path)
@@ -531,7 +531,7 @@ class SearchCommand(NotebookCommand):
 		selection = SearchSelection(notebook)
 		selection.search(query)
 		for path in sorted(selection, key=lambda p: p.name):
-			print path.name
+			print(path.name)
 
 
 class IndexCommand(NotebookCommand):
@@ -648,8 +648,8 @@ class ZimApplication(object):
 		'''Present notebook and page in a mainwindow, may not return for
 		standalone processes.
 		'''
-		uri = notebook if isinstance(notebook, basestring) else notebook.uri
-		pagename = page if isinstance(page, basestring) else page.name
+		uri = notebook if isinstance(notebook, str) else notebook.uri
+		pagename = page if isinstance(page, str) else page.name
 		self.run('--gui', uri, pagename)
 
 	def add_window(self, window):
@@ -670,11 +670,11 @@ class ZimApplication(object):
 	def _on_destroy_window(self, window):
 		self.remove_window(window)
 		if not self._windows:
-			import gtk
+			from gi.repository import Gtk
 
 			logger.debug('Last toplevel destroyed, quit')
-			if gtk.main_level() > 0:
-				gtk.main_quit()
+			if Gtk.main_level() > 0:
+				Gtk.main_quit()
 
 	def run(self, *args, **kwargs):
 		'''Run a commandline command, either in this process, an
@@ -720,11 +720,11 @@ class ZimApplication(object):
 	def _run_main_loop(self, cmd):
 		# Run for the 1st gtk command in a primary process,
 		# but can still be standalone process
-		import gtk
-		import gobject
+		from gi.repository import Gtk
+		from gi.repository import GObject
 
 		#######################################################################
-		# WARNING: commented out "gobject.threads_init()" because it leads to
+		# WARNING: commented out "GObject.threads_init()" because it leads to
 		# various segfaults on linux. See github issue #7
 		# However without this init, gobject does not properly release the
 		# python GIL during C calls, so threads may block while main loop is
@@ -733,11 +733,11 @@ class ZimApplication(object):
 		# frequently. So be very carefull relying on threads.
 		# Re-evaluate when we are above PyGObject 3.10.2 - threading should
 		# wotk bettter there even without this statement. (But even then,
-		# no Gtk calls from threads, just "gobject.idle_add()". )
+		# no Gtk calls from threads, just "GObject.idle_add()". )
 		# Kept for windows, because we need thread to run ipc listener, and no
 		# crashes observed there.
 		if os.name == 'nt':
-			gobject.threads_init()
+			GObject.threads_init()
 		#######################################################################
 
 		from zim.gui.widgets import gtk_window_set_default_icon
@@ -760,7 +760,7 @@ class ZimApplication(object):
 			self.add_window(w)
 
 		while self._windows:
-			gtk.main()
+			Gtk.main()
 
 			for toplevel in list(self._windows):
 				try:
@@ -805,11 +805,11 @@ class ZimApplication(object):
 
 	def _setup_signal_handling(self):
 		def handle_sigterm(signal, frame):
-			import gtk
+			from gi.repository import Gtk
 
 			logger.info('Got SIGTERM, quit')
-			if gtk.main_level() > 0:
-				gtk.main_quit()
+			if Gtk.main_level() > 0:
+				Gtk.main_quit()
 
 		signal.signal(signal.SIGTERM, handle_sigterm)
 

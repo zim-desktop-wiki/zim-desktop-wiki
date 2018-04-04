@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import re
@@ -22,8 +21,6 @@ RE_Tag = re.compile(r"(?:,\s*)?(\S+:)")
 RE_Time = re.compile(r"[0-9][0-9]:[0-9][0-9]:[0-9][0-9]")
 
 class FOSSILApplicationBackend(VCSApplicationBase):
-
-	use_staging = False
 
 	@classmethod
 	def build_bin_application_instance(cls):

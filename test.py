@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# -*- coding: utf-8 -*-
 
 # This is a wrapper script to run tests using the unittest
 # framework. It setups the environment properly and defines some
@@ -36,7 +35,7 @@ def main(argv=None):
 		'hVD', ['help', 'coverage', 'fast', 'failfast', 'ff', 'full', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
-			print '''\
+			print('''\
 usage: %s [OPTIONS] [MODULES]
 
 Where MODULE should a module name from ./tests/
@@ -51,16 +50,16 @@ Options:
   --coverage     report test coverage statistics
   -V, --verbose  run with verbose output from logging
   -D, --debug    run with debug output from logging
-''' % argv[0]
+''' % argv[0])
 			return
 		elif o == '--coverage':
 			if coverage:
 				covreport = True
 			else:
-				print >>sys.stderr, '''\
+				print('''\
 Can not run test coverage without module 'coverage'.
 On Ubuntu or Debian install package 'python-coverage'.
-'''
+''', file=sys.stderr)
 				sys.exit(1)
 		elif o == '--fast':
 			tests.FAST_TEST = True
@@ -130,7 +129,7 @@ On Ubuntu or Debian install package 'python-coverage'.
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)
 	mylib = os.path.abspath('./zim')
-	for module in [m for m in sys.modules.keys()
+	for module in [m for m in list(sys.modules.keys())
 			if m == 'zim' or m.startswith('zim.')]:
 				if sys.modules[module] is None:
 					continue
@@ -139,19 +138,19 @@ On Ubuntu or Debian install package 'python-coverage'.
 					'Module %s was loaded from %s' % (module, file)
 
 	test_report(result, 'test_report.html')
-	print '\nWrote test report to test_report.html'
+	print('\nWrote test report to test_report.html')
 
 	# print timings
 	with open('test_times.csv', 'w') as out:
 		for name, time in sorted(tests.TIMINGS, reverse=True, key=lambda t: t[1]):
 			out.write("%s,%f\n" % (name, time))
-		print "Wrote test_times.csv"
+		print("Wrote test_times.csv")
 
 	# Create coverage output if asked to do so
 	if covreport:
-		print 'Writing coverage reports...'
+		print('Writing coverage reports...')
 		cov.html_report(directory='./coverage', omit=['zim/inc/*'])
-		print 'Done - Coverage reports can be found in ./coverage/'
+		print('Done - Coverage reports can be found in ./coverage/')
 
 
 def test_report(result, file):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -20,7 +19,7 @@ class TestSearchRegex(tests.TestCase):
 			('*foo*', r'\b\S*foo\S*\b'),
 			('foo$', r'\bfoo\$'),
 			('foo bar', r'\bfoo\ bar\b'),
-			('汉字', u'\汉\字'), # re.escape add extra "\"
+			('汉字', '\汉\字'), # re.escape add extra "\"
 		):
 			#print '>>', word, regex
 			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
@@ -214,22 +213,22 @@ class TestSearchFiles(TestSearch):
 class TestUnicode(tests.TestCase):
 
 	def runTest(self):
-		notebook = self.setUpNotebook(content={u'Öffnungszeiten': u'Öffnungszeiten ... 123\n'})
+		notebook = self.setUpNotebook(content={'Öffnungszeiten': 'Öffnungszeiten ... 123\n'})
 		results = SearchSelection(notebook)
-		path = Path(u'Öffnungszeiten')
+		path = Path('Öffnungszeiten')
 
 		for string in (
-			u'*zeiten', # no unicode - just check test case
-			u'Öffnungszeiten',
-			u'öffnungszeiten', # case insensitive version
-			u'content:Öffnungszeiten',
-			u'content:öffnungszeiten',
-			u'name:Öffnungszeiten',
-			u'name:öffnungszeiten',
-			u'content:Öff*',
-			u'content:öff*',
-			u'name:Öff*',
-			u'name:öff*',
+			'*zeiten', # no unicode - just check test case
+			'Öffnungszeiten',
+			'öffnungszeiten', # case insensitive version
+			'content:Öffnungszeiten',
+			'content:öffnungszeiten',
+			'name:Öffnungszeiten',
+			'name:öffnungszeiten',
+			'content:Öff*',
+			'content:öff*',
+			'name:Öff*',
+			'name:öff*',
 		):
 			query = Query(string)
 			results.search(query)

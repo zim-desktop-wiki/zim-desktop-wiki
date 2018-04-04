@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the notebook dialog which is used for the
 "open another notebook" action and which is shown if you start zim without
@@ -12,9 +11,12 @@ the next time zim is started without arguments.
 @newfield column: Column, Columns
 '''
 
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
+from gi.repository import GdkPixbuf
+
 import os
-import gtk
-import pango
 import logging
 
 import zim.main
@@ -33,6 +35,18 @@ PIXBUF_COL = 3 # column containing the notebook icon
 INFO_COL = 4   # column with the NotebookInfo object
 
 
+def _run_dialog_with_mainloop(dialog):
+	# Apparently Gtk.Dialog.run() does not work outside of a main loop
+	from zim.gui.widgets import TEST_MODE, TEST_MODE_RUN_CB
+	if TEST_MODE and TEST_MODE_RUN_CB:
+		TEST_MODE_RUN_CB(dialog)
+	else:
+		dialog.show_all()
+		dialog.present()
+		dialog.connect("response", lambda *a: Gtk.main_quit())
+		Gtk.main()
+	return dialog.result
+
 def prompt_notebook():
 	'''Prompts the NotebookDialog and returns the result or None.
 	As a special case for first time usage it immediately prompts for
@@ -42,7 +56,7 @@ def prompt_notebook():
 	list = get_notebook_list()
 	if len(list) == 0:
 		logger.debug('First time usage - prompt for notebook folder')
-		fields = AddNotebookDialog(None).run()
+		fields = _run_dialog_with_mainloop(AddNotebookDialog(None))
 		if fields:
 			dir = Dir(fields['folder'])
 			init_notebook(dir, name=fields['name'])
@@ -53,16 +67,16 @@ def prompt_notebook():
 			return None # User canceled the dialog ?
 	else:
 		# Multiple notebooks defined and no default
-		return NotebookDialog(None).run()
+		return _run_dialog_with_mainloop(NotebookDialog(None))
 
 
-class NotebookTreeModel(gtk.ListStore):
+class NotebookTreeModel(Gtk.ListStore):
 	'''TreeModel that wraps a notebook list
 
 	@column: C{OPEN_COL}: boolean, True if the notebook is opened already
 	@column: C{NAME_COL}: string, name of the notebook
 	@column: C{TEXT_COL}: string, formatted string containg the name and path
-	@column: C{PIXBUF_COL}: gtk.gdk.Pixbuf, the icon of the notebook (if any)
+	@column: C{PIXBUF_COL}: GdkPixbuf.Pixbuf, the icon of the notebook (if any)
 	@column: C{INFO_COL}: L{NotebookInfo} object
 
 	@note: To refer to the notebook in an unambiguous way, use the uri stored
@@ -75,7 +89,7 @@ class NotebookTreeModel(gtk.ListStore):
 
 		@param notebooklist: a list of L{NotebookInfo} objects
 		'''
-		gtk.ListStore.__init__(self, bool, str, str, gtk.gdk.Pixbuf, object)
+		Gtk.ListStore.__init__(self, bool, str, str, GdkPixbuf.Pixbuf, object)
 						# OPEN_COL, NAME_COL, TEXT_COL PIXBUF_COL INFO_COL
 
 		if notebooklist is None:
@@ -116,8 +130,8 @@ class NotebookTreeModel(gtk.ListStore):
 				# T: Path label in 'open notebook' dialog
 
 		if info.icon and File(info.icon).exists():
-			w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_BUTTON)
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(File(info.icon).path, w, h)
+			ok, w, h = Gtk.icon_size_lookup(Gtk.IconSize.BUTTON)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(File(info.icon).path, w, h)
 		else:
 			pixbuf = None
 
@@ -151,35 +165,36 @@ class NotebookTreeModel(gtk.ListStore):
 		self.notebooklist.write()
 
 
-class NotebookTreeView(gtk.TreeView):
+class NotebookTreeView(Gtk.TreeView):
 
 	def __init__(self, model=None):
 		# TODO: add logic to flag open notebook italic - needs daemon
 		if model is None:
 			model = NotebookTreeModel()
-		gtk.TreeView.__init__(self, model)
-		self.get_selection().set_mode(gtk.SELECTION_BROWSE)
+		GObject.GObject.__init__(self)
+		self.set_model(model)
+		self.get_selection().set_mode(Gtk.SelectionMode.BROWSE)
 		self.set_rules_hint(True)
 		self.set_reorderable(True)
 
-		cell_renderer = gtk.CellRendererPixbuf()
-		column = gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)
-		column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		w, h = gtk.icon_size_lookup(gtk.ICON_SIZE_MENU)
+		cell_renderer = Gtk.CellRendererPixbuf()
+		column = Gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)
+		column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
+		ok, w, h = Gtk.icon_size_lookup(Gtk.IconSize.MENU)
 		column.set_fixed_width(w * 2)
 		self.append_column(column)
 
-		cell_renderer = gtk.CellRendererText()
-		cell_renderer.set_property('ellipsize', pango.ELLIPSIZE_END)
+		cell_renderer = Gtk.CellRendererText()
+		cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
 		cell_renderer.set_fixed_height_from_font(2)
-		column = gtk.TreeViewColumn(_('Notebook'), cell_renderer, markup=TEXT_COL)
+		column = Gtk.TreeViewColumn(_('Notebook'), cell_renderer, markup=TEXT_COL)
 			# T: Column heading in 'open notebook' dialog
 		column.set_sort_column_id(NAME_COL)
 		self.append_column(column)
 
 
 
-class NotebookComboBox(gtk.ComboBox):
+class NotebookComboBox(Gtk.ComboBox):
 	'''Combobox showing the a list of notebooks'''
 
 	def __init__(self, model=None, current=None):
@@ -193,10 +208,11 @@ class NotebookComboBox(gtk.ComboBox):
 		'''
 		if model is None:
 			model = NotebookTreeModel()
-		gtk.ComboBox.__init__(self, model)
-		cell_renderer = gtk.CellRendererText()
-		self.pack_start(cell_renderer, False)
-		self.set_attributes(cell_renderer, text=NAME_COL)
+		GObject.GObject.__init__(self)
+		self.set_model(model)
+		cell_renderer = Gtk.CellRendererText()
+		self.pack_start(cell_renderer, True)
+		self.add_attribute(cell_renderer, 'text', NAME_COL)
 
 		if current:
 			self.set_notebook(current, append=True)
@@ -223,7 +239,7 @@ class NotebookComboBox(gtk.ComboBox):
 		@param append: if C{True} the notebook will appended to the list
 		if it was not listed yet.
 		'''
-		if isinstance(uri, basestring):
+		if isinstance(uri, str):
 			assert uri.startswith('file://')
 		else:
 			assert hasattr(uri, 'uri')
@@ -286,32 +302,32 @@ class NotebookDialog(Dialog):
 
 		# show some art work in an otherwise boring dialog
 		path = data_file('globe_banner_small.png').path
-		image = gtk.Image()
+		image = Gtk.Image()
 		image.set_from_file(path) # new_from_file not in 2.6
-		align = gtk.Alignment(0, 0.5, 0, 0)
+		align = Gtk.Alignment.new(0, 0.5, 0, 0)
 		align.add(image)
-		self.vbox.pack_start(align, False)
+		self.vbox.pack_start(align, False, True, 0)
 
 		# split between treeview and vbuttonbox
-		hbox = gtk.HBox(spacing=12)
-		self.vbox.add(hbox)
+		hbox = Gtk.HBox(spacing=12)
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		# add notebook list - open notebook on clicking a row
 		self.treeview = NotebookTreeView()
 		self.treeview.connect(
-			'row-activated', lambda *a: self.response(gtk.RESPONSE_OK))
+			'row-activated', lambda *a: self.response(Gtk.ResponseType.OK))
 
 		hbox.add(ScrolledWindow(self.treeview))
 
 		# add buttons for modifying the treeview
-		vbbox = gtk.VButtonBox()
-		vbbox.set_layout(gtk.BUTTONBOX_START)
-		hbox.pack_start(vbbox, False)
-		add_button = gtk.Button(stock='gtk-add')
+		vbbox = Gtk.VButtonBox()
+		vbbox.set_layout(Gtk.ButtonBoxStyle.START)
+		hbox.pack_start(vbbox, False, True, 0)
+		add_button = Gtk.Button.new_with_mnemonic(_('_Add')) # T: Button label
 		add_button.connect('clicked', self.do_add_notebook)
-		#~ edit_button = gtk.Button(stock='gtk-edit')
+		#~ edit_button = Gtk.Button.new_with_mnemonic(_('_Edit')) # T: Button label
 		#~ edit_button.connect('clicked', self.do_edit_notebook)
-		rm_button = gtk.Button(stock='gtk-remove')
+		rm_button = Gtk.Button.new_with_mnemonic(_('_Remove')) # T: Button label
 		rm_button.connect('clicked', self.do_remove_notebook)
 		#~ for b in (add_button, edit_button, rm_button):
 		for b in (add_button, rm_button):
@@ -326,12 +342,12 @@ class NotebookDialog(Dialog):
 		clear_button = IconButton('gtk-clear')
 		clear_button.connect('clicked', lambda o: self.combobox.set_active(-1))
 
-		hbox = gtk.HBox(spacing=5)
-		hbox.pack_start(gtk.Label(_('Default notebook') + ': '), False)
+		hbox = Gtk.HBox(spacing=5)
+		hbox.pack_start(Gtk.Label(_('Default notebook') + ': '), False, True, 0)
 			# T: Input label in 'open notebook' dialog
-		hbox.pack_start(self.combobox, False)
-		hbox.pack_start(clear_button, False)
-		self.vbox.pack_start(hbox, False)
+		hbox.pack_start(self.combobox, False, True, 0)
+		hbox.pack_start(clear_button, False, True, 0)
+		self.vbox.pack_start(hbox, False, True, 0)
 
 	def show_all(self):
 		# We focus on the treeview so that the user can start typing the
@@ -386,9 +402,9 @@ class AddNotebookDialog(Dialog):
 	def __init__(self, parent, name=None, folder=None):
 		Dialog.__init__(self, parent, _('Add Notebook')) # T: Dialog window title
 
-		label = gtk.Label(_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
+		label = Gtk.Label(label=_('Please select a name and a folder for the notebook.')) # T: Label in Add Notebook dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
 		self._name_set = not name is None
 		self._folder_set = not folder is None

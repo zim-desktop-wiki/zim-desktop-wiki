@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-04-28 22:04+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2017-08-21 00:31+0000\n"
+"Last-Translator: samson <Unknown>\n"
 "Language-Team: Amharic <am@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Launchpad-Export-Date: 2017-07-10 08:12+0000\n"
-"X-Generator: Launchpad (build 18419)\n"
+"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
+"X-Generator: Launchpad (build 18571)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -2447,7 +2447,7 @@ msgstr ""
 #. plugin preference
 #: zim/plugins/bookmarksbar.py:41
 msgid "Maximum number of bookmarks"
-msgstr ""
+msgstr "ከፍተኛ ምልክት ማድረጊያ ቁጥር"
 
 #. preferences option
 #: zim/plugins/bookmarksbar.py:42
@@ -2462,7 +2462,7 @@ msgstr "አዲስ ምልክት ማድረጊያ መጨመሪያ በ መደርደ�
 #. Menu title
 #: zim/plugins/bookmarksbar.py:87
 msgid "Book_marks"
-msgstr ""
+msgstr "ምልክት_ማድረጊያ"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:135 zim/plugins/bookmarksbar.py:197
@@ -2475,7 +2475,7 @@ msgstr "አዲስ ምልክት ማድረጊያ መጨመሪያ"
 #: zim/plugins/bookmarksbar.py:166 zim/plugins/bookmarksbar.py:170
 #: zim/plugins/bookmarksbar.py:174
 msgid "_Run bookmark"
-msgstr ""
+msgstr "ምልክት ማድረጊያ _ማስኬጃ"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:185
@@ -2484,7 +2484,7 @@ msgstr "ምልክት ማድረጊያ"
 
 #: zim/plugins/bookmarksbar.py:220
 msgid "Add bookmark/Show settings"
-msgstr ""
+msgstr "ምልክት ማድረጊያ መጨመሪያ/ማሳያ ማሰናጃ"
 
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:332
@@ -2883,22 +2883,22 @@ msgstr "እናክዎን መጀመሪያ ከ አንድ መስመር በላይ ጽ
 #. Menu item
 #: zim/plugins/linesorter.py:150
 msgid "_Move Line Up"
-msgstr ""
+msgstr "መስመር ወደ ላይ _ማንቀሳቀሻ"
 
 #. Menu item
 #: zim/plugins/linesorter.py:156
 msgid "_Move Line Down"
-msgstr ""
+msgstr "መስመር ወደ ታች _ማንቀሳቀሻ"
 
 #. Menu item
 #: zim/plugins/linesorter.py:162
 msgid "_Duplicate Line"
-msgstr ""
+msgstr "መስመር _ማባዣ"
 
 #. Menu item
 #: zim/plugins/linesorter.py:174
 msgid "_Remove Line"
-msgstr ""
+msgstr "መስመር _ማስወገጃ"
 
 #. plugin name
 #: zim/plugins/linkmap.py:22
@@ -2930,12 +2930,12 @@ msgstr "ካርታ አገናኝ ማሳያ"
 #. plugin name
 #: zim/plugins/osx_menubar.py:72
 msgid "macOS Menubar"
-msgstr ""
+msgstr "የ ማክ ስርአት ዝርዝር መደርደሪያ"
 
 #. plugin description
 #: zim/plugins/osx_menubar.py:73
 msgid "This plugin provides a macOS menubar for zim."
-msgstr ""
+msgstr "ይህ ተሰኪ የ ማክ ስርአት ዝርዝር መደርደሪያ ነው ለ ዚም"
 
 #. plugin name
 #: zim/plugins/printtobrowser.py:26

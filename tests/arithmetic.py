@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2016 Joachim Trouverie <joachim.trouverie@linoame.fr>
 # This is the test for Arithmetic plugin.
@@ -47,7 +46,7 @@ class ArithmeticTest(tests.TestCase):
 
 		for text, wanted in data:
 			result = feed(text).strip()
-			self.assertEquals(result, wanted)
+			self.assertEqual(result, wanted)
 
 		text = '''
 		a=5
@@ -83,12 +82,12 @@ class ArithmeticTest(tests.TestCase):
 		'''
 		self.assertEqual(feed(text), wanted)
 
-		text = u'''
+		text = '''
 		W=5
 		Höhe=3
 		W * Höhe=
 		'''
-		wanted = u'''
+		wanted = '''
 		W=5
 		Höhe=3
 		W * Höhe=15

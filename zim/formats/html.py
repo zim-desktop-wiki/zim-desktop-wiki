@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -184,7 +183,7 @@ class Dumper(DumperClass):
 		href = self.linker.link(attrib['href'])
 		type = link_type(attrib['href'])
 		if strings:
-			text = u''.join(strings)
+			text = ''.join(strings)
 		else:
 			text = attrib['href']
 		title = text.replace('"', '&quot;')
@@ -214,7 +213,7 @@ class Dumper(DumperClass):
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		# Fallback to verbatim paragraph
-		return ['<pre>\n'] + map(html_encode, strings) + ['</pre>\n']
+		return ['<pre>\n'] + list(map(html_encode, strings)) + ['</pre>\n']
 
 	def dump_table(self, tag, attrib, strings):
 		aligns = attrib['aligns'].split(',')

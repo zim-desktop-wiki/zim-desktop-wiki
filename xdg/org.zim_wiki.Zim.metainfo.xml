@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2014 Ryan Lerch <rlerch@redhat.com> -->
-<application>
-  <id type="desktop">zim.desktop</id>
+<!-- Copyright 2014 Ryan Lerch <rlerch@redhat.com>, 2018 Jaap Karssenberg <jaap.karssenberg@gmail.com> -->
+<component type="desktop">
+  <id>org.zim_wiki.Zim</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0+</project_license>
+	<name>Zim</name>
   <summary>Write notes in a desktop wiki</summary>
   <description>
     <p>
@@ -32,4 +33,4 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <updatecontact>jaap.karssenberg@gmail.com</updatecontact>
-</application>
+</component>

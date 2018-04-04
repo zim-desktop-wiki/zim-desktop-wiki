@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 from zim.gui.widgets import Dialog
 
 class PropertiesDialog(Dialog):
@@ -12,11 +11,11 @@ class PropertiesDialog(Dialog):
 		self.notebook = notebook
 		self.config = config
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup('<b>' + _('Notebook Properties') + '</b>')
 			# T: Section in notebook dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
 		self.add_form(
 			notebook.properties,
@@ -24,7 +23,7 @@ class PropertiesDialog(Dialog):
 		)
 		self.form.widgets['icon'].set_use_relative_paths(self.notebook)
 		if self.notebook.readonly:
-			for widget in self.form.widgets.values():
+			for widget in list(self.form.widgets.values()):
 				widget.set_sensitive(False)
 
 	def do_response_ok(self):
@@ -34,7 +33,7 @@ class PropertiesDialog(Dialog):
 			# XXX this should be part of notebook.save_properties
 			# which means notebook should also own a ref to the ConfigManager
 			if 'profile' in properties and properties['profile'] != self.notebook.profile:
-				assert isinstance(properties['profile'], (basestring, type(None)))
+				assert isinstance(properties['profile'], (str, type(None)))
 				self.config.set_profile(properties['profile'])
 
 			self.notebook.save_properties(**properties)

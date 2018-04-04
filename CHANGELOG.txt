@@ -4,6 +4,26 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.68 - Sat 17 Mar 2018 ===
+* Critical fix for updating links on move page and rename page
+* Critical fix for rename page and indexing on case-insensitive file systems
+  (like windows)
+* Fix for regression in tasklist option to _not_ regard all checkboxes as tasks
+  -- Fabian Stanke
+* Fix for egression in index navigation with previous page and next page
+* Fix for memory leak in spell checker plugin -- Alexander Meshcheryakov
+* Fix issues with multi-line selections in linesorter plugin
+* Fix bug with opening notebook list from tray icon
+* Fix bug with "-s" commandline argument for exporting
+* Fix bug with importing attachments in quicknote plugin commandline use
+* Pathbar now reveals more path elements in case of ambiguous pages -- Robert Hailey
+* Add "font" property for use in "styles.conf"
+* Add "navigation.home" to template parser for export -- Rolf Kleef
+* Version control plugin updated to better handle git staging -- Paul Becker
+* Extend interface for "image generator" plugins - Robert Hailey
+* Code cleaned up to be a bit PEP8 compliant and more future proof for python3
+  conversion -- Christian Stadelmann
+
 === 0.67 - Mon 10 Jul 2017 ===
 * Critical fix for missing page headers & remembering custom headers
 * Critical fix by removing dependency on threading for index and socket handling

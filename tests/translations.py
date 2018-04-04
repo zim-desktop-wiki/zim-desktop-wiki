@@ -11,7 +11,7 @@ class TestTranslations(TestCase):
 		pot_creation_date = None
 		for file in ['translations/zim.pot'] + glob('translations/*.po'):
 			if verbose:
-				print 'Checking %s' % file
+				print('Checking %s' % file)
 
 			t = TranslationFile(file)
 
@@ -22,7 +22,7 @@ class TestTranslations(TestCase):
 				pot_creation_date = t.headers['POT-Creation-Date']
 			else:
 				if not t.headers['POT-Creation-Date'] == pot_creation_date:
-					print 'WARNING: Translation not based on up to date template: %s' % file
+					print('WARNING: Translation not based on up to date template: %s' % file)
 				self.assertTrue(t.nplural > 0, 'Missing number of plurals: %s' % file)
 
 			t.assertValid()

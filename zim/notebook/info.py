@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -39,7 +38,7 @@ def resolve_notebook(string, pwd=None):
 	an optional page path.
 	@returns: a L{NotebookInfo} or C{None}
 	'''
-	assert isinstance(string, basestring)
+	assert isinstance(string, str)
 	from zim.fs import isabs
 
 	if '/' in string or os.path.sep in string:
@@ -57,7 +56,7 @@ def resolve_notebook(string, pwd=None):
 
 
 def _get_path_object(path):
-	if isinstance(path, basestring):
+	if isinstance(path, str):
 		file = File(path)
 		if file.exists(): # exists and is a file
 			path = file
@@ -85,7 +84,7 @@ def get_notebook_info(path):
 
 def interwiki_link(link):
 	'''Convert an interwiki link into an url'''
-	assert isinstance(link, basestring) and '?' in link
+	assert isinstance(link, str) and '?' in link
 	key, page = link.split('?', 1)
 	lkey = key.lower()
 
@@ -161,7 +160,7 @@ class NotebookInfo(object):
 		@param a: any additional arguments will be discarded
 		'''
 		# **a is added to be future proof of unknown values in the cache
-		if isinstance(uri, basestring) \
+		if isinstance(uri, str) \
 		and is_url_re.match(uri) and not uri.startswith('file://'):
 			self.uri = uri
 			self.user_path = None
@@ -179,7 +178,7 @@ class NotebookInfo(object):
 
 	def __eq__(self, other):
 		# objects describe the same notebook when the uri is the same
-		if isinstance(other, basestring):
+		if isinstance(other, str):
 			return self.uri == other
 		elif hasattr(other, 'uri'):
 			return self.uri == other.uri
@@ -298,7 +297,7 @@ class NotebookInfoList(list):
 		#  uri=uri1
 
 
-		if isinstance(text, basestring):
+		if isinstance(text, str):
 			text = text.splitlines(True)
 
 		assert text[0].strip() == '[NotebookList]'
@@ -324,9 +323,9 @@ class NotebookInfoList(list):
 
 		mylist = config['NotebookList']
 		mylist.define(Default=String(None))
-		mylist.define((k, String(None)) for k in mylist._input.keys()) # XXX
+		mylist.define((k, String(None)) for k in list(mylist._input.keys())) # XXX
 
-		for key, uri in config['NotebookList'].items():
+		for key, uri in list(config['NotebookList'].items()):
 			if key == 'Default':
 				continue
 
@@ -360,7 +359,7 @@ class NotebookInfoList(list):
 		# Old format is name, value pair, separated by whitespace
 		# with all other whitespace escaped by a \
 		# Default was _default_ which could refer a notebook name.
-		if isinstance(text, basestring):
+		if isinstance(text, str):
 			text = text.splitlines(True)
 
 		fields_re = re.compile(r'(?:\\.|\S)+') # match escaped char or non-whitespace

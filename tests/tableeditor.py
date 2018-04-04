@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -19,7 +18,7 @@ class TestMainWindowExtension(tests.TestCase):
 		window = setUpMainWindow(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 
 		plugin = TableEditorPlugin()
-		extension = MainWindowExtension(plugin, window)
+		extension = TableEditorMainWindowExtension(plugin, window)
 
 		with tests.DialogContext(self.checkInsertTableDialog):
 			extension.insert_table()
@@ -62,7 +61,7 @@ class TestEditTableExtension(tests.TestCase):
 		with tests.DialogContext(self.checkUpdateTableDialog):
 			widget.on_change_columns(None)
 
-		self.assertTrue(isinstance(widget.treeview, gtk.TreeView))
+		self.assertTrue(isinstance(widget.treeview, Gtk.TreeView))
 
 
 class TestTableFunctions(tests.TestCase):

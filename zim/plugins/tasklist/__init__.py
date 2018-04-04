@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -22,7 +21,7 @@
 # TODO: test coverage include / exclude sections
 # TODO: update manual
 
-from __future__ import with_statement
+
 
 from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
 from zim.actions import action
@@ -135,7 +134,7 @@ class NotebookExtension(ObjectExtension):
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class TaskListMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 		<ui>

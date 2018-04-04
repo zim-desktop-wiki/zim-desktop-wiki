@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -79,7 +78,6 @@ def build_single_file_exporter(file, format, template, namespace=None, **opts):
 		file = LocalFile(file.path)
 
 	template = get_template(format, template)
-	ext = get_format(format).info['extension']
 	layout = SingleFileLayout(file)
 	return SingleFileExporter(layout, template, format, **opts)
 

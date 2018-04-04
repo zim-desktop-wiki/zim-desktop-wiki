@@ -7,15 +7,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2012-10-06 21:09+0000\n"
+"PO-Revision-Date: 2018-01-29 15:01+0000\n"
 "Last-Translator: Robert Hartl <robert@chami.sk>\n"
 "Language-Team: Slovak <sk-i18n@lists.linux.sk>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 1 : (n>=2 && n<=4) ? 2 : 0;\n"
-"X-Launchpad-Export-Date: 2017-07-10 08:13+0000\n"
-"X-Generator: Launchpad (build 18419)\n"
+"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
+"X-Generator: Launchpad (build 18571)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -129,12 +129,12 @@ msgstr ""
 #. Dialog title
 #: zim/gui/applications.py:777 zim/gui/applications.py:883
 msgid "Add Application"
-msgstr ""
+msgstr "Pridať aplikáciu"
 
 #. Label for default application handler
 #: zim/gui/applications.py:825
 msgid "System Default"
-msgstr ""
+msgstr "Predvolené nastavenie systému"
 
 #. Field in 'custom command' dialog |
 #. Input in "Edit Custom Tool" dialog |
@@ -338,7 +338,7 @@ msgstr ""
 #. label for button with URL
 #: zim/gui/exportdialog.py:238 zim/gui/templateeditordialog.py:71
 msgid "Get more templates online"
-msgstr ""
+msgstr "Získať viac šablón online"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:312
@@ -391,7 +391,7 @@ msgstr ""
 #. label in export dialog
 #: zim/gui/exportdialog.py:428
 msgid "Export completed"
-msgstr ""
+msgstr "Export bol dokončený"
 
 #. button in export dialog |
 #. button in e.g. equation editor dialog
@@ -461,7 +461,7 @@ msgstr "Panel _nástrojov"
 #. Menu title
 #: zim/gui/__init__.py:74
 msgid "_Checkbox"
-msgstr ""
+msgstr "_Zaškrtávacie políčko"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:97
@@ -472,7 +472,7 @@ msgstr ""
 #: zim/gui/__init__.py:99
 #, python-format
 msgid "Use %s to switch to the side pane"
-msgstr ""
+msgstr "Použiť %s k prepnutiu na bočný panel"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:103
@@ -482,7 +482,7 @@ msgstr "Odstrániť odkazy pri mazaní stránok"
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:105
 msgid "Always use last cursor position when opening a page"
-msgstr ""
+msgstr "Vždy použiť posledné umiestnenie kurzora pri otvorení stránky"
 
 #. Error description for "no such file or folder"
 #: zim/gui/__init__.py:157
@@ -678,17 +678,17 @@ msgstr "Hľadať _spätné odkazy"
 #. Menu item
 #: zim/gui/__init__.py:1130
 msgid "Recent Changes..."
-msgstr ""
+msgstr "Posledné úpravy..."
 
 #. Menu item
 #: zim/gui/__init__.py:1137
 msgid "Copy _Location"
-msgstr ""
+msgstr "Kopírovať _umiestnenie"
 
 #. Menu item
 #: zim/gui/__init__.py:1142
 msgid "_Templates"
-msgstr ""
+msgstr "Š_ablóny"
 
 #. Menu item
 #: zim/gui/__init__.py:1148
@@ -722,6 +722,8 @@ msgid ""
 "The folder \"%s\" does not yet exist.\n"
 "Do you want to create it now?"
 msgstr ""
+"Priečinok \"%s\" ešte neexistuje.\n"
+"Prajete si ho vytvoriť?"
 
 #. error when external application fails
 #: zim/gui/__init__.py:1340 zim/gui/__init__.py:1463
@@ -856,7 +858,7 @@ msgstr "Na _celú obrazovku"
 #. Menu item
 #: zim/gui/__init__.py:2072
 msgid "_Side Panes"
-msgstr ""
+msgstr "_Bočné tabule"
 
 #. Menu item
 #: zim/gui/__init__.py:2072
@@ -873,7 +875,7 @@ msgstr "_Posledné stránky"
 
 #: zim/gui/__init__.py:2123
 msgid "Recently _Changed pages"
-msgstr ""
+msgstr "Naposledy _zmenené stránky"
 
 #: zim/gui/__init__.py:2124
 msgid "_History"
@@ -1148,7 +1150,7 @@ msgstr ""
 #. Menu title
 #: zim/gui/pageview.py:160
 msgid "New _Attachment"
-msgstr ""
+msgstr "Nová _príloha"
 
 #. Menu item
 #: zim/gui/pageview.py:165
@@ -1471,7 +1473,7 @@ msgstr "Prepnúť zaškrtávacie políčko 'X'"
 #. Menu item
 #: zim/gui/pageview.py:5880
 msgid "Toggle Checkbox '>'"
-msgstr ""
+msgstr "Prepnúť zaškrtávacie políčko '>'"
 
 #. Menu item
 #: zim/gui/pageview.py:5889
@@ -1486,7 +1488,7 @@ msgstr "_Dátum a čas..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:5949
 msgid "Horizontal _Line"
-msgstr ""
+msgstr "_Vodorovná čiara"
 
 #. Menu item
 #: zim/gui/pageview.py:5963
@@ -1923,7 +1925,7 @@ msgstr "Vlastnosti zápisníka"
 #. Dialog title
 #: zim/gui/recentchangesdialog.py:21
 msgid "Recent Changes"
-msgstr ""
+msgstr "Posledné úpravy"
 
 #. label for modified time
 #: zim/gui/recentchangesdialog.py:66
@@ -2401,7 +2403,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/bookmarksbar.py:43
 msgid "Add new bookmarks to the beginning of the bar"
-msgstr ""
+msgstr "Pridať záložky na začiatok panela"
 
 #. Menu title
 #: zim/plugins/bookmarksbar.py:87
@@ -2411,7 +2413,7 @@ msgstr ""
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:135 zim/plugins/bookmarksbar.py:197
 msgid "Add Bookmark"
-msgstr ""
+msgstr "Pridať záložku"
 
 #: zim/plugins/bookmarksbar.py:142 zim/plugins/bookmarksbar.py:146
 #: zim/plugins/bookmarksbar.py:150 zim/plugins/bookmarksbar.py:154
@@ -2419,12 +2421,12 @@ msgstr ""
 #: zim/plugins/bookmarksbar.py:166 zim/plugins/bookmarksbar.py:170
 #: zim/plugins/bookmarksbar.py:174
 msgid "_Run bookmark"
-msgstr ""
+msgstr "_Prejsť na záložku"
 
 #. menu item bookmark plugin
 #: zim/plugins/bookmarksbar.py:185
 msgid "Bookmarks"
-msgstr ""
+msgstr "Záložky"
 
 #: zim/plugins/bookmarksbar.py:220
 msgid "Add bookmark/Show settings"
@@ -2433,7 +2435,7 @@ msgstr ""
 #. message for bookmark plugin
 #: zim/plugins/bookmarksbar.py:332
 msgid "Do you want to delete all bookmarks?"
-msgstr ""
+msgstr "Želáte si odstrániť všetky záložky?"
 
 #. menu item for context menu
 #: zim/plugins/bookmarksbar.py:413
@@ -2739,7 +2741,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/inlinecalculator.py:203
 msgid "Inline Calculator"
-msgstr ""
+msgstr "Kalkulačka v riadku"
 
 #. plugin description
 #: zim/plugins/inlinecalculator.py:204
@@ -2812,22 +2814,22 @@ msgstr "Vyberte najprv aspoň jeden riadok textu."
 #. Menu item
 #: zim/plugins/linesorter.py:150
 msgid "_Move Line Up"
-msgstr ""
+msgstr "_Presunúť riadok hore"
 
 #. Menu item
 #: zim/plugins/linesorter.py:156
 msgid "_Move Line Down"
-msgstr ""
+msgstr "_Presunúť riadok dole"
 
 #. Menu item
 #: zim/plugins/linesorter.py:162
 msgid "_Duplicate Line"
-msgstr ""
+msgstr "_Zdvojiť riadok"
 
 #. Menu item
 #: zim/plugins/linesorter.py:174
 msgid "_Remove Line"
-msgstr ""
+msgstr "_Zmazať riadok"
 
 #. plugin name
 #: zim/plugins/linkmap.py:22
@@ -2979,6 +2981,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
+"Tento zásuvný modul zhotoví snímku obrazovky a priamo ju\n"
+"vloží na stránku zim.\n"
+"\n"
+"Toto je základný modul dodávaný so Zimom.\n"
 
 #. plugin preference
 #: zim/plugins/screenshot.py:105
@@ -3065,7 +3071,7 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:71
 msgid "Highlight current line"
-msgstr ""
+msgstr "Zvýrazniť aktuálny riadok"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:73
@@ -3100,7 +3106,7 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:358
 msgid "Show Line Numbers"
-msgstr ""
+msgstr "Zobraziť čísla riadkov"
 
 #. plugin name
 #: zim/plugins/spell.py:66
@@ -3657,7 +3663,7 @@ msgstr ""
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:284
 msgid "Git"
-msgstr ""
+msgstr "Git"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:285
@@ -3797,7 +3803,7 @@ msgstr ""
 
 #: data/templates/wiki/Default.txt:2 data/templates/wiki/Journal.txt:22
 msgid "Created"
-msgstr ""
+msgstr "Vytvorené"
 
 #: data/templates/html/Default.html:46 data/templates/html/Default.html:48
 #: data/templates/html/Default_with_index.html:55
@@ -3819,7 +3825,7 @@ msgstr ""
 #: data/templates/html/Default.html:91
 #: data/templates/html/Default_with_index.html:106
 msgid "Attachments:"
-msgstr ""
+msgstr "Prílohy:"
 
 #~ msgid "Text Editor"
 #~ msgstr "Textový editor"

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
 
-import gtk
+
+from gi.repository import Gtk
 
 import logging
 
@@ -17,7 +16,7 @@ from zim.notebook.operations import NotebookOperation
 
 from zim.gui.widgets import Assistant, AssistantPage, \
 	ProgressDialog, ErrorDialog, QuestionDialog, \
-	MessageDialog, LogFileDialog, Button
+	MessageDialog, LogFileDialog
 from zim.gui.applications import open_file
 
 from zim.export import *
@@ -62,11 +61,11 @@ class ExportDialog(Assistant):
 		if op.cancelled:
 			return False
 		else:
-			#~ print '>>> %s E: %i, W: %i' % (
+			#~ print('>>> %s E: %i, W: %i' % ()
 				#~ logging_context.file.path,
 				#~ logging_context.handler.n_error, logging_context.handler.n_warning)
 			#~ print logging_context.file.read()
-			#~ print '---'
+			#~ print('---')
 			ExportDoneDialog(self, logging_context, output).run()
 			return True
 
@@ -233,13 +232,11 @@ class FormatPage(AssistantPage):
 		})
 
 		## Same button appears in edit preferences dialog
-		if gtk.gtk_version >= (2, 10) \
-		and gtk.pygtk_version >= (2, 10):
-			url_button = gtk.LinkButton(
-				'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
-				_('Get more templates online') # T: label for button with URL
-			)
-			self.pack_start(url_button, False)
+		url_button = Gtk.LinkButton(
+			'https://github.com/jaap-karssenberg/zim-wiki/wiki/Templates',
+			_('Get more templates online') # T: label for button with URL
+		)
+		self.pack_start(url_button, False, True, 0)
 
 
 		# Set template list based on selected format
@@ -286,7 +283,7 @@ class FormatPage(AssistantPage):
 		self.uistate.setdefault('format', 'HTML')
 		self.uistate.setdefault('template', 'Default')
 		self.uistate.setdefault('template_file', '')
-		self.uistate.setdefault('document_root', 'absolute', check=set(('absolute', 'url')))
+		self.uistate.setdefault('document_root', 'absolute', check={'absolute', 'url'})
 		self.uistate.setdefault('document_root_url', '')
 
 		try:
@@ -430,7 +427,7 @@ class ExportDoneDialog(MessageDialog):
 		MessageDialog.__init__(self, parent, (_('Export completed'), text))
 			# T: label in export dialog
 
-		log_button = Button(_('View _Log'), stock='gtk-file')
+		log_button = Gtk.Button.new_with_mnemonic(_('View _Log'))
 			# T: button in export dialog
 		log_button.set_sensitive(logging_context.file.exists())
 		log_button.connect_object(

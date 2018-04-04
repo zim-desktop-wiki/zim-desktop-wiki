@@ -1,31 +1,21 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import re
-import codecs
+import sys
 
 from .page import Path
 
-from zim.newfs import FS_ENCODING, File, Folder, _EOL, _SEP
+from zim.newfs import File, Folder, _EOL, _SEP
 from zim.formats import get_format
+
+import zim.parsing # we use "error=urlencode"
 
 FILE_TYPE_PAGE_SOURCE = 1
 FILE_TYPE_ATTACHMENT = 2
 
-
-
-def _url_encode_on_error(error):
-	string = error.object
-	section = string[error.start:error.end].encode('utf-8')
-	replace = u''
-	for char in section:
-		replace += u'%%%02X' % ord(char)
-	return replace, error.end
-
-codecs.register_error('urlencode', _url_encode_on_error)
-
+_fs_encoding = sys.getfilesystemencoding()
 
 def encode_filename(pagename):
 	'''Encode a pagename to a filename
@@ -45,13 +35,8 @@ def encode_filename(pagename):
 	incompatble with the filesystem encoding replaced
 	'''
 	assert not '%' in pagename # just to be sure
-	if not FS_ENCODING in ('utf-8', 'mbcs'):
-		# if not utf-8 we may not be able to encode all characters
-		# enforce safe encoding, but do not actually encode here
-		# ('mbcs' means we are running on windows and filesystem can
-		# handle unicode natively )
-		pagename = pagename.encode(FS_ENCODING, 'urlencode')
-		pagename = pagename.decode(FS_ENCODING)
+	pagename = pagename.encode(_fs_encoding, 'urlencode')
+	pagename = pagename.decode(_fs_encoding)
 	return pagename.replace(':', '/').replace(' ', '_')
 
 
@@ -69,10 +54,7 @@ def decode_filename(filename):
 	@param filename: the filename as string or unicode object
 	@returns: the pagename as unicode object
 	'''
-	if FS_ENCODING != 'utf-8':
-		filename = filename.encode('utf-8')
-		filename = _url_decode_re.sub(_url_decode, filename)
-		filename = filename.decode('utf-8')
+	filename = _url_decode_re.sub(_url_decode, filename)
 	return filename.replace('\\', ':').replace('/', ':').replace('_', ' ')
 
 

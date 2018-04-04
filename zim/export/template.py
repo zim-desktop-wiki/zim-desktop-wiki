@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -70,6 +69,8 @@ From template base::
 Test in a template for single page export use: "IF loop.first and loop.last"
 '''
 
+import os
+
 from functools import partial
 
 import logging
@@ -83,7 +84,6 @@ import zim.datetimetz as datetime
 
 from zim.utils import OrderedDict
 from zim.fs import format_file_size
-from zim.environ import environ
 
 from zim.notebook import Path, LINK_DIR_BACKWARD, LINK_DIR_FORWARD
 
@@ -156,7 +156,7 @@ class ExportTemplateContext(dict):
 		self.linker = linker_factory()
 
 		def _link(l):
-			if isinstance(l, basestring):
+			if isinstance(l, str):
 				return UriProxy(l)
 			elif isinstance(l, Path):
 				return NotebookPathProxy(l)
@@ -178,7 +178,7 @@ class ExportTemplateContext(dict):
 			# Parameters
 			'generator': {
 					'name': 'Zim %s' % ZIM_VERSION,
-					'user': environ['USER'], # TODO allow user name in prefs ?
+					'user': os.environ['USER'], # TODO allow user name in prefs ?
 			},
 			'title': title,
 			'navigation': {
@@ -203,7 +203,7 @@ class ExportTemplateContext(dict):
 		})
 
 		if links:
-			for k, l in links.items():
+			for k, l in list(links.items()):
 				l = _link(l)
 				self['links'][k] = l
 
@@ -254,7 +254,7 @@ class ExportTemplateContext(dict):
 		#~ if not tree:
 			#~ return ''
 
-		#~ print "!!!", tree.tostring()
+		#~ print("!!!", tree.tostring())
 		#~ dumper = self.get_dumper(None)
 		#~ return ''.join(dumper.dump(tree))
 
@@ -322,7 +322,7 @@ class ExportTemplateContext(dict):
 		if not tree:
 			return ''
 
-		#~ print "!!!", tree.tostring()
+		#~ print("!!!", tree.tostring())
 		dumper = self.get_dumper(None)
 		return ''.join(dumper.dump(tree))
 
@@ -335,7 +335,7 @@ class ExportTemplateContext(dict):
 		elif isinstance(link, FilePathProxy):
 			file = link._dest_file or link._file
 			return self.linker.file_object(file)
-		elif isinstance(link, basestring):
+		elif isinstance(link, str):
 			return self.linker.link(link)
 		else:
 			return None
@@ -437,7 +437,7 @@ class ParseTreeProxy(object):
 			head, body = self._split_head()
 			if body:
 				lines = self._dumper.dump(body)
-				return u''.join(lines)
+				return ''.join(lines)
 			else:
 				return ''
 		except:
@@ -449,7 +449,7 @@ class ParseTreeProxy(object):
 		try:
 			if self._tree:
 				lines = self._dumper.dump(self._tree)
-				return u''.join(lines)
+				return ''.join(lines)
 			else:
 				return ''
 		except:

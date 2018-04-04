@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -98,10 +97,13 @@ class Day(DateRange, datetime.date):
 			start = start + datetime.timedelta(days=offset)
 		return cls(start.year, start.month, start.day)
 
-	def __init__(self, year, month, day):
-		datetime.date.__init__(self, year, month, day)
-		self.first_day = self
-		self.last_day = self
+	@property
+	def first_day(self):
+		return self
+
+	@property
+	def last_day(self):
+		return self
 
 	def weekcalendar(self):
 		'''Returns (year, week, weekday)'''

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -56,21 +55,21 @@ class EquationGenerator(ImageGeneratorClass):
 	def generate_image(self, text):
 
 		# Filter out empty lines, not allowed in latex equation blocks
-		if isinstance(text, basestring):
+		if isinstance(text, str):
 			text = text.splitlines(True)
 		text = (line for line in text if line and not line.isspace())
 		text = ''.join(text)
-		#~ print '>>>%s<<<' % text
+		#~ print('>>>%s<<<' % text)
 
 		# Write to tmp file using the template for the header / footer
 		lines = []
 		self.template.process(lines, {'equation': text})
 		self.texfile.writelines(lines)
-		#~ print '>>>%s<<<' % self.texfile.read()
+		#~ print('>>>%s<<<' % self.texfile.read())
 
 		# Call latex
 		logfile = File(self.texfile.path[:-4] + '.log') # len('.tex') == 4
-		#~ print ">>>", self.texfile, logfile
+		#~ print(">>>", self.texfile, logfile)
 		try:
 			latex = Application(latexcmd)
 			latex.run((self.texfile.basename,), cwd=self.texfile.dir)

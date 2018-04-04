@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 import os
 import re
@@ -53,7 +52,7 @@ class NotebookConfig(INIConfigFile):
 			('icon', String(None)), # XXX should be file, but resolves relative
 			('document_root', String(None)), # XXX should be dir, but resolves relative
 			('shared', Boolean(True)),
-			('endofline', Choice(endofline, set(('dos', 'unix')))),
+			('endofline', Choice(endofline, {'dos', 'unix'})),
 			('disable_trash', Boolean(False)),
 			('profile', String(None)),
 		))
@@ -329,7 +328,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		# Check if icon is relative
 		icon = properties.get('icon')
-		if icon and not isinstance(icon, basestring):
+		if icon and not isinstance(icon, str):
 			assert isinstance(icon, File)
 			if icon.ischild(dir):
 				properties['icon'] = './' + icon.relpath(dir)
@@ -338,7 +337,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		# Check document root is relative
 		root = properties.get('document_root')
-		if root and not isinstance(root, basestring):
+		if root and not isinstance(root, str):
 			assert isinstance(root, Dir)
 			if root.ischild(dir):
 				properties['document_root'] = './' + root.relpath(dir)
@@ -461,7 +460,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		names = [path.name]
 		ns = path.name + ':'
-		names.extend(k for k in self._page_cache.keys() if k.startswith(ns))
+		names.extend(k for k in list(self._page_cache.keys()) if k.startswith(ns))
 		for name in names:
 			if name in self._page_cache:
 				page = self._page_cache[name]
@@ -993,7 +992,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				raise zim.formats.VisitorSkip
 
 			hrefpath = self.pages.lookup_from_user_input(href, page)
-			#~ print 'LINK', hrefpath
+			#~ print('LINK', hrefpath)
 			if hrefpath == path \
 			or hrefpath.ischild(path):
 				# Replace the link by it's text
@@ -1013,7 +1012,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		File URIs and paths that start with '~/' or '~user/' are
 		considered absolute paths. Also windows path names like
-		'C:\user' are recognized as absolute paths.
+		'C:\\user' are recognized as absolute paths.
 
 		Paths that starts with a '/' are taken relative to the
 		to the I{document root} - this can e.g. be a parent directory
@@ -1033,7 +1032,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param path: a L{Path} object for the page
 		@returns: a L{File} object.
 		'''
-		assert isinstance(filename, basestring)
+		assert isinstance(filename, str)
 		filename = filename.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)

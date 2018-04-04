@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
 #           2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -38,7 +37,8 @@
 
 import logging
 
-import gtk
+from gi.repository import Gtk
+from gi.repository import GObject
 
 
 from zim.plugins import PluginClass, WindowExtension, extends
@@ -46,7 +46,7 @@ from zim.actions import toggle_action
 
 from zim.gui.applications import open_folder_prompt_create
 
-from zim.gui.widgets import Button, BOTTOM_PANE, PANE_POSITIONS, \
+from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \
 	IconButton, ScrolledWindow, \
 	WindowSidePaneWidget, uistate_property
 
@@ -143,7 +143,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 
 	@toggle_action(
 		_('Attachment Browser'), # T: Menu item
-		gtk.STOCK_DIRECTORY,
+		Gtk.STOCK_DIRECTORY,
 		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
 	)
 	def toggle_attachmentbrowser(self, active):
@@ -191,7 +191,7 @@ class AttachmentBrowserWindowExtension(WindowExtension):
 		self.widget.iconview.teardown_folder()
 
 
-class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
+class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 	'''Wrapper aroung the L{FileBrowserIconView} that adds the buttons
 	for zoom / open folder / etc. ...
 	'''
@@ -201,7 +201,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 	icon_size = uistate_property('icon_size', DEFAULT_ICON_ZOOM)
 
 	def __init__(self, extension, opener, preferences):
-		gtk.HBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.extension = extension # XXX
 		self.opener = opener
 		self.uistate = extension.uistate
@@ -210,25 +210,25 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 
 		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
 		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
-		self.add(ScrolledWindow(self.iconview, shadow=gtk.SHADOW_NONE))
+		self.add(ScrolledWindow(self.iconview, shadow=Gtk.ShadowType.NONE))
 
-		self.buttonbox = gtk.VBox()
-		self.pack_end(self.buttonbox, False)
+		self.buttonbox = Gtk.VBox()
+		self.pack_end(self.buttonbox, False, True, 0)
 
-		open_folder_button = IconButton(gtk.STOCK_OPEN, relief=False)
+		open_folder_button = IconButton(Gtk.STOCK_OPEN, relief=False)
 		open_folder_button.connect('clicked', self.on_open_folder)
-		self.buttonbox.pack_start(open_folder_button, False)
+		self.buttonbox.pack_start(open_folder_button, False, True, 0)
 
-		refresh_button = IconButton(gtk.STOCK_REFRESH, relief=False)
+		refresh_button = IconButton(Gtk.STOCK_REFRESH, relief=False)
 		refresh_button.connect('clicked', lambda o: self.on_refresh_button())
-		self.buttonbox.pack_start(refresh_button, False)
+		self.buttonbox.pack_start(refresh_button, False, True, 0)
 
-		zoomin = IconButton(gtk.STOCK_ZOOM_IN, relief=False)
-		zoomout = IconButton(gtk.STOCK_ZOOM_OUT, relief=False)
+		zoomin = IconButton(Gtk.STOCK_ZOOM_IN, relief=False)
+		zoomout = IconButton(Gtk.STOCK_ZOOM_OUT, relief=False)
 		zoomin.connect('clicked', lambda o: self.on_zoom_in())
 		zoomout.connect('clicked', lambda o: self.on_zoom_out())
-		self.buttonbox.pack_end(zoomout, False)
-		self.buttonbox.pack_end(zoomin, False)
+		self.buttonbox.pack_end(zoomout, False, True, 0)
+		self.buttonbox.pack_end(zoomin, False, True, 0)
 		self.zoomin_button = zoomin
 		self.zoomout_button = zoomout
 
@@ -250,7 +250,7 @@ class AttachmentBrowserPluginWidget(gtk.HBox, WindowSidePaneWidget):
 			self.buttonbox.remove(self._close_button)
 
 		if button is not None:
-			self.buttonbox.pack_start(button, False)
+			self.buttonbox.pack_start(button, False, True, 0)
 			self.buttonbox.reorder_child(button, 0)
 
 		self._close_button = button

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -52,9 +51,9 @@ if __name__ == '__main__':
 		from .selections import AllPages
 		pages = AllPages(notebook)
 
-	print 'Exporting'
+	print('Exporting')
 	for p in exporter.export_iter(pages):
 		#~ sys.stdout.write('.')
 		#~ sys.stdout.flush()
-		print '\tExport', p
-	print ' done'
+		print('\tExport', p)
+	print(' done')

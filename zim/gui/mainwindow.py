@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
 import logging
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 logger = logging.getLogger('zim.gui')
 
@@ -20,7 +20,7 @@ from zim.history import History, HistoryPath
 from zim.actions import action, toggle_action, radio_action, radio_option, get_gtk_actiongroup, \
 	PRIMARY_MODIFIER_STRING, PRIMARY_MODIFIER_MASK
 from zim.gui.widgets import \
-	Button, MenuButton, \
+	MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, \
 	ScrolledTextView
@@ -78,18 +78,18 @@ def schedule_on_idle(function, args=()):
 	def callback():
 		function(*args)
 		return False # delete signal
-	gobject.idle_add(callback)
+	GObject.idle_add(callback)
 
 
 class MainWindow(Window):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'fullscreen-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'init-uistate': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'page-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
-		'readonly-changed': (gobject.SIGNAL_RUN_LAST, None, (bool,)),
-		'close': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'fullscreen-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
+		'init-uistate': (GObject.SignalFlags.RUN_LAST, None, ()),
+		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
+		'close': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	def __init__(self, notebook, config, page=None, fullscreen=False, geometry=None):
@@ -124,7 +124,7 @@ class MainWindow(Window):
 		# See bug lp:546920
 		self.preferences.setdefault('gtk_bell', False)
 		if not self.preferences['gtk_bell']:
-			gtk.rc_parse_string('gtk-error-bell = 0')
+			Gtk.rc_parse_string('gtk-error-bell = 0')
 
 		self._block_toggle_panes = False
 		self._sidepane_autoclose = False
@@ -149,7 +149,7 @@ class MainWindow(Window):
 		self.history = History(notebook, config.uistate)
 
 		# init uimanager
-		self.uimanager = gtk.UIManager()
+		self.uimanager = Gtk.UIManager()
 		self.uimanager.add_ui_from_string('''
 		<ui>
 			<menubar name="menubar">
@@ -182,18 +182,16 @@ class MainWindow(Window):
 		self.add(self.pageview)
 
 		# create statusbar
-		hbox = gtk.HBox(spacing=0)
-		self.add_bar(hbox, BOTTOM)
-
-		self.statusbar = gtk.Statusbar()
+		self.statusbar = Gtk.Statusbar()
 		self.statusbar.push(0, '<page>')
-		hbox.add(self.statusbar)
+		self.add_bar(self.statusbar, BOTTOM)
+		self.statusbar.set_property('margin', 0)
 
 		def statusbar_element(string, size):
-			frame = gtk.Frame()
-			frame.set_shadow_type(gtk.SHADOW_IN)
-			self.statusbar.pack_end(frame, False)
-			label = gtk.Label(string)
+			frame = Gtk.Frame()
+			frame.set_shadow_type(Gtk.ShadowType.IN)
+			self.statusbar.pack_end(frame, False, True, 0)
+			label = Gtk.Label(label=string)
 			label.set_size_request(size, 10)
 			label.set_alignment(0.1, 0.5)
 			frame.add(label)
@@ -206,18 +204,12 @@ class MainWindow(Window):
 		# and build the widget for backlinks
 		self.statusbar_backlinks_button = \
 			BackLinksMenuButton(self.notebook, self.open_page, status_bar_style=True)
-		frame = gtk.Frame()
-		frame.set_shadow_type(gtk.SHADOW_IN)
-		self.statusbar.pack_end(frame, False)
+		frame = Gtk.Frame()
+		frame.set_shadow_type(Gtk.ShadowType.IN)
+		self.statusbar.pack_end(frame, False, True, 0)
 		frame.add(self.statusbar_backlinks_button)
 
 		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
-
-		# add a second statusbar widget - somehow the corner grip
-		# does not render properly after the pack_end for the first one
-		#~ statusbar2 = gtk.Statusbar()
-		#~ statusbar2.set_size_request(25, 10)
-		#~ hbox.pack_end(statusbar2, False)
 
 		self.do_preferences_changed()
 
@@ -311,8 +303,8 @@ class MainWindow(Window):
 
 		self.hide() # look more responsive
 		self.notebook.index.stop_background_check()
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
+		while Gtk.events_pending():
+			Gtk.main_iteration_do(False)
 
 		if self.config.uistate.modified:
 			self.config.uistate.write()
@@ -332,13 +324,13 @@ class MainWindow(Window):
 		self.statusbar.push(0, label)
 
 	def do_window_state_event(self, event):
-		#~ print 'window-state changed:', event.changed_mask
-		#~ print 'window-state new state:', event.new_window_state
+		#~ print('window-state changed:', event.changed_mask)
+		#~ print('window-state new state:', event.new_window_state)
 
-		if bool(event.changed_mask & gtk.gdk.WINDOW_STATE_MAXIMIZED):
-			self.maximized = bool(event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED)
+		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
+			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
 
-		isfullscreen = gtk.gdk.WINDOW_STATE_FULLSCREEN
+		isfullscreen = Gdk.WindowState.FULLSCREEN
 		if bool(event.changed_mask & isfullscreen):
 			# Did not find property for this - so tracking state ourself
 			wasfullscreen = self.isfullscreen
@@ -368,8 +360,8 @@ class MainWindow(Window):
 		if self._switch_focus_accelgroup:
 			self.remove_accel_group(self._switch_focus_accelgroup)
 
-		space = gtk.gdk.unicode_to_keyval(ord(' '))
-		group = gtk.AccelGroup()
+		space = Gdk.unicode_to_keyval(ord(' '))
+		group = Gtk.AccelGroup()
 
 		self.preferences.setdefault('toggle_on_altspace', False)
 		if self.preferences['toggle_on_altspace']:
@@ -377,14 +369,14 @@ class MainWindow(Window):
 			# several international layouts (space mistaken for alt-space,
 			# see bug lp:620315)
 			group.connect_group( # <Alt><Space>
-				space, gtk.gdk.MOD1_MASK, gtk.ACCEL_VISIBLE,
+				space, Gdk.ModifierType.MOD1_MASK, Gtk.AccelFlags.VISIBLE,
 				self.toggle_sidepane_focus)
 
 		# Toggled by preference menu, also causes issues with international
 		# layouts - esp. when switching input method on Meta-Space
 		if self.preferences['toggle_on_ctrlspace']:
-			group.connect_group( # <Primary><Space>
-				space, PRIMARY_MODIFIER_MASK, gtk.ACCEL_VISIBLE,
+			group.connect( # <Primary><Space>
+				space, PRIMARY_MODIFIER_MASK, Gtk.AccelFlags.VISIBLE,
 				self.toggle_sidepane_focus)
 
 		self.add_accel_group(group)
@@ -426,7 +418,7 @@ class MainWindow(Window):
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
 		menu = self.uimanager.get_widget('/toolbar_popup')
-		menu.popup(None, None, None, button, 0)
+		menu.popup_at_pointer()
 
 	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
 	def toggle_statusbar(self, show):
@@ -524,11 +516,11 @@ class MainWindow(Window):
 			- C{TOOLBAR_TEXT_ONLY}
 		'''
 		if style == TOOLBAR_ICONS_AND_TEXT:
-			self.toolbar.set_style(gtk.TOOLBAR_BOTH)
+			self.toolbar.set_style(Gtk.ToolbarStyle.BOTH)
 		elif style == TOOLBAR_ICONS_ONLY:
-			self.toolbar.set_style(gtk.TOOLBAR_ICONS)
+			self.toolbar.set_style(Gtk.ToolbarStyle.ICONS)
 		elif style == TOOLBAR_TEXT_ONLY:
-			self.toolbar.set_style(gtk.TOOLBAR_TEXT)
+			self.toolbar.set_style(Gtk.ToolbarStyle.TEXT)
 		else:
 			assert False, 'BUG: Unkown toolbar style: %s' % style
 
@@ -547,11 +539,11 @@ class MainWindow(Window):
 			- C{TOOLBAR_ICONS_TINY}
 		'''
 		if size == TOOLBAR_ICONS_LARGE:
-			self.toolbar.set_icon_size(gtk.ICON_SIZE_LARGE_TOOLBAR)
+			self.toolbar.set_icon_size(Gtk.IconSize.LARGE_TOOLBAR)
 		elif size == TOOLBAR_ICONS_SMALL:
-			self.toolbar.set_icon_size(gtk.ICON_SIZE_SMALL_TOOLBAR)
+			self.toolbar.set_icon_size(Gtk.IconSize.SMALL_TOOLBAR)
 		elif size == TOOLBAR_ICONS_TINY:
-			self.toolbar.set_icon_size(gtk.ICON_SIZE_MENU)
+			self.toolbar.set_icon_size(Gtk.IconSize.MENU)
 		else:
 			assert False, 'BUG: Unkown toolbar size: %s' % size
 
@@ -651,24 +643,22 @@ class MainWindow(Window):
 			# and do this before connecting signal below for accelmap.
 
 		# Add search bar onec toolbar is loaded
-		space = gtk.SeparatorToolItem()
+		space = Gtk.SeparatorToolItem()
 		space.set_draw(False)
 		space.set_expand(True)
 		self.toolbar.insert(space, -1)
 
 		from zim.gui.widgets import InputEntry
 		entry = InputEntry(placeholder_text=_('Search'))
-		if gtk.gtk_version >= (2, 16) \
-		and gtk.pygtk_version >= (2, 16):
-			entry.set_icon_from_stock(gtk.ENTRY_ICON_SECONDARY, gtk.STOCK_FIND)
-			entry.set_icon_activatable(gtk.ENTRY_ICON_SECONDARY, True)
-			entry.set_icon_tooltip_text(gtk.ENTRY_ICON_SECONDARY, _('Search Pages...'))
-				# T: label in search entry
+		entry.set_icon_from_stock(Gtk.EntryIconPosition.SECONDARY, Gtk.STOCK_FIND)
+		entry.set_icon_activatable(Gtk.EntryIconPosition.SECONDARY, True)
+		entry.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY, _('Search Pages...'))
+			# T: label in search entry
 		inline_search = lambda e, *a: self._uiactions.show_search(query=e.get_text() or None)
 		entry.connect('activate', inline_search)
 		entry.connect('icon-release', inline_search)
 		entry.show()
-		item = gtk.ToolItem()
+		item = Gtk.ToolItem()
 		item.add(entry)
 		self.toolbar.insert(item, -1)
 
@@ -676,13 +666,13 @@ class MainWindow(Window):
 		accelmap = self.config.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
-			gtk.accel_map_load(accelmap.path)
+			Gtk.AccelMap.load(accelmap.path)
 
 		def on_accel_map_changed(o, path, key, mod):
 			logger.info('Accelerator changed for %s', path)
-			gtk.accel_map_save(accelmap.path)
+			Gtk.AccelMap.save(accelmap.path)
 
-		gtk.accel_map_get().connect('changed', on_accel_map_changed)
+		Gtk.AccelMap.get().connect('changed', on_accel_map_changed)
 
 		def save_uistate_cb(uistate):
 			if uistate.modified and hasattr(uistate, 'write_async'):
@@ -692,6 +682,8 @@ class MainWindow(Window):
 
 		delayed_save_uistate_cb = DelayedCallback(2000, save_uistate_cb) # 2 sec
 		self.uistate.connect('changed', delayed_save_uistate_cb)
+
+		self.do_update_statusbar()
 
 	def _set_widgets_visable(self):
 		# Convenience method to switch visibility of all widgets
@@ -706,8 +698,8 @@ class MainWindow(Window):
 
 	def save_uistate(self):
 		if not self.isfullscreen:
-			self.uistate['windowpos'] = self.get_position()
-			self.uistate['windowsize'] = self.get_size()
+			self.uistate['windowpos'] = tuple(self.get_position())
+			self.uistate['windowsize'] = tuple(self.get_size())
 			self.uistate['windowmaximized'] = self.maximized
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
@@ -717,7 +709,7 @@ class MainWindow(Window):
 		if notebook.icon:
 			try:
 				self.set_icon_from_file(notebook.icon)
-			except gobject.GError:
+			except GObject.GError:
 				logger.exception('Could not load icon %s', notebook.icon)
 
 	def on_textview_toggle_overwrite(self, view):
@@ -921,14 +913,10 @@ class MainWindow(Window):
 		self.open_page(self.notebook.get_page(self.page))
 
 
-# Need to register classes defining gobject signals or overloading methods
-gobject.type_register(MainWindow)
-
-
 class BackLinksMenuButton(MenuButton):
 
 	def __init__(self, notebook, open_page, status_bar_style=False):
-		MenuButton.__init__(self, '-backlinks-', gtk.Menu(), status_bar_style)
+		MenuButton.__init__(self, '-backlinks-', Gtk.Menu(), status_bar_style)
 		self.notebook = notebook
 		self.open_page = open_page
 		self.set_sensitive(False)
@@ -947,7 +935,7 @@ class BackLinksMenuButton(MenuButton):
 
 	def popup_menu(self, event=None):
 		# Create menu on the fly
-		self.menu = gtk.Menu()
+		self.menu = Gtk.Menu()
 		notebook = self.notebook
 		links = list(notebook.links.list_links(self.page, LINK_DIR_BACKWARD))
 		if not links:
@@ -955,7 +943,7 @@ class BackLinksMenuButton(MenuButton):
 
 		links.sort(key=lambda a: a.source.name)
 		for link in links:
-			item = gtk.MenuItem(link.source.name)
+			item = Gtk.MenuItem.new_with_mnemonic(link.source.name)
 			item.connect_object('activate', self.open_page, link.source)
 			self.menu.add(item)
 
@@ -973,7 +961,7 @@ class PageWindow(Window):
 		#if ui.notebook.icon:
 		#	try:
 		#		self.set_icon_from_file(ui.notebook.icon)
-		#	except gobject.GError:
+		#	except GObject.GError:
 		#		logger.exception('Could not load icon %s', ui.notebook.icon)
 
 		page = notebook.get_page(page)
@@ -999,7 +987,7 @@ class OpenPageDialog(Dialog):
 
 	def __init__(self, parent, page, callback):
 		Dialog.__init__(self, parent, _('Jump to'), # T: Dialog title
-			button=(None, gtk.STOCK_JUMP_TO),
+			button=_('_Jump'), # T: Button label
 		)
 		self.callback = callback
 

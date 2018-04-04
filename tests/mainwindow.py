@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -17,7 +16,7 @@ is_sensitive = lambda w: w.get_property('sensitive')
 
 
 def setUpMainWindow(notebook, path='Test'):
-	if isinstance(path, basestring):
+	if isinstance(path, str):
 		path = Path(path)
 
 	config = VirtualConfigManager()
@@ -173,12 +172,12 @@ class TestActions(tests.TestCase):
 		self.assertNotEqual(id(page1), id(page2))
 
 
-import gtk
+from gi.repository import Gtk
 
 from zim.gui.widgets import WindowSidePaneWidget, LEFT_PANE
 
 
-class MockSidePaneWidget(gtk.VBox, WindowSidePaneWidget):
+class MockSidePaneWidget(Gtk.VBox, WindowSidePaneWidget):
 	title = 'MockSidePaneWidget'
 
 

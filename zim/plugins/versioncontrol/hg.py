@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -21,11 +20,9 @@ logger = logging.getLogger('zim.vcs.hg')
 
 class HGApplicationBackend(VCSApplicationBase):
 
-	use_staging = False
-
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('hg', '--noninteractive', '--encoding', 'utf8'), encoding='utf-8')
+		return Application(('hg', '--noninteractive'))
 			# force hg to run in non-interactive mode
 			# which will force user name to be auto-setup
 

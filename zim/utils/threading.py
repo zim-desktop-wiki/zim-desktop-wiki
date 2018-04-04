@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import absolute_import, with_statement
+
 
 import sys
 import logging
@@ -14,9 +13,9 @@ logger = logging.getLogger('threading')
 
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 class FunctionThread(threading.Thread):
@@ -51,11 +50,11 @@ class FunctionThread(threading.Thread):
 		self.exc_info = (None, None, None)
 
 	def start(self):
-		if self.lock:
+		if self.lock is not None:
 			self.lock.acquire()
 		threading.Thread.start(self)
-		if gobject:
-			gobject.idle_add(self._monitor_on_idle)
+		if GObject:
+			GObject.idle_add(self._monitor_on_idle)
 
 	def _monitor_on_idle(self):
 		# Only goal if this callback is to ensure python runs in mainloop
@@ -71,5 +70,5 @@ class FunctionThread(threading.Thread):
 			self.exc_info = sys.exc_info()
 		finally:
 			self.done = True
-			if self.lock:
+			if self.lock is not None:
 				self.lock.release()

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Plugin to serve as work-around for the lack of printing support'''
 
-import gtk
+from gi.repository import Gtk
 
 from functools import partial
 
@@ -57,7 +56,7 @@ This is a core plugin shipping with zim.
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class PrintToBrowserMainWindowExtension(WindowExtension):
 
 	uimanager_xml = '''
 	<ui>
@@ -87,7 +86,7 @@ class TaskListDialogExtension(DialogExtension):
 	def __init__(self, plugin, window):
 		DialogExtension.__init__(self, plugin, window)
 
-		button = gtk.Button(stock='gtk-print')
+		button = Gtk.Button.new_with_mnemonic(_('_Print')) # T: Button label
 		button.connect('clicked', self.on_print_tasklist)
 		self.add_dialog_button(button)
 

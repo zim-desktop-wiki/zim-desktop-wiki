@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -12,15 +11,15 @@ import sys
 import os
 import logging
 import subprocess
+import locale
 
-import gobject
+from gi.repository import GObject
 
 import zim.fs
 import zim.errors
 
 from zim.fs import File
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
-from zim.environ import environ
 
 
 logger = logging.getLogger('zim.applications')
@@ -29,10 +28,21 @@ logger = logging.getLogger('zim.applications')
 TEST_MODE = False
 TEST_MODE_RUN_CB = None
 
+_ENCODING = locale.getpreferredencoding() # FIXME: assume processes to adhere to same preference ...
+
 
 def _main_is_frozen():
 	# Detect whether we are running py2exe compiled version
 	return hasattr(sys, 'frozen') and sys.frozen
+
+
+def _split_environ_list(value):
+	if isinstance(value, str):
+		return value.split(os.pathsep)
+	elif value is None:
+		return []
+	else:
+		raise ValueError
 
 
 class ApplicationError(zim.errors.Error):
@@ -72,7 +82,7 @@ class Application(object):
 
 	STATUS_OK = 0 #: return code when the command executed succesfully
 
-	def __init__(self, cmd, tryexeccmd=None, encoding=None):
+	def __init__(self, cmd, tryexeccmd=None):
 		'''Constructor
 
 		@param cmd: the command for the external application, either a
@@ -80,23 +90,17 @@ class Application(object):
 		and arguments
 		@param tryexeccmd: command to check in L{tryexec()} as string.
 		If C{None} will default to C{cmd} or the first item of C{cmd}.
-		@param encoding: the encoding to use for commandline args
-		if known, else falls back to system default
 		'''
-		if isinstance(cmd, basestring):
+		if isinstance(cmd, str):
 			cmd = split_quoted_strings(cmd)
 		else:
 			assert isinstance(cmd, (tuple, list))
-		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)
+		assert tryexeccmd is None or isinstance(tryexeccmd, str)
 		self.cmd = tuple(cmd)
 		self.tryexeccmd = tryexeccmd
-		self.encoding = encoding or zim.fs.ENCODING
-		if self.encoding == 'mbcs':
-			self.encoding = 'utf-8'
 
 	def __eq__(self, other):
-		return (self.cmd, self.tryexeccmd, self.encoding) \
-			== (other.cmd, other.tryexeccmd, other.encoding)
+		return (self.cmd, self.tryexeccmd) == (other.cmd, other.tryexeccmd)
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
@@ -114,25 +118,25 @@ class Application(object):
 	def _lookup(cmd):
 		'''Lookup cmd in PATH'''
 		if zim.fs.isabs(cmd):
-			if zim.fs.isfile(cmd):
+			if os.path.isfile(cmd):
 				return cmd
 			else:
 				return None
 		elif os.name == 'nt':
 			# Check executable extensions from windows environment
-			extensions = environ.get_list('PATHEXT', '.com;.exe;.bat;.cmd')
-			for dir in environ.get_list('PATH'):
+			extensions = _split_environ_list(os.environ.get('PATHEXT', '.com;.exe;.bat;.cmd'))
+			for dir in _split_environ_list(os.environ.get('PATH')):
 				for ext in extensions:
 					file = os.sep.join((dir, cmd + ext))
-					if zim.fs.isfile(file) and os.access(file, os.X_OK):
+					if os.path.isfile(file) and os.access(file, os.X_OK):
 						return file
 			else:
 				return None
 		else:
 			# On POSIX no extension is needed to make scripts executable
-			for dir in environ.get_list('PATH'):
+			for dir in _split_environ_list(os.environ.get('PATH')):
 				file = os.sep.join((dir, cmd))
-				if zim.fs.isfile(file) and os.access(file, os.X_OK):
+				if os.path.isfile(file) and os.access(file, os.X_OK):
 					return file
 			else:
 				return None
@@ -140,7 +144,7 @@ class Application(object):
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes
 		if args:
-			return self.cmd + tuple(map(unicode, args))
+			return self.cmd + tuple(map(str, args))
 		else:
 			return self.cmd
 
@@ -170,9 +174,9 @@ class Application(object):
 			argv.insert(0, sys.executable)
 		# TODO: consider an additional commandline arg to re-use compiled python interpreter
 
-		argv = [a.encode(self.encoding) for a in argv]
-		if cwd:
-			cwd = unicode(cwd).encode(zim.fs.ENCODING)
+		if hasattr(cwd, 'path'):
+			cwd = cwd.path
+
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
@@ -216,9 +220,9 @@ class Application(object):
 		stdout, stderr = p.communicate()
 
 		if not p.returncode == self.STATUS_OK:
-			raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
+			raise ApplicationError(argv[0], argv[1:], p.returncode, stderr.decode(_ENCODING))
 		#~ elif stderr:
-			#~ logger.warn(stderr)
+			#~ logger.warn(stderr.decode(_ENCODING))
 
 	def pipe(self, args=None, cwd=None, input=None):
 		'''Run the application in a sub-process and capture the output.
@@ -240,21 +244,19 @@ class Application(object):
 			return TEST_MODE_RUN_CB(argv)
 
 		p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		stdout, stderr = p.communicate(input)
-		# TODO: handle ApplicationERror here as well ?
+		if input is None:
+			stdout, stderr = p.communicate()
+		else:
+			stdout, stderr = p.communicate(input.encode(_ENCODING))
 
 		#~ if not p.returncode == self.STATUS_OK:
 			#~ raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
 		#~ elif stderr:
 		if stderr:
-			logger.warn(stderr)
+			logger.warn(stderr.decode(_ENCODING))
 			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
-		# Explicit newline conversion, e.g. on windows \r\n -> \n
-		# FIXME Assume local encoding is respected (!?)
-		text = [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
-		if text and text[-1].endswith('\n') and not stdout.endswith('\n'):
-			text[-1] = text[-1][:-1] # strip additional \n
+		text = str(stdout, encoding=_ENCODING).splitlines(keepends=True)
 		return text
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
@@ -279,9 +281,9 @@ class Application(object):
 		cwd, argv = self._checkargs(cwd, args)
 		opts = {}
 
-		flags = gobject.SPAWN_SEARCH_PATH
+		flags = GObject.SPAWN_SEARCH_PATH
 		if callback:
-			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
+			flags |= GObject.SPAWN_DO_NOT_REAP_CHILD
 			# without this flag child is reaped automatically -> no zombies
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
@@ -291,8 +293,8 @@ class Application(object):
 
 		try:
 			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=flags, **opts)
-		except gobject.GError:
+				GObject.spawn_async(argv, flags=flags, **opts)
+		except GObject.GError:
 			from zim.gui.widgets import ErrorDialog
 			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
 				#~ # T: error when application failed to start
@@ -302,10 +304,10 @@ class Application(object):
 			if callback:
 				# child watch does implicit reaping -> no zombies
 				if data is None:
-					gobject.child_watch_add(pid,
+					GObject.child_watch_add(pid,
 						lambda pid, status: callback(status))
 				else:
-					gobject.child_watch_add(pid,
+					GObject.child_watch_add(pid,
 						lambda pid, status, data: callback(status, data), data)
 			return pid
 
@@ -318,17 +320,13 @@ class WebBrowser(Application):
 	name = _('Default') + ' (webbrowser)' # T: label for default webbrowser
 	key = 'webbrowser' # Used by zim.gui.applications
 
-	def __init__(self, encoding=None):
+	def __init__(self):
 		import webbrowser
 		self.controller = None
 		try:
 			self.controller = webbrowser.get()
 		except webbrowser.Error:
 			pass # webbrowser throws an error when no browser is found
-
-		self.encoding = encoding or zim.fs.ENCODING
-		if self.encoding == 'mbcs':
-			self.encoding = 'utf-8'
 
 	def tryexec(self):
 		return not self.controller is None
@@ -346,7 +344,6 @@ class WebBrowser(Application):
 		for url in args:
 			if isinstance(url, (zim.fs.File, zim.fs.Dir)):
 				url = url.uri
-			url = url.encode(self.encoding)
 			logger.info('Opening in webbrowser: %s', url)
 
 			if TEST_MODE:
@@ -384,10 +381,10 @@ class StartFile(Application):
 				path = os.path.normpath(arg.path)
 			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
 				# URL or e.g. mailto: or outlook: URI
-				path = unicode(arg)
+				path = str(arg)
 			else:
 				# must be file
-				path = os.path.normpath(unicode(arg))
+				path = os.path.normpath(str(arg))
 
 			logger.info('Opening with os.startfile: %s', path)
 			if TEST_MODE:

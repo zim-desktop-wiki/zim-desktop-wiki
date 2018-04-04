@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -11,7 +10,7 @@ interface parameters, like what icon and label to use in the menu.
 
 Use the L{action} and L{toggle_action} decorators to create actions.
 
-There is no direct relation with the C{gtk.Action} and C{gtk.ToggleAction}
+There is no direct relation with the C{Gtk.Action} and C{Gtk.ToggleAction}
 classes, but it can cooperate with these classes and use them as proxies.
 '''
 
@@ -25,63 +24,16 @@ import zim.errors
 logger = logging.getLogger('zim')
 
 
-# We want to switch between <Control> for linux and windows and
-# <Command> for OS X. The gtk solution is to use the abstract <Primary>
-# modifier key. Unfortunately, this is not supported in gtk before
-# version gtk_version 2.24.7. Therefore we try to detect whether this
-# abstract key is supported or not, and if not, we fall back to <Control>.
-#
-# Secondary use of the PRIMARY_MODIFIER constant is that it can be
-# shown in user menus.
 
-_accelerator_preparse_re = re.compile('(?i)<Primary>')
+def _get_modifier_mask():
+	import gi
+	gi.require_version('Gtk', '3.0')
+	from gi.repository import Gtk
+	x, mod = Gtk.accelerator_parse('<Primary>')
+	return mod
 
-def gtk_accelerator_preparse(code, force=False):
-	'''Pre-parse the accelerator code to change <Primary> into
-	<Control> or <Command> if <Primary> is not supported.
-	@param code: accelerator code
-	@param force: if C{True} <Primary> is replaced even if not needed
-	@returns: same or modified accelerator code
-	'''
-	if not code:
-		return code # tolerate None ...
-
-	m = _accelerator_preparse_re.search(code)
-	if m:
-		import gtk
-		x, mod = gtk.accelerator_parse('<Primary>')
-		if not mod:
-			# <Primary> is not supported - anyway to detect OS X?
-			return _accelerator_preparse_re.sub('<Control>', code)
-		elif force:
-			if mod == gtk.gdk.META_MASK:
-				return _accelerator_preparse_re.sub('<Command>', code)
-			else:
-				return _accelerator_preparse_re.sub('<Control>', code)
-		else:
-			return code
-	else:
-		return code
-
-try:
-	import gtk
-	PRIMARY_MODIFIER_STRING = gtk_accelerator_preparse('<primary>', force=True)
-	PRIMARY_MODIFIER_MASK = gtk.gdk.META_MASK if PRIMARY_MODIFIER_STRING == '<Command>' else gtk.gdk.CONTROL_MASK
-except ImportError:
-	PRIMARY_MODIFIER_STRING = None
-	PRIMARY_MODIFIER_MASK = None
-
-
-# FIXME - temporary helper method - remove it again when all users are refactored
-def gtk_accelerator_preparse_list(actions):
-	myactions = []
-	for action in actions:
-		if len(action) > 3:
-			a = list(action)
-			a[3] = gtk_accelerator_preparse(a[3])
-			action = tuple(a)
-		myactions.append(action)
-	return myactions
+PRIMARY_MODIFIER_STRING = '<Primary>'
+PRIMARY_MODIFIER_MASK = _get_modifier_mask()
 
 
 class ActionMethod(object):
@@ -121,8 +73,8 @@ class Action(ActionMethod):
 		self.func = func
 		self._attr = (self.name, label, tooltip, stock)
 		self._alt_attr = (self.name + '_alt1', label, tooltip, stock)
-		self._accel = gtk_accelerator_preparse(accelerator)
-		self._alt_accel = gtk_accelerator_preparse(alt_accelerator)
+		self._accel = accelerator
+		self._alt_accel = alt_accelerator
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -142,7 +94,7 @@ class Action(ActionMethod):
 		return func
 
 	def connect_actionable(self, instance, actionable):
-		'''Connect a C{gtk.Action} or C{gtk.Button} to this action.
+		'''Connect a C{Gtk.Action} or C{Gtk.Button} to this action.
 		@param instance: the object instance that owns this action
 		@param actionable: proxy object, needs to have methods
 		C{set_active(is_active)} and C{get_active()} and a signal
@@ -226,7 +178,7 @@ class ToggleAction(Action):
 		return func
 
 	def connect_actionable(self, instance, actionable):
-		'''Connect a C{gtk.ToggleAction} or C{gtk.ToggleButton} to this action.
+		'''Connect a C{Gtk.ToggleAction} or C{Gtk.ToggleButton} to this action.
 		@param instance: the object instance that owns this action
 		@param actionable: proxy object, needs to have methods
 		C{set_active(is_active)} and C{get_active()} and a signal
@@ -264,7 +216,7 @@ def radio_option(key, label, stock=None, accelerator='', tooltip=''):
 
 
 def gtk_radioaction_set_current(g_radio_action, key):
-	# gtk.radioaction.set_current is gtk >= 2.10
+	# Gtk.radioaction.set_current is gtk >= 2.10
 	for a in g_radio_action.get_group():
 		if a.get_name().endswith('_' + key):
 			a.activate()
@@ -326,20 +278,20 @@ class RadioAction(ActionMethod):
 
 
 def get_gtk_actiongroup(obj):
-	'''Return a C{gtk.ActionGroup} for an object using L{Action}
+	'''Return a C{Gtk.ActionGroup} for an object using L{Action}
 	objects as attributes.
 
 	Defines the attribute C{obj.actiongroup} if it does not yet exist.
 
 	This method can only be used when gtk is available
 	'''
-	import gtk
+	from gi.repository import Gtk
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:
 		return obj.actiongroup
 
-	obj.actiongroup = gtk.ActionGroup(obj.__class__.__name__)
+	obj.actiongroup = Gtk.ActionGroup(obj.__class__.__name__)
 
 	for name, action in inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionMethod)):
 		if isinstance(action, RadioAction):
@@ -361,12 +313,12 @@ def get_gtk_actiongroup(obj):
 
 
 def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
-	import gtk
+	from gi.repository import Gtk
 
 	if isinstance(action, ToggleAction):
-		gaction = gtk.ToggleAction(*attr)
+		gaction = Gtk.ToggleAction(*attr)
 	else:
-		gaction = gtk.Action(*attr)
+		gaction = Gtk.Action(*attr)
 
 	gaction.zim_readonly = action.readonly # HACK
 	action.connect_actionable(obj, gaction)

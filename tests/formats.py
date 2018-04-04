@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.formats module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -17,7 +16,7 @@ from zim.templates import Template
 
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
-	print 'WARNING: using ElementTree instead of cElementTree'
+	print('WARNING: using ElementTree instead of cElementTree')
 
 
 class TestFormatMixin(object):
@@ -36,7 +35,7 @@ class TestFormatMixin(object):
 
 	def testFormatInfo(self):
 		for key in ('name', 'desc', 'mimetype', 'extension'):
-			self.assertIsInstance(self.format.info[key], basestring,
+			self.assertIsInstance(self.format.info[key], str,
 				msg='Invalid key "%s" in format info' % key)
 
 		for key in ('native', 'import', 'export'):
@@ -75,7 +74,7 @@ class TestFormatMixin(object):
 		linker = StubLinker(Dir('tests/data/formats'))
 		dumper = self.format.Dumper(linker=linker)
 		result = ''.join(dumper.dump(reftree))
-		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
+		#~ print('\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n')
 		self.assertMultiLineEqual(result, wanted)
 		self.assertNoTextMissing(result, reftree)
 
@@ -85,7 +84,7 @@ class TestFormatMixin(object):
 		# partial dumper
 		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
 		result = ''.join(dumper.dump(parttree))
-		#~ print ">>>%s<<<" % result
+		#~ print(">>>%s<<<" % result)
 		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
 
 		# Parser
@@ -101,7 +100,7 @@ class TestFormatMixin(object):
 				# Quick check that we got back *something*
 			string = ''.join(dumper.dump(result))
 				# now we may have loss of formatting, but text should all be there
-				#~ print '\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n'
+				#~ print('\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n')
 			self.assertNoTextMissing(string, reftree)
 
 	_nonalpha_re = re.compile('\W')
@@ -112,7 +111,7 @@ class TestFormatMixin(object):
 		is preserved.
 		'''
 		# TODO how to handle objects ??
-		assert isinstance(text, basestring)
+		assert isinstance(text, str)
 		offset = 0
 		for elt in tree._etree.iter():
 			if elt.tag == 'img':
@@ -132,7 +131,7 @@ class TestFormatMixin(object):
 					continue
 
 				for piece in wanted.strip().split():
-					#~ print "| >>%s<< @ offset %i" % (piece, offset)
+					#~ print("| >>%s<< @ offset %i" % (piece, offset))
 					try:
 						start = text.index(piece, offset)
 					except ValueError:
@@ -342,13 +341,13 @@ class TestWikiFormat(TestTextFormat):
 
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
-		input = u'''\
+		input = '''\
 A list
 • foo
 	• bar
 	• baz
 '''
-		text = u'''\
+		text = '''\
 A list
 * foo
 	* bar
@@ -374,7 +373,7 @@ A list
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''
-		input = u'''\
+		input = '''\
 test 1 2 3
 
 	Some Verbatim block
@@ -382,7 +381,7 @@ test 1 2 3
 
 test 4 5 6
 '''
-		wanted = u'''\
+		wanted = '''\
 test 1 2 3
 
 \'''
@@ -412,12 +411,12 @@ test 4 5 6
 				wanted = text
 
 			tree = self.format.Parser().parse(text)
-			#~ print '>>>\n' + tree.tostring() + '\n<<<'
+			#~ print('>>>\n' + tree.tostring() + '\n<<<')
 			self.assertEqual(tree.tostring(), xml)
 
 			lines = self.format.Dumper().dump(tree)
 			result = ''.join(lines)
-			#~ print '>>>\n' + result + '<<<'
+			#~ print('>>>\n' + result + '<<<')
 			self.assertEqual(result, wanted)
 
 
@@ -806,9 +805,8 @@ grrr
    .
 </zim-tree>'''
 
-		# For some reason this does not work with cElementTree.XMLBuilder ...
-		from xml.etree.ElementTree import XMLTreeBuilder
-		builder = XMLTreeBuilder(target=OldParseTreeBuilder())
+		from xml.etree.ElementTree import XMLParser
+		builder = XMLParser(target=OldParseTreeBuilder())
 		builder.feed(input)
 		root = builder.close()
 		tree = ParseTree(root)

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Tool that reads diff from pipe and filters out sections that are
 # covered by testing
@@ -58,7 +58,7 @@ class DiffPart(object):
 
 	def range(self):
 		old, new = self.head.strip().split()[:2]
-		start, size = map(int, new[1:].split(','))
+		start, size = list(map(int, new[1:].split(',')))
 		return start, start + size
 
 
@@ -74,9 +74,9 @@ def coverage_filter_diff(diff):
 			if not part_covered(part, cov):
 				new.parts.append(part)
 			else:
-				print "Covered %s %s" % (part.file, part.head.strip())
+				print("Covered %s %s" % (part.file, part.head.strip()))
 		else:
-			print "Skip %s" % part.file
+			print("Skip %s" % part.file)
 	return new
 
 
@@ -90,6 +90,6 @@ if __name__ == '__main__':
 	import sys
 	lines = sys.stdin.readlines()
 	diff = Diff(lines)
-	print "TODO: check timestamps diff vs timestamp './coverage'"
+	print("TODO: check timestamps diff vs timestamp './coverage'")
 	diff = coverage_filter_diff(diff)
 	sys.stdout.write(diff.to_text())

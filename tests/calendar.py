@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -17,7 +16,7 @@ from zim.templates import get_template
 from zim.formats import get_dumper
 
 from zim.plugins.calendar import NotebookExtension, \
-	MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
+	JournalMainWindowExtensionDialog, JournalMainWindowExtensionEmbedded, \
 	CalendarDialog
 
 from tests.mainwindow import setUpMainWindow
@@ -120,12 +119,12 @@ class TestCalendarPlugin(tests.TestCase):
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['embedded'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
+		self.assertEqual(plugin.extension_classes['MainWindow'], JournalMainWindowExtensionEmbedded)
 		plugin.extend(mainwindow)
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
+		self.assertIsInstance(ext[0], JournalMainWindowExtensionEmbedded)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 
@@ -133,12 +132,12 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 
 		plugin.preferences['embedded'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)
+		self.assertEqual(plugin.extension_classes['MainWindow'], JournalMainWindowExtensionDialog)
 		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
 
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionDialog)
+		self.assertIsInstance(ext[0], JournalMainWindowExtensionDialog)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 

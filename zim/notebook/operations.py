@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -139,9 +138,9 @@ logger = logging.getLogger('zim.notebook')
 
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 from zim.signals import SignalEmitter
@@ -225,7 +224,7 @@ class NotebookOperation(SignalEmitter):
 		May raise L{NotebookOperationOngoing} if another operation is
 		already ongoing.
 		'''
-		assert gobject, "No mainloop available to run this operation"
+		assert GObject, "No mainloop available to run this operation"
 
 		if self.notebook._operation_check == self:
 			raise AssertionError('Already running')
@@ -233,14 +232,14 @@ class NotebookOperation(SignalEmitter):
 			self.notebook._operation_check() # can raise
 
 		self.notebook._operation_check = self # start blocking
-		gobject.idle_add(self._start) # ensure start happens in main thread
+		GObject.idle_add(self._start) # ensure start happens in main thread
 
 	def is_running(self):
 		return self.notebook._operation_check == self
 
 	def _start(self):
 		my_iter = iter(self)
-		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+		GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
 		return False # run once
 
 	def cancel(self):

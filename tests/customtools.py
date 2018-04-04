@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -62,7 +61,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertEqual(tool.comment, 'Test 1 2 3')
 		self.assertFalse(tool.isreadonly)
 		self.assertTrue(tool.showintoolbar)
-		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
+		self.assertTrue(tool.get_pixbuf(Gtk.IconSize.MENU))
 		self.assertEqual(tool.showincontextmenu, 'Text') # Auto generated
 
 		# test file saved correctly
@@ -97,7 +96,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertEqual(tool.comment, 'Test 1 2 3')
 		self.assertFalse(tool.isreadonly)
 		self.assertTrue(tool.showintoolbar)
-		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
+		self.assertTrue(tool.get_pixbuf(Gtk.IconSize.MENU))
 		self.assertEqual(tool.showincontextmenu, 'Page') # Auto generated
 
 		# switch order
@@ -149,7 +148,7 @@ class TestCustomTools(tests.TestCase):
 			('foo %t', ('foo', 'FooBar')),
 			('foo %T', ('foo', '**FooBar**')),
 		):
-			#~ print '>>>', cmd
+			#~ print('>>>', cmd)
 			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
 			self.assertEqual(tool.parse_exec(args), wanted)
 
@@ -162,8 +161,8 @@ class TestCustomToolsUI(tests.TestCase):
 		notebook = self.setUpNotebook(content=('test',))
 		page = notebook.get_page(Path('test'))
 
-		self.uimanager = gtk.UIManager()
-		group = gtk.ActionGroup('test')
+		self.uimanager = Gtk.UIManager()
+		group = Gtk.ActionGroup('test')
 		group.add_actions([('tools_menu', None, '_Tools')])
 		self.uimanager.insert_action_group(group)
 
@@ -306,7 +305,7 @@ class TestCustomToolDialog(tests.TestCase):
 
 		tool = manager.get_tool('Add')
 		self.assertIsNotNone(tool)
-		for key, value in mytool.items():
+		for key, value in list(mytool.items()):
 			self.assertEqual(tool['Desktop Entry'][key], value)
 
 	@tests.expectedFailure # Fails because of select_by_name fails - listview initialized ?

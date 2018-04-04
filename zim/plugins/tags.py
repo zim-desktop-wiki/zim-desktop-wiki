@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010 Fabian Moser
 # Copyright 2011-2017 Jaap Karssenberg
 
 
-import gobject
-import gtk
-import pango
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 
 import logging
 
@@ -49,7 +48,7 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 
 
 @extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class TagsMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
@@ -94,19 +93,19 @@ class MainWindowExtension(WindowExtension):
 		self.widget = None
 
 
-class TagsPluginWidget(ConnectorMixin, gtk.VPaned, WindowSidePaneWidget):
+class TagsPluginWidget(ConnectorMixin, Gtk.VPaned, WindowSidePaneWidget):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
 	title = _('Tags') # T: title for sidepane tab
 
 	def __init__(self, notebook, config, navigation, uistate):
-		gtk.VPaned.__init__(self)
+		GObject.GObject.__init__(self)
 		self.notebook = notebook
 		self.index = notebook.index
 		self.uistate = uistate
 
-		self.uistate.setdefault('treeview', 'tags', set(['tagged', 'tags']))
-		self.uistate.setdefault('tagcloud_sorting', 'score', set(['alpha', 'score']))
+		self.uistate.setdefault('treeview', 'tags', {'tagged', 'tags'})
+		self.uistate.setdefault('tagcloud_sorting', 'score', {'alpha', 'score'})
 		self.uistate.setdefault('show_full_page_name', True)
 
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
@@ -153,12 +152,12 @@ class TagsPluginWidget(ConnectorMixin, gtk.VPaned, WindowSidePaneWidget):
 		# Add a popup menu item to switch the treeview mode
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.CheckMenuItem(_('Show full page name')) # T: menu option
+		item = Gtk.CheckMenuItem(_('Show full page name')) # T: menu option
 		item.set_active(self.uistate['show_full_page_name'])
 		item.connect_object('toggled', self.__class__.toggle_show_full_page_name, self)
 		menu.prepend(item)
 
-		item = gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
+		item = Gtk.CheckMenuItem(_('Sort pages by tags')) # T: menu option
 		item.set_active(self.uistate['treeview'] == 'tags')
 		item.connect_object('toggled', self.__class__.toggle_treeview, self)
 		model = self.treeview.get_model()
@@ -223,9 +222,9 @@ class DuplicatePageTreeStore(PageTreeStoreBase):
 						self.emit('row-changed', treepath, treeiter)
 
 	def get_indexpath(self, treeiter):
-		'''Get an L{PageIndexRecord} for a C{gtk.TreeIter}
+		'''Get an L{PageIndexRecord} for a C{Gtk.TreeIter}
 
-		@param treeiter: a C{gtk.TreeIter}
+		@param treeiter: a C{Gtk.TreeIter}
 		@returns: an L{PageIndexRecord} object
 		'''
 		mytreeiter = self.get_user_data(treeiter)
@@ -259,11 +258,11 @@ class TagsPageTreeStore(TagsTreeModelMixin, DuplicatePageTreeStore):
 			elif column == EMPTY_COL:
 				return False
 			elif column == STYLE_COL:
-				return pango.STYLE_NORMAL
+				return Pango.Style.NORMAL
 			elif column == FGCOLOR_COL:
 				return self.NORMAL_COLOR
 			elif column == WEIGHT_COL:
-				return pango.WEIGHT_NORMAL
+				return Pango.Weight.NORMAL
 			elif column == N_CHILD_COL:
 				return iter.n_children
 		else:
@@ -300,7 +299,7 @@ class TaggedPageTreeStore(TaggedPagesTreeModelMixin, DuplicatePageTreeStore):
 class TagsPageTreeView(PageTreeView):
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		model, iter = self.get_selection().get_selected()
 		path = model.get_indexpath(iter)
 		if isinstance(path, IndexTag):
@@ -309,7 +308,7 @@ class TagsPageTreeView(PageTreeView):
 			link = path.name
 		logger.debug('Drag data requested, we have internal tag/path "%s"', link)
 		data = pack_urilist((link,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+		selectiondata.set(selectiondata.get_target(), 8, data)
 
 	def set_current_page(self, path, vivificate=False):
 		'''Set the current page in the treeview
@@ -320,7 +319,7 @@ class TagsPageTreeView(PageTreeView):
 
 		@returns: a gtk TreePath (tuple of intergers) or C{None}
 		'''
-		#~ print '!! SELECT', path
+		#~ print('!! SELECT', path)
 		model = self.get_model()
 		if model is None:
 			return None # index not yet initialized ...
@@ -333,16 +332,13 @@ class TagsPageTreeView(PageTreeView):
 		else:
 			return treepath
 
-# Need to register classes defining gobject signals
-gobject.type_register(TagsPageTreeView)
 
-
-class TagCloudItem(gtk.ToggleButton):
+class TagCloudItem(Gtk.ToggleButton):
 	'''Button item used on the tag cloud widget'''
 
 	def __init__(self, indextag):
-		gtk.ToggleButton.__init__(self, indextag.name, use_underline=False)
-		self.set_relief(gtk.RELIEF_NONE)
+		Gtk.ToggleButton.__init__(self, indextag.name, use_underline=False)
+		self.set_relief(Gtk.ReliefStyle.NONE)
 		self.indextag = indextag
 
 		def update_label(self):
@@ -357,7 +353,7 @@ class TagCloudItem(gtk.ToggleButton):
 		self.connect_after('toggled', update_label)
 
 
-class TagCloudWidget(ConnectorMixin, gtk.TextView):
+class TagCloudWidget(ConnectorMixin, Gtk.TextView):
 	'''Text-view based list of tags, where each tag is represented by a
 	button inserted as a child in the textview.
 
@@ -367,18 +363,18 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'selection-changed': (gobject.SIGNAL_RUN_LAST, None, ()),
-		'sorting-changed': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'selection-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
+		'sorting-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, index, sorting='score'):
-		gtk.TextView.__init__(self, None) # Create TextBuffer implicitly
+		GObject.GObject.__init__(self)
 		self.set_name('zim-tags-tagcloud')
 		self.index = None
 
 		self.set_editable(False)
 		self.set_cursor_visible(False)
-		self.set_wrap_mode(gtk.WRAP_CHAR)
+		self.set_wrap_mode(Gtk.WrapMode.CHAR)
 
 		self.set_sorting(sorting)
 		self.connect_index(index)
@@ -459,7 +455,7 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 	def do_populate_popup(self, menu):
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.CheckMenuItem(_('Sort alphabetically')) # T: Context menu item for tag cloud
+		item = Gtk.CheckMenuItem(_('Sort alphabetically')) # T: Context menu item for tag cloud
 		item.set_active(self._alphabetically)
 		item.connect('toggled', self._switch_sorting)
 		item.show_all()
@@ -472,6 +468,3 @@ class TagCloudWidget(ConnectorMixin, gtk.TextView):
 			self.emit('sorting-changed', 'alpha')
 		else:
 			self.emit('sorting-changed', 'score')
-
-# Need to register classes defining gobject signals
-gobject.type_register(TagCloudWidget)

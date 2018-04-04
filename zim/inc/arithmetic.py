@@ -13,7 +13,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division # We are doing math in this module ...
+ # We are doing math in this module ...
 
 
 __doc__ = '''
@@ -135,7 +135,7 @@ getcontext().prec = 100
 
 def safe_eval(expression):
 	'''Safe evaluation of a python expression'''
-	#~ print '>>>', expression
+	#~ print('>>>', expression)
 	GLOBALS = {'__builtins__': None} # Don't allow open() etc.
 	try:
 		re = eval(expression, GLOBALS, {'Decimal': Decimal})
@@ -385,7 +385,7 @@ class Parser:
                                         variables=variables, functions=functions))
                             self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                         except:
-                            print 'eval error:', tipoLeft, valorLeft, tipoRight, valorRight
+                            print('eval error:', tipoLeft, valorLeft, tipoRight, valorRight)
                     elif tipoLeft == 'n' and tipoRight in 'ifav':
                         if valorLeft not in functions:     # variable on the left
                             if tipoRight != 'v':    # assign to variable
@@ -394,7 +394,7 @@ class Parser:
                                                             variables=variables, functions=functions))
 
                                 except:
-                                    print 'exec error:', tipoLeft, valorLeft, tipoRight, valorRight
+                                    print('exec error:', tipoLeft, valorLeft, tipoRight, valorRight)
                                     raise
                             else:                   # evaluate a variable
                                 if valorLeft in variables:
@@ -409,7 +409,7 @@ class Parser:
                                                 variables=variables, functions=functions))
                                     self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                                 except:
-                                    print 'eval error:', tipoLeft, valorLeft, tipoRight, valorRight
+                                    print('eval error:', tipoLeft, valorLeft, tipoRight, valorRight)
                             else:                   # recurrence relation
                                 if valorLeft not in variables:            # initial value
                                   if valorRight != '':
@@ -564,21 +564,21 @@ if __name__ == '__main__':
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] in ['-h', '--help']:
-            print __doc__
+            print(__doc__)
         elif sys.argv[1] == '-f':
             filename = sys.argv[2]
             text = open(filename).read()
-            print feed(text)
+            print(feed(text))
         else:
             text = ' '.join(sys.argv[1:])
             if '=' in text:
-                print feed(text)
+                print(feed(text))
             else:
-                print evaluate(text)
+                print(evaluate(text))
     else:
         text = sys.stdin.read()
         lines = text.splitlines()
         if '=' in text or len(lines) > 1:
-            print feed(text)
+            print(feed(text))
         else:
-            print evaluate(lines[0])
+            print(evaluate(lines[0]))

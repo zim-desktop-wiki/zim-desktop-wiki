@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.notebook module.'''
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -36,7 +35,7 @@ class TestNotebookInfo(tests.TestCase):
 				# specifically ensure the "?" does not get url encoded
 		):
 			if os.name == 'nt':
-				if isinstance(location, basestring):
+				if isinstance(location, str):
 					location = location.replace('///', '///C:/')
 				uri = uri.replace('///', '///C:/')
 			info = NotebookInfo(location)
@@ -54,7 +53,7 @@ class TestNotebookInfoList(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(self.create_tmp_dir(u'some_utf8_here_\u0421\u0430\u0439'))
+		root = Dir(self.create_tmp_dir('some_utf8_here_\u0421\u0430\u0439'))
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()
@@ -226,7 +225,7 @@ mount=%s %s
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
 		):
-			#~ print ">>", uri
+			#~ print(">>", uri)
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info)
 			self.assertEqual(nb.folder.path, self.notebookdir.path)
@@ -336,8 +335,8 @@ class TestNotebook(tests.TestCase):
 				# Can still have remaining placeholders
 
 		# Test moving a page below it's own namespace
-		oldpath = Path('Test:Bar')
-		newpath = Path('Test:Bar:newsubpage')
+		oldpath = Path('Test:Section')
+		newpath = Path('Test:Section:newsubpage')
 
 		page = self.notebook.get_page(oldpath)
 		page.parse('wiki', 'Test 123')
@@ -409,7 +408,7 @@ class TestNotebook(tests.TestCase):
 			'**bold** :AnotherNewPage\n')
 
 
-		#~ print '\n==== DB ===='
+		#~ print('\n==== DB ====')
 		#~ self.notebook.index.update()
 		#~ cursor = self.notebook.index.db.cursor()
 		#~ cursor.execute('select * from pages')
@@ -437,11 +436,13 @@ class TestNotebook(tests.TestCase):
 
 		self.assertFalse(copy.valid)
 
+	def testCaseSensitiveMove(self):
+		from zim.notebook.index import LINK_DIR_BACKWARD
 		self.notebook.rename_page(Path('Test:foo'), 'Foo')
-		page = self.notebook.get_page(Path('Test:foo'))
-		self.assertFalse(page.hascontent)
-		page = self.notebook.get_page(Path('Test:Foo'))
-		self.assertTrue(page.hascontent)
+
+		pages = list(self.notebook.pages.list_pages(Path('Test')))
+		self.assertNotIn(Path('Test:foo'), pages)
+		self.assertIn(Path('Test:Foo'), pages)
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
@@ -504,7 +505,7 @@ class TestNotebook(tests.TestCase):
 
 	#~ def testResolveName(self):
 		#~ '''Test store.resolve_name().'''
-		#~ print '\n'+'='*10+'\nSTORE: %s' % self.store
+		#~ print('\n'+'='*10+'\nSTORE: %s' % self.store)
 #~
 		#~ # First make sure basic list function is working
 		#~ def list_pages(name):
@@ -525,10 +526,29 @@ class TestNotebook(tests.TestCase):
 			#~ ('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
 			#~ # FIXME more ambigous test data
 		#~ ):
-			#~ print '-'*10+'\nLINK %s (%s)' % (link, namespace)
+			#~ print('-'*10+'\nLINK %s (%s)' % (link, namespace))
 			#~ r = self.store.resolve_name(link, namespace=namespace)
-			#~ print 'RESULT %s' % r
+			#~ print('RESULT %s' % r)
 			#~ self.assertEqual(r, name)
+
+
+class TestNotebookCaseInsensitiveFileSystem(TestNotebook):
+
+	def setUp(self):
+		TestNotebook.setUp(self)
+		fs = self.notebook.folder._fs
+		fs.set_case_sensitive(False)
+
+	def testReallyCaseInsensitive(self):
+		page1 = self.notebook.get_page(Path('PAGE'))
+		page2 = self.notebook.get_page(Path('page'))
+		file1 = page1.source_file
+		file2 = page2.source_file
+		self.assertNotEqual(file1.path, file2.path)
+		self.assertTrue(file1.isequal(file2))
+
+		file1.write('TEST 123')
+		self.assertEqual(file2.read(), 'TEST 123')
 
 
 class DeadLinks(object):
@@ -771,15 +791,42 @@ class TestPath(tests.TestCase):
 	# TODO test operators on paths > < + - >= <= == !=
 
 
+class TestShortestUniqueNames(tests.TestCase):
+
+	def runTest(self):
+		from zim.notebook.page import shortest_unique_names
+		paths = [
+			Path('Test'),
+			Path('Foo'),
+			Path('2017:03:01'),
+			Path('2018:03:01'),
+			Path('2018:02:01'),
+			Path('Foo:Bar'),
+			Path('Dus:Foo')
+		]
+		wanted = [
+			'Test',
+			'Foo',
+			'2017:03:01',
+			'2018:03:01',
+			'02:01',
+			'Bar',
+			'Dus:Foo'
+		]
+		self.assertEqual(shortest_unique_names(paths), wanted)
+
+
 class TestHRefFromWikiLink(tests.TestCase):
 
-	def runtTest(self):
+	def runTest(self):
 		for link, rel, names, properlink in (
 			('Foo:::Bar', HREF_REL_FLOATING, 'Foo:Bar', 'Foo:Bar'),
 			(':Foo:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
 			(':<Foo>:', HREF_REL_ABSOLUTE, 'Foo', ':Foo'),
 			('+Foo:Bar', HREF_REL_RELATIVE, 'Foo:Bar', '+Foo:Bar'),
 			('Child2:AAA', HREF_REL_FLOATING, 'Child2:AAA', 'Child2:AAA'),
+			('Foo Bar', HREF_REL_FLOATING, 'Foo Bar', 'Foo Bar'),
+			('Foo_Bar', HREF_REL_FLOATING, 'Foo Bar', 'Foo Bar'),
 		):
 			href = HRef.new_from_wiki_link(link)
 			self.assertEqual(href.rel, rel)
@@ -1035,12 +1082,12 @@ class TestPageChangeFile(tests.TestCase):
 
 
 try:
-	import gio
+	from gi.repository import Gio
 except ImportError:
-	gio = None
+	Gio = None
 
 @tests.slowTest
-@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):

@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
 
-import gobject
-import gtk
+
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 import re
 
@@ -18,7 +18,7 @@ from zim.actions import action
 from zim.signals import SignalHandler
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
-from zim.gui.widgets import Dialog, Button, \
+from zim.gui.widgets import Dialog, \
 	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
@@ -30,8 +30,8 @@ logger = logging.getLogger('zim.plugins.calendar')
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
 
 
-KEYVALS_ENTER = map(gtk.gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter'))
-KEYVALS_SPACE = (gtk.gdk.unicode_to_keyval(ord(' ')),)
+KEYVALS_ENTER = list(map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter')))
+KEYVALS_SPACE = (Gdk.unicode_to_keyval(ord(' ')),)
 
 date_path_re = re.compile(r'^(.*:)?\d{4}:\d{1,2}:\d{2}$')
 week_path_re = re.compile(r'^(.*:)?\d{4}:Week \d{2}$')
@@ -50,7 +50,7 @@ def daterange_from_path(path):
 	'''
 	if date_path_re.match(path.name):
 		type = 'day'
-		year, month, day = map(int, path.name.rsplit(':', 3)[-3:])
+		year, month, day = list(map(int, path.name.rsplit(':', 3)[-3:]))
 		try:
 			date = datetime.date(year, month, day)
 		except ValueError:
@@ -59,11 +59,11 @@ def daterange_from_path(path):
 	elif week_path_re.match(path.name):
 		type = 'week'
 		year, week = path.name.rsplit(':', 2)[-2:]
-		year, week = map(int, (year, week[5:])) # Assumes "Week XX" string
+		year, week = list(map(int, (year, week[5:]))) # Assumes "Week XX" string
 		date, end_date = dates_for_week(year, week)
 	elif month_path_re.match(path.name):
 		type = 'month'
-		year, month = map(int, path.name.rsplit(':', 2)[-2:])
+		year, month = list(map(int, path.name.rsplit(':', 2)[-2:]))
 		try:
 			date = datetime.date(year, month, 1)
 		except ValueError:
@@ -119,9 +119,9 @@ Also adds a calendar widget to access these pages.
 
 	def on_preferences_changed(self, preferences):
 		if preferences['embedded']:
-			self.set_extension_class('MainWindow', MainWindowExtensionEmbedded)
+			self.set_extension_class('MainWindow', JournalMainWindowExtensionEmbedded)
 		else:
-			self.set_extension_class('MainWindow', MainWindowExtensionDialog)
+			self.set_extension_class('MainWindow', JournalMainWindowExtensionDialog)
 
 	def path_from_date(self, date):
 		'''Returns the path for a calendar page for a specific date'''
@@ -188,7 +188,7 @@ class NotebookExtension(ObjectExtension):
 		#~ 	return Path(text)
 		if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
 			year, month, day = text.split('-')
-			year, month, day = map(int, (year, month, day))
+			year, month, day = list(map(int, (year, month, day)))
 			date = datetime.date(year, month, day)
 			return self.plugin.path_from_date(date)
 		# TODO other formats
@@ -237,7 +237,7 @@ class NotebookExtension(ObjectExtension):
 			self._initialized_namespace = None
 
 
-class MainWindowExtension(WindowExtension):
+class JournalMainWindowExtension(WindowExtension):
 	'''Base class for our mainwindow extensions'''
 
 	@action(_('To_day'), accelerator='<Alt>D') # T: menu item
@@ -252,7 +252,7 @@ class MainWindowExtension(WindowExtension):
 
 
 @extends('MainWindow', autoload=False)
-class MainWindowExtensionDialog(MainWindowExtension):
+class JournalMainWindowExtensionDialog(JournalMainWindowExtension):
 	'''Extension used to add calendar dialog to mainwindow'''
 
 	uimanager_xml = '''
@@ -284,7 +284,7 @@ class MainWindowExtensionDialog(MainWindowExtension):
 
 
 @extends('MainWindow', autoload=False)
-class MainWindowExtensionEmbedded(MainWindowExtension):
+class JournalMainWindowExtensionEmbedded(JournalMainWindowExtension):
 	'''Extension used for calendar widget embedded in side pane'''
 
 	uimanager_xml = '''
@@ -337,29 +337,29 @@ class MainWindowExtensionEmbedded(MainWindowExtension):
 		self.widget = None
 
 
-class Calendar(gtk.Calendar):
+class Calendar(Gtk.Calendar):
 	'''Custom calendar widget class. Adds an 'activate' signal for when a
 	date is selected explicitly by the user.
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'activate': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'activate': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	def __init__(self):
-		gtk.Calendar.__init__(self)
+		GObject.GObject.__init__(self)
 		self.selected = False
 
 	def do_key_press_event(self, event):
-		handled = gtk.Calendar.do_key_press_event(self, event)
+		handled = Gtk.Calendar.do_key_press_event(self, event)
 		if handled and (event.keyval in KEYVALS_SPACE
 		or event.keyval in KEYVALS_ENTER):
 			self.emit('activate')
 		return handled
 
 	def do_button_press_event(self, event):
-		handled = gtk.Calendar.do_button_press_event(self, event)
+		handled = Gtk.Calendar.do_button_press_event(self, event)
 		if event.button == 1 and self.selected:
 			self.selected = False
 			self.emit('activate')
@@ -375,7 +375,7 @@ class Calendar(gtk.Calendar):
 
 	def get_date(self):
 		'''Get the datetime object for the selected date'''
-		year, month, day = gtk.Calendar.get_date(self)
+		year, month, day = Gtk.Calendar.get_date(self)
 		if day == 0:
 			day = 1
 
@@ -390,26 +390,23 @@ class Calendar(gtk.Calendar):
 				raise
 		return date
 
-# Need to register classes defining gobject signals
-gobject.type_register(Calendar)
 
-
-class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
+class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'date-activated': (gobject.SIGNAL_RUN_LAST, None, (object,)),
+		'date-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
 	def __init__(self, model):
-		gtk.VBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.model = model
 
-		self.label_box = gtk.HBox()
- 		self.pack_start(self.label_box, False)
+		self.label_box = Gtk.HBox()
+		self.pack_start(self.label_box, False, True, 0)
 
-		self.label = gtk.Label()
-		self.label_event = gtk.EventBox()
+		self.label = Gtk.Label()
+		self.label_event = Gtk.EventBox()
 		self.label_event.add(self.label)
 		self.label_event.connect("button_press_event", lambda w, e: self.go_today())
 		self.label_box.add(self.label_event)
@@ -418,23 +415,24 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 
 		self._refresh_label()
 		self._timer_id = \
-			gobject.timeout_add(300000, self._refresh_label)
+			GObject.timeout_add(300000, self._refresh_label)
 			# 5 minute = 300_000 ms
 			# Ideally we only need 1 timer per day at 00:00, but not
 			# callback for that
 		self.connect('destroy',
-			lambda o: gobject.source_remove(o._timer_id))
+			lambda o: GObject.source_remove(o._timer_id))
 			# Clear reference, else we get a new timer for every dialog
 
 		self.calendar = Calendar()
-		self.calendar.display_options(
-			gtk.CALENDAR_SHOW_HEADING |
-			gtk.CALENDAR_SHOW_DAY_NAMES |
-			gtk.CALENDAR_SHOW_WEEK_NUMBERS)
+		self.calendar.set_display_options(
+			Gtk.CalendarDisplayOptions.SHOW_HEADING |
+			Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES |
+			Gtk.CalendarDisplayOptions.SHOW_WEEK_NUMBERS
+		)
 		self.calendar.connect('activate', self.on_calendar_activate)
 		self.calendar.connect('month-changed', self.on_month_changed)
 		self.on_month_changed(self.calendar)
-		self.pack_start(self.calendar, False)
+		self.pack_start(self.calendar, False, True, 0)
 
 	def go_today(self):
 		self.select_date(datetime.date.today())
@@ -445,7 +443,7 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 			self.label_box.remove(self._close_button)
 
 		if button is not None:
-			self.label_box.pack_end(button, False)
+			self.label_box.pack_end(button, False, True, 0)
 
 		self._close_button = button
 		return True
@@ -481,9 +479,6 @@ class CalendarWidget(gtk.VBox, WindowSidePaneWidget):
 	def select_date(self, date):
 		self.calendar.select_date(date)
 
-# Need to register classes defining gobject signals
-gobject.type_register(CalendarWidget)
-
 
 class CalendarWidgetModel(object):
 
@@ -506,7 +501,7 @@ class CalendarWidgetModel(object):
 class CalendarDialog(Dialog):
 
 	def __init__(self, plugin, window):
-		Dialog.__init__(self, window, _('Calendar'), buttons=gtk.BUTTONS_CLOSE) # T: dialog title
+		Dialog.__init__(self, window, _('Calendar'), buttons=Gtk.ButtonsType.CLOSE) # T: dialog title
 		self.set_resizable(False)
 		self.plugin = plugin
 		self.opener = window.navigation
@@ -515,7 +510,7 @@ class CalendarDialog(Dialog):
 		self.calendar_widget = CalendarWidget(model)
 		self.vbox.add(self.calendar_widget)
 
-		button = Button(_('_Today'), gtk.STOCK_JUMP_TO) # T: button label
+		button = Gtk.Button.new_with_mnemonic(_('_Today')) # T: button label
 		button.connect('clicked', self.do_today)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -27,46 +26,46 @@ class TestInputEntry(tests.TestCase):
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_text(), '')
 
-		# test unicode nd whitespace
-		entry.set_text(u'\u2022 foo   ')
+		# test unicode and whitespace
+		entry.set_text('\u2022 foo   ')
 		text = entry.get_text()
-		self.assertTrue(isinstance(text, unicode))
-		self.assertEqual(text, u'\u2022 foo')
+		self.assertTrue(isinstance(text, str))
+		self.assertEqual(text, '\u2022 foo')
 		self.assertTrue(entry.get_input_valid())
 
 		# test set invalid + change
 		entry.set_input_valid(False)
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
+		entry.set_text('foo bar')
 		self.assertTrue(entry.get_input_valid())
 
 		# test invalid but now with allow_empty=False
 		entry = InputEntry(allow_empty=False)
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
+		entry.set_text('foo bar')
 		self.assertTrue(entry.get_input_valid())
-		entry.set_text(u'')
+		entry.set_text('')
 		self.assertFalse(entry.get_input_valid())
 
 		# and with a function
 		entry = InputEntry(check_func=lambda text: text.startswith('a'))
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
+		entry.set_text('foo bar')
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'aa foo bar')
+		entry.set_text('aa foo bar')
 		self.assertTrue(entry.get_input_valid())
-		entry.set_text(u'')
+		entry.set_text('')
 		self.assertFalse(entry.get_input_valid())
 
 		# and with placeholder text
 		entry = InputEntry(allow_empty=False, placeholder_text='PLACEHOLDER')
-		self.assertEqual(entry.get_text(), u'')
+		self.assertEqual(entry.get_text(), '')
 		self.assertFalse(entry.get_input_valid())
-		entry.set_text(u'foo bar')
-		self.assertEqual(entry.get_text(), u'foo bar')
+		entry.set_text('foo bar')
+		self.assertEqual(entry.get_text(), 'foo bar')
 		self.assertTrue(entry.get_input_valid())
-		entry.set_text(u'')
-		self.assertEqual(entry.get_text(), u'')
+		entry.set_text('')
+		self.assertEqual(entry.get_text(), '')
 		self.assertFalse(entry.get_input_valid())
 
 
@@ -216,14 +215,8 @@ class TestNamespaceEntry(TestPageEntry):
 		entry = self.entry
 		entry.set_text('')
 
-		entry.do_focus_in_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
 		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
-		self.assertEqual(entry.get_path(), Path(':'))
-
-		entry.do_focus_out_event(gtk.gdk.Event(gtk.gdk.FOCUS_CHANGE))
-		self.assertTrue(entry.get_input_valid())
-		self.assertEqual(entry.get_text(), '') # No '<Top>' or something !
+		self.assertEqual(entry.get_text(), '')
 		self.assertEqual(entry.get_path(), Path(':'))
 
 		TestPageEntry.runTest(self)
@@ -288,12 +281,12 @@ class TestInputForm(tests.TestCase):
 		def assertEqual(U, V):
 			self.assertEqual(set(U.keys()), set(V.keys()))
 
-			for k, v in V.items():
-				if isinstance(U[k], Path) and isinstance(v, basestring):
+			for k, v in list(V.items()):
+				if isinstance(U[k], Path) and isinstance(v, str):
 					v = Path(v)
-				elif isinstance(U[k], File) and isinstance(v, basestring):
+				elif isinstance(U[k], File) and isinstance(v, str):
 					v = File(v)
-				elif isinstance(U[k], Dir) and isinstance(v, basestring):
+				elif isinstance(U[k], Dir) and isinstance(v, str):
 					v = Dir(v)
 
 				self.assertEqual(U[k], v)
@@ -324,11 +317,11 @@ class TestInputForm(tests.TestCase):
 
 
 @tests.slowTest
-@tests.expectedFailure
 class TestFileDialog(tests.TestCase):
 	## Something weird in how the filechooser works internally
 	## need a lot of gtk_process_events() to get it work OK in test
 	## and still it fails at random :(
+	## Maybe fixes in Gtk3 - let's see if we encounter more failures
 
 	def runTest(self):
 		tmp_dir = Dir(self.create_tmp_dir())
@@ -384,7 +377,7 @@ class TestFileDialog(tests.TestCase):
 		folder = tmp_dir.subdir('folder1')
 		self.assertTrue(folder.exists())
 
-		dialog = FileDialog(None, 'Test', action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		dialog = FileDialog(None, 'Test', action=Gtk.FileChooserAction.SELECT_FOLDER)
 		assert dialog.filechooser.select_uri(folder.uri)
 		tests.gtk_process_events()
 		assert dialog.filechooser.select_uri(folder.uri)

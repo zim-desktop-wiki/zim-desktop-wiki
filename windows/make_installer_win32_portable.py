@@ -37,8 +37,8 @@ if not path.exists(MAKENSIS):
 # Print out version number to NSIS include file
 
 f = open(r"windows\build\version-and-date.nsi", "w")
-print >>f, '!define VER "%s"' % ZIM_VERSION
-print >>f, '!define BUILDDATE "%s"' % datetime.datetime.now().strftime("%Y-%m-%d")
+print('!define VER "%s"' % ZIM_VERSION, file=f)
+print('!define BUILDDATE "%s"' % datetime.datetime.now().strftime("%Y-%m-%d"), file=f)
 f.close()
 
 # NSIS script compiles to "dist" folder but compiler won't create it if it's needed

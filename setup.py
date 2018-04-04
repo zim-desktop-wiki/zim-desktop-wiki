@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -25,11 +25,9 @@ import msgfmt # also distributed with zim
 import makeman # helper script
 
 try:
-	version_info = sys.version_info
-	assert version_info >= (2, 6)
-	assert version_info < (3, 0)
+	assert sys.version_info >= (3, 2)
 except:
-	print >> sys.stderr, 'zim needs python >= 2.6   (but < 3.0)'
+	print('zim needs python >= 3.2', file=sys.stderr)
 	sys.exit(1)
 
 
@@ -39,7 +37,7 @@ except:
 build_target = os.environ.get('ZIM_BUILD_TARGET')
 assert build_target in (None, 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
 if build_target == 'maemo':
-	print 'Building for Maemo...'
+	print('Building for Maemo...')
 
 
 # Some constants
@@ -57,7 +55,7 @@ def collect_packages():
 		if '__init__.py' in files:
 			package = '.'.join(dir.split(os.sep))
 			packages.append(package)
-	#~ print 'Pakages: ', packages
+	#~ print('Pakages: ', packages)
 	return packages
 
 
@@ -87,7 +85,7 @@ def collect_data_files():
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
 		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
-		('share/appdata', ['xdg/zim.appdata.xml']),
+		('share/metainfo', ['xdg/org.zim_wiki.Zim.metainfo.xml']),
 	]
 
 	# xdg/hicolor -> PREFIX/share/icons/hicolor
@@ -109,14 +107,14 @@ def collect_data_files():
 			dirs.remove('.zim')
 		target = os.path.join('share', 'zim', dir[5:])
 		if files:
-			files = filter(include_file, files)
+			files = list(filter(include_file, files))
 			files = [os.path.join(dir, f) for f in files]
 			data_files.append((target, files))
 
 	if build_target == 'maemo':
 		# Remove default .desktop files and replace with our set
 		prefix = os.path.join('share', 'zim', 'applications')
-		for i in reversed(range(len(data_files))):
+		for i in reversed(list(range(len(data_files)))):
 			if data_files[i][0].startswith(prefix):
 				data_files.pop(i)
 
@@ -132,7 +130,7 @@ def collect_data_files():
 		data_files.append((target, [mofile]))
 
 	#~ import pprint
-	#~ print 'Data files: '
+	#~ print('Data files: ')
 	#~ pprint.pprint(data_files)
 	return data_files
 
@@ -140,14 +138,14 @@ def collect_data_files():
 def fix_dist():
 	# Try to update version info
 	if os.path.exists('.bzr/'):
-		print 'updating bzr version-info...'
+		print('updating bzr version-info...')
 		os.system('bzr version-info --format python > zim/_version.py')
 
 	# Generate man page
 	makeman.make()
 
 	# Add the changelog to the manual
-	# print 'copying CHANGELOG.txt -> data/manual/Changelog.txt'
+	# print('copying CHANGELOG.txt -> data/manual/Changelog.txt')
 	# shutil.copy('CHANGELOG.txt', 'data/manual/Changelog.txt')
 
 	# Copy the zim icons a couple of times
@@ -215,10 +213,10 @@ class zim_build_trans_class(cmd.Command):
 				os.makedirs(modir)
 
 			if not os.path.isfile(mofile) or dep_util.newer(pofile, mofile):
-				print 'compiling %s' % mofile
+				print('compiling %s' % mofile)
 				msgfmt.make(pofile, mofile)
 			else:
-				#~ print 'skipping %s - up to date' % mofile
+				#~ print('skipping %s - up to date' % mofile)
 				pass
 
 
@@ -231,7 +229,7 @@ class zim_build_scripts_class(build_scripts_class):
 			for script in self.scripts:
 				if script.endswith('.py'):
 					file = os.path.join(self.build_dir, script)
-					print 'renaming %s to %s' % (file, file[:-3])
+					print('renaming %s to %s' % (file, file[:-3]))
 					os.rename(file, file[:-3]) # len('.py') == 3
 
 
@@ -262,7 +260,7 @@ class zim_build_class(build_class):
 
 
 		file = os.path.join(self.build_lib, 'zim', 'plugins', '__init__.py')
-		print 'Setting plugin list in %s' % file
+		print('Setting plugin list in %s' % file)
 		assert os.path.isfile(file)
 		fh = open(file)
 		lines = fh.readlines()
@@ -303,16 +301,12 @@ class zim_install_class(install_class):
 				('update-desktop-database',),
 				('update-mime-database', mimedir),
 			):
-				print 'Trying: ' + ' '.join(cmd)
+				print('Trying: ' + ' '.join(cmd))
 				subprocess.call(cmd)
 
 
 
 # Distutils parameters, and main function
-
-dependencies = ['gobject', 'gtk', 'xdg']
-if version_info == (2, 5):
-	dependencies.append('simplejson')
 
 if build_target == 'maemo':
 	scripts = ['zim.py', 'maemo/modest-mailto.sh']
@@ -366,7 +360,7 @@ setup(
 	scripts = scripts,
 	packages = collect_packages(),
 	data_files = collect_data_files(),
-	requires = dependencies,
+	requires = ['gi', 'xdg'],
 
 	**py2exeoptions
 )

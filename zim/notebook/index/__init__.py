@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 
 import sqlite3
@@ -12,9 +11,9 @@ import logging
 logger = logging.getLogger('zim.notebook.index')
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 from zim.newfs import LocalFile, File, Folder, FileNotFoundError
@@ -164,7 +163,7 @@ class Index(SignalEmitter):
 		return self.update_iter.check_and_update_iter()
 
 	def check_async(self, notebook, paths, recursive=False):
-		assert gobject, 'async operation requires gobject mainloop'
+		assert GObject, 'async operation requires gobject mainloop'
 		for path in paths:
 			file, folder = self.layout.map_page(path)
 			self._checker.queue_check(file, recursive=recursive)
@@ -199,44 +198,60 @@ class Index(SignalEmitter):
 		self.background_check.stop()
 
 	def update_file(self, file):
+		if not file.exists():
+			return self.remove_file(file)
+
 		path = file.relpath(self.layout.root)
-		filesindexer = self.update_iter.files
 		row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
-		if row is None and not file.exists():
-			pass
+
+		filesindexer = self.update_iter.files
+		filesindexer.emit('start-update')
+
+		if row:
+			node_id = row[0]
+			if isinstance(file, File):
+				filesindexer.update_file(node_id, file)
+			elif isinstance(file, Folder):
+				filesindexer.update_folder(node_id, file)
+			else:
+				raise TypeError
 		else:
-			filesindexer.emit('start-update')
+			if isinstance(file, File):
+				filesindexer.interactive_add_file(file)
+			elif isinstance(file, Folder):
+				filesindexer.interactive_add_folder(file)
+			else:
+				raise TypeError
 
-			if row:
-				node_id = row[0]
-				if isinstance(file, File):
-					if file.exists():
-						filesindexer.update_file(node_id, file)
-					else:
-						filesindexer.delete_file(node_id)
-				elif isinstance(file, Folder):
-					if file.exists():
-						filesindexer.update_folder(node_id, file)
-					else:
-						filesindexer.delete_folder(node_id)
-				else:
-					raise TypeError
-			else: # file.exists():
-				if isinstance(file, File):
-					filesindexer.interactive_add_file(file)
-				elif isinstance(file, Folder):
-					filesindexer.interactive_add_folder(file)
-				else:
-					raise TypeError
+		filesindexer.emit('finish-update')
+		self._db.commit()
+		self.on_commit(None)
 
-			filesindexer.emit('finish-update')
-			self._db.commit()
-			self.on_commit(None)
+	def remove_file(self, file):
+		path = file.relpath(self.layout.root)
+		row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
+		if row is None:
+			return
+
+		filesindexer = self.update_iter.files
+		filesindexer.emit('start-update')
+
+		node_id = row[0]
+		if isinstance(file, File):
+			filesindexer.delete_file(node_id)
+		elif isinstance(file, Folder):
+			filesindexer.delete_folder(node_id)
+		else:
+			raise TypeError
+
+		filesindexer.emit('finish-update')
+		self._db.commit()
+		self.on_commit(None)
 
 	def file_moved(self, oldfile, newfile):
 		# TODO: make this more efficient, specific for moved folders
 		#       by supporting moved pages in indexers
-		self.update_file(oldfile)
+		self.remove_file(oldfile)
 		self.update_file(newfile)
 
 	def touch_current_page_placeholder(self, path):
@@ -324,7 +339,7 @@ class BackgroundCheck(object):
 	def start(self):
 		if not self.running:
 			my_iter = iter(self.on_idle_iter())
-			gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+			GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
 			self.running = True
 
 	def stop(self):
@@ -336,7 +351,7 @@ class BackgroundCheck(object):
 			logger.debug('BackgroundCheck started')
 			while self.running:
 				try:
-					needsupdate = check_iter.next()
+					needsupdate = next(check_iter)
 					if needsupdate:
 						self.callback()
 						logger.debug('BackgroundCheck found out-of-date')

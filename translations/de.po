@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-06-17 18:09+0000\n"
-"Last-Translator: sojusnik <Unknown>\n"
+"PO-Revision-Date: 2018-01-18 08:41+0000\n"
+"Last-Translator: Murat Güven <muratg@online.de>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2017-07-10 08:13+0000\n"
-"X-Generator: Launchpad (build 18419)\n"
+"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
+"X-Generator: Launchpad (build 18571)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -47,7 +47,7 @@ msgstr "Standard"
 #. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
 #: zim/datetimetz.py:96
 msgid "calendar:week_start:0"
-msgstr "calendar:week_start:1"
+msgstr "Kalender:Wochen_Start:0"
 
 #. generic error dialog
 #: zim/errors.py:47
@@ -105,7 +105,7 @@ msgstr "Keine Anwendungen gefunden"
 #: zim/gui/applications.py:733
 #, python-format
 msgid "Open with \"%s\""
-msgstr "Mit »%s« öffnen"
+msgstr "Mit \"%s\" öffnen"
 
 #. Text in the 'custom command' dialog, "%s" will be URL scheme like "http://" or "ssh://"
 #: zim/gui/applications.py:748
