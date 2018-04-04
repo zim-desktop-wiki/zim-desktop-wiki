@@ -249,7 +249,7 @@ def evaluate(expression_text, UseDigitGrouping = True, variables = {}, functions
 
 
 reEqualSign = re.compile(' ?= ?')
-reSepar = re.compile('  +|\t')
+reSepar = re.compile(' +|\t')
 reColonLeft = re.compile(': ')
 
 
