@@ -4970,19 +4970,40 @@ class PageViewExtension(ActionExtensionBase):
 			self._add_actions(window.uimanager)
 		self.navigation = window.navigation
 		self.uistate = window.config.uistate[plugin.config_key]
+		self._sidepane_widgets = {}
 
-	def add_tab(self, key, widget, pane):
+	def add_sidepane_widget(self, widget, preferences_key):
 		window = self.pageview.get_toplevel()
-		window.add_tab(key, widget, pane)
+		key = widget.__class__.__name__
+		position = self.plugin.preferences[preferences_key]
+		window.add_tab(key, widget, position)
+		widget.show_all()
 
-	def remove_tab(self, widget):
+		def on_preferences_changed(preferences):
+			position = self.plugin.preferences[preferences_key]
+			window.remove(widget)
+			window.add_tab(key, widget, position)
+
+		sid = self.connectto(self.plugin.preferences, 'changed', on_preferences_changed)
+		self._sidepane_widgets[widget] = sid
+
+	def remove_sidepane_widget(self, widget):
 		window = self.pageview.get_toplevel()
 		try:
 			window.remove(widget)
 		except ValueError:
-			return False
-		else:
-			return True
+			pass
+
+		try:
+			sid = self._sidepane_widgets.pop(widget)
+			self.plugin.preferences.disconnect(sid)
+		except KeyError:
+			pass
+
+	def teardown(self):
+		for widget in list(self._sidepane_widgets):
+			self.remove_sidepane_widget(widget)
+			widget.disconnect_all()
 
 
 from zim.signals import GSignalEmitterMixin

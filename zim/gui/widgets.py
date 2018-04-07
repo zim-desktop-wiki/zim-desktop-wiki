@@ -2208,7 +2208,7 @@ class VMinimizedTabs(Gtk.VBox, MinimizedTabs):
 		MinimizedTabs.__init__(self, sidepane, angle)
 
 
-class WindowSidePaneWidget(object):
+class WindowSidePaneWidget(ConnectorMixin):
 	'''Base class for widgets that want to integrate nicely in the
 	L{WindowSidePane}
 	'''

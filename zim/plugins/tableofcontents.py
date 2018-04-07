@@ -101,23 +101,17 @@ class ToCPageViewExtension(PageViewExtension):
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
-		if self.tocwidget is not None:
-			self.remove_tab(self.tocwidget)
-
 		widgetclass = FloatingToC if preferences['floating'] else SidePaneToC
 		if not isinstance(self.tocwidget, widgetclass):
+			if isinstance(self.tocwidget, SidePaneToC):
+				self.remove_sidepane_widget(self.tocwidget)
+
 			self.tocwidget = widgetclass(self.pageview)
-			self.tocwidget.show_all()
+
+			if isinstance(self.tocwidget, SidePaneToC):
+				self.add_sidepane_widget(self.tocwidget, 'pane')
 
 		self.tocwidget.set_show_h1(preferences['show_h1'])
-
-		if isinstance(self.tocwidget, SidePaneToC):
-			self.add_tab('tableofcontents', self.tocwidget, preferences['pane'])
-
-	def teardown(self):
-		self.remove_tab(self.tocwidget)
-		self.tocwidget.disconnect_all()
-		self.tocwidget = None
 
 
 TEXT_COL = 0

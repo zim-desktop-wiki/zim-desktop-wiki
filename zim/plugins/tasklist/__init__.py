@@ -155,15 +155,15 @@ class TaskListPageViewExtension(PageViewExtension):
 		if preferences['embedded']:
 			if self._widget is None:
 				self._init_widget()
+				self.add_sidepane_widget(self._widget, 'pane')
 			else:
 				self._widget.task_list.refresh()
-				self.remove_tab(self._widget)
-			self.add_tab('tasklist', self._widget, preferences['pane'])
-			self._widget.show_all()
 		else:
 			if self._widget:
-				self.remove_tab(self._widget)
+				self.remove_sidepane_widget(self._widget)
 				self._widget = None
+			else:
+				pass
 
 	def _init_widget(self):
 		index = self.pageview.notebook.index

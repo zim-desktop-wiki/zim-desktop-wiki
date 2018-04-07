@@ -61,8 +61,7 @@ class TagsPageViewExtension(PageViewExtension):
 			self.uistate
 		)
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		self.add_sidepane_widget(self.widget, 'pane')
 
 		self.uistate.setdefault('vpane_pos', 150)
 		self.widget.set_position(self.uistate['vpane_pos'])
@@ -77,18 +76,7 @@ class TagsPageViewExtension(PageViewExtension):
 		self.connectto(pageview, 'page-changed', lambda o, p: self.widget.set_page(p))
 
 
-	def on_preferences_changed(self, preferences):
-		self.remove_tab(self.widget)
-		self.add_tab('tags', self.widget, preferences['pane'])
-		self.widget.show_all()
-
-	def teardown(self):
-		self.remove_tab(self.widget)
-		self.widget.disconnect_all()
-		self.widget = None
-
-
-class TagsPluginWidget(ConnectorMixin, Gtk.VPaned, WindowSidePaneWidget):
+class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
 	title = _('Tags') # T: title for sidepane tab

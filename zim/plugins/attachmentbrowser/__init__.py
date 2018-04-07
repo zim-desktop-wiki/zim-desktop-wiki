@@ -92,8 +92,6 @@ icon view at bottom pane.
 
 class AttachmentBrowserWindowExtension(PageViewExtension):
 
-	TAB_KEY = 'attachmentbrowser'
-
 	def __init__(self, plugin, window):
 		PageViewExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
@@ -102,16 +100,10 @@ class AttachmentBrowserWindowExtension(PageViewExtension):
 		# Init browser widget
 		self.widget = AttachmentBrowserPluginWidget(self, self.navigation, self.preferences)
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
 		self.on_page_changed(self.pageview, self.pageview.page)
 		self.connectto(self.pageview, 'page-changed')
 
-	def on_preferences_changed(self, preferences):
-		self.remove_tab(self.widget)
-		self.add_tab(self.TAB_KEY, self.widget, preferences['pane'])
-		self.widget.show_all()
+		self.add_sidepane_widget(self.widget, 'pane')
 
 	def on_page_changed(self, pageview, page):
 		self.widget.set_folder(
@@ -119,11 +111,6 @@ class AttachmentBrowserWindowExtension(PageViewExtension):
 		)
 
 	def teardown(self):
-		self.widget.iconview.teardown_folder()
-		self.remove_tab(self.widget)
-		self.widget = None
-
-	def destroy(self):
 		self.widget.iconview.teardown_folder()
 
 

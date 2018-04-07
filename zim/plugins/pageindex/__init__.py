@@ -75,19 +75,13 @@ class PageIndexPageViewExtension(PageViewExtension):
 		#window.connect('start-index-update', lambda o: self.disconnect_model())
 		#window.connect('end-index-update', lambda o: self.reload_model())
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
 		self.on_page_changed(pageview, pageview.page)
 		self.connectto(pageview, 'page-changed')
 
+		self.add_sidepane_widget(self.widget, 'pane')
+
 		# self.pageindex.treeview.connect('insert-link',
 		# 	lambda v, p: self.pageview.insert_links([p]))
-
-	def on_preferences_changed(self, preferences):
-		self.remove_tab(self.widget)
-		self.add_tab('pageindex', self.widget, preferences['pane'])
-		self.widget.show_all()
 
 	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)

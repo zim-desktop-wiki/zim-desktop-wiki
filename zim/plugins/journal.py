@@ -240,24 +240,13 @@ class JournalPageViewExtension(PageViewExtension):
 		self.calendar_widget = CalendarWidget(plugin, pageview.notebook, plugin.config, self.navigation)
 		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		self.add_sidepane_widget(self.calendar_widget, 'pane')
 
 	@action(_('To_day'), accelerator='<Alt>D', menuhints='go') # T: menu item
 	def go_page_today(self):
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(today)
 		self.navigation.open_page(path)
-
-	def on_preferences_changed(self, preferences):
-		self.remove_tab(self.calendar_widget)
-		self.add_tab('journal', self.calendar_widget, preferences['pane'])
-		self.calendar_widget.show_all()
-
-	def teardown(self):
-		self.calendar_widget.disconnect_all()
-		self.remove_tab(self.calendar_widget)
-		self.calendar_widget = None
 
 
 class Calendar(Gtk.Calendar):
@@ -314,7 +303,7 @@ class Calendar(Gtk.Calendar):
 		return date
 
 
-class CalendarWidget(Gtk.VBox, ConnectorMixin, WindowSidePaneWidget):
+class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	title = _('Journal') # T: side pane title
 

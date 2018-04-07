@@ -47,21 +47,10 @@ class BackLinksPanePageViewExtension(PageViewExtension):
 		self.on_page_changed(self.pageview, self.pageview.page)
 		self.connectto(self.pageview, 'page-changed')
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
-	def on_preferences_changed(self, preferences):
-		self.remove_tab(self.widget)
-		self.add_tab('backlinkspane', self.widget, preferences['pane'])
-		self.widget.show_all()
+		self.add_sidepane_widget(self.widget, 'pane')
 
 	def on_page_changed(self, window, page):
 		self.widget.set_page(window.notebook, page)
-
-	def teardown(self):
-		self.remove_tab(self.widget)
-		self.widget.destroy()
-		self.widget = None
 
 
 PAGE_COL = 0
