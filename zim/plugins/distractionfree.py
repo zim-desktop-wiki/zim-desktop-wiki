@@ -2,10 +2,14 @@
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
 import logging
 
 from zim.plugins import PluginClass, WindowExtension, extends
 
+from zim.signals import SIGNAL_AFTER
+from zim.gui.widgets import widget_set_css
 
 logger = logging.getLogger('zim.plugins.distractionfree')
 
@@ -32,10 +36,10 @@ class DistractionFreePlugin(PluginClass):
 		('hide_toolbar', 'bool', _('Hide toolbar in fullscreen mode'), True), # T: plugin preference
 		('hide_statusbar', 'bool', _('Hide statusbar in fullscreen mode'), True), # T: plugin preference
 		('max_page_width', 'int', _('Maximum page width'), 850, (_minsize, 10000)), # T: plugin preference
-		('vmargin', 'int', _('Vertical margin'), 50, (0, 10000)), # T: plugin preference
+		('vmargin', 'int', _('Border width'), 50, (0, 10000)), # T: plugin preference
 		('basecolor', 'color', _('Text background color'), '#babdb6'), # T: plugin preference
 		('textcolor', 'color', _('Text foreground color'), '#2e3436'), # T: plugin preference
-		('bgcolor', 'color', _('Screen background color'), '#2e3436'), # T: plugin preference
+		#('bgcolor', 'color', _('Screen background color'), '#2e3436'), # T: plugin preference
 		#('fgcolor', 'color', _('Screen foreground color'), '#eeeeec'),
 	)
 
@@ -45,178 +49,156 @@ class DistractionFreeMainWindowExtension(WindowExtension):
 
 	def __init__(self, plugin, window):
 		WindowExtension.__init__(self, plugin, window)
-		self._normal_colors = None
-		self._show_panes = True
 		self.preferences = plugin.preferences
+		self._show_panes = True
+		self._bar_state = None
+		self._maxwidth = None
+		self._css_provider = None
 
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-		self.connectto(window, 'init-uistate', self.on_init_uistate)
+		self.connectto(window, 'window-state-event', order=SIGNAL_AFTER)
 
-		self.connectto(window, 'fullscreen-changed')
-		self.connectto(window.pageview.view, 'size-allocate')
+		if window.isfullscreen:
+			self.on_fullscreen_changed(window)
 
-	def on_init_uistate(self, window):
-		self.on_preferences_changed(self.plugin.preferences)
+	def _new_css_provider(self):
+		css = '''
+		#zim-pageview text {
+			color: %s;
+			background-color: %s;
+		}
+		''' % (self.preferences['textcolor'], self.preferences['basecolor'])
+		provider = Gtk.CssProvider()
+		provider.load_from_data(css.encode('UTF-8'))
+		return provider
 
 	def on_preferences_changed(self, preferences):
-		# Set show menubar & Update margins
-		show_menubar = not preferences['hide_menubar']
-		show_toolbar = not preferences['hide_toolbar']
-		show_statusbar = not preferences['hide_statusbar']
 		if self.window.isfullscreen:
+			self.window.toggle_menubar(not preferences['hide_menubar'])
+			self.window.toggle_toolbar(not preferences['hide_toolbar'])
+			self.window.toggle_statusbar(not preferences['hide_statusbar'])
+
+	def on_window_state_event(self, window, event):
+		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
+			self.on_fullscreen_changed(window)
+
+	def on_fullscreen_changed(self, window):
+		screen = Gdk.Screen.get_default()
+		if window.isfullscreen:
+			self._show_panes = bool(window.get_visible_panes())
+			window.toggle_panes(False)
+			self.save_bar_state()
+			self.set_bar_state_fullscreen()
+			self.insert_maxwidth()
+			self._css_provider = self._new_css_provider()
+			Gtk.StyleContext.add_provider_for_screen(screen, self._css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+		else:
+			Gtk.StyleContext.remove_provider_for_screen(screen, self._css_provider)
+			self.remove_maxwidth()
+			window.toggle_panes(self._show_panes)
+			self.restore_bar_state()
+			window.pageview.grab_focus()
+
+	def save_bar_state(self):
+		self._bar_state = (
+			self.window.uistate['show_menubar'],
+			self.window.uistate['show_toolbar'],
+			self.window.uistate['show_statusbar'],
+		)
+
+	def restore_bar_state(self):
+		if self._bar_state is None:
+			return
+		show_menubar, show_toolbar, show_statusbar = self._bar_state
+		try:
 			self.window.toggle_menubar(show_menubar)
 			self.window.toggle_toolbar(show_toolbar)
 			self.window.toggle_statusbar(show_statusbar)
-
-			textview = self.window.pageview.view
-			self.on_size_allocate(textview, textview.get_allocation())
-		else:
-			self.window.uistate['show_menubar_fullscreen'] = show_menubar
-			self.window.uistate['show_toolbar_fullscreen'] = show_toolbar
-			self.window.uistate['show_statusbar_fullscreen'] = show_statusbar
-
-	def on_fullscreen_changed(self, window):
-		if window.isfullscreen:
-			self._show_panes = bool(window.get_visible_panes())
-			self._save_colors(window)
-			self._set_colors(self._custom_colors)
-			window.toggle_panes(False)
-			window.pageview.swindow.set_shadow_type(Gtk.ShadowType.NONE) # XXX
-		elif self._normal_colors:
-			self._set_colors(self._normal_colors)
-			window.toggle_panes(self._show_panes)
-			window.pageview.grab_focus()
-			window.pageview.swindow.set_shadow_type(Gtk.ShadowType.IN) # XXX
-		else:
+		except:
 			pass
+		finally: # just to be real sure
+			self.window.uistate['show_menubar'] = show_menubar
+			self.window.uistate['show_toolbar'] = show_toolbar
+			self.window.uistate['show_statusbar'] = show_statusbar
+			self.window.config.uistate.write()
 
-	# NOTE: would be nice to change color of _all_ widgets when switching
-	#       to fullscreen, but this is practically not possible because
-	#       we can not set just the few colors in RcStyle, would need to
-	#       switch the whole theme
+	def set_bar_state_fullscreen(self):
+		self.window.toggle_menubar(not self.preferences['hide_menubar'])
+		self.window.toggle_toolbar(not self.preferences['hide_toolbar'])
+		self.window.toggle_statusbar(not self.preferences['hide_statusbar'])
 
-	def _save_colors(self, window):
-		style = window.pageview.view.rc_get_style()
-		self._normal_colors = []
-		for state in (
-			Gtk.StateType.NORMAL,
-			#Gtk.StateType.ACTIVE,
-			#Gtk.StateType.PRELIGHT,
-			#Gtk.StateType.SELECTED,
-			#Gtk.StateType.INSENSITIVE
-		):
-			self._normal_colors.append({
-				'base': style.base[Gtk.StateType.NORMAL],
-				'text': style.text[Gtk.StateType.NORMAL],
-				'bg': style.bg[Gtk.StateType.NORMAL],
-				#'fg': style.fg[Gtk.StateType.NORMAL],
-			})
+	def insert_maxwidth(self):
+		self._maxwidth = MaxWidth(self.preferences['max_page_width'])
+		self.window.pageview.reparent(self._maxwidth)
+		self.window.add(self._maxwidth)
+		#widget_set_css(self._maxwidth, 'zim-distractionfree-bin',
+		#	'border-top: %ipx solid; border-bottom: %ipx solid'
+		#		% (self.preferences['vmargin'], self.preferences['vmargin'])
+		#)
+		self._maxwidth.set_border_width(self.preferences['vmargin'])
+		self._maxwidth.show_all()
 
-	@property
-	def _custom_colors(self):
-		# array of NORMAL, ACTIVE, PRELIGHT, SELECTED, INSENSITIVE
-		normal = {
-			'base': self.preferences['basecolor'],
-			'text': self.preferences['textcolor'],
-			'bg': self.preferences['bgcolor'],
-			#'fg': self.preferences['fgcolor'],
-		}
-		#selected = { # like normal, but reverse text and base
-		#	'base': self.preferences['textcolor'],
-		#	'text': self.preferences['basecolor'],
-		#	'bg': self.preferences['bgcolor'],
-		#	'fg': self.preferences['fgcolor'],
-		#}
-		#return [normal, normal, normal, selected, normal]
-		return (normal,)
-
-	def _set_colors(self, colors):
-		# See Gtk.RcStyle docs for all values in RC file
-		rc = 'style "zim-colors"\n{\n'
-		for i, state in enumerate((
-			'NORMAL',
-			#'ACTIVE',
-			#'PRELIGHT',
-			#'SELECTED',
-			#'INSENSITIVE',
-		)):
-			values = colors[i]
-			values['state'] = state
-			rc +=  '\tbase[%(state)s] = "%(base)s"\n' \
-				'\ttext[%(state)s] = "%(text)s"\n' \
-				'\tbg[%(state)s] = "%(bg)s"\n' % values
-				#'\tfg[%(state)s] = "%(fg)s"\n' % values
-
-		#rc += '}\nclass "GtkWidget" style "zim-colors"'
-		rc += '}\nwidget "*.zim-pageview" style "zim-colors"\n'
-
-		logger.debug('Parse RC: >>>\n%s<<<', rc)
-		Gtk.rc_parse_string(rc)
-		Gtk.rc_reset_styles(Gtk.Settings.get_default())
-
-	def on_size_allocate(self, textview, allocation):
-		# Here we play with textview margin windows to position text
-		# in center of screen with a maximum size
-		if not self.window.isfullscreen:
-			self._set_margins(0, 0, 0, 0)
-			return
-
-		# Screen geometry
-		screen = Gdk.Screen.get_default()
-		root_window = screen.get_root_window()
-		mouse_x, mouse_y, mouse_mods = root_window.get_pointer()
-		current_monitor_number = screen.get_monitor_at_point(mouse_x, mouse_y)
-		monitor_geometry = screen.get_monitor_geometry(current_monitor_number)
-		screen_width = monitor_geometry.width
-		screen_height = monitor_geometry.height
-
-		# X max width based on user preference
-		max_x = self.preferences['max_page_width']
-		xmargin = int((screen_width - max_x) / 2)
-		if allocation.width > max_x:
-			if allocation.x > xmargin:
-				# we are bumped to the right
-				left = _minmargin
-				right = allocation.width - max_x
-			elif (allocation.x + allocation.width) < (screen_width - xmargin):
-				# we are bumped to the left
-				left = allocation.width - max_x
-				right = _minmargin
-			else:
-				# room on both sides
-				left = xmargin - allocation.x
-				right = allocation.width - max_x - left
-		else:
-			left = _minmargin
-			right = _minmargin
-
-		# Y setting simply keeps a small margin
-		vmargin = self.preferences['vmargin']
-		if vmargin > ((screen_height - _minsize) / 2):
-			vmargin = ((screen_height - _minsize) / 2)
-
-		if allocation.y < vmargin:
-			top = vmargin - allocation.y
-		else:
-			top = _minmargin
-
-		if (allocation.y + allocation.height) > (screen_height - vmargin):
-			bottom = (allocation.y + allocation.height) - (screen_height - vmargin)
-		else:
-			bottom = _minmargin
-
-		self._set_margins(left, right, top, bottom)
-
-	def _set_margins(self, left, right, top, bottom):
-		textview = self.window.pageview.view
-		textview.set_border_window_size(Gtk.TextWindowType.LEFT, left)
-		textview.set_border_window_size(Gtk.TextWindowType.RIGHT, right)
-		textview.set_border_window_size(Gtk.TextWindowType.TOP, top)
-		textview.set_border_window_size(Gtk.TextWindowType.BOTTOM, bottom)
+	def remove_maxwidth(self):
+		self._maxwidth.remove(self.window.pageview)
+		self.window.remove(self._maxwidth)
+		self._maxwidth.destroy()
+		self._maxwidth = None
+		self.window.add(self.window.pageview)
+		self.window.pageview.show_all()
 
 	def teardown(self):
-		# show at least menubar again, set margins to zero & restore colors
-		self.window.uistate['show_menubar_fullscreen'] = True
-		self._set_margins(0, 0, 0, 0)
-		if self._normal_colors:
-			self._set_colors(self._normal_colors)
+		self.restore_bar_state()
+
+
+class MaxWidth(Gtk.Bin):
+
+	def __init__(self, maxwidth):
+		GObject.GObject.__init__(self)
+		self.set_has_window(False)
+		self.maxwidth = maxwidth
+
+	def do_get_request_mode(self):
+		'''Return what Gtk::SizeRequestMode is preferred by the container.'''
+		child = self.get_child()
+		return child.get_request_mode()
+
+	def _adjust_preferred_width(self, minimum, natural):
+		if minimum > self.maxwidth:
+			return minimum, minimum
+		elif natural > self.maxwidth:
+			return minimum, self.maxwidth
+		else:
+			return minimum, natural
+
+	def do_get_preferred_width(self):
+		'''Calculate the minimum and natural width of the container.'''
+		child = self.get_child()
+		minimum, natural = child.get_preferred_width()
+		return self._adjust_preferred_width(minimum, natural)
+
+	def do_get_preferred_height(self):
+		'''Calculate the minimum and natural height of the container.'''
+		child = self.get_child()
+		return child.get_preferred_height()
+
+	def do_get_preferred_width_for_height(self, height):
+		'''Calculate the minimum and natural width of the container, if it would be given the specified height.'''
+		child = self.get_child()
+		minimum, natural = child.get_preferred_width_for_height(height)
+		return self._adjust_preferred_width(minimum, natural)
+
+	def do_get_preferred_height_for_width(self, width):
+		'''Calculate the minimum and natural height of the container, if it would be given the specified width.'''
+		child = self.get_child()
+		return child.get_preferred_height_for_width(width)
+
+	def do_size_allocate(self, allocation):
+		'''Position the child widgets, given the height and width that the container has actually been given.'''
+		if allocation.width > self.maxwidth:
+			child = self.get_child()
+			minimum, natural = child.get_preferred_width_for_height(allocation.height)
+			if minimum < self.maxwidth:
+				allocation.x += int((allocation.width - self.maxwidth) / 2)
+				allocation.width = self.maxwidth
+		child = self.get_child()
+		Gtk.Bin.do_size_allocate(self, allocation)

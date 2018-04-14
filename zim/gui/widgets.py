@@ -1207,7 +1207,7 @@ class InputForm(Gtk.Table):
 			elif isinstance(widget, Gtk.SpinButton):
 				return int(widget.get_value())
 			elif isinstance(widget, Gtk.ColorButton):
-				return str(widget.get_color())
+				return widget.get_rgba().to_string()
 			else:
 				raise TypeError(widget.__class__.name)
 		else:
@@ -1255,8 +1255,9 @@ class InputForm(Gtk.Table):
 			elif isinstance(widget, Gtk.SpinButton):
 				widget.set_value(value)
 			elif isinstance(widget, Gtk.ColorButton):
-				color = Gdk.color_parse(value)
-				widget.set_color(color)
+				rgba = Gdk.RGBA()
+				rgba.parse(value)
+				widget.set_rgba(rgba)
 			else:
 				raise TypeError(widget.__class__.name)
 		else:
@@ -2536,10 +2537,10 @@ class Window(Gtk.Window):
 		if self._last_sidepane_focus == widget:
 			self._last_sidepane_focus = None
 
-		box = self._zim_window_central_vbox
-		if widget in box.get_children():
-			box.remove(widget)
-			return
+		for parent in (self._zim_window_central_vbox, self._zim_window_bottom_paned):
+			if widget in parent.get_children():
+				parent.remove(widget)
+				return
 
 		for key in (LEFT_PANE, RIGHT_PANE, TOP_PANE, BOTTOM_PANE):
 			paned, pane, mini = self._zim_window_sidepanes[key]
