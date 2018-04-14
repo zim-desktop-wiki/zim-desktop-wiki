@@ -202,6 +202,18 @@ class ToggleAction(Action):
 				zim.errors.exception_handler(
 					'Exception during toggle action: %s(%s)' % (self.name, active))
 
+	def get_toggleaction_state(self, instance):
+		'''Get the state for C{instance}'''
+		# TODO: this should be method on bound object
+		return self._state.get(instance, self._init)
+
+	def set_toggleaction_state(self, instance, active):
+		'''Change state for C{instance} *without* calling the action'''
+		# TODO: this should be method on bound object
+		self._state[instance] = active
+		for actionable in self._proxies.get(instance, []):
+			actionable.set_active(active)
+
 
 def radio_action(*radio_options):
 	def _action(function):

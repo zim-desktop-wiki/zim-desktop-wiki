@@ -85,7 +85,6 @@ class MainWindow(Window):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'fullscreen-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'init-uistate': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
@@ -105,7 +104,6 @@ class MainWindow(Window):
 		Window.__init__(self)
 		self.notebook = notebook
 		self.page = None # will be set later by open_page
-		self.isfullscreen = False
 		self.navigation = NavigationModel(self)
 		self.hideonclose = False
 
@@ -118,6 +116,10 @@ class MainWindow(Window):
 		)
 		self.preferences.connect('changed', self.do_preferences_changed)
 
+		self.maximized = False
+		self.isfullscreen = False
+		self.connect_after('window-state-event', self.__class__.on_window_state_event)
+
 		# Hidden setting to force the gtk bell off. Otherwise it
 		# can bell every time you reach the begin or end of the text
 		# buffer. Especially specific gtk version on windows.
@@ -129,8 +131,6 @@ class MainWindow(Window):
 		self._block_toggle_panes = False
 		self._sidepane_autoclose = False
 		self._switch_focus_accelgroup = None
-
-		self.maximized = False
 
 		# Catching this signal prevents the window to actually be destroyed
 		# when the user tries to close it. The action for close should either
@@ -323,38 +323,17 @@ class MainWindow(Window):
 		self.statusbar.pop(0)
 		self.statusbar.push(0, label)
 
-	def do_window_state_event(self, event):
-		#~ print('window-state changed:', event.changed_mask)
-		#~ print('window-state new state:', event.new_window_state)
-
+	def on_window_state_event(self, event):
 		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
 			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
 
-		isfullscreen = Gdk.WindowState.FULLSCREEN
-		if bool(event.changed_mask & isfullscreen):
-			# Did not find property for this - so tracking state ourself
-			wasfullscreen = self.isfullscreen
-			self.isfullscreen = bool(event.new_window_state & isfullscreen)
-			logger.debug('Fullscreen changed: %s', self.isfullscreen)
-			self._set_widgets_visable()
-			if self.actiongroup:
-				# only do this after we initalize
-				self.toggle_fullscreen(self.isfullscreen)
+		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
+			self.isfullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
+			self.__class__.toggle_fullscreen.set_toggleaction_state(self, self.isfullscreen)
 
-			if wasfullscreen:
-				# restore uistate
-				if self.uistate['windowsize']:
-					w, h = self.uistate['windowsize']
-					self.resize(w, h)
-				if self.uistate['windowpos']:
-					x, y = self.uistate['windowpos'] # Should we use _windowpos?
-					self.move(x, y)
-
-			if wasfullscreen != self.isfullscreen:
-				self.emit('fullscreen-changed')
+		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED) \
+			or bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
 				schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
-					# HACK to have this scroll done after all updates to
-					# the gui are done...
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -395,10 +374,7 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-		if self.isfullscreen:
-			self.uistate['show_menubar_fullscreen'] = show
-		else:
-			self.uistate['show_menubar'] = show
+		self.uistate['show_menubar'] = show
 
 	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
 	def toggle_toolbar(self, show):
@@ -410,10 +386,7 @@ class MainWindow(Window):
 			self.toolbar.hide()
 			self.toolbar.set_no_show_all(True)
 
-		if self.isfullscreen:
-			self.uistate['show_toolbar_fullscreen'] = show
-		else:
-			self.uistate['show_toolbar'] = show
+		self.uistate['show_toolbar'] = show
 
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
@@ -430,20 +403,15 @@ class MainWindow(Window):
 			self.statusbar.hide()
 			self.statusbar.set_no_show_all(True)
 
-		if self.isfullscreen:
-			self.uistate['show_statusbar_fullscreen'] = show
-		else:
-			self.uistate['show_statusbar'] = show
+		self.uistate['show_statusbar'] = show
 
 	@toggle_action(_('_Fullscreen'), 'gtk-fullscreen', 'F11', init=False) # T: Menu item
 	def toggle_fullscreen(self, show):
 		'''Menu action to toggle the fullscreen state of the window'''
 		if show:
-			self.save_uistate()
 			self.fullscreen()
 		else:
 			self.unfullscreen()
-			# uistate is restored in do_window_state_event()
 
 	def do_pane_state_changed(self, pane, *a):
 		if not hasattr(self, 'actiongroup') \
@@ -584,19 +552,13 @@ class MainWindow(Window):
 			self.set_default_size(w, h)
 
 			self.uistate.setdefault('windowmaximized', False)
-			self.maximized = bool(self.uistate['windowmaximized'])
-			if self.maximized:
+			if self.uistate['windowmaximized']:
 				self.maximize()
-		else:
-			self.maximized = False
 
 		self.uistate.setdefault('active_tabs', None, tuple)
 		self.uistate.setdefault('show_menubar', True)
-		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
-		self.uistate.setdefault('show_statusbar_fullscreen', False)
 
 		# For these two "None" means system default, but we don't know what that default is :(
 		self.preferences.setdefault('toolbar_style', None,
@@ -604,7 +566,9 @@ class MainWindow(Window):
 		self.preferences.setdefault('toolbar_size', None,
 			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
 
-		self._set_widgets_visable() # toggle what panes are visible
+		self.toggle_menubar(self.uistate['show_menubar'])
+		self.toggle_toolbar(self.uistate['show_toolbar'])
+		self.toggle_statusbar(self.uistate['show_statusbar'])
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
 
@@ -684,17 +648,6 @@ class MainWindow(Window):
 		self.uistate.connect('changed', delayed_save_uistate_cb)
 
 		self.do_update_statusbar()
-
-	def _set_widgets_visable(self):
-		# Convenience method to switch visibility of all widgets
-		if self.isfullscreen:
-			self.toggle_menubar(self.uistate['show_menubar_fullscreen'])
-			self.toggle_toolbar(self.uistate['show_toolbar_fullscreen'])
-			self.toggle_statusbar(self.uistate['show_statusbar_fullscreen'])
-		else:
-			self.toggle_menubar(self.uistate['show_menubar'])
-			self.toggle_toolbar(self.uistate['show_toolbar'])
-			self.toggle_statusbar(self.uistate['show_statusbar'])
 
 	def save_uistate(self):
 		if not self.isfullscreen:
