@@ -31,12 +31,11 @@ logger = logging.getLogger('zim.gui.pageindex')
 
 NAME_COL = 0  #: Column with short page name (page.basename)
 PATH_COL = 1  #: Column with the zim PageIndexRecord itself
-EMPTY_COL = 2 #: Column to flag if the page is empty or not
+EXISTS_COL = 2 #: Column to flag if the page is a placeholder or not
 STYLE_COL = 3 #: Column to specify style (based on empty or not)
-FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
-WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
-N_CHILD_COL = 6 #: Column with the number of child pages
-TIP_COL = 7 #: Column with the name to be used in the tooltip
+WEIGHT_COL = 4 #: Column to specify the font weight (open page in bold)
+N_CHILD_COL = 5 #: Column with the number of child pages
+TIP_COL = 6 #: Column with the name to be used in the tooltip
 
 # Check the (undocumented) list of constants in Gtk.keysyms to see all names
 KEYVAL_C = Gdk.unicode_to_keyval(ord('c'))
@@ -157,10 +156,6 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 	# the TreeView to understand we support drag-and-drop even though
 	# actual work is implemented in the treeview itself.
 
-	# FIXME: Figure out how to bind cellrenderer style to the
-	# EMPTY_COL so we do not need the separate style and fgcolor cols.
-	# This will also allow making style for empty pages configurable.
-
 	# This model does it own memory management for outstanding treeiter
 	# objects. The reason is that we otherwise leak references and consume
 	# a lot of memory. The downside is that we now need to track the
@@ -178,17 +173,12 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 	COLUMN_TYPES = (
 		GObject.TYPE_STRING, # NAME_COL
 		GObject.TYPE_PYOBJECT, # PATH_COL
-		GObject.TYPE_BOOLEAN, # EMPTY_COL
+		GObject.TYPE_BOOLEAN, # EXISTS_COL
 		Pango.Style, # STYLE_COL
-		GObject.TYPE_STRING, # FGCOLOR_COL
 		GObject.TYPE_INT, # WEIGHT_COL
 		GObject.TYPE_STRING, # N_CHILD_COL
 		GObject.TYPE_STRING, # TIP_COL
 	)
-
-
-	NORMAL_COLOR = 'black' # FIXME set based on style
-	EMPTY_COLOR = 'grey' # FIXME set based on style.text[Gtk.StateType.INSENSITIVE]
 
 	def __init__(self):
 		GenericTreeModel.__init__(self)
@@ -258,18 +248,13 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 			return encode_markup_text(basename)
 		elif column == PATH_COL:
 			return PageIndexRecord(iter.row)
-		elif column == EMPTY_COL:
-			return iter.row['is_link_placeholder']
+		elif column == EXISTS_COL:
+			return not iter.row['is_link_placeholder']
 		elif column == STYLE_COL:
 			if iter.row['is_link_placeholder']:
 				return Pango.Style.ITALIC
 			else:
 				return Pango.Style.NORMAL
-		elif column == FGCOLOR_COL:
-			if iter.row['is_link_placeholder']:
-				return self.EMPTY_COLOR
-			else:
-				return self.NORMAL_COLOR
 		elif column == WEIGHT_COL:
 			if self.current_page and iter.row['name'] == self.current_page.name:
 				return Pango.Weight.BOLD
@@ -396,7 +381,7 @@ class PageTreeView(BrowserTreeView):
 		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
-			style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
+			style=STYLE_COL, sensitive=EXISTS_COL, weight=WEIGHT_COL)
 
 		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)

@@ -9,9 +9,6 @@ from gi.repository import Pango
 from zim.notebook import Path
 from zim.notebook.index import Index
 from zim.notebook.index.tags import MyTreeIter, IS_PAGE, IS_TAG
-from zim.plugins.pageindex import FGCOLOR_COL, \
-	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
-	# Explicitly don't import * from pageindex, make clear what we re-use
 from zim.config import ConfigDict, VirtualConfigManager
 from zim.plugins.tags import *
 
@@ -49,7 +46,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		# Check configuration
 		treestore = self.storeclass(notebook.index, self.tags)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 8)
+		self.assertEqual(treestore.get_n_columns(), 7)
 		for i in range(treestore.get_n_columns()):
 			self.assertTrue(not treestore.get_column_type(i) is None)
 

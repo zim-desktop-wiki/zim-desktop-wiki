@@ -43,7 +43,7 @@ class TestPageTreeStore(tests.TestCase):
 
 		treestore = PageTreeStore(notebook.index)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 8)
+		self.assertEqual(treestore.get_n_columns(), 7)
 		for i in range(treestore.get_n_columns()):
 			self.assertTrue(not treestore.get_column_type(i) is None)
 
@@ -92,12 +92,10 @@ class TestPageTreeStore(tests.TestCase):
 			self.assertEqual(indexpath, page)
 			self.assertEqual(treestore.get_value(iter, NAME_COL), page.basename)
 			self.assertEqual(treestore.get_value(iter, PATH_COL), page)
-			if treestore.get_value(iter, EMPTY_COL):
+			if not treestore.get_value(iter, EXISTS_COL):
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), Pango.Style.ITALIC)
-				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.EMPTY_COLOR)
 			else:
 				self.assertEqual(treestore.get_value(iter, STYLE_COL), Pango.Style.NORMAL)
-				self.assertEqual(treestore.get_value(iter, FGCOLOR_COL), treestore.NORMAL_COLOR)
 			self.assertEqual(treestore.get_path(iter), Gtk.TreePath(path))
 
 			if indexpath.haschildren:

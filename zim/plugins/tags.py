@@ -13,7 +13,7 @@ from functools import partial
 
 from zim.plugins import PluginClass, extends, WindowExtension
 from zim.plugins.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
-	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
+	NAME_COL, PATH_COL, EXISTS_COL, STYLE_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
@@ -255,12 +255,10 @@ class TagsPageTreeStore(TagsTreeModelMixin, DuplicatePageTreeStore):
 				return encode_markup_text(iter.row['name'])
 			elif column == PATH_COL:
 				return IndexTag(*iter.row)
-			elif column == EMPTY_COL:
-				return False
+			elif column == EXISTS_COL:
+				return True
 			elif column == STYLE_COL:
 				return Pango.Style.NORMAL
-			elif column == FGCOLOR_COL:
-				return self.NORMAL_COLOR
 			elif column == WEIGHT_COL:
 				return Pango.Weight.NORMAL
 			elif column == N_CHILD_COL:
