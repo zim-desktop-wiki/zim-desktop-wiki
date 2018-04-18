@@ -137,9 +137,6 @@ class TestCoding(tests.TestCase):
 		'''Check for a couple of constructs to be avoided'''
 		for file, code in self.list_code():
 			self.assertFalse('Gtk.Entry(' in code, '%s uses Gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
-			self.assertFalse('get_visible(' in code, '%s uses get_visible() - use get_property() instead' % file)
-			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
-			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use get_property() instead' % file)
 			#~ self.assertFalse('connect_object(' in code, '%s uses connect_object() - use connect() instead to prevent reference leaking' % file)
 			self.assertFalse('Gtk.HPaned(' in code, '%s uses Gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
 			self.assertFalse('Gtk.VPaned(' in code, '%s uses Gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
