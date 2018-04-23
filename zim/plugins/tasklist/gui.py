@@ -8,6 +8,8 @@ from gi.repository import Pango
 import logging
 import re
 
+from zim.plugins import find_extension
+
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 
@@ -20,7 +22,6 @@ from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
 
 logger = logging.getLogger('zim.plugins.tasklist')
-
 
 from .indexer import _MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re
 
@@ -179,15 +180,9 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			# make it less blocking - should be async preferably
 			# now it is at least on idle
 
-		### XXX HACK to get dependency to connect to
-		###   -- no access to plugin, so can;t use get_extension()
-		##    -- duplicat of this snippet in PageViewExtension
-		for e in window.notebook.__zim_extension_objects__:
-			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
-				self.connectto(e, 'tasklist-changed', callback)
-				break
-		else:
-			raise AssertionError('Could not find tasklist notebook extension')
+		from . import TaskListNotebookExtension
+		nb_ext = find_extension(self.pageview.notebook, TaskListNotebookExtension)
+		self.connectto(nb_ext, 'tasklist-changed', callback)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()

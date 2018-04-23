@@ -40,6 +40,8 @@ class TestAction(tests.TestCase):
 		self.assertIsInstance(TestClass.test_action, Action)
 
 		obj = TestClass()
+		self.assertTrue(hasaction(obj, 'test_action'))
+		self.assertTrue(hasaction(obj, 'test-action'))
 		re = obj.test_action()
 		self.assertEqual(output, ['OK'])
 
@@ -67,6 +69,8 @@ class TestToggleAction(tests.TestCase):
 		self.assertIsInstance(TestClass.test_action, ToggleAction)
 
 		obj = TestClass()
+		self.assertTrue(hasaction(obj, 'test_action'))
+		self.assertTrue(hasaction(obj, 'test-action'))
 		re = obj.test_action()
 		self.assertEqual(output, [True])
 
@@ -106,6 +110,8 @@ class TestRadioAction(tests.TestCase):
 		self.assertIsInstance(TestClass.test_action, RadioAction)
 
 		obj = TestClass()
+		self.assertTrue(hasaction(obj, 'test_action'))
+		self.assertTrue(hasaction(obj, 'test-action'))
 		re = obj.test_action('AAA')
 
 		obj.test_action('BBB')

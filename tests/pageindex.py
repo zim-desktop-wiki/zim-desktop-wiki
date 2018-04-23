@@ -10,6 +10,8 @@ from zim.notebook import Path
 from zim.notebook.index.pages import MyTreeIter, IndexNotFoundError
 from zim.formats import ParseTree
 from zim.gui.clipboard import Clipboard
+
+from zim.plugins import find_extension
 from zim.plugins.pageindex import *
 
 from zim.config import VirtualConfigManager
@@ -24,7 +26,7 @@ class TestPageIndexPlugin(tests.TestCase):
 		plugin = PageIndexPlugin()
 		window = setUpMainWindow(self.setUpNotebook())
 		plugin.extend(window.pageview)
-		extension = plugin.get_extension(window.pageview, PageIndexPageViewExtension)
+		extension = find_extension(window.pageview, PageIndexPageViewExtension)
 		self.assertIsNotNone(extension)
 
 

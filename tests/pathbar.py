@@ -3,6 +3,7 @@
 
 import tests
 
+from zim.plugins import find_extension
 from zim.plugins.pathbar import *
 
 from zim.history import History
@@ -17,8 +18,7 @@ class TestPluginExtendsMainWindow(tests.TestCase):
 		plugin = PathBarPlugin()
 		window = setUpMainWindow(self.setUpNotebook())
 		plugin.extend(window)
-		extension = plugin.get_extension(window, PathBarMainWindowExtension)
-		self.assertIsNotNone(extension)
+		extension = find_extension(window, PathBarMainWindowExtension)
 
 		for ptype in PATHBAR_TYPES:
 			extension.set_pathbar(ptype)

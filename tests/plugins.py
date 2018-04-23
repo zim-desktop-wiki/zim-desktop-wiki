@@ -180,3 +180,47 @@ class TestPlugins(tests.TestCase):
 			self.assertNotIn(name, manager)
 
 		self.assertTrue(len(manager) == 0)
+
+
+class TestFunctions(tests.TestCase):
+
+	def test_find_extension(self):
+
+		class Extendable(object):
+			pass
+
+		class Extension(ExtensionBase):
+			pass
+
+		obj = Extendable()
+		ext = Extension(None, obj)
+
+		self.assertIs(find_extension(obj, Extension), ext)
+		with self.assertRaises(ValueError):
+			self.assertIs(find_extension(obj, Extendable), ext)
+
+	def test_find_action(self):
+		from zim.actions import action
+
+		class Extendable(object):
+
+			@action('Foo')
+			def foo(self):
+				pass
+
+		class Extension(ExtensionBase):
+
+			@action('Bar')
+			def bar(self):
+				pass
+
+		obj = Extendable()
+		ext = Extension(None, obj)
+
+		self.assertTrue(hasaction(obj, 'foo'))
+		self.assertTrue(hasaction(ext, 'bar'))
+
+		self.assertIsNotNone(find_action(obj, 'foo'))
+		self.assertIsNotNone(find_action(obj, 'bar'))
+		with self.assertRaises(ValueError):
+			find_action(obj, 'dus')

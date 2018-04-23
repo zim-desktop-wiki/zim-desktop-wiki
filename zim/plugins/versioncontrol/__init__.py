@@ -12,7 +12,7 @@ import logging
 import threading
 
 from zim.fs import FS, File, TmpFile
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, find_extension
 from zim.actions import action
 from zim.signals import ConnectorMixin
 from zim.errors import Error
@@ -75,17 +75,6 @@ This is a core plugin shipping with zim.
 		#TODO parameterize the return, so that a new backend will be automatically available
 		return has_bzr | has_hg | has_git | has_fossil, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False), ('fossil', has_fossil, False)]
 
-	def extend(self, obj):
-		name = obj.__class__.__name__
-		if name == 'MainWindow':
-			nb = obj.notebook
-			nb_ext = self.get_extension(nb, VersionControlNotebookExtension)
-			assert nb_ext, 'No notebook extension found for: %s' % nb
-			mw_ext = VersionControlMainWindowExtension(self, obj, nb_ext)
-			self.extensions.add(mw_ext)
-		else:
-			PluginClass.extend(self, obj)
-
 
 class VersionControlNotebookExtension(NotebookExtension):
 
@@ -137,9 +126,10 @@ def monitor_thread(thread):
 
 class VersionControlMainWindowExtension(MainWindowExtension):
 
-	def __init__(self, plugin, window, notebook_ext):
+	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
-		self.notebook_ext = notebook_ext
+
+		self.notebook_ext = find_extension(window.notebook, VersionControlNotebookExtension)
 		self._autosave_thread = None
 		self._autosave_timer = None
 

@@ -23,7 +23,7 @@
 
 
 
-from zim.plugins import PluginClass
+from zim.plugins import PluginClass, find_extension
 from zim.actions import action
 from zim.config import StringAllowEmpty
 from zim.signals import DelayedCallback
@@ -177,15 +177,8 @@ class TaskListPageViewExtension(PageViewExtension):
 			# Don't really care about the delay, but want to
 			# make it less blocking - now it is at least on idle
 
-		### XXX HACK to get dependency to connect to
-		###   -- no access to plugin, so can;t use get_extension()
-		##    -- duplicat of this snippet in TaskListDialog
-		for e in self.pageview.notebook.__zim_extension_objects__:
-			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
-				self.connectto(e, 'tasklist-changed', callback)
-				break
-		else:
-			raise AssertionError('Could not find tasklist notebook extension')
+		nb_ext = find_extension(self.pageview.notebook, TaskListNotebookExtension)
+		self.connectto(nb_ext, 'tasklist-changed', callback)
 
 	def teardown(self):
 		if self._widget:

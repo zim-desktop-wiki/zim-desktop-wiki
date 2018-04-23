@@ -62,6 +62,7 @@ from zim.newfs import LocalFolder, LocalFile
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
 from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
+from zim.actions import hasaction
 
 from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
 
@@ -464,33 +465,6 @@ class PluginClass(ConnectorMixin):
 			else:
 				self.extensions.add(ext)
 
-	def get_extensions(self, obj):
-		'''Look up any extensions for C{obj} managed by this plugin
-		@param obj: the extended object
-		@returns: a list of extension objects
-		'''
-		if hasattr(obj, '__zim_extension_objects__'):
-			return [e for e in obj.__zim_extension_objects__ if e in self.extensions]
-		else:
-			return []
-
-	def get_extension(self, obj, klass):
-		'''Look up an extension object instatiation
-		@param obj: the extended object
-		@param klass: the class of the extention object (_not_ the to-be-extended
-		klass)
-		@returns: a single extension object
-		@raises ValueError: if no extension was found
-		'''
-		exts = [e for e in self.get_extensions(obj) if isinstance(e, klass)]
-
-		if len(exts) == 1:
-			return exts[0]
-		elif len(exts) > 1:
-			raise AssertionError('BUG: multiple extensions found of class: %s' % klass)
-		else:
-			raise ValueError('No extension of class: %s' % klass)
-
 	def destroy(self):
 		'''Destroy the plugin object and all extensions
 		It is only called when a user actually disables the plugin,
@@ -514,6 +488,49 @@ class PluginClass(ConnectorMixin):
 		Can be implemented by sub-classes.
 		'''
 		pass
+
+
+def find_extension(obj, klass):
+	'''Lookup an extension object
+	This function allows finding extension classes defined by any plugin.
+	So it can be used to find an defined by the same plugin, but also allows
+	cooperation by other plugins.
+	The lookup uses C{isinstance()}, so abstract classes can be used to define
+	interfaces between plugins if you don't want to depent on the exact
+	implementation class.
+	@param obj: the extended object
+	@param klass: the class of the extention object
+	@returns: a single extension object, if multiple extensions match, the
+	first is returned
+	@raises ValueError: if no extension was found
+	'''
+	for e in obj.__zim_extension_objects__:
+		if isinstance(e, klass):
+			return e
+	else:
+		raise ValueError('No extension of class found: %s' % klass)
+
+
+def find_action(obj, actionname):
+	'''Lookup an action method
+	Returns an action method (defined with C{@action} or C{@toggle_action})
+	for either the object itself, or any of it's extensions.
+	This allows cooperation between plugins by calling actions defined by
+	an other plugin action.
+	@param obj: the extended object
+	@param actionname: the name of the action
+	@returns: an action method
+	@raises ValueError: if no action was found
+	'''
+	actionname = actionname.replace('-', '_')
+	if hasaction(obj, actionname):
+		return getattr(obj, actionname)
+	else:
+		for e in obj.__zim_extension_objects__:
+			if hasaction(e, actionname):
+				return getattr(e, actionname)
+		else:
+			raise ValueError('Action not found: %s' % actionname)
 
 
 class ExtensionNotApplicable(ValueError):

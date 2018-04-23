@@ -21,6 +21,7 @@ except:
 
 import zim.plugins.spell
 
+from zim.plugins import find_extension
 from zim.notebook import Path
 
 from tests.mainwindow import setUpMainWindow
@@ -44,7 +45,7 @@ class TestSpell(object):
 
 			plugin = zim.plugins.spell.SpellPlugin()
 			plugin.extend(window.pageview)
-			ext = plugin.get_extension(window.pageview, zim.plugins.spell.SpellPageViewExtension)
+			ext = find_extension(window.pageview, zim.plugins.spell.SpellPageViewExtension)
 
 			self.assertIs(ext._adapter_cls, adapterclass) # ensure switching library worked
 

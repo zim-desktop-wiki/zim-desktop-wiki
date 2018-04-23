@@ -36,6 +36,13 @@ PRIMARY_MODIFIER_STRING = '<Primary>'
 PRIMARY_MODIFIER_MASK = _get_modifier_mask()
 
 
+def hasaction(obj, actionname):
+	'''Like C{hasattr} but for attributes that define an action'''
+	actionname = actionname.replace('-', '_')
+	return hasattr(obj.__class__, actionname) \
+		and isinstance(getattr(obj.__class__, actionname), ActionMethod)
+
+
 class ActionMethod(object):
 	pass
 

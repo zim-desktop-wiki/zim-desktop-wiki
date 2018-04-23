@@ -10,6 +10,7 @@ from tests.pageview import press
 
 from zim.config import SectionedConfigDict, ConfigManager
 
+from zim.plugins import find_extension
 from zim.plugins.insertsymbol import *
 
 
@@ -75,7 +76,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 			dialog.assert_response_ok()
 
 		buffer.clear()
-		pageview_ext = plugin.get_extension(pageview, InsertSymbolPageViewExtension)
+		pageview_ext = find_extension(pageview, InsertSymbolPageViewExtension)
 		with tests.DialogContext(check_dialog):
 			pageview_ext.insert_symbol()
 		start, end = buffer.get_bounds()
