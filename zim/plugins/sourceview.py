@@ -289,10 +289,9 @@ class SourceViewWidget(TextViewWidget):
 		# TODO: autohide toolbar if textbuffer is not active
 
 		# Pack everything
-		#~ self.vbox.pack_start(bar, False, False)
+		#~ self.add_header(bar)
 		win = ScrolledWindow(self.view, Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER, Gtk.ShadowType.NONE)
-			# only horizontal scroll
-		self.vbox.pack_start(win, True, True, 0)
+		self.add(win)
 
 		# Hook up signals
 		self._init_signals()

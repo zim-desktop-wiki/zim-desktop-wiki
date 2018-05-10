@@ -350,6 +350,8 @@ class TableViewWidget(InsertedObjectWidget):
 		self._init_treeview(model)
 
 		# package gui elements
+		self.vbox = Gtk.VBox()
+		self.add(self.vbox)
 		self.vbox.pack_end(self.toolbar, True, True, 0)
 		self.scroll_win = ScrolledWindow(self.treeview, Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER, Gtk.ShadowType.NONE)
 		self.vbox.pack_start(self.scroll_win, True, True, 0)

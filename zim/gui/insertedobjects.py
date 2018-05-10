@@ -48,9 +48,23 @@ class InsertedObjectWidget(Gtk.EventBox):
 		GObject.GObject.__init__(self)
 		self.set_border_width(3)
 		self._has_cursor = False
-		self.vbox = Gtk.VBox()
-		self.add(self.vbox)
-		widget_set_css(self.vbox, 'zim-pageview-object', 'border: 1px solid @text_color')
+		self._vbox = Gtk.VBox()
+		Gtk.EventBox.add(self, self._vbox)
+		widget_set_css(self._vbox, 'zim-pageview-object', 'border: 1px solid @text_color')
+
+	def add(self, widget):
+		'''Add a widget to the object'''
+		self._vbox.pack_start(widget, True, True, 0)
+
+	def add_header(self, widget):
+		'''Add an header widget on top of the object'''
+		widget.get_style_context().add_class(Gtk.STYLE_CLASS_BACKGROUND)
+		widget_set_css(widget, 'zim-insertedobject-head', 'border-bottom: 1px solid @fg_color')
+		self._vbox.pack_start(widget, True, True, 0)
+		self._vbox.reorder_child(widget, 0)
+
+	def remove(self, widget):
+		self._vbox.remove(widget)
 
 	def do_realize(self):
 		Gtk.EventBox.do_realize(self)
@@ -59,7 +73,7 @@ class InsertedObjectWidget(Gtk.EventBox):
 
 	def set_textview_wrap_width(self, width):
 		def callback(width):
-			minimum, natural = self.vbox.get_preferred_width()
+			minimum, natural = self._vbox.get_preferred_width()
 			width = natural if width == -1 else max(width, minimum)
 			self.set_size_request(width, -1)
 			return False # delete signal
@@ -100,7 +114,7 @@ class TextViewWidget(InsertedObjectWidget):
 			hpolicy=Gtk.PolicyType.AUTOMATIC, vpolicy=Gtk.PolicyType.NEVER, shadow=Gtk.ShadowType.NONE)
 		self.view.set_buffer(buffer)
 		self.view.set_editable(True)
-		self.vbox.pack_start(win, True, True, 0)
+		self.add(win)
 
 		self._init_signals()
 
@@ -162,13 +176,13 @@ class UnkownObjectWidget(TextViewWidget):
 		type = buffer.object_attrib.get('type')
 		plugin = ObjectManager.find_plugin(type) if type else None
 		if plugin:
-			self._add_load_plugin_bar(plugin)
+			header = self._add_load_plugin_bar(plugin)
+			self.add_header(header)
 		else:
 			label = Gtk.Label(
 				_("No plugin available to display objects of type: %s") % type # T: Label for object manager
 			)
-			self.vbox.pack_start(label, True, True, 0)
-			self.vbox.reorder_child(label, 0)
+			self.add_header(label)
 
 	def _add_load_plugin_bar(self, plugin):
 		key, name, activatable, klass = plugin
@@ -196,8 +210,7 @@ class UnkownObjectWidget(TextViewWidget):
 			#~ button.connect("clicked", plugin_info)
 
 		#~ hbox.pack_start(button, True, True, 0)
-		self.vbox.pack_start(hbox, True, True, 0)
-		self.vbox.reorder_child(hbox, 0)
+		return hbox
 
 
 class UnkownObjectBuffer(Gtk.TextBuffer):

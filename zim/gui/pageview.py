@@ -65,12 +65,10 @@ class LineSeparator(InsertedObjectWidget):
 
 	def __init__(self):
 		InsertedObjectWidget.__init__(self)
-		self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
-		self.vbox.set_size_request(-1, 3)
-		#widget = Gtk.Box()
-		#widget.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
-		#widget.set_size_request(-1, 3)
-		#self.vbox.add(widget)
+		widget = Gtk.Box()
+		widget.get_style_context().add_class(Gtk.STYLE_CLASS_BACKGROUND)
+		widget.set_size_request(-1, 3)
+		self.add(widget)
 
 
 def is_line(line):
