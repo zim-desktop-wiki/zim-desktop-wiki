@@ -210,6 +210,7 @@ class SignalEmitterMeta(type):
 		# Init class
 
 		assert hasattr(cls, '__signals__')
+		assert not hasattr(cls, '__gsignals__'), 'Did you mean to define "__signals__" instead of "__gsignals__"?'
 
 		#  1/ setup inheritance for signals
 

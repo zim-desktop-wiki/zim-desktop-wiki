@@ -239,6 +239,13 @@ class TestCase(unittest.TestCase):
 		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
+		cls.unload_all_plugins()
+
+	@staticmethod
+	def unload_all_plugins():
+		from zim.objectmanager import ObjectManager
+		ObjectManager._objects.clear() # HACK - reset singleton
+
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
 		@param name: basename for the folder, uses test name if C{None}

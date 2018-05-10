@@ -14,49 +14,86 @@ from tests.pageview import setUpPageView
 
 class TestPageViewExtension(tests.TestCase):
 
-	def runTest(self):
-		window = setUpMainWindow(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
+	def setUp(self):
+		self.plugin = TableEditorPlugin()
 
-		plugin = TableEditorPlugin()
-		extension = TableEditorPageViewExtension(plugin, window.pageview)
+	def tearDown(self):
+		self.plugin.destroy()
 
-		with tests.DialogContext(self.checkInsertTableDialog):
+	def testWidget(self):
+		pageview = setUpPageView(
+			self.setUpNotebook(),
+			text='''\
+
+|        H1       <|         H2 h2 | H3                    <|
+|:----------------:|--------------:|:-----------------------|
+|    Column A1     |     Column A2 | a                      |
+| a very long cell | **bold text** | b                      |
+|    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
+
+'''	)
+		# test widget loaded
+		objects = list(pageview.textview._object_widgets) # XXX
+		self.assertIsInstance(objects[0], TableViewWidget)
+
+		# test modify
+		#widget = objects[0]
+		#self.assertFalse(pageview.textview.get_buffer().get_modified())
+		# FIXME: change content via widget
+		#self.assertTrue(pageview.textview.get_buffer().get_modified())
+
+		# test modification ends up in page
+		tree = pageview.get_parsetree()
+		#print(tree.tostring())
+		elt = tree.find('table')
+		self.assertIsNotNone(elt)
+		# FIXME: test content
+
+	def testInsertDialog(self):
+		window = setUpMainWindow(self.setUpNotebook(content={'Test': 'Test 123'}), path='Test')
+		extension = TableEditorPageViewExtension(self.plugin, window.pageview)
+
+		def insert_table(dialog):
+			self.assertIsInstance(dialog, EditTableDialog)
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(insert_table):
 			extension.insert_table()
 
 		tree = window.pageview.get_parsetree()
-		#~ print tree.tostring()
-		obj = tree.find('table')
+		elt = tree.find('table')
+		self.assertIsNotNone(elt)
 
-		self.assertTrue(obj.attrib['aligns'] == 'left')
-		self.assertTrue(obj.attrib['wraps'] == '0')
+	def testInsertDialogCancelled(self):
+		window = setUpMainWindow(self.setUpNotebook(content={'Test': 'Test 123'}), path='Test')
+		extension = TableEditorPageViewExtension(self.plugin, window.pageview)
 
-		# Parses tree to a table object
-		#tabledata = tree.tostring().replace("<?xml version='1.0' encoding='utf-8'?>", '')\
-		#	.replace('<zim-tree>', '').replace('</zim-tree>', '')\
-		#	.replace('<td> </td>', '<td>text</td>')
+		def cancel_dialog(dialog):
+			self.assertIsInstance(dialog, EditTableDialog)
+			dialog.response(Gtk.ResponseType.CANCEL)
 
-		#print tabledata
-		#table = plugin.create_table({'type': 'table'}, ElementTree.fromstring(tabledata))
+		with tests.DialogContext(cancel_dialog):
+			extension.insert_table()
 
-		#self.assertTrue(isinstance(table, TableViewObject))
-
-	def checkInsertTableDialog(self, dialog):
-		self.assertIsInstance(dialog, EditTableDialog)
-		dialog.assert_response_ok()
+		tree = window.pageview.get_parsetree()
+		elt = tree.find('table')
+		self.assertIsNone(elt)
 
 
-class TestEditTableExtension(tests.TestCase):
+
+class TestEditTable(tests.TestCase):
 
 	def checkUpdateTableDialog(self, dialog):
 		self.assertIsInstance(dialog, EditTableDialog)
 		dialog.assert_response_ok()
 
-	def testChangeTable(self):
+	def runTest(self):
 		attrib = {'aligns': 'normal,normal', 'wraps': '0,0'}
-		header = ['h1', 'h2']
+		headers = ['h1', 'h2']
 		rows = [['t1', 't2'], ]
-		obj = TableViewObject(attrib, header, rows, {})
-		widget = obj.get_widget()
+
+		model = TableModel(attrib, headers, rows)
+		widget = TableViewWidget(model)
 
 		with tests.DialogContext(self.checkUpdateTableDialog):
 			widget.on_change_columns(None)
@@ -73,45 +110,3 @@ class TestTableFunctions(tests.TestCase):
 		self.assertEqual(CellFormatReplacer.zim_to_cell('<link href="./alink">hello</link>'),
 						 '<span foreground="blue">hello<span size="0">./alink</span></span>')
 		self.assertEqual(CellFormatReplacer.cell_to_zim('<tt>code-block</tt>'), '<code>code-block</code>')
-
-
-class TestTableViewObject(tests.TestCase):
-
-	def runTest(self):
-		attrib = {'aligns': 'left,left', 'wraps': '0,0'}
-		preferences = {}
-
-		for headers, rows in (
-			( # Two simple rows
-				['C1', 'C2'],
-				[['a', 'b'], ['q', 'x']]
-			),
-			( # Some empty fields
-				['C1', 'C2'],
-				[['a', ' '], ['q', ' '], [' ', ' ']]
-			),
-		):
-			obj = TableViewObject(attrib, headers, rows, preferences)
-			data = obj.get_data()
-			self.assertEqual(data, (headers, rows, attrib))
-
-			widget = obj.get_widget()
-			data = obj.get_data()
-			self.assertEqual(data, (headers, rows, attrib))
-
-			# put object in pageview and serialize
-			pageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
-			pageview.insert_object(obj)
-			tree = pageview.get_parsetree()
-			#~ print tree.tostring()
-
-			# re-construct from serialized version
-			newpageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
-			newpageview.set_parsetree(tree)
-			buffer = newpageview.textview.get_buffer()
-			buffer.place_cursor(buffer.get_iter_at_offset(1))
-			newobj = buffer.get_object_at_cursor()
-			self.assertIsInstance(newobj, TableViewObject)
-
-			data = newobj.get_data()
-			self.assertEqual(data, (headers, rows, attrib))

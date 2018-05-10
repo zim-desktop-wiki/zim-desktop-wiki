@@ -56,19 +56,11 @@ class TestPreferencesDialog(tests.TestCase):
 		self.assertEqual(text_style['TextView']['font'], None)
 		self.assertFalse(any(['use_custom_font' in d for d in list(preferences.values())]))
 
-	def testConfigurePlugin(self):
+	def testSelectPlugins(self):
 		config = VirtualConfigManager()
-
-		from zim.plugins.journal import JournalPlugin
-		plugin = JournalPlugin()
-
 		window = MyWindow(config)
-		pref_dialog = PreferencesDialog(window, config)
-		dialog = PluginConfigureDialog(pref_dialog, plugin)
-		dialog.assert_response_ok()
 
-		## Try plugins + cancel
-		pref_dialog = PreferencesDialog(MyWindow(config), config)
+		pref_dialog = PreferencesDialog(window, config)
 		treeview = pref_dialog.plugins_tab.treeview
 		for name in window.__pluginmanager__.list_installed_plugins():
 			pref_dialog.plugins_tab.select_plugin(name)
@@ -84,3 +76,14 @@ class TestPreferencesDialog(tests.TestCase):
 				self.assertEqual(model[iter][1], model[iter][2]) # active matched activatable
 
 		pref_dialog.do_response_cancel()
+
+	def testConfigurePlugin(self):
+		config = VirtualConfigManager()
+
+		from zim.plugins.journal import JournalPlugin
+		plugin = JournalPlugin()
+
+		window = MyWindow(config)
+		pref_dialog = PreferencesDialog(window, config)
+		dialog = PluginConfigureDialog(pref_dialog, plugin)
+		dialog.assert_response_ok()

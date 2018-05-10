@@ -231,4 +231,4 @@ class Dumper(DumperClass):
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):
-		return '\n{}\n'.format(LINE_TEXT)
+		return '-' * 20

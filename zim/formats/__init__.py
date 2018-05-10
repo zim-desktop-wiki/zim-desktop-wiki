@@ -144,7 +144,6 @@ TABLEROW = 'trow'
 TABLEDATA = 'td'
 
 LINE = 'line'
-LINE_TEXT = '-' * 20
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
@@ -687,29 +686,6 @@ class ParseTree(object):
 				prev.tail += text
 			else:
 				prev.tail = text
-
-	def get_objects(self, type=None):
-		'''Generator that yields all custom objects in the tree,
-		or all objects of a certain type.
-		@param type: object type to return or C{None} to get all
-		@returns: yields objects (as provided by L{ObjectManager})
-		'''
-		for elt in self._etree.getiterator(OBJECT):
-			if type and elt.attrib.get('type') != type:
-				pass
-			else:
-				obj = self._get_object(elt)
-				if obj is not None:
-					yield obj
-
-	def _get_object(self, elt):
-		## TODO optimize using self._object_cache or new API for
-		## passing on objects in the tree
-		type = elt.attrib.get('type')
-		if elt.tag == OBJECT and type:
-			return ObjectManager.get_object(type, elt.attrib, elt.text)
-		else:
-			return None
 
 
 class VisitorStop(Exception):
@@ -1294,21 +1270,23 @@ class DumperClass(Visitor):
 		lines = ''.join(strings).splitlines(1)
 		return [prefix + l for l in lines]
 
-	def dump_object(self, tag, attrib, strings=None):
-		'''Dumps object using proper ObjectManager'''
+	def dump_object(self, tag, attrib, strings=[]):
+		'''Dumps objects defined by L{InsertedObjectType}'''
 		format = str(self.__class__.__module__).split('.')[-1]
-		if 'type' in attrib:
-			obj = ObjectManager.get_object(attrib['type'], attrib, ''.join(strings))
-			output = obj.dump(format, self, self.linker)
-			if isinstance(output, str):
-				return [output]
-			elif output is not None:
+		try:
+			obj = ObjectManager.get_object(attrib['type'])
+		except KeyError:
+			pass
+		else:
+			try:
+				output = obj.format(format, self, attrib, ''.join(strings))
+			except ValueError:
+				pass
+			else:
+				assert isinstance(output, list)
 				return output
 
 		return self.dump_object_fallback(tag, attrib, strings)
-
-		# TODO put content in attrib, use text for caption (with full recursion)
-		# See img
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		'''Method to serialize objects that do not have their own

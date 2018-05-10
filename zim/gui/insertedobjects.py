@@ -8,6 +8,7 @@ from gi.repository import GObject
 from gi.repository import Gdk
 
 from zim.objectmanager import ObjectManager
+from zim.plugins import InsertedObjectType
 
 from zim.gui.widgets import ScrolledTextView, ScrolledWindow, widget_set_css
 
@@ -17,7 +18,7 @@ POSITION_BEGIN = 1
 POSITION_END = 2
 
 
-class CustomObjectWidget(Gtk.EventBox):
+class InsertedObjectWidget(Gtk.EventBox):
 	'''Base class & contained for custom object widget
 
 	We derive from a C{Gtk.EventBox} because we want to re-set the
@@ -86,12 +87,12 @@ class CustomObjectWidget(Gtk.EventBox):
 		self.emit('release-cursor', position)
 
 
-class TextViewWidget(CustomObjectWidget):
+class TextViewWidget(InsertedObjectWidget):
 	# TODO make this the base class for the Sourceview plugin
 	# and ensure the same tricks to integrate in the parent textview
 
 	def __init__(self, buffer):
-		CustomObjectWidget.__init__(self)
+		InsertedObjectWidget.__init__(self)
 		self.set_has_cursor(True)
 		self.buffer = buffer
 
@@ -151,22 +152,26 @@ class TextViewWidget(CustomObjectWidget):
 		return None # let parent handle this signal
 
 
-class FallbackObjectWidget(TextViewWidget):
+class UnkownObjectWidget(TextViewWidget):
 
-	def __init__(self, type, buffer):
+	def __init__(self, buffer):
 		TextViewWidget.__init__(self, buffer)
 		#~ self.view.set_editable(False) # object knows best how to manage content
 		# TODO set background grey ?
 
+		type = buffer.object_attrib.get('type')
 		plugin = ObjectManager.find_plugin(type) if type else None
 		if plugin:
 			self._add_load_plugin_bar(plugin)
 		else:
-			label = Gtk.Label(label=_("No plugin is available to display this object.")) # T: Label for object manager
+			label = Gtk.Label(
+				_("No plugin available to display objects of type: %s") % type # T: Label for object manager
+			)
 			self.vbox.pack_start(label, True, True, 0)
+			self.vbox.reorder_child(label, 0)
 
 	def _add_load_plugin_bar(self, plugin):
-		key, name, activatable, klass, _winextension = plugin
+		key, name, activatable, klass = plugin
 
 		hbox = Gtk.HBox(False, 5)
 		label = Gtk.Label(label=_("Plugin %s is required to display this object.") % name)
@@ -193,6 +198,39 @@ class FallbackObjectWidget(TextViewWidget):
 		#~ hbox.pack_start(button, True, True, 0)
 		self.vbox.pack_start(hbox, True, True, 0)
 		self.vbox.reorder_child(hbox, 0)
+
+
+class UnkownObjectBuffer(Gtk.TextBuffer):
+
+	def __init__(self, attrib, data):
+		Gtk.TextBuffer.__init__(self)
+		self.object_attrib = attrib
+		self.set_text(data)
+
+	def get_object_data(self):
+		attrib = self.object_attrib.copy()
+		start, end = self.get_bounds()
+		data = start.get_text(end)
+		return attrib, data
+
+
+class UnknownInsertedObject(InsertedObjectType):
+
+	name = "unknown"
+
+	def parse_attrib(self, attrib):
+		# Overrule base class checks since we don't know what this object is
+		attrib.setdefault('type', self.name)
+		return attrib
+
+	def model_from_data(self, attrib, data):
+		return UnkownObjectBuffer(attrib, data)
+
+	def data_from_model(self, buffer):
+		return buffer.get_object_data()
+
+	def create_widget(self, buffer):
+		return UnkownObjectWidget(buffer)
 
 
 # TODO: undo(), redo() stuff

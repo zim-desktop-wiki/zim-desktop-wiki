@@ -52,6 +52,8 @@ def get_text(buffer):
 	return start.get_slice(end)
 
 
+LINE_TEXT = '-' * 20
+
 class TestLines(tests.TestCase):
 
 	def testLines(self):
@@ -1655,6 +1657,29 @@ foo
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
 
+	def testUnkownObjectType(self):
+		view = TextView(self.preferences)
+		buffer = TextBuffer()
+		view.set_buffer(buffer)
+
+		tree = new_parsetree_from_text(self, '''\
+======= Test
+
+{{{somenewtype: foo=123
+Foo 123
+}}}
+
+''')
+		for token in tree.iter_tokens(): # assert object in tree
+			if token[0] == OBJECT:
+				break
+		else:
+			self.fail('No object in tree')
+
+		buffer.set_parsetree(tree)
+		self.assertEqual(len(list(view._object_widgets)), 1) # assert there is an object in the view
+		newtree = buffer.get_parsetree()
+		self.assertEqual(newtree.tostring(), tree.tostring())
 
 # TODO: More popup stuff
 

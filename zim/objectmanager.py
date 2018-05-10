@@ -7,93 +7,40 @@ import logging
 
 logger = logging.getLogger("zim.objectmanager")
 
-from zim.signals import SignalEmitter, SIGNAL_AFTER
-from zim.utils import WeakSet
-from zim.config.dicts import ConfigDict, String
-
 import zim.plugins
-
-## TODO remove singleton contruction, add ref to plugin manager
-##      to allow fallback object widget to have toolbar to load plugin
 
 class _ObjectManager(object):
 	'''Manages custom objects.'''
 
 	def __init__(self):
-		self.factories = {}
-		self.objects = {'fallback': WeakSet()}
-		self.window_extensions = {}
+		self._objects = {}
 
-	def register_object(self, type, factory, window_extension=None):
-		'''Register a factory method or class for a specific object type.
-		@param type: the object type as string (unique name)
-		@param factory: can be either an object class or a method,
-		@param window_extension: dictionary - the plugin related window_extension
-		should callable and return objects. When constructing objects
-		this factory will be called as::
-
-			factory(attrib, text)
-
-		Where:
-		  - C{attrib} is a dict with attributes
-		  - C{text} is the main text source of the object
-
-		@returns: a previously set factory for C{type} or C{None}
+	def register_object(self, objecttype):
+		'''Register an object type
+		@param objecttype: an object derived from L{InsertedObjectType}
+		@raises AssertionError: if another object already uses the same name
 		'''
-		logger.debug('Registered object %s', type)
-		type = type.lower()
-		old = self.factories.get(type)
-		self.factories[type] = factory
-		self.objects[type] = WeakSet()
-		self.window_extensions[type] = window_extension
-		return old
+		key = objecttype.name.lower()
+		if key in self._objects:
+			raise AssertionError('InsertedObjectType "%s" already defined by %s' % (key, self._objects[key]))
+		else:
+			self._objects[key] = objecttype
 
-	def unregister_object(self, type):
+	def unregister_object(self, objecttype):
 		'''Unregister a specific object type.
-		@returns: C{True} on success, C{False} if given type has not
-		been registered.
+		@param objecttype: an object derived from L{InsertedObjectType}
 		'''
-		type = type.lower()
-		if type in self.factories:
-			del self.factories[type]
-			del self.objects[type]
-			return True
-		else:
-			return False
+		key = objecttype.name.lower()
+		if key in self._objects and self._objects[key] is objecttype:
+			self._objects.pop(key)
 
-	def is_registered(self, type):
-		'''Returns C{True} if object type has already been registered.'''
-		return type.lower() in self.factories
-
-	def get_object(self, type, attrib, text):
-		'''Returns a new object for given type with given attributes
+	def get_object(self, name):
+		'''Returns an object for a name
 		@param type: the object type as string
-		@param attrib: dict with attributes
-		@param text: main source of the object
-		@returns: a new object instance, either created by the factory
-		method for C{type}, or an instance of L{FallbackObject}
+		@returns: an instance of an object derived from C{InsertedObject}
 		'''
-		type = type.lower()
-
-		if type in self.factories:
-			factory = self.factories[type]
-			obj = factory(attrib, text)
-			self.objects[type].add(obj)
-		else:
-			factory = FallbackObject
-			obj = factory(attrib, text)
-			self.objects['fallback'].add(obj)
-
-		return obj
-
-	def get_active_objects(self, type):
-		'''Returns an iterator for active objects for a specific type.
-		(Objects are 'active' as long as they are not destroyed.)
-		'''
-		if type in self.objects:
-			return iter(self.objects[type])
-		else:
-			return []
+		key = name.lower()
+		return self._objects[key] # raises KeyError if not found
 
 	def find_plugin(self, type):
 		'''Find a plugin to handle a specific object type. Intended to
@@ -108,109 +55,11 @@ class _ObjectManager(object):
 				types = klass.plugin_info.get('object_types')
 				if types and type in types:
 					activatable = klass.check_dependencies_ok()
-					win_ext = self.window_extensions[type] if type in self.window_extensions else None
-					return (name, klass.plugin_info['name'], activatable, klass, win_ext)
+					return (name, klass.plugin_info['name'], activatable, klass)
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue
 		return None
 
+
 ObjectManager = _ObjectManager() # Singleton object
-
-
-class CustomObjectClass(SignalEmitter):
-	'''
-	Base Class for custom objects.
-
-	Signal:
-	 * 'modified-changed' -- modification state has been changed
-
-	'''
-
-	OBJECT_ATTR = {
-		'type': String('object')
-	}
-
-	# define signals we want to use - (closure type, return type and arg types)
-	__signals__ = {
-		'modified-changed': (SIGNAL_AFTER, None, ()),
-	}
-
-	def __init__(self, attrib, data):
-		self._attrib = ConfigDict(attrib)
-		self._attrib.define(self.OBJECT_ATTR)
-		self._data = data if data is not None else ''
-		self.modified = False
-
-	def get_modified(self):
-		'''Returns True if object has been modified.'''
-		return self.modified
-
-	def set_modified(self, modified):
-		'''Sets modification state of object and emits signal if needed.'''
-		if self.modified != modified:
-			self.modified = modified
-			self.emit("modified-changed")
-
-	def get_widget(self):
-		'''Returns a new gtk widget for this object'''
-		raise NotImplemented
-
-	def get_attrib(self):
-		'''Returns object attributes. The 'type' attribute stores type of object.'''
-		return self._attrib.dump()
-
-	def get_data(self):
-		'''Returns serialized data of object.'''
-		return self._data
-
-	def dump(self, format, dumper, linker=None):
-		'''Dumps current object. Returns None if format is not supported.'''
-		return None
-
-
-class FallbackObject(CustomObjectClass):
-	'''Fallback object displays data as TextView and
-	preserves attributes unmodified.
-	'''
-
-	def __init__(self, attrib, data):
-		CustomObjectClass.__init__(self, attrib, data)
-		self.buffer = None
-
-	def get_widget(self):
-		from gi.repository import Gtk
-		from zim.gui.objectmanager import FallbackObjectWidget
-
-		if not self.buffer:
-			self.buffer = Gtk.TextBuffer()
-			self.buffer.set_text(self._data)
-			self.buffer.connect('modified-changed', self.on_modified_changed)
-			self.buffer.set_modified(False)
-			self._data = None
-
-		type = self._attrib['type']
-		return FallbackObjectWidget(type, self.buffer)
-
-	def get_data(self):
-		if self.buffer:
-			start, end = self.buffer.get_bounds()
-			return start.get_text(end)
-		else:
-			return self._data
-
-	def set_data(self, text):
-		if self.buffer:
-			self.buffer.set_text(text)
-		else:
-			self._data = text
-
-	def on_modified_changed(self, buffer):
-		'''Callback for TextBuffer's modifications.'''
-		if buffer.get_modified():
-			self.set_modified(True)
-			buffer.set_modified(False)
-
-	def set_label(self, label):
-		'''Sets label at the top area of widget.'''
-		self.label.set_text(label)

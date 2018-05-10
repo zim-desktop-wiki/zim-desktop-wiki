@@ -64,7 +64,8 @@ from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandl
 from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
 from zim.actions import hasaction
 
-from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME
+from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME, \
+	ConfigDict, String
 
 
 logger = logging.getLogger('zim.plugins')
@@ -196,7 +197,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			try:
 				self.remove_plugin(name)
 			except:
-				logger.exception('Exception while loading plugin: %s', name)
+				logger.exception('Exception while removing plugin: %s', name)
 
 		for name in new - current:
 			try:
@@ -648,3 +649,129 @@ class DialogExtension(ExtensionBase):
 	def teardown(self):
 		for b in self._dialog_buttons:
 			self.dialog.action_area.remove(b)
+
+
+class InsertedObjectType(ConnectorMixin):
+	'''Base class for defining "objects" that can be inserted in a wiki page
+
+	This class is called "InsertedObjectType" instead of "InsertedObject"
+	because it does *not* represent a single inserted object, but defines a
+	type of object of which many instances can occur. The instances themselves
+	are represented by a series of tokens for the parser and a model plus a
+	widget for the user interface.
+	'''
+
+	# TODO: API to communicate whether this is an inline object or a block
+	#       level object. This could change while editing so must be a model
+	#       property somehow.
+
+	name = None
+
+	OBJECT_ATTR = {}
+
+	def __init__(self):
+		assert self.name is not None
+		self.OBJECT_ATTR['type'] = String(self.name)
+
+		for name in ('model_from_data', 'data_from_model', 'format'):
+			orig = getattr(self, name)
+			wrapper = getattr(self, '_' + name + '_wrapper')
+			setattr(self, '_inner_' + name, orig)
+			setattr(self, name, wrapper)
+
+	def parse_attrib(self, attrib):
+		'''Convenience method to enforce the supported attributes and their
+		types.
+		@returns: a L{ConfigDict} using the C{OBJECT_ATTR} dict as definition
+		'''
+		if not isinstance(attrib, ConfigDict):
+			attrib = ConfigDict(attrib)
+			attrib.define(self.OBJECT_ATTR)
+		return attrib
+
+	def create_model(self):
+		'''Initialize a model object for a new object instance
+		@returns: an object
+		'''
+		return self.model_from_data({}, '')
+
+	def _model_from_data_wrapper(self, attrib, data):
+		attrib = self.parse_attrib(attrib)
+		return self._inner_model_from_data(attrib, data)
+
+	def model_from_data(self, attrib, data):
+		'''Returns a model for the object
+
+		The main purpose for the model is that it is shared between widgets that
+		show the same object. See e.g. C{Gtk.TextBuffer} or C{Gtk.TreeModel}
+		for examples.
+
+		No API is expected of the model object other than that it can be used as
+		argument for L{create_widget()} and L{data_from_model()} and a
+		"changed" signal that should be emitted when the content has changed, so
+		the pageview knows that the page has changed and should be saved before
+		closing.
+
+		This method should always be robust for missing attributes and body
+		contents. The C{attrib} will automatically be checked by L{parse_attrib}
+		before being given to this method.
+
+		@param attrib: dict with object attributes
+		@param data: string with object content
+		@returns: a model object
+		'''
+		raise NotImplementedError
+
+	def _data_from_model_wrapper(self, model):
+		attrib, data = self._inner_data_from_model(model)
+		return attrib.copy(), data # Enforce shallow copy
+
+	def data_from_model(self, model):
+		'''Returns the object data for a model object
+		This method is used to serialize the model object back into a form that
+		can be handled when parsing wiki content.
+		@param model: an object created with L{model_from_data()}
+		@returns: a 2-tuple C{(attrib, data)}
+		'''
+		raise NotImplementedError
+
+	def create_widget(self, model):
+		'''Return a Gtk widget for the given model
+		@param model: an object created with L{model_from_data()}
+		@returns: a Gtk widget object derived from L{InsertedObjectWidget}
+		'''
+		raise NotImplementedError
+
+	def _format_wrapper(self, format, dumper, attrib, data):
+		attrib = self.parse_attrib(attrib)
+		return self._inner_format(format, dumper, attrib, data)
+
+	def format(self, format, dumper, attrib, data):
+		'''Format the object using a specific output format
+		Intended to improve rendering of the object on exporting.
+
+		This method should always be robust for missing attributes and body
+		contents. The C{attrib} will automatically be checked by L{parse_attrib}
+		before being given to this method.
+
+		Implementing this method is optional, default checks for a specific
+		method per format (e.g. C{format_html()} for the "html" formatal) and
+		raises C{ValueError} if no such method is defined.
+
+		@param format: name of the output format
+		@param dumper: L{Dumper} object
+		@param attrib: dict with object attributes
+		@param data: string with object content
+		@returns: a list of strings
+		@raises ValueError: if no specific formatting for "format" is available
+		'''
+		try:
+			method = getattr(self, 'format_' + format)
+		except AttributeError:
+			raise ValueError('No "%s" formatting defined for objecttype "%s"' % (format, self.name))
+		else:
+			return method(dumper, attrib, data)
+
+	def destroy(self):
+		'''Called when unloading the plugin'''
+		self.disconnect_all()

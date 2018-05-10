@@ -1,9 +1,10 @@
 
-# Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
-from zim.objectmanager import *
+from zim.objectmanager import ObjectManager
+from zim.plugins import InsertedObjectType
 
 
 class TestObjectManager(tests.TestCase):
@@ -11,65 +12,27 @@ class TestObjectManager(tests.TestCase):
 	def runTest(self):
 		'''Test object manager for inline objects'''
 		manager = ObjectManager
+		obj = MyInsertedObjectType()
 
-		# registering
-		self.assertFalse(manager.is_registered('classa'))
-		self.assertFalse(manager.is_registered('classb'))
-		self.assertFalse(manager.is_registered('foo'))
+		manager.register_object(obj)
+		self.assertEqual(manager.get_object('myobject'), obj)
 
-		manager.register_object('classa', classafactory)
-		manager.register_object('classb', ClassB)
+		with self.assertRaises(AssertionError):
+			manager.register_object(obj)
 
-		self.assertTrue(manager.is_registered('classa'))
-		self.assertTrue(manager.is_registered('classb'))
-		self.assertFalse(manager.is_registered('foo'))
+		manager.unregister_object(obj)
 
-		# get objects
-		self.assertEqual(list(manager.get_active_objects('classa')), [])
-		self.assertEqual(list(manager.get_active_objects('classb')), [])
+		with self.assertRaises(KeyError):
+			manager.get_object('myobject')
 
-		obj = manager.get_object('classa', {}, '')
-		self.assertTrue(isinstance(obj, ClassA))
-
-		self.assertEqual(list(manager.get_active_objects('classa')), [obj])
-		self.assertEqual(list(manager.get_active_objects('classb')), [])
-
-		self.assertTrue(isinstance(manager.get_object('classb', {}, ''), ClassB))
-		self.assertTrue(isinstance(manager.get_object('foo', {}, ''), FallbackObject))
-
-		# unregister
-		self.assertTrue(manager.is_registered('classa'))
-		self.assertTrue(manager.unregister_object('classa'))
-		self.assertFalse(manager.is_registered('classa'))
-		self.assertFalse(manager.unregister_object('classa'))
-
-		# find plugin
 		from zim.plugins.sourceview import SourceViewPlugin
+		activatable = SourceViewPlugin.check_dependencies_ok()
 		self.assertEqual(
 			manager.find_plugin('code'),
-			('sourceview', 'Source View', True, SourceViewPlugin, None)
+			('sourceview', 'Source View', activatable, SourceViewPlugin)
 		)
 
 
-def classafactory(attrib, text):
-	return ClassA(attrib, text)
+class MyInsertedObjectType(InsertedObjectType):
 
-
-class ClassA(CustomObjectClass):
-	pass
-
-
-class ClassB(CustomObjectClass):
-	pass
-
-
-class TestFallbackObject(tests.TestCase):
-
-	def runTest(self):
-		attrib = {'type': 'foo', 'lang': 'text/html', 'foo': 'bar'}
-		text = '''<b>test 123</b>\n'''
-		obj = FallbackObject(attrib, text)
-
-		self.assertEqual(obj.get_data(), text)
-		self.assertEqual(obj.get_attrib(), attrib)
-
+	name = 'myobject'

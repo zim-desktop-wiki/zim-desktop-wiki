@@ -37,7 +37,7 @@ from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
 from zim.actions import get_gtk_actiongroup, action, toggle_action
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
@@ -48,8 +48,8 @@ from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.uiactions import attach_file
-from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
-from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
+from zim.objectmanager import ObjectManager
+from zim.gui.insertedobjects import InsertedObjectWidget, UnknownInsertedObject, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
 from zim.signals import callback
 from zim.formats import get_dumper
@@ -60,30 +60,20 @@ from zim.plugins import PluginManager
 logger = logging.getLogger('zim.gui.pageview')
 
 
-class LineSeparator(CustomObjectWidget):
+class LineSeparator(InsertedObjectWidget):
 	'''Class to create a separation line.'''
 
 	def __init__(self):
-		CustomObjectWidget.__init__(self)
-		# Set color of the line.
+		InsertedObjectWidget.__init__(self)
 		self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
-		# Set size of the line.
 		self.vbox.set_size_request(-1, 3)
+		#widget = Gtk.Box()
+		#widget.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
+		#widget.set_size_request(-1, 3)
+		#self.vbox.add(widget)
 
 
-class LineObject(CustomObjectClass):
-	'''Class to work with 'LineSeparator' objects.'''
-	OBJECT_ATTR = {
-		'type': String('line'),
-	}
-
-	def get_widget(self):
-		'''Creates a new line which can be displayed on the wiki-page.'''
-		return LineSeparator()
-
-ObjectManager.register_object('line', LineObject)
-
-def IS_LINE(line):
+def is_line(line):
 	'''Function used for line autoformatting.'''
 	length = len(line)
 	return (line == '-' * length) and (length > 4)
@@ -509,7 +499,7 @@ class TextBuffer(Gtk.TextBuffer):
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
-	@signal: C{insert-object (object, achor)}: emitted when an object
+	@signal: C{insert-objectanchor (achor)}: emitted when an object
 	is inserted, should trigger L{TextView} to attach a widget
 
 	@todo: document tag styles that are supported
@@ -531,7 +521,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'clear': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'undo-save-cursor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-		'insert-object': (GObject.SignalFlags.RUN_LAST, None, (object, object)),
+		'insert-objectanchor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-clicked': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
@@ -905,31 +895,16 @@ class TextBuffer(Gtk.TextBuffer):
 			elif element.tag == 'table':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-
-				obj = ObjectManager.get_object('table', element.attrib, element)
-				if isinstance(obj, FallbackObject):
-					# HACK - if table plugin is not loaded - show table as plain text
-					tree = ParseTree(element)
-					lines = get_dumper('wiki').dump(tree)
-					obj.set_data(''.join(lines))
-
-				self.insert_object_at_cursor(obj)
-
+				self.insert_table_at_cursor(element)
 				set_indent(None)
 			elif element.tag == 'line':
-				obj = ObjectManager.get_object('line', None, None)
-				self.insert_object_at_cursor(obj)
+				anchor = LineSeparatorAnchor()
+				self.insert_objectanchor_at_cursor(anchor)
 
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-
-				if 'type' in element.attrib:
-					obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
-					self.insert_object_at_cursor(obj)
-				else:
-					logger.warning('Skipping object without type')
-
+				self.insert_object_at_cursor(element.attrib, element.text)
 				set_indent(None)
 			else:
 				# Text styles
@@ -1182,30 +1157,47 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
-	def insert_object_at_cursor(self, obj):
+	def insert_object_at_cursor(self, attrib, data):
 		'''Inserts a custom object in the page
-		@param obj: an object implementing L{CustomerObjectClass}
+		@param attrib: dict with object attributes
+		@param data: string data of object
 		'''
-		assert isinstance(obj, CustomObjectClass)
-		logger.debug("Insert object: %s", obj)
+		try:
+			objecttype = ObjectManager.get_object(attrib['type'])
+		except KeyError:
+			objecttype = UnknownInsertedObject()
 
-		def on_modified_changed(obj):
-			if obj.get_modified() and not self.get_modified():
-				self.set_modified(True)
+		model = objecttype.model_from_data(attrib, data)
+		model.connect('changed', lambda o: self.set_modified(True))
 
-		obj.connect('modified-changed', on_modified_changed)
+		anchor = PluginInsertedObjectAnchor(objecttype, model)
+		self.insert_objectanchor_at_cursor(anchor)
 
-		anchor = ObjectAnchor(obj)
+	def insert_table_at_cursor(self, element):
+		try:
+			obj = ObjectManager.get_object('table')
+		except KeyError:
+			# HACK - if table plugin is not loaded - show table as plain text
+			tree = ParseTree(element)
+			lines = get_dumper('wiki').dump(tree)
+			self.insert_object_at_cursor({'type': 'table'}, ''.join(lines))
+		else:
+			model = obj.model_from_element(element.attrib, element)
+			model.connect('changed', lambda o: self.set_modified(True))
+
+			anchor = TableAnchor(obj, model)
+			self.insert_objectanchor_at_cursor(anchor)
+
+	def insert_objectanchor_at_cursor(self, anchor):
 		iter = self.get_insert_iter()
 		self.insert_child_anchor(iter, anchor)
+		self.emit('insert-objectanchor', anchor)
 
-		self.emit('insert-object', obj, anchor)
-
-	def get_object_at_cursor(self):
+	def get_objectanchor_at_cursor(self):
 		iter = self.get_insert_iter()
 		anchor = iter.get_child_anchor()
-		if anchor and hasattr(anchor, 'manager'):
-			return anchor.manager
+		if anchor and isinstance(anchor, InsertedObjectAnchor):
+			return anchor
 		else:
 			return None
 
@@ -1760,7 +1752,7 @@ class TextBuffer(Gtk.TextBuffer):
 				elif is_numbered_bullet_re.match(bullet):
 					stylename = 'numbered-list'
 				else:
-					raise AssertionError('BUG: Unkown bullet type')
+					raise AssertionError('BUG: Unknown bullet type')
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
 				if dir == 'LTR':
@@ -2362,37 +2354,11 @@ class TextBuffer(Gtk.TextBuffer):
 			elif anchor:
 				set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 				anchor = iter.get_child_anchor() # iter may have moved
-
-				if anchor is None:
+				if isinstance(anchor, InsertedObjectAnchor):
+					anchor.dump(builder)
+					iter.forward_char()
+				else:
 					continue
-				if hasattr(anchor, 'manager'):
-					attrib = anchor.manager.get_attrib()
-					if attrib and attrib['type'] == 'table' \
-					and hasattr(anchor.manager, 'build_parsetree_of_table'): # fallback should not go here...
-						obj = anchor.manager
-						obj.build_parsetree_of_table(builder, iter)
-					elif attrib and attrib['type'] == 'line':
-						# Add (if necessary) additional newline symbols
-						# to prevent formatting back from line object to text.
-						_new_iter = iter.copy()
-						_start = '' if _new_iter.starts_line() else '\n'
-						_new_iter.forward_char()
-						_end = '' if _new_iter.ends_line() else '\n'
-						data = '{}{}{}'.format(_start, LINE_TEXT, _end)
-						logger.debug("Anchor with Line, obj:%s", anchor.manager)
-						builder.start('line', attrib)
-						builder.data(data)
-						builder.end('line')
-					else:
-						# general object related parsing
-						data = anchor.manager.get_data()
-						logger.debug("Anchor with CustomObject: %s", anchor.manager)
-						builder.start('object', attrib)
-						builder.data(data)
-						builder.end('object')
-
-					anchor.manager.set_modified(False)
-				iter.forward_char()
 			else:
 				# Set tags
 				copy = iter.copy()
@@ -2466,14 +2432,15 @@ class TextBuffer(Gtk.TextBuffer):
 		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
 			# and get rid of oddities in our generated parsetree.
-			#~ print(">>> Parsetree original:", tree.tostring())
+			#print(">>> Parsetree original:\n", tree.tostring())
 			from zim.formats import get_format
 			format = get_format("wiki") # FIXME should the format used here depend on the store ?
 			dumper = format.Dumper()
 			parser = format.Parser()
 			text = dumper.dump(tree)
+			#print(">>> Wiki text:\n", text)
 			tree = parser.parse(text, partial=tree.ispartial)
-			#~ print(">>> Parsetree recreated:", tree.tostring())
+			#print(">>> Parsetree recreated:\n", tree.tostring())
 
 		return tree
 
@@ -3524,13 +3491,13 @@ class TextView(Gtk.TextView):
 		self.connect_after('motion-notify-event', self.__class__.on_motion_notify_event)
 
 	def set_buffer(self, buffer):
-		buffer.connect('insert-object', self.on_insert_object)
+		buffer.connect('insert-objectanchor', self.on_insert_object)
 		Gtk.TextView.set_buffer(self, buffer)
 
-	def on_insert_object(self, buffer, obj, anchor):
+	def on_insert_object(self, buffer, anchor):
 		# Connect widget for this view to object
-		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectWidget)
+		widget = anchor.create_widget()
+		assert isinstance(widget, InsertedObjectWidget)
 
 		def on_release_cursor(widget, position, anchor):
 			myiter = buffer.get_iter_at_child_anchor(anchor)
@@ -3543,6 +3510,7 @@ class TextView(Gtk.TextView):
 
 		def widget_connect(signal):
 			widget.connect(signal, lambda o, *a: self.emit(signal, *a))
+
 		for signal in ('link-clicked', 'link-enter', 'link-leave'):
 			widget_connect(signal)
 
@@ -4260,11 +4228,10 @@ class TextView(Gtk.TextView):
 			buffer.insert_with_tags_by_name(
 				buffer.get_iter_at_mark(mark), heading, 'style-h' + str(level))
 			buffer.delete_mark(mark)
-		elif IS_LINE(line):
+		elif is_line(line):
 			with buffer.user_action:
 				buffer.delete(start, end)
-				obj = ObjectManager.get_object('line', None, None)
-				buffer.insert_object_at_cursor(obj)
+				buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
 				buffer.insert_at_cursor('\n')
 		elif not buffer.get_bullet_at_iter(start) is None:
 			# we are part of bullet list
@@ -5319,10 +5286,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		finderstate = self._prev_buffer.finder.get_state()
 
 		for child in self.textview.get_children():
-			if isinstance(child, CustomObjectWidget):
+			if isinstance(child, InsertedObjectWidget):
 				self.textview.remove(child)
-				if hasattr(child, "_zim_objmanager"):
-					del child._zim_objmanager
 
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
@@ -6086,10 +6051,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
 		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page, self.config).run()
 
-	def insert_object(self, obj):
+	def insert_object(self, attrib, data):
 		buffer = self.textview.get_buffer()
 		with buffer.user_action:
-			buffer.insert_object_at_cursor(obj)
+			buffer.insert_object_at_cursor(attrib, data)
 
 	@action(_('Horizontal _Line'), menuhints='insert') # T: Menu item for Insert menu
 	def insert_line(self):
@@ -6097,11 +6062,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
                 This function is called from menu action.
                 Insert a line at the cursor position.
 		'''
-		obj = ObjectManager.get_object('line', None, None)
-
 		buffer = self.textview.get_buffer()
 		with buffer.user_action:
-			buffer.insert_object_at_cursor(obj)
+			buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
 			# Add newline after line separator widget.
 			buffer.insert_at_cursor('\n')
 
@@ -6520,10 +6483,55 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.text_style.write()
 
 
-class ObjectAnchor(Gtk.TextChildAnchor):
-	def __init__(self, manager):
-		self.manager = manager
+class InsertedObjectAnchor(Gtk.TextChildAnchor):
+
+	def create_widget(self):
+		raise NotImplementedError
+
+	def dump(self, builder):
+		raise NotImplementedError
+
+
+class LineSeparatorAnchor(InsertedObjectAnchor):
+
+	def create_widget(self):
+		return LineSeparator()
+
+	def dump(self, builder):
+		builder.append(LINE, '-'*20) # FIXME: why do we need text here?
+
+
+class TableAnchor(InsertedObjectAnchor):
+	# HACK - table support is native in formats, but widget is still in plugin
+	#        so we need to "glue" the table tokens to the plugin widget
+
+	def __init__(self, objecttype, objectmodel):
 		GObject.GObject.__init__(self)
+		self.objecttype = objecttype
+		self.objectmodel = objectmodel
+
+	def create_widget(self):
+		return self.objecttype.create_widget(self.objectmodel)
+
+	def dump(self, builder):
+		self.objecttype.dump(builder, self.objectmodel)
+
+
+class PluginInsertedObjectAnchor(InsertedObjectAnchor):
+
+	def __init__(self, objecttype, objectmodel):
+		GObject.GObject.__init__(self)
+		self.objecttype = objecttype
+		self.objectmodel = objectmodel
+
+	def create_widget(self):
+		return self.objecttype.create_widget(self.objectmodel)
+
+	def dump(self, builder):
+		attrib, data = self.objecttype.data_from_model(self.objectmodel)
+		builder.start(OBJECT, dict(attrib)) # dict() because ElementTree doesn't like ConfigDict
+		builder.data(data)
+		builder.end(OBJECT)
 
 
 class InsertDateDialog(Dialog):
