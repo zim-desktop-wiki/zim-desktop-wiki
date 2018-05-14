@@ -7,6 +7,8 @@ from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import Gdk
 
+import zim.errors
+
 from zim.objectmanager import ObjectManager
 from zim.plugins import InsertedObjectType
 
@@ -231,6 +233,11 @@ class UnknownInsertedObject(InsertedObjectType):
 
 	name = "unknown"
 
+	label = _('Unkown Object')  # T: label for inserted object
+
+	def __init__(self):
+		InsertedObjectType.__init__(self, plugin=None)
+
 	def parse_attrib(self, attrib):
 		# Overrule base class checks since we don't know what this object is
 		attrib.setdefault('type', self.name)
@@ -247,3 +254,81 @@ class UnknownInsertedObject(InsertedObjectType):
 
 
 # TODO: undo(), redo() stuff
+
+
+class InsertedObjectUI(object):
+
+	def __init__(self, uimanager, pageview):
+		self.uimanager = uimanager
+		self.pageview = pageview
+		self._ui_id = None
+		self._actiongroup = None
+		self.add_ui()
+		ObjectManager.connect('changed', self.on_changed)
+
+	def on_changed(self, o):
+		self.uimanager.remove_ui(self._ui_id)
+		self.uimanager.remove_action_group(self._actiongroup)
+		self._ui_id = None
+		self._actiongroup = None
+		self.add_ui()
+
+	def add_ui(self):
+		assert self._ui_id is None
+		assert self._actiongroup is None
+
+		self._actiongroup = self.get_actiongroup()
+		ui_xml = self.get_ui_xml()
+
+		self.uimanager.insert_action_group(self._actiongroup, 0)
+		self._ui_id = self.uimanager.add_ui_from_string(ui_xml)
+
+	def get_actiongroup(self):
+		actions = [
+			('insert_' + obj.name, obj.verb_icon, obj.label, '', None, self._action_handler)
+				for obj in ObjectManager
+		]
+		group = Gtk.ActionGroup('inserted_objects')
+		group.add_actions(actions)
+		return group
+
+	def get_ui_xml(self):
+		menulines = []
+		toollines = []
+		for obj in ObjectManager:
+			name = 'insert_' + obj.name
+			menulines.append("<menuitem action='%s'/>\n" % name)
+			if obj.verb_icon is not None:
+				toollines.append("<toolitem action='%s'/>\n" % name)
+		return """\
+		<ui>
+			<menubar name='menubar'>
+				<menu action='insert_menu'>
+					<placeholder name='plugin_items'>
+					 %s
+					</placeholder>
+				</menu>
+			</menubar>
+			<toolbar name='toolbar'>
+				<placeholder name='insert_plugin_items'>
+				%s
+				</placeholder>
+			</toolbar>
+		</ui>
+		""" % (
+			''.join(menulines),
+			''.join(toollines),
+		)
+
+	def _action_handler(self, action):
+		try:
+			name = action.get_name()[7:] # len('insert_') = 7
+			obj = ObjectManager.get_object(name)
+			try:
+				attrib, data = obj.new_object_interactive(self.pageview)
+			except ValueError:
+				return # dialog cancelled
+			self.pageview.insert_object(attrib, data)
+		except:
+			zim.errors.exception_handler(
+				'Exception during action: %s' % tool.name)

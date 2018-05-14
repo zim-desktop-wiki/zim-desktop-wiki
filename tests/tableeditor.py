@@ -1,4 +1,6 @@
 
+# Copyright 2015 Tobias Haupenthal
+# Copyright 2016-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 import tests
@@ -12,7 +14,16 @@ from tests.mainwindow import setUpMainWindow
 from tests.pageview import setUpPageView
 
 
-class TestPageViewExtension(tests.TestCase):
+def get_gtk_action(uimanager, name):
+	for group in uimanager.get_action_groups():
+		action = group.get_action(name)
+		if action is not None:
+			return action
+	else:
+		raise ValueError
+
+
+class TestPageView(tests.TestCase):
 
 	def setUp(self):
 		self.plugin = TableEditorPlugin()
@@ -51,14 +62,14 @@ class TestPageViewExtension(tests.TestCase):
 
 	def testInsertDialog(self):
 		window = setUpMainWindow(self.setUpNotebook(content={'Test': 'Test 123'}), path='Test')
-		extension = TableEditorPageViewExtension(self.plugin, window.pageview)
+		action = get_gtk_action(window.uimanager, 'insert_table')
 
 		def insert_table(dialog):
 			self.assertIsInstance(dialog, EditTableDialog)
 			dialog.assert_response_ok()
 
 		with tests.DialogContext(insert_table):
-			extension.insert_table()
+			action.activate()
 
 		tree = window.pageview.get_parsetree()
 		elt = tree.find('table')
@@ -66,14 +77,14 @@ class TestPageViewExtension(tests.TestCase):
 
 	def testInsertDialogCancelled(self):
 		window = setUpMainWindow(self.setUpNotebook(content={'Test': 'Test 123'}), path='Test')
-		extension = TableEditorPageViewExtension(self.plugin, window.pageview)
+		action = get_gtk_action(window.uimanager, 'insert_table')
 
 		def cancel_dialog(dialog):
 			self.assertIsInstance(dialog, EditTableDialog)
 			dialog.response(Gtk.ResponseType.CANCEL)
 
 		with tests.DialogContext(cancel_dialog):
-			extension.insert_table()
+			action.activate()
 
 		tree = window.pageview.get_parsetree()
 		elt = tree.find('table')

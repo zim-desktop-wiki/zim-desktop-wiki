@@ -9,11 +9,20 @@ logger = logging.getLogger("zim.objectmanager")
 
 import zim.plugins
 
-class _ObjectManager(object):
-	'''Manages custom objects.'''
+from zim.signals import SignalEmitter, SIGNAL_RUN_LAST
+
+
+class _ObjectManager(SignalEmitter):
+
+	__signals__ = {
+		'changed': (SIGNAL_RUN_LAST, None, ()),
+	}
 
 	def __init__(self):
 		self._objects = {}
+
+	def __iter__(self):
+		return iter(self._objects[k] for k in sorted(self._objects))
 
 	def register_object(self, objecttype):
 		'''Register an object type
@@ -25,6 +34,7 @@ class _ObjectManager(object):
 			raise AssertionError('InsertedObjectType "%s" already defined by %s' % (key, self._objects[key]))
 		else:
 			self._objects[key] = objecttype
+			self.emit('changed')
 
 	def unregister_object(self, objecttype):
 		'''Unregister a specific object type.
@@ -33,29 +43,29 @@ class _ObjectManager(object):
 		key = objecttype.name.lower()
 		if key in self._objects and self._objects[key] is objecttype:
 			self._objects.pop(key)
+			self.emit('changed')
 
 	def get_object(self, name):
 		'''Returns an object for a name
-		@param type: the object type as string
+		@param name: the object type as string
 		@returns: an instance of an object derived from C{InsertedObject}
 		'''
-		key = name.lower()
-		return self._objects[key] # raises KeyError if not found
+		return self._objects[name.lower()] # raises KeyError if not found
 
-	def find_plugin(self, type):
+	def find_plugin(self, name):
 		'''Find a plugin to handle a specific object type. Intended to
 		suggest plugins to the user that can be loaded.
-		@param type: object type as string
+		@param name: object type as string
 		@returns: a 5-tuple of the plugin name, a boolean for the
 		dependency check, the plugin class, or C{None} and the related plugin window_extension
 		'''
-		for name in zim.plugins.PluginManager.list_installed_plugins(): # XXX
+		for plugin in zim.plugins.PluginManager.list_installed_plugins():
 			try:
-				klass = zim.plugins.PluginManager.get_plugin_class(name) # XXX
-				types = klass.plugin_info.get('object_types')
-				if types and type in types:
-					activatable = klass.check_dependencies_ok()
-					return (name, klass.plugin_info['name'], activatable, klass)
+				klass = zim.plugins.PluginManager.get_plugin_class(plugin)
+				for objtype in klass.discover_classes(zim.plugins.InsertedObjectType):
+					if objtype.name == name:
+						activatable = klass.check_dependencies_ok()
+						return (plugin, klass.plugin_info['name'], activatable, klass)
 			except:
 				logger.exception('Could not load plugin %s', name)
 				continue

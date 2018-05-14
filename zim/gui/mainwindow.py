@@ -28,6 +28,7 @@ from zim.gui.widgets import \
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
 from zim.gui.customtools import CustomToolManagerUI
+from zim.gui.insertedobjects import InsertedObjectUI
 
 from zim.gui.pageview import PageView
 
@@ -291,7 +292,8 @@ class MainWindow(Window):
 		# Do this last, else menu items show up in wrong place
 		self.pageview.notebook = self.notebook # XXX
 		self._customtools = CustomToolManagerUI(self.uimanager, self.config, self.pageview)
-
+		self._insertedobjects = InsertedObjectUI(self.uimanager, self.pageview)
+			# XXX: would like to do this in PageView itself, but need access to uimanager
 
 		# Setup notebook signals
 		notebook.connect('page-info-changed', self.do_page_info_changed)

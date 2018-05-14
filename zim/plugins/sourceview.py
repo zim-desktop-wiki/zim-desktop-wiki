@@ -1,6 +1,6 @@
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
-# Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import logging
 
@@ -55,7 +55,6 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 '''), # T: plugin description
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
-		'object_types': ('code', ),
 	}
 
 	plugin_preferences = (
@@ -79,93 +78,30 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 		check = Gtk is None or not GtkSource is None
 		return check, [('GtkSourceView', check, True)]
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
-		self._objecttype = SourceViewObjectType(self.preferences)
-		ObjectManager.register_object(self._objecttype)
-
-	def teardown(self):
-		ObjectManager.unregister_object(self._objecttype)
-
-
-class SourceViewPageViewExtension(PageViewExtension):
-
-	@action(_('Code Block'), menuhints='insert') # T: menu item
-	def insert_sourceview(self):
-		'''Inserts new SourceView'''
-		lang = InsertCodeBlockDialog(self.pageview).run() # XXX
-		if not lang:
-			return # dialog cancelled
-		else:
-			pageview = self.pageview.insert_object({'type': 'code', 'lang': lang}, '')
-
-
-class InsertCodeBlockDialog(Dialog):
-
-	def __init__(self, parent):
-		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
-		self.uistate.define(lang=String(None))
-		defaultlang = self.uistate['lang']
-
-		menu = {}
-		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
-			key = l[0].upper()
-			if not key in menu:
-				menu[key] = []
-			menu[key].append(l)
-
-		model = Gtk.TreeStore(str)
-		defaultiter = None
-		for key in sorted(menu):
-			iter = model.append(None, [key])
-			for lang in menu[key]:
-				myiter = model.append(iter, [lang])
-				if LANGUAGES[lang] == defaultlang:
-					defaultiter = myiter
-
-		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		hbox.set_spacing(5)
-		label = Gtk.Label(_('Syntax') +':') # T: input label
-		hbox.add(label)
-
-		combobox = Gtk.ComboBox.new_with_model(model)
-		renderer_text = Gtk.CellRendererText()
-		combobox.pack_start(renderer_text, True)
-		combobox.add_attribute(renderer_text, "text", 0)
-		if defaultiter is not None:
-			combobox.set_active_iter(defaultiter)
-		hbox.add(combobox)
-		self.combobox = combobox
-
-		self.vbox.add(hbox)
-
-	def do_response_ok(self):
-		model = self.combobox.get_model()
-		iter = self.combobox.get_active_iter()
-
-		if iter is not None:
-			name = model[iter][0]
-			self.result = LANGUAGES[name]
-			self.uistate['lang'] = LANGUAGES[name]
-			return True
-		else:
-			return False # no syntax selected
-
 
 class SourceViewObjectType(InsertedObjectType):
 
 	name = 'code'
 
-	OBJECT_ATTR = {
+	label = _('Code Block') # T: menu item
+
+	object_attr = {
 		'lang': String(None),
 		'linenumbers': Boolean(True),
 	}
 
-	def __init__(self, preferences):
-		InsertedObjectType.__init__(self)
+	def __init__(self, plugin):
+		InsertedObjectType.__init__(self, plugin)
 		self._widgets = WeakSet()
-		self.preferences = preferences
+		self.preferences = plugin.preferences
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
+
+	def new_object_interactive(self, parent):
+		lang = InsertCodeBlockDialog(parent).run()
+		if lang is None:
+			raise ValueError # dialog cancelled
+		else:
+			return self.parse_attrib({'lang': lang}), ''
 
 	def model_from_data(self, attrib, text):
 		return SourceViewBuffer(attrib, text)
@@ -338,3 +274,55 @@ class SourceViewWidget(TextViewWidget):
 		menu.show_all()
 
 	# TODO: undo(), redo() stuff
+
+
+class InsertCodeBlockDialog(Dialog):
+
+	def __init__(self, parent):
+		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
+		self.uistate.define(lang=String(None))
+		defaultlang = self.uistate['lang']
+
+		menu = {}
+		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
+			key = l[0].upper()
+			if not key in menu:
+				menu[key] = []
+			menu[key].append(l)
+
+		model = Gtk.TreeStore(str)
+		defaultiter = None
+		for key in sorted(menu):
+			iter = model.append(None, [key])
+			for lang in menu[key]:
+				myiter = model.append(iter, [lang])
+				if LANGUAGES[lang] == defaultlang:
+					defaultiter = myiter
+
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		hbox.set_spacing(5)
+		label = Gtk.Label(_('Syntax') +':') # T: input label
+		hbox.add(label)
+
+		combobox = Gtk.ComboBox.new_with_model(model)
+		renderer_text = Gtk.CellRendererText()
+		combobox.pack_start(renderer_text, True)
+		combobox.add_attribute(renderer_text, "text", 0)
+		if defaultiter is not None:
+			combobox.set_active_iter(defaultiter)
+		hbox.add(combobox)
+		self.combobox = combobox
+
+		self.vbox.add(hbox)
+
+	def do_response_ok(self):
+		model = self.combobox.get_model()
+		iter = self.combobox.get_active_iter()
+
+		if iter is not None:
+			name = model[iter][0]
+			self.result = LANGUAGES[name]
+			self.uistate['lang'] = LANGUAGES[name]
+			return True
+		else:
+			return False # no syntax selected

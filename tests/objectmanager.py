@@ -12,7 +12,7 @@ class TestObjectManager(tests.TestCase):
 	def runTest(self):
 		'''Test object manager for inline objects'''
 		manager = ObjectManager
-		obj = MyInsertedObjectType()
+		obj = MyInsertedObjectType(plugin=None)
 
 		manager.register_object(obj)
 		self.assertEqual(manager.get_object('myobject'), obj)
@@ -36,3 +36,4 @@ class TestObjectManager(tests.TestCase):
 class MyInsertedObjectType(InsertedObjectType):
 
 	name = 'myobject'
+	label = 'MyObject'

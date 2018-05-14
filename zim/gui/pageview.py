@@ -893,7 +893,7 @@ class TextBuffer(Gtk.TextBuffer):
 			elif element.tag == 'table':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-				self.insert_table_at_cursor(element)
+				self.insert_table_element_at_cursor(element)
 				set_indent(None)
 			elif element.tag == 'line':
 				anchor = LineSeparatorAnchor()
@@ -1168,10 +1168,14 @@ class TextBuffer(Gtk.TextBuffer):
 		model = objecttype.model_from_data(attrib, data)
 		model.connect('changed', lambda o: self.set_modified(True))
 
-		anchor = PluginInsertedObjectAnchor(objecttype, model)
+		if attrib['type'] == 'table' and not isinstance(objecttype, UnknownInsertedObject):
+			anchor = TableAnchor(objecttype, model)
+		else:
+			anchor = PluginInsertedObjectAnchor(objecttype, model)
+
 		self.insert_objectanchor_at_cursor(anchor)
 
-	def insert_table_at_cursor(self, element):
+	def insert_table_element_at_cursor(self, element):
 		try:
 			obj = ObjectManager.get_object('table')
 		except KeyError:

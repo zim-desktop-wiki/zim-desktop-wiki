@@ -418,6 +418,7 @@ class PluginClass(ConnectorMixin):
 					self.preferences.setdefault(key, default, check=check)
 					#~ print(">>>>", key, default, check, '--', self.preferences[key])
 
+		self.load_insertedobject_types()
 		self.load_extensions_classes()
 
 	@classmethod
@@ -430,23 +431,37 @@ class PluginClass(ConnectorMixin):
 		module = get_module(pluginklass.__module__)
 		return lookup_subclass(module, klass)
 
+	def load_insertedobject_types(self):
+		'''Loads L{InsertedObjectType} classes defined in the same modul
+		as the plugin.
+		'''
+		from zim.objectmanager import ObjectManager
+		self._objecttypes = [
+			objtype(self)
+				for objtype in self.discover_classes(InsertedObjectType)
+		]
+		for obj in self._objecttypes:
+			ObjectManager.register_object(obj)
+
 	def load_extensions_classes(self):
 		'''Instantiates the C{extension_classes} dictionary with classes
 		found in the same module as the plugin object.
 		Called directly by the constructor.
 		'''
 		self.extension_classes = {}
-		for klass in self.discover_extensions_classes():
+		for klass in self.discover_classes(ExtensionBase):
 			extends = klass.__extends__
 			if extends in self.extension_classes:
 				raise AssertionError('Extension point %s already in use' % name)
 			self.extension_classes[extends] = klass
 
 	@classmethod
-	def discover_extensions_classes(pluginklass):
-		'''Yields a list of extension classes defined in the same module as the plugin'''
+	def discover_classes(pluginklass, baseclass):
+		'''Yields a list of classes derived from C{baseclass} and
+		defined in the same module as the plugin
+		'''
 		module = get_module(pluginklass.__module__)
-		for klass in lookup_subclasses(module, ExtensionBase):
+		for klass in lookup_subclasses(module, baseclass):
 			yield klass
 
 	def extend(self, obj):
@@ -475,8 +490,13 @@ class PluginClass(ConnectorMixin):
 		This should revert any changes the plugin made to the
 		application (although preferences etc. can be left in place).
 		'''
+		from zim.objectmanager import ObjectManager
+
 		for obj in self.extensions:
 			obj.destroy()
+
+		for obj in self._objecttypes:
+			ObjectManager.unregister_object(obj)
 
 		try:
 			self.disconnect_all()
@@ -667,11 +687,16 @@ class InsertedObjectType(ConnectorMixin):
 
 	name = None
 
-	OBJECT_ATTR = {}
+	label = None
+	verb_icon = None
 
-	def __init__(self):
+	object_attr = {}
+
+	def __init__(self, plugin):
 		assert self.name is not None
-		self.OBJECT_ATTR['type'] = String(self.name)
+		assert self.label is not None
+		self.plugin = plugin
+		self.object_attr['type'] = String(self.name)
 
 		for name in ('model_from_data', 'data_from_model', 'format'):
 			orig = getattr(self, name)
@@ -682,18 +707,29 @@ class InsertedObjectType(ConnectorMixin):
 	def parse_attrib(self, attrib):
 		'''Convenience method to enforce the supported attributes and their
 		types.
-		@returns: a L{ConfigDict} using the C{OBJECT_ATTR} dict as definition
+		@returns: a L{ConfigDict} using the C{object_attr} dict as definition
 		'''
 		if not isinstance(attrib, ConfigDict):
 			attrib = ConfigDict(attrib)
-			attrib.define(self.OBJECT_ATTR)
+			attrib.define(self.object_attr)
 		return attrib
 
-	def create_model(self):
-		'''Initialize a model object for a new object instance
-		@returns: an object
+	def new_object(self):
+		'''Create a new empty object
+		@returns: a 2-tuple C{(attrib, data)}
 		'''
-		return self.model_from_data({}, '')
+		attrib = self.parse_attrib({})
+		return attrib, ''
+
+	def new_object_interactive(self, parent):
+		'''Create a new object interactively
+		Interactive means that we can use e.g. a dialog to prompt for input.
+		The default behavior is to use L{new_object()}.
+		@param parent: Gtk widget to use as parent widget for dialogs
+		@returns: a 2-tuple C{(attrib, data)}
+		@raises: ValueError: if user cancelled the action
+		'''
+		return self.new_object()
 
 	def _model_from_data_wrapper(self, attrib, data):
 		attrib = self.parse_attrib(attrib)

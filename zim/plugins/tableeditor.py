@@ -84,7 +84,6 @@ class TableEditorPlugin(PluginClass):
 With this plugin you can embed a 'Table' into the wiki page. Tables will be shown as GTK TreeView widgets.
 Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 '''),  # T: plugin description
-		'object_types': ('table', ),
 		'help': 'Plugins:Table Editor',
 		'author': 'Tobias Haupenthal',
 	}
@@ -105,14 +104,6 @@ Exporting them to various formats (i.e. HTML/LaTeX) completes the feature set.
 		('grid_lines', 'choice', _('Grid lines'), LINES_BOTH, (LINES_BOTH, LINES_NONE, LINES_HORIZONTAL, LINES_VERTICAL)),
 		# T: preference description
 	)
-
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
-		self.objecttype = TableViewObjectType(self.preferences)
-		ObjectManager.register_object(self.objecttype)
-
-	def teardown(self):
-		ObjectManager.unregister_object(self.objecttype)
 
 
 class CellFormatReplacer:
@@ -156,44 +147,44 @@ class CellFormatReplacer:
 		return text
 
 
-class TableEditorPageViewExtension(PageViewExtension):
-
-	@action(_('Table'), verb_icon='zim-insert-table', menuhints='insert')  # T: menu item
-	def insert_table(self):
-		from zim.gui.pageview import TableAnchor
-
-		definition = EditTableDialog(self.pageview).run()
-		if definition is None:
-			return # dialog cancelled
-
-		ids, headers, wraps, aligns = definition
-		attrib = {'aligns': ','.join(map(str, aligns)), 'wraps': ','.join(map(str, wraps))}
-		rows = [''] * len(headers)
-
-		obj = self.plugin.objecttype
-		model = TableModel(attrib, headers, rows)
-		anchor = TableAnchor(obj, model)
-
-		buffer = self.pageview.textview.get_buffer()
-		with buffer.user_action:
-			buffer.insert_objectanchor_at_cursor(anchor)
-
-
-
 class TableViewObjectType(InsertedObjectType):
 
 	name = 'table'
 
-	OBJECT_ATTR = {
+	label = _('Table') # T: menu item
+	verb_icon = 'zim-insert-table'
+
+	object_attr = {
 		'aligns': String(''),  # i.e. String(left,right,center)
 		'wraps': String('')	  # i.e. String(0,1,0)
 	}
 
-	def __init__(self, preferences):
-		InsertedObjectType.__init__(self)
+	def __init__(self, plugin):
+		InsertedObjectType.__init__(self, plugin)
 		self._widgets = WeakSet()
-		self.preferences = preferences
+		self.preferences = plugin.preferences
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
+
+	def new_object_interactive(self, parent):
+		definition = EditTableDialog(parent).run()
+		if definition is None:
+			raise ValueError # dialog cancelled
+
+		ids, headers, wraps, aligns = definition
+		attrib = self.parse_attrib({
+			'aligns': ','.join(map(str, aligns)),
+			'wraps': ','.join(map(str, wraps))
+		})
+		rows = [''] * len(headers)
+		data = ' | '.join(headers) + '\n' + ' | '.join(rows) + '\n'
+		return attrib, data
+
+	def model_from_data(self, attrib, data):
+		rows = [line.split(' | ') for line in data.splitlines()]
+		headers = rows.pop(0) if rows else []
+		if not headers:
+			headers = ['Column1', 'Column2']
+		return TableModel(attrib, headers, rows)
 
 	def model_from_element(self, attrib, element):
 		assert ElementTree.iselement(element)
