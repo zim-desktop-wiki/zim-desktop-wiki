@@ -4833,6 +4833,7 @@ discarded, but you can restore the copy later.''')
 
 		self.timeout = timeout
 
+		self.pageview = pageview
 		self.page = page
 		self.error = error
 
@@ -4846,33 +4847,34 @@ discarded, but you can restore the copy later.''')
 		self.add_action_widget(cancel_button, Gtk.ResponseType.CANCEL)
 
 		self._done = False
-		def discard(self):
-			page.set_ui_object(None) # unhook
-			pageview.clear()
-				# issue may be caused in pageview - make sure it unlocks
-			page._parsetree = None # removed cached tree
-			page.modified = False
-			pageview.set_page(page)
-			self._done = True
-
-		def save(self):
-			from zim.gui.uiactions import SaveCopyDialog
-			if SaveCopyDialog(self, pageview.notebook, page).run():
-				discard(self)
 
 		discard_button = Gtk.Button.new_with_mnemonic(_('_Discard Changes'))
 			# T: Button in error dialog
-		discard_button.connect_object('clicked', discard, self)
+		discard_button.connect('clicked', lambda o: self.discard())
 		self.add_action_widget(discard_button, Gtk.ResponseType.OK)
 
 		save_button = Gtk.Button.new_with_mnemonic(_('_Save Copy'))
 			# T: Button in error dialog
-		save_button.connect_object('clicked', save, self)
+		save_button.connect('clicked', lambda o: self.save_copy())
 		self.add_action_widget(save_button, Gtk.ResponseType.OK)
 
 		for button in (cancel_button, discard_button, save_button):
 			button.set_sensitive(False)
 			button.show()
+
+	def discard(self):
+		self.page.set_ui_object(None) # unhook
+		self.pageview.clear()
+			# issue may be caused in pageview - make sure it unlocks
+		self.page._parsetree = None # removed cached tree
+		self.page.modified = False
+		self.pageview.set_page(self.page)
+		self._done = True
+
+	def save_copy(self):
+		from zim.gui.uiactions import SaveCopyDialog
+		if SaveCopyDialog(self, self.pageview.notebook, self.page).run():
+			self.discard()
 
 	def do_response_ok(self):
 		return self._done
