@@ -685,9 +685,9 @@ class MainWindow(Window):
 		Gtk.AccelMap.get().connect('changed', on_accel_map_changed)
 
 		def save_uistate_cb(uistate):
-			if uistate.modified and hasattr(uistate, 'write_async'):
-				# XXX: write_async check can be removed with proper MockFile backend for tests
-				uistate.write_async()
+			if uistate.modified and hasattr(uistate, 'write'):
+				# XXX: write check can be removed with proper MockFile backend for tests
+				uistate.write()
 			# else ignore silently
 
 		delayed_save_uistate_cb = DelayedCallback(2000, save_uistate_cb) # 2 sec

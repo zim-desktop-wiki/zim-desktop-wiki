@@ -1,5 +1,5 @@
 
-# Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
 
@@ -21,7 +21,7 @@ from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
 from zim.notebook import NotebookExtension
 from zim.notebook.operations import NotebookState
-from zim.utils import natural_sort_key, FunctionThread
+from zim.utils import natural_sort_key
 
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
@@ -124,12 +124,73 @@ def monitor_thread(thread):
 	GObject.idle_add(_monitor_thread, thread)
 
 
+
+import sys
+import threading
+
+class FunctionThread(threading.Thread):
+	'''Subclass of C{threading.Thread} that runs a single function and
+	keeps the result and any exceptions raised.
+
+	@ivar done: C{True} is the function is done running
+	@ivar result: the return value of C{func}
+	@ivar error: C{True} if done and an exception was raised
+	@ivar exc_info: 3-tuple with exc_info
+	'''
+
+	def __init__(self, func, args=(), kwargs={}, lock=None):
+		'''Constructor
+		@param func: the function to run in the thread
+		@param args: arguments for C{func}
+		@param kwargs: keyword arguments for C{func}
+		@param lock: optional lock, will be acquired in main thread
+		before running and released once done in background
+		'''
+		threading.Thread.__init__(self)
+
+		self.func = func
+		self.args = args
+		self.kwargs = kwargs
+
+		self.lock = lock
+
+		self.done = False
+		self.result = None
+		self.error = False
+		self.exc_info = (None, None, None)
+
+	def start(self):
+		if self.lock is not None:
+			self.lock.acquire()
+		threading.Thread.start(self)
+		if GObject:
+			GObject.idle_add(self._monitor_on_idle)
+
+	def _monitor_on_idle(self):
+		# Only goal if this callback is to ensure python runs in mainloop
+		# as long as thread is alive - avoid C code blocking for a long time
+		# See comment at threads_init() in zim/main/__init__.py
+		return self.is_alive() # if False, stop event
+
+	def run(self):
+		try:
+			self.result = self.func(*self.args, **self.kwargs)
+		except:
+			self.error = True
+			self.exc_info = sys.exc_info()
+		finally:
+			self.done = True
+			if self.lock is not None:
+				self.lock.release()
+
+
 class VersionControlMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
 		MainWindowExtension.__init__(self, plugin, window)
 
 		self.notebook_ext = find_extension(window.notebook, VersionControlNotebookExtension)
+
 		self._autosave_thread = None
 		self._autosave_timer = None
 
@@ -438,8 +499,8 @@ class VCSBackend(ConnectorMixin):
 		@returns: nothing
 		"""
 		if path.ischild(self.root) and not self._ignored(path):
-			FunctionThread(self.vcs.add, (path,), lock=self._lock).start()
-
+			with self._lock:
+				self.vcs.add(path)
 
 	def on_path_moved(self, fs, oldpath, newpath):
 		"""Callback to move the file in Bazaar when moved in the wiki
@@ -453,9 +514,11 @@ class VCSBackend(ConnectorMixin):
 		if newpath.ischild(self.root) and not self._ignored(newpath):
 			if oldpath.ischild(self.root):
 				# Parent of newpath needs to be versioned in order to make mv succeed
-				FunctionThread(self.vcs.move, (oldpath, newpath), lock=self._lock).start()
+				with self._lock:
+					self.vcs.move(oldpath, newpath)
 			else:
-				FunctionThread(self.vcs.add, (newpath,), lock=self._lock).start()
+				with self._lock:
+					self.vcs.add(newpath)
 		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
 			self.on_path_deleted(self, fs, oldpath)
 
@@ -468,7 +531,8 @@ class VCSBackend(ConnectorMixin):
 		@returns: nothing
 		"""
 		if path.ischild(self.root) and not self._ignored(path):
-			FunctionThread(self.vcs.remove, (path,), lock=self._lock).start()
+			with self._lock:
+				self.vcs.remove(path)
 
 	@property
 	def modified(self):

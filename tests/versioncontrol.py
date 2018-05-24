@@ -1,5 +1,5 @@
 
-# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 

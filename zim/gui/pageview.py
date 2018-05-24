@@ -4684,9 +4684,6 @@ class UndoStackManager:
 		self.unblock()
 
 
-
-import threading
-
 class SavePageHandler(object):
 	'''Object for handling page saving.
 

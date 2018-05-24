@@ -32,7 +32,7 @@ import ast
 import json
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
-from zim.utils import OrderedDict, FunctionThread
+from zim.utils import OrderedDict
 from zim.fs import File, FileNotFoundError
 from zim.newfs import FileNotFoundError as NewFileNotFoundError
 from zim.errors import Error
@@ -824,18 +824,6 @@ class INIConfigFile(SectionedConfigDict):
 		'''Write data and set C{modified} to C{False}'''
 		self.file.writelines(self.dump())
 		self.set_modified(False)
-
-	def write_async(self):
-		'''Write data asynchronously and set C{modified} to C{False}
-		@returns: an L{FunctionThread} object
-		'''
-		func = FunctionThread(
-			self.file,
-			self.file.writelines,
-			self.dump())
-		func.start()
-		self.set_modified(False)
-		return func
 
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.

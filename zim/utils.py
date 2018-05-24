@@ -7,9 +7,6 @@
 import functools
 
 
-from .threading import *
-
-
 class classproperty(object):
 	'''Like C{property()} but for klass properties
 	Typically used as decorator
