@@ -16,6 +16,7 @@ from zim.fs import File, Dir
 from zim.newfs import LocalFolder
 from zim.applications import Application
 from zim.notebook import Path
+from zim.notebook.operations import ongoing_operation
 
 from zim.plugins.versioncontrol import *
 
@@ -90,7 +91,7 @@ class TestMainWindowExtension(tests.TestCase):
 		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
 		notebook = self.setUpNotebook(
 			mock=tests.MOCK_ALWAYS_REAL,
-			#content=tests.FULL_NOTEBOOK,
+			content=('Test',),
 			folder=LocalFolder(dir.path)
 		)
 		mainwindow = setUpMainWindow(notebook)
@@ -99,6 +100,9 @@ class TestMainWindowExtension(tests.TestCase):
 
 		notebook_ext = find_extension(notebook, NotebookExtension)
 		window_ext = find_extension(mainwindow, VersionControlMainWindowExtension)
+
+		op = ongoing_operation(notebook)
+		assert op is None # check no opperation ongoing
 
 		## init & save version
 		self.assertIsNone(notebook_ext.vcs)
@@ -114,7 +118,6 @@ class TestMainWindowExtension(tests.TestCase):
 
 		self.assertIsNotNone(notebook_ext.vcs)
 
-		window_ext._autosave_thread.join()
 		self.assertFalse(notebook_ext.vcs.modified)
 
 		## save version again
@@ -126,8 +129,6 @@ class TestMainWindowExtension(tests.TestCase):
 
 		with tests.DialogContext(SaveVersionDialog):
 			window_ext.save_version()
-
-		window_ext._autosave_thread.join()
 
 		self.assertFalse(notebook_ext.vcs.modified)
 
@@ -145,6 +146,9 @@ class TestMainWindowExtension(tests.TestCase):
 		self.assertTrue(notebook_ext.vcs.modified)
 		mainwindow.emit('close')
 		self.assertFalse(notebook_ext.vcs.modified)
+
+		tests.gtk_process_events()
+		assert ongoing_operation(notebook) is None
 
 
 @tests.slowTest

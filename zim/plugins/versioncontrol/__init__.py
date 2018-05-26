@@ -11,6 +11,8 @@ import os
 import logging
 import threading
 
+from functools import partial
+
 from zim.fs import FS, File, TmpFile
 from zim.plugins import PluginClass, find_extension
 from zim.actions import action
@@ -20,13 +22,14 @@ from zim.applications import Application
 from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
 from zim.notebook import NotebookExtension
-from zim.notebook.operations import NotebookState
+from zim.notebook.operations import NotebookState, SimpleAsyncOperation
 from zim.utils import natural_sort_key
 
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
-	ScrolledWindow, ScrolledTextView, VPaned
+	ScrolledWindow, ScrolledTextView, VPaned, \
+	ProgressDialog
 
 
 if os.environ.get('ZIM_TEST_RUNNING'):
@@ -110,80 +113,6 @@ class VersionControlNotebookExtension(NotebookExtension):
 			self.vcs.disconnect_all()
 
 
-def _monitor_thread(thread):
-	if thread.done:
-		if thread.error:
-			error = thread.exc_info[1]
-			logger.error('Error during async commit', exc_info=thread.exc_info)
-			ErrorDialog(None, error, thread.exc_info).run() # XXX None should be window
-		return False # stop signal
-	else:
-		return True # keep handler
-
-def monitor_thread(thread):
-	GObject.idle_add(_monitor_thread, thread)
-
-
-
-import sys
-import threading
-
-class FunctionThread(threading.Thread):
-	'''Subclass of C{threading.Thread} that runs a single function and
-	keeps the result and any exceptions raised.
-
-	@ivar done: C{True} is the function is done running
-	@ivar result: the return value of C{func}
-	@ivar error: C{True} if done and an exception was raised
-	@ivar exc_info: 3-tuple with exc_info
-	'''
-
-	def __init__(self, func, args=(), kwargs={}, lock=None):
-		'''Constructor
-		@param func: the function to run in the thread
-		@param args: arguments for C{func}
-		@param kwargs: keyword arguments for C{func}
-		@param lock: optional lock, will be acquired in main thread
-		before running and released once done in background
-		'''
-		threading.Thread.__init__(self)
-
-		self.func = func
-		self.args = args
-		self.kwargs = kwargs
-
-		self.lock = lock
-
-		self.done = False
-		self.result = None
-		self.error = False
-		self.exc_info = (None, None, None)
-
-	def start(self):
-		if self.lock is not None:
-			self.lock.acquire()
-		threading.Thread.start(self)
-		if GObject:
-			GObject.idle_add(self._monitor_on_idle)
-
-	def _monitor_on_idle(self):
-		# Only goal if this callback is to ensure python runs in mainloop
-		# as long as thread is alive - avoid C code blocking for a long time
-		# See comment at threads_init() in zim/main/__init__.py
-		return self.is_alive() # if False, stop event
-
-	def run(self):
-		try:
-			self.result = self.func(*self.args, **self.kwargs)
-		except:
-			self.error = True
-			self.exc_info = sys.exc_info()
-		finally:
-			self.done = True
-			if self.lock is not None:
-				self.lock.release()
-
-
 class VersionControlMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
@@ -240,32 +169,46 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 		if not self.notebook_ext.vcs:
 			return False # stop timer
 
-		if self._autosave_thread and not self._autosave_thread.done:
+		if self._autosave_thread and self._autosave_thread.is_alive():
 			return True # continue time
 
-		self._autosave_thread = FunctionThread(self.do_save_version, (msg,))
-		self._autosave_thread.start()
-		monitor_thread(self._autosave_thread)
+		with NotebookState(self.notebook_ext.notebook):
+			op = self._commit_op(msg)
+			self._autosave_thread = op.thread
+			op.run_on_idle()
+
 		return True # continue timer
+
+	def _commit_op(self, msg):
+		thread = threading.Thread(
+			target=partial(self._save_version, msg)
+		)
+		thread.start()
+		return SimpleAsyncOperation(
+			notebook=self.notebook_ext.notebook,
+			message='Saving version in progress',
+			thread=thread
+		)
 
 	def do_save_version(self, msg=None):
 		if not self.notebook_ext.vcs:
 			return
 
-		if self._autosave_thread \
-		and not self._autosave_thread.done \
-		and not self._autosave_thread == threading.current_thread():
+		if self._autosave_thread and self._autosave_thread.is_alive():
 			self._autosave_thread.join()
 
-		if not msg:
+		with NotebookState(self.notebook_ext.notebook):
+			self._save_version(msg)
+
+	def _save_version(self, msg=None):
+		if msg is None:
 			msg = _('Automatically saved version from zim')
 				# T: default version comment for auto-saved versions
 
-		with NotebookState(self.notebook_ext.notebook):
-			try:
-				self.notebook_ext.vcs.commit(msg)
-			except NoChangesError:
-				logger.debug('No autosave version needed - no changes')
+		try:
+			self.notebook_ext.vcs.commit(msg)
+		except NoChangesError:
+			logger.debug('No autosave version needed - no changes')
 
 	@action(_('S_ave Version...'), '<Primary><shift>S', menuhints='notebook:edit') # T: menu item
 	def save_version(self):
@@ -983,11 +926,12 @@ class SaveVersionDialog(Dialog):
 		buffer = self.textview.get_buffer()
 		start, end = buffer.get_bounds()
 		msg = start.get_text(end).strip()
-		if msg:
-			self.window_ext.do_save_version_async(msg)
-			return True
-		else:
+		if not msg:
 			return False
+
+		op = self.window_ext._commit_op(msg)
+		ProgressDialog(self, op).run()
+		return True
 
 
 class VersionsDialog(Dialog):
