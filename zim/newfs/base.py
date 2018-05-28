@@ -111,10 +111,10 @@ def _split_file_url(url):
 	return path.strip('/').split('/'), isshare
 
 
-def _splitnormpath(path):
+def _splitnormpath(path, force_rel=False):
 	# Takes either string or list of names and returns a normalized tuple
 	# Keeps leading "/" or "\\" to distinguish absolute paths
-	if isinstance(path, str):
+	if isinstance(path, str) and not force_rel:
 		if is_url_re.match(path):
 			makeroot = True
 			path, makeshare = _split_file_url(path)
@@ -129,6 +129,8 @@ def _splitnormpath(path):
 	else:
 		makeshare = False
 		makeroot = False
+		if isinstance(path, str):
+			path = re.split(r'[/\\]+', path.strip('/\\'))
 
 	names = []
 	for name in path:
@@ -275,7 +277,7 @@ class FilePath(object):
 
 	def get_childpath(self, path):
 		assert path
-		names = _splitnormpath(path)
+		names = _splitnormpath(path, force_rel=True)
 		if not names or names[0] == '..':
 			raise ValueError('Relative path not below parent: %s' % path)
 		return FilePath(self.pathnames + names)
@@ -419,7 +421,7 @@ class Folder(FSObjectBase):
 	def __iter__(self):
 		raise NotImplementedError
 
-	def list_names(self):
+	def list_names(self, include_hidden=False):
 		raise NotImplementedError
 
 	def list_files(self):
@@ -495,12 +497,12 @@ class Folder(FSObjectBase):
 		when executed for the wrong folder, so please make sure to double
 		check the dir is actually what you think it is before calling this.
 		'''
-		for child in self:
+		for name in self.list_names(include_hidden=True):
+			child = self.child(name)
 			assert child.path.startswith(self.path) # just to be real sure
 			if isinstance(child, Folder):
 				child.remove_children()
-			else:
-				child.remove()
+			child.remove()
 
 	def _copyto(self, other):
 		if other.exists():

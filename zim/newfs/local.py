@@ -164,17 +164,18 @@ class LocalFolder(LocalFSObjectBase, Folder):
 				if showfile:
 					yield self.file(name)
 
-	def list_names(self):
+	def list_names(self, include_hidden=False):
 		try:
 			names = os.listdir(self.path)
 		except OSError:
 			raise FileNotFoundError(self)
 
-		names = sorted([n for n in names
-			if n[0] not in ('.', '~') and n[-1] != '~'])
+		if not include_hidden:
 			# Ignore hidden files and tmp files
+			names = [n for n in names
+						if n[0] not in ('.', '~') and n[-1] != '~']
 
-		return names
+		return sorted(names)
 
 	def file(self, path):
 		return LocalFile(self.get_childpath(path), watcher=self.watcher)

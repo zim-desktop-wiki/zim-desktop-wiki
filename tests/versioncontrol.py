@@ -2,8 +2,6 @@
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-
-
 import tests
 
 from tests.mainwindow import setUpMainWindow
@@ -12,8 +10,7 @@ import os
 import tempfile
 from gi.repository import Gtk
 
-from zim.fs import File, Dir
-from zim.newfs import LocalFolder
+from zim.newfs import LocalFolder, LocalFile
 from zim.applications import Application
 from zim.notebook import Path
 from zim.notebook.operations import ongoing_operation
@@ -31,21 +28,22 @@ import zim.plugins.versioncontrol.fossil
 # avoid mixing up the files
 def get_tmp_dir(name):
 	if 'REAL_TMP' in os.environ: # Set in tests/__init__.py
-		dir = Dir(os.environ['REAL_TMP'])
+		dir = LocalFolder(os.environ['REAL_TMP'])
 	else:
-		dir = Dir(tempfile.gettempdir())
+		dir = LocalFolder(tempfile.gettempdir())
 	#~ print("TMPDIR:", dir)
 
-	dir = dir.subdir('test_versioncontrol').subdir(name)
+	dir = dir.folder('test_versioncontrol').folder(name)
 	if dir.exists():
 		dir.remove_children()
 		dir.remove()
 	assert not dir.exists()
-
+	dir.touch()
 	return dir
 
 
-WIKITEXT = File('tests/data/formats/wiki.txt').read() # Contains some unicode
+with open('./tests/data/formats/wiki.txt') as fh:
+	WIKITEXT = fh.read() # Contains some unicode
 UTF8_COMMENT = 'Commit \u03b1\u03b2\u03b3'
 
 
@@ -53,29 +51,29 @@ UTF8_COMMENT = 'Commit \u03b1\u03b2\u03b3'
 class TestVCS(tests.TestCase):
 
 	def testDetectVCS(self):
-		root = Dir(self.create_tmp_dir())
-		root.subdir('.bzr').touch()
+		root = LocalFolder(self.create_tmp_dir())
+		root.folder('.bzr').touch()
 		self.assertEqual(VCS._detect_in_folder(root), ('bzr', root))
 
-		subdir = root.subdir('Foo/Bar')
-		subdir.touch()
-		self.assertEqual(VCS._detect_in_folder(subdir), ('bzr', root))
+		folder = root.folder('Foo/Bar')
+		folder.touch()
+		self.assertEqual(VCS._detect_in_folder(folder), ('bzr', root))
 
-		subroot = root.subdir('subroot')
-		subroot.subdir('.git').touch()
+		subroot = root.folder('subroot')
+		subroot.folder('.git').touch()
 		self.assertEqual(VCS._detect_in_folder(subroot), ('git', subroot))
 
-		subdir = subroot.subdir('Foo/Bar')
-		subdir.touch()
-		self.assertEqual(VCS._detect_in_folder(subdir), ('git', subroot))
+		folder = subroot.folder('Foo/Bar')
+		folder.touch()
+		self.assertEqual(VCS._detect_in_folder(folder), ('git', subroot))
 
-		subroot = root.subdir('subfold')
+		subroot = root.folder('subfold')
 		subroot.file('.fslckout').touch()
 		self.assertEqual(VCS._detect_in_folder(subroot), ('fossil', subroot))
 
-		subdir = subroot.subdir('Foo/Bar')
-		subdir.touch()
-		self.assertEqual(VCS._detect_in_folder(subdir), ('fossil', subroot))
+		folder = subroot.folder('Foo/Bar')
+		folder.touch()
+		self.assertEqual(VCS._detect_in_folder(folder), ('fossil', subroot))
 
 
 @tests.slowTest
@@ -118,19 +116,19 @@ class TestMainWindowExtension(tests.TestCase):
 
 		self.assertIsNotNone(notebook_ext.vcs)
 
-		self.assertFalse(notebook_ext.vcs.modified)
+		self.assertFalse(notebook_ext.vcs.is_modified())
 
 		## save version again
 		page = notebook.get_page(Path('Foo'))
 		page.parse('wiki', 'foo!')
 		notebook.store_page(page)
 
-		self.assertTrue(notebook_ext.vcs.modified)
+		self.assertTrue(notebook_ext.vcs.is_modified())
 
 		with tests.DialogContext(SaveVersionDialog):
 			window_ext.save_version()
 
-		self.assertFalse(notebook_ext.vcs.modified)
+		self.assertFalse(notebook_ext.vcs.is_modified())
 
 		## show versions
 		with tests.DialogContext(VersionsDialog):
@@ -143,9 +141,9 @@ class TestMainWindowExtension(tests.TestCase):
 		page.parse('wiki', 'foo!')
 		notebook.store_page(page)
 
-		self.assertTrue(notebook_ext.vcs.modified)
+		self.assertTrue(notebook_ext.vcs.is_modified())
 		mainwindow.emit('close')
-		self.assertFalse(notebook_ext.vcs.modified)
+		self.assertFalse(notebook_ext.vcs.is_modified())
 
 		tests.gtk_process_events()
 		assert ongoing_operation(notebook) is None
@@ -195,18 +193,13 @@ class TestBazaar(VersionControlBackendTests, tests.TestCase):
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = VCS.create(VCS.BZR, root, root)
 		self.addCleanup(vcs.disconnect_all)
-		vcs.init()
+		vcs.init_repo()
 
-		#~ for notebookdir in (root, root.subdir('foobar')):
-			#~ detected = VersionControlPlugin._detect_vcs(notebookdir)
-			#~ self.assertEqual(detected.__class__, BazaarVCS)
-			#~ del detected # don't keep multiple instances around
-
-		subdir = root.subdir('foo/bar')
-		file = subdir.file('baz.txt')
+		folder = root.folder('foo/bar')
+		file = folder.file('baz.txt')
 		file.write('foo\nbar\n')
 
-		self.assertEqual(''.join(vcs.get_status()), '''\
+		self.assertEqual(''.join(vcs.status()), '''\
 added:
   .bzrignore
   foo/
@@ -214,12 +207,12 @@ added:
   foo/bar/baz.txt
 ''' )
 
-		vcs.commit('test 1')
-		self.assertRaises(NoChangesError, vcs.commit, 'test 1')
+		vcs.commit_version('test 1')
+		self.assertRaises(NoChangesError, vcs.commit_version, 'test 1')
 
 		ignorelines = lambda line: not (line.startswith('+++') or line.startswith('---'))
 			# these lines contain time stamps
-		diff = vcs.get_diff(versions=(0, 1))
+		diff = vcs.diff(versions=(0, 1))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 === added file '.bzrignore'
@@ -236,7 +229,7 @@ added:
 ''' )
 
 		file.write('foo\nbaz\n')
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 === modified file 'foo/bar/baz.txt'
@@ -248,11 +241,11 @@ added:
 ''' )
 
 		vcs.revert()
-		self.assertEqual(vcs.get_diff(), ['=== No Changes\n'])
+		self.assertEqual(vcs.diff(), [])
 
 		file.write('foo\nbaz\n')
-		vcs.commit('test 2')
-		diff = vcs.get_diff(versions=(1, 2))
+		vcs.commit_version('test 2')
+		diff = vcs.diff(versions=(1, 2))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 === modified file 'foo/bar/baz.txt'
@@ -273,13 +266,13 @@ added:
 		self.assertEqual(versions[1][0], '2')
 		self.assertEqual(versions[1][3], 'test 2\n')
 
-		lines = vcs.get_version(file, version=1)
+		lines = vcs.cat(file, version=1)
 		self.assertEqual(''.join(lines), '''\
 foo
 bar
 ''' )
 
-		annotated = vcs.get_annotated(file)
+		annotated = vcs.annotate(file)
 		lines = []
 		for line in annotated:
 			# get rid of user name
@@ -291,8 +284,8 @@ bar
 ''' )
 
 		#~ print('TODO - test moving a file')
-		file.rename(root.file('bar.txt'))
-		diff = vcs.get_diff()
+		file.moveto(root.file('bar.txt'))
+		diff = vcs.diff()
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 === renamed file 'foo/bar/baz.txt' => 'bar.txt'
@@ -300,19 +293,18 @@ bar
 
 		# Test unicode support
 		file.write(WIKITEXT)
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(diff)
 		self.assertIsInstance(diff, str)
-		vcs.commit(UTF8_COMMENT)
+		vcs.commit_version(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], str)
 
 		### Test delete ###
 		file.remove()
-		file.dir.cleanup()
-		diff = vcs.get_diff()
-		vcs.commit('deleted file')
+		diff = vcs.diff()
+		vcs.commit_version('deleted file')
 
 
 #####################################################
@@ -329,48 +321,48 @@ class TestGit(VersionControlBackendTests, tests.TestCase):
 		root = get_tmp_dir('versioncontrol_TestGit')
 		vcs = VCS.create(VCS.GIT, root, root)
 		self.addCleanup(vcs.disconnect_all)
-		vcs.init()
+		vcs.init_repo()
 
-		#~ for notebookdir in (root, root.subdir('foobar')):
+		#~ for notebookdir in (root, root.folder('foobar')):
 			#~ detected = VersionControlPlugin._detect_vcs(notebookdir)
 			#~ self.assertEqual(detected.__class__, BazaarVCS)
 			#~ del detected # don't keep multiple instances around
 
-		subdir = root.subdir('foo/bar')
-		file = subdir.file('baz.txt')
+		folder = root.folder('foo/bar')
+		file = folder.file('baz.txt')
 		file.write('foo\nbar\n')
 		vcs.stage()
-		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
+		self.assertEqual(''.join(vcs.status(porcelain=True)),
 			'A  .gitignore\n'
 			'A  foo/bar/baz.txt\n'
 		)
-		vcs.commit('test 1')
+		vcs.commit_version('test 1')
 #[master 0f4132e] test 1
 # 1 files changed, 3 insertions(+), 0 deletions(-)
 # create mode 100644 foo/bar/baz.txt
 
 		# git plugin doesnt support this atm
-		#self.assertRaises(NoChangesError, vcs.commit, 'test 1')
+		#self.assertRaises(NoChangesError, vcs.commit_version, 'test 1')
 
-		file = subdir.file('bar.txt')
+		file = folder.file('bar.txt')
 		file.write('second\ntest\n')
 		vcs.stage()
 
-		self.assertEqual(''.join(vcs.get_status(porcelain=True)),
+		self.assertEqual(''.join(vcs.status(porcelain=True)),
 			'A  foo/bar/bar.txt\n'
 		)
 
-		vcs.commit('test 2')
+		vcs.commit_version('test 2')
 #[master dbebdf1] test 2
 # 0 files changed, 0 insertions(+), 0 deletions(-)
 # create mode 100644 foo/bar/bar.txt
 
 		# git plugin doesnt support this atm
-		#self.assertRaises(NoChangesError, vcs.commit, 'test 2')
+		#self.assertRaises(NoChangesError, vcs.commit_version, 'test 2')
 
 		# these lines contain file perms & hashes
 		ignorelines = lambda line: not (line.startswith('new') or line.startswith('index'))
-		diff = vcs.get_diff(versions=('HEAD'))
+		diff = vcs.diff(versions=('HEAD'))
 # john@joran:~/code/zim/TEST$ git diff master^
 # diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 # new file mode 100644
@@ -386,7 +378,7 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 ''' )
 
 		file.write('second\nbaz\n')
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
@@ -399,11 +391,11 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 ''' )
 
 		vcs.revert()
-		self.assertEqual(vcs.get_status(porcelain=True), [])
+		self.assertEqual(vcs.status(porcelain=True), [])
 
 		file.write('second\nbaz\n')
-		vcs.commit('test 3')
-		diff = vcs.get_diff(versions=('HEAD', 'HEAD^'))
+		vcs.commit_version('test 3')
+		diff = vcs.diff(versions=('HEAD', 'HEAD^'))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
@@ -433,7 +425,7 @@ diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 		self.assertEqual(versions[2][3], 'test 3\n')
 
 		# slightly different, we check the 2nd file
-		lines = vcs.get_version(file, version='HEAD^')
+		lines = vcs.cat(file, version='HEAD^')
 		self.assertEqual(''.join(lines), '''\
 second
 test
@@ -446,7 +438,7 @@ test
 #09be0483 1) second
 #526fb2b5 2) baz
 
-		annotated = vcs.get_annotated(file)
+		annotated = vcs.annotate(file)
 		lines = []
 		for line in annotated:
 			# get rid of commit hash, its unique
@@ -460,19 +452,18 @@ test
 
 		# Test unicode support
 		file.write(WIKITEXT)
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(diff)
 		self.assertIsInstance(diff, str)
-		vcs.commit(UTF8_COMMENT)
+		vcs.commit_version(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertIn(UTF8_COMMENT, versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], str)
 
 		### Test delete ###
 		file.remove()
-		file.dir.cleanup()
-		diff = vcs.get_diff()
-		vcs.commit('deleted file')
+		diff = vcs.diff()
+		vcs.commit_version('deleted file')
 
 
 # XXX ignore renames and deletions?
@@ -480,8 +471,8 @@ test
 # Below is a test that we dont need to handle, as we can be quite ignorant of them. Especially considering
 # how git tracks file moves, ie, it doesnt.
 
-#		file.rename(root.file('bar.txt'))
-#		diff = vcs.get_diff()
+#		file.moveto(root.file('bar.txt'))
+#		diff = vcs.diff()
 #john@joran:~/code/zim/TEST$ git diff
 #diff --git a/foo/bar/bar.txt b/foo/bar/bar.txt
 #deleted file mode 100644
@@ -507,30 +498,30 @@ class TestMercurial(VersionControlBackendTests, tests.TestCase):
 		root = get_tmp_dir('versioncontrol_TestMercurial')
 		vcs = VCS.create(VCS.HG, root, root)
 		self.addCleanup(vcs.disconnect_all)
-		vcs.init()
+		vcs.init_repo()
 
-		#~ for notebookdir in (root, root.subdir('foobar')):
+		#~ for notebookdir in (root, root.folder('foobar')):
 			#~ detected = VersionControlPlugin._detect_vcs(notebookdir)
 			#~ self.assertEqual(detected.__class__, BazaarVCS)
 			#~ del detected # don't keep multiple instances around
 
-		subdir = root.subdir('foo/bar')
-		file = subdir.file('baz.txt')
+		folder = root.folder('foo/bar')
+		file = folder.file('baz.txt')
 		file.write('foo\nbar\n')
 
-		self.assertEqual(''.join(vcs.get_status()), '''\
+		self.assertEqual(''.join(vcs.status()), '''\
 A .hgignore
 A foo/bar/baz.txt
 ''' )
 
-		vcs.commit('test 1')
-		self.assertRaises(NoChangesError, vcs.commit, 'test 1')
+		vcs.commit_version('test 1')
+		self.assertRaises(NoChangesError, vcs.commit_version, 'test 1')
 
 		ignorelines = lambda line: not (line.startswith('+++') or line.startswith('---'))
 		# these lines contain time stamps
 
 		file.write('foo\nbaz\n')
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
@@ -541,12 +532,12 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 ''' )
 
 		vcs.revert()
-		self.assertEqual(vcs.get_diff(), ['=== No Changes\n'])
+		self.assertEqual(vcs.diff(), [])
 
 
 		file.write('foo\nbaz\n')
-		vcs.commit('test 2')
-		diff = vcs.get_diff(versions=(0, 1))
+		vcs.commit_version('test 2')
+		diff = vcs.diff(versions=(0, 1))
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
@@ -567,13 +558,13 @@ diff --git a/foo/bar/baz.txt b/foo/bar/baz.txt
 		self.assertEqual(versions[1][3], 'test 2')
 
 
-		lines = vcs.get_version(file, version=0)
+		lines = vcs.cat(file, version=0)
 		self.assertEqual(''.join(lines), '''\
 foo
 bar
 ''' )
 
-		annotated = vcs.get_annotated(file)
+		annotated = vcs.annotate(file)
 		lines = []
 		for line in annotated:
 			# get rid of user name
@@ -585,9 +576,9 @@ bar
 ''' )
 
 		#~ print('TODO - test moving a file')
-		file.rename(root.file('bar.txt'))
+		file.moveto(root.file('bar.txt'))
 
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(filter(ignorelines, diff))
 		self.assertEqual(diff, '''\
 diff --git a/foo/bar/baz.txt b/bar.txt
@@ -597,23 +588,22 @@ rename to bar.txt
 
 		# Test deleting file
 		root.file('bar.txt').remove()
-		vcs.commit('test deleting')
+		vcs.commit_version('test deleting')
 
 		# Test unicode support
 		file.write(WIKITEXT)
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(diff)
 		self.assertIsInstance(diff, str)
-		vcs.commit(UTF8_COMMENT)
+		vcs.commit_version(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertTrue(UTF8_COMMENT in versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], str)
 
 		### Test delete ###
 		file.remove()
-		file.dir.cleanup()
-		diff = vcs.get_diff()
-		vcs.commit('deleted file')
+		diff = vcs.diff()
+		vcs.commit_version('deleted file')
 
 
 #####################################################
@@ -630,26 +620,25 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		root = get_tmp_dir('versioncontrol_TestFossil')
 		vcs = VCS.create(VCS.FOSSIL, root, root)
 		self.addCleanup(vcs.disconnect_all)
-		vcs.init()
+		vcs.init_repo()
 
-		subdir = root.subdir('foo/bar')
-		file = subdir.file('baz.txt')
+		folder = root.folder('foo/bar')
+		file = folder.file('baz.txt')
 		file.write('foo\nbar\n')
-		vcs.on_path_created(None, file)
-		self.assertEqual(''.join(vcs.get_status()),
+
+		self.assertEqual(''.join(vcs.status()),
 			'ADDED      foo/bar/baz.txt\n'
 		)
-		vcs.commit('test 1')
+		vcs.commit_version('test 1')
 
-		file = subdir.file('bar.txt')
+		file = folder.file('bar.txt')
 		file.write('second\ntest\n')
-		vcs.on_path_created(None, file)
 
-		self.assertEqual(''.join(vcs.get_status()),
+		self.assertEqual(''.join(vcs.status()),
 			'ADDED      foo/bar/bar.txt\n'
 		)
 
-		vcs.commit('test 2')
+		vcs.commit_version('test 2')
 
 		versions = vcs.list_versions()
 
@@ -667,13 +656,13 @@ class TestFossil(VersionControlBackendTests, tests.TestCase):
 		self.assertEqual(versions[1][3], 'test 1 ')
 
 		# slightly different, we check the 2nd file
-		lines = vcs.get_version(file, version=versions[0][0])
+		lines = vcs.cat(file, version=versions[0][0])
 		self.assertEqual(''.join(lines), '''\
 second
 test
 ''' )
 
-		diff = vcs.get_diff(versions=(versions[2][0], versions[0][0]))
+		diff = vcs.diff(versions=(versions[2][0], versions[0][0]))
 		diff = ''.join(diff)
 		self.assertEqual(diff, '''\
 ADDED   foo/bar/bar.txt
@@ -681,7 +670,7 @@ ADDED   foo/bar/baz.txt
 ''' )
 
 		file.write('second\nbaz\n')
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(diff)
 		self.assertEqual(diff, '''\
 Index: foo/bar/bar.txt
@@ -696,14 +685,14 @@ Index: foo/bar/bar.txt
 ''' )
 
 		vcs.revert()
-		self.assertEqual(vcs.get_status(), [])
+		self.assertEqual(vcs.status(), [])
 
 		file.write('second\nbaz\n')
-		vcs.commit('test 3')
+		vcs.commit_version('test 3')
 
 		versions = vcs.list_versions()
 
-		diff = vcs.get_diff(versions=(versions[1][0], versions[0][0]))
+		diff = vcs.diff(versions=(versions[1][0], versions[0][0]))
 		diff = ''.join(diff)
 		self.assertEqual(diff, '''\
 Index: foo/bar/bar.txt
@@ -717,7 +706,7 @@ Index: foo/bar/bar.txt
 
 ''' )
 
-		annotated = vcs.get_annotated(file)
+		annotated = vcs.annotate(file)
 		lines = []
 		for line in annotated:
 			# get rid of commit hash, its unique
@@ -730,16 +719,15 @@ Index: foo/bar/bar.txt
 
 		# Test unicode support
 		file.write(WIKITEXT)
-		diff = vcs.get_diff()
+		diff = vcs.diff()
 		diff = ''.join(diff)
 		self.assertIsInstance(diff, str)
-		vcs.commit(UTF8_COMMENT)
+		vcs.commit_version(UTF8_COMMENT)
 		versions = vcs.list_versions()
 		self.assertIn(UTF8_COMMENT, versions[0][-1])
 		self.assertIsInstance(versions[0][-1], str)
 
 		### Test delete ###
 		file.remove()
-		file.dir.cleanup()
-		diff = vcs.get_diff()
-		vcs.commit('deleted file')
+		diff = vcs.diff()
+		vcs.commit_version('deleted file')

@@ -288,6 +288,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.icon = None
 		self.document_root = None
 
+		if folder.watcher is None:
+			from zim.newfs.helpers import FileTreeWatcher
+			folder.watcher = FileTreeWatcher()
+
 		from .index import PagesView, LinksView, TagsView
 		self.pages = PagesView.new_from_index(self.index)
 		self.links = LinksView.new_from_index(self.index)
