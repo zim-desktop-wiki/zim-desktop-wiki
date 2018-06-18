@@ -89,18 +89,19 @@ class WikiParser(object):
 
 	def _init_inline_parse(self):
 		# Rules for inline formatting, links and tags
+		descent = lambda *a: self.inline_parser(*a)
 		return (
 			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
-			| Rule(EMPHASIS, r'//(?!/)(.*?)//')
-			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*')
-			| Rule(MARK, r'__(?!_)(.*?)__')
-			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}')
-			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}')
-			| Rule(STRIKE, r'~~(?!~)(.+?)~~')
-			| Rule(VERBATIM, r"''(?!')(.+?)''")
+			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
+			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*', descent=descent)
+			| Rule(MARK, r'__(?!_)(.*?)__', descent=descent)
+			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}', descent=descent)
+			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}', descent=descent)
+			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
+			| Rule(VERBATIM, r"''(?!')(.+?)''", descent=descent)
 		)
 
 	def _init_intermediate_parser(self):

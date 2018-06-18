@@ -48,11 +48,9 @@ Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
 get the same effect.
 
-Since elements are based on the functional markup instead of visual
-markup it is not allowed to nest elements in arbitrary ways.
+(! :) Not true: XSince elements are based on the functional markup instead of visual
+< markup it is not allowed to nest elements in arbitrary ways.)
 
-TODO: allow links to be nested in other elements
-TODO: allow strike to have sub elements
 TODO: add HR element
 
 If a page starts with a h1 this heading is considered the page title,
@@ -1005,7 +1003,7 @@ class OldParseTreeBuilder(object):
 			# Tags that are not allowed to have newlines
 			if not self._tail and self._last.tag in (
 			'h', 'emphasis', 'strong', 'mark', 'strike', 'code'):
-				# assume no nested tags in these types ...
+                # assume no nested tags in these types ... XXE3rd: WHY we assume no nested tags? They are now all of them nested and it still works well without change.
 				if self._seen_eol:
 					text = text.rstrip('\n')
 					self._data.append('\n' * self._seen_eol)

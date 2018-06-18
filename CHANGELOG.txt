@@ -4,6 +4,9 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== next ===
+* Multiformatting - possibility to apply more than one text style. It it possible to nest any number of text styles from the set: EMPHASIS, STRONG, MARK, SUBSCRIPT, SUPERSCRIPT, STRIKE, VERBATIM, LINK. It is not possible to style a HEADER. I don't know if that works reliably with a TAG.
+
 === 0.68 - Sat 17 Mar 2018 ===
 * Critical fix for updating links on move page and rename page
 * Critical fix for rename page and indexing on case-insensitive file systems
