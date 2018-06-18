@@ -170,6 +170,13 @@ the Achaeans.
 | a very long cell | **bold text** | b                      |
 |    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
 
+===== Multiformatting =====
+
+normal **bold** normal2
+normal ~~strike **nested bold** strike2~~ normal2
+normal ~~strike **nested bold** strike2~~ //italic [[https://example.org|link]]// normal2
+normal ~~strike  **nested bold** middle of the text //italic [[https://example.org|link]]// yet another text **another bold //yet another italic//** ~~ normal2
+
 ====
 This is not a header
 

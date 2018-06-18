@@ -286,7 +286,7 @@ class ParserError(Error):
 
 
 class Rule(object):
-	'''Class that defines a sigle parser rule. Typically used
+	'''Class that defines a single parser rule. Typically used
 	to define a regex pattern for one specific wiki format string
 	and the processing to be done when this formatting is encountered
 	in the text.
@@ -333,7 +333,7 @@ class Rule(object):
 		# default action for matched text
 		if self.descent:
 			builder.start(self.tag)
-			self.descent(builder, *text)
+			self.descent(builder, text)
 			builder.end(self.tag)
 		else:
 			builder.append(self.tag, None, text)

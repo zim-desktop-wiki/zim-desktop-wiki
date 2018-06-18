@@ -206,6 +206,14 @@ A table
 |    hyperlinks    | `wp?wiki <interwiki:wp?wiki>`_ | `Xorg <http://x.org>`_ |
 +------------------+--------------------------------+------------------------+
 
+Multiformatting
+---------------
+
+normal **bold** normal2
+normal strike **nested bold** strike2 normal2
+normal strike **nested bold** strike2 *italic `link <https://example.org>`_* normal2
+normal strike  **nested bold** middle of the text *italic `link <https://example.org>`_* yet another text **another bold *yet another italic***  normal2
+
 ====
 This is not a header
 

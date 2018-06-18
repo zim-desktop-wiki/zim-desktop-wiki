@@ -14,6 +14,8 @@ from zim.notebook import Path
 from zim.parsing import link_type
 from zim.templates import Template
 
+from xml.etree.ElementTree import ElementTree, Element
+
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print('WARNING: using ElementTree instead of cElementTree')
@@ -77,6 +79,7 @@ class TestFormatMixin(object):
 		result = ''.join(dumper.dump(reftree))
 		#~ print('\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n')
 		self.assertMultiLineEqual(result, wanted)
+		#import ipdb; ipdb.set_trace()
 		self.assertNoTextMissing(result, reftree)
 
 		# Check that dumper did not modify the tree
@@ -113,32 +116,41 @@ class TestFormatMixin(object):
 		'''
 		# TODO how to handle objects ??
 		assert isinstance(text, str)
-		offset = 0
-		for elt in tree._etree.iter():
-			if elt.tag == 'img':
-				elttext = (elt.tail) # img text is optional
-			else:
-				elttext = (elt.text, elt.tail)
 
-			for wanted in elttext:
-				if not wanted:
-					continue
+		def check_text(wanted):
+			if not wanted:
+				return
 
-				wanted = self._nonalpha_re.sub(' ', wanted)
-					# Non-alpha chars may be replaced with escapes
-					# so no way to hard test them
+			wanted = self._nonalpha_re.sub(' ', wanted)
+			# Non-alpha chars may be replaced with escapes
+			# so no way to hard test them
 
-				if wanted.isspace():
-					continue
+			if wanted.isspace():
+				return
 
-				for piece in wanted.strip().split():
-					#~ print("| >>%s<< @ offset %i" % (piece, offset))
-					try:
-						start = text.index(piece, offset)
-					except ValueError:
-						self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (piece, offset, text[offset:offset + 100]))
-					else:
-						offset = start + len(piece)
+			for piece in wanted.strip().split():
+				# ~ print("| >>%s<< @ offset %i" % (piece, offset))
+				try:
+					start = text.index(piece, self.offset)
+				except ValueError:
+					self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (
+						piece, self.offset, text[self.offset:self.offset + 100]))
+				else:
+					self.offset = start + len(piece)
+
+		def loop_tree(tree):  # parse elements one by one, in-depth
+			if type(tree) is Element:
+				if tree.text and tree.tag != "img":  # img text is optional
+					check_text(tree.text)
+
+			for elt in tree.findall("*"):  # if that's a tree or a parent element, dive further
+				loop_tree(elt)
+
+			if type(tree) is Element:
+				check_text(tree.tail)
+
+		self.offset = 0
+		loop_tree(tree._etree)
 
 
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -124,7 +125,7 @@ KEYVALS_BACKSPACE = list(map(Gdk.keyval_from_name, ('BackSpace',)))
 KEYVALS_TAB = list(map(Gdk.keyval_from_name, ('Tab', 'KP_Tab')))
 KEYVALS_LEFT_TAB = list(map(Gdk.keyval_from_name, ('ISO_Left_Tab',)))
 
-#~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
+# ~ CHARS_END_OF_WORD = (' ', ')', '>', '.', '!', '?')
 CHARS_END_OF_WORD = ('\t', ' ', ')', '>', ';')
 KEYVALS_END_OF_WORD = list(map(
 	Gdk.unicode_to_keyval, list(map(ord, CHARS_END_OF_WORD)))) + KEYVALS_TAB
@@ -491,7 +492,7 @@ class TextBuffer(Gtk.TextBuffer):
 	@signal: C{inserted-tree (start, end, tree, interactive)}:
 	Gives inserted tree after inserting it
 	@signal: C{textstyle-changed (style)}:
-	Emitted when textstyle at the cursor changes
+	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
 	@signal: C{link-clicked ()}:
 	Emitted when a link is clicked; for example within a table cell
 	@signal: C{clear ()}:
@@ -783,10 +784,11 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def do_end_insert_tree(self):
 		self._insert_tree_in_progress = False
-		self.emit('textstyle-changed', self.get_textstyle())
-			# emitting textstyle-changed is skipped while loading the tree
+		self.emit('textstyle-changed', self.get_textstyles())
 
-	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', raw=False):
+	# emitting textstyle-changed is skipped while loading the tree
+
+	def _insert_element_children(self, node, list_level=-1, list_type=None, list_start='0', raw=False, textstyles=[]):
 		# FIXME should load list_level from cursor position
 		#~ list_level = get_indent --- with bullets at indent 0 this is not bullet proof...
 		list_iter = list_start
@@ -800,7 +802,7 @@ class TextBuffer(Gtk.TextBuffer):
 			# and level=0 as different cases.
 			self._editmode_tags = list(filter(_is_not_indent_tag, self._editmode_tags))
 			if level is None:
-				return # Nothing more to do
+				return  # Nothing more to do
 
 			iter = self.get_insert_iter()
 			if not iter.starts_line():
@@ -809,7 +811,7 @@ class TextBuffer(Gtk.TextBuffer):
 				assert len(tags) <= 1, 'BUG: overlapping indent tags'
 				if tags and int(tags[0].zim_attrib['indent']) == level:
 					self._editmode_tags.append(tags[0])
-					return # Re-use tag
+					return  # Re-use tag
 
 			tag = self._get_indent_tag(level, bullet)
 				# We don't set the LTR / RTL direction here
@@ -836,7 +838,7 @@ class TextBuffer(Gtk.TextBuffer):
 				if element.text:
 					self.insert_at_cursor(element.text)
 
-				self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
+				self._insert_element_children(element, list_level=list_level, raw=raw, textstyles=textstyles)  # recurs
 
 				set_indent(None)
 			elif element.tag in ('ul', 'ol'):
@@ -845,7 +847,8 @@ class TextBuffer(Gtk.TextBuffer):
 					level = int(element.attrib['indent'])
 				else:
 					level = list_level + 1
-				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw) # recurs
+				self._insert_element_children(element, list_level=level, list_type=element.tag, list_start=start, raw=raw,
+											  textstyles=textstyles)  # recurs
 				set_indent(None)
 			elif element.tag == 'li':
 				force_line_start()
@@ -869,17 +872,17 @@ class TextBuffer(Gtk.TextBuffer):
 				if element.text:
 					self.insert_at_cursor(element.text)
 
-				self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
+				self._insert_element_children(element, list_level=list_level, raw=raw, textstyles=textstyles)  # recurs
 				set_indent(None)
 
 				if not raw:
 					self.insert_at_cursor('\n')
 
 			elif element.tag == 'link':
-				self.set_textstyle(None) # Needed for interactive insert tree after paste
+				self.set_textstyles(textstyles)  # reset needed for interactive insert tree after paste
 				self.insert_link_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'tag':
-				self.set_textstyle(None) # Needed for interactive insert tree after paste
+				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
 				self.insert_tag_at_cursor(element.text, **element.attrib)
 			elif element.tag == 'img':
 				file = element.attrib['_src_file']
@@ -887,10 +890,10 @@ class TextBuffer(Gtk.TextBuffer):
 			elif element.tag == 'pre':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-				self.set_textstyle(element.tag)
+				self.set_textstyles([element.tag])
 				if element.text:
 					self.insert_at_cursor(element.text)
-				self.set_textstyle(None)
+				self.set_textstyles(None)
 				set_indent(None)
 			elif element.tag == 'table':
 				if 'indent' in element.attrib:
@@ -908,23 +911,30 @@ class TextBuffer(Gtk.TextBuffer):
 				set_indent(None)
 			else:
 				# Text styles
+				flushed = False
 				if element.tag == 'h':
 					force_line_start()
 					tag = 'h' + str(element.attrib['level'])
-					self.set_textstyle(tag)
+					self.set_textstyles([tag])  # textstyles do strange things in there
 				elif element.tag in self._static_style_tags:
-					self.set_textstyle(element.tag)
+					self.set_textstyles(textstyles + [element.tag])
+					if element.text:
+						self.insert_at_cursor(element.text)
+					flushed = True
+					self._insert_element_children(element, list_level=list_level, raw=raw,
+												  textstyles=textstyles + [element.tag])  # recurs
 				elif element.tag == '_ignore_':
 					# raw tree from undo can contain these
-					self._insert_element_children(element, list_level=list_level, raw=raw) # recurs
+					self._insert_element_children(element, list_level=list_level, raw=raw, textstyles=textstyles)  # recurs
 				else:
 					logger.debug("Unknown tag : %s, %s, %s", element.tag,
-								element.attrib, element.text)
+								 element.attrib, element.text)
 					assert False, 'Unknown tag: %s' % element.tag
 
-				if element.text:
+				if element.text and not flushed:
 					self.insert_at_cursor(element.text)
-				self.set_textstyle(None)
+
+				self.set_textstyles(textstyles)
 
 			if element.tail:
 				self.insert_at_cursor(element.tail)
@@ -950,9 +960,8 @@ class TextBuffer(Gtk.TextBuffer):
 		@param attrib: any other link attributes
 		'''
 		tag = self._create_link_tag(text, href, **attrib)
-		self._editmode_tags = \
-			list(filter(_is_not_link_tag,
-				list(filter(_is_not_style_tag, self._editmode_tags)))) + [tag]
+		self._editmode_tags += [tag]
+		self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags)) + [tag]
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1040,8 +1049,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		tag = self._create_tag_tag(text, **attrib)
 		self._editmode_tags = \
-			list(filter(_is_not_tag_tag,
-				list(filter(_is_not_style_tag, self._editmode_tags)))) + [tag]
+			list(filter(_is_not_tag_tag, self._editmode_tags)) + [tag]
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1456,27 +1464,28 @@ class TextBuffer(Gtk.TextBuffer):
 
 				line += 1
 
-	def set_textstyle(self, name):
+	def set_textstyles(self, names):
 		'''Sets the current text format style.
 
-		@param name: the name of the format style
+		@param names: the name of the format style
 
 		This style will be applied to text inserted at the cursor.
-		Use C{set_textstyle(None)} to reset to normal text.
+		Use C{set_textstyles(None)} to reset to normal text.
 		'''
-		self._editmode_tags = list(filter(_is_not_style_tag, self._editmode_tags))
+		self._editmode_tags = list(filter(_is_not_style_tag, self._editmode_tags))  # remove all text styles first
 
-		if not name is None:
-			tag = self.get_tag_table().lookup('style-' + name)
-			if _is_heading_tag(tag):
-				self._editmode_tags = \
-					list(filter(_is_not_indent_tag, self._editmode_tags))
-			self._editmode_tags.append(tag)
+		if names:
+			for name in names:
+				tag = self.get_tag_table().lookup('style-' + name)
+				if _is_heading_tag(tag):
+					self._editmode_tags = \
+						list(filter(_is_not_indent_tag, self._editmode_tags))
+				self._editmode_tags.append(tag)
 
 		if not self._insert_tree_in_progress:
-			self.emit('textstyle-changed', name)
+			self.emit('textstyle-changed', names)
 
-	def get_textstyle(self):
+	def get_textstyles(self):
 		'''Get the name of the formatting style that will be applied
 		to newly inserted text
 
@@ -1485,10 +1494,10 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		tags = list(filter(_is_style_tag, self._editmode_tags))
 		if tags:
-			assert len(tags) == 1, 'BUG: can not have multiple text styles'
-			return tags[0].get_property('name')[6:] # len('style-') == 6
+			# X not anymore assert len(tags) == 1, 'BUG: can not have multiple text styles'
+			return [tag.get_property('name')[6:] for tag in tags]  # len('style-') == 6
 		else:
-			return None
+			return []
 
 	def update_editmode(self):
 		'''Updates the text style and indenting applied to newly inderted
@@ -1514,13 +1523,7 @@ class TextBuffer(Gtk.TextBuffer):
 		if not tags == self._editmode_tags:
 			#~ print('>', [(t.zim_type, t.get_property('name')) for t in tags])
 			self._editmode_tags = tags
-			for tag in tags:
-				if tag.zim_type == 'style':
-					name = tag.get_property('name')[6:]
-					self.emit('textstyle-changed', name)
-					break
-			else:
-				self.emit('textstyle-changed', None)
+			self.emit('textstyle-changed', [tag.get_property('name')[6:] for tag in tags if tag.zim_type == 'style'])
 
 	def iter_get_zim_tags(self, iter):
 		'''Replacement for C{Gtk.TextIter.get_tags()} which returns
@@ -1603,10 +1606,10 @@ class TextBuffer(Gtk.TextBuffer):
 		@param name: the format style name
 		'''
 		if not self.get_has_selection():
-			if name == self.get_textstyle():
-				self.set_textstyle(None)
+			if name in self.get_textstyles():
+				self.set_textstyles(self.get_textstyles().remove(name))
 			else:
-				self.set_textstyle(name)
+				self.set_textstyles(self.get_textstyles() + [name])
 		else:
 			with self.user_action:
 				start, end = self.get_selection_bounds()
@@ -1619,8 +1622,16 @@ class TextBuffer(Gtk.TextBuffer):
 
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
-				self.remove_textstyle_tags(start, end)
-				if not had_tag:
+				#self.remove_textstyle_tags(start, end)
+				#if not had_tag:
+
+				if tag.zim_tag == "h":
+					# FIXME having additional styling splits in multiline-gargabed header so we're removing all styles.
+					# When fixed, maybe `self.smart_remove_tags(_is_heading_tag, start, end)` will do.
+					self.remove_textstyle_tags(start, end)
+				if had_tag:
+					self.remove_tag(tag, start, end)
+				else:
 					self.apply_tag(tag, start, end)
 				self.set_modified(True)
 
@@ -1658,7 +1669,7 @@ class TextBuffer(Gtk.TextBuffer):
 		@param end: a C{Gtk.TextIter}
 		'''
 		if tag in start.get_tags() \
-		and tag in self.iter_get_zim_tags(end):
+				and tag in self.iter_get_zim_tags(end):
 			iter = start.copy()
 			if iter.forward_to_tag_toggle(tag):
 				return iter.compare(end) >= 0
@@ -1676,7 +1687,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		# test right gravity for start iter, but left gravity for end iter
 		if tag in start.get_tags() \
-		or tag in self.iter_get_zim_tags(end):
+				or tag in self.iter_get_zim_tags(end):
 			return True
 		else:
 			iter = start.copy()
@@ -1699,7 +1710,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		# test right gravity for start iter, but left gravity for end iter
 		if any(filter(func, start.get_tags())) \
-		or any(filter(func, self.iter_get_zim_tags(end))):
+				or any(filter(func, self.iter_get_zim_tags(end))):
 			return True
 		else:
 			iter = start.copy()
@@ -1774,7 +1785,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _get_indent_tag(self, level, bullet=None, dir='LTR'):
 		if dir is None:
-			dir = 'LTR' # Assume western default direction - FIXME need system default
+			dir = 'LTR'  # Assume western default direction - FIXME need system default
 		name = 'indent-%s-%i' % (dir, level)
 		if bullet:
 			name += '-' + bullet
@@ -5078,7 +5089,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	@signal: C{modified-changed ()}: emitted when the page is edited
 	@signal: C{textstyle-changed (style)}:
-	Emitted when textstyle at the cursor changes
+	Emitted when textstyle at the cursor changes, gets the list of text styles or None.
 	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
 	stops emission after the first handler returns C{True}
 	@signal: C{ui-init ()}: trigger for extensions to load uimanager stuff,
@@ -5682,15 +5693,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.actiongroup.get_action('edit_object').set_sensitive(False)
 			self.actiongroup.get_action('remove_link').set_sensitive(False)
 
-	def do_textstyle_changed(self, style):
+	def do_textstyle_changed(self, styles):
 		# Update menu items for current style
 		#~ print('>>> SET STYLE', style)
 
-		# set toolbar toggles
-		if style:
-			style_toggle = 'toggle_format_' + style
-		else:
-			style_toggle = None
+		if not styles:  # styles can be None or a list
+			styles = []
 
 		# Here we explicitly never change the toggle that initiated
 		# the change (_current_toggle_action). Somehow touching this
@@ -5707,7 +5715,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				continue
 			else:
 				action.handler_block_by_func(self.do_toggle_format_action)
-				action.set_active(name == style_toggle)
+				action.set_active(name[len("toggle_format_"):] in styles)
 				action.handler_unblock_by_func(self.do_toggle_format_action)
 
 		#~ print('<<<')
@@ -6373,7 +6381,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				buffer.unset_selection()
 				buffer.place_cursor(buffer.get_iter_at_mark(mark))
 		else:
-			buffer.set_textstyle(None)
+			buffer.set_textstyles(None)
 
 		buffer.delete_mark(mark)
 
@@ -6410,7 +6418,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		selected = False
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
-		if format != buffer.get_textstyle():
+		if format not in buffer.get_textstyles():
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
 			if ishead:
 				line = buffer.get_insert_iter().get_line()

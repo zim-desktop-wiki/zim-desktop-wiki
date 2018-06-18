@@ -169,6 +169,14 @@ A table
 |    hyperlinks    |   wp?wiki | Xorg |
 +------------------+-----------+------+
 
+Multiformatting
+---------------
+
+normal bold normal2
+normal strike nested bold strike2 normal2
+normal strike nested bold strike2 italic link normal2
+normal strike  nested bold middle of the text italic link yet another text another bold yet another italic  normal2
+
 ====
 This is not a header
 

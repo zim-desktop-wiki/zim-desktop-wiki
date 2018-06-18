@@ -244,7 +244,7 @@ class MainWindow(Window):
 			return label
 
 		# specify statusbar elements right-to-left
-		self.statusbar_style_label = statusbar_element('<style>', 100)
+		self.statusbar_style_label = statusbar_element('<style>', 110)
 		self.statusbar_insert_label = statusbar_element('INS', 60)
 
 		# and build the widget for backlinks
@@ -710,8 +710,8 @@ class MainWindow(Window):
 			text = 'INS'
 		self.statusbar_insert_label.set_text(text)
 
-	def on_textview_textstyle_changed(self, view, style):
-		label = style.title() if style else 'None'
+	def on_textview_textstyle_changed(self, view, styles):
+		label = ", ".join([s.title() for s in styles if s]) if styles else 'None'
 		self.statusbar_style_label.set_text(label)
 
 	def on_link_enter(self, view, link):

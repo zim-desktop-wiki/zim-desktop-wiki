@@ -1727,6 +1727,62 @@ Foo 123
 		newtree = buffer.get_parsetree()
 		self.assertEqual(newtree.tostring(), tree.tostring())
 
+
+	def testFormatting(self):
+			view = TextView(self.preferences)
+			notebook = self.setUpNotebook()
+			page = notebook.get_page(Path('Test'))
+			buffer = TextBuffer(notebook, page)
+			view.set_buffer(buffer)
+			# Need a window to get the widget realized
+			window = Gtk.Window()
+			window.add(view)
+			view.realize()
+
+			# First, let's write down just basic bold text and expect it in the XML
+			press(view, 'normal **bold** normal2\n')
+			wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>normal <strong>bold</strong> normal2\n</p></zim-tree>'''
+			tree = buffer.get_parsetree(raw=False)
+			self.assertEqual(tree.tostring(), wanted)
+
+			# Next, add a strike style nested under another bold text
+			press(view, 'normal ~~strike  **nested bold** strike2~~ normal2\n')
+
+			wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>normal <strong>bold</strong> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
+</p></zim-tree>'''
+			tree = buffer.get_parsetree(raw=False)
+			self.assertEqual(tree.tostring(), wanted)
+
+			# Add a link nested under an italic style
+			press(view, 'normal ~~strike  **nested bold** strike2~~ //italic [[https://example.org|link]]// normal2\n')
+			wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>normal <strong>bold</strong> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
+</p></zim-tree>'''
+			tree = buffer.get_parsetree(raw=False)
+			self.assertEqual(tree.tostring(), wanted)
+
+			# Add a complex case - triply nested style
+			press(view,
+				  'normal ~~strike  **nested bold** strike2 //striked italic **bold link coming: [[https://example.org|link]]**// ~~normal2\n')
+			wanted = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>normal <strong>bold</strong> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis> </strike>normal2
+</p></zim-tree>'''
+			tree = buffer.get_parsetree(raw=False)
+			self.assertEqual(tree.tostring(), wanted)
+
+
 # TODO: More popup stuff
 
 

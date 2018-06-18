@@ -177,6 +177,14 @@ A table
 | a very long cell |                **bold text** | b                    |
 |    hyperlinks    | [wp?wiki](interwiki:wp?wiki) | [Xorg](http://x.org) |
 
+Multiformatting
+---------------
+
+normal **bold** normal2
+normal ~~strike **nested bold** strike2~~ normal2
+normal ~~strike **nested bold** strike2~~ *italic [link](https://example.org)* normal2
+normal ~~strike  **nested bold** middle of the text *italic [link](https://example.org)* yet another text **another bold *yet another italic*** ~~ normal2
+
 ====
 This is not a header
 

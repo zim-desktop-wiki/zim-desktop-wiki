@@ -5,6 +5,9 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  next
+* Multiformatting - possibility to apply more than one text style. It it possible to nest any number of text styles from the set: EMPHASIS, STRONG, MARK, SUBSCRIPT, SUPERSCRIPT, STRIKE, VERBATIM, LINK. It is not possible to style a HEADER. I don't know if that works reliably with a TAG. -- Edvard Rejthar
+
 ##  0.70-rc3 - Mon 18 Feb 2019
 * Ported zim to use Python3 & Gtk3
 * Refactored application framework, all windows run single process now with
