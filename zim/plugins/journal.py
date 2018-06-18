@@ -244,9 +244,26 @@ class JournalPageViewExtension(PageViewExtension):
 
 	@action(_('To_day'), accelerator='<Alt>D', menuhints='go') # T: menu item
 	def go_page_today(self):
+		""" Opens the current day page in the Journal. If some text is selected,
+			it is replaced with a link and moved at the end of today's page.
+		"""
 		today = datetime.date.today()
 		path = self.plugin.path_from_date(today)
+
+		contents = ""
+		buffer = self.navigation.window.pageview.textview.get_buffer()
+		if buffer.get_selection_bounds():
+			contents = buffer.get_parsetree(buffer.get_selection_bounds())
+			buffer.delete(*buffer.get_selection_bounds())  # cuts the moved text from the original page
+			link = str(path)
+			link = self.navigation.window.notebook.suggest_link(self.pageview.page, link) or link  # hope that suggest_link is implemented correctly
+			buffer.insert_link_at_cursor(str(path), link)
+
 		self.navigation.open_page(path)
+
+		if contents:
+			buffer = self.navigation.window.pageview.textview.get_buffer()
+			buffer.insert_parsetree(buffer.get_end_iter(), contents)
 
 
 class Calendar(Gtk.Calendar):

@@ -4,6 +4,9 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== next ===
+* Calendar plugin: When performing "Go to Today" action, having some text selected, it is replaced with a link and moved at the end of today's page. -- Edvard Rejthar
+
 === 0.68 - Sat 17 Mar 2018 ===
 * Critical fix for updating links on move page and rename page
 * Critical fix for rename page and indexing on case-insensitive file systems
