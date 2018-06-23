@@ -1,5 +1,5 @@
 
-# Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2012-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 #~ from __future__ import with_statement
 
@@ -50,9 +50,8 @@ def set_clipboard_image(file):
 class TestClipboard(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.notebook = self.setUpNotebook(content=('Test',))
 
-	@tests.expectedFailure
 	def testCopyPasteText(self):
 		text = 'test **123** \u2022' # text with non-ascii character
 		Clipboard.set_text(text)
@@ -182,23 +181,17 @@ some <b>bold</b> text
 		self.assertEqual(self.notebook.resolve_file(rel_path, page), file_obj)
 
 	@tests.expectedFailure
-	def testCopyPastePageLink(self):
-		# pagelink -> uri list
+	def testCopyPageLinkPasteAsParseTree(self):
 		page = self.notebook.get_page(Path('Test:wiki'))
 		Clipboard.set_pagelink(self.notebook, page)
-
-		data = get_clipboard_contents(INTERNAL_PAGELIST_TARGET_NAME)
-		self.assertEqual(data, 'Test:wiki\r\n')
-
-		data = get_clipboard_contents(PAGELIST_TARGET_NAME)
-		self.assertEqual(data, 'TestClipboard_testCopyPastePageLink?Test:wiki\r\n')
-
-		# pagelink -> parsetree
 		wanted = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="+wiki">+wiki</link></zim-tree>'''
 		newtree = Clipboard.get_parsetree(self.notebook, Path('Test'))
 		self.assertEqual(newtree.tostring(), wanted)
 
-		# pagelink -> text
+	@tests.expectedFailure
+	def testCopyPageLinkPasteAsText(self):
+		page = self.notebook.get_page(Path('Test:wiki'))
+		Clipboard.set_pagelink(self.notebook, page)
 		text = Clipboard.get_text()
 		self.assertEqual(text, 'Test:wiki')
 
@@ -207,14 +200,3 @@ some <b>bold</b> text
 
 	#~ def testCopyPasteUrl(self):
 		#~ assert False
-
-# ClipboardManager.set_store
-# ClipboardStore read / write / list
-# ClipboardItem get / set / make permanent / drop
-#
-# Manager should be able to do paste-as, switching from plain text to wiki
-# Distinguishe between cut and copied items
-#
-# LP #XXX: selection gone from clipboard when leaving page
-#
-# HTML -> parsetree (need import)

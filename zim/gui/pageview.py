@@ -3455,17 +3455,6 @@ class TextView(Gtk.TextView):
 		'link-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'end-of-word': (GObject.SignalFlags.RUN_LAST, None, (object, object, object, object, object)),
 		'end-of-line': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-
-		# Override clipboard interaction
-		'copy-clipboard': 'override',
-		'cut-clipboard': 'override',
-		'paste-clipboard': 'override',
-
-		# And some events we want to connect to
-		#'visibility-notify-event': 'override',
-		#'button-press-event': 'override',
-		#'button-release-event': 'override',
-		#'key-press-event': 'override',
 	}
 
 	def __init__(self, preferences):

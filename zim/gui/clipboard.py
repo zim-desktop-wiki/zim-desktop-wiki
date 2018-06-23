@@ -1,5 +1,5 @@
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Utilities to work with the clipboard for copy-pasting
 
@@ -348,7 +348,7 @@ class TextItem(ClipboardItem):
 		self.text = text
 
 	def set(self, clipboard, clear_func):
-		clipboard.set_text(self.text, len(self.text))
+		clipboard.set_text(self.text, -1)
 
 
 class UriItem(ClipboardItem):
@@ -373,9 +373,9 @@ class UriItem(ClipboardItem):
 			selectiondata.set_uris((self.uri,))
 		else:
 			if isinstance(self.obj, (File, Dir)):
-				selectiondata.set_text(self.obj.user_path, len(self.obj.user_path))
+				selectiondata.set_text(self.obj.user_path, -1)
 			else:
-				selectiondata.set_text(self.uri, len(self.uri))
+				selectiondata.set_text(self.uri, -1)
 
 
 class InterWikiLinkItem(UriItem):
@@ -444,7 +444,7 @@ class ParseTreeItem(ClipboardItem):
 					linker=StaticExportLinker(self.notebook, source=self.path))
 
 			text = ''.join(dumper.dump(self.parsetree))
-			selectiondata.set_text(text, len(text))
+			selectiondata.set_text(text, -1)
 		else:
 			assert False, 'Unknown target id %i' % id
 
@@ -479,7 +479,7 @@ class PageLinkItem(ClipboardItem):
 			text = pack_urilist((link,))
 			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
 		elif id == TEXT_TARGET_ID:
-			selectiondata.set_text(self.path.name, len(self.path.name))
+			selectiondata.set_text(self.path.name, -1)
 		else:
 			assert False, 'Unknown target id %i' % id
 
