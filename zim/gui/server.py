@@ -25,6 +25,7 @@ import logging
 from zim.www import make_server
 
 from zim.notebook import build_notebook, NotebookInfo
+from zim.templates import list_templates
 from zim.config import data_file
 from zim.gui.widgets import IconButton, ErrorDialog, input_table_factory
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
@@ -35,18 +36,20 @@ logger = logging.getLogger('zim.gui.server')
 
 class ServerWindow(Gtk.Window):
 
-	def __init__(self, notebookinfo=None, port=8080, public=True, **opts):
+	def __init__(self, notebookinfo=None, template='Default', port=8080, public=True, config=None):
 		'''Constructor
 		@param notebookinfo: the notebook location
+		@param template: html template for zim pages
 		@param port: the http port to serve on
 		@param public: allow connections to the server from other
 		computers - if C{False} can only connect from localhost
-		@param opts: options for L{WWWInterface.__init__()}
+		@param config: optional C{ConfigManager} object
 		'''
 		GObject.GObject.__init__(self)
 		self.set_title('Zim - ' + _('Web Server')) # T: Window title
 		self.set_border_width(10)
-		self.interface_opts = opts
+		self.template = template
+		self.config = config
 		self.httpd = None
 		self._source_id = None
 
@@ -66,6 +69,9 @@ class ServerWindow(Gtk.Window):
 		self.notebookcombobox = NotebookComboBox(current=notebookinfo)
 		self.open_button = IconButton('gtk-index')
 		self.open_button.connect('clicked', lambda *a: NotebookDialog(self).run())
+
+		self.templatecombobox = TemplateComboBox()
+		self.templatecombobox.set_template(template)
 
 		self.portentry = Gtk.SpinButton()
 		self.portentry.set_numeric(True)
@@ -91,6 +97,8 @@ class ServerWindow(Gtk.Window):
 		table = input_table_factory((
 			(_('Notebook'), self.notebookcombobox, self.open_button),
 				# T: Field in web server gui
+			(_('Template'), self.templatecombobox),
+				# T: Field in web server gui for template selection
 			(_('Port'), self.portentry),
 				# T: Field in web server gui for HTTP port (e.g. port 80)
 			self.public_checkbox
@@ -126,9 +134,11 @@ class ServerWindow(Gtk.Window):
 					#logger.info('Indexing %s', info)
 					pass # TODO meaningful info for above message
 
+			template = self.templatecombobox.get_template()
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
-			self.httpd = make_server(notebook, port, public, **self.interface_opts)
+			config = self.config
+			self.httpd = make_server(notebook, template, port, public, config)
 			if sys.platform == 'win32':
 				# GObject io watch conflicts with socket use on windows..
 				# idle handler uses a bit to much CPU for my taste,
@@ -149,6 +159,7 @@ class ServerWindow(Gtk.Window):
 
 		# Update UI
 		self.notebookcombobox.set_sensitive(False)
+		self.templatecombobox.set_sensitive(False)
 		self.portentry.set_sensitive(False)
 		self.public_checkbox.set_sensitive(False)
 		self.open_button.set_sensitive(False)
@@ -201,16 +212,55 @@ class ServerWindow(Gtk.Window):
 		if self.link_button:
 			self.link_button.set_sensitive(False)
 		self.notebookcombobox.set_sensitive(True)
+		self.templatecombobox.set_sensitive(True)
 		self.portentry.set_sensitive(True)
 		self.public_checkbox.set_sensitive(True)
 		self.open_button.set_sensitive(True)
 		self.stop_button.set_sensitive(False)
 		self.start_button.set_sensitive(True)
 
+class TemplateComboBox(Gtk.ComboBox):
+	'''Combobox showing a list of templates'''
 
-def main(notebookinfo=None, port=8080, public=True, **opts):
+	def __init__(self):
+		'''Constructor
+		'''
+		templates = [t[0] for t in list_templates('html')]
+		template_store = Gtk.ListStore(str)
+		for template in templates:
+			template_store.append([template])
+		model = template_store
+
+		GObject.GObject.__init__(self)
+		self.set_model(model)
+		cell_renderer = Gtk.CellRendererText()
+		self.pack_start(cell_renderer, True)
+		self.add_attribute(cell_renderer, 'text', 0)
+		self.set_active(0)
+
+	def set_template(self, template):
+		'''Select a specific template in the combobox.
+		@param template: html template for zim pages as string
+		'''
+		template_store = self.get_model()
+
+		for idx, row in enumerate(template_store):
+			if row[0] == template:
+				self.set_active(idx)
+				break
+
+	def get_template(self):
+		'''Returns the name for the current selected template'''
+		iter = self.get_active()
+		if iter == -1:
+			return None
+		else:
+			model = self.get_model()
+			return model[iter][0]
+
+def main(notebookinfo=None, template='Default', port=8080, public=True, config=None):
 	from zim.widgets import gtk_window_set_default_icon
 	gtk_window_set_default_icon()
-	window = ServerWindow(notebookinfo, port, public, **opts)
+	window = ServerWindow(notebookinfo, template, port, public, config)
 	window.show_all()
 	Gtk.main()

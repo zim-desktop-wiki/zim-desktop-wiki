@@ -392,6 +392,7 @@ class ServerGuiCommand(NotebookCommand, GtkCommand):
 	def run(self):
 		import zim.gui.server
 		self.opts['port'] = int(self.opts.get('port', 8080))
+		self.opts['template'] = self.opts.get('template', 'Default')
 		notebookinfo, page = self.get_notebook_argument()
 		if notebookinfo is None:
 			# Prefer default to be selected in drop down, user can still change

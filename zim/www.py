@@ -108,12 +108,11 @@ class WWWInterface(object):
 	For basic handlers to run this interface see the "wsgiref" package
 	in the standard library for python.
 	'''
-
-	def __init__(self, notebook, config=None, template='Default'):
+	def __init__(self, notebook, template, config):
 		'''Constructor
 		@param notebook: a L{Notebook} object
-		@param config: optional C{ConfigManager} object
 		@param template: html template for zim pages
+		@param config: optional C{ConfigManager} object
 		'''
 		assert isinstance(notebook, Notebook)
 		self.notebook = notebook
@@ -351,18 +350,18 @@ def main(notebook, port=8080, public=True, **opts):
 	logger.info("Serving HTTP on %s port %i...", httpd.server_name, httpd.server_port)
 	httpd.serve_forever()
 
-
-def make_server(notebook, port=8080, public=True, **opts):
+def make_server(notebook, template=None, port=8080,  public=True, config=None):
 	'''Create a simple http server
 	@param notebook: the notebook location
+	@param template: html template for zim pages
 	@param port: the http port to serve on
 	@param public: allow connections to the server from other
 	computers - if C{False} can only connect from localhost
-	@param opts: options for L{WWWInterface.__init__()}
+	@param config: optional C{ConfigManager} object
 	@returns: a C{WSGIServer} object
 	'''
 	import wsgiref.simple_server
-	app = WWWInterface(notebook, **opts) # FIXME make opts explicit
+	app = WWWInterface(notebook, template, config)
 	if public:
 		httpd = wsgiref.simple_server.make_server('', port, app)
 	else:
