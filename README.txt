@@ -121,6 +121,9 @@ http://www.pygtk.org . If you use python 2.5 you will also need to install the
 python simplejson module. This can be obtained from http://pypi.python.org .
 The python-xdg module is not usefull on Windows, so you can skip it.
 
+You can use the PyGTKAllInOne package to install all of the dependecies:
+http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi
+
 Once the dependencies are fulfilled you can run zim directly from the source
 directory.
 
