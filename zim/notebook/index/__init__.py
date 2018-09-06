@@ -29,7 +29,7 @@ from .links import *
 from .tags import *
 
 
-DB_VERSION = '0.7'
+DB_VERSION = '0.8'
 
 
 class Index(SignalEmitter):

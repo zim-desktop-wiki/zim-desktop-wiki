@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains a number of custom gtk widgets
 that are used in the zim gui modules.
@@ -1890,7 +1890,6 @@ class PageEntry(InputEntry):
 		self.notebookpath = path
 		self.subpaths_only = subpaths_only
 		self.existing_only = existing_only
-		self._current_completion = None
 
 		if self._allow_select_root:
 			placeholder_text = _('<Top>')
@@ -2002,17 +2001,11 @@ class PageEntry(InputEntry):
 			return # no completion without a notebook
 
 		text = self.get_text()
-		if self._current_completion:
-			if text.startswith(self._current_completion) \
-			and not ':' in text[len(self._current_completion):]:
-				return # nothing to update
-			else: # Clear out-of-date completions
-				model = self.get_completion().get_model()
-				model.clear()
-				self._current_completion = None
+		model = self.get_completion().get_model()
+		model.clear()
 
 		if not text or not self.get_input_valid():
-			return # can't complete invalid input
+			return
 
 		if ':' in text:
 			i = text.rfind(':')
@@ -2043,7 +2036,6 @@ class PageEntry(InputEntry):
 
 			self._fill_completion_any(path, text)
 
-		self._current_completion = text
 		self.get_completion().complete()
 
 	def _fill_completion_for_anchor(self, path, prefix, text):
@@ -2067,8 +2059,7 @@ class PageEntry(InputEntry):
 	def _fill_completion_any(self, path, text):
 		#print "COMPLETE ANY", path, text
 		# Complete all matches of "text"
-		# start with children, than peers, than rest of tree
-		# if path == ":" don't use child notation
+		# start with children and peers, than peers of parents, than rest of tree
 		completion = self.get_completion()
 		completion.set_match_func(gtk_entry_completion_match_func, 1)
 
@@ -2080,19 +2071,19 @@ class PageEntry(InputEntry):
 			return href.to_wiki_link()
 
 		model = completion.get_model()
-		lowertext = text.lower()
-		childpos, peerpos = 0, 0
-		for p in self.notebook.pages.walk():
-			if lowertext in p.basename.lower():
+		searchpath = list(path.parents())
+		searchpath.insert(1, path) # children after peers but before parents
+		for namespace in searchpath:
+			for p in self.notebook.pages.match_pages(namespace, text):
 				link = relative_link(p)
-				if link.startswith('+'):
-					model.insert(childpos, (link, p.basename))
-					childpos += 1
-					peerpos += 1
-				elif not ':' in link:
-					model.insert(peerpos, (link, p.basename))
-					peerpos += 1
-				else:
+				model.append((link, p.basename))
+
+			if len(model) > 10:
+				break
+		else:
+			for p in self.notebook.pages.match_all_pages(text, limit=20):
+				if p.parent not in searchpath:
+					link = relative_link(p)
 					model.append((link, p.basename))
 
 
@@ -3372,7 +3363,7 @@ class ErrorDialog(gtk.MessageDialog):
 			window.set_size_request(350, 200)
 			self.set_resizable(True)
 			self.vbox.add(window)
-			self.vbox.show_all()			
+			self.vbox.show_all()
 		else:
 			self.showing_trace = False # used in test
 			pass

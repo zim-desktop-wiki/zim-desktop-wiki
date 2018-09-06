@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -193,7 +193,7 @@ class TestPageEntry(tests.TestCase):
 			('+Bar', ['+bar']),
 			('+T', []),
 			(':', [':Bar', ':Placeholder', ':Test']),
-			('b', ['+bar', 'bar', ':Bar']),
+			('b', ['bar', '+bar', ':Bar']),
 			('Test:', ['Test:bar', 'Test:foo', 'Test:link']),
 
 		):

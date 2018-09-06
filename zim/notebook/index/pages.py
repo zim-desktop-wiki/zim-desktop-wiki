@@ -72,6 +72,7 @@ class PagesIndexer(IndexerBase):
 				n_children INTEGER DEFAULT 0,
 
 				name TEXT UNIQUE NOT NULL,
+				lowerbasename TEXT NOT NULL,
 				sortkey TEXT NOT NULL,
 				mtime TIMESTAMP,
 
@@ -83,9 +84,9 @@ class PagesIndexer(IndexerBase):
 		row = self.db.execute('SELECT * FROM pages WHERE id == 1').fetchone()
 		if row is None:
 			c = self.db.execute(
-				'INSERT INTO pages(parent, name, sortkey, source_file) '
-				'VALUES (? , ?, ?, ?)',
-				(0, '', '', 1)
+				'INSERT INTO pages(parent, name, lowerbasename, sortkey, source_file) '
+				'VALUES (?, ?, ?, ?, ?)',
+				(0, '', '', '', 1)
 			)
 			assert c.lastrowid == 1 # ensure we start empty
 
@@ -189,11 +190,12 @@ class PagesIndexer(IndexerBase):
 			assert parent_row is not None
 
 		# update table
+		lowerbasename = pagename.basename.lower()
 		sortkey = natural_sort_key(pagename.basename)
 		self.db.execute(
-			'INSERT INTO pages(name, sortkey, parent, is_link_placeholder, source_file)'
-			'VALUES (?, ?, ?, ?, ?)',
-			(pagename.name, sortkey, parent_row['id'], is_link_placeholder, file_id)
+			'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file)'
+			'VALUES (?, ?, ?, ?, ?, ?)',
+			(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
 		)
 		self.update_parent(pagename.parent)
 
@@ -519,6 +521,37 @@ class PagesView(IndexView):
 			'SELECT COUNT(*) FROM pages WHERE parent=?', (page_id,)
 		).fetchone()
 		return c
+
+	def match_pages(self, path, text, limit=10):
+		'''Generator for child pages of C{path} that match C{text} in their name
+		@param path: a L{Path} object
+		@param text: a string
+		@param limit: max number of results
+		@returns: yields L{Path} objects for children of C{path}
+		@raises IndexNotFoundError: if C{path} is not found in the index
+		'''
+		if path is None:
+			page_id = ROOT_ID
+		else:
+			page_id = self._pages.get_page_id(path) # can raise
+		return self._match_pages(page_id, text, limit)
+
+	def _match_pages(self, page_id, text, limit):
+		# The LIKE keyword does not handle unicode case-insensitivity
+		# therefore we need python lower() to do the job
+		for row in self.db.execute(
+			'SELECT * FROM pages WHERE parent=? and lowerbasename LIKE ? ORDER BY sortkey, name LIMIT ?',
+			(page_id, "%%%s%%" % text.lower(), limit)
+		):
+			yield PageIndexRecord(row)
+
+	def match_all_pages(self, text, limit=10):
+		'''Like C{match_pages()} except not limited a specific namespace'''
+		for row in self.db.execute(
+			'SELECT * FROM pages WHERE lowerbasename LIKE ? ORDER BY length(name), sortkey, name LIMIT ?',
+			("%%%s%%" % text.lower(), limit)
+		):
+			yield PageIndexRecord(row)
 
 	def walk(self, path=None):
 		'''Generator function to yield all pages in the index, depth
