@@ -347,13 +347,19 @@ class TestLinksIndexer(tests.TestCase):
 	]
 
 	def runTest(self):
+		def basename(name):
+			if ":" in name:
+				return name.split(":")[-1]
+			else:
+				return name
+
 		db = sqlite3.connect(':memory:')
 		db.row_factory = sqlite3.Row
 		pi = PagesIndexer(db, None, tests.MockObject())
 		for i, name, cont in self.PAGES:
 			db.execute(
-				'INSERT INTO pages(id, name, sortkey, parent, source_file) VALUES (?, ?, ?, 1, 1)',
-				(i, name, natural_sort_key(name))
+				'INSERT INTO pages(id, name, lowerbasename, sortkey, parent, source_file) VALUES (?, ?, ?, ?, 1, 1)',
+				(i, name, basename(name).lower(), natural_sort_key(name))
 			)
 
 		## Test PagesViewInternal methods

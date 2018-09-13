@@ -991,7 +991,8 @@ class OpenPageDialog(Dialog):
 		self.callback = callback
 
 		self.add_form(
-			[('page', 'page', _('Jump to Page'), page)] # T: Label for page input
+			[('page', 'page', _('Jump to Page'), page)], # T: Label for page input
+			notebook=parent.notebook
 		)
 
 	def do_response_ok(self):

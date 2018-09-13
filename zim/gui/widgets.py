@@ -1687,7 +1687,6 @@ class PageEntry(InputEntry):
 		self.notebookpath = path
 		self.subpaths_only = subpaths_only
 		self.existing_only = existing_only
-		self._current_completion = None
 
 		if self._allow_select_root:
 			placeholder_text = _('<Top>')
@@ -1700,7 +1699,6 @@ class PageEntry(InputEntry):
 		completion = Gtk.EntryCompletion()
 		completion.set_model(Gtk.ListStore(str, str)) # visible name, match name
 		completion.set_text_column(0)
-		completion.set_inline_completion(True)
 		self.set_completion(completion)
 
 		self.connect_after('changed', DelayedCallback(200, self.__class__.update_completion))
@@ -1803,17 +1801,11 @@ class PageEntry(InputEntry):
 			return # no completion without a notebook
 
 		text = self.get_text()
-		if self._current_completion:
-			if text.startswith(self._current_completion) \
-			and not ':' in text[len(self._current_completion):]:
-				return # nothing to update
-			else: # Clear out-of-date completions
-				model = self.get_completion().get_model()
-				model.clear()
-				self._current_completion = None
+		model = self.get_completion().get_model()
+		model.clear()
 
 		if not text or not self.get_input_valid():
-			return # can't complete invalid input
+			return
 
 		if ':' in text:
 			i = text.rfind(':')
@@ -1844,7 +1836,6 @@ class PageEntry(InputEntry):
 
 			self._fill_completion_any(path, text)
 
-		self._current_completion = text
 		self.get_completion().complete()
 
 	def _fill_completion_for_anchor(self, path, prefix, text):
@@ -1868,8 +1859,7 @@ class PageEntry(InputEntry):
 	def _fill_completion_any(self, path, text):
 		#print "COMPLETE ANY", path, text
 		# Complete all matches of "text"
-		# start with children, than peers, than rest of tree
-		# if path == ":" don't use child notation
+		# start with children and peers, than peers of parents, than rest of tree
 		completion = self.get_completion()
 		completion.set_match_func(gtk_entry_completion_match_func, 1)
 
@@ -1881,19 +1871,19 @@ class PageEntry(InputEntry):
 			return href.to_wiki_link()
 
 		model = completion.get_model()
-		lowertext = text.lower()
-		childpos, peerpos = 0, 0
-		for p in self.notebook.pages.walk():
-			if lowertext in p.basename.lower():
+		searchpath = list(path.parents())
+		searchpath.insert(1, path) # children after peers but before parents
+		for namespace in searchpath:
+			for p in self.notebook.pages.match_pages(namespace, text):
 				link = relative_link(p)
-				if link.startswith('+'):
-					model.insert(childpos, (link, p.basename))
-					childpos += 1
-					peerpos += 1
-				elif not ':' in link:
-					model.insert(peerpos, (link, p.basename))
-					peerpos += 1
-				else:
+				model.append((link, p.basename))
+
+			if len(model) > 10:
+				break
+		else:
+			for p in self.notebook.pages.match_all_pages(text, limit=20):
+				if p.parent not in searchpath:
+					link = relative_link(p)
 					model.append((link, p.basename))
 
 
@@ -2861,7 +2851,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		label.set_alignment(0.0, 0.0)
 		self.vbox.pack_start(label, False, True, 0)
 
-	def add_form(self, inputs, values=None, depends=None, trigger_response=True):
+	def add_form(self, inputs, values=None, depends=None, trigger_response=True, notebook=None):
 		'''Convenience method to construct a form with input widgets and
 		add them to the dialog. See L{InputForm.add_inputs()} for
 		details.
@@ -2873,13 +2863,13 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		last entry widget will immediatly call L{response_ok()}. Set to
 		C{False} if more forms will follow in the same dialog.
 		'''
-		if hasattr(self, 'notebook'):
+		if notebook is None and hasattr(self, 'notebook'):
 			notebook = self.notebook
-		else:
-			notebook = None
+
 		self.form = InputForm(inputs, values, depends, notebook)
 		if trigger_response:
 			self.form.connect('last-activated', lambda o: self.response_ok())
+
 		self.vbox.pack_start(self.form, False, True, 0)
 		return self.form
 
