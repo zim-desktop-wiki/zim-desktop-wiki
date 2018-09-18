@@ -86,7 +86,7 @@ style = italic
 
 Known properties for TextView:
 * **indent**: //integer//	- indenting step size in pixels
-* **tabs**: //integer//	- tab size in pizels
+* **tabs**: //integer//	- tab size in pixels
 * **linespacing**: //integer//	- line spacing in pixels
 * **justify**: ''JUSTIFY_LEFT'', ''JUSTIFY_FILL'', ...
 * **font**: //string//
