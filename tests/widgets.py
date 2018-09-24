@@ -265,8 +265,8 @@ class TestInputForm(tests.TestCase):
 			'check': True,
 			'width': 1,
 			'app': 'foo',
-			'page': ':foo:bar:Baz', # explicit string input
-			'namespace': ':foo:bar:Baz',
+			'page': ':Foo:bar:Baz', # explicit string input
+			'namespace': ':Foo:bar:Baz',
 			#~ 'link': '+Baz',
 			'file': '/foo/bar',
 			'image': '/foo/bar.png',

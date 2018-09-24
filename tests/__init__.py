@@ -346,6 +346,7 @@ class TestCase(unittest.TestCase):
 			)
 
 		notebook.index.check_and_update()
+		assert notebook.index.is_uptodate
 		return notebook
 
 	@classmethod

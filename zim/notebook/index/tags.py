@@ -55,14 +55,11 @@ class TagsIndexer(IndexerBase):
 		'tag-removed-from-page': (SIGNAL_NORMAL, None, (object, object)),
 	}
 
-	def __init__(self, db, pagesindexer, filesindexer):
+	def __init__(self, db, pagesindexer):
 		IndexerBase.__init__(self, db)
 		self.connectto_all(pagesindexer, (
 			'page-changed', 'page-row-deleted'
 		))
-		self.connectto(filesindexer,
-			'finish-update'
-		)
 
 		self.db.executescript('''
 			CREATE TABLE IF NOT EXISTS tags (
@@ -133,17 +130,20 @@ class TagsIndexer(IndexerBase):
 			(row['id'],)
 		)
 
-	def on_finish_update(self, filesindexer):
+	def update_iter(self):
 		for r in self.db.execute(
 			'SELECT tags.name, tags.id FROM tags '
 			'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
 		):
 			self.emit('tag-row-deleted', r)
+			yield
 
 		self.db.execute(
 			'DELETE FROM tags '
 			'WHERE id not in (SELECT DISTINCT tag FROM tagsources)'
 		)
+
+		self.db.commit()
 
 
 class TagsView(IndexView):

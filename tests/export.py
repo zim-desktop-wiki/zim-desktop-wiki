@@ -154,6 +154,11 @@ class TestLinker(tests.TestCase):
 	def runTest(self):
 		dir = Dir(self.get_tmp_name())
 		notebook = tests.new_notebook(fakedir=dir.subdir('notebook'))
+		for name in ('foo', 'bar', 'foo:bar',):
+			p = notebook.get_page(Path(name))
+			p.parse('wiki', "test 123")
+			notebook.store_page(p)
+
 		layout = MultiFileLayout(dir.subdir('layout'), 'html')
 		source = Path('foo:bar')
 		output = layout.page_file(source)

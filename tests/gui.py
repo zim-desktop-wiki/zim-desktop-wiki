@@ -63,7 +63,7 @@ class TestDialogs(tests.TestCase):
 	def testOpenPageDialog(self):
 		'''Test OpenPageDialog dialog (Jump To...)'''
 		for name, path in (
-			(':foo', ':foo'),
+			(':Foo', ':Foo'),
 			#('foo', ':Test:foo'),
 			('baz', ':Test:foo:baz'),
 			('+baz', ':Test:foo:bar:baz'),

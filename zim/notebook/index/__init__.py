@@ -150,11 +150,7 @@ class Index(SignalEmitter):
 
 	@property
 	def is_uptodate(self):
-		row = self._db.execute(
-			'SELECT * FROM files WHERE index_status=?',
-			(STATUS_NEED_UPDATE,)
-		).fetchone()
-		return row is None
+		return self.update_iter.is_uptodate()
 
 	def check_and_update(self):
 		'''Update all data in the index'''
@@ -206,7 +202,6 @@ class Index(SignalEmitter):
 		row = self._db.execute('SELECT id FROM files WHERE path=?', (path,)).fetchone()
 
 		filesindexer = self.update_iter.files
-		filesindexer.emit('start-update')
 
 		if row:
 			node_id = row[0]
@@ -224,7 +219,9 @@ class Index(SignalEmitter):
 			else:
 				raise TypeError
 
-		filesindexer.emit('finish-update')
+		for i in self.update_iter.partial_update_iter():
+			pass
+
 		self._db.commit()
 		self.on_commit(None)
 
@@ -235,7 +232,6 @@ class Index(SignalEmitter):
 			return
 
 		filesindexer = self.update_iter.files
-		filesindexer.emit('start-update')
 
 		node_id = row[0]
 		if isinstance(file, File):
@@ -245,7 +241,9 @@ class Index(SignalEmitter):
 		else:
 			raise TypeError
 
-		filesindexer.emit('finish-update')
+		for i in self.update_iter.partial_update_iter():
+			pass
+
 		self._db.commit()
 		self.on_commit(None)
 
@@ -267,7 +265,7 @@ class Index(SignalEmitter):
 			'DELETE FROM links WHERE source=?',
 			(ROOT_ID,)
 		)
-		self.update_iter.links.cleanup_placeholders(None)
+		self.update_iter.links.update() # clean up placeholder
 
 		# touch if needed
 		row = self._db.execute(
@@ -283,7 +281,7 @@ class Index(SignalEmitter):
 			)
 
 		self._db.commit()
-		self.emit('changed')
+		self.on_commit(None)
 
 
 class IndexUpdateIter(SignalEmitter):
@@ -297,22 +295,39 @@ class IndexUpdateIter(SignalEmitter):
 		self.layout = layout
 		self.files = FilesIndexer(db, layout.root)
 		self.pages = PagesIndexer(db, layout, self.files)
-		self.links = LinksIndexer(db, self.pages, self.files)
-		self.tags = TagsIndexer(db, self.pages, self.files)
+		self.links = LinksIndexer(db, self.pages)
+		self.tags = TagsIndexer(db, self.pages)
+		self._indexers = [self.files, self.pages, self.links, self.tags]
+
+	def add_indexer(self, indexer):
+		self._indexers.append(indexer)
+
+	def remove_indexer(self, indexer):
+		self._indexers.remove(indexer)
+
+	def get_indexer(self, cls):
+		for indexer in self._indexers:
+			if isinstance(indexer, cls):
+				return indexer
+		else:
+			return None
+
+	def is_uptodate(self):
+		return all(indexer.is_uptodate() for indexer in self._indexers)
 
 	def __call__(self):
 		return self
 
 	def __iter__(self):
-		for i in self.files.update_iter():
-			yield
+		for indexer in self._indexers:
+			for i in indexer.update_iter():
+				yield
 		self.emit('commit')
 
 	def update(self):
 		'''Convenience method to do a full update at once'''
-		for i in self.files.update_iter():
+		for i in self:
 			pass
-		self.emit('commit')
 
 	def check_and_update(self, file=None):
 		'''Convenience method to do a full update and check at once'''
@@ -327,7 +342,17 @@ class IndexUpdateIter(SignalEmitter):
 			if out_of_date:
 				for i in self.files.update_iter():
 					yield
+
+		for i in self.partial_update_iter():
+			yield
+
 		self.emit('commit')
+
+	def partial_update_iter(self):
+		'''Like L{update_iter()} but omits checking new files'''
+		for indexer in self._indexers[1:]:
+			for i in indexer.update_iter():
+				yield
 
 
 class BackgroundCheck(object):
