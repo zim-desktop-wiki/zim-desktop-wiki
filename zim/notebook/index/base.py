@@ -42,6 +42,16 @@ class IndexerBase(SignalEmitter, ConnectorMixin):
 	def __init__(self, db):
 		self.db = db
 
+	def is_uptodate(self):
+		return True
+
+	def update(self):
+		for i in self.update_iter():
+			pass
+
+	def update_iter(self):
+		return iter([])
+
 
 class MyTreeIter(object):
 	__slots__ = ('treepath', 'row', 'n_children', 'hint')

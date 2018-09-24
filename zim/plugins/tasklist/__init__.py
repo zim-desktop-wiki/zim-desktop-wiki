@@ -104,9 +104,20 @@ class TaskListNotebookExtension(NotebookExtension):
 			self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT) # XXX
 			self.index.flag_reindex()
 
-		self.indexer = TasksIndexer.new_from_index(self.index, plugin.preferences)
-		self.connectto(self.indexer, 'tasklist-changed')
+		self.indexer = None
+		self._setup_indexer(self.index, self.index.update_iter)
+		self.connectto(self.index, 'new-update-iter', self._setup_indexer)
+
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+
+	def _setup_indexer(self, index, update_iter):
+		if self.indexer is not None:
+			self.disconnect_from(self.indexer)
+			self.indexer.disconnect_all()
+
+		self.indexer = TasksIndexer.new_from_index(index, self.plugin.preferences)
+		update_iter.add_indexer(self.indexer)
+		self.connectto(self.indexer, 'tasklist-changed')
 
 	def on_preferences_changed(self, preferences):
 		# Need to construct new parser, re-index pages
@@ -130,6 +141,7 @@ class TaskListNotebookExtension(NotebookExtension):
 
 	def teardown(self):
 		self.indexer.disconnect_all()
+		self.notebook.index.update_iter.remove_indexer(self.indexer)
 		self.index._db.executescript(TasksIndexer.TEARDOWN_SCRIPT) # XXX
 		self.index.set_property(TasksIndexer.PLUGIN_NAME, None)
 

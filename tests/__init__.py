@@ -347,6 +347,7 @@ class TestCase(unittest.TestCase):
 			)
 
 		notebook.index.check_and_update()
+		assert notebook.index.is_uptodate
 		return notebook
 
 	def create_tmp_dir(self, name=None):

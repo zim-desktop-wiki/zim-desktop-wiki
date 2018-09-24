@@ -149,7 +149,7 @@ class TestSingleFileLayout(tests.TestCase):
 class TestLinker(tests.TestCase):
 
 	def runTest(self):
-		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		notebook = self.setUpNotebook(content=('foo', 'bar', 'foo:bar',))
 		dir = Dir(notebook.folder.parent().folder('layout').path)
 
 		layout = MultiFileLayout(dir.subdir('layout'), 'html')
