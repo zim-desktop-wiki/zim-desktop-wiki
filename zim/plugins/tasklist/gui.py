@@ -92,12 +92,13 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 class TaskListDialog(TaskListWidgetMixin, Dialog):
 
-	def __init__(self, window, tasksview, preferences):
-		Dialog.__init__(self, window, _('Task List'), # T: dialog title
+	def __init__(self, parent, tasksview, preferences):
+		Dialog.__init__(self, parent, _('Task List'), # T: dialog title
 			buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=(550, 400))
 		self.preferences = preferences
 		self.tasksview = tasksview
+		self.notebook = parent.notebook
 
 		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False, True, 0)
@@ -112,7 +113,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('sort_column', 0)
 		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
-		opener = window.navigation
+		opener = parent.navigation
 		task_labels = _parse_task_labels(preferences['labels'])
 		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
 		self.task_list = TaskListTreeView(
@@ -181,7 +182,7 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			# now it is at least on idle
 
 		from . import TaskListNotebookExtension
-		nb_ext = find_extension(self.pageview.notebook, TaskListNotebookExtension)
+		nb_ext = find_extension(self.notebook, TaskListNotebookExtension)
 		self.connectto(nb_ext, 'tasklist-changed', callback)
 
 	def do_response(self, response):
