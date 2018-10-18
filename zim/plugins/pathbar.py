@@ -447,18 +447,6 @@ class ScrolledHBox(Gtk.HBox):
 		for child in children[last + 1:]:
 			child.set_child_visible(False)
 
-	def do_focus(self, direction):
-		# Overrule navigation for <Ctrl><Tab> while leaving
-		# navigation with <Left> and <Right> in tact
-		# (so do not "sub-navigate" with <Ctrl><Tab>).
-		# Otherwise the user has to tab through all buttons before
-		# he can tab to the next widget.
-		if direction in (Gtk.DIR_TAB_FORWARD, Gtk.DIR_TAB_BACKWARD) \
-		and self.focus_child is not None:
-			return False # Let outer container go to next widget
-		else:
-			return Gtk.HBox.do_focus(self, direction)
-
 
 class ScrollButton(Gtk.Button):
 	'''Arrow buttons used by ScrolledHBox'''
