@@ -307,7 +307,7 @@ class FileBrowserIconView(Gtk.IconView):
 		store = iconview.get_model()
 		iter = store.get_iter(path)
 		filename = self.folder.file(store[iter][BASENAME_COL])
-		open_file(self, file)
+		open_file(self, filename)
 
 	def on_button_press_event(self, iconview, event):
 		# print('on_button_press_event')
