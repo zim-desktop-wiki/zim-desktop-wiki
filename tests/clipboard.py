@@ -1,8 +1,6 @@
 
 # Copyright 2012-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-#~ from __future__ import with_statement
-
 import tests
 
 from gi.repository import Gtk

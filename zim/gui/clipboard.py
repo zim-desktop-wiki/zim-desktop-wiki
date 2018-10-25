@@ -328,31 +328,22 @@ def _get_image_info(targetname):
 		return None, None
 
 
-class ClipboardItem(object):
-	'''Item that can be set on the clipboard'''
+class ClipboardData(object):
+	'''Wrapper for data that can be set on the clipboard and pasted
+	multiple formats
+	'''
 
-	def set(self, clipboard, clear_func):
-		'''Put this item on the clipboard
-		@param clipboard: a C{Gtk.Clipboard} objet
-		@param clear_func: function to be passed to the clipboard as
-		callback on clearing the data
+	targets = ()
+
+	def get_data_as(self, targetid):
+		'''Return data in the requested target format
+		@param targetid: the target id
 		@implementation: must be implemented by sub-classes
 		'''
 		raise NotImplementedError
 
 
-class TextItem(ClipboardItem):
-	'''Text item for the clipboard'''
-
-	def __init__(self, text):
-		self.text = text
-
-	def set(self, clipboard, clear_func):
-		clipboard.set_text(self.text, -1)
-
-
-class UriItem(ClipboardItem):
-	'''Uri item for the clipboard'''
+class UriData(ClipboardData):
 
 	targets = URI_TARGETS + TEXT_TARGETS
 
@@ -365,41 +356,33 @@ class UriItem(ClipboardItem):
 			self.obj = obj
 			self.uri = obj.uri
 
-	def set(self, clipboard, clear_func):
-		clipboard.set_with_data(self.targets, self._get, clear_func)
-
-	def _get(self, clipboard, selectiondata, id, *a):
-		if id == URI_TARGET_ID:
-			selectiondata.set_uris((self.uri,))
+	def get_data_as(self, targetid):
+		if targetid == URI_TARGET_ID:
+			return (self.uri,)
 		else:
 			if isinstance(self.obj, (File, Dir)):
-				selectiondata.set_text(self.obj.user_path, -1)
+				return self.obj.user_path
 			else:
-				selectiondata.set_text(self.uri, -1)
+				return self.uri
 
 
-class InterWikiLinkItem(UriItem):
-	'''Like L{UriItem} but with special case for zim parsetree'''
+class InterWikiLinkData(UriData):
 
-	targets = (PARSETREE_TARGET,) + UriItem.targets
+	targets = (PARSETREE_TARGET,) + UriData.targets
 
 	def __init__(self, href, url):
-		UriItem.__init__(self, url)
+		UriData.__init__(self, url)
 		self.interwiki_href = href
 
-	def _get(self, clipboard, selectiondata, id, *a):
-		logger.debug("Clipboard requests data as '%s', we have an interwiki link",
-					selectiondata.get_target().name())
-		if id == PARSETREE_TARGET_ID:
-			tree = _link_tree((self.interwiki_href,), None, None)
-			xml = tree.tostring()
-			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
+	def get_data_as(self, targetid):
+		if targetid == PARSETREE_TARGET_ID:
+			parsetree = _link_tree((self.interwiki_href,), None, None)
+			return parsetree.tostring()
 		else:
-			UriItem._get(self, clipboard, selectiondata, id, *a)
+			return UriData.get_data_as(targetid)
 
 
-class ParseTreeItem(ClipboardItem):
-	'''Clipboard wrapper for a L{ParseTree}.'''
+class ParseTreeData(ClipboardData):
 
 	targets = (PARSETREE_TARGET,) + HTML_TARGETS + TEXT_TARGETS
 
@@ -409,48 +392,28 @@ class ParseTreeItem(ClipboardItem):
 		self.parsetree = parsetree
 		self.format = format
 
-	def set(self, clipboard, clear_func):
-		clipboard.set_with_data(self.targets, self._get, clear_func, self) \
-			or logger.warn('Failed to set data on clipboard')
-
-	def _get(self, clipboard, selectiondata, id, *a):
-		'''Callback to get the data in a specific format
-		@param clipboard: a C{Gtk.Clipboard} objet
-		@param selectiondata: a C{Gtk.SelectionData} object to set the data on
-		@param id: target id for the requested data format
-		@param a: any additional arguments are discarded
-		'''
-		logger.debug("Clipboard requests data as '%s', we have a parsetree",
-					selectiondata.get_target().name())
-		if id == PARSETREE_TARGET_ID:
+	def get_data_as(self, targetid):
+		if targetid == PARSETREE_TARGET_ID:
 			# TODO make links absolute (?)
-			xml = self.parsetree.tostring()
-			selectiondata.set(PARSETREE_TARGET_NAME, 8, xml)
-		elif id == HTML_TARGET_ID:
+			return self.parsetree.tostring()
+		elif targetid == HTML_TARGET_ID:
 			dumper = get_format('html').Dumper(
 				linker=StaticExportLinker(self.notebook, source=self.path))
 			html = ''.join(dumper.dump(self.parsetree))
-			html = wrap_html(html, target=selectiondata.get_target().name())
-			#~ print('PASTING: >>>%s<<<' % html)
-			selectiondata.set(selectiondata.get_target(), 8, html)
-		elif id == TEXT_TARGET_ID:
-			logger.debug("Clipboard requested text, we provide '%s'" % self.format)
-			#~ print(">>>>", self.format, parsetree.tostring())
-
+			return wrap_html(html, target=selectiondata.get_target().name())
+		elif targetid == TEXT_TARGET_ID:
 			if self.format in ('wiki', 'plain'):
 				dumper = get_format(self.format).Dumper()
 			else:
 				dumper = get_format(self.format).Dumper(
 					linker=StaticExportLinker(self.notebook, source=self.path))
 
-			text = ''.join(dumper.dump(self.parsetree))
-			selectiondata.set_text(text, -1)
+			return ''.join(dumper.dump(self.parsetree))
 		else:
-			assert False, 'Unknown target id %i' % id
+			raise ValueError('Unknown target id %i' % targetid)
 
 
-class PageLinkItem(ClipboardItem):
-	'''Clipboard wrapper for a L{ParseTree}.'''
+class PageLinkData(ClipboardData):
 
 	targets = (INTERNAL_PAGELIST_TARGET, PAGELIST_TARGET) + TEXT_TARGETS
 
@@ -458,37 +421,20 @@ class PageLinkItem(ClipboardItem):
 		self.notebookname = notebook.name
 		self.path = path
 
-	def set(self, clipboard, clear_func):
-		clipboard.set_with_data(self.targets, self._get, clear_func, self) \
-			or logger.warn('Failed to set data on clipboard')
-
-	def _get(self, clipboard, selectiondata, id, *a):
-		'''Callback to get the data in a specific format
-		@param clipboard: a C{Gtk.Clipboard} objet
-		@param selectiondata: a C{Gtk.SelectionData} object to set the data on
-		@param id: target id for the requested data format
-		@param a: any additional arguments are discarded
-		'''
-		logger.debug("Clipboard requests data as '%s', we have a pagelink",
-					selectiondata.get_target().name())
-		if id == INTERNAL_PAGELIST_TARGET_ID:
-			text = pack_urilist((self.path.name,))
-			selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, text)
-		elif id == PAGELIST_TARGET_ID:
+	def get_data_as(self, targetid):
+		if targetid == INTERNAL_PAGELIST_TARGET_ID:
+			return pack_urilist((self.path.name,))
+		elif targetid == PAGELIST_TARGET_ID:
 			link = "%s?%s" % (self.notebookname, self.path.name)
-			text = pack_urilist((link,))
-			selectiondata.set(PAGELIST_TARGET_NAME, 8, text)
-		elif id == TEXT_TARGET_ID:
-			selectiondata.set_text(self.path.name, -1)
+			return pack_urilist((link,))
+		elif targetid == TEXT_TARGET_ID:
+			return self.path.name
 		else:
-			assert False, 'Unknown target id %i' % id
+			raise ValueError('Unknown target id %i' % targetid)
 
 
 class ClipboardManager(object):
-	'''Interface to the clipboard for copy and paste.
-	Replacement for Gtk.Clipboard(), to be used everywhere in the
-	zim gui modules.
-	'''
+	'''Wrapper for C{Gtk.Clipboard}, supporting specific data formats'''
 
 	def __init__(self, name):
 		'''Constructor
@@ -498,27 +444,37 @@ class ClipboardManager(object):
 		assert name in ('CLIPBOARD', 'PRIMARY')
 		atom = Gdk.SELECTION_CLIPBOARD if name == 'CLIPBOARD' else Gdk.SELECTION_PRIMARY
 		self.clipboard = Gtk.Clipboard.get(atom)
-		self.store = None
-		self._i_am_owner = False
+		self.data = None
 
 	def clear(self):
-		'''Clear clipboard if we set it'''
-		if self._i_am_owner:
+		if self.data is not None:
 			self.clipboard.clear()
+		self.data = None
 
-	def set(self, item):
+	def set_clipboard_data(self, clipboard_data):
 		'''Set an item on the clipboard
-		@param item: a L{ClipboardItem}
+		@param clipboard_data: a L{ClipboardData} object
 		'''
-		item.set(self.clipboard, self._clear)
-		self._i_am_owner = True
-		if self.store:
-			pass
+		self.data = clipboard_data
+		self.clipboard.set_with_data(self.data.targets, self._get, self._clear) \
+			or logger.warn('Failed to set data on clipboard')
 
-	def _clear(self, o, item):
-		self._i_am_owner = False
-		if self.store:
-			pass
+	def _get(self, clipboard, selectiondata, targetid):
+		logger.debug(
+			"Clipboard requests data as '%s', we have %r",
+			selectiondata.get_target().name(),
+			self.data
+		)
+		data = self.data.get_data_as(targetid)
+		if targetid == TEXT_TARGET_ID:
+			selectiondata.set_text(data, -1)
+		elif targetid == URI_TARGET_ID:
+			selectiondata.set_uris(data)
+		else:
+			selectiondata.set(PARSETREE_TARGET_NAME, 8, data)
+
+	def _clear(self):
+		self.data = None
 
 	def set_text(self, text):
 		'''Set text to the clipboard
@@ -526,8 +482,7 @@ class ClipboardManager(object):
 		@note: DO NOT USE THIS METHOD if you can use L{set_parsetree()}
 		instead
 		'''
-		item = TextItem(text)
-		self.set(item)
+		self.clipboard.set_text(text, -1)
 
 	def get_text(self):
 		'''Get text from the clipboard.
@@ -535,8 +490,7 @@ class ClipboardManager(object):
 		@note: DO NOT USE THIS METHOD if you can use L{get_parsetree()}
 		instead
 		'''
-		text = self.clipboard.wait_for_text()
-		return text
+		return self.clipboard.wait_for_text()
 
 	def set_parsetree(self, notebook, path, parsetree, format='plain'):
 		'''Copy a parsetree to the clipboard. The parsetree can be pasted by
@@ -548,8 +502,8 @@ class ClipboardManager(object):
 		@param parsetree: the actual L{ParseTree} to be set on the clipboard
 		@keyword format: the format to use for pasting text, e.g. 'wiki' or 'plain'
 		'''
-		item = ParseTreeItem(notebook, path, parsetree, format)
-		self.set(item)
+		self.set_clipboard_data(
+			ParseTreeData(notebook, path, parsetree, format) )
 
 	def get_parsetree(self, notebook=None, path=None):
 		'''Get a parsetree from the clipboard.
@@ -594,8 +548,7 @@ class ClipboardManager(object):
 		@param notebook: a L{Notebook} object
 		@param path: a L{Path} object
 		'''
-		item = PageLinkItem(notebook, path)
-		self.set(item)
+		self.set_clipboard_data(PageLinkData(notebook, path))
 
 	def set_interwikilink(self, href, url):
 		'''Copy an interwiki link to the clipboard
@@ -603,17 +556,18 @@ class ClipboardManager(object):
 		@param url: the expanded url for this interwiki link, e.g.
 		"http://en.wikipedia.org/wiki/foobar"
 		'''
-		item = InterWikiLinkItem(href, url)
-		self.set(item)
+		self.set_clipboard_data(InterWikiLinkData(href, url))
 
 	def set_uri(self, uri):
 		'''Copy an uri to the clipboard
 		@param uri: an uri as string, or an object with an attribute C{uri}
 		'''
-		item = UriItem(uri)
-		self.set(item)
+		self.set_clipboard_data(UriData(uri))
+
 
 Clipboard = ClipboardManager("CLIPBOARD") #: Singleton object for the default clipboard
+
+
 SelectionClipboard = ClipboardManager("PRIMARY") #: Singleton object for the selection clipboard (unix)
 
 
