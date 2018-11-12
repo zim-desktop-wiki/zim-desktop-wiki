@@ -5906,7 +5906,7 @@ class PageView(gtk.VBox):
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'>\''), STOCK_MIGRATED_BOX, '', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'>\''), STOCK_MIGRATED_BOX, '<alt>F12', readonly=False) # T: Menu item
 	def migrate_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
