@@ -328,6 +328,36 @@ def _get_image_info(targetname):
 		return None, None
 
 
+class MockSelectionData(object):
+	'''Adapter to allow usage of C{ClipboardData} as input for
+	C{parsetree_from_selectiondata()}
+	'''
+
+	def __init__(self, target, clipboard_data):
+		self.target = target
+		self.data = clipboard_data
+
+	def get_target(self):
+		target_name = self.target[0]
+		return Gdk.Atom.intern(target_name, False)
+
+	def get_data(self):
+		target_id = self.target[-1]
+		return self.data.get_data_as(target_id)
+
+	def get_text(self):
+		return self.data.get_data_as(TEXT_TARGET_ID)
+
+	def get_uris(self):
+		if self.target in URI_TARGETS:
+			return self.data.get_data_as(URI_TARGET_ID)
+		else:
+			return unpack_urilist(self.get_data())
+
+	def get_pixbuf(self):
+		raise NotImplementedError
+
+
 class ClipboardData(object):
 	'''Wrapper for data that can be set on the clipboard and pasted
 	multiple formats
@@ -347,23 +377,25 @@ class UriData(ClipboardData):
 
 	targets = URI_TARGETS + TEXT_TARGETS
 
-	def __init__(self, obj):
-		if isinstance(obj, str):
-			self.uri = obj
-			self.obj = None
-		else:
-			assert hasattr(obj, 'uri')
-			self.obj = obj
-			self.uri = obj.uri
+	def __init__(self, *obj):
+		uris = []
+		text = []
+		for o in obj:
+			if isinstance(o, (File, Dir)):
+				uris.append(o.uri)
+				text.append(o.user_path)
+			else:
+				uri = o if isinstance(o, str) else o.uri
+				uris.append(uri)
+				text.append(uri)
+		self.uris = tuple(uris)
+		self.text = ' '.join(text)
 
 	def get_data_as(self, targetid):
 		if targetid == URI_TARGET_ID:
-			return (self.uri,)
+			return self.uris
 		else:
-			if isinstance(self.obj, (File, Dir)):
-				return self.obj.user_path
-			else:
-				return self.uri
+			return self.text
 
 
 class InterWikiLinkData(UriData):
@@ -456,8 +488,15 @@ class ClipboardManager(object):
 		@param clipboard_data: a L{ClipboardData} object
 		'''
 		self.data = clipboard_data
-		self.clipboard.set_with_data(self.data.targets, self._get, self._clear) \
-			or logger.warn('Failed to set data on clipboard')
+		#self.clipboard.set_with_data(self.data.targets, self._get, self._clear) \
+		#	or logger.warn('Failed to set data on clipboard')
+
+		### set_with_data() workaround
+		assert TEXT_TARGETS[0] in self.data.targets
+		text = self.data.get_data_as(TEXT_TARGET_ID)
+		self.clipboard.set_text(text, -1)
+		self.data._workaround_text = text
+		###
 
 	def _get(self, clipboard, selectiondata, targetid):
 		logger.debug(
@@ -520,19 +559,35 @@ class ClipboardManager(object):
 
 		@returns: a L{ParseTree} or C{None}
 		'''
-		(has_data, targets) = self.clipboard.wait_for_targets()
-		logger.debug('Targets available for paste: %s, we want parsetree', targets)
+		(has_data, atoms) = self.clipboard.wait_for_targets()
+		logger.debug('Targets available for paste: %s, we want parsetree', atoms)
 
 		if not has_data:
 			return None
 
-		targets = [n for n in targets if n.name() in PARSETREE_ACCEPT_TARGET_NAMES]
-			# Filter and sort by PARSETREE_ACCEPT_TARGET_NAMES
+		### set_with_data() workaround
+		if atoms and self.data and hasattr(self.data, '_workaround_text') \
+			and any(a.name() in TEXT_TARGET_NAMES for a in atoms):
+				text = self.clipboard.wait_for_text()
+				if text == self.data._workaround_text:
+					targets = sorted(
+						filter(lambda t: t in PARSETREE_ACCEPT_TARGETS, self.data.targets),
+						key=lambda t: PARSETREE_ACCEPT_TARGETS.index(t)
+					)
+					assert len(targets) > 0
+					logger.debug('Requesting data for %s -- using set_with_data() workaround', targets[0])
+					selectiondata = MockSelectionData(targets[0], self.data)
+					return parsetree_from_selectiondata(selectiondata, notebook, path)
+		###
 
-		if targets:
-			name = targets[0]  # TODO why choose 1st index?
-			logger.debug('Requesting data for %s', name)
-			selectiondata = self.clipboard.wait_for_contents(name)
+		atoms = sorted(
+					filter(lambda a: a.name() in PARSETREE_ACCEPT_TARGET_NAMES, atoms),
+					key=lambda a: PARSETREE_ACCEPT_TARGET_NAMES.index(a.name())
+				)
+		if atoms:
+			atom = atoms[0]  # TODO why choose 1st index?
+			logger.debug('Requesting data for %s', atom)
+			selectiondata = self.clipboard.wait_for_contents(atom)
 			if selectiondata:
 				return parsetree_from_selectiondata(selectiondata, notebook, path)
 			else:
@@ -558,11 +613,11 @@ class ClipboardManager(object):
 		'''
 		self.set_clipboard_data(InterWikiLinkData(href, url))
 
-	def set_uri(self, uri):
+	def set_uri(self, *uris):
 		'''Copy an uri to the clipboard
 		@param uri: an uri as string, or an object with an attribute C{uri}
 		'''
-		self.set_clipboard_data(UriData(uri))
+		self.set_clipboard_data(UriData(*uris))
 
 
 Clipboard = ClipboardManager("CLIPBOARD") #: Singleton object for the default clipboard
