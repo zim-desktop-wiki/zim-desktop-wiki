@@ -6924,13 +6924,16 @@ class InsertLinkDialog(Dialog):
 
 		Dialog.__init__(self, parent, title, button=_('_Link'))  # T: Dialog button
 
-		self.add_form([
-			('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
-			('text', 'string', _('Text')) # T: Input in 'insert link' dialog
-		], {
-			'href': href,
-			'text': text,
-		})
+		self.add_form(
+			[
+				('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
+				('text', 'string', _('Text')) # T: Input in 'insert link' dialog
+			], {
+				'href': href,
+				'text': text,
+			},
+			notebook=pageview.notebook
+		)
 
 		# Hook text entry to copy text from link when apropriate
 		self.form.widgets['href'].connect('changed', self.on_href_changed)
@@ -6999,7 +7002,7 @@ class InsertLinkDialog(Dialog):
 			# Try making the path relative
 			file = self.form.widgets['href'].get_file()
 			page = self.pageview.page
-			notebook = self.notebook
+			notebook = self.pageview.notebook
 			href = notebook.relative_filepath(file, page) or file.uri
 
 		text = self.form['text'] or href
