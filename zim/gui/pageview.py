@@ -5904,7 +5904,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			(CHECKED_BOX, _('Check Checkbox \'V\'')), # T: popup menu menuitem
 			(UNCHECKED_BOX, _('Un-check Checkbox')), # T: popup menu menuitem
 		):
-			item = Gtk.ImageMenuItem(stock_id=bullet_types[bullet])
+			item = Gtk.ImageMenuItem(bullet_types[bullet])
 			item.set_label(label)
 			item.connect('activate', callback(buffer.set_bullet, line, bullet))
 			menu.prepend(item)
