@@ -116,7 +116,6 @@ Also adds a calendar widget to access these pages.
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS), # T: preferences option
 		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
 		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
-		('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True), # T: preferences option
 	)
 
 	def path_from_date(self, date):
@@ -169,13 +168,9 @@ class CalendarNotebookExtension(NotebookExtension):
 
 	def __init__(self, plugin, notebook):
 		NotebookExtension.__init__(self, plugin, notebook)
-		self._initialized_namespace = None
-
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
-		self.connectto(notebook, 'suggest-link')
-		self.connectto(notebook, 'new-page-template')
+		self.connectto_all(
+			notebook, ('suggest-link', 'get-page-template', 'init-page-template')
+		)
 
 	def on_suggest_link(self, notebook, source, text):
 		#~ if date_path_re.match(path.text):
@@ -189,7 +184,10 @@ class CalendarNotebookExtension(NotebookExtension):
 		else:
 			return None
 
-	def on_new_page_template(self, notebook, path, template):
+	def on_get_page_template(self, notebook, path):
+		return 'Journal' if path.ischild(self.plugin.preferences['namespace']) else None
+
+	def on_init_page_template(self, notebook, path, template):
 		daterange = daterange_from_path(path)
 		if daterange:
 			self.connectto(template, 'process',
@@ -212,23 +210,6 @@ class CalendarNotebookExtension(NotebookExtension):
 			'end_date': end,
 			'days': dateRangeTemplateFunction(start, end),
 		}
-
-	def on_preferences_changed(self, preferences):
-		self.teardown()
-		ns = preferences['namespace'].name
-		self.notebook.namespace_properties[ns]['template'] = 'Journal'
-		self.notebook.namespace_properties[ns]['auto_expand_in_index'] = preferences['auto_expand_in_index']
-		self._initialized_namespace = ns
-
-	def teardown(self):
-		if self._initialized_namespace:
-			ns = self._initialized_namespace
-			for key in ('template', 'auto_expand_in_index'):
-				try:
-					self.notebook.namespace_properties[ns].remove(key)
-				except KeyError:
-					pass
-			self._initialized_namespace = None
 
 
 class JournalPageViewExtension(PageViewExtension):

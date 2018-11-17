@@ -183,7 +183,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
 	to resolve links
-	@signal: C{new-page-template (path, template)}: emitted before
+	@signal: C{get-page-template (path)}: emitted before
+	when a template for a new page is requested, intended for plugins that
+	want to customize a namespace
+	@signal: C{init-page-template (path, template)}: emitted before
 	evaluating a template for a new page, intended for plugins that want
 	to extend page templates
 
@@ -210,7 +213,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'deleted-page': (SIGNAL_NORMAL, None, (object,)),
 		'page-info-changed': (SIGNAL_NORMAL, None, (object,)),
 		'properties-changed': (SIGNAL_NORMAL, None, ()),
-		'new-page-template': (SIGNAL_NORMAL, None, (object, object)),
+		'get-page-template': (SIGNAL_NORMAL, str, (object,)),
+		'init-page-template': (SIGNAL_NORMAL, None, (object, object)),
 
 		# Hooks
 		'suggest-link': (SIGNAL_NORMAL, object, (object, object)),
@@ -279,9 +283,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		if self.readonly:
 			logger.info('Notebook read-only: %s', dir.path)
 
-		self.namespace_properties = HierarchicDict({
-				'template': 'Default'
-			})
 		self._page_cache = weakref.WeakValueDictionary()
 
 		self.name = None
@@ -1166,10 +1167,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		# FIXME hardcoded that template must be wiki format
 
-		template = self.namespace_properties[path]['template']
-		logger.debug('Found template \'%s\' for %s', template, path)
+		template = self.get_page_template_name(path)
+		logger.debug('Got page template \'%s\' for %s', template, path)
 		template = zim.templates.get_template('wiki', template)
 		return self.eval_new_page_template(path, template)
+
+	def get_page_template_name(self, path=None):
+		'''Returns the name of the template to use for a new page.
+		(To get the contents of the template directly, see L{get_template()})
+		'''
+		return self.emit_return_first('get-page-template', path or Path(':')) or 'Default'
 
 	def eval_new_page_template(self, path, template):
 		lines = []
@@ -1181,7 +1188,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				'namespace': path.namespace, # backward compat
 			}
 		}
-		self.emit('new-page-template', path, template) # plugin hook
+		self.emit('init-page-template', path, template) # plugin hook
 		template.process(lines, context)
 
 		parser = zim.formats.get_parser('wiki')

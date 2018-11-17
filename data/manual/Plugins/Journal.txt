@@ -15,7 +15,6 @@ This plugin is intended to help organize notes by date like you would do for a j
 This plugin has the following options:
 
 The option **Position in the window** determines in which side pane the calendar is shown.
-The option **Expand journal page in index when opened** expands the index-tree if a date is opened.
 The option **Use a page for each: ...** allows you to set the calendar to either use a separate page for each day, each week, each month or even each year.
 
 The **Section** controls where the calendar pages are stored.

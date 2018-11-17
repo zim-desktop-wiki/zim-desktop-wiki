@@ -105,8 +105,7 @@ class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 
 	def set_page(self, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-		expand = self.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
-		if treepath and expand:
+		if treepath:
 			selected_path = self.treeview.get_selected_path()
 			if page != selected_path:
 				self.treeview.select_treepath(treepath)
