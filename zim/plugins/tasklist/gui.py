@@ -61,7 +61,7 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 	title = _('Tasks') # T: tab label for side pane
 
-	def __init__(self, tasksview, opener, preferences, uistate):
+	def __init__(self, tasksview, opener, properties, uistate):
 		GObject.GObject.__init__(self)
 		self.uistate = uistate
 		self.uistate.setdefault('only_show_act', False)
@@ -69,11 +69,11 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 		self.task_list = TaskListTreeView(
 			tasksview, opener,
-			_parse_task_labels(preferences['labels']),
-			nonactionable_tags=_parse_task_labels(preferences['nonactionable_tags']),
+			_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
 			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=preferences['tag_by_page'],
-			use_workweek=preferences['use_workweek'],
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
 			compact=True,
 			flatlist=self.uistate['show_flatlist'],
 		)
@@ -92,11 +92,11 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 class TaskListDialog(TaskListWidgetMixin, Dialog):
 
-	def __init__(self, parent, tasksview, preferences):
+	def __init__(self, parent, tasksview, properties):
 		Dialog.__init__(self, parent, _('Task List'), # T: dialog title
 			buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=(550, 400))
-		self.preferences = preferences
+		self.properties = properties
 		self.tasksview = tasksview
 		self.notebook = parent.notebook
 
@@ -114,15 +114,15 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
 		opener = parent.navigation
-		task_labels = _parse_task_labels(preferences['labels'])
-		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
+		task_labels = _parse_task_labels(properties['labels'])
+		nonactionable_tags = _parse_task_labels(properties['nonactionable_tags'])
 		self.task_list = TaskListTreeView(
 			self.tasksview, opener,
 			task_labels,
 			nonactionable_tags=nonactionable_tags,
 			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=preferences['tag_by_page'],
-			use_workweek=preferences['use_workweek'],
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
 			flatlist=self.uistate['show_flatlist'],
 			sort_column=self.uistate['sort_column'],
 			sort_order=self.uistate['sort_order']
@@ -282,7 +282,7 @@ class TagListTreeView(SingleClickTreeView):
 		model.append((_('All Tasks'), n_all, self._type_label, Pango.Weight.BOLD)) # T: "tag" for showing all tasks
 
 		used_labels = self.task_list.get_labels()
-		for label in self.task_labels: # explicitly keep sorting from preferences
+		for label in self.task_labels: # explicitly keep sorting from properties
 			if label in used_labels:
 				model.append((label, used_labels[label], self._type_label, Pango.Weight.BOLD))
 

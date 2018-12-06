@@ -10,10 +10,6 @@
 # - open dialog
 # - output to stdout with configurable format
 # - force update, intialization
-#
-# TODO: store parser settings in notebook, not in preferences
-#      in dialog make it clear what is per notebook and what is user prefs
-#      tab in properties, link to open that from plugin prefs ?
 
 # TODO: test coverage for the start date label (and due with "<")
 # TODO: test coverage for start / due date from journal page
@@ -51,6 +47,14 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Task List'
 	}
 
+	plugin_preferences = (
+		# key, type, label, default
+		('embedded', 'bool', _('Show tasklist in sidepane'), False),
+			# T: preferences option
+		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
+			# T: preferences option
+	)
+
 	parser_preferences = (
 		# key, type, label, default
 		('all_checkboxes', 'bool', _('Consider all checkboxes as tasks'), True),
@@ -68,13 +72,7 @@ This is a core plugin shipping with zim.
 			# T: Notebook sections to exclude when searching for tasks - default is none
 	)
 
-	plugin_preferences = (
-		# key, type, label, default
-		('embedded', 'bool', _('Show tasklist in sidepane'), False),
-			# T: preferences option
-		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
-			# T: preferences option
-	) + parser_preferences + (
+	plugin_notebook_properties = parser_preferences + (
 		('nonactionable_tags', 'string', _('Tags for non-actionable tasks'), '', StringAllowEmpty),
 			# T: label for plugin preferences dialog
 		('tag_by_page', 'bool', _('Turn page name into tags for task items'), False),
@@ -97,6 +95,7 @@ class TaskListNotebookExtension(NotebookExtension):
 	def __init__(self, plugin, notebook):
 		NotebookExtension.__init__(self, plugin, notebook)
 
+		self.properties = self.plugin.notebook_properties(notebook)
 		self._parser_key = self._get_parser_key()
 
 		self.index = notebook.index
@@ -108,25 +107,25 @@ class TaskListNotebookExtension(NotebookExtension):
 		self._setup_indexer(self.index, self.index.update_iter)
 		self.connectto(self.index, 'new-update-iter', self._setup_indexer)
 
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		self.connectto(self.properties, 'changed', self.on_properties_changed)
 
 	def _setup_indexer(self, index, update_iter):
 		if self.indexer is not None:
 			self.disconnect_from(self.indexer)
 			self.indexer.disconnect_all()
 
-		self.indexer = TasksIndexer.new_from_index(index, self.plugin.preferences)
+		self.indexer = TasksIndexer.new_from_index(index, self.properties)
 		update_iter.add_indexer(self.indexer)
 		self.connectto(self.indexer, 'tasklist-changed')
 
-	def on_preferences_changed(self, preferences):
+	def on_properties_changed(self, properties):
 		# Need to construct new parser, re-index pages
 		if self._parser_key != self._get_parser_key():
 			self._parser_key = self._get_parser_key()
 
 			self.disconnect_from(self.indexer)
 			self.indexer.disconnect_all()
-			self.indexer = TasksIndexer.new_from_index(self.index, preferences)
+			self.indexer = TasksIndexer.new_from_index(self.index, properties)
 			self.index.flag_reindex()
 			self.connectto(self.indexer, 'tasklist-changed')
 
@@ -135,7 +134,7 @@ class TaskListNotebookExtension(NotebookExtension):
 
 	def _get_parser_key(self):
 		return tuple(
-			self.plugin.preferences[t[0]]
+			self.properties[t[0]]
 				for t in self.plugin.parser_preferences
 		)
 
@@ -180,7 +179,8 @@ class TaskListPageViewExtension(PageViewExtension):
 	def _init_widget(self):
 		index = self.pageview.notebook.index
 		tasksview = TasksView.new_from_index(index)
-		self._widget = TaskListWidget(tasksview, self.navigation, self.plugin.preferences, self.uistate)
+		properties = self.plugin.notebook_properties(self.pageview.notebook)
+		self._widget = TaskListWidget(tasksview, self.navigation, properties, self.uistate)
 
 		def on_tasklist_changed(o):
 			self._widget.task_list.refresh()
@@ -191,8 +191,3 @@ class TaskListPageViewExtension(PageViewExtension):
 
 		nb_ext = find_extension(self.pageview.notebook, TaskListNotebookExtension)
 		self.connectto(nb_ext, 'tasklist-changed', callback)
-
-	def teardown(self):
-		if self._widget:
-			self.remove_tab(self._widget)
-			self._widget = None
