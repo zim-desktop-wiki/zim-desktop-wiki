@@ -330,7 +330,7 @@ class TagsTreeModelBase(PagesTreeModelMixin):
 
 	def connect_to_updateiter(self, index, update_iter):
 		self.connectto_all(update_iter.pages,
-			('page-row-inserted', 'page-row-changed', 'page-row-deleted')
+			('page-row-inserted', 'page-row-changed', 'page-row-delete', 'page-row-deleted')
 		)
 		self.connectto_all(update_iter.tags,
 			('tag-row-inserted', 'tag-row-deleted', 'tag-added-to-page', 'tag-removed-from-page')

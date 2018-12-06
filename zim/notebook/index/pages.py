@@ -45,7 +45,8 @@ class PagesIndexer(IndexerBase):
 
 	@signal: C{page-row-inserted (row)}: new row inserted
 	@signal: C{page-row-changed (row, oldrow)}: row changed
-	@signal: C{page-row-deleted (row)}: row to be deleted
+	@signal: C{page-row-delete (row)}: row to be deleted
+	@signal: C{page-row-deleted (row)}: row that has been deleted
 
 	@signal: C{page-changed (row, content)}: page contents changed
 	'''
@@ -53,6 +54,7 @@ class PagesIndexer(IndexerBase):
 	__signals__ = {
 		'page-row-inserted': (None, None, (object,)),
 		'page-row-changed': (None, None, (object, object)),
+		'page-row-delete': (None, None, (object,)),
 		'page-row-deleted': (None, None, (object,)),
 		'page-changed': (None, None, (object, object))
 	}
@@ -262,9 +264,28 @@ class PagesIndexer(IndexerBase):
 		if row['n_children'] > 0:
 			raise AssertionError('Page has child pages')
 
-		self.emit('page-row-deleted', row)
+		self.emit('page-row-delete', row)
 		self.db.execute('DELETE FROM pages WHERE name=?', (pagename.name,))
+		self._update_parent_nchildren(pagename.parent)
+		self.emit('page-row-deleted', row)
 		self.update_parent(pagename.parent, allow_cleanup)
+
+	def _update_parent_nchildren(self, parentname):
+		# parent n_children needs to be up-to-date when we emit the "deleted"
+		# signal, else Gtk.TreeView sees an inconsistency
+		# We still call update_parent() after the fact to do the rest of the
+		# house keeping
+		row = self._select(parentname)
+		assert row is not None
+
+		n_children, = self.db.execute(
+			'SELECT count(*) FROM pages WHERE parent=?',
+			(row['id'],)
+		).fetchone()
+		self.db.execute(
+			'UPDATE pages SET n_children=? WHERE id=?',
+			(n_children, row['id'])
+		)
 
 
 class PageIndexRecord(Path):
@@ -820,6 +841,8 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			self._MY_ROOT_NAME_C = root.name + ':'
 			self._set_root_id()
 
+		self._deleted_paths = None
+
 	def _set_root_id(self):
 		myrow = self.db.execute(
 			'SELECT * FROM pages WHERE name=?', (self._MY_ROOT_NAME,)
@@ -828,7 +851,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def connect_to_updateiter(self, index, update_iter):
 		self.connectto_all(update_iter.pages,
-			('page-row-inserted', 'page-row-changed', 'page-row-deleted')
+			('page-row-inserted', 'page-row-changed', 'page-row-delete', 'page-row-deleted')
 		)
 
 	def on_page_row_inserted(self, o, row):
@@ -837,14 +860,14 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			self._set_root_id()
 		else:
 			for treepath in self._find_all_pages(row['name']):
-				if treepath[-1] == 0 and len(treepath) > 1:
-					self._check_parent_has_child_toggled(treepath)
 				treeiter = self.get_iter(treepath) # not mytreeiter !
 				self.emit('row-inserted', treepath, treeiter)
+				if treepath[-1] == 0 and len(treepath) > 1:
+					self._check_parent_has_child_toggled(treepath, 1)
 
-	def _check_parent_has_child_toggled(self, treepath):
+	def _check_parent_has_child_toggled(self, treepath, count):
 		parent = self.get_mytreeiter(treepath[:-1])
-		if parent.row['n_children'] == 1:
+		if parent.n_children == count:
 			treeiter = self.get_iter(parent.treepath) # not mytreeiter !
 			self.emit('row-has-child-toggled', parent.treepath, treeiter)
 
@@ -855,15 +878,20 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 			self.cache[tuple(treepath)].row = row # ensure uptodate info
 			self.emit('row-changed', treepath, treeiter)
 
+	def on_page_row_delete(self, o, row):
+		self._deleted_paths = list(self._find_all_pages(row['name']))
+
 	def on_page_row_deleted(self, o, row):
 		self.flush_cache()
 		if row['name'] == self._MY_ROOT_NAME:
 			self._MY_ROOT_ID = None
 		else:
-			for treepath in self._find_all_pages(row['name']):
-				if treepath[-1] == 0 and len(treepath) > 1:
-					self._check_parent_has_child_toggled(treepath)
+			for treepath in self._deleted_paths:
 				self.emit('row-deleted', treepath)
+				if treepath[-1] == 0 and len(treepath) > 1:
+					self._check_parent_has_child_toggled(treepath, 0)
+
+		self._deleted_paths = None
 
 	def n_children_top(self):
 		if self._MY_ROOT_ID is None:

@@ -33,14 +33,7 @@ class TestPageIndexPlugin(tests.TestCase):
 
 class TestPageTreeStore(tests.TestCase):
 
-	def testAPI(self):
-		'''Test PageTreeStore index interface'''
-		# This is one big test instead of seperate sub tests because in the
-		# subclass we generate a file based notebook in setUp, and we do not
-		# want to do that many times.
-		# Hooking up the treeview as well just to see if we get any errors
-		# From the order the signals are generated.
-
+	def runTest(self):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		treestore = PageTreeStore(notebook.index)
@@ -131,11 +124,95 @@ class TestPageTreeStore(tests.TestCase):
 		self.assertTrue(npages > 10) # double check sanity of walk() method
 
 
-class TestPageTreeView(tests.TestCase):
+class TestSignals(tests.TestCase):
 
-	# This class is intended for testing the widget user interaction,
-	# interaction with the store is already tested by having the
-	# view attached in TestPageTreeStore
+	PAGES = ('a', 'a:a', 'a:b', 'b', 'c')
+
+	def runTest(self):
+		notebook = self.setUpNotebook()
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
+		model = PageTreeStore(notebook.index)
+		treeview = PageTreeView(notebook, config, navigation, model=model)
+
+		signals = []
+		def signal_logger(o, *a):
+			path = a[0].to_string()
+			signal = a[-1]
+			signals.append((signal, path))
+			#print(">>>", signal, path)
+
+		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
+			model.connect(signal, signal_logger, signal)
+
+		def validate_path_iter(model, path, iter):
+			assert isinstance(path, Gtk.TreePath)
+			assert model.iter_is_valid(iter)
+
+			self.assertEqual(model.get_path(iter).get_indices(), path.get_indices())
+
+			if model.iter_has_child(iter):
+				self.assertTrue(model.iter_n_children(iter) > 0)
+				child = model.iter_children(iter)
+				self.assertIsNotNone(child)
+				childpath = model.get_path(child)
+				self.assertEqual(childpath.get_indices(), path.get_indices() + [0])
+			else:
+				self.assertTrue(model.iter_n_children(iter) == 0)
+
+		def validate_parent_path_iter(model, path):
+			assert isinstance(path, Gtk.TreePath)
+			if path.get_depth() > 1:
+				parent = Gtk.TreePath(path.get_indices()[:-1])
+				iter = model.get_iter(parent)
+				validate_path_iter(model, parent, iter)
+
+		for signal in ('row-inserted', 'row-changed', 'row-has-child-toggled'):
+			model.connect(signal, validate_path_iter)
+
+		for signal in ('row-deleted',):
+			model.connect(signal, validate_parent_path_iter)
+
+		for path in map(Path, self.PAGES):
+			page = notebook.get_page(path)
+			page.parse('plain', 'Test 123\n')
+			notebook.store_page(page)
+
+		expect_add = [
+			('row-inserted', '0'),
+			('row-changed', '0'),
+			('row-changed', '0'),
+			('row-inserted', '0:0'),
+			('row-has-child-toggled', '0'),
+			('row-changed', '0:0'),
+			('row-changed', '0'),
+			('row-inserted', '0:1'),
+			('row-changed', '0:1'),
+			('row-inserted', '1'),
+			('row-changed', '1'),
+			('row-inserted', '2'),
+			('row-changed', '2')
+		]
+		self.assertEqual(signals, expect_add)
+		signals[:] = []
+
+		for path in reversed(self.PAGES):
+			notebook.delete_page(Path(path))
+
+		expect_del = [
+			('row-deleted', '2'),
+			('row-deleted', '1'),
+			('row-deleted', '0:1'),
+			('row-changed', '0'),
+			('row-deleted', '0:0'),
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-deleted', '0')
+		]
+		self.assertEqual(signals, expect_del)
+
+
+class TestPageTreeView(tests.TestCase):
 
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
@@ -198,9 +275,3 @@ class TestPageTreeView(tests.TestCase):
 
 		self.assertGreater(self.model.on_iter_n_children(None), 0)
 		# TODO: assert something on the view ?
-
-
-class MockUI(tests.MockObject):
-
-	page = None
-	notebook = None
