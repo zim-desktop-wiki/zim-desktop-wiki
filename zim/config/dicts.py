@@ -429,7 +429,7 @@ _definition_classes = {
 
 def build_config_definition(default=None, check=None, allow_empty=False):
 	'''Convenience method to construct a L{ConfigDefinition} object
-	based on a default value an/or a check.
+	based on a default value and/or a check.
 	'''
 	if default is None and check is None:
 		raise AssertionError('At least provide either a default or a check')

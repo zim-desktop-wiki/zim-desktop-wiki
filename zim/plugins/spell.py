@@ -76,7 +76,7 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Spell Checker',
 	}
 
-	plugin_preferences = (
+	plugin_notebook_properties = (
 		('language', 'string', 'Default Language', ''),
 	)
 
@@ -92,10 +92,22 @@ class SpellPageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
+
+		properties = self.plugin.notebook_properties(self.pageview.notebook)
+		self._language = properties['language']
+		self.connectto(properties, 'changed', self.on_properties_changed)
+
 		self._adapter_cls = self._choose_adapter_cls()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
 		self.connectto(self.pageview, 'page-changed', order=SIGNAL_AFTER)
+
+	def on_properties_changed(self, properties):
+		self._language = properties['language']
+		textview = self.pageview.textview
+		checker = getattr(textview, '_gtkspell', None)
+		if checker:
+			self.setup()
 
 	def _choose_adapter_cls(self):
 		if gtkspellcheck:
@@ -138,19 +150,19 @@ class SpellPageViewExtension(PageViewExtension):
 
 	def setup(self):
 		textview = self.pageview.textview
-		lang = self.plugin.preferences['language'] or locale.getdefaultlocale()[0]
+		lang = self._language or locale.getdefaultlocale()[0]
 		logger.debug('Spellcheck language: %s', lang)
-		#try:
-		checker = self._adapter_cls(textview, lang)
-		#except:
-		#	ErrorDialog(self.pageview, (
-		#		_('Could not load spell checking'),
-		#			# T: error message
-		#		_('This could mean you don\'t have the proper\ndictionaries installed')
-		#			# T: error message explanation
-		#	)).run()
-		#else:
-		textview._gtkspell = checker
+		try:
+			checker = self._adapter_cls(textview, lang)
+		except:
+			ErrorDialog(self.pageview, (
+				_('Could not load spell checking'),
+					# T: error message
+				_('This could mean you don\'t have the proper\ndictionaries installed')
+					# T: error message explanation
+			)).run()
+		else:
+			textview._gtkspell = checker
 
 	def teardown(self):
 		textview = self.pageview.textview

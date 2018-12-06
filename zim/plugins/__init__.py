@@ -443,14 +443,15 @@ class PluginClass(ConnectorMixin):
 	def notebook_properties(self, notebook):
 		properties = notebook.config[self.config_key]
 		if not properties:
-			# update defaults based on preference
-			properties_defs = [list(p) for p in self.plugin_notebook_properties]
-			for prop in properties_defs:
-				key = prop[0]
-				default = self.preferences[key]
-				prop[3] = default
+			self._init_config(properties, self.plugin_notebook_properties)
 
-			self._init_config(properties, properties_defs)
+			# update defaults based on preference
+			for key, definition in properties.definitions.items():
+				try:
+					definition.default = definition.check(self.preferences[key])
+				except ValueError:
+					pass
+
 		return properties
 
 	@classmethod
