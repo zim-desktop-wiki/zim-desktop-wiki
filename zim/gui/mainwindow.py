@@ -635,8 +635,8 @@ class MainWindow(Window):
 			self.toggle_readonly(self.uistate['readonly'])
 
 		# And hook to notebook properties
-		self.on_notebook_properties_changed(self.notebook)
-		self.notebook.connect('properties-changed', self.on_notebook_properties_changed)
+		self.on_notebook_properties_changed(self.notebook.properties)
+		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
 
 		# Hook up the statusbar
 		self.connect('page-changed', self.do_update_statusbar)
@@ -703,13 +703,13 @@ class MainWindow(Window):
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
 
-	def on_notebook_properties_changed(self, notebook):
-		self.set_title(notebook.name + ' - Zim')
-		if notebook.icon:
+	def on_notebook_properties_changed(self, properties):
+		self.set_title(self.notebook.name + ' - Zim')
+		if self.notebook.icon:
 			try:
-				self.set_icon_from_file(notebook.icon)
+				self.set_icon_from_file(self.notebook.icon)
 			except GObject.GError:
-				logger.exception('Could not load icon %s', notebook.icon)
+				logger.exception('Could not load icon %s', self.notebook.icon)
 
 	def on_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()

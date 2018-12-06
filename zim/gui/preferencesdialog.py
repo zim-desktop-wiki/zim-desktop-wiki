@@ -401,26 +401,25 @@ class PluginConfigureDialog(Dialog):
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 
-		fields = []
 		ignore = getattr(self.plugin, 'hide_preferences', [])
-		for pref in self.plugin.plugin_preferences:
-			if pref[0] in ignore:
-				continue
-
-			if len(pref) == 4:
-				key, type, label, default = pref
-				check = None
-				self.plugin.preferences.setdefault(key, default) # just to be sure
-			else:
-				key, type, label, default, check = pref
-				self.plugin.preferences.setdefault(key, default, check=check) # just to be sure
-
-			if type in ('int', 'choice'):
-				fields.append((key, type, label, check))
-			else:
-				fields.append((key, type, label))
-
+		fields = [
+			field for field in
+				self.plugin.form_fields(self.plugin.plugin_preferences)
+					if field[0] not in ignore
+		]
 		self.add_form(fields, self.plugin.preferences)
+
+		if plugin.plugin_notebook_properties:
+			hbox = Gtk.Box(spacing=12)
+			hbox.add(Gtk.Image.new_from_icon_name('dialog-information', Gtk.IconSize.DIALOG))
+			label = Gtk.Label()
+			label.set_markup(
+				'<i>' +
+				_('This plugin also has properties,\nsee the notebook properties dialog') + # T: info text in the preferences dialog
+				'</i>'
+			)
+			hbox.add(label)
+			self.vbox.pack_start(hbox, False, False, 18)
 
 	def do_response_ok(self):
 		# First let the plugin receive the changes, then save them.

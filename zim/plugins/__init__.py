@@ -355,6 +355,7 @@ class PluginClass(ConnectorMixin):
 	plugin_info = {}
 
 	plugin_preferences = ()
+	plugin_notebook_properties = ()
 
 	@classproperty
 	def config_key(klass):
@@ -407,19 +408,50 @@ class PluginClass(ConnectorMixin):
 
 		self.config = config or VirtualConfigManager()
 		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')[self.config_key]
-
-		for pref in self.plugin_preferences:
-				if len(pref) == 4:
-					key, type, label, default = pref
-					self.preferences.setdefault(key, default)
-					#~ print(">>>>", key, default, '--', self.preferences[key])
-				else:
-					key, type, label, default, check = pref
-					self.preferences.setdefault(key, default, check=check)
-					#~ print(">>>>", key, default, check, '--', self.preferences[key])
+		self._init_config(self.preferences, self.plugin_preferences)
+		self._init_config(self.preferences, self.plugin_notebook_properties) # defaults for the properties are preferences
 
 		self.load_insertedobject_types()
 		self.load_extensions_classes()
+
+	@staticmethod
+	def _init_config(config, definitions):
+		for pref in definitions:
+			if len(pref) == 4:
+				key, type, label, default = pref
+				config.setdefault(key, default)
+			else:
+				key, type, label, default, check = pref
+				config.setdefault(key, default, check=check)
+
+	@staticmethod
+	def form_fields(definitions):
+		fields = []
+		for pref in definitions:
+			if len(pref) == 4:
+				key, type, label, default = pref
+			else:
+				key, type, label, default, check = pref
+
+			if type in ('int', 'choice'):
+				fields.append((key, type, label, check))
+			else:
+				fields.append((key, type, label))
+
+		return fields
+
+	def notebook_properties(self, notebook):
+		properties = notebook.config[self.config_key]
+		if not properties:
+			# update defaults based on preference
+			properties_defs = [list(p) for p in self.plugin_notebook_properties]
+			for prop in properties_defs:
+				key = prop[0]
+				default = self.preferences[key]
+				prop[3] = default
+
+			self._init_config(properties, properties_defs)
+		return properties
 
 	@classmethod
 	def lookup_subclass(pluginklass, klass):

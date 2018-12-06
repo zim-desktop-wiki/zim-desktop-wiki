@@ -144,10 +144,12 @@ class TestJournalPlugin(tests.TestCase):
 	def testNamespace(self):
 		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
+		notebook = self.setUpNotebook()
+		properties = plugin.notebook_properties(notebook)
 		today = dateclass.today()
 		for namespace in (Path('Calendar'), Path(':')):
-			plugin.preferences['namespace'] = namespace
-			path = plugin.path_from_date(today)
+			properties['namespace'] = namespace
+			path = plugin.path_from_date(notebook, today)
 			self.assertTrue(isinstance(path, Path))
 			self.assertTrue(path.ischild(namespace))
 			date = plugin.date_from_path(path)
@@ -157,7 +159,7 @@ class TestJournalPlugin(tests.TestCase):
 		from zim.plugins.journal import DAY, WEEK, MONTH, YEAR
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
-		plugin.preferences['namespace'] = Path('Calendar')
+		properties['namespace'] = Path('Calendar')
 		date = dateclass(2012, 4, 27)
 		for setting, wanted, start in (
 			(DAY, 'Calendar:2012:04:27', dateclass(2012, 4, 27)),
@@ -165,18 +167,17 @@ class TestJournalPlugin(tests.TestCase):
 			(MONTH, 'Calendar:2012:04', dateclass(2012, 4, 1)),
 			(YEAR, 'Calendar:2012', dateclass(2012, 1, 1)),
 		):
-			plugin.preferences['granularity'] = setting
-			path = plugin.path_from_date(date)
+			properties['granularity'] = setting
+			path = plugin.path_from_date(notebook, date)
 			self.assertEqual(path.name, wanted)
 			self.assertEqual(plugin.date_from_path(path), start)
 
-		path = plugin.path_for_month_from_date(date)
+		path = plugin.path_for_month_from_date(notebook, date)
 		self.assertEqual(path.name, 'Calendar:2012:04')
 
 	def testTemplate(self):
 		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
-		plugin.preferences['namespace'] = Path('Calendar')
 
 		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
@@ -186,10 +187,10 @@ class TestJournalPlugin(tests.TestCase):
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
 		for path in (
-			Path('Calendar:2012'),
-			Path('Calendar:2012:04:27'),
-			Path('Calendar:2012:Week 17'),
-			Path('Calendar:2012:04'),
+			Path('Journal:2012'),
+			Path('Journal:2012:04:27'),
+			Path('Journal:2012:Week 17'),
+			Path('Journal:2012:04'),
 		):
 			tree = notebook.get_template(path)
 			lines = dumper.dump(tree)

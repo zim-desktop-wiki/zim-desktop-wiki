@@ -180,7 +180,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
 	means that the preferences need to be loaded again as well
-	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
 	to resolve links
 	@signal: C{get-page-template (path)}: emitted before
@@ -212,24 +211,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'delete-page': (SIGNAL_NORMAL, None, (object,)),
 		'deleted-page': (SIGNAL_NORMAL, None, (object,)),
 		'page-info-changed': (SIGNAL_NORMAL, None, (object,)),
-		'properties-changed': (SIGNAL_NORMAL, None, ()),
 		'get-page-template': (SIGNAL_NORMAL, str, (object,)),
 		'init-page-template': (SIGNAL_NORMAL, None, (object, object)),
 
 		# Hooks
 		'suggest-link': (SIGNAL_NORMAL, object, (object, object)),
 	}
-
-	properties = (
-		('name', 'string', _('Name')), # T: label for properties dialog
-		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
-		('home', 'page', _('Home Page')), # T: label for properties dialog
-		('icon', 'image', _('Icon')), # T: label for properties dialog
-		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
-		#~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
-		('profile', 'string', _('Profile')), # T: label for properties dialog
-		# 'shared' property is not shown in properties anymore
-	)
 
 	@classmethod
 	def new_from_dir(klass, dir):
@@ -271,9 +258,17 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		return nb
 
 	def __init__(self, cache_dir, config, folder, layout, index):
+		'''Constructor
+		@param cache_dir: a L{Folder} object used for caching the notebook state
+		@param config: a L{NotebookConfig} object
+		@param folder: a L{Folder} object for the notebook location
+		@param layout: a L{NotebookLayout} object
+		@param index: an L{Index} object
+		'''
 		self.folder = folder
 		self.cache_dir = cache_dir
 		self.config = config
+		self.properties = config['Notebook']
 		self.layout = layout
 		self.index = index
 		self._operation_check = NOOP
@@ -311,7 +306,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.index.update_iter.pages.connect('page-row-changed', on_page_row_changed)
 		self.index.update_iter.pages.connect('page-row-deleted', on_page_row_deleted)
 
-		self.do_properties_changed()
+		self.connectto(self.properties, 'changed', self.on_properties_changed)
+		self.on_properties_changed(self.properties)
 
 	@property
 	def uri(self):
@@ -341,8 +337,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		also updates the object attributes that map those properties.
 
 		@param properties: the properties to update
-
-		@emits: properties-changed
 		'''
 		dir = Dir(self.layout.root.path) # XXX
 
@@ -371,25 +365,20 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		# Actual update and signals
 		# ( write is the last action - in case update triggers a crash
 		#   we don't want to get stuck with a bad config )
-		self.config['Notebook'].update(properties)
-		self.emit('properties-changed')
-
+		self.properties.update(properties)
 		if hasattr(self.config, 'write'): # XXX Check needed for tests
 			self.config.write()
 
-	def do_properties_changed(self):
-		config = self.config['Notebook']
+	def on_properties_changed(self, properties):
 		dir = Dir(self.layout.root.path) # XXX
 
-		self.name = config['name']
-		icon, document_root = _resolve_relative_config(dir, config)
+		self.name = properties['name']
+		icon, document_root = _resolve_relative_config(dir, properties)
 		if icon:
 			self.icon = icon.path # FIXME rewrite to use File object
 		else:
 			self.icon = None
 		self.document_root = document_root
-
-		# TODO - can we switch cache_dir on run time when 'shared' changed ?
 
 	def suggest_link(self, source, word):
 		'''Suggest a link Path for 'word' or return None if no suggestion is

@@ -451,7 +451,6 @@ class TestNotebook(tests.TestCase):
 
 		path = Path('Foo:Bar')
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (

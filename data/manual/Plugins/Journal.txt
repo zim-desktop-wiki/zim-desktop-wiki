@@ -13,11 +13,12 @@ This plugin is intended to help organize notes by date like you would do for a j
 
 ===== Options =====
 This plugin has the following options:
+* The option **Position in the window** determines in which side pane the calendar is shown.
+* The option **Hide Journal pane if empty** allows to hide the Journal pane for notebooks that do not use it.
 
-The option **Position in the window** determines in which side pane the calendar is shown.
-The option **Use a page for each: ...** allows you to set the calendar to either use a separate page for each day, each week, each month or even each year.
-
-The **Section** controls where the calendar pages are stored.
+These options can be set as notebook properties per notebook:
+* The **Section** controls where the calendar pages are stored.
+* The option **Use a page for each: ...** allows you to set the calendar to either use a separate page for each day, each week, each month or even each year.
 
 ===== Keybindings =====
 * ''<Alt>D''  - navigate to the calendar date for today

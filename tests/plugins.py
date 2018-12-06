@@ -9,7 +9,6 @@ from zim.plugins import *
 from zim.fs import File
 
 from zim.config import VirtualConfigManager
-from zim.gui.propertiesdialog import PropertiesDialog
 
 from tests.mainwindow import setUpMainWindow
 
@@ -159,13 +158,11 @@ class TestPlugins(tests.TestCase):
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		mainwindow = setUpMainWindow(notebook)
-		dialog = PropertiesDialog(None, VirtualConfigManager(), notebook) # random dialog
 		for obj in (
 			notebook,
 			notebook.index,
 			mainwindow,
 			mainwindow.pageview,
-			dialog,
 		):
 			manager.extend(obj)
 

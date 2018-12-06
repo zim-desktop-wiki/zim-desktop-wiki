@@ -114,27 +114,35 @@ Also adds a calendar widget to access these pages.
 	plugin_preferences = (
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS), # T: preferences option
-		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
-		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
+		('hide_if_empty', 'bool', _('Hide Journal pane if empty'), False), # T: preferences option
 	)
 
-	def path_from_date(self, date):
+	plugin_notebook_properties = (
+		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
+		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
+	)
+
+	def path_from_date(self, notebook, date):
 		'''Returns the path for a journal page for a specific date'''
-		if self.preferences['granularity'] == DAY:
+		properties = self.notebook_properties(notebook)
+		granularity = properties['granularity']
+
+		if granularity == DAY:
 			path = date.strftime('%Y:%m:%d')
-		elif self.preferences['granularity'] == WEEK:
+		elif granularity == WEEK:
 			year, week, day = weekcalendar(date)
 			path = '%i:Week %02i' % (year, week)
-		elif self.preferences['granularity'] == MONTH:
+		elif granularity == MONTH:
 			path = date.strftime('%Y:%m')
-		elif self.preferences['granularity'] == YEAR:
+		elif granularity == YEAR:
 			path = date.strftime('%Y')
 
-		return self.preferences['namespace'].child(path)
+		return properties['namespace'].child(path)
 
-	def path_for_month_from_date(self, date):
+	def path_for_month_from_date(self, notebook, date):
 		'''Returns the namespace path for a certain month'''
-		return self.preferences['namespace'].child(date.strftime('%Y:%m'))
+		properties = self.notebook_properties(notebook)
+		return properties['namespace'].child(date.strftime('%Y:%m'))
 
 	def date_from_path(self, path):
 		'''Returns the date for a specific path or C{None}'''
@@ -179,13 +187,17 @@ class CalendarNotebookExtension(NotebookExtension):
 			year, month, day = text.split('-')
 			year, month, day = list(map(int, (year, month, day)))
 			date = datetime.date(year, month, day)
-			return self.plugin.path_from_date(date)
+			return self.plugin.path_from_date(notebook, date)
 		# TODO other formats
 		else:
 			return None
 
 	def on_get_page_template(self, notebook, path):
-		return 'Journal' if path.ischild(self.plugin.preferences['namespace']) else None
+		properties = self.plugin.notebook_properties(notebook)
+		if path.ischild(properties['namespace']) and daterange_from_path(path):
+			return 'Journal'
+		else:
+			return None
 
 	def on_init_page_template(self, notebook, path, template):
 		daterange = daterange_from_path(path)
@@ -218,15 +230,46 @@ class JournalPageViewExtension(PageViewExtension):
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
 
-		self.calendar_widget = CalendarWidget(plugin, pageview.notebook, plugin.config, self.navigation)
+		self.notebook = pageview.notebook
+		self.calendar_widget = CalendarWidget(plugin, self.notebook, plugin.config, self.navigation)
 		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
 
-		self.add_sidepane_widget(self.calendar_widget, 'pane')
+		properties = self.plugin.notebook_properties(self.notebook)
+		self.connectto(properties, 'changed', self.on_properties_changed)
+		self.on_properties_changed(properties)
+
+	def on_properties_changed(self, properties):
+		old_model = self.calendar_widget.treeview.get_model()
+		self.disconnect_from(old_model)
+
+		index = self.notebook.index
+		namespace = properties['namespace']
+		new_model = PageTreeStore(index, root=namespace, reverse=True)
+		self.calendar_widget.treeview.set_model(new_model)
+
+		self.connectto_all(new_model, ('row-inserted', 'row-deleted'), handler=self.on_pane_changed)
+		self.on_pane_changed()
+
+	def on_pane_changed(self, *a):
+		show_pane = self._check_show_pane()
+		widget_visible = self.calendar_widget.get_parent() is not None
+		if show_pane and not widget_visible:
+			self.add_sidepane_widget(self.calendar_widget, 'pane')
+		elif not show_pane and widget_visible:
+			self.remove_sidepane_widget(self.calendar_widget)
+
+	def _check_show_pane(self):
+		if self.plugin.preferences['hide_if_empty']:
+			model = self.calendar_widget.treeview.get_model()
+			n_pages = model.iter_n_children(None)
+			return n_pages > 0
+		else:
+			return True
 
 	@action(_('To_day'), accelerator='<Alt>D', menuhints='go') # T: menu item
 	def go_page_today(self):
 		today = datetime.date.today()
-		path = self.plugin.path_from_date(today)
+		path = self.plugin.path_from_date(self.pageview.notebook, today)
 		self.navigation.open_page(path)
 
 
@@ -291,6 +334,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 	def __init__(self, plugin, notebook, config, navigation):
 		GObject.GObject.__init__(self)
 		self.plugin = plugin
+		self.notebook = notebook
 		self.navigation = navigation
 		self.model = CalendarWidgetModel(plugin, notebook)
 
@@ -327,10 +371,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False, True, 0)
 
-		index = notebook.index
-		model = PageTreeStore(index, root=Path('Journal'), reverse=True)
 		self.treeview = PageTreeView(notebook, config, navigation)
-		self.treeview.set_model(model)
 		self.pack_start(ScrolledWindow(self.treeview), True, True, 0)
 
 	def go_today(self):
@@ -357,7 +398,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	def on_calendar_activate(self, calendar):
 		date = calendar.get_date()
-		path = self.plugin.path_from_date(date)
+		path = self.plugin.path_from_date(self.notebook, date)
 		self.navigation.open_page(path)
 
 	def on_month_changed(self, calendar):
@@ -391,7 +432,7 @@ class CalendarWidgetModel(object):
 		self.notebook = notebook
 
 	def list_dates_for_month(self, date):
-		namespace = self.plugin.path_for_month_from_date(date)
+		namespace = self.plugin.path_for_month_from_date(self.notebook, date)
 		try:
 			for path in self.notebook.pages.list_pages(namespace):
 				if date_path_re.match(path.name):

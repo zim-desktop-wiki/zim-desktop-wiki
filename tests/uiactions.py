@@ -454,6 +454,12 @@ class TestUIActions(tests.TestCase):
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
 
 	def testEditProperties(self):
+		from zim.gui.preferencesdialog import PreferencesDialog
+		from zim.plugins import PluginManager
+
+		self.uiactions.widget = Gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager(self.uiactions.config)
+
 		def edit_properties(dialog):
 			dialog.set_input(home='NewHome')
 			dialog.assert_response_ok()
@@ -464,6 +470,12 @@ class TestUIActions(tests.TestCase):
 		self.assertEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
 
 	def testEditPropertiesReadOnly(self):
+		from zim.gui.preferencesdialog import PreferencesDialog
+		from zim.plugins import PluginManager
+
+		self.uiactions.widget = Gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager(self.uiactions.config)
+
 		self.assertFalse(self.notebook.readonly) # implies attribute exists ..
 		self.notebook.readonly = True
 
@@ -475,6 +487,12 @@ class TestUIActions(tests.TestCase):
 			self.uiactions.show_properties()
 
 	def testPropertiesNotChangedOnCancel(self):
+		from zim.gui.preferencesdialog import PreferencesDialog
+		from zim.plugins import PluginManager
+
+		self.uiactions.widget = Gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager(self.uiactions.config)
+
 		# In fact this is testig the "cancel" button for all dialogs
 		# which have one ..
 		def edit_properties(dialog):
@@ -486,7 +504,6 @@ class TestUIActions(tests.TestCase):
 
 		self.assertNotEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
 
-	@tests.expectedFailure
 	def testCopyLocation(self):
 		from zim.gui.clipboard import Clipboard
 

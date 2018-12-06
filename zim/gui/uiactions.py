@@ -67,14 +67,12 @@ class UIActions(object):
 		self.config = config
 		self.navigation = navigation
 		self._preferences = self.config.get_config_dict('<profile>/preferences.conf')['GtkInterface'] # XXX
+		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
 
-		notebook.connect('properties-changed', self.on_notebook_properties_changed)
-			# FIXME: disconnect or "weak connect" to allow garbage collection
-
-	def on_notebook_properties_changed(self, notebook):
+	def on_notebook_properties_changed(self, propeties):
 		group = get_gtk_actiongroup(self)
 		action = self.actiongroup.get_action('open_document_root')
-		action.set_sensitive(notebook.document_root is not None)
+		action.set_sensitive(self.notebook.document_root is not None)
 
 	def populate_menu_with_actions(self, scope, menu):
 		assert scope == PAGE_ACTIONS
@@ -479,7 +477,7 @@ class NewPageDialog(Dialog):
 		self.notebook = notebook
 		self.navigation = navigation
 
-		default = notebook.get_page_template_name(path) 
+		default = notebook.get_page_template_name(path)
 		templates = [t[0] for t in list_templates('wiki')]
 		if not default in templates:
 			templates.insert(0, default)
