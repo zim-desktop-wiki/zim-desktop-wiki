@@ -187,14 +187,14 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 	def _emit_page_changes(self, path):
 		try:
-			treepath = self.find(path)
+			treepaths = self.find_all(path)
 		except IndexNotFoundError:
 			return None
 		else:
-			treepath = Gtk.TreePath(treepath)
-			treeiter = self.get_iter(treepath)
-			self.emit('row-changed', treepath, treeiter)
-			return treepath
+			for treepath in treepaths:
+				treeiter = self.get_iter(treepath)
+				self.emit('row-changed', treepath, treeiter)
+			return treepaths[0]
 
 	def set_current_page(self, path):
 		'''Set the current open page to highlight it in the index.

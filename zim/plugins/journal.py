@@ -407,6 +407,10 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 			calendar.mark_day(date.day)
 
 	def set_page(self, page):
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		if treepath:
+			self.treeview.select_treepath(treepath)
+
 		dates = daterange_from_path(page)
 		if dates:
 			if dates[0] == 'year':
@@ -416,10 +420,6 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 				cur_date = self.calendar.get_date()
 				if cur_date < dates[1] or cur_date > dates[2]:
 					self.calendar.select_date(dates[1])
-
-			treepath = self.treeview.set_current_page(page, vivificate=True)
-			if treepath:
-				self.treeview.select_treepath(treepath)
 		else:
 			self.calendar.select_day(0)
 			self.treeview.get_selection().unselect_all()
