@@ -43,7 +43,7 @@ from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
-	rotate_pixbuf, populate_popup_add_separator
+	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result
 from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
@@ -3658,7 +3658,7 @@ class TextView(Gtk.TextView):
 			mark = buffer.create_mark('zim-popup-menu', iter, True)
 
 	def do_key_press_event(self, event):
-		ok, keyval = event.get_keyval()
+		keyval = strip_boolean_result(event.get_keyval())
 		#print 'KEY %s (%r)' % (Gdk.keyval_name(keyval), keyval)
 		event_state = event.get_state()
 		#print 'STATE %s' % event_state
@@ -3957,7 +3957,7 @@ class TextView(Gtk.TextView):
 		'''
 		x, y = self.get_pointer()
 		x, y = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
-		ok, iter = self.get_iter_at_location(x, y)
+		iter = strip_boolean_result(self.get_iter_at_location(x, y))
 		return iter, (x, y)
 
 	def _get_pixbuf_at_pointer(self, iter, coords):
@@ -4001,7 +4001,7 @@ class TextView(Gtk.TextView):
 		if coords is None:
 			iter, coords = self._get_pointer_location()
 		else:
-			ok, iter = self.get_iter_at_location(*coords)
+			iter = strip_boolean_result(self.get_iter_at_location(*coords))
 
 		link = None
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
@@ -7177,7 +7177,7 @@ class FindBar(FindWidget, Gtk.HBox):
 		self.textview.grab_focus()
 
 	def do_key_press_event(self, event):
-		ok, keyval = event.get_keyval()
+		keyval = strip_boolean_result(event.get_keyval())
 		if keyval == KEYVAL_ESC:
 			self.hide()
 			return True

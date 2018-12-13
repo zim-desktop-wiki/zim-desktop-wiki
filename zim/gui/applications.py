@@ -26,7 +26,7 @@ from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
 	data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
-from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog
+from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_result
 
 
 logger = logging.getLogger('zim.gui.applications')
@@ -798,7 +798,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		if isinstance(icon, File):
 			icon = icon.path
 
-		ok, w, h = Gtk.icon_size_lookup(size)
+		w, h = strip_boolean_result(Gtk.icon_size_lookup(size))
 
 		if '/' in icon or '\\' in icon:
 			if zim.fs.isfile(icon):

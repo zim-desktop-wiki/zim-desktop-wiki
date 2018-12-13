@@ -104,6 +104,23 @@ def decode_markup_text(text):
 	return text.replace('&gt;', '>').replace('&lt;', '<').replace('&amp;', '&')
 
 
+def strip_boolean_result(ret):
+	# Wrapper to remove additional boolean
+	# See also gi.overrides strip_boolean_result()
+	# This version also double checks whether result was stripped already
+	# to be robust for API changes
+	if ret.__class__.__name__ == '_ResultTuple':
+		if ret[0]:
+			if len(ret) == 2:
+				return ret[1]
+			else:
+				return ret[1:]
+		else:
+			return None
+	else:
+		return ret
+
+
 def gtk_window_set_default_icon():
 	'''Function to set the zim icon as the default window icon for
 	all gtk windows in this process.

@@ -23,7 +23,8 @@ import zim.main
 from zim.fs import File, Dir
 from zim.notebook import get_notebook_list, get_notebook_info, init_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow
+from zim.gui.widgets import Dialog, IconButton, encode_markup_text, ScrolledWindow, \
+	strip_boolean_result
 
 logger = logging.getLogger('zim.gui.notebookdialog')
 
@@ -130,7 +131,7 @@ class NotebookTreeModel(Gtk.ListStore):
 				# T: Path label in 'open notebook' dialog
 
 		if info.icon and File(info.icon).exists():
-			ok, w, h = Gtk.icon_size_lookup(Gtk.IconSize.BUTTON)
+			w, h = strip_boolean_result(Gtk.icon_size_lookup(Gtk.IconSize.BUTTON))
 			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(File(info.icon).path, w, h)
 		else:
 			pixbuf = None
@@ -180,7 +181,7 @@ class NotebookTreeView(Gtk.TreeView):
 		cell_renderer = Gtk.CellRendererPixbuf()
 		column = Gtk.TreeViewColumn(None, cell_renderer, pixbuf=PIXBUF_COL)
 		column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
-		ok, w, h = Gtk.icon_size_lookup(Gtk.IconSize.MENU)
+		w, h = strip_boolean_result(Gtk.icon_size_lookup(Gtk.IconSize.MENU))
 		column.set_fixed_width(w * 2)
 		self.append_column(column)
 
