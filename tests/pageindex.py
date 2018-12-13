@@ -30,6 +30,36 @@ class TestPageIndexPlugin(tests.TestCase):
 		self.assertIsNotNone(extension)
 
 
+def init_model_validator_wrapper(test, model):
+
+		def validate_path_iter(model, path, iter):
+			assert isinstance(path, Gtk.TreePath)
+			assert model.iter_is_valid(iter)
+
+			test.assertEqual(model.get_path(iter).get_indices(), path.get_indices())
+
+			if model.iter_has_child(iter):
+				test.assertTrue(model.iter_n_children(iter) > 0)
+				child = model.iter_children(iter)
+				test.assertIsNotNone(child)
+				childpath = model.get_path(child)
+				test.assertEqual(childpath.get_indices(), path.get_indices() + [0])
+			else:
+				test.assertTrue(model.iter_n_children(iter) == 0)
+
+		def validate_parent_path_iter(model, path):
+			assert isinstance(path, Gtk.TreePath)
+			if path.get_depth() > 1:
+				parent = Gtk.TreePath(path.get_indices()[:-1])
+				iter = model.get_iter(parent)
+				validate_path_iter(model, parent, iter)
+
+		for signal in ('row-inserted', 'row-changed', 'row-has-child-toggled'):
+			model.connect(signal, validate_path_iter)
+
+		for signal in ('row-deleted',):
+			model.connect(signal, validate_parent_path_iter)
+
 
 class TestPageTreeStore(tests.TestCase):
 
@@ -37,6 +67,7 @@ class TestPageTreeStore(tests.TestCase):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		treestore = PageTreeStore(notebook.index)
+		init_model_validator_wrapper(self, treestore)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 7)
 		for i in range(treestore.get_n_columns()):
@@ -133,6 +164,7 @@ class TestSignals(tests.TestCase):
 		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		model = PageTreeStore(notebook.index)
+		init_model_validator_wrapper(self, model)
 		treeview = PageTreeView(notebook, config, navigation, model=model)
 
 		signals = []
@@ -145,34 +177,6 @@ class TestSignals(tests.TestCase):
 		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
 			model.connect(signal, signal_logger, signal)
 
-		def validate_path_iter(model, path, iter):
-			assert isinstance(path, Gtk.TreePath)
-			assert model.iter_is_valid(iter)
-
-			self.assertEqual(model.get_path(iter).get_indices(), path.get_indices())
-
-			if model.iter_has_child(iter):
-				self.assertTrue(model.iter_n_children(iter) > 0)
-				child = model.iter_children(iter)
-				self.assertIsNotNone(child)
-				childpath = model.get_path(child)
-				self.assertEqual(childpath.get_indices(), path.get_indices() + [0])
-			else:
-				self.assertTrue(model.iter_n_children(iter) == 0)
-
-		def validate_parent_path_iter(model, path):
-			assert isinstance(path, Gtk.TreePath)
-			if path.get_depth() > 1:
-				parent = Gtk.TreePath(path.get_indices()[:-1])
-				iter = model.get_iter(parent)
-				validate_path_iter(model, parent, iter)
-
-		for signal in ('row-inserted', 'row-changed', 'row-has-child-toggled'):
-			model.connect(signal, validate_path_iter)
-
-		for signal in ('row-deleted',):
-			model.connect(signal, validate_parent_path_iter)
-
 		for path in map(Path, self.PAGES):
 			page = notebook.get_page(path)
 			page.parse('plain', 'Test 123\n')
@@ -181,12 +185,12 @@ class TestSignals(tests.TestCase):
 		expect_add = [
 			('row-inserted', '0'),
 			('row-changed', '0'),
-			('row-changed', '0'),
 			('row-inserted', '0:0'),
 			('row-has-child-toggled', '0'),
-			('row-changed', '0:0'),
 			('row-changed', '0'),
+			('row-changed', '0:0'),
 			('row-inserted', '0:1'),
+			('row-changed', '0'),
 			('row-changed', '0:1'),
 			('row-inserted', '1'),
 			('row-changed', '1'),
@@ -219,6 +223,7 @@ class TestPageTreeView(tests.TestCase):
 		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		self.model = PageTreeStore(self.notebook.index)
+		init_model_validator_wrapper(self, self.model)
 		self.treeview = PageTreeView(self.notebook, config, navigation, model=self.model)
 		treepath = self.treeview.set_current_page(Path('Test'))
 		assert treepath is not None

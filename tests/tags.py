@@ -12,6 +12,8 @@ from zim.notebook.index.tags import MyTreeIter, IS_PAGE, IS_TAG
 from zim.config import ConfigDict, VirtualConfigManager
 from zim.plugins.tags import *
 
+from tests.pageindex import init_model_validator_wrapper
+
 
 class TestTaggedPageTreeStore(tests.TestCase):
 
@@ -45,6 +47,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		# Check configuration
 		treestore = self.storeclass(notebook.index, self.tags)
+		init_model_validator_wrapper(self, treestore)
 		self.assertEqual(treestore.get_flags(), 0)
 		self.assertEqual(treestore.get_n_columns(), 7)
 		for i in range(treestore.get_n_columns()):
@@ -111,6 +114,7 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		treestore = self.storeclass(self.notebook.index, self.tags)
+		init_model_validator_wrapper(self, treestore)
 		treeview = self.viewclass(self.notebook, config, navigation, treestore)
 
 		# Process signals on by one
@@ -145,7 +149,79 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		for page in reversed(list(self.notebook.pages.walk())): # delete bottom up
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
-		print("---------")
+
+	def testSignals(self):
+		PAGES = ('a', 'a:a', 'a:b', 'b', 'c')
+		TAGS = ('@foo @bar', '', '@foo @bar', '@foo @bar', '@bar')
+
+		#  - a
+		#    - a:a
+		#    - a:b
+		#  - b
+		#  - a:b
+
+		notebook = self.setUpNotebook()
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
+		model = self.storeclass(notebook.index, ('foo', 'bar'))
+		init_model_validator_wrapper(self, model)
+		treeview = PageTreeView(notebook, config, navigation, model=model)
+
+		signals = []
+		def signal_logger(o, *a):
+			path = a[0].to_string()
+			signal = a[-1]
+			signals.append((signal, path))
+			#print(">>>", signal, path)
+
+		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
+			model.connect(signal, signal_logger, signal)
+
+		for path, tags in zip(PAGES, TAGS):
+			page = notebook.get_page(Path(path))
+			page.parse('wiki', 'Test 123 %s\n' % tags)
+			notebook.store_page(page)
+
+		expect_add = [
+			('row-inserted', '0'),
+			('row-changed', '0'),
+
+			('row-inserted', '0:0'),
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-changed', '0:0'),
+
+			('row-inserted', '0:1'),
+			('row-changed', '0'),
+
+			('row-inserted', '1'),
+			('row-changed', '0:1'),
+			('row-changed', '1'),
+
+			('row-inserted', '1'),
+			('row-changed', '1'),
+		]
+		self.assertEqual(signals, expect_add)
+		signals[:] = []
+
+		for path in reversed(PAGES):
+			notebook.delete_page(Path(path))
+
+		expect_del = [
+			('row-deleted', '1'),
+
+			('row-deleted', '1'),
+
+			('row-deleted', '0:1'),
+			('row-changed', '0'),
+
+			('row-deleted', '0:0'),
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+
+			('row-deleted', '0'),
+		]
+		self.assertEqual(signals, expect_del)
 
 
 @tests.slowTest
@@ -178,6 +254,110 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		#       - subfoo
 		#   - foobar
 		#   - foo:child1:subfoo
+
+
+	def testSignals(self):
+		PAGES = ('a', 'a:a', 'a:b', 'b', 'c')
+		TAGS = ('@foo', '', '@foo @bar', '@foo', '@bar')
+		#
+		# @bar
+		#  - a:b
+		#  - c
+		# @foo
+		#  - a
+		#    - a:a
+		#    - a:b
+		#  - b
+		#  - a:b
+
+		notebook = self.setUpNotebook()
+		config = VirtualConfigManager()
+		navigation = tests.MockObject()
+		model = self.storeclass(notebook.index, ('foo', 'bar'))
+		init_model_validator_wrapper(self, model)
+		treeview = PageTreeView(notebook, config, navigation, model=model)
+
+		signals = []
+		def signal_logger(o, *a):
+			path = a[0].to_string()
+			signal = a[-1]
+			signals.append((signal, path))
+			#print(">>>", signal, path)
+
+		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
+			model.connect(signal, signal_logger, signal)
+
+		for path, tags in zip(PAGES, TAGS):
+			page = notebook.get_page(Path(path))
+			page.parse('wiki', 'Test 123 %s\n' % tags)
+			notebook.store_page(page)
+
+		expect_add = [
+			('row-inserted', '0'), # @foo
+
+			('row-inserted', '0:0'), # @foo a
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-changed', '0:0'),
+
+			('row-inserted', '0:0:0'), # @foo a:a
+			('row-has-child-toggled', '0:0'),
+			('row-changed', '0:0'),
+			('row-changed', '0:0:0'),
+
+			('row-inserted', '0:0:1'), # @foo a:b
+			('row-changed', '0:0'),
+			('row-inserted', '0:1'), # @foo a:b
+			('row-changed', '0'),
+			('row-inserted', '0'), # @bar
+			('row-inserted', '0:0'), # @bar a:b
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-changed', '0:0'),
+			('row-changed', '1:0:1'),
+			('row-changed', '1:1'),
+
+			('row-inserted', '1:1'), # @foo b
+			('row-changed', '1'),
+			('row-changed', '1:1'),
+
+			('row-inserted', '0:1'), # @bar c
+			('row-changed', '0'),
+			('row-changed', '0:1'),
+		]
+		self.assertEqual(signals, expect_add)
+		signals[:] = []
+
+		for path in reversed(PAGES):
+			notebook.delete_page(Path(path))
+
+		expect_del = [
+			('row-deleted', '0:1'), # @bar c
+			('row-changed', '0'),
+
+			('row-deleted', '1:1'), # @foo b
+			('row-changed', '1'),
+
+			('row-deleted', '0:0'), # @bar a:b --> @bar
+			('row-changed', '0'),
+			('row-deleted', '0'),
+
+			('row-deleted', '0:1'), # @foo a:b
+			('row-changed', '0'),
+
+			('row-deleted', '0:0:1'), # @foo a:b
+			('row-changed', '0:0'),
+
+			('row-deleted', '0:0:0'), # @foo a:a
+			('row-has-child-toggled', '0:0'),
+			('row-changed', '0:0'),
+
+			('row-deleted', '0:0'), # @foo a --> @foo
+			('row-changed', '0'),
+			('row-deleted', '0'),
+
+		]
+		self.assertEqual(signals, expect_del)
 
 
 @tests.slowTest
@@ -228,7 +408,7 @@ class TestTagPluginWidget(tests.TestCase):
 		self.assertEqual(selected, [tag])
 		model = widget.treeview.get_model()
 		self.assertIsInstance(model, TaggedPageTreeStore)
-		self.assertEqual(model.tags, [tag.name])
+		self.assertEqual(model.tags, (tag.name,))
 
 		# check menu and sorting of tag cloud
 		cloud.emit('populate-popup', Gtk.Menu())

@@ -194,7 +194,7 @@ class PagesIndexer(IndexerBase):
 			parent_row = self._select(pagename.parent)
 			assert parent_row is not None
 
-		# update table
+		# insert new page
 		lowerbasename = pagename.basename.lower()
 		sortkey = natural_sort_key(pagename.basename)
 		self.db.execute(
@@ -202,11 +202,12 @@ class PagesIndexer(IndexerBase):
 			'VALUES (?, ?, ?, ?, ?, ?)',
 			(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
 		)
-		self.update_parent(pagename.parent)
-
-		# notify others
 		row = self._select(pagename)
+		self._update_parent_nchildren(pagename.parent)
 		self.emit('page-row-inserted', row)
+
+		# update parent(s)
+		self.update_parent(pagename.parent)
 
 		return row['id']
 
@@ -882,6 +883,10 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 		self._deleted_paths = list(self._find_all_pages(row['name']))
 
 	def on_page_row_deleted(self, o, row):
+		# Technically "_deleted_paths" should always be a single path
+		# here, else two things changed at once, and Gtk.TreeView cannot
+		# always deal with that.
+
 		self.flush_cache()
 		if row['name'] == self._MY_ROOT_NAME:
 			self._MY_ROOT_ID = None

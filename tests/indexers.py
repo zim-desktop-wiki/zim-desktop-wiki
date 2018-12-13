@@ -428,7 +428,7 @@ class TestTagsIndexer(tests.TestCase):
 
 		for i, name, content in self.PAGES:
 			row = {'id': i, 'name': name}
-			indexer.on_page_row_deleted(None, row)
+			indexer.on_page_row_delete(None, row)
 		indexer.update()
 
 		self.assertTags(db, [], [])
