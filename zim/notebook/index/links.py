@@ -64,7 +64,7 @@ class LinksIndexer(IndexerBase):
 
 	__signals__ = {}
 
-	def __init__(self, db, pagesindexer):
+	def __init__(self, db, pagesindexer, filesindexer):
 		IndexerBase.__init__(self, db)
 		self._pages = PagesViewInternal(db)
 		self._pagesindexer = pagesindexer
@@ -72,6 +72,9 @@ class LinksIndexer(IndexerBase):
 			'page-row-inserted', 'page-row-changed', 'page-row-deleted',
 			'page-changed'
 		))
+		self.connectto(filesindexer,
+			'finish-update'
+		)
 
 		self.db.execute('''
 			CREATE TABLE IF NOT EXISTS links (
@@ -99,25 +102,29 @@ class LinksIndexer(IndexerBase):
 			'DELETE FROM links WHERE source=?',
 			(row['id'],)
 		)
+		pagename = Path(row['name'])
 		for href in doc.iter_href():
+			target_id, targetname = self._pages.resolve_link(pagename, href)
+			if target_id is None:
+				target_id = self._pagesindexer.insert_link_placeholder(targetname)
+
 			anchorkey = natural_sort_key(href.parts()[0])
 			self.db.execute(
-				'INSERT INTO links(source, target, rel, names, anchorkey, needscheck) '
-				'VALUES (?, ?, ?, ?, ?, ?)',
-				(row['id'], ROOT_ID, href.rel, href.names, anchorkey, 1)
+				'INSERT INTO links(source, target, rel, names, anchorkey) '
+				'VALUES (?, ?, ?, ?, ?)',
+				(row['id'], target_id, href.rel, href.names, anchorkey)
 			)
 
 	def on_page_row_inserted(self, o, row):
 		# Placeholders for pages of the same name need to be
 		# recalculated, flag links to be checked with same anchorkey.
-		if not row['is_link_placeholder']:
-			self.db.execute( # NOTE using subquery because sqlite does not have JOIN for UPDATE
-				'UPDATE links SET needscheck=1 '
-				'WHERE rel=? and anchorkey=? and target in ( '
-				'	SELECT id FROM pages WHERE is_link_placeholder=1 '
-				')',
-				(HREF_REL_FLOATING, row['sortkey'])
-			)
+		self.db.execute( # TODO turn query into a JOIN
+			'UPDATE links SET needscheck=1 '
+			'WHERE rel=? and anchorkey=? and target in ( '
+			'	SELECT id FROM pages WHERE is_link_placeholder=1 '
+			')',
+			(HREF_REL_FLOATING, row['sortkey'])
+		)
 
 	def on_page_row_changed(self, o, newrow, oldrow):
 		if oldrow['is_link_placeholder'] and not newrow['is_link_placeholder']:
@@ -127,23 +134,16 @@ class LinksIndexer(IndexerBase):
 		# Drop all outgoing links, flag incoming links to be checked.
 		# Check could result in page being re-created as placeholder
 		# at end of db update.
-		if not row['is_link_placeholder']:
-			self.db.execute(
-				'DELETE FROM links WHERE source=?',
-				(row['id'],)
-			)
-			self.db.execute(
-				'UPDATE links SET needscheck=1, target=? WHERE target=?',
-				(ROOT_ID, row['id'],)
-			) # Need to link somewhere, if target is gone, use ROOT instead
+		self.db.execute(
+			'DELETE FROM links WHERE source=?',
+			(row['id'],)
+		)
+		self.db.execute(
+			'UPDATE links SET needscheck=1, target=? WHERE target=?',
+			(ROOT_ID, row['id'],)
+		) # Need to link somewhere, if target is gone, use ROOT instead
 
-	def is_uptodate(self):
-		row = self.db.execute(
-			'SELECT * FROM links WHERE needscheck=1 '
-		).fetchone()
-		return row is None
-
-	def update_iter(self):
+	def on_finish_update(self, o):
 		# Check for ghost links - warn but still clean them up
 		for row in self.db.execute('''
 			SELECT DISTINCT pages.* FROM pages INNER JOIN links ON pages.id=links.source
@@ -151,31 +151,22 @@ class LinksIndexer(IndexerBase):
 		''').fetchall():
 			logger.warn('Found ghost links from: %s', row['name'])
 			self.on_page_row_deleted(None, row)
-			yield
-
-		# Check total
-		n, = self.db.execute('SELECT COUNT(*) FROM links WHERE needscheck=1').fetchone()
 
 		# Resolve pending links
-		for i, row in enumerate(self.db.execute(
+		for row in self.db.execute(
 			'SELECT * FROM links WHERE needscheck=1 '
 			'ORDER BY anchorkey, names'
-		)):
-			if i > 0 and i % 100 == 0:
-				self.db.commit()
-				logger.debug('Update link %i of %i', i, n)
-
+		):
 			href = HRef(row['rel'], row['names'])
 			source = self._pages.get_pagename(row['source'])
-			target_id, targetname = self._pages.resolve_link(source, href, source_id=row['source'])
+			target_id, targetname = self._pages.resolve_link(source, href)
 			if target_id is None:
 				target_id = self._pagesindexer.insert_link_placeholder(targetname)
 
 			self.db.execute(
-				'UPDATE links SET target=?, needscheck=0 WHERE source=? and names=? and rel=?',
-				(target_id, row['source'], row['names'], row['rel'])
+				'UPDATE links SET target=?, needscheck=? WHERE source=? and names=?',
+				(target_id, False, row['source'], row['names'])
 			)
-			yield
 
 		# Delete un-used placeholders
 		for row in self.db.execute('''
@@ -184,13 +175,10 @@ class LinksIndexer(IndexerBase):
 		'''):
 			pagename = self._pages.get_pagename(row['id'])
 			self._pagesindexer.remove_page(pagename, self._allow_cleanup)
-			yield
 
 			# The allow_cleanup function checks whether a parent has links or not.
 			# Without this guard function we would need to iterate several times
 			# through this cleanup function.
-
-		self.db.commit()
 
 	def _allow_cleanup(self, row):
 		c, = self.db.execute(
@@ -198,6 +186,7 @@ class LinksIndexer(IndexerBase):
 		).fetchone()
 		return c == 0
 
+	cleanup_placeholders = on_finish_update
 
 
 class LinksView(IndexView):

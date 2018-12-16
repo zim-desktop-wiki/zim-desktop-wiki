@@ -79,9 +79,7 @@ class PagesIndexer(IndexerBase):
 				source_file INTEGER REFERENCES files(id),
 				is_link_placeholder BOOLEAN DEFAULT 0
 			);
-			CREATE UNIQUE INDEX IF NOT EXISTS pages_name ON pages(name);
-			CREATE INDEX IF NOT EXISTS pages_sortkey ON pages(sortkey);
-			CREATE INDEX IF NOT EXISTS pages_parent ON pages(parent);
+			CREATE UNIQUE INDEX IF NOT EXISTS pages_name ON pages(name)
 		''')
 		row = self.db.execute('SELECT * FROM pages WHERE id == 1').fetchone()
 		if row is None:
@@ -324,16 +322,12 @@ class PagesViewInternal(object):
 			raise IndexNotFoundError('Page not found in index: %s' % pagename.name)
 		return row['id']
 
-	def resolve_link(self, source, href, ignore_link_placeholders=True, source_id=None):
-		parent, parent_id, names = self._resolve_link(source, href, ignore_link_placeholders, source_id)
-		return self.resolve_pagename(parent, names)
-
-	def _resolve_link(self, source, href, ignore_link_placeholders=True, source_id=None):
+	def resolve_link(self, source, href, ignore_link_placeholders=True):
 		if href.rel == HREF_REL_ABSOLUTE or source.isroot:
-			return (ROOT_PATH, ROOT_ID, href.parts())
+			return self.resolve_pagename(ROOT_PATH, href.parts())
 
-		start, start_id, relnames = source, source_id, []
-		while start_id is None:
+		start, relnames = source, []
+		while True:
 			# Do not assume source exists, find start point that does
 			try:
 				start_id = self.get_page_id(start)
@@ -344,7 +338,7 @@ class PagesViewInternal(object):
 				break
 
 		if href.rel == HREF_REL_RELATIVE:
-			return (start, start_id, relnames + href.parts())
+			return self.resolve_pagename(start, relnames + href.parts())
 		else:
 			# HREF_REL_FLOATING
 			# Search upward namespaces for existing pages,
@@ -357,19 +351,19 @@ class PagesViewInternal(object):
 				# Check if we are anchored in non-existing part
 				keys = map(natural_sort_key, relnames)
 				if anchor_key in keys:
-					i = [c for c, k in enumerate(keys) if k == anchor_key][-1]
-					return (start, start_id, relnames[:i] + href.parts()[1:])
+					i = [c for c, k in enumerate(keys) if k == anchorkey][-1]
+					return self.resolve_pagename(db, root, relnames[:i] + href.parts()[1:])
 
 			if ignore_link_placeholders:
 				c = self.db.execute(
-					'SELECT name, id FROM pages '
+					'SELECT name FROM pages '
 					'WHERE sortkey=? and is_link_placeholder=0 '
 					'ORDER BY name DESC',
 					(anchor_key,)
 				) # sort longest first
 			else:
 				c = self.db.execute(
-					'SELECT name, id FROM pages '
+					'SELECT name FROM pages '
 					'WHERE sortkey=? '
 					'ORDER BY name DESC',
 					(anchor_key,)
@@ -378,7 +372,7 @@ class PagesViewInternal(object):
 			maxdepth = source.name.count(':')
 			depth = -1 # level where items were found
 			found = [] # candidates that match the link - these can only differ in case of the basename
-			for name, pid in c:
+			for name, in c:
 				mydepth = name.count(':')
 				if mydepth > maxdepth:
 					continue
@@ -389,29 +383,28 @@ class PagesViewInternal(object):
 					parentname = name.rsplit(':', 1)[0]
 					if start.name.startswith(parentname):
 						depth = mydepth
-						found.append((name, pid))
+						found.append(name)
 				else: # resolve from root namespace
-					found.append((name, pid))
+					found.append(name)
 
 			if found: # try to match case first, else just use first match
 				parts = href.parts()
 				anchor = parts.pop(0)
-				for name, pid in found:
+				for name in found:
 					if name.endswith(anchor):
-						return (Path(name), pid, parts)
+						return self.resolve_pagename(Path(name), parts)
 				else:
-					name, pid = found[0]
-					return (Path(name), pid, parts)
+					return self.resolve_pagename(Path(found[0]), parts)
 
 			else:
 				# Return "brother" of source
 				if relnames:
-					return (start, start_id, relnames[:-1] + href.parts())
+					return self.resolve_pagename(start, relnames[:-1] + href.parts())
 				else:
-					return (start.parent, None, href.parts())
+					return self.resolve_pagename(start.parent, href.parts())
 
-	def resolve_pagename(self, parent, names, parent_id=None):
-		page_id, pagename, branch = self._resolve_pagename(parent, names, parent_id)
+	def resolve_pagename(self, parent, names):
+		page_id, pagename, branch = self._resolve_pagename(parent, names)
 		if page_id is None:
 			try:
 				page_id = self.get_page_id(pagename)
@@ -422,7 +415,7 @@ class PagesViewInternal(object):
 
 		return page_id, pagename
 
-	def _resolve_pagename(self, parent, names, parent_id=None):
+	def _resolve_pagename(self, parent, names):
 		'''Resolve a pagename in the right case'''
 		# We do not ignore placeholders here. This can lead to a dependencies
 		# in how links are resolved based on order of indexing. However, this
@@ -430,26 +423,31 @@ class PagesViewInternal(object):
 		# if the tree for multiple links with slightly different spelling.
 		# Also we would need another call to return the page_id if a resolved
 		# page happens to exist.
-		assert isinstance(parent, Path)
 		pagename = parent
-		page_id = parent_id or self.get_page_id(parent)
+		page_id = self.get_page_id(parent)
 		for i, basename in enumerate(names):
-			sortkey = natural_sort_key(basename)
-			candidates = self.db.execute(
-				'SELECT id, name FROM pages '
-				'WHERE parent=? and sortkey=? ORDER BY name',
-				(page_id, sortkey)
-			).fetchall()
-
-			exact = pagename + ':' + basename
-			for row in candidates:
-				if row['name'] == exact:
-					pagename = Path(row['name'])
-					page_id = row['id']
-					break
+			if page_id == ROOT_ID:
+				row = self.db.execute(
+					'SELECT id, name FROM pages WHERE name=?',
+					(basename,)
+				).fetchone()
 			else:
-				if candidates: # case insensitive match(es)
-					row = candidates[0]
+				row = self.db.execute(
+					'SELECT id, name FROM pages WHERE parent=? and name=?',
+					(page_id, "%:" + basename)
+				).fetchone()
+
+			if row: # exact match
+				pagename = Path(row['name'])
+				page_id = row['id']
+			else:
+				sortkey = natural_sort_key(basename)
+				row = self.db.execute(
+					'SELECT id, name FROM pages '
+					'WHERE parent=? and sortkey=? ORDER BY name',
+					(page_id, sortkey)
+				).fetchone()
+				if row: # case insensitive match
 					pagename = Path(row['name'])
 					page_id = row['id']
 				else: # no match

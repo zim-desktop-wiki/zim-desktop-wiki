@@ -3,17 +3,16 @@
 import sys
 import os
 
-if len(sys.argv) != 2:
-	print 'Usage: %s DIRECTORY' % sys.argv[0]
+if len(sys.argv) != 5:
+	print 'Usage: %s directory width depth random_links' % sys.argv[0]
 	sys.exit(1)
 
-root = sys.argv[1]
+root, width, depth, links = sys.argv[1:]
+width = int(width)
+depth = int(depth)
+n_links = int(links)
+
 assert not os.path.exists(root), 'Need new directory'
-
-width = 25
-depth = 2
-n_links = 3
-
 
 name = 'some_page_%i_%i'
 content = '''\
@@ -32,34 +31,16 @@ content += ('la la laaa' * 20 + '\n') * 10
 
 import random
 
-def random_links(my_depth):
+def random_links(depth):
 	links = []
-
 	for n in range(random.randint(0, n_links)):
-		links.append("[[%s]]\n" % random_name(my_depth))
-
-	if my_depth < depth:
-		for n in range(random.randint(0, n_links)):
-			links.append("[[+%s]]\n" % random_name(my_depth+1))
-	else:
-		for n in range(random.randint(0, n_links)):
-			links.append("[[%s]]\n" % random_name(my_depth-1))
-
-	for n in range(random.randint(0, n_links)):
-		links.append("[[%s]]\n" % random_date_page())
-
+		links.append("[[%s]]\n" % random_name(depth))
 	return ''.join(links)
 
 
 def random_name(depth):
-	i = random.randint(1, width)
+	i = random.randint(0, width)
 	return name % (depth, i)
-
-def random_date_page():
-	year = 2010 + random.randint(0, 8)
-	month = random.randint(1, 12)
-	day = random.randint(1, 30)
-	return ":Date:%i:%i:%i" % (year, month, day)
 
 
 def populate_level(path, j):
@@ -67,7 +48,7 @@ def populate_level(path, j):
     os.mkdir(path)
     d = 1
 
-    for i in range(1, width+1):
+    for i in range(width):
         myname = name % (j, i)
 
         file = path + myname + '.txt'
@@ -76,7 +57,6 @@ def populate_level(path, j):
         fh.write(content.format(
 			title=myname,
 			links=random_links(j)
-			#links=''
 		))
         fh.close()
 
