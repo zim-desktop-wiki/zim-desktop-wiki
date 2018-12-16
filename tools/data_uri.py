@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import base64
 
@@ -9,11 +9,11 @@ def data_uri(file):
 		mime = 'image/png'
 	else:
 		mime = file.get_mimetype()
-	data64 = u''.join(base64.encodestring(file.raw()).splitlines())
-	return u'data:%s;base64,%s' % (mime, data64)
+	data64 = ''.join(base64.encodestring(file.raw()).splitlines())
+	return 'data:%s;base64,%s' % (mime, data64)
 
 
 if __name__ == '__main__':
 	import sys
 	file = File(sys.argv[1])
-	print data_uri(file)
+	print(data_uri(file))

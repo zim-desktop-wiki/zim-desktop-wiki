@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -43,6 +42,16 @@ class IndexerBase(SignalEmitter, ConnectorMixin):
 	def __init__(self, db):
 		self.db = db
 
+	def is_uptodate(self):
+		return True
+
+	def update(self):
+		for i in self.update_iter():
+			pass
+
+	def update_iter(self):
+		return iter([])
+
 
 class MyTreeIter(object):
 	__slots__ = ('treepath', 'row', 'n_children', 'hint')
@@ -55,11 +64,11 @@ class MyTreeIter(object):
 
 
 class TreeModelMixinBase(ConnectorMixin):
-	'''This class can be used as mixin class for C{gtk.TreeModel}
+	'''This class can be used as mixin class for C{Gtk.TreeModel}
 	implementations that use data from the index.
 
 	Treepaths are simply tuples with integers. This Mixin assumes L{MyTreeIter}
-	objects for iters. (Which should not be confused with C{gtk.TreeIter} as
+	objects for iters. (Which should not be confused with C{Gtk.TreeIter} as
 	used by the interface!)
 	'''
 

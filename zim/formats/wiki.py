@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -27,15 +26,15 @@ info = {
 }
 
 
-bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
+bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]', '[x]' or '[>]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
-bullet_line_re = re.compile(ur'^(\t*)(%s)(.*\n)$' % bullet_pattern)
+bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
-number_bullet_re = re.compile(u'^(\d+|[a-zA-Z])\.$')
+number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
 def check_number_bullet(bullet):
 	'''If bullet is a numbered bullet this returns the number or letter,
 	C{None} otherwise
@@ -161,15 +160,14 @@ class WikiParser(object):
 				process=self.parse_object
 			),
 			Rule(HEADING,
-				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
+				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',		# "==== heading ===="
 				process=self.parse_heading
 			),
 			# standard table format
 			Rule(TABLE, r'''
-				^(\|.*\|)$\n								# starting and ending with |
-				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
-				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
-				^(?= \s*? \n)							# empty line / only spaces
+				^(\|.*\|) \s*? \n								# starting and ending with |
+				^( (?:\| [ \|\-:]+ \| \s*? \n)? )				# column align
+				( (?:^\|.*\| \s*? \n)+ )							# multi-lines: starting and ending with |
 				''',
 				process=self.parse_table
 			),
@@ -251,7 +249,6 @@ class WikiParser(object):
 		return ','.join(values)
 
 	def parse_table(self, builder, headerrow, alignstyle, body):
-		'''Table parsing'''
 		body = body.replace('\\|', '#124;')  # escaping
 		rows = body.split('\n')[:-1]
 		# get maximum number of columns - each columns must have same size
@@ -448,7 +445,7 @@ class Parser(ParserClass):
 		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
 
 	def parse(self, input, partial=False):
-		if not isinstance(input, basestring):
+		if not isinstance(input, str):
 			input = ''.join(input)
 
 		meta, backward = None, False
@@ -465,7 +462,7 @@ class Parser(ParserClass):
 
 		parsetree = builder.get_parsetree()
 		if meta is not None:
-			for k, v in meta.items():
+			for k, v in list(meta.items()):
 				# Skip headers that are only interesting for the parser
 				#
 				# Also remove "Modification-Date" here because it causes conflicts
@@ -479,11 +476,11 @@ class Parser(ParserClass):
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX: u'[ ]',
-		XCHECKED_BOX: u'[x]',
-		CHECKED_BOX: u'[*]',
-		MIGRATED_BOX: u'[>]',
-		BULLET: u'*',
+		UNCHECKED_BOX: '[ ]',
+		XCHECKED_BOX: '[x]',
+		CHECKED_BOX: '[*]',
+		MIGRATED_BOX: '[>]',
+		BULLET: '*',
 	}
 
 	TAGS = {
@@ -534,7 +531,7 @@ class Dumper(TextDumper):
 			'BUG: link misses href: %s "%s"' % (attrib, strings)
 		href = attrib['href']
 
-		if not strings or href == u''.join(strings):
+		if not strings or href == ''.join(strings):
 			if url_re.match(href):
 				return (href,) # no markup needed
 			else:
@@ -551,7 +548,7 @@ class Dumper(TextDumper):
 			if k in ('src', 'alt') or k.startswith('_'):
 				continue
 			elif v: # skip None, "" and 0
-				data = url_encode(unicode(v), mode=URL_ENCODE_DATA)
+				data = url_encode(str(v), mode=URL_ENCODE_DATA)
 				opts.append('%s=%s' % (k, data))
 		if opts:
 			src += '?%s' % '&'.join(opts)
@@ -567,7 +564,7 @@ class Dumper(TextDumper):
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
-		for key, value in attrib.items():
+		for key, value in list(attrib.items()):
 			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them
@@ -581,7 +578,6 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		#~ print "Dumping table: %s, %s" % (attrib, strings)
 		n = len(strings[0])
 		assert all(len(s) == n for s in strings), strings
 
@@ -597,26 +593,19 @@ class Dumper(TextDumper):
 		table += [TableParser.headline(rows[0], maxwidths, aligns, wraps)]
 		table.append(headsep)
 		table += [rowline(row) for row in rows[1:]]
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	def dump_th(self, tag, attrib, strings):
 		if not strings:
 			return [''] # force empty cell
 		else:
-			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
 			return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
 		if not strings:
 			return [''] # force empty cell
 		else:
-			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
-			strings = map(lambda s: s.replace('<br>', '\\n'), strings)
+			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
+			strings = [s.replace('<br>', '\\n') for s in strings]
 			return [self._concat(strings)]
-
-	def dump_line(self, tag, attrib, strings = None):
-		if not strings:
-			strings = [LINE_TEXT]
-		elif isinstance(strings, basestring):
-			strings = [strings]
-		return strings

@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -42,11 +41,11 @@ class TestEmitter(tests.TestCase):
 
 	def testHook(self):
 		emitter = Emitter()
-		self.assertIsNone(emitter.emit('foo', 'x'))
+		self.assertIsNone(emitter.emit_return_first('foo', 'x'))
 
 		emitter.connect('foo', lambda o, a: a * 3)
 		emitter.connect('foo', lambda o, a: a * 5)
-		self.assertEqual(emitter.emit('foo', 'x'), 'xxx')
+		self.assertEqual(emitter.emit_return_first('foo', 'x'), 'xxx')
 			# pick first result
 
 	def testSignalSetup(self):

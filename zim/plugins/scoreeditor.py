@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # scoreeditor.py
 #
@@ -104,7 +103,7 @@ class ScoreGenerator(ImageGeneratorClass):
 
 	def generate_image(self, text):
 		(version, text) = self.extract_version(text)
-		#~ print '>>>%s<<<' % text
+		#~ print('>>>%s<<<' % text)
 
 		# Write to tmp file using the template for the header / footer
 		scorefile = self.scorefile
@@ -116,7 +115,7 @@ class ScoreGenerator(ImageGeneratorClass):
 			'include_footer': self.include_footer or '',
 		})
 		scorefile.writelines(lines)
-		#~ print '>>>%s<<<' % scorefile.read()
+		#~ print('>>>%s<<<' % scorefile.read())
 
 		# Call convert-ly to convert document of current version of
 		# Lilypond.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
 #           2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -38,16 +37,20 @@
 #
 # File.uri is already encoded, don't do anything else here
 
-from __future__ import with_statement
+
 
 
 import os
 import hashlib
 import time
 import threading
-import Queue
 
-import gtk
+from queue import Queue
+from queue import Empty as QueueEmpty
+
+from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+
 
 import logging
 
@@ -84,12 +87,12 @@ class ThumbnailCreatorFailure(ValueError):
 from zim.newfs.local import _replace_file as _atomic_rename
 
 def pixbufThumbnailCreator(file, thumbfile, thumbsize):
-	'''Thumbnailer implementation that uses the C{gtk.gdk.Pixbuf}
+	'''Thumbnailer implementation that uses the C{GdkPixbuf.Pixbuf}
 	functions to create the thumbnail.
 	'''
 	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)) \
 	or (os.name == 'nt' and file.basename.endswith('.svg')):
-		# .svg causes segfaults on windows, even if svg support enabled 
+		# .svg causes segfaults on windows, even if svg support enabled
 		raise ThumbnailCreatorFailure
 
 	tmpfile = thumbfile.parent().file('zim-thumb.new~')
@@ -97,11 +100,16 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 		'tEXt::Thumb::URI': str(file.uri),
 		'tEXt::Thumb::MTime': str(int(file.mtime())),
 	}
+	optionskeys = []
+	optionsvalues = []
+	for k, v in list(options.items()):
+		optionskeys.append(k)
+		optionsvalues.append(v)
 	try:
-		pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(file.encodedpath, thumbsize, thumbsize)
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, thumbsize, thumbsize)
 		pixbuf = rotate_pixbuf(pixbuf)
-		pixbuf.save(tmpfile.encodedpath, 'png', options)
-		_atomic_rename(tmpfile.encodedpath, thumbfile.encodedpath)
+		pixbuf.savev(tmpfile.path, 'png', optionskeys, optionsvalues)
+		_atomic_rename(tmpfile.path, thumbfile.path)
 	except:
 		raise ThumbnailCreatorFailure
 	else:
@@ -117,8 +125,8 @@ class ThumbnailQueue(object):
 
 	def __init__(self, thumbnailcreator=pixbufThumbnailCreator):
 		self._thread = None
-		self._in_queue = Queue.Queue()
-		self._out_queue = Queue.Queue()
+		self._in_queue = Queue()
+		self._out_queue = Queue()
 		self._thumbmanager = ThumbnailManager(thumbnailcreator)
 		self._count = 0
 		self._count_lock = threading.Lock()
@@ -174,7 +182,7 @@ class ThumbnailQueue(object):
 				except:
 					logger.exception('Exception in thumbnail queue')
 					self._count -= 1 # drop
-		except Queue.Empty:
+		except QueueEmpty:
 			pass
 		finally:
 			self._running.clear()
@@ -191,16 +199,16 @@ class ThumbnailQueue(object):
 				assert self._count > 0
 				self._count -= 1
 				return file, size, thumbfile, pixbuf, mtime
-			except Queue.Empty:
+			except QueueEmpty:
 				return (None, None, None, None, None)
 
 	def clear_queue(self):
-		def _clear_queue(queue):
+		def _clear_queue(myqueue):
 				try:
 					while True:
-						queue.get_nowait()
-						queue.task_done()
-				except Queue.Empty:
+						myqueue.get_nowait()
+						myqueue.task_done()
+				except QueueEmpty:
 					pass
 
 		with self._count_lock: # nothing in or out while locked!
@@ -233,7 +241,8 @@ class ThumbnailManager(object):
 		@param size: thumbnail size in pixels (C{THUMB_SIZE_NORMAL}, C{THUMB_SIZE_LARGE}, or integer)
 		@returns: a L{File} object
 		'''
-		basename = hashlib.md5(file.uri).hexdigest() + '.png'
+		basename = hashlib.md5(file.uri.encode('ascii')).hexdigest() + '.png'
+			# file.uri should already be URL encoded for unicode characters - use 'ascii' to check
 		if size <= THUMB_SIZE_NORMAL:
 			return LOCAL_THUMB_STORAGE_NORMAL.file(basename)
 		else:
@@ -255,7 +264,7 @@ class ThumbnailManager(object):
 		thumbfile = self.get_thumbnail_file(file, size)
 		if thumbfile.exists():
 			# Check the thumbnail is valid
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(thumbfile.path, size, size)
 			mtime = pixbuf.get_option('tEXt::Thumb::MTime')
 			if mtime and int(mtime) == int(file.mtime()):
 				return thumbfile, pixbuf
@@ -286,14 +295,14 @@ class ThumbnailManager(object):
 
 		thumbfile.parent().touch(mode=0o700)
 		pixbuf = self._thumbnailcreator(file, thumbfile, thumbsize)
-		os.chmod(thumbfile.encodedpath, 0o600)
+		os.chmod(thumbfile.path, 0o600)
 
 		if not pixbuf:
-			pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(thumbfile.encodedpath, size, size)
+			pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(thumbfile.path, size, size)
 		elif thumbsize != size:
 			w, h = pixbuf.get_width(), pixbuf.get_height()
 			sw, sh = (size, int(size * float(h) / w)) if (w > h) else (int(size * float(w) / h), size)
-			pixbuf = pixbuf.scale_simple(sw, sh, gtk.gdk.INTERP_NEAREST)
+			pixbuf = pixbuf.scale_simple(sw, sh, GdkPixbuf.InterpType.NEAREST)
 
 		return thumbfile, pixbuf
 

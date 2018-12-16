@@ -1,6 +1,4 @@
-#!/usr/bin/python
-
-# -*- coding: utf-8 -*-
+#!/usr/bin/python3
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #

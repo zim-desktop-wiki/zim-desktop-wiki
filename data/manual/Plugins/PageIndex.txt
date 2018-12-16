@@ -1,0 +1,11 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2017-11-09T12:13:12+01:00
+
+====== PageIndex ======
+This plugin provides the page index side pane for the main window. 
+
+**Dependencies:** This plugin has no additional dependencies.
+
+===== Options =====
+The option **Position in the window** determines in which side pane the browser is shown.

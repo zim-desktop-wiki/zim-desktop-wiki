@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -16,17 +15,15 @@ from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
 
-from zim.plugins.calendar import NotebookExtension, \
-	MainWindowExtensionDialog, MainWindowExtensionEmbedded, \
-	CalendarDialog
+from zim.plugins.journal import NotebookExtension
 
-from tests.gui import setupGtkInterface
+from tests.mainwindow import setUpMainWindow
 
 
 class TestCalendarFunctions(tests.TestCase):
 
 	def testDatesForWeeks(self):
-		from zim.plugins.calendar import dates_for_week
+		from zim.plugins.journal import dates_for_week
 
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
@@ -49,7 +46,7 @@ class TestCalendarFunctions(tests.TestCase):
 		self.assertEqual(end, dateclass(2010, 1, 2)) # a saturday
 
 	def testWeekCalendar(self):
-		from zim.plugins.calendar import weekcalendar
+		from zim.plugins.journal import weekcalendar
 		sunday = dateclass(2012, 4, 22)
 		monday = dateclass(2012, 4, 23)
 		nextsunday = dateclass(2012, 4, 29)
@@ -78,7 +75,7 @@ class TestCalendarFunctions(tests.TestCase):
 
 
 	def testDateRangeFromPath(self):
-		from zim.plugins.calendar import daterange_from_path
+		from zim.plugins.journal import daterange_from_path
 
 		# Day
 		for path in (Path('Foo:2012:04:27'), Path('Foo:2012:4:27')):
@@ -110,55 +107,27 @@ class TestCalendarFunctions(tests.TestCase):
 
 
 @tests.slowTest
-class TestCalendarPlugin(tests.TestCase):
+class TestJournalPlugin(tests.TestCase):
 
 	def testMainWindowExtensions(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		notebook = self.setUpNotebook()
+		mainwindow = setUpMainWindow(notebook)
 
-		plugin.preferences['embedded'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
-		plugin.extend(mainwindow)
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
+		plugin.extend(mainwindow.pageview)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 
-		ext[0].go_page_today()
-		self.assertTrue(ui.page.name.startswith('Journal:'))
-
-		plugin.preferences['embedded'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionDialog)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionDialog)
-
-		plugin.preferences.changed() # make sure no errors are triggered
-
-		def test_dialog(dialog):
-			self.assertIsInstance(dialog, CalendarDialog)
-			dialog.do_today('xxx')
-			ui.open_page(Path('foo'))
-
-		with tests.DialogContext(test_dialog):
-			ext[0].show_calendar()
-
-
-		plugin.preferences['embedded'] = True # switch back
+		list(plugin.extensions)[0].go_page_today()
+		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 
 	def testNotebookExtension(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
 
-		notebook = tests.new_notebook(self.get_tmp_name())
+		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
 
 		ext = list(plugin.extensions)
@@ -173,22 +142,24 @@ class TestCalendarPlugin(tests.TestCase):
 		self.assertIsNone(link)
 
 	def testNamespace(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
+		notebook = self.setUpNotebook()
+		properties = plugin.notebook_properties(notebook)
 		today = dateclass.today()
 		for namespace in (Path('Calendar'), Path(':')):
-			plugin.preferences['namespace'] = namespace
-			path = plugin.path_from_date(today)
+			properties['namespace'] = namespace
+			path = plugin.path_from_date(notebook, today)
 			self.assertTrue(isinstance(path, Path))
 			self.assertTrue(path.ischild(namespace))
 			date = plugin.date_from_path(path)
 			self.assertTrue(isinstance(date, dateclass))
 			self.assertEqual(date, today)
 
-		from zim.plugins.calendar import DAY, WEEK, MONTH, YEAR
+		from zim.plugins.journal import DAY, WEEK, MONTH, YEAR
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
-		plugin.preferences['namespace'] = Path('Calendar')
+		properties['namespace'] = Path('Calendar')
 		date = dateclass(2012, 4, 27)
 		for setting, wanted, start in (
 			(DAY, 'Calendar:2012:04:27', dateclass(2012, 4, 27)),
@@ -196,20 +167,19 @@ class TestCalendarPlugin(tests.TestCase):
 			(MONTH, 'Calendar:2012:04', dateclass(2012, 4, 1)),
 			(YEAR, 'Calendar:2012', dateclass(2012, 1, 1)),
 		):
-			plugin.preferences['granularity'] = setting
-			path = plugin.path_from_date(date)
+			properties['granularity'] = setting
+			path = plugin.path_from_date(notebook, date)
 			self.assertEqual(path.name, wanted)
 			self.assertEqual(plugin.date_from_path(path), start)
 
-		path = plugin.path_for_month_from_date(date)
+		path = plugin.path_for_month_from_date(notebook, date)
 		self.assertEqual(path.name, 'Calendar:2012:04')
 
 	def testTemplate(self):
-		pluginklass = PluginManager.get_plugin_class('calendar')
+		pluginklass = PluginManager.get_plugin_class('journal')
 		plugin = pluginklass()
-		plugin.preferences['namespace'] = Path('Calendar')
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook()
 		plugin.extend(notebook)
 
 		dumper = get_dumper('wiki')
@@ -217,10 +187,10 @@ class TestCalendarPlugin(tests.TestCase):
 		zim.datetimetz.FIRST_DAY_OF_WEEK = \
 			zim.datetimetz.MONDAY
 		for path in (
-			Path('Calendar:2012'),
-			Path('Calendar:2012:04:27'),
-			Path('Calendar:2012:Week 17'),
-			Path('Calendar:2012:04'),
+			Path('Journal:2012'),
+			Path('Journal:2012:04:27'),
+			Path('Journal:2012:Week 17'),
+			Path('Journal:2012:04'),
 		):
 			tree = notebook.get_template(path)
 			lines = dumper.dump(tree)

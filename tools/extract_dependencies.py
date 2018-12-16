@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 
 def extract_deps(file):
-	#~ print 'Extracting from %s' % file
+	#~ print('Extracting from %s' % file)
 	deps = set()
 	for line in open(file).readlines():
 		line = line.strip()
@@ -17,12 +17,12 @@ def main():
 	deps = set()
 	deps.update(extract_deps('zim.py'))
 	for dir, dirs, files in os.walk('zim/'):
-		for file in filter(lambda f: f.endswith('.py'), files):
+		for file in [f for f in files if f.endswith('.py')]:
 			deps.update(extract_deps(dir + '/' + file))
 	deps = sorted([d for d in deps if not d.startswith('zim')])
 
 	for d in deps:
-		print d
+		print(d)
 
 if __name__ == '__main__':
 	main()

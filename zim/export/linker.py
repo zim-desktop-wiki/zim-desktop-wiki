@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -51,7 +50,7 @@ class ExportLinker(BaseLinker):
 		self.output = output
 
 		if output:
-			self.base = output.dir
+			self.base = output.parent()
 		else:
 			self.base = None
 
@@ -73,14 +72,14 @@ class ExportLinker(BaseLinker):
 		context of this linker
 		'''
 		# Determines the link type and dispatches any of the "link_*" methods
-		assert isinstance(link, basestring)
+		assert isinstance(link, str)
 		type = link_type(link)
 		methodname = '_link_' + type
 		if hasattr(self, methodname):
 			href = getattr(self, methodname)(link)
 		else:
 			href = link
-		#~ print "Linker:", link, '-->', href, '(%s)' % type
+		#~ print("Linker:", link, '-->', href, '(%s)' % type)
 		return href
 
 	def img(self, src):
@@ -284,4 +283,3 @@ class StaticExportLinker(ExportLinker):
 					#~ self._icons[name] = file.uri
 
 		#~ return self._icons[name]
-

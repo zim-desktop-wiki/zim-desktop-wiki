@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2010,2011 John Drinkwater <john@nextraweb.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -20,7 +19,7 @@ class GITApplicationBackend(VCSApplicationBase):
 
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('git',), encoding='utf-8')
+		return Application(('git',))
 
 	def build_revision_arguments(self, versions, is_for_diff=False):
 		"""Build a list including required string/int for running an VCS command
@@ -47,7 +46,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			if isinstance(versions, (tuple, list)):
 				assert 1 <= len(versions) <= 2
 				if len(versions) == 2:
-					return map(str, versions)
+					return list(map(str, versions))
 				else:
 					versions = versions[0]
 
@@ -72,7 +71,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			return self.run(['add', path])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		0: line1
@@ -103,7 +102,7 @@ class GITApplicationBackend(VCSApplicationBase):
 				params.append(path)
 			return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, path=None):
 		"""
 		Runs:
 			git diff --no-ext-diff {{REVISION_ARGS}}
@@ -130,7 +129,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		self.add('.') # add all existing files
 
 	def repo_exists(self):
-		return self.root.subdir('.git').exists() or self.root.file('.git').exists()
+		return self.root.folder('.git').exists() or self.root.file('.git').exists()
 
 	def init(self):
 		"""
@@ -186,7 +185,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			elif line.startswith('Date: '):
 				date = line[7:].strip()
 				seenmsg = True
-				msg = u''
+				msg = ''
 			elif seenmsg and line.startswith(' '):
 				msg += line[4:]
 
@@ -209,7 +208,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		return self.run(['rm', path])
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			hg revert {{PATH}} {{REV_ARGS}}

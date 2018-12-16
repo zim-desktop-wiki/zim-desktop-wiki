@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -52,7 +51,7 @@ def fix_line_end(text):
 	# HACK this char is recognized as line end by splitlines()
 	# but not matched by \n in a regex. Hope there are no other
 	# exceptions like it (crosses fingers)
-	text = text.replace(u'\u2028', '\n')
+	text = text.replace('\u2028', '\n')
 
 	# Fix line end
 	if not text.endswith('\n'):
@@ -72,7 +71,7 @@ def convert_space_to_tab(text, tabstop=4):
 	pattern = '(?m)^(\t*)((?:%s)+)' % spaces
 	text = re.sub(
 		pattern,
-		lambda m: m.group(1) + '\t' * (len(m.group(2)) / tabstop),
+		lambda m: m.group(1) + '\t' * (len(m.group(2)) // tabstop),
 		text
 	)
 	# Specify "(?m)" instead of re.M since "flags" keyword is not
@@ -140,7 +139,7 @@ class BuilderTextBuffer(Builder):
 	# Interface to handle text buffer
 
 	def get_text(self):
-		return u''.join(self.buffer)
+		return ''.join(self.buffer)
 
 	def set_text(self, text):
 		self.buffer = [text]
@@ -149,7 +148,7 @@ class BuilderTextBuffer(Builder):
 		self.buffer = []
 
 	def flush(self):
-		text = u''.join(self.buffer)
+		text = ''.join(self.buffer)
 		if text:
 			self.builder.text(text)
 		self.buffer = []
@@ -220,7 +219,7 @@ class SimpleTreeElement(list):
 			for item in self:
 				if isinstance(item, SimpleTreeElement):
 					lines.append(item.pprint(level=level + 1))
-				elif isinstance(item, basestring):
+				elif isinstance(item, str):
 					for line in item.splitlines(True):
 						lines.append(prefix + '  %r\n' % line)
 				else:
@@ -404,7 +403,7 @@ class Parser(object):
 				r"(?P<rule%i>%s)" % (i, r.pattern)
 					for i, r in enumerate(self.rules)
 			])
-			#~ print 'PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...'
+			#~ print('PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...')
 			self._re = re.compile(pattern, re.U | re.M | re.X)
 
 		iter = 0

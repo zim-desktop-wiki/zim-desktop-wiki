@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -137,10 +136,10 @@ class TestTaskParser(tests.TestCase):
 			# Generate a task tuple
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
 			if tags:
-				tags = set(unicode(tags).split(','))
+				tags = set(str(tags).split(','))
 			else:
 				tags = set()
-			return [open, prio, start, due, tags, unicode(desc)]
+			return [open, prio, start, due, tags, str(desc)]
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
@@ -240,10 +239,10 @@ class TestTaskParser(tests.TestCase):
 			# Generate a task tuple
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
 			if tags:
-				tags = set(unicode(tags).split(','))
+				tags = set(str(tags).split(','))
 			else:
 				tags = set()
-			return [open, prio, start, due, tags, unicode(desc)]
+			return [open, prio, start, due, tags, str(desc)]
 
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
@@ -299,7 +298,7 @@ class TestTaskList(tests.TestCase):
 		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		plugin.extend(notebook)
 
 		# Test indexing based on index signals
@@ -319,7 +318,7 @@ class TestTaskList(tests.TestCase):
 		klass = PluginManager.get_plugin_class('tasklist')
 		plugin = klass()
 
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		plugin.extend(notebook)
 		notebook.index.check_and_update()
 
@@ -336,7 +335,7 @@ class TestTaskList(tests.TestCase):
 
 		# Copy tasklist -> csv
 		from zim.gui.clipboard import Clipboard
-		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		tests.gtk_activate_menu_item(menu, _('_Copy'))
 		text = Clipboard.get_text()
 		lines = text.splitlines()
 		self.assertTrue(len(lines) > 10)

@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -62,7 +61,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 			return self.run(['add', path])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		1 | line1
@@ -91,7 +90,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 			params.append(path)
 		return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, path=None):
 		"""
 		Runs:
 			bzr diff {{REVISION_ARGS}}
@@ -120,13 +119,20 @@ class BZRApplicationBackend(VCSApplicationBase):
 		self.add('.')
 
 	def repo_exists(self):
-		return self.root.subdir('.bzr').exists()
+		return self.root.folder('.bzr').exists()
 
 	def init(self):
 		"""
 		Runs: bzr init
 		"""
 		return self.run(['init'])
+
+	def is_modified(self):
+		"""Returns true if the repo is not up-to-date, or False
+		@returns: True if the repo is not up-to-date, or False
+		"""
+		# If status return an empty answer, this means the local repo is up-to-date
+		return ''.join(self.status()).strip() != ''
 
 	def log(self, path=None):
 		"""
@@ -172,7 +178,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 				date = line[11:].strip()
 			elif line.startswith('message:'):
 				seenmsg = True
-				msg = u''
+				msg = ''
 			elif seenmsg and line.startswith('  '):
 				msg += line[2:]
 
@@ -186,7 +192,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 		"""
 		Runs: bzr mv --after {{OLDPATH}} {{NEWPATH}}
 		"""
-		self.run(['add', '--no-recurse', newpath.dir])
+		self.run(['add', '--no-recurse', newpath.dirname])
 		return self.run(['mv', oldpath, newpath])
 
 
@@ -196,7 +202,7 @@ class BZRApplicationBackend(VCSApplicationBase):
 		"""
 		return self.run(['rm', path])
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			bzr revert {{PATH}} {{REV_ARGS}}

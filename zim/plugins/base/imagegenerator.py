@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -11,31 +10,21 @@ text to an image.
 '''
 
 
-import gtk
+from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.actions import Action
 from zim.fs import File, Dir
-from zim.gui.widgets import ui_environment, \
-	Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
-	ScrolledTextView, ScrolledSourceView, VPaned, \
+
+from zim.gui.pageview import PageViewExtension
+from zim.gui.widgets import \
+	Dialog, ImageView, QuestionDialog, LogFileDialog, \
+	ScrolledWindow, ScrolledTextView, ScrolledSourceView, VPaned, \
 	populate_popup_add_separator
 
 
 logger = logging.getLogger('zim.plugins')
-
-uimanager_xml_template = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_%s'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
 
 class ImageGeneratorPlugin(PluginClass):
 	'''Base class for image generator plugins
@@ -62,11 +51,11 @@ class ImageGeneratorPlugin(PluginClass):
 		PluginClass.__init__(self, config)
 
 		# Construct a new class on run time
-		klassname = self.object_type.title() + 'MainWindowExtension'
+		klassname = self.object_type.title() + 'PageViewExtension'
 		insert_action = Action(
 			'insert_%s' % self.object_type,
-			MainWindowExtensionBase.insert_object,
-			self.short_label + '...', readonly=False
+			ImageGeneratorPageViewExtensionBase.insert_object,
+			self.short_label + '...', menuhints='insert'
 		)
 		generatorklass = self.lookup_subclass(ImageGeneratorClass)
 		assert generatorklass.object_type == self.object_type, \
@@ -75,13 +64,12 @@ class ImageGeneratorPlugin(PluginClass):
 
 
 		mainwindow_extension_base = \
-			self.lookup_subclass(MainWindowExtensionBase) \
-			or MainWindowExtensionBase
+			self.lookup_subclass(ImageGeneratorPageViewExtensionBase) \
+			or ImageGeneratorPageViewExtensionBase
 
 		klass = type(klassname, (mainwindow_extension_base,), {
 			'object_type': self.object_type,
 			'syntax': self.syntax,
-			'uimanager_xml': uimanager_xml_template % self.object_type,
 			'generator_class': generatorklass,
 			'short_label': self.short_label,
 			'insert_label': self.insert_label,
@@ -89,40 +77,35 @@ class ImageGeneratorPlugin(PluginClass):
 			'insert_%s' % self.object_type: insert_action,
 		})
 
-		self.set_extension_class('MainWindow', klass)
+		self.extension_classes['PageView'] = klass
 
 
-@extends('MainWindow', autoload=False)
-class MainWindowExtensionBase(WindowExtension):
+class ImageGeneratorPageViewExtensionBase(PageViewExtension):
 
 	object_type = None
 	syntax = None
-	uimanager_xml = None
 	short_label = None
 	insert_label = None
 	edit_label = None
 	generator_class = None
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-
-		pageview = self.window.pageview
-		pageview.register_image_generator_plugin(self, self.object_type)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		self.pageview.register_image_generator_plugin(self, self.object_type)
 
 	def teardown(self):
-		pageview = self.window.pageview
-		pageview.unregister_image_generator_plugin(self)
+		self.pageview.unregister_image_generator_plugin(self)
 
 	def build_generator(self):
-		generator=self.generator_class(self.plugin)
-		generator.set_page(self.window.pageview.page)
-		return generator;
+		generator = self.generator_class(self.plugin)
+		generator.set_page(self.pageview.page)
+		return generator
 
 	def insert_object(self):
 		title = self.insert_label.replace('_', '')
 		generator = self.build_generator()
 		dialog = ImageGeneratorDialog(
-			self.window, title,
+			self.pageview, title,
 			generator, syntax=self.syntax,
 			help=self.plugin.plugin_info['help']
 		) # XXX ui
@@ -132,7 +115,7 @@ class MainWindowExtensionBase(WindowExtension):
 		title = self.edit_label.replace('_', '')
 		generator = self.build_generator()
 		dialog = ImageGeneratorDialog(
-			self.window, title,
+			self.pageview, title,
 			generator, syntax=self.syntax, image=image,
 			help=self.plugin.plugin_info['help']
 		) # XXX ui
@@ -141,7 +124,7 @@ class MainWindowExtensionBase(WindowExtension):
 	def do_populate_popup(self, menu, buffer, iter, image):
 		populate_popup_add_separator(menu, prepend=True)
 
-		item = gtk.MenuItem(self.edit_label)
+		item = Gtk.MenuItem.new_with_mnemonic(self.edit_label)
 		item.connect('activate',
 			lambda o: self.edit_object(buffer, iter, image))
 		menu.prepend(item)
@@ -211,7 +194,7 @@ class ImageGeneratorClass(object):
 		@implementation: Not mandatory to be implemented by subclass.
 		It defaults to the empty string.
 		'''
-		return '';
+		return ''
 
 	def filter_input(self, text):
 		'''Filter contents of script file before displaying in textarea
@@ -243,7 +226,7 @@ class ImageGeneratorDialog(Dialog):
 
 	# TODO: use uistate to remember pane position
 
-	def __init__(self, window, title, generator, image=None, syntax=None, **opt):
+	def __init__(self, pageview, title, generator, image=None, syntax=None, **opt):
 		'''Constructor
 
 		@param window: the L{MainWindow}
@@ -254,18 +237,20 @@ class ImageGeneratorDialog(Dialog):
 		@param syntax: optional syntax name (as understood by gtksourceview)
 		@param opt: any other arguments to pass to the L{Dialog} constructor
 		'''
-		Dialog.__init__(self, window, title, defaultwindowsize=(450, 300), **opt)
-		self.app_window = window
+		Dialog.__init__(self, pageview, title, defaultwindowsize=(450, 300), **opt)
+		self.pageview = pageview
 		self.generator = generator
 		self.imagefile = None
 		self.logfile = None
 
 		self.vpane = VPaned()
 		self.vpane.set_position(150)
-		self.vbox.add(self.vpane)
+		self.vbox.pack_start(self.vpane, True, True, 0)
 
-		self.imageview = ImageView(bgcolor='#FFF', checkerboard=False)
-		self.vpane.pack1(self.imageview, resize=True)
+		self.imageview = ImageView(bgcolor='#FFF')
+		swin = ScrolledWindow(self.imageview)
+		swin.set_size_request(200, 50)
+		self.vpane.pack1(swin, resize=True)
 		# TODO scrolled window and option to zoom in / real size
 
 		window, textview = ScrolledSourceView(syntax=syntax)
@@ -273,26 +258,26 @@ class ImageGeneratorDialog(Dialog):
 		self.textview.set_editable(True)
 		self.vpane.pack2(window, resize=False)
 
-		hbox = gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False)
+		hbox = Gtk.HBox(spacing=5)
+		self.vbox.pack_start(hbox, False, True, 0)
 
-		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh')
+		self.previewbutton = Gtk.Button.new_with_mnemonic(_('_Preview'))
 			# T: button in e.g. equation editor dialog
 		self.previewbutton.set_sensitive(False)
 		self.previewbutton.connect_object(
 			'clicked', self.__class__.preview, self)
-		hbox.pack_start(self.previewbutton, False)
+		hbox.pack_start(self.previewbutton, False, True, 0)
 
 		self.textview.get_buffer().connect('modified-changed',
 			lambda b: self.previewbutton.set_sensitive(b.get_modified()))
 
-		self.logbutton = Button(_('View _Log'), stock='gtk-file')
+		self.logbutton = Gtk.Button.new_with_mnemonic(_('View _Log'))
 			# T: button in e.g. equation editor dialog
 		self.logbutton.set_sensitive(False)
 		self.logbutton.connect_object(
 			'clicked', self.__class__.show_log, self)
 		if generator.uses_log_file:
-			hbox.pack_start(self.logbutton, False)
+			hbox.pack_start(self.logbutton, False, True, 0)
 		# else keep hidden
 
 		if image:
@@ -327,8 +312,8 @@ class ImageGeneratorDialog(Dialog):
 		@returns: text as string
 		'''
 		buffer = self.textview.get_buffer()
-		bounds = buffer.get_bounds()
-		return buffer.get_text(*bounds)
+		start, end = buffer.get_bounds()
+		return start.get_text(end)
 
 	def generate_image(self):
 		'''Update the image based on the text in the text buffer'''
@@ -375,8 +360,8 @@ class ImageGeneratorDialog(Dialog):
 		if self._existing_file:
 			textfile = self._existing_file
 		else:
-			page = self.app_window.ui.page # XXX
-			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
+			page = self.pageview.page
+			dir = self.pageview.notebook.get_attachments_dir(page)
 			textfile = dir.new_file(self.generator.scriptname)
 
 		textfile.write(self.generator.process_input(self.get_text()))
@@ -388,10 +373,9 @@ class ImageGeneratorDialog(Dialog):
 			imgfile.remove()
 
 		if self._existing_file:
-			self.app_window.ui.reload_page() # XXX
+			self.pageview.reload_image(imgfile)
 		else:
-			pageview = self.app_window.pageview
-			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)
+			self.pageview.insert_image(imgfile, type=self.generator.object_type)
 
 		if self.logfile and self.logfile.exists():
 			self.logfile.remove()

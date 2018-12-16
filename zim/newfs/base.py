@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -14,10 +13,9 @@ import logging
 logger = logging.getLogger('zim.newfs')
 
 
-from . import FS_ENCODING, FS_SUPPORT_NON_LOCAL_FILE_SHARES
+from . import FS_SUPPORT_NON_LOCAL_FILE_SHARES
 
 from zim.errors import Error
-from zim.environ import environ
 from zim.parsing import url_encode
 
 
@@ -63,7 +61,7 @@ class FileUnicodeError(Error):
 			# T: message for FileUnicodeError (%s is the file name)
 		self.description = _('This usually means the file contains invalid characters')
 			# T: message for FileUnicodeError
-		self.description += '\n\n' + _('Details') + ':\n' + unicode(error)
+		self.description += '\n\n' + _('Details') + ':\n' + str(error)
 			# T: label for detailed error
 
 
@@ -113,10 +111,10 @@ def _split_file_url(url):
 	return path.strip('/').split('/'), isshare
 
 
-def _splitnormpath(path):
+def _splitnormpath(path, force_rel=False):
 	# Takes either string or list of names and returns a normalized tuple
 	# Keeps leading "/" or "\\" to distinguish absolute paths
-	if isinstance(path, basestring):
+	if isinstance(path, str) and not force_rel:
 		if is_url_re.match(path):
 			makeroot = True
 			path, makeshare = _split_file_url(path)
@@ -131,6 +129,8 @@ def _splitnormpath(path):
 	else:
 		makeshare = False
 		makeroot = False
+		if isinstance(path, str):
+			path = re.split(r'[/\\]+', path.strip('/\\'))
 
 	names = []
 	for name in path:
@@ -188,67 +188,13 @@ else:
 			return 'file:///' + url_encode('/'.join(names))
 
 
-
-if FS_ENCODING == 'mbcs':
-	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
-	# so here we just convert everything to unicode strings
-	def _encode_path(path):
-		return path if isinstance(path, unicode) else unicode(path)
-
-	_decode_path = _encode_path
-
-else:
-	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
-	def _encode_path(path):
-		if isinstance(path, unicode):
-			try:
-				return path.encode(FS_ENCODING)
-			except UnicodeEncodeError:
-				raise ValueError('BUG: invalid filename %s' % path)
-				#~ raise Error, 'BUG: invalid filename %s' % path
-		else:
-			return path # assume encoding is correct
-
-	def _decode_path(path):
-		if isinstance(path, unicode):
-			return path # assume encoding is correct
-		else:
-			try:
-				return path.decode(FS_ENCODING)
-			except UnicodeDecodeError:
-				raise ValueError('BUG: invalid filename %s' % path)
-				#~ raise Error, 'BUG: invalid filename %s' % path
-
-
-
 def _os_expanduser(path):
-	'''Wrapper for C{os.path.expanduser()} to get encoding right'''
 	assert path.startswith('~')
-	if FS_ENCODING == 'mbcs':
-		# This method is an exception in that it does not handle unicode
-		# directly. This will cause and error when user name contains
-		# non-ascii characters. See bug report lp:988041.
-		# But also mbcs encoding does not handle all characters,
-		# so only encode home part
-		parts = path.replace('\\', '/').strip('/').split('/')
-			# parts[0] now is "~" or "~user"
-
-		if isinstance(path, unicode):
-			part = parts[0].encode('mbcs')
-			part = os.path.expanduser(part)
-			parts[0] = part.decode('mbcs')
-		else:
-			# assume it is compatible
-			parts[0] = os.path.expanduser(parts[0])
-
-		path = _SEP.join(parts)
-	else:
-		# Let encode() handle the unicode encoding
-		path = _decode_path(os.path.expanduser(_encode_path(path)))
+	path = os.path.expanduser(path)
 
 	if path.startswith('~'):
 		# expansion failed - do a simple fallback
-		home = environ['HOME']
+		home = os.environ['HOME']
 		parts = path.replace('\\', '/').strip('/').split('/')
 		if parts[0] == '~':
 			path = _SEP.join([home] + parts[1:])
@@ -276,7 +222,7 @@ class FilePath(object):
 	__slots__ = ('path', 'pathnames', 'islocal')
 
 	def __init__(self, path):
-		if isinstance(path, (tuple, list, basestring)):
+		if isinstance(path, (tuple, list, str)):
 			self.pathnames = _splitnormpath(path)
 			self.path = _joinabspath(self.pathnames)
 		elif isinstance(path, FilePath):
@@ -331,7 +277,7 @@ class FilePath(object):
 
 	def get_childpath(self, path):
 		assert path
-		names = _splitnormpath(path)
+		names = _splitnormpath(path, force_rel=True)
 		if not names or names[0] == '..':
 			raise ValueError('Relative path not below parent: %s' % path)
 		return FilePath(self.pathnames + names)
@@ -384,8 +330,24 @@ class FilePath(object):
 
 _HOME = FilePath('~')
 
+class FSObjectMeta(type):
+	'''This meta class allows implementing wrappers for file and folder objects
+	with C{isinstance()} checking the wrapped class as well as the wrapper.
+	Main use case is filtered version of folder object where e.g.
+	C{isinstance(folder, LocalFolder)} is used to check whether the underlying
+	resources exist external to the application.
+	'''
 
-class FSObjectBase(FilePath):
+	def __instancecheck__(cls, instance):
+		if instance.__class__ == cls or issubclass(instance.__class__, cls):
+			return True
+		elif hasattr(instance, '_inner_fs_object') and isinstance(instance._inner_fs_object, cls):
+			return True
+		else:
+			return False
+
+
+class FSObjectBase(FilePath, metaclass=FSObjectMeta):
 	'''Base class for L{File} and L{Folder}'''
 
 	def __init__(self, path, watcher=None):
@@ -459,7 +421,7 @@ class Folder(FSObjectBase):
 	def __iter__(self):
 		raise NotImplementedError
 
-	def list_names(self):
+	def list_names(self, include_hidden=False):
 		raise NotImplementedError
 
 	def list_files(self):
@@ -535,12 +497,12 @@ class Folder(FSObjectBase):
 		when executed for the wrong folder, so please make sure to double
 		check the dir is actually what you think it is before calling this.
 		'''
-		for child in self:
+		for name in self.list_names(include_hidden=True):
+			child = self.child(name)
 			assert child.path.startswith(self.path) # just to be real sure
 			if isinstance(child, Folder):
 				child.remove_children()
-			else:
-				child.remove()
+			child.remove()
 
 	def _copyto(self, other):
 		if other.exists():
@@ -568,7 +530,7 @@ except ImportError:
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
-	# Gleaned from gtk.gdk.get_formats()
+	# Gleaned from Gdk.get_formats()
 	'bmp', # image/bmp
 	'gif', # image/gif
 	'icns', # image/x-icns
@@ -606,13 +568,12 @@ IMAGE_EXTENSIONS = (
 
 def _md5(content):
 	# Provide encoded content to avoid double work
-	if isinstance(content, basestring):
+	if isinstance(content, str):
 		content = (content,)
 
 	m = hashlib.md5()
 	for l in content:
-		l = l.encode('UTF-8') if isinstance(l, unicode) else l
-		m.update(l)
+		m.update(l.encode('UTF-8'))
 	return m.digest()
 
 
@@ -632,7 +593,7 @@ class File(FSObjectBase):
 		'''Check if this is an image file. Convenience method that
 		works even when no real mime-type suport is available.
 		If this method returns C{True} it is no guarantee
-		this image type is actually supported by gtk.
+		this image type is actually supported by Gtk.
 		@returns: C{True} when this is an image file
 		'''
 		# Quick shortcut to be able to load images in the gui even if

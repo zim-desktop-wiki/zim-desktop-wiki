@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This script is a wrapper around zim.main.main() for running zim as
 # an application.
@@ -10,13 +10,10 @@ import os
 
 # Check if we run the correct python version
 try:
-	version_info = sys.version_info
-	assert version_info >= (2, 6)
-	assert version_info < (3, 0)
+	assert sys.version_info >= (3, 2)
 except:
-	print >> sys.stderr, 'ERROR: zim needs python >= 2.6   (but < 3.0)'
+	print('zim needs python >= 3.2', file=sys.stderr)
 	sys.exit(1)
-
 
 # Win32: must setup log file or it tries to write to $PROGRAMFILES
 # See http://www.py2exe.org/index.cgi/StderrLog
@@ -43,26 +40,24 @@ try:
 	import zim.main
 except ImportError:
 	sys.excepthook(*sys.exc_info())
-	print >>sys.stderr, 'ERROR: Could not find python module files in path:'
-	print >>sys.stderr, ' '.join(map(str, sys.path))
-	print >>sys.stderr, '\nTry setting PYTHONPATH'
+	print('ERROR: Could not find python module files in path:', file=sys.stderr)
+	print(' '.join(map(str, sys.path)), file=sys.stderr)
+	print('\nTry setting PYTHONPATH', file=sys.stderr)
 	sys.exit(1)
 
 
 # Run the application and handle some exceptions
 try:
-	encoding = sys.getfilesystemencoding() # not 100% sure this is correct
-	argv = [arg.decode(encoding) for arg in sys.argv]
-	exitcode = zim.main.main(*argv)
+	exitcode = zim.main.main(*sys.argv)
 	sys.exit(exitcode)
 except zim.main.GetoptError as err:
-	print >>sys.stderr, sys.argv[0] + ':', err
+	print(sys.argv[0] + ':', err, file=sys.stderr)
 	sys.exit(1)
 except zim.main.UsageError as err:
-	print >>sys.stderr, err.msg
+	print(err.msg, file=sys.stderr)
 	sys.exit(1)
 except KeyboardInterrupt: # e.g. <Ctrl>C while --server
-	print >>sys.stderr, 'Interrupt'
+	print('Interrupt', file=sys.stderr)
 	sys.exit(1)
 else:
 	sys.exit(0)

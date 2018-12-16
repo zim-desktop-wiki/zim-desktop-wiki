@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Zim test suite'''
 
-from __future__ import with_statement
+
 
 
 import os
@@ -18,44 +17,43 @@ import types
 import glob
 
 try:
-	import gtk
+	import gi
+	gi.require_version('Gtk', '3.0')
+	from gi.repository import Gtk
 except ImportError:
-	gtk = None
+	Gtk = None
 
 
-if sys.version_info < (2, 7, 0):
-	try:
-		import unittest2 as unittest
-		from unittest2 import skip, skipIf, skipUnless, expectedFailure
-	except ImportError:
-		print >>sys.stderr, '''\
-For python versions < 2.7 the 'unittest2' module is needed to run
-the test suite. On Ubuntu or Debian install package 'python-unittest2'.
-'''
-		sys.exit(1)
-else:
-	import unittest
-	from unittest import skip, skipIf, skipUnless, expectedFailure
+import unittest
+from unittest import skip, skipIf, skipUnless, expectedFailure
 
-__unittest = 1 # needed to get stack trace OK for class TestCase
 
-gettext.install('zim', unicode=True, names=('_', 'gettext', 'ngettext'))
+gettext.install('zim', names=('_', 'gettext', 'ngettext'))
 
 FAST_TEST = False #: determines whether we skip slow tests or not
 FULL_TEST = False #: determine whether we mock filesystem tests or not
 
 # This list also determines the order in which tests will executed
 __all__ = [
+	# Packaging etc.
 	'package', 'translations',
+	# Basic libraries
 	'datetimetz', 'utils', 'errors', 'signals', 'actions',
-	'environ', 'fs', 'newfs',
+	'fs', 'newfs',
 	'config', 'applications',
-	'parsing', 'tokenparser', 'formats', 'templates', 'objectmanager',
+	'parsing', 'tokenparser',
+	# Notebook components
+	'formats', 'templates', 'objectmanager',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
-	'widgets', 'pageindex', 'pageview', 'save_page', 'clipboard', 'gui',
+	# Core application
+	'widgets', 'pageview', 'save_page', 'clipboard', 'uiactions',
+	'mainwindow', 'notebookdialog',
+	'preferencesdialog', 'searchdialog', 'customtools', 'templateeditordialog',
 	'main', 'plugins',
-	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
+	# Plugins
+	'pathbar', 'pageindex',
+	'journal', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
@@ -83,10 +81,6 @@ TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
 	# dir we have conflict with bazaar controls, this is worked around
 	# by a config mode switch in the bazaar backend of the version
 	# control plugin
-if os.name == 'nt':
-	TMPDIR = unicode(TMPDIR)
-else:
-	TMPDIR = TMPDIR.encode(sys.getfilesystemencoding())
 
 # also get the default tmpdir and put a copy in the env
 REAL_TMPDIR = tempfile.gettempdir()
@@ -154,7 +148,8 @@ class TestLoggingHandler(logging.Handler):
 		self.setFormatter(fmt)
 
 	def emit(self, record):
-		if record.levelno >= logging.WARNING:
+		if record.levelno >= logging.WARNING \
+		and not record.name.startswith('tests'):
 			raise UncaughtWarningError(self.format(record))
 		else:
 			pass
@@ -221,6 +216,9 @@ MOCK_DEFAULT_REAL = 'default_real' #: By default use real fs, mock oly for --fas
 MOCK_ALWAYS_REAL = 'real' #: always use real fs -- not recommended unless test fails for mock
 
 import random
+import time
+
+TIMINGS = []
 
 class TestCase(unittest.TestCase):
 	'''Base class for test cases'''
@@ -230,56 +228,51 @@ class TestCase(unittest.TestCase):
 	SRC_DIR = LocalFolder(mydir + '/../')
 	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
 
+	def run(self, *a, **kwa):
+		start = time.time()
+		unittest.TestCase.run(self, *a, **kwa)
+		end = time.time()
+		TIMINGS.append((self.__class__.__name__ + '.' + self._testMethodName, end - start))
+
 	@classmethod
 	def tearDownClass(cls):
-		if gtk is not None:
+		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
-	def assertEqual(self, first, second, msg=None):
-		## HACK to work around "feature" in unittest - it does not consider
-		## string and unicode to be of the same type and thus does not
-		## show diffs if the textual content differs
-		if type(first) in (str, unicode) \
-		and type(second) in (str, unicode):
-			self.assertMultiLineEqual(first, second, msg)
-		else:
-			unittest.TestCase.assertEqual(self, first, second, msg)
+		cls.unload_all_plugins()
 
-	@classmethod
-	def setUpFolder(cls, name=None, mock=MOCK_DEFAULT_MOCK):
+	@staticmethod
+	def unload_all_plugins():
+		from zim.objectmanager import ObjectManager
+		ObjectManager._objects.clear() # HACK - reset singleton
+
+	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
-		Default use of "C{MOCK_DEFAULT_MOCK}" means that about 20% of the cases
-		will use real filesystem at random while the rest will mock. (Thus
-		giving a balance between overall test speed and the whish to detect
-		cases where mock and real filesystem give different results.)
-		This behavior is overruled by "--fast" and "--full" in the test script.
-		@param name: basename for the folder, use class name if C{None}
+		@param name: basename for the folder, uses test name if C{None}
 		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
 		C{MOCK_DEFAULT_MOCK}, C{MOCK_DEFAULT_REAL} or C{MOCK_ALWAYS_REAL}.
+		The C{MOCK_ALWAYS_*} arguments force the use of a real folder or a
+		mock object. The C{MOCK_DEFAULT_*} arguments give a preference but
+		for these the behavior is overruled by "--fast" and "--full" in the
+		test script.
 		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
 		that is guarenteed non-existing
 		'''
-		path = cls._get_tmp_name(name)
+		if name is None and self._testMethodName != 'runTest':
+			name = self._testMethodName
+		path = self._get_tmp_name(name)
 
 		if mock == MOCK_ALWAYS_MOCK:
 			use_mock = True
 		elif mock == MOCK_ALWAYS_REAL:
 			use_mock = False
-		elif mock == MOCK_DEFAULT_REAL:
-			if FAST_TEST:
-				use_mock = True
-			else:
-				use_mock = False
-		else: # MOCK_DEFAULT_MOCK:
+		else:
 			if FULL_TEST:
 				use_mock = False
 			elif FAST_TEST:
 				use_mock = True
-			elif random.random() < 0.2:
-				logger.info("Random dice throw: use real file system")
-				use_mock = False
 			else:
-				use_mock = True
+				use_mock = (mock == MOCK_DEFAULT_MOCK)
 
 		if use_mock:
 			from zim.newfs.mock import MockFolder
@@ -295,13 +288,16 @@ class TestCase(unittest.TestCase):
 		assert not folder.exists()
 		return folder
 
-	@classmethod
-	def setUpNotebook(cls, name=None, mock=MOCK_ALWAYS_MOCK, content={}):
+	def setUpNotebook(self, name=None, mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
 		'''
-		@param name: basename for the folder, use class name if C{None}
+		@param name: basename for the folder, uses test name if C{None}
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
 		@param content: dictionary where the keys are page names and the
-		values the page content.
+		values the page content. If a tuple or list is given, pages are created
+		with default text. L{Path} objects are allowed instead of page names
+		@param folder: determine the folder to be used, only needed in special
+		cases where the folder must be outside of the project folder, like
+		when testing version control logic
 		'''
 		import datetime
 		from zim.newfs.mock import MockFolder
@@ -312,8 +308,9 @@ class TestCase(unittest.TestCase):
 		from zim.notebook.index import Index
 		from zim.formats.wiki import WIKI_FORMAT_VERSION
 
-
-		folder = cls.setUpFolder(name, mock)
+		if folder is None:
+			folder = self.setUpFolder(name, mock)
+		folder.touch() # Must exist for sane notebook
 		cache_dir = folder.folder('.zim')
 		layout = FilesLayout(folder, endofline='unix')
 
@@ -333,9 +330,13 @@ class TestCase(unittest.TestCase):
 			cache_dir.touch()
 			index = Index(cache_dir.file('index.db').path, layout)
 
-		notebook = Notebook(None, cache_dir, config, folder, layout, index)
-		for name, text in content.items():
-			file, folder = layout.map_page(Path(name))
+		if isinstance(content, (list, tuple)):
+			content = dict((p, 'test 123') for p in content)
+
+		notebook = Notebook(cache_dir, config, folder, layout, index)
+		for name, text in list(content.items()):
+			path = Path(name) if isinstance(name, str) else name
+			file, folder = layout.map_page(path)
 			file.write(
 				(
 					'Content-Type: text/x-zim-wiki\n'
@@ -346,37 +347,18 @@ class TestCase(unittest.TestCase):
 			)
 
 		notebook.index.check_and_update()
+		assert notebook.index.is_uptodate
 		return notebook
 
-	@classmethod
-	def create_tmp_dir(cls, name=None):
+	def create_tmp_dir(self, name=None):
 		'''Returns a path to a tmp dir where tests can write data.
 		The dir is removed and recreated empty every time this function
 		is called with the same name from the same class.
 		'''
-		cls.clear_tmp_dir(name)
-		path = cls._get_tmp_name(name)
-		os.makedirs(path)
-		assert os.path.exists(path) # make real sure
-		return path
-
-	@classmethod
-	def get_tmp_name(cls, name=None):
-		'''Returns the same path as L{create_tmp_dir()} but without
-		touching it. This method will raise an exception when a file
-		or dir exists of the same name.
-		'''
-		path = cls._get_tmp_name(name)
-		assert not os.path.exists(path), 'This path should not exist: %s' % path
-		return path
-
-	@classmethod
-	def clear_tmp_dir(cls, name=None):
-		'''Clears the tmp dir for this test'''
-		path = cls._get_tmp_name(name)
-		if os.path.exists(path):
-			shutil.rmtree(path)
-		assert not os.path.exists(path) # make real sure
+		print("Deprecated: TestCase.create_tmp_dir()")
+		folder = self.setUpFolder(name=name, mock=MOCK_ALWAYS_REAL)
+		folder.touch()
+		return folder.path
 
 	@classmethod
 	def _get_tmp_name(cls, name):
@@ -385,11 +367,6 @@ class TestCase(unittest.TestCase):
 			name = cls.__name__ + '_' + name
 		else:
 			name = cls.__name__
-
-		if os.name == 'nt':
-			name = unicode(name)
-		else:
-			name = name.encode(sys.getfilesystemencoding())
 
 		return os.path.join(TMPDIR, name)
 
@@ -487,30 +464,97 @@ class DialogContext(object):
 		zim.gui.widgets.TEST_MODE_RUN_CB = self._callback
 
 	def _callback(self, dialog):
-		#~ print '>>>', dialog
+		#~ print('>>>', dialog)
 		if not self.stack:
 			raise AssertionError('Unexpected dialog run: %s' % dialog)
 
 		handler = self.stack.pop(0)
 
-		if isinstance(handler, (type, type)): # is a class
-			if not isinstance(dialog, handler):
-				raise AssertionError('Expected dialog of class %s, but got %s instead' % (handler, dialog.__class__))
-			dialog.assert_response_ok()
+		if isinstance(handler, type): # is a class
+			self._default_handler(handler, dialog)
 		else: # assume a function
 			handler(dialog)
 
+	def _default_handler(self, cls, dialog):
+		if not isinstance(dialog, cls):
+			raise AssertionError('Expected dialog of class %s, but got %s instead' % (cls, dialog.__class__))
+		dialog.assert_response_ok()
+
 	def __exit__(self, *error):
-		#~ print 'ERROR', error
 		import zim.gui.widgets
 		zim.gui.widgets.TEST_MODE = self.old_test_mode
 		zim.gui.widgets.TEST_MODE_RUN_CB = self.old_callback
 
-		has_error = bool([e for e in error if e is not None])
+		has_error = any(error)
 		if self.stack and not has_error:
 			raise AssertionError('%i expected dialog(s) not run' % len(self.stack))
 
 		return False # Raise any errors again outside context
+
+
+class WindowContext(DialogContext):
+
+	def _default_handler(self, cls, window):
+		if not isinstance(window, cls):
+			raise AssertionError('Expected window of class %s, but got %s instead' % (cls, dialog.__class__))
+
+
+class ApplicationContext(object):
+
+	def __init__(self, *callbacks):
+		self.stack = list(callbacks)
+
+	def __enter__(self):
+		import zim.applications
+		self.old_test_mode = zim.applications.TEST_MODE
+		self.old_callback = zim.applications.TEST_MODE_RUN_CB
+		zim.applications.TEST_MODE = True
+		zim.applications.TEST_MODE_RUN_CB = self._callback
+
+	def _callback(self, cmd):
+		if not self.stack:
+			raise AssertionError('Unexpected application run: %s' % cmd)
+
+		handler = self.stack.pop(0)
+		return handler(cmd) # need to return for pipe()
+
+	def __exit__(self, *error):
+		import zim.gui.widgets
+		zim.applications.TEST_MODE = self.old_test_mode
+		zim.applications.TEST_MODE_RUN_CB = self.old_callback
+
+		if self.stack and not any(error):
+			raise AssertionError('%i expected command(s) not run' % len(self.stack))
+
+		return False # Raise any errors again outside context
+
+
+class ZimApplicationContext(object):
+
+	def __init__(self, *callbacks):
+		self.stack = list(callbacks)
+
+	def __enter__(self):
+		from zim.main import ZIM_APPLICATION
+		self.apps_obj = ZIM_APPLICATION
+		self.old_run = ZIM_APPLICATION._run_cmd
+		ZIM_APPLICATION._run_cmd = self._callback
+
+	def _callback(self, cmd, args):
+		if not self.stack:
+			raise AssertionError('Unexpected command run: %s %r' % (cmd, args))
+
+		handler = self.stack.pop(0)
+		handler(cmd, args)
+
+	def __exit__(self, *error):
+		self.apps_obj._run_cmd = self.old_run
+
+		if self.stack and not any(error):
+			raise AssertionError('%i expected command(s) not run' % len(self.stack))
+
+		return False # Raise any errors again outside context
+
 
 
 class TestData(object):
@@ -524,8 +568,8 @@ class TestData(object):
 		test_data = []
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
-			text = unicode(node.text.lstrip('\n'))
-			if os.name == 'nt' and isinstance(name, unicode):
+			text = str(node.text.lstrip('\n'))
+			if os.name == 'nt' and isinstance(name, str):
 				pass # XXX No idea what goes wrong, but names are messed up
 			else:
 				test_data.append((name, text))
@@ -539,6 +583,9 @@ class TestData(object):
 
 	def items(self):
 		return list(self)
+
+	def __getitem__(self, key):
+		return self.get(key)
 
 	def get(self, pagename):
 		'''Return text for a specific pagename'''
@@ -585,9 +632,9 @@ def new_parsetree_from_text(text, format='wiki'):
 
 def new_parsetree_from_xml(xml):
 	# For some reason this does not work with cElementTree.XMLBuilder ...
-	from xml.etree.ElementTree import XMLTreeBuilder
+	from xml.etree.ElementTree import XMLParser
 	from zim.formats import ParseTree
-	builder = XMLTreeBuilder()
+	builder = XMLParser()
 	builder.feed(xml)
 	root = builder.close()
 	return ParseTree(root)
@@ -612,115 +659,6 @@ def new_page_from_text(text, format='wiki'):
 	page = Page(Path('Test'), False, file, folder)
 	page.set_parsetree(new_parsetree_from_text(text, format))
 	return page
-
-
-
-_notebook_data = None
-
-def new_notebook(fakedir=None):
-	'''Returns a new Notebook object with all data in memory
-
-	Uses data from L{WikiTestData}
-
-	@param fakedir: optional parameter to set the 'dir' attribute for
-	the notebook which allows you to resolve file
-	paths etc. It will not automatically touch the dir
-	(hence it being 'fake').
-	'''
-	import sqlite3
-
-	from zim.fs import Dir
-	from zim.config import VirtualConfigBackend
-	from zim.notebook import Notebook, Path
-	from zim.notebook.notebook import NotebookConfig
-	from zim.notebook.index import Index
-
-	from zim.notebook.layout import FilesLayout
-	from zim.newfs.mock import MockFolder, clone_mock_object, os_native_path
-
-	global _notebook_data
-	if not _notebook_data: # run this one time only
-		templfolder = MockFolder('/mock/notebook')
-		layout = FilesLayout(templfolder, endofline='unix')
-
-		manifest = []
-		for name, text in WikiTestData:
-			manifest.append(name)
-			file, x = layout.map_page(Path(name))
-			file.write(text)
-
-		manifest = frozenset(_expand_manifest(manifest))
-
-		index = Index(':memory:', layout)
-		index.check_and_update()
-		lines = list(index._db.iterdump())
-		sql = '\n'.join(lines)
-
-		_notebook_data = (templfolder, sql, manifest)
-
-	if fakedir:
-		fakedir = fakedir if isinstance(fakedir, basestring) else fakedir.path
-		fakedir = os_native_path(fakedir)
-	templfolder, sql, manifest = _notebook_data
-	folder = MockFolder(fakedir or templfolder.path)
-	clone_mock_object(templfolder, folder)
-
-	#~ print ">>>>>>>>>>>>>"
-	#~ for path in folder._fs.tree():
-		#~ print path
-
-	layout = FilesLayout(folder, endofline='unix')
-	index = Index(':memory:', layout)
-	tables = [r[0] for r in index._db.execute(
-		'SELECT name FROM sqlite_master '
-		'WHERE type="table" and name NOT LIKE "sqlite%"'
-	)]
-	for table in tables:
-		index._db.execute('DROP TABLE %s' % table)
-	index._db.executescript(sql)
-	index._db.commit()
-
-	### XXX - Big HACK here - Get better classes for this - XXX ###
-	dir = VirtualConfigBackend()
-	file = dir.file('notebook.zim')
-	file.dir = dir
-	file.dir.basename = 'Unnamed Notebook'
-	###
-	config = NotebookConfig(file)
-
-	notebook = Notebook(None, None, config, folder, layout, index)
-	if fakedir:
-		notebook.dir = Dir(fakedir)
-
-	notebook.testdata_manifest = manifest
-	return notebook
-
-
-def new_files_notebook(dir):
-	'''Returns a new Notebook object
-
-	Uses data from L{WikiTestData}
-
-	@param path: a folder path, e.g. created by L{TestCase.create_tmp_dir()}
-	'''
-	from zim.fs import Dir
-	from zim.notebook import init_notebook, Notebook, Path
-
-	dir = Dir(dir)
-	init_notebook(dir)
-	notebook = Notebook.new_from_dir(dir)
-
-	manifest = []
-	for name, text in WikiTestData:
-		manifest.append(name)
-		page = notebook.get_page(Path(name))
-		page.parse('wiki', text)
-		notebook.store_page(page)
-
-	notebook.testdata_manifest = _expand_manifest(manifest)
-	notebook.index.check_and_update()
-
-	return notebook
 
 
 class Counter(object):
@@ -782,7 +720,7 @@ class MockObject(MockObjectBase):
 
 
 import logging
-logger = logging.getLogger('test')
+logger = logging.getLogger('tests')
 
 from functools import partial
 
@@ -829,7 +767,7 @@ class SignalLogger(dict):
 		self.disconnect()
 
 	def clear(self):
-		for signal, seen in self.items():
+		for signal, seen in list(self.items()):
 			seen[:] = []
 
 	def disconnect(self):
@@ -882,21 +820,21 @@ class MaskedObject(object):
 
 def gtk_process_events(*a):
 	'''Method to simulate a few iterations of the gtk main loop'''
-	assert gtk is not None
-	while gtk.events_pending():
-		gtk.main_iteration(block=False)
+	assert Gtk is not None
+	while Gtk.events_pending():
+		Gtk.main_iteration()
 	return True # continue
 
 
 def gtk_get_menu_item(menu, id):
-	'''Get a menu item from a C{gtk.Menu}
-	@param menu: a C{gtk.Menu}
+	'''Get a menu item from a C{Gtk.Menu}
+	@param menu: a C{Gtk.Menu}
 	@param id: either the menu item label or the stock id
-	@returns: a C{gtk.MenuItem} or C{None}
+	@returns: a C{Gtk.MenuItem} or C{None}
 	'''
 	items = menu.get_children()
 	ids = [i.get_property('label') for i in items]
-		# gtk.ImageMenuItems that have a stock id happen to use the
+		# Gtk.ImageMenuItems that have a stock id happen to use the
 		# 'label' property to store it...
 
 	assert id in ids, \
@@ -909,7 +847,7 @@ def gtk_get_menu_item(menu, id):
 
 def gtk_activate_menu_item(menu, id):
 	'''Trigger the 'click' action an a menu item
-	@param menu: a C{gtk.Menu}
+	@param menu: a C{Gtk.Menu}
 	@param id: either the menu item label or the stock id
 	'''
 	item = gtk_get_menu_item(menu, id)

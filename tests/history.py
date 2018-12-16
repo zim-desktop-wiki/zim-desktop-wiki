@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -36,9 +35,8 @@ class TestHistory(tests.TestCase):
 
 	def setUp(self):
 		zim.history.MAX_HISTORY = 100
-		self.notebook = tests.new_notebook()
-		self.pages = [self.notebook.get_page(Path(name))
-			for name in self.notebook.testdata_manifest]
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.pages = [p for p in self.notebook.pages.walk()]
 
 	def assertCurrentEquals(self, history, path):
 		current = history.get_current()
@@ -120,14 +118,14 @@ class TestHistory(tests.TestCase):
 		for j in range(5):
 			history.append(path)
 		self.assertHistoryEquals(history, self.pages) # history does not store duplicates
-		self.assertEquals(history.get_current(), current)
+		self.assertEqual(history.get_current(), current)
 
 		# Test dropping forward stack
 		historylist = list(history.get_history())
 		path1 = historylist[10]
 		path2 = historylist[0]
 		history.set_current(path1)
-		self.assertEquals(history.get_current(), path1) # rewind
+		self.assertEqual(history.get_current(), path1) # rewind
 		self.assertHistoryEquals(history, self.pages) # no change
 
 		history.append(path2) # new path - drop forward stack
@@ -166,7 +164,7 @@ class TestHistory(tests.TestCase):
 		self.assertEqual(unique[0], history.get_current())
 		self.assertEqual(len(unique), len(self.pages))
 
-		unique = set([page.name for page in unique]) # collapse doubles
+		unique = {page.name for page in unique} # collapse doubles
 		self.assertEqual(len(unique), len(self.pages))
 
 		zim.history.MAX_RECENT = 3

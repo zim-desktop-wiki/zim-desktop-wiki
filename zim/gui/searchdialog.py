@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 # Tests: search gui.TestDialogs.testSearchDialog
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import logging
 
 from zim.notebook import Path
@@ -22,53 +21,45 @@ class SearchDialog(Dialog):
 	SEARCHING = 1
 	CANCELLED = 2
 
-	def __init__(self, window):
-		Dialog.__init__(self, window, _('Search'), # T: Dialog title
-			buttons=gtk.BUTTONS_CLOSE, help='Help:Searching',
+	def __init__(self, widget, notebook, page, navigation):
+		Dialog.__init__(self, widget, _('Search'), # T: Dialog title
+			buttons=Gtk.ButtonsType.CLOSE, help='Help:Searching',
 			defaultwindowsize=(400, 300)
 		)
-		self.app_window = window
+		self.page = page
 
-		hbox = gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False)
-		hbox.pack_start(gtk.Label(_('Search') + ': '), False) # T: input label
+		hbox = Gtk.HBox(spacing=5)
+		self.vbox.pack_start(hbox, False, True, 0)
+		hbox.pack_start(Gtk.Label(_('Search') + ': '), False, True, 0) # T: input label
 		self.query_entry = InputEntry()
 		hbox.add(self.query_entry)
-		self.search_button = gtk.Button(stock=gtk.STOCK_FIND)
-		hbox.pack_start(self.search_button, False)
+		self.search_button = Gtk.Button.new_with_mnemonic(_('_Find')) # T: Button label
+		hbox.pack_start(self.search_button, False, True, 0)
 
-		if gtk.gtk_version >= (2, 20) \
-		and gtk.pygtk_version >= (2, 22): # update in pygtk was later
-			self.spinner = gtk.Spinner()
-			hbox.pack_start(self.spinner, False)
-		else:
-			self.spinner = None
+		self.spinner = Gtk.Spinner()
+		hbox.pack_start(self.spinner, False, True, 0)
 
-		self.cancel_button = gtk.Button(stock=gtk.STOCK_STOP)
-		hbox.pack_start(self.cancel_button, False)
+		self.cancel_button = Gtk.Button.new_with_mnemonic(_('_Cancel')) # T: Button label
+		hbox.pack_start(self.cancel_button, False, True, 0)
 		self._set_state(self.READY)
 
 		help_text = _(
 			'For advanced search you can use operators like\n'
 			'AND, OR and NOT. See the help page for more details.'
 		) # T: help text for the search dialog
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			self.query_entry.set_tooltip_text(help_text)
-		else:
-			tooltips = gtk.Tooltips()
-			tooltips.set_tip(self.query_entry, help_text)
+		self.query_entry.set_tooltip_text(help_text)
 
-		self.namespacecheckbox = gtk.CheckButton(_('Limit search to the current page and sub-pages'))
+		self.namespacecheckbox = Gtk.CheckButton.new_with_mnemonic(_('Limit search to the current page and sub-pages'))
 			# T: checkbox option in search dialog
-		self.vbox.pack_start(self.namespacecheckbox, False)
+		if page is not None:
+			self.vbox.pack_start(self.namespacecheckbox, False, True, 0)
 
 		# TODO advanced query editor
 		# TODO checkbox _('Match c_ase')
 		# TODO checkbox _('Whole _word')
 
-		self.results_treeview = SearchResultsTreeView(self.app_window)
-		self.vbox.add(ScrolledWindow(self.results_treeview))
+		self.results_treeview = SearchResultsTreeView(notebook, navigation)
+		self.vbox.pack_start(ScrolledWindow(self.results_treeview), True, True, 0)
 
 		self.search_button.connect_object('clicked', self.__class__._search, self)
 		self.cancel_button.connect_object('clicked', self.__class__._cancel, self)
@@ -87,8 +78,9 @@ class SearchDialog(Dialog):
 	def _search(self):
 		string = self.query_entry.get_text()
 		if self.namespacecheckbox.get_active():
-			string = 'Section: "%s" ' % self.app_window.ui.page.name + string # XXX
-		#~ print '!! QUERY: ' + string
+			assert self.page is not None
+			string = 'Section: "%s" ' % self.page.name + string
+		#~ print('!! QUERY: ' + string)
 
 		self._set_state(self.SEARCHING)
 		try:
@@ -108,7 +100,7 @@ class SearchDialog(Dialog):
 		# TODO set cursor for treeview part
 		# TODO set label or something ?
 		def hide(button):
-			button.hide_all()
+			button.hide()
 			button.set_no_show_all(True)
 
 		def show(button):
@@ -140,33 +132,34 @@ class SearchResultsTreeView(BrowserTreeView):
 	SCORE_COL = 1
 	PATH_COL = 2
 
-	def __init__(self, window):
-		model = gtk.ListStore(str, int, object)
+	def __init__(self, notebook, navigation):
+		model = Gtk.ListStore(str, int, object)
 			# NAME_COL, SCORE_COL, PATH_COL
 		BrowserTreeView.__init__(self, model)
-		self.app_window = window
+		self.navigation = navigation
 		self.query = None
-		self.selection = SearchSelection(window.ui.notebook) # XXX
+		self.selection = SearchSelection(notebook)
 		self.cancelled = False
 
-		cell_renderer = gtk.CellRendererText()
+		cell_renderer = Gtk.CellRendererText()
 		for name, i in (
 			(_('Page'), 0), # T: Column header search dialog
 			(_('Score'), 1), # T: Column header search dialog
 		):
-			column = gtk.TreeViewColumn(name, cell_renderer, text=i)
+			column = Gtk.TreeViewColumn(name, cell_renderer, text=i)
 			column.set_sort_column_id(i)
 			if i == 0:
 				column.set_expand(True)
 			self.append_column(column)
 
-		model.set_sort_column_id(1, gtk.SORT_DESCENDING)
+		model.set_sort_column_id(1, Gtk.SortType.DESCENDING)
 			# By default sort by score
 
 		self.connect('row-activated', self._do_open_page)
 		self.connect('destroy', self.__class__._cancel)
 
-	def _cancel(self): self.cancelled = True
+	def _cancel(self):
+		self.cancelled = True
 
 	def search(self, query):
 		query = query.strip()
@@ -182,12 +175,12 @@ class SearchResultsTreeView(BrowserTreeView):
 
 	def _search_callback(self, results, path):
 		# Returning False will cancel the search
-		#~ print '!! CB', path
+		#~ print('!! CB', path)
 		if results is not None:
 			self._update_results(results)
 
-		while gtk.events_pending():
-			gtk.main_iteration(block=False)
+		while Gtk.events_pending():
+			Gtk.main_iteration_do(False)
 
 		return not self.cancelled
 
@@ -219,15 +212,15 @@ class SearchResultsTreeView(BrowserTreeView):
 			order.append((score, i))
 
 		# re-order
-		order.sort() # sort on first item, which is score
-		model.reorder([x[1] for x in order]) # use second item
+		#order.sort() # sort on first item, which is score
+		#model.reorder([x[1] for x in order]) # use second item
 
 	def _do_open_page(self, view, path, col):
-		page = Path(self.get_model()[path][0].decode('utf-8'))
-		self.app_window.ui.open_page(page) # XXX
+		page = Path(self.get_model()[path][0])
+		pageview = self.navigation.open_page(page)
 
 		# Popup find dialog with same query
-		if self.query and self.query.simple_match:
+		if pageview and self.query and self.query.simple_match:
 			string = self.query.simple_match
 			string = string.strip('*') # support partial matches
-			self.app_window.pageview.show_find(string, highlight=True)
+			pageview.show_find(string, highlight=True)

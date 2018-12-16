@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the base zim module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -12,13 +11,12 @@ import tests
 from tests.config import EnvironmentConfigContext, ConfigManager
 
 import sys
-import cStringIO as StringIO
+import io as StringIO
 import threading
 import time
 
 
 from zim.fs import Dir, File, FS
-from zim.environ import environ
 
 from zim.main import *
 
@@ -41,7 +39,7 @@ class capture_stdout:
 class TestParseCommand(tests.TestCase):
 
 	def runTest(self):
-		for command, klass in zim.main.commands.items():
+		for command, klass in list(zim.main.commands.items()):
 			obj = zim.main.build_command(['--%s' % command])
 			self.assertIsInstance(obj, klass)
 
@@ -108,6 +106,7 @@ class TestGui(tests.TestCase):
 		file.remove()
 
 	def runTest(self):
+		from zim.gui.mainwindow import MainWindow
 
 		## Without argument should prompt
 		def testAddNotebookDialog(dialog):
@@ -117,20 +116,23 @@ class TestGui(tests.TestCase):
 
 		cmd = GuiCommand('gui')
 		with tests.DialogContext(testAddNotebookDialog):
-			cmd.run() # Exist without running due to no notebook given in dialog
+			cmd.run() # Exits without running due to no notebook given in dialog
 
 		### Try again with argument
 		dir = self.create_tmp_dir()
 		cmd = GuiCommand('gui')
 		cmd.parse_options(dir)
-		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
-			window = cmd.run()
-		self.addCleanup(window.destroy)
+		with tests.WindowContext(MainWindow):
+			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+				window = cmd.run()
+				self.addCleanup(window.destroy)
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
-		self.assertEqual(window.ui.notebook.uri, Dir(dir).uri) # XXX
+		self.assertEqual(window.notebook.uri, Dir(dir).uri) # XXX
+		self.assertGreaterEqual(len(window.pageview.__zim_extension_objects__), 3)
 
-		window2 = cmd.run()
+		with tests.WindowContext(MainWindow):
+			window2 = cmd.run()
 		self.assertIs(window2, window)
 			# Ensure repeated calling gives unique window
 
@@ -142,10 +144,14 @@ class TestGui(tests.TestCase):
 class TestManual(tests.TestCase):
 
 	def runTest(self):
+		from zim.gui.mainwindow import MainWindow
+
 		cmd = ManualCommand('manual')
-		with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
-			window = cmd.run()
-		self.addCleanup(window.destroy)
+		with tests.WindowContext(MainWindow):
+			with tests.LoggingFilter('zim', 'Exception while loading plugin:'):
+				window = cmd.run()
+				self.addCleanup(window.destroy)
+
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 
 
@@ -153,7 +159,7 @@ class TestManual(tests.TestCase):
 class TestServer(tests.TestCase):
 
 	def runTest(self):
-		from urllib import urlopen
+		from urllib.request import urlopen
 
 		dir = self.create_tmp_dir()
 		cmd = ServerCommand('server')
@@ -255,17 +261,17 @@ class TestZimApplication(tests.TestCase):
 				self.hasrun = False
 
 			def _quit(self, *a):
-				import gobject
-				import gtk
-				gtk.main_quit()
+				from gi.repository import GObject
+				from gi.repository import Gtk
+				Gtk.main_quit()
 				return False # stop timer
 
 			def run(self):
-				import gobject
-				import gtk
+				from gi.repository import GObject
+				from gi.repository import Gtk
 				self.hasrun = True
-				gobject.timeout_add(500, self._quit)
-				return gtk.Window()
+				GObject.timeout_add(500, self._quit)
+				return Gtk.Window()
 
 		cmd = MockCmd()
 		self.assertFalse(cmd.hasrun)
@@ -300,7 +306,7 @@ class TestZimApplication(tests.TestCase):
 		app.add_window(w1)
 		app.add_window(w2)
 
-		self.assertEqual(set(app.toplevels), set([w1, w2]))
-		self.assertEqual(app.notebooks, set([n1, n2]))
+		self.assertEqual(set(app.toplevels), {w1, w2})
+		self.assertEqual(app.notebooks, {n1, n2})
 		self.assertEqual(app.get_mainwindow(n1, _class=MockWindow), w1)
 		self.assertEqual(app.get_mainwindow(MockNotebook('foo'), _class=MockWindow), w1)

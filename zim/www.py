@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -22,12 +21,14 @@ the standalone server.
 import sys
 import socket
 import logging
-import gobject
+from gi.repository import GObject
 
 from functools import partial
 
 from wsgiref.headers import Headers
-import urllib
+import urllib.request
+import urllib.parse
+import urllib.error
 
 from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
@@ -81,7 +82,7 @@ You tried to open a page that does not exist.
 '''
 
 	def __init__(self, page):
-		if not isinstance(page, basestring):
+		if not isinstance(page, str):
 			page = page.name
 		WWWError.__init__(self, 'No such page: %s' % page, status='404')
 
@@ -123,7 +124,7 @@ class WWWInterface(object):
 		if template is None:
 			template = 'Default'
 
-		if isinstance(template, basestring):
+		if isinstance(template, str):
 			from zim.templates import get_template
 			self.template = get_template('html', template)
 			if not self.template:
@@ -164,7 +165,7 @@ class WWWInterface(object):
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
 
 			# cleanup path
-			#~ print 'INPUT', path
+			#~ print('INPUT', path)
 			path = path.replace('\\', '/') # make it windows save
 			isdir = path.endswith('/')
 			parts = [p for p in path.split('/') if p and not p == '.']
@@ -174,14 +175,14 @@ class WWWInterface(object):
 			path = '/' + '/'.join(parts)
 			if isdir and not path == '/':
 				path += '/'
-			#~ print 'PATH', path
+			#~ print('PATH', path)
 
 			if not path:
 				path = '/'
 			elif path == '/favicon.ico':
 				path = '/+resources/favicon.ico'
 			else:
-				path = urllib.unquote(path)
+				path = urllib.parse.unquote(path)
 
 			if path == '/':
 				headers.add_header('Content-Type', 'text/html', charset='utf-8')
@@ -195,12 +196,12 @@ class WWWInterface(object):
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.get_mimetype()
 			elif path.startswith('/+file/'):
-				file = self.notebook.dir.file(path[7:])
+				file = self.notebook.folder.file(path[7:])
 					# TODO: need abstraction for getting file from top level dir ?
-				content = [file.raw()]
+				content = [file.read_binary()]
 					# Will raise FileNotFound when file does not exist
-				headers['Content-Type'] = file.get_mimetype()
- 			elif path.startswith('/+resources/'):
+				headers['Content-Type'] = file.mimetype()
+			elif path.startswith('/+resources/'):
 				if self.template.resources_dir:
 					file = self.template.resources_dir.file(path[12:])
 					if not file.exists():
@@ -212,7 +213,7 @@ class WWWInterface(object):
 					content = [file.raw()]
 						# Will raise FileNotFound when file does not exist
 					headers['Content-Type'] = file.get_mimetype()
-	 			else:
+				else:
 					raise WebPageNotFoundError(path)
 			else:
 				# Must be a page or a namespace (html file or directory path)
@@ -248,7 +249,7 @@ class WWWInterface(object):
 					for key, value in error.headers:
 						headers.add_header(key, value)
 				start_response(error.status, headerlist)
-				content = unicode(error).splitlines(True)
+				content = str(error).splitlines(True)
 			# TODO also handle template errors as special here
 			else:
 				# Unexpected error - maybe a bug, do not expose output on bugs
@@ -256,16 +257,17 @@ class WWWInterface(object):
 				logger.exception('Unexpected error:')
 				start_response('500 Internal Server Error', headerlist)
 				content = ['Internal Server Error']
+
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
 			else:
-				return [string.encode('utf-8') for string in content]
+				return [c.encode('UTF-8') for c in content]
 		else:
 			start_response('200 OK', headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
-			elif 'utf-8' in headers['Content-Type']:
-				return [string.encode('utf-8') for string in content]
+			elif content and isinstance(content[0], str):
+				return [c.encode('UTF-8') for c in content]
 			else:
 				return content
 
@@ -328,9 +330,9 @@ class WWWLinker(ExportLinker):
 
 	def file_object(self, file):
 		'''Turn a L{File} object in a relative link or URI'''
-		if file.ischild(self.notebook.dir):
+		if file.ischild(self.notebook.folder):
 			# attachment
-			relpath = file.relpath(self.notebook.dir)
+			relpath = file.relpath(self.notebook.folder)
 			return url_encode('/+file/' + relpath)
 		elif self.notebook.document_root \
 		and file.ischild(self.notebook.document_root):

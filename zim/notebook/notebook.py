@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 import os
 import re
@@ -21,7 +20,8 @@ import zim.formats
 from zim.fs import File, Dir
 from zim.newfs import LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
-from zim.errors import Error, TrashNotSupportedError
+from zim.errors import Error
+from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
@@ -52,7 +52,7 @@ class NotebookConfig(INIConfigFile):
 			('icon', String(None)), # XXX should be file, but resolves relative
 			('document_root', String(None)), # XXX should be dir, but resolves relative
 			('shared', Boolean(True)),
-			('endofline', Choice(endofline, set(('dos', 'unix')))),
+			('endofline', Choice(endofline, {'dos', 'unix'})),
 			('disable_trash', Boolean(False)),
 			('profile', String(None)),
 		))
@@ -149,6 +149,21 @@ def assert_index_uptodate(method):
 _NOTEBOOK_CACHE = weakref.WeakValueDictionary()
 
 
+from zim.plugins import ExtensionBase
+
+class NotebookExtension(ExtensionBase):
+	'''Base class for extending the notebook
+
+	@ivar notebook: the L{Notebook} object
+	'''
+
+	__extends__ = 'Notebook'
+
+	def __init__(self, plugin, notebook):
+		ExtensionBase.__init__(self, plugin, notebook)
+		self.notebook = notebook
+
+
 class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 
@@ -165,10 +180,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@signal: C{delete-page (path)}: emitted before deleting a page
 	@signal: C{deleted-page (path)}: emitted after deleting a page
 	means that the preferences need to be loaded again as well
-	@signal: C{properties-changed ()}: emitted when properties changed
 	@signal: C{suggest-link (path, text)}: hook that is called when trying
 	to resolve links
-	@signal: C{new-page-template (path, template)}: emitted before
+	@signal: C{get-page-template (path)}: emitted before
+	when a template for a new page is requested, intended for plugins that
+	want to customize a namespace
+	@signal: C{init-page-template (path, template)}: emitted before
 	evaluating a template for a new page, intended for plugins that want
 	to extend page templates
 
@@ -194,23 +211,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'delete-page': (SIGNAL_NORMAL, None, (object,)),
 		'deleted-page': (SIGNAL_NORMAL, None, (object,)),
 		'page-info-changed': (SIGNAL_NORMAL, None, (object,)),
-		'properties-changed': (SIGNAL_NORMAL, None, ()),
-		'new-page-template': (SIGNAL_NORMAL, None, (object, object)),
+		'get-page-template': (SIGNAL_NORMAL, str, (object,)),
+		'init-page-template': (SIGNAL_NORMAL, None, (object, object)),
 
 		# Hooks
 		'suggest-link': (SIGNAL_NORMAL, object, (object, object)),
 	}
-
-	properties = (
-		('name', 'string', _('Name')), # T: label for properties dialog
-		('interwiki', 'string', _('Interwiki Keyword'), lambda v: not v or is_interwiki_keyword_re.search(v)), # T: label for properties dialog
-		('home', 'page', _('Home Page')), # T: label for properties dialog
-		('icon', 'image', _('Icon')), # T: label for properties dialog
-		('document_root', 'dir', _('Document Root')), # T: label for properties dialog
-		#~ ('profile', 'string', _('Profile'), list_profiles), # T: label for properties dialog
-		('profile', 'string', _('Profile')), # T: label for properties dialog
-		# 'shared' property is not shown in properties anymore
-	)
 
 	@classmethod
 	def new_from_dir(klass, dir):
@@ -247,32 +253,40 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		cache_dir.touch() # must exist for index to work
 		index = Index(cache_dir.file('index.db').path, layout)
 
-		nb = klass(dir, cache_dir, config, folder, layout, index)
+		nb = klass(cache_dir, config, folder, layout, index)
 		_NOTEBOOK_CACHE[dir.uri] = nb
 		return nb
 
-	def __init__(self, dir, cache_dir, config, folder, layout, index):
-		self.dir = dir # TODO remove
+	def __init__(self, cache_dir, config, folder, layout, index):
+		'''Constructor
+		@param cache_dir: a L{Folder} object used for caching the notebook state
+		@param config: a L{NotebookConfig} object
+		@param folder: a L{Folder} object for the notebook location
+		@param layout: a L{NotebookLayout} object
+		@param index: an L{Index} object
+		'''
 		self.folder = folder
 		self.cache_dir = cache_dir
 		self.config = config
+		self.properties = config['Notebook']
 		self.layout = layout
 		self.index = index
 		self._operation_check = NOOP
 
-		self.readonly = not _iswritable(dir) if dir else None # XXX
+		self.readonly = not _iswritable(folder)
 
 		if self.readonly:
 			logger.info('Notebook read-only: %s', dir.path)
 
-		self.namespace_properties = HierarchicDict({
-				'template': 'Default'
-			})
 		self._page_cache = weakref.WeakValueDictionary()
 
 		self.name = None
 		self.icon = None
 		self.document_root = None
+
+		if folder.watcher is None:
+			from zim.newfs.helpers import FileTreeWatcher
+			folder.watcher = FileTreeWatcher()
 
 		from .index import PagesView, LinksView, TagsView
 		self.pages = PagesView.new_from_index(self.index)
@@ -292,7 +306,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.index.update_iter.pages.connect('page-row-changed', on_page_row_changed)
 		self.index.update_iter.pages.connect('page-row-deleted', on_page_row_deleted)
 
-		self.do_properties_changed()
+		self.connectto(self.properties, 'changed', self.on_properties_changed)
+		self.on_properties_changed(self.properties)
 
 	@property
 	def uri(self):
@@ -322,14 +337,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		also updates the object attributes that map those properties.
 
 		@param properties: the properties to update
-
-		@emits: properties-changed
 		'''
 		dir = Dir(self.layout.root.path) # XXX
 
 		# Check if icon is relative
 		icon = properties.get('icon')
-		if icon and not isinstance(icon, basestring):
+		if icon and not isinstance(icon, str):
 			assert isinstance(icon, File)
 			if icon.ischild(dir):
 				properties['icon'] = './' + icon.relpath(dir)
@@ -338,7 +351,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		# Check document root is relative
 		root = properties.get('document_root')
-		if root and not isinstance(root, basestring):
+		if root and not isinstance(root, str):
 			assert isinstance(root, Dir)
 			if root.ischild(dir):
 				properties['document_root'] = './' + root.relpath(dir)
@@ -352,25 +365,20 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		# Actual update and signals
 		# ( write is the last action - in case update triggers a crash
 		#   we don't want to get stuck with a bad config )
-		self.config['Notebook'].update(properties)
-		self.emit('properties-changed')
-
-		if hasattr(self.config, 'write'): # Check needed for tests
+		self.properties.update(properties)
+		if hasattr(self.config, 'write'): # XXX Check needed for tests
 			self.config.write()
 
-	def do_properties_changed(self):
-		config = self.config['Notebook']
+	def on_properties_changed(self, properties):
 		dir = Dir(self.layout.root.path) # XXX
 
-		self.name = config['name']
-		icon, document_root = _resolve_relative_config(dir, config)
+		self.name = properties['name']
+		icon, document_root = _resolve_relative_config(dir, properties)
 		if icon:
 			self.icon = icon.path # FIXME rewrite to use File object
 		else:
 			self.icon = None
 		self.document_root = document_root
-
-		# TODO - can we switch cache_dir on run time when 'shared' changed ?
 
 	def suggest_link(self, source, word):
 		'''Suggest a link Path for 'word' or return None if no suggestion is
@@ -378,7 +386,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		register handlers to add suggestions using the 'C{suggest-link}'
 		signal.
 		'''
-		return self.emit('suggest-link', source, word)
+		return self.emit_return_first('suggest-link', source, word)
 
 	def get_page(self, path):
 		'''Get a L{Page} object for a given path
@@ -461,7 +469,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		names = [path.name]
 		ns = path.name + ':'
-		names.extend(k for k in self._page_cache.keys() if k.startswith(ns))
+		names.extend(k for k in list(self._page_cache.keys()) if k.startswith(ns))
 		for name in names:
 			if name in self._page_cache:
 				page = self._page_cache[name]
@@ -569,7 +577,10 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		logger.debug('Move page %s to %s', path, newpath)
 
 		self.emit('move-page', path, newpath)
-		n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		try:
+			n_links = self.links.n_list_links_section(path, LINK_DIR_BACKWARD)
+		except IndexNotFoundError:
+			raise PageNotFoundError(path)
 		self._move_file_and_folder(path, newpath)
 		self.flush_page_cache(path)
 		self.emit('moved-page', path, newpath)
@@ -990,7 +1001,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				raise zim.formats.VisitorSkip
 
 			hrefpath = self.pages.lookup_from_user_input(href, page)
-			#~ print 'LINK', hrefpath
+			#~ print('LINK', hrefpath)
 			if hrefpath == path \
 			or hrefpath.ischild(path):
 				# Replace the link by it's text
@@ -1010,7 +1021,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 
 		File URIs and paths that start with '~/' or '~user/' are
 		considered absolute paths. Also windows path names like
-		'C:\user' are recognized as absolute paths.
+		'C:\\user' are recognized as absolute paths.
 
 		Paths that starts with a '/' are taken relative to the
 		to the I{document root} - this can e.g. be a parent directory
@@ -1030,7 +1041,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@param path: a L{Path} object for the page
 		@returns: a L{File} object.
 		'''
-		assert isinstance(filename, basestring)
+		assert isinstance(filename, str)
 		filename = filename.replace('\\', '/')
 		if filename.startswith('~') or filename.startswith('file:/'):
 			return File(filename)
@@ -1145,10 +1156,16 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		# FIXME hardcoded that template must be wiki format
 
-		template = self.namespace_properties[path]['template']
-		logger.debug('Found template \'%s\' for %s', template, path)
+		template = self.get_page_template_name(path)
+		logger.debug('Got page template \'%s\' for %s', template, path)
 		template = zim.templates.get_template('wiki', template)
 		return self.eval_new_page_template(path, template)
+
+	def get_page_template_name(self, path=None):
+		'''Returns the name of the template to use for a new page.
+		(To get the contents of the template directly, see L{get_template()})
+		'''
+		return self.emit_return_first('get-page-template', path or Path(':')) or 'Default'
 
 	def eval_new_page_template(self, path, template):
 		lines = []
@@ -1160,7 +1177,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				'namespace': path.namespace, # backward compat
 			}
 		}
-		self.emit('new-page-template', path, template) # plugin hook
+		self.emit('init-page-template', path, template) # plugin hook
 		template.process(lines, context)
 
 		parser = zim.formats.get_parser('wiki')

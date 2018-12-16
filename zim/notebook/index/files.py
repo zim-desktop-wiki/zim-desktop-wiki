@@ -30,8 +30,6 @@ class FilesIndexer(SignalEmitter):
 	'''Class that will update the "files" table in the index based on
 	changes seen on the file system.
 
-	@signal: C{start-update ()}: on start of update iter
-	@signal: C{finish-update ()}: on end of update iter
 	@signal: C{file-row-inserted (row, file)}: on new file found
 	@signal: C{file-row-changed (row, file)}: on file content changed
 	@signal: C{file-row-deleted (row)}: on file deleted
@@ -47,8 +45,6 @@ class FilesIndexer(SignalEmitter):
 	# page save in notebook
 
 	__signals__ = {
-		'start-update': (None, None, ()),
-		'finish-update': (None, None, ()),
 		'file-row-inserted': (None, None, (object,)),
 		'file-row-changed': (None, None, (object,)),
 		'file-row-deleted': (None, None, (object,)),
@@ -68,6 +64,8 @@ class FilesIndexer(SignalEmitter):
 			mtime TIMESTAMP,
 
 			index_status INTEGER DEFAULT 3
+
+			CONSTRAINT no_self_ref CHECK (parent <> id)
 		);
 		''')
 		row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
@@ -79,12 +77,17 @@ class FilesIndexer(SignalEmitter):
 			)
 			assert c.lastrowid == 1 # ensure we start empty
 
+	def is_uptodate(self):
+		row = self.db.execute(
+			'SELECT * FROM files WHERE index_status=?',
+			(STATUS_NEED_UPDATE,)
+		).fetchone()
+		return row is None
+
 	def update_iter(self):
 		'''Generator function for the actual update'''
-		self.emit('start-update')
 		for i in self._update_iter_inner():
 			yield
-		self.emit('finish-update')
 
 	def _update_iter_inner(self, prefix=''):
 		# sort folders before files: first index structure, then contents
@@ -268,6 +271,7 @@ class FilesIndexer(SignalEmitter):
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
 
 	def delete_folder(self, node_id):
+		assert node_id != 1, 'BUG: notebook folder went missing ?'
 		for child_id, child_type in self.db.execute(
 			'SELECT id, node_type FROM files WHERE parent == ?',
 			(node_id,)

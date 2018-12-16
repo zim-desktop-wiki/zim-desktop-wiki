@@ -1,28 +1,119 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Gdk
 import logging
-
-from zim.gui.clipboard import \
-	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
-	pack_urilist
-from zim.gui.widgets import encode_markup_text
-from zim.notebook.page import shortest_unique_names
 
 from functools import reduce
 
+from zim.plugins import PluginClass
+from zim.actions import radio_action, radio_option
+from zim.notebook.page import shortest_unique_names
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import encode_markup_text
+from zim.gui.uiactions import UIActions, PAGE_ACTIONS
+from zim.gui.clipboard import \
+	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
+	pack_urilist
+
+
 logger = logging.getLogger('zim.gui')
+
+
+class PathBarPlugin(PluginClass):
+
+	plugin_info = {
+		'name': _('Path Bar'), # T: plugin name
+		'description': _('''\
+This plugin adds a "path bar" to the top of the window.
+This "path bar" can show the noteobok path for the current page,
+recent visited pages or recent edited pages.
+'''), # T: plugin description
+		'author': 'Jaap Karssenberg',
+		'help': 'Plugins:PathBar',
+	}
+
+
+PATHBAR_NONE = 'none' #: Constant for no pathbar
+PATHBAR_RECENT = 'recent' #: Constant for the recent pages pathbar
+PATHBAR_RECENT_CHANGED = 'recent_changed' #: Constant for the recent pages pathbar
+PATHBAR_HISTORY = 'history' #: Constant for the history pathbar
+PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
+PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
+
+
+class PathBarMainWindowExtension(MainWindowExtension):
+
+	_klasses = {
+		PATHBAR_NONE: None,
+		# other classes are added below where they are defined
+	}
+
+	def __init__(self, plugin, window):
+		MainWindowExtension.__init__(self, plugin, window)
+		self.pathbar = None
+		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
+		self.set_pathbar(self.uistate['pathbar_type'])
+		self.connectto(window, 'page-changed')
+
+	def on_page_changed(self, window, page):
+		if self.pathbar is not None:
+			self.pathbar.set_page(page)
+
+	def teardown(self):
+		if self.pathbar is not None:
+			self.window.remove(self.pathbar)
+
+	@radio_action(
+		_('P_athbar'), # T: Menu title
+		radio_option(PATHBAR_NONE, _('_None')),
+		radio_option(PATHBAR_RECENT, _('_Recent pages')),
+		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
+		radio_option(PATHBAR_HISTORY, _('_History')),
+		radio_option(PATHBAR_PATH, _('_Page Hierarchy')),
+		menuhints='view'
+	)
+	def set_pathbar(self, type):
+		'''Set the pathbar type
+
+		@param type: the type of pathbar, one of:
+			- C{PATHBAR_NONE} to hide the pathbar
+			- C{PATHBAR_RECENT} to show recent pages
+			- C{PATHBAR_RECENT_CHANGED} to show recently changed pagesF
+			- C{PATHBAR_HISTORY} to show the history
+			- C{PATHBAR_PATH} to show the namespace path
+		'''
+		if self.pathbar is not None:
+			try:
+				self.window.remove(self.pathbar)
+			except ValueError:
+				pass
+			self.pathbar = None
+
+		klass = self._klasses[type]
+		if klass is not None:
+			self.pathbar = klass(
+				self.window.history,
+				self.window.notebook,
+				self.window.config,
+				self.window.navigation
+			)
+			self.pathbar.set_page(self.window.page)
+			self.pathbar.show_all()
+			self.window.add_center_bar(self.pathbar)
+
+		self.uistate['pathbar_type'] = type
+
 
 # Constants
 DIR_FORWARD = 1
 DIR_BACKWARD = -1
 
-
-class ScrolledHBox(gtk.HBox):
+class ScrolledHBox(Gtk.HBox):
 	'''This class provides a widget that behaves like a HBox when there is
 	enough space to render all child widgets. When space is limited it
 	shows arrow buttons on the left and on the right to allow scrolling
@@ -67,11 +158,10 @@ class ScrolledHBox(gtk.HBox):
 	# with the widgets that are scrolled one should use "get_children()[2:]".
 	# Not sure if there is a cleaner way to do this
 
-	# Actually wanted to inherit from gtk.Box instead of gtk.HBox, but seems
-	# we can not call gtk.Box.__init__() to instantiate the object.
+	# Actually wanted to inherit from Gtk.Box instead of Gtk.HBox, but seems
+	# we can not call GObject.GObject.__init__() to instantiate the object.
 
 	__gsignals__ = {
-		'size-request': 'override',
 		'size-allocate': 'override',
 	}
 
@@ -79,7 +169,7 @@ class ScrolledHBox(gtk.HBox):
 	scroll_timeout = 150 # timeout between scroll steps
 
 	def __init__(self, spacing=0, homogeneous=False):
-		gtk.HBox.__init__(self)
+		GObject.GObject.__init__(self)
 		self.set_spacing(spacing)
 		self.set_homogeneous(homogeneous)
 		self._scroll_timeout = None
@@ -93,7 +183,7 @@ class ScrolledHBox(gtk.HBox):
 			button.connect('button-press-event', self._on_button_press)
 			button.connect('button-release-event', self._on_button_release)
 			button.connect('clicked', self._on_button_clicked)
-		# TODO looks like gtk.widget_push_composite_child is intended
+		# TODO looks like Gtk.widget_push_composite_child is intended
 		# to flag internal children versus normal children
 		# use this property + define forall to have sane API for these buttons
 
@@ -158,11 +248,11 @@ class ScrolledHBox(gtk.HBox):
 		self.stop_scrolling()
 		if initial_timeout:
 			self._scroll_timeout = \
-				gobject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
+				GObject.timeout_add(self.initial_scroll_timeout, self.start_scrolling, direction)
 				# indirect recurs
 		else:
 			self._scroll_timeout = \
-				gobject.timeout_add(self.scroll_timeout, self.scroll, direction)
+				GObject.timeout_add(self.scroll_timeout, self.scroll, direction)
 
 		return False # make sure we are only called once from a timeout
 
@@ -171,45 +261,52 @@ class ScrolledHBox(gtk.HBox):
 		scrolling.
 		'''
 		if not self._scroll_timeout is None:
-			gobject.source_remove(self._scroll_timeout)
+			GObject.source_remove(self._scroll_timeout)
 			self._scroll_timeout = None
 
-	def do_size_request(self, requisition):
+	def do_get_preferred_width(self):
+		w, h = self._old_size_request()
+		return w, w
+
+	def do_get_preferred_height(self):
+		w, h = self._old_size_request()
+		return h, h
+
+	def _old_size_request(self):
 		# Determine minimum size needed and store it in requisition
 		# Minimum size should be enough to render the largest child with
 		# scroll buttons on both sides + spacing + border
 
-		child_wh_tuples = [c.size_request() for c in self.get_children()[2:]]
-		if child_wh_tuples:
-			width = max([c[0] for c in child_wh_tuples])
-			height = max([c[1] for c in child_wh_tuples])
+		child_requisitions = [c.size_request() for c in self.get_children()[2:]]
+		if child_requisitions:
+			width = max([c.width for c in child_requisitions])
+			height = max([c.height for c in child_requisitions])
 		else:
 			width = 0
 			height = 0
 
 		spacing = self.get_spacing()
 		for button in (self._forw_button, self._back_button):
-			w, h = button.size_request()
-			if h > height:
-				height = h
-			width += w + spacing
+			req = button.size_request()
+			if req.height > height:
+				height = req.height
+			width += req.width + spacing
 
 		border = self.get_border_width()
 		width += 2 * border
 		height += 2 * border
 
-		#~ print "Requesting WxH: %i x %i" % (width, height)
-		requisition.height = height
-		requisition.width = width
+		#~ print("Requesting WxH: %i x %i" % (width, height))
+		return width, height
 
 	def do_size_allocate(self, allocation):
 		# Assign the available space to the child widgets
 		# See discussion of allocation algorithm above
 
-		#~ print "Allocated WxH: %i x %i" % (allocation.width, allocation.height)
-		#~ print "At X,Y: %i, %i" % (allocation.x, allocation.y)
+		#~ print("Allocated WxH: %i x %i" % (allocation.width, allocation.height))
+		#~ print("At X,Y: %i, %i" % (allocation.x, allocation.y))
 
-		gtk.HBox.do_size_allocate(self, allocation)
+		Gtk.HBox.do_size_allocate(self, allocation)
 
 		children = self.get_children()[2:]
 		if not children:
@@ -228,7 +325,7 @@ class ScrolledHBox(gtk.HBox):
 		spacing = self.get_spacing()
 		border = self.get_border_width()
 
-		widths = [c.get_child_requisition()[0] for c in children]
+		widths = [c.get_child_requisition().width for c in children]
 		total = reduce(int.__add__, widths) + len(widths) * spacing + 2 * border
 		if total <= allocation.width:
 			show_scroll_buttons = False
@@ -239,7 +336,7 @@ class ScrolledHBox(gtk.HBox):
 			first, last = index, index
 			available = allocation.width - widths[index]
 			for button in (self._forw_button, self._back_button):
-				available -= button.get_child_requisition()[0] + spacing
+				available -= button.get_child_requisition().width + spacing
 			if direction == DIR_FORWARD:
 				# fill items from the direction we came from with last scroll
 				for i in range(index - 1, -1, -1):
@@ -277,17 +374,16 @@ class ScrolledHBox(gtk.HBox):
 
 		self._first, self._last = first, last
 
-		# Allocate children
-		y = allocation.y + border
-		h = allocation.height - 2 * border
-		child_allocation = gtk.gdk.Rectangle(y=y, height=h)
-			# y and height are the same for all
-		if not self.get_direction() == gtk.TEXT_DIR_RTL:
+		# Allocate children - y and height are the same for all
+		child_allocation = Gdk.Rectangle()
+		child_allocation.y = allocation.y + border
+		child_allocation.height = allocation.height - 2 * border
+		if not self.get_direction() == Gtk.TextDirection.RTL:
 			# Left to Right
 			child_allocation.x = allocation.x + border
 
 			if show_scroll_buttons and first != 0:
-				child_allocation.width = self._back_button.get_child_requisition()[0]
+				child_allocation.width = self._back_button.get_child_requisition().width
 				self._back_button.set_child_visible(True)
 				self._back_button.size_allocate(child_allocation)
 			else:
@@ -295,7 +391,7 @@ class ScrolledHBox(gtk.HBox):
 
 			if show_scroll_buttons:
 				# Reserve the space, even if hidden
-				child_allocation.x += self._back_button.get_child_requisition()[0] + spacing
+				child_allocation.x += self._back_button.get_child_requisition().width + spacing
 
 			for i in range(first, last + 1):
 				child_allocation.width = widths[i]
@@ -305,7 +401,7 @@ class ScrolledHBox(gtk.HBox):
 
 			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
-				child_allocation.width = self._forw_button.get_child_requisition()[0]
+				child_allocation.width = self._forw_button.get_child_requisition().width
 				child_allocation.x = allocation.x + allocation.width - child_allocation.width - border
 				self._forw_button.set_child_visible(True)
 				self._forw_button.size_allocate(child_allocation)
@@ -317,7 +413,7 @@ class ScrolledHBox(gtk.HBox):
 			child_allocation.x = allocation.x + allocation.width - border
 
 			if show_scroll_buttons and first != 0:
-				child_allocation.width = self._back_button.get_child_requisition()[0]
+				child_allocation.width = self._back_button.get_child_requisition().width
 				child_allocation.x -= child_allocation.width
 				self._back_button.set_child_visible(True)
 				self._back_button.size_allocate(child_allocation)
@@ -326,7 +422,7 @@ class ScrolledHBox(gtk.HBox):
 				self._back_button.set_child_visible(False)
 				if show_scroll_buttons:
 					# Reserve the space, even if hidden
-					child_allocation.x = self._back_button.get_child_requisition()[0] + spacing
+					child_allocation.x = self._back_button.get_child_requisition().width + spacing
 
 			for i in range(first, last + 1):
 				child_allocation.width = widths[i]
@@ -337,7 +433,7 @@ class ScrolledHBox(gtk.HBox):
 
 			if show_scroll_buttons and last != len(children) - 1:
 				# reset x - there may be space between last button and scroll button
-				child_allocation.width = self._forw_button.get_child_requisition()[0]
+				child_allocation.width = self._forw_button.get_child_requisition().width
 				child_allocation.x = allocation.x + border
 				self._forw_button.set_child_visible(True)
 				self._forw_button.size_allocate(child_allocation)
@@ -351,103 +447,78 @@ class ScrolledHBox(gtk.HBox):
 		for child in children[last + 1:]:
 			child.set_child_visible(False)
 
-	def do_focus(self, direction):
-		# Overrule navigation for <Ctrl><Tab> while leaving
-		# navigation with <Left> and <Right> in tact
-		# (so do not "sub-navigate" with <Ctrl><Tab>).
-		# Otherwise the user has to tab through all buttons before
-		# he can tab to the next widget.
-		if direction in (gtk.DIR_TAB_FORWARD, gtk.DIR_TAB_BACKWARD) \
-		and self.focus_child is not None:
-			return False # Let outer container go to next widget
-		else:
-			return gtk.HBox.do_focus(self, direction)
 
-# Need to register classes defining gobject signals
-gobject.type_register(ScrolledHBox)
-
-
-class ScrollButton(gtk.Button):
+class ScrollButton(Gtk.Button):
 	'''Arrow buttons used by ScrolledHBox'''
 
 	def __init__(self, direction):
-		gtk.Button.__init__(self)
+		GObject.GObject.__init__(self)
 		self.direction = direction
-		if self.get_direction() != gtk.TEXT_DIR_RTL:
+		if self.get_direction() != Gtk.TextDirection.RTL:
 			# Left to Right
 			if direction == DIR_FORWARD:
-				arrow_dir = gtk.ARROW_RIGHT
+				arrow_dir = Gtk.ArrowType.RIGHT
 			else:
-				arrow_dir = gtk.ARROW_LEFT
+				arrow_dir = Gtk.ArrowType.LEFT
 		else:
 			# Right to Left
 			if direction == DIR_FORWARD:
-				arrow_dir = gtk.ARROW_LEFT
+				arrow_dir = Gtk.ArrowType.LEFT
 			else:
-				arrow_dir = gtk.ARROW_RIGHT
+				arrow_dir = Gtk.ArrowType.RIGHT
 
-		self.add(gtk.Arrow(arrow_dir, gtk.SHADOW_OUT))
-		self.set_relief(gtk.RELIEF_NONE)
+		self.add(Gtk.Arrow(arrow_dir, Gtk.ShadowType.OUT))
+		self.set_relief(Gtk.ReliefStyle.NONE)
 
 
 class PathBar(ScrolledHBox):
 	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
 	with a list of ToggleButtons representing zim Path objects'''
 
-	def __init__(self, ui, history=None, spacing=0, homogeneous=False):
+	def __init__(self, history, notebook, config, navigation, spacing=0, homogeneous=False):
 		ScrolledHBox.__init__(self, spacing, homogeneous)
-		self.ui = ui
-		self.history = None
-		self._selected = None
-		if history:
-			self.set_history(history)
-		self.ui.connect_after('open-page', self._after_open_page)
-
-	def set_history(self, history):
 		self.history = history
-		self.history.connect('changed', lambda o: self._update())
+		self.notebook = notebook
+		self.config = config
+		self.navigation = navigation
+		self._selected = None
+		self._update()
+		self.history.connect('changed', self.on_history_changed)
+
+	def set_page(self, page):
+		self._select(page)
+		if self._selected is None: # See if we missed an update
+			self._update()
+			self._select(page)
+
+	def on_history_changed(self, history):
 		self._update()
 		self._select(history.get_current())
 
-	def _after_open_page(self, ui, page, path):
-		# Since we connect after open page, update has likely been done
-		# already from the history 'changed' signal - if not trigger it here.
-		self._select(path)
-		if self._selected is None:
-			self._update()
-			self._select(path)
-
 	def _update(self):
-		if self.history is None:
-			return
-
 		for button in self.get_children()[2:]:
 			self.remove(button)
 		self._selected = None
 
 		paths = list(self.get_paths())
 		for path, label in zip(paths, shortest_unique_names(paths)):
-			button = gtk.ToggleButton(label=label)
+			button = Gtk.ToggleButton(label=path.basename)
 			button.set_use_underline(False)
 			button.zim_path = path
 			button.connect('clicked', self.on_button_clicked)
 			button.connect('popup-menu', self.on_button_popup_menu)
 			button.connect('button-release-event', self.do_button_release_event)
 			button.connect('drag-data-get', self.on_drag_data_get)
-			button.drag_source_set(gtk.gdk.BUTTON1_MASK, (INTERNAL_PAGELIST_TARGET,),
-				gtk.gdk.ACTION_LINK)
+			button.drag_source_set(
+				Gdk.ModifierType.BUTTON1_MASK,
+				(Gtk.TargetEntry.new(*INTERNAL_PAGELIST_TARGET),),
+				Gdk.DragAction.LINK
+			)
 			button.show()
 			self.add(button)
 
-		# FIXME tooltips seem not to work - not sure why
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			for button in self.get_children()[2:]:
-				button.set_tooltip_text(button.zim_path.name)
-		else:
-			tooltips = gtk.Tooltips()
-			for button in self.get_children()[2:]:
-				tooltips.set_tip(button, button.zim_path.name)
+		for button in self.get_children()[2:]:
+			button.set_tooltip_text(button.zim_path.name)
 
 	def get_paths(self):
 		'''To be implemented by the sub class, should return a list
@@ -481,7 +552,7 @@ class PathBar(ScrolledHBox):
 			set_active(self._selected, True)
 
 	def on_button_clicked(self, button):
-		self.ui.open_page(button.zim_path)
+		self.navigation.open_page(button.zim_path)
 
 	def do_button_release_event(self, button, event):
 		'''Handler for button-release-event, triggers popup menu'''
@@ -490,24 +561,25 @@ class PathBar(ScrolledHBox):
 			return True
 
 	def on_button_popup_menu(self, button):
-		menu = gtk.Menu()
-		self.ui.populate_popup('page_popup', menu, button.zim_path)
-		menu.popup(None, None, None, 3, 0)
+		menu = Gtk.Menu()
+		uiactions = UIActions(
+			self,
+			self.notebook,
+			button.zim_path,
+			self.config,
+			self.navigation,
+		)
+		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+		menu.popup_at_pointer(None)
 		return True
 
 	def on_drag_data_get(self, button, context, selectiondata, info, time):
-		assert selectiondata.target == INTERNAL_PAGELIST_TARGET_NAME
+		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		path = button.zim_path
 		logger.debug('Drag data requested from PathBar, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
-		selectiondata.set(INTERNAL_PAGELIST_TARGET_NAME, 8, data)
+		selectiondata.set(selectiondata.get_target(), 8, data)
 
-	def get_selected_path(self):
-		'''Returns path currently selected or None'''
-		if self._selected:
-			return self._selected.zim_path
-		else:
-			return None
 
 class HistoryPathBar(PathBar):
 
@@ -520,6 +592,8 @@ class HistoryPathBar(PathBar):
 		paths = list(self.history.get_history())
 		paths.reverse()
 		return paths
+
+PathBarMainWindowExtension._klasses[PATHBAR_HISTORY] = HistoryPathBar
 
 
 class RecentPathBar(PathBar):
@@ -535,12 +609,14 @@ class RecentPathBar(PathBar):
 		paths.reverse()
 		return paths
 
+PathBarMainWindowExtension._klasses[PATHBAR_RECENT] = RecentPathBar
+
 
 class RecentChangesPathBar(PathBar):
 
 	def __init__(self, *arg, **kwarg):
 		PathBar.__init__(self, *arg, **kwarg)
-		self.ui.notebook.connect_after('stored-page', self.on_stored_page)
+		self.notebook.connect_after('stored-page', self.on_stored_page)
 
 	def on_stored_page(self, *a):
 		self._update()
@@ -550,7 +626,9 @@ class RecentChangesPathBar(PathBar):
 
 	def get_paths(self):
 		return reversed(list(
-				self.ui.notebook.pages.list_recent_changes(limit=10)))
+				self.notebook.pages.list_recent_changes(limit=10)))
+
+PathBarMainWindowExtension._klasses[PATHBAR_RECENT_CHANGED] = RecentChangesPathBar
 
 
 class NamespacePathBar(PathBar):
@@ -571,8 +649,11 @@ class NamespacePathBar(PathBar):
 		paths.append(path) # add leaf
 		return paths
 
+PathBarMainWindowExtension._klasses[PATHBAR_PATH] = NamespacePathBar
+
 
 ############################
+# Allow testing visuals of scrolled box
 
 class TestPath(object):
 
@@ -580,20 +661,27 @@ class TestPath(object):
 		self.name = name
 		self.basename = name
 
+
+class MockHistory(object):
+
+	def connect(self, *a):
+		pass
+
+
 class TestPathBar(PathBar):
 
 	def __init__(self):
-		PathBar.__init__(self, None, None)
-		self.history = 'XXX'
+		PathBar.__init__(self, MockHistory(), None, None, None)
 		self._update()
 
 	def get_paths(self):
 		for path in ('foo', 'bar', 'baz', 'looooooongggggggg item here', 'dus', 'ja', 'hmm'):
 			yield TestPath(path)
 
+
 if __name__ == '__main__':
-	window = gtk.Window()
-	window.connect('destroy', lambda o: gtk.main_quit())
+	window = Gtk.Window()
+	window.connect('destroy', lambda o: Gtk.main_quit())
 	window.add(TestPathBar())
 	window.show_all()
-	gtk.main()
+	Gtk.main()
