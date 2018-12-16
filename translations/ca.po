@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2018-01-09 19:57+0000\n"
+"PO-Revision-Date: 2018-03-17 16:10+0000\n"
 "Last-Translator: SNavas <snavas@gmail.com>\n"
 "Language-Team: Catalan <ca@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2018-03-17 10:00+0000\n"
-"X-Generator: Launchpad (build 18571)\n"
+"X-Launchpad-Export-Date: 2018-12-16 14:52+0000\n"
+"X-Generator: Launchpad (build 18837)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -711,7 +711,7 @@ msgstr "Copia la _ubicació"
 #. Menu item
 #: zim/gui/__init__.py:1142
 msgid "_Templates"
-msgstr "Pl&antillas"
+msgstr "Plan_tilles"
 
 #. Menu item
 #: zim/gui/__init__.py:1148
@@ -1862,7 +1862,7 @@ msgstr "Interfície"
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:23
 msgid "Editing"
-msgstr "S'està editant"
+msgstr "Edició"
 
 #. Dialog title
 #: zim/gui/preferencesdialog.py:33
@@ -1921,7 +1921,7 @@ msgstr "D'acord"
 #. dependency failed
 #: zim/gui/preferencesdialog.py:278 zim/gui/preferencesdialog.py:281
 msgid "Failed"
-msgstr "Fallada"
+msgstr "Fallit"
 
 #. optional dependency
 #: zim/gui/preferencesdialog.py:282

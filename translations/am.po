@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-08-21 00:31+0000\n"
+"PO-Revision-Date: 2018-12-09 19:44+0000\n"
 "Last-Translator: samson <Unknown>\n"
 "Language-Team: Amharic <am@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
-"X-Generator: Launchpad (build 18571)\n"
+"X-Launchpad-Export-Date: 2018-12-16 14:53+0000\n"
+"X-Generator: Launchpad (build 18837)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -128,7 +128,7 @@ msgstr ""
 #. Dialog title
 #: zim/gui/applications.py:763
 msgid "Configure Applications"
-msgstr "መተግባሪያ ማሰናጃ"
+msgstr "መተግበሪያ ማሰናጃ"
 
 #. Button for adding a new application to the 'open with' menu |
 #. Dialog title
@@ -173,7 +173,7 @@ msgstr "ነባር መተግበሪያ ማድረጊያ"
 #: zim/gui/applications.py:906
 #, python-format
 msgid "Could not find executable \"%s\""
-msgstr "ሊፈጸም የሚችል አልተገኘም \"%s\""
+msgstr "ሊፈጸም የሚቻል አልተገኘም \"%s\""
 
 #. Dialog title
 #: zim/gui/customtools.py:24
@@ -186,7 +186,7 @@ msgid ""
 "You can configure custom tools that will appear\n"
 "in the tool menu and in the tool bar or context menus."
 msgstr ""
-"እርስዎ መሳሪያዎች ማስተካከል ይችላሉ የሚታዩ \n"
+"እርስዎ የሚታዩ መሳሪያዎች ማስተካከል ይችላሉ \n"
 "በ መሳሪያዎች ዝርዝር ላይ እና በ እቃ መደርደሪያ ላይ ወይንም በ ይዞታዎች ዝርዝር ውስጥ"
 
 #. Dialog title
@@ -367,7 +367,7 @@ msgstr "ይምረጡ የ ፋይል ወይንም የ ፎልደር ውጤት"
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:318
 msgid "Export each page to a separate file"
-msgstr "እያንዳንዱን ገጽ ወደ የ ተለያየ ፋይል መላኪያ"
+msgstr "እያንዳንዱን ገጽ ወደ የተለያየ ፋይል መላኪያ"
 
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:320
@@ -597,7 +597,7 @@ msgstr "ቀደም ወዳለው ገጽ መሄጃ"
 #. Menu item
 #: zim/gui/__init__.py:862
 msgid "_Next in index"
-msgstr "ዬ _ሚቀጥለው በ ማውጫ ውስጥ"
+msgstr "የ_ሚቀጥለው በ ማውጫ ውስጥ"
 
 #. Menu item
 #: zim/gui/__init__.py:862
@@ -644,7 +644,7 @@ msgstr "_ኮፒ ማስቀመጫ..."
 #. Menu item
 #: zim/gui/__init__.py:1006
 msgid "E_xport..."
-msgstr "መ_ላዓኪያ..."
+msgstr "መ_ላኪያ..."
 
 #. Menu item
 #: zim/gui/__init__.py:1017
@@ -669,7 +669,7 @@ msgstr "ገጽ _እንደገና መሰየሚያ..."
 #. Menu item
 #: zim/gui/__init__.py:1065
 msgid "_Delete Page"
-msgstr "ገጽ _ማይፊያ"
+msgstr "ገጽ _ማጥፊያ"
 
 #. Title of progressbar dialog
 #: zim/gui/__init__.py:1086 zim/gui/__init__.py:2822
@@ -750,7 +750,7 @@ msgstr ""
 #: zim/gui/__init__.py:1340 zim/gui/__init__.py:1463
 #, python-format
 msgid "Could not open: %s"
-msgstr "መክደት አልተቻለም: %s"
+msgstr "መክፈት አልተቻለም: %s"
 
 #. Menu item
 #: zim/gui/__init__.py:1351
@@ -793,7 +793,7 @@ msgstr "ፋይል በ ማረም ላይ: %s"
 msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
-msgstr "እርስዎ አሁን በ ውጪ መተግበሪያ እያረሙ ነው: ይህን ንግግር መዝጋት ይችላሉ በሚጨርሱ ጊዜ"
+msgstr "እርስዎ አሁን በ ውጪ መተግበሪያ እያረሙ ነው: ይህን ንግግር  በሚጨርሱ ጊዜ መዝጋት ይችላሉ"
 
 #. Menu item
 #: zim/gui/__init__.py:1485
@@ -991,7 +991,7 @@ msgid ""
 "Please note that linking to a non-existing page\n"
 "also creates a new page automatically."
 msgstr ""
-"እባክዎን ያስታውሱ ምንም-ያነበረ ገጽ ማገናኘት\n"
+"እባክዎን ያስታውሱ ምንም-ያልነበረ ገጽ ማገናኘት\n"
 "ራሱ በራሱ እንዲሁም አዲስ ገጽ ይፈጥራል"
 
 #. Input label
@@ -1298,7 +1298,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:194
 msgid "Show the cursor also for pages that can not be edited"
-msgstr "መታረም ለ ማይችሉ ገጾች እንዲሁም መጠቆሚያውን ማሳያ"
+msgstr "መታረም ለማይችሉ ገጾች እንዲሁም መጠቆሚያውን ማሳያ"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:197
@@ -2139,7 +2139,7 @@ msgstr ""
 #. Filter in open file dialog, shows all files (*)
 #: zim/gui/widgets.py:3718
 msgid "All Files"
-msgstr "ሁሉም ፋይሎች"
+msgstr "ሁሉንም ፋይሎች"
 
 #. Filter in open file dialog, shows image files only
 #: zim/gui/widgets.py:3745
@@ -2504,7 +2504,7 @@ msgstr "አዲስ ስም ማሰናጃ"
 #. button label
 #: zim/plugins/bookmarksbar.py:437
 msgid "Back to Original Name"
-msgstr "ወደ ኧናው ስም መመለሻ"
+msgstr "ወደ ዋናው ስም መመለሻ"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:442
@@ -2834,7 +2834,7 @@ msgstr "_ሂሳብ መገምገሚያ"
 #. Dialog title
 #: zim/plugins/insertsymbol.py:23 zim/plugins/insertsymbol.py:137
 msgid "Insert Symbol"
-msgstr "ምልክይ ማስገቢያ"
+msgstr "ምልክት ማስገቢያ"
 
 #. plugin description
 #: zim/plugins/insertsymbol.py:24
@@ -3083,7 +3083,7 @@ msgstr "የ _መመልከቻ ፎቶ..."
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:176
 msgid "Capture whole screen"
-msgstr "ረቅላላ መመልከቻውን ፎቶ ማንሻ"
+msgstr "ጠቅላላ መመልከቻውን ፎቶ ማንሻ"
 
 #. option in 'insert screenshot' dialog
 #: zim/plugins/screenshot.py:178
@@ -3853,7 +3853,7 @@ msgstr "_ለውጦች ማሳያ"
 #. button in versions dialog for side by side comparison
 #: zim/plugins/versioncontrol/__init__.py:1056
 msgid "_Side by Side"
-msgstr "_ሆን ለ ጎን"
+msgstr "_ጎን ለ ጎን"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:1145

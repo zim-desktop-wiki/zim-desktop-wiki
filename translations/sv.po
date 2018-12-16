@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2017-07-10 16:46+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2018-12-05 10:37+0000\n"
+"Last-Translator: Jonatan Nyberg <Unknown>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
-"X-Generator: Launchpad (build 18571)\n"
+"X-Launchpad-Export-Date: 2018-12-16 14:53+0000\n"
+"X-Generator: Launchpad (build 18837)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -468,7 +468,7 @@ msgstr "_Verktygsrad"
 #. Menu title
 #: zim/gui/__init__.py:74
 msgid "_Checkbox"
-msgstr ""
+msgstr "_Kryssruta"
 
 #. Option in the preferences dialog
 #: zim/gui/__init__.py:97
@@ -1440,23 +1440,23 @@ msgstr "_Öppna"
 #. popup menu menuitem
 #: zim/gui/pageview.py:5811
 msgid "Check Checkbox '>'"
-msgstr ""
+msgstr "Markera kryssruta '>'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:5812
 msgid "Check Checkbox 'X'"
-msgstr ""
+msgstr "Markera kryssruta 'X'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:5813
 msgid "Check Checkbox 'V'"
-msgstr ""
+msgstr "Markera kryssruta 'V'"
 
 #. popup menu menuitem |
 #. Menu item
 #: zim/gui/pageview.py:5814 zim/gui/pageview.py:5856
 msgid "Un-check Checkbox"
-msgstr ""
+msgstr "Avmarkera kryssruta"
 
 #. Menu item
 #: zim/gui/pageview.py:5826
@@ -1491,17 +1491,17 @@ msgstr "_Ta bort"
 #. Menu item
 #: zim/gui/pageview.py:5862
 msgid "Toggle Checkbox 'V'"
-msgstr "(Av)markera kryssruta - bock"
+msgstr "Växla kryssruta 'V'"
 
 #. Menu item
 #: zim/gui/pageview.py:5871
 msgid "Toggle Checkbox 'X'"
-msgstr "(Av)markera kryssruta - kryss"
+msgstr "Växla kryssruta 'X'"
 
 #. Menu item
 #: zim/gui/pageview.py:5880
 msgid "Toggle Checkbox '>'"
-msgstr ""
+msgstr "Växla kryssruta '>'"
 
 #. Menu item
 #: zim/gui/pageview.py:5889

@@ -1,22 +1,22 @@
-# Spanish translation for zim
 # Copyright (c) 2009 Rosetta Contributors and Canonical Ltd 2009
 # This file is distributed under the same license as the zim package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2009.
+# FIRST AUTHOR &lt;EMAIL@ADDRESS&gt;, 2009.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: zim\n"
-"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"Report-Msgid-Bugs-To: FULL NAME &lt;EMAIL@ADDRESS&gt;\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2018-02-10 05:23+0000\n"
-"Last-Translator: Luis F. Uceta <Unknown>\n"
-"Language-Team: Spanish <es@li.org>\n"
+"PO-Revision-Date: 2018-04-12 23:57+0000\n"
+"Last-Translator: runspect <runspect@yahoo.es>\n"
+"Language-Team: Spanish &lt;es@li.org&gt;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
-"X-Generator: Launchpad (build 18571)\n"
+"X-Launchpad-Export-Date: 2018-12-16 14:53+0000\n"
+"X-Generator: Launchpad (build 18837)\n"
+"Language: es\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
@@ -857,7 +857,7 @@ msgstr ""
 "  David https://launchpad.net/~davpaez\n"
 "  DiegoJ https://launchpad.net/~diegojromerolopez\n"
 "  Eduardo Alberto Calvo https://launchpad.net/~edu5800\n"
-"  Fido https://launchpad.net/~fedevera\n"
+"  Federico Vera https://launchpad.net/~fedevera\n"
 "  Gonzalo Testa https://launchpad.net/~gonzalogtesta\n"
 "  Hector A. Mantellini https://launchpad.net/~xombra\n"
 "  Jaap Karssenberg https://launchpad.net/~jaap.karssenberg\n"
@@ -869,9 +869,9 @@ msgstr ""
 "  Juan Ignacio Pucheu https://launchpad.net/~jpucheu\n"
 "  Lex https://launchpad.net/~lex-exe\n"
 "  Lisandro https://launchpad.net/~correo-lisandrodemarchi\n"
-"  Luis F. Uceta https://launchpad.net/~uzluisf\n"
 "  Mariano Draghi https://launchpad.net/~chaghi\n"
 "  Mariano Esteban https://launchpad.net/~mesteban\n"
+"  Miguel Cervantas https://launchpad.net/~azulado-deactivatedaccount\n"
 "  Monkey https://launchpad.net/~monkey-libre\n"
 "  Pablo Angulo https://launchpad.net/~pablo-angulo\n"
 "  Paco Molinero https://launchpad.net/~franciscomol\n"
@@ -880,6 +880,7 @@ msgstr ""
 "  Ubuntu https://launchpad.net/~invrom-deactivatedaccount1-"
 "deactivatedaccount-deactivatedaccount\n"
 "  korilu https://launchpad.net/~korilu\n"
+"  runspect https://launchpad.net/~runspect\n"
 "  sanzoperez https://launchpad.net/~sanzoperez\n"
 "  victor tejada yau https://launchpad.net/~victormtyau"
 
@@ -1557,7 +1558,7 @@ msgstr "_Fecha y hora..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:5949
 msgid "Horizontal _Line"
-msgstr "Línea_Horizontal"
+msgstr "Línea _horizontal"
 
 #. Menu item
 #: zim/gui/pageview.py:5963
@@ -1568,7 +1569,7 @@ msgstr "_Imagen…"
 #. Menu item,
 #: zim/gui/pageview.py:5991 zim/gui/pageview.py:6018
 msgid "Bulle_t List"
-msgstr "Lista Bulle_t"
+msgstr "Lista viñe_tas"
 
 #. Menu item |
 #. Menu item,
@@ -1580,12 +1581,12 @@ msgstr "Lista _numerada"
 #. Menu item,
 #: zim/gui/pageview.py:6001 zim/gui/pageview.py:6028
 msgid "Checkbo_x List"
-msgstr "Lista Checkbo_x"
+msgstr "Lista _casillas de selección"
 
 #. Menu item
 #: zim/gui/pageview.py:6037
 msgid "Text From _File..."
-msgstr "Texto Desde _Archivo..."
+msgstr "Texto desde _archivo..."
 
 #. Menu item
 #: zim/gui/pageview.py:6079
@@ -1606,7 +1607,7 @@ msgstr "No hay ninguna plantilla instalada"
 #. Menu item in "Insert > New File Attachment" submenu
 #: zim/gui/pageview.py:6157
 msgid "File _Templates..."
-msgstr "Plantilla de _Archivo"
+msgstr "Plantilla de _archivo"
 
 #. Text in a question dialog for creating a folder, %s is the folder path
 #: zim/gui/pageview.py:6171
@@ -3812,7 +3813,7 @@ msgstr "Sin cambios desde la última versión"
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:282
 msgid "Bazaar"
-msgstr "Bazaar"
+msgstr "Bazar"
 
 #. option value
 #: zim/plugins/versioncontrol/__init__.py:283

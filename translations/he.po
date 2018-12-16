@@ -8,21 +8,21 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2012-10-06 21:09+0000\n"
+"PO-Revision-Date: 2018-11-25 16:22+0000\n"
 "Last-Translator: Yaron <sh.yaron@gmail.com>\n"
 "Language-Team: Hebrew <he@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
-"X-Generator: Launchpad (build 18571)\n"
+"X-Launchpad-Export-Date: 2018-12-16 14:52+0000\n"
+"X-Generator: Launchpad (build 18837)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:47
 #, python-format
 msgid "Failed to run application: %s"
-msgstr "כישלון בנסיון להריץ תוכנה: %s‏"
+msgstr "הפעלת היישום נכשלה: %s"
 
 #. Error message when external application failed, %(cmd)s is the command, %(code)i the exit code
 #: zim/applications.py:50
@@ -49,7 +49,7 @@ msgstr "בררת מחדל"
 #. Translate to "calendar:week_start:0" if you want Sunday to be the first day of the week or to "calendar:week_start:1" if you want Monday to be the first day of the week
 #: zim/datetimetz.py:96
 msgid "calendar:week_start:0"
-msgstr ""
+msgstr "calendar:week_start:0"
 
 #. generic error dialog
 #: zim/errors.py:47
@@ -212,7 +212,7 @@ msgstr "הפקודה אינה משנה את הנתונים"
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:183
 msgid "Output should replace current selection"
-msgstr ""
+msgstr "הפלט אמור להחליף את הבחירה הנוכחית"
 
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:184
@@ -307,7 +307,7 @@ msgstr "עמוד"
 #. Input field in export dialog
 #: zim/gui/exportdialog.py:181
 msgid "Include subpages"
-msgstr ""
+msgstr "לרבות תת־עמודים"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:208
@@ -343,7 +343,7 @@ msgstr "מיפוי שורש המסמכים לכתובת באינטרנט"
 #. label for button with URL
 #: zim/gui/exportdialog.py:238 zim/gui/templateeditordialog.py:71
 msgid "Get more templates online"
-msgstr ""
+msgstr "קבלת תבניות נוספות מהרשת"
 
 #. title of step in export dialog
 #: zim/gui/exportdialog.py:312
@@ -396,7 +396,7 @@ msgstr ""
 #. label in export dialog
 #: zim/gui/exportdialog.py:428
 msgid "Export completed"
-msgstr ""
+msgstr "הייצוא הושלם"
 
 #. button in export dialog |
 #. button in e.g. equation editor dialog
@@ -675,7 +675,7 @@ msgstr "_חיפוש..."
 #. Menu item for search a sub-set of the notebook
 #: zim/gui/__init__.py:1117
 msgid "Search this section"
-msgstr ""
+msgstr "חיפוש בסעיף זה"
 
 #. Menu item
 #: zim/gui/__init__.py:1122
@@ -685,7 +685,7 @@ msgstr "חיפוש קישורים _מפנים..."
 #. Menu item
 #: zim/gui/__init__.py:1130
 msgid "Recent Changes..."
-msgstr ""
+msgstr "שינויים אחרונים…"
 
 #. Menu item
 #: zim/gui/__init__.py:1137
@@ -883,7 +883,7 @@ msgstr "עמודים _אחרונים"
 
 #: zim/gui/__init__.py:2123
 msgid "Recently _Changed pages"
-msgstr ""
+msgstr "דפים שנערכו ל_אחרונה"
 
 #: zim/gui/__init__.py:2124
 msgid "_History"
@@ -891,7 +891,7 @@ msgstr "היס_טוריה"
 
 #: zim/gui/__init__.py:2125
 msgid "_Page Hierarchy"
-msgstr ""
+msgstr "_היררכיית דפים"
 
 #. Menu item
 #: zim/gui/__init__.py:2166
@@ -943,7 +943,7 @@ msgstr "חיפוש"
 #. label in search entry
 #: zim/gui/__init__.py:2318
 msgid "Search Pages..."
-msgstr ""
+msgstr "חיפוש בדפים…"
 
 #. Label for button with backlinks in statusbar
 #: zim/gui/__init__.py:2392
@@ -1030,7 +1030,7 @@ msgstr[1] "עדכון %i עמודים המפנים לעמוד זה"
 #. input label
 #: zim/gui/__init__.py:2648 zim/plugins/calendar.py:110
 msgid "Section"
-msgstr ""
+msgstr "סעיף"
 
 #. label for progress dialog
 #: zim/gui/__init__.py:2668 zim/gui/__init__.py:2728
@@ -1505,7 +1505,7 @@ msgstr "ת_אריך ושעה..."
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:5949
 msgid "Horizontal _Line"
-msgstr ""
+msgstr "קו א_נכי"
 
 #. Menu item
 #: zim/gui/pageview.py:5963
@@ -1821,7 +1821,7 @@ msgstr "פתח בדף חדש"
 #. Dialog title
 #: zim/gui/pageview.py:7236
 msgid "New File"
-msgstr ""
+msgstr "קובץ חדש"
 
 #. Tab in preferences dialog
 #: zim/gui/preferencesdialog.py:22
@@ -1846,7 +1846,7 @@ msgstr "תוספים"
 #. Heading in preferences dialog
 #: zim/gui/preferencesdialog.py:89
 msgid "Applications"
-msgstr ""
+msgstr "יישומים"
 
 #. option in preferences dialog
 #: zim/gui/preferencesdialog.py:96
@@ -1865,12 +1865,12 @@ msgstr "ה_גדרה"
 
 #: zim/gui/preferencesdialog.py:226
 msgid "Open plugins folder"
-msgstr ""
+msgstr "פתיחת תיקיית התוספים"
 
 #. label for button with URL
 #: zim/gui/preferencesdialog.py:236
 msgid "Get more plugins online"
-msgstr ""
+msgstr "קבלת תוספים נוספים מהרשת"
 
 #. Heading in plugins tab of preferences dialog
 #: zim/gui/preferencesdialog.py:266
@@ -1927,7 +1927,7 @@ msgstr "אפשרויות עבור התוסף %s"
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:422
 msgid "Set default text editor"
-msgstr ""
+msgstr "הגדרה כבררת המחדל של עורך הטקסט"
 
 #. Dialog title
 #: zim/gui/propertiesdialog.py:11
@@ -1942,7 +1942,7 @@ msgstr "מאפייני המחברת"
 #. Dialog title
 #: zim/gui/recentchangesdialog.py:21
 msgid "Recent Changes"
-msgstr ""
+msgstr "שינויים אחרונים"
 
 #. label for modified time
 #: zim/gui/recentchangesdialog.py:66

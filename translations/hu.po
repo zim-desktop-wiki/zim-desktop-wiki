@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: Zim 0.48\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-06-12 14:43+0200\n"
-"PO-Revision-Date: 2018-03-10 17:26+0000\n"
+"PO-Revision-Date: 2018-04-16 17:34+0000\n"
 "Last-Translator: Mukli Krisztián <Unknown>\n"
 "Language-Team: Zim <msv@titok.info>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2018-03-17 10:01+0000\n"
-"X-Generator: Launchpad (build 18571)\n"
+"X-Launchpad-Export-Date: 2018-12-16 14:52+0000\n"
+"X-Generator: Launchpad (build 18837)\n"
 "Language: hu\n"
 "X-Poedit-Bookmarks: 566,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
@@ -222,7 +222,7 @@ msgstr "Az aktuális kiválasztás cseréje a kimenetre"
 #. Input in "Edit Custom Tool" dialog
 #: zim/gui/customtools.py:184
 msgid "Show in the toolbar"
-msgstr "Látsszon az eszköztáron"
+msgstr "Megjelenítés az eszköztáron"
 
 #. Short help text in "Edit Custom Tool" dialog. The "%" is literal - please include the html formatting
 #: zim/gui/customtools.py:192
@@ -350,12 +350,13 @@ msgstr "Sablon"
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:226
 msgid "Link files under document root with full file path"
-msgstr "Fájl hivatkozások tartalmazzák a teljes elérési utat"
+msgstr ""
+"A dokumentumgyökérben található fájlok hivatkozása a teljes elérési úttal"
 
 #. radio option in export dialog
 #: zim/gui/exportdialog.py:227
 msgid "Map document root to URL"
-msgstr "A dokumentum gyökerének hozzáadása az URL-hoz"
+msgstr "A dokumentumgyökér hozzáadása a hivatkozásokhoz"
 
 #. label for button with URL
 #: zim/gui/exportdialog.py:238 zim/gui/templateeditordialog.py:71
@@ -370,7 +371,7 @@ msgstr "Válaszd ki a kimeneti fájlt vagy mappát"
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:318
 msgid "Export each page to a separate file"
-msgstr "Olalanként külön fájlba exportálás"
+msgstr "Oldalanként külön fájlba exportálás"
 
 #. Label for option in export dialog
 #: zim/gui/exportdialog.py:320
@@ -385,7 +386,7 @@ msgstr "Kimeneti mappa"
 #. Label for setting a name for the index of exported pages
 #: zim/gui/exportdialog.py:325
 msgid "Index page"
-msgstr "Index lap"
+msgstr "Index oldal"
 
 #. Label for file selection in export dialog
 #: zim/gui/exportdialog.py:328
@@ -543,7 +544,7 @@ msgstr "_Kilépés"
 #. Menu item
 #: zim/gui/__init__.py:676
 msgid "_Open Another Notebook..."
-msgstr "Jegyzetfüzet _váltás..."
+msgstr "Jegyzetfüzet _megnyitása"
 
 #. Menu item
 #: zim/gui/__init__.py:700
@@ -573,7 +574,7 @@ msgstr "Ugrás egy lapot előre"
 #. Menu item
 #: zim/gui/__init__.py:828
 msgid "_Parent"
-msgstr "Egy _szintet vissza"
+msgstr "Egy _szintet feljebb"
 
 #. Menu item
 #: zim/gui/__init__.py:828
@@ -593,7 +594,7 @@ msgstr "Ugrás az alatta lévő lapra"
 #. Menu item
 #: zim/gui/__init__.py:853
 msgid "_Previous in index"
-msgstr "Előző inde_xre"
+msgstr "Inde_xben az előzőre"
 
 #. Menu item
 #: zim/gui/__init__.py:853
@@ -603,7 +604,7 @@ msgstr "Ugrás az előző lapra"
 #. Menu item
 #: zim/gui/__init__.py:862
 msgid "_Next in index"
-msgstr "Következő in_dexre"
+msgstr "I_ndexben a következőre"
 
 #. Menu item
 #: zim/gui/__init__.py:862
@@ -700,7 +701,7 @@ msgstr "Keresés ebben a szakaszban"
 #. Menu item
 #: zim/gui/__init__.py:1122
 msgid "Search _Backlinks..."
-msgstr "_Előzmény keresés..."
+msgstr "_Visszacsatolások keresése..."
 
 #. Menu item
 #: zim/gui/__init__.py:1130
@@ -740,7 +741,7 @@ msgstr "Külső fájlok csatolása"
 #. Heading in a question dialog for creating a folder
 #: zim/gui/__init__.py:1217 zim/gui/pageview.py:6169
 msgid "Create folder?"
-msgstr "Létrehozzam a mappát?"
+msgstr "Létrehozzuk a mappát?"
 
 #. Text in a question dialog for creating a folder, %s will be the folder base name
 #: zim/gui/__init__.py:1219
@@ -750,7 +751,7 @@ msgid ""
 "Do you want to create it now?"
 msgstr ""
 "A \"%s\" mappa nem létezik.\n"
-"Létrehozzam most?"
+"Létrehozzuk most?"
 
 #. error when external application fails
 #: zim/gui/__init__.py:1340 zim/gui/__init__.py:1463
@@ -771,7 +772,7 @@ msgstr "Ennek a lapnak nincs könyvtára a mellékletekhez"
 #. Menu item
 #: zim/gui/__init__.py:1363
 msgid "Open _Notebook Folder"
-msgstr "Jegyzetfüzet mappája"
+msgstr "Jegyzetfüzet mappa megnyitása"
 
 #. Menu item
 #: zim/gui/__init__.py:1373
@@ -786,7 +787,7 @@ msgstr "_Dokumentum mappája"
 #. Menu item
 #: zim/gui/__init__.py:1393
 msgid "Edit _Source"
-msgstr "_Forrás szerkeszése"
+msgstr "_Forrás szerkesztése"
 
 #. main text for dialog for editing external files
 #: zim/gui/__init__.py:1454
@@ -800,7 +801,7 @@ msgid ""
 "You are editing a file in an external application. You can close this dialog "
 "when you are done"
 msgstr ""
-"Egy fájlt szerkesztesz egy külső alkalmazással. Ezt az ablakot akkor zárd "
+"Egy fájlt egy külső alkalmazással szerkesztesz. Ezt az ablakot akkor zárd "
 "be, amikor kész vagy."
 
 #. Menu item
@@ -831,7 +832,7 @@ msgstr "_GYIK"
 #. Menu item
 #: zim/gui/__init__.py:1656
 msgid "_Keybindings"
-msgstr "_Billentyűhozzárendelések"
+msgstr "_Billentyűkombinációk"
 
 #. Menu item
 #: zim/gui/__init__.py:1661
@@ -870,7 +871,7 @@ msgstr ""
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
 msgid "Index"
-msgstr "Tárgymutató"
+msgstr "Index"
 
 #. page status in statusbar
 #: zim/gui/__init__.py:1912
@@ -894,7 +895,7 @@ msgstr "Teljes képernyő"
 #. Menu item
 #: zim/gui/__init__.py:2072
 msgid "_Side Panes"
-msgstr "_Oldalpanel"
+msgstr "_Oldalpanelek"
 
 #. Menu item
 #: zim/gui/__init__.py:2072
@@ -1322,12 +1323,12 @@ msgstr "A \"CamelCase\" szavak automatikusan hivatkozások lesznek"
 #. option in preferences dialog
 #: zim/gui/pageview.py:200
 msgid "Automatically turn file paths into links"
-msgstr "Automatikusan kerüljenek a fájl-elérési utak a hivatkozásokba"
+msgstr "A fájl elérési utak automatikusan hivatkozások lesznek"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:203
 msgid "Automatically select the current word when you apply formatting"
-msgstr "Formázáskor kerüljön kijelölésre az egész szó"
+msgstr "Formázáskor az aktuális szót formázza"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:206
@@ -1335,7 +1336,7 @@ msgid ""
 "Unindent on <BackSpace>\n"
 "(If disabled you can still use <Shift><Tab>)"
 msgstr ""
-"Behúzás csökkentése <BackSpace>-szel\n"
+"Behúzás csökkentése <Backspace>-szel\n"
 "(Ellenkező esetben marad a <Shift><Tab>)"
 
 #. option in preferences dialog
@@ -1356,7 +1357,7 @@ msgstr "Jelölőnégyzet megváltoztatásakor változzanak az alá besoroltak is
 #. option in preferences dialog
 #: zim/gui/pageview.py:218
 msgid "Reformat wiki markup on the fly"
-msgstr "Wiki jelölés újraformázása használat közben"
+msgstr "Wiki jelölőnyelv átalakítása használat közben"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:221
@@ -1366,7 +1367,7 @@ msgstr "Vágólapra másoláskor alapértelmezett formátum"
 #. option in preferences dialog
 #: zim/gui/pageview.py:224
 msgid "Folder with templates for attachment files"
-msgstr "Csatolt fájlokat tartalmazó sablonok könyvtára"
+msgstr "Csatolt sablonfájlokat tartalmazó könyvtár"
 
 #. Heading of error dialog
 #: zim/gui/pageview.py:4827
@@ -1523,12 +1524,12 @@ msgstr "Jelölőnégyzet billentése '>'"
 #. Menu item
 #: zim/gui/pageview.py:5889
 msgid "_Edit Link or Object..."
-msgstr "_Hivatkozás/objektum"
+msgstr "_Hivatkozás/objektum szerkesztése"
 
 #. Menu item
 #: zim/gui/pageview.py:5939
 msgid "_Date and Time..."
-msgstr "_Dátum/idő"
+msgstr "_Dátum és idő..."
 
 #. Menu item for Insert menu
 #: zim/gui/pageview.py:5949
@@ -1887,7 +1888,7 @@ msgstr "Használj egyéni betűkészletet"
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:205
 msgid "_More"
-msgstr "_Tovább"
+msgstr "_Több infó"
 
 #. Button in plugin tab
 #: zim/gui/preferencesdialog.py:210
@@ -2522,7 +2523,7 @@ msgstr "Új név beállítása"
 #. button label
 #: zim/plugins/bookmarksbar.py:437
 msgid "Back to Original Name"
-msgstr "Vissza az eredeti névre"
+msgstr "Eredeti név visszaállítása"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:442
@@ -2593,7 +2594,7 @@ msgstr "Darabonként egy oldal"
 #. preferences option
 #: zim/plugins/calendar.py:111
 msgid "Expand journal page in index when opened"
-msgstr "Naptár lap kibontása a főloldalon megnyitáskor"
+msgstr "Index kibontása naptári lap megnyitásakor"
 
 #. menu item
 #: zim/plugins/calendar.py:243
@@ -3151,7 +3152,7 @@ msgstr "_Szekvenciadiagram szerkesztése"
 #. plugin name
 #: zim/plugins/sourceview.py:55
 msgid "Source View"
-msgstr "Forrás nézet"
+msgstr "Forráskód nézet"
 
 #. plugin description
 #: zim/plugins/sourceview.py:56
@@ -3166,12 +3167,12 @@ msgstr ""
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:67
 msgid "Auto indenting"
-msgstr "Automata behúzás"
+msgstr "Automatikus behúzás"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:69
 msgid "Smart Home key"
-msgstr "Okos kezdőlap gomb"
+msgstr "Okos Home gomb"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:71
@@ -3186,12 +3187,12 @@ msgstr "Jobb oldali margó megjelenítése"
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:75
 msgid "Right margin position"
-msgstr "Jobb margó pozíció"
+msgstr "Jobb oldali margó pozíció"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:77
 msgid "Tab width"
-msgstr "TAB-széleség"
+msgstr "Tabulátor-szélesség"
 
 #. menu item
 #: zim/plugins/sourceview.py:123
@@ -3465,7 +3466,7 @@ msgstr ""
 #: zim/plugins/tableofcontents.py:82
 msgid "Show ToC as floating widget instead of in sidepane"
 msgstr ""
-"A tartalomjegyzéket nem oldalpanelként, hanem lebegő ablakként mutatja."
+"A tartalomjegyzéket nem oldalpanelként, hanem lebegő modulként mutatja."
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:84
@@ -3511,7 +3512,7 @@ msgstr "Teljes oldalnév megjelenítése"
 #. menu option
 #: zim/plugins/tags.py:156
 msgid "Sort pages by tags"
-msgstr "Sorbarendezés címkék szerint"
+msgstr "Sorba rendezés címkék szerint"
 
 #. Context menu item for tag cloud
 #: zim/plugins/tags.py:457
@@ -3693,7 +3694,7 @@ msgstr ""
 #. preferences option
 #: zim/plugins/trayicon.py:85
 msgid "Show a separate icon for each notebook"
-msgstr "Különböző ikonok használata minden adatbázishoz"
+msgstr "Különböző ikon használata minden megnyitott jegyzetfüzethez"
 
 #. menu item in tray icon menu
 #: zim/plugins/trayicon.py:134
@@ -3800,7 +3801,7 @@ msgstr "Fossil"
 #. Question dialog
 #: zim/plugins/versioncontrol/__init__.py:889
 msgid "Enable Version Control?"
-msgstr "Engedélyezed a verzókezelést?"
+msgstr "Engedélyezed a verziókezelést?"
 
 #. Detailed question
 #: zim/plugins/versioncontrol/__init__.py:890
@@ -3875,7 +3876,7 @@ msgstr "_Változások mutatása"
 #. button in versions dialog for side by side comparison
 #: zim/plugins/versioncontrol/__init__.py:1056
 msgid "_Side by Side"
-msgstr "_Egy az egyben"
+msgstr "_Összehasonlítás"
 
 #. dialog title
 #: zim/plugins/versioncontrol/__init__.py:1145
