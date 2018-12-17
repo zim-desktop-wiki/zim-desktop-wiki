@@ -3604,11 +3604,12 @@ class TextView(Gtk.TextView):
 
 		if event.type == Gdk.EventType.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
-			if event.button == 2 and not buffer.get_has_selection():
-				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
-				return False
-			elif event.button == 3:
-				self._set_popup_menu_mark(iter)
+			if iter:
+				if event.button == 2 and not buffer.get_has_selection():
+					buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
+					return False
+				elif event.button == 3:
+					self._set_popup_menu_mark(iter)
 
 		return Gtk.TextView.do_button_press_event(self, event)
 
@@ -4003,24 +4004,26 @@ class TextView(Gtk.TextView):
 		else:
 			iter = strip_boolean_result(self.get_iter_at_location(*coords))
 
-		link = None
-		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
-		if pixbuf:
-			if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
-				cursor = CURSOR_WIDGET
-			elif 'href' in pixbuf.zim_attrib:
-				link = {'href': pixbuf.zim_attrib['href']}
-				cursor = CURSOR_LINK
-			else:
-				cursor = CURSOR_TEXT
+		if iter is None:
+			self._set_cursor(CURSOR_TEXT)
 		else:
-			link = self.get_buffer().get_link_data(iter)
-			if link:
-				cursor = CURSOR_LINK
+			pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+			if pixbuf:
+				if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
+					STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
+					self._set_cursor(CURSOR_WIDGET)
+				elif 'href' in pixbuf.zim_attrib:
+					self._set_cursor(CURSOR_LINK, link={'href': pixbuf.zim_attrib['href']})
+				else:
+					self._set_cursor(CURSOR_TEXT)
 			else:
-				cursor = CURSOR_TEXT
+				link = self.get_buffer().get_link_data(iter)
+				if link:
+					self._set_cursor(CURSOR_LINK, link=link)
+				else:
+					self._set_cursor(CURSOR_TEXT)
 
+	def _set_cursor(self, cursor, link=None):
 		if cursor != self._cursor:
 			window = self.get_window(Gtk.TextWindowType.TEXT)
 			window.set_cursor(cursor)
@@ -4047,11 +4050,14 @@ class TextView(Gtk.TextView):
 		@returns: C{True} when there was indeed a link
 		'''
 		iter, coords = self._get_pointer_location()
+		if iter is None:
+			return False
+	
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
 		if pixbuf and pixbuf.zim_attrib.get('href'):
 			self.emit('link-clicked', {'href': pixbuf.zim_attrib['href']})
 			return True
-		else:
+		elif iter:
 			return self.click_link_at_iter(iter)
 
 	def click_link_at_iter(self, iter):
@@ -4079,7 +4085,7 @@ class TextView(Gtk.TextView):
 		@returns: C{True} for success, C{False} if no checkbox was found.
 		'''
 		iter, coords = self._get_pointer_location()
-		if iter.get_line_offset() < 2:
+		if iter and iter.get_line_offset() < 2:
 			# Only position 0 or 1 can map to a checkbox
 			buffer = self.get_buffer()
 			recurs = self.preferences['recursive_checklist']
