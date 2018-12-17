@@ -66,7 +66,7 @@ class UIActions(object):
 		self.page = page
 		self.config = config
 		self.navigation = navigation
-		self._preferences = self.config.get_config_dict('<profile>/preferences.conf')['GtkInterface'] # XXX
+		self._preferences = self.config.get_config_dict('preferences.conf')['GtkInterface'] # XXX
 		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
 
 	def on_notebook_properties_changed(self, propeties):

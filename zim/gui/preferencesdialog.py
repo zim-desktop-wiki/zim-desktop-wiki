@@ -33,7 +33,7 @@ class PreferencesDialog(Dialog):
 	def __init__(self, widget, config, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, widget, _('Preferences')) # T: Dialog title
 		self.config = config
-		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')
+		self.preferences = self.config.get_config_dict('preferences.conf')
 
 		# saves a list of loaded plugins to be used later
 		self.plugins = get_window(widget).__pluginmanager__ # XXX
@@ -117,7 +117,7 @@ class PreferencesDialog(Dialog):
 		self.fontbutton = Gtk.FontButton()
 		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
-		text_style = self.config.get_config_dict('<profile>/style.conf')
+		text_style = self.config.get_config_dict('style.conf')
 		try:
 			font = text_style['TextView']['font']
 			if font:
@@ -150,7 +150,7 @@ class PreferencesDialog(Dialog):
 		else:
 			font = None
 
-		text_style = self.config.get_config_dict('<profile>/style.conf')
+		text_style = self.config.get_config_dict('style.conf')
 		text_style['TextView'].define(font=String(None))
 		text_style['TextView']['font'] = font
 		#

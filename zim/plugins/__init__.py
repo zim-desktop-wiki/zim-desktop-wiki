@@ -122,7 +122,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		'''
 		self.config = config or VirtualConfigManager()
 		self._preferences = \
-			self.config.get_config_dict('<profile>/preferences.conf')
+			self.config.get_config_dict('preferences.conf')
 		self.general_preferences = self._preferences['General']
 		self.general_preferences.setdefault('plugins', [])
 
@@ -407,7 +407,7 @@ class PluginClass(ConnectorMixin):
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
 
 		self.config = config or VirtualConfigManager()
-		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')[self.config_key]
+		self.preferences = self.config.get_config_dict('preferences.conf')[self.config_key]
 		self._init_config(self.preferences, self.plugin_preferences)
 		self._init_config(self.preferences, self.plugin_notebook_properties) # defaults for the properties are preferences
 

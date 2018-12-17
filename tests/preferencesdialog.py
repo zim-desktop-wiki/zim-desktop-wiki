@@ -22,7 +22,7 @@ class TestPreferencesDialog(tests.TestCase):
 
 	def testSetSimpleValue(self):
 		config = VirtualConfigManager()
-		preferences = config.get_config_dict('<profile>/preferences.conf')
+		preferences = config.get_config_dict('preferences.conf')
 
 		dialog = PreferencesDialog(MyWindow(config), config)
 		self.assertEqual(dialog.forms['Interface']['toggle_on_ctrlspace'], False)
@@ -36,9 +36,9 @@ class TestPreferencesDialog(tests.TestCase):
 
 	def testChangeFont(self):
 		config = VirtualConfigManager()
-		preferences = config.get_config_dict('<profile>/preferences.conf')
+		preferences = config.get_config_dict('preferences.conf')
 
-		text_style = config.get_config_dict('<profile>/style.conf')
+		text_style = config.get_config_dict('style.conf')
 		text_style['TextView'].setdefault('font', None, str)
 		text_style['TextView']['font'] = 'Sans 12'
 

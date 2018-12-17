@@ -4052,7 +4052,7 @@ class TextView(Gtk.TextView):
 		iter, coords = self._get_pointer_location()
 		if iter is None:
 			return False
-	
+
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
 		if pixbuf and pixbuf.zim_attrib.get('href'):
 			self.emit('link-clicked', {'href': pixbuf.zim_attrib['href']})
@@ -5109,7 +5109,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed()
 
-		self.text_style = config.get_config_dict('<profile>/style.conf')
+		self.text_style = config.get_config_dict('style.conf')
 		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
 		self.on_text_style_changed()
 
@@ -6605,7 +6605,7 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		file = self.config.get_config_file('<profile>/dates.list')
+		file = self.config.get_config_file('dates.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -6657,7 +6657,7 @@ class InsertDateDialog(Dialog):
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
-		file = self.config.get_config_file('<profile>/dates.list') # XXX
+		file = self.config.get_config_file('dates.list') # XXX
 		if edit_config_file(self, file):
 			self.load_file()
 

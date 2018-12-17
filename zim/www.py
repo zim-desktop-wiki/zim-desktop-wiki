@@ -117,7 +117,7 @@ class WWWInterface(object):
 		'''
 		assert isinstance(notebook, Notebook)
 		self.notebook = notebook
-		self.config = config or ConfigManager(profile=notebook.profile)
+		self.config = config or ConfigManager()
 
 		self.output = None
 

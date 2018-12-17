@@ -54,7 +54,6 @@ class NotebookConfig(INIConfigFile):
 			('shared', Boolean(True)),
 			('endofline', Choice(endofline, {'dos', 'unix'})),
 			('disable_trash', Boolean(False)),
-			('profile', String(None)),
 		))
 
 
@@ -198,7 +197,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 	@ivar cache_dir: A L{Dir} object for the folder used to cache notebook state
 	@ivar config: A L{SectionedConfigDict} for the notebook config
 	(the C{X{notebook.zim}} config file in the notebook folder)
-	@ivar profile: The name of the profile used by the notebook or C{None}
 	@ivar index: The L{Index} object used by the notebook
 	'''
 
@@ -323,11 +321,6 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			uri = None
 
 		return NotebookInfo(uri, **self.config['Notebook'])
-
-	@property
-	def profile(self):
-		'''The 'profile' property for this notebook'''
-		return self.config['Notebook'].get('profile') or None # avoid returning ''
 
 	@notebook_state
 	def save_properties(self, **properties):

@@ -16,7 +16,6 @@ notebook_properties = (
 	('home', 'page', _('Home Page')), # T: label for properties dialog
 	('icon', 'image', _('Icon')), # T: label for properties dialog
 	('document_root', 'dir', _('Document Root')), # T: label for properties dialog
-	('profile', 'string', _('Profile')), # T: label for properties dialog
 	# 'shared' property is not shown in properties anymore
 )
 
@@ -69,12 +68,6 @@ class PropertiesDialog(Dialog):
 	def do_response_ok(self):
 		if not self.notebook.readonly:
 			properties = self.form.copy()
-
-			# XXX this should be part of notebook.save_properties
-			# which means notebook should also own a ref to the ConfigManager
-			if 'profile' in properties and properties['profile'] != self.notebook.profile:
-				assert isinstance(properties['profile'], (str, type(None)))
-				self.config.set_profile(properties['profile'])
 
 			self.notebook.save_properties(**properties)
 

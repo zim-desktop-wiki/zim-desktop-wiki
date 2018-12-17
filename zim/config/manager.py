@@ -5,6 +5,10 @@
 
 from weakref import WeakValueDictionary
 
+import logging
+
+logger = logging.getLogger('zim.config')
+
 
 from . import basedirs
 from .dicts import INIConfigFile
@@ -21,15 +25,11 @@ class ConfigManager(object):
 	search paths and ensures that there is only a single instance used
 	for each config file.
 
-	The config manager can switch the config file based on the config
-	X{profile} that is used. The profile is determined by the notebook
-	properties. However this object relies on it's creator to setup
-	the hooks to get the property from the notebook. Changes to the
-	profile are communicated to all users of the config by means of the
-	"changed" signals on L{ConfigFile} and L{ConfigDict} objects.
+	Typically config files are instantiated as a L{ConfigDict} file and changes
+	are communicated to all users of the config by means of the "changed" signal.
 	'''
 
-	def __init__(self, dir=None, dirs=None, profile=None):
+	def __init__(self, dir=None, dirs=None):
 		'''Constructor
 		@param dir: the folder for reading and writing config files,
 		e.g. a C{Dir} or a C{VirtualConfigBackend} objects.
@@ -37,9 +37,7 @@ class ConfigManager(object):
 		ignored.
 		@param dirs: list or generator of C{Dir} objects used as
 		search path when a config file does not exist on C{dir}
-		@param profile: initial profile name
 		'''
-		self.profile = profile
 		self._config_files = WeakValueDictionary()
 		self._config_dicts = WeakValueDictionary()
 
@@ -50,70 +48,27 @@ class ConfigManager(object):
 
 	@property
 	def preferences(self):
-		return self.get_config_dict('<profile>/preferences.conf')
-
-	def set_profile(self, profile):
-		'''Set the profile to use for the configuration
-		@param profile: the profile name or C{None}
-		'''
-		assert profile is None or isinstance(profile, str)
-		if profile != self.profile:
-			self.profile = profile
-			for path, conffile in list(self._config_files.items()):
-				if path.startswith('<profile>/'):
-					file, defaults = self._get_file(path)
-					conffile.set_files(file, defaults)
-
-			# Updates will cascade through the dicts by the
-			# "changed" signals on various objects
+		return self.get_config_dict('preferences.conf')
 
 	def _get_file(self, filename):
-		basepath = filename.replace('<profile>/', '')
-		if self.profile:
-			path = filename.replace('<profile>/', 'profiles/%s/' % self.profile)
-		else:
-			path = basepath
-
 		if self._dir:
-			file = self._dir.file(path)
+			file = self._dir.file(filename)
 			if self._dirs:
-				defaults = DefaultFileIter(self._dirs, path)
+				defaults = DefaultFileIter(self._dirs, filename)
 			else:
-				defaults = DefaultFileIter([], path)
-
-			if self.profile and filename.startswith('<profile>/'):
-				mypath = filename.replace('<profile>/', '')
-				defaults.extra.insert(0, self._dir.file(mypath))
+				defaults = DefaultFileIter([], filename)
 		else:
-			file = basedirs.XDG_CONFIG_HOME.file('zim/' + path)
-			defaults = XDGConfigFileIter(basepath)
-
-		## Backward compatibility for profiles
-		if self.profile \
-		and filename in (
-			'<profile>/preferences.conf',
-			'<profile>/style.conf'
-		):
-			backwardfile = self._get_backward_file(filename)
-			defaults.extra.insert(0, backwardfile)
+			file = basedirs.XDG_CONFIG_HOME.file('zim/' + filename)
+			defaults = XDGConfigFileIter(filename)
 
 		return file, defaults
 
-	def _get_backward_file(self, filename):
-		if filename == '<profile>/preferences.conf':
-			path = 'profiles/%s.conf' % self.profile
-		elif filename == '<profile>/style.conf':
-			path = 'styles/%s.conf' % self.profile
-		else:
-			raise AssertionError
-
-		if self._dir:
-			return self._dir.file(path)
-		else:
-			return basedirs.XDG_CONFIG_HOME.file('zim/' + path)
-
 	def get_config_file(self, filename):
 		'''Returns a C{ConfigFile} object for C{filename}'''
+		if filename.startswith('<profile>/'):
+			logger.warning('Use of "<profile>/" in config file is deprecated')
+			filename = filename.replace('<profile>/', '')
+
 		if filename not in self._config_files:
 			file, defaults = self._get_file(filename)
 			config_file = ConfigFile(file, defaults)
@@ -123,6 +78,10 @@ class ConfigManager(object):
 
 	def get_config_dict(self, filename):
 		'''Returns a C{SectionedConfigDict} object for C{filename}'''
+		if filename.startswith('<profile>/'):
+			logger.warning('Use of "<profile>/" in config file is deprecated')
+			filename = filename.replace('<profile>/', '')
+
 		if filename not in self._config_dicts:
 			file = self.get_config_file(filename)
 			config_dict = ConfigManagerINIConfigFile(file)
@@ -219,8 +178,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	and writing methods.
 
 	@signal: C{changed ()}: emitted when the
-	underlying file changed (based on C{gio} monitoring support)
-	or for file monitors or on profile switched
+	underlying file changed (based on C{gio} monitoring support).
 	'''
 
 	__signals__ = {

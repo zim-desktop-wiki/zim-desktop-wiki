@@ -497,7 +497,7 @@ class ExportCommand(NotebookCommand):
 		notebook, page = self.build_notebook()
 
 		# load plugins, needed so the the proper export functions would work from CLI
-		config = ConfigManager(profile=notebook.profile)
+		config = ConfigManager()
 		plugins = PluginManager(config)
 		plugins.extend(notebook)
 

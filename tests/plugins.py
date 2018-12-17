@@ -134,7 +134,7 @@ class TestPlugins(tests.TestCase):
 
 	def runTest(self):
 		manager = PluginManager()
-		preferences = manager.config.get_config_dict('<profile>/preferences.conf')
+		preferences = manager.config.get_config_dict('preferences.conf')
 		self.assertFalse(preferences.modified)
 		for name in PluginManager.list_installed_plugins():
 			klass = PluginManager.get_plugin_class(name)
