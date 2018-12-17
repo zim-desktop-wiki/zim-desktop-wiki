@@ -1,7 +1,13 @@
 
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+import logging
+
+logger = logging.getLogger('zim.gui')
+
+
 from gi.repository import Gtk
+
 from zim.gui.widgets import Dialog, get_window, InputForm
 
 notebook_properties = (
@@ -74,6 +80,10 @@ class PropertiesDialog(Dialog):
 
 			for key, form in self.plugin_forms.items():
 				self.notebook.config[key].update(form)
+
+			if hasattr(self.notebook.config, 'write'): # XXX Check needed for tests
+				logger.debug('Write notebook properties')
+				self.notebook.config.write()
 
 		return True
 
