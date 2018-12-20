@@ -44,9 +44,10 @@ class NotebookConfig(INIConfigFile):
 			endofline = 'dos'
 		else:
 			endofline = 'unix'
+		name = file.dir.basename if hasattr(file, 'dir') else file.parent().basename # HACK zim.fs and zim.newfs compat
 		self['Notebook'].define((
 			('version', String('.'.join(map(str, DATA_FORMAT_VERSION)))),
-			('name', String(file.dir.basename)),
+			('name', String(name)),
 			('interwiki', String(None)),
 			('home', ConfigDefinitionByClass(Path('Home'))),
 			('icon', String(None)), # XXX should be file, but resolves relative
@@ -265,6 +266,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		'''
 		self.folder = folder
 		self.cache_dir = cache_dir
+		self.state = INIConfigFile(cache_dir.file('state.conf'))
 		self.config = config
 		self.properties = config['Notebook']
 		self.layout = layout

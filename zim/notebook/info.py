@@ -23,8 +23,7 @@ def get_notebook_list():
 
 	This will load the list from the default X{notebooks.list} file
 	'''
-	config = ConfigManager() # XXX should be passed in
-	file = config.get_config_file('notebooks.list')
+	file = ConfigManager.get_config_file('notebooks.list')
 	return NotebookInfoList(file)
 
 
@@ -481,4 +480,3 @@ class NotebookInfoList(list):
 				return info
 		else:
 			return self.get_by_name(key)
-

@@ -99,7 +99,6 @@ class PathBarMainWindowExtension(MainWindowExtension):
 			self.pathbar = klass(
 				self.window.history,
 				self.window.notebook,
-				self.window.config,
 				self.window.navigation
 			)
 			self.pathbar.set_page(self.window.page)
@@ -475,11 +474,10 @@ class PathBar(ScrolledHBox):
 	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
 	with a list of ToggleButtons representing zim Path objects'''
 
-	def __init__(self, history, notebook, config, navigation, spacing=0, homogeneous=False):
+	def __init__(self, history, notebook, navigation, spacing=0, homogeneous=False):
 		ScrolledHBox.__init__(self, spacing, homogeneous)
 		self.history = history
 		self.notebook = notebook
-		self.config = config
 		self.navigation = navigation
 		self._selected = None
 		self._update()
@@ -566,7 +564,6 @@ class PathBar(ScrolledHBox):
 			self,
 			self.notebook,
 			button.zim_path,
-			self.config,
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)

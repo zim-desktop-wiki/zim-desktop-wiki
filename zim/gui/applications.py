@@ -22,8 +22,7 @@ from gi.repository import GdkPixbuf
 
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
-from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-	data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
+from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, data_dirs, SectionedConfigDict, INIConfigFile
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
 from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_result

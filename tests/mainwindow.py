@@ -6,7 +6,6 @@
 import tests
 
 from zim.notebook import Path
-from zim.config import VirtualConfigManager
 from zim.plugins import PluginManager
 
 from zim.gui.mainwindow import *
@@ -15,13 +14,12 @@ from zim.gui.mainwindow import *
 is_sensitive = lambda w: w.get_property('sensitive')
 
 
-def setUpMainWindow(notebook, path='Test'):
+def setUpMainWindow(notebook, path='Test', plugins=None):
 	if isinstance(path, str):
 		path = Path(path)
 
-	config = VirtualConfigManager()
-	mainwindow = MainWindow(notebook, config, page=path)
-	mainwindow.__pluginmanager__ = PluginManager(config)
+	mainwindow = MainWindow(notebook, page=path)
+	mainwindow.__pluginmanager__ = plugins or PluginManager()
 	mainwindow.init_uistate() # XXX
 	return mainwindow
 

@@ -57,8 +57,7 @@ class TrayIconPluginCommand(GtkCommand):
 	'''
 
 	def run(self):
-		config = ConfigManager()
-		preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
+		preferences = ConfigManager.preferences['TrayIconPlugin']
 		preferences.setdefault('classic', False)
 
 		set_global_trayicon(preferences['classic'])
@@ -91,8 +90,8 @@ This is a core plugin shipping with zim.
 			('Unity appindicator', bool(appindicator), False),
 		])
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):

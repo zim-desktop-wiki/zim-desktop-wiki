@@ -294,8 +294,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		from zim.config import ConfigManager
 		from zim.plugins import PluginManager
 
-		config = ConfigManager()
-		preferences = config.preferences['General']
+		preferences = ConfigManager.preferences['General']
 		preferences.setdefault('plugins', [
 			'pageindex', 'pathbar',
 			'journal', 'insertsymbol', 'printtobrowser',
@@ -309,15 +308,14 @@ class GuiCommand(NotebookCommand, GtkCommand):
 			if 'calendar' in preferences['plugins']:
 				preferences['plugins'].remove('calendar')
 				preferences['plugins'].append('journal')
-				config.preferences['JournalPlugin'] = config.preferences['CalendarPlugin']
+				ConfigManager.preferences['JournalPlugin'] = ConfigManager.preferences['CalendarPlugin']
 			preferences['plugins_list_version'] = '0.68'
 
-		pluginmanager = PluginManager(config)
+		pluginmanager = PluginManager()
 		pluginmanager.extend(notebook)
 
 		window = MainWindow(
 			notebook,
-			config,
 			page=page,
 			**self.get_options('geometry', 'fullscreen')
 		)
@@ -491,14 +489,12 @@ class ExportCommand(NotebookCommand):
 
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
-		from zim.config import ConfigManager
 		from zim.plugins import PluginManager
 
 		notebook, page = self.build_notebook()
 
 		# load plugins, needed so the the proper export functions would work from CLI
-		config = ConfigManager()
-		plugins = PluginManager(config)
+		plugins = PluginManager()
 		plugins.extend(notebook)
 
 		notebook.index.check_and_update()

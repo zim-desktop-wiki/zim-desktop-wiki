@@ -13,12 +13,13 @@ logger = logging.getLogger('zim.config')
 from . import basedirs
 from .dicts import INIConfigFile
 
-from zim.fs import FileNotFoundError
+from zim.newfs import FileNotFoundError
+from zim.fs import FileNotFoundError as oldFileNotFoundError
 
 from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler, SIGNAL_NORMAL
 
 
-class ConfigManager(object):
+class ConfigManagerClass(object):
 	'''This class defines an object that manages a set of config files.
 
 	The config manager abstracts the lookup of files using the XDG
@@ -29,22 +30,19 @@ class ConfigManager(object):
 	are communicated to all users of the config by means of the "changed" signal.
 	'''
 
-	def __init__(self, dir=None, dirs=None):
-		'''Constructor
-		@param dir: the folder for reading and writing config files,
-		e.g. a C{Dir} or a C{VirtualConfigBackend} objects.
-		If no dir is given, the XDG basedirs are used and C{dirs} is
-		ignored.
-		@param dirs: list or generator of C{Dir} objects used as
-		search path when a config file does not exist on C{dir}
-		'''
+	def __init__(self):
+		self._set()
+
+	def _set(self, dir=None, dirs=None):
+		# this method is called to create virtual configmanagers
 		self._config_files = WeakValueDictionary()
 		self._config_dicts = WeakValueDictionary()
-
-		if dir is None:
-			assert dirs is None, "Do not provide 'dirs' without 'dir'"
 		self._dir = dir
 		self._dirs = dirs
+
+	def __call__(self):
+		# Behave as singleton
+		return self
 
 	@property
 	def preferences(self):
@@ -53,12 +51,12 @@ class ConfigManager(object):
 	def _get_file(self, filename):
 		if self._dir:
 			file = self._dir.file(filename)
-			if self._dirs:
-				defaults = DefaultFileIter(self._dirs, filename)
-			else:
-				defaults = DefaultFileIter([], filename)
 		else:
 			file = basedirs.XDG_CONFIG_HOME.file('zim/' + filename)
+
+		if self._dirs:
+			defaults = DefaultFileIter(self._dirs, filename)
+		else:
 			defaults = XDGConfigFileIter(filename)
 
 		return file, defaults
@@ -93,8 +91,23 @@ class ConfigManager(object):
 	#def get_config_section(filename, section): - return section
 
 
-def VirtualConfigManager(**data):
-	return ConfigManager(VirtualConfigBackend(**data))
+ConfigManager = ConfigManagerClass()  # define singleton
+
+
+def makeConfigManagerVirtual():
+	# Used in test suite to turn ConfigManager singleton in blank virtual state
+	# _set() also resets internal state, but objects that already have a
+	# reference to a config file or config dict will not see this
+	from zim.newfs.mock import MockFolder
+	folder = MockFolder('/<VirtualConfigManager>/')
+	ConfigManager._set(folder)
+
+
+def resetConfigManager():
+	# Used in test suite to turn ConfigManager singleton in blank virtual state
+	# _set() also resets internal state
+	# Objects that were created with the virtual data don not get notified
+	ConfigManager._set()
 
 
 class DefaultFileIter(object):
@@ -186,10 +199,8 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	}
 
 	def __init__(self, file, defaults=None):
-		self.file = None
-		self.defaults = None
-		with self.block_signals('changed'):
-			self.set_files(file, defaults)
+		self.file = file
+		self.defaults = defaults or []
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.file.path)
@@ -197,13 +208,6 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	def __eq__(self, other):
 		return isinstance(other, ConfigFile) \
 			and other.file == self.file
-
-	def set_files(self, file, defaults=None):
-		if self.file:
-			self.disconnect_from(self.file)
-		self.file = file
-		self.defaults = defaults or []
-		self.emit('changed')
 
 	def check_has_changed_on_disk(self):
 		return True # we do not emit the signal if it is not real...
@@ -238,7 +242,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		'''
 		try:
 			return self.file.read()
-		except FileNotFoundError:
+		except (FileNotFoundError, oldFileNotFoundError):
 			for default in self.defaults:
 				return default.read()
 			else:
@@ -256,7 +260,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		'''
 		try:
 			return self.file.readlines()
-		except FileNotFoundError:
+		except (FileNotFoundError, oldFileNotFoundError):
 			for default in self.defaults:
 				return default.readlines()
 			else:
@@ -280,72 +284,3 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		if self.file.exists():
 			return self.file.remove()
 		self.emit('changed')
-
-
-class VirtualConfigBackend(object):
-	'''Virtual dir, mainly used for testing'''
-
-	def __init__(self, **data):
-		self._data = data
-
-	def file(self, path):
-		return VirtualConfigBackendFile(self._data, path)
-
-
-
-class VirtualConfigBackendFile(object):
-	'''Virtual file, mainly used for testing'''
-
-	def __init__(self, data, path):
-		self._key = path
-		self._data = data
-
-	@property
-	def path(self):
-		return '<virtual>/' + self._key
-
-	@property
-	def basename(self):
-		import os
-		return os.path.basename(self.path)
-
-	def connect(self, handler, *a):
-		pass
-
-	def disconnect(self, handler):
-		pass
-
-	def exists(self):
-		return self._key in self._data \
-			and self._data[self._key] is not None
-
-	def touch(self):
-		self._data.setdefault(self._key, '')
-
-	def copyto(self, other):
-		text = self.read()
-		other.write(text)
-
-	def read(self):
-		try:
-			text = self._data[self._key]
-		except KeyError:
-			raise FileNotFoundError(self)
-		else:
-			if text is None:
-				raise FileNotFoundError(self)
-			else:
-				return text
-
-	def readlines(self):
-		text = self.read()
-		return text.splitlines(True)
-
-	def write(self, text):
-		self._data[self._key] = text or ''
-
-	def writelines(self, lines):
-		self._data[self._key] = ''.join(lines) or ''
-
-	def remove(self):
-		del self._data[self._key]

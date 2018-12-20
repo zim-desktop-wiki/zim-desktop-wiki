@@ -8,8 +8,6 @@ import tests
 from tests.mainwindow import setUpMainWindow
 from tests.pageview import press
 
-from zim.config import SectionedConfigDict, ConfigManager
-
 from zim.plugins import find_extension
 from zim.plugins.insertsymbol import *
 
@@ -23,7 +21,7 @@ EGRAVE = chr(200)
 class TestInsertSymbolPlugin(tests.TestCase):
 
 	def runTest(self):
-		plugin = InsertSymbolPlugin(ConfigManager())
+		plugin = InsertSymbolPlugin()
 
 		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': ''}), path='Test')
 		pageview = mainwindow.pageview

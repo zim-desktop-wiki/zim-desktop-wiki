@@ -31,7 +31,7 @@ import zim.formats
 
 from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
-from zim.config import String, Float, Integer, Boolean, Choice
+from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
@@ -4932,7 +4932,7 @@ class PageViewExtension(ActionExtensionBase):
 		if hasattr(window, 'uimanager'):
 			self._add_actions(window.uimanager)
 		self.navigation = window.navigation
-		self.uistate = window.config.uistate[plugin.config_key]
+		self.uistate = window.notebook.state[plugin.config_key]
 		self._sidepane_widgets = {}
 
 	def add_sidepane_widget(self, widget, preferences_key):
@@ -5020,10 +5020,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'activate-link': (GObject.SignalFlags.RUN_LAST, bool, (object, object))
 	}
 
-	def __init__(self, notebook, config, navigation, secondary=False):
+	def __init__(self, notebook, navigation, secondary=False):
 		'''Constructor
 		@param notebook: the L{Notebook} object
-		@param config: L{ConfigManager} object
 		@param navigation: L{NavigationModel} object
 		@param secondary: C{True} if this widget is part of a secondary
 		widget
@@ -5034,7 +5033,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._buffer_signals = ()
 		self.notebook = notebook
 		self.page = None
-		self.config = config
 		self.navigation = navigation
 		self.readonly = True
 		self._readonly_set = False
@@ -5048,7 +5046,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._showing_template = False
 		self._change_counter = 0
 
-		self.preferences = config.preferences['PageView']
+		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
 			follow_on_enter=Boolean(True),
 			read_only_cursor=Boolean(False),
@@ -5109,7 +5107,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed()
 
-		self.text_style = config.get_config_dict('style.conf')
+		self.text_style = ConfigManager.get_config_dict('style.conf')
 		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
 		self.on_text_style_changed()
 
@@ -5123,7 +5121,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.notebook.connect(s, assert_not_modified)
 
 		# Setup saving
-		if_preferences = config.preferences['GtkInterface']
+		if_preferences = ConfigManager.preferences['GtkInterface']
 		if_preferences.setdefault('autosave_timeout', 15)
 		if_preferences.setdefault('autosave_use_thread', True)
 		logger.debug('Autosave interval: %r - use threads: %r',
@@ -6045,7 +6043,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
-		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page, self.config).run()
+		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
 
 	def insert_object(self, attrib, data):
 		buffer = self.textview.get_buffer()
@@ -6536,7 +6534,7 @@ class InsertDateDialog(Dialog):
 	FORMAT_COL = 0 # format string
 	DATE_COL = 1 # strfime rendering of the format
 
-	def __init__(self, parent, buffer, notebook, page, config):
+	def __init__(self, parent, buffer, notebook, page):
 		Dialog.__init__(
 			self,
 			parent,
@@ -6546,7 +6544,6 @@ class InsertDateDialog(Dialog):
 		self.buffer = buffer
 		self.notebook = notebook
 		self.page = page
-		self.config = config
 		self.date = datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
@@ -6605,7 +6602,7 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		file = self.config.get_config_file('dates.list')
+		file = ConfigManager.get_config_file('dates.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -6657,7 +6654,7 @@ class InsertDateDialog(Dialog):
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
-		file = self.config.get_config_file('dates.list') # XXX
+		file = ConfigManager.get_config_file('dates.list') # XXX
 		if edit_config_file(self, file):
 			self.load_file()
 

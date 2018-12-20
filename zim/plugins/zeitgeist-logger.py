@@ -40,8 +40,8 @@ class ZeitgeistPlugin(PluginClass):
 		has_zeitgeist = not ZeitgeistClient is None
 		return has_zeitgeist, [('libzeitgeist', has_zeitgeist, False)]
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		try:
 			self.zeitgeist_client = ZeitgeistClient()
 			self.zeitgeist_client.register_data_source('application://zim.desktop',

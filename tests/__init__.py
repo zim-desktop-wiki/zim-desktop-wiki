@@ -225,6 +225,8 @@ class TestCase(unittest.TestCase):
 
 	maxDiff = None
 
+	mockConfigManager = True
+
 	SRC_DIR = LocalFolder(mydir + '/../')
 	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
 
@@ -235,14 +237,19 @@ class TestCase(unittest.TestCase):
 		TIMINGS.append((self.__class__.__name__ + '.' + self._testMethodName, end - start))
 
 	@classmethod
+	def setUpClass(cls):
+		if cls.mockConfigManager:
+			import zim.config.manager
+			zim.config.manager.makeConfigManagerVirtual()
+
+	@classmethod
 	def tearDownClass(cls):
 		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
-		cls.unload_all_plugins()
+		import zim.config.manager
+		zim.config.manager.resetConfigManager()
 
-	@staticmethod
-	def unload_all_plugins():
 		from zim.objectmanager import ObjectManager
 		ObjectManager._objects.clear() # HACK - reset singleton
 
@@ -301,7 +308,6 @@ class TestCase(unittest.TestCase):
 		'''
 		import datetime
 		from zim.newfs.mock import MockFolder
-		from zim.config import VirtualConfigBackend
 		from zim.notebook.notebook import NotebookConfig, Notebook
 		from zim.notebook.page import Path
 		from zim.notebook.layout import FilesLayout
@@ -315,17 +321,11 @@ class TestCase(unittest.TestCase):
 		layout = FilesLayout(folder, endofline='unix')
 
 		if isinstance(folder, MockFolder):
-			### XXX - Big HACK here - Get better classes for this - XXX ###
-			dir = VirtualConfigBackend()
-			file = dir.file('notebook.zim')
-			file.dir = dir
-			file.dir.basename = folder.basename
-			###
-			config = NotebookConfig(file)
+			conffile = folder.file('notebook.zim')
+			config = NotebookConfig(conffile)
 			index = Index(':memory:', layout)
 		else:
-			from zim.fs import Dir
-			conffile = Dir(folder.path).file('notebook.zim')
+			conffile = folder.file('notebook.zim')
 			config = NotebookConfig(conffile)
 			cache_dir.touch()
 			index = Index(cache_dir.file('index.db').path, layout)

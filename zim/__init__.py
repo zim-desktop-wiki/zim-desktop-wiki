@@ -33,11 +33,9 @@ object that implements a specific commandline command. The C{Command}
 object then either connects to a running instance of zim, or executes
 the application.
 
-To execute the application, the command typically constructs a
-C{Notebook} object, a C{PluginManager} and a C{ConfigManager}. Then
-depending on the command the graphical interface is constructed, a
-webserver is started or some other action is executed on the notebook.
-
+To execute the application, the command typically constructs a C{Notebook} and
+depending on the command the graphical interface is constructed, a webserver is
+started or some other action is executed on the notebook.
 
 The C{Notebook} object is found in L{zim.notebook} and implements the
 API for accessing and storing pages, attachments and other data in

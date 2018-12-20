@@ -64,8 +64,7 @@ from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandl
 from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
 from zim.actions import hasaction
 
-from zim.config import data_dirs, VirtualConfigManager, XDG_DATA_HOME, \
-	ConfigDict, String
+from zim.config import data_dirs, XDG_DATA_HOME, ConfigDict, String, ConfigManager
 
 
 logger = logging.getLogger('zim.plugins')
@@ -110,7 +109,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 	keys and plugin objects as value
 	'''
 
-	def __init__(self, config=None):
+	def __init__(self):
 		'''Constructor
 		Constructor will directly load a list of default plugins
 		based on the preferences in the config. Failures while loading
@@ -120,9 +119,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		to the plugins and is used to load plugin preferences.
 		Defaults to a L{VirtualConfigManager} for testing.
 		'''
-		self.config = config or VirtualConfigManager()
-		self._preferences = \
-			self.config.get_config_dict('preferences.conf')
+		self._preferences = ConfigManager.preferences
 		self.general_preferences = self._preferences['General']
 		self.general_preferences.setdefault('plugins', [])
 
@@ -226,7 +223,7 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		if not klass.check_dependencies_ok():
 			raise AssertionError('Dependencies failed for plugin %s' % name)
 
-		plugin = klass(self.config)
+		plugin = klass()
 		self._plugins[name] = plugin
 
 		for obj in self._extendables:
@@ -392,12 +389,7 @@ class PluginClass(ConnectorMixin):
 		'''
 		return (True, [])
 
-	def __init__(self, config=None):
-		'''Constructor
-		@param config: a L{ConfigManager} object that is used to load
-		plugin preferences.
-		Defaults to a L{VirtualConfigManager} for testing.
-		'''
+	def __init__(self):
 		assert 'name' in self.plugin_info, 'Missing "name" in plugin_info'
 		assert 'description' in self.plugin_info, 'Missing "description" in plugin_info'
 		assert 'author' in self.plugin_info, 'Missing "author" in plugin_info'
@@ -406,8 +398,7 @@ class PluginClass(ConnectorMixin):
 		if self.plugin_preferences:
 			assert isinstance(self.plugin_preferences[0], tuple), 'BUG: preferences should be defined as tuples'
 
-		self.config = config or VirtualConfigManager()
-		self.preferences = self.config.get_config_dict('preferences.conf')[self.config_key]
+		self.preferences = ConfigManager.preferences[self.config_key]
 		self._init_config(self.preferences, self.plugin_preferences)
 		self._init_config(self.preferences, self.plugin_notebook_properties) # defaults for the properties are preferences
 

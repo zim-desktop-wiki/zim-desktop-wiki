@@ -198,8 +198,7 @@ class QuickNoteDialog(Dialog):
 	):
 		assert page is None, 'TODO'
 
-		manager = ConfigManager() # FIXME should be passed in
-		self.config = manager.get_config_dict('quicknote.conf')
+		self.config = ConfigManager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, window, _('Quick Note'))

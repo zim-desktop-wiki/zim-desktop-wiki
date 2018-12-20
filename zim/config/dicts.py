@@ -17,7 +17,7 @@ Both derive from L{ControlledDict} which defines the C{changed} signal
 which can be used to track changes in the configuration.
 
 Typically these classes are not instantiated directly, but by the
-L{ConfigManager} defined in Lzim.config.manager}.
+L{ConfigManager} defined in L{zim.config.manager}.
 '''
 
 

@@ -120,7 +120,7 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.window.uistate['show_menubar'] = show_menubar
 			self.window.uistate['show_toolbar'] = show_toolbar
 			self.window.uistate['show_statusbar'] = show_statusbar
-			self.window.config.uistate.write()
+			self.window.notebook.state.write()
 
 	def set_bar_state_fullscreen(self):
 		self.window.toggle_menubar(not self.preferences['hide_menubar'])

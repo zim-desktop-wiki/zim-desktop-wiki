@@ -10,7 +10,7 @@ from gi.repository import Gdk
 logger = logging.getLogger('zim.gui')
 
 
-from zim.config import data_file, value_is_coord, ConfigDict, INIConfigFile, Boolean
+from zim.config import data_file, value_is_coord, ConfigDict, Boolean, ConfigManager
 from zim.signals import DelayedCallback
 
 from zim.notebook import Path, Page, LINK_DIR_BACKWARD
@@ -119,7 +119,7 @@ class MainWindowExtension(ActionExtensionBase):
 		'''
 		ExtensionBase.__init__(self, plugin, window)
 		self.window = window
-		self.uistate = window.config.uistate[plugin.config_key]
+		self.uistate = window.notebook.state[plugin.config_key]
 		self._add_actions(window.uimanager)
 		self.connectto(window, 'destroy')
 
@@ -137,10 +137,9 @@ class MainWindow(Window):
 		'close': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook, config, page=None, fullscreen=False, geometry=None):
+	def __init__(self, notebook, page=None, fullscreen=False, geometry=None):
 		'''Constructor
 		@param notebook: the L{Notebook} to show in this window
-		@param config: a C{ConfigManager} object
 		@param page: a C{Path} object to open
 		@param fullscreen: if C{True} the window is shown fullscreen,
 		if C{None} the previous state is restored
@@ -153,8 +152,7 @@ class MainWindow(Window):
 		self.navigation = NavigationModel(self)
 		self.hideonclose = False
 
-		self.config = config
-		self.preferences = config.preferences['GtkInterface']
+		self.preferences = ConfigManager.preferences['GtkInterface']
 		self.preferences.define(
 			toggle_on_ctrlspace=Boolean(False),
 			remove_links_on_delete=Boolean(True),
@@ -188,11 +186,8 @@ class MainWindow(Window):
 		self.connect('delete-event', do_delete_event)
 
 		# setup uistate
-		if not hasattr(config, 'uistate'):
-			config.uistate = INIConfigFile(notebook.cache_dir.file('state.conf'))
-		self.uistate = self.config.uistate['MainWindow']
-
-		self.history = History(notebook, config.uistate)
+		self.uistate = notebook.state['MainWindow']
+		self.history = History(notebook, notebook.state)
 
 		# init uimanager
 		self.uimanager = Gtk.UIManager()
@@ -213,7 +208,7 @@ class MainWindow(Window):
 		self.add_bar(self.menubar)
 		self.add_bar(self.toolbar)
 
-		self.pageview = PageView(self.notebook, config, self.navigation)
+		self.pageview = PageView(self.notebook, self.navigation)
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
 		self.pageview.connect_after(
 			'textstyle-changed', self.on_textview_textstyle_changed)
@@ -272,7 +267,7 @@ class MainWindow(Window):
 		self.preferences.setdefault('mouse_nav_button_forw', 9)
 
 		# Finish uimanager
-		self._uiactions = UIActions(self, self.notebook, self.page, self.config, self.navigation)
+		self._uiactions = UIActions(self, self.notebook, self.page, self.navigation)
 		group = get_gtk_actiongroup(self._uiactions)
 		self.uimanager.insert_action_group(group, 0)
 
@@ -291,7 +286,7 @@ class MainWindow(Window):
 
 		# Do this last, else menu items show up in wrong place
 		self.pageview.notebook = self.notebook # XXX
-		self._customtools = CustomToolManagerUI(self.uimanager, self.config, self.pageview)
+		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)
 		self._insertedobjects = InsertedObjectUI(self.uimanager, self.pageview)
 			# XXX: would like to do this in PageView itself, but need access to uimanager
 
@@ -350,8 +345,8 @@ class MainWindow(Window):
 		while Gtk.events_pending():
 			Gtk.main_iteration_do(False)
 
-		if self.config.uistate.modified:
-			self.config.uistate.write()
+		if self.notebook.state.modified:
+			self.notebook.state.write()
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
@@ -673,7 +668,7 @@ class MainWindow(Window):
 		self.toolbar.insert(item, -1)
 
 		# Load accelmap config and setup saving it
-		accelmap = self.config.get_config_file('accelmap').file
+		accelmap = ConfigManager.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
 			Gtk.AccelMap.load(accelmap.path)
@@ -952,7 +947,7 @@ class BackLinksMenuButton(MenuButton):
 class PageWindow(Window):
 	'''Secondary window, showing a single page'''
 
-	def __init__(self, notebook, page, config, navigation):
+	def __init__(self, notebook, page, navigation):
 		Window.__init__(self)
 		self.navigation = navigation
 
@@ -965,16 +960,12 @@ class PageWindow(Window):
 
 		page = notebook.get_page(page)
 
-		if hasattr(config, 'uistate'):
-			self.uistate = config.uistate['PageWindow']
-		else:
-			self.uistate = ConfigDict()
-
+		self.uistate = notebook.state['PageWindow']
 		self.uistate.setdefault('windowsize', (500, 400), check=value_is_coord)
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(notebook, config, navigation, secondary=True)
+		self.pageview = PageView(notebook, navigation, secondary=True)
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 

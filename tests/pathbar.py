@@ -54,7 +54,7 @@ class TestHistoryPathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('A', 'B', 'C', 'D'))
 		history = History(notebook)
-		pathbar = HistoryPathBar(history, notebook, None, None)
+		pathbar = HistoryPathBar(history, notebook, None)
 		for name in ('A', 'A', 'B', 'A', 'D', 'D'):
 			history.append(Path(name))
 			pathbar.set_page(Path(name))
@@ -72,7 +72,7 @@ class TestRecentPathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('A', 'B', 'C', 'D'))
 		history = History(notebook)
-		pathbar = RecentPathBar(history, notebook, None, None)
+		pathbar = RecentPathBar(history, notebook, None)
 		for name in ('A', 'A', 'B', 'A', 'D', 'D'):
 			history.append(Path(name))
 			pathbar.set_page(Path(name))
@@ -92,7 +92,7 @@ class TestRecentChangesPathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook()
 		history = History(notebook)
-		pathbar = RecentChangesPathBar(history, notebook, None, None)
+		pathbar = RecentChangesPathBar(history, notebook, None)
 		for name in ('A', 'A', 'B', 'A', 'D', 'D'):
 			p = notebook.get_page(Path(name))
 			text = p.dump('wiki') # prevent etag fail
@@ -113,7 +113,7 @@ class TestNamespacePathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('A', 'B', 'C', 'D'))
 		history = History(notebook)
-		pathbar = NamespacePathBar(history, notebook, None, None)
+		pathbar = NamespacePathBar(history, notebook, None)
 		for name in ('A:A1:AA1', 'B', 'C:C1', 'D'):
 			history.append(Path(name))
 			pathbar.set_page(Path(name))

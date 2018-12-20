@@ -8,8 +8,6 @@ import os
 from zim.plugins import *
 from zim.fs import File
 
-from zim.config import VirtualConfigManager
-
 from tests.mainwindow import setUpMainWindow
 
 import zim.plugins
@@ -133,8 +131,8 @@ class TestPlugins(tests.TestCase):
 	'''Test case to initiate all (loadable) plugins and load some extensions'''
 
 	def runTest(self):
+		preferences = ConfigManager.get_config_dict('preferences.conf')
 		manager = PluginManager()
-		preferences = manager.config.get_config_dict('preferences.conf')
 		self.assertFalse(preferences.modified)
 		for name in PluginManager.list_installed_plugins():
 			klass = PluginManager.get_plugin_class(name)
@@ -157,7 +155,7 @@ class TestPlugins(tests.TestCase):
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		mainwindow = setUpMainWindow(notebook)
+		mainwindow = setUpMainWindow(notebook, plugins=manager)
 		for obj in (
 			notebook,
 			notebook.index,

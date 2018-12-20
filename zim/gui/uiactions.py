@@ -17,7 +17,7 @@ from zim.main import ZIM_APPLICATION
 from zim.parsing import url_encode, URL_ENCODE_DATA
 from zim.templates import list_templates, get_template
 
-from zim.config import data_file
+from zim.config import data_file, ConfigManager
 from zim.notebook import PageExistsError, NotebookOperation
 from zim.notebook.index import IndexNotFoundError, LINK_DIR_BACKWARD
 
@@ -51,22 +51,19 @@ class UIActions(object):
 	menubar, but do not directly link to a L{MainWindow} object.
 	'''
 
-	def __init__(self, widget, notebook, page, config, navigation):
+	def __init__(self, widget, notebook, page, navigation):
 		'''Constructor
 		@param widget: owning gtk widget or C{None}, only used to determine
 		parent window for dialogs
 		@param notebook: L{Notebook} object for actions to act on
 		@param page: L{Page} object that reflects the _default_ page for actions
 		to act on.
-		@param config: a C{ConfigManager}
 		@param navigation: a L{NavigationModel}
 		'''
 		self.widget = widget
 		self.notebook = notebook
 		self.page = page
-		self.config = config
 		self.navigation = navigation
-		self._preferences = self.config.get_config_dict('preferences.conf')['GtkInterface'] # XXX
 		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
 
 	def on_notebook_properties_changed(self, propeties):
@@ -151,7 +148,6 @@ class UIActions(object):
 		PageWindow(
 			self.notebook,
 			page or self.page,
-			self.config,
 			self.navigation
 		).present()
 
@@ -225,8 +221,8 @@ class UIActions(object):
 		if not self.ensure_index_uptodate():
 			return
 
-		self._preferences.setdefault('remove_links_on_delete', True)
-		update_links = self._preferences['remove_links_on_delete']
+		preferences = ConfigManager.preferences['GtkInterface']
+		update_links = preferences.setdefault('remove_links_on_delete', True)
 		op = NotebookOperation(
 			self.notebook,
 			_('Removing Links'), # T: Title of progressbar dialog
@@ -246,7 +242,7 @@ class UIActions(object):
 	def show_properties(self):
 		'''Menu action to show the L{PropertiesDialog}'''
 		from zim.gui.propertiesdialog import PropertiesDialog
-		PropertiesDialog(self.widget, self.config, self.notebook).run()
+		PropertiesDialog(self.widget, self.notebook).run()
 
 	@action(_('_Quit'), '<Primary>Q') # T: Menu item
 	def quit(self):
@@ -274,7 +270,7 @@ class UIActions(object):
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
-		PreferencesDialog(self.widget, self.config).run()
+		PreferencesDialog(self.widget).run()
 
 		# Loading plugins can modify the index state
 		if not self.notebook.index.is_uptodate:
@@ -419,7 +415,7 @@ class UIActions(object):
 	def manage_custom_tools(self):
 		'''Menu action to show the L{CustomToolManagerDialog}'''
 		from zim.gui.customtools import CustomToolManagerDialog
-		CustomToolManagerDialog(self.widget, self.config).run()
+		CustomToolManagerDialog(self.widget).run()
 
 	@action(_('_Contents'), 'F1') # T: Menu item
 	def show_help(self, page=None):

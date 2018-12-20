@@ -11,7 +11,6 @@ from zim.fs import File, Dir
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
-from zim.config import SectionedConfigDict, VirtualConfigManager, ConfigManager
 from zim.gui.clipboard import Clipboard
 
 from zim.newfs.mock import os_native_path
@@ -40,9 +39,8 @@ def setUpPageView(notebook, text=''):
 	page.parse('wiki', text)
 	notebook.store_page(page)
 
-	config = VirtualConfigManager()
 	navigation = tests.MockObject()
-	pageview = PageView(notebook, config, navigation)
+	pageview = PageView(notebook, navigation)
 	pageview.set_page(page)
 	return pageview
 
@@ -2178,15 +2176,14 @@ class TestPageviewDialogs(tests.TestCase):
 		notebook = tests.MockObject()
 		notebook.mock_method('suggest_link', Path(':suggested_link'))
 		page = Path('test')
-		config = ConfigManager() # need dates.list, so no virtual here
 
-		dialog = InsertDateDialog(None, buffer, notebook, page, config)
+		dialog = InsertDateDialog(None, buffer, notebook, page)
 		dialog.linkbutton.set_active(False)
 		dialog.view.get_selection().select_path((0,))
 		dialog.assert_response_ok()
 		self.assertEqual(buffer.mock_calls[-1][0], 'insert_at_cursor')
 
-		dialog = InsertDateDialog(None, buffer, notebook, page, config)
+		dialog = InsertDateDialog(None, buffer, notebook, page)
 		dialog.linkbutton.set_active(True)
 		dialog.view.get_selection().select_path((0,))
 		dialog.assert_response_ok()

@@ -14,8 +14,6 @@ from zim.gui.clipboard import Clipboard
 from zim.plugins import find_extension
 from zim.plugins.pageindex import *
 
-from zim.config import VirtualConfigManager
-
 
 from tests.mainwindow import setUpMainWindow
 
@@ -161,11 +159,10 @@ class TestSignals(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook()
-		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		model = PageTreeStore(notebook.index)
 		init_model_validator_wrapper(self, model)
-		treeview = PageTreeView(notebook, config, navigation, model=model)
+		treeview = PageTreeView(notebook, navigation, model=model)
 
 		signals = []
 		def signal_logger(o, *a):
@@ -220,11 +217,10 @@ class TestPageTreeView(tests.TestCase):
 
 	def setUp(self):
 		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		self.model = PageTreeStore(self.notebook.index)
 		init_model_validator_wrapper(self, self.model)
-		self.treeview = PageTreeView(self.notebook, config, navigation, model=self.model)
+		self.treeview = PageTreeView(self.notebook, navigation, model=self.model)
 		treepath = self.treeview.set_current_page(Path('Test'))
 		assert treepath is not None
 		self.treeview.select_treepath(treepath)

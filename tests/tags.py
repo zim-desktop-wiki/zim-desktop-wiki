@@ -9,7 +9,7 @@ from gi.repository import Pango
 from zim.notebook import Path
 from zim.notebook.index import Index
 from zim.notebook.index.tags import MyTreeIter, IS_PAGE, IS_TAG
-from zim.config import ConfigDict, VirtualConfigManager
+from zim.config import ConfigDict
 from zim.plugins.tags import *
 
 from tests.pageindex import init_model_validator_wrapper
@@ -111,11 +111,10 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 	def testTreeView(self):
 		self.notebook.index.flush() # we want to index ourselves
-		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		treestore = self.storeclass(self.notebook.index, self.tags)
 		init_model_validator_wrapper(self, treestore)
-		treeview = self.viewclass(self.notebook, config, navigation, treestore)
+		treeview = self.viewclass(self.notebook, navigation, treestore)
 
 		# Process signals on by one
 		self.assertEqual(self.notebook.pages.n_all_pages(), 0) # assert we start blank
@@ -161,11 +160,10 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		#  - a:b
 
 		notebook = self.setUpNotebook()
-		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		model = self.storeclass(notebook.index, ('foo', 'bar'))
 		init_model_validator_wrapper(self, model)
-		treeview = PageTreeView(notebook, config, navigation, model=model)
+		treeview = PageTreeView(notebook, navigation, model=model)
 
 		signals = []
 		def signal_logger(o, *a):
@@ -271,11 +269,10 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		#  - a:b
 
 		notebook = self.setUpNotebook()
-		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		model = self.storeclass(notebook.index, ('foo', 'bar'))
 		init_model_validator_wrapper(self, model)
-		treeview = PageTreeView(notebook, config, navigation, model=model)
+		treeview = PageTreeView(notebook, navigation, model=model)
 
 		signals = []
 		def signal_logger(o, *a):
@@ -365,10 +362,9 @@ class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		config = VirtualConfigManager()
 		navigation = tests.MockObject()
 		uistate = ConfigDict()
-		widget = TagsPluginWidget(notebook, config, navigation, uistate)
+		widget = TagsPluginWidget(notebook, navigation, uistate)
 
 		# Excersize all model switches and check we still have a sane state
 		widget.toggle_treeview()

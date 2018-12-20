@@ -56,7 +56,6 @@ class TagsPageViewExtension(PageViewExtension):
 
 		self.widget = TagsPluginWidget(
 			pageview.notebook,
-			plugin.config,
 			self.navigation,
 			self.uistate
 		)
@@ -81,7 +80,7 @@ class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 
 	title = _('Tags') # T: title for sidepane tab
 
-	def __init__(self, notebook, config, navigation, uistate):
+	def __init__(self, notebook, navigation, uistate):
 		GObject.GObject.__init__(self)
 		self.notebook = notebook
 		self.index = notebook.index
@@ -94,7 +93,7 @@ class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
 		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
 
-		self.treeview = TagsPageTreeView(notebook, config, navigation)
+		self.treeview = TagsPageTreeView(notebook, navigation)
 		self.pack2(ScrolledWindow(self.treeview), shrink=False)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)

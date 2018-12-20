@@ -22,10 +22,9 @@ notebook_properties = (
 
 class PropertiesDialog(Dialog):
 
-	def __init__(self, parent, config, notebook):
+	def __init__(self, parent, notebook):
 		Dialog.__init__(self, parent, _('Properties'), help='Help:Properties') # T: Dialog title
 		self.notebook = notebook
-		self.config = config
 
 		stack = Gtk.Stack()
 		sidebar = Gtk.StackSidebar()

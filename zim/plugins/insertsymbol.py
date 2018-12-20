@@ -6,6 +6,7 @@ import logging
 
 from zim.plugins import PluginClass
 from zim.actions import action
+from zim.config import ConfigManager
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
@@ -32,15 +33,15 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Insert Symbol',
 	}
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.symbols = {}
 		self.symbol_order = []
 
 	def load_file(self):
 		self.symbols = {}
 		self.symbol_order = []
-		file = self.config.get_config_file('symbols.list')
+		file = ConfigManager.get_config_file('symbols.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -191,7 +192,7 @@ class InsertSymbolDialog(Dialog):
 		self.textentry.set_position(pos + len(text))
 
 	def on_edit(self, button):
-		file = self.plugin.config.get_config_file('symbols.list')
+		file = ConfigManager.get_config_file('symbols.list')
 		if edit_config_file(self, file):
 			self.plugin.load_file()
 			self.load_symbols()

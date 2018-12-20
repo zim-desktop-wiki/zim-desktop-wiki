@@ -231,7 +231,7 @@ class JournalPageViewExtension(PageViewExtension):
 		PageViewExtension.__init__(self, plugin, pageview)
 
 		self.notebook = pageview.notebook
-		self.calendar_widget = CalendarWidget(plugin, self.notebook, plugin.config, self.navigation)
+		self.calendar_widget = CalendarWidget(plugin, self.notebook, self.navigation)
 		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
 
 		properties = self.plugin.notebook_properties(self.notebook)
@@ -331,7 +331,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	title = _('Journal') # T: side pane title
 
-	def __init__(self, plugin, notebook, config, navigation):
+	def __init__(self, plugin, notebook, navigation):
 		GObject.GObject.__init__(self)
 		self.plugin = plugin
 		self.notebook = notebook
@@ -371,7 +371,7 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False, True, 0)
 
-		self.treeview = PageTreeView(notebook, config, navigation)
+		self.treeview = PageTreeView(notebook, navigation)
 		self.pack_start(ScrolledWindow(self.treeview), True, True, 0)
 
 	def go_today(self):

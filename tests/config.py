@@ -595,40 +595,6 @@ class TestHierarchicDict(tests.TestCase):
 		self.assertEqual(dict[Path('foo:bar:baz')]['key2'], 'FOO')
 
 
-
-class TestVirtualConfigBackend(tests.TestCase):
-
-	def runTest(self):
-		dir = VirtualConfigBackend()
-		file = dir.file('foo.conf')
-
-		self.assertEqual(file.path, '<virtual>/foo.conf')
-		self.assertEqual(file.basename, 'foo.conf')
-		self.assertFalse(file.exists())
-		self.assertRaises(FileNotFoundError, file.read)
-		self.assertRaises(FileNotFoundError, file.readlines)
-
-		file.touch()
-		self.assertTrue(file.exists())
-		self.assertEqual(file.read(), '')
-		self.assertEqual(file.readlines(), [])
-
-		file.remove()
-		self.assertFalse(file.exists())
-		self.assertRaises(FileNotFoundError, file.read)
-		self.assertRaises(FileNotFoundError, file.readlines)
-
-		file.write('foo\nbar\n')
-		self.assertTrue(file.exists())
-		self.assertEqual(file.read(), 'foo\nbar\n')
-		self.assertEqual(file.readlines(), ['foo\n', 'bar\n'])
-
-		file.writelines(['bar\n', 'baz\n'])
-		self.assertTrue(file.exists())
-		self.assertEqual(file.read(), 'bar\nbaz\n')
-		self.assertEqual(file.readlines(), ['bar\n', 'baz\n'])
-
-
 class TestXDGConfigDirsIter(tests.TestCase):
 
 	def runTest(self):
@@ -669,7 +635,9 @@ class TestXDGConfigFileIter(tests.TestCase):
 class TestConfigFile(tests.TestCase):
 
 	def testExistingFile(self):
-		file = ConfigFile(VirtualConfigBackendFile({}, 'foo.conf'))
+		from zim.newfs.mock import MockFile
+
+		file = ConfigFile(MockFile('/<mock>/foo.conf'))
 		self.assertEqual(file.basename, 'foo.conf')
 
 		other = ConfigFile(file.file)
@@ -698,11 +666,12 @@ class TestConfigFile(tests.TestCase):
 
 
 	def testWithDefaults(self):
-		data = {'default.conf': 'default!\n'}
-		file = ConfigFile(
-			VirtualConfigBackendFile(data, 'foo.conf'),
-			[VirtualConfigBackendFile(data, 'default.conf')]
-		)
+		from zim.newfs.mock import MockFolder
+		folder = MockFolder('/<mock>/config/')
+		userfile = folder.file('foo.conf')
+		defaultfile = folder.file('default.conf')
+		defaultfile.write('default!\n')
+		file = ConfigFile(userfile, [defaultfile])
 
 		self.assertEqual(file.read(), 'default!\n')
 		self.assertEqual(file.readlines(), ['default!\n'])
@@ -722,6 +691,8 @@ class TestConfigFile(tests.TestCase):
 
 
 class ConfigManagerTests(object):
+
+	mockConfigManager = False  # breaks hack in customtools
 
 	FILES = {
 		'foo.conf': 'FOO!\n',
@@ -774,13 +745,6 @@ newkey=ja
 		with tests.LoggingFilter('zim.config', 'Use of "<profile>/"'):
 			newdict = manager.get_config_dict('<profile>/dict.conf')
 			self.assertEqual(id(dict), id(newdict))
-
-
-class TestVirtualConfigManager(tests.TestCase, ConfigManagerTests):
-
-	def setUp(self):
-		self.manager = VirtualConfigManager(**self.FILES)
-		self.prefix = ''
 
 
 @tests.slowTest

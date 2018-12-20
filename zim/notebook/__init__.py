@@ -113,8 +113,7 @@ def build_notebook(location):
 def mount_notebook(filepath):
 	from zim.config import ConfigManager, String
 
-	config = ConfigManager() # XXX should be passed in
-	configdict = config.get_config_dict('automount.conf')
+	configdict = ConfigManager.get_config_dict('automount.conf')
 
 	groups = sorted([k for k in list(configdict.keys()) if k.startswith('Path')])
 	for group in groups:

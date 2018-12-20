@@ -67,7 +67,7 @@ class PageIndexPageViewExtension(PageViewExtension):
 		PageViewExtension.__init__(self, plugin, pageview)
 		index = pageview.notebook.index
 		model = PageTreeStore(index)
-		self.treeview = PageTreeView(pageview.notebook, plugin.config, self.navigation)
+		self.treeview = PageTreeView(pageview.notebook, self.navigation)
 		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
 
@@ -356,11 +356,10 @@ class PageTreeView(BrowserTreeView):
 		'copy': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook, config, navigation, model=None):
+	def __init__(self, notebook, navigation, model=None):
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
 		self.notebook = notebook
-		self.config = config
 		self.navigation = navigation
 
 		column = Gtk.TreeViewColumn('_pages_')
@@ -446,7 +445,6 @@ class PageTreeView(BrowserTreeView):
 			self,
 			self.notebook,
 			path,
-			self.config,
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)

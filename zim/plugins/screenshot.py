@@ -107,8 +107,8 @@ This is a core plugin shipping with zim.
 	)
 	screenshot_cmd = COMMAND
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.on_preferences_changed(self.preferences)
 		self.preferences.connect('changed', self.on_preferences_changed)
 

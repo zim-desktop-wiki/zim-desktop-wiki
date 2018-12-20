@@ -2769,8 +2769,8 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 
 		if hasattr(self, 'uistate'):
 			assert isinstance(self.uistate, zim.config.ConfigDict) # just to be sure
-		elif hasattr(window, 'config') and hasattr(window.config, 'uistate'):
-			self.uistate = window.config.uistate[self.__class__.__name__]
+		elif hasattr(window, 'notebook'):
+			self.uistate = window.notebook.state[self.__class__.__name__]
 		else:
 			self.uistate = zim.config.ConfigDict()
 

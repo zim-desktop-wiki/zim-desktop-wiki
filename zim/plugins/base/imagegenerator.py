@@ -47,8 +47,8 @@ class ImageGeneratorPlugin(PluginClass):
 	edit_label = None
 	syntax = None
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 
 		# Construct a new class on run time
 		klassname = self.object_type.title() + 'PageViewExtension'

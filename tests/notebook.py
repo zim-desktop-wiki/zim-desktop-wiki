@@ -12,7 +12,7 @@ import time
 
 from zim.fs import File, Dir
 from zim.newfs.mock import os_native_path
-from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
+from zim.config import ConfigManager, XDG_CONFIG_HOME
 from zim.formats import ParseTree
 from zim.formats.wiki import Parser as WikiParser
 
