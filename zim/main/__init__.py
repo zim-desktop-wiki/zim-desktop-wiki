@@ -33,6 +33,9 @@ from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
 from zim.formats import get_format
 
+from zim.config import ConfigManager
+from zim.plugins import PluginManager
+
 from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
 from .ipc import start_listening as _ipc_start_listening
@@ -291,27 +294,28 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		from gi.repository import GObject
 
 		from zim.gui.mainwindow import MainWindow
-		from zim.config import ConfigManager
-		from zim.plugins import PluginManager
-
-		preferences = ConfigManager.preferences['General']
-		preferences.setdefault('plugins', [
-			'pageindex', 'pathbar',
-			'journal', 'insertsymbol', 'printtobrowser',
-			'versioncontrol',
-		])
-
-		# Upgrade plugin list
-		preferences.setdefault('plugins_list_version', 'none')
-		if preferences['plugins_list_version'] != '0.68':
-			preferences['plugins'].extend(['pageindex', 'pathbar'])
-			if 'calendar' in preferences['plugins']:
-				preferences['plugins'].remove('calendar')
-				preferences['plugins'].append('journal')
-				ConfigManager.preferences['JournalPlugin'] = ConfigManager.preferences['CalendarPlugin']
-			preferences['plugins_list_version'] = '0.68'
 
 		pluginmanager = PluginManager()
+
+		preferences = ConfigManager.preferences['General']
+		preferences.setdefault('plugins_list_version', 'none')
+		if preferences['plugins_list_version'] != '0.70':
+			if not preferences['plugins']:
+				pluginmanager.load_plugins_from_preferences(
+					[ # Default plugins
+						'pageindex', 'pathbar',
+						'journal', 'insertsymbol', 'printtobrowser',
+						'versioncontrol',
+					]
+				)
+			elif 'calendar' in pluginmanager.failed:
+				ConfigManager.preferences['JournalPlugin'] = \
+						ConfigManager.preferences['CalendarPlugin']
+				pluginmanager.load_plugins_from_preferences(['journal'])
+			else:
+				pass
+			preferences['plugins_list_version'] = '0.70'
+
 		pluginmanager.extend(notebook)
 
 		window = MainWindow(
@@ -321,7 +325,6 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		)
 		pluginmanager.extend(window)
 		pluginmanager.extend(window.pageview)
-		window.__pluginmanager__ = pluginmanager # HACK to allow dialogs to find it
 		window.present()
 
 		if not window.notebook.index.is_uptodate:
@@ -489,7 +492,6 @@ class ExportCommand(NotebookCommand):
 
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
-		from zim.plugins import PluginManager
 
 		notebook, page = self.build_notebook()
 
@@ -682,6 +684,9 @@ class ZimApplication(object):
 		@param args: commandline arguments
 		@param kwargs: optional arguments for L{build_command}
 		'''
+		PluginManager().load_plugins_from_preferences(
+			ConfigManager.preferences['General']['plugins']
+		)
 		cmd = build_command(args, **kwargs)
 		self._run_cmd(cmd, args) # test seam
 

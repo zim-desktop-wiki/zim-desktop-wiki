@@ -2956,11 +2956,8 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		if not self._registered:
 			self._registered = True
 
-			### HACK to find plugins - don't use getattr to explicitly break when hack changes ###
-			parent = self.get_property('transient-for')
-			if parent and parent.__class__.__name__ == 'MainWindow':
-				parent.__pluginmanager__.extend(self)
-			###
+			from zim.plugins import PluginManager
+			PluginManager.extend(self)
 
 		if not TEST_MODE:
 			Gtk.Dialog.show_all(self)

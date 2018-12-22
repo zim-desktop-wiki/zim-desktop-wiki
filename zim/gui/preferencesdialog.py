@@ -15,6 +15,7 @@ from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_cre
 
 from zim.plugins import PLUGIN_FOLDER
 from zim.config import String, ConfigManager
+from zim.plugins import PluginManager
 
 from zim.gui.mainwindow import ui_preferences as interface_preferences
 from zim.gui.pageview import ui_preferences as pageview_preferences
@@ -35,7 +36,7 @@ class PreferencesDialog(Dialog):
 		self.preferences = ConfigManager.preferences
 
 		# saves a list of loaded plugins to be used later
-		self.plugins = get_window(widget).__pluginmanager__ # XXX
+		self.plugins = PluginManager()
 		self.p_save_loaded = list(self.plugins)
 
 		# Dynamic tabs

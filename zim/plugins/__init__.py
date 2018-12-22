@@ -93,7 +93,7 @@ __path__.append(__path__.pop(0)) # reshuffle real module path to the end
 PLUGIN_FOLDER = XDG_DATA_HOME.subdir('zim/plugins')
 
 
-class PluginManager(ConnectorMixin, collections.Mapping):
+class PluginManagerClass(ConnectorMixin, collections.Mapping):
 	'''Manager that maintains a set of active plugins
 
 	This class is the interface towards the rest of the application to
@@ -119,17 +119,31 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		to the plugins and is used to load plugin preferences.
 		Defaults to a L{VirtualConfigManager} for testing.
 		'''
-		self._preferences = ConfigManager.preferences
-		self.general_preferences = self._preferences['General']
-		self.general_preferences.setdefault('plugins', [])
+		self._reset()
+
+	def _reset(self):
+		self._preferences = ConfigManager.preferences['General']
+		self._preferences.setdefault('plugins', [])
 
 		self._plugins = {}
 		self._extendables = WeakSet()
+		self.failed = set()
 
-		self._load_plugins()
+	def load_plugins_from_preferences(self, names):
+		'''Calls L{load_plugin()} for each plugin in C{names} but does not
+		raise an exception when loading fails.
+		'''
+		for name in names:
+			try:
+				self.load_plugin(name)
+			except:
+				logger.exception('Exception while loading plugin: %s', name)
+				if name in self._preferences['plugins']:
+					self._preferences['plugins'].remove(name)
+				self.failed.add(name)
 
-		self.connectto(self._preferences, 'changed',
-			self.on_preferences_changed)
+	def __call__(self):
+		return self # singleton behavior if called as class
 
 	def __getitem__(self, name):
 		return self._plugins[name]
@@ -140,15 +154,6 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 
 	def __len__(self):
 		return len(self._plugins)
-
-	def _load_plugins(self):
-		'''Load plugins based on config'''
-		for name in sorted(self.general_preferences['plugins']):
-			try:
-				self.load_plugin(name)
-			except:
-				logger.exception('Exception while loading plugin: %s', name)
-				self.general_preferences['plugins'].remove(name)
 
 	@classmethod
 	def list_installed_plugins(klass):
@@ -185,24 +190,6 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		mod = get_module(modname)
 		return lookup_subclass(mod, PluginClass)
 
-	@SignalHandler
-	def on_preferences_changed(self, o):
-		current = set(self._plugins.keys())
-		new = set(self.general_preferences['plugins'])
-
-		for name in current - new:
-			try:
-				self.remove_plugin(name)
-			except:
-				logger.exception('Exception while removing plugin: %s', name)
-
-		for name in new - current:
-			try:
-				self.load_plugin(name)
-			except:
-				logger.exception('Exception while loading plugin: %s', name)
-				self.general_preferences['plugins'].remove(name)
-
 	def load_plugin(self, name):
 		'''Load a single plugin by name
 
@@ -232,10 +219,9 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 			except:
 				logger.exception('Exception in plugin: %s', name)
 
-		if not name in self.general_preferences['plugins']:
-			with self.on_preferences_changed.blocked():
-				self.general_preferences['plugins'].append(name)
-				self.general_preferences.changed()
+		if not name in self._preferences['plugins']:
+			self._preferences['plugins'].append(name)
+			self._preferences.changed()
 
 		return plugin
 
@@ -244,11 +230,10 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		Fails silently if the plugin is not loaded.
 		@param name: the plugin module name
 		'''
-		if name in self.general_preferences['plugins']:
+		if name in self._preferences['plugins']:
 			# Do this first regardless of exceptions etc.
-			with self.on_preferences_changed.blocked():
-				self.general_preferences['plugins'].remove(name)
-				self.general_preferences.changed()
+			self._preferences['plugins'].remove(name)
+			self._preferences.changed()
 
 		try:
 			plugin = self._plugins.pop(name)
@@ -277,6 +262,14 @@ class PluginManager(ConnectorMixin, collections.Mapping):
 		if not obj in self._extendables:
 			self._foreach(lambda p: p.extend(obj))
 			self._extendables.add(obj)
+
+
+PluginManager = PluginManagerClass()  # singleton
+
+
+def resetPluginManager():
+	# used in test suite to reset singleton internal state
+	PluginManager._reset()
 
 
 class PluginClass(ConnectorMixin):

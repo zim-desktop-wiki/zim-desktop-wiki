@@ -169,6 +169,9 @@ else:
 
 from zim.newfs import LocalFolder
 
+import zim.config.manager
+import zim.plugins
+import zim.objectmanager
 
 _zim_pyfiles = []
 
@@ -239,19 +242,17 @@ class TestCase(unittest.TestCase):
 	@classmethod
 	def setUpClass(cls):
 		if cls.mockConfigManager:
-			import zim.config.manager
 			zim.config.manager.makeConfigManagerVirtual()
+			zim.plugins.resetPluginManager()
 
 	@classmethod
 	def tearDownClass(cls):
 		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
 
-		import zim.config.manager
 		zim.config.manager.resetConfigManager()
-
-		from zim.objectmanager import ObjectManager
-		ObjectManager._objects.clear() # HACK - reset singleton
+		zim.plugins.resetPluginManager()
+		zim.objectmanager.ObjectManager._objects.clear() # HACK - reset singleton
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing

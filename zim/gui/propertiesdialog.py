@@ -8,6 +8,7 @@ logger = logging.getLogger('zim.gui')
 
 from gi.repository import Gtk
 
+from zim.plugins import PluginManager
 from zim.gui.widgets import Dialog, get_window, InputForm
 
 notebook_properties = (
@@ -46,7 +47,7 @@ class PropertiesDialog(Dialog):
 		stack.add_titled(self.form, 'notebook', _('Notebook'))
 
 		self.plugin_forms = {}
-		plugins = get_window(parent).__pluginmanager__ # XXX
+		plugins = PluginManager()
 		for name in plugins:
 			plugin = plugins[name]
 			if plugin.plugin_notebook_properties:
