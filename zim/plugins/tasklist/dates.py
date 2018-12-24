@@ -140,7 +140,10 @@ class Month(DateRange):
 
 	@property
 	def last_day(self):
-		return datetime.date(self.year, self.month + 1, 1) - datetime.timedelta(days=1)
+		if self.month < 12:
+			return datetime.date(self.year, self.month + 1, 1) - datetime.timedelta(days=1)
+		else:
+			return datetime.date(self.year + 1, 1, 1) - datetime.timedelta(days=1)
 
 	def __str__(self):
 		return '%s-%s' % (self.year, self.month)

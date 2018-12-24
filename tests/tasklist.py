@@ -124,23 +124,24 @@ Edge case with wrongly nested list
 
 '''
 
+from zim.plugins.tasklist.indexer import TaskParser
+from zim.parsing import parse_date
+
+NO_DATE = '9999'
+
+def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
+	# Generate a task tuple
+	# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
+	if tags:
+		tags = set(str(tags).split(','))
+	else:
+		tags = set()
+	return [open, prio, start, due, tags, str(desc)]
+
+
 class TestTaskParser(tests.TestCase):
 
 	def testAllCheckboxes(self):
-		from zim.plugins.tasklist.indexer import TaskParser
-
-		from zim.parsing import parse_date
-		NO_DATE = '9999'
-
-		def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
-			# Generate a task tuple
-			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
-			if tags:
-				tags = set(str(tags).split(','))
-			else:
-				tags = set()
-			return [open, prio, start, due, tags, str(desc)]
-
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
 		wanted = [
@@ -230,20 +231,6 @@ class TestTaskParser(tests.TestCase):
 		self.assertEqual(tasks, wanted)
 
 	def testLabelledCheckboxes(self):
-		from zim.plugins.tasklist.indexer import TaskParser
-
-		from zim.parsing import parse_date
-		NO_DATE = '9999'
-
-		def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
-			# Generate a task tuple
-			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
-			if tags:
-				tags = set(str(tags).split(','))
-			else:
-				tags = set()
-			return [open, prio, start, due, tags, str(desc)]
-
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
 		wanted = [
@@ -289,6 +276,29 @@ class TestTaskParser(tests.TestCase):
 
 		#~ import pprint; pprint.pprint(tasks)
 		self.assertEqual(tasks, wanted)
+
+	def testDate(self):
+		text = '''\
+[ ] Task <2018-12
+[ ] Task >2018-12
+'''
+		wanted = [
+			(t('Task <2018-12', due='2018-12-31'), []),
+			(t('Task >2018-12', start='2018-12-01'), [])
+		]
+
+		tree = WikiParser().parse(text)
+		tb = TokenBuilder()
+		tree.visit(tb)
+		tokens = tb.tokens
+		testTokenStream(tokens)
+
+		parser = TaskParser()
+		tasks = parser.parse(tokens)
+
+		#import pprint; pprint.pprint(tasks)
+		self.assertEqual(tasks, wanted)
+
 
 
 class TestTaskList(tests.TestCase):
