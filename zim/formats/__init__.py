@@ -76,7 +76,7 @@ from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
 from zim.config import data_file, ConfigDict
-from zim.objectmanager import ObjectManager
+from zim.plugins import PluginManager
 
 import zim.plugins
 from functools import reduce
@@ -1274,7 +1274,7 @@ class DumperClass(Visitor):
 		'''Dumps objects defined by L{InsertedObjectType}'''
 		format = str(self.__class__.__module__).split('.')[-1]
 		try:
-			obj = ObjectManager.get_object(attrib['type'])
+			obj = PluginManager.insertedobjects[attrib['type']]
 		except KeyError:
 			pass
 		else:

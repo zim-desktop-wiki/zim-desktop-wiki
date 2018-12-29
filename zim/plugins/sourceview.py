@@ -22,10 +22,9 @@ try:
 except:
 	GtkSource = None
 
-from zim.plugins import PluginClass, InsertedObjectType
+from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.utils import WeakSet
-from zim.objectmanager import ObjectManager
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
@@ -79,7 +78,7 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 		return check, [('GtkSourceView', check, True)]
 
 
-class SourceViewObjectType(InsertedObjectType):
+class SourceViewObjectType(InsertedObjectTypeExtension):
 
 	name = 'code'
 
@@ -90,10 +89,10 @@ class SourceViewObjectType(InsertedObjectType):
 		'linenumbers': Boolean(True),
 	}
 
-	def __init__(self, plugin):
-		InsertedObjectType.__init__(self, plugin)
+	def __init__(self, plugin, objmap):
 		self._widgets = WeakSet()
 		self.preferences = plugin.preferences
+		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_object_interactive(self, parent):

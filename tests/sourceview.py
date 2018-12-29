@@ -10,6 +10,7 @@ from tests.pageview import setUpPageView
 from zim.formats import ParseTree, StubLinker
 from zim.formats.html import Dumper as HtmlDumper
 
+from zim.plugins import PluginManager
 from zim.plugins.sourceview import *
 
 
@@ -26,10 +27,7 @@ def get_gtk_action(uimanager, name):
 class TestPageView(tests.TestCase):
 
 	def setUp(self):
-		self.plugin = SourceViewPlugin()
-
-	def tearDown(self):
-		self.plugin.destroy()
+		PluginManager.load_plugin('sourceview')
 
 	def testWidget(self):
 		pageview = setUpPageView(
@@ -105,21 +103,18 @@ def dump():
 class TestSourceViewObject(tests.TestCase):
 
 	def setUp(self):
-		self.plugin = SourceViewPlugin()
-
-	def tearDown(self):
-		self.plugin.destroy()
+		PluginManager.load_plugin('sourceview')
 
 	def testPreferencesChanged(self):
-		obj = self.plugin._objecttypes[0]
+		obj = PluginManager.insertedobjects['code']
 		model = obj.model_from_data(*obj.new_object())
 		widget = obj.create_widget(model)
 		self.assertTrue(widget.view.get_smart_home_end())
-		self.plugin.preferences['smart_home_end'] = False
+		obj.plugin.preferences['smart_home_end'] = False
 		self.assertFalse(widget.view.get_smart_home_end())
 
 	def testPopUp(self):
-		obj = self.plugin._objecttypes[0]
+		obj = PluginManager.insertedobjects['code']
 		model = obj.model_from_data(*obj.new_object())
 		widget = obj.create_widget(model)
 

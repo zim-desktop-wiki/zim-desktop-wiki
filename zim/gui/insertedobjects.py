@@ -9,8 +9,8 @@ from gi.repository import Gdk
 
 import zim.errors
 
-from zim.objectmanager import ObjectManager
-from zim.plugins import InsertedObjectType
+from zim.plugins import PluginManager, InsertedObjectTypeExtension
+from zim.insertedobjects import InsertedObjectType
 
 from zim.gui.widgets import ScrolledTextView, ScrolledWindow, widget_set_css
 
@@ -168,6 +168,20 @@ class TextViewWidget(InsertedObjectWidget):
 		return None # let parent handle this signal
 
 
+def _find_plugin(name):
+	plugins = PluginManager()
+	for plugin_name in plugins.list_installed_plugins():
+		try:
+			klass = plugins.get_plugin_class(plugin_name)
+			for objtype in klass.discover_classes(InsertedObjectTypeExtension):
+				if objtype.name == name:
+					activatable = klass.check_dependencies_ok()
+					return (plugin_name, klass.plugin_info['name'], activatable, klass)
+		except:
+			continue
+	return None
+
+
 class UnkownObjectWidget(TextViewWidget):
 
 	def __init__(self, buffer):
@@ -176,9 +190,9 @@ class UnkownObjectWidget(TextViewWidget):
 		# TODO set background grey ?
 
 		type = buffer.object_attrib.get('type')
-		plugin = ObjectManager.find_plugin(type) if type else None
-		if plugin:
-			header = self._add_load_plugin_bar(plugin)
+		plugin_info = _find_plugin(type) if type else None
+		if plugin_info:
+			header = self._add_load_plugin_bar(plugin_info)
 			self.add_header(header)
 		else:
 			label = Gtk.Label(
@@ -186,32 +200,26 @@ class UnkownObjectWidget(TextViewWidget):
 			)
 			self.add_header(label)
 
-	def _add_load_plugin_bar(self, plugin):
-		key, name, activatable, klass = plugin
+	def _add_load_plugin_bar(self, plugin_info):
+		key, name, activatable, klass = plugin_info
 
 		hbox = Gtk.HBox(False, 5)
-		label = Gtk.Label(label=_("Plugin %s is required to display this object.") % name)
-			# T: Label for object manager
+		label = Gtk.Label(label=_("Plugin \"%s\" is required to display this object") % name)
+			# T: Label for object manager - "%s" is the plugin name
 		hbox.pack_start(label, True, True, 0)
 
-		#~ if activatable: # and False:
-			# Plugin can be enabled
-			#~ button = Gtk.Button.new_with_mnemonic(_("Enable plugin")) # T: Label for object manager
-			#~ def load_plugin(button):
-				#~ xxx.plugins.load_plugin(key)
-				#~ xxx.mainwindow.reload_page()
-			#~ button.connect("clicked", load_plugin)
-		#~ else:
-			# Plugin has some unresolved dependencies
-			#~ button = Gtk.Button.new_with_mnemonic(_("Show plugin details")) # T: Label for object manager
-			#~ def plugin_info(button):
-				#~ from zim.gui.preferencesdialog import PreferencesDialog
-				#~ dialog = PreferencesDialog(self, "Plugins", select_plugin=name)
-				#~ dialog.run()
-				#~ xxx.mainwindow.reload_page()
-			#~ button.connect("clicked", plugin_info)
+		button = Gtk.Button(_("Enable plugin")) # T: Label for object manager
+		button.set_relief(Gtk.ReliefStyle.NONE)
+		hbox.pack_end(button, False, False, 0)
 
-		#~ hbox.pack_start(button, True, True, 0)
+		if activatable:
+			# Plugin can be enabled
+			def load_plugin(button):
+				PluginManager().load_plugin(key)
+			button.connect("clicked", load_plugin)
+		else:
+			button.set_sensitive(False)
+
 		return hbox
 
 
@@ -234,9 +242,6 @@ class UnknownInsertedObject(InsertedObjectType):
 	name = "unknown"
 
 	label = _('Unkown Object')  # T: label for inserted object
-
-	def __init__(self):
-		InsertedObjectType.__init__(self, plugin=None)
 
 	def parse_attrib(self, attrib):
 		# Overrule base class checks since we don't know what this object is
@@ -261,10 +266,11 @@ class InsertedObjectUI(object):
 	def __init__(self, uimanager, pageview):
 		self.uimanager = uimanager
 		self.pageview = pageview
+		self.insertedobjects = PluginManager().insertedobjects
 		self._ui_id = None
 		self._actiongroup = None
 		self.add_ui()
-		ObjectManager.connect('changed', self.on_changed)
+		self.insertedobjects.connect('changed', self.on_changed)
 
 	def on_changed(self, o):
 		self.uimanager.remove_ui(self._ui_id)
@@ -286,7 +292,7 @@ class InsertedObjectUI(object):
 	def get_actiongroup(self):
 		actions = [
 			('insert_' + obj.name, obj.verb_icon, obj.label, '', None, self._action_handler)
-				for obj in ObjectManager
+				for obj in self.insertedobjects.values()
 		]
 		group = Gtk.ActionGroup('inserted_objects')
 		group.add_actions(actions)
@@ -295,7 +301,7 @@ class InsertedObjectUI(object):
 	def get_ui_xml(self):
 		menulines = []
 		toollines = []
-		for obj in ObjectManager:
+		for obj in self.insertedobjects.values():
 			name = 'insert_' + obj.name
 			menulines.append("<menuitem action='%s'/>\n" % name)
 			if obj.verb_icon is not None:
@@ -323,7 +329,7 @@ class InsertedObjectUI(object):
 	def _action_handler(self, action):
 		try:
 			name = action.get_name()[7:] # len('insert_') = 7
-			obj = ObjectManager.get_object(name)
+			obj = self.insertedobjects[name]
 			try:
 				attrib, data = obj.new_object_interactive(self.pageview)
 			except ValueError:

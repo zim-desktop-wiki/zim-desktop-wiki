@@ -8,6 +8,7 @@ import tests
 from zim.formats import ParseTree, StubLinker
 from zim.formats.html import Dumper as HtmlDumper
 
+from zim.plugins import PluginManager
 from zim.plugins.tableeditor import *
 
 from tests.mainwindow import setUpMainWindow
@@ -26,10 +27,7 @@ def get_gtk_action(uimanager, name):
 class TestPageView(tests.TestCase):
 
 	def setUp(self):
-		self.plugin = TableEditorPlugin()
-
-	def tearDown(self):
-		self.plugin.destroy()
+		PluginManager.load_plugin('tableeditor')
 
 	def testWidget(self):
 		pageview = setUpPageView(

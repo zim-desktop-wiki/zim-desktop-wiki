@@ -43,7 +43,7 @@ __all__ = [
 	'config', 'applications',
 	'parsing', 'tokenparser',
 	# Notebook components
-	'formats', 'templates', 'objectmanager',
+	'formats', 'templates',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
 	# Core application
@@ -171,7 +171,6 @@ from zim.newfs import LocalFolder
 
 import zim.config.manager
 import zim.plugins
-import zim.objectmanager
 
 _zim_pyfiles = []
 
@@ -252,7 +251,6 @@ class TestCase(unittest.TestCase):
 
 		zim.config.manager.resetConfigManager()
 		zim.plugins.resetPluginManager()
-		zim.objectmanager.ObjectManager._objects.clear() # HACK - reset singleton
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing

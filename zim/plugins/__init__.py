@@ -60,14 +60,16 @@ import collections
 
 from zim.newfs import LocalFolder, LocalFile
 
-from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SignalHandler
+from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_AFTER, SIGNAL_RUN_LAST, SignalHandler
 from zim.utils import classproperty, get_module, lookup_subclass, lookup_subclasses, WeakSet
 from zim.actions import hasaction
 
-from zim.config import data_dirs, XDG_DATA_HOME, ConfigDict, String, ConfigManager
+from zim.config import data_dirs, XDG_DATA_HOME, ConfigManager
+from zim.insertedobjects import InsertedObjectType
 
 
 logger = logging.getLogger('zim.plugins')
+
 
 # Extend path for importing and searching plugins
 #
@@ -128,6 +130,9 @@ class PluginManagerClass(ConnectorMixin, collections.Mapping):
 		self._plugins = {}
 		self._extendables = WeakSet()
 		self.failed = set()
+
+		self.insertedobjects = InsertedObjectTypeMap()
+		self.extend(self.insertedobjects)
 
 	def load_plugins_from_preferences(self, names):
 		'''Calls L{load_plugin()} for each plugin in C{names} but does not
@@ -264,6 +269,73 @@ class PluginManagerClass(ConnectorMixin, collections.Mapping):
 			self._extendables.add(obj)
 
 
+# NOTE: PluginManager singleton defined below
+
+
+class InsertedObjectTypeMap(SignalEmitter):
+	'''Mapping of L{InsertedObjectTypeExtension} objects.
+	This is a proxy for loading object types defined in plugins.
+	For convenience you can use C{PluginManager.insertedobjects} to access
+	an instance of this mapping.
+	'''
+
+	# Note: Wanted to inherit from collections.abc.Mapping
+	#       but conflicts with metaclass use for SignalEmitter
+
+	__signals__ = {
+		'changed': (SIGNAL_RUN_LAST, None, ()),
+	}
+
+	def __init__(self):
+		self._objects = {}
+
+	def __getitem__(self, name):
+		return self._objects[name.lower()]
+
+	def __iter__(self):
+		return iter(sorted(self._objects.keys()))
+			# sort to make operation predictable - easier debugging
+
+	def __len__(self):
+		return len(self._objects)
+
+	def __contains__(self, name):
+		return name.lower() in self._objects
+
+	def keys(self):
+		return [k for k in self]
+
+	def items(self):
+		return [(k, self[v]) for k in self]
+
+	def values(self):
+		return [self[k] for k in self]
+
+	def get(self, name, default=None):
+		return self._objects.get(name.lower(), default)
+
+	def register_object(self, objecttype):
+		'''Register an object type
+		@param objecttype: an object derived from L{InsertedObjectType}
+		@raises AssertionError: if another object already uses the same name
+		'''
+		key = objecttype.name.lower()
+		if key in self._objects:
+			raise AssertionError('InsertedObjectType "%s" already defined by %s' % (key, self._objects[key]))
+		else:
+			self._objects[key] = objecttype
+			self.emit('changed')
+
+	def unregister_object(self, objecttype):
+		'''Unregister a specific object type.
+		@param objecttype: an object derived from L{InsertedObjectType}
+		'''
+		key = objecttype.name.lower()
+		if key in self._objects and self._objects[key] is objecttype:
+			self._objects.pop(key)
+			self.emit('changed')
+
+
 PluginManager = PluginManagerClass()  # singleton
 
 
@@ -395,7 +467,6 @@ class PluginClass(ConnectorMixin):
 		self._init_config(self.preferences, self.plugin_preferences)
 		self._init_config(self.preferences, self.plugin_notebook_properties) # defaults for the properties are preferences
 
-		self.load_insertedobject_types()
 		self.load_extensions_classes()
 
 	@staticmethod
@@ -448,18 +519,6 @@ class PluginClass(ConnectorMixin):
 		module = get_module(pluginklass.__module__)
 		return lookup_subclass(module, klass)
 
-	def load_insertedobject_types(self):
-		'''Loads L{InsertedObjectType} classes defined in the same modul
-		as the plugin.
-		'''
-		from zim.objectmanager import ObjectManager
-		self._objecttypes = [
-			objtype(self)
-				for objtype in self.discover_classes(InsertedObjectType)
-		]
-		for obj in self._objecttypes:
-			ObjectManager.register_object(obj)
-
 	def load_extensions_classes(self):
 		'''Instantiates the C{extension_classes} dictionary with classes
 		found in the same module as the plugin object.
@@ -507,13 +566,8 @@ class PluginClass(ConnectorMixin):
 		This should revert any changes the plugin made to the
 		application (although preferences etc. can be left in place).
 		'''
-		from zim.objectmanager import ObjectManager
-
 		for obj in self.extensions:
 			obj.destroy()
-
-		for obj in self._objecttypes:
-			ObjectManager.unregister_object(obj)
 
 		try:
 			self.disconnect_all()
@@ -688,143 +742,15 @@ class DialogExtension(ExtensionBase):
 			self.dialog.action_area.remove(b)
 
 
-class InsertedObjectType(ConnectorMixin):
-	'''Base class for defining "objects" that can be inserted in a wiki page
+class InsertedObjectTypeExtension(InsertedObjectType, ExtensionBase):
 
-	This class is called "InsertedObjectType" instead of "InsertedObject"
-	because it does *not* represent a single inserted object, but defines a
-	type of object of which many instances can occur. The instances themselves
-	are represented by a series of tokens for the parser and a model plus a
-	widget for the user interface.
-	'''
+	__extends__ = 'InsertedObjectTypeMap'
 
-	# TODO: API to communicate whether this is an inline object or a block
-	#       level object. This could change while editing so must be a model
-	#       property somehow.
+	def __init__(self, plugin, objmap):
+		InsertedObjectType.__init__(self)
+		ExtensionBase.__init__(self, plugin, objmap)
+		objmap.register_object(self)
+		self._objmap = objmap
 
-	name = None
-
-	label = None
-	verb_icon = None
-
-	object_attr = {}
-
-	def __init__(self, plugin):
-		assert self.name is not None
-		assert self.label is not None
-		self.plugin = plugin
-		self.object_attr['type'] = String(self.name)
-
-		for name in ('model_from_data', 'data_from_model', 'format'):
-			orig = getattr(self, name)
-			wrapper = getattr(self, '_' + name + '_wrapper')
-			setattr(self, '_inner_' + name, orig)
-			setattr(self, name, wrapper)
-
-	def parse_attrib(self, attrib):
-		'''Convenience method to enforce the supported attributes and their
-		types.
-		@returns: a L{ConfigDict} using the C{object_attr} dict as definition
-		'''
-		if not isinstance(attrib, ConfigDict):
-			attrib = ConfigDict(attrib)
-			attrib.define(self.object_attr)
-		return attrib
-
-	def new_object(self):
-		'''Create a new empty object
-		@returns: a 2-tuple C{(attrib, data)}
-		'''
-		attrib = self.parse_attrib({})
-		return attrib, ''
-
-	def new_object_interactive(self, parent):
-		'''Create a new object interactively
-		Interactive means that we can use e.g. a dialog to prompt for input.
-		The default behavior is to use L{new_object()}.
-		@param parent: Gtk widget to use as parent widget for dialogs
-		@returns: a 2-tuple C{(attrib, data)}
-		@raises: ValueError: if user cancelled the action
-		'''
-		return self.new_object()
-
-	def _model_from_data_wrapper(self, attrib, data):
-		attrib = self.parse_attrib(attrib)
-		return self._inner_model_from_data(attrib, data)
-
-	def model_from_data(self, attrib, data):
-		'''Returns a model for the object
-
-		The main purpose for the model is that it is shared between widgets that
-		show the same object. See e.g. C{Gtk.TextBuffer} or C{Gtk.TreeModel}
-		for examples.
-
-		No API is expected of the model object other than that it can be used as
-		argument for L{create_widget()} and L{data_from_model()} and a
-		"changed" signal that should be emitted when the content has changed, so
-		the pageview knows that the page has changed and should be saved before
-		closing.
-
-		This method should always be robust for missing attributes and body
-		contents. The C{attrib} will automatically be checked by L{parse_attrib}
-		before being given to this method.
-
-		@param attrib: dict with object attributes
-		@param data: string with object content
-		@returns: a model object
-		'''
-		raise NotImplementedError
-
-	def _data_from_model_wrapper(self, model):
-		attrib, data = self._inner_data_from_model(model)
-		return attrib.copy(), data # Enforce shallow copy
-
-	def data_from_model(self, model):
-		'''Returns the object data for a model object
-		This method is used to serialize the model object back into a form that
-		can be handled when parsing wiki content.
-		@param model: an object created with L{model_from_data()}
-		@returns: a 2-tuple C{(attrib, data)}
-		'''
-		raise NotImplementedError
-
-	def create_widget(self, model):
-		'''Return a Gtk widget for the given model
-		@param model: an object created with L{model_from_data()}
-		@returns: a Gtk widget object derived from L{InsertedObjectWidget}
-		'''
-		raise NotImplementedError
-
-	def _format_wrapper(self, format, dumper, attrib, data):
-		attrib = self.parse_attrib(attrib)
-		return self._inner_format(format, dumper, attrib, data)
-
-	def format(self, format, dumper, attrib, data):
-		'''Format the object using a specific output format
-		Intended to improve rendering of the object on exporting.
-
-		This method should always be robust for missing attributes and body
-		contents. The C{attrib} will automatically be checked by L{parse_attrib}
-		before being given to this method.
-
-		Implementing this method is optional, default checks for a specific
-		method per format (e.g. C{format_html()} for the "html" formatal) and
-		raises C{ValueError} if no such method is defined.
-
-		@param format: name of the output format
-		@param dumper: L{Dumper} object
-		@param attrib: dict with object attributes
-		@param data: string with object content
-		@returns: a list of strings
-		@raises ValueError: if no specific formatting for "format" is available
-		'''
-		try:
-			method = getattr(self, 'format_' + format)
-		except AttributeError:
-			raise ValueError('No "%s" formatting defined for objecttype "%s"' % (format, self.name))
-		else:
-			return method(dumper, attrib, data)
-
-	def destroy(self):
-		'''Called when unloading the plugin'''
-		self.disconnect_all()
+	def teardown(self):
+		self._objmap.unregister_object(self)

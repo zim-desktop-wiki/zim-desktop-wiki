@@ -48,7 +48,6 @@ from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.uiactions import attach_file
-from zim.objectmanager import ObjectManager
 from zim.gui.insertedobjects import InsertedObjectWidget, UnknownInsertedObject, POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
 from zim.signals import callback
@@ -1161,7 +1160,7 @@ class TextBuffer(Gtk.TextBuffer):
 		@param data: string data of object
 		'''
 		try:
-			objecttype = ObjectManager.get_object(attrib['type'])
+			objecttype = PluginManager.insertedobjects[attrib['type']]
 		except KeyError:
 			objecttype = UnknownInsertedObject()
 
@@ -1177,7 +1176,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def insert_table_element_at_cursor(self, element):
 		try:
-			obj = ObjectManager.get_object('table')
+			obj = PluginManager.insertedobjects['table']
 		except KeyError:
 			# HACK - if table plugin is not loaded - show table as plain text
 			tree = ParseTree(element)
@@ -5140,6 +5139,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			return False # don't block the event
 		self.textview.connect('focus-out-event', on_focus_out_event)
 
+		PluginManager.insertedobjects.connect(
+			'changed',
+			self.on_insertedobjecttypemap_changed
+		)
+
 	def grab_focus(self):
 		self.textview.grab_focus()
 
@@ -5422,6 +5426,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 		self._showing_template = istemplate
+
+	def on_insertedobjecttypemap_changed(self, *a):
+		self.save_changes()
+		buffer = self.textview.get_buffer()
+		tree = buffer.get_parsetree()
+		self.set_parsetree(tree, self._showing_template)
 
 	def set_readonly(self, readonly):
 		'''Set the widget read-only or not

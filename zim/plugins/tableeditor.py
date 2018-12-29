@@ -14,11 +14,10 @@ import logging
 
 logger = logging.getLogger('zim.plugin.tableeditor')
 
-from zim.plugins import PluginClass, InsertedObjectType
+from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
 from zim.utils import WeakSet
-from zim.objectmanager import ObjectManager
 from zim.config import String
 from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree
@@ -147,7 +146,7 @@ class CellFormatReplacer:
 		return text
 
 
-class TableViewObjectType(InsertedObjectType):
+class TableViewObjectType(InsertedObjectTypeExtension):
 
 	name = 'table'
 
@@ -159,10 +158,10 @@ class TableViewObjectType(InsertedObjectType):
 		'wraps': String('')	  # i.e. String(0,1,0)
 	}
 
-	def __init__(self, plugin):
-		InsertedObjectType.__init__(self, plugin)
+	def __init__(self, plugin, objmap):
 		self._widgets = WeakSet()
 		self.preferences = plugin.preferences
+		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_object_interactive(self, parent):
