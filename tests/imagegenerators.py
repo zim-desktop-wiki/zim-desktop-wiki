@@ -39,7 +39,8 @@ class TestGenerator(tests.TestCase):
 		notebook.get_attachments_dir = lambda *a: attachment_dir
 		mainwindow = setUpMainWindow(notebook)
 
-		extensionklass = plugin.extension_classes['PageView']
+		self.assertTrue(len(plugin.extension_classes) == 1)
+		extensionklass = plugin.extension_classes[0]
 		self.assertTrue(issubclass(extensionklass, ImageGeneratorPageViewExtensionBase))
 
 		extension = extensionklass(plugin, mainwindow.pageview)

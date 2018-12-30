@@ -305,11 +305,8 @@ class TestTaskList(tests.TestCase):
 
 	def testIndexing(self):
 		'''Check indexing of tasklist plugin'''
-		klass = PluginManager.get_plugin_class('tasklist')
-		plugin = klass()
-
+		plugin = PluginManager.load_plugin('tasklist')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		plugin.extend(notebook)
 
 		# Test indexing based on index signals
 		notebook.index.check_and_update()
@@ -325,11 +322,9 @@ class TestTaskList(tests.TestCase):
 				self.assertTrue(not path is None)
 
 	def testTaskListTreeView(self):
-		klass = PluginManager.get_plugin_class('tasklist')
-		plugin = klass()
+		plugin = PluginManager.load_plugin('tasklist')
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		plugin.extend(notebook)
 		notebook.index.check_and_update()
 
 		from zim.plugins.tasklist.gui import TaskListTreeView

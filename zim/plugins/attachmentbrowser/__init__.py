@@ -100,7 +100,8 @@ class AttachmentBrowserWindowExtension(PageViewExtension):
 		# Init browser widget
 		self.widget = AttachmentBrowserPluginWidget(self, self.navigation, self.preferences)
 
-		self.on_page_changed(self.pageview, self.pageview.page)
+		if self.pageview.page is not None:
+			self.on_page_changed(self.pageview, self.pageview.page)
 		self.connectto(self.pageview, 'page-changed')
 
 		self.add_sidepane_widget(self.widget, 'pane')

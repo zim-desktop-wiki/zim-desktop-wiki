@@ -20,6 +20,7 @@ from zim.gui.widgets import \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
+from zim.plugins import DialogExtensionBase, extendable
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
@@ -90,6 +91,10 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		self.pack_end(self.filter_entry, False, True, 0)
 
 
+class TaskListDialogExtension(DialogExtensionBase):
+	pass
+
+@extendable(TaskListDialogExtension)
 class TaskListDialog(TaskListWidgetMixin, Dialog):
 
 	def __init__(self, parent, tasksview, properties):

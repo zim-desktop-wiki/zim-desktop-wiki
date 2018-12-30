@@ -142,14 +142,10 @@ class TestPlugins(tests.TestCase):
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.assertGreaterEqual(len(notebook.__zim_extension_objects__), 3)
+
 		mainwindow = setUpMainWindow(notebook, plugins=manager)
-		for obj in (
-			notebook,
-			notebook.index,
-			mainwindow,
-			mainwindow.pageview,
-		):
-			manager.extend(obj)
+		self.assertGreaterEqual(len(mainwindow.pageview.__zim_extension_objects__), 3)
 
 		for i, name in enumerate(manager):
 			manager[name].preferences.emit('changed')
@@ -168,10 +164,11 @@ class TestFunctions(tests.TestCase):
 
 	def test_find_extension(self):
 
-		class Extendable(object):
+		class Extension(ExtensionBase):
 			pass
 
-		class Extension(ExtensionBase):
+		@extendable(Extension)
+		class Extendable(object):
 			pass
 
 		obj = Extendable()
@@ -184,16 +181,17 @@ class TestFunctions(tests.TestCase):
 	def test_find_action(self):
 		from zim.actions import action
 
-		class Extendable(object):
-
-			@action('Foo')
-			def foo(self):
-				pass
-
 		class Extension(ExtensionBase):
 
 			@action('Bar')
 			def bar(self):
+				pass
+
+		@extendable(Extension)
+		class Extendable(object):
+
+			@action('Foo')
+			def foo(self):
 				pass
 
 		obj = Extendable()

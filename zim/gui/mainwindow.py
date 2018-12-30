@@ -32,7 +32,7 @@ from zim.gui.insertedobjects import InsertedObjectUI
 
 from zim.gui.pageview import PageView
 
-from zim.plugins import ExtensionBase
+from zim.plugins import ExtensionBase, extendable
 from zim.gui.actionextension import ActionExtensionBase
 
 
@@ -110,8 +110,6 @@ class MainWindowExtension(ActionExtensionBase):
 	(To access the preference use C{plugin.preferences}.)
 	'''
 
-	__extends__ = 'MainWindow'
-
 	def __init__(self, plugin, window):
 		'''Constructor
 		@param plugin: the plugin object to which this extension belongs
@@ -127,6 +125,7 @@ class MainWindowExtension(ActionExtensionBase):
 		self.destroy()
 
 
+@extendable(MainWindowExtension)
 class MainWindow(Window):
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -950,6 +949,7 @@ class PageWindow(Window):
 	def __init__(self, notebook, page, navigation):
 		Window.__init__(self)
 		self.navigation = navigation
+		self.notebook = notebook
 
 		self.set_title(page.name + ' - Zim')
 		#if ui.notebook.icon:

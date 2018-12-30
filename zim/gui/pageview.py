@@ -4895,9 +4895,23 @@ discarded, but you can restore the copy later.''')
 			ErrorDialog.run(self)
 
 
-from zim.plugins import ExtensionBase
+from zim.plugins import ExtensionBase, extendable
+from zim.config import ConfigDict
 from zim.gui.actionextension import ActionExtensionBase
 from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
+
+
+class NavigationWrapper(object):
+	'''Wrapper to allow late initialization of the "navigation" object'''
+
+	def __init__(self):
+		self._real_navigation = None
+
+	def open_page(self, *arg, **kwarg):
+		if self._real_navigation:
+			return self._real_navigation.open_page(*arg, **kwarg)
+		else:
+			logger.warn('navigation called before initialisation')
 
 
 class PageViewExtension(ActionExtensionBase):
@@ -4922,39 +4936,73 @@ class PageViewExtension(ActionExtensionBase):
 	(To access the preference use C{plugin.preferences}.)
 	'''
 
-	__extends__ = 'PageView'
+	# HACK: complicated class because we rely on MainWindow for most of the
+	# functionality of this extension class. However at initialisation there
+	# is no parent window, so we need to delay loading.
+	# Plan is to refactor MainWindow and PageView such that these functions
+	# end up in the right place.
 
 	def __init__(self, plugin, pageview):
 		ExtensionBase.__init__(self, plugin, pageview)
 		self.pageview = pageview
-		window = pageview.get_toplevel()
-		if hasattr(window, 'uimanager'):
-			self._add_actions(window.uimanager)
-		self.navigation = window.navigation
-		self.uistate = window.notebook.state[plugin.config_key]
+		self._on_parent_set_queue = []
+		self.connectto(pageview, 'parent-set')
+
 		self._sidepane_widgets = {}
+		self.navigation = NavigationWrapper()
+		self.uistate = ConfigDict()
+		self._do_on_parent_set(self._init_window)
+
+	def _init_window(self, window):
+		if hasattr(window, 'uimanager'): # HACK: PageWindow does not have uimanager
+			self._add_actions(window.uimanager)
+		self.navigation._real_navigation = window.navigation
+		real_uistate = window.notebook.state[self.plugin.config_key]
+		real_uistate.update(self.uistate)
+		self.uistate = real_uistate
+
+	def _do_on_parent_set(self, func, *arg, **kwarg):
+		window = self.pageview.get_toplevel()
+		if window == self.pageview:
+			self._on_parent_set_queue.append((func, arg, kwarg))
+		else:
+			assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
+			func(window, *arg, **kwarg)
+
+	def on_parent_set(self, pageview, *a):
+		# Execute calls that only work once there is a mainwindow available.
+		# Needed because pageview extensions are loaded before the pageview
+		# is added to the window.
+		window = pageview.get_toplevel()
+		if window != pageview:
+			assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
+			for func, arg, kwarg in self._on_parent_set_queue:
+				func(window, *arg, **kwarg)
+			self._on_parent_set_queue = []
 
 	def add_sidepane_widget(self, widget, preferences_key):
-		window = self.pageview.get_toplevel()
 		key = widget.__class__.__name__
 		position = self.plugin.preferences[preferences_key]
-		window.add_tab(key, widget, position)
-		widget.show_all()
+		self._do_on_parent_set(lambda window: window.add_tab(key, widget, position))
 
 		def on_preferences_changed(preferences):
 			position = self.plugin.preferences[preferences_key]
-			window.remove(widget)
-			window.add_tab(key, widget, position)
+			self._do_on_parent_set(lambda window: window.remove(widget))
+			self._do_on_parent_set(lambda window: window.add_tab(key, widget, position))
 
 		sid = self.connectto(self.plugin.preferences, 'changed', on_preferences_changed)
 		self._sidepane_widgets[widget] = sid
+		widget.show_all()
 
 	def remove_sidepane_widget(self, widget):
-		window = self.pageview.get_toplevel()
-		try:
-			window.remove(widget)
-		except ValueError:
-			pass
+
+		def remove(window):
+			try:
+				window.remove(widget)
+			except ValueError:
+				pass
+
+		self._do_on_parent_set(remove)
 
 		try:
 			sid = self._sidepane_widgets.pop(widget)
@@ -4966,10 +5014,12 @@ class PageViewExtension(ActionExtensionBase):
 		for widget in list(self._sidepane_widgets):
 			self.remove_sidepane_widget(widget)
 			widget.disconnect_all()
+		self._on_parent_set_queue = []
 
 
 from zim.signals import GSignalEmitterMixin
 
+@extendable(PageViewExtension)
 class PageView(GSignalEmitterMixin, Gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
 	a L{FindBar}. Also adds menu items and in general integrates

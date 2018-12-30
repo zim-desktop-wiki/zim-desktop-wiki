@@ -9,7 +9,6 @@ takes core of the process life cycle.
 
 # TODO:
 # - implement weakvalue dict to ensure uniqueness of notebook objects
-# - make config and plugin management application global
 
 
 import os
@@ -316,15 +315,11 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				pass
 			preferences['plugins_list_version'] = '0.70'
 
-		pluginmanager.extend(notebook)
-
 		window = MainWindow(
 			notebook,
 			page=page,
 			**self.get_options('geometry', 'fullscreen')
 		)
-		pluginmanager.extend(window)
-		pluginmanager.extend(window.pageview)
 		window.present()
 
 		if not window.notebook.index.is_uptodate:
@@ -494,11 +489,6 @@ class ExportCommand(NotebookCommand):
 		from zim.export.selections import AllPages, SinglePage, SubPages
 
 		notebook, page = self.build_notebook()
-
-		# load plugins, needed so the the proper export functions would work from CLI
-		plugins = PluginManager()
-		plugins.extend(notebook)
-
 		notebook.index.check_and_update()
 
 		if page and self.opts.get('recursive'):

@@ -10,12 +10,12 @@ from datetime import date as dateclass
 
 import zim.datetimetz
 
-from zim.plugins import PluginManager
+from zim.plugins import PluginManager, find_extension
 from zim.notebook import Path
 from zim.templates import get_template
 from zim.formats import get_dumper
 
-from zim.plugins.journal import NotebookExtension
+from zim.plugins.journal import JournalNotebookExtension, JournalPageViewExtension
 
 from tests.mainwindow import setUpMainWindow
 
@@ -110,29 +110,24 @@ class TestCalendarFunctions(tests.TestCase):
 class TestJournalPlugin(tests.TestCase):
 
 	def testMainWindowExtensions(self):
-		pluginklass = PluginManager.get_plugin_class('journal')
-		plugin = pluginklass()
+		plugin = PluginManager.load_plugin('journal')
 
 		notebook = self.setUpNotebook()
 		mainwindow = setUpMainWindow(notebook)
 
-		plugin.extend(mainwindow.pageview)
-
 		plugin.preferences.changed() # make sure no errors are triggered
 
-		list(plugin.extensions)[0].go_page_today()
+		ext = find_extension(mainwindow.pageview, JournalPageViewExtension)
+		ext.go_page_today()
 		self.assertTrue(mainwindow.page.name.startswith('Journal:'))
 
 	def testNotebookExtension(self):
-		pluginklass = PluginManager.get_plugin_class('journal')
-		plugin = pluginklass()
+		plugin = PluginManager.load_plugin('journal')
 
 		notebook = self.setUpNotebook()
-		plugin.extend(notebook)
 
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], NotebookExtension)
+		ext = find_extension(notebook, JournalNotebookExtension)
+		self.assertIsNotNone(ext)
 
 		page = Path('Foo')
 		link = notebook.suggest_link(page, '2014-01-06')
@@ -176,11 +171,9 @@ class TestJournalPlugin(tests.TestCase):
 		self.assertEqual(path.name, 'Calendar:2012:04')
 
 	def testTemplate(self):
-		pluginklass = PluginManager.get_plugin_class('journal')
-		plugin = pluginklass()
+		plugin = PluginManager.load_plugin('journal')
 
 		notebook = self.setUpNotebook()
-		plugin.extend(notebook)
 
 		dumper = get_dumper('wiki')
 

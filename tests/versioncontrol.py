@@ -15,6 +15,7 @@ from zim.applications import Application
 from zim.notebook import Path
 from zim.notebook.operations import ongoing_operation
 
+from zim.plugins import PluginManager
 from zim.plugins.versioncontrol import *
 
 import zim.plugins.versioncontrol.bzr
@@ -84,7 +85,7 @@ class TestVCS(tests.TestCase):
 class TestMainWindowExtension(tests.TestCase):
 
 	def runTest(self):
-		plugin = VersionControlPlugin()
+		plugin = PluginManager.load_plugin('versioncontrol')
 
 		dir = get_tmp_dir('versioncontrol_TestMainWindowExtension')
 		notebook = self.setUpNotebook(
@@ -93,8 +94,6 @@ class TestMainWindowExtension(tests.TestCase):
 			folder=LocalFolder(dir.path)
 		)
 		mainwindow = setUpMainWindow(notebook)
-		plugin.extend(notebook)
-		plugin.extend(mainwindow)
 
 		notebook_ext = find_extension(notebook, NotebookExtension)
 		window_ext = find_extension(mainwindow, VersionControlMainWindowExtension)

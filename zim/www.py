@@ -34,7 +34,6 @@ from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
 from zim.fs import File, Dir, FileNotFoundError
 from zim.config import data_file
-from zim.plugins import PluginManager
 from zim.parsing import url_encode
 
 from zim.export.linker import ExportLinker, StubLayout
@@ -132,10 +131,6 @@ class WWWInterface(object):
 
 		self.linker_factory = partial(WWWLinker, self.notebook, self.template.resources_dir)
 		self.dumper_factory = get_format('html').Dumper # XXX
-
-		self.plugins = PluginManager()
-		self.plugins.extend(notebook)
-		self.plugins.extend(self)
 
 		#~ self.notebook.indexer.check_and_update()
 

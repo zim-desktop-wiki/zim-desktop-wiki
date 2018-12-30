@@ -101,8 +101,7 @@ class TestNotebookCommand(tests.TestCase):
 class TestGui(tests.TestCase):
 
 	def setUp(self):
-		config = ConfigManager() # XXX should be passed in
-		file = config.get_config_file('notebooks.list')
+		file = ConfigManager.get_config_file('notebooks.list')
 		file.remove()
 
 	def runTest(self):
@@ -129,6 +128,7 @@ class TestGui(tests.TestCase):
 
 		self.assertEqual(window.__class__.__name__, 'MainWindow')
 		self.assertEqual(window.notebook.uri, Dir(dir).uri) # XXX
+		self.assertGreaterEqual(len(ConfigManager.preferences['General']['plugins']), 3)
 		self.assertGreaterEqual(len(window.pageview.__zim_extension_objects__), 3)
 
 		with tests.WindowContext(MainWindow):

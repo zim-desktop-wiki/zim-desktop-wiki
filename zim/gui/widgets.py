@@ -1818,7 +1818,10 @@ class PageEntry(InputEntry):
 			return # no completion without a notebook
 
 		text = self.get_text()
-		model = self.get_completion().get_model()
+		completion = self.get_completion()
+		if completion is None:
+			return # during tests in certain cases the completion is not yet initialized
+		model = completion.get_model()
 		model.clear()
 
 		if not text or not self.get_input_valid():
@@ -2955,9 +2958,6 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		logger.debug('Opening dialog "%s"', self.get_title())
 		if not self._registered:
 			self._registered = True
-
-			from zim.plugins import PluginManager
-			PluginManager.extend(self)
 
 		if not TEST_MODE:
 			Gtk.Dialog.show_all(self)

@@ -168,7 +168,7 @@ def dateRangeTemplateFunction(start, end):
 	return date_range_function
 
 
-class CalendarNotebookExtension(NotebookExtension):
+class JournalNotebookExtension(NotebookExtension):
 	'''Extend notebook by setting special page template for
 	the journal namespace and by adding a hook to suggests links
 	for dates.

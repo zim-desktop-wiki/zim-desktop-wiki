@@ -77,7 +77,10 @@ class ImageGeneratorPlugin(PluginClass):
 			'insert_%s' % self.object_type: insert_action,
 		})
 
-		self.extension_classes['PageView'] = klass
+		if mainwindow_extension_base in self.extension_classes:
+			self.extension_classes.remove(mainwindow_extension_base)
+
+		self.extension_classes.append(klass)
 
 
 class ImageGeneratorPageViewExtensionBase(PageViewExtension):

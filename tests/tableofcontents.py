@@ -7,6 +7,7 @@ import tests
 
 from tests.mainwindow import setUpMainWindow
 
+from zim.plugins import PluginManager
 from zim.plugins.tableofcontents import *
 from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 
@@ -15,13 +16,12 @@ from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 class TestTableOfContents(tests.TestCase):
 
 	def testPageViewExtensions(self):
-		plugin = ToCPlugin()
+		plugin = PluginManager.load_plugin('tableofcontents')
 
 		notebook = self.setUpNotebook()
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['floating'] = True
-		plugin.extend(mainwindow.pageview)
 
 		## floating
 		ext = list(plugin.extensions)

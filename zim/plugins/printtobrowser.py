@@ -8,7 +8,7 @@ from gi.repository import Gtk
 from functools import partial
 
 
-from zim.plugins import PluginClass, DialogExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.fs import TmpFile
 
@@ -20,6 +20,8 @@ from zim.export.linker import StaticExportLinker
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.applications import open_url
+
+from zim.plugins.tasklist.gui import TaskListDialogExtension
 
 
 class PrintToBrowserPlugin(PluginClass):
@@ -68,12 +70,10 @@ class PrintToBrowserPageViewExtension(PageViewExtension):
 			# file browser which can have unexpected results
 
 
-class TaskListDialogExtension(DialogExtension):
-
-	__dialog_class_name__ = 'TaskListDialog'
+class PrintTaskListDialogExtension(TaskListDialogExtension):
 
 	def __init__(self, plugin, dialog):
-		DialogExtension.__init__(self, plugin, dialog)
+		TaskListDialogExtension.__init__(self, plugin, dialog)
 
 		button = Gtk.Button.new_with_mnemonic(_('_Print')) # T: Button label
 		button.connect('clicked', self.on_print_tasklist)

@@ -149,7 +149,7 @@ def assert_index_uptodate(method):
 _NOTEBOOK_CACHE = weakref.WeakValueDictionary()
 
 
-from zim.plugins import ExtensionBase
+from zim.plugins import ExtensionBase, extendable
 
 class NotebookExtension(ExtensionBase):
 	'''Base class for extending the notebook
@@ -157,13 +157,12 @@ class NotebookExtension(ExtensionBase):
 	@ivar notebook: the L{Notebook} object
 	'''
 
-	__extends__ = 'Notebook'
-
 	def __init__(self, plugin, notebook):
 		ExtensionBase.__init__(self, plugin, notebook)
 		self.notebook = notebook
 
 
+@extendable(NotebookExtension)
 class Notebook(ConnectorMixin, SignalEmitter):
 	'''Main class to access a notebook
 

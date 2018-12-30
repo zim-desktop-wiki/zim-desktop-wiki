@@ -8,7 +8,7 @@ import tests
 from tests.mainwindow import setUpMainWindow
 from tests.pageview import press
 
-from zim.plugins import find_extension
+from zim.plugins import find_extension, PluginManager
 from zim.plugins.insertsymbol import *
 
 
@@ -21,14 +21,12 @@ EGRAVE = chr(200)
 class TestInsertSymbolPlugin(tests.TestCase):
 
 	def runTest(self):
-		plugin = InsertSymbolPlugin()
+		plugin = PluginManager.load_plugin('insertsymbol')
 
 		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': ''}), path='Test')
 		pageview = mainwindow.pageview
 		textview = pageview.textview
 		buffer = textview.get_buffer()
-
-		plugin.extend(pageview)
 
 		# Widget needs to be realized
 		pageview.realize()
