@@ -6,10 +6,14 @@
 import tests
 
 from zim.formats import ParseTree, StubLinker
+from zim.formats.wiki import Parser as WikiParser
+from zim.formats.wiki import Dumper as WikiDumper
 from zim.formats.html import Dumper as HtmlDumper
 
 from zim.plugins import PluginManager
 from zim.plugins.tableeditor import *
+
+from zim.gui.insertedobjects import UnknownInsertedObject
 
 from tests.mainwindow import setUpMainWindow
 from tests.pageview import setUpPageView
@@ -24,15 +28,7 @@ def get_gtk_action(uimanager, name):
 		raise ValueError
 
 
-class TestPageView(tests.TestCase):
-
-	def setUp(self):
-		PluginManager.load_plugin('tableeditor')
-
-	def testWidget(self):
-		pageview = setUpPageView(
-			self.setUpNotebook(),
-			text='''\
+TABLE_WIKI_TEXT = '''\
 
 |        H1       <|         H2 h2 | H3                    <|
 |:----------------:|--------------:|:-----------------------|
@@ -40,7 +36,94 @@ class TestPageView(tests.TestCase):
 | a very long cell | **bold text** | b                      |
 |    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
 
-'''	)
+'''
+
+TABLE_OBJECT_TEXT = '''\
+
+{{{table:
+%s
+}}}
+
+''' % TABLE_WIKI_TEXT.strip()
+
+TABLE_TOKENS = [
+	('zim-tree', {}),
+		('T', '\n'),
+		('table', {'aligns': 'center,right,left', 'wraps': '1,0,1'}),
+			('thead', {}),
+				('th', {}), ('T', 'H1'), ('/', 'th'),
+				('th', {}), ('T', 'H2 h2'), ('/', 'th'),
+				('th', {}), ('T', 'H3'), ('/', 'th'),
+			('/', 'thead'),
+			('trow', {}),
+				('td', {}), ('T', 'Column A1'), ('/', 'td'),
+				('td', {}), ('T', 'Column A2'), ('/', 'td'),
+				('td', {}), ('T', 'a'), ('/', 'td'),
+			('/', 'trow'),
+			('trow', {}),
+				('td', {}), ('T', 'a very long cell'), ('/', 'td'),
+				('td', {}), ('strong', {}), ('T', 'bold text'), ('/', 'strong'), ('/', 'td'),
+				('td', {}), ('T', 'b'), ('/', 'td'),
+			('/', 'trow'),
+			('trow', {}),
+				('td', {}), ('T', 'hyperlinks'), ('/', 'td'),
+				('td', {}), ('link', {'href': 'wp?wiki'}), ('T', 'wp?wiki'), ('/', 'link'), ('/', 'td'),
+				('td', {}), ('link', {'href': 'http://x.org'}), ('T', 'Xorg'), ('/', 'link'), ('/', 'td'),
+			('/', 'trow'),
+		('/', 'table'),
+		('T', '\n'),
+	('/', 'zim-tree')
+]
+
+
+class TestWikiSyntaxNoPlugin(tests.TestCase):
+
+	def parseAndDump(self, text):
+		tree = WikiParser().parse(text)
+		self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS)
+
+	def testWikiText(self):
+		self.parseAndDump(TABLE_WIKI_TEXT)
+
+	def testObectText(self):
+		# This test is important to ensure backward compatibility with previous
+		# versions that would write out an object when the table plugin wasn't
+		# loaded
+		self.parseAndDump(TABLE_OBJECT_TEXT)
+
+
+class TestWikiSyntaxWithPlugin(TestWikiSyntaxNoPlugin):
+
+	def setUp(self):
+		PluginManager.load_plugin('tableeditor')
+
+
+class TestPageViewNoPlugin(tests.TestCase):
+
+	def setUp(self):
+		self.assertNotIn('table', PluginManager.insertedobjects)
+
+	def testLoadAndDump(self):
+		pageview = setUpPageView(
+			self.setUpNotebook(),
+			text=TABLE_WIKI_TEXT,
+		)
+		pageview.textview.get_buffer().set_modified(True) # Force re-interpretation of the buffer
+		tree = pageview.get_parsetree()
+		self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS)
+
+
+class TestPageViewWithPlugin(TestPageViewNoPlugin):
+
+	def setUp(self):
+		PluginManager.load_plugin('tableeditor')
+		self.assertIn('table', PluginManager.insertedobjects)
+
+	def testWidget(self):
+		pageview = setUpPageView(
+			self.setUpNotebook(),
+			text=TABLE_WIKI_TEXT,
+		)
 		# test widget loaded
 		objects = list(pageview.textview._object_widgets) # XXX
 		self.assertIsInstance(objects[0], TableViewWidget)

@@ -4,6 +4,9 @@
 '''This module handles parsing and dumping wiki text'''
 
 import re
+import logging
+
+logger = logging.getLogger('zim.formats.wiki')
 
 from zim.parser import *
 from zim.parsing import url_re, url_encode, URL_ENCODE_DATA
@@ -208,9 +211,26 @@ class WikiParser(object):
 
 	def parse_object(self, builder, indent, header, body):
 		'''Custom object'''
-		type, param = header.split(':', 1)
-		type = type.strip().lower()
+		otype, param = header.split(':', 1)
+		otype = otype.strip().lower()
 
+		if otype == 'table':
+			# Special case to ensure backward compatibility for versions where
+			# tables could be stored as objects
+			if param.strip() != '':
+				logger.warn('Table object had unexpected parameters: %s', param.strip())
+			lines = body.splitlines(True)
+			headerrow = lines[0]
+			alignstyle = lines[1]
+			body = ''.join(lines[2:])
+			try:
+				return self.parse_table(builder, headerrow, alignstyle, body)
+			except:
+				logger.exception('Could not parse table object')
+
+		self._parse_object(builder, indent, otype, param, body)
+
+	def _parse_object(self, builder, indent, otype, param, body):
 		attrib = {}
 		for match in param_re.finditer(param):
 			key = match.group(1).lower()
@@ -222,7 +242,7 @@ class WikiParser(object):
 		# Defined after parsing head, so these attrib can not be overruled
 		# accidentally
 		### FIXME FIXME FIXME - need to separate two types of attrib ###
-		attrib['type'] = type
+		attrib['type'] = otype
 		if indent:
 			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
