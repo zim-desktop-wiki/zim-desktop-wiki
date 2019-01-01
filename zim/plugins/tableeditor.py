@@ -22,6 +22,7 @@ from zim.config import String
 from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree
 from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
+from zim.formats.wiki import Parser as WikiParser
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
@@ -179,11 +180,12 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 		return attrib, data
 
 	def model_from_data(self, attrib, data):
-		rows = [line.split(' | ') for line in data.splitlines()]
-		headers = rows.pop(0) if rows else []
-		if not headers:
-			headers = ['Column1', 'Column2']
-		return TableModel(attrib, headers, rows)
+		tree = WikiParser().parse(data)
+		element = tree._etree.getroot().find('table') # XXX - should use token interface instead
+		if element is not None:
+			return self.model_from_element(element.attrib, element)
+		else:
+			return TableModel(attrib, [data.strip()], [''])
 
 	def model_from_element(self, attrib, element):
 		assert ElementTree.iselement(element)

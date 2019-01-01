@@ -5,7 +5,7 @@
 
 import tests
 
-from zim.formats import ParseTree, StubLinker
+from zim.formats import ParseTree, StubLinker, OldParseTreeBuilder
 from zim.formats.wiki import Parser as WikiParser
 from zim.formats.wiki import Dumper as WikiDumper
 from zim.formats.html import Dumper as HtmlDumper
@@ -96,6 +96,40 @@ class TestWikiSyntaxWithPlugin(TestWikiSyntaxNoPlugin):
 
 	def setUp(self):
 		PluginManager.load_plugin('tableeditor')
+
+
+class TestTableObjectType(tests.TestCase):
+
+	def setUp(self):
+		PluginManager.load_plugin('tableeditor')
+		self.otype = PluginManager.insertedobjects['table']
+
+	def testModelFromElement(self):
+		tree = WikiParser().parse(TABLE_WIKI_TEXT)
+		element = tree._etree.getroot().find('table')
+		self.assertIsNotNone(element)
+		model = self.otype.model_from_element(element.attrib, element)
+
+		builder = OldParseTreeBuilder() # XXX
+		builder.start('zim-tree')
+		self.otype.dump(builder, model)
+		builder.end('zim-tree')
+		tree = ParseTree(builder.close())
+
+		#self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS) -- XXX should work but doesn;t :(
+		self.assertEquals(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
+
+	def testModelFromData(self):
+		model = self.otype.model_from_data({}, TABLE_WIKI_TEXT)
+
+		builder = OldParseTreeBuilder() # XXX
+		builder.start('zim-tree')
+		self.otype.dump(builder, model)
+		builder.end('zim-tree')
+		tree = ParseTree(builder.close())
+
+		#self.assertEquals(list(tree.iter_tokens()), TABLE_TOKENS) -- XXX should work but doesn;t :(
+		self.assertEquals(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
 
 
 class TestPageViewNoPlugin(tests.TestCase):
