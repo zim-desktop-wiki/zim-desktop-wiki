@@ -439,7 +439,12 @@ class WikiParser(object):
 		if text:
 			attrib['alt'] = text
 
-		builder.append(IMAGE, attrib)
+		if attrib.get('type'):
+			# Backward compatibility of image generators < zim 0.70
+			attrib['type'] = 'image+' + attrib['type']
+			builder.append(OBJECT, attrib)
+		else:
+			builder.append(IMAGE, attrib)
 
 	@staticmethod
 	def parse_url(builder, text):
@@ -560,7 +565,7 @@ class Dumper(TextDumper):
 			return ('[[', href, '|') + tuple(strings) + (']]',)
 
 	def dump_img(self, tag, attrib, strings=None):
-		src = attrib['src']
+		src = attrib['src'] or ''
 		alt = attrib.get('alt')
 		opts = []
 		items = sorted(attrib.items())
@@ -580,7 +585,7 @@ class Dumper(TextDumper):
 
 		# TODO use text for caption (with full recursion)
 
-	def dump_object(self, tag, attrib, strings=None):
+	def dump_object_fallback(self, tag, attrib, strings=None):
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []

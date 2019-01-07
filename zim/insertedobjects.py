@@ -60,21 +60,25 @@ class InsertedObjectType(object):
 		attrib = self.parse_attrib({})
 		return attrib, ''
 
-	def new_object_interactive(self, parent):
-		'''Create a new object interactively
+	def new_model_interactive(self, parent, notebook, page):
+		'''Create a new object model interactively
 		Interactive means that we can use e.g. a dialog to prompt for input.
 		The default behavior is to use L{new_object()}.
+
 		@param parent: Gtk widget to use as parent widget for dialogs
-		@returns: a 2-tuple C{(attrib, data)}
+		@param notebook: a L{Notebook} object
+		@param page: a L{Page} object for the page where this object occurs
+		@returns: a model object (see L{model_from_data()})
 		@raises: ValueError: if user cancelled the action
 		'''
-		return self.new_object()
+		attrib, data = self.new_object()
+		return self.model_from_data(notebook, page, attrib, data)
 
-	def _model_from_data_wrapper(self, attrib, data):
+	def _model_from_data_wrapper(self, notebook, page, attrib, data):
 		attrib = self.parse_attrib(attrib)
-		return self._inner_model_from_data(attrib, data)
+		return self._inner_model_from_data(notebook, page, attrib, data)
 
-	def model_from_data(self, attrib, data):
+	def model_from_data(self, notebook, page, attrib, data):
 		'''Returns a model for the object
 
 		The main purpose for the model is that it is shared between widgets that
@@ -87,10 +91,16 @@ class InsertedObjectType(object):
 		the pageview knows that the page has changed and should be saved before
 		closing.
 
+		Since the model is specific for the page where the object occurs, any
+		user of the object type should serialize back to data before e.g.
+		copying the object to a different page.
+
 		This method should always be robust for missing attributes and body
 		contents. The C{attrib} will automatically be checked by L{parse_attrib}
 		before being given to this method.
 
+		@param notebook: a L{Notebook} object
+		@param page: a L{Page} object for the page where this object occurs
 		@param attrib: dict with object attributes
 		@param data: string with object content
 		@returns: a model object
@@ -130,7 +140,7 @@ class InsertedObjectType(object):
 		before being given to this method.
 
 		Implementing this method is optional, default checks for a specific
-		method per format (e.g. C{format_html()} for the "html" formatal) and
+		method per format (e.g. C{format_html()} for the "html" format) and
 		raises C{ValueError} if no such method is defined.
 
 		@param format: name of the output format

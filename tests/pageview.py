@@ -133,7 +133,9 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = tests.WikiTestData.get('roundtrip')
 		tree = new_parsetree_from_text(self, wikitext)
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(tree)
 
@@ -322,7 +324,9 @@ grrr
 		self.assertEqual(tree.tostring(), input)
 
 		# Check how robust we are for placeholder utf8 character
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		buffer.insert_at_cursor('foo \uFFFC bar')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -481,7 +485,9 @@ Tja
 </p></zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		buffer.set_parsetree(tree)
 
 		iter = buffer.get_iter_at_offset(7) # middle of "bbb"
@@ -503,7 +509,9 @@ aaa <link href="xxx">bbb</link> ccc
 '''
 		tree = tests.new_parsetree_from_xml(input)
 
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		buffer.set_parsetree(tree)
 		buffer.place_cursor(buffer.get_iter_at_offset(7)) # middle of link
 
@@ -517,7 +525,9 @@ class TestUndoStackManager(tests.TestCase):
 
 	def runTest(self):
 		'''Test the undo/redo functionality'''
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		undomanager = UndoStackManager(buffer)
 		wikitext = tests.WikiTestData.get('roundtrip')
 		tree = new_parsetree_from_text(self, wikitext)
@@ -663,7 +673,9 @@ class TestUndoStackManager(tests.TestCase):
 class TestFind(tests.TestCase, TestCaseMixin):
 
 	def testVarious(self):
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		finder = buffer.finder
 		buffer.set_text('''\
 FOO FooBar FOOBAR
@@ -736,7 +748,9 @@ foo Bar Baz Foo
 		finder.set_highlight(False)
 
 	def testReplace(self):
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		finder = buffer.finder
 		tree = tests.new_parsetree_from_xml('''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -775,7 +789,9 @@ class TestLists(tests.TestCase, TestCaseMixin):
 	def testBulletLists(self):
 		'''Test interaction for lists'''
 
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -1043,7 +1059,9 @@ Tja
 		self.assertEqual(tree.tostring(), wantedpre)
 
 	def testNumberedLists(self):
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 
 		# The rules for renumbering are:
 		#
@@ -1346,7 +1364,9 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 
 	def testTyping(self):
 		view = TextView(self.preferences)
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		view.set_buffer(buffer)
 		undomanager = UndoStackManager(buffer)
 
@@ -1657,7 +1677,9 @@ foo
 
 	def testUnkownObjectType(self):
 		view = TextView(self.preferences)
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		view.set_buffer(buffer)
 
 		tree = new_parsetree_from_text(self, '''\
@@ -1955,15 +1977,19 @@ class TestPageViewActions(tests.TestCase):
 		path = file.user_path or file.path
 		self.assertEqual(pageview.page.dump('wiki'), ['{{%s?href=test}}\n' % path])
 
-	def testEditObjectForImageWithType(self):
-		file = File('./data/zim.png')
-		plugin = tests.MockObject()
-		pageview = setUpPageView(self.setUpNotebook(), '{{%s?type=test}}\n' % file.path)
-		pageview.image_generator_plugins['test'] = plugin
+	def testEditObjectForObject(self):
+		pageview = setUpPageView(self.setUpNotebook(), '{{{test:\nfoo\n}}}\n')
+
+		buffer = pageview.textview.get_buffer()
+		anchor = buffer.get_objectanchor(buffer.get_insert_iter())
+		widget = anchor.get_widgets()[0]
+
+		counter = tests.Counter()
+		widget.edit_object = counter
 
 		pageview.edit_object()
 
-		self.assertEqual(plugin.mock_calls[0][0], 'edit_object')
+		self.assertEquals(counter.count, 1)
 
 	def testRemoveLink(self):
 		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
@@ -2199,11 +2225,13 @@ class TestPageviewDialogs(tests.TestCase):
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_image_at_cursor')
 
 		## Edit Image dialog
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		notebook = tests.MockObject()
 		notebook.mock_method('resolve_file', file)
 		notebook.mock_method('relative_filepath', './data/zim.png')
 		file = File('data/zim.png')
-		buffer = TextBuffer()
 		buffer.insert_image_at_cursor(file, '../MYPATH/./data/zim.png')
 		dialog = EditImageDialog(None, buffer, notebook, Path(':some_page'))
 		self.assertEqual(dialog.form['width'], 48)
@@ -2354,7 +2382,9 @@ class TestDragAndDropFunctions(tests.TestCase):
 	def testSerializeParseTree(self):
 		tree = tests.new_parsetree()
 		tree.resolve_images()
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		with FilterNoSuchImageWarning():
 			buffer.insert_parsetree_at_cursor(tree)
 

@@ -46,13 +46,18 @@ class InsertedObjectWidget(Gtk.EventBox):
 		'release-cursor': (GObject.SignalFlags.RUN_LAST, None, (int,)),
 	}
 
+	expand = True
+
 	def __init__(self):
 		GObject.GObject.__init__(self)
 		self.set_border_width(3)
 		self._has_cursor = False
 		self._vbox = Gtk.VBox()
 		Gtk.EventBox.add(self, self._vbox)
-		widget_set_css(self._vbox, 'zim-pageview-object', 'border: 1px solid @text_color')
+		widget_set_css(self._vbox, 'zim-pageview-object', 'border: 1px solid #ccc')
+			# Choosen #ccc because it should give contract with both light and
+			# dark theme, but less than the text color itself
+			# Can be overruled in user css is really conflicts with theme
 
 	def add(self, widget):
 		'''Add a widget to the object'''
@@ -61,7 +66,7 @@ class InsertedObjectWidget(Gtk.EventBox):
 	def add_header(self, widget):
 		'''Add an header widget on top of the object'''
 		widget.get_style_context().add_class(Gtk.STYLE_CLASS_BACKGROUND)
-		widget_set_css(widget, 'zim-insertedobject-head', 'border-bottom: 1px solid @fg_color')
+		widget_set_css(widget, 'zim-insertedobject-head', 'border-bottom: 1px solid #ccc')
 		self._vbox.pack_start(widget, True, True, 0)
 		self._vbox.reorder_child(widget, 0)
 
@@ -74,6 +79,9 @@ class InsertedObjectWidget(Gtk.EventBox):
 		window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
 
 	def set_textview_wrap_width(self, width):
+		if not self.expand:
+			return
+
 		def callback(width):
 			minimum, natural = self._vbox.get_preferred_width()
 			width = natural if width == -1 else max(width, minimum)
@@ -102,10 +110,42 @@ class InsertedObjectWidget(Gtk.EventBox):
 		'''Emits the release-cursor signal'''
 		self.emit('release-cursor', position)
 
+	def do_button_press_event(self, event):
+		if Gdk.Event.triggers_context_menu(event) \
+			and event.type == Gdk.EventType.BUTTON_PRESS:
+				self._do_popup_menu(event)
+
+	def do_popup_menu(self):
+		# See https://developer.gnome.org/gtk3/stable/gtk-migrating-checklist.html#checklist-popup-menu
+		self._do_popup_menu(None)
+
+	def _do_popup_menu(self, event):
+		menu = Gtk.Menu()
+		try:
+			self.populate_popup(menu)
+		except NotImplementedError:
+			return False
+		else:
+			menu.show_all()
+
+		if event is not None:
+			button = event.button
+			event_time = event.time
+		else:
+			button = 0
+			event_time = Gtk.get_current_event_time()
+
+		menu.attach_to_widget(self)
+		menu.popup(None, None, None, None, button, event_time)
+
+	def populate_popup(self, menu):
+		raise NotImplementedError
+
+	def edit_object(self):
+		raise NotImplementedError
+
 
 class TextViewWidget(InsertedObjectWidget):
-	# TODO make this the base class for the Sourceview plugin
-	# and ensure the same tricks to integrate in the parent textview
 
 	def __init__(self, buffer):
 		InsertedObjectWidget.__init__(self)
@@ -166,6 +206,33 @@ class TextViewWidget(InsertedObjectWidget):
 				return None
 
 		return None # let parent handle this signal
+
+
+class ImageFileWidget(InsertedObjectWidget):
+
+	expand = False
+
+	def __init__(self, file):
+		InsertedObjectWidget.__init__(self)
+		self.file = file
+		if file.exists():
+			self.image = Gtk.Image.new_from_file(file.path)
+		else:
+			self.image = Gtk.Image()
+		self.image.set_property('margin', 1) # seperate line and content
+		self.add(self.image)
+
+		# TODO: setup file monitor to reload on changed -- update it in "set_file"
+
+		# TODO: shrink image when larger than width -- have "shrink" class property
+		# implement set_textview_wrap_width() for this here
+
+	def set_file(self, file):
+		self.file = file
+		if self.file.exists():
+			self.image.set_from_file(file.path)
+		else:
+			self.image.clear()
 
 
 def _find_plugin(name):
@@ -248,7 +315,7 @@ class UnknownInsertedObject(InsertedObjectType):
 		attrib.setdefault('type', self.name)
 		return attrib
 
-	def model_from_data(self, attrib, data):
+	def model_from_data(self, notebook, page, attrib, data):
 		return UnkownObjectBuffer(attrib, data)
 
 	def data_from_model(self, buffer):
@@ -258,7 +325,45 @@ class UnknownInsertedObject(InsertedObjectType):
 		return UnkownObjectWidget(buffer)
 
 
-# TODO: undo(), redo() stuff
+class UnkownImage(object):
+
+	def __init__(self, file, attrib, data):
+		self.file = file
+		self.object_attrib = attrib
+		self.object_data = data
+
+	def get_object_data(self):
+		return self.object_attrib.copy(), self.object_data
+
+	def connect(self, signal, handler):
+		assert signal == 'changed'
+		pass
+
+	def __getattr__(self, name):
+		return getattr(self.file, name)
+
+
+class UnknownInsertedImageObject(InsertedObjectType):
+
+	name = "unknown-image"
+
+	label = _('Unkown Image type')  # T: label for inserted object
+
+	def parse_attrib(self, attrib):
+		# Overrule base class checks since we don't know what this object is
+		attrib.setdefault('type', self.name)
+		return attrib
+
+	def model_from_data(self, notebook, page, attrib, data):
+		file = notebook.resolve_file(attrib['src'], page)
+		return UnkownImage(file, attrib, data)
+
+	def data_from_model(self, model):
+		return model.get_object_data()
+
+	def create_widget(self, model):
+		return ImageFileWidget(model)
+
 
 
 class InsertedObjectUI(object):
@@ -329,12 +434,15 @@ class InsertedObjectUI(object):
 	def _action_handler(self, action):
 		try:
 			name = action.get_name()[7:] # len('insert_') = 7
-			obj = self.insertedobjects[name]
+			otype = self.insertedobjects[name]
+			pageview = self.pageview
+			notebook = pageview.notebook
+			page = pageview.page
 			try:
-				attrib, data = obj.new_object_interactive(self.pageview)
+				model = otype.new_model_interactive(self.pageview, notebook, page)
 			except ValueError:
 				return # dialog cancelled
-			self.pageview.insert_object(attrib, data)
+			self.pageview.insert_object_model(otype, model)
 		except:
 			zim.errors.exception_handler(
-				'Exception during action: %s' % tool.name)
+				'Exception during action: %s' % name)

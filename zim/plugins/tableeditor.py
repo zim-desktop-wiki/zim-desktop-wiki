@@ -165,7 +165,7 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
-	def new_object_interactive(self, parent):
+	def new_model_interactive(self, parent, notebook, page):
 		definition = EditTableDialog(parent).run()
 		if definition is None:
 			raise ValueError # dialog cancelled
@@ -176,10 +176,9 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 			'wraps': ','.join(map(str, wraps))
 		})
 		rows = [''] * len(headers)
-		data = ' | '.join(headers) + '\n' + ' | '.join(rows) + '\n'
-		return attrib, data
+		return TableModel(attrib, headers, rows)
 
-	def model_from_data(self, attrib, data):
+	def model_from_data(self, notebook, page, attrib, data):
 		tree = WikiParser().parse(data)
 		element = tree._etree.getroot().find('table') # XXX - should use token interface instead
 		if element is not None:

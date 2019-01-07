@@ -52,8 +52,8 @@ and also <strike>strike through</strike>
 <img href="Foo" src="my-image.png" />
 <img alt="Foo Bar" href=":foo:bar" src="../my-image.png" width="600" />
 </p>
-<p><img src="./equation001.png" type="equation" /> This equation has a source .tex file
-<img src="./equation002.png" type="equation" /> for this one it is missing
+<p><object src="./equation001.png" type="image+equation" /> This equation has a source .tex file
+<object src="./equation002.png" type="image+equation" /> for this one it is missing
 </p>
 <p>{./Not/an/image.png}
 </p>

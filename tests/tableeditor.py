@@ -9,6 +9,7 @@ from zim.formats import ParseTree, StubLinker, OldParseTreeBuilder
 from zim.formats.wiki import Parser as WikiParser
 from zim.formats.wiki import Dumper as WikiDumper
 from zim.formats.html import Dumper as HtmlDumper
+from zim.notebook import Path
 
 from zim.plugins import PluginManager
 from zim.plugins.tableeditor import *
@@ -120,7 +121,9 @@ class TestTableObjectType(tests.TestCase):
 		self.assertEquals(''.join(WikiDumper().dump(tree)), TABLE_WIKI_TEXT[1:-1])
 
 	def testModelFromData(self):
-		model = self.otype.model_from_data({}, TABLE_WIKI_TEXT)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		model = self.otype.model_from_data(notebook, page, {}, TABLE_WIKI_TEXT)
 
 		builder = OldParseTreeBuilder() # XXX
 		builder.start('zim-tree')

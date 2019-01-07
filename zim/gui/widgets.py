@@ -4010,7 +4010,7 @@ class ImageView(Gtk.Layout):
 		'''
 		pixbuf = None
 
-		if file:
+		if file and file.exists():
 			try:
 				pixbuf = GdkPixbuf.Pixbuf.new_from_file(str(file))
 			except:

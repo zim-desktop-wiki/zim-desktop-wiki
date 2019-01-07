@@ -95,14 +95,15 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
-	def new_object_interactive(self, parent):
+	def new_model_interactive(self, parent, notebook, page):
 		lang = InsertCodeBlockDialog(parent).run()
 		if lang is None:
 			raise ValueError # dialog cancelled
 		else:
-			return self.parse_attrib({'lang': lang}), ''
+			attrib = self.parse_attrib({'lang': lang})
+			return SourceViewBuffer(attrib, '')
 
-	def model_from_data(self, attrib, text):
+	def model_from_data(self, notebook, page, attrib, text):
 		return SourceViewBuffer(attrib, text)
 
 	def data_from_model(self, buffer):

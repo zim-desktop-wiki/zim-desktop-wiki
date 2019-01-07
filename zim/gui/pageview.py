@@ -48,7 +48,9 @@ from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.uiactions import attach_file
-from zim.gui.insertedobjects import InsertedObjectWidget, UnknownInsertedObject, POSITION_BEGIN, POSITION_END
+from zim.gui.insertedobjects import \
+	InsertedObjectWidget, UnknownInsertedObject, UnknownInsertedImageObject, \
+	POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
 from zim.signals import callback
 from zim.formats import get_dumper
@@ -578,7 +580,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'rise': Integer(None),
 	} #: Valid properties for a style in tag_styles
 
-	def __init__(self, notebook=None, page=None):
+	def __init__(self, notebook, page):
 		'''Constructor
 
 		@param notebook: a L{Notebook} object
@@ -1162,12 +1164,21 @@ class TextBuffer(Gtk.TextBuffer):
 		try:
 			objecttype = PluginManager.insertedobjects[attrib['type']]
 		except KeyError:
-			objecttype = UnknownInsertedObject()
+			if attrib['type'].startswith('image+'):
+				# Fallback for backward compatibility of image generators < zim 0.70
+				objecttype = UnknownInsertedImageObject()
+			else:
+				objecttype = UnknownInsertedObject()
 
-		model = objecttype.model_from_data(attrib, data)
+		model = objecttype.model_from_data(self.notebook, self.page, attrib, data)
+		self.insert_object_model_at_cursor(objecttype, model)
+
+	def insert_object_model_at_cursor(self, objecttype, model):
+		from zim.plugins.tableeditor import TableViewObjectType # XXX
+		
 		model.connect('changed', lambda o: self.set_modified(True))
 
-		if attrib['type'] == 'table' and not isinstance(objecttype, UnknownInsertedObject):
+		if isinstance(objecttype, TableViewObjectType):
 			anchor = TableAnchor(objecttype, model)
 		else:
 			anchor = PluginInsertedObjectAnchor(objecttype, model)
@@ -1196,6 +1207,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def get_objectanchor_at_cursor(self):
 		iter = self.get_insert_iter()
+		return self.get_object_achor(iter)
+
+	def get_objectanchor(self, iter):
 		anchor = iter.get_child_anchor()
 		if anchor and isinstance(anchor, InsertedObjectAnchor):
 			return anchor
@@ -3607,7 +3621,7 @@ class TextView(Gtk.TextView):
 				if event.button == 2 and not buffer.get_has_selection():
 					buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
 					return False
-				elif event.button == 3:
+				elif Gdk.Event.triggers_context_menu(event):
 					self._set_popup_menu_mark(iter)
 
 		return Gtk.TextView.do_button_press_event(self, event)
@@ -5035,11 +5049,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@ivar secondary: hint that the PageView is running in a secondairy
 	window (instead of the main window)
 	@ivar undostack: the L{UndoStackManager} object for
-	@ivar image_generator_plugins: dict with plugins mapped by type,
-	this used to find the correct dialog to handle e.g. embedded
-	equations and diagrams. Each plugin in this dict should have at
-	least a method C{edit_object(buffer, iter, image_data)} and a method
-	C{do_populate_popup(menu, buffer, iter, image_data)}.
 	@ivar view: the L{TextView} child object
 	@ivar find_bar: the L{FindBar} child widget
 	@ivar preferences: a L{ConfigDict} with preferences
@@ -5090,7 +5099,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if self.secondary:
 			self._readonly_set = True # HACK
 		self.undostack = None
-		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
 		self._change_counter = 0
@@ -5615,29 +5623,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			raise AssertionError
 
-	def register_image_generator_plugin(self, plugin, type):
-		'''Register a plugin for C{self.image_generator_plugins}
-
-		Intended for "image generator" plugins to register themselves
-
-		@param plugin: the plugin object
-		@param type: the object type handled by this plugin, e.g. "equation"
-		'''
-		assert not type in self.image_generator_plugins, \
-			'Already have plugin for image type "%s"' % type
-		self.image_generator_plugins[type] = plugin
-		logger.debug('Registered plugin %s for image type "%s"', plugin, type)
-
-	def unregister_image_generator_plugin(self, plugin):
-		'''Remove a plugin from C{self.image_generator_plugins}
-
-		@param plugin: the plugin object
-		'''
-		for type, obj in list(self.image_generator_plugins.items()):
-			if obj == plugin:
-				self.image_generator_plugins.pop(type)
-				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
-
 	def do_mark_set(self, buffer, iter, mark):
 		# Update menu items relative to cursor position
 		if self.readonly or mark.get_name() != 'insert':
@@ -5837,12 +5822,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			if image:
 				type = 'image'
 				file = image['src']
-				if 'type' in image \
-				and image['type'] in self.image_generator_plugins:
-					plugin = self.image_generator_plugins[image['type']]
-					plugin.do_populate_popup(menu, buffer, iter, image)
-					menu.show_all()
-					return # plugin should decide about populating
 			else:
 				return # No link or image
 
@@ -6069,16 +6048,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			return InsertLinkDialog(self, self).run()
 
 		image = buffer.get_image_data(iter)
-		if not image:
+		anchor = buffer.get_objectanchor(iter)
+		if not (image or (anchor and isinstance(anchor, PluginInsertedObjectAnchor))):
 			iter.backward_char() # maybe we clicked right side of an image
 			image = buffer.get_image_data(iter)
+			anchor = buffer.get_objectanchor(iter)
 
 		if image:
-			if 'type' in image and image['type'] in self.image_generator_plugins:
-				plugin = self.image_generator_plugins[image['type']]
-				plugin.edit_object(buffer, iter, image)
+			EditImageDialog(self, buffer, self.notebook, self.page).run()
+		elif anchor and isinstance(anchor, PluginInsertedObjectAnchor):
+			widget = anchor.get_widgets()[0]
+			try:
+				widget.edit_object()
+			except NotImplementedError:
+				return False
 			else:
-				EditImageDialog(self, buffer, self.notebook, self.page).run()
+				return True
 		else:
 			return False
 
@@ -6110,6 +6095,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		with buffer.user_action:
 			buffer.insert_object_at_cursor(attrib, data)
 
+	def insert_object_model(self, otype, model):
+		buffer = self.textview.get_buffer()
+		with buffer.user_action:
+			buffer.insert_object_model_at_cursor(otype, model)
+
 	@action(_('Horizontal _Line'), menuhints='insert') # T: Menu item for Insert menu
 	def insert_line(self):
 		'''
@@ -6129,22 +6119,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
 
-	def insert_image(self, file, type=None):
+	def insert_image(self, file):
 		'''Insert a image
 		@param file: the image file to insert. If C{file} does not exist or
 		isn't an image, a "broken image" icon will be shown
-		@param type: image type, used by image generator plugins
 		'''
 		file = adapt_from_newfs(file)
 		assert isinstance(file, File)
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
-		self.textview.get_buffer().insert_image_at_cursor(file, src, type=type)
-
-	def reload_image(self, file):
-		## XXX - HACK, needs actual lookup of the image object and reload it
-		#        will be easy to implement when images are objects
-		window = self.get_toplevel()
-		window.reload_page()
+		self.textview.get_buffer().insert_image_at_cursor(file, src)
 
 	@action(_('Bulle_t List'), menuhints='insert') # T: Menu item
 	def insert_bullet_list(self):
@@ -6584,7 +6567,8 @@ class PluginInsertedObjectAnchor(InsertedObjectAnchor):
 	def dump(self, builder):
 		attrib, data = self.objecttype.data_from_model(self.objectmodel)
 		builder.start(OBJECT, dict(attrib)) # dict() because ElementTree doesn't like ConfigDict
-		builder.data(data)
+		if data is not None:
+			builder.data(data)
 		builder.end(OBJECT)
 
 

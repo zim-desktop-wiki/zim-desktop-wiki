@@ -679,33 +679,10 @@ class TestRstFormat(tests.TestCase, TestFormatMixin):
 		self.format = get_format('rst')
 
 
-class LatexLoggingFilter(tests.LoggingFilter):
-
-	def __init__(self):
-		tests.LoggingFilter.__init__(
-			self,
-			'zim.formats.latex',
-			('No document type set in template', 'Could not find latex equation')
-		)
-
-
 class TestLatexFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('latex')
-
-	def testFormat(self):
-		with LatexLoggingFilter():
-			TestFormatMixin.testFormat(self)
-
-	def testFormatReference(self):
-		# Double check reference did not get broken in updating
-		text = self.getReferenceData()
-
-		# Inlined equation is there
-		self.assertFalse('equation001.png' in text, 'This equation should be inlined')
-		self.assertTrue(r'\begin{math}' in text)
-		self.assertTrue(r'\end{math}' in text)
 
 	def testEncode(self):
 		'''test the escaping of certain characters'''

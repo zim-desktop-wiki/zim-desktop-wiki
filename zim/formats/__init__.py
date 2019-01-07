@@ -1283,10 +1283,16 @@ class DumperClass(Visitor):
 			except ValueError:
 				pass
 			else:
-				assert isinstance(output, list)
+				assert isinstance(output, (list, tuple)), "Invalid output: %r" % output
 				return output
 
-		return self.dump_object_fallback(tag, attrib, strings)
+		if attrib['type'].startswith('image+'):
+			# Fallback for backward compatibility of image generators < zim 0.70
+			attrib = attrib.copy()
+			attrib['type'] = attrib['type'][6:]
+			return self.dump_img(IMAGE, attrib, None)
+		else:
+			return self.dump_object_fallback(tag, attrib, strings)
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		'''Method to serialize objects that do not have their own

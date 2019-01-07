@@ -7,6 +7,7 @@ import tests
 from tests.mainwindow import setUpMainWindow
 from tests.pageview import setUpPageView
 
+from zim.notebook import Path
 from zim.formats import ParseTree, StubLinker
 from zim.formats.html import Dumper as HtmlDumper
 
@@ -106,16 +107,20 @@ class TestSourceViewObject(tests.TestCase):
 		PluginManager.load_plugin('sourceview')
 
 	def testPreferencesChanged(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
 		obj = PluginManager.insertedobjects['code']
-		model = obj.model_from_data(*obj.new_object())
+		model = obj.model_from_data(notebook, page, *obj.new_object())
 		widget = obj.create_widget(model)
 		self.assertTrue(widget.view.get_smart_home_end())
 		obj.plugin.preferences['smart_home_end'] = False
 		self.assertFalse(widget.view.get_smart_home_end())
 
 	def testPopUp(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
 		obj = PluginManager.insertedobjects['code']
-		model = obj.model_from_data(*obj.new_object())
+		model = obj.model_from_data(notebook, page, *obj.new_object())
 		widget = obj.create_widget(model)
 
 		self.assertTrue(widget.view.get_show_line_numbers())

@@ -446,29 +446,33 @@ class Folder(FSObjectBase):
 	def child(self, path):
 		raise NotImplementedError
 
-	def new_file(self, path):
+	def new_file(self, path, check=None):
 		'''Get a L{File} object for a new file below this folder.
 		Like L{file()} but guarantees the file does not yet exist by
 		adding sequential numbers if needed. So the resulting file
 		may have a modified name.
 
 		@param path: the relative file path
+		@param check: a function that can check and reject the choice before it
+		is given back
 		@returns: a L{File} object
 		'''
-		return self._new_child(path, self.file)
+		return self._new_child(path, self.file, check)
 
-	def new_folder(self, path):
+	def new_folder(self, path, check=None):
 		'''Get a L{Folder} object for a new folder below this folder.
 		Like L{folder()} but guarantees the file does not yet exist by
 		adding sequential numbers if needed. So the resulting file
 		may have a modified name.
 
 		@param path: the relative file path
+		@param check: a function that can check and reject the choice before it
+		is given back
 		@returns: a L{Folder} object
 		'''
-		return self._new_child(path, self.folder)
+		return self._new_child(path, self.folder, check)
 
-	def _new_child(self, path, factory):
+	def _new_child(self, path, factory, check=None):
 		p = self.get_childpath(path.replace('%', '%%'))
 		if '.' in p.basename:
 			basename, ext = p.basename.split('.', 1)
@@ -482,11 +486,16 @@ class Folder(FSObjectBase):
 			try:
 				file = self.child(trypath) # this way we catch both exiting files and folders
 			except FileNotFoundError:
-				return factory(trypath)
+				child = factory(trypath)
+				if check is None or check(child):
+					return child
+				else:
+					logger.debug('File rejected by check "%s" trying increment', child.path)
 			else:
 				logger.debug('File exists "%s" trying increment', file.path)
-				i += 1
-				trypath = pattern % i
+
+			i += 1
+			trypath = pattern % i
 		else:
 			raise Exception('Could not find new file for: %s' % path)
 
