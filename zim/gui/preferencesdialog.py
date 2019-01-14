@@ -242,6 +242,7 @@ class PluginsTab(Gtk.VBox):
 		self.pack_start(hbox, False, True, 0)
 
 		open_button = Gtk.Button.new_with_mnemonic(_('Open plugins folder'))
+			# T: button label
 		open_button.connect('clicked',
 			lambda o: open_folder_prompt_create(o, PLUGIN_FOLDER)
 		)

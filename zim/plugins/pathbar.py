@@ -70,11 +70,11 @@ class PathBarMainWindowExtension(MainWindowExtension):
 
 	@radio_action(
 		_('P_athbar'), # T: Menu title
-		radio_option(PATHBAR_NONE, _('_None')),
-		radio_option(PATHBAR_RECENT, _('_Recent pages')),
-		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
-		radio_option(PATHBAR_HISTORY, _('_History')),
-		radio_option(PATHBAR_PATH, _('_Page Hierarchy')),
+		radio_option(PATHBAR_NONE, _('_None')),  # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_RECENT, _('_Recent pages')), # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')), # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_HISTORY, _('_History')), # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_PATH, _('_Page Hierarchy')), # T: Menu option for View->Pathbar
 		menuhints='view'
 	)
 	def set_pathbar(self, type):

@@ -61,7 +61,7 @@ This is a core plugin shipping with zim.
 			# T: label for plugin preferences dialog
 		('labels', 'string', _('Labels marking tasks'), 'FIXME, TODO', StringAllowEmpty),
 			# T: label for plugin preferences dialog - labels are e.g. "FIXME", "TODO"
-		('integrate_with_journal', 'choice', _('Use date from journal pages'), 'start', (
+		('integrate_with_journal', 'choice', _('Use date from journal pages'), 'start', ( # T: label for preference with multiple options
 			('none', _('do not use')),        # T: choice for "Use date from journal pages"
 			('start', _('as start date for tasks')),  # T: choice for "Use date from journal pages"
 			('due', _('as due date for tasks'))       # T: choice for "Use date from journal pages"

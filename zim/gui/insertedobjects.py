@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
 # Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>

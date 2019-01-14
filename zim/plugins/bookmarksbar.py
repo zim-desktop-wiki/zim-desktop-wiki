@@ -180,7 +180,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 		# Create button to add new bookmarks.
 		self.plus_button = IconsButton(Gtk.STOCK_ADD, Gtk.STOCK_REMOVE, relief = False)
-		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings'))
+		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings')) # T: button label
 		self.plus_button.connect('clicked', lambda o: self.add_new_page())
 		self.plus_button.connect('button-release-event', self.do_plus_button_popup_menu)
 		self.pack_start(self.plus_button, False, False, 0)

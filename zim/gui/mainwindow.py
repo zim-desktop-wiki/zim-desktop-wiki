@@ -399,7 +399,7 @@ class MainWindow(Window):
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
 
-	@toggle_action(_('Menubar'), init=True)
+	@toggle_action(_('Menubar'), init=True) # T: label for View->Menubar menu item
 	def toggle_menubar(self, show):
 		'''Menu action to toggle the visibility of the menu bar
 		@param show: when C{True} or C{False} force the visibility,

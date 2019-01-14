@@ -3652,7 +3652,7 @@ class ProgressDialog(Gtk.Dialog):
 			self.progressbar.pulse()
 		else:
 			self.progressbar.set_fraction(frac)
-			self.progressbar.set_text(_('%i of %i') % (i, total))
+			self.progressbar.set_text(_('{count} of {total}').format(count=i, total=total))
 			 	# T: lable in progressbar giving number of items and total
 
 		if msg is None:

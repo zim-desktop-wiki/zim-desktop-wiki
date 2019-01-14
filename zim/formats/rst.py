@@ -24,10 +24,10 @@ info = {
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX: '- \u2610', # ☐
-		XCHECKED_BOX: '- \u2612', # ☒
-		CHECKED_BOX: '- \u2611', # ☑
-		MIGRATED_BOX: '- \u25B7', # ▷
+		UNCHECKED_BOX: '- \u2610',
+		XCHECKED_BOX: '- \u2612',
+		CHECKED_BOX: '- \u2611',
+		MIGRATED_BOX: '- \u25B7',
 		BULLET: '-',
 	}
 
@@ -115,11 +115,11 @@ class Dumper(TextDumper):
 		return [line + "\n" for line in table]
 
 	def dump_th(self, tag, attrib, strings):
-		#strings = [s.replace('|', '∣') for s in strings] # 2nd "|" is UTF char
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		#strings = [s.replace('|', '∣') for s in strings] # 2nd "|" is UTF char
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):
