@@ -649,7 +649,7 @@ def edit_file(widget, file, istextfile=None):
 		try:
 			open_file(widget, file, mimetype='text/plain', callback=check_close_dialog)
 		except NoApplicationFoundError:
-			app = AddApplicationDialog(window, 'text/plain').run()
+			app = AddApplicationDialog(widget, 'text/plain').run()
 			if app:
 				# Try again
 				open_file(widget, file, mimetype='text/plain', callback=check_close_dialog)
