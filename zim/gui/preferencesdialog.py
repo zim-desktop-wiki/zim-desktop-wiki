@@ -16,6 +16,7 @@ from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_cre
 from zim.plugins import PLUGIN_FOLDER
 from zim.config import String, ConfigManager
 from zim.plugins import PluginManager
+from zim.main import ZIM_APPLICATION
 
 from zim.gui.mainwindow import ui_preferences as interface_preferences
 from zim.gui.pageview import ui_preferences as pageview_preferences
