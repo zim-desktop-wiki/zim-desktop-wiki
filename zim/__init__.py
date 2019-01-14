@@ -93,10 +93,10 @@ Some generic base classes and functions can be found in L{zim.utils}
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.70'
+__version__ = '0.70-rc1'
 __url__ = 'http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
-__copyright__ = 'Copyright 2008 - 2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
+__copyright__ = 'Copyright 2008 - 2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __license__ = '''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

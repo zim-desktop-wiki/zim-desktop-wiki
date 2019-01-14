@@ -4,6 +4,23 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.70-rc1 - Mon 14 Jan 2019 ===
+* Ported zim to use Python3 & Gtk3
+* Refactored application framework, all windows run single process now with
+  single plugin manager and preferences manager
+* Refactored plugin extension loading code and added functions to find
+	extensions and actions
+* Removed the notebook "profile" properties
+* Plugins now can use notebook properties to store settings per notebook
+* The page index side pane and the pathbar are now plugins
+* Redesign journal plugin sidepane view and remove dialog
+* Renamed "calendar" plugin to "journal"
+* Removed OSX menubar plugin
+* Image generator plugins now are "inserted objects"
+* Workaroung for missing clipboard.set_with_data()
+* Improved speed of test suite and refactored test constructs
+* Fix page index issue on delete page
+
 === 0.69 - Sun 16 Dec 2018 ===
 * Performance improvements for indexing large notebooks
 * Performance improvement for auto-completion of page names in dialogs
