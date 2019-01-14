@@ -1175,7 +1175,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def insert_object_model_at_cursor(self, objecttype, model):
 		from zim.plugins.tableeditor import TableViewObjectType # XXX
-		
+
 		model.connect('changed', lambda o: self.set_modified(True))
 
 		if isinstance(objecttype, TableViewObjectType):
@@ -6483,8 +6483,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
 		else:
 			logger.debug('Switching to custom font implicitly because of zoom action')
-			font = self.textview.style.font_desc
-			self.text_style['TextView']['font'] = font.to_string()
+			style = self.textview.get_style_context()
+			font = style.get_property(Gtk.STYLE_PROPERTY_FONT, Gtk.StateFlags.NORMAL)
 
 		font_size = font.get_size()
 		if font_size <= 1 * 1024 and plus_or_minus < 0:
@@ -6492,7 +6492,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			font_size_new = font_size + plus_or_minus * 1024
 			font.set_size(font_size_new)
-		self.text_style['TextView']['font'] = font.to_string()
+		try:
+			self.text_style['TextView']['font'] = font.to_string()
+		except UnicodeDecodeError:
+			logger.exception('FIXME')
 		self.textview.modify_font(font)
 
 		self.text_style.write()
