@@ -303,7 +303,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 				pluginmanager.load_plugins_from_preferences(
 					[ # Default plugins
 						'pageindex', 'pathbar',
-						'journal', 'insertsymbol', 'printtobrowser',
+						'insertsymbol', 'printtobrowser',
 						'versioncontrol',
 					]
 				)
