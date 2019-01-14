@@ -411,7 +411,7 @@ class InterWikiLinkData(UriData):
 			parsetree = _link_tree((self.interwiki_href,), None, None)
 			return parsetree.tostring()
 		else:
-			return UriData.get_data_as(targetid)
+			return UriData.get_data_as(self, targetid)
 
 
 class ParseTreeData(ClipboardData):
