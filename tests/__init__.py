@@ -62,7 +62,8 @@ __all__ = [
 
 
 mydir = os.path.abspath(os.path.dirname(__file__))
-
+if ".pybuild" in mydir:
+	FAST_TEST = True # Force package builds to skip over the hairy parts
 
 # when a test is missing from the list that should be detected
 for file in glob.glob(mydir + '/*.py'):
@@ -72,6 +73,9 @@ for file in glob.glob(mydir + '/*.py'):
 
 # get our own data dir
 DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
+
+# and project data dir
+ZIM_DATADIR = os.path.abspath(os.path.join(mydir, '../data'))
 
 # get our own tmpdir
 TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
@@ -228,9 +232,6 @@ class TestCase(unittest.TestCase):
 	maxDiff = None
 
 	mockConfigManager = True
-
-	SRC_DIR = LocalFolder(mydir + '/../')
-	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
 
 	def run(self, *a, **kwa):
 		start = time.time()

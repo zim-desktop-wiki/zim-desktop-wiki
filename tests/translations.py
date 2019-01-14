@@ -2,9 +2,11 @@
 import re
 from glob import glob
 
-from tests import TestCase
+import tests
 
-class TestTranslations(TestCase):
+
+@tests.slowTest
+class TestTranslations(tests.TestCase):
 
 	def runTest(self, verbose=False):
 		'''Sanity check translation files'''
