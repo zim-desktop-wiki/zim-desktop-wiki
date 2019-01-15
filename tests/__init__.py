@@ -62,8 +62,6 @@ __all__ = [
 
 
 mydir = os.path.abspath(os.path.dirname(__file__))
-if ".pybuild" in mydir:
-	FAST_TEST = True # Force package builds to skip over the hairy parts
 
 # when a test is missing from the list that should be detected
 for file in glob.glob(mydir + '/*.py'):
