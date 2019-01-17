@@ -280,6 +280,8 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 			else:
 				item.set_sensitive(False)
 
+		menu.show_all()
+
 	def can_promote(self, paths):
 		# All headings have level larger than 1
 		return paths and all(len(p) > 1 for p in paths)
