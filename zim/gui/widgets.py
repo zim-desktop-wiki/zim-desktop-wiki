@@ -1674,8 +1674,6 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 		return False
 
 
-from zim.signals import DelayedCallback
-
 class PageEntry(InputEntry):
 	'''Widget to select a zim page path
 
@@ -1720,9 +1718,7 @@ class PageEntry(InputEntry):
 		completion.set_text_column(0)
 		self.set_completion(completion)
 
-		self.connect_after('changed', DelayedCallback(200, self.__class__.update_completion))
-			# Don't interrupt typing to fill completion, wait for user to pause
-			# FIXME: wanted timeout of 400, but then popup becomes less responsive !?
+		self.connect_after('changed', self.__class__.update_completion)
 
 	def set_use_relative_paths(self, notebook, path=None):
 		'''Set the notebook and path to be used for relative paths.
@@ -1845,18 +1841,27 @@ class PageEntry(InputEntry):
 				except ValueError:
 					return
 
-			self._fill_completion_for_anchor(path, prefix, text)
+			try:
+				self._fill_completion_for_anchor(path, prefix, text)
+			except IndexNotFoundError:
+				pass
 
 		elif text.startswith('+'):
 			prefix = '+'
 			path = self.notebookpath
 
-			self._fill_completion_for_anchor(path, prefix, text)
+			try:
+				self._fill_completion_for_anchor(path, prefix, text)
+			except IndexNotFoundError:
+				pass
 
 		else:
 			path = self.notebookpath or Path(':')
 
-			self._fill_completion_any(path, text)
+			try:
+				self._fill_completion_any(path, text)
+			except IndexNotFoundError:
+				pass
 
 		self.get_completion().complete()
 
@@ -1870,13 +1875,11 @@ class PageEntry(InputEntry):
 		model = completion.get_model()
 		assert text.startswith(prefix)
 		lowertext = text.lower()
-		try:
-			for p in self.notebook.pages.list_pages(path):
-				string = prefix + p.basename
-				if string.lower().startswith(lowertext):
-					model.append((string, string))
-		except IndexNotFoundError:
-			pass
+		for p in self.notebook.pages.list_pages(path):
+			string = prefix + p.basename
+			if string.lower().startswith(lowertext):
+				model.append((string, string))
+
 
 	def _fill_completion_any(self, path, text):
 		#print "COMPLETE ANY", path, text
