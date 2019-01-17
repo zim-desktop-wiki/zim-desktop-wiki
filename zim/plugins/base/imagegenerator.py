@@ -38,10 +38,13 @@ class ImageGeneratorObjectType(InsertedObjectTypeExtension):
 	syntax = None
 
 	def __init__(self, plugin, objmap):
-		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		generators = list(plugin.discover_classes(ImageGeneratorClass))
 		assert len(generators) == 1, 'Expect exactly one subclass of ImageGeneratorClass in plugin'
 		self.generator_klass = generators[0]
+		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
+			# Don't call this before above initialization is done,
+			# else we trigger InsertedObjectTypeMap "changed" before we are
+			# ready to go
 
 	def new_model_interactive(self, parent, notebook, page):
 		attrib, data = self.new_object()
