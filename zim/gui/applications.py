@@ -800,7 +800,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		w, h = strip_boolean_result(Gtk.icon_size_lookup(size))
 
 		if '/' in icon or '\\' in icon:
-			if zim.fs.isfile(icon):
+			if os.path.isfile(icon):
 				return GdkPixbuf.Pixbuf.new_from_file_at_size(icon, w, h)
 			else:
 				return None
