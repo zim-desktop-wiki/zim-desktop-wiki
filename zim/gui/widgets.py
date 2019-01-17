@@ -642,6 +642,8 @@ class SingleClickTreeView(Gtk.TreeView):
 			menu.append(expand)
 			menu.append(collapse)
 
+		menu.show_all()
+
 	def get_cell_renderer_number_of_items(self):
 		'''Get a C{Gtk.CellRendererText} that is set up for rendering
 		the number of items below a tree item.
