@@ -275,7 +275,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		self.readonly = not _iswritable(folder)
 
 		if self.readonly:
-			logger.info('Notebook read-only: %s', dir.path)
+			logger.info('Notebook read-only: %s', folder.path)
 
 		self._page_cache = weakref.WeakValueDictionary()
 
