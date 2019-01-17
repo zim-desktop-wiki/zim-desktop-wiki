@@ -4959,13 +4959,13 @@ class PageViewExtension(ActionExtensionBase):
 	def __init__(self, plugin, pageview):
 		ExtensionBase.__init__(self, plugin, pageview)
 		self.pageview = pageview
-		self._on_parent_set_queue = []
-		self.connectto(pageview, 'parent-set')
+		self._on_ui_init_queue = []
+		self.connectto(pageview, 'ui-init', self.on_ui_init)
 
 		self._sidepane_widgets = {}
 		self.navigation = NavigationWrapper()
 		self.uistate = ConfigDict()
-		self._do_on_parent_set(self._init_window)
+		self._do_on_ui_init(self._init_window)
 
 	def _init_window(self, window):
 		if hasattr(window, 'uimanager'): # HACK: PageWindow does not have uimanager
@@ -4975,34 +4975,33 @@ class PageViewExtension(ActionExtensionBase):
 		real_uistate.update(self.uistate)
 		self.uistate = real_uistate
 
-	def _do_on_parent_set(self, func, *arg, **kwarg):
-		window = self.pageview.get_toplevel()
-		if window == self.pageview:
-			self._on_parent_set_queue.append((func, arg, kwarg))
-		else:
+	def _do_on_ui_init(self, func, *arg, **kwarg):
+		if self.pageview.ui_is_initialized:
+			window = self.pageview.get_toplevel()
 			assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
 			func(window, *arg, **kwarg)
+		else:
+			self._on_ui_init_queue.append((func, arg, kwarg))
 
-	def on_parent_set(self, pageview, *a):
+	def on_ui_init(self, pageview, *a):
 		# Execute calls that only work once there is a mainwindow available.
 		# Needed because pageview extensions are loaded before the pageview
 		# is added to the window.
 		window = pageview.get_toplevel()
-		if window != pageview:
-			assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
-			for func, arg, kwarg in self._on_parent_set_queue:
-				func(window, *arg, **kwarg)
-			self._on_parent_set_queue = []
+		assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
+		for func, arg, kwarg in self._on_ui_init_queue:
+			func(window, *arg, **kwarg)
+		self._on_ui_init_queue = []
 
 	def add_sidepane_widget(self, widget, preferences_key):
 		key = widget.__class__.__name__
 		position = self.plugin.preferences[preferences_key]
-		self._do_on_parent_set(lambda window: window.add_tab(key, widget, position))
+		self._do_on_ui_init(lambda window: window.add_tab(key, widget, position))
 
 		def on_preferences_changed(preferences):
 			position = self.plugin.preferences[preferences_key]
-			self._do_on_parent_set(lambda window: window.remove(widget))
-			self._do_on_parent_set(lambda window: window.add_tab(key, widget, position))
+			self._do_on_ui_init(lambda window: window.remove(widget))
+			self._do_on_ui_init(lambda window: window.add_tab(key, widget, position))
 
 		sid = self.connectto(self.plugin.preferences, 'changed', on_preferences_changed)
 		self._sidepane_widgets[widget] = sid
@@ -5016,7 +5015,7 @@ class PageViewExtension(ActionExtensionBase):
 			except ValueError:
 				pass
 
-		self._do_on_parent_set(remove)
+		self._do_on_ui_init(remove)
 
 		try:
 			sid = self._sidepane_widgets.pop(widget)
@@ -5028,7 +5027,7 @@ class PageViewExtension(ActionExtensionBase):
 		for widget in list(self._sidepane_widgets):
 			self.remove_sidepane_widget(widget)
 			widget.disconnect_all()
-		self._on_parent_set_queue = []
+		self._on_ui_init_queue = []
 
 
 from zim.signals import GSignalEmitterMixin
@@ -5058,6 +5057,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	Emitted when textstyle at the cursor changes
 	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
 	stops emission after the first handler returns C{True}
+	@signal: C{ui-init ()}: trigger for extensions to load uimanager stuff,
+	do not rely on this signal, may be removed
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -5072,6 +5073,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'modified-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'ui-init': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	__signals__ = {
@@ -5102,6 +5104,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._current_toggle_action = None
 		self._showing_template = False
 		self._change_counter = 0
+		self.ui_is_initialized = False
 
 		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
@@ -5201,6 +5204,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			'changed',
 			self.on_insertedobjecttypemap_changed
 		)
+
+	def do_ui_init(self):
+		self.ui_is_initialized = True
 
 	def grab_focus(self):
 		self.textview.grab_focus()
