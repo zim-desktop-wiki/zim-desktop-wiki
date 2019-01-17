@@ -322,6 +322,19 @@ class History(SignalEmitter):
 		else:
 			return Path(child.name) # Force normal Path
 
+	def set_state(self, path, cursor, scroll):
+		'''Looks through the history and recent pages to set the last
+		known cursor position for a page.
+		@param path: a L{Path} object
+		@param cursor: cursor position
+		@param scroll: scroll position
+		'''
+		for list in (self._history, self._recent):
+			for record in reversed(list):
+				if record == path:
+					record.cursor = cursor
+					record.scroll = scroll
+
 	def get_state(self, path):
 		'''Looks through the history and recent pages to the last
 		known cursor position for a page.

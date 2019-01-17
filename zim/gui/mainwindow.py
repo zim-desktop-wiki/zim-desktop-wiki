@@ -759,8 +759,9 @@ class MainWindow(Window):
 			if self.page.modified:
 				raise AssertionError('Could not save page') # XXX - shouldn't this lead to dialog ?
 
-			self.page.cursor = self.pageview.get_cursor_pos()
-			self.page.scroll = self.pageview.get_scroll_pos()
+			old_cursor = self.pageview.get_cursor_pos()
+			old_scroll = self.pageview.get_scroll_pos()
+			self.history.set_state(self.page, old_cursor, old_scroll)
 
 			self.save_uistate()
 
