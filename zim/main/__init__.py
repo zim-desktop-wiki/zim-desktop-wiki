@@ -307,12 +307,15 @@ class GuiCommand(NotebookCommand, GtkCommand):
 						'versioncontrol',
 					]
 				)
-			elif 'calendar' in pluginmanager.failed:
+			else:
+				# Upgrade version <0.70 where these were core functions
+				pluginmanager.load_plugins_from_preferences(['pageindex', 'pathbar'])
+
+			if 'calendar' in pluginmanager.failed:
 				ConfigManager.preferences['JournalPlugin'] = \
 						ConfigManager.preferences['CalendarPlugin']
 				pluginmanager.load_plugins_from_preferences(['journal'])
-			else:
-				pass
+
 			preferences['plugins_list_version'] = '0.70'
 
 		window = MainWindow(
