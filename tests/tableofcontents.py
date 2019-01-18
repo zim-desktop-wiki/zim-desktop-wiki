@@ -142,7 +142,6 @@ sdfsdf
 		model.foreach(activate_row)
 
 		# Test promote / demote
-		window.toggle_readonly(False)
 		pageview.set_readonly(False)
 		wanted = [
 			(1, 'bar'),

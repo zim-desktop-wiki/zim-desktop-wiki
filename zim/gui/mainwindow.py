@@ -558,10 +558,11 @@ class MainWindow(Window):
 		self.preferences['toolbar_size'] = size
 
 	@toggle_action(_('Notebook _Editable'), icon='gtk-edit', init=True) # T: menu item
-	def toggle_readonly(self, readonly):
+	def toggle_editable(self, editable):
 		'''Menu action to toggle the read-only state of the application
 		@emits: readonly-changed
 		'''
+		readonly = not editable
 		if readonly and self.page and self.page.modified:
 			# Save any modification now - will not be allowed after switch
 			self.pageview.save_changes()
@@ -622,11 +623,11 @@ class MainWindow(Window):
 
 		self.uistate.setdefault('readonly', False)
 		if self.notebook.readonly:
-			self.toggle_readonly(True)
-			action = self.actiongroup.get_action('toggle_readonly')
+			self.toggle_editable(False)
+			action = self.actiongroup.get_action('toggle_editable')
 			action.set_sensitive(False)
 		else:
-			self.toggle_readonly(self.uistate['readonly'])
+			self.toggle_editable(not self.uistate['readonly'])
 
 		# And hook to notebook properties
 		self.on_notebook_properties_changed(self.notebook.properties)
@@ -790,7 +791,7 @@ class MainWindow(Window):
 		self.pageview.grab_focus()
 
 	def do_page_changed(self, page):
-		#TODO: set toggle_readonly insensitive when page is readonly
+		#TODO: set toggle_editable() insensitive when page is readonly
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
 		self.statusbar_backlinks_button.set_page(self.page)

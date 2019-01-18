@@ -52,7 +52,7 @@
 			<menuitem action='show_preferences'/>
 		</menu>
 		<menu action='view_menu'>
-			<menuitem action='toggle_readonly'/>
+			<menuitem action='toggle_editable'/>
 			<menuitem action='toggle_toolbar'/>
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_panes'/>
@@ -181,7 +181,7 @@
 		<toolitem action='open_page_back'/>
 		<toolitem action='open_page_forward'/>
 		<separator/>
-		<toolitem action='toggle_readonly'/>
+		<toolitem action='toggle_editable'/>
 		<separator/>
 		<toolitem action='toggle_format_strong'/>
 		<toolitem action='toggle_format_emphasis'/>

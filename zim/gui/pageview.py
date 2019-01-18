@@ -5527,7 +5527,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		sensitivities set due to cursor position, readonly state etc.
 		'''
 		if sensitive:
-			# partly overrule logic in window.toggle_readonly()
+			# partly overrule logic in window.toggle_editable()
 			for action in self.actiongroup.list_actions():
 				action.set_sensitive(
 					action.zim_readonly or not self.readonly)

@@ -243,7 +243,6 @@ class TestSavingPages(tests.TestCase):
 
 	def testSave(self):
 		'''Test saving a page from the interface'''
-		self.mainwindow.toggle_readonly(False)
 		self.mainwindow.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.mainwindow.page.exists())
 		self.assertIsNone(self.mainwindow.page.get_parsetree())
