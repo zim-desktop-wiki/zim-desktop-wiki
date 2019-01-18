@@ -285,7 +285,6 @@ class MainWindow(Window):
 		self.pageview.emit('ui-init') # Needs to trigger after default menus are build
 
 		# Do this last, else menu items show up in wrong place
-		self.pageview.notebook = self.notebook # XXX
 		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)
 		self._insertedobjects = InsertedObjectUI(self.uimanager, self.pageview)
 			# XXX: would like to do this in PageView itself, but need access to uimanager

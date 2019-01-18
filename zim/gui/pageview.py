@@ -4964,16 +4964,13 @@ class PageViewExtension(ActionExtensionBase):
 
 		self._sidepane_widgets = {}
 		self.navigation = NavigationWrapper()
-		self.uistate = ConfigDict()
+		self.uistate = pageview.notebook.state[self.plugin.config_key]
 		self._do_on_ui_init(self._init_window)
 
 	def _init_window(self, window):
 		if hasattr(window, 'uimanager'): # HACK: PageWindow does not have uimanager
 			self._add_actions(window.uimanager)
 		self.navigation._real_navigation = window.navigation
-		real_uistate = window.notebook.state[self.plugin.config_key]
-		real_uistate.update(self.uistate)
-		self.uistate = real_uistate
 
 	def _do_on_ui_init(self, func, *arg, **kwarg):
 		if self.pageview.ui_is_initialized:
