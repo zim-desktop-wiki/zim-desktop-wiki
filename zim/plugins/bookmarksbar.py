@@ -187,7 +187,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 		# Create widget for bookmarks.
 		self.scrolledbox = ScrolledHBox()
-		self.pack_start(self.scrolledbox, True, False, 0)
+		self.pack_start(self.scrolledbox, True, True, 0)
 
 		# Toggle between full/short page names.
 		self.uistate.setdefault('show_full_page_name', False)
