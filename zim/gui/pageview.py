@@ -6378,6 +6378,9 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if format != buffer.get_textstyle():
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+			if ishead:
+				line = buffer.get_insert_iter().get_line()
+				buffer.set_indent(line, 0)
 			selected = self.autoselect(selectline=ishead)
 
 		buffer.toggle_textstyle(format)
