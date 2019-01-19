@@ -684,6 +684,15 @@ class LocaleString(BaseString):
 	pass # utf8 already supported by default
 
 
+class IconString(LocaleString):
+
+	def check(self, value):
+		if hasattr(value, 'path'):
+			return value.path  # prevent fallback via serialize_zim_config to user_path
+		else:
+			return LocaleString.check(self, value)
+
+
 class Boolean(BaseBoolean):
 
 	def tostring(self, value):
@@ -732,7 +741,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		('Comment', LocaleString(None)),
 		('Exec', String(None)),
 		('TryExec', String(None)),
-		('Icon', LocaleString(None)),
+		('Icon', IconString(None)),
 		('MimeType', String(None)),
 		('Terminal', Boolean(False)),
 		('NoDisplay', Boolean(False)),
@@ -748,7 +757,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 
 	def isvalid(self):
 		'''Check if all the fields that are required according to the
-		spcification are set. Assumes we only use desktop files to
+		specification are set. Assumes we only use desktop files to
 		describe applications (and not links or dirs, which are also
 		covered by the spec).
 		@returns: C{True} if all required fields are set

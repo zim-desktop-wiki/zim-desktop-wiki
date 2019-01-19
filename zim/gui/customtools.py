@@ -418,7 +418,7 @@ class CustomToolManagerUI(object):
 		for tool in self._manager:
 			icon = tool.icon
 			if '/' in icon or '\\' in icon:
-				# Assume icon is a file path
+				# Assume icon is a file path - need to add it in order to make it loadable
 				icon = 'zim-custom-tool' + tool.key
 				try:
 					pixbuf = tool.get_pixbuf(Gtk.IconSize.LARGE_TOOLBAR)

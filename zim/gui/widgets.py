@@ -491,13 +491,13 @@ class IconChooserButton(Gtk.Button):
 		'''
 		GObject.GObject.__init__(self)
 		self.file = None
-		image = Gtk.Image()
-		self.add(image)
+		self.image = Gtk.Image()
+		self.add(self.image)
 		self.set_alignment(0.5, 0.5)
 		if pixbuf:
-			image.set_from_pixbuf(pixbuf)
+			self.image.set_from_pixbuf(pixbuf)
 		else:
-			image.set_from_stock(stock, Gtk.IconSize.DIALOG)
+			self.image.set_from_stock(stock, Gtk.IconSize.DIALOG)
 
 	def do_clicked(self):
 		dialog = FileDialog(self, _('Select File')) # T: dialog title
@@ -514,10 +514,9 @@ class IconChooserButton(Gtk.Button):
 		'''Set the file to display in the chooser button
 		@param file: a L{File} object
 		'''
-		image = self.get_child()
-		size = max(image.size_request()) # HACK to get icon size
-		pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, size, size)
-		image.set_from_pixbuf(pixbuf)
+		w, h = strip_boolean_result(Gtk.icon_size_lookup(Gtk.IconSize.DIALOG))
+		pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(file.path, w, h)
+		self.image.set_from_pixbuf(pixbuf)
 		self.file = file
 
 	def get_file(self):
