@@ -17,34 +17,16 @@ will also need to define one or more "extension" classes. These classes
 act as decorators for specific objects that appear in the application.
 They will be instantiated automatically whenever the target object is
 created. The extension object then has direct access to the API of the
-object that is being extended. Typical classes to extend in a plugin
-are e.g. the L{MainWindow}, the L{PageView} and the L{Notebook} classes.
-
-To define an extension, you need to subclass the extension class that relates
-to the object you want to extend. E.g. the L{MainWindowExtension}, the
-L{PageViewExtension} or the L{NotebookExtension}.
+object that is being extended.
 
 Each extension object that is instantiated is linked to the plugin object
 that it belongs to. So it can access functions of the plugin object and
 it can use the plugin object to find other extension objects if it
-needs to cooperate. All extension classes defined in the same module
-file as the plugin object are automatically linked to the plugin.
-
-See the various standard plugins for examples how to define a plugin
-object and use extensions.
-
-Some plugins also want to add commandline options, such that they can
-be called directly with "zim --plugin PLUGIN_NAME [OPTIONS]", an example
-is the quicknote plugin. To make this work, all that is needed is to
-define a class that derives from the L{Command} class (see L{zim.command}).
+needs to cooperate.
 
 Also defined here is the L{PluginManager} class. This class is the
 interface towards the rest of the application to load/unload plugins and
 to let plugins extend specific application objects.
-
-To allow plugins to be installed locally, the
-C{$XDG_DATA_HOME/zim/plugins} and all C{$XDG_DATA_DIRS/zim/plugins}
-are added to the search path for C{zim.plugins}.
 '''
 
 
