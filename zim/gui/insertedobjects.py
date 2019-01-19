@@ -55,7 +55,7 @@ class InsertedObjectWidget(Gtk.EventBox):
 		self._has_cursor = False
 		self._vbox = Gtk.VBox()
 		Gtk.EventBox.add(self, self._vbox)
-		widget_set_css(self._vbox, 'zim-pageview-object', 'border: 1px solid #ccc')
+		widget_set_css(self._vbox, 'zim-inserted-object', 'border: 1px solid #ccc')
 			# Choosen #ccc because it should give contract with both light and
 			# dark theme, but less than the text color itself
 			# Can be overruled in user css is really conflicts with theme
@@ -67,7 +67,7 @@ class InsertedObjectWidget(Gtk.EventBox):
 	def add_header(self, widget):
 		'''Add an header widget on top of the object'''
 		widget.get_style_context().add_class(Gtk.STYLE_CLASS_BACKGROUND)
-		widget_set_css(widget, 'zim-insertedobject-head', 'border-bottom: 1px solid #ccc')
+		widget_set_css(widget, 'zim-inserted-object-head', 'border-bottom: 1px solid #ccc')
 		self._vbox.pack_start(widget, True, True, 0)
 		self._vbox.reorder_child(widget, 0)
 

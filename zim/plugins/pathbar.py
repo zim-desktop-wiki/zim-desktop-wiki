@@ -476,6 +476,7 @@ class PathBar(ScrolledHBox):
 
 	def __init__(self, history, notebook, navigation, spacing=0, homogeneous=False):
 		ScrolledHBox.__init__(self, spacing, homogeneous)
+		self.set_name('zim-pathbar')
 		self.history = history
 		self.notebook = notebook
 		self.navigation = navigation

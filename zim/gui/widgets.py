@@ -2034,6 +2034,7 @@ class WindowSidePane(Gtk.VBox):
 
 	def __init__(self, position):
 		GObject.GObject.__init__(self)
+		self.set_name('zim-sidepane')
 		self.key = position
 
 		# Add bar with label and close button

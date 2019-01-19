@@ -43,7 +43,7 @@ Zim notebooks do not support encryption or password protection natively. However
 Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
 
 ===== How do I change the font size of the side pane =====
-You can change this by modifying the ''gtkrc'' file, see [[Help:Config Files|Config Files]] for details.
+You can change this by modifying the gtk css file, see [[Help:Config Files|Config Files]] for details.
 
 ===== Does it run on Windows? =====
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
