@@ -386,7 +386,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 		path = button.zim_path
 
-		_button_width = button.size_request()[0]
+		_button_width = button.size_request().width
 		direction = 'left' if (int(event.x) <= _button_width / 2) else 'right'
 
 		def set_save_bookmark(path):
