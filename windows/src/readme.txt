@@ -8,6 +8,7 @@ www.zim-wiki.org
 *Zim* can be used to:
 
 * Keep an archive of notes
+* Keep a daily or weekly journal
 * Take notes during meetings or lectures
 * Organize task lists
 * Draft blog entries and emails

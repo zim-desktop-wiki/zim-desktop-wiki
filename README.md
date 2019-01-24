@@ -6,6 +6,7 @@ Zim is a graphical text editor used to maintain a collection of wiki pages. Each
 
 Zim can be used to:
 * Keep an archive of notes
+* Keep a daily or weekly journal
 * Take notes during meetings or lectures
 * Organize task lists
 * Draft blog entries and emails
