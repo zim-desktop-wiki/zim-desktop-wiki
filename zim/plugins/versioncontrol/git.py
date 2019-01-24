@@ -197,16 +197,10 @@ class GITApplicationBackend(VCSApplicationBase):
 
 
 	def move(self, oldpath, newpath):
-		"""
-		Runs: git mv --after {{OLDPATH}} {{NEWPATH}}
-		"""
-		return self.run(['mv', '--after', oldpath, newpath])
+		return self.add(newpath) # move already happened
 
 	def remove(self, path):
-		"""
-		Runs: git rm {{PATH}}
-		"""
-		return self.run(['rm', path])
+		pass # delete already happened
 
 	def revert(self, path=None, version=None):
 		"""
