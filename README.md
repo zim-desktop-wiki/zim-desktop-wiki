@@ -1,4 +1,4 @@
-# ABOUT 
+# ABOUT
 
 Zim - A Desktop Wiki Editor
 
@@ -16,7 +16,7 @@ Zim can be used to:
 
 All files in this package, with the exception of those mentioned below are copyrighted and licensed as follows:
 
-Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
@@ -53,7 +53,7 @@ Other:
   modifications copyright 2009 by Gabriel Hurley
 
 
-# INSTALLING 
+# INSTALLING
 
 **NOTE:** To test zim it is not needed to install. You should be able to run it directly from the source directory by calling `./zim.py`. (To run a translated version from the source first call `./setup.py build_trans`.)
 
@@ -62,11 +62,10 @@ First you should verify you have the dependencies zim needs. To list all depende
 
 You will at least need the following:
 
-	* gtk+ >= 2.6
-	* python >= 2.6
-	* python-gtk
-	* python-gobject
-	* python-xdg (optional, but recommended)
+	* Gtk+ >= 3.2
+	* python3 >= 3.2
+	* python3-gi (also known as pygobject, but make sure to have the "gi" based version)
+	* python3-xdg (optional, but recommended)
 	* xdg-utils (optional, but recommended)
 
 To verify zim is working properly on your system you can call the test suite using `./test.py`. Failures do not have to be critical, but in principle all tests should pass.
@@ -81,26 +80,30 @@ Most plugins have additional requirements. These are listed in the plugin descri
 
 On Ubuntu or other debian derived systems, the following packages should be installed:
 
-	* python
-	* libgtk2.0-0
-	* python-gtk2
-	* python-xdg
+	* python3
+	* gir1.2-gtk-3.0
+	* python3-gi
+	* python3-xdg
 
 
 ## Windows
 
-To install gtk, python and python-gtk on Windows see the instructions at http://www.pygtk.org . If you use python 2.5 you will also need to install the python simplejson module. This can be obtained from http://pypi.python.org . The python-xdg module is not usefull on Windows, so you can skip it.
+On windows the "msys" environment can be used to install python3 with Gtk and
+run zim from source. See https://www.gtk.org/download/windows.php for detailed
+instructions.
+
+The python-xdg module is not usefull on Windows, so you can skip it.
 
 Once the dependencies are fulfilled you can run zim directly from the source directory.
 
+
 ## Mac OS X
 
-You can run zim on mac if you have the proper dependencies installed. If you are using Mac Ports packages installing the following ports should work:
+You can run zim on mac if you have the proper dependencies installed.
+If you are using Mac Ports packages installing the following ports should work:
 
-	* python26
-	* py26-gtk
-	* py26-simplejson
-	* py26-xdg
+TODO: new instructions for Gtk3 / Python3
+
 
 
 ## Install Paths
@@ -119,7 +122,7 @@ Also zim uses the XDG paths to locate data and config files. If you get an error
 
 To build a tree in a target directory you can use:
 
-    ./setup.py install --root=/path/to/package/build/dir --skip-cmd
+    ./setup.py install --root=/path/to/package/build/dir
 
 Special attention may be needed to run xdg update commands in a post-install script. Recommended commands are:
 
