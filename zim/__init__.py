@@ -131,7 +131,10 @@ ZIM_EXECUTABLE = os.path.abspath(sys.argv[0])
 
 
 ## Initialize locale  (needed e.g. for natural_sort)
-locale.setlocale(locale.LC_ALL, '')
+try:
+	locale.setlocale(locale.LC_ALL, '')
+except locale.Error:
+	logger.exception('Could not set locale settings')
 
 
 ## Initialize gettext  (maybe make this optional later for module use ?)
