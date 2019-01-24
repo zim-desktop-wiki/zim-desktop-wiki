@@ -100,7 +100,10 @@ class Application(object):
 		self.tryexeccmd = tryexeccmd
 
 	def __eq__(self, other):
-		return (self.cmd, self.tryexeccmd) == (other.cmd, other.tryexeccmd)
+		if isinstance(other, Application):
+			return (self.cmd, self.tryexeccmd) == (other.cmd, other.tryexeccmd)
+		else:
+			return False
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
