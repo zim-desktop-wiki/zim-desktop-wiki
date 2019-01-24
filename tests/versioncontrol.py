@@ -108,7 +108,7 @@ class TestMainWindowExtension(tests.TestCase):
 			self.assertIsInstance(dialog, VersionControlInitDialog)
 			choice = dialog.combobox.get_active_text()
 			self.assertTrue(choice and not choice.isspace())
-			dialog.answer_yes()
+			dialog.assert_response_ok()
 
 		with tests.DialogContext(init, SaveVersionDialog):
 			window_ext.save_version()
