@@ -15,12 +15,12 @@ from zim.main import HelpCommand
 
 def get_about():
 	'''Get the tagline and short description from the README'''
-	readme = open('README.txt')
+	readme = open('README.md')
 	lines = []
 	for line in readme:
-		if line.startswith('===') and 'ABOUT' in line:
+		if line.startswith('# ABOUT'):
 			for line in readme:
-				if line.startswith('==='):
+				if line.startswith('# '):
 					break
 				else:
 					lines.append(line)

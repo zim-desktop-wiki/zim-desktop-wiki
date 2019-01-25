@@ -124,11 +124,11 @@ class TestApplicationManager(tests.TestCase):
 
 	def testGetMimeType(self):
 		for obj, mimetype in (
-			(File('README.txt'), 'text/plain'),
-			('README.txt', 'text/plain'),
+			(File('file.txt'), 'text/plain'),
+			('file.txt', 'text/plain'),
 			('ssh://host', 'x-scheme-handler/ssh'),
 			('http://host', 'x-scheme-handler/http'),
-			('README.html', 'text/html'),
+			('file.html', 'text/html'),
 			('mailto:foo@bar.org', 'x-scheme-handler/mailto'),
 		):
 			self.assertEqual(get_mimetype(obj), mimetype)
@@ -213,7 +213,7 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 
 		# Check menu
 		for obj, mimetype, test_entry in (
-			(File('README.txt'), 'text/plain', entry_text),
+			(File('file.txt'), 'text/plain', entry_text),
 			('ssh://host', 'x-scheme-handler/ssh', entry_url),
 		):
 			manager.set_default_application(mimetype, test_entry)
