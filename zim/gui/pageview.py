@@ -5622,7 +5622,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			start, end = buffer.get_selection_bounds()
 			with buffer.user_action:
 				buffer.delete(start, end)
-				buffer.insert_at_cursor(''.join(output))
+				buffer.insert_at_cursor(''.join(text))
 		else:
 			raise AssertionError
 

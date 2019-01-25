@@ -2015,6 +2015,15 @@ class TestPageViewActions(tests.TestCase):
 		pageview.remove_link()
 		self.assertEqual(pageview.page.dump('wiki'), ['[[li]]nk\n'])
 
+	def testReplaceSelection(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'this_has_a_bug\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(5)
+		end = buffer.get_iter_at_offset(8)
+		buffer.select_range(begin, end)
+		pageview.replace_selection('does_not_have')
+		self.assertEqual(pageview.page.dump('wiki'), ['this_does_not_have_a_bug\n'])
+
 	def testInsertDate(self):
 		pageview = setUpPageView(self.setUpNotebook())
 
