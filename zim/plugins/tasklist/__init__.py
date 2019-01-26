@@ -159,7 +159,8 @@ class TaskListPageViewExtension(PageViewExtension):
 
 		index = self.pageview.notebook.index
 		tasksview = TasksView.new_from_index(index)
-		dialog = TaskListDialog.unique(self, self.pageview, tasksview, self.plugin.preferences)
+		properties = self.plugin.notebook_properties(self.pageview.notebook)
+		dialog = TaskListDialog.unique(self, self.pageview, tasksview, properties)
 		dialog.present()
 
 	def on_preferences_changed(self, preferences):

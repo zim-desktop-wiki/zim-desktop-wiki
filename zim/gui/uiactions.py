@@ -244,6 +244,10 @@ class UIActions(object):
 		from zim.gui.propertiesdialog import PropertiesDialog
 		PropertiesDialog(self.widget, self.notebook).run()
 
+		# Changing plugin properties can modify the index state
+		if not self.notebook.index.is_uptodate:
+			self.reload_index(update_only=True)
+
 	@action(_('_Quit'), '<Primary>Q') # T: Menu item
 	def quit(self):
 		'''Menu action for quit.

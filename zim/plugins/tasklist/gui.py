@@ -81,6 +81,8 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		self.task_list.connect('populate-popup', self.on_populate_popup)
 		self.task_list.set_headers_visible(True)
 
+		self.connectto(properties, 'changed', self.on_properties_changed)
+
 		self.filter_entry = InputEntry(placeholder_text=_('Filter')) # T: label for filtering/searching tasks
 		self.filter_entry.set_icon_to_clear()
 		filter_cb = DelayedCallback(500,
@@ -89,6 +91,14 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 		self.pack_start(ScrolledWindow(self.task_list), True, True, 0)
 		self.pack_end(self.filter_entry, False, True, 0)
+
+	def on_properties_changed(self, properties):
+		self.task_list.update_properties(
+			task_labels=_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
+		)
 
 
 class TaskListDialogExtension(DialogExtensionBase):
@@ -119,12 +129,10 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
 		opener = parent.navigation
-		task_labels = _parse_task_labels(properties['labels'])
-		nonactionable_tags = _parse_task_labels(properties['nonactionable_tags'])
 		self.task_list = TaskListTreeView(
 			self.tasksview, opener,
-			task_labels,
-			nonactionable_tags=nonactionable_tags,
+			_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
 			filter_actionable=self.uistate['only_show_act'],
 			tag_by_page=properties['tag_by_page'],
 			use_workweek=properties['use_workweek'],
@@ -137,8 +145,10 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
-		self.tag_list = TagListTreeView(self.task_list, task_labels)
+		self.tag_list = TagListTreeView(self.task_list)
 		self.hpane.add1(ScrolledWindow(self.tag_list))
+
+		self.connectto(properties, 'changed', self.on_properties_changed)
 
 		# Filter input
 		hbox.pack_start(Gtk.Label(_('Filter') + ': '), False, True, 0) # T: Input label
@@ -190,6 +200,15 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		nb_ext = find_extension(self.notebook, TaskListNotebookExtension)
 		self.connectto(nb_ext, 'tasklist-changed', callback)
 
+	def on_properties_changed(self, properties):
+		self.task_list.update_properties(
+			task_labels=_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
+		)
+		self.tag_list.refresh(self.task_list)
+
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
 
@@ -217,12 +236,11 @@ class TagListTreeView(SingleClickTreeView):
 	_type_tag = 2
 	_type_untagged = 3
 
-	def __init__(self, task_list, task_labels):
+	def __init__(self, task_list):
 		model = Gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 		self.task_list = task_list
-		self.task_labels = task_labels
 
 		column = Gtk.TreeViewColumn(_('Tags'))
 			# T: Column header for tag list in Task List dialog
@@ -287,7 +305,7 @@ class TagListTreeView(SingleClickTreeView):
 		model.append((_('All Tasks'), n_all, self._type_label, Pango.Weight.BOLD)) # T: "tag" for showing all tasks
 
 		used_labels = self.task_list.get_labels()
-		for label in self.task_labels: # explicitly keep sorting from properties
+		for label in self.task_list.task_labels: # explicitly keep sorting from properties
 			if label in used_labels:
 				model.append((label, used_labels[label], self._type_label, Pango.Weight.BOLD))
 
@@ -479,6 +497,26 @@ class TaskListTreeView(BrowserTreeView):
 		# HACK because we can not register ourselves :S
 		self.connect('row_activated', self.__class__.do_row_activated)
 		self.connect('focus-in-event', self.__class__.do_focus_in_event)
+
+	def update_properties(self,
+		task_labels=None,
+		nonactionable_tags=None,
+		tag_by_page=None,
+		use_workweek=None,
+	):
+		if task_labels is not None:
+			self.task_labels = task_labels
+
+		if nonactionable_tags is not None:
+			self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
+
+		if tag_by_page is not None:
+			self.tag_by_page = tag_by_page
+
+		if use_workweek is not None:
+			print("TODO udate_use_workweek rendering")
+
+		self.refresh()
 
 	def refresh(self):
 		'''Refresh the model based on index data'''

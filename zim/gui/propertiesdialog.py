@@ -44,7 +44,9 @@ class PropertiesDialog(Dialog):
 		if self.notebook.readonly:
 			for widget in list(self.form.widgets.values()):
 				widget.set_sensitive(False)
-		stack.add_titled(self.form, 'notebook', _('Notebook'))
+		box = Gtk.VBox()
+		box.pack_start(self.form, False, False, 0)
+		stack.add_titled(box, 'notebook', _('Notebook'))
 
 		self.plugin_forms = {}
 		plugins = PluginManager()
