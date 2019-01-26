@@ -1974,8 +1974,9 @@ class TestPageViewActions(tests.TestCase):
 		with tests.DialogContext(edit_img):
 			pageview.edit_object()
 
-		path = file.user_path or file.path
-		self.assertEqual(pageview.page.dump('wiki'), ['{{%s?href=test}}\n' % path])
+		text = ''.join(pageview.page.dump('wiki')).strip()
+		self.assertTrue(text.startswith('{{') and text.endswith('?href=test}}'), '%r does not match \{\{...?href=test\}\}' % text)
+		self.assertEqual(File(text[2:-12]), file)
 
 	def testEditObjectForObject(self):
 		pageview = setUpPageView(self.setUpNotebook(), '{{{test:\nfoo\n}}}\n')
@@ -2050,8 +2051,9 @@ class TestPageViewActions(tests.TestCase):
 		with tests.DialogContext(choose_file):
 			pageview.show_insert_image()
 
-		path = file.user_path or file.path
-		self.assertEqual(pageview.page.dump('wiki'), ['{{%s}}\n' % path])
+		text = ''.join(pageview.page.dump('wiki')).strip()
+		self.assertTrue(text.startswith('{{') and text.endswith('}}'), '%r does not match \{\{...\}\}' % text)
+		self.assertEqual(File(text[2:-2]), file)
 
 	def testInsertBulletList(self):
 		pageview = setUpPageView(self.setUpNotebook())

@@ -60,7 +60,8 @@ class TestFormatMixin(object):
 		# No absolute paths ended up in reference
 		pwd = Dir('.')
 		self.assertFalse(pwd.path in text, 'Absolute path ended up in reference')
-		self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
+		if pwd.user_path is not None:
+			self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
 
 		return text
 
