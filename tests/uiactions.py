@@ -944,6 +944,7 @@ class TestUIActionsRealFile(tests.TestCase):
 	def testEditPageSource(self):
 		from zim.gui.widgets import MessageDialog
 		from zim.newfs import LocalFile
+		from zim.gui.applications import ApplicationManager
 
 		oldtext = self.page.dump('plain') # trick page into caching content
 		signals = tests.SignalLogger(self.page)
@@ -952,6 +953,8 @@ class TestUIActionsRealFile(tests.TestCase):
 			file = LocalFile(cmd[-1])
 			self.assertEqual(file, self.page.source_file)
 			file.write('New text\n')
+
+		ApplicationManager().set_default_application('text/plain', 'test')
 
 		with tests.ApplicationContext(edit_page):
 			with tests.DialogContext(MessageDialog):

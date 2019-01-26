@@ -8,6 +8,7 @@ import tests
 import os
 
 from zim.fs import File, Dir
+from zim.newfs import LocalFile, LocalFolder
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
@@ -1807,7 +1808,7 @@ Baz
 		file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
 		file.touch()
 		def check_file(args):
-			self.assertEqual(args[-1], file.uri)
+			self.assertEqual(LocalFile(args[-1]), file)
 
 		with tests.ApplicationContext(check_file):
 			pageview.activate_link(file.uri)
@@ -2131,14 +2132,14 @@ class TestPageViewActions(tests.TestCase):
 
 	def testOpenFileTemplatesFolder(self):
 		pageview = setUpPageView(self.setUpNotebook())
-		path = self.setUpFolder(mock=tests.MOCK_ALWAYS_MOCK).path
-		pageview.preferences['file_templates_folder'] = path
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		pageview.preferences['file_templates_folder'] = folder.path
 
 		def create_folder(dialog):
 			dialog.answer_yes()
 
 		def open_folder(args):
-			self.assertEqual(args[-1], path)
+			self.assertEqual(LocalFolder(args[-1]), folder)
 
 		with tests.DialogContext(create_folder):
 			with tests.ApplicationContext(open_folder):

@@ -309,7 +309,9 @@ class TestOpenFunctions(tests.TestCase):
 		myfile = folder.file('test.txt')
 		myfile.touch()
 
-		entry = ApplicationManager().get_default_application('text/plain')
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
 
 		open_file(widget, myfile)
 		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfile), None))
