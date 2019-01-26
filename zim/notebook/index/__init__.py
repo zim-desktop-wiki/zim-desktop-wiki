@@ -15,6 +15,7 @@ except ImportError:
 
 from zim.newfs import LocalFile, File, Folder, FileNotFoundError
 from zim.signals import SignalEmitter
+from zim.utils import natural_sort_key
 
 from zim.notebook.operations import NotebookOperation, NotebookOperationOngoing, ongoing_operation
 
@@ -87,11 +88,14 @@ class Index(SignalEmitter):
 
 	def _db_check(self):
 		try:
-			if self.get_property('db_version') == DB_VERSION:
-				pass
-			else:
-				logger.debug('Index db_version out of date')
+			if self.get_property('db_version') != DB_VERSION:
+				logger.info('Index db_version out of date')
 				self._db_init()
+			elif self.get_property('db_sortkey_format') != natural_sort_key('db_sortkey_format'):
+				logger.info('Index db_sortkey_format out of date')
+				self._db_init()
+			else:
+				pass
 		except sqlite3.OperationalError:
 			# db is there but table does not exist
 			logger.debug('Operational error, init tabels')
@@ -127,8 +131,9 @@ class Index(SignalEmitter):
 				value TEXT,
 				CONSTRAINT uc_MetaOnce UNIQUE (key)
 			);
-			INSERT INTO zim_index VALUES ('db_version', %r)
-		''' % DB_VERSION)
+			INSERT INTO zim_index VALUES ('db_version', %r);
+			INSERT INTO zim_index VALUES ('db_sortkey_format', %r)
+		''' % (DB_VERSION, natural_sort_key('db_sortkey_format')))
 
 		self._update_iter_init() # Force re-init of all tables
 		self._db.commit()

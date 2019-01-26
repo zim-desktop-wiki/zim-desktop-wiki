@@ -435,18 +435,6 @@ class PagesViewInternal(object):
 					return (start.parent, None, href.parts())
 
 	def resolve_pagename(self, parent, names, parent_id=None):
-		page_id, pagename, branch = self._resolve_pagename(parent, names, parent_id)
-		if page_id is None:
-			try:
-				page_id = self.get_page_id(pagename)
-			except IndexNotFoundError:
-				pass
-			else:
-				logger.error('BUG: issue #19 seen: (%r, %r) -> (None, %r) - branch %i !', parent, names, pagename, branch)
-
-		return page_id, pagename
-
-	def _resolve_pagename(self, parent, names, parent_id=None):
 		'''Resolve a pagename in the right case'''
 		# We do not ignore placeholders here. This can lead to a dependencies
 		# in how links are resolved based on order of indexing. However, this
@@ -465,7 +453,7 @@ class PagesViewInternal(object):
 				(page_id, sortkey)
 			).fetchall()
 
-			exact = pagename + ':' + basename
+			exact = pagename.child(basename).name
 			for row in candidates:
 				if row['name'] == exact:
 					pagename = Path(row['name'])
@@ -477,9 +465,9 @@ class PagesViewInternal(object):
 					pagename = Path(row['name'])
 					page_id = row['id']
 				else: # no match
-					return None, pagename.child(':'.join(names[i:])), 1
+					return None, pagename.child(':'.join(names[i:]))
 		else:
-			return page_id, pagename, 2
+			return page_id, pagename
 
 	def walk(self, parent_id):
 		# Need to do this recursive to preserve sorting
