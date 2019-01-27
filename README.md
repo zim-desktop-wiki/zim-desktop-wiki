@@ -13,46 +13,8 @@ Zim can be used to:
 * Do brainstorming
 
 
-# COPYRIGHT
-
-All files in this package, with the exception of those mentioned below are copyrighted and licensed as follows:
-
-Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-
-
-# Translations
-
-Translations are copyrighted by their respective translators. All translations that are entered through the launchpad website are distributed under the BSD license.
-
-See the translation files for detailed translator credits.
-
-
-# Included Files
-
-The following files were included from other sources:
-
-* zim/inc/xdot.py - Copyright 2008 Jose Fonseca
-* zim/inc/arithmetic.py - Copyright 2010, 2011 Patricio Paez <pp@pp.com.mx>
-
-
-From the default Gnome icon theme:
-* pixmaps/task-list.png (was: stock_todo.png)
-* pixmaps/attachment.png (was: mail-attachment.png)
-
-From Gtk+ 2.8
-* pixmaps/link.png (was: stock_connect_24.png)
-
-Other:
-* pixmaps/calendar.png (was: stock_calendar-view-month.png)
-  Copyright 2007 by Jakub Steiner, released under GPL
-  modifications copyright 2009 by Gabriel Hurley
-
+Zim is an open source program. This means it can be used and distributed freely
+under the conditions of the [license](./LICENSE).
 
 # INSTALLING
 
@@ -118,31 +80,42 @@ Also zim uses the XDG paths to locate data and config files. If you get an error
     XDG_DATA_DIRS=/home/user/share:/usr/local/share:/usr/share
 
 
+# COPYRIGHT
 
-# PACKAGING
+All files in this package, with the exception of those mentioned below are copyrighted and licensed as follows:
 
-To build a tree in a target directory you can use:
+Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-    ./setup.py install --root=/path/to/package/build/dir
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
-Special attention may be needed to run xdg update commands in a post-install script. Recommended commands are:
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-    update-desktop-database
-    update-mime-database /usr/share/mime
-
-
-
-# TRANSLATING
-
-To contribute to translations onlne please go to http://launchpad.net.
-
-To test a new translation you can either download the snapshot from launchpad and run:
-
-    ./tools/import-launchpad-translations.py launchpad-export.tar.gz
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 
-Or you can edit the template zim.pot with your favourite editor. In that case you should add you new .po file to the po/ directory.
+# Translations
 
-After adding the .po file(s) you can compile the translation using:
+Translations are copyrighted by their respective translators. All translations that are entered through the launchpad website are distributed under the BSD license.
 
-    ./setup.py build_trans
+See the translation files for detailed translator credits.
+
+
+    # Included Files
+
+    The following files were included from other sources:
+
+    * zim/inc/xdot.py - Copyright 2008 Jose Fonseca
+    * zim/inc/arithmetic.py - Copyright 2010, 2011 Patricio Paez <pp@pp.com.mx>
+
+
+    From the default Gnome icon theme:
+    * pixmaps/task-list.png (was: stock_todo.png)
+    * pixmaps/attachment.png (was: mail-attachment.png)
+
+    From Gtk+ 2.8
+    * pixmaps/link.png (was: stock_connect_24.png)
+
+    Other:
+    * pixmaps/calendar.png (was: stock_calendar-view-month.png)
+      Copyright 2007 by Jakub Steiner, released under GPL
+      modifications copyright 2009 by Gabriel Hurley

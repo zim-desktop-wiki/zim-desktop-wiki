@@ -88,8 +88,7 @@ When you define a subclass of such an extension class it will be loaded
 automatically by the plugin for each instance of the target component.
 
 Key interfaces for extensions are: adding actions, adding widgets, connecting
-to signals and calling methods on the extended object. TODO: elaborate on these
-topics.
+to signals and calling methods on the extended object.
 
 Apart from extensions there is one other class that will also be used
 automatically: Classes derived from the `Command` class are used to handle
@@ -125,6 +124,61 @@ module.
 The functions `get_extension()` and `get_action()` can be used to access
 extensions and actions defined by other plugins.
 
+
+## Signals
+
+Zim is build using the Gtk / GObject toolkit. This toolkit relies heavily on
+the concept of "signals" to collaborate between classes.
+
+In short this means that any class can define a number of signals that are
+emitted for various events. Objects that are interested in these events can
+register an event handler using the `connect()` method.
+
+Zim defines a `SignalConnectorMixin` class in `zim.signals` with some
+convenience methods for classes that want to connect to signals.
+
+For classes that do not derive for GObject classes but do want to emit their
+own signales zim has it's own `SignalEmitter`class in `zim.signals`.
+
+
+Keep in mind that with each `connect()` an object reference is created to the
+handler method. The reference is kept by the object that is being connected to
+and is only broken when that object is being destroyed. So if you do
+
+	object_A.connect('some-signal', object_B.some_method)
+
+then object_B will not be destroyed as long as object_A is alive. On the other
+hand, if object_A is destroyed, object_B simply doesn't get any signals anymore.
+
+The `SignalConnectorMixin` class keeps track of the connections it made, which
+helps in cleaning up.
+
+
+## Coding Style & Conventions
+
+See the python style guide for best practices. Some additional remarks:
+* In contradiction to the style guide, zim uses `TAB`s (not spaces) with a
+  tabstop set to the equivalent of 4 spaces
+* Only use "assert" for checks that could be removed when code is stable, these
+  statements could be optimized away
+* Writing test cases is good, full test coverage is better.
+  Run `./test.py --cover` to get a coverage report.
+* Use signals for colaboration between classes where possible
+* Signal handlers have a method name starting with "do_" (for signals of the
+  same classe) or "on_" (for signals of collaborating classes)
+
+
+### Test suite
+
+Zim comes with a full test suite, it can be executed using the `test.py`
+script. See `test.py --help` for it's commandline options.
+
+This test suite will at least test for all plugins that they can be loaded
+and contain proper information.
+
+To test the specific functions of your plugin, you need to write your own test
+case. Have a look at test cases of existing plugins for ideas how to do that.
+
 ## Merge request checklist
 
 If you think your plugin is a good fit for the list of default plugins in Zim
@@ -139,6 +193,9 @@ Some things to consider:
 * Each plugin should come with its own test cases for the test suite. Other
   developers may not use your plugin, so if it breaks later on it may go
   undetected unless there is a test case for it.
+
+Also see [CONTRIBUTING.md](./CONTRIBUTING.md) for more guidelines on getting
+new features accepted for the main repository.
 
 ## How to ...
 
