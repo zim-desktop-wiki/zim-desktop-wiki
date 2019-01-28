@@ -8,6 +8,8 @@ import tests
 
 import os
 import sys
+import shutil
+
 from gi.repository import Gtk
 
 from zim.gui.applications import *
@@ -22,16 +24,17 @@ THUMB_SIZE_NORMAL = 128
 class TestXDGMimeInfo(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir('./data/pixmaps')
-		for i, filename in enumerate(dir.list()):
-			file = dir.file(filename)
-			icon = get_mime_icon(file, 128)
-			self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
-			desc = get_mime_description(file.get_mimetype())
-			self.assertIsInstance(desc, str)
-			self.assertTrue(len(desc) > 5)
+		os.mkdir('tests/tmp/data_dir/mime/')
+		os.mkdir('tests/tmp/data_dir/mime/image/')
+		shutil.copyfile('./tests/data/png.xml', 'tests/tmp/data_dir/mime/image/png.xml')
 
-		self.assertTrue(i > 3)
+		dir = Dir('./data')
+		file = dir.file('zim.png')
+		icon = get_mime_icon(file, 128)
+		self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
+		desc = get_mime_description(file.get_mimetype())
+		self.assertIsInstance(desc, str)
+		self.assertTrue(len(desc) > 5)
 
 
 def replace(l, old, new):

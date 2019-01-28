@@ -46,7 +46,9 @@ class TestTemplateEditor(tests.TestCase):
 		):
 			folder.file(name).write(content)
 
-		ApplicationManager().set_default_application('text/plain', 'test')
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
 
 	def testTemplateList(self):
 		dialog = TemplateEditorDialog(None)

@@ -68,7 +68,7 @@ class EnvironmentConfigContext(object):
 			else:
 				pass
 
-		zim.config.set_basedirs() # refresh
+		zim.config.set_basedirs(_ignore_test=True) # refresh
 
 	def __exit__(self, *exc_info):
 		for k, v in self.environ_backup.items():
@@ -609,7 +609,6 @@ class TestXDGConfigDirsIter(tests.TestCase):
 		with EnvironmentConfigContext({
 			'XDG_CONFIG_HOME': path
 		}):
-			zim.config.set_basedirs() # refresh
 			self.assertIn(zimdir, list(iter))
 
 

@@ -954,7 +954,9 @@ class TestUIActionsRealFile(tests.TestCase):
 			self.assertEqual(file, self.page.source_file)
 			file.write('New text\n')
 
-		ApplicationManager().set_default_application('text/plain', 'test')
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
 
 		with tests.ApplicationContext(edit_page):
 			with tests.DialogContext(MessageDialog):
