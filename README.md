@@ -1,8 +1,18 @@
-# ABOUT
-
 Zim - A Desktop Wiki Editor
+===========================
 
-Zim is a graphical text editor used to maintain a collection of wiki pages. Each page can contain links to other pages, simple formatting and images. Pages are stored in a folder structure, like in an outliner, and can have attachments. Creating a new page is as easy as linking to a nonexistent page. All data is stored in plain text files with wiki formatting. Various plugins provide additional functionality, like a task list manager, an equation editor, a tray icon, and support for version control.
+![zim banner](./website/files/images/invade_your_desktop.png)
+
+
+Zim is a graphical text editor used to maintain a collection of wiki pages. Each
+page can contain links to other pages, simple formatting and images. Pages are
+stored in a folder structure, like in an outliner, and can have attachments.
+Creating a new page is as easy as linking to a nonexistent page. All data is
+stored in plain text files with wiki formatting. Various plugins provide
+additional functionality, like a task list manager, an equation editor, a tray
+icon, and support for version control.
+
+![Screenshot](./website/files/screenshots/zim-normal.png)
 
 Zim can be used to:
 * Keep an archive of notes
@@ -13,12 +23,19 @@ Zim can be used to:
 * Do brainstorming
 
 
-Zim is an open source program. This means it can be used and distributed freely
-under the conditions of the [license](./LICENSE).
+## Installing from a Package
 
-# INSTALLING
+Most linux distributions include zim in their package repository. On debian and
+ubuntu to package is simply called "zim".
 
-**NOTE:** To test zim it is not needed to install. You should be able to run it directly from the source directory by calling `./zim.py`. (To run a translated version from the source first call `./setup.py build_trans`.)
+A windows installer can be found here: https://zim.glump.net/windows/
+
+
+## Installing from Source
+
+**NOTE:** To test zim it is not needed to install. You should be able to run it
+directly from the source directory by calling `./zim.py`. (To run a translated
+version from the source first call `./setup.py build_trans`.)
 
 
 First you should verify you have the dependencies zim needs. To list all dependencies check `./setup.py --requires`.
@@ -39,7 +56,7 @@ Zim can be installed from source using:
 
 Most plugins have additional requirements. These are listed in the plugin descriptions.
 
-## Ubuntu
+### Ubuntu
 
 On Ubuntu or other debian derived systems, the following packages should be installed:
 
@@ -49,7 +66,7 @@ On Ubuntu or other debian derived systems, the following packages should be inst
 	* python3-xdg
 
 
-## Windows
+### Windows
 
 On windows the "msys" environment can be used to install python3 with Gtk and
 run zim from source. See https://www.gtk.org/download/windows.php for detailed
@@ -60,7 +77,7 @@ The python-xdg module is not usefull on Windows, so you can skip it.
 Once the dependencies are fulfilled you can run zim directly from the source directory.
 
 
-## Mac OS X
+### Mac OS X
 
 You can run zim on mac if you have the proper dependencies installed.
 If you are using Mac Ports packages installing the following ports should work:
@@ -69,7 +86,7 @@ TODO: new instructions for Gtk3 / Python3
 
 
 
-## Install Paths
+### Install Paths
 
 If you install in a non-default location you may need to set the PYTHONPATH environment variable in order for zim to find it's python modules. For example, if you installed the modules below "/home/user/lib/zim" you need to set:
 
@@ -80,42 +97,33 @@ Also zim uses the XDG paths to locate data and config files. If you get an error
     XDG_DATA_DIRS=/home/user/share:/usr/local/share:/usr/share
 
 
-# COPYRIGHT
+## Contributing
 
-All files in this package, with the exception of those mentioned below are copyrighted and licensed as follows:
-
-Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+See [CONTRIBUTING](./CONTRIBUTING.md) and [PLUGIN_WRITING](./PLUGIN_WRITING.md)
+for information on contributing to the zim source code, translations and
+documentation.
 
 
-# Translations
+## Copyright and License
 
-Translations are copyrighted by their respective translators. All translations that are entered through the launchpad website are distributed under the BSD license.
+Zim is an open source program. This means it can be used and distributed freely
+under the conditions of the [license](./LICENSE).
 
-See the translation files for detailed translator credits.
+All files in this package, with the exception of those mentioned below are
+copyrighted by Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+Translations are copyrighted by their respective translators. All translations
+that are entered through the launchpad website are distributed under the BSD
+license. See the translation files for detailed translator credits.
 
-    # Included Files
-
-    The following files were included from other sources:
-
-    * zim/inc/xdot.py - Copyright 2008 Jose Fonseca
-    * zim/inc/arithmetic.py - Copyright 2010, 2011 Patricio Paez <pp@pp.com.mx>
-
-
-    From the default Gnome icon theme:
-    * pixmaps/task-list.png (was: stock_todo.png)
-    * pixmaps/attachment.png (was: mail-attachment.png)
-
-    From Gtk+ 2.8
-    * pixmaps/link.png (was: stock_connect_24.png)
-
-    Other:
-    * pixmaps/calendar.png (was: stock_calendar-view-month.png)
-      Copyright 2007 by Jakub Steiner, released under GPL
-      modifications copyright 2009 by Gabriel Hurley
+The following files were included from other sources:
+* `zim/inc/xdot.py` - Copyright 2008 Jose Fonseca
+* `zim/inc/arithmetic.py` - Copyright 2010, 2011 Patricio Paez
+* From the default Gnome icon theme:
+  * `pixmaps/task-list.png` (was: `stock_todo.png`)
+  * `pixmaps/attachment.png` (was: `mail-attachment.png`)
+* From Gtk+ 2.8
+  * `pixmaps/link.png` (was: `stock_connect_24.png`)
+* `pixmaps/calendar.png` (was: `stock_calendar-view-month.png`)
+  Copyright 2007 by Jakub Steiner, released under GPL
+  modifications copyright 2009 by Gabriel Hurley
