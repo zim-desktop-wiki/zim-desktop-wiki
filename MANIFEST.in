@@ -2,8 +2,10 @@
 # need to specify additional ditribution files here
 include *.py
 include *.txt
+include *.md
 include *.conf
 include Makefile
+include LICENSE
 graft translations
 graft data
 prune data/manual/.zim
@@ -15,6 +17,4 @@ graft contrib
 graft tests
 prune tests/tmp
 graft tools
-graft HACKING
-graft HACKING/.zim
 global-exclude *~ *.bak *.swp *.pyc
