@@ -71,7 +71,7 @@ Move page and update links (or other multi-part change):
   - use operation with notebook.move_page_iter()
 
 
-Export notebook (or other multi-part noteobok access):
+Export notebook (or other multi-part notebook access):
 
   - show progress dialog
   - use operation with exporter.export_iter()
