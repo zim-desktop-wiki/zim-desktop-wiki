@@ -30,7 +30,7 @@ class PathBarPlugin(PluginClass):
 		'name': _('Path Bar'), # T: plugin name
 		'description': _('''\
 This plugin adds a "path bar" to the top of the window.
-This "path bar" can show the noteobok path for the current page,
+This "path bar" can show the notebook path for the current page,
 recent visited pages or recent edited pages.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
