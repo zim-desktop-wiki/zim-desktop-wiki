@@ -78,6 +78,13 @@ class TestMetaData(tests.TestCase):
 			print("Could not run desktop-file-validate")
 
 
+@tests.slowTest
+class TestDist(tests.TestCase):
+
+	def runTest(self):
+		from setup import fix_dist
+		fix_dist()
+
 #~ @tests.slowTest
 #~ class TestNotebookUpgrade(tests.TestCase):
 #~

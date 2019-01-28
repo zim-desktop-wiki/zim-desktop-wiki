@@ -18,13 +18,12 @@ def get_about():
 	readme = open('README.md')
 	lines = []
 	for line in readme:
-		if line.startswith('# ABOUT'):
-			for line in readme:
-				if line.startswith('# '):
-					break
-				else:
-					lines.append(line)
-			break
+		if line.startswith('## '):
+			break # next header
+		elif line.startswith('====') or line.startswith('!['):
+			pass # skip images and header underline
+		else:
+			lines.append(line)
 
 	lines = ''.join(lines).strip().splitlines(True)
 	assert lines and lines[0].startswith('Zim - ')

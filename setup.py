@@ -301,29 +301,29 @@ if py2exe:
 else:
 	py2exeoptions = {}
 
+if __name__ == '__main__':
+	setup(
+		# wire overload commands
+		cmdclass = {
+			'sdist': zim_sdist_class,
+			'build': zim_build_class,
+			'build_trans': zim_build_trans_class,
+			'build_scripts': zim_build_scripts_class,
+			'install': zim_install_class,
+		},
 
-setup(
-	# wire overload commands
-	cmdclass = {
-		'sdist': zim_sdist_class,
-		'build': zim_build_class,
-		'build_trans': zim_build_trans_class,
-		'build_scripts': zim_build_scripts_class,
-		'install': zim_install_class,
-	},
+		# provide package properties
+		name = 'zim',
+		version = __version__,
+		description = 'Zim desktop wiki',
+		author = 'Jaap Karssenberg',
+		author_email = 'jaap.karssenberg@gmail.com',
+		license = 'GPL v2+',
+		url = __url__,
+		scripts = scripts,
+		packages = collect_packages(),
+		data_files = collect_data_files(),
+		requires = ['gi', 'xdg'],
 
-	# provide package properties
-	name = 'zim',
-	version = __version__,
-	description = 'Zim desktop wiki',
-	author = 'Jaap Karssenberg',
-	author_email = 'jaap.karssenberg@gmail.com',
-	license = 'GPL v2+',
-	url = __url__,
-	scripts = scripts,
-	packages = collect_packages(),
-	data_files = collect_data_files(),
-	requires = ['gi', 'xdg'],
-
-	**py2exeoptions
-)
+		**py2exeoptions
+	)
