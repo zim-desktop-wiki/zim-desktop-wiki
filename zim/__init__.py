@@ -187,23 +187,3 @@ if not os.path.isdir(os.environ['HOME']):
 if not 'USER' in os.environ or not os.environ['USER']:
 	os.environ['USER'] = os.path.basename(os.environ['HOME'])
 	logger.info('Environment variable $USER was not set, set to "%s"', os.environ['USER'])
-
-
-########################################################################
-
-## Now we are allowed to import sub modules
-
-def get_zim_revision():
-	'''Returns multiline string with bazaar revision info, if any.
-	Otherwise a string saying no info was found. Intended for debug
-	logging.
-	'''
-	try:
-		from zim._version import version_info
-		return '''\
-Zim revision is:
-  branch: %(branch_nick)s
-  revision: %(revno)s %(revision_id)s
-  date: %(date)s''' % version_info
-	except ImportError:
-		return 'No bzr version-info found'

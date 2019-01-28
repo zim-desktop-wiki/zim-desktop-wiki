@@ -116,11 +116,6 @@ def collect_data_files():
 
 
 def fix_dist():
-	# Try to update version info
-	if os.path.exists('.bzr/'):
-		print('updating bzr version-info...')
-		os.system('bzr version-info --format python > zim/_version.py')
-
 	# Generate man page
 	makeman.make()
 

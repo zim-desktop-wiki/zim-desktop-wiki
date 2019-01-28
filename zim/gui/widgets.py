@@ -3193,10 +3193,6 @@ class ErrorDialog(Gtk.MessageDialog):
 			'Python: %s\n' % str(tuple(sys.version_info)) + \
 			'PyGObject: %s\n' % str(GObject.pygobject_version)
 
-		text += zim.get_zim_revision() + '\n'
-
-		# FIXME: more info here? Like notebook path, page, environment etc. ?
-
 		text += '\n======= Traceback =======\n'
 		if tb:
 			lines = traceback.format_tb(tb)

@@ -31,17 +31,6 @@ def zim_modules():
 		yield name, mod
 
 
-@tests.skipUnless(os.path.isdir('./.bzr'), 'Not a bazaar source folder')
-class TestBzr(tests.TestCase):
-
-	def runTest(self):
-		unknown = subprocess.check_output(['bzr', 'ls', '-u'])
-		if unknown:
-			raise AssertionError('File unknown to bzr - need to be added or ignored:\n' + unknown)
-		else:
-			pass
-
-
 @tests.skipUnless(os.path.isdir('./.git'), 'Not a git source folder')
 class TestGit(tests.TestCase):
 
@@ -63,13 +52,13 @@ class TestCompileAll(tests.TestCase):
 			self.assertIsNotNone(module)
 
 
-class TestMetaData(tests.TestCase):
+@tests.slowTest
+class TestDist(tests.TestCase):
 
 	def runTest(self):
-		import zim
-		revision = zim.get_zim_revision()
-			# This call could fail if bazaar revision format changed
-		self.assertTrue(isinstance(revision, str))
+		# Check build_dist script
+		from setup import fix_dist
+		fix_dist()
 
 		# Check desktop file
 		try:
@@ -77,13 +66,6 @@ class TestMetaData(tests.TestCase):
 		except OSError:
 			print("Could not run desktop-file-validate")
 
-
-@tests.slowTest
-class TestDist(tests.TestCase):
-
-	def runTest(self):
-		from setup import fix_dist
-		fix_dist()
 
 #~ @tests.slowTest
 #~ class TestNotebookUpgrade(tests.TestCase):

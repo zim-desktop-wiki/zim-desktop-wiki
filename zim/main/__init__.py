@@ -798,7 +798,6 @@ class ZimApplication(object):
 
 			logger.debug('Python version is %s', str(sys.version_info))
 			logger.debug('Platform is %s', os.name)
-			logger.debug(zim.get_zim_revision())
 			zim.config.log_basedirs()
 
 	def _setup_signal_handling(self):

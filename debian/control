@@ -13,10 +13,10 @@ Depends: ${python3:Depends}, ${misc:Depends}, python3 (>= 3.2), gir1.2-gtk-3.0, 
 # python-gtkspell required for the spell checker plugin
 # Recommends: python-gtkspellcheck
 # graphviz required for the link map/diagram plugins
-# bzr required for the version control plugin
+# git or similar required for the version control plugin
 # scrot required for the screenshot plugin
 # dvipng required for the "equation" plugin
-Suggests: bzr, graphviz, scrot, dvipng
+Suggests: git, graphviz, scrot, dvipng
 Description: Desktop Wiki Editor
  Zim is a graphical text editor used to maintain a collection of wiki pages.
  Each page can contain links to other pages, simple formatting and images.

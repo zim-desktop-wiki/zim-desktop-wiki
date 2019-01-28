@@ -72,7 +72,7 @@ def import_translations_from(archive):
 		print('Writing %s' % path)
 		open(path, 'w').writelines(file)
 
-	print('\nPlease check `bzr st` for newly added translations and update CHANGELOG')
+	print('\nPlease check `git status` for newly added translations and update CHANGELOG.md')
 	print('You need to run `./setup.py build_trans` to use the newly imported po files')
 
 if __name__ == '__main__':
