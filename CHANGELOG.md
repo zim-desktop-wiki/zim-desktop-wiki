@@ -5,7 +5,7 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-##  0.70-rc1 - Mon 14 Jan 2019
+##  0.70-rc2 - Mon 28 Jan 2019
 * Ported zim to use Python3 & Gtk3
 * Refactored application framework, all windows run single process now with
   single plugin manager and preferences manager
