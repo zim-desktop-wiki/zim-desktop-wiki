@@ -193,19 +193,6 @@ if not 'USER' in os.environ or not os.environ['USER']:
 
 ## Now we are allowed to import sub modules
 
-import zim.config
-
-# Check if we can find our own data files
-_file = zim.config.data_file('zim.png')
-if not (_file and _file.exists()): #pragma: no cover
-	raise AssertionError(
-		'ERROR: Could not find data files in path: \n'
-		'%s\n'
-		'Try setting XDG_DATA_DIRS'
-			% list(map(str, zim.config.data_dirs()))
-	)
-
-
 def get_zim_revision():
 	'''Returns multiline string with bazaar revision info, if any.
 	Otherwise a string saying no info was found. Intended for debug

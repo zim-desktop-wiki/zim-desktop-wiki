@@ -43,17 +43,18 @@ def get_lang(name):
 def import_translations_from(archive):
 	tfile = tarfile.open(archive, 'r:gz')
 	names = tfile.getnames()
-	#print names
+	def read_file(name):
+		return [l.decode('UTF-8') for l in tfile.extractfile(name)]
 
 	potfiles = [n for n in names if n.endswith('.pot')]
 	assert len(potfiles) == 1, 'Multiple template files in this archive !?'
-	total = count_messages(tfile.extractfile(potfiles[0]))
+	total = count_messages(read_file(potfiles[0]))
 	print('%i messages in catalogue' % total)
 
 	pofiles = []
 	for name in [n for n in names if n.endswith('.po')]:
 		lang = get_lang(name)
-		file = tfile.extractfile(name).readlines()
+		file = read_file(name)
 		n = count_translations(file)
 		pofiles.append((n, lang, file))
 

@@ -899,6 +899,19 @@ def main(*argv):
 	'''Run full zim application
 	@returns: exit code (if error handled, else just raises)
 	'''
+
+	import zim.config
+
+	# Check if we can find our own data files
+	_file = zim.config.data_file('zim.png')
+	if not (_file and _file.exists()): #pragma: no cover
+		raise AssertionError(
+			'ERROR: Could not find data files in path: \n'
+			'%s\n'
+			'Try setting XDG_DATA_DIRS'
+				% list(map(str, zim.config.data_dirs()))
+		)
+
 	try:
 		ZIM_APPLICATION.run(*argv[1:])
 	except KeyboardInterrupt:
