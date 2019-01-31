@@ -141,6 +141,12 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 		return output
 
 
+if GtkSource is not None:
+	_bufferclass = GtkSource.Buffer
+else:
+	_bufferclass = object # avoid import error
+
+
 class SourceViewBuffer(GtkSource.Buffer):
 
 	def __init__(self, attrib, text):
