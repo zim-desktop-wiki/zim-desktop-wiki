@@ -131,7 +131,7 @@ class TestApplicationManager(tests.TestCase):
 			('file.txt', 'text/plain'),
 			('ssh://host', 'x-scheme-handler/ssh'),
 			('http://host', 'x-scheme-handler/http'),
-			('file.html', 'text/html'),
+			('file.png', 'image/png'),
 			('mailto:foo@bar.org', 'x-scheme-handler/mailto'),
 		):
 			self.assertEqual(get_mimetype(obj), mimetype)
