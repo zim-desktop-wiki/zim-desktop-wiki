@@ -111,10 +111,10 @@ def _split_file_url(url):
 	return path.strip('/').split('/'), isshare
 
 
-def _splitnormpath(path):
+def _splitnormpath(path, force_rel=False):
 	# Takes either string or list of names and returns a normalized tuple
 	# Keeps leading "/" or "\\" to distinguish absolute paths
-	if isinstance(path, str):
+	if isinstance(path, str) and not force_rel:
 		if is_url_re.match(path):
 			makeroot = True
 			path, makeshare = _split_file_url(path)
@@ -129,6 +129,8 @@ def _splitnormpath(path):
 	else:
 		makeshare = False
 		makeroot = False
+		if isinstance(path, str):
+			path = re.split(r'[/\\]+', path.strip('/\\'))
 
 	names = []
 	for name in path:
@@ -275,7 +277,7 @@ class FilePath(object):
 
 	def get_childpath(self, path):
 		assert path
-		names = _splitnormpath(path)
+		names = _splitnormpath(path, force_rel=True)
 		if not names or names[0] == '..':
 			raise ValueError('Relative path not below parent: %s' % path)
 		return FilePath(self.pathnames + names)
@@ -419,7 +421,7 @@ class Folder(FSObjectBase):
 	def __iter__(self):
 		raise NotImplementedError
 
-	def list_names(self):
+	def list_names(self, include_hidden=False):
 		raise NotImplementedError
 
 	def list_files(self):
@@ -444,29 +446,33 @@ class Folder(FSObjectBase):
 	def child(self, path):
 		raise NotImplementedError
 
-	def new_file(self, path):
+	def new_file(self, path, check=None):
 		'''Get a L{File} object for a new file below this folder.
 		Like L{file()} but guarantees the file does not yet exist by
 		adding sequential numbers if needed. So the resulting file
 		may have a modified name.
 
 		@param path: the relative file path
+		@param check: a function that can check and reject the choice before it
+		is given back
 		@returns: a L{File} object
 		'''
-		return self._new_child(path, self.file)
+		return self._new_child(path, self.file, check)
 
-	def new_folder(self, path):
+	def new_folder(self, path, check=None):
 		'''Get a L{Folder} object for a new folder below this folder.
 		Like L{folder()} but guarantees the file does not yet exist by
 		adding sequential numbers if needed. So the resulting file
 		may have a modified name.
 
 		@param path: the relative file path
+		@param check: a function that can check and reject the choice before it
+		is given back
 		@returns: a L{Folder} object
 		'''
-		return self._new_child(path, self.folder)
+		return self._new_child(path, self.folder, check)
 
-	def _new_child(self, path, factory):
+	def _new_child(self, path, factory, check=None):
 		p = self.get_childpath(path.replace('%', '%%'))
 		if '.' in p.basename:
 			basename, ext = p.basename.split('.', 1)
@@ -480,11 +486,16 @@ class Folder(FSObjectBase):
 			try:
 				file = self.child(trypath) # this way we catch both exiting files and folders
 			except FileNotFoundError:
-				return factory(trypath)
+				child = factory(trypath)
+				if check is None or check(child):
+					return child
+				else:
+					logger.debug('File rejected by check "%s" trying increment', child.path)
 			else:
 				logger.debug('File exists "%s" trying increment', file.path)
-				i += 1
-				trypath = pattern % i
+
+			i += 1
+			trypath = pattern % i
 		else:
 			raise Exception('Could not find new file for: %s' % path)
 
@@ -495,12 +506,12 @@ class Folder(FSObjectBase):
 		when executed for the wrong folder, so please make sure to double
 		check the dir is actually what you think it is before calling this.
 		'''
-		for child in self:
+		for name in self.list_names(include_hidden=True):
+			child = self.child(name)
 			assert child.path.startswith(self.path) # just to be real sure
 			if isinstance(child, Folder):
 				child.remove_children()
-			else:
-				child.remove()
+			child.remove()
 
 	def _copyto(self, other):
 		if other.exists():

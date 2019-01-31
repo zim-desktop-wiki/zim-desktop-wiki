@@ -9,7 +9,6 @@ takes core of the process life cycle.
 
 # TODO:
 # - implement weakvalue dict to ensure uniqueness of notebook objects
-# - make config and plugin management application global
 
 
 import os
@@ -32,6 +31,9 @@ from zim.errors import Error
 from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
 from zim.formats import get_format
+
+from zim.config import ConfigManager
+from zim.plugins import PluginManager
 
 from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
@@ -291,35 +293,36 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		from gi.repository import GObject
 
 		from zim.gui.mainwindow import MainWindow
-		from zim.config import ConfigManager
-		from zim.plugins import PluginManager
 
-		config = ConfigManager()
-		preferences = config.preferences['General']
-		preferences.setdefault('plugins', [
-			'pageindex', 'pathbar',
-			'calendar', 'insertsymbol', 'printtobrowser',
-			'versioncontrol', # 'osx_menubar'
-		])
+		pluginmanager = PluginManager()
 
-		# Upgrade plugin list
+		preferences = ConfigManager.preferences['General']
 		preferences.setdefault('plugins_list_version', 'none')
-		if preferences['plugins_list_version'] != '0.68':
-			preferences['plugins'].extend(['pageindex', 'pathbar'])
-			preferences['plugins_list_version'] = '0.68'
+		if preferences['plugins_list_version'] != '0.70':
+			if not preferences['plugins']:
+				pluginmanager.load_plugins_from_preferences(
+					[ # Default plugins
+						'pageindex', 'pathbar',
+						'insertsymbol', 'printtobrowser',
+						'versioncontrol',
+					]
+				)
+			else:
+				# Upgrade version <0.70 where these were core functions
+				pluginmanager.load_plugins_from_preferences(['pageindex', 'pathbar'])
 
-		pluginmanager = PluginManager(config)
-		pluginmanager.extend(notebook)
+			if 'calendar' in pluginmanager.failed:
+				ConfigManager.preferences['JournalPlugin'] = \
+						ConfigManager.preferences['CalendarPlugin']
+				pluginmanager.load_plugins_from_preferences(['journal'])
+
+			preferences['plugins_list_version'] = '0.70'
 
 		window = MainWindow(
 			notebook,
-			config,
 			page=page,
 			**self.get_options('geometry', 'fullscreen')
 		)
-		pluginmanager.extend(window)
-		pluginmanager.extend(window.pageview)
-		window.__pluginmanager__ = pluginmanager # HACK to allow dialogs to find it
 		window.present()
 
 		if not window.notebook.index.is_uptodate:
@@ -487,16 +490,8 @@ class ExportCommand(NotebookCommand):
 
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
-		from zim.config import ConfigManager
-		from zim.plugins import PluginManager
 
 		notebook, page = self.build_notebook()
-
-		# load plugins, needed so the the proper export functions would work from CLI
-		config = ConfigManager(profile=notebook.profile)
-		plugins = PluginManager(config)
-		plugins.extend(notebook)
-
 		notebook.index.check_and_update()
 
 		if page and self.opts.get('recursive'):
@@ -682,6 +677,9 @@ class ZimApplication(object):
 		@param args: commandline arguments
 		@param kwargs: optional arguments for L{build_command}
 		'''
+		PluginManager().load_plugins_from_preferences(
+			ConfigManager.preferences['General']['plugins']
+		)
 		cmd = build_command(args, **kwargs)
 		self._run_cmd(cmd, args) # test seam
 
@@ -800,7 +798,6 @@ class ZimApplication(object):
 
 			logger.debug('Python version is %s', str(sys.version_info))
 			logger.debug('Platform is %s', os.name)
-			logger.debug(zim.get_zim_revision())
 			zim.config.log_basedirs()
 
 	def _setup_signal_handling(self):
@@ -901,6 +898,19 @@ def main(*argv):
 	'''Run full zim application
 	@returns: exit code (if error handled, else just raises)
 	'''
+
+	import zim.config
+
+	# Check if we can find our own data files
+	_file = zim.config.data_file('zim.png')
+	if not (_file and _file.exists()): #pragma: no cover
+		raise AssertionError(
+			'ERROR: Could not find data files in path: \n'
+			'%s\n'
+			'Try setting XDG_DATA_DIRS'
+				% list(map(str, zim.config.data_dirs()))
+		)
+
 	try:
 		ZIM_APPLICATION.run(*argv[1:])
 	except KeyboardInterrupt:

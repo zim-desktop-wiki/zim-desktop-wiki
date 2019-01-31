@@ -6,7 +6,6 @@
 import tests
 
 from zim.notebook import Path
-from zim.config import VirtualConfigManager
 from zim.plugins import PluginManager
 
 from zim.gui.mainwindow import *
@@ -15,13 +14,12 @@ from zim.gui.mainwindow import *
 is_sensitive = lambda w: w.get_property('sensitive')
 
 
-def setUpMainWindow(notebook, path='Test'):
+def setUpMainWindow(notebook, path='Test', plugins=None):
 	if isinstance(path, str):
 		path = Path(path)
 
-	config = VirtualConfigManager()
-	mainwindow = MainWindow(notebook, config, page=path)
-	mainwindow.__pluginmanager__ = PluginManager(config)
+	mainwindow = MainWindow(notebook, page=path)
+	mainwindow.__pluginmanager__ = plugins or PluginManager()
 	mainwindow.init_uistate() # XXX
 	return mainwindow
 
@@ -245,8 +243,7 @@ class TestSavingPages(tests.TestCase):
 
 	def testSave(self):
 		'''Test saving a page from the interface'''
-		self.mainwindow.toggle_readonly(False)
-		self.mainwindow.open_page(Path('Non-existing:page'))
+		self.mainwindow.open_page(Path('Non-exsiting:page'))
 		self.assertFalse(self.mainwindow.page.exists())
 		self.assertIsNone(self.mainwindow.page.get_parsetree())
 		self.assertTrue(self.mainwindow.pageview._showing_template) # XXX check HACK
@@ -258,7 +255,7 @@ class TestSavingPages(tests.TestCase):
 	def testClose(self):
 		# Specific bug found when trying to close the page while auto-save
 		# in progress, test it here
-		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.mainwindow.pageview.textview.get_buffer().insert_at_cursor('...')
 		self.mainwindow.pageview._save_page_handler.try_save_page()
 		self.assertTrue(self.mainwindow.page.modified)
 		self.mainwindow.close()
@@ -267,7 +264,7 @@ class TestSavingPages(tests.TestCase):
 	def testCloseByDestroy(self):
 		# Specific bug found when trying to close the page while auto-save
 		# in progress, test it here
-		self.mainwindow.pageview.view.get_buffer().insert_at_cursor('...')
+		self.mainwindow.pageview.textview.get_buffer().insert_at_cursor('...')
 		self.mainwindow.pageview._save_page_handler.try_save_page()
 		self.assertTrue(self.mainwindow.page.modified)
 		self.mainwindow.destroy()

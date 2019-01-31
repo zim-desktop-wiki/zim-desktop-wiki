@@ -8,11 +8,13 @@ import ast
 
 from gi.repository import Gtk
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.notebook import Path, LINK_DIR_BOTH
 from zim.applications import Application
 from zim.fs import Dir
+
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, IconButton
 
 try:
@@ -107,36 +109,22 @@ class LinkMap(object):
 		return '\n'.join(dotcode) + '\n'
 
 
+class LinkMapPageViewExtension(PageViewExtension):
 
-@extends('MainWindow')
-class LinkMapMainWindowExtension(WindowExtension):
-
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='view_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='show_linkmap'/>
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
-	@action(_('Link Map'), stock='zim-linkmap') # T: menu item
+	@action(_('Link Map'), icon='zim-linkmap', menuhints='view') # T: menu item
 	def show_linkmap(self):
-		linkmap = LinkMap(self.window.notebook, self.window.page)
-		dialog = LinkMapDialog(self.window, linkmap, self.window.navigation)
+		linkmap = LinkMap(self.pageview.notebook, self.pageview.page)
+		dialog = LinkMapDialog(self.pageview, linkmap, self.navigation)
 		dialog.show_all()
 
 
 class LinkMapDialog(Dialog):
 
-	def __init__(self, parent, linkmap, opener):
+	def __init__(self, parent, linkmap, navigation):
 		Dialog.__init__(self, parent, 'LinkMap',
 			defaultwindowsize=(400, 400), buttons=Gtk.ButtonsType.CLOSE)
 		self.linkmap = linkmap
-		self.opener = opener
+		self.navigation = navigation
 
 		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, True, True, 0)
@@ -163,4 +151,4 @@ class LinkMapDialog(Dialog):
 		if re.match('b\'.*?\'$', name):
 			# Bug in dotcode ? URLS come in as strings containing byte representation
 			name = ast.literal_eval(name).decode('UTF-8')
-		self.opener.open_page(Path(name))
+		self.navigation.open_page(Path(name))

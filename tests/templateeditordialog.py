@@ -10,6 +10,7 @@ from gi.repository import Gtk
 from zim.newfs import LocalFolder, LocalFile
 from zim.config import XDG_DATA_HOME
 
+from zim.gui.applications import ApplicationManager
 from zim.gui.templateeditordialog import TemplateEditorDialog, TemplateListView
 
 BASENAME_COL = TemplateListView.BASENAME_COL
@@ -44,6 +45,10 @@ class TestTemplateEditor(tests.TestCase):
 			('html/bar_test.html', 'Test 123\n'),
 		):
 			folder.file(name).write(content)
+
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
 
 	def testTemplateList(self):
 		dialog = TemplateEditorDialog(None)

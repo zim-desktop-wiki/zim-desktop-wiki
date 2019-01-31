@@ -355,7 +355,7 @@ class MockFolder(MockFSObjectBase, Folder):
 				if showfile:
 					yield self.file(name)
 
-	def list_names(self):
+	def list_names(self, include_hidden=False):
 		children = self._node().data
 		return sorted(children.keys())
 

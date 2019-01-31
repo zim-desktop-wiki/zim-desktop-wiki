@@ -18,9 +18,9 @@ from zim.formats import get_format, \
 	Visitor, VisitorSkip
 from zim.tokenparser import skip_to_end_token, TEXT, END
 
-from zim.plugins.calendar import daterange_from_path
+from zim.plugins.journal import daterange_from_path
 	# TODO instead of just importing this function we should define
-	#      an interface or hook to call the calendar plugin object
+	#      an interface or hook to call the journal plugin object
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
@@ -92,28 +92,28 @@ class TasksIndexer(IndexerBase):
 	}
 
 	@classmethod
-	def new_from_index(cls, index, preferences):
+	def new_from_index(cls, index, properties):
 		db = index._db
 		pagesindexer = index.update_iter.pages
-		return cls(db, pagesindexer, preferences)
+		return cls(db, pagesindexer, properties)
 
-	def __init__(self, db, pagesindexer, preferences):
+	def __init__(self, db, pagesindexer, properties):
 		IndexerBase.__init__(self, db)
 
 		self.parser = TaskParser(
 			task_label_re=_task_labels_re(
 				_parse_task_labels(
-					preferences['labels'])),
-			all_checkboxes=preferences['all_checkboxes'],
+					properties['labels'])),
+			all_checkboxes=properties['all_checkboxes'],
 		)
 
-		self.integrate_with_journal = preferences['integrate_with_journal']
+		self.integrate_with_journal = properties['integrate_with_journal']
 		self.included_subtrees = \
-			[n.strip() for n in preferences['included_subtrees'].split()] \
-				if preferences['included_subtrees'] else None
+			[n.strip() for n in properties['included_subtrees'].split()] \
+				if properties['included_subtrees'] else None
 		self.excluded_subtrees = \
-			[n.strip() for n in preferences['excluded_subtrees'].split()] \
-				if preferences['excluded_subtrees'] else None
+			[n.strip() for n in properties['excluded_subtrees'].split()] \
+				if properties['excluded_subtrees'] else None
 
 		self.db.executescript(self.INIT_SCRIPT)
 

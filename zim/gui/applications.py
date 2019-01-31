@@ -22,11 +22,10 @@ from gi.repository import GdkPixbuf
 
 import zim.fs
 from zim.fs import File, Dir, TmpFile, cleanup_filename
-from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, XDG_CONFIG_HOME, \
-	data_dirs, SectionedConfigDict, INIConfigFile, json, ConfigManager
+from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS, data_dirs, SectionedConfigDict, INIConfigFile
 from zim.parsing import split_quoted_strings, uri_scheme
 from zim.applications import Application, WebBrowser, StartFile
-from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog
+from zim.gui.widgets import Dialog, ErrorDialog, MessageDialog, strip_boolean_result
 
 
 logger = logging.getLogger('zim.gui.applications')
@@ -650,7 +649,7 @@ def edit_file(widget, file, istextfile=None):
 		try:
 			open_file(widget, file, mimetype='text/plain', callback=check_close_dialog)
 		except NoApplicationFoundError:
-			app = AddApplicationDialog(window, 'text/plain').run()
+			app = AddApplicationDialog(widget, 'text/plain').run()
 			if app:
 				# Try again
 				open_file(widget, file, mimetype='text/plain', callback=check_close_dialog)
@@ -683,6 +682,15 @@ class String(BaseString):
 
 class LocaleString(BaseString):
 	pass # utf8 already supported by default
+
+
+class IconString(LocaleString):
+
+	def check(self, value):
+		if hasattr(value, 'path'):
+			return value.path  # prevent fallback via serialize_zim_config to user_path
+		else:
+			return LocaleString.check(self, value)
 
 
 class Boolean(BaseBoolean):
@@ -733,7 +741,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		('Comment', LocaleString(None)),
 		('Exec', String(None)),
 		('TryExec', String(None)),
-		('Icon', LocaleString(None)),
+		('Icon', IconString(None)),
 		('MimeType', String(None)),
 		('Terminal', Boolean(False)),
 		('NoDisplay', Boolean(False)),
@@ -749,7 +757,7 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 
 	def isvalid(self):
 		'''Check if all the fields that are required according to the
-		spcification are set. Assumes we only use desktop files to
+		specification are set. Assumes we only use desktop files to
 		describe applications (and not links or dirs, which are also
 		covered by the spec).
 		@returns: C{True} if all required fields are set
@@ -798,10 +806,10 @@ class DesktopEntryDict(SectionedConfigDict, Application):
 		if isinstance(icon, File):
 			icon = icon.path
 
-		ok, w, h = Gtk.icon_size_lookup(size)
+		w, h = strip_boolean_result(Gtk.icon_size_lookup(size))
 
 		if '/' in icon or '\\' in icon:
-			if zim.fs.isfile(icon):
+			if os.path.isfile(icon):
 				return GdkPixbuf.Pixbuf.new_from_file_at_size(icon, w, h)
 			else:
 				return None

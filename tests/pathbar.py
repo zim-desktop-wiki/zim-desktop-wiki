@@ -3,6 +3,7 @@
 
 import tests
 
+from zim.plugins import find_extension, PluginManager
 from zim.plugins.pathbar import *
 
 from zim.history import History
@@ -14,15 +15,13 @@ from tests.mainwindow import setUpMainWindow
 class TestPluginExtendsMainWindow(tests.TestCase):
 
 	def runTest(self):
-		plugin = PathBarPlugin()
+		plugin = PluginManager.load_plugin('pathbar')
 		window = setUpMainWindow(self.setUpNotebook())
-		plugin.extend(window)
-		extension = plugin.get_extension(window, PathBarMainWindowExtension)
-		self.assertIsNotNone(extension)
+		extension = find_extension(window, PathBarMainWindowExtension)
 
 		for ptype in PATHBAR_TYPES:
 			extension.set_pathbar(ptype)
-			pathbar = window.get_widget((TOP_PANE, TOP))
+			pathbar = window._zim_window_central_vbox.get_children()[0]
 			if ptype == PATHBAR_NONE:
 				self.assertNotIsInstance(pathbar, PathBar)
 			else:
@@ -54,7 +53,7 @@ class TestHistoryPathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('A', 'B', 'C', 'D'))
 		history = History(notebook)
-		pathbar = HistoryPathBar(history, notebook, None, None)
+		pathbar = HistoryPathBar(history, notebook, None)
 		for name in ('A', 'A', 'B', 'A', 'D', 'D'):
 			history.append(Path(name))
 			pathbar.set_page(Path(name))
@@ -72,7 +71,7 @@ class TestRecentPathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('A', 'B', 'C', 'D'))
 		history = History(notebook)
-		pathbar = RecentPathBar(history, notebook, None, None)
+		pathbar = RecentPathBar(history, notebook, None)
 		for name in ('A', 'A', 'B', 'A', 'D', 'D'):
 			history.append(Path(name))
 			pathbar.set_page(Path(name))
@@ -92,7 +91,7 @@ class TestRecentChangesPathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook()
 		history = History(notebook)
-		pathbar = RecentChangesPathBar(history, notebook, None, None)
+		pathbar = RecentChangesPathBar(history, notebook, None)
 		for name in ('A', 'A', 'B', 'A', 'D', 'D'):
 			p = notebook.get_page(Path(name))
 			text = p.dump('wiki') # prevent etag fail
@@ -113,7 +112,7 @@ class TestNamespacePathBar(tests.TestCase):
 	def runTest(self):
 		notebook = self.setUpNotebook(content=('A', 'B', 'C', 'D'))
 		history = History(notebook)
-		pathbar = NamespacePathBar(history, notebook, None, None)
+		pathbar = NamespacePathBar(history, notebook, None)
 		for name in ('A:A1:AA1', 'B', 'C:C1', 'D'):
 			history.append(Path(name))
 			pathbar.set_page(Path(name))

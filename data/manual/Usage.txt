@@ -45,7 +45,7 @@ See also: [[+Creative Writing|Creative Writing]]
 ==== Journal ====
 A journal style notebook would rely heavily on the [[Plugins:Journal|Journal plugin]] to keep track of notes by date. This style can be used e.g. to keep a diary or as a laboratory journal documenting progress by day.
 
-This style can be mixed with notes per topics, using the calendar pages as a kind of inbox for raw notes keeping track of the what happened while using pages per topic to organize and distill conclusions or to write down procedures to be followed etc.
+This style can be mixed with notes per topics, using the journal pages as a kind of inbox for raw notes keeping track of the what happened while using pages per topic to organize and distill conclusions or to write down procedures to be followed etc.
 
 See: [[+Daily Journal|Daily Journal]]
 
@@ -53,5 +53,3 @@ See: [[+Daily Journal|Daily Journal]]
 In this style the notebook is used as a database of for example books, movies, stamps, etc. One dedicates one page to each item in the collection and puts all info about the item in there.
 
 In this style notebook the Task List and Calendar plugins are probably not used.
-
-

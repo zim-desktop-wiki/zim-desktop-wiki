@@ -31,17 +31,6 @@ def zim_modules():
 		yield name, mod
 
 
-@tests.skipUnless(os.path.isdir('./.bzr'), 'Not a bazaar source folder')
-class TestBzr(tests.TestCase):
-
-	def runTest(self):
-		unknown = subprocess.check_output(['bzr', 'ls', '-u'])
-		if unknown:
-			raise AssertionError('File unknown to bzr - need to be added or ignored:\n' + unknown)
-		else:
-			pass
-
-
 @tests.skipUnless(os.path.isdir('./.git'), 'Not a git source folder')
 class TestGit(tests.TestCase):
 
@@ -63,13 +52,13 @@ class TestCompileAll(tests.TestCase):
 			self.assertIsNotNone(module)
 
 
-class TestMetaData(tests.TestCase):
+@tests.slowTest
+class TestDist(tests.TestCase):
 
 	def runTest(self):
-		import zim
-		revision = zim.get_zim_revision()
-			# This call could fail if bazaar revision format changed
-		self.assertTrue(isinstance(revision, str))
+		# Check build_dist script
+		from setup import fix_dist
+		fix_dist()
 
 		# Check desktop file
 		try:
@@ -137,9 +126,6 @@ class TestCoding(tests.TestCase):
 		'''Check for a couple of constructs to be avoided'''
 		for file, code in self.list_code():
 			self.assertFalse('Gtk.Entry(' in code, '%s uses Gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
-			self.assertFalse('get_visible(' in code, '%s uses get_visible() - use get_property() instead' % file)
-			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
-			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use get_property() instead' % file)
 			#~ self.assertFalse('connect_object(' in code, '%s uses connect_object() - use connect() instead to prevent reference leaking' % file)
 			self.assertFalse('Gtk.HPaned(' in code, '%s uses Gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
 			self.assertFalse('Gtk.VPaned(' in code, '%s uses Gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)

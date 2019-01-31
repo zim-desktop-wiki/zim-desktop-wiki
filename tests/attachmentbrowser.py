@@ -24,7 +24,7 @@ class TestThumbnailCreators(tests.TestCase):
 		for creator in self.creators:
 			thumbdir = LocalFolder(self.create_tmp_dir(creator.__name__))
 
-			dir = self.SRC_DIR.folder('data/pixmaps')
+			dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 			for i, basename in enumerate(dir.list_names()):
 				if basename.endswith('.svg'):
 					continue # fails on windows in some cases
@@ -44,10 +44,12 @@ class TestThumbnailCreators(tests.TestCase):
 
 			self.assertTrue(i > 3)
 
+			src_file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
+			src_file.write('Test 123\n')
 			thumbfile = thumbdir.file('thumb-test.txt')
 			self.assertRaises(
 				ThumbnailCreatorFailure,
-				creator, self.SRC_DIR.file('README.txt'), thumbfile, THUMB_SIZE_NORMAL
+				creator, src_file, thumbfile, THUMB_SIZE_NORMAL
 			)
 
 @tests.slowTest
@@ -84,7 +86,7 @@ class TestThumbnailManager(tests.TestCase):
 
 		dir = LocalFolder(self.create_tmp_dir())
 		file = dir.file('zim.png')
-		self.SRC_DIR.file('data/zim.png').copyto(file)
+		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(file)
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 		self.removeThumbnail(manager, file)
@@ -139,10 +141,12 @@ class TestThumbnailQueue(tests.TestCase):
 		self.assertTrue(queue.queue_empty())
 
 		# Test input / output
-		queue.queue_thumbnail_request(self.SRC_DIR.file('README.txt'), 64)
+		src_file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
+		src_file.write('Test 123\n')
+		queue.queue_thumbnail_request(src_file, 64)
 			# put an error in the queue
 
-		dir = self.SRC_DIR.folder('data/pixmaps')
+		dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 		pixmaps = set()
 		for basename in dir.list_names():
 			if not basename.endswith('.svg'):
@@ -187,7 +191,7 @@ class TestThumbnailQueue(tests.TestCase):
 		def creator_with_error(*a):
 			raise ValueError
 
-		file = self.SRC_DIR.file('data/zim.png')
+		file = LocalFolder(tests.ZIM_DATADIR).file('zim.png')
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 
@@ -210,7 +214,7 @@ class TestFileBrowserIconView(tests.TestCase):
 		opener = tests.MockObject()
 		iconview = FileBrowserIconView(opener)
 
-		dir = self.SRC_DIR.folder('data/pixmaps')
+		dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 		iconview.set_folder(dir)
 
 		# simulate idle events

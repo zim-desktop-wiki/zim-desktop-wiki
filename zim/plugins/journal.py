@@ -1,6 +1,5 @@
 
-# Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from gi.repository import GObject
@@ -13,21 +12,31 @@ from functools import partial
 
 import logging
 
-from zim.plugins import PluginClass, extends, ObjectExtension, WindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
-from zim.signals import SignalHandler
+from zim.signals import SignalHandler, ConnectorMixin
 import zim.datetimetz as datetime
 from zim.datetimetz import dates_for_week, weekcalendar
-from zim.gui.widgets import Dialog, \
-	WindowSidePaneWidget, LEFT_PANE, TOP, WIDGET_POSITIONS
-from zim.notebook import Path
+from zim.notebook import Path, NotebookExtension
 from zim.notebook.index import IndexNotFoundError
 from zim.templates.expression import ExpressionFunction
 
-logger = logging.getLogger('zim.plugins.calendar')
+from zim.gui.pageview import PageViewExtension
+from zim.gui.widgets import ScrolledWindow, \
+	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
+
+from zim.plugins.pageindex import PageTreeStore, PageTreeView
+
+
+logger = logging.getLogger('zim.plugins.journal')
 
 
 # FUTURE: Use calendar.HTMLCalendar from core libs to render this plugin in www
+
+# TODO: add extension
+# - hook to the pageview end-of-word signal and link dates
+#   add a preference for this
+# - Overload the "Insert date" dialog by adding a 'link' option
 
 
 KEYVALS_ENTER = list(map(Gdk.keyval_from_name, ('Return', 'KP_Enter', 'ISO_Enter')))
@@ -78,11 +87,11 @@ def daterange_from_path(path):
 		date = datetime.date(year, 1, 1)
 		end_date = datetime.date(year, 12, 31)
 	else:
-		return None # Not a calendar path
+		return None # Not a journal path
 	return type, date, end_date
 
 
-class CalendarPlugin(PluginClass):
+class JournalPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Journal'), # T: plugin name
@@ -104,42 +113,36 @@ Also adds a calendar widget to access these pages.
 
 	plugin_preferences = (
 		# key, type, label, default
-		('embedded', 'bool', _('Show calendar in sidepane instead of as dialog'), False), # T: preferences option
-		('pane', 'choice', _('Position in the window'), (LEFT_PANE, TOP), WIDGET_POSITIONS), # T: preferences option
-		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
-		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
-		('auto_expand_in_index', 'bool', _('Expand journal page in index when opened'), True), # T: preferences option
+		('pane', 'choice', _('Position in the window'), LEFT_PANE, PANE_POSITIONS), # T: preferences option
+		('hide_if_empty', 'bool', _('Hide Journal pane if empty'), False), # T: preferences option
 	)
-	# TODO disable pane setting if not embedded
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
-		self.preferences.connect('changed', self.on_preferences_changed)
-		self.on_preferences_changed(self.preferences)
+	plugin_notebook_properties = (
+		('namespace', 'namespace', _('Section'), Path(':Journal')), # T: input label
+		('granularity', 'choice', _('Use a page for each'), DAY, (DAY, WEEK, MONTH, YEAR)), # T: preferences option, values will be "Day", "Month", ...
+	)
 
-	def on_preferences_changed(self, preferences):
-		if preferences['embedded']:
-			self.set_extension_class('MainWindow', JournalMainWindowExtensionEmbedded)
-		else:
-			self.set_extension_class('MainWindow', JournalMainWindowExtensionDialog)
+	def path_from_date(self, notebook, date):
+		'''Returns the path for a journal page for a specific date'''
+		properties = self.notebook_properties(notebook)
+		granularity = properties['granularity']
 
-	def path_from_date(self, date):
-		'''Returns the path for a calendar page for a specific date'''
-		if self.preferences['granularity'] == DAY:
+		if granularity == DAY:
 			path = date.strftime('%Y:%m:%d')
-		elif self.preferences['granularity'] == WEEK:
+		elif granularity == WEEK:
 			year, week, day = weekcalendar(date)
 			path = '%i:Week %02i' % (year, week)
-		elif self.preferences['granularity'] == MONTH:
+		elif granularity == MONTH:
 			path = date.strftime('%Y:%m')
-		elif self.preferences['granularity'] == YEAR:
+		elif granularity == YEAR:
 			path = date.strftime('%Y')
 
-		return self.preferences['namespace'].child(path)
+		return properties['namespace'].child(path)
 
-	def path_for_month_from_date(self, date):
+	def path_for_month_from_date(self, notebook, date):
 		'''Returns the namespace path for a certain month'''
-		return self.preferences['namespace'].child(date.strftime('%Y:%m'))
+		properties = self.notebook_properties(notebook)
+		return properties['namespace'].child(date.strftime('%Y:%m'))
 
 	def date_from_path(self, path):
 		'''Returns the date for a specific path or C{None}'''
@@ -165,23 +168,17 @@ def dateRangeTemplateFunction(start, end):
 	return date_range_function
 
 
-@extends('Notebook')
-class NotebookExtension(ObjectExtension):
+class JournalNotebookExtension(NotebookExtension):
 	'''Extend notebook by setting special page template for
-	the calendar namespace and by adding a hook to suggests links
+	the journal namespace and by adding a hook to suggests links
 	for dates.
 	'''
 
 	def __init__(self, plugin, notebook):
-		self.plugin = plugin
-		self.notebook = notebook
-		self._initialized_namespace = None
-
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
-		self.connectto(notebook, 'suggest-link')
-		self.connectto(notebook, 'new-page-template')
+		NotebookExtension.__init__(self, plugin, notebook)
+		self.connectto_all(
+			notebook, ('suggest-link', 'get-page-template', 'init-page-template')
+		)
 
 	def on_suggest_link(self, notebook, source, text):
 		#~ if date_path_re.match(path.text):
@@ -190,12 +187,19 @@ class NotebookExtension(ObjectExtension):
 			year, month, day = text.split('-')
 			year, month, day = list(map(int, (year, month, day)))
 			date = datetime.date(year, month, day)
-			return self.plugin.path_from_date(date)
+			return self.plugin.path_from_date(notebook, date)
 		# TODO other formats
 		else:
 			return None
 
-	def on_new_page_template(self, notebook, path, template):
+	def on_get_page_template(self, notebook, path):
+		properties = self.plugin.notebook_properties(notebook)
+		if path.ischild(properties['namespace']) and daterange_from_path(path):
+			return 'Journal'
+		else:
+			return None
+
+	def on_init_page_template(self, notebook, path, template):
 		daterange = daterange_from_path(path)
 		if daterange:
 			self.connectto(template, 'process',
@@ -211,7 +215,7 @@ class NotebookExtension(ObjectExtension):
 		Sets parameters in the template dict to be used in the template.
 		'''
 		type, start, end = daterange
-		context['calendar_plugin'] = {
+		context['journal_plugin'] = {
 			'page_type': type,
 			'date': start,
 			'start_date': start,
@@ -219,122 +223,54 @@ class NotebookExtension(ObjectExtension):
 			'days': dateRangeTemplateFunction(start, end),
 		}
 
-	def on_preferences_changed(self, preferences):
-		self.teardown()
-		ns = preferences['namespace'].name
-		self.notebook.namespace_properties[ns]['template'] = 'Journal'
-		self.notebook.namespace_properties[ns]['auto_expand_in_index'] = preferences['auto_expand_in_index']
-		self._initialized_namespace = ns
 
-	def teardown(self):
-		if self._initialized_namespace:
-			ns = self._initialized_namespace
-			for key in ('template', 'auto_expand_in_index'):
-				try:
-					self.notebook.namespace_properties[ns].remove(key)
-				except KeyError:
-					pass
-			self._initialized_namespace = None
-
-
-class JournalMainWindowExtension(WindowExtension):
-	'''Base class for our mainwindow extensions'''
-
-	@action(_('To_day'), accelerator='<Alt>D') # T: menu item
-	def go_page_today(self):
-		today = datetime.date.today()
-		path = self.plugin.path_from_date(today)
-		self.window.open_page(path)
-
-	# TODO: hook to the pageview end-of-word signal and link dates
-	#       add a preference for this
-	# TODO: Overload the "Insert date" dialog by adding a 'link' option
-
-
-@extends('MainWindow', autoload=False)
-class JournalMainWindowExtensionDialog(JournalMainWindowExtension):
+class JournalPageViewExtension(PageViewExtension):
 	'''Extension used to add calendar dialog to mainwindow'''
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='go_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='go_page_today'/>
-			</placeholder>
-		</menu>
-		<menu action='view_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='show_calendar'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='show_calendar'/>
-		</placeholder>
-	</toolbar>
-	</ui>
-	'''
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 
-	@action(_('Calen_dar'), stock='zim-calendar', tooltip=_('Show calendar')) # T: menu item
-	def show_calendar(self):
-		dialog = CalendarDialog.unique(self, self.plugin, self.window)
-		dialog.present()
+		self.notebook = pageview.notebook
+		self.calendar_widget = CalendarWidget(plugin, self.notebook, self.navigation)
+		self.connectto(pageview, 'page-changed', lambda o, p: self.calendar_widget.set_page(p))
 
+		properties = self.plugin.notebook_properties(self.notebook)
+		self.connectto(properties, 'changed', self.on_properties_changed)
+		self.on_properties_changed(properties)
 
-@extends('MainWindow', autoload=False)
-class JournalMainWindowExtensionEmbedded(JournalMainWindowExtension):
-	'''Extension used for calendar widget embedded in side pane'''
+	def on_properties_changed(self, properties):
+		old_model = self.calendar_widget.treeview.get_model()
+		self.disconnect_from(old_model)
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='go_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='go_page_today'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
+		index = self.notebook.index
+		namespace = properties['namespace']
+		new_model = PageTreeStore(index, root=namespace, reverse=True)
+		self.calendar_widget.treeview.set_model(new_model)
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.opener = window.navigation
+		self.connectto_all(new_model, ('row-inserted', 'row-deleted'), handler=self.on_pane_changed)
+		self.on_pane_changed()
 
-		model = CalendarWidgetModel(self.plugin, window.notebook)
-		self.widget = CalendarWidget(model)
+	def on_pane_changed(self, *a):
+		show_pane = self._check_show_pane()
+		widget_visible = self.calendar_widget.get_parent() is not None
+		if show_pane and not widget_visible:
+			self.add_sidepane_widget(self.calendar_widget, 'pane')
+		elif not show_pane and widget_visible:
+			self.remove_sidepane_widget(self.calendar_widget)
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+	def _check_show_pane(self):
+		if self.plugin.preferences['hide_if_empty']:
+			model = self.calendar_widget.treeview.get_model()
+			n_pages = model.iter_n_children(None)
+			return n_pages > 0
+		else:
+			return True
 
-		self.connectto(self.widget, 'date-activated')
-		self.connectto(self.window, 'page-changed')
-
-	def on_preferences_changed(self, preferences):
-		if self.widget is None:
-			return
-
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-		self.window.add_widget(self.widget, preferences['pane'])
-		self.widget.show_all()
-
-	@SignalHandler
-	def on_page_changed(self, ui, page):
-		self.widget.set_page(page)
-
-	def on_date_activated(self, widget, date):
-		path = self.plugin.path_from_date(date)
-		with self.on_page_changed.blocked():
-			self.opener.open_page(path)
-
-	def teardown(self):
-		self.window.remove(self.widget)
-		self.widget = None
+	@action(_('To_day'), accelerator='<Alt>D', menuhints='go') # T: menu item
+	def go_page_today(self):
+		today = datetime.date.today()
+		path = self.plugin.path_from_date(self.pageview.notebook, today)
+		self.navigation.open_page(path)
 
 
 class Calendar(Gtk.Calendar):
@@ -393,23 +329,24 @@ class Calendar(Gtk.Calendar):
 
 class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
-	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'date-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-	}
+	title = _('Journal') # T: side pane title
 
-	def __init__(self, model):
+	def __init__(self, plugin, notebook, navigation):
 		GObject.GObject.__init__(self)
-		self.model = model
+		self.plugin = plugin
+		self.notebook = notebook
+		self.navigation = navigation
+		self.model = CalendarWidgetModel(plugin, notebook)
 
 		self.label_box = Gtk.HBox()
 		self.pack_start(self.label_box, False, True, 0)
 
 		self.label = Gtk.Label()
-		self.label_event = Gtk.EventBox()
-		self.label_event.add(self.label)
-		self.label_event.connect("button_press_event", lambda w, e: self.go_today())
-		self.label_box.add(self.label_event)
+		button = Gtk.Button()
+		button.add(self.label)
+		button.set_relief(Gtk.ReliefStyle.NONE)
+		button.connect('clicked', lambda b: self.go_today())
+		self.label_box.add(button)
 
 		self._close_button = None
 
@@ -434,8 +371,11 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 		self.on_month_changed(self.calendar)
 		self.pack_start(self.calendar, False, True, 0)
 
+		self.treeview = PageTreeView(notebook, navigation)
+		self.pack_start(ScrolledWindow(self.treeview), True, True, 0)
+
 	def go_today(self):
-		self.select_date(datetime.date.today())
+		self.calendar.select_date(datetime.date.today())
 		self.calendar.emit('activate')
 
 	def set_embeded_closebutton(self, button):
@@ -458,7 +398,8 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 
 	def on_calendar_activate(self, calendar):
 		date = calendar.get_date()
-		self.emit('date-activated', date)
+		path = self.plugin.path_from_date(self.notebook, date)
+		self.navigation.open_page(path)
 
 	def on_month_changed(self, calendar):
 		calendar.clear_marks()
@@ -466,18 +407,22 @@ class CalendarWidget(Gtk.VBox, WindowSidePaneWidget):
 			calendar.mark_day(date.day)
 
 	def set_page(self, page):
+		treepath = self.treeview.set_current_page(page, vivificate=True)
+		if treepath:
+			self.treeview.select_treepath(treepath)
+
 		dates = daterange_from_path(page)
 		if dates:
 			if dates[0] == 'year':
 				# Calendar is per month, so do not switch view for year page
 				pass
 			else:
-				self.calendar.select_date(dates[1])
+				cur_date = self.calendar.get_date()
+				if cur_date < dates[1] or cur_date > dates[2]:
+					self.calendar.select_date(dates[1])
 		else:
 			self.calendar.select_day(0)
-
-	def select_date(self, date):
-		self.calendar.select_date(date)
+			self.treeview.get_selection().unselect_all()
 
 
 class CalendarWidgetModel(object):
@@ -487,7 +432,7 @@ class CalendarWidgetModel(object):
 		self.notebook = notebook
 
 	def list_dates_for_month(self, date):
-		namespace = self.plugin.path_for_month_from_date(date)
+		namespace = self.plugin.path_for_month_from_date(self.notebook, date)
 		try:
 			for path in self.notebook.pages.list_pages(namespace):
 				if date_path_re.match(path.name):
@@ -496,37 +441,3 @@ class CalendarWidgetModel(object):
 						yield dates[1]
 		except IndexNotFoundError:
 			pass
-
-
-class CalendarDialog(Dialog):
-
-	def __init__(self, plugin, window):
-		Dialog.__init__(self, window, _('Calendar'), buttons=Gtk.ButtonsType.CLOSE) # T: dialog title
-		self.set_resizable(False)
-		self.plugin = plugin
-		self.opener = window.navigation
-
-		model = CalendarWidgetModel(self.plugin, window.notebook)
-		self.calendar_widget = CalendarWidget(model)
-		self.vbox.add(self.calendar_widget)
-
-		button = Gtk.Button.new_with_mnemonic(_('_Today')) # T: button label
-		button.connect('clicked', self.do_today)
-		self.action_area.add(button)
-		self.action_area.reorder_child(button, 0)
-		self.dateshown = datetime.date.today()
-
-		self.connectto(self.calendar_widget, 'date-activated')
-		self.connectto(window, 'page-changed')
-
-	def on_date_activated(self, widget, date):
-		path = self.plugin.path_from_date(date)
-		with self.on_page_changed.blocked():
-			self.opener.open_page(path)
-
-	@SignalHandler
-	def on_page_changed(self, ui, page):
-		self.calendar_widget.set_page(page)
-
-	def do_today(self, event):
-		self.calendar_widget.go_today()

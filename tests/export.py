@@ -149,7 +149,7 @@ class TestSingleFileLayout(tests.TestCase):
 class TestLinker(tests.TestCase):
 
 	def runTest(self):
-		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		notebook = self.setUpNotebook(content=('foo', 'bar', 'foo:bar',))
 		dir = Dir(notebook.folder.parent().folder('layout').path)
 
 		layout = MultiFileLayout(dir.subdir('layout'), 'html')
@@ -615,8 +615,7 @@ class TestExportDialog(tests.TestCase):
 		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
 		window = Gtk.Window()
-		window.config = tests.MockObject()
-		window.config.uistate = SectionedConfigDict()
+		window.notebook = notebook
 
 		## Test export all pages
 		dialog = ExportDialog(window, notebook, Path('foo'))
@@ -643,7 +642,7 @@ class TestExportDialog(tests.TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 
 		#~ print dialog.uistate
-		self.assertEqual(dialog.uistate, window.config.uistate['ExportDialog'])
+		self.assertEqual(dialog.uistate, window.notebook.state['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
 		## Test export single page
@@ -671,7 +670,7 @@ class TestExportDialog(tests.TestCase):
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
 
 		#~ print dialog.uistate
-		self.assertEqual(dialog.uistate, window.config.uistate['ExportDialog'])
+		self.assertEqual(dialog.uistate, window.notebook.state['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_file'], OldFile)
 		self.assertIsInstance(dialog.uistate['output_folder'], OldDir) # Keep this in state as well
 

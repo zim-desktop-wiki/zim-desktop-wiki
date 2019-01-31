@@ -6,7 +6,6 @@
 import tests
 
 from zim.fs import TmpFile
-from zim.config import ConfigManager
 from zim.notebook import Path
 
 from zim.gui.customtools import *
@@ -33,13 +32,15 @@ class MockStubPageView(StubPageView):
 @tests.slowTest
 class TestCustomTools(tests.TestCase):
 
+	mockConfigManager = False  # breaks hack in customtools
+
 	def setUp(self):
 		clear_customtools()
 
 	def testManager(self):
 		'''Test CustomToolManager API'''
 		# initialize the list
-		manager = CustomToolManager(ConfigManager())
+		manager = CustomToolManager()
 		self.assertEqual(list(manager), [])
 		self.assertEqual(list(manager._names), [])
 
@@ -73,7 +74,7 @@ class TestCustomTools(tests.TestCase):
 		self.assertTrue(len(lines) > 5)
 
 		# refresh list
-		manager = CustomToolManager(ConfigManager())
+		manager = CustomToolManager()
 		self.assertEqual(list(manager), [tool])
 		self.assertEqual(list(manager._names), ['foo-usercreated'])
 
@@ -155,6 +156,8 @@ class TestCustomTools(tests.TestCase):
 
 class TestCustomToolsUI(tests.TestCase):
 
+	mockConfigManager = False  # breaks hack in customtools
+
 	def setUp(self):
 		clear_customtools()
 
@@ -168,8 +171,7 @@ class TestCustomToolsUI(tests.TestCase):
 
 
 		self.pageview = StubPageView(notebook, page)
-		self.config = ConfigManager()
-		self.customtoolsui = CustomToolManagerUI(self.uimanager, self.config, self.pageview)
+		self.customtoolsui = CustomToolManagerUI(self.uimanager, self.pageview)
 
 	def get_action(self, name):
 		for group in self.uimanager.get_action_groups():
@@ -183,7 +185,7 @@ class TestCustomToolsUI(tests.TestCase):
 		# Key in this test is that the changes happens via a different instance
 		# of the manager - demonstrating the singleton-like behavior
 		self.assertNotIn('edit-usercreated', self.uimanager.get_ui())
-		mymanager = CustomToolManager(self.config)
+		mymanager = CustomToolManager()
 		mytool = {
 			'Name': 'Edit',
 			'Comment': 'Test Edit',
@@ -195,7 +197,7 @@ class TestCustomToolsUI(tests.TestCase):
 	def testMenuUpdatedWhenToolChanges(self):
 		# Key in this test is that the changes happens via a different instance
 		# of the manager - demonstrating the singleton-like behavior
-		mymanager = CustomToolManager(self.config)
+		mymanager = CustomToolManager()
 		mytool = {
 			'Name': 'Edit',
 			'Comment': 'Test Edit',
@@ -214,7 +216,7 @@ class TestCustomToolsUI(tests.TestCase):
 		self.assertEqual(action.get_property('label'), 'My Editting tool')
 
 	def testExecuteCustomToolAction(self):
-		mymanager = CustomToolManager(self.config)
+		mymanager = CustomToolManager()
 		mytool = {
 			'Name': 'Edit',
 			'Comment': 'Test Edit',
@@ -230,7 +232,7 @@ class TestCustomToolsUI(tests.TestCase):
 			action.activate()
 
 	def testExecuteCustomToolActionModifyPage(self):
-		mymanager = CustomToolManager(self.config)
+		mymanager = CustomToolManager()
 		mytool = {
 			'Name': 'Edit',
 			'Comment': 'Test Edit',
@@ -248,7 +250,7 @@ class TestCustomToolsUI(tests.TestCase):
 			action.activate()
 
 	def testExecuteCustomToolActionReplaceSelection(self):
-		mymanager = CustomToolManager(self.config)
+		mymanager = CustomToolManager()
 		mytool = {
 			'Name': 'Edit',
 			'Comment': 'Test Edit',
@@ -273,12 +275,13 @@ class TestCustomToolsUI(tests.TestCase):
 
 class TestCustomToolDialog(tests.TestCase):
 
+	mockConfigManager = False  # breaks hack in customtools
+
 	def setUp(self):
 		clear_customtools()
 
 	def testAddCustomTool(self):
-		config = ConfigManager()
-		manager = CustomToolManager(config)
+		manager = CustomToolManager()
 		mytool = {
 			'Name': 'Add',
 			'Comment': 'Test Add',
@@ -294,7 +297,7 @@ class TestCustomToolDialog(tests.TestCase):
 			dialog.set_input(**mytool)
 			dialog.assert_response_ok()
 
-		dialog = CustomToolManagerDialog(None, config)
+		dialog = CustomToolManagerDialog(None)
 		with tests.DialogContext(add_tool):
 			dialog.on_add()
 			dialog.assert_response_ok()
@@ -310,8 +313,7 @@ class TestCustomToolDialog(tests.TestCase):
 
 	@tests.expectedFailure # Fails because of select_by_name fails - listview initialized ?
 	def testEditCustomTool(self):
-		config = ConfigManager()
-		manager = CustomToolManager(config)
+		manager = CustomToolManager()
 		mytool = {
 			'Name': 'Edit',
 			'Comment': 'Test Edit',
@@ -324,7 +326,7 @@ class TestCustomToolDialog(tests.TestCase):
 			dialog.set_input(Comment='Editted Comment')
 			dialog.assert_response_ok()
 
-		dialog = CustomToolManagerDialog(None, config)
+		dialog = CustomToolManagerDialog(None)
 		#model = dialog.listview.get_model()
 		#self.assertIn('Edit', [r[CustomToolList.NAME_COL] for r in model])
 		with tests.DialogContext(edit_tool):

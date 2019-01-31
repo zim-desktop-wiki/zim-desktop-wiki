@@ -11,7 +11,6 @@ import os
 from gi.repository import Gtk
 
 from zim.errors import Error
-from zim.config import ConfigManager, VirtualConfigManager
 from zim.notebook import get_notebook_list, Path, Page, NotebookInfo
 from zim.notebook.notebook import NotebookConfig
 from zim.formats import ParseTree
@@ -58,7 +57,6 @@ class TestUIActions(tests.TestCase):
 			window,
 			self.notebook,
 			self.page,
-			VirtualConfigManager(),
 			self.navigation,
 		)
 
@@ -454,6 +452,12 @@ class TestUIActions(tests.TestCase):
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
 
 	def testEditProperties(self):
+		from zim.gui.preferencesdialog import PreferencesDialog
+		from zim.plugins import PluginManager
+
+		self.uiactions.widget = Gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager()
+
 		def edit_properties(dialog):
 			dialog.set_input(home='NewHome')
 			dialog.assert_response_ok()
@@ -464,6 +468,12 @@ class TestUIActions(tests.TestCase):
 		self.assertEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
 
 	def testEditPropertiesReadOnly(self):
+		from zim.gui.preferencesdialog import PreferencesDialog
+		from zim.plugins import PluginManager
+
+		self.uiactions.widget = Gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager()
+
 		self.assertFalse(self.notebook.readonly) # implies attribute exists ..
 		self.notebook.readonly = True
 
@@ -475,6 +485,12 @@ class TestUIActions(tests.TestCase):
 			self.uiactions.show_properties()
 
 	def testPropertiesNotChangedOnCancel(self):
+		from zim.gui.preferencesdialog import PreferencesDialog
+		from zim.plugins import PluginManager
+
+		self.uiactions.widget = Gtk.Window()
+		self.uiactions.widget.__pluginmanager__ = PluginManager()
+
 		# In fact this is testig the "cancel" button for all dialogs
 		# which have one ..
 		def edit_properties(dialog):
@@ -486,7 +502,6 @@ class TestUIActions(tests.TestCase):
 
 		self.assertNotEqual(self.notebook.config['Notebook']['home'], Path('NewHome'))
 
-	@tests.expectedFailure
 	def testCopyLocation(self):
 		from zim.gui.clipboard import Clipboard
 
@@ -508,7 +523,7 @@ class TestUIActions(tests.TestCase):
 		from zim.plugins import PluginManager
 
 		self.uiactions.widget = Gtk.Window()
-		self.uiactions.widget.__pluginmanager__ = PluginManager(self.uiactions.config)
+		self.uiactions.widget.__pluginmanager__ = PluginManager()
 
 		with tests.DialogContext(PreferencesDialog):
 			self.uiactions.show_preferences()
@@ -775,7 +790,6 @@ class TestUIActionsRealFile(tests.TestCase):
 			window,
 			self.notebook,
 			self.page,
-			VirtualConfigManager(),
 			self.navigation,
 		)
 
@@ -808,6 +822,9 @@ class TestUIActionsRealFile(tests.TestCase):
 		self.assertTrue(self.page.exists())
 
 	def testDeletePageWithTrashUpdateLinks(self):
+		from zim.config import ConfigManager
+		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=True)
+
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
 		self.notebook.store_page(referrer)
@@ -819,7 +836,8 @@ class TestUIActionsRealFile(tests.TestCase):
 		self.assertEqual(referrer.dump('wiki'), ['Test Test\n'])
 
 	def testDeletePageWithTrashNoUpdateLinks(self):
-		self.uiactions._preferences.setdefault('remove_links_on_delete', False)
+		from zim.config import ConfigManager
+		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=False)
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
@@ -832,7 +850,10 @@ class TestUIActionsRealFile(tests.TestCase):
 		self.assertEqual(referrer.dump('wiki'), ['Test [[Test]]\n'])
 
 	def testDeletePageWithoutTrashUpdateLinks(self):
+		from zim.config import ConfigManager
+
 		self.notebook.config['Notebook']['disable_trash'] = True
+		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=True)
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
@@ -848,8 +869,10 @@ class TestUIActionsRealFile(tests.TestCase):
 		self.assertEqual(referrer.dump('wiki'), ['Test Test\n'])
 
 	def testDeletePageWithoutTrashNoUpdateLinks(self):
+		from zim.config import ConfigManager
+
 		self.notebook.config['Notebook']['disable_trash'] = True
-		self.uiactions._preferences.setdefault('remove_links_on_delete', False)
+		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=False)
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
@@ -921,6 +944,7 @@ class TestUIActionsRealFile(tests.TestCase):
 	def testEditPageSource(self):
 		from zim.gui.widgets import MessageDialog
 		from zim.newfs import LocalFile
+		from zim.gui.applications import ApplicationManager
 
 		oldtext = self.page.dump('plain') # trick page into caching content
 		signals = tests.SignalLogger(self.page)
@@ -929,6 +953,10 @@ class TestUIActionsRealFile(tests.TestCase):
 			file = LocalFile(cmd[-1])
 			self.assertEqual(file, self.page.source_file)
 			file.write('New text\n')
+
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
 
 		with tests.ApplicationContext(edit_page):
 			with tests.DialogContext(MessageDialog):

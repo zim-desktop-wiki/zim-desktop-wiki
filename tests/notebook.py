@@ -12,7 +12,7 @@ import time
 
 from zim.fs import File, Dir
 from zim.newfs.mock import os_native_path
-from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
+from zim.config import ConfigManager, XDG_CONFIG_HOME
 from zim.formats import ParseTree
 from zim.formats.wiki import Parser as WikiParser
 
@@ -451,7 +451,6 @@ class TestNotebook(tests.TestCase):
 
 		path = Path('Foo:Bar')
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (

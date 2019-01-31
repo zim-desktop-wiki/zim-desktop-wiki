@@ -35,7 +35,7 @@ This template is used to initialize new pages in the Journal section.
 ===== Template syntax =====
 The template is a combination of the normal document output that you want to produce (e.g. HTML or Latex) combined with template instructions. The normal text is passed on to the output unmodified, while the instructions get replaced by the output of the template processing.
 
-Template instructions can have to forms:
+Template instructions can have two forms:
 
 '''
 [% some expression %]
@@ -43,7 +43,9 @@ Template instructions can have to forms:
 
 ''and''
 
-''<!--[% some expression %]-->''
+'''
+<!--[% some expression %]-->
+'''
 
 The first is typically used but the second form can look better in HTML or XML templates as it is parsed as an XML comment by other tools.
 

@@ -6,7 +6,7 @@ Creation-Date: 2012-02-20T22:13:04+01:00
 
 **For user questions and development discussion**, please join the mailing list. To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad.
 
-**To view bugs or report an issue** please go the the [[https://github.com/jaap-karssenberg/zim-desktop-wiki/issues|bug tracker on GitHub]]
+**To view bugs or report an issue** please go the the [[https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues|bug tracker on GitHub]]
 
 **For feature requests** please file a bug report as well. If you want some feedback on an idea before requesting it please use the mailing list.
 

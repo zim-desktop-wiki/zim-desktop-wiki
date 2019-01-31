@@ -267,7 +267,7 @@ class NotebookOperation(SignalEmitter):
 				self._block = True
 				yield True # keep going
 		except StopIteration:
-			raise
+			pass
 		except Exception as err:
 			self.cancelled = True
 			self.exception = err

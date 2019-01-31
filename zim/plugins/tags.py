@@ -11,18 +11,20 @@ import logging
 
 from functools import partial
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
+from zim.signals import ConnectorMixin
 from zim.plugins.pageindex import PageTreeStore, PageTreeStoreBase, PageTreeView, \
-	NAME_COL, PATH_COL, EMPTY_COL, STYLE_COL, FGCOLOR_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
+	NAME_COL, PATH_COL, EXISTS_COL, STYLE_COL, WEIGHT_COL, N_CHILD_COL, TIP_COL
 from zim.notebook import Path
 from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
+
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
 	WindowSidePaneWidget
 from zim.gui.clipboard import pack_urilist, INTERNAL_PAGELIST_TARGET_NAME
-from zim.signals import ConnectorMixin
 
 
 logger = logging.getLogger('zim.plugins.tags')
@@ -47,21 +49,18 @@ This plugin provides a page index filtered by means of selecting tags in a cloud
 	)
 
 
-@extends('MainWindow')
-class TagsMainWindowExtension(WindowExtension):
+class TagsPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 
 		self.widget = TagsPluginWidget(
-			window.notebook,
-			window.config,
-			window.navigation,
+			pageview.notebook,
+			self.navigation,
 			self.uistate
 		)
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		self.add_sidepane_widget(self.widget, 'pane')
 
 		self.uistate.setdefault('vpane_pos', 150)
 		self.widget.set_position(self.uistate['vpane_pos'])
@@ -73,32 +72,15 @@ class TagsMainWindowExtension(WindowExtension):
 		#	('start-index-update', lambda o: self.disconnect_model()),
 		#	('end-index-update', lambda o: self.reconnect_model()),
 		#))
-		self.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+		self.connectto(pageview, 'page-changed', lambda o, p: self.widget.set_page(p))
 
 
-	def on_preferences_changed(self, preferences):
-		if self.widget is None:
-			return
-
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-		self.window.add_tab('tags', self.widget, preferences['pane'])
-		self.widget.show_all()
-
-	def teardown(self):
-		self.window.remove(self.widget)
-		self.widget.disconnect_all()
-		self.widget = None
-
-
-class TagsPluginWidget(ConnectorMixin, Gtk.VPaned, WindowSidePaneWidget):
+class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 	'''Widget combining a tag cloud and a tag based page treeview'''
 
 	title = _('Tags') # T: title for sidepane tab
 
-	def __init__(self, notebook, config, navigation, uistate):
+	def __init__(self, notebook, navigation, uistate):
 		GObject.GObject.__init__(self)
 		self.notebook = notebook
 		self.index = notebook.index
@@ -111,7 +93,7 @@ class TagsPluginWidget(ConnectorMixin, Gtk.VPaned, WindowSidePaneWidget):
 		self.tagcloud = TagCloudWidget(self.index, sorting=self.uistate['tagcloud_sorting'])
 		self.pack1(ScrolledWindow(self.tagcloud), shrink=False)
 
-		self.treeview = TagsPageTreeView(notebook, config, navigation)
+		self.treeview = TagsPageTreeView(notebook, navigation)
 		self.pack2(ScrolledWindow(self.treeview), shrink=False)
 
 		self.treeview.connect('populate-popup', self.on_populate_popup)
@@ -122,8 +104,7 @@ class TagsPluginWidget(ConnectorMixin, Gtk.VPaned, WindowSidePaneWidget):
 
 	def set_page(self, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-		expand = self.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
-		if treepath and expand:
+		if treepath:
 			selected_path = self.treeview.get_selected_path()
 			if page != selected_path:
 				self.treeview.select_treepath(treepath)
@@ -255,12 +236,10 @@ class TagsPageTreeStore(TagsTreeModelMixin, DuplicatePageTreeStore):
 				return encode_markup_text(iter.row['name'])
 			elif column == PATH_COL:
 				return IndexTag(*iter.row)
-			elif column == EMPTY_COL:
-				return False
+			elif column == EXISTS_COL:
+				return True
 			elif column == STYLE_COL:
 				return Pango.Style.NORMAL
-			elif column == FGCOLOR_COL:
-				return self.NORMAL_COLOR
 			elif column == WEIGHT_COL:
 				return Pango.Weight.NORMAL
 			elif column == N_CHILD_COL:

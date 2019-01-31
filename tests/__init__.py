@@ -43,7 +43,7 @@ __all__ = [
 	'config', 'applications',
 	'parsing', 'tokenparser',
 	# Notebook components
-	'formats', 'templates', 'objectmanager',
+	'formats', 'templates',
 	'indexers', 'indexviews', 'operations', 'notebook', 'history',
 	'export', 'www', 'search',
 	# Core application
@@ -53,7 +53,7 @@ __all__ = [
 	'main', 'plugins',
 	# Plugins
 	'pathbar', 'pageindex',
-	'calendar', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
+	'journal', 'printtobrowser', 'versioncontrol', 'inlinecalculator',
 	'tasklist', 'tags', 'imagegenerators', 'tableofcontents',
 	'quicknote', 'attachmentbrowser', 'insertsymbol',
 	'sourceview', 'tableeditor', 'bookmarksbar', 'spell',
@@ -63,7 +63,6 @@ __all__ = [
 
 mydir = os.path.abspath(os.path.dirname(__file__))
 
-
 # when a test is missing from the list that should be detected
 for file in glob.glob(mydir + '/*.py'):
 	name = os.path.basename(file)[:-3]
@@ -72,6 +71,9 @@ for file in glob.glob(mydir + '/*.py'):
 
 # get our own data dir
 DATADIR = os.path.abspath(os.path.join(mydir, 'data'))
+
+# and project data dir
+ZIM_DATADIR = os.path.abspath(os.path.join(mydir, '../data'))
 
 # get our own tmpdir
 TMPDIR = os.path.abspath(os.path.join(mydir, 'tmp'))
@@ -169,6 +171,8 @@ else:
 
 from zim.newfs import LocalFolder
 
+import zim.config.manager
+import zim.plugins
 
 _zim_pyfiles = []
 
@@ -225,8 +229,7 @@ class TestCase(unittest.TestCase):
 
 	maxDiff = None
 
-	SRC_DIR = LocalFolder(mydir + '/../')
-	assert SRC_DIR.file('zim.py').exists(), 'Wrong working dir'
+	mockConfigManager = True
 
 	def run(self, *a, **kwa):
 		start = time.time()
@@ -235,9 +238,18 @@ class TestCase(unittest.TestCase):
 		TIMINGS.append((self.__class__.__name__ + '.' + self._testMethodName, end - start))
 
 	@classmethod
+	def setUpClass(cls):
+		if cls.mockConfigManager:
+			zim.config.manager.makeConfigManagerVirtual()
+			zim.plugins.resetPluginManager()
+
+	@classmethod
 	def tearDownClass(cls):
 		if Gtk is not None:
 			gtk_process_events() # flush any pending events / warnings
+
+		zim.config.manager.resetConfigManager()
+		zim.plugins.resetPluginManager()
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
@@ -294,7 +306,6 @@ class TestCase(unittest.TestCase):
 		'''
 		import datetime
 		from zim.newfs.mock import MockFolder
-		from zim.config import VirtualConfigBackend
 		from zim.notebook.notebook import NotebookConfig, Notebook
 		from zim.notebook.page import Path
 		from zim.notebook.layout import FilesLayout
@@ -308,17 +319,11 @@ class TestCase(unittest.TestCase):
 		layout = FilesLayout(folder, endofline='unix')
 
 		if isinstance(folder, MockFolder):
-			### XXX - Big HACK here - Get better classes for this - XXX ###
-			dir = VirtualConfigBackend()
-			file = dir.file('notebook.zim')
-			file.dir = dir
-			file.dir.basename = folder.basename
-			###
-			config = NotebookConfig(file)
+			conffile = folder.file('notebook.zim')
+			config = NotebookConfig(conffile)
 			index = Index(':memory:', layout)
 		else:
-			from zim.fs import Dir
-			conffile = Dir(folder.path).file('notebook.zim')
+			conffile = folder.file('notebook.zim')
 			config = NotebookConfig(conffile)
 			cache_dir.touch()
 			index = Index(cache_dir.file('index.db').path, layout)
@@ -340,6 +345,7 @@ class TestCase(unittest.TestCase):
 			)
 
 		notebook.index.check_and_update()
+		assert notebook.index.is_uptodate
 		return notebook
 
 	def create_tmp_dir(self, name=None):

@@ -50,11 +50,10 @@ class CustomToolManager(SignalEmitter):
 		'changed': (SIGNAL_NORMAL, None, ())
 	}
 
-	def __init__(self, config):
-		self.config = config
+	def __init__(self):
 		self._names = []
 		self._tools = {}
-		self._listfile = self.config.get_config_file('customtools/customtools.list')
+		self._listfile = ConfigManager.get_config_file('customtools/customtools.list')
 		self._read_list()
 		self._listfile.connect('changed', self._on_list_changed)
 
@@ -97,7 +96,7 @@ class CustomToolManager(SignalEmitter):
 			name = cleanup_filename(name.lower()) + '-usercreated'
 
 		if not name in self._tools:
-			file = self.config.get_config_file('customtools/%s.desktop' % name)
+			file = ConfigManager.get_config_file('customtools/%s.desktop' % name)
 			if file.exists():
 				tool = CustomTool(file)
 				self._tools[name] = tool
@@ -125,7 +124,7 @@ class CustomToolManager(SignalEmitter):
 		tool = _create_application(dir, Name, '', klass=CustomTool, NoDisplay=False, **properties)
 
 		# XXX - hack to ensure we link to configmanager
-		file = self.config.get_config_file('customtools/' + tool.file.basename)
+		file = ConfigManager.get_config_file('customtools/' + tool.file.basename)
 		tool.file = file
 		file.connect('changed', partial(self._on_tool_changed, tool))
 
@@ -372,10 +371,9 @@ class StubPageView(object):
 
 class CustomToolManagerUI(object):
 
-	def __init__(self, uimanager, config, pageview):
+	def __init__(self, uimanager, pageview):
 		'''Constructor
 		@param uimanager: a C{Gtk.UIManager}
-		@param config: a L{ConfigManager}
 		@param pageview: either a L{PageView} or a L{StubPageView}
 		'''
 		# TODO check via abc base class ?
@@ -389,7 +387,7 @@ class CustomToolManagerUI(object):
 		self.uimanager = uimanager
 		self.pageview = pageview
 
-		self._manager = CustomToolManager(config)
+		self._manager = CustomToolManager()
 		self._iconfactory = Gtk.IconFactory()
 		self._iconfactory.add_default()
 		self._ui_id = None
@@ -420,7 +418,7 @@ class CustomToolManagerUI(object):
 		for tool in self._manager:
 			icon = tool.icon
 			if '/' in icon or '\\' in icon:
-				# Assume icon is a file path
+				# Assume icon is a file path - need to add it in order to make it loadable
 				icon = 'zim-custom-tool' + tool.key
 				try:
 					pixbuf = tool.get_pixbuf(Gtk.IconSize.LARGE_TOOLBAR)
@@ -508,10 +506,10 @@ class CustomToolManagerUI(object):
 
 class CustomToolManagerDialog(Dialog):
 
-	def __init__(self, parent, config):
+	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Custom Tools'), buttons=Gtk.ButtonsType.CLOSE) # T: Dialog title
 		self.set_help(':Help:Custom Tools')
-		self.manager = CustomToolManager(config)
+		self.manager = CustomToolManager()
 
 		self.add_help_text(_(
 			'You can configure custom tools that will appear\n'

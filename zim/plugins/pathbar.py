@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
 from gi.repository import Gtk
@@ -9,10 +9,12 @@ import logging
 
 from functools import reduce
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.actions import radio_action, radio_option
-from zim.gui.widgets import encode_markup_text, TOP_PANE, TOP
 from zim.notebook.page import shortest_unique_names
+
+from zim.gui.mainwindow import MainWindowExtension
+from zim.gui.widgets import encode_markup_text
 from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -44,31 +46,7 @@ PATHBAR_PATH = 'path' #: Constant for the namespace pathbar
 PATHBAR_TYPES = (PATHBAR_NONE, PATHBAR_RECENT, PATHBAR_RECENT_CHANGED, PATHBAR_HISTORY, PATHBAR_PATH)
 
 
-@extends('MainWindow')
-class PathBarMainWindowExtension(WindowExtension):
-	'''Extension used to add calendar dialog to mainwindow'''
-
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='view_menu'>
-			<placeholder name='plugin_items'>
-			<menu action='pathbar_menu'>
-				<menuitem action='set_pathbar_none'/>
-				<menuitem action='set_pathbar_recent'/>
-				<menuitem action='set_pathbar_recent_changed'/>
-				<menuitem action='set_pathbar_history'/>
-				<menuitem action='set_pathbar_path'/>
-			</menu>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
-	uimanager_menu_labels = {
-		'pathbar_menu': _('P_athbar'), # T: Menu title
-	}
+class PathBarMainWindowExtension(MainWindowExtension):
 
 	_klasses = {
 		PATHBAR_NONE: None,
@@ -76,7 +54,7 @@ class PathBarMainWindowExtension(WindowExtension):
 	}
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.pathbar = None
 		self.uistate.setdefault('pathbar_type', PATHBAR_RECENT, PATHBAR_TYPES)
 		self.set_pathbar(self.uistate['pathbar_type'])
@@ -91,11 +69,13 @@ class PathBarMainWindowExtension(WindowExtension):
 			self.window.remove(self.pathbar)
 
 	@radio_action(
-		radio_option(PATHBAR_NONE, _('_None')),
-		radio_option(PATHBAR_RECENT, _('_Recent pages')),
-		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')),
-		radio_option(PATHBAR_HISTORY, _('_History')),
-		radio_option(PATHBAR_PATH, _('_Page Hierarchy'))
+		_('P_athbar'), # T: Menu title
+		radio_option(PATHBAR_NONE, _('_None')),  # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_RECENT, _('_Recent pages')), # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_RECENT_CHANGED, _('Recently _Changed pages')), # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_HISTORY, _('_History')), # T: Menu option for View->Pathbar
+		radio_option(PATHBAR_PATH, _('_Page Hierarchy')), # T: Menu option for View->Pathbar
+		menuhints='view'
 	)
 	def set_pathbar(self, type):
 		'''Set the pathbar type
@@ -119,12 +99,11 @@ class PathBarMainWindowExtension(WindowExtension):
 			self.pathbar = klass(
 				self.window.history,
 				self.window.notebook,
-				self.window.config,
 				self.window.navigation
 			)
 			self.pathbar.set_page(self.window.page)
 			self.pathbar.show_all()
-			self.window.add_widget(self.pathbar, (TOP_PANE, TOP))
+			self.window.add_center_bar(self.pathbar)
 
 		self.uistate['pathbar_type'] = type
 
@@ -467,18 +446,6 @@ class ScrolledHBox(Gtk.HBox):
 		for child in children[last + 1:]:
 			child.set_child_visible(False)
 
-	def do_focus(self, direction):
-		# Overrule navigation for <Ctrl><Tab> while leaving
-		# navigation with <Left> and <Right> in tact
-		# (so do not "sub-navigate" with <Ctrl><Tab>).
-		# Otherwise the user has to tab through all buttons before
-		# he can tab to the next widget.
-		if direction in (Gtk.DIR_TAB_FORWARD, Gtk.DIR_TAB_BACKWARD) \
-		and self.focus_child is not None:
-			return False # Let outer container go to next widget
-		else:
-			return Gtk.HBox.do_focus(self, direction)
-
 
 class ScrollButton(Gtk.Button):
 	'''Arrow buttons used by ScrolledHBox'''
@@ -507,11 +474,11 @@ class PathBar(ScrolledHBox):
 	'''Base class for pathbars in the zim GUI, extends ScrolledHBox for usage
 	with a list of ToggleButtons representing zim Path objects'''
 
-	def __init__(self, history, notebook, config, navigation, spacing=0, homogeneous=False):
+	def __init__(self, history, notebook, navigation, spacing=0, homogeneous=False):
 		ScrolledHBox.__init__(self, spacing, homogeneous)
+		self.set_name('zim-pathbar')
 		self.history = history
 		self.notebook = notebook
-		self.config = config
 		self.navigation = navigation
 		self._selected = None
 		self._update()
@@ -598,7 +565,6 @@ class PathBar(ScrolledHBox):
 			self,
 			self.notebook,
 			button.zim_path,
-			self.config,
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)

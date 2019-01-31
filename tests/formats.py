@@ -60,7 +60,8 @@ class TestFormatMixin(object):
 		# No absolute paths ended up in reference
 		pwd = Dir('.')
 		self.assertFalse(pwd.path in text, 'Absolute path ended up in reference')
-		self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
+		if pwd.user_path is not None:
+			self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
 
 		return text
 
@@ -265,12 +266,6 @@ class TestParseTree(tests.TestCase):
 		):
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
-
-	def testGetObjects(self):
-		xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
-		tree = tests.new_parsetree_from_xml(xml)
-		objects = list(tree.get_objects())
-		self.assertTrue(len(objects) >= 2)
 
 	def testFindall(self):
 		tree = ParseTree().fromstring(self.xml)
@@ -685,33 +680,10 @@ class TestRstFormat(tests.TestCase, TestFormatMixin):
 		self.format = get_format('rst')
 
 
-class LatexLoggingFilter(tests.LoggingFilter):
-
-	def __init__(self):
-		tests.LoggingFilter.__init__(
-			self,
-			'zim.formats.latex',
-			('No document type set in template', 'Could not find latex equation')
-		)
-
-
 class TestLatexFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('latex')
-
-	def testFormat(self):
-		with LatexLoggingFilter():
-			TestFormatMixin.testFormat(self)
-
-	def testFormatReference(self):
-		# Double check reference did not get broken in updating
-		text = self.getReferenceData()
-
-		# Inlined equation is there
-		self.assertFalse('equation001.png' in text, 'This equation should be inlined')
-		self.assertTrue(r'\begin{math}' in text)
-		self.assertTrue(r'\end{math}' in text)
 
 	def testEncode(self):
 		'''test the escaping of certain characters'''

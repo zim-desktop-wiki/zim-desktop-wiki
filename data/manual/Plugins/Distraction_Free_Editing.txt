@@ -13,9 +13,9 @@ See also: [[Usage:Creative Writing]]
 ===== Options =====
 The options **Hide menubar in fullscreen mode**, **Hide toolbar in fullscreen mode** and **Hide statusbar in fullscreen mode** toggle the visibility of the various widgets in fullscreen mode. (If the the menubar is not hidden, you can also toggle these elements using the "View" menu.)
 
-The option **Maximum page width** sets the maximum width of the pageview in pixels and the option **Vertical margin** sets a margin in pixels along the top and bottom of the screen.
+The option **Maximum page width** sets the maximum width of the pageview in pixels and the option **Border width** sets a margin in pixels along the top and bottom of the screen.
 
-The options **Text background color**, **Text foreground color** and **Screen background color** set the color scheme for the fullscreen mode. These setting affect the base colors, see also [[Help:Config Files|Config Files]] for more options to change the color of links, headings etc.
+The options **Text background color** and **Text foreground color**  set the color scheme for the fullscreen mode. These setting affect the base colors, see also [[Help:Config Files|Config Files]] for more options to change the color of links, headings etc.
 
 ===== Usage =====
 The effects of this plugin are only seen in fullscreen mode. The toolbar and menubar will be hidden and the pageview is layed out in the center of the screen with a fixed maximum width. To fully enter distraction free mode you should also hide any side panes, although you can choose what panes you need while editing.

@@ -4,6 +4,9 @@
 '''This module handles parsing and dumping wiki text'''
 
 import re
+import logging
+
+logger = logging.getLogger('zim.formats.wiki')
 
 from zim.parser import *
 from zim.parsing import url_re, url_encode, URL_ENCODE_DATA
@@ -160,15 +163,14 @@ class WikiParser(object):
 				process=self.parse_object
 			),
 			Rule(HEADING,
-				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
+				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',		# "==== heading ===="
 				process=self.parse_heading
 			),
 			# standard table format
 			Rule(TABLE, r'''
-				^(\|.*\|)$\n								# starting and ending with |
-				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
-				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
-				^(?= \s*? \n)							# empty line / only spaces
+				^(\|.*\|) \s*? \n								# starting and ending with |
+				^( (?:\| [ \|\-:]+ \| \s*? \n)? )				# column align
+				( (?:^\|.*\| \s*? \n)+ )							# multi-lines: starting and ending with |
 				''',
 				process=self.parse_table
 			),
@@ -209,9 +211,26 @@ class WikiParser(object):
 
 	def parse_object(self, builder, indent, header, body):
 		'''Custom object'''
-		type, param = header.split(':', 1)
-		type = type.strip().lower()
+		otype, param = header.split(':', 1)
+		otype = otype.strip().lower()
 
+		if otype == 'table':
+			# Special case to ensure backward compatibility for versions where
+			# tables could be stored as objects
+			if param.strip() != '':
+				logger.warn('Table object had unexpected parameters: %s', param.strip())
+			lines = body.splitlines(True)
+			headerrow = lines[0]
+			alignstyle = lines[1]
+			body = ''.join(lines[2:])
+			try:
+				return self.parse_table(builder, headerrow, alignstyle, body)
+			except:
+				logger.exception('Could not parse table object')
+
+		self._parse_object(builder, indent, otype, param, body)
+
+	def _parse_object(self, builder, indent, otype, param, body):
 		attrib = {}
 		for match in param_re.finditer(param):
 			key = match.group(1).lower()
@@ -223,7 +242,7 @@ class WikiParser(object):
 		# Defined after parsing head, so these attrib can not be overruled
 		# accidentally
 		### FIXME FIXME FIXME - need to separate two types of attrib ###
-		attrib['type'] = type
+		attrib['type'] = otype
 		if indent:
 			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
@@ -250,7 +269,6 @@ class WikiParser(object):
 		return ','.join(values)
 
 	def parse_table(self, builder, headerrow, alignstyle, body):
-		'''Table parsing'''
 		body = body.replace('\\|', '#124;')  # escaping
 		rows = body.split('\n')[:-1]
 		# get maximum number of columns - each columns must have same size
@@ -421,7 +439,12 @@ class WikiParser(object):
 		if text:
 			attrib['alt'] = text
 
-		builder.append(IMAGE, attrib)
+		if attrib.get('type'):
+			# Backward compatibility of image generators < zim 0.70
+			attrib['type'] = 'image+' + attrib['type']
+			builder.append(OBJECT, attrib)
+		else:
+			builder.append(IMAGE, attrib)
 
 	@staticmethod
 	def parse_url(builder, text):
@@ -542,7 +565,7 @@ class Dumper(TextDumper):
 			return ('[[', href, '|') + tuple(strings) + (']]',)
 
 	def dump_img(self, tag, attrib, strings=None):
-		src = attrib['src']
+		src = attrib['src'] or ''
 		alt = attrib.get('alt')
 		opts = []
 		items = sorted(attrib.items())
@@ -562,7 +585,7 @@ class Dumper(TextDumper):
 
 		# TODO use text for caption (with full recursion)
 
-	def dump_object(self, tag, attrib, strings=None):
+	def dump_object_fallback(self, tag, attrib, strings=None):
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
@@ -580,7 +603,6 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		#~ print("Dumping table: %s, %s" % (attrib, strings))
 		n = len(strings[0])
 		assert all(len(s) == n for s in strings), strings
 
@@ -612,10 +634,3 @@ class Dumper(TextDumper):
 			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
 			strings = [s.replace('<br>', '\\n') for s in strings]
 			return [self._concat(strings)]
-
-	def dump_line(self, tag, attrib, strings = None):
-		if not strings:
-			strings = [LINE_TEXT]
-		elif isinstance(strings, str):
-			strings = [strings]
-		return strings

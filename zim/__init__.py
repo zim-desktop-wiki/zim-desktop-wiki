@@ -33,11 +33,9 @@ object that implements a specific commandline command. The C{Command}
 object then either connects to a running instance of zim, or executes
 the application.
 
-To execute the application, the command typically constructs a
-C{Notebook} object, a C{PluginManager} and a C{ConfigManager}. Then
-depending on the command the graphical interface is constructed, a
-webserver is started or some other action is executed on the notebook.
-
+To execute the application, the command typically constructs a C{Notebook} and
+depending on the command the graphical interface is constructed, a webserver is
+started or some other action is executed on the notebook.
 
 The C{Notebook} object is found in L{zim.notebook} and implements the
 API for accessing and storing pages, attachments and other data in
@@ -95,10 +93,10 @@ Some generic base classes and functions can be found in L{zim.utils}
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.68-gtk3'
+__version__ = '0.70-rc2'
 __url__ = 'http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
-__copyright__ = 'Copyright 2008 - 2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
+__copyright__ = 'Copyright 2008 - 2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __license__ = '''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -133,7 +131,10 @@ ZIM_EXECUTABLE = os.path.abspath(sys.argv[0])
 
 
 ## Initialize locale  (needed e.g. for natural_sort)
-locale.setlocale(locale.LC_ALL, '')
+try:
+	locale.setlocale(locale.LC_ALL, '')
+except locale.Error:
+	logger.exception('Could not set locale settings')
 
 
 ## Initialize gettext  (maybe make this optional later for module use ?)
@@ -186,36 +187,3 @@ if not os.path.isdir(os.environ['HOME']):
 if not 'USER' in os.environ or not os.environ['USER']:
 	os.environ['USER'] = os.path.basename(os.environ['HOME'])
 	logger.info('Environment variable $USER was not set, set to "%s"', os.environ['USER'])
-
-
-########################################################################
-
-## Now we are allowed to import sub modules
-
-import zim.config
-
-# Check if we can find our own data files
-_file = zim.config.data_file('zim.png')
-if not (_file and _file.exists()): #pragma: no cover
-	raise AssertionError(
-		'ERROR: Could not find data files in path: \n'
-		'%s\n'
-		'Try setting XDG_DATA_DIRS'
-			% list(map(str, zim.config.data_dirs()))
-	)
-
-
-def get_zim_revision():
-	'''Returns multiline string with bazaar revision info, if any.
-	Otherwise a string saying no info was found. Intended for debug
-	logging.
-	'''
-	try:
-		from zim._version import version_info
-		return '''\
-Zim revision is:
-  branch: %(branch_nick)s
-  revision: %(revno)s %(revision_id)s
-  date: %(date)s''' % version_info
-	except ImportError:
-		return 'No bzr version-info found'

@@ -6,12 +6,13 @@ from gi.repository import Gtk
 
 import logging
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.config import data_file, ConfigManager
 from zim.main import GtkCommand
 from zim.signals import SignalEmitter
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 
+from zim.gui.mainwindow import MainWindowExtension
 
 # Try if we are on Ubunutu with app-indicator support
 try:
@@ -56,8 +57,7 @@ class TrayIconPluginCommand(GtkCommand):
 	'''
 
 	def run(self):
-		config = ConfigManager()
-		preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
+		preferences = ConfigManager.preferences['TrayIconPlugin']
 		preferences.setdefault('classic', False)
 
 		set_global_trayicon(preferences['classic'])
@@ -90,8 +90,8 @@ This is a core plugin shipping with zim.
 			('Unity appindicator', bool(appindicator), False),
 		])
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
@@ -103,11 +103,10 @@ This is a core plugin shipping with zim.
 		set_global_trayicon(self.preferences['classic'])
 
 
-@extends('MainWindow')
-class TrayIconMainWindowExtension(WindowExtension):
+class TrayIconMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.window.hideonclose = True
 		plugin.load_trayicon()
 

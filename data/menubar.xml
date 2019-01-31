@@ -5,22 +5,21 @@
 			<menuitem action='new_sub_page'/>
 			<menuitem action='show_open_notebook'/>
 			<menuitem action='import_page'/>
-			<placeholder name='open_items'/>
+			<separator/>
+			<placeholder name='notebook_plugin_items'/>
 			<separator/>
 			<menuitem action='open_new_window'/>
 			<separator/>
 			<menuitem action='save_page'/>
 			<menuitem action='save_copy'/>
-			<placeholder name='versioning_actions'/>
 			<separator/>
 			<menuitem action='show_export'/>
-			<placeholder name='print_actions'/>
 			<menuitem action='email_page'/>
+			<placeholder name='page_plugin_items'/>
 			<separator/>
 			<menuitem action='rename_page'/>
 			<menuitem action='move_page'/>
 			<menuitem action='delete_page'/>
-			<placeholder name='page_modification_actions'/>
 			<separator/>
 			<menuitem action='show_properties'/>
 			<separator/>
@@ -53,7 +52,7 @@
 			<menuitem action='show_preferences'/>
 		</menu>
 		<menu action='view_menu'>
-			<menuitem action='toggle_readonly'/>
+			<menuitem action='toggle_editable'/>
 			<menuitem action='toggle_toolbar'/>
 			<menuitem action='toggle_statusbar'/>
 			<menuitem action='toggle_panes'/>
@@ -80,11 +79,12 @@
 		<menu action='insert_menu'>
 			<menuitem action='insert_date'/>
 			<separator/>
-			<menuitem action='show_insert_image'/>
 			<menuitem action='insert_bullet_list'/>
 			<menuitem action='insert_numbered_list'/>
 			<menuitem action='insert_checkbox_list'/>
 			<menuitem action='insert_line'/>
+			<separator/>
+			<menuitem action='show_insert_image'/>
 			<placeholder name='plugin_items'/>
 			<separator/>
 			<menuitem action='insert_text_from_file'/>
@@ -175,21 +175,13 @@
 		</menu>
 	</menubar>
 	<toolbar name='toolbar'>
-		<placeholder name='file'/>
+		<toolitem action='toggle_panes'/>
 		<separator/>
-		<placeholder name='edit'/>
+		<toolitem action='open_page_home'/>
+		<toolitem action='open_page_back'/>
+		<toolitem action='open_page_forward'/>
 		<separator/>
-		<placeholder name='view'>
-			<toolitem action='toggle_panes'/>
-		</placeholder>
-		<separator/>
-		<placeholder name='go'>
-			<toolitem action='open_page_home'/>
-			<toolitem action='open_page_back'/>
-			<toolitem action='open_page_forward'/>
-		</placeholder>
-		<separator/>
-		<toolitem action='toggle_readonly'/>
+		<toolitem action='toggle_editable'/>
 		<separator/>
 		<toolitem action='toggle_format_strong'/>
 		<toolitem action='toggle_format_emphasis'/>
@@ -198,13 +190,10 @@
 		<separator/>
 		<toolitem action='insert_link'/>
 		<toolitem action='attach_file'/>
+		<placeholder name='insert_plugin_items'/>
 		<separator/>
-		<placeholder name='search'/>
 		<separator/>
-		<placeholder name='tools'/>
-<!--
-		<toolitem action='open_document_folder'/>
--->
+		<placeholder name='view_plugin_items'/>
 	</toolbar>
 	<popup name='toolbar_popup'>
 		<menuitem action='set_toolbar_style_icons_and_text'/>

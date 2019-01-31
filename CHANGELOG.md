@@ -1,10 +1,33 @@
-===== Changes for zim =====
+Changes for zim
+===============
 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-=== 0.68 - Sat 17 Mar 2018 ===
+##  0.70-rc2 - Mon 28 Jan 2019
+* Ported zim to use Python3 & Gtk3
+* Refactored application framework, all windows run single process now with
+  single plugin manager and preferences manager
+* Refactored plugin extension loading code and added functions to find
+	extensions and actions
+* Removed the notebook "profile" properties
+* Plugins now can use notebook properties to store settings per notebook
+* The page index side pane and the pathbar are now plugins
+* Redesign journal plugin sidepane view and remove dialog
+* Renamed "calendar" plugin to "journal"
+* Removed OSX menubar plugin
+* Image generator plugins now are "inserted objects"
+* Workaroung for missing clipboard.set_with_data()
+* Improved speed of test suite and refactored test constructs
+* Fix page index issue on delete page
+
+##  0.69 - Sun 16 Dec 2018
+* Performance improvements for indexing large notebooks
+* Performance improvement for auto-completion of page names in dialogs
+* Updated translations from launchpad
+
+##  0.68 - Sat 17 Mar 2018
 * Critical fix for updating links on move page and rename page
 * Critical fix for rename page and indexing on case-insensitive file systems
   (like windows)
@@ -24,7 +47,7 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Code cleaned up to be a bit PEP8 compliant and more future proof for python3
   conversion -- Christian Stadelmann
 
-=== 0.67 - Mon 10 Jul 2017 ===
+##  0.67 - Mon 10 Jul 2017
 * Critical fix for missing page headers & remembering custom headers
 * Critical fix by removing dependency on threading for index and socket handling
   - Hidden option to also do autosave without thread to test further issues
@@ -60,7 +83,7 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Fix for wrong usage of escapes in latex export for verbatim blocks
 
 
-=== 0.66 - Fri 28 Apr 2017 ===
+##  0.66 - Fri 28 Apr 2017
 * Multiple notebooks run as single process now to reduce multi-process
   complexity - more robust startup, reduce need for "--standalone"
 * SQLite indexer re-written to fix long standing bugs and design flaws
@@ -108,7 +131,7 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Added translations for: Amharic, Arabic, Basque, and Portuguese
 
 
-=== 0.65 - Sun 01 Nov 2015 ===
+##  0.65 - Sun 01 Nov 2015
 This release fixes two critical bugs in version 0.64:
 * <Control> keybindings fail for older gtk versions, and in particular
   for the <Control><Space> keybinding
@@ -116,7 +139,7 @@ This release fixes two critical bugs in version 0.64:
   of empty cells
 
 
-=== 0.64 - Tue 27 Oct 2015 ===
+##  0.64 - Tue 27 Oct 2015
 * Bookmark plugin - by Pavel M
 * Updated spell plugin to allow using gtkspellcheck as backend
 * Updated attachmentbrowser plugin with new thumbnailing logic
@@ -127,13 +150,13 @@ This release fixes two critical bugs in version 0.64:
 * Bug fix to avoid overwriting the accelmap config file
 
 
-=== 0.63 - Sat 13 Jun 2015 ===
+##  0.63 - Sat 13 Jun 2015
 * Table plugin - by Tobias Haupenthal
 * Support for Fossil version control - by Stas Bushuev
 ... Many bug fixes
 
 
-=== 0.62 - Tue 30 Sep 2014 ===
+##  0.62 - Tue 30 Sep 2014
 Bug fix release
 * Fixed broken Source View plugin
 * Fixed Tray Icon plugin for Ubuntu
@@ -157,7 +180,7 @@ Bug fix release
 * Added control to toggle full page name in Tag index view
 * Added handling of SIGTERM signal
 
-=== 0.61 - Thu 31 Jul 2014 ===
+##  0.61 - Thu 31 Jul 2014
 * Full refactoring of code for parsing and processing wiki syntax
   making parser easier to extend and document interface more scalable
 * Full refactoring of code for plugin framework making plugins more
@@ -184,7 +207,7 @@ Bug fix release
 * Many small fixes & patches from various persons that I forgot about *sorry*
 * Added Finnish translation
 
-=== 0.60 - Tue 30 Apr 2013 ===
+##  0.60 - Tue 30 Apr 2013
 * In this release the required python version is changed from 2.5 to 2.6 !
 * Added a Recent Changes dialog and a Recent Changes pathbar option
 * Added search entry to toolbar
@@ -200,13 +223,13 @@ Bug fix release
 * Removed custom zim.www.Server class in favor of standard library version
 * New translations for Korean and Norwegian Bokmal
 
-=== 0.59 - Wed 23 Jan 2012 ===
+##  0.59 - Wed 23 Jan 2012
 * Critical bug fix in pageview serialization
 * Fix for inheritance of tags in tasklist - Epinull
 * Fix for customtools dialog - Epinull
 * Fix for week number in Journal plugin page template
 
-=== 0.58 - Sat 15 Dec 2012 ===
+##  0.58 - Sat 15 Dec 2012
 * Added new plugin for distraction free fullscreen mode
 * Added options to limit tasklist plugin to certain namespaces -
 Pierre-Antoine Champin
@@ -234,7 +257,7 @@ intelligent - Virgil Dupras
 * Fix for search and replace whitespace in pageview
 * Various small fixes
 
-=== 0.57 - Mon  8 Oct 2012 ===
+##  0.57 - Mon  8 Oct 2012
 * Ported zim background process to use the multiprocessing module
   - this fixes app-indicator issues under Ubuntu Unity
   - adds support for quicknote and other plugins on Windows
@@ -275,7 +298,7 @@ intelligent - Virgil Dupras
 * Added translations for Brazilian Portuguese and Romanian
 
 
-=== 0.56 - Mon  2 Apr 2012 ===
+##  0.56 - Mon  2 Apr 2012
 * Merged support for Git and Mercurial version control backends -
   Damien Accorsi & John Drinkwater
 * Merged plugin for "ditaa" diagrams - YPWang
@@ -288,7 +311,7 @@ intelligent - Virgil Dupras
   instead of the selected page
 * Added a Serbian translation
 
-=== 0.55 - Tue 28 Feb 2012 ===
+##  0.55 - Tue 28 Feb 2012
 * Numbered lists are now supported
 * The index now has "natural" sorting, so "9" goes before "10"
 * Added new plugin to show a Table Of Contents per page, and allows modifying the outline
@@ -302,7 +325,7 @@ intelligent - Virgil Dupras
 * Fixed bug where replacing a word (e.g spell correction) could drop formatting
 * Fixed behavior of case-sensitive rename on a case-insensitive file system (windows)
 
-=== 0.54 - Thu 22 Dec 2011 ===
+##  0.54 - Thu 22 Dec 2011
 Bug fix release with minor feature enhancements
 * Added mono icons for the Ubuntu Unity panel
 * Tasklist plugin now supports hierarchic nested tasks
@@ -319,7 +342,7 @@ Bug fix release with minor feature enhancements
 * Fixed issue in test suite for loading pixbufs
 * Added translation for Galician
 
-=== 0.53 - Mon 19 Sep 2011 ===
+##  0.53 - Mon 19 Sep 2011
 * Cosmetic updates to entry widgets, the page index, the insert date dialog,
   and the tasklist dialog
 * Updated the find function to properly switch focus and highlight current
@@ -371,13 +394,13 @@ Bug fix release with minor feature enhancements
 
 
 
-=== 0.52 - Thu 28 Apr 2011 ===
+##  0.52 - Thu 28 Apr 2011
 Bug fix release
 * Fixed a critical bug in the "Add Notebook" prompt for the first notebook on
   a fresh install and two minor bugs with the ntoebook list - Jiří Janoušek
 
 
-=== 0.51 - Tue 19 Apr 2011 ===
+##  0.51 - Tue 19 Apr 2011
 * Fixed critical bug with resizing images - Stefan Muthers
 * Fixed bug preventing resizing of text entries in dialogs
 * Fixed bug disabling auto-completion for page names in dialogs
@@ -402,7 +425,7 @@ Bug fix release
 * Added plugin for GNUplot plots - Alessandro Magni
 
 
-=== 0.50 - Mon 14 Feb 2011 ===
+##  0.50 - Mon 14 Feb 2011
 Maintenance release with many bug fixes. Biggest change is the refactoring
 of input forms and dialogs, but this is not very visible to the user.
 
@@ -445,7 +468,7 @@ of input forms and dialogs, but this is not very visible to the user.
 * Added translation for Danish
 
 
-=== 0.49 - Tue 2 Nov 2010 ===
+##  0.49 - Tue 2 Nov 2010
 * Added experimental Attachment Browser plugin - by Thorsten Hackbarth
 * Added Inline Calculator plugin
 * Made file writing logic on windows more robust to avoid conflicts
@@ -468,7 +491,7 @@ of input forms and dialogs, but this is not very visible to the user.
 * Added translations for Hungarian, Italian and Slovak
 
 
-=== 0.48 - Thu 22 Jul 2010 ===
+##  0.48 - Thu 22 Jul 2010
 * Added support for sub- and superscript format - by Michael Mulqueen
 * Updated the export dialog to an Assistant interface
 * Renamed "Create Note" plugin to "Quick Note"
@@ -485,7 +508,7 @@ of input forms and dialogs, but this is not very visible to the user.
 * Fixed bug with deleting directories on windows
 * Added translations for Catalan, Croatian and Slovak
 
-=== 0.47 - Sun  6 Jun 2010 ===
+##  0.47 - Sun  6 Jun 2010
 Big release with lots of new functionality but also many bug fixes
 
 * Significant performance improvements for the page index widget
@@ -517,12 +540,12 @@ Big release with lots of new functionality but also many bug fixes
 * Fixed bug with indented verbatim blocks (Fabian Moser)
 * Added translation for Traditional Chinese
 
-=== 0.46 - Wed 24 Mar 2010 ===
+##  0.46 - Wed 24 Mar 2010
 Bug fix release
 
 * Fixed critical bug preventing the creation of new pages.
 
-=== 0.45 - Tue 23 Mar 2010 ===
+##  0.45 - Tue 23 Mar 2010
 This release adds several new features as well as many bug fixes.
 
 * Added possiblility to add external applications to the menu as "custom tools"
@@ -536,7 +559,7 @@ This release adds several new features as well as many bug fixes.
 * Improved fallback for determining mimetype without XDG support
 * Added translations for Hebrew, Japanese and Turkish
 
-=== 0.44 - Wed 17 Feb 2010 ===
+##  0.44 - Wed 17 Feb 2010
 This release adds improved query syntax for search and several bug fixes
 
 * Implemented more advanced search syntax - see manual for details
@@ -552,7 +575,7 @@ This release adds improved query syntax for search and several bug fixes
 * Several fixes in behavior of the page index widget
 * Added translations for Russian and Swedish
 
-=== 0.43 - Sun 17 Jan 2010 ===
+##  0.43 - Sun 17 Jan 2010
 This is a bug fix release with fixes for most important issues found in 0.42
 
 * Added update method for data format for older notebooks
@@ -573,7 +596,7 @@ This is a bug fix release with fixes for most important issues found in 0.42
 * Fixed import of simplejson for pyton 2.5 specific
 * Translations added for: English (United Kingdom), Greek and Polish
 
-=== 0.42 - Sun 10 Jan 2010 ===
+##  0.42 - Sun 10 Jan 2010
 This is the first release after a complete re-write of zim in python.
 Functionality should be more or less similar to Perl branch version 0.28,
 but details may vary.

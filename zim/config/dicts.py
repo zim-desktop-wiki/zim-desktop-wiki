@@ -17,7 +17,7 @@ Both derive from L{ControlledDict} which defines the C{changed} signal
 which can be used to track changes in the configuration.
 
 Typically these classes are not instantiated directly, but by the
-L{ConfigManager} defined in Lzim.config.manager}.
+L{ConfigManager} defined in L{zim.config.manager}.
 '''
 
 
@@ -32,7 +32,7 @@ import ast
 import json
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
-from zim.utils import OrderedDict, FunctionThread
+from zim.utils import OrderedDict
 from zim.fs import File, FileNotFoundError
 from zim.newfs import FileNotFoundError as NewFileNotFoundError
 from zim.errors import Error
@@ -429,7 +429,7 @@ _definition_classes = {
 
 def build_config_definition(default=None, check=None, allow_empty=False):
 	'''Convenience method to construct a L{ConfigDefinition} object
-	based on a default value an/or a check.
+	based on a default value and/or a check.
 	'''
 	if default is None and check is None:
 		raise AssertionError('At least provide either a default or a check')
@@ -824,18 +824,6 @@ class INIConfigFile(SectionedConfigDict):
 		'''Write data and set C{modified} to C{False}'''
 		self.file.writelines(self.dump())
 		self.set_modified(False)
-
-	def write_async(self):
-		'''Write data asynchronously and set C{modified} to C{False}
-		@returns: an L{FunctionThread} object
-		'''
-		func = FunctionThread(
-			self.file,
-			self.file.writelines,
-			self.dump())
-		func.start()
-		self.set_modified(False)
-		return func
 
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.

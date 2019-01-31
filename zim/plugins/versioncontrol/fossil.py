@@ -67,7 +67,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			return self.run(['add', path])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		0: line1
@@ -98,7 +98,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			params.append(path)
 		return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, path=None):
 		"""
 		Runs:
 			fossil diff {{REVISION_ARGS}}
@@ -216,7 +216,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 		"""
 		return self.run(['rm', path])
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			fossil revert {{PATH}} {{REV_ARGS}}

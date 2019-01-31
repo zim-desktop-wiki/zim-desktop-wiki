@@ -7,9 +7,11 @@ from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Pango
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.notebook import Path, LINK_DIR_BACKWARD
 from zim.notebook.index import IndexNotFoundError
+
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import RIGHT_PANE, PANE_POSITIONS, BrowserTreeView, populate_popup_add_separator, \
 	WindowSidePaneWidget
 
@@ -35,42 +37,21 @@ This is a core plugin shipping with zim.
 	)
 
 
-@extends('MainWindow')
-class BackLinksPaneMainWindowExtension(WindowExtension):
+class BackLinksPanePageViewExtension(PageViewExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		PageViewExtension.__init__(self, plugin, window)
 
-		opener = self.window.navigation
-		self.widget = BackLinksWidget(opener)
+		self.widget = BackLinksWidget(self.navigation)
 
-		if self.window.page is not None:
-			self.on_page_changed(self.window, self.window.page)
-		self.connectto(self.window, 'page-changed')
+		if self.pageview.page is not None:
+			self.on_page_changed(self.pageview, self.pageview.page)
+		self.connectto(self.pageview, 'page-changed')
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
-
-	def on_preferences_changed(self, preferences):
-		if self.widget is None:
-			return
-
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-
-		self.window.add_tab('backlinkspane', self.widget, preferences['pane'])
-		self.widget.show_all()
-		self.widget.show_all()
+		self.add_sidepane_widget(self.widget, 'pane')
 
 	def on_page_changed(self, window, page):
 		self.widget.set_page(window.notebook, page)
-
-	def teardown(self):
-		self.window.remove(self.widget)
-		self.widget.destroy()
-		self.widget = None
 
 
 PAGE_COL = 0

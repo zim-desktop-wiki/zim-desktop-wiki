@@ -1,5 +1,5 @@
 
-# Copyright 2011-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2011-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
@@ -95,7 +95,6 @@ class TestFileEntry(tests.TestCase):
 			self.assertEqual(entry.get_file(), file)
 
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 
@@ -192,7 +191,7 @@ class TestPageEntry(tests.TestCase):
 			('+Bar', ['+bar']),
 			('+T', []),
 			(':', [':Bar', ':Placeholder', ':Test']),
-			('b', ['+bar', 'bar', ':Bar']),
+			('b', ['bar', '+bar', ':Bar']),
 			('Test:', ['Test:bar', 'Test:foo', 'Test:link']),
 
 		):
@@ -256,8 +255,8 @@ class TestInputForm(tests.TestCase):
 			'check': True,
 			'width': 1,
 			'app': 'foo',
-			'page': ':foo:bar:Baz', # explicit string input
-			'namespace': ':foo:bar:Baz',
+			'page': ':Foo:bar:Baz', # explicit string input
+			'namespace': ':Foo:bar:Baz',
 			#~ 'link': '+Baz',
 			'file': '/foo/bar',
 			'image': '/foo/bar.png',
