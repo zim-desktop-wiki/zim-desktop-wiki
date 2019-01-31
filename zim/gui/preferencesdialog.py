@@ -14,7 +14,9 @@ from zim.gui.widgets import Dialog, BrowserTreeView, \
 from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create
 
 from zim.plugins import PLUGIN_FOLDER
-from zim.config import String
+from zim.config import String, ConfigManager
+from zim.plugins import PluginManager
+from zim.main import ZIM_APPLICATION
 
 from zim.gui.mainwindow import ui_preferences as interface_preferences
 from zim.gui.pageview import ui_preferences as pageview_preferences
@@ -30,13 +32,12 @@ _label = _('Editing') # T: Tab in preferences dialog
 
 class PreferencesDialog(Dialog):
 
-	def __init__(self, widget, config, default_tab=None, select_plugin=None):
+	def __init__(self, widget, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, widget, _('Preferences')) # T: Dialog title
-		self.config = config
-		self.preferences = self.config.get_config_dict('<profile>/preferences.conf')
+		self.preferences = ConfigManager.preferences
 
 		# saves a list of loaded plugins to be used later
-		self.plugins = get_window(widget).__pluginmanager__ # XXX
+		self.plugins = PluginManager()
 		self.p_save_loaded = list(self.plugins)
 
 		# Dynamic tabs
@@ -117,7 +118,7 @@ class PreferencesDialog(Dialog):
 		self.fontbutton = Gtk.FontButton()
 		self.fontbutton.set_use_font(True) # preview in button
 		self.fontbutton.set_sensitive(False)
-		text_style = self.config.get_config_dict('<profile>/style.conf')
+		text_style = ConfigManager.get_config_dict('style.conf')
 		try:
 			font = text_style['TextView']['font']
 			if font:
@@ -150,7 +151,7 @@ class PreferencesDialog(Dialog):
 		else:
 			font = None
 
-		text_style = self.config.get_config_dict('<profile>/style.conf')
+		text_style = ConfigManager.get_config_dict('style.conf')
 		text_style['TextView'].define(font=String(None))
 		text_style['TextView']['font'] = font
 		#
@@ -241,6 +242,7 @@ class PluginsTab(Gtk.VBox):
 		self.pack_start(hbox, False, True, 0)
 
 		open_button = Gtk.Button.new_with_mnemonic(_('Open plugins folder'))
+			# T: button label
 		open_button.connect('clicked',
 			lambda o: open_folder_prompt_create(o, PLUGIN_FOLDER)
 		)
@@ -401,26 +403,25 @@ class PluginConfigureDialog(Dialog):
 			# T: Heading for 'configure plugin' dialog - %s is the plugin name
 		self.vbox.add(label)
 
-		fields = []
 		ignore = getattr(self.plugin, 'hide_preferences', [])
-		for pref in self.plugin.plugin_preferences:
-			if pref[0] in ignore:
-				continue
-
-			if len(pref) == 4:
-				key, type, label, default = pref
-				check = None
-				self.plugin.preferences.setdefault(key, default) # just to be sure
-			else:
-				key, type, label, default, check = pref
-				self.plugin.preferences.setdefault(key, default, check=check) # just to be sure
-
-			if type in ('int', 'choice'):
-				fields.append((key, type, label, check))
-			else:
-				fields.append((key, type, label))
-
+		fields = [
+			field for field in
+				self.plugin.form_fields(self.plugin.plugin_preferences)
+					if field[0] not in ignore
+		]
 		self.add_form(fields, self.plugin.preferences)
+
+		if plugin.plugin_notebook_properties:
+			hbox = Gtk.Box(spacing=12)
+			hbox.add(Gtk.Image.new_from_icon_name('dialog-information', Gtk.IconSize.DIALOG))
+			label = Gtk.Label()
+			label.set_markup(
+				'<i>' +
+				_('This plugin also has properties,\nsee the notebook properties dialog') + # T: info text in the preferences dialog
+				'</i>'
+			)
+			hbox.add(label)
+			self.vbox.pack_start(hbox, False, False, 18)
 
 	def do_response_ok(self):
 		# First let the plugin receive the changes, then save them.

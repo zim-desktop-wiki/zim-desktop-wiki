@@ -31,15 +31,6 @@ except:
 	sys.exit(1)
 
 
-# Get environment parameter for building for maemo
-# We don't use auto-detection here because we want to be able to
-# cross-compile a maemo package on another platform
-build_target = os.environ.get('ZIM_BUILD_TARGET')
-assert build_target in (None, 'maemo'), 'Unknown value for ZIM_BUILD_TARGET: %s' % build_target
-if build_target == 'maemo':
-	print('Building for Maemo...')
-
-
 # Some constants
 
 PO_FOLDER = 'translations'
@@ -85,7 +76,7 @@ def collect_data_files():
 		('share/applications', ['xdg/zim.desktop']),
 		('share/mime/packages', ['xdg/zim.xml']),
 		('share/pixmaps', ['xdg/hicolor/48x48/apps/zim.png']),
-		('share/metainfo', ['xdg/org.zim_wiki.Zim.metainfo.xml']),
+		('share/metainfo', ['xdg/org.zim_wiki.Zim.appdata.xml']),
 	]
 
 	# xdg/hicolor -> PREFIX/share/icons/hicolor
@@ -111,17 +102,6 @@ def collect_data_files():
 			files = [os.path.join(dir, f) for f in files]
 			data_files.append((target, files))
 
-	if build_target == 'maemo':
-		# Remove default .desktop files and replace with our set
-		prefix = os.path.join('share', 'zim', 'applications')
-		for i in reversed(list(range(len(data_files)))):
-			if data_files[i][0].startswith(prefix):
-				data_files.pop(i)
-
-		files = ['maemo/applications/%s' % f
-				for f in os.listdir('maemo/applications') if f.endswith('.desktop')]
-		data_files.append((prefix, files))
-
 	# .po files -> PREFIX/share/locale/..
 	for pofile in [f for f in os.listdir(PO_FOLDER) if f.endswith('.po')]:
 		pofile = os.path.join(PO_FOLDER, pofile)
@@ -136,11 +116,6 @@ def collect_data_files():
 
 
 def fix_dist():
-	# Try to update version info
-	if os.path.exists('.bzr/'):
-		print('updating bzr version-info...')
-		os.system('bzr version-info --format python > zim/_version.py')
-
 	# Generate man page
 	makeman.make()
 
@@ -281,37 +256,20 @@ class zim_build_class(build_class):
 
 class zim_install_class(install_class):
 
-	user_options = install_class.user_options + \
-		[('skip-xdg-cmd', None, "don't run XDG update commands (for packaging)")]
-
-	boolean_options = install_class.boolean_options + \
-		['skip-xdg-cmd']
-
-	def initialize_options(self):
-		install_class.initialize_options(self)
-		self.skip_xdg_cmd = 0
-
 	def run(self):
 		install_class.run(self)
-
-		if not self.skip_xdg_cmd:
-			# Try XDG tools
-			mimedir = os.path.join(self.install_data, 'share', 'mime')
-			for cmd in (
-				('update-desktop-database',),
-				('update-mime-database', mimedir),
-			):
-				print('Trying: ' + ' '.join(cmd))
-				subprocess.call(cmd)
-
+		mimedir = os.path.join(self.install_data, 'share', 'mime')
+		print(
+			'To register zim with the desktop environment, please run\n'
+			'the following two commands:\m'
+			'* update-desktop-database\n'
+			'* update-mime-database %s\n' % mimedir
+		)
 
 
 # Distutils parameters, and main function
 
-if build_target == 'maemo':
-	scripts = ['zim.py', 'maemo/modest-mailto.sh']
-else:
-	scripts = ['zim.py']
+scripts = ['zim.py']
 
 if py2exe:
 	py2exeoptions = {
@@ -338,29 +296,29 @@ if py2exe:
 else:
 	py2exeoptions = {}
 
+if __name__ == '__main__':
+	setup(
+		# wire overload commands
+		cmdclass = {
+			'sdist': zim_sdist_class,
+			'build': zim_build_class,
+			'build_trans': zim_build_trans_class,
+			'build_scripts': zim_build_scripts_class,
+			'install': zim_install_class,
+		},
 
-setup(
-	# wire overload commands
-	cmdclass = {
-		'sdist': zim_sdist_class,
-		'build': zim_build_class,
-		'build_trans': zim_build_trans_class,
-		'build_scripts': zim_build_scripts_class,
-		'install': zim_install_class,
-	},
+		# provide package properties
+		name = 'zim',
+		version = __version__,
+		description = 'Zim desktop wiki',
+		author = 'Jaap Karssenberg',
+		author_email = 'jaap.karssenberg@gmail.com',
+		license = 'GPL v2+',
+		url = __url__,
+		scripts = scripts,
+		packages = collect_packages(),
+		data_files = collect_data_files(),
+		requires = ['gi', 'xdg'],
 
-	# provide package properties
-	name = 'zim',
-	version = __version__,
-	description = 'Zim desktop wiki',
-	author = 'Jaap Karssenberg',
-	author_email = 'jaap.karssenberg@gmail.com',
-	license = 'GPL v2+',
-	url = __url__,
-	scripts = scripts,
-	packages = collect_packages(),
-	data_files = collect_data_files(),
-	requires = ['gi', 'xdg'],
-
-	**py2exeoptions
-)
+		**py2exeoptions
+	)

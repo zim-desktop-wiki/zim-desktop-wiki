@@ -8,19 +8,19 @@ from datetime import date as dateclass
 
 from zim.fs import Dir, isabs
 
-from zim.plugins import PluginClass, WindowExtension, extends
-from zim.main import GtkCommand
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.config import data_file, ConfigManager
 from zim.notebook import Path, Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
+from zim.templates import get_template
+from zim.main import GtkCommand, ZIM_APPLICATION
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
-from zim.templates import get_template
-
-from zim.main import ZIM_APPLICATION
 
 
 import logging
@@ -181,22 +181,9 @@ This is a core plugin shipping with zim.
 	#~ )
 
 
-@extends('MainWindow')
-class QuickNoteMainWindowExtension(WindowExtension):
+class QuickNoteMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='file_menu'>
-				<placeholder name="open_items">
-					<menuitem action="show_quick_note" />
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
-	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
+	@action(_('Quick Note...'), menuhints='notebook') # T: menu item
 	def show_quick_note(self):
 		dialog = QuickNoteDialog.unique(self, self.window, self.window.notebook)
 		dialog.show()
@@ -211,8 +198,7 @@ class QuickNoteDialog(Dialog):
 	):
 		assert page is None, 'TODO'
 
-		manager = ConfigManager() # FIXME should be passed in
-		self.config = manager.get_config_dict('quicknote.conf')
+		self.config = ConfigManager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, window, _('Quick Note'))

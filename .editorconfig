@@ -1,0 +1,21 @@
+# Based on template here:
+# http://editorconfig.org/
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+# From HACKING/Coding_Style_and_Guidelines.txt:
+# "I use TABs (not spaces) with a tabstop set to the equivalent of 4 spaces"
+[*.py]
+indent_style = tab
+indent_size = 4
+charset = utf-8
+
+# Tab indentation (no size specified)
+[Makefile]
+indent_style = tab

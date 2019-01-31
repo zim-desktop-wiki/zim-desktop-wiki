@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -15,9 +15,10 @@ from functools import partial
 from zim.notebook import Path
 from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.actions import PRIMARY_MODIFIER_MASK
 
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
 	populate_popup_add_separator, encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
@@ -31,12 +32,11 @@ logger = logging.getLogger('zim.gui.pageindex')
 
 NAME_COL = 0  #: Column with short page name (page.basename)
 PATH_COL = 1  #: Column with the zim PageIndexRecord itself
-EMPTY_COL = 2 #: Column to flag if the page is empty or not
+EXISTS_COL = 2 #: Column to flag if the page is a placeholder or not
 STYLE_COL = 3 #: Column to specify style (based on empty or not)
-FGCOLOR_COL = 4 #: Column to specify color (based on empty or not)
-WEIGHT_COL = 5 #: Column to specify the font weight (open page in bold)
-N_CHILD_COL = 6 #: Column with the number of child pages
-TIP_COL = 7 #: Column with the name to be used in the tooltip
+WEIGHT_COL = 4 #: Column to specify the font weight (open page in bold)
+N_CHILD_COL = 5 #: Column with the number of child pages
+TIP_COL = 6 #: Column with the name to be used in the tooltip
 
 # Check the (undocumented) list of constants in Gtk.keysyms to see all names
 KEYVAL_C = Gdk.unicode_to_keyval(ord('c'))
@@ -61,14 +61,13 @@ This plugin adds the page index pane to the main window.
 	)
 
 
-@extends('MainWindow')
-class PageIndexMainWindowExtension(WindowExtension):
+class PageIndexPageViewExtension(PageViewExtension):
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		index = window.notebook.index
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		index = pageview.notebook.index
 		model = PageTreeStore(index)
-		self.treeview = PageTreeView(window.notebook, window.config, window.navigation)
+		self.treeview = PageTreeView(pageview.notebook, self.navigation)
 		self.treeview.set_model(model)
 		self.widget = PageIndexWidget(self.treeview)
 
@@ -76,28 +75,17 @@ class PageIndexMainWindowExtension(WindowExtension):
 		#window.connect('start-index-update', lambda o: self.disconnect_model())
 		#window.connect('end-index-update', lambda o: self.reload_model())
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		self.on_page_changed(pageview, pageview.page)
+		self.connectto(pageview, 'page-changed')
 
-		if window.page:
-			self.on_page_changed(window, window.page)
-		self.connectto(window, 'page-changed')
+		self.add_sidepane_widget(self.widget, 'pane')
 
 		# self.pageindex.treeview.connect('insert-link',
 		# 	lambda v, p: self.pageview.insert_links([p]))
 
-	def on_preferences_changed(self, preferences):
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-		self.window.add_tab('pageindex', self.widget, preferences['pane'])
-		self.widget.show_all()
-
-	def on_page_changed(self, window, page):
+	def on_page_changed(self, pageview, page):
 		treepath = self.treeview.set_current_page(page, vivificate=True)
-		expand = window.notebook.namespace_properties[page.name].get('auto_expand_in_index', True)
-		if treepath and expand:
+		if treepath:
 			self.treeview.select_treepath(treepath)
 
 	def disconnect_model(self):
@@ -114,7 +102,7 @@ class PageIndexMainWindowExtension(WindowExtension):
 		reloading the index to get rid of out-of-sync model errors
 		without need to close the app first.
 		'''
-		model = PageTreeStore(self.window.notebook.index)
+		model = PageTreeStore(self.pageview.notebook.index)
 		self.treeview.set_model(model)
 
 
@@ -157,10 +145,6 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 	# the TreeView to understand we support drag-and-drop even though
 	# actual work is implemented in the treeview itself.
 
-	# FIXME: Figure out how to bind cellrenderer style to the
-	# EMPTY_COL so we do not need the separate style and fgcolor cols.
-	# This will also allow making style for empty pages configurable.
-
 	# This model does it own memory management for outstanding treeiter
 	# objects. The reason is that we otherwise leak references and consume
 	# a lot of memory. The downside is that we now need to track the
@@ -178,17 +162,12 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 	COLUMN_TYPES = (
 		GObject.TYPE_STRING, # NAME_COL
 		GObject.TYPE_PYOBJECT, # PATH_COL
-		GObject.TYPE_BOOLEAN, # EMPTY_COL
+		GObject.TYPE_BOOLEAN, # EXISTS_COL
 		Pango.Style, # STYLE_COL
-		GObject.TYPE_STRING, # FGCOLOR_COL
 		GObject.TYPE_INT, # WEIGHT_COL
 		GObject.TYPE_STRING, # N_CHILD_COL
 		GObject.TYPE_STRING, # TIP_COL
 	)
-
-
-	NORMAL_COLOR = 'black' # FIXME set based on style
-	EMPTY_COLOR = 'grey' # FIXME set based on style.text[Gtk.StateType.INSENSITIVE]
 
 	def __init__(self):
 		GenericTreeModel.__init__(self)
@@ -208,14 +187,14 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 	def _emit_page_changes(self, path):
 		try:
-			treepath = self.find(path)
+			treepaths = self.find_all(path)
 		except IndexNotFoundError:
 			return None
 		else:
-			treepath = Gtk.TreePath(treepath)
-			treeiter = self.get_iter(treepath)
-			self.emit('row-changed', treepath, treeiter)
-			return treepath
+			for treepath in treepaths:
+				treeiter = self.get_iter(treepath)
+				self.emit('row-changed', treepath, treeiter)
+			return treepaths[0]
 
 	def set_current_page(self, path):
 		'''Set the current open page to highlight it in the index.
@@ -258,18 +237,13 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 			return encode_markup_text(basename)
 		elif column == PATH_COL:
 			return PageIndexRecord(iter.row)
-		elif column == EMPTY_COL:
-			return iter.row['is_link_placeholder']
+		elif column == EXISTS_COL:
+			return not iter.row['is_link_placeholder']
 		elif column == STYLE_COL:
 			if iter.row['is_link_placeholder']:
 				return Pango.Style.ITALIC
 			else:
 				return Pango.Style.NORMAL
-		elif column == FGCOLOR_COL:
-			if iter.row['is_link_placeholder']:
-				return self.EMPTY_COLOR
-			else:
-				return self.NORMAL_COLOR
 		elif column == WEIGHT_COL:
 			if self.current_page and iter.row['name'] == self.current_page.name:
 				return Pango.Weight.BOLD
@@ -356,8 +330,8 @@ class PageTreeStoreBase(GenericTreeModel, Gtk.TreeDragSource, Gtk.TreeDragDest):
 
 class PageTreeStore(PagesTreeModelMixin, PageTreeStoreBase):
 
-	def __init__(self, index):
-		PagesTreeModelMixin.__init__(self, index)
+	def __init__(self, index, root=None, reverse=False):
+		PagesTreeModelMixin.__init__(self, index, root, reverse)
 		PageTreeStoreBase.__init__(self)
 
 
@@ -382,11 +356,10 @@ class PageTreeView(BrowserTreeView):
 		'copy': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook, config, navigation, model=None):
+	def __init__(self, notebook, navigation, model=None):
 		BrowserTreeView.__init__(self)
 		self.set_name('zim-pageindex')
 		self.notebook = notebook
-		self.config = config
 		self.navigation = navigation
 
 		column = Gtk.TreeViewColumn('_pages_')
@@ -396,7 +369,7 @@ class PageTreeView(BrowserTreeView):
 		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
-			style=STYLE_COL, foreground=FGCOLOR_COL, weight=WEIGHT_COL)
+			style=STYLE_COL, sensitive=EXISTS_COL, weight=WEIGHT_COL)
 
 		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)
@@ -472,13 +445,12 @@ class PageTreeView(BrowserTreeView):
 			self,
 			self.notebook,
 			path,
-			self.config,
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 
 		populate_popup_add_separator(menu)
-		item = Gtk.ImageMenuItem('gtk-copy')
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
 		item.connect('activate', lambda o: self.do_copy())
 		menu.append(item)
 		menu.show_all()

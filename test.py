@@ -58,7 +58,7 @@ Options:
 			else:
 				print('''\
 Can not run test coverage without module 'coverage'.
-On Ubuntu or Debian install package 'python-coverage'.
+On Ubuntu or Debian install package 'python3-coverage'.
 ''', file=sys.stderr)
 				sys.exit(1)
 		elif o == '--fast':

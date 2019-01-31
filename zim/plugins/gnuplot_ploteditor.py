@@ -12,8 +12,10 @@
 
 import glob
 
+from zim.plugins import PluginClass
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorPlugin, ImageGeneratorClass, ImageGeneratorMainWindowExtensionBase
+	ImageGeneratorClass, BackwardImageGeneratorObjectType
+
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
@@ -24,7 +26,7 @@ from zim.applications import Application, ApplicationError
 gnuplot_cmd = ('gnuplot',)
 
 
-class InsertGnuplotPlugin(ImageGeneratorPlugin):
+class InsertGnuplotPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Gnuplot'), # T: plugin name
@@ -35,41 +37,28 @@ This plugin provides a plot editor for zim based on Gnuplot.
 		'author': 'Alessandro Magni',
 	}
 
-	object_type = 'gnuplot'
-	short_label = _('Gnuplot') # T: menu item
-	insert_label = _('Insert Gnuplot') # T: menu item
-	edit_label = _('_Edit Gnuplot') # T: menu item
-	syntax = None
-
 	@classmethod
 	def check_dependencies(klass):
 		has_gnuplot = Application(gnuplot_cmd).tryexec()
 		return has_gnuplot, [('Gnuplot', has_gnuplot, True)]
 
 
-class GnuplotMainWindowExtension(ImageGeneratorMainWindowExtensionBase):
+class BackwardGnuplotImageObjectType(BackwardImageGeneratorObjectType):
 
-	def build_generator(self):
-		page = self.window.page
-		notebook = self.window.notebook
-		attachment_folder = notebook.get_attachments_dir(page)
-		#~ print(">>>", notebook, page, attachment_folder)
-		return GnuplotGenerator(self.plugin, attachment_folder)
+	name = 'image+gnuplot'
+	label = _('Gnuplot') # T: menu item
+	syntax = None
+	scriptname = 'gnuplot.gnu'
+	imagefile_extension = '.png'
 
 
 class GnuplotGenerator(ImageGeneratorClass):
 
-	uses_log_file = False
-
-	object_type = 'gnuplot'
-	scriptname = 'gnuplot.gnu'
-	imagename = 'gnuplot.png'
-
-	def __init__(self, plugin, attachment_folder=None):
-		ImageGeneratorClass.__init__(self, plugin)
+	def __init__(self, plugin, notebook, page):
+		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.template = get_template('plugins', 'gnuploteditor.gnu')
-		self.attachment_folder = attachment_folder
-		self.plotscriptfile = TmpFile(self.scriptname)
+		self.attachment_folder = notebook.get_attachments_dir(page)
+		self.plotscriptfile = TmpFile('gnuplot.gnu')
 
 	def generate_image(self, text):
 		plotscriptfile = self.plotscriptfile

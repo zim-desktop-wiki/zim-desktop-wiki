@@ -31,7 +31,7 @@ XDG_CONFIG_HOME = None #: L{Dir} for XDG config home
 XDG_CONFIG_DIRS = None #: list of L{Dir} objects for XDG config dirs path
 XDG_CACHE_HOME = None #: L{Dir} for XDG cache home
 
-def set_basedirs():
+def set_basedirs(_ignore_test=False):
 	'''This method sets the global configuration paths for according to the
 	freedesktop basedir specification.
 	Called automatically when module is first loaded, should be
@@ -83,6 +83,11 @@ def set_basedirs():
 		XDG_CACHE_HOME = Dir(
 			os.environ.get('XDG_CACHE_HOME', '~/.cache'))
 
+		if os.environ.get('ZIM_TEST_RUNNING') and not _ignore_test:
+			# See tests/__init__.py, we load more folders then we really want
+			# because the needs of Gtk, but want to restrict it for all
+			# zim internal use
+			XDG_DATA_DIRS = XDG_DATA_DIRS[:1]
 
 # Call on module initialization to set defaults
 set_basedirs()

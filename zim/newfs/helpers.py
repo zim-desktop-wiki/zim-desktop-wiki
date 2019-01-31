@@ -77,12 +77,12 @@ class TrashHelper(object):
 			try:
 				ok = f.trash()
 			except GObject.GError as error:
-				if error.code == Gio.ERROR_CANCELLED \
+				if error.code == Gio.IOErrorEnum.CANCELLED \
 				or (os.name == 'nt' and error.code == 0):
 					# code 0 observed on windows for cancel
 					logger.info('Trash operation cancelled')
 					raise TrashCancelledError('Trashing cancelled')
-				elif error.code == Gio.ERROR_NOT_SUPPORTED:
+				elif error.code == Gio.IOErrorEnum.NOT_SUPPORTED:
 					raise TrashNotSupportedError('Trashing failed')
 				else:
 					raise error

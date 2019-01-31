@@ -33,8 +33,7 @@ import urllib.error
 from zim.errors import Error
 from zim.notebook import Notebook, Path, Page, encode_filename, PageNotFoundError
 from zim.fs import File, Dir, FileNotFoundError
-from zim.config import data_file, ConfigManager
-from zim.plugins import PluginManager
+from zim.config import data_file
 from zim.parsing import url_encode
 
 from zim.export.linker import ExportLinker, StubLayout
@@ -109,15 +108,13 @@ class WWWInterface(object):
 	in the standard library for python.
 	'''
 
-	def __init__(self, notebook, config=None, template='Default'):
+	def __init__(self, notebook, template='Default'):
 		'''Constructor
 		@param notebook: a L{Notebook} object
-		@param config: optional C{ConfigManager} object
 		@param template: html template for zim pages
 		'''
 		assert isinstance(notebook, Notebook)
 		self.notebook = notebook
-		self.config = config or ConfigManager(profile=notebook.profile)
 
 		self.output = None
 
@@ -134,10 +131,6 @@ class WWWInterface(object):
 
 		self.linker_factory = partial(WWWLinker, self.notebook, self.template.resources_dir)
 		self.dumper_factory = get_format('html').Dumper # XXX
-
-		self.plugins = PluginManager(self.config)
-		self.plugins.extend(notebook)
-		self.plugins.extend(self)
 
 		#~ self.notebook.indexer.check_and_update()
 

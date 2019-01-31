@@ -8,6 +8,8 @@ import tests
 
 import os
 import sys
+import shutil
+
 from gi.repository import Gtk
 
 from zim.gui.applications import *
@@ -22,16 +24,17 @@ THUMB_SIZE_NORMAL = 128
 class TestXDGMimeInfo(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir('./data/pixmaps')
-		for i, filename in enumerate(dir.list()):
-			file = dir.file(filename)
-			icon = get_mime_icon(file, 128)
-			self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
-			desc = get_mime_description(file.get_mimetype())
-			self.assertIsInstance(desc, str)
-			self.assertTrue(len(desc) > 5)
+		os.mkdir('tests/tmp/data_dir/mime/')
+		os.mkdir('tests/tmp/data_dir/mime/image/')
+		shutil.copyfile('./tests/data/png.xml', 'tests/tmp/data_dir/mime/image/png.xml')
 
-		self.assertTrue(i > 3)
+		dir = Dir('./data')
+		file = dir.file('zim.png')
+		icon = get_mime_icon(file, 128)
+		self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
+		desc = get_mime_description(file.get_mimetype())
+		self.assertIsInstance(desc, str)
+		self.assertTrue(len(desc) > 5)
 
 
 def replace(l, old, new):
@@ -124,11 +127,11 @@ class TestApplicationManager(tests.TestCase):
 
 	def testGetMimeType(self):
 		for obj, mimetype in (
-			(File('README.txt'), 'text/plain'),
-			('README.txt', 'text/plain'),
+			(File('file.txt'), 'text/plain'),
+			('file.txt', 'text/plain'),
 			('ssh://host', 'x-scheme-handler/ssh'),
 			('http://host', 'x-scheme-handler/http'),
-			('README.html', 'text/html'),
+			('file.png', 'image/png'),
 			('mailto:foo@bar.org', 'x-scheme-handler/mailto'),
 		):
 			self.assertEqual(get_mimetype(obj), mimetype)
@@ -213,7 +216,7 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 
 		# Check menu
 		for obj, mimetype, test_entry in (
-			(File('README.txt'), 'text/plain', entry_text),
+			(File('file.txt'), 'text/plain', entry_text),
 			('ssh://host', 'x-scheme-handler/ssh', entry_url),
 		):
 			manager.set_default_application(mimetype, test_entry)
@@ -309,7 +312,9 @@ class TestOpenFunctions(tests.TestCase):
 		myfile = folder.file('test.txt')
 		myfile.touch()
 
-		entry = ApplicationManager().get_default_application('text/plain')
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
 
 		open_file(widget, myfile)
 		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfile), None))

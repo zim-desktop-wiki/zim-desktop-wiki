@@ -11,6 +11,7 @@ import xml.etree.ElementTree # needed to compile with cElementTree
 import xml.etree.cElementTree as ET
 
 
+from zim.newfs import LocalFile
 from zim.plugins.versioncontrol import VCSApplicationBase
 from zim.applications import Application
 
@@ -71,7 +72,7 @@ class HGApplicationBackend(VCSApplicationBase):
 			return self.run(['add', path])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		0: line1
@@ -100,7 +101,7 @@ class HGApplicationBackend(VCSApplicationBase):
 			params.append(path)
 		return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, path=None):
 		"""
 		Runs:
 			hg diff --git {{REVISION_ARGS}}
@@ -143,7 +144,7 @@ class HGApplicationBackend(VCSApplicationBase):
 
 		@returns: a boolean True if a repo is already setup, or False
 		"""
-		return self.root.subdir('.hg').exists()
+		return self.root.folder('.hg').exists()
 
 	def init(self):
 		"""
@@ -193,9 +194,10 @@ class HGApplicationBackend(VCSApplicationBase):
 		"""
 		Runs: hg rm {{PATH}}
 		"""
-		return self.run(['rm', '-A', path])
+		if isinstance(path, LocalFile):
+			return self.run(['rm', '-A', path])
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			hg revert --no-backup {{PATH}} {{REV_ARGS}}

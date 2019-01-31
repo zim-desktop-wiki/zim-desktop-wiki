@@ -71,7 +71,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			return self.run(['add', path])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		0: line1
@@ -102,7 +102,7 @@ class GITApplicationBackend(VCSApplicationBase):
 				params.append(path)
 			return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, path=None):
 		"""
 		Runs:
 			git diff --no-ext-diff {{REVISION_ARGS}}
@@ -129,7 +129,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		self.add('.') # add all existing files
 
 	def repo_exists(self):
-		return self.root.subdir('.git').exists() or self.root.file('.git').exists()
+		return self.root.folder('.git').exists() or self.root.file('.git').exists()
 
 	def init(self):
 		"""
@@ -197,18 +197,12 @@ class GITApplicationBackend(VCSApplicationBase):
 
 
 	def move(self, oldpath, newpath):
-		"""
-		Runs: git mv --after {{OLDPATH}} {{NEWPATH}}
-		"""
-		return self.run(['mv', '--after', oldpath, newpath])
+		return self.add(newpath) # move already happened
 
 	def remove(self, path):
-		"""
-		Runs: git rm {{PATH}}
-		"""
-		return self.run(['rm', path])
+		pass # delete already happened
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			hg revert {{PATH}} {{REV_ARGS}}

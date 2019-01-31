@@ -177,21 +177,6 @@ class Dumper(TextDumper):
 		# common for computer monitors
 		dpi = 96
 
-		if attrib.get('type') == 'equation':
-			try:
-				# Try to find the source, otherwise fall back to image
-				src = attrib['src'][:-4] + '.tex'
-				file = self.linker.resolve_source_file(src)
-				if file is not None:
-					equation = file.read().strip()
-				else:
-					equation = None
-			except FileNotFoundError:
-				logger.warn('Could not find latex equation: %s', src)
-			else:
-				if equation:
-					return ['\\begin{math}\n', equation, '\n\\end{math}']
-
 		if 'width' in attrib and not 'height' in attrib:
 			options = 'width=%fin, keepaspectratio=true' \
 					% (float(attrib['width']) / dpi)

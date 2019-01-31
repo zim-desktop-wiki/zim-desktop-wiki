@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
 import logging
@@ -10,7 +10,7 @@ from gi.repository import Gdk
 logger = logging.getLogger('zim.gui')
 
 
-from zim.config import data_file, value_is_coord, ConfigDict, INIConfigFile, Boolean
+from zim.config import data_file, value_is_coord, ConfigDict, Boolean, ConfigManager
 from zim.signals import DelayedCallback
 
 from zim.notebook import Path, Page, LINK_DIR_BACKWARD
@@ -28,8 +28,12 @@ from zim.gui.widgets import \
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
 from zim.gui.customtools import CustomToolManagerUI
+from zim.gui.insertedobjects import InsertedObjectUI
 
 from zim.gui.pageview import PageView
+
+from zim.plugins import ExtensionBase, extendable
+from zim.gui.actionextension import ActionExtensionBase
 
 
 TOOLBAR_ICONS_AND_TEXT = 'icons_and_text'
@@ -81,21 +85,60 @@ def schedule_on_idle(function, args=()):
 	GObject.idle_add(callback)
 
 
+class MainWindowExtension(ActionExtensionBase):
+	'''Base class for extending the L{MainWindow}
+
+	Menu and toolbar actions can be defined by defining an action method
+	and specifying where in the menu this should be placed.
+
+	An action method is any object method of the extension method that
+	is decorated by the L{action()} or L{toggle_action()} decorators
+	(see L{zim.actions}). Such a method is called when the user clicks
+	to correcponding menu item or presses the corresponding key binding.
+	The decorator is used to define the text to display in the menu
+	and the key binding.
+
+	@ivar window: the L{MainWindow}
+
+	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
+
+	The "uistate" is the per notebook state of the interface, it is
+	intended for stuff like the last folder opened by the user or the
+	size of a dialog after resizing. It is stored in the X{state.conf}
+	file in the notebook cache folder. It differs from the preferences,
+	which are stored globally and dictate the behavior of the application.
+	(To access the preference use C{plugin.preferences}.)
+	'''
+
+	def __init__(self, plugin, window):
+		'''Constructor
+		@param plugin: the plugin object to which this extension belongs
+		@param window: the C{Gtk.Window} being extended
+		'''
+		ExtensionBase.__init__(self, plugin, window)
+		self.window = window
+		self.uistate = window.notebook.state[plugin.config_key]
+		self._add_actions(window.uimanager)
+		self.connectto(window, 'destroy')
+
+	def on_destroy(self, window):
+		self.destroy()
+
+
+@extendable(MainWindowExtension)
 class MainWindow(Window):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'fullscreen-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'init-uistate': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'readonly-changed': (GObject.SignalFlags.RUN_LAST, None, (bool,)),
 		'close': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, notebook, config, page=None, fullscreen=False, geometry=None):
+	def __init__(self, notebook, page=None, fullscreen=False, geometry=None):
 		'''Constructor
 		@param notebook: the L{Notebook} to show in this window
-		@param config: a C{ConfigManager} object
 		@param page: a C{Path} object to open
 		@param fullscreen: if C{True} the window is shown fullscreen,
 		if C{None} the previous state is restored
@@ -105,18 +148,20 @@ class MainWindow(Window):
 		Window.__init__(self)
 		self.notebook = notebook
 		self.page = None # will be set later by open_page
-		self.isfullscreen = False
 		self.navigation = NavigationModel(self)
 		self.hideonclose = False
 
-		self.config = config
-		self.preferences = config.preferences['GtkInterface']
+		self.preferences = ConfigManager.preferences['GtkInterface']
 		self.preferences.define(
 			toggle_on_ctrlspace=Boolean(False),
 			remove_links_on_delete=Boolean(True),
 			always_use_last_cursor_pos=Boolean(True),
 		)
 		self.preferences.connect('changed', self.do_preferences_changed)
+
+		self.maximized = False
+		self.isfullscreen = False
+		self.connect_after('window-state-event', self.__class__.on_window_state_event)
 
 		# Hidden setting to force the gtk bell off. Otherwise it
 		# can bell every time you reach the begin or end of the text
@@ -130,8 +175,6 @@ class MainWindow(Window):
 		self._sidepane_autoclose = False
 		self._switch_focus_accelgroup = None
 
-		self.maximized = False
-
 		# Catching this signal prevents the window to actually be destroyed
 		# when the user tries to close it. The action for close should either
 		# hide or destroy the window.
@@ -142,11 +185,8 @@ class MainWindow(Window):
 		self.connect('delete-event', do_delete_event)
 
 		# setup uistate
-		if not hasattr(config, 'uistate'):
-			config.uistate = INIConfigFile(notebook.cache_dir.file('state.conf'))
-		self.uistate = self.config.uistate['MainWindow']
-
-		self.history = History(notebook, config.uistate)
+		self.uistate = notebook.state['MainWindow']
+		self.history = History(notebook, notebook.state)
 
 		# init uimanager
 		self.uimanager = Gtk.UIManager()
@@ -159,32 +199,29 @@ class MainWindow(Window):
 		</ui>
 		''')
 
-		# setup the window layout
-		from zim.gui.widgets import TOP, BOTTOM, TOP_PANE, LEFT_PANE
-
 		# setup menubar and toolbar
 		self.add_accel_group(self.uimanager.get_accel_group())
 		self.menubar = self.uimanager.get_widget('/menubar')
 		self.toolbar = self.uimanager.get_widget('/toolbar')
 		self.toolbar.connect('popup-context-menu', self.do_toolbar_popup)
-		self.add_bar(self.menubar, TOP)
-		self.add_bar(self.toolbar, TOP)
+		self.add_bar(self.menubar)
+		self.add_bar(self.toolbar)
 
-		self.pageview = PageView(self.notebook, config, self.navigation)
+		self.pageview = PageView(self.notebook, self.navigation)
 		self.connect_object('readonly-changed', PageView.set_readonly, self.pageview)
 		self.pageview.connect_after(
 			'textstyle-changed', self.on_textview_textstyle_changed)
-		self.pageview.view.connect_after(
+		self.pageview.textview.connect_after(
 			'toggle-overwrite', self.on_textview_toggle_overwrite)
-		self.pageview.view.connect('link-enter', self.on_link_enter)
-		self.pageview.view.connect('link-leave', self.on_link_leave)
+		self.pageview.textview.connect('link-enter', self.on_link_enter)
+		self.pageview.textview.connect('link-leave', self.on_link_leave)
 
 		self.add(self.pageview)
 
 		# create statusbar
 		self.statusbar = Gtk.Statusbar()
 		self.statusbar.push(0, '<page>')
-		self.add_bar(self.statusbar, BOTTOM)
+		self.add_bar(self.statusbar, start=False)
 		self.statusbar.set_property('margin', 0)
 
 		def statusbar_element(string, size):
@@ -229,7 +266,7 @@ class MainWindow(Window):
 		self.preferences.setdefault('mouse_nav_button_forw', 9)
 
 		# Finish uimanager
-		self._uiactions = UIActions(self, self.notebook, self.page, self.config, self.navigation)
+		self._uiactions = UIActions(self, self.notebook, self.page, self.navigation)
 		group = get_gtk_actiongroup(self._uiactions)
 		self.uimanager.insert_action_group(group, 0)
 
@@ -245,11 +282,12 @@ class MainWindow(Window):
 
 		fname = 'menubar.xml'
 		self.uimanager.add_ui_from_string(data_file(fname).read())
+		self.pageview.emit('ui-init') # Needs to trigger after default menus are build
 
 		# Do this last, else menu items show up in wrong place
-		self.pageview.notebook = self.notebook # XXX
-		self._customtools = CustomToolManagerUI(self.uimanager, self.config, self.pageview)
-
+		self._customtools = CustomToolManagerUI(self.uimanager, self.pageview)
+		self._insertedobjects = InsertedObjectUI(self.uimanager, self.pageview)
+			# XXX: would like to do this in PageView itself, but need access to uimanager
 
 		# Setup notebook signals
 		notebook.connect('page-info-changed', self.do_page_info_changed)
@@ -284,7 +322,7 @@ class MainWindow(Window):
 
 		self.pageview.grab_focus()
 
-	@action(_('_Close'), 'gtk-close', '<Primary>W', readonly=True) # T: Menu item
+	@action(_('_Close'), '<Primary>W') # T: Menu item
 	def close(self):
 		'''Menu action for close. Will hide when L{hideonclose} is set,
 		otherwise destroys window, which could result in the application
@@ -306,8 +344,8 @@ class MainWindow(Window):
 		while Gtk.events_pending():
 			Gtk.main_iteration_do(False)
 
-		if self.config.uistate.modified:
-			self.config.uistate.write()
+		if self.notebook.state.modified:
+			self.notebook.state.write()
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
@@ -323,38 +361,17 @@ class MainWindow(Window):
 		self.statusbar.pop(0)
 		self.statusbar.push(0, label)
 
-	def do_window_state_event(self, event):
-		#~ print('window-state changed:', event.changed_mask)
-		#~ print('window-state new state:', event.new_window_state)
-
+	def on_window_state_event(self, event):
 		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED):
 			self.maximized = bool(event.new_window_state & Gdk.WindowState.MAXIMIZED)
 
-		isfullscreen = Gdk.WindowState.FULLSCREEN
-		if bool(event.changed_mask & isfullscreen):
-			# Did not find property for this - so tracking state ourself
-			wasfullscreen = self.isfullscreen
-			self.isfullscreen = bool(event.new_window_state & isfullscreen)
-			logger.debug('Fullscreen changed: %s', self.isfullscreen)
-			self._set_widgets_visable()
-			if self.actiongroup:
-				# only do this after we initalize
-				self.toggle_fullscreen(self.isfullscreen)
+		if bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
+			self.isfullscreen = bool(event.new_window_state & Gdk.WindowState.FULLSCREEN)
+			self.__class__.toggle_fullscreen.set_toggleaction_state(self, self.isfullscreen)
 
-			if wasfullscreen:
-				# restore uistate
-				if self.uistate['windowsize']:
-					w, h = self.uistate['windowsize']
-					self.resize(w, h)
-				if self.uistate['windowpos']:
-					x, y = self.uistate['windowpos'] # Should we use _windowpos?
-					self.move(x, y)
-
-			if wasfullscreen != self.isfullscreen:
-				self.emit('fullscreen-changed')
+		if bool(event.changed_mask & Gdk.WindowState.MAXIMIZED) \
+			or bool(event.changed_mask & Gdk.WindowState.FULLSCREEN):
 				schedule_on_idle(lambda: self.pageview.scroll_cursor_on_screen())
-					# HACK to have this scroll done after all updates to
-					# the gui are done...
 
 	def do_preferences_changed(self, *a):
 		if self._switch_focus_accelgroup:
@@ -382,7 +399,7 @@ class MainWindow(Window):
 		self.add_accel_group(group)
 		self._switch_focus_accelgroup = group
 
-	@toggle_action(_('Menubar'), init=True)
+	@toggle_action(_('Menubar'), init=True) # T: label for View->Menubar menu item
 	def toggle_menubar(self, show):
 		'''Menu action to toggle the visibility of the menu bar
 		@param show: when C{True} or C{False} force the visibility,
@@ -395,10 +412,7 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-		if self.isfullscreen:
-			self.uistate['show_menubar_fullscreen'] = show
-		else:
-			self.uistate['show_menubar'] = show
+		self.uistate['show_menubar'] = show
 
 	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
 	def toggle_toolbar(self, show):
@@ -410,10 +424,7 @@ class MainWindow(Window):
 			self.toolbar.hide()
 			self.toolbar.set_no_show_all(True)
 
-		if self.isfullscreen:
-			self.uistate['show_toolbar_fullscreen'] = show
-		else:
-			self.uistate['show_toolbar'] = show
+		self.uistate['show_toolbar'] = show
 
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
@@ -430,20 +441,15 @@ class MainWindow(Window):
 			self.statusbar.hide()
 			self.statusbar.set_no_show_all(True)
 
-		if self.isfullscreen:
-			self.uistate['show_statusbar_fullscreen'] = show
-		else:
-			self.uistate['show_statusbar'] = show
+		self.uistate['show_statusbar'] = show
 
-	@toggle_action(_('_Fullscreen'), 'gtk-fullscreen', 'F11', init=False) # T: Menu item
+	@toggle_action(_('_Fullscreen'), 'F11', icon='gtk-fullscreen', init=False) # T: Menu item
 	def toggle_fullscreen(self, show):
 		'''Menu action to toggle the fullscreen state of the window'''
 		if show:
-			self.save_uistate()
 			self.fullscreen()
 		else:
 			self.unfullscreen()
-			# uistate is restored in do_window_state_event()
 
 	def do_pane_state_changed(self, pane, *a):
 		if not hasattr(self, 'actiongroup') \
@@ -455,7 +461,7 @@ class MainWindow(Window):
 		if visible != action.get_active():
 			action.set_active(visible)
 
-	@toggle_action(_('_Side Panes'), 'gtk-index', 'F9', tooltip=_('Show Side Panes'), init=True) # T: Menu item
+	@toggle_action(_('_Side Panes'), 'F9', icon='gtk-index', init=True) # T: Menu item
 	def toggle_panes(self, show):
 		'''Menu action to toggle the visibility of the all panes
 		@param show: when C{True} or C{False} force the visibility,
@@ -475,7 +481,7 @@ class MainWindow(Window):
 
 	def do_set_focus(self, widget):
 		Window.do_set_focus(self, widget)
-		if widget == self.pageview.view \
+		if widget == self.pageview.textview \
 		and self._sidepane_autoclose:
 			# Sidepane open and should close automatically
 			self.toggle_panes(False)
@@ -489,7 +495,7 @@ class MainWindow(Window):
 		action = self.actiongroup.get_action('toggle_panes')
 		if action.get_active():
 			# side pane open
-			if self.pageview.view.is_focus():
+			if self.pageview.textview.is_focus():
 				self.focus_sidepane()
 			else:
 				if self._sidepane_autoclose:
@@ -504,6 +510,7 @@ class MainWindow(Window):
 		return True # stop
 
 	@radio_action(
+		None,
 		radio_option(TOOLBAR_ICONS_AND_TEXT, _('Icons _And Text')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_ONLY, _('_Icons Only')), # T: Menu item
 		radio_option(TOOLBAR_TEXT_ONLY, _('_Text Only')), # T: Menu item
@@ -527,6 +534,7 @@ class MainWindow(Window):
 		self.preferences['toolbar_style'] = style
 
 	@radio_action(
+		None,
 		radio_option(TOOLBAR_ICONS_LARGE, _('_Large Icons')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_SMALL, _('_Small Icons')), # T: Menu item
 		radio_option(TOOLBAR_ICONS_TINY, _('_Tiny Icons')), # T: Menu item
@@ -549,11 +557,12 @@ class MainWindow(Window):
 
 		self.preferences['toolbar_size'] = size
 
-	@toggle_action(_('Notebook _Editable'), 'gtk-edit', tooltip=_('Toggle notebook editable'), init=True) # T: menu item
-	def toggle_readonly(self, readonly):
+	@toggle_action(_('Notebook _Editable'), icon='gtk-edit', init=True) # T: menu item
+	def toggle_editable(self, editable):
 		'''Menu action to toggle the read-only state of the application
 		@emits: readonly-changed
 		'''
+		readonly = not editable
 		if readonly and self.page and self.page.modified:
 			# Save any modification now - will not be allowed after switch
 			self.pageview.save_changes()
@@ -584,19 +593,13 @@ class MainWindow(Window):
 			self.set_default_size(w, h)
 
 			self.uistate.setdefault('windowmaximized', False)
-			self.maximized = bool(self.uistate['windowmaximized'])
-			if self.maximized:
+			if self.uistate['windowmaximized']:
 				self.maximize()
-		else:
-			self.maximized = False
 
 		self.uistate.setdefault('active_tabs', None, tuple)
 		self.uistate.setdefault('show_menubar', True)
-		self.uistate.setdefault('show_menubar_fullscreen', True)
 		self.uistate.setdefault('show_toolbar', True)
-		self.uistate.setdefault('show_toolbar_fullscreen', False)
 		self.uistate.setdefault('show_statusbar', True)
-		self.uistate.setdefault('show_statusbar_fullscreen', False)
 
 		# For these two "None" means system default, but we don't know what that default is :(
 		self.preferences.setdefault('toolbar_style', None,
@@ -604,7 +607,9 @@ class MainWindow(Window):
 		self.preferences.setdefault('toolbar_size', None,
 			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
 
-		self._set_widgets_visable() # toggle what panes are visible
+		self.toggle_menubar(self.uistate['show_menubar'])
+		self.toggle_toolbar(self.uistate['show_toolbar'])
+		self.toggle_statusbar(self.uistate['show_statusbar'])
 
 		Window.init_uistate(self) # takes care of sidepane positions etc
 
@@ -618,15 +623,15 @@ class MainWindow(Window):
 
 		self.uistate.setdefault('readonly', False)
 		if self.notebook.readonly:
-			self.toggle_readonly(True)
-			action = self.actiongroup.get_action('toggle_readonly')
+			self.toggle_editable(False)
+			action = self.actiongroup.get_action('toggle_editable')
 			action.set_sensitive(False)
 		else:
-			self.toggle_readonly(self.uistate['readonly'])
+			self.toggle_editable(not self.uistate['readonly'])
 
 		# And hook to notebook properties
-		self.on_notebook_properties_changed(self.notebook)
-		self.notebook.connect('properties-changed', self.on_notebook_properties_changed)
+		self.on_notebook_properties_changed(self.notebook.properties)
+		self.notebook.properties.connect('changed', self.on_notebook_properties_changed)
 
 		# Hook up the statusbar
 		self.connect('page-changed', self.do_update_statusbar)
@@ -663,7 +668,7 @@ class MainWindow(Window):
 		self.toolbar.insert(item, -1)
 
 		# Load accelmap config and setup saving it
-		accelmap = self.config.get_config_file('accelmap').file
+		accelmap = ConfigManager.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
 			Gtk.AccelMap.load(accelmap.path)
@@ -675,26 +680,15 @@ class MainWindow(Window):
 		Gtk.AccelMap.get().connect('changed', on_accel_map_changed)
 
 		def save_uistate_cb(uistate):
-			if uistate.modified and hasattr(uistate, 'write_async'):
-				# XXX: write_async check can be removed with proper MockFile backend for tests
-				uistate.write_async()
+			if uistate.modified and hasattr(uistate, 'write'):
+				# XXX: write check can be removed with proper MockFile backend for tests
+				uistate.write()
 			# else ignore silently
 
 		delayed_save_uistate_cb = DelayedCallback(2000, save_uistate_cb) # 2 sec
 		self.uistate.connect('changed', delayed_save_uistate_cb)
 
 		self.do_update_statusbar()
-
-	def _set_widgets_visable(self):
-		# Convenience method to switch visibility of all widgets
-		if self.isfullscreen:
-			self.toggle_menubar(self.uistate['show_menubar_fullscreen'])
-			self.toggle_toolbar(self.uistate['show_toolbar_fullscreen'])
-			self.toggle_statusbar(self.uistate['show_statusbar_fullscreen'])
-		else:
-			self.toggle_menubar(self.uistate['show_menubar'])
-			self.toggle_toolbar(self.uistate['show_toolbar'])
-			self.toggle_statusbar(self.uistate['show_statusbar'])
 
 	def save_uistate(self):
 		if not self.isfullscreen:
@@ -704,13 +698,13 @@ class MainWindow(Window):
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
 
-	def on_notebook_properties_changed(self, notebook):
-		self.set_title(notebook.name + ' - Zim')
-		if notebook.icon:
+	def on_notebook_properties_changed(self, properties):
+		self.set_title(self.notebook.name + ' - Zim')
+		if self.notebook.icon:
 			try:
-				self.set_icon_from_file(notebook.icon)
+				self.set_icon_from_file(self.notebook.icon)
 			except GObject.GError:
-				logger.exception('Could not load icon %s', notebook.icon)
+				logger.exception('Could not load icon %s', self.notebook.icon)
 
 	def on_textview_toggle_overwrite(self, view):
 		state = view.get_overwrite()
@@ -765,8 +759,9 @@ class MainWindow(Window):
 			if self.page.modified:
 				raise AssertionError('Could not save page') # XXX - shouldn't this lead to dialog ?
 
-			self.page.cursor = self.pageview.get_cursor_pos()
-			self.page.scroll = self.pageview.get_scroll_pos()
+			old_cursor = self.pageview.get_cursor_pos()
+			old_scroll = self.pageview.get_scroll_pos()
+			self.history.set_state(self.page, old_cursor, old_scroll)
 
 			self.save_uistate()
 
@@ -796,7 +791,7 @@ class MainWindow(Window):
 		self.pageview.grab_focus()
 
 	def do_page_changed(self, page):
-		#TODO: set toggle_readonly insensitive when page is readonly
+		#TODO: set toggle_editable() insensitive when page is readonly
 		self.update_buttons_history()
 		self.update_buttons_hierarchy()
 		self.statusbar_backlinks_button.set_page(self.page)
@@ -826,12 +821,12 @@ class MainWindow(Window):
 		previous.set_sensitive(has_prev)
 		next.set_sensitive(has_next)
 
-	@action(_('_Jump To...'), 'gtk-jump-to', '<Primary>J') # T: Menu item
+	@action(_('_Jump To...'), '<Primary>J') # T: Menu item
 	def show_jump_to(self):
 		return OpenPageDialog(self, self.page, self.open_page).run()
 
 	@action(
-		_('_Back'), 'gtk-go-back', tooltip=_('Go page back'), # T: Menu item
+		_('_Back'), verb_icon='gtk-go-back', # T: Menu item
 		accelerator='<alt>Left', alt_accelerator=('XF86Back' if os.name != 'nt' else None)
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_back(self):
@@ -843,7 +838,7 @@ class MainWindow(Window):
 			self.open_page(record)
 
 	@action(
-		_('_Forward'), 'gtk-go-forward', tooltip=_('Go page forward'), # T: Menu item
+		_('_Forward'), verb_icon='gtk-go-forward', # T: Menu item
 		accelerator='<alt>Right', alt_accelerator=('XF86Forward' if os.name != 'nt' else None)
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_forward(self):
@@ -854,7 +849,7 @@ class MainWindow(Window):
 		if not record is None:
 			self.open_page(record)
 
-	@action(_('_Parent'), 'gtk-go-up', '<alt>Up', tooltip=_('Go to parent page')) # T: Menu item
+	@action(_('_Parent'), '<alt>Up') # T: Menu item
 	def open_page_parent(self):
 		'''Menu action to open the parent page
 		@returns: C{True} if successful
@@ -863,7 +858,7 @@ class MainWindow(Window):
 		if namespace:
 			self.open_page(Path(namespace))
 
-	@action(_('_Child'), 'gtk-go-down', '<alt>Down', tooltip=_('Go to child page')) # T: Menu item
+	@action(_('_Child'), '<alt>Down') # T: Menu item
 	def open_page_child(self):
 		'''Menu action to open a child page. Either takes the last child
 		from the history, or the first child.
@@ -879,7 +874,7 @@ class MainWindow(Window):
 				child = self.notebook.pages.get_next(path)
 				self.open_page(child)
 
-	@action(_('_Previous in index'), accelerator='<alt>Page_Up', tooltip=_('Go to previous page')) # T: Menu item
+	@action(_('_Previous in index'), accelerator='<alt>Page_Up') # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
 		@returns: C{True} if successfull
@@ -888,7 +883,7 @@ class MainWindow(Window):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Next in index'), accelerator='<alt>Page_Down', tooltip=_('Go to next page')) # T: Menu item
+	@action(_('_Next in index'), accelerator='<alt>Page_Down') # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
 		@returns: C{True} if successfull
@@ -897,12 +892,12 @@ class MainWindow(Window):
 		if not path is None:
 			self.open_page(path)
 
-	@action(_('_Home'), 'gtk-home', '<alt>Home', tooltip=_('Go home')) # T: Menu item
+	@action(_('_Home'), '<alt>Home', icon='gtk-home') # T: Menu item
 	def open_page_home(self):
 		'''Menu action to open the home page'''
 		self.open_page(self.notebook.get_home_page())
 
-	@action(_('_Reload'), 'gtk-refresh', '<Primary>R') # T: Menu item
+	@action(_('_Reload'), '<Primary>R') # T: Menu item
 	def reload_page(self):
 		'''Menu action to reload the current page. Will first try
 		to save any unsaved changes, then reload the page from disk.
@@ -953,9 +948,10 @@ class BackLinksMenuButton(MenuButton):
 class PageWindow(Window):
 	'''Secondary window, showing a single page'''
 
-	def __init__(self, notebook, page, config, navigation):
+	def __init__(self, notebook, page, navigation):
 		Window.__init__(self)
 		self.navigation = navigation
+		self.notebook = notebook
 
 		self.set_title(page.name + ' - Zim')
 		#if ui.notebook.icon:
@@ -966,16 +962,12 @@ class PageWindow(Window):
 
 		page = notebook.get_page(page)
 
-		if hasattr(config, 'uistate'):
-			self.uistate = config.uistate['PageWindow']
-		else:
-			self.uistate = ConfigDict()
-
+		self.uistate = notebook.state['PageWindow']
 		self.uistate.setdefault('windowsize', (500, 400), check=value_is_coord)
 		w, h = self.uistate['windowsize']
 		self.set_default_size(w, h)
 
-		self.pageview = PageView(notebook, config, navigation, secondary=True)
+		self.pageview = PageView(notebook, navigation, secondary=True)
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 
@@ -992,7 +984,8 @@ class OpenPageDialog(Dialog):
 		self.callback = callback
 
 		self.add_form(
-			[('page', 'page', _('Jump to Page'), page)] # T: Label for page input
+			[('page', 'page', _('Jump to Page'), page)], # T: Label for page input
+			notebook=parent.notebook
 		)
 
 	def do_response_ok(self):

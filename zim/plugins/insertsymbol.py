@@ -4,8 +4,11 @@
 from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
+from zim.config import ConfigManager
+
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
 from zim.gui.applications import edit_config_file
 
@@ -30,15 +33,15 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Insert Symbol',
 	}
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.symbols = {}
 		self.symbol_order = []
 
 	def load_file(self):
 		self.symbols = {}
 		self.symbol_order = []
-		file = self.config.get_config_file('symbols.list')
+		file = ConfigManager.get_config_file('symbols.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -63,31 +66,18 @@ This is a core plugin shipping with zim.
 			yield symbol, shortcut
 
 
-@extends('MainWindow')
-class InsertSymbolMainWindowExtension(WindowExtension):
+class InsertSymbolPageViewExtension(PageViewExtension):
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_symbol'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.connectto(window.pageview.view, 'end-of-word')
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		self.connectto(pageview.textview, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()
 
-	@action(_('Sy_mbol...')) # T: menu item
+	@action(_('Sy_mbol...'), menuhints='insert') # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
-		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()
+		InsertSymbolDialog(self.pageview, self.plugin, self.pageview).run()
 
 	def on_end_of_word(self, textview, start, end, word, char, editmode):
 		'''Handler for the end-of-word signal from the textview'''
@@ -202,7 +192,7 @@ class InsertSymbolDialog(Dialog):
 		self.textentry.set_position(pos + len(text))
 
 	def on_edit(self, button):
-		file = self.plugin.config.get_config_file('symbols.list')
+		file = ConfigManager.get_config_file('symbols.list')
 		if edit_config_file(self, file):
 			self.plugin.load_file()
 			self.load_symbols()
@@ -213,7 +203,7 @@ class InsertSymbolDialog(Dialog):
 
 	def do_response_ok(self):
 		text = self.textentry.get_text()
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		buffer = textview.get_buffer()
 		buffer.insert_at_cursor(text)
 		return True

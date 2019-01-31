@@ -31,25 +31,26 @@ import zim.formats
 
 from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
-from zim.config import String, Float, Integer, Boolean, Choice
+from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
 from zim.notebook import Path, interwiki_link, HRef, PageNotFoundError
 from zim.notebook.operations import NotebookState, ongoing_operation
 from zim.parsing import link_type, Re, url_re
 from zim.formats import get_format, increase_list_iter, \
 	ParseTree, ElementTreeModule, OldParseTreeBuilder, \
-	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE_TEXT
+	BULLET, CHECKED_BOX, UNCHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX, LINE, OBJECT
 from zim.actions import get_gtk_actiongroup, action, toggle_action
 from zim.gui.widgets import \
 	Dialog, FileDialog, QuestionDialog, ErrorDialog, \
 	IconButton, MenuButton, BrowserTreeView, InputEntry, \
 	ScrolledWindow, \
-	rotate_pixbuf, populate_popup_add_separator
+	rotate_pixbuf, populate_popup_add_separator, strip_boolean_result
 from zim.gui.applications import OpenWithMenu, open_url, open_file, edit_config_file
 from zim.gui.clipboard import Clipboard, SelectionClipboard, \
 	textbuffer_register_serialize_formats
 from zim.gui.uiactions import attach_file
-from zim.objectmanager import ObjectManager, CustomObjectClass, FallbackObject
-from zim.gui.objectmanager import CustomObjectWidget, POSITION_BEGIN, POSITION_END
+from zim.gui.insertedobjects import \
+	InsertedObjectWidget, UnknownInsertedObject, UnknownInsertedImageObject, \
+	POSITION_BEGIN, POSITION_END
 from zim.utils import WeakSet
 from zim.signals import callback
 from zim.formats import get_dumper
@@ -60,30 +61,18 @@ from zim.plugins import PluginManager
 logger = logging.getLogger('zim.gui.pageview')
 
 
-class LineSeparator(CustomObjectWidget):
+class LineSeparator(InsertedObjectWidget):
 	'''Class to create a separation line.'''
 
 	def __init__(self):
-		CustomObjectWidget.__init__(self)
-		# Set color of the line.
-		self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('darkgrey'))
-		# Set size of the line.
-		self.vbox.set_size_request(-1, 3)
+		InsertedObjectWidget.__init__(self)
+		widget = Gtk.Box()
+		widget.get_style_context().add_class(Gtk.STYLE_CLASS_BACKGROUND)
+		widget.set_size_request(-1, 3)
+		self.add(widget)
 
 
-class LineObject(CustomObjectClass):
-	'''Class to work with 'LineSeparator' objects.'''
-	OBJECT_ATTR = {
-		'type': String('line'),
-	}
-
-	def get_widget(self):
-		'''Creates a new line which can be displayed on the wiki-page.'''
-		return LineSeparator()
-
-ObjectManager.register_object('line', LineObject)
-
-def IS_LINE(line):
+def is_line(line):
 	'''Function used for line autoformatting.'''
 	length = len(line)
 	return (line == '-' * length) and (length > 4)
@@ -509,7 +498,7 @@ class TextBuffer(Gtk.TextBuffer):
 	@signal: C{undo-save-cursor (iter)}:
 	emitted in some specific case where the undo stack should
 	lock the current cursor position
-	@signal: C{insert-object (object, achor)}: emitted when an object
+	@signal: C{insert-objectanchor (achor)}: emitted when an object
 	is inserted, should trigger L{TextView} to attach a widget
 
 	@todo: document tag styles that are supported
@@ -531,7 +520,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'clear': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'undo-save-cursor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-		'insert-object': (GObject.SignalFlags.RUN_LAST, None, (object, object)),
+		'insert-objectanchor': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'link-clicked': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 	}
 
@@ -591,7 +580,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'rise': Integer(None),
 	} #: Valid properties for a style in tag_styles
 
-	def __init__(self, notebook=None, page=None):
+	def __init__(self, notebook, page):
 		'''Constructor
 
 		@param notebook: a L{Notebook} object
@@ -905,31 +894,16 @@ class TextBuffer(Gtk.TextBuffer):
 			elif element.tag == 'table':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-
-				obj = ObjectManager.get_object('table', element.attrib, element)
-				if isinstance(obj, FallbackObject):
-					# HACK - if table plugin is not loaded - show table as plain text
-					tree = ParseTree(element)
-					lines = get_dumper('wiki').dump(tree)
-					obj.set_data(''.join(lines))
-
-				self.insert_object_at_cursor(obj)
-
+				self.insert_table_element_at_cursor(element)
 				set_indent(None)
 			elif element.tag == 'line':
-				obj = ObjectManager.get_object('line', None, None)
-				self.insert_object_at_cursor(obj)
+				anchor = LineSeparatorAnchor()
+				self.insert_objectanchor_at_cursor(anchor)
 
 			elif element.tag == 'object':
 				if 'indent' in element.attrib:
 					set_indent(int(element.attrib['indent']))
-
-				if 'type' in element.attrib:
-					obj = ObjectManager.get_object(element.attrib['type'], element.attrib, element.text)
-					self.insert_object_at_cursor(obj)
-				else:
-					logger.warning('Skipping object without type')
-
+				self.insert_object_at_cursor(element.attrib, element.text)
 				set_indent(None)
 			else:
 				# Text styles
@@ -1182,30 +1156,63 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
-	def insert_object_at_cursor(self, obj):
+	def insert_object_at_cursor(self, attrib, data):
 		'''Inserts a custom object in the page
-		@param obj: an object implementing L{CustomerObjectClass}
+		@param attrib: dict with object attributes
+		@param data: string data of object
 		'''
-		assert isinstance(obj, CustomObjectClass)
-		logger.debug("Insert object: %s", obj)
+		try:
+			objecttype = PluginManager.insertedobjects[attrib['type']]
+		except KeyError:
+			if attrib['type'].startswith('image+'):
+				# Fallback for backward compatibility of image generators < zim 0.70
+				objecttype = UnknownInsertedImageObject()
+			else:
+				objecttype = UnknownInsertedObject()
 
-		def on_modified_changed(obj):
-			if obj.get_modified() and not self.get_modified():
-				self.set_modified(True)
+		model = objecttype.model_from_data(self.notebook, self.page, attrib, data)
+		self.insert_object_model_at_cursor(objecttype, model)
 
-		obj.connect('modified-changed', on_modified_changed)
+	def insert_object_model_at_cursor(self, objecttype, model):
+		from zim.plugins.tableeditor import TableViewObjectType # XXX
 
-		anchor = ObjectAnchor(obj)
+		model.connect('changed', lambda o: self.set_modified(True))
+
+		if isinstance(objecttype, TableViewObjectType):
+			anchor = TableAnchor(objecttype, model)
+		else:
+			anchor = PluginInsertedObjectAnchor(objecttype, model)
+
+		self.insert_objectanchor_at_cursor(anchor)
+
+	def insert_table_element_at_cursor(self, element):
+		try:
+			obj = PluginManager.insertedobjects['table']
+		except KeyError:
+			# HACK - if table plugin is not loaded - show table as plain text
+			tree = ParseTree(element)
+			lines = get_dumper('wiki').dump(tree)
+			self.insert_object_at_cursor({'type': 'table'}, ''.join(lines))
+		else:
+			model = obj.model_from_element(element.attrib, element)
+			model.connect('changed', lambda o: self.set_modified(True))
+
+			anchor = TableAnchor(obj, model)
+			self.insert_objectanchor_at_cursor(anchor)
+
+	def insert_objectanchor_at_cursor(self, anchor):
 		iter = self.get_insert_iter()
 		self.insert_child_anchor(iter, anchor)
+		self.emit('insert-objectanchor', anchor)
 
-		self.emit('insert-object', obj, anchor)
-
-	def get_object_at_cursor(self):
+	def get_objectanchor_at_cursor(self):
 		iter = self.get_insert_iter()
+		return self.get_object_achor(iter)
+
+	def get_objectanchor(self, iter):
 		anchor = iter.get_child_anchor()
-		if anchor and hasattr(anchor, 'manager'):
-			return anchor.manager
+		if anchor and isinstance(anchor, InsertedObjectAnchor):
+			return anchor
 		else:
 			return None
 
@@ -1760,7 +1767,7 @@ class TextBuffer(Gtk.TextBuffer):
 				elif is_numbered_bullet_re.match(bullet):
 					stylename = 'numbered-list'
 				else:
-					raise AssertionError('BUG: Unkown bullet type')
+					raise AssertionError('BUG: Unknown bullet type')
 				margin = 12 + self.pixels_indent * level # offset from left side for all lines
 				indent = -12 # offset for first line (bullet)
 				if dir == 'LTR':
@@ -2362,37 +2369,11 @@ class TextBuffer(Gtk.TextBuffer):
 			elif anchor:
 				set_tags(iter, list(filter(_is_indent_tag, iter.get_tags())))
 				anchor = iter.get_child_anchor() # iter may have moved
-
-				if anchor is None:
+				if isinstance(anchor, InsertedObjectAnchor):
+					anchor.dump(builder)
+					iter.forward_char()
+				else:
 					continue
-				if hasattr(anchor, 'manager'):
-					attrib = anchor.manager.get_attrib()
-					if attrib and attrib['type'] == 'table' \
-					and hasattr(anchor.manager, 'build_parsetree_of_table'): # fallback should not go here...
-						obj = anchor.manager
-						obj.build_parsetree_of_table(builder, iter)
-					elif attrib and attrib['type'] == 'line':
-						# Add (if necessary) additional newline symbols
-						# to prevent formatting back from line object to text.
-						_new_iter = iter.copy()
-						_start = '' if _new_iter.starts_line() else '\n'
-						_new_iter.forward_char()
-						_end = '' if _new_iter.ends_line() else '\n'
-						data = '{}{}{}'.format(_start, LINE_TEXT, _end)
-						logger.debug("Anchor with Line, obj:%s", anchor.manager)
-						builder.start('line', attrib)
-						builder.data(data)
-						builder.end('line')
-					else:
-						# general object related parsing
-						data = anchor.manager.get_data()
-						logger.debug("Anchor with CustomObject: %s", anchor.manager)
-						builder.start('object', attrib)
-						builder.data(data)
-						builder.end('object')
-
-					anchor.manager.set_modified(False)
-				iter.forward_char()
 			else:
 				# Set tags
 				copy = iter.copy()
@@ -2466,14 +2447,15 @@ class TextBuffer(Gtk.TextBuffer):
 		if not raw and tree.hascontent:
 			# Reparsing the parsetree in order to find raw wiki codes
 			# and get rid of oddities in our generated parsetree.
-			#~ print(">>> Parsetree original:", tree.tostring())
+			#print(">>> Parsetree original:\n", tree.tostring())
 			from zim.formats import get_format
 			format = get_format("wiki") # FIXME should the format used here depend on the store ?
 			dumper = format.Dumper()
 			parser = format.Parser()
 			text = dumper.dump(tree)
+			#print(">>> Wiki text:\n", text)
 			tree = parser.parse(text, partial=tree.ispartial)
-			#~ print(">>> Parsetree recreated:", tree.tostring())
+			#print(">>> Parsetree recreated:\n", tree.tostring())
 
 		return tree
 
@@ -3486,17 +3468,6 @@ class TextView(Gtk.TextView):
 		'link-leave': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'end-of-word': (GObject.SignalFlags.RUN_LAST, None, (object, object, object, object, object)),
 		'end-of-line': (GObject.SignalFlags.RUN_LAST, None, (object,)),
-
-		# Override clipboard interaction
-		'copy-clipboard': 'override',
-		'cut-clipboard': 'override',
-		'paste-clipboard': 'override',
-
-		# And some events we want to connect to
-		#'visibility-notify-event': 'override',
-		#'button-press-event': 'override',
-		#'button-release-event': 'override',
-		#'key-press-event': 'override',
 	}
 
 	def __init__(self, preferences):
@@ -3524,13 +3495,13 @@ class TextView(Gtk.TextView):
 		self.connect_after('motion-notify-event', self.__class__.on_motion_notify_event)
 
 	def set_buffer(self, buffer):
-		buffer.connect('insert-object', self.on_insert_object)
+		buffer.connect('insert-objectanchor', self.on_insert_object)
 		Gtk.TextView.set_buffer(self, buffer)
 
-	def on_insert_object(self, buffer, obj, anchor):
+	def on_insert_object(self, buffer, anchor):
 		# Connect widget for this view to object
-		widget = obj.get_widget()
-		assert isinstance(widget, CustomObjectWidget)
+		widget = anchor.create_widget()
+		assert isinstance(widget, InsertedObjectWidget)
 
 		def on_release_cursor(widget, position, anchor):
 			myiter = buffer.get_iter_at_child_anchor(anchor)
@@ -3543,6 +3514,7 @@ class TextView(Gtk.TextView):
 
 		def widget_connect(signal):
 			widget.connect(signal, lambda o, *a: self.emit(signal, *a))
+
 		for signal in ('link-clicked', 'link-enter', 'link-leave'):
 			widget_connect(signal)
 
@@ -3645,11 +3617,12 @@ class TextView(Gtk.TextView):
 
 		if event.type == Gdk.EventType.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
-			if event.button == 2 and not buffer.get_has_selection():
-				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
-				return False
-			elif event.button == 3:
-				self._set_popup_menu_mark(iter)
+			if iter:
+				if event.button == 2 and not buffer.get_has_selection():
+					buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
+					return False
+				elif Gdk.Event.triggers_context_menu(event):
+					self._set_popup_menu_mark(iter)
 
 		return Gtk.TextView.do_button_press_event(self, event)
 
@@ -3699,7 +3672,7 @@ class TextView(Gtk.TextView):
 			mark = buffer.create_mark('zim-popup-menu', iter, True)
 
 	def do_key_press_event(self, event):
-		ok, keyval = event.get_keyval()
+		keyval = strip_boolean_result(event.get_keyval())
 		#print 'KEY %s (%r)' % (Gdk.keyval_name(keyval), keyval)
 		event_state = event.get_state()
 		#print 'STATE %s' % event_state
@@ -3998,7 +3971,7 @@ class TextView(Gtk.TextView):
 		'''
 		x, y = self.get_pointer()
 		x, y = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, x, y)
-		ok, iter = self.get_iter_at_location(x, y)
+		iter = strip_boolean_result(self.get_iter_at_location(x, y))
 		return iter, (x, y)
 
 	def _get_pixbuf_at_pointer(self, iter, coords):
@@ -4042,26 +4015,28 @@ class TextView(Gtk.TextView):
 		if coords is None:
 			iter, coords = self._get_pointer_location()
 		else:
-			ok, iter = self.get_iter_at_location(*coords)
+			iter = strip_boolean_result(self.get_iter_at_location(*coords))
 
-		link = None
-		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
-		if pixbuf:
-			if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
-				STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
-				cursor = CURSOR_WIDGET
-			elif 'href' in pixbuf.zim_attrib:
-				link = {'href': pixbuf.zim_attrib['href']}
-				cursor = CURSOR_LINK
-			else:
-				cursor = CURSOR_TEXT
+		if iter is None:
+			self._set_cursor(CURSOR_TEXT)
 		else:
-			link = self.get_buffer().get_link_data(iter)
-			if link:
-				cursor = CURSOR_LINK
+			pixbuf = self._get_pixbuf_at_pointer(iter, coords)
+			if pixbuf:
+				if pixbuf.zim_type == 'icon' and pixbuf.zim_attrib['stock'] in (
+					STOCK_CHECKED_BOX, STOCK_UNCHECKED_BOX, STOCK_XCHECKED_BOX, STOCK_MIGRATED_BOX):
+					self._set_cursor(CURSOR_WIDGET)
+				elif 'href' in pixbuf.zim_attrib:
+					self._set_cursor(CURSOR_LINK, link={'href': pixbuf.zim_attrib['href']})
+				else:
+					self._set_cursor(CURSOR_TEXT)
 			else:
-				cursor = CURSOR_TEXT
+				link = self.get_buffer().get_link_data(iter)
+				if link:
+					self._set_cursor(CURSOR_LINK, link=link)
+				else:
+					self._set_cursor(CURSOR_TEXT)
 
+	def _set_cursor(self, cursor, link=None):
 		if cursor != self._cursor:
 			window = self.get_window(Gtk.TextWindowType.TEXT)
 			window.set_cursor(cursor)
@@ -4088,11 +4063,14 @@ class TextView(Gtk.TextView):
 		@returns: C{True} when there was indeed a link
 		'''
 		iter, coords = self._get_pointer_location()
+		if iter is None:
+			return False
+
 		pixbuf = self._get_pixbuf_at_pointer(iter, coords)
 		if pixbuf and pixbuf.zim_attrib.get('href'):
 			self.emit('link-clicked', {'href': pixbuf.zim_attrib['href']})
 			return True
-		else:
+		elif iter:
 			return self.click_link_at_iter(iter)
 
 	def click_link_at_iter(self, iter):
@@ -4120,7 +4098,7 @@ class TextView(Gtk.TextView):
 		@returns: C{True} for success, C{False} if no checkbox was found.
 		'''
 		iter, coords = self._get_pointer_location()
-		if iter.get_line_offset() < 2:
+		if iter and iter.get_line_offset() < 2:
 			# Only position 0 or 1 can map to a checkbox
 			buffer = self.get_buffer()
 			recurs = self.preferences['recursive_checklist']
@@ -4260,11 +4238,10 @@ class TextView(Gtk.TextView):
 			buffer.insert_with_tags_by_name(
 				buffer.get_iter_at_mark(mark), heading, 'style-h' + str(level))
 			buffer.delete_mark(mark)
-		elif IS_LINE(line):
+		elif is_line(line):
 			with buffer.user_action:
 				buffer.delete(start, end)
-				obj = ObjectManager.get_object('line', None, None)
-				buffer.insert_object_at_cursor(obj)
+				buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
 				buffer.insert_at_cursor('\n')
 		elif not buffer.get_bullet_at_iter(start) is None:
 			# we are part of bullet list
@@ -4715,9 +4692,6 @@ class UndoStackManager:
 		self.unblock()
 
 
-
-import threading
-
 class SavePageHandler(object):
 	'''Object for handling page saving.
 
@@ -4864,6 +4838,7 @@ discarded, but you can restore the copy later.''')
 
 		self.timeout = timeout
 
+		self.pageview = pageview
 		self.page = page
 		self.error = error
 
@@ -4877,33 +4852,34 @@ discarded, but you can restore the copy later.''')
 		self.add_action_widget(cancel_button, Gtk.ResponseType.CANCEL)
 
 		self._done = False
-		def discard(self):
-			page.set_ui_object(None) # unhook
-			pageview.clear()
-				# issue may be caused in pageview - make sure it unlocks
-			page._parsetree = None # removed cached tree
-			page.modified = False
-			pageview.set_page(page)
-			self._done = True
-
-		def save(self):
-			from zim.gui.uiactions import SaveCopyDialog
-			if SaveCopyDialog(self, pageview.notebook, page).run():
-				discard(self)
 
 		discard_button = Gtk.Button.new_with_mnemonic(_('_Discard Changes'))
 			# T: Button in error dialog
-		discard_button.connect_object('clicked', discard, self)
+		discard_button.connect('clicked', lambda o: self.discard())
 		self.add_action_widget(discard_button, Gtk.ResponseType.OK)
 
 		save_button = Gtk.Button.new_with_mnemonic(_('_Save Copy'))
 			# T: Button in error dialog
-		save_button.connect_object('clicked', save, self)
+		save_button.connect('clicked', lambda o: self.save_copy())
 		self.add_action_widget(save_button, Gtk.ResponseType.OK)
 
 		for button in (cancel_button, discard_button, save_button):
 			button.set_sensitive(False)
 			button.show()
+
+	def discard(self):
+		self.page.set_ui_object(None) # unhook
+		self.pageview.clear()
+			# issue may be caused in pageview - make sure it unlocks
+		self.page._parsetree = None # removed cached tree
+		self.page.modified = False
+		self.pageview.set_page(self.page)
+		self._done = True
+
+	def save_copy(self):
+		from zim.gui.uiactions import SaveCopyDialog
+		if SaveCopyDialog(self, self.pageview.notebook, self.page).run():
+			self.discard()
 
 	def do_response_ok(self):
 		return self._done
@@ -4933,8 +4909,127 @@ discarded, but you can restore the copy later.''')
 			ErrorDialog.run(self)
 
 
+from zim.plugins import ExtensionBase, extendable
+from zim.config import ConfigDict
+from zim.gui.actionextension import ActionExtensionBase
+from zim.gui.widgets import LEFT_PANE, RIGHT_PANE, BOTTOM_PANE, PANE_POSITIONS
+
+
+class NavigationWrapper(object):
+	'''Wrapper to allow late initialization of the "navigation" object'''
+
+	def __init__(self):
+		self._real_navigation = None
+
+	def open_page(self, *arg, **kwarg):
+		if self._real_navigation:
+			return self._real_navigation.open_page(*arg, **kwarg)
+		else:
+			logger.warn('navigation called before initialisation')
+
+
+class PageViewExtension(ActionExtensionBase):
+	'''Base class for extensions that want to interact with the "page view",
+	which is the primary editor view of the application.
+
+	This extension class will collect actions defined with the C{@action},
+	C{@toggle_action} or C{@radio_action} decorators and add them to the window.
+
+	This extension class also supports showing side panes that are visible as
+	part of the "decoration" of the editor view.
+
+	@ivar pageview: the L{PageView} object
+	@ivar navigation: a L{NavigationModel} model
+	@ivar uistate: a L{ConfigDict} to store the extensions ui state or
+
+	The "uistate" is the per notebook state of the interface, it is
+	intended for stuff like the last folder opened by the user or the
+	size of a dialog after resizing. It is stored in the X{state.conf}
+	file in the notebook cache folder. It differs from the preferences,
+	which are stored globally and dictate the behavior of the application.
+	(To access the preference use C{plugin.preferences}.)
+	'''
+
+	# HACK: complicated class because we rely on MainWindow for most of the
+	# functionality of this extension class. However at initialisation there
+	# is no parent window, so we need to delay loading.
+	# Plan is to refactor MainWindow and PageView such that these functions
+	# end up in the right place.
+
+	def __init__(self, plugin, pageview):
+		ExtensionBase.__init__(self, plugin, pageview)
+		self.pageview = pageview
+		self._on_ui_init_queue = []
+		self.connectto(pageview, 'ui-init', self.on_ui_init)
+
+		self._sidepane_widgets = {}
+		self.navigation = NavigationWrapper()
+		self.uistate = pageview.notebook.state[self.plugin.config_key]
+		self._do_on_ui_init(self._init_window)
+
+	def _init_window(self, window):
+		if hasattr(window, 'uimanager'): # HACK: PageWindow does not have uimanager
+			self._add_actions(window.uimanager)
+		self.navigation._real_navigation = window.navigation
+
+	def _do_on_ui_init(self, func, *arg, **kwarg):
+		if self.pageview.ui_is_initialized:
+			window = self.pageview.get_toplevel()
+			assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
+			func(window, *arg, **kwarg)
+		else:
+			self._on_ui_init_queue.append((func, arg, kwarg))
+
+	def on_ui_init(self, pageview, *a):
+		# Execute calls that only work once there is a mainwindow available.
+		# Needed because pageview extensions are loaded before the pageview
+		# is added to the window.
+		window = pageview.get_toplevel()
+		assert hasattr(window, 'add_tab'), 'expect mainwindow, got %s' % window
+		for func, arg, kwarg in self._on_ui_init_queue:
+			func(window, *arg, **kwarg)
+		self._on_ui_init_queue = []
+
+	def add_sidepane_widget(self, widget, preferences_key):
+		key = widget.__class__.__name__
+		position = self.plugin.preferences[preferences_key]
+		self._do_on_ui_init(lambda window: window.add_tab(key, widget, position))
+
+		def on_preferences_changed(preferences):
+			position = self.plugin.preferences[preferences_key]
+			self._do_on_ui_init(lambda window: window.remove(widget))
+			self._do_on_ui_init(lambda window: window.add_tab(key, widget, position))
+
+		sid = self.connectto(self.plugin.preferences, 'changed', on_preferences_changed)
+		self._sidepane_widgets[widget] = sid
+		widget.show_all()
+
+	def remove_sidepane_widget(self, widget):
+
+		def remove(window):
+			try:
+				window.remove(widget)
+			except ValueError:
+				pass
+
+		self._do_on_ui_init(remove)
+
+		try:
+			sid = self._sidepane_widgets.pop(widget)
+			self.plugin.preferences.disconnect(sid)
+		except KeyError:
+			pass
+
+	def teardown(self):
+		for widget in list(self._sidepane_widgets):
+			self.remove_sidepane_widget(widget)
+			widget.disconnect_all()
+		self._on_ui_init_queue = []
+
+
 from zim.signals import GSignalEmitterMixin
 
+@extendable(PageViewExtension)
 class PageView(GSignalEmitterMixin, Gtk.VBox):
 	'''Widget to display a single page, consists of a L{TextView} and
 	a L{FindBar}. Also adds menu items and in general integrates
@@ -4950,11 +5045,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@ivar secondary: hint that the PageView is running in a secondairy
 	window (instead of the main window)
 	@ivar undostack: the L{UndoStackManager} object for
-	@ivar image_generator_plugins: dict with plugins mapped by type,
-	this used to find the correct dialog to handle e.g. embedded
-	equations and diagrams. Each plugin in this dict should have at
-	least a method C{edit_object(buffer, iter, image_data)} and a method
-	C{do_populate_popup(menu, buffer, iter, image_data)}.
 	@ivar view: the L{TextView} child object
 	@ivar find_bar: the L{FindBar} child widget
 	@ivar preferences: a L{ConfigDict} with preferences
@@ -4964,6 +5054,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	Emitted when textstyle at the cursor changes
 	@signal: C{activate-link (link, hints)}: emitted when a link is opened,
 	stops emission after the first handler returns C{True}
+	@signal: C{ui-init ()}: trigger for extensions to load uimanager stuff,
+	do not rely on this signal, may be removed
 
 	@todo: document preferences supported by PageView
 	@todo: document extra keybindings implemented in this widget
@@ -4978,16 +5070,16 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'modified-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 		'textstyle-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
 		'page-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+		'ui-init': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	__signals__ = {
 		'activate-link': (GObject.SignalFlags.RUN_LAST, bool, (object, object))
 	}
 
-	def __init__(self, notebook, config, navigation, secondary=False):
+	def __init__(self, notebook, navigation, secondary=False):
 		'''Constructor
 		@param notebook: the L{Notebook} object
-		@param config: L{ConfigManager} object
 		@param navigation: L{NavigationModel} object
 		@param secondary: C{True} if this widget is part of a secondary
 		widget
@@ -4998,7 +5090,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._buffer_signals = ()
 		self.notebook = notebook
 		self.page = None
-		self.config = config
 		self.navigation = navigation
 		self.readonly = True
 		self._readonly_set = False
@@ -5007,12 +5098,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if self.secondary:
 			self._readonly_set = True # HACK
 		self.undostack = None
-		self.image_generator_plugins = {}
 		self._current_toggle_action = None
 		self._showing_template = False
 		self._change_counter = 0
+		self.ui_is_initialized = False
 
-		self.preferences = config.preferences['PageView']
+		self.preferences = ConfigManager.preferences['PageView']
 		self.preferences.define(
 			follow_on_enter=Boolean(True),
 			read_only_cursor=Boolean(False),
@@ -5028,15 +5119,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			file_templates_folder=String('~/Templates'),
 		)
 
-		self.view = TextView(preferences=self.preferences)
-		self.swindow = ScrolledWindow(self.view)
+		self.textview = TextView(preferences=self.preferences)
+		self.swindow = ScrolledWindow(self.textview)
 		self.add(self.swindow)
 
-		self.view.connect_object('link-clicked', PageView.activate_link, self)
-		self.view.connect_object('populate-popup', PageView.do_populate_popup, self)
+		self.textview.connect_object('link-clicked', PageView.activate_link, self)
+		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
 
 		## Create search box
-		self.find_bar = FindBar(textview=self.view)
+		self.find_bar = FindBar(textview=self.textview)
 		self.pack_end(self.find_bar, False, True, 0)
 		self.find_bar.hide()
 
@@ -5073,13 +5164,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.preferences.connect('changed', self.on_preferences_changed)
 		self.on_preferences_changed()
 
-		self.text_style = config.get_config_dict('<profile>/style.conf')
+		self.text_style = ConfigManager.get_config_dict('style.conf')
 		self.text_style.connect('changed', lambda o: self.on_text_style_changed())
 		self.on_text_style_changed()
 
 		def assert_not_modified(page, *a):
 			if page == self.page \
-			and self.view.get_buffer().get_modified():
+			and self.textview.get_buffer().get_modified():
 				raise AssertionError('BUG: page changed while buffer changed as well')
 				# not using assert here because it could be optimized away
 
@@ -5087,7 +5178,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.notebook.connect(s, assert_not_modified)
 
 		# Setup saving
-		if_preferences = config.preferences['GtkInterface']
+		if_preferences = ConfigManager.preferences['GtkInterface']
 		if_preferences.setdefault('autosave_timeout', 15)
 		if_preferences.setdefault('autosave_use_thread', True)
 		logger.debug('Autosave interval: %r - use threads: %r',
@@ -5104,13 +5195,21 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		def on_focus_out_event(*a):
 			self._save_page_handler.try_save_page()
 			return False # don't block the event
-		self.view.connect('focus-out-event', on_focus_out_event)
+		self.textview.connect('focus-out-event', on_focus_out_event)
+
+		PluginManager.insertedobjects.connect(
+			'changed',
+			self.on_insertedobjecttypemap_changed
+		)
+
+	def do_ui_init(self):
+		self.ui_is_initialized = True
 
 	def grab_focus(self):
-		self.view.grab_focus()
+		self.textview.grab_focus()
 
 	def on_preferences_changed(self, *a):
-		self.view.set_cursor_visible(
+		self.textview.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 
 	def on_text_style_changed(self, *a):
@@ -5144,22 +5243,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			tabarray.set_tab(0, Pango.TabAlign.LEFT, self.text_style['TextView']['tabs'])
 				# We just set the size for one tab, apparently this gets
 				# copied automaticlly when a new tab is created by the textbuffer
-			self.view.set_tabs(tabarray)
+			self.textview.set_tabs(tabarray)
 
 		if self.text_style['TextView']['linespacing']:
-			self.view.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
+			self.textview.set_pixels_below_lines(self.text_style['TextView']['linespacing'])
 
 		if self.text_style['TextView']['font']:
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
-			self.view.modify_font(font)
+			self.textview.modify_font(font)
 		else:
-			self.view.modify_font(None)
+			self.textview.modify_font(None)
 
 		if self.text_style['TextView']['justify']:
 			try:
 				const = self.text_style['TextView']['justify']
 				assert hasattr(gtk, const), 'No such constant: Gtk.%s' % const
-				self.view.set_justification(getattr(gtk, const))
+				self.textview.set_justification(getattr(gtk, const))
 			except:
 				logger.exception('Exception while setting justification:')
 
@@ -5200,7 +5299,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		# mainwindow is initialized.
 		def set_actiongroup_sensitive(window, widget):
 			#~ print('!! FOCUS SET:', widget)
-			sensitive = widget is self.view
+			sensitive = widget is self.textview
 			self._set_menuitems_sensitive(sensitive)
 
 		window = self.get_toplevel()
@@ -5242,14 +5341,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.undostack.block()
 			self.undostack = None
 
-		self._prev_buffer = self.view.get_buffer()
+		self._prev_buffer = self.textview.get_buffer()
 		finderstate = self._prev_buffer.finder.get_state()
 
-		for child in self.view.get_children():
-			if isinstance(child, CustomObjectWidget):
-				self.view.remove(child)
-				if hasattr(child, "_zim_objmanager"):
-					del child._zim_objmanager
+		for child in self.textview.get_children():
+			if isinstance(child, InsertedObjectWidget):
+				self.textview.remove(child)
 
 		for id in self._buffer_signals:
 			self._prev_buffer.disconnect(id)
@@ -5262,7 +5359,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.notebook, self.page)
-			self.view.set_buffer(buffer)
+			self.textview.set_buffer(buffer)
 			tree = page.get_parsetree()
 
 			if tree is None:
@@ -5337,7 +5434,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param write_if_not_modified: If C{True} page will be written
 		even if there are no changes in the widget.
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if write_if_not_modified or buffer.get_modified():
 			self._save_page_handler.save_page_now()
 		self._save_page_handler.wait_for_store_page_async()
@@ -5346,7 +5443,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Clear the buffer'''
 		# Called e.g. by "discard changes" maybe due to an exception in
 		# buffer.get_parse_tree() - so just drop everything...
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.clear()
 		buffer.set_modified(False)
 		self._showing_template = False
@@ -5363,7 +5460,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if self._showing_template:
 			return None
 		else:
-			buffer = self.view.get_buffer()
+			buffer = self.textview.get_buffer()
 			if not hasattr(self, '_parsetree') or buffer.get_modified():
 				self._parsetree = buffer.get_parsetree()
 				buffer.set_modified(False)
@@ -5384,12 +5481,18 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param istemplate: C{True} when the tree is a page template
 		instead of the page content
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		assert not buffer.get_modified(), 'BUG: changing parsetree while buffer was changed as well'
 		tree.resolve_images(self.notebook, self.page)
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 		self._showing_template = istemplate
+
+	def on_insertedobjecttypemap_changed(self, *a):
+		self.save_changes()
+		buffer = self.textview.get_buffer()
+		tree = buffer.get_parsetree()
+		self.set_parsetree(tree, self._showing_template)
 
 	def set_readonly(self, readonly):
 		'''Set the widget read-only or not
@@ -5414,8 +5517,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			or self.page is None \
 			or self.notebook.readonly \
 			or self.page.readonly
-		self.view.set_editable(not self.readonly)
-		self.view.set_cursor_visible(
+		self.textview.set_editable(not self.readonly)
+		self.textview.set_cursor_visible(
 			self.preferences['read_only_cursor'] or not self.readonly)
 		self._set_menuitems_sensitive(True) # XXX not sure why this is here
 
@@ -5424,13 +5527,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		sensitivities set due to cursor position, readonly state etc.
 		'''
 		if sensitive:
-			# partly overrule logic in window.toggle_readonly()
+			# partly overrule logic in window.toggle_editable()
 			for action in self.actiongroup.list_actions():
 				action.set_sensitive(
 					action.zim_readonly or not self.readonly)
 
 			# update state for menu items for checkboxes and links
-			buffer = self.view.get_buffer()
+			buffer = self.textview.get_buffer()
 			iter = buffer.get_insert_iter()
 			mark = buffer.get_insert()
 			self.do_mark_set(buffer, iter, mark)
@@ -5448,7 +5551,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		As a special case when the cursor position is C{-1} the cursor
 		is set at the end of the buffer.
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if pos < 0:
 			start, end = buffer.get_bounds()
 			iter = end
@@ -5464,13 +5567,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@returns: the cursor position as an integer offset from the
 		start of the buffer
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		return iter.get_offset()
 
 	def scroll_cursor_on_screen(self):
-		buffer = self.view.get_buffer()
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+		buffer = self.textview.get_buffer()
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
 	def set_scroll_pos(self, pos):
 		pass # FIXME set scroll position
@@ -5487,7 +5590,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@returns: text selection or C{None}
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		bounds = buffer.get_selection_bounds()
 		if bounds:
 			if format:
@@ -5509,42 +5612,19 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@returns: current word or C{None}
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.select_word()
 		return self.get_selection(format)
 
 	def replace_selection(self, text):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if buffer.get_has_selection():
 			start, end = buffer.get_selection_bounds()
 			with buffer.user_action:
 				buffer.delete(start, end)
-				buffer.insert_at_cursor(''.join(output))
+				buffer.insert_at_cursor(''.join(text))
 		else:
 			raise AssertionError
-
-	def register_image_generator_plugin(self, plugin, type):
-		'''Register a plugin for C{self.image_generator_plugins}
-
-		Intended for "image generator" plugins to register themselves
-
-		@param plugin: the plugin object
-		@param type: the object type handled by this plugin, e.g. "equation"
-		'''
-		assert not type in self.image_generator_plugins, \
-			'Already have plugin for image type "%s"' % type
-		self.image_generator_plugins[type] = plugin
-		logger.debug('Registered plugin %s for image type "%s"', plugin, type)
-
-	def unregister_image_generator_plugin(self, plugin):
-		'''Remove a plugin from C{self.image_generator_plugins}
-
-		@param plugin: the plugin object
-		'''
-		for type, obj in list(self.image_generator_plugins.items()):
-			if obj == plugin:
-				self.image_generator_plugins.pop(type)
-				logger.debug('Removed plugin %s for image type "%s"', plugin, type)
 
 	def do_mark_set(self, buffer, iter, mark):
 		# Update menu items relative to cursor position
@@ -5660,7 +5740,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		return True # handled
 
 	def do_populate_popup(self, menu):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if not buffer.get_has_selection():
 			iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 			if iter.get_line_offset() == 1:
@@ -5685,7 +5765,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			#~ for tool in tools:
 				#~ tool.reparent(menu)
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 
 		### Copy As option ###
 		default = self.preferences['copy_format'].lower()
@@ -5698,7 +5778,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			item = Gtk.MenuItem.new_with_mnemonic(label)
 			if buffer.get_has_selection():
 				item.connect('activate',
-					lambda o, f: self.view.do_copy_clipboard(format=f),
+					lambda o, f: self.textview.do_copy_clipboard(format=f),
 					format)
 			else:
 				item.set_sensitive(False)
@@ -5745,12 +5825,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			if image:
 				type = 'image'
 				file = image['src']
-				if 'type' in image \
-				and image['type'] in self.image_generator_plugins:
-					plugin = self.image_generator_plugins[image['type']]
-					plugin.do_populate_popup(menu, buffer, iter, image)
-					menu.show_all()
-					return # plugin should decide about populating
 			else:
 				return # No link or image
 
@@ -5864,7 +5938,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		menu.show_all()
 
 	def _checkbox_do_populate_popup(self, menu):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
 		line = iter.get_line()
 
@@ -5876,14 +5950,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			(CHECKED_BOX, _('Check Checkbox \'V\'')), # T: popup menu menuitem
 			(UNCHECKED_BOX, _('Un-check Checkbox')), # T: popup menu menuitem
 		):
-			item = Gtk.ImageMenuItem(stock_id=bullet_types[bullet])
+			item = Gtk.ImageMenuItem(bullet_types[bullet])
 			item.set_label(label)
 			item.connect('activate', callback(buffer.set_bullet, line, bullet))
 			menu.prepend(item)
 
 		menu.show_all()
 
-	@action(_('_Save'), 'gtk-save', '<Primary>S', readonly=False) # T: Menu item
+	@action(_('_Save'), '<Primary>S', menuhints='edit') # T: Menu item
 	def save_page(self):
 		'''Menu action to save the current page.
 
@@ -5893,72 +5967,72 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''
 		self.save_changes(write_if_not_modified=True) # XXX
 
-	@action(_('_Undo'), 'gtk-undo', '<Primary>Z', readonly=False) # T: Menu item
+	@action(_('_Undo'), '<Primary>Z', menuhints='edit') # T: Menu item
 	def undo(self):
 		'''Menu action to undo a single step'''
 		self.undostack.undo()
 		self.scroll_cursor_on_screen()
 
-	@action(_('_Redo'), 'gtk-redo', '<Primary><shift>Z', alt_accelerator='<Primary>Y', readonly=False) # T: Menu item
+	@action(_('_Redo'), '<Primary><shift>Z', alt_accelerator='<Primary>Y', menuhints='edit') # T: Menu item
 	def redo(self):
 		'''Menu action to redo a single step'''
 		self.undostack.redo()
 		self.scroll_cursor_on_screen()
 
-	@action(_('Cu_t'), 'gtk-cut', '<Primary>X', readonly=False) # T: Menu item
+	@action(_('Cu_t'), '<Primary>X', menuhints='edit') # T: Menu item
 	def cut(self):
 		'''Menu action for cut to clipboard'''
-		self.view.emit('cut-clipboard')
+		self.textview.emit('cut-clipboard')
 
-	@action(_('_Copy'), 'gtk-copy', '<Primary>C', readonly=False) # T: Menu item
+	@action(_('_Copy'), '<Primary>C', menuhints='edit') # T: Menu item
 	def copy(self):
 		'''Menu action for copy to clipboard'''
-		self.view.emit('copy-clipboard')
+		self.textview.emit('copy-clipboard')
 
-	@action(_('_Paste'), 'gtk-paste', '<Primary>V', readonly=False) # T: Menu item
+	@action(_('_Paste'), '<Primary>V', menuhints='edit') # T: Menu item
 	def paste(self):
 		'''Menu action for paste from clipboard'''
-		self.view.emit('paste-clipboard')
+		self.textview.emit('paste-clipboard')
 
-	@action(_('_Delete'), 'gtk-delete', readonly=False) # T: Menu item
+	@action(_('_Delete'), menuhints='edit') # T: Menu item
 	def delete(self):
 		'''Menu action for delete'''
-		self.view.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
+		self.textview.emit('delete-from-cursor', Gtk.DeleteType.CHARS, 1)
 
-	@action(_('Un-check Checkbox'), STOCK_UNCHECKED_BOX, '', readonly=False) # T: Menu item
+	@action(_('Un-check Checkbox'), verb_icon=STOCK_UNCHECKED_BOX, menuhints='edit') # T: Menu item
 	def uncheck_checkbox(self):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(UNCHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'V\''), STOCK_CHECKED_BOX, 'F12', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'V\''), 'F12', verb_icon=STOCK_CHECKED_BOX, menuhints='edit') # T: Menu item
 	def toggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(CHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'X\''), STOCK_XCHECKED_BOX, '<shift>F12', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'X\''), '<shift>F12', verb_icon=STOCK_XCHECKED_BOX, menuhints='edit') # T: Menu item
 	def xtoggle_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(XCHECKED_BOX, recurs)
 
-	@action(_('Toggle Checkbox \'>\''), STOCK_MIGRATED_BOX, '', readonly=False) # T: Menu item
+	@action(_('Toggle Checkbox \'>\''), verb_icon=STOCK_MIGRATED_BOX, menuhints='edit') # T: Menu item
 	def migrate_checkbox(self):
 		'''Menu action to toggle checkbox at the cursor or in current
 		selected text
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		recurs = self.preferences['recursive_checklist']
 		buffer.toggle_checkbox_for_cursor_or_selection(MIGRATED_BOX, recurs)
 
-	@action(_('_Edit Link or Object...'), 'gtk-properties', '<Primary>E', readonly=False) # T: Menu item
+	@action(_('_Edit Link or Object...'), '<Primary>E', menuhints='edit') # T: Menu item
 	def edit_object(self, iter=None):
 		'''Menu action to trigger proper edit dialog for the current
 		object at the cursor
@@ -5968,7 +6042,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@param iter: C{TextIter} for an alternative cursor position
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if iter:
 			buffer.place_cursor(iter)
 
@@ -5977,26 +6051,32 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			return InsertLinkDialog(self, self).run()
 
 		image = buffer.get_image_data(iter)
-		if not image:
+		anchor = buffer.get_objectanchor(iter)
+		if not (image or (anchor and isinstance(anchor, PluginInsertedObjectAnchor))):
 			iter.backward_char() # maybe we clicked right side of an image
 			image = buffer.get_image_data(iter)
+			anchor = buffer.get_objectanchor(iter)
 
 		if image:
-			if 'type' in image and image['type'] in self.image_generator_plugins:
-				plugin = self.image_generator_plugins[image['type']]
-				plugin.edit_object(buffer, iter, image)
+			EditImageDialog(self, buffer, self.notebook, self.page).run()
+		elif anchor and isinstance(anchor, PluginInsertedObjectAnchor):
+			widget = anchor.get_widgets()[0]
+			try:
+				widget.edit_object()
+			except NotImplementedError:
+				return False
 			else:
-				EditImageDialog(self, buffer, self.notebook, self.page).run()
+				return True
 		else:
 			return False
 
-	@action(_('_Remove Link'), readonly=False) # T: Menu item
+	@action(_('_Remove Link'), menuhints='edit') # T: Menu item
 	def remove_link(self, iter=None):
 		'''Menu action to remove link object at the current cursor position
 
 		@param iter: C{TextIter} for an alternative cursor position
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 
 		if not buffer.get_has_selection() \
 		or (iter and not buffer.iter_in_selection(iter)):
@@ -6008,65 +6088,67 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if bounds:
 			buffer.remove_link(*bounds)
 
-	@action(_('_Date and Time...'), accelerator='<Primary>D', readonly=False) # T: Menu item
+	@action(_('_Date and Time...'), accelerator='<Primary>D', menuhints='insert') # T: Menu item
 	def insert_date(self):
 		'''Menu action to insert a date, shows the L{InsertDateDialog}'''
-		InsertDateDialog(self, self.view.get_buffer(), self.notebook, self.page, self.config).run()
+		InsertDateDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
 
-	def insert_object(self, obj):
-		buffer = self.view.get_buffer()
+	def insert_object(self, attrib, data):
+		buffer = self.textview.get_buffer()
 		with buffer.user_action:
-			buffer.insert_object_at_cursor(obj)
+			buffer.insert_object_at_cursor(attrib, data)
 
-	@action(_('Horizontal _Line'), readonly=False) # T: Menu item for Insert menu
+	def insert_object_model(self, otype, model):
+		buffer = self.textview.get_buffer()
+		with buffer.user_action:
+			buffer.insert_object_model_at_cursor(otype, model)
+
+	@action(_('Horizontal _Line'), menuhints='insert') # T: Menu item for Insert menu
 	def insert_line(self):
 		'''
                 This function is called from menu action.
                 Insert a line at the cursor position.
 		'''
-		obj = ObjectManager.get_object('line', None, None)
-
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		with buffer.user_action:
-			buffer.insert_object_at_cursor(obj)
+			buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
 			# Add newline after line separator widget.
 			buffer.insert_at_cursor('\n')
 
-	@action(_('_Image...'), readonly=False) # T: Menu item
+	@action(_('_Image...'), menuhints='insert') # T: Menu item
 	def show_insert_image(self, file=None):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
 		@param file: optional file to suggest in the dialog
 		'''
-		InsertImageDialog(self, self.view.get_buffer(), self.notebook, self.page, file).run()
+		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
 
-	def insert_image(self, file, type=None):
+	def insert_image(self, file):
 		'''Insert a image
 		@param file: the image file to insert. If C{file} does not exist or
 		isn't an image, a "broken image" icon will be shown
-		@param type: image type, used by image generator plugins
 		'''
 		file = adapt_from_newfs(file)
 		assert isinstance(file, File)
 		src = self.notebook.relative_filepath(file, self.page) or file.uri
-		self.view.get_buffer().insert_image_at_cursor(file, src, type=type)
+		self.textview.get_buffer().insert_image_at_cursor(file, src)
 
-	@action(_('Bulle_t List'), readonly=False) # T: Menu item
+	@action(_('Bulle_t List'), menuhints='insert') # T: Menu item
 	def insert_bullet_list(self):
 		'''Menu action insert a bullet item at the cursor'''
 		self._start_bullet(BULLET)
 
-	@action(_('_Numbered List'), readonly=False) # T: Menu item
+	@action(_('_Numbered List'), menuhints='insert') # T: Menu item
 	def insert_numbered_list(self):
 		'''Menu action insert a numbered list item at the cursor'''
 		self._start_bullet(NUMBER_BULLET)
 
-	@action(_('Checkbo_x List'), readonly=False) # T: Menu item
+	@action(_('Checkbo_x List'), menuhints='insert') # T: Menu item
 	def insert_checkbox_list(self):
 		'''Menu action insert an open checkbox at the cursor'''
 		self._start_bullet(UNCHECKED_BOX)
 
 	def _start_bullet(self, bullet_type):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		line = buffer.get_insert_iter().get_line()
 
 		with buffer.user_action:
@@ -6077,29 +6159,29 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			iter.forward_to_line_end()
 			buffer.place_cursor(iter)
 
-	@action(_('Bulle_t List'), readonly=False) # T: Menu item,
+	@action(_('Bulle_t List'), menuhints='edit') # T: Menu item,
 	def apply_format_bullet_list(self):
 		'''Menu action to format selection as bullet list'''
 		self._apply_bullet(BULLET)
 
-	@action(_('_Numbered List'), readonly=False) # T: Menu item,
+	@action(_('_Numbered List'), menuhints='edit') # T: Menu item,
 	def apply_format_numbered_list(self):
 		'''Menu action to format selection as numbered list'''
 		self._apply_bullet(NUMBER_BULLET)
 
-	@action(_('Checkbo_x List'), readonly=False) # T: Menu item,
+	@action(_('Checkbo_x List'), menuhints='edit') # T: Menu item,
 	def apply_format_checkbox_list(self):
 		'''Menu action to format selection as checkbox list'''
 		self._apply_bullet(UNCHECKED_BOX)
 
 	def _apply_bullet(self, bullet_type):
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.foreach_line_in_selection(buffer.set_bullet, bullet_type)
 
-	@action(_('Text From _File...'), readonly=False) # T: Menu item
+	@action(_('Text From _File...'), menuhints='insert') # T: Menu item
 	def insert_text_from_file(self):
 		'''Menu action to show a L{InsertTextFromFileDialog}'''
-		InsertTextFromFileDialog(self, self.view.get_buffer(), self.notebook, self.page).run()
+		InsertTextFromFileDialog(self, self.textview.get_buffer(), self.notebook, self.page).run()
 
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
@@ -6131,7 +6213,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			sep = '\n'
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		with buffer.user_action:
 			if buffer.get_has_selection():
 				start, end = buffer.get_selection_bounds()
@@ -6140,7 +6222,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				buffer.insert_link_at_cursor(link, link)
 				buffer.insert_at_cursor(sep)
 
-	@action(_('_Link...'), 'zim-link', '<Primary>L', tooltip=_('Insert Link'), readonly=False) # T: Menu item
+	@action(_('_Link...'), '<Primary>L', verb_icon='zim-link', menuhints='insert') # T: Menu item
 	def insert_link(self):
 		'''Menu item to show the L{InsertLinkDialog}'''
 		InsertLinkDialog(self, self).run()
@@ -6218,7 +6300,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		#~ open_file(self, file) # FIXME should this be optional ?
 
-	@action(_('File _Templates...'), 'gtk-directory') # T: Menu item in "Insert > New File Attachment" submenu
+	@action(_('File _Templates...')) # T: Menu item in "Insert > New File Attachment" submenu
 	def open_file_templates_folder(self):
 		'''Menu action to open the templates folder'''
 		dir = self.preferences['file_templates_folder']
@@ -6241,10 +6323,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				dir.touch()
 				open_file(self, dir)
 
-	@action(_('_Clear Formatting'), accelerator='<Primary>9', readonly=False) # T: Menu item
+	@action(_('_Clear Formatting'), accelerator='<Primary>9', menuhints='edit') # T: Menu item
 	def clear_formatting(self):
 		'''Menu item to remove formatting from current (auto-)selection'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 		selected = self.autoselect()
 
@@ -6290,12 +6372,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		@param format: the format style name (e.g. "h1", "strong" etc.)
 		'''
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		selected = False
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
 		if format != buffer.get_textstyle():
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
+			if ishead:
+				line = buffer.get_insert_iter().get_line()
+				buffer.set_indent(line, 0)
 			selected = self.autoselect(selectline=ishead)
 
 		buffer.toggle_textstyle(format)
@@ -6320,7 +6405,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		if not self.preferences['autoselect']:
 			return False
 
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		if buffer.get_has_selection():
 			if selectline:
 				start, end = buffer.get_selection_bounds()
@@ -6339,11 +6424,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		@param flags: options for find behavior, see L{TextFinder.find()}
 		'''
 		self.hide_find() # remove previous highlighting etc.
-		buffer = self.view.get_buffer()
+		buffer = self.textview.get_buffer()
 		buffer.finder.find(string, flags)
-		self.view.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
+		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 
-	@action(_('_Find...'), 'gtk-find', '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
+	@action(_('_Find...'), '<Primary>F', alt_accelerator='<Primary>F3') # T: Menu item
 	def show_find(self, string=None, flags=0, highlight=False):
 		'''Show the L{FindBar} widget
 
@@ -6354,7 +6439,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.show()
 		if string:
 			self.find_bar.find(string, flags, highlight)
-			self.view.grab_focus()
+			self.textview.grab_focus()
 		else:
 			self.find_bar.set_from_buffer()
 			self.find_bar.grab_focus()
@@ -6362,7 +6447,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def hide_find(self):
 		'''Hide the L{FindBar} widget'''
 		self.find_bar.hide()
-		self.view.grab_focus()
+		self.textview.grab_focus()
 
 	@action(_('Find Ne_xt'), accelerator='<Primary>G', alt_accelerator='F3') # T: Menu item
 	def find_next(self):
@@ -6376,10 +6461,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.find_bar.show()
 		self.find_bar.find_previous()
 
-	@action(_('_Replace...'), 'gtk-find-and-replace', '<Primary>H', readonly=False) # T: Menu item
+	@action(_('_Replace...'), '<Primary>H', menuhints='edit') # T: Menu item
 	def show_find_and_replace(self):
 		'''Menu action to show the L{FindAndReplaceDialog}'''
-		dialog = FindAndReplaceDialog.unique(self, self, self.view)
+		dialog = FindAndReplaceDialog.unique(self, self, self.textview)
 		dialog.set_from_buffer()
 		dialog.present()
 
@@ -6388,12 +6473,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Menu action to show the L{WordCountDialog}'''
 		WordCountDialog(self).run()
 
-	@action(_('_Zoom In'), 'gtk-zoom-in', '<Primary>plus', alt_accelerator='<Primary>equal') # T: Menu item
+	@action(_('_Zoom In'), '<Primary>plus', alt_accelerator='<Primary>equal') # T: Menu item
 	def zoom_in(self):
 		'''Menu action to increase the font size'''
 		self._zoom_increase_decrease_font_size(+1)
 
-	@action(_('Zoom _Out'), 'gtk-zoom-out', '<Primary>minus') # T: Menu item
+	@action(_('Zoom _Out'), '<Primary>minus') # T: Menu item
 	def zoom_out(self):
 		'''Menu action to decrease the font size'''
 		self._zoom_increase_decrease_font_size(-1)
@@ -6404,8 +6489,8 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			font = Pango.FontDescription(self.text_style['TextView']['font'])
 		else:
 			logger.debug('Switching to custom font implicitly because of zoom action')
-			font = self.view.style.font_desc
-			self.text_style['TextView']['font'] = font.to_string()
+			style = self.textview.get_style_context()
+			font = style.get_property(Gtk.STYLE_PROPERTY_FONT, Gtk.StateFlags.NORMAL)
 
 		font_size = font.get_size()
 		if font_size <= 1 * 1024 and plus_or_minus < 0:
@@ -6413,12 +6498,15 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		else:
 			font_size_new = font_size + plus_or_minus * 1024
 			font.set_size(font_size_new)
-		self.text_style['TextView']['font'] = font.to_string()
-		self.view.modify_font(font)
+		try:
+			self.text_style['TextView']['font'] = font.to_string()
+		except UnicodeDecodeError:
+			logger.exception('FIXME')
+		self.textview.modify_font(font)
 
 		self.text_style.write()
 
-	@action(_('_Normal Size'), 'gtk-zoom-100', '<Primary>0') # T: Menu item to reset zoom
+	@action(_('_Normal Size'), '<Primary>0') # T: Menu item to reset zoom
 	def zoom_reset(self):
 		'''Menu action to reset the font size'''
 		if not self.text_style['TextView']['font']:
@@ -6433,18 +6521,64 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if font.equal(default_font):
 			self.text_style['TextView']['font'] = None
-			self.view.modify_font(None)
+			self.textview.modify_font(None)
 		else:
 			self.text_style['TextView']['font'] = font.to_string()
-			self.view.modify_font(font)
+			self.textview.modify_font(font)
 
 		self.text_style.write()
 
 
-class ObjectAnchor(Gtk.TextChildAnchor):
-	def __init__(self, manager):
-		self.manager = manager
+class InsertedObjectAnchor(Gtk.TextChildAnchor):
+
+	def create_widget(self):
+		raise NotImplementedError
+
+	def dump(self, builder):
+		raise NotImplementedError
+
+
+class LineSeparatorAnchor(InsertedObjectAnchor):
+
+	def create_widget(self):
+		return LineSeparator()
+
+	def dump(self, builder):
+		builder.append(LINE, '-'*20) # FIXME: why do we need text here?
+
+
+class TableAnchor(InsertedObjectAnchor):
+	# HACK - table support is native in formats, but widget is still in plugin
+	#        so we need to "glue" the table tokens to the plugin widget
+
+	def __init__(self, objecttype, objectmodel):
 		GObject.GObject.__init__(self)
+		self.objecttype = objecttype
+		self.objectmodel = objectmodel
+
+	def create_widget(self):
+		return self.objecttype.create_widget(self.objectmodel)
+
+	def dump(self, builder):
+		self.objecttype.dump(builder, self.objectmodel)
+
+
+class PluginInsertedObjectAnchor(InsertedObjectAnchor):
+
+	def __init__(self, objecttype, objectmodel):
+		GObject.GObject.__init__(self)
+		self.objecttype = objecttype
+		self.objectmodel = objectmodel
+
+	def create_widget(self):
+		return self.objecttype.create_widget(self.objectmodel)
+
+	def dump(self, builder):
+		attrib, data = self.objecttype.data_from_model(self.objectmodel)
+		builder.start(OBJECT, dict(attrib)) # dict() because ElementTree doesn't like ConfigDict
+		if data is not None:
+			builder.data(data)
+		builder.end(OBJECT)
 
 
 class InsertDateDialog(Dialog):
@@ -6453,7 +6587,7 @@ class InsertDateDialog(Dialog):
 	FORMAT_COL = 0 # format string
 	DATE_COL = 1 # strfime rendering of the format
 
-	def __init__(self, parent, buffer, notebook, page, config):
+	def __init__(self, parent, buffer, notebook, page):
 		Dialog.__init__(
 			self,
 			parent,
@@ -6463,7 +6597,6 @@ class InsertDateDialog(Dialog):
 		self.buffer = buffer
 		self.notebook = notebook
 		self.page = page
-		self.config = config
 		self.date = datetime.now()
 
 		self.uistate.setdefault('lastusedformat', '')
@@ -6488,7 +6621,7 @@ class InsertDateDialog(Dialog):
 			lambda *a: self.response(Gtk.ResponseType.OK))
 
 		## Add Calendar widget
-		from zim.plugins.calendar import Calendar # FIXME put this in zim.gui.widgets
+		from zim.plugins.journal import Calendar # FIXME put this in zim.gui.widgets
 
 		self.calendar_expander = Gtk.Expander.new_with_mnemonic('<b>' + _("_Calendar") + '</b>')
 			# T: expander label in "insert date" dialog
@@ -6522,7 +6655,7 @@ class InsertDateDialog(Dialog):
 		lastused = None
 		model = self.view.get_model()
 		model.clear()
-		file = self.config.get_config_file('<profile>/dates.list')
+		file = ConfigManager.get_config_file('dates.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -6574,7 +6707,7 @@ class InsertDateDialog(Dialog):
 		self.uistate['calendar_expanded'] = self.calendar_expander.get_expanded()
 
 	def on_edit(self, button):
-		file = self.config.get_config_file('<profile>/dates.list') # XXX
+		file = ConfigManager.get_config_file('dates.list') # XXX
 		if edit_config_file(self, file):
 			self.load_file()
 
@@ -6847,13 +6980,16 @@ class InsertLinkDialog(Dialog):
 
 		Dialog.__init__(self, parent, title, button=_('_Link'))  # T: Dialog button
 
-		self.add_form([
-			('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
-			('text', 'string', _('Text')) # T: Input in 'insert link' dialog
-		], {
-			'href': href,
-			'text': text,
-		})
+		self.add_form(
+			[
+				('href', 'link', _('Link to'), pageview.page), # T: Input in 'insert link' dialog
+				('text', 'string', _('Text')) # T: Input in 'insert link' dialog
+			], {
+				'href': href,
+				'text': text,
+			},
+			notebook=pageview.notebook
+		)
 
 		# Hook text entry to copy text from link when apropriate
 		self.form.widgets['href'].connect('changed', self.on_href_changed)
@@ -6867,7 +7003,7 @@ class InsertLinkDialog(Dialog):
 		# Get link and text from the text buffer
 		href, text = '', ''
 
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		if buffer.get_has_selection():
 			buffer.strip_selection()
 			link = buffer.get_has_link_selection()
@@ -6922,12 +7058,12 @@ class InsertLinkDialog(Dialog):
 			# Try making the path relative
 			file = self.form.widgets['href'].get_file()
 			page = self.pageview.page
-			notebook = self.notebook
+			notebook = self.pageview.notebook
 			href = notebook.relative_filepath(file, page) or file.uri
 
 		text = self.form['text'] or href
 
-		buffer = self.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 		with buffer.user_action:
 			if self._selection_bounds:
 				start, end = list(map(
@@ -7003,6 +7139,8 @@ class FindWidget(object):
 		if bounds:
 			start, end = bounds
 			string = start.get_slice(end)
+		if flags & FIND_REGEX:
+			string = re.escape(string)
 		self.find(string, flags, highlight)
 
 	def on_find_entry_changed(self):
@@ -7097,7 +7235,7 @@ class FindBar(FindWidget, Gtk.HBox):
 		self.textview.grab_focus()
 
 	def do_key_press_event(self, event):
-		ok, keyval = event.get_keyval()
+		keyval = strip_boolean_result(event.get_keyval())
 		if keyval == KEYVAL_ESC:
 			self.hide()
 			return True
@@ -7211,7 +7349,7 @@ class WordCountDialog(Dialog):
 
 			return lines, words, chars, non_space_chars
 
-		buffer = pageview.view.get_buffer()
+		buffer = pageview.textview.get_buffer()
 		buffercount = count(buffer, buffer.get_bounds())
 		insert = buffer.get_iter_at_mark(buffer.get_insert())
 		start = buffer.get_iter_at_line(insert.get_line())

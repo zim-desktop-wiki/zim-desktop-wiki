@@ -8,6 +8,8 @@ from gi.repository import Pango
 import logging
 import re
 
+from zim.plugins import find_extension
+
 import zim.datetimetz as datetime
 from zim.utils import natural_sorted
 
@@ -18,9 +20,9 @@ from zim.gui.widgets import \
 	encode_markup_text, decode_markup_text
 from zim.gui.clipboard import Clipboard
 from zim.signals import DelayedCallback, SIGNAL_AFTER
+from zim.plugins import DialogExtensionBase, extendable
 
 logger = logging.getLogger('zim.plugins.tasklist')
-
 
 from .indexer import _MAX_DUE_DATE, _NO_TAGS, _date_re, _tag_re, _parse_task_labels, _task_labels_re
 
@@ -60,7 +62,7 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 	title = _('Tasks') # T: tab label for side pane
 
-	def __init__(self, tasksview, opener, preferences, uistate):
+	def __init__(self, tasksview, opener, properties, uistate):
 		GObject.GObject.__init__(self)
 		self.uistate = uistate
 		self.uistate.setdefault('only_show_act', False)
@@ -68,16 +70,18 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 
 		self.task_list = TaskListTreeView(
 			tasksview, opener,
-			_parse_task_labels(preferences['labels']),
-			nonactionable_tags=_parse_task_labels(preferences['nonactionable_tags']),
+			_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
 			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=preferences['tag_by_page'],
-			use_workweek=preferences['use_workweek'],
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
 			compact=True,
 			flatlist=self.uistate['show_flatlist'],
 		)
 		self.task_list.connect('populate-popup', self.on_populate_popup)
 		self.task_list.set_headers_visible(True)
+
+		self.connectto(properties, 'changed', self.on_properties_changed)
 
 		self.filter_entry = InputEntry(placeholder_text=_('Filter')) # T: label for filtering/searching tasks
 		self.filter_entry.set_icon_to_clear()
@@ -88,15 +92,28 @@ class TaskListWidget(Gtk.VBox, TaskListWidgetMixin, WindowSidePaneWidget):
 		self.pack_start(ScrolledWindow(self.task_list), True, True, 0)
 		self.pack_end(self.filter_entry, False, True, 0)
 
+	def on_properties_changed(self, properties):
+		self.task_list.update_properties(
+			task_labels=_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
+		)
 
+
+class TaskListDialogExtension(DialogExtensionBase):
+	pass
+
+@extendable(TaskListDialogExtension)
 class TaskListDialog(TaskListWidgetMixin, Dialog):
 
-	def __init__(self, window, tasksview, preferences):
-		Dialog.__init__(self, window, _('Task List'), # T: dialog title
+	def __init__(self, parent, tasksview, properties):
+		Dialog.__init__(self, parent, _('Task List'), # T: dialog title
 			buttons=Gtk.ButtonsType.CLOSE, help=':Plugins:Task List',
 			defaultwindowsize=(550, 400))
-		self.preferences = preferences
+		self.properties = properties
 		self.tasksview = tasksview
+		self.notebook = parent.notebook
 
 		hbox = Gtk.HBox(spacing=5)
 		self.vbox.pack_start(hbox, False, True, 0)
@@ -111,16 +128,14 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.uistate.setdefault('sort_column', 0)
 		self.uistate.setdefault('sort_order', int(Gtk.SortType.DESCENDING))
 
-		opener = window.navigation
-		task_labels = _parse_task_labels(preferences['labels'])
-		nonactionable_tags = _parse_task_labels(preferences['nonactionable_tags'])
+		opener = parent.navigation
 		self.task_list = TaskListTreeView(
 			self.tasksview, opener,
-			task_labels,
-			nonactionable_tags=nonactionable_tags,
+			_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
 			filter_actionable=self.uistate['only_show_act'],
-			tag_by_page=preferences['tag_by_page'],
-			use_workweek=preferences['use_workweek'],
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
 			flatlist=self.uistate['show_flatlist'],
 			sort_column=self.uistate['sort_column'],
 			sort_order=self.uistate['sort_order']
@@ -130,8 +145,10 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 		self.hpane.add2(ScrolledWindow(self.task_list))
 
 		# Tag list
-		self.tag_list = TagListTreeView(self.task_list, task_labels)
+		self.tag_list = TagListTreeView(self.task_list)
 		self.hpane.add1(ScrolledWindow(self.tag_list))
+
+		self.connectto(properties, 'changed', self.on_properties_changed)
 
 		# Filter input
 		hbox.pack_start(Gtk.Label(_('Filter') + ': '), False, True, 0) # T: Input label
@@ -179,15 +196,18 @@ class TaskListDialog(TaskListWidgetMixin, Dialog):
 			# make it less blocking - should be async preferably
 			# now it is at least on idle
 
-		### XXX HACK to get dependency to connect to
-		###   -- no access to plugin, so can;t use get_extension()
-		##    -- duplicat of this snippet in MainWindowExtension
-		for e in window.notebook.__zim_extension_objects__:
-			if hasattr(e, 'indexer') and e.indexer.__class__.__name__ == 'TasksIndexer':
-				self.connectto(e, 'tasklist-changed', callback)
-				break
-		else:
-			raise AssertionError('Could not find tasklist notebook extension')
+		from . import TaskListNotebookExtension
+		nb_ext = find_extension(self.notebook, TaskListNotebookExtension)
+		self.connectto(nb_ext, 'tasklist-changed', callback)
+
+	def on_properties_changed(self, properties):
+		self.task_list.update_properties(
+			task_labels=_parse_task_labels(properties['labels']),
+			nonactionable_tags=_parse_task_labels(properties['nonactionable_tags']),
+			tag_by_page=properties['tag_by_page'],
+			use_workweek=properties['use_workweek'],
+		)
+		self.tag_list.refresh(self.task_list)
 
 	def do_response(self, response):
 		self.uistate['hpane_pos'] = self.hpane.get_position()
@@ -216,12 +236,11 @@ class TagListTreeView(SingleClickTreeView):
 	_type_tag = 2
 	_type_untagged = 3
 
-	def __init__(self, task_list, task_labels):
+	def __init__(self, task_list):
 		model = Gtk.ListStore(str, int, int, int) # tag name, number of tasks, type, weight
 		SingleClickTreeView.__init__(self, model)
 		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 		self.task_list = task_list
-		self.task_labels = task_labels
 
 		column = Gtk.TreeViewColumn(_('Tags'))
 			# T: Column header for tag list in Task List dialog
@@ -286,7 +305,7 @@ class TagListTreeView(SingleClickTreeView):
 		model.append((_('All Tasks'), n_all, self._type_label, Pango.Weight.BOLD)) # T: "tag" for showing all tasks
 
 		used_labels = self.task_list.get_labels()
-		for label in self.task_labels: # explicitly keep sorting from preferences
+		for label in self.task_list.task_labels: # explicitly keep sorting from properties
 			if label in used_labels:
 				model.append((label, used_labels[label], self._type_label, Pango.Weight.BOLD))
 
@@ -478,6 +497,26 @@ class TaskListTreeView(BrowserTreeView):
 		# HACK because we can not register ourselves :S
 		self.connect('row_activated', self.__class__.do_row_activated)
 		self.connect('focus-in-event', self.__class__.do_focus_in_event)
+
+	def update_properties(self,
+		task_labels=None,
+		nonactionable_tags=None,
+		tag_by_page=None,
+		use_workweek=None,
+	):
+		if task_labels is not None:
+			self.task_labels = task_labels
+
+		if nonactionable_tags is not None:
+			self.nonactionable_tags = tuple(t.strip('@').lower() for t in nonactionable_tags)
+
+		if tag_by_page is not None:
+			self.tag_by_page = tag_by_page
+
+		if use_workweek is not None:
+			print("TODO udate_use_workweek rendering")
+
+		self.refresh()
 
 	def refresh(self):
 		'''Refresh the model based on index data'''
@@ -724,7 +763,7 @@ class TaskListTreeView(BrowserTreeView):
 		return row['description']
 
 	def do_initialize_popup(self, menu):
-		item = Gtk.ImageMenuItem('gtk-copy')
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
 		item.connect('activate', self.copy_to_clipboard)
 		menu.append(item)
 		self.populate_popup_expand_collapse(menu)

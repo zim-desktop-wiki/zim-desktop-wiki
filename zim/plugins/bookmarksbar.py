@@ -13,11 +13,13 @@ from gi.repository import Gtk
 from gi.repository import Pango
 
 from zim.actions import toggle_action, action
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import TOP, TOP_PANE
 from zim.signals import ConnectorMixin, SignalHandler
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.clipboard import Clipboard
+
 from zim.plugins.pathbar import ScrolledHBox
 
 import logging
@@ -44,52 +46,10 @@ class BookmarksBarPlugin(PluginClass):
 		('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False), # T: preferences option
 	)
 
-@extends('MainWindow')
-class BookmarksBarMainWindowExtension(WindowExtension):
-
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-	<menu action='view_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='toggle_show_bookmarks'/>
-		</placeholder>
-	</menu>
-	<menu action='tools_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='add_bookmark'/>
-		</placeholder>
-	</menu>
-    <menu action='go_menu'>
-		<placeholder name='plugin_items'>
-			<menu action='go_bookmarks_menu'>
-                <menuitem action='bookmark_1'/>
-                <menuitem action='bookmark_2'/>
-                <menuitem action='bookmark_3'/>
-                <menuitem action='bookmark_4'/>
-                <menuitem action='bookmark_5'/>
-                <menuitem action='bookmark_6'/>
-                <menuitem action='bookmark_7'/>
-                <menuitem action='bookmark_8'/>
-                <menuitem action='bookmark_9'/>
-			</menu>
-        </placeholder>
-    </menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='toggle_show_bookmarks'/>
-		</placeholder>
-	</toolbar>
-	</ui>
-	'''
-
-	uimanager_menu_labels = {
-		'go_bookmarks_menu': _('Book_marks'), # T: Menu title
-	}
+class BookmarksBarMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 		self.widget = BookmarkBar(window.notebook, window.navigation, self.uistate,
 					  self.window.pageview.get_page)
 		self.widget.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
@@ -127,7 +87,7 @@ class BookmarksBarMainWindowExtension(WindowExtension):
 
 	def show_widget(self):
 		'''Show Bar.'''
-		self.window.add_widget(self.widget, (TOP_PANE, TOP))
+		self.window.add_center_bar(self.widget)
 
 	def on_populate_popup(self, treeview, menu):
 		'''Add 'Add Bookmark' option to the Index popup menu.'''
@@ -142,39 +102,39 @@ class BookmarksBarMainWindowExtension(WindowExtension):
 			menu.show_all()
 
 
-	@action(_('_Run bookmark'), accelerator='<alt>1')
+	@action('', accelerator='<alt>1', menuhints='accelonly')
 	def bookmark_1(self):
 		self._open_bookmark(1)
 
-	@action(_('_Run bookmark'), accelerator='<alt>2')
+	@action('', accelerator='<alt>2', menuhints='accelonly')
 	def bookmark_2(self):
 		self._open_bookmark(2)
 
-	@action(_('_Run bookmark'), accelerator='<alt>3')
+	@action('', accelerator='<alt>3', menuhints='accelonly')
 	def bookmark_3(self):
 		self._open_bookmark(3)
 
-	@action(_('_Run bookmark'), accelerator='<alt>4')
+	@action('', accelerator='<alt>4', menuhints='accelonly')
 	def bookmark_4(self):
 		self._open_bookmark(4)
 
-	@action(_('_Run bookmark'), accelerator='<alt>5')
+	@action('', accelerator='<alt>5', menuhints='accelonly')
 	def bookmark_5(self):
 		self._open_bookmark(5)
 
-	@action(_('_Run bookmark'), accelerator='<alt>6')
+	@action('', accelerator='<alt>6', menuhints='accelonly')
 	def bookmark_6(self):
 		self._open_bookmark(6)
 
-	@action(_('_Run bookmark'), accelerator='<alt>7')
+	@action('', accelerator='<alt>7', menuhints='accelonly')
 	def bookmark_7(self):
 		self._open_bookmark(7)
 
-	@action(_('_Run bookmark'), accelerator='<alt>8')
+	@action('', accelerator='<alt>8', menuhints='accelonly')
 	def bookmark_8(self):
 		self._open_bookmark(8)
 
-	@action(_('_Run bookmark'), accelerator='<alt>9')
+	@action('', accelerator='<alt>9', menuhints='accelonly')
 	def bookmark_9(self):
 		self._open_bookmark(9)
 
@@ -185,8 +145,7 @@ class BookmarksBarMainWindowExtension(WindowExtension):
 		except IndexError:
 			pass
 
-	@toggle_action(_('Bookmarks'), stock='zim-add-bookmark',
-				   tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY) # T: menu item bookmark plugin
+	@toggle_action(_('Bookmarks'), accelerator=BM_TOGGLE_BAR_KEY, menuhints='view') # T: menu item bookmark plugin
 	def toggle_show_bookmarks(self, active):
 		'''
 		Show/hide the bar with bookmarks.
@@ -197,7 +156,7 @@ class BookmarksBarMainWindowExtension(WindowExtension):
 			self.hide_widget()
 		self.uistate['show_bar'] = active
 
-	@action(_('Add Bookmark'), accelerator = BM_ADD_BOOKMARK_KEY) # T: menu item bookmark plugin
+	@action(_('Add Bookmark'), accelerator=BM_ADD_BOOKMARK_KEY, menuhints='page') # T: menu item bookmark plugin
 	def add_bookmark(self):
 		'''
 		Function to add new bookmarks to the bar.
@@ -221,14 +180,14 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 		# Create button to add new bookmarks.
 		self.plus_button = IconsButton(Gtk.STOCK_ADD, Gtk.STOCK_REMOVE, relief = False)
-		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings'))
+		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings')) # T: button label
 		self.plus_button.connect('clicked', lambda o: self.add_new_page())
 		self.plus_button.connect('button-release-event', self.do_plus_button_popup_menu)
 		self.pack_start(self.plus_button, False, False, 0)
 
 		# Create widget for bookmarks.
 		self.scrolledbox = ScrolledHBox()
-		self.pack_start(self.scrolledbox, True, False, 0)
+		self.pack_start(self.scrolledbox, True, True, 0)
 
 		# Toggle between full/short page names.
 		self.uistate.setdefault('show_full_page_name', False)
@@ -427,7 +386,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 		path = button.zim_path
 
-		_button_width = button.size_request()[0]
+		_button_width = button.size_request().width
 		direction = 'left' if (int(event.x) <= _button_width / 2) else 'right'
 
 		def set_save_bookmark(path):

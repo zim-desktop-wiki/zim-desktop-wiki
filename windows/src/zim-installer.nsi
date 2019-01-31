@@ -94,7 +94,7 @@ Section ".zim file association" SecAssociate
 
 SectionEnd
 
-Section "Create egistry keys and uninstaller" SecUninstall
+Section "Create registry keys and uninstaller" SecUninstall
 
 	WriteRegStr HKLM "Software\${APPNAME}" "" "$INSTDIR"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPNAME}"

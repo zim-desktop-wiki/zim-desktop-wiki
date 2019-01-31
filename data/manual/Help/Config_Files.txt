@@ -86,7 +86,7 @@ style = italic
 
 Known properties for TextView:
 * **indent**: //integer//	- indenting step size in pixels
-* **tabs**: //integer//	- tab size in pizels
+* **tabs**: //integer//	- tab size in pixels
 * **linespacing**: //integer//	- line spacing in pixels
 * **justify**: ''JUSTIFY_LEFT'', ''JUSTIFY_FILL'', ...
 * **font**: //string//
@@ -124,50 +124,27 @@ Known properties for Tags:
 * **linespacing**: //integer//
 * **rise**: //integer// (offset from line center, intended for "sup" and "sub")
 
-==== GtkRC file ====
-Gtk+ has it's own config file that allows you to customize how things look. This is the gtkrc file and it is typically saved as ''~/.gtkrc-2.0'' in the home directory. Some widgets have a name so you can set specific options for those widgets. Widgets that have a name in zim are:
+==== Gtk configuration ====
 
-* The textview showing the page: zim-pageview
-* The treeview showing the page index: zim-pageindex
+To change the look of the application beyond what can be done with the ''style.conf'' file you need to modify the Gtk theming. With Gtk3 this can be done using the CSS language similar to how e.g. webpages are styled.
 
-You can for example set the font used in the index by adding this to your gtkrc file:
+The file location of this configuration is: ''$XDG_CONFIG_HOME/gtk-3.0/gtk.css'' . You need to re-start zim to see it take effect. For examples of common things, like changing font or color please use you search engine of choice. The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkCssProvider.html
 
-'''
-style "zim-pageindex-style"
-{
-	font_name = "Sans 8"
-}
-widget "*.zim-pageindex" style "zim-pageindex-style"
-'''
+In addition there are some settings that are not in CSS but can be configured via  ''$XDG_CONFIG_HOME/gtk-3.0/settings.ini'' . The developer documentation is here: https://developer.gnome.org/gtk3/stable/GtkSettings.html
 
-or this example to make the treeview a bit more compact:
+There are some widgets in zim that have a name set, so they can be addressed specifically from the CSS style using an id selector ("''#name''").
 
-'''
-style "gtkcompact"
-{
-	GtkTreeView::vertical-separator=0
-	GtkTreeView::horizontal-separator=0
-	GtkTreeView::expander-size=6
-	GtkTreeView::fixed-height-mode=TRUE
-	GtkWidget::focus_padding=0
-}
-class "GtkWidget" style "gtkcompact"
-'''
+Specific ones are:
 
-To change the base colors of the pageview widget use something like:
+* zim-sidepane: for any side pane of the application window
+* zim-pageview: for the textview showing the page
+* zim-inserted-object: for objects that are inserted in the text; default is to render a small border line
+* zim-inserted-object-head: for the top bar of such an object; default is to render a small border line at the bottom
+* zim-statusbar-button: for styling buttons that are placed in the statusbar
 
-'''
-style "mycolors"
-{
-	base[NORMAL]: "black"
-	base[SELECTED]: "#6699cc"
-	text[NORMAL]: "#c0c0c0"
-}
-widget "*.zim-pageview" style "mycolors"
-'''
+More names are documented in the manual page of specific plugins.
 
-
-Check the internet for more examples.
+To identify these in the code, search for use of ''widget_set_css(...)'' and ''widget.set_name(...)''. The name used will be accessible from the CSS config as an "id"
 
 
 ===== Notebook config file =====
@@ -179,4 +156,3 @@ One hidden property is "''end_of_line''" which determines the end-of-line conven
 A second hidden option is "''disable_trash''" which defaults to ''False''. If enabled this will cause zim to avoid using the system trash for this notebook, see the section about deleting in [[Pages]].
 
 A third hidden option is "''shared" which defaults to True'' (however will be ''False'' for older notebooks). If ''True'', zim stores the notebook cache in the home folder (XDG_CACHE_HOME). Usually this is what you want, however in particular cases, e.g. when the notebook resides in an encrypted folder, you may want to set this to ''False'' in order to make sure the cache is actually stored in the notebook folder (using a ".zim" hidden folder).
-

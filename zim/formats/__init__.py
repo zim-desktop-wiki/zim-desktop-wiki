@@ -76,7 +76,7 @@ from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
 from zim.config import data_file, ConfigDict
-from zim.objectmanager import ObjectManager
+from zim.plugins import PluginManager
 
 import zim.plugins
 from functools import reduce
@@ -144,7 +144,6 @@ TABLEROW = 'trow'
 TABLEDATA = 'td'
 
 LINE = 'line'
-LINE_TEXT = '-' * 20
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
@@ -687,29 +686,6 @@ class ParseTree(object):
 				prev.tail += text
 			else:
 				prev.tail = text
-
-	def get_objects(self, type=None):
-		'''Generator that yields all custom objects in the tree,
-		or all objects of a certain type.
-		@param type: object type to return or C{None} to get all
-		@returns: yields objects (as provided by L{ObjectManager})
-		'''
-		for elt in self._etree.getiterator(OBJECT):
-			if type and elt.attrib.get('type') != type:
-				pass
-			else:
-				obj = self._get_object(elt)
-				if obj is not None:
-					yield obj
-
-	def _get_object(self, elt):
-		## TODO optimize using self._object_cache or new API for
-		## passing on objects in the tree
-		type = elt.attrib.get('type')
-		if elt.tag == OBJECT and type:
-			return ObjectManager.get_object(type, elt.attrib, elt.text)
-		else:
-			return None
 
 
 class VisitorStop(Exception):
@@ -1294,21 +1270,29 @@ class DumperClass(Visitor):
 		lines = ''.join(strings).splitlines(1)
 		return [prefix + l for l in lines]
 
-	def dump_object(self, tag, attrib, strings=None):
-		'''Dumps object using proper ObjectManager'''
+	def dump_object(self, tag, attrib, strings=[]):
+		'''Dumps objects defined by L{InsertedObjectType}'''
 		format = str(self.__class__.__module__).split('.')[-1]
-		if 'type' in attrib:
-			obj = ObjectManager.get_object(attrib['type'], attrib, ''.join(strings))
-			output = obj.dump(format, self, self.linker)
-			if isinstance(output, str):
-				return [output]
-			elif output is not None:
+		try:
+			obj = PluginManager.insertedobjects[attrib['type']]
+		except KeyError:
+			pass
+		else:
+			try:
+				output = obj.format(format, self, attrib, ''.join(strings))
+			except ValueError:
+				pass
+			else:
+				assert isinstance(output, (list, tuple)), "Invalid output: %r" % output
 				return output
 
-		return self.dump_object_fallback(tag, attrib, strings)
-
-		# TODO put content in attrib, use text for caption (with full recursion)
-		# See img
+		if attrib['type'].startswith('image+'):
+			# Fallback for backward compatibility of image generators < zim 0.70
+			attrib = attrib.copy()
+			attrib['type'] = attrib['type'][6:]
+			return self.dump_img(IMAGE, attrib, None)
+		else:
+			return self.dump_object_fallback(tag, attrib, strings)
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		'''Method to serialize objects that do not have their own

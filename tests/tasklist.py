@@ -124,23 +124,24 @@ Edge case with wrongly nested list
 
 '''
 
+from zim.plugins.tasklist.indexer import TaskParser
+from zim.parsing import parse_date
+
+NO_DATE = '9999'
+
+def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
+	# Generate a task tuple
+	# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
+	if tags:
+		tags = set(str(tags).split(','))
+	else:
+		tags = set()
+	return [open, prio, start, due, tags, str(desc)]
+
+
 class TestTaskParser(tests.TestCase):
 
 	def testAllCheckboxes(self):
-		from zim.plugins.tasklist.indexer import TaskParser
-
-		from zim.parsing import parse_date
-		NO_DATE = '9999'
-
-		def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
-			# Generate a task tuple
-			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
-			if tags:
-				tags = set(str(tags).split(','))
-			else:
-				tags = set()
-			return [open, prio, start, due, tags, str(desc)]
-
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
 		wanted = [
@@ -230,20 +231,6 @@ class TestTaskParser(tests.TestCase):
 		self.assertEqual(tasks, wanted)
 
 	def testLabelledCheckboxes(self):
-		from zim.plugins.tasklist.indexer import TaskParser
-
-		from zim.parsing import parse_date
-		NO_DATE = '9999'
-
-		def t(desc, open=True, start=0, due=NO_DATE, prio=0, tags=''):
-			# Generate a task tuple
-			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc
-			if tags:
-				tags = set(str(tags).split(','))
-			else:
-				tags = set()
-			return [open, prio, start, due, tags, str(desc)]
-
 		mydate = '%04i-%02i-%02i' % parse_date('11/12')
 
 		wanted = [
@@ -290,16 +277,36 @@ class TestTaskParser(tests.TestCase):
 		#~ import pprint; pprint.pprint(tasks)
 		self.assertEqual(tasks, wanted)
 
+	def testDate(self):
+		text = '''\
+[ ] Task <2018-12
+[ ] Task >2018-12
+'''
+		wanted = [
+			(t('Task <2018-12', due='2018-12-31'), []),
+			(t('Task >2018-12', start='2018-12-01'), [])
+		]
+
+		tree = WikiParser().parse(text)
+		tb = TokenBuilder()
+		tree.visit(tb)
+		tokens = tb.tokens
+		testTokenStream(tokens)
+
+		parser = TaskParser()
+		tasks = parser.parse(tokens)
+
+		#import pprint; pprint.pprint(tasks)
+		self.assertEqual(tasks, wanted)
+
+
 
 class TestTaskList(tests.TestCase):
 
 	def testIndexing(self):
 		'''Check indexing of tasklist plugin'''
-		klass = PluginManager.get_plugin_class('tasklist')
-		plugin = klass()
-
+		plugin = PluginManager.load_plugin('tasklist')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		plugin.extend(notebook)
 
 		# Test indexing based on index signals
 		notebook.index.check_and_update()
@@ -315,11 +322,9 @@ class TestTaskList(tests.TestCase):
 				self.assertTrue(not path is None)
 
 	def testTaskListTreeView(self):
-		klass = PluginManager.get_plugin_class('tasklist')
-		plugin = klass()
+		plugin = PluginManager.load_plugin('tasklist')
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		plugin.extend(notebook)
 		notebook.index.check_and_update()
 
 		from zim.plugins.tasklist.gui import TaskListTreeView
@@ -335,7 +340,7 @@ class TestTaskList(tests.TestCase):
 
 		# Copy tasklist -> csv
 		from zim.gui.clipboard import Clipboard
-		tests.gtk_activate_menu_item(menu, 'gtk-copy')
+		tests.gtk_activate_menu_item(menu, _('_Copy'))
 		text = Clipboard.get_text()
 		lines = text.splitlines()
 		self.assertTrue(len(lines) > 10)

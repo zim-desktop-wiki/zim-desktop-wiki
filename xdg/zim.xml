@@ -20,9 +20,4 @@
 		-->
 		<comment>Zim wiki page</comment>
 	</mime-type>
-	<mime-type type="application/x-gjots">
-		<sub-class-of type="text/plain"/>
-		<glob pattern="*.gjots"/>
-		<comment>Gjots notebook</comment>
-	</mime-type>
 </mime-info>

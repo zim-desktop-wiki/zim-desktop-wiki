@@ -205,10 +205,11 @@ class Dumper(DumperClass):
 		else:
 			return ['<img src="%s"%s>' % (src, opt)]
 
-	def dump_object(self, *arg, **kwarg):
-		strings = DumperClass.dump_object(self, *arg, **kwarg)
-		strings.insert(0, '<div class="zim-object">\n')
-		strings.append('</div>\n')
+	def dump_object(self, tag, attrib, strings=[]):
+		strings = DumperClass.dump_object(self, tag, attrib, strings)
+		if not attrib['type'].startswith('image+'):
+			strings.insert(0, '<div class="zim-object">\n')
+			strings.append('</div>\n')
 		return strings
 
 	def dump_object_fallback(self, tag, attrib, strings=None):

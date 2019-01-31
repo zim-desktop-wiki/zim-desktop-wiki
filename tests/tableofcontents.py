@@ -7,6 +7,7 @@ import tests
 
 from tests.mainwindow import setUpMainWindow
 
+from zim.plugins import PluginManager
 from zim.plugins.tableofcontents import *
 from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 
@@ -14,19 +15,19 @@ from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 @tests.slowTest
 class TestTableOfContents(tests.TestCase):
 
-	def testMainWindowExtensions(self):
-		plugin = ToCPlugin()
+	def testPageViewExtensions(self):
+		plugin = PluginManager.load_plugin('tableofcontents')
 
 		notebook = self.setUpNotebook()
 		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['floating'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], ToCMainWindowExtensionFloating)
-		plugin.extend(mainwindow)
 
+		## floating
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], ToCMainWindowExtensionFloating)
+		self.assertIsInstance(ext[0], ToCPageViewExtension)
+		self.assertIsInstance(ext[0].tocwidget, FloatingToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -34,14 +35,9 @@ class TestTableOfContents(tests.TestCase):
 		plugin.preferences['pane'] = RIGHT_PANE
 		plugin.preferences['pane'] = LEFT_PANE
 
-
+		### embedded
 		plugin.preferences['floating'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], ToCMainWindowExtensionEmbedded)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], ToCMainWindowExtensionEmbedded)
+		self.assertIsInstance(ext[0].tocwidget, SidePaneToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -135,7 +131,7 @@ sdfsdf
 			widget.treeview.row_activated(path, column)
 				# TODO assert something here
 
-			widget.select_section(pageview.view.get_buffer(), path)
+			widget.select_section(pageview.textview.get_buffer(), path)
 
 			menu = Gtk.Menu()
 			widget.treeview.get_selection().select_path(path)
@@ -146,7 +142,6 @@ sdfsdf
 		model.foreach(activate_row)
 
 		# Test promote / demote
-		window.toggle_readonly(False)
 		pageview.set_readonly(False)
 		wanted = [
 			(1, 'bar'),

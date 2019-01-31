@@ -223,12 +223,12 @@ class Dumper(DumperClass):
 		return [strings] # HACK to keep row structure
 
 	def dump_th(self, tag, attrib, strings):
-		#strings = [s.replace('|', '∣') for s in strings] # 2nd "|" is UTF char
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		#strings = [s.replace('|', '∣') for s in strings] # 2nd "|" is UTF char
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):
-		return '\n{}\n'.format(LINE_TEXT)
+		return '-' * 20

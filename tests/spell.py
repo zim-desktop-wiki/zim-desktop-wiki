@@ -21,6 +21,7 @@ except:
 
 import zim.plugins.spell
 
+from zim.plugins import find_extension, PluginManager
 from zim.notebook import Path
 
 from tests.mainwindow import setUpMainWindow
@@ -42,9 +43,8 @@ class TestSpell(object):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
 			window = setUpMainWindow(self.setUpNotebook(content=('Test', 'Foo', 'Bar')))
 
-			plugin = zim.plugins.spell.SpellPlugin()
-			plugin.extend(window)
-			ext = plugin.get_extension(window, zim.plugins.spell.SpellMainWindowExtension)
+			plugin = PluginManager.load_plugin('spell')
+			ext = find_extension(window.pageview, zim.plugins.spell.SpellPageViewExtension)
 
 			self.assertIs(ext._adapter_cls, adapterclass) # ensure switching library worked
 

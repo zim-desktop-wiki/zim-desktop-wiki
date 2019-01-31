@@ -1,5 +1,5 @@
 
-# Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
 
@@ -11,19 +11,26 @@ import os
 import logging
 import threading
 
-from zim.fs import FS, File, TmpFile
-from zim.plugins import PluginClass, extends, WindowExtension, ObjectExtension
+from functools import partial
+
+from zim.fs import TmpFile
+from zim.newfs import LocalFolder
+from zim.plugins import PluginClass, find_extension
 from zim.actions import action
 from zim.signals import ConnectorMixin
 from zim.errors import Error
 from zim.applications import Application
 from zim.gui.applications import DesktopEntryFile
 from zim.config import value_is_coord, data_dirs
-from zim.notebook.operations import NotebookState
+from zim.notebook import NotebookExtension
+from zim.notebook.operations import NotebookState, SimpleAsyncOperation
+from zim.utils import natural_sort_key
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import ErrorDialog, QuestionDialog, Dialog, \
 	PageEntry, IconButton, SingleClickTreeView, \
-	ScrolledWindow, ScrolledTextView, VPaned
-from zim.utils import natural_sort_key, FunctionThread
+	ScrolledWindow, ScrolledTextView, VPaned, \
+	ProgressDialog
 
 
 if os.environ.get('ZIM_TEST_RUNNING'):
@@ -72,33 +79,17 @@ This is a core plugin shipping with zim.
 		#TODO parameterize the return, so that a new backend will be automatically available
 		return has_bzr | has_hg | has_git | has_fossil, [('bzr', has_bzr, False), ('hg', has_hg, False), ('git', has_git, False), ('fossil', has_fossil, False)]
 
-	def extend(self, obj):
-		name = obj.__class__.__name__
-		if name == 'MainWindow':
-			nb = obj.notebook
-			nb_ext = self.get_extension(nb, NotebookExtension)
-			assert nb_ext, 'No notebook extension found for: %s' % nb
-			mw_ext = VersionControlMainWindowExtension(self, obj, nb_ext)
-			self.extensions.add(mw_ext)
-		else:
-			PluginClass.extend(self, obj)
 
-
-@extends('Notebook')
-class NotebookExtension(ObjectExtension):
+class VersionControlNotebookExtension(NotebookExtension):
 
 	def __init__(self, plugin, notebook):
-		ObjectExtension.__init__(self, plugin, notebook)
-		self.plugin = plugin
-		self.notebook = notebook
+		NotebookExtension.__init__(self, plugin, notebook)
 		self.vcs = None
 		self.detect_vcs()
 
 	def _get_notebook_dir(self):
-		from zim.fs import adapt_from_newfs, Dir
-		dir = adapt_from_newfs(self.notebook.folder)
-		assert isinstance(dir, Dir), 'Notebook not based on LocalFolder'
-		return dir
+		assert isinstance(self.notebook.folder, LocalFolder)
+		return self.notebook.folder
 
 	def detect_vcs(self):
 		try:
@@ -112,48 +103,23 @@ class NotebookExtension(ObjectExtension):
 		dir = self._get_notebook_dir()
 		self.vcs = VCS.create(vcs, dir, dir)
 
-		if self.vcs:
+		if self.vcs and not self.vcs.repo_exists():
 			with NotebookState(self.notebook):
-				self.vcs.init()
+				self.vcs.init_repo()
+
 
 	def teardown(self):
 		if self.vcs:
 			self.vcs.disconnect_all()
 
 
-def _monitor_thread(thread):
-	if thread.done:
-		if thread.error:
-			error = thread.exc_info[1]
-			logger.error('Error during async commit', exc_info=thread.exc_info)
-			ErrorDialog(None, error, thread.exc_info).run() # XXX None should be window
-		return False # stop signal
-	else:
-		return True # keep handler
+class VersionControlMainWindowExtension(MainWindowExtension):
 
-def monitor_thread(thread):
-	GObject.idle_add(_monitor_thread, thread)
+	def __init__(self, plugin, window):
+		MainWindowExtension.__init__(self, plugin, window)
 
+		self.notebook_ext = find_extension(window.notebook, VersionControlNotebookExtension)
 
-@extends('MainWindow')
-class VersionControlMainWindowExtension(WindowExtension):
-
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='file_menu'>
-			<placeholder name='versioning_actions'>
-				<menuitem action='save_version'/>
-				<menuitem action='show_versions'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
-	def __init__(self, plugin, window, notebook_ext):
-		WindowExtension.__init__(self, plugin, window)
-		self.notebook_ext = notebook_ext
 		self._autosave_thread = None
 		self._autosave_timer = None
 
@@ -203,37 +169,52 @@ class VersionControlMainWindowExtension(WindowExtension):
 		if not self.notebook_ext.vcs:
 			return False # stop timer
 
-		if self._autosave_thread and not self._autosave_thread.done:
+		if self._autosave_thread and self._autosave_thread.is_alive():
 			return True # continue time
 
-		self._autosave_thread = FunctionThread(self.do_save_version, (msg,))
-		self._autosave_thread.start()
-		monitor_thread(self._autosave_thread)
+		with NotebookState(self.notebook_ext.notebook):
+			op, thread = self._commit_op(msg)
+			self._autosave_thread = thread
+			op.run_on_idle()
+
 		return True # continue timer
+
+	def _commit_op(self, msg):
+		thread = threading.Thread(
+			target=partial(self._save_version, msg)
+		)
+		thread.start()
+		return SimpleAsyncOperation(
+			notebook=self.notebook_ext.notebook,
+			message='Saving version in progress',
+			thread=thread
+		), thread
 
 	def do_save_version(self, msg=None):
 		if not self.notebook_ext.vcs:
 			return
 
-		if self._autosave_thread \
-		and not self._autosave_thread.done \
-		and not self._autosave_thread == threading.current_thread():
+		if self._autosave_thread and self._autosave_thread.is_alive():
 			self._autosave_thread.join()
 
-		if not msg:
+		with NotebookState(self.notebook_ext.notebook):
+			self._save_version(msg)
+
+	def _save_version(self, msg=None):
+		if msg is None:
 			msg = _('Automatically saved version from zim')
 				# T: default version comment for auto-saved versions
 
-		with NotebookState(self.notebook_ext.notebook):
-			try:
-				self.notebook_ext.vcs.commit(msg)
-			except NoChangesError:
-				logger.debug('No autosave version needed - no changes')
+		try:
+			self.notebook_ext.vcs.commit_version(msg)
+		except NoChangesError:
+			logger.debug('No autosave version needed - no changes')
 
-	@action(_('S_ave Version...'), 'gtk-save-as', '<Primary><shift>S', readonly=False) # T: menu item
+	@action(_('S_ave Version...'), '<Primary><shift>S', menuhints='notebook:edit') # T: menu item
 	def save_version(self):
 		if not self.notebook_ext.vcs:
 			vcs = VersionControlInitDialog(self.window).run()
+			logger.debug("Selected VCS: %s", vcs)
 			if vcs is None:
 				return # Canceled
 
@@ -246,7 +227,7 @@ class VersionControlMainWindowExtension(WindowExtension):
 		with NotebookState(self.notebook_ext.notebook):
 			SaveVersionDialog(self.window, self, self.notebook_ext.vcs).run()
 
-	@action(_('_Versions...')) # T: menu item
+	@action(_('_Versions...'), menuhints='notebook') # T: menu item
 	def show_versions(self):
 		dialog = VersionsDialog.unique(self, self.window,
 			self.notebook_ext.vcs,
@@ -287,7 +268,7 @@ class VCS(object):
 		"""Detect if a version control system has already been setup in the folder.
 		It also create the instance by calling the VCS.create() method
 		@param dir: a L{Dir} instance representing the notebook root folder
-		@returns: a L{VCSBackend} instance which will manage the versioning or C{None}
+		@returns: a vcs backend object or C{None}
 		"""
 		name, root = klass._detect_in_folder(dir)
 
@@ -311,31 +292,29 @@ class VCS(object):
 			return None
 
 	@classmethod
-	def _detect_in_folder(klass, dir):
-		# split off because it is easier to test this way
-		#
+	def _detect_in_folder(klass, folder):
 		# Included unsupported systems as well, to make sure we stop
 		# looking for parents if these are detected.
-		for path in reversed(list(dir)):
-			if path.subdir('.bzr').exists():
-				return 'bzr', path
-			elif path.subdir('.hg').exists():
-				return 'hg', path
-			elif path.subdir('.git').exists() or path.file('.git').exists():
-				return 'git', path
-			elif path.subdir('.svn').exists():
-				return 'svn', path
-			elif path.file('.fslckout').exists() or path.file('_FOSSIL_').exists():
-				return 'fossil', path
-			## Commented CVS out since it potentially
-			## conflicts with like-named pages
-			# elif path.subdir('CVS').exists():
-				# return 'cvs', path
-			##
-			else:
-				continue
+		if folder.folder('.bzr').exists():
+			return 'bzr', folder
+		elif folder.folder('.hg').exists():
+			return 'hg', folder
+		elif folder.folder('.git').exists() or folder.file('.git').exists():
+			return 'git', folder
+		elif folder.folder('.svn').exists():
+			return 'svn', folder
+		elif folder.file('.fslckout').exists() or folder.file('_FOSSIL_').exists():
+			return 'fossil', folder
+		## Commented CVS out since it potentially
+		## conflicts with like-named pages
+		# elif path.folder('CVS').exists():
+			# return 'cvs', path
+		##
 		else:
-			return None, None
+			try:
+				return klass._detect_in_folder(folder.parent()) # recurs
+			except ValueError:
+				return None, None
 
 	@classmethod
 	def get_backend(klass, vcs):
@@ -370,13 +349,13 @@ class VCS(object):
 		@param vcs_dir: a L{Dir} instance representing the VCS root folder
 		@param notebook_dir: a L{Dir} instance representing the notebook root folder
 		(must be equal to or below vcs_dir)
-		@returns: a C{VCSBackend} instance setup with the required backend
+		@returns: a vcs backend object
 		"""
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
 			raise AssertionError('Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir))
 
 		vcs_backend_klass = VCS.get_backend(vcs)
-		return VCSBackend(vcs_dir, vcs_backend_klass(vcs_dir, notebook_dir))
+		return vcs_backend_klass(vcs_dir, notebook_dir)
 
 	@classmethod
 	def check_dependencies(klass, vcs):
@@ -387,204 +366,9 @@ class VCS(object):
 		return VCS.get_backend(vcs).tryexec()
 
 
-
-class VCSBackend(ConnectorMixin):
-	"""Parent class for all VCS backend implementations.
-	It implements the required API.
-	"""
-
-	def __init__(self, dir, vcs_specific_app):
-		"""Initialize the instance in normal or test mode
-		- in case of TEST_MODE off, it checks the file system
-		  for creation, move or delete of files
-		- in case of TEST_MODE on, it does not check anything
-		  in order to avoid to interfer with dev environment
-
-		@param dir: a L{Dir} object representing the repository working directory path
-		@param vcs_specific_app: a backend object
-		"""
-		self._root = dir
-		self._lock = threading.Lock() # TODO: sync with notebook operations logic
-		self._app = vcs_specific_app
-		if not TEST_MODE:
-			# Avoid touching the bazaar repository with zim sources
-			# when we write to tests/tmp etc.
-			self.connectto_all(FS, (
-				'path-created',
-				'path-moved',
-				'path-deleted'
-			))
-		# TODO: change block above with newfs monitor
-
-	@property
-	def vcs(self):
-		return self._app
-
-	@property
-	def root(self):
-		return self._root
-
-	@property
-	def lock(self):
-		return self._lock
-
-
-	def _ignored(self, path):
-		"""Return True if we should ignore this path
-		TODO add specific ignore patterns in the _ignored_vcs_specific method
-		for now we just hardcode zim specific logic
-
-		@param path: a L{File} object representing the file path to check
-		@returns: True if the path should be ignored or False
-		"""
-		return '.zim' in path.split() or self.vcs._ignored(path)
-
-	def init(self):
-		"""Initialize a Bazaar repository in the self.root directory.
-		If the directory does not exist, then create it
-		@returns: nothing
-		"""
-		if self.vcs.repo_exists():
-			return
-
-		if not self.root.exists():
-			self.root.touch()
-
-		#~ with self.lock: # FIXME - conflicts with "git init" !???
-		self.vcs.init_repo()
-
-	def on_path_created(self, fs, path):
-		"""Callback to add a new file or folder when added to the wiki
-		Note: the VCS operation is asynchronous
-
-		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param path: the L{File} object representing the newly created file or folder
-		@returns: nothing
-		"""
-		if path.ischild(self.root) and not self._ignored(path):
-			FunctionThread(self.vcs.add, (path,), lock=self._lock).start()
-
-
-	def on_path_moved(self, fs, oldpath, newpath):
-		"""Callback to move the file in Bazaar when moved in the wiki
-		Note: the VCS operation is asynchronous
-
-		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param oldpath: the L{File} object representing the old path of the file or folder
-		@param newpath: the L{File} object representing the new path of the file or folder
-		@returns: nothing
-		"""
-		if newpath.ischild(self.root) and not self._ignored(newpath):
-			if oldpath.ischild(self.root):
-				# Parent of newpath needs to be versioned in order to make mv succeed
-				FunctionThread(self.vcs.move, (oldpath, newpath), lock=self._lock).start()
-			else:
-				FunctionThread(self.vcs.add, (newpath,), lock=self._lock).start()
-		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
-			self.on_path_deleted(self, fs, oldpath)
-
-	def on_path_deleted(self, fs, path):
-		"""Callback to remove a file from Bazaar when deleted from the wiki
-		Note: the VCS operation is asynchronous
-
-		@param fs: the L{FSSingletonClass} instance representing the file system
-		@param path: the L{File} object representing the path of the file or folder to delete
-		@returns: nothing
-		"""
-		if path.ischild(self.root) and not self._ignored(path):
-			FunctionThread(self.vcs.remove, (path,), lock=self._lock).start()
-
-	@property
-	def modified(self):
-		"""return True if changes are detected, or False"""
-		return ''.join(self.get_status()).strip() != ''
-		with self.lock:
-			return self.vcs.is_modified()
-
-	def get_status(self, **kwarg):
-		"""Returns repo status as a list of text lines
-
-		@returns: list of text lines (like a shell command result)
-		"""
-		status = list()
-		with self.lock:
-			status = self.vcs.status(**kwarg)
-		return status
-
-	def get_diff(self, versions=None, file=None):
-		"""Returns the diff operation result of a repo or file
-		@param versions: couple of version numbers (integer)
-		@param file: L{File} object of the file to check, or None
-		@returns: the diff result
-		"""
-		with self.lock:
-			nc = ['=== No Changes\n']
-			diff = self.vcs.diff(versions, file) or nc
-		return diff
-
-	def get_annotated(self, file, version=None):
-		"""Returns the annotated version of a file
-		@param file: L{File} object of the file to check, or None
-		@param version: required version number (integer) or None
-		@returns: the annotated version of the file result
-		"""
-		with self.lock:
-			annotated = self.vcs.annotate(file, version)
-		return annotated
-
-	def commit(self, msg):
-		"""Run a commit operation.
-
-		@param msg: commit message (str)
-		@returns: nothing
-		"""
-		with self.lock:
-			self._commit(msg)
-
-	def _commit(self, msg):
-		stat = ''.join(self.vcs.status()).strip()
-		if not stat:
-			raise NoChangesError(self.root)
-		else:
-			self.vcs.add()
-			self.vcs.commit(None, msg)
-
-	def revert(self, version=None, file=None):
-		with self.lock:
-			self.vcs.revert(file, version)
-
-
-	def list_versions(self, file=None):
-		"""Returns a list of all versions, for a file or for the entire repo
-
-		@param file: a L{File} object representing the path to the file, or None
-		@returns: a list of tuples (revision (int), date, user (str), msg (str))
-		"""
-		# TODO see if we can get this directly from bzrlib as well
-		with self.lock:
-			lines = self.vcs.log(file)
-			versions = self.vcs.log_to_revision_list(lines)
-		return versions
-
-
-	def get_version(self, file, version):
-		"""FIXME Document"""
-		with self.lock:
-			version = self.vcs.cat(file, version)
-		return version
-
-	def stage(self):
-		with self.lock:
-			self.vcs.stage()
-
-
-class VCSApplicationBase(object):
+class VCSApplicationBase(ConnectorMixin):
 	"""This class is the base class for the classes representing the
 	specific version control applications.
-
-	This class is abstract and must be inherited. Subclasses of this
-	class can be used by L{VCSBackend} to apply version control to
-	a folder.
 	"""
 
 	def __init__(self, vcs_dir, notebook_dir):
@@ -593,11 +377,53 @@ class VCSApplicationBase(object):
 		@param notebook_dir: a L{Dir} instance representing the notebook root folder
 		(must be equal to or below vcs_dir)
 		"""
+		assert isinstance(vcs_dir, LocalFolder)
+
 		if not (notebook_dir == vcs_dir or notebook_dir.ischild(vcs_dir)):
 			raise AssertionError('Notebook %s is not part of version control dir %s' % (notebook_dir, vcs_dir))
 		self._app = self.build_bin_application_instance()
 		self.root = vcs_dir
 		self.notebook_dir = notebook_dir
+
+		if notebook_dir.watcher is None:
+			from zim.newfs.helpers import FileTreeWatcher
+			notebook_dir.watcher = FileTreeWatcher()
+
+		self.connectto_all(
+			notebook_dir.watcher,
+			('created', 'moved', 'removed')
+		)
+
+	def on_created(self, fs, path):
+		"""Callback when a file has been created
+		@param fs: the watcher object
+		@param path: a L{File} or L{Folder} object
+		"""
+		if path.ischild(self.root) and not self._ignored(path):
+			self.add(path)
+
+	def on_moved(self, fs, oldpath, newpath):
+		"""Callback when a file has been moved
+		@param fs: the watcher object
+		@param oldpath: a L{File} or L{Folder} object
+		@param newpath: a L{File} or L{Folder} object
+		"""
+		if newpath.ischild(self.root) and not self._ignored(newpath):
+			if oldpath.ischild(self.root):
+				# Parent of newpath needs to be versioned in order to make mv succeed
+				self.move(oldpath, newpath)
+			else:
+				self.add(newpath)
+		elif oldpath.ischild(self.root) and not self._ignored(oldpath):
+			self.on_path_deleted(self, fs, oldpath)
+
+	def on_removed(self, fs, path):
+		"""Callback when a file has been delted
+		@param fs: the watcher object
+		@param path: a L{File} or L{Folder} object
+		"""
+		if path.ischild(self.root) and not self._ignored(path):
+			self.remove(path)
 
 	@classmethod
 	def build_bin_application_instance(cls):
@@ -640,7 +466,7 @@ class VCSApplicationBase(object):
 		@implementation: may be overridden if some files are to be ignored \
 		                 specifically for the backend
 		"""
-		return False
+		return '.zim' in file.pathnames
 
 	########
 	#
@@ -659,7 +485,7 @@ class VCSApplicationBase(object):
 		"""
 		raise NotImplementedError
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""return the annotated version of a file. This is commonly related
 		to the VCS command annotate
 
@@ -684,6 +510,18 @@ class VCSApplicationBase(object):
 		"""
 		raise NotImplementedError
 
+	def commit_version(self, msg):
+		"""Run a commit operation.
+
+		@param msg: commit message (str)
+		@returns: nothing
+		"""
+		if self.is_modified():
+			self.add()
+			self.commit(None, msg)
+		else:
+			raise NoChangesError(self.root)
+
 	def commit(self, file, msg):
 		"""Execute a commit for the file or for the entire repository
 		@param file: a L{File} instance representing the file or None for the entire repository
@@ -700,7 +538,7 @@ class VCSApplicationBase(object):
 		"""
 		raise NotImplementedError
 
-	def diff(self, versions, file=None):
+	def diff(self, versions=None, file=None):
 		"""Returns the result of a diff between two revisions as a list of str()
 		representing the diff operation output.
 		@param versions: int, str, couple or tuple representing the versions to compare
@@ -771,6 +609,17 @@ class VCSApplicationBase(object):
 		"""
 		raise NotImplementedError
 
+	def list_versions(self, file=None):
+		"""Returns a list of all versions, for a file or for the entire repo
+
+		@param file: a L{File} object representing the path to the file, or None
+		@returns: a list of tuples (revision (int), date, user (str), msg (str))
+		"""
+		# TODO see if we can get this directly from bzrlib as well
+		lines = self.log(file)
+		versions = self.log_to_revision_list(lines)
+		return versions
+
 	def log(self, file=None):
 		"""Returns the history related to a file.
 		@param file: a L{File} instance representing the file or None (for the entire repository)
@@ -817,7 +666,7 @@ class VCSApplicationBase(object):
 
 	def remove(self, file):
 		"""Remove a file from the repository.
-		@param file: a L{File} instance representing the file that have been deleted from the FS
+		@param file: a L{File} instance representing the file that have been deleted
 		@returns: C{True} if the command was successfull
 		@implementation: must be implemented in child class. \
 		                 CAUTION: this must implement the VCS operation required \
@@ -828,7 +677,7 @@ class VCSApplicationBase(object):
 		"""
 		raise NotImplementedError
 
-	def revert(self, file, version):
+	def revert(self, file=None, version=None):
 		"""Reverts a file to an older version
 		@param file: a L{File} instance representing the file or None for the entire repo
 		@param version: a str() or int() representing the expected version
@@ -869,14 +718,14 @@ def get_side_by_side_app():
 		return None
 
 
-class VersionControlInitDialog(QuestionDialog):
+class VersionControlInitDialog(Dialog):
 
 	def __init__(self, parent):
-		QuestionDialog.__init__(self, parent, (
-			_("Enable Version Control?"), # T: Question dialog
+		Dialog.__init__(self, parent, _("Enable Version Control?")) # T: Question dialog
+		self.add_text(
 			_("Version control is currently not enabled for this notebook.\n"
 			  "Do you want to enable it?") # T: Detailed question
-		))
+		)
 
 		self.combobox = Gtk.ComboBoxText()
 		for option in (VCS.BZR, VCS.GIT, VCS.HG, VCS.FOSSIL):
@@ -892,12 +741,9 @@ class VersionControlInitDialog(QuestionDialog):
 		self.vbox.pack_start(hbox, False, False, 0)
 		hbox.show_all()
 
-	def run(self):
-		active = self.combobox.get_active_text()
-		if active and QuestionDialog.run(self):
-			return active
-		else:
-			return None
+	def do_response_ok(self):
+		self.result = self.combobox.get_active_text()
+		return True
 
 
 class SaveVersionDialog(Dialog):
@@ -934,20 +780,20 @@ class SaveVersionDialog(Dialog):
 		vbox.pack_start(label, False, True, 0)
 
 		self.vcs.stage()
-		status = self.vcs.get_status()
+		status = self.vcs.status()
 		window, textview = ScrolledTextView(text=''.join(status), monospace=True)
 		vbox.add(window)
 
 	def do_response_ok(self):
-		# notebook.lock already set by plugin.save_version()
 		buffer = self.textview.get_buffer()
 		start, end = buffer.get_bounds()
 		msg = start.get_text(end).strip()
-		if msg:
-			self.window_ext.do_save_version_async(msg)
-			return True
-		else:
+		if not msg:
 			return False
+
+		op, thread = self.window_ext._commit_op(msg)
+		ProgressDialog(self, op).run()
+		return True
 
 
 class VersionsDialog(Dialog):
@@ -1125,9 +971,8 @@ state. Or select multiple versions to see changes between those versions.
 				return None # TODO error message valid page name?
 
 			if page \
-			and hasattr(page, 'source') \
-			and isinstance(page.source, File) \
-			and page.source.ischild(self.vcs.root):
+			and page.source_file is not None \
+			and page.source_file.ischild(self.vcs.root):
 				return page.source
 			else:
 				return None # TODO error message ?
@@ -1136,7 +981,7 @@ state. Or select multiple versions to see changes between those versions.
 		# TODO check for gannotated
 		file = self._get_file()
 		assert not file is None
-		annotated = self.vcs.get_annotated(file)
+		annotated = self.vcs.annotated(file)
 		TextDialog(self, _('Annotated Page Source'), annotated).run()
 			# T: dialog title
 
@@ -1153,7 +998,7 @@ state. Or select multiple versions to see changes between those versions.
 			  % {'page': path.name, 'version': str(version)}
 			  # T: Detailed question, "%(page)s" is replaced by the page, "%(version)s" by the version id
 		)).run():
-			self.vcs.revert(file=file, version=version)
+			self.vcs.revert(file, version)
 			page = self.notebook.get_page(path)
 			page.check_source_changed()
 
@@ -1161,7 +1006,7 @@ state. Or select multiple versions to see changes between those versions.
 		# TODO check for gdiff
 		file = self._get_file()
 		versions = self.versionlist.get_versions()
-		diff = self.vcs.get_diff(file=file, versions=versions)
+		diff = self.vcs.diff(file=file, versions=versions) or ['=== No Changes\n']
 		TextDialog(self, _('Changes'), diff).run()
 			# T: dialog title
 
@@ -1181,7 +1026,7 @@ state. Or select multiple versions to see changes between those versions.
 		self._side_by_side_app.spawn(files)
 
 	def _get_tmp_file(self, file, version):
-		text = self.vcs.get_version(file, version)
+		text = self.vcs.cat(file, version)
 		tmp = TmpFile(file.basename + '--REV%s' % version, persistent=True)
 			# need to be persistent, else it is cleaned up before application spawned
 		tmp.writelines(text)

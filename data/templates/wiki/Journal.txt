@@ -1,21 +1,21 @@
-[% IF calendar_plugin.page_type == 'day' -%]
-======= [% strftime("%A %d %b %Y", calendar_plugin.date) %] =======
+[% IF journal_plugin.page_type == 'day' -%]
+======= [% strftime("%A %d %b %Y", journal_plugin.date) %] =======
 
-[%- ELSIF calendar_plugin.page_type == 'week' -%]
-======= [% strfcal("Week %W %Y", calendar_plugin.date) %] =======
-[% strftime("%d %B", calendar_plugin.date) %] to [% strftime("%d %B", calendar_plugin.end_date) %]
+[%- ELSIF journal_plugin.page_type == 'week' -%]
+======= [% strfcal("Week %W %Y", journal_plugin.date) %] =======
+[% strftime("%d %B", journal_plugin.date) %] to [% strftime("%d %B", journal_plugin.end_date) %]
 
-[% FOREACH day IN calendar_plugin.days() %]
+[% FOREACH day IN journal_plugin.days() %]
 === [% strftime("%A %d %B", day) %] ===
 
 [% END %]
 
 
-[%- ELSIF calendar_plugin.page_type == 'month' -%]
-======= [% strftime("%B %Y", calendar_plugin.date) %] =======
+[%- ELSIF journal_plugin.page_type == 'month' -%]
+======= [% strftime("%B %Y", journal_plugin.date) %] =======
 
-[%- ELSIF calendar_plugin.page_type == 'year' -%]
-======= Year [% strftime("%Y", calendar_plugin.date) %] =======
+[%- ELSIF journal_plugin.page_type == 'year' -%]
+======= Year [% strftime("%Y", journal_plugin.date) %] =======
 
 [%- ELSE -%]
 ======= [% page.basename %] =======

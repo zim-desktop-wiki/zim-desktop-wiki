@@ -41,9 +41,10 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.actions import toggle_action
 
+from zim.gui.pageview import PageViewExtension
 from zim.gui.applications import open_folder_prompt_create
 
 from zim.gui.widgets import BOTTOM_PANE, PANE_POSITIONS, \
@@ -89,105 +90,28 @@ icon view at bottom pane.
 		#~ return [("ImageMagick",Application(('convert',None)).tryexec())]
 
 
-@extends('MainWindow')
-class AttachmentBrowserWindowExtension(WindowExtension):
-
-	TAB_KEY = 'attachmentbrowser'
-
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='view_menu'>
-				<placeholder name="plugin_items">
-					<menuitem action="toggle_attachmentbrowser" />
-				</placeholder>
-			</menu>
-		</menubar>
-		<toolbar name='toolbar'>
-			<placeholder name='tools'>
-				<toolitem action='toggle_attachmentbrowser'/>
-			</placeholder>
-		</toolbar>
-	</ui>
-	'''
+class AttachmentBrowserWindowExtension(PageViewExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		PageViewExtension.__init__(self, plugin, window)
 		self.preferences = plugin.preferences
 		self._monitor = None
 
 		# Init browser widget
-		opener = self.window.navigation
-		self.widget = AttachmentBrowserPluginWidget(self, opener, self.preferences)
-			# FIXME FIXME FIXME - get rid of ui object here
+		self.widget = AttachmentBrowserPluginWidget(self, self.navigation, self.preferences)
 
-		self.on_preferences_changed(plugin.preferences)
-		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
+		if self.pageview.page is not None:
+			self.on_page_changed(self.pageview, self.pageview.page)
+		self.connectto(self.pageview, 'page-changed')
 
-		if self.window.page:
-			self.on_page_changed(self.window, self.window.page)
-		self.connectto(self.window, 'page-changed')
+		self.add_sidepane_widget(self.widget, 'pane')
 
-		self.connectto(self.window, 'pane-state-changed')
-
-	def on_preferences_changed(self, preferences):
-		if self.widget is None:
-			return
-
-		try:
-			self.window.remove(self.widget)
-		except ValueError:
-			pass
-		self.window.add_tab(self.TAB_KEY, self.widget, preferences['pane'])
-		self.widget.show_all()
-
-	@toggle_action(
-		_('Attachment Browser'), # T: Menu item
-		Gtk.STOCK_DIRECTORY,
-		tooltip=_('Show Attachment Browser') # T: Toolbar item tooltip
-	)
-	def toggle_attachmentbrowser(self, active):
-		# This toggle is called to focus on our widget
-		# but also after the fact when we detect focus changed
-		# so check state explicitly and don't do more than needed
-		visible, size, tab = self.window.get_pane_state(self.preferences['pane'])
-
-		if active:
-			if not (visible and tab == self.TAB_KEY):
-				self.window.set_pane_state(
-					self.preferences['pane'], True,
-					activetab=self.TAB_KEY,
-					grab_focus=True)
-			# else pass
-		else:
-			if visible and tab == self.TAB_KEY:
-				self.window.set_pane_state(
-					self.preferences['pane'], False)
-			# else pass
-
-	def on_pane_state_changed(self, window, pane, visible, active):
-		if pane != self.preferences['pane']:
-			return
-
-		if visible and active == self.TAB_KEY:
-			self.toggle_attachmentbrowser(True)
-		else:
-			self.toggle_attachmentbrowser(False)
-
-	def on_page_changed(self, window, page):
+	def on_page_changed(self, pageview, page):
 		self.widget.set_folder(
-			window.notebook.get_attachments_dir(page)
+			pageview.notebook.get_attachments_dir(page)
 		)
 
 	def teardown(self):
-		self.widget.iconview.teardown_folder()
-		self.toggle_attachmentbrowser(False)
-		self.window.remove(self.widget)
-		if self.statusbar_frame:
-			self.window.statusbar.remove(self.statusbar_frame)
-		self.widget = None
-
-	def destroy(self):
 		self.widget.iconview.teardown_folder()
 
 

@@ -5,10 +5,10 @@
 
 import tests
 
-from tests.pageview import setUpPageView, press
+from tests.mainwindow import setUpMainWindow
+from tests.pageview import press
 
-from zim.config import SectionedConfigDict, ConfigManager
-
+from zim.plugins import find_extension, PluginManager
 from zim.plugins.insertsymbol import *
 
 
@@ -21,21 +21,14 @@ EGRAVE = chr(200)
 class TestInsertSymbolPlugin(tests.TestCase):
 
 	def runTest(self):
-		plugin = InsertSymbolPlugin(ConfigManager())
+		plugin = PluginManager.load_plugin('insertsymbol')
 
-		pageview = setUpPageView(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
-		textview = pageview.view
+		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': ''}), path='Test')
+		pageview = mainwindow.pageview
+		textview = pageview.textview
 		buffer = textview.get_buffer()
 
-		mainwindow = tests.MockObject()
-		mainwindow.pageview = pageview
-		mainwindow.uimanager = tests.MockObject()
-
-		plugin.extend(mainwindow, 'MainWindow')
-
-		# Need a window to get the widget realized
-		window = Gtk.Window()
-		window.add(pageview)
+		# Widget needs to be realized
 		pageview.realize()
 		textview.realize()
 
@@ -79,9 +72,9 @@ class TestInsertSymbolPlugin(tests.TestCase):
 			dialog.assert_response_ok()
 
 		buffer.clear()
-		mainwindow_ext = plugin.get_extension(mainwindow, InsertSymbolMainWindowExtension)
+		pageview_ext = find_extension(pageview, InsertSymbolPageViewExtension)
 		with tests.DialogContext(check_dialog):
-			mainwindow_ext.insert_symbol()
+			pageview_ext.insert_symbol()
 		start, end = buffer.get_bounds()
 		text = start.get_text(end)
 		self.assertEqual(text, EACUTE + ECIRC + EGRAVE)
