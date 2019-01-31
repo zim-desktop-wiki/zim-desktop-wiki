@@ -359,8 +359,11 @@ class PluginManagerClass(ConnectorMixin, collections.Mapping):
 		for name in names:
 			try:
 				self.load_plugin(name)
-			except:
-				logger.exception('Exception while loading plugin: %s', name)
+			except Exception as exc:
+				if isinstance(exc, ImportError):
+					logger.info('No such plugin: %s', name)
+				else:
+					logger.exception('Exception while loading plugin: %s', name)
 				if name in self._preferences['plugins']:
 					self._preferences['plugins'].remove(name)
 				self.failed.add(name)
