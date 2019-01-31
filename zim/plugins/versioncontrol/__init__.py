@@ -173,8 +173,8 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 			return True # continue time
 
 		with NotebookState(self.notebook_ext.notebook):
-			op = self._commit_op(msg)
-			self._autosave_thread = op.thread
+			op, thread = self._commit_op(msg)
+			self._autosave_thread = thread
 			op.run_on_idle()
 
 		return True # continue timer
@@ -188,7 +188,7 @@ class VersionControlMainWindowExtension(MainWindowExtension):
 			notebook=self.notebook_ext.notebook,
 			message='Saving version in progress',
 			thread=thread
-		)
+		), thread
 
 	def do_save_version(self, msg=None):
 		if not self.notebook_ext.vcs:
@@ -791,7 +791,7 @@ class SaveVersionDialog(Dialog):
 		if not msg:
 			return False
 
-		op = self.window_ext._commit_op(msg)
+		op, thread = self.window_ext._commit_op(msg)
 		ProgressDialog(self, op).run()
 		return True
 
