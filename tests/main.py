@@ -160,19 +160,26 @@ class TestServer(tests.TestCase):
 
 	def runTest(self):
 		from urllib.request import urlopen
+		from urllib.error import URLError
 
 		dir = self.create_tmp_dir()
 		cmd = ServerCommand('server')
 		cmd.parse_options(dir)
 		t = threading.Thread(target=cmd.run)
 		t.start()
-		try:
-			time.sleep(3) # give time to startup
-			re = urlopen('http://localhost:8080')
-			self.assertEqual(re.getcode(), 200)
-		finally:
-			cmd.server.shutdown()
-			t.join()
+
+		for i in range(30):
+			try:
+				re = urlopen('http://localhost:8080')
+				self.assertEqual(re.getcode(), 200)
+				break
+			except URLError:
+				time.sleep(1) # give more time to startup server
+		else:
+			assert False, 'Failed to start server within 10 seconds'
+
+		cmd.server.shutdown()
+		t.join()
 
 
 class TestServerGui(tests.TestCase):
