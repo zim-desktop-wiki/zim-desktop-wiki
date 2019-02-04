@@ -794,6 +794,8 @@ class TestUIActionsRealFile(tests.TestCase):
 		)
 
 	def testDeletePageWithTrash(self):
+		self.assertTrue(self.page.exists())
+
 		with tests.DialogContext(): # fails if dialog shown
 			self.uiactions.delete_page()
 
@@ -801,6 +803,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 	def testDeletePageWithoutTrash(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
+		self.assertTrue(self.page.exists())
 
 		def do_delete(dialog):
 			dialog.assert_response_ok()
@@ -810,8 +813,28 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		self.assertFalse(self.page.exists())
 
+	def testDeletePageWithoutTrashAndChildren(self):
+		self.notebook.config['Notebook']['disable_trash'] = True
+		self.assertTrue(self.page.exists())
+		child = self.notebook.get_page(Path('Test:Child'))
+		child.parse('wiki', 'Test 123')
+		self.notebook.store_page(child)
+		dir = self.notebook.get_attachments_dir(self.page)
+		self.assertTrue(dir.exists())
+		dir.folder('foo').touch()
+
+		def do_delete(dialog):
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(do_delete):
+			self.uiactions.delete_page()
+
+		self.assertFalse(self.page.exists())
+		self.assertFalse(dir.exists())
+
 	def testDeletePageWithoutTrashCancel(self):
 		self.notebook.config['Notebook']['disable_trash'] = True
+		self.assertTrue(self.page.exists())
 
 		def do_delete(dialog):
 			dialog.do_response_cancel()
@@ -824,6 +847,7 @@ class TestUIActionsRealFile(tests.TestCase):
 	def testDeletePageWithTrashUpdateLinks(self):
 		from zim.config import ConfigManager
 		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=True)
+		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
@@ -838,6 +862,7 @@ class TestUIActionsRealFile(tests.TestCase):
 	def testDeletePageWithTrashNoUpdateLinks(self):
 		from zim.config import ConfigManager
 		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=False)
+		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
@@ -854,6 +879,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		self.notebook.config['Notebook']['disable_trash'] = True
 		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=True)
+		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
@@ -873,6 +899,7 @@ class TestUIActionsRealFile(tests.TestCase):
 
 		self.notebook.config['Notebook']['disable_trash'] = True
 		ConfigManager.preferences['GtkInterface'].input(remove_links_on_delete=False)
+		self.assertTrue(self.page.exists())
 
 		referrer = self.notebook.get_page(Path('Referrer'))
 		referrer.parse('wiki', 'Test [[Test]]\n')
