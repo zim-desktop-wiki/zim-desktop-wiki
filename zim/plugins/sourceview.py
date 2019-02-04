@@ -187,10 +187,7 @@ class SourceViewBuffer(_bufferclass):
 
 class SourceViewWidget(TextViewWidget):
 
-	def __init__(self, buffer):
-		InsertedObjectWidget.__init__(self)
-		self.set_has_cursor(True)
-		self.buffer = buffer
+	def _init_view(self):
 		self.buffer.object_attrib.connect('changed', self.on_attrib_changed)
 
 		self.view = GtkSource.View()
@@ -202,7 +199,7 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_right_margin_position(80)
 		self.view.set_show_right_margin(True)
 		self.view.set_tab_width(4)
-		self.view.set_show_line_numbers(buffer.object_attrib['linenumbers'])
+		self.view.set_show_line_numbers(self.buffer.object_attrib['linenumbers'])
 
 		# simple toolbar
 		#~ bar = Gtk.HBox() # FIXME: use Gtk.Toolbar stuff
@@ -227,17 +224,14 @@ class SourceViewWidget(TextViewWidget):
 			#~ self.show_line_numbers(True, False)
 		#~ line_numbers.connect('toggled', self.on_line_numbers_toggled)
 		#~ bar.pack_start(line_numbers, False, False)
+		#~ self.add_header(bar)
 
 		# TODO: other toolbar options
 		# TODO: autohide toolbar if textbuffer is not active
 
-		# Pack everything
-		#~ self.add_header(bar)
 		win = ScrolledWindow(self.view, Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER, Gtk.ShadowType.NONE)
 		self.add(win)
 
-		# Hook up signals
-		self._init_signals()
 		self.view.connect('populate-popup', self.on_populate_popup)
 
 	def set_preferences(self, preferences):
@@ -279,8 +273,6 @@ class SourceViewWidget(TextViewWidget):
 		menu.prepend(item)
 
 		menu.show_all()
-
-	# TODO: undo(), redo() stuff
 
 
 class InsertCodeBlockDialog(Dialog):

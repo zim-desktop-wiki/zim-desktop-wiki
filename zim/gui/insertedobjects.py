@@ -115,6 +115,10 @@ class InsertedObjectWidget(Gtk.EventBox):
 		if Gdk.Event.triggers_context_menu(event) \
 			and event.type == Gdk.EventType.BUTTON_PRESS:
 				self._do_popup_menu(event)
+		return True # Prevent propagating event to parent textview
+
+	def do_button_release_event(self, event):
+		return True # Prevent propagating event to parent textview
 
 	def do_popup_menu(self):
 		# See https://developer.gnome.org/gtk3/stable/gtk-migrating-checklist.html#checklist-popup-menu
@@ -152,14 +156,15 @@ class TextViewWidget(InsertedObjectWidget):
 		InsertedObjectWidget.__init__(self)
 		self.set_has_cursor(True)
 		self.buffer = buffer
+		self._init_view()
+		self._init_signals()
 
+	def _init_view(self):
 		win, self.view = ScrolledTextView(monospace=True,
 			hpolicy=Gtk.PolicyType.AUTOMATIC, vpolicy=Gtk.PolicyType.NEVER, shadow=Gtk.ShadowType.NONE)
-		self.view.set_buffer(buffer)
+		self.view.set_buffer(self.buffer)
 		self.view.set_editable(True)
 		self.add(win)
-
-		self._init_signals()
 
 	def _init_signals(self):
 		# Hook up integration with pageview cursor movement
