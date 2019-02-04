@@ -147,7 +147,7 @@ else:
 	_bufferclass = object # avoid import error
 
 
-class SourceViewBuffer(GtkSource.Buffer):
+class SourceViewBuffer(_bufferclass):
 
 	def __init__(self, attrib, text):
 		GtkSource.Buffer.__init__(self)
