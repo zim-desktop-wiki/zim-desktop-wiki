@@ -550,6 +550,31 @@ class TestNotebookCaseInsensitiveFileSystem(TestNotebook):
 		self.assertEqual(file2.read(), 'TEST 123')
 
 
+@tests.slowTest
+class TestEndOfLine(tests.TestCase):
+
+	def _test_eol(self, eol, literal_eol):
+		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		config = NotebookConfig(dir.file('notebook.zim'))
+		config['Notebook']['endofline'] = eol
+		config.write()
+
+		notebook, x = build_notebook(dir)
+		page = notebook.get_page(Path('Test'))
+		page.parse('wiki', 'test 123\n456\n')
+		notebook.store_page(page)
+
+		with open(page.source_file.path, 'rb') as fh:
+			text = fh.read()
+			self.assertTrue(text.endswith(literal_eol))
+
+	def testUnix(self):
+		self._test_eol('unix', b'\n')
+
+	def testWindows(self):
+		self._test_eol('dos', b'\r\n')
+
+
 class DeadLinks(object):
 
 	def __init__(self, notebook):

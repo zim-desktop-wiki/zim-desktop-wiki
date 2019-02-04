@@ -80,7 +80,7 @@ class FilesLayout(NotebookLayout):
 		'''
 		assert isinstance(folder, Folder)
 		self.root = folder
-		self.endofline = _EOL
+		self.endofline = endofline
 
 	def map_page(self, pagename):
 		'''Map a pagename to a (default) file
