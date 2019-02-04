@@ -1609,10 +1609,13 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			with self.user_action:
 				start, end = self.get_selection_bounds()
-				if name == 'code':
-					text = start.get_text(end)
-					if '\n' in text:
+				if name == 'code' and start.starts_line() \
+					and end.get_line() != start.get_line():
 						name = 'pre'
+						tag = self.get_tag_table().lookup('style-' + name)
+						if not self.whole_range_has_tag(tag, start, end):
+							start, end = self._fix_pre_selection(start, end)
+
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
 				self.remove_textstyle_tags(start, end)
@@ -1621,6 +1624,29 @@ class TextBuffer(Gtk.TextBuffer):
 				self.set_modified(True)
 
 			self.update_editmode()
+
+	def _fix_pre_selection(self, start, end):
+		# This method converts indent back into TAB before a region is
+		# formatted as "pre"
+		start_mark = self.create_mark(None, start, True)
+		end_mark = self.create_mark(None, end, True)
+
+		lines = range(*sorted([start.get_line(), end.get_line()+1]))
+		min_indent = min(self.get_indent(line) for line in lines)
+
+		for line in lines:
+			indent = self.get_indent(line)
+			if indent > min_indent:
+				self.set_indent(line, min_indent)
+				n_tabs = indent - min_indent
+				iter = self.get_iter_at_line(line)
+				self.insert(iter, "\t"*n_tabs)
+
+		start = self.get_iter_at_mark(start_mark)
+		end = self.get_iter_at_mark(end_mark)
+		self.delete_mark(start_mark)
+		self.delete_mark(end_mark)
+		return start, end
 
 	def whole_range_has_tag(self, tag, start, end):
 		'''Check if a certain TextTag is applied to the whole range or

@@ -521,6 +521,31 @@ aaa <link href="xxx">bbb</link> ccc
 		self.assertEqual(data['href'], 'xxx')
 		self.assertEqual(buffer.get_has_link_selection(), data)
 
+	def testToggleTextStylePre(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tests.new_parsetree_from_xml('''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>A
+<div indent="1">B
+</div>C
+<div indent="1">D
+</div></p></zim-tree>
+'''))
+		start, end = buffer.get_bounds()
+		buffer.select_range(start, end)
+		buffer.toggle_textstyle('code')
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><pre>A
+	B
+C
+	D
+</pre></zim-tree>''')
+
 
 class TestUndoStackManager(tests.TestCase):
 
