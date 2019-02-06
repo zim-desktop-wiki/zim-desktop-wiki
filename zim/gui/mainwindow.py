@@ -186,6 +186,10 @@ class MainWindow(Window):
 
 		# setup uistate
 		self.uistate = notebook.state['MainWindow']
+		self.uistate.setdefault('windowpos', None, check=value_is_coord)
+		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
+		self.uistate.setdefault('windowmaximized', False)
+
 		self.history = History(notebook, notebook.state)
 
 		# init uimanager
@@ -584,15 +588,13 @@ class MainWindow(Window):
 
 		if not self._geometry_set:
 			# Ignore this if an explicit geometry was specified to the constructor
-			self.uistate.setdefault('windowpos', None, check=value_is_coord)
 			if self.uistate['windowpos'] is not None:
 				x, y = self.uistate['windowpos']
 				self.move(x, y)
-			self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
+
 			w, h = self.uistate['windowsize']
 			self.set_default_size(w, h)
 
-			self.uistate.setdefault('windowmaximized', False)
 			if self.uistate['windowmaximized']:
 				self.maximize()
 
