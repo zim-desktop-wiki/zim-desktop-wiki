@@ -142,10 +142,12 @@ class TestPlugins(tests.TestCase):
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
-		self.assertGreaterEqual(len(notebook.__zim_extension_objects__), 3)
+		self.assertGreaterEqual(len(notebook.__zim_extension_objects__), 2)
+			# At least journal and tasklist should load
 
 		mainwindow = setUpMainWindow(notebook, plugins=manager)
 		self.assertGreaterEqual(len(mainwindow.pageview.__zim_extension_objects__), 3)
+			# enough plugins without dependencies here
 
 		for i, name in enumerate(manager):
 			manager[name].preferences.emit('changed')
