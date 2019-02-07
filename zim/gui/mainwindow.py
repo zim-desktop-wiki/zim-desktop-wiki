@@ -189,6 +189,11 @@ class MainWindow(Window):
 		self.uistate.setdefault('windowpos', None, check=value_is_coord)
 		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 		self.uistate.setdefault('windowmaximized', False)
+		self.uistate.setdefault('active_tabs', None, tuple)
+		self.uistate.setdefault('show_menubar', True)
+		self.uistate.setdefault('show_toolbar', True)
+		self.uistate.setdefault('show_statusbar', True)
+		self.uistate.setdefault('readonly', False)
 
 		self.history = History(notebook, notebook.state)
 
@@ -598,11 +603,6 @@ class MainWindow(Window):
 			if self.uistate['windowmaximized']:
 				self.maximize()
 
-		self.uistate.setdefault('active_tabs', None, tuple)
-		self.uistate.setdefault('show_menubar', True)
-		self.uistate.setdefault('show_toolbar', True)
-		self.uistate.setdefault('show_statusbar', True)
-
 		# For these two "None" means system default, but we don't know what that default is :(
 		self.preferences.setdefault('toolbar_style', None,
 			(TOOLBAR_ICONS_ONLY, TOOLBAR_ICONS_AND_TEXT, TOOLBAR_TEXT_ONLY))
@@ -623,7 +623,6 @@ class MainWindow(Window):
 
 		self.toggle_fullscreen(self._set_fullscreen)
 
-		self.uistate.setdefault('readonly', False)
 		if self.notebook.readonly:
 			self.toggle_editable(False)
 			action = self.actiongroup.get_action('toggle_editable')
