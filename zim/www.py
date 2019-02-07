@@ -152,13 +152,16 @@ class WWWInterface(object):
 		headerlist = []
 		headers = Headers(headerlist)
 		path = environ.get('PATH_INFO', '/')
+		path = path.encode('iso-8859-1').decode('UTF-8')
+			# The WSGI standard mandates iso-8859-1, but we want UTF-8. See:
+			# - https://www.python.org/dev/peps/pep-3333/#unicode-issues
+			# - https://code.djangoproject.com/ticket/19468
 		try:
 			methods = ('GET', 'HEAD')
 			if not environ['REQUEST_METHOD'] in methods:
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
 
 			# cleanup path
-			#~ print('INPUT', path)
 			path = path.replace('\\', '/') # make it windows save
 			isdir = path.endswith('/')
 			parts = [p for p in path.split('/') if p and not p == '.']
@@ -168,7 +171,6 @@ class WWWInterface(object):
 			path = '/' + '/'.join(parts)
 			if isdir and not path == '/':
 				path += '/'
-			#~ print('PATH', path)
 
 			if not path:
 				path = '/'
