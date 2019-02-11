@@ -534,7 +534,8 @@ class TaskListTreeView(BrowserTreeView):
 			if tag[0] == prev[0]:
 				self._tags[prev[1]] += self._tags[tag[1]]
 				self._tags.pop(tag[1])
-			prev = tag
+			else:
+				prev = tag
 
 		# Set view
 		self._eval_filter() # keep current selection
