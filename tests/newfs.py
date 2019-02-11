@@ -198,6 +198,11 @@ class TestFilePath(tests.TestCase):
 		f = FilePath.new_from_zim_config('~/foo')
 		self.assertEqual(f.path, FilePath(P('~/foo')).path)
 
+	def testRootPath(self):
+		# Test for corner case in parsing paths
+		f = FilePath('/')
+		self.assertTrue(len(f.path) > 0)
+
 
 class TestFS(object):
 

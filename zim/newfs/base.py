@@ -149,7 +149,7 @@ def _splitnormpath(path, force_rel=False):
 		raise ValueError('path reduces to empty string')
 	elif makeshare:
 		names[0] = '\\\\' + names[0] # UNC host needs leading "\\"
-	elif makeroot and os.name != 'nt' and names[0][0] != '/':
+	elif makeroot and os.name != 'nt' and not names[0].startswith('/'):
 		names[0] = '/' + names[0]
 
 	return tuple(names)
