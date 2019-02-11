@@ -145,7 +145,7 @@ class BackwardImageGeneratorModel(ImageGeneratorModel):
 		self.script_file.write(text)
 		if image_file == self.image_file:
 			pass
-		elif image_file.exists():
+		elif image_file and image_file.exists():
 			image_file.rename(self.image_file)
 		elif self.image_file.exists():
 			self.image_file.remove()
