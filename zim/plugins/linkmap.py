@@ -131,7 +131,7 @@ class LinkMapDialog(Dialog):
 
 		self.xdotview = xdot.DotWidget()
 		self.xdotview.set_filter('fdp')
-		self.xdotview.set_dotcode(linkmap.get_dotcode())
+		self.xdotview.set_dotcode(linkmap.get_dotcode().encode('UTF-8'))
 		self.xdotview.connect('clicked', self.on_node_clicked)
 		hbox.add(self.xdotview)
 
