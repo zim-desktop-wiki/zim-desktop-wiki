@@ -226,26 +226,7 @@ def strfcal(format, date):
 
 
 def strftime(format, date):
-	'''Extended version of strftime that adds a few POSIX codes
-
-	  - C{%u} is replaced by the weekday as a decimal number [1,7], with 1 representing Monday.
-	  - C{%V} is replaced by the week number of the year (Monday as the first day of the week)
-	    as a decimal number [01,53]. If the week containing 1 January has four or more days in
-	    the new year, then it is considered week 1. Otherwise, it is the last week of the
-	    previous year, and the next week is week 1.
-	'''
-	year, week, weekday = date.isocalendar()
-
-	def replacefunc(matchobj):
-		code = matchobj.group(0)
-		if code == '%u':
-			return str(weekday)
-		elif code == '%V':
-			return str(week)
-		else:
-			return code # ignore unsupported codes
-
-	format = re.sub('\%.', replacefunc, format)
+	# TODO: deprecate this function
 	return date.strftime(format)
 
 
