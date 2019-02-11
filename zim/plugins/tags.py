@@ -20,6 +20,7 @@ from zim.notebook.index import IndexNotFoundError
 from zim.notebook.index.pages import PageIndexRecord
 from zim.notebook.index.tags import IS_PAGE, IS_TAG, \
 	TagsView, TaggedPagesTreeModelMixin, TagsTreeModelMixin, IndexTag
+from zim.utils import natural_sort_key
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import LEFT_PANE, PANE_POSITIONS, populate_popup_add_separator, ScrolledWindow, encode_markup_text, \
@@ -416,7 +417,7 @@ class TagCloudWidget(ConnectorMixin, Gtk.TextView):
 			tags = tagview.list_all_tags_by_n_pages()
 
 		if self._alphabetically:
-			tags = sorted(tags, key=lambda t: t.name)
+			tags = sorted(tags, key=lambda t: natural_sort_key(t.name))
 		# else leave sorted by score
 
 		buffer = self.get_buffer()
