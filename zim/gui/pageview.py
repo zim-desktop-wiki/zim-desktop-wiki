@@ -28,6 +28,7 @@ import string
 import zim.datetimetz as datetime
 
 import zim.formats
+import zim.errors
 
 from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
@@ -5735,6 +5736,13 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self.emit_return_first('activate-link', link, hints)
 
 	def do_activate_link(self, link, hints):
+		try:
+			self._do_activate_link(link, hints)
+		except:
+			zim.errors.exception_handler(
+				'Exception during activate-link(%r)' % ((link, hints),))
+
+	def _do_activate_link(self, link, hints):
 		type = link_type(link)
 
 		if type == 'page':
