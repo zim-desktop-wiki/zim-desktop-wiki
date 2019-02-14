@@ -72,9 +72,11 @@ On windows the "msys" environment can be used to install python3 with Gtk and
 run zim from source. See https://www.gtk.org/download/windows.php for detailed
 instructions.
 
-The python-xdg module is not usefull on Windows, so you can skip it.
+Make sure to include the python bindings as well.
 
-Once the dependencies are fulfilled you can run zim directly from the source directory.
+*Note:* after installation the "msys" environment offers a "32" and a "64" bit
+shell. When you installed the "64" packages for Gtk, they will only run from
+the "64" shell.
 
 
 ### Mac OS X
