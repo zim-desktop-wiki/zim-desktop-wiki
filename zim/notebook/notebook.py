@@ -21,13 +21,14 @@ from zim.fs import File, Dir
 from zim.newfs import LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
+from zim.utils import natural_sort_key
 from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
 from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
-from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING
+from .page import Path, Page, HRef, HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 from .index import IndexNotFoundError, LINK_DIR_BACKWARD
 
 DATA_FORMAT_VERSION = (0, 4)
@@ -651,11 +652,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		# check if they would resolve different from the old location
 		seen = set()
 		for link in list(self.links.list_links_section(newtarget)):
-			if link.source.name not in seen \
-			and not (
-				link.target == newtarget
-				or link.target.ischild(newtarget)
-			):
+			if link.source.name not in seen:
 				if link.source == newtarget:
 					oldpath = oldtarget
 				else:
@@ -678,57 +675,68 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				raise zim.formats.VisitorSkip
 
 			href = HRef.new_from_wiki_link(text)
-			if href.rel == HREF_REL_FLOATING:
+			if href.rel == HREF_REL_RELATIVE:
+				raise zim.formats.VisitorSkip
+			elif href.rel == HREF_REL_ABSOLUTE:
+				oldtarget = self.pages.resolve_link(page, href)
+				if oldtarget == oldroot:
+					return self._update_link_tag(elt, page, newroot, href)
+				elif oldtarget.ischild(oldroot):
+					newtarget = newroot + oldtarget.relname(oldroot)
+					return self._update_link_tag(elt, page, newtarget, href)
+				else:
+					raise zim.formats.VisitorSkip
+			else:
+				assert href.rel == HREF_REL_FLOATING
 				newtarget = self.pages.resolve_link(page, href)
 				oldtarget = self.pages.resolve_link(oldpath, href)
 
-				if newtarget != oldtarget:
-					try:
-						update = \
-							newtarget.relname(newroot) != oldtarget.relname(oldroot)
-					except ValueError:
-						update = True
-
-					if update:
-						return self._update_link_tag(elt, page, oldtarget, href)
-
-			raise zim.formats.VisitorSkip
+				if oldtarget == oldroot:
+					return self._update_link_tag(elt, page, newroot, href)
+				elif oldtarget.ischild(oldroot):
+					newtarget = newroot + oldtarget.relname(oldroot)
+					return self._update_link_tag(elt, page, newtarget, href)
+				elif newtarget != oldtarget:
+					# Redirect back to old target
+					return self._update_link_tag(elt, page, oldtarget, href)
+				else:
+					raise zim.formats.VisitorSkip
 
 		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
 		self.store_page(page)
 
-	def _update_links_to_moved_page(self, oldtarget, newtarget):
+	def _update_links_to_moved_page(self, oldroot, newroot):
 		# 1. Check remaining placeholders, update pages causing them
 		seen = set()
 		try:
-			oldtarget = self.pages.lookup_by_pagename(oldtarget)
+			oldroot = self.pages.lookup_by_pagename(oldroot)
 		except IndexNotFoundError:
 			pass
 		else:
-			for link in list(self.links.list_links_section(oldtarget, LINK_DIR_BACKWARD)):
+			for link in list(self.links.list_links_section(oldroot, LINK_DIR_BACKWARD)):
 				if link.source.name not in seen:
 					yield link.source
-					self._move_links_in_page(link.source, oldtarget, newtarget)
+					self._move_links_in_page(link.source, oldroot, newroot)
 					seen.add(link.source.name)
 
 		# 2. Check for links that have anchor of same name as the moved page
 		# and originate from a (grand)child of the parent of the moved page
 		# and no longer resolve to the moved page
-		parent = oldtarget.parent
-		for link in list(self.links.list_floating_links(oldtarget.basename)):
+		parent = oldroot.parent
+		for link in list(self.links.list_floating_links(oldroot.basename)):
 			if link.source.name not in seen \
 			and link.source.ischild(parent) \
 			and not (
-				link.target == newtarget
-				or link.target.ischild(newtarget)
+				link.target == newroot
+				or link.target.ischild(newroot)
 			):
 				yield link.source
-				self._move_links_in_page(link.source, oldtarget, newtarget)
+				self._move_links_in_page(link.source, oldroot, newroot)
 				seen.add(link.source.name)
 
-	def _move_links_in_page(self, path, oldtarget, newtarget):
-		logger.debug('Updating page %s to move link from %s to %s', path, oldtarget, newtarget)
+	def _move_links_in_page(self, path, oldroot, newroot):
+		logger.debug('Updating page %s to move link from %s to %s', path, oldroot, newroot)
 		page = self.get_page(path)
 		tree = page.get_parsetree()
 		if not tree:
@@ -742,32 +750,30 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			href = HRef.new_from_wiki_link(text)
 			target = self.pages.resolve_link(page, href)
 
-			if target == newtarget or target.ischild(newtarget):
+			if target == newroot or target.ischild(newroot):
 				raise zim.formats.VisitorSkip
-
-			elif target == oldtarget:
+			elif target == oldroot:
+				return self._update_link_tag(elt, page, newroot, href)
+			elif target.ischild(oldroot):
+				newtarget = newroot.child(target.relname(oldroot))
 				return self._update_link_tag(elt, page, newtarget, href)
-			elif target.ischild(oldtarget):
-				mynewtarget = newtarget.child(target.relname(oldtarget))
-				return self._update_link_tag(elt, page, mynewtarget, href)
 
 			elif href.rel == HREF_REL_FLOATING \
-			and href.parts()[0] == oldtarget.basename \
-			and page.ischild(oldtarget.parent):
+			and natural_sort_key(href.parts()[0]) == natural_sort_key(oldroot.basename) \
+			and page.ischild(oldroot.parent):
 				targetrecord = self.pages.lookup_by_pagename(target)
-				if not target.ischild(oldtarget.parent) \
+				if not target.ischild(oldroot.parent) \
 				or not targetrecord.exists():
 					# An link that was anchored to the moved page,
 					# but now resolves somewhere higher in the tree
 					# Or a link that no longer resolves
-					if href.names == newtarget.basename:
-						return self._update_link_tag(elt, page, newtarget, href)
+					if len(href.parts()) == 0:
+						return self._update_link_tag(elt, page, newroot, href)
 					else:
-						mynewtarget = newtarget.child(':'.join(href.parts()[1:]))
-						return self._update_link_tag(elt, page, mynewtarget, href)
+						mynewroot = newroot.child(':'.join(href.parts()[1:]))
+						return self._update_link_tag(elt, page, mynewroot, href)
 
-			else:
-				raise zim.formats.VisitorSkip
+			raise zim.formats.VisitorSkip
 
 		tree.replace(zim.formats.LINK, replacefunc)
 		page.set_parsetree(tree)
