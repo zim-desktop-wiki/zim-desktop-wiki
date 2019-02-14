@@ -482,7 +482,7 @@ class ParserGTK(Parser):
         else:
             iter_end = textBuffer.get_iter_at_line(i)
             iter_end.forward_to_line_end()
-            return textBuffer.get_text(iter_start, iter_end)
+            return iter_start.get_text(iter_end)
 
     def writeResult(self, i, textBuffer, start, end, text):
         'Write text in line i of lines from start to end offset.'
