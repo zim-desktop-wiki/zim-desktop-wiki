@@ -40,6 +40,18 @@ class TestSearchRegex(tests.TestCase):
 		self.assertEqual(n, 5)
 
 
+class TestQuery(tests.TestCase):
+
+	def runTest(self):
+		query = Query('Links:Foo')
+		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Foo')])
+
+		query = Query('Links: Foo')
+		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Foo')])
+
+		query = Query('Links:') # edge case, looking for literal occurrence
+		self.assertEqual(query.root, [QueryTerm('contentorname', 'Links:')])
+
 
 class TestSearch(tests.TestCase):
 

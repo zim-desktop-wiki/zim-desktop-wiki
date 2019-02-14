@@ -141,11 +141,15 @@ class Query(object):
 				tokens.append(operators[w.lower()])
 			elif keyword_re.match(w):
 				keyword = keyword_re[1].lower()
-				string = keyword_re[2] or words.pop(0)
-				string = unescape_quoted_string(string)
-				if keyword == 'links':
-					keyword = 'linksfrom'
-				tokens.append(QueryTerm(keyword, string))
+				if not (keyword_re[2] or words):
+					# edge case - something ending in ":" but nothing following
+					tokens.append(QueryTerm('contentorname', keyword_re[1]+":")) # default keyword
+				else:
+					string = keyword_re[2] or words.pop(0)
+					string = unescape_quoted_string(string)
+					if keyword == 'links':
+						keyword = 'linksfrom'
+					tokens.append(QueryTerm(keyword, string))
 			else:
 				w = unescape_quoted_string(w)
 				if tag_re.match(w):
