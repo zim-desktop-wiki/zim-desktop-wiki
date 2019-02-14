@@ -598,6 +598,43 @@ class TestUpdateLinksOnMovePage(tests.TestCase):
 		self.assertDoesLink(notebook, 'B', 'C')
 		self.assertNoDeadLinks(notebook)
 
+	def testRelativeLinkFromChildToChild(self):
+		notebook = self.setUpNotebook(content={
+			'A:Child1': '[[Child2]]',
+			'A:Child2': 'Test123'
+		})
+		self.assertDoesLink(notebook, 'A:Child1', 'A:Child2')
+		notebook.move_page(Path('A'), Path('B'))
+		child = notebook.get_page(Path('B:Child1'))
+		self.assertEqual(child.dump('wiki'), ['[[Child2]]\n'])
+		self.assertDoesLink(notebook, 'B:Child1', 'B:Child2')
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkFromChildToChildViaMovedPage(self):
+		notebook = self.setUpNotebook(content={
+			'A:Child1': '[[A:Child2]]',
+			'A:Child2': 'Test123'
+		})
+		self.assertDoesLink(notebook, 'A:Child1', 'A:Child2')
+		notebook.move_page(Path('A'), Path('B'))
+		child = notebook.get_page(Path('B:Child1'))
+		self.assertEqual(child.dump('wiki'), ['[[Child2]]\n'])
+		self.assertDoesLink(notebook, 'B:Child1', 'B:Child2')
+		self.assertNoDeadLinks(notebook)
+		self.assertNoDeadLinks(notebook)
+
+	def testRelativeLinkFromChildToChildViaAbsolute(self):
+		notebook = self.setUpNotebook(content={
+			'A:Child1': '[[:A:Child2]]',
+			'A:Child2': 'Test123'
+		})
+		self.assertDoesLink(notebook, 'A:Child1', 'A:Child2')
+		notebook.move_page(Path('A'), Path('B'))
+		child = notebook.get_page(Path('B:Child1'))
+		self.assertEqual(child.dump('wiki'), ['[[:B:Child2]]\n'])
+		self.assertDoesLink(notebook, 'B:Child1', 'B:Child2')
+		self.assertNoDeadLinks(notebook)
+
 	def testRelativeLinkOnceRemoved(self):
 		notebook = self.setUpNotebook(content={
 			'A': 'test 123',

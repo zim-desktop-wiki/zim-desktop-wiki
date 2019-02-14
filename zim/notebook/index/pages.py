@@ -338,7 +338,7 @@ class PagesViewInternal(object):
 			try:
 				start_id = self.get_page_id(start)
 			except IndexNotFoundError:
-				relnames.append(start.basename)
+				relnames.insert(0, start.basename)
 				start = start.parent
 			else:
 				break
@@ -358,7 +358,7 @@ class PagesViewInternal(object):
 				keys = map(natural_sort_key, relnames)
 				if anchor_key in keys:
 					i = [c for c, k in enumerate(keys) if k == anchor_key][-1]
-					return (start, start_id, relnames[:i] + href.parts()[1:])
+					return (start, start_id, relnames[:i] + href.parts())
 
 			if ignore_link_placeholders:
 				c = self.db.execute(
