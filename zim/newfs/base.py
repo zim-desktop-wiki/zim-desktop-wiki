@@ -419,15 +419,21 @@ class Folder(FSObjectBase):
 		raise NotImplementedError('This class is not meant to be instantiated directly')
 
 	def __iter__(self):
+		names = self.list_names()
+		return self._object_iter(names, True, True)
+
+	def list_files(self):
+		names = self.list_names()
+		return self._object_iter(names, True, False)
+
+	def list_folders(self):
+		names = self.list_names()
+		return self._object_iter(names, False, True)
+
+	def _object_iter(self, names, showfile, showdir):		
 		raise NotImplementedError
 
 	def list_names(self, include_hidden=False):
-		raise NotImplementedError
-
-	def list_files(self):
-		raise NotImplementedError
-
-	def list_folders(self):
 		raise NotImplementedError
 
 	def walk(self):

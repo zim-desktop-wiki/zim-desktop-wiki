@@ -333,21 +333,10 @@ class MockFolder(MockFSObjectBase, Folder):
 			if self.watcher:
 				self.watcher.emit('created', self)
 
-	def __iter__(self):
+	def _object_iter(self, names, showfile, showdir):
 		children = self._node().data
-		return self._object_iter(children, True, True)
-
-	def list_files(self):
-		children = self._node().data
-		return self._object_iter(children, True, False)
-
-	def list_folders(self):
-		children = self._node().data
-		return self._object_iter(children, False, True)
-
-	def _object_iter(self, children, showfile, showdir):
-		# inner iter to force FileNotFoundError on call instead of first iter call
-		for name, node in sorted(children.items()):
+		for name in names:
+			node = children[name]
 			if node.isdir:
 				if showdir:
 					yield self.folder(name)
@@ -357,7 +346,14 @@ class MockFolder(MockFSObjectBase, Folder):
 
 	def list_names(self, include_hidden=False):
 		children = self._node().data
-		return sorted(children.keys())
+		names = sorted(children.keys())
+
+		if not include_hidden:
+			# Ignore hidden files and tmp files
+			names = [n for n in names
+						if n[0] not in ('.', '~') and n[-1] != '~']
+
+		return names
 
 	def file(self, path):
 		return MockFile(self.get_childpath(path), watcher=self.watcher, _fs=self._fs)

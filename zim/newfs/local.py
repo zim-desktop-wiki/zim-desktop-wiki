@@ -142,18 +142,6 @@ class LocalFolder(LocalFSObjectBase, Folder):
 				if self.watcher:
 					self.watcher.emit('created', self)
 
-	def __iter__(self):
-		names = self.list_names()
-		return self._object_iter(names, True, True)
-
-	def list_files(self):
-		names = self.list_names()
-		return self._object_iter(names, True, False)
-
-	def list_folders(self):
-		names = self.list_names()
-		return self._object_iter(names, False, True)
-
 	def _object_iter(self, names, showfile, showdir):
 		for name in names:
 			path = self.path + _SEP + name

@@ -337,9 +337,11 @@ class MainWindow(Window):
 		otherwise destroys window, which could result in the application
 		closing if there are no other toplevel windows.
 		'''
-		self.hide() # look more responsive
-		self.emit('close')
-		if not self.hideonclose: # XXX
+		if self.hideonclose: # XXX
+			self.save_uistate()
+			self.hide()
+			self.emit('close')
+		else:
 			self.destroy()
 
 	def destroy(self):
@@ -348,13 +350,12 @@ class MainWindow(Window):
 			return # Do not quit if page not saved
 		self.pageview.page.set_ui_object(None) # XXX
 
+		self.save_uistate()
+
 		self.hide() # look more responsive
 		self.notebook.index.stop_background_check()
 		while Gtk.events_pending():
 			Gtk.main_iteration_do(False)
-
-		if self.notebook.state.modified:
-			self.notebook.state.write()
 
 		Window.destroy(self) # gtk destroy & will also emit destroy signal
 
@@ -486,7 +487,7 @@ class MainWindow(Window):
 			self.pageview.grab_focus()
 
 		self._sidepane_autoclose = False
-		Window.save_uistate(self)
+		self.save_uistate()
 
 	def do_set_focus(self, widget):
 		Window.do_set_focus(self, widget)
@@ -680,24 +681,18 @@ class MainWindow(Window):
 
 		Gtk.AccelMap.get().connect('changed', on_accel_map_changed)
 
-		def save_uistate_cb(uistate):
-			if uistate.modified and hasattr(uistate, 'write'):
-				# XXX: write check can be removed with proper MockFile backend for tests
-				uistate.write()
-			# else ignore silently
-
-		delayed_save_uistate_cb = DelayedCallback(2000, save_uistate_cb) # 2 sec
-		self.uistate.connect('changed', delayed_save_uistate_cb)
-
 		self.do_update_statusbar()
 
 	def save_uistate(self):
-		if not self.isfullscreen:
+		if self.is_visible() and not self.isfullscreen:
 			self.uistate['windowpos'] = tuple(self.get_position())
 			self.uistate['windowsize'] = tuple(self.get_size())
 			self.uistate['windowmaximized'] = self.maximized
 
 		Window.save_uistate(self) # takes care of sidepane positions etc.
+
+		if self.notebook.state.modified:
+			self.notebook.state.write()
 
 	def on_notebook_properties_changed(self, properties):
 		self.set_title(self.notebook.name + ' - Zim')
