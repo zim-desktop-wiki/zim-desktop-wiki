@@ -643,19 +643,19 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			self.index.file_moved(old, new)
 
 
-	def _update_links_in_moved_page(self, oldtarget, newtarget):
+	def _update_links_in_moved_page(self, oldroot, newroot):
 		# Find (floating) links that originate from the moved page
 		# check if they would resolve different from the old location
 		seen = set()
-		for link in list(self.links.list_links_section(newtarget)):
+		for link in list(self.links.list_links_section(newroot)):
 			if link.source.name not in seen:
-				if link.source == newtarget:
-					oldpath = oldtarget
+				if link.source == newroot:
+					oldpath = oldroot
 				else:
-					oldpath = oldtarget + link.source.relname(newtarget)
+					oldpath = oldroot + link.source.relname(newroot)
 
 				yield link.source
-				self._update_moved_page(link.source, oldpath, newtarget, oldtarget)
+				self._update_moved_page(link.source, oldpath, newroot, oldroot)
 				seen.add(link.source.name)
 
 	def _update_moved_page(self, path, oldpath, newroot, oldroot):
@@ -663,7 +663,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		page = self.get_page(path)
 		tree = page.get_parsetree()
 		if not tree:
-			return 0
+			return
 
 		def replacefunc(elt):
 			text = elt.attrib['href']
@@ -690,8 +690,12 @@ class Notebook(ConnectorMixin, SignalEmitter):
 				if oldtarget == oldroot:
 					return self._update_link_tag(elt, page, newroot, href)
 				elif oldtarget.ischild(oldroot):
-					newtarget = newroot + oldtarget.relname(oldroot)
-					return self._update_link_tag(elt, page, newtarget, href)
+					oldanchor = self.pages.resolve_link(oldpath, HRef(HREF_REL_FLOATING, href.parts()[0]))
+					if oldanchor.ischild(oldroot):
+						raise zim.formats.VisitorSkip # oldtarget cannot be trusted
+					else:
+						newtarget = newroot + oldtarget.relname(oldroot)
+						return self._update_link_tag(elt, page, newtarget, href)
 				elif newtarget != oldtarget:
 					# Redirect back to old target
 					return self._update_link_tag(elt, page, oldtarget, href)
@@ -736,7 +740,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		page = self.get_page(path)
 		tree = page.get_parsetree()
 		if not tree:
-			return 0
+			return
 
 		def replacefunc(elt):
 			text = elt.attrib['href']
@@ -746,9 +750,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			href = HRef.new_from_wiki_link(text)
 			target = self.pages.resolve_link(page, href)
 
-			if target == newroot or target.ischild(newroot):
-				raise zim.formats.VisitorSkip
-			elif target == oldroot:
+			if target == oldroot:
 				return self._update_link_tag(elt, page, newroot, href)
 			elif target.ischild(oldroot):
 				newtarget = newroot.child(target.relname(oldroot))
@@ -763,7 +765,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 					# An link that was anchored to the moved page,
 					# but now resolves somewhere higher in the tree
 					# Or a link that no longer resolves
-					if len(href.parts()) == 0:
+					if len(href.parts()) == 1:
 						return self._update_link_tag(elt, page, newroot, href)
 					else:
 						mynewroot = newroot.child(':'.join(href.parts()[1:]))

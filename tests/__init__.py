@@ -342,7 +342,7 @@ class TestCase(unittest.TestCase):
 					'Wiki-Format: %s\n'
 					'Creation-Date: %s\n\n'
 				) % (WIKI_FORMAT_VERSION, datetime.datetime.now().isoformat())
-				+ text + '\n'
+				+ text
 			)
 
 		notebook.index.check_and_update()
