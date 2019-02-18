@@ -4,6 +4,9 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+=== 0.69.1 - Mon 18 Feb 2019 ===
+* Critical fix for updating links on move page and rename page
+
 === 0.69 - Sun 16 Dec 2018 ===
 * Performance improvements for indexing large notebooks
 * Performance improvement for auto-completion of page names in dialogs
