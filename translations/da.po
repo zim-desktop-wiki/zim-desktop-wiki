@@ -16,8 +16,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-01-27 11:40+0000\n"
-"X-Generator: Launchpad (build 18857)\n"
+"X-Launchpad-Export-Date: 2019-02-18 13:12+0000\n"
+"X-Generator: Launchpad (build 18878)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:61

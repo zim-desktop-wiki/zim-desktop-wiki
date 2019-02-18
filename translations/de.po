@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-01-14 16:07+0100\n"
-"PO-Revision-Date: 2018-01-18 08:41+0000\n"
-"Last-Translator: Murat Güven <muratg@online.de>\n"
+"PO-Revision-Date: 2019-02-11 10:57+0000\n"
+"Last-Translator: sojusnik <Unknown>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-01-27 11:41+0000\n"
-"X-Generator: Launchpad (build 18857)\n"
+"X-Launchpad-Export-Date: 2019-02-18 13:12+0000\n"
+"X-Generator: Launchpad (build 18878)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:61
@@ -297,7 +297,7 @@ msgstr "Notizbuch wird exportiert"
 #: zim/gui/exportdialog.py:141
 #, python-format
 msgid "Folder exists: %s"
-msgstr "Ordner besteht bereits: %s"
+msgstr "Verzeichnis besteht bereits: %s"
 
 #. detailed message, answers are Yes and No
 #: zim/gui/exportdialog.py:142
@@ -458,28 +458,28 @@ msgstr "_Protokoll anzeigen"
 #: zim/gui/insertedobjects.py:267
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "Kein Plugin verfügbar, um Objekte vom Typ anzuzeigen: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:275
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "Plugin \"%s\" ist erforderlich, um dieses Objekt anzuzeigen"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:279
 msgid "Enable plugin"
-msgstr ""
+msgstr "Plugin aktivieren"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:312
 msgid "Unkown Object"
-msgstr ""
+msgstr "Unbekanntes Objekt"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:351
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Unbekanntes Bildformat"
 
 #. Menu title
 #: zim/gui/mainwindow.py:48
@@ -700,7 +700,7 @@ msgstr "Gehe zu"
 #. Button label
 #: zim/gui/mainwindow.py:980
 msgid "_Jump"
-msgstr ""
+msgstr "_Gehe zu"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:985
@@ -723,12 +723,12 @@ msgstr "Notizbuch öffnen"
 #. Button label
 #: zim/gui/notebookdialog.py:327
 msgid "_Add"
-msgstr ""
+msgstr "_Hinzufügen"
 
 #. Button label
 #: zim/gui/notebookdialog.py:331 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_Entfernen"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:347
@@ -968,7 +968,7 @@ msgstr ""
 #: zim/gui/pageview.py:4851 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:851
 #: zim/gui/widgets.py:83
 msgid "_Cancel"
-msgstr ""
+msgstr "_Abbrechen"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:4856
@@ -1578,6 +1578,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
+"Dieses Plugin hat auch Eigenschaften,\n"
+"siehe Abschnitt in den Eigenschaften des Notizbuchs"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:440
@@ -1597,7 +1599,7 @@ msgstr "Startseite"
 #. label for properties dialog
 #: zim/gui/propertiesdialog.py:19
 msgid "Document Root"
-msgstr "Zim-Startverzeichnis"
+msgstr "Wurzelverzeichnis"
 
 #. Dialog title
 #: zim/gui/propertiesdialog.py:27
@@ -1627,7 +1629,7 @@ msgstr "Zuletzt geändert"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_Finden"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1814,7 +1816,7 @@ msgstr "Diese Seite hat kein Verzeichnis für Anhänge"
 #. Menu item
 #: zim/gui/uiactions.py:333
 msgid "Open _Notebook Folder"
-msgstr "N_otizbuchverzeichnis öffnen"
+msgstr "_Notizbuchverzeichnis öffnen"
 
 #. Menu item
 #: zim/gui/uiactions.py:338
@@ -1824,7 +1826,7 @@ msgstr "_Dokumentverzeichnis öffnen"
 #. Error message
 #: zim/gui/uiactions.py:344
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "Für dieses Notizbuch ist kein Wurzelverzeichnis definiert"
 
 #. Menu item
 #: zim/gui/uiactions.py:350
@@ -2025,7 +2027,7 @@ msgstr "Überschreiben"
 #. Button label
 #: zim/gui/uiactions.py:852 zim/gui/widgets.py:84
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:896
@@ -2147,7 +2149,7 @@ msgstr "Bilder"
 #: zim/gui/widgets.py:3655
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} von {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3677
@@ -2202,7 +2204,7 @@ msgstr "Export des gesamten Notizbuchs benötigt Ausgabeverzeichnis"
 #. Title of progressbar dialog
 #: zim/notebook/index/__init__.py:409
 msgid "Updating index"
-msgstr "Index wird aktualisiert …"
+msgstr "Index wird aktualisiert"
 
 #. message for PageNotFoundError
 #: zim/notebook/notebook.py:119
@@ -2338,8 +2340,8 @@ msgstr "Dateianhänge"
 #, python-format
 msgid "%i Attachment"
 msgid_plural "%i Attachments"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%i Anhang"
+msgstr[1] "%i Anhänge"
 
 #. plugin name
 #: zim/plugins/backlinkpane.py:22
@@ -2365,13 +2367,13 @@ msgstr "RückLinks"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:258
 msgid "_Edit..."
-msgstr ""
+msgstr "_Bearbeiten..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:286
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "%s bearbeiten"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:311
@@ -2491,7 +2493,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/diagrameditor.py:39
 msgid "Diagram"
-msgstr ""
+msgstr "Diagramm"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
@@ -2530,7 +2532,7 @@ msgstr "Maximale Seitenbreite"
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Border width"
-msgstr ""
+msgstr "Rahmenbreite"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:41
@@ -2560,7 +2562,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "Ascii-Diagramm (Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:23
@@ -2581,7 +2583,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/equationeditor.py:44
 msgid "Equation"
-msgstr ""
+msgstr "Formel"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
@@ -2615,7 +2617,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:52
 msgid "GNU R Plot"
-msgstr ""
+msgstr "GNU R Plot"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -2718,7 +2720,7 @@ msgstr "Jahr"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr ""
+msgstr "Tagebuch-Leiste ausblenden, wenn leer"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/journal.py:122
@@ -2754,7 +2756,7 @@ msgstr ""
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:40
 msgid "Please select more than one line of text"
-msgstr ""
+msgstr "Bitte wählen Sie mehr als eine Textzeile aus"
 
 #. menu item
 #: zim/plugins/linesorter.py:70
@@ -2807,12 +2809,12 @@ msgstr ""
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:49
 msgid "Page Index"
-msgstr ""
+msgstr "Seitenverzeichnis"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:50
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr ""
+msgstr "Dieses Plugin fügt dem Hauptfenster ein Seitenverzeichnis hinzu.\n"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:111 data/templates/html/Default.html:52
@@ -2820,12 +2822,12 @@ msgstr ""
 #: data/templates/html/Default_with_index.html:61
 #: data/templates/html/Default_with_index.html:63
 msgid "Index"
-msgstr "Index"
+msgstr "Seiten"
 
 #. plugin name
 #: zim/plugins/pathbar.py:30
 msgid "Path Bar"
-msgstr ""
+msgstr "Pfadleiste"
 
 #. plugin description
 #: zim/plugins/pathbar.py:31
@@ -2834,6 +2836,10 @@ msgid ""
 "This \"path bar\" can show the noteobok path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Dieses Plugin fügt eine Pfadleiste im oberen Bereich des Hauptfensters "
+"hinzu.\n"
+"Diese Pfadleiste kann den Pfad der aktuellen Seite,\n"
+"der zuletzt besuchten oder bearbeiteten Seiten anzeigen.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -2895,7 +2901,7 @@ msgstr "_Druck in HTML-Datei"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "_Drucken"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -3392,7 +3398,7 @@ msgstr "Inhalt"
 #: zim/plugins/tags.py:37 zim/plugins/tags.py:81
 #: zim/plugins/tasklist/gui.py:227
 msgid "Tags"
-msgstr "Schlagworte"
+msgstr "Tags"
 
 #. plugin description
 #: zim/plugins/tags.py:38
@@ -3400,8 +3406,8 @@ msgid ""
 "This plugin provides a page index filtered by means of selecting tags in a "
 "cloud.\n"
 msgstr ""
-"Dieses Plugin unterstützt eine im Verhältnis stehende Seitenindexfilterung "
-"von ausgewählten Schlagwörtern in einer Wolke\n"
+"Dieses Plugin erzeugt ein Seitenverzeichnis, das mithilfe einer Tag-Wolke "
+"gefiltert werden kann.\n"
 
 #. menu option
 #: zim/plugins/tags.py:136
@@ -3411,7 +3417,7 @@ msgstr "Vollständigen Seitennamen anzeigen"
 #. menu option
 #: zim/plugins/tags.py:141
 msgid "Sort pages by tags"
-msgstr "Sortiere Seiten nach Schlagworten"
+msgstr "Sortiere Seiten nach Tags"
 
 #. Context menu item for tag cloud
 #: zim/plugins/tags.py:437
@@ -3539,7 +3545,7 @@ msgstr "als Fälligkeitsdatum für Aufgaben"
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:69
 msgid "Section(s) to index"
-msgstr "Abschnitte indizieren"
+msgstr "Abschnitt(e) indizieren"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:71
@@ -3549,12 +3555,12 @@ msgstr "Abschnitte ignorieren"
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:76
 msgid "Tags for non-actionable tasks"
-msgstr "Kennzeichen für Aufgaben, die keine Aktion erfordern"
+msgstr "Tags für Aufgaben, die keine Aktion erfordern"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:78
 msgid "Turn page name into tags for task items"
-msgstr "Seitenname in tags für die Aufgabenliste umwandeln"
+msgstr "Seitenname in Tags für die Aufgabenliste umwandeln"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:80
