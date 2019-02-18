@@ -23,7 +23,7 @@ class TestInsertSymbolPlugin(tests.TestCase):
 	def runTest(self):
 		plugin = PluginManager.load_plugin('insertsymbol')
 
-		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': ''}), path='Test')
+		mainwindow = setUpMainWindow(self.setUpNotebook(content={'Test': '\n'}), path='Test')
 		pageview = mainwindow.pageview
 		textview = pageview.textview
 		buffer = textview.get_buffer()
