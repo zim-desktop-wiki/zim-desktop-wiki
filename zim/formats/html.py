@@ -41,8 +41,8 @@ class Dumper(DumperClass):
 	TAGS = {
 		EMPHASIS: ('<i>', '</i>'),
 		STRONG: ('<b>', '</b>'),
-		MARK: ('<u>', '</u>'),
-		STRIKE: ('<s>', '</s>'),
+		MARK: ('<em>', '</em>'),
+		STRIKE: ('<del>', '</del>'),
 		VERBATIM: ('<tt>', '</tt>'),
 		TAG: ('<span class="zim-tag">', '</span>'),
 		SUBSCRIPT: ('<sub>', '</sub>'),
