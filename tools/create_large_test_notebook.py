@@ -4,8 +4,8 @@ import sys
 import os
 
 if len(sys.argv) != 2:
-	print 'Usage: %s DIRECTORY' % sys.argv[0]
-	sys.exit(1)
+    print 'Usage: %s DIRECTORY' % sys.argv[0]
+    sys.exit(1)
 
 root = sys.argv[1]
 assert not os.path.exists(root), 'Need new directory'
@@ -33,33 +33,33 @@ content += ('la la laaa' * 20 + '\n') * 10
 import random
 
 def random_links(my_depth):
-	links = []
+    links = []
 
-	for n in range(random.randint(0, n_links)):
-		links.append("[[%s]]\n" % random_name(my_depth))
+    for n in range(random.randint(0, n_links)):
+        links.append("[[%s]]\n" % random_name(my_depth))
 
-	if my_depth < depth:
-		for n in range(random.randint(0, n_links)):
-			links.append("[[+%s]]\n" % random_name(my_depth+1))
-	else:
-		for n in range(random.randint(0, n_links)):
-			links.append("[[%s]]\n" % random_name(my_depth-1))
+    if my_depth < depth:
+        for n in range(random.randint(0, n_links)):
+            links.append("[[+%s]]\n" % random_name(my_depth+1))
+    else:
+        for n in range(random.randint(0, n_links)):
+            links.append("[[%s]]\n" % random_name(my_depth-1))
 
-	for n in range(random.randint(0, n_links)):
-		links.append("[[%s]]\n" % random_date_page())
+    for n in range(random.randint(0, n_links)):
+        links.append("[[%s]]\n" % random_date_page())
 
-	return ''.join(links)
+    return ''.join(links)
 
 
 def random_name(depth):
-	i = random.randint(1, width)
-	return name % (depth, i)
+    i = random.randint(1, width)
+    return name % (depth, i)
 
 def random_date_page():
-	year = 2010 + random.randint(0, 8)
-	month = random.randint(1, 12)
-	day = random.randint(1, 30)
-	return ":Date:%i:%i:%i" % (year, month, day)
+    year = 2010 + random.randint(0, 8)
+    month = random.randint(1, 12)
+    day = random.randint(1, 30)
+    return ":Date:%i:%i:%i" % (year, month, day)
 
 
 def populate_level(path, j):
@@ -74,10 +74,10 @@ def populate_level(path, j):
         print '>', file
         fh = open(file, 'w')
         fh.write(content.format(
-			title=myname,
-			links=random_links(j)
-			#links=''
-		))
+                    title=myname,
+                    links=random_links(j)
+                    #links=''
+        ))
         fh.close()
 
         if j < depth:
