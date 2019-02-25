@@ -1,7 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 import os
+import random
 
 if len(sys.argv) != 2:
     sys.exit("Usage: {} DIRECTORY".format(sys.argv[0]))
@@ -29,8 +30,6 @@ Foooo Bar!
 content += ('la la laaa' * 20 + '\n') * 10
 
 
-import random
-
 def random_links(my_depth):
     links = []
 
@@ -54,6 +53,7 @@ def random_name(depth):
     i = random.randint(1, width)
     return name % (depth, i)
 
+
 def random_date_page():
     year = 2010 + random.randint(0, 8)
     month = random.randint(1, 12)
@@ -76,7 +76,7 @@ def populate_level(path, j):
                 content.format(
                     title=myname,
                     links=random_links(j),
-                    #links=''
+                    # links=''
                 )
             )
 
@@ -84,6 +84,7 @@ def populate_level(path, j):
             d += populate_level(path + myname, j + 1)
 
     return d
+
 
 d = populate_level(root, 0)
 f = d * width
