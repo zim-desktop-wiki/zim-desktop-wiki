@@ -4,8 +4,7 @@ import sys
 import os
 
 if len(sys.argv) != 2:
-    print 'Usage: %s DIRECTORY' % sys.argv[0]
-    sys.exit(1)
+    sys.exit("Usage: {} DIRECTORY".format(sys.argv[0]))
 
 root = sys.argv[1]
 assert not os.path.exists(root), 'Need new directory'
@@ -88,5 +87,5 @@ def populate_level(path, j):
 d = populate_level(root, 0)
 f = d * width
 
-print 'Total %i files %i directories' % (f, d)
-print 'Done'
+print("Total {} files {} directories".format(f, d))
+print("Done")
