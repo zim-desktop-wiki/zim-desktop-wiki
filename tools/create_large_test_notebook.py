@@ -69,15 +69,16 @@ def populate_level(path, j):
     for i in range(1, width+1):
         myname = name % (j, i)
 
-        file = path + myname + '.txt'
-        print '>', file
-        fh = open(file, 'w')
-        fh.write(content.format(
+        filename = os.path.join(path, "{}.txt".format(myname))
+        print(">", filename)
+        with open(filename, "w") as notebook:
+            notebook.write(
+                content.format(
                     title=myname,
-                    links=random_links(j)
+                    links=random_links(j),
                     #links=''
-        ))
-        fh.close()
+                )
+            )
 
         if j < depth:
             d += populate_level(path + myname, j + 1)
