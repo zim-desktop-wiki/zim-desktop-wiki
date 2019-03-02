@@ -157,7 +157,7 @@ class WWWInterface(object):
 			# - https://www.python.org/dev/peps/pep-3333/#unicode-issues
 			# - https://code.djangoproject.com/ticket/19468
 		try:
-			methods = ('GET', 'HEAD')
+			methods = ('GET', 'HEAD', 'POST') ##added POST option to also upload to server
 			if not environ['REQUEST_METHOD'] in methods:
 				raise WWWError('405', headers=[('Allow', ', '.join(methods))])
 
@@ -196,6 +196,8 @@ class WWWInterface(object):
 				content = [file.read_binary()]
 					# Will raise FileNotFound when file does not exist
 				headers['Content-Type'] = file.mimetype()
+			elif path.startswith('/+upload/'): ##added upload option to also upload to server
+				logger.debug('Server -  Uploading content')
 			elif path.startswith('/+resources/'):
 				if self.template.resources_dir:
 					file = self.template.resources_dir.file(path[12:])
@@ -261,6 +263,75 @@ class WWWInterface(object):
 			start_response('200 OK', headerlist)
 			if environ['REQUEST_METHOD'] == 'HEAD':
 				return []
+			if environ['REQUEST_METHOD'] == 'POST': #upload files or notes
+				import cgi, os
+				formdata = cgi.FieldStorage(environ=environ, fp=environ['wsgi.input'])
+				reply = ['\n<div>']
+
+				pth=self.notebook.layout.root.path
+				print(pth)
+				dirname = pth+'/Staging/'
+				notename = pth+'/Staging.txt'
+				filename = formdata['newfile'].filename
+
+				if not os.path.isdir(dirname):
+					os.mkdir(dirname)
+					os.chmod(dirname, 0o774)
+
+				if not os.path.exists(notename):
+					os.umask(0o664)
+					f = open(notename,'w+')
+					os.chmod(notename,0o664)
+					f.write('Staging repository')
+					f.close()
+
+				def checkname(tgt): #find next free name
+					tgt0, ext = os.path.splitext(tgt)
+					tgt1 = tgt0
+					k = 0
+					while os.path.exists(tgt1+ext):
+						tgt1 = tgt0 + str(k)
+						k += 1
+					return(tgt1+ext)
+
+
+				#FIXME: refresh page on post
+				#Save note to /Staging
+				if 'comment' in formdata and len(formdata['comment'].value)>=0:
+					fname = formdata['filename'].value if 'filename' in formdata and len(formdata['filename'].value) > 0 else 'note.txt'
+					if fname[-4:] != '.txt':
+						fname = os.path.splitext(fname)[0]+'.txt'
+					fname=fname.replace(' ','_')
+					#target = checkname(dirname+fname)
+					target = dirname+fname
+					logger.debug('Server - target is '+target)
+					f = open(target, 'wb')
+					os.chmod(target, 0o664)
+					f.write(formdata['comment'].value.encode())
+					f.close()
+					self.notebook.index.update_file(self.notebook.layout.root.file('Staging/'+fname))
+					reply.append('File '+str(os.path.basename(target))+' in Staging was written with contents \n\n'+formdata['comment'].value)
+					adir, ext = os.path.splitext(fname)
+
+					#Save file to /Staging
+					if 'newfile' in formdata and formdata['newfile'].filename != '':
+						if not os.path.isdir(dirname+'/'+adir):
+							os.mkdir(dirname+'/'+adir)
+							os.chmod(dirname, 0o774)
+						logger.debug('Server - uploading file')
+						target = checkname(os.path.join(dirname+'/'+adir, filename))
+						f = open(target, 'wb')
+						os.chmod(target, 0o664)
+						f.write(formdata['newfile'].file.read())
+						f.close()
+						reply.append('Upload ready.\nFile stored with name '+filename+' under page Staging')
+				#reply.append('</div>\n<a href="/" onclick="history.go(-1)">Go Back</a>')
+				#return [''.join(reply).encode()]
+				#reply.append('<meta http-equiv="refresh" >')
+				reply.append('<meta http-equiv="refresh" content="0; url=/Staging/'+fname.replace('.txt','.html')+'" >')
+				return [s.encode() for s in reply]
+			elif 'utf-8' in headers['Content-Type']:
+				return [string.encode('utf-8') for string in content]
 			elif content and isinstance(content[0], str):
 				return [c.encode('UTF-8') for c in content]
 			else:
@@ -328,6 +399,8 @@ class WWWLinker(ExportLinker):
 		if file.ischild(self.notebook.folder):
 			# attachment
 			relpath = file.relpath(self.notebook.folder)
+			print(relpath)
+			print(self.notebook.folder)
 			return url_encode('/+file/' + relpath)
 		elif self.notebook.document_root \
 		and file.ischild(self.notebook.document_root):
@@ -357,7 +430,14 @@ def make_server(notebook, port=8080, public=True, **opts):
 	@returns: a C{WSGIServer} object
 	'''
 	import wsgiref.simple_server
+	import os
 	app = WWWInterface(notebook, **opts) # FIXME make opts explicit
+	#To use authentication install wsgi-basic-auth
+	from wsgi_basic_auth import BasicAuth
+	if not 'WSGI_AUTH_CREDENTIALS' in os.environ:
+		logger.warning('WSGI_AUTH_CREDENTIALS undefined - no authentication enforced. To enable set environment variable WSGI_AUTH_CREDENTIALS="usr1:pwd1|usr2:pwd2"')
+	app = BasicAuth(app)
+	#app = BasicAuth(app,users={"foo" : "bar", "fig" : "bbb"})
 	if public:
 		httpd = wsgiref.simple_server.make_server('', port, app)
 	else:
