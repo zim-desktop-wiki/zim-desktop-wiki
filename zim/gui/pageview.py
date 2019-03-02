@@ -15,6 +15,8 @@ L{TextView}.
 
 
 
+from zim.newfs.helpers import FSObjectMonitor
+
 import logging
 
 from gi.repository import GObject
@@ -30,6 +32,7 @@ import zim.datetimetz as datetime
 import zim.formats
 import zim.errors
 
+from zim.newfs import FileChangedError
 from zim.fs import File, Dir, normalize_file_uris, FilePath, adapt_from_newfs
 from zim.errors import Error
 from zim.config import String, Float, Integer, Boolean, Choice, ConfigManager
@@ -4794,10 +4797,26 @@ class SavePageHandler(object):
 					logger.debug('Saving page: %s', page)
 					#~ assert False, "TEST"
 					self.notebook.store_page(page)
-
-				except Exception as error:
-					logger.exception('Failed to save page: %s', page.name)
-					SavePageErrorDialog(self.pageview, error, page, dialog_timeout).run()
+				except zim.newfs.FileChangedError as error: #Catch case where file has been changed
+				####except Exception as error:
+					####logger.exception('Failed to save page: %s', page.name)
+					####SavePageErrorDialog(self.pageview, error, page, dialog_timeout).run()
+					logger.debug('Failed to save page: %s', page.name)
+					#logger.exception('Failed to save page: %s', page.name)
+					#if self.pageview.page._automerge:
+					if page._automerge:
+						#self.pageview.page._refresh_view_merge_changes()
+						page._refresh_view_merge_changes()
+					else:
+						if self.pageview.spErr is not None:
+							#self.spErr.tv.get_buffer().set_text(''.join(self.pageview.page.get_merged_text()[0]))
+							self.spErr.tv.get_buffer().set_text(''.join(page.get_merged_text()[0]))
+						else:
+							#SavePageErrorDialog(self.pageview, error, self.pageview.page, True)
+							SavePageErrorDialog(self.pageview, error, page, dialog_timeout)
+							self.pageview.spErr.run()
+							self.pageview.spErr = None
+					self.notebook.store_page(page) #retry - now it should be possible to save
 
 	def try_save_page(self):
 		'''Try to save the page
@@ -4852,14 +4871,20 @@ class SavePageErrorDialog(ErrorDialog):
 	'''
 
 	def __init__(self, pageview, error, page, timeout=False):
-		msg = _('Could not save page: %s') % page.name
+		#msg = _('Could not save page: %s') % page.name
+		msg = _('Page %s modified externally') % page.name
 			# T: Heading of error dialog
 		desc = str(error).strip() \
 				+ '\n\n' \
 				+ _('''\
-To continue you can save a copy of this page or discard
-any changes. If you save a copy changes will be also
-discarded, but you can restore the copy later.''')
+To continue you can choose to discard the externally saved page or the
+buffer, merge the contents on disk and buffer or merge and enable automatic
+merging for this page (until another page is loaded). In addition you can also save a copy of the buffer. If
+you save a copy, changes to buffer will be also discarded, but you can restore the copy later.''')
+#				+ _('''\
+#To continue you can save a copy of this page or discard
+#any changes. If you save a copy changes will be also
+#discarded, but you can restore the copy later.''')
 			# T: text in error dialog when saving page failed
 		ErrorDialog.__init__(self, pageview, (msg, desc), buttons=Gtk.ButtonsType.NONE)
 
@@ -4878,19 +4903,96 @@ discarded, but you can restore the copy later.''')
 		cancel_button = Gtk.Button.new_with_mnemonic(_('_Cancel')) # T: Button label
 		self.add_action_widget(cancel_button, Gtk.ResponseType.CANCEL)
 
-		self._done = False
+		pageview.spErr = self #Store handle to pageview to make updating possible
+		#self.vbox.set_child_packing(self.timer_label, False, False, Gtk.PackType.START, 10)#reduce space use of timer
+		self.vbox.set_child_packing(self.timer_label, False, False, 10, Gtk.PackType.START)#reduce space use of timer
+		self.set_default_size(-1,500)
+		#add a (readonly) textview window to show changes between file versions
+		scrollv = Gtk.ScrolledWindow()
+		self.tv = Gtk.TextView()
+		self.tv.set_editable(False)
 
-		discard_button = Gtk.Button.new_with_mnemonic(_('_Discard Changes'))
+		self.tv.get_buffer().set_text(''.join(page.get_merged_text()[0]))
+
+
+		scrollv.add_with_viewport(self.tv)
+		self.vbox.pack_start(scrollv, True, True, 10)
+		self.set_resizable(True)
+		scrollv.show_all()
+
+		self._done = False
+		#def discard_buffer(self):
+		def discard_buffer():
+			page.set_ui_object(None) # unhook
+			pageview.clear()
+				# issue may be caused in pageview - make sure it unlocks
+			page._parsetree = None # removed cached tree
+			page.modified = False
+			pageview.set_page(page)
+			self._done = True
+			#_done = True
+
+		def discard_disk():
+			logger.debug('allowing to overwrite the file')
+			text, page._last_etag = page.source_file.read_with_etag()
+			#page._store_last_lines(page.format.Dumper().dump(self.get_parsetree(),file_output=True)) #below fix by Irq3000 fixes discard issue
+			page._store_last_lines(page.format.Dumper().dump(page.get_parsetree(),file_output=True))
+			pageview.textview.get_buffer().set_modified(True)
+			self._done = True
+
+		def merge():
+			#define merge option for file conflicts - could this be omitted?
+			logger.debug('trying to merge the updates')
+
+			page._refresh_view_merge_changes()
+			self._done = True
+
+		def merge_all():
+			#define merge option for file conflicts - could this be omitted?
+			logger.debug('trying to merge the conflicting data and setting merge to automatic')
+
+			page._automerge = True
+			page._refresh_view_merge_changes()
+			self._done = True
+
+		def save():
+			from zim.gui import SaveCopyDialog
+			if SaveCopyDialog(self, page=self.page).run():
+				discard_buffer(self)
+
+
+		discard_buffer_button = Gtk.Button.new_with_mnemonic(_('_Discard Buffer'))
 			# T: Button in error dialog
-		discard_button.connect('clicked', lambda o: self.discard())
-		self.add_action_widget(discard_button, Gtk.ResponseType.OK)
+		#discard_buffer_button.connect_object('clicked', discard_buffer, self)
+		discard_buffer_button.connect('clicked', lambda o: discard_buffer())
+		self.add_action_widget(discard_buffer_button, Gtk.ResponseType.OK)
+
+		discard_disk_button = Gtk.Button.new_with_mnemonic(_('_Discard Disk'))
+			# T: Button in error dialog
+		#discard_disk_button.connect_object('clicked', discard_disk, self)
+		discard_disk_button.connect('clicked', lambda o: discard_disk())
+		self.add_action_widget(discard_disk_button, Gtk.ResponseType.OK)
+
+				#Allow trying to merge changes in case of problems or when automatic merge is not in use
+		merge_button = Gtk.Button.new_with_mnemonic(_('_Merge once'))
+			# T: Button in error dialog
+		#merge_button.connect_object('clicked', merge, self)
+		merge_button.connect('clicked', lambda o: merge())
+		self.add_action_widget(merge_button, Gtk.ResponseType.OK)
+
+				#Allow trying to merge changes in case of problems or when automatic merge is not in use
+		merge_all_button = Gtk.Button.new_with_mnemonic(_('_Automerge'))
+			# T: Button in error dialog
+		#merge_all_button.connect_object('clicked', merge_all, self)
+		merge_all_button.connect('clicked', lambda o: merge_all())
+		self.add_action_widget(merge_all_button, Gtk.ResponseType.OK)
 
 		save_button = Gtk.Button.new_with_mnemonic(_('_Save Copy'))
 			# T: Button in error dialog
 		save_button.connect('clicked', lambda o: self.save_copy())
 		self.add_action_widget(save_button, Gtk.ResponseType.OK)
 
-		for button in (cancel_button, discard_button, save_button):
+		for button in (cancel_button, discard_buffer_button, discard_disk_button, merge_button, merge_all_button, save_button):
 			button.set_sensitive(False)
 			button.show()
 
@@ -4903,6 +5005,7 @@ discarded, but you can restore the copy later.''')
 		self.pageview.set_page(self.page)
 		self._done = True
 
+
 	def save_copy(self):
 		from zim.gui.uiactions import SaveCopyDialog
 		if SaveCopyDialog(self, self.pageview.notebook, self.page).run():
@@ -4913,7 +5016,7 @@ discarded, but you can restore the copy later.''')
 
 	def run(self):
 		if self.timeout:
-			self.timer = 5
+			self.timer = 2
 			self.timer_label.set_text('%i sec.' % self.timer)
 			def timer(self):
 				self.timer -= 1
@@ -5152,6 +5255,17 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
+
+		#vars for file monitoring and polling changes
+		self._filemonitor = None
+		self._autoload_timer = None
+		self.spErr = None
+
+		import os, stat #set write permission umask bit of group the same as for the notebook root
+		perms = os.stat(notebook.folder.path).st_mode & stat.S_IWGRP ^ (stat.S_IWGRP | stat.S_IWOTH)
+		#logger.debug('Setting file permission umask to %s from %s', str(oct(perms), notebook.folder.path)
+		os.umask(perms)
+
 
 		## Create search box
 		self.find_bar = FindBar(textview=self.textview)
@@ -5427,6 +5541,52 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 			self.emit('page-changed', self.page)
 
+			#reset + set up file monitor and file polling
+			self._setup_change_monitor()
+			self._poll_file_timer()
+
+	def _setup_change_monitor(self):
+		if self._filemonitor:
+			filemonitor, fileid = self._filemonitor
+			filemonitor.disconnect(fileid)
+		filemonitor = FSObjectMonitor(self.page.source_file, [1])
+		fileid = filemonitor.connect('changed', self._on_file_changed)
+		self._filemonitor = (filemonitor, fileid)
+		#logger.debug('Starting to monitor file %s\n', self.page.source_file)
+
+		#refresh file changes periodically in case filesystem does not support automatic detection
+		#and no other activities triggering refresh are done
+		#TODO: can this be automatically enabled if filemonitor does not work?
+	def _poll_file_timer(self, timeout=5):
+		#reset pre-existing timer
+		if self._autoload_timer is not None:
+			gobject.source_remove(self._autoload_timer)
+			self._autoload_timer = None
+			self._autoload_timer = gobject.timeout_add(
+					timeout*1000, # s -> ms
+					self._on_file_changed
+			)
+
+	#call page functions to handle file modifications. Logic is that file changes (or periodic polling)
+	#triggers an update IFF the buffer has not been changed directly in zim and the file mtime has been changed.
+	#The case where also the buffer has been changed will be handled in the page.py save functions upon (delayed) autosave.
+	def _on_file_changed(self, *a):
+		self._poll_file_timer() #reset poll timer to not block following changes
+		self._setup_change_monitor() #reset file monitor to not block following changes
+		#return True #comment out to enable testing conflicting changes with single computer
+
+		if (not bool(self.page.modified)) and self.page.source_file.exists() and not self.page.source_file.verify_etag(self.page._last_etag):
+			if self.page._automerge :
+				self.page._refresh_view_merge_changes()
+				logger.debug('FILE RELOADED\n')
+			else:
+				if self.spErr is not None: #just update the modification list using pointer to existing dialog
+					self.spErr.tv.get_buffer().set_text(''.join(self.page.get_merged_text()[0]))
+				else:
+					SavePageErrorDialog(self, Error('page changed'), self.page, True)
+					self.spErr.run() #spErr is not None only when this dialog is running here or in saving page
+					self.spErr = None
+
 	def get_page(self):
 		'''Get the current page
 		@returns: the current L{Page} object
@@ -5462,9 +5622,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		even if there are no changes in the widget.
 		'''
 		buffer = self.textview.get_buffer()
-		if write_if_not_modified or buffer.get_modified():
-			self._save_page_handler.save_page_now()
-		self._save_page_handler.wait_for_store_page_async()
+		if write_if_not_modified or buffer.get_modified() or (self.page.source_file.exists() and self.page._last_etag[0] != self.page.source_file.mtime()):
+			buffer = self.textview.get_buffer()
+			if write_if_not_modified or buffer.get_modified():
+				self._save_page_handler.save_page_now()
+			self._save_page_handler.wait_for_store_page_async()
 
 	def clear(self):
 		'''Clear the buffer'''
