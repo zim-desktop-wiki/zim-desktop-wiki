@@ -30,6 +30,21 @@ TEST_MODE_RUN_CB = None
 
 _ENCODING = locale.getpreferredencoding() # FIXME: assume processes to adhere to same preference ...
 
+_FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
+
+def _check_flatpak_host_command():
+	# Detect whether we are running in Flatpak and can call HostCommand
+	if os.path.exists("/.flatpak-info"):
+		try:
+			subprocess.check_call(_FLATPAK_HOSTCOMMAND_PREFIX + ("which", "which"), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+			return True
+		except subprocess.CalledProcessError:
+			pass  # Not privileged to call host command or "which" not found in the host
+		except OSError:
+			pass  # Failed to execute flatpak-spawn
+	return False
+
+_CAN_CALL_FLATPAK_HOST_COMMAND = _check_flatpak_host_command()
 
 def _main_is_frozen():
 	# Detect whether we are running py2exe compiled version
@@ -142,6 +157,12 @@ class Application(object):
 				if os.path.isfile(file) and os.access(file, os.X_OK):
 					return file
 			else:
+				if _CAN_CALL_FLATPAK_HOST_COMMAND:
+					try:
+						file = subprocess.check_output(_FLATPAK_HOSTCOMMAND_PREFIX + ("which", cmd), stderr=subprocess.DEVNULL)
+						return file
+					except subprocess.CalledProcessError:
+						pass
 				return None
 
 	def _cmd(self, args):
@@ -213,13 +234,25 @@ class Application(object):
 				#~ close_fds=True
 			)
 		else:
-			p = subprocess.Popen(argv,
-				cwd=cwd,
-				stdout=open(os.devnull, 'w'),
-				stderr=subprocess.PIPE,
-				bufsize=4096,
-				close_fds=True
-			)
+			try:
+				p = subprocess.Popen(argv,
+					cwd=cwd,
+					stdout=open(os.devnull, 'w'),
+					stderr=subprocess.PIPE,
+					bufsize=4096,
+					close_fds=True
+				)
+			except OSError:
+				if _CAN_CALL_FLATPAK_HOST_COMMAND:
+					p = subprocess.Popen(_FLATPAK_HOSTCOMMAND_PREFIX + argv,
+						cwd=cwd,
+						stdout=open(os.devnull, 'w'),
+						stderr=subprocess.PIPE,
+						bufsize=4096,
+						close_fds=True
+					)
+				else:
+					raise
 		stdout, stderr = p.communicate()
 
 		if not p.returncode == self.STATUS_OK:
@@ -246,7 +279,13 @@ class Application(object):
 		if TEST_MODE:
 			return TEST_MODE_RUN_CB(argv)
 
-		p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		try:
+			p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		except OSError:
+			if _CAN_CALL_FLATPAK_HOST_COMMAND:
+				p = subprocess.Popen(_FLATPAK_HOSTCOMMAND_PREFIX + argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			else:
+				raise
 		if input is None:
 			stdout, stderr = p.communicate()
 		else:
@@ -295,8 +334,15 @@ class Application(object):
 			return None
 
 		try:
-			pid, stdin, stdout, stderr = \
-				GObject.spawn_async(argv, flags=flags, **opts)
+			try:
+				pid, stdin, stdout, stderr = \
+					GObject.spawn_async(argv, flags=flags, **opts)
+			except GObject.GError:
+				if _CAN_CALL_FLATPAK_HOST_COMMAND:
+					pid, stdin, stdout, stderr = \
+						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, **opts)
+				else:
+					raise
 		except GObject.GError:
 			from zim.gui.widgets import ErrorDialog
 			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
