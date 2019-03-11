@@ -66,3 +66,6 @@ Zim is written as a "single user" program, so it is not intended for multiple pe
 ===== I have a useful trick or tip. How can I share it with other users? =====
 You can have a look at the [[http://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
 
+===== Migrating from 0.69 to 0.70 ====
+
+You can define your own shortcuts at ''~/.config/zim/accelmap'' . Since Zim moved to Gtk3, you have to update your keybindigs accordingly (ex: ''<Actions>/MainWindowExtension'' to either ''<Actions>/BookmarksBarMainWindowExtension'' or ''<Actions>/VersionControlMainWindowExtension'' etc. or <Actions>/GtkInterface to either ''<Actions>/UIActions'' or ''<Actions>/GtkInterface/'' etc.). You may just delete the old ''accelmap'' file and let it regenerate.
