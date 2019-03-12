@@ -3825,14 +3825,26 @@ class TextView(Gtk.TextView):
 				return True
 
 	def _post_key_press_event(self, keyval):
-		# Trigger end-of-line and/or end-of-word signals if char was
-		# really inserted by parent class.
-		#
-		# We do it this way because in some cases e.g. a space is not
-		# inserted but is used to select an option in an input mode e.g.
-		# to select between various Chinese characters. See lp:460438
+		'''
+		* Trigger end-of-line and/or end-of-word signals if char was
+		really inserted by parent class.
+
+		We do it this way because in some cases e.g. a space is not
+		inserted but is used to select an option in an input mode e.g.
+		to select between various Chinese characters. See lp:460438
+
+		* When a control key like navigation arrows was hit, check if we hover over a link in order to update the status bar.
+
+		@emits: link-enter
+		@emits: link-leave
+		'''
 
 		if not (keyval in KEYVALS_END_OF_WORD or keyval in KEYVALS_ENTER):
+			if keyval > 60000:  # GDK key syms control keys are that big -> refresh only when a control char like an arrow is hit
+				buffer = self.get_buffer()
+				insert = buffer.get_iter_at_mark(buffer.get_insert())
+				link = buffer.get_link_data(insert)
+				self._set_cursor(CURSOR_LINK if link else CURSOR_TEXT, link)
 			return
 
 		buffer = self.get_buffer()
