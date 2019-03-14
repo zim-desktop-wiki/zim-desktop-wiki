@@ -382,6 +382,15 @@ class SidePaneToC(ToCWidget, WindowSidePaneWidget):
 		self.set_size_request(-1, 200) # Fixed Height
 
 
+class MyEventBox(Gtk.EventBox):
+
+		def do_button_press_event(self, event):
+			return True # Prevent propagating event to parent textview
+
+		def do_button_release_event(self, event):
+			return True # Prevent propagating event to parent textview
+
+
 class FloatingToC(Gtk.VBox, ConnectorMixin):
 
 	# This class does all the work to keep the floating window in
@@ -400,7 +409,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		self.tocwidget = ToCWidget(pageview, ellipsis=False)
 		self.tocwidget.set_shadow_type(Gtk.ShadowType.NONE)
 
-		self._head_event_box = Gtk.EventBox()
+		self._head_event_box = MyEventBox()
 		self._head_event_box.add(self.head)
 		self._head_event_box.connect('button-release-event', self.on_toggle)
 		self._head_event_box.get_style_context().add_class(Gtk.STYLE_CLASS_BACKGROUND)
@@ -416,7 +425,7 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 		# probably because Containers normally don't have their own
 		# gdk window. So would paint directly on background window.
 		self.textview = pageview.textview
-		self._event_box = Gtk.EventBox()
+		self._event_box = MyEventBox()
 		self._event_box.add(self)
 
 		self.textview.add_child_in_window(self._event_box, Gtk.TextWindowType.WIDGET, 0, 0)
