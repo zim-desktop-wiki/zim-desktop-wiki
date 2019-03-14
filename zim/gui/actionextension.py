@@ -43,9 +43,7 @@ class ActionExtensionBase(ExtensionBase):
 	def _uimanager_xml(action, actiongroup, defaultmenu):
 		menuhint = defaultmenu
 		if action.menuhints:
-			if 'accelonly' in action.menuhints:
-				return None
-			elif action.menuhints[0] in \
+			if action.menuhints[0] in \
 				('notebook', 'page', 'edit', 'insert', 'view', 'tools', 'go'):
 					menuhint = action.menuhints[0]
 
