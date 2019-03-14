@@ -16,9 +16,11 @@ from zim.gui.mainwindow import MainWindowExtension
 
 # Try if we are on Ubunutu with app-indicator support
 try:
-	import appindicator
-except ImportError:
-	appindicator = None
+	import gi
+	gi.require_version('AppIndicator', '0.1')
+	from gi.repository import AppIndicator
+except:
+	AppIndicator = None
 
 
 logger = logging.getLogger('zim.plugins.trayicon')
@@ -36,7 +38,7 @@ GLOBAL_TRAYICON = None
 def set_global_trayicon(classic=False):
 	global GLOBAL_TRAYICON
 
-	if appindicator and not classic:
+	if AppIndicator and not classic:
 		cls = AppIndicatorTrayIcon
 	else:
 		cls = StatusIconTrayIcon
@@ -87,7 +89,7 @@ This is a core plugin shipping with zim.
 	@classmethod
 	def check_dependencies(klass):
 		return (True, [
-			('Unity appindicator', bool(appindicator), False),
+			('Unity appindicator', bool(AppIndicator), False),
 		])
 
 	def __init__(self):
@@ -307,13 +309,13 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		global _GLOBAL_INDICATOR
 
 		if not _GLOBAL_INDICATOR:
-			_GLOBAL_INDICATOR = appindicator.Indicator(
+			_GLOBAL_INDICATOR = AppIndicator.Indicator(
 				'zim-desktop-wiki', 'zim',
-				appindicator.CATEGORY_APPLICATION_STATUS
+				AppIndicator.CATEGORY_APPLICATION_STATUS
 			)
 
 		self.appindicator = _GLOBAL_INDICATOR
-		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
+		self.appindicator.set_status(AppIndicator.STATUS_ACTIVE)
 		self.on_notebook_list_changed()
 
 	def on_notebook_list_changed(self): # TODO connect somewhere
@@ -322,5 +324,5 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		self.appindicator.set_menu(menu)
 
 	def destroy(self):
-		self.appindicator.set_status(appindicator.STATUS_PASSIVE)
+		self.appindicator.set_status(AppIndicator.STATUS_PASSIVE)
 		self.emit('destroy')
