@@ -1888,7 +1888,17 @@ class TestPageViewActions(tests.TestCase):
 		buffer.insert_at_cursor('test 123')
 		pageview.save_page()
 		lines = pageview.page.source_file.readlines()
-		self.assertEqual(lines[-1], 'test 123\n') # Other lines are source headings
+		self.assertEqual(lines[-1], 'test 123\n') # Other lines are source headers
+
+	def testSavePageWithHeaderMixup(self):
+		# This is a test for specific error condition where first line of
+		# pageview got interpreted as page header, resulting in crash
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
+		buffer.set_text('a: b\n')
+		pageview.save_page()
+		lines = pageview.page.source_file.readlines()
+		self.assertEqual(lines[-1], 'a: b\n') # Other lines are real source headers
 
 	def testUndoRedo(self):
 		pageview = setUpPageView(self.setUpNotebook())

@@ -469,13 +469,15 @@ class Parser(ParserClass):
 	def __init__(self, version=WIKI_FORMAT_VERSION):
 		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
 
-	def parse(self, input, partial=False):
+	def parse(self, input, partial=False, file_input=False):
 		if not isinstance(input, str):
 			input = ''.join(input)
 
-		meta, backward = None, False
 		if not partial:
 			input = fix_line_end(input)
+
+		meta, backward = None, False
+		if file_input:
 			input, meta = parse_header_lines(input)
 			version = meta.get('Wiki-Format')
 			if version and version not in ('zim 0.26', WIKI_FORMAT_VERSION):
