@@ -48,4 +48,5 @@ For a quick introduction see [[Usage:Getting Started|Getting Started]]
 	* [[Help:Commandline Options|Commandline Options]]
 	* [[Help:Wiki Syntax|Wiki Syntax]]
 	* [[Help:Importing external files|Importing external files]]
+	* [[Help:Migrating to latest version|Migrating to latest version]]
 
