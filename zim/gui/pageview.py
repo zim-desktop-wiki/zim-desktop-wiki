@@ -6964,7 +6964,7 @@ class EditImageDialog(Dialog):
 			if type == 'file':
 				# Try making the path relative
 				linkfile = self.form.widgets['href'].get_file()
-				href = self.notebook.relative_filepath(linkfile, self.page) or linkfile.uri
+				href = self.notebook.relative_filepath(linkfile, self.path) or linkfile.uri
 			attrib['href'] = href
 
 		iter = self.buffer.get_iter_at_offset(self._iter)
