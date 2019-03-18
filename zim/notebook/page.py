@@ -292,12 +292,18 @@ class Path(object):
 		return Path(self.name + ':' + basename)
 
 	def ischild(self, parent):
-		'''Check of this path is a child of a given path
-
+		'''Check whether this path is a child of a given path
 		@param parent: a L{Path} object
 		@returns: True when this path is a (grand-)child of C{parent}
 		'''
 		return parent.isroot or self.name.startswith(parent.name + ':')
+
+	def match_namespace(self, namespace):
+		'''Check whether this path is in a specific section of the notebook
+		@param namespace: a L{Path} object
+		@returns: True when this path is equal to C{namespace} or is a (grand-)child of C{namespace}
+		'''
+		return namespace.isroot or self.name == namespace.name or self.name.startswith(namespace.name + ':')
 
 	def commonparent(self, other):
 		'''Find a common parent for two Paths

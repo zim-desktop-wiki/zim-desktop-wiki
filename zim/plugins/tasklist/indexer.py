@@ -56,6 +56,18 @@ def _task_labels_re(labels):
 		r'^(' + '|'.join(re.escape(l.strip(':')) for l in labels) + r')(?!\w)'
 	)
 
+def _parse_page_list(input):
+	paths = []
+	if not input or not input.strip():
+		return paths
+
+	for name in input.split(','):
+		try:
+			paths.append(Path(Path.makeValidPageName(name.strip())))
+		except ValueError:
+			logger.warn('Could not parse page name: "%s"', name)
+	return paths
+
 
 class TasksIndexer(IndexerBase):
 	'''Indexer that gets added to the L{Index} to keep track of tasks
@@ -108,13 +120,8 @@ class TasksIndexer(IndexerBase):
 		)
 
 		self.integrate_with_journal = properties['integrate_with_journal']
-		self.included_subtrees = \
-			[n.strip() for n in properties['included_subtrees'].split()] \
-				if properties['included_subtrees'] else None
-		self.excluded_subtrees = \
-			[n.strip() for n in properties['excluded_subtrees'].split()] \
-				if properties['excluded_subtrees'] else None
-
+		self.included_subtrees = _parse_page_list(properties['included_subtrees'])
+		self.excluded_subtrees = _parse_page_list(properties['excluded_subtrees'])
 		self.db.executescript(self.INIT_SCRIPT)
 
 		self.connectto_all(pagesindexer, (
@@ -122,13 +129,6 @@ class TasksIndexer(IndexerBase):
 		))
 
 	def on_page_changed(self, o, row, doc):
-		if self.included_subtrees:
-			if not any(row['name'].startswith(n) for n in self.included_subtrees):
-				return
-		if self.excluded_subtrees:
-			if any(row['name'].startswith(n) for n in self.excluded_subtrees):
-				return
-
 		changes = False
 		count, = self.db.execute(
 			'SELECT count(*) FROM tasklist WHERE source=?',
@@ -140,6 +140,18 @@ class TasksIndexer(IndexerBase):
 				(row['id'],)
 			)
 			changes = True
+
+		mypath = Path(row['name'])
+		if self.included_subtrees:
+			if not any(mypath.match_namespace(n) for n in self.included_subtrees):
+				if changes:
+					self.emit('tasklist-changed')
+				return
+		if self.excluded_subtrees:
+			if any(mypath.match_namespace(n) for n in self.excluded_subtrees):
+				if changes:
+					self.emit('tasklist-changed')
+				return
 
 		opts = {}
 		if self.integrate_with_journal:

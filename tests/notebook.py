@@ -991,6 +991,17 @@ class TestPath(tests.TestCase):
 			self.assertEqual(path.namespace, namespace)
 			self.assertTrue(path.name in path.__repr__())
 
+		# test equality
+		path = self.generator('Foo:Bar')
+		self.assertTrue(path == Path('Foo:Bar'))
+		self.assertFalse(path == Path('Dus'))
+		self.assertTrue(path.ischild(Path('Foo')))
+		self.assertFalse(path.ischild(Path('Foo:Bar')))
+		self.assertTrue(path.match_namespace(Path('Foo')))
+		self.assertTrue(path.match_namespace(Path('Foo:Bar')))
+		self.assertFalse(path.match_namespace(Path('Foo:Bar:Baz')))
+
+
 	# TODO test operators on paths > < + - >= <= == !=
 
 
