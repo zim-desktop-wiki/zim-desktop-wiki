@@ -44,7 +44,7 @@ class ActionExtensionBase(ExtensionBase):
 		menuhint = defaultmenu
 		if action.menuhints:
 			if 'accelonly' in action.menuhints:
-				return None
+				return '<ui><accelerator action=\'%s\'/></ui>' % action.name
 			elif action.menuhints[0] in \
 				('notebook', 'page', 'edit', 'insert', 'view', 'tools', 'go'):
 					menuhint = action.menuhints[0]
