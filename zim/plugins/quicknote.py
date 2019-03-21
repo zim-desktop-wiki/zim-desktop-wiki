@@ -112,7 +112,7 @@ class QuickNotePluginCommand(GtkCommand):
 			else:
 				raise AssertionError('Unknown input type: %s' % self.opts['input'])
 		else:
-			text = self.opts.get('text')
+			text = self.opts.get('text', '')
 
 		if text and 'encoding' in self.opts:
 			if self.opts['encoding'] == 'base64':

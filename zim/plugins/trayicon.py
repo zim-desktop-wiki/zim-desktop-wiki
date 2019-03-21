@@ -17,8 +17,8 @@ from zim.gui.mainwindow import MainWindowExtension
 # Try if we are on Ubunutu with app-indicator support
 try:
 	import gi
-	gi.require_version('AppIndicator', '0.1')
-	from gi.repository import AppIndicator
+	gi.require_version('AppIndicator3', '0.1')
+	from gi.repository import AppIndicator3 as AppIndicator
 except:
 	AppIndicator = None
 
@@ -309,13 +309,13 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		global _GLOBAL_INDICATOR
 
 		if not _GLOBAL_INDICATOR:
-			_GLOBAL_INDICATOR = AppIndicator.Indicator(
+			_GLOBAL_INDICATOR = AppIndicator.Indicator.new(
 				'zim-desktop-wiki', 'zim',
-				AppIndicator.CATEGORY_APPLICATION_STATUS
+				AppIndicator.IndicatorCategory.APPLICATION_STATUS
 			)
 
 		self.appindicator = _GLOBAL_INDICATOR
-		self.appindicator.set_status(AppIndicator.STATUS_ACTIVE)
+		self.appindicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 		self.on_notebook_list_changed()
 
 	def on_notebook_list_changed(self): # TODO connect somewhere
@@ -324,5 +324,5 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		self.appindicator.set_menu(menu)
 
 	def destroy(self):
-		self.appindicator.set_status(AppIndicator.STATUS_PASSIVE)
+		self.appindicator.set_status(AppIndicator.IndicatorStatus.PASSIVE)
 		self.emit('destroy')
