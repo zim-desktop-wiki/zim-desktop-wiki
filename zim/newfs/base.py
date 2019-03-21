@@ -23,9 +23,13 @@ is_url_re = re.compile('^\w{2,}:/')
 is_share_re = re.compile(r'^\\\\\w')
 
 
-_SEP = os.path.sep
+if os.name == 'nt':
+	SEP = '\\' # os.path.sep can still be "/" under msys
+	_EOL = 'dos'
+else:
+	SEP = os.path.sep
+	_EOL = 'unix'
 
-_EOL = 'dos' if os.name == 'nt' else 'unix'
 
 
 
@@ -114,6 +118,8 @@ def _split_file_url(url):
 def _splitnormpath(path, force_rel=False):
 	# Takes either string or list of names and returns a normalized tuple
 	# Keeps leading "/" or "\\" to distinguish absolute paths
+	# Split must be robust for both "/" and "\" pathseperators regardless of
+	# the os we are running on !
 	if isinstance(path, str) and not force_rel:
 		if is_url_re.match(path):
 			makeroot = True
@@ -161,7 +167,7 @@ if os.name == 'nt':
 		if not re.match(r'^(\w:|\\\\\w)', names[0]):
 			raise ValueError('Not an absolute path: %s' % '\\'.join(names))
 		else:
-			return '\\'.join(names)
+			return '\\'.join(names) # Don't rely on SEP here, msys sets it to '/'
 
 	def _joinuri(names):
 		# first element must be either drive letter or UNC host
@@ -197,10 +203,10 @@ def _os_expanduser(path):
 		home = os.environ['HOME']
 		parts = path.replace('\\', '/').strip('/').split('/')
 		if parts[0] == '~':
-			path = _SEP.join([home] + parts[1:])
+			path = SEP.join([home] + parts[1:])
 		else: # ~user
 			dir = os.path.dirname(home) # /home or similar ?
-			path = _SEP.join([dir, parts[0][1:]] + parts[1:])
+			path = SEP.join([dir, parts[0][1:]] + parts[1:])
 
 	return path
 
@@ -271,7 +277,7 @@ class FilePath(object):
 	@property
 	def userpath(self):
 		if self.ischild(_HOME):
-			return '~' + _SEP + self.relpath(_HOME)
+			return '~' + SEP + self.relpath(_HOME)
 		else:
 			return self.path
 
@@ -307,12 +313,12 @@ class FilePath(object):
 				raise ValueError('No common parent between %s and %s' % (self.path, start.path))
 			relpath = self.relpath(parent)
 			level_up = len(start.pathnames) - len(parent.pathnames)
-			return (('..' + _SEP) * level_up) + relpath
+			return (('..' + SEP) * level_up) + relpath
 		else:
 			names = start.pathnames
 			if not self.pathnames[:len(names)] == names:
 				raise ValueError('Not a parent path: %s' % start.path)
-			return _SEP.join(self.pathnames[len(names):])
+			return SEP.join(self.pathnames[len(names):])
 
 	def commonparent(self, other):
 		if self.pathnames[0] != other.pathnames[0]:
@@ -399,7 +405,7 @@ class FSObjectBase(FilePath, metaclass=FSObjectMeta):
 		self._copyto(other)
 		self.remove()
 
-	def remove(self):
+	def remove(self, cleanup=True):
 		raise NotImplementedError
 
 	def _cleanup(self):
@@ -430,7 +436,7 @@ class Folder(FSObjectBase):
 		names = self.list_names()
 		return self._object_iter(names, False, True)
 
-	def _object_iter(self, names, showfile, showdir):		
+	def _object_iter(self, names, showfile, showdir):
 		raise NotImplementedError
 
 	def list_names(self, include_hidden=False):

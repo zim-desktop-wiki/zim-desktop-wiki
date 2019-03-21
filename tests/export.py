@@ -165,7 +165,9 @@ class TestLinker(tests.TestCase):
 		self.assertEqual(linker.link('./dus.pdf'), './bar/dus.pdf')
 		self.assertEqual(linker.link('../dus.pdf'), './dus.pdf')
 		self.assertEqual(linker.link('../../dus.pdf'), '../dus.pdf')
-		self.assertEqual(linker.link('/dus.pdf'), FilePath('/dus.pdf').uri)
+
+		extpath = 'C:\\dus.pdf' if os.name == 'nt' else '/duf.pdf'
+		self.assertEqual(linker.link(extpath), FilePath(extpath).uri)
 
 		# TODO:
 		# 	img

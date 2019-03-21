@@ -17,7 +17,7 @@ import os
 import time
 
 from .base import *
-from .base import _EOL, _SEP
+from .base import _EOL, SEP
 
 
 __all__ = ('MockFolder', 'MockFile')
@@ -130,12 +130,12 @@ class MockFS(MockFSNode):
 		for i, name in enumerate(names):
 			parent = node
 			if not parent.isdir:
-				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
+				raise AssertionError('Not a folder: %s' % SEP.join(names[:i + 1]))
 			else:
 				try:
 					node = parent.get_child(name)
 				except KeyError:
-					raise FileNotFoundError(_SEP.join(names))
+					raise FileNotFoundError(SEP.join(names))
 		return node
 
 	def touch(self, names, data):
@@ -154,7 +154,7 @@ class MockFS(MockFSNode):
 				node = parent.data[name]
 
 			if not node.isdir:
-				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
+				raise AssertionError('Not a folder: %s' % SEP.join(names[:i + 1]))
 
 		parent, basename = node, names[-1]
 		if basename not in parent.data:
@@ -287,13 +287,14 @@ class MockFSObjectBase(FSObjectBase):
 		else:
 			raise FileExistsError(other)
 
-	def remove(self):
+	def remove(self, cleanup=True):
 		if self.exists():
 			self._remove()
 			if self.watcher:
 				self.watcher.emit('removed', self)
 
-		self._cleanup()
+		if cleanup:
+			self._cleanup()
 
 	def _remove(self, removechildren=False):
 		node = self._node()
@@ -392,7 +393,7 @@ class MockFile(MockFSObjectBase, File):
 		return self._node().data
 
 	def read(self):
-		return self._node().data.decode('UTF-8')
+		return self._node().data.decode('UTF-8').replace('\r\n', '\n')
 
 	def readlines(self):
 		return self.read().splitlines(True)

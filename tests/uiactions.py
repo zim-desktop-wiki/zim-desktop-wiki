@@ -45,7 +45,6 @@ class TestUIActions(tests.TestCase):
 	def setUp(self):
 		window = EmptyWindowObject()
 		self.notebook = self.setUpNotebook(
-			name='UIActions',
 			content={
 				'Test': 'Test 123',
 				'ExistingPage': 'Exists !'
@@ -781,7 +780,6 @@ class TestUIActionsRealFile(tests.TestCase):
 		window = EmptyWindowObject()
 		self.notebook = self.setUpNotebook(
 			mock=tests.MOCK_ALWAYS_REAL,
-			name='UIActions',
 			content={'Test': 'Test 123'}
 		)
 		self.page = self.notebook.get_page(Path('Test'))

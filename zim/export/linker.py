@@ -16,7 +16,7 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.fs import File, Dir, PathLookupError
+from zim.fs import File, Dir, PathLookupError, SEP
 from zim.config import data_file
 from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
@@ -133,7 +133,7 @@ class ExportLinker(BaseLinker):
 		and file.ischild(self.layout.relative_root):
 			relpath = file.relpath(self.base, allowupward=True)
 			if not relpath.startswith('.'):
-				relpath = './' + relpath
+				relpath = './' + relpath.replace(SEP, '/')
 			return relpath
 		elif self.notebook.document_root \
 		and self.document_root_url \

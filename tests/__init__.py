@@ -103,14 +103,19 @@ def _setUpEnvironment():
 	'''Method to be run once before test suite starts'''
 	# In fact to be loaded before loading some of the zim modules
 	# like zim.config and any that export constants from it
-	system_data_dirs = os.environ.get('XDG_DATA_DIRS')
+
+	# NOTE: do *not* touch XDG_DATA_DIRS here because it is used by Gtk to
+	# find resources like pixbuf loaders etc. not finding these will lead to
+	# a crash. Especially under msys the defaults are not set but also not
+	# map to the default folders. So not touching it is the safest path.
+	# For zim internal usage this is overloaded in config.basedirs.set_basedirs()
 	os.environ.update({
 		'ZIM_TEST_RUNNING': 'True',
 		'ZIM_TEST_ROOT': os.getcwd(),
 		'TMP': TMPDIR,
 		'REAL_TMP': REAL_TMPDIR,
 		'XDG_DATA_HOME': os.path.join(TMPDIR, 'data_home'),
-		'XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
+		'TEST_XDG_DATA_DIRS': os.path.join(TMPDIR, 'data_dir'),
 		'XDG_CONFIG_HOME': os.path.join(TMPDIR, 'config_home'),
 		'XDG_CONFIG_DIRS': os.path.join(TMPDIR, 'config_dir'),
 		'XDG_CACHE_HOME': os.path.join(TMPDIR, 'cache_home')
@@ -120,14 +125,6 @@ def _setUpEnvironment():
 		shutil.rmtree(TMPDIR)
 	os.makedirs(TMPDIR)
 
-	hicolor = os.environ['XDG_DATA_DIRS'] + '/icons/hicolor'
-	os.makedirs(hicolor)
-
-	if system_data_dirs:
-		# Need these since gtk pixbuf loaders are in /usr/share in
-		# some setups, and this parameter is used to find them
-		os.environ['XDG_DATA_DIRS'] = os.pathsep.join(
-			(os.environ['XDG_DATA_DIRS'], system_data_dirs))
 
 if os.environ.get('ZIM_TEST_RUNNING') != 'True':
 	# Do this when loaded, but not re-do in sub processes
@@ -253,7 +250,7 @@ class TestCase(unittest.TestCase):
 
 	def setUpFolder(self, name=None, mock=MOCK_DEFAULT_MOCK):
 		'''Convenience method to create a temporary folder for testing
-		@param name: basename for the folder, uses test name if C{None}
+		@param name: name postfix for the folder
 		@param mock: mock level for this test, one of C{MOCK_ALWAYS_MOCK},
 		C{MOCK_DEFAULT_MOCK}, C{MOCK_DEFAULT_REAL} or C{MOCK_ALWAYS_REAL}.
 		The C{MOCK_ALWAYS_*} arguments force the use of a real folder or a
@@ -263,8 +260,6 @@ class TestCase(unittest.TestCase):
 		@returns: a L{Folder} object (either L{LocalFolder} or L{MockFolder})
 		that is guarenteed non-existing
 		'''
-		if name is None and self._testMethodName != 'runTest':
-			name = self._testMethodName
 		path = self._get_tmp_name(name)
 
 		if mock == MOCK_ALWAYS_MOCK:
@@ -293,9 +288,9 @@ class TestCase(unittest.TestCase):
 		assert not folder.exists()
 		return folder
 
-	def setUpNotebook(self, name=None, mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
+	def setUpNotebook(self, name='notebook', mock=MOCK_ALWAYS_MOCK, content={}, folder=None):
 		'''
-		@param name: basename for the folder, uses test name if C{None}
+		@param name: name postfix for the folder, see L{setUpFolder}
 		@param mock: see L{setUpFolder}, default is C{MOCK_ALWAYS_MOCK}
 		@param content: dictionary where the keys are page names and the
 		values the page content. If a tuple or list is given, pages are created
@@ -358,13 +353,14 @@ class TestCase(unittest.TestCase):
 		folder.touch()
 		return folder.path
 
-	@classmethod
-	def _get_tmp_name(cls, name):
-		if name:
-			assert not os.path.sep in name, 'Don\'t use this method to get sub folders or files'
-			name = cls.__name__ + '_' + name
-		else:
-			name = cls.__name__
+	def _get_tmp_name(self, postfix):
+		name = self.__class__.__name__
+		if self._testMethodName != 'runTest':
+			name += '_' + self._testMethodName
+
+		if postfix:
+			assert '/' not in postfix and '\\' not in postfix, 'Don\'t use this method to get sub folders or files'
+			name += '_' + postfix
 
 		return os.path.join(TMPDIR, name)
 
@@ -567,10 +563,7 @@ class TestData(object):
 		for node in tree.getiterator(tag='page'):
 			name = node.attrib['name']
 			text = str(node.text.lstrip('\n'))
-			if os.name == 'nt' and isinstance(name, str):
-				pass # XXX No idea what goes wrong, but names are messed up
-			else:
-				test_data.append((name, text))
+			test_data.append((name, text))
 
 		self._test_data = tuple(test_data)
 

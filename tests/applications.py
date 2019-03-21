@@ -24,8 +24,7 @@ THUMB_SIZE_NORMAL = 128
 class TestXDGMimeInfo(tests.TestCase):
 
 	def runTest(self):
-		os.mkdir('tests/tmp/data_dir/mime/')
-		os.mkdir('tests/tmp/data_dir/mime/image/')
+		os.makedirs('tests/tmp/data_dir/mime/image/')
 		shutil.copyfile('./tests/data/png.xml', 'tests/tmp/data_dir/mime/image/png.xml')
 
 		dir = Dir('./data')
@@ -75,7 +74,7 @@ class TestApplications(tests.TestCase):
 			('foo %U', (File('/foo/bar'),), ('foo', 'file:///foo/bar')),
 		):
 			if os.name == 'nt':
-				wanted = replace(wanted, '/foo/bar', r'C:\foo\bar')
+				wanted = replace(wanted, '/foo/bar', 'C:\\foo\\bar')
 				wanted = replace(wanted, 'file:///foo/bar', r'file:///C:/foo/bar')
 
 			#print app, args
@@ -384,13 +383,17 @@ class TestOpenFunctions(tests.TestCase):
 			'file://test/some/file.txt',
 			'http://example.com',
 			'mailto:foo@example.com',
-			'smb://host/share/file.txt',
 		):
 			open_url(widget, uri)
 			self.assertEqual(self.calls[-1][2], uri)
 
-		open_url(widget, '\\\\host\\share\\file.txt')
-		self.assertEqual(self.calls[-1][2], 'smb://host/share/file.txt')
+		wanted = '\\\\host\\share\\file.txt' if os.name == 'nt' else 'smb://host/share/file.txt'
+		for uri in (
+			'smb://host/share/file.txt',
+			'\\\\host\\share\\file.txt'
+		):
+			open_url(widget, '\\\\host\\share\\file.txt')
+			self.assertEqual(self.calls[-1][2], wanted)
 
 
 if __name__ == '__main__':

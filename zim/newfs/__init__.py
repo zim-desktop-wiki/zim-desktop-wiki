@@ -16,7 +16,7 @@ FS_SUPPORT_NON_LOCAL_FILE_SHARES = (os.name == 'nt') #: Support \\host\share pat
 
 
 from .base import *
-from .base import _SEP, _EOL, _HOME
+from .base import SEP, _EOL, _HOME
 from .local import *
 from .helpers import *
 

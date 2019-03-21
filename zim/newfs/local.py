@@ -19,7 +19,7 @@ logger = logging.getLogger('zim.newfs')
 
 from . import FS_CASE_SENSITIVE
 from .base import *
-from .base import _EOL, _SEP
+from .base import _EOL, SEP
 
 from zim.parsing import url_encode, URL_ENCODE_READABLE
 
@@ -144,7 +144,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 
 	def _object_iter(self, names, showfile, showdir):
 		for name in names:
-			path = self.path + _SEP + name
+			path = self.path + SEP + name
 			if os.path.isdir(path):
 				if showdir:
 					yield self.folder(name)
@@ -199,7 +199,7 @@ class LocalFolder(LocalFSObjectBase, Folder):
 
 		return other
 
-	def remove(self):
+	def remove(self, cleanup=True):
 		if os.path.isdir(self.path):
 			try:
 				_os_lrmdir(self.path)
@@ -209,7 +209,8 @@ class LocalFolder(LocalFSObjectBase, Folder):
 				if self.watcher:
 					self.watcher.emit('removed', self)
 
-		self._cleanup()
+		if cleanup:
+			self._cleanup()
 
 
 
@@ -378,14 +379,15 @@ class LocalFile(LocalFSObjectBase, File):
 
 		return other
 
-	def remove(self):
+	def remove(self, cleanup=True):
 		if os.path.isfile(self.path):
 			os.remove(self.path)
 
 		if self.watcher:
 			self.watcher.emit('removed', self)
 
-		self._cleanup()
+		if cleanup:
+			self._cleanup()
 
 
 

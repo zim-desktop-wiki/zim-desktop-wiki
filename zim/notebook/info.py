@@ -11,7 +11,7 @@ logger = logging.getLogger('zim.notebook')
 
 import zim.fs
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, SEP
 from zim.config import ConfigManager, INIConfigFile, XDGConfigFileIter, String
 from zim.parsing import is_url_re, is_win32_path_re, url_encode
 
@@ -40,12 +40,12 @@ def resolve_notebook(string, pwd=None):
 	assert isinstance(string, str)
 	from zim.fs import isabs
 
-	if '/' in string or os.path.sep in string:
+	if '/' in string or SEP in string:
 		# FIXME do we need a isfilepath() function in fs.py ?
 		if is_url_re.match(string):
 			uri = string
 		elif pwd and not isabs(string):
-			uri = pwd + os.sep + string
+			uri = pwd + SEP + string
 		else:
 			uri = string
 		return NotebookInfo(uri)

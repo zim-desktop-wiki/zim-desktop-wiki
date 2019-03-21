@@ -125,7 +125,7 @@ class TranslationFile(object):
 			except AssertionError as error:
 				raise AssertionError('Error while parsing %s msgid on line %i\n' % (self.file, msgidlineno) + error.message)
 
-		for line in open(file):
+		for line in open(file, encoding="UTF-8"):
 			lineno += 1
 			if not line or line.isspace():
 				flush()

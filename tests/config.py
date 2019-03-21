@@ -102,11 +102,6 @@ class TestDirsTestSetup(tests.TestCase):
 		):
 			self.assertEqual(getattr(zim.config, k), list(map(Dir, v.split(os.pathsep))))
 
-		self.assertEqual(
-			zim.config.XDG_DATA_DIRS[0],
-			Dir(os.path.join(tests.TMPDIR, 'data_dir'))
-		)
-
 
 class TestXDGDirs(tests.TestCase):
 

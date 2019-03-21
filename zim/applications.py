@@ -18,7 +18,7 @@ from gi.repository import GObject
 import zim.fs
 import zim.errors
 
-from zim.fs import File
+from zim.fs import File, SEP
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
 
 
@@ -28,7 +28,16 @@ logger = logging.getLogger('zim.applications')
 TEST_MODE = False
 TEST_MODE_RUN_CB = None
 
-_ENCODING = locale.getpreferredencoding() # FIXME: assume processes to adhere to same preference ...
+_ENCODING = locale.getpreferredencoding(False)
+
+def _decode(data):
+	# Since we do not know for sure what encoding other processes will use
+	# for output, we need to guess :(
+	try:
+		return data.decode('UTF-8')
+	except UnicodeDecodeError:
+		return data.decode(_ENCODING)
+
 
 _FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
 
@@ -145,7 +154,7 @@ class Application(object):
 			extensions = _split_environ_list(os.environ.get('PATHEXT', '.com;.exe;.bat;.cmd'))
 			for dir in _split_environ_list(os.environ.get('PATH')):
 				for ext in extensions:
-					file = os.sep.join((dir, cmd + ext))
+					file = SEP.join((dir, cmd + ext))
 					if os.path.isfile(file) and os.access(file, os.X_OK):
 						return file
 			else:
@@ -153,7 +162,7 @@ class Application(object):
 		else:
 			# On POSIX no extension is needed to make scripts executable
 			for dir in _split_environ_list(os.environ.get('PATH')):
-				file = os.sep.join((dir, cmd))
+				file = SEP.join((dir, cmd))
 				if os.path.isfile(file) and os.access(file, os.X_OK):
 					return file
 			else:
@@ -212,7 +221,7 @@ class Application(object):
 		@raises ApplicationError: if the sub-process returned an error.
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		logger.info('Running: %s (cwd: %s)', argv, cwd)
+		logger.info('Running: %r (cwd: %r)', argv, cwd)
 		if TEST_MODE:
 			TEST_MODE_RUN_CB(argv)
 			return None
@@ -256,9 +265,9 @@ class Application(object):
 		stdout, stderr = p.communicate()
 
 		if not p.returncode == self.STATUS_OK:
-			raise ApplicationError(argv[0], argv[1:], p.returncode, stderr.decode(_ENCODING))
+			raise ApplicationError(argv[0], argv[1:], p.returncode, _decode(stderr))
 		#~ elif stderr:
-			#~ logger.warn(stderr.decode(_ENCODING))
+			#~ logger.warn(_decode(stderr))
 
 	def pipe(self, args=None, cwd=None, input=None):
 		'''Run the application in a sub-process and capture the output.
@@ -275,7 +284,7 @@ class Application(object):
 		@raises ApplicationError: if the sub-process returned an error.
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		logger.info('Running: %s (cwd: %s)', argv, cwd)
+		logger.info('Running: %r (cwd: %r)', argv, cwd)
 		if TEST_MODE:
 			return TEST_MODE_RUN_CB(argv)
 
@@ -289,16 +298,18 @@ class Application(object):
 		if input is None:
 			stdout, stderr = p.communicate()
 		else:
-			stdout, stderr = p.communicate(input.encode(_ENCODING))
+			data = data if isinstance(data, bytes) else str(input).encode('UTF-8')
+				# No way to know what encoding the process accepts, so UTF-8 is as good as any
+			stdout, stderr = p.communicate(data)
 
 		#~ if not p.returncode == self.STATUS_OK:
 			#~ raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
 		#~ elif stderr:
 		if stderr:
-			logger.warn(stderr.decode(_ENCODING))
+			logger.warn(_decode(stderr))
 			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
-		text = str(stdout, encoding=_ENCODING).splitlines(keepends=True)
+		text = _decode(stdout).replace('\r\n', '\n').splitlines(keepends=True)
 		return text
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
@@ -377,6 +388,9 @@ class WebBrowser(Application):
 		except webbrowser.Error:
 			pass # webbrowser throws an error when no browser is found
 
+	def __eq__(self, other):
+		return isinstance(other, self.__class__)
+
 	def tryexec(self):
 		return not self.controller is None
 
@@ -412,6 +426,9 @@ class StartFile(Application):
 	def __init__(self):
 		pass
 
+	def __eq__(self, other):
+		return isinstance(other, self.__class__)
+
 	def tryexec(self):
 		return hasattr(os, 'startfile')
 
@@ -423,20 +440,20 @@ class StartFile(Application):
 
 	def spawn(self, args, callback=None):
 		if callback:
-			logger.warn('os.startfile does not support a callback')
+			raise NotImplementedError('os.startfile does not support a callback')
 
 		for arg in args:
 			if isinstance(arg, (zim.fs.File, zim.fs.Dir)):
-				path = os.path.normpath(arg.path)
+				path = os.path.normpath(arg.path).replace('/', SEP) # msys can use '/' instead of '\\'
 			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
 				# URL or e.g. mailto: or outlook: URI
 				path = str(arg)
 			else:
 				# must be file
-				path = os.path.normpath(str(arg))
+				path = os.path.normpath(str(arg)).replace('/', SEP) # msys can use '/' instead of '\\'
 
 			logger.info('Opening with os.startfile: %s', path)
 			if TEST_MODE:
-				TEST_MODE_RUN_CB((self.__class__.__name__, url))
+				TEST_MODE_RUN_CB((self.__class__.__name__, path))
 			else:
 				os.startfile(path)

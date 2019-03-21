@@ -22,7 +22,7 @@ STATUS_NEED_DELETION = 3
 TYPE_FOLDER = 1
 TYPE_FILE = 2
 
-from zim.newfs import File, Folder
+from zim.newfs import File, Folder, SEP
 from zim.signals import SignalEmitter
 
 
@@ -326,7 +326,7 @@ class FilesIndexChecker(object):
 			if recursive and isinstance(file, Folder):
 				self.db.execute(
 					'UPDATE files SET index_status = ? WHERE path LIKE ? and index_status < ?',
-					(STATUS_CHECK, path + os.path.sep + '%', STATUS_CHECK)
+					(STATUS_CHECK, path + SEP + '%', STATUS_CHECK)
 				)
 			self.db.commit()
 
@@ -423,7 +423,7 @@ class TestFilesDBTable(object):
 
 		in_db = dict((r['path'], r['node_type']) for r in rows)
 		wanted = dict(
-			(p.strip(os.sep), TYPE_FOLDER if p.endswith(os.sep) else TYPE_FILE)
+			(p.strip(SEP), TYPE_FOLDER if p.endswith(SEP) else TYPE_FILE)
 				for p in paths
 		)
 

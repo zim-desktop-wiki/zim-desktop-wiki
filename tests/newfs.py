@@ -9,7 +9,7 @@
 import tests
 
 from zim.newfs import *
-from zim.newfs import _SEP, _HOME
+from zim.newfs import _HOME as HOME
 
 from zim.newfs.mock import *
 
@@ -104,7 +104,7 @@ class TestFilePath(tests.TestCase):
 
 		# Test home folder fallback
 		f = FilePath('~non-existing-user/foo')
-		self.assertEqual(f.path, _HOME.dirname + _SEP + 'non-existing-user' + _SEP + 'foo')
+		self.assertEqual(f.path, P('/'.join((HOME.dirname, 'non-existing-user', 'foo'))))
 
 
 	def testShareDrivePath(self):
@@ -122,7 +122,7 @@ class TestFilePath(tests.TestCase):
 
 	def testRelativePath(self):
 		r = FilePath(P('/foo/bar/baz')).relpath(FilePath(P('/foo')))
-		self.assertEqual(r, _SEP.join(('bar', 'baz')))
+		self.assertEqual(r, P('bar/baz'))
 
 		for r in ('bar/baz', ('bar', 'baz'), 'bar/./foo/../baz'):
 			p = FilePath(P('/foo')).get_childpath(r)
@@ -153,7 +153,7 @@ class TestFilePath(tests.TestCase):
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
 		):
 			self.assertEqual(
-				FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True),
+				P(FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True)),
 				P(relpath)
 			)
 
@@ -179,11 +179,11 @@ class TestFilePath(tests.TestCase):
 			self.assertEqual(f.get_abspath(p).path, want)
 
 	def testUserpath(self):
-		self.assertTrue(len(_HOME.pathnames) >= 2)
+		self.assertTrue(len(HOME.pathnames) >= 2)
 
 		f = FilePath('~/foo')
-		self.assertEqual(f.path, _HOME.get_childpath('foo').path)
-		self.assertEqual(f.userpath, '~' + _SEP + 'foo')
+		self.assertEqual(f.path, HOME.get_childpath('foo').path)
+		self.assertEqual(f.userpath, P('~/foo'))
 
 		f = FilePath(P('/foo'))
 		self.assertEqual(f.userpath, P('/foo'))
@@ -200,7 +200,7 @@ class TestFilePath(tests.TestCase):
 
 	def testRootPath(self):
 		# Test for corner case in parsing paths
-		f = FilePath('/')
+		f = FilePath(P('/'))
 		self.assertTrue(len(f.path) > 0)
 
 
@@ -457,7 +457,7 @@ class TestFS(object):
 				self.assertTrue(child.ischild(folder))
 				if isinstance(child, File):
 					self.assertNotIn(child.path, found)
-					key = child.relpath(root)
+					key = P(child.relpath(root))
 					found[key] = child.read()
 				else:
 					walk(child)
@@ -472,7 +472,7 @@ class TestFS(object):
 			self.assertTrue(child.ischild(root))
 			if isinstance(child, File):
 				self.assertNotIn(child.path, found)
-				key = child.relpath(root)
+				key = P(child.relpath(root))
 				found[key] = child.read()
 		self.assertEqual(found, data)
 
@@ -634,7 +634,7 @@ class TestFS(object):
 				self.calls = []
 
 			def record(self, signal, watcher, *files):
-				self.calls.append((signal,) + tuple(f.relpath(root) for f in files))
+				self.calls.append((signal,) + tuple(P(f.relpath(root)) for f in files))
 
 			def __enter__(self):
 				self._ids = []
@@ -860,7 +860,7 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertEqual(file.read(), 'foobar\n')
 		self.assertEqual(file.readlines(), ['foobar\n'])
 
-	@tests.skipUnless(hasattr(os, 'symlink'), 'OS does not support symlinks')
+	@tests.skipUnless(hasattr(os, 'symlink') and os.name != 'nt', 'OS does not support symlinks')
 	def testSymlinks(self):
 		# Set up a file structue with a symlink
 		root = self.get_root_folder('testSymlinks')

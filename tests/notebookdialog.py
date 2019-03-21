@@ -5,6 +5,8 @@
 
 import tests
 
+import os
+
 from zim.fs import Dir
 
 from zim.config import ConfigManager
@@ -12,6 +14,12 @@ from zim.notebook import NotebookInfo, get_notebook_list
 
 from zim.gui.notebookdialog import NotebookComboBox, NotebookTreeModel
 
+
+def U(uri):
+	if os.name == 'nt':
+		return 'file:///C:/' + uri[8:]
+	else:
+		return uri
 
 
 class TestNotebookComboBox(tests.TestCase):
@@ -21,8 +29,8 @@ class TestNotebookComboBox(tests.TestCase):
 			pass
 
 		notebooklist = MyList([
-			NotebookInfo('file:///test/foo', name='Foo'),
-			NotebookInfo('file:///test/bar', name='Bar')
+			NotebookInfo(U('file:///test/foo'), name='Foo'),
+			NotebookInfo(U('file:///test/bar'), name='Bar')
 		])
 		notebooklist.default = notebooklist[1]
 		notebooklist.write = lambda: None
@@ -38,11 +46,11 @@ class TestNotebookComboBox(tests.TestCase):
 		combobox.set_notebook(notebooklist[0].uri)
 		self.assertEqual(combobox.get_notebook(), notebooklist[0].uri)
 
-		combobox.set_notebook('file:///yet/another/notebook')
+		combobox.set_notebook(U('file:///yet/another/notebook'))
 		self.assertEqual(combobox.get_notebook(), None)
 
-		combobox.set_notebook('file:///yet/another/notebook', append=True)
-		self.assertEqual(combobox.get_notebook(), 'file:///yet/another/notebook')
+		combobox.set_notebook(U('file:///yet/another/notebook'), append=True)
+		self.assertEqual(combobox.get_notebook(), U('file:///yet/another/notebook'))
 
 
 @tests.slowTest

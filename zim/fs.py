@@ -29,7 +29,7 @@ from zim.signals import SignalEmitter, SIGNAL_AFTER
 logger = logging.getLogger('zim.fs')
 
 
-from zim.newfs.base import _os_expanduser
+from zim.newfs.base import _os_expanduser, SEP
 from zim.newfs.local import AtomicWriteContext
 
 
@@ -351,7 +351,7 @@ class UnixPath(object):
 			if isinstance(path, (list, tuple)):
 				path = list(map(str, path))
 					# Flatten objects - strings should be unicode or ascii already
-				path = os.path.sep.join(path)
+				path = SEP.join(path)
 					# os.path.join is too intelligent for it's own good
 					# just join with the path separator.
 			else:
@@ -528,7 +528,7 @@ class UnixPath(object):
 		'''
 		drive, path = os.path.splitdrive(self.path)
 		parts = path.replace('\\', '/').strip('/').split('/')
-		parts[0] = drive + os.path.sep + parts[0]
+		parts[0] = drive + SEP + parts[0]
 		return parts
 
 	def relpath(self, reference, allowupward=False):
@@ -543,7 +543,7 @@ class UnixPath(object):
 		@raises AssertionError: when C{allowupward} is C{False} and
 		C{reference} is not a parent folder
 		'''
-		sep = os.path.sep # '/' or '\'
+		sep = SEP # '/' or '\'
 		refdir = reference.path + sep
 		if allowupward and not self.path.startswith(refdir):
 			parent = self.commonparent(reference)
@@ -570,7 +570,8 @@ class UnixPath(object):
 		C{None} when there is no common parent
 		'''
 		path = os.path.commonprefix((self.path, other.path)) # encoding safe
-		i = path.rfind(os.path.sep) # win32 save...
+		path = path.replace(os.path.sep, SEP) # msys can have '/' as seperator
+		i = path.rfind(SEP) # win32 save...
 		if i >= 0:
 			return Dir(path[:i + 1])
 		else:
@@ -581,7 +582,7 @@ class UnixPath(object):
 		'''Check if this path is a child path of a folder
 		@returns: C{True} if this path is a child path of C{parent}
 		'''
-		return self.path.startswith(parent.path + os.path.sep)
+		return self.path.startswith(parent.path + SEP)
 
 	def isdir(self):
 		'''Check if this path is a folder or not. Used to detect if
@@ -634,7 +635,7 @@ class WindowsPath(UnixPath):
 		# Strip leading / for absolute paths
 		if re.match(r'^[/\\]+[A-Za-z]:[/\\]', path):
 			path = path.lstrip('/').lstrip('\\')
-		self.path = os.path.abspath(path)
+		self.path = os.path.abspath(path).replace('/', SEP) # msys can use '/' instead of '\\'
 
 	@property
 	def uri(self):
@@ -716,7 +717,7 @@ class Dir(FilePath):
 		@returns: yields L{File} and L{Dir} objects, depth first
 		'''
 		for name in self.list(raw=raw):
-			path = self.path + os.path.sep + name
+			path = self.path + SEP + name
 			if os.path.isdir(path):
 				dir = self.subdir(name)
 				yield dir

@@ -56,6 +56,12 @@ class GITApplicationBackend(VCSApplicationBase):
 			else:
 				return []
 
+	def path_arg(self, path):
+		# make sure "/" is used as path seperator as git under msys fails otherwise
+		if isinstance(path, str):
+			return path.replace('\\', '/')
+		else:
+			return path.relpath(self.root).replace('\\', '/')
 
 	########
 	#
@@ -68,7 +74,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		if path is None:
 			return self.run(['add', self.notebook_dir])
 		else:
-			return self.run(['add', path])
+			return self.run(['add', self.path_arg(path)])
 
 
 	def annotate(self, file, version=None):
@@ -79,14 +85,14 @@ class GITApplicationBackend(VCSApplicationBase):
 		...
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['blame', '-s', file] + revision_args)
+		return self.pipe(['blame', '-s', self.path_arg(file)] + revision_args)
 
 	def cat(self, path, version):
 		"""
 		Runs: git cat {{PATH}} {{REV_ARGS}}
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['show', ''.join([''.join(revision_args), ':', path.relpath(self.root)])])
+		return self.pipe(['show', ''.join([''.join(revision_args), ':', self.path_arg(path)])])
 
 	def commit(self, path, msg):
 		"""
@@ -99,7 +105,7 @@ class GITApplicationBackend(VCSApplicationBase):
 				params.append(msg)
 			if path != '' and path is not None:
 				params.append('--')
-				params.append(path)
+				params.append(self.path_arg(path))
 			return self.run(params)
 
 	def diff(self, versions=None, path=None):
@@ -114,7 +120,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		if path is None:
 			return self.pipe(['diff', '--no-ext-diff'] + revision_args)
 		else:
-			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', path])
+			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', self.path_arg(path)])
 
 	def ignore(self, file_to_ignore_regexp):
 		"""
@@ -153,7 +159,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			git log --date=iso
 		"""
 		if path:
-			return self.pipe(['log', '--date=iso', '--follow', path])
+			return self.pipe(['log', '--date=iso', '--follow', self.path_arg(path)])
 		else:
 			return self.pipe(['log', '--date=iso'])
 
@@ -216,7 +222,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		revision_params = self.build_revision_arguments(version)
 		if path:
-			self.run(['checkout'] + revision_params + ['--', path])
+			self.run(['checkout'] + revision_params + ['--', self.path_arg(path)])
 		else:
 			self.run(['reset', '--hard', 'HEAD'])
 

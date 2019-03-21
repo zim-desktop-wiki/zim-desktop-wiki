@@ -129,11 +129,15 @@ On Ubuntu or Debian install package 'python3-coverage'.
 	# Check the modules were loaded from the right location
 	# (so no testing based on modules from a previous installed version...)
 	mylib = os.path.abspath('./zim')
+	if os.name == 'nt':
+		mylib = mylib.replace('/', '\\') # on msys the path is "/" seperated
 	for module in [m for m in list(sys.modules.keys())
 			if m == 'zim' or m.startswith('zim.')]:
 				if sys.modules[module] is None:
 					continue
 				file = sys.modules[module].__file__
+				if os.name == 'nt':
+					file = file.replace('/', '\\')
 				assert file.startswith(mylib), \
 					'Module %s was loaded from %s' % (module, file)
 

@@ -43,7 +43,7 @@ def get_tmp_dir(name):
 	return dir
 
 
-with open('./tests/data/formats/wiki.txt') as fh:
+with open('./tests/data/formats/wiki.txt', encoding='UTF-8') as fh:
 	WIKITEXT = fh.read() # Contains some unicode
 UTF8_COMMENT = 'Commit \u03b1\u03b2\u03b3'
 
@@ -456,8 +456,8 @@ test
 		self.assertIsInstance(diff, str)
 		vcs.commit_version(UTF8_COMMENT)
 		versions = vcs.list_versions()
-		self.assertIn(UTF8_COMMENT, versions[-1][-1])
 		self.assertIsInstance(versions[-1][-1], str)
+		self.assertIn(UTF8_COMMENT, versions[-1][-1])
 
 		### Test delete ###
 		file.remove()

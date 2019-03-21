@@ -17,7 +17,7 @@ from functools import partial
 import zim.templates
 import zim.formats
 
-from zim.fs import File, Dir
+from zim.fs import File, Dir, SEP
 from zim.newfs import LocalFolder
 from zim.config import INIConfigFile, String, ConfigDefinitionByClass, Boolean, Choice
 from zim.errors import Error
@@ -88,7 +88,7 @@ def _iswritable(dir):
 		f = dir.file('.zim.tmp')
 		try:
 			f.write('Test')
-			f.remove()
+			f.remove(cleanup=False)
 		except:
 			return False
 		else:
@@ -1096,8 +1096,8 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		document_root = LocalFolder(self.document_root.path) if self.document_root else None# XXX
 
 		rootdir = '/'
-		mydir = '.' + os.sep
-		updir = '..' + os.sep
+		mydir = '.' + SEP
+		updir = '..' + SEP
 
 		# Look within the notebook
 		if path:

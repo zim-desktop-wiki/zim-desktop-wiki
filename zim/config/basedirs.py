@@ -85,9 +85,9 @@ def set_basedirs(_ignore_test=False):
 
 		if os.environ.get('ZIM_TEST_RUNNING') and not _ignore_test:
 			# See tests/__init__.py, we load more folders then we really want
-			# because the needs of Gtk, but want to restrict it for all
+			# because the needs of Gtk, but want to restrict it here for all
 			# zim internal use
-			XDG_DATA_DIRS = XDG_DATA_DIRS[:1]
+			XDG_DATA_DIRS = [Dir(os.environ['TEST_XDG_DATA_DIRS'])]
 
 # Call on module initialization to set defaults
 set_basedirs()

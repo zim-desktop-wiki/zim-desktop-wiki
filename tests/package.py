@@ -103,7 +103,7 @@ class TestCoding(tests.TestCase):
 						if file == 'tests/package.py': # skip ourselve
 								continue
 						#~ print('READING', file)
-						fh = open(file)
+						fh = open(file, encoding='UTF-8')
 						self._code_files.append((file, fh.read()))
 						fh.close()
 

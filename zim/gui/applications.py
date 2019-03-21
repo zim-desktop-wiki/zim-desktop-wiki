@@ -172,10 +172,10 @@ def get_mime_icon(file, size):
 def get_mime_description(mimetype):
 	# Check XML file /usr/share/mime/MEDIA/SUBTYPE.xml
 	# Find element "comment" with "xml:lang" attribute for the locale
-	from zim.config import XDG_DATA_DIRS
+	from zim.config import XDG_DATA_HOME, XDG_DATA_DIRS
 
 	media, subtype = mimetype.split('/', 1)
-	for dir in XDG_DATA_DIRS:
+	for dir in [XDG_DATA_HOME] + XDG_DATA_DIRS:
 		file = dir.file(('mime', media, subtype + '.xml'))
 		if file.exists():
 			return _read_comment_from(file)
@@ -573,7 +573,7 @@ def _open_with(widget, entry, uri, callback=None):
 	try:
 		entry.spawn((uri,), callback=callback)
 	except NotImplementedError:
-		entry.spawn((uri,)) # E.g. webbrowser module
+		entry.spawn((uri,)) # E.g. webbrowser module does not support callback
 
 
 def _open_with_filebrowser(widget, file, callback=None):

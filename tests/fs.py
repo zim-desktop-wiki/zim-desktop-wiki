@@ -4,7 +4,6 @@
 '''Test cases for the zim.fs module.'''
 
 
-
 import tests
 
 import os
@@ -12,6 +11,7 @@ import time
 
 import zim.fs
 from zim.fs import *
+from zim.fs import SEP
 from zim.errors import Error
 
 
@@ -66,7 +66,7 @@ class TestFS(tests.TestCase):
 	def testFilePath(self):
 		'''Test Path object'''
 		path = FilePath(['foo', 'bar'])
-		test = os.path.abspath(os.path.join('foo', 'bar'))
+		test = os.path.abspath(os.path.join('foo', 'bar')).replace(os.path.sep, SEP)
 		self.assertEqual(path.path, test)
 
 		path = FilePath('/foo/bar')
@@ -82,7 +82,7 @@ class TestFS(tests.TestCase):
 
 		path = FilePath('/foo//bar/baz/')
 		drive, p = os.path.splitdrive(path.path)
-		self.assertEqual(path.split(), [drive + os.sep + 'foo', 'bar', 'baz'])
+		self.assertEqual(path.split(), [drive + SEP + 'foo', 'bar', 'baz'])
 		dirs = []
 		for d in path:
 			dirs.append(d)
@@ -96,8 +96,8 @@ class TestFS(tests.TestCase):
 			self.assertEqual(FilePath(path1).commonparent(FilePath(path2)), Dir(common))
 
 		if os.name == 'nt':
-			path1 = 'C:\foo\bar'
-			path2 = 'D:\foo\bar\baz'
+			path1 = 'C:\\foo\\bar'
+			path2 = 'D:\\foo\\bar\\baz'
 			self.assertEqual(FilePath(path1).commonparent(FilePath(path2)), None)
 
 		for path1, path2, relpath in (
@@ -137,7 +137,7 @@ class TestFS(tests.TestCase):
 		path = FilePath(string)
 		self.assertTrue(path.path.endswith(string))
 		path = FilePath((string, 'foo'))
-		self.assertTrue(path.path.endswith(os.sep.join((string, 'foo'))))
+		self.assertTrue(path.path.endswith(SEP.join((string, 'foo'))))
 
 	def testFile(self):
 		'''Test File object'''
@@ -156,32 +156,6 @@ class TestFS(tests.TestCase):
 		file = File(tmpdir + '/bar.txt')
 		file.writelines(['c\n', 'd\n'])
 		self.assertEqual(file.readlines(), ['c\n', 'd\n'])
-
-		# test recovery on windows
-		if os.name == 'nt':
-			new = file.path + '.zim-new~'
-			orig = file.path + '.zim-orig~'
-			bak = file.path + '.bak~'
-			os.remove(file.path) # don't clean up folder
-			open(new, 'w').write('NEW\n')
-			open(orig, 'w').write('ORIG\n')
-			self.assertTrue(file.exists())
-			with tests.LoggingFilter('zim.fs', 'Left over file found:'):
-				self.assertEqual(file.read(), 'NEW\n')
-			self.assertFalse(os.path.isfile(new))
-			self.assertFalse(os.path.isfile(orig))
-			self.assertTrue(os.path.isfile(file.path))
-			self.assertTrue(os.path.isfile(bak))
-
-			bak1 = file.path + '.bak1~'
-			os.remove(file.path) # don't clean up folder
-			open(orig, 'w').write('ORIG 1\n')
-			self.assertFalse(file.exists())
-			with tests.LoggingFilter('zim.fs', ''):
-				self.assertRaises(FileNotFoundError, file.read)
-			self.assertFalse(os.path.isfile(orig))
-			self.assertTrue(os.path.isfile(bak))
-			self.assertTrue(os.path.isfile(bak1))
 
 		# test read-only
 		path = tmpdir + '/read-only-file.txt'
@@ -368,7 +342,7 @@ class TestFileOverwrite(tests.TestCase):
 
 
 @tests.slowTest
-@tests.skipUnless(hasattr(os, 'symlink'), 'OS does not supprot symlinks')
+@tests.skipUnless(hasattr(os, 'symlink') and os.name != 'nt', 'OS does not support symlinks')
 class TestSymlinks(tests.TestCase):
 
 	def runTest(self):

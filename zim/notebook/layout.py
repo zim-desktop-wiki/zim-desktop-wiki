@@ -7,7 +7,7 @@ import sys
 
 from .page import Path
 
-from zim.newfs import File, Folder, _EOL, _SEP
+from zim.newfs import File, Folder, _EOL, SEP
 from zim.formats import get_format
 
 import zim.parsing # we use "error=urlencode"
@@ -113,8 +113,8 @@ class FilesLayout(NotebookLayout):
 			path = path[:-len(self.default_extension)]
 			type = FILE_TYPE_PAGE_SOURCE
 		else:
-			if _SEP in path:
-				path, x = path.rsplit(_SEP, 1)
+			if SEP in path:
+				path, x = path.rsplit(SEP, 1)
 			else:
 				path = ':' # ROOT_PATH
 			type = FILE_TYPE_ATTACHMENT
