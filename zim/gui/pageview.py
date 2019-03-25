@@ -6925,6 +6925,9 @@ class EditImageDialog(Dialog):
 		else:
 			width.set_sensitive(True)
 			height.set_sensitive(True)
+			if w <= 0 and h <= 0:
+				# image file does not exist
+				return
 			self._block = True
 			width.set_range(0, 4 * w)
 			width.set_value(w)
