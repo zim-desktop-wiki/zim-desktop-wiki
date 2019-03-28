@@ -16,8 +16,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2019-02-18 13:12+0000\n"
-"X-Generator: Launchpad (build 18878)\n"
+"X-Launchpad-Export-Date: 2019-03-28 20:12+0000\n"
+"X-Generator: Launchpad (build 18910)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:61
@@ -2047,7 +2047,8 @@ msgstr ""
 "  Vladimir Sharshov https://launchpad.net/~vsharshov\n"
 "  aks-id https://launchpad.net/~aks-id\n"
 "  anton https://launchpad.net/~faq-ru\n"
-"  gest https://launchpad.net/~drug-detstva"
+"  gest https://launchpad.net/~drug-detstva\n"
+"  vantu5z https://launchpad.net/~vantu5z"
 
 #. dialog title
 #: zim/gui/widgets.py:503 zim/gui/widgets.py:1579

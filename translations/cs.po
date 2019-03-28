@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-01-14 16:07+0100\n"
-"PO-Revision-Date: 2017-04-28 22:07+0000\n"
-"Last-Translator: Pastorek <tillf@seznam.cz>\n"
+"PO-Revision-Date: 2019-02-28 16:22+0000\n"
+"Last-Translator: Vlastimil Ott <vlastimil.ott@gmail.com>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2019-02-18 13:12+0000\n"
-"X-Generator: Launchpad (build 18878)\n"
+"X-Launchpad-Export-Date: 2019-03-28 20:12+0000\n"
+"X-Generator: Launchpad (build 18910)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:61
@@ -446,28 +446,28 @@ msgstr "Zobrazit _záznam"
 #: zim/gui/insertedobjects.py:267
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "Není k dispozici žádný plugin, který by zobrazil objekty typu %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:275
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "K zobrazení objektu je nutný plugin \"%s\""
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:279
 msgid "Enable plugin"
-msgstr ""
+msgstr "Povolit plugin"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:312
 msgid "Unkown Object"
-msgstr ""
+msgstr "Neznámý objekt"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:351
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Neznámý typ obrázku"
 
 #. Menu title
 #: zim/gui/mainwindow.py:48
@@ -529,13 +529,13 @@ msgstr "_Nástrojová lišta"
 #. Menu title
 #: zim/gui/mainwindow.py:58
 msgid "_Checkbox"
-msgstr ""
+msgstr "Přepí_nač"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:64
 #, python-format
 msgid "Use %s to switch to the side pane"
-msgstr ""
+msgstr "Nastavit %s pro přepnutí bočního panelu"
 
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:68
@@ -561,7 +561,7 @@ msgstr "jen ke čtení"
 #. label for View->Menubar menu item
 #: zim/gui/mainwindow.py:402
 msgid "Menubar"
-msgstr ""
+msgstr "Hlavní nabídka"
 
 #. Menu item
 #: zim/gui/mainwindow.py:434
@@ -689,7 +689,7 @@ msgstr "Skočit na"
 #. Button label
 #: zim/gui/mainwindow.py:980
 msgid "_Jump"
-msgstr ""
+msgstr "_Přejít"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:985
@@ -2028,6 +2028,7 @@ msgstr ""
 "  Tomas Sara https://launchpad.net/~tomas-sara\n"
 "  Vlastimil Ott https://launchpad.net/~vlastimil\n"
 "  Vlastimil Ott https://launchpad.net/~vlastimil-e-ott\n"
+"  Vlastimil Ott https://launchpad.net/~vlastimil-ott\n"
 "  aloisam https://launchpad.net/~a-musil"
 
 #. dialog title

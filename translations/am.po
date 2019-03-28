@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-01-14 16:07+0100\n"
-"PO-Revision-Date: 2018-12-09 19:44+0000\n"
+"PO-Revision-Date: 2019-03-01 15:46+0000\n"
 "Last-Translator: samson <Unknown>\n"
 "Language-Team: Amharic <am@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Launchpad-Export-Date: 2019-02-18 13:13+0000\n"
-"X-Generator: Launchpad (build 18878)\n"
+"X-Launchpad-Export-Date: 2019-03-28 20:13+0000\n"
+"X-Generator: Launchpad (build 18910)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:61
@@ -467,17 +467,17 @@ msgstr ""
 #. Label for object manager
 #: zim/gui/insertedobjects.py:279
 msgid "Enable plugin"
-msgstr ""
+msgstr "ተሰኪ ማስቻያ"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:312
 msgid "Unkown Object"
-msgstr ""
+msgstr "ያልታወቀ እቃ"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:351
 msgid "Unkown Image type"
-msgstr ""
+msgstr "ያልታወቀ የ ምስል አይነት"
 
 #. Menu title
 #: zim/gui/mainwindow.py:48
@@ -698,7 +698,7 @@ msgstr "መዝለያ ወደ"
 #. Button label
 #: zim/gui/mainwindow.py:980
 msgid "_Jump"
-msgstr ""
+msgstr "_መዝለያ"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:985
@@ -721,12 +721,12 @@ msgstr "ማስታወሻ ደብተር መክፈቻ"
 #. Button label
 #: zim/gui/notebookdialog.py:327
 msgid "_Add"
-msgstr ""
+msgstr "_መጨመሪያ"
 
 #. Button label
 #: zim/gui/notebookdialog.py:331 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_ማስወገጃ"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:347
@@ -961,7 +961,7 @@ msgstr ""
 #: zim/gui/pageview.py:4851 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:851
 #: zim/gui/widgets.py:83
 msgid "_Cancel"
-msgstr ""
+msgstr "_መሰረዣ"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:4856
@@ -1620,7 +1620,7 @@ msgstr "መጨረሻ የተሻሻለው"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_መፈለጊያ"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -2016,7 +2016,7 @@ msgstr "በ ላዩ ላይ መጻፊያ"
 #. Button label
 #: zim/gui/uiactions.py:852 zim/gui/widgets.py:84
 msgid "_OK"
-msgstr ""
+msgstr "_እሺ"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:896
@@ -2327,13 +2327,13 @@ msgstr "መፈለጊያ"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:258
 msgid "_Edit..."
-msgstr ""
+msgstr "_ማረሚያ..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:286
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "ማረሚያ %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:311
@@ -2491,7 +2491,7 @@ msgstr "ከፍተኛው የ ገጽ ስፋት"
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Border width"
-msgstr ""
+msgstr "የ ድንበር ስፋት"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:41
@@ -2765,7 +2765,7 @@ msgstr ""
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:49
 msgid "Page Index"
-msgstr ""
+msgstr "የ ገጽ ማውጫ"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:50
@@ -2854,7 +2854,7 @@ msgstr "ወደ መቃኛ _ማተሚያ"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "_ማተሚያ"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204

@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-01-14 16:07+0100\n"
-"PO-Revision-Date: 2019-02-09 14:12+0000\n"
+"PO-Revision-Date: 2019-02-18 19:34+0000\n"
 "Last-Translator: Rui Nibau <rui.nibau@omacronides.com>\n"
 "Language-Team: French <fr@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Launchpad-Export-Date: 2019-02-18 13:12+0000\n"
-"X-Generator: Launchpad (build 18878)\n"
+"X-Launchpad-Export-Date: 2019-03-28 20:12+0000\n"
+"X-Generator: Launchpad (build 18910)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:61

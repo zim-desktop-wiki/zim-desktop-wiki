@@ -15,8 +15,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-02-18 13:12+0000\n"
-"X-Generator: Launchpad (build 18878)\n"
+"X-Launchpad-Export-Date: 2019-03-28 20:12+0000\n"
+"X-Generator: Launchpad (build 18910)\n"
 
 #. Dialog title
 #: zim/gui/pageview.py:6782 zim/gui/uiactions.py:766
