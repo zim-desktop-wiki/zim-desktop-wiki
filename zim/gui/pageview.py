@@ -6918,6 +6918,8 @@ class EditImageDialog(Dialog):
 		file = self.form['file']
 		try:
 			info, w, h = GdkPixbuf.Pixbuf.get_file_info(file.path)
+			if w <= 0 or h <= 0:
+				raise AssertionError
 		except:
 			logger.warn('Could not get size for image: %s', file.path)
 			width.set_sensitive(False)
