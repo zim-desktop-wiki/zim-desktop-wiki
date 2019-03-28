@@ -15,4 +15,7 @@ Zim 0.70 depends on Gtk3 and python3, which means both Gtk and python dependenci
 * The "linkmap" plugin now depends on the "xdot" application instead of a packaged version of the library.
 
 **Accelmap**
- You can define your own shortcuts at ''~/.config/zim/accelmap'' . Since Zim moved to Gtk3, you have to update your keybindigs accordingly (ex: ''<Actions>/MainWindowExtension'' to either ''<Actions>/BookmarksBarMainWindowExtension'' or ''<Actions>/VersionControlMainWindowExtension'' etc. or <Actions>/GtkInterface to either ''<Actions>/UIActions'' or ''<Actions>/GtkInterface/'' etc.). You may just delete the old ''accelmap'' file and let it regenerate.
+You can define your own shortcuts at ''~/.config/zim/accelmap'' . Since Zim moved to Gtk3, you have to update your keybindigs accordingly (ex: ''<Actions>/MainWindowExtension'' to either ''<Actions>/BookmarksBarMainWindowExtension'' or ''<Actions>/VersionControlMainWindowExtension'' etc. or <Actions>/GtkInterface to either ''<Actions>/UIActions'' or ''<Actions>/GtkInterface/'' etc.). You may just delete the old ''accelmap'' file and let it regenerate.
+
+**Profiles**
+The support for configuration profiles is removed. Plugins like "journal" and "tasklist" now use notebook options for per-notebook configuration.

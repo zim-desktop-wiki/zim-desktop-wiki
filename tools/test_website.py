@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import subprocess
@@ -16,4 +16,3 @@ try:
 	server.serve_forever()
 except KeyboardInterrupt:
 	server.socket.close()
-

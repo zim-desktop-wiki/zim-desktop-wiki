@@ -5,7 +5,7 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
-##  0.70-rc3 - Mon 18 Feb 2019
+##  0.70 - Thu 28 Mar 2019
 * Ported zim to use Python3 & Gtk3
 * Refactored application framework, all windows run single process now with
   single plugin manager and preferences manager
@@ -18,9 +18,11 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Renamed "calendar" plugin to "journal"
 * Removed OSX menubar plugin
 * Image generator plugins now are "inserted objects"
-* Workaroung for missing clipboard.set_with_data()
+* Workaround for missing clipboard.set_with_data()
 * Improved speed of test suite and refactored test constructs
+* Support flatpack-spawn to execute processes
 * Critical fix for updating links on move page and rename page
+* Critical fix for parsing headers when page has no title
 * Fix page index issue on delete page
 
 ##  0.69 - Sun 16 Dec 2018

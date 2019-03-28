@@ -42,11 +42,11 @@ First you should verify you have the dependencies zim needs. To list all depende
 
 You will at least need the following:
 
-	* Gtk+ >= 3.2
-	* python3 >= 3.2
-	* python3-gi (also known as pygobject, but make sure to have the "gi" based version)
-	* python3-xdg (optional, but recommended)
-	* xdg-utils (optional, but recommended)
+* Gtk+ >= 3.2
+* python3 >= 3.2
+* python3-gi (also known as pygobject, but make sure to have the "gi" based version)
+* python3-xdg (optional, but recommended)
+* xdg-utils (optional, but recommended)
 
 To verify zim is working properly on your system you can call the test suite using `./test.py`. Failures do not have to be critical, but in principle all tests should pass.
 
@@ -60,10 +60,10 @@ Most plugins have additional requirements. These are listed in the plugin descri
 
 On Ubuntu or other debian derived systems, the following packages should be installed:
 
-	* python3
-	* gir1.2-gtk-3.0
-	* python3-gi
-	* python3-xdg
+* python3
+* gir1.2-gtk-3.0
+* python3-gi
+* python3-xdg
 
 
 ### Windows
