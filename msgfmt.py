@@ -100,6 +100,10 @@ def make(filename, outfile):
     ID = 1
     STR = 2
 
+    # Clear messages from previous execution. This prevents any untranslated
+    # messages defaulting to translated messages from previous execution.
+    MESSAGES.clear()
+
     # Compute .mo name from .po name and arguments
     if filename.endswith('.po'):
         infile = filename
