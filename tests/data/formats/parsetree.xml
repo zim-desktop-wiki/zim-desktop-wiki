@@ -128,6 +128,13 @@ the Achaeans.
 <h level="2">A table</h>
 
 <table aligns="center,right,left" wraps="1,0,1"><thead><th>H1</th><th>H2 h2</th><th>H3</th></thead><trow><td>Column A1</td><td>Column A2</td><td>a</td></trow><trow><td>a very long cell</td><td><strong>bold text</strong></td><td>b</td></trow><trow><td>hyperlinks</td><td><link href="wp?wiki">wp?wiki</link></td><td><link href="http://x.org">Xorg</link></td></trow></table>
+<h level="2">Multiformatting</h>
+
+<p>normal <strong>bold</strong> normal2
+normal <strike>strike <strong>nested bold</strong> strike2</strike> normal2
+normal <strike>strike <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
+normal <strike>strike  <strong>nested bold</strong> middle of the text <emphasis>italic <link href="https://example.org">link</link></emphasis> yet another text <strong>another bold <emphasis>yet another italic</emphasis></strong> </strike> normal2
+</p>
 <p>====
 This is not a header
 </p>
