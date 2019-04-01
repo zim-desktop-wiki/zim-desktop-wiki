@@ -189,6 +189,7 @@ class zim_build_trans_class(cmd.Command):
 
 			if not os.path.isfile(mofile) or dep_util.newer(pofile, mofile):
 				print('compiling %s' % mofile)
+				msgfmt.MESSAGES.clear() # prevent "spill over" between translations - see github #664
 				msgfmt.make(pofile, mofile)
 			else:
 				#~ print('skipping %s - up to date' % mofile)
