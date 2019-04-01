@@ -1,0 +1,10 @@
+language: python
+python:
+  - 3.2
+  - 3.4
+  - 3.6
+install:
+  - apt install gir1.2-gtk-3.0
+  - pip3 PyGObject
+  - pip3 pyxdg
+script: test.py
