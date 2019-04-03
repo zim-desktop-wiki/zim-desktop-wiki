@@ -14,7 +14,7 @@ from zim.actions import radio_action, radio_option
 from zim.notebook.page import shortest_unique_names
 
 from zim.gui.mainwindow import MainWindowExtension
-from zim.gui.widgets import encode_markup_text
+from zim.gui.widgets import encode_markup_text, gtk_popup_at_pointer
 from zim.gui.uiactions import UIActions, PAGE_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
@@ -568,7 +568,7 @@ class PathBar(ScrolledHBox):
 			self.navigation,
 		)
 		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
-		menu.popup_at_pointer(None)
+		gtk_popup_at_pointer(menu)
 		return True
 
 	def on_drag_data_get(self, button, context, selectiondata, info, time):

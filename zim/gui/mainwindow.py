@@ -23,7 +23,8 @@ from zim.gui.widgets import \
 	MenuButton, \
 	Window, Dialog, \
 	ErrorDialog, FileDialog, ProgressDialog, MessageDialog, \
-	ScrolledTextView
+	ScrolledTextView, \
+	gtk_popup_at_pointer
 
 from zim.gui.navigation import NavigationModel
 from zim.gui.uiactions import UIActions
@@ -439,7 +440,7 @@ class MainWindow(Window):
 	def do_toolbar_popup(self, toolbar, x, y, button):
 		'''Show the context menu for the toolbar'''
 		menu = self.uimanager.get_widget('/toolbar_popup')
-		menu.popup_at_pointer()
+		gtk_popup_at_pointer(menu)
 
 	@toggle_action(_('_Statusbar'), init=True) # T: Menu item
 	def toggle_statusbar(self, show):

@@ -300,6 +300,15 @@ def gtk_notebook_get_active_page(nb):
 		return None
 
 
+def gtk_popup_at_pointer(menu, event=None, button=3):
+	# Introduced in Gtk 3.22, so wrap our own to be compatible for 3.18 and up
+	if hasattr(menu, 'popup_at_pointer'):
+		menu.popup_at_pointer(event)
+	else:
+		time = event.time if event else 0
+		menu.popup(None, None, None, None, button, time)
+
+
 def rotate_pixbuf(pixbuf):
 	'''Rotate the pixbuf to match orientation from EXIF info.
 	This is intended for e.g. photos that have EXIF information that
@@ -560,7 +569,7 @@ class SingleClickTreeView(Gtk.TreeView):
 
 			# Pop menu
 			menu = self.get_popup()
-			menu.popup_at_pointer(event)
+			gtk_popup_at_pointer(menu, event)
 		else:
 			return Gtk.TreeView.do_button_press_event(self, event)
 

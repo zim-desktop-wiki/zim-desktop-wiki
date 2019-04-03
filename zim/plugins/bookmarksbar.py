@@ -19,6 +19,7 @@ from zim.signals import ConnectorMixin, SignalHandler
 
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.clipboard import Clipboard
+from zim.gui.widgets import gtk_popup_at_pointer
 
 from zim.plugins.pathbar import ScrolledHBox
 
@@ -294,7 +295,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			item.connect('activate', lambda o: _delete_all())
 			menu.append(item)
 			menu.show_all()
-			menu.popup_at_pointer(None)
+			gtk_popup_at_pointer(menu)
 		else:
 			_delete_all()
 
@@ -376,7 +377,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			item.connect('activate', lambda o: self.toggle_show_full_page_name())
 			menu.append(item)
 			menu.show_all()
-			menu.popup_at_pointer(None)
+			gtk_popup_at_pointer(menu)
 			return True
 
 	def do_bookmarks_popup_menu(self, button, event):
@@ -403,8 +404,8 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 					(_('Remove'), lambda o: self.delete(path)),			# T: menu item
 				    (_('Remove All'), lambda o: self.delete_all(True)),	# T: menu item
 				    ('separator', ''),
-				    ('gtk-copy', lambda o: set_save_bookmark(path)),
-				    ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
+				    (_('Copy'), lambda o: set_save_bookmark(path)), # T: menu item
+				    (_('Paste'), lambda o: self.move_bookmark(self._saved_bookmark, path, direction)), # T: menu item
 				    ('separator', ''),
 				    (_('Open in New Window'), lambda o: self.navigation.open_page(Path(path), new_window=True)), # T: menu item
 				    ('separator', ''),
@@ -415,15 +416,12 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 			if name == 'separator':
 				item = Gtk.SeparatorMenuItem()
 			else:
-				if 'gtk-' in name:
-					item = Gtk.ImageMenuItem(name)
-				else:
-					item = Gtk.MenuItem.new_with_mnemonic(name)
-					item.connect('activate', func)
+				item = Gtk.MenuItem.new_with_mnemonic(name)
+				item.connect('activate', func)
 			main_menu.append(item)
 
 		main_menu.show_all()
-		main_menu.popup_at_pointer(None)
+		gtk_popup_at_pointer(main_menu)
 		return True
 
 	@SignalHandler

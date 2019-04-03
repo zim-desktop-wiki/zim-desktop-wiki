@@ -25,7 +25,7 @@ from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
 from zim.formats.wiki import Parser as WikiParser
 
 from zim.gui.pageview import PageViewExtension
-from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
+from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry, gtk_popup_at_pointer
 from zim.gui.insertedobjects import InsertedObjectWidget
 
 
@@ -633,7 +633,7 @@ class TableViewWidget(InsertedObjectWidget):
 					menu.append(item)
 
 			menu.show_all()
-			menu.popup_at_pointer(event)
+			gtk_popup_at_pointer(menu, event)
 
 	def on_add_row(self, action):
 		''' Context menu: Add a row '''
