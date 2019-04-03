@@ -192,7 +192,8 @@ class TestBazaar(VersionControlBackendTests, tests.TestCase):
 		root = get_tmp_dir('versioncontrol_TestBazaar')
 		vcs = VCS.create(VCS.BZR, root, root)
 		self.addCleanup(vcs.disconnect_all)
-		vcs.init_repo()
+		with tests.LoggingFilter('zim.applications'):
+			vcs.init_repo()
 
 		folder = root.folder('foo/bar')
 		file = folder.file('baz.txt')
