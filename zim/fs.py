@@ -59,7 +59,7 @@ try:
 	import xdg.Mime as xdgmime
 except ImportError:
 	if os.name != 'nt':
-		logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
 	else:
 		pass # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
