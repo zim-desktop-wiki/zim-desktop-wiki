@@ -480,7 +480,7 @@ class KeyBindingTreeView(Gtk.TreeView):
 		model = Gtk.ListStore(str, int, Gdk.ModifierType) # accel_path, accel_key, accel_mods
 
 		def _append(data, accel_path, accel_key, accel_mods, changed):
- 			model.append((accel_path, accel_key, accel_mods))
+			model.append((accel_path, accel_key, accel_mods))
 		Gtk.AccelMap.foreach(None, _append)
 
 		model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
