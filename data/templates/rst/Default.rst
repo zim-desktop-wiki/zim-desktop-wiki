@@ -1,6 +1,8 @@
 [% FOR page IN pages %]
-================
+[% FOR i IN range(len(page.title)) %]
+=[% END %]
 [% page.title %]
-================
+[% FOR i IN range(len(page.title)) %]
+=[% END %]
 [% page.body %]
 [% END %]
