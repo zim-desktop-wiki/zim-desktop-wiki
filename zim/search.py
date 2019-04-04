@@ -608,11 +608,11 @@ class SearchSelection(PageSelection):
 		# Avoid adding them next to non-word characters or next to chinese
 		# charaters. Chinese is treated special because it does not use
 		# whitespace as word delimiter.
-		if re.search(r'^[\*\w]', string, re.U) \
+		if re.search(r'^[*\w]', string, re.U) \
 		and not '\u4e00' <= string[0] <= '\u9fff':
 			regex = r'\b' + regex
 
-		if re.search(r'[\*\w]$', string, re.U) \
+		if re.search(r'[*\w]$', string, re.U) \
 		and not '\u4e00' <= string[-1] <= '\u9fff':
 			regex = regex + r'\b'
 
