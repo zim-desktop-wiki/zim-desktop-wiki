@@ -10,6 +10,7 @@ from gi.repository import Gtk
 
 from zim.plugins import PluginManager
 from zim.gui.widgets import Dialog, get_window, InputForm
+from zim.parsing import is_interwiki_keyword_re
 
 notebook_properties = (
 	('name', 'string', _('Name')), # T: label for properties dialog

@@ -24,7 +24,7 @@ from zim.errors import Error
 from zim.utils import natural_sort_key
 from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
-from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
+from zim.parsing import link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
