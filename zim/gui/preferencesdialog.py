@@ -5,12 +5,13 @@
 
 from gi.repository import Pango
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GObject
 
 import logging
 
 from zim.gui.widgets import Dialog, BrowserTreeView, \
-	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window
+	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window, help_text_factory
 from zim.gui.applications import CustomizeOpenWithDialog, open_folder_prompt_create
 
 from zim.plugins import PLUGIN_FOLDER
@@ -89,7 +90,8 @@ class PreferencesDialog(Dialog):
 		#~ gtknotebook.append_page(StylesTab(self), Gtk.Label(label=_('Styles')))
 
 		# Keybindings tab
-		#~ gtknotebook.append_page(KeyBindingsTab(self), Gtk.Label(label=_('Key bindings')))
+		gtknotebook.append_page(KeyBindingsTab(self), Gtk.Label(label=_('Key bindings')))
+				# T: Heading in preferences dialog
 
 		# Plugins tab
 		self.plugins_tab = PluginsTab(self, self.plugins)
@@ -463,43 +465,70 @@ class StylesTreeModel(Gtk.ListStore):
 
 
 class KeyBindingsTab(Gtk.VBox):
-
 	def __init__(self, dialog):
 		GObject.GObject.__init__(self)
-		self.add(Gtk.Label(label='TODO add treeview with accelerators'))
+		help = _(
+			'Key bindings can be changed by selecting the action in the list and pressing the new key binding.\n'
+			'To disable a keybinding select in the list below and use <tt>&lt;Backspace&gt;</tt>.'
+		) # T: help text in preferences dialog for modifying keybindings
+		self.add(ScrolledWindow(KeyBindingTreeView()))
+		self.pack_end(help_text_factory(help), False, True, 12)
 
-#~ Build editable treeview of menu items + accelerators
-#~
-#~ Just getting action names does not give menu structure,
-#~ so walk the menu.
-#~
-#~ Menus are containers, have a foreach
-#~ Menutitems are bin, can have submenu
-#~
-#~ Get label using get_child() etc (probably gives a box with icon,
-#~ label, accel, etc.)
-#~
-#~ Test get_submenu(),
-#~ if is None: leaf item, get accelerator
-#~ elif value: recurs
-#~
-#~ To get the accelerator:
-#~ accel_path = menuitem.get_accel_path() (make sure this is not the mnemonic..)
-#~ key, mod = Gtk.AccelMap.lookup_entry(accel_path)
-#~
-#~ To get / set accelerator labels in the UI use:
-#~ Gtk.accelerator_name() to get a name to display
-#~
-#~ To parse name set by user
-#~ Gtk.accelerator_parse()
-#~ Gtk.accelerator_valid()
-#~
-#~ To change the accelerator:
-#~ Maybe first unlock path in accel_map and unlock the actiongroup..
-#~ Gtk.accel_map.change_entry(accel_path, key, mods, replace=True)
-#~ check return value
-#~
-#~ To get updates for ui use:
-#~ Gtk.AccelMap.get().connect('changed', func(o, accel_path, key, mods))
-#~ This way we also get any accelerators that were deleted as result of
-#~ replace=True
+class KeyBindingTreeView(Gtk.TreeView):
+	def __init__(self):
+		GObject.GObject.__init__(self)
+		model = Gtk.ListStore(str, int, Gdk.ModifierType) # accel_path, accel_key, accel_mods
+
+		def _append(data, accel_path, accel_key, accel_mods, changed):
+ 			model.append((accel_path, accel_key, accel_mods))
+		Gtk.AccelMap.foreach(None, _append)
+
+		model.set_sort_column_id(0, Gtk.SortType.ASCENDING)
+		self.set_model(model)
+
+		column = Gtk.TreeViewColumn(_('Action'))
+			# T: Column header for keybinding list
+		column.set_expand(True)
+		column.set_sort_column_id(0)
+		self.append_column(column)
+
+		cr = Gtk.CellRendererText()
+		cr.set_property('ellipsize', Pango.EllipsizeMode.MIDDLE)
+		column.pack_start(cr, True)
+		column.set_attributes(cr, text=0)
+
+		column = Gtk.TreeViewColumn(_('Key Binding'))
+			# T: Column header for keybinding list
+		column.set_sort_column_id(1)
+		self.append_column(column)
+
+		cr = Gtk.CellRendererAccel()
+		cr.set_property('editable', True)
+		column.pack_start(cr, True)
+		column.set_attributes(cr, accel_key=1, accel_mods=2)
+
+		def _update(cr, tree_path, accel_key, accel_mods, hw_int):
+			accel_path = model[tree_path][0]
+			Gtk.AccelMap.change_entry(accel_path, accel_key, accel_mods, True)
+			# Update of ListStore happens via AccelMap changed signal
+
+		cr.connect('accel-edited', _update)
+
+		def _clear(cr, tree_path):
+			accel_path = model[tree_path][0]
+			Gtk.AccelMap.change_entry(accel_path, 0, 0, False)
+
+		cr.connect('accel-cleared', _clear)
+
+		def _on_changed(map, accel_path, accel_key, accel_mods):
+			for row in model:
+				if row[0] == accel_path:
+					row[1] = accel_key
+					row[2] = accel_mods
+					break
+			else:
+				model.append((accel_path, accel_key, accel_mods))
+
+		accelmap = Gtk.AccelMap.get()
+		sid = accelmap.connect('changed', _on_changed)
+		self.connect('destroy', lambda o: accelmap.disconnect(sid))

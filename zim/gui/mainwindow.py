@@ -671,6 +671,7 @@ class MainWindow(Window):
 		self.toolbar.insert(item, -1)
 
 		# Load accelmap config and setup saving it
+		# TODO - this probably belongs in the application class, not here
 		accelmap = ConfigManager.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
