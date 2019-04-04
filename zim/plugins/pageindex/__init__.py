@@ -13,7 +13,7 @@ import logging
 from functools import partial
 
 from zim.notebook import Path
-from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError
+from zim.notebook.index.pages import PagesTreeModelMixin, PageIndexRecord, IndexNotFoundError, IS_PAGE
 
 from zim.plugins import PluginClass
 from zim.actions import PRIMARY_MODIFIER_MASK
@@ -406,10 +406,12 @@ class PageTreeView(BrowserTreeView):
 
 	def do_row_activated(self, treepath, column):
 		model = self.get_model()
-		iter = model.get_iter(treepath)
-		path = model.get_indexpath(iter)
-		if path:
-			self.emit('page-activated', path)
+		treeiter = model.get_iter(treepath)
+		mytreeiter = model.get_user_data(treeiter)
+		if mytreeiter.hint == IS_PAGE:
+			path = model.get_indexpath(treeiter)
+			if path:
+				self.emit('page-activated', path)
 
 	def do_page_activated(self, path):
 		self.navigation.open_page(path)
@@ -439,21 +441,24 @@ class PageTreeView(BrowserTreeView):
 
 	def do_initialize_popup(self, menu):
 		# TODO get path first and determine what menu options are valid
-		path = self.get_selected_path() or Path(':')
+		model, treeiter = self.get_selection().get_selected()
+		mytreeiter = model.get_user_data(treeiter)
+		if mytreeiter.hint == IS_PAGE:
+			path = self.get_selected_path()
 
-		uiactions = UIActions(
-			self,
-			self.notebook,
-			path,
-			self.navigation,
-		)
-		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+			uiactions = UIActions(
+				self,
+				self.notebook,
+				path,
+				self.navigation,
+			)
+			uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
 
-		populate_popup_add_separator(menu)
-		item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
-		item.connect('activate', lambda o: self.do_copy())
-		menu.append(item)
-		menu.show_all()
+			populate_popup_add_separator(menu)
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
+			item.connect('activate', lambda o: self.do_copy())
+			menu.append(item)
+			menu.show_all()
 
 		self.populate_popup_expand_collapse(menu)
 
