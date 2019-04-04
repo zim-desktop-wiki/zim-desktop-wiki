@@ -591,7 +591,8 @@ class Dumper(TextDumper):
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
-		for key, value in list(attrib.items()):
+		for key, value in sorted(list(attrib.items())):
+			# TODO: sorted to make order predictable for testing - prefer use of OrderedDict
 			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them
