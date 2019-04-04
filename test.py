@@ -156,6 +156,9 @@ On Ubuntu or Debian install package 'python3-coverage'.
 		cov.html_report(directory='./coverage', omit=['zim/inc/*'])
 		print('Done - Coverage reports can be found in ./coverage/')
 
+	exitcode = 1 if result.errors or result.failures else 0
+	sys.exit(exitcode)
+
 
 def test_report(result, file):
 	'''Produce html report of test failures'''

@@ -1,10 +1,15 @@
 language: python
 python:
-  - 3.2
-  - 3.4
-  - 3.6
+  - "3.6"
+dist: xenial
+addons:
+  apt:
+    packages:
+      - gobject-introspection
+      - libgirepository1.0-dev
+      - gir1.2-gtk-3.0
 install:
-  - apt install gir1.2-gtk-3.0
-  - pip3 PyGObject
-  - pip3 pyxdg
-script: test.py
+  - pip install PyGObject
+  - pip install pyxdg
+script:
+  - xvfb-run ./test.py
