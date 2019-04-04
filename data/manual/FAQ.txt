@@ -58,7 +58,7 @@ The visible files in the notebook folder contain all data of notes and [[Help:At
 The hidden .zim folder contains only caches and GUI state. It doesn't contain any information that can not be recreated on the fly.
 
 ===== How can I synchronize a zim notebook? =====
-By synchronizing all visible files in the notebook. E.g. by putting the zim notbook in a dropbox share.
+By synchronizing all visible files in the notebook. E.g. by putting the zim notebook in a dropbox share.
 
 ===== Can multiple people collaborate using a zim notebook ? =====
 Zim is written as a "single user" program, so it is not intended for multiple people using the same notebook. However it can be used with version control like Bazaar, Git or Mercurial. This way multiple users can work on the same notebook and merge their changes. See the [[Plugins:Version Control|Version Control plugin]].

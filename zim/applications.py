@@ -104,7 +104,7 @@ class Application(object):
 	fall back to first item of C{cmd}
 	'''
 
-	STATUS_OK = 0 #: return code when the command executed succesfully
+	STATUS_OK = 0 #: return code when the command executed successfullly
 
 	def __init__(self, cmd, tryexeccmd=None):
 		'''Constructor

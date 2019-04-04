@@ -209,7 +209,7 @@ class ImageGeneratorClass(object):
 		@returns: string used for generate_image, also the string
 		written to script file.
 
-		@implementation: Not mandatory to be implemented by subclass.
+		@implementation: Not mandatory to be implemented by a subclass.
 		It defaults to user input.
 		'''
 		return text
@@ -217,7 +217,7 @@ class ImageGeneratorClass(object):
 	def get_default_text(self):
 		'''Provides a template or starting point for the user to begin editing.
 
-		@implementation: Not mandatory to be implemented by subclass.
+		@implementation: Not mandatory to be implemented by a subclass.
 		It defaults to the empty string.
 		'''
 		return ''
@@ -231,7 +231,7 @@ class ImageGeneratorClass(object):
 		@param text: the contents of script file
 		@returns: string used to display for user input.
 
-		@implementation: Not mandatory to be implemented by subclass.
+		@implementation: Not mandatory to be implemented by a subclass.
 		It defaults to script file contents.
 		'''
 		return text

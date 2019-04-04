@@ -37,7 +37,7 @@ file://host/share/path
 The first form, using "''smb://''" is recommended because it is most explicit, while the third form will be most recognizable for windows users.
 
 ===== Interwiki =====
-There is a list of pre-defined urls in "''share/zim/urls.list''" which lists most commonly used online wikis. These urls can be refered to by a keyword so you don't have to type the full url every time; also you can update all links to a certain wiki by changing the url in the file. Have a look at the list to get an idea of how to use this.
+There is a list of pre-defined urls in "''share/zim/urls.list''" which lists most commonly used online wikis. These urls can be referred to by a keyword so you don't have to type the full url every time; also you can update all links to a certain wiki by changing the url in the file. Have a look at the list to get an idea of how to use this.
 
 This link for example goes to wikipedia.org and opens the page "wiki": [[wp?wiki]]
 

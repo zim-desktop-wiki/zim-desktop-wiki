@@ -24,8 +24,7 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 
 
 def new_parsetree_from_text(testcase, text):
-	## FIXME had to wrap my own here becase of stupid
-	## resolve_images - get rid of that
+	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
 	tree = tests.new_parsetree_from_text(text)
 	notebook = testcase.setUpNotebook()
 	page = notebook.get_page(Path('Foo'))

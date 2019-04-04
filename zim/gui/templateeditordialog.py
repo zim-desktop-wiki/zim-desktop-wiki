@@ -86,7 +86,7 @@ class TemplateEditorDialog(Dialog):
 			self._delete_button.set_sensitive(False)
 
 	def on_view(self, *a):
-		# Open the file, witout waiting for editor to return
+		# Open the file, without waiting for editor to return
 		custom, default = self.view.get_selected()
 		if custom is None:
 			return # Should not have been sensitive

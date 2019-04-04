@@ -99,8 +99,8 @@ Earlier version numbers for zim correspond to the Perl branch.
 * Horizontal lines "<HR>" added to wiki syntax -- Pavel_M
 * Pathbar buttons can now also be used to insert page links by drag-n-drop
   -- Klaus Holler
-* "search in section" added to context mennu for pages
-* "search backlinks" added to context mennu for pages -- Volodymyr Buell
+* "search in section" added to context menu for pages
+* "search backlinks" added to context menu for pages -- Volodymyr Buell
 * Keyboard navigation of plugin tab in preferences dialog -- Jens Sauer
 * Allow "mailto:" links contain arguments like "?subject="
 * Tasklist plugin: now also available embedded in side pane

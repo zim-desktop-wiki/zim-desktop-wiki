@@ -82,4 +82,4 @@ class PropertiesDialog(Dialog):
 
 		return True
 
-## TODO: put a number of properties in an expander with a lable "Advanced"
+## TODO: put a number of properties in an expander with a label "Advanced"

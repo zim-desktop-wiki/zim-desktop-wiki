@@ -828,7 +828,7 @@ class MainWindow(Window):
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		record = self.history.get_previous()
 		if not record is None:
@@ -840,7 +840,7 @@ class MainWindow(Window):
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		record = self.history.get_next()
 		if not record is None:
@@ -849,7 +849,7 @@ class MainWindow(Window):
 	@action(_('_Parent'), '<alt>Up') # T: Menu item
 	def open_page_parent(self):
 		'''Menu action to open the parent page
-		@returns: C{True} if succesful
+		@returns: C{True} if successful
 		'''
 		namespace = self.page.namespace
 		if namespace:
@@ -859,7 +859,7 @@ class MainWindow(Window):
 	def open_page_child(self):
 		'''Menu action to open a child page. Either takes the last child
 		from the history, or the first child.
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		path = self.notebook.pages.lookup_by_pagename(self.page)
 			# Force refresh "haschildren" ...
@@ -874,7 +874,7 @@ class MainWindow(Window):
 	@action(_('_Previous in index'), accelerator='<alt>Page_Up') # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		path = self.notebook.pages.get_previous(self.page)
 		if not path is None:
@@ -883,7 +883,7 @@ class MainWindow(Window):
 	@action(_('_Next in index'), accelerator='<alt>Page_Down') # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		path = self.notebook.pages.get_next(self.page)
 		if not path is None:

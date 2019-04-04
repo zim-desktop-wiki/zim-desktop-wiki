@@ -148,7 +148,7 @@ class ExpressionParameter(Expression):
 
 
 class ExpressionList(Expression):
-	'''Expression for a list of expressions, recurses over all items
+	'''Expression for a list of expressions, recurses on all items
 	when evaluated
 	'''
 
