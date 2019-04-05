@@ -14,5 +14,3 @@ The **Home Page** is the first page to open in a notebook if you have no history
 The notebook **Icon** is an image that is used together with the name to identify the notebook.
 
 The **Document Root** is a special folder which contains documents that can be linked from the notebook. To link files in this folder start the links with a "/" (see [[Links]] for more details). This folder is typically used for notebooks that are published as web page. When [[Export|exporting]] the notebook to html the document root can be mapped to a special URL.
-
-The **Profile** is an advanced property which allows having multiple sets of preferences. E.g. if you have two types of notebooks and each type you want different preferences, plugins, style, etc. you would assign notebooks different "profiles". Practically speaking this means that a separate set with config files is being used per profile.
