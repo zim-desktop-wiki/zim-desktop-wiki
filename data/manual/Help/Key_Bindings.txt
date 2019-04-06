@@ -131,20 +131,3 @@ For selected text the following keybindings are added:
 '''
 
 
-===== Changing accelerators =====
-Gtk+ implements a feature that allows you to change accelerators (keybindings for menu items) interactively. To use this feature you need to either enable this setting in the settings manager of you desktop environment or add the line:
-
-'''
-gtk-can-change-accels = 1
-'''
-
-to ''~/.gtkrc-2.0'' . Zim will remember any changes. If you ever want to reset to the default bindings just remove the "accelmap" file from ''~/.config/zim/''.
-
-===== Emacs mode =====
-Zim does not support an emacs mode specifically, however Gtk+ does. When you set this option all Gtk+ programs will use emacs key bindings for text inputs. To use this feature you need to enable this setting in the settings manager of your desktop environment or add the line:
-
-'''
-gtk-key-theme-name = "Emacs"
-'''
-
-to ''~/.gtkrc-2.0'' . Of course if you use this you will need to customize a number of accelerators as well which conflict with the emacs keybindings. See the section above.

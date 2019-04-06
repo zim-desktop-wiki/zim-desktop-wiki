@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2013-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -7,6 +6,10 @@ application. It also defines a number of command classes that implement
 specific commandline commands and an singleton application object that
 takes core of the process life cycle.
 '''
+
+# TODO:
+# - implement weakvalue dict to ensure uniqueness of notebook objects
+
 
 import os
 import sys
@@ -28,6 +31,9 @@ from zim.errors import Error
 from zim.notebook import Notebook, Path, \
 	get_notebook_list, resolve_notebook, build_notebook
 from zim.formats import get_format
+
+from zim.config import ConfigManager
+from zim.plugins import PluginManager
 
 from .command import Command, GtkCommand, UsageError, GetoptError
 from .ipc import dispatch as _ipc_dispatch
@@ -93,17 +99,17 @@ Try 'zim --manual' for more help.
 '''
 
 	def run(self):
-		print self.usagehelp
-		print self.optionhelp  # TODO - generate from commands
+		print(self.usagehelp)
+		print(self.optionhelp)  # TODO - generate from commands
 
 
 class VersionCommand(Command):
 	'''Class implementing the C{--version} command'''
 
 	def run(self):
-		print 'zim %s\n' % zim.__version__
-		print zim.__copyright__, '\n'
-		print zim.__license__
+		print('zim %s\n' % zim.__version__)
+		print(zim.__copyright__, '\n')
+		print(zim.__license__)
 
 
 class NotebookLookupError(Error):
@@ -249,41 +255,94 @@ class GuiCommand(NotebookCommand, GtkCommand):
 		return notebook, page or uripage
 
 	def run(self):
-		import gtk
-		import zim.gui
+		from gi.repository import Gtk
+
+		from zim.gui.mainwindow import MainWindow
+
+		windows = [
+			w for w in Gtk.Window.list_toplevels()
+				if isinstance(w, MainWindow)
+		]
 
 		notebook, page = self.build_notebook()
 		if notebook is None:
 			logger.debug('NotebookDialog cancelled - exit')
 			return
 
-		gui = None
-		for window in gtk.window_list_toplevels():
-			if isinstance(window, zim.gui.MainWindow) \
-			and window.ui.notebook.uri == notebook.uri:
-				gui = window.ui # XXX
-				break
-
-		if gui:
-			gui.present(
-				page=page,
-				**self.get_options('geometry', 'fullscreen'))
+		for window in windows:
+			if window.notebook.uri == notebook.uri:
+				self._present_window(window, page)
+				return window
 		else:
-			gui = zim.gui.GtkInterface(
-				notebook=notebook,
-				page=page,
-				**self.get_options('geometry', 'fullscreen')
-			)
-			gui.run()
+			return self._run_new_window(notebook, page)
 
-		return gui._mainwindow # XXX
+	def _present_window(self, window, page):
+		window.present()
+
+		if page:
+			window.open_page(page)
+
+		geometry = self.opts.get('geometry', None)
+		if geometry is not None:
+			window.parse_geometry(geometry)
+
+		if self.opts.get('fullscreen', False):
+			window.toggle_fullscreen(True)
+
+	def _run_new_window(self, notebook, page):
+		from gi.repository import GObject
+
+		from zim.gui.mainwindow import MainWindow
+
+		pluginmanager = PluginManager()
+
+		preferences = ConfigManager.preferences['General']
+		preferences.setdefault('plugins_list_version', 'none')
+		if preferences['plugins_list_version'] != '0.70':
+			if not preferences['plugins']:
+				pluginmanager.load_plugins_from_preferences(
+					[ # Default plugins
+						'pageindex', 'pathbar',
+						'insertsymbol', 'printtobrowser',
+						'versioncontrol',
+					]
+				)
+			else:
+				# Upgrade version <0.70 where these were core functions
+				pluginmanager.load_plugins_from_preferences(['pageindex', 'pathbar'])
+
+			if 'calendar' in pluginmanager.failed:
+				ConfigManager.preferences['JournalPlugin'] = \
+						ConfigManager.preferences['CalendarPlugin']
+				pluginmanager.load_plugins_from_preferences(['journal'])
+
+			preferences['plugins_list_version'] = '0.70'
+
+		window = MainWindow(
+			notebook,
+			page=page,
+			**self.get_options('geometry', 'fullscreen')
+		)
+		window.present()
+
+		if not window.notebook.index.is_uptodate:
+			window._uiactions.reload_index(update_only=True) # XXX
+		else:
+			# Start a lightweight background check of the index
+			# put a small delay to ensure window is shown before we start
+			def start_background_check():
+				notebook.index.start_background_check(notebook)
+				return False # only run once
+			GObject.timeout_add(500, start_background_check)
+
+		return window
 
 
 class ManualCommand(GuiCommand):
 	'''Like L{GuiCommand} but always opens the manual'''
 
 	arguments = ('[PAGE]',)
-	options = filter(lambda t: t[0] != 'list', GuiCommand.options)
+	options = tuple(t for t in GuiCommand.options if t[0] != 'list')
 		# exclude --list
 
 	def run(self):
@@ -431,17 +490,8 @@ class ExportCommand(NotebookCommand):
 
 	def run(self):
 		from zim.export.selections import AllPages, SinglePage, SubPages
-		from zim.plugins import PluginManager
-		from zim.config import ConfigManager
 
 		notebook, page = self.build_notebook()
-
-		# load plugins, needed so the the proper export functions would work from CLI
-		config = ConfigManager(profile=notebook.profile)
-		plugins = PluginManager(config)
-		plugins.extend(notebook.index)
-		plugins.extend(notebook)
-
 		notebook.index.check_and_update()
 
 		if page and self.opts.get('recursive'):
@@ -476,7 +526,7 @@ class SearchCommand(NotebookCommand):
 		selection = SearchSelection(notebook)
 		selection.search(query)
 		for path in sorted(selection, key=lambda p: p.name):
-			print path.name
+			print(path.name)
 
 
 class IndexCommand(NotebookCommand):
@@ -581,7 +631,7 @@ class ZimApplication(object):
 
 	def get_mainwindow(self, notebook, _class=None):
 		'''Returns an existing L{MainWindow} for C{notebook} or C{None}'''
-		from zim.gui import MainWindow
+		from zim.gui.mainwindow import MainWindow
 		_class = _class or MainWindow # test seam
 		for w in self.toplevels:
 			if isinstance(w, _class) and w.notebook.uri == notebook.uri:
@@ -593,8 +643,8 @@ class ZimApplication(object):
 		'''Present notebook and page in a mainwindow, may not return for
 		standalone processes.
 		'''
-		uri = notebook if isinstance(notebook, basestring) else notebook.uri
-		pagename = page if isinstance(page, basestring) else page.name
+		uri = notebook if isinstance(notebook, str) else notebook.uri
+		pagename = page if isinstance(page, str) else page.name
 		self.run('--gui', uri, pagename)
 
 	def add_window(self, window):
@@ -615,11 +665,11 @@ class ZimApplication(object):
 	def _on_destroy_window(self, window):
 		self.remove_window(window)
 		if not self._windows:
-			import gtk
+			from gi.repository import Gtk
 
 			logger.debug('Last toplevel destroyed, quit')
-			if gtk.main_level() > 0:
-				gtk.main_quit()
+			if Gtk.main_level() > 0:
+				Gtk.main_quit()
 
 	def run(self, *args, **kwargs):
 		'''Run a commandline command, either in this process, an
@@ -627,6 +677,9 @@ class ZimApplication(object):
 		@param args: commandline arguments
 		@param kwargs: optional arguments for L{build_command}
 		'''
+		PluginManager().load_plugins_from_preferences(
+			ConfigManager.preferences['General']['plugins']
+		)
 		cmd = build_command(args, **kwargs)
 		self._run_cmd(cmd, args) # test seam
 
@@ -665,11 +718,11 @@ class ZimApplication(object):
 	def _run_main_loop(self, cmd):
 		# Run for the 1st gtk command in a primary process,
 		# but can still be standalone process
-		import gtk
-		import gobject
+		from gi.repository import Gtk
+		from gi.repository import GObject
 
 		#######################################################################
-		# WARNING: commented out "gobject.threads_init()" because it leads to
+		# WARNING: commented out "GObject.threads_init()" because it leads to
 		# various segfaults on linux. See github issue #7
 		# However without this init, gobject does not properly release the
 		# python GIL during C calls, so threads may block while main loop is
@@ -678,11 +731,11 @@ class ZimApplication(object):
 		# frequently. So be very carefull relying on threads.
 		# Re-evaluate when we are above PyGObject 3.10.2 - threading should
 		# wotk bettter there even without this statement. (But even then,
-		# no Gtk calls from threads, just "gobject.idle_add()". )
+		# no Gtk calls from threads, just "GObject.idle_add()". )
 		# Kept for windows, because we need thread to run ipc listener, and no
 		# crashes observed there.
 		if os.name == 'nt':
-			gobject.threads_init()
+			GObject.threads_init()
 		#######################################################################
 
 		from zim.gui.widgets import gtk_window_set_default_icon
@@ -705,7 +758,7 @@ class ZimApplication(object):
 			self.add_window(w)
 
 		while self._windows:
-			gtk.main()
+			Gtk.main()
 
 			for toplevel in list(self._windows):
 				try:
@@ -745,16 +798,15 @@ class ZimApplication(object):
 
 			logger.debug('Python version is %s', str(sys.version_info))
 			logger.debug('Platform is %s', os.name)
-			logger.debug(zim.get_zim_revision())
 			zim.config.log_basedirs()
 
 	def _setup_signal_handling(self):
 		def handle_sigterm(signal, frame):
-			import gtk
+			from gi.repository import Gtk
 
 			logger.info('Got SIGTERM, quit')
-			if gtk.main_level() > 0:
-				gtk.main_quit()
+			if Gtk.main_level() > 0:
+				Gtk.main_quit()
 
 		signal.signal(signal.SIGTERM, handle_sigterm)
 
@@ -846,6 +898,19 @@ def main(*argv):
 	'''Run full zim application
 	@returns: exit code (if error handled, else just raises)
 	'''
+
+	import zim.config
+
+	# Check if we can find our own data files
+	_file = zim.config.data_file('zim.png')
+	if not (_file and _file.exists()): #pragma: no cover
+		raise AssertionError(
+			'ERROR: Could not find data files in path: \n'
+			'%s\n'
+			'Try setting XDG_DATA_DIRS'
+				% list(map(str, zim.config.data_dirs()))
+		)
+
 	try:
 		ZIM_APPLICATION.run(*argv[1:])
 	except KeyboardInterrupt:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -15,17 +14,9 @@ FS_CASE_SENSITIVE = (os.name != 'nt') #: file system case-sensitive yes or no
 
 FS_SUPPORT_NON_LOCAL_FILE_SHARES = (os.name == 'nt') #: Support \\host\share paths yes or no
 
-FS_ENCODING = sys.getfilesystemencoding() #: file system encoding for paths
-if FS_ENCODING.upper() in (
-	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US', # some aliases for ascii
-	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987', # aliases for latin1
-):
-	logger.warn('Filesystem encoding is set to ASCII or Latin1, using UTF-8 instead')
-	FS_ENCODING = 'utf-8'
-
 
 from .base import *
-from .base import _SEP, _EOL, _HOME
+from .base import SEP, _EOL, _HOME
 from .local import *
 from .helpers import *
 

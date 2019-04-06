@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -137,31 +136,10 @@ class Error(Exception):
 			# else use class attribute
 
 	def __str__(self):
-		msg = self.__unicode__()
-		return msg.encode('utf-8')
-
-	def __unicode__(self):
-		msg = u'' + self.msg.strip()
+		msg = '' + self.msg.strip()
 		if self.description:
 			msg += '\n\n' + self.description.strip() + '\n'
 		return msg
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.msg)
-
-
-# Defined here because these errors are not specific to files, but can
-# occur in different storage models as well
-
-class TrashNotSupportedError(Error):
-	'''Error raised when trashing is not supported and delete should
-	be used instead
-	'''
-	pass
-
-class TrashCancelledError(Error):
-	'''Error raised when a trashign operation is cancelled. (E.g. on
-	windows the system will prompt the user with a confirmation
-	dialog which has a Cancel button.)
-	'''
-	pass

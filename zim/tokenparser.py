@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2016-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -241,7 +240,7 @@ def testTokenStream(token_iter):
 			assert nesting[-1] == t[1], 'Got /%s, expected /%s' % (t[1], nesting[-1])
 			nesting.pop()
 		elif t[0] == TEXT:
-			assert isinstance(t[1], basestring), 'Wrong type for text'
+			assert isinstance(t[1], str), 'Wrong type for text'
 			assert not '\n' in t[1][:-1], 'Text token should not cross line break: %r' % (t,)
 		else:
 			assert t[1] is None or isinstance(t[1], dict), 'Wrong type for attributes'

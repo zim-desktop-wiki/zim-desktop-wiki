@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012,2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -25,7 +24,7 @@ class TestThumbnailCreators(tests.TestCase):
 		for creator in self.creators:
 			thumbdir = LocalFolder(self.create_tmp_dir(creator.__name__))
 
-			dir = self.SRC_DIR.folder('data/pixmaps')
+			dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 			for i, basename in enumerate(dir.list_names()):
 				if basename.endswith('.svg'):
 					continue # fails on windows in some cases
@@ -34,10 +33,10 @@ class TestThumbnailCreators(tests.TestCase):
 
 				self.assertFalse(thumbfile.exists())
 				pixbuf = creator(file, thumbfile, THUMB_SIZE_NORMAL)
-				self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+				self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 				self.assertTrue(thumbfile.exists())
 
-				pixbuf = gtk.gdk.pixbuf_new_from_file(thumbfile.encodedpath)
+				pixbuf = GdkPixbuf.Pixbuf.new_from_file(thumbfile.path)
 				self.assertEqual(pixbuf.get_option('tEXt::Thumb::URI'), file.uri)
 				self.assertTrue(pixbuf.get_option('tEXt::Thumb::URI').startswith('file:///'))
 					# Specific requirement of spec to use file:/// and not file://localhost/
@@ -45,10 +44,12 @@ class TestThumbnailCreators(tests.TestCase):
 
 			self.assertTrue(i > 3)
 
+			src_file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
+			src_file.write('Test 123\n')
 			thumbfile = thumbdir.file('thumb-test.txt')
 			self.assertRaises(
 				ThumbnailCreatorFailure,
-				creator, self.SRC_DIR.file('README.txt'), thumbfile, THUMB_SIZE_NORMAL
+				creator, src_file, thumbfile, THUMB_SIZE_NORMAL
 			)
 
 @tests.slowTest
@@ -57,10 +58,10 @@ class TestThumbnailManager(tests.TestCase):
 	def testThumbnailFile(self):
 		manager = ThumbnailManager()
 
-		folder = LocalFolder(self.get_tmp_name('empty'))
-		file = folder.file(u'./foo-\u00e8\u00e1\u00f1.png') # non-existing path with unicode name
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('./foo-\u00e8\u00e1\u00f1.png') # non-existing path with unicode name
 		self.assertTrue('%C3%A8%C3%A1%C3%B1' in file.uri) # utf encoded!
-		basename = hashlib.md5(file.uri).hexdigest() + '.png'
+		basename = hashlib.md5(file.uri.encode('ascii')).hexdigest() + '.png'
 
 		for file, size, wanted in (
 			(file, 28, LOCAL_THUMB_STORAGE_NORMAL.file(basename)),
@@ -85,7 +86,7 @@ class TestThumbnailManager(tests.TestCase):
 
 		dir = LocalFolder(self.create_tmp_dir())
 		file = dir.file('zim.png')
-		self.SRC_DIR.file('data/zim.png').copyto(file)
+		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(file)
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 		self.removeThumbnail(manager, file)
@@ -96,22 +97,22 @@ class TestThumbnailManager(tests.TestCase):
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		if os.name != 'nt': # Windows support chmod() is limitted
 			import stat
-			mode = os.stat(thumbfile.encodedpath).st_mode
+			mode = os.stat(thumbfile.path).st_mode
 			self.assertEqual(stat.S_IMODE(mode), 0o600)
-			mode = os.stat(thumbfile.parent().parent().encodedpath).st_mode # thumnails dir
+			mode = os.stat(thumbfile.parent().parent().path).st_mode # thumnails dir
 			self.assertEqual(stat.S_IMODE(mode), 0o700)
 
 		# Change mtime to make thumbfile invalid
 		oldmtime = file.mtime()
-		os.utime(file.encodedpath, None)
+		os.utime(file.path, None)
 		self.assertNotEqual(file.mtime(), oldmtime)
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64, create=False)
@@ -119,14 +120,14 @@ class TestThumbnailManager(tests.TestCase):
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		# ensure next call to get_thumbnail cannot call create_thumbnail
 		manager.create_thumbnail = None
 
 		thumbfile, pixbuf = manager.get_thumbnail(file, 64)
 		self.assertTrue(thumbfile.exists())
-		self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+		self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 
 		# Test remove
 		self.removeThumbnail(manager, file)
@@ -140,15 +141,17 @@ class TestThumbnailQueue(tests.TestCase):
 		self.assertTrue(queue.queue_empty())
 
 		# Test input / output
-		queue.queue_thumbnail_request(self.SRC_DIR.file('README.txt'), 64)
+		src_file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
+		src_file.write('Test 123\n')
+		queue.queue_thumbnail_request(src_file, 64)
 			# put an error in the queue
 
-		dir = self.SRC_DIR.folder('data/pixmaps')
+		dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 		pixmaps = set()
 		for basename in dir.list_names():
 			if not basename.endswith('.svg'):
 				file = dir.file(basename)
-				pixmaps.add(file)
+				pixmaps.add(file.path)
 				queue.queue_thumbnail_request(file, 64)
 
 		self.assertFalse(queue.queue_empty())
@@ -161,17 +164,18 @@ class TestThumbnailQueue(tests.TestCase):
 			while i > 0:
 				i -= 1
 				file, size, thumbfile, pixbuf, mtime = queue.get_ready_thumbnail(block=True)
-				seen.add(file)
+				seen.add(file.path)
 				self.assertEqual(size, 64)
 				self.assertTrue(thumbfile.exists())
-				self.assertIsInstance(pixbuf, gtk.gdk.Pixbuf)
+				self.assertIsInstance(pixbuf, GdkPixbuf.Pixbuf)
 				self.assertEqual(mtime, file.mtime())
 
 		self.assertEqual(seen, pixmaps)
 
 		# Test clear
 		self.assertTrue(queue.queue_empty())
-		for file in pixmaps:
+		for path in pixmaps:
+			file = LocalFile(path)
 			queue.queue_thumbnail_request(file, 64)
 		self.assertFalse(queue.queue_empty())
 		queue.start()
@@ -187,12 +191,12 @@ class TestThumbnailQueue(tests.TestCase):
 		def creator_with_error(*a):
 			raise ValueError
 
-		file = self.SRC_DIR.file('data/zim.png')
+		file = LocalFolder(tests.ZIM_DATADIR).file('zim.png')
 		self.assertTrue(file.exists())
 		self.assertTrue(file.isimage())
 
 		for creator in creator_with_failure, creator_with_error:
-			#~ print ">>", creator.__name__
+			#~ print(">>", creator.__name__)
 			queue = ThumbnailQueue(creator)
 			queue.queue_thumbnail_request(file, 64)
 
@@ -210,7 +214,7 @@ class TestFileBrowserIconView(tests.TestCase):
 		opener = tests.MockObject()
 		iconview = FileBrowserIconView(opener)
 
-		dir = self.SRC_DIR.folder('data/pixmaps')
+		dir = LocalFolder(tests.ZIM_DATADIR).folder('pixmaps')
 		iconview.set_folder(dir)
 
 		# simulate idle events

@@ -1,168 +1,175 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the base classes used by all plugins that
 create an image from text based input. Like the equation editor, the
-diagram editor etc. There is a class for the edit dialog that is used
-for images that are inserted with an object type, and there is a base
-class for the generators that implement specific translations from
-text to an image.
+diagram editor etc.
 '''
 
-
-import gtk
 import logging
-
-from zim.plugins import PluginClass, WindowExtension, extends
-from zim.actions import Action
-from zim.fs import File, Dir
-from zim.gui.widgets import ui_environment, \
-	Dialog, ImageView, Button, QuestionDialog, LogFileDialog, \
-	ScrolledTextView, ScrolledSourceView, VPaned, \
-	populate_popup_add_separator
-
 
 logger = logging.getLogger('zim.plugins')
 
-uimanager_xml_template = '''
-<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_%s'/>
-			</placeholder>
-		</menu>
-	</menubar>
-</ui>
-'''
+from gi.repository import Gtk
 
-class ImageGeneratorPlugin(PluginClass):
-	'''Base class for image generator plugins
+from zim.plugins import PluginClass, InsertedObjectTypeExtension
+from zim.signals import SignalEmitter, SIGNAL_RUN_FIRST
+from zim.config import String
+from zim.errors import show_error, Error
+from zim.applications import ApplicationError
+from zim.fs import File, Dir
+from zim.formats import IMAGE
 
-	It assumes a subclass of L{ImageGeneratorClass} for the same object
-	type is located in the same module.
+from zim.gui.widgets import \
+	Dialog, ImageView, QuestionDialog, LogFileDialog, \
+	ScrolledWindow, ScrolledTextView, ScrolledSourceView, VPaned, \
+	populate_popup_add_separator
+from zim.gui.insertedobjects import ImageFileWidget
 
-	Sub-classes should define at the following attributes:
 
-	@ivar object_type: the object type, e.g. "equation"
-	@ivar syntax: optional syntax for syntax highlighting in the gtksourceview, e.g. "latex"
-	@ivar short_label: e.g. "_('E_quation')" (Used in insert menu)
-	@ivar insert_label: e.g. "_('Insert Equation')" (Used as dialog title and tooltip)
-	@ivar edit_label: e.g. "_('_Edit Equation')" (Used in popup menu and dialog title)
+class ImageGeneratorObjectType(InsertedObjectTypeExtension):
+	'''Base class for object types that produce an image based on text input
+	from the user.
+	Plugins should contain a sub-class of of this class to define the object
+	type name, label etc. It then will automatically load a sub-class from
+	ImageGeneratorClass defined in the same plugin to do the work.
 	'''
 
-	object_type = None
-	short_label = None
-	insert_label = None
-	edit_label = None
 	syntax = None
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self, plugin, objmap):
+		generators = list(plugin.discover_classes(ImageGeneratorClass))
+		assert len(generators) == 1, 'Expect exactly one subclass of ImageGeneratorClass in plugin'
+		self.generator_klass = generators[0]
+		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
+			# Don't call this before above initialization is done,
+			# else we trigger InsertedObjectTypeMap "changed" before we are
+			# ready to go
 
-		# Construct a new class on run time
-		klassname = self.object_type.title() + 'MainWindowExtension'
-		insert_action = Action(
-			'insert_%s' % self.object_type,
-			MainWindowExtensionBase.insert_object,
-			self.short_label + '...', readonly=False
-		)
-		generatorklass = self.lookup_subclass(ImageGeneratorClass)
-		assert generatorklass.object_type == self.object_type, \
-			'Object type of ImageGenerator (%s) does not match object type of plugin (%s)' \
-			% (generatorklass.object_type, self.object_type)
+	def new_model_interactive(self, parent, notebook, page):
+		attrib, data = self.new_object()
+		model = self.model_from_data(notebook, page, attrib, data)
+		ImageGeneratorDialog.run_dialog_for_model(parent, model, self.label, self.syntax)
+		return model
 
+	def model_from_data(self, notebook, page, attrib, data):
+		generator = self.generator_klass(self.plugin, notebook, page)
+		return ImageGeneratorModel(notebook, page, generator, attrib, data)
 
-		mainwindow_extension_base = \
-			self.lookup_subclass(MainWindowExtensionBase) \
-			or MainWindowExtensionBase
+	def data_from_model(self, model):
+		return model.attrib, model.data
 
-		klass = type(klassname, (mainwindow_extension_base,), {
-			'object_type': self.object_type,
-			'syntax': self.syntax,
-			'uimanager_xml': uimanager_xml_template % self.object_type,
-			'generator_class': generatorklass,
-			'short_label': self.short_label,
-			'insert_label': self.insert_label,
-			'edit_label': self.edit_label,
-			'insert_%s' % self.object_type: insert_action,
-		})
-
-		self.set_extension_class('MainWindow', klass)
+	def create_widget(self, model):
+		return ImageGeneratorWidget(model, self.label, self.syntax)
 
 
-@extends('MainWindow', autoload=False)
-class MainWindowExtensionBase(WindowExtension):
+class BackwardImageGeneratorObjectType(ImageGeneratorObjectType):
+	'''Base class for backward compatible image generator objects.'''
 
-	object_type = None
-	syntax = None
-	uimanager_xml = None
-	short_label = None
-	insert_label = None
-	edit_label = None
-	generator_class = None
+	object_attr = {
+		'src': String('_new_'),
+	}
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+	scriptname = None
+	imagefile_extension = None
 
-		pageview = self.window.pageview
-		pageview.register_image_generator_plugin(self, self.object_type)
+	def model_from_data(self, notebook, page, attrib, data):
+		generator = self.generator_klass(self.plugin, notebook, page)
+		return BackwardImageGeneratorModel(notebook, page, generator, attrib, data, self.scriptname, self.imagefile_extension)
 
-	def teardown(self):
-		pageview = self.window.pageview
-		pageview.unregister_image_generator_plugin(self)
+	def format(self, format, dumper, attrib, data):
+		if data:
+			logger.warn('Unexpected data in %s object: %r', attrib['type'], data)
 
-	def build_generator(self):
-		generator=self.generator_class(self.plugin)
-		generator.set_page(self.window.pageview.page)
-		return generator;
+		try:
+			return ImageGeneratorObjectType.format(self, format, dumper, attrib, data)
+		except ValueError:
+			if attrib['type'].startswith('image+'):
+				attrib = attrib.copy()
+				attrib['type'] = attrib['type'][6:]
+			return dumper.dump_img(IMAGE, attrib, None)
 
-	def insert_object(self):
-		title = self.insert_label.replace('_', '')
-		generator = self.build_generator()
-		dialog = ImageGeneratorDialog(
-			self.window, title,
-			generator, syntax=self.syntax,
-			help=self.plugin.plugin_info['help']
-		) # XXX ui
-		dialog.run()
 
-	def edit_object(self, buffer, iter, image):
-		title = self.edit_label.replace('_', '')
-		generator = self.build_generator()
-		dialog = ImageGeneratorDialog(
-			self.window, title,
-			generator, syntax=self.syntax, image=image,
-			help=self.plugin.plugin_info['help']
-		) # XXX ui
-		dialog.run()
+class ImageGeneratorModel(SignalEmitter):
 
-	def do_populate_popup(self, menu, buffer, iter, image):
-		populate_popup_add_separator(menu, prepend=True)
+	__signals__ = {'changed': (SIGNAL_RUN_FIRST, None, ())}
 
-		item = gtk.MenuItem(self.edit_label)
-		item.connect('activate',
-			lambda o: self.edit_object(buffer, iter, image))
-		menu.prepend(item)
+	def __init__(self, notebook, page, generator, attrib, data):
+		self.notebook = notebook
+		self.page = page
+		self.generator = generator
+		self.attrib = attrib
+		self.data = data
+
+	def get_text(self):
+		raise NotImplementedError
+
+	def set_from_generator(self, text, image_file):
+		raise NotImplementedError
+
+
+class BackwardImageGeneratorModel(ImageGeneratorModel):
+
+	def __init__(self, notebook, page, generator, attrib, data, scriptname, imagefile_extension):
+		ImageGeneratorModel.__init__(self, notebook, page, generator, attrib, data)
+		if attrib['src'] and not attrib['src'] == '_new_':
+			# File give, derive script
+			self.image_file = notebook.resolve_file(attrib['src'], page)
+			self.script_file = self._stitch_fileextension(self.image_file, scriptname)
+		else:
+			# Find available combo of script and image files
+			def check_image_file(new_script_file):
+				new_image_file = self._stitch_fileextension(new_script_file, imagefile_extension)
+				return not new_image_file.exists()
+
+			folder = notebook.get_attachments_dir(page)
+			self.script_file = folder.new_file(scriptname, check_image_file)
+			self.image_file = self._stitch_fileextension(self.script_file, imagefile_extension)
+			self.attrib['src'] = './' + self.image_file.basename
+
+	def _stitch_fileextension(self, file, basename):
+		# Take extension of basename, and put it on path from file
+		i = basename.rfind('.')
+		j = file.path.rfind('.')
+		return File(file.path[:j] + basename[i:])
+
+	def get_text(self):
+		if self.image_file is not None and self.script_file.exists():
+			text = self.script_file.read()
+		else:
+			text = self.generator.get_default_text()
+
+		return self.generator.filter_source(text)
+
+	def set_from_generator(self, text, image_file):
+		self.script_file.write(text)
+		if image_file == self.image_file:
+			pass
+		elif image_file and image_file.exists():
+			image_file.rename(self.image_file)
+		elif self.image_file.exists():
+			self.image_file.remove()
+		self.emit('changed')
 
 
 class ImageGeneratorClass(object):
-	'''Base class for image generators which can be used by the
-	L{ImageGeneratorDialog}
+	'''Base class for image generators.
+	A plugin defining an L{ImageGeneratorObjectType} should also define a
+	sub-class of this class to do the actual work.
+
+	The generator does the actual work to generate an image from text. It does
+	this in a temporary folder and must not try to directly modify the page or
+	store anything in the attachements folder. The reason is that the user can
+	still press "cancel" after the generator has run. The model takes care of
+	storing the image and the text in the right place.
+
+	Since the content of the image can depent on the notebook location, a
+	generator object is specific for a notebook page.
 	'''
 
-	uses_log_file = True #: set to C{False} for subclasses that do not generate a log
-
-	object_type = None #: generator type, e.g. "equation"
-	scriptname = None #: basename of the source files, e.g. "equation.tex"
-	imagename = None #: basename of the resulting image files, e.g. "equation.png"
-
-	def __init__(self, plugin):
+	def __init__(self, plugin, notebook, page):
 		self.plugin = plugin
-		self.page = None
-
-	def set_page(self, page):
+		self.notebook = notebook
 		self.page = page
 
 	def generate_image(self, text):
@@ -184,13 +191,15 @@ class ImageGeneratorClass(object):
 		L{File} objects. If no image file was created the first
 		element should be C{None}, if no log file is created second
 		element should be C{None}.
+		@raises Error: this method is allowed to raise errors like
+		L{ApplicationError} when running a command failed.
 
 		@implementation: must be implemented by subclasses
 		'''
 		raise NotImplemented
 
-	def process_input(self, text):
-		'''Process user input before generating image
+	def check_user_input(self, text):
+		'''Check user input before generating image
 
 		This method is used to post-process user input before
 		generating image and writing the user input into the script
@@ -200,7 +209,7 @@ class ImageGeneratorClass(object):
 		@returns: string used for generate_image, also the string
 		written to script file.
 
-		@implementation: Not mandatory to be implemented by subclass.
+		@implementation: Not mandatory to be implemented by a subclass.
 		It defaults to user input.
 		'''
 		return text
@@ -208,12 +217,12 @@ class ImageGeneratorClass(object):
 	def get_default_text(self):
 		'''Provides a template or starting point for the user to begin editing.
 
-		@implementation: Not mandatory to be implemented by subclass.
+		@implementation: Not mandatory to be implemented by a subclass.
 		It defaults to the empty string.
 		'''
-		return '';
+		return ''
 
-	def filter_input(self, text):
+	def filter_source(self, text):
 		'''Filter contents of script file before displaying in textarea
 
 		This method is used to pre-process contents of script file
@@ -222,7 +231,7 @@ class ImageGeneratorClass(object):
 		@param text: the contents of script file
 		@returns: string used to display for user input.
 
-		@implementation: Not mandatory to be implemented by subclass.
+		@implementation: Not mandatory to be implemented by a subclass.
 		It defaults to script file contents.
 		'''
 		return text
@@ -236,36 +245,62 @@ class ImageGeneratorClass(object):
 		pass
 
 
+class ImageGeneratorWidget(ImageFileWidget):
+
+	def __init__(self, model, label, syntax=None):
+		ImageFileWidget.__init__(self, model.image_file)
+		self.model = model
+		self.label = label
+		self.syntax = syntax
+		self.model.connect('changed', self.on_model_changed)
+
+	def on_model_changed(self, model):
+		self.set_file(model.image_file)
+
+	def populate_popup(self, menu):
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Edit...')) # T: context menu for inserted objects
+		item.connect('activate', lambda o: self.edit_object())
+		menu.append(item)
+
+	def edit_object(self):
+		ImageGeneratorDialog.run_dialog_for_model(self, self.model, self.label, self.syntax)
+
+
 class ImageGeneratorDialog(Dialog):
 	'''Dialog that provides text input and an image view
 	for showing previews for an L{ImageGeneratorClass} implementation.
 	'''
 
-	# TODO: use uistate to remember pane position
+	@classmethod
+	def run_dialog_for_model(cls, widget, model, label, syntax):
+		text, image_file = cls(
+			widget,
+			label,
+			model.generator,
+			model.image_file,
+			model.get_text(),
+			syntax
+		).run()
+		if text is not None:
+			model.set_from_generator(text, image_file)
+		model.generator.cleanup()
 
-	def __init__(self, window, title, generator, image=None, syntax=None, **opt):
-		'''Constructor
-
-		@param window: the L{MainWindow}
-		@param title: the dialog title
-		@param generator: an L{ImageGeneratorClass} object
-		@param image: image data for an image in the
-		L{TextBuffer<zim.gui.pageview.TextBuffer>}
-		@param syntax: optional syntax name (as understood by gtksourceview)
-		@param opt: any other arguments to pass to the L{Dialog} constructor
-		'''
-		Dialog.__init__(self, window, title, defaultwindowsize=(450, 300), **opt)
-		self.app_window = window
+	def __init__(self, widget, label, generator, image_file=None, text='', syntax=None):
+		title = _('Edit %s') % label # T: dialog title, %s is the object name like "Equation"
+		Dialog.__init__(self, widget, title, defaultwindowsize=(450, 300))
 		self.generator = generator
-		self.imagefile = None
-		self.logfile = None
+		self.log_file = None
+		self.image_file = image_file
+		self.result = None, None
 
 		self.vpane = VPaned()
 		self.vpane.set_position(150)
-		self.vbox.add(self.vpane)
+		self.vbox.pack_start(self.vpane, True, True, 0)
 
-		self.imageview = ImageView(bgcolor='#FFF', checkerboard=False)
-		self.vpane.pack1(self.imageview, resize=True)
+		self.imageview = ImageView(bgcolor='#FFF')
+		swin = ScrolledWindow(self.imageview)
+		swin.set_size_request(200, 50)
+		self.vpane.pack1(swin, resize=True)
 		# TODO scrolled window and option to zoom in / real size
 
 		window, textview = ScrolledSourceView(syntax=syntax)
@@ -273,131 +308,68 @@ class ImageGeneratorDialog(Dialog):
 		self.textview.set_editable(True)
 		self.vpane.pack2(window, resize=False)
 
-		hbox = gtk.HBox(spacing=5)
-		self.vbox.pack_start(hbox, False)
+		hbox = Gtk.HBox(spacing=5)
+		self.vbox.pack_start(hbox, False, True, 0)
 
-		self.previewbutton = Button(_('_Preview'), stock='gtk-refresh')
+		self.previewbutton = Gtk.Button.new_with_mnemonic(_('_Preview'))
 			# T: button in e.g. equation editor dialog
 		self.previewbutton.set_sensitive(False)
-		self.previewbutton.connect_object(
-			'clicked', self.__class__.preview, self)
-		hbox.pack_start(self.previewbutton, False)
+		self.previewbutton.connect('clicked', lambda o: self.update_image())
+		hbox.pack_start(self.previewbutton, False, True, 0)
 
 		self.textview.get_buffer().connect('modified-changed',
 			lambda b: self.previewbutton.set_sensitive(b.get_modified()))
 
-		self.logbutton = Button(_('View _Log'), stock='gtk-file')
+		self.logbutton = Gtk.Button.new_with_mnemonic(_('View _Log'))
 			# T: button in e.g. equation editor dialog
 		self.logbutton.set_sensitive(False)
-		self.logbutton.connect_object(
-			'clicked', self.__class__.show_log, self)
-		if generator.uses_log_file:
-			hbox.pack_start(self.logbutton, False)
-		# else keep hidden
+		self.logbutton.connect('clicked', lambda o: self.show_log())
+		hbox.pack_start(self.logbutton, False, True, 0)
 
-		if image:
-			file = image['_src_file'] # FIXME ?
-			textfile = self._stitch_fileextension(file, self.generator.scriptname)
-			self._existing_file = textfile
-			self.imageview.set_file(file)
-			self.set_text(self.generator.filter_input(textfile.read()))
-		else:
-			self._existing_file = None
-			self.set_text(self.generator.filter_input(self.generator.get_default_text()))
-
+		self.set_text(text)
+		self.imageview.set_file(self.image_file) # if None sets broken image
 		self.textview.grab_focus()
 
-	def _stitch_fileextension(self, file, basename):
-		'''Stitches the file extension from 'basename' to the path of 'file'
-		and returns a File object.
-		'''
-		i = basename.rfind('.')
-		j = file.path.rfind('.')
-		return File(file.path[:j] + basename[i:])
-
 	def set_text(self, text):
-		'''Set text in the buffer'''
 		buffer = self.textview.get_buffer()
 		buffer.set_text(text)
 		buffer.set_modified(False)
 
 	def get_text(self):
-		'''Get the text from the buffer
-
-		@returns: text as string
-		'''
 		buffer = self.textview.get_buffer()
-		bounds = buffer.get_bounds()
-		return buffer.get_text(*bounds)
+		start, end = buffer.get_bounds()
+		text = start.get_text(end)
+		return self.generator.check_user_input(text)
 
-	def generate_image(self):
-		'''Update the image based on the text in the text buffer'''
-		self.imagefile = None
-		self.logfile = None
-
+	def update_image(self):
 		text = self.get_text()
-		text = self.generator.process_input(text)
+
 		try:
-			imagefile, logfile = self.generator.generate_image(text)
-		except:
-			logger.exception('Could not generate image')
-				# TODO set "error" image instead of "broken" image
-				# TODO set exception text as log message
-		else:
-			self.imagefile = imagefile
-			self.logfile = logfile
+			self.image_file, self.log_file = self.generator.generate_image(text)
+		except Error as error:
+			self.image_file, self.log_file = None, None
+			show_error(error)
 
 		self.textview.get_buffer().set_modified(False)
-
-	def preview(self):
-		'''Action for the "Preview" button'''
-		self.generate_image()
-		self.imageview.set_file(self.imagefile) # if None sets broken image
-		self.logbutton.set_sensitive(not self.logfile is None)
+		self.imageview.set_file(self.image_file) # if None sets broken image
+		self.logbutton.set_sensitive(self.log_file is not None)
 
 	def show_log(self):
-		'''Action for the "View Log" button'''
 		assert self.logfile, 'BUG: no logfile set (yet)'
 		LogFileDialog(self, self.logfile).run()
 
 	def do_response_ok(self):
-		if not self.imagefile \
-		or self.textview.get_buffer().get_modified():
-			self.generate_image()
+		buffer = self.textview.get_buffer()
+		if buffer.get_modified():
+			self.update_image()
 
-		if not (self.imagefile and self.imagefile.exists()):
+		if not (self.image_file and self.image_file.exists()):
 			dialog = QuestionDialog(self,
-				_('An error occurred while generating the image.\nDo you want to save the source text anyway?'))
-				# T: Question prompt when e.g. equation editor encountered an error generating the image to insert
+					_('An error occurred while generating the image.\nDo you want to save the source text anyway?'))
+					# T: Question prompt when e.g. equation editor encountered an error generating the image to insert
 			if not dialog.run():
 				return False
 
-		if self._existing_file:
-			textfile = self._existing_file
-		else:
-			page = self.app_window.ui.page # XXX
-			dir = self.app_window.ui.notebook.get_attachments_dir(page) # XXX
-			textfile = dir.new_file(self.generator.scriptname)
-
-		textfile.write(self.generator.process_input(self.get_text()))
-
-		imgfile = self._stitch_fileextension(textfile, self.generator.imagename)
-		if self.imagefile and self.imagefile.exists():
-			self.imagefile.rename(imgfile)
-		elif imgfile.exists():
-			imgfile.remove()
-
-		if self._existing_file:
-			self.app_window.ui.reload_page() # XXX
-		else:
-			pageview = self.app_window.pageview
-			pageview.insert_image(imgfile, type=self.generator.object_type, interactive=False, force=True)
-
-		if self.logfile and self.logfile.exists():
-			self.logfile.remove()
+		self.result = (self.get_text(), self.image_file)
 
 		return True
-
-	def destroy(self):
-		self.generator.cleanup()
-		Dialog.destroy(self)

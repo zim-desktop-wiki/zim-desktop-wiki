@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -21,7 +20,7 @@ There are ways to combine threaded usage with Gtk (e.g. by using an
 idle event in the main loop to update widget) however this quickly
 becomes a source of potential race conditions between threads.
 
-Therefore the concurrency model choosen is the Gtk/Glib main loop. This
+Therefore the concurrency model chosen is the Gtk/Glib main loop. This
 loop operates in a single thread, but allows interweaving actions by
 breaking up long running actions and using idle events in the loop to
 execute blocks. Implementation of this style is typically to have a
@@ -30,11 +29,11 @@ that it executes one step of the generator every time. When the generator
 yields, other actions can be done in the mainloop.
 
 This style does not necessarily mean that a lot of application logic is
-done in paralel, but at least the interface is re-drawn, e.g. when the
+done in parallel, but at least the interface is re-drawn, e.g. when the
 user moves the window during the operation, and e.g. progress dialogs
 can be used.
 
-Limitted use of threads is made, e.g. for blocking I/O and for indexing,
+Limited use of threads is made, e.g. for blocking I/O and for indexing,
 but these are specific uses that are made thread safe, this does not
 generalize to the public APIs.
 
@@ -54,7 +53,7 @@ to the user.
 
 So apart from re-drawing the interface also other actions can happen
 in the application while the operation is running, but these should be
-limitted to "read-only" access to the notebook.
+limited to "read-only" access to the notebook.
 
 See also:
 
@@ -72,7 +71,7 @@ Move page and update links (or other multi-part change):
   - use operation with notebook.move_page_iter()
 
 
-Export notebook (or other multi-part noteobok access):
+Export notebook (or other multi-part notebook access):
 
   - show progress dialog
   - use operation with exporter.export_iter()
@@ -97,7 +96,7 @@ Index updates:
   - Else start thread to find out-of-date records (this is not an operation!)
   - If out-of-date records are found queue an trigger on idle to start
 	updating (if another operation is active, delay with a timeout
-	untill notebook is unlocked)
+	until notebook is unlocked)
   - Run update as operation with progress bar in window, but not
 	blocking the window (assume updates are small)
 
@@ -139,9 +138,9 @@ logger = logging.getLogger('zim.notebook')
 
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 from zim.signals import SignalEmitter
@@ -168,9 +167,9 @@ class NotebookOperation(SignalEmitter):
 		op.run_on_idle()
 
 	This will start the operation using 'idle' events in the main loop
-	to iterate throudh to operation steps.
+	to iterate through to operation steps.
 
-	If you want to wait for the operation to fininsh, use a progress
+	If you want to wait for the operation to finish, use a progress
 	dialog like this:
 
 		dialog = ProgressDialog(window, op)
@@ -225,7 +224,7 @@ class NotebookOperation(SignalEmitter):
 		May raise L{NotebookOperationOngoing} if another operation is
 		already ongoing.
 		'''
-		assert gobject, "No mainloop available to run this operation"
+		assert GObject, "No mainloop available to run this operation"
 
 		if self.notebook._operation_check == self:
 			raise AssertionError('Already running')
@@ -233,15 +232,14 @@ class NotebookOperation(SignalEmitter):
 			self.notebook._operation_check() # can raise
 
 		self.notebook._operation_check = self # start blocking
-		gobject.idle_add(self._start) # ensure start happens in main thread
+		GObject.idle_add(self._start) # ensure start happens in main thread
 
 	def is_running(self):
 		return self.notebook._operation_check == self
 
 	def _start(self):
-		self.emit('started')
 		my_iter = iter(self)
-		gobject.idle_add(lambda: next(my_iter, False), priority=gobject.PRIORITY_LOW)
+		GObject.idle_add(lambda: next(my_iter, False), priority=GObject.PRIORITY_LOW)
 		return False # run once
 
 	def cancel(self):
@@ -255,6 +253,7 @@ class NotebookOperation(SignalEmitter):
 			self.notebook._operation_check() # can raise
 			self.notebook._operation_check = self # start blocking
 
+		self.emit('started')
 		try:
 			while self.notebook._operation_check == self:
 				# while covers cancelled, but also any other op overwriting the "lock"
@@ -268,12 +267,11 @@ class NotebookOperation(SignalEmitter):
 				self._block = True
 				yield True # keep going
 		except StopIteration:
-			raise
+			pass
 		except Exception as err:
-			logger.exception('Error in operation:')
 			self.cancelled = True
 			self.exception = err
-			raise StopIteration
+			raise
 		finally:
 			if self.notebook._operation_check == self:
 				self.notebook._operation_check = NOOP # stop blocking
@@ -284,7 +282,7 @@ class SimpleAsyncOperation(NotebookOperation):
 	'''Variant of NotebookOperation that monitors a thread.
 	Key difference is that instead of raising an exception when another
 	operation tries to start it will wait for the thread. So only
-	usefull for short run time threads, like async file write.
+	useful for short run time threads, like async file write.
 	'''
 
 	def __init__(self, notebook, message, thread, post_handler=None):
@@ -324,7 +322,7 @@ class SimpleAsyncOperation(NotebookOperation):
 
 class NotebookState(object):
 	'''Context manager that can be used to wrap code that does not
-	allow for oprations to run in paralel.
+	allow for operations to run in parallel fashion.
 
 	All notebook methods that modify the notebook are protected by
 	default with this context. However if you for some reason want to

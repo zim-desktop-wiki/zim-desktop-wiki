@@ -10,8 +10,9 @@ xdg/hicolor/
 debian/pycompat
 windows/build/
 windows/version-and-date.nsi
-zim/_version.py
 MANIFEST
+tests/tmp/
+test_*
 coverage/
 
 
@@ -91,3 +92,7 @@ ENV/
 
 # mkdocs documentation
 /site
+
+# debian pybuild
+.pybuild/
+debian/python-module-stampdir/

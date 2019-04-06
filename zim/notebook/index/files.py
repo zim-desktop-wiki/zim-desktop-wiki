@@ -22,7 +22,7 @@ STATUS_NEED_DELETION = 3
 TYPE_FOLDER = 1
 TYPE_FILE = 2
 
-from zim.newfs import File, Folder
+from zim.newfs import File, Folder, SEP
 from zim.signals import SignalEmitter
 
 
@@ -30,8 +30,6 @@ class FilesIndexer(SignalEmitter):
 	'''Class that will update the "files" table in the index based on
 	changes seen on the file system.
 
-	@signal: C{start-update ()}: on start of update iter
-	@signal: C{finish-update ()}: on end of update iter
 	@signal: C{file-row-inserted (row, file)}: on new file found
 	@signal: C{file-row-changed (row, file)}: on file content changed
 	@signal: C{file-row-deleted (row)}: on file deleted
@@ -47,8 +45,6 @@ class FilesIndexer(SignalEmitter):
 	# page save in notebook
 
 	__signals__ = {
-		'start-update': (None, None, ()),
-		'finish-update': (None, None, ()),
 		'file-row-inserted': (None, None, (object,)),
 		'file-row-changed': (None, None, (object,)),
 		'file-row-deleted': (None, None, (object,)),
@@ -68,6 +64,8 @@ class FilesIndexer(SignalEmitter):
 			mtime TIMESTAMP,
 
 			index_status INTEGER DEFAULT 3
+
+			CONSTRAINT no_self_ref CHECK (parent <> id)
 		);
 		''')
 		row = self.db.execute('SELECT * FROM files WHERE id == 1').fetchone()
@@ -79,12 +77,17 @@ class FilesIndexer(SignalEmitter):
 			)
 			assert c.lastrowid == 1 # ensure we start empty
 
+	def is_uptodate(self):
+		row = self.db.execute(
+			'SELECT * FROM files WHERE index_status=?',
+			(STATUS_NEED_UPDATE,)
+		).fetchone()
+		return row is None
+
 	def update_iter(self):
 		'''Generator function for the actual update'''
-		self.emit('start-update')
 		for i in self._update_iter_inner():
 			yield
-		self.emit('finish-update')
 
 	def _update_iter_inner(self, prefix=''):
 		# sort folders before files: first index structure, then contents
@@ -100,7 +103,6 @@ class FilesIndexer(SignalEmitter):
 
 			if row:
 				node_id, path, node_type = row
-				#print ">> UPDATE", node_id, path, node_type
 			else:
 				break
 
@@ -191,30 +193,33 @@ class FilesIndexer(SignalEmitter):
 		# First invalidate all, so any children that are not found in
 		# update will be left with this status
 		logger.debug('Index folder: %s', folder)
+
+		children = {}
+		for childpath, child_id, mtime, index_status in self.db.execute(
+			'SELECT path, id, mtime, index_status FROM files WHERE parent = ?',
+			(node_id,)
+		):
+			children[childpath] = (child_id, mtime, index_status)
+
 		self.db.execute(
 			'UPDATE files SET index_status = ? WHERE parent = ?',
 			(STATUS_NEED_DELETION, node_id)
 		)
 
-		children = {}
-		for childpath, child_id, mtime in self.db.execute(
-			'SELECT path, id, mtime FROM files WHERE parent = ?',
-			(node_id,)
-		):
-			children[childpath] = (child_id, mtime)
-
 		mtime = folder.mtime() # get mtime before getting contents
 		for child in folder:
 			path = child.relpath(self.folder)
 			if path in children:
-				child_id, child_mtime = children[path]
-				if child.mtime() == child_mtime:
-					self.set_node_uptodate(child_id, child_mtime)
-				else:
+				child_id, child_mtime, index_status = children[path]
+				if index_status == STATUS_NEED_UPDATE or child.mtime() != child_mtime:
+					# If the status was "need update" already, don't overrule it
+					# here with mtime check - else we break flag_reindex()
 					self.db.execute(
 						'UPDATE files SET index_status = ? WHERE id = ?',
 						(STATUS_NEED_UPDATE, child_id)
 					)
+				else:
+					self.set_node_uptodate(child_id, child_mtime)
 			else:
 				# new child
 				node_type = TYPE_FILE if isinstance(child, File) else TYPE_FOLDER
@@ -268,6 +273,7 @@ class FilesIndexer(SignalEmitter):
 		self.db.execute('DELETE FROM files WHERE id == ?', (node_id,))
 
 	def delete_folder(self, node_id):
+		assert node_id != 1, 'BUG: notebook folder went missing ?'
 		for child_id, child_type in self.db.execute(
 			'SELECT id, node_type FROM files WHERE parent == ?',
 			(node_id,)
@@ -320,7 +326,7 @@ class FilesIndexChecker(object):
 			if recursive and isinstance(file, Folder):
 				self.db.execute(
 					'UPDATE files SET index_status = ? WHERE path LIKE ? and index_status < ?',
-					(STATUS_CHECK, path + os.path.sep + '%', STATUS_CHECK)
+					(STATUS_CHECK, path + SEP + '%', STATUS_CHECK)
 				)
 			self.db.commit()
 
@@ -417,7 +423,7 @@ class TestFilesDBTable(object):
 
 		in_db = dict((r['path'], r['node_type']) for r in rows)
 		wanted = dict(
-			(p.strip(os.sep), TYPE_FOLDER if p.endswith(os.sep) else TYPE_FILE)
+			(p.strip(SEP), TYPE_FOLDER if p.endswith(SEP) else TYPE_FILE)
 				for p in paths
 		)
 

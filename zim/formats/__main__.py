@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -26,8 +25,8 @@ from zim.formats import *
 
 if __name__ == '__main__':
 	if len(sys.argv) not in (2, 3, 4):
-			print 'Usage: python -m zim.formats format [format] [source_dir]'
-			print '\tWill read from stdin and output to stdout'
+			print('Usage: python -m zim.formats format [format] [source_dir]')
+			print('\tWill read from stdin and output to stdout')
 			sys.exit(1)
 
 
@@ -55,4 +54,4 @@ if __name__ == '__main__':
 		linker = StubLinker(source_dir=source_dir)
 		dumper = get_dumper(outputformat, linker=linker)
 		lines = dumper.dump(tree)
-		sys.stdout.write(''.join(lines).encode('utf-8'))
+		sys.stdout.write(''.join(lines))

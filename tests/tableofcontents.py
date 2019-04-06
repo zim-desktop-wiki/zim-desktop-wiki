@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
+from gi.repository import Gtk
+
 import tests
 
-import gtk
+from tests.mainwindow import setUpMainWindow
 
-from tests.gui import setupGtkInterface
-
+from zim.plugins import PluginManager
 from zim.plugins.tableofcontents import *
 from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 
@@ -15,20 +15,19 @@ from zim.gui.widgets import RIGHT_PANE, LEFT_PANE
 @tests.slowTest
 class TestTableOfContents(tests.TestCase):
 
-	def testMainWindowExtensions(self):
-		plugin = ToCPlugin()
+	def testPageViewExtensions(self):
+		plugin = PluginManager.load_plugin('tableofcontents')
 
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		mainwindow = ui._mainwindow # XXX
+		notebook = self.setUpNotebook()
+		mainwindow = setUpMainWindow(notebook)
 
 		plugin.preferences['floating'] = True
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionFloating)
-		plugin.extend(mainwindow)
 
+		## floating
 		ext = list(plugin.extensions)
 		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionFloating)
+		self.assertIsInstance(ext[0], ToCPageViewExtension)
+		self.assertIsInstance(ext[0].tocwidget, FloatingToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -36,14 +35,9 @@ class TestTableOfContents(tests.TestCase):
 		plugin.preferences['pane'] = RIGHT_PANE
 		plugin.preferences['pane'] = LEFT_PANE
 
-
+		### embedded
 		plugin.preferences['floating'] = False
-		self.assertEqual(plugin.extension_classes['MainWindow'], MainWindowExtensionEmbedded)
-		plugin.extend(mainwindow) # plugin does not remember objects, manager does that
-
-		ext = list(plugin.extensions)
-		self.assertEqual(len(ext), 1)
-		self.assertIsInstance(ext[0], MainWindowExtensionEmbedded)
+		self.assertIsInstance(ext[0].tocwidget, SidePaneToC)
 
 		plugin.preferences.changed() # make sure no errors are triggered
 		plugin.preferences['show_h1'] = True
@@ -55,11 +49,11 @@ class TestTableOfContents(tests.TestCase):
 
 	def testToCWidget(self):
 		'''Test Tabel Of Contents plugin'''
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		pageview = ui._mainwindow.pageview # XXX
+		notebook = self.setUpNotebook()
+		window = setUpMainWindow(notebook)
+		pageview = window.pageview
 
-		widget = ToCWidget(ui, pageview, ellipsis=False)
+		widget = ToCWidget(pageview, ellipsis=False)
 
 		def get_tree():
 			# Count number of rows in TreeModel
@@ -70,7 +64,7 @@ class TestTableOfContents(tests.TestCase):
 			model.foreach(c)
 			return rows
 
-		page = ui.notebook.get_page(Path('Test'))
+		page = notebook.get_page(Path('Test'))
 		page.parse('wiki', '''\
 ====== Foo ======
 
@@ -97,7 +91,7 @@ sdfsdfsd
 sdfsdf
 
 ''')
-		ui.notebook.store_page(page)
+		notebook.store_page(page)
 		#~ print page.get_parsetree().tostring()
 
 		with_h1 = [
@@ -119,10 +113,10 @@ sdfsdf
 		]
 
 		# Test basic usage - click some headings
-		ui.open_page(page)
-		widget.on_open_page(ui, page, page)
+		window.open_page(page)
+		widget.on_page_changed(window, page)
 		self.assertEqual(get_tree(), without_h1)
-		widget.on_store_page(ui.notebook, page)
+		widget.on_store_page(notebook, page)
 		self.assertEqual(get_tree(), without_h1)
 
 		widget.set_show_h1(True)
@@ -133,13 +127,13 @@ sdfsdf
 		column = widget.treeview.get_column(0)
 		model = widget.treeview.get_model()
 		def activate_row(m, path, i):
-			#~ print ">>>", path
+			#~ print(">>>", path)
 			widget.treeview.row_activated(path, column)
 				# TODO assert something here
 
-			widget.select_section(pageview.view.get_buffer(), path)
+			widget.select_section(pageview.textview.get_buffer(), path)
 
-			menu = gtk.Menu()
+			menu = Gtk.Menu()
 			widget.treeview.get_selection().select_path(path)
 			widget.on_populate_popup(widget.treeview, menu)
 				# TODO assert something here
@@ -148,7 +142,6 @@ sdfsdf
 		model.foreach(activate_row)
 
 		# Test promote / demote
-		ui.set_readonly(False)
 		pageview.set_readonly(False)
 		wanted = [
 			(1, 'bar'),
@@ -201,17 +194,17 @@ sdfsdf
 
 		# Test empty page
 		emptypage = tests.MockObject()
-		widget.on_open_page(ui, emptypage, emptypage)
+		widget.on_page_changed(window, emptypage)
 		self.assertEqual(get_tree(), [])
-		widget.on_store_page(ui.notebook, emptypage)
+		widget.on_store_page(notebook, emptypage)
 		self.assertEqual(get_tree(), [])
 
 
 		# Test some more pages - any errors ?
-		for path in ui.notebook.pages.walk():
-			page = ui.notebook.get_page(path)
-			widget.on_open_page(ui, page, page)
-			widget.on_store_page(ui.notebook, page)
+		for path in notebook.pages.walk():
+			page = notebook.get_page(path)
+			widget.on_page_changed(window, page)
+			widget.on_store_page(notebook, page)
 
 # TODO check selecting heading in actual PageView
 # especially test selecting a non-existing item to check we don't get infinite loop

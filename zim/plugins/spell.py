@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008,2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -11,22 +10,25 @@ import logging
 logger = logging.getLogger('zim.plugins.spell')
 
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.signals import SIGNAL_AFTER
 from zim.actions import toggle_action
+
+from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import ErrorDialog
 
 
 # Try which of the two bindings is available
-import gtk # ensure gtkspellcheck detects right gtk binding
 try:
 	import gtkspellcheck
 except ImportError:
 	gtkspellcheck = None
 
 	try:
-		import gtkspell
-	except ImportError:
+		import gi
+		gi.require_version('GtkSpell', '3.0')
+		from gi.repository import GtkSpell as gtkspell
+	except:
 		gtkspell = None
 else:
 	gtkspell = None
@@ -74,7 +76,7 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Spell Checker',
 	}
 
-	plugin_preferences = (
+	plugin_notebook_properties = (
 		('language', 'string', 'Default Language', ''),
 	)
 
@@ -86,34 +88,28 @@ This is a core plugin shipping with zim.
 		]
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class SpellPageViewExtension(PageViewExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='tools_menu'>
-				<placeholder name='page_tools'>
-					<menuitem action='toggle_spellcheck'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		<toolbar name='toolbar'>
-			<placeholder name='tools'>
-				<toolitem action='toggle_spellcheck'/>
-			</placeholder>
-		</toolbar>
-	</ui>
-	'''
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self._adapter = self._choose_adapter()
+		properties = self.plugin.notebook_properties(self.pageview.notebook)
+		self._language = properties['language']
+		self.connectto(properties, 'changed', self.on_properties_changed)
+
+		self._adapter_cls = self._choose_adapter_cls()
 		self.uistate.setdefault('active', False)
 		self.toggle_spellcheck(self.uistate['active'])
-		self.connectto(self.window.ui, 'open-page', order=SIGNAL_AFTER) # XXX
+		self.connectto(self.pageview, 'page-changed', order=SIGNAL_AFTER)
 
-	def _choose_adapter(self):
+	def on_properties_changed(self, properties):
+		self._language = properties['language']
+		textview = self.pageview.textview
+		checker = getattr(textview, '_gtkspell', None)
+		if checker:
+			self.setup()
+
+	def _choose_adapter_cls(self):
 		if gtkspellcheck:
 			version = tuple(
 				map(int, re.findall('\d+', gtkspellcheck.__version__))
@@ -129,12 +125,9 @@ class MainWindowExtension(WindowExtension):
 		else:
 			return GtkspellAdapter
 
-	@toggle_action(
-		_('Check _spelling'), # T: menu item
-		stock='gtk-spell-check', accelerator='F7'
-	)
+	@toggle_action(_('Check _spelling'), accelerator='F7') # T: menu item
 	def toggle_spellcheck(self, active):
-		textview = self.window.pageview.view
+		textview = self.pageview.textview
 		checker = getattr(textview, '_gtkspell', None)
 
 		if active:
@@ -149,20 +142,20 @@ class MainWindowExtension(WindowExtension):
 
 		self.uistate['active'] = active
 
-	def on_open_page(self, ui, page, record):
-		textview = self.window.pageview.view
+	def on_page_changed(self, pageview, page):
+		textview = pageview.textview
 		checker = getattr(textview, '_gtkspell', None)
 		if checker:
 			checker.on_new_buffer()
 
 	def setup(self):
-		textview = self.window.pageview.view
-		lang = self.plugin.preferences['language'] or locale.getdefaultlocale()[0]
+		textview = self.pageview.textview
+		lang = self._language or locale.getdefaultlocale()[0]
 		logger.debug('Spellcheck language: %s', lang)
 		try:
-			checker = self._adapter(textview, lang)
+			checker = self._adapter_cls(textview, lang)
 		except:
-			ErrorDialog(self.window.ui, (
+			ErrorDialog(self.pageview, (
 				_('Could not load spell checking'),
 					# T: error message
 				_('This could mean you don\'t have the proper\ndictionaries installed')
@@ -172,7 +165,7 @@ class MainWindowExtension(WindowExtension):
 			textview._gtkspell = checker
 
 	def teardown(self):
-		textview = self.window.pageview.view
+		textview = self.pageview.textview
 		if hasattr(textview, '_gtkspell') \
 		and textview._gtkspell is not None:
 			textview._gtkspell.detach()
@@ -218,7 +211,7 @@ class GtkspellcheckAdapter(object):
 		prefix = 'gtkspellchecker'
 		table = self._textview.get_buffer().get_tag_table()
 		tags = []
-		table.foreach(lambda tag, data: tags.append(tag))
+		table.foreach(lambda tag: tags.append(tag))
 		for tag in tags:
 			name = tag.get_property('name')
 			if name and name.startswith(prefix):
@@ -251,7 +244,9 @@ class GtkspellAdapter(object):
 
 	def enable(self):
 		if not self._checker:
-			self._checker = gtkspell.Spell(self._textview, self._lang)
+			self._checker = gtkspell.Checker()
+			self._checker.set_language(self._lang)
+			self._checker.attach(self._textview)
 
 	def disable(self):
 		self.detach()

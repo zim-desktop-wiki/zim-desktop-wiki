@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -43,6 +42,16 @@ class IndexerBase(SignalEmitter, ConnectorMixin):
 	def __init__(self, db):
 		self.db = db
 
+	def is_uptodate(self):
+		return True
+
+	def update(self):
+		for i in self.update_iter():
+			pass
+
+	def update_iter(self):
+		return iter([])
+
 
 class MyTreeIter(object):
 	__slots__ = ('treepath', 'row', 'n_children', 'hint')
@@ -55,11 +64,11 @@ class MyTreeIter(object):
 
 
 class TreeModelMixinBase(ConnectorMixin):
-	'''This class can be used as mixin class for C{gtk.TreeModel}
+	'''This class can be used as mixin class for C{Gtk.TreeModel}
 	implementations that use data from the index.
 
 	Treepaths are simply tuples with integers. This Mixin assumes L{MyTreeIter}
-	objects for iters. (Which should not be confused with C{gtk.TreeIter} as
+	objects for iters. (Which should not be confused with C{Gtk.TreeIter} as
 	used by the interface!)
 	'''
 
@@ -83,7 +92,7 @@ class TreeModelMixinBase(ConnectorMixin):
 		Typically each signal should also flush the cache using
 		C{self.cache.clear()}.
 
-		@implementation: must be implemented by subclass
+		@implementation: must be implemented by a subclass
 		'''
 		raise NotImplementedError
 
@@ -96,15 +105,15 @@ class TreeModelMixinBase(ConnectorMixin):
 		raise NotImplementedError
 
 	def get_mytreeiter(self, treepath):
-		'''Returens a C{treeiter} object for C{treepath} or C{None}
-		@implementation: must be implemented by subclass
+		'''Returns a C{treeiter} object for C{treepath} or C{None}
+		@implementation: must be implemented by a subclass
 		'''
 		raise NotImplementedError
 
 	def find(self, obj):
 		'''Return the treepath for a index object like a L{Path} or L{IndexTag}
 		@raises IndexNotFoundError: if C{indexpath} is not found
-		@implementation: must be implemented by subclass
+		@implementation: must be implemented by a subclass
 		'''
 		raise NotImplementedError
 

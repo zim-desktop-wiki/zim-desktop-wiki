@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -42,7 +41,7 @@ from .info import NotebookInfo, NotebookInfoList, \
 from .operations import NotebookOperation, SimpleAsyncOperation, \
 	NotebookOperationOngoing, NotebookState
 
-from .notebook import Notebook, TrashNotSupportedError, \
+from .notebook import Notebook, NotebookExtension, TrashNotSupportedError, \
 	PageNotFoundError, PageNotAllowedError, PageExistsError, PageReadOnlyError
 
 from .page import Path, Page, \
@@ -114,10 +113,9 @@ def build_notebook(location):
 def mount_notebook(filepath):
 	from zim.config import ConfigManager, String
 
-	config = ConfigManager() # XXX should be passed in
-	configdict = config.get_config_dict('automount.conf')
+	configdict = ConfigManager.get_config_dict('automount.conf')
 
-	groups = sorted([k for k in configdict.keys() if k.startswith('Path')])
+	groups = sorted([k for k in list(configdict.keys()) if k.startswith('Path')])
 	for group in groups:
 		path = group[4:].strip() # len('Path') = 4
 		dir = Dir(path)

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2010,2011 John Drinkwater <john@nextraweb.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -20,7 +19,7 @@ class GITApplicationBackend(VCSApplicationBase):
 
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('git',), encoding='utf-8')
+		return Application(('git',))
 
 	def build_revision_arguments(self, versions, is_for_diff=False):
 		"""Build a list including required string/int for running an VCS command
@@ -47,7 +46,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			if isinstance(versions, (tuple, list)):
 				assert 1 <= len(versions) <= 2
 				if len(versions) == 2:
-					return map(str, versions)
+					return list(map(str, versions))
 				else:
 					versions = versions[0]
 
@@ -57,6 +56,12 @@ class GITApplicationBackend(VCSApplicationBase):
 			else:
 				return []
 
+	def path_arg(self, path):
+		# make sure "/" is used as path seperator as git under msys fails otherwise
+		if isinstance(path, str):
+			return path.replace('\\', '/')
+		else:
+			return path.relpath(self.root).replace('\\', '/')
 
 	########
 	#
@@ -69,10 +74,10 @@ class GITApplicationBackend(VCSApplicationBase):
 		if path is None:
 			return self.run(['add', self.notebook_dir])
 		else:
-			return self.run(['add', path])
+			return self.run(['add', self.path_arg(path)])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		0: line1
@@ -80,14 +85,14 @@ class GITApplicationBackend(VCSApplicationBase):
 		...
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['blame', '-s', file] + revision_args)
+		return self.pipe(['blame', '-s', self.path_arg(file)] + revision_args)
 
 	def cat(self, path, version):
 		"""
 		Runs: git cat {{PATH}} {{REV_ARGS}}
 		"""
 		revision_args = self.build_revision_arguments(version)
-		return self.pipe(['show', ''.join([''.join(revision_args), ':', path.relpath(self.root)])])
+		return self.pipe(['show', ''.join([''.join(revision_args), ':', self.path_arg(path)])])
 
 	def commit(self, path, msg):
 		"""
@@ -100,10 +105,10 @@ class GITApplicationBackend(VCSApplicationBase):
 				params.append(msg)
 			if path != '' and path is not None:
 				params.append('--')
-				params.append(path)
+				params.append(self.path_arg(path))
 			return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, file=None):
 		"""
 		Runs:
 			git diff --no-ext-diff {{REVISION_ARGS}}
@@ -112,10 +117,10 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		revision_args = self.build_revision_arguments(versions)
 		revision_args = self.build_revision_arguments(revision_args, is_for_diff=True)
-		if path is None:
+		if file is None:
 			return self.pipe(['diff', '--no-ext-diff'] + revision_args)
 		else:
-			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', path])
+			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', self.path_arg(file)])
 
 	def ignore(self, file_to_ignore_regexp):
 		"""
@@ -130,7 +135,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		self.add('.') # add all existing files
 
 	def repo_exists(self):
-		return self.root.subdir('.git').exists() or self.root.file('.git').exists()
+		return self.root.folder('.git').exists() or self.root.file('.git').exists()
 
 	def init(self):
 		"""
@@ -154,7 +159,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			git log --date=iso
 		"""
 		if path:
-			return self.pipe(['log', '--date=iso', '--follow', path])
+			return self.pipe(['log', '--date=iso', '--follow', self.path_arg(path)])
 		else:
 			return self.pipe(['log', '--date=iso'])
 
@@ -186,7 +191,7 @@ class GITApplicationBackend(VCSApplicationBase):
 			elif line.startswith('Date: '):
 				date = line[7:].strip()
 				seenmsg = True
-				msg = u''
+				msg = ''
 			elif seenmsg and line.startswith(' '):
 				msg += line[4:]
 
@@ -198,18 +203,12 @@ class GITApplicationBackend(VCSApplicationBase):
 
 
 	def move(self, oldpath, newpath):
-		"""
-		Runs: git mv --after {{OLDPATH}} {{NEWPATH}}
-		"""
-		return self.run(['mv', '--after', oldpath, newpath])
+		return self.add(newpath) # move already happened
 
 	def remove(self, path):
-		"""
-		Runs: git rm {{PATH}}
-		"""
-		return self.run(['rm', path])
+		pass # delete already happened
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			hg revert {{PATH}} {{REV_ARGS}}
@@ -223,7 +222,7 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		revision_params = self.build_revision_arguments(version)
 		if path:
-			self.run(['checkout'] + revision_params + ['--', path])
+			self.run(['checkout'] + revision_params + ['--', self.path_arg(path)])
 		else:
 			self.run(['reset', '--hard', 'HEAD'])
 

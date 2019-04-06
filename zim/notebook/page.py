@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -34,7 +33,7 @@ _pagename_invalid_char_re = re.compile(
 	')',
 re.UNICODE)
 	# This pattern matches a non-alphanumber at start or after the ':'
-	# seperator. It also matches any invalid character.
+	# separator. It also matches any invalid character.
 	# The UNICODE flag is used to make the alphanumber check international.
 
 
@@ -60,7 +59,7 @@ def shortest_unique_names(paths):
 			conflicts.insert(0, path) # shuffle path of interest to front
 			reverse_paths = [reversed(p.name.split(':')) for p in conflicts]
 			names = []
-			for parts in itertools.izip_longest(*reverse_paths):
+			for parts in itertools.zip_longest(*reverse_paths):
 				if parts[0] is None:
 					break
 				elif parts[0] not in parts[1:]:
@@ -81,7 +80,7 @@ class Path(object):
 	of the page and is used instead of the actual page object by methods
 	that only need to know the name of the page. Path objects have no
 	internal state and are essentially normalized page names. It also
-	has a number of methods to compare page names and determing what
+	has a number of methods to compare page names and determining what
 	the parent pages are etc.
 
 	@ivar name: the full name of the path
@@ -134,7 +133,7 @@ class Path(object):
 		@param name: a string
 		@raises AssertionError: if the name is not valid
 		'''
-		assert isinstance(name, basestring)
+		assert isinstance(name, str)
 		if not name.strip(':') \
 		or _pagename_reduce_colon_re.search(name) \
 		or _pagename_invalid_char_re.search(name):
@@ -179,7 +178,7 @@ class Path(object):
 			self.name = name.strip(':')
 
 		try:
-			self.name = unicode(self.name)
+			self.name = str(self.name)
 		except UnicodeDecodeError:
 			raise ValueError('BUG: invalid input, page names should be in ascii, or given as unicode')
 
@@ -293,12 +292,18 @@ class Path(object):
 		return Path(self.name + ':' + basename)
 
 	def ischild(self, parent):
-		'''Check of this path is a child of a given path
-
+		'''Check whether this path is a child of a given path
 		@param parent: a L{Path} object
 		@returns: True when this path is a (grand-)child of C{parent}
 		'''
 		return parent.isroot or self.name.startswith(parent.name + ':')
+
+	def match_namespace(self, namespace):
+		'''Check whether this path is in a specific section of the notebook
+		@param namespace: a L{Path} object
+		@returns: True when this path is equal to C{namespace} or is a (grand-)child of C{namespace}
+		'''
+		return namespace.isroot or self.name == namespace.name or self.name.startswith(namespace.name + ':')
 
 	def commonparent(self, other):
 		'''Find a common parent for two Paths
@@ -502,6 +507,9 @@ class Page(Path, SignalEmitter):
 			self._last_etag = None
 			self._meta = None
 
+	def check_source_changed(self):
+		self._check_source_etag()
+
 	def _check_source_etag(self):
 		if (
 			self._last_etag
@@ -559,7 +567,7 @@ class Page(Path, SignalEmitter):
 				return None
 			else:
 				parser = self.format.Parser()
-				self._parsetree = parser.parse(text)
+				self._parsetree = parser.parse(text, file_input=True)
 				self._meta = self._parsetree.meta
 				assert self._meta is not None
 				return self._parsetree
@@ -629,7 +637,7 @@ class Page(Path, SignalEmitter):
 
 		@returns: text as a list of lines or an empty list
 		'''
-		if isinstance(format, basestring):
+		if isinstance(format, str):
 			format = zim.formats.get_format(format)
 
 		if not linker is None:
@@ -653,7 +661,7 @@ class Page(Path, SignalEmitter):
 		@param append: if C{True} the text is appended instead of
 		replacing current content.
 		'''
-		if isinstance(format, basestring):
+		if isinstance(format, str):
 			format = zim.formats.get_format(format)
 
 		if append:

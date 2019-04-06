@@ -1,4 +1,4 @@
-PYTHON=`which python`
+PYTHON=`which python3`
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/zim
 PROJECT=zim
@@ -43,3 +43,6 @@ clean:
 	find . -name '*.pyo' -delete
 	find . -name '*~' -delete
 	rm -fr debian/zim* debian/files debian/python-module-stampdir/
+	rm -fr debian/.debhelper
+	rm -fr .pybuild/
+

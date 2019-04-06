@@ -1,0 +1,26 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2017-11-06T14:26:50+01:00
+
+====== PathBar ======
+This plugin provides a "path bar" on top of the editor window that can show a list of pages.
+
+This list of pages can show:
+* **Recent Pages:** like "history" but without doubles
+* **Recently Changed Pages:** pages in order of there last modified timestamp
+* **History:** the browsing history for this window
+* **Page Hierarchy:** e.g. "''Projects''", "''CustomerA''" and "''MyProject''" for a page named "''Projects:CustomerA:MyProject''"
+
+The content can be changed via the "Pathbar" sub-menu in the "View" menu.
+
+
+**Dependencies:** This plugin has no additional dependencies.
+
+
+===== Style =====
+
+This plugin uses a widget name to allow CSS styling for the floating widget:
+
+* zim-pathbar: for the box containing the pathbar
+
+See [[Help:Config Files]] for info on CSS styling

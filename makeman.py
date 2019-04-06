@@ -1,6 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -16,16 +15,15 @@ from zim.main import HelpCommand
 
 def get_about():
 	'''Get the tagline and short description from the README'''
-	readme = open('README.txt')
+	readme = open('README.md')
 	lines = []
 	for line in readme:
-		if line.startswith('===') and 'ABOUT' in line:
-			for line in readme:
-				if line.startswith('==='):
-					break
-				else:
-					lines.append(line)
-			break
+		if line.startswith('## '):
+			break # next header
+		elif line.startswith('====') or line.startswith('!['):
+			pass # skip images and header underline
+		else:
+			lines.append(line)
 
 	lines = ''.join(lines).strip().splitlines(True)
 	assert lines and lines[0].startswith('Zim - ')

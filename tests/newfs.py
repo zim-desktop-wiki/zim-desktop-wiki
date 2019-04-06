@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim filesystem module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
 
 from zim.newfs import *
-from zim.newfs import _SEP, _HOME
+from zim.newfs import _HOME as HOME
 
 from zim.newfs.mock import *
 
@@ -33,7 +32,7 @@ def modify_file_mtime(path, func):
 		m = os.stat(path).st_mtime
 		i += 1
 		assert i < 5
-	#~ print '>>>', m, mtime
+	#~ print('>>>', m, mtime)
 
 
 #~ class FilterOverWriteWarning(tests.LoggingFilter):
@@ -85,9 +84,9 @@ class TestFilePath(tests.TestCase):
 		self.assertEqual(mypath.basename, 'bar')
 		self.assertEqual(mypath.dirname, P('/foo'))
 
-		mypath = FilePath(P(u'/foo/\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'))
-		self.assertEqual(mypath.basename, u'\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439')
-		self.assertIsInstance(mypath.basename, unicode)
+		mypath = FilePath(P('/foo/\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439'))
+		self.assertEqual(mypath.basename, '\u0421\u0430\u0439\u0442\u043e\u0432\u044b\u0439')
+		self.assertIsInstance(mypath.basename, str)
 
 		path = FilePath(P('/foo'))
 		self.assertIsNotNone(path.path)
@@ -105,7 +104,7 @@ class TestFilePath(tests.TestCase):
 
 		# Test home folder fallback
 		f = FilePath('~non-existing-user/foo')
-		self.assertEqual(f.path, _HOME.dirname + _SEP + 'non-existing-user' + _SEP + 'foo')
+		self.assertEqual(f.path, P('/'.join((HOME.dirname, 'non-existing-user', 'foo'))))
 
 
 	def testShareDrivePath(self):
@@ -123,7 +122,7 @@ class TestFilePath(tests.TestCase):
 
 	def testRelativePath(self):
 		r = FilePath(P('/foo/bar/baz')).relpath(FilePath(P('/foo')))
-		self.assertEqual(r, _SEP.join(('bar', 'baz')))
+		self.assertEqual(r, P('bar/baz'))
 
 		for r in ('bar/baz', ('bar', 'baz'), 'bar/./foo/../baz'):
 			p = FilePath(P('/foo')).get_childpath(r)
@@ -154,7 +153,7 @@ class TestFilePath(tests.TestCase):
 			('/source/dir/dus.pdf', '/source/dir/foo', '../dus.pdf'),
 		):
 			self.assertEqual(
-				FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True),
+				P(FilePath(P(path1)).relpath(FilePath(P(path2)), allowupward=True)),
 				P(relpath)
 			)
 
@@ -180,11 +179,11 @@ class TestFilePath(tests.TestCase):
 			self.assertEqual(f.get_abspath(p).path, want)
 
 	def testUserpath(self):
-		self.assertTrue(len(_HOME.pathnames) >= 2)
+		self.assertTrue(len(HOME.pathnames) >= 2)
 
 		f = FilePath('~/foo')
-		self.assertEqual(f.path, _HOME.get_childpath('foo').path)
-		self.assertEqual(f.userpath, '~' + _SEP + 'foo')
+		self.assertEqual(f.path, HOME.get_childpath('foo').path)
+		self.assertEqual(f.userpath, P('~/foo'))
 
 		f = FilePath(P('/foo'))
 		self.assertEqual(f.userpath, P('/foo'))
@@ -198,6 +197,11 @@ class TestFilePath(tests.TestCase):
 
 		f = FilePath.new_from_zim_config('~/foo')
 		self.assertEqual(f.path, FilePath(P('~/foo')).path)
+
+	def testRootPath(self):
+		# Test for corner case in parsing paths
+		f = FilePath(P('/'))
+		self.assertTrue(len(f.path) > 0)
 
 
 class TestFS(object):
@@ -247,12 +251,12 @@ class TestFS(object):
 
 		for f in (file, folder):
 			self.assertTrue(f.exists())
-			self.assertIsInstance(f.ctime(), (int, float, long))
-			self.assertIsInstance(f.mtime(), (int, float, long))
+			self.assertIsInstance(f.ctime(), (int, float, int))
+			self.assertIsInstance(f.mtime(), (int, float, int))
 			self.assertGreaterEqual(f.mtime(), f.ctime())
 
 		file.write('test123\n')
-		self.assertIsInstance(file.size(), (int, float, long))
+		self.assertIsInstance(file.size(), (int, float, int))
 		self.assertTrue(file.size() > 0)
 
 		self.assertEqual(file.mimetype(), 'text/plain')
@@ -283,14 +287,14 @@ class TestFS(object):
 
 	def testFileAccess(self):
 		# File access: read, write, touch, remove -- including unicode in path
-		file = self.get_root_folder('testFileAccess').file(u'test-αβγ.txt')
+		file = self.get_root_folder('testFileAccess').file('test-αβγ.txt')
 		self.assertFalse(file.exists())
 		self.assertRaises(FileNotFoundError, file.read)
 
 		file.touch()
 		self.assertTrue(file.exists())
 		self.assertEqual(file.read(), '')
-		self.assertEqual(file.read_binary(), '')
+		self.assertEqual(file.read_binary(), b'')
 
 		file.write('test 123\n')
 		self.assertEqual(file.read(), 'test 123\n')
@@ -314,7 +318,7 @@ class TestFS(object):
 		# Check we can write without reading
 		file = root.file('test.txt')
 		etag1 = file.write_with_etag('test 123\n', None)
-		self.assertEquals(file.read_with_etag(), ('test 123\n', etag1))
+		self.assertEqual(file.read_with_etag(), ('test 123\n', etag1))
 
 		# Now write again
 		import time
@@ -324,28 +328,28 @@ class TestFS(object):
 			time.sleep(1) # Ensure mtime change
 		etag2 = file.writelines_with_etag(['test 567\n'], etag1)
 		self.assertNotEqual(etag2, etag1)
-		self.assertEquals(file.readlines_with_etag(), (['test 567\n'], etag2))
+		self.assertEqual(file.readlines_with_etag(), (['test 567\n'], etag2))
 
 		# Check raises without etag
 		self.assertRaises(FileChangedError, file.write_with_etag, 'foo!', etag1)
 		self.assertRaises(AssertionError, file.write_with_etag, 'foo!', None)
-		self.assertEquals(file.readlines_with_etag(), (['test 567\n'], etag2))
+		self.assertEqual(file.readlines_with_etag(), (['test 567\n'], etag2))
 
 		# Check md5 fallback
 		etag2x = (-1, etag2[1])
 		etag3 = file.write_with_etag('test 890\n', etag2x)
-		self.assertEquals(file.read_with_etag(), ('test 890\n', etag3))
+		self.assertEqual(file.read_with_etag(), ('test 890\n', etag3))
 
 		# Check edge case where file goes missing after read or write
 		file.remove()
 		self.assertFalse(file.exists())
 		etag4 = file.write_with_etag('test 890\n', etag3)
-		self.assertEquals(file.read_with_etag(), ('test 890\n', etag4))
+		self.assertEqual(file.read_with_etag(), ('test 890\n', etag4))
 
 	def testFolderAccess(self):
 		# Folder access: list, touch, remove, file, folder, child -- including unicode in path
 
-		folder = self.get_root_folder('testFolderAccess').folder(u'test-αβγ')
+		folder = self.get_root_folder('testFolderAccess').folder('test-αβγ')
 
 		# Start empty
 		self.assertFalse(folder.exists())
@@ -433,14 +437,14 @@ class TestFS(object):
 			P('foo.txt'): 'test 123\n',
 			P('foo/bar.txt'): 'test 123\n',
 			P('a/b/c/test.txt'): 'test 123\n',
-			P('unicode.txt'): u'\u2022 test 123\n',
+			P('unicode.txt'): '\u2022 test 123\n',
 		}
 
-		for path, text in data.items():
+		for path, text in list(data.items()):
 			root.file(path).write(text)
 
 		# Direct access
-		for path, text in data.items():
+		for path, text in list(data.items()):
 			file = root.file(path)
 			self.assertTrue(file.exists())
 			self.assertEqual(file.read(), text)
@@ -453,7 +457,7 @@ class TestFS(object):
 				self.assertTrue(child.ischild(folder))
 				if isinstance(child, File):
 					self.assertNotIn(child.path, found)
-					key = child.relpath(root)
+					key = P(child.relpath(root))
 					found[key] = child.read()
 				else:
 					walk(child)
@@ -468,7 +472,7 @@ class TestFS(object):
 			self.assertTrue(child.ischild(root))
 			if isinstance(child, File):
 				self.assertNotIn(child.path, found)
-				key = child.relpath(root)
+				key = P(child.relpath(root))
 				found[key] = child.read()
 		self.assertEqual(found, data)
 
@@ -630,7 +634,7 @@ class TestFS(object):
 				self.calls = []
 
 			def record(self, signal, watcher, *files):
-				self.calls.append((signal,) + tuple(f.relpath(root) for f in files))
+				self.calls.append((signal,) + tuple(P(f.relpath(root)) for f in files))
 
 			def __enter__(self):
 				self._ids = []
@@ -707,10 +711,10 @@ class TestMockFS(tests.TestCase, TestFS):
 
 	@tests.slowTest
 	def testCrossFSCopy(self):
-		rootpath = self.create_tmp_dir('folder_test')
+		root = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 
 		# File
-		lfile = LocalFile(rootpath + _SEP + 'file.txt')
+		lfile = root.file('file.txt')
 		mfile = MockFile('/mock/file.txt')
 
 		mfile.write('foo 123')
@@ -728,7 +732,7 @@ class TestMockFS(tests.TestCase, TestFS):
 		self.assertEqual(mfile.mtime(), lfile.mtime())
 
 		# Folder
-		lfolder = LocalFolder(rootpath + _SEP + 'folder')
+		lfolder = root.folder('folder')
 		mfolder = MockFolder('/mock/folder')
 
 		for path in ('file1.txt', 'file2.txt', 'subfolder/file3.txt'):
@@ -751,12 +755,10 @@ class TestMockFS(tests.TestCase, TestFS):
 @tests.slowTest
 class TestLocalFS(tests.TestCase, TestFS):
 
-	@classmethod
-	def setUpClass(cls):
-		cls._rootpath = cls.create_tmp_dir('folder_test')
-
 	def get_root_folder(self, name):
-		return LocalFolder(self._rootpath + _SEP + name)
+		folder = self.setUpFolder(name=name, mock=tests.MOCK_ALWAYS_REAL)
+		assert isinstance(folder, LocalFolder)
+		return folder
 
 	def get_test_data(self, path):
 		cwd = LocalFolder(os.getcwd())
@@ -786,8 +788,8 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertTrue(file.isimage())
 		self.assertIn(file.mimetype(), ('image/png', 'image/x-png'))
 		blob = file.read_binary()
-		self.assertNotIsInstance(blob, unicode)
-		with open(file.encodedpath, 'rb') as fh:
+		self.assertIsInstance(blob, bytes)
+		with open(file.path, 'rb') as fh:
 			raw = fh.read()
 		self.assertEqual(blob, raw)
 
@@ -810,12 +812,12 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file = root.file('read-only-file.txt')
 		file.write('test 123\n')
 
-		os.chmod(file.encodedpath, 0o444)
+		os.chmod(file.path, 0o444)
 		try:
 			self.assertRaises(FileNotWritableError, file.write, 'Overwritten!')
 			self.assertEqual(file.read(), 'test 123\n')
 		finally:
-			os.chmod(file.encodedpath, 0o644) # make it removable again
+			os.chmod(file.path, 0o644) # make it removable again
 			file.remove()
 
 	def testFileEncoding(self):
@@ -827,13 +829,13 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file.endofline = 'dos'
 		file.write('Some lines\nWith win32 newlines\n')
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines\n')
-		with open(file.encodedpath, 'rb') as fh:
+		with open(file.path, 'r', newline='') as fh:
 			self.assertEqual(fh.read(), 'Some lines\r\nWith win32 newlines\r\n')
 
 		file.writelines(['Some lines\n', 'With win32 newlines2\n'])
 		self.assertEqual(file.read(), 'Some lines\nWith win32 newlines2\n')
 
-		with open(file.encodedpath, 'rb') as fh:
+		with open(file.path, 'r', newline='') as fh:
 			self.assertEqual(fh.read(), 'Some lines\r\nWith win32 newlines2\r\n')
 
 		# test line-ends option - unix
@@ -841,13 +843,12 @@ class TestLocalFS(tests.TestCase, TestFS):
 		file.endofline = 'unix'
 		file.write('Some lines\nWith unix newlines\n')
 		self.assertEqual(file.read(), 'Some lines\nWith unix newlines\n')
-		with open(file.encodedpath, 'rb') as fh:
+		with open(file.path, 'r', newline='') as fh:
 			self.assertEqual(fh.read(), 'Some lines\nWith unix newlines\n')
 
 		file.writelines(['Some lines\n', 'With unix newlines2\n'])
 		self.assertEqual(file.read(), 'Some lines\nWith unix newlines2\n')
-
-		with open(file.encodedpath, 'rb') as fh:
+		with open(file.path, 'r', newline='') as fh:
 			self.assertEqual(fh.read(), 'Some lines\nWith unix newlines2\n')
 
 		# test encoding error
@@ -859,7 +860,7 @@ class TestLocalFS(tests.TestCase, TestFS):
 		self.assertEqual(file.read(), 'foobar\n')
 		self.assertEqual(file.readlines(), ['foobar\n'])
 
-	@tests.skipUnless(hasattr(os, 'symlink'), 'OS does not support symlinks')
+	@tests.skipUnless(hasattr(os, 'symlink') and os.name != 'nt', 'OS does not support symlinks')
 	def testSymlinks(self):
 		# Set up a file structue with a symlink
 		root = self.get_root_folder('testSymlinks')
@@ -870,8 +871,8 @@ class TestLocalFS(tests.TestCase, TestFS):
 
 		dir = root.folder('data/')
 		file = dir.file('bar.txt').touch()
-		os.symlink(targetdir.encodedpath, dir.encodedpath + '/link')
-		os.symlink(targetfile.encodedpath, dir.encodedpath + '/link.txt')
+		os.symlink(targetdir.path, dir.path + '/link')
+		os.symlink(targetfile.path, dir.path + '/link.txt')
 
 		# Now we have:
 		# ../target/foo.txt		(real)
@@ -919,7 +920,7 @@ class TestTmpFile(tests.TestCase):
 		file.write('test 123\n')
 		self.assertTrue(file.ischild(dir))
 
-		path = file.encodedpath
+		path = file.path
 		self.assertTrue(os.path.isfile(path))
 		del file
 		self.assertFalse(os.path.isfile(path)) # not persistent
@@ -944,18 +945,18 @@ class TestFunc(tests.TestCase):
 
 
 try:
-	import gio
+	from gi.repository import Gio
 except ImportError:
-	gio = None
+	Gio = None
 
 from zim.newfs.helpers import TrashHelper
 
 @tests.slowTest
-@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):
-		root = LocalFolder(self.create_tmp_dir())
+		root = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		helper = TrashHelper()
 
 		file = root.file('test.txt')

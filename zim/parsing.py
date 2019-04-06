@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -111,6 +110,8 @@ def unescape_quoted_string(string):
 # So checking ranges makes sure utf-8 is really outside of ascii set,
 # and does not e.g. include "%".
 
+import codecs
+
 URL_ENCODE_DATA = 0 # all
 URL_ENCODE_PATH = 1	# all except '/'
 URL_ENCODE_READABLE = 2 # only space and utf-8
@@ -118,13 +119,25 @@ URL_ENCODE_READABLE = 2 # only space and utf-8
 _url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]') # unreserved
 _url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]') # unreserved + /
 
+
+def _url_encode_on_error(error):
+	# Note we (implicitly) support encoding and decoding here..
+	data = error.object[error.start:error.end]
+	if isinstance(data, str):
+		data = data.encode('UTF-8')
+	replace = ''.join('%%%02X' % b for b in data)
+	return replace, error.end
+
+codecs.register_error('urlencode', _url_encode_on_error)
+
 def _url_encode(match):
-	return '%%%02X' % ord(match.group(0))
+	data = bytes(match.group(0), 'UTF-8')
+	return ''.join('%%%02X' % b for b in data)
 
 def _url_encode_readable(match):
 	i = ord(match.group(0))
 	if i == 32 or i > 127: # space or utf-8
-		return '%%%02X' % i
+		return _url_encode(match)
 	else: # do not encode
 		return match.group(0)
 
@@ -141,10 +154,9 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 	URL_ENCODE_DATA and URL_ENCODE_PATH can only be applied to strings
 	that are known not to be encoded.
 
-	The encoded URL is returned as an ASCII string.
+	The encoded URL is a string containing only ASCII characters
 	'''
-	url = url.encode('utf-8') # unicode -> utf-8, so encode one byte at a time
-
+	assert isinstance(url, str)
 	if mode == URL_ENCODE_DATA:
 		return _url_encode_re.sub(_url_encode, url)
 	elif mode == URL_ENCODE_PATH:
@@ -155,17 +167,20 @@ def url_encode(url, mode=URL_ENCODE_PATH):
 		assert False, 'BUG: Unknown url encoding mode'
 
 
-_url_decode_re = re.compile('%([a-fA-F0-9]{2})')
+# All ASCII codes <= 127 start with %0 .. %7
+_url_bytes_decode_re = re.compile('(%[a-fA-F0-9]{2})+')
+_url_decode_ascii_re = re.compile('(%[0-7][a-fA-F0-9])+')
+_url_decode_unicode_bytes_re = re.compile(b'(%[a-fA-F89][a-fA-F0-9])+')
 
 def _url_decode(match):
-	return chr(int(match.group(1), 16))
+	hexstring = match.group()
+	ords = [int(hexstring[i + 1:i + 3], 16) for i in range(0, len(hexstring), 3)]
+	return bytes(ords).decode('UTF-8')
 
-def _url_decode_readable(match):
-	i = int(match.group(1), 16)
-	if i == 32 or i > 127: # space or utf-8
-		return chr(i)
-	else: # do not decode
-		return match.group(0)
+def _url_decode_bytes(match):
+	hexstring = match.group()
+	ords = [int(hexstring[i + 1:i + 3], 16) for i in range(0, len(hexstring), 3)]
+	return bytes(ords)
 
 def url_decode(url, mode=URL_ENCODE_PATH):
 	'''Replace url-encoding hex sequences with their proper characters.
@@ -180,22 +195,27 @@ def url_decode(url, mode=URL_ENCODE_PATH):
 	They are safe to use within zim, but should be re-encoded with
 	C{URL_ENCODE_READABLE} before handing them to an external program.
 
-	The result is returned as a unicode string.
+	This method will only decode non-ascii byte codes when the _whole_ byte
+	equivalent of the URL is in valid UTF-8 decoding. Else it is assumed the
+	encoding was done in another format and the decoding fails silently
+	for these byte sequences.
 	'''
-	url = url.encode('utf-8') # in case url is already unicode
+	assert isinstance(url, str)
+	# First pass on ascii bytes
+	if mode == URL_ENCODE_READABLE:
+		url = url.replace('%20', ' ')
+	else:
+		url = _url_decode_ascii_re.sub(_url_decode, url)
+
+	# Then try UTF-8 bytes
 	try:
-		if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
-			return _url_decode_re.sub(_url_decode, url).decode('utf-8')
-		elif mode == URL_ENCODE_READABLE:
-			return _url_decode_re.sub(_url_decode_readable, url).decode('utf-8')
-		else:
-			assert False, 'BUG: Unknown url encoding mode'
+		data = _url_decode_unicode_bytes_re.sub(_url_decode_bytes, url.encode('UTF-8'))
+		url = data.decode('UTF-8')
 	except UnicodeDecodeError:
-		# Someone did not exactly follow the recommendations in the spec...
-		if mode in (URL_ENCODE_DATA, URL_ENCODE_PATH):
-			return _url_decode_re.sub(_url_decode, url)
-		elif mode == URL_ENCODE_READABLE:
-			return url.replace('%20', ' ')
+		pass
+
+	return url
+
 
 _parse_date_re = re.compile(r'(\d{1,4})\D(\d{1,2})(?:\D(\d{1,4}))?')
 
@@ -209,7 +229,7 @@ def parse_date(string):
 		- C{yyyy-mm?-dd?}
 
 	Where '-' can be replaced by any separator. Any preceding or
-	trailing text will be ignored (so we can parse calendar page names
+	trailing text will be ignored (so we can parse journal page names
 	correctly).
 
 	TODO: Some setting to prefer US dates with mm-dd instead of dd-mm
@@ -312,7 +332,7 @@ class Re(object):
 		'''
 		result = []
 		for item in list:
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				pos = 0
 				for m in self.p.finditer(item):
 					start, end = m.span()

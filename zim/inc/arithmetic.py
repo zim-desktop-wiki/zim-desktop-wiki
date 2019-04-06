@@ -13,7 +13,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-from __future__ import division # We are doing math in this module ...
+ # We are doing math in this module ...
 
 
 __doc__ = '''
@@ -72,8 +72,8 @@ class Lexer:
 
         x can be a name or an operator
 
-        x preceeded and followed by a digit is taken as if
-        preceeded and followed by a space.  i.e 5x3
+        x preceded and followed by a digit is taken as if
+        preceded and followed by a space.  i.e 5x3
         is seen as 5 x 3.
         '''
         while self.offset < len(self.text):
@@ -135,7 +135,7 @@ getcontext().prec = 100
 
 def safe_eval(expression):
 	'''Safe evaluation of a python expression'''
-	#~ print '>>>', expression
+	#~ print('>>>', expression)
 	GLOBALS = {'__builtins__': None} # Don't allow open() etc.
 	try:
 		re = eval(expression, GLOBALS, {'Decimal': Decimal})
@@ -195,7 +195,7 @@ def evaluate(expression_text, UseDigitGrouping = True, variables = {}, functions
                                        UseDigitGrouping = False,
                                        variables=variables, functions=functions)))
                 else:
-                    # recurrent relation wihout initial value
+                    # recurrent relation without initial value
                     expression.append('0')
             else:
                 expression.append(name + ' undefined')
@@ -299,7 +299,7 @@ class Parser:
         self.variables = {}
 
     def parse(self, text):
-        'Find expresions in text, return it with results.'
+        'Find expressions in text, return it with results.'
 
         lines = text.splitlines()
 
@@ -322,7 +322,7 @@ class Parser:
         lines[i] = lines[i][:start] + text + lines[i][end:]
 
     def parseLine(self, i, lines, variables={}, functions={}):
-            'Find and evaluate expresions in line i.'
+            'Find and evaluate expressions in line i.'
 
             # get line
             line = self.readLine(i, lines)
@@ -334,7 +334,7 @@ class Parser:
             while mEqualSignAct:
 
                 # Determine LeftActStart,
-                # the larger of mEqualSignPrev, mSeparLeft, mColonLeft, beginofline
+                # the larger of mEqualSignPrev, mSeparLeft, mColonLeft, mBeginOfLine
                 LeftStarts = []
                 LeftStarts.append(mEqualSignPrev.end())
 
@@ -378,14 +378,13 @@ class Parser:
                 if tipoLeft != 'v': # there is something to the left
 
                     # perform operations
-
-                    if tipoLeft in 'eaif' and tipoRight in 'vif':# evaluate expression
+                    if tipoLeft in 'eaif' and tipoRight in 'vif': # evaluate expression
                         try:
                             resultado = str(evaluate(valorLeft,
                                         variables=variables, functions=functions))
                             self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                         except:
-                            print 'eval error:', tipoLeft, valorLeft, tipoRight, valorRight
+                            print('eval error:', tipoLeft, valorLeft, tipoRight, valorRight)
                     elif tipoLeft == 'n' and tipoRight in 'ifav':
                         if valorLeft not in functions:     # variable on the left
                             if tipoRight != 'v':    # assign to variable
@@ -394,7 +393,7 @@ class Parser:
                                                             variables=variables, functions=functions))
 
                                 except:
-                                    print 'exec error:', tipoLeft, valorLeft, tipoRight, valorRight
+                                    print('exec error:', tipoLeft, valorLeft, tipoRight, valorRight)
                                     raise
                             else:                   # evaluate a variable
                                 if valorLeft in variables:
@@ -409,7 +408,7 @@ class Parser:
                                                 variables=variables, functions=functions))
                                     self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                                 except:
-                                    print 'eval error:', tipoLeft, valorLeft, tipoRight, valorRight
+                                    print('eval error:', tipoLeft, valorLeft, tipoRight, valorRight)
                             else:                   # recurrence relation
                                 if valorLeft not in variables:            # initial value
                                   if valorRight != '':
@@ -482,7 +481,7 @@ class ParserGTK(Parser):
         else:
             iter_end = textBuffer.get_iter_at_line(i)
             iter_end.forward_to_line_end()
-            return textBuffer.get_text(iter_start, iter_end)
+            return iter_start.get_text(iter_end)
 
     def writeResult(self, i, textBuffer, start, end, text):
         'Write text in line i of lines from start to end offset.'
@@ -564,21 +563,21 @@ if __name__ == '__main__':
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] in ['-h', '--help']:
-            print __doc__
+            print(__doc__)
         elif sys.argv[1] == '-f':
             filename = sys.argv[2]
             text = open(filename).read()
-            print feed(text)
+            print(feed(text))
         else:
             text = ' '.join(sys.argv[1:])
             if '=' in text:
-                print feed(text)
+                print(feed(text))
             else:
-                print evaluate(text)
+                print(evaluate(text))
     else:
         text = sys.stdin.read()
         lines = text.splitlines()
         if '=' in text or len(lines) > 1:
-            print feed(text)
+            print(feed(text))
         else:
-            print evaluate(lines[0])
+            print(evaluate(lines[0]))

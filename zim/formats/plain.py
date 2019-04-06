@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -36,14 +35,14 @@ class Parser(ParserClass):
 	# TODO parse markdown style headers
 
 	def parse(self, input, partial=False):
-		if not isinstance(input, basestring):
+		if not isinstance(input, str):
 			input = ''.join(input)
 
 		if not partial:
 			input = fix_line_end(input)
 
 		parser = zim.parser.Parser(
-			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
+			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r attribute because url_re is a Re object
 		)
 
 		builder = ParseTreeBuilder(partial=partial)
@@ -64,11 +63,11 @@ class Dumper(DumperClass):
 	# readable.
 
 	BULLETS = {
-		UNCHECKED_BOX: u'[ ]',
-		XCHECKED_BOX: u'[x]',
-		CHECKED_BOX: u'[*]',
-		MIGRATED_BOX: u'[>]',
-		BULLET: u'*',
+		UNCHECKED_BOX: '[ ]',
+		XCHECKED_BOX: '[x]',
+		CHECKED_BOX: '[*]',
+		MIGRATED_BOX: '[>]',
+		BULLET: '*',
 	}
 
 	# No additional formatting for these tags, otherwise copy-pasting
@@ -111,7 +110,7 @@ class Dumper(DumperClass):
 				char = '='
 			else:
 				char = '-'
-			heading = u''.join(strings)
+			heading = ''.join(strings)
 			underline = char * len(heading)
 			return [heading + '\n', underline]
 		else:
@@ -124,11 +123,11 @@ class Dumper(DumperClass):
 		if 'indent' in attrib:
 			# top level list with specified indent
 			prefix = '\t' * int(attrib['indent'])
-			return self.prefix_lines('\t', strings)
+			return self.prefix_lines(prefix, strings)
 		elif self.context[-1].tag in (BULLETLIST, NUMBEREDLIST):
 			# indent sub list
 			prefix = '\t'
-			return self.prefix_lines('\t', strings)
+			return self.prefix_lines(prefix, strings)
 		else:
 			# top level list, no indent
 			return strings
@@ -211,11 +210,11 @@ class Dumper(DumperClass):
 			table += [rowline(line) for line in row]
 			table.append(rowsep('-'))
 
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	@staticmethod
 	def _concat(s):
-		return s if isinstance(s, basestring) else ''.join(s)
+		return s if isinstance(s, str) else ''.join(s)
 
 	def dump_thead(self, tag, attrib, strings):
 		return [strings] # HACK to keep row structure
@@ -224,12 +223,12 @@ class Dumper(DumperClass):
 		return [strings] # HACK to keep row structure
 
 	def dump_th(self, tag, attrib, strings):
-		strings = [s.replace('|', '∣') for s in strings]
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		strings = [s.replace('|', '∣') for s in strings]
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):
-		return '\n{}\n'.format(LINE_TEXT)
+		return '-' * 20

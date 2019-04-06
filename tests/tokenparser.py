@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2016-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -42,6 +41,6 @@ class TestTokenParser(tests.TestCase):
 			else:
 				return t
 
-		revtokens = map(correct_none_attrib, revtokens)
+		revtokens = list(map(correct_none_attrib, revtokens))
 
 		self.assertEqual(revtokens, tokens)

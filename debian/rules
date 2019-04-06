@@ -1,15 +1,9 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-DEB_PYTHON2_MODULE_PACKAGES := zim
+#export DH_VERBOSE = 1
+export PYBUILD_NAME = zim
+export PYBUILD_DISABLE=test  # Ubuntu PPA builder trips over Gtk/Gdk tests
 
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/python-distutils.mk
-
-DEB_PYTHON_INSTALL_ARGS_ALL += --skip-xdg-cmd
-	# Do not trigger XDG update commands
-
-clean::
-	rm -rf build build-stamp configure-stamp build/ MANIFEST
-	dh_clean
-
+%:
+	dh $@ --with python3 --buildsystem=pybuild

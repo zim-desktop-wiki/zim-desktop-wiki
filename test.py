@@ -1,12 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# -*- coding: utf-8 -*-
 
 # This is a wrapper script to run tests using the unittest
 # framework. It setups the environment properly and defines some
 # commandline options for running tests.
 #
-# Copyright 2008 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import os
 import sys
@@ -36,7 +35,7 @@ def main(argv=None):
 		'hVD', ['help', 'coverage', 'fast', 'failfast', 'ff', 'full', 'debug', 'verbose'])
 	for o, a in opts:
 		if o in ('-h', '--help'):
-			print '''\
+			print('''\
 usage: %s [OPTIONS] [MODULES]
 
 Where MODULE should a module name from ./tests/
@@ -51,16 +50,16 @@ Options:
   --coverage     report test coverage statistics
   -V, --verbose  run with verbose output from logging
   -D, --debug    run with debug output from logging
-''' % argv[0]
+''' % argv[0])
 			return
 		elif o == '--coverage':
 			if coverage:
 				covreport = True
 			else:
-				print >>sys.stderr, '''\
+				print('''\
 Can not run test coverage without module 'coverage'.
-On Ubuntu or Debian install package 'python-coverage'.
-'''
+On Ubuntu or Debian install package 'python3-coverage'.
+''', file=sys.stderr)
 				sys.exit(1)
 		elif o == '--fast':
 			tests.FAST_TEST = True
@@ -79,14 +78,6 @@ On Ubuntu or Debian install package 'python-coverage'.
 		else:
 			assert False, 'Unkown option: %s' % o
 
-	# Start tracing
-	if coverage:
-		cov = coverage.coverage(source=['zim'], branch=True)
-		cov.erase() # clean up old date set
-		cov.exclude('assert ')
-		cov.exclude('raise NotImplementedError')
-		cov.start()
-
 	# Set logging handler (don't use basicConfig here, we already installed stuff)
 	handler = logging.StreamHandler()
 	handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
@@ -94,6 +85,14 @@ On Ubuntu or Debian install package 'python-coverage'.
 	logger.setLevel(loglevel)
 	logger.addHandler(handler)
 	#logging.captureWarnings(True) # FIXME - make all test pass with this enabled
+
+	# Start tracing - before importing the tests
+	if coverage:
+		cov = coverage.coverage(source=['zim'], branch=True)
+		cov.erase() # clean up old date set
+		cov.exclude('assert ')
+		cov.exclude('raise NotImplementedError')
+		cov.start()
 
 	# Build the test suite
 	loader = unittest.TestLoader()
@@ -122,30 +121,43 @@ On Ubuntu or Debian install package 'python-coverage'.
 	result = \
 		unittest.TextTestRunner(verbosity=2, failfast=failfast, descriptions=False).run(suite)
 
-	# Check the modules were loaded from the right location
-	# (so no testing based on modules from a previous installed version...)
-	mylib = os.path.abspath('./zim')
-	for module in [m for m in sys.modules.keys()
-			if m == 'zim' or m.startswith('zim.')]:
-				if sys.modules[module] is None:
-					continue
-				file = sys.modules[module].__file__
-				assert file.startswith(mylib), \
-					'Module %s was loaded from %s' % (module, file)
-
-	test_report(result, 'test_report.html')
-	print '\nWrote test report to test_report.html\n'
-
 	# Stop tracing
 	if coverage:
 		cov.stop()
 		cov.save()
 
+	# Check the modules were loaded from the right location
+	# (so no testing based on modules from a previous installed version...)
+	mylib = os.path.abspath('./zim')
+	if os.name == 'nt':
+		mylib = mylib.replace('/', '\\') # on msys the path is "/" seperated
+	for module in [m for m in list(sys.modules.keys())
+			if m == 'zim' or m.startswith('zim.')]:
+				if sys.modules[module] is None:
+					continue
+				file = sys.modules[module].__file__
+				if os.name == 'nt':
+					file = file.replace('/', '\\')
+				assert file.startswith(mylib), \
+					'Module %s was loaded from %s' % (module, file)
+
+	test_report(result, 'test_report.html')
+	print('\nWrote test report to test_report.html')
+
+	# print timings
+	with open('test_times.csv', 'w') as out:
+		for name, time in sorted(tests.TIMINGS, reverse=True, key=lambda t: t[1]):
+			out.write("%s,%f\n" % (name, time))
+		print("Wrote test_times.csv")
+
 	# Create coverage output if asked to do so
 	if covreport:
-		print 'Writing coverage reports...'
+		print('Writing coverage reports...')
 		cov.html_report(directory='./coverage', omit=['zim/inc/*'])
-		print 'Done - Coverage reports can be found in ./coverage/'
+		print('Done - Coverage reports can be found in ./coverage/')
+
+	exitcode = 1 if result.errors or result.failures else 0
+	sys.exit(exitcode)
 
 
 def test_report(result, file):

@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2013-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Action interface classes.
 
@@ -11,7 +10,7 @@ interface parameters, like what icon and label to use in the menu.
 
 Use the L{action} and L{toggle_action} decorators to create actions.
 
-There is no direct relation with the C{gtk.Action} and C{gtk.ToggleAction}
+There is no direct relation with the C{Gtk.Action} and C{Gtk.ToggleAction}
 classes, but it can cooperate with these classes and use them as proxies.
 '''
 
@@ -25,84 +24,44 @@ import zim.errors
 logger = logging.getLogger('zim')
 
 
-# We want to switch between <Control> for linux and windows and
-# <Command> for OS X. The gtk solution is to use the abstract <Primary>
-# modifier key. Unfortunately, this is not supported in gtk before
-# version gtk_version 2.24.7. Therefore we try to detect whether this
-# abstract key is supported or not, and if not, we fall back to <Control>.
-#
-# Secondary use of the PRIMARY_MODIFIER constant is that it can be
-# shown in user menus.
 
-_accelerator_preparse_re = re.compile('(?i)<Primary>')
+def _get_modifier_mask():
+	import gi
+	gi.require_version('Gtk', '3.0')
+	from gi.repository import Gtk
+	x, mod = Gtk.accelerator_parse('<Primary>')
+	return mod
 
-def gtk_accelerator_preparse(code, force=False):
-	'''Pre-parse the accelerator code to change <Primary> into
-	<Control> or <Command> if <Primary> is not supported.
-	@param code: accelerator code
-	@param force: if C{True} <Primary> is replaced even if not needed
-	@returns: same or modified accelerator code
-	'''
-	if not code:
-		return code # tolerate None ...
-
-	m = _accelerator_preparse_re.search(code)
-	if m:
-		import gtk
-		x, mod = gtk.accelerator_parse('<Primary>')
-		if not mod:
-			# <Primary> is not supported - anyway to detect OS X?
-			return _accelerator_preparse_re.sub('<Control>', code)
-		elif force:
-			if mod == gtk.gdk.META_MASK:
-				return _accelerator_preparse_re.sub('<Command>', code)
-			else:
-				return _accelerator_preparse_re.sub('<Control>', code)
-		else:
-			return code
-	else:
-		return code
-
-try:
-	import gtk
-	PRIMARY_MODIFIER_STRING = gtk_accelerator_preparse('<primary>', force=True)
-	PRIMARY_MODIFIER_MASK = gtk.gdk.META_MASK if PRIMARY_MODIFIER_STRING == '<Command>' else gtk.gdk.CONTROL_MASK
-except ImportError:
-	PRIMARY_MODIFIER_STRING = None
-	PRIMARY_MODIFIER_MASK = None
+PRIMARY_MODIFIER_STRING = '<Primary>'
+PRIMARY_MODIFIER_MASK = _get_modifier_mask()
 
 
-# FIXME - temporary helper method - remove it again when all users are refactored
-def gtk_accelerator_preparse_list(actions):
-	myactions = []
-	for action in actions:
-		if len(action) > 3:
-			a = list(action)
-			a[3] = gtk_accelerator_preparse(a[3])
-			action = tuple(a)
-		myactions.append(action)
-	return myactions
+def hasaction(obj, actionname):
+	'''Like C{hasattr} but for attributes that define an action'''
+	actionname = actionname.replace('-', '_')
+	return hasattr(obj.__class__, actionname) \
+		and isinstance(getattr(obj.__class__, actionname), ActionMethod)
 
 
 class ActionMethod(object):
 	pass
 
 
-def action(label, stock=None, accelerator='', tooltip='', readonly=True, alt_accelerator=None):
+def action(label, accelerator='', icon=None, verb_icon=None, menuhints='', alt_accelerator=None):
 	'''Decorator to turn a method into an L{Action} object
 	Methods decorated with this decorator can have keyword arguments
 	but no positional arguments.
-	@param label: the label used e.g for the menu item
-	@param stock: stock item to define the icon
+	@param label: the label used e.g for the menu item (can use "_" for mnemonics)
 	@param accelerator: accelerator key description
-	@param tooltip: tooltip text, if C{None} will default to C{label}
-	@param readonly: if C{True} this action should also be available
-	for readonly notebooks
+	@param icon: name of a "noun" icon - used together with the label. Only use
+	this for "things and places", not for actions or commands, and only if the
+	icon makes the item easier to recognize.
+	@param verb_icon: name of a "verb" icon - only used for compact menu views
+	@param menuhints: string with hints for menu placement and sensitivity
 	@param alt_accelerator: alternative accelerator key binding
 	'''
-	# TODO see where "readonly" should go
 	def _action(function):
-		return Action(function.__name__, function, label, stock, accelerator, tooltip, readonly, alt_accelerator)
+		return Action(function.__name__, function, label, icon, verb_icon, accelerator, alt_accelerator, menuhints)
 
 	return _action
 
@@ -110,19 +69,18 @@ def action(label, stock=None, accelerator='', tooltip='', readonly=True, alt_acc
 class Action(ActionMethod):
 	'''Action, used by the L{action} decorator'''
 
-	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True, alt_accelerator=None):
-		assert not (stock and '<' in stock), 'Looks like stock contains accelerator: %s %s' % (name, stock)
+	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', alt_accelerator=None, menuhints=''):
 		assert self._assert_args(func), '%s() has incompatible argspec' % func.__name__
-		if not tooltip:
-			tooltip = label.replace('_', '')
-
+		tooltip = label.replace('_', '')
 		self.name = name
-		self.readonly = readonly
 		self.func = func
-		self._attr = (self.name, label, tooltip, stock)
-		self._alt_attr = (self.name + '_alt1', label, tooltip, stock)
-		self._accel = gtk_accelerator_preparse(accelerator)
-		self._alt_accel = gtk_accelerator_preparse(alt_accelerator)
+		self._attr = (self.name, label, tooltip, icon or verb_icon)
+		self._alt_attr = (self.name + '_alt1', label, tooltip, icon or verb_icon)
+		self._accel = accelerator
+		self._alt_accel = alt_accelerator
+		self.icon = icon
+		self.verb_icon = verb_icon
+		self.menuhints = menuhints.split(':')
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -137,12 +95,12 @@ class Action(ActionMethod):
 
 		# instance acces, return bound method
 		def func(*args, **kwargs):
-			self.func(instance, *args, **kwargs)
+			return self.func(instance, *args, **kwargs)
 
 		return func
 
 	def connect_actionable(self, instance, actionable):
-		'''Connect a C{gtk.Action} or C{gtk.Button} to this action.
+		'''Connect a C{Gtk.Action} or C{Gtk.Button} to this action.
 		@param instance: the object instance that owns this action
 		@param actionable: proxy object, needs to have methods
 		C{set_active(is_active)} and C{get_active()} and a signal
@@ -160,7 +118,7 @@ class Action(ActionMethod):
 				'Exception during action: %s' % self.name)
 
 
-def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, init=False):
+def toggle_action(label, accelerator='', icon=None, verb_icon=None, init=False, menuhints=''):
 	'''Decorator to turn a method into an L{ToggleAction} object
 
 	The decorated method should be defined as:
@@ -171,17 +129,17 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, 
 	parameter. In this case the wrapper determines how to toggle the
 	state and calls the inner function with the new state.
 
-	@param label: the label used e.g for the menu item
-	@param stock: stock item to define the icon
+	@param label: the label used e.g for the menu item (can use "_" for mnemonics)
 	@param accelerator: accelerator key description
-	@param tooltip: tooltip text, if C{None} will default to C{label}
-	@param readonly: if C{True} this action should also be available
-	for readonly notebooks
+	@param icon: name of a "noun" icon - used together with the label. Only use
+	this for "things and places", not for actions or commands, and only if the
+	icon makes the item easier to recognize.
+	@param verb_icon: name of a "verb" icon - only used for compact menu views
 	@param init: initial state of the toggle
+	@param menuhints: string with hints for menu placement and sensitivity
 	'''
-	# TODO see where "readonly" should go
 	def _toggle_action(function):
-		return ToggleAction(function.__name__, function, label, stock, accelerator, tooltip, readonly, init)
+		return ToggleAction(function.__name__, function, label, icon, verb_icon, accelerator, init, menuhints)
 
 	return _toggle_action
 
@@ -189,11 +147,11 @@ def toggle_action(label, stock=None, accelerator='', tooltip='', readonly=True, 
 class ToggleAction(Action):
 	'''Toggle action, used by the L{toggle_action} decorator'''
 
-	def __init__(self, name, func, label, stock=None, accelerator='', tooltip='', readonly=True, init=False):
+	def __init__(self, name, func, label, icon=None, verb_icon=None, accelerator='', init=False, menuhints=''):
 		# The ToggleAction instance lives in the client class object;
 		# using weakkeydict to store instance attributes per
 		# client object
-		Action.__init__(self, name, func, label, stock, accelerator, tooltip, readonly)
+		Action.__init__(self, name, func, label, icon, verb_icon, accelerator, menuhints=menuhints)
 		self._init = init
 		self._state = weakref.WeakKeyDictionary()
 		self._proxies = weakref.WeakKeyDictionary()
@@ -226,7 +184,7 @@ class ToggleAction(Action):
 		return func
 
 	def connect_actionable(self, instance, actionable):
-		'''Connect a C{gtk.ToggleAction} or C{gtk.ToggleButton} to this action.
+		'''Connect a C{Gtk.ToggleAction} or C{Gtk.ToggleButton} to this action.
 		@param instance: the object instance that owns this action
 		@param actionable: proxy object, needs to have methods
 		C{set_active(is_active)} and C{get_active()} and a signal
@@ -250,21 +208,34 @@ class ToggleAction(Action):
 				zim.errors.exception_handler(
 					'Exception during toggle action: %s(%s)' % (self.name, active))
 
+	def get_toggleaction_state(self, instance):
+		'''Get the state for C{instance}'''
+		# TODO: this should be method on bound object
+		return self._state.get(instance, self._init)
 
-def radio_action(*radio_options):
+	def set_toggleaction_state(self, instance, active):
+		'''Change state for C{instance} *without* calling the action'''
+		# TODO: this should be method on bound object
+		self._state[instance] = active
+		for actionable in self._proxies.get(instance, []):
+			actionable.set_active(active)
+
+
+def radio_action(menulabel, *radio_options, menuhints=''):
 	def _action(function):
-		return RadioAction(function.__name__, function, radio_options)
+		return RadioAction(function.__name__, function, menulabel, radio_options, menuhints)
 
 	return _action
 
 
-def radio_option(key, label, stock=None, accelerator='', tooltip=''):
-	return (key, stock, label, accelerator, tooltip)
-		# switching stock & label to match actiongroup.add_radio_actions()
+def radio_option(key, label, accelerator=''):
+	tooltip = label.replace('_', '')
+	return (key, None, label, accelerator, tooltip)
+		# tuple must match spec for actiongroup.add_radio_actions()
 
 
 def gtk_radioaction_set_current(g_radio_action, key):
-	# gtk.radioaction.set_current is gtk >= 2.10
+	# Gtk.radioaction.set_current is gtk >= 2.10
 	for a in g_radio_action.get_group():
 		if a.get_name().endswith('_' + key):
 			a.activate()
@@ -273,12 +244,13 @@ def gtk_radioaction_set_current(g_radio_action, key):
 
 class RadioAction(ActionMethod):
 
-	def __init__(self, name, func, radio_options):
+	def __init__(self, name, func, menulabel, radio_options, menuhints=''):
 		# The RadioAction instance lives in the client class object;
 		# using weakkeydict to store instance attributes per
 		# client object
 		self.name = name
 		self.func = func
+		self.menulabel = menulabel
 		self.keys = [opt[0] for opt in radio_options]
 		self._entries = tuple(
 			(name + '_' + opt[0],) + opt[1:] + (i,)
@@ -286,6 +258,7 @@ class RadioAction(ActionMethod):
 		)
 		self._state = weakref.WeakKeyDictionary()
 		self._proxies = weakref.WeakKeyDictionary()
+		self.menuhints = menuhints.split(':')
 
 	def _assert_args(self, func):
 		args, varargs, keywords, defaults = inspect.getargspec(func)
@@ -324,24 +297,27 @@ class RadioAction(ActionMethod):
 				'Exception during action: %s(%s)' % (self.name, key))
 
 
+def get_actions(obj):
+	return inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionMethod))
+
 
 def get_gtk_actiongroup(obj):
-	'''Return a C{gtk.ActionGroup} for an object using L{Action}
+	'''Return a C{Gtk.ActionGroup} for an object using L{Action}
 	objects as attributes.
 
 	Defines the attribute C{obj.actiongroup} if it does not yet exist.
 
 	This method can only be used when gtk is available
 	'''
-	import gtk
+	from gi.repository import Gtk
 
 	if hasattr(obj, 'actiongroup') \
 	and obj.actiongroup is not None:
 		return obj.actiongroup
 
-	obj.actiongroup = gtk.ActionGroup(obj.__class__.__name__)
+	obj.actiongroup = Gtk.ActionGroup(obj.__class__.__name__)
 
-	for name, action in inspect.getmembers(obj.__class__, lambda m: isinstance(m, ActionMethod)):
+	for name, action in get_actions(obj):
 		if isinstance(action, RadioAction):
 			obj.actiongroup.add_radio_actions(action._entries)
 			gaction = obj.actiongroup.get_action(action._entries[0][0])
@@ -361,13 +337,15 @@ def get_gtk_actiongroup(obj):
 
 
 def _gtk_add_action_with_accel(obj, actiongroup, action, attr, accel):
-	import gtk
+	from gi.repository import Gtk
 
 	if isinstance(action, ToggleAction):
-		gaction = gtk.ToggleAction(*attr)
+		gaction = Gtk.ToggleAction(*attr)
 	else:
-		gaction = gtk.Action(*attr)
+		gaction = Gtk.Action(*attr)
 
-	gaction.zim_readonly = action.readonly # HACK
+	gaction.zim_readonly = not bool(
+		'edit' in action.menuhints or 'insert' in action.menuhints
+	)
 	action.connect_actionable(obj, gaction)
 	actiongroup.add_action_with_accel(gaction, accel)

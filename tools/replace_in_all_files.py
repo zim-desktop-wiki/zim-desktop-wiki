@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''Tool to replace a string in a whole bunch of files'''
 
@@ -13,7 +13,7 @@ def replace_in_dir(root, old, new):
 				dirs.remove(subdir)
 		for file in files:
 			total += replace_in_file(dir + '/' + file, old, new)
-	print '%i total in %s' % (total, root)
+	print('%i total in %s' % (total, root))
 
 def replace_in_file(file, old, new):
 	fh = open(file)
@@ -21,7 +21,7 @@ def replace_in_file(file, old, new):
 	fh.close()
 	i = content.count(old)
 	if i > 0:
-		print '%i in %s' % (i, file)
+		print('%i in %s' % (i, file))
 		content = content.replace(old, new)
 		fh = open(file, 'w')
 		fh.write(content)
@@ -33,4 +33,4 @@ if __name__ == '__main__':
 	if len(sys.argv) == 4:
 		replace_in_dir(*sys.argv[1:])
 	else:
-		print 'Usage: replace.py dir oldstring newstring'
+		print('Usage: replace.py dir oldstring newstring')

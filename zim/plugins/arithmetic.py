@@ -4,8 +4,10 @@
 
 from zim.inc.arithmetic import ParserGTK
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.actions import action
+
+from zim.gui.pageview import PageViewExtension
 
 
 class ArithmeticPlugin(PluginClass):
@@ -26,29 +28,15 @@ http://pp.com.mx/python/arithmetic.
 	#~ )
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
-
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='tools_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='calculate'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
+class ArithmeticPageViewExtension(PageViewExtension):
 
 	@action(_('_Arithmetic'), accelerator='F5') # T: menu item
 	def calculate(self):
 		"""Perform arithmetic operations"""
 
 		# get the buffer
-		buf = self.window.pageview.view.get_buffer() # XXX
+		buf = self.pageview.textview.get_buffer() # XXX
 
 		# parse and return modified text
 		parser = ParserGTK()
 		parser.parse(buf)
-

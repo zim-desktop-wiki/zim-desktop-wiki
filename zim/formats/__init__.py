@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -28,8 +27,8 @@ Supported tags:
 	- pre for verbatim paragraphs (no further parsing in these blocks)
 	- em for emphasis, rendered italic by default
 	- strong for strong emphasis, rendered bold by default
-	- mark for highlighted text, renderd with background color or underlined
-	- strike for text that is removed, usually renderd as strike through
+	- mark for highlighted text, rendered with background color or underlined
+	- strike for text that is removed, usually rendered as strike through
 	- code for inline verbatim text
 	- ul for bullet and checkbox lists
 	- ol for numbered lists
@@ -77,7 +76,7 @@ from zim.parsing import link_type, is_url_re, \
 	url_encode, url_decode, URL_ENCODE_READABLE, URL_ENCODE_DATA
 from zim.parser import Builder
 from zim.config import data_file, ConfigDict
-from zim.objectmanager import ObjectManager
+from zim.plugins import PluginManager
 
 import zim.plugins
 from functools import reduce
@@ -88,9 +87,9 @@ logger = logging.getLogger('zim.formats')
 # Needed to determine RTL, but may not be available
 # if gtk bindings are not installed
 try:
-	import pango
+	from gi.repository import Pango
 except:
-	pango = None
+	Pango = None
 	logger.warn('Could not load pango - RTL scripts may look bad')
 
 try:
@@ -145,13 +144,9 @@ TABLEROW = 'trow'
 TABLEDATA = 'td'
 
 LINE = 'line'
-LINE_TEXT = '-' * 20
 
 BLOCK_LEVEL = (PARAGRAPH, HEADING, VERBATIM_BLOCK, BLOCK, OBJECT, IMAGE, LISTITEM, TABLE)
 
-
-
-from zim.tokenparser import TokenBuilder
 
 
 _letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -209,7 +204,7 @@ def canonical_name(name):
 def get_format(name):
 	'''Returns the module object for a specific format.'''
 	# If this method is removes, class names in formats/*.py can be made more explicit
-	#~ print 'DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()'
+	#~ print('DEPRECATED: get_format() is deprecated in favor if get_parser() and get_dumper()')
 	return get_format_module(name)
 
 
@@ -306,7 +301,7 @@ class ParseTree(object):
 
 	def fromstring(self, string):
 		'''Set the contents of this tree from XML representation.'''
-		parser = ElementTreeModule.XMLTreeBuilder()
+		parser = ElementTreeModule.XMLParser()
 		parser.feed(string)
 		root = parser.close()
 		self._etree._setroot(root)
@@ -314,16 +309,16 @@ class ParseTree(object):
 
 	def tostring(self):
 		'''Serialize the tree to a XML representation'''
-		from cStringIO import StringIO
+		from io import StringIO
 
 		# Parent dies when we have attributes that are not a string
 		for element in self._etree.getiterator('*'):
-			for key in element.attrib.keys():
+			for key in list(element.attrib.keys()):
 				element.attrib[key] = str(element.attrib[key])
 
 		xml = StringIO()
 		xml.write("<?xml version='1.0' encoding='utf-8'?>\n")
-		ElementTreeModule.ElementTree.write(self._etree, xml, 'utf-8')
+		ElementTreeModule.ElementTree.write(self._etree, xml, 'unicode')
 		return xml.getvalue()
 
 	def copy(self):
@@ -332,10 +327,12 @@ class ParseTree(object):
 		try:
 			return ParseTree().fromstring(xml)
 		except:
-			print ">>>", xml, "<<<"
+			print(">>>", xml, "<<<")
 			raise
 
 	def iter_tokens(self):
+		from zim.tokenparser import TokenBuilder
+
 		tb = TokenBuilder()
 		self.visit(tb)
 		return tb.tokens
@@ -378,7 +375,7 @@ class ParseTree(object):
 
 		if children:
 			first = children[0]
-			if first.tag == 'h' and first.attrib['level'] >= level:
+			if first.tag == 'h' and int(first.attrib['level']) >= level:
 				return first
 		return None
 
@@ -408,7 +405,7 @@ class ParseTree(object):
 			root = self._etree.getroot()
 			heading = ElementTreeModule.Element('h', {'level': level})
 			heading.text = text
-			heading.tail = root.text
+			heading.tail = '\n' + (root.text or '')
 			root.text = None
 			root.insert(0, heading)
 
@@ -659,7 +656,7 @@ class ParseTree(object):
 				elt.remove(child)
 				offset -= 1
 				for item in node:
-					if isinstance(item, basestring):
+					if isinstance(item, str):
 						self._insert_text(elt, i, item)
 					else:
 						assert isinstance(item, Element)
@@ -689,29 +686,6 @@ class ParseTree(object):
 				prev.tail += text
 			else:
 				prev.tail = text
-
-	def get_objects(self, type=None):
-		'''Generator that yields all custom objects in the tree,
-		or all objects of a certain type.
-		@param type: object type to return or C{None} to get all
-		@returns: yields objects (as provided by L{ObjectManager})
-		'''
-		for elt in self._etree.getiterator(OBJECT):
-			if type and elt.attrib.get('type') != type:
-				pass
-			else:
-				obj = self._get_object(elt)
-				if obj is not None:
-					yield obj
-
-	def _get_object(self, elt):
-		## TODO optimize using self._object_cache or new API for
-		## passing on objects in the tree
-		type = elt.attrib.get('type')
-		if elt.tag == OBJECT and type:
-			return ObjectManager.get_object(type, elt.attrib, elt.text)
-		else:
-			return None
 
 
 class VisitorStop(Exception):
@@ -912,7 +886,7 @@ class OldParseTreeBuilder(object):
 			self._flush(need_eol=1)
 		else:
 			self._flush()
-		#~ print 'START', tag
+		#~ print('START', tag)
 
 		if tag == 'h':
 			if not (attrib and 'level' in attrib):
@@ -947,7 +921,7 @@ class OldParseTreeBuilder(object):
 			self._flush(need_eol=1)
 		else:
 			self._flush()
-		#~ print 'END', tag
+		#~ print('END', tag)
 
 		self._last = self._stack[-1]
 		assert self._last.tag == tag, \
@@ -984,7 +958,7 @@ class OldParseTreeBuilder(object):
 			return self._stack.pop()
 
 	def data(self, text):
-		assert isinstance(text, basestring)
+		assert isinstance(text, str)
 		self._data.append(text)
 
 	def append(self, tag, text):
@@ -995,7 +969,7 @@ class OldParseTreeBuilder(object):
 	def _flush(self, need_eol=0):
 		# need_eol makes sure previous data ends with \n
 
-		#~ print 'DATA:', self._data
+		#~ print('DATA:', self._data)
 		text = ''.join(self._data)
 
 		# Fix trailing newlines
@@ -1203,7 +1177,7 @@ class DumperClass(Visitor):
 		'''Return the dumped content as a list of lines
 		Should only be called after closing the top level element
 		'''
-		return u''.join(self._text).splitlines(1)
+		return ''.join(self._text).splitlines(1)
 
 	def start(self, tag, attrib=None):
 		if attrib:
@@ -1238,7 +1212,7 @@ class DumperClass(Visitor):
 			#~ try:
 				#~ u''.join(strings)
 			#~ except:
-				#~ print "BUG: %s returned %s" % ('dump_'+tag, strings)
+				#~ print("BUG: %s returned %s" % ('dump_'+tag, strings))
 
 		if strings is not None:
 			self.context[-1].text.extend(strings)
@@ -1293,24 +1267,32 @@ class DumperClass(Visitor):
 		@param strings: a list of pieces of text
 		@returns: a new list of lines, each starting with prefix
 		'''
-		lines = u''.join(strings).splitlines(1)
+		lines = ''.join(strings).splitlines(1)
 		return [prefix + l for l in lines]
 
-	def dump_object(self, tag, attrib, strings=None):
-		'''Dumps object using proper ObjectManager'''
+	def dump_object(self, tag, attrib, strings=[]):
+		'''Dumps objects defined by L{InsertedObjectType}'''
 		format = str(self.__class__.__module__).split('.')[-1]
-		if 'type' in attrib:
-			obj = ObjectManager.get_object(attrib['type'], attrib, u''.join(strings))
-			output = obj.dump(format, self, self.linker)
-			if isinstance(output, basestring):
-				return [output]
-			elif output is not None:
+		try:
+			obj = PluginManager.insertedobjects[attrib['type']]
+		except KeyError:
+			pass
+		else:
+			try:
+				output = obj.format(format, self, attrib, ''.join(strings))
+			except ValueError:
+				pass
+			else:
+				assert isinstance(output, (list, tuple)), "Invalid output: %r" % output
 				return output
 
-		return self.dump_object_fallback(tag, attrib, strings)
-
-		# TODO put content in attrib, use text for caption (with full recursion)
-		# See img
+		if attrib['type'].startswith('image+'):
+			# Fallback for backward compatibility of image generators < zim 0.70
+			attrib = attrib.copy()
+			attrib['type'] = attrib['type'][6:]
+			return self.dump_img(IMAGE, attrib, None)
+		else:
+			return self.dump_object_fallback(tag, attrib, strings)
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		'''Method to serialize objects that do not have their own
@@ -1325,22 +1307,22 @@ class DumperClass(Visitor):
 		@returns: C{True} if C{text} starts with characters in a
 		RTL script, or C{None} if direction is not determined.
 		'''
-		if pango is None:
+		if Pango is None:
 			return None
 
 		# It seems the find_base_dir() function is not documented in the
 		# python language bindings. The Gtk C code shows the signature:
 		#
-		#     pango.find_base_dir(text, length)
+		#     Pango.find_base_dir(text, length)
 		#
 		# It either returns a direction, or NEUTRAL if e.g. text only
 		# contains punctuation but no real characters.
 
-		dir = pango.find_base_dir(text, len(text))
-		if dir == pango.DIRECTION_NEUTRAL:
+		dir = Pango.find_base_dir(text, len(text))
+		if dir == Pango.Direction.NEUTRAL:
 			return None
 		else:
-			return dir == pango.DIRECTION_RTL
+			return dir == Pango.Direction.RTL
 
 
 class BaseLinker(object):
@@ -1497,12 +1479,12 @@ class Node(list):
 		@returns: string
 		'''
 		strings = self._gettext()
-		return u''.join(strings)
+		return ''.join(strings)
 
 	def _gettext(self):
 		strings = []
 		for item in self:
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				strings.append(item)
 			else:
 				strings.extend(item._gettext())
@@ -1510,7 +1492,7 @@ class Node(list):
 
 	def toxml(self):
 		strings = self._toxml()
-		return u''.join(strings)
+		return ''.join(strings)
 
 	def _toxml(self):
 		strings = []
@@ -1523,7 +1505,7 @@ class Node(list):
 			strings.append("<%s>" % self.tag)
 
 		for item in self:
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				strings.append(encode_xml(item))
 			else:
 				strings.extend(item._toxml())
@@ -1534,12 +1516,12 @@ class Node(list):
 	__repr__ = toxml
 
 	def visit(self, visitor):
-		if len(self) == 1 and isinstance(self[0], basestring):
+		if len(self) == 1 and isinstance(self[0], str):
 			visitor.append(self.tag, self.attrib, self[0])
 		else:
 			visitor.start(self.tag, self.attrib)
 			for item in self:
-				if isinstance(item, basestring):
+				if isinstance(item, str):
 					visitor.text(item)
 				else:
 					item.visit(visitor)
@@ -1571,7 +1553,7 @@ class TableParser():
 		:param lines: 2-dim multiline rows
 		:return: the number of characters of the longest cell-value by column
 		'''
-		widths = [max(map(len, line)) for line in zip(*lines)]
+		widths = [max(list(map(len, line))) for line in zip(*lines)]
 		return widths
 
 	@staticmethod
@@ -1582,22 +1564,22 @@ class TableParser():
 		:return: the number of characters of the longest cell-value by column
 		'''
 		lines = reduce(lambda x, y: x + y, lines)
-		widths = [max(map(len, line)) for line in zip(*lines)]
+		widths = [max(list(map(len, line))) for line in zip(*lines)]
 		return widths
 
 	@staticmethod
 	def convert_to_multiline_cells(rows):
 		'''
-		Each cell of a list of list is splitted by "\n" and a 3-dimensional list is returned,
+		Each cell in a list of rows is split by "\n" and a 3-dimensional list is returned,
 		whereas each tuple represents a line and multiple lines represents a row and multiple rows represents the table
 		c11a = Cell in Row 1 in Column 1 in first = a line
 		:param strings: format like (('c11a \n c11b', 'c12a \n c12b'), ('c21', 'c22a \n 22b'))
 		:return: format like (((c11a, c12a), (c11b, c12b)), ((c21, c22a), ('', c22b)))
 		'''
-		multi_rows = [map(lambda cell: cell.split("\n"), row) for row in rows]
+		multi_rows = [[cell.split("\n") for cell in row] for row in rows]
 
 		# grouping by line, not by row
-		strings = [map(lambda *line: map(lambda val: val if val is not None else '', line), *row) for row in multi_rows]
+		strings = [list(map(lambda *line: [val if val is not None else '' for val in line], *row)) for row in multi_rows]
 		return strings
 
 	@staticmethod
@@ -1608,7 +1590,7 @@ class TableParser():
 		:return: tuple of attributes
 		'''
 		aligns = attrib['aligns'].split(',')
-		wraps = map(int, attrib['wraps'].split(','))
+		wraps = list(map(int, attrib['wraps'].split(',')))
 
 		return aligns, wraps
 
@@ -1622,7 +1604,7 @@ class TableParser():
 		:param y: line-separator
 		:return: a textline
 		'''
-		return x + x.join(map(lambda width: (width + 2) * y, maxwidths)) + x
+		return x + x.join([(width + 2) * y for width in maxwidths]) + x
 
 	@staticmethod
 	def headsep(maxwidths, aligns, x='|', y='-'):
@@ -1633,7 +1615,7 @@ class TableParser():
 		:param aligns:  list of alignments
 		:param x: point-separator
 		:param y: line-separator
-		:return: a textline
+		:return: a text line
 		'''
 		cells = []
 		for width, align in zip(maxwidths, aligns):
@@ -1690,7 +1672,6 @@ class TableParser():
 		:param row: tuple of cells
 		:param maxwidths: list of column length
 		:param aligns:  list of alignments
-		:param x:  point-separator
 		:param y: space-separator
 		:return: a textline
 		'''
@@ -1701,7 +1682,7 @@ class TableParser():
 			elif align == 'right':
 				(lspace, rspace) = (maxwidth - len(val) + 1, 1)
 			elif align == 'center':
-				lspace = (maxwidth - len(val)) / 2 + 1
+				lspace = (maxwidth - len(val)) // 2 + 1
 				rspace = (maxwidth - lspace - len(val) + 2)
 			else:
 				(lspace, rspace) = (1, maxwidth - len(val) + 1)
@@ -1724,7 +1705,7 @@ def parse_header_lines(text):
 
 	@returns: the text minus the headers and a dict with the headers
 	'''
-	assert isinstance(text, basestring)
+	assert isinstance(text, str)
 	meta = OrderedDict()
 	match = _is_header_re.match(text)
 	pos = 0
@@ -1761,7 +1742,7 @@ def dump_header_lines(*headers):
 
 	for h in headers:
 		if hasattr(h, 'items'):
-			for k, v in h.items():
+			for k, v in list(h.items()):
 				append(k, v)
 		else:
 			for k, v in h:

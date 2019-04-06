@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.formats module.'''
 
-from __future__ import with_statement
+
 
 
 import tests
@@ -17,7 +16,7 @@ from zim.templates import Template
 
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
-	print 'WARNING: using ElementTree instead of cElementTree'
+	print('WARNING: using ElementTree instead of cElementTree')
 
 
 class TestFormatMixin(object):
@@ -36,7 +35,7 @@ class TestFormatMixin(object):
 
 	def testFormatInfo(self):
 		for key in ('name', 'desc', 'mimetype', 'extension'):
-			self.assertIsInstance(self.format.info[key], basestring,
+			self.assertIsInstance(self.format.info[key], str,
 				msg='Invalid key "%s" in format info' % key)
 
 		for key in ('native', 'import', 'export'):
@@ -61,7 +60,8 @@ class TestFormatMixin(object):
 		# No absolute paths ended up in reference
 		pwd = Dir('.')
 		self.assertFalse(pwd.path in text, 'Absolute path ended up in reference')
-		self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
+		if pwd.user_path is not None:
+			self.assertFalse(pwd.user_path in text, 'Absolute path ended up in reference')
 
 		return text
 
@@ -75,7 +75,7 @@ class TestFormatMixin(object):
 		linker = StubLinker(Dir('tests/data/formats'))
 		dumper = self.format.Dumper(linker=linker)
 		result = ''.join(dumper.dump(reftree))
-		#~ print '\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n'
+		#~ print('\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n')
 		self.assertMultiLineEqual(result, wanted)
 		self.assertNoTextMissing(result, reftree)
 
@@ -85,7 +85,7 @@ class TestFormatMixin(object):
 		# partial dumper
 		parttree = tests.new_parsetree_from_xml("<?xml version='1.0' encoding='utf-8'?>\n<zim-tree partial=\"True\">try these <strong>bold</strong>, <emphasis>italic</emphasis></zim-tree>")
 		result = ''.join(dumper.dump(parttree))
-		#~ print ">>>%s<<<" % result
+		#~ print(">>>%s<<<" % result)
 		self.assertFalse(result.endswith('\n')) # partial should not end with "\n"
 
 		# Parser
@@ -101,7 +101,7 @@ class TestFormatMixin(object):
 				# Quick check that we got back *something*
 			string = ''.join(dumper.dump(result))
 				# now we may have loss of formatting, but text should all be there
-				#~ print '\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n'
+				#~ print('\n' + '>'*80 + '\n' + string + '\n' + '<'*80 + '\n')
 			self.assertNoTextMissing(string, reftree)
 
 	_nonalpha_re = re.compile('\W')
@@ -112,7 +112,7 @@ class TestFormatMixin(object):
 		is preserved.
 		'''
 		# TODO how to handle objects ??
-		assert isinstance(text, basestring)
+		assert isinstance(text, str)
 		offset = 0
 		for elt in tree._etree.iter():
 			if elt.tag == 'img':
@@ -132,7 +132,7 @@ class TestFormatMixin(object):
 					continue
 
 				for piece in wanted.strip().split():
-					#~ print "| >>%s<< @ offset %i" % (piece, offset)
+					#~ print("| >>%s<< @ offset %i" % (piece, offset))
 					try:
 						start = text.index(piece, offset)
 					except ValueError:
@@ -267,12 +267,6 @@ class TestParseTree(tests.TestCase):
 			tree = ParseTree().fromstring(xml)
 			self.assertEqual(tree.get_ends_with_newline(), newline)
 
-	def testGetObjects(self):
-		xml = File('tests/data/formats/parsetree.xml').read().rstrip('\n')
-		tree = tests.new_parsetree_from_xml(xml)
-		objects = list(tree.get_objects())
-		self.assertTrue(len(objects) >= 2)
-
 	def testFindall(self):
 		tree = ParseTree().fromstring(self.xml)
 		wanted = [
@@ -337,18 +331,18 @@ class TestWikiFormat(TestTextFormat):
 
 	def setUp(self):
 		self.format = get_format('wiki')
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
 
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
-		input = u'''\
+		input = '''\
 A list
 • foo
 	• bar
 	• baz
 '''
-		text = u'''\
+		text = '''\
 A list
 * foo
 	* bar
@@ -374,7 +368,7 @@ A list
 
 	def testBackward(self):
 		'''Test backward compatibility for wiki format'''
-		input = u'''\
+		input = '''\
 test 1 2 3
 
 	Some Verbatim block
@@ -382,7 +376,7 @@ test 1 2 3
 
 test 4 5 6
 '''
-		wanted = u'''\
+		wanted = '''\
 test 1 2 3
 
 \'''
@@ -412,12 +406,12 @@ test 4 5 6
 				wanted = text
 
 			tree = self.format.Parser().parse(text)
-			#~ print '>>>\n' + tree.tostring() + '\n<<<'
+			#~ print('>>>\n' + tree.tostring() + '\n<<<')
 			self.assertEqual(tree.tostring(), xml)
 
 			lines = self.format.Dumper().dump(tree)
 			result = ''.join(lines)
-			#~ print '>>>\n' + result + '<<<'
+			#~ print('>>>\n' + result + '<<<')
 			self.assertEqual(result, wanted)
 
 
@@ -586,7 +580,7 @@ class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('html')
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
 
 	def testEncoding(self):
@@ -686,33 +680,10 @@ class TestRstFormat(tests.TestCase, TestFormatMixin):
 		self.format = get_format('rst')
 
 
-class LatexLoggingFilter(tests.LoggingFilter):
-
-	def __init__(self):
-		tests.LoggingFilter.__init__(
-			self,
-			'zim.formats.latex',
-			('No document type set in template', 'Could not find latex equation')
-		)
-
-
 class TestLatexFormat(tests.TestCase, TestFormatMixin):
 
 	def setUp(self):
 		self.format = get_format('latex')
-
-	def testFormat(self):
-		with LatexLoggingFilter():
-			TestFormatMixin.testFormat(self)
-
-	def testFormatReference(self):
-		# Double check reference did not get broken in updating
-		text = self.getReferenceData()
-
-		# Inlined equation is there
-		self.assertFalse('equation001.png' in text, 'This equation should be inlined')
-		self.assertTrue(r'\begin{math}' in text)
-		self.assertTrue(r'\end{math}' in text)
 
 	def testEncode(self):
 		'''test the escaping of certain characters'''
@@ -806,9 +777,8 @@ grrr
    .
 </zim-tree>'''
 
-		# For some reason this does not work with cElementTree.XMLBuilder ...
-		from xml.etree.ElementTree import XMLTreeBuilder
-		builder = XMLTreeBuilder(target=OldParseTreeBuilder())
+		from xml.etree.ElementTree import XMLParser
+		builder = XMLParser(target=OldParseTreeBuilder())
 		builder.feed(input)
 		root = builder.close()
 		tree = ParseTree(root)

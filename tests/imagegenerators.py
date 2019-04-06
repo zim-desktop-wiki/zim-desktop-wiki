@@ -1,106 +1,206 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
 
 import tests
 
-import gtk
+from tests.mainwindow import setUpMainWindow
+from tests.pageview import setUpPageView
+
+from zim.formats.wiki import Dumper as WikiDumper
+
+from gi.repository import Gtk
 
 from zim.fs import Dir
+from zim.newfs import LocalFolder
+from zim.notebook import Path
 
+from zim.plugins import PluginManager
 from zim.plugins.base.imagegenerator import \
-	ImageGeneratorClass, ImageGeneratorDialog, MainWindowExtensionBase
+	ImageGeneratorClass, ImageGeneratorDialog, BackwardImageGeneratorObjectType
 
-from zim.plugins.equationeditor import InsertEquationPlugin, EquationGenerator
-from zim.plugins.diagrameditor import InsertDiagramPlugin, DiagramGenerator
-from zim.plugins.gnu_r_ploteditor import InsertGNURPlotPlugin, GNURPlotGenerator
-from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin, GnuplotGenerator
-from zim.plugins.gnuplot_ploteditor import MainWindowExtension as GnuplotMainWindowExtension
-from zim.plugins.scoreeditor import InsertScorePlugin, ScoreGenerator
-from zim.plugins.ditaaeditor import InsertDitaaPlugin, DitaaGenerator
-from zim.plugins.sequencediagrameditor import InsertSequenceDiagramPlugin, SequenceDiagramGenerator
+from zim.plugins.equationeditor import InsertEquationPlugin
+from zim.plugins.diagrameditor import InsertDiagramPlugin
+from zim.plugins.gnu_r_ploteditor import InsertGNURPlotPlugin
+from zim.plugins.gnuplot_ploteditor import InsertGnuplotPlugin
+from zim.plugins.scoreeditor import InsertScorePlugin
+from zim.plugins.ditaaeditor import InsertDitaaPlugin
+from zim.plugins.sequencediagrameditor import InsertSequenceDiagramPlugin
+
+
+def assertIsPNG(file):
+	with open(file.path, "rb") as fh:
+		data = fh.read(8)
+		assert data == b'\x89PNG\x0d\x0a\x1a\x0a', 'Not a PNG file: %s' % file.path
 
 
 @tests.slowTest
-class TestGenerator(tests.TestCase):
+class TestBackwardImageGeneratorNoPlugins(tests.TestCase):
 
-	pluginklass = None
-	generatorklass = None
-	dialogklass = ImageGeneratorDialog
+	def testDumpWiki(self):
+		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(attachment_dir.file('test.png'))
 
-	def _test_generator(self):
-		plugin = self.pluginklass()
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
 
-		extensionklass = plugin.extension_classes['MainWindow']
-		self.assertTrue(issubclass(extensionklass, MainWindowExtensionBase))
+		pageview = setUpPageView(notebook, text='{{./test.png?type=equation}}')
+		pageview.textview.get_buffer().set_modified(True)
+		tree = pageview.get_parsetree()
+		text = WikiDumper().dump(tree)
+		self.assertEquals(text, ['{{./test.png?type=equation}}\n'])
 
-		dir = Dir(self.get_tmp_name())
-		extension = extensionklass(plugin, MockWindow(dir))
 
-		generator = extension.build_generator()
-		self.assertIsInstance(generator, ImageGeneratorClass)
+@tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')
+class TestBackwardImageGeneratorWithPlugin(TestBackwardImageGeneratorNoPlugins):
 
-		# Check properties
-		self.assertIsNotNone(generator.object_type)
-		self.assertIsNotNone(generator.scriptname)
-		self.assertIsNotNone(generator.imagename)
+	def setUp(self):
+		PluginManager.load_plugin('equationeditor')
+
+	def testInsertObjectDialog(self):
+		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
+		page = notebook.get_page(Path('Test'))
+		otype = PluginManager.insertedobjects['image+equation']
+
+		def edit_dialog(dialog):
+			self.assertIsInstance(dialog, ImageGeneratorDialog)
+			dialog.set_text(r'c = \sqrt{ a^2 + b^2 }')
+			dialog.update_image()
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(edit_dialog):
+			model = otype.new_model_interactive(None, notebook, page)
+			attrib, data = otype.data_from_model(model)
+			self.assertTrue(attrib['src'])
+
+		self.assertEquals(attachment_dir.file('equation.tex').read(), r'c = \sqrt{ a^2 + b^2 }')
+		assertIsPNG(attachment_dir.file('equation.png'))
+
+	def testEditObjectDialog(self):
+		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		LocalFolder(tests.ZIM_DATADIR).file('zim.png').copyto(attachment_dir.file('test.png'))
+
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
+
+		pageview = setUpPageView(notebook, text='{{./test.png?type=equation}}')
+
+		def edit_dialog(dialog):
+			self.assertIsInstance(dialog, ImageGeneratorDialog)
+			dialog.set_text(r'c = \sqrt{ a^2 + b^2 }')
+			dialog.update_image()
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(edit_dialog):
+			pageview.edit_object()
+
+		self.assertEquals(attachment_dir.file('test.tex').read(), r'c = \sqrt{ a^2 + b^2 }')
+		assertIsPNG(attachment_dir.file('test.png'))
+
+	def testNewFile(self):
+		attachment_dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		notebook = self.setUpNotebook()
+		notebook.get_attachments_dir = lambda *a: attachment_dir
+		page = notebook.get_page(Path('Test'))
+
+		for name in (
+			'equation.png', 'equation.tex',
+			'equation001.png', 'equation001.tex',
+			'equation002.tex',
+			'equation003.png',
+			'equation004.png', 'equation004.tex',
+		):
+			attachment_dir.file(name).touch()
+
+
+		otype = PluginManager.insertedobjects['image+equation']
+		model = otype.model_from_data(notebook, page, {}, '')
+		self.assertEqual(model.image_file.basename, 'equation005.png')
+		self.assertEqual(model.script_file.basename, 'equation005.tex')
+
+
+
+@tests.slowTest
+class TestImageGeneratorPluginMixin(object):
+
+	plugin = None
+	object_types = None
+
+	validinput = None
+	invalidinput = None
+
+	def testObjectTypes(self):
+		PluginManager.load_plugin(self.plugin)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+
+		for name in self.object_types:
+			otype = PluginManager.insertedobjects[name]
+			attrib, data = otype.new_object()
+			model = otype.model_from_data(notebook, page, attrib, data)
+			self.assertIsNotNone(model)
+			widget = otype.create_widget(model)
+			self.assertIsNotNone(widget)
+			attrib, data = otype.data_from_model(model)
+
+			self.assertIsNotNone(otype.label)
+			if isinstance(model, BackwardImageGeneratorObjectType):
+				self.assertIsNotNone(otype.scriptname)
+				self.assertIsNotNone(otype.imagefile_extension)
+
+	def testGenerator(self):
+		plugin = PluginManager.load_plugin(self.plugin)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+
+		generator_classes = list(plugin.discover_classes(ImageGeneratorClass))
+		assert len(generator_classes) == 1
+		generator_class = generator_classes[0]
+
+		for name in self.object_types:
+			if name.startswith('image+'):
+				backward_otype = PluginManager.insertedobjects[name]
+				break
+		else:
+			backward_otype = None
 
 		# Input OK
-		generator = self.generatorklass(plugin)
+		generator = generator_class(plugin, notebook, page)
 		generator.cleanup() # ensure files did not yet exist
 		imagefile, logfile = generator.generate_image(self.validinput)
+		if imagefile.path.endswith('.png'):
+			assertIsPNG(imagefile)
+		# else: TODO other types
+
+		if backward_otype:
+			self.assertTrue(imagefile.basename.endswith(backward_otype.imagefile_extension))
 		self.assertTrue(imagefile.exists())
-		if generator.uses_log_file:
+		if logfile is not None:
 			self.assertTrue(logfile.exists())
-		else:
-			self.assertIsNone(logfile)
 
 		# Cleanup
 		generator.cleanup()
 		self.assertFalse(imagefile.exists())
-		if generator.uses_log_file:
+		if logfile is not None:
 			self.assertFalse(logfile.exists())
 
 		# Input NOK
 		if self.invalidinput is not None:
-			generator = self.generatorklass(plugin)
+			generator = generator_class(plugin, notebook, page)
 			imagefile, logfile = generator.generate_image(self.invalidinput)
 			self.assertIsNone(imagefile)
-			if generator.uses_log_file:
+			if logfile is not None:
 				self.assertTrue(logfile.exists())
-			else:
-				self.assertIsNone(logfile)
-
-		# Dialog OK
-		attachment_dir = Dir(self.create_tmp_dir())
-		dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
-		dialog.set_text(self.validinput)
-		dialog.assert_response_ok()
-
-		# Dialog NOK
-		if self.invalidinput is not None:
-			def ok_store(dialog):
-				# Click OK in the "Store Anyway" question dialog
-				dialog.do_response(gtk.RESPONSE_YES)
-
-			with tests.DialogContext(ok_store):
-				dialog = self.dialogklass(MockWindow(attachment_dir), '<title>', generator)
-				dialog.set_text(self.invalidinput)
-				dialog.assert_response_ok()
-
-		# Check menu
-		#~ plugin = self.pluginklass(MockUI())
-		#~ menu = gtk.Menu()
-		#~ plugin.do_populate_popup(menu, buffer, iter, image)
 
 
 @tests.skipUnless(InsertEquationPlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestEquationEditor(TestGenerator):
+class TestEquationEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertEquationPlugin
-	generatorklass = EquationGenerator
+	plugin = 'equationeditor'
+	object_types = ['image+equation']
 
 	validinput = r'''
 c = \sqrt{ a^2 + b^2 }
@@ -115,16 +215,32 @@ x_{1,2}=\frac{-b\pm\sqrt{\color{Red}b^2-4ac}}{2a}
 '''
 	invalidinput = r'\int_{'
 
-	def runTest(self):
-		'Test Equation Editor plugin'
-		TestGenerator._test_generator(self)
+	def testLatexExport(self):
+		from zim.formats.wiki import Parser as WikiParser
+		from zim.formats.latex import Dumper as LatexDumper
+
+		folder = self.setUpFolder()
+		folder.file('equation001.tex').write('a + b')
+		# equation002.tex does not exist - check fallback to image
+
+		wiki = '{{./equation001.png?type=equation}}\n{{./equation002.png?type=equation}}\n'
+		wanted = '\\begin{math}\na + b\n\\end{math}\n\n\\includegraphics[]{./equation002.png}\n\n'
+
+		linker = tests.MockObject()
+		linker.resolve_source_file = lambda name: folder.file(name)
+		linker.img = lambda name: name
+
+		tree = WikiParser().parse(wiki)
+		latex = LatexDumper(linker).dump(tree)
+
+		self.assertEquals(latex, wanted.splitlines(True))
 
 
 @tests.skipUnless(InsertDiagramPlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestDiagramEditor(TestGenerator):
+class TestDiagramEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertDiagramPlugin
-	generatorklass = DiagramGenerator
+	plugin = 'diagrameditor'
+	object_types = ['image+diagram']
 
 	validinput = r'''
 digraph G {
@@ -135,16 +251,12 @@ digraph G {
 '''
 	invalidinput = r'sdf sdfsdf sdf'
 
-	def runTest(self):
-		'Test Diagram Editor plugin'
-		TestGenerator._test_generator(self)
-
 
 @tests.skipUnless(InsertGNURPlotPlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestGNURPlotEditor(TestGenerator):
+class TestGNURPlotEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertGNURPlotPlugin
-	generatorklass = GNURPlotGenerator
+	plugin = 'gnu_r_ploteditor'
+	object_types = ['image+gnu_r_plot']
 
 	validinput = r'''
 x = seq(-4,4,by=0.01)
@@ -153,30 +265,23 @@ plot(x,y,type='l')
 '''
 	invalidinput = r'sdf sdfsdf sdf'
 
-	def runTest(self):
-		'Test GNU R Plot Editor plugin'
-		TestGenerator._test_generator(self)
 
 
 @tests.skipUnless(InsertGnuplotPlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestGnuplotEditor(TestGenerator):
+class TestGnuplotEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertGnuplotPlugin
-	generatorklass = GnuplotGenerator
+	plugin = 'gnuplot_ploteditor'
+	object_types = ['image+gnuplot']
 
 	validinput = r'plot sin(x), cos(x)'
 	invalidinput = r'sdf sdfsdf sdf'
 
-	def testGenerator(self):
-		'Test Gnuplot Plot Editor plugin'
-		TestGenerator._test_generator(self)
-
 
 @tests.skipUnless(InsertScorePlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestScoreEditor(TestGenerator):
+class TestScoreEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertScorePlugin
-	generatorklass = ScoreGenerator
+	plugin = 'scoreeditor'
+	object_types = ['image+score']
 
 	validinput = r'''
 \version "2.18.2"
@@ -191,17 +296,12 @@ class TestScoreEditor(TestGenerator):
 '''
 	invalidinput = r'sdf sdfsdf sdf'
 
-	def runTest(self):
-		'Test Score Editor plugin'
-		TestGenerator._test_generator(self)
-
-
 
 @tests.skipUnless(InsertDitaaPlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestDitaaEditor(TestGenerator):
+class TestDitaaEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertDitaaPlugin
-	generatorklass = DitaaGenerator
+	plugin = 'ditaaeditor'
+	object_types = ['image+ditaa']
 
 	def setUp(self):
 		self.validinput = r'''
@@ -217,16 +317,12 @@ class TestDitaaEditor(TestGenerator):
 '''
 		self.invalidinput = None # ditaa seems to render anything ...
 
-	def runTest(self):
-		'Test Ditaa Editor plugin'
-		TestGenerator._test_generator(self)
-
 
 @tests.skipUnless(InsertSequenceDiagramPlugin.check_dependencies_ok(), 'Missing dependencies')
-class TestSequenceDiagramEditor(TestGenerator):
+class TestSequenceDiagramEditor(TestImageGeneratorPluginMixin, tests.TestCase):
 
-	pluginklass = InsertSequenceDiagramPlugin
-	generatorklass = SequenceDiagramGenerator
+	plugin = 'sequencediagrameditor'
+	object_types = ['image+seqdiagram']
 
 	def setUp(self):
 		self.validinput = r'''
@@ -240,28 +336,3 @@ seqdiag {
 }
 '''
 		self.invalidinput = 'sdfsdf sdfsdf'
-
-	def runTest(self):
-		'Test Sequence Diagram Editor plugin'
-		TestGenerator._test_generator(self)
-
-
-
-
-class MockWindow(tests.MockObject):
-
-	def __init__(self, dir):
-		tests.MockObject.__init__(self)
-		self.ui = MockUI(dir)
-		self.ui.uistate = None
-		self.uimanager = tests.MockObject()
-		self.pageview = tests.MockObject()
-		self.mock_method('connect', None)
-
-
-class MockUI(tests.MockObject):
-
-	def __init__(self, dir):
-		tests.MockObject.__init__(self)
-		self.notebook = tests.MockObject()
-		self.notebook.mock_method('get_attachments_dir', dir)

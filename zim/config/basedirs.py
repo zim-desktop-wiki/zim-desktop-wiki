@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -10,11 +9,17 @@ import os
 import logging
 
 from zim.fs import File, Dir
-from zim.environ import environ
 
 
 logger = logging.getLogger('zim.config')
 
+
+def _split_environ_dir_list(value, default=()):
+	if isinstance(value, str):
+		value = value.strip()
+
+	paths = value.split(os.pathsep) if value else default
+	return [Dir(p) for p in paths]
 
 
 ## Initialize config paths
@@ -26,7 +31,7 @@ XDG_CONFIG_HOME = None #: L{Dir} for XDG config home
 XDG_CONFIG_DIRS = None #: list of L{Dir} objects for XDG config dirs path
 XDG_CACHE_HOME = None #: L{Dir} for XDG cache home
 
-def set_basedirs():
+def set_basedirs(_ignore_test=False):
 	'''This method sets the global configuration paths for according to the
 	freedesktop basedir specification.
 	Called automatically when module is first loaded, should be
@@ -46,38 +51,43 @@ def set_basedirs():
 		ZIM_DATA_DIR = zim_data_dir
 
 	if os.name == 'nt':
-		APPDATA = environ['APPDATA']
+		APPDATA = os.environ['APPDATA']
 
 		XDG_DATA_HOME = Dir(
-			environ.get('XDG_DATA_HOME', APPDATA + r'\zim\data'))
+			os.environ.get('XDG_DATA_HOME', APPDATA + r'\zim\data'))
 
-		XDG_DATA_DIRS = map(Dir,
-			environ.get_list('XDG_DATA_DIRS', '~/.local/share/')) # Backwards compatibility
+		XDG_DATA_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_DATA_DIRS'), ('~/.local/share/',)) # Backwards compatibility
 
 		XDG_CONFIG_HOME = Dir(
-			environ.get('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
+			os.environ.get('XDG_CONFIG_HOME', APPDATA + r'\zim\config'))
 
-		XDG_CONFIG_DIRS = map(Dir,
-			environ.get_list('XDG_CONFIG_DIRS', '~/.config/')) # Backwards compatibility
+		XDG_CONFIG_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_CONFIG_DIRS'), ('~/.config/',)) # Backwards compatibility
 
 		XDG_CACHE_HOME = Dir(
-			environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))
+			os.environ.get('XDG_CACHE_HOME', APPDATA + r'\zim\cache'))
 	else:
 		XDG_DATA_HOME = Dir(
-			environ.get('XDG_DATA_HOME', '~/.local/share/'))
+			os.environ.get('XDG_DATA_HOME', '~/.local/share/'))
 
-		XDG_DATA_DIRS = map(Dir,
-			environ.get_list('XDG_DATA_DIRS', ('/usr/share/', '/usr/local/share/')))
+		XDG_DATA_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_DATA_DIRS'), ('/usr/share/', '/usr/local/share/'))
 
 		XDG_CONFIG_HOME = Dir(
-			environ.get('XDG_CONFIG_HOME', '~/.config/'))
+			os.environ.get('XDG_CONFIG_HOME', '~/.config/'))
 
-		XDG_CONFIG_DIRS = map(Dir,
-			environ.get_list('XDG_CONFIG_DIRS', ('/etc/xdg/',)))
+		XDG_CONFIG_DIRS = \
+			_split_environ_dir_list(os.environ.get('XDG_CONFIG_DIRS'), ('/etc/xdg/',))
 
 		XDG_CACHE_HOME = Dir(
-			environ.get('XDG_CACHE_HOME', '~/.cache'))
+			os.environ.get('XDG_CACHE_HOME', '~/.cache'))
 
+		if os.environ.get('ZIM_TEST_RUNNING') and not _ignore_test:
+			# See tests/__init__.py, we load more folders then we really want
+			# because the needs of Gtk, but want to restrict it here for all
+			# zim internal use
+			XDG_DATA_DIRS = [Dir(os.environ['TEST_XDG_DATA_DIRS'])]
 
 # Call on module initialization to set defaults
 set_basedirs()
@@ -96,4 +106,3 @@ def log_basedirs():
 	logger.debug('Set XDG_CONFIG_HOME to %s', XDG_CONFIG_HOME)
 	logger.debug('Set XDG_CONFIG_DIRS to %s', XDG_CONFIG_DIRS)
 	logger.debug('Set XDG_CACHE_HOME to %s', XDG_CACHE_HOME)
-

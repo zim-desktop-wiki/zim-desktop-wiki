@@ -4,7 +4,7 @@
 #
 # Some general advice for building PyGTK-based Windows .EXEs can be
 # found here:
-# http://www.no-ack.org/2010/09/complete-guide-to-py2exe-for-pygtk.html
+# http://www.no-ack.org/2010/09/complete-guide-to-py2exe-for-pyGtk.html
 # --------------------------------------------------------------------
 
 import os
@@ -56,7 +56,7 @@ if not path.exists(MAKENSIS):
 # Clean up and initialize the build directory
 # (Use cmd.exe because shutil.rmtree seems to fail to delete "Microsoft.VC90.CRT" folder.)
 
-for _ in xrange(10):
+for _ in range(10):
 	# Do it a few times because often once doesn't get it all.
 	if path.exists(BUILD_ROOT):
 		shutil.rmtree(BUILD_ROOT)
@@ -118,7 +118,7 @@ shutil.copy(VC90_MANIFEST, path.join(vc90_target, "Microsoft.VC90.CRT.manifest")
 # Set theme to MS-Windows
 
 f = open(path.join(EXE_ROOT, r"etc\gtk-2.0\gtkrc"), "w")
-print >>f, 'gtk-theme-name = "MS-Windows"'
+print('gtk-theme-name = "MS-Windows"', file=f)
 f.close()
 
 # Compile Launchers

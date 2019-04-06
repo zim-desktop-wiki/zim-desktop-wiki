@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 
@@ -12,14 +12,14 @@ class TextTree(object):
 		strings = [object.name + '\n']
 
 		def add_item(item, ps1, ps2):
-			if isinstance(item, basestring):
+			if isinstance(item, str):
 				strings.append(ps1 + item + '\n')
 			else:
 				substrings = self.tostrings(item) # recurs
 				strings.append(ps1 + substrings.pop(0))
 				strings.extend([ps2 + s for s in substrings])
 
-		items = object.items()
+		items = list(object.items())
 		if items:
 			for i in range(len(items) - 1):
 				add_item(items[i], '|-- ', '|   ')
@@ -71,4 +71,4 @@ class ModuleDir(ModuleFile):
 
 if __name__ == '__main__':
 	dir = ModuleDir('./zim')
-	print TextTree().tostring(dir)
+	print(TextTree().tostring(dir))

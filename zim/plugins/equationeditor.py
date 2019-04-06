@@ -1,12 +1,13 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import glob
 
-from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
+from zim.plugins import PluginClass
+from zim.plugins.base.imagegenerator import \
+	ImageGeneratorClass, BackwardImageGeneratorObjectType
+
 from zim.fs import File, TmpFile
-from zim.config import data_file
 from zim.templates import get_template
 from zim.applications import Application, ApplicationError
 
@@ -15,7 +16,8 @@ from zim.applications import Application, ApplicationError
 latexcmd = ('latex', '-no-shell-escape', '-halt-on-error')
 dvipngcmd = ('dvipng', '-q', '-bg', 'Transparent', '-T', 'tight', '-o')
 
-class InsertEquationPlugin(ImageGeneratorPlugin):
+
+class InsertEquationPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Equation'), # T: plugin name
@@ -28,12 +30,6 @@ This is a core plugin shipping with zim.
 		'author': 'Jaap Karssenberg',
 	}
 
-	object_type = 'equation'
-	short_label = _('E_quation') # T: menu item
-	insert_label = _('Insert Equation') # T: menu item
-	edit_label = _('_Edit Equation') # T: menu item
-	syntax = 'latex'
-
 	@classmethod
 	def check_dependencies(klass):
 		has_latex = Application(latexcmd).tryexec()
@@ -42,35 +38,50 @@ This is a core plugin shipping with zim.
 				[('latex', has_latex, True), ('dvipng', has_dvipng, True)]
 
 
+class BackwardEquationImageObjectType(BackwardImageGeneratorObjectType):
+
+	name = 'image+equation'
+	label = _('Equation') # T: menu item
+	syntax = 'latex'
+	scriptname = 'equation.tex'
+	imagefile_extension = '.png'
+
+	def format_latex(self, dumper, attrib, data):
+		if attrib['src'] and not attrib['src'] == '_new_':
+			script_name = attrib['src'][:-3] + 'tex'
+			script_file = dumper.linker.resolve_source_file(script_name)
+			if script_file.exists():
+				text = script_file.read().strip()
+				return ['\\begin{math}\n', text, '\n\\end{math}']
+
+		raise ValueError('missing source') # parent class will fall back to image
+
+
 class EquationGenerator(ImageGeneratorClass):
 
-	object_type = 'equation'
-	scriptname = 'equation.tex'
-	imagename = 'equation.png'
-
-	def __init__(self, plugin):
-		ImageGeneratorClass.__init__(self, plugin)
+	def __init__(self, plugin, notebook, page):
+		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.template = get_template('plugins', 'equationeditor.tex')
-		self.texfile = TmpFile(self.scriptname)
+		self.texfile = TmpFile('equation.tex')
 
 	def generate_image(self, text):
 
 		# Filter out empty lines, not allowed in latex equation blocks
-		if isinstance(text, basestring):
+		if isinstance(text, str):
 			text = text.splitlines(True)
 		text = (line for line in text if line and not line.isspace())
 		text = ''.join(text)
-		#~ print '>>>%s<<<' % text
+		#~ print('>>>%s<<<' % text)
 
 		# Write to tmp file using the template for the header / footer
 		lines = []
 		self.template.process(lines, {'equation': text})
 		self.texfile.writelines(lines)
-		#~ print '>>>%s<<<' % self.texfile.read()
+		#~ print('>>>%s<<<' % self.texfile.read())
 
 		# Call latex
 		logfile = File(self.texfile.path[:-4] + '.log') # len('.tex') == 4
-		#~ print ">>>", self.texfile, logfile
+		#~ print(">>>", self.texfile, logfile)
 		try:
 			latex = Application(latexcmd)
 			latex.run((self.texfile.basename,), cwd=self.texfile.dir)

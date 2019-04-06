@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -20,10 +19,13 @@ class TestSearchRegex(tests.TestCase):
 			('*foo*', r'\b\S*foo\S*\b'),
 			('foo$', r'\bfoo\$'),
 			('foo bar', r'\bfoo\ bar\b'),
-			('汉字', u'\汉\字'), # re.escape add extra "\"
 		):
 			#print '>>', word, regex
 			self.assertEqual(regex_func(word).pattern, re.compile(regex, re.I | re.U).pattern)
+
+		self.assertIn(regex_func('汉字').pattern, ('汉字', '\汉\字'))
+			# re.escape add extra "\" prior to python3.7, but not later
+			# goal of this check is to see no "\b" surrounding chines characters
 
 
 		text = 'foo foobar FooBar Foooo Foo!'
@@ -38,11 +40,23 @@ class TestSearchRegex(tests.TestCase):
 		self.assertEqual(n, 5)
 
 
+class TestQuery(tests.TestCase):
+
+	def runTest(self):
+		query = Query('Links:Foo')
+		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Foo')])
+
+		query = Query('Links: Foo')
+		self.assertEqual(query.root, [QueryTerm('linksfrom', 'Foo')])
+
+		query = Query('Links:') # edge case, looking for literal occurrence
+		self.assertEqual(query.root, [QueryTerm('contentorname', 'Links:')])
+
 
 class TestSearch(tests.TestCase):
 
 	def setUp(self):
-		self.notebook = tests.new_notebook()
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def callback_check(self, selection, path):
 		self.assertIsInstance(selection, (SearchSelection, type(None)))
@@ -204,8 +218,7 @@ class TestSearch(tests.TestCase):
 class TestSearchFiles(TestSearch):
 
 	def setUp(self):
-		path = self.create_tmp_dir()
-		self.notebook = tests.new_files_notebook(path)
+		self.notebook = self.setUpNotebook(mock=tests.MOCK_ALWAYS_REAL, content=tests.FULL_NOTEBOOK)
 
 	def runTest(self):
 		'''Test search API with file based notebook'''
@@ -215,22 +228,22 @@ class TestSearchFiles(TestSearch):
 class TestUnicode(tests.TestCase):
 
 	def runTest(self):
-		notebook = self.setUpNotebook(content={u'Öffnungszeiten': u'Öffnungszeiten ... 123\n'})
+		notebook = self.setUpNotebook(content={'Öffnungszeiten': 'Öffnungszeiten ... 123\n'})
 		results = SearchSelection(notebook)
-		path = Path(u'Öffnungszeiten')
+		path = Path('Öffnungszeiten')
 
 		for string in (
-			u'*zeiten', # no unicode - just check test case
-			u'Öffnungszeiten',
-			u'öffnungszeiten', # case insensitive version
-			u'content:Öffnungszeiten',
-			u'content:öffnungszeiten',
-			u'name:Öffnungszeiten',
-			u'name:öffnungszeiten',
-			u'content:Öff*',
-			u'content:öff*',
-			u'name:Öff*',
-			u'name:öff*',
+			'*zeiten', # no unicode - just check test case
+			'Öffnungszeiten',
+			'öffnungszeiten', # case insensitive version
+			'content:Öffnungszeiten',
+			'content:öffnungszeiten',
+			'name:Öffnungszeiten',
+			'name:öffnungszeiten',
+			'content:Öff*',
+			'content:öff*',
+			'name:Öff*',
+			'name:öff*',
 		):
 			query = Query(string)
 			results.search(query)

@@ -1,21 +1,19 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
 import sys
 import os
-from cStringIO import StringIO
+from io import BytesIO
 import logging
 import wsgiref.validate
 import wsgiref.handlers
 
 from zim.fs import File
 from zim.www import WWWInterface
-from zim.config import VirtualConfigManager
 from zim.notebook import Path
 
 # TODO how to test fetching from a socket while mainloop is running ?
@@ -31,20 +29,21 @@ class Filter404(tests.LoggingFilter):
 class TestWWWInterface(tests.TestCase):
 
 	def assertResponseWellFormed(self, response, expectbody=True):
-		body = response.splitlines()
+		lines = response.split(b'\r\n')
 		header = []
-		while body:
-			line = body.pop(0)
-			if line == '':
+		while lines:
+			line = lines.pop(0)
+			if line == b'':
 				break
 			else:
-				header.append(line)
+				header.append(line.decode('UTF-8'))
+		body = b'\r\n'.join(lines)
+
 		self.assertTrue(header[0].startswith('HTTP/1.0 '))
 		self.assertTrue(len([l for l in header if l.startswith('Content-Type: ')]) == 1, 'Content-Type header present')
 		self.assertTrue(len([l for l in header if l.startswith('Date: ')]) == 1, 'Date header present')
 		if expectbody:
-			text = '\n'.join(body)
-			self.assertTrue(text and not text.isspace(), 'Repsonse has a body')
+			self.assertTrue(body and not body.isspace(), 'Repsonse has a body')
 
 		return header, body
 
@@ -61,13 +60,13 @@ class TestWWWInterface(tests.TestCase):
 
 	def runTest(self):
 		'Test WWW interface'
-		config = VirtualConfigManager()
-		notebook = tests.new_notebook(fakedir=self.get_tmp_name())
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		notebook.index.check_and_update()
-		interface = WWWInterface(notebook, config=config, template=self.template)
+		interface = WWWInterface(notebook, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
 		def call(command, path):
+			#print("CALL:", command, path)
 			environ = {
 				'REQUEST_METHOD': command,
 				'SCRIPT_NAME': '',
@@ -77,20 +76,10 @@ class TestWWWInterface(tests.TestCase):
 				'SERVER_PORT': '80',
 				'SERVER_PROTOCOL': '1.0'
 			}
-			rfile = StringIO('')
-			wfile = StringIO()
+			rfile = BytesIO(b'')
+			wfile = BytesIO()
 			handler = wsgiref.handlers.SimpleHandler(rfile, wfile, sys.stderr, environ)
-			if os.name == 'nt':
-				# HACK: on windows we have no file system encoding,
-				# but use unicode instead for os API.
-				# However wsgiref.validate fails on unicode param
-				# in environmnet.
-				for k, v in handler.os_environ.items():
-					if isinstance(v, unicode):
-						handler.os_environ[k] = v.encode('utf-8')
-
 			handler.run(validator)
-			#~ print '>>>>\n', wfile.getvalue(), '<<<<'
 			return wfile.getvalue()
 
 		# index
@@ -98,9 +87,9 @@ class TestWWWInterface(tests.TestCase):
 			response = call('HEAD', path)
 			self.assertResponseOK(response, expectbody=False)
 			response = call('GET', path)
-			#~ print '>'*80, '\n', response, '<'*80
-			self.assertResponseOK(response)
-			self.assertTrue('<li><a href="/Test/foo.html" title="foo" class="page">foo</a>' in response)
+			#print('>'*80, '\n', response, '<'*80)
+			header, body = self.assertResponseOK(response)
+			self.assertIn(b'<li><a href="/Test/foo.html" title="foo" class="page">foo</a>', body)
 
 		# page
 		afolder = notebook.get_attachments_dir(Path('Test:foo'))
@@ -108,17 +97,17 @@ class TestWWWInterface(tests.TestCase):
 		afile.touch()
 
 		response = call('GET', '/Test/foo.html')
-		self.assertResponseOK(response)
-		self.assertIn('<h1>Foo <a name=\'Test:foo\'></a></h1>', response)
+		header, body = self.assertResponseOK(response)
+		self.assertIn(b'<h1>Foo <a name=\'Test:foo\'></a></h1>', body)
 
 		# - ensure page link works
-		self.assertIn('<a href="/Test/foo/bar.html"', response)
+		self.assertIn(b'<a href="/Test/foo/bar.html"', body)
 
 		# - ensure attachment link works
-		self.assertIn("<td><a href='/%2Bfile/Test/foo/attachment.pdf'>attachment.pdf</a></td>", response)
+		self.assertIn(b"<td><a href='/%2Bfile/Test/foo/attachment.pdf'>attachment.pdf</a></td>", body)
 
 		# - ensure sub page does not show up as attachment
-		self.assertNotIn('bar.txt', response)
+		self.assertNotIn(b'bar.txt', body)
 
 
 		# page not found
@@ -157,8 +146,8 @@ class TestWWWInterfaceTemplateResources(TestWWWInterface):
 	def assertResponseOK(self, response, expectbody=True):
 		header, body = TestWWWInterface.assertResponseOK(self, response, expectbody)
 		if expectbody:
-			self.assertTrue('<!-- Wiki content -->' in body, 'Template is used')
-			self.assertTrue('src="/%2Bresrouces/foo/bar.png"' ''.join(body), 'Template is used')
+			self.assertIn(b'<!-- Wiki content -->', body, 'Template is used')
+		return header, body
 
 	def setUp(self):
 		TestWWWInterface.setUp(self)

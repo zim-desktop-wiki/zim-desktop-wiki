@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -7,7 +6,11 @@
 when exporting. The subclasses give alternative file layouts.
 '''
 
-from zim.fs import Dir, File, PathLookupError
+from zim.fs import PathLookupError
+from zim.fs import File as OldFile
+from zim.fs import Dir as OldDir
+from zim.newfs import LocalFile, LocalFolder
+
 from zim.notebook import encode_filename
 
 
@@ -60,10 +63,10 @@ class DirLayoutBase(ExportLayout):
 			name = page.relname(self.namespace)
 		else:
 			name = page.name
-		return self.dir.subdir(encode_filename(name))
+		return self.dir.folder(encode_filename(name))
 
 	def resources_dir(self):
-		return self.dir.subdir('_resources')
+		return self.dir.folder('_resources')
 
 
 class MultiFileLayout(DirLayoutBase):
@@ -88,6 +91,8 @@ class MultiFileLayout(DirLayoutBase):
 		@param namespace: optional namespace prefix to strip from
 		page names
 		'''
+		if isinstance(dir, OldDir):
+			dir = LocalFolder(dir.path)
 		self.dir = dir
 		self.ext = ext
 		self.namespace = namespace
@@ -142,6 +147,8 @@ class FileLayout(DirLayoutBase):
 		@param page: a L{Path} object for the top level page
 		@param ext: the file extension to be used for sub-pages, e.g. 'html'
 		'''
+		if isinstance(file, OldFile):
+			file = LocalFile(file.path)
 		self.file = file
 		self.namespace = page
 		self.ext = ext
@@ -149,7 +156,7 @@ class FileLayout(DirLayoutBase):
 		basename = file.basename
 		if '.' in basename:
 			basename, x = basename.rsplit('.', 1)
-		self.dir = file.dir.subdir(basename + '_files')
+		self.dir = file.parent().folder(basename + '_files')
 		self.relative_root = self.dir
 
 	def page_file(self, page):
@@ -187,12 +194,14 @@ class SingleFileLayout(DirLayoutBase):
 		@param file: a L{File} object
 		@param page: an optional L{Path} object for the top level page
 		'''
+		if isinstance(file, OldFile):
+			file = LocalFile(file.path)
 		self.file = file
 
 		basename = file.basename
 		if '.' in basename:
 			basename, x = basename.rsplit('.', 1)
-		self.dir = file.dir.subdir(basename + '_files')
+		self.dir = file.parent().folder(basename + '_files')
 		self.relative_root = self.dir
 
 		self.namespace = page
@@ -208,4 +217,3 @@ class SingleFileLayout(DirLayoutBase):
 			)
 		else:
 			return self.file
-

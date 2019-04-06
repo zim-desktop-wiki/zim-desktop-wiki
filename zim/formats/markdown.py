@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012,2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -38,17 +37,17 @@ class Dumper(TextDumper):
 	# are different
 
 	BULLETS = {
-		UNCHECKED_BOX: u'* \u2610', # ☐
-		XCHECKED_BOX: u'* \u2612', # ☒
-		CHECKED_BOX: u'* \u2611', # ☑
-		MIGRATED_BOX: u'* \u25B7', # ▷
-		BULLET: u'*',
+		UNCHECKED_BOX: '* \u2610',
+		XCHECKED_BOX: '* \u2612',
+		CHECKED_BOX: '* \u2611',
+		MIGRATED_BOX: '* \u25B7',
+		BULLET: '*',
 	}
 
 	TAGS = {
 		EMPHASIS: ('*', '*'),
 		STRONG: ('**', '**'),
-		MARK: ('__', '__'), # OPEN ISSUE: not availalbe in pandoc
+		MARK: ('__', '__'), # OPEN ISSUE: not available in pandoc
 		STRIKE: ('~~', '~~'),
 		VERBATIM: ("``", "``"),
 		TAG: ('', ''), # No additional annotation (apart from the visible @)
@@ -93,7 +92,7 @@ class Dumper(TextDumper):
 		assert 'href' in attrib, \
 			'BUG: link misses href: %s "%s"' % (attrib, strings)
 		href = self.linker.link(attrib['href'])
-		text = u''.join(strings) or href
+		text = ''.join(strings) or href
 		if href == text and url_re.match(href):
 			return ['<', href, '>']
 		else:
@@ -122,14 +121,16 @@ class Dumper(TextDumper):
 		table += [rowline(rows[0])]
 		table.append(headsep)
 		table += [rowline(row) for row in rows[1:]]
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	def dump_th(self, tag, attrib, strings):
-		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
+		#strings = [s.replace('\n', '<br>').replace('|', '\u2223') for s in strings]
+		strings = [s.replace('\n', '<br>') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		strings = [s.replace('\n', '<br>').replace('|', '∣') for s in strings]
+		#strings = [s.replace('\n', '<br>').replace('|', '\u2223') for s in strings]
+		strings = [s.replace('\n', '<br>') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):

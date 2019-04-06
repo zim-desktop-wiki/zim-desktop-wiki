@@ -1,43 +1,41 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 
 # Copyright 2011 Jiří Janoušek <janousek.jiri@gmail.com>
-# Copyright 2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
-
-# This plugin can work without GUI for just the export
-# Be nice about gtk, since it may not be present in a server CLI only version
-try:
-	import gtk
-	import pango
-except:
-	gtk = None
-
-try:
-	from zim.gui.widgets import Dialog, ScrolledWindow
-	from zim.gui.objectmanager import CustomObjectWidget, TextViewWidget
-except:
-	class Dialog():
-		pass
-	class TextViewWidget():
-		pass
+# Copyright 2014-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import logging
 
 logger = logging.getLogger('zim.pugin.sourceview')
 
-try:
-	import gtksourceview2
-except:
-	gtksourceview2 = None
 
-from zim.plugins import PluginClass, WindowExtension, extends
+# This plugin can work without GUI for just the export
+# Be nice about gtk, since it may not be present in a server CLI only version
+try:
+	from gi.repository import Gtk
+	from gi.repository import Pango
+except:
+	Gtk = None
+
+try:
+	import gi
+	gi.require_version('GtkSource', '3.0')
+	from gi.repository import GtkSource
+except:
+	GtkSource = None
+
+from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.utils import WeakSet
-from zim.objectmanager import ObjectManager, CustomObjectClass
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
-if gtksourceview2:
-	lm = gtksourceview2.LanguageManager()
+from zim.gui.pageview import PageViewExtension
+from zim.gui.widgets import Dialog, ScrolledWindow
+from zim.gui.insertedobjects import InsertedObjectWidget, TextViewWidget
+
+
+if GtkSource:
+	lm = GtkSource.LanguageManager()
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
@@ -46,8 +44,6 @@ else:
 	LANGUAGES = {}
 #~ print LANGUAGES
 
-OBJECT_TYPE = 'code'
-
 
 class SourceViewPlugin(PluginClass):
 
@@ -55,11 +51,10 @@ class SourceViewPlugin(PluginClass):
 		'name': _('Source View'), # T: plugin name
 		'description': _('''\
 This plugin allows inserting 'Code Blocks' in the page. These will be
-shown as emdedded widgets with syntax highlighting, line numbers etc.
+shown as embedded widgets with syntax highlighting, line numbers etc.
 '''), # T: plugin description
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
-		'object_types': (OBJECT_TYPE, ),
 	}
 
 	plugin_preferences = (
@@ -80,224 +75,135 @@ shown as emdedded widgets with syntax highlighting, line numbers etc.
 
 	@classmethod
 	def check_dependencies(klass):
-		check = gtk is None or not gtksourceview2 is None
-		return check, [('gtksourceview2', check, True)]
-
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
-		ObjectManager.register_object(OBJECT_TYPE, self.create_object) # register the plugin in the main init so it works for a non-gui export
-		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
-
-	def teardown(self):
-		ObjectManager.unregister_object(OBJECT_TYPE)
-
-	def create_object(self, attrib, text):
-		'''Factory method for SourceViewObject objects'''
-		obj = SourceViewObject(attrib, text, self.preferences)
-		return obj
-
-	def on_preferences_changed(self, preferences):
-		'''Update preferences on open objects'''
-		for obj in ObjectManager.get_active_objects(OBJECT_TYPE):
-			obj.preferences_changed()
+		check = Gtk is None or not GtkSource is None
+		return check, [('GtkSourceView', check, True)]
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class SourceViewObjectType(InsertedObjectTypeExtension):
 
-	uimanager_xml = '''
-		<ui>
-		<menubar name='menubar'>
-			<menu action='insert_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='insert_sourceview'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		</ui>
-	'''
+	name = 'code'
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+	label = _('Code Block') # T: menu item
 
-	@action(_('Code Block'), readonly=False) # T: menu item
-	def insert_sourceview(self):
-		'''Inserts new SourceView'''
-		lang = InsertCodeBlockDialog(self.window.ui).run() # XXX
-		if not lang:
-			return # dialog cancelled
-		else:
-			obj = self.plugin.create_object({'type': OBJECT_TYPE, 'lang': lang}, '')
-			pageview = self.window.pageview # XXX
-			pageview.insert_object(obj)
-
-
-class InsertCodeBlockDialog(Dialog):
-
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Insert Code Block')) # T: dialog title
-		names = sorted(LANGUAGES, key=lambda k: k.lower())
-		self.add_form(
-			(('lang', 'choice', _('Syntax'), names),) # T: input label
-		)
-
-		# Set previous used language
-		self.uistate.define(lang=String(None))
-		if 'lang' in self.uistate:
-			for name, id in LANGUAGES.items():
-				if self.uistate['lang'] == id:
-					try:
-						self.form['lang'] = name
-					except ValueError:
-						pass
-
-					break
-
-	def do_response_ok(self):
-		name = self.form['lang']
-		if name:
-			self.result = LANGUAGES[name]
-			self.uistate['lang'] = LANGUAGES[name]
-			return True
-		else:
-			return False # no syntax selected
-
-
-class SourceViewObject(CustomObjectClass):
-
-	OBJECT_ATTR = {
-		'type': String('code'),
+	object_attr = {
 		'lang': String(None),
 		'linenumbers': Boolean(True),
 	}
 
-	def __init__(self, attrib, data, preferences):
-		if data.endswith('\n'):
-			data = data[:-1]
-			# If we have trailing \n it looks like an extra empty line
-			# in the buffer, so we default remove one
-		CustomObjectClass.__init__(self, attrib, data)
-		self.preferences = preferences
-		self.buffer = None
+	def __init__(self, plugin, objmap):
 		self._widgets = WeakSet()
+		self.preferences = plugin.preferences
+		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
+		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
-	def get_widget(self):
-		if not self.buffer:
-			self.buffer = gtksourceview2.Buffer()
-			self.buffer.set_text(self._data)
-			self.buffer.connect('modified-changed', self.on_modified_changed)
-			self.buffer.set_highlight_matching_brackets(True)
-			self.buffer.set_modified(False)
-			self._data = None
+	def new_model_interactive(self, parent, notebook, page):
+		lang = InsertCodeBlockDialog(parent).run()
+		if lang is None:
+			raise ValueError # dialog cancelled
+		else:
+			attrib = self.parse_attrib({'lang': lang})
+			return SourceViewBuffer(attrib, '')
 
-			try:
-				if self._attrib['lang']:
-					self.buffer.set_language(lm.get_language(self._attrib['lang']))
-			except:
-				logger.exception('Could not set language for sourceview: %s', lang)
+	def model_from_data(self, notebook, page, attrib, text):
+		return SourceViewBuffer(attrib, text)
 
-		widget = SourceViewWidget(self, self.buffer)
-		self._widgets.add(widget)
+	def data_from_model(self, buffer):
+		return buffer.get_object_data()
 
-		widget.view.set_show_line_numbers(self._attrib['linenumbers'])
+	def create_widget(self, buffer):
+		widget = SourceViewWidget(buffer)
 		widget.set_preferences(self.preferences)
+		self._widgets.add(widget)
 		return widget
 
-	def preferences_changed(self):
+	def on_preferences_changed(self, preferences):
 		for widget in self._widgets:
-			widget.set_preferences(self.preferences)
+			widget.set_preferences(preferences)
 
-	def on_modified_changed(self, buffer):
-		# Sourceview changed, set change on oject, reset state of
-		# sourceview buffer so we get a new signal with next change
-		if buffer.get_modified():
-			self.set_modified(True)
-			buffer.set_modified(False)
+	def format_html(self, dumper, attrib, data):
+		# to use highlight.js add the following to your template:
+		#<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/styles/default.min.css">
+		#<script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/highlight.min.js"></script>
+		#<script>hljs.initHighlightingOnLoad();</script>
+		#Map GtkSourceView language ids match with Highlight.js language ids.
+		#http://packages.ubuntu.com/precise/all/libGtkSource.0-common/filelist
+		#http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
+		sh_map = {'dosbatch': 'dos'}
+		sh_lang = sh_map[attrib['lang']] if attrib['lang'] in sh_map else attrib['lang']
+		# TODO: some template instruction to be able to use other highlighters as well?
+		output = ['<pre><code class="%s">' % html_encode(sh_lang)] # for syntaxhigligther
+		#class="brush: language;" works with SyntaxHighlighter 2.0.278, 3 & 4
+		#output = ['<pre class="brush: %s;">' % html_encode(sh_lang)] # for syntaxhigligther
 
-	def get_data(self):
-		'''Returns data as text.'''
-		if self.buffer:
-			bounds = self.buffer.get_bounds()
-			text = self.buffer.get_text(bounds[0], bounds[1])
-			text += '\n' # Make sure we always have a trailing \n
-			return text
-		else:
-			return self._data
+		output.append(html_encode(data))
+		output.append('</code></pre>\n')
 
-	def dump(self, format, dumper, linker=None):
-		if format == "html":
-			if self._attrib['lang']:
-				''' to use highlight.js add the following to your template:
-				<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/styles/default.min.css">
-				<script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.5.0/highlight.min.js"></script>
-				<script>hljs.initHighlightingOnLoad();</script>
-				Map GtkSourceView language ids match with Highlight.js language ids.
-				http://packages.ubuntu.com/precise/all/libgtksourceview2.0-common/filelist
-				http://highlightjs.readthedocs.io/en/latest/css-classes-reference.html
-                '''
-				sh_map = {'dosbatch': 'dos'}
-				sh_lang = sh_map[self._attrib['lang']] if self._attrib['lang'] in sh_map else self._attrib['lang']
-				# TODO: some template instruction to be able to use other highlighters as well?
-				output = ['<pre><code class="%s">' % html_encode(sh_lang)] # for syntaxhigligther
-				'''' class="brush: language;" works with SyntaxHighlighter 2.0.278, 3 & 4
-				output = ['<pre class="brush: %s;">' % html_encode(sh_lang)] # for syntaxhigligther
-				'''
-			else:
-				output = ['<pre>\n']
-			data = self.get_data()
-			data = html_encode(data) # XXX currently dumper gives encoded lines - NOK
-			#if self._attrib['linenumbers']:
-			#	for i, l in enumerate(data.splitlines(1)):
-			#		output.append('%i&nbsp;' % (i+1) + l)
-			#else:
-			output.append(data) # ignoring numbering for html - syntaxhighlighter takes care of that
-			if self._attrib['lang']:
-				output.append('</code></pre>\n')
-			else:
-				output.append('</pre>\n')
-			return output
-		return CustomObjectClass.dump(self, format, dumper, linker)
+		return output
+
+
+if GtkSource is not None:
+	_bufferclass = GtkSource.Buffer
+else:
+	_bufferclass = object # avoid import error
+
+
+class SourceViewBuffer(_bufferclass):
+
+	def __init__(self, attrib, text):
+		GtkSource.Buffer.__init__(self)
+		self.set_highlight_matching_brackets(True)
+		if attrib['lang']:
+			self._set_language(attrib['lang'])
+
+		self.object_attrib = attrib
+
+		if text.endswith('\n'):
+			text = text[:-1]
+			# If we have trailing \n it looks like an extra empty line
+			# in the buffer, so we default remove one
+		self.set_text(text)
+
+	def set_show_line_numbers(self, show_line_numbers):
+		self.object_attrib['linenumbers'] = show_line_numbers
+		self.emit('changed')
 
 	def set_language(self, lang):
-		'''Set language in SourceView.'''
-		self._attrib['lang'] = lang
-		self.set_modified(True)
+		self.object_attrib['lang'] = lang
+		self._set_language(lang)
+		self.emit('changed')
 
-		if self.buffer:
-			if lang is None:
-				self.buffer.set_language(None)
-			else:
-				self.buffer.set_language(lm.get_language(lang))
+	def _set_language(self, lang):
+		try:
+			GtkSource.Buffer.set_language(self, lm.get_language(lang))
+		except:
+			logger.exception('Could not set language for sourceview: %s', lang)
 
-	def show_line_numbers(self, show):
-		'''Toggles line numbers in SourceView.'''
-		self._attrib['linenumbers'] = show
-		self.set_modified(True)
-
-		for widget in self._widgets:
-			widget.view.set_show_line_numbers(show)
+	def get_object_data(self):
+		start, end = self.get_bounds()
+		text = start.get_text(end)
+		text += '\n' # Make sure we always have a trailing \n
+		return self.object_attrib, text
 
 
 class SourceViewWidget(TextViewWidget):
 
-	def __init__(self, obj, buffer):
-		CustomObjectWidget.__init__(self)
-		self.set_has_cursor(True)
-		self.buffer = buffer
-		self.obj = obj
+	def _init_view(self):
+		self.buffer.object_attrib.connect('changed', self.on_attrib_changed)
 
-		self.view = gtksourceview2.View(self.buffer)
-		self.view.modify_font(pango.FontDescription('monospace'))
+		self.view = GtkSource.View()
+		self.view.set_buffer(self.buffer)
+		self.view.modify_font(Pango.FontDescription('monospace'))
 		self.view.set_auto_indent(True)
 		self.view.set_smart_home_end(True)
 		self.view.set_highlight_current_line(True)
 		self.view.set_right_margin_position(80)
 		self.view.set_show_right_margin(True)
 		self.view.set_tab_width(4)
+		self.view.set_show_line_numbers(self.buffer.object_attrib['linenumbers'])
 
 		# simple toolbar
-		#~ bar = gtk.HBox() # FIXME: use gtk.Toolbar stuff
-		#~ lang_selector = gtk.combo_box_new_text()
+		#~ bar = Gtk.HBox() # FIXME: use Gtk.Toolbar stuff
+		#~ lang_selector = Gtk.ComboBoxText()
 		#~ lang_selector.append_text('(None)')
 		#~ for l in lang_names: lang_selector.append_text(l)
 		#~ try:
@@ -309,7 +215,7 @@ class SourceViewWidget(TextViewWidget):
 		#~ lang_selector.connect('changed', self.on_lang_changed)
 		#~ bar.pack_start(lang_selector, False, False)
 
-		#~ line_numbers = gtk.ToggleButton('Line numbers')
+		#~ line_numbers = Gtk.ToggleButton('Line numbers')
 		#~ try:
 			#~ line_numbers.set_active(self._attrib['linenumbers']=='true')
 			#~ self.show_line_numbers(self._attrib['linenumbers'], False)
@@ -318,18 +224,14 @@ class SourceViewWidget(TextViewWidget):
 			#~ self.show_line_numbers(True, False)
 		#~ line_numbers.connect('toggled', self.on_line_numbers_toggled)
 		#~ bar.pack_start(line_numbers, False, False)
+		#~ self.add_header(bar)
 
 		# TODO: other toolbar options
 		# TODO: autohide toolbar if textbuffer is not active
 
-		# Pack everything
-		#~ self.vbox.pack_start(bar, False, False)
-		win = ScrolledWindow(self.view, gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER, gtk.SHADOW_NONE)
-			# only horizontal scroll
-		self.vbox.pack_start(win)
+		win = ScrolledWindow(self.view, Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER, Gtk.ShadowType.NONE)
+		self.add(win)
 
-		# Hook up signals
-		self._init_signals()
 		self.view.connect('populate-popup', self.on_populate_popup)
 
 	def set_preferences(self, preferences):
@@ -340,37 +242,30 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_show_right_margin(preferences['show_right_margin'])
 		self.view.set_tab_width(preferences['tab_width'])
 
-	#~ def on_lang_changed(self, selector):
-		#~ '''Callback for language selector'''
-		#~ lang = selector.get_active()
-		#~ self.set_language(lang_ids[lang-1] if lang>0 else '')
-
-	#~ def on_line_numbers_toggled(self, button):
-		#~ '''Callback for toggling line numbers.'''
-		#~ self.show_line_numbers(button.get_active())
+	def on_attrib_changed(self, attrib):
+		self.view.set_show_line_numbers(attrib['linenumbers'])
 
 	def on_populate_popup(self, view, menu):
-		menu.prepend(gtk.SeparatorMenuItem())
+		menu.prepend(Gtk.SeparatorMenuItem())
 
 		def activate_linenumbers(item):
-			self.obj.show_line_numbers(item.get_active())
+			self.buffer.set_show_line_numbers(item.get_active())
 
-		item = gtk.CheckMenuItem(_('Show Line Numbers'))
+		item = Gtk.CheckMenuItem(_('Show Line Numbers'))
 			# T: preference option for sourceview plugin
-		item.set_active(self.obj._attrib['linenumbers'])
+		item.set_active(self.buffer.object_attrib['linenumbers'])
 		item.set_sensitive(self.view.get_editable())
 		item.connect_after('activate', activate_linenumbers)
 		menu.prepend(item)
 
-
 		def activate_lang(item):
-			self.obj.set_language(item.zim_sourceview_languageid)
+			self.buffer.set_language(item.zim_sourceview_languageid)
 
-		item = gtk.MenuItem(_('Syntax'))
+		item = Gtk.MenuItem.new_with_mnemonic(_('Syntax'))
 		item.set_sensitive(self.view.get_editable())
-		submenu = gtk.Menu()
+		submenu = Gtk.Menu()
 		for lang in sorted(LANGUAGES, key=lambda k: k.lower()):
-			langitem = gtk.MenuItem(lang)
+			langitem = Gtk.MenuItem.new_with_mnemonic(lang)
 			langitem.connect('activate', activate_lang)
 			langitem.zim_sourceview_languageid = LANGUAGES[lang]
 			submenu.append(langitem)
@@ -379,4 +274,54 @@ class SourceViewWidget(TextViewWidget):
 
 		menu.show_all()
 
-	# TODO: undo(), redo() stuff
+
+class InsertCodeBlockDialog(Dialog):
+
+	def __init__(self, parent):
+		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
+		self.uistate.define(lang=String(None))
+		defaultlang = self.uistate['lang']
+
+		menu = {}
+		for l in sorted(LANGUAGES, key=lambda k: k.lower()):
+			key = l[0].upper()
+			if not key in menu:
+				menu[key] = []
+			menu[key].append(l)
+
+		model = Gtk.TreeStore(str)
+		defaultiter = None
+		for key in sorted(menu):
+			iter = model.append(None, [key])
+			for lang in menu[key]:
+				myiter = model.append(iter, [lang])
+				if LANGUAGES[lang] == defaultlang:
+					defaultiter = myiter
+
+		hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		hbox.set_spacing(5)
+		label = Gtk.Label(_('Syntax') +':') # T: input label
+		hbox.add(label)
+
+		combobox = Gtk.ComboBox.new_with_model(model)
+		renderer_text = Gtk.CellRendererText()
+		combobox.pack_start(renderer_text, True)
+		combobox.add_attribute(renderer_text, "text", 0)
+		if defaultiter is not None:
+			combobox.set_active_iter(defaultiter)
+		hbox.add(combobox)
+		self.combobox = combobox
+
+		self.vbox.add(hbox)
+
+	def do_response_ok(self):
+		model = self.combobox.get_model()
+		iter = self.combobox.get_active_iter()
+
+		if iter is not None:
+			name = model[iter][0]
+			self.result = LANGUAGES[name]
+			self.uistate['lang'] = LANGUAGES[name]
+			return True
+		else:
+			return False # no syntax selected

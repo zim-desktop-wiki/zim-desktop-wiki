@@ -1,20 +1,18 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 import tests
 
-import gtk
-import pango
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.notebook import Path
 from zim.notebook.index import Index
 from zim.notebook.index.tags import MyTreeIter, IS_PAGE, IS_TAG
-from zim.gui.pageindex import FGCOLOR_COL, \
-	EMPTY_COL, NAME_COL, PATH_COL, STYLE_COL
-	# Explicitly don't import * from pageindex, make clear what we re-use
 from zim.config import ConfigDict
 from zim.plugins.tags import *
+
+from tests.pageindex import init_model_validator_wrapper
 
 
 class TestTaggedPageTreeStore(tests.TestCase):
@@ -49,8 +47,9 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 		# Check configuration
 		treestore = self.storeclass(notebook.index, self.tags)
+		init_model_validator_wrapper(self, treestore)
 		self.assertEqual(treestore.get_flags(), 0)
-		self.assertEqual(treestore.get_n_columns(), 8)
+		self.assertEqual(treestore.get_n_columns(), 7)
 		for i in range(treestore.get_n_columns()):
 			self.assertTrue(not treestore.get_column_type(i) is None)
 
@@ -64,18 +63,18 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		myiter = treestore.on_get_iter((0,))
 		self.assertIsInstance(myiter, MyTreeIter)
 		self.assertEqual(myiter.hint, self.toplevel)
-		self.assertEqual(myiter.treepath, (0,))
-		self.assertEqual(treestore.on_get_path(myiter), (0,))
+		self.assertEqual(myiter.treepath, Gtk.TreePath((0,)))
+		self.assertEqual(treestore.on_get_path(myiter), Gtk.TreePath((0,)))
 
 		treeiter = treestore.get_iter((0,))
 		path = treestore.get_indexpath(treeiter)
-		self.assertEqual(treestore.find(path), (0,))
+		self.assertEqual(treestore.find(path), Gtk.TreePath((0,)))
 
 		basename = treestore.on_get_value(myiter, 0)
 		self.assertTrue(len(basename) > 0)
 
 		iter2 = treestore.on_iter_children(None)
-		self.assertEqual(iter2.treepath, (0,))
+		self.assertEqual(iter2.treepath, Gtk.TreePath((0,)))
 
 		self.assertTrue(treestore.on_get_iter((20, 20, 20, 20, 20)) is None)
 		self.assertRaises(IndexNotFoundError, treestore.find, Path('nonexisting'))
@@ -86,13 +85,13 @@ class TestTaggedPageTreeStore(tests.TestCase):
 		path = (0,)
 		prevpath = None
 		while path:
-			#~ print 'PATH', path
+			#~ print('PATH', path)
 			assert path != prevpath, 'Prevent infinite loop'
 			nitems += 1
 			prevpath = path
 
 			iter = treestore.get_iter(path)
-			self.assertEqual(treestore.get_path(iter), tuple(path))
+			self.assertEqual(treestore.get_path(iter), Gtk.TreePath(path))
 
 			# Determine how to continue
 			if treestore.iter_has_child(iter):
@@ -111,14 +110,11 @@ class TestTaggedPageTreeStore(tests.TestCase):
 
 
 	def testTreeView(self):
-		ui = MockUI()
-		ui.notebook = self.notebook
-		ui.page = Path('foobar')
-		self.assertTrue(self.notebook.get_page(ui.page).exists())
-
 		self.notebook.index.flush() # we want to index ourselves
+		navigation = tests.MockObject()
 		treestore = self.storeclass(self.notebook.index, self.tags)
-		treeview = self.viewclass(ui, treestore)
+		init_model_validator_wrapper(self, treestore)
+		treeview = self.viewclass(self.notebook, navigation, treestore)
 
 		# Process signals on by one
 		self.assertEqual(self.notebook.pages.n_all_pages(), 0) # assert we start blank
@@ -153,6 +149,78 @@ class TestTaggedPageTreeStore(tests.TestCase):
 			self.notebook.delete_page(page)
 			tests.gtk_process_events()
 
+	def testSignals(self):
+		PAGES = ('a', 'a:a', 'a:b', 'b', 'c')
+		TAGS = ('@foo @bar', '', '@foo @bar', '@foo @bar', '@bar')
+
+		#  - a
+		#    - a:a
+		#    - a:b
+		#  - b
+		#  - a:b
+
+		notebook = self.setUpNotebook()
+		navigation = tests.MockObject()
+		model = self.storeclass(notebook.index, ('foo', 'bar'))
+		init_model_validator_wrapper(self, model)
+		treeview = PageTreeView(notebook, navigation, model=model)
+
+		signals = []
+		def signal_logger(o, *a):
+			path = a[0].to_string()
+			signal = a[-1]
+			signals.append((signal, path))
+			#print(">>>", signal, path)
+
+		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
+			model.connect(signal, signal_logger, signal)
+
+		for path, tags in zip(PAGES, TAGS):
+			page = notebook.get_page(Path(path))
+			page.parse('wiki', 'Test 123 %s\n' % tags)
+			notebook.store_page(page)
+
+		expect_add = [
+			('row-inserted', '0'),
+			('row-changed', '0'),
+
+			('row-inserted', '0:0'),
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-changed', '0:0'),
+
+			('row-inserted', '0:1'),
+			('row-changed', '0'),
+
+			('row-inserted', '1'),
+			('row-changed', '0:1'),
+			('row-changed', '1'),
+
+			('row-inserted', '1'),
+			('row-changed', '1'),
+		]
+		self.assertEqual(signals, expect_add)
+		signals[:] = []
+
+		for path in reversed(PAGES):
+			notebook.delete_page(Path(path))
+
+		expect_del = [
+			('row-deleted', '1'),
+
+			('row-deleted', '1'),
+
+			('row-deleted', '0:1'),
+			('row-changed', '0'),
+
+			('row-deleted', '0:0'),
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+
+			('row-deleted', '0'),
+		]
+		self.assertEqual(signals, expect_del)
+
 
 @tests.slowTest
 class TestTagsPageTreeStore(TestTaggedPageTreeStore):
@@ -186,21 +254,124 @@ class TestTagsPageTreeStore(TestTaggedPageTreeStore):
 		#   - foo:child1:subfoo
 
 
+	def testSignals(self):
+		PAGES = ('a', 'a:a', 'a:b', 'b', 'c')
+		TAGS = ('@foo', '', '@foo @bar', '@foo', '@bar')
+		#
+		# @bar
+		#  - a:b
+		#  - c
+		# @foo
+		#  - a
+		#    - a:a
+		#    - a:b
+		#  - b
+		#  - a:b
+
+		notebook = self.setUpNotebook()
+		navigation = tests.MockObject()
+		model = self.storeclass(notebook.index, ('foo', 'bar'))
+		init_model_validator_wrapper(self, model)
+		treeview = PageTreeView(notebook, navigation, model=model)
+
+		signals = []
+		def signal_logger(o, *a):
+			path = a[0].to_string()
+			signal = a[-1]
+			signals.append((signal, path))
+			#print(">>>", signal, path)
+
+		for signal in ('row-inserted', 'row-changed', 'row-deleted', 'row-has-child-toggled'):
+			model.connect(signal, signal_logger, signal)
+
+		for path, tags in zip(PAGES, TAGS):
+			page = notebook.get_page(Path(path))
+			page.parse('wiki', 'Test 123 %s\n' % tags)
+			notebook.store_page(page)
+
+		expect_add = [
+			('row-inserted', '0'), # @foo
+
+			('row-inserted', '0:0'), # @foo a
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-changed', '0:0'),
+
+			('row-inserted', '0:0:0'), # @foo a:a
+			('row-has-child-toggled', '0:0'),
+			('row-changed', '0:0'),
+			('row-changed', '0:0:0'),
+
+			('row-inserted', '0:0:1'), # @foo a:b
+			('row-changed', '0:0'),
+			('row-inserted', '0:1'), # @foo a:b
+			('row-changed', '0'),
+			('row-inserted', '0'), # @bar
+			('row-inserted', '0:0'), # @bar a:b
+			('row-has-child-toggled', '0'),
+			('row-changed', '0'),
+			('row-changed', '0:0'),
+			('row-changed', '1:0:1'),
+			('row-changed', '1:1'),
+
+			('row-inserted', '1:1'), # @foo b
+			('row-changed', '1'),
+			('row-changed', '1:1'),
+
+			('row-inserted', '0:1'), # @bar c
+			('row-changed', '0'),
+			('row-changed', '0:1'),
+		]
+		self.assertEqual(signals, expect_add)
+		signals[:] = []
+
+		for path in reversed(PAGES):
+			notebook.delete_page(Path(path))
+
+		expect_del = [
+			('row-deleted', '0:1'), # @bar c
+			('row-changed', '0'),
+
+			('row-deleted', '1:1'), # @foo b
+			('row-changed', '1'),
+
+			('row-deleted', '0:0'), # @bar a:b --> @bar
+			('row-changed', '0'),
+			('row-deleted', '0'),
+
+			('row-deleted', '0:1'), # @foo a:b
+			('row-changed', '0'),
+
+			('row-deleted', '0:0:1'), # @foo a:b
+			('row-changed', '0:0'),
+
+			('row-deleted', '0:0:0'), # @foo a:a
+			('row-has-child-toggled', '0:0'),
+			('row-changed', '0:0'),
+
+			('row-deleted', '0:0'), # @foo a --> @foo
+			('row-changed', '0'),
+			('row-deleted', '0'),
+
+		]
+		self.assertEqual(signals, expect_del)
+
+
 @tests.slowTest
 class TestTagPluginWidget(tests.TestCase):
 
 	def runTest(self):
-		ui = MockUI()
-		ui.notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		navigation = tests.MockObject()
 		uistate = ConfigDict()
-		widget = TagsPluginWidget(ui.notebook.index, uistate, ui)
+		widget = TagsPluginWidget(notebook, navigation, uistate)
 
 		# Excersize all model switches and check we still have a sane state
 		widget.toggle_treeview()
 		widget.toggle_treeview()
 
 		path = Path('Test:tags')
-		ui.notebook.pages.lookup_by_pagename(path)
+		notebook.pages.lookup_by_pagename(path)
 		treepath = widget.treeview.get_model().find(path)
 
 		widget.disconnect_model()
@@ -210,7 +381,7 @@ class TestTagPluginWidget(tests.TestCase):
 		treepath = widget.treeview.get_model().find(path)
 
 		# Check signals
-		widget.treeview.emit('populate-popup', gtk.Menu())
+		widget.treeview.emit('populate-popup', Gtk.Menu())
 		widget.treeview.emit('insert-link', path)
 
 		# Toggles in popup
@@ -233,19 +404,12 @@ class TestTagPluginWidget(tests.TestCase):
 		self.assertEqual(selected, [tag])
 		model = widget.treeview.get_model()
 		self.assertIsInstance(model, TaggedPageTreeStore)
-		self.assertEqual(model.tags, [tag.name])
+		self.assertEqual(model.tags, (tag.name,))
 
 		# check menu and sorting of tag cloud
-		cloud.emit('populate-popup', gtk.Menu())
+		cloud.emit('populate-popup', Gtk.Menu())
 		mockaction = tests.MockObject()
 		mockaction.get_active = lambda: True
 		cloud._switch_sorting(mockaction)
 		mockaction.get_active = lambda: False
 		cloud._switch_sorting(mockaction)
-
-
-
-class MockUI(tests.MockObject):
-
-	page = None
-	notebook = None

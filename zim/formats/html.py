@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -184,7 +183,7 @@ class Dumper(DumperClass):
 		href = self.linker.link(attrib['href'])
 		type = link_type(attrib['href'])
 		if strings:
-			text = u''.join(strings)
+			text = ''.join(strings)
 		else:
 			text = attrib['href']
 		title = text.replace('"', '&quot;')
@@ -206,15 +205,16 @@ class Dumper(DumperClass):
 		else:
 			return ['<img src="%s"%s>' % (src, opt)]
 
-	def dump_object(self, *arg, **kwarg):
-		strings = DumperClass.dump_object(self, *arg, **kwarg)
-		strings.insert(0, '<div class="zim-object">\n')
-		strings.append('</div>\n')
+	def dump_object(self, tag, attrib, strings=[]):
+		strings = DumperClass.dump_object(self, tag, attrib, strings)
+		if not attrib['type'].startswith('image+'):
+			strings.insert(0, '<div class="zim-object">\n')
+			strings.append('</div>\n')
 		return strings
 
 	def dump_object_fallback(self, tag, attrib, strings=None):
 		# Fallback to verbatim paragraph
-		return ['<pre>\n'] + map(html_encode, strings) + ['</pre>\n']
+		return ['<pre>\n'] + list(map(html_encode, strings)) + ['</pre>\n']
 
 	def dump_table(self, tag, attrib, strings):
 		aligns = attrib['aligns'].split(',')

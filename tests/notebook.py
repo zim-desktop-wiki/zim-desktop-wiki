@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Test cases for the zim.notebook module.'''
 
-from __future__ import with_statement
+
 
 import tests
 
@@ -13,7 +12,7 @@ import time
 
 from zim.fs import File, Dir
 from zim.newfs.mock import os_native_path
-from zim.config import ConfigManager, XDG_CONFIG_HOME, VirtualConfigBackend
+from zim.config import ConfigManager, XDG_CONFIG_HOME
 from zim.formats import ParseTree
 from zim.formats.wiki import Parser as WikiParser
 
@@ -36,7 +35,7 @@ class TestNotebookInfo(tests.TestCase):
 				# specifically ensure the "?" does not get url encoded
 		):
 			if os.name == 'nt':
-				if isinstance(location, basestring):
+				if isinstance(location, str):
 					location = location.replace('///', '///C:/')
 				uri = uri.replace('///', '///C:/')
 			info = NotebookInfo(location)
@@ -54,7 +53,7 @@ class TestNotebookInfoList(tests.TestCase):
 			file.remove()
 
 	def runTest(self):
-		root = Dir(self.create_tmp_dir(u'some_utf8_here_\u0421\u0430\u0439'))
+		root = Dir(self.create_tmp_dir('some_utf8_here_\u0421\u0430\u0439'))
 
 		# Start empty - see this is no issue
 		list = get_notebook_list()
@@ -185,10 +184,10 @@ class TestBuildNotebook(tests.TestCase):
 	# Test including automount and uniqueness !
 
 	def setUp(self):
-		self.tmpdir = Dir(self.get_tmp_name())
-		self.notebookdir = self.tmpdir.subdir('notebook')
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.notebookdir = folder.folder('notebook')
 
-		script = self.tmpdir.file('mount.py')
+		script = folder.file('mount.py')
 		script.write('''\
 import os
 import sys
@@ -225,12 +224,11 @@ mount=%s %s
 			(self.notebookdir.uri, None), # repeat to check uniqueness
 			(self.notebookdir.file('notebook.zim').uri, None),
 			(self.notebookdir.file('foo/bar.txt').uri, Path('foo:bar')),
-			#~ ('zim+' + tmpdir.uri + '?aaa:bbb:ccc', Path('aaa:bbb:ccc')),
 		):
-			#~ print ">>", uri
+			#~ print(">>", uri)
 			info = NotebookInfo(uri)
 			nb, p = build_notebook(info)
-			self.assertEqual(nb.dir, self.notebookdir)
+			self.assertEqual(nb.folder.path, self.notebookdir.path)
 			self.assertEqual(p, path)
 			if nbid is None:
 				nbid = id(nb)
@@ -245,8 +243,7 @@ mount=%s %s
 class TestNotebook(tests.TestCase):
 
 	def setUp(self):
-		path = self.get_tmp_name()
-		self.notebook = tests.new_notebook(fakedir=path)
+		self.notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 	def testAPI(self):
 		'''Test various notebook methods'''
@@ -411,7 +408,7 @@ class TestNotebook(tests.TestCase):
 			'**bold** :AnotherNewPage\n')
 
 
-		#~ print '\n==== DB ===='
+		#~ print('\n==== DB ====')
 		#~ self.notebook.index.update()
 		#~ cursor = self.notebook.index.db.cursor()
 		#~ cursor.execute('select * from pages')
@@ -449,10 +446,11 @@ class TestNotebook(tests.TestCase):
 
 	def testResolveFile(self):
 		'''Test notebook.resolve_file()'''
+		from zim.fs import adapt_from_newfs, Dir
+		dir = Dir(self.notebook.folder.path) # XXX
+
 		path = Path('Foo:Bar')
-		dir = self.notebook.dir
 		self.notebook.config['Notebook']['document_root'] = './notebook_document_root'
-		self.notebook.do_properties_changed() # parse config
 		doc_root = self.notebook.document_root
 		self.assertEqual(doc_root, dir.subdir('notebook_document_root'))
 		for link, wanted, cleaned in (
@@ -506,7 +504,7 @@ class TestNotebook(tests.TestCase):
 
 	#~ def testResolveName(self):
 		#~ '''Test store.resolve_name().'''
-		#~ print '\n'+'='*10+'\nSTORE: %s' % self.store
+		#~ print('\n'+'='*10+'\nSTORE: %s' % self.store)
 #~
 		#~ # First make sure basic list function is working
 		#~ def list_pages(name):
@@ -527,9 +525,9 @@ class TestNotebook(tests.TestCase):
 			#~ ('FOO:Dus','Test:foo:bar','Test:foo:Dus'),
 			#~ # FIXME more ambigous test data
 		#~ ):
-			#~ print '-'*10+'\nLINK %s (%s)' % (link, namespace)
+			#~ print('-'*10+'\nLINK %s (%s)' % (link, namespace))
 			#~ r = self.store.resolve_name(link, namespace=namespace)
-			#~ print 'RESULT %s' % r
+			#~ print('RESULT %s' % r)
 			#~ self.assertEqual(r, name)
 
 
@@ -552,206 +550,410 @@ class TestNotebookCaseInsensitiveFileSystem(TestNotebook):
 		self.assertEqual(file2.read(), 'TEST 123')
 
 
-class DeadLinks(object):
+@tests.slowTest
+class TestEndOfLine(tests.TestCase):
 
-	def __init__(self, notebook):
-		self.notebook = notebook
+	def _test_eol(self, eol, literal_eol):
+		dir = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		config = NotebookConfig(dir.file('notebook.zim'))
+		config['Notebook']['endofline'] = eol
+		config.write()
 
-	def __iter__(self):
-		db = self.notebook.links.db
-		pages = self.notebook.links._pages
-		for row in db.execute('''
-			SELECT links.source, links.rel, links.names FROM links JOIN pages
-			ON links.target = pages.id
-			WHERE pages.is_link_placeholder = 1
-		'''):
-			page = pages.get_pagename(row['source'])
-			href = HRef(row['rel'], row['names'])
-			yield page, href
+		notebook, x = build_notebook(dir)
+		page = notebook.get_page(Path('Test'))
+		page.parse('wiki', 'test 123\n456\n')
+		notebook.store_page(page)
+
+		with open(page.source_file.path, 'rb') as fh:
+			text = fh.read()
+			self.assertTrue(text.endswith(literal_eol))
+
+	def testUnix(self):
+		self._test_eol('unix', b'\n')
+
+	def testWindows(self):
+		self._test_eol('dos', b'\r\n')
 
 
 class TestUpdateLinksOnMovePage(tests.TestCase):
 
-	def assertDoesLink(self, notebook, page1, page2):
-		page1, page2 = Path(page1), Path(page2)
-		self.assertIn(
-			page2,
-			[link.target for link in notebook.links.list_links(page1)]
+	def getNotebookContent(self, notebook):
+		pages = {}
+		for path in notebook.pages.walk():
+			page = notebook.get_page(path)
+			content = page.dump('wiki')
+			pages[path.name] = ''.join(content)
+		return pages
+
+	def getNotebookLinks(self, notebook):
+		links = set()
+		for path in notebook.pages.walk():
+			for link in notebook.links.list_links(path):
+				links.add((link.source.name, link.target.name))
+		return links
+
+	def movePage(self, pre, move, post):
+		notebook = self.setUpNotebook(content=pre[0])
+		self.assertEqual(self.getNotebookLinks(notebook), set(pre[1]))
+		with tests.LoggingFilter('zim.notebook', message='Number of links after move'):
+			notebook.move_page(Path(move[0]), Path(move[1]))
+		self.assertEqual(self.getNotebookContent(notebook), post[0])
+		self.assertEqual(self.getNotebookLinks(notebook), set(post[1]))
+
+	def testFloatingLink(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B': '[[A]]\n'},
+				[('B', 'A')]
+			),
+			move=('A', 'C'),
+			post=(
+				{'C': 'test 123\n', 'B': '[[C]]\n'},
+				[('B', 'C')]
+			)
 		)
 
-	def assertNoDeadLinks(self, notebook):
-		deadlinks = DeadLinks(notebook)
-		self.assertEqual(
-			list(deadlinks),
-			[]
+	def testFloatingLinkOnceRemoved(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B:B1': '[[A]]\n'},
+				[('B:B1', 'A')]
+			),
+			move=('A', 'C'),
+			post=(
+				{'C': 'test 123\n', 'B:B1': '[[C]]\n', 'B': ''},
+				[('B:B1', 'C')]
+			)
+		)
+
+	def testFloatingLinkNotChanged(self):
+		self.movePage(
+			pre=(
+				{'SomePage:A': 'Test 123\n', 'SomePage:B': '[[SomePage]]\n'},
+				[('SomePage:B', 'SomePage')]
+			),
+			move=('SomePage:A', 'OtherPage:SomePage'),
+			post=(
+				{'OtherPage:SomePage': 'Test 123\n', 'SomePage:B': '[[SomePage]]\n', 'SomePage': '', 'OtherPage': ''},
+				[('SomePage:B', 'SomePage')]
+			)
+		)
+
+	def testFloatingLinkToChildPage(self):
+		self.movePage(
+			pre=(
+				{'A:A1': 'test 123\n', 'B:B1': '[[A:A1]]\n'},
+				[('B:B1', 'A:A1')]
+			),
+			move=('A', 'C'),
+			post=(
+				{'C:A1': 'test 123\n', 'B:B1': '[[C:A1]]\n', 'B': '', 'C': ''},
+				[('B:B1', 'C:A1')]
+			)
+		)
+
+	def testFloatingLinkViaParent(self):
+		self.movePage(
+			pre=(
+				{'Parent:A': 'test 123\n', 'Parent:B': '[[Parent:A]]\n'},
+				[('Parent:B', 'Parent:A')]
+			),
+			move=('Parent:A', 'Parent:C'),
+			post=(
+				{'Parent:C': 'test 123\n', 'Parent:B': '[[C]]\n', 'Parent': ''},
+				[('Parent:B', 'Parent:C')]
+			)
+		)
+
+	def testFloatingLinkWithFallback(self):
+		# floating link that can resolve higher up as well
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B:A': 'test 123\n', 'B:B1': '[[A]]\n'},
+				[('B:B1', 'B:A')],
+			),
+			move=('B:A', 'C'),
+			post=(
+				{'A': 'test 123\n', 'C': 'test 123\n', 'B:B1': '[[C]]\n', 'B': ''},
+				[('B:B1', 'C')],
+			)
+		)
+
+	def testFloatingLinkFromChildToChild(self):
+		self.movePage(
+			pre=(
+				{'A:Child1': '[[Child2]]\n', 'A:Child2': 'Test123\n'},
+				[('A:Child1', 'A:Child2')]
+			),
+			move=('A', 'B'),
+			post=(
+				{'B:Child1': '[[Child2]]\n', 'B:Child2': 'Test123\n', 'B': ''},
+				[('B:Child1', 'B:Child2')]
+			)
+		)
+
+	def testFloatingLinkFromGrandchildToOtherChild(self):
+		self.movePage(
+			pre=(
+				{'A:Child1:GrandChild': '[[Child2]]\n', 'A:Child2': 'Test123\n'},
+				[('A:Child1:GrandChild', 'A:Child2')]
+			),
+			move=('A', 'B'),
+			post=(
+				{'B:Child1:GrandChild': '[[Child2]]\n', 'B:Child2': 'Test123\n', 'B': '', 'B:Child1': ''},
+				[('B:Child1:GrandChild', 'B:Child2')]
+			)
+		)
+
+	def testFloatingLinkFromChildToChildViaMovedPage(self):
+		self.movePage(
+			pre=(
+				{'A:Child1': '[[A:Child2]]\n', 'A:Child2': 'Test123\n'},
+				[('A:Child1', 'A:Child2')]
+			),
+			move=('A', 'B'),
+			post=(
+				{'B:Child1': '[[Child2]]\n', 'B:Child2': 'Test123\n', 'B': ''},
+				[('B:Child1', 'B:Child2')]
+			)
+		)
+
+	def testFloatingLinkFromChildToChildViaParent(self):
+		self.movePage(
+			pre=(
+				{'Parent:A:Child1': '[[A:Child2]]\n', 'Parent:A:Child2': 'Test123\n'},
+				[('Parent:A:Child1', 'Parent:A:Child2')]
+			),
+			move=('Parent:A', 'Parent:B'),
+			post=(
+				{'Parent:B:Child1': '[[Child2]]\n', 'Parent:B:Child2': 'Test123\n', 'Parent': '', 'Parent:B': ''},
+				[('Parent:B:Child1', 'Parent:B:Child2')]
+			)
+		)
+
+	def testFloatingLinkFromMovedPageNotChangedIfNotNeeded(self):
+		self.movePage(
+			pre=(
+				{'A': '[[B]]\n', 'B': 'test 123\n'},
+				[('A', 'B')],
+			),
+			move=('A', 'C:C1'),
+			post=(
+				{'C:C1': '[[B]]\n', 'B': 'test 123\n', 'C': ''},
+				[('C:C1', 'B')],
+			)
+		)
+
+	def testFloatingLinkFromMovedPageChangedIfNeeded(self):
+		self.movePage(
+			pre=(
+				{'A': '[[B]]\n', 'B': 'test 123\n', 'C:B': 'test 123\n'},
+				[('A', 'B')],
+			),
+			move=('A', 'C:C1'),
+			post=(
+				{'C:C1': '[[:B]]\n', 'B': 'test 123\n', 'C:B': 'test 123\n', 'C': ''},
+				[('C:C1', 'B')],
+			)
+		)
+
+	def testFloatingLinkWithinMovedPageNotChanged(self):
+		self.movePage(
+			pre=({
+					'TheParent': 'Loves [[+FirstChild]] and [[+SecondChild]]',
+					'TheParent:FirstChild': 'Hates the [[SecondChild|other one]]',
+					'TheParent:SecondChild': 'Loves the [[FirstChild]]',
+				},
+				[
+					('TheParent', 'TheParent:FirstChild'),
+					('TheParent', 'TheParent:SecondChild'),
+					('TheParent:FirstChild', 'TheParent:SecondChild'),
+					('TheParent:SecondChild', 'TheParent:FirstChild'),
+				]
+			),
+			move=('TheParent', 'NewName'),
+			post=({
+					'NewName': 'Loves [[+FirstChild]] and [[+SecondChild]]\n',
+					'NewName:FirstChild': 'Hates the [[SecondChild|other one]]\n',
+					'NewName:SecondChild': 'Loves the [[FirstChild]]\n',
+				},
+				[
+					('NewName', 'NewName:FirstChild'),
+					('NewName', 'NewName:SecondChild'),
+					('NewName:FirstChild', 'NewName:SecondChild'),
+					('NewName:SecondChild', 'NewName:FirstChild'),
+				]
+			)
+		)
+
+	def testFloatingLinkToSelf(self):
+		self.movePage(
+			pre=({'A': '[[A]]\n'}, [('A', 'A')]),
+			move=('A', 'B'),
+			post=({'B': '[[B]]\n'}, [('B', 'B')])
+		)
+
+	def testAbsoluteLink(self):
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B:B1': '[[:A]]\n'},
+				[('B:B1', 'A')]
+			),
+			move=('A', 'C'),
+			post=(
+				{'C': 'test 123\n', 'B:B1': '[[:C]]\n', 'B': ''},
+				[('B:B1', 'C')]
+			)
+		)
+
+	def testAbsoluteLinkToChildPage(self):
+		self.movePage(
+			pre=(
+				{'A:A1': 'test 123\n', 'B:B1': '[[:A:A1]]\n'},
+				[('B:B1', 'A:A1')],
+			),
+			move=('A', 'C'),
+			post=(
+				{'C:A1': 'test 123\n', 'B:B1': '[[:C:A1]]\n', 'C': '', 'B': ''},
+				[('B:B1', 'C:A1')],
+			)
+		)
+
+	def testAbsoluteLinkFromChildToParent(self):
+		self.movePage(
+			pre=(
+				{'A:Child1': '[[:A]]\n'},
+				[('A:Child1', 'A')]
+			),
+			move=('A', 'B'),
+			post=(
+				{'B:Child1': '[[:B]]\n', 'B': ''},
+				[('B:Child1', 'B')]
+			)
+		)
+
+	def testAbsoluteLinkFromChildToChild(self):
+		self.movePage(
+			pre=(
+				{'A:Child1': '[[:A:Child2]]\n', 'A:Child2': 'Test123\n'},
+				[('A:Child1', 'A:Child2')]
+			),
+			move=('A', 'B'),
+			post=(
+				{'B:Child1': '[[:B:Child2]]\n', 'B:Child2': 'Test123\n', 'B': ''},
+				[('B:Child1', 'B:Child2')]
+			)
+		)
+
+	def testAbsoluteLinkFromMovedPageNotChanged(self):
+		self.movePage(
+			pre=(
+				{'A': '[[:B]]\n', 'B': 'test 123\n', 'C:B': 'test 123\n'},
+				[('A', 'B')],
+			),
+			move=('A', 'C:C1'),
+			post=(
+				{'C:C1': '[[:B]]\n', 'B': 'test 123\n', 'C:B': 'test 123\n', 'C': ''},
+				[('C:C1', 'B')],
+			)
+		)
+
+	def testAbsoluteLinkToSelf(self):
+		self.movePage(
+			pre=({'A': '[[:A]]\n'}, [('A', 'A')]),
+			move=('A', 'B'),
+			post=({'B': '[[:B]]\n'}, [('B', 'B')])
 		)
 
 	def testRelativeLink(self):
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'B': '[[A]]'
-		})
-		self.assertDoesLink(notebook, 'B', 'A')
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B'))
-		self.assertEqual(B.dump('wiki'), ['[[C]]\n'])
-		self.assertDoesLink(notebook, 'B', 'C')
-		self.assertNoDeadLinks(notebook)
+		self.movePage(
+			pre=(
+				{'A': '[[+A1]]\n', 'A:A1': 'test 123\n'},
+				[('A', 'A:A1')]
+			),
+			move=('A:A1', 'A:C'),
+			post=(
+				{'A': '[[+C]]\n', 'A:C': 'test 123\n'},
+				[('A', 'A:C')]
+			)
+		)
 
-	def testRelativeLinkOnceRemoved(self):
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'B:B1': '[[A]]'
-		})
-		self.assertDoesLink(notebook, 'B:B1', 'A')
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B:B1'))
-		self.assertEqual(B.dump('wiki'), ['[[C]]\n'])
-		self.assertDoesLink(notebook, 'B:B1', 'C')
-		self.assertNoDeadLinks(notebook)
+	def testRelativeLinkToChild(self):
+		self.movePage(
+			pre=(
+				{'Parent': '[[+A:Child]]\n', 'Parent:A:Child': 'test 123\n'},
+				[('Parent', 'Parent:A:Child')]
+			),
+			move=('Parent:A', 'Parent:C'),
+			post=(
+				{'Parent': '[[+C:Child]]\n', 'Parent:C:Child': 'test 123\n', 'Parent:C': ''},
+				[('Parent', 'Parent:C:Child')]
+			)
+		)
 
-	def testAbsoluteLink(self):
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'B:B1': '[[:A]]'
-		})
-		self.assertDoesLink(notebook, 'B:B1', 'A')
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B:B1'))
-		self.assertEqual(B.dump('wiki'), ['[[:C]]\n'])
-		self.assertDoesLink(notebook, 'B:B1', 'C')
-		self.assertNoDeadLinks(notebook)
-
-	def testRelativeLinkToChildPage(self):
-		notebook = self.setUpNotebook(content={
-			'A:A1': 'test 123',
-			'B:B1': '[[A:A1]]'
-		})
-		self.assertDoesLink(notebook, 'B:B1', 'A:A1')
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B:B1'))
-		self.assertEqual(B.dump('wiki'), ['[[C:A1]]\n'])
-		self.assertDoesLink(notebook, 'B:B1', 'C:A1')
-		self.assertNoDeadLinks(notebook)
-
-	def testAbsoluteLinkToChildPage(self):
-		notebook = self.setUpNotebook(content={
-			'A:A1': 'test 123',
-			'B:B1': '[[:A:A1]]'
-		})
-		self.assertDoesLink(notebook, 'B:B1', 'A:A1')
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B:B1'))
-		self.assertEqual(B.dump('wiki'), ['[[:C:A1]]\n'])
-		self.assertDoesLink(notebook, 'B:B1', 'C:A1')
-		self.assertNoDeadLinks(notebook)
-
-	def testRelativeLinkWithFallback(self):
-		# relative link that can resolve higher up as well
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'B:A': 'test 123',
-			'B:B1': '[[A]]'
-		})
-		self.assertDoesLink(notebook, 'B:B1', 'B:A')
-		notebook.move_page(Path('B:A'), Path('C'))
-		B = notebook.get_page(Path('B:B1'))
-		self.assertEqual(B.dump('wiki'), ['[[C]]\n'])
-		self.assertDoesLink(notebook, 'B:B1', 'C')
-		self.assertNoDeadLinks(notebook)
-
-	def testRelativeLinkFromMovedPageNotChangedIfNotNeeded(self):
-		notebook = self.setUpNotebook(content={
-			'A': '[[B]]',
-			'B': 'test 123',
-		})
-		self.assertDoesLink(notebook, 'A', 'B')
-		notebook.move_page(Path('A'), Path('C:C1'))
-		B = notebook.get_page(Path('C:C1'))
-		self.assertEqual(B.dump('wiki'), ['[[B]]\n'])
-		self.assertDoesLink(notebook, 'C:C1', 'B')
-		self.assertNoDeadLinks(notebook)
-
-	def testRelativeLinkFromMovedPageChangedIfNeeded(self):
-		notebook = self.setUpNotebook(content={
-			'A': '[[B]]',
-			'B': 'test 123',
-			'C:B': 'test 123'
-		})
-		self.assertDoesLink(notebook, 'A', 'B')
-		notebook.move_page(Path('A'), Path('C:C1'))
-		B = notebook.get_page(Path('C:C1'))
-		self.assertEqual(B.dump('wiki'), ['[[:B]]\n'])
-		self.assertDoesLink(notebook, 'C:C1', 'B')
-		self.assertNoDeadLinks(notebook)
-
-	def testAbsoluteLinkFromMovedPageNotChanged(self):
-		notebook = self.setUpNotebook(content={
-			'A': '[[:B]]',
-			'B': 'test 123',
-			'C:B': 'test 123'
-		})
-		self.assertDoesLink(notebook, 'A', 'B')
-		notebook.move_page(Path('A'), Path('C:C1'))
-		B = notebook.get_page(Path('C:C1'))
-		self.assertEqual(B.dump('wiki'), ['[[:B]]\n'])
-		self.assertDoesLink(notebook, 'C:C1', 'B')
-		self.assertNoDeadLinks(notebook)
-
-	def testRelativeLinkWithinMovedPageNotChanged(self):
-		notebook = self.setUpNotebook(content={
-			'TheParent': 'Loves [[+FirstChild]] and [[+SecondChild]]\n',
-			'TheParent:FirstChild': 'Hates the [[SecondChild]]\n',
-			'TheParent:SecondChild': 'Loves the [[FirstChild]]\n',
-		})
-
-		notebook.rename_page(Path('TheParent'), 'NewName', update_heading=False)
-
-		for name, want in (
-			('NewName', 'Loves [[+FirstChild]] and [[+SecondChild]]\n'),
-			('NewName:FirstChild', 'Hates the [[SecondChild]]\n'),
-			('NewName:SecondChild', 'Loves the [[FirstChild]]\n'),
-		):
-			page = notebook.get_page(Path(name))
-			self.assertEqual(page.dump('wiki'), [want, '\n'])
-
-		self.assertNoDeadLinks(notebook)
+	def testRelativeLinkFromMovedPageNotChanged(self):
+		self.movePage(
+			pre=(
+				{'A': '[[+Child]]\n', 'A:Child': 'test 123\n'},
+				[('A', 'A:Child')]
+			),
+			move=('A', 'B'),
+			post=(
+				{'B': '[[+Child]]\n', 'B:Child': 'test 123\n'},
+				[('B', 'B:Child')]
+			)
+		)
 
 	def testTextNotChangedForLinkWithText(self):
-		# XXX - this test belongs at place where interface for changing links it tested
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'B': '[[A|Text]]'
-		})
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B'))
-		self.assertEqual(B.dump('wiki'), ['[[C|Text]]\n'])
+		self.movePage(
+			pre=(
+				{'A': 'test 123\n', 'B': '[[A|Text]]\n'},
+				[('B', 'A')]
+			),
+			move=('A', 'C'),
+			post=(
+				{'C': 'test 123\n', 'B': '[[C|Text]]\n'},
+				[('B', 'C')]
+			)
+		)
 
 	def testOtherLinksNotChanged(self):
-		# XXX - this test belongs at place where interface for changing links it tested
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'B': '[[A]]\nhttp://example.com\nwp?example\nmailto:user@example.com\n'
-		})
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B'))
-		self.assertEqual(
-			B.dump('wiki'),
-			'[[C]]\nhttp://example.com\nwp?example\nmailto:user@example.com\n\n'.splitlines(True)
+		self.movePage(
+			pre=(
+				{
+					'A': '[[A]]\n[[wiki?Page]]\n',
+					'B': '[[A]]\nhttp://example.com\nwp?example\nmailto:user@example.com\n'
+				}, [('A', 'A'), ('B', 'A')]
+			),
+			move=('A', 'C'),
+			post=(
+				{
+					'C': '[[C]]\n[[wiki?Page]]\n',
+					'B': '[[C]]\nhttp://example.com\nwp?example\nmailto:user@example.com\n'
+				}, [('C', 'C'), ('B', 'C')]
+			)
 		)
 
 	def testMultipleLinksOnePage(self):
-		# XXX - this test belongs at place where interface for changing links it tested
-		notebook = self.setUpNotebook(content={
-			'A': 'test 123',
-			'A:A1': 'test 123',
-			'B': '[[A]]\n[[:A]]\n[[D]]\n[[A:A1]]',
-			'D': 'test 123',
-		})
-		notebook.move_page(Path('A'), Path('C'))
-		B = notebook.get_page(Path('B'))
-		self.assertEqual(B.dump('wiki'), '[[C]]\n[[:C]]\n[[D]]\n[[C:A1]]\n'.splitlines(True))
-		self.assertNoDeadLinks(notebook)
+		self.movePage(
+			pre=({
+					'A': 'test 123',
+					'A:A1': 'test 123',
+					'B': '[[A]]\n[[:A]]\n[[D]]\n[[A:A1]]',
+					'D': 'test 123',
+				},
+				[('B', 'A'), ('B', 'A:A1'), ('B', 'D')]
+			),
+			move=('A', 'C'),
+			post=({
+					'C': 'test 123\n',
+					'C:A1': 'test 123\n',
+					'B': '[[C]]\n[[:C]]\n[[D]]\n[[C:A1]]\n',
+					'D': 'test 123\n',
+				},
+				[('B', 'C'), ('B', 'C:A1'), ('B', 'D')]
+			)
+		)
 
 
 class TestPath(tests.TestCase):
@@ -788,6 +990,17 @@ class TestPath(tests.TestCase):
 			self.assertEqual(path.basename, basename)
 			self.assertEqual(path.namespace, namespace)
 			self.assertTrue(path.name in path.__repr__())
+
+		# test equality
+		path = self.generator('Foo:Bar')
+		self.assertTrue(path == Path('Foo:Bar'))
+		self.assertFalse(path == Path('Dus'))
+		self.assertTrue(path.ischild(Path('Foo')))
+		self.assertFalse(path.ischild(Path('Foo:Bar')))
+		self.assertTrue(path.match_namespace(Path('Foo')))
+		self.assertTrue(path.match_namespace(Path('Foo:Bar')))
+		self.assertFalse(path.match_namespace(Path('Foo:Bar:Baz')))
+
 
 	# TODO test operators on paths > < + - >= <= == !=
 
@@ -968,28 +1181,10 @@ class TestPage(TestPath):
 
 class TestMovePageNewNotebook(tests.TestCase):
 
-	def setUp(self):
-		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_MOCK)
-		layout = FilesLayout(folder, endofline='unix')
-		index = Index(':memory:', layout)
-
-		### XXX - Big HACK here - Get better classes for this - XXX ###
-		dir = VirtualConfigBackend()
-		file = dir.file('notebook.zim')
-		file.dir = dir
-		file.dir.basename = 'Unnamed Notebook'
-		###
-		config = NotebookConfig(file)
-
-		dir = None
-		cache_dir = None
-		self.notebook = Notebook(dir, cache_dir, config, folder, layout, index)
-		index.check_and_update()
-
 	def runTest(self):
 		'''Try populating a notebook from scratch'''
 		# Based on bug lp:511481 - should reproduce bug with updating links to child pages
-		notebook = self.notebook
+		notebook = self.setUpNotebook()
 
 		for name, text in (
 			('page1', 'Foo bar\n'),
@@ -998,7 +1193,7 @@ class TestMovePageNewNotebook(tests.TestCase):
 			('page3', 'Hmm\n'),
 		):
 			path = Path(name)
-			page = self.notebook.get_page(path)
+			page = notebook.get_page(path)
 			page.parse('wiki', text)
 			notebook.store_page(page)
 
@@ -1101,16 +1296,23 @@ class TestPageChangeFile(tests.TestCase):
 
 
 try:
-	import gio
+	from gi.repository import Gio
 except ImportError:
-	gio = None
+	Gio = None
 
 @tests.slowTest
-@tests.skipUnless(gio, 'Trashing not supported, \'gio\' is missing')
+@tests.skipUnless(Gio, 'Trashing not supported, \'gio\' is missing')
 class TestTrash(tests.TestCase):
 
 	def runTest(self):
-		notebook = tests.new_files_notebook(self.create_tmp_dir())
+		notebook = self.setUpNotebook(
+			mock=tests.MOCK_ALWAYS_REAL,
+			content={
+				'TrashMe': 'Test 123\n',
+				'TrashMe:sub1': 'Test 345\n',
+				'TrashMe:sub2': 'Test 345\n',
+			}
+		)
 		page = notebook.get_page(Path('TrashMe'))
 		self.assertTrue(page.exists())
 
@@ -1157,3 +1359,14 @@ class TestBackgroundSave(tests.TestCase):
 		text = page.dump('wiki')
 		self.assertEqual(text[-1], 'test 123\n')
 		self.assertEqual(signals['stored-page'], [(page,)]) # post handler happened as well
+
+
+class AttachmentsFolderIsinstance(tests.TestCase):
+
+	def runTest(self):
+		from zim.newfs import Folder
+		folder = self.setUpFolder()
+		layout = FilesLayout(folder)
+		afolder = layout.get_attachments_folder(Path('Test'))
+		self.assertIsInstance(afolder, Folder)
+		self.assertIsInstance(afolder, folder.__class__)  # Either LocalFolder or MockFolder

@@ -1,12 +1,16 @@
 
-from __future__ import with_statement
+
 
 import tests
+
+from tests.pageview import setUpPageView
 
 from zim.fs import Dir
 from zim.notebook import Notebook, Path
 from zim.notebook.operations import ongoing_operation
 from zim.gui.pageview import SavePageHandler, SavePageErrorDialog, PageView
+
+from gi.repository import Gtk
 
 
 @tests.slowTest
@@ -92,18 +96,16 @@ class TestSavePageHandler(tests.TestCase):
 		self.assertTrue(page.modified)
 
 
-from tests.pageview import setUpPageView
-
 from zim.notebook.operations import NotebookState
 
 import threading
 
 
-class TestRaceCodition(tests.TestCase):
+class TestRaceCondition(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook(content = {'test': 'test123\n'})
-		pageview = setUpPageView(notebook=notebook)
+		pageview = setUpPageView(notebook)
 
 		# Install wrapper with events
 		orig = notebook._store_page_async_thread_main
@@ -120,7 +122,7 @@ class TestRaceCodition(tests.TestCase):
 		pageview.set_page(page)
 		pageview.readonly = False
 
-		pageview.view.get_buffer().set_text('foo')
+		pageview.textview.get_buffer().set_text('foo')
 		self.assertTrue(page.modified)
 		pageview._save_page_handler.try_save_page()
 		self.assertTrue(page.modified)
@@ -132,12 +134,81 @@ class TestRaceCodition(tests.TestCase):
 		# Test2 - with race condition
 		start_thread_event.clear()
 		thread_done_event.clear()
-		pageview.view.get_buffer().set_text('bar')
+		pageview.textview.get_buffer().set_text('bar')
 		self.assertTrue(page.modified)
 		pageview._save_page_handler.try_save_page()
 		self.assertTrue(page.modified)
-		pageview.view.get_buffer().set_text('dusss') # edit while save ongoing
+		pageview.textview.get_buffer().set_text('dusss') # edit while save ongoing
 		start_thread_event.set()
 		thread_done_event.wait()
 		with NotebookState(notebook):
 			self.assertTrue(page.modified) # page must still show modified is True
+
+
+class TestDialog(tests.TestCase):
+
+	def setUp(self):
+		notebook = self.setUpNotebook()
+		pageview = setUpPageView(notebook)
+
+		def raise_error(*a):
+			raise AssertionError
+
+		notebook.store_page = raise_error
+
+		pageview.textview.get_buffer().set_text('Editing ...\n')
+		assert pageview.page.modified
+
+		self.page = pageview.page
+		self.pageview = pageview
+		self.handler = SavePageHandler(pageview, notebook, pageview.get_page)
+
+	def testCancel(self):
+
+		def cancel(dialog):
+			self.assertIsInstance(dialog, SavePageErrorDialog)
+			self.assertTrue(self.page.modified)
+			self.assertEqual(self.page.dump('wiki'), ['Editing ...\n'])
+			dialog.response(Gtk.ResponseType.CANCEL)
+			self.assertTrue(self.page.modified)
+			self.assertEqual(self.page.dump('wiki'), ['Editing ...\n'])
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(cancel):
+				self.handler.save_page_now()
+
+	def testDiscard(self):
+
+		def discard(dialog):
+			self.assertIsInstance(dialog, SavePageErrorDialog)
+			self.assertTrue(self.page.modified)
+			self.assertEqual(self.page.dump('wiki'), ['Editing ...\n'])
+			dialog.discard()
+			self.assertFalse(self.page.modified)
+			self.assertNotEqual(self.page.dump('wiki'), ['Editing ...\n'])
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(discard):
+				self.handler.save_page_now()
+
+	def testSaveCopy(self):
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		file = folder.file('copy.txt')
+
+		def save_copy(dialog):
+			self.assertIsInstance(dialog, SavePageErrorDialog)
+			self.assertTrue(self.page.modified)
+			self.assertEqual(self.page.dump('wiki'), ['Editing ...\n'])
+			dialog.save_copy()
+			self.assertFalse(self.page.modified)
+			self.assertNotEqual(self.page.dump('wiki'), ['Editing ...\n'])
+
+		def save_copy_dialog(dialog):
+			dialog.set_file(file)
+			dialog.do_response_ok()
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(save_copy, save_copy_dialog):
+				self.handler.save_page_now()
+
+		self.assertEqual(file.read(), 'Editing ...\n')

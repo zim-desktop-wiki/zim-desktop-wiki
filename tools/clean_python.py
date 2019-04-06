@@ -35,12 +35,12 @@ class CleanupTask(object):
         """
         git_cmd = ["git", "diff", "--name-only"]
         complproc = subprocess.run(git_cmd, stdout=subprocess.PIPE, check=True)
-        if complproc.stdout is None:
-            print("Not commiting anything because nothing changed in cleanup "
-                  "task %s" % self._name)
+        if not complproc.stdout or complproc.stdout.isspace():
+            print(("Not commiting anything because nothing changed in cleanup "
+                  "task %s" % self._name))
             return
 
-        print("Commiting changes for cleanup task %s" % self._name)
+        print(("Commiting changes for cleanup task %s" % self._name))
 
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmpfile:
             tmpfile.write(self._name)
@@ -103,7 +103,7 @@ class Autopep8Task(CleanupTask):
         CleanupTask.__init__(self, name, description)
 
     def cleanup_func(self):
-        print(self._description)
+        print((self._description))
         subprocess.run(self.__cmd, check=True)
 
 
@@ -149,6 +149,8 @@ def _get_tests():
 
 
 def main():
+    subprocess.run(['make', 'clean'])
+
     cleaners = _get_tests()
 
     for cleaner in cleaners:

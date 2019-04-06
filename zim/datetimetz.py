@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -74,7 +73,7 @@ class LocalTimezone(tzinfo):
 
 
 # Initialize setting for first day of the week. This is locale
-# dependent, and the gtk.Calendar widget already has good code to find it out.
+# dependent, and the Gtk.Calendar widget already has good code to find it out.
 # Unfortunately, the widget keeps that data private *%#*$()()*) !
 
 MONDAY = 0 # iso calendar starts week at Monday
@@ -227,42 +226,18 @@ def strfcal(format, date):
 
 
 def strftime(format, date):
-	'''Extended version of strftime that adds a few POSIX codes
-
-	  - C{%u} is replaced by the weekday as a decimal number [1,7], with 1 representing Monday.
-	  - C{%V} is replaced by the week number of the year (Monday as the first day of the week)
-	    as a decimal number [01,53]. If the week containing 1 January has four or more days in
-	    the new year, then it is considered week 1. Otherwise, it is the last week of the
-	    previous year, and the next week is week 1.
-	'''
-	year, week, weekday = date.isocalendar()
-
-	def replacefunc(matchobj):
-		code = matchobj.group(0)
-		if code == '%u':
-			return str(weekday)
-		elif code == '%V':
-			return str(week)
-		else:
-			return code # ignore unsupported codes
-
-	format = re.sub(r'\%.', replacefunc, format)
-	string = date.strftime(str(format)) # str() needed for python 2.5 compatibility strftime
-	lang, enc = locale.getlocale()
-	if enc is not None:
-		string = string.decode(enc) # decode local specific output to unicode
-	return string
-
+	# TODO: deprecate this function
+	return date.strftime(format)
 
 
 if __name__ == '__main__': #pragma: no cover
 	import gettext
-	gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+	gettext.install('zim', None, names=('_', 'gettext', 'ngettext'))
 	init_first_day_of_week()
 
 	if FIRST_DAY_OF_WEEK == SUNDAY:
-		print 'First day of week: Sunday'
+		print('First day of week: Sunday')
 	else:
-		print 'First day of week: Monday'
-	print 'Now:', now().isoformat(), strftime("%z, %Z", now())
-	print 'Calendar:', strfcal('day %w of week %W %Y', now())
+		print('First day of week: Monday')
+	print('Now:', now().isoformat(), strftime("%z, %Z", now()))
+	print('Calendar:', strfcal('day %w of week %W %Y', now()))

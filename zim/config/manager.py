@@ -1,116 +1,72 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2013-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 from weakref import WeakValueDictionary
+
+import logging
+
+logger = logging.getLogger('zim.config')
 
 
 from . import basedirs
 from .dicts import INIConfigFile
 
-from zim.fs import FileNotFoundError
+from zim.newfs import FileNotFoundError
+from zim.fs import FileNotFoundError as oldFileNotFoundError
 
 from zim.signals import ConnectorMixin, SignalEmitter, SignalHandler, SIGNAL_NORMAL
 
 
-class ConfigManager(object):
+class ConfigManagerClass(object):
 	'''This class defines an object that manages a set of config files.
 
 	The config manager abstracts the lookup of files using the XDG
 	search paths and ensures that there is only a single instance used
 	for each config file.
 
-	The config manager can switch the config file based on the config
-	X{profile} that is used. The profile is determined by the notebook
-	properties. However this object relies on it's creator to setup
-	the hooks to get the property from the notebook. Changes to the
-	profile are communicated to all users of the config by means of the
-	"changed" signals on L{ConfigFile} and L{ConfigDict} objects.
+	Typically config files are instantiated as a L{ConfigDict} file and changes
+	are communicated to all users of the config by means of the "changed" signal.
 	'''
 
-	def __init__(self, dir=None, dirs=None, profile=None):
-		'''Constructor
-		@param dir: the folder for reading and writing config files,
-		e.g. a C{Dir} or a C{VirtualConfigBackend} objects.
-		If no dir is given, the XDG basedirs are used and C{dirs} is
-		ignored.
-		@param dirs: list or generator of C{Dir} objects used as
-		search path when a config file does not exist on C{dir}
-		@param profile: initial profile name
-		'''
-		self.profile = profile
+	def __init__(self):
+		self._set()
+
+	def _set(self, dir=None, dirs=None):
+		# this method is called to create virtual configmanagers
 		self._config_files = WeakValueDictionary()
 		self._config_dicts = WeakValueDictionary()
-
-		if dir is None:
-			assert dirs is None, "Do not provide 'dirs' without 'dir'"
 		self._dir = dir
 		self._dirs = dirs
 
-	def set_profile(self, profile):
-		'''Set the profile to use for the configuration
-		@param profile: the profile name or C{None}
-		'''
-		assert profile is None or isinstance(profile, basestring)
-		if profile != self.profile:
-			self.profile = profile
-			for path, conffile in self._config_files.items():
-				if path.startswith('<profile>/'):
-					file, defaults = self._get_file(path)
-					conffile.set_files(file, defaults)
+	def __call__(self):
+		# Behave as singleton
+		return self
 
-			# Updates will cascade through the dicts by the
-			# "changed" signals on various objects
+	@property
+	def preferences(self):
+		return self.get_config_dict('preferences.conf')
 
 	def _get_file(self, filename):
-		basepath = filename.replace('<profile>/', '')
-		if self.profile:
-			path = filename.replace('<profile>/', 'profiles/%s/' % self.profile)
-		else:
-			path = basepath
-
 		if self._dir:
-			file = self._dir.file(path)
-			if self._dirs:
-				defaults = DefaultFileIter(self._dirs, path)
-			else:
-				defaults = DefaultFileIter([], path)
-
-			if self.profile and filename.startswith('<profile>/'):
-				mypath = filename.replace('<profile>/', '')
-				defaults.extra.insert(0, self._dir.file(mypath))
+			file = self._dir.file(filename)
 		else:
-			file = basedirs.XDG_CONFIG_HOME.file('zim/' + path)
-			defaults = XDGConfigFileIter(basepath)
+			file = basedirs.XDG_CONFIG_HOME.file('zim/' + filename)
 
-		## Backward compatibility for profiles
-		if self.profile \
-		and filename in (
-			'<profile>/preferences.conf',
-			'<profile>/style.conf'
-		):
-			backwardfile = self._get_backward_file(filename)
-			defaults.extra.insert(0, backwardfile)
+		if self._dirs:
+			defaults = DefaultFileIter(self._dirs, filename)
+		else:
+			defaults = XDGConfigFileIter(filename)
 
 		return file, defaults
 
-	def _get_backward_file(self, filename):
-		if filename == '<profile>/preferences.conf':
-			path = 'profiles/%s.conf' % self.profile
-		elif filename == '<profile>/style.conf':
-			path = 'styles/%s.conf' % self.profile
-		else:
-			raise AssertionError
-
-		if self._dir:
-			return self._dir.file(path)
-		else:
-			return basedirs.XDG_CONFIG_HOME.file('zim/' + path)
-
 	def get_config_file(self, filename):
 		'''Returns a C{ConfigFile} object for C{filename}'''
+		if filename.startswith('<profile>/'):
+			logger.warning('Use of "<profile>/" in config file is deprecated')
+			filename = filename.replace('<profile>/', '')
+
 		if filename not in self._config_files:
 			file, defaults = self._get_file(filename)
 			config_file = ConfigFile(file, defaults)
@@ -120,6 +76,10 @@ class ConfigManager(object):
 
 	def get_config_dict(self, filename):
 		'''Returns a C{SectionedConfigDict} object for C{filename}'''
+		if filename.startswith('<profile>/'):
+			logger.warning('Use of "<profile>/" in config file is deprecated')
+			filename = filename.replace('<profile>/', '')
+
 		if filename not in self._config_dicts:
 			file = self.get_config_file(filename)
 			config_dict = ConfigManagerINIConfigFile(file)
@@ -131,8 +91,23 @@ class ConfigManager(object):
 	#def get_config_section(filename, section): - return section
 
 
-def VirtualConfigManager(**data):
-	return ConfigManager(VirtualConfigBackend(**data))
+ConfigManager = ConfigManagerClass()  # define singleton
+
+
+def makeConfigManagerVirtual():
+	# Used in test suite to turn ConfigManager singleton in blank virtual state
+	# _set() also resets internal state, but objects that already have a
+	# reference to a config file or config dict will not see this
+	from zim.newfs.mock import MockFolder
+	folder = MockFolder('/<VirtualConfigManager>/')
+	ConfigManager._set(folder)
+
+
+def resetConfigManager():
+	# Used in test suite to turn ConfigManager singleton in blank virtual state
+	# _set() also resets internal state
+	# Objects that were created with the virtual data don not get notified
+	ConfigManager._set()
 
 
 class DefaultFileIter(object):
@@ -216,8 +191,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	and writing methods.
 
 	@signal: C{changed ()}: emitted when the
-	underlying file changed (based on C{gio} monitoring support)
-	or for file monitors or on profile switched
+	underlying file changed (based on C{gio} monitoring support).
 	'''
 
 	__signals__ = {
@@ -225,10 +199,8 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	}
 
 	def __init__(self, file, defaults=None):
-		self.file = None
-		self.defaults = None
-		with self.block_signals('changed'):
-			self.set_files(file, defaults)
+		self.file = file
+		self.defaults = defaults or []
 
 	def __repr__(self):
 		return '<%s: %s>' % (self.__class__.__name__, self.file.path)
@@ -237,25 +209,16 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		return isinstance(other, ConfigFile) \
 			and other.file == self.file
 
-	def set_files(self, file, defaults=None):
-		if self.file:
-			self.disconnect_from(self.file)
-		self.file = file
-		self.defaults = defaults or []
-		#~ self.connectto(self.file, 'changed', self.on_file_changed)
-		self.emit('changed')
-
-	#~ def on_file_changed(self, file, *a):
-		#~ print "CONF FILE changed:", file
-		# TODO verify etag (we didn't write ourselves)
-		#~ self.emit('changed')
-
 	def check_has_changed_on_disk(self):
 		return True # we do not emit the signal if it is not real...
 
 	@property
 	def basename(self):
 		return self.file.basename
+
+	def exists(self):
+		return self.file.exists() or \
+			any(default.exists() for default in self.defaults)
 
 	def touch(self):
 		'''Ensure the custom file in the home folder exists. Either by
@@ -279,7 +242,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		'''
 		try:
 			return self.file.read()
-		except FileNotFoundError:
+		except (FileNotFoundError, oldFileNotFoundError):
 			for default in self.defaults:
 				return default.read()
 			else:
@@ -297,7 +260,7 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 		'''
 		try:
 			return self.file.readlines()
-		except FileNotFoundError:
+		except (FileNotFoundError, oldFileNotFoundError):
 			for default in self.defaults:
 				return default.readlines()
 			else:
@@ -309,85 +272,15 @@ class ConfigFile(ConnectorMixin, SignalEmitter):
 	def write(self, text):
 		'''Write base file, see L{File.write()}'''
 		self.file.write(text)
+		self.emit('changed')
 
 	def writelines(self, lines):
 		'''Write base file, see L{File.writelines()}'''
 		self.file.writelines(lines)
+		self.emit('changed')
 
 	def remove(self):
 		'''Remove user file, leaves default files in place'''
 		if self.file.exists():
 			return self.file.remove()
-
-
-
-class VirtualConfigBackend(object):
-	'''Virtual dir, mainly used for testing'''
-
-	def __init__(self, **data):
-		self._data = data
-
-	def file(self, path):
-		return VirtualConfigBackendFile(self._data, path)
-
-
-
-class VirtualConfigBackendFile(object):
-	'''Virtual file, mainly used for testing'''
-
-	def __init__(self, data, path):
-		self._key = path
-		self._data = data
-
-	@property
-	def path(self):
-		return '<virtual>/' + self._key
-
-	@property
-	def basename(self):
-		import os
-		return os.path.basename(self.path)
-
-	def connect(self, handler, *a):
-		pass
-
-	def disconnect(self, handler):
-		pass
-
-	def exists(self):
-		return self._key in self._data \
-			and self._data[self._key] is not None
-
-	def touch(self):
-		self._data.setdefault(self._key, '')
-
-	def copyto(self, other):
-		text = self.read()
-		other.write(text)
-
-	def read(self):
-		try:
-			text = self._data[self._key]
-		except KeyError:
-			raise FileNotFoundError(self)
-		else:
-			if text is None:
-				raise FileNotFoundError(self)
-			else:
-				return text
-
-	def readlines(self):
-		text = self.read()
-		return text.splitlines(True)
-
-	def write(self, text):
-		self._data[self._key] = text or ''
-
-	def writelines(self, lines):
-		self._data[self._key] = ''.join(lines) or ''
-
-	def remove(self):
-		del self._data[self._key]
-
-
-
+		self.emit('changed')

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # ditaaeditor.py
 #
@@ -12,7 +11,8 @@
 #
 #
 
-from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
+from zim.plugins import PluginClass
+from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGeneratorObjectType
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.applications import Application, ApplicationError
@@ -22,7 +22,7 @@ from zim.applications import Application, ApplicationError
 dotcmd = ('ditaa')
 
 
-class InsertDitaaPlugin(ImageGeneratorPlugin):
+class InsertDitaaPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Ditaa'), # T: plugin name
@@ -35,29 +35,26 @@ This is a core plugin shipping with zim.
 		'author': 'Yao-Po Wang',
 	}
 
-	object_type = 'ditaa'
-	short_label = _('Ditaa') # T: menu item
-	insert_label = _('Insert Ditaa') # T: menu item
-	edit_label = _('_Edit Ditaa') # T: menu item
-	syntax = None
-
 	@classmethod
 	def check_dependencies(klass):
 		has_dotcmd = Application(dotcmd).tryexec()
 		return has_dotcmd, [("Ditaa", has_dotcmd, True)]
 
 
+class BackwardDitaaImageObjectType(BackwardImageGeneratorObjectType):
+
+	name = 'image+ditaa'
+	label = _('Ascii graph (Ditaa)') # T: menu item
+	syntax = None
+	scriptname = 'ditaa.dia'
+	imagefile_extension = '.png'
+
+
 class DitaaGenerator(ImageGeneratorClass):
 
-	uses_log_file = False
-
-	object_type = 'ditaa'
-	scriptname = 'ditaa.dia'
-	imagename = 'ditaa.png'
-
-	def __init__(self, plugin):
-		ImageGeneratorClass.__init__(self, plugin)
-		self.dotfile = TmpFile(self.scriptname)
+	def __init__(self, plugin, notebook, page):
+		ImageGeneratorClass.__init__(self, plugin, notebook, page)
+		self.dotfile = TmpFile('ditaa.dia')
 		self.dotfile.touch()
 		self.pngfile = File(self.dotfile.path[:-4] + '.png') # len('.dot') == 4
 

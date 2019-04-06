@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -43,8 +42,6 @@ class FilesExporterBase(Exporter):
 		# XXX what to do with folders that do not map to a page ?
 		source = notebook.get_attachments_dir(page)
 		target = self.layout.attachments_dir(page)
-		assert isinstance(target, Dir)
-		target = LocalFolder(target.path) # XXX convert
 		try:
 			for file in source.list_files():
 					yield file
@@ -70,7 +67,11 @@ class FilesExporterBase(Exporter):
 			if dir.exists(): # Export does overwrite by default
 				dir.remove_children()
 				dir.remove()
-			self.template.resources_dir.copyto(dir)
+
+			resources = self.template.resources_dir
+			if isinstance(resources, Dir):
+				resources = LocalFolder(resources.path)
+			resources.copyto(dir)
 
 
 class MultiFileExporter(FilesExporterBase):
@@ -86,7 +87,7 @@ class MultiFileExporter(FilesExporterBase):
 		'''
 		FilesExporterBase.__init__(self, layout, template, format, document_root_url)
 		if index_page:
-			if isinstance(index_page, basestring):
+			if isinstance(index_page, str):
 				self.index_page = Path(Path.makeValidPageName(index_page))
 			else:
 				self.index_page = index_page

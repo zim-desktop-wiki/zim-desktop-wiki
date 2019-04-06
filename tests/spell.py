@@ -1,14 +1,15 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
 
 try:
-	import gtkspell
+	import gi
+	gi.require_version('GtkSpell', '3.0')
+	from gi.repository import GtkSpell as gtkspell
 except:
 	gtkspell = None
 
@@ -20,7 +21,10 @@ except:
 
 import zim.plugins.spell
 
-from tests.gui import setupGtkInterface, Path
+from zim.plugins import find_extension, PluginManager
+from zim.notebook import Path
+
+from tests.mainwindow import setUpMainWindow
 
 
 class TestSpell(object):
@@ -37,24 +41,24 @@ class TestSpell(object):
 
 	def runTest(self, adapterclass):
 		with tests.LoggingFilter(logger='zim.plugins.spell'): # Hide exceptions
-			ui = setupGtkInterface(self)
-			plugin = ui.plugins.load_plugin('spell')
-			plugin.extend(ui._mainwindow) # XXX
-			ext = plugin.get_extension(ui._mainwindow, zim.plugins.spell.MainWindowExtension) # XXX
+			window = setUpMainWindow(self.setUpNotebook(content=('Test', 'Foo', 'Bar')))
 
-			self.assertIs(ext._adapter, adapterclass) # ensure switching library worked
+			plugin = PluginManager.load_plugin('spell')
+			ext = find_extension(window.pageview, zim.plugins.spell.SpellPageViewExtension)
+
+			self.assertIs(ext._adapter_cls, adapterclass) # ensure switching library worked
 
 			ext.toggle_spellcheck()
 			ext.toggle_spellcheck()
-			ext.toggle_spellcheck()
-
-			ui.open_page(Path('Foo'))
-			ui.open_page(Path('Bar'))
 			ext.toggle_spellcheck()
 
-			ui.open_page(Path('Foo'))
-			ui.open_page(Path('Bar'))
+			window.open_page(Path('Foo'))
+			window.open_page(Path('Bar'))
 			ext.toggle_spellcheck()
+
+			window.open_page(Path('Foo'))
+			window.open_page(Path('Bar'))
+			#ext.toggle_spellcheck()
 
 			# TODO check it actually shows on screen ...
 

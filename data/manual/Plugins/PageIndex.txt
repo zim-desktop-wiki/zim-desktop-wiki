@@ -1,0 +1,20 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.4
+Creation-Date: 2017-11-09T12:13:12+01:00
+
+====== PageIndex ======
+This plugin provides the page index side pane for the main window.
+
+**Dependencies:** This plugin has no additional dependencies.
+
+===== Options =====
+The option **Position in the window** determines in which side pane the browser is shown.
+
+
+===== Style =====
+
+This plugin uses a widget name to allow CSS styling for the floating widget:
+
+* zim-pageindex: for the main treeview
+
+See [[Help:Config Files]] for info on CSS styling

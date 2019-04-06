@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # scoreeditor.py
 #
@@ -14,7 +13,8 @@
 
 import glob
 
-from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
+from zim.plugins import PluginClass
+from zim.plugins.base.imagegenerator import ImageGeneratorClass, BackwardImageGeneratorObjectType
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
@@ -37,7 +37,7 @@ def _get_lilypond_version():
 	except ApplicationError:
 		return '2.14.2'
 
-class InsertScorePlugin(ImageGeneratorPlugin):
+class InsertScorePlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert Score'), # T: plugin name
@@ -56,34 +56,34 @@ This is a core plugin shipping with zim.
 		('include_footer', 'string', _('Common include footer'), ''), # T: plugin preference
 	]
 
-	object_type = 'score'
-	short_label = _('S_core') # T: menu item
-	insert_label = _('Insert Score') # T: menu item
-	edit_label = _('_Edit Score') # T: menu item
-	syntax = None
-
 	@classmethod
 	def check_dependencies(klass):
 		has_lilypond = Application(lilypond_cmd).tryexec()
 		return has_lilypond, [('GNU Lilypond', has_lilypond, True)]
 
 
+class BackwardScoreImageObjectType(BackwardImageGeneratorObjectType):
+
+	name = 'image+score'
+	label = _('Score') # T: menu item
+	syntax = None
+	scriptname = 'score.ly'
+	imagefile_extension = '.png'
+
+
 class ScoreGenerator(ImageGeneratorClass):
 
-	object_type = 'score'
-	scriptname = 'score.ly'
-	imagename = 'score.png'
 	cur_lilypond_version = None
 
-	def __init__(self, plugin):
-		ImageGeneratorClass.__init__(self, plugin)
+	def __init__(self, plugin, notebook, page):
+		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.template = get_template('plugins', 'scoreeditor.ly')
-		self.scorefile = TmpFile(self.scriptname)
+		self.scorefile = TmpFile('score.ly')
 		self.cur_lilypond_version = _get_lilypond_version()
 		self.include_header = plugin.preferences['include_header']
 		self.include_footer = plugin.preferences['include_footer']
 
-	def process_input(self, text):
+	def check_user_input(self, text):
 		version_present = False
 		for l in text.splitlines(True):
 			if l.strip().startswith('\\version'):
@@ -104,7 +104,7 @@ class ScoreGenerator(ImageGeneratorClass):
 
 	def generate_image(self, text):
 		(version, text) = self.extract_version(text)
-		#~ print '>>>%s<<<' % text
+		#~ print('>>>%s<<<' % text)
 
 		# Write to tmp file using the template for the header / footer
 		scorefile = self.scorefile
@@ -116,7 +116,7 @@ class ScoreGenerator(ImageGeneratorClass):
 			'include_footer': self.include_footer or '',
 		})
 		scorefile.writelines(lines)
-		#~ print '>>>%s<<<' % scorefile.read()
+		#~ print('>>>%s<<<' % scorefile.read())
 
 		# Call convert-ly to convert document of current version of
 		# Lilypond.

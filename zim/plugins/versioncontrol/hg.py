@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2012 Damien Accorsi <damien.accorsi@free.fr>
 
-from __future__ import with_statement
+
 
 import os
 import logging
@@ -12,6 +11,7 @@ import xml.etree.ElementTree # needed to compile with cElementTree
 import xml.etree.cElementTree as ET
 
 
+from zim.newfs import LocalFile
 from zim.plugins.versioncontrol import VCSApplicationBase
 from zim.applications import Application
 
@@ -23,7 +23,7 @@ class HGApplicationBackend(VCSApplicationBase):
 
 	@classmethod
 	def build_bin_application_instance(cls):
-		return Application(('hg', '--noninteractive', '--encoding', 'utf8'), encoding='utf-8')
+		return Application(('hg', '--noninteractive'))
 			# force hg to run in non-interactive mode
 			# which will force user name to be auto-setup
 
@@ -72,7 +72,7 @@ class HGApplicationBackend(VCSApplicationBase):
 			return self.run(['add', path])
 
 
-	def annotate(self, file, version):
+	def annotate(self, file, version=None):
 		"""FIXME Document
 		return
 		0: line1
@@ -101,7 +101,7 @@ class HGApplicationBackend(VCSApplicationBase):
 			params.append(path)
 		return self.run(params)
 
-	def diff(self, versions, path=None):
+	def diff(self, versions=None, file=None):
 		"""
 		Runs:
 			hg diff --git {{REVISION_ARGS}}
@@ -109,11 +109,11 @@ class HGApplicationBackend(VCSApplicationBase):
 			hg diff --git {{REVISION_ARGS}} {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
-		if path is None:
+		if file is None:
 			return self.pipe(['diff', '--git'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
-			return self.pipe(['diff', '--git', path] + revision_args)
+			return self.pipe(['diff', '--git', file] + revision_args)
 
 	def ignore(self, file_to_ignore_regexp):
 		"""
@@ -144,7 +144,7 @@ class HGApplicationBackend(VCSApplicationBase):
 
 		@returns: a boolean True if a repo is already setup, or False
 		"""
-		return self.root.subdir('.hg').exists()
+		return self.root.folder('.hg').exists()
 
 	def init(self):
 		"""
@@ -194,9 +194,10 @@ class HGApplicationBackend(VCSApplicationBase):
 		"""
 		Runs: hg rm {{PATH}}
 		"""
-		return self.run(['rm', '-A', path])
+		if isinstance(path, LocalFile):
+			return self.run(['rm', '-A', path])
 
-	def revert(self, path, version):
+	def revert(self, path=None, version=None):
 		"""
 		Runs:
 			hg revert --no-backup {{PATH}} {{REV_ARGS}}

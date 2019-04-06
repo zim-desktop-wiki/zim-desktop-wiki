@@ -1,24 +1,23 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''Helper classes for file system related functions'''
 
 try:
-	import gio
-	import gobject
+	from gi.repository import Gio
+	from gi.repository import GObject
 except ImportError:
-	gio = None
+	Gio = None
 
-
-from zim.signals import SignalEmitter, SIGNAL_NORMAL
-from zim.errors import TrashNotSupportedError, TrashNotSupportedError
 
 import os
 import logging
 
 logger = logging.getLogger('zim.newfs.helpers')
 
+
+from zim.signals import SignalEmitter, SIGNAL_NORMAL
+from zim.errors import Error
 
 from .local import LocalFSObjectBase
 
@@ -40,6 +39,20 @@ class FileTreeWatcher(SignalEmitter):
 	} #: signals supported by this class
 
 
+class TrashNotSupportedError(Error):
+	'''Error raised when trashing is not supported and delete should
+	be used instead
+	'''
+	pass
+
+
+class TrashCancelledError(Error):
+	'''Error raised when a trashing operation is cancelled. (E.g. on
+	windows the system will prompt the user with a confirmation
+	dialog which has a Cancel button.)
+	'''
+	pass
+
 
 class TrashHelper(object):
 
@@ -47,29 +60,29 @@ class TrashHelper(object):
 		'''Trash a file or folder by moving it to the system trashcan
 		if supported. Depends on the C{gio} library.
 		@param file: a C{LocalFile} object
-		@returns: C{True} when succesful
+		@returns: C{True} when successful
 		@raises TrashNotSupportedError: if trashing is not supported
 		or failed.
 		@raises TrashCancelledError: if trashing was cancelled by the
 		user
 		'''
-		if not gio:
-			raise TrashNotSupportedError('gio not imported')
+		if not Gio:
+			raise TrashNotSupportedError('Gio not imported')
 		elif not isinstance(file, LocalFSObjectBase):
 			raise TrashNotSupportedError('cannot trash a non-local file or folder')
 
 		if file.exists():
 			logger.info('Move %s to trash' % file)
-			f = gio.File(uri=file.uri)
+			f = Gio.File.new_for_uri(file.uri)
 			try:
 				ok = f.trash()
-			except gobject.GError as error:
-				if error.code == gio.ERROR_CANCELLED \
+			except GObject.GError as error:
+				if error.code == Gio.IOErrorEnum.CANCELLED \
 				or (os.name == 'nt' and error.code == 0):
 					# code 0 observed on windows for cancel
 					logger.info('Trash operation cancelled')
 					raise TrashCancelledError('Trashing cancelled')
-				elif error.code == gio.ERROR_NOT_SUPPORTED:
+				elif error.code == Gio.IOErrorEnum.NOT_SUPPORTED:
 					raise TrashNotSupportedError('Trashing failed')
 				else:
 					raise error
@@ -96,10 +109,10 @@ class FSObjectMonitor(SignalEmitter):
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
 		and self._gio_file_monitor is None \
-		and gio:
+		and Gio:
 			try:
-				file = gio.File(uri=self.path.uri)
-				self._gio_file_monitor = file.monitor()
+				file = Gio.File.new_for_uri(self.path.uri)
+				self._gio_file_monitor = file.monitor(0, None)
 				self._gio_file_monitor.connect('changed', self._on_changed)
 			except:
 				logger.exception('Error while setting up file monitor')
@@ -132,12 +145,12 @@ class FSObjectMonitor(SignalEmitter):
 		# For Dir objects, the event will refer to files contained in
 		# the dir.
 
-		#~ print 'MONITOR:', self, event_type
+		#~ print('MONITOR:', self, event_type)
 		if event_type in (
-			gio.FILE_MONITOR_EVENT_CREATED,
-			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
-			gio.FILE_MONITOR_EVENT_DELETED,
-			gio.FILE_MONITOR_EVENT_MOVED,
+			Gio.FileMonitorEvent.CREATED,
+			Gio.FileMonitorEvent.CHANGES_DONE_HINT,
+			Gio.FileMonitorEvent.DELETED,
+			Gio.FileMonitorEvent.MOVED,
 		):
 			self.emit('changed', None, None) # TODO translate otherfile and eventtype
 

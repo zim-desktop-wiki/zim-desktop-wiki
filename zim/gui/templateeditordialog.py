@@ -1,14 +1,15 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-import gtk
+from gi.repository import Gtk
 
-from zim.fs import TrashNotSupportedError
+from zim.newfs import LocalFile
+from zim.newfs.helpers import TrashHelper, TrashNotSupportedError
 from zim.config import XDG_DATA_HOME, data_file
 from zim.templates import list_template_categories, list_templates
-from zim.gui.widgets import Dialog, BrowserTreeView, Button, ScrolledWindow
+from zim.gui.widgets import Dialog, BrowserTreeView, ScrolledWindow
+from zim.gui.applications import open_folder_prompt_create, open_file, edit_file
 
 
 class TemplateEditorDialog(Dialog):
@@ -16,46 +17,46 @@ class TemplateEditorDialog(Dialog):
 	Allows edit, delete, and create new templates. Uses external editor.
 	'''
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui,
-			_('Templates'), help='Help:Templates', buttons=gtk.BUTTONS_CLOSE,
+	def __init__(self, parent):
+		Dialog.__init__(self, parent,
+			_('Templates'), help='Help:Templates', buttons=Gtk.ButtonsType.CLOSE,
 			defaultwindowsize=(400, 450))
 			# T: Dialog title
 
-		label = gtk.Label()
+		label = Gtk.Label()
 		label.set_markup('<b>' + _('Templates') + '</b>')
 			# T: Section in dialog
 		label.set_alignment(0.0, 0.5)
-		self.vbox.pack_start(label, False)
+		self.vbox.pack_start(label, False, True, 0)
 
-		hbox = gtk.HBox()
-		self.vbox.add(hbox)
+		hbox = Gtk.HBox()
+		self.vbox.pack_start(hbox, True, True, 0)
 
 		self.view = TemplateListView()
 		self.view.connect('row-activated', self.on_selection_changed)
-		hbox.add(ScrolledWindow(self.view))
+		hbox.pack_start(ScrolledWindow(self.view), True, True, 0)
 
-		vbbox = gtk.VButtonBox()
-		vbbox.set_layout(gtk.BUTTONBOX_START)
-		hbox.pack_start(vbbox, False)
+		vbbox = Gtk.VButtonBox()
+		vbbox.set_layout(Gtk.ButtonBoxStyle.START)
+		hbox.pack_start(vbbox, False, True, 0)
 
-		view_button = Button(stock='gtk-file', label=_('_View')) # T: button label
+		view_button = Gtk.Button.new_with_mnemonic(_('_View')) # T: button label
 		view_button.connect('clicked', self.on_view)
 
-		copy_button = Button(stock='gtk-copy')
+		copy_button = Gtk.Button.new_with_mnemonic(_('_Copy')) # T: Button label
 		copy_button.connect('clicked', self.on_copy)
 
-		edit_button = Button(stock='gtk-edit')
+		edit_button = Gtk.Button.new_with_mnemonic(_('_Edit')) # T: Button label
 		edit_button.connect('clicked', self.on_edit)
 
-		delete_button = gtk.Button(stock='gtk-remove')
+		delete_button = Gtk.Button.new_with_mnemonic(_('_Remove')) # T: Button label
 		delete_button.connect('clicked', self.on_delete)
 
 		for b in (view_button, copy_button, edit_button, delete_button):
 			b.set_alignment(0.0, 0.5)
 			vbbox.add(b)
 
-		browse_button = Button(_('Browse')) # T: button label
+		browse_button = Gtk.Button.new_with_mnemonic(_('Browse')) # T: button label
 		browse_button.connect('clicked', self.on_browse)
 		self.add_extra_button(browse_button)
 
@@ -64,13 +65,11 @@ class TemplateEditorDialog(Dialog):
 		self.on_selection_changed()
 
 		## Same button appears in export dialog
-		if gtk.gtk_version >= (2, 10) \
-		and gtk.pygtk_version >= (2, 10):
-			url_button = gtk.LinkButton(
-				'http://zim-wiki.org/more_templates.html',
-				_('Get more templates online') # T: label for button with URL
-			)
-			self.vbox.pack_start(url_button, False)
+		url_button = Gtk.LinkButton(
+			'http://zim-wiki.org/more_templates.html',
+			_('Get more templates online') # T: label for button with URL
+		)
+		self.vbox.pack_start(url_button, False, True, 0)
 
 	def on_selection_changed(self, *a):
 		# Set sensitivity of the buttons
@@ -87,16 +86,16 @@ class TemplateEditorDialog(Dialog):
 			self._delete_button.set_sensitive(False)
 
 	def on_view(self, *a):
-		# Open the file, witout waiting for editor to return
+		# Open the file, without waiting for editor to return
 		custom, default = self.view.get_selected()
 		if custom is None:
 			return # Should not have been sensitive
 
 		if custom.exists():
-			self.ui.open_file(custom)
+			open_file(self, custom)
 		else:
 			assert default and default.exists()
-			self.ui.open_file(default)
+			open_file(self, default)
 
 	def on_copy(self, *a):
 		# Create a new template in this category
@@ -111,6 +110,7 @@ class TemplateEditorDialog(Dialog):
 			source = default
 
 		name = PromptNameDialog(self).run()
+		assert name is not None
 		_, ext = custom.basename.rsplit('.', 1)
 		basename = name + '.' + ext
 		newfile = custom.dir.file(basename)
@@ -128,7 +128,7 @@ class TemplateEditorDialog(Dialog):
 			# Copy default
 			default.copyto(custom)
 
-		self.ui.edit_file(custom, istextfile=True, dialog=self)
+		edit_file(self, custom, istextfile=True)
 		self.view.refresh()
 
 	def on_delete(self, *a):
@@ -138,7 +138,7 @@ class TemplateEditorDialog(Dialog):
 			return # Should not have been sensitive
 
 		try:
-			custom.trash()
+			TrashHelper().trash(LocalFile(custom.path))
 		except TrashNotSupportedError:
 			# TODO warnings
 			custom.remove()
@@ -147,13 +147,13 @@ class TemplateEditorDialog(Dialog):
 
 	def on_browse(self, *a):
 		dir = XDG_DATA_HOME.subdir(('zim', 'templates'))
-		self.ui.open_dir(dir)
+		open_folder_prompt_create(self, dir)
 
 
 class PromptNameDialog(Dialog):
 
-	def __init__(self, ui):
-		Dialog.__init__(self, ui, _('Copy Template')) # T: Dialog title
+	def __init__(self, parent):
+		Dialog.__init__(self, parent, _('Copy Template')) # T: Dialog title
 		self.add_form([
 			('name', 'string', _('Name')),
 				# T: Input label for the new name when copying a template
@@ -173,13 +173,13 @@ class TemplateListView(BrowserTreeView):
 
 	def __init__(self):
 		BrowserTreeView.__init__(self)
-		model = gtk.TreeStore(str, object, object)
+		model = Gtk.TreeStore(str, object, object)
 			# BASENAME_COL, FILE_COL, DEFAULT_COL
 		self.set_model(model)
 		self.set_headers_visible(False)
 
-		cell_renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('_template_', cell_renderer, text=self.BASENAME_COL)
+		cell_renderer = Gtk.CellRendererText()
+		column = Gtk.TreeViewColumn('_template_', cell_renderer, text=self.BASENAME_COL)
 		self.append_column(column)
 
 		self.refresh()
@@ -192,6 +192,9 @@ class TemplateListView(BrowserTreeView):
 		else:
 			return model[iter][self.FILE_COL], model[iter][self.DEFAULT_COL]
 
+	def select(self, path):
+		self.get_selection().select_path(path)
+
 	def refresh(self):
 		model = self.get_model()
 		model.clear()
@@ -200,7 +203,7 @@ class TemplateListView(BrowserTreeView):
 			for name, basename in list_templates(category):
 				base = XDG_DATA_HOME.file(('zim', 'templates', category, basename))
 				default = data_file(('templates', category, basename)) # None if not existing
-				#~ print '>>>', name, base, default
+				#~ print('>>>', name, base, default)
 				model.append(parent, (name, base, default))
 
 		self.expand_all()

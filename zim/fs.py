@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -15,121 +14,23 @@ filesystem, whichprovides signals when a file or folder is created,
 moved or deleted. This is stored in L{zim.fs.FS}.
 '''
 
-# From the python doc: If you're starting with a Python file object f, first
-# do f.flush(), and then do os.fsync(f.fileno()), to ensure that all internal
-# buffers associated with f are written to disk. Availability: Unix, and
-# Windows starting in 2.2.3.
-#
-# (Remember the ext4 issue with truncated files in case of failure within
-# 60s after write. This way of working should prevent that kind of issue.)
-
-# ----
-
-# Unicode notes from: http://kofoto.rosdahl.net/wiki/UnicodeInPython
-# no guarantees that this is correct, but most detailed info I could find.
-#
-# On Unix, the file system encoding is taken from the locale settings.
-# On Windows, the encoding is always mbcs, which indicates that the
-# "wide" versions of API calls should be used.
-#
-# Note: File system operations raise a UnicodeEncodeError if given a
-# path that can't be encoded in the encoding returned by
-# sys.getfilesystemencoding().
-#
-# os.listdir(u"path") returns Unicode strings for names that
-# can be decoded with sys.getfilesystemencoding() but silently returns
-# byte strings for names that can't be decoded. That is, the return
-# value of os.listdir(u"path") is potentially a mixed list of Unicode
-# and byte strings.
-#
-# os.readlink chokes on Unicode strings that aren't coercible to the
-# default encoding. The argument must therefore be a byte string.
-# (Not applicable to Windows.)
-#
-# glob.glob(u"pattern") does not return Unicode strings.
-#
-# On Unix, os.path.abspath throws UnicodeDecodeError when given a
-# Unicode string with a relative path and os.getcwd() returns a
-# non-ASCII binary string (or rather: a
-# non-sys.getdefaultencoding()-encoded binary string). Therefore, the
-# argument must be a byte string. On Windows, however, the argument
-# must be a Unicode string so that the "wide" API calls are used.
-#
-# os.path.realpath behaves the same way as os.path.abspath.
-#
-# os.path.expanduser (on both UNIX and Windows) doesn't handle Unicode
-# when ~ expands to a non-ASCII path. Therefore, a byte string must be
-# passed in and the result decoded.
-#
-# Environment variables in the os.environ dictionary are byte strings
-# (both names and values).
-
-# So we need to encode paths before handing them over to these
-# filesystem functions and catch any UnicodeEncodeError errors.
-# Also we use this encoding for decoding filesystem paths. However if
-# we get some unexpected encoding from the filesystem we are in serious
-# trouble, as it will be difficult to resolve. So we refuse to handle
-# files with inconsistent encoding.
-#
-# Fortunately the only place where we (should) get arbitrary unicode
-# paths are page names, so we should apply url encoding when mapping
-# page names to file names. Seems previous versions of zim simply
-# failed in this case when the page name contained characters outside
-# of the set supported by the encoding supported.
-#
-# Seems zim was broken before for non-utf-8 filesystems as soon as you
-# use characters in page names that did not fit in the filesystem
-# encoding scheme. So no need for compatibility function, just try to
-# do the right thing.
-#
-# As a special case we map ascii to utf-8 because LANG=C will set encoding
-# to ascii and this is usually not what the user intended. Also utf-8
-# is the most common filesystem encoding on modern operating systems.
-
-# Note that we do this logic for the filesystem encoding - however the
-# file contents remain utf-8.
-# TODO could try fallback to locale if decoding utf-8 fails for file contents
-
-# From other sources:
-# about os.path.supports_unicode_filenames:
-# The only two platforms that currently support unicode filenames properly
-# are Windows NT/XP and MacOSX, and for one of them
-# os.path.supports_unicode_filenames returns False :(
-# see http://python.org/sf/767645
-# So don't rely on it.
-
-# ----
-
-# It could be considered to use a weakref dictionary to ensure the same
-# identity for objects representing the same physical file. (Like we do
-# for page objects in zim.notebook.) However this is not done for a good
-# reason: each part of the code that uses a specific file must do it's
-# own checks to detect if the file was changed outside it's control.
-# So it is e.g. possible to have multiple instances of File() which
-# represent the same file but independently manage the mtime and md5
-# checksums to ensure the file is what they think it should be.
-#
-# TODO - we could support weakref for directories to allow locking via
-# the dir object
-
-
-from __future__ import with_statement
-
 import os
 import re
 import sys
 import shutil
 import errno
-import codecs
 import logging
-import threading
 
 
-from zim.errors import Error, TrashNotSupportedError, TrashCancelledError
+from zim.errors import Error
 from zim.parsing import url_encode, url_decode, URL_ENCODE_READABLE
 from zim.signals import SignalEmitter, SIGNAL_AFTER
 
 logger = logging.getLogger('zim.fs')
+
+
+from zim.newfs.base import _os_expanduser, SEP
+from zim.newfs.local import AtomicWriteContext
 
 
 def adapt_from_newfs(file):
@@ -143,19 +44,12 @@ def adapt_from_newfs(file):
 		return file
 
 
-#: gobject and gio libraries are imported for optional features, like trash
-gobject = None
-gio = None
 try:
-	import gobject
-	import gio
-	if not gio.File.trash:
-		gio = None
+	from gi.repository import Gio
 except ImportError:
-	pass
+	Gio = None
 
-if not gio:
-	logger.info("Trashing of files not supported, could not import 'gio'")
+if not Gio:
 	logger.info('No file monitor support - changes will go undetected')
 
 
@@ -165,7 +59,7 @@ try:
 	import xdg.Mime as xdgmime
 except ImportError:
 	if os.name != 'nt':
-		logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
 	else:
 		pass # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
@@ -173,7 +67,7 @@ except ImportError:
 
 #: Extensions to determine image mimetypes - used in L{File.isimage()}
 IMAGE_EXTENSIONS = (
-	# Gleaned from gtk.gdk.get_formats()
+	# Gleaned from Gdk.get_formats()
 	'bmp', # image/bmp
 	'gif', # image/gif
 	'icns', # image/x-icns
@@ -209,51 +103,6 @@ IMAGE_EXTENSIONS = (
 )
 
 
-ENCODING = sys.getfilesystemencoding() #: file system encoding for paths
-if ENCODING.upper() in (
-	'ASCII', 'US-ASCII', 'ANSI_X3.4-1968', 'ISO646-US', # some aliases for ascii
-	'LATIN1', 'ISO-8859-1', 'ISO_8859-1', 'ISO_8859-1:1987', # aliases for latin1
-):
-	logger.warn('Filesystem encoding is set to ASCII or Latin1, using UTF-8 instead')
-	ENCODING = 'utf-8'
-
-
-if ENCODING == 'mbcs':
-	# Encoding 'mbcs' means we run on windows and filesystem can handle utf-8 natively
-	# so here we just convert everything to unicode strings
-	def encode(path):
-		if isinstance(path, unicode):
-			return path
-		else:
-			return unicode(path)
-
-	def decode(path):
-		if isinstance(path, unicode):
-			return path
-		else:
-			return unicode(path)
-else:
-	# Here we encode files to filesystem encoding. Fails if encoding is not possible.
-	def encode(path):
-		if isinstance(path, unicode):
-			try:
-				return path.encode(ENCODING)
-			except UnicodeEncodeError:
-				raise Error('BUG: invalid filename %s' % path)
-		else:
-			return path # assume encoding is correct
-
-
-	def decode(path):
-		if isinstance(path, unicode):
-			return path # assume encoding is correct
-		else:
-			try:
-				return path.decode(ENCODING)
-			except UnicodeDecodeError:
-				raise Error('BUG: invalid filename %s' % path)
-
-
 def isabs(path):
 	'''Wrapper for C{os.path.isabs}.
 	@param path: a file system path as string
@@ -263,67 +112,6 @@ def isabs(path):
 	or path.startswith('~') \
 	or os.path.isabs(path)
 
-
-def isdir(path):
-	'''Wrapper for C{os.path.isdir()}, fixes encoding.
-	@param path: a file system path as string
-	@returns: C{True} when the path is an existing dir
-	'''
-	return os.path.isdir(encode(path))
-
-
-def isfile(path):
-	'''Wrapper for C{os.path.isfile()}, fixes encoding.
-	@param path: a file system path as string
-	@returns: C{True} when the path is an existing file
-	'''
-	return os.path.isfile(encode(path))
-
-
-def joinpath(*parts):
-	'''Wrapper for C{os.path.join()}
-	@param parts: path elements
-	@returns: the same paths joined with the proper path separator
-	'''
-	return os.path.join(*parts)
-
-def expanduser(path):
-	'''Wrapper for C{os.path.expanduser()} to get encoding right'''
-	if ENCODING == 'mbcs':
-		# This method is an exception in that it does not handle unicode
-		# directly. This will cause and error when user name contains
-		# non-ascii characters. See bug report lp:988041.
-		# But also mbcs encoding does not handle all characters,
-		# so only encode home part
-		parts = path.replace('\\', '/').strip('/').split('/')
-			# parts[0] now is "~" or "~user"
-
-		if isinstance(path, unicode):
-			part = parts[0].encode('mbcs')
-			part = os.path.expanduser(part)
-			parts[0] = part.decode('mbcs')
-		else:
-			# assume it is compatible
-			parts[0] = os.path.expanduser(parts[0])
-
-		path = '/'.join(parts)
-	else:
-		# Let encode() handle the unicode encoding
-		path = decode(os.path.expanduser(encode(path)))
-
-	if path.startswith('~'):
-		# expansion failed - do a simple fallback
-		from zim.environ import environ
-
-		home = environ['HOME']
-		parts = path.replace('\\', '/').strip('/').split('/')
-		if parts[0] == '~':
-			path = '/'.join([home] + parts[1:])
-		else: # ~user
-			dir = os.path.basename(home) # /home or similar ?
-			path = '/'.join([dir, parts[0][1:]] + parts[1:])
-
-	return path
 
 def get_tmpdir():
 	'''Get a folder in the system temp dir for usage by zim.
@@ -336,9 +124,8 @@ def get_tmpdir():
 	# characters. This is because sockets are not always unicode safe.
 
 	import tempfile
-	from zim.environ import environ
 	root = tempfile.gettempdir()
-	user = url_encode(environ['USER'], URL_ENCODE_READABLE)
+	user = url_encode(os.environ['USER'], URL_ENCODE_READABLE)
 	dir = Dir((root, 'zim-%s' % user))
 
 	try:
@@ -452,16 +239,11 @@ def format_file_size(bytes):
 def _md5(content):
 	import hashlib
 	m = hashlib.md5()
-	if isinstance(content, unicode):
-		m.update(content.encode('utf-8'))
-	elif isinstance(content, basestring):
-		m.update(content)
+	if isinstance(content, str):
+		m.update(content.encode('UTF-8'))
 	else:
 		for l in content:
-			if isinstance(l, unicode):
-				m.update(l.encode('utf-8'))
-			elif isinstance(l, basestring):
-				m.update(l)
+			m.update(l.encode('UTF-8'))
 	return m.digest()
 
 
@@ -503,7 +285,7 @@ class FileUnicodeError(Error):
 			# T: message for FileUnicodeError (%s is the file name)
 		self.description = _('This usually means the file contains invalid characters')
 			# T: message for FileUnicodeError
-		self.description += '\n\n' + _('Details') + ':\n' + unicode(error)
+		self.description += '\n\n' + _('Details') + ':\n' + str(error)
 			# T: label for detailed error
 
 
@@ -529,24 +311,6 @@ class FSSingletonClass(SignalEmitter):
 		'path-deleted': (SIGNAL_AFTER, None, (object,)),
 	}
 
-	def __init__(self):
-		self._lock = threading.Lock()
-
-	def get_async_lock(self, path):
-		'''Get an C{threading.Lock} for filesytem operations on a path
-		@param path: a L{FilePath} object
-		@returns: an C{threading.Lock} object
-		'''
-		# FUTURE: we may actually use path to allow parallel async
-		# operations for files & folders that do not belong to the
-		# same tree. Problem there is that we do not acquire the lock
-		# in this method. So we need a new kind of lock type that can
-		# track dependency on other locks.
-		# Make sure to allow for the fact that other objects can keep
-		# the lock that are returned here indefinitely for re-use.
-		# But for now we keep things simple.
-		assert isinstance(path, FilePath)
-		return self._lock
 
 #: Singleton object for the system filesystem - see L{FSSingletonClass}
 FS = FSSingletonClass()
@@ -556,7 +320,6 @@ class UnixPath(object):
 	'''Base class for Dir and File objects, represents a file path
 
 	@ivar path: the absolute file path as string
-	@ivar encodedpath: the absolute file path as string in local
 	file system encoding (should only be used by low-level functions)
 	@ivar user_path: the absolute file path relative to the user's
 	C{HOME} folder or C{None}
@@ -582,25 +345,24 @@ class UnixPath(object):
 
 		if isinstance(path, FilePath):
 			self.path = path.path
-			self.encodedpath = path.encodedpath
 			return
 
 		try:
 			if isinstance(path, (list, tuple)):
-				path = map(unicode, path)
+				path = list(map(str, path))
 					# Flatten objects - strings should be unicode or ascii already
-				path = os.path.sep.join(path)
+				path = SEP.join(path)
 					# os.path.join is too intelligent for it's own good
 					# just join with the path separator.
 			else:
-				path = unicode(path) # make sure we can decode
+				path = str(path) # make sure we can decode
 		except UnicodeDecodeError:
 			raise Error('BUG: invalid input, file names should be in ascii, or given as unicode')
 
 		if path.startswith('file:/'):
 			path = self._parse_uri(path)
 		elif path.startswith('~'):
-			path = expanduser(path)
+			path = _os_expanduser(path)
 
 		self._set_path(path) # overloaded in WindowsPath
 
@@ -635,9 +397,7 @@ class UnixPath(object):
 		return url_decode(uri)
 
 	def _set_path(self, path):
-		# For Unix we need to use proper encoding
-		self.encodedpath = os.path.abspath(encode(path))
-		self.path = decode(self.encodedpath)
+		self.path = os.path.abspath(path)
 
 	def __iter__(self):
 		parts = self.split()
@@ -708,7 +468,7 @@ class UnixPath(object):
 		@implementation: must be implemented by sub classes in order
 		that they enforce the type of the resource as well
 		'''
-		return os.path.exists(self.encodedpath)
+		return os.path.exists(self.path)
 
 	def iswritable(self):
 		'''Check if a file or folder is writable. Uses permissions of
@@ -716,31 +476,28 @@ class UnixPath(object):
 		@returns: C{True} if the file or folder is writable
 		'''
 		if self.exists():
-			return os.access(self.encodedpath, os.W_OK)
+			return os.access(self.path, os.W_OK)
 		else:
 			return self.dir.iswritable() # recurs
-
-	def _stat(self):
-		return os.stat(self.encodedpath)
 
 	def mtime(self):
 		'''Get the modification time of the file path.
 		@returns: the mtime timestamp
 		'''
-		return self._stat().st_mtime
+		return os.stat(self.path).st_mtime
 
 	def ctime(self):
 		'''Get the creation time of the file path.
 		@returns: the mtime timestamp
 		'''
-		return self._stat().st_ctime
+		return os.stat(self.path).st_ctime
 
 	def size(self):
 		'''Get file size in bytes
 		See L{format_file_size()} to get a human readable label
 		@returns: file size in bytes
 		'''
-		return self._stat().st_size
+		return os.stat(self.path).st_size
 
 	def isequal(self, other):
 		'''Check file paths are equal based on stat results (inode
@@ -755,8 +512,8 @@ class UnixPath(object):
 		# Do NOT assume paths are the same - could be hard link
 		# or it could be a case-insensitive filesystem
 		try:
-			stat_result = os.stat(self.encodedpath)
-			other_stat_result = os.stat(other.encodedpath)
+			stat_result = os.stat(self.path)
+			other_stat_result = os.stat(other.path)
 		except OSError:
 			return False
 		else:
@@ -771,7 +528,7 @@ class UnixPath(object):
 		'''
 		drive, path = os.path.splitdrive(self.path)
 		parts = path.replace('\\', '/').strip('/').split('/')
-		parts[0] = drive + os.path.sep + parts[0]
+		parts[0] = drive + SEP + parts[0]
 		return parts
 
 	def relpath(self, reference, allowupward=False):
@@ -786,7 +543,7 @@ class UnixPath(object):
 		@raises AssertionError: when C{allowupward} is C{False} and
 		C{reference} is not a parent folder
 		'''
-		sep = os.path.sep # '/' or '\'
+		sep = SEP # '/' or '\'
 		refdir = reference.path + sep
 		if allowupward and not self.path.startswith(refdir):
 			parent = self.commonparent(reference)
@@ -813,7 +570,8 @@ class UnixPath(object):
 		C{None} when there is no common parent
 		'''
 		path = os.path.commonprefix((self.path, other.path)) # encoding safe
-		i = path.rfind(os.path.sep) # win32 save...
+		path = path.replace(os.path.sep, SEP) # msys can have '/' as seperator
+		i = path.rfind(SEP) # win32 save...
 		if i >= 0:
 			return Dir(path[:i + 1])
 		else:
@@ -824,14 +582,14 @@ class UnixPath(object):
 		'''Check if this path is a child path of a folder
 		@returns: C{True} if this path is a child path of C{parent}
 		'''
-		return self.path.startswith(parent.path + os.path.sep)
+		return self.path.startswith(parent.path + SEP)
 
 	def isdir(self):
 		'''Check if this path is a folder or not. Used to detect if
 		e.g. a L{File} object should have really been a L{Dir} object.
 		@returns: C{True} when this path is a folder
 		'''
-		return os.path.isdir(self.encodedpath)
+		return os.path.isdir(self.path)
 
 	def rename(self, newpath):
 		'''Rename (move) the content this file or folder to another
@@ -848,59 +606,24 @@ class UnixPath(object):
 		if self.path == newpath.path:
 			raise AssertionError('Renaming %s to itself !?' % self.path)
 
-		with FS.get_async_lock(self):
-			# Do we also need a lock for newpath (could be the same as lock for self) ?
-			if newpath.isdir():
-				if self.isequal(newpath):
-					# We checked name above, so must be case insensitive file system
-					# but we still want to be able to rename to other case, so need to
-					# do some moving around
-					tmpdir = self.dir.new_subdir(self.basename)
-					shutil.move(self.encodedpath, tmpdir.encodedpath)
-					shutil.move(tmpdir.encodedpath, newpath.encodedpath)
-				else:
-					# Needed because shutil.move() has different behavior for this case
-					raise AssertionError('Folder already exists: %s' % newpath.path)
+		if newpath.isdir():
+			if self.isequal(newpath):
+				# We checked name above, so must be case insensitive file system
+				# but we still want to be able to rename to other case, so need to
+				# do some moving around
+				tmpdir = self.dir.new_subdir(self.basename)
+				shutil.move(self.path, tmpdir.path)
+				shutil.move(tmpdir.path, newpath.path)
 			else:
-				# normal case
-				newpath.dir.touch()
-				shutil.move(self.encodedpath, newpath.encodedpath)
+				# Needed because shutil.move() has different behavior for this case
+				raise AssertionError('Folder already exists: %s' % newpath.path)
+		else:
+			# normal case
+			newpath.dir.touch()
+			shutil.move(self.path, newpath.path)
+
 		FS.emit('path-moved', self, newpath)
 		self.dir.cleanup()
-
-	def trash(self):
-		'''Trash a file or folder by moving it to the system trashcan
-		if supported. Depends on the C{gio} library.
-		@returns: C{True} when succesful
-		@raises TrashNotSupportedError: if trashing is not supported
-		or failed.
-		@raises TrashCancelledError: if trashing was cancelled by the
-		user
-		'''
-		if not gio:
-			raise TrashNotSupportedError('gio not imported')
-
-		if self.exists():
-			logger.info('Move %s to trash' % self)
-			f = gio.File(uri=self.uri)
-			try:
-				ok = f.trash()
-			except gobject.GError as error:
-				if error.code == gio.ERROR_CANCELLED \
-				or (os.name == 'nt' and error.code == 0):
-					# code 0 observed on windows for cancel
-					logger.info('Trash operation cancelled')
-					raise TrashCancelledError('Trashing cancelled')
-				elif error.code == gio.ERROR_NOT_SUPPORTED:
-					raise TrashNotSupportedError('Trashing failed')
-				else:
-					raise error
-			else:
-				if not ok:
-					raise TrashNotSupportedError('Trashing failed')
-			return True
-		else:
-			return False
 
 
 class WindowsPath(UnixPath):
@@ -909,12 +632,10 @@ class WindowsPath(UnixPath):
 	'''
 
 	def _set_path(self, path):
-		# For windows unicode is supported natively,
-		# but may need to strip leading / for absolute paths
+		# Strip leading / for absolute paths
 		if re.match(r'^[/\\]+[A-Za-z]:[/\\]', path):
 			path = path.lstrip('/').lstrip('\\')
-		self.path = os.path.abspath(path)
-		self.encodedpath = self.path # so encodedpath in unicode
+		self.path = os.path.abspath(path).replace('/', SEP) # msys can use '/' instead of '\\'
 
 	@property
 	def uri(self):
@@ -948,7 +669,7 @@ class Dir(FilePath):
 			return False
 
 	def exists(self):
-		return os.path.isdir(self.encodedpath)
+		return os.path.isdir(self.path)
 
 	def list(self, glob=None, includehidden=False, includetmp=False, raw=False):
 		'''List the file contents
@@ -966,29 +687,11 @@ class Dir(FilePath):
 		will throw warnings if those are encountered.
 		Hidden files are silently ignored.
 		'''
-		files = []
-		if ENCODING == 'mbcs':
-			# We are running on windows and os.listdir will handle unicode natively
-			assert isinstance(self.encodedpath, unicode)
-			for file in self._list(includehidden, includetmp):
-				if isinstance(file, unicode):
-					files.append(file)
-				else:
-					logger.warn('Ignoring file: "%s" invalid file name', file)
-		else:
-			# If filesystem does not handle unicode natively and path for
-			# os.listdir(path) is _not_ a unicode object, the result will
-			# be a list of byte strings. We can decode them ourselves.
-			assert not isinstance(self.encodedpath, unicode)
-			for file in self._list(includehidden, includetmp):
-				try:
-					files.append(file.decode(ENCODING))
-				except UnicodeDecodeError:
-					logger.warn('Ignoring file: "%s" invalid file name', file)
+		files = self._list(includehidden, includetmp)
 
 		if glob:
 			expr = _glob_to_regex(glob)
-			files = filter(expr.match, files)
+			files = list(filter(expr.match, files))
 
 		files.sort()
 		return files
@@ -996,7 +699,7 @@ class Dir(FilePath):
 	def _list(self, includehidden, includetmp):
 		if self.exists():
 			files = []
-			for file in os.listdir(self.encodedpath):
+			for file in os.listdir(self.path):
 				if file.startswith('.') and not includehidden:
 					continue # skip hidden files
 				elif (file.endswith('~') or file.startswith('~')) and not includetmp:
@@ -1014,7 +717,7 @@ class Dir(FilePath):
 		@returns: yields L{File} and L{Dir} objects, depth first
 		'''
 		for name in self.list(raw=raw):
-			path = self.path + os.path.sep + name
+			path = self.path + SEP + name
 			if os.path.isdir(path):
 				dir = self.subdir(name)
 				yield dir
@@ -1049,9 +752,9 @@ class Dir(FilePath):
 
 		try:
 			if mode is not None:
-				os.makedirs(self.encodedpath, mode=mode)
+				os.makedirs(self.path, mode=mode)
 			else:
-				os.makedirs(self.encodedpath)
+				os.makedirs(self.path)
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
@@ -1059,20 +762,20 @@ class Dir(FilePath):
 	def remove(self):
 		'''Remove this folder, fails if it is not empty.'''
 		logger.info('Remove dir: %s', self)
-		lrmdir(self.encodedpath)
+		lrmdir(self.path)
 		FS.emit('path-deleted', self)
 
 	def cleanup(self):
 		'''Remove this foldder and any empty parent folders. If the
 		folder does not exist, still check for empty parent folders.
 		Fails silently if the folder is not empty.
-		@returns: C{True} when succesful (so C{False} means it still exists).
+		@returns: C{True} when successfull (so C{False} means it still exists).
 		'''
 		if not self.exists():
 			return True
 
 		try:
-			os.removedirs(self.encodedpath)
+			os.removedirs(self.path)
 		except OSError:
 			return False # probably dir not empty
 		else:
@@ -1087,7 +790,7 @@ class Dir(FilePath):
 		'''
 		assert self.path and self.path != '/'
 		logger.info('Remove file tree: %s', self)
-		for root, dirs, files in os.walk(self.encodedpath, topdown=False):
+		for root, dirs, files in os.walk(self.path, topdown=False):
 			# walk should not decent into symlinked folders by default
 			# remove() and rmdir() both should remove a symlink rather
 			# than the target of the link
@@ -1148,8 +851,8 @@ class Dir(FilePath):
 		L{FilePath} object.
 		@returns: a L{File} object
 		'''
-		assert isinstance(path, (FilePath, basestring, list, tuple))
-		if isinstance(path, basestring):
+		assert isinstance(path, (FilePath, str, list, tuple))
+		if isinstance(path, str):
 			return File((self.path, path))
 		elif isinstance(path, (list, tuple)):
 			return File((self.path,) + tuple(path))
@@ -1215,8 +918,8 @@ class Dir(FilePath):
 		L{FilePath} object.
 		@returns: a L{Dir} object
 		'''
-		assert isinstance(path, (FilePath, basestring, list, tuple))
-		if isinstance(path, basestring):
+		assert isinstance(path, (FilePath, str, list, tuple))
+		if isinstance(path, str):
 			return Dir((self.path, path))
 		elif isinstance(path, (list, tuple)):
 			return Dir((self.path,) + tuple(path))
@@ -1289,11 +992,11 @@ class FilteredDir(Dir):
 	def list(self, includehidden=False, includetmp=False, raw=False):
 		files = Dir.list(self, includehidden, includetmp)
 		if not raw:
-			files = filter(self.filter, files)
+			files = list(filter(self.filter, files))
 		return files
 
 
-class UnixFile(FilePath):
+class File(FilePath):
 	'''Class representing a single file.
 
 	This class implements much more complex logic than the default
@@ -1306,10 +1009,8 @@ class UnixFile(FilePath):
 	writing to prevent overwriting a file that was changed on disk in
 	between read and write operations. If this mtime check fails MD5
 	sums are used to verify before raising an exception (because some
-	share drives do not maintain mtime very precisely). However this
-	check only works when using L{read()}, L{readlines()}, L{write()}
-	or L{writelines()}, but not when calling L{open()} directly.
-	Also this logic is not atomic, so your mileage may vary.
+	share drives do not maintain mtime very precisely).
+	This logic is not atomic, so your mileage may vary.
 	'''
 
 	# For atomic write we first write a tmp file which has the extension
@@ -1350,19 +1051,6 @@ class UnixFile(FilePath):
 		self.endofline = endofline
 		self._mtime = None
 		self._md5 = None
-		self._lock = FS.get_async_lock(self)
-
-	def __getstate__(self):
-		# Copy the object's state from self.__dict__
-		# But remove the unpicklable entries.
-		state = self.__dict__.copy()
-		del state['_lock']
-		return state
-
-	def __setstate__(self, state):
-		# Restore instance attributes
-		self.__dict__.update(state)
-		self._lock = FS.get_async_lock(self)
 
 	def __eq__(self, other):
 		if isinstance(other, File):
@@ -1371,13 +1059,13 @@ class UnixFile(FilePath):
 			return False
 
 	def exists(self):
-		return os.path.isfile(self.encodedpath)
+		return os.path.isfile(self.path)
 
 	def isimage(self):
 		'''Check if this is an image file. Convenience method that
 		works even when no real mime-type suport is available.
 		If this method returns C{True} it is no guarantee
-		this image type is actually supported by gtk.
+		this image type is actually supported by Gtk.
 		@returns: C{True} when this is an image file
 		'''
 
@@ -1426,59 +1114,6 @@ class UnixFile(FilePath):
 			else:
 				return '\n'
 
-	def open(self, mode='r'):
-		'''Open an IO object for reading or writing. The stream will
-		automatically by encoded or decoded for UTF-8.
-		Opening a non-existing file for writing will cause the whole path
-		to this file to be created on the fly.
-
-		@param mode: the open mode, either 'r' or 'w' (other modes
-		are not supported)
-
-		@returns: a file object
-		'''
-		# When we open for writing, we actually open the tmp file
-		# and return a FileHandle object that will call _on_write()
-		# when it is closed. This handler will take care of replacing
-		# the actual file with the newly written tmp file.
-		assert mode in ('r', 'w')
-		if mode == 'w':
-			if not self.iswritable():
-				raise FileWriteError(_('File is not writable: %s') % self.path) # T: Error message
-			elif not self.exists():
-				self.dir.touch()
-			else:
-				pass # exists and writable
-
-		mode += 'b'
-		if mode == 'wb':
-			tmp = self.encodedpath + '.zim-new~'
-			fh = FileHandle(tmp, mode=mode, on_close=self._on_write)
-		else:
-			fh = open(self.encodedpath, mode=mode)
-
-		# code copied from codecs.open() to wrap our FileHandle objects
-		info = codecs.lookup('utf-8')
-		srw = codecs.StreamReaderWriter(
-			fh, info.streamreader, info.streamwriter, 'strict')
-		srw.encoding = 'utf-8'
-		return srw
-
-	def _on_write(self):
-		# Handler executed after successful writing the .zim-new~ tmp file
-		# to replace the actual file with the tmp file.
-		# Note that flush() and sync() are already done before close()
-		#
-		# On Unix, for rename() if dest already exists it is replaced in an
-		# atomic operation. And other processes reading our file will not
-		# block moving it :)
-		tmp = self.encodedpath + '.zim-new~'
-		if not os.path.isfile(tmp):
-			raise AssertionError('BUG: File should exist: %s' % tmp)
-
-		os.rename(tmp, self.encodedpath)
-		logger.debug('Wrote %s', self)
-
 	def raw(self):
 		'''Get the raw content without UTF-8 decoding, newline logic,
 		etc. Used to read binary data, e.g. when serving files over www.
@@ -1486,14 +1121,13 @@ class UnixFile(FilePath):
 		mtime, so intended for read only usage.
 		@returns: file content as string
 		'''
-		with self._lock:
-			try:
-				fh = open(self.encodedpath, mode='rb')
-				content = fh.read()
-				fh.close()
-				return content
-			except IOError:
-				raise FileNotFoundError(self)
+		try:
+			fh = open(self.path, mode='rb')
+			content = fh.read()
+			fh.close()
+			return content
+		except IOError:
+			raise FileNotFoundError(self)
 
 	def read(self):
 		'''Get the file contents as a string. Takes case of decoding
@@ -1501,21 +1135,22 @@ class UnixFile(FilePath):
 		@returns: the content as (unicode) string.
 		@raises FileNotFoundError: when the file does not exist.
 		'''
-		with self._lock:
-			try:
-				file = self.open('r')
-				content = file.read()
-				self._checkoverwrite(content)
-				return content.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '')
-					# Strip unicode byte order mark
-					# Internally we use Unix line ends - so strip out \r
-					# And remove any NULL byte since they screw up parsing
-			except IOError:
-				raise FileNotFoundError(self)
-			except UnicodeDecodeError as error:
-				raise FileUnicodeError(self, error)
+		try:
+			content = self._read()
+			self._checkoverwrite(content)
+			return content.lstrip('\ufeff').replace('\x00', '')
+				# Strip unicode byte order mark
+				# And remove any NULL byte since they screw up parsing
+		except IOError:
+			raise FileNotFoundError(self)
+		except UnicodeDecodeError as error:
+			raise FileUnicodeError(self, error)
 
 		return text
+
+	def _read(self):
+		with open(self.path, encoding='UTF-8') as fh:
+			return fh.read()
 
 	def readlines(self):
 		'''Get the file contents as a list of lines. Takes case of
@@ -1524,21 +1159,27 @@ class UnixFile(FilePath):
 		@returns: the content as a list of lines.
 		@raises FileNotFoundError: when the file does not exist.
 		'''
-		with self._lock:
-			try:
-				file = self.open('r')
-				lines = file.readlines()
-				self._checkoverwrite(lines)
-				return [line.lstrip(u'\ufeff').replace('\r', '').replace('\x00', '') for line in lines]
-					# Strip unicode byte order mark
-					# Internally we use Unix line ends - so strip out \r
-					# And remove any NULL byte since they screw up parsing
-			except IOError:
-				raise FileNotFoundError(self)
-			except UnicodeDecodeError as error:
-				raise FileUnicodeError(self, error)
+		try:
+			file = open(self.path, encoding='UTF-8')
+			lines = file.readlines()
+			self._checkoverwrite(lines)
+			return [line.lstrip('\ufeff').replace('\x00', '') for line in lines]
+				# Strip unicode byte order mark
+				# And remove any NULL byte since they screw up parsing
+		except IOError:
+			raise FileNotFoundError(self)
+		except UnicodeDecodeError as error:
+			raise FileUnicodeError(self, error)
 
 		return lines
+
+	def _write_check(self):
+		if not self.iswritable():
+			raise FileWriteError(_('File is not writable: %s') % self.path) # T: Error message
+		elif not self.exists():
+			self.dir.touch()
+		else:
+			pass # exists and writable
 
 	def write(self, text):
 		'''Write file contents from string. This overwrites the current
@@ -1549,27 +1190,15 @@ class UnixFile(FilePath):
 		@param text: new content as (unicode) string
 		@emits: path-created if the file did not yet exist
 		'''
-		with self._lock:
-			self._assertoverwrite()
-			self._isnew = not os.path.isfile(self.encodedpath)
-				# Put this check here because here we are sure to have a lock
-			endofline = self.get_endofline()
-			if endofline != '\n':
-				text = text.replace('\n', endofline)
-			file = self.open('w')
-			file.write(text)
-			file.close()
-			self._checkoverwrite(text)
+		self._assertoverwrite()
+		isnew = not os.path.isfile(self.path)
+		newline = self.get_endofline()
+		self._write_check()
+		with AtomicWriteContext(self, newline=newline) as fh:
+			fh.write(text)
 
-		self._check_isnew()
-
-	def _check_isnew(self):
-		# Make sure the 'path-created' signal is emitted in the main
-		# thread, so do not put this in _write(), but call from write()
-		# or from async callback.
-		# Also make sur this is called after lock is released to prevent
-		# deadlock when event handler tries to access the file.
-		if self._isnew:
+		self._checkoverwrite(text)
+		if isnew:
 			FS.emit('path-created', self)
 
 	def writelines(self, lines):
@@ -1578,19 +1207,16 @@ class UnixFile(FilePath):
 		@param lines: new content as list of lines
 		@emits: path-created if the file did not yet exist
 		'''
-		with self._lock:
-			self._assertoverwrite()
-			self._isnew = not os.path.isfile(self.encodedpath)
-				# Put this check here because here we are sure to have a lock
-			endofline = self.get_endofline()
-			if endofline != '\n':
-				lines = [line.replace('\n', endofline) for line in lines]
-			file = self.open('w')
-			file.writelines(lines)
-			file.close()
-			self._checkoverwrite(lines)
+		self._assertoverwrite()
+		isnew = not os.path.isfile(self.path)
+		newline = self.get_endofline()
+		self._write_check()
+		with AtomicWriteContext(self, newline=newline) as fh:
+			fh.writelines(lines)
 
-		self._check_isnew()
+		self._checkoverwrite(lines)
+		if isnew:
+			FS.emit('path-created', self)
 
 	def _checkoverwrite(self, content):
 		# Set properties needed by assertoverwrite for the in-memory object
@@ -1612,7 +1238,7 @@ class UnixFile(FilePath):
 			try:
 				mtime = self.mtime()
 			except OSError:
-				if not os.path.isfile(self.encodedpath):
+				if not os.path.isfile(self.path):
 					logger.critical('File missing: %s', self.path)
 					return
 				else:
@@ -1620,7 +1246,7 @@ class UnixFile(FilePath):
 
 			if not self._mtime == mtime:
 				logger.warn('mtime check failed for %s, trying md5', self.path)
-				if self._md5 != _md5(self.open('r').read()):
+				if self._md5 != _md5(self._read()):
 					raise FileWriteError(_('File changed on disk: %s') % self.path)
 						# T: error message
 					# Why are we using MD5 here ?? could just compare content...
@@ -1628,11 +1254,11 @@ class UnixFile(FilePath):
 	def check_has_changed_on_disk(self):
 		'''Returns C{True} when this file has changed on disk'''
 		if not (self._mtime and self._md5):
-			if os.path.isfile(self.encodedpath):
+			if os.path.isfile(self.path):
 				return True # may well been just created
 			else:
 				return False # ??
-		elif not os.path.isfile(self.encodedpath):
+		elif not os.path.isfile(self.path):
 			return True
 		else:
 			try:
@@ -1651,10 +1277,7 @@ class UnixFile(FilePath):
 		if self.exists():
 			return
 		else:
-			with self._lock:
-				io = self.open('w')
-				io.write('')
-				io.close()
+			self.write('')
 
 	def remove(self):
 		'''Remove (delete) this file and cleanup any related temporary
@@ -1662,13 +1285,12 @@ class UnixFile(FilePath):
 		Ignores silently if the file did not exist in the first place.
 		'''
 		logger.info('Remove file: %s', self)
-		with self._lock:
-			if os.path.isfile(self.encodedpath):
-				os.remove(self.encodedpath)
+		if os.path.isfile(self.path):
+			os.remove(self.path)
 
-			tmp = self.encodedpath + '.zim-new~'
-			if os.path.isfile(tmp):
-				os.remove(tmp)
+		tmp = self.path + '.zim-new~'
+		if os.path.isfile(tmp):
+			os.remove(tmp)
 
 		FS.emit('path-deleted', self)
 
@@ -1697,7 +1319,7 @@ class UnixFile(FilePath):
 			dest.touch()
 		else:
 			dest.dir.touch()
-		shutil.copy2(self.encodedpath, dest.encodedpath)
+		shutil.copy2(self.path, dest.path)
 		# TODO - not hooked with FS signals
 
 	def compare(self, other):
@@ -1709,143 +1331,6 @@ class UnixFile(FilePath):
 		# TODO: can be more efficient, e.g. by checking stat size first
 		# also wonder if MD5 is needed here ... could just compare text
 		return _md5(self.read()) == _md5(other.read())
-
-
-class WindowsFile(UnixFile):
-	'''Class representing a single file on windows. See L{UnixFile}
-	for API documentation.
-	'''
-
-	# For the "atomic" write on Windows we use .zim-new~ and .zim-orig~.
-	# When writing a new file, the sequence is the same as on Unix: we
-	# write a tmp file and move it into place. However on windows the
-	# rename() function does not allow replacing an existing file, so
-	# there is no atomic operation to move the tmp file into place.
-	# What we do instead:
-	#
-	# 1. Write file.zim-new~
-	# 2. Move file to file.zim-orig~
-	# 3. Move file.zim-new~ to file
-	# 4. Remove file.zim-orig~
-	#
-	# But now we have to consider recovering the file if any of these
-	# steps fails:
-	#   * If we have .zim-new~ and the actual file either step 1 or 2
-	#     failed, in this case the .zim-new~ file can be corrupted, so
-	#     keep the file itself
-	#   * If we have .zim-new~ and .zim-orig~ but the actual file is
-	#     missing, step 3 failed. We use .zim-new~ because probably
-	#     step 1 succeeded.
-	#   * If we have the actual file and .zim-orig~ step 4 failed, we
-	#     can throw away the .zim-orig~ file.
-	#   * If we only have a .zim-orig~ file step 4 failed, was not
-	#     recovered and maybe the file was removed (remove cleans up the
-	#     .zim-new~). So we can not recover - file does not exist.
-	#   * If only have a .zim-new~ file maybe writing a new file failed,
-	#     the .zim-new~ file can be corrupted - so we can not recover
-	#   * If we have all 3 files some combination of actions happened,
-	#     keep using the actual file.
-	#
-	# So this results in two rules:
-	#
-	# 1. if the actual file exists, use it
-	# 2. if the actual file does no exist but both .zim-new~ and .zim-orig~
-	#    exist, use the .zim-new~ file.
-	#
-	# In any other cases we can not recover. What we can do is make a backup
-	# of .zim-orig~ for future manual recovery.
-
-	def __init__(self, path, checkoverwrite=False, endofline=None):
-		UnixFile.__init__(self, path, checkoverwrite, endofline)
-		self._recover() # just to be sure
-
-	def exists(self):
-		orig = self.encodedpath + '.zim-orig~'
-		new = self.encodedpath + '.zim-new~'
-		return os.path.isfile(self.encodedpath) or \
-			(os.path.isfile(new) and os.path.isfile(orig))
-			# if both new and orig exists, we can recover
-
-	def open(self, mode='r'):
-		self._recover() # just to be sure
-		return UnixFile.open(self, mode)
-
-	def _on_write(self):
-		# Handler executed after successful writing the .zim-new~ tmp file
-		# to replace the actual file with the tmp file.
-		# Note that flush() and sync() are already done before close()
-		#
-		# On Windows, rename() does not allow atomic replace, so we need
-		# more logic. Also we want to be robust for errors when file is
-		# temporarily locked by e.g. a virus scanner.
-		tmp = self.encodedpath + '.zim-new~'
-		if not os.path.isfile(tmp):
-			raise AssertionError('BUG: File should exist: %s' % tmp)
-
-		if os.path.isfile(self.encodedpath):
-			orig = self.encodedpath + '.zim-orig~'
-			if os.path.isfile(orig):
-				os.remove(orig)
-			self._rename(self.encodedpath, orig) # Step 2.
-			self._rename(tmp, self.encodedpath)  # Step 3.
-			try:
-				os.remove(orig) # Step 4.
-			except OSError:
-				pass # If it fails we try again on next write
-		else:
-			self._rename(tmp, self.encodedpath)
-
-		logger.debug('Wrote %s', self)
-
-	@staticmethod
-	def _rename(src, dst):
-		# Wrapper for os.rename which handles the timeout for errors when file
-		# is locked. Tries 10 times after 1s then fails.
-		i = 0
-		while True:
-			try:
-				os.rename(src, dst)
-			except WindowsError as error:
-				if error.errno == 13 and i < 10:
-					# errno 13 means locked by other process
-					i += 1
-					logger.warn('File locked by other process: %s\nRe-try %i', src, i)
-					import time
-					time.sleep(1)
-				else:
-					raise
-			else:
-				break
-
-	def _recover(self):
-		# Try and recover the file after errors in writing the file,
-		# see comment in class header.
-		if os.path.isfile(self.encodedpath):
-			return # no recovery needed
-
-		orig = self.encodedpath + '.zim-orig~'
-		new = self.encodedpath + '.zim-new~'
-		def backup_orig(orig):
-			bak = self.encodedpath + '.bak~'
-			i = 1
-			while os.path.isfile(bak):
-				bak = self.encodedpath + '.bak%i~' % i
-				i += 1
-			self._rename(orig, bak)
-			logger.warn('Left over file found: %s\nBacked up to: %s', orig, bak)
-
-		if os.path.isfile(new) and os.path.isfile(orig):
-			self._rename(new, self.encodedpath)
-			backup_orig(orig)
-		elif os.path.isfile(orig):
-			backup_orig(orig)
-
-
-# Determine which base class to use for files
-if os.name == 'nt':
-	File = WindowsFile
-else:
-	File = UnixFile
 
 
 class TmpFile(File):
@@ -1874,24 +1359,6 @@ class TmpFile(File):
 	def __del__(self):
 		if not self.persistent:
 			self.remove()
-
-
-class FileHandle(file):
-	'''Subclass of builtin file type that uses flush and fsync on close
-	and supports a callback. Used by L{File.open()}.
-	'''
-
-	def __init__(self, path, on_close=None, **opts):
-		file.__init__(self, path, **opts)
-		self.on_close = on_close
-
-	def close(self):
-		self.flush()
-		os.fsync(self.fileno())
-		file.close(self)
-		if not self.on_close is None:
-			self.on_close()
-
 
 
 
@@ -1961,9 +1428,9 @@ class FSObjectMonitor(SignalEmitter):
 	def _setup_signal(self, signal):
 		if signal == 'changed' \
 		and self._gio_file_monitor is None \
-		and gio:
+		and Gio:
 			try:
-				file = gio.File(uri=self.path.uri)
+				file = Gio.File.new_for_uri(self.path.uri)
 				self._gio_file_monitor = file.monitor()
 				self._gio_file_monitor.connect('changed', self._on_changed)
 			except:
@@ -1997,11 +1464,11 @@ class FSObjectMonitor(SignalEmitter):
 		# For Dir objects, the event will refer to files contained in
 		# the dir.
 
-		#~ print 'MONITOR:', self, event_type
+		#~ print('MONITOR:', self, event_type)
 		if event_type in (
-			gio.FILE_MONITOR_EVENT_CREATED,
-			gio.FILE_MONITOR_EVENT_CHANGES_DONE_HINT,
-			gio.FILE_MONITOR_EVENT_DELETED,
-			gio.FILE_MONITOR_EVENT_MOVED,
+			Gio.FileMonitorEvent.CREATED,
+			Gio.FileMonitorEvent.CHANGES_DONE_HINT,
+			Gio.FileMonitorEvent.DELETED,
+			Gio.FileMonitorEvent.MOVED,
 		):
 			self.emit('changed', None, None) # TODO translate otherfile and eventtype

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -8,6 +7,7 @@
 import tests
 
 import os
+import sys
 import copy
 import re
 import subprocess
@@ -31,23 +31,13 @@ def zim_modules():
 		yield name, mod
 
 
-@tests.skipUnless(os.path.isdir('./.bzr'), 'Not a bazaar source folder')
-class TestBzr(tests.TestCase):
-
-	def runTest(self):
-		unknown = subprocess.check_output(['bzr', 'ls', '-u'])
-		if unknown:
-			raise AssertionError('File unknown to bzr - need to be added or ignored:\n' + unknown)
-		else:
-			pass
-
-
 @tests.skipUnless(os.path.isdir('./.git'), 'Not a git source folder')
 class TestGit(tests.TestCase):
 
 	def runTest(self):
 		unknown = subprocess.check_output(['git', 'clean', '-dn'])
 		if unknown:
+			unknown = unknown.decode(sys.getfilesystemencoding())
 			raise AssertionError('File unknown to git - need to be added or ignored:\n' + unknown)
 		else:
 			pass
@@ -58,23 +48,23 @@ class TestCompileAll(tests.TestCase):
 	def runTest(self):
 		'''Test if all modules compile'''
 		for name, module in zim_modules():
-			#~ print '>>', name
+			#~ print('>>', name)
 			self.assertIsNotNone(module)
 
 
-class TestMetaData(tests.TestCase):
+@tests.slowTest
+class TestDist(tests.TestCase):
 
 	def runTest(self):
-		import zim
-		revision = zim.get_zim_revision()
-			# This call could fail if bazaar revision format changed
-		self.assertTrue(isinstance(revision, basestring))
+		# Check build_dist script
+		from setup import fix_dist
+		fix_dist()
 
 		# Check desktop file
 		try:
 			subprocess.check_call(['desktop-file-validate', 'xdg/zim.desktop'])
 		except OSError:
-			print "Could not run desktop-file-validate"
+			print("Could not run desktop-file-validate")
 
 
 #~ @tests.slowTest
@@ -110,81 +100,49 @@ class TestCoding(tests.TestCase):
 				for basename in files:
 					if basename.endswith('.py'):
 						file = dir.replace('\\', '/') + '/' + basename
-						if file == 'tests/package.py': # skip ourselve
+						if file == 'tests/package.py': # skip ourselves
 								continue
-						#~ print 'READING', file
-						fh = open(file)
+						#~ print('READING', file)
+						fh = open(file, encoding='UTF-8')
 						self._code_files.append((file, fh.read()))
 						fh.close()
 
 	def testWrongDependencies(self):
 		'''Check clean dependencies'''
-		#~ for klass in ('gobject', 'gtk', 'gio'): # TODO get rid of gobject as well
-
 		allow_gtk = ('zim/gui/', 'zim/inc/', 'zim/plugins/', 'tests/')
-		for klass in ('gtk', 'gio'):
-			import_re = re.compile(r'^(import|from)\s+%s' % klass, re.M)
-				# only match global imports - allow import in limitted scope
-			for file, code in self.list_code():
-				if os.name == 'nt':
-					file = file.replace('\\', '/')
-				if any(map(file.startswith, allow_gtk)):
-					continue # skip
-				match = import_re.search(code)
-				#~ if match: print '>>>', match.group(0)
-				self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
+		#import_re = re.compile('^from gi.repository import (Gtk|Gdk|Gio|GObject)', re.M)
+		import_re = re.compile('^from gi.repository import (Gtk|Gdk|Gio)', re.M)
+			# only match global imports - allow import in limited scope
+		for file, code in self.list_code():
+			if os.name == 'nt':
+				file = file.replace('\\', '/')
+			if any(map(file.startswith, allow_gtk)):
+				continue # skip
+			match = import_re.search(code)
+			klass = match.group(0) if match else None
+			self.assertFalse(match, '%s imports %s, this is not allowed' % (file, klass))
 
 	def testWrongMethod(self):
 		'''Check for a couple of constructs to be avoided'''
 		for file, code in self.list_code():
-			self.assertFalse('gtk.Entry(' in code, '%s uses gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
-			self.assertFalse('get_visible(' in code, '%s uses get_visible() - use get_property() instead' % file)
-			self.assertFalse('set_visible(' in code, '%s uses set_visible() - use set_property() instead' % file)
-			self.assertFalse('get_sensitive(' in code, '%s uses get_sensitive() - requires Gtk >= 2.18 - use set_property() instead' % file)
+			self.assertFalse('Gtk.Entry(' in code, '%s uses Gtk.Entry - use zim.gui.widgets.InputEntry instead' % file)
 			#~ self.assertFalse('connect_object(' in code, '%s uses connect_object() - use connect() instead to prevent reference leaking' % file)
-			self.assertFalse('gtk.HPaned(' in code, '%s uses gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
-			self.assertFalse('gtk.VPaned(' in code, '%s uses gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
+			self.assertFalse('Gtk.HPaned(' in code, '%s uses Gtk.HPaned - use zim.gui.widgets.HPaned instead' % file)
+			self.assertFalse('Gtk.VPaned(' in code, '%s uses Gtk.VPaned - use zim.gui.widgets.VPaned instead' % file)
 
 			if not file.endswith('pageview.py'):
 				self.assertFalse('string.letters' in code, '%s uses string.letters - this can case locale dependent issues' % file)
-				self.assertFalse('srting.lowercase' in code, '%s uses string.lowercase - this can case locale dependent issues' % file)
-				self.assertFalse('srting.uppercase' in code, '%s uses string.uppercase - this can case locale dependent issues' % file)
+				self.assertFalse('string.lowercase' in code, '%s uses string.lowercase - this can case locale dependent issues' % file)
+				self.assertFalse('string.uppercase' in code, '%s uses string.uppercase - this can case locale dependent issues' % file)
 
 			if not file.endswith('widgets.py'):
-				self.assertFalse('gtk.ScrolledWindow(' in code, '%s uses gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)
+				self.assertFalse('Gtk.ScrolledWindow(' in code, '%s uses Gtk.ScrolledWindow - use zim.gui.widgets.ScrolledWindow instead' % file)
 
 			if not file.endswith('clipboard.py'):
-				self.assertFalse('gtk.Clipboard(' in code, '%s uses gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
+				self.assertFalse('Gtk.Clipboard(' in code, '%s uses Gtk.Clipboard - use zim.gui.clipboard.Clipboard instead' % file)
 
 			if not file.endswith('config.py'):
 				self.assertFalse('os.environ\[' in code, '%s uses os.environ - use zim.config.get_environ() instead' % file)
-
-
-	def testImportFuture(self):
-		'''Check python 2.5 compatibility'''
-		for file, code in self.list_code():
-			import_seen = False
-			suspect = False
-			for line in code.splitlines():
-				line = line.strip()
-				if line.startswith('from __future__ ') \
-				and 'with_statement' in line.split():
-					import_seen = True
-				elif line.startswith('with') and line.endswith(':'):
-					suspect = True
-
-			#~ if suspect: print file, 'uses "with" statement'
-
-			if suspect and not import_seen:
-				# Need real parsing to avoid false positives
-				import tokenize
-				import StringIO
-
-				for token in tokenize.generate_tokens(StringIO.StringIO(code).readline):
-					if token[0] == tokenize.NAME and token[1] == 'with':
-						lineno = token[2][0]
-						line = token[-1]
-						self.assertTrue(import_seen, '%s missing with_statement import from __future__ ("with" seen on line %i):\n%s' % (file, lineno, line))
 
 	def testIndenting(self):
 		# FIXME need real parser to be more robust for comments, multi-line strings etc.
@@ -192,7 +150,7 @@ class TestCoding(tests.TestCase):
 		# assume python itself warns us for changes in the middle of a block
 		white = re.compile(r'^(\s*)')
 		for file, code in self.list_code():
-			if file.startswith('zim/inc/'):
+			if file.startswith('zim/inc/') or file.endswith('generictreemodel.py'):
 				continue
 			lineno = 0
 			start_block = False
@@ -214,6 +172,7 @@ class TestCoding(tests.TestCase):
 				assert 'logger = logging.getLogger(' in code, 'Forgot to define "logger" in %s' % file
 
 
+@tests.expectedFailure
 class TestDocumentation(tests.TestCase):
 
 	def runTest(self):
@@ -244,7 +203,7 @@ class TestDocumentation(tests.TestCase):
 				yield name, member
 
 	def assertDocumentationOK(self, obj, name):
-		#~ print 'CHECK docs for', name
+		#~ print('CHECK docs for', name)
 		doc = inspect.getdoc(obj)
 		if not doc:
 			return # For now do not bitch about missing docs..
@@ -259,8 +218,8 @@ class TestDocumentation(tests.TestCase):
 		or inspect.ismethod(obj):
 			# For now we do not complain about missing docs, just mismatches
 			documented = set(
-				fields.get('param', {}).keys() +
-				fields.get('keyword', {}).keys()
+				list(fields.get('param', {}).keys()) +
+				list(fields.get('keyword', {}).keys())
 			)
 			if documented:
 				(args, varargs, keywords, defaults) = inspect.getargspec(obj)
@@ -272,7 +231,7 @@ class TestDocumentation(tests.TestCase):
 				if keywords:
 					defined.add(keywords)
 
-				if set(defined) != set(('arg', 'kwarg')):
+				if set(defined) != {'arg', 'kwarg'}:
 					# ignore mismatched due to generic decorators
 
 					self.assertEqual(documented, defined,
@@ -286,7 +245,7 @@ class TestDocumentation(tests.TestCase):
 		# Check signature for @signal
 		if 'signal' in fields:
 			for spec in fields['signal']:
-				# e.g.  "C{open-page (L{Page}, L{Path})}: Emitted when opening"
+				# e.g.  "C{signal-name (L{Page}, L{Path})}: Emitted when opening"
 				if not re.match('^C\{[\w-]+ \(.*?\)\}:', spec):
 					self.fail('Signal description in %s does not follow templates\n'
 					'Is: %s\nShould be like "C{signal-name (arg1, arg2)}: description"'
@@ -348,7 +307,7 @@ class TestDocumentation(tests.TestCase):
 
 
 	def assertSignalSpecOK(self, obj, file):
-		for name, spec in obj.__signals__.items():
+		for name, spec in list(obj.__signals__.items()):
 			self.assertTrue(
 				isinstance(spec, tuple) and len(spec) == 3 and isinstance(spec[2], tuple),
 				msg='Signal spec is malformed for %s::%s in %s' % (obj.__name__, name, file)

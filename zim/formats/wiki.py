@@ -1,10 +1,12 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
 
 import re
+import logging
+
+logger = logging.getLogger('zim.formats.wiki')
 
 from zim.parser import *
 from zim.parsing import url_re, url_encode, URL_ENCODE_DATA
@@ -27,15 +29,15 @@ info = {
 }
 
 
-bullet_pattern = u'(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
+bullet_pattern = '(?:[\\*\u2022]|\\[[ \\*x>]\\]|\\d+\\.|[a-zA-Z]\\.)[\\ \\t]+'
 	# bullets can be '*' or 0x2022 for normal items
 	# and '[ ]', '[*]', '[x]' or '[>]' for checkbox items
 	# and '1.', '10.', or 'a.' for numbered items (but not 'aa.')
 
-bullet_line_re = re.compile(ur'^(\t*)(%s)(.*\n)$' % bullet_pattern)
+bullet_line_re = re.compile(r'^(\t*)(%s)(.*\n)$' % bullet_pattern)
 	# matches list item: prefix, bullet, text
 
-number_bullet_re = re.compile(u'^(\d+|[a-zA-Z])\.$')
+number_bullet_re = re.compile('^(\d+|[a-zA-Z])\.$')
 def check_number_bullet(bullet):
 	'''If bullet is a numbered bullet this returns the number or letter,
 	C{None} otherwise
@@ -161,15 +163,14 @@ class WikiParser(object):
 				process=self.parse_object
 			),
 			Rule(HEADING,
-				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n', # "==== heading ===="
+				r'^( ==+ [\ \t]+ \S.*? ) [\ \t]* =* \n',		# "==== heading ===="
 				process=self.parse_heading
 			),
 			# standard table format
 			Rule(TABLE, r'''
-				^(\|.*\|)$\n								# starting and ending with |
-				^( (?:\| [ \|\-:]+ \|$\n)? )				# column align
-				( (?:^\|.*\|$\n)+ )							# multi-lines: starting and ending with |
-				^(?= \s*? \n)							# empty line / only spaces
+				^(\|.*\|) \s*? \n								# starting and ending with |
+				^( (?:\| [ \|\-:]+ \| \s*? \n)? )				# column align
+				( (?:^\|.*\| \s*? \n)+ )							# multi-lines: starting and ending with |
 				''',
 				process=self.parse_table
 			),
@@ -210,9 +211,26 @@ class WikiParser(object):
 
 	def parse_object(self, builder, indent, header, body):
 		'''Custom object'''
-		type, param = header.split(':', 1)
-		type = type.strip().lower()
+		otype, param = header.split(':', 1)
+		otype = otype.strip().lower()
 
+		if otype == 'table':
+			# Special case to ensure backward compatibility for versions where
+			# tables could be stored as objects
+			if param.strip() != '':
+				logger.warn('Table object had unexpected parameters: %s', param.strip())
+			lines = body.splitlines(True)
+			headerrow = lines[0]
+			alignstyle = lines[1]
+			body = ''.join(lines[2:])
+			try:
+				return self.parse_table(builder, headerrow, alignstyle, body)
+			except:
+				logger.exception('Could not parse table object')
+
+		self._parse_object(builder, indent, otype, param, body)
+
+	def _parse_object(self, builder, indent, otype, param, body):
 		attrib = {}
 		for match in param_re.finditer(param):
 			key = match.group(1).lower()
@@ -224,7 +242,7 @@ class WikiParser(object):
 		# Defined after parsing head, so these attrib can not be overruled
 		# accidentally
 		### FIXME FIXME FIXME - need to separate two types of attrib ###
-		attrib['type'] = type
+		attrib['type'] = otype
 		if indent:
 			body = _remove_indent(body, indent)
 			attrib['indent'] = len(indent)
@@ -251,7 +269,6 @@ class WikiParser(object):
 		return ','.join(values)
 
 	def parse_table(self, builder, headerrow, alignstyle, body):
-		'''Table parsing'''
 		body = body.replace('\\|', '#124;')  # escaping
 		rows = body.split('\n')[:-1]
 		# get maximum number of columns - each columns must have same size
@@ -422,7 +439,12 @@ class WikiParser(object):
 		if text:
 			attrib['alt'] = text
 
-		builder.append(IMAGE, attrib)
+		if attrib.get('type'):
+			# Backward compatibility of image generators < zim 0.70
+			attrib['type'] = 'image+' + attrib['type']
+			builder.append(OBJECT, attrib)
+		else:
+			builder.append(IMAGE, attrib)
 
 	@staticmethod
 	def parse_url(builder, text):
@@ -447,13 +469,15 @@ class Parser(ParserClass):
 	def __init__(self, version=WIKI_FORMAT_VERSION):
 		self.backward = version not in ('zim 0.26', WIKI_FORMAT_VERSION)
 
-	def parse(self, input, partial=False):
-		if not isinstance(input, basestring):
+	def parse(self, input, partial=False, file_input=False):
+		if not isinstance(input, str):
 			input = ''.join(input)
 
-		meta, backward = None, False
 		if not partial:
 			input = fix_line_end(input)
+
+		meta, backward = None, False
+		if file_input:
 			input, meta = parse_header_lines(input)
 			version = meta.get('Wiki-Format')
 			if version and version not in ('zim 0.26', WIKI_FORMAT_VERSION):
@@ -465,7 +489,7 @@ class Parser(ParserClass):
 
 		parsetree = builder.get_parsetree()
 		if meta is not None:
-			for k, v in meta.items():
+			for k, v in list(meta.items()):
 				# Skip headers that are only interesting for the parser
 				#
 				# Also remove "Modification-Date" here because it causes conflicts
@@ -479,11 +503,11 @@ class Parser(ParserClass):
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX: u'[ ]',
-		XCHECKED_BOX: u'[x]',
-		CHECKED_BOX: u'[*]',
-		MIGRATED_BOX: u'[>]',
-		BULLET: u'*',
+		UNCHECKED_BOX: '[ ]',
+		XCHECKED_BOX: '[x]',
+		CHECKED_BOX: '[*]',
+		MIGRATED_BOX: '[>]',
+		BULLET: '*',
 	}
 
 	TAGS = {
@@ -534,7 +558,7 @@ class Dumper(TextDumper):
 			'BUG: link misses href: %s "%s"' % (attrib, strings)
 		href = attrib['href']
 
-		if not strings or href == u''.join(strings):
+		if not strings or href == ''.join(strings):
 			if url_re.match(href):
 				return (href,) # no markup needed
 			else:
@@ -543,7 +567,7 @@ class Dumper(TextDumper):
 			return ('[[', href, '|') + tuple(strings) + (']]',)
 
 	def dump_img(self, tag, attrib, strings=None):
-		src = attrib['src']
+		src = attrib['src'] or ''
 		alt = attrib.get('alt')
 		opts = []
 		items = sorted(attrib.items())
@@ -551,7 +575,7 @@ class Dumper(TextDumper):
 			if k in ('src', 'alt') or k.startswith('_'):
 				continue
 			elif v: # skip None, "" and 0
-				data = url_encode(unicode(v), mode=URL_ENCODE_DATA)
+				data = url_encode(str(v), mode=URL_ENCODE_DATA)
 				opts.append('%s=%s' % (k, data))
 		if opts:
 			src += '?%s' % '&'.join(opts)
@@ -563,11 +587,12 @@ class Dumper(TextDumper):
 
 		# TODO use text for caption (with full recursion)
 
-	def dump_object(self, tag, attrib, strings=None):
+	def dump_object_fallback(self, tag, attrib, strings=None):
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
-		for key, value in attrib.items():
+		for key, value in sorted(list(attrib.items())):
+			# TODO: sorted to make order predictable for testing - prefer use of OrderedDict
 			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them
@@ -581,7 +606,6 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		#~ print "Dumping table: %s, %s" % (attrib, strings)
 		n = len(strings[0])
 		assert all(len(s) == n for s in strings), strings
 
@@ -597,26 +621,19 @@ class Dumper(TextDumper):
 		table += [TableParser.headline(rows[0], maxwidths, aligns, wraps)]
 		table.append(headsep)
 		table += [rowline(row) for row in rows[1:]]
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	def dump_th(self, tag, attrib, strings):
 		if not strings:
 			return [''] # force empty cell
 		else:
-			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
+			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
 			return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
 		if not strings:
 			return [''] # force empty cell
 		else:
-			strings = map(lambda s: s.replace('\n', '\\n').replace('|', '\\|'), strings)
-			strings = map(lambda s: s.replace('<br>', '\\n'), strings)
+			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
+			strings = [s.replace('<br>', '\\n') for s in strings]
 			return [self._concat(strings)]
-
-	def dump_line(self, tag, attrib, strings = None):
-		if not strings:
-			strings = [LINE_TEXT]
-		elif isinstance(strings, basestring):
-			strings = [strings]
-		return strings

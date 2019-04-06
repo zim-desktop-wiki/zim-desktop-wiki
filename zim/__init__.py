@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -34,11 +33,9 @@ object that implements a specific commandline command. The C{Command}
 object then either connects to a running instance of zim, or executes
 the application.
 
-To execute the application, the command typically constructs a
-C{Notebook} object, a C{PluginManager} and a C{ConfigManager}. Then
-depending on the command the graphical interface is constructed, a
-webserver is started or some other action is executed on the notebook.
-
+To execute the application, the command typically constructs a C{Notebook} and
+depending on the command the graphical interface is constructed, a webserver is
+started or some other action is executed on the notebook.
 
 The C{Notebook} object is found in L{zim.notebook} and implements the
 API for accessing and storing pages, attachments and other data in
@@ -96,10 +93,10 @@ Some generic base classes and functions can be found in L{zim.utils}
 
 
 # Bunch of meta data, used at least in the about dialog
-__version__ = '0.68-rc1'
+__version__ = '0.70'
 __url__ = 'http://www.zim-wiki.org'
 __author__ = 'Jaap Karssenberg <jaap.karssenberg@gmail.com>'
-__copyright__ = 'Copyright 2008 - 2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
+__copyright__ = 'Copyright 2008 - 2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>'
 __license__ = '''\
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -130,21 +127,14 @@ logger = logging.getLogger('zim')
 
 ## Check executable and relative data dir
 ## (sys.argv[0] should always be correct, even for compiled exe)
-
-if os.name == "nt":
-	# See notes in zim/fs.py about encoding expected by abspath
-	ZIM_EXECUTABLE = os.path.abspath(
-		unicode(sys.argv[0], sys.getfilesystemencoding())
-	)
-else:
-	ZIM_EXECUTABLE = unicode(
-		os.path.abspath(sys.argv[0]),
-		sys.getfilesystemencoding()
-	)
+ZIM_EXECUTABLE = os.path.abspath(sys.argv[0])
 
 
 ## Initialize locale  (needed e.g. for natural_sort)
-locale.setlocale(locale.LC_ALL, '')
+try:
+	locale.setlocale(locale.LC_ALL, '')
+except locale.Error:
+	logger.exception('Could not set locale settings')
 
 
 ## Initialize gettext  (maybe make this optional later for module use ?)
@@ -159,53 +149,41 @@ if os.name == "nt" and not os.environ.get('LANG'):
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')
-if not os.name == "nt":
-	_localedir = _localedir.encode(sys.getfilesystemencoding())
 
 try:
 	if os.path.isdir(_localedir):
 		# We are running from a source dir - use the locale data included there
-		gettext.install('zim', _localedir, unicode=True, names=('_', 'gettext', 'ngettext'))
+		gettext.install('zim', _localedir, names=('_', 'gettext', 'ngettext'))
 	else:
 		# Hope the system knows where to find the data
-		gettext.install('zim', None, unicode=True, names=('_', 'gettext', 'ngettext'))
+		gettext.install('zim', None, names=('_', 'gettext', 'ngettext'))
 except:
 	logger.exception('Error loading translation')
 	trans = gettext.NullTranslations()
-	trans.install(unicode=True, names=('_', 'gettext', 'ngettext'))
+	trans.install(names=('_', 'gettext', 'ngettext'))
 
 
+## Check environment
 
-########################################################################
+if os.name == 'nt':
+	# Windows specific environment variables
+	# os.environ does not support setdefault() ...
+	if not 'USER' in os.environ or not os.environ['USER']:
+		os.environ['USER'] = os.environ['USERNAME']
 
-## Now we are allowed to import sub modules
+	if not 'HOME' in os.environ or not os.environ['HOME']:
+		if 'USERPROFILE' in os.environ:
+			os.environ['HOME'] = os.environ['USERPROFILE']
+		elif 'HOMEDRIVE' in os.environ and 'HOMEPATH' in os.environ:
+			os.environ['HOME'] = \
+				os.environ['HOMEDRIVE'] + os.environ['HOMEPATH']
 
+	if not 'APPDATA' in os.environ or not os.environ['APPDATA']:
+		os.environ['APPDATA'] = os.environ['HOME'] + '\\Application Data'
 
-import zim.environ # initializes environment parameters
-import zim.config
+if not os.path.isdir(os.environ['HOME']):
+	logger.error('Environment variable $HOME does not point to an existing folder: %s', os.environ['HOME'])
 
-# Check if we can find our own data files
-_file = zim.config.data_file('zim.png')
-if not (_file and _file.exists()): #pragma: no cover
-	raise AssertionError(
-		'ERROR: Could not find data files in path: \n'
-		'%s\n'
-		'Try setting XDG_DATA_DIRS'
-			% map(str, zim.config.data_dirs())
-	)
-
-
-def get_zim_revision():
-	'''Returns multiline string with bazaar revision info, if any.
-	Otherwise a string saying no info was found. Intended for debug
-	logging.
-	'''
-	try:
-		from zim._version import version_info
-		return '''\
-Zim revision is:
-  branch: %(branch_nick)s
-  revision: %(revno)s %(revision_id)s
-  date: %(date)s''' % version_info
-	except ImportError:
-		return 'No bzr version-info found'
+if not 'USER' in os.environ or not os.environ['USER']:
+	os.environ['USER'] = os.path.basename(os.environ['HOME'])
+	logger.info('Environment variable $USER was not set, set to "%s"', os.environ['USER'])

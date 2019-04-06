@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
 
-from tests.pageview import setUpPageView
+from tests.mainwindow import setUpMainWindow
 
-from zim.plugins.linesorter import LineSorterPlugin, MainWindowExtension, NoSelectionError
+from zim.plugins.linesorter import LineSorterPlugin, LineSorterPageViewExtension, NoSelectionError
 from zim.gui.pageview import PageView
 
 
@@ -17,11 +16,9 @@ class TestLineSorterWindowExtension(tests.TestCase):
 
 	def setUp(self):
 		plugin = LineSorterPlugin()
-		window = tests.MockObject()
-		window.pageview = setUpPageView()
-		window.uimanager = tests.MockObject()
-		self.extension = MainWindowExtension(plugin, window)
-		self.buffer = window.pageview.view.get_buffer()
+		window = setUpMainWindow(self.setUpNotebook())
+		self.extension = LineSorterPageViewExtension(plugin, window.pageview)
+		self.buffer = window.pageview.textview.get_buffer()
 
 	def set_text(self, text):
 		self.buffer.set_text(text)
@@ -37,7 +34,7 @@ class TestLineSorterWindowExtension(tests.TestCase):
 
 	def get_text(self):
 		start, end = self.buffer.get_bounds()
-		return start.get_text(end).decode('UTF-8')
+		return start.get_text(end)
 
 	def testSortLines(self):
 		self.set_text('A line\nC line\nB line\n0 trailing text\n')

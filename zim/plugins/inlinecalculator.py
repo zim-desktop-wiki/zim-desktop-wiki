@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 #
 # Inspired by and partially based on code from clac.py,
 # Which is copyright 2009 Mark Borgerding and licensed under the GPL version 3
 
-from __future__ import with_statement
-from __future__ import division # We are doing math in this module ...
+
+ # We are doing math in this module ...
 
 
 import logging
@@ -14,9 +13,11 @@ import re
 import math
 import cmath
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.errors import Error
+
+from zim.gui.pageview import PageViewExtension
 
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
@@ -136,7 +137,7 @@ GLOBALS = {
 	# builtins we want to keep
 	'abs': abs,
 	'ord': ord,
-	'chr': unichr,
+	'chr': chr,
 	'hex': hex,
 	'oct': oct,
 	'int': int,
@@ -287,34 +288,21 @@ This is a core plugin shipping with zim.
 			raise ExpressionError(msg)
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
-
-	uimanager_xml = '''
-		<ui>
-		<menubar name='menubar'>
-			<menu action='tools_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='eval_math'/>
-				</placeholder>
-			</menu>
-		</menubar>
-		</ui>
-	'''
+class InlineCalculatorPageViewExtension(PageViewExtension):
 
 	@action(_('Evaluate _Math')) # T: menu item
 	def eval_math(self):
 		'''Action called by the menu item or key binding,
 		will look at the cursor for an expression to evaluate.
 		'''
-		buffer = self.window.pageview.view.get_buffer()
+		buffer = self.pageview.textview.get_buffer()
 			# XXX- way to long chain of objects here
 
 		# FIXME: what do we do for selections ?
 
 		cursor = buffer.get_iter_at_mark(buffer.get_insert())
 		start, end = buffer.get_line_bounds(cursor.get_line())
-		line = buffer.get_text(start, end)
+		line = start.get_text(end).decode('UTF-8')
 
 		if not line or line.isspace():
 			# Empty line, look at previous line
@@ -322,7 +310,7 @@ class MainWindowExtension(WindowExtension):
 				start, end = buffer.get_line_bounds(cursor.get_line() - 1)
 				cursor = end.copy()
 				cursor.backward_char()
-				line = buffer.get_text(start, end)
+				line = start.get_text(end).decode('UTF-8')
 			else:
 				return # silent fail
 
@@ -331,7 +319,7 @@ class MainWindowExtension(WindowExtension):
 			lineno = cursor.get_line()
 			while lineno > 1:
 				mystart, myend = buffer.get_line_bounds(lineno)
-				myline = buffer.get_text(mystart, myend)
+				myline = mystart.get_text(myend).decode('UTF-8')
 				if not myline or myline.isspace():
 					break
 				else:
@@ -342,10 +330,8 @@ class MainWindowExtension(WindowExtension):
 			# FIXME skip forward past next word if any if last char is '='
 			end = cursor
 
-		orig = buffer.get_text(start, end)
+		orig = start.get_text(end).decode('UTF-8')
 		new = self.plugin.process_text(orig)
 		with buffer.user_action:
 			buffer.delete(start, end)
 			buffer.insert_at_cursor(new)
-
-

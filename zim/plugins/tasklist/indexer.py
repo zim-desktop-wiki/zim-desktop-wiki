@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import logging
 import re
@@ -19,9 +18,9 @@ from zim.formats import get_format, \
 	Visitor, VisitorSkip
 from zim.tokenparser import skip_to_end_token, TEXT, END
 
-from zim.plugins.calendar import daterange_from_path
+from zim.plugins.journal import daterange_from_path
 	# TODO instead of just importing this function we should define
-	#      an interface or hook to call the calendar plugin object
+	#      an interface or hook to call the journal plugin object
 
 logger = logging.getLogger('zim.plugins.tasklist')
 
@@ -56,6 +55,18 @@ def _task_labels_re(labels):
 	return re.compile(
 		r'^(' + '|'.join(re.escape(l.strip(':')) for l in labels) + r')(?!\w)'
 	)
+
+def _parse_page_list(input):
+	paths = []
+	if not input or not input.strip():
+		return paths
+
+	for name in input.split(','):
+		try:
+			paths.append(Path(Path.makeValidPageName(name.strip())))
+		except ValueError:
+			logger.warn('Could not parse page name: "%s"', name)
+	return paths
 
 
 class TasksIndexer(IndexerBase):
@@ -93,29 +104,24 @@ class TasksIndexer(IndexerBase):
 	}
 
 	@classmethod
-	def new_from_index(cls, index, preferences):
+	def new_from_index(cls, index, properties):
 		db = index._db
 		pagesindexer = index.update_iter.pages
-		return cls(db, pagesindexer, preferences)
+		return cls(db, pagesindexer, properties)
 
-	def __init__(self, db, pagesindexer, preferences):
+	def __init__(self, db, pagesindexer, properties):
 		IndexerBase.__init__(self, db)
 
 		self.parser = TaskParser(
 			task_label_re=_task_labels_re(
 				_parse_task_labels(
-					preferences['labels'])),
-			all_checkboxes=preferences['all_checkboxes'],
+					properties['labels'])),
+			all_checkboxes=properties['all_checkboxes'],
 		)
 
-		self.integrate_with_journal = preferences['integrate_with_journal']
-		self.included_subtrees = \
-			[n.strip() for n in preferences['included_subtrees'].split()] \
-				if preferences['included_subtrees'] else None
-		self.excluded_subtrees = \
-			[n.strip() for n in preferences['excluded_subtrees'].split()] \
-				if preferences['excluded_subtrees'] else None
-
+		self.integrate_with_journal = properties['integrate_with_journal']
+		self.included_subtrees = _parse_page_list(properties['included_subtrees'])
+		self.excluded_subtrees = _parse_page_list(properties['excluded_subtrees'])
 		self.db.executescript(self.INIT_SCRIPT)
 
 		self.connectto_all(pagesindexer, (
@@ -123,13 +129,6 @@ class TasksIndexer(IndexerBase):
 		))
 
 	def on_page_changed(self, o, row, doc):
-		if self.included_subtrees:
-			if not any(row['name'].startswith(n) for n in self.included_subtrees):
-				return
-		if self.excluded_subtrees:
-			if any(row['name'].startswith(n) for n in self.excluded_subtrees):
-				return
-
 		changes = False
 		count, = self.db.execute(
 			'SELECT count(*) FROM tasklist WHERE source=?',
@@ -141,6 +140,18 @@ class TasksIndexer(IndexerBase):
 				(row['id'],)
 			)
 			changes = True
+
+		mypath = Path(row['name'])
+		if self.included_subtrees:
+			if not any(mypath.match_namespace(n) for n in self.included_subtrees):
+				if changes:
+					self.emit('tasklist-changed')
+				return
+		if self.excluded_subtrees:
+			if any(mypath.match_namespace(n) for n in self.excluded_subtrees):
+				if changes:
+					self.emit('tasklist-changed')
+				return
 
 		opts = {}
 		if self.integrate_with_journal:
@@ -483,5 +494,5 @@ class TaskParser(object):
 			except ValueError:
 				logger.warn('Invalid date format in task: %s', string)
 
-		return [isopen, prio, start, due, tags, unicode(text.strip())]
+		return [isopen, prio, start, due, tags, str(text.strip())]
 			# 0:open, 1:prio, 2:start, 3:due, 4:tags, 5:desc

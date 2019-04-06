@@ -1,24 +1,26 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gobject
-import gtk
+from gi.repository import GObject
+from gi.repository import Gtk
 
 import logging
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.config import data_file, ConfigManager
 from zim.main import GtkCommand
 from zim.signals import SignalEmitter
 from zim.notebook import get_notebook_list, NotebookInfo, NotebookInfoList
 
+from zim.gui.mainwindow import MainWindowExtension
 
 # Try if we are on Ubunutu with app-indicator support
 try:
-	import appindicator
-except ImportError:
-	appindicator = None
+	import gi
+	gi.require_version('AppIndicator3', '0.1')
+	from gi.repository import AppIndicator3 as AppIndicator
+except:
+	AppIndicator = None
 
 
 logger = logging.getLogger('zim.plugins.trayicon')
@@ -36,7 +38,7 @@ GLOBAL_TRAYICON = None
 def set_global_trayicon(classic=False):
 	global GLOBAL_TRAYICON
 
-	if appindicator and not classic:
+	if AppIndicator and not classic:
 		cls = AppIndicatorTrayIcon
 	else:
 		cls = StatusIconTrayIcon
@@ -57,8 +59,7 @@ class TrayIconPluginCommand(GtkCommand):
 	'''
 
 	def run(self):
-		config = ConfigManager()
-		preferences = config.get_config_dict('preferences.conf')['TrayIconPlugin']
+		preferences = ConfigManager.preferences['TrayIconPlugin']
 		preferences.setdefault('classic', False)
 
 		set_global_trayicon(preferences['classic'])
@@ -87,14 +88,12 @@ This is a core plugin shipping with zim.
 
 	@classmethod
 	def check_dependencies(klass):
-		version_ok = (gtk.gtk_version >= (2, 10, 0) and gtk.pygtk_version >= (2, 10, 0))
-		return (version_ok, [
-			('GTK >= 2.10', version_ok, True),
-			('Unity appindicator', bool(appindicator), False),
+		return (True, [
+			('Unity appindicator', bool(AppIndicator), False),
 		])
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.preferences.connect('changed', self.on_preferences_changed)
 
 	def on_preferences_changed(self, preferences):
@@ -106,17 +105,16 @@ This is a core plugin shipping with zim.
 		set_global_trayicon(self.preferences['classic'])
 
 
-@extends('MainWindow')
-class TrayIconMainWindowExtension(WindowExtension):
+class TrayIconMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.window.ui.hideonclose = True # XXX
+		MainWindowExtension.__init__(self, plugin, window)
+		self.window.hideonclose = True
 		plugin.load_trayicon()
 
 	def teardown(self):
 		global GLOBAL_TRAYICON
-		self.window.ui.hideonclose = False # XXX
+		self.window.hideonclose = False
 		if GLOBAL_TRAYICON:
 			GLOBAL_TRAYICON.destroy()
 			GLOBAL_TRAYICON = None
@@ -129,25 +127,25 @@ class TrayIconBase(object):
 
 	def get_trayicon_menu(self):
 		'''Returns the main 'tray icon menu'''
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 
-		item = gtk.MenuItem(_('_Quick Note...')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Quick Note...')) # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quick_note, self)
 		menu.append(item)
 
-		menu.append(gtk.SeparatorMenuItem())
+		menu.append(Gtk.SeparatorMenuItem())
 
 		notebooks = self.list_all_notebooks()
 		self.populate_menu_with_notebooks(menu, notebooks)
 
-		item = gtk.MenuItem('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
+		item = Gtk.MenuItem.new_with_mnemonic('  ' + _('_Other...'))  # Hack - using '  ' to indent visually
 			# T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_open_notebook, self)
 		menu.append(item)
 
-		menu.append(gtk.SeparatorMenuItem())
+		menu.append(Gtk.SeparatorMenuItem())
 
-		item = gtk.MenuItem(_('_Quit')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Quit')) # T: menu item in tray icon menu
 		item.connect_object('activate', self.__class__.do_quit, self)
 		menu.append(item)
 
@@ -196,7 +194,7 @@ class TrayIconBase(object):
 	def populate_menu_with_notebooks(self, menu, notebooks):
 		'''Populate a menu with a list of notebooks'''
 		# TODO put checkbox behind open notebooks ?
-		item = gtk.MenuItem(_('Notebooks')) # T: menu item in tray icon menu
+		item = Gtk.MenuItem.new_with_mnemonic(_('Notebooks')) # T: menu item in tray icon menu
 		item.set_sensitive(False)
 		menu.append(item)
 
@@ -206,12 +204,12 @@ class TrayIconBase(object):
 		notebooks.sort(key=lambda info: info.name)
 
 		for info in notebooks:
-			#~ print '>>>', info
-			item = gtk.MenuItem('  ' + info.name)
+			#~ print('>>>', info)
+			item = Gtk.MenuItem.new_with_mnemonic('  ' + info.name)
 				# Hack - using '  ' to indent visually
 			if info.active:
 				child = item.get_child()
-				if isinstance(child, gtk.Label):
+				if isinstance(child, Gtk.Label):
 					# FIXME this doesn't seem to work in Ubuntu menu :(
 					child.set_markup('  <b>' + info.name + '</b>')
 						# Hack - using '  ' to indent visually
@@ -220,14 +218,14 @@ class TrayIconBase(object):
 
 	def do_activate_notebook(self, uri):
 		'''Open a specific notebook.'''
-		if not isinstance(uri, basestring):
+		if not isinstance(uri, str):
 			uri = uri.uri
 		ZIM_APPLICATION.run('--gui', uri)
 
 	def do_quit(self):
 		'''Quit zim.'''
-		if gtk.main_level() > 0:
-			gtk.main_quit()
+		if Gtk.main_level() > 0:
+			Gtk.main_quit()
 
 	def do_open_notebook(self):
 		'''Opens the notebook dialogs'''
@@ -239,24 +237,24 @@ class TrayIconBase(object):
 		ZIM_APPLICATION.run('--plugin', 'quicknote')
 
 
-class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
-	'''Base class for a tray icon based on gtk.StatusIcon'''
+class StatusIconTrayIcon(TrayIconBase, Gtk.StatusIcon):
+	'''Base class for a tray icon based on Gtk.StatusIcon'''
 
 	__gsignals__ = {
-		'destroy': (gobject.SIGNAL_RUN_LAST, None, ())
+		'destroy': (GObject.SignalFlags.RUN_LAST, None, ())
 	}
 
 	def __init__(self):
-		gtk.StatusIcon.__init__(self)
+		GObject.GObject.__init__(self)
 
-		icon_theme = gtk.icon_theme_get_default()
+		icon_theme = Gtk.IconTheme.get_default()
 		if icon_theme.has_icon('zim-panel'):
 		    self.set_from_icon_name('zim-panel')
 		else:
 			icon = data_file('zim.png').path
 			self.set_from_file(icon)
 
-		self.set_tooltip(_('Zim Desktop Wiki')) # T: tooltip for tray icon
+		self.set_tooltip_text(_('Zim Desktop Wiki')) # T: tooltip for tray icon
 		self.connect('popup-menu', self.__class__.do_popup_menu)
 
 	def do_activate(self):
@@ -276,23 +274,20 @@ class StatusIconTrayIcon(TrayIconBase, gtk.StatusIcon):
 			self.do_popup_menu_notebooks(open_notebooks)
 
 	def do_popup_menu_notebooks(self, list, button=1, activate_time=0):
-		menu = gtk.Menu()
+		menu = Gtk.Menu()
 		self.populate_menu_with_notebooks(menu, list)
 		menu.show_all()
-		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
+		menu.popup(None, None, Gtk.StatusIcon.position_menu, self, button, activate_time)
 
 	def do_popup_menu(self, button=3, activate_time=0):
-		#~ print '>>', button, activate_time
+		#~ print('>>', button, activate_time)
 		menu = self.get_trayicon_menu()
 		menu.show_all()
-		menu.popup(None, None, gtk.status_icon_position_menu, button, activate_time, self)
+		menu.popup(None, None, Gtk.StatusIcon.position_menu, self, button, activate_time)
 
 	def destroy(self):
 		self.set_property('visible', False)
 		self.emit('destroy')
-
-# Need to register classes overriding gobject signals
-gobject.type_register(StatusIconTrayIcon)
 
 
 _GLOBAL_INDICATOR = None
@@ -314,13 +309,13 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		global _GLOBAL_INDICATOR
 
 		if not _GLOBAL_INDICATOR:
-			_GLOBAL_INDICATOR = appindicator.Indicator(
+			_GLOBAL_INDICATOR = AppIndicator.Indicator.new(
 				'zim-desktop-wiki', 'zim',
-				appindicator.CATEGORY_APPLICATION_STATUS
+				AppIndicator.IndicatorCategory.APPLICATION_STATUS
 			)
 
 		self.appindicator = _GLOBAL_INDICATOR
-		self.appindicator.set_status(appindicator.STATUS_ACTIVE)
+		self.appindicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 		self.on_notebook_list_changed()
 
 	def on_notebook_list_changed(self): # TODO connect somewhere
@@ -329,5 +324,5 @@ class AppIndicatorTrayIcon(TrayIconBase, SignalEmitter):
 		self.appindicator.set_menu(menu)
 
 	def destroy(self):
-		self.appindicator.set_status(appindicator.STATUS_PASSIVE)
+		self.appindicator.set_status(AppIndicator.IndicatorStatus.PASSIVE)
 		self.emit('destroy')

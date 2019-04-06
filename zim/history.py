@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -9,9 +8,9 @@ The main class is L{History}. Also there is a specialized class
 L{HistoryPath} which extends L{Path} with history information.
 '''
 
-import gobject
 import logging
 
+from zim.signals import SignalEmitter, SIGNAL_RUN_FIRST
 from zim.notebook import Path
 from zim.config import json
 
@@ -64,15 +63,8 @@ class HistoryList(list):
 
 	def __getitem__(self, i):
 		path = list.__getitem__(self, i)
-		if i == 0:
-			path.is_first = True
-			path.is_last = False
-		elif i == len(self) - 1:
-			path.is_first = False
-			path.is_last = True
-		else:
-			path.is_first = False
-			path.is_last = False
+		path.is_first = (i == 0)
+		path.is_last = (i == len(self) - 1)
 		return path
 
 	def index(self, path):
@@ -87,7 +79,7 @@ class HistoryList(list):
 		return json.dumps(data, separators=(',', ':'))
 
 
-class History(gobject.GObject):
+class History(SignalEmitter):
 	'''History class, keeps track of a list of L{HistoryPath} objects.
 	Also has a 'current' page which should match the current page in the
 	interface. The current page normally is the latest page in the list,
@@ -117,14 +109,14 @@ class History(gobject.GObject):
 	# to the current page.
 	#
 	# Note that the cursor position is set directly into the HistoryPath object
-	# in the GtkInterface do_close_page event
+	# in the do_close_page event
 	#
 	# FIXME: if we also store the cursor in the recent pages it gets
 	# remembered longer
 
 	# define signals we want to use - (closure type, return type and arg types)
-	__gsignals__ = {
-		'changed': (gobject.SIGNAL_RUN_LAST, None, tuple())
+	__signals__ = {
+		'changed': (SIGNAL_RUN_FIRST, None, ())
 	}
 
 	def __init__(self, notebook, uistate=None):
@@ -133,7 +125,6 @@ class History(gobject.GObject):
 		@param uistate: L{SectionedConfigDict} to store the history (history
 		will use the 'History' section in ConfigDict)
 		'''
-		gobject.GObject.__init__(self)
 		self.notebook = notebook
 		if uistate is None:
 			self.uistate = {}
@@ -331,6 +322,19 @@ class History(gobject.GObject):
 		else:
 			return Path(child.name) # Force normal Path
 
+	def set_state(self, path, cursor, scroll):
+		'''Looks through the history and recent pages to set the last
+		known cursor position for a page.
+		@param path: a L{Path} object
+		@param cursor: cursor position
+		@param scroll: scroll position
+		'''
+		for list in (self._history, self._recent):
+			for record in reversed(list):
+				if record == path:
+					record.cursor = cursor
+					record.scroll = scroll
+
 	def get_state(self, path):
 		'''Looks through the history and recent pages to the last
 		known cursor position for a page.
@@ -361,10 +365,7 @@ class History(gobject.GObject):
 		# Generator to avoid external acces to the list
 		for p in reversed(self._recent):
 			yield RecentPath(p.name)
-			# yield Path instead of HistoryPath because that
+			# yield RecentPath instead of HistoryPath because that
 			# would make the applciation think we are opening
 			# from history. Opening from recent pages should
 			# be like normal navigation instead.
-
-
-gobject.type_register(History)

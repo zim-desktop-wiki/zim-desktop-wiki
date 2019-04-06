@@ -1,15 +1,16 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 
 import tests
 
 import os
 import sys
-import gtk
+import shutil
+
+from gi.repository import Gtk
 
 from zim.gui.applications import *
 from zim.notebook import Path
@@ -23,16 +24,16 @@ THUMB_SIZE_NORMAL = 128
 class TestXDGMimeInfo(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir('./data/pixmaps')
-		for i, filename in enumerate(dir.list()):
-			file = dir.file(filename)
-			icon = get_mime_icon(file, 128)
-			self.assertIsInstance(icon, gtk.gdk.Pixbuf)
-			desc = get_mime_description(file.get_mimetype())
-			self.assertIsInstance(desc, basestring)
-			self.assertTrue(len(desc) > 5)
+		os.makedirs('tests/tmp/data_dir/mime/image/')
+		shutil.copyfile('./tests/data/png.xml', 'tests/tmp/data_dir/mime/image/png.xml')
 
-		self.assertTrue(i > 3)
+		dir = Dir('./data')
+		file = dir.file('zim.png')
+		icon = get_mime_icon(file, 128)
+		self.assertIsInstance(icon, GdkPixbuf.Pixbuf)
+		desc = get_mime_description(file.get_mimetype())
+		self.assertIsInstance(desc, str)
+		self.assertTrue(len(desc) > 5)
 
 
 def replace(l, old, new):
@@ -73,7 +74,7 @@ class TestApplications(tests.TestCase):
 			('foo %U', (File('/foo/bar'),), ('foo', 'file:///foo/bar')),
 		):
 			if os.name == 'nt':
-				wanted = replace(wanted, '/foo/bar', r'C:\foo\bar')
+				wanted = replace(wanted, '/foo/bar', 'C:\\foo\\bar')
 				wanted = replace(wanted, 'file:///foo/bar', r'file:///C:/foo/bar')
 
 			#print app, args
@@ -82,7 +83,7 @@ class TestApplications(tests.TestCase):
 			self.assertEqual(result, wanted)
 
 			cwd, argv = entry._checkargs(None, args)
-			self.assertEqual(tuple(a.decode(zim.fs.ENCODING) for a in argv), wanted)
+			self.assertEqual(argv, wanted)
 
 		entry['Desktop Entry']['Icon'] = 'xxx'
 		entry.file = File('/foo.desktop')
@@ -102,15 +103,13 @@ class TestApplications(tests.TestCase):
 	def testPythonCmd(self):
 		app = Application('foo.py')
 		cwd, argv = app._checkargs(None, ())
-		exe = argv[0].decode(zim.fs.ENCODING)
-		cmd = argv[1].decode(zim.fs.ENCODING)
-		self.assertEqual(exe, sys.executable)
-		self.assertEqual(cmd, 'foo.py')
+		self.assertEqual(argv[0], sys.executable)
+		self.assertEqual(argv[1], 'foo.py')
 
 		sys.frozen = True
 		try:
 			cwd, argv = app._checkargs(None, ())
-			self.assertEqual(argv, ['foo.py'])
+			self.assertEqual(argv, ('foo.py',))
 		except:
 			del sys.frozen
 			raise
@@ -127,11 +126,11 @@ class TestApplicationManager(tests.TestCase):
 
 	def testGetMimeType(self):
 		for obj, mimetype in (
-			(File('README.txt'), 'text/plain'),
-			('README.txt', 'text/plain'),
+			(File('file.txt'), 'text/plain'),
+			('file.txt', 'text/plain'),
 			('ssh://host', 'x-scheme-handler/ssh'),
 			('http://host', 'x-scheme-handler/http'),
-			('README.html', 'text/html'),
+			('file.png', 'image/png'),
 			('mailto:foo@bar.org', 'x-scheme-handler/mailto'),
 		):
 			self.assertEqual(get_mimetype(obj), mimetype)
@@ -200,129 +199,6 @@ class TestApplicationManager(tests.TestCase):
 		self.assertIsNone(manager.get_application('non_existing_application'))
 
 
-
-@tests.slowTest
-class TestCustomTools(tests.TestCase):
-
-	def testManager(self):
-		'''Test CustomToolManager API'''
-		# initialize the list
-		manager = CustomToolManager()
-		self.assertEqual(list(manager), [])
-		self.assertEqual(list(manager.names), [])
-
-		# add a tool
-		properties = {
-			'Name': 'Foo',
-			'Comment': 'Test 1 2 3',
-			'Icon': '',
-			'X-Zim-ExecTool': 'foo %t "quoted"',
-			'X-Zim-ReadOnly': False,
-			'X-Zim-ShowInToolBar': True,
-		}
-		tool = manager.create(**properties)
-		self.assertEqual(list(manager), [tool])
-		self.assertEqual(list(manager.names), ['foo-usercreated'])
-
-		self.assertTrue(tool.isvalid)
-		self.assertEqual(tool.name, 'Foo')
-		self.assertEqual(tool.comment, 'Test 1 2 3')
-		self.assertFalse(tool.isreadonly)
-		self.assertTrue(tool.showintoolbar)
-		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
-		self.assertEqual(tool.showincontextmenu, 'Text') # Auto generated
-
-		# test file saved correctly
-		#~ from pprint import pprint
-		#~ pprint(tool)
-		lines = tool.dump()
-		self.assertTrue(len(lines) > 5)
-		lines = tool.file.readlines()
-		self.assertTrue(len(lines) > 5)
-
-		# refresh list
-		manager = CustomToolManager()
-		self.assertEqual(list(manager), [tool])
-		self.assertEqual(list(manager.names), ['foo-usercreated'])
-
-		# add a second tool
-		tool1 = tool
-		properties = {
-			'Name': 'Foo',
-			'Comment': 'Test 1 2 3',
-			'Icon': None,
-			'X-Zim-ExecTool': 'foo %f',
-			'X-Zim-ReadOnly': False,
-			'X-Zim-ShowInToolBar': True,
-		}
-		tool = manager.create(**properties)
-		self.assertEqual(list(manager), [tool1, tool])
-		self.assertEqual(list(manager.names), ['foo-usercreated', 'foo-usercreated-1'])
-
-		self.assertTrue(tool.isvalid)
-		self.assertEqual(tool.name, 'Foo')
-		self.assertEqual(tool.comment, 'Test 1 2 3')
-		self.assertFalse(tool.isreadonly)
-		self.assertTrue(tool.showintoolbar)
-		self.assertTrue(tool.get_pixbuf(gtk.ICON_SIZE_MENU))
-		self.assertEqual(tool.showincontextmenu, 'Page') # Auto generated
-
-		# switch order
-		i = manager.index(tool)
-		self.assertTrue(i == 1)
-		manager.reorder(tool, 0)
-		i = manager.index(tool)
-		self.assertTrue(i == 0)
-		self.assertEqual(list(manager.names), ['foo-usercreated-1', 'foo-usercreated'])
-
-		# delete
-		file = tool1.file
-		self.assertTrue(file.exists())
-		manager.delete(tool1)
-		self.assertEqual(list(manager.names), ['foo-usercreated-1'])
-		self.assertFalse(file.exists())
-
-	def testParseExec(self):
-		'''Test parsing of custom tool Exec strings'''
-		# %f for source file as tmp file current page
-		# %d for attachment directory
-		# %s for real source file (if any)
-		# %p for the page name
-		# %n for notebook location (file or directory)
-		# %D for document root
-		# %t for selected text or word under cursor
-		# %T for selected text or word under cursor with wiki format
-
-		path = self.get_tmp_name()
-		notebook = tests.new_notebook(fakedir=path)
-		page = notebook.get_page(Path('Test:Foo'))
-		pageview = StubPageView()
-		args = (notebook, page, pageview)
-
-		tmpfile = TmpFile('tmp-page-source.txt').path
-		dir = notebook.dir
-
-		tool = CustomToolDict()
-		tool.update({
-			'Name': 'Test',
-			'Comment': 'Test 1 2 3',
-			'X-Zim-ExecTool': 'foo',
-		})
-		for cmd, wanted in (
-			('foo %f', ('foo', tmpfile)),
-			('foo %d', ('foo', dir.subdir('Test/Foo').path)),
-			('foo %s', ('foo', page.source.path)),
-			('foo %p', ('foo', 'Test:Foo')),
-			('foo %n', ('foo', dir.path)),
-			('foo %D', ('foo', '')), # no document root
-			('foo %t', ('foo', 'FooBar')),
-			('foo %T', ('foo', '**FooBar**')),
-		):
-			#~ print '>>>', cmd
-			tool['Desktop Entry']['X-Zim-ExecTool'] = cmd
-			self.assertEqual(tool.parse_exec(args), wanted)
-
-
 #~ class TestOpenWithMenu(tests.TestCase):
 class Foo(object): # FIXME - this test blocks on full test runs ??
 
@@ -337,18 +213,14 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 			self.assertTrue(entry['Desktop Entry']['NoDisplay'])
 				# do not show custom items in menus
 
-		# Mock main ui object
-		ui = tests.MockObject()
-		ui.windows = []
-
 		# Check menu
 		for obj, mimetype, test_entry in (
-			(File('README.txt'), 'text/plain', entry_text),
+			(File('file.txt'), 'text/plain', entry_text),
 			('ssh://host', 'x-scheme-handler/ssh', entry_url),
 		):
 			manager.set_default_application(mimetype, test_entry)
 
-			menu = OpenWithMenu(ui, obj)
+			menu = OpenWithMenu(None, obj)
 			self.assertEqual(menu.mimetype, mimetype)
 			for item in menu.get_children():
 				if hasattr(item, 'entry'):
@@ -411,16 +283,117 @@ class Foo(object): # FIXME - this test blocks on full test runs ??
 				tests.gtk_activate_menu_item(menu, menu.CUSTOMIZE)
 
 
-class StubPageView(object):
+class TestOpenFunctions(tests.TestCase):
 
-	def get_selection(self, format=None):
-		return None
+	def setUp(self):
+		import zim.gui.applications
+		self.calls = []
+		def mockmethod(*a):
+			self.calls.append(a)
 
-	def get_word(self, format=None):
-		if format:
-			return '**FooBar**'
-		else:
-			return 'FooBar'
+		origmethod = zim.gui.applications._open_with
+		zim.gui.applications._open_with = mockmethod
+
+		def restore():
+			zim.gui.applications._open_with = origmethod
+		self.addCleanup(restore)
+
+	def testOpenFile(self):
+		from zim.gui.applications import open_file, NoApplicationFoundError
+		from zim.fs import adapt_from_newfs
+
+		widget = tests.MockObject()
+
+		with self.assertRaises(FileNotFoundError):
+			open_file(widget, File('/non-existing'))
+
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		myfile = folder.file('test.txt')
+		myfile.touch()
+
+		manager = ApplicationManager()
+		entry = manager.create('text/plain', 'test', 'test')
+		manager.set_default_application('text/plain', entry)
+
+		open_file(widget, myfile)
+		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfile), None))
+
+		open_file(widget, myfile, mimetype='text/plain')
+		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfile), None))
+
+		with self.assertRaises(NoApplicationFoundError):
+			open_file(widget, myfile, mimetype='x-mimetype/x-with-no-application')
+
+		# TODO: how to test file for mimetype without application?
+		#       need to mock ApplicationManager to control environemnt ?
+
+	def testOpenFolder(self):
+		from zim.gui.applications import open_folder
+		from zim.fs import adapt_from_newfs
+
+		widget = tests.MockObject()
+
+		with self.assertRaises(FileNotFoundError):
+			open_folder(widget, File('/non-existing'))
+
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		myfolder = folder.folder('test')
+		myfolder.touch()
+
+		entry = ApplicationManager().get_fallback_filebrowser()
+		open_folder(widget, myfolder)
+		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfolder), None))
+
+	def testOpenFolderCreate(self):
+		from zim.gui.applications import open_folder_prompt_create
+		from zim.fs import adapt_from_newfs
+
+		widget = tests.MockObject()
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		myfolder = folder.folder('test')
+		entry = ApplicationManager().get_fallback_filebrowser()
+
+		def answer_yes(dialog):
+			dialog.answer_yes()
+
+		def answer_no(dialog):
+			dialog.answer_no()
+
+		with tests.DialogContext(answer_no):
+			open_folder_prompt_create(widget, myfolder)
+
+		self.assertFalse(myfolder.exists())
+		self.assertEqual(self.calls, [])
+
+		with tests.DialogContext(answer_yes):
+			open_folder_prompt_create(widget, myfolder)
+
+		self.assertTrue(myfolder.exists())
+		self.assertEqual(self.calls[-1], (widget, entry, adapt_from_newfs(myfolder), None))
+
+	def testOpenUrl(self):
+		from zim.gui.applications import open_url
+
+		widget = tests.MockObject()
+
+		with self.assertRaises(ValueError):
+			open_url(widget, '/test/some/file.txt')
+
+		for uri in (
+			'file://test/some/file.txt',
+			'http://example.com',
+			'mailto:foo@example.com',
+		):
+			open_url(widget, uri)
+			self.assertEqual(self.calls[-1][2], uri)
+
+		wanted = '\\\\host\\share\\file.txt' if os.name == 'nt' else 'smb://host/share/file.txt'
+		for uri in (
+			'smb://host/share/file.txt',
+			'\\\\host\\share\\file.txt'
+		):
+			open_url(widget, '\\\\host\\share\\file.txt')
+			self.assertEqual(self.calls[-1][2], wanted)
 
 
 if __name__ == '__main__':

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009,2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -12,23 +11,62 @@ import sys
 import os
 import logging
 import subprocess
+import locale
 
-import gobject
+from gi.repository import GObject
 
 import zim.fs
 import zim.errors
 
-from zim.fs import File
+from zim.fs import File, SEP
 from zim.parsing import split_quoted_strings, is_uri_re, is_win32_path_re
-from zim.environ import environ
 
 
 logger = logging.getLogger('zim.applications')
 
 
+TEST_MODE = False
+TEST_MODE_RUN_CB = None
+
+_ENCODING = locale.getpreferredencoding(False)
+
+def _decode(data):
+	# Since we do not know for sure what encoding other processes will use
+	# for output, we need to guess :(
+	try:
+		return data.decode('UTF-8')
+	except UnicodeDecodeError:
+		return data.decode(_ENCODING)
+
+
+_FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
+
+def _check_flatpak_host_command():
+	# Detect whether we are running in Flatpak and can call HostCommand
+	if os.path.exists("/.flatpak-info"):
+		try:
+			subprocess.check_call(_FLATPAK_HOSTCOMMAND_PREFIX + ("which", "which"), stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+			return True
+		except subprocess.CalledProcessError:
+			pass  # Not privileged to call host command or "which" not found in the host
+		except OSError:
+			pass  # Failed to execute flatpak-spawn
+	return False
+
+_CAN_CALL_FLATPAK_HOST_COMMAND = _check_flatpak_host_command()
+
 def _main_is_frozen():
 	# Detect whether we are running py2exe compiled version
 	return hasattr(sys, 'frozen') and sys.frozen
+
+
+def _split_environ_list(value):
+	if isinstance(value, str):
+		return value.split(os.pathsep)
+	elif value is None:
+		return []
+	else:
+		raise ValueError
 
 
 class ApplicationError(zim.errors.Error):
@@ -66,9 +104,9 @@ class Application(object):
 	fall back to first item of C{cmd}
 	'''
 
-	STATUS_OK = 0 #: return code when the command executed succesfully
+	STATUS_OK = 0 #: return code when the command executed successfullly
 
-	def __init__(self, cmd, tryexeccmd=None, encoding=None):
+	def __init__(self, cmd, tryexeccmd=None):
 		'''Constructor
 
 		@param cmd: the command for the external application, either a
@@ -76,19 +114,20 @@ class Application(object):
 		and arguments
 		@param tryexeccmd: command to check in L{tryexec()} as string.
 		If C{None} will default to C{cmd} or the first item of C{cmd}.
-		@param encoding: the encoding to use for commandline args
-		if known, else falls back to system default
 		'''
-		if isinstance(cmd, basestring):
+		if isinstance(cmd, str):
 			cmd = split_quoted_strings(cmd)
 		else:
 			assert isinstance(cmd, (tuple, list))
-		assert tryexeccmd is None or isinstance(tryexeccmd, basestring)
+		assert tryexeccmd is None or isinstance(tryexeccmd, str)
 		self.cmd = tuple(cmd)
 		self.tryexeccmd = tryexeccmd
-		self.encoding = encoding or zim.fs.ENCODING
-		if self.encoding == 'mbcs':
-			self.encoding = 'utf-8'
+
+	def __eq__(self, other):
+		if isinstance(other, Application):
+			return (self.cmd, self.tryexeccmd) == (other.cmd, other.tryexeccmd)
+		else:
+			return False
 
 	def __repr__(self):
 		if hasattr(self, 'key'):
@@ -106,33 +145,39 @@ class Application(object):
 	def _lookup(cmd):
 		'''Lookup cmd in PATH'''
 		if zim.fs.isabs(cmd):
-			if zim.fs.isfile(cmd):
+			if os.path.isfile(cmd):
 				return cmd
 			else:
 				return None
 		elif os.name == 'nt':
 			# Check executable extensions from windows environment
-			extensions = environ.get_list('PATHEXT', '.com;.exe;.bat;.cmd')
-			for dir in environ.get_list('PATH'):
+			extensions = _split_environ_list(os.environ.get('PATHEXT', '.com;.exe;.bat;.cmd'))
+			for dir in _split_environ_list(os.environ.get('PATH')):
 				for ext in extensions:
-					file = os.sep.join((dir, cmd + ext))
-					if zim.fs.isfile(file) and os.access(file, os.X_OK):
+					file = SEP.join((dir, cmd + ext))
+					if os.path.isfile(file) and os.access(file, os.X_OK):
 						return file
 			else:
 				return None
 		else:
 			# On POSIX no extension is needed to make scripts executable
-			for dir in environ.get_list('PATH'):
-				file = os.sep.join((dir, cmd))
-				if zim.fs.isfile(file) and os.access(file, os.X_OK):
+			for dir in _split_environ_list(os.environ.get('PATH')):
+				file = SEP.join((dir, cmd))
+				if os.path.isfile(file) and os.access(file, os.X_OK):
 					return file
 			else:
+				if _CAN_CALL_FLATPAK_HOST_COMMAND:
+					try:
+						file = subprocess.check_output(_FLATPAK_HOSTCOMMAND_PREFIX + ("which", cmd), stderr=subprocess.DEVNULL)
+						return file
+					except subprocess.CalledProcessError:
+						pass
 				return None
 
 	def _cmd(self, args):
 		# substitute args in the command - to be overloaded by child classes
 		if args:
-			return self.cmd + tuple(map(unicode, args))
+			return self.cmd + tuple(map(str, args))
 		else:
 			return self.cmd
 
@@ -162,9 +207,9 @@ class Application(object):
 			argv.insert(0, sys.executable)
 		# TODO: consider an additional commandline arg to re-use compiled python interpreter
 
-		argv = [a.encode(self.encoding) for a in argv]
-		if cwd:
-			cwd = unicode(cwd).encode(zim.fs.ENCODING)
+		if hasattr(cwd, 'path'):
+			cwd = cwd.path
+
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
@@ -176,7 +221,11 @@ class Application(object):
 		@raises ApplicationError: if the sub-process returned an error.
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		logger.info('Running: %s (cwd: %s)', argv, cwd)
+		logger.info('Running: %r (cwd: %r)', argv, cwd)
+		if TEST_MODE:
+			TEST_MODE_RUN_CB(argv)
+			return None
+
 		if os.name == 'nt':
 			# http://code.activestate.com/recipes/409002/
 			info = subprocess.STARTUPINFO()
@@ -194,19 +243,31 @@ class Application(object):
 				#~ close_fds=True
 			)
 		else:
-			p = subprocess.Popen(argv,
-				cwd=cwd,
-				stdout=open(os.devnull, 'w'),
-				stderr=subprocess.PIPE,
-				bufsize=4096,
-				close_fds=True
-			)
+			try:
+				p = subprocess.Popen(argv,
+					cwd=cwd,
+					stdout=open(os.devnull, 'w'),
+					stderr=subprocess.PIPE,
+					bufsize=4096,
+					close_fds=True
+				)
+			except OSError:
+				if _CAN_CALL_FLATPAK_HOST_COMMAND:
+					p = subprocess.Popen(_FLATPAK_HOSTCOMMAND_PREFIX + argv,
+						cwd=cwd,
+						stdout=open(os.devnull, 'w'),
+						stderr=subprocess.PIPE,
+						bufsize=4096,
+						close_fds=True
+					)
+				else:
+					raise
 		stdout, stderr = p.communicate()
 
 		if not p.returncode == self.STATUS_OK:
-			raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
+			raise ApplicationError(argv[0], argv[1:], p.returncode, _decode(stderr))
 		#~ elif stderr:
-			#~ logger.warn(stderr)
+			#~ logger.warn(_decode(stderr))
 
 	def pipe(self, args=None, cwd=None, input=None):
 		'''Run the application in a sub-process and capture the output.
@@ -223,23 +284,32 @@ class Application(object):
 		@raises ApplicationError: if the sub-process returned an error.
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		logger.info('Running: %s (cwd: %s)', argv, cwd)
-		p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		stdout, stderr = p.communicate(input)
-		# TODO: handle ApplicationERror here as well ?
+		logger.info('Running: %r (cwd: %r)', argv, cwd)
+		if TEST_MODE:
+			return TEST_MODE_RUN_CB(argv)
+
+		try:
+			p = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		except OSError:
+			if _CAN_CALL_FLATPAK_HOST_COMMAND:
+				p = subprocess.Popen(_FLATPAK_HOSTCOMMAND_PREFIX + argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			else:
+				raise
+		if input is None:
+			stdout, stderr = p.communicate()
+		else:
+			data = data if isinstance(data, bytes) else str(input).encode('UTF-8')
+				# No way to know what encoding the process accepts, so UTF-8 is as good as any
+			stdout, stderr = p.communicate(data)
 
 		#~ if not p.returncode == self.STATUS_OK:
 			#~ raise ApplicationError(argv[0], argv[1:], p.returncode, stderr)
 		#~ elif stderr:
 		if stderr:
-			logger.warn(stderr)
+			logger.warn(_decode(stderr))
 			# TODO: allow user to get this error as well - e.g. for logging image generator cmd
 
-		# Explicit newline conversion, e.g. on windows \r\n -> \n
-		# FIXME Assume local encoding is respected (!?)
-		text = [unicode(line + '\n', errors='replace') for line in stdout.splitlines()]
-		if text and text[-1].endswith('\n') and not stdout.endswith('\n'):
-			text[-1] = text[-1][:-1] # strip additional \n
+		text = _decode(stdout).replace('\r\n', '\n').splitlines(keepends=True)
 		return text
 
 	def spawn(self, args=None, callback=None, data=None, cwd=None):
@@ -264,16 +334,27 @@ class Application(object):
 		cwd, argv = self._checkargs(cwd, args)
 		opts = {}
 
-		flags = gobject.SPAWN_SEARCH_PATH
+		flags = GObject.SPAWN_SEARCH_PATH
 		if callback:
-			flags |= gobject.SPAWN_DO_NOT_REAP_CHILD
+			flags |= GObject.SPAWN_DO_NOT_REAP_CHILD
 			# without this flag child is reaped automatically -> no zombies
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
+		if TEST_MODE:
+			TEST_MODE_RUN_CB(argv)
+			return None
+
 		try:
-			pid, stdin, stdout, stderr = \
-				gobject.spawn_async(argv, flags=flags, **opts)
-		except gobject.GError:
+			try:
+				pid, stdin, stdout, stderr = \
+					GObject.spawn_async(argv, flags=flags, **opts)
+			except GObject.GError:
+				if _CAN_CALL_FLATPAK_HOST_COMMAND:
+					pid, stdin, stdout, stderr = \
+						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, **opts)
+				else:
+					raise
+		except GObject.GError:
 			from zim.gui.widgets import ErrorDialog
 			ErrorDialog(None, _('Failed running: %s') % argv[0]).run()
 				#~ # T: error when application failed to start
@@ -283,10 +364,10 @@ class Application(object):
 			if callback:
 				# child watch does implicit reaping -> no zombies
 				if data is None:
-					gobject.child_watch_add(pid,
+					GObject.child_watch_add(pid,
 						lambda pid, status: callback(status))
 				else:
-					gobject.child_watch_add(pid,
+					GObject.child_watch_add(pid,
 						lambda pid, status, data: callback(status, data), data)
 			return pid
 
@@ -299,7 +380,7 @@ class WebBrowser(Application):
 	name = _('Default') + ' (webbrowser)' # T: label for default webbrowser
 	key = 'webbrowser' # Used by zim.gui.applications
 
-	def __init__(self, encoding=None):
+	def __init__(self):
 		import webbrowser
 		self.controller = None
 		try:
@@ -307,9 +388,8 @@ class WebBrowser(Application):
 		except webbrowser.Error:
 			pass # webbrowser throws an error when no browser is found
 
-		self.encoding = encoding or zim.fs.ENCODING
-		if self.encoding == 'mbcs':
-			self.encoding = 'utf-8'
+	def __eq__(self, other):
+		return isinstance(other, self.__class__)
 
 	def tryexec(self):
 		return not self.controller is None
@@ -327,9 +407,12 @@ class WebBrowser(Application):
 		for url in args:
 			if isinstance(url, (zim.fs.File, zim.fs.Dir)):
 				url = url.uri
-			url = url.encode(self.encoding)
 			logger.info('Opening in webbrowser: %s', url)
-			self.controller.open(url)
+
+			if TEST_MODE:
+				TEST_MODE_RUN_CB((self.__class__.__name__, url))
+			else:
+				self.controller.open(url)
 
 
 class StartFile(Application):
@@ -343,6 +426,9 @@ class StartFile(Application):
 	def __init__(self):
 		pass
 
+	def __eq__(self, other):
+		return isinstance(other, self.__class__)
+
 	def tryexec(self):
 		return hasattr(os, 'startfile')
 
@@ -354,17 +440,20 @@ class StartFile(Application):
 
 	def spawn(self, args, callback=None):
 		if callback:
-			logger.warn('os.startfile does not support a callback')
+			raise NotImplementedError('os.startfile does not support a callback')
 
 		for arg in args:
 			if isinstance(arg, (zim.fs.File, zim.fs.Dir)):
-				path = os.path.normpath(arg.path)
+				path = os.path.normpath(arg.path).replace('/', SEP) # msys can use '/' instead of '\\'
 			elif is_uri_re.match(arg) and not is_win32_path_re.match(arg):
 				# URL or e.g. mailto: or outlook: URI
-				path = unicode(arg)
+				path = str(arg)
 			else:
 				# must be file
-				path = os.path.normpath(unicode(arg))
+				path = os.path.normpath(str(arg)).replace('/', SEP) # msys can use '/' instead of '\\'
 
 			logger.info('Opening with os.startfile: %s', path)
-			os.startfile(path)
+			if TEST_MODE:
+				TEST_MODE_RUN_CB((self.__class__.__name__, path))
+			else:
+				os.startfile(path)

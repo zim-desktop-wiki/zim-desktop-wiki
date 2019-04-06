@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2012 Yao-Po Wang <blue119@gmail.com>
 # Copyright 2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -25,11 +24,11 @@ info = {
 class Dumper(TextDumper):
 
 	BULLETS = {
-		UNCHECKED_BOX: u'- \u2610', # ☐
-		XCHECKED_BOX: u'- \u2612', # ☒
-		CHECKED_BOX: u'- \u2611', # ☑
-		MIGRATED_BOX: u'- \u25B7', # ▷
-		BULLET: u'-',
+		UNCHECKED_BOX: '- \u2610',
+		XCHECKED_BOX: '- \u2612',
+		CHECKED_BOX: '- \u2611',
+		MIGRATED_BOX: '- \u25B7',
+		BULLET: '-',
 	}
 
 	TAGS = {
@@ -59,7 +58,7 @@ class Dumper(TextDumper):
 		elif level > 4:
 			level = 4
 		char = self.HEADING_UNDERLINE[level - 1]
-		heading = u''.join(strings)
+		heading = ''.join(strings)
 		underline = char * len(heading)
 		return [heading + '\n', underline]
 
@@ -75,7 +74,7 @@ class Dumper(TextDumper):
 		assert 'href' in attrib, \
 			'BUG: link misses href: %s "%s"' % (attrib, strings)
 		href = self.linker.link(attrib['href'])
-		text = u''.join(strings) or href
+		text = ''.join(strings) or href
 		return '`%s <%s>`_' % (text, href)
 
 	def dump_img(self, tag, attrib, strings=None):
@@ -113,14 +112,14 @@ class Dumper(TextDumper):
 			table += [rowline(line) for line in row]
 			table.append(rowsep('-'))
 
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	def dump_th(self, tag, attrib, strings):
-		strings = [s.replace('|', '∣') for s in strings]
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_td(self, tag, attrib, strings):
-		strings = [s.replace('|', '∣') for s in strings]
+		#strings = [s.replace('|', '\u2223') for s in strings]
 		return [self._concat(strings)]
 
 	def dump_line(self, tag, attrib, strings=None):

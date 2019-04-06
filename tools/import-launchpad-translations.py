@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 import tarfile
@@ -43,17 +43,18 @@ def get_lang(name):
 def import_translations_from(archive):
 	tfile = tarfile.open(archive, 'r:gz')
 	names = tfile.getnames()
-	#print names
+	def read_file(name):
+		return [l.decode('UTF-8') for l in tfile.extractfile(name)]
 
 	potfiles = [n for n in names if n.endswith('.pot')]
 	assert len(potfiles) == 1, 'Multiple template files in this archive !?'
-	total = count_messages(tfile.extractfile(potfiles[0]))
-	print '%i messages in catalogue' % total
+	total = count_messages(read_file(potfiles[0]))
+	print('%i messages in catalogue' % total)
 
 	pofiles = []
 	for name in [n for n in names if n.endswith('.po')]:
 		lang = get_lang(name)
-		file = tfile.extractfile(name).readlines()
+		file = read_file(name)
 		n = count_translations(file)
 		pofiles.append((n, lang, file))
 
@@ -65,14 +66,14 @@ def import_translations_from(archive):
 			files.append(('translations/%s.po' % lang, file))
 		else:
 			status = ''
-		print '%-6s %i translated (%i%%) %s' % (lang, n, perc, status)
+		print('%-6s %i translated (%i%%) %s' % (lang, n, perc, status))
 
 	for path, file in files:
-		print 'Writing %s' % path
+		print('Writing %s' % path)
 		open(path, 'w').writelines(file)
 
-	print '\nPlease check `bzr st` for newly added translations and update CHANGELOG'
-	print 'You need to run `./setup.py build_trans` to use the newly imported po files'
+	print('\nPlease check `git status` for newly added translations and update CHANGELOG.md')
+	print('You need to run `./setup.py build_trans` to use the newly imported po files')
 
 if __name__ == '__main__':
 	assert len(sys.argv) == 2 and sys.argv[1].endswith('.tar.gz')

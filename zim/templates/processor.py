@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -29,7 +28,7 @@ class TemplateContextDict(ExpressionDictObject):
 
 	_fmethods = ExpressionDictObject._fmethods + (
 		'pop', 'clear', 'update', 'setdefault', 'items'
-	) # adding methods for mutuable mapping here
+	) # adding methods for mutable mapping here
 
 
 class TemplateProcessor(object):
@@ -71,9 +70,9 @@ class TemplateProcessor(object):
 
 	def process(self, output, context):
 		'''Execute the template once
-		@param output: an object to recieve the template output, can be
+		@param output: an object to receive the template output, can be
 		a C{list} and should support at least an C{append()} method to
-		recieve string content
+		receive string content
 		@param context: a L{TemplateContextDict} object with the
 		template parameters
 		'''
@@ -104,12 +103,12 @@ class TemplateProcessor(object):
 			try:
 				element = elements[i]
 				i += 1
-				if isinstance(element, basestring):
+				if isinstance(element, str):
 					output.append(element)
 				elif element.tag == 'GET':
 					expr = element.attrib['expr']
 					value = expr(context)
-					output.append(unicode(value))
+					output.append(str(value))
 				elif element.tag == 'SET':
 					var = element.attrib['var']
 					expr = element.attrib['expr']

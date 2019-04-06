@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
-import gtk
+from gi.repository import Gtk
 
 from zim.notebook.operations import *
 
@@ -31,7 +30,7 @@ class MockProgressDialog(object):
 			# self.bar.pulse()
 
 		# if isinstance(msg, basestring):
-			# self.lable.set_text(msg)
+			# self.label.set_text(msg)
 
 	def on_iteration_finished(self, o):
 		self.finished = True
@@ -61,7 +60,7 @@ def mock_gtk_iter(notebook):
 	for i in 0, 1, 2:
 		notebook.test('Test %i' % i)
 		yield i
-	gtk.main_quit()
+	Gtk.main_quit()
 
 
 class TestNotebookOperation(tests.TestCase):
@@ -109,7 +108,7 @@ class TestNotebookOperation(tests.TestCase):
 		nb = MockNotebook()
 		op = NotebookOperation(nb, 'My Op', mock_gtk_iter(nb))
 		op.run_on_idle()
-		gtk.main()
+		Gtk.main()
 		self.assertFalse(op.is_running())
 		self.assertEqual(nb.value, 'Test %i' % 2)
 

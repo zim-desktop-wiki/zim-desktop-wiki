@@ -3,23 +3,20 @@ Section: utils
 Priority: optional
 Maintainer: Jaap Karssenberg <jaap.karssenberg@gmail.com>
 Standards-Version: 4.1.1
-Build-Depends: debhelper (>= 7.4.12), cdbs, dh-python, xdg-utils, python (>= 2.6), libgtk2.0-0 (>= 2.6), python-gtk2, python-xdg
-# For testing should also include "python-unittest2 | python (>= 2.7)"
-# but this prevents building the package for Ubuntu Lucid, due to missing
-# unittest2 - but zim runs just fine on Lucid
-X-Python-Version: >= 2.6, << 3.0
+Build-Depends: debhelper (>= 7.4.12), dh-python, xdg-utils, python3 (>= 3.2), python3-setuptools, gir1.2-gtk-3.0, python3-gi, python3-xdg
+X-Python3-Version: > 3.2
 
 Package: zim
 Architecture: all
 Homepage: http://zim-wiki.org/
-Depends: ${python:Depends}, ${misc:Depends}, python (>= 2.6), python-gtk2, python-xdg
+Depends: ${python3:Depends}, ${misc:Depends}, python3 (>= 3.2), libgtk-3-0 (>= 3.18), gir1.2-gtk-3.0, python3-gi, python3-xdg
 # python-gtkspell required for the spell checker plugin
-Recommends: python-gtkspellcheck
+# Recommends: python-gtkspellcheck
 # graphviz required for the link map/diagram plugins
-# bzr required for the version control plugin
+# git or similar required for the version control plugin
 # scrot required for the screenshot plugin
 # dvipng required for the "equation" plugin
-Suggests: bzr, graphviz, scrot, dvipng
+Suggests: git, graphviz, scrot, dvipng
 Description: Desktop Wiki Editor
  Zim is a graphical text editor used to maintain a collection of wiki pages.
  Each page can contain links to other pages, simple formatting and images.
@@ -31,6 +28,7 @@ Description: Desktop Wiki Editor
  .
  Zim can be used to:
   * Keep an archive of notes
+  * Keep a daily or weekly journal
   * Take notes during meetings or lectures
   * Organize task lists
   * Draft blog entries and emails

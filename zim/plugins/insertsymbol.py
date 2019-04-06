@@ -1,14 +1,16 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 import logging
 
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.actions import action
-from zim.gui.widgets import Dialog, Button, InputEntry, ScrolledWindow
+from zim.config import ConfigManager
 
+from zim.gui.pageview import PageViewExtension
+from zim.gui.widgets import Dialog, InputEntry, ScrolledWindow
+from zim.gui.applications import edit_config_file
 
 logger = logging.getLogger('zim.plugins.insertsymbol')
 
@@ -31,15 +33,15 @@ This is a core plugin shipping with zim.
 		'help': 'Plugins:Insert Symbol',
 	}
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.symbols = {}
 		self.symbol_order = []
 
 	def load_file(self):
 		self.symbols = {}
 		self.symbol_order = []
-		file = self.config.get_config_file('symbols.list')
+		file = ConfigManager.get_config_file('symbols.list')
 		for line in file.readlines():
 			line = line.strip()
 			if not line or line.startswith('#'):
@@ -49,7 +51,7 @@ This is a core plugin shipping with zim.
 					line, _ = line.split('#', 1)
 					line = line.strip()
 				shortcut, code = line.split()
-				symbol = unichr(int(code))
+				symbol = chr(int(code))
 				if not shortcut in self.symbols:
 					self.symbols[shortcut] = symbol
 					self.symbol_order.append(shortcut)
@@ -64,31 +66,18 @@ This is a core plugin shipping with zim.
 			yield symbol, shortcut
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class InsertSymbolPageViewExtension(PageViewExtension):
 
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-		<menu action='insert_menu'>
-			<placeholder name='plugin_items'>
-				<menuitem action='insert_symbol'/>
-			</placeholder>
-		</menu>
-	</menubar>
-	</ui>
-	'''
-
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.connectto(window.pageview.view, 'end-of-word')
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
+		self.connectto(pageview.textview, 'end-of-word')
 		if not plugin.symbols:
 			plugin.load_file()
 
-	@action(_('Sy_mbol...')) # T: menu item
+	@action(_('Sy_mbol...'), menuhints='insert') # T: menu item
 	def insert_symbol(self):
 		'''Run the InsertSymbolDialog'''
-		InsertSymbolDialog(self.window, self.plugin, self.window.pageview).run()
+		InsertSymbolDialog(self.pageview, self.plugin, self.pageview).run()
 
 	def on_end_of_word(self, textview, start, end, word, char, editmode):
 		'''Handler for the end-of-word signal from the textview'''
@@ -134,33 +123,36 @@ class MainWindowExtension(WindowExtension):
 
 class InsertSymbolDialog(Dialog):
 
-	def __init__(self, ui, plugin, pageview):
-		Dialog.__init__(self, ui, _('Insert Symbol'), # T: Dialog title
-			button=(_('_Insert'), 'gtk-ok'),  # T: Button label
-			defaultwindowsize=(350, 400))
+	def __init__(self, parent, plugin, pageview):
+		Dialog.__init__(
+			self,
+			parent,
+			_('Insert Symbol'), # T: Dialog title
+			button=_('_Insert'),  # T: Button label
+			defaultwindowsize=(350, 400)
+		)
 		self.plugin = plugin
 		self.pageview = pageview
 		if not plugin.symbols:
 			plugin.load_file()
 
 		self.textentry = InputEntry()
-		self.vbox.pack_start(self.textentry, False)
+		self.vbox.pack_start(self.textentry, False, True, 0)
 
-		# TODO make this iconview single-click
-		model = gtk.ListStore(str, str) # text, shortcut
-		self.iconview = gtk.IconView(model)
+		model = Gtk.ListStore(str, str) # text, shortcut
+		self.iconview = Gtk.IconView(model)
 		self.iconview.set_text_column(0)
 		self.iconview.set_column_spacing(0)
 		self.iconview.set_row_spacing(0)
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			self.iconview.set_property('has-tooltip', True)
-			self.iconview.connect('query-tooltip', self.on_query_tooltip)
+		self.iconview.set_property('has-tooltip', True)
+		self.iconview.set_property('activate-on-single-click', True)
+		self.iconview.connect('query-tooltip', self.on_query_tooltip)
 		self.iconview.connect('item-activated', self.on_activated)
 
-		self.vbox.add(ScrolledWindow(self.iconview))
+		swindow = ScrolledWindow(self.iconview)
+		self.vbox.pack_start(swindow, True, True, 0)
 
-		button = gtk.Button(stock=gtk.STOCK_EDIT)
+		button = Gtk.Button.new_with_mnemonic(_('_Edit')) # T: Button label
 		button.connect('clicked', self.on_edit)
 		self.action_area.add(button)
 		self.action_area.reorder_child(button, 0)
@@ -195,14 +187,13 @@ class InsertSymbolDialog(Dialog):
 		model = iconview.get_model()
 		iter = model.get_iter(path)
 		text = model.get_value(iter, 0)
-		text = text.decode('utf-8')
 		pos = self.textentry.get_position()
 		self.textentry.insert_text(text, pos)
 		self.textentry.set_position(pos + len(text))
 
 	def on_edit(self, button):
-		file = self.ui.config.get_config_file('symbols.list')
-		if self.ui.edit_config_file(file):
+		file = ConfigManager.get_config_file('symbols.list')
+		if edit_config_file(self, file):
 			self.plugin.load_file()
 			self.load_symbols()
 
@@ -212,7 +203,7 @@ class InsertSymbolDialog(Dialog):
 
 	def do_response_ok(self):
 		text = self.textentry.get_text()
-		textview = self.pageview.view
+		textview = self.pageview.textview
 		buffer = textview.get_buffer()
 		buffer.insert_at_cursor(text)
 		return True

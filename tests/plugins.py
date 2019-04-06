@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -9,10 +8,9 @@ import os
 from zim.plugins import *
 from zim.fs import File
 
-from zim.gui.propertiesdialog import PropertiesDialog
-from tests.gui import setupGtkInterface
+from tests.mainwindow import setUpMainWindow
 
-
+import zim.plugins
 assert len(zim.plugins.__path__) > 1 # test __path__ magic
 zim.plugins.__path__ = [os.path.abspath('./zim/plugins')] # set back default search path
 
@@ -34,7 +32,7 @@ class TestPluginClasses(tests.TestCase):
 			'help': set(),
 		}
 		for name in plugins:
-			#~ print '>>', name
+			#~ print('>>', name)
 			klass = PluginManager.get_plugin_class(name)
 
 			# test plugin info
@@ -95,46 +93,33 @@ class TestPluginManager(tests.TestCase):
 		self.assertEqual(len(manager), 0)
 		self.assertEqual(list(manager), [])
 
-		obj = manager.load_plugin('calendar')
+		obj = manager.load_plugin('journal')
 		self.assertEqual(len(manager), 1)
-		self.assertEqual(list(manager), ['calendar'])
-		self.assertEqual(manager['calendar'], obj)
+		self.assertEqual(list(manager), ['journal'])
+		self.assertEqual(manager['journal'], obj)
 
-		obj1 = manager.load_plugin('calendar') # redundant call
+		obj1 = manager.load_plugin('journal') # redundant call
 		self.assertEqual(obj1, obj)
 		self.assertEqual(len(manager), 1)
 
-		manager.remove_plugin('calendar')
+		manager.remove_plugin('journal')
 		self.assertEqual(len(manager), 0)
 		self.assertEqual(list(manager), [])
-		self.assertRaises(KeyError, manager.__getitem__, 'calendar')
+		self.assertRaises(KeyError, manager.__getitem__, 'journal')
 
-		manager.remove_plugin('calendar') # redundant call
+		manager.remove_plugin('journal') # redundant call
 
 	def testLoadNonExistingPlugin(self):
 		manager = PluginManager()
 		self.assertRaises(ImportError, manager.load_plugin, 'nonexistingplugin')
-
-	def testProfileSwitch(self):
-		# Two lists of plugins without dependencies - with some overlap
-		list_a = ['attachmentbrowser', 'backlinkpane', 'calendar', 'distractionfree', 'insertsymbol']
-		list_b = ['calendar', 'distractionfree', 'insertsymbol', 'printtobrowser', 'quicknote']
-
-		manager = PluginManager()
-		for name in list_a:
-			manager.load_plugin(name)
-		self.assertEqual(manager.general_preferences['plugins'], list_a)
-
-		manager.general_preferences['plugins'] = list_b
-		self.assertEqual(sorted(manager._plugins), list_b)
 
 
 class TestPlugins(tests.TestCase):
 	'''Test case to initiate all (loadable) plugins and load some extensions'''
 
 	def runTest(self):
+		preferences = ConfigManager.get_config_dict('preferences.conf')
 		manager = PluginManager()
-		preferences = manager.config.get_config_dict('<profile>/preferences.conf')
 		self.assertFalse(preferences.modified)
 		for name in PluginManager.list_installed_plugins():
 			klass = PluginManager.get_plugin_class(name)
@@ -156,24 +141,20 @@ class TestPlugins(tests.TestCase):
 			# If "False" the check while loading the plugins is not valid
 			# FIXME this detection is broken due to autosave in ConfigManager ...
 
-		notebook = tests.new_notebook(self.get_tmp_name())
-		ui = setupGtkInterface(self, notebook=notebook)
-		dialog = PropertiesDialog(ui) # random dialog
-		for obj in (
-			notebook,
-			notebook.index,
-			ui._mainwindow,				# XXX
-			ui._mainwindow.pageview,	# XXX
-			dialog,
-		):
-			manager.extend(obj)
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		self.assertGreaterEqual(len(notebook.__zim_extension_objects__), 2)
+			# At least journal and tasklist should load
+
+		mainwindow = setUpMainWindow(notebook, plugins=manager)
+		self.assertGreaterEqual(len(mainwindow.pageview.__zim_extension_objects__), 3)
+			# enough plugins without dependencies here
 
 		for i, name in enumerate(manager):
 			manager[name].preferences.emit('changed')
 				# Checking for exceptions and infinite recursion
 
 		for name in manager:
-			#~ print "REMOVE:", name
+			#~ print("REMOVE:", name)
 			self.assertIsInstance(manager[name], PluginClass)
 			manager.remove_plugin(name)
 			self.assertNotIn(name, manager)
@@ -181,16 +162,47 @@ class TestPlugins(tests.TestCase):
 		self.assertTrue(len(manager) == 0)
 
 
+class TestFunctions(tests.TestCase):
 
-from tests.pageview import setUpPageView
-from zim.config import ConfigDict
+	def test_find_extension(self):
 
-class MockWindow(tests.MockObject):
+		class Extension(ExtensionBase):
+			pass
 
-	def __init__(self):
-		tests.MockObject.__init__(self)
+		@extendable(Extension)
+		class Extendable(object):
+			pass
 
-		self.pageview = setUpPageView()
-		self.uimanager = tests.MockObject()
-		self.ui = tests.MockObject()
-		self.ui.uistate = ConfigDict()
+		obj = Extendable()
+		ext = Extension(None, obj)
+
+		self.assertIs(find_extension(obj, Extension), ext)
+		with self.assertRaises(ValueError):
+			self.assertIs(find_extension(obj, Extendable), ext)
+
+	def test_find_action(self):
+		from zim.actions import action
+
+		class Extension(ExtensionBase):
+
+			@action('Bar')
+			def bar(self):
+				pass
+
+		@extendable(Extension)
+		class Extendable(object):
+
+			@action('Foo')
+			def foo(self):
+				pass
+
+		obj = Extendable()
+		ext = Extension(None, obj)
+
+		self.assertTrue(hasaction(obj, 'foo'))
+		self.assertTrue(hasaction(ext, 'bar'))
+
+		self.assertIsNotNone(find_action(obj, 'foo'))
+		self.assertIsNotNone(find_action(obj, 'bar'))
+		with self.assertRaises(ValueError):
+			find_action(obj, 'dus')

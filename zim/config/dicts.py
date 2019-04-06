@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2013 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -18,10 +17,10 @@ Both derive from L{ControlledDict} which defines the C{changed} signal
 which can be used to track changes in the configuration.
 
 Typically these classes are not instantiated directly, but by the
-L{ConfigManager} defined in Lzim.config.manager}.
+L{ConfigManager} defined in L{zim.config.manager}.
 '''
 
-from __future__ import with_statement
+
 
 
 import sys
@@ -30,16 +29,10 @@ import logging
 import types
 import collections
 import ast
-
-
-if sys.version_info >= (2, 6):
-	import json # in standard lib since 2.6
-else: #pragma: no cover
-	import simplejson as json # extra dependency
-
+import json
 
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_NORMAL
-from zim.utils import OrderedDict, FunctionThread
+from zim.utils import OrderedDict
 from zim.fs import File, FileNotFoundError
 from zim.newfs import FileNotFoundError as NewFileNotFoundError
 from zim.errors import Error
@@ -50,12 +43,12 @@ from .basedirs import XDG_CONFIG_HOME
 logger = logging.getLogger('zim.config')
 
 
-class _MyMeta(SignalEmitter.__metaclass__, OrderedDict.__metaclass__):
+class _MyMeta(type(SignalEmitter), type(OrderedDict)):
 	# Combine meta classes to resolve conflict
 	pass
 
 
-class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
+class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin, metaclass=_MyMeta):
 	'''Sub-class of C{OrderedDict} that tracks modified state.
 	This modified state is recursive for nested C{ControlledDict}s.
 
@@ -64,8 +57,6 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 	@signal: C{changed ()}: emitted when content of this dict changed,
 	or a nested C{ControlledDict} changed
 	'''
-
-	__metaclass__ = _MyMeta
 
 	__signals__ = {
 		'changed': (SIGNAL_NORMAL, None, ())
@@ -120,7 +111,7 @@ class ControlledDict(OrderedDict, SignalEmitter, ConnectorMixin):
 			self._modified = True
 		else:
 			self._modified = False
-			for v in self.values():
+			for v in list(self.values()):
 				if isinstance(v, ControlledDict):
 					v.set_modified(False)
 
@@ -196,8 +187,8 @@ class ConfigDefinitionByClass(ConfigDefinition):
 		if klass is None:
 			klass = default.__class__
 
-		if issubclass(klass, basestring):
-			self.klass = basestring
+		if issubclass(klass, str):
+			self.klass = str
 		else:
 			self.klass = klass
 
@@ -210,8 +201,8 @@ class ConfigDefinitionByClass(ConfigDefinition):
 	def check(self, value):
 		if self._check_allow_empty(value):
 			return None
-		elif isinstance(value, basestring) \
-		and not self.klass is basestring:
+		elif isinstance(value, str) \
+		and not self.klass is str:
 			value = self._eval_string(value)
 
 		if isinstance(value, self.klass):
@@ -264,7 +255,7 @@ class String(ConfigDefinition):
 	def check(self, value):
 		if self._check_allow_empty(value):
 			return None
-		elif isinstance(value, basestring):
+		elif isinstance(value, str):
 			return value
 		elif hasattr(value, 'serialize_zim_config'):
 			return value.serialize_zim_config()
@@ -325,8 +316,8 @@ class Choice(ConfigDefinition):
 	__slots__ = ('choices',)
 
 	# TODO - this class needs a type for the choices
-	#        could be simply commen type of list items, but we get
-	#        bitten because we allow tuples as needed for preferences
+	#        could be simply common type of list items, but we get
+	#        beaten because we allow tuples as needed for preferences
 	#        with label --> make that a dedicated feature
 
 	def __init__(self, default, choices, allow_empty=False):
@@ -342,12 +333,12 @@ class Choice(ConfigDefinition):
 			return None
 		else:
 			# Allow options that are not strings (e.g. tuples of strings)
-			if isinstance(value, basestring) \
-			and not all(isinstance(t, basestring) for t in self.choices):
+			if isinstance(value, str) \
+			and not all(isinstance(t, str) for t in self.choices):
 				value = self._eval_string(value)
 
 			# HACK to allow for preferences with "choice" item that has
-			# a list of tuples as argumnet
+			# a list of tuples as argument
 			if all(isinstance(t, tuple) for t in self.choices):
 				choices = list(self.choices) + [t[0] for t in self.choices]
 			else:
@@ -360,10 +351,10 @@ class Choice(ConfigDefinition):
 
 			if value in choices:
 				return value
-			elif isinstance(value, basestring) and value.lower() in choices:
+			elif isinstance(value, str) and value.lower() in choices:
 				return value.lower()
 			else:
-				raise ValueError('Value should be one of %s' % unicode(choices))
+				raise ValueError('Value should be one of %s' % str(choices))
 
 
 class Range(Integer):
@@ -405,7 +396,7 @@ class Coordinate(ConfigDefinition):
 		ConfigDefinition.__init__(self, default, allow_empty)
 
 	def check(self, value):
-		if isinstance(value, basestring):
+		if isinstance(value, str):
 			value = self._eval_string(value)
 
 		if self._check_allow_empty(value) \
@@ -430,8 +421,6 @@ value_is_coord = Coordinate # XXX for backward compatibility
 
 _definition_classes = {
 	str: String,
-	unicode: String,
-	basestring: String,
 	int: Integer,
 	float: Float,
 	bool: Boolean,
@@ -440,14 +429,14 @@ _definition_classes = {
 
 def build_config_definition(default=None, check=None, allow_empty=False):
 	'''Convenience method to construct a L{ConfigDefinition} object
-	based on a default value an/or a check.
+	based on a default value and/or a check.
 	'''
 	if default is None and check is None:
 		raise AssertionError('At least provide either a default or a check')
 	elif check is None:
 		check = default.__class__
 
-	if isinstance(check, (type, type)): # is a class
+	if isinstance(check, type): # is a class
 		if issubclass(check, ConfigDefinition):
 			return check(default, allow_empty=allow_empty)
 		elif check in _definition_classes:
@@ -567,7 +556,7 @@ class ConfigDict(ControlledDict):
 		assert not (E and F)
 		update = E or F
 		if hasattr(update, 'items'):
-			items = update.items()
+			items = list(update.items())
 		else:
 			items = update
 
@@ -580,14 +569,14 @@ class ConfigDict(ControlledDict):
 					self._keys.append(key)
 
 	def define(self, E=None, **F):
-		'''Set one or more defintions for this config dict
+		'''Set one or more definitions for this config dict
 		Can cause error log when values prior given to C{input()} do
 		not match the definition.
 		'''
 		assert not (E and F)
 		update = E or F
 		if isinstance(update, collections.Mapping):
-			items = update.items()
+			items = list(update.items())
 		else:
 			items = update
 
@@ -700,7 +689,7 @@ class ConfigDict(ControlledDict):
 
 class SectionedConfigDict(ControlledDict):
 	'''Dict with multiple sections of config values
-	Sections are auto-vivicated when a non-existing item is retrieved.
+	Sections are handled automatically when a non-existing item is retrieved.
 	'''
 
 	def __setitem__(self, k, v):
@@ -718,7 +707,7 @@ class SectionedConfigDict(ControlledDict):
 
 class INIConfigFile(SectionedConfigDict):
 	'''Dict to represent a configuration file in "ini-style". Since the
-	ini-file is devided in section this is represented as a dict of
+	ini-file is divided in section this is represented as a dict of
 	dicts. This class represents the top-level with a key for each
 	section. The values are in turn L{ConfigDict}s which contain the
 	key value pairs in that section.
@@ -782,7 +771,7 @@ class INIConfigFile(SectionedConfigDict):
 				# First emit top level to allow general changes
 				self.emit('changed')
 				with self.block_signals('changed'):
-					for section in self.values():
+					for section in list(self.values()):
 						section.emit('changed')
 				self.set_modified(False)
 
@@ -802,7 +791,7 @@ class INIConfigFile(SectionedConfigDict):
 		# Note that we explicitly do _not_ support comments on the end
 		# of a line. This is because "#" could be a valid character in
 		# a config value.
-		if isinstance(text, basestring):
+		if isinstance(text, str):
 			text = text.splitlines(True)
 
 		section = None
@@ -836,18 +825,6 @@ class INIConfigFile(SectionedConfigDict):
 		self.file.writelines(self.dump())
 		self.set_modified(False)
 
-	def write_async(self):
-		'''Write data asynchronously and set C{modified} to C{False}
-		@returns: an L{FunctionThread} object
-		'''
-		func = FunctionThread(
-			self.file,
-			self.file.writelines,
-			self.dump())
-		func.start()
-		self.set_modified(False)
-		return func
-
 	def dump(self):
 		'''Serialize the config to a "ini-style" config file.
 		@returns: a list of lines with text in "ini-style" formatting
@@ -866,7 +843,7 @@ class INIConfigFile(SectionedConfigDict):
 						logger.exception('Error serializing "%s" in section "[%s]"', key, name)
 			lines.append('\n')
 
-		for name, section in self.items():
+		for name, section in list(self.items()):
 			if not name.startswith('_'):
 				if isinstance(section, list):
 					for s in section:
@@ -878,7 +855,7 @@ class INIConfigFile(SectionedConfigDict):
 
 
 class HierarchicDict(object):
-	'''This class implements a data store that behaves as a hierarchig
+	'''This class implements a data store that behaves as a hierarchic
 	dict of dicts. Each key in this object is considered a hierarchic
 	path (the path separator is ':' for obvious reasons). The dict for
 	each key will "inherit" all values from parent paths. However
@@ -891,8 +868,8 @@ class HierarchicDict(object):
 	There is a special member dict stored under the key "__defaults__"
 	which has the top-level fallback properties.
 
-	Child dicts are auto-vivicated, so this object only implements
-	C{__getitem__()} but no C{__setitem__()}.
+	This object only implements
+	C{__getitem__()}, but no C{__setitem__()}.
 	'''
 	# Note that all the magic is actually implemented by HierarchicDictFrame
 
@@ -907,7 +884,7 @@ class HierarchicDict(object):
 		self.dict['__defaults__'] = defaults or {}
 
 	def __getitem__(self, k):
-		if not isinstance(k, basestring):
+		if not isinstance(k, str):
 			k = k.name # assume zim path
 		return HierarchicDictFrame(self.dict, k)
 

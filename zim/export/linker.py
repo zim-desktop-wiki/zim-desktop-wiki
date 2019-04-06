@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -17,7 +16,7 @@ from .layouts import ExportLayout
 
 from zim.formats import BaseLinker
 
-from zim.fs import File, Dir, PathLookupError
+from zim.fs import File, Dir, PathLookupError, SEP
 from zim.config import data_file
 from zim.notebook import interwiki_link, encode_filename, HRef, PageNotFoundError
 from zim.parsing import link_type, is_win32_path_re, url_decode, url_encode
@@ -51,7 +50,7 @@ class ExportLinker(BaseLinker):
 		self.output = output
 
 		if output:
-			self.base = output.dir
+			self.base = output.parent()
 		else:
 			self.base = None
 
@@ -73,14 +72,14 @@ class ExportLinker(BaseLinker):
 		context of this linker
 		'''
 		# Determines the link type and dispatches any of the "link_*" methods
-		assert isinstance(link, basestring)
+		assert isinstance(link, str)
 		type = link_type(link)
 		methodname = '_link_' + type
 		if hasattr(self, methodname):
 			href = getattr(self, methodname)(link)
 		else:
 			href = link
-		#~ print "Linker:", link, '-->', href, '(%s)' % type
+		#~ print("Linker:", link, '-->', href, '(%s)' % type)
 		return href
 
 	def img(self, src):
@@ -134,7 +133,7 @@ class ExportLinker(BaseLinker):
 		and file.ischild(self.layout.relative_root):
 			relpath = file.relpath(self.base, allowupward=True)
 			if not relpath.startswith('.'):
-				relpath = './' + relpath
+				relpath = './' + relpath.replace(SEP, '/')
 			return relpath
 		elif self.notebook.document_root \
 		and self.document_root_url \
@@ -284,4 +283,3 @@ class StaticExportLinker(ExportLinker):
 					#~ self._icons[name] = file.uri
 
 		#~ return self._icons[name]
-

@@ -3,7 +3,7 @@ Wiki-Format: zim 0.4
 
 ====== Translations ======
 
-The easiest way to contribute translations is to go to the [[https://translations.launchpad.net/zim|launchpage website]]. Here you can colaborate with others to translate zim into your native language.
+The easiest way to contribute translations is to go to the [[https://translations.launchpad.net/zim|launchpage website]]. Here you can collaborate with others to translate zim into your native language.
 
 If you rather use offline tools like [[http://www.poedit.net/|poedit]] you can either download the latest translation template or partial translation from launchpad or checkout the source repository for zim (see [[Contribute]]). To submit your updates upload the resulting ''.po'' file to the launchpad website again.
 

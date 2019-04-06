@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -12,13 +11,13 @@ Therefore we go to great lenght here to have a full set of mock
 classes for all file system related objects.
 '''
 
-from __future__ import with_statement
+
 
 import os
 import time
 
 from .base import *
-from .base import _EOL, _SEP
+from .base import _EOL, SEP
 
 
 __all__ = ('MockFolder', 'MockFile')
@@ -44,7 +43,7 @@ def os_native_path(unixpath):
 	Does not modify URLs
 	@param unixpath: the (mock) unix path as a string
 	'''
-	assert isinstance(unixpath, basestring)
+	assert isinstance(unixpath, str)
 	if os.name == 'nt' and not is_url_re.match(unixpath):
 		if unixpath.startswith('/'):
 			unixpath = 'M:' + unixpath # arbitrary drive letter, should be OK for mock
@@ -58,7 +57,7 @@ class MockFSNode(object):
 	__slots__ = ('ctime', 'mtime', 'size', 'data', 'isdir', 'case_sensitive')
 
 	def __init__(self, data, case_sensitive=True):
-		assert isinstance(data, (basestring, dict))
+		assert isinstance(data, (bytes, dict))
 		self.ctime = None
 		self.mtime = None
 		self.size = None
@@ -70,7 +69,7 @@ class MockFSNode(object):
 	def deepcopy_data(self):
 		if self.isdir:
 			new = {}
-			for name, node in self.data.items():
+			for name, node in list(self.data.items()):
 				new[name] = MockFSNode(node.deepcopy_data()) # recurs
 				new[name].ctime = node.ctime
 				new[name].mtime = node.mtime
@@ -82,7 +81,7 @@ class MockFSNode(object):
 	def set_case_sensitive(self, case_sensitive):
 		self.case_sensitive = case_sensitive
 		if self.isdir:
-			for child in self.data.values():
+			for child in list(self.data.values()):
 				child.set_case_sensitive(case_sensitive)
 
 	def get_child(self, name):
@@ -91,7 +90,7 @@ class MockFSNode(object):
 				return self.data[name]
 			except:
 				if not self.case_sensitive:
-					for childname, child in self.data.items():
+					for childname, child in list(self.data.items()):
 						if childname.lower() == name.lower():
 							return child
 
@@ -131,12 +130,12 @@ class MockFS(MockFSNode):
 		for i, name in enumerate(names):
 			parent = node
 			if not parent.isdir:
-				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
+				raise AssertionError('Not a folder: %s' % SEP.join(names[:i + 1]))
 			else:
 				try:
 					node = parent.get_child(name)
 				except KeyError:
-					raise FileNotFoundError(_SEP.join(names))
+					raise FileNotFoundError(SEP.join(names))
 		return node
 
 	def touch(self, names, data):
@@ -155,7 +154,7 @@ class MockFS(MockFSNode):
 				node = parent.data[name]
 
 			if not node.isdir:
-				raise AssertionError('Not a folder: %s' % _SEP.join(names[:i + 1]))
+				raise AssertionError('Not a folder: %s' % SEP.join(names[:i + 1]))
 
 		parent, basename = node, names[-1]
 		if basename not in parent.data:
@@ -175,7 +174,7 @@ class MockFSObjectBase(FSObjectBase):
 	# file system.
 
 	def __init__(self, path, watcher=None, _fs=None):
-		if isinstance(path, basestring):
+		if isinstance(path, str):
 			path = os_native_path(path) # make test syntax easier
 		FSObjectBase.__init__(self, path, watcher=watcher)
 		if not _fs:
@@ -237,7 +236,7 @@ class MockFSObjectBase(FSObjectBase):
 
 		if other.isequal(self):
 			if other.path == self.path:
-				raise ValueError, 'Cannot move file or folder to self'
+				raise ValueError('Cannot move file or folder to self')
 
 			# case_sensitive must be False
 			parentnode = self._fs.stat(self.pathnames[:-1])
@@ -288,13 +287,14 @@ class MockFSObjectBase(FSObjectBase):
 		else:
 			raise FileExistsError(other)
 
-	def remove(self):
+	def remove(self, cleanup=True):
 		if self.exists():
 			self._remove()
 			if self.watcher:
 				self.watcher.emit('removed', self)
 
-		self._cleanup()
+		if cleanup:
+			self._cleanup()
 
 	def _remove(self, removechildren=False):
 		node = self._node()
@@ -334,21 +334,10 @@ class MockFolder(MockFSObjectBase, Folder):
 			if self.watcher:
 				self.watcher.emit('created', self)
 
-	def __iter__(self):
+	def _object_iter(self, names, showfile, showdir):
 		children = self._node().data
-		return self._object_iter(children, True, True)
-
-	def list_files(self):
-		children = self._node().data
-		return self._object_iter(children, True, False)
-
-	def list_folders(self):
-		children = self._node().data
-		return self._object_iter(children, False, True)
-
-	def _object_iter(self, children, showfile, showdir):
-		# inner iter to force FileNotFoundError on call instead of first iter call
-		for name, node in sorted(children.items()):
+		for name in names:
+			node = children[name]
 			if node.isdir:
 				if showdir:
 					yield self.folder(name)
@@ -356,9 +345,16 @@ class MockFolder(MockFSObjectBase, Folder):
 				if showfile:
 					yield self.file(name)
 
-	def list_names(self):
+	def list_names(self, include_hidden=False):
 		children = self._node().data
-		return sorted(children.keys())
+		names = sorted(children.keys())
+
+		if not include_hidden:
+			# Ignore hidden files and tmp files
+			names = [n for n in names
+						if n[0] not in ('.', '~') and n[-1] != '~']
+
+		return names
 
 	def file(self, path):
 		return MockFile(self.get_childpath(path), watcher=self.watcher, _fs=self._fs)
@@ -397,24 +393,26 @@ class MockFile(MockFSObjectBase, File):
 		return self._node().data
 
 	def read(self):
-		return self._node().data
+		return self._node().data.decode('UTF-8').replace('\r\n', '\n')
 
 	def readlines(self):
 		return self.read().splitlines(True)
 
-	def write(self, text):
-		assert isinstance(text, basestring)
+	def write_binary(self, data):
+		assert isinstance(data, bytes)
 
 		with self._write_decoration():
 			try:
 				node = self._node()
 			except FileNotFoundError:
-				self._fs.touch(self.pathnames, text)
+				self._fs.touch(self.pathnames, data)
 			else:
-				node.data = text
+				node.data = data
 				node.on_changed()
 
-	write_binary = write
+	def write(self, text):
+		assert isinstance(text, str)
+		self.write_binary(text.encode('UTF-8'))
 
 	def writelines(self, lines):
 		self.write(''.join(lines))

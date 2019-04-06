@@ -43,7 +43,7 @@ Zim notebooks do not support encryption or password protection natively. However
 Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
 
 ===== How do I change the font size of the side pane =====
-You can change this by modifying the ''gtkrc'' file, see [[Help:Config Files|Config Files]] for details.
+You can change this by modifying the gtk css file, see [[Help:Config Files|Config Files]] for details.
 
 ===== Does it run on Windows? =====
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
@@ -58,7 +58,7 @@ The visible files in the notebook folder contain all data of notes and [[Help:At
 The hidden .zim folder contains only caches and GUI state. It doesn't contain any information that can not be recreated on the fly.
 
 ===== How can I synchronize a zim notebook? =====
-By synchronizing all visible files in the notebook. E.g. by putting the zim notbook in a dropbox share.
+By synchronizing all visible files in the notebook. E.g. by putting the zim notebook in a dropbox share.
 
 ===== Can multiple people collaborate using a zim notebook ? =====
 Zim is written as a "single user" program, so it is not intended for multiple people using the same notebook. However it can be used with version control like Bazaar, Git or Mercurial. This way multiple users can work on the same notebook and merge their changes. See the [[Plugins:Version Control|Version Control plugin]].

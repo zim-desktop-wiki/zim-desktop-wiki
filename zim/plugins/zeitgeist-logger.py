@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Marcel Stimberg <stimberg@users.sourceforge.net>
 
 '''Push events to the Zeitgeist daemon'''
 
-import gio
 import logging
 import sys
-from zim.plugins import PluginClass, ObjectExtension, extends
+
+from gi.repository import Gio
+
+from zim.plugins import PluginClass
+from zim.notebook import NotebookExtension
 from zim.signals import SIGNAL_AFTER
 from zim.fs import File
+
+from zim.gui.mainwindow import MainWindowExtension
+
 
 logger = logging.getLogger('zim.plugins.zeitgeist')
 
@@ -35,8 +40,8 @@ class ZeitgeistPlugin(PluginClass):
 		has_zeitgeist = not ZeitgeistClient is None
 		return has_zeitgeist, [('libzeitgeist', has_zeitgeist, False)]
 
-	def __init__(self, ui):
-		PluginClass.__init__(self, ui)
+	def __init__(self):
+		PluginClass.__init__(self)
 		try:
 			self.zeitgeist_client = ZeitgeistClient()
 			self.zeitgeist_client.register_data_source('application://zim.desktop',
@@ -54,7 +59,7 @@ class ZeitgeistPlugin(PluginClass):
 			return
 
 		uri = page.source.uri
-		origin = gio.File(uri).get_parent().get_uri()
+		origin = Gio.File(uri).get_parent().get_uri()
 		text = _('Wiki page: %s') % page.name
 			# T: label for how zim pages show up in the recent files menu, %s is the page name
 
@@ -72,28 +77,30 @@ class ZeitgeistPlugin(PluginClass):
 		self.zeitgeist_client.insert_event(event)
 
 
-@extends('PageView')
-class PageViewExtension(ObjectExtension):
+class ZeitGeistMainWindowExtension(MainWindowExtension):
 
-	def __init__(self, plugin, pageview):
-		self.plugin = plugin
-		self.connectto_all(pageview.ui, # XXX - remove ui here, emit from pageview
-			('open-page', 'close-page'), order=SIGNAL_AFTER)
+	def __init__(self, plugin, window):
+		MainWindowExtension.__init__(self, plugin, window)
+		self.connectto(window, 'page-changed')
+		self.page = None
 
-	def on_open_page(self, ui, page, path):
-		logger.debug("Opened page: %s", page.name)
+	def on_page_changed(self, page):
+		if self.page is not None:
+			self.plugin.create_and_send_event(self.page, Interpretation.LEAVE_EVENT)
+
 		self.plugin.create_and_send_event(page, Interpretation.ACCESS_EVENT)
+		self.page = page
 
-	def on_close_page(self, ui, page):
-		logger.debug("Left page: %s", page.name)
-		self.plugin.create_and_send_event(page, Interpretation.LEAVE_EVENT)
+	def destroy(self):
+		if self.page is not None:
+			self.plugin.create_and_send_event(self.page, Interpretation.LEAVE_EVENT)
+			self.page = None
 
 
-@extends('Notebook')
-class NotebookExtension(ObjectExtension):
+class ZeitgeistNotebookExtension(NotebookExtension):
 
 	def __init__(self, plugin, notebook):
-		self.plugin = plugin
+		NotebookExtension.__init__(self, plugin, notebook)
 		self.connectto_all(notebook,
 			('deleted-page', 'stored-page'), order=SIGNAL_AFTER)
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 # Copyright 2014 Andri Kusumah
@@ -7,14 +6,17 @@
 import time
 from platform import os
 
-import gtk
+from gi.repository import Gtk
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.fs import TmpFile
 from zim.applications import Application
-from zim.gui.widgets import ui_environment, Dialog, ErrorDialog
 
+from zim.gui.pageview import PageViewExtension
+from zim.gui.widgets import Dialog, ErrorDialog
+
+logger = logging.getLogger('zim.plugins.screenshot')
 PLATFORM = os.name
 
 """
@@ -70,10 +72,10 @@ class ScreenshotPicker(object):
 
 		if str(delay).isdigit() and int(delay) > 0 and self.cmd_options[cmd]['delay'] is not None:
 			delay_factor = 1
-                        if self.cmd_options[cmd].has_key('delay_factor'):
-			    delay_factor =  self.cmd_options[cmd]['delay_factor']
+						if self.cmd_options[cmd].has_key('delay_factor'):
+				delay_factor =  self.cmd_options[cmd]['delay_factor']
 			self.final_cmd_options += (self.cmd_options[cmd]['delay'], str(int(delay) * int(delay_factor)))
-                if self.cmd_options[cmd].has_key('output'):
+				if self.cmd_options[cmd].has_key('output'):
 			self.final_cmd_options += (self.cmd_options[cmd]['output'], )
 
 
@@ -122,8 +124,8 @@ This is a core plugin shipping with zim.
 	)
 	screenshot_cmd = COMMAND
 
-	def __init__(self, config=None):
-		PluginClass.__init__(self, config)
+	def __init__(self):
+		PluginClass.__init__(self)
 		self.on_preferences_changed(self.preferences)
 		self.preferences.connect('changed', self.on_preferences_changed)
 
@@ -145,30 +147,12 @@ This is a core plugin shipping with zim.
 		return is_ok, cmds
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='insert_menu'>
-				<placeholder name='plugin_items'>
-					<menuitem action='insert_screenshot'/>
-				</placeholder>
-			</menu>
-		</menubar>
-            <toolbar name='toolbar'>
-				<placeholder name='plugin_items'>
-					<toolitem action='insert_screenshot'/>
-				</placeholder>
-			</toolbar>
-	</ui>
-	'''
-
+class ScreenshotPageViewExtension(PageViewExtension):
 	screenshot_command = COMMAND
 	plugin = None
 
-	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+	def __init__(self, plugin, pageview):
+		PageViewExtension.__init__(self, plugin, pageview)
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 		self.plugin = plugin
@@ -181,19 +165,19 @@ class MainWindowExtension(WindowExtension):
 	def insert_screenshot(self):
 		self.notebook = self.window.ui.notebook  # xxx
 		self.page = self.window.ui.page  # xxx
-                if self.plugin.preferences['hide_dialog']:
-                    if self.plugin.preferences['default_selection_mode'] == 'Fullscreen':
-                        selection = False
-                    else:
-                        selection = True
-                    self.make_screenshot(selection, self.plugin.preferences['default_delay'])
-                else:
-                    dialog = InsertScreenshotDialog.unique(self, self.notebook, self.plugin.preferences['screenshot_command'], self.plugin.preferences['default_selection_mode'], self.make_screenshot)
-                    dialog.show_all()
+				if self.plugin.preferences['hide_dialog']:
+					if self.plugin.preferences['default_selection_mode'] == 'Fullscreen':
+						selection = False
+					else:
+						selection = True
+					self.make_screenshot(selection, self.plugin.preferences['default_delay'])
+				else:
+					dialog = InsertScreenshotDialog.unique(self, self.notebook, self.plugin.preferences['screenshot_command'], self.plugin.preferences['default_selection_mode'], self.make_screenshot)
+					dialog.show_all()
 	def make_screenshot(self, selection_mode, delay):
 		tmpfile = TmpFile('insert-screenshot.png')
 		options = ScreenshotPicker.get_cmd_options(self.screenshot_command, selection_mode, str(delay))
-                cmd = (self.screenshot_command,) + options
+				cmd = (self.screenshot_command,) + options
 		helper = Application(cmd)
 
 		def callback(status, tmpfile):
@@ -211,18 +195,21 @@ class MainWindowExtension(WindowExtension):
 		tmpfile.dir.touch()
 		helper.spawn((tmpfile,), callback, tmpfile)
 		return True
-                
+				
 
 
 class InsertScreenshotDialog(Dialog):
 	screenshot_command = COMMAND
 
-	def __init__(self, window, screenshot_command, default_choice, cmd):
-		Dialog.__init__(self, window, _('Insert Screenshot'))  # T: dialog title
+	def __init__(self, pageview, notebook, page, screenshot_command):
+		Dialog.__init__(self, pageview, _('Insert Screenshot'))  # T: dialog title
+		self.pageview = pageview
 		self.screenshot_command = screenshot_command
 		if ScreenshotPicker.has_select_cmd(self.screenshot_command):
-			self.screen_radio = gtk.RadioButton(None, _('Capture whole screen'))  # T: option in 'insert screenshot' dialog
-			self.select_radio = gtk.RadioButton(self.screen_radio, _('Select window or region'))  # T: option in 'insert screenshot' dialog
+			self.screen_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(None,
+												_('Capture whole screen'))  # T: option in 'insert screenshot' dialog
+			self.select_radio = Gtk.RadioButton.new_with_mnemonic_from_widget(self.screen_radio,
+												_('Select window or region'))  # T: option in 'insert screenshot' dialog
 			self.vbox.add(self.screen_radio)
 			self.vbox.add(self.select_radio)
 			if default_choice == 'Fullscreen':
@@ -232,15 +219,15 @@ class InsertScreenshotDialog(Dialog):
 
 		self.cmd = cmd
 		if ScreenshotPicker.has_delay_cmd(self.screenshot_command):
-			hbox = gtk.HBox()
+			hbox = Gtk.HBox()
 			self.vbox.add(hbox)
-			hbox.add(gtk.Label(_('Delay') + ': '))  # T: input in 'insert screenshot' dialog
-			self.time_spin = gtk.SpinButton()
+			hbox.add(Gtk.Label(label=_('Delay') + ': '))  # T: input in 'insert screenshot' dialog
+			self.time_spin = Gtk.SpinButton()
 			self.time_spin.set_range(0, 99)
 			self.time_spin.set_increments(1, 5)
 			self.time_spin.set_value(0)
 			hbox.add(self.time_spin)
-			hbox.add(gtk.Label(' ' + _('seconds')))  # T: label behind timer
+			hbox.add(Gtk.Label(label=' ' + _('seconds')))  # T: label behind timer
 
 	def do_response_ok(self):
 		selection_mode = False
@@ -251,5 +238,22 @@ class InsertScreenshotDialog(Dialog):
 		if ScreenshotPicker.has_delay_cmd(self.screenshot_command):
 			delay = self.time_spin.get_value_as_int()
 
-		self.cmd(selection_mode, delay)
+		options = ScreenshotPicker.get_cmd_options(self.screenshot_command, selection_mode, str(delay))
+		helper = Application((self.screenshot_command,) + options)
+
+		def callback(status, tmpfile):
+			if status == helper.STATUS_OK:
+				name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
+				imgdir = self.notebook.get_attachments_dir(self.page)
+				imgfile = imgdir.new_file(name)
+				tmpfile.rename(imgfile)
+				pageview = self.pageview
+				pageview.insert_image(imgfile)
+			else:
+				ErrorDialog(self,
+							_('Some error occurred while running "%s"') % self.screenshot_command).run()
+				# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
+
+		tmpfile.dir.touch()
+		helper.spawn((tmpfile,), callback, tmpfile)
 		return True

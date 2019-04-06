@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # ploteditor.py
 #
@@ -17,7 +16,10 @@
 import glob
 import re
 
-from zim.plugins.base.imagegenerator import ImageGeneratorPlugin, ImageGeneratorClass
+from zim.plugins import PluginClass
+from zim.plugins.base.imagegenerator import \
+	ImageGeneratorClass, BackwardImageGeneratorObjectType
+
 from zim.fs import File, TmpFile
 from zim.config import data_file
 from zim.templates import get_template
@@ -27,7 +29,7 @@ from zim.applications import Application
 gnu_r_cmd = ('R',)
 
 
-class InsertGNURPlotPlugin(ImageGeneratorPlugin):
+class InsertGNURPlotPlugin(PluginClass):
 
 	plugin_info = {
 		'name': _('Insert GNU R Plot'), # T: plugin name
@@ -38,30 +40,27 @@ This plugin provides a plot editor for zim based on GNU R.
 		'author': 'Lee Braiden',
 	}
 
-	object_type = 'gnu_r_plot'
-	short_label = _('GNU _R Plot') # T: menu item
-	insert_label = _('Insert GNU R Plot') # T: menu item
-	edit_label = _('_Edit GNU R Plot') # T: menu item
-	syntax = 'r'
-
 	@classmethod
 	def check_dependencies(klass):
 		has_gnur = Application(gnu_r_cmd).tryexec()
 		return has_gnur, [('GNU R', has_gnur, True)]
 
 
+class BackwardGnuRPlotImageObjectType(BackwardImageGeneratorObjectType):
+
+	name = 'image+gnu_r_plot'
+	label = _('GNU R Plot') # T: menu item
+	syntax = 'r'
+	scriptname = 'gnu_r_plot.r'
+	imagefile_extension = '.png'
+
+
 class GNURPlotGenerator(ImageGeneratorClass):
 
-	uses_log_file = False
-
-	object_type = 'gnu_r_plot'
-	scriptname = 'gnu_r_plot.r'
-	imagename = 'gnu_r_plot.png'
-
-	def __init__(self, plugin):
-		ImageGeneratorClass.__init__(self, plugin)
+	def __init__(self, plugin, notebook, page):
+		ImageGeneratorClass.__init__(self, plugin, notebook, page)
 		self.template = get_template('plugins', 'gnu_r_editor.r')
-		self.plotscriptfile = TmpFile(self.scriptname)
+		self.plotscriptfile = TmpFile('gnu_r_plot.r')
 
 	def generate_image(self, text):
 		plotscriptfile = self.plotscriptfile

@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
 
-# Copyright 2009 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
 import os
 
 from zim.fs import File, Dir
+from zim.newfs import LocalFile, LocalFolder
 from zim.formats import wiki, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
-from zim.config import SectionedConfigDict, VirtualConfigManager, ConfigManager
 from zim.gui.clipboard import Clipboard
 
 from zim.newfs.mock import os_native_path
@@ -24,39 +23,42 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
 
-def new_parsetree_from_text(text):
-	## FIXME had to wrap my own here becase of stupid
-	## resolve_images - get rid of that
+def new_parsetree_from_text(testcase, text):
+	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
 	tree = tests.new_parsetree_from_text(text)
-	notebook = tests.new_notebook(fakedir='/foo')
+	notebook = testcase.setUpNotebook()
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
 
 	return tree
 
 
-def setUpPageView(fakedir=None, notebook=None):
+def setUpPageView(notebook, text=''):
 	'''Some bootstrap code to get an isolated PageView object'''
-	if notebook is None:
-		notebook = tests.new_notebook(fakedir)
+	page = notebook.get_page(Path('Test'))
+	page.parse('wiki', text)
+	notebook.store_page(page)
 
-	ui = MockUI()
-	ui.config = VirtualConfigManager()
-	ui.notebook = notebook
-	ui.page = None
-	#~ ui.uimanager = tests.MockObject()
-	#~ ui.uimanager.mock_method('get_accel_group', tests.MockObject())
+	navigation = tests.MockObject()
+	pageview = PageView(notebook, navigation)
+	pageview.set_page(page)
+	return pageview
 
-	return PageView(ui, ui.notebook)
 
+def get_text(buffer):
+	start, end = buffer.get_bounds()
+	return start.get_slice(end)
+
+
+LINE_TEXT = '-' * 20
 
 class TestLines(tests.TestCase):
 
 	def testLines(self):
 		'''Test lines formatting.'''
 
-		pageview = setUpPageView()
-		buffer = pageview.view.get_buffer()
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
 
 		def check_text(input, result):
 			buffer.set_text(input)
@@ -104,7 +106,7 @@ class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
 	def assertBufferEquals(self, buffer, wanted):
-		if not isinstance(wanted, basestring):
+		if not isinstance(wanted, str):
 			wanted = tree.tostring()
 		raw = '<zim-tree raw="True">' in wanted
 		tree = buffer.get_parsetree(raw=raw)
@@ -118,9 +120,9 @@ class TestCaseMixin(object):
 		self.assertEqual(selection, string)
 
 	def assertCursorPosition(self, buffer, offset, line):
-		#~ print 'CHECK', line, offset, text
+		#~ print('CHECK', line, offset, text)
 		cursor = buffer.get_insert_iter()
-		#~ print '  GOT', cursor.get_line(), cursor.get_line_offset()
+		#~ print('  GOT', cursor.get_line(), cursor.get_line_offset())
 		self.assertEqual(cursor.get_line(), line)
 		self.assertEqual(cursor.get_line_offset(), offset)
 
@@ -130,8 +132,10 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(wikitext)
-		buffer = TextBuffer()
+		tree = new_parsetree_from_text(self, wikitext)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		with FilterNoSuchImageWarning():
 			buffer.set_parsetree(tree)
 
@@ -320,8 +324,10 @@ grrr
 		self.assertEqual(tree.tostring(), input)
 
 		# Check how robust we are for placeholder utf8 character
-		buffer = TextBuffer()
-		buffer.insert_at_cursor(u'foo \uFFFC bar')
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.insert_at_cursor('foo \uFFFC bar')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree><p>foo  bar
@@ -447,7 +453,7 @@ Tja
 <li bullet="unchecked-box" indent="0"> Baz</li>
 Tja
 </zim-tree>'''
-		start = buffer.get_iter_at_line(3) # Bar 1
+		start = buffer.get_iter_at_line(3) # Bar
 		end = buffer.get_iter_at_line(7) # Baz (before checkbox !)
 		buffer.delete(start, end)
 		tree = buffer.get_parsetree(raw=True)
@@ -479,7 +485,9 @@ Tja
 </p></zim-tree>'''
 		tree = tests.new_parsetree_from_xml(input)
 
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		buffer.set_parsetree(tree)
 
 		iter = buffer.get_iter_at_offset(7) # middle of "bbb"
@@ -488,7 +496,7 @@ Tja
 
 		with buffer.user_action:
 			buffer.delete_selection(True, True)
-			buffer.insert_interactive_at_cursor("eee", True)
+			buffer.insert_interactive_at_cursor("eee", 3, True)
 
 		self.assertBufferEquals(buffer, wanted)
 
@@ -501,7 +509,9 @@ aaa <link href="xxx">bbb</link> ccc
 '''
 		tree = tests.new_parsetree_from_xml(input)
 
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		buffer.set_parsetree(tree)
 		buffer.place_cursor(buffer.get_iter_at_offset(7)) # middle of link
 
@@ -510,15 +520,42 @@ aaa <link href="xxx">bbb</link> ccc
 		self.assertEqual(data['href'], 'xxx')
 		self.assertEqual(buffer.get_has_link_selection(), data)
 
+	def testToggleTextStylePre(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tests.new_parsetree_from_xml('''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>A
+<div indent="1">B
+</div>C
+<div indent="1">D
+</div></p></zim-tree>
+'''))
+		start, end = buffer.get_bounds()
+		buffer.select_range(start, end)
+		buffer.toggle_textstyle('code')
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><pre>A
+	B
+C
+	D
+</pre></zim-tree>''')
+
 
 class TestUndoStackManager(tests.TestCase):
 
 	def runTest(self):
 		'''Test the undo/redo functionality'''
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		undomanager = UndoStackManager(buffer)
 		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(wikitext)
+		tree = new_parsetree_from_text(self, wikitext)
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree._etree.getroot())
@@ -620,7 +657,7 @@ class TestUndoStackManager(tests.TestCase):
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
 
-		start, end = map(buffer.get_iter_at_offset, (5, 10))
+		start, end = list(map(buffer.get_iter_at_offset, (5, 10)))
 		with buffer.user_action:
 			buffer.delete(start, end)
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
@@ -661,7 +698,9 @@ class TestUndoStackManager(tests.TestCase):
 class TestFind(tests.TestCase, TestCaseMixin):
 
 	def testVarious(self):
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		finder = buffer.finder
 		buffer.set_text('''\
 FOO FooBar FOOBAR
@@ -734,7 +773,9 @@ foo Bar Baz Foo
 		finder.set_highlight(False)
 
 	def testReplace(self):
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		finder = buffer.finder
 		tree = tests.new_parsetree_from_xml('''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -773,7 +814,9 @@ class TestLists(tests.TestCase, TestCaseMixin):
 	def testBulletLists(self):
 		'''Test interaction for lists'''
 
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree raw="True">Dusss
@@ -1041,7 +1084,9 @@ Tja
 		self.assertEqual(tree.tostring(), wantedpre)
 
 	def testNumberedLists(self):
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 
 		# The rules for renumbering are:
 		#
@@ -1320,26 +1365,18 @@ Tja
 
 
 def press(widget, sequence):
-	#~ print 'PRESS', sequence
+	#~ print('PRESS', sequence)
 	for key in sequence:
-		event = gtk.gdk.Event(gtk.gdk.KEY_PRESS)
-		if isinstance(key, (int, long)):
-			event.keyval = int(key)
+		if isinstance(key, int):
+			keyval = int(key)
 		elif key == '\n':
-			event.keyval = int(gtk.gdk.keyval_from_name('Return'))
+			keyval = int(Gdk.keyval_from_name('Return'))
 		elif key == '\t':
-			event.keyval = int(gtk.gdk.keyval_from_name('Tab'))
+			keyval = int(Gdk.keyval_from_name('Tab'))
 		else:
-			event.keyval = int(gtk.gdk.unicode_to_keyval(ord(key)))
+			keyval = int(Gdk.unicode_to_keyval(ord(key)))
 
-		if not isinstance(key, (int, long)):
-			event.string = key
-
-		#gtk.main_do_event(event)
-		#assert widget.event(event) # Returns True if event was handled
-		#while gtk.events_pending():
-		#	gtk.main_iteration()
-		widget.emit('key-press-event', event)
+		widget.test_key_press_event(keyval)
 
 
 class TestTextView(tests.TestCase, TestCaseMixin):
@@ -1351,14 +1388,15 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 			self.preferences[pref[0]] = pref[4]
 
 	def testTyping(self):
-		print '\n!! Two GtkWarnings expected here for gdk display !!'
 		view = TextView(self.preferences)
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		view.set_buffer(buffer)
 		undomanager = UndoStackManager(buffer)
 
 		# Need a window to get the widget realized
-		window = gtk.Window()
+		window = Gtk.Window()
 		window.add(view)
 		view.realize()
 		#~ window.show_all()
@@ -1366,7 +1404,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 
 		press(view, 'aaa\n')
 		start, end = buffer.get_bounds()
-		self.assertEqual(buffer.get_text(start, end), 'aaa\n')
+		self.assertEqual(buffer.get_text(start, end, True), 'aaa\n')
 			# Just checking test routines work
 
 		# Test bullet & indenting logic
@@ -1528,9 +1566,11 @@ foo
 		# TODO Auto formatting of various link types
 		# TODO enter on link, before link, after link
 
+	@tests.expectedFailure
 	def testCopyPaste(self):
-		dir = self.get_tmp_name('testCopyPaste')
-		notebook = tests.new_notebook(fakedir=dir)
+		notebook = self.setUpNotebook(
+			content={'roundtrip': tests.FULL_NOTEBOOK['roundtrip']}
+		)
 		page = notebook.get_page(Path('roundtrip'))
 		parsetree = page.get_parsetree()
 
@@ -1538,7 +1578,7 @@ foo
 		textview = TextView(self.preferences)
 		textview.set_buffer(buffer)
 
-		print '** HACK for cleaning up parsetree'
+		print('** HACK for cleaning up parsetree')
 		def cleanup(parsetree):
 			# FIXME - HACK - dump and parse as wiki first to work
 			# around glitches in pageview parsetree dumper
@@ -1547,7 +1587,7 @@ foo
 			from zim.notebook import Path, Page
 			from zim.formats import get_format
 			dumper = get_format('wiki').Dumper()
-			text = ''.join(dumper.dump(parsetree)).encode('utf-8')
+			text = ''.join(dumper.dump(parsetree))
 			parser = get_format('wiki').Parser()
 			parsetree = parser.parse(text)
 			return parsetree
@@ -1604,18 +1644,17 @@ foo
 		self.assertIsNotNone(result)
 		result = cleanup(result)
 		self.assertEqual(result.tostring(), parsetree.tostring())
-		self.assertEqual(buffer.get_text(*buffer.get_bounds()), '')
+		self.assertEqual(get_text(buffer), '')
 
 		# popup menu
 		page = tests.new_page_from_text('Foo **Bar** Baz\n')
-		dir = self.get_tmp_name('testCopyPaste')
-		pageview = setUpPageView(fakedir=dir)
+		pageview = setUpPageView(self.setUpNotebook())
 		pageview.set_page(page)
 
 		def get_context_menu():
-			buffer = pageview.view.get_buffer()
+			buffer = pageview.textview.get_buffer()
 			buffer.select_range(*buffer.get_bounds()) # select all
-			return pageview.view.get_popup()
+			return pageview.textview.get_popup()
 
 		def click(id):
 			menu = get_context_menu()
@@ -1630,15 +1669,15 @@ foo
 		copy_as_menu = item.get_submenu()
 		tests.gtk_activate_menu_item(copy_as_menu, 'Wiki')
 		self.assertEqual(Clipboard.get_text(), 'Foo **Bar** Baz\n')
-		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		tree = Clipboard.get_parsetree(pageview.notebook, page)
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree partial="True"><p>Foo <strong>Bar</strong> Baz\n</p></zim-tree>')
 
-		page = tests.new_page_from_text('[[bar]]')
+		page = tests.new_page_from_text('[[Bar]]')
 		pageview.set_page(page)
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), 'Bar')
-		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		tree = Clipboard.get_parsetree(pageview.notebook, page)
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="Bar">Bar</link></zim-tree>')
 
@@ -1646,7 +1685,7 @@ foo
 		pageview.set_page(page)
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), 'http://en.wikipedia.org/wiki/foobar')
-		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		tree = Clipboard.get_parsetree(pageview.notebook, page)
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="wp?foobar">wp?foobar</link></zim-tree>')
 
@@ -1656,11 +1695,36 @@ foo
 		wanted = '~/bar.txt' if os.name != 'nt' else '~\\bar.txt'
 		click(_('Copy _Link'))
 		self.assertEqual(Clipboard.get_text(), '~/bar.txt')
-		tree = Clipboard.get_parsetree(pageview.ui.notebook, page)
+		tree = Clipboard.get_parsetree(pageview.notebook, page)
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="%s">%s</link></zim-tree>' % (wanted, wanted))
 
 
+	def testUnkownObjectType(self):
+		view = TextView(self.preferences)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		view.set_buffer(buffer)
+
+		tree = new_parsetree_from_text(self, '''\
+======= Test
+
+{{{somenewtype: foo=123
+Foo 123
+}}}
+
+''')
+		for token in tree.iter_tokens(): # assert object in tree
+			if token[0] == OBJECT:
+				break
+		else:
+			self.fail('No object in tree')
+
+		buffer.set_parsetree(tree)
+		self.assertEqual(len(list(view._object_widgets)), 1) # assert there is an object in the view
+		newtree = buffer.get_parsetree()
+		self.assertEqual(newtree.tostring(), tree.tostring())
 
 # TODO: More popup stuff
 
@@ -1669,8 +1733,8 @@ foo
 class TestPageView(tests.TestCase, TestCaseMixin):
 
 	def testGetSelection(self):
-		pageview = setUpPageView()
-		buffer = pageview.view.get_buffer()
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
 		buffer.set_text('''\
 Foo bar
 Baz
@@ -1685,8 +1749,8 @@ Baz
 	def testAutoSelect(self):
 		# This test indirectly tests select_word, select_line and strip_selection
 
-		pageview = setUpPageView()
-		buffer = pageview.view.get_buffer()
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
 		buffer.set_text('''Test 123. foo\nline with spaces    \n\n''')
 
 		# select word (with / without previous selection)
@@ -1731,22 +1795,448 @@ Baz
 		self.assertSelection(buffer, 0, 5, '123.')
 
 	def testInsertLinks(self):
-		pageview = setUpPageView()
-		buffer = pageview.view.get_buffer()
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
 		buffer.set_text('''Test 123\n''')
 
 		buffer.place_cursor(buffer.get_end_iter())
 		pageview.insert_links((Path("foo"), File("/foo.txt"), "~/bar.txt"))
 		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % (File('/foo.txt').uri, os_native_path('~/bar.txt'))
-		text = buffer.get_text(*buffer.get_bounds())
+		text = get_text(buffer)
 		self.assertEqual(text, wantedtext)
 
 		buffer.place_cursor(buffer.get_iter_at_line(2))
 		buffer.select_line()
 		pageview.insert_links(('http://cpan.org',))
 		wantedtext = 'Test 123\nfoo\n%s\n%s\n' % ('http://cpan.org ', os_native_path('~/bar.txt'))
-		text = buffer.get_text(*buffer.get_bounds())
+		text = get_text(buffer)
 		self.assertEqual(text, wantedtext)
+
+	def testLinkClicked(self):
+		pageview = setUpPageView(self.setUpNotebook('test'))
+		pageview.page = Path('test')
+
+		for href in ('foo', 'foo:bar', 'mailto:foo.com'):
+			pageview.activate_link(href)
+			self.assertEqual(
+				pageview.navigation.mock_calls[-1],
+				('open_page', Path(href), {'new_window': False})
+			)
+
+		def check_zim_cmd(cmd, args):
+			self.assertEqual(args, ('--gui', 'file://foo/bar', 'dus.txt'))
+
+		with tests.ZimApplicationContext(check_zim_cmd):
+			pageview.activate_link('zim+file://foo/bar?dus.txt')
+
+		file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
+		file.touch()
+		def check_file(args):
+			self.assertEqual(LocalFile(args[-1]), file)
+
+		with tests.ApplicationContext(check_file):
+			pageview.activate_link(file.uri)
+
+		for href, want in (
+			('http://foo/bar', None),
+			('http://192.168.168.100', None),
+			('file+ssh://foo/bar', None),
+			('mailto:foo@bar.com', None),
+			('foo@bar.com', 'mailto:foo@bar.com'),
+			('mailto:foo//bar@bar.com', None),
+			('mid:foo@bar.org', None),
+			('cid:foo@bar.org', None),
+			('wp?foo', 'http://en.wikipedia.org/wiki/foo'),
+			('http://foo?bar', None),
+			# ('\\\\host\\foo\\bar', None), FIXME os dependent parsing
+		):
+			def check_url(args):
+				self.assertEqual(args[-1], want or href)
+
+			with tests.ApplicationContext(check_url):
+				pageview.activate_link(href)
+
+
+	def testPluginCanHandleURL(self):
+		pageview = setUpPageView(self.setUpNotebook())
+
+		def mock_default(*a):
+			raise AssertionError('Default handler reached')
+
+		pageview.do_activate_link = mock_default
+
+		def myhandler(o, link, hints):
+			if link.startswith('myurl://'):
+				return True
+
+		id = pageview.connect('activate-link', myhandler)
+
+		with self.assertRaisesRegex(AssertionError, 'Default handler reached'):
+			pageview.activate_link('foo')
+
+		pageview.activate_link('myurl://foo') # No raise
+
+		pageview.disconnect(id)
+
+
+class TestPageViewActions(tests.TestCase):
+
+	def testSavePage(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
+		buffer.insert_at_cursor('test 123')
+		pageview.save_page()
+		lines = pageview.page.source_file.readlines()
+		self.assertEqual(lines[-1], 'test 123\n') # Other lines are source headers
+
+	def testSavePageWithHeaderMixup(self):
+		# This is a test for specific error condition where first line of
+		# pageview got interpreted as page header, resulting in crash
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
+		buffer.set_text('a: b\n')
+		pageview.save_page()
+		lines = pageview.page.source_file.readlines()
+		self.assertEqual(lines[-1], 'a: b\n') # Other lines are real source headers
+
+	def testUndoRedo(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
+		with buffer.user_action:
+			buffer.insert_at_cursor('test')
+		with buffer.user_action:
+			buffer.insert_at_cursor(' ')
+		with buffer.user_action:
+			buffer.insert_at_cursor('123')
+
+		self.assertEqual(get_text(buffer), 'test 123\n')
+
+		for text in ('test \n', 'test\n', '\n'):
+			pageview.undo()
+			self.assertEqual(get_text(buffer), text)
+
+		for text in ('test\n', 'test \n', 'test 123\n'):
+			pageview.redo()
+			self.assertEqual(get_text(buffer), text)
+
+	@tests.expectedFailure
+	def testCopyAndPaste(self):
+		pageview1 = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		pageview2 = setUpPageView(self.setUpNotebook())
+
+		buffer1 = pageview1.view.get_buffer()
+		begin = buffer1.get_iter_at_offset(5)
+		end = buffer1.get_iter_at_offset(8)
+		buffer1.select_range(begin, end)
+
+		buffer2 = pageview2.view.get_buffer()
+
+		pageview1.copy()
+		pageview2.paste()
+
+		self.assertEqual(get_text(buffer1), 'test 123\n')
+		self.assertEqual(get_text(buffer2), '123\n')
+
+	@tests.expectedFailure
+	def testCutAndPaste(self):
+		pageview1 = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		pageview2 = setUpPageView(self.setUpNotebook())
+
+		buffer1 = pageview1.view.get_buffer()
+		begin = buffer1.get_iter_at_offset(5)
+		end = buffer1.get_iter_at_offset(8)
+		buffer1.select_range(begin, end)
+
+		buffer2 = pageview2.view.get_buffer()
+
+		pageview1.cut()
+		pageview2.paste()
+
+		self.assertEqual(get_text(buffer1), 'test \n')
+		self.assertEqual(get_text(buffer2), '123\n')
+
+	def testDelete(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		buffer = pageview.textview.get_buffer()
+		buffer.insert_at_cursor('test 123')
+		buffer.place_cursor(buffer.get_iter_at_offset(1))
+		self.assertEqual(get_text(buffer), 'test 123\n')
+		pageview.delete()
+		self.assertEqual(get_text(buffer), 'tst 123\n')
+		pageview.delete()
+		self.assertEqual(get_text(buffer), 'tt 123\n')
+
+	def testUnCheckCheckBox(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
+		pageview.uncheck_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] my task\n'])
+
+	def testToggleCheckBox(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[ ] my task\n')
+		pageview.toggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[*] my task\n'])
+
+	def testXToggleCheckBox(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
+		pageview.xtoggle_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[x] my task\n'])
+
+	def testMigrateCheckBox(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[*] my task\n')
+		pageview.migrate_checkbox()
+		self.assertEqual(pageview.page.dump('wiki'), ['[>] my task\n'])
+
+	def testEditObjectForLink(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
+
+		def edit_link(dialog):
+			dialog.set_input(href='test')
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(edit_link):
+			pageview.edit_object()
+
+		self.assertEqual(pageview.page.dump('wiki'), ['[[test]]\n'])
+
+	def testEditObjectForImage(self):
+		file = File('./data/zim.png')
+		pageview = setUpPageView(self.setUpNotebook(), '{{%s}}\n' % file.path)
+
+		def edit_img(dialog):
+			dialog.set_input(href='test')
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(edit_img):
+			pageview.edit_object()
+
+		text = ''.join(pageview.page.dump('wiki')).strip()
+		self.assertTrue(text.startswith('{{') and text.endswith('?href=test}}'), '%r does not match \{\{...?href=test\}\}' % text)
+		self.assertEqual(File(text[2:-12]), file)
+
+	def testEditObjectForObject(self):
+		pageview = setUpPageView(self.setUpNotebook(), '{{{test:\nfoo\n}}}\n')
+
+		buffer = pageview.textview.get_buffer()
+		anchor = buffer.get_objectanchor(buffer.get_insert_iter())
+		widget = anchor.get_widgets()[0]
+
+		counter = tests.Counter()
+		widget.edit_object = counter
+
+		pageview.edit_object()
+
+		self.assertEquals(counter.count, 1)
+
+	def testRemoveLink(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
+		buffer = pageview.textview.get_buffer()
+		buffer.place_cursor(buffer.get_iter_at_offset(2))
+		pageview.remove_link()
+		self.assertEqual(pageview.page.dump('wiki'), ['link\n'])
+
+	def testRemoveLinkWithIter(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[[link]] foo\n')
+		buffer = pageview.textview.get_buffer()
+		buffer.place_cursor(buffer.get_iter_at_offset(8))
+		iter = buffer.get_iter_at_offset(2)
+		pageview.remove_link(iter)
+		self.assertEqual(pageview.page.dump('wiki'), ['link foo\n'])
+
+	def testRemoveLinkWithSelection(self):
+		pageview = setUpPageView(self.setUpNotebook(), '[[link]]\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(2)
+		end = buffer.get_iter_at_offset(4)
+		buffer.select_range(begin, end)
+		pageview.remove_link()
+		self.assertEqual(pageview.page.dump('wiki'), ['[[li]]nk\n'])
+
+	def testReplaceSelection(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'this_has_a_bug\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(5)
+		end = buffer.get_iter_at_offset(8)
+		buffer.select_range(begin, end)
+		pageview.replace_selection('does_not_have')
+		self.assertEqual(pageview.page.dump('wiki'), ['this_does_not_have_a_bug\n'])
+
+	def testInsertDate(self):
+		pageview = setUpPageView(self.setUpNotebook())
+
+		with tests.DialogContext(InsertDateDialog):
+			pageview.insert_date()
+
+		self.assertFalse(pageview.page.dump('wiki')[0].isspace())
+
+	def testInsertLine(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		buffer = pageview.textview.get_buffer()
+		buffer.place_cursor(buffer.get_iter_at_offset(9))
+		pageview.insert_line()
+		self.assertEqual(pageview.page.dump('wiki'), ['test 123\n', '--------------------\n'])
+
+	def testInsertImage(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		file = File('./data/zim.png')
+
+		def choose_file(dialog):
+			dialog.set_file(file)
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(choose_file):
+			pageview.show_insert_image()
+
+		text = ''.join(pageview.page.dump('wiki')).strip()
+		self.assertTrue(text.startswith('{{') and text.endswith('}}'), '%r does not match \{\{...\}\}' % text)
+		self.assertEqual(File(text[2:-2]), file)
+
+	def testInsertBulletList(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		pageview.insert_bullet_list()
+		buffer = pageview.textview.get_buffer()
+		buffer.insert_at_cursor('test 123')
+		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n', '\n'])
+
+	def testInsertNumberedList(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		pageview.insert_numbered_list()
+		buffer = pageview.textview.get_buffer()
+		buffer.insert_at_cursor('test 123')
+		self.assertEqual(pageview.page.dump('wiki'), ['1. test 123\n', '\n'])
+
+	def testInsertCheckBoxList(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		pageview.insert_checkbox_list()
+		buffer = pageview.textview.get_buffer()
+		buffer.insert_at_cursor('test 123')
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] test 123\n', '\n'])
+
+	def testApplyBulletList(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(0)
+		end = buffer.get_iter_at_offset(8)
+		buffer.select_range(begin, end)
+		pageview.apply_format_bullet_list()
+		self.assertEqual(pageview.page.dump('wiki'), ['* test 123\n'])
+
+	def testApplyNumberedList(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(0)
+		end = buffer.get_iter_at_offset(8)
+		buffer.select_range(begin, end)
+		pageview.apply_format_numbered_list()
+		self.assertEqual(pageview.page.dump('wiki'), ['1. test 123\n'])
+
+	def testApplyCheckBoxList(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(0)
+		end = buffer.get_iter_at_offset(8)
+		buffer.select_range(begin, end)
+		pageview.apply_format_checkbox_list()
+		self.assertEqual(pageview.page.dump('wiki'), ['[ ] test 123\n'])
+
+	def testInsertTextFromFile(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		file = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL).file('test.txt')
+		file.write('my text\n')
+
+		def select_file(dialog):
+			dialog.set_file(file)
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(select_file):
+			pageview.insert_text_from_file()
+
+		self.assertEqual(pageview.page.dump('wiki'), ['my text\n', '\n'])
+
+	def testInsertLink(self):
+		pageview = setUpPageView(self.setUpNotebook())
+
+		def select_link(dialog):
+			dialog.set_input(href='mylink')
+			dialog.assert_response_ok()
+
+		with tests.DialogContext(select_link):
+			pageview.insert_link()
+
+		self.assertEqual(pageview.page.dump('wiki'), ['[[mylink]]\n'])
+
+	def testOpenFileTemplatesFolder(self):
+		pageview = setUpPageView(self.setUpNotebook())
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		pageview.preferences['file_templates_folder'] = folder.path
+
+		def create_folder(dialog):
+			dialog.answer_yes()
+
+		def open_folder(args):
+			self.assertEqual(LocalFolder(args[-1]), folder)
+
+		with tests.DialogContext(create_folder):
+			with tests.ApplicationContext(open_folder):
+				pageview.open_file_templates_folder()
+
+		# no create_folder here
+		with tests.ApplicationContext(open_folder):
+			pageview.open_file_templates_folder()
+
+	def testClearFormatting(self):
+		pageview = setUpPageView(self.setUpNotebook(), '**test 123**\n')
+		buffer = pageview.textview.get_buffer()
+		begin = buffer.get_iter_at_offset(0)
+		end = buffer.get_iter_at_offset(8)
+		buffer.select_range(begin, end)
+		pageview.clear_formatting()
+		self.assertEqual(pageview.page.dump('wiki'), ['test 123\n'])
+
+	def testShowFind(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		self.assertFalse(pageview.find_bar.get_property('visible'))
+		pageview.show_find()
+		self.assertTrue(pageview.find_bar.get_property('visible'))
+
+	def testShowFindWithQuery_FindNext_FindPrevious(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		self.assertFalse(pageview.find_bar.get_property('visible'))
+		pageview.show_find('test')
+		self.assertTrue(pageview.find_bar.get_property('visible'))
+
+		pageview.find_next()
+		pageview.find_previous()
+		# TODO: what to assert here ?
+
+	def testShowFindAndReplace(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+
+		def replace(dialog):
+			dialog.set_input(query='test', replacement='TEST')
+			dialog.replace_all()
+
+		with tests.DialogContext(replace):
+			pageview.show_find_and_replace()
+
+		self.assertEqual(pageview.page.dump('wiki'), ['TEST 123\n'])
+
+	def testShowWordCount(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		with tests.DialogContext(WordCountDialog):
+			pageview.show_word_count()
+
+	def testZoom(self):
+		pageview = setUpPageView(self.setUpNotebook(), 'test 123\n')
+		pageview.text_style['TextView']['font'] = 'Arial 10'
+
+		pageview.zoom_in()
+		self.assertEqual(pageview.text_style['TextView']['font'], 'Arial 11')
+		pageview.zoom_in()
+		self.assertEqual(pageview.text_style['TextView']['font'], 'Arial 12')
+		pageview.zoom_out()
+		self.assertEqual(pageview.text_style['TextView']['font'], 'Arial 11')
+		pageview.zoom_reset()
+		#self.assertEqual(pageview.text_style['TextView']['font'], 'Arial 10') # FIXME
 
 
 class TestPageviewDialogs(tests.TestCase):
@@ -1754,42 +2244,42 @@ class TestPageviewDialogs(tests.TestCase):
 	def testVarious(self):
 		'''Test input/output of various pageview dialogs'''
 		## Insert Date dialog
-		ui = MockUI()
-		buffer = MockBuffer()
-		ui.notebook.mock_method('suggest_link', Path(':suggested_link'))
-		ui.config = ConfigManager() # need dates.list
+		buffer = tests.MockObject()
+		notebook = tests.MockObject()
+		notebook.mock_method('suggest_link', Path(':suggested_link'))
+		page = Path('test')
 
-		dialog = InsertDateDialog(ui, buffer)
+		dialog = InsertDateDialog(None, buffer, notebook, page)
 		dialog.linkbutton.set_active(False)
 		dialog.view.get_selection().select_path((0,))
 		dialog.assert_response_ok()
 		self.assertEqual(buffer.mock_calls[-1][0], 'insert_at_cursor')
 
-		dialog = InsertDateDialog(ui, buffer)
+		dialog = InsertDateDialog(None, buffer, notebook, page)
 		dialog.linkbutton.set_active(True)
 		dialog.view.get_selection().select_path((0,))
 		dialog.assert_response_ok()
 		self.assertEqual(buffer.mock_calls[-1][0], 'insert_link_at_cursor')
 
 		## Insert Image dialog
-		ui = MockUI()
-		ui.notebook.dir = Dir(self.get_tmp_name())
-		buffer = MockBuffer()
+		buffer = tests.MockObject()
 		file = File('data/zim.png')
-		dialog = InsertImageDialog(ui, buffer, ui.notebook, Path(':some_page'), file)
+		dialog = InsertImageDialog(None, buffer, notebook, Path(':some_page'), file)
 		self.assertTrue(dialog.filechooser.get_preview_widget_active())
 		#~ self.assertEqual(dialog.get_file(), file)
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_image_at_cursor')
 
 		## Edit Image dialog
-		ui = MockUI()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		notebook = tests.MockObject()
+		notebook.mock_method('resolve_file', file)
+		notebook.mock_method('relative_filepath', './data/zim.png')
 		file = File('data/zim.png')
-		ui.notebook.mock_method('resolve_file', file)
-		ui.notebook.mock_method('relative_filepath', './data/zim.png')
-		buffer = TextBuffer()
 		buffer.insert_image_at_cursor(file, '../MYPATH/./data/zim.png')
-		dialog = EditImageDialog(ui, buffer, Path(':some_page'))
+		dialog = EditImageDialog(None, buffer, notebook, Path(':some_page'))
 		self.assertEqual(dialog.form['width'], 48)
 		self.assertEqual(dialog.form['height'], 48)
 		dialog.form['width'] = 100
@@ -1812,78 +2302,46 @@ class TestPageviewDialogs(tests.TestCase):
 		self.assertEqual(type(imagedata['height']).__name__, 'int')
 
 		## Insert text from file dialog
-		ui = MockUI()
-		ui.notebook.dir = Dir(self.get_tmp_name())
-		buffer = MockBuffer()
-		dialog = InsertTextFromFileDialog(ui, buffer, ui.notebook, Path(':some_page'))
+		buffer = tests.MockObject()
+		dialog = InsertTextFromFileDialog(None, buffer, notebook, Path(':some_page'))
 		#~ dialog.set_file()
 		#~ dialog.assert_response_ok()
 		#~ self.assertEqual(buffer.mock_calls[-1][0], 'insert_parsetree_at_cursor')
 
 		## Find And Replace dialog
-		ui = MockUI()
 		textview = TextView({})
 		buffer = textview.get_buffer()
 		buffer.set_text('''\
 foo bar foooobar
 foo bar bazzz baz
 ''')
-		dialog = FindAndReplaceDialog(ui, textview)
+		dialog = FindAndReplaceDialog(None, textview)
 		dialog.find_entry.set_text('foo')
 		dialog.replace_entry.set_text('dus')
 		dialog.word_option_checkbox.set_active(True)
 		dialog.replace()
 		dialog.replace_all()
-		self.assertEqual(buffer.get_text(*buffer.get_bounds()), '''\
+		self.assertEqual(get_text(buffer), '''\
 dus bar foooobar
 dus bar bazzz baz
 ''')
 
 		## Word Count dialog
 		pageview = tests.MockObject()
-		pageview.view = textview
-		pageview.ui = MockUI()
+		pageview.textview = textview
 		dialog = WordCountDialog(pageview)
 		dialog.destroy() # nothing to test really
 
 	def testInsertLinkDialog(self):
 		# Insert Link dialog
-		ui = MockUI()
-		ui.notebook.pages = tests.MockObject()
-		ui.notebook.pages.mock_method('list_pages', [])
-		ui.notebook.pages.mock_method('walk', [])
 		pageview = tests.MockObject()
 		pageview.page = Path('Test:foo:bar')
-		textview = TextView({})
-		pageview.view = textview
-		dialog = InsertLinkDialog(ui, pageview)
+		pageview.textview = TextView({})
+		dialog = InsertLinkDialog(None, pageview)
 		dialog.form.widgets['href'].set_text('Foo')
 		dialog.assert_response_ok()
-		buffer = textview.get_buffer()
-		self.assertEqual(buffer.get_text(*buffer.get_bounds()), 'Foo')
-
-
-
-class MockUI(tests.MockObject):
-
-	def __init__(self):
-		tests.MockObject.__init__(self)
-		self.notebook = tests.MockObject()
-		self.preferences = SectionedConfigDict()
-		self.page = Path('Test')
-
-	def register_preferences(self, section, preferences):
-		for p in preferences:
-			if len(p) == 5:
-				key, type, category, label, default = p
-				self.preferences[section].setdefault(key, default)
-			else:
-				key, type, category, label, default, check = p
-				self.preferences[section].setdefault(key, default, check=check)
-
-
-class MockBuffer(tests.MockObject):
-	pass
+		buffer = pageview.textview.get_buffer()
+		self.assertEqual(get_text(buffer), 'Foo')
 
 
 class TestCamelCase(tests.TestCase):
@@ -1891,20 +2349,20 @@ class TestCamelCase(tests.TestCase):
 	def testLatin(self):
 		for text in (
 			'CamelCase', 'AbbA',
-			u'ĚěščřžýáíéúůŮěščřžýáíéúů'
+			'ĚěščřžýáíéúůŮěščřžýáíéúů'
 		):
 			self.assertTrue(
-				camelcase(unicode(text)),
+				camelcase(str(text)),
 				msg='"%s" should be CamelCase' % text
 			)
 
 		for text in (
 			'A', 'AAAA', 'aaaa', 'Aaaaa', 'AAAAaaa', 'aAAAAA', 'aaaAAA',
 			'123', 'A123A123',
-			u'ĚŠČŘŽÝÁÍÉÚŮ', u'ěščřžýáíéúů',
+			'ĚŠČŘŽÝÁÍÉÚŮ', 'ěščřžýáíéúů',
 		):
 			self.assertFalse(
-				camelcase(unicode(text)),
+				camelcase(str(text)),
 				msg='"%s" should NOT be CamelCase' % text
 			)
 
@@ -1912,23 +2370,23 @@ class TestCamelCase(tests.TestCase):
 		# Arabic text should never be CamelCase,
 		# letters test as neither upper not lower case
 		for text in (
-			u'سلام',
-			u'کهکشان',
-			u'روزانه',
-			u'ذائقه',
-			u'آبادی',
-			u'انشاء',
-			u'محَبّت',
-			u'اَعْداد',
-			u'حتماً',
-			u'ماوراء‌الطبیعه',
-			u'پشتک‌وارو',
-			u'راه‌راه',
-			u' یاپ کارزنبرگ',
+			'سلام',
+			'کهکشان',
+			'روزانه',
+			'ذائقه',
+			'آبادی',
+			'انشاء',
+			'محَبّت',
+			'اَعْداد',
+			'حتماً',
+			'ماوراء‌الطبیعه',
+			'پشتک‌وارو',
+			'راه‌راه',
+			' یاپ کارزنبرگ',
 		):
-			assert isinstance(text, unicode)
+			assert isinstance(text, str)
 			self.assertFalse(
-				camelcase(unicode(text)),
+				camelcase(str(text)),
 				msg='"%s" should NOT be CamelCase' % text
 			)
 
@@ -1937,9 +2395,9 @@ class TestAutolink(tests.TestCase):
 
 	def runTest(self):
 		test = (
-			u'ВаняИванов',		# CamelCase
-			u'+ВаняИванов',		# page match
-			u'ВаняИванов:foo', 	# page match
+			'ВаняИванов',		# CamelCase
+			'+ВаняИванов',		# page match
+			'ВаняИванов:foo', 	# page match
 		)
 		view = TextView({'autolink_files': True, 'autolink_camelcase': True})
 		buffer = view.get_buffer()
@@ -1964,22 +2422,25 @@ class TestAutolink(tests.TestCase):
 		)
 
 
-@tests.skipIf(gtk.pygtk_version < (2, 10), 'old pygtk, no serialization formats')
 class TestDragAndDropFunctions(tests.TestCase):
 
+	@tests.expectedFailure
 	def testSerializeParseTree(self):
 		tree = tests.new_parsetree()
 		tree.resolve_images()
-		buffer = TextBuffer()
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
 		with FilterNoSuchImageWarning():
 			buffer.insert_parsetree_at_cursor(tree)
 
 		start, end = buffer.get_bounds()
-		xml = buffer.serialize(buffer, 'text/x-zim-parsetree', start, end)
+		xml = buffer.serialize(buffer, Gdk.Atom.intern('text/x-zim-parsetree', False), start, end)
 		tree.unresolve_images()
 		tree._etree.getroot().attrib['partial'] = True # HACK
 		self.assertEqual(xml, tree.tostring())
 
+	@tests.expectedFailure
 	def testDeserializeParseTree(self):
 		notebook = tests.MockObject()
 		path = Path('Mock')
@@ -1987,8 +2448,10 @@ class TestDragAndDropFunctions(tests.TestCase):
 		iter = buffer.get_insert_iter()
 		xml = tests.new_parsetree().tostring()
 		with FilterNoSuchImageWarning():
-			buffer.deserialize(buffer, 'text/x-zim-parsetree', iter, xml)
+			atom = Gdk.Atom.intern('text/x-zim-parsetree', False)
+			buffer.deserialize(buffer, atom, iter, xml)
 
+	@tests.expectedFailure
 	def testDeserializeUriList(self):
 		notebook = self.setUpNotebook()
 		path = Path('Mock')
@@ -1997,7 +2460,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		# external uris
 		iter = buffer.get_insert_iter()
 		data = "http://wikipedia.com\r\n"
-		buffer.deserialize(buffer, 'text/uri-list', iter, data)
+		buffer.deserialize(buffer, Gdk.Atom.intern('text/uri-list', False), iter, data)
 
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()
@@ -2006,7 +2469,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		# internal uris
 		iter = buffer.get_insert_iter()
 		data = "Foo:Bar\r\n"
-		buffer.deserialize(buffer, 'text/x-zim-page-list-internal', iter, data)
+		buffer.deserialize(buffer, Gdk.Atom.intern('text/x-zim-page-list-internal', False), iter, data)
 
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()
@@ -2023,7 +2486,7 @@ class TestDragAndDropFunctions(tests.TestCase):
 		buffer = TextBuffer(notebook, path)
 		image = File('./data/zim.png').raw()
 		iter = buffer.get_insert_iter()
-		buffer.deserialize(buffer, 'image/png', iter, image)
+		buffer.deserialize(buffer, Gdk.Atom.intern('image/png', False), iter, image)
 
 		tree = buffer.get_parsetree()
 		xml = tree.tostring()

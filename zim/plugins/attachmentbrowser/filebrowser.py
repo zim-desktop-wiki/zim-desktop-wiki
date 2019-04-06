@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright 2010 Thorsten Hackbarth <thorsten.hackbarth@gmx.de>
 #           2011-2015 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -10,8 +9,10 @@
 
 import datetime
 
-import gobject
-import gtk
+from gi.repository import Gtk
+from gi.repository import GObject
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 
 import logging
 
@@ -21,8 +22,10 @@ logger = logging.getLogger('zim.plugins.attachmentbrowser')
 from zim.newfs import LocalFile, FileNotFoundError
 from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
+from zim.gui.widgets import gtk_popup_at_pointer
+
 from zim.gui.applications import get_mime_icon, get_mime_description, \
-	OpenWithMenu
+	OpenWithMenu, open_file
 
 from zim.gui.clipboard import \
 	URI_TARGETS, URI_TARGET_NAMES, \
@@ -41,26 +44,26 @@ def render_file_icon(widget, size):
 	# Sizes defined in gtk source,
 	# gtkiconfactory.c for gtk+ 2.18.9
 	#
-	#	(gtk.ICON_SIZE_MENU, 16),
-	#	(gtk.ICON_SIZE_BUTTON, 20),
-	#	(gtk.ICON_SIZE_SMALL_TOOLBAR, 18),
-	#	(gtk.ICON_SIZE_LARGE_TOOLBAR, 24),
-	#	(gtk.ICON_SIZE_DND, 32),
-	#	(gtk.ICON_SIZE_DIALOG, 48),
+	#	(Gtk.IconSize.MENU, 16),
+	#	(Gtk.IconSize.BUTTON, 20),
+	#	(Gtk.IconSize.SMALL_TOOLBAR, 18),
+	#	(Gtk.IconSize.LARGE_TOOLBAR, 24),
+	#	(Gtk.IconSize.DND, 32),
+	#	(Gtk.IconSize.DIALOG, 48),
 	#
 	# We expect sizes in list: 16, 32, 64, 128
 	# But only give back 16 or 32, bigger icons
 	# do not look good
 	assert size in (16, 32, 64, 128)
 	if size == 16:
-		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_MENU)
+		pixbuf = widget.render_icon(Gtk.STOCK_FILE, Gtk.IconSize.MENU)
 	else:
-		pixbuf = widget.render_icon(gtk.STOCK_FILE, gtk.ICON_SIZE_DND)
+		pixbuf = widget.render_icon(Gtk.STOCK_FILE, Gtk.IconSize.DND)
 
 	# Not sure how much sizes depend on theming,
 	# so we scale down if needed, do not scale up
 	if pixbuf.get_width() > size or pixbuf.get_height() > size:
-		return pixbuf.scale_simple(size, size, gtk.gdk.INTERP_BILINEAR)
+		return pixbuf.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
 	else:
 		return pixbuf
 
@@ -70,11 +73,11 @@ BASENAME_COL = 0
 PIXBUF_COL = 1
 MTIME_COL = 2
 
-class FileBrowserIconView(gtk.IconView):
+class FileBrowserIconView(Gtk.IconView):
 
 	# define signals we want to use - (closure type, return type and arg types)
 	__gsignals__ = {
-		'folder_changed': (gobject.SIGNAL_RUN_LAST, None, ()),
+		'folder_changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
 	def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True):
@@ -87,27 +90,27 @@ class FileBrowserIconView(gtk.IconView):
 		self._monitor = None
 		self._mtime = None
 
-		gtk.IconView.__init__(self,
-			gtk.ListStore(str, gtk.gdk.Pixbuf, object)) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+		GObject.GObject.__init__(self)
+		self.set_model(
+			Gtk.ListStore(str, GdkPixbuf.Pixbuf, object) # BASENAME_COL, PIXBUF_COL, MTIME_COL
+		)
 		self.set_text_column(BASENAME_COL)
 		self.set_pixbuf_column(PIXBUF_COL)
 		self.set_icon_size(icon_size)
 
 		self.enable_model_drag_source(
-			gtk.gdk.BUTTON1_MASK,
-			URI_TARGETS,
-			gtk.gdk.ACTION_LINK | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
+			Gdk.ModifierType.BUTTON1_MASK,
+			[Gtk.TargetEntry.new(*t) for t in URI_TARGETS],
+			Gdk.DragAction.LINK | Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 		self.enable_model_drag_dest(
-			URI_TARGETS,
-			gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE)
+			[Gtk.TargetEntry.new(*t) for t in URI_TARGETS],
+			Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
 		self.connect('drag-data-get', self.on_drag_data_get)
 		self.connect('drag-data-received', self.on_drag_data_received)
 
-		if gtk.gtk_version >= (2, 12) \
-		and gtk.pygtk_version >= (2, 12):
-			# custom tooltip
-			self.props.has_tooltip = True
-			self.connect("query-tooltip", self._query_tooltip_cb)
+		# custom tooltip
+		self.props.has_tooltip = True
+		self.connect("query-tooltip", self._query_tooltip_cb)
 
 		# Store colors
 		self._sensitive_color = None
@@ -116,12 +119,13 @@ class FileBrowserIconView(gtk.IconView):
 		def _init_base_color(*a):
 			# This is handled on expose event, because style does not
 			# yet reflect theming on construction
-			self._sensitive_color = self.style.base[gtk.STATE_NORMAL]
-			self._insensitive_color = self.style.base[gtk.STATE_INSENSITIVE]
+			self._sensitive_color = self.style.base[Gtk.StateType.NORMAL]
+			self._insensitive_color = self.style.base[Gtk.StateType.INSENSITIVE]
 			self._update_state()
 			self.disconnect(self._expose_event_id) # only need this once
 
-		self._expose_event_id = self.connect('expose-event', _init_base_color)
+		#self._expose_event_id = self.connect('expose-event', _init_base_color)
+			# NOTE: when re-enabling the above, also enable occurences of _update_state
 		self.connect('button-press-event', self.on_button_press_event)
 		self.connect('item-activated', self.on_item_activated)
 
@@ -148,17 +152,18 @@ class FileBrowserIconView(gtk.IconView):
 				self._mtime = self.folder.mtime()
 			except FileNotFoundError: # folder went missing?
 				self.teardown_folder()
-				self._update_state()
+				#self._update_state()
 				return
 			else:
-				self._update_state()
+				pass
+				#self._update_state()
 
 		#~ import time
-		#~ print "start", time.time()
+		#~ print("start", time.time())
 
 		self._thumbnailer.clear_queue()
 		if self._idle_event_id:
-			gobject.source_remove(self._idle_event_id)
+			GObject.source_remove(self._idle_event_id)
 			self._idle_event_id = None
 
 		# Get cache, clear model
@@ -208,9 +213,9 @@ class FileBrowserIconView(gtk.IconView):
 		if not self._thumbnailer.queue_empty():
 			self._thumbnailer.start() # delay till here - else reduces our speed on loading
 			self._idle_event_id = \
-				gobject.idle_add(self._on_check_thumbnail_queue)
+				GObject.idle_add(self._on_check_thumbnail_queue)
 
-		#~ print "stop ", time.time()
+		#~ print("stop ", time.time())
 
 	def _on_check_thumbnail_queue(self):
 		file, size, thumbfile, pixbuf, mtime = \
@@ -246,13 +251,13 @@ class FileBrowserIconView(gtk.IconView):
 				# Single row
 				self.set_item_width(icon_size + text_size)
 
-			self.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+			self.set_item_orientation(Gtk.Orientation.HORIZONTAL)
 			self.set_row_spacing(0)
 			self.set_column_spacing(0)
 		else:
 			# Text below the icons
 			self.set_item_width(max((icon_size + 12, 96)))
-			self.set_orientation(gtk.ORIENTATION_VERTICAL)
+			self.set_item_orientation(Gtk.Orientation.VERTICAL)
 			self.set_row_spacing(3)
 			self.set_column_spacing(3)
 
@@ -263,10 +268,10 @@ class FileBrowserIconView(gtk.IconView):
 		# insensitive also blocks drag & drop.
 		if self.folder is None or not self.folder.exists():
 			self.modify_base(
-				gtk.STATE_NORMAL, self._insensitive_color)
+				Gtk.StateType.NORMAL, self._insensitive_color)
 		else:
 			self.modify_base(
-				gtk.STATE_NORMAL, self._sensitive_color)
+				Gtk.StateType.NORMAL, self._sensitive_color)
 
 	def teardown_folder(self):
 		try:
@@ -279,7 +284,7 @@ class FileBrowserIconView(gtk.IconView):
 			self._monitor = None
 
 		if self._idle_event_id:
-			gobject.source_remove(self._idle_event_id)
+			GObject.source_remove(self._idle_event_id)
 			self._idle_event_id = None
 
 		try:
@@ -291,7 +296,7 @@ class FileBrowserIconView(gtk.IconView):
 
 	def _on_folder_changed(self, *a):
 		try:
-			changed = self.folder and self.folder.mtime() != self._mtime
+			changed = self.folder and self.folder.exists() and self.folder.mtime() != self._mtime
 		except OSError: # folder went missing?
 			changed = True
 
@@ -301,46 +306,42 @@ class FileBrowserIconView(gtk.IconView):
 			self.emit('folder-changed')
 
 	def on_item_activated(self, iconview, path):
-		from zim.fs import File
 		store = iconview.get_model()
 		iter = store.get_iter(path)
-		file = self.folder.file(store[iter][BASENAME_COL])
-		file = File(file)
-		self.opener.open_file(file)
+		filename = self.folder.file(store[iter][BASENAME_COL])
+		open_file(self, filename)
 
 	def on_button_press_event(self, iconview, event):
-		# print 'on_button_press_event'
+		# print('on_button_press_event')
 		if event.button == 3:
-			popup_menu = gtk.Menu()
+			popup_menu = Gtk.Menu()
 			x = int(event.x)
 			y = int(event.y)
 			time = event.time
 			pathinfo = iconview.get_path_at_pos(x, y)
 			if pathinfo is not None:
 				iconview.grab_focus()
-				popup_menu.popup(None, None, None, event.button, time)
+				gtk_popup_at_pointer(popup_menu, event)
 				self.do_populate_popup(popup_menu, pathinfo)
 					# FIXME should use a signal here
 				return True
 		return False
 
 	def do_populate_popup(self, menu, pathinfo):
-		# print "do_populate_popup"
-		from zim.fs import File
+		# print("do_populate_popup")
 		store = self.get_model()
 		iter = store.get_iter(pathinfo)
 		file = self.folder.file(store[iter][BASENAME_COL])
-		file = File(file)
 
-		item = gtk.MenuItem(_('Open With...')) # T: menu item
+		item = Gtk.MenuItem.new_with_mnemonic(_('Open With...')) # T: menu item
 		menu.prepend(item)
 
 		window = self.get_toplevel()
 		submenu = OpenWithMenu(window, file) # XXX any widget should do to find window
 		item.set_submenu(submenu)
 
-		item = gtk.MenuItem(_('_Open')) # T: menu item to open file or folder
-		item.connect('activate', lambda o: self.opener.open_file(file))
+		item = Gtk.MenuItem.new_with_mnemonic(_('_Open')) # T: menu item to open file or folder
+		item.connect('activate', lambda o: open_file(self, file))
 		menu.prepend(item)
 
 		menu.show_all()
@@ -351,7 +352,9 @@ class FileBrowserIconView(gtk.IconView):
 			return False
 
 		thumbman = ThumbnailManager()
-		model, path, iter = context
+		model, path, iter = context.model, context.path, context.iter
+		if not (model and iter):
+			return
 		name = model[iter][BASENAME_COL]
 		file = self.folder.file(name)
 		mtime = file.mtime()
@@ -389,44 +392,44 @@ class FileBrowserIconView(gtk.IconView):
 
 	# TODO - test drag and drop
 	def on_drag_data_get(self, iconview, dragcontext, selectiondata, info, time):
-		assert selectiondata.target in URI_TARGET_NAMES
+		assert selectiondata.get_target().name() in URI_TARGET_NAMES
 		paths = self.get_selected_items()
 		if paths:
 			model = self.get_model()
 			path_to_uri = lambda p: self.folder.file(model[p][BASENAME_COL]).uri
-			uris = map(path_to_uri, paths)
+			uris = list(map(path_to_uri, paths))
 			data = pack_urilist(uris)
-			selectiondata.set(URI_TARGET_NAMES[0], 8, data)
+			selectiondata.set(selectiondata.get_target(), 8, data)
 
 	def on_drag_data_received(self, iconview, dragcontext, x, y, selectiondata, info, time):
-		assert selectiondata.target in URI_TARGET_NAMES
-		names = unpack_urilist(selectiondata.data)
+		assert selectiondata.get_target().name() in URI_TARGET_NAMES
+		names = unpack_urilist(selectiondata.get_data())
 		files = [LocalFile(uri) for uri in names if uri.startswith('file://')]
-		action = dragcontext.action
+		action = dragcontext.get_selected_action()
 		logger.debug('Drag received %s, %s', action, files)
 
-		if action == gtk.gdk.ACTION_MOVE:
+		if action == Gdk.DragAction.MOVE:
 			self._move_files(files)
-		elif action == gtk.gdk.ACTION_ASK:
-			menu = gtk.Menu()
+		elif action == Gdk.DragAction.ASK:
+			menu = Gtk.Menu()
 
-			item = gtk.MenuItem(_('_Move Here')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Move Here')) # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._move_files(files))
 			menu.append(item)
 
-			item = gtk.MenuItem(_('_Copy Here')) # T: popup menu action on drag-drop of a file
+			item = Gtk.MenuItem.new_with_mnemonic(_('_Copy Here')) # T: popup menu action on drag-drop of a file
 			item.connect('activate', lambda o: self._copy_files(files))
 			menu.append(item)
 
-			menu.append(gtk.SeparatorMenuItem())
-			item = gtk.MenuItem(_('Cancel')) # T: popup menu action on drag-drop of a file
+			menu.append(Gtk.SeparatorMenuItem())
+			item = Gtk.MenuItem.new_with_mnemonic(_('Cancel')) # T: popup menu action on drag-drop of a file
 			# cancel action needs no action
 			menu.append(item)
 
 			menu.show_all()
-			menu.popup(None, None, None, 1, time)
+			gtk_popup_at_pointer(menu)
 		else:
-			# Assume gtk.gdk.ACTION_COPY or gtk.gdk.ACTION_DEFAULT
+			# Assume Gdk.DragAction.COPY or Gdk.DragAction.DEFAULT
 			# on windows we get "0" which is not mapped to any action
 			self._copy_files(files)
 
@@ -443,4 +446,3 @@ class FileBrowserIconView(gtk.IconView):
 			file.copyto(newfile)
 
 		self.refresh()
-

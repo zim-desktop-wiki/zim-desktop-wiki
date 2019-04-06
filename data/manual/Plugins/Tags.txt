@@ -4,7 +4,7 @@ Creation-Date: 2011-04-04T21:14:50+02:00
 
 ====== Tags ======
 
-This plugin adds a tag cloud and a page index organized by tags in the side pane. 
+This plugin adds a tag cloud and a page index organized by tags in the side pane.
 
 The tag cloud allows toggling the selection of tags that is shown in the page index. The page index can be switched between a flat view, showing all pages that match the filtering criteria, and an ordered view that shows known tags as the top level nodes with pages beneath them.
 
@@ -22,6 +22,15 @@ The tag index has 3 views:
 2. Index organized by tag with tags as the top level of the hierarchy
 3. The index filtered by a given set of tags, showing all matching pages toplevel
 
-When no tags are selected, you can switch between 1. and 2. via an option in the context menu ('Right click menu') called **Sort pages by tags**. 
+When no tags are selected, you can switch between 1. and 2. via an option in the context menu ('Right click menu') called **Sort pages by tags**.
 Both views switch to 3. when you select tags in the tagcloud for filtering.
 
+
+===== Style =====
+
+This plugin uses widget names to allow CSS styling for the floating widget:
+
+* zim-pageindex: for the main treeview
+* zim-tags-tagcloud: for the textview that renders the tag cloud
+
+See [[Help:Config Files]] for info on CSS styling

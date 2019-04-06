@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2015-2016 Pavel_M <plprgt@gmail.com>,
 # released under the GNU GPL version 3.
@@ -7,17 +6,22 @@
 # This plugin uses an icon from Tango Desktop Project (http://tango.freedesktop.org/)
 # (the Tango base icon theme is released to the Public Domain).
 
-import gobject
-import gtk
-import pango
+
+
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Pango
 
 from zim.actions import toggle_action, action
-from zim.plugins import PluginClass, extends, WindowExtension
+from zim.plugins import PluginClass
 from zim.notebook import Path
-from zim.gui.widgets import TOP, TOP_PANE
-from zim.signals import ConnectorMixin
-from zim.gui.pathbar import ScrolledHBox
+from zim.signals import ConnectorMixin, SignalHandler
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.clipboard import Clipboard
+from zim.gui.widgets import gtk_popup_at_pointer
+
+from zim.plugins.pathbar import ScrolledHBox
 
 import logging
 logger = logging.getLogger('zim.plugins.bookmarksbar')
@@ -43,62 +47,22 @@ class BookmarksBarPlugin(PluginClass):
 		('add_bookmarks_to_beginning', 'bool', _('Add new bookmarks to the beginning of the bar'), False), # T: preferences option
 	)
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
-
-	uimanager_xml = '''
-	<ui>
-	<menubar name='menubar'>
-	<menu action='view_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='toggle_show_bookmarks'/>
-		</placeholder>
-	</menu>
-	<menu action='tools_menu'>
-		<placeholder name='plugin_items'>
-			<menuitem action='add_bookmark'/>
-		</placeholder>
-	</menu>
-    <menu action='go_menu'>
-		<placeholder name='plugin_items'>
-			<menu action='go_bookmarks_menu'>
-                <menuitem action='bookmark_1'/>
-                <menuitem action='bookmark_2'/>
-                <menuitem action='bookmark_3'/>
-                <menuitem action='bookmark_4'/>
-                <menuitem action='bookmark_5'/>
-                <menuitem action='bookmark_6'/>
-                <menuitem action='bookmark_7'/>
-                <menuitem action='bookmark_8'/>
-                <menuitem action='bookmark_9'/>
-			</menu>
-        </placeholder>
-    </menu>
-	</menubar>
-	<toolbar name='toolbar'>
-		<placeholder name='tools'>
-			<toolitem action='toggle_show_bookmarks'/>
-		</placeholder>
-	</toolbar>
-	</ui>
-	'''
-
-	uimanager_menu_labels = {
-		'go_bookmarks_menu': _('Book_marks'), # T: Menu title
-	}
+class BookmarksBarMainWindowExtension(MainWindowExtension):
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
-		self.widget = BookmarkBar(self.window.ui, self.uistate,
+		MainWindowExtension.__init__(self, plugin, window)
+		self.widget = BookmarkBar(window.notebook, window.navigation, self.uistate,
 					  self.window.pageview.get_page)
+		self.widget.connectto(window, 'page-changed', lambda o, p: self.widget.set_page(p))
+
 		self.widget.show_all()
 
 		# Add a new option to the Index popup menu.
-		try:
-			self.widget.connectto(self.window.pageindex.treeview,
-								  'populate-popup', self.on_populate_popup)
-		except AttributeError:
-			logger.error('BookmarksBar: popup menu not initialized.')
+		#try:
+		#	self.widget.connectto(self.window.pageindex.treeview,
+		#						  'populate-popup', self.on_populate_popup)
+		#except AttributeError:
+		#	logger.error('BookmarksBar: popup menu not initialized.')
 
 		# Show/hide bookmarks.
 		self.uistate.setdefault('show_bar', True)
@@ -124,66 +88,65 @@ class MainWindowExtension(WindowExtension):
 
 	def show_widget(self):
 		'''Show Bar.'''
-		self.window.add_widget(self.widget, (TOP_PANE, TOP))
+		self.window.add_center_bar(self.widget)
 
 	def on_populate_popup(self, treeview, menu):
 		'''Add 'Add Bookmark' option to the Index popup menu.'''
 		path = treeview.get_selected_path()
 		if path:
-			item = gtk.SeparatorMenuItem()
+			item = Gtk.SeparatorMenuItem()
 			menu.prepend(item)
-			item = gtk.MenuItem(_('Add Bookmark')) # T: menu item bookmark plugin
-			page = self.window.ui.notebook.get_page(path)
+			item = Gtk.MenuItem.new_with_mnemonic(_('Add Bookmark')) # T: menu item bookmark plugin
+			page = self.window.notebook.get_page(path)
 			item.connect('activate', lambda o: self.widget.add_new_page(page))
 			menu.prepend(item)
 			menu.show_all()
 
 
-	@action(_('_Run bookmark'), accelerator='<alt>1')
+	@action('', accelerator='<alt>1', menuhints='accelonly')
 	def bookmark_1(self):
 		self._open_bookmark(1)
 
-	@action(_('_Run bookmark'), accelerator='<alt>2')
+	@action('', accelerator='<alt>2', menuhints='accelonly')
 	def bookmark_2(self):
 		self._open_bookmark(2)
 
-	@action(_('_Run bookmark'), accelerator='<alt>3')
+	@action('', accelerator='<alt>3', menuhints='accelonly')
 	def bookmark_3(self):
 		self._open_bookmark(3)
 
-	@action(_('_Run bookmark'), accelerator='<alt>4')
+	@action('', accelerator='<alt>4', menuhints='accelonly')
 	def bookmark_4(self):
 		self._open_bookmark(4)
 
-	@action(_('_Run bookmark'), accelerator='<alt>5')
+	@action('', accelerator='<alt>5', menuhints='accelonly')
 	def bookmark_5(self):
 		self._open_bookmark(5)
 
-	@action(_('_Run bookmark'), accelerator='<alt>6')
+	@action('', accelerator='<alt>6', menuhints='accelonly')
 	def bookmark_6(self):
 		self._open_bookmark(6)
 
-	@action(_('_Run bookmark'), accelerator='<alt>7')
+	@action('', accelerator='<alt>7', menuhints='accelonly')
 	def bookmark_7(self):
 		self._open_bookmark(7)
 
-	@action(_('_Run bookmark'), accelerator='<alt>8')
+	@action('', accelerator='<alt>8', menuhints='accelonly')
 	def bookmark_8(self):
 		self._open_bookmark(8)
 
-	@action(_('_Run bookmark'), accelerator='<alt>9')
+	@action('', accelerator='<alt>9', menuhints='accelonly')
 	def bookmark_9(self):
 		self._open_bookmark(9)
 
 	def _open_bookmark(self, number):
 		number -= 1
 		try:
-			self.window.ui.open_page(Path(self.widget.paths[number]))
+			self.window.open_page(Path(self.widget.paths[number]))
 		except IndexError:
 			pass
 
-	@toggle_action(_('Bookmarks'), stock='zim-add-bookmark',
-				   tooltip = 'Show/Hide Bookmarks', accelerator = BM_TOGGLE_BAR_KEY) # T: menu item bookmark plugin
+	@toggle_action(_('Bookmarks'), accelerator=BM_TOGGLE_BAR_KEY, menuhints='view') # T: menu item bookmark plugin
 	def toggle_show_bookmarks(self, active):
 		'''
 		Show/hide the bar with bookmarks.
@@ -194,7 +157,7 @@ class MainWindowExtension(WindowExtension):
 			self.hide_widget()
 		self.uistate['show_bar'] = active
 
-	@action(_('Add Bookmark'), accelerator = BM_ADD_BOOKMARK_KEY) # T: menu item bookmark plugin
+	@action(_('Add Bookmark'), accelerator=BM_ADD_BOOKMARK_KEY, menuhints='page') # T: menu item bookmark plugin
 	def add_bookmark(self):
 		'''
 		Function to add new bookmarks to the bar.
@@ -203,12 +166,13 @@ class MainWindowExtension(WindowExtension):
 		self.widget.add_new_page()
 
 
-class BookmarkBar(gtk.HBox, ConnectorMixin):
+class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
-	def __init__(self, ui, uistate, get_page_func):
-		gtk.HBox.__init__(self)
+	def __init__(self, notebook, navigation, uistate, get_page_func):
+		GObject.GObject.__init__(self)
 
-		self.ui = ui
+		self.notebook = notebook
+		self.navigation = navigation
 		self.uistate = uistate
 		self.save_flag = False # if True save bookmarks in config
 		self.add_bookmarks_to_beginning = False # add new bookmarks to the end of the bar
@@ -216,15 +180,15 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		self._get_page = get_page_func # function to get current page
 
 		# Create button to add new bookmarks.
-		self.plus_button = IconsButton(gtk.STOCK_ADD, gtk.STOCK_REMOVE, relief = False)
-		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings'))
+		self.plus_button = IconsButton(Gtk.STOCK_ADD, Gtk.STOCK_REMOVE, relief = False)
+		self.plus_button.set_tooltip_text(_('Add bookmark/Show settings')) # T: button label
 		self.plus_button.connect('clicked', lambda o: self.add_new_page())
 		self.plus_button.connect('button-release-event', self.do_plus_button_popup_menu)
-		self.pack_start(self.plus_button, expand = False)
+		self.pack_start(self.plus_button, False, False, 0)
 
 		# Create widget for bookmarks.
-		self.container = ScrolledHBox()
-		self.pack_start(self.container, expand = True)
+		self.scrolledbox = ScrolledHBox()
+		self.pack_start(self.scrolledbox, True, True, 0)
 
 		# Toggle between full/short page names.
 		self.uistate.setdefault('show_full_page_name', False)
@@ -237,7 +201,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		# Add pages from config to the bar.
 		for path in self.uistate['bookmarks']:
-			page = self.ui.notebook.get_page(Path(path))
+			page = self.notebook.get_page(Path(path))
 			if page.exists() and (page.name not in self.paths):
 				self.paths.append(page.name)
 
@@ -247,7 +211,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		self._convert_path_name = lambda a: ' '.join(a[:25].split())
 
 		# Add alternative bookmark names from config.
-		for path, name in self.uistate['bookmarks_names'].iteritems():
+		for path, name in self.uistate['bookmarks_names'].items():
 			if path in self.paths:
 				try:
 					name = self._convert_path_name(name)
@@ -255,21 +219,19 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				except:
 					logger.error('BookmarksBar: Error while loading path_names.')
 
-		# Look for new pages to mark corresponding bookmarks in the bar.
-		self.connectto(self.ui, 'open-page', self.on_open_page)
-
 		# Delete a bookmark if a page is deleted.
-		self.connectto(self.ui.notebook, 'deleted-page',
+		self.connectto(self.notebook, 'deleted-page',
 					   lambda obj, path: self.delete(path.name))
 
-	def on_open_page(self, ui, page, path):
+	def set_page(self, page):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
-		for button in self.container.get_children()[2:]:
-			if button.zim_path == pagename:
-				button.set_active(True)
-			else:
-				button.set_active(False)
+		with self.on_bookmark_clicked.blocked():
+			for button in self.scrolledbox.get_children()[2:]:
+				if button.zim_path == pagename:
+					button.set_active(True)
+				else:
+					button.set_active(False)
 
 	def add_new_page(self, page = None):
 		'''
@@ -314,7 +276,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 		if path in self.paths:
 			self.paths.remove(path)
 			self.paths_names.pop(path, None)
-		        self._reload_bar()
+			self._reload_bar()
 
 	def delete_all(self, ask_confirmation = False):
 		'''
@@ -328,12 +290,12 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		if ask_confirmation:
 			# Prevent accidental deleting of all bookmarks.
-			menu = gtk.Menu()
-			item = gtk.MenuItem(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
+			menu = Gtk.Menu()
+			item = Gtk.MenuItem.new_with_mnemonic(_('Do you want to delete all bookmarks?')) # T: message for bookmark plugin
 			item.connect('activate', lambda o: _delete_all())
 			menu.append(item)
 			menu.show_all()
-			menu.popup(None, None, None, 3, 0)
+			gtk_popup_at_pointer(menu)
 		else:
 			_delete_all()
 
@@ -409,13 +371,13 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 	def do_plus_button_popup_menu(self, button, event):
 		'''Handler for button-release-event, triggers popup menu for plus button.'''
 		if event.button == 3:
-			menu = gtk.Menu()
-			item = gtk.CheckMenuItem(_('Show full Page Name')) # T: menu item for context menu
+			menu = Gtk.Menu()
+			item = Gtk.CheckMenuItem(_('Show full Page Name')) # T: menu item for context menu
 			item.set_active(self.uistate['show_full_page_name'])
 			item.connect('activate', lambda o: self.toggle_show_full_page_name())
 			menu.append(item)
 			menu.show_all()
-			menu.popup(None, None, None, 3, 0)
+			gtk_popup_at_pointer(menu)
 			return True
 
 	def do_bookmarks_popup_menu(self, button, event):
@@ -425,7 +387,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 		path = button.zim_path
 
-		_button_width = button.size_request()[0]
+		_button_width = button.size_request().width
 		direction = 'left' if (int(event.x) <= _button_width / 2) else 'right'
 
 		def set_save_bookmark(path):
@@ -437,38 +399,35 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			rename_button_text = _('Back to Original Name') # T: button label
 
 		# main popup menu
-		main_menu = gtk.Menu()
+		main_menu = Gtk.Menu()
 		main_menu_items = (
 					(_('Remove'), lambda o: self.delete(path)),			# T: menu item
 				    (_('Remove All'), lambda o: self.delete_all(True)),	# T: menu item
 				    ('separator', ''),
-				    ('gtk-copy', lambda o: set_save_bookmark(path)),
-				    ('gtk-paste', lambda o: self.move_bookmark(self._saved_bookmark, path, direction)),
+				    (_('Copy'), lambda o: set_save_bookmark(path)), # T: menu item
+				    (_('Paste'), lambda o: self.move_bookmark(self._saved_bookmark, path, direction)), # T: menu item
 				    ('separator', ''),
-				    (_('Open in New Window'), lambda o: self.ui.open_new_window(Path(path))), # T: menu item
+				    (_('Open in New Window'), lambda o: self.navigation.open_page(Path(path), new_window=True)), # T: menu item
 				    ('separator', ''),
 				    (rename_button_text, lambda o: self.rename_bookmark(button)),
 				    (_('Set to Current Page'), lambda o: self.change_bookmark(path))) # T: menu item
 
 		for name, func in main_menu_items:
 			if name == 'separator':
-				item = gtk.SeparatorMenuItem()
+				item = Gtk.SeparatorMenuItem()
 			else:
-				if 'gtk-' in name:
-					item = gtk.ImageMenuItem(name)
-				else:
-					item = gtk.MenuItem(name)
-			        item.connect('activate', func)
+				item = Gtk.MenuItem.new_with_mnemonic(name)
+				item.connect('activate', func)
 			main_menu.append(item)
 
 		main_menu.show_all()
-		main_menu.popup(None, None, None, 3, 0)
+		gtk_popup_at_pointer(main_menu)
 		return True
 
-
+	@SignalHandler
 	def on_bookmark_clicked(self, button):
 		'''Open page if a bookmark is clicked.'''
-		self.ui.open_page(Path(button.zim_path))
+		self.navigation.open_page(Path(button.zim_path))
 
 	def on_preferences_changed(self, preferences):
 		'''Plugin preferences were changed.'''
@@ -502,8 +461,8 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 
 	def _reload_bar(self):
 		'''Reload bar with bookmarks.'''
-		for button in self.container.get_children()[2:]:
-			self.container.remove(button)
+		for button in self.scrolledbox.get_children()[2:]:
+			self.scrolledbox.remove(button)
 
 		page = self._get_page()
 		if page:
@@ -518,7 +477,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 				name = self._get_short_page_name(path)
 			else:
 				name = path
-			button = gtk.ToggleButton(label = name, use_underline = False)
+			button = Gtk.ToggleButton(label = name, use_underline = False)
 			button.set_tooltip_text(path)
 			button.zim_path = path
 			if path == pagename:
@@ -527,7 +486,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			button.connect('clicked', self.on_bookmark_clicked)
 			button.connect('button-release-event', self.do_bookmarks_popup_menu)
 			button.show()
-			self.container.add(button)
+			self.scrolledbox.add(button)
 
 		# 'Disable' plus_button if max bookmarks is reached.
 		if self.max_bookmarks and (len(self.paths) >= self.max_bookmarks):
@@ -541,7 +500,7 @@ class BookmarkBar(gtk.HBox, ConnectorMixin):
 			self.uistate['bookmarks_names'] = self.paths_names
 
 
-class IconsButton(gtk.Button):
+class IconsButton(Gtk.Button):
 	'''
 	Need a button which can change icons.
 	Use this instead of set_sensitive to show 'disabled'/'enabled' state
@@ -549,7 +508,7 @@ class IconsButton(gtk.Button):
 	For using only with one icon look for the standard IconButton from widgets.py.
 	'''
 
-	def __init__(self, stock_enabled, stock_disabled, relief=True, size=gtk.ICON_SIZE_BUTTON):
+	def __init__(self, stock_enabled, stock_disabled, relief=True, size=Gtk.IconSize.BUTTON):
 		'''
 		:param stock_enabled: the stock item for enabled state,
 		:param stock_disabled: the stock item for disabled state,
@@ -557,15 +516,15 @@ class IconsButton(gtk.Button):
 		edge and will be flat against the background,
 		:param size: the icons size
 		'''
-		gtk.Button.__init__(self)
-		self.stock_enabled = gtk.image_new_from_stock(stock_enabled, size)
-		self.stock_disabled = gtk.image_new_from_stock(stock_disabled, size)
+		GObject.GObject.__init__(self)
+		self.stock_enabled = Gtk.Image.new_from_stock(stock_enabled, size)
+		self.stock_disabled = Gtk.Image.new_from_stock(stock_disabled, size)
 		self.add(self.stock_enabled)
 		self._enabled_state = True
 
 		self.set_alignment(0.5, 0.5)
 		if not relief:
-			self.set_relief(gtk.RELIEF_NONE)
+			self.set_relief(Gtk.ReliefStyle.NONE)
 
 	def change_state(self, active = 'default'):
 		'''
@@ -594,4 +553,4 @@ class IconsButton(gtk.Button):
 			self.change_state()
 			return False
 		self.change_state()
-		gobject.timeout_add(300, change_icon)
+		GObject.timeout_add(300, change_icon)

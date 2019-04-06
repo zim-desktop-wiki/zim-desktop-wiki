@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2016,2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -28,9 +27,9 @@ from functools import partial
 from multiprocessing.connection import Client, SocketListener
 
 try:
-	import gobject
+	from gi.repository import GObject
 except ImportError:
-	gobject = None
+	GObject = None
 
 
 import zim
@@ -56,7 +55,7 @@ def set_in_main_process(in_main_process):
 
 
 _m = hashlib.md5()
-_m.update(zim.ZIM_EXECUTABLE)
+_m.update(zim.ZIM_EXECUTABLE.encode('UTF-8'))
 
 key = zim.__version__ + '-' + _m.hexdigest()[:8]
 	# Make name specific for the install location
@@ -143,8 +142,8 @@ def start_listening(handler):
 		socket = _get_socket_for_listener(listener)
 		if socket is not None:
 			# Unix file descriptor
-			gobject.io_add_watch(
-				socket.fileno(), gobject.IO_IN,
+			GObject.io_add_watch(
+				socket.fileno(), GObject.IO_IN,
 				partial(_do_accept, listener, handler)
 			)
 		else:
@@ -177,7 +176,7 @@ def _do_accept(listener, handler, *a):
 			def callback():
 				handler(*args)
 				return False # delete signal
-			gobject.idle_add(callback)
+			GObject.idle_add(callback)
 
 			conn.send('OK')
 			conn.close()

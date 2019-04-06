@@ -1,29 +1,22 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
 
 import os
 
-from zim.fs import _md5, File, Dir
+from gi.repository import Gtk
+
+from functools import partial
 
 from zim.config import data_file, SectionedConfigDict
 from zim.notebook import Path, Page, Notebook, init_notebook, \
 	interwiki_link, get_notebook_list, NotebookInfo
-#~ from zim.exporter import Exporter, StaticLinker
-#~ from zim.applications import Application
 from zim.templates import list_templates
 
 from zim.main import ExportCommand, UsageError
-
-# TODO add check that attachments are copied correctly
-
-
-from functools import partial
-
 
 from zim.export import *
 from zim.export.layouts import *
@@ -38,6 +31,10 @@ from zim.templates.expression import ExpressionParameter, \
 	ExpressionFunctionCall, ExpressionList
 
 from zim.notebook import Path
+
+from zim.fs import File as OldFile
+from zim.fs import Dir as OldDir
+from zim.newfs import File, Folder, FilePath
 
 
 def md5(f):
@@ -54,8 +51,8 @@ class TestMultiFileLayout(tests.TestCase):
 	#         `--> attachment.png
 
 	def runTest(self):
-		dir = Dir(self.get_tmp_name())
-		rdir = dir.subdir('_resources')
+		dir = self.setUpFolder()
+		rdir = dir.folder('_resources')
 
 
 		layout = MultiFileLayout(dir, 'html')
@@ -63,8 +60,8 @@ class TestMultiFileLayout(tests.TestCase):
 		self.assertEqual(layout.resources_dir(), rdir)
 
 		for path, file, adir in (
-			(Path('Foo'), dir.file('Foo.html'), dir.subdir('Foo')),
-			(Path('Foo:Bar'), dir.file('Foo/Bar.html'), dir.subdir('Foo/Bar')),
+			(Path('Foo'), dir.file('Foo.html'), dir.folder('Foo')),
+			(Path('Foo:Bar'), dir.file('Foo/Bar.html'), dir.folder('Foo/Bar')),
 		):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
@@ -77,8 +74,8 @@ class TestMultiFileLayout(tests.TestCase):
 		self.assertEqual(layout.resources_dir(), rdir)
 
 		for path, file, adir in (
-			(Path('Test:Foo'), dir.file('Foo.html'), dir.subdir('Foo')),
-			(Path('Test:Foo:Bar'), dir.file('Foo/Bar.html'), dir.subdir('Foo/Bar')),
+			(Path('Test:Foo'), dir.file('Foo.html'), dir.folder('Foo')),
+			(Path('Test:Foo:Bar'), dir.file('Foo/Bar.html'), dir.folder('Foo/Bar')),
 		):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
@@ -97,10 +94,10 @@ class TestFileLayout(tests.TestCase):
 	#   `--> _resources/
 
 	def runTest(self):
-		tdir = Dir(self.get_tmp_name())
+		tdir = self.setUpFolder()
 		topfile = tdir.file('page.html')
-		dir = tdir.subdir('page_files')
-		rdir = dir.subdir('_resources')
+		dir = tdir.folder('page_files')
+		rdir = dir.folder('_resources')
 
 		layout = FileLayout(topfile, Path('Test'), 'html')
 		self.assertEqual(layout.relative_root, dir)
@@ -108,8 +105,8 @@ class TestFileLayout(tests.TestCase):
 
 		for path, file, adir in (
 			(Path('Test'), topfile, dir),
-			(Path('Test:Foo'), dir.file('Foo.html'), dir.subdir('Foo')),
-			(Path('Test:Foo:Bar'), dir.file('Foo/Bar.html'), dir.subdir('Foo/Bar')),
+			(Path('Test:Foo'), dir.file('Foo.html'), dir.folder('Foo')),
+			(Path('Test:Foo:Bar'), dir.file('Foo/Bar.html'), dir.folder('Foo/Bar')),
 		):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
@@ -127,10 +124,10 @@ class TestSingleFileLayout(tests.TestCase):
 	#   `--> _resources/
 
 	def runTest(self):
-		tdir = Dir(self.get_tmp_name())
+		tdir = self.setUpFolder()
 		topfile = tdir.file('page.html')
-		dir = tdir.subdir('page_files')
-		rdir = dir.subdir('_resources')
+		dir = tdir.folder('page_files')
+		rdir = dir.folder('_resources')
 
 		layout = SingleFileLayout(topfile, page=Path('Test'))
 		self.assertEqual(layout.relative_root, dir)
@@ -138,8 +135,8 @@ class TestSingleFileLayout(tests.TestCase):
 
 		for path, file, adir in (
 			(Path('Test'), topfile, dir),
-			(Path('Test:Foo'), topfile, dir.subdir('Foo')),
-			(Path('Test:Foo:Bar'), topfile, dir.subdir('Foo/Bar')),
+			(Path('Test:Foo'), topfile, dir.folder('Foo')),
+			(Path('Test:Foo:Bar'), topfile, dir.folder('Foo/Bar')),
 		):
 			self.assertEqual(layout.page_file(path), file)
 			self.assertEqual(layout.attachments_dir(path), adir)
@@ -152,8 +149,9 @@ class TestSingleFileLayout(tests.TestCase):
 class TestLinker(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.get_tmp_name())
-		notebook = tests.new_notebook(fakedir=dir.subdir('notebook'))
+		notebook = self.setUpNotebook(content=('foo', 'bar', 'foo:bar',))
+		dir = Dir(notebook.folder.parent().folder('layout').path)
+
 		layout = MultiFileLayout(dir.subdir('layout'), 'html')
 		source = Path('foo:bar')
 		output = layout.page_file(source)
@@ -167,7 +165,9 @@ class TestLinker(tests.TestCase):
 		self.assertEqual(linker.link('./dus.pdf'), './bar/dus.pdf')
 		self.assertEqual(linker.link('../dus.pdf'), './dus.pdf')
 		self.assertEqual(linker.link('../../dus.pdf'), '../dus.pdf')
-		self.assertEqual(linker.link('/dus.pdf'), File('/dus.pdf').uri)
+
+		extpath = 'C:\\dus.pdf' if os.name == 'nt' else '/duf.pdf'
+		self.assertEqual(linker.link(extpath), FilePath(extpath).uri)
 
 		# TODO:
 		# 	img
@@ -201,9 +201,9 @@ class TestLinker(tests.TestCase):
 class TestExportTemplateContext(tests.TestCase):
 
 	def setUp(self):
-		tmpdir = self.get_tmp_name()
-		notebook = tests.new_notebook(tmpdir + '/notebook')
-		layout = MultiFileLayout(Dir(tmpdir + '/export'), 'html')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
+		output_folder = self.setUpFolder()
+		layout = MultiFileLayout(output_folder, 'html')
 		linker_factory = partial(ExportLinker,
 			notebook=notebook,
 			layout=layout,
@@ -227,9 +227,9 @@ class TestExportTemplateContext(tests.TestCase):
 			return param(self.context)
 
 		# Test context setup
-		self.assertIsInstance(get('generator.name'), basestring)
+		self.assertIsInstance(get('generator.name'), str)
 		self.assertTrue(get('generator.name').startswith('Zim'))
-		self.assertIsInstance(get('generator.user'), basestring)
+		self.assertIsInstance(get('generator.user'), str)
 
 		self.assertEqual(get('title'), 'Test Export')
 
@@ -263,9 +263,9 @@ class TestExportTemplateContext(tests.TestCase):
 		self.assertEqual(get('mypage.basename'), 'foo')
 
 		self.assertEqual(get('mypage.heading'), 'Foo')
-		self.assertIsInstance(get('mypage.content'), basestring)
-		self.assertIsInstance(get('mypage.body'), basestring)
-		self.assertIsInstance(get('mypage.meta'), dict)
+		self.assertIsInstance(get('mypage.content'), str)
+		self.assertIsInstance(get('mypage.body'), str)
+		#TODO self.assertIsInstance(get('mypage.meta'), dict)
 
 
 		#			.links
@@ -286,9 +286,9 @@ class TestExportTemplateContext(tests.TestCase):
 		self.context['h2'] = headings[1]
 		self.assertEqual(get('h1.level'), 1)
 		self.assertEqual(get('h2.level'), 2)
-		self.assertIsInstance(get('h1.heading'), basestring)
-		self.assertIsInstance(get('h1.body'), basestring)
-		self.assertIsInstance(get('h1.content'), basestring)
+		self.assertIsInstance(get('h1.heading'), str)
+		self.assertIsInstance(get('h1.body'), str)
+		self.assertIsInstance(get('h1.content'), str)
 
 		# Test FileProxy
 		#				file
@@ -340,18 +340,18 @@ class TestPageSelections(tests.TestCase):
 	# TODO Use collections subclass to make interface complete ?
 
 	def testAllPages(self):
-		selection = AllPages(tests.new_notebook())
+		selection = AllPages(self.setUpNotebook(content=tests.FULL_NOTEBOOK))
 		self._test_iface(selection)
 
 	def testSinglePage(self):
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = notebook.get_page(Path('Test'))
 		selection = SinglePage(notebook, page)
 		self._test_iface(selection)
 		self.assertIsNotNone(selection.prefix)
 
 	def testSubPages(self):
-		notebook = tests.new_notebook()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		page = notebook.get_page(Path('Test'))
 		selection = SinglePage(notebook, page)
 		self._test_iface(selection)
@@ -361,12 +361,11 @@ class TestPageSelections(tests.TestCase):
 class TestMultiFileExporter(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
-		#~ dir =  VirtualDir('/test')
-		notebook = tests.new_notebook(fakedir='/foo')
+		folder = self.setUpFolder()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
 
-		exporter = build_notebook_exporter(dir, 'html', 'Default', index_page='Index')
+		exporter = build_notebook_exporter(folder, 'html', 'Default', index_page='Index')
 		self.assertIsInstance(exporter, MultiFileExporter)
 		exporter.export(pages)
 
@@ -382,10 +381,9 @@ class TestMultiFileExporter(tests.TestCase):
 class TestSingleFileExporter(tests.TestCase):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
-		#~ dir =  VirtualDir('/test')
-		file = dir.file('export.html')
-		notebook = tests.new_notebook(fakedir='/foo')
+		folder = self.setUpFolder()
+		file = folder.file('export.html')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
 
 		exporter = build_single_file_exporter(file, 'html', 'Default')
@@ -396,14 +394,12 @@ class TestSingleFileExporter(tests.TestCase):
 		self.assertIn('Lorem ipsum dolor sit amet', text)
 
 
-@tests.slowTest # Slow because it uses a tmp file internally
 class TestMHTMLExporter(tests.TestCase):
 
 	def runTest(self):
 		dir = Dir(self.create_tmp_dir())
-		#~ dir =  VirtualDir('/test')
 		file = dir.file('export.mht')
-		notebook = tests.new_notebook(fakedir='/foo')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		pages = AllPages(notebook)
 
 		exporter = build_mhtml_file_exporter(file, 'Default')
@@ -422,7 +418,7 @@ class TestTemplateOptions(tests.TestCase):
 		page = Path('roundtrip')
 		exporter = build_page_exporter(file, 'latex', 'Article', page)
 
-		notebook = tests.new_notebook(fakedir='/foo')
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		selection = SinglePage(notebook, page)
 
 		with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):
@@ -432,20 +428,18 @@ class TestTemplateOptions(tests.TestCase):
 		self.assertIn('\section{Head1}', result) # this implies that document_type "article" was indeed used
 
 
-@tests.slowTest
 class TestExportFormat(object):
 
 	def runTest(self):
-		dir = Dir(self.create_tmp_dir())
-		#~ dir =  VirtualDir('/test')
+		output_folder = self.setUpFolder()
+		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 
 		i = 0
-		print ''
+		print('')
 		for template, file in list_templates(self.format):
-			print 'Testing template: %s' % template
-			notebook = tests.new_notebook(fakedir='/foo')
+			#print 'Testing template: %s' % template
 			pages = AllPages(notebook) # TODO - sub-section ?
-			exporter = build_notebook_exporter(dir.subdir(template), self.format, template)
+			exporter = build_notebook_exporter(output_folder.folder(template), self.format, template)
 			self.assertIsInstance(exporter, MultiFileExporter)
 
 			with tests.LoggingFilter('zim.formats.latex', 'Could not find latex equation'):
@@ -458,7 +452,7 @@ class TestExportFormat(object):
 			i += 1
 
 		if self.format in ('html', 'latex'):
-			self.assertTrue(i >= 3)
+			self.assertTrue(i >= 3) # Ensure we actually tested something ..
 
 
 class TestExportFormatHtml(TestExportFormat, tests.TestCase):
@@ -477,67 +471,11 @@ class TestExportFormatRst(TestExportFormat, tests.TestCase):
 	format = 'rst'
 
 
-
-## TODO test all exports templates
-
-
-#~ @tests.slowTest
-#~ class TestExportTemplateResources(TestExport):
-#~
-	#~ data = './tests/data/templates/'
-#~
-	#~ options = {
-		#~ 'format': 'html',
-		#~ 'template': './tests/data/templates/html/Default.html'
-	#~ }
-#~
-	#~ def runTest(self):
-		#~ pass # should not run, block just in case
-#~
-	#~ def testExportResources(self):
-		#~ '''Test export notebook to html with template resources'''
-		#~ self.export()
-#~
-		#~ file = self.dir.file('Test/foo.html')
-		#~ self.assertTrue(file.exists())
-		#~ text = file.read()
-		#~ self.assertTrue('src="../_resources/foo/bar.png"' in text)
-		#~ self.assertTrue(self.dir.file('_resources/foo/bar.png').exists())
-#~
-		#~ for icon in ('checked-box',): #'unchecked-box', 'xchecked-box'):
-			#~ # Template has its own checkboxes
-			#~ self.assertTrue(self.dir.file('_resources/%s.png' % icon).exists())
-			#~ self.assertNotEqual(
-				#~ md5(self.dir.file('_resources/%s.png' % icon)),
-				#~ md5(data_file('pixmaps/%s.png' % icon))
-			#~ )
-#~
-	#~ def testListTemplates(self):
-		#~ '''Assert list templates still works with resource folders present'''
-		#~ import shutil
-		#~ from zim.config import XDG_DATA_HOME
-		#~ from zim.templates import list_templates, get_template
-#~
-		#~ # Make sure our template with resources is first in line
-		#~ datahome = XDG_DATA_HOME.subdir('zim/templates/')
-		#~ assert not datahome.exists()
-		#~ shutil.copytree(self.data, datahome.path)
-#~
-		#~ for name, basename in list_templates('html'):
-			#~ if name == 'Default':
-				#~ self.assertEqual(basename, 'Default.html')
-#~
-		#~ template = get_template('html', 'Default')
-		#~ self.assertEqual(template.file, datahome.file('html/Default.html').path)
-		#~ self.assertEqual(template.resources_dir, datahome.subdir('html/Default'))
-		#~ self.assertTrue(template.resources_dir.exists())
-
-
-
 class TestExportCommand(tests.TestCase):
 
 	def setUp(self):
-		self.tmpdir = Dir(self.create_tmp_dir())
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		self.tmpdir = OldDir(folder.path) # XXX
 		self.notebook = self.tmpdir.subdir('notebook')
 		init_notebook(self.notebook)
 
@@ -557,7 +495,7 @@ class TestExportCommand(tests.TestCase):
 		exp = cmd.get_exporter(None)
 		self.assertIsInstance(exp, MultiFileExporter)
 		self.assertIsInstance(exp.layout, MultiFileLayout)
-		self.assertIsInstance(exp.layout.dir, Dir)
+		self.assertIsInstance(exp.layout.dir, Folder)
 		self.assertIsInstance(exp.template, Template)
 		self.assertIsNone(exp.document_root_url)
 		self.assertIsNotNone(exp.format)
@@ -576,7 +514,7 @@ class TestExportCommand(tests.TestCase):
 		exp = cmd.get_exporter(None)
 		self.assertIsInstance(exp, MultiFileExporter)
 		self.assertIsInstance(exp.layout, MultiFileLayout)
-		self.assertIsInstance(exp.layout.dir, Dir)
+		self.assertIsInstance(exp.layout.dir, Folder)
 		self.assertIsInstance(exp.template, Template)
 		self.assertIsNotNone(exp.document_root_url)
 		self.assertIsNotNone(exp.format)
@@ -649,7 +587,6 @@ class TestExportCommand(tests.TestCase):
 		self.assertIsInstance(exp.template, Template)
 		self.assertIsNone(exp.document_root_url)
 
-	@tests.slowTest
 	def testExport(self):
 		# Only test single page, just to show "run()" works
 		file = self.notebook.file('Foo/Bar.txt')
@@ -670,7 +607,6 @@ class TestExportCommand(tests.TestCase):
 		self.assertTrue('test 123' in html)
 
 
-@tests.slowTest
 class TestExportDialog(tests.TestCase):
 
 	def testDialog(self):
@@ -678,16 +614,13 @@ class TestExportDialog(tests.TestCase):
 		from zim.gui.exportdialog import ExportDialog, ExportDoneDialog
 
 		dir = Dir(self.create_tmp_dir())
+		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 
-		notebook = tests.new_notebook(fakedir='/foo/bar')
-
-		ui = tests.MockObject()
-		ui.notebook = notebook
-		ui.page = Path('foo')
-		ui.uistate = SectionedConfigDict()
+		window = Gtk.Window()
+		window.notebook = notebook
 
 		## Test export all pages
-		dialog = ExportDialog(ui)
+		dialog = ExportDialog(window, notebook, Path('foo'))
 		dialog.set_page(0)
 
 		page = dialog.get_page()
@@ -705,23 +638,22 @@ class TestExportDialog(tests.TestCase):
 		with tests.DialogContext(ExportDoneDialog):
 			dialog.assert_response_ok()
 
-		file = dir.file('Test/foo.html')
+		file = dir.file('foo.html')
 		self.assertTrue(file.exists())
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
-		self.assertTrue('<h1>Foo</h1>' in text)
 
 		#~ print dialog.uistate
-		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
+		self.assertEqual(dialog.uistate, window.notebook.state['ExportDialog'])
 		self.assertIsInstance(dialog.uistate['output_folder'], Dir)
 
 		## Test export single page
-		dialog = ExportDialog(ui)
+		dialog = ExportDialog(window, notebook, Path('foo'))
 		dialog.set_page(0)
 
 		page = dialog.get_page()
 		page.form['selection'] = 'page'
-		page.form['page'] = 'Test:foo'
+		page.form['page'] = 'foo'
 		dialog.next_page()
 
 		page = dialog.get_page()
@@ -738,12 +670,11 @@ class TestExportDialog(tests.TestCase):
 		self.assertTrue(file.exists())
 		text = file.read()
 		self.assertTrue('<!-- Wiki content -->' in text, 'template used')
-		self.assertTrue('<h1>Foo</h1>' in text)
 
 		#~ print dialog.uistate
-		self.assertEqual(dialog.uistate, ui.uistate['ExportDialog'])
-		self.assertIsInstance(dialog.uistate['output_file'], File)
-		self.assertIsInstance(dialog.uistate['output_folder'], Dir) # Keep this in state as well
+		self.assertEqual(dialog.uistate, window.notebook.state['ExportDialog'])
+		self.assertIsInstance(dialog.uistate['output_file'], OldFile)
+		self.assertIsInstance(dialog.uistate['output_folder'], OldDir) # Keep this in state as well
 
 	def testLogging(self):
 		from zim.gui.exportdialog import LogContext
@@ -760,61 +691,10 @@ class TestExportDialog(tests.TestCase):
 
 		file = log_context.file
 		self.assertTrue(file.exists())
-		#~ print ">>>\n", file.read(), "\n<<<"
+		#~ print(">>>\n", file.read(), "\n<<<")
 		self.assertTrue('Test export warning' in file.read())
 		self.assertFalse('Test export debug' in file.read())
 		self.assertFalse('Test foo' in file.read())
-
-
-class VirtualDir(object):
-
-	def __init__(self, path):
-		self.path = path
-		if '/' in path:
-			x, self.basename = path.rsplit('/', 1)
-		else:
-			self.basename = path
-		self._contents = {}
-
-	def file(self, path):
-		# TODO normalize path
-		if path in self._contents:
-			assert isinstance(self._contents[path], VirtualFile)
-		else:
-			self._contents[path] = VirtualFile(self, self.path + '/' + path)
-		return self._contents[path]
-
-	def subdir(self, path):
-		# TODO normalize path
-		if path in self._contents:
-			assert isinstance(self._contents[path], VirtualDir)
-		else:
-			self._contents[path] = VirtualDir(self.path + '/' + path)
-		return self._contents[path]
-
-
-class VirtualFile(object):
-
-	def __init__(self, dir, path):
-		self.path = path
-		if '/' in path:
-			x, self.basename = path.rsplit('/', 1)
-		else:
-			self.basename = path
-		self.dir = dir
-		self._contents = []
-
-	def write(self, text):
-		self._contents.append(text)
-
-	def writelines(self, lines):
-		self._contents.extend(lines)
-
-	def read(self):
-		return ''.join(self._contents)
-
-	def readlines(self):
-		return ''.join(self._contents).splitlines(True)
 
 
 class TestOverwrite(tests.TestCase):
@@ -824,12 +704,11 @@ class TestOverwrite(tests.TestCase):
 		# TODO: ensure template has resources
 		# TODO: add attachements to test notebook
 
-		from zim.fs import File
-		folder = self.setUpFolder('single', mock=tests.MOCK_ALWAYS_REAL)
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
 		file = folder.file('test.html')
-		exporter = build_single_file_exporter(File(file.path), 'html', 'Default.html')
+		exporter = build_single_file_exporter(file, 'html', 'Default.html')
 
-		notebook = tests.new_notebook(fakedir='/foo')
+		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 		pages = AllPages(notebook)
 
 		# Now do it twice - should not raise for file exists
@@ -837,15 +716,13 @@ class TestOverwrite(tests.TestCase):
 		exporter.export(pages)
 
 	def testMultiFile(self):
-		# TODO: run this with mock file
 		# TODO: ensure template has resources
 		# TODO: add attachements to test notebook
 
-		from zim.fs import Dir
-		folder = self.setUpFolder('multi', mock=tests.MOCK_ALWAYS_REAL)
-		exporter = build_notebook_exporter(Dir(folder.path), 'html', 'Default.html')
+		folder = self.setUpFolder(mock=tests.MOCK_ALWAYS_REAL)
+		exporter = build_notebook_exporter(folder, 'html', 'Default.html')
 
-		notebook = tests.new_notebook(fakedir='/foo')
+		notebook = self.setUpNotebook(content={'foo': 'test 123\n', 'bar': 'test 123\n'})
 		pages = AllPages(notebook)
 
 		# Now do it twice - should not raise for file exists

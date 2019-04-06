@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2008 Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
 # Copyright 2012-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
@@ -110,7 +109,7 @@ class Dumper(TextDumper):
 
 	def dump_pre(self, tag, attrib, strings):
 		indent = int(attrib.get('indent', 0))
-		text = u''.join(strings)
+		text = ''.join(strings)
 		text = text.replace('\n\n', '\n') # remove newlines introduces by encode_text
 		strings = text.splitlines(True)
 		if indent:
@@ -127,7 +126,7 @@ class Dumper(TextDumper):
 		elif level > 5:
 			level = 5
 
-		text = u''.join(strings)
+		text = ''.join(strings)
 		return [self.SECTIONING[self.document_type][level] % text]
 
 	def dump_ul(self, tag, attrib, strings):
@@ -138,14 +137,12 @@ class Dumper(TextDumper):
 
 	def dump_ol(self, tag, attrib, strings):
 		start = attrib.get('start', 1)
-		if os.name == 'nt':
-			start = start.encode('utf-8') # Weird locale dependent behavior
-		if start in string.lowercase:
+		if start in string.ascii_lowercase:
 			type = 'a'
-			start = string.lowercase.index(start) + 1
-		elif start in string.uppercase:
+			start = string.ascii_lowercase.index(start) + 1
+		elif start in string.ascii_uppercase:
 			type = 'A'
-			start = string.uppercase.index(start) + 1
+			start = string.ascii_uppercase.index(start) + 1
 		else:
 			type = '1'
 			start = int(start)
@@ -180,21 +177,6 @@ class Dumper(TextDumper):
 		# common for computer monitors
 		dpi = 96
 
-		if attrib.get('type') == 'equation':
-			try:
-				# Try to find the source, otherwise fall back to image
-				src = attrib['src'][:-4] + '.tex'
-				file = self.linker.resolve_source_file(src)
-				if file is not None:
-					equation = file.read().strip()
-				else:
-					equation = None
-			except FileNotFoundError:
-				logger.warn('Could not find latex equation: %s', src)
-			else:
-				if equation:
-					return ['\\begin{math}\n', equation, '\n\\end{math}']
-
 		if 'width' in attrib and not 'height' in attrib:
 			options = 'width=%fin, keepaspectratio=true' \
 					% (float(attrib['width']) / dpi)
@@ -222,7 +204,7 @@ class Dumper(TextDumper):
 		href = self.linker.link(attrib['href'])
 		href = url_encode(href, URL_ENCODE_READABLE)
 		if strings:
-			text = u''.join(strings)
+			text = ''.join(strings)
 		else:
 			text = href
 		return ['\\href{%s}{%s}' % (href, text)]
@@ -230,7 +212,7 @@ class Dumper(TextDumper):
 	def dump_code(self, tag, attrib, strings):
 		# Here we try several possible delimiters for the inline verb
 		# command of LaTeX
-		text = u''.join(strings)
+		text = ''.join(strings)
 		for delim in '+*|$&%!-_':
 			if not delim in text:
 				return ['\\lstinline' + delim + text + delim]
@@ -245,7 +227,7 @@ class Dumper(TextDumper):
 
 		aligns, _wraps = TableParser.get_options(attrib)
 		rowline = lambda row: '&'.join([' ' + cell + ' ' for cell in row]) + '\\tabularnewline\n\hline'
-		aligns = map(lambda a: 'l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l', aligns)
+		aligns = ['l' if a == 'left' else 'r' if a == 'right' else 'c' if a == 'center' else 'l' for a in aligns]
 
 		for i, row in enumerate(rows):
 			for j, (cell, align) in enumerate(zip(row, aligns)):
@@ -261,7 +243,7 @@ class Dumper(TextDumper):
 		table += [rowline(row) for row in rows[1:]]
 
 		table.append('\end{tabular}')
-		return map(lambda line: line + "\n", table)
+		return [line + "\n" for line in table]
 
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n\\hrule\n'

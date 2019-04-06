@@ -1,27 +1,26 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2010-2014 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-import gtk
+from gi.repository import Gtk
 
 import re
 from datetime import date as dateclass
 
 from zim.fs import Dir, isabs
 
-from zim.plugins import PluginClass, WindowExtension, extends
-from zim.main import GtkCommand
+from zim.plugins import PluginClass
 from zim.actions import action
 from zim.config import data_file, ConfigManager
 from zim.notebook import Path, Notebook, NotebookInfo, \
 	resolve_notebook, build_notebook
+from zim.templates import get_template
+from zim.main import GtkCommand, ZIM_APPLICATION
+
+from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import Dialog, ScrolledTextView, IconButton, \
 	InputForm, QuestionDialog
 from zim.gui.clipboard import Clipboard, SelectionClipboard
 from zim.gui.notebookdialog import NotebookComboBox
-from zim.templates import get_template
-
-from zim.main import ZIM_APPLICATION
 
 
 import logging
@@ -113,21 +112,19 @@ class QuickNotePluginCommand(GtkCommand):
 			else:
 				raise AssertionError('Unknown input type: %s' % self.opts['input'])
 		else:
-			text = self.opts.get('text')
+			text = self.opts.get('text', '')
 
 		if text and 'encoding' in self.opts:
 			if self.opts['encoding'] == 'base64':
 				import base64
-				text = base64.b64decode(text)
+				text = base64.b64decode(text).decode('UTF-8')
 			elif self.opts['encoding'] == 'url':
 				from zim.parsing import url_decode, URL_ENCODE_DATA
 				text = url_decode(text, mode=URL_ENCODE_DATA)
 			else:
 				raise AssertionError('Unknown encoding: %s' % self.opts['encoding'])
 
-		if text and not isinstance(text, unicode):
-			text = text.decode('utf-8')
-
+		assert isinstance(text, str), '%r is not decoded' % text
 		return text
 
 	def run_local(self):
@@ -136,7 +133,7 @@ class QuickNotePluginCommand(GtkCommand):
 		#   (desktop preventing new window of existing process to hijack focus)
 		# - e.g. capturing stdin requires local process
 		if self.opts.get('help'):
-			print usagehelp # TODO handle this in the base class
+			print(usagehelp) # TODO handle this in the base class
 		else:
 			dialog = self.build_dialog()
 			dialog.run()
@@ -184,26 +181,11 @@ This is a core plugin shipping with zim.
 	#~ )
 
 
-@extends('MainWindow')
-class MainWindowExtension(WindowExtension):
+class QuickNoteMainWindowExtension(MainWindowExtension):
 
-	uimanager_xml = '''
-	<ui>
-		<menubar name='menubar'>
-			<menu action='file_menu'>
-				<placeholder name="open_items">
-					<menuitem action="show_quick_note" />
-				</placeholder>
-			</menu>
-		</menubar>
-	</ui>
-	'''
-
-	@action(_('Quick Note...'), stock='gtk-new') # T: menu item
+	@action(_('Quick Note...'), menuhints='notebook') # T: menu item
 	def show_quick_note(self):
-		ui = self.window.ui # XXX
-		notebook = self.window.ui.notebook # XXX
-		dialog = QuickNoteDialog.unique(self, self.window, notebook)
+		dialog = QuickNoteDialog.unique(self, self.window, self.window.notebook)
 		dialog.show()
 
 
@@ -216,8 +198,7 @@ class QuickNoteDialog(Dialog):
 	):
 		assert page is None, 'TODO'
 
-		manager = ConfigManager() # FIXME should be passed in
-		self.config = manager.get_config_dict('quicknote.conf')
+		self.config = ConfigManager.get_config_dict('quicknote.conf')
 		self.uistate = self.config['QuickNoteDialog']
 
 		Dialog.__init__(self, window, _('Quick Note'))
@@ -225,22 +206,22 @@ class QuickNoteDialog(Dialog):
 		self._title_set_manually = not basename is None
 		self.attachments = attachments
 
-		if notebook and not isinstance(notebook, basestring):
+		if notebook and not isinstance(notebook, str):
 			notebook = notebook.uri
 
-		self.uistate.setdefault('lastnotebook', None, basestring)
+		self.uistate.setdefault('lastnotebook', None, str)
 		if self.uistate['lastnotebook']:
 			notebook = notebook or self.uistate['lastnotebook']
-			self.config['Namespaces'].setdefault(notebook, None, basestring)
+			self.config['Namespaces'].setdefault(notebook, None, str)
 			namespace = namespace or self.config['Namespaces'][notebook]
 
 		self.form = InputForm()
-		self.vbox.pack_start(self.form, False)
+		self.vbox.pack_start(self.form, False, True, 0)
 
 		# TODO dropdown could use an option "Other..."
-		label = gtk.Label(_('Notebook') + ': ')
+		label = Gtk.Label(label=_('Notebook') + ': ')
 		label.set_alignment(0.0, 0.5)
-		self.form.attach(label, 0, 1, 0, 1, xoptions=gtk.FILL)
+		self.form.attach(label, 0, 1, 0, 1, xoptions=Gtk.AttachOptions.FILL)
 			# T: Field to select Notebook from drop down list
 		self.notebookcombobox = NotebookComboBox(current=notebook)
 		self.notebookcombobox.connect('changed', self.on_notebook_changed)
@@ -303,10 +284,10 @@ class QuickNoteDialog(Dialog):
 		switch_input()
 		self.form.widgets['new_page'].connect('toggled', switch_input)
 
-		self.open_page_check = gtk.CheckButton(_('Open _Page')) # T: Option in quicknote dialog
+		self.open_page_check = Gtk.CheckButton.new_with_mnemonic(_('Open _Page')) # T: Option in quicknote dialog
 			# Don't use "O" as accelerator here to avoid conflict with "Ok"
 		self.open_page_check.set_active(self.uistate['open_page'])
-		self.action_area.pack_start(self.open_page_check, False)
+		self.action_area.pack_start(self.open_page_check, False, True, 0)
 		self.action_area.set_child_secondary(self.open_page_check, True)
 
 		# Add the main textview and hook up the basename field to
@@ -314,7 +295,7 @@ class QuickNoteDialog(Dialog):
 		window, textview = ScrolledTextView()
 		self.textview = textview
 		self.textview.set_editable(True)
-		self.vbox.add(window)
+		self.vbox.pack_start(window, True, True, 0)
 
 		self.form.widgets['basename'].connect('changed', self.on_title_changed)
 		self.textview.get_buffer().connect('changed', self.on_text_changed)
@@ -341,7 +322,7 @@ class QuickNoteDialog(Dialog):
 			return
 
 		self.uistate['lastnotebook'] = notebook
-		self.config['Namespaces'].setdefault(notebook, None, basestring)
+		self.config['Namespaces'].setdefault(notebook, None, str)
 		namespace = self.config['Namespaces'][notebook]
 		if namespace:
 			self.form['namespace'] = namespace
@@ -351,7 +332,7 @@ class QuickNoteDialog(Dialog):
 	def _set_autocomplete(self, notebook):
 		if notebook:
 			try:
-				if isinstance(notebook, basestring):
+				if isinstance(notebook, str):
 					notebook = NotebookInfo(notebook)
 				obj, x = build_notebook(notebook)
 				self.form.widgets['namespace'].notebook = obj
@@ -365,7 +346,7 @@ class QuickNoteDialog(Dialog):
 			logger.debug('Notebook for autocomplete unset')
 
 	def do_response(self, id):
-		if id == gtk.RESPONSE_DELETE_EVENT:
+		if id == Gtk.ResponseType.DELETE_EVENT:
 			if self.textview.get_buffer().get_modified():
 				ok = QuestionDialog(self, _('Discard note?')).run()
 					# T: confirm closing quick note dialog
@@ -410,8 +391,8 @@ class QuickNoteDialog(Dialog):
 		if not self._title_set_manually:
 			# Automatically generate a (valid) page name
 			self._updating_title = True
-			bounds = buffer.get_bounds()
-			title = buffer.get_text(*bounds).strip()[:50]
+			start, end = buffer.get_bounds()
+			title = start.get_text(end).strip()[:50]
 				# Cut off at 50 characters to prevent using a whole paragraph
 			title = title.replace(':', '')
 			if '\n' in title:
@@ -425,8 +406,8 @@ class QuickNoteDialog(Dialog):
 
 	def do_response_ok(self):
 		buffer = self.textview.get_buffer()
-		bounds = buffer.get_bounds()
-		text = buffer.get_text(*bounds)
+		start, end = buffer.get_bounds()
+		text = start.get_text(end)
 
 		# HACK: change "[]" at start of line into "[ ]" so checkboxes get inserted correctly
 		text = re.sub(r'(?m)^(\s*)\[\](\s)', r'\1[ ]\2', text)

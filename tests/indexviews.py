@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2009-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
-from __future__ import with_statement
+
 
 import tests
+
+from gi.repository import Gtk
 
 import sqlite3
 
@@ -257,8 +258,8 @@ class TestPagesView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
 
 		model = PagesTreeModelMixin(mockindex)
 
@@ -266,9 +267,9 @@ class TestPagesView(tests.TestCase):
 		for name, treepath in TREEPATHS:
 			myiter = model.get_mytreeiter(treepath)
 			self.assertEqual(myiter.row['name'], name)
-			self.assertEqual(myiter.treepath, treepath)
+			self.assertEqual(myiter.treepath, Gtk.TreePath(treepath))
 			my_treepath = model.find(Path(name))
-			self.assertEqual(my_treepath, treepath)
+			self.assertEqual(my_treepath, Gtk.TreePath(treepath))
 
 		# Test non-existing
 		p = model.get_mytreeiter((1, 2, 3, 4, 5))
@@ -338,20 +339,19 @@ class TestTagsView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
- 		mockindex.update_iter.tags = tests.MockObject()
-
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter.tags = tests.MockObject()
 		model = TaggedPagesTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 
 		# Test all pages
 		for name, treepath in TREEPATHS_TAGGED_12:
 			myiter = model.get_mytreeiter(treepath)
 			self.assertEqual(myiter.row['name'], name)
-			self.assertEqual(myiter.treepath, treepath)
+			self.assertEqual(myiter.treepath, Gtk.TreePath(treepath))
 
 			my_treepaths = model.find_all(Path(name))
-			self.assertIn(treepath, my_treepaths)
+			self.assertIn(Gtk.TreePath(treepath), my_treepaths)
 			for treepath in my_treepaths:
 				myiter = model.get_mytreeiter(treepath)
 				self.assertEqual(myiter.row['name'], name)
@@ -369,9 +369,9 @@ class TestTagsView(tests.TestCase):
 		db = new_test_database()
 		mockindex = tests.MockObject()
 		mockindex._db = db
- 		mockindex.update_iter = tests.MockObject()
- 		mockindex.update_iter.pages = tests.MockObject()
- 		mockindex.update_iter.tags = tests.MockObject()
+		mockindex.update_iter = tests.MockObject()
+		mockindex.update_iter.pages = tests.MockObject()
+		mockindex.update_iter.tags = tests.MockObject()
 
 		model = TagsTreeModelMixin(mockindex, tags=('tag1', 'tag2'))
 		tags = TagsView(db)
@@ -380,14 +380,14 @@ class TestTagsView(tests.TestCase):
 		for name, treepath in TREEPATHS_TAGS_12:
 			myiter = model.get_mytreeiter(treepath)
 			self.assertEqual(myiter.row['name'], name)
-			self.assertEqual(myiter.treepath, treepath)
+			self.assertEqual(myiter.treepath, Gtk.TreePath(treepath))
 			if len(treepath) == 1:
 				tag = tags.lookup_by_tagname(name)
 				my_treepaths = model.find_all(tag)
 			else:
 				my_treepaths = model.find_all(Path(name))
 
-			self.assertIn(treepath, my_treepaths)
+			self.assertIn(Gtk.TreePath(treepath), my_treepaths)
 			for treepath in my_treepaths:
 				myiter = model.get_mytreeiter(treepath)
 				self.assertEqual(myiter.row['name'], name)

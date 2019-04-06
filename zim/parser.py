@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 # Copyright 2011 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
@@ -52,7 +51,7 @@ def fix_line_end(text):
 	# HACK this char is recognized as line end by splitlines()
 	# but not matched by \n in a regex. Hope there are no other
 	# exceptions like it (crosses fingers)
-	text = text.replace(u'\u2028', '\n')
+	text = text.replace('\u2028', '\n')
 
 	# Fix line end
 	if not text.endswith('\n'):
@@ -63,7 +62,7 @@ def fix_line_end(text):
 
 def convert_space_to_tab(text, tabstop=4):
 	'''Convert spaces to tabs
-	@param text: the intput text
+	@param text: the input text
 	@param tabstop: the number of spaces to represent a tab
 	@returns: the fixed text
 	'''
@@ -72,7 +71,7 @@ def convert_space_to_tab(text, tabstop=4):
 	pattern = '(?m)^(\t*)((?:%s)+)' % spaces
 	text = re.sub(
 		pattern,
-		lambda m: m.group(1) + '\t' * (len(m.group(2)) / tabstop),
+		lambda m: m.group(1) + '\t' * (len(m.group(2)) // tabstop),
 		text
 	)
 	# Specify "(?m)" instead of re.M since "flags" keyword is not
@@ -140,7 +139,7 @@ class BuilderTextBuffer(Builder):
 	# Interface to handle text buffer
 
 	def get_text(self):
-		return u''.join(self.buffer)
+		return ''.join(self.buffer)
 
 	def set_text(self, text):
 		self.buffer = [text]
@@ -149,7 +148,7 @@ class BuilderTextBuffer(Builder):
 		self.buffer = []
 
 	def flush(self):
-		text = u''.join(self.buffer)
+		text = ''.join(self.buffer)
 		if text:
 			self.builder.text(text)
 		self.buffer = []
@@ -220,7 +219,7 @@ class SimpleTreeElement(list):
 			for item in self:
 				if isinstance(item, SimpleTreeElement):
 					lines.append(item.pprint(level=level + 1))
-				elif isinstance(item, basestring):
+				elif isinstance(item, str):
 					for line in item.splitlines(True):
 						lines.append(prefix + '  %r\n' % line)
 				else:
@@ -287,7 +286,7 @@ class ParserError(Error):
 
 
 class Rule(object):
-	'''Class that defines a sigle parser rule. Typically used
+	'''Class that defines a single parser rule. Typically used
 	to define a regex pattern for one specific wiki format string
 	and the processing to be done when this formatting is encountered
 	in the text.
@@ -345,7 +344,7 @@ class Parser(object):
 	compile the patterns of various rules into a single regex and
 	based on the match call the correct rules for processing.
 
-	@ivar rules: list with L{Rule} objects, can be modified untill the
+	@ivar rules: list with L{Rule} objects, can be modified until the
 	parser is used for the first time for parsing (the attribute
 	becomes a tuple afterwards)
 	@ivar process_unmatched: function (or object) to process un-matched
@@ -389,7 +388,7 @@ class Parser(object):
 	def __call__(self, builder, text):
 		'''Each parser object is callable so it can be used as a
 		processing function in any other parser object. This method
-		parses the given text and calls the apropriate methods of the
+		parses the given text and calls the appropriate methods of the
 		L{Builder} object to construct the parse results.
 
 		@param builder: a L{Builder} object
@@ -404,7 +403,7 @@ class Parser(object):
 				r"(?P<rule%i>%s)" % (i, r.pattern)
 					for i, r in enumerate(self.rules)
 			])
-			#~ print 'PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...'
+			#~ print('PATTERN:\n', pattern.replace(')|(', ')\t|\n('), '\n...')
 			self._re = re.compile(pattern, re.U | re.M | re.X)
 
 		iter = 0
@@ -473,7 +472,7 @@ def get_line_count(text, offset):
 	@returns: a 2-tuple of the line and column that corresponds to this
 	offset
 	'''
-	# line numbers start counting at 1, colums at 0
+	# line numbers start counting at 1, columns at 0
 	if offset == 0:
 		return 1, 0
 	slice = text[:offset]
