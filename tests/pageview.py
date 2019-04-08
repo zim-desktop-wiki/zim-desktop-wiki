@@ -2363,14 +2363,12 @@ dus bar bazzz baz
 
 	def testInsertLinkDialog(self):
 		# Insert Link dialog
-		pageview = tests.MockObject()
-		pageview.page = Path('Test:foo:bar')
-		pageview.textview = TextView({})
+		pageview = setUpPageView(self.setUpNotebook())
 		dialog = InsertLinkDialog(None, pageview)
 		dialog.form.widgets['href'].set_text('Foo')
 		dialog.assert_response_ok()
 		buffer = pageview.textview.get_buffer()
-		self.assertEqual(get_text(buffer), 'Foo')
+		self.assertEqual(get_text(buffer), 'Foo\n')
 
 
 class TestCamelCase(tests.TestCase):
