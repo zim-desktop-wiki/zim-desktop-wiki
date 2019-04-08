@@ -108,7 +108,7 @@ class TemplateParser(object):
 	#
 	# Keywords are case sensitive: must be upper case
 
-	_set_token_re = re.compile(r'^([\w\.]+)\s*=\s*(.*)$') # var = expr
+	_set_token_re = re.compile(r'^([\w.]+)\s*=\s*(.*)$') # var = expr
 
 	_token_with_expr_re = re.compile(r'^(\w+)\s+(.*)$') # TOKEN expr
 

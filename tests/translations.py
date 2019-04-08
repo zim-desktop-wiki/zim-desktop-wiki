@@ -94,7 +94,7 @@ class TranslationMessage(object):
 	def _check_strftime_string(self):
 		for msg in self.msgstr:
 			if msg and not msg == '""':
-				for c in re.findall('\%(.)', msg):
+				for c in re.findall('%(.)', msg):
 					if c not in 'aAwdbBmyYHIpMSfzZjUWcxX%':
 						# valid charaters based on doc for datetime module
 						# other characters may be valid depending on platform

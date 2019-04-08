@@ -29,7 +29,7 @@ UNTESTED:
 """
 COMMAND = 'import'
 SUPPORTED_COMMANDS_BY_PLATFORM = dict([
-	('posix', ('import', 'scrot', 'spectacle')),
+	('posix', ('import', 'scrot', 'gnome-screenshot', 'spectacle')),
 	('nt', ('boxcutter',)),
 ])
 SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[PLATFORM]
@@ -60,6 +60,12 @@ class ScreenshotPicker(object):
 			'select': None,
 			'full': ('--fullscreen',),
 			'delay': None,
+		}),
+		('gnome-screenshot', {
+			'select': ('--area',),
+			'full': ('--window',),
+			'delay': '--delay',
+			'output': '-f',
 		}),
 	])
 	cmd_default = COMMAND
@@ -101,6 +107,9 @@ class ScreenshotPicker(object):
 		cmd = cls.select_cmd(cmd)
 		return True if cls.cmd_options[cmd]['select'] is not None else False
 
+	@classmethod
+	def get_file_option(cls, cmd):
+		return cls.cmd_options[cmd]['file']
 
 class InsertScreenshotPlugin(PluginClass):
 	plugin_info = {
@@ -183,6 +192,22 @@ class ScreenshotPageViewExtension(PageViewExtension):
 		options = ScreenshotPicker.get_cmd_options(self.screenshot_command, selection_mode, str(delay))
 		cmd = (self.screenshot_command,) + options
 		helper = Application(cmd)
+
+		def callback(status, tmpfile):
+					if status == helper.STATUS_OK:
+						name = time.strftime('screenshot_%Y-%m-%d-%H%M%S.png')
+						imgdir = self.notebook.get_attachments_dir(self.page)
+						imgfile = imgdir.new_file(name)
+						tmpfile.rename(imgfile)
+						pageview = self.pageview
+						pageview.insert_image(imgfile)
+					else:
+						ErrorDialog(self.ui, _('Some error occurred while running "%s"') % self.screenshot_command).run()
+						# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
+
+		tmpfile.dir.touch()
+		helper.spawn((tmpfile,), callback, tmpfile)
+		return True
 
 		def callback(status, tmpfile):
 					if status == helper.STATUS_OK:

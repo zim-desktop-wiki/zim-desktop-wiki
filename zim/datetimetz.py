@@ -222,7 +222,7 @@ def strfcal(format, date):
 		else:
 			return code # ignore unsupported codes
 
-	return re.sub(r'\%.', replacefunc, format)
+	return re.sub(r'%.', replacefunc, format)
 
 
 def strftime(format, date):
