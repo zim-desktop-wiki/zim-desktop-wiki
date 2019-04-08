@@ -88,6 +88,8 @@ This is a core plugin shipping with zim.
 			# T: option for plugin preferences
 		('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
 			# T: option for plugin preferences
+		('fontsize', 'int', _('Set ToC fontsize (use 0 to leave it unset)'), 0, (0, 24)),
+			# T: option for plugin preferences
 	)
 	# TODO disable pane setting if not embedded
 
@@ -112,25 +114,33 @@ class ToCPageViewExtension(PageViewExtension):
 				self.add_sidepane_widget(self.tocwidget, 'pane')
 
 		self.tocwidget.set_show_h1(preferences['show_h1'])
+		self.tocwidget.set_fontsize(preferences['fontsize'])
 
 
 TEXT_COL = 0
 
 class ToCTreeView(BrowserTreeView):
 
-	def __init__(self, ellipsis):
+	def __init__(self, ellipsis, fontsize):
 		BrowserTreeView.__init__(self, ToCTreeModel())
 		self.set_headers_visible(False)
 		self.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 			# Allow select multiple
 
 		cell_renderer = Gtk.CellRendererText()
+		if fontsize > 0:
+			cell_renderer.set_property('size-points', fontsize)
 		if ellipsis:
 			cell_renderer.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column = Gtk.TreeViewColumn('_heading_', cell_renderer, text=TEXT_COL)
 		column.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
 			# Without this sizing, column width only grows and never shrinks
+		self._cell_renderer = cell_renderer
 		self.append_column(column)
+
+	def set_fontsize(self, fontsize):
+		if fontsize != 0:
+			self._cell_renderer.set_property('size-points', fontsize)
 
 
 
@@ -173,11 +183,12 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		'changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, pageview, ellipsis, show_h1=False):
+	def __init__(self, pageview, ellipsis, show_h1=False, fontsize=0):
 		GObject.GObject.__init__(self)
 		self.show_h1 = show_h1
+		self.fontsize = fontsize
 
-		self.treeview = ToCTreeView(ellipsis)
+		self.treeview = ToCTreeView(ellipsis, fontsize)
 		self.treeview.connect('row-activated', self.on_heading_activated)
 		self.treeview.connect('populate-popup', self.on_populate_popup)
 		self.add(self.treeview)
@@ -188,6 +199,13 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		self.pageview = pageview
 		if self.pageview.page:
 			self.load_page(self.pageview.page)
+			
+	def set_fontsize(self, fontsize):
+		if self.fontsize != fontsize:
+			self.fontsize = fontsize
+			self.treeview.set_fontsize(fontsize)
+			if self.pageview.page:
+				self.load_page(self.pageview.page)
 
 	def set_show_h1(self, show_h1):
 		if show_h1 != self.show_h1:
@@ -440,6 +458,9 @@ class FloatingToC(Gtk.VBox, ConnectorMixin):
 
 	def set_show_h1(self, show_h1):
 		self.tocwidget.set_show_h1(show_h1)
+		
+	def set_fontsize(self, fontsize):
+		self.tocwidget.set_fontsize(fontsize)
 
 	def disconnect_all(self):
 		self.tocwidget.disconnect_all()
