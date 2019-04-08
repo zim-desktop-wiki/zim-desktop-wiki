@@ -1038,7 +1038,7 @@ class EditTableDialog(Dialog):
 			path = model.iter_n_children(None) - 1
 			treeiter = model.get_iter(path)
 		newiter = model.insert_after(treeiter, self.default_column_item)
-		self.treeview.set_cursor_on_cell(model.get_path(newiter), self.treeview.get_column(0), start_editing=True)
+		self.treeview.set_cursor_on_cell(model.get_path(newiter), self.treeview.get_column(0), None, True)
 
 	def on_delete_column(self, btn):
 		''' Trigger for deleting a column out of the table / it is a deleted row in the treeview '''
