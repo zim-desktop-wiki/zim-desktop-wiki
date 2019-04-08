@@ -900,9 +900,11 @@ class MainWindow(Window):
 		to save any unsaved changes, then reload the page from disk.
 		'''
 		# TODO: this is depending on behavior of open_page(), should be more robust
+		pos = self.pageview.get_cursor_pos()
 		self.pageview.save_changes() # XXX
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
+		self.pageview.set_cursor_pos(pos)
 
 
 class BackLinksMenuButton(MenuButton):
