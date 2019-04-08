@@ -545,6 +545,35 @@ C
 	D
 </pre></zim-tree>''')
 
+	def testMergeLinesWithBullet(self):
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<ul><li>item 1</li><li>item 2</li></ul>
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tree)
+
+		# Position at end of first lest item and delete end of line
+		buffer.place_cursor(buffer.get_iter_at_offset(9))
+		start = buffer.get_insert_iter()
+		end = start.copy()
+		end.forward_char()
+		buffer.delete_interactive(start, end, True)
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">item 1item 2</li></ul></p>
+</zim-tree>''')
+
+
 
 class TestUndoStackManager(tests.TestCase):
 

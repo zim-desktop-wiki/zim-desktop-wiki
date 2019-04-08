@@ -2101,6 +2101,7 @@ class TextBuffer(Gtk.TextBuffer):
 		#
 		# Note that 'start' and 'end' refer to the same postion here ...
 
+		offset = start.get_offset()
 		if (
 			(
 				not start.starts_line()
@@ -2111,6 +2112,8 @@ class TextBuffer(Gtk.TextBuffer):
 			)
 		):
 			self._do_lines_merged(start)
+		start = self.get_iter_at_offset(offset)
+		end = None
 
 		bullet = self._get_bullet_at_iter(start)
 		if bullet is not None:
