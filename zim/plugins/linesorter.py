@@ -96,7 +96,7 @@ class LineSorterPageViewExtension(PageViewExtension):
 			#~ logger.debug("Content of selected lines (text, tree): %s", lines)
 
 			# Sort the list of tuples
-			sorted_lines = sorted(lines)
+			sorted_lines = sorted(lines, key=lambda t: t[0])
 			if lines == sorted_lines: # reverse if already sorted
 				sorted_lines.reverse()
 			#~ logger.debug("Sorted lines: %s",  sorted_lines)
