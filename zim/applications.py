@@ -298,7 +298,7 @@ class Application(object):
 		if input is None:
 			stdout, stderr = p.communicate()
 		else:
-			data = data if isinstance(data, bytes) else str(input).encode('UTF-8')
+			data = input if isinstance(input, bytes) else str(input).encode('UTF-8')
 				# No way to know what encoding the process accepts, so UTF-8 is as good as any
 			stdout, stderr = p.communicate(data)
 
