@@ -88,7 +88,7 @@ This is a core plugin shipping with zim.
 			# T: option for plugin preferences
 		('show_h1', 'bool', _('Show the page title heading in the ToC'), False),
 			# T: option for plugin preferences
-		('fontsize', 'int', _('Set ToC fontsize (use 0 to leave it unset)'), 0, (0, 24)),
+		('fontsize', 'int', _('Set ToC fontsize'), 0, (0, 24)),
 			# T: option for plugin preferences
 	)
 	# TODO disable pane setting if not embedded

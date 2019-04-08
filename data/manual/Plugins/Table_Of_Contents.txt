@@ -15,6 +15,8 @@ Alternatively if the option **Show ToC as floating widget instead of in sidepane
 
 By default the page title is not show in the table of contents (unless there are multiple title headings in the page). If the option **Show the page title heading in the ToC** is enabled the page title will always been shown in the table of contents.
 
+The option **Set ToC fontsize** allows to set the fontsize of the floating ToC. Set it to 0 to leave this unset. In this case the size of the ToC follows the global font-size.
+
 ===== Style =====
 
 This plugin uses two widget names to allow CSS styling for the floating widget:
