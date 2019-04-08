@@ -206,6 +206,7 @@
 	</popup>
 	<popup name='page_popup'>
 		<menuitem action='new_page_here'/>
+		<menuitem action='new_sub_page'/>
 		<separator/>
 		<menuitem action='open_new_window'/>
 		<separator/>

@@ -104,14 +104,13 @@ class UIActions(object):
 		'''
 		NewPageDialog(self.widget, self.navigation, self.notebook, path=self.page, subpage=True).run()
 
-	@action(_('_New Page...'), menuhints='notebook:edit') # T: Menu item
+	@action(_('_New Page Here...'), menuhints='notebook:edit') # T: Menu item
 	def new_page_here(self):
 		# Variant used for popup menu, context can either be page or notebook
-		if self.page is None or self.page.isroot:
+		if self.page is None or self.page.isroot or self.page.parent.isroot:
 			NewPageDialog(self.widget, self.navigation, self.notebook).run()
 		else:
-			prefix = ':%s:' % self.page.name
-			NewPageDialog(self.widget, self.navigation, self.notebook, prefix=prefix).run()
+			NewPageDialog(self.widget, self.navigation, self.notebook, path=self.page.parent, subpage=True).run()
 
 	@action(_('_Open Another Notebook...'), '<Primary>O') # T: Menu item
 	def show_open_notebook(self):
@@ -461,9 +460,9 @@ class NewPageDialog(Dialog):
 	to create it.
 	'''
 
-	def __init__(self, widget, navigation, notebook, path=None, prefix='', subpage=False):
+	def __init__(self, widget, navigation, notebook, path=None, subpage=False):
 		if subpage:
-			title = _('New Sub Page') # T: Dialog title
+			title = _('New Page in %s') % path # T: Dialog title
 		else:
 			title = _('New Page') # T: Dialog title
 
@@ -486,7 +485,6 @@ class NewPageDialog(Dialog):
 			('page', 'page', _('Page Name'), path), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
-		self.form.widgets['page'].insert_text(prefix, 0)
 		self.form['template'] = default
 		# TODO: reset default when page input changed -
 		# especially if namespace has other template
