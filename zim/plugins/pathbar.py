@@ -15,7 +15,7 @@ from zim.notebook.page import shortest_unique_names
 
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import encode_markup_text, gtk_popup_at_pointer
-from zim.gui.uiactions import UIActions, PAGE_ACTIONS
+from zim.gui.uiactions import UIActions, PAGE_ACCESS_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
@@ -567,7 +567,7 @@ class PathBar(ScrolledHBox):
 			button.zim_path,
 			self.navigation,
 		)
-		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+		uiactions.populate_menu_with_actions(PAGE_ACCESS_ACTIONS, menu)
 		gtk_popup_at_pointer(menu)
 		return True
 

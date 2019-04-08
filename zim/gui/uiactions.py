@@ -25,7 +25,9 @@ from zim.actions import get_gtk_actiongroup
 from zim.gui.widgets import Dialog, FileDialog, ProgressDialog, ErrorDialog, ScrolledTextView
 from zim.gui.applications import open_url, open_folder, open_folder_prompt_create, edit_file
 
-PAGE_ACTIONS = 'page'
+PAGE_EDIT_ACTIONS = 'page_edit'
+PAGE_ACCESS_ACTIONS = 'page_access'
+PAGE_ROOT_ACTIONS = 'page_root'
 
 
 def _get_xml_for_menu(name):
@@ -72,8 +74,8 @@ class UIActions(object):
 		action.set_sensitive(self.notebook.document_root is not None)
 
 	def populate_menu_with_actions(self, scope, menu):
-		assert scope == PAGE_ACTIONS
-
+		assert scope in (PAGE_EDIT_ACTIONS, PAGE_ROOT_ACTIONS, PAGE_ACCESS_ACTIONS)
+		
 		uimanager = Gtk.UIManager()
 		group = get_gtk_actiongroup(self)
 		uimanager.insert_action_group(group, 0)

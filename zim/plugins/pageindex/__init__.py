@@ -20,11 +20,11 @@ from zim.actions import PRIMARY_MODIFIER_MASK
 
 from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import BrowserTreeView, ScrolledWindow, \
-	populate_popup_add_separator, encode_markup_text, ErrorDialog, \
+	encode_markup_text, ErrorDialog, \
 	WindowSidePaneWidget, LEFT_PANE, PANE_POSITIONS
 from zim.gui.clipboard import Clipboard, pack_urilist, unpack_urilist, \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET
-from zim.gui.uiactions import UIActions, PAGE_ACTIONS
+from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS, PAGE_ROOT_ACTIONS
 
 
 logger = logging.getLogger('zim.gui.pageindex')
@@ -440,33 +440,30 @@ class PageTreeView(BrowserTreeView):
 			or BrowserTreeView.do_key_press_event(self, event)
 
 	def do_initialize_popup(self, menu):
-		# TODO get path first and determine what menu options are valid
 		model, treeiter = self.get_selection().get_selected()
-		mytreeiter = model.get_user_data(treeiter)
-		if mytreeiter.hint == IS_PAGE:
-			path = self.get_selected_path()
+		if treeiter is None:
+			popup_name, path = PAGE_ROOT_ACTIONS, None
+		else:
+			mytreeiter = model.get_user_data(treeiter)
+			if mytreeiter.hint == IS_PAGE:
+				popup_name = PAGE_EDIT_ACTIONS
+				path = self.get_selected_path()
+			else:
+				popup_name, path = None, None
 
+		if popup_name:
 			uiactions = UIActions(
 				self,
 				self.notebook,
 				path,
 				self.navigation,
 			)
-			uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+			uiactions.populate_menu_with_actions(popup_name, menu)
 
-			populate_popup_add_separator(menu)
-			item = Gtk.MenuItem.new_with_mnemonic(_('_Copy')) # T: menu label
-			item.connect('activate', lambda o: self.do_copy())
-			menu.append(item)
-			menu.show_all()
-
+		sep = Gtk.SeparatorMenuItem()
+		menu.append(sep)
 		self.populate_popup_expand_collapse(menu)
-
-	def do_copy(self):
-		#~ print('!! copy location')
-		page = self.get_selected_path()
-		if page:
-			Clipboard.set_pagelink(self.notebook, page)
+		menu.show_all()
 
 	def do_drag_data_get(self, dragcontext, selectiondata, info, time):
 		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
