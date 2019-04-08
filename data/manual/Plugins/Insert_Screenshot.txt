@@ -10,12 +10,15 @@ This plugin adds a dialog that allows you to take a screenshot of the desktop or
 Supported tools:
 
 Linux / unix:
+
+* gnome-screenshot
 * import (ImageMagick)
 * scrot
+* spectacle (KDE)
 
 Windows:
 * boxcutter
 
 ===== Preferences =====
 
-The preference **Screenshot Command** allows you to select the tool to use.
+The preference **Screenshot Command** allows you to select the tool to use. **Default choice** selects either Window/region or Fullscreen in the dialog. **Default delay** sets the default delay in the dialog. If the preference **Hide options dialog** is checked, the dialog is not shown and the default values are used.
