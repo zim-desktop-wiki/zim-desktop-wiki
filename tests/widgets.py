@@ -142,11 +142,21 @@ class TestPageEntry(tests.TestCase):
 			'Test:link': '[[:Placeholder]]', # link
 			'Test:foo:bar': 'test 123',
 			'Test:bar': 'test 123',
-			'Bar': 'test 123'
+			'Bar': 'test 123',
+			'Maßnahmen': 'test 123'
 		})
 
 		self.reference = Path('Test:foo')
+		widgets_before = tests.find_widgets(Gtk.TreeView)
 		self.entry = self.entryklass(self.notebook, self.reference)
+
+		# There's no direct way to access the model that contains the final
+		# completion items. There is no getter for it in Gtk.EntryCompletion.
+		# Instead, walk through children of all top level windows and find the
+		# view that is used to render the completion popup, that view provides
+		# access to the completion model
+		completion_view = (set(tests.find_widgets(Gtk.TreeView)) - set(widgets_before)).pop()
+		self.completion_model = completion_view.get_model()
 
 	def runTest(self):
 		'''Test PageEntry widget'''
@@ -178,22 +188,17 @@ class TestPageEntry(tests.TestCase):
 		self.assertTrue(entry.get_input_valid())
 		self.assertEqual(entry.get_path(), Path('Bar'))
 
-		## Test completion
-		def get_completions(entry):
-			completion = entry.get_completion()
-			model = completion.get_model()
-			return [r[0] for r in model]
-
 		for text, wanted in (
 			('', []),
 			('+', ['+bar']),
 			('+B', ['+bar']),
 			('+Bar', ['+bar']),
 			('+T', []),
-			(':', [':Bar', ':Placeholder', ':Test']),
+			(':', [':Bar', ':Maßnahmen', ':Placeholder', ':Test']),
 			('b', ['bar', '+bar', ':Bar']),
 			('Test:', ['Test:bar', 'Test:foo', 'Test:link']),
-
+			('Maß', ['Maßnahmen']),
+			(':Maß', [':Maßnahmen']),
 		):
 			# Take into account that extending the string does not reset the
 			# model but just filters in the widget - so we reset for each string
@@ -202,7 +207,7 @@ class TestPageEntry(tests.TestCase):
 			entry.set_text(text)
 			entry.update_completion()
 			self.assertTrue(entry.get_input_valid())
-			self.assertEqual(get_completions(entry), wanted)
+			self.assertEqual([r[0] for r in self.completion_model], wanted)
 
 
 class TestNamespaceEntry(TestPageEntry):
