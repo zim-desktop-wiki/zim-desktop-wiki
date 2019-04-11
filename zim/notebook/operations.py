@@ -199,6 +199,7 @@ class NotebookOperation(SignalEmitter):
 		'''
 		self.notebook = notebook
 		self.message = message
+		self.finished = False
 		self.cancelled = False
 		self.exception = None
 		self._do_work = iterator
@@ -249,6 +250,9 @@ class NotebookOperation(SignalEmitter):
 		self.emit('finished')
 
 	def __iter__(self):
+		if self.finished:
+			return False
+
 		if not self.notebook._operation_check == self:
 			self.notebook._operation_check() # can raise
 			self.notebook._operation_check = self # start blocking
@@ -275,6 +279,7 @@ class NotebookOperation(SignalEmitter):
 		finally:
 			if self.notebook._operation_check == self:
 				self.notebook._operation_check = NOOP # stop blocking
+				self.finished = True
 				self.emit('finished')
 
 
