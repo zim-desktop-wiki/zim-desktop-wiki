@@ -13,7 +13,7 @@ from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 
-from .base import IndexerBase, IndexView
+from .base import IndexerBase, IndexView, IndexNotFoundError
 from .pages import PagesViewInternal, ROOT_ID
 
 
@@ -168,7 +168,12 @@ class LinksIndexer(IndexerBase):
 			source = self._pages.get_pagename(row['source'])
 			target_id, targetname = self._pages.resolve_link(source, href, source_id=row['source'])
 			if target_id is None:
-				target_id = self._pagesindexer.insert_link_placeholder(targetname)
+				try:
+					target_id = self._pages.get_page_id(targetname)
+				except IndexNotFoundError:
+					target_id = self._pagesindexer.insert_link_placeholder(targetname)
+				else:
+					logger.debug('BUG: resolve_link() did not resolve "%s" - see issue #764', targetname)
 
 			self.db.execute(
 				'UPDATE links SET target=?, needscheck=0 WHERE source=? and names=? and rel=?',
