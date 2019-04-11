@@ -363,6 +363,7 @@ class PageTreeView(BrowserTreeView):
 		self.navigation = navigation
 
 		column = Gtk.TreeViewColumn('_pages_')
+		column.set_expand(True)
 		self.append_column(column)
 
 		cr1 = Gtk.CellRendererText()
@@ -370,6 +371,9 @@ class PageTreeView(BrowserTreeView):
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=NAME_COL,
 			style=STYLE_COL, sensitive=EXISTS_COL, weight=WEIGHT_COL)
+
+		column = Gtk.TreeViewColumn('_n_items_')
+		self.append_column(column)
 
 		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)

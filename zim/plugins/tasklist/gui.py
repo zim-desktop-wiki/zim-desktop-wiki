@@ -244,12 +244,16 @@ class TagListTreeView(SingleClickTreeView):
 
 		column = Gtk.TreeViewColumn(_('Tags'))
 			# T: Column header for tag list in Task List dialog
+		column.set_expand(True)
 		self.append_column(column)
 
 		cr1 = Gtk.CellRendererText()
 		cr1.set_property('ellipsize', Pango.EllipsizeMode.END)
 		column.pack_start(cr1, True)
 		column.set_attributes(cr1, text=0, weight=3) # tag name, weight
+
+		column = Gtk.TreeViewColumn('')
+		self.append_column(column)
 
 		cr2 = self.get_cell_renderer_number_of_items()
 		column.pack_start(cr2, False)
