@@ -27,6 +27,7 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
 from gi.repository import GdkPixbuf
+from gi.repository import GLib
 
 
 import logging
@@ -162,6 +163,16 @@ def gtk_window_set_default_icon():
 	if len(iconlist) < 3:
 		logger.warn('Could not find all icon sizes for the application icon')
 	Gtk.Window.set_default_icon_list(iconlist)
+
+
+def to_utf8_normalized_casefolded(text):
+	'''Convert text to utf8 normalized and casefolded form.
+	@param text: text string to convert
+	@returns: converted text
+	'''
+	result = GLib.utf8_normalize(text, -1, GLib.NormalizeMode.ALL)
+	result = GLib.utf8_casefold(result, -1)
+	return result
 
 
 
@@ -1663,9 +1674,9 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 		return False
 
 	model = completion.get_model()
-	text = model.get_value(iter, column)
+	text = to_utf8_normalized_casefolded(model.get_value(iter, column))
 	if text is not None:
-		return key in text.lower()
+		return key in text
 	else:
 		return False
 
@@ -1675,9 +1686,9 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 		return False
 
 	model = completion.get_model()
-	text = model.get_value(iter, column)
+	text = to_utf8_normalized_casefolded(model.get_value(iter, column))
 	if text is not None:
-		return text.lower().startswith(key)
+		return text.startswith(key)
 	else:
 		return False
 
