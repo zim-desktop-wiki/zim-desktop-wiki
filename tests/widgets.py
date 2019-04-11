@@ -143,7 +143,8 @@ class TestPageEntry(tests.TestCase):
 			'Test:foo:bar': 'test 123',
 			'Test:bar': 'test 123',
 			'Bar': 'test 123',
-			'Maßnahmen': 'test 123'
+			'Maßnahmen': 'test 123', # unicode
+			'žžž': 'test 123' # unicde with accent
 		})
 
 		self.reference = Path('Test:foo')
@@ -194,11 +195,12 @@ class TestPageEntry(tests.TestCase):
 			('+B', ['+bar']),
 			('+Bar', ['+bar']),
 			('+T', []),
-			(':', [':Bar', ':Maßnahmen', ':Placeholder', ':Test']),
+			(':', [':Bar', ':Maßnahmen', ':Placeholder', ':Test', ':žžž']),
 			('b', ['bar', '+bar', ':Bar']),
 			('Test:', ['Test:bar', 'Test:foo', 'Test:link']),
 			('Maß', ['Maßnahmen']),
 			(':Maß', [':Maßnahmen']),
+			('ž', ['žžž']),
 		):
 			# Take into account that extending the string does not reset the
 			# model but just filters in the widget - so we reset for each string
