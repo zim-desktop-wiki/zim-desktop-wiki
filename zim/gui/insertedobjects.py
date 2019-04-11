@@ -80,15 +80,8 @@ class InsertedObjectWidget(Gtk.EventBox):
 		window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.ARROW))
 
 	def set_textview_wrap_width(self, width):
-		if not self.expand:
-			return
-
-		def callback(width):
-			minimum, natural = self._vbox.get_preferred_width()
-			width = natural if width == -1 else max(width, minimum)
+		if self.expand:
 			self.set_size_request(width, -1)
-			return False # delete signal
-		GObject.idle_add(callback, width)
 
 	def has_cursor(self):
 		'''Returns True if this object has an internal cursor. Will be

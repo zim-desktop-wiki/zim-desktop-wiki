@@ -18,6 +18,7 @@ L{TextView}.
 import logging
 
 from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
@@ -5151,7 +5152,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.textview = TextView(preferences=self.preferences)
 		self.swindow = ScrolledWindow(self.textview)
-		self.add(self.swindow)
+		self._hack_hbox = Gtk.HBox()
+		self._hack_hbox.add(self.swindow)
+		self._hack_label = Gtk.Label() # any widget would do I guess
+		self._hack_hbox.pack_end(self._hack_label, False, True, 1)
+		self.add(self._hack_hbox)
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
@@ -5389,6 +5394,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.notebook, self.page)
+			self._buffer_signals = (
+				buffer.connect('end-insert-tree', self._hack_on_inserted_tree),
+			)
+
 			self.textview.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5416,7 +5425,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Finish hooking up the new page
 			self.set_cursor_pos(cursor)
 
-			self._buffer_signals = (
+			self._buffer_signals += (
 				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
 				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
 				buffer.connect_after('mark-set', self.do_mark_set),
@@ -5517,6 +5526,21 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer.set_parsetree(tree)
 		self._parsetree = tree
 		self._showing_template = istemplate
+
+	def _hack_on_inserted_tree(self, *a):
+		if self.textview._object_widgets:
+			# Force resize of the scroll window, forcing a redraw to fix
+			# glitch in allocation of embedded obejcts, see isse #642
+			# Will add another timeout to rendering the page, increasing the
+			# priority breaks the hack though. Which shows the glitch is
+			# probably also happening in a drawing or resizing idle event
+			self._hack_label.show_all()
+			def hide_hack():
+				self._hack_label.hide()
+				return False
+			GLib.idle_add(hide_hack)
+		else:
+			self._hack_label.hide()
 
 	def on_insertedobjecttypemap_changed(self, *a):
 		self.save_changes()
