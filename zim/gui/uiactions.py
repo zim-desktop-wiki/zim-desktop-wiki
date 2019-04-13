@@ -4,6 +4,7 @@
 from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
+from gi.repository import Pango
 
 import logging
 
@@ -75,7 +76,7 @@ class UIActions(object):
 
 	def populate_menu_with_actions(self, scope, menu):
 		assert scope in (PAGE_EDIT_ACTIONS, PAGE_ROOT_ACTIONS, PAGE_ACCESS_ACTIONS)
-		
+
 		uimanager = Gtk.UIManager()
 		group = get_gtk_actiongroup(self)
 		uimanager.insert_action_group(group, 0)
@@ -582,8 +583,10 @@ class RenamePageDialog(Dialog):
 		self.path = path
 		page = self.notebook.get_page(self.path)
 
-		self.vbox.add(Gtk.Label(label=_('Rename page "%s"') % self.path.name))
+		label = Gtk.Label(label=_('Rename page "%s"') % self.path.name)
 			# T: label in 'rename page' dialog - %s is the page name
+		label.set_ellipsize(Pango.EllipsizeMode.END)
+		self.vbox.add(label)
 
 		try:
 			i = self.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)
