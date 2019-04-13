@@ -403,13 +403,11 @@ class BackgroundCheck(object):
 def on_out_of_date_found(notebook, background_check):
 	op = IndexUpdateOperation(notebook)
 	op.connect('finished', lambda *a: background_check.start()) # continue checking
-		# TODO ensure robust in case operation gives error
-	try:
-		op.run_on_idle()
-	except NotebookOperationOngoing:
-		other_op = ongoing_operation(notebook)
+	other_op = ongoing_operation(notebook)
+	if other_op:
 		other_op.connect('finished', lambda *a: background_check.start()) # continue checking
-			# TODO ensure robust in case operation gives error
+	else:
+		op.run_on_idle()
 
 
 class IndexUpdateOperation(NotebookOperation):
