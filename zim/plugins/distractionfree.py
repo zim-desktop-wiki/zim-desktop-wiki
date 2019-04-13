@@ -92,6 +92,8 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.save_bar_state()
 			self.set_bar_state_fullscreen()
 			self.insert_maxwidth()
+			for widget in self._pathbar_widgets():
+				widget.hide()
 			self._css_provider = self._new_css_provider()
 			Gtk.StyleContext.add_provider_for_screen(screen, self._css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 		else:
@@ -99,6 +101,8 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.remove_maxwidth()
 			window.toggle_panes(self._show_panes)
 			self.restore_bar_state()
+			for widget in self._pathbar_widgets():
+				widget.show()
 			window.pageview.grab_focus()
 
 	def save_bar_state(self):
@@ -137,6 +141,13 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 		self._maxwidth = None
 		self.window.add(self.window.pageview)
 		self.window.pageview.show_all()
+
+	def _pathbar_widgets(self):
+		# HACK - to much internals here ...
+		for widget in self.window._zim_window_central_vbox.get_children():
+			if widget == self.window._zim_window_top_minimized:
+				break
+			yield widget
 
 	def teardown(self):
 		self.restore_bar_state()
