@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -2102,7 +2102,6 @@ class TextBuffer(Gtk.TextBuffer):
 		#
 		# Note that 'start' and 'end' refer to the same postion here ...
 
-		offset = start.get_offset()
 		if (
 			(
 				not start.starts_line()
@@ -2113,8 +2112,6 @@ class TextBuffer(Gtk.TextBuffer):
 			)
 		):
 			self._do_lines_merged(start)
-		start = self.get_iter_at_offset(offset)
-		end = None
 
 		bullet = self._get_bullet_at_iter(start)
 		if bullet is not None:
@@ -2122,9 +2119,16 @@ class TextBuffer(Gtk.TextBuffer):
 				self._check_renumber.append(start.get_line())
 			else:
 				# Clean up the redundant bullet
+				offset = start.get_offset()
 				bound = start.copy()
 				self._iter_forward_past_bullet(bound, bullet)
 				self.delete(start, bound)
+				new = self.get_iter_at_offset(offset)
+
+				# NOTE: these assignments should not be needed, but without them
+				# there is a crash here on some systems - see issue #766
+				start.assign(new)
+				end.assign(new)
 		elif start.starts_line():
 			indent_tags = list(filter(_is_indent_tag, start.get_tags()))
 			if indent_tags and indent_tags[0].zim_attrib['_bullet']:
