@@ -5674,15 +5674,23 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer.select_word()
 		return self.get_selection(format)
 
-	def replace_selection(self, text):
+	def replace_selection(self, text, autoselect=None):
+		assert autoselect in (None, 'word')
 		buffer = self.textview.get_buffer()
-		if buffer.get_has_selection():
-			start, end = buffer.get_selection_bounds()
+		if not buffer.get_has_selection():
+			if autoselect == 'word':
+				buffer.select_word()
+			else:
+				raise AssertionError
+
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			start, end = bounds
 			with buffer.user_action:
 				buffer.delete(start, end)
 				buffer.insert_at_cursor(''.join(text))
 		else:
-			raise AssertionError
+			buffer.insert_at_cursor(''.join(text))
 
 	def do_mark_set(self, buffer, iter, mark):
 		# Update menu items relative to cursor position

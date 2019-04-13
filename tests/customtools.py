@@ -262,7 +262,7 @@ class TestCustomToolsUI(tests.TestCase):
 		action = self.get_action('edit-usercreated')
 
 		got = []
-		self.pageview.replace_selection = lambda *a: got.append(a)
+		self.pageview.replace_selection = lambda *a, **kwa: got.append(a)
 
 		def tool_run(args):
 			self.assertEqual(args[0], 'edit')
