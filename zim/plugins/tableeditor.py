@@ -17,7 +17,7 @@ logger = logging.getLogger('zim.plugin.tableeditor')
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
-from zim.utils import WeakSet
+from zim.utils import WeakSet, natural_sort_key
 from zim.config import String
 from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree
@@ -658,7 +658,7 @@ class TableViewWidget(InsertedObjectWidget):
 			return
 
 		path = model.get_path(treeiter)
-		row = model[path[0]]
+		row = list(model[path[0]]) # copy
 		model.insert_after(treeiter, row)
 
 	def on_delete_row(self, action):
@@ -757,11 +757,8 @@ class TableViewWidget(InsertedObjectWidget):
 		:param colid: a column number
 		:return: -1 / first data is smaller than second, 0 / equality, 1 / else
 		'''
-		data1 = liststore.get_value(treeiter1, colid)
-		data2 = liststore.get_value(treeiter2, colid)
-		if data1.isdigit() and data2.isdigit():
-			data1 = int(data1)
-			data2 = int(data2)
+		data1 = natural_sort_key(liststore.get_value(treeiter1, colid))
+		data2 = natural_sort_key(liststore.get_value(treeiter2, colid))
 		return (data1 > data2) - (data1 < data2) # python3 jargon for "cmp()"
 
 	def selection_info(self):
