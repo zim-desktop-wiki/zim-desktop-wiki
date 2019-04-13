@@ -191,7 +191,6 @@ class MainWindow(Window):
 		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 		self.uistate.setdefault('windowmaximized', False)
 		self.uistate.setdefault('active_tabs', None, tuple)
-		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_toolbar', True)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('readonly', False)
@@ -423,8 +422,6 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-		self.uistate['show_menubar'] = show
-
 	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
 	def toggle_toolbar(self, show):
 		'''Menu action to toggle the visibility of the tool bar'''
@@ -611,7 +608,6 @@ class MainWindow(Window):
 		self.preferences.setdefault('toolbar_size', None,
 			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
 
-		self.toggle_menubar(self.uistate['show_menubar'])
 		self.toggle_toolbar(self.uistate['show_toolbar'])
 		self.toggle_statusbar(self.uistate['show_statusbar'])
 

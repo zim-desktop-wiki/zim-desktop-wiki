@@ -83,6 +83,8 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.on_fullscreen_changed(window)
 
 	def on_fullscreen_changed(self, window):
+		self.window.toggle_menubar(True) # always do this first to allow recovery
+
 		screen = Gdk.Screen.get_default()
 		if window.isfullscreen:
 			self._show_panes = bool(window.get_visible_panes())
@@ -101,7 +103,6 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 
 	def save_bar_state(self):
 		self._bar_state = (
-			self.window.uistate['show_menubar'],
 			self.window.uistate['show_toolbar'],
 			self.window.uistate['show_statusbar'],
 		)
@@ -109,18 +110,9 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 	def restore_bar_state(self):
 		if self._bar_state is None:
 			return
-		show_menubar, show_toolbar, show_statusbar = self._bar_state
-		try:
-			self.window.toggle_menubar(show_menubar)
-			self.window.toggle_toolbar(show_toolbar)
-			self.window.toggle_statusbar(show_statusbar)
-		except:
-			pass
-		finally: # just to be real sure
-			self.window.uistate['show_menubar'] = show_menubar
-			self.window.uistate['show_toolbar'] = show_toolbar
-			self.window.uistate['show_statusbar'] = show_statusbar
-			self.window.notebook.state.write()
+		show_toolbar, show_statusbar = self._bar_state
+		self.window.toggle_toolbar(show_toolbar)
+		self.window.toggle_statusbar(show_statusbar)
 
 	def set_bar_state_fullscreen(self):
 		self.window.toggle_menubar(not self.preferences['hide_menubar'])
