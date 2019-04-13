@@ -6605,7 +6605,9 @@ class LineSeparatorAnchor(InsertedObjectAnchor):
 		return LineSeparator()
 
 	def dump(self, builder):
-		builder.append(LINE, '-'*20) # FIXME: why do we need text here?
+		builder.start(LINE)
+		builder.data('-'*20) # FIXME: get rid of text here
+		builder.end(LINE)
 
 
 class TableAnchor(InsertedObjectAnchor):
