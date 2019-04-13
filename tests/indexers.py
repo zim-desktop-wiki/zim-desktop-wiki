@@ -388,6 +388,25 @@ class TestPagesIndexer(TestPagesDBTable, tests.TestCase):
 						 # "foo" has source that is deleted before children
 
 
+class TestPageNameConflict(tests.TestCase):
+
+	def runTest(self):
+		folder = self.setUpFolder()
+		layout = FilesLayout(folder)
+		db = sqlite3.connect(':memory:')
+		db.row_factory = sqlite3.Row
+
+		file_indexer = tests.MockObject()
+
+		indexer = PagesIndexer(db, layout, file_indexer)
+
+		id1 = indexer.insert_page(Path('Test'), None)
+		with tests.LoggingFilter('zim.notebook.index', 'Error while inserting page'):
+			id2 = indexer.insert_page(Path('Test'), None)
+
+		self.assertEqual(id1, id2)
+
+
 from zim.utils import natural_sort_key
 from zim.notebook.index.pages import PagesViewInternal
 from zim.notebook.page import HRef

@@ -2,10 +2,9 @@
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-
-
 from datetime import datetime
 
+import sqlite3
 import logging
 
 logger = logging.getLogger('zim.notebook.index')
@@ -197,14 +196,26 @@ class PagesIndexer(IndexerBase):
 		# insert new page
 		lowerbasename = pagename.basename.lower()
 		sortkey = natural_sort_key(pagename.basename)
-		self.db.execute(
-			'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file)'
-			'VALUES (?, ?, ?, ?, ?, ?)',
-			(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
-		)
-		row = self._select(pagename)
-		self._update_parent_nchildren(pagename.parent)
-		self.emit('page-row-inserted', row)
+		try:
+			self.db.execute(
+				'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file)'
+				'VALUES (?, ?, ?, ?, ?, ?)',
+				(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
+			)
+		except sqlite3.IntegrityError:
+			# This can occur in rare edge cases when resolve_page failed to
+			# see a page existed already - typically due to locale changes
+			# affecting sortkey
+			logger.exception('Error while inserting page - re-index needed?')
+			self.db.execute(
+				'UPDATE pages SET sortkey=? WHERE name=?',
+				(sortkey, pagename.name)
+			)
+			row = self._select(pagename)
+		else:
+			row = self._select(pagename)
+			self._update_parent_nchildren(pagename.parent)
+			self.emit('page-row-inserted', row)
 
 		# update parent(s)
 		self.update_parent(pagename.parent)
