@@ -38,6 +38,8 @@ def _decode(data):
 	except UnicodeDecodeError:
 		return data.decode(_ENCODING)
 
+_ENCODE_UTF8 = _ENCODING in ('ascii', 'us-ascii', 'ANSI_X3.4-1968')
+
 
 _FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
 
@@ -209,6 +211,10 @@ class Application(object):
 
 		if hasattr(cwd, 'path'):
 			cwd = cwd.path
+
+		if _ENCODE_UTF8:
+			cwd = cwd.encode('UTF-8') if cwd else cwd
+			argv = [a.encode('UTF-8') for a in argv]
 
 		return cwd, argv
 
