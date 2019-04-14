@@ -5538,10 +5538,22 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Will add another timeout to rendering the page, increasing the
 			# priority breaks the hack though. Which shows the glitch is
 			# probably also happening in a drawing or resizing idle event
+			#
+			# Additional hook is needed for scrolling because re-rendering the
+			# objects changes the textview size and thus looses the scrolled
+			# position. Here idle didn't work so used a time-out with the
+			# potential risk that in some cases the timeout is to fast or to slow.
+
 			self._hack_label.show_all()
+			def scroll():
+				self.scroll_cursor_on_screen()
+				return False
+
 			def hide_hack():
 				self._hack_label.hide()
+				GLib.timeout_add(100, scroll)
 				return False
+
 			GLib.idle_add(hide_hack)
 		else:
 			self._hack_label.hide()
