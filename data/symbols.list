@@ -276,7 +276,7 @@
 \ohm	937	 # same as \omega
 
 ## Additional typography ##
-# See http://en.wikipedia.org/wiki/Arrow_%28symbol%29 for more codes
+# See https://en.wikipedia.org/wiki/Arrow_%28symbol%29 for more codes
 # convert hex -> decimal before using here
 -->	8594  # same as \right
 <-- 8592  # same as \left

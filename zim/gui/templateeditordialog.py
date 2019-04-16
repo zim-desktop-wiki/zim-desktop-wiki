@@ -66,7 +66,7 @@ class TemplateEditorDialog(Dialog):
 
 		## Same button appears in export dialog
 		url_button = Gtk.LinkButton(
-			'http://zim-wiki.org/more_templates.html',
+			'https://zim-wiki.org/more_templates.html',
 			_('Get more templates online') # T: label for button with URL
 		)
 		self.vbox.pack_start(url_button, False, True, 0)

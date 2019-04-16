@@ -4,7 +4,7 @@ Creation-Date: 2010-02-22T15:44:37.508437
 
 ====== Version Control ======
 
-Zim's default installation ships with a Version Control Plugin. To enable it, go to ''Edit -> Preferences -> Plugins'' and check the box next to Version Control. Zim supports [[http://bazaar.canonical.com/|Bazaar]],  [[http://git-scm.com/|Git]], [[http://mercurial.selenic.com/|Mercurial]], and [[http://www.fossil-scm.org/|Fossil]]  as backends.
+Zim's default installation ships with a Version Control Plugin. To enable it, go to ''Edit -> Preferences -> Plugins'' and check the box next to Version Control. Zim supports [[http://bazaar.canonical.com/|Bazaar]],  [[https://git-scm.com/|Git]], [[http://mercurial.selenic.com/|Mercurial]], and [[https://www.fossil-scm.org/|Fossil]]  as backends.
 
 **Dependencies:** This plugin requires one of the supported version control systems to be installed. Currently Bazaar, Git, Mercurial and Fossil are supported, so one of these applications is required. In specific the "''bzr''", "''git''", "''hg''" or "''fossil''" command should be available in the system path.
 
@@ -34,7 +34,7 @@ TODO here should be documented how to share the newly created repository with yo
 See the [[http://bazaar.canonical.com/|Bazaar]] user manual for various scenarios of collaboration (follow the "documentation" link on their website).
 
 ===== Technical Details =====
-Technically speaking a local repository is created when enabling Version Control, depending on the backend you choose, this repository is managed by  [[http://bazaar.canonical.com/|Bazaar]],  [[http://git-scm.com/|Git]], [[http://mercurial.selenic.com/|Mercurial]] or [[http://www.fossil-scm.org/|Fossil]]. Every time you save a version, another revision is checked in. Zim just uses standard version control systems as backend, so you can always view and export your history using standard tools.
+Technically speaking a local repository is created when enabling Version Control, depending on the backend you choose, this repository is managed by  [[http://bazaar.canonical.com/|Bazaar]],  [[https://git-scm.com/|Git]], [[http://mercurial.selenic.com/|Mercurial]] or [[https://www.fossil-scm.org/|Fossil]]. Every time you save a version, another revision is checked in. Zim just uses standard version control systems as backend, so you can always view and export your history using standard tools.
 
 On startup zim tries to detect the version control system used for a specific notebook, and use it if supported. So you can manually initialize repository (e.g. by branching) and then open them with zim. No need to tell Zim that the notebook is managed explicitly.
 
