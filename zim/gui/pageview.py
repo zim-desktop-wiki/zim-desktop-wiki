@@ -5339,7 +5339,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		def set_actiongroup_sensitive(window, widget):
 			#~ print('!! FOCUS SET:', widget)
 			sensitive = widget is self.textview
-			self._set_menuitems_sensitive(sensitive)
+
+			# Enable keybindings and buttons for find functionality if find bar is in focus
+			force_sensitive = ()
+			if widget and widget.get_parent() is self.find_bar:
+				force_sensitive = ("show_find", "find_next", "find_previous",
+					"show_find_alt1", "find_next_alt1", "find_previous_alt1")
+
+			self._set_menuitems_sensitive(sensitive, force_sensitive)
 
 		window = self.get_toplevel()
 		if window and window != self:
@@ -5592,7 +5599,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.preferences['read_only_cursor'] or not self.readonly)
 		self._set_menuitems_sensitive(True) # XXX not sure why this is here
 
-	def _set_menuitems_sensitive(self, sensitive):
+	def _set_menuitems_sensitive(self, sensitive, force_sensitive=()):
 		'''Batch update global menu sensitivity while respecting
 		sensitivities set due to cursor position, readonly state etc.
 		'''
@@ -5610,7 +5617,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			self.do_mark_set(buffer, iter, mark)
 		else:
 			for action in self.actiongroup.list_actions():
-				action.set_sensitive(False)
+				if action.get_name() not in force_sensitive:
+					action.set_sensitive(False)
+				else:
+					action.set_sensitive(True)
 
 	def set_cursor_pos(self, pos):
 		'''Set the cursor position in the buffer and scroll the TextView
