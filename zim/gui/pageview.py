@@ -5596,6 +5596,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		'''Batch update global menu sensitivity while respecting
 		sensitivities set due to cursor position, readonly state etc.
 		'''
+
 		if sensitive:
 			# partly overrule logic in window.toggle_editable()
 			for action in self.actiongroup.list_actions():
@@ -7272,13 +7273,11 @@ class FindWidget(object):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_next()
 		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
-		self.textview.grab_focus()
 
 	def find_previous(self):
 		buffer = self.textview.get_buffer()
 		buffer.finder.find_previous()
 		self.textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
-		self.textview.grab_focus()
 
 
 class FindBar(FindWidget, Gtk.HBox):
@@ -7321,7 +7320,7 @@ class FindBar(FindWidget, Gtk.HBox):
 
 	def on_find_entry_activate(self):
 		self.on_find_entry_changed()
-		self.textview.grab_focus()
+		self.find_next()
 
 	def do_key_press_event(self, event):
 		keyval = strip_boolean_result(event.get_keyval())
