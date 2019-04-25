@@ -1875,7 +1875,7 @@ Baz
 			('mailto:foo//bar@bar.com', None),
 			('mid:foo@bar.org', None),
 			('cid:foo@bar.org', None),
-			('wp?foo', 'http://en.wikipedia.org/wiki/foo'),
+			('wp?foo', 'https://en.wikipedia.org/wiki/foo'),
 			('http://foo?bar', None),
 			# ('\\\\host\\foo\\bar', None), FIXME os dependent parsing
 		):
