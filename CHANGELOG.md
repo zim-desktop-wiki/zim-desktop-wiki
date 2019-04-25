@@ -5,6 +5,22 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.71.0 - Thu 25 Apr 2019
+* Fix "spill over" between translation files
+* Fix use of popup menus
+* Hack to work around textview glitches embedded objects
+* Make indexer recover from duplicate page names
+* Fix recovery of broken index file on startup
+* Restore New Sub Page for index context menu
+* Let customtools replace autoselected words and insert
+* Fallback encoding when calling external applications
+* Hide pathbar in distraction free mode
+* Merge fix for unicode completion in dialogs
+* Remember cursor position on reload
+* Fix inlinecalculator plugin
+* Update Gtk prerequisite version to 3.18
+* Updated Russian translation
+
 ##  0.70 - Thu 28 Mar 2019
 * Ported zim to use Python3 & Gtk3
 * Refactored application framework, all windows run single process now with
