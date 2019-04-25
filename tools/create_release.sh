@@ -34,7 +34,7 @@ sed -i "s/^__version__ =.*\$/__version__ = '$NEW'/" zim/__init__.py
 
 echo "Updating website/pages/downloads.txt"
 MONTH=`date +"%b %Y"`
-sed -i "s/^=+ Latest release: .*\$/===== Latest release: 0.70 - $MONTH =====/" website/pages/downloads.txt
+sed -i "s/^=+ Latest release: .*\$/===== Latest release: $NEW - $MONTH =====/" website/pages/downloads.txt
 
 
 # Update debian version
