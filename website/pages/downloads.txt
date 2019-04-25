@@ -37,12 +37,12 @@ A windows installer can be found [[https://zim.glump.net/windows/|here]].
 
 The following Linux distributions are known to include zim:
 * Archlinux (extra/zim)
-* [[http://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
+* [[https://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
 * Gentoo (x11-misc/zim)
 * Sourcemage (zim)
 * [[https://apps.fedoraproject.org/packages/Zim|Fedora]]
 * Ubuntu (universe)
 
 BSD flavors with a zim port:
-* [[http://www.freshports.org/deskutils/zim|FreeBSD]]
+* [[https://www.freshports.org/deskutils/zim|FreeBSD]]
 * [[http://www.openbsd.org/cgi-bin/cvsweb/ports/productivity/zim/|OpenBSD]]

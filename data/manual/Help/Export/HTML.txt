@@ -25,7 +25,7 @@ backspace         previous page
 This is a plain template intended for printing pages. It is use by the "Print to Browser" plugin.
 
 **"SlideShow (S5)"**
-Template based on S5. S5 is "A Simple Standards-Based Slide Show System", which mean a slide show system completely written in html and javascript. Therefor these slide shows can be presented using a browser and be put on a website. See [[http://meyerweb.com/eric/tools/s5/|the S5 website]] for more information.
+Template based on S5. S5 is "A Simple Standards-Based Slide Show System", which mean a slide show system completely written in html and javascript. Therefor these slide shows can be presented using a browser and be put on a website. See [[https://meyerweb.com/eric/tools/s5/|the S5 website]] for more information.
 
 When using this template, each new "heading 1" in the page will become a new slide. When exporting multiple pages to a single file each page becomes a slide. But within a page you can also have multiple "heading 1" headings to start new slides.
 

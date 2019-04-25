@@ -121,7 +121,7 @@ class TestNotebookInfoList(tests.TestCase):
 		self.assertEqual(list.default.uri, uri1)
 
 		# Check interwiki parsing - included here since it interacts with the notebook list
-		self.assertEqual(interwiki_link('wp?Foo'), 'http://en.wikipedia.org/wiki/Foo')
+		self.assertEqual(interwiki_link('wp?Foo'), 'https://en.wikipedia.org/wiki/Foo')
 		self.assertEqual(interwiki_link('foo?Foo'), 'zim+' + dir.uri + '?Foo')
 		self.assertEqual(interwiki_link('foobar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key
 		self.assertEqual(interwiki_link('FooBar?Foo'), 'zim+' + uri1 + '?Foo') # interwiki key

@@ -36,4 +36,4 @@ x_{1,2}=\frac{-b\pm\sqrt{\color{Red}b^2-4ac}}{2a}
 
 * [1] http://www.ams.org/tex/amslatex.html
 * [2] http://www.latex-project.org/guides/
-* http://en.wikipedia.org/wiki/Help:Formula (latex parts only)
+* https://en.wikipedia.org/wiki/Help:Formula (latex parts only)

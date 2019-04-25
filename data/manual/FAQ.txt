@@ -37,7 +37,7 @@ See [[Usage:Publishing]] for some tips
 Yes. Copy "''/usr/share/zim/style.conf''" to "''~/.config/zim/''" and edit as you see fit. See the [[Help:Config Files|Config Files]] page for the syntax of this file.
 
 ===== Can I have encrypted notebooks? =====
-Zim notebooks do not support encryption or password protection natively. However you can use for example [[http://www.arg0.net/encfs|encfs]] to encrypt your notebooks.
+Zim notebooks do not support encryption or password protection natively. However you can use for example [[https://www.arg0.net/encfs|encfs]] to encrypt your notebooks.
 
 ===== Can I have full calendaring in zim? =====
 Well, if you really want to, you can use zim as your agenda. However, the Calendar feature is more intended to keep various kinds of journals or logbooks. I'm very hesitant to add calendaring features because these are usually tied to email applications. I admit that it would be really cool to link notes, emails and appointments, but I have no plans to extend zim to become an email reader.
@@ -49,7 +49,7 @@ You can change this by modifying the gtk css file, see [[Help:Config Files|Confi
 Yes it does. See the download page on the website for more notes on installing on the win32 platform.
 
 ===== Does it run on OS X? =====
-Yes it does. See the install instructions on our [[http://zim-wiki.org/install.html|webpage]], or check in the [[http://www.zim-wiki.org/wiki/|zim documentation wiki]] for additional tips how to install it.
+Yes it does. See the install instructions on our [[https://zim-wiki.org/install.html|webpage]], or check in the [[https://www.zim-wiki.org/wiki/|zim documentation wiki]] for additional tips how to install it.
 
 ===== I want to move/backup/synchronize a zim notebook. Which files do I need to take care of? =====
 The visible files in the notebook folder contain all data of notes and [[Help:Attachments|attachments]].
@@ -64,5 +64,5 @@ By synchronizing all visible files in the notebook. E.g. by putting the zim note
 Zim is written as a "single user" program, so it is not intended for multiple people using the same notebook. However it can be used with version control like Bazaar, Git or Mercurial. This way multiple users can work on the same notebook and merge their changes. See the [[Plugins:Version Control|Version Control plugin]].
 
 ===== I have a useful trick or tip. How can I share it with other users? =====
-You can have a look at the [[http://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
+You can have a look at the [[https://www.zim-wiki.org/wiki/|zim documentation wiki]]. It has a section dedicated to tricks and tips. Or write a mail to the mailing list, see the [[https://launchpad.net/~zim-wiki|team page]] on launchpad
 
