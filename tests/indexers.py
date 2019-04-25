@@ -69,7 +69,8 @@ class TestIndexInitialization(tests.TestCase):
 
 		self.assertTrue(file.exists())
 		with tests.LoggingFilter('zim.notebook.index', 'Overwriting'):
-			index = Index(file.path, self.layout)
+			with tests.LoggingFilter('zim.notebook.index', 'Could not access'):
+				index = Index(file.path, self.layout)
 		self.assertTrue(file.exists())
 		self.assertEqual(index.get_property('db_version'), DB_VERSION)
 
