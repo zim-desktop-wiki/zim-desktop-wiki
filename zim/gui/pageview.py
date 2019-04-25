@@ -3652,12 +3652,11 @@ class TextView(Gtk.TextView):
 
 		if event.type == Gdk.EventType.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
-			if iter:
-				if event.button == 2 and not buffer.get_has_selection():
-					buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
-					return False
-				elif Gdk.Event.triggers_context_menu(event):
-					self._set_popup_menu_mark(iter)
+			if event.button == 2 and iter and not buffer.get_has_selection():
+				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
+				return False
+			elif Gdk.Event.triggers_context_menu(event):
+				self._set_popup_menu_mark(iter) # allow iter to be None
 
 		return Gtk.TextView.do_button_press_event(self, event)
 
@@ -3699,12 +3698,23 @@ class TextView(Gtk.TextView):
 		return menu
 
 	def _set_popup_menu_mark(self, iter):
+		# If iter is None, remove the mark
 		buffer = self.get_buffer()
 		mark = buffer.get_mark('zim-popup-menu')
-		if mark:
-			buffer.move_mark(mark, iter)
+		if iter:
+			if mark:
+				buffer.move_mark(mark, iter)
+			else:
+				mark = buffer.create_mark('zim-popup-menu', iter, True)
+		elif mark:
+			buffer.delete_mark(mark)
 		else:
-			mark = buffer.create_mark('zim-popup-menu', iter, True)
+			pass
+
+	def _get_popup_menu_mark(self):
+		buffer = self.get_buffer()
+		mark = buffer.get_mark('zim-popup-menu')
+		return buffer.get_iter_at_mark(mark) if mark else None
 
 	def do_key_press_event(self, event):
 		keyval = strip_boolean_result(event.get_keyval())
@@ -5827,14 +5837,17 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def do_populate_popup(self, menu):
 		buffer = self.textview.get_buffer()
 		if not buffer.get_has_selection():
-			iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
-			if iter.get_line_offset() == 1:
-				iter.backward_char() # if clicked on right half of image, iter is after the image
-			bullet = buffer.get_bullet_at_iter(iter)
-			if bullet and bullet in CHECKBOXES:
-				self._checkbox_do_populate_popup(menu)
-			else:
+			iter = self.textview._get_popup_menu_mark()
+			if iter is None:
 				self._default_do_populate_popup(menu)
+			else:
+				if iter.get_line_offset() == 1:
+					iter.backward_char() # if clicked on right half of image, iter is after the image
+				bullet = buffer.get_bullet_at_iter(iter)
+				if bullet and bullet in CHECKBOXES:
+					self._checkbox_do_populate_popup(menu, buffer, iter)
+				else:
+					self._default_do_populate_popup(menu)
 		else:
 			self._default_do_populate_popup(menu)
 
@@ -5890,9 +5903,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		###
 
 
-		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
+		iter = self.textview._get_popup_menu_mark()
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
+		if iter is None:
+			return
+
 		link = buffer.get_link_data(iter)
 		if link:
 			type = link_type(link['href'])
@@ -6022,9 +6038,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		menu.show_all()
 
-	def _checkbox_do_populate_popup(self, menu):
-		buffer = self.textview.get_buffer()
-		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
+	def _checkbox_do_populate_popup(self, menu, buffer, iter):
 		line = iter.get_line()
 
 		menu.prepend(Gtk.SeparatorMenuItem())

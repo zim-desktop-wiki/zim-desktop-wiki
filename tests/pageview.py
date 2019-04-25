@@ -1755,8 +1755,15 @@ Foo 123
 		newtree = buffer.get_parsetree()
 		self.assertEqual(newtree.tostring(), tree.tostring())
 
-# TODO: More popup stuff
-
+	def testPopup(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_text("TEst ABC\n")
+		textview = TextView(self.preferences)
+		textview.set_buffer(buffer)
+		menu = textview.get_popup()
+		self.assertIsInstance(menu, Gtk.Menu)
 
 
 class TestPageView(tests.TestCase, TestCaseMixin):
