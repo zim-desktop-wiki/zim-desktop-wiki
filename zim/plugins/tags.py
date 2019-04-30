@@ -126,11 +126,6 @@ class TagsPluginWidget(Gtk.VPaned, WindowSidePaneWidget):
 		self.reload_model()
 
 	def on_populate_popup(self, treeview, menu):
-		# If not a not a page (but e.g. a tag), remove page action
-		if not treeview.get_selected_path():
-			for item in menu.get_children():
-				menu.remove(item)
-
 		# Add a popup menu item to switch the treeview mode
 		populate_popup_add_separator(menu, prepend=True)
 

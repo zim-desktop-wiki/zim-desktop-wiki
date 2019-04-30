@@ -66,7 +66,7 @@ class TemplateEditorDialog(Dialog):
 
 		## Same button appears in export dialog
 		url_button = Gtk.LinkButton(
-			'http://zim-wiki.org/more_templates.html',
+			'https://zim-wiki.org/more_templates.html',
 			_('Get more templates online') # T: label for button with URL
 		)
 		self.vbox.pack_start(url_button, False, True, 0)
@@ -86,7 +86,7 @@ class TemplateEditorDialog(Dialog):
 			self._delete_button.set_sensitive(False)
 
 	def on_view(self, *a):
-		# Open the file, witout waiting for editor to return
+		# Open the file, without waiting for editor to return
 		custom, default = self.view.get_selected()
 		if custom is None:
 			return # Should not have been sensitive

@@ -24,8 +24,7 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 
 
 def new_parsetree_from_text(testcase, text):
-	## FIXME had to wrap my own here becase of stupid
-	## resolve_images - get rid of that
+	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
 	tree = tests.new_parsetree_from_text(text)
 	notebook = testcase.setUpNotebook()
 	page = notebook.get_page(Path('Foo'))
@@ -545,6 +544,35 @@ aaa <link href="xxx">bbb</link> ccc
 C
 	D
 </pre></zim-tree>''')
+
+	def testMergeLinesWithBullet(self):
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<ul><li>item 1</li><li>item 2</li></ul>
+</zim-tree>
+'''
+		tree = tests.new_parsetree_from_xml(input)
+
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_parsetree(tree)
+
+		# Position at end of first lest item and delete end of line
+		buffer.place_cursor(buffer.get_iter_at_offset(9))
+		start = buffer.get_insert_iter()
+		end = start.copy()
+		end.forward_char()
+		buffer.delete_interactive(start, end, True)
+
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p><ul><li bullet="*">item 1item 2</li></ul></p>
+</zim-tree>''')
+
 
 
 class TestUndoStackManager(tests.TestCase):
@@ -1685,7 +1713,7 @@ foo
 		page = tests.new_page_from_text('[[wp?foobar]]')
 		pageview.set_page(page)
 		click(_('Copy _Link'))
-		self.assertEqual(Clipboard.get_text(), 'http://en.wikipedia.org/wiki/foobar')
+		self.assertEqual(Clipboard.get_text(), 'https://en.wikipedia.org/wiki/foobar')
 		tree = Clipboard.get_parsetree(pageview.notebook, page)
 		self.assertEqual(tree.tostring(),
 			'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<zim-tree><link href="wp?foobar">wp?foobar</link></zim-tree>')
@@ -1727,8 +1755,15 @@ Foo 123
 		newtree = buffer.get_parsetree()
 		self.assertEqual(newtree.tostring(), tree.tostring())
 
-# TODO: More popup stuff
-
+	def testPopup(self):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		buffer.set_text("TEst ABC\n")
+		textview = TextView(self.preferences)
+		textview.set_buffer(buffer)
+		menu = textview.get_popup()
+		self.assertIsInstance(menu, Gtk.Menu)
 
 
 class TestPageView(tests.TestCase, TestCaseMixin):
@@ -1847,7 +1882,7 @@ Baz
 			('mailto:foo//bar@bar.com', None),
 			('mid:foo@bar.org', None),
 			('cid:foo@bar.org', None),
-			('wp?foo', 'http://en.wikipedia.org/wiki/foo'),
+			('wp?foo', 'https://en.wikipedia.org/wiki/foo'),
 			('http://foo?bar', None),
 			# ('\\\\host\\foo\\bar', None), FIXME os dependent parsing
 		):
@@ -2335,14 +2370,12 @@ dus bar bazzz baz
 
 	def testInsertLinkDialog(self):
 		# Insert Link dialog
-		pageview = tests.MockObject()
-		pageview.page = Path('Test:foo:bar')
-		pageview.textview = TextView({})
+		pageview = setUpPageView(self.setUpNotebook())
 		dialog = InsertLinkDialog(None, pageview)
 		dialog.form.widgets['href'].set_text('Foo')
 		dialog.assert_response_ok()
 		buffer = pageview.textview.get_buffer()
-		self.assertEqual(get_text(buffer), 'Foo')
+		self.assertEqual(get_text(buffer), 'Foo\n')
 
 
 class TestCamelCase(tests.TestCase):

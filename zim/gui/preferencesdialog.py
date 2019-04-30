@@ -251,7 +251,7 @@ class PluginsTab(Gtk.VBox):
 		hbox.pack_start(open_button, False, True, 0)
 
 		url_button = Gtk.LinkButton(
-			'http://zim-wiki.org/more_plugins.html',
+			'https://zim-wiki.org/more_plugins.html',
 			_('Get more plugins online') # T: label for button with URL
 		)
 		hbox.pack_start(url_button, False, True, 0)

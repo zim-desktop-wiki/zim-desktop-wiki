@@ -493,7 +493,7 @@ class CustomToolManagerUI(object):
 		if tool.replaceselection:
 			output = tool.pipe(args, cwd=cwd)
 			logger.debug('Replace selection with: %s', output)
-			pageview.replace_selection(output)
+			pageview.replace_selection(output, autoselect='word')
 		elif tool.isreadonly:
 			tool.spawn(args, cwd=cwd)
 		else:

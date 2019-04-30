@@ -843,3 +843,22 @@ def gtk_activate_menu_item(menu, id):
 	'''
 	item = gtk_get_menu_item(menu, id)
 	item.activate()
+
+
+def find_widgets(type):
+	'''Iterate through all top level windows and recursively walk through their
+	children, returning all childs which are of given type.
+	@param type: any class inherited from C{Gtk.Widget}
+	@returns: list of widgets of given type
+	'''
+	widgets = []
+	def walk_containers(root_container):
+		if not hasattr(root_container, 'get_children'):
+			return
+		for child in root_container.get_children():
+			if isinstance(child, type):
+				widgets.append(child)
+			walk_containers(child)
+	for window in Gtk.Window.list_toplevels():
+		walk_containers(window)
+	return widgets

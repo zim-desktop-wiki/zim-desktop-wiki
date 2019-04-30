@@ -33,9 +33,11 @@ class RecentChangesDialog(Dialog):
 
 	def update(self):
 		model = self.treeview.get_model()
-		model.clear()
-		for rec in self.notebook.pages.list_recent_changes(limit=50):
-			model.append((rec.name, rec.mtime))
+		if model is not None:
+			model.clear()
+			for rec in self.notebook.pages.list_recent_changes(limit=50):
+				model.append((rec.name, rec.mtime))
+		# else already destroyed ?
 
 	def on_row_activated(self, view, path, col):
 		page = Path(view.get_model()[path][view.NAME_COL])

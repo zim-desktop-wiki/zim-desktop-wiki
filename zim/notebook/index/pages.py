@@ -2,10 +2,9 @@
 # Copyright 2009-2018 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 
-
-
 from datetime import datetime
 
+import sqlite3
 import logging
 
 logger = logging.getLogger('zim.notebook.index')
@@ -197,14 +196,26 @@ class PagesIndexer(IndexerBase):
 		# insert new page
 		lowerbasename = pagename.basename.lower()
 		sortkey = natural_sort_key(pagename.basename)
-		self.db.execute(
-			'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file)'
-			'VALUES (?, ?, ?, ?, ?, ?)',
-			(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
-		)
-		row = self._select(pagename)
-		self._update_parent_nchildren(pagename.parent)
-		self.emit('page-row-inserted', row)
+		try:
+			self.db.execute(
+				'INSERT INTO pages(name, lowerbasename, sortkey, parent, is_link_placeholder, source_file)'
+				'VALUES (?, ?, ?, ?, ?, ?)',
+				(pagename.name, lowerbasename, sortkey, parent_row['id'], is_link_placeholder, file_id)
+			)
+		except sqlite3.IntegrityError:
+			# This can occur in rare edge cases when resolve_page failed to
+			# see a page existed already - typically due to locale changes
+			# affecting sortkey
+			logger.exception('Error while inserting page - re-index needed?')
+			self.db.execute(
+				'UPDATE pages SET sortkey=? WHERE name=?',
+				(sortkey, pagename.name)
+			)
+			row = self._select(pagename)
+		else:
+			row = self._select(pagename)
+			self._update_parent_nchildren(pagename.parent)
+			self.emit('page-row-inserted', row)
 
 		# update parent(s)
 		self.update_parent(pagename.parent)
@@ -946,7 +957,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def find(self, path):
 		'''Returns the C{Gtk.TreePath} for a notebook page L{Path}
-		If the L{Path} appears multiple times returns the first occurence
+		If the L{Path} appears multiple times returns the first occurrence
 		@raises IndexNotFoundError: if path not found
 		'''
 		if path.isroot:
@@ -959,7 +970,7 @@ class PagesTreeModelMixin(TreeModelMixinBase):
 
 	def find_all(self, path):
 		'''Returns a list of C{Gtk.TreePath} for a notebook page L{Path}
-		Returns all occurences in the treeview
+		Returns all occurrences in the treeview
 		@raises IndexNotFoundError: if path not found
 		'''
 		if path.isroot:
@@ -1061,7 +1072,7 @@ class TestPagesDBTable(object):
 				if not row['is_link_placeholder']:
 					# Check upwards - parent(s) must not be placeholder either
 					self.assertFalse(parent['is_link_placeholder'],
-						'Placeholder status for parent of %s is inconcsisten' % row['name']
+						'Placeholder status for parent of %s is inconsistent' % row['name']
 					)
 
 	def assertPagesDBEquals(self, db, pages):

@@ -3,14 +3,16 @@
 
 import tests
 
-from zim.plugins import PluginManager
+from zim.plugins import find_extension, PluginManager
+from zim.plugins.inlinecalculator import InlineCalculatorPageViewExtension
+
+from tests.pageview import setUpPageView
 
 
 @tests.slowTest
-class TestPrintToBrowser(tests.TestCase):
+class TestInlineCalculator(tests.TestCase):
 
 	def runTest(self):
-		'Test InlineCalculator plugin'
 		pluginklass = PluginManager.get_plugin_class('inlinecalculator')
 		plugin = pluginklass()
 
@@ -77,3 +79,35 @@ oct(8) == '0o10'
 
 		self.assertRaises(Exception, plugin.process_text, 'open("/etc/passwd")') # global
 		self.assertRaises(Exception, plugin.process_text, 'self') # local
+
+
+class TestInlineCalculatorExtension(tests.TestCase):
+
+	def runTest(self):
+		plugin = PluginManager.load_plugin('inlinecalculator')
+		notebook = self.setUpNotebook()
+		pageview = setUpPageView(notebook)
+
+		extension = find_extension(pageview, InlineCalculatorPageViewExtension)
+		buffer = pageview.textview.get_buffer()
+		def get_text():
+			start, end = buffer.get_bounds()
+			return start.get_text(end)
+
+		# Simple case
+		buffer.set_text('1 + 1 =\n')
+		buffer.place_cursor(buffer.get_iter_at_offset(7))
+		extension.eval_math()
+		self.assertEqual(get_text(), '1 + 1 = 2\n')
+
+		# Looks back to previous line
+		buffer.set_text('1 + 1 =\n\n')
+		buffer.place_cursor(buffer.get_iter_at_offset(8))
+		extension.eval_math()
+		self.assertEqual(get_text(), '1 + 1 = 2\n\n')
+
+		# Multi-line example
+		buffer.set_text('1\n2\n3\n--- +\n')
+		buffer.place_cursor(buffer.get_iter_at_offset(6))
+		extension.eval_math()
+		self.assertEqual(get_text(), '1\n2\n3\n--- +\n6\n')

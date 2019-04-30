@@ -13,7 +13,7 @@ from zim.notebook.page import Path, HRef, \
 	HREF_REL_ABSOLUTE, HREF_REL_FLOATING, HREF_REL_RELATIVE
 
 
-from .base import IndexerBase, IndexView
+from .base import IndexerBase, IndexView, IndexNotFoundError
 from .pages import PagesViewInternal, ROOT_ID
 
 

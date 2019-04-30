@@ -1,5 +1,5 @@
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -18,6 +18,7 @@ L{TextView}.
 import logging
 
 from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
@@ -195,7 +196,7 @@ ui_preferences = (
 		_('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
 		# T: option in preferences dialog
 	('cycle_checkbox_type', 'bool', 'Editing',
-		_('Repeated clicking a checkbox cyles through the checkbox states'), True),
+		_('Repeated clicking a checkbox cycles through the checkbox states'), True),
 		# T: option in preferences dialog
 	('recursive_indentlist', 'bool', 'Editing',
 		_('(Un-)Indenting a list item also change any sub-items'), True),
@@ -2118,9 +2119,16 @@ class TextBuffer(Gtk.TextBuffer):
 				self._check_renumber.append(start.get_line())
 			else:
 				# Clean up the redundant bullet
+				offset = start.get_offset()
 				bound = start.copy()
 				self._iter_forward_past_bullet(bound, bullet)
 				self.delete(start, bound)
+				new = self.get_iter_at_offset(offset)
+
+				# NOTE: these assignments should not be needed, but without them
+				# there is a crash here on some systems - see issue #766
+				start.assign(new)
+				end.assign(new)
 		elif start.starts_line():
 			indent_tags = list(filter(_is_indent_tag, start.get_tags()))
 			if indent_tags and indent_tags[0].zim_attrib['_bullet']:
@@ -2749,7 +2757,7 @@ class TextBuffer(Gtk.TextBuffer):
 		return start, end
 
 	def get_line_is_empty(self, line):
-		'''Check for empty lins
+		'''Check for empty lines
 
 		@param line: the line number
 		@returns: C{True} if the line only contains whitespace
@@ -3007,7 +3015,7 @@ class TextBufferList(list):
 		          * item C
 
 		@param row: the row id
-		@returns: C{True} if succesfull
+		@returns: C{True} if successfulll
 		'''
 		if not self.can_indent(row):
 			return False
@@ -3019,7 +3027,7 @@ class TextBufferList(list):
 		'''Un-indent a list item and it's children
 
 		@param row: the row id
-		@returns: C{True} if succesfull
+		@returns: C{True} if successfulll
 		'''
 		if not self.can_unindent(row):
 			return False
@@ -3035,7 +3043,7 @@ class TextBufferList(list):
 			# Indent the whole list
 			for i in range(1, len(self)):
 				if self[i][self.INDENT_COL] >= level:
-					# double check implicit assumtion that first item is at lowest level
+					# double check implicit assumption that first item is at lowest level
 					self._indent_row(i, step)
 				else:
 					break
@@ -3644,12 +3652,11 @@ class TextView(Gtk.TextView):
 
 		if event.type == Gdk.EventType.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
-			if iter:
-				if event.button == 2 and not buffer.get_has_selection():
-					buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
-					return False
-				elif Gdk.Event.triggers_context_menu(event):
-					self._set_popup_menu_mark(iter)
+			if event.button == 2 and iter and not buffer.get_has_selection():
+				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
+				return False
+			elif Gdk.Event.triggers_context_menu(event):
+				self._set_popup_menu_mark(iter) # allow iter to be None
 
 		return Gtk.TextView.do_button_press_event(self, event)
 
@@ -3691,12 +3698,23 @@ class TextView(Gtk.TextView):
 		return menu
 
 	def _set_popup_menu_mark(self, iter):
+		# If iter is None, remove the mark
 		buffer = self.get_buffer()
 		mark = buffer.get_mark('zim-popup-menu')
-		if mark:
-			buffer.move_mark(mark, iter)
+		if iter:
+			if mark:
+				buffer.move_mark(mark, iter)
+			else:
+				mark = buffer.create_mark('zim-popup-menu', iter, True)
+		elif mark:
+			buffer.delete_mark(mark)
 		else:
-			mark = buffer.create_mark('zim-popup-menu', iter, True)
+			pass
+
+	def _get_popup_menu_mark(self):
+		buffer = self.get_buffer()
+		mark = buffer.get_mark('zim-popup-menu')
+		return buffer.get_iter_at_mark(mark) if mark else None
 
 	def do_key_press_event(self, event):
 		keyval = strip_boolean_result(event.get_keyval())
@@ -5148,7 +5166,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.textview = TextView(preferences=self.preferences)
 		self.swindow = ScrolledWindow(self.textview)
-		self.add(self.swindow)
+		self._hack_hbox = Gtk.HBox()
+		self._hack_hbox.add(self.swindow)
+		self._hack_label = Gtk.Label() # any widget would do I guess
+		self._hack_hbox.pack_end(self._hack_label, False, True, 1)
+		self.add(self._hack_hbox)
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
@@ -5386,6 +5408,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.notebook, self.page)
+			self._buffer_signals = (
+				buffer.connect('end-insert-tree', self._hack_on_inserted_tree),
+			)
+
 			self.textview.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5413,7 +5439,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Finish hooking up the new page
 			self.set_cursor_pos(cursor)
 
-			self._buffer_signals = (
+			self._buffer_signals += (
 				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
 				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
 				buffer.connect_after('mark-set', self.do_mark_set),
@@ -5435,7 +5461,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
-		# but do not set page.moified False again when buffer goes
+		# but do not set page.modified False again when buffer goes
 		# back to un-modified. Reason is that we use the buffer modified
 		# state to track if we already requested the parse tree (see
 		# get_parsetree()) while page modified is used to track need
@@ -5515,6 +5541,33 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._parsetree = tree
 		self._showing_template = istemplate
 
+	def _hack_on_inserted_tree(self, *a):
+		if self.textview._object_widgets:
+			# Force resize of the scroll window, forcing a redraw to fix
+			# glitch in allocation of embedded obejcts, see isse #642
+			# Will add another timeout to rendering the page, increasing the
+			# priority breaks the hack though. Which shows the glitch is
+			# probably also happening in a drawing or resizing idle event
+			#
+			# Additional hook is needed for scrolling because re-rendering the
+			# objects changes the textview size and thus looses the scrolled
+			# position. Here idle didn't work so used a time-out with the
+			# potential risk that in some cases the timeout is to fast or to slow.
+
+			self._hack_label.show_all()
+			def scroll():
+				self.scroll_cursor_on_screen()
+				return False
+
+			def hide_hack():
+				self._hack_label.hide()
+				GLib.timeout_add(100, scroll)
+				return False
+
+			GLib.idle_add(hide_hack)
+		else:
+			self._hack_label.hide()
+
 	def on_insertedobjecttypemap_changed(self, *a):
 		self.save_changes()
 		buffer = self.textview.get_buffer()
@@ -5532,7 +5585,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		Effective read-only state seen in the C{self.readonly} attribute
 		is in fact C{True} (so read-only) when either the widget itself
 		OR the current page is read-only. So setting read-only to
-		C{False} here may not immediatly change C{self.readonly} if
+		C{False} here may not immediately change C{self.readonly} if
 		a read-only page is loaded.
 		'''
 		self._readonly_set = readonly
@@ -5643,15 +5696,23 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer.select_word()
 		return self.get_selection(format)
 
-	def replace_selection(self, text):
+	def replace_selection(self, text, autoselect=None):
+		assert autoselect in (None, 'word')
 		buffer = self.textview.get_buffer()
-		if buffer.get_has_selection():
-			start, end = buffer.get_selection_bounds()
+		if not buffer.get_has_selection():
+			if autoselect == 'word':
+				buffer.select_word()
+			else:
+				raise AssertionError
+
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			start, end = bounds
 			with buffer.user_action:
 				buffer.delete(start, end)
 				buffer.insert_at_cursor(''.join(text))
 		else:
-			raise AssertionError
+			buffer.insert_at_cursor(''.join(text))
 
 	def do_mark_set(self, buffer, iter, mark):
 		# Update menu items relative to cursor position
@@ -5776,14 +5837,17 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def do_populate_popup(self, menu):
 		buffer = self.textview.get_buffer()
 		if not buffer.get_has_selection():
-			iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
-			if iter.get_line_offset() == 1:
-				iter.backward_char() # if clicked on right half of image, iter is after the image
-			bullet = buffer.get_bullet_at_iter(iter)
-			if bullet and bullet in CHECKBOXES:
-				self._checkbox_do_populate_popup(menu)
-			else:
+			iter = self.textview._get_popup_menu_mark()
+			if iter is None:
 				self._default_do_populate_popup(menu)
+			else:
+				if iter.get_line_offset() == 1:
+					iter.backward_char() # if clicked on right half of image, iter is after the image
+				bullet = buffer.get_bullet_at_iter(iter)
+				if bullet and bullet in CHECKBOXES:
+					self._checkbox_do_populate_popup(menu, buffer, iter)
+				else:
+					self._default_do_populate_popup(menu)
 		else:
 			self._default_do_populate_popup(menu)
 
@@ -5839,9 +5903,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		###
 
 
-		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
+		iter = self.textview._get_popup_menu_mark()
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
+		if iter is None:
+			return
+
 		link = buffer.get_link_data(iter)
 		if link:
 			type = link_type(link['href'])
@@ -5939,7 +6006,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				item.set_sensitive(False)
 		elif type not in ('page', 'notebook', 'interwiki', 'file', 'image'): # urls etc.
 			# FIXME: for interwiki inspect final link and base
-			# open with menu beased on that url type
+			# open with menu based on that url type
 			item = Gtk.MenuItem.new_with_mnemonic(_('Open With...'))
 			menu.prepend(item)
 			submenu = OpenWithMenu(self, link['href'])
@@ -5971,9 +6038,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		menu.show_all()
 
-	def _checkbox_do_populate_popup(self, menu):
-		buffer = self.textview.get_buffer()
-		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
+	def _checkbox_do_populate_popup(self, menu, buffer, iter):
 		line = iter.get_line()
 
 		menu.prepend(Gtk.SeparatorMenuItem())
@@ -6152,7 +6217,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Image...'), menuhints='insert') # T: Menu item
 	def show_insert_image(self, file=None):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
-		@param file: optinal file to suggest in the dialog
+		@param file: optional file to suggest in the dialog
 		'''
 		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
 
@@ -6220,7 +6285,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
 
-		Inserts the links seperated by newlines. Intended e.g. for
+		Inserts the links separated by newlines. Intended e.g. for
 		drag-and-drop or copy-paste actions of e.g. files from a
 		file browser.
 
@@ -6578,7 +6643,9 @@ class LineSeparatorAnchor(InsertedObjectAnchor):
 		return LineSeparator()
 
 	def dump(self, builder):
-		builder.append(LINE, '-'*20) # FIXME: why do we need text here?
+		builder.start(LINE)
+		builder.data('-'*20) # FIXME: get rid of text here
+		builder.end(LINE)
 
 
 class TableAnchor(InsertedObjectAnchor):
@@ -7494,7 +7561,7 @@ class MoveTextDialog(Dialog):
 			newpage.parse('wiki', self.text) # FIXME: probably should use parsetree here instead
 			self.notebook.store_page(newpage)
 
-		# Delete text (after copy was succesfull..)
+		# Delete text (after copy was successfulll..)
 		bounds = list(map(self.buffer.get_iter_at_offset, self.bounds))
 		self.buffer.delete(*bounds)
 

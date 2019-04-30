@@ -15,7 +15,7 @@ from zim.notebook.page import shortest_unique_names
 
 from zim.gui.mainwindow import MainWindowExtension
 from zim.gui.widgets import encode_markup_text, gtk_popup_at_pointer
-from zim.gui.uiactions import UIActions, PAGE_ACTIONS
+from zim.gui.uiactions import UIActions, PAGE_ACCESS_ACTIONS
 from zim.gui.clipboard import \
 	INTERNAL_PAGELIST_TARGET_NAME, INTERNAL_PAGELIST_TARGET, \
 	pack_urilist
@@ -30,7 +30,7 @@ class PathBarPlugin(PluginClass):
 		'name': _('Path Bar'), # T: plugin name
 		'description': _('''\
 This plugin adds a "path bar" to the top of the window.
-This "path bar" can show the noteobok path for the current page,
+This "path bar" can show the notebook path for the current page,
 recent visited pages or recent edited pages.
 '''), # T: plugin description
 		'author': 'Jaap Karssenberg',
@@ -567,7 +567,7 @@ class PathBar(ScrolledHBox):
 			button.zim_path,
 			self.navigation,
 		)
-		uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+		uiactions.populate_menu_with_actions(PAGE_ACCESS_ACTIONS, menu)
 		gtk_popup_at_pointer(menu)
 		return True
 

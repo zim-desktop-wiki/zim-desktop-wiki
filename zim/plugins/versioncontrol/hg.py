@@ -101,7 +101,7 @@ class HGApplicationBackend(VCSApplicationBase):
 			params.append(path)
 		return self.run(params)
 
-	def diff(self, versions=None, path=None):
+	def diff(self, versions=None, file=None):
 		"""
 		Runs:
 			hg diff --git {{REVISION_ARGS}}
@@ -109,11 +109,11 @@ class HGApplicationBackend(VCSApplicationBase):
 			hg diff --git {{REVISION_ARGS}} {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
-		if path is None:
+		if file is None:
 			return self.pipe(['diff', '--git'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
-			return self.pipe(['diff', '--git', path] + revision_args)
+			return self.pipe(['diff', '--git', file] + revision_args)
 
 	def ignore(self, file_to_ignore_regexp):
 		"""

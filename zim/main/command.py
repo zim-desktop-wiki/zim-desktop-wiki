@@ -130,7 +130,7 @@ class GtkCommand(Command):
 	Gtk user interface.
 
 	If the C{run()} method returns a window, it will be added to the
-	application top level windows. And a C{Gtk.main} loop will run untill
+	application top level windows. And a C{Gtk.main} loop will run until
 	all windows are destroyed.
 
 	Commands derived from this class can be dispatched to the main application

@@ -9,21 +9,21 @@
 
 # You can add more InterWiki shortcuts here.
 
-wp        http://en.wikipedia.org/wiki/
-wpde      http://de.wikipedia.org/wiki/
+wp        https://en.wikipedia.org/wiki/
+wpde      https://de.wikipedia.org/wiki/
 wpmeta    http://meta.wikipedia.org/wiki/
 doku      http://wiki.splitbrain.org/
 freecache http://freecache.org/{NAME}
 rfc       http://www.ietf.org/rfc/rfc{NAME}.txt
-amazon    http://www.amazon.com/exec/obidos/ASIN/
+amazon    https://www.amazon.com/exec/obidos/ASIN/
 amazon.de http://www.amazon.de/exec/obidos/ASIN/{URL}/ballermannsyndic/
-amazon.uk http://www.amazon.co.uk/exec/obidos/ASIN/
+amazon.uk https://www.amazon.co.uk/exec/obidos/ASIN/
 google    http://www.google.com/search?q=
 google.de http://www.google.de/search?q=
 phpfn     http://www.php.net/{NAME}
 go        http://www.google.com/search?q={URL}&btnI=lucky
 cpan      http://search.cpan.org/search?query={URL}&mode=all
-perldoc   http://perldoc.perl.org/search.html?q=
+perldoc   https://perldoc.perl.org/search.html?q=
 
 
 # Standards from http://usemod.com/intermap.txt follow
@@ -42,14 +42,14 @@ BenefitsWiki http://www.benefitslink.com/cgi-bin/wiki.cgi?
 BridgesWiki http://c2.com/w2/bridges/
 C2find http://c2.com/cgi/wiki?FindPage&value=
 Cache http://www.google.com/search?q=cache:
-CLiki http://ww.telent.net/cliki/
+CLiki https://ww.telent.net/cliki/
 CmWiki http://www.ourpla.net/cgi-bin/wiki.pl?
 CreationMatters http://www.ourpla.net/cgi-bin/wiki.pl?
 DejaNews http://www.deja.com/=dnc/getdoc.xp?AN=
 DeWikiPedia http://www.wikipedia.de/wiki.cgi?
 Dictionary http://www.dict.org/bin/Dict?Database=*&Form=Dict1&Strategy=*&Query=
 DiveIntoOsx http://diveintoosx.org/
-DocBook http://docbook.org/wiki/moin.cgi/
+DocBook https://docbook.org/wiki/moin.cgi/
 DolphinWiki http://www.object-arts.com/wiki/html/Dolphin/
 EfnetCeeWiki http://purl.net/wiki/c/
 EfnetCppWiki http://purl.net/wiki/cpp/
@@ -75,7 +75,7 @@ KmWiki http://www.voght.com/cgi-bin/pywiki?
 KnowHow http://www2.iro.umontreal.ca/~paquetse/cgi-bin/wiki.cgi?
 LanifexWiki http://opt.lanifex.com/cgi-bin/wiki.pl?
 LegoWiki http://www.object-arts.com/wiki/html/Lego-Robotics/
-LinuxWiki http://www.linuxwiki.de/
+LinuxWiki https://www.linuxwiki.de/
 LugKR http://lug-kr.sourceforge.net/cgi-bin/lugwiki.pl?
 MathSongsWiki http://SeedWiki.com/page.cfm?wikiid=237&doc=
 MbTest http://www.usemod.com/cgi-bin/mbtest.pl?
@@ -100,14 +100,14 @@ SeaPig http://www.seapig.org/
 SeattleWireless http://seattlewireless.net/?
 SenseisLibrary http://senseis.xmp.net/?
 Shakti http://cgi.algonet.se/htbin/cgiwrap/pgd/ShaktiWiki/
-SourceForge http://sourceforge.net/
+SourceForge https://sourceforge.net/
 Squeak http://minnow.cc.gatech.edu/squeak/
 StrikiWiki http://ch.twi.tudelft.nl/~mostert/striki/teststriki.pl?
 SVGWiki http://www.protocol7.com/svg-wiki/default.asp?
 Tavi http://tavi.sourceforge.net/index.php?
 TmNet http://www.technomanifestos.net/?
 TMwiki http://www.EasyTopicMaps.com/?page=
-TWiki http://twiki.org/cgi-bin/view/
+TWiki https://twiki.org/cgi-bin/view/
 TwistedWiki http://purl.net/wiki/twisted/
 Unreal http://wiki.beyondunreal.com/wiki/
 UseMod http://www.usemod.com/cgi-bin/wiki.pl?

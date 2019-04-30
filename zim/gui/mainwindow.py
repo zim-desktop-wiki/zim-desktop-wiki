@@ -191,7 +191,6 @@ class MainWindow(Window):
 		self.uistate.setdefault('windowsize', (600, 450), check=value_is_coord)
 		self.uistate.setdefault('windowmaximized', False)
 		self.uistate.setdefault('active_tabs', None, tuple)
-		self.uistate.setdefault('show_menubar', True)
 		self.uistate.setdefault('show_toolbar', True)
 		self.uistate.setdefault('show_statusbar', True)
 		self.uistate.setdefault('readonly', False)
@@ -423,8 +422,6 @@ class MainWindow(Window):
 			self.menubar.hide()
 			self.menubar.set_no_show_all(True)
 
-		self.uistate['show_menubar'] = show
-
 	@toggle_action(_('_Toolbar'), init=True) # T: Menu item
 	def toggle_toolbar(self, show):
 		'''Menu action to toggle the visibility of the tool bar'''
@@ -611,7 +608,6 @@ class MainWindow(Window):
 		self.preferences.setdefault('toolbar_size', None,
 			(TOOLBAR_ICONS_TINY, TOOLBAR_ICONS_SMALL, TOOLBAR_ICONS_LARGE))
 
-		self.toggle_menubar(self.uistate['show_menubar'])
 		self.toggle_toolbar(self.uistate['show_toolbar'])
 		self.toggle_statusbar(self.uistate['show_statusbar'])
 
@@ -829,7 +825,7 @@ class MainWindow(Window):
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		record = self.history.get_previous()
 		if not record is None:
@@ -841,7 +837,7 @@ class MainWindow(Window):
 	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		record = self.history.get_next()
 		if not record is None:
@@ -850,7 +846,7 @@ class MainWindow(Window):
 	@action(_('_Parent'), '<alt>Up') # T: Menu item
 	def open_page_parent(self):
 		'''Menu action to open the parent page
-		@returns: C{True} if succesful
+		@returns: C{True} if successful
 		'''
 		namespace = self.page.namespace
 		if namespace:
@@ -860,7 +856,7 @@ class MainWindow(Window):
 	def open_page_child(self):
 		'''Menu action to open a child page. Either takes the last child
 		from the history, or the first child.
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		path = self.notebook.pages.lookup_by_pagename(self.page)
 			# Force refresh "haschildren" ...
@@ -875,7 +871,7 @@ class MainWindow(Window):
 	@action(_('_Previous in index'), accelerator='<alt>Page_Up') # T: Menu item
 	def open_page_previous(self):
 		'''Menu action to open the previous page from the index
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		path = self.notebook.pages.get_previous(self.page)
 		if not path is None:
@@ -884,7 +880,7 @@ class MainWindow(Window):
 	@action(_('_Next in index'), accelerator='<alt>Page_Down') # T: Menu item
 	def open_page_next(self):
 		'''Menu action to open the next page from the index
-		@returns: C{True} if succesful
+		@returns: C{True} if successfull
 		'''
 		path = self.notebook.pages.get_next(self.page)
 		if not path is None:
@@ -901,9 +897,11 @@ class MainWindow(Window):
 		to save any unsaved changes, then reload the page from disk.
 		'''
 		# TODO: this is depending on behavior of open_page(), should be more robust
+		pos = self.pageview.get_cursor_pos()
 		self.pageview.save_changes() # XXX
 		self.notebook.flush_page_cache(self.page)
 		self.open_page(self.notebook.get_page(self.page))
+		self.pageview.set_cursor_pos(pos)
 
 
 class BackLinksMenuButton(MenuButton):

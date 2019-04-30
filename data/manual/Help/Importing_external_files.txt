@@ -8,7 +8,7 @@ Creation-Date: 2010-04-03T23:35:33.816582
 Pages in Zim are stored as text files in normal folders and subfolders in your file system.
 The file name is used as page name. The hierarchical structure is similar to the one appearing in the index. The file names should contain **no blanks**; instead use underlines. So a filename can look like this: "Help_on_creating_notebooks.txt" or "HelpOnCreatingNotebooks.txt".
 
-Important: The content of the text file must be UTF-8 or ASCII encoded.  If you are not familiar with character encoding, please read http://en.wikipedia.org/wiki/Character_encoding. If files contain different encoding and zim tries to read them as UTF-8 an error will occur.
+Important: The content of the text file must be UTF-8 or ASCII encoded.  If you are not familiar with character encoding, please read https://en.wikipedia.org/wiki/Character_encoding. If files contain different encoding and zim tries to read them as UTF-8 an error will occur.
 
 Some word processors allow checking the encoding, e.g. with the small editor Mousepad load the file, then click Save as, then the button on the bottom right just above the save button should show UTF-8. If not and if you cannot save with this configuration Zim will not work. You can also use the Geany editor for the same purposes.
 

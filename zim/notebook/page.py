@@ -33,7 +33,7 @@ _pagename_invalid_char_re = re.compile(
 	')',
 re.UNICODE)
 	# This pattern matches a non-alphanumber at start or after the ':'
-	# seperator. It also matches any invalid character.
+	# separator. It also matches any invalid character.
 	# The UNICODE flag is used to make the alphanumber check international.
 
 
@@ -80,7 +80,7 @@ class Path(object):
 	of the page and is used instead of the actual page object by methods
 	that only need to know the name of the page. Path objects have no
 	internal state and are essentially normalized page names. It also
-	has a number of methods to compare page names and determing what
+	has a number of methods to compare page names and determining what
 	the parent pages are etc.
 
 	@ivar name: the full name of the path
