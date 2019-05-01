@@ -579,8 +579,8 @@ class SingleClickTreeView(Gtk.TreeView):
 				selection.unselect_all()
 
 			# Pop menu
-			menu = self.get_popup()
-			gtk_popup_at_pointer(menu, event)
+			self.menu = self.get_popup()
+			gtk_popup_at_pointer(self.menu, event)
 		else:
 			return Gtk.TreeView.do_button_press_event(self, event)
 
