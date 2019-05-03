@@ -476,8 +476,13 @@ class PageTreeView(BrowserTreeView):
 		logger.debug('Drag data requested, we have internal path "%s"', path.name)
 		data = pack_urilist((path.name,))
 		selectiondata.set(selectiondata.get_target(), 8, data)
+		self.__selectiondata__ = selectiondata # GNOME/pygobject/issues/104
 
 	def do_drag_data_received(self, dragcontext, x, y, selectiondata, info, time):
+		if self.__selectiondata__ is not None:
+			selectiondata = self.__selectiondata__ # GNOME/pygobject/issues/104
+			self.__selectiondata__ = None
+
 		assert selectiondata.get_target().name() == INTERNAL_PAGELIST_TARGET_NAME
 		names = unpack_urilist(selectiondata.get_data())
 		assert len(names) == 1
