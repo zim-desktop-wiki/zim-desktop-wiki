@@ -80,6 +80,5 @@ git push --tags
 
 Then:
 - Upload packages and html to website
-- Update PPA recipe
-- Email announcement
+- Email announcement to mailing list
 EOF
