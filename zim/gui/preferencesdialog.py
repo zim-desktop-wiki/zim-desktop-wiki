@@ -469,7 +469,7 @@ class KeyBindingsTab(Gtk.VBox):
 		GObject.GObject.__init__(self)
 		help = _(
 			'Key bindings can be changed by selecting the action in the list and pressing the new key binding.\n'
-			'To disable a keybinding select in the list below and use <tt>&lt;Backspace&gt;</tt>.'
+			'To disable a keybinding, select it in the list and use <tt>&lt;Backspace&gt;</tt>.'
 		) # T: help text in preferences dialog for modifying keybindings
 		self.add(ScrolledWindow(KeyBindingTreeView()))
 		self.pack_end(help_text_factory(help), False, True, 12)
