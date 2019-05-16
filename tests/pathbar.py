@@ -28,24 +28,79 @@ class TestPluginExtendsMainWindow(tests.TestCase):
 				self.assertIsInstance(pathbar, extension._klasses[ptype])
 
 
+class MyPathBar(PathBar):
+
+	def get_paths(self):
+		return [Path(n) for n in ['aaa', 'bbb', 'ccc']]
+
+
 class TestPathBar(tests.TestCase):
 
-	@tests.expectedFailure
-	def testActivatePage(self):
-		raise NotImplementedError
+	def testSetPage(self):
+		pathbar = MyPathBar(None, None, None)
 
-	@tests.expectedFailure
-	def testActivateContextMenu(self):
-		raise NotImplementedError
+		pathbar.set_page(Path('bbb'))
+		active = [b for b in pathbar.get_scrolled_children() if b.get_active()]
+		self.assertEqual(len(active), 1)
+		self.assertEqual(active[0].zim_path, Path('bbb'))
+
+		pathbar.set_page(Path('zzz'))
+		active = [b for b in pathbar.get_scrolled_children() if b.get_active()]
+		self.assertEqual(len(active), 0)
+
+	def testActivatePage(self):
+		navigation = tests.MockObject()
+		pathbar = MyPathBar(None, None, navigation)
+		button = pathbar.get_children()[2]
+		button.clicked()
+		self.assertEqual(navigation.mock_calls, [('open_page', Path('bbb'))])
+
+	def testContextMenu(self):
+		notebook = self.setUpNotebook()
+		navigation = tests.MockObject()
+		pathbar = MyPathBar(None, notebook, navigation)
+		button = pathbar.get_children()[2]
+		menu = pathbar.get_button_popup(button)
+		self.assertIsInstance(menu, Gtk.Menu)
+
+	def testResize(self):
+		pathbar = MyPathBar(None, None, None)
+		pathbar.show_all()
+		width, x = pathbar.get_preferred_width()
+		height, x = pathbar.get_preferred_height()
+		assert width > 0
+		assert height > 0
+		while width < 1000:
+			allocation = Gdk.Rectangle()
+			allocation.width = width
+			allocation.height = height
+			pathbar.size_allocate(allocation)
+			width += 10
+
+	def testScroll(self):
+		pathbar = MyPathBar(None, None, None)
+		pathbar.show_all()
+		width, x = pathbar.get_preferred_width()
+		height, x = pathbar.get_preferred_height()
+		allocation = Gdk.Rectangle()
+		allocation.width = width
+		allocation.height = height
+		pathbar.size_allocate(allocation)
+		count = 0
+		while pathbar.scroll(DIR_FORWARD):
+			pathbar.size_allocate(allocation)
+			count += 1
+		while pathbar.scroll(DIR_BACKWARD):
+			pathbar.size_allocate(allocation)
+			count += 1
+		while pathbar.scroll(DIR_FORWARD):
+			pathbar.size_allocate(allocation)
+			count += 1
+		self.assertTrue(count > 0)
 
 	@tests.expectedFailure
 	def testDragAndDropFromPathBar(self):
 		raise NotImplementedError
-
-	# TODO:
-	# Scroll left / right
-	# Allocate space
-	# ...
 
 
 class TestHistoryPathBar(tests.TestCase):

@@ -59,7 +59,7 @@ class TestBookmarksBar(tests.TestCase):
 		self.assertEqual(bar.paths, list(self.PATHS))
 
 		# Delete paths from the bar.
-		for i, button in enumerate(bar.scrolledbox.get_children()[2:]):
+		for i, button in enumerate(bar.scrolledbox.get_scrolled_children()):
 			path = button.zim_path
 			self.assertTrue(path in bar.paths)
 			bar.delete(button.zim_path)
@@ -197,14 +197,14 @@ class TestBookmarksBar(tests.TestCase):
 		for path in self.PATHS:
 			bar._add_new(path)
 		self.assertEqual(bar.paths, list(self.PATHS))
-		for i, button in enumerate(bar.scrolledbox.get_children()[2:]):
+		for i, button in enumerate(bar.scrolledbox.get_scrolled_children()):
 			self.assertEqual(self.PATHS[i], button.zim_path)
 			self.assertEqual(Path(self.PATHS[i]).basename, button.get_label())
 
 		# Show full page names.
 		bar.toggle_show_full_page_name()
 		self.assertEqual(bar.paths, list(self.PATHS))
-		for i, button in enumerate(bar.scrolledbox.get_children()[2:]):
+		for i, button in enumerate(bar.scrolledbox.get_scrolled_children()):
 			self.assertEqual(self.PATHS[i], button.zim_path)
 			self.assertEqual(self.PATHS[i], button.get_label())
 
