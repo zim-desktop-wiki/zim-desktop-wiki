@@ -821,8 +821,8 @@ class MainWindow(Window):
 
 	@action(
 		_('_Back'), verb_icon='gtk-go-back', # T: Menu item
-		accelerator='<alt>Left', alt_accelerator=('XF86Back' if os.name != 'nt' else None)
-	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
+		accelerator='<alt>Left', alt_accelerator='XF86Back'
+	)
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
 		@returns: C{True} if successfull
@@ -833,8 +833,8 @@ class MainWindow(Window):
 
 	@action(
 		_('_Forward'), verb_icon='gtk-go-forward', # T: Menu item
-		accelerator='<alt>Right', alt_accelerator=('XF86Forward' if os.name != 'nt' else None)
-	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
+		accelerator='<alt>Right', alt_accelerator='XF86Forward'
+	)
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
 		@returns: C{True} if successfull
