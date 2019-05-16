@@ -106,11 +106,17 @@ class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
 	def assertBufferEquals(self, buffer, wanted):
-		if not isinstance(wanted, str):
-			wanted = tree.tostring()
-		raw = '<zim-tree raw="True">' in wanted
-		tree = buffer.get_parsetree(raw=raw)
-		self.assertEqual(tree.tostring(), wanted)
+		if isinstance(wanted, (tuple, list)):
+			wanted = list(wanted)
+			tree = buffer.get_parsetree()
+			tokens = list(tree.iter_tokens())
+			self.assertEqual(tokens, wanted)
+		else:
+			if not isinstance(wanted, str):
+				wanted = tree.tostring()
+			raw = '<zim-tree raw="True">' in wanted
+			tree = buffer.get_parsetree(raw=raw)
+			self.assertEqual(tree.tostring(), wanted)
 
 	def assertSelection(self, buffer, line, offset, string):
 		self.assertCursorPosition(buffer, offset, line)
@@ -1417,6 +1423,8 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 			self.preferences[pref[0]] = pref[4]
 
 	def testTyping(self):
+		## TODO: break apart this test case, see e.g. TestDoEndOfLine
+
 		view = TextView(self.preferences)
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
@@ -1764,6 +1772,178 @@ Foo 123
 		textview.set_buffer(buffer)
 		menu = textview.get_popup()
 		self.assertIsInstance(menu, Gtk.Menu)
+
+
+class TestDoEndOfLine(tests.TestCase, TestCaseMixin):
+
+	@classmethod
+	def setUpClass(cls):
+		tests.TestCase.setUpClass()
+
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		cls.view = TextView(preferences)
+		cls.buffer = TextBuffer(None, None)
+		cls.view.set_buffer(cls.buffer)
+
+		press(cls.view, 'aaa\n')
+		start, end = cls.buffer.get_bounds()
+		assert cls.buffer.get_text(start, end, True) == 'aaa\n', 'Just checking test routines work'
+
+	def typeNewLine(self, line):
+		if line >= 0:
+			iter = self.buffer.get_iter_at_line(line)
+			if not iter.ends_line():
+				iter.forward_to_line_end()
+			self.buffer.place_cursor(iter)
+		elif line < 0:
+			iter = self.buffer.get_end_iter()
+			for i in range(line, -1):
+				iter.backward_line()
+			iter.forward_to_line_end()
+			self.buffer.place_cursor(iter)
+		press(self.view, '\n')
+
+	def assertInsertNewLine(self, input, wanted, line=-1):
+		self._assertInsertNewLine(input, wanted, line)
+		if line == -1:
+			# Ensure that end of buffer is not special
+			self._assertInsertNewLine(input + '\n', wanted + '\n', line=-2)
+
+	def _assertInsertNewLine(self, input, wanted, line=-1):
+		input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
+		wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
+		tree = tests.new_parsetree_from_xml(input)
+		self.buffer.set_parsetree(tree)
+		self.assertBufferEquals(self.buffer, input) # Ensure we got what we asked
+		self.typeNewLine(line)
+		#print("GOT:", self.buffer.get_parsetree(raw=True).tostring())
+		self.assertBufferEquals(self.buffer, wanted)
+
+	def testInsertNewLine(self):
+		# Simple test to ensure inserting newline works unaffected
+		self.assertInsertNewLine('aaa', 'aaa\n')
+		self.assertInsertNewLine('aaa\n', 'aaa\n\n')
+		self.assertInsertNewLine('aaa\nbbb', 'aaa\n\nbbb', line=0)
+
+	def testFormatHeading(self):
+		self.assertInsertNewLine('== Foo', '<h level="1">Foo</h>\n')
+		self.assertInsertNewLine('=== Foo', '<h level="2">Foo</h>\n')
+
+	def testFormatLine(self):
+		self.assertInsertNewLine('aaa\n-----', 'aaa\n<line>--------------------</line>\n')
+
+	def testAddBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="0"> </li>'
+		)
+
+	def testRemoveEmptyBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="0"> </li>',
+			'<li bullet="*" indent="0"> foo</li>\n\n'
+		)
+
+	def testAddSubBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="1"> </li>',
+		)
+
+	def testRemoveEmptySubBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n\n'
+		)
+
+	def testAddSubBulletAtTopOfSublist(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> </li>\n<li bullet="*" indent="1"> bar</li>',
+			line=0
+		)
+
+	def testAddSubBulletAtBottomOfSublist(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="0"> next</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="*" indent="1"> bar</li>\n<li bullet="*" indent="1"> </li>\n<li bullet="*" indent="0"> next</li>',
+			line=1
+		)
+
+	def testAddNumberedBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="1." indent="0"> foo</li>',
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="2." indent="0"> </li>',
+		)
+
+	def testRemoveEmptyNumberedBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="2." indent="0"> </li>',
+			'<li bullet="1." indent="0"> foo</li>\n\n',
+		)
+
+	def testAddNumberedSubBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>',
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>\n<li bullet="b." indent="1"> </li>',
+		)
+
+	def testRemoveEmptyNumberedSubBullet(self):
+		self.assertInsertNewLine(
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>\n<li bullet="b." indent="1"> </li>',
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>\n\n',
+		)
+
+	def testAddNumberedSubBulletAtTopOfSublist(self):
+		self.assertInsertNewLine(
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> bar</li>',
+			'<li bullet="1." indent="0"> foo</li>\n<li bullet="a." indent="1"> </li>\n<li bullet="b." indent="1"> bar</li>',
+			line=0
+		)
+
+	def testAddCheckbox(self):
+		self.assertInsertNewLine(
+			'<li bullet="unchecked-box" indent="0"> foo</li>',
+			'<li bullet="unchecked-box" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="0"> </li>',
+		)
+		self.assertInsertNewLine(
+			'<li bullet="checked-box" indent="0"> foo</li>',
+			'<li bullet="checked-box" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="0"> </li>',
+		)
+
+	def testRemoveEmptyCheckbox(self):
+		self.assertInsertNewLine(
+			'<li bullet="unchecked-box" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="0"> </li>',
+			'<li bullet="unchecked-box" indent="0"> foo</li>\n\n',
+		)
+
+	def testAddSubCheckbox(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>\n<li bullet="unchecked-box" indent="1"> </li>',
+		)
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="checked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="checked-box" indent="1"> bar</li>\n<li bullet="unchecked-box" indent="1"> </li>',
+		)
+
+	def testRemoveEmptySubCheckbox(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>\n<li bullet="unchecked-box" indent="1"> </li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>\n\n',
+		)
+
+	def testAddSubCheckboxAtTopOfSublist(self):
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> </li>\n<li bullet="unchecked-box" indent="1"> bar</li>',
+			line=0
+		)
+		self.assertInsertNewLine(
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="checked-box" indent="1"> bar</li>',
+			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> </li>\n<li bullet="checked-box" indent="1"> bar</li>',
+			line=0
+		)
 
 
 class TestPageView(tests.TestCase, TestCaseMixin):

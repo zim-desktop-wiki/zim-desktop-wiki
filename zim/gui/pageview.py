@@ -1204,6 +1204,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def insert_objectanchor_at_cursor(self, anchor):
 		iter = self.get_insert_iter()
+		self.insert_objectanchor(iter, anchor)
+
+	def insert_objectanchor(self, iter, anchor):
 		self.insert_child_anchor(iter, anchor)
 		self.emit('insert-objectanchor', anchor)
 
@@ -1218,7 +1221,7 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
-	def set_bullet(self, line, bullet):
+	def set_bullet(self, line, bullet, indent=None):
 		'''Sets the bullet type for a line
 
 		Replaces any bullet that may already be present on the line.
@@ -1234,6 +1237,8 @@ class TextBuffer(Gtk.TextBuffer):
 			NUMBER_BULLET
 			None
 		or a numbered bullet, like C{"1."}
+		@param indent: optional indent to set after inserting the bullet,
+		but before renumbering
 		'''
 		if bullet == NUMBER_BULLET:
 			indent = self.get_indent(line)
@@ -1245,6 +1250,8 @@ class TextBuffer(Gtk.TextBuffer):
 
 		with self.user_action:
 			self._replace_bullet(line, bullet)
+			if indent is not None:
+				self.set_indent(line, indent)
 			if bullet and is_numbered_bullet_re.match(bullet):
 				self.renumber_list(line)
 
@@ -4285,10 +4292,11 @@ class TextView(Gtk.TextView):
 			buffer.delete_mark(mark)
 		elif is_line(line):
 			with buffer.user_action:
+				offset = start.get_offset()
 				buffer.delete(start, end)
-				buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
-				buffer.insert_at_cursor('\n')
-		elif not buffer.get_bullet_at_iter(start) is None:
+				iter = buffer.get_iter_at_offset(offset)
+				buffer.insert_objectanchor(iter, LineSeparatorAnchor())
+		elif buffer.get_bullet_at_iter(start) is not None:
 			# we are part of bullet list
 			# FIXME should logic be handled by TextBufferList ?
 			ourhome = start.copy()
@@ -4303,6 +4311,7 @@ class TextView(Gtk.TextView):
 				buffer.set_indent(newline, None)
 			else:
 				# determine indent
+				start_sublist = False
 				newline = newlinestart.get_line()
 				indent = buffer.get_indent(start.get_line())
 				nextlinestart = newlinestart.copy()
@@ -4312,17 +4321,24 @@ class TextView(Gtk.TextView):
 					if nextindent >= indent:
 						# we are at the head of a sublist
 						indent = nextindent
+						start_sublist = True
 
 				# add bullet on new line
-				bullet = buffer.get_bullet_at_iter(start)
+				bulletiter = nextlinestart if start_sublist else start # Either look back or look forward
+				bullet = buffer.get_bullet_at_iter(bulletiter)
 				if bullet in (CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX):
 					bullet = UNCHECKED_BOX
 				elif is_numbered_bullet_re.match(bullet):
-					bullet = increase_list_bullet(bullet)
-				buffer.set_bullet(newline, bullet)
+					if not start_sublist:
+						bullet = increase_list_bullet(bullet)
+					# else copy number
+				else:
+					pass # Keep same bullet
 
-				# apply indent
-				buffer.set_indent(newline, indent)
+				buffer.set_bullet(newline, bullet, indent=indent)
+					# Set indent in one-go because setting before fails for
+					# end of buffer while setting after messes up renumbering
+					# of lists
 
 			buffer.update_editmode() # also updates indent tag
 
