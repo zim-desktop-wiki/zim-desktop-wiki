@@ -27,36 +27,26 @@ from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 # FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
 _is_heading = lambda iter: bool(list(filter(_is_heading_tag, iter.get_tags())))
 
-def find_heading(buffer, heading):
-	'''Find a heading
+def find_heading(buffer, n):
+	'''Find the C{n}th heading in the buffer
 	@param buffer: the C{Gtk.TextBuffer}
-	@param heading: text of the heading
-	@returns: a C{Gtk.TextIter} for the new cursor position or C{None}
+	@param n: an integer
+	@returns: a C{Gtk.TextIter} for the line start of the heading or C{None}
 	'''
-	regex = "^%s$" % re.escape(heading)
-	with buffer.tmp_cursor():
-		if buffer.finder.find(regex, FIND_REGEX):
-			iter = buffer.get_insert_iter()
-			start = iter.get_offset()
-		else:
-			return None
-
+	iter = buffer.get_start_iter()
+	i = 1 if _is_heading(iter) else 0
+	while i < n:
+		iter.forward_line()
 		while not _is_heading(iter):
-			if buffer.finder.find_next():
-				iter = buffer.get_insert_iter()
-				if iter.get_offset() == start:
-					return None # break infinite loop
-			else:
+			if not iter.forward_line():
 				return None
-
-		if _is_heading(iter):
-			return iter
-		else:
-			return None
+		i += 1
+	return iter
 
 
-def select_heading(buffer, heading):
-	iter = find_heading(buffer, heading)
+def select_heading(buffer, n):
+	'''Select the C{n}th heading in the buffer'''
+	iter = find_heading(buffer, n)
 	if iter:
 		buffer.place_cursor(iter)
 		buffer.select_line()
@@ -139,6 +129,30 @@ class ToCTreeModel(Gtk.TreeStore):
 	def __init__(self):
 		Gtk.TreeStore.__init__(self, str) # TEXT_COL
 		self.is_empty = True
+		self.hidden_h1 = False
+
+	def walk(self, iter=None):
+		if iter is not None:
+			yield iter
+			child = self.iter_children(iter)
+		else:
+			child = self.get_iter_first()
+
+		while child:
+			if self.iter_has_child(child):
+				for i in self.walk(child):
+					yield i
+			else:
+				yield child
+			child = self.iter_next(child)
+
+	def get_nth_heading(self, path):
+		n = 1 if self.hidden_h1 else 0
+		for iter in self.walk():
+			n += 1
+			if self.get_path(iter) == path:
+				break
+		return n
 
 	def populate(self, parsetree, show_h1):
 		self.clear()
@@ -152,6 +166,9 @@ class ToCTreeModel(Gtk.TreeStore):
 		and headings[0][0] == 1 \
 		and all(h[0] > 1 for h in headings[1:]):
 			headings.pop(0) # do not show first heading
+			self.hidden_h1 = True
+		else:
+			self.hidden_h1 = False
 
 		self.is_empty = not bool(headings)
 
@@ -220,11 +237,11 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		or C{None}.
 		'''
 		model = self.treeview.get_model()
-		text = model[path][TEXT_COL]
+		n = model.get_nth_heading(path)
 
 		textview = self.pageview.textview
 		buffer = textview.get_buffer()
-		if select_heading(buffer, text):
+		if select_heading(buffer, n):
 			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 			return True
 		else:
@@ -236,7 +253,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		@param path: the C{Gtk.TreePath} for the heading of the section
 		'''
 		model = self.treeview.get_model()
-		starttext = model[path][TEXT_COL]
+		n = model.get_nth_heading(path)
 
 		nextpath = Gtk.TreePath(path[:-1] + [path[-1] + 1])
 		try:
@@ -248,14 +265,14 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 		textview = self.pageview.textview
 		buffer = textview.get_buffer()
-		start = find_heading(buffer, starttext)
-		if endtext:
-			end = find_heading(buffer, endtext)
-		else:
+		start = find_heading(buffer, n)
+		if start is None:
+			return
+		end = find_heading(buffer, n + 1)
+		if end is None:
 			end = buffer.get_end_iter()
 
-		if start and end:
-			buffer.select_range(start, end)
+		buffer.select_range(start, end)
 
 	def on_populate_popup(self, treeview, menu):
 		model, paths = treeview.get_selection().get_selected_rows()
@@ -295,7 +312,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		seen = set()
 		for path in paths:
 			iter = model.get_iter(path)
-			for i in self._walk(model, iter):
+			for i in model.walk(iter):
 				p = model.get_path(i)
 				key = tuple(p)
 				if not key in seen:
@@ -339,7 +356,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 			# inconsistent - this should result in an offset being applied
 			# But need to check actual heading tags being used to know for sure
 			iter = model.get_iter(path)
-			for i in self._walk(model, iter):
+			for i in model.walk(iter):
 				p = model.get_path(i)
 				key = tuple(p)
 				if not key in seen:
@@ -353,15 +370,6 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 		self.load_page(self.pageview.page)
 		return True
-
-	def _walk(self, model, iter):
-		# yield iter and all its (grand)children
-		yield iter
-		child = model.iter_children(iter)
-		while child:
-			for i in self._walk(model, child):
-				yield i
-			child = model.iter_next(child)
 
 	def _format(self, path, level):
 		assert level > 0 and level < 7

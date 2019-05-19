@@ -167,11 +167,11 @@ sdfsdf
 		# Test promote / demote multiple selected
 		wanted = [
 			(1, 'bar'),
-			(2, 'baz'),
-			(3, 'A'),
-			(3, 'B'),
-			(3, 'C'),
-			(2, 'dus'),
+			(2, 'baz'),	# (1,)	demote 1 -> 2
+			(3, 'A'),	# (1,0) demote 2 -> 3
+			(3, 'B'),	# (1,1) demote 2 -> 3
+			(3, 'C'),	# (1,2)	demote 2 -> 3
+			(2, 'dus'),	# (2,)	demote 1 -> 2
 		]
 
 		widget.treeview.get_selection().unselect_all()
