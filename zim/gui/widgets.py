@@ -312,12 +312,22 @@ def gtk_notebook_get_active_page(nb):
 
 
 def gtk_popup_at_pointer(menu, event=None, button=3):
-	# Introduced in Gtk 3.22, so wrap our own to be compatible for 3.18 and up
+	'''Introduced in Gtk 3.22, so wrap our own to be compatible for 3.18 and up'''
 	if hasattr(menu, 'popup_at_pointer'):
 		menu.popup_at_pointer(event)
 	else:
-		time = event.time if event else 0
-		menu.popup(None, None, None, None, button, time)
+		_gtk_popup_at_pointer_backward(menu, event, button)
+
+
+_ref_cache = {}
+
+def _gtk_popup_at_pointer_backward(menu, event, button):
+	# Testing shows that Gtk 3.18 does not show the menu if we don't keep a
+	# ref (!?) - see issue #813
+	_ref_cache[id(menu)] = menu
+	menu.connect('destroy', lambda m: _ref_cache.pop(id(m)))
+	time = event.time if event else 0
+	menu.popup(None, None, None, None, button, time)
 
 
 def rotate_pixbuf(pixbuf):
