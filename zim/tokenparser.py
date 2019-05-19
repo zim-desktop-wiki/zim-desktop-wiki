@@ -16,6 +16,37 @@ from zim.formats import NUMBEREDLIST, BULLETLIST, LISTITEM, PARAGRAPH
 TEXT = 'T'
 END = '/'
 
+
+class EndOfTokenListError(AssertionError):
+	pass
+
+
+def collect_untill_end_token(token_iter, end_token):
+	nesting = 0
+	tokens = []
+	for t in token_iter:
+		if t[0] == end_token:
+			nesting += 1
+		elif t == (END, end_token):
+			nesting -= 1
+			if nesting < 0:
+				break
+
+		tokens.append(t)
+	else:
+		raise EndOfTokenListError('Did not find "%s" closing tag' % end_token)
+
+	return tokens
+
+
+def tokens_to_text(token_iter):
+	text = []
+	for t in token_iter:
+		if t[0] == TEXT:
+			text.append(t[1])
+	return ''.join(text)
+
+
 class TokenBuilder(Builder):
 
 	def __init__(self):

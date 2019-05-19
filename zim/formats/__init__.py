@@ -335,7 +335,7 @@ class ParseTree(object):
 
 		tb = TokenBuilder()
 		self.visit(tb)
-		return tb.tokens
+		return iter(tb.tokens)
 
 	def iter_href(self):
 		'''Generator for links in the text

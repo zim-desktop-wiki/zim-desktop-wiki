@@ -158,6 +158,7 @@ sdfsdf
 		self.assertTrue(widget.on_demote())
 		self.assertEqual(get_tree(), wanted)
 
+		widget.treeview.expand_all()
 		widget.treeview.get_selection().unselect_all()
 		widget.treeview.get_selection().select_path((0, 0)) # "baz"
 		self.assertFalse(widget.on_demote())
@@ -174,6 +175,7 @@ sdfsdf
 			(2, 'dus'),	# (2,)	demote 1 -> 2
 		]
 
+		widget.treeview.expand_all()
 		widget.treeview.get_selection().unselect_all()
 		for path in (
 			(1,), (1, 0), (1, 1), (1, 2), (2,) # "baz" -> "dus"
@@ -183,6 +185,7 @@ sdfsdf
 		self.assertTrue(widget.on_demote())
 		self.assertEqual(get_tree(), wanted)
 
+		widget.treeview.expand_all()
 		widget.treeview.get_selection().unselect_all()
 		for path in (
 			(0, 0), (0, 0, 0), (0, 0, 1), (0, 0, 2), (0, 1) # "baz" -> "dus"
@@ -206,5 +209,174 @@ sdfsdf
 			widget.on_page_changed(window, page)
 			widget.on_store_page(notebook, page)
 
-# TODO check selecting heading in actual PageView
-# especially test selecting a non-existing item to check we don't get infinite loop
+
+def get_headings(model, parent=None, level=1):
+	headings = []
+	iter = model.iter_children(parent)
+	while iter:
+		text = model[iter][0]
+		children = get_headings(model, iter, level+1) if model.iter_has_child(iter) else []
+		headings.append((level, text, children))
+		iter = model.iter_next(iter)
+	return headings
+
+
+class TestToCModel(tests.TestCase):
+
+	def testGetNthHeadingWithH1(self):
+		headings = [
+			(1, 'a', [
+				(2, 'b1', []),
+				(2, 'b2', [
+					(3, 'c1', []),
+					(3, 'c2', []),
+					(3, 'c3', []),
+				]),
+				(2, 'b3', []),
+			]),
+		]
+
+		model = ToCTreeModel()
+		model.update(headings, show_h1=True)
+		for path, n in (
+			((0,),    1),
+			((0,0),   2),
+			((0,1),   3),
+			((0,1,0), 4),
+			((0,1,1), 5),
+			((0,1,2), 6),
+			((0,2),   7)
+		):
+			path = Gtk.TreePath(path)
+			self.assertEqual(model.get_nth_heading(path), n)
+
+		model.update(headings, show_h1=False)
+		for path, n in (
+			((0,),  2),
+			((1,),  3),
+			((1,0), 4),
+			((1,1), 5),
+			((1,2), 6),
+			((2),   7)
+		):
+			path = Gtk.TreePath(path)
+			self.assertEqual(model.get_nth_heading(path), n)
+
+	def testGetNthHeadingWithoutH1(self):
+		headings = [
+			(1, 'b1', []),
+			(1, 'b2', [
+				(2, 'c1', []),
+				(2, 'c2', []),
+				(2, 'c3', []),
+			]),
+			(1, 'b3', []),
+		]
+
+		model = ToCTreeModel()
+		model.update(headings, show_h1=True)
+		for path, n in (
+			((0,),  1),
+			((1,),  2),
+			((1,0), 3),
+			((1,1), 4),
+			((1,2), 5),
+			((2),   6)
+		):
+			path = Gtk.TreePath(path)
+			self.assertEqual(model.get_nth_heading(path), n)
+
+		model.update(headings, show_h1=False)
+		for path, n in (
+			((0,),  1),
+			((1,),  2),
+			((1,0), 3),
+			((1,1), 4),
+			((1,2), 5),
+			((2),   6)
+		):
+			path = Gtk.TreePath(path)
+			self.assertEqual(model.get_nth_heading(path), n)
+
+	def testSimpleUpdate(self):
+		headings = [
+			(1, 'a', []),
+			(1, 'b', []),
+			(1, 'c', []),
+		]
+		model = ToCTreeModel()
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+		headings = [
+			(1, 'a', []),
+			(1, 'bbb', []),
+			(1, 'c', []),
+		]
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+
+	def testUpdateShorter(self):
+		headings = [
+			(1, 'a', []),
+			(1, 'b', []),
+			(1, 'c', []),
+		]
+		model = ToCTreeModel()
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+		headings = [
+			(1, 'a', []),
+		]
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+
+	def testUpdateLonger(self):
+		headings = [
+			(1, 'a', []),
+			(1, 'b', []),
+			(1, 'c', []),
+		]
+		model = ToCTreeModel()
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+		headings = [
+			(1, 'a', []),
+			(1, 'b', []),
+			(1, 'c', []),
+			(1, 'd', []),
+			(1, 'e', []),
+		]
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+
+	def testUpdateWithChildren(self):
+		headings = [
+			(1, 'a', [
+				(2, 'a1', []),
+				(2, 'a2', []),
+				(2, 'a3', []),
+			]),
+			(1, 'b', [
+				(2, 'b1', []),
+				(2, 'b2', []),
+				(2, 'b3', []),
+			]),
+			(1, 'c', []),
+		]
+		model = ToCTreeModel()
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)
+		headings = [
+			(1, 'a', []),	# remove
+			(1, 'b', [		# change
+				(2, 'b1', []),
+				(2, 'bbbb', []),
+				(2, 'b3', []),
+			]),
+			(1, 'c', [		# insert
+				(2, 'c1', []),
+				(2, 'c2', []),
+			]),
+		]
+		model.update(headings, show_h1=True)
+		self.assertEqual(get_headings(model), headings)

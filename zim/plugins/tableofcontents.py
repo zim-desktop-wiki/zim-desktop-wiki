@@ -16,6 +16,7 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 from zim.plugins import PluginClass
 from zim.signals import ConnectorMixin, DelayedCallback
 from zim.notebook import Path
+from zim.tokenparser import collect_untill_end_token, tokens_to_text
 from zim.formats import HEADING
 
 from zim.gui.pageview import PageViewExtension
@@ -53,6 +54,26 @@ def select_heading(buffer, n):
 		return True
 	else:
 		return False
+
+
+def get_headings(parsetree):
+	tokens = parsetree.iter_tokens()
+	stack = [(0, None, [])]
+	for t in tokens:
+		if t[0] == HEADING:
+			level = int(t[1]['level'])
+			text = tokens_to_text(
+						collect_untill_end_token(tokens, HEADING) )
+			assert level > 0 # just to be sure
+			while stack[-1][0] >= level:
+				stack.pop()
+			node = (level, text, [])
+			stack[-1][2].append(node)
+			stack.append(node)
+		else:
+			pass
+
+	return stack[0][-1]
 
 
 class ToCPlugin(PluginClass):
@@ -123,13 +144,16 @@ class ToCTreeView(BrowserTreeView):
 		self.append_column(column)
 
 
-
 class ToCTreeModel(Gtk.TreeStore):
 
 	def __init__(self):
 		Gtk.TreeStore.__init__(self, str) # TEXT_COL
 		self.is_empty = True
 		self.hidden_h1 = False
+
+	def clear(self):
+		self.is_empty = True
+		Gtk.TreeStore.clear(self)
 
 	def walk(self, iter=None):
 		if iter is not None:
@@ -154,34 +178,66 @@ class ToCTreeModel(Gtk.TreeStore):
 				break
 		return n
 
-	def populate(self, parsetree, show_h1):
-		self.clear()
-		headings = []
-		for heading in parsetree.findall(HEADING):
-			headings.append((int(heading.attrib['level']), heading.gettext()))
-
-
+	def update(self, headings, show_h1):
 		if not show_h1 \
-		and headings \
-		and headings[0][0] == 1 \
-		and all(h[0] > 1 for h in headings[1:]):
-			headings.pop(0) # do not show first heading
+		and len(headings) == 1 \
+		and headings[0][0] == 1:
+			# do not show first heading
+			headings = headings[0][2]
 			self.hidden_h1 = True
 		else:
 			self.hidden_h1 = False
 
-		self.is_empty = not bool(headings)
+		if not headings:
+			self.clear()
+			return
 
-		stack = [(-1, None)]
-		for level, text in headings:
-			assert level > -1 # just to be sure
-			while stack[-1][0] >= level:
-				stack.pop()
-			parent = stack[-1][1]
+		if self.is_empty:
+			self._insert_headings(headings)
+		else:
+			self._update_headings(headings)
+
+		self.is_empty = False
+
+	def _update_headings(self, headings, parent=None):
+		iter = self.iter_children(parent)
+		for level, text, children in headings:
+			if iter:
+				# Compare to model
+				self[iter] = (text,)
+				if children:
+					if self.iter_has_child(iter):
+						self._update_headings(children, iter)
+					else:
+						self._insert_headings(children, iter)
+				elif self.iter_has_child(iter):
+					self._clear_children(iter)
+				else:
+					pass
+
+				iter = self.iter_next(iter)
+			else:
+				# Model ran out
+				myiter = self.append(parent, (text,))
+				if children:
+					self._insert_headings(children, myiter)
+
+		# Remove trailing items
+		if iter:
+			while self.remove(iter):
+				pass
+
+	def _clear_children(self, parent):
+		iter = self.iter_children(parent)
+		if iter:
+			while self.remove(iter):
+				pass
+
+	def _insert_headings(self, headings, parent=None):
+		for level, text, children in headings:
 			iter = self.append(parent, (text,))
-			stack.append((level, iter))
-
-
+			if children:
+				self._insert_headings(children, iter)
 
 
 class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
@@ -214,6 +270,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 	def on_page_changed(self, pageview, page):
 		self.load_page(page)
+		self.treeview.expand_all()
 
 	def on_store_page(self, notebook, page):
 		if page == self.pageview.page:
@@ -225,8 +282,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		if tree is None:
 			model.clear()
 		else:
-			model.populate(tree, self.show_h1)
-		self.treeview.expand_all()
+			model.update(get_headings(tree), self.show_h1)
 		self.emit('changed')
 
 	def on_heading_activated(self, treeview, path, column):
