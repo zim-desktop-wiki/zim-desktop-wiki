@@ -12,10 +12,24 @@ from zim.newfs.mock import os_native_path
 
 class TestFunctions(tests.TestCase):
 
-	def runTest(self):
+	def testEncodeDecode(self):
 		self.assertEqual(encode_markup_text('<foo> &bar'), '&lt;foo&gt; &amp;bar')
 		self.assertEqual(decode_markup_text('&lt;foo&gt; &amp;bar'), '<foo> &bar')
 		self.assertEqual(decode_markup_text('&lt;foo&gt; <b>&amp;bar</b>'), '<foo> &bar')
+
+	# FIXME: Can't run this without pointer over Gtk window
+	#def testGtkMenuPopup(self):
+	#	menu = Gtk.Menu()
+	#	gtk_popup_at_pointer(menu)
+	#	menu.destroy()
+
+	def testGtkMenuPopupBackward(self):
+		from zim.gui.widgets import _gtk_popup_at_pointer_backward, _ref_cache
+		menu = Gtk.Menu()
+		_gtk_popup_at_pointer_backward(menu, None, 3)
+		self.assertIn(id(menu), _ref_cache)
+		menu.destroy()
+		self.assertNotIn(id(menu), _ref_cache)
 
 
 class TestInputEntry(tests.TestCase):
