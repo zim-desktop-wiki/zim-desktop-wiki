@@ -866,10 +866,16 @@ class ZimApplication(object):
 			dir = zim.fs.get_tmpdir()
 			err_stream = open(os.path.join(dir.path, "zim.log"), "w")
 
+			# Try to flush standards out and error, if there
+			for pipe in (sys.stdout, sys.stderr):
+				if pipe is not None:
+					try:
+						pipe.flush()
+					except OSError:
+						pass
+
 			# First try to dup handles for anyone who still has a reference
 			# if that fails, just set them (maybe not real files in the first place)
-			sys.stdout.flush()
-			sys.stderr.flush()
 			try:
 				os.dup2(err_stream.fileno(), sys.stdout.fileno())
 				os.dup2(err_stream.fileno(), sys.stderr.fileno())
