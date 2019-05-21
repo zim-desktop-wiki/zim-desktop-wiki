@@ -28,7 +28,7 @@ from zim.gui.clipboard import \
 logger = logging.getLogger('zim.gui')
 
 
-MAX_BUTTON_WIDTH = 200 # Prevent single button to fill whole screen
+MAX_BUTTON_WIDTH = 250 # Prevent single button to fill whole screen
 MIN_BUTTON_WIDTH = 50 # Prevent buttons smaller than ellipsize allows
 
 
@@ -286,7 +286,9 @@ class ScrolledHBox(Gtk.HBox):
 			self._scroll_timeout = None
 
 	def do_get_preferred_width(self):
-		widths = [b.get_preferred_width()[1] for b in self.get_scrolled_children()]
+		widths = [
+			min(b.get_preferred_width()[1], MAX_BUTTON_WIDTH)
+				for b in self.get_scrolled_children()]
 		border = 2 * self.get_border_width()
 		if not widths:
 			return border, border
@@ -322,7 +324,9 @@ class ScrolledHBox(Gtk.HBox):
 
 		border = self.get_border_width()
 
-		widths = [c.get_preferred_size()[1].width for c in children]
+		widths = [
+			min(b.get_preferred_width()[1], MAX_BUTTON_WIDTH)
+				for b in children]
 		total = reduce(int.__add__, widths) + 2 * border
 		if self._state and self._state[0] == allocation.width:
 			show_scroll_buttons = self._state[1]
