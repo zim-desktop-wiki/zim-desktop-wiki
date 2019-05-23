@@ -5,6 +5,11 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.71.1 - Thu 23 May 2019
+* Fix robustness for OSError on process startup
+* Fix for popup menu on page index for Gtk < 3.22
+* Updated translations
+
 ##  0.71.0 - Thu 25 Apr 2019
 * Fix "spill over" between translation files
 * Fix use of popup menus
