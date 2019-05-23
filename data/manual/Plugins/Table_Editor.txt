@@ -8,7 +8,7 @@ This plugin allows you to integrate a table into the zim editor.
 **Dependencies:** This plugin has no additional dependencies
 
 ===== Options =====
-Before you can use this plugin, it must be enabled in **Insert->Preferences** on the tab Plugins.
+Before you can use this plugin, it must be enabled in **Edit->Preferences** on the tab Plugins.
 Here you can configure it with these options:
 
 **Show helper toolbar**: Displays a menu with buttons beneath the table, if it is selected.
