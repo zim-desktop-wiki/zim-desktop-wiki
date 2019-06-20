@@ -105,6 +105,26 @@ class TestLines(tests.TestCase):
 class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
+	def get_buffer(self, input=None):
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		if input is not None:
+			self.set_buffer(buffer, input)
+		return buffer
+
+	def set_buffer(self, buffer, input):
+		if isinstance(input, str):
+			if not input.startswith('<?xml'):
+				input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
+			tree = tests.new_parsetree_from_xml(input)
+		elif isinstance(input, (list, tuple)):
+			raise NotImplementedError('Support tokens')
+		else:
+			tree = input
+
+		buffer.set_parsetree(tree)
+
 	def assertBufferEquals(self, buffer, wanted):
 		if isinstance(wanted, (tuple, list)):
 			wanted = list(wanted)
@@ -112,7 +132,10 @@ class TestCaseMixin(object):
 			tokens = list(tree.iter_tokens())
 			self.assertEqual(tokens, wanted)
 		else:
-			if not isinstance(wanted, str):
+			if isinstance(wanted, str):
+				if not wanted.startswith('<?xml'):
+					wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
+			else:
 				wanted = tree.tostring()
 			raw = '<zim-tree raw="True">' in wanted
 			tree = buffer.get_parsetree(raw=raw)
@@ -578,6 +601,33 @@ C
 <zim-tree>
 <p><ul><li bullet="*">item 1item 2</li></ul></p>
 </zim-tree>''')
+
+	def testFormatHeading(self):
+		buffer = self.get_buffer('foo bar\n')
+		for lvl in range(1, 7):
+			buffer.select_line(0)
+			buffer.toggle_textstyle('h%i' % lvl)
+			self.assertBufferEquals(buffer, '<h level="%i">foo bar</h>\n' % lvl)
+
+	def testFormatHeadingWithFormatting(self):
+		buffer = self.get_buffer('foo <strong>bar</strong> <link href="Foo">Foo</link>\n')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('h2')
+		self.assertBufferEquals(buffer, '<h level="2">foo bar Foo</h>\n')
+
+	def testFormatHeadingOnIndent(self):
+		buffer = self.get_buffer('<div indent="2">foo bar</div>\n')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('h2')
+		self.assertBufferEquals(buffer, '<h level="2">foo bar</h>\n')
+
+	def testFormatHeadingOnList(self):
+		buffer = self.get_buffer('<li bullet="1."> foo bar</li>\n')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('h2')
+		self.assertBufferEquals(buffer, '<h level="2" /><h level="2">1. foo bar</h>\n')
+				# FIXME: first <h level="2" /> should not be there, but does not seem to affect user behavior
+				#        maybe removed by refactoring serialization
 
 
 

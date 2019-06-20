@@ -1624,6 +1624,9 @@ class TextBuffer(Gtk.TextBuffer):
 						tag = self.get_tag_table().lookup('style-' + name)
 						if not self.whole_range_has_tag(tag, start, end):
 							start, end = self._fix_pre_selection(start, end)
+				elif name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+					for line in range(start.get_line(), end.get_line()+1):
+						self._remove_indent(line)
 
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
@@ -1912,13 +1915,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _set_indent(self, line, level, bullet, dir=None):
 		# Common code between set_indent() and update_indent_tag()
+		self._remove_indent(line)
+
 		start, end = self.get_line_bounds(line)
-
-		tags = list(filter(_is_indent_tag, start.get_tags()))
-		if tags:
-			assert len(tags) == 1, 'BUG: overlapping indent tags'
-			self.remove_tag(tags[0], start, end)
-
 		if list(filter(_is_heading_tag, start.get_tags())):
 			return level == 0 # False if you try to indent a header
 
@@ -1931,6 +1930,11 @@ class TextBuffer(Gtk.TextBuffer):
 
 		self.update_editmode() # also updates indent tag
 		return True
+
+	def _remove_indent(self, line):
+		start, end = self.get_line_bounds(line)
+		for tag in filter(_is_indent_tag, start.get_tags()):
+			self.remove_tag(tag, start, end)
 
 	def indent(self, line, interactive=False):
 		'''Increase the indent for a given line
@@ -2501,15 +2505,16 @@ class TextBuffer(Gtk.TextBuffer):
 
 		return tree
 
-	def select_line(self):
-		'''Selects the current line
-
+	def select_line(self, line=None):
+		'''Selects a line
+		@param line: line number; if C{None} current line will be selected
 		@returns: C{True} when successful
 		'''
 		# Differs from get_line_bounds because we exclude the trailing
 		# line break while get_line_bounds selects these
-		iter = self.get_iter_at_mark(self.get_insert())
-		line = iter.get_line()
+		if line is None:
+			iter = self.get_iter_at_mark(self.get_insert())
+			line = iter.get_line()
 		return self.select_lines(line, line)
 
 	def select_lines(self, first, last):
@@ -6493,9 +6498,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if format != buffer.get_textstyle():
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-			if ishead:
-				line = buffer.get_insert_iter().get_line()
-				buffer.set_indent(line, 0)
 			selected = self.autoselect(selectline=ishead)
 
 		buffer.toggle_textstyle(format)
