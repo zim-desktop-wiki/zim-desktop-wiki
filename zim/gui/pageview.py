@@ -1330,61 +1330,55 @@ class TextBuffer(Gtk.TextBuffer):
 		of a numbered list. Typically there is no need to call this
 		method directly, but it is exposed for testing.
 
+		It implements the following rules:
+
+		- If there is a numered list item above on the same level, number down
+		  from there
+		- Else if the line itself has a numbered bullet (and thus is top of a
+		  numbered list) number down
+		- Stop renumbering at the end of the list, or when a non-numeric bullet
+		  is encountered on the same list level
+
 		@param line: line number to start updating
 		'''
-		# The rules implemented here are:
-		#
-		# 1. If this is top of the list, number down
-		# 2. Otherwise look at bullet above and number down from there
-		#    (this means whatever the user typed doesn't really matter)
-		# 3. If above bullet is non-number bullet, replace the numbered
-		#    item with that bullet (for checkboxes always an open
-		#    checkbox is used.)
-		#
-		# Note that the bullet on the line we look at does not have
-		# to be a numbered bullet. The one above or below may still be
-		# number. And vice versa
-		#
-		# TODO - should this go into code for TextBufferList ??
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
-		if bullet is None:
+		if bullet is None or not is_numbered_bullet_re.match(bullet):
 			return
 
 		_, prev = self._search_bullet(line, indent, -1)
-		if prev:
-			newbullet = increase_list_bullet(prev) or prev
+		if prev and is_numbered_bullet_re.match(prev):
+			newbullet = increase_list_bullet(prev)
 		else:
 			newbullet = bullet
 
-		if is_numbered_bullet_re.match(newbullet) \
-		or is_numbered_bullet_re.match(bullet):
-			self._renumber_list(line, indent, newbullet)
-		# else we had a normal bullet, and no numbered bullet above
+		self._renumber_list(line, indent, newbullet)
 
 	def renumber_list_after_indent(self, line, old_indent):
 		'''Like L{renumber_list()}, but more complex rules because indent
 		change has different heuristics.
-		'''
-		# The rules implemented here are:
-		#
-		# 1. If this is now middle of a list (above item is same or
-		#    more indenting) look above and renumber
-		# 2. If this is now top of a sublist (above item is lower
-		#    indent) look _below_ and copy bullet found there then
-		#    number down
-		# 3. If this is the top of a new sublist (no item below)
-		#    switch bullet style (numbers vs letters) and reset count
-		# 4. If this is the top of the list (no bullet above) don't
-		#    need to do anything
-		#
-		# ALSO look at previous level where item went missing,
-		# look at above item at that level and number downward
 
+		It implements the following rules:
+
+		- If the bullet type is a checkbox, never change it (else information is
+		  lost on the checkbox state)
+		- Check for bullet style of the item above on the same level, else
+		  the item below on the same level
+		- If the bullet became part of a numbered list, renumber that list
+		  either from the item above, or copying starting number from below
+		- If the bullet became part of a bullet or checkbox list, change it to
+		  match the list
+		- If there are no other bullets on the same level and the bullet was
+		  a numbered bullet, switch bullet style (number vs letter) and reset
+		  the count
+		- Else keep the bullet as it was
+
+		Also, if the bullet was a numbered bullet, also renumber the
+		list level where it came from.
+		'''
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
-		#~ print('RENUMBER after indent', line, indent, bullet, old_indent)
-		if bullet is None:
+		if bullet is None or bullet in CHECKBOXES:
 			return
 
 		_, prev = self._search_bullet(line, indent, -1)
@@ -1400,24 +1394,27 @@ class TextBuffer(Gtk.TextBuffer):
 				else:
 					newbullet = 'a.' # switch "1." -> "a."
 
-		if is_numbered_bullet_re.match(newbullet) \
-		or is_numbered_bullet_re.match(bullet):
+		if is_numbered_bullet_re.match(newbullet):
 			self._renumber_list(line, indent, newbullet)
-		# else we had a normal bullet, and no numbered bullet above
-
-		# Now find place to update list at old indent level
-		newline, newbullet = self._search_bullet(line, old_indent, -1)
-		if newline is not None:
-			# Was middle of list on old level, just renumber down
-			if is_numbered_bullet_re.match(newbullet):
-				self._renumber_list(newline, old_indent, newbullet)
 		else:
-			# If no item above on old level, was top on old level,
-			# use old bullet to renumber down from next item
-			newline, newbullet = self._search_bullet(line, old_indent, +1)
-			if newline is not None:
-				if is_numbered_bullet_re.match(newbullet):
-					self._renumber_list(newline, old_indent, bullet)
+			if newbullet in CHECKBOXES:
+				newbullet = UNCHECKED_BOX
+			self._replace_bullet(line, newbullet)
+
+		if is_numbered_bullet_re.match(bullet):
+			# Also update old list level
+			newline, newbullet = self._search_bullet(line+1, old_indent, -1)
+			if newbullet and is_numbered_bullet_re.match(newbullet):
+				self._renumber_list(newline, old_indent, newbullet)
+			else:
+				# If no item above on old level, was top or middle on old level,
+				# so reset count
+				newline, newbullet = self._search_bullet(line, old_indent, +1)
+				if newbullet and is_numbered_bullet_re.match(newbullet):
+					if newbullet.rstrip('.') in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz':
+						self._renumber_list(newline, old_indent, 'a.')
+					else:
+						self._renumber_list(newline, old_indent, '1.')
 
 	def _search_bullet(self, line, indent, step):
 		# Return bullet for previous/next bullet item at same level
@@ -1436,33 +1433,28 @@ class TextBuffer(Gtk.TextBuffer):
 			# else mybullet and myindent > indent
 
 	def _renumber_list(self, line, indent, newbullet):
-		# Do the actual renumbering
-		if not is_numbered_bullet_re.match(newbullet):
-			# Replace numbered bullet with normal bullet
-			if newbullet == BULLET:
-				self._replace_bullet(line, BULLET)
-			elif newbullet in CHECKBOXES:
-				self._replace_bullet(line, UNCHECKED_BOX)
+		# Actually renumber for a given line downward
+		assert is_numbered_bullet_re.match(newbullet)
+
+		while True:
+			try:
+				mybullet = self.get_bullet(line)
+				myindent = self.get_indent(line)
+			except ValueError:
+				break
+
+			if not mybullet or myindent < indent:
+				break
+			elif myindent == indent:
+				if not is_numbered_bullet_re.match(mybullet):
+					break # Do not replace other bullet types
+				elif mybullet != newbullet:
+					self._replace_bullet(line, newbullet)
+				newbullet = increase_list_bullet(newbullet)
 			else:
-				pass # !?
-		else:
-			# Actually renumber for a given line downward
-			while True:
-				try:
-					mybullet = self.get_bullet(line)
-					myindent = self.get_indent(line)
-				except ValueError:
-					break
+				pass # mybullet and myindent > indent
 
-				if not mybullet or myindent < indent:
-					break
-				elif myindent == indent:
-					if mybullet != newbullet:
-						self._replace_bullet(line, newbullet)
-					newbullet = increase_list_bullet(newbullet)
-				# else mybullet and myindent > indent
-
-				line += 1
+			line += 1
 
 	def set_textstyle(self, name):
 		'''Sets the current text format style.

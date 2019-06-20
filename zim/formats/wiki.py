@@ -394,11 +394,19 @@ class WikiParser(object):
 				return
 			else:
 				if listtype == NUMBEREDLIST:
-					attrib = None
-				elif bullet in self.BULLETS: # BULLETLIST
-					attrib = {'bullet': self.BULLETS[bullet]}
+					if bullet in self.BULLETS:
+						builder.end(listtype)
+						return self.parse_list_lines(builder, lines, level) # recurs
+					else:
+						attrib = None
 				else: # BULLETLIST
-					attrib = {'bullet': BULLET}
+					if bullet in self.BULLETS:
+						attrib = {'bullet': self.BULLETS[bullet]}
+					elif number_bullet_re.match(bullet):
+						builder.end(listtype)
+						return self.parse_list_lines(builder, lines, level) # recurs
+					else:
+						attrib = {'bullet': BULLET}
 				builder.start(LISTITEM, attrib)
 				self.inline_parser(builder, text)
 				builder.end(LISTITEM)
