@@ -44,14 +44,15 @@ Supported tags:
 		- trow for table row
 			- td for table data cell
 
+Nesting rules:
+
+	- paragraphs, list items, table cells & headings can contain all inline elements
+	- inline formats can contain other inline formats as well as links and tags
+	- code and pre cannot contain any other elements
+
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
 get the same effect.
-
-(! :) Not true: XSince elements are based on the functional markup instead of visual
-< markup it is not allowed to nest elements in arbitrary ways.)
-
-TODO: add HR element
 
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.

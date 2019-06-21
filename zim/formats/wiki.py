@@ -104,7 +104,7 @@ class WikiParser(object):
 			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}', descent=descent)
 			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}', descent=descent)
 			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
-			| Rule(VERBATIM, r"''(?!')(.+?)''", descent=descent)
+			| Rule(VERBATIM, r"''(?!')(.+?)''")
 		)
 
 	def _init_intermediate_parser(self):

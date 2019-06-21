@@ -346,6 +346,14 @@ class TestWikiFormat(TestTextFormat):
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
 
+	def testNoNestingBelowVerbatim(self):
+		input = "test 1 2 3 ''code here **not bold!**''\n"
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>test 1 2 3 <code>code here **not bold!**</code>\n</p></zim-tree>'''
+		t = self.format.Parser().parse(input)
+		self.assertEqual(t.tostring(), xml)
+
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''
 		input = '''\
