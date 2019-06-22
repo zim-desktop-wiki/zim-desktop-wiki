@@ -101,7 +101,7 @@ from zim.notebook.operations import NotebookState
 import threading
 
 
-class TestRaceCodition(tests.TestCase):
+class TestRaceCondition(tests.TestCase):
 
 	def runTest(self):
 		notebook = self.setUpNotebook(content = {'test': 'test123\n'})

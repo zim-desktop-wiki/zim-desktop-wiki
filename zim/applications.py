@@ -38,6 +38,8 @@ def _decode(data):
 	except UnicodeDecodeError:
 		return data.decode(_ENCODING)
 
+_ENCODE_UTF8 = _ENCODING in ('ascii', 'us-ascii', 'ANSI_X3.4-1968')
+
 
 _FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
 
@@ -104,7 +106,7 @@ class Application(object):
 	fall back to first item of C{cmd}
 	'''
 
-	STATUS_OK = 0 #: return code when the command executed succesfully
+	STATUS_OK = 0 #: return code when the command executed successfullly
 
 	def __init__(self, cmd, tryexeccmd=None):
 		'''Constructor
@@ -210,6 +212,10 @@ class Application(object):
 		if hasattr(cwd, 'path'):
 			cwd = cwd.path
 
+		if _ENCODE_UTF8:
+			cwd = cwd.encode('UTF-8') if cwd else cwd
+			argv = [a.encode('UTF-8') for a in argv]
+
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
@@ -298,7 +304,7 @@ class Application(object):
 		if input is None:
 			stdout, stderr = p.communicate()
 		else:
-			data = data if isinstance(data, bytes) else str(input).encode('UTF-8')
+			data = input if isinstance(input, bytes) else str(input).encode('UTF-8')
 				# No way to know what encoding the process accepts, so UTF-8 is as good as any
 			stdout, stderr = p.communicate(data)
 

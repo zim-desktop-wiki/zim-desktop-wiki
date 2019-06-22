@@ -52,7 +52,7 @@ param_re = re.compile('([\w-]+)=("(?:[^"]|"{2})*"|\S*)')
 	# matches parameter list for objects
 	# allow name="foo bar" and name=Foo
 
-empty_lines_re = re.compile(r'((?:^[\ \t]*\n)+)', re.M | re.U)
+empty_lines_re = re.compile(r'((?:^[ \t]*\n)+)', re.M | re.U)
 	# match multiple empty lines
 
 unindented_line_re = re.compile('^\S', re.M)
@@ -395,11 +395,19 @@ class WikiParser(object):
 				return
 			else:
 				if listtype == NUMBEREDLIST:
-					attrib = None
-				elif bullet in self.BULLETS: # BULLETLIST
-					attrib = {'bullet': self.BULLETS[bullet]}
+					if bullet in self.BULLETS:
+						builder.end(listtype)
+						return self.parse_list_lines(builder, lines, level) # recurs
+					else:
+						attrib = None
 				else: # BULLETLIST
-					attrib = {'bullet': BULLET}
+					if bullet in self.BULLETS:
+						attrib = {'bullet': self.BULLETS[bullet]}
+					elif number_bullet_re.match(bullet):
+						builder.end(listtype)
+						return self.parse_list_lines(builder, lines, level) # recurs
+					else:
+						attrib = {'bullet': BULLET}
 				builder.start(LISTITEM, attrib)
 				self.inline_parser(builder, text)
 				builder.end(LISTITEM)
@@ -592,7 +600,8 @@ class Dumper(TextDumper):
 		assert "type" in attrib, "Undefined type of object"
 
 		opts = []
-		for key, value in list(attrib.items()):
+		for key, value in sorted(list(attrib.items())):
+			# TODO: sorted to make order predictable for testing - prefer use of OrderedDict
 			if key in ('type', 'indent') or value is None:
 				continue
 			# double quotes are escaped by doubling them

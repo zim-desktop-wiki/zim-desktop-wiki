@@ -37,10 +37,10 @@ class TestLineSorterWindowExtension(tests.TestCase):
 		return start.get_text(end)
 
 	def testSortLines(self):
-		self.set_text('A line\nC line\nB line\n0 trailing text\n')
-		self.select_range(0, 21)
+		self.set_text('A line\nB line\nC line\nB line\n0 trailing text\n')
+		self.select_range(0, 28)
 		self.extension.sort_selected_lines()
-		self.assertEqual(self.get_text(), 'A line\nB line\nC line\n0 trailing text\n')
+		self.assertEqual(self.get_text(), 'A line\nB line\nB line\nC line\n0 trailing text\n')
 
 	def testPartialLineSelected(self):
 		self.set_text('A line\nC line\nB line\ntrailing text\n')

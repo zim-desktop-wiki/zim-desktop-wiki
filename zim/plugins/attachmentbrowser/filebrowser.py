@@ -22,6 +22,8 @@ logger = logging.getLogger('zim.plugins.attachmentbrowser')
 from zim.newfs import LocalFile, FileNotFoundError
 from zim.newfs.helpers import format_file_size, FSObjectMonitor
 
+from zim.gui.widgets import gtk_popup_at_pointer
+
 from zim.gui.applications import get_mime_icon, get_mime_description, \
 	OpenWithMenu, open_file
 
@@ -319,7 +321,7 @@ class FileBrowserIconView(Gtk.IconView):
 			pathinfo = iconview.get_path_at_pos(x, y)
 			if pathinfo is not None:
 				iconview.grab_focus()
-				popup_menu.popup_at_pointer(event)
+				gtk_popup_at_pointer(popup_menu, event)
 				self.do_populate_popup(popup_menu, pathinfo)
 					# FIXME should use a signal here
 				return True
@@ -425,7 +427,7 @@ class FileBrowserIconView(Gtk.IconView):
 			menu.append(item)
 
 			menu.show_all()
-			menu.popup_at_pointer(None)
+			gtk_popup_at_pointer(menu)
 		else:
 			# Assume Gdk.DragAction.COPY or Gdk.DragAction.DEFAULT
 			# on windows we get "0" which is not mapped to any action

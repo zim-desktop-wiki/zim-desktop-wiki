@@ -18,7 +18,7 @@ and
 * Bug tracker and feature requests:
   https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues
 * Public wiki:
-  http://www.zim-wiki.org/wiki/
+  https://www.zim-wiki.org/wiki/
 * Mailing list:
   https://launchpad.net/~zim-wiki
 * IRC Channel:
@@ -131,7 +131,7 @@ to do, you probably need a more heavy duty text editor.
 
 ## Translations
 
-To contribute to translations onlne please go to http://launchpad.net.
+To contribute to translations onlne please go to https://launchpad.net.
 
 To test a new translation you can either download the snapshot from launchpad and run:
 

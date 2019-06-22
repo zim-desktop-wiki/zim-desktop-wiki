@@ -11,7 +11,7 @@ INSERT_PAYPAL_BUTTON_HERE
 In the paypal form there is a link "Suggestions and Comments" (it is a bit small but it is there when you confirm the donation). Feel free to use this text field to tell me what is on your whish list for future development. I can not promise to implement every feature that gets mentioned in a donation, but it will certainly be taken into consideration. If enough funds come in we will set up bounties for other developers that want to work on nominated features as well.
 
 ===== User Manual Updates =====
-Updates for the user manual can be submitted in [[http://www.zim-wiki.org/wiki/|the wiki]] or as patches (see below).
+Updates for the user manual can be submitted in [[https://www.zim-wiki.org/wiki/|the wiki]] or as patches (see below).
 
 ===== Translation updates =====
 See [[translations]] on how to update translation files.
@@ -20,7 +20,7 @@ See [[translations]] on how to update translation files.
 The development planning is more or less managed using the [[https://github.com/zim-desktop-wiki/zim-desktop-wiki/issues|bug tracker]]
 
 ===== Patches =====
-Please see our [[https://github.com/zim-desktop-wiki/zim-desktop-wiki|GitHub repository]] for the latest developement code. To submit patches please create your own branch and once done file a merge request.
+Please see our [[https://github.com/zim-desktop-wiki/zim-desktop-wiki|GitHub repository]] for the latest development code. To submit patches please create your own branch and once done file a merge request.
 
 ===== Contact =====
 To join the zim mailing list you need to join the "[[https://launchpad.net/~zim-wiki|zim-wiki]]" team in launchpad. This mailing list is used for synchronizing releases and the occasional brainstorm session. But feel free to mail all your comments, questions and rants to me personally as well.

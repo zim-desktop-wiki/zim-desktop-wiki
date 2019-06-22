@@ -27,6 +27,7 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
 from gi.repository import GdkPixbuf
+from gi.repository import GLib
 
 
 import logging
@@ -164,6 +165,16 @@ def gtk_window_set_default_icon():
 	Gtk.Window.set_default_icon_list(iconlist)
 
 
+def to_utf8_normalized_casefolded(text):
+	'''Convert text to utf8 normalized and casefolded form.
+	@param text: text string to convert
+	@returns: converted text
+	'''
+	result = GLib.utf8_normalize(text, -1, GLib.NormalizeMode.ALL)
+	result = GLib.utf8_casefold(result, -1)
+	return result
+
+
 
 def ScrolledWindow(widget, hpolicy=Gtk.PolicyType.AUTOMATIC, vpolicy=Gtk.PolicyType.AUTOMATIC, shadow=Gtk.ShadowType.IN):
 	'''Wrap C{widget} in a C{Gtk.ScrolledWindow} and return the resulting
@@ -227,7 +238,7 @@ def ScrolledTextView(text=None, monospace=False, **kwarg):
 	return window, textview
 
 def ScrolledSourceView(text=None, syntax=None):
-	'''If GTKSourceView was succesfully loaded, this generates a SourceView and
+	'''If GTKSourceView was successfullly loaded, this generates a SourceView and
 	initializes it. Otherwise ScrolledTextView will be used as a fallback.
 
 	@param text: initial text to show in the view
@@ -298,6 +309,25 @@ def gtk_notebook_get_active_page(nb):
 		return nb.get_nth_page(num)
 	else:
 		return None
+
+
+def gtk_popup_at_pointer(menu, event=None, button=3):
+	'''Introduced in Gtk 3.22, so wrap our own to be compatible for 3.18 and up'''
+	if hasattr(menu, 'popup_at_pointer'):
+		menu.popup_at_pointer(event)
+	else:
+		_gtk_popup_at_pointer_backward(menu, event, button)
+
+
+_ref_cache = {}
+
+def _gtk_popup_at_pointer_backward(menu, event, button):
+	# Testing shows that Gtk 3.18 does not show the menu if we don't keep a
+	# ref (!?) - see issue #813
+	_ref_cache[id(menu)] = menu
+	menu.connect('destroy', lambda m: _ref_cache.pop(id(m)))
+	time = event.time if event else 0
+	menu.popup(None, None, None, None, button, time)
 
 
 def rotate_pixbuf(pixbuf):
@@ -560,7 +590,7 @@ class SingleClickTreeView(Gtk.TreeView):
 
 			# Pop menu
 			menu = self.get_popup()
-			menu.popup_at_pointer(event)
+			gtk_popup_at_pointer(menu, event)
 		else:
 			return Gtk.TreeView.do_button_press_event(self, event)
 
@@ -1406,7 +1436,7 @@ class InputEntry(Gtk.Entry):
 		callback will be called without any arguments
 		@param tooltip: tooltip text for the icon
 
-		@returns: C{True} if succesful, C{False} if not supported
+		@returns: C{True} if successfull, C{False} if not supported
 		by Gtk version
 
 		@todo: add argument to set tooltip on the icon
@@ -1430,7 +1460,7 @@ class InputEntry(Gtk.Entry):
 		when there is no text in the entry. Clicking the icon will
 		clear the entry.
 
-		@returns: C{True} if succesful, C{False} if not supported
+		@returns: C{True} if successfull, C{False} if not supported
 		by Gtk version
 		'''
 		self.set_icon(Gtk.STOCK_CLEAR, self.clear, _('Clear'))
@@ -1654,9 +1684,9 @@ def gtk_entry_completion_match_func(completion, key, iter, column):
 		return False
 
 	model = completion.get_model()
-	text = model.get_value(iter, column)
+	text = to_utf8_normalized_casefolded(model.get_value(iter, column))
 	if text is not None:
-		return key in text.lower()
+		return key in text
 	else:
 		return False
 
@@ -1666,9 +1696,9 @@ def gtk_entry_completion_match_func_startswith(completion, key, iter, column):
 		return False
 
 	model = completion.get_model()
-	text = model.get_value(iter, column)
+	text = to_utf8_normalized_casefolded(model.get_value(iter, column))
 	if text is not None:
-		return text.lower().startswith(key)
+		return text.startswith(key)
 	else:
 		return False
 
@@ -2249,7 +2279,7 @@ class WindowSidePaneWidget(ConnectorMixin):
 	def set_embeded_closebutton(self, button):
 		'''Embed a button in the widget to close the side pane
 		@param button: a button widget or C{None} to unset
-		@returns: C{True} if supported and succesful
+		@returns: C{True} if supported and successfull
 		'''
 		return False
 
@@ -3031,7 +3061,7 @@ class Dialog(Gtk.Dialog, ConnectorMixin):
 		'''Handler called when the user clicks the "OK" button (or
 		an equivalent button)
 
-		@returns: C{True} if succesful and the dialog can close. Returns
+		@returns: C{True} if successfull and the dialog can close. Returns
 		C{False} if e.g. input is not valid, this will keep the dialog open.
 
 		@implementation: must be implemented by sub-classes that have

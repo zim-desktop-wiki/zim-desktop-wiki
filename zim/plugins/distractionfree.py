@@ -83,6 +83,8 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.on_fullscreen_changed(window)
 
 	def on_fullscreen_changed(self, window):
+		self.window.toggle_menubar(True) # always do this first to allow recovery
+
 		screen = Gdk.Screen.get_default()
 		if window.isfullscreen:
 			self._show_panes = bool(window.get_visible_panes())
@@ -90,6 +92,8 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.save_bar_state()
 			self.set_bar_state_fullscreen()
 			self.insert_maxwidth()
+			for widget in self._pathbar_widgets():
+				widget.hide()
 			self._css_provider = self._new_css_provider()
 			Gtk.StyleContext.add_provider_for_screen(screen, self._css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 		else:
@@ -97,11 +101,12 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 			self.remove_maxwidth()
 			window.toggle_panes(self._show_panes)
 			self.restore_bar_state()
+			for widget in self._pathbar_widgets():
+				widget.show()
 			window.pageview.grab_focus()
 
 	def save_bar_state(self):
 		self._bar_state = (
-			self.window.uistate['show_menubar'],
 			self.window.uistate['show_toolbar'],
 			self.window.uistate['show_statusbar'],
 		)
@@ -109,18 +114,9 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 	def restore_bar_state(self):
 		if self._bar_state is None:
 			return
-		show_menubar, show_toolbar, show_statusbar = self._bar_state
-		try:
-			self.window.toggle_menubar(show_menubar)
-			self.window.toggle_toolbar(show_toolbar)
-			self.window.toggle_statusbar(show_statusbar)
-		except:
-			pass
-		finally: # just to be real sure
-			self.window.uistate['show_menubar'] = show_menubar
-			self.window.uistate['show_toolbar'] = show_toolbar
-			self.window.uistate['show_statusbar'] = show_statusbar
-			self.window.notebook.state.write()
+		show_toolbar, show_statusbar = self._bar_state
+		self.window.toggle_toolbar(show_toolbar)
+		self.window.toggle_statusbar(show_statusbar)
 
 	def set_bar_state_fullscreen(self):
 		self.window.toggle_menubar(not self.preferences['hide_menubar'])
@@ -145,6 +141,13 @@ class DistractionFreeMainWindowExtension(MainWindowExtension):
 		self._maxwidth = None
 		self.window.add(self.window.pageview)
 		self.window.pageview.show_all()
+
+	def _pathbar_widgets(self):
+		# HACK - to much internals here ...
+		for widget in self.window._zim_window_central_vbox.get_children():
+			if widget == self.window._zim_window_top_minimized:
+				break
+			yield widget
 
 	def teardown(self):
 		self.restore_bar_state()

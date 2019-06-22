@@ -1,5 +1,5 @@
 # List with date-time formats used for the
-# "Insert Date eand Time" dialog.
+# "Insert Date and Time" dialog.
 # See man strftime a description of the format.
 %x
 %c

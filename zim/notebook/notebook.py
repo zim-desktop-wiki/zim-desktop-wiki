@@ -24,7 +24,7 @@ from zim.errors import Error
 from zim.utils import natural_sort_key
 from zim.newfs.helpers import TrashNotSupportedError
 from zim.config import HierarchicDict
-from zim.parsing import is_interwiki_keyword_re, link_type, is_win32_path_re
+from zim.parsing import link_type, is_win32_path_re
 from zim.signals import ConnectorMixin, SignalEmitter, SIGNAL_NORMAL
 
 from .operations import notebook_state, NOOP, SimpleAsyncOperation, ongoing_operation
@@ -558,7 +558,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		@raises PageExistsError: if C{newpath} already exists
 
 		@emits: move-page before the move
-		@emits: moved-page after succesful move
+		@emits: moved-page after successfull move
 		'''
 		for p in self.move_page_iter(path, newpath, update_links):
 			pass
@@ -810,7 +810,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		new page name
 
 		@emits: move-page before the move
-		@emits: moved-page after succesful move
+		@emits: moved-page after successfull move
 		'''
 		newbasename = Path.makeValidPageName(newbasename)
 		newpath = Path(path.namespace + ':' + newbasename)
@@ -858,7 +858,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		Raises an error when delete failed.
 
 		@emits: delete-page before the actual delete
-		@emits: deleted-page after succesful deletion
+		@emits: deleted-page after successfull deletion
 		'''
 		existed = self._delete_page(path)
 
@@ -922,7 +922,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 		for this notebook.
 
 		@emits: delete-page before the actual delete
-		@emits: deleted-page after succesful deletion
+		@emits: deleted-page after successfull deletion
 		'''
 		existed = self._trash_page(path)
 

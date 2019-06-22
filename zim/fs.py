@@ -59,7 +59,7 @@ try:
 	import xdg.Mime as xdgmime
 except ImportError:
 	if os.name != 'nt':
-		logger.warn("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
+		logger.info("Can not import 'xdg.Mime' - falling back to 'mimetypes'")
 	else:
 		pass # Ignore this error on Windows; doesn't come with xdg.Mime
 	import mimetypes
@@ -769,7 +769,7 @@ class Dir(FilePath):
 		'''Remove this foldder and any empty parent folders. If the
 		folder does not exist, still check for empty parent folders.
 		Fails silently if the folder is not empty.
-		@returns: C{True} when succesful (so C{False} means it still exists).
+		@returns: C{True} when successfull (so C{False} means it still exists).
 		'''
 		if not self.exists():
 			return True

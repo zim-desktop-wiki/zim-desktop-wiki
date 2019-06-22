@@ -204,8 +204,9 @@
 		<menuitem action='set_toolbar_icon_size_small'/>
 		<menuitem action='set_toolbar_icon_size_tiny'/>
 	</popup>
-	<popup name='page_popup'>
+	<popup name='page_edit_popup'>
 		<menuitem action='new_page_here'/>
+		<menuitem action='new_sub_page'/>
 		<separator/>
 		<menuitem action='open_new_window'/>
 		<separator/>
@@ -216,11 +217,20 @@
 		<separator/>
 		<menuitem action='show_search_section'/>
 		<menuitem action='show_search_backlinks'/>
-		<placeholder name='tools'/>
-<!--
 		<separator/>
-		<menuitem action='show_properties'/>
--->
+		<menuitem action='copy_location'/>
+		<placeholder name='tools'/>
+	</popup>
+	<popup name='page_root_popup'>
+		<menuitem action='new_page_here'/>
+	</popup>
+	<popup name='page_access_popup'>
+		<menuitem action='open_new_window'/>
+		<separator/>
+		<menuitem action='show_search_section'/>
+		<menuitem action='show_search_backlinks'/>
+		<separator/>
+		<menuitem action='copy_location'/>
 	</popup>
 	<popup name='text_popup'>
 		<placeholder name='tools'/>

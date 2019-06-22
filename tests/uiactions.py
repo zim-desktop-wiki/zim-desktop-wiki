@@ -20,7 +20,7 @@ from zim.gui.clipboard import Clipboard
 import zim.gui
 
 
-from zim.gui.uiactions import UIActions, PAGE_ACTIONS
+from zim.gui.uiactions import UIActions, PAGE_EDIT_ACTIONS
 
 
 class EmptyWindowObject(object):
@@ -746,7 +746,7 @@ class TestUIActions(tests.TestCase):
 		# Test depends on first menu item being "new_page_here"
 		from zim.gui.uiactions import NewPageDialog
 		menu = Gtk.Menu()
-		self.uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+		self.uiactions.populate_menu_with_actions(PAGE_EDIT_ACTIONS, menu)
 
 		def open_new_page(dialog):
 			self.assertIsInstance(dialog, NewPageDialog)
@@ -762,7 +762,7 @@ class TestUIActions(tests.TestCase):
 		from zim.gui.uiactions import NewPageDialog
 		menu = Gtk.Menu()
 		self.uiactions.page = Path(':')
-		self.uiactions.populate_menu_with_actions(PAGE_ACTIONS, menu)
+		self.uiactions.populate_menu_with_actions(PAGE_EDIT_ACTIONS, menu)
 
 		def open_new_page(dialog):
 			self.assertIsInstance(dialog, NewPageDialog)

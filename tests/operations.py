@@ -30,7 +30,7 @@ class MockProgressDialog(object):
 			# self.bar.pulse()
 
 		# if isinstance(msg, basestring):
-			# self.lable.set_text(msg)
+			# self.label.set_text(msg)
 
 	def on_iteration_finished(self, o):
 		self.finished = True

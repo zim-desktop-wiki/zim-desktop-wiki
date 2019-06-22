@@ -28,7 +28,7 @@ UNTESTED:
 """
 COMMAND = 'import'
 SUPPORTED_COMMANDS_BY_PLATFORM = dict([
-	('posix', ('import', 'scrot')),
+	('posix', ('import', 'scrot', 'gnome-screenshot')),
 	('nt', ('boxcutter',)),
 ])
 SUPPORTED_COMMANDS = SUPPORTED_COMMANDS_BY_PLATFORM[PLATFORM]
@@ -42,16 +42,25 @@ class ScreenshotPicker(object):
 			'select': ('--select', '--border'),
 			'full': ('--multidisp',),
 			'delay': '-d',
+			'file': None,
 		}),
 		('import', {
 			'select': ('-silent',),
 			'full': ('-silent', '-window', 'root'),
 			'delay': '-delay',
+			'file': None,
 		}),
 		('boxcutter', {
 			'select': None,
 			'full': ('--fullscreen',),
 			'delay': None,
+			'file': None,
+		}),
+		('gnome-screenshot', {
+			'select': ('--area',),
+			'full': ('--window',),
+			'delay': '--delay',
+			'file': '-f',
 		}),
 	])
 	cmd_default = COMMAND
@@ -64,6 +73,7 @@ class ScreenshotPicker(object):
 
 		if str(delay).isdigit() and int(delay) > 0 and self.cmd_options[cmd]['delay'] is not None:
 			self.final_cmd_options += (self.cmd_options[cmd]['delay'], str(delay))
+
 
 	@classmethod
 	def select_cmd(cls, cmd=None):
@@ -88,6 +98,9 @@ class ScreenshotPicker(object):
 		cmd = cls.select_cmd(cmd)
 		return True if cls.cmd_options[cmd]['select'] is not None else False
 
+	@classmethod
+	def get_file_option(cls, cmd):
+		return cls.cmd_options[cmd]['file']
 
 class InsertScreenshotPlugin(PluginClass):
 	plugin_info = {
@@ -209,5 +222,7 @@ class InsertScreenshotDialog(Dialog):
 				# T: Error message in "insert screenshot" dialog, %s will be replaced by application name
 
 		tmpfile.dir.touch()
-		helper.spawn((tmpfile,), callback, tmpfile)
+		fileop = ScreenshotPicker.get_file_option(self.screenshot_command)
+		args = (fileop, tmpfile) if fileop else (tmpfile,)
+		helper.spawn(args, callback, tmpfile)
 		return True

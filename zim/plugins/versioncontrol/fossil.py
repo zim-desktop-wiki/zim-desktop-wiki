@@ -98,7 +98,7 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			params.append(path)
 		return self.run(params)
 
-	def diff(self, versions=None, path=None):
+	def diff(self, versions=None, file=None):
 		"""
 		Runs:
 			fossil diff {{REVISION_ARGS}}
@@ -106,11 +106,11 @@ class FOSSILApplicationBackend(VCSApplicationBase):
 			fossil diff {{REVISION_ARGS}} {{PATH}}
 		"""
 		revision_args = self.build_revision_arguments(versions)
-		if path is None:
+		if file is None:
 			return self.pipe(['diff'] + revision_args)
 			# Using --git option allow to show the renaming of files
 		else:
-			return self.pipe(['diff'] + revision_args + [path])
+			return self.pipe(['diff'] + revision_args + [file])
 
 	def ignore(self, file_to_ignore_regexp):
 		"""

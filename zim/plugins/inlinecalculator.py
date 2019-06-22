@@ -20,7 +20,7 @@ from zim.errors import Error
 from zim.gui.pageview import PageViewExtension
 
 
-logger = logging.getLogger('zim.plugins.insertsymbol')
+logger = logging.getLogger('zim.plugins.inlinecalculator')
 
 
 # helper functions
@@ -302,24 +302,24 @@ class InlineCalculatorPageViewExtension(PageViewExtension):
 
 		cursor = buffer.get_iter_at_mark(buffer.get_insert())
 		start, end = buffer.get_line_bounds(cursor.get_line())
-		line = start.get_text(end).decode('UTF-8')
+		line = start.get_text(end)
 
 		if not line or line.isspace():
 			# Empty line, look at previous line
-			if cursor.get_line() > 1:
+			if cursor.get_line() > 0:
 				start, end = buffer.get_line_bounds(cursor.get_line() - 1)
 				cursor = end.copy()
 				cursor.backward_char()
-				line = start.get_text(end).decode('UTF-8')
+				line = start.get_text(end)
 			else:
 				return # silent fail
 
 		if _multiline_re.match(line):
 			# Search for start of block - iterate back to empty line
 			lineno = cursor.get_line()
-			while lineno > 1:
+			while lineno >= 0:
 				mystart, myend = buffer.get_line_bounds(lineno)
-				myline = mystart.get_text(myend).decode('UTF-8')
+				myline = mystart.get_text(myend)
 				if not myline or myline.isspace():
 					break
 				else:
@@ -330,8 +330,9 @@ class InlineCalculatorPageViewExtension(PageViewExtension):
 			# FIXME skip forward past next word if any if last char is '='
 			end = cursor
 
-		orig = start.get_text(end).decode('UTF-8')
+		orig = start.get_text(end)
+		logger.debug('Inline calculator eval: >%s<', orig)
 		new = self.plugin.process_text(orig)
 		with buffer.user_action:
 			buffer.delete(start, end)
-			buffer.insert_at_cursor(new)
+			buffer.insert(start, new)

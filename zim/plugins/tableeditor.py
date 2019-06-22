@@ -17,7 +17,7 @@ logger = logging.getLogger('zim.plugin.tableeditor')
 from zim.plugins import PluginClass, InsertedObjectTypeExtension
 from zim.actions import action
 from zim.signals import SignalEmitter, ConnectorMixin, SIGNAL_RUN_LAST
-from zim.utils import WeakSet
+from zim.utils import WeakSet, natural_sort_key
 from zim.config import String
 from zim.main import ZIM_APPLICATION
 from zim.formats import ElementTreeModule as ElementTree
@@ -25,7 +25,7 @@ from zim.formats import TABLE, HEADROW, HEADDATA, TABLEROW, TABLEDATA
 from zim.formats.wiki import Parser as WikiParser
 
 from zim.gui.pageview import PageViewExtension
-from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry
+from zim.gui.widgets import Dialog, ScrolledWindow, IconButton, InputEntry, gtk_popup_at_pointer
 from zim.gui.insertedobjects import InsertedObjectWidget
 
 
@@ -222,16 +222,20 @@ class TableViewObjectType(InsertedObjectTypeExtension):
 
 	def dump(self, builder, model):
 		headers, attrib, rows = model.get_object_data()
+		def append(tag, text):
+			builder.start(tag)
+			builder.data(text)
+			builder.end(tag)
 
 		builder.start(TABLE, dict(attrib))
 		builder.start(HEADROW)
 		for header in headers:
-			builder.append(HEADDATA, header)
+			append(HEADDATA, header)
 		builder.end(HEADROW)
 		for row in rows:
 			builder.start(TABLEROW)
 			for cell in row:
-				builder.append(TABLEDATA, cell)
+				append(TABLEDATA, cell)
 			builder.end(TABLEROW)
 		builder.end(TABLE)
 
@@ -633,7 +637,7 @@ class TableViewWidget(InsertedObjectWidget):
 					menu.append(item)
 
 			menu.show_all()
-			menu.popup_at_pointer(event)
+			gtk_popup_at_pointer(menu, event)
 
 	def on_add_row(self, action):
 		''' Context menu: Add a row '''
@@ -658,7 +662,7 @@ class TableViewWidget(InsertedObjectWidget):
 			return
 
 		path = model.get_path(treeiter)
-		row = model[path[0]]
+		row = list(model[path[0]]) # copy
 		model.insert_after(treeiter, row)
 
 	def on_delete_row(self, action):
@@ -757,11 +761,8 @@ class TableViewWidget(InsertedObjectWidget):
 		:param colid: a column number
 		:return: -1 / first data is smaller than second, 0 / equality, 1 / else
 		'''
-		data1 = liststore.get_value(treeiter1, colid)
-		data2 = liststore.get_value(treeiter2, colid)
-		if data1.isdigit() and data2.isdigit():
-			data1 = int(data1)
-			data2 = int(data2)
+		data1 = natural_sort_key(liststore.get_value(treeiter1, colid))
+		data2 = natural_sort_key(liststore.get_value(treeiter2, colid))
 		return (data1 > data2) - (data1 < data2) # python3 jargon for "cmp()"
 
 	def selection_info(self):
@@ -1038,7 +1039,7 @@ class EditTableDialog(Dialog):
 			path = model.iter_n_children(None) - 1
 			treeiter = model.get_iter(path)
 		newiter = model.insert_after(treeiter, self.default_column_item)
-		self.treeview.set_cursor_on_cell(model.get_path(newiter), self.treeview.get_column(0), start_editing=True)
+		self.treeview.set_cursor_on_cell(model.get_path(newiter), self.treeview.get_column(0), None, True)
 
 	def on_delete_column(self, btn):
 		''' Trigger for deleting a column out of the table / it is a deleted row in the treeview '''

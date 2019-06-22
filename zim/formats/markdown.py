@@ -47,7 +47,7 @@ class Dumper(TextDumper):
 	TAGS = {
 		EMPHASIS: ('*', '*'),
 		STRONG: ('**', '**'),
-		MARK: ('__', '__'), # OPEN ISSUE: not availalbe in pandoc
+		MARK: ('__', '__'), # OPEN ISSUE: not available in pandoc
 		STRIKE: ('~~', '~~'),
 		VERBATIM: ("``", "``"),
 		TAG: ('', ''), # No additional annotation (apart from the visible @)

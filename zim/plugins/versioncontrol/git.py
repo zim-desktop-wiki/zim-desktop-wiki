@@ -108,7 +108,7 @@ class GITApplicationBackend(VCSApplicationBase):
 				params.append(self.path_arg(path))
 			return self.run(params)
 
-	def diff(self, versions=None, path=None):
+	def diff(self, versions=None, file=None):
 		"""
 		Runs:
 			git diff --no-ext-diff {{REVISION_ARGS}}
@@ -117,10 +117,10 @@ class GITApplicationBackend(VCSApplicationBase):
 		"""
 		revision_args = self.build_revision_arguments(versions)
 		revision_args = self.build_revision_arguments(revision_args, is_for_diff=True)
-		if path is None:
+		if file is None:
 			return self.pipe(['diff', '--no-ext-diff'] + revision_args)
 		else:
-			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', self.path_arg(path)])
+			return self.pipe(['diff', '--no-ext-diff'] + revision_args + ['--', self.path_arg(file)])
 
 	def ignore(self, file_to_ignore_regexp):
 		"""

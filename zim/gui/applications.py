@@ -198,7 +198,7 @@ def _read_comment_from(file):
 			lang = elt.attrib.get(xmlns + 'lang', '')
 			if lang == mylang:
 				return elt.text
-			elif not lang or mylang.startswith(lang + '_'):
+			elif not lang or mylang and mylang.startswith(lang + '_'):
 				fallback.append((lang, elt.text))
 			else:
 				pass

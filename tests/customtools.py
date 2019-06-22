@@ -226,7 +226,7 @@ class TestCustomToolsUI(tests.TestCase):
 		action = self.get_action('edit-usercreated')
 
 		def tool_run(args):
-			self.assertEqual(args[0], 'edit')
+			self.assertIn(args[0], ('edit', b'edit'))
 
 		with tests.ApplicationContext(tool_run):
 			action.activate()
@@ -243,7 +243,7 @@ class TestCustomToolsUI(tests.TestCase):
 		action = self.get_action('edit-usercreated')
 
 		def tool_run(args):
-			self.assertEqual(args[0], 'edit')
+			self.assertIn(args[0], ('edit', b'edit'))
 			self.pageview.page.source_file.write('test 123')
 
 		with tests.ApplicationContext(tool_run):
@@ -262,10 +262,10 @@ class TestCustomToolsUI(tests.TestCase):
 		action = self.get_action('edit-usercreated')
 
 		got = []
-		self.pageview.replace_selection = lambda *a: got.append(a)
+		self.pageview.replace_selection = lambda *a, **kwa: got.append(a)
 
 		def tool_run(args):
-			self.assertEqual(args[0], 'edit')
+			self.assertIn(args[0], ('edit', b'edit'))
 			return "TEST 123"
 
 		with tests.ApplicationContext(tool_run):

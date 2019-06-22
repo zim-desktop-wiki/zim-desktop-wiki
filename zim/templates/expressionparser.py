@@ -34,7 +34,7 @@ class ExpressionParser(object):
 	# and then consumes those tokens left-to-right while building
 	# an object tree.
 
-	# TODO keep character count to raise meaninful errors
+	# TODO keep character count to raise meaningful errors
 
 	# Operator precedence: or -- and -- not -- <, <=, >, >=, <>, !=, ==
 	operators = {

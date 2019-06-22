@@ -581,9 +581,10 @@ class ClipboardManager(object):
 		###
 
 		atoms = sorted(
-					filter(lambda a: a.name() in PARSETREE_ACCEPT_TARGET_NAMES, atoms),
+					filter(lambda a: a and a.name() in PARSETREE_ACCEPT_TARGET_NAMES, atoms),
 					key=lambda a: PARSETREE_ACCEPT_TARGET_NAMES.index(a.name())
 				)
+				# NOTE: "atoms" can contain None values, see issue #774
 		if atoms:
 			atom = atoms[0]  # TODO why choose 1st index?
 			logger.debug('Requesting data for %s', atom)

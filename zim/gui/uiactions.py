@@ -4,6 +4,7 @@
 from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
+from gi.repository import Pango
 
 import logging
 
@@ -25,7 +26,9 @@ from zim.actions import get_gtk_actiongroup
 from zim.gui.widgets import Dialog, FileDialog, ProgressDialog, ErrorDialog, ScrolledTextView
 from zim.gui.applications import open_url, open_folder, open_folder_prompt_create, edit_file
 
-PAGE_ACTIONS = 'page'
+PAGE_EDIT_ACTIONS = 'page_edit'
+PAGE_ACCESS_ACTIONS = 'page_access'
+PAGE_ROOT_ACTIONS = 'page_root'
 
 
 def _get_xml_for_menu(name):
@@ -72,7 +75,7 @@ class UIActions(object):
 		action.set_sensitive(self.notebook.document_root is not None)
 
 	def populate_menu_with_actions(self, scope, menu):
-		assert scope == PAGE_ACTIONS
+		assert scope in (PAGE_EDIT_ACTIONS, PAGE_ROOT_ACTIONS, PAGE_ACCESS_ACTIONS)
 
 		uimanager = Gtk.UIManager()
 		group = get_gtk_actiongroup(self)
@@ -104,14 +107,13 @@ class UIActions(object):
 		'''
 		NewPageDialog(self.widget, self.navigation, self.notebook, path=self.page, subpage=True).run()
 
-	@action(_('_New Page...'), menuhints='notebook:edit') # T: Menu item
+	@action(_('_New Page Here...'), menuhints='notebook:edit') # T: Menu item
 	def new_page_here(self):
 		# Variant used for popup menu, context can either be page or notebook
-		if self.page is None or self.page.isroot:
+		if self.page is None or self.page.isroot or self.page.parent.isroot:
 			NewPageDialog(self.widget, self.navigation, self.notebook).run()
 		else:
-			prefix = ':%s:' % self.page.name
-			NewPageDialog(self.widget, self.navigation, self.notebook, prefix=prefix).run()
+			NewPageDialog(self.widget, self.navigation, self.notebook, path=self.page.parent, subpage=True).run()
 
 	@action(_('_Open Another Notebook...'), '<Primary>O') # T: Menu item
 	def show_open_notebook(self):
@@ -461,9 +463,9 @@ class NewPageDialog(Dialog):
 	to create it.
 	'''
 
-	def __init__(self, widget, navigation, notebook, path=None, prefix='', subpage=False):
+	def __init__(self, widget, navigation, notebook, path=None, subpage=False):
 		if subpage:
-			title = _('New Sub Page') # T: Dialog title
+			title = _('New Page in %s') % path # T: Dialog title
 		else:
 			title = _('New Page') # T: Dialog title
 
@@ -486,7 +488,6 @@ class NewPageDialog(Dialog):
 			('page', 'page', _('Page Name'), path), # T: Input label
 			('template', 'choice', _('Page Template'), templates) # T: Choice label
 		])
-		self.form.widgets['page'].insert_text(prefix, 0)
 		self.form['template'] = default
 		# TODO: reset default when page input changed -
 		# especially if namespace has other template
@@ -582,8 +583,10 @@ class RenamePageDialog(Dialog):
 		self.path = path
 		page = self.notebook.get_page(self.path)
 
-		self.vbox.add(Gtk.Label(label=_('Rename page "%s"') % self.path.name))
+		label = Gtk.Label(label=_('Rename page "%s"') % self.path.name)
 			# T: label in 'rename page' dialog - %s is the page name
+		label.set_ellipsize(Pango.EllipsizeMode.END)
+		self.vbox.add(label)
 
 		try:
 			i = self.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)

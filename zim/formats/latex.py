@@ -30,7 +30,7 @@ info = {
 }
 
 
-encode_re = re.compile(r'(\&|\$|\^|\%|\#|\_|\\|\<|\>|\n)')
+encode_re = re.compile(r'([&$^%#_\\<>\n])')
 encode_dict = {
 	'\\': '$\\backslash$',
 	'&': '\\$',

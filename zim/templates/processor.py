@@ -28,7 +28,7 @@ class TemplateContextDict(ExpressionDictObject):
 
 	_fmethods = ExpressionDictObject._fmethods + (
 		'pop', 'clear', 'update', 'setdefault', 'items'
-	) # adding methods for mutuable mapping here
+	) # adding methods for mutable mapping here
 
 
 class TemplateProcessor(object):
@@ -70,9 +70,9 @@ class TemplateProcessor(object):
 
 	def process(self, output, context):
 		'''Execute the template once
-		@param output: an object to recieve the template output, can be
+		@param output: an object to receive the template output, can be
 		a C{list} and should support at least an C{append()} method to
-		recieve string content
+		receive string content
 		@param context: a L{TemplateContextDict} object with the
 		template parameters
 		'''

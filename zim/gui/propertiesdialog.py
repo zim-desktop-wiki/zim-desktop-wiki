@@ -10,6 +10,7 @@ from gi.repository import Gtk
 
 from zim.plugins import PluginManager
 from zim.gui.widgets import Dialog, get_window, InputForm
+from zim.parsing import is_interwiki_keyword_re
 
 notebook_properties = (
 	('name', 'string', _('Name')), # T: label for properties dialog
@@ -82,4 +83,4 @@ class PropertiesDialog(Dialog):
 
 		return True
 
-## TODO: put a number of properties in an expander with a lable "Advanced"
+## TODO: put a number of properties in an expander with a label "Advanced"

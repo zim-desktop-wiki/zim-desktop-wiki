@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2008-2017 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module contains the main text editor widget.
 It includes all classes needed to display and edit a single page as well
@@ -19,6 +19,7 @@ L{TextView}.
 import logging
 
 from gi.repository import GObject
+from gi.repository import GLib
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
@@ -196,7 +197,7 @@ ui_preferences = (
 		_('Unindent on <BackSpace>\n(If disabled you can still use <Shift><Tab>)'), True),
 		# T: option in preferences dialog
 	('cycle_checkbox_type', 'bool', 'Editing',
-		_('Repeated clicking a checkbox cyles through the checkbox states'), True),
+		_('Repeated clicking a checkbox cycles through the checkbox states'), True),
 		# T: option in preferences dialog
 	('recursive_indentlist', 'bool', 'Editing',
 		_('(Un-)Indenting a list item also change any sub-items'), True),
@@ -1211,6 +1212,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def insert_objectanchor_at_cursor(self, anchor):
 		iter = self.get_insert_iter()
+		self.insert_objectanchor(iter, anchor)
+
+	def insert_objectanchor(self, iter, anchor):
 		self.insert_child_anchor(iter, anchor)
 		self.emit('insert-objectanchor', anchor)
 
@@ -1225,7 +1229,7 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
-	def set_bullet(self, line, bullet):
+	def set_bullet(self, line, bullet, indent=None):
 		'''Sets the bullet type for a line
 
 		Replaces any bullet that may already be present on the line.
@@ -1241,6 +1245,8 @@ class TextBuffer(Gtk.TextBuffer):
 			NUMBER_BULLET
 			None
 		or a numbered bullet, like C{"1."}
+		@param indent: optional indent to set after inserting the bullet,
+		but before renumbering
 		'''
 		if bullet == NUMBER_BULLET:
 			indent = self.get_indent(line)
@@ -1252,6 +1258,8 @@ class TextBuffer(Gtk.TextBuffer):
 
 		with self.user_action:
 			self._replace_bullet(line, bullet)
+			if indent is not None:
+				self.set_indent(line, indent)
 			if bullet and is_numbered_bullet_re.match(bullet):
 				self.renumber_list(line)
 
@@ -1330,61 +1338,55 @@ class TextBuffer(Gtk.TextBuffer):
 		of a numbered list. Typically there is no need to call this
 		method directly, but it is exposed for testing.
 
+		It implements the following rules:
+
+		- If there is a numered list item above on the same level, number down
+		  from there
+		- Else if the line itself has a numbered bullet (and thus is top of a
+		  numbered list) number down
+		- Stop renumbering at the end of the list, or when a non-numeric bullet
+		  is encountered on the same list level
+
 		@param line: line number to start updating
 		'''
-		# The rules implemented here are:
-		#
-		# 1. If this is top of the list, number down
-		# 2. Otherwise look at bullet above and number down from there
-		#    (this means whatever the user typed doesn't really matter)
-		# 3. If above bullet is non-number bullet, replace the numbered
-		#    item with that bullet (for checkboxes always an open
-		#    checkbox is used.)
-		#
-		# Note that the bullet on the line we look at does not have
-		# to be a numbered bullet. The one above or below may still be
-		# number. And vice versa
-		#
-		# TODO - should this go into code for TextBufferList ??
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
-		if bullet is None:
+		if bullet is None or not is_numbered_bullet_re.match(bullet):
 			return
 
 		_, prev = self._search_bullet(line, indent, -1)
-		if prev:
-			newbullet = increase_list_bullet(prev) or prev
+		if prev and is_numbered_bullet_re.match(prev):
+			newbullet = increase_list_bullet(prev)
 		else:
 			newbullet = bullet
 
-		if is_numbered_bullet_re.match(newbullet) \
-		or is_numbered_bullet_re.match(bullet):
-			self._renumber_list(line, indent, newbullet)
-		# else we had a normal bullet, and no numbered bullet above
+		self._renumber_list(line, indent, newbullet)
 
 	def renumber_list_after_indent(self, line, old_indent):
 		'''Like L{renumber_list()}, but more complex rules because indent
 		change has different heuristics.
-		'''
-		# The rules implemented here are:
-		#
-		# 1. If this is now middle of a list (above item is same or
-		#    more indenting) look above and renumber
-		# 2. If this is now top of a sublist (above item is lower
-		#    indent) look _below_ and copy bullet found there then
-		#    number down
-		# 3. If this is the top of a new sublist (no item below)
-		#    switch bullet style (numbers vs letters) and reset count
-		# 4. If this is the top of the list (no bullet above) don't
-		#    need to do anything
-		#
-		# ALSO look at previous level where item went missing,
-		# look at above item at that level and number downward
 
+		It implements the following rules:
+
+		- If the bullet type is a checkbox, never change it (else information is
+		  lost on the checkbox state)
+		- Check for bullet style of the item above on the same level, else
+		  the item below on the same level
+		- If the bullet became part of a numbered list, renumber that list
+		  either from the item above, or copying starting number from below
+		- If the bullet became part of a bullet or checkbox list, change it to
+		  match the list
+		- If there are no other bullets on the same level and the bullet was
+		  a numbered bullet, switch bullet style (number vs letter) and reset
+		  the count
+		- Else keep the bullet as it was
+
+		Also, if the bullet was a numbered bullet, also renumber the
+		list level where it came from.
+		'''
 		indent = self.get_indent(line)
 		bullet = self.get_bullet(line)
-		#~ print('RENUMBER after indent', line, indent, bullet, old_indent)
-		if bullet is None:
+		if bullet is None or bullet in CHECKBOXES:
 			return
 
 		_, prev = self._search_bullet(line, indent, -1)
@@ -1400,24 +1402,27 @@ class TextBuffer(Gtk.TextBuffer):
 				else:
 					newbullet = 'a.' # switch "1." -> "a."
 
-		if is_numbered_bullet_re.match(newbullet) \
-		or is_numbered_bullet_re.match(bullet):
+		if is_numbered_bullet_re.match(newbullet):
 			self._renumber_list(line, indent, newbullet)
-		# else we had a normal bullet, and no numbered bullet above
-
-		# Now find place to update list at old indent level
-		newline, newbullet = self._search_bullet(line, old_indent, -1)
-		if newline is not None:
-			# Was middle of list on old level, just renumber down
-			if is_numbered_bullet_re.match(newbullet):
-				self._renumber_list(newline, old_indent, newbullet)
 		else:
-			# If no item above on old level, was top on old level,
-			# use old bullet to renumber down from next item
-			newline, newbullet = self._search_bullet(line, old_indent, +1)
-			if newline is not None:
-				if is_numbered_bullet_re.match(newbullet):
-					self._renumber_list(newline, old_indent, bullet)
+			if newbullet in CHECKBOXES:
+				newbullet = UNCHECKED_BOX
+			self._replace_bullet(line, newbullet)
+
+		if is_numbered_bullet_re.match(bullet):
+			# Also update old list level
+			newline, newbullet = self._search_bullet(line+1, old_indent, -1)
+			if newbullet and is_numbered_bullet_re.match(newbullet):
+				self._renumber_list(newline, old_indent, newbullet)
+			else:
+				# If no item above on old level, was top or middle on old level,
+				# so reset count
+				newline, newbullet = self._search_bullet(line, old_indent, +1)
+				if newbullet and is_numbered_bullet_re.match(newbullet):
+					if newbullet.rstrip('.') in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz':
+						self._renumber_list(newline, old_indent, 'a.')
+					else:
+						self._renumber_list(newline, old_indent, '1.')
 
 	def _search_bullet(self, line, indent, step):
 		# Return bullet for previous/next bullet item at same level
@@ -1436,33 +1441,28 @@ class TextBuffer(Gtk.TextBuffer):
 			# else mybullet and myindent > indent
 
 	def _renumber_list(self, line, indent, newbullet):
-		# Do the actual renumbering
-		if not is_numbered_bullet_re.match(newbullet):
-			# Replace numbered bullet with normal bullet
-			if newbullet == BULLET:
-				self._replace_bullet(line, BULLET)
-			elif newbullet in CHECKBOXES:
-				self._replace_bullet(line, UNCHECKED_BOX)
+		# Actually renumber for a given line downward
+		assert is_numbered_bullet_re.match(newbullet)
+
+		while True:
+			try:
+				mybullet = self.get_bullet(line)
+				myindent = self.get_indent(line)
+			except ValueError:
+				break
+
+			if not mybullet or myindent < indent:
+				break
+			elif myindent == indent:
+				if not is_numbered_bullet_re.match(mybullet):
+					break # Do not replace other bullet types
+				elif mybullet != newbullet:
+					self._replace_bullet(line, newbullet)
+				newbullet = increase_list_bullet(newbullet)
 			else:
-				pass # !?
-		else:
-			# Actually renumber for a given line downward
-			while True:
-				try:
-					mybullet = self.get_bullet(line)
-					myindent = self.get_indent(line)
-				except ValueError:
-					break
+				pass # mybullet and myindent > indent
 
-				if not mybullet or myindent < indent:
-					break
-				elif myindent == indent:
-					if mybullet != newbullet:
-						self._replace_bullet(line, newbullet)
-					newbullet = increase_list_bullet(newbullet)
-				# else mybullet and myindent > indent
-
-				line += 1
+			line += 1
 
 	def set_textstyles(self, names):
 		'''Sets the current text format style.
@@ -1619,6 +1619,9 @@ class TextBuffer(Gtk.TextBuffer):
 						tag = self.get_tag_table().lookup('style-' + name)
 						if not self.whole_range_has_tag(tag, start, end):
 							start, end = self._fix_pre_selection(start, end)
+				elif name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+					for line in range(start.get_line(), end.get_line()+1):
+						self._remove_indent(line)
 
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
@@ -1915,13 +1918,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _set_indent(self, line, level, bullet, dir=None):
 		# Common code between set_indent() and update_indent_tag()
+		self._remove_indent(line)
+
 		start, end = self.get_line_bounds(line)
-
-		tags = list(filter(_is_indent_tag, start.get_tags()))
-		if tags:
-			assert len(tags) == 1, 'BUG: overlapping indent tags'
-			self.remove_tag(tags[0], start, end)
-
 		if list(filter(_is_heading_tag, start.get_tags())):
 			return level == 0 # False if you try to indent a header
 
@@ -1934,6 +1933,11 @@ class TextBuffer(Gtk.TextBuffer):
 
 		self.update_editmode() # also updates indent tag
 		return True
+
+	def _remove_indent(self, line):
+		start, end = self.get_line_bounds(line)
+		for tag in filter(_is_indent_tag, start.get_tags()):
+			self.remove_tag(tag, start, end)
 
 	def indent(self, line, interactive=False):
 		'''Increase the indent for a given line
@@ -2129,9 +2133,16 @@ class TextBuffer(Gtk.TextBuffer):
 				self._check_renumber.append(start.get_line())
 			else:
 				# Clean up the redundant bullet
+				offset = start.get_offset()
 				bound = start.copy()
 				self._iter_forward_past_bullet(bound, bullet)
 				self.delete(start, bound)
+				new = self.get_iter_at_offset(offset)
+
+				# NOTE: these assignments should not be needed, but without them
+				# there is a crash here on some systems - see issue #766
+				start.assign(new)
+				end.assign(new)
 		elif start.starts_line():
 			indent_tags = list(filter(_is_indent_tag, start.get_tags()))
 			if indent_tags and indent_tags[0].zim_attrib['_bullet']:
@@ -2497,15 +2508,16 @@ class TextBuffer(Gtk.TextBuffer):
 
 		return tree
 
-	def select_line(self):
-		'''Selects the current line
-
+	def select_line(self, line=None):
+		'''Selects a line
+		@param line: line number; if C{None} current line will be selected
 		@returns: C{True} when successful
 		'''
 		# Differs from get_line_bounds because we exclude the trailing
 		# line break while get_line_bounds selects these
-		iter = self.get_iter_at_mark(self.get_insert())
-		line = iter.get_line()
+		if line is None:
+			iter = self.get_iter_at_mark(self.get_insert())
+			line = iter.get_line()
 		return self.select_lines(line, line)
 
 	def select_lines(self, first, last):
@@ -2760,7 +2772,7 @@ class TextBuffer(Gtk.TextBuffer):
 		return start, end
 
 	def get_line_is_empty(self, line):
-		'''Check for empty lins
+		'''Check for empty lines
 
 		@param line: the line number
 		@returns: C{True} if the line only contains whitespace
@@ -3018,7 +3030,7 @@ class TextBufferList(list):
 		          * item C
 
 		@param row: the row id
-		@returns: C{True} if succesfull
+		@returns: C{True} if successfulll
 		'''
 		if not self.can_indent(row):
 			return False
@@ -3030,7 +3042,7 @@ class TextBufferList(list):
 		'''Un-indent a list item and it's children
 
 		@param row: the row id
-		@returns: C{True} if succesfull
+		@returns: C{True} if successfulll
 		'''
 		if not self.can_unindent(row):
 			return False
@@ -3046,7 +3058,7 @@ class TextBufferList(list):
 			# Indent the whole list
 			for i in range(1, len(self)):
 				if self[i][self.INDENT_COL] >= level:
-					# double check implicit assumtion that first item is at lowest level
+					# double check implicit assumption that first item is at lowest level
 					self._indent_row(i, step)
 				else:
 					break
@@ -3655,12 +3667,11 @@ class TextView(Gtk.TextView):
 
 		if event.type == Gdk.EventType.BUTTON_PRESS:
 			iter, coords = self._get_pointer_location()
-			if iter:
-				if event.button == 2 and not buffer.get_has_selection():
-					buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
-					return False
-				elif Gdk.Event.triggers_context_menu(event):
-					self._set_popup_menu_mark(iter)
+			if event.button == 2 and iter and not buffer.get_has_selection():
+				buffer.paste_clipboard(SelectionClipboard, iter, self.get_editable())
+				return False
+			elif Gdk.Event.triggers_context_menu(event):
+				self._set_popup_menu_mark(iter) # allow iter to be None
 
 		return Gtk.TextView.do_button_press_event(self, event)
 
@@ -3702,12 +3713,23 @@ class TextView(Gtk.TextView):
 		return menu
 
 	def _set_popup_menu_mark(self, iter):
+		# If iter is None, remove the mark
 		buffer = self.get_buffer()
 		mark = buffer.get_mark('zim-popup-menu')
-		if mark:
-			buffer.move_mark(mark, iter)
+		if iter:
+			if mark:
+				buffer.move_mark(mark, iter)
+			else:
+				mark = buffer.create_mark('zim-popup-menu', iter, True)
+		elif mark:
+			buffer.delete_mark(mark)
 		else:
-			mark = buffer.create_mark('zim-popup-menu', iter, True)
+			pass
+
+	def _get_popup_menu_mark(self):
+		buffer = self.get_buffer()
+		mark = buffer.get_mark('zim-popup-menu')
+		return buffer.get_iter_at_mark(mark) if mark else None
 
 	def do_key_press_event(self, event):
 		keyval = strip_boolean_result(event.get_keyval())
@@ -4278,10 +4300,11 @@ class TextView(Gtk.TextView):
 			buffer.delete_mark(mark)
 		elif is_line(line):
 			with buffer.user_action:
+				offset = start.get_offset()
 				buffer.delete(start, end)
-				buffer.insert_objectanchor_at_cursor(LineSeparatorAnchor())
-				buffer.insert_at_cursor('\n')
-		elif not buffer.get_bullet_at_iter(start) is None:
+				iter = buffer.get_iter_at_offset(offset)
+				buffer.insert_objectanchor(iter, LineSeparatorAnchor())
+		elif buffer.get_bullet_at_iter(start) is not None:
 			# we are part of bullet list
 			# FIXME should logic be handled by TextBufferList ?
 			ourhome = start.copy()
@@ -4296,6 +4319,7 @@ class TextView(Gtk.TextView):
 				buffer.set_indent(newline, None)
 			else:
 				# determine indent
+				start_sublist = False
 				newline = newlinestart.get_line()
 				indent = buffer.get_indent(start.get_line())
 				nextlinestart = newlinestart.copy()
@@ -4305,17 +4329,24 @@ class TextView(Gtk.TextView):
 					if nextindent >= indent:
 						# we are at the head of a sublist
 						indent = nextindent
+						start_sublist = True
 
 				# add bullet on new line
-				bullet = buffer.get_bullet_at_iter(start)
+				bulletiter = nextlinestart if start_sublist else start # Either look back or look forward
+				bullet = buffer.get_bullet_at_iter(bulletiter)
 				if bullet in (CHECKED_BOX, XCHECKED_BOX, MIGRATED_BOX):
 					bullet = UNCHECKED_BOX
 				elif is_numbered_bullet_re.match(bullet):
-					bullet = increase_list_bullet(bullet)
-				buffer.set_bullet(newline, bullet)
+					if not start_sublist:
+						bullet = increase_list_bullet(bullet)
+					# else copy number
+				else:
+					pass # Keep same bullet
 
-				# apply indent
-				buffer.set_indent(newline, indent)
+				buffer.set_bullet(newline, bullet, indent=indent)
+					# Set indent in one-go because setting before fails for
+					# end of buffer while setting after messes up renumbering
+					# of lists
 
 			buffer.update_editmode() # also updates indent tag
 
@@ -5159,7 +5190,11 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		self.textview = TextView(preferences=self.preferences)
 		self.swindow = ScrolledWindow(self.textview)
-		self.add(self.swindow)
+		self._hack_hbox = Gtk.HBox()
+		self._hack_hbox.add(self.swindow)
+		self._hack_label = Gtk.Label() # any widget would do I guess
+		self._hack_hbox.pack_end(self._hack_label, False, True, 1)
+		self.add(self._hack_hbox)
 
 		self.textview.connect_object('link-clicked', PageView.activate_link, self)
 		self.textview.connect_object('populate-popup', PageView.do_populate_popup, self)
@@ -5397,6 +5432,10 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		try:
 			self.page = page
 			buffer = TextBuffer(self.notebook, self.page)
+			self._buffer_signals = (
+				buffer.connect('end-insert-tree', self._hack_on_inserted_tree),
+			)
+
 			self.textview.set_buffer(buffer)
 			tree = page.get_parsetree()
 
@@ -5424,7 +5463,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 			# Finish hooking up the new page
 			self.set_cursor_pos(cursor)
 
-			self._buffer_signals = (
+			self._buffer_signals += (
 				buffer.connect('textstyle-changed', lambda o, *a: self.emit('textstyle-changed', *a)),
 				buffer.connect('modified-changed', lambda o: self.on_modified_changed(o)),
 				buffer.connect_after('mark-set', self.do_mark_set),
@@ -5446,7 +5485,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 	def on_modified_changed(self, buffer):
 		# one-way traffic, set page modified after modifying the buffer
-		# but do not set page.moified False again when buffer goes
+		# but do not set page.modified False again when buffer goes
 		# back to un-modified. Reason is that we use the buffer modified
 		# state to track if we already requested the parse tree (see
 		# get_parsetree()) while page modified is used to track need
@@ -5526,6 +5565,33 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		self._parsetree = tree
 		self._showing_template = istemplate
 
+	def _hack_on_inserted_tree(self, *a):
+		if self.textview._object_widgets:
+			# Force resize of the scroll window, forcing a redraw to fix
+			# glitch in allocation of embedded obejcts, see isse #642
+			# Will add another timeout to rendering the page, increasing the
+			# priority breaks the hack though. Which shows the glitch is
+			# probably also happening in a drawing or resizing idle event
+			#
+			# Additional hook is needed for scrolling because re-rendering the
+			# objects changes the textview size and thus looses the scrolled
+			# position. Here idle didn't work so used a time-out with the
+			# potential risk that in some cases the timeout is to fast or to slow.
+
+			self._hack_label.show_all()
+			def scroll():
+				self.scroll_cursor_on_screen()
+				return False
+
+			def hide_hack():
+				self._hack_label.hide()
+				GLib.timeout_add(100, scroll)
+				return False
+
+			GLib.idle_add(hide_hack)
+		else:
+			self._hack_label.hide()
+
 	def on_insertedobjecttypemap_changed(self, *a):
 		self.save_changes()
 		buffer = self.textview.get_buffer()
@@ -5543,7 +5609,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		Effective read-only state seen in the C{self.readonly} attribute
 		is in fact C{True} (so read-only) when either the widget itself
 		OR the current page is read-only. So setting read-only to
-		C{False} here may not immediatly change C{self.readonly} if
+		C{False} here may not immediately change C{self.readonly} if
 		a read-only page is loaded.
 		'''
 		self._readonly_set = readonly
@@ -5654,15 +5720,23 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		buffer.select_word()
 		return self.get_selection(format)
 
-	def replace_selection(self, text):
+	def replace_selection(self, text, autoselect=None):
+		assert autoselect in (None, 'word')
 		buffer = self.textview.get_buffer()
-		if buffer.get_has_selection():
-			start, end = buffer.get_selection_bounds()
+		if not buffer.get_has_selection():
+			if autoselect == 'word':
+				buffer.select_word()
+			else:
+				raise AssertionError
+
+		bounds = buffer.get_selection_bounds()
+		if bounds:
+			start, end = bounds
 			with buffer.user_action:
 				buffer.delete(start, end)
 				buffer.insert_at_cursor(''.join(text))
 		else:
-			raise AssertionError
+			buffer.insert_at_cursor(''.join(text))
 
 	def do_mark_set(self, buffer, iter, mark):
 		# Update menu items relative to cursor position
@@ -5784,14 +5858,17 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def do_populate_popup(self, menu):
 		buffer = self.textview.get_buffer()
 		if not buffer.get_has_selection():
-			iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
-			if iter.get_line_offset() == 1:
-				iter.backward_char() # if clicked on right half of image, iter is after the image
-			bullet = buffer.get_bullet_at_iter(iter)
-			if bullet and bullet in CHECKBOXES:
-				self._checkbox_do_populate_popup(menu)
-			else:
+			iter = self.textview._get_popup_menu_mark()
+			if iter is None:
 				self._default_do_populate_popup(menu)
+			else:
+				if iter.get_line_offset() == 1:
+					iter.backward_char() # if clicked on right half of image, iter is after the image
+				bullet = buffer.get_bullet_at_iter(iter)
+				if bullet and bullet in CHECKBOXES:
+					self._checkbox_do_populate_popup(menu, buffer, iter)
+				else:
+					self._default_do_populate_popup(menu)
 		else:
 			self._default_do_populate_popup(menu)
 
@@ -5847,9 +5924,12 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		###
 
 
-		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
+		iter = self.textview._get_popup_menu_mark()
 			# This iter can be either cursor position or pointer
 			# position, depending on how the menu was called
+		if iter is None:
+			return
+
 		link = buffer.get_link_data(iter)
 		if link:
 			type = link_type(link['href'])
@@ -5947,7 +6027,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 				item.set_sensitive(False)
 		elif type not in ('page', 'notebook', 'interwiki', 'file', 'image'): # urls etc.
 			# FIXME: for interwiki inspect final link and base
-			# open with menu beased on that url type
+			# open with menu based on that url type
 			item = Gtk.MenuItem.new_with_mnemonic(_('Open With...'))
 			menu.prepend(item)
 			submenu = OpenWithMenu(self, link['href'])
@@ -5979,9 +6059,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		menu.show_all()
 
-	def _checkbox_do_populate_popup(self, menu):
-		buffer = self.textview.get_buffer()
-		iter = buffer.get_iter_at_mark(buffer.get_mark('zim-popup-menu'))
+	def _checkbox_do_populate_popup(self, menu, buffer, iter):
 		line = iter.get_line()
 
 		menu.prepend(Gtk.SeparatorMenuItem())
@@ -6160,7 +6238,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@action(_('_Image...'), menuhints='insert') # T: Menu item
 	def show_insert_image(self, file=None):
 		'''Menu action to insert an image, shows the L{InsertImageDialog}
-		@param file: optinal file to suggest in the dialog
+		@param file: optional file to suggest in the dialog
 		'''
 		InsertImageDialog(self, self.textview.get_buffer(), self.notebook, self.page, file).run()
 
@@ -6228,7 +6306,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	def insert_links(self, links):
 		'''Non-interactive method to insert one or more links
 
-		Inserts the links seperated by newlines. Intended e.g. for
+		Inserts the links separated by newlines. Intended e.g. for
 		drag-and-drop or copy-paste actions of e.g. files from a
 		file browser.
 
@@ -6420,9 +6498,6 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 
 		if format not in buffer.get_textstyles():
 			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-			if ishead:
-				line = buffer.get_insert_iter().get_line()
-				buffer.set_indent(line, 0)
 			selected = self.autoselect(selectline=ishead)
 
 		buffer.toggle_textstyle(format)
@@ -6586,7 +6661,9 @@ class LineSeparatorAnchor(InsertedObjectAnchor):
 		return LineSeparator()
 
 	def dump(self, builder):
-		builder.append(LINE, '-'*20) # FIXME: why do we need text here?
+		builder.start(LINE)
+		builder.data('-'*20) # FIXME: get rid of text here
+		builder.end(LINE)
 
 
 class TableAnchor(InsertedObjectAnchor):
@@ -7502,7 +7579,7 @@ class MoveTextDialog(Dialog):
 			newpage.parse('wiki', self.text) # FIXME: probably should use parsetree here instead
 			self.notebook.store_page(newpage)
 
-		# Delete text (after copy was succesfull..)
+		# Delete text (after copy was successfulll..)
 		bounds = list(map(self.buffer.get_iter_at_offset, self.bounds))
 		self.buffer.delete(*bounds)
 
