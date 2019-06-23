@@ -807,7 +807,8 @@ class TextBuffer(Gtk.TextBuffer):
 			if not iter.starts_line():
 				# Check existing indent - may have bullet type while we have not
 				tags = list(filter(_is_indent_tag, self.iter_get_zim_tags(iter)))
-				assert len(tags) <= 1, 'BUG: overlapping indent tags'
+				if len(tags) > 1:
+					logger.warn('BUG: overlapping indent tags')
 				if tags and int(tags[0].zim_attrib['indent']) == level:
 					self._editmode_tags.append(tags[0])
 					return # Re-use tag
@@ -1770,7 +1771,8 @@ class TextBuffer(Gtk.TextBuffer):
 		iter = self.get_iter_at_line(line)
 		tags = list(filter(_is_indent_tag, iter.get_tags()))
 		if tags:
-			assert len(tags) == 1, 'BUG: overlapping indent tags'
+			if len(tags) > 1:
+				logger.warn('BUG: overlapping indent tags')
 			return int(tags[0].zim_attrib['indent'])
 		else:
 			return 0
