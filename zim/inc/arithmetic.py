@@ -46,6 +46,11 @@ Usage as module:
      ...
 '''
 
+import logging
+
+logger = logging.getLogger('zim.inc.arithmetic')
+
+
 import re
 
 
@@ -135,15 +140,12 @@ getcontext().prec = 100
 
 def safe_eval(expression):
 	'''Safe evaluation of a python expression'''
-	#~ print('>>>', expression)
 	GLOBALS = {'__builtins__': None} # Don't allow open() etc.
 	try:
 		re = eval(expression, GLOBALS, {'Decimal': Decimal})
 	except Exception as e:
-		#~ print e
 		raise
 
-	#~ print re
 	return re
 
 
@@ -384,7 +386,7 @@ class Parser:
                                         variables=variables, functions=functions))
                             self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                         except:
-                            print('eval error:', tipoLeft, valorLeft, tipoRight, valorRight)
+                            logger.warn('eval error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
                     elif tipoLeft == 'n' and tipoRight in 'ifav':
                         if valorLeft not in functions:     # variable on the left
                             if tipoRight != 'v':    # assign to variable
@@ -393,7 +395,7 @@ class Parser:
                                                             variables=variables, functions=functions))
 
                                 except:
-                                    print('exec error:', tipoLeft, valorLeft, tipoRight, valorRight)
+                                    logger.warn('exec error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
                                     raise
                             else:                   # evaluate a variable
                                 if valorLeft in variables:
@@ -408,7 +410,7 @@ class Parser:
                                                 variables=variables, functions=functions))
                                     self.writeResult(i, lines, mEqualSignAct.end(), RightActEnd, resultado)
                                 except:
-                                    print('eval error:', tipoLeft, valorLeft, tipoRight, valorRight)
+                                    logger.warn('eval error: %s, %s, %s, %s', tipoLeft, valorLeft, tipoRight, valorRight)
                             else:                   # recurrence relation
                                 if valorLeft not in variables:            # initial value
                                   if valorRight != '':
