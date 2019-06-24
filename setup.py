@@ -262,7 +262,7 @@ class zim_install_class(install_class):
 		mimedir = os.path.join(self.install_data, 'share', 'mime')
 		print(
 			'To register zim with the desktop environment, please run\n'
-			'the following two commands:\m'
+			'the following two commands:\n'
 			'* update-desktop-database\n'
 			'* update-mime-database %s\n' % mimedir
 		)
