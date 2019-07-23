@@ -614,7 +614,7 @@ class TaskListTreeView(BrowserTreeView):
 				prio_sort_label = '!' * min(row['prio'], 3)
 
 			# Format description
-			desc = _date_re.sub('', row['description'], count=1)
+			desc = _date_re.sub('', row['description'])
 			desc = re.sub('\s*!+\s*', ' ', desc) # get rid of exclamation marks
 			desc = encode_markup_text(desc)
 			if actionable:
