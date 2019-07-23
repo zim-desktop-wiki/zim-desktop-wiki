@@ -353,7 +353,7 @@ class Application(object):
 		try:
 			try:
 				pid, stdin, stdout, stderr = \
-					GObject.spawn_async(argv, flags=flags, **opts)
+					GObject.spawn_async(argv, flags=flags, working_directory=cwd, **opts)
 			except GObject.GError:
 				if _CAN_CALL_FLATPAK_HOST_COMMAND:
 					pid, stdin, stdout, stderr = \
