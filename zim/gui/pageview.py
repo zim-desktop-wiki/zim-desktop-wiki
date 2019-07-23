@@ -559,12 +559,19 @@ class TextBuffer(Gtk.TextBuffer):
 		'find-highlight': {'background': 'magenta', 'foreground': 'white'},
 		'find-match': {'background': '#38d878', 'foreground': 'white'}
 	}
+
 	#: tags that can be mapped to named TextTags
 	_static_style_tags = (
 		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 		'emphasis', 'strong', 'mark', 'strike',
-		'code', 'pre',
-		'sub', 'sup'
+		'sub', 'sup',
+		'pre', 'code' # These two must be last in sorting order to ensure prio in parsing
+	)
+
+	#: tags that can nest in any order
+	_nesting_style_tags = (
+		'emphasis', 'strong', 'mark', 'strike',
+		'sub', 'sup',
 	)
 
 	tag_attributes = {
@@ -2308,6 +2315,8 @@ class TextBuffer(Gtk.TextBuffer):
 			# ones before. This is enforced using the priorities of the tags
 			# in the TagTable.
 			tags.sort(key=lambda tag: tag.get_priority(), reverse=True)
+			if len([t for t in tags if t.zim_tag in self._nesting_style_tags]) > 1:
+				tags = self._sort_nesting_style_tags(iter, tags, [t[0] for t in open_tags])
 
 			i = 0
 			while i < len(tags) and i < len(open_tags) \
@@ -2507,6 +2516,40 @@ class TextBuffer(Gtk.TextBuffer):
 			#print(">>> Parsetree recreated:\n", tree.tostring())
 
 		return tree
+
+	def _sort_nesting_style_tags(self, iter, tags, open_tags):
+		new_block, new_nesting, new_leaf = self._split_nesting_style_tags(tags)
+		open_block, open_nesting, open_leaf = self._split_nesting_style_tags(open_tags)
+		sorted_new_nesting = []
+
+		# First prioritize open tags - these are sorted already
+		if new_block == open_block:
+			for tag in open_nesting:
+				if tag in new_nesting:
+					i = new_nesting.index(tag)
+					sorted_new_nesting.append(new_nesting.pop(i))
+				else:
+					break
+
+		# Then sort by length untill closing all tags that open at the same time
+		def tag_close_pos(tag):
+			my_iter = iter.copy()
+			my_iter.forward_to_tag_toggle(tag)
+			offset = my_iter.get_offset()
+			return offset
+
+		new_nesting.sort(key=tag_close_pos, reverse=True)
+		sorted_new_nesting += new_nesting
+
+		return new_block + sorted_new_nesting + new_leaf
+
+	def _split_nesting_style_tags(self, tags):
+		block, nesting = [], []
+		while tags and tags[0].zim_tag not in self._nesting_style_tags:
+			block.append(tags.pop(0))
+		while tags and tags[0].zim_tag in self._nesting_style_tags:
+			nesting.append(tags.pop(0))
+		return block, nesting, tags
 
 	def select_line(self, line=None):
 		'''Selects a line

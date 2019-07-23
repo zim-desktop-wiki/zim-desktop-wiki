@@ -907,6 +907,17 @@ C
 			'<li bullet="checked-box" indent="0"> foo bar</li>\n'
 		)
 
+	def testNestedFormattingRoundtrip(self):
+			xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>normal <strong>bold</strong> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis> </strike>normal2
+</p></zim-tree>'''
+			buffer = self.get_buffer(xml)
+			self.assertBufferEquals(buffer, xml)
+
 
 class TestUndoStackManager(tests.TestCase):
 
@@ -1810,60 +1821,6 @@ Foo 123
 		newtree = buffer.get_parsetree()
 		self.assertEqual(newtree.tostring(), tree.tostring())
 
-	def testFormatting(self):
-			view = TextView(self.preferences)
-			notebook = self.setUpNotebook()
-			page = notebook.get_page(Path('Test'))
-			buffer = TextBuffer(notebook, page)
-			view.set_buffer(buffer)
-			# Need a window to get the widget realized
-			window = Gtk.Window()
-			window.add(view)
-			view.realize()
-
-			# First, let's write down just basic bold text and expect it in the XML
-			press(view, 'normal **bold** normal2\n')
-			wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>normal <strong>bold</strong> normal2\n</p></zim-tree>'''
-			tree = buffer.get_parsetree(raw=False)
-			self.assertEqual(tree.tostring(), wanted)
-
-			# Next, add a strike style nested under another bold text
-			press(view, 'normal ~~strike  **nested bold** strike2~~ normal2\n')
-
-			wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>normal <strong>bold</strong> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
-</p></zim-tree>'''
-			tree = buffer.get_parsetree(raw=False)
-			self.assertEqual(tree.tostring(), wanted)
-
-			# Add a link nested under an italic style
-			press(view, 'normal ~~strike  **nested bold** strike2~~ //italic [[https://example.org|link]]// normal2\n')
-			wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>normal <strong>bold</strong> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
-</p></zim-tree>'''
-			tree = buffer.get_parsetree(raw=False)
-			self.assertEqual(tree.tostring(), wanted)
-
-			# Add a complex case - triply nested style
-			press(view,
-				  'normal ~~strike  **nested bold** strike2 //striked italic **bold link coming: [[https://example.org|link]]**// ~~normal2\n')
-			wanted = '''\
-<?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p>normal <strong>bold</strong> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
-normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis> </strike>normal2
-</p></zim-tree>'''
-			tree = buffer.get_parsetree(raw=False)
-			self.assertEqual(tree.tostring(), wanted)
-
 	def testPopup(self):
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
@@ -2194,6 +2151,85 @@ Baz
 		pageview.activate_link('myurl://foo') # No raise
 
 		pageview.disconnect(id)
+
+
+class TestFormatActions(tests.TestCase, TestCaseMixin):
+
+	def setUp(self):
+		self.pageview = setUpPageView(self.setUpNotebook())
+		self.buffer = self.pageview.textview.get_buffer()
+		self.buffer.set_text("Test 123\n")
+
+	def activate(self, name):
+		self.pageview.actiongroup.get_action(name).activate()
+
+	def testApplyFormatHeading(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+
+	def testApplyFormatHeadingNoSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+
+	def testApplyFormatStrong(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+
+	def testApplyFormatStrongNoSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+
+	def testApplyFormatEmphasis(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_emphasis')
+		self.assertBufferEquals(self.buffer, '<emphasis>Test</emphasis> 123\n')
+
+	def testApplyFormatMark(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_mark')
+		self.assertBufferEquals(self.buffer, '<mark>Test</mark> 123\n')
+
+	def testApplyFormatStrike(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strike')
+		self.assertBufferEquals(self.buffer, '<strike>Test</strike> 123\n')
+
+	def testApplyFormatCode(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, '<code>Test</code> 123\n')
+
+	def testApplyFormatSup(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_sup')
+		self.assertBufferEquals(self.buffer, '<sup>Test</sup> 123\n')
+
+	def testApplyFormatSub(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_sub')
+		self.assertBufferEquals(self.buffer, '<sub>Test</sub> 123\n')
+
+	def testApplyFormatMultiple(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test 123</strong>\n')
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_strike')
+		self.assertBufferEquals(self.buffer, '<strong><strike>Test</strike> 123</strong>\n')
+
+
+	# TODO: also test format toggle actions
 
 
 class TestPageViewActions(tests.TestCase):
