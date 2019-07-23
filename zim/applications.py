@@ -338,12 +338,14 @@ class Application(object):
 		@returns: the PID for the new process
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		opts = {}
 
 		flags = GObject.SPAWN_SEARCH_PATH
 		if callback:
 			flags |= GObject.SPAWN_DO_NOT_REAP_CHILD
 			# without this flag child is reaped automatically -> no zombies
+
+		if cwd is None:
+			cwd = os.getcwd()
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
 		if TEST_MODE:
@@ -353,11 +355,11 @@ class Application(object):
 		try:
 			try:
 				pid, stdin, stdout, stderr = \
-					GObject.spawn_async(argv, flags=flags, **opts)
+					GObject.spawn_async(argv, flags=flags, working_directory=cwd)
 			except GObject.GError:
 				if _CAN_CALL_FLATPAK_HOST_COMMAND:
 					pid, stdin, stdout, stderr = \
-						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, **opts)
+						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, working_directory=cwd)
 				else:
 					raise
 		except GObject.GError:
