@@ -9,7 +9,8 @@ import logging
 logger = logging.getLogger('zim.formats.wiki')
 
 from zim.parser import *
-from zim.parsing import url_re, url_encode, URL_ENCODE_DATA
+from zim.parsing import url_re, url_encode, URL_ENCODE_DATA, \
+	escape_string, unescape_string, split_escaped_string
 from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
@@ -268,17 +269,17 @@ class WikiParser(object):
 			values.append(default)
 		return ','.join(values)
 
-	def parse_table(self, builder, headerrow, alignstyle, body):
-		body = body.replace('\\|', '#124;')  # escaping
-		rows = body.split('\n')[:-1]
-		# get maximum number of columns - each columns must have same size
-		nrcols = max([headerrow.count('|')] + [row.count('|') for row in rows]) - 1
+	def parse_table(self, builder, headerline, alignstyle, body):
+		headerrow = split_escaped_string(headerline.strip().strip('|'), '|')
+		rows = [
+				split_escaped_string(line.strip().strip('|'), '|')
+					for line in body.split('\n')[:-1]
+		]
 
-		# transform header separator line into alignment definitions
+		n_cols = max(len(headerrow), max(len(bodyrow) for bodyrow in rows))
+
 		aligns = []
-		while alignstyle.count('|') < nrcols + 1:
-			alignstyle += '|'  # fill cells thus they match with nr of headers
-		for celltext in alignstyle.split('|')[1:-1]:
+		for celltext in alignstyle.strip().strip('|').split('|'):
 			celltext = celltext.strip()
 			if celltext.startswith(':') and celltext.endswith(':'):
 				alignment = 'center'
@@ -290,10 +291,13 @@ class WikiParser(object):
 				alignment = 'normal'
 			aligns.append(alignment)
 
+		while len(aligns) < n_cols:
+			aligns.append('normal')
+
 		# collect wrap settings from first table row
 		headers = []
 		wraps = []
-		for celltext in headerrow.split('|')[1:-1]:
+		for celltext in headerrow:
 			if celltext.rstrip().endswith('<'):
 				celltext = celltext.rstrip().rstrip('<')
 				wraps.append(1)
@@ -301,29 +305,27 @@ class WikiParser(object):
 				wraps.append(0)
 			headers.append(celltext)
 
+		while len(headers) < n_cols:
+			headers.append('')
+			wraps.append(0)
+
 		attrib = {'aligns': ','.join(aligns), 'wraps': ','.join(map(str, wraps))}
-
-
-		# build table
 		builder.start(TABLE, attrib)
 
 		builder.start(HEADROW)
 		for celltext in headers:
-			celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()
-			if not celltext:
-				celltext = ' '  # celltext must contain at least one character
+			celltext = unescape_string(celltext.strip()) or ' ' # must contain at least one character
 			builder.append(HEADDATA, {}, celltext)
 		builder.end(HEADROW)
 
 		for bodyrow in rows:
-			while bodyrow.count('|') < nrcols + 1:
-				bodyrow += '|'  # fill cells thus they match with nr of headers
+			while len(bodyrow) < n_cols:
+				bodyrow.append('')
+
 			builder.start(TABLEROW)
-			for celltext in bodyrow.split('|')[1:-1]:
+			for celltext in bodyrow:
 				builder.start(TABLEDATA)
-				celltext = celltext.replace('#124;', '|').replace('\\n', '\n').strip()  # cleanup cell
-				if not celltext:
-					celltext = ' '  # celltext must contain at least one character
+				celltext = unescape_string(celltext.strip()) or ' ' # must contain at least one character
 				self.inline_parser(builder, celltext)
 				builder.end(TABLEDATA)
 			builder.end(TABLEROW)
@@ -614,34 +616,23 @@ class Dumper(TextDumper):
 		# See img
 
 	def dump_table(self, tag, attrib, strings):
-		n = len(strings[0])
-		assert all(len(s) == n for s in strings), strings
-
-		table = []  # result table
 		rows = strings
+		n = len(rows[0])
+		assert all(len(r) == n for r in rows), rows
 
 		aligns, wraps = TableParser.get_options(attrib)
 		maxwidths = TableParser.width2dim(rows)
-		headsep = TableParser.headsep(maxwidths, aligns, x='|', y='-')
-		rowline = lambda row: TableParser.rowline(row, maxwidths, aligns)
 
-		# print table
-		table += [TableParser.headline(rows[0], maxwidths, aligns, wraps)]
-		table.append(headsep)
-		table += [rowline(row) for row in rows[1:]]
-		return [line + "\n" for line in table]
-
-	def dump_th(self, tag, attrib, strings):
-		if not strings:
-			return [''] # force empty cell
-		else:
-			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
-			return [self._concat(strings)]
+		lines = [
+			TableParser.headline(rows[0], maxwidths, aligns, wraps) + '\n',
+			TableParser.headsep(maxwidths, aligns, x='|', y='-') + '\n'
+		] + [
+			TableParser.rowline(row, maxwidths, aligns) + '\n' for row in rows[1:]
+		]
+		return lines
 
 	def dump_td(self, tag, attrib, strings):
-		if not strings:
-			return [''] # force empty cell
-		else:
-			strings = [s.replace('\n', '\\n').replace('|', '\\|') for s in strings]
-			strings = [s.replace('<br>', '\\n') for s in strings]
-			return [self._concat(strings)]
+		text = ''.join(strings) if strings else ''
+		return [escape_string(text, '|')]
+
+	dump_th = dump_td
