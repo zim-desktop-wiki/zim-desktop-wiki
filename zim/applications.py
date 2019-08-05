@@ -345,6 +345,9 @@ class Application(object):
 			flags |= GObject.SPAWN_DO_NOT_REAP_CHILD
 			# without this flag child is reaped automatically -> no zombies
 
+		if not cwd:
+			cwd = os.getcwd()
+
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
 		if TEST_MODE:
 			TEST_MODE_RUN_CB(argv)
