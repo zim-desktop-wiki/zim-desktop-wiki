@@ -968,6 +968,12 @@ class PageWindow(Window):
 		self.add(self.pageview)
 
 
+		def do_delete_event(*a):
+			logger.debug('Close PageWindow for %s', page)
+			self.uistate['windowsize'] = tuple(self.get_size())
+
+		self.connect('delete-event', do_delete_event)
+
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.
 	Prompts for a page name and navigate to that page on 'Ok'.
