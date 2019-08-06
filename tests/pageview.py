@@ -170,8 +170,6 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 
 		raw1 = buffer.get_parsetree(raw=True)
 		result1 = buffer.get_parsetree()
-		#~ print tree.tostring()
-		#~ print result1.tostring()
 		reftree = tree.copy()
 		reftree.unresolve_images() # needed to make compare succeed
 		self.assertEqual(result1.tostring(), reftree.tostring())
