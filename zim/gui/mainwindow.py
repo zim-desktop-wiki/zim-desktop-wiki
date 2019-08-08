@@ -733,9 +733,14 @@ class MainWindow(Window):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
 
+		Fails silently when saving current page failed (which is usually the
+		result of pressing "cancel" in the error dialog shown when saving
+		fails). Check return value for success if you want to be sure.
+
 		@param path: a L{path} for the page to open.
 		@raises PageNotFound: if C{path} can not be opened
 		@emits: page-changed
+		@returns: C{True} for success
 		'''
 		assert isinstance(path, Path)
 		if isinstance(path, Page) and path.valid:
@@ -751,7 +756,7 @@ class MainWindow(Window):
 			self.pageview.save_changes() # XXX - should connect to signal instead of call here
 			self.notebook.wait_for_store_page_async() # XXX - should not be needed - hide in notebook/page class - how?
 			if self.page.modified:
-				raise AssertionError('Could not save page') # XXX - shouldn't this lead to dialog ?
+				return False # Assume SavePageErrorDialog was shown and cancelled
 
 			old_cursor = self.pageview.get_cursor_pos()
 			old_scroll = self.pageview.get_scroll_pos()
@@ -900,8 +905,8 @@ class MainWindow(Window):
 		pos = self.pageview.get_cursor_pos()
 		self.pageview.save_changes() # XXX
 		self.notebook.flush_page_cache(self.page)
-		self.open_page(self.notebook.get_page(self.page))
-		self.pageview.set_cursor_pos(pos)
+		if self.open_page(self.notebook.get_page(self.page)):
+			self.pageview.set_cursor_pos(pos)
 
 
 class BackLinksMenuButton(MenuButton):
