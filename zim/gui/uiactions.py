@@ -647,8 +647,10 @@ class MovePageDialog(Dialog):
 		self.notebook = notebook
 		self.path = path
 
-		self.vbox.add(Gtk.Label(label=_('Move page "%s"') % self.path.name))
+		label = Gtk.Label(label=_('Move page "%s"') % self.path.name)
 			# T: Heading in 'move page' dialog - %s is the page name
+		label.set_ellipsize(Pango.EllipsizeMode.END)
+		self.vbox.add(label)
 
 		try:
 			i = self.notebook.links.n_list_links_section(path, LINK_DIR_BACKWARD)
