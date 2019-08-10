@@ -36,6 +36,8 @@ class InsertedObjectType(object):
 	def __init__(self):
 		assert self.name is not None
 		assert self.label is not None
+		self.object_attr = self.object_attr.copy()
+			# Prevent referencing and modifying class attribute of parent class
 		self.object_attr['type'] = String(self.name)
 
 		for name in ('model_from_data', 'data_from_model', 'format'):
