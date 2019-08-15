@@ -28,7 +28,7 @@ logger = logging.getLogger('zim.applications')
 TEST_MODE = False
 TEST_MODE_RUN_CB = None
 
-_ENCODING = locale.getpreferredencoding(False)
+_ENCODING = locale.getpreferredencoding()
 
 def _decode(data):
 	# Since we do not know for sure what encoding other processes will use
@@ -37,8 +37,6 @@ def _decode(data):
 		return data.decode('UTF-8')
 	except UnicodeDecodeError:
 		return data.decode(_ENCODING)
-
-_ENCODE_UTF8 = _ENCODING in ('ascii', 'us-ascii', 'ANSI_X3.4-1968')
 
 
 _FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
@@ -211,10 +209,6 @@ class Application(object):
 
 		if hasattr(cwd, 'path'):
 			cwd = cwd.path
-
-		if _ENCODE_UTF8:
-			cwd = cwd.encode('UTF-8') if cwd else cwd
-			argv = [a.encode('UTF-8') for a in argv]
 
 		return cwd, argv
 
