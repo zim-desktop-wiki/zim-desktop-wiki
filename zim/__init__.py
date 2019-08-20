@@ -137,15 +137,25 @@ except locale.Error:
 	logger.exception('Could not set locale settings')
 
 
+_pref_enc = locale.getpreferredencoding()
+if _pref_enc in ('ascii', 'us-ascii', 'ANSI_X3.4-1968'):
+	logger.warn(
+		'Your system encoding is set to %s, if you want support for special characters\n'
+		'or see errors due to encoding, please ensure to configure your system to use "UTF-8"' % _pref_enc
+	)
+	# NOTE: tried doing this automatically, but failed because locale at
+	# python run time initialization seems to define how most libraries
+	# handle encoding. Specifically the value of "getpreferredencoding()"
+	# does not change as result of calling "setlocale()"
+
+
 ## Initialize gettext  (maybe make this optional later for module use ?)
 
-if os.name == "nt" and not os.environ.get('LANG'):
+_lang, _enc = locale.getlocale()
+if os.name == "nt" and not os.environ.get('LANG') and _lang not in (None, 'C'):
 	# Set locale config for gettext (other platforms have this by default)
 	# Using LANG because it is lowest prio - do not override other params
-	lang, enc = locale.getlocale()
-	if lang is not None:
-		os.environ['LANG'] = lang + '.' + enc if enc else lang
-		logger.info('Locale set to: %s', os.environ['LANG'])
+	os.environ['LANG'] = _lang + '.' + _enc if _enc else _lang
 
 
 _localedir = os.path.join(os.path.dirname(ZIM_EXECUTABLE), 'locale')

@@ -9,6 +9,7 @@ from gi.repository import Gdk
 from gi.repository import GObject
 
 import logging
+import locale
 
 from zim.gui.widgets import Dialog, BrowserTreeView, \
 	ScrolledWindow, ScrolledTextView, InputForm, input_table_factory, get_window, help_text_factory
@@ -31,11 +32,28 @@ _label = _('Interface') # T: Tab in preferences dialog
 _label = _('Editing') # T: Tab in preferences dialog
 
 
+def localeWarningBar(enc):
+	bar = Gtk.InfoBar()
+	bar.set_message_type(Gtk.MessageType.WARNING)
+	label = Gtk.Label(_(
+		'Your system encoding is set to %s, if you want support for special characters\n'
+		'or see errors due to encoding, please ensure to configure your system to use "UTF-8"') % enc)
+	label.set_line_wrap(True)
+	label.set_xalign(0)
+	bar.get_content_area().pack_start(label, False, False, 0)
+	return bar
+
+
 class PreferencesDialog(Dialog):
 
 	def __init__(self, widget, default_tab=None, select_plugin=None):
 		Dialog.__init__(self, widget, _('Preferences')) # T: Dialog title
 		self.preferences = ConfigManager.preferences
+
+		# warning for locale
+		_pref_enc = locale.getpreferredencoding()
+		if _pref_enc in ('ascii', 'us-ascii', 'ANSI_X3.4-1968'):
+			self.vbox.pack_start(localeWarningBar(_pref_enc), True, True, 0)
 
 		# saves a list of loaded plugins to be used later
 		self.plugins = PluginManager()

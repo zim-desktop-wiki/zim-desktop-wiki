@@ -28,7 +28,7 @@ logger = logging.getLogger('zim.applications')
 TEST_MODE = False
 TEST_MODE_RUN_CB = None
 
-_ENCODING = locale.getpreferredencoding(False)
+_ENCODING = locale.getpreferredencoding()
 
 def _decode(data):
 	# Since we do not know for sure what encoding other processes will use
@@ -37,8 +37,6 @@ def _decode(data):
 		return data.decode('UTF-8')
 	except UnicodeDecodeError:
 		return data.decode(_ENCODING)
-
-_ENCODE_UTF8 = _ENCODING in ('ascii', 'us-ascii', 'ANSI_X3.4-1968')
 
 
 _FLATPAK_HOSTCOMMAND_PREFIX = ("flatpak-spawn", "--host")
@@ -212,10 +210,6 @@ class Application(object):
 		if hasattr(cwd, 'path'):
 			cwd = cwd.path
 
-		if _ENCODE_UTF8:
-			cwd = cwd.encode('UTF-8') if cwd else cwd
-			argv = [a.encode('UTF-8') for a in argv]
-
 		return cwd, argv
 
 	def run(self, args=None, cwd=None):
@@ -338,12 +332,14 @@ class Application(object):
 		@returns: the PID for the new process
 		'''
 		cwd, argv = self._checkargs(cwd, args)
-		opts = {}
 
 		flags = GObject.SPAWN_SEARCH_PATH
 		if callback:
 			flags |= GObject.SPAWN_DO_NOT_REAP_CHILD
 			# without this flag child is reaped automatically -> no zombies
+
+		if cwd is None:
+			cwd = os.getcwd()
 
 		logger.info('Spawning: %s (cwd: %s)', argv, cwd)
 		if TEST_MODE:
@@ -353,11 +349,11 @@ class Application(object):
 		try:
 			try:
 				pid, stdin, stdout, stderr = \
-					GObject.spawn_async(argv, flags=flags, **opts)
+					GObject.spawn_async(argv, flags=flags, working_directory=cwd)
 			except GObject.GError:
 				if _CAN_CALL_FLATPAK_HOST_COMMAND:
 					pid, stdin, stdout, stderr = \
-						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, **opts)
+						GObject.spawn_async(_FLATPAK_HOSTCOMMAND_PREFIX + argv, flags=flags, working_directory=cwd)
 				else:
 					raise
 		except GObject.GError:

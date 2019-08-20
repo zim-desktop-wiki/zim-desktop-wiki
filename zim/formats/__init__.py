@@ -322,13 +322,9 @@ class ParseTree(object):
 		return xml.getvalue()
 
 	def copy(self):
-		# By using serialization we are absolutely sure all refs are new
-		xml = self.tostring()
-		try:
-			return ParseTree().fromstring(xml)
-		except:
-			print(">>>", xml, "<<<")
-			raise
+		builder = ParseTreeBuilder(_parsetree_roundtrip=True)
+		self.visit(builder)
+		return builder.get_parsetree()
 
 	def iter_tokens(self):
 		from zim.tokenparser import TokenBuilder
@@ -784,6 +780,7 @@ class ParseTreeBuilder(Builder):
 		return zim.formats.ParseTree(root)
 
 	def start(self, tag, attrib=None):
+		attrib = attrib.copy() if attrib is not None else None
 		self._b.start(tag, attrib)
 		self.stack.append(tag)
 		if tag in BLOCK_LEVEL:
@@ -822,6 +819,7 @@ class ParseTreeBuilder(Builder):
 		self._last_char = None
 
 	def append(self, tag, attrib=None, text=None):
+		attrib = attrib.copy() if attrib is not None else None
 		if tag in BLOCK_LEVEL:
 			if text and not text.endswith('\n'):
 				text += '\n'
@@ -836,7 +834,7 @@ class ParseTreeBuilder(Builder):
 		self._b.end(tag)
 
 		# FIXME hack for backward compat
-		if tag == HEADING:
+		if tag == HEADING and not self._parsetree_roundtrip:
 			self._b.data('\n')
 
 		self._last_char = None

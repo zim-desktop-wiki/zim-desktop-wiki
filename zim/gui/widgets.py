@@ -3171,6 +3171,9 @@ class ErrorDialog(Gtk.MessageDialog):
 		self.set_transient_for(get_window(parent))
 		self.set_modal(True)
 
+		for child in self.get_message_area().get_children():
+			if isinstance(child, Gtk.Label):
+				child.set_ellipsize(Pango.EllipsizeMode.END)
 
 		if isinstance(error, zim.errors.Error):
 			self.showing_trace = False # used in test

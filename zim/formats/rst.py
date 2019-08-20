@@ -114,13 +114,5 @@ class Dumper(TextDumper):
 
 		return [line + "\n" for line in table]
 
-	def dump_th(self, tag, attrib, strings):
-		#strings = [s.replace('|', '\u2223') for s in strings]
-		return [self._concat(strings)]
-
-	def dump_td(self, tag, attrib, strings):
-		#strings = [s.replace('|', '\u2223') for s in strings]
-		return [self._concat(strings)]
-
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n{}\n'.format('*' * 5)

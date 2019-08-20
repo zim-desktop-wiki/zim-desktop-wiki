@@ -33,8 +33,8 @@ TABLE_WIKI_TEXT = '''\
 
 |        H1       <|         H2 h2 | H3                    <|
 |:----------------:|--------------:|:-----------------------|
-|    Column A1     |     Column A2 | a                      |
-| a very long cell | **bold text** | b                      |
+|    Column A1     |     Column A2 | a \\\\name               |
+| a very long cell | **bold text** | two\\nlines             |
 |    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
 
 '''
@@ -59,12 +59,12 @@ TABLE_TOKENS = [
 			('trow', {}),
 				('td', {}), ('T', 'Column A1'), ('/', 'td'),
 				('td', {}), ('T', 'Column A2'), ('/', 'td'),
-				('td', {}), ('T', 'a'), ('/', 'td'),
+				('td', {}), ('T', 'a \\name'), ('/', 'td'),
 			('/', 'trow'),
 			('trow', {}),
 				('td', {}), ('T', 'a very long cell'), ('/', 'td'),
 				('td', {}), ('strong', {}), ('T', 'bold text'), ('/', 'strong'), ('/', 'td'),
-				('td', {}), ('T', 'b'), ('/', 'td'),
+				('td', {}), ('T', 'two\n'), ('T', 'lines'), ('/', 'td'),
 			('/', 'trow'),
 			('trow', {}),
 				('td', {}), ('T', 'hyperlinks'), ('/', 'td'),

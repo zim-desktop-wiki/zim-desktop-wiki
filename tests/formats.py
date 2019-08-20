@@ -590,6 +590,13 @@ hmmm
 		text = ''.join(self.format.Dumper().dump(tree))
 		self.assertEqual(text, wanted)
 
+	def testStringEscapeDoesNotGetEvaluated(self):
+		text = "this is not a newline: \\name\n This is not a tab: \\tab \n"
+		tree = self.format.Parser().parse(text)
+		#~ print tree.tostring()
+		output = self.format.Dumper().dump(tree)
+		self.assertEqual(''.join(output), text)
+
 
 class TestHtmlFormat(tests.TestCase, TestFormatMixin):
 

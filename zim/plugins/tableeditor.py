@@ -30,7 +30,7 @@ from zim.gui.insertedobjects import InsertedObjectWidget
 
 
 SYNTAX_CELL_INPUT = [
-	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'"), ('\n', '\\n')
+	('&amp;', '&'), ('&gt;', '>'), ('&lt;', '<'), ('&quot;', '"'), ('&apos;', "'")
 ]
 
 # Regex replacement strings: Wiki-Parsetree -> Pango (Table cell) -> Input (Table cell editing)

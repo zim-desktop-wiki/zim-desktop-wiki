@@ -170,8 +170,6 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 
 		raw1 = buffer.get_parsetree(raw=True)
 		result1 = buffer.get_parsetree()
-		#~ print tree.tostring()
-		#~ print result1.tostring()
 		reftree = tree.copy()
 		reftree.unresolve_images() # needed to make compare succeed
 		self.assertEqual(result1.tostring(), reftree.tostring())
@@ -497,6 +495,17 @@ Tja
 		undomanager.redo()
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
+
+	def testStringEscapeDoesNotGetEvaluated(self):
+		input = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree>
+<p>this is not a newline: \\name
+This is not a tab: \\tab
+</p></zim-tree>'''
+		buffer = self.get_buffer(input)
+		tree = buffer.get_parsetree()
+		self.assertEqual(tree.tostring(), input)
 
 	def testReplace(self):
 		# Check replacing a formatted word

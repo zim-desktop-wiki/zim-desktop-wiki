@@ -212,23 +212,16 @@ class Dumper(DumperClass):
 
 		return [line + "\n" for line in table]
 
-	@staticmethod
-	def _concat(s):
-		return s if isinstance(s, str) else ''.join(s)
-
 	def dump_thead(self, tag, attrib, strings):
 		return [strings] # HACK to keep row structure
 
 	def dump_trow(self, tag, attrib, strings):
 		return [strings] # HACK to keep row structure
 
-	def dump_th(self, tag, attrib, strings):
-		#strings = [s.replace('|', '\u2223') for s in strings]
-		return [self._concat(strings)]
-
 	def dump_td(self, tag, attrib, strings):
-		#strings = [s.replace('|', '\u2223') for s in strings]
-		return [self._concat(strings)]
+		return [''.join(strings)] # NOTE: no escaping done here !
+
+	dump_th = dump_td
 
 	def dump_line(self, tag, attrib, strings=None):
 		return '-' * 20
