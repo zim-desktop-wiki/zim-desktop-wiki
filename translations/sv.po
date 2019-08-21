@@ -675,10 +675,10 @@ msgstr "_Läs om"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _bakåtlänk..."
-msgstr[1] "%i _bakåtlänkar..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i _bakåtlänk"
+msgstr[1] "%i _bakåtlänkar"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

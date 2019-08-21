@@ -692,8 +692,8 @@ msgstr "_Actualiser"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
 msgstr[0] "%i _rétro-lien"
 msgstr[1] "%i _rétro-liens"
 

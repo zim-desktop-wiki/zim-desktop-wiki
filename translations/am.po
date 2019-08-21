@@ -685,10 +685,10 @@ msgstr "_እንደገና መጫኛ"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i የ  _ዌብ ምንጭ..."
-msgstr[1] "%i የ  _ዌብ ምንጮች..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i የ  _ዌብ ምንጭ"
+msgstr[1] "%i የ  _ዌብ ምንጮች"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

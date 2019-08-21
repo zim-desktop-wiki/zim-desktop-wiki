@@ -676,12 +676,12 @@ msgstr "_Znova naloži"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i_Povratnih povezav ..."
-msgstr[1] "%i_Povratna povezava ..."
-msgstr[2] "%i_Povratni povezavi ..."
-msgstr[3] "%i_Povratne povezave ..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i_Povratnih povezav"
+msgstr[1] "%i_Povratna povezava"
+msgstr[2] "%i_Povratni povezavi"
+msgstr[3] "%i_Povratne povezave"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

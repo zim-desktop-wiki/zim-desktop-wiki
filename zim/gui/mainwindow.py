@@ -232,10 +232,11 @@ class MainWindow(Window):
 		self.statusbar.push(0, '<page>')
 		self.add_bar(self.statusbar, start=False)
 		self.statusbar.set_property('margin', 0)
+		self.statusbar.set_property('spacing', 0)
 
 		def statusbar_element(string, size):
 			frame = Gtk.Frame()
-			frame.set_shadow_type(Gtk.ShadowType.IN)
+			frame.set_shadow_type(Gtk.ShadowType.NONE)
 			self.statusbar.pack_end(frame, False, True, 0)
 			label = Gtk.Label(label=string)
 			label.set_size_request(size, 10)
@@ -244,15 +245,17 @@ class MainWindow(Window):
 			return label
 
 		# specify statusbar elements right-to-left
-		self.statusbar_style_label = statusbar_element('<style>', 100)
 		self.statusbar_insert_label = statusbar_element('INS', 60)
+		self.statusbar_style_label = statusbar_element('<style>', 100)
 
 		# and build the widget for backlinks
 		self.statusbar_backlinks_button = \
 			BackLinksMenuButton(self.notebook, self.open_page, status_bar_style=True)
 		frame = Gtk.Frame()
-		frame.set_shadow_type(Gtk.ShadowType.IN)
+		frame.set_shadow_type(Gtk.ShadowType.NONE)
+		self.statusbar.pack_end(Gtk.Separator(), False, True, 0)
 		self.statusbar.pack_end(frame, False, True, 0)
+		self.statusbar.pack_end(Gtk.Separator(), False, True, 0)
 		frame.add(self.statusbar_backlinks_button)
 
 		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
@@ -925,7 +928,7 @@ class BackLinksMenuButton(MenuButton):
 			n = 0
 
 		self.label.set_text_with_mnemonic(
-			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
+			ngettext('%i _Backlink', '%i _Backlinks', n) % n)
 			# T: Label for button with backlinks in statusbar
 		self.set_sensitive(n > 0)
 
