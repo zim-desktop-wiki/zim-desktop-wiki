@@ -687,10 +687,10 @@ msgstr "_Neu laden"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _Backlink..."
-msgstr[1] "%i _Backlinks..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i _Backlink"
+msgstr[1] "%i _Backlinks"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

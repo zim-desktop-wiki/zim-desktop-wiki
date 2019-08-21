@@ -673,10 +673,10 @@ msgstr "La_taa uudelleen"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _Paluulinkki..."
-msgstr[1] "%i _Paluulinkit..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i _Paluulinkki"
+msgstr[1] "%i _Paluulinkit"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

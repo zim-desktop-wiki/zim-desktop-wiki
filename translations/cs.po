@@ -687,8 +687,8 @@ msgstr "Z_novu načíst"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
 msgstr[0] "%i zpětný odkaz"
 msgstr[1] "%i zpětné odkazy"
 msgstr[2] "%i zpětných odkazů"
