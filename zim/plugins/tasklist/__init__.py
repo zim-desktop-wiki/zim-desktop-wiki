@@ -53,6 +53,8 @@ This is a core plugin shipping with zim.
 			# T: preferences option
 		('pane', 'choice', _('Position in the window'), RIGHT_PANE, PANE_POSITIONS),
 			# T: preferences option
+		('with_due', 'bool', _('Show due date in sidepane'), False),
+			# T: preferences option
 	)
 
 	parser_preferences = (
@@ -150,6 +152,7 @@ class TaskListPageViewExtension(PageViewExtension):
 	def __init__(self, plugin, pageview):
 		PageViewExtension.__init__(self, plugin, pageview)
 		self._widget = None
+		self.currently_with_due = plugin.preferences['with_due']
 		self.on_preferences_changed(plugin.preferences)
 		self.connectto(plugin.preferences, 'changed', self.on_preferences_changed)
 
@@ -164,24 +167,24 @@ class TaskListPageViewExtension(PageViewExtension):
 		dialog.present()
 
 	def on_preferences_changed(self, preferences):
-		if preferences['embedded']:
+		reset_widget = self.currently_with_due != preferences['with_due']
+		self.currently_with_due = preferences['with_due']
+		if self._widget and (not preferences['embedded'] or reset_widget):
+			self.remove_sidepane_widget(self._widget)
+			self._widget = None
+		if preferences['embedded'] or reset_widget:
 			if self._widget is None:
 				self._init_widget()
 				self.add_sidepane_widget(self._widget, 'pane')
 			else:
 				self._widget.task_list.refresh()
-		else:
-			if self._widget:
-				self.remove_sidepane_widget(self._widget)
-				self._widget = None
-			else:
-				pass
 
 	def _init_widget(self):
 		index = self.pageview.notebook.index
 		tasksview = TasksView.new_from_index(index)
 		properties = self.plugin.notebook_properties(self.pageview.notebook)
-		self._widget = TaskListWidget(tasksview, self.navigation, properties, self.uistate)
+		self._widget = TaskListWidget(tasksview, self.navigation,
+			properties, self.plugin.preferences['with_due'], self.uistate)
 
 		def on_tasklist_changed(o):
 			self._widget.task_list.refresh()
