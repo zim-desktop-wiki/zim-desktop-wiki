@@ -279,6 +279,7 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
+		self.result = (None, None)
 		self.uistate.define(lang=String(None))
 		self.uistate.define(line_numbers=Boolean(True))
 		defaultlang = self.uistate['lang']
@@ -313,13 +314,9 @@ class InsertCodeBlockDialog(Dialog):
 		hbox.add(combobox)
 		self.combobox = combobox
 		self.vbox.add(hbox)
-		self.checkbox = Gtk.CheckButton("Display line numbers")
+		self.checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
 		self.checkbox.set_active(self.uistate['line_numbers'])
 		self.vbox.add(self.checkbox)
-
-	def run(self):
-		result = super().run()
-		return result, self.checkbox.get_active()
 
 	def do_response_ok(self):
 		model = self.combobox.get_model()
@@ -327,9 +324,9 @@ class InsertCodeBlockDialog(Dialog):
 
 		if iter is not None:
 			name = model[iter][0]
-			self.result = LANGUAGES[name]
 			self.uistate['lang'] = LANGUAGES[name]
 			self.uistate['line_numbers'] = self.checkbox.get_active()
+			self.result = (self.uistate['lang'], self.uistate['line_numbers'])
 			return True
 		else:
 			return False # no syntax selected
