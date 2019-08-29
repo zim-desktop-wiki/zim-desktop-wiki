@@ -97,11 +97,11 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
 
 	def new_model_interactive(self, parent, notebook, page):
-		lang = InsertCodeBlockDialog(parent).run()
+		lang, linenumbers = InsertCodeBlockDialog(parent).run()
 		if lang is None:
 			raise ValueError # dialog cancelled
 		else:
-			attrib = self.parse_attrib({'lang': lang})
+			attrib = self.parse_attrib({'lang': lang, 'linenumbers': linenumbers})
 			return SourceViewBuffer(attrib, '')
 
 	def model_from_data(self, notebook, page, attrib, text):
@@ -279,7 +279,9 @@ class InsertCodeBlockDialog(Dialog):
 
 	def __init__(self, parent):
 		Dialog.__init__(self, parent, _('Insert Code Block')) # T: dialog title
+		self.result = (None, None)
 		self.uistate.define(lang=String(None))
+		self.uistate.define(line_numbers=Boolean(True))
 		defaultlang = self.uistate['lang']
 
 		menu = {}
@@ -311,8 +313,10 @@ class InsertCodeBlockDialog(Dialog):
 			combobox.set_active_iter(defaultiter)
 		hbox.add(combobox)
 		self.combobox = combobox
-
 		self.vbox.add(hbox)
+		self.checkbox = Gtk.CheckButton(_('Display line numbers')) # T: input checkbox
+		self.checkbox.set_active(self.uistate['line_numbers'])
+		self.vbox.add(self.checkbox)
 
 	def do_response_ok(self):
 		model = self.combobox.get_model()
@@ -320,8 +324,9 @@ class InsertCodeBlockDialog(Dialog):
 
 		if iter is not None:
 			name = model[iter][0]
-			self.result = LANGUAGES[name]
 			self.uistate['lang'] = LANGUAGES[name]
+			self.uistate['line_numbers'] = self.checkbox.get_active()
+			self.result = (self.uistate['lang'], self.uistate['line_numbers'])
 			return True
 		else:
 			return False # no syntax selected

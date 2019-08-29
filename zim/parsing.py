@@ -63,6 +63,56 @@ def unescape_quoted_string(string):
 		string = escape_re.sub(replace, string)
 	return string
 
+def _escape(match):
+	char = match.group(0)
+	if char == '\n':
+		return '\\n'
+	elif char == '\t':
+		return '\\t'
+	else:
+		return '\\' + char
+
+
+def escape_string(string, chars=''):
+	'''Escape special characters with a backslash
+	Escapes newline, tab, backslash itself and any characters in C{chars}
+	'''
+	return re.sub('[\n\t\\\\%s]' % chars, _escape, string)
+
+
+def _unescape(match):
+	char = match.group(0)[-1]
+	if char == 'n':
+		return '\n'
+	elif char == 't':
+		return '\t'
+	else:
+		return char
+
+
+def unescape_string(string):
+	'''Unescape backslash escapes in string
+	Recognizes C{\\n} and C{\\t} for newline and tab respectively,
+	otherwise keeps the literal character
+	'''
+	return re.sub('\\\\.', _unescape, string)
+
+
+def split_escaped_string(string, char):
+	'''Split string on C{char} while respecting backslash escapes'''
+	parts = []
+	trailing_backslash = False
+	for piece in string.split(char):
+		if trailing_backslash:
+			parts[-1] = parts[-1] + char + piece
+		else:
+			parts.append(piece)
+		m = re.search('\\\\+$', piece)
+		trailing_backslash = m and len(m.group(0)) % 2 # uneven number of backslashes
+	return parts
+
+
+
 # URL encoding / decoding is a bit more tricky than it seems:
 #
 # === From man 7 url ===
@@ -116,8 +166,8 @@ URL_ENCODE_DATA = 0 # all
 URL_ENCODE_PATH = 1	# all except '/'
 URL_ENCODE_READABLE = 2 # only space and utf-8
 
-_url_encode_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)]') # unreserved
-_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_\.!~*\'\(\)/]') # unreserved + /
+_url_encode_re = re.compile(r'[^A-Za-z0-9\-_.!~*\'()]') # unreserved
+_url_encode_path_re = re.compile(r'[^A-Za-z0-9\-_.!~*\'()/]') # unreserved + /
 
 
 def _url_encode_on_error(error):
@@ -380,7 +430,7 @@ is_win32_share_re = Re(r'^(\\\\[^\\]+\\.+|smb://)')
 	# smb://host/share
 is_interwiki_re = Re('^(\w[\w\+\-\.]*)\?(.*)', re.U)
 	# identifier "?" path
-is_interwiki_keyword_re = re.compile('^\w[\w\+\-\.]*$', re.U)
+is_interwiki_keyword_re = re.compile('^\w[\w+\-.]*$', re.U)
 
 
 _classes = {'c': r'[^\s"<>\']'} # limit the character class a bit

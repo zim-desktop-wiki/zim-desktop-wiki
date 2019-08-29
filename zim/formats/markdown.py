@@ -14,7 +14,7 @@
 import re
 
 from zim.formats import *
-from zim.parsing import url_re
+from zim.parsing import url_re, escape_string
 from zim.formats.plain import Dumper as TextDumper
 
 
@@ -123,15 +123,11 @@ class Dumper(TextDumper):
 		table += [rowline(row) for row in rows[1:]]
 		return [line + "\n" for line in table]
 
-	def dump_th(self, tag, attrib, strings):
-		#strings = [s.replace('\n', '<br>').replace('|', '\u2223') for s in strings]
-		strings = [s.replace('\n', '<br>') for s in strings]
-		return [self._concat(strings)]
-
 	def dump_td(self, tag, attrib, strings):
-		#strings = [s.replace('\n', '<br>').replace('|', '\u2223') for s in strings]
-		strings = [s.replace('\n', '<br>') for s in strings]
-		return [self._concat(strings)]
+		text = ''.join(strings) if strings else ''
+		return [escape_string(text.replace('\n', '<br>'), '|')]
+
+	dump_th = dump_td
 
 	def dump_line(self, tag, attrib, strings=None):
 		return '\n{}\n'.format('*' * 5)

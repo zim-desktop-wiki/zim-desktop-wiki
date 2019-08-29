@@ -20,7 +20,8 @@ If **Use date from journal pages** is enabled, tasks found in pages that belong 
 
 The options **Section(s) to index** and **Section(s) to ignore** can be used to limit the namespaces that are indexed for tasks. By default the whole notebook is used, but if either or both of these options are used, only the specified set of sections is indexed. Multiple namespaces can be given separated by a "'',''".
 
-The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window.
+The options **Show tasklist in sidepane** and **Position in the window** allow you to embed the tasklist in one of the side panes of the window; **Show due date in sidepane** selects whether a tasklist in a side pane displays the due date of a task.
+
 
 ==== Context menu ====
 The context menu of the tasklist (the "right click" menu) has two further options to control the view:

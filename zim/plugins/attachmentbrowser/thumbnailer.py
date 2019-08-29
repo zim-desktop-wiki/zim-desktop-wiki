@@ -90,9 +90,7 @@ def pixbufThumbnailCreator(file, thumbfile, thumbsize):
 	'''Thumbnailer implementation that uses the C{GdkPixbuf.Pixbuf}
 	functions to create the thumbnail.
 	'''
-	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)) \
-	or (os.name == 'nt' and file.basename.endswith('.svg')):
-		# .svg causes segfaults on windows, even if svg support enabled
+	if not (isinstance(file, LocalFile) and isinstance(thumbfile, LocalFile)):
 		raise ThumbnailCreatorFailure
 
 	tmpfile = thumbfile.parent().file('zim-thumb.new~')

@@ -79,6 +79,11 @@ icon view at bottom pane.
 		# key, type, label, default
 		('pane', 'choice', _('Position in the window'), BOTTOM_PANE, PANE_POSITIONS),
 			# T: option for plugin preferences
+		('use_thumbnails', 'bool', _('Use thumbnails'), True),
+			# T: option for plugin preferences
+		('thumbnail_svg', 'bool', _('Support thumbnails for SVG'), False),
+			# T: option for plugin preferences
+			# NOTE: svg cases crashes on some systems, so needs to be off by default
 
 	#	('preview_size', 'int', _('Tooltip preview size [px]'), (THUMB_SIZE_MIN,480,THUMB_SIZE_MAX)), # T: input label
 	#	('thumb_quality', 'int', _('Preview jpeg Quality [0..100]'), (0,50,100)), # T: input label
@@ -132,9 +137,11 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		self.preferences = preferences
 		self._close_button = None
 
-		use_thumbs = self.preferences.setdefault('use_thumbnails', True) # Hidden setting
-		self.iconview = FileBrowserIconView(opener, self.icon_size, use_thumbs)
+		self.iconview = FileBrowserIconView(opener, self.icon_size)
 		self.add(ScrolledWindow(self.iconview, shadow=Gtk.ShadowType.NONE))
+
+		self.on_preferences_changed()
+		self.preferences.connect('changed', self.on_preferences_changed)
 
 		self.buttonbox = Gtk.VBox()
 		self.pack_end(self.buttonbox, False, True, 0)
@@ -159,6 +166,10 @@ class AttachmentBrowserPluginWidget(Gtk.HBox, WindowSidePaneWidget):
 		self.set_icon_size(self.icon_size)
 
 		self.iconview.connect('folder-changed', lambda o: self.update_title())
+
+	def on_preferences_changed(self, *a):
+		self.iconview.set_use_thumbnails(self.preferences['use_thumbnails'])
+		self.iconview.set_thumbnail_svg(self.preferences['thumbnail_svg'])
 
 	def set_folder(self, folder):
 		self.iconview.set_folder(folder)

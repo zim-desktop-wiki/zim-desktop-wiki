@@ -232,10 +232,11 @@ class MainWindow(Window):
 		self.statusbar.push(0, '<page>')
 		self.add_bar(self.statusbar, start=False)
 		self.statusbar.set_property('margin', 0)
+		self.statusbar.set_property('spacing', 0)
 
 		def statusbar_element(string, size):
 			frame = Gtk.Frame()
-			frame.set_shadow_type(Gtk.ShadowType.IN)
+			frame.set_shadow_type(Gtk.ShadowType.NONE)
 			self.statusbar.pack_end(frame, False, True, 0)
 			label = Gtk.Label(label=string)
 			label.set_size_request(size, 10)
@@ -244,15 +245,17 @@ class MainWindow(Window):
 			return label
 
 		# specify statusbar elements right-to-left
-		self.statusbar_style_label = statusbar_element('<style>', 100)
 		self.statusbar_insert_label = statusbar_element('INS', 60)
+		self.statusbar_style_label = statusbar_element('<style>', 100)
 
 		# and build the widget for backlinks
 		self.statusbar_backlinks_button = \
 			BackLinksMenuButton(self.notebook, self.open_page, status_bar_style=True)
 		frame = Gtk.Frame()
-		frame.set_shadow_type(Gtk.ShadowType.IN)
+		frame.set_shadow_type(Gtk.ShadowType.NONE)
+		self.statusbar.pack_end(Gtk.Separator(), False, True, 0)
 		self.statusbar.pack_end(frame, False, True, 0)
+		self.statusbar.pack_end(Gtk.Separator(), False, True, 0)
 		frame.add(self.statusbar_backlinks_button)
 
 		self.move_bottom_minimized_tabs_to_statusbar(self.statusbar)
@@ -667,6 +670,7 @@ class MainWindow(Window):
 		self.toolbar.insert(item, -1)
 
 		# Load accelmap config and setup saving it
+		# TODO - this probably belongs in the application class, not here
 		accelmap = ConfigManager.get_config_file('accelmap').file
 		logger.debug('Accelmap: %s', accelmap.path)
 		if accelmap.exists():
@@ -732,9 +736,14 @@ class MainWindow(Window):
 		'''Method to open a page in the mainwindow, and menu action for
 		the "jump to" menu item.
 
+		Fails silently when saving current page failed (which is usually the
+		result of pressing "cancel" in the error dialog shown when saving
+		fails). Check return value for success if you want to be sure.
+
 		@param path: a L{path} for the page to open.
 		@raises PageNotFound: if C{path} can not be opened
 		@emits: page-changed
+		@returns: C{True} for success
 		'''
 		assert isinstance(path, Path)
 		if isinstance(path, Page) and path.valid:
@@ -750,7 +759,7 @@ class MainWindow(Window):
 			self.pageview.save_changes() # XXX - should connect to signal instead of call here
 			self.notebook.wait_for_store_page_async() # XXX - should not be needed - hide in notebook/page class - how?
 			if self.page.modified:
-				raise AssertionError('Could not save page') # XXX - shouldn't this lead to dialog ?
+				return False # Assume SavePageErrorDialog was shown and cancelled
 
 			old_cursor = self.pageview.get_cursor_pos()
 			old_scroll = self.pageview.get_scroll_pos()
@@ -820,8 +829,8 @@ class MainWindow(Window):
 
 	@action(
 		_('_Back'), verb_icon='gtk-go-back', # T: Menu item
-		accelerator='<alt>Left', alt_accelerator=('XF86Back' if os.name != 'nt' else None)
-	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
+		accelerator='<alt>Left', alt_accelerator='XF86Back'
+	)
 	def open_page_back(self):
 		'''Menu action to open the previous page from the history
 		@returns: C{True} if successfull
@@ -832,8 +841,8 @@ class MainWindow(Window):
 
 	@action(
 		_('_Forward'), verb_icon='gtk-go-forward', # T: Menu item
-		accelerator='<alt>Right', alt_accelerator=('XF86Forward' if os.name != 'nt' else None)
-	)	# The XF86 keys are mapped wrongly on windows, see bug lp:1277929
+		accelerator='<alt>Right', alt_accelerator='XF86Forward'
+	)
 	def open_page_forward(self):
 		'''Menu action to open the next page from the history
 		@returns: C{True} if successfull
@@ -899,8 +908,8 @@ class MainWindow(Window):
 		pos = self.pageview.get_cursor_pos()
 		self.pageview.save_changes() # XXX
 		self.notebook.flush_page_cache(self.page)
-		self.open_page(self.notebook.get_page(self.page))
-		self.pageview.set_cursor_pos(pos)
+		if self.open_page(self.notebook.get_page(self.page)):
+			self.pageview.set_cursor_pos(pos)
 
 
 class BackLinksMenuButton(MenuButton):
@@ -919,7 +928,7 @@ class BackLinksMenuButton(MenuButton):
 			n = 0
 
 		self.label.set_text_with_mnemonic(
-			ngettext('%i _Backlink...', '%i _Backlinks...', n) % n)
+			ngettext('%i _Backlink', '%i _Backlinks', n) % n)
 			# T: Label for button with backlinks in statusbar
 		self.set_sensitive(n > 0)
 
@@ -966,6 +975,12 @@ class PageWindow(Window):
 		self.pageview.set_page(page)
 		self.add(self.pageview)
 
+
+		def do_delete_event(*a):
+			logger.debug('Close PageWindow for %s', page)
+			self.uistate['windowsize'] = tuple(self.get_size())
+
+		self.connect('delete-event', do_delete_event)
 
 class OpenPageDialog(Dialog):
 	'''Dialog to go to a specific page. Also known as the "Jump to" dialog.

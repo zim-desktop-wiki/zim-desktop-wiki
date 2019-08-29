@@ -671,10 +671,10 @@ msgstr "_רענון"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i קישור מ_פנה אחד..."
-msgstr[1] "%i קישורים מ_פנים..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i קישור מ_פנה אחד"
+msgstr[1] "%i קישורים מ_פנים"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

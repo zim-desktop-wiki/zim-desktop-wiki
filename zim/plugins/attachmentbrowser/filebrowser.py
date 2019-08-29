@@ -80,9 +80,10 @@ class FileBrowserIconView(Gtk.IconView):
 		'folder_changed': (GObject.SignalFlags.RUN_LAST, None, ()),
 	}
 
-	def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True):
+	def __init__(self, opener, icon_size=THUMB_SIZE_NORMAL, use_thumbnails=True, thumbnail_svg=False):
 		self.opener = opener
 		self.use_thumbnails = use_thumbnails
+		self.thumbnail_svg = thumbnail_svg
 		self.icon_size = None
 		self.folder = None
 		self._thumbnailer = ThumbnailQueue()
@@ -129,10 +130,17 @@ class FileBrowserIconView(Gtk.IconView):
 		self.connect('button-press-event', self.on_button_press_event)
 		self.connect('item-activated', self.on_item_activated)
 
+	def set_use_thumbnails(self, use_thumbnails):
+		self.use_thumbnails = use_thumbnails
+		self.refresh(settings_changed=True)
+
+	def set_thumbnail_svg(self, thumbnail_svg):
+		self.thumbnail_svg = thumbnail_svg
+		self.refresh(settings_changed=True)
 
 	def set_icon_size(self, icon_size):
 		self.icon_size = icon_size
-		self.refresh(icon_size_changed=True)
+		self.refresh(settings_changed=True)
 
 	def set_folder(self, folder):
 		self.teardown_folder() # clears _thumbnailer and _monitor
@@ -144,7 +152,7 @@ class FileBrowserIconView(Gtk.IconView):
 		id = monitor.connect('changed', self._on_folder_changed)
 		self._monitor = (monitor, id)
 
-	def refresh(self, icon_size_changed=False):
+	def refresh(self, settings_changed=False):
 		if self.folder is None:
 			return # Not yet initialized
 		else:
@@ -191,16 +199,19 @@ class FileBrowserIconView(Gtk.IconView):
 			max_text = max(max_text, len(file.basename))
 
 			pixbuf, mtime = cache.pop(file.basename, (None, None))
-			if show_thumbs and file.isimage():
+			if file.basename.endswith('.svg') and not self.thumbnail_svg:
+				pixbuf = my_get_mime_icon(file)
+				mtime = None
+			elif show_thumbs and file.isimage():
 				if not pixbuf:
 					pixbuf = my_get_mime_icon(file) # temporary icon
 					mtime = None
 
-				if icon_size_changed:
+				if settings_changed:
 					self._thumbnailer.queue_thumbnail_request(file, self.icon_size)
 				else:
 					self._thumbnailer.queue_thumbnail_request(file, self.icon_size, mtime)
-			elif pixbuf is None or icon_size_changed:
+			elif pixbuf is None or settings_changed:
 				pixbuf = my_get_mime_icon(file)
 				mtime = None
 			else:

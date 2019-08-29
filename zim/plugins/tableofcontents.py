@@ -16,6 +16,7 @@ logger = logging.getLogger('zim.plugins.tableofcontents')
 from zim.plugins import PluginClass
 from zim.signals import ConnectorMixin, DelayedCallback
 from zim.notebook import Path
+from zim.tokenparser import collect_untill_end_token, tokens_to_text
 from zim.formats import HEADING
 
 from zim.gui.pageview import PageViewExtension
@@ -27,42 +28,52 @@ from zim.gui.pageview import FIND_REGEX, SCROLL_TO_MARK_MARGIN, _is_heading_tag
 # FIXME, these methods should be supported by pageview - need anchors - now it is a HACK
 _is_heading = lambda iter: bool(list(filter(_is_heading_tag, iter.get_tags())))
 
-def find_heading(buffer, heading):
-	'''Find a heading
+def find_heading(buffer, n):
+	'''Find the C{n}th heading in the buffer
 	@param buffer: the C{Gtk.TextBuffer}
-	@param heading: text of the heading
-	@returns: a C{Gtk.TextIter} for the new cursor position or C{None}
+	@param n: an integer
+	@returns: a C{Gtk.TextIter} for the line start of the heading or C{None}
 	'''
-	regex = "^%s$" % re.escape(heading)
-	with buffer.tmp_cursor():
-		if buffer.finder.find(regex, FIND_REGEX):
-			iter = buffer.get_insert_iter()
-			start = iter.get_offset()
-		else:
-			return None
-
+	iter = buffer.get_start_iter()
+	i = 1 if _is_heading(iter) else 0
+	while i < n:
+		iter.forward_line()
 		while not _is_heading(iter):
-			if buffer.finder.find_next():
-				iter = buffer.get_insert_iter()
-				if iter.get_offset() == start:
-					return None # break infinite loop
-			else:
+			if not iter.forward_line():
 				return None
-
-		if _is_heading(iter):
-			return iter
-		else:
-			return None
+		i += 1
+	return iter
 
 
-def select_heading(buffer, heading):
-	iter = find_heading(buffer, heading)
+def select_heading(buffer, n):
+	'''Select the C{n}th heading in the buffer'''
+	iter = find_heading(buffer, n)
 	if iter:
 		buffer.place_cursor(iter)
 		buffer.select_line()
 		return True
 	else:
 		return False
+
+
+def get_headings(parsetree):
+	tokens = parsetree.iter_tokens()
+	stack = [(0, None, [])]
+	for t in tokens:
+		if t[0] == HEADING:
+			level = int(t[1]['level'])
+			text = tokens_to_text(
+						collect_untill_end_token(tokens, HEADING) )
+			assert level > 0 # just to be sure
+			while stack[-1][0] >= level:
+				stack.pop()
+			node = (level, text, [])
+			stack[-1][2].append(node)
+			stack.append(node)
+		else:
+			pass
+
+	return stack[0][-1]
 
 
 class ToCPlugin(PluginClass):
@@ -133,38 +144,100 @@ class ToCTreeView(BrowserTreeView):
 		self.append_column(column)
 
 
-
 class ToCTreeModel(Gtk.TreeStore):
 
 	def __init__(self):
 		Gtk.TreeStore.__init__(self, str) # TEXT_COL
 		self.is_empty = True
+		self.hidden_h1 = False
 
-	def populate(self, parsetree, show_h1):
-		self.clear()
-		headings = []
-		for heading in parsetree.findall(HEADING):
-			headings.append((int(heading.attrib['level']), heading.gettext()))
+	def clear(self):
+		self.is_empty = True
+		Gtk.TreeStore.clear(self)
 
+	def walk(self, iter=None):
+		if iter is not None:
+			yield iter
+			child = self.iter_children(iter)
+		else:
+			child = self.get_iter_first()
 
+		while child:
+			if self.iter_has_child(child):
+				for i in self.walk(child):
+					yield i
+			else:
+				yield child
+			child = self.iter_next(child)
+
+	def get_nth_heading(self, path):
+		n = 1 if self.hidden_h1 else 0
+		for iter in self.walk():
+			n += 1
+			if self.get_path(iter) == path:
+				break
+		return n
+
+	def update(self, headings, show_h1):
 		if not show_h1 \
-		and headings \
-		and headings[0][0] == 1 \
-		and all(h[0] > 1 for h in headings[1:]):
-			headings.pop(0) # do not show first heading
+		and len(headings) == 1 \
+		and headings[0][0] == 1:
+			# do not show first heading
+			headings = headings[0][2]
+			self.hidden_h1 = True
+		else:
+			self.hidden_h1 = False
 
-		self.is_empty = not bool(headings)
+		if not headings:
+			self.clear()
+			return
 
-		stack = [(-1, None)]
-		for level, text in headings:
-			assert level > -1 # just to be sure
-			while stack[-1][0] >= level:
-				stack.pop()
-			parent = stack[-1][1]
+		if self.is_empty:
+			self._insert_headings(headings)
+		else:
+			self._update_headings(headings)
+
+		self.is_empty = False
+
+	def _update_headings(self, headings, parent=None):
+		iter = self.iter_children(parent)
+		for level, text, children in headings:
+			if iter:
+				# Compare to model
+				self[iter] = (text,)
+				if children:
+					if self.iter_has_child(iter):
+						self._update_headings(children, iter)
+					else:
+						self._insert_headings(children, iter)
+				elif self.iter_has_child(iter):
+					self._clear_children(iter)
+				else:
+					pass
+
+				iter = self.iter_next(iter)
+			else:
+				# Model ran out
+				myiter = self.append(parent, (text,))
+				if children:
+					self._insert_headings(children, myiter)
+
+		# Remove trailing items
+		if iter:
+			while self.remove(iter):
+				pass
+
+	def _clear_children(self, parent):
+		iter = self.iter_children(parent)
+		if iter:
+			while self.remove(iter):
+				pass
+
+	def _insert_headings(self, headings, parent=None):
+		for level, text, children in headings:
 			iter = self.append(parent, (text,))
-			stack.append((level, iter))
-
-
+			if children:
+				self._insert_headings(children, iter)
 
 
 class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
@@ -197,6 +270,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 	def on_page_changed(self, pageview, page):
 		self.load_page(page)
+		self.treeview.expand_all()
 
 	def on_store_page(self, notebook, page):
 		if page == self.pageview.page:
@@ -208,8 +282,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		if tree is None:
 			model.clear()
 		else:
-			model.populate(tree, self.show_h1)
-		self.treeview.expand_all()
+			model.update(get_headings(tree), self.show_h1)
 		self.emit('changed')
 
 	def on_heading_activated(self, treeview, path, column):
@@ -220,11 +293,11 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		or C{None}.
 		'''
 		model = self.treeview.get_model()
-		text = model[path][TEXT_COL]
+		n = model.get_nth_heading(path)
 
 		textview = self.pageview.textview
 		buffer = textview.get_buffer()
-		if select_heading(buffer, text):
+		if select_heading(buffer, n):
 			textview.scroll_to_mark(buffer.get_insert(), SCROLL_TO_MARK_MARGIN, False, 0, 0)
 			return True
 		else:
@@ -236,7 +309,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		@param path: the C{Gtk.TreePath} for the heading of the section
 		'''
 		model = self.treeview.get_model()
-		starttext = model[path][TEXT_COL]
+		n = model.get_nth_heading(path)
 
 		nextpath = Gtk.TreePath(path[:-1] + [path[-1] + 1])
 		try:
@@ -248,14 +321,14 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 		textview = self.pageview.textview
 		buffer = textview.get_buffer()
-		start = find_heading(buffer, starttext)
-		if endtext:
-			end = find_heading(buffer, endtext)
-		else:
+		start = find_heading(buffer, n)
+		if start is None:
+			return
+		end = find_heading(buffer, n + 1)
+		if end is None:
 			end = buffer.get_end_iter()
 
-		if start and end:
-			buffer.select_range(start, end)
+		buffer.select_range(start, end)
 
 	def on_populate_popup(self, treeview, menu):
 		model, paths = treeview.get_selection().get_selected_rows()
@@ -295,7 +368,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 		seen = set()
 		for path in paths:
 			iter = model.get_iter(path)
-			for i in self._walk(model, iter):
+			for i in model.walk(iter):
 				p = model.get_path(i)
 				key = tuple(p)
 				if not key in seen:
@@ -339,7 +412,7 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 			# inconsistent - this should result in an offset being applied
 			# But need to check actual heading tags being used to know for sure
 			iter = model.get_iter(path)
-			for i in self._walk(model, iter):
+			for i in model.walk(iter):
 				p = model.get_path(i)
 				key = tuple(p)
 				if not key in seen:
@@ -353,15 +426,6 @@ class ToCWidget(ConnectorMixin, Gtk.ScrolledWindow):
 
 		self.load_page(self.pageview.page)
 		return True
-
-	def _walk(self, model, iter):
-		# yield iter and all its (grand)children
-		yield iter
-		child = model.iter_children(iter)
-		while child:
-			for i in self._walk(model, child):
-				yield i
-			child = model.iter_next(child)
 
 	def _format(self, path, level):
 		assert level > 0 and level < 7

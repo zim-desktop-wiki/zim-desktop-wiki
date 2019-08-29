@@ -89,7 +89,10 @@ def init_first_day_of_week():
 		else:
 			FIRST_DAY_OF_WEEK = SUNDAY
 		logger.debug('According to babel first day of week is %i', FIRST_DAY_OF_WEEK)
-	except ImportError:
+	except Exception as e:
+		if not isinstance(e, ImportError):
+			logger.exception('Exception while loading \'babel\' library for first day of week')
+
 		# Fallback gleaned from gtkcalendar.c - hence the inconsistency
 		# with weekday numbers in iso calendar...
 		t = _("calendar:week_start:0")
@@ -222,7 +225,7 @@ def strfcal(format, date):
 		else:
 			return code # ignore unsupported codes
 
-	return re.sub(r'\%.', replacefunc, format)
+	return re.sub(r'%.', replacefunc, format)
 
 
 def strftime(format, date):

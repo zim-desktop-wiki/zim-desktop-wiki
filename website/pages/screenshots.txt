@@ -4,10 +4,8 @@ Creation-Date: Unknown
 
 ====== Screenshots ======
 
-On this page you find some screenshots of **zim** in action. Of course pictures only capture the look, not how it feels to use, see the screencast for see a bit more of the feeling.
+On this page you find some screenshots of **zim** in action.
 
-INSERT_SCREENCAST_HERE
-Screencast thanks to [[http://productivelinux.com/2009/05/23/video-post-my-favorite-things-about-zim-wiki/trackback/|ProductiveLinux]].
 
 {{/screenshots/zim-normal.png}}
 //The editor window with all widgets visible//
@@ -21,23 +19,17 @@ Screencast thanks to [[http://productivelinux.com/2009/05/23/video-post-my-favor
 //Showing "open with" item for embedded image//
 
 
-{{/screenshots/zim-calendar.png}}
-//Showing the calendar dialog//
+{{/screenshots/zim-equation-editor-1.png}}
+//Showing embedded equations//
 
 
-{{/screenshots/zim-calendar-embedded.png}}
-//Showing the alternative embedded calendar view//
+{{/screenshots/zim-equation-editor-2.png}}
+//Showing the latex equation editor//
+
+
+{{/screenshots/zim-journal.png}}
+//Showing a journal page//
 
 
 {{/screenshots/zim-tasklist.png}}
 //Showing the task list dialog//
-
-
-{{/screenshots/zim-versions.png}}
-//The version control dialog//
-
-
-{{/screenshots/zim-equation-editor.png}}
-//Showing the latex equation editor//
-
-

@@ -4,6 +4,7 @@
 import tests
 
 from tests.pageview import setUpPageView
+from tests.mainwindow import setUpMainWindow
 
 from zim.fs import Dir
 from zim.notebook import Notebook, Path
@@ -212,3 +213,62 @@ class TestDialog(tests.TestCase):
 				self.handler.save_page_now()
 
 		self.assertEqual(file.read(), 'Editing ...\n')
+
+
+class TestNavigation(tests.TestCase):
+
+	def testNavigationDiscard(self):
+		notebook = self.setUpNotebook(content = {'test': 'test123\n'})
+		mainwindow = setUpMainWindow(notebook, path='Test')
+
+		def raise_error(page):
+			raise AssertionError
+
+		notebook.store_page = raise_error
+
+		mainwindow.pageview.textview.get_buffer().set_text('Changed!')
+
+		def discard(dialog):
+			self.assertIsInstance(dialog, SavePageErrorDialog)
+			self.assertTrue(mainwindow.page.modified)
+			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+			dialog.discard()
+			self.assertFalse(mainwindow.page.modified)
+			self.assertNotEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+
+		self.assertEqual(mainwindow.page.name, 'Test')
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(discard):
+				mainwindow.open_page(Path('Other page'))
+
+		self.assertEqual(mainwindow.page.name, 'Other page')
+
+
+	def testNavigationCancel(self):
+		notebook = self.setUpNotebook(content = {'test': 'test123\n'})
+		mainwindow = setUpMainWindow(notebook, path='Test')
+
+		def raise_error(page):
+			raise AssertionError
+
+		notebook.store_page = raise_error
+
+		mainwindow.pageview.textview.get_buffer().set_text('Changed!')
+
+		def cancel(dialog):
+			self.assertIsInstance(dialog, SavePageErrorDialog)
+			self.assertTrue(mainwindow.page.modified)
+			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+			dialog.response(Gtk.ResponseType.CANCEL)
+			self.assertTrue(mainwindow.page.modified)
+			self.assertEqual(mainwindow.page.dump('wiki'), ['Changed!\n'])
+
+		self.assertEqual(mainwindow.page.name, 'Test')
+
+		with tests.LoggingFilter('zim'):
+			with tests.DialogContext(cancel):
+				mainwindow.open_page(Path('Other page'))
+
+		self.assertEqual(mainwindow.page.name, 'Test')
+			# Cancelling save page should cancel open_page as well

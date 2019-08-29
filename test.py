@@ -12,9 +12,7 @@ import sys
 import shutil
 import getopt
 import logging
-
-import tests
-from tests import unittest
+import unittest
 
 try:
 	import coverage
@@ -29,6 +27,8 @@ def main(argv=None):
 
 	# parse options
 	covreport = False
+	fasttest = False
+	fulltest = False
 	failfast = False
 	loglevel = logging.WARNING
 	opts, args = getopt.gnu_getopt(argv[1:],
@@ -62,15 +62,15 @@ On Ubuntu or Debian install package 'python3-coverage'.
 ''', file=sys.stderr)
 				sys.exit(1)
 		elif o == '--fast':
-			tests.FAST_TEST = True
+			fasttest = True
 				# set before any test classes are loaded !
 		elif o == '--failfast':
 			failfast = True
 		elif o == '--ff': # --fast --failfast
-			tests.FAST_TEST = True
+			fasttest = True
 			failfast = True
 		elif o == '--full':
-			tests.FULL_TEST = True
+			fulltest = True
 		elif o in ('-V', '--verbose'):
 			loglevel = logging.INFO
 		elif o in ('-D', '--debug'):
@@ -95,6 +95,10 @@ On Ubuntu or Debian install package 'python3-coverage'.
 		cov.start()
 
 	# Build the test suite
+	import tests
+	tests.FAST_TEST = fasttest
+	tests.FULL_TEST = fulltest
+
 	loader = unittest.TestLoader()
 	try:
 		if args:

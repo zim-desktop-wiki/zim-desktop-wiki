@@ -227,7 +227,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 		'''If a page is present as a bookmark than select it.'''
 		pagename = page.name
 		with self.on_bookmark_clicked.blocked():
-			for button in self.scrolledbox.get_children()[2:]:
+			for button in self.scrolledbox.get_scrolled_children():
 				if button.zim_path == pagename:
 					button.set_active(True)
 				else:
@@ -461,7 +461,7 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 
 	def _reload_bar(self):
 		'''Reload bar with bookmarks.'''
-		for button in self.scrolledbox.get_children()[2:]:
+		for button in self.scrolledbox.get_scrolled_children():
 			self.scrolledbox.remove(button)
 
 		page = self._get_page()
@@ -477,8 +477,9 @@ class BookmarkBar(Gtk.HBox, ConnectorMixin):
 				name = self._get_short_page_name(path)
 			else:
 				name = path
-			button = Gtk.ToggleButton(label = name, use_underline = False)
+			button = Gtk.ToggleButton(label=name, use_underline=False)
 			button.set_tooltip_text(path)
+			button.get_child().set_ellipsize(Pango.EllipsizeMode.MIDDLE)
 			button.zim_path = path
 			if path == pagename:
 				button.set_active(True)

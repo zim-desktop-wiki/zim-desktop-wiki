@@ -10,3 +10,7 @@ This plugin adds an folder view at the bottom of the main window that shows the 
 
 ===== Options =====
 The option **Position in the window** determines in which side pane the browser is shown.
+
+The option **Use thumbnails** determines whether thumbnails are used for images or not
+
+The option **Support thumbnails for SVG** determines whether we try to thumbnail SVG images. Turning this option on can cause the application to crash on some systems due to issues with SVG support.

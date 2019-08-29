@@ -462,9 +462,23 @@ C. hmmm
 		check(text, xml)
 
 
-		# Inconsistent lists
-		# ( If first item is number, make all items numbered in sequence
-		#   Otherwise numers will be turned into bullets )
+		# Incosistent list with different checkbox types
+		text = '''\
+* foo
+[ ] bar
+* dus
+'''
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p><ul><li bullet="*">foo</li><li bullet="unchecked-box">bar</li><li bullet="*">dus</li></ul></p></zim-tree>'''
+		wanted = '''\
+* foo
+[ ] bar
+* dus
+'''
+		check(text, xml, wanted)
+
+		# Inconsistent lists get broken in multiple lists
 		text = '''\
 1. foo
 4. bar
@@ -473,12 +487,12 @@ a. dus
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ol start="1"><li>foo</li><li>bar</li><li>hmmm</li><li>dus</li></ol></p></zim-tree>'''
+<zim-tree><p><ol start="1"><li>foo</li><li>bar</li></ol><ul><li bullet="*">hmmm</li></ul><ol start="a"><li>dus</li></ol></p></zim-tree>'''
 		wanted = '''\
 1. foo
 2. bar
-3. hmmm
-4. dus
+* hmmm
+a. dus
 '''
 		check(text, xml, wanted)
 
@@ -490,14 +504,15 @@ a. hmmm
 '''
 		xml = '''\
 <?xml version='1.0' encoding='utf-8'?>
-<zim-tree><p><ul><li bullet="*">foo</li><li bullet="*">bar</li><li bullet="*">hmmm</li><li bullet="*">dus</li></ul></p></zim-tree>'''
+<zim-tree><p><ul><li bullet="*">foo</li></ul><ol start="4"><li>bar</li><li>hmmm</li></ol><ul><li bullet="*">dus</li></ul></p></zim-tree>'''
 		wanted = '''\
 * foo
-* bar
-* hmmm
+4. bar
+5. hmmm
 * dus
 '''
 		check(text, xml, wanted)
+
 
 		# Mixed sub-list
 		text = '''\
@@ -574,6 +589,13 @@ hmmm
 		tree.fromstring(xml)
 		text = ''.join(self.format.Dumper().dump(tree))
 		self.assertEqual(text, wanted)
+
+	def testStringEscapeDoesNotGetEvaluated(self):
+		text = "this is not a newline: \\name\n This is not a tab: \\tab \n"
+		tree = self.format.Parser().parse(text)
+		#~ print tree.tostring()
+		output = self.format.Dumper().dump(tree)
+		self.assertEqual(''.join(output), text)
 
 
 class TestHtmlFormat(tests.TestCase, TestFormatMixin):

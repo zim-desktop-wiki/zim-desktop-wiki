@@ -747,7 +747,11 @@ def widget_set_css(widget, name, css):
 
 def button_set_statusbar_style(button):
 	# Set up a style for the statusbar variant to decrease spacing of the button
-	widget_set_css(button, 'zim-statusbar-button', 'padding: 0px')
+	widget_set_css(button, 'zim-statusbar-button',	'''
+													border: none;
+													border-radius: 0px; 
+													padding: 0px 8px 0px 8px; 
+													''')
 	button.set_relief(Gtk.ReliefStyle.NONE)
 
 
@@ -782,12 +786,11 @@ class MenuButton(Gtk.HBox):
 		self.button = Gtk.ToggleButton()
 		if status_bar_style:
 			button_set_statusbar_style(self.button)
-			widget = self.label
-		else:
-			arrow = Gtk.Arrow(Gtk.ArrowType.UP, Gtk.ShadowType.NONE)
-			widget = Gtk.HBox(spacing=3)
-			widget.pack_start(self.label, False, True, 0)
-			widget.pack_start(arrow, False, True, 0)
+
+		arrow = Gtk.Arrow(Gtk.ArrowType.UP, Gtk.ShadowType.NONE)
+		widget = Gtk.HBox(spacing=3)
+		widget.pack_start(self.label, False, True, 0)
+		widget.pack_start(arrow, False, True, 0)
 
 
 		self.button.add(widget)
@@ -829,11 +832,13 @@ class MenuButton(Gtk.HBox):
 		self.button.handler_unblock(self._clicked_signal)
 		self.menu.connect('deactivate', self._deactivate_menu)
 		self.menu.show_all()
+		self.menu.set_property('rect_anchor_dx', -1) # This is needed to line up menu with borderless button 
 		self.menu.popup_at_widget(self, Gdk.Gravity.NORTH_WEST, Gdk.Gravity.SOUTH_WEST, event)
 
 	def _deactivate_menu(self, menu):
 		self.button.handler_block(self._clicked_signal)
 		self.button.set_active(False)
+		self.button.unset_state_flags(Gtk.StateFlags.PRELIGHT)
 		self.button.handler_unblock(self._clicked_signal)
 
 
@@ -2220,6 +2225,8 @@ class MinimizedTabs(object):
 			button.connect('clicked', self._on_click, child.tab_key)
 			if self._angle != 0:
 				button.get_child().set_angle(self._angle)
+			else:
+				self.pack_start(Gtk.Separator(), False, True, 0)
 			self.pack_start(button, False, True, 0)
 			button.show_all()
 
@@ -2236,7 +2243,7 @@ class HMinimizedTabs(Gtk.HBox, MinimizedTabs):
 
 	def __init__(self, sidepane, angle=0):
 		GObject.GObject.__init__(self)
-		self.set_spacing(12)
+		self.set_spacing(0)
 		MinimizedTabs.__init__(self, sidepane, angle)
 
 
@@ -2475,7 +2482,7 @@ class Window(Gtk.Window):
 
 	def move_bottom_minimized_tabs_to_statusbar(self, statusbar):
 		frame = Gtk.Frame()
-		frame.set_shadow_type(Gtk.ShadowType.IN)
+		frame.set_shadow_type(Gtk.ShadowType.NONE)
 		self._zim_window_bottom_minimized.reparent(frame)
 		self._zim_window_bottom_minimized.status_bar_style = True
 		statusbar.pack_end(frame, False, True, 0)
@@ -3171,6 +3178,9 @@ class ErrorDialog(Gtk.MessageDialog):
 		self.set_transient_for(get_window(parent))
 		self.set_modal(True)
 
+		for child in self.get_message_area().get_children():
+			if isinstance(child, Gtk.Label):
+				child.set_ellipsize(Pango.EllipsizeMode.END)
 
 		if isinstance(error, zim.errors.Error):
 			self.showing_trace = False # used in test

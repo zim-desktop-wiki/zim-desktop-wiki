@@ -676,14 +676,14 @@ msgstr "أعد التحميل"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _إشارة خلفية..."
-msgstr[1] "%i _Backlinks..."
-msgstr[2] "%i _Backlinks..."
-msgstr[3] "%i _Backlinks..."
-msgstr[4] "%i _Backlinks..."
-msgstr[5] "%i _Backlinks..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i _إشارة خلفية"
+msgstr[1] "%i _Backlinks"
+msgstr[2] "%i _Backlinks"
+msgstr[3] "%i _Backlinks"
+msgstr[4] "%i _Backlinks"
+msgstr[5] "%i _Backlinks"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -1782,7 +1782,7 @@ msgstr ""
 #. Menu item
 #: zim/gui/uiactions.py:305
 msgid "Search _Backlinks..."
-msgstr "إبحث الوصلات الخلفية"
+msgstr "إبحث الوصلات الخلفية..."
 
 #. Menu item
 #: zim/gui/uiactions.py:313

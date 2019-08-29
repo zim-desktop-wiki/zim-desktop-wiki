@@ -22,6 +22,7 @@ from .base import *
 from .base import _EOL, SEP
 
 from zim.parsing import url_encode, URL_ENCODE_READABLE
+from zim.errors import Error
 
 
 def _os_lrmdir(path):
@@ -37,6 +38,25 @@ def _os_lrmdir(path):
 		else:
 			raise
 
+
+class FileNameLenghtError(Error):
+	description = _('''\
+Cannot write this file. Probably this is due to the lenght
+of the file name, please try using a name with less
+than 255 characters''') # T: Error explanation
+
+	def __init__(self, basename):
+		Error.__init__(self, _('File name too long: %s') % basename)
+
+
+class PathLenghtError(Error):
+	description = _('''\
+Cannot write this file. Probably this is due to the lenght
+of the file path, please try using a folder structure resulting in less
+than 4096 characters''') # T: Error explanation
+
+	def __init__(self, path):
+		Error.__init__(self, _('File path too long: %s') % path)
 
 
 class LocalFSObjectBase(FSObjectBase):
@@ -257,7 +277,19 @@ class AtomicWriteContext(object):
 			self.kwargs.setdefault('encoding', 'UTF-8')
 
 	def __enter__(self):
-		self.fh = open(self.tmppath, **self.kwargs)
+		path = self.tmppath
+		try:
+			self.fh = open(path, **self.kwargs)
+		except OSError as e:
+			if e.errno == errno.ENOENT:
+				if len(os.path.basename(path)) > 255:
+					raise FileNameLenghtError(os.path.basename(path))
+				elif len(path) > 4096:
+					raise PathLenghtError(path)
+				else:
+					raise
+			else:
+				raise
 		return self.fh
 
 	def __exit__(self, *exc_info):

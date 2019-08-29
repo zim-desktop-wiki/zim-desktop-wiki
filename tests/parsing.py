@@ -132,6 +132,33 @@ class TestParsing(tests.TestCase):
 			self.assertEqual(link_type(href), type)
 
 
+
+class TestEscapeStringFunctions(tests.TestCase):
+
+	def testEscapeString(self):
+		for raw, escaped in (
+			('Newline \n', 'Newline \\n'),
+			('Tab \t', 'Tab \\t'),
+			('Special char |', 'Special char \\|'),
+			('Backslash \\', 'Backslash \\\\'),
+			('Backslashed special char \\|', 'Backslashed special char \\\\\\|'),
+			('Not a newline \\n', 'Not a newline \\\\n'),
+		):
+			self.assertEqual(escape_string(raw, chars='|'), escaped)
+			self.assertEqual(unescape_string(escaped), raw)
+
+	def testSplitEscapedString(self):
+		for string, parts in (
+			('Part A|Part B|Part C', ['Part A', 'Part B', 'Part C']),
+			('Part A\\| with pipe|Part B|Part C', ['Part A\\| with pipe', 'Part B', 'Part C']),
+			('Part A\\\\\\| with multiple backslash|Part B|Part C', ['Part A\\\\\\| with multiple backslash', 'Part B', 'Part C']),
+			('Part A with backslash\\\\|Part B|Part C', ['Part A with backslash\\\\', 'Part B', 'Part C']),
+			('No agressive strip \\', ['No agressive strip \\'])
+		):
+			self.assertEqual(split_escaped_string(string, '|'), parts)
+
+
+
 class TestSimpleTreeBuilder(tests.TestCase):
 
 	def runTest(self):
