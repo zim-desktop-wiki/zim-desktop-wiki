@@ -689,10 +689,10 @@ msgstr "_Refresca"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _retroenllaç..."
-msgstr[1] "%i _retroenllaços..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i _retroenllaç"
+msgstr[1] "%i _retroenllaços"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -1796,7 +1796,7 @@ msgstr "Cercar a aquesta secció"
 #. Menu item
 #: zim/gui/uiactions.py:305
 msgid "Search _Backlinks..."
-msgstr "_Cerca els retroenllaços"
+msgstr "_Cerca els retroenllaços..."
 
 #. Menu item
 #: zim/gui/uiactions.py:313

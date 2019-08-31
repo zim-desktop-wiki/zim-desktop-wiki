@@ -664,9 +664,9 @@ msgstr "重新載入(_R)"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i 個反向鏈結(_B)..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i 個反向鏈結(_B)"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976

@@ -688,10 +688,10 @@ msgstr "_Recarregar"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink..."
-msgid_plural "%i _Backlinks..."
-msgstr[0] "%i _Ligação de Entrada..."
-msgstr[1] "%i _Ligações de Entrada..."
+msgid "%i _Backlink"
+msgid_plural "%i _Backlinks"
+msgstr[0] "%i _Ligação de Entrada"
+msgstr[1] "%i _Ligações de Entrada"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
