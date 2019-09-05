@@ -60,6 +60,7 @@ echo "Building ..."
 
 python3 ./test.py package || exit 1
 ./setup.py sdist
+./tools/add_release_to_appdata.py
 make builddeb
 make clean
 ./tools/build_website.sh
