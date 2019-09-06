@@ -34,6 +34,7 @@
   <screenshots>
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
-  <updatecontact>jaap.karssenberg@gmail.com</updatecontact>
+  <update_contact>jaap.karssenberg@gmail.com</update_contact>
+  <translation type="gettext">zim</translation>
   <content_rating type="oars-1.1" />
 </component>
