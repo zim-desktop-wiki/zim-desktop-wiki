@@ -2338,6 +2338,11 @@ msgstr ""
 msgid "Position in the window"
 msgstr "Position im Fenster"
 
+#. preferences option
+#: zim/plugins/tasklist/__init__.py:56
+msgid "Show due date in sidepane"
+msgstr "Fälligkeitsdatum in Seitenleiste anzeigen"
+
 #. label for attachment browser pane
 #: zim/plugins/attachmentbrowser/__init__.py:128
 msgid "Attachments"
