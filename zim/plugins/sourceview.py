@@ -5,7 +5,7 @@
 
 import logging
 
-logger = logging.getLogger('zim.pugin.sourceview')
+logger = logging.getLogger('zim.plugins.sourceview')
 
 
 # This plugin can work without GUI for just the export
@@ -29,9 +29,8 @@ from zim.utils import WeakSet
 from zim.config import String, Boolean
 from zim.formats.html import html_encode
 
-from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow
-from zim.gui.insertedobjects import InsertedObjectWidget, TextViewWidget
+from zim.gui.insertedobjects import TextViewWidget
 
 
 if GtkSource:
