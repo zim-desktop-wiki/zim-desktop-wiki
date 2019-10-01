@@ -36,7 +36,7 @@ A windows installer can be found [[https://zim.glump.net/windows/|here]].
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
 The following Linux distributions are known to include zim:
-* Archlinux (extra/zim)
+* [[https://www.archlinux.org/packages/community/any/zim/|Arch Linux]] (community/zim)
 * [[https://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
 * Gentoo (x11-misc/zim)
 * Sourcemage (zim)
