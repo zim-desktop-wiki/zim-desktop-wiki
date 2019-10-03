@@ -24,7 +24,7 @@ from zim.www import make_server
 
 from zim.notebook import build_notebook, NotebookInfo
 from zim.config import data_file
-from zim.gui.widgets import IconButton, ErrorDialog, input_table_factory
+from zim.gui.widgets import IconButton, ErrorDialog, InputEntry, input_table_factory
 from zim.gui.notebookdialog import NotebookComboBox, NotebookDialog
 
 
@@ -76,8 +76,8 @@ class ServerWindow(Gtk.Window):
 		self.public_checkbox.set_active(public)
 
 		self.auth_checkbox = Gtk.CheckButton.new_with_mnemonic(_('Require authentication'))
-		self.username_input = Gtk.Entry()
-		self.password_input = Gtk.Entry()
+		self.username_input = InputEntry()
+		self.password_input = InputEntry()
 		self.password_input.set_visibility(False)
 
 		# Build the interface
