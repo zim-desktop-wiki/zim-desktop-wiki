@@ -108,13 +108,15 @@ class WWWInterface(object):
 	in the standard library for python.
 	'''
 
-	def __init__(self, notebook, template='Default'):
+	def __init__(self, notebook, template='Default', auth_creds=None):
 		'''Constructor
 		@param notebook: a L{Notebook} object
 		@param template: html template for zim pages
+		@param auth_creds: credentials for HTTP-authentication
 		'''
 		assert isinstance(notebook, Notebook)
 		self.notebook = notebook
+		self.auth_creds = auth_creds
 
 		self.output = None
 
@@ -149,6 +151,32 @@ class WWWInterface(object):
 
 		@returns: the html page content as a list of lines
 		'''
+		if self.auth_creds:
+			import base64
+
+			def bad_auth():
+				body = 'Please authenticate'
+				realm = 'zimAuth'
+				logger.info('Requesting Basic HTTP-Authentication')
+				headers = [
+					('Content-Type', 'text/plain'),
+					('Content-Length', str(len(body))),
+					('WWW-Authenticate', 'Basic realm="%s"' % realm)]
+				start_response('401 Unauthorized', headers)
+				return [body.encode()]
+
+			auth = environ.get('HTTP_AUTHORIZATION')
+			if auth:
+				scheme, data = auth.split(None, 1)
+				assert scheme.lower() == 'basic'
+				username, password = base64.b64decode(data).decode('UTF-8').split(':')
+				if username != self.auth_creds[0] or password != self.auth_creds[1]:
+					return bad_auth()
+				environ['REMOTE_USER'] = username
+				del environ['HTTP_AUTHORIZATION']
+			else:
+				return bad_auth()
+
 		headerlist = []
 		headers = Headers(headerlist)
 		path = environ.get('PATH_INFO', '/')
@@ -347,17 +375,18 @@ def main(notebook, port=8080, public=True, **opts):
 	httpd.serve_forever()
 
 
-def make_server(notebook, port=8080, public=True, **opts):
+def make_server(notebook, port=8080, public=True, auth_creds=None, **opts):
 	'''Create a simple http server
 	@param notebook: the notebook location
 	@param port: the http port to serve on
 	@param public: allow connections to the server from other
 	computers - if C{False} can only connect from localhost
+	@param auth_creds: credentials for HTTP-authentication
 	@param opts: options for L{WWWInterface.__init__()}
 	@returns: a C{WSGIServer} object
 	'''
 	import wsgiref.simple_server
-	app = WWWInterface(notebook, **opts) # FIXME make opts explicit
+	app = WWWInterface(notebook, auth_creds=auth_creds, **opts) # FIXME make opts explicit
 	if public:
 		httpd = wsgiref.simple_server.make_server('', port, app)
 	else:

@@ -11,6 +11,7 @@ from io import BytesIO
 import logging
 import wsgiref.validate
 import wsgiref.handlers
+import base64
 
 from zim.fs import File
 from zim.www import WWWInterface
@@ -43,7 +44,7 @@ class TestWWWInterface(tests.TestCase):
 		self.assertTrue(len([l for l in header if l.startswith('Content-Type: ')]) == 1, 'Content-Type header present')
 		self.assertTrue(len([l for l in header if l.startswith('Date: ')]) == 1, 'Date header present')
 		if expectbody:
-			self.assertTrue(body and not body.isspace(), 'Repsonse has a body')
+			self.assertTrue(body and not body.isspace(), 'Response has a body')
 
 		return header, body
 
@@ -51,6 +52,12 @@ class TestWWWInterface(tests.TestCase):
 		header, body = self.assertResponseWellFormed(response, expectbody)
 		self.assertEqual(header[0], 'HTTP/1.0 200 OK')
 		self.assertTrue('Content-Type: text/html; charset="utf-8"' in header)
+		return header, body
+
+	def assertAuthenticationRequired(self, response, expectbody=True):
+		header, body = self.assertResponseWellFormed(response, expectbody)
+		self.assertTrue('401 Unauthorized' in header[0])
+		self.assertTrue(len([l for l in header if l.startswith('WWW-Authenticate:')]) == 1, 'WWW-Authenticate header present')
 		return header, body
 
 	def setUp(self):
@@ -65,7 +72,7 @@ class TestWWWInterface(tests.TestCase):
 		interface = WWWInterface(notebook, template=self.template)
 		validator = wsgiref.validate.validator(interface)
 
-		def call(command, path):
+		def call(command, path, auth_creds=None):
 			#print("CALL:", command, path)
 			environ = {
 				'REQUEST_METHOD': command,
@@ -76,6 +83,9 @@ class TestWWWInterface(tests.TestCase):
 				'SERVER_PORT': '80',
 				'SERVER_PROTOCOL': '1.0'
 			}
+			if auth_creds:
+				auth_creds_string = auth_creds[0] + ':' + auth_creds[1]
+				environ['HTTP_AUTHORIZATION'] = 'Basic ' + base64.b64encode(auth_creds_string.encode('ASCII')).decode('UTF-8')
 			rfile = BytesIO(b'')
 			wfile = BytesIO()
 			handler = wsgiref.handlers.SimpleHandler(rfile, wfile, sys.stderr, environ)
@@ -123,6 +133,18 @@ class TestWWWInterface(tests.TestCase):
 			header, body = self.assertResponseWellFormed(response)
 			self.assertEqual(header[0], 'HTTP/1.0 200 OK')
 
+		# authentication
+		auth_creds = ('test_user', 'test_password')
+		interface = WWWInterface(notebook, template=self.template, auth_creds=auth_creds)
+		validator = wsgiref.validate.validator(interface)
+
+		# ensure that authentication is required
+		response = call('GET', '/')
+		header, body = self.assertAuthenticationRequired(response)
+
+		# ensure that page is loaded properly when correct credentials were passed
+		response = call('GET', '/', auth_creds=auth_creds)
+		header, body = self.assertResponseOK(response)
 
 #~ class TestWWWInterfaceTemplate(TestWWWInterface):
 #~
