@@ -121,7 +121,7 @@ module.
 
 ## Accessing functions of other plugins
 
-The functions `zim.plugins.find_extension()` and `get_action()` can be used to access
+The functions `zim.plugins.find_extension()` and `find_action()` can be used to access
 extensions and actions defined by other plugins.
 
 
