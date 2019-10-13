@@ -87,10 +87,19 @@ If you are using Mac Ports packages installing the following ports should work:
 
 TODO: new instructions for Gtk3 / Python3
 
-If you are using Homebrew, the proper dependencies can be installed using
+If you are using [Homebrew package manager](https://brew.sh/), the proper dependencies can be installed using
 
 `brew install python gtk+3 pygobject3`
 
+Once done, install
+
+`brew install zim`
+
+Then run from terminal
+
+`zim`
+
+Or [make a wrapper app](https://github.com/jaap-karssenberg/zim-wiki/wiki/Mac-OSX-App-%28wrapper%29) for Zim so that you can keep it in the launcher and open it as a native Mac OSX app.
 
 
 ### Install Paths
