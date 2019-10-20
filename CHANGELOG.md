@@ -5,6 +5,25 @@ Jaap Karssenberg <jaap.karssenberg@gmail.com>
 This branch is the Python rewrite and starts with version 0.42.
 Earlier version numbers for zim correspond to the Perl branch.
 
+##  0.72.0 - Thu 29 Aug 2019
+* Improve pathbar with "linked" visual design
+* Improve statusbar visual style
+* Change behavior for lists with mixed bullets
+* Add configuration of keybindings to preferences dialog
+* Support gnome-screenshot in the insert screenshot pluing
+* Save size of secondary page window
+* Add option for linenumbers option in insert code block dialog
+* Add option to display date column in tasklist side pane
+* Add warnings if locale does not support unicode
+* Make SVG thumbnail support configurable
+* Fix bug for insert equation and other objects
+* Fix use of escape sequence in table cells
+* Fix tasklist view for multiple dates in task
+* Fix "apply heading" to strip list formatting
+* Make ToC plugin update instead of refresh on save
+* Fix issue with not-unique headings in tableofcontents
+* Fix bugs in auto insert bullet at newline
+
 ##  0.71.1 - Thu 23 May 2019
 * Fix robustness for OSError on process startup
 * Fix for popup menu on page index for Gtk < 3.22
