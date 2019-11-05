@@ -13,15 +13,15 @@ Most of this syntax is inspired by the [[https://www.dokuwiki.org/wiki:syntax|Do
 Headings are created by using an appropriate amount of "=" characters:
 
 '''
-====== Head 1 ======
+====== Head 1
 
-===== head 2 =====
+===== head 2
 
-==== head 3 ====
+==== head 3
 
-=== head 4 ===
+=== head 4
 
-== head 5 ==
+== head 5
 '''
 
 
