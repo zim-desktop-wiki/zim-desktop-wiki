@@ -177,8 +177,8 @@ A table
 | a very long cell |                **bold text** | b                    |
 |    hyperlinks    | [wp?wiki](interwiki:wp?wiki) | [Xorg](http://x.org) |
 
-Multiformatting
----------------
+Multiformatting **bold**
+------------------------
 
 normal **bold** normal2
 normal ~~strike **nested bold** strike2~~ normal2

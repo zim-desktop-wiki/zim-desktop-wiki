@@ -561,11 +561,11 @@ class TextBuffer(Gtk.TextBuffer):
 	}
 
 	#: tags that can be mapped to named TextTags
-	_static_style_tags = (
-		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+	_static_style_tags = ( # The order determines order of nesting
+		'pre', 'code',
 		'emphasis', 'strong', 'mark', 'strike',
 		'sub', 'sup',
-		'pre', 'code' # These two must be last in sorting order to ensure prio in parsing
+		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 	)
 
 	#: tags that can nest in any order
@@ -923,7 +923,12 @@ class TextBuffer(Gtk.TextBuffer):
 				if element.tag == 'h':
 					force_line_start()
 					tag = 'h' + str(element.attrib['level'])
-					self.set_textstyles([tag])  # textstyles do strange things in there
+					self.set_textstyles([tag])
+					if element.text:
+						self.insert_at_cursor(element.text)
+					flushed = True
+					self._insert_element_children(element, list_level=list_level, raw=raw,
+												  textstyles=[tag])  # recurs
 				elif element.tag in self._static_style_tags:
 					self.set_textstyles(textstyles + [element.tag])
 					if element.text:
@@ -1632,13 +1637,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
-				#self.remove_textstyle_tags(start, end)
-				#if not had_tag:
 
 				if tag.zim_tag == "h":
-					# FIXME having additional styling splits in multiline-gargabed header so we're removing all styles.
-					# When fixed, maybe `self.smart_remove_tags(_is_heading_tag, start, end)` will do.
-					self.remove_textstyle_tags(start, end)
+					self.smart_remove_tags(_is_heading_tag, start, end)
 				if had_tag:
 					self.remove_tag(tag, start, end)
 				else:

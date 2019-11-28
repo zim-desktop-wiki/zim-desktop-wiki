@@ -9,7 +9,7 @@ import os
 
 from zim.fs import File, Dir
 from zim.newfs import LocalFile, LocalFolder
-from zim.formats import wiki, ParseTree
+from zim.formats import get_format, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
 from zim.gui.clipboard import Clipboard
@@ -163,6 +163,22 @@ class TestCaseMixin(object):
 
 
 class TestTextBuffer(tests.TestCase, TestCaseMixin):
+
+	def testFormatRoundTrip(self):
+		tree = new_parsetree(self)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		with FilterNoSuchImageWarning():
+			buffer.set_parsetree(tree)
+
+		newtree = buffer.get_parsetree()
+		dumper = get_format('wiki').Dumper()
+
+		wikitext = ''.join(dumper.dump(tree))
+		newwikitext = ''.join(dumper.dump(newtree))
+
+		self.assertEqual(newwikitext, wikitext)
 
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
@@ -615,10 +631,10 @@ C
 			self.assertBufferEquals(buffer, '<h level="%i">foo bar</h>\n' % lvl)
 
 	def testFormatHeadingWithFormatting(self):
-		buffer = self.get_buffer('foo <strong>bar</strong> <link href="Foo">Foo</link>\n')
+		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="Foo">Foo</link>\n')
 		buffer.select_line(0)
 		buffer.toggle_textstyle('h2')
-		self.assertBufferEquals(buffer, '<h level="2">foo bar Foo</h>\n')
+		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="Foo">Foo</link></h>\n')
 
 	def testFormatHeadingOnIndent(self):
 		buffer = self.get_buffer('<div indent="2">foo bar</div>\n')
@@ -1684,7 +1700,6 @@ foo
 			# main visibility when copy pasting bullet lists
 			# Same hack in gui clipboard code
 			from zim.notebook import Path, Page
-			from zim.formats import get_format
 			dumper = get_format('wiki').Dumper()
 			text = ''.join(dumper.dump(parsetree))
 			parser = get_format('wiki').Parser()
@@ -2172,10 +2187,33 @@ class TestFormatActions(tests.TestCase, TestCaseMixin):
 		self.activate('apply_format_h3')
 		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
 
+	def testApplyFormatHeadingOnHeading(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.buffer.select_line(0)
+		self.activate('apply_format_h4')
+		self.assertBufferEquals(self.buffer, '<h level="4">Test 123</h>\n')
+
 	def testApplyFormatHeadingNoSelection(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
 		self.activate('apply_format_h3')
 		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+
+	def testApplyFormatHeadingWithFormatting(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123</h>\n')
+
+	def testApplyFormattingOnHeading(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123</h>\n')
 
 	def testApplyFormatStrong(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())

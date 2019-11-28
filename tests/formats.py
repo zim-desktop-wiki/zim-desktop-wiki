@@ -212,16 +212,13 @@ class TestParseTree(tests.TestCase):
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
-	def testGetHeading(self):
-		'''Test that ParseTree.get_heading() returns the first header's text.
-		'''
+	def testGetHeadingText(self):
 		tree = ParseTree().fromstring(self.xml)
-		self.assertEqual(tree.get_heading(), "Head 1")
+		self.assertEqual(tree.get_heading_text(), "Head 1")
 
-	def testSetHeading(self):
-		'''Test ParseTree.set_heading()'''
+	def testSetHeadingText(self):
 		tree = ParseTree().fromstring(self.xml)
-		tree.set_heading('Foo')
+		tree.set_heading_text('Foo')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
@@ -345,6 +342,16 @@ class TestWikiFormat(TestTextFormat):
 		self.format = get_format('wiki')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
+
+	def testFormattingBelowHeading(self):
+		input = "====== heading @foo **bold** ======\n"
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">heading <tag name="foo">@foo</tag> <strong>bold</strong></h>\n</zim-tree>'''
+		t = self.format.Parser().parse(input)
+		self.assertEqual(t.tostring(), xml)
+		output = self.format.Dumper().dump(t)
+		self.assertEqual(output, input.splitlines(True))
 
 	def testNoNestingBelowVerbatim(self):
 		input = "test 1 2 3 ''code here **not bold!**''\n"

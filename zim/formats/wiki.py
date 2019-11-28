@@ -1,5 +1,5 @@
 
-# Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008, 2012-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
 
@@ -182,8 +182,7 @@ class WikiParser(object):
 		p.process_unmatched = self.parse_para
 		return p
 
-	@staticmethod
-	def parse_heading(builder, text):
+	def parse_heading(self, builder, text):
 		'''Parse heading and determine it's level'''
 		assert text.startswith('=')
 		for i, c in enumerate(text):
@@ -195,9 +194,12 @@ class WikiParser(object):
 			# === is level 4
 			# ...
 			# ======= is level 1
-
 		text = text[i:].lstrip() + '\n'
-		builder.append(HEADING, {'level': level}, text)
+
+		builder.start(HEADING, {'level': level})
+		self.inline_parser(builder, text)
+		builder.end(HEADING)
+
 
 	@staticmethod
 	def parse_pre(builder, indent, text):

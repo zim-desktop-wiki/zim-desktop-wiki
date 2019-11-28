@@ -385,14 +385,20 @@ class ParseTree(object):
 		else:
 			return None
 
-	def get_heading(self, level=1):
+	def _elt_to_text(self, elt):
+		strings = [elt.text]
+		for e in elt:
+			strings.append(self._elt_to_text(e)) # recurs
+		return ''.join(strings)
+
+	def get_heading_text(self, level=1):
 		heading_elem = self._get_heading_element(level)
 		if heading_elem is not None:
-			return heading_elem.text
+			return self._elt_to_text(heading_elem)
 		else:
 			return ""
 
-	def set_heading(self, text, level=1):
+	def set_heading_text(self, text, level=1):
 		'''Set the first heading of the parse tree to 'text'. If the tree
 		already has a heading of the specified level or higher it will be
 		replaced. Otherwise the new heading will be prepended.
@@ -400,6 +406,8 @@ class ParseTree(object):
 		heading = self._get_heading_element(level)
 		if heading is not None:
 			heading.text = text
+			for e in heading:
+				heading.remove(e)
 		else:
 			root = self._etree.getroot()
 			heading = ElementTreeModule.Element('h', {'level': level})
@@ -408,18 +416,17 @@ class ParseTree(object):
 			root.text = None
 			root.insert(0, heading)
 
-	def pop_heading(self, level=-1):
+	def remove_heading(self, level=-1):
 		'''If the tree starts with a heading, remove it and any trailing
 		whitespace.
 		Will modify the tree.
 		@returns: a 2-tuple of text and heading level or C{(None, None)}
 		'''
 		root = self._etree.getroot()
+		roottext = root.text and not root.text.isspace()
 		children = root.getchildren()
-		if root.text and not root.text.isspace():
-			return None, None
 
-		if children:
+		if children and not roottext:
 			first = children[0]
 			if first.tag == 'h':
 				mylevel = int(first.attrib['level'])
@@ -427,13 +434,6 @@ class ParseTree(object):
 					root.remove(first)
 					if first.tail and not first.tail.isspace():
 						root.text = first.tail # Keep trailing text
-					return first.text, mylevel
-				else:
-					return None, None
-			else:
-				return None, None
-		else:
-			return None, None
 
 	def cleanup_headings(self, offset=0, max=6):
 		'''Change the heading levels throughout the tree. This makes sure that

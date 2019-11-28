@@ -206,8 +206,8 @@ A table
 |    hyperlinks    | `wp?wiki <interwiki:wp?wiki>`_ | `Xorg <http://x.org>`_ |
 +------------------+--------------------------------+------------------------+
 
-Multiformatting
----------------
+Multiformatting **bold**
+------------------------
 
 normal **bold** normal2
 normal strike **nested bold** strike2 normal2

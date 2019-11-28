@@ -169,8 +169,8 @@ A table
 |    hyperlinks    |   wp?wiki | Xorg |
 +------------------+-----------+------+
 
-Multiformatting
----------------
+Multiformatting bold
+--------------------
 
 normal bold normal2
 normal strike nested bold strike2 normal2
