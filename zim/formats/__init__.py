@@ -975,7 +975,11 @@ class OldParseTreeBuilder(object):
 		if text:
 			m = count_eol_re.search(text)
 			if m:
-				self._seen_eol = len(m.group(0))
+				seen = len(m.group(0))
+				if seen == len(text):
+					self._seen_eol += seen
+				else:
+					self._seen_eol = seen
 			else:
 				self._seen_eol = 0
 

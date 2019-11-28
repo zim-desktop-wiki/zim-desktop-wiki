@@ -551,11 +551,10 @@ class ZimApplicationContext(object):
 
 
 
-class TestData(object):
+class _TestData(object):
 	'''Wrapper for a set of test data in tests/data'''
 
-	def __init__(self, format):
-		assert format == 'wiki', 'TODO: add other formats'
+	def __init__(self):
 		root = os.environ['ZIM_TEST_ROOT']
 		tree = etree.ElementTree(file=root + '/tests/data/notebook-wiki.xml')
 
@@ -585,10 +584,7 @@ class TestData(object):
 				return text
 		assert False, 'Could not find data for page: %s' % pagename
 
-
-WikiTestData = TestData('wiki') #: singleton to be used by various tests
-
-FULL_NOTEBOOK = WikiTestData
+FULL_NOTEBOOK = _TestData() #: singleton to be used by various tests
 
 
 def _expand_manifest(names):
@@ -604,16 +600,26 @@ def _expand_manifest(names):
 			manifest.add(name)
 	return manifest
 
+
+_cache = {}
+
 def new_parsetree():
 	'''Returns a new ParseTree object for testing
-
-	Uses data from L{WikiTestData}, page C{roundtrip}
+	Uses data from C{tests/data/formats/wiki.txt}
 	'''
-	import zim.formats.wiki
-	parser = zim.formats.wiki.Parser()
-	text = WikiTestData.get('roundtrip')
-	tree = parser.parse(text)
-	return tree
+	if 'new_parsetree' not in _cache:
+		root = os.environ['ZIM_TEST_ROOT']
+		with open(root + '/tests/data/formats/wiki.txt') as file:
+			text = file.read()
+
+		import zim.formats.wiki
+		parser = zim.formats.wiki.Parser()
+		tree = parser.parse(text)
+
+		_cache['new_parsetree'] = tree
+
+	return _cache['new_parsetree'].copy()
+
 
 def new_parsetree_from_text(text, format='wiki'):
 	import zim.formats
@@ -636,7 +642,7 @@ def new_page():
 	from zim.newfs.mock import MockFile, MockFolder
 	file = MockFile('/mock/test/page.txt')
 	folder = MockFile('/mock/test/page/')
-	page = Page(Path('roundtrip'), False, file, folder)
+	page = Page(Path('Test'), False, file, folder)
 	page.set_parsetree(new_parsetree())
 	return page
 

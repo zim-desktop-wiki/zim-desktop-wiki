@@ -22,6 +22,13 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	def __init__(self):
 		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
+def new_parsetree(testcase):
+	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
+	tree = tests.new_parsetree()
+	notebook = testcase.setUpNotebook()
+	page = notebook.get_page(Path('Foo'))
+	tree.resolve_images(notebook, page)
+	return tree
 
 def new_parsetree_from_text(testcase, text):
 	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
@@ -29,7 +36,6 @@ def new_parsetree_from_text(testcase, text):
 	notebook = testcase.setUpNotebook()
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
-
 	return tree
 
 
@@ -160,8 +166,7 @@ class TestTextBuffer(tests.TestCase, TestCaseMixin):
 
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
-		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(self, wikitext)
+		tree = new_parsetree(self)
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -927,8 +932,7 @@ class TestUndoStackManager(tests.TestCase):
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
 		undomanager = UndoStackManager(buffer)
-		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(self, wikitext)
+		tree = new_parsetree(self)
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree._etree.getroot())
