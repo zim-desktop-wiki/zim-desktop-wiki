@@ -561,17 +561,16 @@ class TextBuffer(Gtk.TextBuffer):
 	}
 
 	#: tags that can be mapped to named TextTags
-	_static_style_tags = ( # The order determines order of nesting
-		'pre', 'code',
-		'emphasis', 'strong', 'mark', 'strike',
-		'sub', 'sup',
+	_static_style_tags = (
+		# The order determines order of nesting, and order of formatting
 		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+		'emphasis', 'strong', 'mark', 'strike', 'sub', 'sup',
+		'pre', 'code',
 	)
 
 	#: tags that can nest in any order
 	_nesting_style_tags = (
-		'emphasis', 'strong', 'mark', 'strike',
-		'sub', 'sup',
+		'emphasis', 'strong', 'mark', 'strike', 'sub', 'sup',
 	)
 
 	tag_attributes = {
@@ -980,12 +979,13 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _create_link_tag(self, text, href, **attrib):
 		'''Creates an anonymouse TextTag for a link'''
+		# These are created after __init__, so higher priority for Formatting
+		# properties than any of the _static_style_tags
 		if isinstance(href, File):
 			href = href.uri
 		assert isinstance(href, str)
 
 		tag = self.create_tag(None, **self.tag_styles['link'])
-		tag.set_priority(0) # force links to be below styles
 		tag.zim_type = 'link'
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
@@ -1068,8 +1068,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _create_tag_tag(self, text, **attrib):
 		'''Creates an annonymous TextTag for a tag'''
+		# These are created after __init__, so higher priority for Formatting
+		# properties than any of the _static_style_tags
 		tag = self.create_tag(None, **self.tag_styles['tag'])
-		tag.set_priority(0) # force tags to be below styles
 		tag.zim_type = 'tag'
 		tag.zim_tag = 'tag'
 		tag.zim_attrib = attrib
@@ -1845,6 +1846,10 @@ class TextBuffer(Gtk.TextBuffer):
 			tag.zim_type = 'indent'
 			tag.zim_tag = 'indent'
 			tag.zim_attrib = {'indent': level, '_bullet': (bullet is not None)}
+
+			# Set the prioriy below any _static_style_tags
+			tag.set_priority(0)
+
 		return tag
 
 	def _find_base_dir(self, line):
@@ -2315,9 +2320,9 @@ class TextBuffer(Gtk.TextBuffer):
 			# first should be closed first while closing later ones breaks the
 			# ones before. This is enforced using the priorities of the tags
 			# in the TagTable.
-			tags.sort(key=lambda tag: tag.get_priority(), reverse=True)
+			tags.sort(key=lambda tag: tag.get_priority())
 			if len([t for t in tags if t.zim_tag in self._nesting_style_tags]) > 1:
-				tags = self._sort_nesting_style_tags(iter, tags, [t[0] for t in open_tags])
+				tags = self._sort_nesting_style_tags(iter, end, tags, [t[0] for t in open_tags])
 
 			i = 0
 			while i < len(tags) and i < len(open_tags) \
@@ -2518,7 +2523,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 		return tree
 
-	def _sort_nesting_style_tags(self, iter, tags, open_tags):
+	def _sort_nesting_style_tags(self, iter, end, tags, open_tags):
 		new_block, new_nesting, new_leaf = self._split_nesting_style_tags(tags)
 		open_block, open_nesting, open_leaf = self._split_nesting_style_tags(open_tags)
 		sorted_new_nesting = []
@@ -2536,8 +2541,10 @@ class TextBuffer(Gtk.TextBuffer):
 		def tag_close_pos(tag):
 			my_iter = iter.copy()
 			my_iter.forward_to_tag_toggle(tag)
-			offset = my_iter.get_offset()
-			return offset
+			if my_iter.compare(end) > 0:
+				return end.get_offset()
+			else:
+				return my_iter.get_offset()
 
 		new_nesting.sort(key=tag_close_pos, reverse=True)
 		sorted_new_nesting += new_nesting
