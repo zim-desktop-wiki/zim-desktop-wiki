@@ -229,6 +229,7 @@ _is_link_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'link'
 _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
 _is_tag_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'tag'
 _is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
+_is_inline_nesting_tag = lambda tag: _is_zim_tag(tag) and tag.zim_tag in TextBuffer._nesting_style_tags or tag.zim_type == 'link'
 
 PIXBUF_CHR = '\uFFFC'
 
@@ -563,10 +564,15 @@ class TextBuffer(Gtk.TextBuffer):
 	#: tags that can be mapped to named TextTags
 	_static_style_tags = (
 		# The order determines order of nesting, and order of formatting
+		# Indent-tags will be inserted before headings
+		# Link-tags and tag-tags will be inserted before "pre" and "code"
+		# search for "set_priority()" and "get_priority()" to see impact
 		'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
 		'emphasis', 'strong', 'mark', 'strike', 'sub', 'sup',
 		'pre', 'code',
 	)
+	_static_tag_before_links = 'sup' # link will be inserted with this prio +1
+	_static_tag_after_tags = 'pre' # link will be inserted with this prio
 
 	#: tags that can nest in any order
 	_nesting_style_tags = (
@@ -717,7 +723,7 @@ class TextBuffer(Gtk.TextBuffer):
 		@param interactive: Boolean which determines how current state
 		in the buffer is handled.
 		'''
-		#~ print('INSERT AT CURSOR', tree.tostring())
+		#print('INSERT AT CURSOR', tree.tostring())
 
 		# Check tree
 		root = tree._etree.getroot() # HACK - switch to new interface !
@@ -886,8 +892,14 @@ class TextBuffer(Gtk.TextBuffer):
 					self.insert_at_cursor('\n')
 
 			elif element.tag == 'link':
-				self.set_textstyles(textstyles)  # reset needed for interactive insert tree after paste
-				self.insert_link_at_cursor(element.text, **element.attrib)
+				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
+				tag = self._create_link_tag(element.text, **element.attrib)
+				self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags)) + [tag]
+				if element.text:
+					self.insert_at_cursor(element.text)
+				self._insert_element_children(element, list_level=list_level, raw=raw,
+											  textstyles=textstyles)  # recurs
+				self._editmode_tags.pop()
 			elif element.tag == 'tag':
 				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
 				self.insert_tag_at_cursor(element.text, **element.attrib)
@@ -972,7 +984,6 @@ class TextBuffer(Gtk.TextBuffer):
 		@param attrib: any other link attributes
 		'''
 		tag = self._create_link_tag(text, href, **attrib)
-		self._editmode_tags += [tag]
 		self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags)) + [tag]
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
@@ -993,6 +1004,10 @@ class TextBuffer(Gtk.TextBuffer):
 			tag.zim_attrib['href'] = None
 		else:
 			tag.zim_attrib['href'] = href
+
+		prio_tag = self.get_tag_table().lookup('style-' + self._static_tag_before_links)
+		tag.set_priority(prio_tag.get_priority()+1)
+
 		return tag
 
 	def get_link_tag(self, iter):
@@ -1075,6 +1090,10 @@ class TextBuffer(Gtk.TextBuffer):
 		tag.zim_tag = 'tag'
 		tag.zim_attrib = attrib
 		tag.zim_attrib['name'] = None
+
+		prio_tag = self.get_tag_table().lookup('style-' + self._static_tag_after_tags)
+		tag.set_priority(prio_tag.get_priority())
+
 		return tag
 
 	def get_tag_tag(self, iter):
@@ -1553,7 +1572,7 @@ class TextBuffer(Gtk.TextBuffer):
 		the right and not inadvertently copy formatting from the
 		previous line which ends on the left.
 
-		This method is for exampel used by L{update_editmode()} to
+		This method is for example used by L{update_editmode()} to
 		determine which TextTags should be applied to newly inserted
 		text at at a specific location.
 
@@ -2168,6 +2187,7 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _do_lines_merged(self, iter):
 		# Enforce tags like 'h', 'pre' and 'indent' to be consistent over the line
+		# Merge links that have same href target
 		if iter.starts_line() or iter.ends_line():
 			return # TODO Why is this ???
 
@@ -2181,6 +2201,13 @@ class TextBuffer(Gtk.TextBuffer):
 				if tag.zim_tag == 'pre':
 					self.smart_remove_tags(_is_zim_tag, iter, end)
 				self.apply_tag(tag, iter, end)
+			elif _is_link_tag(tag):
+				for rh_tag in filter(_is_link_tag, iter.get_tags()):
+					if rh_tag is not tag and rh_tag.zim_attrib['href'] == tag.zim_attrib['href']:
+						bound = iter.copy()
+						bound.forward_to_tag_toggle(rh_tag)
+						self.remove_tag(rh_tag, iter, bound)
+						self.apply_tag(tag, iter, bound)
 
 		self.update_editmode()
 
@@ -2314,14 +2341,14 @@ class TextBuffer(Gtk.TextBuffer):
 			# It does so be keeping the stack of open tags and compare it
 			# with the new set of tags in order to decide which of the
 			# tags can be closed and which new ones need to be opened.
-			#
-			# We assume that by definition we only get one tag for each tag
-			# type and that we get tags in such an order that the one we get
-			# first should be closed first while closing later ones breaks the
-			# ones before. This is enforced using the priorities of the tags
-			# in the TagTable.
+
 			tags.sort(key=lambda tag: tag.get_priority())
-			if len([t for t in tags if t.zim_tag in self._nesting_style_tags]) > 1:
+			if any(_is_tag_tag(t) for t in tags):
+				# Although not highest prio, no other tag can nest below a tag-tag
+				while not _is_tag_tag(tags[-1]):
+					tags.pop()
+
+			if any(_is_inline_nesting_tag(t) for t in tags):
 				tags = self._sort_nesting_style_tags(iter, end, tags, [t[0] for t in open_tags])
 
 			i = 0
@@ -2553,9 +2580,9 @@ class TextBuffer(Gtk.TextBuffer):
 
 	def _split_nesting_style_tags(self, tags):
 		block, nesting = [], []
-		while tags and tags[0].zim_tag not in self._nesting_style_tags:
+		while tags and not _is_inline_nesting_tag(tags[0]):
 			block.append(tags.pop(0))
-		while tags and tags[0].zim_tag in self._nesting_style_tags:
+		while tags and _is_inline_nesting_tag(tags[0]):
 			nesting.append(tags.pop(0))
 		return block, nesting, tags
 

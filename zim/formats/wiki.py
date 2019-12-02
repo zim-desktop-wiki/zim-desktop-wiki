@@ -14,7 +14,7 @@ from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
 
-WIKI_FORMAT_VERSION = 'zim 0.4'
+WIKI_FORMAT_VERSION = 'zim 0.5'
 
 
 info = {
@@ -425,19 +425,19 @@ class WikiParser(object):
 		self.inline_parser(builder, text)
 		builder.end(BLOCK)
 
-	@staticmethod
-	def parse_link(builder, text):
+	def parse_link(self, builder, text):
 		text = text.strip('|') # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
-		if '|' in text:
+		if not text or text.isspace():
+			pass
+		elif '|' in text:
 			href, text = text.split('|', 1)
 			text = text.strip('|') # stuff like "[[foo||bar]]"
+			builder.start(LINK, {'href': href})
+			self.inline_parser(builder, text)
+			builder.end(LINK)
 		else:
 			href = text
-
-		if href and not href.isspace():
-			builder.append(LINK, {'href': href}, text)
-		else:
-			pass
+			builder.append(LINK, {'href': href}, href)
 
 	@staticmethod
 	def parse_image(builder, text):

@@ -939,6 +939,15 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 			buffer = self.get_buffer(xml)
 			self.assertBufferEquals(buffer, xml)
 
+	def testIllegalNestedTagTag(self):
+		# Code and @tag are incompatible formats. When applied to the same
+		# region, the code part is dropped
+		buffer = self.get_buffer('test <tag name="tag">@tag</tag> test')
+		code_tag = buffer.get_tag_table().lookup('style-code')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(code_tag, *bounds)
+		self.assertBufferEquals(buffer, '<code>test </code><tag name="tag">@tag</tag><code> test</code>')
+
 
 class TestUndoStackManager(tests.TestCase):
 

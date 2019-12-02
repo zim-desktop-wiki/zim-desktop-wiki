@@ -36,7 +36,6 @@ and also <strike>strike through</strike>
 <link href="foo">bar</link> links to "foo" but display "bar"
 </p>
 <p><link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
-<link href="Foo">Foo</link><link href="Bar">Bar</link>
 </p>
 <p><link href="mailto:foo@bar.org">mailto:foo@bar.org</link>
 <link href="wp?Test">wp?Test</link>
@@ -134,6 +133,8 @@ the Achaeans.
 normal <strike>strike <strong>nested bold</strong> strike2</strike> normal2
 normal <strike>strike <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
 normal <strike>strike  <strong>nested bold</strong> middle of the text <emphasis>italic <link href="https://example.org">link</link></emphasis> yet another text <strong>another bold <emphasis>yet another italic</emphasis></strong> </strike> normal2
+</p>
+<p>This is a <link href="https://example.org">link <strong>with</strong> formatting</link>
 </p>
 <p>====
 This is not a header
