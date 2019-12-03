@@ -483,7 +483,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.getiterator('link'):
 			href = link.attrib['href']
-			if is_url_re.match(href):
+			if href and is_url_re.match(href):
 				link.attrib['href'] = url_encode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
@@ -494,7 +494,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.getiterator('link'):
 			href = link.attrib['href']
-			if is_url_re.match(href):
+			if href and is_url_re.match(href):
 				link.attrib['href'] = url_decode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']

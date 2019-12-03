@@ -994,13 +994,13 @@ class TextBuffer(Gtk.TextBuffer):
 		# properties than any of the _static_style_tags
 		if isinstance(href, File):
 			href = href.uri
-		assert isinstance(href, str)
+		assert isinstance(href, str) or href is None
 
 		tag = self.create_tag(None, **self.tag_styles['link'])
 		tag.zim_type = 'link'
 		tag.zim_tag = 'link'
 		tag.zim_attrib = attrib
-		if href == text:
+		if href == text or not href or href.isspace():
 			tag.zim_attrib['href'] = None
 		else:
 			tag.zim_attrib['href'] = href
@@ -1026,7 +1026,7 @@ class TextBuffer(Gtk.TextBuffer):
 		else:
 			return None
 
-	def get_link_data(self, iter):
+	def get_link_data(self, iter, raw=False):
 		'''Get the link attributes for a link at a specific position, if any
 
 		@param iter: a C{Gtk.TextIter}
@@ -1038,9 +1038,12 @@ class TextBuffer(Gtk.TextBuffer):
 		if tag:
 			link = tag.zim_attrib.copy()
 			if link['href'] is None:
-				# Copy text content as href
-				start, end = self.get_tag_bounds(iter, tag)
-				link['href'] = start.get_text(end)
+				if raw:
+					link['href'] = ''
+				else:
+					# Copy text content as href
+					start, end = self.get_tag_bounds(iter, tag)
+					link['href'] = start.get_text(end)
 			return link
 		else:
 			return None
@@ -2394,9 +2397,7 @@ class TextBuffer(Gtk.TextBuffer):
 							attrib = continue_attrib
 						continue_attrib = {}
 					elif t == 'link':
-						attrib = self.get_link_data(iter)
-						if not attrib['href']:
-							t = '_ignore_'
+						attrib = self.get_link_data(iter, raw=raw)
 					elif t == 'tag':
 						attrib = self.get_tag_data(iter)
 						if not attrib['name']:

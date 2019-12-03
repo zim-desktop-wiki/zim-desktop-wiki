@@ -131,7 +131,7 @@ class TestCaseMixin(object):
 
 		buffer.set_parsetree(tree)
 
-	def assertBufferEquals(self, buffer, wanted):
+	def assertBufferEquals(self, buffer, wanted, raw=True):
 		if isinstance(wanted, (tuple, list)):
 			wanted = list(wanted)
 			tree = buffer.get_parsetree()
@@ -140,7 +140,10 @@ class TestCaseMixin(object):
 		else:
 			if isinstance(wanted, str):
 				if not wanted.startswith('<?xml'):
-					wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
+					if raw:
+						wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
+					else:
+						wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % wanted
 			else:
 				wanted = tree.tostring()
 			raw = '<zim-tree raw="True">' in wanted
@@ -631,10 +634,10 @@ C
 			self.assertBufferEquals(buffer, '<h level="%i">foo bar</h>\n' % lvl)
 
 	def testFormatHeadingWithFormatting(self):
-		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="Foo">Foo</link>\n')
+		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n')
 		buffer.select_line(0)
 		buffer.toggle_textstyle('h2')
-		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="Foo">Foo</link></h>\n')
+		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="">Foo</link></h>\n')
 
 	def testFormatHeadingOnIndent(self):
 		buffer = self.get_buffer('<div indent="2">foo bar</div>\n')
@@ -949,9 +952,9 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		self.assertBufferEquals(buffer, '<code>test </code><tag name="tag">@tag</tag><code> test</code>')
 
 
-class TestUndoStackManager(tests.TestCase):
+class TestUndoStackManager(tests.TestCase, TestCaseMixin):
 
-	def runTest(self):
+	def testAll(self):
 		'''Test the undo/redo functionality'''
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
@@ -1095,6 +1098,17 @@ class TestUndoStackManager(tests.TestCase):
 		undomanager.undo()
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
+
+	def testBrokenLink(self):
+		# Specific test for when "href == text"
+		buffer = self.get_buffer('<p><link href="TestLink">TestLink</link>\n</p>')
+		undomanager = UndoStackManager(buffer)
+		iter = buffer.get_iter_at_offset(4)
+		end = buffer.get_iter_at_offset(8)
+		buffer.delete(iter, end)
+		self.assertBufferEquals(buffer, '<p><link href="Test">Test</link>\n</p>', raw=False)
+		undomanager.undo()
+		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
 
 
 class TestFind(tests.TestCase, TestCaseMixin):
@@ -1575,7 +1589,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 <zim-tree raw="True">aaa
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 <li bullet="*" indent="1"> </li></zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1586,7 +1600,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 <zim-tree raw="True">aaa
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1602,7 +1616,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 <zim-tree raw="True">aaa
 foo
 <div indent="1">duss
-<link href="CamelCase">CamelCase</link>
+<link href="">CamelCase</link>
 </div>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1617,7 +1631,7 @@ foo
 <zim-tree raw="True">aaa
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1633,7 +1647,7 @@ foo
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> </li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1649,7 +1663,7 @@ foo
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="0"> </li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1666,7 +1680,7 @@ foo
 <li bullet="*" indent="0"> foo</li>
 
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
