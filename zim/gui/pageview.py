@@ -893,12 +893,20 @@ class TextBuffer(Gtk.TextBuffer):
 
 			elif element.tag == 'link':
 				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste
-				tag = self._create_link_tag(element.text, **element.attrib)
+				tag = self._create_link_tag('', **element.attrib)
 				self._editmode_tags = list(filter(_is_not_link_tag, self._editmode_tags)) + [tag]
+				linkstartpos = self.get_insert_iter().get_offset()
 				if element.text:
 					self.insert_at_cursor(element.text)
 				self._insert_element_children(element, list_level=list_level, raw=raw,
 											  textstyles=textstyles)  # recurs
+				linkstart = self.get_iter_at_offset(linkstartpos)
+				text = linkstart.get_text(self.get_insert_iter())
+				if element.attrib['href'] and text != element.attrib['href']:
+					# same logic in _create_link_tag, but need to check text after all child elements inserted
+					tag.zim_attrib['href'] = element.attrib['href']
+				else:
+					tag.zim_attrib['href'] = None
 				self._editmode_tags.pop()
 			elif element.tag == 'tag':
 				self.set_textstyles(textstyles)  # reset Needed for interactive insert tree after paste

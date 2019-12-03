@@ -111,18 +111,21 @@ class TestLines(tests.TestCase):
 class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
-	def get_buffer(self, input=None):
+	def get_buffer(self, input=None, raw=True):
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
 		if input is not None:
-			self.set_buffer(buffer, input)
+			self.set_buffer(buffer, input, raw=raw)
 		return buffer
 
-	def set_buffer(self, buffer, input):
+	def set_buffer(self, buffer, input, raw=True):
 		if isinstance(input, str):
 			if not input.startswith('<?xml'):
-				input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
+				if raw:
+					input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
+				else:
+					input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % input
 			tree = tests.new_parsetree_from_xml(input)
 		elif isinstance(input, (list, tuple)):
 			raise NotImplementedError('Support tokens')
@@ -941,6 +944,18 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 </p></zim-tree>'''
 			buffer = self.get_buffer(xml)
 			self.assertBufferEquals(buffer, xml)
+
+	def testLinkWithoutTargetDirectEditable(self):
+		buffer = self.get_buffer('<p><link href="Test">Test</link>\n</p>', raw=False)
+		buffer.place_cursor(buffer.get_iter_at_offset(4))
+		buffer.insert_at_cursor('Link')
+		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
+
+	def testLinkWithoutTargetDirectEditableWhileFormatted(self):
+		buffer = self.get_buffer('<p><link href="TestFormatted">Test<strong>Formatted</strong></link>\n</p>', raw=False)
+		buffer.place_cursor(buffer.get_iter_at_offset(13))
+		buffer.insert_at_cursor('Link')
+		self.assertBufferEquals(buffer, '<p><link href="TestFormattedLink">Test<strong>FormattedLink</strong></link>\n</p>', raw=False)
 
 	def testIllegalNestedTagTag(self):
 		# Code and @tag are incompatible formats. When applied to the same
