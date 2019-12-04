@@ -23,7 +23,7 @@ try:
 except:
 	GtkSource = None
 
-from zim.plugins import PluginClass, InsertedObjectTypeExtension
+from zim.plugins import PluginClass, InsertedObjectTypeExtension, PLUGIN_FOLDER
 from zim.actions import action
 from zim.utils import WeakSet
 from zim.config import String, Boolean
@@ -33,6 +33,10 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow
 from zim.gui.insertedobjects import InsertedObjectWidget, TextViewWidget
 
+import os.path
+
+STYLES_PATHS = ['/usr/share/gtksourceview-3.0/styles/',
+				PLUGIN_FOLDER.path + os.path.sep + 'sourceview']
 
 if GtkSource:
 	lm = GtkSource.LanguageManager()
@@ -44,6 +48,16 @@ else:
 	LANGUAGES = {}
 #~ print LANGUAGES
 
+def get_available_styles():
+	style_scheme_manager = GtkSource.StyleSchemeManager()
+	style_scheme_manager.set_search_path(STYLES_PATHS)
+
+	result = style_scheme_manager.get_scheme_ids()
+
+	if not result:
+		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(STYLES_PATHS))
+
+	return result
 
 class SourceViewPlugin(PluginClass):
 
@@ -56,6 +70,8 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
 	}
+
+	styles = get_available_styles()
 
 	plugin_preferences = (
 		# key, type, label, default
@@ -70,6 +86,8 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 		('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
 			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
+			# T: preference option for sourceview plugin
+		('theme', 'choice', _('Theme'), styles[0], styles),
 			# T: preference option for sourceview plugin
 	)
 
@@ -92,6 +110,8 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 
 	def __init__(self, plugin, objmap):
 		self._widgets = WeakSet()
+		self._style_scheme_manager = GtkSource.StyleSchemeManager()
+
 		self.preferences = plugin.preferences
 		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
@@ -112,13 +132,15 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 
 	def create_widget(self, buffer):
 		widget = SourceViewWidget(buffer)
-		widget.set_preferences(self.preferences)
+		# ~ widget.set_preferences(self.preferences)
+		widget.set_preferences(self, self.preferences)
 		self._widgets.add(widget)
 		return widget
 
 	def on_preferences_changed(self, preferences):
 		for widget in self._widgets:
-			widget.set_preferences(preferences)
+			# ~ widget.set_preferences(preferences)
+			widget.set_preferences(self, preferences)
 
 	def format_html(self, dumper, attrib, data):
 		# to use highlight.js add the following to your template:
@@ -234,7 +256,13 @@ class SourceViewWidget(TextViewWidget):
 
 		self.view.connect('populate-popup', self.on_populate_popup)
 
-	def set_preferences(self, preferences):
+	def set_preferences(self, source_view_object_type, preferences):
+
+		# set the style scheme
+		style_scheme = source_view_object_type._style_scheme_manager.get_scheme(preferences['theme'])
+		self.buffer.set_style_scheme(style_scheme)
+
+		# set other preferences
 		self.view.set_auto_indent(preferences['auto_indent'])
 		self.view.set_smart_home_end(preferences['smart_home_end'])
 		self.view.set_highlight_current_line(preferences['highlight_current_line'])
