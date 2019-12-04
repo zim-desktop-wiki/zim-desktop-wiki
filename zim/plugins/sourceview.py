@@ -106,8 +106,6 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 
 	def __init__(self, plugin, objmap):
 		self._widgets = WeakSet()
-		self._style_scheme_manager = GtkSource.StyleSchemeManager()
-
 		self.preferences = plugin.preferences
 		InsertedObjectTypeExtension.__init__(self, plugin, objmap)
 		self.connectto(self.preferences, 'changed', self.on_preferences_changed)
