@@ -44,20 +44,18 @@ if GtkSource:
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
 	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+
+	ssm = GtkSource.StyleSchemeManager()
+	ssm.set_search_path(STYLES_PATHS)
+	STYLES = ssm.get_scheme_ids()
+	if not STYLES:
+		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(STYLES_PATHS))
 else:
 	LANGUAGES = {}
 #~ print LANGUAGES
+	STYLES = []
+# ~ print (STYLES)
 
-def get_available_styles():
-	style_scheme_manager = GtkSource.StyleSchemeManager()
-	style_scheme_manager.set_search_path(STYLES_PATHS)
-
-	result = style_scheme_manager.get_scheme_ids()
-
-	if not result:
-		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(STYLES_PATHS))
-
-	return result
 
 class SourceViewPlugin(PluginClass):
 
@@ -70,8 +68,6 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 		'author': 'Jiří Janoušek',
 		'help': 'Plugins:Source View',
 	}
-
-	styles = get_available_styles()
 
 	plugin_preferences = (
 		# key, type, label, default
@@ -87,7 +83,7 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
 			# T: preference option for sourceview plugin
-		('theme', 'choice', _('Theme'), styles[0], styles),
+		('theme', 'choice', _('Theme'), STYLES[0] if STYLES else 'not found', STYLES),
 			# T: preference option for sourceview plugin
 	)
 
@@ -132,15 +128,13 @@ class SourceViewObjectType(InsertedObjectTypeExtension):
 
 	def create_widget(self, buffer):
 		widget = SourceViewWidget(buffer)
-		# ~ widget.set_preferences(self.preferences)
-		widget.set_preferences(self, self.preferences)
+		widget.set_preferences(self.preferences)
 		self._widgets.add(widget)
 		return widget
 
 	def on_preferences_changed(self, preferences):
 		for widget in self._widgets:
-			# ~ widget.set_preferences(preferences)
-			widget.set_preferences(self, preferences)
+			widget.set_preferences(preferences)
 
 	def format_html(self, dumper, attrib, data):
 		# to use highlight.js add the following to your template:
@@ -256,11 +250,15 @@ class SourceViewWidget(TextViewWidget):
 
 		self.view.connect('populate-popup', self.on_populate_popup)
 
-	def set_preferences(self, source_view_object_type, preferences):
+	def set_preferences(self, preferences):
 
 		# set the style scheme
-		style_scheme = source_view_object_type._style_scheme_manager.get_scheme(preferences['theme'])
-		self.buffer.set_style_scheme(style_scheme)
+		theme = preferences['theme']
+		try:
+			style_scheme = ssm.get_scheme(theme)
+			self.buffer.set_style_scheme(style_scheme)
+		except:
+			logger.exception('Could not set theme for sourceview: %s', theme)
 
 		# set other preferences
 		self.view.set_auto_indent(preferences['auto_indent'])
