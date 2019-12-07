@@ -230,6 +230,8 @@ _is_not_link_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'link')
 _is_tag_tag = lambda tag: _is_zim_tag(tag) and tag.zim_type == 'tag'
 _is_not_tag_tag = lambda tag: not (_is_zim_tag(tag) and tag.zim_type == 'tag')
 _is_inline_nesting_tag = lambda tag: _is_zim_tag(tag) and tag.zim_tag in TextBuffer._nesting_style_tags or tag.zim_type == 'link'
+_is_non_nesting_tag = lambda tag: hasattr(tag, 'zim_tag') and tag.zim_tag in ('pre', 'code', 'tag')
+_is_link_tag_without_href = lambda tag: _is_link_tag(tag) and not tag.zim_attrib['href']
 
 PIXBUF_CHR = '\uFFFC'
 
@@ -250,11 +252,13 @@ file_re = Re(r'''(
 	| /[^/\s]
 )\S*$''', re.X | re.U) # ~xxx/ or ~name/xxx or ../xxx  or ./xxx  or /xxx
 
-markup_re = {'style-strong': Re(r'(\*{2})(.*)\1'),
+markup_re = {
+	'style-strong': Re(r'(\*{2})(.*)\1'),
 	'style-emphasis': Re(r'(\/{2})(.*)\1'),
 	'style-mark': Re(r'(_{2})(.*)\1'),
-	'style-pre': Re(r'(\'{2})(.*)\1'),
-	'style-strike': Re(r'(~{2})(.*)\1')}
+	'style-code': Re(r'(\'{2})(.*)\1'),
+	'style-strike': Re(r'(~{2})(.*)\1')
+}
 
 tag_re = Re(r'^(@\w+)$', re.U)
 
@@ -1088,7 +1092,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		tag = self._create_tag_tag(text, **attrib)
 		self._editmode_tags = \
-			list(filter(_is_not_tag_tag, self._editmode_tags)) + [tag]
+			[t for t in self._editmode_tags if not _is_non_nesting_tag(t)] + [tag]
 		self.insert_at_cursor(text)
 		self._editmode_tags = self._editmode_tags[:-1]
 
@@ -1543,7 +1547,7 @@ class TextBuffer(Gtk.TextBuffer):
 			return []
 
 	def update_editmode(self):
-		'''Updates the text style and indenting applied to newly inderted
+		'''Updates the text style and indenting applied to newly indented
 		text based on the current cursor position
 
 		This method is triggered automatically when the cursor is moved,
@@ -1662,15 +1666,17 @@ class TextBuffer(Gtk.TextBuffer):
 						tag = self.get_tag_table().lookup('style-' + name)
 						if not self.whole_range_has_tag(tag, start, end):
 							start, end = self._fix_pre_selection(start, end)
-				elif name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-					for line in range(start.get_line(), end.get_line()+1):
-						self._remove_indent(line)
 
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
 
 				if tag.zim_tag == "h":
 					self.smart_remove_tags(_is_heading_tag, start, end)
+					for line in range(start.get_line(), end.get_line()+1):
+						self._remove_indent(line)
+				if tag.zim_tag in ('pre', 'code'):
+					self.smart_remove_tags(_is_non_nesting_tag, start, end)
+
 				if had_tag:
 					self.remove_tag(tag, start, end)
 				else:
@@ -4288,63 +4294,64 @@ class TextView(Gtk.TextView):
 	def do_end_of_word(self, start, end, word, char, editmode):
 		# Default handler with built-in auto-formatting options
 		buffer = self.get_buffer()
-		handled = True
+		handled = False
 		#~ print('WORD >>%s<< CHAR >>%s<<' % (word, char))
-
-		if list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(start))) \
-		or list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(end))):
-			# DO not auto-format if any zim tags are applied except for indent
-			return
 
 		def apply_tag(match):
 			#~ print("TAG >>%s<<" % word)
 			start = end.copy()
 			if not start.backward_chars(len(match)):
 				return False
-			if buffer.range_has_tags(_is_not_indent_tag, start, end):
+			elif buffer.range_has_tags(_is_non_nesting_tag, start, end):
 				return False
-			tag = buffer._create_tag_tag(match)
-			buffer.apply_tag(tag, start, end)
-			return True
+			else:
+				tag = buffer._create_tag_tag(match)
+				buffer.apply_tag(tag, start, end)
+				return True
 
 		def apply_link(match):
 			#~ print("LINK >>%s<<" % word)
 			start = end.copy()
 			if not start.backward_chars(len(match)):
 				return False
-			if buffer.range_has_tags(_is_not_indent_tag, start, end):
-				return False
-			tag = buffer._create_link_tag(match, match)
-			buffer.apply_tag(tag, start, end)
-			return True
+			elif buffer.range_has_tags(_is_non_nesting_tag, start, end) \
+				or buffer.range_has_tags(_is_link_tag, start, end):
+					return False # No link inside a link
+			else:
+				tag = buffer._create_link_tag(match, match)
+				buffer.apply_tag(tag, start, end)
+				return True
 
 		if (char == ' ' or char == '\t') and start.starts_line() \
 		and (word in autoformat_bullets or is_numbered_bullet_re.match(word)):
-			# format bullet and checkboxes
-			line = start.get_line()
-			end.forward_char() # also overwrite the space triggering the action
-			buffer.delete(start, end)
-			bullet = autoformat_bullets.get(word) or word
-			buffer.set_bullet(line, bullet)
+			if buffer.range_has_tags(_is_heading_tag, start, end):
+				handled = False # No bullets in headings
+			else:
+				# format bullet and checkboxes
+				line = start.get_line()
+				end.forward_char() # also overwrite the space triggering the action
+				buffer.delete(start, end)
+				bullet = autoformat_bullets.get(word) or word
+				buffer.set_bullet(line, bullet)
+				handled = True
 		elif tag_re.match(word):
-			apply_tag(tag_re[0])
+			handled = apply_tag(tag_re[0])
 		elif url_re.match(word):
-			apply_link(url_re[0])
+			handled = apply_link(url_re[0])
 		elif page_re.match(word):
 			# Do not link "10:20h", "10:20PM" etc. so check two letters before first ":"
 			w = word.strip(':').split(':')
 			if w and twoletter_re.search(w[0]):
-				apply_link(page_re[0])
+				handled = apply_link(page_re[0])
 			else:
 				handled = False
 		elif interwiki_re.match(word):
-			apply_link(interwiki_re[0])
+			handled = apply_link(interwiki_re[0])
 		elif self.preferences['autolink_files'] and file_re.match(word):
-			apply_link(file_re[0])
+			handled = apply_link(file_re[0])
 		elif self.preferences['autolink_camelcase'] and camelcase(word):
-			apply_link(word)
+			handled = apply_link(word)
 		elif self.preferences['auto_reformat']:
-			handled = False
 			linestart = buffer.get_iter_at_line(end.get_line())
 			partial_line = linestart.get_slice(end)
 			for style, re in list(markup_re.items()):
@@ -4353,15 +4360,15 @@ class TextView(Gtk.TextView):
 					matchstart.forward_chars(re.start())
 					matchend = linestart.copy()
 					matchend.forward_chars(re.end())
-					if list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchstart))) \
-					or list(filter(_is_not_indent_tag, buffer.iter_get_zim_tags(matchend))):
-						continue
-					buffer.delete(matchstart, matchend)
-					buffer.insert_with_tags_by_name(matchstart, re[2], style)
-					handled_here = True
-					break
-		else:
-			handled = False
+					if buffer.range_has_tags(_is_non_nesting_tag, matchstart, matchend) \
+						or buffer.range_has_tags(_is_link_tag_without_href, matchstart, matchend):
+							break
+					else:
+						with buffer.tmp_cursor(matchstart):
+							buffer.delete(matchstart, matchend)
+							buffer.insert_with_tags_by_name(matchstart, re[2], style)
+							handled = True
+							break
 
 		if handled:
 			self.stop_emission('end-of-word')

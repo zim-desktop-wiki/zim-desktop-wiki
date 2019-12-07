@@ -601,6 +601,13 @@ C
 	D
 </pre></zim-tree>''')
 
+	def testToggleTextStyleCodeOverTag(self):
+		buffer = TextBuffer(None, None)
+		self.set_buffer(buffer, 'foo <tag name="test">@test</tag> bar')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('code')
+		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
+
 	def testMergeLinesWithBullet(self):
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -1539,7 +1546,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 			self.preferences[pref[0]] = pref[4]
 
 	def testTyping(self):
-		## TODO: break apart this test case, see e.g. TestDoEndOfLine
+		## TODO: break apart this test case, see e.g. TestDoEndOfLine & TestDoEndOfWord
 
 		view = TextView(self.preferences)
 		notebook = self.setUpNotebook()
@@ -2059,6 +2066,100 @@ class TestDoEndOfLine(tests.TestCase, TestCaseMixin):
 			'<li bullet="*" indent="0"> foo</li>\n<li bullet="unchecked-box" indent="1"> </li>\n<li bullet="checked-box" indent="1"> bar</li>',
 			line=0
 		)
+
+
+class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
+
+	@classmethod
+	def setUpClass(cls):
+		tests.TestCase.setUpClass()
+
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		cls.view = TextView(preferences)
+		cls.buffer = TextBuffer(None, None)
+		cls.view.set_buffer(cls.buffer)
+
+		cls.view.preferences['auto_reformat'] = True
+
+		press(cls.view, 'aaa\n')
+		start, end = cls.buffer.get_bounds()
+		assert cls.buffer.get_text(start, end, True) == 'aaa\n', 'Just checking test routines work'
+
+	def setUp(self):
+		# Reset buffer state
+		self.buffer.set_text('')
+		self.buffer._editmode_tags = []
+
+	def assertTyping(self, text, wanted):
+		press(self.view, text)
+		self.assertBufferEquals(self.buffer, wanted)
+
+	def testAutoFormatTag(self):
+		self.assertTyping('@test ', '<tag name="test">@test</tag> ')
+
+	def testAutoFormatURL(self):
+		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
+
+	def testAutoFormatPageLink(self):
+		self.assertTyping('Foo:Bar ', '<link href="">Foo:Bar</link> ')
+
+	def testNoAutoFormatTimeAsPageLink(self):
+		self.assertTyping('10:20 ', '10:20 ')
+
+	def testEndOfWordBreaksLink(self):
+		self.set_buffer(self.buffer, '<link href="">Foo</link>')
+		self.assertTyping(' http://test.com ', '<link href="">Foo</link> <link href="">http://test.com</link> ')
+
+	def testNoAutoFormatLinkInLink(self):
+		self.set_buffer(self.buffer, '<link href="">Foo Bar</link>')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
+		self.assertTyping('http://test.com ', '<link href="">Foo http://test.com Bar</link>')
+
+	def testAutoFormatInterWikiLink(self):
+		self.assertTyping('wp?Test ', '<link href="">wp?Test</link> ')
+
+	def testAutoFormatCamelCaseLink(self):
+		self.assertTyping('FooBar ', '<link href="">FooBar</link> ')
+
+	def testAutoFormatFileLink(self):
+		self.assertTyping('./test.pdf ', '<link href="">./test.pdf</link> ')
+
+	def testAutoFormatStyle(self):
+		self.assertTyping('Foo**Bar** ', 'Foo<strong>Bar</strong> ')
+
+	def testNoAutoFormatStyleInLink(self):
+		self.set_buffer(self.buffer, '<link href="">Foo</link>')
+		self.assertTyping('__Bar__ ', '<link href="">Foo__Bar__</link> ')
+
+	def testAutoFormatStyleInLinkWithText(self):
+		self.set_buffer(self.buffer, '<link href="Test">Foo</link>')
+		self.assertTyping('__Bar__ ', '<link href="Test">Foo<mark>Bar</mark></link> ')
+
+	def testNAutoFormatCode(self):
+		self.set_buffer(self.buffer, '\'\'test foo')
+		self.assertTyping(' dus\'\' ', '<code>test foo dus</code> ')
+
+	def testNoAutoFormatCodeOverTag(self):
+		self.set_buffer(self.buffer, '\'\'test <tag name="foo">@foo</tag>')
+		self.assertTyping(' dus\'\' ', '\'\'test <tag name="foo">@foo</tag> dus\'\' ')
+
+	def testNoAutoFormatInPre(self):
+		self.set_buffer(self.buffer, '<pre>test\n</pre>')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
+		self.assertTyping(' @test ', '<pre>test @test \n</pre>')
+
+	def testNoAutoFormatInCode(self):
+		self.set_buffer(self.buffer, '<code>test</code>')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
+		self.assertTyping(' @test ', '<code>test @test </code>')
+
+	def testAutoFormatBullet(self):
+		self.assertTyping('* Test', '<li bullet="*" indent="0"> Test</li>')
+
+	def testNoAutoFormatBulletInHeading(self):
+		self.set_buffer(self.buffer, '<h level="1">test</h>\n')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(0))
+		self.assertTyping('* Test ', '<h level="1">* Test test</h>\n')
 
 
 class TestPageView(tests.TestCase, TestCaseMixin):
