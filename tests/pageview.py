@@ -2321,10 +2321,18 @@ class TestFormatActions(tests.TestCase, TestCaseMixin):
 	def activate(self, name):
 		self.pageview.actiongroup.get_action(name).activate()
 
-	def testApplyFormatHeading(self):
+	def testApplyFormatHeadingWithSelection(self):
 		self.buffer.select_line(0)
 		self.activate('apply_format_h3')
 		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+
+	def testApplyFormatHeadingNoSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+		self.assertFalse(self.buffer.get_has_selection())
+		cursor = self.buffer.get_insert_iter().get_offset()
+		self.assertEqual(cursor, 0)
 
 	def testApplyFormatHeadingOnHeading(self):
 		self.buffer.select_line(0)
@@ -2409,8 +2417,40 @@ class TestFormatActions(tests.TestCase, TestCaseMixin):
 		self.activate('apply_format_strike')
 		self.assertBufferEquals(self.buffer, '<strong><strike>Test</strike> 123</strong>\n')
 
+	def testToggleFormatStrongSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('toggle_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertFalse(self.buffer.get_has_selection())
+		cursor = self.buffer.get_insert_iter().get_offset()
+		self.assertEqual(cursor, 0)
+		self.activate('toggle_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+			# no selection, no change
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('toggle_format_strong')
+		self.assertBufferEquals(self.buffer, 'Test 123\n')
 
-	# TODO: also test format toggle actions
+	def testToggleFormatStrongInsertMode(self):
+		self.buffer.set_text('')
+		self.buffer.insert_at_cursor('Test ')
+		self.activate('toggle_format_strong')
+		self.buffer.insert_at_cursor('bold')
+		self.activate('toggle_format_strong')
+		self.buffer.insert_at_cursor(' text')
+		self.assertBufferEquals(self.buffer, 'Test <strong>bold</strong> text')
+
+	def testMultiFormatInsertMode(self):
+		self.buffer.set_text('')
+		self.buffer.insert_at_cursor('Test ')
+		self.activate('toggle_format_strong')
+		self.activate('toggle_format_emphasis')
+		self.buffer.insert_at_cursor('bolditalic')
+		self.activate('toggle_format_strong')
+		self.activate('toggle_format_emphasis')
+		self.buffer.insert_at_cursor(' text')
+		self.assertBufferEquals(self.buffer, 'Test <emphasis><strong>bolditalic</strong></emphasis> text')
 
 
 class TestPageViewActions(tests.TestCase):

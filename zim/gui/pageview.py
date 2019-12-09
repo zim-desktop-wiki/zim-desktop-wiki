@@ -1653,10 +1653,12 @@ class TextBuffer(Gtk.TextBuffer):
 		@param name: the format style name
 		'''
 		if not self.get_has_selection():
+			styles = self.get_textstyles()
 			if name in self.get_textstyles():
-				self.set_textstyles(self.get_textstyles().remove(name))
+				styles.remove(name)
+				self.set_textstyles(styles)
 			else:
-				self.set_textstyles(self.get_textstyles() + [name])
+				self.set_textstyles(styles + [name])
 		else:
 			with self.user_action:
 				start, end = self.get_selection_bounds()
@@ -5225,7 +5227,7 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 	@todo: document style properties supported by this widget
 
 	@todo: refactor such that the PageView doesn't need to know whether
-	it is in a secondairy window or not
+	it is in a secondary window or not
 	'''
 
 	# define signals we want to use - (closure type, return type and arg types)
@@ -6590,9 +6592,14 @@ class PageView(GSignalEmitterMixin, Gtk.VBox):
 		selected = False
 		mark = buffer.create_mark(None, buffer.get_insert_iter())
 
-		if format not in buffer.get_textstyles():
-			ishead = format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')
-			selected = self.autoselect(selectline=ishead)
+		if format in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+			selected = self.autoselect(selectline=True)
+		else:
+			# Check for format not being present either left or right
+			iter = buffer.get_insert_iter()
+			applied = [t.zim_tag for t in iter.get_tags() + buffer.iter_get_zim_tags(iter)]
+			if not format in applied:
+				selected = self.autoselect(selectline=False)
 
 		buffer.toggle_textstyle(format)
 
