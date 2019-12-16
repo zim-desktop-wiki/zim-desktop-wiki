@@ -1032,7 +1032,7 @@ class TextBuffer(Gtk.TextBuffer):
 		# Explicitly left gravity, otherwise position behind the link
 		# would also be considered part of the link. Position before the
 		# link is included here.
-		for tag in iter.get_tags():
+		for tag in sorted(iter.get_tags(), key=lambda i: i.get_priority()):
 			if hasattr(tag, 'zim_type') and tag.zim_type == 'link':
 				return tag
 		else:
@@ -1654,7 +1654,9 @@ class TextBuffer(Gtk.TextBuffer):
 		'''
 		if not self.get_has_selection():
 			styles = self.get_textstyles()
-			if name in self.get_textstyles():
+			if 'pre' in styles and name != 'pre':
+				pass # do not allow styles within verbatim block
+			elif name in styles:
 				styles.remove(name)
 				self.set_textstyles(styles)
 			else:
@@ -1671,13 +1673,19 @@ class TextBuffer(Gtk.TextBuffer):
 
 				tag = self.get_tag_table().lookup('style-' + name)
 				had_tag = self.whole_range_has_tag(tag, start, end)
+				pre_tag = self.get_tag_table().lookup('style-pre')
 
 				if tag.zim_tag == "h":
 					self.smart_remove_tags(_is_heading_tag, start, end)
 					for line in range(start.get_line(), end.get_line()+1):
 						self._remove_indent(line)
-				if tag.zim_tag in ('pre', 'code'):
+				elif tag.zim_tag in ('pre', 'code'):
 					self.smart_remove_tags(_is_non_nesting_tag, start, end)
+					if tag.zim_tag == 'pre':
+						self.smart_remove_tags(_is_link_tag, start, end)
+						self.smart_remove_tags(_is_style_tag, start, end)
+				elif self.range_has_tag(pre_tag, start, end):
+					return # do not allow formatting withing verbatim block
 
 				if had_tag:
 					self.remove_tag(tag, start, end)
@@ -2369,6 +2377,19 @@ class TextBuffer(Gtk.TextBuffer):
 
 			if any(_is_inline_nesting_tag(t) for t in tags):
 				tags = self._sort_nesting_style_tags(iter, end, tags, [t[0] for t in open_tags])
+
+			# For tags that can only appear once, if somehow an overlap
+			# occured, choose the one with the highest prio
+			for i in range(len(tags)-2, -1, -1):
+				if tags[i].zim_type in ('link', 'tag', 'indent') \
+					and tags[i+1].zim_type == tags[i].zim_type:
+						tags.pop(i)
+				elif tags[i+1].zim_tag == 'h' \
+					and tags[i].zim_tag in ('h', 'indent'):
+						tags.pop(i)
+				elif tags[i+1].zim_tag == 'pre' \
+					and tags[i].zim_type == 'style':
+						tags.pop(i)
 
 			i = 0
 			while i < len(tags) and i < len(open_tags) \

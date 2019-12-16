@@ -964,6 +964,14 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		buffer.insert_at_cursor('Link')
 		self.assertBufferEquals(buffer, '<p><link href="TestFormattedLink">Test<strong>FormattedLink</strong></link>\n</p>', raw=False)
 
+	def testFormatWithinCode(self):
+		# No format nests within verbatim, so needs to break up in multiple parts
+		buffer = self.get_buffer('test <strong>strong</strong> test')
+		code_tag = buffer.get_tag_table().lookup('style-code')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(code_tag, *bounds)
+		self.assertBufferEquals(buffer, '<code>test </code><strong><code>strong</code></strong><code> test</code>')
+
 	def testIllegalNestedTagTag(self):
 		# Code and @tag are incompatible formats. When applied to the same
 		# region, the code part is dropped
@@ -972,6 +980,81 @@ normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked it
 		bounds = buffer.get_bounds()
 		buffer.apply_tag(code_tag, *bounds)
 		self.assertBufferEquals(buffer, '<code>test </code><tag name="tag">@tag</tag><code> test</code>')
+
+	def testFormatWithinPre(self):
+		# No format nests within verbatim, ignore
+		buffer = self.get_buffer('test\n<strong>strong</strong>\ntest\n')
+		code_tag = buffer.get_tag_table().lookup('style-pre')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(code_tag, *bounds)
+		self.assertBufferEquals(buffer, '<pre>test\nstrong\ntest\n</pre>', raw=False)
+
+	def testIllegalDoubleIndentTag(self):
+		# Highest prio tag should get precedence - this is what the user sees
+		# prio in reverse order of tag creation
+		buffer = self.get_buffer('test 123\n')
+		indent1 = buffer._get_indent_tag(1)
+		indent2 = buffer._get_indent_tag(2)
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(indent1, *bounds)
+		buffer.apply_tag(indent2, *bounds)
+		self.assertBufferEquals(buffer, '<p><div indent="1">test 123\n</div></p>', raw=False)
+
+	def testIllegalIndentedListItem(self):
+		# Bullet item should get precedence - this is what the user sees
+		# prio in reverse order of tag creation
+		# bullet should get prio, even if created earlier
+		buffer = self.get_buffer('<li>test 123</li>\n')
+		indent = buffer._get_indent_tag(2)
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(indent, *bounds)
+		self.assertBufferEquals(buffer, '<p><ul><li bullet="*">test 123</li></ul></p>', raw=False)
+
+	def testIllegalIndentedHeading(self):
+		# Heading should get prio - this is what the users sees
+		buffer = self.get_buffer('test 123\n')
+		head1 = buffer.get_tag_table().lookup('style-h1')
+		indent = buffer._get_indent_tag(1)
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(head1, *bounds)
+		buffer.apply_tag(indent, *bounds)
+		self.assertBufferEquals(buffer, '<h level="1">test 123</h>\n', raw=False)
+
+	def testIllegalDoubleHeading(self):
+		# Highest prio tag should get precedence - this is what the user sees
+		buffer = self.get_buffer('test 123\n')
+		head1 = buffer.get_tag_table().lookup('style-h1')
+		head2 = buffer.get_tag_table().lookup('style-h2')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(head1, *bounds)
+		buffer.apply_tag(head2, *bounds)
+		self.assertBufferEquals(buffer, '<h level="2">test 123</h>\n', raw=False)
+
+	def testIllegalHeadingWithListItem(self):
+		# Heading should get prio - this is what the users sees
+		buffer = self.get_buffer('<li> test 123</li>\n')
+		head1 = buffer.get_tag_table().lookup('style-h1')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(head1, *bounds)
+		self.assertBufferEquals(buffer, '<h level="1">\u2022 test 123</h>\n', raw=False)
+
+	def testIllegalDoubleLink(self):
+		# Serialization should be consistent with get_link_data() to make
+		# behavior for user consistent
+		buffer = self.get_buffer('<link href="">Test 123</link>')
+		link = buffer._create_link_tag('Test 123', 'target')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(link, *bounds)
+		linkdata = buffer.get_link_data(buffer.get_iter_at_offset(4))
+		self.assertEqual(linkdata['href'], 'target')
+		self.assertBufferEquals(buffer, '<p><link href="target">Test 123</link>\n</p>', raw=False)
+
+	def testIllegalDoubleTag(self):
+		buffer = self.get_buffer('<tag name="test">@test</tag>')
+		tag = buffer._create_tag_tag('@test')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(tag, *bounds)
+		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
 
 
 class TestUndoStackManager(tests.TestCase, TestCaseMixin):
@@ -2396,6 +2479,28 @@ class TestFormatActions(tests.TestCase, TestCaseMixin):
 		self.buffer.select_word()
 		self.activate('apply_format_code')
 		self.assertBufferEquals(self.buffer, '<code>Test</code> 123\n')
+
+	def testApplyFormatVerbatimOnStyle(self):
+		self.buffer.set_text('line1\nline2\nline3\n')
+		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, 'line1\n<strong>line2</strong>\nline3\n')
+		bounds = self.buffer.get_bounds()
+		self.buffer.select_range(*bounds)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+
+	def testApplyStyleOnFormatVerbatim(self):
+		self.buffer.set_text('line1\nline2\nline3\n')
+		bounds = self.buffer.get_bounds()
+		self.buffer.select_range(*bounds)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
 
 	def testApplyFormatSup(self):
 		self.buffer.place_cursor(self.buffer.get_start_iter())
