@@ -38,7 +38,6 @@ head 3
 `bar <foo>`_ links to "foo" but display "bar"
 
 `:foo:bar <:foo:bar>`_ `./file.png <./file.png>`_ `file:///etc/passwd <file:///etc/passwd>`_
-`Foo <Foo>`_`Bar <Bar>`_
 
 `mailto:foo@bar.org <mailto:foo@bar.org>`_
 `wp?Test <interwiki:wp?Test>`_
@@ -205,6 +204,16 @@ A table
 +------------------+--------------------------------+------------------------+
 |    hyperlinks    | `wp?wiki <interwiki:wp?wiki>`_ | `Xorg <http://x.org>`_ |
 +------------------+--------------------------------+------------------------+
+
+Multiformatting **bold**
+------------------------
+
+normal **bold** normal2
+normal strike **nested bold** strike2 normal2
+normal strike **nested bold** strike2 *italic `link <https://example.org>`_* normal2
+normal strike  **nested bold** middle of the text *italic `link <https://example.org>`_* yet another text **another bold *yet another italic***  normal2
+
+This is a `link **with** formatting <https://example.org>`_
 
 ====
 This is not a header

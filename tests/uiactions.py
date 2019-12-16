@@ -248,7 +248,7 @@ class TestUIActions(tests.TestCase):
 		page = self.notebook.get_page(Path('MyPage'))
 		page.parse('wiki', ['======= MyPage =======\n', 'Test 123\n'])
 		tree = page.get_parsetree()
-		self.assertEqual(tree.get_heading(), 'MyPage')
+		self.assertEqual(tree.get_heading_text(), 'MyPage')
 		self.notebook.store_page(page)
 
 		def renamepage(dialog):
@@ -262,13 +262,13 @@ class TestUIActions(tests.TestCase):
 
 		page = self.notebook.get_page(Path('NewName'))
 		tree = page.get_parsetree()
-		self.assertEqual(tree.get_heading(), 'NewName')
+		self.assertEqual(tree.get_heading_text(), 'NewName')
 
 	def testRenamePageWithPageKeepHeading(self):
 		page = self.notebook.get_page(Path('MyPage'))
 		page.parse('wiki', ['======= MyPage =======\n', 'Test 123\n'])
 		tree = page.get_parsetree()
-		self.assertEqual(tree.get_heading(), 'MyPage')
+		self.assertEqual(tree.get_heading_text(), 'MyPage')
 		self.notebook.store_page(page)
 
 		def renamepage(dialog):
@@ -282,12 +282,12 @@ class TestUIActions(tests.TestCase):
 
 		page = self.notebook.get_page(Path('NewName'))
 		tree = page.get_parsetree()
-		self.assertEqual(tree.get_heading(), 'MyPage')
+		self.assertEqual(tree.get_heading_text(), 'MyPage')
 
 	def testRenamePageAddHeading(self):
 		# Default test page does not have an heading
 		tree = self.page.get_parsetree()
-		self.assertEqual(tree.get_heading(), '')
+		self.assertEqual(tree.get_heading_text(), '')
 
 		def renamepage(dialog):
 			dialog.set_input(name='NewName', head=True)
@@ -298,7 +298,7 @@ class TestUIActions(tests.TestCase):
 
 		page = self.notebook.get_page(Path('NewName'))
 		tree = page.get_parsetree()
-		self.assertEqual(tree.get_heading(), 'NewName')
+		self.assertEqual(tree.get_heading_text(), 'NewName')
 
 	def testRenamePageUpdateLinks(self):
 		referrer = self.notebook.get_page(Path('Referrer'))

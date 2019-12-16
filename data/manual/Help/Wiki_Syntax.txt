@@ -112,6 +112,8 @@ This can be used for code examples etc.
 
 Before version 0.26 all indented paragraphs were rendered verbatim as well. This has been changed because it conflicted with the typographic use of indenting paragraphs that were not intended as verbatim. However to maintain backwards compatibility this style is still supported for any page that does not have headers indicating that it was written by version 0.26 or newer.
 
+You can combine all standard inline markup, the main exception is "verbatim" formatted text.
+
 ===== Images =====
 
 To include images use: 

@@ -72,8 +72,6 @@ And some empty space here:
 
 \href{:foo:bar}{:foo:bar} \href{./file.png}{./file.png} \href{file:///etc/passwd}{file:///etc/passwd}
 
-\href{Foo}{Foo}\href{Bar}{Bar}
-
 
 
 \href{mailto:foo@bar.org}{mailto:foo@bar.org}
@@ -318,6 +316,24 @@ the Achaeans.
  hyperlinks & \href{interwiki:wp?wiki}{wp?wiki} & \href{http://x.org}{Xorg} \tabularnewline
 \hline
 \end{tabular}
+
+
+\section{Multiformatting \textbf{bold}}
+
+
+
+normal \textbf{bold} normal2
+
+normal \sout{strike \textbf{nested bold} strike2} normal2
+
+normal \sout{strike \textbf{nested bold} strike2} \emph{italic \href{https://example.org}{link}} normal2
+
+normal \sout{strike  \textbf{nested bold} middle of the text \emph{italic \href{https://example.org}{link}} yet another text \textbf{another bold \emph{yet another italic}} } normal2
+
+
+
+This is a \href{https://example.org}{link \textbf{with} formatting}
+
 
 
 ====

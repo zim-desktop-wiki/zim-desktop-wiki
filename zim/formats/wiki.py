@@ -1,5 +1,5 @@
 
-# Copyright 2008, 2012 Jaap Karssenberg <jaap.karssenberg@gmail.com>
+# Copyright 2008, 2012-2019 Jaap Karssenberg <jaap.karssenberg@gmail.com>
 
 '''This module handles parsing and dumping wiki text'''
 
@@ -15,7 +15,7 @@ from zim.formats import *
 from zim.formats.plain import Dumper as TextDumper
 
 
-WIKI_FORMAT_VERSION = 'zim 0.4'
+WIKI_FORMAT_VERSION = 'zim 0.5'
 
 
 info = {
@@ -93,17 +93,18 @@ class WikiParser(object):
 
 	def _init_inline_parse(self):
 		# Rules for inline formatting, links and tags
+		descent = lambda *a: self.inline_parser(*a)
 		return (
 			Rule(LINK, url_re.r, process=self.parse_url) # FIXME need .r atribute because url_re is a Re object
 			| Rule(TAG, r'(?<!\S)@\w+', process=self.parse_tag)
 			| Rule(LINK, r'\[\[(?!\[)(.*?)\]\]', process=self.parse_link)
 			| Rule(IMAGE, r'\{\{(?!\{)(.*?)\}\}', process=self.parse_image)
-			| Rule(EMPHASIS, r'//(?!/)(.*?)//')
-			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*')
-			| Rule(MARK, r'__(?!_)(.*?)__')
-			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}')
-			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}')
-			| Rule(STRIKE, r'~~(?!~)(.+?)~~')
+			| Rule(EMPHASIS, r'//(?!/)(.*?)(?<!:)//', descent=descent) # no ':' at the end (ex: 'http://')
+			| Rule(STRONG, r'\*\*(?!\*)(.*?)\*\*', descent=descent)
+			| Rule(MARK, r'__(?!_)(.*?)__', descent=descent)
+			| Rule(SUBSCRIPT, r'_\{(?!~)(.+?)\}', descent=descent)
+			| Rule(SUPERSCRIPT, r'\^\{(?!~)(.+?)\}', descent=descent)
+			| Rule(STRIKE, r'~~(?!~)(.+?)~~', descent=descent)
 			| Rule(VERBATIM, r"''(?!')(.+?)''")
 		)
 
@@ -182,8 +183,7 @@ class WikiParser(object):
 		p.process_unmatched = self.parse_para
 		return p
 
-	@staticmethod
-	def parse_heading(builder, text):
+	def parse_heading(self, builder, text):
 		'''Parse heading and determine it's level'''
 		assert text.startswith('=')
 		for i, c in enumerate(text):
@@ -195,9 +195,12 @@ class WikiParser(object):
 			# === is level 4
 			# ...
 			# ======= is level 1
-
 		text = text[i:].lstrip() + '\n'
-		builder.append(HEADING, {'level': level}, text)
+
+		builder.start(HEADING, {'level': level})
+		self.inline_parser(builder, text)
+		builder.end(HEADING)
+
 
 	@staticmethod
 	def parse_pre(builder, indent, text):
@@ -424,19 +427,19 @@ class WikiParser(object):
 		self.inline_parser(builder, text)
 		builder.end(BLOCK)
 
-	@staticmethod
-	def parse_link(builder, text):
+	def parse_link(self, builder, text):
 		text = text.strip('|') # old bug producing "[[|link]]", or "[[link|]]" or "[[||]]"
-		if '|' in text:
+		if not text or text.isspace():
+			pass
+		elif '|' in text:
 			href, text = text.split('|', 1)
 			text = text.strip('|') # stuff like "[[foo||bar]]"
+			builder.start(LINK, {'href': href})
+			self.inline_parser(builder, text)
+			builder.end(LINK)
 		else:
 			href = text
-
-		if href and not href.isspace():
-			builder.append(LINK, {'href': href}, text)
-		else:
-			pass
+			builder.append(LINK, {'href': href}, href)
 
 	@staticmethod
 	def parse_image(builder, text):

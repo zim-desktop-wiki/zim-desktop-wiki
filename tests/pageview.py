@@ -9,7 +9,7 @@ import os
 
 from zim.fs import File, Dir
 from zim.newfs import LocalFile, LocalFolder
-from zim.formats import wiki, ParseTree
+from zim.formats import get_format, ParseTree
 from zim.notebook import Path
 from zim.gui.pageview import *
 from zim.gui.clipboard import Clipboard
@@ -22,6 +22,13 @@ class FilterNoSuchImageWarning(tests.LoggingFilter):
 	def __init__(self):
 		tests.LoggingFilter.__init__(self, 'zim.gui.pageview', 'No such image:')
 
+def new_parsetree(testcase):
+	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
+	tree = tests.new_parsetree()
+	notebook = testcase.setUpNotebook()
+	page = notebook.get_page(Path('Foo'))
+	tree.resolve_images(notebook, page)
+	return tree
 
 def new_parsetree_from_text(testcase, text):
 	## FIXME had to wrap my own here, because of stupid resolve_images - get rid of that
@@ -29,7 +36,6 @@ def new_parsetree_from_text(testcase, text):
 	notebook = testcase.setUpNotebook()
 	page = notebook.get_page(Path('Foo'))
 	tree.resolve_images(notebook, page)
-
 	return tree
 
 
@@ -105,18 +111,21 @@ class TestLines(tests.TestCase):
 class TestCaseMixin(object):
 	# Mixin class with extra test methods
 
-	def get_buffer(self, input=None):
+	def get_buffer(self, input=None, raw=True):
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
 		if input is not None:
-			self.set_buffer(buffer, input)
+			self.set_buffer(buffer, input, raw=raw)
 		return buffer
 
-	def set_buffer(self, buffer, input):
+	def set_buffer(self, buffer, input, raw=True):
 		if isinstance(input, str):
 			if not input.startswith('<?xml'):
-				input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
+				if raw:
+					input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % input
+				else:
+					input = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % input
 			tree = tests.new_parsetree_from_xml(input)
 		elif isinstance(input, (list, tuple)):
 			raise NotImplementedError('Support tokens')
@@ -125,7 +134,7 @@ class TestCaseMixin(object):
 
 		buffer.set_parsetree(tree)
 
-	def assertBufferEquals(self, buffer, wanted):
+	def assertBufferEquals(self, buffer, wanted, raw=True):
 		if isinstance(wanted, (tuple, list)):
 			wanted = list(wanted)
 			tree = buffer.get_parsetree()
@@ -134,7 +143,10 @@ class TestCaseMixin(object):
 		else:
 			if isinstance(wanted, str):
 				if not wanted.startswith('<?xml'):
-					wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
+					if raw:
+						wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw="True">%s</zim-tree>''' % wanted
+					else:
+						wanted = '''<?xml version='1.0' encoding='utf-8'?>\n<zim-tree>%s</zim-tree>''' % wanted
 			else:
 				wanted = tree.tostring()
 			raw = '<zim-tree raw="True">' in wanted
@@ -158,10 +170,25 @@ class TestCaseMixin(object):
 
 class TestTextBuffer(tests.TestCase, TestCaseMixin):
 
+	def testFormatRoundTrip(self):
+		tree = new_parsetree(self)
+		notebook = self.setUpNotebook()
+		page = notebook.get_page(Path('Test'))
+		buffer = TextBuffer(notebook, page)
+		with FilterNoSuchImageWarning():
+			buffer.set_parsetree(tree)
+
+		newtree = buffer.get_parsetree()
+		dumper = get_format('wiki').Dumper()
+
+		wikitext = ''.join(dumper.dump(tree))
+		newwikitext = ''.join(dumper.dump(newtree))
+
+		self.assertEqual(newwikitext, wikitext)
+
 	def testVarious(self):
 		'''Test serialization and interaction of the page view textbuffer'''
-		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(self, wikitext)
+		tree = new_parsetree(self)
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
@@ -583,6 +610,13 @@ C
 	D
 </pre></zim-tree>''')
 
+	def testToggleTextStyleCodeOverTag(self):
+		buffer = TextBuffer(None, None)
+		self.set_buffer(buffer, 'foo <tag name="test">@test</tag> bar')
+		buffer.select_line(0)
+		buffer.toggle_textstyle('code')
+		self.assertBufferEquals(buffer, '<code>foo @test bar</code>')
+
 	def testMergeLinesWithBullet(self):
 		input = '''\
 <?xml version='1.0' encoding='utf-8'?>
@@ -619,10 +653,10 @@ C
 			self.assertBufferEquals(buffer, '<h level="%i">foo bar</h>\n' % lvl)
 
 	def testFormatHeadingWithFormatting(self):
-		buffer = self.get_buffer('foo <strong>bar</strong> <link href="Foo">Foo</link>\n')
+		buffer = self.get_buffer('<code>foo</code> <strong>bar</strong> <link href="">Foo</link>\n')
 		buffer.select_line(0)
 		buffer.toggle_textstyle('h2')
-		self.assertBufferEquals(buffer, '<h level="2">foo bar Foo</h>\n')
+		self.assertBufferEquals(buffer, '<h level="2"><code>foo</code> <strong>bar</strong> <link href="">Foo</link></h>\n')
 
 	def testFormatHeadingOnIndent(self):
 		buffer = self.get_buffer('<div indent="2">foo bar</div>\n')
@@ -916,17 +950,131 @@ C
 			'<li bullet="checked-box" indent="0"> foo bar</li>\n'
 		)
 
+	def testNestedFormattingRoundtrip(self):
+			xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>normal <strong>bold</strong> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
+normal <strike>strike  <strong>nested bold</strong> strike2 <emphasis>striked italic <strong>bold link coming: <link href="https://example.org">link</link></strong></emphasis> </strike>normal2
+</p></zim-tree>'''
+			buffer = self.get_buffer(xml)
+			self.assertBufferEquals(buffer, xml)
 
-class TestUndoStackManager(tests.TestCase):
+	def testLinkWithoutTargetDirectEditable(self):
+		buffer = self.get_buffer('<p><link href="Test">Test</link>\n</p>', raw=False)
+		buffer.place_cursor(buffer.get_iter_at_offset(4))
+		buffer.insert_at_cursor('Link')
+		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
 
-	def runTest(self):
+	def testLinkWithoutTargetDirectEditableWhileFormatted(self):
+		buffer = self.get_buffer('<p><link href="TestFormatted">Test<strong>Formatted</strong></link>\n</p>', raw=False)
+		buffer.place_cursor(buffer.get_iter_at_offset(13))
+		buffer.insert_at_cursor('Link')
+		self.assertBufferEquals(buffer, '<p><link href="TestFormattedLink">Test<strong>FormattedLink</strong></link>\n</p>', raw=False)
+
+	def testFormatWithinCode(self):
+		# No format nests within verbatim, so needs to break up in multiple parts
+		buffer = self.get_buffer('test <strong>strong</strong> test')
+		code_tag = buffer.get_tag_table().lookup('style-code')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(code_tag, *bounds)
+		self.assertBufferEquals(buffer, '<code>test </code><strong><code>strong</code></strong><code> test</code>')
+
+	def testIllegalNestedTagTag(self):
+		# Code and @tag are incompatible formats. When applied to the same
+		# region, the code part is dropped
+		buffer = self.get_buffer('test <tag name="tag">@tag</tag> test')
+		code_tag = buffer.get_tag_table().lookup('style-code')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(code_tag, *bounds)
+		self.assertBufferEquals(buffer, '<code>test </code><tag name="tag">@tag</tag><code> test</code>')
+
+	def testFormatWithinPre(self):
+		# No format nests within verbatim, ignore
+		buffer = self.get_buffer('test\n<strong>strong</strong>\ntest\n')
+		code_tag = buffer.get_tag_table().lookup('style-pre')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(code_tag, *bounds)
+		self.assertBufferEquals(buffer, '<pre>test\nstrong\ntest\n</pre>', raw=False)
+
+	def testIllegalDoubleIndentTag(self):
+		# Highest prio tag should get precedence - this is what the user sees
+		# prio in reverse order of tag creation
+		buffer = self.get_buffer('test 123\n')
+		indent1 = buffer._get_indent_tag(1)
+		indent2 = buffer._get_indent_tag(2)
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(indent1, *bounds)
+		buffer.apply_tag(indent2, *bounds)
+		self.assertBufferEquals(buffer, '<p><div indent="1">test 123\n</div></p>', raw=False)
+
+	def testIllegalIndentedListItem(self):
+		# Bullet item should get precedence - this is what the user sees
+		# prio in reverse order of tag creation
+		# bullet should get prio, even if created earlier
+		buffer = self.get_buffer('<li>test 123</li>\n')
+		indent = buffer._get_indent_tag(2)
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(indent, *bounds)
+		self.assertBufferEquals(buffer, '<p><ul><li bullet="*">test 123</li></ul></p>', raw=False)
+
+	def testIllegalIndentedHeading(self):
+		# Heading should get prio - this is what the users sees
+		buffer = self.get_buffer('test 123\n')
+		head1 = buffer.get_tag_table().lookup('style-h1')
+		indent = buffer._get_indent_tag(1)
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(head1, *bounds)
+		buffer.apply_tag(indent, *bounds)
+		self.assertBufferEquals(buffer, '<h level="1">test 123</h>\n', raw=False)
+
+	def testIllegalDoubleHeading(self):
+		# Highest prio tag should get precedence - this is what the user sees
+		buffer = self.get_buffer('test 123\n')
+		head1 = buffer.get_tag_table().lookup('style-h1')
+		head2 = buffer.get_tag_table().lookup('style-h2')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(head1, *bounds)
+		buffer.apply_tag(head2, *bounds)
+		self.assertBufferEquals(buffer, '<h level="2">test 123</h>\n', raw=False)
+
+	def testIllegalHeadingWithListItem(self):
+		# Heading should get prio - this is what the users sees
+		buffer = self.get_buffer('<li> test 123</li>\n')
+		head1 = buffer.get_tag_table().lookup('style-h1')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(head1, *bounds)
+		self.assertBufferEquals(buffer, '<h level="1">\u2022 test 123</h>\n', raw=False)
+
+	def testIllegalDoubleLink(self):
+		# Serialization should be consistent with get_link_data() to make
+		# behavior for user consistent
+		buffer = self.get_buffer('<link href="">Test 123</link>')
+		link = buffer._create_link_tag('Test 123', 'target')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(link, *bounds)
+		linkdata = buffer.get_link_data(buffer.get_iter_at_offset(4))
+		self.assertEqual(linkdata['href'], 'target')
+		self.assertBufferEquals(buffer, '<p><link href="target">Test 123</link>\n</p>', raw=False)
+
+	def testIllegalDoubleTag(self):
+		buffer = self.get_buffer('<tag name="test">@test</tag>')
+		tag = buffer._create_tag_tag('@test')
+		bounds = buffer.get_bounds()
+		buffer.apply_tag(tag, *bounds)
+		self.assertBufferEquals(buffer, '<p><tag name="test">@test</tag>\n</p>', raw=False)
+
+
+class TestUndoStackManager(tests.TestCase, TestCaseMixin):
+
+	def testAll(self):
 		'''Test the undo/redo functionality'''
 		notebook = self.setUpNotebook()
 		page = notebook.get_page(Path('Test'))
 		buffer = TextBuffer(notebook, page)
 		undomanager = UndoStackManager(buffer)
-		wikitext = tests.WikiTestData.get('roundtrip')
-		tree = new_parsetree_from_text(self, wikitext)
+		tree = new_parsetree(self)
 
 		with FilterNoSuchImageWarning():
 			buffer._insert_element_children(tree._etree.getroot())
@@ -1064,6 +1212,17 @@ class TestUndoStackManager(tests.TestCase):
 		undomanager.undo()
 		self.assertEqual(buffer.get_parsetree(raw=True).tostring(),
 			"<?xml version='1.0' encoding='utf-8'?>\n<zim-tree raw=\"True\">fooo <strong>barr</strong> baz</zim-tree>")
+
+	def testBrokenLink(self):
+		# Specific test for when "href == text"
+		buffer = self.get_buffer('<p><link href="TestLink">TestLink</link>\n</p>')
+		undomanager = UndoStackManager(buffer)
+		iter = buffer.get_iter_at_offset(4)
+		end = buffer.get_iter_at_offset(8)
+		buffer.delete(iter, end)
+		self.assertBufferEquals(buffer, '<p><link href="Test">Test</link>\n</p>', raw=False)
+		undomanager.undo()
+		self.assertBufferEquals(buffer, '<p><link href="TestLink">TestLink</link>\n</p>', raw=False)
 
 
 class TestFind(tests.TestCase, TestCaseMixin):
@@ -1479,7 +1638,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 			self.preferences[pref[0]] = pref[4]
 
 	def testTyping(self):
-		## TODO: break apart this test case, see e.g. TestDoEndOfLine
+		## TODO: break apart this test case, see e.g. TestDoEndOfLine & TestDoEndOfWord
 
 		view = TextView(self.preferences)
 		notebook = self.setUpNotebook()
@@ -1544,7 +1703,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 <zim-tree raw="True">aaa
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 <li bullet="*" indent="1"> </li></zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
 		self.assertEqual(tree.tostring(), wanted)
@@ -1555,7 +1714,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 <zim-tree raw="True">aaa
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1571,7 +1730,7 @@ class TestTextView(tests.TestCase, TestCaseMixin):
 <zim-tree raw="True">aaa
 foo
 <div indent="1">duss
-<link href="CamelCase">CamelCase</link>
+<link href="">CamelCase</link>
 </div>
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1586,7 +1745,7 @@ foo
 <zim-tree raw="True">aaa
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1602,7 +1761,7 @@ foo
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="1"> </li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1618,7 +1777,7 @@ foo
 <li bullet="*" indent="0"> foo</li>
 <li bullet="*" indent="0"> </li>
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1635,7 +1794,7 @@ foo
 <li bullet="*" indent="0"> foo</li>
 
 <li bullet="*" indent="1"> duss</li>
-<li bullet="*" indent="1"> <link href="CamelCase">CamelCase</link></li>
+<li bullet="*" indent="1"> <link href="">CamelCase</link></li>
 
 </zim-tree>'''
 		tree = buffer.get_parsetree(raw=True)
@@ -1678,7 +1837,6 @@ foo
 			# main visibility when copy pasting bullet lists
 			# Same hack in gui clipboard code
 			from zim.notebook import Path, Page
-			from zim.formats import get_format
 			dumper = get_format('wiki').Dumper()
 			text = ''.join(dumper.dump(parsetree))
 			parser = get_format('wiki').Parser()
@@ -2002,6 +2160,100 @@ class TestDoEndOfLine(tests.TestCase, TestCaseMixin):
 		)
 
 
+class TestDoEndOfWord(tests.TestCase, TestCaseMixin):
+
+	@classmethod
+	def setUpClass(cls):
+		tests.TestCase.setUpClass()
+
+		preferences = dict((p[0], p[4]) for p in ui_preferences)
+		cls.view = TextView(preferences)
+		cls.buffer = TextBuffer(None, None)
+		cls.view.set_buffer(cls.buffer)
+
+		cls.view.preferences['auto_reformat'] = True
+
+		press(cls.view, 'aaa\n')
+		start, end = cls.buffer.get_bounds()
+		assert cls.buffer.get_text(start, end, True) == 'aaa\n', 'Just checking test routines work'
+
+	def setUp(self):
+		# Reset buffer state
+		self.buffer.set_text('')
+		self.buffer._editmode_tags = []
+
+	def assertTyping(self, text, wanted):
+		press(self.view, text)
+		self.assertBufferEquals(self.buffer, wanted)
+
+	def testAutoFormatTag(self):
+		self.assertTyping('@test ', '<tag name="test">@test</tag> ')
+
+	def testAutoFormatURL(self):
+		self.assertTyping('http://test.com ', '<link href="">http://test.com</link> ')
+
+	def testAutoFormatPageLink(self):
+		self.assertTyping('Foo:Bar ', '<link href="">Foo:Bar</link> ')
+
+	def testNoAutoFormatTimeAsPageLink(self):
+		self.assertTyping('10:20 ', '10:20 ')
+
+	def testEndOfWordBreaksLink(self):
+		self.set_buffer(self.buffer, '<link href="">Foo</link>')
+		self.assertTyping(' http://test.com ', '<link href="">Foo</link> <link href="">http://test.com</link> ')
+
+	def testNoAutoFormatLinkInLink(self):
+		self.set_buffer(self.buffer, '<link href="">Foo Bar</link>')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
+		self.assertTyping('http://test.com ', '<link href="">Foo http://test.com Bar</link>')
+
+	def testAutoFormatInterWikiLink(self):
+		self.assertTyping('wp?Test ', '<link href="">wp?Test</link> ')
+
+	def testAutoFormatCamelCaseLink(self):
+		self.assertTyping('FooBar ', '<link href="">FooBar</link> ')
+
+	def testAutoFormatFileLink(self):
+		self.assertTyping('./test.pdf ', '<link href="">./test.pdf</link> ')
+
+	def testAutoFormatStyle(self):
+		self.assertTyping('Foo**Bar** ', 'Foo<strong>Bar</strong> ')
+
+	def testNoAutoFormatStyleInLink(self):
+		self.set_buffer(self.buffer, '<link href="">Foo</link>')
+		self.assertTyping('__Bar__ ', '<link href="">Foo__Bar__</link> ')
+
+	def testAutoFormatStyleInLinkWithText(self):
+		self.set_buffer(self.buffer, '<link href="Test">Foo</link>')
+		self.assertTyping('__Bar__ ', '<link href="Test">Foo<mark>Bar</mark></link> ')
+
+	def testNAutoFormatCode(self):
+		self.set_buffer(self.buffer, '\'\'test foo')
+		self.assertTyping(' dus\'\' ', '<code>test foo dus</code> ')
+
+	def testNoAutoFormatCodeOverTag(self):
+		self.set_buffer(self.buffer, '\'\'test <tag name="foo">@foo</tag>')
+		self.assertTyping(' dus\'\' ', '\'\'test <tag name="foo">@foo</tag> dus\'\' ')
+
+	def testNoAutoFormatInPre(self):
+		self.set_buffer(self.buffer, '<pre>test\n</pre>')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
+		self.assertTyping(' @test ', '<pre>test @test \n</pre>')
+
+	def testNoAutoFormatInCode(self):
+		self.set_buffer(self.buffer, '<code>test</code>')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(4))
+		self.assertTyping(' @test ', '<code>test @test </code>')
+
+	def testAutoFormatBullet(self):
+		self.assertTyping('* Test', '<li bullet="*" indent="0"> Test</li>')
+
+	def testNoAutoFormatBulletInHeading(self):
+		self.set_buffer(self.buffer, '<h level="1">test</h>\n')
+		self.buffer.place_cursor(self.buffer.get_iter_at_offset(0))
+		self.assertTyping('* Test ', '<h level="1">* Test test</h>\n')
+
+
 class TestPageView(tests.TestCase, TestCaseMixin):
 
 	def testGetSelection(self):
@@ -2149,6 +2401,170 @@ Baz
 		pageview.activate_link('myurl://foo') # No raise
 
 		pageview.disconnect(id)
+
+
+class TestFormatActions(tests.TestCase, TestCaseMixin):
+
+	def setUp(self):
+		self.pageview = setUpPageView(self.setUpNotebook())
+		self.buffer = self.pageview.textview.get_buffer()
+		self.buffer.set_text("Test 123\n")
+
+	def activate(self, name):
+		self.pageview.actiongroup.get_action(name).activate()
+
+	def testApplyFormatHeadingWithSelection(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+
+	def testApplyFormatHeadingNoSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+		self.assertFalse(self.buffer.get_has_selection())
+		cursor = self.buffer.get_insert_iter().get_offset()
+		self.assertEqual(cursor, 0)
+
+	def testApplyFormatHeadingOnHeading(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.buffer.select_line(0)
+		self.activate('apply_format_h4')
+		self.assertBufferEquals(self.buffer, '<h level="4">Test 123</h>\n')
+
+	def testApplyFormatHeadingNoSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3">Test 123</h>\n')
+
+	def testApplyFormatHeadingWithFormatting(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123</h>\n')
+
+	def testApplyFormattingOnHeading(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_h3')
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<h level="3"><strong>Test</strong> 123</h>\n')
+
+	def testApplyFormatStrong(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+
+	def testApplyFormatStrongNoSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+
+	def testApplyFormatEmphasis(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_emphasis')
+		self.assertBufferEquals(self.buffer, '<emphasis>Test</emphasis> 123\n')
+
+	def testApplyFormatMark(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_mark')
+		self.assertBufferEquals(self.buffer, '<mark>Test</mark> 123\n')
+
+	def testApplyFormatStrike(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_strike')
+		self.assertBufferEquals(self.buffer, '<strike>Test</strike> 123\n')
+
+	def testApplyFormatCode(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, '<code>Test</code> 123\n')
+
+	def testApplyFormatVerbatimOnStyle(self):
+		self.buffer.set_text('line1\nline2\nline3\n')
+		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, 'line1\n<strong>line2</strong>\nline3\n')
+		bounds = self.buffer.get_bounds()
+		self.buffer.select_range(*bounds)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+
+	def testApplyStyleOnFormatVerbatim(self):
+		self.buffer.set_text('line1\nline2\nline3\n')
+		bounds = self.buffer.get_bounds()
+		self.buffer.select_range(*bounds)
+		self.activate('apply_format_code')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+		self.buffer.place_cursor(self.buffer.get_iter_at_line(1))
+		self.buffer.select_word()
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<pre>line1\nline2\nline3</pre>\n')
+
+	def testApplyFormatSup(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_sup')
+		self.assertBufferEquals(self.buffer, '<sup>Test</sup> 123\n')
+
+	def testApplyFormatSub(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('apply_format_sub')
+		self.assertBufferEquals(self.buffer, '<sub>Test</sub> 123\n')
+
+	def testApplyFormatMultiple(self):
+		self.buffer.select_line(0)
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test 123</strong>\n')
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_strike')
+		self.assertBufferEquals(self.buffer, '<strong><strike>Test</strike> 123</strong>\n')
+
+	def testToggleFormatStrongSelection(self):
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('toggle_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.assertFalse(self.buffer.get_has_selection())
+		cursor = self.buffer.get_insert_iter().get_offset()
+		self.assertEqual(cursor, 0)
+		self.activate('toggle_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+			# no selection, no change
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.buffer.select_word()
+		self.activate('toggle_format_strong')
+		self.assertBufferEquals(self.buffer, 'Test 123\n')
+
+	def testToggleFormatStrongInsertMode(self):
+		self.buffer.set_text('')
+		self.buffer.insert_at_cursor('Test ')
+		self.activate('toggle_format_strong')
+		self.buffer.insert_at_cursor('bold')
+		self.activate('toggle_format_strong')
+		self.buffer.insert_at_cursor(' text')
+		self.assertBufferEquals(self.buffer, 'Test <strong>bold</strong> text')
+
+	def testMultiFormatInsertMode(self):
+		self.buffer.set_text('')
+		self.buffer.insert_at_cursor('Test ')
+		self.activate('toggle_format_strong')
+		self.activate('toggle_format_emphasis')
+		self.buffer.insert_at_cursor('bolditalic')
+		self.activate('toggle_format_strong')
+		self.activate('toggle_format_emphasis')
+		self.buffer.insert_at_cursor(' text')
+		self.assertBufferEquals(self.buffer, 'Test <emphasis><strong>bolditalic</strong></emphasis> text')
 
 
 class TestPageViewActions(tests.TestCase):

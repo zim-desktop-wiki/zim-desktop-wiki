@@ -36,7 +36,6 @@ and also <strike>strike through</strike>
 <link href="foo">bar</link> links to "foo" but display "bar"
 </p>
 <p><link href=":foo:bar">:foo:bar</link> <link href="./file.png">./file.png</link> <link href="file:///etc/passwd">file:///etc/passwd</link>
-<link href="Foo">Foo</link><link href="Bar">Bar</link>
 </p>
 <p><link href="mailto:foo@bar.org">mailto:foo@bar.org</link>
 <link href="wp?Test">wp?Test</link>
@@ -128,6 +127,15 @@ the Achaeans.
 <h level="2">A table</h>
 
 <table aligns="center,right,left" wraps="1,0,1"><thead><th>H1</th><th>H2 h2</th><th>H3</th></thead><trow><td>Column A1</td><td>Column A2</td><td>a</td></trow><trow><td>a very long cell</td><td><strong>bold text</strong></td><td>b</td></trow><trow><td>hyperlinks</td><td><link href="wp?wiki">wp?wiki</link></td><td><link href="http://x.org">Xorg</link></td></trow></table>
+<h level="2">Multiformatting <strong>bold</strong></h>
+
+<p>normal <strong>bold</strong> normal2
+normal <strike>strike <strong>nested bold</strong> strike2</strike> normal2
+normal <strike>strike <strong>nested bold</strong> strike2</strike> <emphasis>italic <link href="https://example.org">link</link></emphasis> normal2
+normal <strike>strike  <strong>nested bold</strong> middle of the text <emphasis>italic <link href="https://example.org">link</link></emphasis> yet another text <strong>another bold <emphasis>yet another italic</emphasis></strong> </strike> normal2
+</p>
+<p>This is a <link href="https://example.org">link <strong>with</strong> formatting</link>
+</p>
 <p>====
 This is not a header
 </p>

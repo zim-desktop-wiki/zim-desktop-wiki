@@ -460,8 +460,9 @@ class ParseTreeProxy(object):
 		if not hasattr(self, '_severed_head'):
 			if self._tree:
 				tree = self._tree.copy()
-				head, level = tree.pop_heading()
-				self._severed_head = (head, tree) # head can be None here
+				head = tree.get_heading_text()
+				tree.remove_heading()
+				self._severed_head = (head, tree)
 			else:
 				self._severed_head = (None, None)
 

@@ -1099,10 +1099,10 @@ class TestPage(TestPath):
 		page = Page(Path('Foo'), False, file, folder)
 
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
-		tree.set_heading("Foo")
+		tree.set_heading_text("Foo")
 		page.set_parsetree(tree)
 		self.assertTrue(page.heading_matches_pagename())
-		tree.set_heading("Bar")
+		tree.set_heading_text("Bar")
 		page.set_parsetree(tree)
 		self.assertFalse(page.heading_matches_pagename())
 

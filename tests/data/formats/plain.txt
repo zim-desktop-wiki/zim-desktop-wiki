@@ -37,7 +37,6 @@ foo  links to page in the current namespace or parents
 bar links to "foo" but display "bar"
 
 :foo:bar ./file.png file:///etc/passwd
-FooBar
 
 mailto:foo@bar.org
 wp?Test
@@ -168,6 +167,16 @@ A table
 +------------------+-----------+------+
 |    hyperlinks    |   wp?wiki | Xorg |
 +------------------+-----------+------+
+
+Multiformatting bold
+--------------------
+
+normal bold normal2
+normal strike nested bold strike2 normal2
+normal strike nested bold strike2 italic link normal2
+normal strike  nested bold middle of the text italic link yet another text another bold yet another italic  normal2
+
+This is a link with formatting
 
 ====
 This is not a header
