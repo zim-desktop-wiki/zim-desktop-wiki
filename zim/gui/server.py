@@ -23,6 +23,7 @@ import sys
 import logging
 
 from zim.www import make_server
+from zim.templates import list_templates
 
 from zim.notebook import build_notebook, NotebookInfo
 from zim.config import data_file
@@ -77,6 +78,11 @@ class ServerWindow(Gtk.Window):
 			# T: Checkbox in web server gui
 		self.public_checkbox.set_active(public)
 
+		self.templatecombobox = Gtk.ComboBoxText.new()
+		template_names = [name for name, _ in list_templates('html')]
+		for name in template_names:
+		    self.templatecombobox.append_text(name)
+		self.templatecombobox.set_active(template_names.index('Default'))
 
 		# Build the interface
 		vbox = Gtk.VBox()
@@ -93,6 +99,7 @@ class ServerWindow(Gtk.Window):
 				# T: Field in web server gui
 			(_('Port'), self.portentry),
 				# T: Field in web server gui for HTTP port (e.g. port 80)
+                        (_('Template'), self.templatecombobox),
 			self.public_checkbox
 		))
 		vbox.pack_start(table, False, False, 0)
@@ -128,6 +135,7 @@ class ServerWindow(Gtk.Window):
 
 			port = int(self.portentry.get_value())
 			public = self.public_checkbox.get_active()
+			self.interface_opts['template'] = self.templatecombobox.get_active_text()
 			self.httpd = make_server(notebook, port, public, **self.interface_opts)
 			if sys.platform == 'win32':
 				# GObject io watch conflicts with socket use on windows..
@@ -151,6 +159,7 @@ class ServerWindow(Gtk.Window):
 		self.notebookcombobox.set_sensitive(False)
 		self.portentry.set_sensitive(False)
 		self.public_checkbox.set_sensitive(False)
+		self.templatecombobox.set_sensitive(False)
 		self.open_button.set_sensitive(False)
 		self.start_button.set_sensitive(False)
 		self.stop_button.set_sensitive(True)
@@ -203,6 +212,7 @@ class ServerWindow(Gtk.Window):
 		self.notebookcombobox.set_sensitive(True)
 		self.portentry.set_sensitive(True)
 		self.public_checkbox.set_sensitive(True)
+		self.templatecombobox.set_sensitive(True)
 		self.open_button.set_sensitive(True)
 		self.stop_button.set_sensitive(False)
 		self.start_button.set_sensitive(True)
