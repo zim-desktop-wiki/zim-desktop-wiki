@@ -33,11 +33,6 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow
 from zim.gui.insertedobjects import InsertedObjectWidget, TextViewWidget
 
-import os.path
-
-STYLES_PATHS = ['/usr/share/gtksourceview-3.0/styles/',
-				PLUGIN_FOLDER.path + os.path.sep + 'sourceview']
-
 if GtkSource:
 	lm = GtkSource.LanguageManager()
 	lang_ids = lm.get_language_ids()
@@ -46,10 +41,16 @@ if GtkSource:
 	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
 
 	ssm = GtkSource.StyleSchemeManager()
-	ssm.set_search_path(STYLES_PATHS)
+
+	# add an optional path in PLUGIN_FOLDER  where the user can set his
+	# custom styles
+	plugin_name = __name__.split('.')[-1]
+	ssm.append_search_path(PLUGIN_FOLDER.subdir(plugin_name).path)
+	# ~ print(ssm.get_search_path())
+
 	STYLES = ssm.get_scheme_ids()
 	if not STYLES:
-		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(STYLES_PATHS))
+		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(ssm.get_search_path()))
 else:
 	LANGUAGES = {}
 #~ print LANGUAGES
@@ -83,7 +84,8 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
 			# T: preference option for sourceview plugin
-		('theme', 'choice', _('Theme'), STYLES[0] if STYLES else 'not found', STYLES),
+		('theme', 'choice', _('Theme'), STYLES[0] if STYLES else 'not found',
+										STYLES if STYLES else ['not found']),
 			# T: preference option for sourceview plugin
 	)
 
