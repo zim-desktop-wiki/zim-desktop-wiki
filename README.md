@@ -87,7 +87,7 @@ If you are using Mac Ports packages installing the following ports should work:
 
 TODO: new instructions for Gtk3 / Python3
 
-If you are using Homebrew, the proper debendencies can be installed using
+If you are using Homebrew, the proper dependencies can be installed using
 
 `brew install python gtk+3 pygobject3`
 

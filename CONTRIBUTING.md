@@ -2,10 +2,10 @@ Contributing
 ============
 
 Thank you for considering to contribute to the zim desktop wiki project. Zim
-is an open source project and run by volunteers, zo all help is welcome.
+is an open source project and run by volunteers, so all help is welcome.
 
 
-**Help wanted:** there are many issues in the bug tracker need someone to pick
+**Help wanted:** there are many issues in the bug tracker that need someone to pick
 them up. To get started please have a look at the
 [good first issue](https://github.com/zim-desktop-wiki/zim-desktop-wiki/labels/good%20first%20issue)
 and
