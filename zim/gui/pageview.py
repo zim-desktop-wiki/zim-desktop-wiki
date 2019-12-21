@@ -7145,7 +7145,7 @@ class EditImageDialog(Dialog):
 			self._ratio = float(w) / h
 
 	def do_width_changed(self):
-		if self._block:
+		if hasattr(self, '_block') and self._block:
 			return
 		self._image_data.pop('height', None)
 		self._image_data['width'] = int(self.form['width'])
@@ -7155,7 +7155,7 @@ class EditImageDialog(Dialog):
 		self._block = False
 
 	def do_height_changed(self):
-		if self._block:
+		if hasattr(self, '_block') and self._block:
 			return
 		self._image_data.pop('width', None)
 		self._image_data['height'] = int(self.form['height'])
