@@ -25,7 +25,7 @@ import zim.datetimetz as datetime
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
 	'(' +
-		'^[_\W]|(?<=:)[_\W]' +
+		'^[_\W]+|(?<=:)[_\W]+' +
 	'|' +
 		'[' + re.escape(''.join(
 			("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
