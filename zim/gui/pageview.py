@@ -588,6 +588,7 @@ class TextBuffer(Gtk.TextBuffer):
 		'scale': Float(None),
 		'style': ConfigDefinitionConstant(None, Pango.Style, 'PANGO_STYLE'),
 		'background': AsciiString(None),
+		'paragraph-background': AsciiString(None),
 		'foreground': AsciiString(None),
 		'strikethrough': Boolean(None),
 		'font': AsciiString(None),
