@@ -254,14 +254,13 @@ class FormatPage(AssistantPage):
 			combobox.set_sensitive(True)
 
 			template = self.uistate['template']
-			if template == '__file__':
-				# Select "Other..."
-				combobox.set_active(len(templates))
-			else:
-				try:
+			try:
+				if template == '__file__':
+					self.form['template'] = self.CHOICE_OTHER
+				else:
 					self.form['template'] = template
-				except ValueError:
-					combobox.set_active(0)
+			except ValueError:
+				combobox.set_active(0)
 
 		self.form.widgets['format'].connect_object('changed', set_templates, self)
 
