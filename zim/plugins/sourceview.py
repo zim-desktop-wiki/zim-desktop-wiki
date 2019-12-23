@@ -23,7 +23,7 @@ try:
 except:
 	GtkSource = None
 
-from zim.plugins import PluginClass, InsertedObjectTypeExtension
+from zim.plugins import PluginClass, InsertedObjectTypeExtension, PLUGIN_FOLDER
 from zim.actions import action
 from zim.utils import WeakSet
 from zim.config import String, Boolean
@@ -33,16 +33,29 @@ from zim.gui.pageview import PageViewExtension
 from zim.gui.widgets import Dialog, ScrolledWindow
 from zim.gui.insertedobjects import InsertedObjectWidget, TextViewWidget
 
-
 if GtkSource:
 	lm = GtkSource.LanguageManager()
 	lang_ids = lm.get_language_ids()
 	lang_names = [lm.get_language(i).get_name() for i in lang_ids]
 
 	LANGUAGES = dict((lm.get_language(i).get_name(), i) for i in lang_ids)
+
+	ssm = GtkSource.StyleSchemeManager()
+
+	# add an optional path in PLUGIN_FOLDER  where the user can set his
+	# custom styles
+	plugin_name = __name__.split('.')[-1]
+	ssm.append_search_path(PLUGIN_FOLDER.subdir(plugin_name).path)
+	# ~ print(ssm.get_search_path())
+
+	STYLES = ssm.get_scheme_ids()
+	if not STYLES:
+		logger.exception('Themes for the SourceView Plugin, normally in %s are not found', str(ssm.get_search_path()))
 else:
 	LANGUAGES = {}
 #~ print LANGUAGES
+	STYLES = []
+# ~ print (STYLES)
 
 
 class SourceViewPlugin(PluginClass):
@@ -70,6 +83,9 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 		('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
 			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
+			# T: preference option for sourceview plugin
+		('theme', 'choice', _('Theme'), STYLES[0] if STYLES else 'not found',
+										STYLES if STYLES else ['not found']),
 			# T: preference option for sourceview plugin
 	)
 
@@ -235,6 +251,16 @@ class SourceViewWidget(TextViewWidget):
 		self.view.connect('populate-popup', self.on_populate_popup)
 
 	def set_preferences(self, preferences):
+
+		# set the style scheme
+		theme = preferences['theme']
+		try:
+			style_scheme = ssm.get_scheme(theme)
+			self.buffer.set_style_scheme(style_scheme)
+		except:
+			logger.exception('Could not set theme for sourceview: %s', theme)
+
+		# set other preferences
 		self.view.set_auto_indent(preferences['auto_indent'])
 		self.view.set_smart_home_end(preferences['smart_home_end'])
 		self.view.set_highlight_current_line(preferences['highlight_current_line'])
