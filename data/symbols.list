@@ -265,6 +265,33 @@
 ## Additional shortcuts ##
 \pm	177   # +- sign
 \neq	8800  # not equal to sign (may also use =/= )
+!=	8800  # not equal to sign (may also use =/= )
+
+# Numbers inside circles
+(1)     9312
+(2)     9313
+(3)     9314
+(4)     9315
+(5)     9316
+(6)     9317
+(7)     9318
+(8)     9319
+(9)     9320
+(10)    9321
+(11)    9322
+(12)    9323
+(13)    9324
+(14)    9325
+(15)    9326
+(16)    9327
+(17)    9328
+(18)    9329
+(19)    9330
+(20)    9331
+
+# Quotes
+<<	171   # left quotes
+>>	187   # right quotes
 
 ## Some arrows ##
 \left	8592
