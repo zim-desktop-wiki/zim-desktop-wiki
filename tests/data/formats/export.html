@@ -56,8 +56,7 @@ And some empty space here:
 </p>
 
 <p>
-<a href=":foo:bar" title=":foo:bar" class="page">:foo:bar</a> <a href="./file.png" title="./file.png" class="file">./file.png</a> <a href="file:///etc/passwd" title="file:///etc/passwd" class="file">file:///etc/passwd</a><br>
-<a href="Foo" title="Foo" class="page">Foo</a><a href="Bar" title="Bar" class="page">Bar</a>
+<a href=":foo:bar" title=":foo:bar" class="page">:foo:bar</a> <a href="./file.png" title="./file.png" class="file">./file.png</a> <a href="file:///etc/passwd" title="file:///etc/passwd" class="file">file:///etc/passwd</a>
 </p>
 
 <p>
@@ -298,6 +297,21 @@ the Achaeans.
   <td align="left"><a href="http://x.org" title="Xorg" class="http">Xorg</a></td>
 </tr>
 </table>
+
+<h2>Multiformatting <b>bold</b></h2>
+
+<br>
+
+<p>
+normal <b>bold</b> normal2<br>
+normal <s>strike <b>nested bold</b> strike2</s> normal2<br>
+normal <s>strike <b>nested bold</b> strike2</s> <i>italic <a href="https://example.org" title="link" class="https">link</a></i> normal2<br>
+normal <s>strike  <b>nested bold</b> middle of the text <i>italic <a href="https://example.org" title="link" class="https">link</a></i> yet another text <b>another bold <i>yet another italic</i></b> </s> normal2
+</p>
+
+<p>
+This is a <a href="https://example.org" title="link with formatting" class="https">link <b>with</b> formatting</a>
+</p>
 
 <p>
 ====<br>

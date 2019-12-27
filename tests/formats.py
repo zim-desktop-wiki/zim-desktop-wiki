@@ -14,6 +14,8 @@ from zim.notebook import Path
 from zim.parsing import link_type
 from zim.templates import Template
 
+from xml.etree.ElementTree import ElementTree, Element
+
 
 if not ElementTreeModule.__name__.endswith('cElementTree'):
 	print('WARNING: using ElementTree instead of cElementTree')
@@ -77,6 +79,7 @@ class TestFormatMixin(object):
 		result = ''.join(dumper.dump(reftree))
 		#~ print('\n' + '>'*80 + '\n' + result + '\n' + '<'*80 + '\n')
 		self.assertMultiLineEqual(result, wanted)
+		#import ipdb; ipdb.set_trace()
 		self.assertNoTextMissing(result, reftree)
 
 		# Check that dumper did not modify the tree
@@ -113,32 +116,41 @@ class TestFormatMixin(object):
 		'''
 		# TODO how to handle objects ??
 		assert isinstance(text, str)
-		offset = 0
-		for elt in tree._etree.iter():
-			if elt.tag == 'img':
-				elttext = (elt.tail) # img text is optional
-			else:
-				elttext = (elt.text, elt.tail)
 
-			for wanted in elttext:
-				if not wanted:
-					continue
+		def check_text(wanted):
+			if not wanted:
+				return
 
-				wanted = self._nonalpha_re.sub(' ', wanted)
-					# Non-alpha chars may be replaced with escapes
-					# so no way to hard test them
+			wanted = self._nonalpha_re.sub(' ', wanted)
+			# Non-alpha chars may be replaced with escapes
+			# so no way to hard test them
 
-				if wanted.isspace():
-					continue
+			if wanted.isspace():
+				return
 
-				for piece in wanted.strip().split():
-					#~ print("| >>%s<< @ offset %i" % (piece, offset))
-					try:
-						start = text.index(piece, offset)
-					except ValueError:
-						self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (piece, offset, text[offset:offset + 100]))
-					else:
-						offset = start + len(piece)
+			for piece in wanted.strip().split():
+				# ~ print("| >>%s<< @ offset %i" % (piece, offset))
+				try:
+					start = text.index(piece, self.offset)
+				except ValueError:
+					self.fail('Could not find text piece "%s" in text after offset %i\n>>>%s<<<' % (
+						piece, self.offset, text[self.offset:self.offset + 100]))
+				else:
+					self.offset = start + len(piece)
+
+		def loop_tree(tree):  # parse elements one by one, in-depth
+			if type(tree) is Element:
+				if tree.text and tree.tag != "img":  # img text is optional
+					check_text(tree.text)
+
+			for elt in tree.findall("*"):  # if that's a tree or a parent element, dive further
+				loop_tree(elt)
+
+			if type(tree) is Element:
+				check_text(tree.tail)
+
+		self.offset = 0
+		loop_tree(tree._etree)
 
 
 
@@ -200,16 +212,13 @@ class TestParseTree(tests.TestCase):
 		text = tree.tostring()
 		self.assertEqual(text, wanted)
 
-	def testGetHeading(self):
-		'''Test that ParseTree.get_heading() returns the first header's text.
-		'''
+	def testGetHeadingText(self):
 		tree = ParseTree().fromstring(self.xml)
-		self.assertEqual(tree.get_heading(), "Head 1")
+		self.assertEqual(tree.get_heading_text(), "Head 1")
 
-	def testSetHeading(self):
-		'''Test ParseTree.set_heading()'''
+	def testSetHeadingText(self):
 		tree = ParseTree().fromstring(self.xml)
-		tree.set_heading('Foo')
+		tree.set_heading_text('Foo')
 		wanted = '''\
 <?xml version='1.0' encoding='utf-8'?>
 <zim-tree>
@@ -333,6 +342,24 @@ class TestWikiFormat(TestTextFormat):
 		self.format = get_format('wiki')
 		notebook = self.setUpNotebook(content=tests.FULL_NOTEBOOK)
 		self.page = notebook.get_page(Path('Foo'))
+
+	def testFormattingBelowHeading(self):
+		input = "====== heading @foo **bold** ======\n"
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><h level="1">heading <tag name="foo">@foo</tag> <strong>bold</strong></h>\n</zim-tree>'''
+		t = self.format.Parser().parse(input)
+		self.assertEqual(t.tostring(), xml)
+		output = self.format.Dumper().dump(t)
+		self.assertEqual(output, input.splitlines(True))
+
+	def testNoNestingBelowVerbatim(self):
+		input = "test 1 2 3 ''code here **not bold!**''\n"
+		xml = '''\
+<?xml version='1.0' encoding='utf-8'?>
+<zim-tree><p>test 1 2 3 <code>code here **not bold!**</code>\n</p></zim-tree>'''
+		t = self.format.Parser().parse(input)
+		self.assertEqual(t.tostring(), xml)
 
 	def testUnicodeBullet(self):
 		'''Test support for unicode bullets in source'''

@@ -839,7 +839,7 @@ class Notebook(ConnectorMixin, SignalEmitter):
 			page = self.get_page(newpath)
 			tree = page.get_parsetree()
 			if not tree is None:
-				tree.set_heading(newbasename)
+				tree.set_heading_text(newbasename)
 				page.set_parsetree(tree)
 				self.store_page(page)
 

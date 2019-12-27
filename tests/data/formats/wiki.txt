@@ -35,7 +35,6 @@ And some empty space here:
 [[foo|bar]] links to "foo" but display "bar"
 
 [[:foo:bar]] [[./file.png]] file:///etc/passwd
-[[Foo]][[Bar]]
 
 mailto:foo@bar.org
 [[wp?Test]]
@@ -169,6 +168,15 @@ the Achaeans.
 |    Column A1     |     Column A2 | a                      |
 | a very long cell | **bold text** | b                      |
 |    hyperlinks    |   [[wp?wiki]] | [[http://x.org\|Xorg]] |
+
+===== Multiformatting **bold** =====
+
+normal **bold** normal2
+normal ~~strike **nested bold** strike2~~ normal2
+normal ~~strike **nested bold** strike2~~ //italic [[https://example.org|link]]// normal2
+normal ~~strike  **nested bold** middle of the text //italic [[https://example.org|link]]// yet another text **another bold //yet another italic//** ~~ normal2
+
+This is a [[https://example.org|link **with** formatting]]
 
 ====
 This is not a header

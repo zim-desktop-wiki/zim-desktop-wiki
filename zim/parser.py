@@ -333,7 +333,7 @@ class Rule(object):
 		# default action for matched text
 		if self.descent:
 			builder.start(self.tag)
-			self.descent(builder, *text)
+			self.descent(builder, text)
 			builder.end(self.tag)
 		else:
 			builder.append(self.tag, None, text)

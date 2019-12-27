@@ -187,6 +187,7 @@ class Dumper(DumperClass):
 		else:
 			text = attrib['href']
 		title = text.replace('"', '&quot;')
+		title = re.sub('<.*?>', '', title)
 		return [
 			'<a href="%s" title="%s" class="%s">%s</a>'
 				% (href, title, type, text)]

@@ -962,17 +962,25 @@ class TestPath(tests.TestCase):
 	def generator(self, name):
 		return Path(name)
 
-	def runTest(self):
-		'''Test Path object'''
+	def testValidPageName(self):
+		for name in ('test', 'test this', 'test (this)', 'test:this (2)', '1) foo'):
+			Path.assertValidPageName(name) # raises if error
+			self.assertEqual(Path.makeValidPageName(name), name)
 
-		for name in ('test', 'test this', 'test (this)', 'test:this (2)'):
-			Path.assertValidPageName(name)
-
-		for name in (':test', '+test', 'foo:_bar', 'foo::bar', 'foo#bar'):
+		for name, validname in (
+			(':test', 'test'),
+			('+test', 'test'),
+			('foo:_bar', 'foo:bar'),
+			('foo::bar', 'foo:bar'),
+			('foo#bar', 'foobar'),
+			(') foo', 'foo')
+		):
 			self.assertRaises(AssertionError, Path.assertValidPageName, name)
+			self.assertEqual(Path.makeValidPageName(name), validname)
+			Path.assertValidPageName(validname) # raises if error
 
-		#~ for input, name in ():
-			#~ self.assertEqual(Path.makeValidPageName(input), name)
+	def testPathObject(self):
+		'''Test Path object'''
 
 		for name, namespace, basename in [
 			('Test:foo', 'Test', 'foo'),
@@ -1057,10 +1065,8 @@ class TestPage(TestPath):
 		folder = MockFile('/mock/test/page/')
 		return Page(Path(name), False, file, folder)
 
-	def testMain(self):
+	def testPageObject(self):
 		'''Test Page object'''
-		TestPath.runTest(self)
-
 		tree = ParseTree().fromstring('''\
 <zim-tree>
 <link href='foo:bar'>foo:bar</link>
@@ -1099,10 +1105,10 @@ class TestPage(TestPath):
 		page = Page(Path('Foo'), False, file, folder)
 
 		tree = ParseTree().fromstring('<zim-tree></zim-tree>')
-		tree.set_heading("Foo")
+		tree.set_heading_text("Foo")
 		page.set_parsetree(tree)
 		self.assertTrue(page.heading_matches_pagename())
-		tree.set_heading("Bar")
+		tree.set_heading_text("Bar")
 		page.set_parsetree(tree)
 		self.assertFalse(page.heading_matches_pagename())
 

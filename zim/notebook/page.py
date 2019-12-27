@@ -25,7 +25,7 @@ import zim.datetimetz as datetime
 _pagename_reduce_colon_re = re.compile('::+')
 _pagename_invalid_char_re = re.compile(
 	'(' +
-		'^[_\W]|(?<=:)[_\W]' +
+		'^[_\W]+|(?<=:)[_\W]+' +
 	'|' +
 		'[' + re.escape(''.join(
 			("?", "#", "/", "\\", "*", '"', "<", ">", "|", "%", "\t", "\n", "\r")
@@ -719,7 +719,7 @@ class Page(Path, SignalEmitter):
 	def get_title(self):
 		tree = self.get_parsetree()
 		if tree:
-			return tree.get_heading() or self.basename
+			return tree.get_heading_text() or self.basename
 		else:
 			return self.basename
 
@@ -731,6 +731,6 @@ class Page(Path, SignalEmitter):
 		'''
 		tree = self.get_parsetree()
 		if tree:
-			return tree.get_heading() == self.basename
+			return tree.get_heading_text() == self.basename
 		else:
 			return False

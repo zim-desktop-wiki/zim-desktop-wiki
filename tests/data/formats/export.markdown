@@ -37,7 +37,6 @@ And some empty space here:
 [bar](foo) links to "foo" but display "bar"
 
 [:foo:bar](:foo:bar) [./file.png](./file.png) <file:///etc/passwd>
-[Foo](Foo)[Bar](Bar)
 
 <mailto:foo@bar.org>
 [wp?Test](interwiki:wp?Test)
@@ -176,6 +175,16 @@ A table
 |    Column A1     |                    Column A2 | a                    |
 | a very long cell |                **bold text** | b                    |
 |    hyperlinks    | [wp?wiki](interwiki:wp?wiki) | [Xorg](http://x.org) |
+
+Multiformatting **bold**
+------------------------
+
+normal **bold** normal2
+normal ~~strike **nested bold** strike2~~ normal2
+normal ~~strike **nested bold** strike2~~ *italic [link](https://example.org)* normal2
+normal ~~strike  **nested bold** middle of the text *italic [link](https://example.org)* yet another text **another bold *yet another italic*** ~~ normal2
+
+This is a [link **with** formatting](https://example.org)
 
 ====
 This is not a header

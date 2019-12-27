@@ -44,16 +44,15 @@ Supported tags:
 		- trow for table row
 			- td for table data cell
 
+Nesting rules:
+
+	- paragraphs, list items, table cells & headings can contain all inline elements
+	- inline formats can contain other inline formats as well as links and tags
+	- code and pre cannot contain any other elements
+
 Unlike html we respect line breaks and other whitespace as is.
 When rendering as html use the "white-space: pre" CSS definition to
 get the same effect.
-
-Since elements are based on the functional markup instead of visual
-markup it is not allowed to nest elements in arbitrary ways.
-
-TODO: allow links to be nested in other elements
-TODO: allow strike to have sub elements
-TODO: add HR element
 
 If a page starts with a h1 this heading is considered the page title,
 else we can fall back to the page name as title.
@@ -382,14 +381,20 @@ class ParseTree(object):
 		else:
 			return None
 
-	def get_heading(self, level=1):
+	def _elt_to_text(self, elt):
+		strings = [elt.text]
+		for e in elt:
+			strings.append(self._elt_to_text(e)) # recurs
+		return ''.join(strings)
+
+	def get_heading_text(self, level=1):
 		heading_elem = self._get_heading_element(level)
 		if heading_elem is not None:
-			return heading_elem.text
+			return self._elt_to_text(heading_elem)
 		else:
 			return ""
 
-	def set_heading(self, text, level=1):
+	def set_heading_text(self, text, level=1):
 		'''Set the first heading of the parse tree to 'text'. If the tree
 		already has a heading of the specified level or higher it will be
 		replaced. Otherwise the new heading will be prepended.
@@ -397,6 +402,8 @@ class ParseTree(object):
 		heading = self._get_heading_element(level)
 		if heading is not None:
 			heading.text = text
+			for e in heading:
+				heading.remove(e)
 		else:
 			root = self._etree.getroot()
 			heading = ElementTreeModule.Element('h', {'level': level})
@@ -405,18 +412,17 @@ class ParseTree(object):
 			root.text = None
 			root.insert(0, heading)
 
-	def pop_heading(self, level=-1):
+	def remove_heading(self, level=-1):
 		'''If the tree starts with a heading, remove it and any trailing
 		whitespace.
 		Will modify the tree.
 		@returns: a 2-tuple of text and heading level or C{(None, None)}
 		'''
 		root = self._etree.getroot()
+		roottext = root.text and not root.text.isspace()
 		children = root.getchildren()
-		if root.text and not root.text.isspace():
-			return None, None
 
-		if children:
+		if children and not roottext:
 			first = children[0]
 			if first.tag == 'h':
 				mylevel = int(first.attrib['level'])
@@ -424,13 +430,6 @@ class ParseTree(object):
 					root.remove(first)
 					if first.tail and not first.tail.isspace():
 						root.text = first.tail # Keep trailing text
-					return first.text, mylevel
-				else:
-					return None, None
-			else:
-				return None, None
-		else:
-			return None, None
 
 	def cleanup_headings(self, offset=0, max=6):
 		'''Change the heading levels throughout the tree. This makes sure that
@@ -480,7 +479,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.getiterator('link'):
 			href = link.attrib['href']
-			if is_url_re.match(href):
+			if href and is_url_re.match(href):
 				link.attrib['href'] = url_encode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
@@ -491,7 +490,7 @@ class ParseTree(object):
 		'''
 		for link in self._etree.getiterator('link'):
 			href = link.attrib['href']
-			if is_url_re.match(href):
+			if href and is_url_re.match(href):
 				link.attrib['href'] = url_decode(href, mode=mode)
 				if link.text == href:
 					link.text = link.attrib['href']
@@ -974,7 +973,11 @@ class OldParseTreeBuilder(object):
 		if text:
 			m = count_eol_re.search(text)
 			if m:
-				self._seen_eol = len(m.group(0))
+				seen = len(m.group(0))
+				if seen == len(text):
+					self._seen_eol += seen
+				else:
+					self._seen_eol = seen
 			else:
 				self._seen_eol = 0
 
@@ -1003,7 +1006,7 @@ class OldParseTreeBuilder(object):
 			# Tags that are not allowed to have newlines
 			if not self._tail and self._last.tag in (
 			'h', 'emphasis', 'strong', 'mark', 'strike', 'code'):
-				# assume no nested tags in these types ...
+                # assume no nested tags in these types ... XXE3rd: WHY we assume no nested tags? They are now all of them nested and it still works well without change.
 				if self._seen_eol:
 					text = text.rstrip('\n')
 					self._data.append('\n' * self._seen_eol)

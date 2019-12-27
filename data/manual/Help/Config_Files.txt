@@ -114,12 +114,13 @@ Known properties for Tags:
 * **family**: ''monospace'', ''sans'', ...
 * **foreground**: ''grey'', ''blue'', ''#cccccc'', etc.
 * **background**: ''yellow'', ''#cccccc'', etc.
+* **paragraph-background**: ''red'', ''#cccccc'', etc.
 * **weight**: ''PANGO_WEIGHT_BOLD'', ...
 * **scale**: //integer//
 * **style**: ''italic'', ...
 * **underline**: ''single'', ...
-* **striketrough**: ''true'', ''false''
-* **wrap**_**mode**: "''none"'', ...
+* **strikethrough**: ''true'', ''false''
+* **wrap-mode**: "''none"'', ...
 * **indent**: //integer//
 * **linespacing**: //integer//
 * **rise**: //integer// (offset from line center, intended for "sup" and "sub")
@@ -144,7 +145,35 @@ Specific ones are:
 
 More names are documented in the manual page of specific plugins.
 
-To identify these in the code, search for use of ''widget_set_css(...)'' and ''widget.set_name(...)''. The name used will be accessible from the CSS config as an "id"
+To identify these in the code, search for use of ''widget_set_css(...)'' and ''widget.set_name(...)''. The name used will be accessible from the CSS config as an "id".
+
+Another way to identify CSS selector IDs is to use GTK Inspector, which can be invoked when calling Zim from the command line as follows: 
+
+'''
+GTK_DEBUG=interactive zim
+'''
+
+==== CSS configuration examples ====
+The following snippets that can be used directly in ''~/.config/gtk-3.0/gtk.css''
+
+'''
+#zim-pageview text {
+    background-color: #1A2E38;  /* changes the background color of the Zim's page editor */
+    color: #BABABA; /* foreground text color */
+  }
+
+#zim-toc-widget {
+  color: #2b2b2b;  /* sets the color of the border line of the Table of Content plugin */
+  opacity: 0.9;    /* give the ToC some nice transparency */
+  font-size: 12px; /* ToC font size */
+  }
+
+#zim-toc-widget scrolledwindow treeview {
+  color: #BABABA;  /* sets the color of the text within the Table of Content plugin */
+  opacity: 1;
+  }
+'''
+
 
 
 ===== Notebook config file =====

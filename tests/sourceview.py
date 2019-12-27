@@ -126,11 +126,11 @@ class TestSourceViewObject(tests.TestCase):
 		self.assertTrue(widget.view.get_show_line_numbers())
 		menu = Gtk.Menu()
 		widget.view.emit('populate-popup', menu)
-		item = tests.gtk_get_menu_item(menu, 'Show Line Numbers')
+		item = tests.gtk_get_menu_item(menu, _('Show Line Numbers'))
 		item.activate()
 		self.assertFalse(widget.view.get_show_line_numbers())
 
-		submenu = tests.gtk_get_menu_item(menu, 'Syntax')
+		submenu = tests.gtk_get_menu_item(menu, _('Syntax'))
 		item = tests.gtk_get_menu_item(submenu.get_submenu(), 'Python')
 		item.activate()
 		self.assertEqual(widget.buffer.get_language().get_name(), 'Python')

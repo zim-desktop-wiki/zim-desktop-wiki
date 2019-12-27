@@ -1,9 +1,9 @@
 Plugins
 =======
 
-Plugins one of the two extension mechanisms supported by zim. Plugins are loaded
+Plugins are one of the two extension mechanisms supported by zim. Plugins are loaded
 as part of the application code and can modify key components of the interface.
-In fact one of our design goals is to keep the core functionality limitted and
+In fact one of our design goals is to keep the core functionality limited and
 ship default plugins for anything a user would want to be able to disable.
 
 ( The other extension mechanism being "custom tools". The later allows defining
