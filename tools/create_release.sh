@@ -54,13 +54,19 @@ zim ($DEBNEW) unstable; urgency=medium
 EOF
 
 
+# Update AppData
+
+echo "Updating xdg/org.zim_wiki.Zim.appdata.xml"
+
+./tools/add_release_to_appdata.py
+
+
 # Build package & test it
 
 echo "Building ..."
 
 python3 ./test.py package || exit 1
 ./setup.py sdist
-./tools/add_release_to_appdata.py
 make builddeb
 make clean
 ./tools/build_website.sh
