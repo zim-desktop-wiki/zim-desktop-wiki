@@ -4,7 +4,7 @@
   <id>org.zim_wiki.Zim</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0+</project_license>
-	<name>Zim</name>
+  <name>Zim</name>
   <summary>Write notes in a desktop wiki</summary>
   <description>
     <p>
@@ -15,24 +15,58 @@
       Pages in Zim are also displayed in the sidebar in a hierarchical tree style
       layout to help organize your notes better.
 	</p>
-	<p>
+    <p>
 		Various plugins provide additional functionality, like a task list manager,
 		an equation editor, a tray icon, and support for version control.
 	</p>
-	<p>Zim can be used to:</p>
-	<ul>
-		<li>Keep an archive of notes</li>
-		<li>Keep a daily or weekly journal</li>
-		<li>Take notes during meetings or lectures</li>
-		<li>Organize task lists</li>
-		<li>Draft blog entries and emails</li>
-		<li>Do brainstorming</li>
-	</ul>
+    <p>Zim can be used to:</p>
+    <ul>
+      <li>Keep an archive of notes</li>
+      <li>Keep a daily or weekly journal</li>
+      <li>Take notes during meetings or lectures</li>
+      <li>Organize task lists</li>
+      <li>Draft blog entries and emails</li>
+      <li>Do brainstorming</li>
+    </ul>
   </description>
+  <launchable type="desktop-id">zim.desktop</launchable>
   <url type="homepage">http://zim-wiki.org/</url>
   <screenshots>
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
-  <updatecontact>jaap.karssenberg@gmail.com</updatecontact>
-  <content_rating type="oars-1.1" />
+  <releases>
+    <release date="2019-08-29" version="0.72.0">
+      <description>
+        <ul>
+          <li>Improve pathbar with "linked" visual design</li>
+          <li>Improve statusbar visual style</li>
+          <li>Change behavior for lists with mixed bullets</li>
+          <li>Add configuration of keybindings to preferences dialog</li>
+          <li>Support gnome-screenshot in the insert screenshot pluing</li>
+          <li>Save size of secondary page window</li>
+          <li>Add option for linenumbers option in insert code block dialog</li>
+          <li>Add option to display date column in tasklist side pane</li>
+          <li>Add warnings if locale does not support unicode</li>
+          <li>Make SVG thumbnail support configurable</li>
+          <li>Fix bug for insert equation and other objects</li>
+          <li>Fix use of escape sequence in table cells</li>
+          <li>Fix tasklist view for multiple dates in task</li>
+          <li>Fix "apply heading" to strip list formatting</li>
+          <li>Make ToC plugin update instead of refresh on save</li>
+          <li>Fix issue with not-unique headings in tableofcontents</li>
+          <li>Fix bugs in auto insert bullet at newline</li>
+        </ul>
+      </description>
+      <artifacts>
+        <artifact type="source">
+          <location>http://www.zim-wiki.org/downloads/zim-0.72.0.tar.gz</location>
+          <checksum type="sha256">a1a93e17e19365d1e4c729739558fd2e68d7dcdef944d0198f481bf4ceab6fd8</checksum>
+          <size type="download">2026552</size>
+        </artifact>
+      </artifacts>
+    </release>
+  </releases>
+  <update_contact>jaap.karssenberg@gmail.com</update_contact>
+  <translation type="gettext">zim</translation>
+  <content_rating type="oars-1.1"/>
 </component>
