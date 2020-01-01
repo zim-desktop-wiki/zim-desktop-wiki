@@ -21,3 +21,7 @@ perl -i -pe 's{INSERT_PAYPAL_BUTTON_HERE}{<form action="https://www.paypal.com/c
 <input type="image" src="https://www.paypal.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
 <img alt="" border="0" src="https://www.paypal.com/nl_NL/i/scr/pixel.gif" width="1" height="1">
 </form>}' html/contribute.html
+
+perl -i -pe 's{INSERT_REPOLOGY_BADGE_HERE}{<a href="https://repology.org/project/zim/versions">
+    <img src="https://repology.org/badge/tiny-repos/zim.svg" alt="Packaging status">
+</a>}' html/downloads.html
