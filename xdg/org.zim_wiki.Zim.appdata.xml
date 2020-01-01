@@ -35,6 +35,13 @@
     <screenshot type="default">http://zim-wiki.org/screenshots/zim-normal.png</screenshot>
   </screenshots>
   <releases>
+    <release date="2020-01-01" version="0.72.1">
+      <description>
+        <ul>
+          <li>Update translations &amp; documentation</li>
+        </ul>
+      </description>
+    </release>
     <release date="2019-08-29" version="0.72.0">
       <description>
         <ul>
