@@ -9,15 +9,15 @@ msgstr ""
 "Report-Msgid-Bugs-To: Morten Juhl-Johansen Zölde-Fejér "
 "<mjjzf@syntaktisk.dk>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-05-18 22:24+0000\n"
+"PO-Revision-Date: 2019-06-15 20:08+0000\n"
 "Last-Translator: scootergrisen <scootergrisen@gmail.com>\n"
 "Language-Team: Danish\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -689,10 +689,10 @@ msgstr "_Genindlæs"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _henvisning hertil"
-msgstr[1] "%i _henvisninger hertil"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _henvisning hertil..."
+msgstr[1] "%i _henvisninger hertil..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -918,6 +918,8 @@ msgstr ""
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
+"Gentagne klik på en afkrydsningsboks gennemløber afkrydsningsboksens "
+"tilstande"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -1709,7 +1711,7 @@ msgstr "Ny _underside..."
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "_Ny side her ..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1881,7 +1883,7 @@ msgstr "_Om"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Ny side i %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2335,10 +2337,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin tilføjer en ekstra widget med en liste af sider\n"
+"Pluginet tilføjer en ekstra widget med en liste over sider\n"
 "som linker til den aktuelle side.\n"
 "\n"
-"Dette er et standardplugin, der kommer med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. widget label
 #: zim/plugins/backlinkpane.py:62
@@ -2478,7 +2480,7 @@ msgid ""
 msgstr ""
 "Dette plugin tilføjer en GeaphViz-baseret diagram-editor til zim.\n"
 "\n"
-"Dette er et core-plugin, der leveres med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. menu item
 #: zim/plugins/diagrameditor.py:39
@@ -2569,7 +2571,7 @@ msgid ""
 msgstr ""
 "Dette plugin indsætter en LaTeX-baseret formeleditor i zim.\n"
 "\n"
-"Dette er et core-plugin, der udgives sammen med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. menu item
 #: zim/plugins/equationeditor.py:44
@@ -2628,10 +2630,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin giver mulighed for hurtigt at vurdere simple\n"
+"Pluginet giver mulighed for hurtigt at vurdere simple\n"
 "matematiske udtryk i zim.\n"
 "\n"
-"Dette er et core-plugin, der udgives med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. error message
 #: zim/plugins/inlinecalculator.py:271
@@ -2657,10 +2659,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin tilføjer \"Indsæt symbol\"-dialogen, som \n"
+"Pluginet tilføjer \"Indsæt symbol\"-dialogen, som \n"
 "tilføjer automatisk formattering af typografiske tegn.\n"
 "\n"
-"Dette er et core-plugin, der udgives sammen med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. menu item
 #: zim/plugins/insertsymbol.py:77
@@ -2680,7 +2682,7 @@ msgid ""
 "with a page per day, week or month.\n"
 "Also adds a calendar widget to access these pages.\n"
 msgstr ""
-"Dette plugin gør en sektion af notesbogen til en dagbog-journal\n"
+"Pluginet gør en sektion af notesbogen til en dagbog-journal\n"
 "med en side pr. dag, uge eller måned.\n"
 "Tilføjer også en kalenderwidget til at tilgå disse sider.\n"
 
@@ -2786,11 +2788,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin giver en dialog med en grafisk visning\n"
+"Pluginet giver en dialog med en grafisk visning\n"
 "af notesbogens struktur. Den kan bruges som en slags\n"
 "\"mind map\", der viser, hvordan siderne relaterer til hinanden.\n"
 "\n"
-"Dette er et core-plugin, der leveres med zin.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:49
@@ -2822,6 +2824,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Pluginet tilføjer en \"stilinje\" øverst i vinduet.\n"
+"\"Stilinjen\" kan vise stien til notesbogen for den nuværende side,\n"
+"seneste besøgte sider og seneste redigerede sider.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -2869,13 +2874,13 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin fungerer som en måde at komme udenom\n"
+"Pluginet fungerer som en måde at komme udenom\n"
 "manglende printerunderstøttelse i zim. Det eksporterer den\n"
 "nuværende side til HTML og åbner den i en browser. Såfremt\n"
 "browseren er sat op til udskrift, får man sine data til printeren i to "
 "skridt.\n"
 "\n"
-"Dette er et core-plugin, der udgives sammen med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. menu item
 #: zim/plugins/printtobrowser.py:63
@@ -2900,11 +2905,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin tilføjer en dialog til hurtigt at indsætte noget tekst eller "
+"Pluginet tilføjer en dialog til hurtigt at indsætte noget tekst eller "
 "udklipsholderens\n"
 "Indhold i en zim-side.\n"
 "\n"
-"Dette er et core-plugin, der udgives sammen med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. menu item
 #: zim/plugins/quicknote.py:186
@@ -2948,9 +2953,9 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin giver en node-editor for zim baseret på GNU Lilypond.\n"
+"Pluginet giver en node-editor for zim baseret på GNU Lilypond.\n"
 "\n"
-"Dette er et standardplugin leveret med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. plugin preference
 #: zim/plugins/scoreeditor.py:55
@@ -2976,10 +2981,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin lader brugeren tage et skærmbillede og indsætte det direkte\n"
+"Pluginet lader brugeren tage et skærmbillede og indsætte det direkte\n"
 "i en zim-side.\n"
 "\n"
-"Dette er et core-plugin, der udgives sammen med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. plugin preference
 #: zim/plugins/screenshot.py:106
@@ -3048,6 +3053,8 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"Pluginet giver mulighed for at indsætte 'kodeblokke' på siden. De vises\n"
+"som en indlejrede widgets med syntaksfremhævning, linjenumre osv.\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62
@@ -3113,7 +3120,7 @@ msgid ""
 msgstr ""
 "Tilføjer stavekontrol med gtkspell.\n"
 "\n"
-"Dette er et core-plugin, der udgives med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. menu item
 #: zim/plugins/spell.py:128
@@ -3343,10 +3350,10 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin indsætter en ekstra widget, som viser\n"
+"Pluginet indsætter en ekstra widget, som viser\n"
 "en indholdsfortegnelse for den aktuelle side.\n"
 "\n"
-"Dette er et standardplugin, der kommer med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. option for plugin preferences
 #: zim/plugins/tableofcontents.py:87
@@ -3483,11 +3490,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin tilføjer en dialog, der viser alle igangværende opgaver fra\n"
+"Pluginet tilføjer en dialog, der viser alle igangværende opgaver fra\n"
 "denne notesbog. Aktive opgaver kan være åbne afkrydsningsbokse\n"
 "eller punkter markeret med \"TODO\" eller \"FIXME\".\n"
 "\n"
-"Dette er et core-plugin, der leveres med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. preferences option
 #: zim/plugins/tasklist/__init__.py:52
@@ -3563,11 +3570,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin tilføjer et bakkeikon, så man hurtigt kan komme til zim.\n"
+"Pluginet tilføjer et bakkeikon, så man hurtigt kan komme til zim.\n"
 "\n"
-"Dette plugin kræver Gtk+ version 2.10 eller nyere,\n"
+"Pluginet kræver Gtk+ version 2.10 eller nyere,\n"
 "\n"
-"Dette er et core-plugin, der udgives med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. preferences option
 #: zim/plugins/trayicon.py:85
@@ -3618,11 +3625,11 @@ msgid ""
 "\n"
 "This is a core plugin shipping with zim.\n"
 msgstr ""
-"Dette plugin tilføjer versionsstyring for notesbøger.\n"
+"Pluginet tilføjer versionsstyring for notesbøger.\n"
 "\n"
-"Dette plugin understøtter versionssystemerne Bazaar, Git og Mercurial.\n"
+"Pluginet understøtter versionssystemerne Bazaar, Git og Mercurial.\n"
 "\n"
-"Dette er et standardplugin, der kommer med zim.\n"
+"Dette er et standardplugin, der leveres med zim.\n"
 
 #. Label for plugin preference
 #: zim/plugins/versioncontrol/__init__.py:68

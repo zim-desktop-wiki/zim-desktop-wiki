@@ -9,16 +9,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-01-28 19:12+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2019-10-15 16:52+0000\n"
+"Last-Translator: Wojtek Kazimierczak <Unknown>\n"
 "Language-Team: Polish <pl@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 "Language: pl\n"
 
 #. Error message when external application failed, %s is the command
@@ -272,6 +272,18 @@ msgid ""
 "<b>%T</b> the selected text including wiki formatting\n"
 "</tt>\n"
 msgstr ""
+"Poniższe parametry będą zastąpione\n"
+"w poleceniu podczas uruchomienia:\n"
+"<tt>\n"
+"<b>%f</b> źródło strony jako plik tymczasowy\n"
+"<b>%d</b> folder załączników dla bieżącej strony\n"
+"<b>%s</b> plik właściwej strony źródłowej (jeśli jest)\n"
+"<b>%p</b> nazwa strony\n"
+"<b>%n</b> lokalizacja notatnika (plik lub folder)\n"
+"<b>%D</b> lokalizacja bazowa (jeśli jest)\n"
+"<b>%t</b> zaznaczony tekst lub słowo pod kursorem\n"
+"<b>%T</b> zaznaczony tekst wraz z formatowaniem wiki\n"
+"</tt>\n"
 
 #. dialog title
 #: zim/gui/exportdialog.py:32
@@ -416,7 +428,7 @@ msgstr "Plik wyjściowy"
 #: zim/gui/exportdialog.py:416
 #, python-format
 msgid "%(n_error)i errors and %(n_warning)i warnings occurred, see log"
-msgstr ""
+msgstr "Wystąpiło %(n_error)i błędów i %(n_warning)i ostrzeżeń, sprawdź logi"
 
 #. label in export dialog
 #: zim/gui/exportdialog.py:419
@@ -528,13 +540,13 @@ msgstr "_Pasek narzędzi"
 #. Menu title
 #: zim/gui/mainwindow.py:59
 msgid "_Checkbox"
-msgstr ""
+msgstr "_Pole wyboru"
 
 #. Option in the preferences dialog - %s will map to either <Control><Space> or <Command><Space> key binding
 #: zim/gui/mainwindow.py:65
 #, python-format
 msgid "Use %s to switch to the side pane"
-msgstr ""
+msgstr "Użyj %s do przełączenia na panel boczny"
 
 #. Option in the preferences dialog
 #: zim/gui/mainwindow.py:69
@@ -674,8 +686,8 @@ msgstr "_Odśwież"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
 msgstr[0] "%i _Link zwrotny"
 msgstr[1] "%i _Linków zwrotnych"
 msgstr[2] "%i odnośniki do tej strony"
@@ -904,7 +916,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "Wielokrotne kliknięcie w pole wyboru przełącza kolejne stany"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -2038,6 +2050,7 @@ msgstr ""
 "  Piotr Palucki https://launchpad.net/~palucki\n"
 "  Piotr Strębski https://launchpad.net/~strebski\n"
 "  Tomasz (Tomek) Muras https://launchpad.net/~zabuch\n"
+"  Wojtek Kazimierczak https://launchpad.net/~w-kazimierczak\n"
 "  ZZYZX https://launchpad.net/~zzyzx-eu\n"
 "  ciastek https://launchpad.net/~ciastek\n"
 "  spirytdaghost https://launchpad.net/~spirytdaghost\n"

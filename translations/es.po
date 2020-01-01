@@ -7,15 +7,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME &lt;EMAIL@ADDRESS&gt;\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-04-05 12:56+0000\n"
+"PO-Revision-Date: 2019-07-09 13:36+0000\n"
 "Last-Translator: Roberto Michán Sánchez <Unknown>\n"
 "Language-Team: Spanish &lt;es@li.org&gt;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 "Language: es\n"
 
 #. Error message when external application failed, %s is the command
@@ -689,10 +689,10 @@ msgstr "_Recargar"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Enlace hacia atrás"
-msgstr[1] "%i _Enlaces hacia atrás"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _Enlace hacia atrás..."
+msgstr[1] "%i _Enlaces hacia atrás..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -920,6 +920,8 @@ msgstr ""
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
 msgstr ""
+"Al hacer clic repetidamente en una casilla de verificación, su valor cambia "
+"de forma cíclica."
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -1711,7 +1713,7 @@ msgstr "Nueva s_ubpágina"
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "_Nueva Página Aquí..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1884,7 +1886,7 @@ msgstr "Acerca _de"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Nueva Página en %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2480,12 +2482,12 @@ msgstr "Eliminar Todo"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Copiar"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Pegar"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2858,6 +2860,10 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Este plugin añade una \"barra de ruta\" en la parte superior de la ventana.\n"
+"Esta \"barra de ruta\" puede mostrar la ruta del cuaderno para la página "
+"actual,\n"
+"páginas visitadas recientemente o páginas editadas recientemente.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -3085,6 +3091,9 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"Esta extensión permite insertar 'Bloques de Código' en la página. Estos\n"
+"se mostrarán como widgets incrustados con resaltado de sintaxis, números de "
+"línea, etc.\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62

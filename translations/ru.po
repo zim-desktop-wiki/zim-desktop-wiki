@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-05-17 06:36+0000\n"
-"Last-Translator: Jaap Karssenberg <jaap.karssenberg@gmail.com>\n"
+"PO-Revision-Date: 2019-05-24 10:00+0000\n"
+"Last-Translator: Nick <Unknown>\n"
 "Language-Team: Russian <ru@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -690,11 +690,11 @@ msgstr "_Обновить"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Обратных ссылок"
-msgstr[1] "%i _Обратная ссылка"
-msgstr[2] "%i _Обратные ссылки"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _Обратных ссылок…"
+msgstr[1] "%i _Обратная ссылка..."
+msgstr[2] "%i _Обратные ссылки…"
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -919,7 +919,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "Повторение нажатий вызывает цикличную смену статуса чек-бокса"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -1050,7 +1050,7 @@ msgstr "_Открыть"
 #. popup menu menuitem
 #: zim/gui/pageview.py:6047
 msgid "Check Checkbox '>'"
-msgstr ""
+msgstr "Отметить '>'"
 
 #. popup menu menuitem
 #: zim/gui/pageview.py:6048
@@ -1648,7 +1648,7 @@ msgstr "Ограничить поиск на текущей странице и 
 #. menu item
 #: zim/gui/searchdialog.py:147 zim/plugins/scoreeditor.py:68
 msgid "Score"
-msgstr "Найдено"
+msgstr "Нотный текст"
 
 #. Window title
 #: zim/gui/server.py:47
@@ -1709,7 +1709,7 @@ msgstr "Создать _подстраницу…"
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "Создать страницу"
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1881,7 +1881,7 @@ msgstr "_О программе"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "Новая страница в %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2032,7 +2032,7 @@ msgstr "Перезаписать"
 #. Button label
 #: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:903
@@ -2154,7 +2154,7 @@ msgstr "Изображения"
 #: zim/gui/widgets.py:3676
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} из {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3698
@@ -2472,12 +2472,12 @@ msgstr "Удалить все"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Копировать"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Вставить"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2849,6 +2849,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"Плагин добавляет \"панель пути\" над окном текущей страницы.\n"
+"Эта \"панель пути\" может показывать путь к текущей странице, список недавно "
+"посещённых страниц или список недавно редактированных страниц.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -3072,6 +3075,9 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"Этот плагин позволяет вставить \"блок кода\" в текущее место на странице.\n"
+"При этом он предлагает выбрать язык программирования для выделения "
+"синтаксиса , а также нумерует линии текста в \"блоке кода\".\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62
@@ -3550,12 +3556,12 @@ msgstr "как требуемая дата для задач"
 #. Notebook sections to search for tasks - default is the whole tree (empty string means everything)
 #: zim/plugins/tasklist/__init__.py:69
 msgid "Section(s) to index"
-msgstr ""
+msgstr "Искать в разделах"
 
 #. Notebook sections to exclude when searching for tasks - default is none
 #: zim/plugins/tasklist/__init__.py:71
 msgid "Section(s) to ignore"
-msgstr ""
+msgstr "Игнорировать разделы"
 
 #. label for plugin preferences dialog
 #: zim/plugins/tasklist/__init__.py:76

@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-04-16 15:23+0000\n"
-"Last-Translator: Domhnall Walsh <domhnall.eam.walsh@hpe.com>\n"
+"PO-Revision-Date: 2019-12-14 13:05+0000\n"
+"Last-Translator: Andi Chandler <Unknown>\n"
 "Language-Team: English (United Kingdom) <en_GB@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Dialog title
 #: zim/gui/pageview.py:6889 zim/gui/uiactions.py:773
@@ -463,28 +463,28 @@ msgstr "View _Log"
 #: zim/gui/insertedobjects.py:265
 #, python-format
 msgid "No plugin available to display objects of type: %s"
-msgstr ""
+msgstr "No plugin available to display objects of type: %s"
 
 #. Label for object manager - "%s" is the plugin name
 #: zim/gui/insertedobjects.py:273
 #, python-format
 msgid "Plugin \"%s\" is required to display this object"
-msgstr ""
+msgstr "Plugin \"%s\" is required to display this object"
 
 #. Label for object manager
 #: zim/gui/insertedobjects.py:277
 msgid "Enable plugin"
-msgstr ""
+msgstr "Enable plugin"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:310
 msgid "Unkown Object"
-msgstr ""
+msgstr "Unkown Object"
 
 #. label for inserted object
 #: zim/gui/insertedobjects.py:349
 msgid "Unkown Image type"
-msgstr ""
+msgstr "Unkown Image type"
 
 #. Menu title
 #: zim/gui/mainwindow.py:49
@@ -692,10 +692,10 @@ msgstr "_Reload"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Backlink"
-msgstr[1] "%i _Backlinks"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _Backlink..."
+msgstr[1] "%i _Backlinks..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -705,7 +705,7 @@ msgstr "Jump to"
 #. Button label
 #: zim/gui/mainwindow.py:977
 msgid "_Jump"
-msgstr ""
+msgstr "_Jump"
 
 #. Label for page input
 #: zim/gui/mainwindow.py:982
@@ -728,12 +728,12 @@ msgstr "Open Notebook"
 #. Button label
 #: zim/gui/notebookdialog.py:327
 msgid "_Add"
-msgstr ""
+msgstr "_Add"
 
 #. Button label
 #: zim/gui/notebookdialog.py:331 zim/gui/templateeditordialog.py:52
 msgid "_Remove"
-msgstr ""
+msgstr "_Remove"
 
 #. Input label in 'open notebook' dialog
 #: zim/gui/notebookdialog.py:347
@@ -920,7 +920,7 @@ msgstr ""
 #. option in preferences dialog
 #: zim/gui/pageview.py:199
 msgid "Repeated clicking a checkbox cycles through the checkbox states"
-msgstr ""
+msgstr "Repeated clicking a checkbox cycles through the checkbox states"
 
 #. option in preferences dialog
 #: zim/gui/pageview.py:202
@@ -968,7 +968,7 @@ msgstr ""
 #: zim/gui/pageview.py:4896 zim/gui/searchdialog.py:42 zim/gui/uiactions.py:858
 #: zim/gui/widgets.py:84
 msgid "_Cancel"
-msgstr ""
+msgstr "_Cancel"
 
 #. Button in error dialog
 #: zim/gui/pageview.py:4901
@@ -1573,6 +1573,8 @@ msgid ""
 "This plugin also has properties,\n"
 "see the notebook properties dialog"
 msgstr ""
+"This plugin also has properties,\n"
+"see the notebook properties dialogue"
 
 #. button in preferences dialog to change default text editor
 #: zim/gui/preferencesdialog.py:440
@@ -1622,7 +1624,7 @@ msgstr "Last Modified"
 #. Button label
 #: zim/gui/searchdialog.py:36
 msgid "_Find"
-msgstr ""
+msgstr "_Find"
 
 #. help text for the search dialog
 #: zim/gui/searchdialog.py:47
@@ -1703,7 +1705,7 @@ msgstr "New S_ub Page..."
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "_New Page Here..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1824,7 +1826,7 @@ msgstr "Open _Document Root"
 #. Error message
 #: zim/gui/uiactions.py:350
 msgid "No document root defined for this notebook"
-msgstr ""
+msgstr "No document root defined for this notebook"
 
 #. Menu item
 #: zim/gui/uiactions.py:356
@@ -1875,7 +1877,7 @@ msgstr "_About"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "New Page in %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2022,7 +2024,7 @@ msgstr "Overwrite"
 #. Button label
 #: zim/gui/uiactions.py:859 zim/gui/widgets.py:85
 msgid "_OK"
-msgstr ""
+msgstr "_OK"
 
 #. General description of zim itself
 #: zim/gui/uiactions.py:903
@@ -2131,7 +2133,7 @@ msgstr "Images"
 #: zim/gui/widgets.py:3676
 #, python-brace-format
 msgid "{count} of {total}"
-msgstr ""
+msgstr "{count} of {total}"
 
 #. dialog title for log view dialog - e.g. for Equation Editor
 #: zim/gui/widgets.py:3698
@@ -2346,13 +2348,13 @@ msgstr "BackLinks"
 #. context menu for inserted objects
 #: zim/plugins/base/imagegenerator.py:261
 msgid "_Edit..."
-msgstr ""
+msgstr "_Edit..."
 
 #. dialog title, %s is the object name like "Equation"
 #: zim/plugins/base/imagegenerator.py:289
 #, python-format
 msgid "Edit %s"
-msgstr ""
+msgstr "Edit %s"
 
 #. button in e.g. equation editor dialog
 #: zim/plugins/base/imagegenerator.py:314
@@ -2445,12 +2447,12 @@ msgstr "Remove All"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "Copy"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "Paste"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
@@ -2481,7 +2483,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/diagrameditor.py:39
 msgid "Diagram"
-msgstr ""
+msgstr "Diagram"
 
 #. plugin name
 #: zim/plugins/distractionfree.py:25
@@ -2520,7 +2522,7 @@ msgstr "Maximum page width"
 #. plugin preference
 #: zim/plugins/distractionfree.py:40
 msgid "Border width"
-msgstr ""
+msgstr "Border width"
 
 #. plugin preference
 #: zim/plugins/distractionfree.py:41
@@ -2551,7 +2553,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/ditaaeditor.py:47
 msgid "Ascii graph (Ditaa)"
-msgstr ""
+msgstr "ASCII graph (Ditaa)"
 
 #. plugin name
 #: zim/plugins/equationeditor.py:23
@@ -2572,7 +2574,7 @@ msgstr ""
 #. menu item
 #: zim/plugins/equationeditor.py:44
 msgid "Equation"
-msgstr ""
+msgstr "Equation"
 
 #. plugin name
 #: zim/plugins/gnuplot_ploteditor.py:32
@@ -2602,7 +2604,7 @@ msgstr "This plug-in provides a plot editor for Zim based on GNU R\n"
 #. menu item
 #: zim/plugins/gnu_r_ploteditor.py:52
 msgid "GNU R Plot"
-msgstr ""
+msgstr "GNU R Plot"
 
 #. error description
 #: zim/plugins/inlinecalculator.py:192
@@ -2705,7 +2707,7 @@ msgstr "Year"
 #. preferences option
 #: zim/plugins/journal.py:117
 msgid "Hide Journal pane if empty"
-msgstr ""
+msgstr "Hide Journal pane if empty"
 
 #. preferences option, values will be "Day", "Month", ...
 #: zim/plugins/journal.py:122
@@ -2741,7 +2743,7 @@ msgstr ""
 #. Error message for linesorter plugin
 #: zim/plugins/linesorter.py:40
 msgid "Please select more than one line of text"
-msgstr ""
+msgstr "Please select more than one line of text"
 
 #. menu item
 #: zim/plugins/linesorter.py:70
@@ -2794,12 +2796,12 @@ msgstr ""
 #. plugin name
 #: zim/plugins/pageindex/__init__.py:49
 msgid "Page Index"
-msgstr ""
+msgstr "Page Index"
 
 #. plugin description
 #: zim/plugins/pageindex/__init__.py:50
 msgid "This plugin adds the page index pane to the main window.\n"
-msgstr ""
+msgstr "This plugin adds the page index pane to the main window.\n"
 
 #. tab label for side pane
 #: zim/plugins/pageindex/__init__.py:111 data/templates/html/Default.html:52
@@ -2812,7 +2814,7 @@ msgstr "Index"
 #. plugin name
 #: zim/plugins/pathbar.py:30
 msgid "Path Bar"
-msgstr ""
+msgstr "Path Bar"
 
 #. plugin description
 #: zim/plugins/pathbar.py:31
@@ -2821,6 +2823,9 @@ msgid ""
 "This \"path bar\" can show the notebook path for the current page,\n"
 "recent visited pages or recent edited pages.\n"
 msgstr ""
+"This plugin adds a \"path bar\" to the top of the window.\n"
+"This \"path bar\" can show the notebook path for the current page,\n"
+"recent visited pages or recent edited pages.\n"
 
 #. Menu title
 #: zim/plugins/pathbar.py:72
@@ -2884,7 +2889,7 @@ msgstr "_Print to Browser"
 #. Button label
 #: zim/plugins/printtobrowser.py:78
 msgid "_Print"
-msgstr ""
+msgstr "_Print"
 
 #. plugin name
 #: zim/plugins/quicknote.py:168 zim/plugins/quicknote.py:204
@@ -3043,6 +3048,8 @@ msgid ""
 "This plugin allows inserting 'Code Blocks' in the page. These will be\n"
 "shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 msgstr ""
+"This plugin allows inserting 'Code Blocks' in the page. These will be\n"
+"shown as embedded widgets with syntax highlighting, line numbers etc.\n"
 
 #. preference option for sourceview plugin
 #: zim/plugins/sourceview.py:62

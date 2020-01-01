@@ -16,8 +16,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 1 : n%100==2 ? 2 : n%100==3 || "
 "n%100==4 ? 3 : 0);\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -676,12 +676,12 @@ msgstr "_Znova naloži"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i_Povratnih povezav"
-msgstr[1] "%i_Povratna povezava"
-msgstr[2] "%i_Povratni povezavi"
-msgstr[3] "%i_Povratne povezave"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i_Povratnih povezav ..."
+msgstr[1] "%i_Povratna povezava ..."
+msgstr[2] "%i_Povratni povezavi ..."
+msgstr[3] "%i_Povratne povezave ..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
