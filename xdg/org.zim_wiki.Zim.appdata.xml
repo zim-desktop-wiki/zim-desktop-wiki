@@ -57,13 +57,6 @@
           <li>Fix bugs in auto insert bullet at newline</li>
         </ul>
       </description>
-      <artifacts>
-        <artifact type="source">
-          <location>http://www.zim-wiki.org/downloads/zim-0.72.0.tar.gz</location>
-          <checksum type="sha256">a1a93e17e19365d1e4c729739558fd2e68d7dcdef944d0198f481bf4ceab6fd8</checksum>
-          <size type="download">2026552</size>
-        </artifact>
-      </artifacts>
     </release>
   </releases>
   <update_contact>jaap.karssenberg@gmail.com</update_contact>

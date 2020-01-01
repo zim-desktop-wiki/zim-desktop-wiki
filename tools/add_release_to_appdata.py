@@ -41,24 +41,25 @@ def new_release(release, date, changelogs):
 	ul = ET.SubElement(description, "ul")
 	for entry in changelogs:
 			ET.SubElement(ul, "li").text = entry
-	artifacts = ET.SubElement(tag, "artifacts")
-	artifact = ET.SubElement(artifacts, "artifact")
-	artifact.set("type", "source")
 
-	tarball = "zim-%s.tar.gz" % release
-	ET.SubElement(artifact, "location").text = "http://www.zim-wiki.org/downloads/" + tarball
+	#artifacts = ET.SubElement(tag, "artifacts")
+	#artifact = ET.SubElement(artifacts, "artifact")
+	#artifact.set("type", "source")
 
-	checksum = ET.SubElement(artifact, "checksum")
-	checksum.set("type", "sha256")
-	hasher = hashlib.sha256()
-	with open("dist/" + tarball, "rb") as f:
-		for chunk in iter(lambda: f.read(4096), b""):
-			hasher.update(chunk)
-	checksum.text = hasher.hexdigest()
+	#tarball = "zim-%s.tar.gz" % release
+	#ET.SubElement(artifact, "location").text = "http://www.zim-wiki.org/downloads/" + tarball
 
-	size = ET.SubElement(artifact, "size")
-	size.set("type", "download")
-	size.text = str(os.path.getsize("dist/" + tarball))
+	#checksum = ET.SubElement(artifact, "checksum")
+	#checksum.set("type", "sha256")
+	#hasher = hashlib.sha256()
+	#with open("dist/" + tarball, "rb") as f:
+	#	for chunk in iter(lambda: f.read(4096), b""):
+	#		hasher.update(chunk)
+	#checksum.text = hasher.hexdigest()
+
+	#size = ET.SubElement(artifact, "size")
+	#size.set("type", "download")
+	#size.text = str(os.path.getsize("dist/" + tarball))
 
 	return tag
 
