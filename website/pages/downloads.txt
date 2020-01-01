@@ -35,4 +35,12 @@ A windows installer can be found [[https://zim.glump.net/windows/|here]].
 
 {{/images/package-x-generic.png?width=24}}  **Other Distributions**
 
-Numerous BSD flavours and Linux distributions are known to include zim: INSERT_REPOLOGY_BADGE_HERE
+Numerous Linux distributions and BSD flavors are known to include zim: 
+INSERT_REPOLOGY_BADGE_HERE
+
+In specific the following distributions are known to include zim:
+* [[https://packages.ubuntu.com/search?keywords=zim|Ubuntu]]
+* [[https://packages.debian.org/unstable/x11/zim|Debian]] (x11/zim)
+* [[https://www.archlinux.org/packages/community/any/zim/|Arch Linux]] (community/zim)
+* [[https://apps.fedoraproject.org/packages/Zim|Fedora]]
+* [[https://www.freshports.org/deskutils/zim|FreeBSD]]
