@@ -165,8 +165,15 @@ try:
 		# We are running from a source dir - use the locale data included there
 		gettext.install('zim', _localedir, names=('_', 'gettext', 'ngettext'))
 	else:
-		# Hope the system knows where to find the data
-		gettext.install('zim', None, names=('_', 'gettext', 'ngettext'))
+		if os.getenv("TEXTDOMAINDIR"):
+			# TEXTDOMAINDIR is actually an official environment variable with
+			# gettext, but there's a catch: it's not being evaluated by the library
+			# itself, only by gettext's CLI tools. So we're repurposing a familiar
+			# name here instead of creating a variable name of our own.
+			gettext.install('zim', os.getenv("TEXTDOMAINDIR"), names=('_', 'gettext', 'ngettext'))
+		else:
+			# Hope the system knows where to find the data.
+			gettext.install('zim', None, names=('_', 'gettext', 'ngettext'))
 except:
 	logger.exception('Error loading translation')
 	trans = gettext.NullTranslations()
