@@ -57,6 +57,12 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 		'help': 'Plugins:Source View',
 	}
 
+	global WRAP_NONE, WRAP_WORD_CHAR, WRAP_CHAR, WRAP_WORD # Hack - to make sure translation is loaded
+	WRAP_NONE = _('Wrap lines never') # T: option value
+	WRAP_WORD_CHAR = _('Wrap at word and character boundaries') # T: option value
+	WRAP_CHAR = _('Wrap at character boundaries') # T: option value
+	WRAP_WORD = _('Wrap at word boundaries') # T: option value
+
 	plugin_preferences = (
 		# key, type, label, default
 		('auto_indent', 'bool', _('Auto indenting'), True),
@@ -70,6 +76,8 @@ shown as embedded widgets with syntax highlighting, line numbers etc.
 		('right_margin_position', 'int', _('Right margin position'), 72, (1, 1000)),
 			# T: preference option for sourceview plugin
 		('tab_width', 'int', _('Tab width'), 4, (1, 80)),
+			# T: preference option for sourceview plugin
+		('wrap_mode', 'choice', _('Text wrap mode'), WRAP_WORD_CHAR, (WRAP_NONE, WRAP_WORD_CHAR, WRAP_CHAR, WRAP_WORD)),
 			# T: preference option for sourceview plugin
 	)
 
@@ -200,6 +208,14 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_show_right_margin(True)
 		self.view.set_tab_width(4)
 		self.view.set_show_line_numbers(self.buffer.object_attrib['linenumbers'])
+		self.view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+
+		self.WRAP_MODE = {
+			WRAP_NONE: Gtk.WrapMode.NONE,
+			WRAP_WORD_CHAR: Gtk.WrapMode.WORD_CHAR,
+			WRAP_CHAR: Gtk.WrapMode.CHAR,
+			WRAP_WORD: Gtk.WrapMode.WORD,
+		}
 
 		# simple toolbar
 		#~ bar = Gtk.HBox() # FIXME: use Gtk.Toolbar stuff
@@ -241,6 +257,7 @@ class SourceViewWidget(TextViewWidget):
 		self.view.set_right_margin_position(preferences['right_margin_position'])
 		self.view.set_show_right_margin(preferences['show_right_margin'])
 		self.view.set_tab_width(preferences['tab_width'])
+		self.view.set_wrap_mode(self.WRAP_MODE[preferences.get('wrap_mode', WRAP_WORD_CHAR)])
 
 	def on_attrib_changed(self, attrib):
 		self.view.set_show_line_numbers(attrib['linenumbers'])
