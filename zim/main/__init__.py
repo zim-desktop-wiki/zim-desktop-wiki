@@ -304,7 +304,7 @@ class GuiCommand(NotebookCommand, GtkCommand):
 					[ # Default plugins
 						'pageindex', 'pathbar',
 						'insertsymbol', 'printtobrowser',
-						'versioncontrol',
+						'versioncontrol', 'osx_menubar'
 					]
 				)
 			else:
