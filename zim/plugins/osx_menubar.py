@@ -18,21 +18,22 @@
 
 # TODO: hide "help" menu from the menubar ?
 
-# TODO: hide quit / about / preferences from the menubar ?
+from gi.repository import Gtk
 
+from zim.gui.mainwindow import MainWindowExtension
 
-from zim.plugins import PluginClass, WindowExtension, extends
+from zim.plugins import PluginClass
 
 try:
-	import gtkosx_application
+	from gi.repository import GtkosxApplication
 except ImportError:
-	gtkosx_application = None
+	GtkosxApplication = None
 
 
 if False: #pragma: no cover
 
 	# This code defines a "mock" object for testing this plugin on systems
-	# that do not actually have "gtkosx_application", should be disabled for
+	# that do not actually have "GtkosxApplication", should be disabled for
 	# production code.
 	# Switch by setting above statement to "True" or "False"
 
@@ -49,13 +50,13 @@ if False: #pragma: no cover
 				print(">>> OSX call:", name, a)
 			return method
 
-	if gtkosx_application is None:
-		gtkosx_application = MockOSXAppModule
+	if GtkosxApplication is None:
+		GtkosxApplication = MockOSXAppModule
 
 
-if gtkosx_application:
+if GtkosxApplication:
 	# Global for all notebooks / windows, once per process
-	_global_osx_application = gtkosx_application.Application()
+	_global_osx_application = GtkosxApplication.Application()
 	_global_items_initialized = False
 else:
 	_global_osx_application = None
@@ -78,13 +79,12 @@ class OSXmenubarPlugin(PluginClass):
 	def check_dependencies(klass):
 		# "is_ok" must be True, else won't be able to select the plugin in
 		# the plugin manager
-		is_ok = gtkosx_application is not None
-		return is_ok, [('gtkosx_application', is_ok, True)]
+		is_ok = GtkosxApplication is not None
+		return is_ok, [('GtkosxApplication', is_ok, True)]
 
 
 
-@extends('MainWindow')
-class OSXMenuBarMainWindowExtension(WindowExtension):
+class OSXMenuBarMainWindowExtension(MainWindowExtension):
 	# This object is created once for each "main window", this means once for
 	# each notebook opened in zim. If this is the first window, also do
 	# global intialization, else just capture the menubar and keep it ourselves.
@@ -93,45 +93,29 @@ class OSXMenuBarMainWindowExtension(WindowExtension):
 	# windows.
 
 	def __init__(self, plugin, window):
-		WindowExtension.__init__(self, plugin, window)
+		MainWindowExtension.__init__(self, plugin, window)
 
-		# Define OS X menu bar for this window and remove menubar from winow
+		# Define OS X menu bar for this window and remove menubar from window
 		self.menubar = self.window.menubar
 		self.window._zim_window_main.remove(self.menubar) # XXX - use private arg, should patch Window.remove() instead ...
 
-		# Hook up to signal for focus change
-		window.connect('notify', self._on_notify)
-		if window.has_toplevel_focus():
-			self.set_menubar()
-
-	def _on_notify(self, window, property, *a):
-		# Check we recieve focus
-		if property.name == 'has-toplevel-focus' \
-		and self.window.has_toplevel_focus():
-			global _global_items_initialized
-			if not _global_items_initialized:
-				self._init_global_items()
-				_global_items_initialized = True # don't repeat for next window
-
-			self.set_menubar()
-
-	def _init_global_items(self):
 		# Define global items - one time action for process
 		global _global_osx_application
-
-		_global_osx_application.set_help_menu(self.window.uimanager.get_widget('/menubar/help_menu'))
+		_global_osx_application.set_use_quartz_accelerators(False)
 
 		quit = self.window.uimanager.get_widget('/menubar/file_menu/quit')
-		_global_osx_application.connect('NSApplicationBlockTermination', lambda d: not self.window.quit())
+		quit.hide()
+
+		_global_osx_application.set_menu_bar(self.menubar)
+		help = self.window.uimanager.get_widget('/menubar/help_menu')
+		_global_osx_application.set_help_menu(help)
 
 		about = self.window.uimanager.get_widget('/menubar/help_menu/show_about')
 		_global_osx_application.insert_app_menu_item(about, 0)
 
 		prefs = self.window.uimanager.get_widget('/menubar/edit_menu/show_preferences')
-		_global_osx_application.insert_app_menu_item(prefs, 1)
+		_global_osx_application.insert_app_menu_item(Gtk.SeparatorMenuItem(), 1)
+		_global_osx_application.insert_app_menu_item(prefs, 2)
+		_global_osx_application.insert_app_menu_item(Gtk.SeparatorMenuItem(), 3)
 
-	def set_menubar(self):
-		# Window got focus, put out menubar on top
-		global _global_osx_application
-		_global_osx_application.set_menu_bar(self.menubar)
 		_global_osx_application.ready()
