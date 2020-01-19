@@ -272,7 +272,7 @@ class UIActions(object):
 		from zim.gui.templateeditordialog import TemplateEditorDialog
 		TemplateEditorDialog(self.widget).run()
 
-	@action(_('Pr_eferences')) # T: Menu item
+	@action(_('Pr_eferences'), '<Primary>comma') # T: Menu item
 	def show_preferences(self):
 		'''Menu action to show the L{PreferencesDialog}'''
 		from zim.gui.preferencesdialog import PreferencesDialog
