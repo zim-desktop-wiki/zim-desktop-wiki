@@ -186,15 +186,20 @@ class WeakSet(object):
 # Did not switch implementations per version to make sure we test
 # all modules with this implementation
 
-import collections
+try:
+	import collections.abc as abc
+except ImportError:
+	# python < version 3.3
+	import collections as abc
 
-class OrderedDict(collections.MutableMapping):
+
+class OrderedDict(abc.MutableMapping):
 	'''Class that behaves like a dict but keeps items in same order.
 	Updating an items keeps it at the current position, removing and
 	re-inserting an item puts it at the end of the sequence.
 	'''
 
-	# By using collections.MutableMapping we ensure all dict API calls
+	# By using collections.abc.MutableMapping we ensure all dict API calls
 	# are proxied by the methods below. When inheriting from dict
 	# directly e.g. "pop()" does not use "__delitem__()" but is
 	# optimized on it's own

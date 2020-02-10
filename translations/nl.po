@@ -15,8 +15,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:41+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -690,10 +690,10 @@ msgstr "_Herladen"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i _Verwijzing"
-msgstr[1] "%i _Verwijzingen"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i _Verwijzing..."
+msgstr[1] "%i _Verwijzingen..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -2059,7 +2059,7 @@ msgstr ""
 "  Luc Roobrouck https://launchpad.net/~luc-roobrouck\n"
 "  Vincent Gerritsen https://launchpad.net/~vgerrits\n"
 "  Yentl https://launchpad.net/~yentlvt\n"
-"  cumulus007 https://launchpad.net/~cumulus-007"
+"  user109519 https://launchpad.net/~cumulus-007"
 
 #. dialog title
 #: zim/gui/widgets.py:523 zim/gui/widgets.py:1600

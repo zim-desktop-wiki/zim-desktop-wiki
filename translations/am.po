@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: zim\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
 "POT-Creation-Date: 2019-05-09 20:40+0200\n"
-"PO-Revision-Date: 2019-04-14 17:32+0000\n"
+"PO-Revision-Date: 2019-06-01 17:12+0000\n"
 "Last-Translator: samson <Unknown>\n"
 "Language-Team: Amharic <am@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Launchpad-Export-Date: 2019-05-23 18:28+0000\n"
-"X-Generator: Launchpad (build 18968)\n"
+"X-Launchpad-Export-Date: 2020-01-01 13:40+0000\n"
+"X-Generator: Launchpad (build bceb5ef013b87ef7aafe0755545ceb689ca7ac60)\n"
 
 #. Error message when external application failed, %s is the command
 #: zim/applications.py:87
@@ -685,10 +685,10 @@ msgstr "_እንደገና መጫኛ"
 #. Label for button with backlinks in statusbar
 #: zim/gui/mainwindow.py:922
 #, python-format
-msgid "%i _Backlink"
-msgid_plural "%i _Backlinks"
-msgstr[0] "%i የ  _ዌብ ምንጭ"
-msgstr[1] "%i የ  _ዌብ ምንጮች"
+msgid "%i _Backlink..."
+msgid_plural "%i _Backlinks..."
+msgstr[0] "%i የ  _ዌብ ምንጭ..."
+msgstr[1] "%i የ  _ዌብ ምንጮች..."
 
 #. Dialog title
 #: zim/gui/mainwindow.py:976
@@ -1703,7 +1703,7 @@ msgstr "አዲስ ን_ዑስ ገጽ..."
 #. Menu item
 #: zim/gui/uiactions.py:110
 msgid "_New Page Here..."
-msgstr ""
+msgstr "_አዲስ ገጽ እዚህ..."
 
 #. Menu item
 #: zim/gui/uiactions.py:118
@@ -1875,7 +1875,7 @@ msgstr "_ስለ"
 #: zim/gui/uiactions.py:468
 #, python-format
 msgid "New Page in %s"
-msgstr ""
+msgstr "አዲስ ገጽ በ %s"
 
 #. Dialog title
 #: zim/gui/uiactions.py:470
@@ -2434,12 +2434,12 @@ msgstr "ሁሉንም ማስወገጃ"
 #. menu item
 #: zim/plugins/bookmarksbar.py:407
 msgid "Copy"
-msgstr ""
+msgstr "ኮፒ"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:408
 msgid "Paste"
-msgstr ""
+msgstr "መለጠፊያ"
 
 #. menu item
 #: zim/plugins/bookmarksbar.py:410
