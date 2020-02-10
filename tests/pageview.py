@@ -2460,8 +2460,36 @@ class TestFormatActions(tests.TestCase, TestCaseMixin):
 		self.activate('apply_format_strong')
 		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
 
-	def testApplyFormatStrongNoSelection(self):
+	def testApplyFormatStrongNoSelectionBeginOfWord(self):
+		# Only one-way toggle of word, no auto-select for un-toggling
+		# because cursor is at boundary of formatting
 		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+
+	def testApplyFormatStrongNoSelectionMiddleOfWord(self):
+		# Both ways the word is auto-selected and toggles
+		iter = self.buffer.get_start_iter()
+		iter.forward_cursor_positions(2)
+		self.buffer.place_cursor(iter)
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, 'Test 123\n')
+
+	def testApplyFormatStrongNoSelectionEndOfWord(self):
+		# No auto-select at end of word - so test nothing happens both ways
+		iter = self.buffer.get_start_iter()
+		iter.forward_cursor_positions(4)
+		self.buffer.place_cursor(iter)
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, 'Test 123\n')
+		self.buffer.place_cursor(self.buffer.get_start_iter())
+		self.activate('apply_format_strong')
+		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
+		self.buffer.place_cursor(iter)
 		self.activate('apply_format_strong')
 		self.assertBufferEquals(self.buffer, '<strong>Test</strong> 123\n')
 
